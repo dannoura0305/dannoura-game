@@ -784,7 +784,7 @@ function unlockAudio(callback){
     // キャッシュ済み → そのままplay()（タップ同期内）
     const a = new Audio(url);
     a.loop = true;
-    a.volume = 0.22;
+    a.volume = 0.12;
     const p = a.play();
     if(p !== undefined){
       p.then(()=>{
@@ -834,7 +834,7 @@ function _showAudioRetry(){
     const url2 = BGM_BLOB_CACHE['night'];
     if(!url2){ return; }
     const a2 = new Audio(url2);
-    a2.loop=true; a2.volume = 0.22;
+    a2.loop=true; a2.volume = 0.12;
     a2.play().then(()=>{
       audioUnlocked=true; AU._ba=a2; AU.bgmType='night';
       ind.textContent='🔊 音声ON'; ind.style.color='#00e8c8';
@@ -885,7 +885,7 @@ const AU={
       }catch(e){ this._osc(type); return; }
     }
     const a=new Audio(url);
-    a.loop=true; a.volume=0.22;
+    a.loop=true; a.volume = 0.12;
     const p=a.play();
     if(p!==undefined){
       p.then(()=>{
