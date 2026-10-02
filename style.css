@@ -396,6 +396,8 @@ body.fatigue-hi .choice-btn:nth-child(odd){transform:translateX(var(--fatigue-dr
   display:flex;align-items:center;gap:5px;
 }
 #daily-guide-text{flex:1;}
+#daily-guide.danger{color:var(--rd);background:rgba(232,48,85,.1);border-bottom-color:rgba(232,48,85,.35);animation:dgPulse 1.6s ease-in-out infinite;}
+@keyframes dgPulse{0%,100%{opacity:1;}50%{opacity:.6;}}
 /* ── SNS共有パネル ── */
 #share-panel{
   position:fixed;inset:0;z-index:320;background:rgba(4,2,14,.97);
@@ -447,3 +449,20 @@ body.ph3crit .dlg-text{animation:tcrit .15s linear infinite;}
 @keyframes tcrit{0%,100%{transform:none;}30%{transform:translateX(.9px) skewX(.3deg);}70%{transform:translateX(-.9px);}};
 body.ph3crit .top-bar{animation:bfl 3s linear infinite;}
 @keyframes bfl{0%,100%{opacity:1;}47%,53%{opacity:.72;}50%{opacity:.28;}}
+
+/* ── エンディング一覧 ── */
+.btn-endings{margin-top:4px;background:none;border:1px solid rgba(232,184,48,.3);color:rgba(232,184,48,.8);font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;padding:7px 16px;border-radius:2px;cursor:pointer;min-height:36px;-webkit-tap-highlight-color:transparent;}
+.btn-endings:hover{border-color:var(--gd);color:var(--gd);}
+#endlist-sc{position:fixed;inset:0;z-index:190;background:rgba(4,3,10,.9);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;}
+#endlist-sc.active{opacity:1;pointer-events:all;}
+.endlist-box{background:var(--panel);border:1px solid var(--pu);border-radius:5px;padding:14px;width:90%;max-width:340px;max-height:85vh;display:flex;flex-direction:column;gap:10px;}
+.endlist-head{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.62rem;letter-spacing:.18em;color:var(--gd);}
+#endlist-items{overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+.endlist-item{display:flex;align-items:center;gap:10px;padding:6px;border:1px solid rgba(138,82,212,.15);border-radius:3px;opacity:.65;}
+.endlist-item.seen{opacity:1;border-color:rgba(0,232,200,.3);}
+.endlist-item.seen.bad{border-color:rgba(232,48,85,.35);}
+.endlist-thumb{width:52px;height:52px;flex-shrink:0;border-radius:3px;background:rgba(138,82,212,.08) center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-family:var(--dot);color:var(--tx-d);}
+.endlist-txt{min-width:0;}
+.endlist-name{font-family:var(--dot);font-size:.78rem;color:var(--tx-b);letter-spacing:.06em;}
+.endlist-item.seen.bad .endlist-name{color:var(--rd);}
+.endlist-hint{font-size:.6rem;color:var(--tx-d);line-height:1.7;margin-top:2px;}

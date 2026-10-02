@@ -25,10 +25,18 @@
   <div class="t-badge">30日間サバイバル</div>
   <button class="btn-start" id="btn-start-main" onclick="startStory()" disabled style="opacity:0.5;pointer-events:none;">読み込み中...</button>
   <button class="btn-start" id="btn-continue" onclick="loadGame()" style="display:none;margin-top:8px;font-size:.78rem;border-color:rgba(0,232,200,.5);color:rgba(0,232,200,.8);"></button>
+  <button class="btn-endings" id="btn-endings" onclick="openEndingList()">📖 エンディング一覧</button>
   <div id="btn-delete-wrap" style="display:none;margin-top:6px;">
     <button onclick="deleteSave()" style="background:none;border:none;font-family:var(--mono);font-size:.48rem;color:rgba(232,80,80,.4);cursor:pointer;letter-spacing:.08em;padding:4px 8px;">セーブデータを削除</button>
   </div>
 </div>
+
+<!-- ══ エンディング一覧 ══ -->
+<div id="endlist-sc"><div class="endlist-box">
+  <div class="endlist-head"><span>ENDINGS</span><span id="endlist-count">0 / 9</span></div>
+  <div id="endlist-items"></div>
+  <button class="ev-btn" onclick="closeEndingList()">閉じる</button>
+</div></div>
 
 <!-- ══ STORY ══ -->
 <div id="story-screen" class="screen hidden">

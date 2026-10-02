@@ -664,8 +664,10 @@ function updateDailyGuide(){
 
   let msg = '';
 
-  // 状態優先
-  if(m <= 20)         msg = '⚠️ 精神が限界。まず休む。';
+  // 状態優先（ゲームオーバー直前の警告が最優先）
+  const danger = getDangerWarning();
+  if(danger)          msg = danger;
+  else if(m <= 20)    msg = '⚠️ 精神が限界。まず休む。';
   else if(f >= 80)    msg = '😴 疲労が重い。横になろう。';
   else if(gs.flame >= 5) msg = '🔥 炎上中。無理に配信しない。';
   else if(d >= 28)    msg = '🏁 最終盤。今日を走り切ろう。';
@@ -684,6 +686,39 @@ function updateDailyGuide(){
   else msg = '📡 今日も配信して積み上げよう。';
 
   el.textContent = msg;
+  const box = document.getElementById('daily-guide');
+  if(box) box.classList.toggle('danger', !!danger);
+}
+
+// ──────────────────────────
+// ゲームオーバー前の警告
+// ──────────────────────────
+// checkGameOver の各条件に近づいたら一度だけ通知する（安全圏に戻ったら再通知可）
+const DANGER_WARNINGS=[
+  {id:'mental',  check:()=>gs.mental<=15,
+   guide:'🚨 精神が0になると崩壊エンド。まず休む。',
+   notif:'🚨 精神が危険域。0になると崩壊エンド。休むか子どもと過ごそう。'},
+  {id:'exhaust', check:()=>gs.fatigue>=85&&gs.mental<30,
+   guide:'🚨 疲労100・精神20未満で倒れる。今すぐ休む。',
+   notif:'🚨 疲労が限界に近い。疲労100で精神20未満だと倒れる。'},
+  {id:'debt',    check:()=>gs.debt>1700000,
+   guide:'🚨 借金200万を超えると生活破綻。稼いで返済を。',
+   notif:'🚨 借金が200万に近い。超えると生活破綻エンド。'},
+  {id:'flame',   check:()=>gs.flame>=7,
+   guide:'🚨 炎上10で配信崩壊。今日は配信を控える。',
+   notif:'🚨 炎上が危険域。10に達すると炎上崩壊エンド。'},
+];
+const _dangerWarned={};
+function getDangerWarning(){
+  const w=DANGER_WARNINGS.find(d=>d.check());
+  return w?w.guide:'';
+}
+function checkDangerWarnings(){
+  DANGER_WARNINGS.forEach(d=>{
+    if(d.check()){
+      if(!_dangerWarned[d.id]){_dangerWarned[d.id]=true;showNotif(d.notif);}
+    }else _dangerWarned[d.id]=false;
+  });
 }
 
 // ──────────────────────────
@@ -710,6 +745,7 @@ function updateStats(){
   if(gs.mental>30)gs._c30=false;if(gs.mental>10)gs._c10=false;
   gs.listeners.forEach(l=>evolveListener(l));
   checkMilestones();
+  checkDangerWarnings();
   updateDailyGuide();
 }
 
@@ -1542,6 +1578,37 @@ const REVENTS=[
    desc:'部屋の隅に眠っていたものを売った。\n大した金額ではないが、少し気持ちが軽くなった。',
    fx:'収入 +¥15,000',
    apply(){gs.money+=15000;gs.debt=Math.max(0,gs.debt-6000);logGrow('不用品を売って少し収入になった。');}},
+  // ★ 中盤イベント（cond を満たすときだけ発生）
+  {title:'🏫 子どもの参観日',
+   cond:()=>gs.day>=8&&gs.day<=20,
+   desc:'保育園から参観日のお知らせが来ていた。\n有休を取って、後ろの席から見ていた。\n子どもが何度も振り返って、手を振った。',
+   fx:'精神力 +10 | 育児ストレス -15 | 仕事評価 -5',
+   apply(){gs.mental=Math.min(100,gs.mental+10);gs.childStress=Math.max(0,gs.childStress-15);gs.jobRep=Math.max(0,gs.jobRep-5);gs.personality.kindness=Math.min(100,gs.personality.kindness+5);logGrow('参観日に行った。子どもが手を振ってくれた。');}},
+  {title:'📘 先輩の過去問ノート',
+   cond:()=>gs.day>=8&&gs.day<=22&&gs.certKnow<70,
+   desc:'定年間近の先輩が、古いノートを渡してくれた。\n「俺が受けたときのだ。今も出るところは変わらん」\n角が擦り切れたページに、赤線がびっしり引いてあった。',
+   fx:'資格知識 +12 | 精神力 +3',
+   apply(){gs.certKnow=Math.min(100,gs.certKnow+12);gs.mental=Math.min(100,gs.mental+3);logGrow('先輩から過去問ノートをもらった。');}},
+  {title:'🎙 コラボ配信の誘い',
+   cond:()=>gs.day>=10&&gs.followers>=60,
+   desc:'同じ時間帯に配信している人から、コラボの誘いが来た。\n慣れない掛け合いに疲れたが、\n向こうのリスナーが何人か流れてきた。',
+   fx:'フォロワー +25 | 配信人気 +6 | 疲労 +8',
+   apply(){gs.followers+=25;gs.streamPop=Math.min(100,gs.streamPop+6);gs.fatigue=Math.min(100,gs.fatigue+8);gs.rankPts+=10;checkRankUp();logGrow('コラボ配信をした。新しいリスナーが来た。');}},
+  {title:'🔩 設備更新の担当に指名',
+   cond:()=>gs.day>=10&&gs.jobRep>=50,
+   desc:'老朽化したラインの更新工事を任された。\n責任は重いが、手当が付く。\n図面を広げると、少しだけ胸が高鳴った。',
+   fx:'仕事評価 +12 | 疲労 +10 | 収入 +¥10,000',
+   apply(){gs.jobRep=Math.min(100,gs.jobRep+12);gs.fatigue=Math.min(100,gs.fatigue+10);gs.money+=10000;gs.debt=Math.max(0,gs.debt-4000);logGrow('設備更新の担当に指名された。');}},
+  {title:'🖍 冷蔵庫の絵',
+   cond:()=>gs.day>=12,
+   desc:'朝、冷蔵庫に一枚の絵が貼ってあった。\nマイクの前に座る、大きな人の絵。\n「パパのおしごと」と書いてあった。',
+   fx:'精神力 +8 | 希望 +6',
+   apply(){gs.mental=Math.min(100,gs.mental+8);gs.personality.hope=Math.min(100,gs.personality.hope+6);logGrow('子どもが配信している俺の絵を描いてくれた。');}},
+  {title:'🌧 雨漏り',
+   cond:()=>gs.day>=12,
+   desc:'夜中、天井から水が落ちてきた。\nバケツを置いて、配信機材を避難させた。\n大家に連絡したが、修理は来週になるらしい。',
+   fx:'精神力 -5 | 疲労 +8 | 出費 -¥8,000',
+   apply(){gs.mental-=5;gs.fatigue=Math.min(100,gs.fatigue+8);if(gs.money>=8000)gs.money-=8000;else{gs.debt+=8000-gs.money;gs.money=0;}logGrow('雨漏りした。機材は無事だった。');}},
 ];
 
 // ★ 固定イベント：DAY25給料、DAY30月末支払い判定
@@ -1601,7 +1668,15 @@ function showEvPopup(title,desc,fx,cb){
   gs._pev={apply:cb||null};
   document.getElementById('ev-popup').classList.add('active');
 }
-function triggerRandomEvent(){const ev=REVENTS[Math.floor(Math.random()*REVENTS.length)];showEvPopup(ev.title,ev.desc,ev.fx,()=>ev.apply());}
+// 条件を満たすイベントから選ぶ（直前と同じイベントは避ける）
+let _lastRevent=null;
+function triggerRandomEvent(){
+  let pool=REVENTS.filter(ev=>!ev.cond||ev.cond());
+  if(pool.length>1) pool=pool.filter(ev=>ev!==_lastRevent);
+  const ev=pool[Math.floor(Math.random()*pool.length)];
+  _lastRevent=ev;
+  showEvPopup(ev.title,ev.desc,ev.fx,()=>ev.apply());
+}
 function closeEvent(){document.getElementById('ev-popup').classList.remove('active');if(gs._pev){if(gs._pev.apply)gs._pev.apply();gs._pev=null;updateStats();}}
 
 // ──────────────────────────
@@ -1822,6 +1897,70 @@ function shareToEndless(){
 let _endingIv = null;
 
 // ★ エンディング条件
+// ──────────────────────────
+// エンディング一覧（周回をまたいで記録）
+// ──────────────────────────
+const ENDING_LIST=[
+  {type:'rebirth',  name:'再生エンド',         hint:'心と体を保ちながら、配信に居場所を作る'},
+  {type:'king',     name:'深夜の王エンド',     hint:'配信でフォロワーと人気を大きく伸ばす'},
+  {type:'engineer', name:'凄腕保全マンエンド', hint:'工場の仕事と資格を極める'},
+  {type:'father',   name:'父親エンド',         hint:'子どもとの時間を何より大切にする'},
+  {type:'debtfree', name:'夜明けエンド',       hint:'借金をほとんど返し切る'},
+  {type:'normal',   name:'深夜の月エンド',     hint:'とにかく30日を生き延びる'},
+  {type:'collapse', name:'崩壊エンド',         hint:'心が先に尽きてしまう',          bad:true},
+  {type:'bankrupt', name:'生活破綻エンド',     hint:'借金が限界を超えてしまう',      bad:true},
+  {type:'flame',    name:'炎上崩壊エンド',     hint:'炎上が止まらなくなる',          bad:true},
+];
+const ENDINGS_KEY='dannoura_endings';
+function loadSeenEndings(){
+  try{ return JSON.parse(localStorage.getItem(ENDINGS_KEY)||'{}')||{}; }catch(e){ return {}; }
+}
+function recordEnding(type,day){
+  const seen=loadSeenEndings();
+  if(!seen[type]) seen[type]={firstDay:day,firstAt:new Date().toISOString()};
+  seen[type].count=(seen[type].count||0)+1;
+  try{ localStorage.setItem(ENDINGS_KEY,JSON.stringify(seen)); }catch(e){}
+  updateEndingListBtn();
+}
+function updateEndingListBtn(){
+  const btn=document.getElementById('btn-endings');
+  if(!btn) return;
+  const seen=loadSeenEndings();
+  const n=ENDING_LIST.filter(e=>seen[e.type]).length;
+  btn.textContent=`📖 エンディング一覧（${n}/${ENDING_LIST.length}）`;
+}
+function openEndingList(){
+  const seen=loadSeenEndings();
+  const list=document.getElementById('endlist-items');
+  list.innerHTML='';
+  ENDING_LIST.forEach(e=>{
+    const s=seen[e.type];
+    const item=document.createElement('div');
+    item.className='endlist-item'+(s?' seen':'')+(e.bad?' bad':'');
+    const thumb=document.createElement('div');
+    thumb.className='endlist-thumb';
+    if(s&&ENDING_IMG[e.type]) thumb.style.backgroundImage=`url(${ENDING_IMG[e.type]})`;
+    else thumb.textContent='？';
+    const txt=document.createElement('div');
+    txt.className='endlist-txt';
+    const name=document.createElement('div');
+    name.className='endlist-name';
+    name.textContent=s?e.name:'？？？';
+    const hint=document.createElement('div');
+    hint.className='endlist-hint';
+    hint.textContent=s?`DAY${s.firstDay}で初到達・${s.count}回`:'ヒント：'+e.hint;
+    txt.append(name,hint);
+    item.append(thumb,txt);
+    list.appendChild(item);
+  });
+  const n=ENDING_LIST.filter(e=>seen[e.type]).length;
+  document.getElementById('endlist-count').textContent=`${n} / ${ENDING_LIST.length}`;
+  document.getElementById('endlist-sc').classList.add('active');
+}
+function closeEndingList(){
+  document.getElementById('endlist-sc').classList.remove('active');
+}
+
 function triggerEnding(forced){
   clearInterval(commentIv);clearInterval(anomalyIv);clearInterval(ft);clearInterval(dt);
   if(_endingIv){ clearInterval(_endingIv); _endingIv=null; }
@@ -1920,7 +2059,10 @@ function triggerEnding(forced){
   };
 
   // フォールバックはcollapse（想定外typeはBAD扱い）
-  const e=E[type]||E.collapse;
+  if(!E[type]) type='collapse';
+  const e=E[type];
+  // 30日クリア時は日付が31に進んだ後で呼ばれるので、過ごした日数で記録する
+  recordEnding(type, forced ? gs.day : gs.day-1);
   document.getElementById('end-icon').textContent=e.icon;
   document.getElementById('end-title').textContent=e.title;
   document.getElementById('end-title').style.color=e.color;
@@ -2152,4 +2294,5 @@ function checkSaveData(){
 // ──────────────────────────
 updateStats();updateDayInfo();applyPhase();buildCrowd();
 checkSaveData(); // タイトル画面のセーブデータ確認
+updateEndingListBtn();
 setInterval(()=>{if(!document.getElementById('game-screen').classList.contains('hidden'))updateStats();},9000);
