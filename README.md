@@ -2,15 +2,26 @@
 だんのうら育成ゲーム
 
 ## 遊び方
-`index.html` をブラウザで開くと遊べます。`index.html` と `assets/` フォルダは同じ場所に置いてください。
+`index.html` をブラウザで開くと遊べます。`index.html`・`style.css`・`game.js`・`assets/` は同じ場所に置いてください。
+
+## ゲームの流れ
+- DAY1〜DAY30を、配信・工場の仕事・資格の勉強・育児・休息をやりくりして生き延びます。
+- 次のどれかに当てはまると、その時点でゲームオーバーです。近づくと画面上部の目標欄が赤く光り、通知で知らせます。
+  - 精神が0になる
+  - 疲労が100で、精神が20未満
+  - 借金が200万円を超える
+  - 炎上が10に達する
+- 30日を終えると、育て方に応じたエンディングになります。到達したエンディングはタイトル画面の「エンディング一覧」で確認できます（ブラウザに保存）。
 
 ## ファイル構成
 ```
-index.html        ゲーム本体（HTML / CSS / JS）
+index.html        画面構成（HTML）
+style.css         見た目（CSS）
+game.js           ゲームロジック（JS）
 assets/bgm/       BGM（mp3）
 assets/voice/     ボイス（m4a）
 assets/img/       背景・キャラ・エンディング画像（webp）
 ```
 
 音声・画像を差し替えるときは `assets/` のファイルを置き換えるか、
-`index.html` 内の `BGM_DATA` / `VOICE_DATA` / `BG_IMG` / `CHAR_IMG` / `SD_IMG` / `ENDING_IMG` のパスを書き換えてください。
+`game.js` 内の `BGM_DATA` / `VOICE_DATA` / `BG_IMG` / `CHAR_IMG` / `SD_IMG` / `ENDING_IMG` のパスを書き換えてください。
