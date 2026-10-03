@@ -11,6 +11,8 @@ const root=typeof window!=='undefined'?window:globalThis;
 const HOME=root.HOME=root.HOME||{};
 const ART=()=>root.HOME_ART||null;
 const CAT=id=>HOME.CATALOG&&HOME.CATALOG[id];
+// 壁の飾り：HOME_ART は床の0行目を基準に上へ描く。代用の箱は壁帯の中に描く
+function wallPy(L){const a=ART();return a&&typeof a.drawItem==='function'?L.band:L.band-L.T-6;}
 const LAYER_ORDER={rug:0,path:0,wall:1,furniture:2};
 
 HOME.layout=function(area,T){
@@ -165,7 +167,7 @@ HOME.renderArea=function(ctx,area,opts){
   const vis=placements.filter(P=>P&&CAT(P.itemId)&&P.instanceId!==opts.hideId);
   const itemOpts=P=>({rotation:P.rotation,variant:P.variant,T,t,lit:!!lit[P.instanceId],
     plant:(P.itemId==='garden.pot'&&plants[P.instanceId])?{stage:plants[P.instanceId].stage|0,color:plants[P.instanceId].color,name:plants[P.instanceId].name}:null});
-  const posOf=P=>{const c=CAT(P.itemId);return c.layer==='wall'?{px:P.x*T,py:L.band-T-6}:{px:P.x*T,py:L.band+P.y*T};};
+  const posOf=P=>{const c=CAT(P.itemId);return c.layer==='wall'?{px:P.x*T,py:wallPy(L)}:{px:P.x*T,py:L.band+P.y*T};};
   // 床の上（ラグ・飛び石）→ 壁の飾り
   vis.filter(P=>LAYER_ORDER[CAT(P.itemId).layer]<2).sort((a,b)=>LAYER_ORDER[CAT(a.itemId).layer]-LAYER_ORDER[CAT(b.itemId).layer]||a.y-b.y)
     .forEach(P=>drawItem(ctx,P.itemId,Object.assign(itemOpts(P),posOf(P))));
@@ -186,7 +188,7 @@ HOME.renderArea=function(ctx,area,opts){
       const c=CAT(P.itemId);if(!c.light||!lit[P.instanceId])return;
       const p=posOf(P),cx=p.px+T/2,cy=p.py+T/2;
       const g=ctx.createRadialGradient(cx,cy,2,cx,cy,T*3);
-      g.addColorStop(0,'rgba(255,190,90,.42)');g.addColorStop(1,'rgba(255,190,90,0)');
+      g.addColorStop(0,'rgba(255,190,90,.22)');g.addColorStop(1,'rgba(255,190,90,0)');
       ctx.fillStyle=g;ctx.fillRect(cx-T*3,cy-T*3,T*6,T*6);
     });
     ctx.restore();
@@ -201,6 +203,7 @@ HOME.renderArea=function(ctx,area,opts){
     const P=placements.find(q=>q&&q.instanceId===opts.selId);
     if(P&&P.instanceId!==opts.hideId){
       const f=HOME.footprint(P.itemId,P.rotation),p=posOf(P);
+      if(CAT(P.itemId).layer==='wall')p.py=L.band-T-6;
       ctx.save();ctx.strokeStyle='#00e8c8';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.lineDashOffset=-t*20;
       ctx.strokeRect(p.px+1,p.py+1,f.w*T-2,f.h*T-2);ctx.restore();
     }
@@ -210,25 +213,28 @@ HOME.renderArea=function(ctx,area,opts){
   if(g&&CAT(g.itemId)&&Number.isInteger(g.x)){
     const c=CAT(g.itemId),f=HOME.footprint(g.itemId,g.rotation);
     const wall=c.layer==='wall'&&g.y===0;
-    const gp={px:g.x*T,py:wall?L.band-T-6:L.band+g.y*T};
+    const gp={px:g.x*T,py:wall?wallPy(L):L.band+g.y*T};
     drawItem(ctx,g.itemId,{rotation:g.rotation,variant:g.variant,T,t,ghost:true,px:gp.px,py:gp.py});
     ctx.save();
     ctx.lineWidth=2;
     ctx.strokeStyle=g.ok?'#7dffb0':'#ff4060';
     if(!g.ok)ctx.setLineDash([4,3]);
-    ctx.strokeRect(gp.px+1,gp.py+1,f.w*T-2,f.h*T-2);
+    const by=wall?L.band-T-6:gp.py;
+    ctx.strokeRect(gp.px+1,by+1,f.w*T-2,f.h*T-2);
     ctx.restore();
     if(!g.ok){
       const bad=(g.bad&&g.bad.length?g.bad:(g.cells||[]));
-      bad.forEach(q=>{if(q.x>=0&&q.y>=0&&q.x<A.w&&q.y<A.h)cellCross(ctx,q.x*T,wall&&q.y===0?gp.py:L.band+q.y*T,T);});
+      bad.forEach(q=>{if(q.x>=0&&q.y>=0&&q.x<A.w&&q.y<A.h)cellCross(ctx,q.x*T,wall&&q.y===0?L.band-T-6:L.band+q.y*T,T);});
     }else{
-      ctx.save();ctx.fillStyle='rgba(125,255,176,.18)';ctx.fillRect(gp.px,gp.py,f.w*T,f.h*T);ctx.restore();
+      ctx.save();ctx.fillStyle='rgba(125,255,176,.18)';ctx.fillRect(gp.px,wall?L.band-T-6:gp.py,f.w*T,f.h*T);ctx.restore();
     }
   }
   ctx.restore();
   return L;
 };
 
+HOME._drawItem=drawItem;
+HOME._drawChar=drawChar;
 HOME.snapshot=function(area,o){
   o=o||{};
   try{

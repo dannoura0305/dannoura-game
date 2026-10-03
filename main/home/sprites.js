@@ -85,7 +85,7 @@ function blit(ctx,img,dx,dy,s){
 // ───────── 床・地面 ─────────
 function floorTile(gx,gy){
   const c=mk(U,U),x=c.getContext('2d');
-  const tones=[C.f2,C.f3,C.f2,C.f1,C.f3,C.f4];
+  const tones=[C.f2,C.f3,C.f2,'#b08060',C.f3,'#a27450'];
   for(let r=0;r<4;r++){
     const row=gy*4+r, off=Math.floor(hash(row,7,1)*48), y0=r*4;
     for(let i=0;i<U;i++){
@@ -96,20 +96,23 @@ function floorTile(gx,gy){
       if((wx%48)===1)R(x,C.f1,i,y0,1,3);
       // 木目
       const g=hash(wx,row,9);
-      if(g<0.07)R(x,C.f4,i,y0+1,1,1);else if(g>0.95)R(x,C.f1,i,y0+2,1,1);
+      if(g<0.035)R(x,C.f4,i,y0+1,2,1);else if(g>0.975)R(x,C.f1,i,y0+2,1,1);
     }
-    R(x,C.f5,0,y0+3,U,1);              // 板の継ぎ目
-    for(let i=0;i<U;i++)if(hash(gx*U+i,row,5)<0.5)R(x,'rgba(255,230,190,0.10)',i,y0,1,1);
+    R(x,C.f4,0,y0+3,U,1);              // 板の継ぎ目
+    R(x,'rgba(255,230,190,0.10)',0,y0,U,1);
   }
   return c;
 }
 function grassTile(gx,gy){
   const c=mk(U,U),x=c.getContext('2d');
-  const big=hash(gx>>1,gy>>1,11);
-  R(x,big<0.3?C.g3:C.g2,0,0,U,U);
+  R(x,C.g2,0,0,U,U);
   for(let j=0;j<U;j++)for(let i=0;i<U;i++){
-    const v=hash(gx*U+i,gy*U+j,2);
-    if(v<0.06)R(x,C.g4,i,j);else if(v<0.12)R(x,big<0.3?C.g2:C.g1,i,j);
+    const wx=gx*U+i,wy=gy*U+j;
+    // ゆるやかなまだら（タイル境界をまたいで連続）
+    const m=Math.sin(wx*0.21+Math.sin(wy*0.13)*2)+Math.sin(wy*0.17+wx*0.05);
+    const v=hash(wx,wy,2);
+    if(m<-1.1&&v<0.6)R(x,'#76b468',i,j);
+    if(v<0.05)R(x,C.g3,i,j);else if(v<0.09)R(x,C.g1,i,j);
   }
   // 草の房（V字）
   srand(Math.floor(hash(gx,gy,4)*1e9));
@@ -290,16 +293,16 @@ function bookshelf(x,o){
     O(x,1,11,30,5,P.lo);
   }else{
     // 270＝右向き（棚の開口が右）。90 は反転。
-    shadowRect(x,6,4,12,28);
+    shadowRect(x,7,6,11,26);
     // 天板（奥行きは細い）
-    bev(x,2,-26,12,30,P);
-    // 上から覗く本
-    R(x,P.dk,9,-23,4,25);
-    srand(5);for(let j=-22;j<1;j+=2){R(x,['#c8505a','#5a7ad0','#e8c050','#5f9e5c','#8c5fcc','#f2a2ac'][Math.floor(rnd()*6)],9+Math.floor(rnd()*2),j,2,1);}
-    // 手前の側板
-    bev(x,2,3,12,29,{hi:P.base,base:P.mid,mid:P.lo});
-    R(x,P.lo,4,10,8,1);R(x,P.lo,4,20,8,1);
-    R(x,OL,13,3,1,29);
+    bev(x,3,-28,10,22,P);
+    // 開いた側（右）から覗く本の背
+    R(x,OL,12,-26,3,58);R(x,'#4a2a18',13,-25,1,56);
+    srand(5);for(let j=-24;j<30;j+=2){R(x,['#c8505a','#5a7ad0','#e8c050','#5f9e5c','#8c5fcc','#f2a2ac'][Math.floor(rnd()*6)],13,j,1,1+Math.floor(rnd()*2));}
+    for(const sy of[-8,4,16])R(x,P.base,13,sy,1,1);
+    // 手前の側板（背の高さ＝正面の高さ）
+    bev(x,3,-7,10,39,{hi:P.base,base:P.mid,mid:P.lo});
+    R(x,P.lo,5,4,6,1);R(x,P.lo,5,16,6,1);
   }
 }
 
@@ -333,14 +336,14 @@ function repairedShelf(x,o){
     bev(x,0,-12,32,5,P);
     O(x,1,12,30,4,P.lo);
   }else{
-    shadowRect(x,6,4,12,28);
-    bev(x,2,-12,12,16,P);
-    R(x,P.dk,9,-9,4,11);R(x,'#bfe8ea',10,-8,2,2);R(x,C.pk2,10,-3,2,2);
-    bev(x,2,3,12,29,{hi:P.base,base:P.mid,mid:P.lo});
+    shadowRect(x,7,10,11,22);
+    bev(x,2,-14,12,22,P);
+    R(x,OL,11,-12,4,42);R(x,'#4a2a18',12,-11,2,40);R(x,'#bfe8ea',12,-8,2,3);R(x,C.pk2,12,0,2,2);R(x,C.g3,12,14,2,3);R(x,C.cr2,12,22,2,2);
+    R(x,NEW.base,12,6,2,1);
+    bev(x,2,7,12,25,{hi:P.base,base:P.mid,mid:P.lo});
     // 側板の継ぎ当て
-    O(x,4,12,8,6,NEW.base);R(x,NEW.hi,5,13,6,1);R(x,OL,5,15,1,1);R(x,OL,10,15,1,1);
-    bracket(8,24);
-    R(x,OL,13,3,1,29);
+    O(x,4,12,7,6,NEW.base);R(x,NEW.hi,5,13,5,1);R(x,OL,5,15,1,1);R(x,OL,9,15,1,1);
+    bracket(7,23);
   }
 }
 
@@ -355,7 +358,7 @@ function futon(x,o){
     O(x,1,13,30,32,C.bl2);R(x,C.bl1,2,14,28,2);R(x,C.cr2,2,14,28,1);
     R(x,C.bl3,2,40,28,4);R(x,C.bl3,29,16,1,24);R(x,C.bl1,2,16,1,24);
     R(x,C.bl3,4,22,24,1);
-    for(let i=0;i<4;i++)for(let j=0;j<3;j++)star(6+i*7+(j%2)*3,24+j*6);
+    for(let i=0;i<4;i++)for(let j=0;j<3;j++)star(5+i*7+(j%2)*3,24+j*6);
   }else{
     // 90：頭が右、足元が左
     shadowRect(x,3,3,47,31);
@@ -388,7 +391,7 @@ function lowTable(x,o){
   else{for(let k=0;k<4;k++)R(x,P.mid,5+k*7,-3+((k*5)%10),1,8);}
   // ふたり分の茶碗とおにぎり
   const cup=(X,Y,col)=>{O(x,X,Y,5,4,col);R(x,'#ffffff',X+1,Y+1,1,1);R(x,C.am2,X+1,Y,3,1);};
-  const plate=(X,Y)=>{oell(x,X,Y,4,2,C.cr1);R(x,OL,X-1,Y-2,3,3);R(x,'#ffffff',X-1,Y-2,3,2);R(x,'#2a2a3a',X-1,Y,3,1);};
+  const plate=(X,Y)=>{oell(x,X,Y,4,2,C.cr2);R(x,C.cr3,X-3,Y+1,7,1);for(const [dx,dy] of [[-2,-1],[1,-1],[0,0]]){R(x,OL,X+dx-1,Y+dy-1,3,3);R(x,'#ff9a3a',X+dx-1+1,Y+dy-1+1,1,1);R(x,'#ffb85a',X+dx-1,Y+dy,1,1);}};
   if(o.rot===0){cup(6,3,C.vi1);cup(21,3,C.pk2);plate(16,-1);}
   else{cup(13,-3,C.vi1);cup(13,9,C.pk2);plate(7,4);}
 }
@@ -396,7 +399,7 @@ function lowTable(x,o){
 function glowCanvas(rgb,r){
   const key='glow|'+rgb+'|'+r;let c=cache.get(key);if(c)return c;
   c=mk(r*2+1,r*2+1);const x=c.getContext('2d');
-  const steps=[[1,.10],[.75,.10],[.5,.14],[.3,.2]];
+  const steps=[[1,.05],[.86,.06],[.72,.07],[.58,.08],[.44,.1],[.3,.12],[.18,.14]];
   for(const [k,a] of steps){x.fillStyle='rgba('+rgb+','+a+')';const rr=Math.round(r*k);for(let yy=-rr;yy<=rr;yy++){const hw=Math.round(Math.sqrt(rr*rr-yy*yy));x.fillRect(r-hw,r+yy,hw*2+1,1);}}
   cache.set(key,c);return c;
 }
@@ -420,20 +423,23 @@ function shellLantern(x,o){
   shE(x,9,13,6,2);
   // 流木の台
   O(x,2,8,12,6,'#c8b8a0');R(x,'#e2d6c2',3,9,10,1);R(x,'#a8987e',3,12,10,1);R(x,'#8a7a64',6,10,3,1);
-  // 取っ手
-  R(x,OL,4,-15,8,1);R(x,OL,3,-14,1,4);R(x,OL,12,-14,1,4);R(x,C.me2,4,-14,8,1);
-  // 貝殻（扇形）
-  const S=lit?['#ffffff','#f2fffb','#c8eee8','#8fd2cc']:['#fff6f8','#f4e2ea','#dcc0cc','#b898a8'];
-  for(let j=0;j<12;j++){const hw=Math.round(1+Math.sqrt(j/11)*6);R(x,OL,8-hw-1,-11+j,hw*2+2,1);}
-  R(x,OL,4,1,8,2);R(x,OL,5,3,6,5);
-  for(let j=0;j<11;j++){const hw=Math.round(1+Math.sqrt(j/11)*6)-1;R(x,S[1],8-hw,-10+j,hw*2,1);}
-  for(let k=-2;k<=2;k++){for(let j=2;j<11;j++){const xx=8+Math.round(k*j/3.2);R(x,S[2],xx,-10+j,1,1);}}
-  R(x,S[0],5,-7,2,1);R(x,S[0],4,-5,1,2);
-  O(x,5,1,6,3,S[3]);R(x,S[2],6,2,4,1);
-  O(x,6,3,4,5,'#7a6a8a');R(x,'#a898b8',7,4,1,3);
+  // 帆立貝（上が丸く広く、下の蝶番へすぼまる）
+  const S=lit?['#ffffff','#e6fbf5','#9ad8d0','#5fb0ac']:['#fff8fa','#f6e2ea','#d4b2c2','#a8889a'];
+  const hwAt=j=>{ // j: 0(上)..12(下)
+    if(j<5)return Math.round(7*Math.sqrt(1-((4-j)/5)*((4-j)/5)));
+    return Math.max(1,Math.round(7-(j-4)*0.75));};
+  for(let j=0;j<13;j++){const hw=hwAt(j);R(x,OL,8-hw-1,-13+j,hw*2+2,1);}
+  R(x,OL,8-hwAt(0),-14,hwAt(0)*2,1);
+  for(let j=0;j<12;j++){const hw=hwAt(j)-1;if(hw>0)R(x,S[1],8-hw,-13+j+0,hw*2,1);}
+  for(let k=-3;k<=3;k++){for(let j=1;j<12;j++){const xx=8+Math.round(k*(12-j)/5);if(Math.abs(xx-8)<hwAt(j)-1)R(x,S[3],xx-(k<0?1:0),-13+j,1,1);}}
+  for(let i=-6;i<=6;i+=2)R(x,OL,8+i-(i<0?1:0),-12,1,1); // 波打つ縁
+  R(x,S[0],4,-12,2,1);R(x,S[0],3,-11,1,2);
+  // 蝶番の耳
+  O(x,4,-2,8,3,S[3]);R(x,S[2],5,-1,6,1);
+  // 首（金具）
+  O(x,6,1,4,8,'#7a6a8a');R(x,'#a898b8',7,2,1,6);
   // 真珠の灯
-  if(lit){R(x,OL,6,-4,4,4);R(x,C.te1,7,-3,2,2);R(x,'#ffffff',7,-3,1,1);}
-  else{R(x,OL,6,-4,4,4);R(x,'#e6dce8',7,-3,2,2);R(x,'#ffffff',7,-3,1,1);}
+  R(x,OL,7,-8,2,1);R(x,OL,6,-7,1,2);R(x,OL,9,-7,1,2);R(x,OL,7,-5,2,1);R(x,lit?C.te2:'#e6dce8',7,-7,2,2);R(x,'#ffffff',7,-7,1,1);
 }
 
 function childDrawing(x,o){
@@ -507,17 +513,19 @@ function flowerCols(color){
   }
   return FLOWER.pink;
 }
+const LEAF_R=["..kk.",".kgGk","kgGk.",".kk.."],LEAF_L=[".kk..","kGgk.",".kGgk","..kk."];
 function plantArt(x,cx,base,stage,color,fr){
   const st=Math.max(0,Math.min(4,stage|0)),sw=fr?1:0;
-  const leaf=(X,Y,dir)=>{R(x,OL,X-1+(dir<0?-1:0),Y-1,4,3);R(x,C.g2,X+(dir<0?-1:0),Y,2,1);R(x,C.g1,X+(dir<0?-1:0),Y,1,1);};
-  if(st===0){R(x,OL,cx-2,base-3,5,3);R(x,C.g2,cx-1,base-2,1,1);R(x,C.g2,cx+1,base-2,1,1);R(x,C.g1,cx,base-2,1,1);return;}
-  const hgt=[0,4,7,10,11][st];
+  const LP={k:OL,g:C.g3,G:C.g1};
+  if(st===0){map(x,[".k.k.","kGkGk",".kgk.","..k.."],LP,cx-2,base-3);return;}
+  const hgt=[0,4,8,10,11][st];
   const top=base-hgt;
   R(x,OL,cx-1,top,3,hgt+1);R(x,C.g3,cx,top+1,1,hgt);
   const tx=cx+(st>=2?sw:0);
-  if(st>=1){leaf(cx+2,top+2,1);leaf(cx-3,top+2+(st>=2?1:0),-1);}
-  if(st>=2){leaf(cx+2,base-3,1);leaf(cx-3,base-4,-1);}
-  if(st===3){const fc=flowerCols(color);R(x,OL,tx-2,top-4,5,6);R(x,C.g2,tx-1,top-3,3,4);R(x,fc[1],tx-1,top-3,3,2);R(x,fc[0],tx-1,top-3,1,1);R(x,C.g3,tx,top-1,1,1);}
+  if(st===1){map(x,LEAF_R,LP,cx,top-2);map(x,LEAF_L,LP,cx-4,top-2);R(x,C.g3,cx,top,1,1);}
+  if(st>=2){map(x,LEAF_R,LP,cx+1,base-5);map(x,LEAF_L,LP,cx-4,base-6);R(x,C.g3,cx,base-5,1,4);}
+  if(st>=2){map(x,LEAF_R,LP,cx+1,top);map(x,LEAF_L,LP,cx-4,top+1);R(x,C.g3,cx,top+1,1,4);}
+  if(st===3){const fc=flowerCols(color);map(x,[".kk.","kabk","kabk","kggk",".kk."],{k:OL,a:fc[0],b:fc[1],g:C.g2},tx-1,top-4);}
   if(st===4){
     const fc=flowerCols(color);
     // 5枚の花びら
@@ -543,21 +551,21 @@ function pot(x,o){
 
 function flowerbed(x,o){
   const P=WOOD,cols=['pink','yellow','white','purple','red','blue'];
-  const fl=(X,Y,c,big)=>{const f=FLOWER[c];R(x,OL,X-1,Y-1,3,3);R(x,f[1],X,Y,1,1);if(big){R(x,f[1],X-1,Y,1,1);R(x,f[1],X+1,Y,1,1);R(x,f[1],X,Y-1,1,1);R(x,f[0],X,Y,1,1);}};
+  const fl=(X,Y,c)=>{const f=FLOWER[c];R(x,OL,X-1,Y-2,3,5);R(x,OL,X-2,Y-1,5,3);R(x,f[1],X-1,Y-1,3,3);R(x,f[0],X-1,Y-1,1,1);R(x,f[2],X+1,Y+1,1,1);R(x,'#ffd84a',X,Y,1,1);};
   if(o.rot===0){
     shadowRect(x,3,6,31,10);
     O(x,0,-2,32,17,'#5a3a2a');
     R(x,'#6e4a34',1,-1,30,10);
     for(let i=0;i<30;i+=3)R(x,'#4e3020',1+i,1+(i%2)*3,1,1);
     srand(17);
-    for(let i=0;i<7;i++){const X=3+i*4,Y=1+(i%2)*3;R(x,C.g3,X,Y+1,1,3);R(x,C.g2,X-1,Y+3,1,1);R(x,C.g2,X+1,Y+2,1,1);fl(X+((o.frame&&i%2)?1:0),Y,cols[i%cols.length],true);}
+    for(let i=0;i<7;i++){const X=4+i*4,Y=1+(i%2)*3;R(x,C.g4,X-2,Y+3,5,2);R(x,C.g2,X-2,Y+3,2,1);R(x,C.g2,X+1,Y+3,1,1);fl(X+((o.frame&&i%2)?1:0),Y,cols[i%cols.length]);}
     O(x,0,8,32,8,P.base);R(x,P.hi,1,9,30,1);R(x,P.mid,1,13,30,1);R(x,P.lo,1,14,30,1);
     for(let i=8;i<32;i+=8)R(x,P.lo,i,9,1,5);
     bev(x,0,-3,32,3,P);
   }else{
     shadowRect(x,3,4,14,28);
     O(x,0,-4,16,34,'#5a3a2a');R(x,'#6e4a34',1,-3,14,26);
-    for(let j=0;j<6;j++){const X=4+(j%2)*7,Y=-1+j*4;R(x,C.g3,X,Y+1,1,3);R(x,C.g2,X-1,Y+3,1,1);fl(X+((o.frame&&j%2)?1:0),Y,cols[j%cols.length],true);}
+    for(let j=0;j<6;j++){const X=5+(j%2)*5,Y=-1+j*4;R(x,C.g4,X-2,Y+2,5,2);R(x,C.g2,X-2,Y+2,2,1);fl(X+((o.frame&&j%2)?1:0),Y,cols[j%cols.length]);}
     bev(x,0,-5,16,3,P);bev(x,0,-5,3,30,P);bev(x,13,-5,3,30,P);
     O(x,0,23,16,9,P.base);R(x,P.hi,1,24,14,1);R(x,P.lo,1,30,14,1);
   }
@@ -570,7 +578,7 @@ function bench(x,o){
     O(x,2,-10,3,18,P.lo);O(x,27,-10,3,18,P.lo);
     bev(x,0,-11,32,4,P);bev(x,0,-6,32,4,P);
     O(x,2,7,3,8,P.lo);O(x,27,7,3,8,P.lo);
-    bev(x,0,0,32,8,P);R(x,P.mid,1,3,30,1);R(x,OL,0,8,32,1);
+    bev(x,0,0,32,8,P);R(x,P.mid,1,3,30,1);R(x,P.lo,1,4,30,1);R(x,OL,0,8,32,1);
   }else if(r===180){
     shadowRect(x,4,9,30,6);
     O(x,2,6,3,9,P.lo);O(x,27,6,3,9,P.lo);
@@ -581,7 +589,7 @@ function bench(x,o){
     // 270＝右向き（背もたれが左）
     shadowRect(x,6,4,12,29);
     O(x,3,26,3,6,P.lo);O(x,11,26,3,6,P.lo);
-    bev(x,2,-2,13,29,P);R(x,P.mid,8,-1,1,27);
+    bev(x,2,-2,13,29,P);for(let j=3;j<26;j+=5)R(x,P.mid,3,j,11,1);R(x,P.lo,13,-1,1,27);
     O(x,0,-12,5,38,P.base);R(x,P.hi,1,-11,1,36);R(x,P.mid,3,-11,1,36);
     R(x,P.lo,1,-1,3,1);R(x,P.lo,1,24,3,1);
   }
@@ -598,13 +606,14 @@ function fence(x,o){
     R(x,P.base,6,-9,4,20);R(x,P.hi,6,-9,1,19);R(x,P.lo,9,-8,1,19);R(x,P.w1||P.hi,7,-9,2,1);
     R(x,'#7a5a3a',5,11,6,1);
   }else{
-    R(x,SH2,10,-4,2,20);
-    // 縦に続く横木（上から見た上面）
-    R(x,OL,5,-6,1,16);R(x,OL,10,-6,1,16);R(x,P.base,6,-6,4,16);R(x,P.hi,6,-6,1,16);R(x,P.lo,9,-6,1,16);
-    for(let j=-6;j<10;j+=4)R(x,P.mid,7,j,2,1);
-    // 杭
-    O(x,4,-1,8,13,P.base);R(x,P.hi,5,0,6,1);R(x,P.hi,5,0,1,11);R(x,P.lo,10,1,1,10);
-    O(x,5,-3,6,4,P.hi);R(x,'#7a5a3a',4,12,8,1);
+    R(x,SH2,10,-6,2,16);
+    // 縦に続く横木（上から見ると細い帯。上下の外周なしでつながる）
+    R(x,OL,5,-10,1,16);R(x,OL,10,-10,1,16);R(x,P.base,6,-10,4,16);R(x,P.hi,6,-10,1,16);R(x,P.lo,9,-10,1,16);
+    R(x,P.mid,7,-8,2,1);R(x,P.mid,7,-1,2,1);
+    // 杭（頭と根元）
+    O(x,4,-5,8,5,P.hi);R(x,P.base,5,-2,6,2);R(x,'#fff0c8',5,-4,2,1);
+    O(x,5,0,6,8,P.base);R(x,P.hi,6,1,1,6);R(x,P.lo,9,1,1,6);
+    R(x,'#7a5a3a',4,7,8,1);R(x,SH,6,8,6,1);
   }
 }
 
@@ -613,7 +622,7 @@ function steppingStone(x,o){
   oell(x,8,8,6,4,C.st2);
   ell(x,7,7,5,3,C.st2);ell(x,6,6,3,1,C.st1);R(x,C.st3,10,10,3,1);R(x,C.st3,12,9,1,1);
   R(x,C.st3,4,9,1,1);R(x,C.st1,9,6,1,1);
-  oell(x,13,13,1,1,C.st3);R(x,C.st2,12,12,1,1);
+  oell(x,13,14,2,1,C.st3);R(x,C.st2,12,13,2,1);
   R(x,C.g1,1,12,1,1);R(x,C.g4,2,13,1,1);
 }
 
@@ -692,7 +701,7 @@ const ITEMS={
   'furniture.cushion':{w:1,h:1,rots:[0],f:cushion},
   'furniture.low_table':{w:2,h:2,rots:[0,90],f:lowTable},
   'light.desk_lamp':{w:1,h:1,rots:[0],f:deskLamp,light:{rgb:'255,196,110',cx:8,cy:-10,r:28}},
-  'light.shell_lantern':{w:1,h:1,rots:[0],f:shellLantern,light:{rgb:'120,236,214',cx:8,cy:-3,r:26}},
+  'light.shell_lantern':{w:1,h:1,rots:[0],f:shellLantern,light:{rgb:'120,236,214',cx:8,cy:-6,r:26}},
   'memento.child_drawing':{w:1,h:1,rots:[0],f:childDrawing,wall:true},
   'memento.bear':{w:1,h:1,rots:[0],f:bear},
   'memento.flower_tag':{w:1,h:1,rots:[0],f:flowerTag},
@@ -994,7 +1003,7 @@ function icon(itemId,variant){
       art=itemArt(itemId,def.rots[0],v,itemId==='garden.pot'?{stage:1,color:'pink'}:null,false,0);
     }
     const b=contentBox(art);
-    let k=Math.min(44/b.w,44/b.h);if(k>=1)k=Math.floor(k);
+    let k=Math.min(44/b.w,44/b.h);if(k>=2)k=Math.floor(k);
     const dw=Math.round(b.w*k),dh=Math.round(b.h*k);
     x.drawImage(art,b.x,b.y,b.w,b.h,Math.round((48-dw)/2),Math.round((48-dh)/2),dw,dh);
   }catch(e){}
@@ -1019,23 +1028,6 @@ const UI={
     ".knnnnnnnnnnnnk.",
     ".kNNNNNNNNNNNNk.",
     "..kkkkkkkkkkkk..",
-    "................"],
-  rotate:[
-    "................",
-    ".....kkkkkk.....",
-    "...kkaaaaaakk...",
-    "..kaaAkkkkaaak..",
-    ".kaAkk....kkak..",
-    ".kaAk.......k...",
-    "kaAk...........",
-    "kaAk......kkkkkk",
-    "kaAk.......kaak.",
-    "kaAk......kaAk..",
-    ".kaAk....kaAk...",
-    ".kaAkk..kaAk....",
-    "..kaaAkkaAk.....",
-    "...kkaaaak......",
-    ".....kkkk.......",
     "................"],
   store:[
     "......kkkk......",
@@ -1209,12 +1201,25 @@ const UI={
     "................"]
 };
 UI.redo=UI.undo.map(r=>r.padEnd(16,'.').split('').reverse().join(''));
+function drawRotate(ax){
+  // 時計回りの矢印（輪＋矢じり）を描いて外周線を足す
+  const t=mk(16,16),tx=t.getContext('2d');
+  for(let j=0;j<16;j++)for(let i=0;i<16;i++){
+    const dx=i+0.5-8,dy=j+0.5-8.5,d=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)*180/Math.PI;
+    if(d>=3.6&&d<=6.1&&!(ang>-75&&ang<-5))R(tx,d>5?C.am4:C.am2,i,j);
+  }
+  // 矢じり（右上、下向き）
+  for(let k=0;k<4;k++)R(tx,C.am2,10+k,4+k,7-2*k,1);
+  R(tx,C.am1,5,4,2,1);
+  ax.drawImage(outlined(t),0,0);
+}
 function uiIcon(name){
   const key='ui|'+name;let c=cache.get(key);if(c)return c;
   c=mk(32,32);const x=c.getContext('2d');x.imageSmoothingEnabled=false;
   try{
     const a=mk(16,16),ax=a.getContext('2d');
-    if(UI[name])map(ax,UI[name],UIP,0,0);
+    if(name==='rotate')drawRotate(ax);
+    else if(UI[name])map(ax,UI[name],UIP,0,0);
     else map(ax,[".kkkk.","kwwwwk","kwkkwk","kkkwwk","..kwk.","..kwk.","..kkk.","..kwk.","..kkk."],{k:OL,w:'#ffffff'},5,3);
     // 右下へ落ち影
     const sh=mk(16,16),sx=sh.getContext('2d');sx.drawImage(a,0,0);sx.globalCompositeOperation='source-in';sx.fillStyle='rgba(27,18,38,0.35)';sx.fillRect(0,0,16,16);
@@ -1229,7 +1234,7 @@ function items(){return Object.keys(ITEMS).map(id=>({id,w:ITEMS[id].w,h:ITEMS[id
 window.HOME_ART={
   TILE:32, ART_TILE:U,
   drawTile, drawWall, drawItem, drawChar, icon, uiIcon,
-  items, uiNames:Object.keys(UI),
+  items, uiNames:Object.keys(UI).concat('rotate'),
   palette:C,
   clearCache(){cache.clear();}
 };

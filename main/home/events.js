@@ -146,8 +146,14 @@ function water(h,s){
 // 家で過ごす効果（精神+）は state.js 側の上限つき関数があるときだけ
 function homeMental(kind){
   for(const k of ['gainMental','homeMental','addHomeMental']){
-    if(typeof HOME[k]==='function'){try{HOME[k](kind==='water'?(HOME.BAL&&HOME.BAL.waterMental)||1:(HOME.BAL&&HOME.BAL.talkMental)||1,kind);}catch(e){}return;}
+    if(typeof HOME[k]==='function'){
+      let g=0;
+      try{g=+HOME[k](kind==='water'?(HOME.BAL&&HOME.BAL.waterMental)||1:(HOME.BAL&&HOME.BAL.talkMental)||1,kind)||0;}catch(e){}
+      if(g>0){toast(kind==='water'?`🌱 水をあげた（精神+${g}）`:`🙂 心が少し軽くなった（精神+${g}）`);try{typeof updateStats==='function'&&updateStats();}catch(e){}}
+      return g;
+    }
   }
+  return 0;
 }
 // 鉢が収納→再配置で別の instanceId になったら、植物の記録をつなぎ直す
 function relinkPot(h,s){
@@ -164,8 +170,10 @@ function relinkPot(h,s){
 
 // ── 会話の部品 ──
 const say=lines=>{try{return HOME.ui&&HOME.ui.say?Promise.resolve(HOME.ui.say(lines)):Promise.resolve();}catch(e){return Promise.resolve();}};
-const choice=(q,opts)=>{try{return HOME.ui&&HOME.ui.choice?Promise.resolve(HOME.ui.choice(q,opts)):Promise.resolve(-1);}catch(e){return Promise.resolve(-1);}};
-const promptName=(label,def,max)=>{try{return HOME.ui&&HOME.ui.prompt?Promise.resolve(HOME.ui.prompt(label,def,max)):Promise.resolve(def);}catch(e){return Promise.resolve(def);}};
+// 家の画面が途中で閉じられたら、その会話は「まだ答えていない」扱い（-1／undefined）。続きは次に話したとき
+const alive=()=>{try{return typeof HOME.isOpen!=='function'||!!HOME.isOpen();}catch(e){return true;}};
+const choice=(q,opts)=>{try{return HOME.ui&&HOME.ui.choice?Promise.resolve(HOME.ui.choice(q,opts)).then(i=>alive()?i:-1):Promise.resolve(-1);}catch(e){return Promise.resolve(-1);}};
+const promptName=(label,def,max)=>{try{return HOME.ui&&HOME.ui.prompt?Promise.resolve(HOME.ui.prompt(label,def,max)).then(v=>alive()?v:undefined):Promise.resolve(def);}catch(e){return Promise.resolve(def);}};
 const toast=t=>{try{HOME.ui&&HOME.ui.toast&&HOME.ui.toast(t);}catch(e){}};
 const D=(text,face)=>({who:'dan',face:face||'',text});
 const K=(text,face)=>({who:'kid',face:face||'',text});
@@ -207,6 +215,7 @@ async function stepStart(s,again){
     {t:'「一緒に植えましょ」',s:'鉢の色と置き場所、花の名前を決める'},
     {t:'「今夜はもう遅いから、また今度ね」',s:'あとで、また話せる'},
   ]);
+  if(c<0&&!alive())return true;                   // 答える前に画面が閉じられた
   if(c!==0){
     s.declinedDay=day();
     await say([
@@ -224,7 +233,7 @@ async function stepStart(s,again){
 
 // ── 2 植える ──
 async function stepPlant(s,resume){
-  const h=hd();if(!h)return false;
+  let h=hd();if(!h)return false;
   if(resume)await say([K('パパ、たね、うえよ？　じょうろも、あるよ。')]);
   const ci=await choice('はちは、どのいろにする？',[
     {t:'あかい鉢',s:'いちごの色'},{t:'あおい鉢',s:'海の色'},{t:'きいろい鉢',s:'帽子とおんなじ色'},
@@ -245,7 +254,10 @@ async function stepPlant(s,resume){
     K('……「ひなた」は？　あったかいから。パパがきめても、いいよ。'),
   ]);
   const raw=await promptName('花の名前（8文字まで）',DEFAULT_NAME,NAME_MAX);
+  if(raw===undefined&&!alive()){save();return true;}   // 画面が閉じられた：植えるのは次の機会に
   const name=sanitizeName(raw==null?'':raw);
+  // 会話のあいだにセーブが読み直されていても、今の状態に書く
+  h=hd();s=state();if(!h||!s||s.step>=2)return true;
   // 鉢を用意して置く（置けなければ収納へ）
   s.color=color;s.area=area;s.name=name;
   try{HOME.addItem&&HOME.addItem('garden.pot',1,color);}catch(e){}
@@ -267,7 +279,7 @@ async function stepPlant(s,resume){
   await say(lines);
   memo('wp.2.plant',`「${name}」を植えた`,`${COLOR_JP[color]}鉢に種を植えて、「${name}」と名前をつけた。置き場所は${AREA_JP[area]}。${P?'':'（いまは収納の中で、場所が空くのを待っている）'}`,
     {items:['garden.pot'],snapshot:P?snapOf(area):null});
-  if(!P)toast('鉢植えは収納に入れました。模様替えで置けます');
+  toast(P?`🪴 鉢植えを${AREA_JP[area]}に置きました`:'鉢植えは収納に入れました。模様替えで置けます');
   save();
   return true;
 }
@@ -285,7 +297,7 @@ async function stepTag(s){
     const pot=findPlaced(h,s.potId);
     if(pot)placed=placeNew(h,pot.area,'memento.flower_tag','default',{x:pot.p.x+1,y:pot.p.y});
   }
-  s.tagGiven=true;s.step=3;s.tagDay=day();
+  s.tagGiven=true;
   await say([
     K('パパ、これ。'),
     N(`画用紙を切った、小さな名札。クレヨンで「${name}」と書いてある。字がひとつだけ、鏡に映したみたいに反対を向いていた。`),
@@ -293,6 +305,8 @@ async function stepTag(s){
     K(`${name}が、じぶんのなまえ、わすれないように。`),
     D(placed?'そうね。鉢のそばに立てておきましょ':'そうね。大事にしまっておいて、鉢のそばに立ててあげましょ'),
   ]);
+  if(!alive()){save();return true;}               // 途中で閉じたら、次に開いたときにもう一度
+  s=state()||s;s.step=Math.max(+s.step||0,3);s.tagDay=day();
   memo('wp.3.tag','花の名札',`あの子が、画用紙で名札を作ってくれた。「${name}が、じぶんのなまえ、わすれないように」`,{items:['memento.flower_tag']});
   if(given)toast(placed?'花の名札を鉢のそばに置きました':'花の名札を収納に入れました');
   save();
@@ -302,7 +316,6 @@ async function stepTag(s){
 // ── 4 育つ ──
 async function stepGrow(s){
   const name=s.name||DEFAULT_NAME;
-  s.step=4;s.grewDay=day();
   await say([
     K('パパ！　はっぱ、ふえてる！'),
     N(`${name}の芽が、きのうより少しだけ背をのばしていた。`),
@@ -310,6 +323,8 @@ async function stepGrow(s){
     K('パパも、まいにち、ちょっとずつ、がんばってる？'),
     D('……そうね。ちょっとずつ、ね'),
   ]);
+  if(!alive())return true;
+  s=state()||s;s.step=Math.max(+s.step||0,4);s.grewDay=day();
   const h=hd();const pot=h&&findPlaced(h,s.potId);
   memo('wp.4.grow',`${name}の葉っぱ`,`${name}の葉が増えた。「パパも、まいにち、ちょっとずつ、がんばってる？」と聞かれて、少しだけ考えた。`,{snapshot:pot?snapOf(pot.area):null});
   save();
@@ -321,7 +336,6 @@ async function stepReason(s){
   const name=s.name||DEFAULT_NAME;
   const h=hd();const pot=h&&findPlaced(h,s.potId);
   const where=pot?(pot.area==='garden'?'戸口のそば':'窓辺'):'あそこ';
-  s.step=5;s.reasonDay=day();
   await say([
     N(`${name}に、つぼみがひとつ、ふくらんでいた。`),
     D(`ねえ。最初のとき、どうして${where}がよかったの？　玄関のほう、見てたでしょ`),
@@ -333,6 +347,8 @@ async function stepReason(s){
     D('きのどくなぁ。……ありがとね'),
     K('えへへ。'),
   ]);
+  if(!alive())return true;
+  s=state()||s;s.step=Math.max(+s.step||0,5);s.reasonDay=day();
   memo('wp.5.reason','見えるところに',`「パパが帰ってきたとき、見えるところにしたかったの」\n${name}の場所は、あの子が決めていた。`,{snapshot:pot?snapOf(pot.area):null});
   save();
   return true;
