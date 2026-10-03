@@ -578,7 +578,11 @@ function handleChoice(ac){
 
     case'factoryneta': gs.factoryNetaAvail=false; openStream('kaidan'); break;
     case'deepnight':   triggerDeepNight(); break;
-    case'minigames':   openMinigamePicker(); break;
+    case'minigames':
+      // minigames/ フォルダが無いと関数が未定義になる。黙って失敗しないよう知らせる
+      if(typeof openMinigamePicker==='function')openMinigamePicker();
+      else showNotif('⚠️ ミニゲームを読み込めませんでした。minigames/ フォルダが index.html と同じ場所にあるか確認してください。');
+      break;
     case'main':        loadScene('main'); break;
   }
 }
