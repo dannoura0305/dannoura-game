@@ -1274,6 +1274,13 @@ async function runEnding(tok){
       if(!await endWait(1500 + [...txt].length*40, tok)) return;
     }
   }
+  // 家・庭の振り返り（main/integrations.js。良い結末で、花や直した家具があるときだけ）
+  let hr = null; try{ hr = window.HOME && typeof window.HOME.endingReflection === 'function' ? window.HOME.endingReflection(info.type) : null; }catch(e){ hr = null; }
+  if(hr && hr.lines && hr.lines.length){
+    add(hr.head || '― 暮らし ―','epi-h'); if(!await endWait(700, tok)) return;
+    if(hr.node){ box.appendChild(hr.node); requestAnimationFrame(()=>hr.node.classList.add('on')); try{ hr.node.scrollIntoView({block:'nearest', behavior: RM?'auto':'smooth'}); }catch(e){} if(!await endWait(1600, tok)) return; }
+    for(const t of hr.lines){ add(t,'epi'); if(!await endWait(1500 + [...t].length*40, tok)) return; }
+  }
   if(!await endWait(2600, tok)) return;
   await rollCredits(tok);
 }

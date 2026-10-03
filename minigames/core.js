@@ -10,7 +10,7 @@
 const MINIGAMES=[];
 function registerMinigame(def){MINIGAMES.push(def);}
 // ミニゲーム画面の見出し：タイトルは折り返さず、説明が長ければ「…」で省略する
-document.head.insertAdjacentHTML('beforeend','<style id="mg-style-core">#mg-screen .mini-hd{min-width:0;}#mg-screen .mini-ttl{white-space:nowrap;flex-shrink:0;}#mg-screen .mg-help{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}#mg-screen .mini-endbtn.mg-quit-armed{border-color:var(--rd);color:var(--rd);font-size:.62rem;}</style>');
+document.head.insertAdjacentHTML('beforeend','<style id="mg-style-core">#mg-screen:not(.active),#mg-screen:not(.active) *{pointer-events:none!important;}#mg-screen .mini-hd{min-width:0;}#mg-screen .mini-ttl{white-space:nowrap;flex-shrink:0;}#mg-screen .mg-help{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}#mg-screen .mini-endbtn.mg-quit-armed{border-color:var(--rd);color:var(--rd);font-size:.62rem;}</style>');
 // 各ゲーム専用のCSSを一度だけ<head>に差し込む（style.cssを共有で編集しなくて済むように）
 function addMinigameStyle(id,css){
   if(document.getElementById('mg-style-'+id))return;

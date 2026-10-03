@@ -470,6 +470,7 @@ function buildChoices(){
     {tx:'🎤 歌の練習（歌スキル経験 疲労+4 精神-2）',ac:'singpractice'},
     {tx:'🎮 夜のミニゲーム（各1日1回）',ac:'minigames'},
   ];
+  if(window.HOME&&HOME.open)c.push({tx:'🏡 家・庭をひらく',ac:'home'});
   if(gs.factoryNetaAvail)c.push({tx:`🗣 工場ネタで配信【${gs.factoryNetaType}】`,ac:'factoryneta',cls:'neta'});
   if(ph>=2&&gs.hour>=2&&gs.hour<=4)c.push({tx:'🌑 深夜2時の限定配信（レアイベント）',ac:'deepnight'});
   return c;
@@ -583,6 +584,10 @@ function handleChoice(ac){
       // minigames/ フォルダが無いと関数が未定義になる。黙って失敗しないよう知らせる
       if(typeof openMinigamePicker==='function')openMinigamePicker();
       else showNotif('⚠️ ミニゲームを読み込めませんでした。minigames/ フォルダが index.html と同じ場所にあるか確認してください。');
+      break;
+    case'home':
+      if(window.HOME&&HOME.open)HOME.open('room');
+      else showNotif('⚠️ 家・庭の画面を読み込めませんでした。');
       break;
     case'main':        loadScene('main'); break;
   }

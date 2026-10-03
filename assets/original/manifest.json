@@ -1,0 +1,990 @@
+{
+ "version": 1,
+ "generatedBy": "hand-written canvas code (main/home/sprites.js)",
+ "tile": 32,
+ "artPerTile": 16,
+ "assets": [
+  {
+   "id": "furniture.desk_small",
+   "category": "furniture",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('furniture.desk_small')",
+   "atlas": null,
+   "frames": [
+    "r0",
+    "r90"
+   ],
+   "palette": [
+    "#1b1226",
+    "#f2cf98",
+    "#d9a066",
+    "#b97c45",
+    "#8a5530",
+    "#5e3820",
+    "#f4efe6",
+    "#c6b2ee"
+   ],
+   "notes": "2×1。r90 は左側に引き出しの取っ手。天板にノート・鉛筆・マグ。上に7ドットはみ出す。"
+  },
+  {
+   "id": "furniture.wood_chair",
+   "category": "furniture",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('furniture.wood_chair')",
+   "atlas": null,
+   "frames": [
+    "natural:r0,r90,r180,r270",
+    "white:r0,r90,r180,r270"
+   ],
+   "palette": [
+    "#1b1226",
+    "#f2cf98",
+    "#d9a066",
+    "#b97c45",
+    "#8a5530",
+    "#5e3820",
+    "#ffffff",
+    "#ece6f0",
+    "#d2c8dc",
+    "#a99cb8"
+   ],
+   "notes": "1×1。r90 は r270 の左右反転（影は右下に描き直し）。背もたれは上に12ドットはみ出す。r180 は背もたれが手前なので、座った人より後に描くと自然。"
+  },
+  {
+   "id": "furniture.repaired_shelf",
+   "category": "furniture",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('furniture.repaired_shelf')",
+   "atlas": null,
+   "frames": [
+    "r0",
+    "r90",
+    "r180",
+    "r270"
+   ],
+   "palette": [
+    "#1b1226",
+    "#f2cf98",
+    "#d9a066",
+    "#b97c45",
+    "#8a5530",
+    "#5e3820",
+    "#f0d4a0",
+    "#a8b0c0"
+   ],
+   "notes": "2×1。明るい新しい板（中段）とL字金具で「直した」ことが分かる。r180 は背面に筋交い。"
+  },
+  {
+   "id": "furniture.bookshelf",
+   "category": "furniture",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('furniture.bookshelf')",
+   "atlas": null,
+   "frames": [
+    "r0",
+    "r90",
+    "r180",
+    "r270"
+   ],
+   "palette": [
+    "#1b1226",
+    "#f2cf98",
+    "#d9a066",
+    "#b97c45",
+    "#8a5530",
+    "#5e3820",
+    "#c8505a",
+    "#5a7ad0",
+    "#e8c050",
+    "#5f9e5c",
+    "#8c5fcc"
+   ],
+   "notes": "2×1、背が高い（上に28ドット）。横向きは開口側に本の背が覗く。"
+  },
+  {
+   "id": "furniture.futon",
+   "category": "furniture",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('furniture.futon')",
+   "atlas": null,
+   "frames": [
+    "r0",
+    "r90"
+   ],
+   "palette": [
+    "#1b1226",
+    "#fffaf0",
+    "#f4efe6",
+    "#ddd2c0",
+    "#a8c0f0",
+    "#7f9ad8",
+    "#5f78b8",
+    "#f4dc7a"
+   ],
+   "notes": "2×3。homescene の掛け布団（青紫・星柄）を継承。r90 は枕が右。"
+  },
+  {
+   "id": "furniture.cushion",
+   "category": "furniture",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('furniture.cushion')",
+   "atlas": null,
+   "frames": [
+    "r0"
+   ],
+   "palette": [
+    "#1b1226",
+    "#ffd0e0",
+    "#f59aae",
+    "#d9708e",
+    "#a54a70",
+    "#ffe066"
+   ],
+   "notes": "1×1、非solid。四隅に黄色の房。"
+  },
+  {
+   "id": "furniture.low_table",
+   "category": "furniture",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('furniture.low_table')",
+   "atlas": null,
+   "frames": [
+    "r0",
+    "r90"
+   ],
+   "palette": [
+    "#1b1226",
+    "#f2cf98",
+    "#d9a066",
+    "#b97c45",
+    "#8a5530",
+    "#5e3820",
+    "#c6b2ee",
+    "#f59aae",
+    "#ff9a3a"
+   ],
+   "notes": "2×2。ふたり分の湯のみと、みかんの皿。r90 は木目が縦。"
+  },
+  {
+   "id": "light.desk_lamp",
+   "category": "light",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('light.desk_lamp')",
+   "atlas": null,
+   "frames": [
+    "off",
+    "on"
+   ],
+   "palette": [
+    "#1b1226",
+    "#f2cf98",
+    "#d9a066",
+    "#b97c45",
+    "#8a5530",
+    "#5e3820",
+    "#fff4cc",
+    "#ffd98a",
+    "#ffb85a"
+   ],
+   "notes": "1×1。小さな台にランプ。lit でシェードが明るくなり、アンバーの段階グロー（lighter合成）。t でわずかに揺らぐ。"
+  },
+  {
+   "id": "light.shell_lantern",
+   "category": "light",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('light.shell_lantern')",
+   "atlas": null,
+   "frames": [
+    "off",
+    "on"
+   ],
+   "palette": [
+    "#1b1226",
+    "#fff8fa",
+    "#f6e2ea",
+    "#d4b2c2",
+    "#e6fbf5",
+    "#9ad8d0",
+    "#5fb0ac",
+    "#c8b8a0"
+   ],
+   "notes": "1×1。流木の台に帆立貝と真珠。lit でティール/真珠色のグロー（夢の海の色）。"
+  },
+  {
+   "id": "memento.child_drawing",
+   "category": "memento",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('memento.child_drawing')",
+   "atlas": null,
+   "frames": [
+    "r0"
+   ],
+   "palette": [
+    "#1b1226",
+    "#f2cf98",
+    "#d9a066",
+    "#b97c45",
+    "#8a5530",
+    "#5e3820",
+    "#fffbee",
+    "#7a50c0",
+    "#b8a0e8",
+    "#ff8ab8",
+    "#7ad8b8",
+    "#ffc83a"
+   ],
+   "notes": "壁レイヤー。y=0 の行に置き、足元行の上（py-29〜py-8 ドット）の壁帯に額が掛かる。クレヨン画：めがね・紫髪のパパとふたつ結びの娘が手をつなぐ、太陽・ハート・草。"
+  },
+  {
+   "id": "memento.bear",
+   "category": "memento",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('memento.bear')",
+   "atlas": null,
+   "frames": [
+    "r0"
+   ],
+   "palette": [
+    "#1b1226",
+    "#a8724a",
+    "#86553a",
+    "#e8c49a",
+    "#d9b088"
+   ],
+   "notes": "座ったクマ。画面右の耳（クマの左耳）がほつれて糸くずが出ている。娘の手からは消える前提（drawChar では持たせない）。"
+  },
+  {
+   "id": "memento.flower_tag",
+   "category": "memento",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('memento.flower_tag')",
+   "atlas": null,
+   "frames": [
+    "r0"
+   ],
+   "palette": [
+    "#1b1226",
+    "#efd6a6",
+    "#b97c45",
+    "#d05a8a",
+    "#6a8ad0"
+   ],
+   "notes": "木の杭に札。ピンクのクレヨン字と小さな花の落書き。"
+  },
+  {
+   "id": "garden.pot",
+   "category": "garden",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('garden.pot')",
+   "atlas": null,
+   "frames": [
+    "default",
+    "red",
+    "blue",
+    "yellow",
+    "plant stage0-4 × color"
+   ],
+   "palette": [
+    "#1b1226",
+    "#c8714a",
+    "#d24a58",
+    "#5a7ad0",
+    "#e8c050",
+    "#7fbf6e",
+    "#a8d88a",
+    "#5f9e5c"
+   ],
+   "notes": "鉢色＝variant。opts.plant={stage,color}：0=土と芽 1=双葉 2=葉 3=つぼみ 4=花。color は red/pink/blue/yellow/white/purple/orange か #rrggbb。t で花が1ドット揺れる。"
+  },
+  {
+   "id": "garden.flowerbed",
+   "category": "garden",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('garden.flowerbed')",
+   "atlas": null,
+   "frames": [
+    "r0",
+    "r90"
+   ],
+   "palette": [
+    "#1b1226",
+    "#f2cf98",
+    "#d9a066",
+    "#b97c45",
+    "#8a5530",
+    "#5e3820",
+    "#5a3a2a",
+    "#6e4a34",
+    "#f58ab0",
+    "#ffd84a",
+    "#a070e0"
+   ],
+   "notes": "2×1 の木枠の花壇、混ざった色の花。t で揺れる。"
+  },
+  {
+   "id": "garden.bench",
+   "category": "garden",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('garden.bench')",
+   "atlas": null,
+   "frames": [
+    "r0",
+    "r90",
+    "r180",
+    "r270"
+   ],
+   "palette": [
+    "#1b1226",
+    "#f2cf98",
+    "#d9a066",
+    "#b97c45",
+    "#8a5530",
+    "#5e3820"
+   ],
+   "notes": "2×1。r90 は r270 の反転。背もたれは上に12ドット。"
+  },
+  {
+   "id": "garden.fence",
+   "category": "garden",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('garden.fence')",
+   "atlas": null,
+   "frames": [
+    "r0",
+    "r90"
+   ],
+   "palette": [
+    "#1b1226",
+    "#f2cf98",
+    "#d9a066",
+    "#b97c45",
+    "#8a5530",
+    "#5e3820"
+   ],
+   "notes": "1×1。r0 は横木が左右の端までつながる（並べると連続）。r90 は縦に連続する横木＋杭の頭。"
+  },
+  {
+   "id": "garden.stepping_stone",
+   "category": "garden",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('garden.stepping_stone')",
+   "atlas": null,
+   "frames": [
+    "r0"
+   ],
+   "palette": [
+    "#1b1226",
+    "#d6d2de",
+    "#aeaabe",
+    "#87839c",
+    "#625e78"
+   ],
+   "notes": "path レイヤー。平たい石＋小石。"
+  },
+  {
+   "id": "garden.small_tree",
+   "category": "garden",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('garden.small_tree')",
+   "atlas": null,
+   "frames": [
+    "r0",
+    "sway 2f"
+   ],
+   "palette": [
+    "#1b1226",
+    "#a8d88a",
+    "#7fbf6e",
+    "#5f9e5c",
+    "#43784a",
+    "#2e5640",
+    "#8a5a3a"
+   ],
+   "notes": "1×1、樹冠が上に20ドット。白い小花。t で葉が1ドット揺れる。"
+  },
+  {
+   "id": "deco.rug",
+   "category": "deco",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('deco.rug')",
+   "atlas": null,
+   "frames": [
+    "r0",
+    "r90"
+   ],
+   "palette": [
+    "#1b1226",
+    "#5a3f80",
+    "#3d2a5c",
+    "#f2d6b8",
+    "#b5677e",
+    "#a05a70",
+    "#f2c4a0"
+   ],
+   "notes": "3×2。ひし形模様、短辺に房。"
+  },
+  {
+   "id": "deco.sea_glass",
+   "category": "deco",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('deco.sea_glass')",
+   "atlas": null,
+   "frames": [
+    "r0",
+    "sway 2f"
+   ],
+   "palette": [
+    "#1b1226",
+    "#c8b8a0",
+    "#5fd0c0",
+    "#9fd8f4",
+    "#bff0c8",
+    "#4fb4c8"
+   ],
+   "notes": "1×1。流木の吊り飾りに漂着ガラス4片。t で揺れ・きらめき。"
+  },
+  {
+   "id": "floor.wood",
+   "category": "tile",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "gx,gy で板目・継ぎ目が変化（タイルをまたいで連続）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#b88a62",
+    "#a87a56",
+    "#9c6f4d",
+    "#8e6344",
+    "#6e4a36"
+   ],
+   "notes": "HOME_ART.drawTile(ctx,\"floor.wood\",px,py,T,gx,gy)。1タイル4枚板。"
+  },
+  {
+   "id": "ground.grass",
+   "category": "tile",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "gx,gy で草の房・小花・まだらが変化"
+   ],
+   "palette": [
+    "#a8d88a",
+    "#7fbf6e",
+    "#76b468",
+    "#5f9e5c",
+    "#43784a",
+    "#ffe066",
+    "#f59aae"
+   ],
+   "notes": "約22%のタイルに小花。"
+  },
+  {
+   "id": "ground.path",
+   "category": "tile",
+   "status": "draft",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "gx,gy"
+   ],
+   "palette": [
+    "#b89a72",
+    "#9a7c58",
+    "#d4b88e"
+   ],
+   "notes": "予備（踏み固めた土）。現仕様では未使用・未確認。"
+  },
+  {
+   "id": "wall.room",
+   "category": "wall",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "任意サイズ（w,h でキャッシュ）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#7c6f9a",
+    "#75688f",
+    "#4a3f66",
+    "#9a7058",
+    "#7a5440",
+    "#e6d6bc",
+    "#1c1838",
+    "#262352",
+    "#33306a",
+    "#4a4a8e",
+    "#6a7cc0",
+    "#ffd98a"
+   ],
+   "notes": "HOME_ART.drawWall(ctx,px,py,w,h,T)。推奨高さ 1.5T。藤色の壁紙・幅木・中央の窓（夜空・三日月・遠い家並みのアンバーの灯）・カーテン・窓台・左右の壁灯。"
+  },
+  {
+   "id": "char.dan",
+   "category": "character",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "down/left/right/up × stand",
+    "walk 0-3",
+    "sit"
+   ],
+   "palette": [
+    "#1b1226",
+    "#5a3590",
+    "#8c5fcc",
+    "#3a2066",
+    "#f6d6c2",
+    "#2a1c36",
+    "#8a5ad0",
+    "#e07fb0",
+    "#c6b2ee",
+    "#9682ca",
+    "#f19ac0",
+    "#5a3f80",
+    "#2a2036"
+   ],
+   "notes": "16×25ドット（約1×1.6タイル）。homescene.js の頭・体の文字マップを圧縮・再構成。紫髪・めがね・ピンクの髪飾り・ラベンダーのパーカー。left は right の反転。"
+  },
+  {
+   "id": "char.kid",
+   "category": "character",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "down/left/right/up × stand",
+    "walk 0-3",
+    "sit"
+   ],
+   "palette": [
+    "#1b1226",
+    "#35224e",
+    "#6a54a4",
+    "#ffe9de",
+    "#8a52d0",
+    "#f59aae",
+    "#ffaad4",
+    "#ffe066",
+    "#9fe2c8",
+    "#6cc4a4"
+   ],
+   "notes": "16×20ドット（約1×1.25タイル）。紫がかった黒のおかっぱ・ぱっつん前髪・ピンクの花で結んだ小さなふたつ結び・大きな紫の目・ほっぺ・星柄のミントのパジャマ。クマは持たない。"
+  },
+  {
+   "id": "ui.place",
+   "category": "ui",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.uiIcon('place')",
+   "atlas": null,
+   "frames": [
+    "32×32（16ドット×2）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#ffd98a",
+    "#e08a34",
+    "#fffaf0",
+    "#ddd2c0",
+    "#b97c45",
+    "#8a5530",
+    "#9fe2c8",
+    "#7ab8f0",
+    "#4a7ac8",
+    "#f59aae",
+    "#7fbf6e",
+    "#8c5fcc",
+    "#aeaabe"
+   ],
+   "notes": "配置（下向き矢印＋床板）。右下に落ち影。"
+  },
+  {
+   "id": "ui.rotate",
+   "category": "ui",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.uiIcon('rotate')",
+   "atlas": null,
+   "frames": [
+    "32×32（16ドット×2）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#ffd98a",
+    "#e08a34",
+    "#fffaf0",
+    "#ddd2c0",
+    "#b97c45",
+    "#8a5530",
+    "#9fe2c8",
+    "#7ab8f0",
+    "#4a7ac8",
+    "#f59aae",
+    "#7fbf6e",
+    "#8c5fcc",
+    "#aeaabe"
+   ],
+   "notes": "回転（時計回りの輪の矢印）。右下に落ち影。"
+  },
+  {
+   "id": "ui.store",
+   "category": "ui",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.uiIcon('store')",
+   "atlas": null,
+   "frames": [
+    "32×32（16ドット×2）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#ffd98a",
+    "#e08a34",
+    "#fffaf0",
+    "#ddd2c0",
+    "#b97c45",
+    "#8a5530",
+    "#9fe2c8",
+    "#7ab8f0",
+    "#4a7ac8",
+    "#f59aae",
+    "#7fbf6e",
+    "#8c5fcc",
+    "#aeaabe"
+   ],
+   "notes": "収納（箱へ下向き矢印）。右下に落ち影。"
+  },
+  {
+   "id": "ui.undo",
+   "category": "ui",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.uiIcon('undo')",
+   "atlas": null,
+   "frames": [
+    "32×32（16ドット×2）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#ffd98a",
+    "#e08a34",
+    "#fffaf0",
+    "#ddd2c0",
+    "#b97c45",
+    "#8a5530",
+    "#9fe2c8",
+    "#7ab8f0",
+    "#4a7ac8",
+    "#f59aae",
+    "#7fbf6e",
+    "#8c5fcc",
+    "#aeaabe"
+   ],
+   "notes": "取り消し（左へ戻る曲がり矢印）。右下に落ち影。"
+  },
+  {
+   "id": "ui.redo",
+   "category": "ui",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.uiIcon('redo')",
+   "atlas": null,
+   "frames": [
+    "32×32（16ドット×2）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#ffd98a",
+    "#e08a34",
+    "#fffaf0",
+    "#ddd2c0",
+    "#b97c45",
+    "#8a5530",
+    "#9fe2c8",
+    "#7ab8f0",
+    "#4a7ac8",
+    "#f59aae",
+    "#7fbf6e",
+    "#8c5fcc",
+    "#aeaabe"
+   ],
+   "notes": "やり直し（undo の反転）。右下に落ち影。"
+  },
+  {
+   "id": "ui.craft",
+   "category": "ui",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.uiIcon('craft')",
+   "atlas": null,
+   "frames": [
+    "32×32（16ドット×2）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#ffd98a",
+    "#e08a34",
+    "#fffaf0",
+    "#ddd2c0",
+    "#b97c45",
+    "#8a5530",
+    "#9fe2c8",
+    "#7ab8f0",
+    "#4a7ac8",
+    "#f59aae",
+    "#7fbf6e",
+    "#8c5fcc",
+    "#aeaabe"
+   ],
+   "notes": "クラフト（金槌＋きらめき）。右下に落ち影。"
+  },
+  {
+   "id": "ui.memories",
+   "category": "ui",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.uiIcon('memories')",
+   "atlas": null,
+   "frames": [
+    "32×32（16ドット×2）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#ffd98a",
+    "#e08a34",
+    "#fffaf0",
+    "#ddd2c0",
+    "#b97c45",
+    "#8a5530",
+    "#9fe2c8",
+    "#7ab8f0",
+    "#4a7ac8",
+    "#f59aae",
+    "#7fbf6e",
+    "#8c5fcc",
+    "#aeaabe"
+   ],
+   "notes": "思い出帳（ハートの本）。右下に落ち影。"
+  },
+  {
+   "id": "ui.close",
+   "category": "ui",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.uiIcon('close')",
+   "atlas": null,
+   "frames": [
+    "32×32（16ドット×2）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#ffd98a",
+    "#e08a34",
+    "#fffaf0",
+    "#ddd2c0",
+    "#b97c45",
+    "#8a5530",
+    "#9fe2c8",
+    "#7ab8f0",
+    "#4a7ac8",
+    "#f59aae",
+    "#7fbf6e",
+    "#8c5fcc",
+    "#aeaabe"
+   ],
+   "notes": "閉じる（×）。右下に落ち影。"
+  },
+  {
+   "id": "ui.edit",
+   "category": "ui",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.uiIcon('edit')",
+   "atlas": null,
+   "frames": [
+    "32×32（16ドット×2）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#ffd98a",
+    "#e08a34",
+    "#fffaf0",
+    "#ddd2c0",
+    "#b97c45",
+    "#8a5530",
+    "#9fe2c8",
+    "#7ab8f0",
+    "#4a7ac8",
+    "#f59aae",
+    "#7fbf6e",
+    "#8c5fcc",
+    "#aeaabe"
+   ],
+   "notes": "模様替え（鉛筆）。右下に落ち影。"
+  },
+  {
+   "id": "ui.room",
+   "category": "ui",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.uiIcon('room')",
+   "atlas": null,
+   "frames": [
+    "32×32（16ドット×2）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#ffd98a",
+    "#e08a34",
+    "#fffaf0",
+    "#ddd2c0",
+    "#b97c45",
+    "#8a5530",
+    "#9fe2c8",
+    "#7ab8f0",
+    "#4a7ac8",
+    "#f59aae",
+    "#7fbf6e",
+    "#8c5fcc",
+    "#aeaabe"
+   ],
+   "notes": "部屋（家）。右下に落ち影。"
+  },
+  {
+   "id": "ui.garden",
+   "category": "ui",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.uiIcon('garden')",
+   "atlas": null,
+   "frames": [
+    "32×32（16ドット×2）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#ffd98a",
+    "#e08a34",
+    "#fffaf0",
+    "#ddd2c0",
+    "#b97c45",
+    "#8a5530",
+    "#9fe2c8",
+    "#7ab8f0",
+    "#4a7ac8",
+    "#f59aae",
+    "#7fbf6e",
+    "#8c5fcc",
+    "#aeaabe"
+   ],
+   "notes": "庭（花と芽）。右下に落ち影。"
+  },
+  {
+   "id": "ui.water",
+   "category": "ui",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.uiIcon('water')",
+   "atlas": null,
+   "frames": [
+    "32×32（16ドット×2）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#ffd98a",
+    "#e08a34",
+    "#fffaf0",
+    "#ddd2c0",
+    "#b97c45",
+    "#8a5530",
+    "#9fe2c8",
+    "#7ab8f0",
+    "#4a7ac8",
+    "#f59aae",
+    "#7fbf6e",
+    "#8c5fcc",
+    "#aeaabe"
+   ],
+   "notes": "水やり（じょうろ）。右下に落ち影。"
+  },
+  {
+   "id": "ui.talk",
+   "category": "ui",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.uiIcon('talk')",
+   "atlas": null,
+   "frames": [
+    "32×32（16ドット×2）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#ffd98a",
+    "#e08a34",
+    "#fffaf0",
+    "#ddd2c0",
+    "#b97c45",
+    "#8a5530",
+    "#9fe2c8",
+    "#7ab8f0",
+    "#4a7ac8",
+    "#f59aae",
+    "#7fbf6e",
+    "#8c5fcc",
+    "#aeaabe"
+   ],
+   "notes": "話す（吹き出し）。右下に落ち影。"
+  },
+  {
+   "id": "ui.unknown",
+   "category": "ui",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('<未定義ID>')",
+   "atlas": null,
+   "frames": [
+    "1×1"
+   ],
+   "palette": [
+    "#1b1226",
+    "#d8b888",
+    "#f0d8a8",
+    "#b08a5a",
+    "#ffffff"
+   ],
+   "notes": "未定義の itemId / uiIcon 名で描く「？」の箱。例外は出さない。"
+  }
+ ]
+}
