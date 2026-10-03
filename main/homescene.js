@@ -225,19 +225,23 @@ const G_NOTE2=[".zzzz",".z..z",".z..z","zz.zz","zz.zz"];
 const G_HEART=[".r.r.","rrrrr","rrrrr",".rrr.","..r.."];
 const G_DOTS=["z.z.z"];
 const G_SWEAT=[".x.","xax","xxx",".x."];
-const G_SIL=[ // 窓の映り込み（第3段階）
-"...aaaa...",
-"..aaaaaa..",
-".aaaaaaaa.",
-".aa.aa.aa.",
-".aaaaaaaa.",
-".aaaaaaaa.",
-"aaaaaaaaaa",
-"aaaaaaaaaa",
-"aaa.aaaa.a",
-"aaa.aaaa.a",
-"aa..aaaa..",
-"aa..aaaa..",
+const G_SIL=[
+"....aaaa....",
+"...aaaaaa...",
+"..aaaaaaaa..",
+"..aaaaaaaa..",
+"..aaEaaEaa..",
+"..aaaaaaaa..",
+"..aaaaaaaa..",
+".aaaaaaaaaa.",
+".aaa.aa.aaa.",
+".aaa.aa.aaa.",
+"aaaaaaaaaaaa",
+"aaaaaaaaaaaa",
+"aaaa.aa.aaaa",
+"aaaa....aaaa",
+"aaa......aaa",
+"aaa......aaa",
 ];
 
 function mkCanvas(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
@@ -393,7 +397,7 @@ function buildSprites(){
   s.sleepF=hc;
   s.child=sprite(CHILD);s.childT=sprite(CHILD_TURN);
   s.Z=sprite(G_Z);s.z=sprite(G_z);s.note=sprite(G_NOTE,{z:'#ffd6f0'});s.note2=sprite(G_NOTE2,{z:'#bfefff'});
-  s.heart=sprite(G_HEART,{r:'#ff7aa8'});s.dots=sprite(G_DOTS);s.sweat=sprite(G_SWEAT);s.sil=sprite(G_SIL,{a:'#e8e4ff'});
+  s.heart=sprite(G_HEART,{r:'#ff7aa8'});s.dots=sprite(G_DOTS);s.sweat=sprite(G_SWEAT);s.sil=sprite(G_SIL,{a:'#dcd6f4',E:'#1a0a14'});
   s.Zb=sprite(G_Z,{z:'#bcd4ff'});s.zb=sprite(G_z,{z:'#bcd4ff'});
   // ライト
   S.lights.lamp=makeLight(72,'255,196,128');
@@ -414,8 +418,8 @@ function lerpKeys(keys,m,out){ // keys: [[m,[r,g,b]],...]
   if(m<=keys[0][0]){a=b=keys[0];}else if(m>=keys[keys.length-1][0]){a=b=keys[keys.length-1];}
   const k=a===b?0:(m-a[0])/(b[0]-a[0]);
   for(let i=0;i<3;i++)out[i]=a[1][i]+(b[1][i]-a[1][i])*k;return out;}
-const SKY_TOP=[[0,hx2('#0d0b2a')],[180,hx2('#080720')],[300,hx2('#05050f')],[390,hx2('#10123a')],[450,hx2('#2c3468')],[480,hx2('#5a6ca6')]];
-const SKY_BOT=[[0,hx2('#3a2858')],[180,hx2('#241a40')],[300,hx2('#1a1232')],[390,hx2('#2e2a58')],[450,hx2('#9a7090')],[480,hx2('#f0b494')]];
+const SKY_TOP=[[0,hx2('#0d0b2a')],[180,hx2('#080720')],[300,hx2('#05050f')],[390,hx2('#10123a')],[450,hx2('#34447e')],[480,hx2('#7a98d0')]];
+const SKY_BOT=[[0,hx2('#3a2858')],[180,hx2('#241a40')],[300,hx2('#1a1232')],[390,hx2('#2e2a58')],[450,hx2('#c88690')],[480,hx2('#ffcf9c')]];
 const AMB=[[0,[42,40,80]],[180,[32,30,66]],[300,[27,26,58]],[420,[44,42,82]],[460,[88,82,124]],[480,[142,132,164]]];
 function nightMin(){
   const h=(typeof gs!=='undefined'&&gs)?gs.hour:22, mi=(typeof gs!=='undefined'&&gs)?gs.min:0;
@@ -431,8 +435,8 @@ function rgb(a){return 'rgb('+(a[0]|0)+','+(a[1]|0)+','+(a[2]|0)+')';}
 let CITY=null;
 function buildCity(){
   srand(4242);CITY={far:[],near:[]};
-  let xx=-2;while(xx<GL.w){const w=4+Math.floor(rnd()*6),h=6+Math.floor(rnd()*12);CITY.far.push({x:xx,w,h});xx+=w-1;}
-  xx=-3;while(xx<GL.w){const w=6+Math.floor(rnd()*9),h=4+Math.floor(rnd()*11);const wins=[];for(let wy=2;wy<h-1;wy+=3)for(let wx=1;wx<w-1;wx+=2)wins.push({x:wx,y:wy,r:rnd(),c:rnd()<.8?0:1});CITY.near.push({x:xx,w,h,wins});xx+=w+1+Math.floor(rnd()*2);}
+  let xx=-2;while(xx<GL.w){const w=4+Math.floor(rnd()*6),h=4+Math.floor(rnd()*9);CITY.far.push({x:xx,w,h});xx+=w-1;}
+  xx=-3;while(xx<GL.w){const w=6+Math.floor(rnd()*9),h=4+Math.floor(rnd()*8);const wins=[];for(let wy=2;wy<h-1;wy+=3)for(let wx=1;wx<w-1;wx+=2)wins.push({x:wx,y:wy,r:rnd(),c:rnd()<.8?0:1});CITY.near.push({x:xx,w,h,wins});xx+=w+1+Math.floor(rnd()*2);}
 }
 function drawSky(m){
   if(!S.sky)S.sky=mkCanvas(GL.w,GL.h);
@@ -443,7 +447,7 @@ function drawSky(m){
   const dawn=Math.max(0,(m-420)/60);
   x.fillStyle=dawn>.5?'#3a3a60':'#1c1838';for(const b of CITY.far)x.fillRect(b.x,GL.h-b.h-6,b.w,b.h+6);
   // 電波塔
-  x.fillStyle=dawn>.5?'#3a3a60':'#1c1838';x.fillRect(31,GL.h-28,1,22);x.fillRect(30,GL.h-14,3,8);
+  x.fillStyle=dawn>.5?'#3a3a60':'#1c1838';x.fillRect(31,GL.h-24,1,18);x.fillRect(30,GL.h-12,3,6);
   // 近景のビルと窓明かり（夜が更けると減る）
   const lit=m<60?.55:m<180?.42:m<300?.22:m<420?.16:.3;
   for(const b of CITY.near){
@@ -640,14 +644,14 @@ function drawWindow(x,m,ph){
   if(S.skyKey!==sk){S.skyKey=sk;drawSky(m);}
   x.drawImage(S.sky,GL.x,GL.y);
   // 航空障害灯
-  if(Math.floor(S.t*1.2)%2===0){x.fillStyle='#ff4050';x.fillRect(GL.x+31,GL.y+GL.h-29,1,1);}
+  if(Math.floor(S.t*1.2)%2===0){x.fillStyle='#ff4050';x.fillRect(GL.x+31,GL.y+GL.h-25,1,1);}
   // 雷
   if(S.flash>0){
     x.globalAlpha=S.flash*.75;x.fillStyle='#dfe6ff';x.fillRect(GL.x,GL.y,GL.w,GL.h);x.globalAlpha=1;
     if(S.bolt&&S.flash>.5){x.fillStyle='#ffffff';for(let i=0;i<14;i++)x.fillRect(GL.x+S.bolt[i],GL.y+i,1,1);}
   }
   // 映り込み（第3段階）
-  if(S.refl>0){const a=S.refl>2.4?(3-S.refl)/.6:S.refl<.6?S.refl/.6:1;x.globalAlpha=a*.32;x.drawImage(S.spr.sil,GL.x+28,GL.y+GL.h-12);x.globalAlpha=1;}
+  if(S.refl>0){const a=S.refl>2.4?(3-S.refl)/.6:S.refl<.6?S.refl/.6:1;x.globalAlpha=a*.38;x.drawImage(S.spr.sil,GL.x+27,GL.y+GL.h-16);x.globalAlpha=1;}
   // 雨（遠い筋）
   const rl=rainLevel(),n=Math.min(DN,Math.round(rl*40));
   x.fillStyle='rgba(170,185,255,.55)';
@@ -786,16 +790,17 @@ function drawActor(x,fat,men){
       }
       break;}
     case'desk':{
-      // 椅子（背もたれ）より先に体
-      const scr=(Math.floor(t*8)%2);
-      D2(s.headB,bx,DESK.y-16+(A.act?2:0));
-      x.fillStyle='#1b1226';x.fillRect(bx+2,DESK.y+1,12,8);x.fillStyle=PAL.c;x.fillRect(bx+3,DESK.y+1,10,7);x.fillStyle=PAL.C;x.fillRect(bx+3,DESK.y+5,10,1);
+      const scr=(Math.floor(t*8)%2), nod=A.act?2:0, Y0=DESK.y-1;
+      // 背中（上半身のみ）
+      x.drawImage(s.bodyB,0,0,16,6,bx,Y0,16,6);
       // 右腕（鉛筆を動かす）
-      x.fillStyle='#1b1226';x.fillRect(bx+12,DESK.y-1+scr,4,4);x.fillStyle=PAL.c;x.fillRect(bx+13,DESK.y+scr,2,2);
+      x.fillStyle='#1b1226';x.fillRect(bx+12,Y0+1+scr,5,4);x.fillStyle=PAL.c;x.fillRect(bx+13,Y0+2+scr,3,2);x.fillStyle=PAL.s;x.fillRect(bx+15,Y0+1+scr,1,1);
+      x.fillStyle='#1b1226';x.fillRect(bx-1,Y0+1,4,4);x.fillStyle=PAL.C;x.fillRect(bx,Y0+2,2,2);
+      D2(s.headB,bx,Y0-16+nod);
       // 椅子
-      x.fillStyle='#1b1226';x.fillRect(bx,DESK.y+6,16,12);x.fillStyle='#3a3256';x.fillRect(bx+1,DESK.y+7,14,10);x.fillStyle='#4e4470';x.fillRect(bx+2,DESK.y+8,12,1);
-      x.fillStyle='#1b1226';x.fillRect(bx+7,DESK.y+18,2,6);x.fillRect(bx+2,DESK.y+24,12,1);x.fillRect(bx+1,DESK.y+25,2,1);x.fillRect(bx+13,DESK.y+25,2,1);
-      if(A.act&&Math.floor(t)%2)emit('zb',bx+12,DESK.y-18,3,-5,1.4);
+      x.fillStyle='#1b1226';x.fillRect(bx,Y0+5,16,11);x.fillStyle='#3a3256';x.fillRect(bx+1,Y0+6,14,9);x.fillStyle='#544a7a';x.fillRect(bx+2,Y0+7,12,1);x.fillStyle='#2a2440';x.fillRect(bx+1,Y0+13,14,2);
+      x.fillStyle='#1b1226';x.fillRect(bx-1,Y0+16,18,3);x.fillRect(bx+7,Y0+19,2,6);x.fillRect(bx+2,Y0+25,12,1);x.fillRect(bx+1,Y0+26,2,1);x.fillRect(bx+13,Y0+26,2,1);
+      if(A.act&&Math.floor(t)%2)emit('zb',bx+12,Y0-18,3,-5,1.4);
       break;}
     case'sing':{
       const sw=Math.sin(t*2)>0?1:0;
@@ -811,10 +816,13 @@ function drawActor(x,fat,men){
       break;}
     case'kneel':{
       const pat=K.stir>0?(Math.floor(t*4)%2):(Math.floor(t*1.6)%2);
-      D2(s.kneelL,bx,feet-8);
-      // 手（トントン）
-      x.fillStyle='#1b1226';x.fillRect(bx+1,feet-5-pat,3,2);x.fillStyle=PAL.s;x.fillRect(bx+1,feet-5-pat,2,1);
-      const hy=feet-8-16+(K.stir>0?0:1);
+      const fy=86;
+      D2(s.kneelL,bx,fy-8);
+      // 伸ばした腕と手（トントン）
+      const ay=fy-5-pat;
+      x.fillStyle='#1b1226';x.fillRect(bx-7,ay-1,12,4);x.fillStyle=PAL.c;x.fillRect(bx-5,ay,10,2);x.fillStyle=PAL.C;x.fillRect(bx-5,ay+1,10,1);
+      x.fillStyle='#1b1226';x.fillRect(bx-10,ay-1,4,4);x.fillStyle=PAL.s;x.fillRect(bx-9,ay,3,2);
+      const hy=fy-8-16+(K.stir>0?0:1);
       D2(s.headSL,bx,hy);
       drawFaceS(x,bx,hy,true,fat,false,K.stir<=0);
       break;}
