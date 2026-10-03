@@ -452,6 +452,7 @@ function buildChoices(){
     {tx:'📚 資格の勉強（知識+5 疲労+6）',ac:'study'},
     {tx:'👶 子どもの寝かしつけ（育児ストレス-10 精神+3）',ac:'childcare'},
     {tx:'🎤 歌の練習（歌スキル経験 疲労+4）',ac:'singpractice'},
+    {tx:'🎮 夜のミニゲーム（4種・各1日1回）',ac:'minigames'},
   ];
   if(gs.factoryNetaAvail)c.push({tx:`🗣 工場ネタで配信【${gs.factoryNetaType}】`,ac:'factoryneta',cls:'neta'});
   if(ph>=2&&gs.hour>=2&&gs.hour<=4)c.push({tx:'🌑 深夜2時の限定配信（レアイベント）',ac:'deepnight'});
@@ -561,6 +562,7 @@ function handleChoice(ac){
 
     case'factoryneta': gs.factoryNetaAvail=false; openStream('kaidan'); break;
     case'deepnight':   triggerDeepNight(); break;
+    case'minigames':   openMinigamePicker(); break;
     case'main':        loadScene('main'); break;
   }
 }
