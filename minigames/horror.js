@@ -1703,11 +1703,6 @@ registerMinigame({
 
     // ── 開始 ──
     showTitle();
-
-    // テスト用フック（ゲームには影響しない）
-    body._hr={state:()=>({phase,story:story.id,hype,rei,stage:stg(),endKey,bg,line:line&&line.text,choices:phase==='choice'?chList.map(c=>c.t):null,overlay:!!overlay,offline}),
-      setStory(id){if(phase==='title'){const s=STORIES.find(x=>x.id===id);if(s){story=s;titleEl&&titleEl.remove();titleEl=null;showTitle();}}},
-      go:()=>titleGo(),letter:()=>letterEl&&letterEl.click(),adv:()=>advance(),pick:i=>{if(!chPicked)chOn=true;pick(i);},fin:()=>finishStory(),stories:STORIES.map(s=>s.id),
       scene(id,set,r,st){if(titleEl){titleEl.remove();titleEl=null;}if(st){story=STORIES.find(x=>x.id===st)||story;}bg=id;tr=null;S=Object.assign({},set||{});rei=r||0;phase='busy';busyT=9999;stage.classList.remove('ui-off');}};
 
     function cleanup(){try{ro.disconnect();}catch(e){}SFX.stop();}
