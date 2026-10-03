@@ -856,7 +856,7 @@ function buildOp(){
     <div class="pr-op-final"><div class="pr-f1"></div><div class="pr-f2">DAY 1 ／ 30</div></div>
     <button class="pr-skip" type="button">SKIP ▶▶</button>`;
   document.body.appendChild(el);
-  OP.el = el; OP.cv = el.querySelector('canvas'); OP.ctx = OP.cv.getContext('2d');
+  OP.el = el; OP.cv = el.querySelector('.pr-op-frame canvas'); OP.ctx = OP.cv.getContext('2d');
   OP.buf = mk(OW,OH); OP.bctx = OP.buf.getContext('2d'); OP.bg = el.querySelector('.pr-op-bgc').getContext('2d'); OP.fr = 0;
   el.querySelector('.pr-skip').addEventListener('click', e=>{ e.stopPropagation(); SFX.decide(); finishOpening(); });
   el.addEventListener('pointerdown', e=>{ if(e.target.closest('.pr-skip')) return; opTap(); });
@@ -1434,7 +1434,7 @@ wrap('startEndlessMode', prev => function(){
   return prev.apply(this, arguments);
 });
 // 他スクリプトから状態を確認できるように
-window.PR = { showDayCard, hideDayCard, startOpening, finishOpening, endingActive: () => EN.active, openingActive: () => OP.active };
+window.PR = { _op: OP, _en: EN, showDayCard, hideDayCard, startOpening, finishOpening, endingActive: () => EN.active, openingActive: () => OP.active };
 
 /* ───────────────────────── 起動 ───────────────────────── */
 function boot(){

@@ -185,6 +185,33 @@ const MG={
   },
 };
 ['keydown','keyup'].forEach(t=>document.addEventListener(t,e=>{if(MG._keys&&!MG._ended)MG._keys(e);}));
+// ミニゲーム中に本編のイベント（ランダムイベント等）が起きたら、結果を閉じるまで待たせる
+const _mgPendingEv=[];
+if(typeof showEvPopup==='function'){
+  const _sep=showEvPopup;
+  window.showEvPopup=function(...a){
+    // 表示中のイベントがあれば上書きせず順番待ち（以前は2つ目が1つ目の効果を消していた）
+    if(document.body.classList.contains('mg-active')||document.getElementById('result-sc')?.classList.contains('active')||document.getElementById('ev-popup')?.classList.contains('active')){_mgPendingEv.push(a);return;}
+    return _sep.apply(this,a);
+  };
+}
+function _mgShowNextEv(){
+  if(!_mgPendingEv.length||document.body.classList.contains('mg-active'))return;
+  setTimeout(()=>{
+    if(document.getElementById('ev-popup')?.classList.contains('active')||document.getElementById('result-sc')?.classList.contains('active'))return;
+    const ev=_mgPendingEv.shift();if(ev)showEvPopup(...ev);
+  },250);
+}
+if(typeof closeEvent==='function'){
+  const _ce=closeEvent;
+  window.closeEvent=function(...a){const r=_ce.apply(this,a);_mgShowNextEv();return r;};
+}
+if(typeof closeResult==='function'){
+  const _cr=closeResult;
+  window.closeResult=function(...a){
+    const r=_cr.apply(this,a);_mgShowNextEv();return r;
+  };
+}
 // タブが裏に回ったら、ミニゲームの効果音（Web Audio）を止めて戻ったら再開する
 document.addEventListener('visibilitychange',()=>{
   if(MG._ended||typeof AU==='undefined'||!AU.ctx)return;

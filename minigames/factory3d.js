@@ -115,7 +115,7 @@ addMinigameStyle('factory3d',`
 .factory3d-next{text-align:right;font-family:var(--mono);font-size:.55rem;color:var(--tx-d);animation:factory3d-blink 1s steps(2) infinite;}
 .factory3d-skip{position:absolute;right:10px;top:calc(9% + 8px);z-index:10;padding:3px 10px;border-radius:7px;border:1px solid rgba(187,174,221,.4);background:rgba(5,4,14,.6);color:var(--tx);font-family:var(--dot);font-size:.6rem;cursor:pointer;display:none;}
 .factory3d-wrap.factory3d-story .factory3d-skip{display:block;}
-.factory3d-end{position:absolute;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px;font-family:var(--dot);color:var(--tx);background:radial-gradient(ellipse at 50% 40%,rgba(20,12,40,.55),rgba(2,1,8,.92));}
+.factory3d-end{position:absolute;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px;font-family:var(--dot);color:var(--tx);background:radial-gradient(ellipse at 50% 40%,rgba(20,12,40,.4),rgba(2,1,8,.8));}
 .factory3d-end.on{display:flex;animation:factory3d-gin .5s steps(5) both;}
 .factory3d-end h3{margin:0;font-weight:normal;font-size:1rem;letter-spacing:.1em;color:var(--tx-b);text-shadow:0 0 10px rgba(138,82,212,.8);}
 .factory3d-end .factory3d-row{display:flex;gap:10px;align-items:center;width:100%;max-width:380px;}
