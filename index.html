@@ -131,6 +131,18 @@
   <div class="mini-ft"><div class="mini-sc">修理: <span id="mf-fixed">0</span>/<span id="mf-total">0</span></div><div class="mini-tm" id="mf-timer">30</div><button class="mini-endbtn" onclick="endFactory()">終了</button></div>
 </div>
 
+<!-- ══ 夜のミニゲーム（minigames/*.js） ══ -->
+<div id="mg-picker"><div class="mg-pick-box">
+  <div class="endlist-head"><span>NIGHT GAMES</span><span>各1日1回</span></div>
+  <div id="mg-pick-items"></div>
+  <button class="ev-btn" onclick="closeMinigamePicker()">戻る</button>
+</div></div>
+<div id="mg-screen" class="mini-screen">
+  <div class="mini-hd"><span class="mini-ttl" id="mg-title"></span><div class="mg-help" id="mg-help"></div></div>
+  <div class="mg-body" id="mg-body"></div>
+  <div class="mini-ft"><div class="mini-sc" id="mg-score"></div><div class="mini-tm" id="mg-timer"></div><button class="mini-endbtn" onclick="MG.quit()">終了</button></div>
+</div>
+
 <!-- ══ DIAG ══ -->
 <div id="diag-mini" class="mini-screen">
   <div class="mini-hd"><span class="mini-ttl">🌡 温度・振動診断</span><div style="margin-left:auto;font-family:var(--mono);font-size:.58rem;color:var(--tx-d)">危険域前にタップ</div></div>
@@ -235,5 +247,10 @@
 </div></div>
 
 <script src="game.js"></script>
+<script src="minigames/core.js"></script>
+<script src="minigames/shooter.js"></script>
+<script src="minigames/roguelike.js"></script>
+<script src="minigames/puzzle.js"></script>
+<script src="minigames/cardbattle.js"></script>
 </body>
 </html>
