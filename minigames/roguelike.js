@@ -182,7 +182,7 @@ registerMinigame({
       floorFaults=2+(floor>1?1:0);
       put('fault',floorFaults,2);
       floorFaults=items.length;floorFaultsDone=0;
-      put('battery',1,2);
+      put('battery',floor===3?2:1,2);
       if(Math.random()<.7)put('memo',1,2);
       // 漏電床：通路（左右or上下だけ床）を優先
       leaks=[];
@@ -413,7 +413,6 @@ registerMinigame({
     }
     function enemyTurn(){
       bfsFrom(player.x,player.y);
-      const pi=idx(player.x,player.y);
       for(let ei=0;ei<enemies.length;ei++){
         const en=enemies[ei];
         const man=Math.abs(en.x-player.x)+Math.abs(en.y-player.y);
@@ -426,7 +425,10 @@ registerMinigame({
           }
           const best=stepOpt(en,(en.cd>0?-1:1));
           const chase=en.cd===0&&bfs[idx(en.x,en.y)]>=0&&bfs[idx(en.x,en.y)]<=5;
-          if(best&&(chase?Math.random()<.8:en.cd>0?Math.random()<.6:false)){en.x=best.x;en.y=best.y;}
+          if(best&&(chase?Math.random()<.8:en.cd>0?Math.random()<.6:false)){en.x=best.x;en.y=best.y;
+            // 闇から飛びかかる（照らされていないときだけ）
+            if(chase&&!cone[idx(en.x,en.y)]&&Math.abs(en.x-player.x)+Math.abs(en.y-player.y)===1&&Math.random()<.25){
+              hurt(true);en.cd=2;en.lunge=1;en.lx=player.x-en.x;en.ly=player.y-en.y;say('👻 闇の中から、白い手が伸びてきた！');}}
           else if(Math.random()<.45){const r=randOpt(en);if(r){en.x=r.x;en.y=r.y;}}
         }else if(en.kind==='k'){
           if(cone[idx(en.x,en.y)]){en.frozen=true;continue;}
@@ -457,7 +459,6 @@ registerMinigame({
             if(inside(nx,ny)&&!enemyAt(nx,ny)&&!(nx===player.x&&ny===player.y)&&!(nx===exit.x&&ny===exit.y)){en.x=nx;en.y=ny;break;}}
         }
       }
-      void pi;
     }
     function canStep(en,nx,ny){return isFloor(nx,ny)&&!enemyAt(nx,ny)&&!(nx===player.x&&ny===player.y)&&!(nx===exit.x&&ny===exit.y);}
     function stepOpt(en,sign){
@@ -824,9 +825,6 @@ registerMinigame({
     genFloor();
     resize();
     mg.loop(frame);
-    // テスト用の読み取り口（ゲームには影響しない）
-    cv._rgDbg=f=>f({enemies,player,items,leaks,setTurn:v=>{turn=v;},computeLight});
-    cv._rgState=()=>({W,H,map:Array.from(map),player:{x:player.x,y:player.y,face:player.face},exit,enemies:enemies.map(e=>({x:e.x,y:e.y,kind:e.kind,hp:e.hp})),items:items.map(i=>({x:i.x,y:i.y,type:i.type,done:i.done})),leaks:leaks.map(l=>({x:l.x,y:l.y,on:leakOn(l)})),turn,hp,floor,busy:busy||!!trans});
     return {result(reason){
       if(ro)ro.disconnect();else window.removeEventListener('resize',resize);
       const clear=reason==='clear', down=reason==='down';

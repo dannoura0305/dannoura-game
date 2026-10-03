@@ -12,10 +12,10 @@ registerMinigame({
   id:'runner', icon:'🏃', name:'深夜の買い出しダッシュ', genre:'アクション', bgm:'stream',
   desc:'子どもが熱を出した。目を覚ます前に、雨の町を走って24時間コンビニへ。冷却シートと、好きなプリンを買いに。',
   effect:'育児ストレス↓ 精神↑ 収入↑ ／ 疲労+8 約40分',
-  help:'タップ/↑ジャンプ(2段)・下スワイプ/↓スライド',
+  help:'タップ:ジャンプ／↓スワイプ:スライド',
   start(body,mg){
     // ── 定数 ──
-    const M=20, GOAL_M=900, GOAL=GOAL_M*M, WAKE=70, MAX_HP=3, PX=72, COIN=50, COIN_CAP=3000;
+    const M=20, GOAL_M=900, GOAL=GOAL_M*M, WAKE=70, MAX_HP=3, PX=72, COIN=30, COIN_CAP=3000;
     const DOOR_X=GOAL+PX+130, STORE_X=DOOR_X-60, STORE_W=300;
     const FONT='"DotGothic16", monospace';
     const F9='9px '+FONT, F10='10px '+FONT, F11='11px '+FONT, F12='12px '+FONT, F13='13px '+FONT,
@@ -34,7 +34,7 @@ registerMinigame({
     let W=0,H=0,dpr=1,sc=1,VW=360,VH=560,GY=430,RES=1;
     let skyC,farC,midC,wallC,lampC,coneC,vendC,vendRC,reflWarm,reflCyan,reflWhite,vignC,storeC;
     let glowWarm,glowCyan,glowPink,glowGold,glowRed,glowWhite;
-    const FT=760, MT=980;
+    const FT=760, MT=980, RIP=14;
 
     function mkC(w,h){
       const c=document.createElement('canvas');
@@ -691,7 +691,16 @@ registerMinigame({
       // 車道（濡れたアスファルト）
       cx.fillStyle='#09071a';cx.fillRect(0,GY+23,VW,VH-GY-23);
       cx.fillStyle='rgba(222,204,248,.16)';
-      for(let x=-((cam*1.0)%90);x<VW;x+=90)cx.fillRect(x,GY+62,40,2);
+      for(let x=-(cam%90);x<VW;x+=90)cx.fillRect(x,GY+62,40,2);
+      cx.fillStyle='rgba(222,204,248,.1)';cx.fillRect(0,GY+30,VW,1);
+      // 雨の波紋
+      cx.strokeStyle='rgba(170,190,255,.22)';cx.lineWidth=.8;cx.beginPath();
+      for(let i=0;i<RIP;i++){
+        const k=t*.9+i*.37, u=k%1, n=Math.floor(k);
+        const rxp=hash(i*7+n*31)*VW, ryp=GY+34+hash(i*13+n*17)*(VH-GY-40), rr=2+u*12;
+        cx.moveTo(rxp+rr,ryp);cx.ellipse(rxp,ryp,rr,rr*.28,0,0,TAU);
+      }
+      cx.stroke();
       // 光（加算）
       cx.globalCompositeOperation='lighter';
       for(let i=l0;i<=l1;i++){
@@ -1043,7 +1052,8 @@ registerMinigame({
       cx.fillStyle='rgba(0,0,0,.45)';cx.beginPath();cx.ellipse(x,GY+1,12-Math.min(8,py*.05),2.5,0,0,TAU);cx.fill();
       cx.globalAlpha=alpha;
       cx.save();cx.translate(x,y);
-      if(phase==='fall'){cx.translate(-4,0);cx.rotate(-fallRot);}
+      cx.scale(1.12,1.12);
+      if(phase==='fall'){cx.translate(18*fallRot/1.45,0);cx.rotate(fallRot);}
       if(boostT>0){drawGlow(glowGold,0,-28,46,.35+.15*Math.sin(t*10));}
       drawFigure(PAL_R,1.3,-1);
       drawFigure(PAL_N,0,0);
@@ -1121,8 +1131,8 @@ registerMinigame({
       const wc=wake<.6?'#8a52d4':wake<.85?'#e8b830':'#e83055';
       cx.fillStyle=(wake>.85&&!woke&&Math.sin(t*12)>0)?'#ff8aa0':wc;cx.fillRect(gx,gy-4,gw*wake,6);
       cx.font=F9;cx.textAlign='left';
-      shadowText(woke?'起きちゃった…':'ねむってる','​'.length?gx:gx,gy-9,woke?'#ff8aa0':'#9a8cc0');
-      if(!woke){cx.fillStyle='rgba(222,204,248,.6)';cx.font=F9;cx.fillText('z',fcx+6,gy-9-Math.sin(t*2)*2);}
+      shadowText(woke?'起きちゃった…':'ねむってる',gx+4,gy-11,woke?'#ff8aa0':'#9a8cc0');
+      if(!woke){cx.fillStyle='rgba(222,204,248,.6)';cx.font=F9;cx.fillText('z',fcx+5,gy-12-Math.sin(t*2)*2);}
     }
 
     function drawPanel(x,y,w,h){
@@ -1162,7 +1172,7 @@ registerMinigame({
         const a=Math.min(1,(phaseT-1.8)*3);
         cx.globalAlpha=a;
         cx.fillStyle='rgba(4,3,10,.35)';cx.fillRect(0,0,VW,VH);
-        const w=Math.min(VW-28,300),h=176+(purin?16:0),x=(VW-w)/2,y=Math.max(70,GY*.38-h/2);
+        const w=Math.min(VW-28,300),h=150+(purin?22:0),x=(VW-w)/2,y=Math.max(70,GY*.38-h/2);
         drawPanel(x,y,w,h);
         cx.textAlign='center';cx.textBaseline='middle';
         cx.font=F18;shadowText('到着 ─ よるマート',VW/2,y+24,'#00e8c8');
@@ -1219,7 +1229,7 @@ registerMinigame({
 
     function updateFooter(){
       const rem=Math.max(0,GOAL_M-Math.floor(cam/M));
-      const s=`小銭 ¥${Math.min(COIN_CAP,coins*COIN).toLocaleString()}${purin?'　🍮'+purin:''}　☂${'■'.repeat(Math.max(0,hp))}${'□'.repeat(MAX_HP-Math.max(0,hp))}`;
+      const s=`小銭 ¥${Math.min(COIN_CAP,coins*COIN).toLocaleString()}${purin?'　🍮'+purin:''}　☂${'■'.repeat(clamp(hp,0,MAX_HP))}${'□'.repeat(clamp(MAX_HP-hp,0,MAX_HP))}`;
       if(s!==lastScore){lastScore=s;mg.setScore(s);}
       mg.setTimer(rem+'m');
     }
@@ -1254,7 +1264,7 @@ registerMinigame({
           ?`冷却シートと、いつものプリンを買えた。${purin?`<br>おまけのプリン <span class="up">${purin}</span>`:''}`+
            `<br>拾った小銭 <span class="up">¥${money.toLocaleString()}</span>　被弾 <span class="${hits?'down':'up'}">${hits}</span>`+
            (woke?'<br><span class="down">子どもは起きて待っていた。</span>':'<br>子どもはまだ、すうすう眠っている。')
-          :`走った距離 <span class="up">${dist}m</span> / ${GOAL_M}m`+(down?'<br>ずぶ濡れで帰ると、子どもはぐずっていた。':''),
+          :`走った距離 <span class="up">${dist}m</span> / ${GOAL_M}m`+(down?'<br>何も買えずに帰った。せめて濡れタオルで額を冷やした。':''),
         fx, time:clear||down?40:20, sp:clear?1:0,
         log:clear?'雨の夜、コンビニまで走った。冷却シートとプリンを買えた。'
           :down?'雨の中で転んで、買い出しを諦めた。':'買い出しの途中で引き返した。',

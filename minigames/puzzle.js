@@ -599,6 +599,8 @@ registerMinigame({
       lines.forEach(([a1,b1],i)=>{
         const ly=y+fsM*3.6+lh*(i+.5);
         cx.font=`${fsM}px ${FONT}`;
+        const need=Math.max(cx.measureText(a1).width,cx.measureText(b1).width)*2+cw*.04+28;
+        if(need>cw)cx.font=`${Math.floor(fsM*cw/need)}px ${FONT}`;
         cx.textAlign='right';cx.fillStyle='#00e8c8';cx.fillText(a1,x+cw*.47,ly);
         cx.textAlign='left';cx.fillStyle='#deccf8';cx.fillText(b1,x+cw*.51,ly);
       });

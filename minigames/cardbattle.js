@@ -123,7 +123,7 @@ registerMinigame({
   id:'cards', icon:'🃏', name:'配信トークバトル', genre:'カードバトル', bgm:'stream',
   desc:'話題カードで配信を荒らす3体の「夜」に挑む。勝つたびにカードが増える。スキルが高いほどデッキが強くなる。',
   effect:'フォロワー↑ 配信人気↑ 収入↑ ／ 疲労+8 約80分',
-  help:'2回タップ／上スワイプで使用 ・ PC:1-9 Space',
+  help:'タップ2回で使用・PC:1-9/Space',
   start(body,mg){
     const TURNS=14, HAND=5, ENERGY=3, MAXHP=40;
     const sk=gs.skills, day=gs.day||1;
@@ -627,7 +627,7 @@ registerMinigame({
     }
     function slot(i,n){
       const mid=(n-1)/2,o=i-mid;
-      const sp=n>1?Math.min(cw*.88,(W-46-cw)/(n-1)):0;
+      const sp=n>1?Math.min(cw*.88,(W-58-cw)/(n-1)):0;
       return {x:W/2-cw/2+o*sp,y:handY+o*o*1.8,a:o*Math.min(4.5,20/n)};
     }
     function tf(x,y,a,s){return `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) rotate(${a.toFixed(2)}deg) scale(${s})`;}
@@ -1001,7 +1001,8 @@ registerMinigame({
       if(win)fx={followers:15+left*2,streamPop:8,money:6000,mental:5,fatigue:8};
       else if(lose)fx={mental:-8,flame:1,fatigue:10,followers:cleared*3};
       else if(dmgTotal>0)fx={followers:Math.min(12,Math.floor(dmgTotal/10)),streamPop:Math.min(3,1+cleared),money:Math.min(3000,1000+cleared*1000),fatigue:8};
-      else{fx={fatigue:3};time=20;}
+      else if(quit){fx={fatigue:3};time=20;}
+      else fx={fatigue:8};
       if(quit&&!win)time=Math.min(80,20+turnsUsed*6);
       const names=['—','荒らしアカウント','スパムBot','過疎の夜'];
       return {

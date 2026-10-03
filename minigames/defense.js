@@ -57,7 +57,7 @@ registerMinigame({
   id:'defense', icon:'🛡', name:'荒らしディフェンス', genre:'タワーディフェンス', bgm:'stream',
   desc:'荒らしの大群がコメント欄に押し寄せる。流れに沿って防衛を置き、配信の「心」を最後まで守り抜け。',
   effect:'炎上↓ フォロワー↑ 配信人気↑ 精神↑ ／ 疲労+8 約60分',
-  help:'空き枠をタップで配置・防衛をタップで強化',
+  help:'空き枠に配置・タップで強化',
   start(body,mg){
     // ── 定数 ──
     const COLS=7, ROWS=11, MAX_LIVES=10, WAVES=5;
@@ -68,11 +68,11 @@ registerMinigame({
     const TW={
       mod:   {name:'モデレーター',     col:'#00e8c8', glow:'cy', cost:50, up:60, desc:'単体に安定した攻撃',
               lv:[{range:2.3,rate:.62,dmg:10},{range:2.5,rate:.45,dmg:17}]},
-      ng:    {name:'NGワードフィルター',col:'#b07cff', glow:'pu', cost:60, up:60, desc:'範囲を減速＋じわじわ削る',
+      ng:    {name:'NGワードフィルター',col:'#b07cff', glow:'pu', cost:60, up:60, desc:'範囲減速＋継続ダメージ',
               lv:[{range:1.55,slow:.42,dps:5},{range:1.8,slow:.58,dps:10}]},
-      cheer: {name:'常連の応援',       col:'#e8b830', glow:'gd', cost:70, up:70, desc:'近くの防衛の攻撃速度UP',
+      cheer: {name:'常連の応援',       col:'#e8b830', glow:'gd', cost:70, up:70, desc:'周囲の攻撃速度UP',
               lv:[{range:1.6,buff:1.3},{range:1.95,buff:1.55}]},
-      report:{name:'通報ボタン',       col:'#e83055', glow:'rd', cost:90, up:90, desc:'遅いが重い一撃（範囲）',
+      report:{name:'通報ボタン',       col:'#e83055', glow:'rd', cost:90, up:90, desc:'遅いが重い範囲攻撃',
               lv:[{range:2.8,rate:2.1,dmg:55,splash:.85},{range:3.1,rate:1.7,dmg:95,splash:1}]},
     };
     const TW_KEYS=['mod','ng','cheer','report'];
