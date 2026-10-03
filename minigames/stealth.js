@@ -772,14 +772,14 @@ registerMinigame({
       if(t<0||cat.mode==='nap')return;
       if(cat.pet>0)cat.pet-=dt;
       const d=dist(cat.x,cat.y,cat.tx,cat.ty);
-      if(d>2&&cat.mode!=='sit'){
+      if(d>2&&cat.mode!=='sit'&&cat.mode!=='mis'){
         const sp=cat.mode==='go'?40:28;
         const ux=(cat.tx-cat.x)/d,uy=(cat.ty-cat.y)/d;
         cat.x+=ux*sp*dt;cat.y+=uy*sp*dt;cat.walk+=sp*dt*.2;
         const ta=Math.atan2(uy,ux);let da=ta-cat.ang;while(da>Math.PI)da-=6.283;while(da<-Math.PI)da+=6.283;cat.ang+=da*Math.min(1,dt*8);
         return;
       }
-      if(cat.path.length){const n=cat.path.shift();cat.tx=n[0];cat.ty=n[1];return;}
+      if(cat.path.length&&cat.mode!=='mis'){const n=cat.path.shift();cat.tx=n[0];cat.ty=n[1];return;}
       cat.cd-=dt;
       if(cat.mode==='go'){cat.mode='mis';cat.misT=3;pop(cat.x,cat.y-16,'……','#e8b830',9,1);}
       if(cat.mode==='mis'){
@@ -1462,7 +1462,7 @@ registerMinigame({
       cat.mode='nap';cat.x=120;cat.y=156;drawCat();
       if(endReason==='clear')drawDad(122,96,Math.PI,'sit',0,0);
       else if(endReason==='woke')drawDad(124,80,-.1,'lie',0,0);
-      else drawDad(104,398,-Math.PI/2,'sit',0,0);
+      else drawDad(104,302,Math.PI/2,'sit',0,0);
       // 朝の光
       setS();
       cx.fillStyle='rgba(30,24,60,.32)';cx.fillRect(OX,OY,WW*S,WH*S);
@@ -1491,7 +1491,7 @@ registerMinigame({
       setS();
       cx.textAlign='center';cx.textBaseline='middle';cx.font=`13px ${FONT}`;cx.fillStyle='#ffe8b0';
       cx.fillText('— 翌朝 6:30 —',W/2,20);
-      if(sceneT>3&&sceneT<5){cx.globalAlpha=1-Math.abs(sceneT-4);cx.font=`9px ${FONT}`;cx.fillStyle='#e8d8b0';cx.fillText('チュン……',W*.66,OY+20);cx.globalAlpha=1;}
+      if(sceneT>3&&sceneT<5){cx.globalAlpha=1-Math.abs(sceneT-4);cx.font=`9px ${FONT}`;cx.fillStyle='#e8d8b0';cx.fillText('チュン……',W*.8,OY+WH*S*.3);cx.globalAlpha=1;}
       // 結果カード
       const ca=Math.min(1,Math.max(0,(sceneT-.8)/.5)),ease=1-Math.pow(1-ca,3);
       const ch=196,cy0=H-ch-10+(1-ease)*60,cxx=12,cw=W-24;
@@ -1596,7 +1596,6 @@ registerMinigame({
     }
 
     // テスト用のハンドル（ゲーム内容には影響しない）
-    cv._dbg={P,ST,toys,cat,get t(){return t;},set t(v){t=v;},get noise(){return noise;},set noise(v){noise=v;},get scene(){return scene;},get phase(){return phase;},get grade(){return grade;},get dbg2(){return [talkI,talkC,!!trans,trans&&trans.t];}};
     mg.loop(dt=>{
       dt=dt>0?dt:0; // 最初のフレームは負になることがある
       update(dt);

@@ -15,6 +15,16 @@ const RM = (()=>{ try{ return matchMedia('(prefers-reduced-motion: reduce)').mat
 const hasGs = () => typeof gs !== 'undefined';
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// ミニゲーム・配信・点検などが前面にあるか（その間はこちらの演出を出さない／キーも奪わない）
+function gameBusy(){
+  try{
+    if(document.body.classList.contains('mg-active')) return true;
+    for(const id of ['mg-picker','streaming-ol','song-mini','mg-screen']){ const e = document.getElementById(id); if(e && e.classList.contains('active')) return true; }
+    if(document.querySelector('.mini-screen.active')) return true;
+  }catch(e){}
+  return false;
+}
+const storyPlaying = () => { try{ return !!(window.Story && window.Story.playing && window.Story.playing()); }catch(e){ return false; } };
 
 /* ───────────────────────── サウンド（効果音のみ・設定音量に従う） ───────────────────────── */
 function seVol(){ try{ return typeof AUDIO_SET !== 'undefined' ? AUDIO_SET.se : 1; }catch(e){ return 1; } }
@@ -633,7 +643,8 @@ function injectStyle(){
 .pr-end-final .pr-fbar{width:min(70vw,260px);height:6px;border:1px solid rgba(240,236,255,.5);border-radius:2px;overflow:hidden;background:rgba(0,0,0,.5);}
 .pr-end-final .pr-fbar i{display:block;height:100%;background:linear-gradient(90deg,#8a52d4,#00e8c8);}
 .pr-end-final #end-buttons{margin-top:8px!important;width:min(84vw,320px);}
-.pr-end-final #end-buttons .btn-start,.pr-end-final .pr-share{width:100%;margin:0!important;}
+.pr-end-final #end-buttons .btn-start{width:100%;margin:0!important;}
+.pr-end-final .pr-share{width:min(84vw,320px);margin:6px 0 0!important;}
 .pr-end-final .pr-share{display:block;padding:12px 20px;min-height:46px;background:rgba(10,6,30,.7);border:1px solid rgba(0,232,200,.7);color:#8ff4e6;font-family:var(--pr-dot);font-size:.92rem;letter-spacing:.16em;cursor:pointer;border-radius:2px;}
 .pr-end-final .pr-share:hover{background:rgba(0,232,200,.15);}
 .pr-end-ctl{position:absolute;left:0;right:0;bottom:max(12px,env(safe-area-inset-bottom));text-align:center;font-family:var(--pr-mono);font-size:.58rem;letter-spacing:.3em;color:rgba(240,236,255,.45);pointer-events:none;}
@@ -648,8 +659,8 @@ function injectStyle(){
 @media (min-width:760px){
   .pr-end-main{flex-direction:row;justify-content:center;align-items:center;gap:40px;padding:40px 40px 60px;}
   .pr-end-pic{width:min(36vw,380px,52vh);}
-  .pr-end-text{align-items:flex-start;text-align:left;width:min(42vw,420px);}
-  .pr-end-lines{max-height:70vh;}
+  .pr-end-text{align-items:flex-start;text-align:left;width:min(42vw,420px);height:calc(min(36vw,380px,52vh) * 1.5);justify-content:flex-start;padding-top:2vh;overflow-y:auto;scrollbar-width:none;}
+  .pr-end-text::-webkit-scrollbar{display:none;}
 }
 @media (prefers-reduced-motion: reduce){
   .pr-title *,.pr-op *,.pr-day *,.pr-end *{animation-duration:.01s!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.15s!important;}
@@ -779,7 +790,7 @@ function onTitlePointer(e){
   if(T.st === 'attract'){ SFX.decide(); setTitleState('menu'); e.preventDefault(); return; }
 }
 function onTitleKey(e){
-  if(!titleVisible() || modalOpen()) return;
+  if(!titleVisible() || modalOpen() || gameBusy()) return;
   const k = e.key;
   if(e.defaultPrevented) return;
   if(T.st !== 'menu'){ if(['Enter',' ','z','Z','ArrowDown','ArrowUp'].includes(k)){ e.preventDefault(); ensureCtx(); if(T.st==='intro'){ clearTimeout(T.introTimer); setTitleState('attract'); } else { SFX.decide(); setTitleState('menu'); } } return; }
@@ -849,7 +860,7 @@ function buildOp(){
   el.querySelector('.pr-skip').addEventListener('click', e=>{ e.stopPropagation(); SFX.decide(); finishOpening(); });
   el.addEventListener('pointerdown', e=>{ if(e.target.closest('.pr-skip')) return; opTap(); });
   window.addEventListener('keydown', e=>{
-    if(!OP.active || e.defaultPrevented) return;
+    if(!OP.active || e.defaultPrevented || gameBusy()) return;
     if(e.key==='Escape'){ e.preventDefault(); finishOpening(); }
     else if(['Enter',' ','z','Z'].includes(e.key)){ e.preventDefault(); opTap(); }
   });
@@ -868,6 +879,7 @@ function startOpening(){
 }
 function opLoop(){
   OP.raf = requestAnimationFrame(opLoop);
+  if(OP.active && gameBusy()){ closeOpening(); return; }   // ミニゲーム等が開いたら演出を引っ込める（元のテキスト進行に任せる）
   if(!OP.S || document.hidden) return;
   const now = performance.now(); if(now - (OP.last||0) < 31) return; OP.last = now;
   const t = (performance.now() - OP.t0)/1000;
@@ -1010,6 +1022,16 @@ function showDayCard(day, opt){
   opt = opt || {};
   try{
     if(EN.active) return Promise.resolve();
+    if(storyPlaying()) return Promise.resolve();           // 物語シーンと同時には出さない
+    if(gameBusy()){                                         // 前面の画面が閉じるまで待つ
+      DC.deferred = {day, opt, at:Date.now()};
+      if(!DC.watch) DC.watch = setInterval(()=>{
+        const d = DC.deferred;
+        if(!d || EN.active || storyPlaying() || Date.now()-d.at > 120000 || (hasGs() && gs.day !== d.day)){ DC.deferred = null; clearInterval(DC.watch); DC.watch = 0; return; }
+        if(!gameBusy()){ DC.deferred = null; clearInterval(DC.watch); DC.watch = 0; showDayCard(d.day, d.opt); }
+      }, 300);
+      return Promise.resolve();
+    }
     const el = buildDayCard(); clearTimeout(DC.tm); clearTimeout(DC.tm2);
     const pending = opt.pending != null ? opt.pending : storySceneFor(day);
     // 物語シーンが幕開けを担う夜は、こちらは通常の日付カードにして重複を避ける
@@ -1033,6 +1055,7 @@ function showDayCard(day, opt){
     const myTok = DC.tok = (DC.tok||0) + 1;
     requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(DC.active && DC.tok === myTok){ clearTimeout(DC.tm); DC.tm = setTimeout(()=>hideDayCard(), dur); } }));
     DC.tm = setTimeout(()=>hideDayCard(), dur + 1500); // 保険
+    clearInterval(DC.guard); DC.guard = setInterval(()=>{ if(!DC.active){ clearInterval(DC.guard); return; } if(gameBusy() || EN.active) hideDayCard(true); }, 150);
     return new Promise(r => { DC.resolve = r; });
   }catch(e){ console.warn('[presentation] day card', e); return Promise.resolve(); }
 }

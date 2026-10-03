@@ -1143,7 +1143,7 @@ registerMinigame({
       const STORY=[
         {who:'班長（無線）',por:'radio',text:'だんのうら、聞こえるか。第三工場が落雷で停電や。'},
         {who:'班長（無線）',por:'radio',text:`復電まであと${TIME_LIMIT}秒。それまでに圧力計5か所、目視で頼むわ。`},
-        {who:'だんのうら',por:'char_tired',text:'了解です。……懐中電灯一本で、ですか。'},
+        {who:'だんのうら',por:'char_normal',text:'了解です。……懐中電灯一本で、ですか。'},
         {who:'班長（無線）',por:'radio',text:DATA.clears?'……また“影”を見たて話が出とる。前より濃いらしい。光、絶やすなよ。':'……それとな。あそこは夜、“影”が出るて噂や。光、絶やすなよ。'},
         {who:'だんのうら',por:'char_normal',text:'（娘が起きる前には帰らな。――行くか）'},
       ];
