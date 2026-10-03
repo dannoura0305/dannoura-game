@@ -699,7 +699,7 @@ const SCENES=[
  lines:f=>[
   N('洗面所の鏡の前で、手が止まった。'),
   N('髪が、白い。\n頭の上に、見覚えのない——耳。猫の、耳。'),
-  D('tired','……なんだ、これ。'),
+  Object.assign(D('tired','……なんだ、これ。'),{mirror:true}),
   N('瞬きをすると、鏡の中の自分も瞬きをした。\n疲れきった目だけは、いつもの自分だった。'),
   K('パパ……？','sleepy'),
   K('パパ、しろいねこさんになってる。'),
@@ -719,7 +719,7 @@ const SCENES=[
  lines:()=>[
   K('パパ！　もどった！'),
   N('鏡を見ると、紫の髪が戻っていた。白い耳も、もうない。'),
-  D('happy','……戻った、な。'),
+  Object.assign(D('happy','……戻った、な。'),{mirror:true}),
   K('しろいねこさんも、かわいかったけど。'),
   K('こっちのパパのほうが、げんき。'),
   N('休めば、戻る。——覚えておこう、と思った。'),
@@ -1233,7 +1233,11 @@ function show(ln){
   el.por.className='st-por'+(round?' round':'');
   el.por.innerHTML=w==='n'?'':portraitHTML(w,ln.f);
   // 舞台の人物：話し相手を大きく。自分が話すときは相手を少し暗く
-  if(w!=='n'&&w!=='self'){
+  if(ln.mirror){
+    // 鏡に映る自分（白い姿への変化を舞台で見せる）
+    el.fig.innerHTML=portraitHTML('self',ln.f);cur.lastOther='mirror|'+ln.f;
+    el.fig.className='st-fig show';
+  }else if(w!=='n'&&w!=='self'){
     const key=w+'|'+(ln.f||'');
     if(cur.lastOther!==key){el.fig.innerHTML=portraitHTML(w,ln.f);cur.lastOther=key;}
     el.fig.className='st-fig show'+(round?' round':'')+(c.cls==='fake'?' fake':'');

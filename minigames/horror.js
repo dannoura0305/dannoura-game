@@ -1703,7 +1703,6 @@ registerMinigame({
 
     // ── 開始 ──
     showTitle();
-      scene(id,set,r,st){if(titleEl){titleEl.remove();titleEl=null;}if(st){story=STORIES.find(x=>x.id===st)||story;}bg=id;tr=null;S=Object.assign({},set||{});rei=r||0;phase='busy';busyT=9999;stage.classList.remove('ui-off');}};
 
     function cleanup(){try{ro.disconnect();}catch(e){}SFX.stop();}
     if(typeof mg.onEnd==='function')mg.onEnd(cleanup);

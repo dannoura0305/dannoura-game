@@ -177,7 +177,8 @@ const MG={
     if(r.log)logGrow(r.log);
     if(r.cutin)cutin(r.cutin[0],r.cutin[1]);
     updateNavActive('main');
-    showResult(r.title,(r.summary?r.summary+'<br>':'')+fxToHtml(r.fx||{}));
+    const spLine=r.sp?`<br>スキルポイント <span class="up">+${r.sp}</span>`:'';
+    showResult(r.title,(r.summary?r.summary+'<br>':'')+fxToHtml(r.fx||{})+spLine);
     advTime(r.time||60);
     loadScene('main');
     checkGameOver();

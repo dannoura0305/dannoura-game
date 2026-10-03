@@ -2286,6 +2286,8 @@ function gsToSaveData(){
 
 // セーブデータから gs を復元
 function saveDataToGs(saved){
+  // ミニゲーム・物語の記録（gs.rpg / gs.story / gs.○○Data / gs.mgDay）は、読み込むセーブに無ければ消しておく
+  Object.keys(gs).forEach(k=>{if(!(k in saved)&&(k==='rpg'||k==='story'||k==='mgDay'||/Data$/.test(k)))delete gs[k];});
   Object.assign(gs, saved);
   // 配列 → Set
   gs.completedAchs = new Set(saved.completedAchs || []);
