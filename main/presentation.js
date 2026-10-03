@@ -474,7 +474,8 @@ function injectStyle(){
 .pr-mi .pr-hint{font-family:var(--pr-mono);font-size:.6rem;letter-spacing:.06em;color:#9ff3e6;text-shadow:none;white-space:nowrap;}
 .pr-mi .pr-lbl{white-space:nowrap;}
 .pr-mi .pr-dots{display:inline-block;animation:pr-blink .9s steps(1) infinite;}
-#title-screen .pr-menu #btn-continue .pr-hint{color:#ffd27a;font-size:.56rem;white-space:normal;text-align:right;line-height:1.35;}
+#title-screen .pr-menu #btn-continue{flex-wrap:wrap;row-gap:0;}
+#title-screen .pr-menu #btn-continue .pr-hint{color:#ffd27a;font-size:.58rem;white-space:normal;width:100%;text-align:left;line-height:1.4;}
 .pr-cursor{position:absolute;left:12px;top:0;width:14px;height:14px;pointer-events:none;transition:top .1s steps(3);animation:pr-nudge .5s steps(2) infinite;filter:drop-shadow(1px 1px 0 #0b0522);}
 .pr-cursor svg{width:100%;height:100%;display:block;shape-rendering:crispEdges;}
 #title-screen .pr-menu #btn-delete-wrap{margin:2px 0 0!important;text-align:right;}
@@ -539,18 +540,18 @@ function injectStyle(){
 .pr-day-line{margin-top:12px;font-family:var(--pr-serif);font-size:clamp(.88rem,3.8vw,1.05rem);letter-spacing:.14em;color:#ece6ff;opacity:0;text-shadow:2px 2px 0 rgba(0,0,0,.7);}
 .pr-day-tap{position:absolute;right:14px;bottom:calc(16vh + 8px);font-family:var(--pr-mono);font-size:.56rem;letter-spacing:.2em;color:rgba(255,255,255,.4);}
 .pr-day.on .pr-day-act{animation:pr-dIn .35s ease .02s forwards;}
-.pr-day.on .pr-day-acttl{animation:pr-dZoom .5s cubic-bezier(.2,1.2,.4,1) .1s forwards;}
-.pr-day.on .pr-day-num{animation:pr-dZoom .4s cubic-bezier(.2,1.3,.4,1) .05s forwards;}
-.pr-day.on .pr-day-hr{animation:pr-dHr .45s ease .2s forwards;}
-.pr-day.on .pr-day-wk{animation:pr-dIn .35s ease .25s forwards;}
-.pr-day.on .pr-day-line{animation:pr-dIn .4s ease .38s forwards;}
-.pr-day.act.on .pr-day-num{animation-delay:.3s;} .pr-day.act.on .pr-day-wk{animation-delay:.42s;} .pr-day.act.on .pr-day-line{animation-delay:.5s;}
+.pr-day.on .pr-day-acttl{animation:pr-dZoom .4s cubic-bezier(.2,1.2,.4,1) .05s forwards;}
+.pr-day.on .pr-day-num{animation:pr-dZoom .3s cubic-bezier(.2,1.3,.4,1) 0s forwards;}
+.pr-day.on .pr-day-hr{animation:pr-dHr .35s ease .08s forwards;}
+.pr-day.on .pr-day-wk{animation:pr-dIn .25s ease .1s forwards;}
+.pr-day.on .pr-day-line{animation:pr-dIn .3s ease .16s forwards;}
+.pr-day.act.on .pr-day-num{animation-delay:.18s;} .pr-day.act.on .pr-day-wk{animation-delay:.24s;} .pr-day.act.on .pr-day-line{animation-delay:.3s;}
 @keyframes pr-dIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes pr-dZoom{from{opacity:0;transform:scale(1.5);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
 @keyframes pr-dHr{to{width:min(70vw,360px)}}
-.pr-day[data-ph="1"]{--pr-dbg:rgba(3,5,20,.94);--pr-dbg2:rgba(16,28,70,.94);--pr-acc:#4ff0dc;--pr-rain:.35;--pr-scan:.25;}
-.pr-day[data-ph="2"]{--pr-dbg:rgba(10,3,24,.95);--pr-dbg2:rgba(52,16,80,.95);--pr-acc:#d080ff;--pr-rain:.7;--pr-scan:.35;}
-.pr-day[data-ph="3"]{--pr-dbg:rgba(16,1,8,.96);--pr-dbg2:rgba(80,8,28,.95);--pr-acc:#ff4a68;--pr-rain:1;--pr-scan:.55;}
+.pr-day[data-ph="1"]{--pr-dbg:rgba(3,5,20,.97);--pr-dbg2:rgba(16,28,70,.95);--pr-acc:#4ff0dc;--pr-rain:.35;--pr-scan:.25;}
+.pr-day[data-ph="2"]{--pr-dbg:rgba(10,3,24,.97);--pr-dbg2:rgba(52,16,80,.95);--pr-acc:#d080ff;--pr-rain:.7;--pr-scan:.35;}
+.pr-day[data-ph="3"]{--pr-dbg:rgba(16,1,8,.97);--pr-dbg2:rgba(80,8,28,.95);--pr-acc:#ff4a68;--pr-rain:1;--pr-scan:.55;}
 .pr-day[data-ph="4"]{--pr-dbg:rgba(2,2,10,.95);--pr-dbg2:rgba(24,20,60,.95);--pr-acc:#ffd27a;--pr-rain:.4;--pr-scan:.3;}
 .pr-day[data-ph="3"].on .pr-day-num{text-shadow:-3px 0 rgba(0,240,255,.55),3px 0 rgba(255,20,80,.7),0 0 18px var(--pr-acc);}
 .pr-day[data-ph="3"].on .pr-day-in{animation:pr-jit 1.4s steps(1) infinite;}
@@ -1017,7 +1018,7 @@ function showDayCard(day, opt){
     document.dispatchEvent(new CustomEvent('pr:daycard', {detail:{day, state:'start'}}));
     if(act) SFX.gong(); else if(ph===3) SFX.dread(); else SFX.chime();
     // 物語シーンが控えているときは短めにして譲る
-    const dur = RM ? 1000 : act ? 1500 : (pending ? 1000 : 1250);
+    const dur = RM ? 1100 : act ? 1500 : (pending ? 1100 : 1300);
     // 実際に描画されてから時間を数える（重い端末でカードが見えないまま消えないように）
     const myTok = DC.tok = (DC.tok||0) + 1;
     requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(DC.active && DC.tok === myTok){ clearTimeout(DC.tm); DC.tm = setTimeout(()=>hideDayCard(), dur); } }));

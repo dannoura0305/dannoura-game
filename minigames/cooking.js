@@ -769,7 +769,7 @@ registerMinigame({
         const lw=w/3*.95;
         [-1,1].forEach(sd=>{
           for(let i=0;i<3;i++){const fx=(i-1);const sx=fx*w*.3;
-            const ex=sx+fx*(w*.18+curl*w*.45),ey=sd*(len/2-curl*len*.06);
+            const ex=sx+fx*(w*.08+curl*w*.24),ey=sd*(len/2-curl*len*.05);
             g.strokeStyle=rgb(dk);g.lineWidth=lw;g.beginPath();g.moveTo(sx,sd*mid*.4);g.quadraticCurveTo(sx+fx*w*.1,sd*(mid*.5+cut*.6),ex,ey);g.stroke();
             g.strokeStyle=rgb(col);g.lineWidth=lw*.6;g.beginPath();g.moveTo(sx-lw*.12,sd*mid*.4);g.quadraticCurveTo(sx+fx*w*.1-lw*.12,sd*(mid*.5+cut*.6),ex-lw*.1,ey);g.stroke();
           }});
@@ -931,7 +931,7 @@ registerMinigame({
       if(o.grill!==undefined&&o.grill>=0){
         g.globalCompositeOperation='multiply';g.fillStyle=ramp(GRILLR,o.grill);g.fillRect(-R*1.5,-R*1.5,R*3,R*3);
         g.globalCompositeOperation='source-over';g.fillStyle=ramp(GRILLR,o.grill*.92,.42);g.fillRect(-R*1.5,-R*1.5,R*3,R*3);
-        const ma=clamp((o.grill-.15)*1.1,0,.7);
+        const ma=clamp((o.grill-.15)*.9,0,.5);
         if(ma>0){g.save();g.rotate(-.6);g.strokeStyle=`rgba(50,22,8,${ma})`;g.lineWidth=R*.08;g.lineCap='round';
           for(let k=-3;k<=3;k++){g.beginPath();g.moveTo(-R*1.2,k*R*.33);g.lineTo(R*1.2,k*R*.33);g.stroke();}g.restore();}
         if(o.grill>.82)for(const s of SPOT){g.fillStyle=`rgba(30,15,6,${clamp((o.grill-.82)*2.5*s.k,0,.7)})`;g.beginPath();g.arc((s.x-.5)*R*1.6,(s.y-.4)*R*1.5,s.r*R*.04,0,6.283);g.fill();}
@@ -1199,7 +1199,7 @@ registerMinigame({
         if(pt>.25&&pt-dt<=.25){const s=L.garn[0];sparkle(s.x,s.y,10);SND.pon();}
         if(pt>.55&&pt-dt<=.55){const s=L.garn[1];sparkle(s.x,s.y,10);SND.pon();}
         if(pt>.9&&pt-dt<=.9){sparkle(L.cx,L.by+L.BH/2,26);}
-        if(pt>2.1){computeRes();startWipe(()=>{go('morning');});ph='wait2';}
+        if(pt>2.9){computeRes();startWipe(()=>{go('morning');});ph='wait2';}
       }
     }
     function drawBento(lid){
@@ -1291,6 +1291,14 @@ registerMinigame({
       const order=plate.items.filter(i=>!(plate.drag&&plate.drag.it===i));
       for(const it of order)drawItem(it,itemPos(it),false);
       if(plate.drag)drawItem(plate.drag.it,itemPos(plate.drag.it),true);
+      if(ph==='plate_done'||ph==='wait2'){
+        const k=ph==='wait2'?1:clamp((pt-.9)/.4,0,1);
+        if(k>0){g.save();g.globalAlpha=k;const sR=Math.min(40*S,L.tray.h*.28),sx=W/2-sR*.9,sy=L.tray.y+L.tray.h*.3;
+          drawSnack(sx,sy,sR,true);
+          txtO('端っこは、わたしの夜食。',W/2,sy+sR*2.1,12*S,'#f6e6c8','rgba(20,10,6,.85)',3*S);
+          g.restore();
+          if(ph==='plate_done')every('sn',4,1/60,()=>steam(sx,sy,sR*.5,1));}
+      }
       if(ph==='plate'){
         const tl=Math.max(0,plate.left);
         txtO(`のこり ${tl.toFixed(1)}s`,W-14*S,L.tray.y-0,11*S,tl<6?'#ff8a9a':'#f6e6c8','rgba(20,10,6,.85)',3*S,'right');
@@ -1416,9 +1424,7 @@ registerMinigame({
         txt(String(Math.round(v*bk)),px+pw-14*S,yy,12*S,'#fff4dc','right');});
       // 夜食とメモ
       const sx=px+pw*.24;
-      drawPlateDish(sx,sy+sR*.4,sR*1.25);
-      drawEggSlice(sx-sR*.35,sy+sR*.3,sR*.32,.3,avg(egg.layers)||.6);
-      drawOni(sx+sR*.35,sy+sR*.35,sR*.45,-.2,{p:oni.shapeP,paint:true,grill:avg(oni.cs),gloss:.6});
+      drawSnack(sx,sy,sR);
       txt('夜食：端っこと残りごはん',sx,sy+sR*1.95,10*S,'#bbaedd');
       drawNote(px+pw*.7,sy+sR*.5,pw*.48,sR*2.2,-.04,1);
       // レシピ帳
@@ -1437,6 +1443,20 @@ registerMinigame({
         const ls=wrap(sayl,pw-100*S,11*S);ls.forEach((l,i)=>txt(l,px+84*S,qy+18*S+i*15*S,11*S,'#f6e6c8','left'));}
       if(pt>.9){const al=.5+.5*Math.sin(T*4);txt('タップで片付けて寝る',W/2,py+phh-12*S,11.5*S,`rgba(232,184,48,${al})`);}
       g.restore();
+    }
+    function drawSnack(sx,sy,sR,mug){
+      if(mug){ // 麦茶のマグ
+        const mx=sx+sR*1.9,my=sy+sR*.2,mw=sR*.62,mh=sR*.8;
+        g.fillStyle='rgba(0,0,0,.35)';g.beginPath();g.ellipse(mx+3,my+mh/2+4,mw*.9,mw*.3,0,0,6.283);g.fill();
+        g.strokeStyle='#d8cfc0';g.lineWidth=4*S;g.beginPath();g.arc(mx+mw*.75,my,mw*.32,-1.2,1.2);g.stroke();
+        const gr=g.createLinearGradient(mx-mw*.7,0,mx+mw*.7,0);gr.addColorStop(0,'#bdb3a4');gr.addColorStop(.4,'#f4eee4');gr.addColorStop(1,'#a89e90');
+        g.fillStyle=gr;rr(g,mx-mw*.7,my-mh/2,mw*1.4,mh,6*S);g.fill();
+        g.fillStyle='#8a5a2a';g.beginPath();g.ellipse(mx,my-mh/2+3*S,mw*.62,mw*.2,0,0,6.283);g.fill();
+        g.fillStyle='rgba(255,220,160,.35)';g.beginPath();g.ellipse(mx-mw*.2,my-mh/2+2*S,mw*.25,mw*.06,0,0,6.283);g.fill();
+      }
+      drawPlateDish(sx,sy+sR*.4,sR*1.25);
+      drawEggSlice(sx-sR*.35,sy+sR*.3,sR*.32,.3,avg(egg.layers)||.6);
+      drawOni(sx+sR*.35,sy+sR*.35,sR*.45,-.2,{p:oni.shapeP,paint:true,grill:avg(oni.cs),gloss:.6});
     }
     function drawPortrait(x,y,s,im){
       g.save();

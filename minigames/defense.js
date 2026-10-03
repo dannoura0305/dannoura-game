@@ -88,7 +88,7 @@ registerMinigame({
       troll:{name:'荒らし',        hp:34,  spd:2.0, r:.25, gold:9,  dmg:1},
       bot:  {name:'スパムBot',     hp:13,  spd:3.0, r:.16, gold:4,  dmg:1},
       anti: {name:'粘着アンチ',    hp:115, spd:1.45,r:.3,  gold:18, dmg:2},
-      boss: {name:'炎上アカウント',hp:720, spd:1.0, r:.55, gold:80, dmg:5},
+      boss: {name:'炎上アカウント',hp:660, spd:1.0, r:.55, gold:80, dmg:5},
     };
     // ウェーブ構成 [種類, 数, 間隔秒, 開始秒]（×1で全体120秒以内に収まる長さ）
     const WAVE_DEF=[
@@ -107,8 +107,8 @@ registerMinigame({
     if(!DD.stars)DD.stars={};
     const starsOf=(clear,l)=>!clear?0:l>=8?3:l>=4?2:1;
     const day=gs.day||1;
-    const dayScale=1+Math.min(.2,Math.max(0,day-1)*.007);   // 日が進むほど荒らしが手強くなる
-    if(day>=10)WAVE_DEF[1].g.push(['anti',2,1.5,3]);         // 後半の日は第2波から粘着アンチが混ざる
+    const dayScale=1+Math.min(.12,Math.max(0,day-1)*.005);   // 日が進むほど荒らしが手強くなる
+    if(day>=12)WAVE_DEF[1].g.push(['anti',1,0,3]);         // 後半の日は第2波から粘着アンチが混ざる
     let laneKey=DD.laneB&&DD.lane==='B'?'B':'A';
     let LANE=LANES[laneKey],PATH,SLOTS,SEG=[],PATH_LEN=0,HEART={x:0,y:0};
     function setLane(k){

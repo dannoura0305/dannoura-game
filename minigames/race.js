@@ -75,7 +75,7 @@ addMinigameStyle('race',`
 .race-how{background:rgba(10,7,22,.86);border:1px solid rgba(138,82,212,.55);border-radius:6px;padding:9px 14px;font-family:var(--dot);font-size:11.5px;line-height:1.85;color:var(--tx);text-align:left;max-width:310px;box-shadow:0 0 22px rgba(138,82,212,.25);}
 .race-how b{color:var(--cy);font-weight:normal;}
 .race-how .rd{color:#ff7c94;}
-.race-title{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.race-title{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:46%;}
 .race-logo{font-family:var(--dot);font-size:40px;line-height:1.1;color:#fff;letter-spacing:.06em;text-shadow:0 0 6px #fff,0 0 18px var(--cy),0 0 36px var(--pu);transform:skewX(-8deg);animation:raceLogo 1.1s cubic-bezier(.2,1.4,.4,1) both;}
 .race-logo span{color:#ffd860;text-shadow:0 0 6px #fff,0 0 18px var(--gd),0 0 36px var(--rd);}
 .race-sub{font-family:var(--mono);font-size:12px;letter-spacing:.55em;color:var(--cy);margin-left:.55em;animation:raceFadeIn .8s .5s both;}
@@ -140,7 +140,7 @@ registerMinigame({
     };
     let VAR=VARS.normal;
     if(RD.ontime>0){const ks=['normal','storm','fog','rush'].filter(k=>k!==RD.lastVar);VAR=VARS[ks[Math.floor(Math.random()*ks.length)]];}
-    const START_T=36+VAR.tadd;
+    const START_T=40+VAR.tadd;
     const SIGS=[{s:900,use:true},{s:1660,use:Math.random()<VAR.sig2}];
     SIGS.forEach(g=>{g.state='green';g.t=0;g.red=0;g.wait=0;g.trig=false;g.ran=false;g.spawnT=0;g.stop=g.s-6.5;});
     const CPS=[{s:540,add:26,done:false},{s:1200,add:22,done:false},{s:1770,add:16,done:false}];
@@ -626,7 +626,7 @@ registerMinigame({
         for(let i=-64;i<128;i+=12){g.beginPath();g.moveTo(i,0);g.lineTo(i+64,64);g.stroke();g.beginPath();g.moveTo(i,64);g.lineTo(i+64,0);g.stroke();}
         const t=mkTex(c,{rep:true});t.repeat.set(6,2);
         return L(new T.PlaneGeometry(6,2.2).translate(0,1.1,0).rotateY(Math.PI/2),new T.MeshLambertMaterial({map:t,alphaTest:.4,side:T.DoubleSide,color:0x8a8a9a}),false);})();
-      const lLantern=L(new T.SphereGeometry(.2,8,6).scale(1,1.35,1),new T.MeshBasicMaterial({color:0xffffff,toneMapped:false}),true);
+      const lLantern=L(new T.SphereGeometry(.15,8,6).scale(1,1.35,1),new T.MeshBasicMaterial({color:0xffffff,toneMapped:false}),true);
       // 水たまり（鏡面）・マンホール
       const lPud=L(new T.CircleGeometry(1,22).rotateX(-Math.PI/2),new T.MeshStandardMaterial({color:0x06050c,roughness:.03,metalness:.9,envMapIntensity:2.2}),false);
       const lMan=(()=>{const [c,g]=cvs(128,128);g.fillStyle='#2a2830';g.beginPath();g.arc(64,64,62,0,TAU);g.fill();
@@ -694,7 +694,7 @@ registerMinigame({
       for(let s=IND0;s<GOAL-6;s+=4)for(const side of [-1,1])lRail.add(s,pm(s,side*(W+.25),CURB,0,1,1,1));
       for(let s=SHOP0+8;s<SHOP1-4;s+=10){
         const cols=[0xff3040,0xff8a30,0xff4fa0];
-        for(let k=-3;k<=3;k++){const d=k*1.05,y=5.6-Math.cos(k/3*1.2)*.0-(1-Math.abs(k)/3)*.35;lLantern.add(s,pm(s,d,y,0,1,1,1),cols[(k+3+((s/10)|0))%3]);lGlow.add(s,pm(s,d,y,0,1.3,1.3,1),cols[(k+3+((s/10)|0))%3]);}
+        for(let k=-3;k<=3;k++){const d=k*1.05,y=5.6-Math.cos(k/3*1.2)*.0-(1-Math.abs(k)/3)*.35;lLantern.add(s,pm(s,d,y,0,1,1,1),cols[(k+3+((s/10)|0))%3]);lGlow.add(s,pm(s,d,y,0,1.0,1.0,1),cols[(k+3+((s/10)|0))%3]);}
       }
       // 水たまり・マンホール
       for(let s=70;s<GOAL-40;s+=rr(46,92)/VAR.pud){
@@ -1154,9 +1154,9 @@ registerMinigame({
         {nm:'',img:null,tx:'21:57。雨。配信を、少し延長しすぎた。'},
         {nm:'だんのうら',img:'tired',tx:'……やってしまったわ。子どもは寝かしつけた。お隣さんにも声はかけた。'},
         {nm:'だんのうら',img:'normal',tx:'夜勤の打刻は22:00。工場まで2.2キロ。'},
-        {nm:'だんのうら',img:'fear',tx:VAR.line},
+        {nm:'だんのうら',img:VAR.key==='storm'||VAR.key==='fog'?'fear':'normal',tx:VAR.line},
       ];
-      if(RD.ontime===0&&RD.plays>0)lines[3]={nm:'だんのうら',img:'fear',tx:'今夜こそは、遅刻しない。信号は守る。でも、全開でいくわよ。'};
+      if(RD.ontime===0&&RD.plays>0)lines[3]={nm:'だんのうら',img:'normal',tx:'今夜こそは、遅刻しない。信号は守る。でも、全開でいくわよ。'};
       showDlg(lines,()=>{toCount();});
     }
     function showDlg(lines,done){
@@ -1306,7 +1306,6 @@ registerMinigame({
       endReason=reason;
       el.brake.classList.remove('show');el.hud.classList.add('off');letterbox(true);
       pointers.clear();recalcTouch();touch.b=false;
-      const clockMin=late?Math.min(59,Math.ceil(lateT/60*6)):59;   // 演出上の打刻時刻
       const stamp=late?`22:${String(Math.max(1,Math.round(lateT/8))).padStart(2,'0')}`:'21:59';
       let lines;
       if(reason==='ontime'){
@@ -1343,8 +1342,8 @@ registerMinigame({
       P.yawRel+=(yawRel-P.yawRel)*Math.min(1,dt*10);
       bike.rotation.y=-(tp.h+P.yawRel);
       let lean=-clamp(P.latV*.06+k*P.v*P.v*.045,-.55,.55);
-      if(phase==='crashed'){lean=P.tumbleDir*Math.min(1.45,P.tumble*3.5);bike.rotation.y+=P.tumbleDir*Math.min(1.2,P.tumble*1.6);}
-      P.lean+=(lean-P.lean)*Math.min(1,dt*(phase==='crashed'?14:8));
+      if(phase==='crashed'||endReason==='crash'){lean=P.tumbleDir*Math.min(1.45,P.tumble*3.5);bike.rotation.y+=P.tumbleDir*Math.min(1.2,P.tumble*1.6);}
+      P.lean+=(lean-P.lean)*Math.min(1,dt*(phase==='crashed'||endReason==='crash'?14:8));
       bikeLean.rotation.z=P.lean;
       bikeLean.position.y=phase==='crashed'?0:Math.sin(time*25)*.004*P.v/30;
       bikeLean.rotation.x=(input.b||touch.b)&&P.v>2&&phase==='play'?.035:0;
@@ -1522,7 +1521,7 @@ registerMinigame({
       },
       // 自動テスト用の内部状態参照（ゲーム進行には使わない）
       _dbg:{get P(){return P;},get phase(){return phase;},get rem(){return rem;},get late(){return late;},get cars(){return cars;},SIGS,CPS,get puddles(){return puddles;},GOAL,
-        get info(){return renderer?renderer.info.render:null;},get scene(){return scene;},get camera(){return camera;},input,touch,advance:()=>advance(),skip:()=>{if(phase==='count')phT=4.39;else if(phase==='goal')phT=1.79;},get VAR(){return VAR;}},
+        get info(){return renderer?renderer.info.render:null;},get scene(){return scene;},get camera(){return camera;},input,touch,advance:()=>advance(),setRem:v=>{rem=v;},skip:()=>{if(phase==='count')phT=4.39;else if(phase==='goal')phT=1.79;},get VAR(){return VAR;}},
     };
   },
 });

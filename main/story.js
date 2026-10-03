@@ -972,7 +972,7 @@ function pickScene(d){
   const s=S(),f=s.flags;
   const list=SCENES.filter(sc=>!s.seen[sc.id]&&d>=sc.from&&d<=sc.to&&(!sc.cond||sc.cond(f,s)));
   if(!list.length)return null;
-  const score=sc=>sc.prio+(sc.prio<10&&sc.prio>=5&&sc.to===d?4:0);
+  const score=sc=>sc.prio+(sc.prio===5&&sc.to===d?4:0);   // 幅のある本筋は最終日に優先度を上げる
   list.sort((a,b)=>score(b)-score(a)||a.to-b.to||a._i-b._i);
   return list[0];
 }
@@ -1340,7 +1340,7 @@ function blip(){
 
 // キー操作：Enter/Space/Z で送り・決定、↑↓ で選択、1〜3 で直接選択、Esc/S でスキップ
 window.addEventListener('keydown',e=>{
-  if(!cur)return;
+  if(!cur||!root||!root.classList.contains('st-on'))return;
   const k=e.key;
   let used=true;
   if(cur.opts&&el.choices.children.length){
@@ -1368,13 +1368,34 @@ function visibleModal(x){
   const cs=getComputedStyle(x);
   return cs.display!=='none'&&cs.visibility!=='hidden'&&parseFloat(cs.opacity)>.05&&cs.pointerEvents!=='none';
 }
+// 祖先の opacity / display まで見て、実際に見えているか
+function effVisible(x){
+  let op=1;
+  for(let n=x;n&&n!==document.body;n=n.parentElement){
+    const cs=getComputedStyle(n);
+    if(cs.display==='none'||cs.visibility==='hidden')return false;
+    op*=parseFloat(cs.opacity);
+    if(op<.05)return false;
+  }
+  return true;
+}
 function busy(){
   if(window.storyHold)return true;
   const gsEl=document.getElementById('game-screen');
   if(!gsEl||gsEl.classList.contains('hidden'))return true;
   const ss=document.getElementById('story-screen');
   if(ss&&!ss.classList.contains('hidden'))return true;
+  if(document.body.classList.contains('mg-active'))return true;
+  if(document.querySelector('.mini-screen.active'))return true;
   for(const id of BLOCKERS){if(visibleModal(document.getElementById(id)))return true;}
+  // presentation.js の演出（pr- で始まるクラス。日付カードなど）が見えている間は待つ
+  for(const x of document.querySelectorAll('[class^="pr-"],[class*=" pr-"]')){
+    const cs=getComputedStyle(x);
+    if(cs.position!=='fixed'&&cs.position!=='absolute')continue;
+    if(!effVisible(x))continue;
+    const r=x.getBoundingClientRect();
+    if(r.width>0&&r.height>0&&(cs.position==='fixed'||r.width*r.height>innerWidth*innerHeight*.3))return true;
+  }
   // 他の拡張が作った全画面のモーダル（画面の半分以上を覆う、操作を受け付ける固定要素）
   const vw=innerWidth,vh=innerHeight;
   for(const x of document.body.children){

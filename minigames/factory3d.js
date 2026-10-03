@@ -590,7 +590,7 @@ registerMinigame({
         const gr=g.createRadialGradient(64,64,0,64,64,62);
         gr.addColorStop(0,'#fff');gr.addColorStop(.45,'#e8e2d4');gr.addColorStop(.62,'#ffffff');gr.addColorStop(.7,'#8a8476');gr.addColorStop(.92,'#2a2824');gr.addColorStop(1,'#000');
         g.fillStyle=gr;g.fillRect(0,0,w,h);
-        for(let i=0;i<10;i++){g.fillStyle=`rgba(0,0,0,${.06+Math.random()*.1})`;g.beginPath();g.arc(30+Math.random()*68,30+Math.random()*68,4+Math.random()*12,0,7);g.fill();}
+        for(let i=0;i<8;i++){g.fillStyle=`rgba(0,0,0,${.03+Math.random()*.06})`;g.beginPath();g.arc(30+Math.random()*68,30+Math.random()*68,4+Math.random()*12,0,7);g.fill();}
       });
       T.rain=ctex(128,256,(g,w,h)=>{
         const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#1a2448');gr.addColorStop(1,'#0c1024');g.fillStyle=gr;g.fillRect(0,0,w,h);

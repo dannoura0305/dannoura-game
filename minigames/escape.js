@@ -558,7 +558,7 @@ registerMinigame({
         const cond=nc?!S.x[a]:S.x[a];const c=col(cond);
         return `<line x1="${x-7}" y1="${y-9}" x2="${x-7}" y2="${y+9}" stroke="${c}" stroke-width="2.4"/><line x1="${x+7}" y1="${y-9}" x2="${x+7}" y2="${y+9}" stroke="${c}" stroke-width="2.4"/>`+
           (nc?`<line x1="${x-8}" y1="${y+9}" x2="${x+8}" y2="${y-9}" stroke="${c}" stroke-width="1.8"/>`:'')+
-          `<text x="${x}" y="${below?y+21:y-12}" font-size="10" text-anchor="middle" fill="#9ce">X${a}</text>`;
+          (below?`<text x="${x+11}" y="${y+4}" font-size="10" text-anchor="start" fill="#9ce">X${a}</text>`:`<text x="${x}" y="${y-12}" font-size="10" text-anchor="middle" fill="#9ce">X${a}</text>`);
       };
       P.rungs.forEach((r,i)=>{
         const y=24+i*RH,wc='#4a6a62';
