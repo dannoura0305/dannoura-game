@@ -1,6 +1,6 @@
 // ══════════════════════════════════════════════════════════
 // 脱出・謎解き「閉じ込められた夜勤明け」
-// 落雷で停電した工場に閉じ込められた。朝7時までに息子を迎えに行かないと。
+// 落雷で停電した工場に閉じ込められた。朝7時までに娘を迎えに行かないと。
 // 4部屋（更衣室・制御室・部品倉庫・非常口）を行き来し、
 // 懐中電灯＋電池 → ロッカー暗証（勤務表＋エアタンク残圧）→ 盤キーで分電盤
 // → 単線結線図どおりにブレーカー投入 → ドライバーでPLC盤 → ラダー図で出力パターン
@@ -262,7 +262,7 @@ function makePuzzle(rnd){
 
 registerMinigame({
   id:'escape', icon:'🔐', name:'閉じ込められた夜勤明け', genre:'脱出・謎解き', bgm:'kaidan',
-  desc:'夜勤明け、落雷の停電で工場に閉じ込められた。朝までに息子を迎えに行かないと。設備保全の知識で4つの部屋の仕掛けを解き、非常口から脱出しよう。',
+  desc:'夜勤明け、落雷の停電で工場に閉じ込められた。朝までに娘を迎えに行かないと。設備保全の知識で4つの部屋の仕掛けを解き、非常口から脱出しよう。',
   effect:'資格知識+5 仕事評価+6 精神力+4（ヒント1回ごと−1）／ 疲労+6 約60分',
   help:'タップで調べる・持ち物を選んで使う',
   start(body,mg){
@@ -696,7 +696,7 @@ registerMinigame({
       if(S.dial.join('')===P.code){
         box.classList.add('ok');AU.se('decide');sfx('unlock');
         setTimeout(()=>{if(mg._ended)return;closeZoom(true);S.locker=true;sfx('creak');
-          addItem('key','ガチャッ。ロッカーが開いた。<b>盤キー</b>を手に入れた。……扉の裏に、息子と撮った写真。',hsById('locker','own'));S.gotKey=true;updScore();},700);
+          addItem('key','ガチャッ。ロッカーが開いた。<b>盤キー</b>を手に入れた。……扉の裏に、娘と撮った写真。',hsById('locker','own'));S.gotKey=true;updScore();},700);
       }else{
         box.classList.remove('ng');void box.offsetWidth;box.classList.add('ng');AU.se('warn');sfx('clunk');
         say('……開かない。番号が違う。');
@@ -781,7 +781,7 @@ registerMinigame({
         case 'ctrl/desk':
           if(it)return no();
           if(!S.drawer){S.drawer=true;sfx('creak');addItem('torch0','引き出しに<b>懐中電灯</b>。……スイッチを入れても点かない。電池が空だ。',h);return;}
-          return say('机には息子が描いた「パパのこうじょう」の絵が貼ってある。煙突から虹が出ている。');
+          return say('机には娘が描いた「パパのこうじょう」の絵が貼ってある。煙突から虹が出ている。');
         case 'store/shelf':
           if(it)return no();
           if(!S.gotBatt){S.gotBatt=true;addItem('batt','部品箱に新品の<b>単三電池</b>があった。',h);return;}
@@ -814,7 +814,7 @@ registerMinigame({
         case 'locker/own':
           if(it)return no();
           if(!S.locker)return openZoom('dial');
-          return say('扉の裏に息子と撮った写真。「パパ　はやくかえってきてね」……ああ、帰るよ。');
+          return say('扉の裏に娘と撮った写真。「パパ　はやくかえってきてね」……ああ、帰るよ。');
         case 'locker/note':if(it)return no();return openZoom('note');
         case 'locker/lwin':return say('小さな窓。稲光で、向かいの倉庫の屋根が白く浮かぶ。');
         case 'locker/bench':return say('ベンチに作業着が脱ぎっぱなし。……俺のじゃない、たぶん。');
@@ -856,7 +856,7 @@ registerMinigame({
       dialog([
         {text:'雨上がりの朝。駐車場の水たまりに、うすい青空が映っている。'},
         {who:'だんのうら',img:S.hints?'char_happy':'char_win',text:S.hints?'……間に合った。さあ、迎えに行こう。':'……ヒントなしで抜けた。岩城さん、見てたかな。'},
-        {who:'',text:'お隣さんの玄関で、息子が眠そうに手を振っていた。「パパ、おかえり」'},
+        {who:'',text:'お隣さんの玄関で、娘が眠そうに手を振っていた。「パパ、おかえり」'},
         {who:'RESULT',text:`<div class="esc-grade"><div class="g" style="color:${GRADE_COL[g]}">${g}</div><div class="i">残り時間 ${fmt(S.left)}<br>ヒント ${S.hints}回${TWIST?'<br>二夜目（発電機）':''}<br>${nb?'<span style="color:var(--gd)">★ 自己ベスト更新</span>':'自己ベスト 残り'+fmt(prevBest)}</div></div><div style="text-align:center;font-family:var(--dot);font-size:.74rem;color:var(--tx-b)">${cm}</div>`,
           fx:()=>{AU.se('rank');setTimeout(()=>sfx('clunk'),420);},btn:'リザルトへ',onBtn:()=>mg.end('clear')},
       ]);
