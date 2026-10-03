@@ -586,6 +586,12 @@ function injectStyle(){
 .pr-kb-up{animation:pr-kbUp 20s ease-out forwards;} @keyframes pr-kbUp{from{transform:scale(1.18) translateY(7%)}to{transform:scale(1.08) translateY(-4%)}}
 .pr-kb-pan{animation:pr-kbPan 20s ease-in-out forwards;} @keyframes pr-kbPan{from{transform:scale(1.2) translateX(-6%)}to{transform:scale(1.12) translateX(5%)}}
 .pr-kb-down{animation:pr-kbDown 20s ease-in forwards;} @keyframes pr-kbDown{from{transform:scale(1.04)}to{transform:scale(1.2) translateY(6%);filter:brightness(.7) saturate(.6)}}
+.pr-end-pic img.pr-pre{transform:scale(1.04);filter:saturate(.85);}
+.pr-end-pic.pr-tf-good::before,.pr-end-pic.pr-tf-bad::before{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;animation:pr-tf .9s ease-out forwards;}
+.pr-end-pic.pr-tf-good::before{background:radial-gradient(circle at 50% 45%,#fff 0,#fff6e0 40%,rgba(255,240,200,.6) 70%,transparent 100%);}
+.pr-end-pic.pr-tf-bad::before{background:repeating-linear-gradient(0deg,rgba(255,40,80,.55) 0 2px,rgba(0,0,0,.6) 2px 5px);}
+.pr-end-pic.pr-tf-bad img{animation:pr-gl .9s steps(1) 1;}
+@keyframes pr-tf{0%{opacity:0}35%{opacity:1}100%{opacity:0}}
 .pr-glitch .pr-end-pic{animation:pr-gl 3.4s steps(1) infinite;}
 @keyframes pr-gl{0%,100%{transform:none;filter:none}46%{transform:translateX(-4px);filter:hue-rotate(-30deg) contrast(1.4)}47%{transform:translateX(5px) skewX(3deg)}48%{transform:none;filter:none}83%{transform:translateY(2px);filter:saturate(2) brightness(1.3)}84%{transform:none;filter:none}}
 .pr-end-text{width:min(100%,420px);display:flex;flex-direction:column;align-items:center;text-align:center;}
@@ -1155,7 +1161,21 @@ async function runEnding(tok){
   setStage('card');
   if(!await endWait(2600, tok)) return;
   setStage('main');
-  const img = el.querySelector('.pr-end-pic img'); if(!RM) img.className = 'pr-kb-' + cfg.kb;
+  const img = el.querySelector('.pr-end-pic img');
+  // 変身の一拍：グッドは白髪の猫耳姿（疲れ切った姿）から元の姿へ戻り、バッドは元の姿から崩れていく
+  if(info.img && !RM){
+    const pre = cfg.bad ? 'assets/img/char_normal.webp' : 'assets/img/char_tired.webp';
+    const pic = el.querySelector('.pr-end-pic');
+    img.src = pre; img.className = 'pr-pre';
+    if(!await endWait(1500, tok)) { img.src = info.img; img.className = ''; return; }
+    pic.classList.add(cfg.bad ? 'pr-tf-bad' : 'pr-tf-good');
+    if(cfg.bad) SFX.dread(); else SFX.chime();
+    burst(cfg.bad);
+    await sleep(380); if(tok!==EN.tok){ img.src = info.img; return; }
+    img.src = info.img;
+    await sleep(500); pic.classList.remove('pr-tf-bad','pr-tf-good');
+  }
+  if(!RM) img.className = 'pr-kb-' + cfg.kb;
   if(cfg.comments) startComments(tok);
   if(cfg.rainStop) setTimeout(()=>{ if(tok===EN.tok) EN.rainOn = false; }, cfg.rainStop);
   if(!await endWait(1300, tok)) return;
@@ -1223,6 +1243,7 @@ function endFinal(tok){
   if(EN.waitR){ const r = EN.waitR; EN.waitR = null; r(); }
   const el = EN.el, info = EN.info;
   el.querySelector('.pr-cr-quote').classList.remove('on');
+  try{ const im = el.querySelector('.pr-end-pic img'); if(info.img) im.src = info.img; el.querySelector('.pr-end-pic').classList.remove('pr-tf-bad','pr-tf-good'); }catch(e){}
   el.querySelector('.pr-fpic').style.backgroundImage = info.img ? `url("${info.img}")` : 'none';
   el.querySelector('.pr-fpic').style.display = info.img ? '' : 'none';
   const ft = el.querySelector('.pr-fttl'); ft.textContent = info.title; ft.style.color = info.color || EN.cfg.c;
@@ -1273,6 +1294,11 @@ function spawn(kind, W, H){
     case 'ember':    return {x:r()*W, y:H+4, vx:(r()-.5)*.6, vy:-(.6+r()*1.2), life:120+r()*160, c:r()<.5?'#ff6a2a':'#ffb040', ph:r()*6};
   }
 
+}
+function burst(bad){
+  if(!EN.cv) return; const W = EN.cv.width, H = EN.cv.height; const cx = W/2, cy = H*(innerWidth>=760 ? .5 : .32);
+  for(let i=0;i<70;i++){ const a = Math.random()*6.283, v = .6+Math.random()*2.6;
+    EN.parts.push({k: bad ? 'ember' : 'mote', x:cx, y:cy, vx:Math.cos(a)*v, vy:Math.sin(a)*v, life:50+Math.random()*50, c: bad ? (Math.random()<.5?'#ff3a5a':'#c8c0ff') : (Math.random()<.5?'#ffffff':'#ffe0a0'), ph:Math.random()*6}); }
 }
 function fxLoop(){
   EN.raf = requestAnimationFrame(fxLoop);

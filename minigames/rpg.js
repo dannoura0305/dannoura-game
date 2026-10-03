@@ -1157,8 +1157,9 @@ STORY[4]=async G=>{
     'n:目を閉じても、まぶたの裏で通知が光る。工場のアラームが鳴る。コメントが流れる。',
     'n:……眠るのが、怖い。眠ったら、何かが終わってしまう気がする。']);
   await G.card(4,'corridor');
-  await G.say(['#hero on .3','#mina on .7',
+  await G.say(['#hero form tired','#hero on .3','#mina on .7',
     'n:果てのない回廊に、石灯籠が並んでいた。',
+    'n:水面に映った自分の姿が、知らない色をしていた。白い髪。……眠れない夜の、もうひとつの俺だ。',
     'n:ひとつひとつに火が入っている。消えることなく、ずっと。',
     'm:「眠らない灯籠。眠れなかった夜の数だけ、ここに灯がともるんです」',
     'd.tired:「……ずいぶん、たくさんあるな」',
@@ -1201,13 +1202,15 @@ STORY[4]=async G=>{
   if(c===0){G.f.ch4_lantern=1;await G.say([
     'n:灯籠を掴む。熱い。体の奥から、力がみなぎってくる。眠気が、きれいに消える。（以後、戦闘で力と息が増す）',
     'd:「……これで、いい。これで、まだやれる」',
+    'n:水面に映る髪は、白いままだった。',
     'm.sad:「…………」',
     'n:ミナモは何も言わなかった。ただ、回廊の灯籠が、ひとつ増えた。']);}
   else{G.f.ch4_rest=1;await G.say([
     'd:「いらない」',
     'n:息を吹きかける。灯籠の火が、ふっと消えた。',
     '#var dim 1','n:回廊の灯籠が、ひとつ、またひとつ、静かに消えていく。暗くなるのに、不思議と怖くない。',
-    'd:「眠るのは、負けじゃない。……あいつに教えてることだ。俺が守らなくてどうする」',
+    '#hero form normal','d:「眠るのは、負けじゃない。……あいつに教えてることだ。俺が守らなくてどうする」',
+    'n:水面に映る髪の色が、いつもの色に戻っていた。',
     'm.smile:「……はい」',
     'n:（以後、戦闘をいつも万全の体力で始められる）']);}
   await G.say(['#foe sheep','#se ghost','#bgm kaidan',
@@ -1245,7 +1248,8 @@ STORY[5]=async G=>{
     'n:沈んだ都の、そのまた底。',
     'n:御所の屋根も、鳥居も、すべてが巨大な渦に向かって傾いていた。渦のまわりを、無数の文字が回っている。',
     'n:名前だ。誰かの名前。誰かが、誰かを呼んだ声。',
-    'd.fear:「……俺の名前、なんだっけ」',
+    '#hero form tired','d.fear:「……俺の名前、なんだっけ」',
+    'n:指先から、色が抜けていく。髪が白く、ほどけていく。',
     'm.sad:「だから、ここは怖いんです。名前を忘れたら、もう誰にも呼ばれない」',
     'm:「呼ばれない人は、浮かび上がれない。……私みたいに」']);
   await G.explore({hint:'名前を呑む渦を調べよう',spots:[
@@ -1270,6 +1274,7 @@ STORY[5]=async G=>{
         'd:「本名は、言えない。でも、俺は知ってる。親がつけた、俺の名前だ」','n:（最終戦で最大HPが増える）']);}
       else{G.f.ch5_papa=1;await G.say(['n:《パパ》を掴む。ぎざぎざの、クレヨンの字。',
         'd.happy:「……一番よく呼ばれてる名前だな」','m.smile:「一番、強い名前です」','n:（最終戦の始めに、体も息も満ちる）']);}
+      await G.say([...(G.f.ch4_lantern?[]:['#hero form normal','n:名前を握った手に、色が戻ってくる。']),...(G.f.ch4_lantern?['n:名前は掴んだ。けれど髪は、白いままだった。眠らない灯籠の熱が、まだ胸に残っている。']:[])]);
     }},
     {id:'list',label:'リスナーの名前',x:.82,y:.48,run:async()=>{
       await G.say(['n:渦の外側を、見覚えのある名前たちが回っている。',
@@ -1320,7 +1325,7 @@ STORY[5]=async G=>{
 // ── エンディング ──
 const ENDS={
   true:{name:'目覚め ── 二人の朝',bg:'dawn',bgm:'rebirth',
-    scene:['#bg dawn','#hero on .4','#mina on .62',
+    scene:['#hero form normal','#bg dawn','#hero on .4','#mina on .62',
       'd:「……朝を選ぶ」',
       'm.sad:「そうですよね。……じゃあ、ここでお別れ──」',
       'd:「何言ってんだ。お前も来るんだよ」',
@@ -1335,7 +1340,7 @@ const ENDS={
     body:'目を開けると、あの子が胸の上に乗っていた。\n「パパ、おきた！」\n\n雨は止んでいた。\nスマホに、通知がひとつ。\n\n《ひとりぼっち：おはようございます。\n久しぶりに、朝に起きました。\n本当の名前は──今夜、配信で言います》',
     last:'「ここが、俺の壇ノ浦だ。沈むか、這い上がるか。\n──今日は、這い上がる。」'},
   wake:{name:'目覚め',bg:'dawn',bgm:'rebirth',
-    scene:['#bg dawn','#hero on .4','#mina on .62',
+    scene:['#hero form normal','#bg dawn','#hero on .4','#mina on .62',
       'd:「……朝を選ぶ。ミナモ、来い」',
       'n:手を伸ばす。指先が触れる。……すり抜けた。',
       'm.smile:「先に行ってください。私は、もう少しだけ、ここで──見てます」',
@@ -1346,7 +1351,7 @@ const ENDS={
     last:'「ここが、俺の壇ノ浦だ。沈むか、這い上がるか。\n──とりあえず今日は、這い上がった。」',
     hint:'朝へつなぎとめる選択が、もう少し多ければ──ミナモの手も、掴めたかもしれない。'},
   sink:{name:'沈眠',bg:'abyss',bgm:'collapse',dark:true,
-    scene:['d.tired:「……少しだけ、眠らせてくれ」',
+    scene:['#hero form tired','d.tired:「……少しだけ、眠らせてくれ」',
       'm.surprise:「だめ……！　だんのうらさん！」',
       'n:都の灯りが、やさしく近づいてくる。体が温かい。もう、何も考えなくていい。',
       's:「おかえり」',
@@ -1474,12 +1479,12 @@ registerMinigame({
 
     // ── 画面の状態 ──
     const V={bg:'menu',v:{},t:0,stop:0,shake:0,hurt:0,dark:0,mosaic:0,battle:false,
-      hero:{on:false,a:0,x:.3,tx:.3,face:1,ph:0,walk:false,lunge:0,flash:0,down:0},
+      hero:{on:false,a:0,x:.3,tx:.3,face:1,ph:0,walk:false,lunge:0,flash:0,down:0,form:'normal'},
       mina:{on:false,a:0,x:.72,tx:.72,expr:'normal'},
       kid:{on:false,a:0,x:.55,tx:.55},
       foe:null,foeCY:.3,foeS:200,bpTop:0,
       pops:[],floats:[],parts:[],fx:[],tw:[],light:null};
-    img('sd_normal',true);['normal','happy','tired','fear','win','collapse'].forEach(e=>img('char_'+e));
+    img('sd_normal',true);img('sd_tired',true);['normal','happy','tired','fear','win','collapse'].forEach(e=>img('char_'+e));
 
     const sleep=ms=>new Promise((res,rej)=>setTimeout(()=>mg._ended?rej(ABORT):res(),ms));
     function tween(o,k,to,ms,ease){
@@ -1597,6 +1602,7 @@ registerMinigame({
       if(a==='on'){if(!A.on||A.a<.05){A.x=A.tx=+b;}else A.tx=+b;A.on=true;}
       else if(a==='off')A.on=false;
       else if(a==='x'){A.tx=+b;A.on=true;}
+      else if(a==='form')A.form=b;
     }
     async function directive(s){
       const p=s.split(' '),cmd=p[0],a=p[1],b=p[2];
@@ -1641,7 +1647,7 @@ registerMinigame({
     // ── 描画 ──
     const PE=W=>Math.max(.75,Math.min(1.35,Math.min(W/380,H/700)));
     function drawHeroAt(px,fy,sc,alpha,face,st){
-      const im=img('sd_normal',true);if(!im.ok||alpha<=0)return;
+      const im=img(st.form==='tired'?'sd_tired':'sd_normal',true);if(!im.ok||alpha<=0)return;
       const h=104*sc,w=h*120/140;
       const step=st.walk?Math.sin(st.ph*10):0;
       const bob=st.walk?-Math.abs(step)*5*sc:Math.sin(V.t*2.2)*1.6*sc;
@@ -1694,7 +1700,8 @@ registerMinigame({
       drawFoe();
       if(V.battle){
         const hp=heroBattlePos();
-        drawHeroAt(hp.x,hp.y,sc*.92,1,1,V.hero);
+        V.hero.bform=BT&&BT.p&&BT.p.hp<BT.p.max*.35?'tired':V.hero.form;
+        drawHeroAt(hp.x,hp.y,sc*.92,1,1,Object.assign({},V.hero,{form:V.hero.bform}));
         if(V.mina.on)drawMinamo(x,W*.08,hp.y,sc*.6,V.t,.75,V.mina.expr);
       }
       drawFx();
@@ -1864,7 +1871,7 @@ registerMinigame({
       hideBox();
       const mk=(a,b,cc,cls)=>{const e=el('div','rpg-card '+(cls||''),`<div class="c1">${a}</div><div class="c2">${b}</div><div class="ln"></div><div class="c3">${cc}</div>`);ui.appendChild(e);return e;};
       const show=async(e,ms)=>{void e.offsetWidth;e.classList.add('on');AU.se('ghost');await sleep(900);V.floats=[];
-        if(nextBg!==undefined){V.bg=nextBg;V.v={};V.hero.on=false;V.hero.a=0;V.mina.on=false;V.mina.a=0;V.kid.on=false;V.kid.a=0;V.foe=null;V.dark=0;}
+        if(nextBg!==undefined){V.bg=nextBg;V.v={};V.hero.form=run&&run.f.ch4_lantern&&n===5?'tired':'normal';V.hero.on=false;V.hero.a=0;V.mina.on=false;V.mina.a=0;V.kid.on=false;V.kid.a=0;V.foe=null;V.dark=0;}
         await waitTap(ms,600);e.classList.remove('on');await sleep(800);e.remove();};
       if(n===1&&!isReplay&&R.cleared===0)await show(mk('DANNOURA DREAM TALE','壇ノ浦夢譚','── 波の下にも、都はあるか ──'),2600);
       await show(mk(c.kan,c.title,`── ${c.place} ──`),2800);
