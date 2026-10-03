@@ -933,6 +933,7 @@ registerMinigame({
       // ── メインループ ──
       mg.loop(dt=>{
         if(S.disposed||!G)return;
+        dt=clamp(dt||0,0,.05);
         tAll+=dt;
         if(S.phase==='intro'){introT-=dt;if(introT<=0)startPlay();}
         else if(S.phase==='play'){update(dt);if(S.disposed)return;}

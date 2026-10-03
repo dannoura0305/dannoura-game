@@ -101,7 +101,7 @@ registerMinigame({
     const cx=cv.getContext('2d');
 
     let W=0,H=0,dpr=1,sc=1,VW=360,VH=560,GY=430,RES=1;
-    let skyC,farC,midC,wallC,lampC,coneC,vendC,vendRC,reflWarm,reflCyan,reflWhite,vignC,storeC;
+    let skyC,farC,midC,wallC,logoC,homeC,fogC,lampC,coneC,vendC,vendRC,reflWarm,reflCyan,reflWhite,vignC,storeC;
     let glowWarm,glowCyan,glowPink,glowGold,glowRed,glowWhite;
     const FT=760, MT=980, RIP=14;
 
@@ -461,6 +461,91 @@ registerMinigame({
       g.fillStyle='#00a890';g.fillRect(STORE_W+16,8,30,10);
       g.fillStyle='#232a58';g.font='bold 14px "DotGothic16", monospace';g.fillText('24',STORE_W+31,30);
       g.fillStyle='#fff';g.font='8px "DotGothic16", monospace';g.fillText('よる',STORE_W+31,13.5);
+      // 霧（霧雨の夜）
+      fogC=mkC(VW,220);g=fogC.g;
+      gr=g.createLinearGradient(0,0,0,220);gr.addColorStop(0,'rgba(120,110,170,0)');gr.addColorStop(.6,'rgba(120,110,170,.32)');gr.addColorStop(1,'rgba(120,110,170,.12)');
+      g.fillStyle=gr;g.fillRect(0,0,VW,220);
+      buildLogo();buildHome();
+    }
+    function buildLogo(){
+      logoC=mkC(300,120);const g=logoC.g;
+      // 背後のネオン円
+      let gr=g.createRadialGradient(150,62,10,150,62,140);gr.addColorStop(0,'rgba(138,82,212,.35)');gr.addColorStop(1,'rgba(138,82,212,0)');
+      g.fillStyle=gr;g.fillRect(0,0,300,120);
+      g.textBaseline='middle';g.textAlign='left';
+      g.save();g.shadowColor='#00e8c8';g.shadowBlur=8;g.fillStyle='#7ff8e4';g.font='14px "DotGothic16", monospace';g.fillText('深夜の',26,18);g.restore();
+      // 傘アイコン
+      g.save();g.translate(262,22);g.rotate(.25);
+      g.strokeStyle='#e8f4ff';g.fillStyle='rgba(220,235,255,.3)';g.lineWidth=1.5;
+      g.beginPath();g.moveTo(-15,4);g.quadraticCurveTo(0,-16,15,4);g.closePath();g.fill();g.stroke();
+      g.beginPath();g.moveTo(0,-6);g.lineTo(0,16);g.arc(3,16,3,Math.PI,0,true);g.stroke();g.restore();
+      const big=(txt,x,y,c0,c1,skew)=>{
+        g.save();g.translate(x,y);g.transform(1,0,skew,1,0,0);
+        g.font='38px "DotGothic16", monospace';
+        g.lineJoin='round';g.strokeStyle='#1a0838';g.lineWidth=7;g.strokeText(txt,0,0);
+        g.shadowColor=c1;g.shadowBlur=12;
+        const q=g.createLinearGradient(0,-18,0,18);q.addColorStop(0,c0);q.addColorStop(1,c1);
+        g.fillStyle=q;g.fillText(txt,0,0);
+        g.shadowBlur=0;g.fillStyle='rgba(255,255,255,.55)';g.fillRect(2,-14,g.measureText(txt).width-4,2);
+        g.restore();
+      };
+      big('買い出し',18,50,'#ffffff','#b88cff',0);
+      // 疾走線
+      g.fillStyle='#e8b830';for(let i=0;i<5;i++)g.fillRect(4+i*3,82+i*5-10,36-i*6,2);
+      big('ダッシュ!!',58,92,'#ffe9a0','#ff5f9a',-.28);
+      for(let i=0;i<14;i++){g.fillStyle='rgba(190,210,255,.5)';const x=20+i*21,y=(i*37)%110;g.fillRect(x,y,1,6);}
+    }
+    function buildHome(){
+      homeC=mkC(VW,VH);const g=homeC.g,HF=VH-196;
+      let gr=g.createLinearGradient(0,0,0,HF);gr.addColorStop(0,'#120e22');gr.addColorStop(1,'#221a38');
+      g.fillStyle=gr;g.fillRect(0,0,VW,HF);
+      for(let x=0;x<VW;x+=18){g.fillStyle='rgba(255,255,255,.025)';g.fillRect(x,0,2,HF);}
+      dither(g,0,0,VW,HF,'rgba(0,0,0,.12)');
+      // 窓
+      const wx=VW*.5,wy=Math.max(40,HF-250),ww=VW*.4,wh=130;
+      gr=g.createLinearGradient(0,wy,0,wy+wh);gr.addColorStop(0,'#0a0c26');gr.addColorStop(1,'#2a1d48');
+      g.fillStyle=gr;g.fillRect(wx,wy,ww,wh);
+      g.fillStyle='rgba(230,230,255,.5)';g.beginPath();g.arc(wx+ww*.72,wy+30,9,0,TAU);g.fill();
+      g.fillStyle='#0c0a18';for(let i=0;i<5;i++){const bx=wx+i*ww/5;g.fillRect(bx+4,wy+wh-30-((i*37)%40),ww/5-6,40+((i*37)%40));}
+      g.fillStyle='rgba(242,196,106,.7)';g.fillRect(wx+20,wy+wh-20,3,3);g.fillRect(wx+ww*.6,wy+wh-34,3,3);
+      g.fillStyle='#2e2648';g.fillRect(wx-4,wy-4,ww+8,6);g.fillRect(wx-4,wy+wh-2,ww+8,6);g.fillRect(wx-4,wy,6,wh);g.fillRect(wx+ww-2,wy,6,wh);g.fillRect(wx+ww/2-2,wy,4,wh);
+      // カーテン
+      g.fillStyle='#4a2f6e';g.fillRect(wx-18,wy-8,16,wh+20);g.fillRect(wx+ww+2,wy-8,16,wh+20);
+      g.fillStyle='rgba(0,0,0,.25)';for(let k=0;k<3;k++){g.fillRect(wx-15+k*5,wy-8,1.5,wh+20);g.fillRect(wx+ww+5+k*5,wy-8,1.5,wh+20);}
+      // 月明かり
+      g.fillStyle='rgba(150,170,255,.07)';g.beginPath();g.moveTo(wx,wy+wh);g.lineTo(wx+ww,wy+wh);g.lineTo(wx+ww-30,HF+60);g.lineTo(wx-70,HF+60);g.closePath();g.fill();
+      // 時計 2:14
+      const ccx=VW*.26,ccy=Math.max(34,HF-220);
+      g.fillStyle='#e8e0f4';g.beginPath();g.arc(ccx,ccy,13,0,TAU);g.fill();
+      g.strokeStyle='#4a3a6a';g.lineWidth=2;g.stroke();
+      g.strokeStyle='#2a1838';g.lineWidth=1.6;g.beginPath();
+      const ah=(2+14/60)/12*TAU,am=14/60*TAU;
+      g.moveTo(ccx,ccy);g.lineTo(ccx+Math.sin(ah)*6,ccy-Math.cos(ah)*6);g.moveTo(ccx,ccy);g.lineTo(ccx+Math.sin(am)*10,ccy-Math.cos(am)*10);g.stroke();
+      // 子どもの絵
+      const px=18,py=Math.max(60,HF-170);
+      g.fillStyle='#efe8d8';g.fillRect(px,py,50,38);
+      g.fillStyle='#e8b830';g.beginPath();g.arc(px+38,py+10,6,0,TAU);g.fill();
+      g.strokeStyle='#3a5ad0';g.lineWidth=1.5;g.beginPath();
+      g.arc(px+14,py+18,4,0,TAU);g.moveTo(px+14,py+22);g.lineTo(px+14,py+32);g.moveTo(px+9,py+26);g.lineTo(px+19,py+26);
+      g.moveTo(px+26,py+24);g.arc(px+26,py+24,3,0,TAU);g.moveTo(px+26,py+27);g.lineTo(px+26,py+33);g.stroke();
+      g.fillStyle='rgba(232,80,120,.8)';g.font='7px "DotGothic16", monospace';g.fillText('パパ',px+6,py+8);
+      g.fillStyle='rgba(200,190,140,.6)';g.fillRect(px+20,py-3,10,5);
+      // 棚とぬいぐるみ
+      const sy=HF-70;
+      g.fillStyle='#3a2c50';g.fillRect(VW*.04,sy,90,6);
+      g.fillStyle='#c8a888';g.beginPath();g.arc(VW*.04+24,sy-12,10,0,TAU);g.arc(VW*.04+16,sy-21,4,0,TAU);g.arc(VW*.04+32,sy-21,4,0,TAU);g.fill();
+      g.fillStyle='#2a1838';g.fillRect(VW*.04+20,sy-14,2,2);g.fillRect(VW*.04+27,sy-14,2,2);
+      g.fillStyle='#6a4a98';g.fillRect(VW*.04+50,sy-24,10,24);g.fillStyle='#4a8a98';g.fillRect(VW*.04+61,sy-20,8,20);g.fillStyle='#a84a6a';g.fillRect(VW*.04+70,sy-26,9,26);
+      // 床（畳）
+      gr=g.createLinearGradient(0,HF,0,VH);gr.addColorStop(0,'#2a2438');gr.addColorStop(1,'#151020');
+      g.fillStyle=gr;g.fillRect(0,HF,VW,VH-HF);
+      g.fillStyle='rgba(0,0,0,.3)';g.fillRect(0,HF,VW,3);
+      g.fillStyle='rgba(180,170,120,.06)';for(let y=HF+6;y<VH;y+=4)g.fillRect(0,y,VW,1);
+      g.fillStyle='rgba(40,30,20,.5)';g.fillRect(VW*.45,HF,3,VH-HF);g.fillRect(0,HF+70,VW,3);
+      // 行灯の灯り
+      gr=g.createRadialGradient(VW*.08,HF+30,0,VW*.08,HF+30,120);gr.addColorStop(0,'rgba(255,200,130,.32)');gr.addColorStop(1,'rgba(255,200,130,0)');
+      g.fillStyle=gr;g.fillRect(0,HF-90,VW*.08+120,240);
+      g.fillStyle='#f4dcb0';g.fillRect(VW*.08-7,HF+6,14,22);g.fillStyle='#4a3424';g.fillRect(VW*.08-8,HF+4,16,3);g.fillRect(VW*.08-8,HF+27,16,3);
     }
 
     function resize(){
@@ -1792,11 +1877,12 @@ registerMinigame({
       const rem=Math.max(0,GOAL_M-Math.floor(cam/M));
       const s=`小銭 ¥${Math.min(COIN_CAP,coins*COIN).toLocaleString()}${purin?'　🍮'+purin:''}　☂${'■'.repeat(clamp(hp,0,MAX_HP))}${'□'.repeat(clamp(MAX_HP-hp,0,MAX_HP))}`;
       if(s!==lastScore){lastScore=s;mg.setScore(s);}
-      mg.setTimer(rem+'m');
+      mg.setTimer(phase==='story'||phase==='title'?'深夜2:14':rem+'m');
     }
 
     resize();
     if(ro)ro.observe(body);
+    startDialog(INTRO,()=>wipe(()=>{phase='title';phaseT=0;sfx('stage','decide');}));
     mg.loop(dt=>{
       update(dt);
       if(mg._ended)return;
@@ -1807,6 +1893,9 @@ registerMinigame({
     return {result(reason){
       if(ro)ro.disconnect();
       clearTimeout(rzTimer);
+      // 結果が確定した後に「終了」を押しても、確定した結果で精算する
+      if(outcome)reason=outcome;
+      commit();
       const clear=reason==='clear', down=reason==='down';
       const money=Math.min(COIN_CAP,coins*COIN);
       const pb=Math.min(2,purin);
@@ -1820,7 +1909,7 @@ registerMinigame({
       }
       const dist=Math.min(GOAL_M,Math.floor(cam/M));
       return {
-        title:clear?(woke?'🏃 なんとか間に合った':'🏃 コンビニまで走りきった'):down?'☔ 傘が壊れた':'🏃 引き返した',
+        title:(clear?(woke?'🏃 なんとか間に合った':'🏃 コンビニまで走りきった'):down?'☔ 傘が壊れた':'🏃 引き返した')+(gradeInfo&&reason!=='quit'?'　評価 '+gradeInfo.g:''),
         summary:clear
           ?`冷却シートと、いつものプリンを買えた。${purin?`<br>おまけのプリン <span class="up">${purin}</span>`:''}`+
            `<br>拾った小銭 <span class="up">¥${money.toLocaleString()}</span>　被弾 <span class="${hits?'down':'up'}">${hits}</span>`+

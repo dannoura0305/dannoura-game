@@ -1263,7 +1263,7 @@ registerMinigame({
     }
     function taunt(t,col){
       const b=document.createElement('div');b.className='cards-ebub';b.style.setProperty('--k',col);b.textContent=t;
-      b.style.left=ex+'px';b.style.top=Math.max(ezTop+30,ey-R*.75)+'px';stage.appendChild(b);se('comment');
+      b.style.left=ex+'px';b.style.top=Math.max(ezTop+80,ey-R*.42)+'px';stage.appendChild(b);se('comment');
       later(()=>{b.style.transition='opacity .3s';b.style.opacity=0;later(()=>b.remove(),320);},1900);
     }
 

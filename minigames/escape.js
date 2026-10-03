@@ -380,6 +380,7 @@ registerMinigame({
         {id:'roster',x:.05,y:.33,w:.38,h:.19,nm:'勤務表'},
         {id:'plc',x:.48,y:.32,w:.24,h:.22,nm:'PLC盤'},
         {id:'desk',x:.04,y:.60,w:.50,h:.25,nm:'机'},
+        {id:'memo',x:.57,y:.57,w:.16,h:.13,nm:'申し送り'},
       ],
       store:[
         {id:'shelf',x:.04,y:.08,w:.38,h:.62,nm:'部品棚'},
@@ -387,6 +388,7 @@ registerMinigame({
         {id:'tank',x:.49,y:.31,w:.21,h:.46,nm:'エアタンク'},
         {id:'valves',x:.73,y:.31,w:.24,h:.40,nm:'バルブ'},
         {id:'pallet',x:.06,y:.76,w:.36,h:.14,nm:'パレット'},
+        {id:'oldmemo',x:.46,y:.80,w:.22,h:.10,nm:'古い手帳'},
       ],
       locker:[
         {id:'lk0',x:.03,y:.10,w:.155,h:.60,nm:'ロッカー'},
@@ -402,8 +404,10 @@ registerMinigame({
         {id:'door',x:.24,y:.15,w:.52,h:.57,nm:'非常口'},
         {id:'lockpanel',x:.80,y:.32,w:.16,h:.16,nm:'電気錠'},
         {id:'tag',x:.04,y:.28,w:.16,h:.36,nm:'エアシリンダー'},
+        {id:'gen',x:.77,y:.57,w:.21,h:.27,nm:'発電機'},
       ],
     };
+    if(!TWIST)HS.exit=HS.exit.filter(h=>h.id!=='gen');
     const hsById=(room,id)=>HS[room].find(h=>h.id===id);
 
     // ── レイアウト ──
@@ -473,6 +477,10 @@ registerMinigame({
       if(!S.torch)return '持ち物の<b>懐中電灯を選んでから電池をタップ</b>すると組み合わせられる。';
       if(!S.locker)return `更衣室の<b>鏡のメモ</b>が暗証のヒント。①② 勤務表の「だんのうら」の<b>夜</b>を第1週・第2週で数える。③④ 部品倉庫の<b>エアタンクの残圧</b>（0.${'xx'}MPaの xx）。`;
       if(!S.panel)return '<b>盤キーを選んで</b>、制御室の<b>分電盤</b>をタップ。';
+      if(!S.gen){
+        if(!S.fueled)return S.gotFuel?'<b>携行缶を選んで</b>、非常口の<b>発電機</b>をタップして給油。':'発電機は燃料切れ。<b>部品倉庫のパレット</b>に軽油の携行缶がある。';
+        return '非常口の<b>発電機の銘板</b>に始動手順が書いてある。その順にボタンを押す。';
+      }
       if(!S.power)return '<b>単線結線図</b>を見る。主幹→分岐→負荷と<b>上流から</b>。同じ段では<b>容量(kVA)の小さい順</b>に投入。';
       if(!S.plcCover)return S.gotDriver?'<b>ドライバーを選んで</b>、制御室の<b>PLC盤</b>をタップ。':'懐中電灯があれば、部品倉庫の<b>工具板</b>でドライバーが見つかる。';
       if(!S.plcOk)return '非常口の<b>電気錠のステッカー</b>の出力パターンをPLCで作る。┤├ は入力ONで通電、┤/├ は入力OFFで通電。';
@@ -586,6 +594,19 @@ registerMinigame({
       }else if(id==='note'){
         t='鏡に貼ったメモ';
         h=`<div class="esc-note">ロッカー暗証（忘れ防止）<br>①② 勤務表の<u>オレ</u>の「夜」の数<br>　　（第1週・第2週）<br>③④ エアタンク残圧の<br>　　小数点以下2ケタ<br><span style="font-size:.66rem">……メモを鏡に貼るのは防犯的にどうなんだ俺。</span></div>`;
+      }else if(id==='memo'){
+        t='申し送りノート';
+        h=`<div class="esc-paper" style="line-height:1.9;font-size:.74rem">申し送り（夜勤 → 日勤）<br>・3号ライン コンプレッサー異音。要点検。<br>・非常口シャッターはエア駆動に改造済。<br>　<u>供給圧は現場の札を見ること</u>。<br>・電気錠はPLCのテストSWで動作確認可。<br>　カバーはネジ止め（ドライバー要）。<br>・落雷注意報。……だんのうらさん、お子さんの熱は下がりました？　<span style="color:#a0203c">宮下</span></div>`;
+      }else if(id==='oldmemo'){
+        t='古い手帳';
+        h=`<div class="esc-paper" style="line-height:2;font-size:.76rem;background:linear-gradient(#d8ccaa,#c2b48c)">設備保全 心得　<span style="font-size:.62rem">― 岩城</span><br>一、ブレーカーは上から入れろ。<br>　　同じ段なら<u>軽い負荷から</u>だ。<br>一、圧は嘘をつかん。針を読め。<br>一、子どもの運動会は休め。<br>　　仕事は誰かが代われる。親は代われん。</div><div class="esc-sub" style="margin-top:6px">三年前に定年した岩城さんの手帳だ。……まだこんな所に。</div>`;
+      }else if(id==='gen'){
+        t='非常用発電機 EG-1';
+        const pos=S.fueled?(S.gen?100:72):4;
+        h=`<div class="esc-gen"><div class="esc-paper" style="font-size:.72rem;line-height:1.9">銘板：始動手順<br>${P.genSteps.map((x,i)=>`${'①②③④'[i]} ${x}`).join('　')}</div>
+          <div class="esc-sub">燃料 ${S.fueled?'<span style="color:var(--gn)">軽油</span>':'<span style="color:var(--rd)">EMPTY</span>'}</div><div class="esc-fuel"><i style="width:${pos}%"></i></div>
+          <div class="esc-gb">${P.genBtns.map(k=>{const nm=P.genSteps[k];const done=S.gen||P.genSteps.indexOf(nm)<S.genStep;return `<button data-gen="${k}" class="${done?'done':''}" ${S.gen?'disabled':''}>${nm}</button>`;}).join('')}</div>
+          <div class="esc-sub">${S.gen?'<span style="color:var(--gn)">運転中　出力 400V 正常</span>':S.fueled?'銘板の順にボタンを押す。':'燃料が空。軽油を入れないと回らない。'}</div></div>`;
       }else if(id==='tank'){
         t='エアタンク　残圧計';
         h=`<div style="display:flex;justify-content:center">${gaugeSVG(P.tank/100,250,'AIR TANK',true)}</div><div class="esc-sub" style="text-align:center">コンプレッサー停止中でも、タンクに圧が残っている。</div>`;
@@ -629,8 +650,9 @@ registerMinigame({
       if(e.target.closest('.esc-x')){closeZoom();return;}
       const b=e.target.closest('[data-brk]');if(b){tapBreaker(b.dataset.brk);return;}
       const sw=e.target.closest('[data-sw]');if(sw){tapSwitch(+sw.dataset.sw);return;}
+      const gb=e.target.closest('[data-gen]');if(gb&&!gb.disabled){tapGen(+gb.dataset.gen);return;}
       const vl=e.target.closest('[data-valve]');if(vl&&!vl.disabled){tapValve(+vl.dataset.valve);return;}
-      const dl=e.target.closest('[data-dial]');if(dl){const i=+dl.dataset.dial;S.dial[i]=(S.dial[i]+(+dl.dataset.d)+10)%10;AU.se('btn');dl.parentNode.querySelector('.dg').textContent=S.dial[i];return;}
+      const dl=e.target.closest('[data-dial]');if(dl){const i=+dl.dataset.dial;S.dial[i]=(S.dial[i]+(+dl.dataset.d)+10)%10;AU.se('btn');sfx('click');const dg=dl.parentNode.querySelector('.dg');dg.textContent=S.dial[i];dg.classList.remove('roll');void dg.offsetWidth;dg.classList.add('roll');return;}
       if(e.target.closest('[data-open]'))tryDial();
     });
 
@@ -646,8 +668,25 @@ registerMinigame({
         say('……開かない。番号が違う。');
       }
     }
+    function tapGen(k){
+      if(S.gen)return;
+      if(!S.fueled){AU.se('back');sfx('click');say('燃料計はEMPTY。先に<b>軽油</b>を入れないと。');return;}
+      const nm=P.genSteps[k];
+      if(nm===P.genSteps[S.genStep]){
+        S.genStep++;AU.se('tool');sfx('clunk');
+        if(S.genStep>=P.genSteps.length){
+          S.gen=true;AU.se('machine');sfx('engine');burstAt('exit','gen','255,200,120',26);
+          say('キュルル……ドドドド！ <b>発電機が始動</b>した。これで分電盤に電圧が来る。',5);updScore();
+        }
+      }else{
+        S.genStep=0;AU.se('warn');sfx('trip');
+        say('プスン……止まった。<b>手順が違う</b>。銘板を見て最初から。');
+      }
+      renderZoom();
+    }
     function tapBreaker(code){
       if(S.power||S.bOn.includes(code))return;
+      if(!S.gen){AU.se('back');sfx('clunk');say('レバーは入るが……電圧計がゼロ。<b>発電機が止まっている</b>。');return;}
       const need=P.order[S.bOn.length];
       if(code===need){
         S.bOn.push(code);AU.se('tool');renderZoom();
