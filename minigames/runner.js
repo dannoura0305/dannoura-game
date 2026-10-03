@@ -1836,7 +1836,7 @@ registerMinigame({
         cx.restore();
         cx.strokeStyle='#8a52d4';cx.lineWidth=1;rrect(cx,px+.5,py2+.5,ps-1,ps-1,6);cx.stroke();
         cx.font=F10;cx.textAlign='left';cx.textBaseline='middle';
-        shadowText(L.who==='dan'?'だんのうら':'こども',tx,by+14,L.who==='dan'?'#00e8c8':'#ff9ccf');
+        shadowText(L.who==='dan'?'だんのうら':'娘',tx,by+14,L.who==='dan'?'#00e8c8':'#ff9ccf');
       }
       cx.font=F13;cx.textAlign='left';cx.textBaseline='middle';
       if(!dlg.wrapped){
