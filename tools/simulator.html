@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>バランスシミュレーター</title>
+<style>
+:root{
+  --bg:#0b0a12;--panel:#15131f;--line:#2a2638;--tx:#e6e1f0;--tx2:#a59fb8;--tx3:#6f6987;
+  --good:#0ca30c;--normal:#fab219;--bad:#d03b3b;--accent:#00b8a0;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:14px;line-height:1.6;}
+main{max-width:960px;margin:0 auto;padding:20px 16px 60px;}
+h1{font-size:20px;margin:0 0 4px;}
+.lead{color:var(--tx2);margin:0 0 16px;font-size:13px;}
+.controls{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:flex-end;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:16px;}
+.controls label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--tx2);}
+.controls input[type=number]{width:90px;background:var(--bg);color:var(--tx);border:1px solid var(--line);border-radius:4px;padding:5px 6px;font-size:14px;}
+.controls .chk{flex-direction:row;align-items:center;gap:6px;color:var(--tx);font-size:13px;}
+button.run{background:var(--accent);color:#00110e;border:none;border-radius:6px;padding:8px 18px;font-size:14px;font-weight:600;cursor:pointer;}
+button.run:disabled{opacity:.5;cursor:default;}
+#status{color:var(--tx2);font-size:13px;min-height:1.6em;margin-bottom:10px;}
+.mode{margin:22px 0 10px;font-size:16px;}
+.mode small{color:var(--tx3);font-weight:normal;font-size:12px;margin-left:6px;}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--tx2);margin:4px 0 10px;flex-wrap:wrap;}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
+.chart{display:flex;flex-direction:column;gap:10px;}
+.row{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;}
+.row .name{font-size:13px;color:var(--tx);}
+.row .name small{display:block;color:var(--tx3);font-size:11px;}
+.bar{display:flex;gap:2px;height:22px;}
+.seg{height:100%;min-width:0;position:relative;cursor:default;}
+.seg:first-child{border-radius:4px 0 0 4px;}.seg:last-child{border-radius:0 4px 4px 0;}
+.seg:only-child{border-radius:4px;}
+.seg span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#0b0a12;font-weight:600;white-space:nowrap;overflow:hidden;}
+.seg.bad span{color:#fff;}
+#tip{position:fixed;pointer-events:none;background:#000c;border:1px solid var(--line);color:var(--tx);font-size:12px;padding:6px 8px;border-radius:4px;display:none;z-index:9;white-space:pre-line;}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px;}
+th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:right;white-space:nowrap;}
+th:first-child,td:first-child{text-align:left;}
+th{color:var(--tx2);font-weight:normal;}
+.scroll{overflow-x:auto;}
+.note{color:var(--tx3);font-size:12px;margin-top:24px;line-height:1.8;}
+iframe{position:absolute;width:400px;height:800px;left:-9999px;top:0;border:0;visibility:hidden;}
+@media (max-width:600px){.row{grid-template-columns:1fr;gap:4px;}}
+</style>
+</head>
+<body>
+<main>
+  <h1>だんのうら バランスシミュレーター</h1>
+  <p class="lead">ゲーム本体（index.html）を裏で読み込み、本物のゲーム処理で30日間を自動プレイして、エンディングの出やすさを集計します。セーブデータやエンディング一覧には書き込みません。</p>
+
+  <div class="controls">
+    <label>1組あたりの回数<input type="number" id="runs" value="200" min="10" max="2000" step="10"></label>
+    <label>乱数シード<input type="number" id="seed" value="1"></label>
+    <label class="chk"><input type="checkbox" id="modeCur" checked>現在の仕様</label>
+    <label class="chk"><input type="checkbox" id="modeFix" checked>夜を22時開始にした場合</label>
+    <button class="run" id="run" disabled>読み込み中…</button>
+  </div>
+  <div id="status"></div>
+  <div id="out"></div>
+
+  <p class="note">
+    ・プレイ方針は「目標ガイド通り／配信重視／仕事・勉強重視／ランダム」の4種類。<br>
+    ・配信中のコメントによる小さな精神回復と、配信中の異変演出は省略しています。<br>
+    ・夜のミニゲームは中身を実際に遊ばず、典型的な結果（成功率60%）を当てはめています。<br>
+    ・「夜を22時開始にした場合」は、翌日の開始時刻を7:00→22:00に変え、配信終了時に日付が2日進まないようにした想定です。<br>
+    ・iframe で本体を読むため、file:// で直接開くと動きません。GitHub Pages かローカルサーバー経由で開いてください。
+  </p>
+</main>
+<div id="tip"></div>
+<iframe id="game" src="../index.html" title="game"></iframe>
+
+<script>
+const ENDINGS=[
+  ['rebirth','再生','good'],['king','深夜の王','good'],['engineer','凄腕保全マン','good'],
+  ['father','父親','good'],['debtfree','夜明け','good'],['normal','深夜の月','normal'],
+  ['collapse','崩壊','bad'],['bankrupt','生活破綻','bad'],['flame','炎上崩壊','bad'],
+];
+const GROUP_LABEL={good:'グッド',normal:'ノーマル',bad:'バッド'};
+const STRATS=[
+  {id:'guide', name:'目標ガイド通り', sub:'状態を見て休む・稼ぐを判断'},
+  {id:'stream',name:'配信重視',       sub:'休みつつ毎晩配信'},
+  {id:'work',  name:'仕事・勉強重視', sub:'工場と資格を優先'},
+  {id:'random',name:'ランダム',       sub:'行動を無作為に選ぶ'},
+];
+// 夜のミニゲームの典型的な結果（実プレイの代わり）
+const MG_TYPICAL={
+  shooter:{ok:{flame:-3,mental:6,followers:5,fatigue:6},ng:{mental:-6,fatigue:8},time:40},
+  rogue:  {ok:{jobRep:14,certKnow:6,money:7500,mental:4,fatigue:10},ng:{jobRep:3,money:1500,mental:-8,fatigue:10},time:90},
+  puzzle: {ok:{certKnow:15,jobRep:9,money:6500,mental:5,fatigue:6},ng:{certKnow:4,jobRep:3,money:1500,mental:1,fatigue:6},time:60},
+  cards:  {ok:{followers:20,streamPop:8,money:6000,mental:5,fatigue:8},ng:{mental:-8,flame:1,fatigue:10},time:80},
+};
+
+// 再現性のある乱数
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+const frame=document.getElementById('game');
+let W,G,snap,queue=[],sim={ending:null,mode:'cur'};
+
+frame.addEventListener('load',()=>{
+  W=frame.contentWindow;
+  G=W.eval('gs');
+  // ── 演出・保存を止める ──
+  const noop=()=>{};
+  ['showNotif','cutin','loadScene','showResult','playVoice','startChaos','showSharePanel','updateNavActive'].forEach(f=>{W[f]=noop;});
+  W.saveGame=()=>true;
+  W.typeText=(id,t,cb)=>{if(cb)cb();};
+  W.showEvPopup=(t,d,fx,cb)=>{if(cb)cb();};
+  W.recordEnding=type=>{if(!sim.ending)sim.ending=type;};
+  const AU=W.eval('AU');
+  ['init','playBGM','fadeBGM','stopBGM','se','playVoice','momentarySilence'].forEach(k=>{AU[k]=noop;});
+  // ── タイマーは即時実行キューへ ──
+  W.setTimeout=fn=>{if(typeof fn==='function')queue.push(fn);return 0;};
+  W.setInterval=()=>0;
+  // ── 修正案モード用のラップ ──
+  const origNextDay=W.nextDay;
+  W.nextDay=function(){origNextDay();if(sim.mode==='fix'&&!sim.ending){G.hour=22;G.min=0;}};
+  const origApply=W.applyChoice;
+  W.applyChoice=function(c){if(sim.mode==='fix'&&c.end)G._dayDone=true;return origApply(c);};
+  snap=JSON.stringify(W.gsToSaveData());
+  const btn=document.getElementById('run');btn.disabled=false;btn.textContent='実行';
+});
+
+function flush(){let n=0;while(queue.length&&n++<500){const fn=queue.shift();if(sim.ending){queue=[];return;}try{fn();}catch(e){console.warn(e);}}}
+
+function resetGame(){
+  queue=[];sim.ending=null;
+  const s=JSON.parse(snap);
+  Object.keys(G).forEach(k=>{if(!(k in s))delete G[k];});
+  W.saveDataToGs(s);
+  G._endless=false;
+  W.eval('for(const k in _dangerWarned)delete _dangerWarned[k];_lastRevent=null;MG._ended=true;');
+}
+
+// ── 行動 ──
+const R=()=>W.Math.random();
+function doStream(kind){
+  const types=W.eval('streamTypes'),choices=W.eval('streamChoices');
+  const t=kind?types.find(x=>x.key===kind):types[Math.floor(R()*types.length)];
+  W.startSession(t);flush();
+  if(sim.ending)return;
+  const list=choices[t.key]||choices.talk;
+  const talk=list.filter(c=>!c.end&&!c.mini),end=list.filter(c=>c.end);
+  const n=1+Math.floor(R()*2);
+  for(let i=0;i<n&&!sim.ending;i++){W.applyChoice(talk[Math.floor(R()*talk.length)]);flush();}
+  if(!sim.ending){W.applyChoice(end[0]);flush();}
+}
+function doFactory(){
+  W.handleChoice('factory');
+  W.eval(`ff=Math.min(ftt,Math.round(ftt*(${(.55+R()*.45).toFixed(3)})));`);
+  W.endFactory();flush();
+}
+function doMinigame(){
+  const MG=W.eval('MG'),list=W.eval('MINIGAMES').filter(d=>!W.playedMinigameToday(d.id));
+  if(!list.length)return false;
+  const def=list[Math.floor(R()*list.length)],t=MG_TYPICAL[def.id];
+  if(!t)return false;
+  MG.def=def;MG._ended=false;MG.game=null;
+  MG.finish({title:'',fx:{...(R()<.6?t.ok:t.ng)},time:t.time});flush();
+  return true;
+}
+function act(a){
+  if(a==='stream')doStream();
+  else if(a==='factory')doFactory();
+  else if(a==='mg'){if(!doMinigame()){W.handleChoice('rest_light');flush();}}
+  else{W.handleChoice(a);flush();}
+}
+
+// ── プレイ方針 ──
+function choose(strat,n){
+  const g=G,late=g.hour>=3&&g.hour<6;
+  if(strat==='random'){const a=['rest_light','rest_deep','study','childcare','singpractice','factory','stream','mg'];return a[Math.floor(R()*a.length)];}
+  // 共通の危険回避
+  if(g.mental<=20||g.fatigue>=85)return 'rest_deep';
+  if(g.flame>=5&&!W.playedMinigameToday('shooter'))return 'mg';
+  if(strat==='guide'){
+    if(g.fatigue>=60)return 'rest_light';
+    if(g.childStress>=70)return 'childcare';
+    if(n>=4||late)return 'stream';
+    if(g.jobRep<30)return 'factory';
+    if(g.certKnow<30)return 'study';
+    return ['factory','study','mg','childcare'][n%4];
+  }
+  if(strat==='stream'){
+    if(g.fatigue>=55)return 'rest_light';
+    if(g.childStress>=75)return 'childcare';
+    return n>=1||late?'stream':'singpractice';
+  }
+  if(strat==='work'){
+    if(g.fatigue>=60)return 'rest_light';
+    if(g.childStress>=75)return 'childcare';
+    if(n>=5||late)return 'stream';
+    return n%2?'study':'factory';
+  }
+}
+
+function runOne(strat){
+  resetGame();
+  let guard=0,day=G.day,n=0,actions=0;
+  while(!sim.ending&&guard++<3000){
+    act(choose(strat,n));actions++;
+    if(G.day!==day){day=G.day;n=0;}else n++;
+  }
+  return {ending:sim.ending||'timeout',day:Math.min(G.day,31),debt:G.debt,followers:G.followers,mental:G.mental,actions};
+}
+
+async function runAll(){
+  const runs=+document.getElementById('runs').value||100,seed=+document.getElementById('seed').value||1;
+  const modes=[];
+  if(document.getElementById('modeCur').checked)modes.push({id:'cur',name:'現在の仕様',sub:'2日目以降は7:00開始'});
+  if(document.getElementById('modeFix').checked)modes.push({id:'fix',name:'夜を22時開始にした場合',sub:'修正案'});
+  const btn=document.getElementById('run');btn.disabled=true;
+  const results=[];
+  const total=modes.length*STRATS.length*runs;let done=0;
+  for(const m of modes){
+    sim.mode=m.id;
+    for(const s of STRATS){
+      W.Math.random=mulberry32(seed*1000+STRATS.indexOf(s));
+      const rows=[];
+      for(let i=0;i<runs;i++){
+        rows.push(runOne(s.id));done++;
+        if(done%20===0){document.getElementById('status').textContent=`実行中… ${done}/${total}`;await new Promise(r=>setTimeout(r,0));}
+      }
+      results.push({mode:m,strat:s,rows});
+    }
+  }
+  document.getElementById('status').textContent=`完了：${total}回（各${runs}回・シード${seed}）`;
+  render(modes,results);
+  btn.disabled=false;
+}
+
+const pct=(a,b)=>b?Math.round(a/b*1000)/10:0;
+const avg=(rows,k)=>rows.length?rows.reduce((s,r)=>s+r[k],0)/rows.length:0;
+function render(modes,results){
+  const out=document.getElementById('out');out.innerHTML='';
+  modes.forEach(m=>{
+    const sec=document.createElement('section');
+    sec.innerHTML=`<h2 class="mode">${m.name}<small>${m.sub}</small></h2>
+      <div class="legend"><span><i style="background:var(--good)"></i>✓ グッドエンド</span><span><i style="background:var(--normal)"></i>― ノーマルエンド</span><span><i style="background:var(--bad)"></i>✕ バッドエンド</span></div>`;
+    const chart=document.createElement('div');chart.className='chart';
+    const rs=results.filter(r=>r.mode.id===m.id);
+    rs.forEach(r=>{
+      const nRuns=r.rows.length,cnt={good:0,normal:0,bad:0};
+      r.rows.forEach(x=>{const e=ENDINGS.find(e=>e[0]===x.ending);cnt[e?e[2]:'bad']++;});
+      const row=document.createElement('div');row.className='row';
+      row.innerHTML=`<div class="name">${r.strat.name}<small>${r.strat.sub}</small></div>`;
+      const bar=document.createElement('div');bar.className='bar';
+      ['good','normal','bad'].forEach(k=>{
+        if(!cnt[k])return;
+        const p=pct(cnt[k],nRuns),seg=document.createElement('div');
+        seg.className='seg '+k;seg.style.flex=cnt[k];seg.style.background=`var(--${k})`;
+        seg.innerHTML=p>=8?`<span>${p}%</span>`:'';
+        const detail=ENDINGS.filter(e=>e[2]===k).map(e=>{const c=r.rows.filter(x=>x.ending===e[0]).length;return c?`${e[1]}エンド ${pct(c,nRuns)}%`:null;}).filter(Boolean).join('\n');
+        seg.dataset.tip=`${r.strat.name}：${GROUP_LABEL[k]} ${p}%（${cnt[k]}/${nRuns}）\n${detail}`;
+        bar.appendChild(seg);
+      });
+      row.appendChild(bar);chart.appendChild(row);
+    });
+    sec.appendChild(chart);
+    // 表（全エンディング・平均値）
+    let t=`<div class="scroll"><table><thead><tr><th>方針</th>${ENDINGS.map(e=>`<th>${e[1]}</th>`).join('')}<th>平均到達日</th><th>平均借金</th><th>平均フォロワー</th><th>1日の行動数</th></tr></thead><tbody>`;
+    rs.forEach(r=>{
+      const n=r.rows.length;
+      t+=`<tr><td>${r.strat.name}</td>${ENDINGS.map(e=>`<td>${pct(r.rows.filter(x=>x.ending===e[0]).length,n)}%</td>`).join('')}`+
+        `<td>${avg(r.rows,'day').toFixed(1)}</td><td>${Math.round(avg(r.rows,'debt')/10000)}万</td><td>${Math.round(avg(r.rows,'followers'))}</td>`+
+        `<td>${(avg(r.rows,'actions')/Math.max(1,avg(r.rows,'day'))).toFixed(1)}</td></tr>`;
+    });
+    t+='</tbody></table></div>';
+    sec.insertAdjacentHTML('beforeend',t);
+    out.appendChild(sec);
+  });
+}
+
+const tip=document.getElementById('tip');
+document.addEventListener('mousemove',e=>{
+  const s=e.target.closest('.seg');
+  if(!s){tip.style.display='none';return;}
+  tip.textContent=s.dataset.tip;tip.style.display='block';
+  tip.style.left=Math.min(e.clientX+12,innerWidth-tip.offsetWidth-8)+'px';tip.style.top=(e.clientY+14)+'px';
+});
+document.getElementById('run').addEventListener('click',runAll);
+</script>
+</body>
+</html>

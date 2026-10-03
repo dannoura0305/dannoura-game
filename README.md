@@ -34,6 +34,7 @@ index.html        画面構成（HTML）
 style.css         見た目（CSS）
 game.js           ゲームロジック（JS）
 minigames/        夜のミニゲーム（共通部分 core.js ＋ 各ゲーム）
+tools/            開発用ツール（バランスシミュレーター）
 assets/bgm/       BGM（mp3）
 assets/voice/     ボイス（m4a）
 assets/img/       背景・キャラ・エンディング画像（webp）
@@ -41,6 +42,13 @@ assets/img/       背景・キャラ・エンディング画像（webp）
 
 音声・画像を差し替えるときは `assets/` のファイルを置き換えるか、
 `game.js` 内の `BGM_DATA` / `VOICE_DATA` / `BG_IMG` / `CHAR_IMG` / `SD_IMG` / `ENDING_IMG` のパスを書き換えてください。
+
+## バランスシミュレーター
+`tools/simulator.html` を開くと、ゲーム本体を裏で読み込み、30日間を4種類のプレイ方針で自動プレイして、エンディングの出やすさ・平均借金・1日の行動数などを集計します。数値を調整したあとに、狙った難しさになっているか確かめるのに使います。
+
+- 開き方：GitHub Pages なら https://dannoura0305.github.io/dannoura-game/tools/simulator.html 。手元なら `python3 -m http.server` などでサーバーを立てて開く（file:// で直接開くと動きません）
+- セーブデータやエンディング一覧には書き込みません
+- 夜のミニゲームは実際には遊ばず、典型的な結果を当てはめています
 
 ## 公開のしかた（GitHub Pages）
 1. GitHub のリポジトリ画面で **Settings → Pages** を開く
