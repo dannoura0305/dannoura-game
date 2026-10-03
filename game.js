@@ -11,7 +11,7 @@ function playVoice(type, idx){
       _voiceAudio = null;
     }
     const a = new Audio(src);
-    a.volume = 1.0;
+    a.volume = AUDIO_SET.voice;
     _voiceAudio = a;
     a.play().catch(()=>{});
   }catch(e){}
@@ -40,6 +40,21 @@ const BGM_DATA={
 // （AudioContextは効果音とBGM読込失敗時の代替音のみに使用）
 
 let audioUnlocked = false;
+
+// 音量設定（0〜1）。ブラウザに保存し、次回も使う
+const AUDIO_KEY='dannoura_audio';
+const AUDIO_SET=Object.assign({bgm:1,voice:1,se:1},(()=>{try{return JSON.parse(localStorage.getItem(AUDIO_KEY)||'{}')||{};}catch(e){return {};}})());
+const BGM_BASE_VOL=0.12;
+function bgmVol(){return BGM_BASE_VOL*AUDIO_SET.bgm;}
+function setAudioVolume(kind,v){
+  AUDIO_SET[kind]=Math.max(0,Math.min(1,v));
+  try{localStorage.setItem(AUDIO_KEY,JSON.stringify(AUDIO_SET));}catch(e){}
+  if(kind==='bgm'){
+    if(AU._ba)AU._ba.volume=bgmVol();
+    if(AU._og&&AU.ctx)try{AU._og.gain.setValueAtTime(AUDIO_SET.bgm,AU.ctx.currentTime);}catch(e){}
+  }
+  if(kind==='voice'&&_voiceAudio)_voiceAudio.volume=AUDIO_SET.voice;
+}
 
 // 最初に必要なnightだけ先読みし、再生可能になったら開始ボタンを有効化
 function preloadNightBGM(){
@@ -73,7 +88,7 @@ function unlockAudio(callback){
     // タップ同期内でplay()
     const a = new Audio(url);
     a.loop = true;
-    a.volume = 0.12;
+    a.volume = bgmVol();
     const p = a.play();
     if(p !== undefined){
       p.then(()=>{
@@ -108,7 +123,7 @@ function _showAudioRetry(){
     const url2 = BGM_DATA['night'];
     if(!url2){ return; }
     const a2 = new Audio(url2);
-    a2.loop=true; a2.volume = 0.12;
+    a2.loop=true; a2.volume = bgmVol();
     a2.play().then(()=>{
       audioUnlocked=true; AU._ba=a2; AU.bgmType='night';
       ind.textContent='🔊 音声ON'; ind.style.color='#00e8c8';
@@ -135,7 +150,7 @@ const AU={
     const url = BGM_DATA[type];
     if(!url){ this._osc(type); return; }
     const a=new Audio(url);
-    a.loop=true; a.volume = 0.12;
+    a.loop=true; a.volume = bgmVol();
     const p=a.play();
     if(p!==undefined){
       p.then(()=>{
@@ -147,7 +162,7 @@ const AU={
       });
     }else{ this._ba=a;; }
   },
-  _osc(type){if(!this.ctx)return;try{this._og=this.ctx.createGain();this._og.gain.value=0;this._og.connect(this.ctx.destination);const pr=this.presets[type]||this.presets.night;this._on=pr.map(p=>{const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=p.t;o.frequency.value=p.f;g.gain.value=p.g;o.connect(g);g.connect(this._og);o.start();return o;});this._og.gain.linearRampToValueAtTime(1,this.ctx.currentTime+2);}catch(e){}},
+  _osc(type){if(!this.ctx)return;try{this._og=this.ctx.createGain();this._og.gain.value=0;this._og.connect(this.ctx.destination);const pr=this.presets[type]||this.presets.night;this._on=pr.map(p=>{const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=p.t;o.frequency.value=p.f;g.gain.value=p.g;o.connect(g);g.connect(this._og);o.start();return o;});this._og.gain.linearRampToValueAtTime(AUDIO_SET.bgm,this.ctx.currentTime+2);}catch(e){}},
   stopBGM(){if(this._ba){try{this._ba.pause();}catch(e){}this._ba=null;}if(this._burl){try{URL.revokeObjectURL(this._burl);}catch(e){}this._burl=null;}if(this._on){this._on.forEach(o=>{try{o.stop();}catch(e){}});this._on=null;}if(this._og){try{this._og.disconnect();}catch(e){}this._og=null;}this.bgmType=null;document.getElementById('bgm-ind').textContent='♪ --';},
   fadeBGM(type,ms=900){if(this._og)try{this._og.gain.linearRampToValueAtTime(0,this.ctx.currentTime+ms/1000);}catch(e){}if(this._ba){const a=this._ba;const step=()=>{if(a.volume>0.02){a.volume=Math.max(0,a.volume-.03);setTimeout(step,55);}else try{a.pause();}catch(e){}};step();}setTimeout(()=>{this.bgmType=null;this.playBGM(type);},ms);},
   playVoice(type){
@@ -158,14 +173,14 @@ const AU={
     try{
       if(this._voice){ try{this._voice.pause();}catch(e){} }
       const a=new Audio(src);
-      a.volume = 1.0;
+      a.volume = AUDIO_SET.voice;
       this._voice=a;
       a.play().catch(()=>{});
     }catch(e){}
   },
   momentarySilence(ms=1200){if(this._og){const c=this._og.gain.value;try{this._og.gain.setValueAtTime(0,this.ctx.currentTime);setTimeout(()=>{try{this._og.gain.linearRampToValueAtTime(c,this.ctx.currentTime+.5);}catch(e){}},ms);}catch(e){}}if(this._ba){const v=this._ba.volume;this._ba.volume=0;setTimeout(()=>{if(this._ba)this._ba.volume=v;},ms);}},
   se(type){
-    if(!this.ctx)return;
+    if(!this.ctx||AUDIO_SET.se<=0)return;
     // iOS Safari: suspendedならresumeしてから鳴らす
     if(this.ctx.state==='suspended'){
       this.ctx.resume().then(()=>this._se(type)).catch(()=>{});
@@ -174,7 +189,7 @@ const AU={
     }
   },
   _se(type){
-    try{const m={btn:{f:420,t:'sine',g:.065,d:.05},decide:{f:640,t:'triangle',g:.085,d:.1},back:{f:320,t:'sine',g:.055,d:.07},rank:{f:860,t:'triangle',g:.1,d:.32},ach:{f:1020,t:'sine',g:.085,d:.28},micOn:{f:195,t:'sine',g:.12,d:.07},live:{f:510,t:'sine',g:.1,d:.18},comment:{f:860,t:'sine',g:.032,d:.035},notif:{f:720,t:'triangle',g:.055,d:.09},tool:{f:175,t:'sawtooth',g:.1,d:.09},machine:{f:98,t:'square',g:.085,d:.14},warn:{f:275,t:'square',g:.12,d:.2},repair:{f:640,t:'sine',g:.085,d:.16},noise:{f:58,t:'sawtooth',g:.085,d:.38},ghost:{f:28,t:'sine',g:.042,d:.75}};const p=m[type]||m.btn;const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.connect(g);g.connect(this.ctx.destination);o.type=p.t;o.frequency.value=p.f;g.gain.setValueAtTime(p.g,this.ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,this.ctx.currentTime+p.d);o.start();o.stop(this.ctx.currentTime+p.d+.01);}catch(e){}},
+    try{const m={btn:{f:420,t:'sine',g:.065,d:.05},decide:{f:640,t:'triangle',g:.085,d:.1},back:{f:320,t:'sine',g:.055,d:.07},rank:{f:860,t:'triangle',g:.1,d:.32},ach:{f:1020,t:'sine',g:.085,d:.28},micOn:{f:195,t:'sine',g:.12,d:.07},live:{f:510,t:'sine',g:.1,d:.18},comment:{f:860,t:'sine',g:.032,d:.035},notif:{f:720,t:'triangle',g:.055,d:.09},tool:{f:175,t:'sawtooth',g:.1,d:.09},machine:{f:98,t:'square',g:.085,d:.14},warn:{f:275,t:'square',g:.12,d:.2},repair:{f:640,t:'sine',g:.085,d:.16},noise:{f:58,t:'sawtooth',g:.085,d:.38},ghost:{f:28,t:'sine',g:.042,d:.75}};const p=m[type]||m.btn;const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.connect(g);g.connect(this.ctx.destination);o.type=p.t;o.frequency.value=p.f;g.gain.setValueAtTime(Math.max(.0011,p.g*AUDIO_SET.se),this.ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,this.ctx.currentTime+p.d);o.start();o.stop(this.ctx.currentTime+p.d+.01);}catch(e){}},
 };
 
 // ──────────────────────────
@@ -337,6 +352,7 @@ function goToGame(){
   logGrow('物語が始まった');
   loadMain();
   setTimeout(()=>cutin('normal','ご機嫌よう……きょうもきょうとてよろしくよ。'),600);
+  maybeShowTutorial();
 }
 
 // ──────────────────────────
@@ -447,12 +463,12 @@ function buildChoices(){
     {tx:'📡 配信を始める',ac:'stream'},
     {tx:'🔧 設備点検ミニゲーム',ac:'factory'},
     {tx:'🌡 温度・振動診断',ac:'diag'},
-    {tx:'☕ 少し休む（疲労-12 精神+5）',ac:'rest_light'},
-    {tx:'🛏 しっかり休む（疲労-25 精神+10 時間大）',ac:'rest_deep'},
-    {tx:'📚 資格の勉強（知識+5 疲労+6）',ac:'study'},
+    {tx:'☕ 少し休む（疲労-12 精神+4）',ac:'rest_light'},
+    {tx:'🛏 しっかり休む（疲労-25 精神+8 時間大）',ac:'rest_deep'},
+    {tx:'📚 資格の勉強（知識+5 疲労+6 精神-3）',ac:'study'},
     {tx:'👶 子どもの寝かしつけ（育児ストレス-10 精神+3）',ac:'childcare'},
-    {tx:'🎤 歌の練習（歌スキル経験 疲労+4）',ac:'singpractice'},
-    {tx:'🎮 夜のミニゲーム（4種・各1日1回）',ac:'minigames'},
+    {tx:'🎤 歌の練習（歌スキル経験 疲労+4 精神-2）',ac:'singpractice'},
+    {tx:'🎮 夜のミニゲーム（各1日1回）',ac:'minigames'},
   ];
   if(gs.factoryNetaAvail)c.push({tx:`🗣 工場ネタで配信【${gs.factoryNetaType}】`,ac:'factoryneta',cls:'neta'});
   if(ph>=2&&gs.hour>=2&&gs.hour<=4)c.push({tx:'🌑 深夜2時の限定配信（レアイベント）',ac:'deepnight'});
@@ -520,14 +536,14 @@ function handleChoice(ac){
 
     case'rest_light':
       gs.fatigue=Math.max(0,gs.fatigue-12-gs.skills.sleepEff*2);
-      gs.mental=Math.min(100,gs.mental+5);
+      gs.mental=Math.min(100,gs.mental+4);
       logGrow('少し休んだ');
       advTime(40); showNotif('☕ 少し休んだ。'); loadScene('rest_light'); updateStats(); break;
 
     case'rest_deep':
       gs.fatigue=Math.max(0,gs.fatigue-25-gs.skills.sleepEff*4);
       gs.sleepHours=Math.min(10,gs.sleepHours+2);
-      gs.mental=Math.min(100,gs.mental+10);
+      gs.mental=Math.min(100,gs.mental+8);
       logGrow('しっかり休んだ');
       advTime(120); showNotif('🛏 しっかり休んだ。体が少し楽になった。'); loadScene('rest_deep'); updateStats(); break;
 
@@ -535,7 +551,7 @@ function handleChoice(ac){
       gs.fatigue=Math.min(100,gs.fatigue+6);
       gs.certKnow=Math.min(100,gs.certKnow+5+gs.skills.focus);
       // 達成感で微回復
-      gs.mental=Math.min(100,gs.mental-2+gs.skills.focus+1);
+      gs.mental=Math.max(0,Math.min(100,gs.mental-3+gs.skills.focus));
       gs.sp+=1;
       if(gs.certKnow>=100&&!gs.completedAchs.has('cert')){
         unlockAch('cert','📜 資格知識が満点になった');
@@ -557,12 +573,17 @@ function handleChoice(ac){
       gs.skills.singSkill=Math.min(10,gs.skills.singSkill+.5);
       gs.throatFatigue=Math.min(100,gs.throatFatigue+4);
       gs.fatigue=Math.min(100,gs.fatigue+4);
+      gs.mental=Math.max(0,gs.mental-2);
       logGrow('歌の練習をした');
       advTime(40); showNotif('🎤 静かに練習した。声が少し育ってきた。'); loadScene('singpractice'); updateStats(); break;
 
     case'factoryneta': gs.factoryNetaAvail=false; openStream('kaidan'); break;
     case'deepnight':   triggerDeepNight(); break;
-    case'minigames':   openMinigamePicker(); break;
+    case'minigames':
+      // minigames/ フォルダが無いと関数が未定義になる。黙って失敗しないよう知らせる
+      if(typeof openMinigamePicker==='function')openMinigamePicker();
+      else showNotif('⚠️ ミニゲームを読み込めませんでした。minigames/ フォルダが index.html と同じ場所にあるか確認してください。');
+      break;
     case'main':        loadScene('main'); break;
   }
 }
@@ -578,13 +599,17 @@ function advTime(min){
 
 // ★ 毎日の自然回復を追加
 function nextDay(){
-  gs._dayDone=false;gs.day++;gs.hour=7;gs.min=0;
+  // 昼間（仕事）は画面外で過ぎ、毎晩22時から行動を選ぶ
+  gs._dayDone=false;gs.day++;gs.hour=22;gs.min=0;
 
   // 夜間の自然回復（睡眠・スキルで変化）
-  const sleepRec=20+gs.skills.sleepEff*5;
-  const mentalRec=7+gs.skills.stressRes*3;
+  // 昼間の仕事の疲れを差し引いた回復量（無理を重ねると持ち越す）
+  const sleepRec=12+gs.skills.sleepEff*5;
+  const mentalRec=2+gs.skills.stressRes*3;
   gs.fatigue=Math.max(0,gs.fatigue-sleepRec);
-  gs.mental=Math.min(100,gs.mental+mentalRec);
+  // 生活の重圧：借金と育児ストレスが毎晩少しずつ心を削る。終盤（21日目〜）はさらに消耗する
+  const pressure=(gs.debt>=600000?3:gs.debt>=300000?2:gs.debt>0?1:0)+(gs.childStress>=60?2:0)+(gs.day>20?2:0);
+  gs.mental=Math.max(0,Math.min(100,gs.mental+mentalRec-pressure));
   gs.sleepHours=Math.max(0,gs.sleepHours-1+gs.skills.sleepEff*.5);
   gs.childStress=Math.min(100,gs.childStress+4); // 少し緩めた
   gs.sp+=1;
@@ -612,7 +637,7 @@ function nextDay(){
 
   if(Math.random()<.4)triggerRandomEvent();
   updateStats();updateDayInfo();
-  showNotif(`☀️ ${gs.day}日目の朝。${evMsg}`);
+  showNotif(`🌙 ${gs.day}日目の夜。${evMsg}`);
   cutin('normal','……今日も、元気にやっていくわよ。');
   loadScene('main');checkGameOver();if(gs.day>30&&!gs._endless)triggerEnding();
   saveGame(true); // 自動セーブ（DAY進行時）
@@ -735,6 +760,15 @@ function updateStats(){
   fv.textContent=gs.fatigue+'%';
   fv.className='top-val'+(gs.fatigue>75?' danger':gs.fatigue>50?'':' good');
   document.getElementById('tb-rank').textContent=RANKS[gs.rank]||'A';
+  const dv=document.getElementById('tb-debt');
+  if(dv){
+    dv.textContent=(gs.debt/10000).toFixed(1)+'万';
+    dv.className=gs.debt>1700000?'danger':gs.debt>1200000?'warn':'';
+    const fl=document.getElementById('tb-flame');
+    fl.textContent=gs.flame;
+    fl.className=gs.flame>=7?'danger':gs.flame>=4?'warn':'';
+    document.getElementById('tb-money').textContent='¥'+gs.money.toLocaleString();
+  }
   const fthi=gs.fatigue>70;
   document.body.classList.toggle('fatigue-hi',fthi);
   document.documentElement.style.setProperty('--fatigue-drift',fthi?(Math.random()-.5)*2+'px':'0px');
@@ -1034,13 +1068,15 @@ function applyChoice(c){
   if(c.end){
     clearInterval(commentIv);clearInterval(anomalyIv);
     // ★ 配信収益（ランク・フォロワー・ギフトで変動）
-    const baseRev=Math.floor(gs.followers*.8+gs.rank*300+Math.random()*800);
-    const giftBonus=Math.floor(gs.streamPop*20);
+    const baseRev=Math.floor(gs.followers*1.5+gs.rank*600+Math.random()*1000);
+    const giftBonus=Math.floor(gs.streamPop*35);
     const rev=baseRev+giftBonus;
     gs.money+=rev;
     const debtPay=Math.floor(rev*.5);
     gs.debt=Math.max(0,gs.debt-debtPay);
     gs.monthlyPaid+=debtPay;
+    // 配信を終えるとその夜は終わり。下の nextDay() と二重に日付が進まないよう、advTime 側の日送りを止める
+    gs._dayDone=true;
     advTime(90);AU.fadeBGM('night',850);
     setTimeout(()=>{
       document.getElementById('streaming-ol').classList.remove('active');
@@ -1155,9 +1191,9 @@ function fixPanel(i,el){
 function endFactory(){
   clearInterval(ft);document.getElementById('factory-mini').classList.remove('active');AU.fadeBGM('night',800);
   const perfect=ff>=ftt;
-  const money=perfect?4500+gs.skills.wiring*700:ff*800;
+  const money=perfect?8500+gs.skills.wiring*1000:ff*1600;
   // 達成感で精神微回復
-  const mentalChg=perfect?3:-3;
+  const mentalChg=perfect?1:-4;
   gs.money+=money;gs.debt=Math.max(0,gs.debt-Math.floor(money*.4));
   gs.jobRep=Math.min(100,gs.jobRep+(perfect?10:ff*2));
   gs.mental=Math.min(100,Math.max(0,gs.mental+mentalChg));
@@ -1432,7 +1468,7 @@ function openStatus(){
       </div>
     </div>
     <div style="font-family:var(--mono);font-size:.6rem;color:var(--tx-d);line-height:1.8;margin-bottom:6px">${getStreamStyle()}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;font-family:var(--mono);font-size:.55rem;color:var(--tx-d);">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;font-family:var(--mono);font-size:.6rem;color:var(--tx-d);">
       <div>優しさ <span style="color:var(--cy)">${p.kindness}</span></div>
       <div>執念　 <span style="color:var(--gd)">${p.willpower}</span></div>
       <div>孤独　 <span style="color:var(--pu)">${p.loneliness}</span></div>
@@ -1481,7 +1517,7 @@ function openStatus(){
   if(gs.growHistory.length>0){
     const gh=document.createElement('div');gh.className='sec';gh.innerHTML='<div class="sec-t">📖 成長履歴</div>';
     gs.growHistory.slice(0,10).forEach(h=>{
-      const r=document.createElement('div');r.style.cssText='font-family:var(--mono);font-size:.55rem;color:var(--tx-d);margin-bottom:4px;line-height:1.7;';
+      const r=document.createElement('div');r.style.cssText='font-family:var(--mono);font-size:.6rem;color:var(--tx-d);margin-bottom:4px;line-height:1.7;';
       r.innerHTML=`<span style="color:var(--pu-dim)">Day${h.day}</span> ${h.text}`;gh.appendChild(r);
     });body.appendChild(gh);
   }
@@ -1489,7 +1525,7 @@ function openStatus(){
   if(gs.growMilestones.length>0){
     const gm=document.createElement('div');gm.className='sec';gm.innerHTML='<div class="sec-t">🏅 到達マイルストーン</div>';
     gs.growMilestones.forEach(m=>{
-      const r=document.createElement('div');r.style.cssText='font-family:var(--mono);font-size:.55rem;color:var(--gd);margin-bottom:3px;line-height:1.7;';
+      const r=document.createElement('div');r.style.cssText='font-family:var(--mono);font-size:.6rem;color:var(--gd);margin-bottom:3px;line-height:1.7;';
       r.innerHTML=`Day${m.day} — ${m.text}`;gm.appendChild(r);
     });body.appendChild(gm);
   }
@@ -1650,7 +1686,7 @@ function checkFixedDayEvents(){
 // ★ 7日ごと生活費チェック
 function checkWeeklyLife(){
   if(gs.day%7!==0)return;
-  const cost=45000; // 週の生活費概算
+  const cost=60000; // 週の生活費概算（家賃・保育料・食費）
   if(gs.money>=cost){
     gs.money-=cost;
     showNotif(`🏠 生活費 -¥${cost.toLocaleString()} （残 ¥${gs.money.toLocaleString()}）`);
@@ -1660,6 +1696,14 @@ function checkWeeklyLife(){
     gs.mental=Math.max(0,gs.mental-5);
     showNotif('⚠️ 生活費が足りず、借金が増えた');
     logGrow(`Day${gs.day}：生活費が不足した`);
+  }
+  // 手元に残したい額を超えた分は繰り上げ返済に回す
+  const KEEP=30000;
+  if(gs.money>KEEP&&gs.debt>0){
+    const pay=Math.min(gs.debt,gs.money-KEEP);
+    gs.money-=pay;gs.debt-=pay;gs.monthlyPaid+=pay;
+    showNotif(`💴 繰り上げ返済 -¥${pay.toLocaleString()}（借金 残り${(gs.debt/10000).toFixed(1)}万）`);
+    logGrow(`Day${gs.day}：繰り上げ返済した`);
   }
 }
 
@@ -1976,16 +2020,17 @@ function triggerEnding(forced){
     else if(gs.debt>2000000)          type='bankrupt';
     else if(gs.flame>=10)             type='flame';
 
+    // ── 借金完済エンド：物語の一番の目標なので最優先 ──
+    else if(gs.debt<=100000&&gs.mental>=30)
+      type='debtfree';
+
     // ── Day30 育成タイプ特化グッドエンド ──
     else if(growType===GROW_TYPE.ENGINEER&&gs.jobRep>=75&&gs.certKnow>=70)
       type='engineer';
     else if(growType===GROW_TYPE.FATHER&&gs.childStress<30&&gs.personality.kindness>=60)
       type='father';
 
-    // ── Day30 新グッドエンド3種 ──
-    // 借金完済エンド：借金を大きく減らした
-    else if(gs.debt<=100000&&gs.mental>=30)
-      type='debtfree';
+    // ── Day30 新グッドエンド ──
     // 深夜の王エンド：フォロワー・人気が高水準
     else if(gs.followers>200&&gs.streamPop>50&&gs.mental>=40&&gs.fatigue<80&&gs.personality.hope>=45)
       type='king';
@@ -2140,10 +2185,76 @@ function typeText(id, text, cb){
 }
 function showResult(title,body){document.getElementById('res-title').textContent=title;document.getElementById('res-body').innerHTML=body;document.getElementById('result-sc').classList.add('active');}
 function closeResult(){document.getElementById('result-sc').classList.remove('active');}
-function showNotif(msg){const el=document.createElement('div');el.className='notif';el.textContent=msg;document.body.appendChild(el);setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .65s';},2300);setTimeout(()=>el.remove(),2980);}
+// 通知は右上のスタックに積む（同時に出ても重ならない・最大4件）
+function showNotif(msg){
+  let stack=document.getElementById('notif-stack');
+  if(!stack){stack=document.createElement('div');stack.id='notif-stack';document.body.appendChild(stack);}
+  while(stack.children.length>=4)stack.firstChild.remove();
+  const el=document.createElement('div');el.className='notif';el.textContent=msg;stack.appendChild(el);setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .65s';},2300);setTimeout(()=>el.remove(),2980);}
 
 // リスナー定期進化
 setInterval(()=>{gs.listeners.forEach(l=>{if(l.regular>15&&l.type==='normal'&&Math.random()<.06){l.type='mod';showNotif(`🛡 ${l.name}がモデレーターになった`);}});},35000);
+
+
+// ──────────────────────────
+// 設定（音量）
+// ──────────────────────────
+function refreshSettingsUI(){
+  document.querySelectorAll('#settings-sc input[type=range]').forEach(r=>{
+    const v=Math.round(AUDIO_SET[r.dataset.kind]*100);
+    r.value=v;r.nextElementSibling.textContent=v;
+  });
+  const muted=['bgm','voice','se'].every(k=>AUDIO_SET[k]===0);
+  document.querySelector('#settings-sc .set-mute').textContent=muted?'🔊 ミュート解除':'🔇 すべてミュート';
+}
+function openSettings(){refreshSettingsUI();document.getElementById('settings-sc').classList.add('active');}
+function closeSettings(){document.getElementById('settings-sc').classList.remove('active');}
+let _beforeMute=null;
+function toggleMuteAll(){
+  const muted=['bgm','voice','se'].every(k=>AUDIO_SET[k]===0);
+  if(muted){const b=_beforeMute||{bgm:1,voice:1,se:1};Object.keys(b).forEach(k=>setAudioVolume(k,b[k]||1));}
+  else{_beforeMute={...AUDIO_SET};['bgm','voice','se'].forEach(k=>setAudioVolume(k,0));}
+  refreshSettingsUI();
+}
+document.querySelectorAll('#settings-sc input[type=range]').forEach(r=>{
+  r.addEventListener('input',()=>{setAudioVolume(r.dataset.kind,r.value/100);r.nextElementSibling.textContent=r.value;});
+  r.addEventListener('change',()=>{if(r.dataset.kind==='se')AU.se('decide');if(r.dataset.kind==='voice')playVoice('normal');refreshSettingsUI();});
+});
+
+// ──────────────────────────
+// 遊び方（初回のみ自動表示。設定から再表示できる）
+// ──────────────────────────
+const TUTORIAL_KEY='dannoura_tutorial_seen';
+const TUTORIAL=[
+  {t:'🌙 30日間を生き延びる',b:'毎晩22時から、深夜の時間をどう使うかを選ぶゲーム。\n配信で稼ぎ、工場の仕事・資格の勉強・子育て・休息をやりくりして、借金84万の壇ノ浦から這い上がろう。'},
+  {t:'📊 上のバーを見る',b:'精神・疲労・借金・炎上が、ゲームオーバーに関わる値。\n・精神が0\n・疲労100で精神20未満\n・借金200万超\n・炎上10\nのどれかで終わってしまう。危なくなると赤く光って知らせてくれる。'},
+  {t:'🎯 今日の目標を頼りに',b:'画面上の「🎯」が、次にやるとよいことを教えてくれる。\n配信を終えるか朝6時になると、夜が明けて次の日へ進む。'},
+  {t:'🎮 夜のミニゲーム',b:'メニューの「夜のミニゲーム」で、シューティングやパズル、ストーリーRPGなど、いろいろなジャンルが遊べる（各1日1回）。結果がパラメータに反映される。\nRPG「壇ノ浦夢譚」は1晩に1章ずつ進む物語。'},
+  {t:'📖 エンディングは9種類',b:'30日目の状態や育て方で結末が変わる。\n到達したエンディングはタイトル画面の「エンディング一覧」に記録される。\n\nそれでは、今夜も配信を始めよう。'},
+];
+let _tutIdx=0;
+function openTutorial(){_tutIdx=0;renderTutorial();document.getElementById('tutorial-sc').classList.add('active');}
+function renderTutorial(){
+  const s=TUTORIAL[_tutIdx];
+  document.getElementById('tut-title').textContent=s.t;
+  document.getElementById('tut-body').textContent=s.b;
+  document.getElementById('tut-page').textContent=`${_tutIdx+1} / ${TUTORIAL.length}`;
+  document.getElementById('tut-prev').style.visibility=_tutIdx?'visible':'hidden';
+  document.getElementById('tut-next').textContent=_tutIdx===TUTORIAL.length-1?'はじめる ▶':'次へ ▶';
+}
+function tutorialStep(d){
+  _tutIdx+=d;
+  if(_tutIdx>=TUTORIAL.length){
+    document.getElementById('tutorial-sc').classList.remove('active');
+    try{localStorage.setItem(TUTORIAL_KEY,'1');}catch(e){}
+    return;
+  }
+  _tutIdx=Math.max(0,_tutIdx);renderTutorial();
+}
+function maybeShowTutorial(){
+  let seen=false;try{seen=!!localStorage.getItem(TUTORIAL_KEY);}catch(e){}
+  if(!seen)setTimeout(openTutorial,900);
+}
 
 // ══════════════════════════════════════════════════════════
 // ★ セーブ・ロードシステム
@@ -2175,6 +2286,8 @@ function gsToSaveData(){
 
 // セーブデータから gs を復元
 function saveDataToGs(saved){
+  // ミニゲーム・物語の記録（gs.rpg / gs.story / gs.○○Data / gs.mgDay）は、読み込むセーブに無ければ消しておく
+  Object.keys(gs).forEach(k=>{if(!(k in saved)&&(k==='rpg'||k==='story'||k==='mgDay'||/Data$/.test(k)))delete gs[k];});
   Object.assign(gs, saved);
   // 配列 → Set
   gs.completedAchs = new Set(saved.completedAchs || []);
@@ -2276,7 +2389,9 @@ function checkSaveData(){
     const raw = localStorage.getItem(SAVE_KEY);
     const btn  = document.getElementById('btn-continue');
     const wrap = document.getElementById('btn-delete-wrap');
-    if(!raw || !btn){ return; }
+    if(!btn) return;
+    // セーブが無ければ「つづきから」と削除ボタンを隠す（削除直後にも残らないように）
+    if(!raw){ btn.style.display='none'; if(wrap) wrap.style.display='none'; return; }
 
     const saveData = JSON.parse(raw);
     const d  = saveData.gs.day   || 1;

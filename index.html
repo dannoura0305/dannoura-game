@@ -13,7 +13,7 @@
 <div id="scan-ol"></div>
 <div id="red-flash"></div>
 <div id="bgm-ind">♪ --</div>
-<div id="audio-ind" style="position:fixed;bottom:52px;left:6px;font-family:var(--mono);font-size:.44rem;color:rgba(232,80,80,.7);z-index:5;letter-spacing:.07em;pointer-events:none;transition:color 1s;">🔇 音声待機中</div>
+<div id="audio-ind" style="position:fixed;bottom:52px;left:6px;font-family:var(--mono);font-size:.6rem;color:rgba(232,80,80,.7);z-index:5;letter-spacing:.07em;pointer-events:none;transition:color 1s;">🔇 音声待機中</div>
 
 <!-- ══ TITLE ══ -->
 <div id="title-screen" class="screen">
@@ -26,8 +26,9 @@
   <button class="btn-start" id="btn-start-main" onclick="startStory()" disabled style="opacity:0.5;pointer-events:none;">読み込み中...</button>
   <button class="btn-start" id="btn-continue" onclick="loadGame()" style="display:none;margin-top:8px;font-size:.78rem;border-color:rgba(0,232,200,.5);color:rgba(0,232,200,.8);"></button>
   <button class="btn-endings" id="btn-endings" onclick="openEndingList()">📖 エンディング一覧</button>
+  <button class="btn-endings" onclick="openSettings()">⚙ 設定・遊び方</button>
   <div id="btn-delete-wrap" style="display:none;margin-top:6px;">
-    <button onclick="deleteSave()" style="background:none;border:none;font-family:var(--mono);font-size:.48rem;color:rgba(232,80,80,.4);cursor:pointer;letter-spacing:.08em;padding:4px 8px;">セーブデータを削除</button>
+    <button onclick="deleteSave()" style="background:none;border:none;font-family:var(--mono);font-size:.6rem;color:rgba(232,80,80,.4);cursor:pointer;letter-spacing:.08em;padding:4px 8px;">セーブデータを削除</button>
   </div>
 </div>
 
@@ -36,6 +37,28 @@
   <div class="endlist-head"><span>ENDINGS</span><span id="endlist-count">0 / 9</span></div>
   <div id="endlist-items"></div>
   <button class="ev-btn" onclick="closeEndingList()">閉じる</button>
+</div></div>
+
+<!-- ══ 設定 ══ -->
+<div id="settings-sc"><div class="endlist-box">
+  <div class="endlist-head"><span>SETTINGS</span><span>音量はこの端末に保存</span></div>
+  <label class="set-row">🎵 BGM<input type="range" min="0" max="100" step="5" data-kind="bgm"><span class="set-val"></span></label>
+  <label class="set-row">🗣 ボイス<input type="range" min="0" max="100" step="5" data-kind="voice"><span class="set-val"></span></label>
+  <label class="set-row">🔔 効果音<input type="range" min="0" max="100" step="5" data-kind="se"><span class="set-val"></span></label>
+  <button class="ev-btn set-mute" onclick="toggleMuteAll()">🔇 すべてミュート</button>
+  <button class="ev-btn" onclick="closeSettings();openTutorial()">📘 遊び方を見る</button>
+  <button class="ev-btn" onclick="closeSettings()">閉じる</button>
+</div></div>
+
+<!-- ══ 遊び方 ══ -->
+<div id="tutorial-sc"><div class="endlist-box tut-box">
+  <div class="endlist-head"><span>HOW TO PLAY</span><span id="tut-page"></span></div>
+  <div class="tut-title" id="tut-title"></div>
+  <div class="tut-body" id="tut-body"></div>
+  <div class="tut-nav">
+    <button class="ev-btn" id="tut-prev" onclick="tutorialStep(-1)">◀ 戻る</button>
+    <button class="ev-btn" id="tut-next" onclick="tutorialStep(1)">次へ ▶</button>
+  </div>
 </div></div>
 
 <!-- ══ STORY ══ -->
@@ -67,6 +90,13 @@
     <div class="top-time" id="tb-time">22:17</div>
   </div>
   <div class="day-line"><div class="day-line-fill" id="day-fill" style="width:3.3%"></div></div>
+  <!-- 借金・炎上・所持金（ゲームオーバーに関わる値を常に表示） -->
+  <div class="sub-bar">
+    <span>💸 借金 <b id="tb-debt">84.0万</b><small>/200万</small></span>
+    <span>🔥 炎上 <b id="tb-flame">0</b><small>/10</small></span>
+    <span>💴 <b id="tb-money">¥12,400</b></span>
+    <button class="sub-gear" onclick="openSettings()" aria-label="設定">⚙</button>
+  </div>
 
   <div class="game-body">
     <!-- 今日の目標ガイド -->
@@ -133,7 +163,8 @@
 
 <!-- ══ 夜のミニゲーム（minigames/*.js） ══ -->
 <div id="mg-picker"><div class="mg-pick-box">
-  <div class="endlist-head"><span>NIGHT GAMES</span><span>各1日1回</span></div>
+  <div class="endlist-head"><span>NIGHT GAMES</span><span id="mg-pick-count">各1日1回</span></div>
+  <div class="mg-tabs" id="mg-pick-tabs"></div>
   <div id="mg-pick-items"></div>
   <button class="ev-btn" onclick="closeMinigamePicker()">戻る</button>
 </div></div>
@@ -252,5 +283,23 @@
 <script src="minigames/roguelike.js"></script>
 <script src="minigames/puzzle.js"></script>
 <script src="minigames/cardbattle.js"></script>
+<script src="minigames/runner.js"></script>
+<script src="minigames/defense.js"></script>
+<script src="minigames/rpg.js"></script>
+<script src="minigames/stealth.js"></script>
+<script src="minigames/quiz.js"></script>
+<script src="minigames/horror.js"></script>
+<script src="minigames/factory3d.js"></script>
+<script src="minigames/cooking.js"></script>
+<script src="minigames/escape.js"></script>
+<script src="minigames/blocks.js"></script>
+<script src="minigames/manager.js"></script>
+<script src="minigames/fishing.js"></script>
+<script src="minigames/race.js"></script>
+<!-- 本編の拡張（game.js の処理を包んで強化する） -->
+<script src="main/ui.js"></script>
+<script src="main/homescene.js"></script>
+<script src="main/story.js"></script>
+<script src="main/presentation.js"></script>
 </body>
 </html>
