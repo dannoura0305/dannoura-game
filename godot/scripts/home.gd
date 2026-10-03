@@ -40,7 +40,7 @@ var _dialog_open: bool = false
 
 # ── ワールド ──
 var world: Node2D
-var canvas_mod: CanvasModulate
+var scene_root: Node2D              # 背景・家具・人物（夜はここだけ暗くする。目印や UI は暗くしない）
 var bg_sprite: Sprite2D
 var flat_layer: Node2D
 var ysort_layer: Node2D
@@ -89,19 +89,19 @@ func _build_world() -> void:
 	world = Node2D.new()
 	world.name = "World"
 	add_child(world)
-	canvas_mod = CanvasModulate.new()
-	canvas_mod.name = "NightTint"
-	add_child(canvas_mod)
+	scene_root = Node2D.new()
+	scene_root.name = "Scene"
+	world.add_child(scene_root)
 	bg_sprite = Sprite2D.new()
 	bg_sprite.centered = false
-	world.add_child(bg_sprite)
+	scene_root.add_child(bg_sprite)
 	flat_layer = Node2D.new()
 	flat_layer.name = "Flat"          # ラグ・飛び石・壁の飾り
-	world.add_child(flat_layer)
+	scene_root.add_child(flat_layer)
 	ysort_layer = Node2D.new()
 	ysort_layer.name = "YSort"        # 家具と人物（足元の y で前後が決まる）
 	ysort_layer.y_sort_enabled = true
-	world.add_child(ysort_layer)
+	scene_root.add_child(ysort_layer)
 	light_layer = Node2D.new()
 	light_layer.name = "Lights"
 	world.add_child(light_layer)
@@ -1015,7 +1015,7 @@ func _toggle_night() -> void:
 
 
 func _apply_night() -> void:
-	canvas_mod.color = NIGHT_TINT if night else Color.WHITE
+	scene_root.modulate = NIGHT_TINT if night else Color.WHITE
 	_refresh()
 
 
@@ -1053,10 +1053,13 @@ func _refresh_ui() -> void:
 	(act["cancel"] as Button).disabled = kind == ""
 	(act["undo"] as Button).disabled = not draft.can_undo()
 	(act["redo"] as Button).disabled = not draft.can_redo()
-	_rebuild_inventory()
+	# 収納のボタン自身の pressed から呼ばれることがあるので、作り直しはフレームの終わりに
+	_rebuild_inventory.call_deferred()
 
 
 func _rebuild_inventory() -> void:
+	if not _editing():
+		return
 	for c: Node in inv_box.get_children():
 		inv_box.remove_child(c)
 		c.queue_free()
