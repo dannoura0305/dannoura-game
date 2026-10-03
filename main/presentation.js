@@ -534,7 +534,7 @@ function injectStyle(){
 .pr-day-num em{font-style:normal;font-size:.34em;color:rgba(255,255,255,.45);letter-spacing:.1em;margin-left:.2em;}
 .pr-day.act .pr-day-num{font-size:clamp(1.5rem,7vw,2.1rem);}
 .pr-day-hr{width:0;height:2px;margin:12px 0 8px;background:linear-gradient(90deg,transparent,var(--pr-acc),transparent);}
-.pr-day-wk{font-family:var(--pr-mono);font-size:.74rem;letter-spacing:.4em;color:var(--pr-acc);opacity:0;}
+.pr-day-wk{font-family:var(--pr-mono);font-size:.72rem;letter-spacing:.26em;color:var(--pr-acc);opacity:0;}
 .pr-day-line{margin-top:12px;font-family:var(--pr-serif);font-size:clamp(.88rem,3.8vw,1.05rem);letter-spacing:.14em;color:#ece6ff;opacity:0;text-shadow:2px 2px 0 rgba(0,0,0,.7);}
 .pr-day-tap{position:absolute;right:14px;bottom:calc(16vh + 8px);font-family:var(--pr-mono);font-size:.56rem;letter-spacing:.2em;color:rgba(255,255,255,.4);}
 .pr-day.on .pr-day-act{animation:pr-dIn .35s ease .02s forwards;}
@@ -714,7 +714,7 @@ function buildTitle(){
   w.addEventListener('pointerdown', onTitlePointer);
   menu.addEventListener('pointerover', e=>{ const b = e.target.closest('.pr-mi'); if(b){ const i = T.items.indexOf(b); if(i>=0 && i!==T.cur){ T.cur = i; placeCursor(); SFX.cursor(); } } });
   menu.addEventListener('click', e=>{ const b = e.target.closest('.pr-mi'); if(b && !b.disabled){ SFX.decide(); b.classList.remove('pr-flash'); void b.offsetWidth; b.classList.add('pr-flash'); } }, true);
-  document.addEventListener('keydown', onTitleKey);
+  window.addEventListener('keydown', onTitleKey, true);
   window.addEventListener('resize', ()=>{ if(titleVisible()) setupTitleCanvas(); });
   window.addEventListener('pointermove', e=>{ T.px = (e.clientX/innerWidth-.5); T.py = (e.clientY/innerHeight-.5); }, {passive:true});
   setupTitleCanvas();
@@ -769,6 +769,7 @@ function onTitlePointer(e){
 function onTitleKey(e){
   if(!titleVisible() || modalOpen()) return;
   const k = e.key;
+  if(e.defaultPrevented) return;
   if(T.st !== 'menu'){ if(['Enter',' ','z','Z','ArrowDown','ArrowUp'].includes(k)){ e.preventDefault(); ensureCtx(); if(T.st==='intro'){ clearTimeout(T.introTimer); setTitleState('attract'); } else { SFX.decide(); setTitleState('menu'); } } return; }
   if(k === 'ArrowDown' || k === 'ArrowUp'){
     e.preventDefault(); refreshItems(); if(!T.items.length) return;
@@ -819,7 +820,7 @@ const SCENES = { factory:[buildFactory,drawFactory], child:[buildChild,drawChild
 
 function buildOp(){
   if(OP.el) return OP.el;
-  const el = document.createElement('div'); el.className = 'pr-op'; el.setAttribute('aria-live','polite');
+  const el = document.createElement('div'); el.className = 'pr-op'; el.setAttribute('aria-live','polite'); el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label','プロローグ');
   el.innerHTML = `
     <canvas class="pr-op-bgc" width="64" height="40"></canvas>
     <div class="pr-op-stage">
@@ -834,8 +835,8 @@ function buildOp(){
   OP.buf = mk(OW,OH); OP.bctx = OP.buf.getContext('2d'); OP.bg = el.querySelector('.pr-op-bgc').getContext('2d'); OP.fr = 0;
   el.querySelector('.pr-skip').addEventListener('click', e=>{ e.stopPropagation(); SFX.decide(); finishOpening(); });
   el.addEventListener('pointerdown', e=>{ if(e.target.closest('.pr-skip')) return; opTap(); });
-  document.addEventListener('keydown', e=>{
-    if(!OP.active) return;
+  window.addEventListener('keydown', e=>{
+    if(!OP.active || e.defaultPrevented) return;
     if(e.key==='Escape'){ e.preventDefault(); finishOpening(); }
     else if(['Enter',' ','z','Z'].includes(e.key)){ e.preventDefault(); opTap(); }
   });
@@ -957,10 +958,19 @@ function finishOpening(){
 /* ════════════════════════════════════════════════════════════════
    3) 日替わりカード
    ════════════════════════════════════════════════════════════════ */
-const ACTS = {
+// 幕の区切り。main/story.js がある場合は物語側の四幕構成（1/8/21/27日）と名前に合わせる
+const ACTS_OWN = {
   1:{no:'第一幕', ttl:'沈む夜'}, 8:{no:'第二幕', ttl:'波間の声'}, 15:{no:'第三幕', ttl:'潮目'},
   22:{no:'第四幕', ttl:'急流'}, 28:{no:'終　幕', ttl:'這い上がる者'},
 };
+const ACTS_STORY = { 1:{no:'第一幕', ttl:'沈む夜'}, 8:{no:'第二幕', ttl:'波の下'}, 21:{no:'第三幕', ttl:'底'}, 27:{no:'終　幕', ttl:'夜明け'} };
+const hasStory = () => !!(window.Story && typeof window.Story.pick === 'function' && typeof window.storyFlags === 'function');
+function actFor(day){ return (hasStory() ? ACTS_STORY : ACTS_OWN)[day] || null; }
+// その夜に物語シーンが入るか（入るなら物語側が日付と幕のカードを出す）
+function storySceneFor(day){
+  if(window.storyScenePending) return true;
+  try{ return hasStory() && day <= 30 && !!window.Story.pick(day); }catch(e){ return false; }
+}
 const DAY_LINES = [null,
   '今夜から、三十日。', '同じ夜は、二度と来ない。', '眠い目をこすって、マイクの電源を入れる。', '雨は、まだ止まない。', '子どもの寝息だけが、時計より正確だ。', '工場の機械音が、耳の奥に残っている。', '一週間。まだ、沈んでいない。',
   '声は、どこまで届くのだろう。', '通知の音に、少しだけ救われる。', 'コメント欄に、見慣れた名前。', '借金の数字が、夢にまで出てきた。', '眠りの浅い夜が続く。', '画面の向こうも、きっと眠れない。', '二週間。波はまだ高い。',
@@ -969,11 +979,12 @@ const DAY_LINES = [null,
   'あと三夜。', '沈むか、這い上がるか。', '最後の夜。月末の審判が来る。'];
 const ENDLESS_LINES = ['まだ、夜は続く。','壇ノ浦の向こうに、灯りが見える。','今夜も、誰かが待っている。','潮は、また満ちてくる。'];
 const DC = { el:null, tm:0, active:false, resolve:null };
+function currentAct(d){ const m = hasStory() ? ACTS_STORY : ACTS_OWN; let a = null; Object.keys(m).map(Number).sort((x,y)=>x-y).forEach(k=>{ if(d >= k) a = m[k]; }); return a; }
 function weekLabel(d){ if(d>30) return 'ENDLESS NIGHT'; if(d<=7) return '第一週'; if(d<=14) return '第二週'; if(d<=21) return '第三週'; if(d<=28) return '第四週'; return '最終週'; }
 function phaseOf(d){ return d>30 ? 4 : d<=7 ? 1 : d<=20 ? 2 : 3; }
 function buildDayCard(){
   if(DC.el) return DC.el;
-  const el = document.createElement('div'); el.className = 'pr-day'; el.setAttribute('aria-live','polite');
+  const el = document.createElement('div'); el.className = 'pr-day'; el.setAttribute('aria-live','polite'); el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true');
   el.innerHTML = `<div class="pr-day-bg"></div><div class="pr-day-rain"></div><div class="pr-day-scan"></div><div class="pr-day-bar t"></div><div class="pr-day-bar b"></div>
     <div class="pr-day-in"><div class="pr-day-act"></div><div class="pr-day-acttl"></div><div class="pr-day-num"></div><div class="pr-day-hr"></div><div class="pr-day-wk"></div><div class="pr-day-line"></div></div>
     <div class="pr-day-tap">TAP ▶</div>`;
@@ -986,20 +997,23 @@ function showDayCard(day, opt){
   try{
     if(EN.active) return Promise.resolve();
     const el = buildDayCard(); clearTimeout(DC.tm); clearTimeout(DC.tm2);
-    const act = !opt.noAct && ACTS[day];
+    const pending = opt.pending != null ? opt.pending : storySceneFor(day);
+    // 物語シーンが幕開けを担う夜は、こちらは通常の日付カードにして重複を避ける
+    const act = !opt.noAct && !(pending && hasStory()) && actFor(day);
     const ph = phaseOf(day);
     el.dataset.ph = ph; el.classList.toggle('act', !!act);
     el.querySelector('.pr-day-act').textContent = act ? act.no : '';
     el.querySelector('.pr-day-acttl').textContent = act ? `「${act.ttl}」` : '';
     el.querySelector('.pr-day-num').innerHTML = `<small>DAY</small>${day}${day<=30?'<em>/30</em>':''}`;
-    el.querySelector('.pr-day-wk').textContent = opt.sub || `― ${weekLabel(day)} ―`;
+    let wk = opt.sub || `― ${weekLabel(day)} ―`;
+    if(!act && !opt.sub && day <= 30){ const a = currentAct(day); if(a) wk = `― ${weekLabel(day)} ・ ${a.no.replace('　','')}「${a.ttl}」 ―`; }
+    el.querySelector('.pr-day-wk').textContent = wk;
     el.querySelector('.pr-day-line').textContent = opt.line || (day>30 ? ENDLESS_LINES[day % ENDLESS_LINES.length] : DAY_LINES[day] || '');
     el.classList.remove('on','out'); void el.offsetWidth; el.classList.add('on');
     DC.active = true; window.prDayCardActive = true;
     document.dispatchEvent(new CustomEvent('pr:daycard', {detail:{day, state:'start'}}));
     if(act) SFX.gong(); else if(ph===3) SFX.dread(); else SFX.chime();
     // 物語シーンが控えているときは短めにして譲る
-    const pending = !!(window.storyScenePending);
     const dur = RM ? 1000 : act ? 1500 : (pending ? 1000 : 1250);
     DC.tm = setTimeout(hideDayCard, dur);
     return new Promise(r => { DC.resolve = r; });
@@ -1034,7 +1048,7 @@ const EFX = {
 };
 function buildEnd(){
   if(EN.el) return EN.el;
-  const el = document.createElement('div'); el.className = 'pr-end'; el.setAttribute('aria-live','polite');
+  const el = document.createElement('div'); el.className = 'pr-end'; el.setAttribute('aria-live','polite'); el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label','エンディング');
   el.innerHTML = `
     <div class="pr-end-bg"></div><div class="pr-end-tint"></div><div class="pr-end-rays"></div>
     <canvas class="pr-end-fx"></canvas>
@@ -1054,8 +1068,19 @@ function buildEnd(){
   el.querySelector('.pr-skip').addEventListener('click', e=>{ e.stopPropagation(); SFX.decide(); endFinal(EN.tok); });
   el.querySelector('.pr-share').addEventListener('click', e=>{ e.stopPropagation(); SFX.decide(); openShare(); });
   el.addEventListener('pointerdown', e=>{ if(e.target.closest('button')) return; endTap(); });
-  document.addEventListener('keydown', e=>{
-    if(!EN.active || EN.stage==='final') return;
+  window.addEventListener('keydown', e=>{
+    if(!EN.active || e.defaultPrevented) return;
+    if(EN.stage==='final'){
+      if(e.key==='ArrowDown' || e.key==='ArrowUp'){
+        e.preventDefault();
+        const bs = [...EN.el.querySelectorAll('.pr-end-final button')].filter(b=>b.offsetParent);
+        if(!bs.length) return;
+        const i = bs.indexOf(document.activeElement);
+        const n = i<0 ? 0 : (i + (e.key==='ArrowDown'?1:-1) + bs.length) % bs.length;
+        bs[n].focus(); SFX.cursor();
+      }
+      return;
+    }
     if(e.key==='Escape'){ e.preventDefault(); endFinal(EN.tok); }
     else if(['Enter',' ','z','Z'].includes(e.key)){ e.preventDefault(); endTap(); }
   });
@@ -1199,6 +1224,7 @@ function endFinal(tok){
   el.querySelector('.pr-fcnt').textContent = `ENDING COLLECTION  ${n} / ${tot}`;
   el.querySelector('.pr-fbar i').style.width = (n/tot*100) + '%';
   setStage('final');
+  setTimeout(()=>{ try{ const b = [...el.querySelectorAll('.pr-end-final button')].find(x=>x.offsetParent); if(b) b.focus({preventScroll:true}); }catch(e){} }, 600);
 }
 function openShare(){
   const a = EN.shareArgs || [EN.info.type, hasGs() ? (gs._endless || gs.day > 30) : true];
@@ -1308,7 +1334,7 @@ wrap('nextDay', prev => function(){
 // つづきから：現在の日のカード
 wrap('loadGame', prev => function(){
   const r = prev.apply(this, arguments);
-  try{ if(r && hasGs()) showDayCard(gs.day, {noAct: !ACTS[gs.day], sub: `― ${weekLabel(gs.day)} ・ つづきから ―`}); }catch(e){}
+  try{ if(r && hasGs()) showDayCard(gs.day, {noAct: true, sub: `― ${weekLabel(gs.day)} ・ つづきから ―`}); }catch(e){}
   return r;
 });
 // セーブ削除後、つづきからを隠す（checkSaveDataはデータ無しのとき何もしないため）

@@ -1305,6 +1305,8 @@ registerMinigame({
       clearTimeout(hintTo);
     }
 
+    if(typeof mg.onEnd==='function')mg.onEnd(cleanup);
+
     return {result(reason){
       cleanup();
       if(reason==='quit'&&res&&!simDone)finishSim();        // 放送が始まっていれば最後まで集計

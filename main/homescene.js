@@ -466,7 +466,7 @@ function init(){
   const cv=document.createElement('canvas');cv.className='hs-canvas';cv.setAttribute('aria-hidden','true');
   area.insertBefore(cv,area.firstChild);
   const edge=document.createElement('div');edge.className='hs-fade-edge';area.insertBefore(edge,cv.nextSibling);
-  S.cv=cv;S.cx=cv.getContext('2d');
+  S.cv=cv;S.cx=cv.getContext('2d',{alpha:false});
   S.buf=mkCanvas(RW,RH);S.bx=S.buf.getContext('2d');
   S.light=mkCanvas(RW,RH);S.lx=S.light.getContext('2d');
   S.tmp=mkCanvas(RW,RH);S.tx=S.tmp.getContext('2d');
@@ -482,16 +482,21 @@ function init(){
 function resize(){
   if(!S.area)return;
   const r=S.area.getBoundingClientRect();
-  const dpr=Math.min(3,window.devicePixelRatio||1);
-  const ch=Math.max(1,Math.round(r.height*dpr)), cw=Math.max(1,Math.round(r.width*dpr));
+  if(r.width<2||r.height<2)return;
+  const dpr=window.devicePixelRatio||1;
+  // 仮想1ピクセル＝デバイス k ピクセル（整数・最大4）。それ以上は CSS の pixelated 拡大に任せる。
+  const k=Math.max(1,Math.min(4,Math.round(r.height*dpr/RH)));
+  const ch=RH*k, cw=Math.max(1,Math.round(r.width*ch/r.height));
   if(S.cv.width!==cw)S.cv.width=cw;if(S.cv.height!==ch)S.cv.height=ch;
-  S.scale=ch/RH; S.vw=cw/S.scale;
+  S.scale=k; S.vw=cw/k;
   S.cx.imageSmoothingEnabled=false;
   // スキャンライン模様
-  const sc=Math.max(1,Math.round(S.scale));
-  if(sc>=3){const pc=mkCanvas(1,sc),px=pc.getContext('2d');px.fillStyle='rgba(0,0,0,.16)';px.fillRect(0,sc-1,1,1);S.scan=S.cx.createPattern(pc,'repeat');}else S.scan=null;
-  const g=S.cx.createRadialGradient(cw/2,ch*.45,Math.min(cw,ch)*.35,cw/2,ch*.45,Math.max(cw,ch)*.75);
-  g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(4,2,12,.55)');S.vign=g;
+  if(k>=3){const pc=mkCanvas(1,k),px=pc.getContext('2d');px.fillStyle='rgba(0,0,0,.16)';px.fillRect(0,k-1,1,1);S.scan=S.cx.createPattern(pc,'repeat');}else S.scan=null;
+  // 周辺減光（低解像度で一度だけ作る）
+  const vw=Math.ceil(Math.min(S.vw,RW));
+  const vc=mkCanvas(vw,RH),vx=vc.getContext('2d');
+  const g=vx.createRadialGradient(vw/2,RH*.45,Math.min(vw,RH)*.4,vw/2,RH*.45,Math.max(vw,RH)*.72);
+  g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(4,2,12,.6)');vx.fillStyle=g;vx.fillRect(0,0,vw,RH);S.vign=vc;
 }
 
 // ───────── シーン設定 ─────────
@@ -951,27 +956,40 @@ function render(){
   const x=S.bx, m=nightMin(), ph=phase(), fat=gsv('fatigue',30), men=gsv('mental',70);
   x.globalCompositeOperation='source-over';x.globalAlpha=1;x.imageSmoothingEnabled=false;
   x.fillStyle='#07060f';x.fillRect(0,0,RW,RH);
+  if(S.prof){x.getImageData(0,0,1,1);S.pt=performance.now();}
   drawWindow(x,m,ph);
+  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawWindow']=(S.prof['drawWindow']||0)+_n-S.pt;S.pt=_n;}
   x.drawImage(S.bg,0,0);
+  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['x.drawImage']=(S.prof['x.drawImage']||0)+_n-S.pt;S.pt=_n;}
   drawCalendar(x);
+  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawCalendar']=(S.prof['drawCalendar']||0)+_n-S.pt;S.pt=_n;}
   drawLampShade(x,0);
+  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawLampShade']=(S.prof['drawLampShade']||0)+_n-S.pt;S.pt=_n;}
   drawDeskProps(x,S.key);
+  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawDeskProps']=(S.prof['drawDeskProps']||0)+_n-S.pt;S.pt=_n;}
   drawScreen(x,S.key,ph);
+  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawScreen']=(S.prof['drawScreen']||0)+_n-S.pt;S.pt=_n;}
   drawChild(x,S.key);
+  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawChild']=(S.prof['drawChild']||0)+_n-S.pt;S.pt=_n;}
   drawActor(x,fat,men);
+  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawActor']=(S.prof['drawActor']||0)+_n-S.pt;S.pt=_n;}
   drawLighting(m,ph);
+  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawLighting']=(S.prof['drawLighting']||0)+_n-S.pt;S.pt=_n;}
   drawEmissive(x,m,ph);
+  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawEmissive']=(S.prof['drawEmissive']||0)+_n-S.pt;S.pt=_n;}
   drawParticles(x);
+  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawParticles']=(S.prof['drawParticles']||0)+_n-S.pt;S.pt=_n;}
   postFX(ph);
+  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['postFX']=(S.prof['postFX']||0)+_n-S.pt;S.pt=_n;}
   // 拡大表示
   const c=S.cx,cw=S.cv.width,ch=S.cv.height,sc=S.scale;
   c.imageSmoothingEnabled=false;
   const vw=Math.min(S.vw,RW);
   let cam=Math.round(S.camX);cam=Math.max(0,Math.min(RW-Math.ceil(vw),cam));
+  if(S.vign)x.drawImage(S.vign,S.vw>RW?0:cam,0,S.vw>RW?RW:S.vign.width,RH);
   if(S.vw>RW){c.fillStyle='#05040e';c.fillRect(0,0,cw,ch);const ox=Math.round((cw-RW*sc)/2);c.drawImage(S.buf,0,0,RW,RH,ox,0,Math.round(RW*sc),ch);}
   else c.drawImage(S.buf,cam,0,Math.ceil(vw),RH,0,0,Math.round(Math.ceil(vw)*sc),ch);
   if(S.scan){c.fillStyle=S.scan;c.fillRect(0,0,cw,ch);}
-  c.fillStyle=S.vign;c.fillRect(0,0,cw,ch);
 }
 
 // ───────── 可視判定とループ ─────────
@@ -986,7 +1004,10 @@ function isVisible(){
   if(r.width<2||r.height<2||r.bottom<0||r.top>window.innerHeight)return false;
   const el=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
   if(!el)return false;
-  return S.area.contains(el)||el===S.area;
+  if(S.area.contains(el)||el===S.area)return true;
+  // 覆っている要素がほぼ透明なら「見えている」とみなす
+  for(let n=el;n&&n!==document.body;n=n.parentElement){const cs=getComputedStyle(n);if(parseFloat(cs.opacity)<.3||cs.visibility==='hidden')return true;}
+  return false;
 }
 function frame(now){
   running=false;

@@ -296,7 +296,7 @@ registerMinigame({
           const c=R()<.7?'255,206,140':R()<.5?'200,225,255':'255,170,200';
           const a=rr(.25,.85);
           g.fillStyle=`rgba(${c},${a})`;g.fillRect(x,y,R()<.2?2:1,1);
-          if(R()<.3&&y>HZ-H*.02)townRefl.push({x:x-M,c,a:a*.55,len:rr(4,16),ph:R()*6.28,dy:rr(0,3)});
+          if(R()<.16&&y>HZ-H*.02)townRefl.push({x:x-M,c,a:a*.55,len:rr(4,16),ph:R()*6.28,dy:rr(0,3)});
         }
       };
       town(0,M+W*.25,hillL);town(M+W*.5,WW,hillR);
@@ -1416,7 +1416,7 @@ registerMinigame({
       const fx=camX*.4;
       for(const l of BR.lights){
         if(!l.refl)continue;
-        for(let i=0;i<5;i++){
+        for(let i=0;i<4;i++){
           const y=HZ+2+l.ph*.6+i*i*(1.8+l.ph*.12)+i*2+Math.sin(l.ph*7+i)*1.5;const ox=Math.sin(t*2.1+l.ph+i*1.3)*(1+i*.6);
           cx.fillStyle=`rgba(${l.c},${(.24-i*.042)*(.6+.4*Math.sin(t*1.5+l.ph*3+i))})`;cx.fillRect(l.x+fx+ox-.8,y+oy,1.4+i*.35,1.4+i*.6);
         }

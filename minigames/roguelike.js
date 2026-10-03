@@ -622,6 +622,7 @@ registerMinigame({
     let ro=null;
     if(window.ResizeObserver){ro=new ResizeObserver(()=>{if(mg._ended){ro.disconnect();return;}resize();});ro.observe(wrap);}
     else window.addEventListener('resize',resize);
+    if(typeof mg.onEnd==='function')mg.onEnd(()=>{if(ro)ro.disconnect();else window.removeEventListener('resize',resize);});
 
     function ghostPath(c,x,y,r,t,taper){
       c.beginPath();

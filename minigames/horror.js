@@ -772,7 +772,7 @@ SC.n_window={
     // 外の子ども
     g.save();g.beginPath();g.rect(wx,wy,ww,wh);g.clip();
     if(S.child===1){g.globalAlpha=.6;g.filter&&(g.filter='blur(1.5px)');figure(g,'child',wx+ww*.6,wy+wh*.92,wh*.34,{c:'#04050c'});g.filter='none';}
-    if(S.child===2){g.globalAlpha=1;figure(g,'child',wx+ww*.55,wy+wh*1.3,wh*1.05,{c:'#020208',rim:'rgba(160,190,255,.35)'});
+    if(S.child===2){g.globalAlpha=1;figure(g,'child',wx+ww*.55,wy+wh*1.06,wh*1.05,{c:'#020208',rim:'rgba(160,190,255,.35)'});
       g.fillStyle='rgba(200,215,240,.18)';g.beginPath();g.ellipse(wx+ww*.55,wy+wh*.42,ww*.12,wh*.12,0,0,TAU);g.fill();
       g.strokeStyle='rgba(230,240,255,.55)';g.lineWidth=2;g.beginPath();g.moveTo(wx+ww*.5,wy+wh*.38);g.lineTo(wx+ww*.52,wy+wh*.46);g.moveTo(wx+ww*.55,wy+wh*.37);g.quadraticCurveTo(wx+ww*.6,wy+wh*.4,wx+ww*.56,wy+wh*.46);g.moveTo(wx+ww*.59,wy+wh*.39);g.lineTo(wx+ww*.62,wy+wh*.37);g.stroke();
       for(let i=0;i<2;i++){g.fillStyle='rgba(220,230,255,.14)';g.beginPath();g.ellipse(wx+ww*(.47+i*.17),wy+wh*.55,ww*.025,wh*.05,0,0,TAU);g.fill();}}
