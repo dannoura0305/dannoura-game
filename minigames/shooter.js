@@ -1325,7 +1325,7 @@ registerMinigame({
         cx.strokeStyle=gc;cx.lineWidth=3;cx.beginPath();cx.arc(0,0,30,0,6.283);cx.stroke();
         cx.lineWidth=1;cx.beginPath();cx.arc(0,0,25,0,6.283);cx.stroke();
         cx.font=`40px ${FONT}`;cx.textAlign='center';cx.fillStyle='#05040e';cx.fillText(grade,2,4);cx.fillStyle=gc;cx.fillText(grade,0,2);
-        cx.font=`8px ${FONT}`;cx.fillText('RANK',0,-21);
+        cx.font=`7px ${FONT}`;cx.fillText('RANK',0,-16);
         cx.restore();
       }
       cx.textAlign='center';cx.font=`11px ${FONT}`;

@@ -85,9 +85,9 @@ registerMinigame({
     const QUIP={mod:['BANします','ルール守ってね','見張りは任せて'],ng:['NG登録完了','その言葉は通さない'],cheer:['みんな、いくよー！','ペンライト準備OK'],report:['通報、受理','証拠は揃ってる']};
     const QUIP_UP={mod:'権限アップ！',ng:'辞書を拡張した',cheer:'推しのためなら！',report:'運営に直通だ'};
     const EN={
-      troll:{name:'荒らし',        hp:34,  spd:2.0, r:.25, gold:8,  dmg:1},
-      bot:  {name:'スパムBot',     hp:13,  spd:3.0, r:.16, gold:3,  dmg:1},
-      anti: {name:'粘着アンチ',    hp:115, spd:1.45,r:.3,  gold:16, dmg:2},
+      troll:{name:'荒らし',        hp:34,  spd:2.0, r:.25, gold:9,  dmg:1},
+      bot:  {name:'スパムBot',     hp:13,  spd:3.0, r:.16, gold:4,  dmg:1},
+      anti: {name:'粘着アンチ',    hp:115, spd:1.45,r:.3,  gold:18, dmg:2},
       boss: {name:'炎上アカウント',hp:720, spd:1.0, r:.55, gold:80, dmg:5},
     };
     // ウェーブ構成 [種類, 数, 間隔秒, 開始秒]（×1で全体120秒以内に収まる長さ）
@@ -702,7 +702,7 @@ registerMinigame({
       queue.sort((a,b)=>a.t-b.t);
     }
     function spawnEnemy(type,d,boost){
-      const b=EN[type],hp=b.hp*(1+.14*(wave-1))*dayScale*(boost||1);
+      const b=EN[type],hp=b.hp*(1+.12*(wave-1))*dayScale*(boost||1);
       enemies.push({type,d:d||0,x:0,y:0,hp,max:hp,off:(Math.random()-.5)*(type==='boss'?0:.34),
         ph:Math.random()*6,anim:Math.random(),slowF:1,hitF:0,kx:0,spawnCd:3,shoutT:0,dead:false});
       if(type==='boss'){shake=.4;sfx('boss');}
@@ -717,7 +717,7 @@ registerMinigame({
       sfx(boss?'boss':'wave');se(boss?'warn':'live');
     }
     function waveCleared(){
-      const bonus=20+wave*5;money+=bonus;bumpMoney();
+      const bonus=25+wave*5;money+=bonus;bumpMoney();
       if(wave>=WAVES){phase='end';endReason='clear';endT=2.2;
         banner={t:rt,text:'防衛成功',sub:'配信の心は守られた',col:'#44ee88'};sfx('clear');se('ach');}
       else{phase='prep';cd=5;banner={t:rt,text:`WAVE ${wave} クリア`,sub:`ボーナス +¥${bonus}`,col:'#e8b830'};sfx('coin');se('decide');

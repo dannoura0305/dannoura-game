@@ -1506,7 +1506,7 @@ registerMinigame({
       },
       // 自動テスト用の内部状態参照（ゲーム進行には使わない）
       _dbg:{get P(){return P;},get phase(){return phase;},get rem(){return rem;},get late(){return late;},get cars(){return cars;},SIGS,CPS,get puddles(){return puddles;},GOAL,
-        get info(){return renderer?renderer.info.render:null;},input,touch,advance:()=>advance(),get VAR(){return VAR;}},
+        get info(){return renderer?renderer.info.render:null;},get scene(){return scene;},get camera(){return camera;},input,touch,advance:()=>advance(),get VAR(){return VAR;}},
     };
   },
 });

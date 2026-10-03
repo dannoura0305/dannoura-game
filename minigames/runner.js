@@ -613,7 +613,6 @@ registerMinigame({
       {who:'kid',text:'……パパ……あたま、あつい……'},
       {who:'dan',face:'fear',text:'38度5分……。冷却シート、ちょうど切らしてたわね。'},
       {who:'dan',face:'normal',text:'すぐ戻るわ。起きたら、好きなプリンも一緒にね。'},
-      {who:'kid',text:'……ぷりん……'},
       {who:'dan',face:'win',text:'──よし。走るわよ。'},
     ]:[
       {who:'kid',text:'……パパ……あつい……'},
@@ -715,8 +714,8 @@ registerMinigame({
     // 評価と記録
     function calcGrade(){
       if(outcome!=='clear')return 'C';
-      const sc2=100-hits*15-(woke?25:0)+Math.min(2,purin)*6+Math.min(10,Math.floor(coins/6));
-      return sc2>=100?'S':sc2>=80?'A':'B';
+      const sc2=100-hits*20-(woke?25:0)+Math.min(2,purin)*6+Math.min(10,Math.floor(coins/6));
+      return sc2>=105?'S':sc2>=78?'A':'B';
     }
     function commit(){
       if(committed)return;committed=true;
@@ -861,8 +860,8 @@ registerMinigame({
       if(tr){tr.t+=dt;if(!tr.fired&&tr.t>=.5){tr.fired=true;tr.cb();}if(tr.t>=1)tr=null;}
       if(dlg){
         const L=dlg.lines[dlg.i];
-        if(dlg.ch<L.text.length){const before=dlg.ch|0;dlg.ch=Math.min(L.text.length,dlg.ch+dt*30);if((dlg.ch|0)!==before&&(before%2===0))sfx('text');}
-        else{dlg.hold+=dt;if(dlg.hold>2.4)dialogNext();}
+        if(dlg.ch<L.text.length){const before=dlg.ch|0;dlg.ch=Math.min(L.text.length,dlg.ch+dt*36);if((dlg.ch|0)!==before&&(before%2===0))sfx('text');}
+        else{dlg.hold+=dt;if(dlg.hold>1.8)dialogNext();}
       }
       if(flash>0)flash=Math.max(0,flash-dt*2.6);
       if(shake>0)shake=Math.max(0,shake-dt);

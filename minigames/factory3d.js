@@ -1,7 +1,9 @@
 // ══════════════════════════════════════════════════════════
 // 3Dアクション「夜勤の第三工場」
-// 停電した夜の工場を懐中電灯ひとつで歩き、計器5か所を点検して非常口へ。
-// 闇の中を「影」がうろつく。ライトで照らすと退くが、暗がりでは近づいてくる。
+// 落雷で停電した夜の第三工場。懐中電灯ひとつで計器5か所を点検して非常口へ。
+// 闇の中を「影」がうろつく。光を当てると影の“まとい”が焼けて霧散するが、
+// 暗がりや背後からは静かに近づいてくる。電池＝体力。
+// 流れ：タイトル → 無線（班長） → 操作説明 → 探索（静寂→影の出現→追跡） → 結末・評価
 // three.js（vendor/three.min.js）を loadThree() で読み込む。
 // ══════════════════════════════════════════════════════════
 addMinigameStyle('factory3d',`
@@ -10,15 +12,17 @@ addMinigameStyle('factory3d',`
 .factory3d-wrap canvas{position:absolute;left:0;top:0;width:100%!important;height:100%!important;display:block;}
 .factory3d-wrap.factory3d-hit canvas{filter:contrast(1.6) saturate(1.8) hue-rotate(-30deg) blur(1.4px);animation:factory3d-warp .42s steps(5) infinite;}
 @keyframes factory3d-warp{0%{transform:none}20%{transform:translate(-7px,2px) skewX(4deg)}40%{transform:translate(6px,-3px) skewX(-5deg) scale(1.04)}60%{transform:translate(-3px,5px) skewY(2deg)}80%{transform:translate(4px,0) scale(1.02)}100%{transform:none}}
+.factory3d-wrap.factory3d-glitch canvas{animation:factory3d-warp .25s steps(3) 2;}
 .factory3d-lay{position:absolute;inset:0;pointer-events:none;}
-.factory3d-vig{background:radial-gradient(ellipse 75% 70% at 50% 50%,rgba(0,0,0,0) 40%,rgba(3,2,10,.55) 72%,rgba(0,0,0,.94) 100%);}
-.factory3d-grain{inset:-60%;opacity:.13;mix-blend-mode:screen;background-size:160px 160px;animation:factory3d-grain .6s steps(6) infinite;}
+.factory3d-vig{background:radial-gradient(ellipse 78% 72% at 50% 50%,rgba(0,0,0,0) 42%,rgba(3,2,10,.5) 72%,rgba(0,0,0,.93) 100%);transition:transform .12s;}
+.factory3d-grain{inset:-60%;opacity:.07;mix-blend-mode:screen;background-size:160px 160px;animation:factory3d-grain .6s steps(6) infinite;}
 @keyframes factory3d-grain{0%{transform:translate(0,0)}17%{transform:translate(-7%,4%)}33%{transform:translate(5%,-6%)}50%{transform:translate(-3%,7%)}67%{transform:translate(7%,2%)}83%{transform:translate(-5%,-4%)}100%{transform:translate(0,0)}}
-.factory3d-scan{background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,rgba(0,0,0,0) 1px 3px);opacity:.55;}
-.factory3d-red{background:radial-gradient(ellipse at 50% 50%,rgba(232,48,85,0) 25%,rgba(150,10,40,.55) 70%,rgba(60,0,20,.95) 100%);opacity:0;}
+.factory3d-scan{background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,rgba(0,0,0,0) 1px 3px);opacity:.5;}
+.factory3d-red{background:radial-gradient(ellipse at 50% 50%,rgba(232,48,85,0) 30%,rgba(150,10,40,.5) 72%,rgba(60,0,20,.95) 100%);opacity:0;}
 .factory3d-flash{background:#c8d4ff;opacity:0;mix-blend-mode:screen;}
 .factory3d-dark{background:#000;opacity:0;}
-.factory3d-hud{position:absolute;inset:0;pointer-events:none;font-family:var(--dot);color:var(--tx-b);z-index:3;}
+.factory3d-hud{position:absolute;inset:0;pointer-events:none;font-family:var(--dot);color:var(--tx-b);z-index:3;transition:opacity .5s;}
+.factory3d-wrap.factory3d-cine .factory3d-hud,.factory3d-wrap.factory3d-cine .factory3d-act,.factory3d-wrap.factory3d-cine .factory3d-joyhint{opacity:0;pointer-events:none;}
 .factory3d-bat{position:absolute;left:10px;top:9px;display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.68rem;color:#c8fff5;text-shadow:0 0 6px rgba(0,232,200,.6);}
 .factory3d-bat .factory3d-cell{position:relative;width:62px;height:14px;border:1.5px solid rgba(200,255,245,.75);border-radius:3px;padding:1px;box-shadow:0 0 8px rgba(0,232,200,.3);}
 .factory3d-bat .factory3d-cell:after{content:'';position:absolute;right:-5px;top:3px;width:3px;height:6px;background:rgba(200,255,245,.75);border-radius:0 2px 2px 0;}
@@ -26,73 +30,133 @@ addMinigameStyle('factory3d',`
 .factory3d-bat.mid i{background:linear-gradient(90deg,#b88a10,#e8b830)!important;}
 .factory3d-bat.low{color:#ffb0c0;text-shadow:0 0 6px rgba(232,48,85,.8);animation:factory3d-blink .6s steps(2) infinite;}
 .factory3d-bat.low i{background:linear-gradient(90deg,#a01030,#e83055)!important;}
+.factory3d-bat.drain{color:#ffe9a8;}
 @keyframes factory3d-blink{50%{opacity:.45}}
 .factory3d-chk{position:absolute;right:10px;top:9px;display:flex;gap:4px;align-items:center;font-size:.6rem;color:var(--tx);}
-.factory3d-chk span{width:13px;height:13px;border-radius:50%;border:1.5px solid rgba(232,184,48,.7);display:flex;align-items:center;justify-content:center;font-size:.55rem;color:transparent;box-shadow:0 0 6px rgba(232,184,48,.25);}
-.factory3d-chk span.ok{background:#44ee88;border-color:#44ee88;color:#04140a;box-shadow:0 0 8px rgba(68,238,136,.7);}
+.factory3d-chk span{width:13px;height:13px;border-radius:50%;border:1.5px solid rgba(232,184,48,.7);display:flex;align-items:center;justify-content:center;font-size:.55rem;color:transparent;box-shadow:0 0 6px rgba(232,184,48,.25);transition:all .3s;}
+.factory3d-chk span.ok{background:#44ee88;border-color:#44ee88;color:#04140a;box-shadow:0 0 8px rgba(68,238,136,.7);transform:scale(1.15);}
 .factory3d-nav{position:absolute;left:50%;top:32px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;font-size:.62rem;color:#ffe9a8;text-shadow:0 0 6px rgba(232,184,48,.7);background:rgba(5,4,14,.45);padding:2px 9px 2px 6px;border-radius:10px;border:1px solid rgba(232,184,48,.25);white-space:nowrap;}
 .factory3d-nav b{display:inline-block;font-size:.8rem;line-height:1;color:#e8b830;}
 .factory3d-nav.exit{color:#b8ffd2;text-shadow:0 0 6px rgba(68,238,136,.8);border-color:rgba(68,238,136,.35);}
 .factory3d-nav.exit b{color:#44ee88;}
+.factory3d-phase{position:absolute;left:50%;top:54px;transform:translateX(-50%);font-family:var(--mono);font-size:.52rem;letter-spacing:.25em;color:rgba(222,204,248,.45);white-space:nowrap;}
+.factory3d-phase.p1{color:rgba(232,140,160,.7);}
+.factory3d-phase.p2{color:#ff6a88;text-shadow:0 0 6px rgba(232,48,85,.8);animation:factory3d-blink .8s steps(2) infinite;}
 .factory3d-cross{position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:rgba(222,204,248,.7);box-shadow:0 0 4px rgba(222,204,248,.6);}
 .factory3d-ring{position:absolute;left:50%;top:50%;width:62px;height:62px;margin:-31px 0 0 -31px;opacity:0;transition:opacity .15s;}
 .factory3d-ring.on{opacity:1;}
 .factory3d-ring circle{fill:none;stroke-width:4;}
-.factory3d-prompt{position:absolute;left:50%;top:calc(50% + 40px);transform:translateX(-50%);font-size:.66rem;color:#ffe9a8;text-shadow:0 0 8px rgba(232,184,48,.8),0 0 2px #000;opacity:0;transition:opacity .15s;white-space:nowrap;}
+.factory3d-prompt{position:absolute;left:50%;top:calc(50% + 40px);transform:translateX(-50%);font-size:.66rem;color:#ffe9a8;text-shadow:0 0 8px rgba(232,184,48,.8),0 0 2px #000;opacity:0;transition:opacity .15s;white-space:nowrap;background:rgba(5,4,14,.5);padding:1px 8px;border-radius:8px;}
 .factory3d-prompt.on{opacity:1;}
 .factory3d-toast{position:absolute;left:50%;top:27%;transform:translateX(-50%);font-size:.9rem;letter-spacing:.06em;white-space:nowrap;color:#deccf8;text-shadow:0 0 10px rgba(138,82,212,.9),0 0 2px #000;opacity:0;}
 .factory3d-toast.ok{color:#b8ffd2;text-shadow:0 0 12px rgba(68,238,136,.9),0 0 2px #000;}
 .factory3d-toast.bad{color:#ffb0c0;text-shadow:0 0 12px rgba(232,48,85,.95),0 0 2px #000;}
-.factory3d-toast.show{animation:factory3d-toast 2.2s ease-out forwards;}
+.factory3d-toast.show{animation:factory3d-toast 2.4s ease-out forwards;}
 @keyframes factory3d-toast{0%{opacity:0;transform:translate(-50%,8px) scale(.94)}10%{opacity:1;transform:translate(-50%,0) scale(1)}78%{opacity:1}100%{opacity:0;transform:translate(-50%,-6px)}}
+.factory3d-hint{position:absolute;left:50%;bottom:112px;transform:translateX(-50%);max-width:88%;font-size:.62rem;line-height:1.45;text-align:center;color:#c8fff5;background:rgba(4,16,20,.72);border:1px solid rgba(0,232,200,.4);border-radius:9px;padding:5px 11px;box-shadow:0 0 12px rgba(0,232,200,.2);opacity:0;transition:opacity .35s;}
+.factory3d-hint.on{opacity:1;}
+.factory3d-hint b{color:#ffe9a8;font-weight:normal;}
 .factory3d-joy{position:absolute;width:104px;height:104px;margin:-52px 0 0 -52px;border-radius:50%;border:1.5px solid rgba(0,232,200,.35);background:radial-gradient(circle,rgba(0,232,200,.08),rgba(0,0,0,.25));pointer-events:none;opacity:0;transition:opacity .15s;z-index:4;}
 .factory3d-joy.on{opacity:1;}
 .factory3d-joy i{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(200,255,245,.55),rgba(0,140,120,.45));border:1px solid rgba(200,255,245,.6);box-shadow:0 0 12px rgba(0,232,200,.45);}
-.factory3d-joyhint{position:absolute;left:18px;bottom:20px;width:84px;height:84px;border-radius:50%;border:1.5px dashed rgba(0,232,200,.22);pointer-events:none;z-index:2;display:flex;align-items:center;justify-content:center;font-size:.55rem;color:rgba(200,255,245,.35);font-family:var(--dot);}
+.factory3d-joyhint{position:absolute;left:18px;bottom:20px;width:84px;height:84px;border-radius:50%;border:1.5px dashed rgba(0,232,200,.22);pointer-events:none;z-index:2;display:flex;align-items:center;justify-content:center;font-size:.55rem;color:rgba(200,255,245,.35);font-family:var(--dot);transition:opacity .4s;}
 .factory3d-act{position:absolute;right:16px;bottom:20px;width:78px;height:78px;border-radius:50%;z-index:5;touch-action:none;
   border:1.5px solid rgba(232,184,48,.55);background:radial-gradient(circle at 45% 35%,rgba(90,70,20,.75),rgba(14,10,24,.88));
   color:#ffe9a8;font-family:var(--dot);font-size:.72rem;line-height:1.15;text-align:center;cursor:pointer;
-  box-shadow:0 0 10px rgba(232,184,48,.25),inset 0 0 10px rgba(232,184,48,.15);-webkit-tap-highlight-color:transparent;transition:box-shadow .2s,transform .08s,opacity .2s;}
+  box-shadow:0 0 10px rgba(232,184,48,.25),inset 0 0 10px rgba(232,184,48,.15);-webkit-tap-highlight-color:transparent;transition:box-shadow .2s,transform .08s,opacity .3s,border-color .2s;}
 .factory3d-act small{display:block;font-size:.5rem;color:rgba(255,233,168,.6);font-family:var(--mono);}
+.factory3d-act.focus{border-color:rgba(200,220,255,.55);color:#e4ecff;background:radial-gradient(circle at 45% 35%,rgba(60,70,110,.75),rgba(14,10,24,.88));box-shadow:0 0 10px rgba(160,190,255,.25);}
+.factory3d-act.focus small{color:rgba(220,230,255,.6);}
 .factory3d-act.ready{border-color:#e8b830;box-shadow:0 0 18px rgba(232,184,48,.75),inset 0 0 14px rgba(232,184,48,.35);animation:factory3d-pulse 1s ease-in-out infinite;}
 .factory3d-act.held{transform:scale(.93);}
 @keyframes factory3d-pulse{50%{box-shadow:0 0 26px rgba(232,184,48,.95),inset 0 0 18px rgba(232,184,48,.45);}}
 .factory3d-ov{position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px;text-align:center;
-  background:radial-gradient(ellipse at 50% 45%,rgba(20,12,40,.82),rgba(2,1,8,.95));font-family:var(--dot);color:var(--tx);transition:opacity .5s;}
-.factory3d-ov.hide{opacity:0;pointer-events:none;}
-.factory3d-ov h3{margin:0;font-weight:normal;font-size:1.05rem;color:var(--tx-b);letter-spacing:.12em;text-shadow:0 0 12px rgba(138,82,212,.9);}
-.factory3d-ov .factory3d-sub{font-family:var(--mono);font-size:.6rem;color:var(--tx-d);letter-spacing:.2em;}
-.factory3d-ov ul{list-style:none;margin:4px 0;padding:0;font-size:.7rem;line-height:1.75;text-align:left;}
+  background:radial-gradient(ellipse at 50% 45%,rgba(20,12,40,.8),rgba(2,1,8,.95));font-family:var(--dot);color:var(--tx);}
+.factory3d-ov.hide{display:none;}
+.factory3d-ov.factory3d-gout{animation:factory3d-gout .5s steps(5) forwards;pointer-events:none;}
+@keyframes factory3d-gout{0%{opacity:1}30%{transform:translateX(-8px) skewX(8deg);filter:hue-rotate(90deg)}60%{opacity:.7;transform:translateX(6px) scaleY(.5);clip-path:inset(28% 0 28% 0)}100%{opacity:0;transform:scaleY(.02);clip-path:inset(49% 0 49% 0)}}
+.factory3d-ov.factory3d-gin{animation:factory3d-gin .45s steps(5) both;}
+@keyframes factory3d-gin{0%{opacity:0;transform:scaleY(.02);clip-path:inset(49% 0 49% 0)}50%{opacity:.8;transform:translateX(-6px) scaleY(.6) skewX(-6deg);filter:hue-rotate(-80deg)}100%{opacity:1;transform:none;clip-path:inset(0 0 0 0)}}
+.factory3d-ov h3{margin:0;font-weight:normal;font-size:1rem;color:var(--tx-b);letter-spacing:.12em;text-shadow:0 0 12px rgba(138,82,212,.9);}
+.factory3d-sub{font-family:var(--mono);font-size:.56rem;color:var(--tx-d);letter-spacing:.24em;}
+.factory3d-ov ul{list-style:none;margin:4px 0;padding:0;font-size:.68rem;line-height:1.75;text-align:left;}
 .factory3d-ov ul b{color:var(--gd);font-weight:normal;}
 .factory3d-ov ul em{color:var(--rd);font-style:normal;}
 .factory3d-ov ul i{color:var(--gn);font-style:normal;}
 .factory3d-ov ul u{color:var(--cy);text-decoration:none;}
-.factory3d-ov .factory3d-keys{font-size:.58rem;color:var(--tx-d);border-top:1px solid rgba(138,82,212,.3);padding-top:6px;}
-.factory3d-ov .factory3d-bar{width:150px;height:3px;background:rgba(138,82,212,.25);border-radius:2px;overflow:hidden;}
-.factory3d-ov .factory3d-bar i{display:block;height:100%;width:0;background:var(--pu);box-shadow:0 0 6px var(--pu);}
-.factory3d-ov .factory3d-bar.run i{animation:factory3d-bar 3s linear forwards;}
+.factory3d-keys{font-size:.56rem;color:var(--tx-d);border-top:1px solid rgba(138,82,212,.3);padding-top:6px;line-height:1.6;}
+.factory3d-bar{width:150px;height:3px;background:rgba(138,82,212,.25);border-radius:2px;overflow:hidden;}
+.factory3d-bar i{display:block;height:100%;width:0;background:var(--pu);box-shadow:0 0 6px var(--pu);animation:factory3d-bar 3s linear forwards;}
 @keyframes factory3d-bar{to{width:100%}}
-.factory3d-ov button{margin-top:6px;padding:6px 16px;border-radius:8px;border:1px solid var(--rd);background:rgba(232,48,85,.15);color:#ffd0da;font-family:var(--dot);font-size:.75rem;cursor:pointer;}
+.factory3d-ov button,.factory3d-btn{margin-top:6px;padding:7px 18px;border-radius:8px;border:1px solid var(--gd);background:rgba(232,184,48,.12);color:#ffe9a8;font-family:var(--dot);font-size:.78rem;cursor:pointer;letter-spacing:.08em;}
 .factory3d-load{font-size:.8rem;color:var(--tx-b);letter-spacing:.2em;animation:factory3d-blink 1.1s steps(2) infinite;}
+.factory3d-ov.factory3d-titleov{background:radial-gradient(ellipse at 50% 42%,rgba(40,10,30,.35),rgba(2,1,8,.82) 70%,rgba(0,0,0,.96));gap:4px;}
+.factory3d-logo{position:relative;font-size:2.5rem;line-height:1.05;color:#f2e8ff;letter-spacing:.14em;text-shadow:0 0 18px rgba(138,82,212,.95),0 0 3px #fff;animation:factory3d-glitch 2.8s steps(1) infinite;margin:6px 0 2px;}
+.factory3d-logo small{display:block;font-size:.85rem;letter-spacing:.6em;color:var(--gd);text-shadow:0 0 8px rgba(232,184,48,.8);margin-bottom:4px;}
+.factory3d-logo:after{content:'';display:block;height:2px;margin:8px auto 0;width:80%;background:linear-gradient(90deg,transparent,#e83055,transparent);box-shadow:0 0 10px #e83055;}
+@keyframes factory3d-glitch{0%,100%{text-shadow:0 0 18px rgba(138,82,212,.95),0 0 3px #fff;transform:none;clip-path:none}7%{text-shadow:-4px 0 #e83055,4px 0 #00e8c8;transform:translateX(3px) skewX(-8deg)}9%{text-shadow:0 0 18px rgba(138,82,212,.95);transform:none}51%{text-shadow:3px 0 #e83055,-3px 0 #00e8c8;clip-path:inset(18% 0 46% 0);transform:translateX(-4px)}53%{clip-path:none;transform:none;text-shadow:0 0 18px rgba(138,82,212,.95)}78%{opacity:.75}79%{opacity:1}}
+.factory3d-tap{margin-top:14px;font-family:var(--mono);font-size:.6rem;letter-spacing:.4em;color:var(--tx);animation:factory3d-blink 1.2s steps(2) infinite;}
+.factory3d-rec{font-family:var(--mono);font-size:.56rem;color:var(--gd);letter-spacing:.12em;}
+.factory3d-bars:before,.factory3d-bars:after{content:'';position:absolute;left:0;right:0;height:0;background:#000;z-index:7;transition:height .5s ease;}
+.factory3d-bars:before{top:0}.factory3d-bars:after{bottom:0}
+.factory3d-wrap.factory3d-cine .factory3d-bars:before,.factory3d-wrap.factory3d-cine .factory3d-bars:after{height:9%;}
+.factory3d-talk{position:absolute;left:8px;right:8px;bottom:11%;z-index:9;display:flex;gap:8px;align-items:flex-end;opacity:0;transform:translateY(10px);transition:opacity .35s,transform .35s;pointer-events:none;}
+.factory3d-talk.on{opacity:1;transform:none;pointer-events:auto;}
+.factory3d-por{flex:none;width:92px;height:116px;border:1px solid rgba(138,82,212,.65);border-radius:7px;background:#0a0716 center top/cover no-repeat;box-shadow:0 0 14px rgba(138,82,212,.45);position:relative;overflow:hidden;}
+.factory3d-por.radio{background:linear-gradient(180deg,#12101e,#07060e);border-color:rgba(0,232,200,.55);box-shadow:0 0 14px rgba(0,232,200,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-family:var(--mono);font-size:.5rem;color:#8afff0;letter-spacing:.2em;}
+.factory3d-por.radio b{font-size:1.7rem;font-weight:normal;filter:drop-shadow(0 0 6px rgba(0,232,200,.6));}
+.factory3d-por.radio .factory3d-wave{display:flex;gap:2px;height:16px;align-items:center;}
+.factory3d-por.radio .factory3d-wave i{width:3px;background:#00e8c8;border-radius:1px;animation:factory3d-wv .5s ease-in-out infinite alternate;}
+@keyframes factory3d-wv{from{height:3px}to{height:15px}}
+.factory3d-box{flex:1;min-width:0;background:var(--panel);border:1px solid rgba(138,82,212,.55);border-radius:9px;padding:7px 10px 8px;min-height:84px;box-shadow:0 0 16px rgba(0,0,0,.6);}
+.factory3d-name{font-size:.6rem;color:var(--cy);letter-spacing:.1em;margin-bottom:3px;}
+.factory3d-name.dan{color:var(--gd);}
+.factory3d-line{font-family:var(--dot);font-size:.78rem;color:var(--tx-b);line-height:1.55;min-height:2.4em;}
+.factory3d-next{text-align:right;font-family:var(--mono);font-size:.55rem;color:var(--tx-d);animation:factory3d-blink 1s steps(2) infinite;}
+.factory3d-skip{position:absolute;right:10px;top:calc(9% + 8px);z-index:10;padding:3px 10px;border-radius:7px;border:1px solid rgba(187,174,221,.4);background:rgba(5,4,14,.6);color:var(--tx);font-family:var(--dot);font-size:.6rem;cursor:pointer;display:none;}
+.factory3d-wrap.factory3d-story .factory3d-skip{display:block;}
+.factory3d-end{position:absolute;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px;font-family:var(--dot);color:var(--tx);background:radial-gradient(ellipse at 50% 40%,rgba(20,12,40,.55),rgba(2,1,8,.92));}
+.factory3d-end.on{display:flex;animation:factory3d-gin .5s steps(5) both;}
+.factory3d-end h3{margin:0;font-weight:normal;font-size:1rem;letter-spacing:.1em;color:var(--tx-b);text-shadow:0 0 10px rgba(138,82,212,.8);}
+.factory3d-end .factory3d-row{display:flex;gap:10px;align-items:center;width:100%;max-width:380px;}
+.factory3d-end .factory3d-por{width:84px;height:106px;}
+.factory3d-end .factory3d-box{min-height:0;font-size:.68rem;line-height:1.6;color:var(--tx-b);text-align:left;}
+.factory3d-end .factory3d-box p{margin:0 0 3px;}
+.factory3d-end .factory3d-box p span{color:var(--cy);font-size:.58rem;margin-right:4px;}
+.factory3d-grade{display:flex;align-items:center;gap:14px;margin:2px 0;}
+.factory3d-grade b{font-family:var(--mono);font-weight:normal;font-size:3.6rem;line-height:1;width:72px;height:72px;display:flex;align-items:center;justify-content:center;border:3px solid currentColor;border-radius:10px;transform:rotate(-8deg);animation:factory3d-stamp .5s cubic-bezier(.2,1.6,.4,1) .35s both;}
+.factory3d-grade b.S{color:#ffd84a;text-shadow:0 0 18px rgba(255,216,74,.9);box-shadow:0 0 18px rgba(255,216,74,.5);}
+.factory3d-grade b.A{color:#44ee88;text-shadow:0 0 14px rgba(68,238,136,.8);}
+.factory3d-grade b.B{color:#00e8c8;text-shadow:0 0 12px rgba(0,232,200,.7);}
+.factory3d-grade b.C{color:#bbaedd;text-shadow:0 0 10px rgba(138,82,212,.7);}
+@keyframes factory3d-stamp{0%{opacity:0;transform:rotate(-8deg) scale(2.6)}100%{opacity:1;transform:rotate(-8deg) scale(1)}}
+.factory3d-stats{font-family:var(--mono);font-size:.62rem;line-height:1.65;color:var(--tx);text-align:left;}
+.factory3d-stats em{font-style:normal;color:var(--tx-b);}
+.factory3d-new{color:var(--gd);font-size:.6rem;letter-spacing:.2em;animation:factory3d-blink .7s steps(2) infinite;}
 `);
 
 registerMinigame({
   id:'factory3d', icon:'🏭', name:'夜勤の第三工場', genre:'3Dアクション', bgm:'kaidan',
-  desc:'停電した夜の第三工場。懐中電灯だけを頼りに計器5か所を点検し、非常口へ。闇の中を「影」がうろついている。',
+  desc:'落雷で停電した夜の第三工場。懐中電灯だけを頼りに計器5か所を点検し、非常口へ。闇の中を「影」がうろついている。',
   effect:'仕事評価↑ 資格知識↑ 収入↑ ／ 疲労+8 約70分',
-  help:'左:移動 右:視点 点検:長押し／WASD・ドラッグ・E',
+  help:'左:移動 右:視点 ボタン長押し:点検/集光 ／ WASD・ドラッグ・E',
   start(body,mg){
     // ── 定数 ──
     const CELL=4, COLS=10, ROWS=15, HW=COLS*CELL/2, HD=ROWS*CELL/2;
-    const FL_MAX=8,TIME_LIMIT=90, NEED=5, P_R=.36, EYE=1.62, SPEED=3.7;
+    const FL_MAX=8, TIME_LIMIT=90, NEED=5, P_R=.36, EYE=1.62, SPEED=3.7;
     const SK=(gs&&gs.skills)||{};
     const HOLD_T=1.5*(1-Math.min(.3,((SK.soundDiag||0)+(SK.emergencyFix||0))*.03));
     const HIT_DMG=Math.round(30*(1-Math.min(.3,(SK.stressRes||0)*.03)));
+    // 記録と難易度（クリア回数・日数で影が強くなる）
+    const DATA=gs.factory3dData=Object.assign({plays:0,clears:0,best:'',bestScore:0,bestTime:0},gs.factory3dData||{});
+    const HARD=Math.min(3,DATA.clears)+Math.min(1,(gs.day||1)/30);
+    const GHOST_MUL=1+HARD*.08, DRAIN=.5*(1+HARD*.05);
     const rnd=(a,b)=>a+Math.random()*(b-a);
     const pick=a=>a[(Math.random()*a.length)|0];
     const clamp=(v,a,b)=>v<a?a:v>b?b:v;
     const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
     const se=t=>{try{AU.se(t);}catch(e){}};
+    const coarse=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 
     // ── レイアウトのテンプレート（10列×15行、上が北＝非常口側、S＝スタート） ──
     // M:機械 T:タンク C:コンベア .:通路
@@ -142,18 +206,35 @@ registerMinigame({
        '..........',
        '.TT....MM.',
        '....SS....'],
+      ['..........',
+       '.MM.MM.MM.',
+       '..........',
+       'T.CCCCCC.T',
+       '..........',
+       '.MMM..MMM.',
+       '.....T....',
+       '.TT.....M.',
+       '.TT.MMM.M.',
+       '........M.',
+       '.CCCC..T..',
+       '..........',
+       '.M.MM.MM.T',
+       '.M........',
+       '....SS....'],
     ];
 
     // ── 状態 ──
-    const S={disposed:false,phase:'load',inspected:0,battery:100,hits:0,elapsed:0,timeLeft:TIME_LIMIT,picked:0,repels:0,endReason:null};
+    const S={disposed:false,phase:'load',inspected:0,battery:100,hits:0,elapsed:0,timeLeft:TIME_LIMIT,picked:0,repels:0,
+      endReason:null,tension:0,grade:'',score:0,newRec:false,focusT:0};
     let G=null;            // three.js 側の参照
     let ro=null;
     const offs=[];         // 解除するイベント
     const on=(el,ev,fn,opt)=>{el.addEventListener(ev,fn,opt);offs.push(()=>el.removeEventListener(ev,fn,opt));};
+    let advance=()=>{};    // 演出フェーズを進める（buildで差し替え）
 
     // ── DOM ──
     const wrap=document.createElement('div');
-    wrap.className='factory3d-wrap';
+    wrap.className='factory3d-wrap factory3d-cine';
     wrap.innerHTML=`
       <div class="factory3d-lay factory3d-flash"></div>
       <div class="factory3d-lay factory3d-scan"></div>
@@ -161,27 +242,34 @@ registerMinigame({
       <div class="factory3d-lay factory3d-vig"></div>
       <div class="factory3d-lay factory3d-red"></div>
       <div class="factory3d-lay factory3d-dark"></div>
+      <div class="factory3d-lay factory3d-bars"></div>
       <div class="factory3d-hud">
         <div class="factory3d-bat"><span>🔦</span><div class="factory3d-cell"><i></i></div><span class="factory3d-pct">100%</span></div>
         <div class="factory3d-chk"><span>✓</span><span>✓</span><span>✓</span><span>✓</span><span>✓</span></div>
         <div class="factory3d-nav"><b>▲</b><span>計器</span></div>
+        <div class="factory3d-phase">— 静寂 —</div>
         <div class="factory3d-cross"></div>
         <svg class="factory3d-ring" viewBox="0 0 62 62"><circle cx="31" cy="31" r="26" stroke="rgba(232,184,48,.25)"/><circle class="factory3d-prog" cx="31" cy="31" r="26" stroke="#e8b830" stroke-dasharray="163.4" stroke-dashoffset="163.4" transform="rotate(-90 31 31)" stroke-linecap="round"/></svg>
         <div class="factory3d-prompt">長押しで点検</div>
         <div class="factory3d-toast"></div>
+        <div class="factory3d-hint"></div>
       </div>
       <div class="factory3d-joyhint">移動</div>
       <div class="factory3d-joy"><i></i></div>
-      <button class="factory3d-act" type="button">点検<small>HOLD / E</small></button>
+      <button class="factory3d-act focus" type="button">集光<small>HOLD / E</small></button>
+      <div class="factory3d-talk"><div class="factory3d-por"></div><div class="factory3d-box"><div class="factory3d-name"></div><div class="factory3d-line"></div><div class="factory3d-next">▼ TAP</div></div></div>
+      <button class="factory3d-skip" type="button">スキップ ▶▶</button>
+      <div class="factory3d-end"></div>
       <div class="factory3d-ov factory3d-loadov"><div class="factory3d-load">読み込み中…</div></div>`;
     body.appendChild(wrap);
     const $=s=>wrap.querySelector(s);
     const el={
-      flash:$('.factory3d-flash'),red:$('.factory3d-red'),dark:$('.factory3d-dark'),grain:$('.factory3d-grain'),
+      flash:$('.factory3d-flash'),red:$('.factory3d-red'),dark:$('.factory3d-dark'),grain:$('.factory3d-grain'),vig:$('.factory3d-vig'),
       bat:$('.factory3d-bat'),batI:$('.factory3d-cell i'),pct:$('.factory3d-pct'),chk:[...wrap.querySelectorAll('.factory3d-chk span')],
-      nav:$('.factory3d-nav'),navB:$('.factory3d-nav b'),navT:$('.factory3d-nav span'),
-      ring:$('.factory3d-ring'),prog:$('.factory3d-prog'),prompt:$('.factory3d-prompt'),toast:$('.factory3d-toast'),
+      nav:$('.factory3d-nav'),navB:$('.factory3d-nav b'),navT:$('.factory3d-nav span'),phase:$('.factory3d-phase'),
+      ring:$('.factory3d-ring'),prog:$('.factory3d-prog'),prompt:$('.factory3d-prompt'),toast:$('.factory3d-toast'),hint:$('.factory3d-hint'),
       joy:$('.factory3d-joy'),knob:$('.factory3d-joy i'),joyhint:$('.factory3d-joyhint'),act:$('.factory3d-act'),load:$('.factory3d-loadov'),
+      talk:$('.factory3d-talk'),por:$('.factory3d-por'),name:$('.factory3d-name'),line:$('.factory3d-line'),skip:$('.factory3d-skip'),end:$('.factory3d-end'),
     };
     // フィルムグレイン（CSS背景用のノイズ画像をその場で生成）
     try{
@@ -192,18 +280,109 @@ registerMinigame({
     }catch(e){}
     mg.setScore(`点検 0/${NEED}`);mg.setTimer(TIME_LIMIT+'s');
 
-    let toastT=0;
     function toast(msg,cls=''){
       el.toast.className='factory3d-toast';void el.toast.offsetWidth;
-      el.toast.textContent=msg;el.toast.className='factory3d-toast show '+cls;toastT=2.2;
+      el.toast.textContent=msg;el.toast.className='factory3d-toast show '+cls;
+    }
+
+    // ══════════════════════════════════════════════════════
+    // 効果音（Web Audio合成：足音・環境音・心音・雷など）
+    // AU.ctx がある時だけ。音量は AUDIO_SET.se に追従し、0なら無音。
+    // ══════════════════════════════════════════════════════
+    const SFX={ctx:null,out:null,noise:null,loops:[],whisper:null,burn:null,hb:0};
+    const seVol=()=>{try{return typeof AUDIO_SET!=='undefined'?+AUDIO_SET.se||0:1;}catch(e){return 1;}};
+    function sfxInit(){
+      try{
+        if(SFX.ctx||typeof AU==='undefined')return;
+        if(AU.init)AU.init();
+        const c=AU.ctx;if(!c)return;
+        if(c.state==='suspended')c.resume().catch(()=>{});
+        SFX.ctx=c;SFX.out=c.createGain();SFX.out.gain.value=0;SFX.out.connect(c.destination);
+        const len=c.sampleRate*2,buf=c.createBuffer(1,len,c.sampleRate),d=buf.getChannelData(0);
+        for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+        SFX.noise=buf;
+        // 環境音：雨（屋根を叩く）
+        const rain=noiseSrc(true),rf=c.createBiquadFilter(),rg=c.createGain();
+        rf.type='lowpass';rf.frequency.value=900;rg.gain.value=.05;rain.connect(rf);rf.connect(rg);rg.connect(SFX.out);rain.start();
+        // 非常用発電機のうなり
+        const o1=c.createOscillator(),o2=c.createOscillator(),hf=c.createBiquadFilter(),hg=c.createGain();
+        o1.type='sawtooth';o1.frequency.value=49;o2.type='sine';o2.frequency.value=98.6;hf.type='lowpass';hf.frequency.value=160;hg.gain.value=.03;
+        o1.connect(hf);o2.connect(hf);hf.connect(hg);hg.connect(SFX.out);o1.start();o2.start();
+        SFX.hum={o1,hg};
+        // 影のささやき（帯域ノイズ、近いほど大きい）
+        const w=noiseSrc(true),wf=c.createBiquadFilter(),wg=c.createGain(),lfo=c.createOscillator(),lg=c.createGain();
+        wf.type='bandpass';wf.frequency.value=1100;wf.Q.value=7;wg.gain.value=0;lfo.frequency.value=3.3;lg.gain.value=500;
+        lfo.connect(lg);lg.connect(wf.frequency);w.connect(wf);wf.connect(wg);wg.connect(SFX.out);w.start();lfo.start();
+        SFX.whisper=wg;
+        // 影が光で焼ける音
+        const b=noiseSrc(true),bf=c.createBiquadFilter(),bg=c.createGain();
+        bf.type='highpass';bf.frequency.value=2600;bg.gain.value=0;b.connect(bf);bf.connect(bg);bg.connect(SFX.out);b.start();
+        SFX.burn=bg;
+        SFX.loops.push(rain,o1,o2,w,lfo,b);
+      }catch(e){SFX.ctx=null;}
+    }
+    function noiseSrc(loop){const s=SFX.ctx.createBufferSource();s.buffer=SFX.noise;s.loop=!!loop;if(loop)s.loopStart=Math.random();return s;}
+    function sfxTick(dt,ghostNear,burning,tension){
+      if(!SFX.ctx)return;
+      const v=seVol(),t=SFX.ctx.currentTime;
+      try{
+        SFX.out.gain.setTargetAtTime(S.disposed?0:v,t,.1);
+        SFX.whisper.gain.setTargetAtTime(ghostNear*.09,t,.15);
+        SFX.burn.gain.setTargetAtTime(burning?.05:0,t,.05);
+        SFX.hum.o1.frequency.setTargetAtTime(tension>=2?54:49,t,.5);
+      }catch(e){}
+      // 心音（影が出てから、近いほど速く強く）
+      if(tension>=1&&v>0){
+        SFX.hb-=dt;
+        if(SFX.hb<=0){
+          const rate=.9+ghostNear*1.6+(tension>=2?.35:0);SFX.hb=1/rate;
+          const g=.12+ghostNear*.35;thump(0,g);thump(.16,g*.7);
+          if(ghostNear>.45){el.vig.style.transform='scale(1.06)';setTimeout(()=>{if(!S.disposed)el.vig.style.transform='';},120);}
+        }
+      }
+    }
+    function env(node,g0,dur,at=0){const c=SFX.ctx,g=c.createGain(),t=c.currentTime+at;g.gain.setValueAtTime(Math.max(.0001,g0),t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);node.connect(g);g.connect(SFX.out);return t;}
+    function thump(at,g){
+      if(!SFX.ctx||seVol()<=0)return;
+      try{const c=SFX.ctx,o=c.createOscillator();o.type='sine';const t=c.currentTime+at;o.frequency.setValueAtTime(70,t);o.frequency.exponentialRampToValueAtTime(38,t+.14);env(o,g,.18,at);o.start(t);o.stop(t+.2);}catch(e){}
+    }
+    function step(){
+      if(!SFX.ctx||seVol()<=0)return;
+      try{const c=SFX.ctx,n=noiseSrc(false),f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=rnd(350,650);f.Q.value=1.2;n.connect(f);const t=env(f,.22,.11);n.start(t,Math.random());n.stop(t+.13);
+        const o=c.createOscillator();o.frequency.value=rnd(70,90);env(o,.08,.07);o.start();o.stop(c.currentTime+.08);}catch(e){}
+    }
+    function thunder(delay){
+      if(!SFX.ctx||seVol()<=0)return;
+      try{const c=SFX.ctx,n=noiseSrc(false),f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=260;n.connect(f);const t=env(f,.5,2.6,delay);n.start(t,Math.random());n.stop(t+2.7);}catch(e){}
+    }
+    function plink(g){
+      if(!SFX.ctx||seVol()<=0)return;
+      try{const c=SFX.ctx,o=c.createOscillator();o.type='sine';const t=c.currentTime;o.frequency.setValueAtTime(1500,t);o.frequency.exponentialRampToValueAtTime(700,t+.08);env(o,g,.12);o.start(t);o.stop(t+.14);}catch(e){}
+    }
+    function click(){
+      if(!SFX.ctx||seVol()<=0)return;
+      try{const c=SFX.ctx,o=c.createOscillator();o.type='square';o.frequency.value=1800;env(o,.04,.03);o.start();o.stop(c.currentTime+.04);}catch(e){}
+    }
+    function sting(){ // 影の出現時の不協和音
+      if(!SFX.ctx||seVol()<=0)return;
+      try{const c=SFX.ctx;[233,247,330].forEach((f,i)=>{const o=c.createOscillator();o.type='sawtooth';o.frequency.value=f;const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=900;o.connect(lp);env(lp,.05,1.6,i*.03);o.start();o.stop(c.currentTime+1.8);});}catch(e){}
+    }
+    function sfxStop(){
+      SFX.loops.forEach(n=>{try{n.stop();}catch(e){}try{n.disconnect();}catch(e){}});SFX.loops=[];
+      if(SFX.out){try{SFX.out.disconnect();}catch(e){}}
+      SFX.ctx=null;
     }
 
     // ── 入力 ──
-    const inp={f:0,b:0,l:0,r:0,actKey:false,actBtn:false,jx:0,jy:0,dyaw:0,dpitch:0};
+    const inp={f:0,b:0,l:0,r:0,actKey:false,actBtn:false,jx:0,jy:0,dyaw:0,dpitch:0,buf:0};
     let joyId=null,joyX=0,joyY=0,lookId=null,lookX=0,lookY=0;
-    const JR=46;
+    const JR=46,DEAD=.14;
     on(wrap,'pointerdown',e=>{
-      if(S.phase==='load'||S.phase==='intro'&&e.target.closest('.factory3d-ov'))return;
+      if(S.phase!=='play'){
+        if(e.target.closest('.factory3d-skip,.factory3d-end button,.factory3d-loadov button'))return;
+        if(S.phase!=='load'&&S.phase!=='over')advance();
+        return;
+      }
       if(e.target.closest('.factory3d-act'))return;
       const rc=wrap.getBoundingClientRect();
       const x=e.clientX-rc.left,y=e.clientY-rc.top;
@@ -219,7 +398,9 @@ registerMinigame({
       if(e.pointerId===joyId){
         let dx=e.clientX-joyX,dy=e.clientY-joyY;const d=Math.hypot(dx,dy);
         if(d>JR){dx*=JR/d;dy*=JR/d;}
-        inp.jx=dx/JR;inp.jy=dy/JR;
+        // デッドゾーン付きで正規化
+        const n=Math.min(1,d/JR),k=n<DEAD?0:(n-DEAD)/(1-DEAD)/(n||1);
+        inp.jx=dx/JR*k;inp.jy=dy/JR*k;
         el.knob.style.transform=`translate(${dx}px,${dy}px)`;
       }else if(e.pointerId===lookId){
         const sens=e.pointerType==='mouse'?.0042:.0068;
@@ -233,26 +414,29 @@ registerMinigame({
     };
     on(wrap,'pointerup',ptrEnd);on(wrap,'pointercancel',ptrEnd);
     on(wrap,'contextmenu',e=>e.preventDefault());
-    const actDown=e=>{inp.actBtn=true;el.act.classList.add('held');try{el.act.setPointerCapture(e.pointerId);}catch(err){}e.preventDefault();e.stopPropagation();};
+    const actDown=e=>{if(S.phase!=='play')return;inp.actBtn=true;inp.buf=.3;el.act.classList.add('held');try{el.act.setPointerCapture(e.pointerId);}catch(err){}e.preventDefault();e.stopPropagation();};
     const actUp=()=>{inp.actBtn=false;el.act.classList.remove('held');};
     on(el.act,'pointerdown',actDown);on(el.act,'pointerup',actUp);on(el.act,'pointercancel',actUp);on(el.act,'lostpointercapture',actUp);
+    on(el.skip,'pointerdown',e=>{e.stopPropagation();advance(true);});
     mg.onKey(e=>{
       const dn=e.type==='keydown';const k=(e.key||'').toLowerCase();
       if(k==='w'||k==='arrowup')inp.f=dn?1:0;
       else if(k==='s'||k==='arrowdown')inp.b=dn?1:0;
       else if(k==='a'||k==='arrowleft')inp.l=dn?1:0;
       else if(k==='d'||k==='arrowright')inp.r=dn?1:0;
-      else if(k==='e'||k===' '||k==='enter')inp.actKey=dn;
+      else if(k==='e'||k===' '||k==='enter'){if(dn&&!inp.actKey)inp.buf=.3;inp.actKey=dn;}
+      else if(k==='escape'&&dn&&S.phase==='story'){advance(true);}
       else return;
       e.preventDefault();
-      if(dn&&S.phase==='intro')skipIntro();
+      if(dn&&!e.repeat&&S.phase!=='play'&&S.phase!=='load'&&S.phase!=='over'&&(k==='e'||k===' '||k==='enter'))advance();
     });
     on(window,'blur',()=>{inp.f=inp.b=inp.l=inp.r=0;inp.actKey=inp.actBtn=false;});
 
-    // ── 後片付け（WebGLコンテキストを確実に解放する） ──
+    // ── 後片付け（WebGLコンテキストと音を確実に解放する） ──
     function cleanup(){
       if(S.disposed)return;
       S.disposed=true;
+      sfxStop();
       offs.forEach(f=>{try{f();}catch(e){}});offs.length=0;
       if(ro){try{ro.disconnect();}catch(e){}ro=null;}
       if(G){
@@ -274,26 +458,32 @@ registerMinigame({
         const cv=renderer.domElement;if(cv&&cv.parentNode)cv.parentNode.removeChild(cv);
         G=null;
       }
+      try{if(window.__f3d)delete window.__f3d;}catch(e){}
       wrap.classList.remove('factory3d-hit');
     }
 
     function showError(msg){
+      el.load.classList.remove('hide');
       el.load.innerHTML=`<div style="color:var(--rd);font-size:.8rem">3D表示を開始できませんでした</div>`+
         `<div style="font-size:.6rem;color:var(--tx-d);max-width:260px">${String(msg||'').replace(/[<>&]/g,'')}</div><button type="button">戻る</button>`;
-      const b=el.load.querySelector('button');
-      b.onclick=()=>mg.end('quit');
+      el.load.querySelector('button').onclick=()=>mg.end('quit');
     }
 
     loadThree().then(THREE=>{
       if(mg._ended||S.disposed)return;
-      try{build(THREE);}catch(e){console.error(e);cleanup();S.disposed=false;showError(e.message);S.disposed=true;}
+      try{build(THREE);}
+      catch(e){
+        console.error(e);
+        // 作りかけのレンダラーを解放してからエラー表示（終了ボタンで戻れる）
+        try{if(G){G.renderer.dispose();G.renderer.forceContextLoss();G.renderer.domElement.remove();}}catch(err){}
+        G=null;S.phase='load';showError(e.message);
+      }
     }).catch(e=>{if(!mg._ended&&!S.disposed)showError(e&&e.message);});
 
     // ══════════════════════════════════════════════════════
     // シーン構築
     // ══════════════════════════════════════════════════════
     function build(THREE){
-      const coarse=window.matchMedia&&matchMedia('(pointer:coarse)').matches;
       const dpr=Math.min(window.devicePixelRatio||1,1.5);
       const renderer=new THREE.WebGLRenderer({antialias:dpr<1.3,powerPreference:'high-performance',alpha:false});
       renderer.setPixelRatio(dpr);
@@ -458,13 +648,17 @@ registerMinigame({
         exitSign:new THREE.MeshBasicMaterial({map:T.exit,fog:false}),
         emerg:new THREE.MeshBasicMaterial({color:0xd8ffe8,fog:false}),
         tube:new THREE.MeshBasicMaterial({color:0xdde8ff}),
+        lampOff:new THREE.MeshBasicMaterial({color:0x14141c}),
+        decal:new THREE.MeshLambertMaterial({map:null,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3}),
         banner:new THREE.MeshLambertMaterial({map:T.banner,transparent:true,depthWrite:false}),
         safety:new THREE.MeshLambertMaterial({map:T.safety}),
       };
       M.floor.color.setHex(0xa8a4b0);
 
       // ── インスタンス部品の収集 ──
+      const WALL_H=11;
       const parts={};
+      const lampSpots=[];
       const dummy=new THREE.Object3D();
       function part(key,x,y,z,sx,sy,sz,rx=0,ry=0,rz=0,color=null){(parts[key]=parts[key]||[]).push([x,y,z,sx,sy,sz,rx,ry,rz,color]);}
       const geoBox=new THREE.BoxGeometry(1,1,1);
@@ -477,6 +671,9 @@ registerMinigame({
       const PARTDEF={
         machBody:[geoBox,M.mach,true,true],
         trim:[geoBox,M.dark,true,true],
+        motor:[geoCyl,M.metal,true,true],
+        fly:[geoCyl,M.dark,true,false],
+        lamp:[geoBox,M.lampOff,false,false],
         metalBox:[geoBox,M.metal,true,true],
         pipe:[geoCylLo,M.pipe,true,false],
         tank:[geoTank,M.metal,true,true],
@@ -549,6 +746,13 @@ registerMinigame({
             const sx=cx(c+s);
             if(Math.random()<.7){const hh=rnd(.5,1.3),hw=rnd(1.4,2.6);part('metalBox',sx+rnd(-.4,.4),.24+h+hh/2,z+rnd(-.4,.4),hw,hh,rnd(1.2,2.2),0,0,0,tint);}
             if(Math.random()<.55){const ph=rnd(1.5,4);part('pipe',sx+rnd(-1,1),.24+h+ph/2,z+rnd(-.9,.9),.16,ph,.16);}
+            if(Math.random()<.3){const dh=WALL_H-1-(.24+h);part('metalBox',sx+rnd(-.6,.6),.24+h+dh/2,z,.7,dh,.7);}
+            // 側面のモーターとフライホイール
+            if(Math.random()<.6){const ms=Math.random()<.5?1:-1,my=rnd(.5,.9),mz=z+ms*(d/2+.38);
+              part('motor',sx+rnd(-.5,.5),my,mz,.36,1.1,.36,0,0,Math.PI/2,0x40506a);
+              part('fly',sx+.75,my,mz,.5,.08,.5,0,0,Math.PI/2);
+              part('trim',sx,.3,mz,1.3,.6,.6);}
+            if(Math.random()<.4)part('rail',sx,h*.5,z+(Math.random()<.5?1:-1)*(d/2+.03),rnd(.8,2.4),.12,.02);
             // 操作盤とLED
             const side=Math.random()<.5?1:-1;
             part('trim',sx+rnd(-.8,.8),1.2,z+side*(d/2+.12),.8,.9,.24);
@@ -589,7 +793,6 @@ registerMinigame({
       // ── 床・壁・天井 ──
       const floorGeo=new THREE.PlaneGeometry(HW*2,HD*2);
       const floor=new THREE.Mesh(floorGeo,M.floor);floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
-      const WALL_H=11;
       [[0,-HD-.5,HW*2+2,1],[0,HD+.5,HW*2+2,1],[-HW-.5,0,1,HD*2],[HW+.5,0,1,HD*2]].forEach(([x,z,w,d],i)=>{
         const g=new THREE.BoxGeometry(w,WALL_H,d);
         const m=new THREE.Mesh(g,M.wall);m.position.set(x,WALL_H/2,z);m.receiveShadow=true;scene.add(m);
@@ -602,7 +805,7 @@ registerMinigame({
         part('beam',0,WALL_H-.9,z,HW*2,.35,.25);
         part('beam',0,WALL_H-.25,z,HW*2,.12,.12);
         for(let x=-HW+4;x<HW;x+=4)part('beam',x,WALL_H-.57,z,.08,.7,.08,0,0,(x/4)%2?.6:-.6);
-        for(const x of [-10,0,10]){part('pipe',x,WALL_H-1.9,z,.02,2,.02);part('shade',x,WALL_H-3,z,.45,.3,.45);}
+        for(const x of [-10,0,10]){part('pipe',x,WALL_H-1.9,z,.02,2,.02);part('shade',x,WALL_H-3,z,.45,.3,.45);part('lamp',x,WALL_H-3.17,z,.5,.05,.5);lampSpots.push([x,z]);}
       }
       // 壁沿いの配管
       for(const sx of [-1,1]){
@@ -707,10 +910,10 @@ registerMinigame({
       const fbeam=new THREE.Mesh(fbGeo,fbMat);fbeam.position.copy(spot.position);camera.add(fbeam);
       // 懐中電灯に舞う埃
       const DUST=170,dustPos=new Float32Array(DUST*3),dustVel=new Float32Array(DUST*3);
-      const seedDust=i=>{const d=rnd(.6,7),a=Math.random()*Math.PI*2,rr=Math.random()*d*.42;dustPos[i*3]=Math.cos(a)*rr+.2;dustPos[i*3+1]=Math.sin(a)*rr-.15;dustPos[i*3+2]=-d;dustVel[i*3]=rnd(-.05,.05);dustVel[i*3+1]=rnd(-.06,.03);dustVel[i*3+2]=rnd(-.03,.03);};
+      const seedDust=i=>{const d=rnd(1.2,7),a=Math.random()*Math.PI*2,rr=Math.random()*d*.42;dustPos[i*3]=Math.cos(a)*rr+.2;dustPos[i*3+1]=Math.sin(a)*rr-.15;dustPos[i*3+2]=-d;dustVel[i*3]=rnd(-.05,.05);dustVel[i*3+1]=rnd(-.06,.03);dustVel[i*3+2]=rnd(-.03,.03);};
       for(let i=0;i<DUST;i++)seedDust(i);
       const dustGeo=new THREE.BufferGeometry();dustGeo.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
-      const dustMat=new THREE.PointsMaterial({map:T.dot,color:0xfff2d8,size:.035,transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
+      const dustMat=new THREE.PointsMaterial({map:T.dot,color:0xfff2d8,size:.016,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
       const dust=new THREE.Points(dustGeo,dustMat);dust.frustumCulled=false;camera.add(dust);
 
       // ── 火花 ──
@@ -890,99 +1093,282 @@ registerMinigame({
       if(window.ResizeObserver){ro=new ResizeObserver(resize);ro.observe(wrap);}
       on(window,'resize',resize);
 
-      // ── 遊び方オーバーレイ ──
-      el.load.innerHTML=`<div class="factory3d-sub">NIGHT SHIFT ／ PLANT No.3 ／ POWER FAILURE</div>
-        <h3>停電した第三工場</h3>
-        <ul>
-          <li>🔦 懐中電灯の電池が<u>体力</u>。予備電池を拾って補充</li>
-          <li>⚙ <b>計器5か所</b>の正面で【点検】を長押し</li>
-          <li>👁 <em>「影」</em>はライトを嫌う。照らして追い払え</li>
-          <li>🚪 全部終えたら<i>緑の非常口</i>へ　制限 ${TIME_LIMIT}秒</li>
-        </ul>
-        <div class="factory3d-keys">スマホ：左で移動・右ドラッグで視点・ボタン長押しで点検<br>PC：WASD／矢印・マウスドラッグ・E／Space</div>
-        <div class="factory3d-bar run"><i></i></div>`;
-      S.phase='intro';
-      let introT=3.1;
-      on(el.load,'pointerdown',e=>{e.stopPropagation();skipIntro();});
-      skipIntroFn=()=>{if(S.phase==='intro')introT=Math.min(introT,.05);};
+      // ── 床のステンシル表示 ──
+      function stencilTex(txt,fg,bg,arrow){
+        return ctex(256,96,(g,w,h)=>{
+          g.clearRect(0,0,w,h);
+          if(bg){g.strokeStyle=bg;g.lineWidth=7;g.strokeRect(6,6,w-12,h-12);}
+          g.fillStyle=fg;g.font='bold 50px "DotGothic16",sans-serif';g.textAlign='center';g.textBaseline='middle';
+          if(arrow){g.fillText(txt,w/2+34,h/2+2);g.beginPath();g.moveTo(40,14);g.lineTo(66,46);g.lineTo(50,46);g.lineTo(50,82);g.lineTo(30,82);g.lineTo(30,46);g.lineTo(14,46);g.closePath();g.fill();}
+          else g.fillText(txt,w/2,h/2+2);
+          g.globalCompositeOperation='destination-out';
+          for(let i=0;i<700;i++){g.fillStyle=`rgba(0,0,0,${Math.random()*.9})`;g.fillRect(Math.random()*w,Math.random()*h,1+Math.random()*5,1+Math.random()*3);}
+        });
+      }
+      const decalGeo=new THREE.PlaneGeometry(2.7,1);extraGeos.push(decalGeo);
+      const DECALS=[['立入禁止','rgba(220,50,60,.85)','rgba(220,50,60,.85)'],['足元注意','rgba(230,190,40,.8)',null],['3番ライン','rgba(220,220,220,.6)',null],['非常口','rgba(60,220,120,.75)',null,true]];
+      const decalCells=shuffle(freeCells.filter(([r,c])=>r>0&&r<ROWS-1)).slice(0,6);
+      decalCells.forEach(([r,c],i)=>{
+        const d=DECALS[i%DECALS.length];
+        const mat=new THREE.MeshLambertMaterial({map:stencilTex(d[0],d[1],d[2],d[3]),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
+        const m=new THREE.Mesh(decalGeo,mat);m.rotation.x=-Math.PI/2;
+        if(!d[3])m.rotation.z=pick([0,Math.PI/2,Math.PI,-Math.PI/2]);
+        m.position.set(cx(c)+rnd(-.4,.4),.02,cz(r)+rnd(-.4,.4));m.receiveShadow=true;scene.add(m);
+      });
+
+      // ── 雨漏り（しずくと波紋） ──
+      const dropGeo=new THREE.SphereGeometry(1,6,4),ringGeo=new THREE.RingGeometry(.7,1,24);ringGeo.rotateX(-Math.PI/2);extraGeos.push(dropGeo,ringGeo);
+      const dropMat=new THREE.MeshPhongMaterial({color:0x9ab4f0,emissive:0x1a2440,shininess:120,specular:0xffffff,transparent:true,opacity:.8});
+      const drips=shuffle(freeCells.slice()).slice(0,4).map(([r,c])=>{
+        const x=cx(c)+rnd(-1.2,1.2),z=cz(r)+rnd(-1.2,1.2);
+        const drop=new THREE.Mesh(dropGeo,dropMat);drop.scale.set(.022,.07,.022);scene.add(drop);
+        const ring=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:0xb8c8ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+        ring.position.set(x,.025,z);scene.add(ring);
+        return {x,z,drop,ring,y:-1,vy:0,wait:rnd(0,2),rt:1};
+      });
+
+      // ── 影の補足：背後の闇と、裾のぼろ布 ──
+      const smoke=new THREE.Sprite(new THREE.SpriteMaterial({map:T.glow,color:0x000000,transparent:true,opacity:.75,depthWrite:false}));
+      smoke.scale.set(2.4,3.4,1);smoke.position.set(0,1.1,-.25);ghost.add(smoke);
+      const ragGeo=new THREE.PlaneGeometry(.14,.7);ragGeo.translate(0,-.35,0);extraGeos.push(ragGeo);
+      const ragMat=new THREE.MeshBasicMaterial({color:0x030106,transparent:true,opacity:.9,side:THREE.DoubleSide});
+      const rags=[];
+      for(let i=0;i<8;i++){const a=i/8*Math.PI*2,m=new THREE.Mesh(ragGeo,ragMat);m.position.set(Math.sin(a)*.36,.45,Math.cos(a)*.36);m.rotation.y=a;ghost.add(m);rags.push(m);}
+      GH.shroud=1;
+
+      // ══════════════════════════════════════════════════════
+      // 演出フロー：タイトル → 無線 → 操作説明 → 探索 → 結末
+      // ══════════════════════════════════════════════════════
+      const STORY=[
+        {who:'班長（無線）',por:'radio',text:'だんのうら、聞こえるか。第三工場が落雷で停電や。'},
+        {who:'班長（無線）',por:'radio',text:`復電まであと${TIME_LIMIT}秒。それまでに圧力計5か所、目視で頼むわ。`},
+        {who:'だんのうら',por:'char_tired',text:'了解です。……懐中電灯一本で、ですか。'},
+        {who:'班長（無線）',por:'radio',text:DATA.clears?'……また“影”を見たて話が出とる。前より濃いらしい。光、絶やすなよ。':'……それとな。あそこは夜、“影”が出るて噂や。光、絶やすなよ。'},
+        {who:'だんのうら',por:'char_normal',text:'（娘が起きる前には帰らな。――行くか）'},
+      ];
+      let phaseT=0,storyIdx=-1,typed=0,lineFull=false,pendingHide=null,pendingT=0,glitchT=0;
+      const setPor=(elm,por)=>{
+        if(por==='radio'){elm.className='factory3d-por radio';elm.style.backgroundImage='';elm.innerHTML='<b>📻</b><div class="factory3d-wave"><i></i><i style="animation-delay:.15s"></i><i style="animation-delay:.3s"></i><i style="animation-delay:.1s"></i><i style="animation-delay:.25s"></i></div>RADIO';}
+        else{elm.className='factory3d-por';elm.innerHTML='';elm.style.backgroundImage=`url(assets/img/${por}.webp)`;}
+      };
+      function glitchOut(elm){elm.classList.remove('factory3d-gin');elm.classList.add('factory3d-gout');pendingHide=elm;pendingT=.5;wrap.classList.add('factory3d-glitch');glitchT=.55;}
+      function showTitle(){
+        S.phase='title';phaseT=3.2;
+        el.load.className='factory3d-ov factory3d-loadov factory3d-titleov factory3d-gin';
+        el.load.innerHTML=`<div class="factory3d-sub">NIGHT SHIFT ／ PLANT No.3 ／ POWER FAILURE</div>
+          <div class="factory3d-logo"><small>夜勤の</small>第三工場</div>
+          <div class="factory3d-sub">${DATA.clears?`影の濃さ Lv.${1+Math.min(3,DATA.clears)}`:'—— 停電の夜 ——'}</div>
+          ${DATA.best?`<div class="factory3d-rec">BEST ${DATA.best}　${DATA.bestScore} pts</div>`:''}
+          <div class="factory3d-tap">TAP TO START</div>`;
+        se('notif');
+      }
+      function goStory(){
+        glitchOut(el.load);
+        S.phase='story';wrap.classList.add('factory3d-story');storyIdx=-1;nextLine();
+        el.talk.classList.add('on');
+      }
+      function nextLine(){
+        storyIdx++;
+        if(storyIdx>=STORY.length){goHowto();return;}
+        const L=STORY[storyIdx];
+        setPor(el.por,L.por);
+        el.name.textContent=L.who;el.name.className='factory3d-name'+(L.who==='だんのうら'?' dan':'');
+        typed=0;lineFull=false;el.line.textContent='';phaseT=3.6;
+        if(L.por==='radio')se('micOn');else se('btn');
+      }
+      function goHowto(){
+        S.phase='howto';phaseT=3;
+        wrap.classList.remove('factory3d-story');el.talk.classList.remove('on');
+        el.load.className='factory3d-ov factory3d-loadov factory3d-gin';
+        el.load.innerHTML=`<h3>停電した第三工場</h3>
+          <ul>
+            <li>⚙ <b>計器5か所</b>の正面で【点検】ボタンを長押し</li>
+            <li>🔦 懐中電灯の電池が<u>体力</u>。予備電池で補充</li>
+            <li>👁 <em>「影」</em>は光に弱い。【集光】長押しで焼き払え</li>
+            <li>　 ただし目を離すと、近づいてくる</li>
+            <li>🚪 全部終えたら<i>緑の非常口</i>へ　制限 ${TIME_LIMIT}秒</li>
+          </ul>
+          <div class="factory3d-keys">${coarse?'左ドラッグ：移動　右ドラッグ：視点　右下ボタン長押し：点検／集光':'WASD・矢印：移動　マウスドラッグ：視点　E／Space長押し：点検／集光'}</div>
+          <div class="factory3d-bar"><i></i></div>`;
+      }
+      function startPlay(){
+        glitchOut(el.load);
+        S.phase='play';wrap.classList.remove('factory3d-cine');
+        DATA.plays++;
+        P.yaw=camYaw;P.pitch=-.04;
+        toast('点検開始。計器を探せ');se('machine');click();
+        hintIdx=0;hintT=0;showHint();
+      }
+      advance=(skip)=>{
+        if(S.phase==='title'){if(phaseT<2.9)goStory();}
+        else if(S.phase==='story'){
+          if(skip===true){goHowto();return;}
+          if(!lineFull){typed=999;}else nextLine();
+        }
+        else if(S.phase==='howto'){if(phaseT<2.6)startPlay();}
+        else if(S.phase==='ending'){if(phaseT>1.2)mg.end(S.endReason);}
+      };
+
+      // ── チュートリアルヒント（最初の10秒ほど） ──
+      let hintIdx=-1,hintT=0,hintShown='';
+      const HINTS=[
+        {t:coarse?'画面の<b>左側</b>をドラッグして移動':'<b>WASD／矢印キー</b>で移動',done:()=>S.moved>2.5},
+        {t:coarse?'画面の<b>右側</b>をドラッグして見回す':'<b>マウスをドラッグ</b>して見回す',done:()=>S.looked>.9},
+        {t:'上の<b>▲</b>が次の計器の方向。正面に立って<b>【点検】長押し</b>',done:()=>S.inspected>0},
+      ];
+      S.moved=0;S.looked=0;
+      function showHint(html){
+        const h=html||(hintIdx>=0&&hintIdx<HINTS.length?HINTS[hintIdx].t:'');
+        if(h!==hintShown){hintShown=h;if(h)el.hint.innerHTML=h;}
+        el.hint.classList.toggle('on',!!h);
+      }
+      let focusHintT=0;
+      function tickHints(dt){
+        if(focusHintT>0){focusHintT-=dt;showHint('<b>【集光】長押し</b>で影を焼き払え。目を離すと近づく');if(focusHintT<=0)showHint();return;}
+        if(hintIdx<0||hintIdx>=HINTS.length){if(hintShown)showHint('');return;}
+        hintT+=dt;
+        if((HINTS[hintIdx].done()&&hintT>1.6)||hintT>7){hintIdx++;hintT=0;showHint();}
+      }
+
+      // ── 緊張の段階：0 静寂 → 1 影の出現 → 2 追跡 ──
+      function setTension(n){
+        if(S.tension>=n)return;
+        S.tension=n;
+        if(n===1){
+          const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);
+          const c=freeCells.map(([r,c])=>({x:cx(c),z:cz(r)})).filter(p=>{const dx=p.x-P.x,dz=p.z-P.z,d=Math.hypot(dx,dz);return d>11&&d<20&&(dx*fx+dz*fz)/d>.55;});
+          if(c.length){const p=pick(c);GH.x=p.x;GH.z=p.z;}else placeGhostFar(P.x,P.z,15);
+          GH.fade=1;GH.stun=2;GH.shroud=1;
+          lightning(1);thunder(.25);sting();se('ghost');
+          toast('……奥に、何かいる','bad');
+          el.phase.textContent='— 気配 —';el.phase.className='factory3d-phase p1';
+          focusHintT=4.5;
+        }else if(n===2){
+          toast(S.inspected>=NEED?'影が追ってくる――非常口へ急げ！':'影が追ってくる――急げ！','bad');se('warn');sting();
+          el.phase.textContent='— 追跡 —';el.phase.className='factory3d-phase p2';
+          lightning(.8);thunder(.4);
+        }
+      }
 
       // ── 状態・演出 ──
-      let tAll=0,hudT=0,lightT=rnd(4,8),lightSeq=[],flashV=0,lowWarned=false,exitWarnT=0,ghostSeT=0,overT=0,doorOpen=0;
+      let tAll=0,hudT=0,lightT=rnd(5,9),lightSeq=[],flashV=0,lowWarned=false,exitWarnT=0,ghostSeT=0,overT=0,doorOpen=0,powerV=0,lastStep=0,stutterT=3,camYaw=0,ghostNear=0,burning=false,focusing=false;
       const camFwd=new THREE.Vector3();
-      let lastShown='';
+      let lastShown='',curGauge=null;
+      function lightning(v){lightSeq=[{t:0,v:v||1},{t:.09,v:.5},{t:.22+rnd(0,.1),v:rnd(.5,.9)}];}
 
-      function startPlay(){
-        S.phase='play';el.load.classList.add('hide');
-        toast('点検開始。計器を探せ');se('machine');
+      // ── 結果・評価 ──
+      const RANKV={S:4,A:3,B:2,C:1,'':0};
+      function finalize(){
+        const n=S.inspected,clear=S.endReason==='clear';
+        let sc=n*800+S.repels*150+S.picked*60-S.hits*250;
+        if(clear)sc+=2000+Math.round(S.timeLeft*40)+Math.round(S.battery*10);
+        sc=Math.max(0,sc);
+        let g='C';
+        if(clear)g=(S.hits===0&&S.timeLeft>=20)?'S':(S.hits<=1&&S.timeLeft>=8)?'A':'B';
+        S.grade=g;S.score=sc;
+        S.newRec=sc>DATA.bestScore;
+        if(clear)DATA.clears++;
+        if(RANKV[g]>RANKV[DATA.best||''])DATA.best=g;
+        if(S.newRec)DATA.bestScore=sc;
+        if(clear&&(!DATA.bestTime||S.elapsed<DATA.bestTime))DATA.bestTime=Math.round(S.elapsed);
       }
-
       function endWith(reason){
-        if(S.phase==='over')return;
-        S.phase='over';S.endReason=reason;overT=reason==='down'?1.1:reason==='clear'?.9:.4;
-        if(reason==='down'){se('ghost');}
-        if(reason==='clear'){se('decide');}
-        if(reason==='timeup'){toast('時間切れ','bad');se('warn');}
+        if(S.phase!=='play')return;
+        S.phase='over';S.endReason=reason;
+        inp.actBtn=inp.actKey=false;el.act.classList.remove('ready','held');
+        el.ring.classList.remove('on');el.prompt.classList.remove('on');showHint('');
+        finalize();
+        if(reason==='down'){overT=1.6;se('ghost');sting();toast('ライトが……','bad');
+          const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);GH.x=P.x+fx*1.3;GH.z=P.z+fz*1.3;GH.fade=1;}
+        if(reason==='clear'){overT=2.2;se('decide');toast('脱出――復電した','ok');S.power=1;}
+        if(reason==='timeup'){overT=2;toast('復電――時間切れ','bad');se('warn');S.power=1;}
       }
-
-      // 雷の予約
-      function scheduleLightning(){
-        lightSeq=[0,.08+rnd(0,.05),.22+rnd(0,.1),.5+rnd(0,.2)].slice(0,2+((Math.random()*3)|0)).map((t,i)=>({t,v:i===0?1:rnd(.4,.9)}));
-        lightT=rnd(7,14);
+      const LINES={
+        S:[['班長','よう戻った。完璧や――照明、入れるで。'],['だんのうら','全部異常なしです。……報告書に書けへんもんが一つ、ありましたけど。']],
+        A:[['班長','ご苦労さん。復電したで。全部見てくれたな。'],['だんのうら','はい。……あの影、最後までついてきてました。']],
+        B:[['班長','間に合ったか。ようやった、顔色悪いで。'],['だんのうら','……ライト、もうちょっとで切れるとこでした。']],
+        down:[['だんのうら','……ライトが、消え――　後ろに、誰か……'],['班長（無線）','だんのうら？　おい、応答せえ！　だんのうら！']],
+        timeup:[['班長（無線）','復電した。残りは朝番に回す。……無事か？'],['だんのうら','なんとか。……影の噂、ほんまやったんですね。']],
+      };
+      function showEnding(){
+        S.phase='ending';phaseT=0;
+        wrap.classList.add('factory3d-cine');
+        const r=S.endReason,g=S.grade;
+        const key=r==='clear'?g:r;
+        const por=r==='clear'?(g==='B'?'char_happy':'char_win'):r==='down'?'char_fear':'char_tired';
+        const title=r==='clear'?'第三工場、点検完了':r==='down'?'ライトが消えた':'時間切れ――復電';
+        const L=LINES[key]||LINES.B;
+        el.end.innerHTML=`<div class="factory3d-sub">SHIFT REPORT ／ PLANT No.3</div><h3>${title}</h3>
+          <div class="factory3d-row"><div class="factory3d-por"></div><div class="factory3d-box">${L.map(l=>`<p><span>${l[0]}</span>${l[1]}</p>`).join('')}</div></div>
+          <div class="factory3d-grade"><b class="${g}">${g}</b><div class="factory3d-stats">点検　<em>${S.inspected}/${NEED}</em><br>残り　<em>${Math.ceil(S.timeLeft)}秒</em>　電池 <em>${Math.ceil(S.battery)}%</em><br>接触　<em>${S.hits}</em>　撃退 <em>${S.repels}</em><br>SCORE <em>${S.score}</em></div></div>
+          ${S.newRec?'<div class="factory3d-new">★ NEW RECORD ★</div>':''}
+          <div class="factory3d-rec">BEST ${DATA.best||'-'}　${DATA.bestScore} pts${DATA.bestTime?`　最速 ${DATA.bestTime}秒`:''}　／　クリア ${DATA.clears}回</div>
+          <button class="factory3d-btn" type="button">報告して戻る ▶</button>`;
+        setPor(el.end.querySelector('.factory3d-por'),por);
+        el.end.querySelector('button').onclick=()=>mg.end(S.endReason);
+        el.end.classList.add('on');
+        se(r==='clear'?(g==='S'?'rank':'ach'):'back');
       }
 
       // ── メインループ ──
+      showTitle();
+      sfxInit();
       mg.loop(dt=>{
         if(S.disposed||!G)return;
         dt=clamp(dt||0,0,.05);
         tAll+=dt;
-        if(S.phase==='intro'){introT-=dt;if(introT<=0)startPlay();}
+        if(pendingHide){pendingT-=dt;if(pendingT<=0){pendingHide.classList.add('hide');pendingHide.classList.remove('factory3d-gout');pendingHide=null;}}
+        if(glitchT>0){glitchT-=dt;if(glitchT<=0)wrap.classList.remove('factory3d-glitch');}
+        if(S.phase==='title'){phaseT-=dt;if(phaseT<=0)goStory();}
+        else if(S.phase==='story'){
+          if(!lineFull){typed+=dt*30;const tx=STORY[storyIdx].text;el.line.textContent=tx.slice(0,Math.floor(typed));if(typed>=tx.length){lineFull=true;el.line.textContent=tx;}}
+          else{phaseT-=dt;if(phaseT<=0)nextLine();}
+        }
+        else if(S.phase==='howto'){phaseT-=dt;if(phaseT<=0)startPlay();}
         else if(S.phase==='play'){update(dt);if(S.disposed)return;}
         else if(S.phase==='over'){
           overT-=dt;
-          if(S.endReason==='down'){el.dark.style.opacity=String(clamp(1-overT/1.1,0,1));spot.intensity*=.9;}
-          if(S.endReason==='clear'){doorOpen=Math.min(1,doorOpen+dt*1.5);el.flash.style.opacity=String(clamp(1-overT/.9,0,1)*.6);}
-          if(overT<=0){mg.end(S.endReason);return;}
+          if(S.endReason==='down'){el.dark.style.opacity=String(clamp(1-(overT-.2)/1.2,0,1));el.red.style.opacity='.8';}
+          if(S.endReason==='clear'){doorOpen=Math.min(1,doorOpen+dt*1.2);el.flash.style.opacity=String(clamp(1-overT/2.2,0,1)*.35);}
+          if(overT<=0)showEnding();
         }
+        else if(S.phase==='ending'){phaseT+=dt;}
         if(S.disposed)return;
+        if(S.phase==='title'||S.phase==='story'||S.phase==='howto'){camYaw=Math.sin(tAll*.22)*.5;P.yaw=camYaw;P.pitch=.06+Math.sin(tAll*.31)*.05;}
         world(dt);
+        sfxTick(dt,S.phase==='play'?ghostNear:0,burning&&S.phase==='play',S.tension);
         renderer.render(scene,camera);
       });
 
       function update(dt){
         S.elapsed+=dt;S.timeLeft-=dt;
         if(S.timeLeft<=0){S.timeLeft=0;endWith('timeup');return;}
+        inp.buf=Math.max(0,inp.buf-dt);
         // 視点
         P.yaw+=inp.dyaw;P.pitch=clamp(P.pitch+inp.dpitch,-1.25,1.2);
+        S.looked+=Math.abs(inp.dyaw)+Math.abs(inp.dpitch);
         P.swayX=P.swayX*.85+inp.dyaw*2.2;P.swayY=P.swayY*.85+inp.dpitch*2.2;
         inp.dyaw=inp.dpitch=0;
-        // 移動
+        // 移動（なめらかな加減速、壁に沿って滑る当たり判定）
         let mx=inp.r-inp.l+inp.jx,mz=inp.f-inp.b-inp.jy;
         const ml=Math.hypot(mx,mz);if(ml>1){mx/=ml;mz/=ml;}
-        const inspecting=inp.actKey||inp.actBtn;
-        const spd=SPEED*(inspecting&&curGauge?.25:1)*(P.hitT>0?.55:1);
+        const held=inp.actKey||inp.actBtn;
+        const spd=SPEED*(held&&curGauge?.25:held?.7:1)*(P.hitT>0?.55:1);
         const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw);
         const tvx=(rx*mx+fx*mz)*spd,tvz=(rz*mx+fz*mz)*spd;
-        const k=1-Math.exp(-dt*10);P.vx+=(tvx-P.vx)*k;P.vz+=(tvz-P.vz)*k;
+        const acc=(Math.hypot(tvx,tvz)>Math.hypot(P.vx,P.vz))?8:11;
+        const k=1-Math.exp(-dt*acc);P.vx+=(tvx-P.vx)*k;P.vz+=(tvz-P.vz)*k;
+        const ox=P.x,oz=P.z;
         P.x+=P.vx*dt;P.z+=P.vz*dt;collide();
+        // 壁に当たった分の速度を落とす（滑りは残す）
+        P.vx=(P.x-ox)/Math.max(dt,1e-4)*.5+P.vx*.5;P.vz=(P.z-oz)/Math.max(dt,1e-4)*.5+P.vz*.5;
+        S.moved+=Math.hypot(P.x-ox,P.z-oz);
         const sp2=Math.hypot(P.vx,P.vz)/SPEED;
-        P.bob+=dt*9.5*sp2;P.bobAmt+=(Math.min(1,sp2)-P.bobAmt)*Math.min(1,dt*6);
+        P.bob+=dt*9.5*Math.min(1.1,sp2);P.bobAmt+=(Math.min(1,sp2)-P.bobAmt)*Math.min(1,dt*6);
+        const stepIdx=Math.floor(P.bob/Math.PI);
+        if(stepIdx!==lastStep){lastStep=stepIdx;if(P.bobAmt>.25)step();}
 
-        // 電池
-        S.battery-=dt*.5;
-        if(S.battery<=0){S.battery=0;endWith('down');return;}
-        if(S.battery<25&&!lowWarned){lowWarned=true;toast('電池が残りわずか','bad');se('warn');}
-        if(S.battery>=30)lowWarned=false;
-
-        // 予備電池
-        bats.forEach(b=>{
-          if(b.taken)return;
-          if(Math.hypot(b.g.position.x-P.x,b.g.position.z-P.z)<1.1){
-            b.taken=true;b.g.visible=false;S.picked++;
-            S.battery=Math.min(100,S.battery+32);toast('予備電池 +32%','ok');se('btn');
-          }
-        });
-
-        // 点検
+        // 点検対象の判定
         camera.getWorldDirection(camFwd);
         curGauge=null;
         let best=1e9;
@@ -995,16 +1381,37 @@ registerMinigame({
           const front=(P.x-g.x)*g.nrm.x+(P.z-g.z)*g.nrm.z;
           if(facing>.8&&front>.05&&d<best){best=d;curGauge=g;}
         }
+        // ボタンは押した直後0.3秒を先行入力として受け付ける
+        const acting=held||inp.buf>0;
+        focusing=!curGauge&&held&&S.battery>0;
+        if(focusing&&S.focusT<=0)click();
+        S.focusT=focusing?S.focusT+dt:0;
+
+        // 電池（集光中は消費が大きい）
+        S.battery-=dt*(DRAIN+(focusing?2.6:0));
+        if(S.battery<=0){S.battery=0;endWith('down');return;}
+        if(S.battery<25&&!lowWarned){lowWarned=true;toast('電池が残りわずか','bad');se('warn');}
+        if(S.battery>=30)lowWarned=false;
+
+        // 予備電池
+        bats.forEach(b=>{
+          if(b.taken)return;
+          if(Math.hypot(b.g.position.x-P.x,b.g.position.z-P.z)<1.15){
+            b.taken=true;b.g.visible=false;S.picked++;
+            S.battery=Math.min(100,S.battery+32);toast('予備電池 +32%','ok');se('btn');click();
+          }
+        });
+
         gauges.forEach(g=>{if(g!==curGauge&&!g.done)g.prog=Math.max(0,g.prog-dt*1.5);});
         if(curGauge){
           const g=curGauge;
-          if(inspecting){
+          if(acting){
             if(g.prog===0)se('tool');
             g.prog+=dt/HOLD_T;
             if(g.prog>=1){
               g.prog=1;g.done=true;S.inspected++;g.tickT=1.8;g.tick.visible=true;g.marker.visible=false;
               g.lampMat.color.setHex(0x30ff70);g.lampGlow.material.color.setHex(0x30ff70);
-              se('repair');
+              se('repair');inp.buf=0;
               mg.setScore(`点検 ${S.inspected}/${NEED}`);
               el.chk[S.inspected-1].classList.add('ok');
               if(S.inspected>=NEED){toast('全計器 点検完了！非常口へ','ok');se('ach');exitLamp.material.color.setHex(0x30ff70);}
@@ -1017,6 +1424,13 @@ registerMinigame({
         el.prog.setAttribute('stroke-dashoffset',String(163.4*(1-showProg)));
         el.prompt.classList.toggle('on',!!curGauge&&showProg<.02);
         el.act.classList.toggle('ready',!!curGauge);
+        el.act.classList.toggle('focus',!curGauge);
+        const lbl=curGauge?'点検':'集光';
+        if(el.act.dataset.l!==lbl){el.act.dataset.l=lbl;el.act.innerHTML=`${lbl}<small>HOLD / E</small>`;}
+
+        // 緊張の段階
+        if(S.tension===0&&(S.inspected>=1||S.elapsed>18))setTension(1);
+        if(S.tension===1&&(S.inspected>=NEED-1||S.timeLeft<30))setTension(2);
 
         // 非常口
         const dExit=Math.hypot(P.x-exitX,P.z-(exitZ+.6));
@@ -1029,6 +1443,7 @@ registerMinigame({
         // 影
         updateGhost(dt);
         if(S.phase!=='play')return;
+        tickHints(dt);
 
         // HUD（10Hz程度）
         hudT-=dt;
@@ -1036,51 +1451,60 @@ registerMinigame({
           hudT=.1;
           const b=Math.ceil(S.battery);
           el.batI.style.width=b+'%';el.pct.textContent=b+'%';
-          el.bat.className='factory3d-bat'+(b<=25?' low':b<=50?' mid':'');
+          el.bat.className='factory3d-bat'+(b<=25?' low':b<=50?' mid':'')+(focusing?' drain':'');
           const tl=Math.ceil(S.timeLeft)+'s';if(tl!==lastShown){mg.setTimer(tl);lastShown=tl;}
-          // 次の目標
-          let tx,tz,lbl,ex=false;
-          if(S.inspected>=NEED){tx=exitX;tz=exitZ+.6;lbl='非常口';ex=true;}
-          else{let bd=1e9;gauges.forEach(g=>{if(g.done)return;const d=Math.hypot(g.x-P.x,g.z-P.z);if(d<bd){bd=d;tx=g.x;tz=g.z;}});lbl='計器';}
+          let tx,tz,lbl2,ex=false;
+          if(S.inspected>=NEED){tx=exitX;tz=exitZ+.6;lbl2='非常口';ex=true;}
+          else{let bd=1e9;gauges.forEach(g=>{if(g.done)return;const d=Math.hypot(g.x-P.x,g.z-P.z);if(d<bd){bd=d;tx=g.x;tz=g.z;}});lbl2='計器';}
           const dx=tx-P.x,dz=tz-P.z,dist=Math.hypot(dx,dz);
           const lx=dx*rx+dz*rz,lf=dx*fx+dz*fz;
           el.navB.style.transform=`rotate(${Math.atan2(lx,lf)}rad)`;
-          el.navT.textContent=`${lbl} ${Math.round(dist)}m`;
+          el.navT.textContent=`${lbl2} ${Math.round(dist)}m`;
           el.nav.classList.toggle('exit',ex);
         }
       }
 
-      let curGauge=null;
       function updateGhost(dt){
+        burning=false;
+        if(S.tension<1){GH.fade=0;ghostNear=0;el.red.style.opacity=String(P.hitT*.9);return;}
         GH.fade=Math.min(1,GH.fade+dt*.6);
         GH.cool-=dt;
         const dx=P.x-GH.x,dz=P.z-GH.z,dist=Math.hypot(dx,dz)||.001;
         const nx=dx/dist,nz=dz/dist;
-        // ライトで照らしているか
         const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);
-        const cosA=(-nx*fx+-nz*fz);
+        const cosA=(-nx*fx+-nz*fz);                 // 視線と影の方向
         const beamOn=S.battery>0&&spot.intensity>FL_MAX*.25;
-        const lit=beamOn&&dist<15&&cosA>Math.cos(.42)&&!occluded(P.x,P.z,GH.x,GH.z);
-        // 暗がりにいるか（非常灯の近くは少し明るい）
+        const range=focusing?19:13,cone=focusing?.3:.42;
+        const lit=beamOn&&dist<range&&cosA>Math.cos(cone)&&!occluded(P.x,P.z,GH.x,GH.z);
+        // 非常灯や非常口の近くは「暗がり」ではない
         let nearLight=false;
         beacons.forEach(b=>{if(Math.hypot(b.pos.x-P.x,b.pos.z-P.z)<6.5)nearLight=true;});
         if(Math.hypot(exitX-P.x,exitZ-P.z)<6)nearLight=true;
         const prog=S.elapsed/TIME_LIMIT;
-        const aggro=nearLight?13:22;
+        const aggro=S.tension>=2?99:nearLight?13:22;
         if(lit&&GH.fade>.5){
-          GH.lit+=dt;GH.stun=.6;
-          GH.x-=nx*dt*2.4;GH.z-=nz*dt*2.4;
-          if(GH.lit>1.25){
-            S.repels++;GH.lit=0;toast('影が霧散した');se('noise');
+          // 光で“まとい”が焼ける。焼き切ると霧散する
+          burning=true;
+          GH.shroud-=dt*(focusing?1.5:.5);GH.stun=.5;
+          const push=focusing?3.2:1.8;
+          GH.x-=nx*dt*push;GH.z-=nz*dt*push;
+          if(GH.shroud<=0){
+            S.repels++;GH.shroud=1;toast('影が霧散した','ok');se('noise');
+            wrap.classList.add('factory3d-glitch');glitchT=.5;
             placeGhostFar(P.x,P.z,24);
           }
         }else{
-          GH.lit=Math.max(0,GH.lit-dt*.5);
+          GH.shroud=Math.min(1,GH.shroud+dt*.12);
           GH.stun=Math.max(0,GH.stun-dt);
           if(GH.stun<=0){
             if(dist<aggro){
-              const v=(1.45+1.15*prog)*(nearLight?.75:1.15)*(dist<6?1.25:1);
+              // 見られていない時ほど速い（視界の外から迫る）
+              const seen=cosA>.55;
+              const v=(1.35+1.1*prog)*GHOST_MUL*(nearLight?.75:1.1)*(seen?.55:1.25)*(S.tension>=2?1.15:1);
               GH.x+=nx*v*dt;GH.z+=nz*v*dt;
+              // 目を離した隙に、ふっと距離を詰める
+              stutterT-=dt;
+              if(stutterT<=0&&!seen&&dist>4.5&&dist<16){stutterT=rnd(2.2,4);GH.x+=nx*1.7;GH.z+=nz*1.7;if(SFX.whisper)ghostNear=Math.min(1,ghostNear+.4);}
             }else{
               const wx=GH.wx-GH.x,wz=GH.wz-GH.z,wd=Math.hypot(wx,wz);
               if(wd<1)newWander();else{GH.x+=wx/wd*1.3*dt;GH.z+=wz/wd*1.3*dt;}
@@ -1088,69 +1512,74 @@ registerMinigame({
           }
         }
         GH.x=clamp(GH.x,-HW+.6,HW-.6);GH.z=clamp(GH.z,-HD+.6,HD-.6);
-        // 接近の気配
         ghostSeT-=dt;
         if(dist<8&&ghostSeT<=0&&!lit){se('ghost');ghostSeT=7;}
         // 接触
         if(dist<.95&&GH.fade>.6&&GH.cool<=0){
           S.hits++;S.battery=Math.max(0,S.battery-HIT_DMG);
           P.hitT=1;P.shake=1;GH.cool=2;
-          wrap.classList.add('factory3d-hit');se('warn');
+          wrap.classList.add('factory3d-hit');se('warn');thump(0,.5);
           toast(`影に触れられた　電池 -${HIT_DMG}%`,'bad');
           if(S.battery<=0){endWith('down');return;}
           placeGhostFar(P.x,P.z,22);
         }
-        // 気配の赤み
-        const prox=clamp(1-(dist-1)/7,0,1)*GH.fade*(lit?.4:1);
-        el.red.style.opacity=String(Math.max(prox*.55,P.hitT*.9));
+        const prox=clamp(1-(dist-1)/8,0,1)*GH.fade;
+        ghostNear+=(prox-ghostNear)*Math.min(1,dt*3);
+        el.red.style.opacity=String(Math.max(ghostNear*(lit?.25:.5),P.hitT*.9));
       }
 
       // 毎フレームの演出
       function world(dt){
-        // カメラ
+        // カメラ（頭の揺れ・被弾時の揺れ）
         P.hitT=Math.max(0,P.hitT-dt*1.1);P.shake=Math.max(0,P.shake-dt*1.6);
-        if(P.hitT<=0)wrap.classList.remove('factory3d-hit');
+        if(P.hitT<=0&&glitchT<=0)wrap.classList.remove('factory3d-hit');
         const bobY=Math.sin(P.bob)*.045*P.bobAmt,bobX=Math.cos(P.bob*.5)*.03*P.bobAmt;
         const sh=P.shake*P.shake;
-        camera.position.set(P.x+rx0()*bobX+rnd(-1,1)*sh*.06,EYE+bobY+rnd(-1,1)*sh*.05,P.z+rz0()*bobX);
+        const rxx=Math.cos(P.yaw),rzz=-Math.sin(P.yaw);
+        camera.position.set(P.x+rxx*bobX+rnd(-1,1)*sh*.06,EYE+bobY+rnd(-1,1)*sh*.05,P.z+rzz*bobX);
         camera.rotation.set(P.pitch+rnd(-1,1)*sh*.03,P.yaw,Math.cos(P.bob*.5)*.008*P.bobAmt+Math.sin(tAll*13)*sh*.06);
-        const fov=72+Math.sin(tAll*20)*P.hitT*6+P.hitT*8;
-        if(Math.abs(camera.fov-fov)>.05){camera.fov=fov;camera.updateProjectionMatrix();}
+        const fov=72+Math.sin(tAll*20)*P.hitT*6+P.hitT*8+(focusing?-4:0);
+        if(Math.abs(camera.fov-fov)>.05){camera.fov+=(fov-camera.fov)*Math.min(1,dt*10);camera.updateProjectionMatrix();}
         // 懐中電灯
         const bf=S.battery/100;
-        let inten=FL_MAX*(.3+.7*Math.min(1,bf*1.4+.1));
+        let inten=FL_MAX*(.3+.7*Math.min(1,bf*1.4+.1))*(focusing?1.8:1);
         if(bf<.25&&Math.random()<.09)inten*=rnd(.05,.5);
         if(P.hitT>.3&&Math.random()<.4)inten*=.1;
-        if(S.phase==='over'&&S.endReason==='down')inten=Math.max(0,overT-.3)*FL_MAX*(Math.random()<.5?1:.2);
+        if(S.phase==='over'&&S.endReason==='down')inten=Math.max(0,overT-.6)*FL_MAX*(Math.random()<.5?1:.15);
         spot.intensity=inten;
-        spot.angle=.4+.08*Math.min(1,bf*1.5);
+        const ang=focusing?.27:.4+.08*Math.min(1,bf*1.5);
+        spot.angle+=(ang-spot.angle)*Math.min(1,dt*10);
         spotTarget.position.set(clamp(-P.swayX,-1.2,1.2)+Math.sin(tAll*1.3)*.04,clamp(-P.swayY,-1,1)+Math.sin(tAll*1.7)*.03-.25-bobY*2,-6);
         fbeam.lookAt(camera.localToWorld(spotTarget.position.clone()));
+        const bs=spot.angle/.48;fbeam.scale.set(bs,bs,1);
         fbMat.opacity=.05*(inten/FL_MAX);
-        dustMat.opacity=.5*(inten/FL_MAX);
-        // 埃
+        dustMat.opacity=.5*Math.min(1.4,inten/FL_MAX);
         for(let i=0;i<DUST;i++){
-          dustPos[i*3]+=dustVel[i*3]*dt;dustPos[i*3+1]+=dustVel[i*3+1]*dt;dustPos[i*3+2]+=dustVel[i*3+2]*dt-P.vz*0;
+          dustPos[i*3]+=dustVel[i*3]*dt;dustPos[i*3+1]+=dustVel[i*3+1]*dt;dustPos[i*3+2]+=dustVel[i*3+2]*dt;
           if(dustPos[i*3+1]<-2.5||Math.abs(dustPos[i*3])>3.5)seedDust(i);
         }
         dustGeo.attributes.position.needsUpdate=true;
-        // 回転灯
+        // 回転灯（追跡段階で速くなる）
+        const bspd=S.tension>=2?6:3.2;
         beacons.forEach(b=>{
-          b.ph+=dt*3.2;b.rot.rotation.y=b.ph;
-          if(b.light)b.light.intensity=1.5+4*Math.abs(Math.cos(b.ph));
+          b.ph+=dt*bspd;b.rot.rotation.y=b.ph;
+          if(b.light)b.light.intensity=(1.5+4*Math.abs(Math.cos(b.ph)))*(S.tension>=2?1.4:1);
         });
         // 雷
         lightT-=dt;
-        if(lightT<=0&&S.phase!=='intro'){scheduleLightning();se('noise');}
+        if(lightT<=0&&S.phase!=='title'){lightning(rnd(.6,1));thunder(rnd(.3,1.2));lightT=S.tension>=2?rnd(4,8):rnd(7,14);}
         flashV=Math.max(0,flashV-dt*5);
         if(lightSeq.length){lightSeq.forEach(s=>{s.t-=dt;if(s.t<=0&&!s.fired){s.fired=true;flashV=Math.max(flashV,s.v);}});if(lightSeq.every(s=>s.fired))lightSeq=[];}
-        hemi.intensity=.35+flashV*3;
+        // 復電（クリア・時間切れ）
+        if(S.power)powerV=Math.min(1,powerV+dt*.9);
+        hemi.intensity=.35+flashV*3+powerV*1.6;
+        if(powerV>0){M.lampOff.color.setRGB(.08+powerV*.92,.08+powerV*.88,.1+powerV*.7);scene.fog.density=.052-powerV*.026;}
         M.glass.color.setRGB(.35+flashV*.65,.41+flashV*.59,.63+flashV*.37);
         M.shaft.opacity=.045+flashV*.32;
-        if(S.phase!=='over'||S.endReason!=='clear')el.flash.style.opacity=String(flashV*.22);
+        if(!(S.phase==='over'&&S.endReason==='clear'))el.flash.style.opacity=String(flashV*.22);
         T.rain.offset.y=(T.rain.offset.y+dt*.35)%1;
         // 蛍光灯のちらつき
-        tubes.forEach(t=>{t.t-=dt;const onv=t.t<0?(Math.random()<.5?1:0):0;if(t.t<-.25)t.t=rnd(1.5,5);t.mat.color.setScalar(onv?.95:.08);t.gl.material.opacity=onv?.5:0;});
+        tubes.forEach(t=>{t.t-=dt;const onv=powerV>.5||(t.t<0&&Math.random()<.5);if(t.t<-.25)t.t=rnd(1.5,5);t.mat.color.setScalar(onv?.95:.08);t.gl.material.opacity=onv?.5:0;});
         // 火花
         spkT-=dt;if(spkT<=0){burstSparks();spkT=rnd(2.5,6);}
         spkGlow.material.opacity=Math.max(0,spkGlow.material.opacity-dt*4);
@@ -1162,6 +1591,13 @@ registerMinigame({
           if(spkLife[i]<=0)spkPos[i*3+1]=-50;
         }
         spkGeo.attributes.position.needsUpdate=true;
+        // 雨漏り
+        drips.forEach(d=>{
+          if(d.y<0){d.wait-=dt;d.drop.visible=false;if(d.wait<=0){d.y=WALL_H-1.2;d.vy=0;d.drop.visible=true;}}
+          else{d.vy-=9.8*dt;d.y+=d.vy*dt;d.drop.position.set(d.x,d.y,d.z);
+            if(d.y<=.03){d.y=-1;d.wait=rnd(.8,2.2);d.rt=0;const dd=Math.hypot(d.x-P.x,d.z-P.z);if(dd<9&&S.phase==='play')plink(.05*(1-dd/9));}}
+          if(d.rt<1){d.rt+=dt*1.4;const s=.05+d.rt*.45;d.ring.scale.set(s,1,s);d.ring.material.opacity=(1-d.rt)*.5;}
+        });
         // 計器
         gauges.forEach(g=>{
           let a;
@@ -1170,7 +1606,7 @@ registerMinigame({
           else a=g.base+Math.sin(tAll*7+g.i)*.05;
           g.ang+=(a-g.ang)*Math.min(1,dt*12);
           g.pivot.rotation.z=-g.ang*2.2;
-          if(!g.done){const p=.5+.5*Math.sin(tAll*4+g.i);g.lampGlow.material.opacity=.3+.6*p;g.marker.position.y=2.35+Math.sin(tAll*2.2+g.i)*.08;g.marker.material.opacity=.85;}
+          if(!g.done){const p=.5+.5*Math.sin(tAll*4+g.i);g.lampGlow.material.opacity=.3+.6*p;g.marker.position.y=2.35+Math.sin(tAll*2.2+g.i)*.08;}
           if(g.tickT>0){g.tickT-=dt;g.tick.position.y=2+(1.8-g.tickT)*.3;g.tick.material.opacity=Math.min(1,g.tickT*1.5);if(g.tickT<=0)g.tick.visible=false;}
         });
         // 予備電池
@@ -1180,37 +1616,45 @@ registerMinigame({
         else{exitLight.intensity=1.5;exitGlow.material.opacity=.55;}
         if(doorOpen>0){door.userData.slab.rotation.y=-doorOpen*1.4;door.userData.slab.position.x=-doorOpen*.6;}
         // 影の見た目
-        ghost.position.set(GH.x,.04+Math.sin(tAll*1.7)*.06,GH.z);
-        ghost.rotation.y=Math.atan2(P.x-GH.x,P.z-GH.z);
-        const flick=GH.lit>0&&GH.stun>0?(Math.random()<.5?.25:.8):1;
-        ghostMat.opacity=.94*GH.fade*flick;auraMat.opacity=.35*GH.fade*flick;
+        if(S.power&&S.endReason!=='down')GH.fade=Math.max(0,GH.fade-dt*1.5);
         ghost.visible=GH.fade>.02;
-        eyeMat.color.setRGB(1,.16,.28).multiplyScalar(GH.fade);eyeGlowMat.opacity=.9*GH.fade*flick;
-        ghost.scale.set(1+Math.sin(tAll*3)*.03,1+Math.sin(tAll*2.3)*.02,1);
-        arms.forEach((a,i)=>{a.rotation.x=Math.sin(tAll*1.4+i)*.15;});
-        for(let i=0;i<WIS;i++){
-          wisLife[i]+=dt*.45;if(wisLife[i]>1){wisLife[i]=0;}
-          const l=wisLife[i],ang=i*2.4+l*2;
-          wisPos[i*3]=Math.cos(ang)*(.25+l*.3);wisPos[i*3+1]=l*2.1;wisPos[i*3+2]=Math.sin(ang)*(.25+l*.3);
+        if(ghost.visible){
+          const jit=(S.tension>=2&&Math.random()<.04)?rnd(-.12,.12):0;
+          ghost.position.set(GH.x+jit,.04+Math.sin(tAll*1.7)*.06,GH.z);
+          ghost.rotation.y=Math.atan2(P.x-GH.x,P.z-GH.z);
+          const sr=GH.shroud;
+          const flick=burning?(Math.random()<.5?.3:.85):1;
+          ghostMat.opacity=.94*GH.fade*flick;ragMat.opacity=.9*GH.fade*flick;
+          auraMat.opacity=(.3+(1-sr)*.6)*GH.fade*flick;
+          auraMat.color.setRGB(.29+(1-sr)*.7,.08+(1-sr)*.25,.38-(1-sr)*.1);
+          smoke.material.opacity=.7*GH.fade;
+          eyeMat.color.setRGB(1,.16,.28).multiplyScalar(GH.fade);eyeGlowMat.opacity=.9*GH.fade*flick;
+          const sc=.8+.2*sr;
+          ghost.scale.set(sc*(1+Math.sin(tAll*3)*.03),sc*(1+Math.sin(tAll*2.3)*.02)*(1+(S.tension>=2?.08:0)),sc);
+          arms.forEach((a,i)=>{a.rotation.x=Math.sin(tAll*1.4+i)*.15-(ghostNear>.6?.9*ghostNear:0);});
+          rags.forEach((m,i)=>{m.rotation.x=Math.sin(tAll*3+i*1.7)*.35;});
+          head.rotation.z=Math.sin(tAll*.9)*.25+(Math.random()<.02?rnd(-.5,.5):0);
+          for(let i=0;i<WIS;i++){
+            wisLife[i]+=dt*(burning?1.4:.45);if(wisLife[i]>1)wisLife[i]=0;
+            const l=wisLife[i],a=i*2.4+l*2;
+            wisPos[i*3]=Math.cos(a)*(.25+l*.3);wisPos[i*3+1]=l*2.1;wisPos[i*3+2]=Math.sin(a)*(.25+l*.3);
+          }
+          wisGeo.attributes.position.needsUpdate=true;wisMat.opacity=.6*GH.fade;
+          wisMat.color.setHex(burning?0x8a3ab0:0x140a1e);wisMat.blending=burning?THREE.AdditiveBlending:THREE.NormalBlending;
         }
-        wisGeo.attributes.position.needsUpdate=true;wisMat.opacity=.6*GH.fade;
-        if(toastT>0)toastT-=dt;
       }
-      const rx0=()=>Math.cos(P.yaw),rz0=()=>-Math.sin(P.yaw);
       // テスト用フック（localStorage factory3d_debug=1 のときだけ）
-      try{if(localStorage.getItem('factory3d_debug')==='1')window.__f3d={S,P,GH,gauges,bats,exit:{x:exitX,z:exitZ},inp,renderer,skip:()=>skipIntro()};}catch(e){}
+      try{if(localStorage.getItem('factory3d_debug')==='1')window.__f3d={S,P,GH,gauges,bats,exit:{x:exitX,z:exitZ},inp,renderer,DATA,adv:()=>advance(),skip:()=>{advance(true);},start:()=>{if(S.phase!=='play'){goHowto();startPlay();}},setTension,endWith};}catch(e){}
     }
 
-    let skipIntroFn=null;
-    function skipIntro(){if(skipIntroFn)skipIntroFn();}
-
     // ══════════════════════════════════════════════════════
-    // 結果
+    // 結果（報酬は結末の種類で決まる。評価演出の後でも同じ）
     // ══════════════════════════════════════════════════════
     return {result(reason){
+      if(S.endReason&&reason==='quit')reason=S.endReason;
       cleanup();
       const n=S.inspected;
-      const stat=`点検 <span class="${n>=NEED?'up':'down'}">${n}/${NEED}</span>　電池残量 <span class="up">${Math.ceil(S.battery)}%</span>`+
+      const stat=`評価 <span class="up">${S.grade||'-'}</span>　点検 <span class="${n>=NEED?'up':'down'}">${n}/${NEED}</span>　電池 <span class="up">${Math.ceil(S.battery)}%</span>`+
         `<br>影との接触 <span class="${S.hits?'down':'up'}">${S.hits}</span>　撃退 <span class="up">${S.repels}</span>　経過 ${Math.round(S.elapsed)}秒`;
       if(reason==='clear'){
         return {
@@ -1238,7 +1682,7 @@ registerMinigame({
         };
       }
       return {
-        title:'🏭 点検を切り上げた',summary:S.phase==='load'?'':stat,
+        title:'🏭 点検を切り上げた',summary:S.phase==='load'||S.phase==='title'||S.phase==='story'||S.phase==='howto'?'':stat,
         fx:{fatigue:3},time:30,log:'停電した工場の見回りを途中で切り上げた。',cutin:null,
       };
     }};

@@ -1569,7 +1569,7 @@ registerMinigame({
     }
 
     // テスト用のハンドル（ゲーム内容には影響しない）
-    cv._dbg={P,ST,toys,cat,get t(){return t;},set t(v){t=v;},get noise(){return noise;},set noise(v){noise=v;},get scene(){return scene;},get phase(){return phase;},get grade(){return grade;}};
+    cv._dbg={P,ST,toys,cat,get t(){return t;},set t(v){t=v;},get noise(){return noise;},set noise(v){noise=v;},get scene(){return scene;},get phase(){return phase;},get grade(){return grade;},get dbg2(){return [talkI,talkC,!!trans,trans&&trans.t];}};
     mg.loop(dt=>{
       update(dt);
       if(mg._ended)return;

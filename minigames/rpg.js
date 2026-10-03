@@ -825,28 +825,28 @@ const ENEMY={
   noise:{name:'ノイズの群れ',hp:34,atk:6,exp:14,weak:null,
     hint:'ただの雑音の群れです。落ち着いて「語る」で、ひとつずつ黙らせて。',
     pat:[{k:'hit',n:'ザザッ…という雑音',m:1},{k:'hit',n:'耳を刺すハウリング',m:1.2},{k:'st',st:'noise',n:'砂嵐',m:.4,d:'ノイズ：語る・歌うが弱まる'}]},
-  bubble:{name:'炎上の泡',hp:76,atk:8,exp:30,weak:'talk',
+  bubble:{name:'炎上の泡',hp:66,atk:8,exp:30,weak:'talk',
     hint:'怒鳴り返したら膨らむだけ。「語る」が一番効きます。膨らんだら、破裂する前に「守る」。',
     pat:[{k:'hit',n:'罵声の泡',m:1},{k:'st',st:'burn',n:'飛び火',m:.5,d:'やけど：毎ターン少し削られる'},{k:'swell',n:'ぶくぶくと膨らむ',d:'次の一撃が重い'},{k:'hit',n:'破裂する罵声',m:2.3,big:true}]},
   crab:{name:'錆びた蟹',hp:52,atk:8,exp:20,weak:'fix',
     hint:'錆で関節が固まってます。「直す」で錆を落とせば、動きが鈍るはず。',
     pat:[{k:'hit',n:'はさみ',m:1},{k:'hit',n:'泡を吹く',m:.8},{k:'hit',n:'大ばさみ',m:1.8,big:true}]},
-  rust:{name:'鉄錆の番人',hp:118,atk:10,exp:42,weak:'fix',armor:true,
+  rust:{name:'鉄錆の番人',hp:106,atk:11,exp:42,weak:'fix',armor:true,
     hint:'装甲があるうちは、ほとんど通りません。「直す」で継ぎ目を見抜いて。装甲は締め直されるから、そのたびに。',
     pat:[{k:'hit',n:'鉄の腕',m:1.1},{k:'st',st:'noise',n:'鉄粉の嵐',m:.5,d:'ノイズ：語る・歌うが弱まる'},{k:'hit',n:'「ライン停止ハ許サレナイ」',m:2.0,big:true},{k:'armor',n:'装甲を締め直す',d:'受けるダメージ半減'}]},
   letters:{name:'督促状の群れ',hp:62,atk:9,exp:24,weak:'sing',
     hint:'紙だから、湿らせればふやけます。「歌う」の息で、まとめて。',
     pat:[{k:'hit',n:'督促状の雨',m:1},{k:'st',st:'fear',n:'赤い「至急」の判',m:.6,d:'怯え：与えるダメージが下がる'},{k:'hit',n:'紙の刃',m:1.25}]},
-  debt:{name:'借金取りの影',hp:140,atk:10,exp:52,weak:'guard',
+  debt:{name:'借金取りの影',hp:140,atk:11,exp:52,weak:'guard',
     hint:'あの「取り立て」から逃げないで。「守る」で正面から受け止めれば、はね返せます。利息で強くなる前に。',
     pat:[{k:'hit',n:'督促',m:1},{k:'grow',n:'利息が膨らむ',d:'攻撃力が上がる'},{k:'hit',n:'取り立て',m:2.0,big:true,counter:true},{k:'st',st:'fear',n:'「払えるのか？」',m:.6,d:'怯え：与えるダメージが下がる'},{k:'hit',n:'督促',m:1},{k:'hit',n:'取り立て',m:2.0,big:true,counter:true}]},
-  echo:{name:'残響のノイズ',hp:70,atk:10,exp:28,weak:'pray',
+  echo:{name:'残響のノイズ',hp:78,atk:12,exp:28,weak:'pray',
     hint:'眠りかけた頭に響く耳鳴り。「祈る」で、静けさを取り戻して。',
     pat:[{k:'hit',n:'残響',m:1},{k:'st',st:'sleepy',n:'低いうなり',m:.4,d:'眠気：ときどき動けない'},{k:'st',st:'noise',n:'耳鳴り',m:.5,d:'ノイズ：語る・歌うが弱まる'},{k:'hit',n:'残響の波',m:1.3}]},
-  sheep:{name:'眠れぬ羊',hp:160,atk:10,exp:62,weak:'sing',
+  sheep:{name:'眠れぬ羊',hp:175,atk:17,exp:62,weak:'sing',
     hint:'子守唄です。「歌う」で、増えた羊ごと寝かしつけて。突進は守って。',
     pat:[{k:'st',st:'sleepy',n:'「いっぴき、にひき……」',m:.3,d:'眠気：ときどき動けない'},{k:'clone',n:'羊が増える',d:'群れが増えるほど攻撃が増す'},{k:'hit',n:'頭突き',m:1},{k:'clone',n:'羊が増える',d:'群れが増えるほど攻撃が増す'},{k:'hit',n:'群れの突進',m:1.6,big:true}]},
-  watcher:{name:'名無しの観測者',hp:250,atk:12,exp:0,weak:'pray',
+  watcher:{name:'名無しの観測者',hp:280,atk:21,exp:0,weak:'pray',
     hint:'「祈る」が届きます。同じ行動を続けると、あれは数えて、そのぶん強く刺してくる。秒読みが終わる時は、必ず守って。',
     pat:[{k:'same',n:'「さっきも同じ話、聞きました」',m:.8,d:'同じ行動を続けるほど痛い'},{k:'count',n:'「30日目まで見ています」',d:'……秒読みが始まった'},{k:'st',st:'fear',n:'「後ろ、雨の音だけじゃないですよ」',m:.9,d:'怯え：与えるダメージが下がる'},{k:'st',st:'sleepy',n:'「寝たら終わりますよ」',m:.5,d:'眠気：ときどき動けない'},{k:'hit',n:'「──見ています」',m:2.4,big:true}]},
 };
@@ -2014,7 +2014,7 @@ registerMinigame({
         case 'pray':{
           p.br-=7;sfx('pray');addFx('pillar',{dur:1.2});
           await bmsg(`「祈る」── ${fl('pray')}`,700);
-          const h=healHero(p,14+S('stressRes')*4+S('bedtime')*2+run.lv*2);
+          const h=healHero(p,12+S('stressRes')*4+S('bedtime')*2+run.lv*1.5);
           ['noise','burn','sleepy','fear'].forEach(k=>delete p.st[k]);
           let ex='';
           if(e.D.weak==='pray'){const r=calc(e,p,P.pow*1.05,'pray');hurtFoe(e,r.d,{...r,col:'#fff6c8'});ex=` 祈りが届いた！ ${e.D.name}に <b>${r.d}</b>。`;}
@@ -2115,7 +2115,7 @@ registerMinigame({
           e.ally=true;V.mina.on=true;showBattle(true);updBattle(e,p);
         }
         if(e.ally&&(e.turn%2===1||kind==='watcher')){
-          if(kind==='watcher'&&e.turn%2===0){e.atk=Math.max(8,e.atk-1);AU.se('repair');await bmsg('ミナモが、観測者の視線を遮った！　観測者の力が少し落ちた。',850);}
+          if(kind==='watcher'&&e.turn%2===0){e.atk=Math.max(15,e.atk-1);AU.se('repair');await bmsg('ミナモが、観測者の視線を遮った！　観測者の力が少し落ちた。',850);}
           else if(p.hp<p.max){const h=healHero(p,8+run.lv);await bmsg(`ミナモの淡い光が、傷を照らす。HPが ${h} 回復。`,850);}
         }
         await foeAct(e,p);updBattle(e,p);

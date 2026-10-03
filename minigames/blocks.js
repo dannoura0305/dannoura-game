@@ -342,7 +342,7 @@ registerMinigame({
     let shake=0,flash=0,danger=false,dangerSeen=false,introT=0;
     let pulse=0,spIdx=0,banner=null,wipe=null,fade=1,hitstop=0,buf=null,garbT=0,firstClear=false,lastInput='touch',endReason='',grade='';
     const tut={step:0,t:0,done:[false,false,false,false]};
-    const parts=[],pops=[],lifts=[],trails=[];
+    const parts=[],pops=[],lifts=[],trails=[],debris=[];
     let lastScoreHtml='',lastTimer='';
     const belt=[];for(let i=0;i<8;i++)belt.push({x:i*70-30,v:22,t:1+(i*3)%7,s:rnd(.7,1)});
     const rain=[];for(let i=0;i<40;i++)rain.push({x:Math.random(),y:Math.random(),s:rnd(.5,.9)});
@@ -487,7 +487,10 @@ registerMinigame({
     function gameOver(reason){
       if(phase==='over')return;
       phase='over';overReason=reason;overT=0;topRows=0;cur=null;ptr=null;
-      if(reason==='topout'){sfx('crash');se('warn');shake=10;flash=.3;}
+      if(reason==='topout'){sfx('crash');se('warn');shake=10;flash=.3;
+        // 崩れて飛び散る荷物
+        for(let y=0;y<ROWS&&debris.length<18;y++)for(let x=0;x<COLS;x++){const v=board[y][x];if(!v||Math.random()<.45)continue;
+          const [px,py]=cellPx(x,y);debris.push({x:px,y:py,vx:rnd(-160,160),vy:rnd(-260,-60),a:0,va:rnd(-8,8),t:v});if(debris.length>=18)break;}}
       else{sfx('whistle');se('ach');}
     }
 
@@ -784,6 +787,7 @@ registerMinigame({
       for(let i=lifts.length-1;i>=0;i--){const L=lifts[i];const pt=L.t;L.t+=dt;if(pt<.05&&L.t>=.05)sfx('beep');if(L.t>L.dur)lifts.splice(i,1);}
       for(let i=trails.length-1;i>=0;i--){trails[i].t+=dt;if(trails[i].t>.28)trails.splice(i,1);}
       for(const b of belt){b.x+=dt*b.v;if(b.x>W+30)b.x=-30;}
+      for(let i=debris.length-1;i>=0;i--){const d=debris[i];d.x+=d.vx*dt;d.y+=d.vy*dt;d.vy+=620*dt;d.a+=d.va*dt;if(d.y>CH+40)debris.splice(i,1);}
     }
 
     // ── 描画 ──
@@ -1229,6 +1233,7 @@ registerMinigame({
       drawSide();
       drawLane();
       drawParticles();
+      for(const d of debris){cx.save();cx.translate(d.x+cs/2,d.y+cs/2);cx.rotate(d.a);cx.drawImage(spr[d.t],-cs/2,-cs/2,cs,cs);cx.restore();}
       drawPops();
       drawTut();
       drawBanner();

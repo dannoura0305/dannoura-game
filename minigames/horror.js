@@ -1202,3 +1202,78 @@ const AMB={
   know:['マグカップ、もう冷めてますよ','左の窓、鍵かかってないですね','お子さん、さっき寝返りしました','背中のドア、少しだけ開いてます','いま、まばたき三回しましたね','イヤホンの左、聞こえにくいでしょう','壁の絵、太陽の色がきれいですね'],
   react:[['さくら','今の誰？'],['深夜の常連','名前ないアカウントって作れたっけ'],['夜空の旅人','通報しておきました'],['ひとりぼっち','こわいこわい'],['深夜の常連','演出だよな？ な？']],
 };
+
+// ───────────────────────── 効果音（Web Audio合成） ─────────────────────────
+// AU.ctx があるときだけ鳴らす。音量は AUDIO_SET.se に比例、0なら無音。
+function makeSnd(){
+  let ctx=null,master=null,amb=null,nb=null,dead=false;
+  const vol=()=>{try{return typeof AUDIO_SET!=='undefined'?AUDIO_SET.se:1;}catch(e){return 1;}};
+  function get(){
+    if(dead||!window.AU)return null;
+    try{AU.init();}catch(e){}
+    ctx=AU.ctx;if(!ctx)return null;
+    const v=vol();if(!(v>0)){if(master)master.gain.value=0;return null;}
+    if(ctx.state==='suspended')ctx.resume().catch(()=>{});
+    if(!master){master=ctx.createGain();master.connect(ctx.destination);}
+    master.gain.value=v;
+    if(!nb){nb=ctx.createBuffer(1,ctx.sampleRate*2|0,ctx.sampleRate);const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
+    return ctx;
+  }
+  function env(g,t0,a,pk,d){g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(Math.max(.0002,pk),t0+a);g.gain.exponentialRampToValueAtTime(.0001,t0+a+d);}
+  function osc(type,f,t0,a,pk,d,f2){const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+a+d);env(g,t0,a,pk,d);o.connect(g);g.connect(master);o.start(t0);o.stop(t0+a+d+.05);}
+  function noise(t0,a,pk,d,ft,fq,q,fq2){const s=ctx.createBufferSource();s.buffer=nb;s.loop=true;const f=ctx.createBiquadFilter();f.type=ft;f.frequency.setValueAtTime(fq,t0);if(fq2)f.frequency.exponentialRampToValueAtTime(fq2,t0+a+d);f.Q.value=q||1;const g=ctx.createGain();env(g,t0,a,pk,d);s.connect(f);f.connect(g);g.connect(master);s.start(t0,Math.random());s.stop(t0+a+d+.05);}
+  return {
+    play(n,k){
+      k=k==null?1:k;if(k<=0)return;const c=get();if(!c)return;const t=c.currentTime+.01;
+      try{switch(n){
+        case 'chime':osc('sine',659,t,.01,.07*k,1.1);osc('sine',523,t+.42,.01,.07*k,1.4);break;
+        case 'intercom':osc('triangle',784,t,.01,.11*k,.9);osc('triangle',622,t+.5,.01,.11*k,1.5);break;
+        case 'drip':osc('sine',1500,t,.002,.07*k,.16,360);break;
+        case 'heart':osc('sine',60,t,.012,.28*k,.22,38);osc('sine',58,t+.3,.012,.2*k,.26,36);break;
+        case 'creak':{const o=ctx.createOscillator(),f=ctx.createBiquadFilter(),g=ctx.createGain();o.type='sawtooth';o.frequency.setValueAtTime(70,t);for(let i=1;i<9;i++)o.frequency.linearRampToValueAtTime(55+Math.random()*70,t+i*.12);f.type='bandpass';f.frequency.value=850;f.Q.value=7;env(g,t,.08,.12*k,1);o.connect(f);f.connect(g);g.connect(master);o.start(t);o.stop(t+1.2);}break;
+        case 'static':noise(t,.004,.1*k,.42,'highpass',2400,.7);noise(t,.004,.05*k,.3,'bandpass',600,2);break;
+        case 'thunder':noise(t,.03,.32*k,2.8,'lowpass',420,.7,55);noise(t+.04,.01,.12*k,.35,'lowpass',1600,.5);break;
+        case 'whisper':noise(t,.35,.05*k,1.4,'bandpass',900,9,2400);noise(t+.25,.3,.035*k,1.2,'bandpass',1700,9,650);break;
+        case 'knock':[0,.24].forEach(o=>{noise(t+o,.003,.28*k,.12,'lowpass',520,1);osc('sine',120,t+o,.003,.14*k,.1,70);});break;
+        case 'step':noise(t,.006,.16*k,.2,'lowpass',280,1);break;
+        case 'phone':[0,.17].forEach(o=>osc('square',1320,t+o,.004,.04*k,.11));break;
+        case 'hum':osc('sawtooth',62,t,.35,.05*k,1.6);osc('sawtooth',93,t,.35,.025*k,1.6);break;
+        case 'tick':osc('sine',1900+Math.random()*200,t,.002,.01*k,.03);break;
+        case 'page':noise(t,.01,.05*k,.16,'bandpass',3200,1.2,1800);break;
+        case 'act':osc('sine',110,t,.05,.12*k,2.2,82);osc('triangle',220,t,.05,.03*k,1.6,164);break;
+        case 'sting':osc('sawtooth',46,t,.01,.12*k,1.4,30);noise(t,.005,.08*k,.9,'bandpass',1200,4,300);break;
+        case 'pick':osc('triangle',520,t,.005,.05*k,.12);osc('sine',780,t+.05,.005,.04*k,.18);break;
+      }}catch(e){}
+    },
+    ambient(rain,dr){
+      const c=get();if(!c)return;
+      try{
+        if(!amb){const s=c.createBufferSource();s.buffer=nb;s.loop=true;const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=450;const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2800;const g=c.createGain();g.gain.value=.0001;s.connect(hp);hp.connect(lp);lp.connect(g);g.connect(master);s.start();
+          const o=c.createOscillator();o.type='sine';o.frequency.value=46;const o2=c.createOscillator();o2.type='sine';o2.frequency.value=46.7;const og=c.createGain();og.gain.value=.0001;o.connect(og);o2.connect(og);og.connect(master);o.start();o2.start();amb={s,g,o,o2,og};}
+        const t=c.currentTime;amb.g.gain.cancelScheduledValues(t);amb.g.gain.setTargetAtTime(Math.max(.0001,.045*rain),t,.6);
+        amb.og.gain.cancelScheduledValues(t);amb.og.gain.setTargetAtTime(Math.max(.0001,dr),t,.9);
+      }catch(e){}
+    },
+    stop(){dead=true;if(amb){try{amb.s.stop();amb.o.stop();amb.o2.stop();}catch(e){}}amb=null;if(master){try{master.disconnect();}catch(e){}}master=null;},
+  };
+}
+
+// ───────────────────────── 記録 ─────────────────────────
+function hdata(){
+  const d=gs.horrorData||(gs.horrorData={});
+  d.read=d.read||{};d.ends=d.ends||{};
+  if(d.mild==null)d.mild=false;if(d.speed==null)d.speed=1;d.auto=!!d.auto;d.plays=d.plays||0;
+  return d;
+}
+const baseStories=()=>STORIES.filter(s=>!s.hidden);
+const hiddenOpen=d=>baseStories().every(s=>d.read[s.id]);
+const storyEnds=(d,s)=>ENDK.filter(k=>d.ends[s.id+':'+k]).length;
+const totalEnds=d=>STORIES.reduce((a,s)=>a+storyEnds(d,s),0);
+function pickStory(d){
+  const avail=STORIES.filter(s=>!s.hidden||hiddenOpen(d));
+  const unread=avail.find(s=>!d.read[s.id]);if(unread)return unread;
+  const miss=avail.filter(s=>storyEnds(d,s)<3&&s.id!==d.last);
+  const pool=miss.length?miss:avail.filter(s=>s.id!==d.last);
+  return pool[Math.floor(Math.random()*pool.length)]||avail[0];
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));

@@ -299,7 +299,9 @@ registerMinigame({
       <div class="esc-inv">${[0,1,2,3,4].map(i=>`<button class="esc-slot" data-slot="${i}"></button>`).join('')}<button class="esc-hint">ヒント<br>残3</button></div>
     </div>`;
     const $=s=>body.querySelector(s);
-    const stage=$('.esc-stage'),cv=$('.esc-cv'),cx=cv.getContext('2d');
+    const stage=$('.esc-stage'),cv=$('.esc-cv'),mainCx=cv.getContext('2d');
+    let cx=mainCx;
+    const bgCache={};
     const msgEl=$('.esc-msg'),zoomEl=$('.esc-zoom'),zt=$('.esc-zt'),zc=$('.esc-zc'),flashEl=$('.esc-flash');
     const dark=document.createElement('canvas'),dx=dark.getContext('2d');
     const dlgEl=$('.esc-dlg');
@@ -373,7 +375,7 @@ registerMinigame({
     const rusts=Array.from({length:7},()=>({x:R0(),y:.05+R0()*.3,l:.08+R0()*.25,w:.006+R0()*.014}));
     // 壁と床のざらつき（ノイズのパターン）
     const grain=document.createElement('canvas');grain.width=grain.height=96;
-    {const g=grain.getContext('2d'),id=g.createImageData(96,96);for(let i=0;i<id.data.length;i+=4){const v=R0()*255;id.data[i]=id.data[i+1]=id.data[i+2]=v;id.data[i+3]=38;}g.putImageData(id,0,0);
+    {const g=grain.getContext('2d'),id=g.createImageData(96,96);for(let i=0;i<id.data.length;i+=4){const v=R0()*255;id.data[i]=id.data[i+1]=id.data[i+2]=v;id.data[i+3]=16;}g.putImageData(id,0,0);
      g.fillStyle='rgba(0,0,0,.25)';for(let k=0;k<40;k++)g.fillRect(R0()*96,R0()*96,1+R0()*3,1);}
     let grainPat=null;
     // 粒子（入手・解錠の演出）と天井からの雫
@@ -431,6 +433,7 @@ registerMinigame({
       dpr=Math.min(2.5,window.devicePixelRatio||1);
       W=Math.max(1,Math.round(r.width));H=Math.max(1,Math.round(r.height));
       cv.width=W*dpr;cv.height=H*dpr;dark.width=W*dpr;dark.height=H*dpr;
+      for(const k in bgCache)delete bgCache[k];
     }
 
     // ── UI ──
@@ -488,7 +491,7 @@ registerMinigame({
       const i=ROOMS.indexOf(S.room)+d;
       if(i<0||i>=ROOMS.length)return;
       closeZoom(true);
-      trans={to:ROOMS[i],d,t:0,sw:false};AU.se('btn');
+      trans={to:ROOMS[i],d,t:0,sw:false,t0:performance.now()};AU.se('btn');
     }
 
     // ── ヒント ──
@@ -871,7 +874,7 @@ registerMinigame({
     cv.addEventListener('pointerdown',e=>{
       e.preventDefault();
       const [x,y]=toNorm(e);tlx=x;tly=y;
-      if(!S.started||trans||S.door||S.over)return;
+      if(!S.started||(trans&&!trans.sw)||S.door||S.over)return;
       ripple={x,y,t:0};
       const h=hitAt(x,y);
       if(h)tapHotspot(h);
@@ -911,6 +914,17 @@ registerMinigame({
     const RX=h=>[X(h.x),Y(h.y),X(h.w),Y(h.h)];
     function grad(y0,y1,a,b){const g=cx.createLinearGradient(0,y0,0,y1);g.addColorStop(0,a);g.addColorStop(1,b);return g;}
     function room(top,bot,floorA,floorB){
+      const key=top+'|'+W+'x'+H+'@'+dpr;
+      let c=bgCache[key];
+      if(!c){
+        c=document.createElement('canvas');c.width=W*dpr;c.height=H*dpr;
+        const keep=cx;cx=c.getContext('2d');cx.setTransform(dpr,0,0,dpr,0,0);
+        try{roomBG(top,bot,floorA,floorB);}finally{cx=keep;}
+        bgCache[key]=c;
+      }
+      cx.drawImage(c,0,0,W,H);
+    }
+    function roomBG(top,bot,floorA,floorB){
       const fy=Y(FLOOR);
       cx.fillStyle=grad(0,fy,top,bot);cx.fillRect(0,0,W,fy);
       // 壁パネルの継ぎ目・汚れ
@@ -935,8 +949,7 @@ registerMinigame({
       for(let i=-9;i<=9;i++){const x0=W/2+i*W*.13;const t=(fy-H)/(vy-H);cx.beginPath();cx.moveTo(x0+(vx-x0)*t,fy);cx.lineTo(x0,H);cx.stroke();}
       for(let k=1;k<8;k++){const y=fy+(H-fy)*Math.pow(k/8,1.7);cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();}
       cx.fillStyle='#08060f';cx.fillRect(0,fy-3,W,5);
-      if(!grainPat)grainPat=cx.createPattern(grain,'repeat');
-      cx.fillStyle=grainPat;cx.fillRect(0,0,W,H);
+      cx.fillStyle=cx.createPattern(grain,'repeat');cx.fillRect(0,0,W,H);
       // 床のひび・油じみ
       cx.strokeStyle='rgba(0,0,0,.45)';cx.lineWidth=1;cx.beginPath();cx.moveTo(X(.12),Y(.9));cx.lineTo(X(.2),Y(.87));cx.lineTo(X(.23),Y(.93));cx.moveTo(X(.8),Y(.95));cx.lineTo(X(.86),Y(.9));cx.stroke();
       cx.fillStyle='rgba(20,14,30,.6)';cx.beginPath();cx.ellipse(X(.3),Y(.95),X(.08),Y(.012),0,0,7);cx.fill();
@@ -1457,7 +1470,7 @@ registerMinigame({
       appr('drawer',S.drawer,dt,3);appr('locker',S.locker,dt,1.6);appr('panel',S.panel,dt,1.8);appr('plcCover',S.plcCover,dt,1.5);
       appr('shutter',S.air,dt,.35);appr('door',S.door,dt,.42);
       if(trans){
-        trans.t+=dt/.55;
+        trans.t=(performance.now()-trans.t0)/550;
         if(!trans.sw&&trans.t>=.5){trans.sw=true;S.room=trans.to;updNav();AU.se('btn');}
         if(trans.t>=1)trans=null;
       }
