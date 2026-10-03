@@ -1068,7 +1068,7 @@ const STORIES=[
  c2b:['r:窓ガラスは雨で曇っていて、顔は見えませんでした。','r:でも、その子がガラスにおでこをつけて、じっとこちらを見ているのは、わかりました。',{set:{child:2}},{fx:'shake'},{snd:'knock'},{face:'fear'},
   'r:息で曇ったガラスに、小さな指で、何かを書いていました。','c:？|お名前、書いてましたよ','c3:常|やめろって','c3:さ|今のコメント、名前ないよ……？',{go:'p3'}],
  c2c:['d:……ごめん、ちょっとだけ。子ども、見てきます。','s:――マイク、ミュート。三十秒。',{wait:1000},'c:夜|いってらっしゃい','c:ひ|待ってるね','c:さ|パパしてる','d:……寝てた。布団、蹴っ飛ばしてた。……続けます。',{go:'p3'}],
- p3:[{act:3,title:'名前'},{bg:'n_genkan',tr:'fade'},{set:{child:0}},
+ p3:[{act:3,title:'名前'},{set:{child:0}},{bg:'n_genkan',tr:'fade'},
   'r:その日から、私は雨の日の戸締まりのとき、必ず玄関に声をかけるようになりました。','r:「おむかえ、来たよ」って。',
   'r:翌朝になると、長靴はやっぱり、なくなっていました。',
   'r:園を辞める最後の日。下駄箱の長靴に、初めて名前が書いてありました。',{bg:'n_boots',tr:'mosaic'},{set:{name:1}},
@@ -1651,7 +1651,7 @@ registerMinigame({
       viewEl.textContent='👁 '+v;heartEl.textContent='♥ '+(hearts+Math.round(T*.15));
     },1000);
     mg.loop(dt=>{
-      T+=dt;
+      dt=Math.max(0,dt);T+=dt;
       // 雷
       ltNext-=dt;if(ltNext<=0){ltNext=9+Math.random()*14;if(rainI>.4&&OUTDOOR[bg]&&phase!=='title'){lt=hd.mild?.35:.9;if(!hd.mild)later(()=>snd('thunder',.3),900+Math.random()*900);}else if(rainI>.4&&phase==='title'){lt=.6;}}
       if(lt>0){const ph=lt;lt=Math.max(0,lt-dt*(lt>.6?1.4:2.2));if(ph>.75&&lt<=.75&&Math.random()<.6)lt=.95;}

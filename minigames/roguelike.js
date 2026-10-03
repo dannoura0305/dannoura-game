@@ -63,7 +63,7 @@ addMinigameStyle('rogue',`
 .rg-txt{font-family:var(--serif);font-size:.76rem;line-height:1.75;color:var(--tx-b);min-height:3.5em;}
 .rg-next{align-self:flex-end;font-size:.62rem;color:var(--cy);animation:rgBlink 1s steps(2) infinite;}
 .rg-skip{position:absolute;top:8px;right:8px;background:rgba(5,4,14,.7);border:1px solid rgba(138,82,212,.5);color:var(--tx);font-family:var(--dot);font-size:.62rem;padding:4px 10px;border-radius:3px;cursor:pointer;}
-.rg-end{background:radial-gradient(ellipse at 50% 30%,rgba(30,20,60,.9),rgba(5,4,14,.97) 70%);padding:12px;gap:7px;}
+.rg-end{background:radial-gradient(ellipse at 50% 30%,rgba(26,18,52,.97),rgba(5,4,14,.99) 70%);padding:12px;gap:7px;}
 .rg-gl{font-family:var(--mono);font-size:.58rem;color:var(--tx-d);letter-spacing:.4em;}
 .rg-grade{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--dot);font-size:3.5rem;border:3px double currentColor;box-shadow:0 0 24px currentColor,inset 0 0 18px currentColor;text-shadow:0 0 12px currentColor;opacity:0;transform:scale(2.6) rotate(-24deg);transition:transform .38s cubic-bezier(.2,1.7,.4,1),opacity .18s;}
 .rg-grade.in{opacity:1;transform:scale(1) rotate(-8deg);}
@@ -1034,7 +1034,7 @@ registerMinigame({
       hideIntro();scene='end';
       gradeInfo=computeGrade(reason);
       const clear=reason==='clear',g=gradeInfo.g;
-      const isNew=gradeInfo.score>(REC.bestScore||0);
+      const isNew=gradeInfo.g!=='C'&&gradeInfo.score>(REC.bestScore||0);
       let face,lines;
       if(clear&&(g==='S'||g==='A')){face='win';lines=['点検、全部終わり。夜明けの光が配管に反射してる。','手当で今月の返済、少し楽になる。……さあ、迎えに行こう。'];}
       else if(clear){face='happy';lines=['なんとか朝まで持った。見落としは、明日の俺に任せる。','眠い。でも、あの子の顔を見たら起きていられる。'];}

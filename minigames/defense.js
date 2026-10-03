@@ -1125,12 +1125,12 @@ registerMinigame({
       // 成績（順に表示）
       const rows=[['到達ウェーブ',`${wave}/${WAVES}`],['残った心',`${lives}/${MAX_LIVES}`],['撃退数',`${kills}`],['防衛時間',`${Math.floor(playT/60)}:${String(Math.round(playT)%60).padStart(2,'0')}`]];
       g.font=fnt(Math.max(13,C*.24));
-      const sy=gy+R+C*.55,lh=Math.max(20,C*.4);
+      const sy=gy+R+C*1.15,lh=Math.max(20,C*.4);
       rows.forEach((r,i)=>{if(e.t<1.2+i*.15)return;const y=sy+i*lh;
         g.textAlign='right';g.fillStyle='#9a8fb0';g.fillText(r[0],W/2-10,y);g.textAlign='left';g.fillStyle='#e8dcff';g.fillText(r[1],W/2+10,y);});
       g.textAlign='center';
       let ny=sy+rows.length*lh+6;
-      drawStars(g,W/2,gy-R-C*.38,e.stars,Math.min(1,Math.max(0,(e.t-1.1)/.6)),C*.32);
+      drawStars(g,W/2,gy+R+C*.5,e.stars,Math.min(1,Math.max(0,(e.t-1.1)/.6)),C*.32);
       ny+=4;
       if(e.better&&e.t>1.9&&Math.floor(t*4)%2){g.fillStyle='#ffd84a';g.font=fnt(14);g.fillText('★ NEW RECORD ★',W/2,ny);}
       ny+=22;

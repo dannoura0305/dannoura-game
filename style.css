@@ -750,3 +750,12 @@ body.mg-active #cutin-wrap{display:none;}
   .ui-delta{animation-duration:.01s !important;}
   .ui-gauge > b,.ui-gauge > i,.srf,.day-line-fill{transition:none !important;}
 }
+
+/* ── main/ui.js 補助 ── */
+.ui-grp.half{grid-column:auto;}
+.ui-moonwrap{display:flex;align-items:center;}
+.choice-btn[disabled],.sc[disabled],.ev-btn[disabled]{opacity:.4;cursor:not-allowed;filter:saturate(.3);}
+.ui-rich{display:flex;align-items:center;gap:7px;}
+.notif.ui-danger{border-color:#ff9aac;background:var(--win-orn),var(--win-scan),linear-gradient(180deg,#5a1630,#2a0a1a 70%,#1a0612);}
+#ui-hand{width:16px;height:11px;}
+#ui-hand svg{width:16px;height:11px;}

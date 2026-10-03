@@ -97,7 +97,24 @@ registerMinigame({
     // 立ち絵（タイトル・会話・エンディング用）
     const IMG={};
     ['normal','tired','fear','happy'].forEach(k=>{const im=new Image();im.src='assets/img/char_'+k+'.webp';IMG[k]=im;});
-    IMG.sd=new Image();IMG.sd.src='assets/img/sd_normal.webp';
+    // SD絵は白背景なので、外側の白だけを透明にしたコピーを作る（目の白などは残す）
+    IMG.sd=new Image();
+    IMG.sd.onload=()=>{
+      try{
+        const im=IMG.sd,w=im.naturalWidth,h=im.naturalHeight,c=document.createElement('canvas');c.width=w;c.height=h;
+        const g=c.getContext('2d');g.drawImage(im,0,0);
+        const d=g.getImageData(0,0,w,h),a=d.data,seen=new Uint8Array(w*h),st=[];
+        const white=i=>a[i*4]>226&&a[i*4+1]>226&&a[i*4+2]>226;
+        for(let x=0;x<w;x++){st.push(x,(h-1)*w+x);}for(let y=0;y<h;y++){st.push(y*w,y*w+w-1);}
+        while(st.length){const i=st.pop();if(seen[i]||!white(i))continue;seen[i]=1;a[i*4+3]=0;
+          const x=i%w;if(x>0)st.push(i-1);if(x<w-1)st.push(i+1);if(i>=w)st.push(i-w);if(i<w*(h-1))st.push(i+w);}
+        // 縁のにじみを少し消す
+        for(let i=0;i<w*h;i++){if(seen[i])continue;const x=i%w;
+          if((x>0&&seen[i-1])||(x<w-1&&seen[i+1])||(i>=w&&seen[i-w])||(i<w*(h-1)&&seen[i+w])){if(a[i*4]>190&&a[i*4+1]>190&&a[i*4+2]>190)a[i*4+3]=90;}}
+        g.putImageData(d,0,0);IMG.sdc=c;
+      }catch(_){}
+    };
+    IMG.sd.src='assets/img/sd_normal.webp';
 
     // ── 効果音（Web Audioで合成。AU.se と同じ音量設定に従う） ──
     const SX={
@@ -1366,12 +1383,12 @@ registerMinigame({
       // 忍び足のだんのうら（SDの立ち絵を、つま先立ちで揺らす）
       const dir=Math.cos(sceneT*.6)>0?1:-1;
       const px=W*.5+Math.sin(sceneT*.6)*W*.2, py=H*.74;
-      const im=IMG.sd,sh=Math.min(150,H*.2);
+      const im=IMG.sdc||null,sh=Math.min(150,H*.2);
       const step=Math.sin(sceneT*5);
       cx.globalAlpha=f*.5;cx.fillStyle='#000';cx.beginPath();cx.ellipse(px,py+sh*.48,sh*.26,sh*.05,0,0,7);cx.fill();
       cx.globalAlpha=f;
-      if(im.complete&&im.naturalWidth){
-        const iw=sh*im.naturalWidth/im.naturalHeight;
+      if(im){
+        const iw=sh*im.width/im.height;
         cx.save();cx.translate(px,py+sh*.48-Math.abs(step)*5);cx.rotate(step*.06);cx.scale(dir,1);
         cx.drawImage(im,-iw/2,-sh,iw,sh);cx.restore();
       }
@@ -1380,7 +1397,7 @@ registerMinigame({
       cx.fillText('しーっ……',px+dir*sh*.42,py-sh*.42+Math.sin(clock*3)*2);
       // 足音の波紋（ちいさく）
       const rp=(sceneT*1.2)%1;cx.globalAlpha=(1-rp)*.5*f;cx.strokeStyle='#bbaedd';cx.lineWidth=1;
-      cx.beginPath();cx.ellipse(px,py+sh*.48,14+rp*44,4+rp*10,0,0,7);cx.stroke();
+      cx.beginPath();cx.ellipse(px,py+sh*.48,Math.max(1,14+rp*44),Math.max(1,4+rp*10),0,0,7);cx.stroke();
       cx.globalAlpha=f*(.5+Math.sin(clock*4)*.3);cx.font=`12px ${FONT}`;cx.fillStyle='#deccf8';cx.fillText('タップで始める',W/2,H*.9);
       cx.globalAlpha=1;
     }
@@ -1580,6 +1597,7 @@ registerMinigame({
     // テスト用のハンドル（ゲーム内容には影響しない）
     cv._dbg={P,ST,toys,cat,get t(){return t;},set t(v){t=v;},get noise(){return noise;},set noise(v){noise=v;},get scene(){return scene;},get phase(){return phase;},get grade(){return grade;},get dbg2(){return [talkI,talkC,!!trans,trans&&trans.t];}};
     mg.loop(dt=>{
+      dt=dt>0?dt:0; // 最初のフレームは負になることがある
       update(dt);
       if(mg._ended)return;
       draw();hud();

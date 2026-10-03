@@ -9,6 +9,8 @@
 // ══════════════════════════════════════════════════════════
 const MINIGAMES=[];
 function registerMinigame(def){MINIGAMES.push(def);}
+// ミニゲーム画面の見出し：タイトルは折り返さず、説明が長ければ「…」で省略する
+document.head.insertAdjacentHTML('beforeend','<style id="mg-style-core">#mg-screen .mini-hd{min-width:0;}#mg-screen .mini-ttl{white-space:nowrap;flex-shrink:0;}#mg-screen .mg-help{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}</style>');
 // 各ゲーム専用のCSSを一度だけ<head>に差し込む（style.cssを共有で編集しなくて済むように）
 function addMinigameStyle(id,css){
   if(document.getElementById('mg-style-'+id))return;
@@ -114,7 +116,7 @@ const MG={
     if(!def)return;
     if(playedMinigameToday(id)){showNotif('今日はもうプレイした。また明日。');return;}
     closeMinigamePicker();
-    this.def=def;this._ended=false;this._onEnd=[];
+    this.def=def;this._ended=false;this._onEnd=[];this._loopErr=false;
     this.el('mg-title').textContent=def.icon+' '+def.name;
     this.el('mg-help').textContent=def.help;
     const body=this.el('mg-body');
@@ -135,7 +137,8 @@ const MG={
     const step=now=>{
       if(this._ended)return;
       const dt=Math.min(.05,(now-last)/1000);last=now;
-      fn(dt);
+      // 1フレームの例外でゲーム全体が止まらないようにする（同じエラーは何度も出さない）
+      try{fn(dt);}catch(e){if(!this._loopErr){this._loopErr=true;console.error(e);}}
       if(!this._ended)this._raf=requestAnimationFrame(step);
     };
     this._raf=requestAnimationFrame(step);

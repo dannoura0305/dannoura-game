@@ -47,9 +47,9 @@ addMinigameStyle('fishing',`
 .mg-fishing .fishing-zc .d{font-family:var(--mono);font-size:.54rem;color:var(--tx-d);line-height:1.5;}
 .mg-fishing .fishing-zclose{margin:10px auto 0;display:block;background:transparent;border:1px solid rgba(138,82,212,.6);color:var(--tx-b);
   font-family:var(--dot);font-size:.72rem;padding:6px 22px;border-radius:14px;cursor:pointer;}
-.mg-fishing .fishing-talk{position:absolute;left:8px;right:8px;bottom:8px;z-index:4;display:flex;gap:10px;align-items:stretch;
+.mg-fishing .fishing-talk{position:absolute;left:8px;right:8px;top:8px;z-index:4;display:flex;gap:10px;align-items:stretch;
   background:linear-gradient(180deg,rgba(14,10,32,.95),rgba(8,6,20,.96));border:1px solid rgba(138,82,212,.65);border-radius:10px;padding:9px 10px;
-  box-shadow:0 0 24px rgba(0,0,0,.6),inset 0 0 18px rgba(138,82,212,.1);opacity:0;transform:translateY(12px);transition:opacity .3s,transform .3s;pointer-events:none;touch-action:none;}
+  box-shadow:0 0 24px rgba(0,0,0,.6),inset 0 0 18px rgba(138,82,212,.1);opacity:0;transform:translateY(-12px);transition:opacity .3s,transform .3s;pointer-events:none;touch-action:none;}
 .mg-fishing .fishing-talk.on{opacity:1;transform:none;pointer-events:auto;}
 .mg-fishing .fishing-pt{flex:0 0 68px;width:68px;height:68px;border-radius:8px;overflow:hidden;border:1px solid rgba(222,204,248,.35);background:#120d26;}
 .mg-fishing .fishing-pt img,.mg-fishing .fishing-pt canvas{width:100%;height:100%;display:block;object-fit:cover;}
@@ -228,7 +228,7 @@ registerMinigame({
       const R=mkRng(seed0+99);
       const rr=(a,b)=>a+R()*(b-a);
       HZ=Math.round(H*.4);PY=Math.round(H*.85);
-      U=clamp(Math.min(W/390,H/760),.72,1.35);
+      U=clamp(Math.min(W/360,H/700),.75,1.4);
       const WW=W+M*2; // 左右に余白
       const moon={x:W*.76+M,y:H*.12,r:Math.max(13,Math.min(W,H)*.042)};
       const lit=.15+.85*Math.sin(Math.PI*moonPhase); // 月の明るさ
@@ -931,7 +931,7 @@ registerMinigame({
       catches.forEach(c=>{const s=SP[c.id];score+=10+c.sf*6+(s.r-1)*12+(c.big?6:0);});
       score+=newSpecies*6;
       score=Math.round(score);
-      grade=score>=80?'S':score>=55?'A':score>=28?'B':'C';
+      grade=score>=110?'S':score>=75?'A':score>=40?'B':'C';
     }
     function startEnding(){
       computeGrade();
@@ -1394,7 +1394,7 @@ registerMinigame({
       for(const l of BR.lights){
         if(!l.refl)continue;
         for(let i=0;i<5;i++){
-          const y=HZ+2+i*i*2.2+i*2+Math.sin(l.ph+i)*1.2;const ox=Math.sin(t*2.1+l.ph+i*1.3)*(1+i*.6);
+          const y=HZ+2+l.ph*.6+i*i*(1.8+l.ph*.12)+i*2+Math.sin(l.ph*7+i)*1.5;const ox=Math.sin(t*2.1+l.ph+i*1.3)*(1+i*.6);
           cx.fillStyle=`rgba(${l.c},${(.24-i*.042)*(.6+.4*Math.sin(t*1.5+l.ph*3+i))})`;cx.fillRect(l.x+fx+ox-.8,y+oy,1.4+i*.35,1.4+i*.6);
         }
       }
@@ -1570,7 +1570,7 @@ registerMinigame({
     function rr(x,y,w,h,r){r=Math.min(r,w/2,h/2);cx.beginPath();cx.moveTo(x+r,y);cx.arcTo(x+w,y,x+w,y+h,r);cx.arcTo(x+w,y+h,x,y+h,r);cx.arcTo(x,y+h,x,y,r);cx.arcTo(x,y,x+w,y,r);cx.closePath();}
     function drawUI(t){
       cx.textAlign='center';cx.textBaseline='middle';
-      const gy=PY-H*.075;
+      const gy=PY-H*.1;
       if(state==='charge'){
         const w=Math.min(W*.62,260),x=(W-w)/2;
         cx.fillStyle='rgba(8,6,20,.72)';rr(x-4,gy-9,w+8,18,9);cx.fill();
@@ -1635,7 +1635,7 @@ registerMinigame({
     function drawTitle(t){
       const a=state==='pan'?Math.max(0,1-stT/.8):1;
       if(a<=0)return;
-      const y0=H*.24;
+      const y0=H*.42;
       cx.save();cx.globalAlpha=a;cx.textAlign='center';cx.textBaseline='middle';
       cx.font=`12px ${FONT}`;cx.fillStyle='rgba(191,246,238,.85)';cx.fillText('─ 壇ノ浦・夜の港で ─',W/2,y0-48);
       // ロゴ
@@ -1646,7 +1646,6 @@ registerMinigame({
       cx.fillStyle=lg;cx.fillText('夜 釣 り',W/2,y0);
       cx.shadowBlur=0;
       // 水面の反射のようなロゴの影
-      cx.save();cx.translate(0,y0*2+fs*.9);cx.scale(1,-.35);cx.globalAlpha=a*.18;cx.fillStyle='#8fb8ff';cx.fillText('夜 釣 り',W/2+Math.sin(t*2)*2,y0);cx.restore();
       cx.globalAlpha=a;
       // ウキの飾り
       const fx=W/2+fs*2.1,fy=y0-fs*.35+Math.sin(t*1.6)*2;
@@ -1657,7 +1656,7 @@ registerMinigame({
       cx.font=`11px ${FONT}`;cx.fillStyle='rgba(187,174,221,.8)';
       const b=FD.best;
       cx.fillText(`今夜：${WNAME}・${MOON_NAME}　図鑑 ${zCount()}/${SPECIES.length}`+(b?`　最高評価 ${b.grade}`:''),W/2,y0+fs*.85+26);
-      if(state==='title'){cx.font=`14px ${FONT}`;cx.fillStyle=`rgba(222,204,248,${.45+.45*Math.sin(t*3)})`;cx.fillText('タップではじめる',W/2,H*.56);}
+      if(state==='title'){cx.font=`14px ${FONT}`;cx.fillStyle=`rgba(222,204,248,${.45+.45*Math.sin(t*3)})`;cx.fillText('タップではじめる',W/2,H*.6);}
       cx.restore();
     }
     function drawEnding(t){

@@ -63,7 +63,7 @@ registerMinigame({
   id:'blocks', icon:'🧱', name:'部品積み込み', genre:'落ち物パズル', bgm:'factory',
   desc:'落ちてくる部品や木箱をパレットに積み込む。横一列そろえばフォークリフトが「出荷！」。90秒でどれだけ出荷できるか。',
   effect:'収入↑ 仕事評価↑ 精神↑ ／ 疲労+6 約45分',
-  help:'左右タップ/←→移動・ピースタップ/↑Xで回転・下に払う/Spaceで落下・C保留',
+  help:'タップで移動・回転／下に払って落下',
   start(body,mg){
     // ── 定数 ──
     const COLS=10, ROWS=22, HID=2, TIME=90, LOCK_DELAY=.5, MAX_RESETS=15, CLEAR_T=.34;
@@ -733,7 +733,7 @@ registerMinigame({
       if(scLines){const L=scLines[scIdx];if(scChars<L.text.length){const before=Math.floor(scChars);scChars=Math.min(L.text.length,scChars+dt*34);
         if(Math.floor(scChars)!==before){scLine.textContent=L.text.slice(0,Math.floor(scChars));if(++scBlip%3===0)sfx('blip');}}}
       if(scGradeT>0){scGradeT-=dt;if(scGradeT<=0){scGrade.classList.add('stamp');sfx('stamp');shake=6;}}
-      if(phase==='title'||phase==='story'){introT+=dt;updateFx(dt);return;}
+      if(phase==='title'||phase==='story'){introT=(performance.now()-openAt)/1000;updateFx(dt);return;}
       if(hitstop>0){hitstop-=dt;return;} // ヒットストップ
       if(phase==='play'||phase==='clear'){
         t+=dt;
@@ -1254,11 +1254,6 @@ registerMinigame({
     hud();
     let perfMs=0;
     mg.loop(dt=>{const t0=performance.now();update(dt);if(!mg._ended)draw();perfMs=perfMs*.95+(performance.now()-t0)*.05;});
-
-    // テスト用の内部状態参照
-    this._dbg={get board(){return board;},set board(b){board=b;},get cur(){return cur;},get phase(){return phase;},get queue(){return queue;},
-      get lines(){return lines;},set lines(v){lines=v;},get t(){return t;},set t(v){t=v;},get score(){return score;},get spIdx(){return spIdx;},get mode(){return mode;},get perfMs(){return perfMs;},
-      toStory,startGame,advanceScene,finishScene,hardDrop,move,rotate,doHold,spawn,pushGarbage};
 
     return {result(reason){
       window.removeEventListener('resize',onResize);

@@ -240,8 +240,8 @@ const HERO=[
 '..HhHHHHHHHHHHHHhHHFF.',
 '.HHHHSSHSSSSHSSHHHHH..',
 '.HHHSSSSSSSSSSSSHHHHH.',
-'.HHGGGGGSSSSGGGGGHHHH.',
-'.HHG111GGGGGG222GHHHH.',
+'.HHGGGGGsSSsGGGGGHHHH.',
+'.HHG111GSSSSG222GHHHH.',
 '.HHG333GSSSSG444GHHHHh',
 '.HHGGGGGSSSSGGGGGHHHHh',
 '.HHSBBSSSSSSSSBBSHHHhh',
@@ -258,7 +258,7 @@ const HERO=[
 '.JJjJJJJJPPJJJJJjJJ...',
 '.SSjJJJJJPPJJJJJjSS...',
 ];
-const HERO_PAL={H:'#3d2163',h:'#6b3fa8',S:'#f8dccb',s:'#e2b09e',E:'#2a1440',W:'#ffffff',G:'#211634',L:'#fff1ea',B:'#ff9aaa',M:'#b8304f',m:'#ff7a95',F:'#ff9ad5',f:'#fff0f8',J:'#b9a6e6',j:'#8c78c4',P:'#ff8fb0',C:'#efe8ff'};
+const HERO_PAL={H:'#3d2163',h:'#6b3fa8',S:'#f8dccb',s:'#e2b09e',E:'#2a1440',W:'#ffffff',G:'#4a2f78',L:'#fff1ea',B:'#ff9aaa',M:'#b8304f',m:'#ff7a95',F:'#ff9ad5',f:'#fff0f8',J:'#b9a6e6',j:'#8c78c4',P:'#ff8fb0',C:'#efe8ff'};
 const EYES={open:['LWE','LEE'],blink:['LLL','EEE'],tired:['GGG','LEE'],happy:['LEL','ELE'],sleep:['LLL','sEs']};
 const MOUTH={close:['SMMS','SS'],talk:['MmmM','MM'],sing:['MmmM','mm'],smile:['MSSM','SS']};
 function heroRows(eye,mouth){
@@ -802,6 +802,7 @@ registerMinigame({
       <button class="mgr-press">TAP TO START</button>`);
     let titleT=0;
     const tChat=['888888','こんばんは〜','今週も楽しみ','初見です！','神回きた','おつかれさま','トレンド何？','コラボ待ってた'].map(t=>({t,x:Math.random(),v:.05+Math.random()*.05,o:Math.random()}));
+    const tStars=Array.from({length:60},()=>[Math.random(),Math.random(),Math.random()]);
     const tBars=Array.from({length:14},()=>({h:.2+Math.random()*.6,s:.5+Math.random()}));
     function drawTitle(dt){
       titleT+=dt;
@@ -809,6 +810,12 @@ registerMinigame({
       if(!W)return;
       if(tcv.width!==Math.round(W*dpr)){tcv.width=Math.round(W*dpr);tcv.height=Math.round(H*dpr);}
       const c=tcv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,W,H);
+      // 星と月
+      tStars.forEach(([x,y,ph])=>{c.globalAlpha=.25+.6*Math.abs(Math.sin(titleT*1.3+ph*7));c.fillStyle='#deccf8';c.fillRect(x*W,y*H*.5,1.5,1.5);});
+      c.globalAlpha=1;
+      const mr=Math.min(W,H)*.09,mx=W*.78,my=H*.14;
+      c.fillStyle='#fff6d8';c.shadowColor='#fff0b0';c.shadowBlur=30;c.beginPath();c.arc(mx,my,mr,0,7);c.fill();c.shadowBlur=0;
+      c.fillStyle='#0b0726';c.beginPath();c.arc(mx+mr*.42,my-mr*.18,mr*.88,0,7);c.fill();
       c.strokeStyle='rgba(138,82,212,.25)';c.lineWidth=1;
       const hy=H*.72;
       for(let i=-10;i<=10;i++){c.beginPath();c.moveTo(W/2+i*20,hy);c.lineTo(W/2+i*160,H);c.stroke();}
@@ -1072,6 +1079,13 @@ registerMinigame({
       // 机
       c.fillStyle='#1d1540';c.fillRect(0,H*.86,W,H*.14);c.fillStyle='#3a2c70';c.fillRect(0,H*.86,W,2);
       c.fillStyle='rgba(0,0,0,.25)';c.fillRect(0,H*.86+2,W,4);
+      // 机の上の小物：キーボード・マグカップ・LEDテープ
+      {const ky=H*.86+H*.035,kx=hx+3*S,kw=16*S;
+      c.fillStyle='#120c2a';c.fillRect(kx,ky,kw,H*.05);c.fillStyle='#2a2050';
+      for(let r=0;r<2;r++)for(let k=0;k<8;k++)c.fillRect(kx+3+k*(kw-6)/8,ky+3+r*(H*.05-4)/2,(kw-6)/8-2,(H*.05-8)/2);
+      const mgx=W*.9,mgy=H*.86-H*.07;c.fillStyle='#e8b830';c.fillRect(mgx,mgy,W*.045,H*.07);c.fillStyle='#b88a10';c.fillRect(mgx+W*.045,mgy+H*.015,4,H*.035);
+      if(!off){c.globalAlpha=.4+.3*Math.sin(clock*2);c.fillStyle='#ffffff';c.fillRect(mgx+3,mgy-6-Math.sin(clock*3)*2,2,4);c.fillRect(mgx+8,mgy-9+Math.sin(clock*3)*2,2,5);c.globalAlpha=1;}
+      const led=c.createLinearGradient(0,0,W,0);led.addColorStop(0,off?'#2a2050':col);led.addColorStop(1,off?'#1a1030':'#8a52d4');c.fillStyle=led;c.globalAlpha=off?.4:.7+.3*Math.sin(clock*2.5);c.fillRect(0,H-3,W,3);c.globalAlpha=1;}
       // マイク
       if(live){const mx2=hx+18*S+sway,my2=hy+11*S;c.fillStyle='#4a4a60';c.fillRect(mx2+S,my2+3*S,S,H*.86-my2-3*S);c.fillStyle='#2b2b36';c.fillRect(mx2,my2,3*S,4*S);c.fillStyle='#6a6a80';c.fillRect(mx2,my2,3*S,S);}
       // スマホ（告知の夜）

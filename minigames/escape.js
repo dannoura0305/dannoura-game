@@ -823,6 +823,8 @@ registerMinigame({
       S.door=true;S.clearT=T;AU.se('ach');sfx('door');renderInv();updScore();closeZoom(true);
       say('扉を押し開ける。冷たい朝の空気。雨はもう上がりかけている。',4);
     }
+    // ゲーム内の時刻（4:30開始→制限時間いっぱいで7:00）
+    function clock(){const tot=TIME+(TWIST?30:0),m=270+Math.floor((tot-Math.max(0,S.left))/tot*150);return `午前${Math.floor(m/60)}時${String(m%60).padStart(2,'0')}分`;}
     // ── 評価と記録 ──
     function grade(){const l=S.left,h=S.hints;if(h===0&&l>=100)return 'S';if(h<=1&&l>=60)return 'A';if(h<=2&&l>=20)return 'B';return 'C';}
     let prevBest=REC.bestLeft,prevGrade=REC.bestGrade;
@@ -1439,7 +1441,7 @@ registerMinigame({
       // 脱出演出
       if(S.door&&S.anim.door>.6){
         const k=(S.anim.door-.6)/.4;cx.fillStyle=`rgba(255,244,225,${k*.85})`;cx.fillRect(0,0,W,H);
-        txt('脱出成功',W/2,H*.45,W*.09,`rgba(80,40,30,${k})`);txt('午前6時42分　雨上がり',W/2,H*.53,W*.04,`rgba(120,80,60,${k})`);
+        txt('脱出成功',W/2,H*.45,W*.09,`rgba(80,40,30,${k})`);txt(clock()+'　雨上がり',W/2,H*.53,W*.04,`rgba(120,80,60,${k})`);
       }
       // 残り時間が少ないと赤く脈打つ
       if(S.started&&!S.door&&S.left<30){const a=(.5+.5*Math.sin(T*6))*.18;cx.strokeStyle=`rgba(232,48,85,${a})`;cx.lineWidth=10;cx.strokeRect(0,0,W,H);}

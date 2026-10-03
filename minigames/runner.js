@@ -728,7 +728,7 @@ registerMinigame({
         if(!prevTime||runTime<prevTime){DATA.bestTime=Math.round(runTime*10)/10;newRec=true;}
       }
       if(outcome&&(!prevBest||GRADE_RANK[g]>GRADE_RANK[prevBest])){DATA.best=g;newRec=true;}
-      DATA.bestCoins=Math.max(DATA.bestCoins|0,coins*COIN);
+      DATA.bestCoins=Math.max(DATA.bestCoins|0,Math.min(COIN_CAP,coins*COIN));
       gradeInfo={g,newRec:newRec&&outcome==='clear',prevBest};
     }
 
@@ -1807,7 +1807,7 @@ registerMinigame({
       const u=clamp(phaseT*3,0,1);
       cx.fillStyle=`rgba(4,3,10,${(.55*u).toFixed(2)})`;cx.fillRect(0,0,VW,VH);
       const g=gradeInfo?gradeInfo.g:'C';
-      const w=Math.min(VW-28,300),h=262,x=(VW-w)/2,y=Math.max(30,(VH-h)/2-30)+16*(1-ease(u));
+      const w=Math.min(VW-28,300),h=290,x=(VW-w)/2,y=Math.max(30,(VH-h)/2-30)+16*(1-ease(u));
       cx.globalAlpha=u;
       drawPanel(x,y,w,h);
       cx.textAlign='center';cx.textBaseline='middle';

@@ -84,8 +84,8 @@ addMinigameStyle('race',`
 .race-tbar.on{transform:none;}
 .race-fade{position:absolute;inset:0;background:#05040e;opacity:0;pointer-events:none;transition:opacity .45s;}
 .race-fade.on{opacity:1;}
-.race-wipe{position:absolute;top:-10%;bottom:-10%;width:160%;left:-170%;pointer-events:none;background:repeating-linear-gradient(100deg,rgba(0,232,200,.95) 0 14px,rgba(138,82,212,.95) 14px 30px,#05040e 30px 70px);transform:skewX(-18deg);}
-.race-wipe.go{animation:raceWipe .75s cubic-bezier(.6,0,.4,1) forwards;}
+.race-wipe{display:none;position:absolute;top:-10%;bottom:-10%;width:160%;left:-170%;pointer-events:none;background:repeating-linear-gradient(100deg,rgba(0,232,200,.95) 0 14px,rgba(138,82,212,.95) 14px 30px,#05040e 30px 70px);transform:skewX(-18deg);}
+.race-wipe.go{display:block;animation:raceWipe .75s cubic-bezier(.6,0,.4,1) forwards;}
 @keyframes raceWipe{from{left:-170%;}to{left:120%;}}
 .race-dlg{position:absolute;left:8px;right:8px;bottom:12px;display:flex;gap:10px;align-items:flex-start;background:var(--panel);border:1px solid var(--pu);border-radius:5px;padding:9px 10px 12px;box-shadow:0 0 24px rgba(138,82,212,.35);pointer-events:auto;cursor:pointer;animation:raceFadeIn .35s both;}
 .race-dlg img{width:68px;height:68px;border-radius:4px;border:1px solid rgba(0,232,200,.5);object-fit:cover;flex-shrink:0;background:#120c24;}
@@ -1451,6 +1451,7 @@ registerMinigame({
     function frame(dt){
       if(mg._ended||cleaned){cleanup();return;}
       if(!renderer)return;
+      dt=dt>0?dt:0;   // 初回フレームはrAFの時刻が開始時より前になることがある
       time+=dt;
       if(dlg&&dlg.shown<dlg.full.length){dlg.shown=Math.min(dlg.full.length,dlg.shown+dt*38);dlg.ln.textContent=dlg.full.slice(0,Math.floor(dlg.shown));}
       if(phase==='count')updateCount(dt);
