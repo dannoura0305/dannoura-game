@@ -733,7 +733,7 @@ registerMinigame({
       if(spikeGrace>0)spikeGrace-=dt;
       noise-=(spikeGrace>0?2.5:6+noise*.03)*dt;
       noise=Math.max(0,noise);
-      maxNoise=Math.max(maxNoise,noise);
+      maxNoise=Math.min(100,Math.max(maxNoise,noise));
       if(phase==='play'&&t>=0){
         if(noise>=100){noise=100;wake();}
         else if(noise>66&&!stirSaid){stirSaid=true;pop(CHILD.x+22,CHILD.y-14,'ん……ぅ','#ffb0c0',11,1.4);SX.play('whimper');if(warnCd<=0){se('warn',true);warnCd=3;}}
@@ -1404,7 +1404,7 @@ registerMinigame({
     }
     function wrapText(txt,maxW){
       const out=[];let line='';
-      for(const ch of txt){if(cx.measureText(line+ch).width>maxW&&line){out.push(line);line=ch;}else line+=ch;}
+      for(const ch of txt){if(cx.measureText(line+ch).width>maxW&&line&&!'、。」）…！？ー'.includes(ch)){out.push(line);line=ch;}else line+=ch;}
       if(line)out.push(line);return out;
     }
     function drawPortrait(key,x,y,sz){
@@ -1442,7 +1442,7 @@ registerMinigame({
       }else if(endReason==='late'){grade=done>=3?'B':'C';gradeScore=done*12;}
       else{grade='C';gradeScore=done*8;}
       const R={S:4,A:3,B:2,C:1};
-      if((R[grade]||0)>(R[data.bestGrade]||0)){data.bestGrade=grade;newBest=true;}
+      if((R[grade]||0)>(R[data.bestGrade]||0)){data.bestGrade=grade;newBest=grade!=='C';}
       if(gradeScore>(data.bestScore||0))data.bestScore=gradeScore;
       if(endReason==='clear'){
         data.clears=(data.clears||0)+1;

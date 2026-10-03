@@ -278,6 +278,7 @@ const NAV={
   topCtx(){
     for(const id of BLOCKERS){if(isActive($(id)))return null;}
     if(document.body.classList.contains('mg-active'))return null;
+    if(document.querySelector('#st-root.st-on'))return null;   // main/story.js の会話シーン
     // 他モジュールのモーダル（aria-modal）が出ている間は何もしない
     for(const m of document.querySelectorAll('[aria-modal="true"]')){
       const cs=getComputedStyle(m);
