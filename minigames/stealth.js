@@ -374,10 +374,12 @@ registerMinigame({
     function buildDark(){
       const [c,g]=mkC(WW*S,WH*S,dpr);g.setTransform(dpr*S,0,0,dpr*S,0,0);
       lyDark=c;
-      g.fillStyle='rgba(3,2,12,.80)';g.fillRect(0,0,WW,WH);
+      g.fillStyle='rgba(3,2,12,.74)';g.fillRect(0,0,WW,WH);
       g.globalCompositeOperation='destination-out';
       const hole=(x,y,r,a)=>{const gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,`rgba(0,0,0,${a})`);gr.addColorStop(.5,`rgba(0,0,0,${a*.45})`);gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(x-r,y-r,r*2,r*2);};
       hole(18,166,130,.8);
+      // 娘の寝顔がちゃんと見えるよう、布団まわりを常夜灯でほんのり照らす
+      hole(CHILD.x,CHILD.y+14,62,.78);
       hole(205,12,80,.55);
       hole(268,286,34,.35);
       hole(32,470,110,.5);
@@ -1170,6 +1172,8 @@ registerMinigame({
       gl(glow.warm,18,166,70*fl,.5);gl(glow.warm,18,166,16,.9);
       // 窓の光
       gl(glow.moon,205,8,46,.45);
+      // 娘の寝顔をやわらかく照らす
+      gl(glow.warm,CHILD.x,CHILD.y+12,46,.16+Math.sin(clock*1.9)*.02);
       // 炊飯器のLED・外のネオン
       gl(glow.gn,272,288,10,.7+Math.sin(clock*2)*.2);
       const nc=(Math.sin(clock*.5)+1)/2;

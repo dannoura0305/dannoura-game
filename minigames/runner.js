@@ -548,11 +548,14 @@ registerMinigame({
       g.moveTo(px+26,py+24);g.arc(px+26,py+24,3,0,TAU);g.moveTo(px+26,py+27);g.lineTo(px+26,py+33);g.stroke();
       g.fillStyle='rgba(232,80,120,.8)';g.font='7px "DotGothic16", monospace';g.fillText('パパ',px+6,py+8);
       g.fillStyle='rgba(200,190,140,.6)';g.fillRect(px+20,py-3,10,5);
-      // 棚とぬいぐるみ
+      // 棚と目覚まし時計（クマは娘が抱いている1匹だけ）
       const sy=HF-70;
       g.fillStyle='#3a2c50';g.fillRect(VW*.04,sy,90,6);
-      g.fillStyle='#c8a888';g.beginPath();g.arc(VW*.04+24,sy-12,10,0,TAU);g.arc(VW*.04+16,sy-21,4,0,TAU);g.arc(VW*.04+32,sy-21,4,0,TAU);g.fill();
-      g.fillStyle='#2a1838';g.fillRect(VW*.04+20,sy-14,2,2);g.fillRect(VW*.04+27,sy-14,2,2);
+      g.fillStyle='#d85a6a';g.beginPath();g.arc(VW*.04+24,sy-11,10,0,TAU);g.fill();
+      g.beginPath();g.arc(VW*.04+16,sy-20,4,0,TAU);g.arc(VW*.04+32,sy-20,4,0,TAU);g.fill();
+      g.fillStyle='#f4efe6';g.beginPath();g.arc(VW*.04+24,sy-11,7,0,TAU);g.fill();
+      g.strokeStyle='#2a1838';g.lineWidth=1.5;g.beginPath();g.moveTo(VW*.04+24,sy-11);g.lineTo(VW*.04+24,sy-16);g.moveTo(VW*.04+24,sy-11);g.lineTo(VW*.04+28,sy-11);g.stroke();
+      g.fillStyle='#2a1838';g.fillRect(VW*.04+18,sy-2,2,2);g.fillRect(VW*.04+28,sy-2,2,2);
       g.fillStyle='#6a4a98';g.fillRect(VW*.04+50,sy-24,10,24);g.fillStyle='#4a8a98';g.fillRect(VW*.04+61,sy-20,8,20);g.fillStyle='#a84a6a';g.fillRect(VW*.04+70,sy-26,9,26);
       // 床（畳）
       gr=g.createLinearGradient(0,HF,0,VH);gr.addColorStop(0,'#2a2438');gr.addColorStop(1,'#151020');
