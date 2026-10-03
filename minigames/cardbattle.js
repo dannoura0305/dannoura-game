@@ -4,6 +4,7 @@
 // 敵の次の行動は頭上に表示。勝つたびに新しい話題カードを1枚選んでデッキに加える。
 // スキルが高いほどカードが強くなる。全戦あわせて TURNS ターン以内に「過疎の夜」を倒せば勝利。
 // ══════════════════════════════════════════════════════════
+addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
 addMinigameStyle('cards',`
 .mg-cards{padding:0;}
 .cards-stage{position:absolute;inset:0;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;font-family:var(--dot);color:var(--tx);background:#05040e;-webkit-tap-highlight-color:transparent;}
@@ -133,6 +134,7 @@ addMinigameStyle('cards',`
 .cards-title-sub{font-family:var(--mono);font-size:.62rem;letter-spacing:.42em;color:var(--cy);text-shadow:0 0 8px rgba(0,232,200,.8);}
 .cards-title-tag{font-family:var(--serif);font-size:.7rem;color:var(--tx);margin-top:6px;}
 .cards-title-rmx{font-family:var(--mono);font-size:.62rem;color:#05040e;background:var(--gd);padding:2px 9px;border-radius:2px;letter-spacing:.2em;box-shadow:0 0 12px rgba(232,184,48,.7);}
+.cards-title-diff{font-family:var(--mono);font-size:.62rem;color:var(--dc);border:1px solid var(--dc);border-radius:2px;padding:1px 8px;}
 .cards-title-best{font-family:var(--mono);font-size:.6rem;color:var(--tx-d);}
 .cards-title-go{margin-top:14px;font-family:var(--mono);font-size:.72rem;letter-spacing:.3em;color:var(--tx-b);animation:cards-blink 1.1s steps(2) infinite;}
 /* ── 会話ウィンドウ ── */
@@ -181,7 +183,12 @@ registerMinigame({
   effect:'フォロワー↑ 配信人気↑ 収入↑ ／ 疲労+8 約80分',
   help:'タップ2回で使用・PC:1-9/Space',
   start(body,mg){
-    const TURNS=14, HAND=5, ENERGY=3, MAXHP=40;
+    // 難しさ（開始時に読む）：心の最大値・ターン数・敵の体力と攻撃力（むずかしい＝従来）
+    const DIFF=mgDifficulty();
+    mg.el('mg-title').insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);
+    const TURNS=mgDiff(20,17,14), HAND=5, ENERGY=3, MAXHP=mgDiff(60,50,40);
+    const TURNS_BASE=14;   // 報酬・スコアの「残りターン」は従来の14ターン基準（難しさで報酬を変えない）
+    const E_HP=mgDiff(.72,.86,1), E_ATK=mgDiff(.65,.82,1), E_BURN=mgDiff(1,0,0);
     const sk=gs.skills, day=gs.day||1;
     const se=t=>{try{AU.se(t);}catch(e){}};
     const later=(fn,ms)=>setTimeout(()=>{if(!mg._ended)fn();},ms);
@@ -355,6 +362,11 @@ registerMinigame({
       ENEMIES[2].moves.push(A('burn',3,'冷たい視線'));
       ENEMIES[2].name='過疎の夜・深';ENEMIES[2].heavy=A('heavy',16,'底なしの闇');
       ENEMIES[2].taunt='……また来たの。今夜は、もっと深いよ。';
+    }
+    // 難しさで敵を弱める（体力・攻撃の数値・炎上の量）
+    if(DIFF!=='hard'){
+      const weak=m=>{if(m.k==='atk'||m.k==='heavy'||m.k==='chill')m.n=Math.max(1,Math.round(m.n*E_ATK));else if(m.k==='burn')m.n=Math.max(1,m.n-E_BURN);if(m.burn)m.burn=Math.max(1,m.burn-E_BURN);};
+      ENEMIES.forEach(e=>{e.hp=Math.round(e.hp*E_HP);e.moves.forEach(weak);if(e.heavy)weak(e.heavy);if(e.chill)weak(e.chill);});
     }
 
     // ── 状態 ──
@@ -1172,7 +1184,7 @@ registerMinigame({
 <path d="M262 22l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#ffe08a"/><path d="M128 18l1.4 3.4 3.4 1.4-3.4 1.4-1.4 3.4-1.4-3.4-3.4-1.4 3.4-1.4z" fill="#ffe08a" opacity=".7"/></svg>`;
     function title(done){
       overlay=true;phase='title';
-      el.ov.innerHTML=`<div class="cards-title">${remix?'<div class="cards-title-rmx">REMIX ─ 深夜2時の部</div>':''}<div class="cards-logo">${LOGO}</div><div class="cards-title-sub">NIGHT TALK BATTLE</div><div class="cards-title-tag">${day}日目の夜。話題カードで、夜を越えろ。</div>${REC.best?`<div class="cards-title-best">BEST ${REC.best}（${REC.bestScore}点） ・ クリア${REC.clears}回</div>`:''}<div class="cards-title-go">TAP TO START</div></div>`;
+      el.ov.innerHTML=`<div class="cards-title">${remix?'<div class="cards-title-rmx">REMIX ─ 深夜2時の部</div>':''}<div class="cards-logo">${LOGO}</div><div class="cards-title-sub">NIGHT TALK BATTLE</div><div class="cards-title-tag">${day}日目の夜。話題カードで、夜を越えろ。</div><div class="cards-title-diff" style="--dc:${DIFF==='easy'?'#44ee88':DIFF==='normal'?'#e8b830':'#ff6a86'}">難しさ：${MG_DIFF_NAMES[DIFF]}　心${MAXHP}・${TURNS}ターン</div>${REC.best?`<div class="cards-title-best">BEST ${REC.best}（${REC.bestScore}点） ・ クリア${REC.clears}回</div>`:''}<div class="cards-title-go">TAP TO START</div></div>`;
       el.ov.classList.add('on');el.ov.style.background='rgba(4,3,10,.6)';se('micOn');
       let fired=false;
       const go=()=>{if(fired||phase!=='title')return;fired=true;SFX('select');se('decide');el.ov.classList.remove('on');done();};
@@ -1271,7 +1283,7 @@ registerMinigame({
     function calcScore(reason){
       const win=reason==='win',hpR=Math.max(0,me.hp)/me.max;
       let sc=cleared*25;
-      if(win)sc+=25+Math.max(0,TURNS-turnsUsed)*4+Math.round(hpR*20);
+      if(win)sc+=25+Math.max(0,TURNS_BASE-turnsUsed)*4+Math.round(hpR*20);
       else if(stageIdx===2&&enemy.def)sc+=Math.round((1-Math.max(0,enemy.hp)/enemy.max)*15);
       if(remix)sc+=10;
       return {sc,g:sc>=130?'S':sc>=112?'A':sc>=60?'B':'C'};
@@ -1346,7 +1358,7 @@ ${r.isNew?'<div class="cards-grade-new">NEW RECORD</div>':`<div class="cards-gra
       if(ro)ro.disconnect();
       commitRecord(reason);
       const win=reason==='win',lose=reason==='lose',quit=reason==='quit';
-      const left=Math.max(0,TURNS-turnsUsed);
+      const left=Math.max(0,TURNS_BASE-turnsUsed);
       let fx,time=80;
       if(win)fx={followers:15+left*2,streamPop:8,money:6000,mental:5,fatigue:8};
       else if(lose)fx={mental:-8,flame:1,fatigue:10,followers:cleared*3};

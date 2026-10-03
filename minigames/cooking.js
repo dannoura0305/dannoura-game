@@ -42,6 +42,12 @@ registerMinigame({
     const QV={P:100,G:70,M:25};
     const QL={P:'PERFECT',G:'GOOD',M:'MISS'};
     const QC={P:'#ffd65a',G:'#62f2da',M:'#ff6f83'};
+    // 難しさ（開始時に読む）：WK=タイミング判定の幅の倍率 SPD=ゲージ・焼き色・包丁の速さ BEAT=にぎにぎの間隔(秒)
+    // PLATE_ADD=盛り付けの追加秒 NEAT_K=仕切りの真ん中からのずれの許容（大きいほど甘い）
+    const DIFF=mgDifficulty();
+    const WK=mgDiff(1.45,1.2,1),SPD=mgDiff(.7,.85,1),BEAT=mgDiff(.75,.68,.6),PLATE_ADD=mgDiff(12,6,0),NEAT_K=mgDiff(1.35,1.15,1);
+    addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
+    mg.el('mg-title').insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);
     // 焼き色のグラデーション（0=生 … 1=焦げ）
     const R_EGG=[[0,[255,236,130]],[.42,[255,216,72]],[.66,[248,194,54]],[.8,[230,154,42]],[.93,[176,100,34]],[1.1,[78,46,22]]];
     const R_DASHI=[[0,[255,244,176]],[.42,[255,232,128]],[.66,[250,214,98]],[.8,[232,170,70]],[.93,[180,112,46]],[1.1,[80,50,26]]];
@@ -64,9 +70,9 @@ registerMinigame({
     const EGGR=isDashi?R_DASHI:R_EGG, GRILLR=isMiso?R_MISO:R_GRILL;
     const sausName=isKani?'かにさん':'たこさん';
     const DISH=[
-      {key:'egg',no:'1品目',name:V.egg.name,sub:isDashi?'お出汁たっぷり。焦がさず、ふんわり':'砂糖ひとさじ。あの子の好きな味',diff:1.3},
-      {key:'tako',no:'2品目',name:V.tako.name,sub:'切れ目を入れて、きつね色に焼く',diff:1.0},
-      {key:'oni',no:'3品目',name:V.oni.name,sub:'にぎって、'+(isMiso?'みそ':'タレ')+'を塗って、香ばしく',diff:.84},
+      {key:'egg',no:'1品目',name:V.egg.name,sub:isDashi?'お出汁たっぷり。焦がさず、ふんわり':'砂糖ひとさじ。あの子の好きな味',diff:1.3*WK},
+      {key:'tako',no:'2品目',name:V.tako.name,sub:'切れ目を入れて、きつね色に焼く',diff:1.0*WK},
+      {key:'oni',no:'3品目',name:V.oni.name,sub:'にぎって、'+(isMiso?'みそ':'タレ')+'を塗って、香ばしく',diff:.84*WK},
       {key:'plate',no:'仕上げ',name:'盛り付け',sub:'おかずを仕切りへ、きれいに詰めよう',diff:1},
     ];
 
@@ -459,7 +465,7 @@ registerMinigame({
       }
       else if(p==='tako_finish'){hint='';sparkle(L.cx,L.CY,20);pop(V.tako.name+' 完成！',L.cx,L.CY+L.PR*.62,'#ffd0b0',20,1.4);SND.se('ach');}
       else if(p==='oni_shape'){
-        oni.beats=[];const bp=.6;for(let i=0;i<6;i++)oni.beats.push({t:1.25+i*bp,q:''});
+        oni.beats=[];const bp=BEAT;for(let i=0;i<6;i++)oni.beats.push({t:1.25+i*bp,q:''});
         oni.shapeP=0;oni.shapeQ=[];gauge.show=false;hint='輪がごはんに重なる瞬間にタップ（にぎにぎ）';
       }
       else if(p==='oni_brush'){oni.cov=0;oni.cells=null;oni.strokes=[];oni.paint=null;oni.brushing=false;oni.last=null;
@@ -574,7 +580,7 @@ registerMinigame({
     function updEgg(dt){
       const r=eggRect();
       if(ph==='egg_heat'){
-        gauge.v=tri(pt*(tutorial?.62:.9)+.05);
+        gauge.v=tri(pt*(tutorial?.62:.9)*SPD+.05);
         egg.heat=.25+gauge.v*.85;
         every('eh',4+gauge.v*14,dt,()=>oil(r.x+rnd(0,r.w),r.y+rnd(0,r.h),1));
         if(gauge.v>.85)every('es',6,dt,()=>emit('smoke',r.x+rnd(0,r.w),r.y+rnd(0,r.h),rnd(-6,6),-30*S,1.4,10*S));
@@ -585,7 +591,7 @@ registerMinigame({
         SND.sizzle(.9);
         if(pt>=.42)go('egg_cook');
       }else if(ph==='egg_cook'){
-        egg.c+=dt*(.43+.05*egg.layers.length)*egg.heatF*(isDashi?1.12:1)*(tutorial&&egg.layers.length===0?.8:1);
+        egg.c+=dt*SPD*(.43+.05*egg.layers.length)*egg.heatF*(isDashi?1.12:1)*(tutorial&&egg.layers.length===0?.8:1);
         gauge.v=egg.c;
         const top=egg.rh?r.y+(egg.ry+egg.rh)*r.h:r.y;
         every('ec',5+egg.c*16,dt,()=>steam(L.cx,top+(r.y+r.h-top)*rnd(.2,.8),r.w*.35,1));
@@ -724,7 +730,7 @@ registerMinigame({
     function sausLine(){const b=boardRect();const len=b.w*.62,th=len*.21;return {len,th,x0:L.cx-len/2,y:L.CY};}
     function updTako(dt){
       if(ph==='tako_cut'){
-        if(pt>.3)tako.kx=.18+.84*tri((pt-.3)*(.85+tako.i*.12));
+        if(pt>.3)tako.kx=.18+.84*tri((pt-.3)*(.85+tako.i*.12)*SPD);
       }else if(ph==='tako_chop'){
         if(pt<.1)for(let i=0;i<2;i++){const s=sausLine();emit('drop',s.x0+s.len*tako.kx,s.y,rnd(-80,80)*S,rnd(-140,-60)*S,.4,1.4*S,'#f3b0a8');}
         if(pt>=.75){tako.i++;if(tako.i<3)go('tako_cut');else go('tako_sear');}
@@ -733,7 +739,7 @@ registerMinigame({
         for(const s of tako.s){
           if(s.done){s.lift+=dt;continue;}
           live++;
-          s.b+=dt*s.rate;
+          s.b+=dt*s.rate*SPD;
           const p=sausPos(s);
           every('so'+s.fx,6+s.b*10,dt,()=>oil(p.x+rnd(-14,14)*S,p.y+rnd(-14,14)*S,1));
           if(s.b>.5)every('ss'+s.fx,3+s.b*5,dt,()=>steam(p.x,p.y-10*S,8*S,1));
@@ -998,7 +1004,7 @@ registerMinigame({
           go('oni_grill');
         }
       }else if(ph==='oni_grill'){
-        oni.c+=dt*(.42+oni.side*.06)*(isMiso?1.08:1);gauge.v=oni.c;
+        oni.c+=dt*SPD*(.42+oni.side*.06)*(isMiso?1.08:1);gauge.v=oni.c;
         every('og',6+oni.c*10,dt,()=>steam(L.cx,L.CY-L.R*.4,L.R*.6,1));
         every('od',4+oni.c*6,dt,()=>oil(L.cx+rnd(-L.R,L.R),L.CY+L.R*.55,1));
         if(oni.c>.86)every('oz',7,dt,()=>emit('smoke',L.cx+rnd(-20,20)*S,L.CY,0,-34*S,1.3,10*S));
@@ -1134,7 +1140,7 @@ registerMinigame({
     function itemDims(type,s){return type==='oni'?s:type==='egg'?s*1.3:s*1.1;}
     function initPlate(){
       if(plate.items.length)return;
-      plate.left=tutorialPlate?24:20;plate.mistakes=0;
+      plate.left=(tutorialPlate?24:20)+PLATE_ADD;plate.mistakes=0;
       const eggC=avg(egg.layers)||.6;
       const tk=tako.s.map(s=>s.bf);
       L.homes.forEach((h,i)=>{
@@ -1168,7 +1174,7 @@ registerMinigame({
     }
     function placeItem(it,si,d,forceNeat){
       const sl=L.slots[si];
-      const dd=d/(sl.s*1.25*(tutorialPlate?1.2:1));
+      const dd=d/(sl.s*1.25*(tutorialPlate?1.2:1)*NEAT_K);
       const neat=forceNeat!==undefined?forceNeat:clamp(1-dd,0,1);
       it.slot=si;it.neat=neat;it.land=.35;
       const off=1-neat;
@@ -1281,7 +1287,7 @@ registerMinigame({
         const it=plate.drag.it;
         for(const c of L.comps){if(c.type!==it.type)continue;g.save();g.strokeStyle=`rgba(255,214,90,${.6+.3*Math.sin(T*10)})`;g.lineWidth=2.5*S;g.setLineDash([6*S,4*S]);rr(g,c.x+2,c.y+2,c.w-4,c.h-4,8*S);g.stroke();g.restore();
           for(const i of freeSlots(it.type)){const s=L.slots[i];g.strokeStyle='rgba(255,236,170,.55)';g.lineWidth=1.5;g.beginPath();g.arc(s.x,s.y,5*S,0,6.283);g.stroke();g.beginPath();g.moveTo(s.x-8*S,s.y);g.lineTo(s.x+8*S,s.y);g.moveTo(s.x,s.y-8*S);g.lineTo(s.x,s.y+8*S);g.stroke();}}
-      }else if(ph==='plate'&&tutorialPlate&&plate.left>18){
+      }else if(ph==='plate'&&tutorialPlate&&plate.left>18+PLATE_ADD){
         // 最初だけ指で示す
         const it=plate.items.find(i=>i.slot<0);
         if(it){const a=itemPos(it),sl=L.slots[freeSlots(it.type)[0]];const k=((T*.7)%1);drawPointer(lerp(a.x,sl.x,eio(k)),lerp(a.y,sl.y,eio(k)),k);}
@@ -1507,6 +1513,7 @@ registerMinigame({
       const ls=wrap(today,W-40,10.5*S);ls.forEach((l,i)=>txt(l,W/2,H*.55+92*S+i*15*S,10.5*S,'#e8b830'));
       const al=.5+.5*Math.sin(T*4);
       txtO('TAP TO START',W/2,H*.88,15*S,`rgba(255,236,190,${al})`,'rgba(40,20,8,.8)',3*S);
+      txt('難しさ：'+MG_DIFF_NAMES[DIFF],W/2,H*.88+20*S,10.5*S,DIFF==='easy'?'#44ee88':DIFF==='normal'?'#e8b830':'#ff6a86');
     }
     function drawStory(){
       const line=story.lines[story.i];

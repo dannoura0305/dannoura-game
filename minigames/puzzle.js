@@ -41,9 +41,23 @@ const REMIX=[
    title:'第2面　5×5 改修盤',hint:'交差タイルは2本の線が立体交差',
    lines:[['交差タイル','5×5にも登場'],['','縦と横は別々の線'],['目安手数以内で','★★★ ＋時間']]},
   {n:6,locks:3,broken:3,bridges:3,minPar:20,
-   title:'第3面　6×6 改修盤',hint:'交差3枚。電源から順にたどろう',
-   lines:[['交差タイル','3枚に増設'],['故障タイル','3枚。修理を忘れずに'],['残り時間に注意','最後の盤よ']]},
+   title:'第3面　6×6 改修盤',hint:'交差が増えた。電源から順にたどろう',
+   lines:[['交差タイル','さらに増設'],['故障タイル','修理を忘れずに'],['残り時間に注意','最後の盤よ']]},
 ];
+// 難しさ別の盤構成（むずかしい＝従来どおり）。交差・故障・固定を減らし、盤を小さくする
+const CFG_DIFF={
+  easy:  [{n:4,locks:0,broken:0,bridges:0,minPar:4,scr:.5},{n:5,locks:1,broken:1,bridges:0,minPar:7,scr:.5},{n:5,locks:2,broken:1,bridges:1,minPar:9,scr:.55}],
+  normal:[{n:4,locks:0,broken:0,bridges:0,minPar:5,scr:.75},{n:5,locks:2,broken:1,bridges:0,minPar:9,scr:.75},{n:6,locks:3,broken:2,bridges:1,minPar:13,scr:.8}],
+};
+const REMIX_DIFF={
+  easy:  [{n:4,locks:1,broken:0,bridges:0,minPar:6,scr:.55},{n:5,locks:2,broken:1,bridges:1,minPar:9,scr:.55},{n:5,locks:2,broken:1,bridges:1,minPar:10,scr:.6}],
+  normal:[{n:4,locks:1,broken:1,bridges:0,minPar:7,scr:.8},{n:5,locks:3,broken:1,bridges:1,minPar:11,scr:.8},{n:6,locks:3,broken:2,bridges:2,minPar:15,scr:.85}],
+};
+function diffCfg(base,tbl,d){
+  if(!tbl[d])return base;
+  return base.map((c,i)=>Object.assign({},c,tbl[d][i],{title:c.title.replace(/\d×\d/,tbl[d][i].n+'×'+tbl[d][i].n)}));
+}
+addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
 const GRADES='SABC';
 const STORY=remix=>[
   {who:'boss',text:remix?'だんのうらさん、夜分にすまん。改修したばかりの第2ラインの配電盤が、また落ちた。':'だんのうらさん、夜分にすまん。第2ラインの配電盤が落ちた。'},
@@ -161,7 +175,7 @@ function makeBoard(cfg,rnd){
     const cur=new Uint8Array(sol);let par=0;
     for(let c=0;c<NN;c++){
       if(type[c]===T_LOCK||type[c]===T_BR)continue;
-      const k=ri(4);for(let i=0;i<k;i++)cur[c]=rot(cur[c]);
+      const k=(cfg.scr==null||rnd()<cfg.scr)?ri(4):0;for(let i=0;i<k;i++)cur[c]=rot(cur[c]);  // scr＝崩すタイルの割合（やさしい盤は一部だけ崩す）
       let mm=cur[c],r=0;while(mm!==sol[c]){mm=rot(mm);r++;}
       par+=r+(type[c]===T_BRK?1:0);
     }
@@ -203,11 +217,15 @@ registerMinigame({
   effect:'資格知識↑ 仕事評価↑ 収入↑ ／ 疲労+6 約60分',
   help:'タップで回転・全ランプ点灯',
   start(body,mg){
-    const TIME=90;
+    // 難しさ（開始時に読む）：時間・盤の大きさ・特殊タイル数・★の目安の甘さ
+    const DIFF=mgDifficulty();
+    mg.el('mg-title').insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);
+    const TIME=mgDiff(180,130,90);
+    const SLACK_MIN=mgDiff(6,4,3),SLACK_K=mgDiff(.8,.55,.35);
     // 記録（gs.puzzleData に保存・初回だけ作る）
     if(!gs.puzzleData||typeof gs.puzzleData!=='object')gs.puzzleData={plays:0,clears:0,bestGrade:'',bestStars:0,bestLeft:0,bestSolved:0};
     const D=gs.puzzleData;
-    const remix=(D.clears|0)>0,CFG=remix?REMIX:CFG0;
+    const remix=(D.clears|0)>0,CFG=remix?diffCfg(REMIX,REMIX_DIFF,DIFF):diffCfg(CFG0,CFG_DIFF,DIFF);
     let left=TIME,level=0,solved=0,starsTotal=0,moves=0;
     const boardStars=[];
     let finalReason=null,grade='',newBest=false,saved=false,dlg=null,di=0,dT=0,typed=0,guideC=-1;
@@ -386,7 +404,7 @@ registerMinigame({
       return r.done;
     }
     const cellXY=c=>[ox+(c%n+.5)*ts,oy+(((c/n)|0)+.5)*ts];
-    const slack=()=>Math.max(3,Math.ceil(par*.35));
+    const slack=()=>Math.max(SLACK_MIN,Math.ceil(par*SLACK_K));
     const starsFor=mv=>mv<=par?3:mv<=par+slack()?2:1;
 
     function msg(t){msgText=t;msgT=1.8;}
@@ -864,6 +882,8 @@ registerMinigame({
           cx.font=`${fsS}px ${FONT}`;cx.fillStyle='#ff6a86';cx.fillText('改修モード（難）',W/2,H*.56+fsM*1.1+fsS*.85);}
         cx.font=`${fsS}px ${FONT}`;cx.fillStyle='#8a7aa8';
         cx.fillText(D.bestGrade?`自己ベスト　評価 ${D.bestGrade}　★${D.bestStars|0}/9`:'自己ベスト　──',W/2,H*.56+fsM*3.2);
+        cx.fillStyle=DIFF==='easy'?'#44ee88':DIFF==='normal'?'#e8b830':'#ff6a86';
+        cx.fillText(`難しさ：${MG_DIFF_NAMES[DIFF]}　制限 ${TIME}秒`,W/2,H*.56+fsM*4.6);
         cx.globalAlpha=1;
       }
       if(t>1){cx.font=`${fsM}px ${FONT}`;cx.fillStyle=`rgba(0,232,200,${.55+.45*Math.sin(T*5)})`;cx.fillText('▶ タップでスタート',W/2,H*.8);}

@@ -8,6 +8,7 @@
 // 背景・人影・エフェクトはすべてCanvas 2Dで描画。効果音はWeb Audioで合成。
 // 記録は gs.horrorData（既読・回収エンディング・設定）。
 // ══════════════════════════════════════════════════════════
+addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
 addMinigameStyle('horror',`
 .mg-horror{padding:0;max-width:520px;}
 .hr-stage{position:relative;flex:1;min-height:0;width:100%;overflow:hidden;background:#05040e;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;--hb:168px;}
@@ -1304,6 +1305,10 @@ registerMinigame({
   effect:'配信人気↑ フォロワー↑ 精神↓リスク ／ 疲労+6〜8 約60分',
   help:'タップで読み進める・1〜3で選択',
   start(body,mg){
+    // 難しさ（開始時に読む）：選択肢で霊障が増えるときの倍率だけを変える。
+    // やさしい×0.75／ふつう×0.875（どちらも2進で割り切れる値）。全部「呼ぶ」側を選べば各話とも呪いの結末に届く。
+    const DIFF=mgDifficulty(),REI_K=mgDiff(.75,.875,1);
+    mg.el('mg-title').insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);
     textures();
     const hd=hdata();
     let story=pickStory(hd);
@@ -1521,7 +1526,7 @@ registerMinigame({
       const c=chList[i];if(!c)return;chOn=false;chPicked=true;
       const bs=[...chEl.querySelectorAll('.hr-ch')];bs.forEach((b,k)=>b.classList.add(k===i?'pick':'out'));se('decide');
       LOG.push({ty:'ch',tx:'▶ '+c.t});
-      const st0=stg();hype+=c.h;rei=Math.max(0,rei+c.r);
+      const st0=stg();hype+=c.h;rei=Math.max(0,rei+(c.r>0?c.r*REI_K:c.r));
       if(c.h>0){hearts+=c.h*(7+(Math.random()*6|0));if(c.h>=2){for(let k=0;k<c.h;k++)later(()=>addChat(AMB.crowd[Math.random()*AMB.crowd.length|0],AMB.hype[Math.random()*AMB.hype.length|0],'hype'),300+k*260);}}
       const st1=stg();if(st1>st0){later(()=>{fx('glitch');snd('sting',.5);},500);}
       SFX.ambient(rainTarget,st1*.012);

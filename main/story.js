@@ -89,26 +89,11 @@ function svgWrap(bg1,bg2,body,round){
     (round?`<circle cx="48" cy="48" r="48" fill="url(#${id})"/>`:`<rect width="96" height="96" fill="url(#${id})"/>`)+body.replace(/\$ID/g,id)+`</svg>`;
 }
 const PORTRAIT={
+  // 娘：顔グラは CHILD_IMG（game.js）の共通画像を使う。台本の表情名 → 画像の表情名
   kid(f){
-    const eyes=f==='sleepy'
-      ?`<path d="M37 50 q4 3 8 0 M51 50 q4 3 8 0" stroke="#2a1a14" stroke-width="2" fill="none" stroke-linecap="round"/>`
-      :`<ellipse cx="41" cy="50" rx="2.6" ry="3.3" fill="#2a1a14"/><ellipse cx="55" cy="50" rx="2.6" ry="3.3" fill="#2a1a14"/><circle cx="42" cy="48.8" r=".9" fill="#fff"/><circle cx="56" cy="48.8" r=".9" fill="#fff"/>`;
-    const mouth=f==='sad'
-      ?`<path d="M44.5 60 Q48 57.5 51.5 60" stroke="#a0504a" stroke-width="1.7" fill="none" stroke-linecap="round"/>`
-      :f==='sleepy'?`<ellipse cx="48" cy="59" rx="1.6" ry="1.2" fill="#a0504a"/>`
-      :`<path d="M44.5 57.5 Q48 61 51.5 57.5" stroke="#a0504a" stroke-width="1.7" fill="none" stroke-linecap="round"/>`;
-    const tears=f==='sad'?`<path d="M38.5 54 q-1 3 0 4.5 q1.2-1.6 0-4.5Z M57.5 54 q-1 3 0 4.5 q1.2-1.6 0-4.5Z" fill="#9fd8ff" opacity=".9"/>`:'';
-    return svgWrap('#4a3470','#120b24',
-      `<circle cx="16" cy="16" r="1.2" fill="#ffe9a8" opacity=".8"/><circle cx="80" cy="22" r="1" fill="#ffe9a8" opacity=".6"/><circle cx="72" cy="10" r=".8" fill="#fff" opacity=".5"/>`+
-      `<path d="M16 96 C18 76 32 70 48 70 C64 70 78 76 80 96Z" fill="#f2df9a"/>`+
-      `<path d="M40 70 L48 79 L56 70" fill="none" stroke="#cfae52" stroke-width="2"/>`+
-      `<circle cx="30" cy="86" r="1.6" fill="#d9a83a"/><circle cx="66" cy="84" r="1.6" fill="#d9a83a"/><circle cx="54" cy="91" r="1.3" fill="#d9a83a"/>`+
-      `<rect x="43" y="62" width="10" height="10" fill="#efc3a4"/>`+
-      `<ellipse cx="48" cy="47" rx="19" ry="19.5" fill="#f8d9c2"/>`+
-      `<path d="M28.5 52 C25 28 37 23 48 23 C59 23 71 28 67.5 52 C67 44 64 37.5 60 35 C56 39 50 38.5 46 35.5 C42 39.5 36 39 32.5 37 C30.5 41 29.3 46 28.5 52Z" fill="#4b3226"/>`+
-      `<path d="M28.5 50 C27.5 57 28.6 61 31 63.5 L32 47Z M67.5 50 C68.5 57 67.4 61 65 63.5 L64 47Z" fill="#4b3226"/>`+
-      eyes+tears+
-      `<ellipse cx="36.5" cy="56" rx="3.6" ry="2.1" fill="#f49a9a" opacity=".55"/><ellipse cx="59.5" cy="56" rx="3.6" ry="2.1" fill="#f49a9a" opacity=".55"/>`+mouth);
+    const k={sleepy:'sleep',sleep:'sleep',sad:'sad',happy:'happy',fever:'fever'}[f]||'normal';
+    const src=(typeof CHILD_IMG!=='undefined'&&CHILD_IMG[k])||('assets/img/child_'+k+'.svg');
+    return `<img src="${src}" alt="" style="width:124%;height:124%;max-width:none;margin:-7% 0 0 -12%;background:radial-gradient(circle at 50% 40%,#7a62b0,#3a2a62 70%,#1c1430)">`;
   },
   hancho(){
     return svgWrap('#2c4462','#0b121c',
@@ -231,7 +216,7 @@ const PORTRAIT={
 };
 const CAST={
   self:    {nm:'だんのうら',  cls:'self'},
-  kid:     {nm:'子ども',      cls:'kid'},
+  kid:     {nm:'娘',          cls:'kid'},
   hancho:  {nm:'班長',        cls:'hancho'},
   sensei:  {nm:'保育園の先生',cls:'sensei'},
   chiyo:   {nm:'千代さん',    cls:'chiyo'},

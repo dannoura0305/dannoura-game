@@ -23,8 +23,23 @@ registerMinigame({
     const WEATHERS=[{id:'rain',name:'雨',drops:130},{id:'mist',name:'霧雨',drops:80},{id:'storm',name:'雷雨',drops:190}];
     const WEATHER=WEATHERS[Math.abs(gs.day|0)%3];
     const ROUTE=REMIX?'近道（リミックス）':'いつもの道';
-    const M=20, GOAL_M=900, GOAL=GOAL_M*M, WAKE=REMIX?66:70, MAX_HP=3, PX=72, COIN=30, COIN_CAP=3000;
-    const SPD=REMIX?1.08:1;
+    // 難しさ（設定画面で選ぶ。むずかしい＝従来の調整）
+    const DIFF=mgDifficulty();
+    const DF={
+      hp:mgDiff(5,4,3),            // 傘の耐久
+      wake:mgDiff(1.35,1.15,1),    // 子どもが起きるまでの時間の倍率
+      spd:mgDiff(.88,.94,1),       // 走る速さ
+      ramp:mgDiff(.5,.75,1),       // 後半の加速・詰まり具合
+      gap:mgDiff(1.25,1.1,1),      // 障害物どうしの間隔の倍率
+      combo:mgDiff(.4,.7,1),       // 連続障害物の出やすさ
+      inv:mgDiff(2,1.7,1.4),       // ぶつかった後の無敵時間
+      slack:mgDiff(5,3,0),         // 当たり判定のゆるさ（px）
+      drink:mgDiff(2600,3400,4200),// 栄養ドリンクの間隔
+    };
+    addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
+    {const tt=mg.el('mg-title');if(tt&&!tt.querySelector('.mg-diffb'))tt.insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);}
+    const M=20, GOAL_M=900, GOAL=GOAL_M*M, WAKE=(REMIX?66:70)*DF.wake, MAX_HP=DF.hp, PX=72, COIN=30, COIN_CAP=3000;
+    const SPD=(REMIX?1.08:1)*DF.spd;
     const STAGES=[{m:0,no:'STAGE 1',name:'眠る住宅街'},{m:300,no:'STAGE 2',name:'ネオン商店街'},{m:600,no:'STAGE 3',name:'高架下の工事区間'}];
     const stageAt=wx=>wx>=STAGES[2].m*M?2:wx>=STAGES[1].m*M?1:0;
     const GRADE_RANK={S:4,A:3,B:2,C:1};
@@ -753,7 +768,7 @@ registerMinigame({
       for(let i=0;i<=n;i++){const u=i/n;addItem('coin',x0+(x1-x0)*u,16+Math.sin(u*Math.PI)*peak);}
     }
     function coinRow(x,n,y){for(let i=0;i<n;i++)addItem('coin',x+i*22,y);}
-    function speedAt(p){return 220+150*p;}
+    function speedAt(p){return 220+150*p*DF.ramp;}
 
     function placePattern(x,p){
       // チュートリアル（最初の3つ）
@@ -782,7 +797,7 @@ registerMinigame({
         coinArc(x+300,x+404,70);
         return 300+c.w+80;
       }
-      const cm=REMIX?1.5:1;
+      const cm=(REMIX?1.5:1)*DF.combo;
       const W3=[
         // 住宅街：段ボール・自転車・猫・水たまり
         [['puddle',1.2],['box',1.3],['bike',1.1],['cat',1],['sign',.5],['stack',p>.12?.6:0],['combo1',REMIX?.5:0]],
@@ -813,9 +828,9 @@ registerMinigame({
         const p=nextX/GOAL;
         const used=placePattern(nextX,p);
         const sp=speedAt(p);
-        const gap=Math.max(sp*.66,sp*(rnd(.95,1.45)-.38*p-(REMIX?.06:0)));
+        const gap=Math.max(sp*.66,sp*(rnd(.95,1.45)-.38*p*DF.ramp-(REMIX?.06:0)))*DF.gap;
         // 隙間に小銭や栄養ドリンク
-        if(nextX-lastDrink>4200&&Math.random()<.5&&gap>200){lastDrink=nextX;addItem('drink',nextX+used+gap*.5,44);}
+        if(nextX-lastDrink>DF.drink&&Math.random()<.5&&gap>200){lastDrink=nextX;addItem('drink',nextX+used+gap*.5,44);}
         else if(Math.random()<.35&&gap>170)coinRow(nextX+used+gap*.3,3,16);
         nextX+=used+gap;
       }
@@ -830,7 +845,7 @@ registerMinigame({
         for(let i=0;i<10;i++)emit(o.x+o.w/2,GY-20,rnd(-80,160),rnd(-220,-60),.6,'#e8b830',2.5,500);
         return;
       }
-      hp--;hits++;invul=1.4;slowMul=.42;flash=1;shake=.4;hitStop=.1;hitT=.32;
+      hp--;hits++;invul=DF.inv;slowMul=.42;flash=1;shake=.4;hitStop=.1;hitT=.32;
       sfx('hit','warn');
       const msg={box:'ドンッ',stack:'ドサッ',bike:'ガシャン',cat:'ニャッ！',sign:'ゴンッ',gate:'ゴンッ',car:'キキーッ'}[o.type]||'っ…';
       popup(msg,cam+PX+10,GY-py-74,'#ff8aa0',true);
@@ -1001,8 +1016,8 @@ registerMinigame({
           continue;
         }
         if(invul>0)continue;
-        if(o.over){if(y1>o.clr+2)hitBy(o);}
-        else if(y0<o.h-5)hitBy(o);
+        if(o.over){if(y1>o.clr+2+DF.slack)hitBy(o);}
+        else if(y0<o.h-5-DF.slack)hitBy(o);
         if(phase!=='run')return;
       }
       for(let i=0;i<items.length;i++){
@@ -1442,7 +1457,7 @@ registerMinigame({
       cx.beginPath();cx.moveTo(0,0);cx.lineTo(0,top-4);cx.stroke();
       cx.beginPath();cx.arc(2.5,0,2.5,Math.PI,0,true);cx.stroke();
       if(pal.rim){cx.restore();return;}
-      const dmg=MAX_HP-Math.max(0,hp);
+      const dmg=3-Math.max(0,Math.min(3,hp));
       const lf=dmg>=2?-10:0, flap=dmg>=1?Math.sin(t*22)*3:0;
       cx.fillStyle='rgba(220,235,255,.24)';cx.strokeStyle='rgba(235,245,255,.8)';cx.lineWidth=1.1;
       cx.beginPath();
@@ -1599,7 +1614,7 @@ registerMinigame({
         cx.globalAlpha=clamp(phaseT*3,0,1);
         cx.drawImage(logoC,(VW-lw)/2,ly,lw,lh);
         cx.textAlign='center';cx.textBaseline='middle';cx.font=F10;
-        shadowText(`今夜の天気：${WEATHER.name}　ルート：${ROUTE}`,VW/2,ly+lh+8,'#bbaedd');
+        shadowText(`天気：${WEATHER.name}　ルート：${ROUTE}　難しさ：${MG_DIFF_NAMES[DIFF]}`,VW/2,ly+lh+8,'#bbaedd');
         if(DATA.best)shadowText(`ベスト評価 ${DATA.best}　最速 ${DATA.bestTime?DATA.bestTime.toFixed(1)+'秒':'--'}`,VW/2,ly+lh+24,'#e8b830');
         const w=Math.min(VW-28,310),h=118,x=(VW-w)/2,y=ly+lh+(DATA.best?38:26);
         drawPanel(x,y,w,h);
@@ -1610,7 +1625,7 @@ registerMinigame({
         cx.font=F12;shadowText('▼ スライド',lx,y+56,'#e8b830');
         cx.font=F10;shadowText('下スワイプ／↓',lx+86,y+56,'#bbaedd');
         shadowText('看板・工事バーはくぐる',lx+86,y+70,'#9a8cc0');
-        shadowText('☂ 傘が3回壊れたら失敗　水たまりは減速',lx,y+94,'#ff8aa0');
+        shadowText(`☂ ${MAX_HP}回ぶつかると失敗　水たまりは減速`,lx,y+94,'#ff8aa0');
         const p=Math.min(1,phaseT/4.2);
         cx.fillStyle='rgba(138,82,212,.35)';cx.fillRect(x+16,y+h-8,w-32,2);
         cx.fillStyle='#00e8c8';cx.fillRect(x+16,y+h-8,(w-32)*p,2);

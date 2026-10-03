@@ -203,31 +203,48 @@ const BODY_KNEEL=[
 "..koonnnnnnnk...",
 "..kkkkkkkkkkk...",
 ];
-// 子ども（仰向けで枕の上）8x8
+// 娘（仰向けで枕の上）16x13：紫がかった黒髪・ぱっつん前髪・ちいさなツインテール＋ピンクの花・ミント地に星のパジャマ
 const CHILD=[
-"...kkkk...",
-".kkyyyykk.",
-"kyyYYyyyyk",
-"kyYyyyyyyk",
-"kyysyyssyk",
-"kssssssssk",
-"kskkssKksk",
-"ksbssssbsk",
-".kssssssk.",
-"..kkkkkk..",
+"......kkkk......",
+"....kkhHHhkk....",
+"..fkhhHHhhhhkf..",
+".fFfhHhhhhhhfFf.",
+"kkfkhhhhhhhhkfkk",
+"khhkhhhhhhhhkhhk",
+"khhkhsssssshkhhk",
+"khhkhEEssEEhkhhk",
+".khkhbssssbhkhk.",
+"..kkhsssrsshkk..",
+"....kssssssk....",
+"...kwwmmmmwwk...",
+"..kmmymmmmmymk..",
 ];
 const CHILD_TURN=[
-"...kkkk...",
-".kkyyyykk.",
-"kyyYYyyyyk",
-"kyYyyyyyyk",
-"kyyyyyysyk",
-"kyyyyyssk.",
-"kyyyyskKk.",
-".kyyysbsk.",
-"..kyysssk.",
-"...kkkkk..",
+"......kkkk......",
+"....kkhHHhkk....",
+"..fkhhHHhhhhk...",
+".fFfhHhhhhhhhk..",
+"kkfkhhhhhhhhhk..",
+"khhkhhhhhhhhhk..",
+"khhkhhhhhsssshk.",
+".khkhhhhsEEsssk.",
+"..kkhhhhsssbssk.",
+"...kkhhhssrssk..",
+".....kkksssk....",
+"....kwmmmmwk....",
+"...kmmymmmymk...",
 ];
+const CHILD_PAL={k:'#1b1226',h:'#35224e',H:'#6a54a4',f:'#ff9cc8',F:'#ffe066',E:'#3a2048',b:'#f59aae',r:'#d0607a',w:'#f6fbf6',m:'#9fe2c8',y:'#ffe066'};
+// いつも抱いているクマ（左耳＝画面右がほつれている）7x6
+const BEAR=[
+"kk...kt",
+"kbkkkbk",
+"kbbbbbk",
+"kbkbkbk",
+"kbbcbbk",
+".kkkkk.",
+];
+const BEAR_PAL={k:'#1b1226',b:'#a8724a',c:'#e8c49a',t:'#d9a878'};
 // グリフ
 const G_Z=["zzzzz","...z.","..z..",".z...","zzzzz"];
 const G_z=["zzz",".z.","zzz"];
@@ -415,7 +432,7 @@ function buildSprites(){
   S.sprT=buildForm(HEAD_F_T,HEAD_B_T,HEAD_S_T,PAL_T);
   s.spark=sprite(G_SPARK,{z:'#ffffff',r:'#ff9cd8'});
   S.lights.burst=makeLight(30,'255,230,255');
-  s.child=sprite(CHILD);s.childT=sprite(CHILD_TURN);
+  s.child=sprite(CHILD,CHILD_PAL);s.childT=sprite(CHILD_TURN,CHILD_PAL);s.bear=sprite(BEAR,BEAR_PAL);
   s.Z=sprite(G_Z);s.z=sprite(G_z);s.note=sprite(G_NOTE,{z:'#ffd6f0'});s.note2=sprite(G_NOTE2,{z:'#bfefff'});
   s.heart=sprite(G_HEART,{r:'#ff7aa8'});s.dots=sprite(G_DOTS);s.sweat=sprite(G_SWEAT);s.sil=sprite(G_SIL,{a:'#c8c0e8',E:'#2a0010'});
   s.Zb=sprite(G_Z,{z:'#bcd4ff'});s.zb=sprite(G_z,{z:'#bcd4ff'});

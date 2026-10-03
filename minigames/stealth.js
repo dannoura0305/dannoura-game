@@ -35,18 +35,31 @@ registerMinigame({
   start(body,mg){
     // ── 定数 ──
     const FONT='"DotGothic16", monospace';
-    const T_INTRO=3.4, T_PLAY=80;
+    // 難しさ（設定画面で選ぶ。むずかしい＝従来の調整）
+    const DIFF=mgDifficulty();
+    const DF={
+      time:mgDiff(110,95,80),   // 0:00までの時間（秒）
+      sens:mgDiff(.6,.8,1),     // 物音への敏感さ
+      decay:mgDiff(1.45,1.2,1), // 物音メーターの下がる速さ
+      hold:mgDiff(.75,.88,1),   // 家事にかかる時間
+      toys:mgDiff(3,4,5),       // 床のおもちゃの数（基本）
+      creaks:mgDiff(1,2,3),     // きしむ床板の数（基本・敷居の板を除く）
+      cat:mgDiff(1.6,1.25,1),   // ねこのいたずら間隔の倍率
+    };
+    addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
+    {const tt=mg.el('mg-title');if(tt&&!tt.querySelector('.mg-diffb'))tt.insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);}
+    const T_INTRO=3.4, T_PLAY=DF.time;
     const WW=300, WH=480;            // 部屋のワールド座標
     const TOP_H=42, BOT_H=92;        // 画面上部HUD・下部操作帯
     const MAXV=104, PR=10;           // 最高速度・プレイヤー半径
     const CHILD={x:69,y:58};
     const sk=gs.skills||{};
-    const holdMul=1-.05*Math.min(5,sk.chores||0);
+    const holdMul=(1-.05*Math.min(5,sk.chores||0))*DF.hold;
     // 記録（遅延初期化・JSONで保存できる形）
     const data=gs.stealthData||(gs.stealthData={plays:0,clears:0,best:0,bestScore:0,bestGrade:''});
     // 難易度：クリア回数と日数で少しずつ上がる（0〜3）
     const hard=Math.min(3,(data.clears||0)+((gs.day||1)>=8?1:0)+((gs.day||1)>=15?1:0));
-    const sensMul=(1-.04*Math.min(5,sk.bedtime||0))*(1+.07*hard);
+    const sensMul=(1-.04*Math.min(5,sk.bedtime||0))*(1+.07*hard)*DF.sens;
     const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
 
     const OBST=[
@@ -59,7 +72,7 @@ registerMinigame({
       [46,318,148,382],                    // テーブル＋椅子
     ];
     // きしむ床板：敷居の板は毎回、ほかは毎晩ちがう場所
-    const CREAK=[[122,258,168,278]].concat(shuffle([[176,298,226,316],[66,392,118,408],[196,428,240,446],[150,60,196,84],[150,330,200,350],[84,284,132,302],[160,410,206,428],[120,170,170,190]]).slice(0,3+Math.min(2,hard)));
+    const CREAK=[[122,258,168,278]].concat(shuffle([[176,298,226,316],[66,392,118,408],[196,428,240,446],[150,60,196,84],[150,330,200,350],[84,284,132,302],[160,410,206,428],[120,170,170,190]]).slice(0,DF.creaks+Math.min(2,hard)));
     const creakFound=CREAK.map(()=>0), creakIn=CREAK.map(()=>false);
     const ST={
       laundry:{x:240,y:62,r:42,hold:3.6,label:'たたむ',name:'洗濯物をたたむ',icon:'衣',mx:240,my:100},
@@ -71,7 +84,7 @@ registerMinigame({
     for(const k of ORDER){ST[k].p=0;ST[k].done=false;ST[k].hold*=holdMul;}
     // おもちゃ：候補地からランダムに。難しくなるほど数が増える
     const TOY_SPOTS=shuffle([[150,112],[188,206],[96,206],[170,296],[212,150],[130,160],[62,166],[200,380],[100,432],[176,446],[226,112],[160,36],[214,288],[130,222]]);
-    const nToys=5+Math.min(2,hard);
+    const nToys=DF.toys+Math.min(2,hard);
     const BLK=[['#e85a6a','あ'],['#4ab0e8','い'],['#58d08a','う'],['#b07ae8','え'],['#ff9a4a','お']];
     const kinds=shuffle(['block','block','block','car','duck','block','ball']);
     const toys=[];
@@ -731,7 +744,7 @@ registerMinigame({
 
       // 物音メーターの減衰
       if(spikeGrace>0)spikeGrace-=dt;
-      noise-=(spikeGrace>0?2.5:6+noise*.03)*dt;
+      noise-=(spikeGrace>0?2.5:6+noise*.03)*DF.decay*dt;
       noise=Math.max(0,noise);
       maxNoise=Math.min(100,Math.max(maxNoise,noise));
       if(phase==='play'&&t>=0){
@@ -787,11 +800,11 @@ registerMinigame({
         if(dist(P.x,P.y,cat.x,cat.y)<36&&phase==='play'){
           cat.mode='sit';cat.wait=3;cat.pet=1.4;catPets++;
           pop(cat.x,cat.y-18,'ゴロゴロ…','#ffb0d0',10,1.4);burst(cat.x,cat.y-8,8,['#ff7aa8','#ffd0e0'],30,1,1.6,-10);
-          se('repair');SX.play('purr');cat.cd=rnd(16,22);return;
+          se('repair');SX.play('purr');cat.cd=rnd(16,22)*DF.cat;return;
         }
         if(cat.misT<=0){
           const m=cat.mis;spike(20,m.sx,m.sy,m.txt);SX.play('crash');cat.jump=.5;burst(m.sx,m.sy,14,['#dcd4ff','#ffffff','#e8b830'],70,.6,1.6);
-          cat.mode='flee';catGo(...CAT_WP[(Math.random()*CAT_WP.length)|0]);cat.cd=rnd(16,22);
+          cat.mode='flee';catGo(...CAT_WP[(Math.random()*CAT_WP.length)|0]);cat.cd=rnd(16,22)*DF.cat;
         }
         return;
       }
@@ -1399,7 +1412,7 @@ registerMinigame({
       // 足音の波紋（ちいさく）
       const rp=(sceneT*1.2)%1;cx.globalAlpha=(1-rp)*.5*f;cx.strokeStyle='#bbaedd';cx.lineWidth=1;
       cx.beginPath();cx.ellipse(px,py+sh*.48,Math.max(1,14+rp*44),Math.max(1,4+rp*10),0,0,7);cx.stroke();
-      cx.globalAlpha=f*(.5+Math.sin(clock*4)*.3);cx.font=`12px ${FONT}`;cx.fillStyle='#deccf8';cx.fillText('タップで始める',W/2,H*.9);
+      cx.globalAlpha=f*(.5+Math.sin(clock*4)*.3);cx.font=`12px ${FONT}`;cx.fillStyle='#deccf8';cx.fillText('タップで始める　［'+MG_DIFF_NAMES[DIFF]+'］',W/2,H*.9);
       cx.globalAlpha=1;
     }
     function wrapText(txt,maxW){

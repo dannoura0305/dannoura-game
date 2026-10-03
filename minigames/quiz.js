@@ -31,6 +31,10 @@ addMinigameStyle('quiz',`
 .quiz-timer.low .quiz-timer-fill{background:linear-gradient(#ff6a84,#c4183c);box-shadow:0 0 12px rgba(232,48,85,.8);animation:quiz-pulse .5s ease-in-out infinite alternate;}
 .quiz-timer-n{font-family:var(--mono);font-size:.78rem;color:var(--tx-b);min-width:26px;text-align:right;}
 .quiz-timer.low .quiz-timer-n{color:#ff6a84;}
+.quiz-hint{flex:0 0 auto;font-family:var(--mono);font-size:.66rem;padding:2px 7px;border-radius:10px;border:1px solid #44ee88;background:rgba(68,238,136,.1);color:#44ee88;cursor:pointer;}
+.quiz-hint:disabled{opacity:.35;cursor:default;}
+.quiz-hint[hidden]{display:none;}
+.quiz-diff-tag{display:inline-block;margin-top:2px;font-family:var(--mono);font-size:.64rem;color:var(--dc);border:1px solid var(--dc);border-radius:3px;padding:1px 6px;}
 .quiz-card{position:relative;min-height:116px;padding:9px 12px 12px 34px;border-radius:3px;color:#2a2238;transform:rotate(-.6deg);
   background:radial-gradient(ellipse at 85% -10%,rgba(255,214,150,.55),transparent 65%),repeating-linear-gradient(180deg,transparent 0 25px,rgba(70,100,170,.28) 25px 26px),linear-gradient(#ece3cc,#d9cfb5);
   background-position:0 0,0 6px,0 0;box-shadow:0 10px 24px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.25),0 0 40px -10px rgba(255,190,110,.35);}
@@ -199,6 +203,7 @@ addMinigameStyle('quiz',`
 (()=>{
 const FONT='"DotGothic16", monospace';
 const QN=10, QTIME=15;
+addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
 const AREA={
   L:{short:'法令',full:'危険物に関する法令',col:'#00e8c8'},
   P:{short:'物理・化学',full:'基礎的な物理学及び基礎的な化学',col:'#b98cff'},
@@ -312,8 +317,9 @@ function getData(){
 // 出題：分野ごとに3問＋1問。資格知識で難易度を寄せ、間違えた問題は重みを上げる
 // mock=模擬試験（難しめ寄せ）／focus=今夜の重点分野（4問になる）
 // 並びは常に難易度順（ウォームアップ→本番→実戦）
-function pickQuestions(ck,data,mock,focus){
-  const t=Math.max(1,Math.min(3,1+ck/45+(mock?.9:0)));
+// bias＝難しさ設定でねらいを易しい側へずらす量（やさしい .9／ふつう .45／むずかしい 0）
+function pickQuestions(ck,data,mock,focus,bias){
+  const t=Math.max(1,Math.min(3,1+ck/45+(mock?.9:0)-(bias||0)));
   const w=q=>{
     const wr=data.wrong[q.id]||0,sn=data.seen[q.id]||0;
     return (1/(1+1.2*Math.abs(q.d-t)))*(1+1.6*Math.min(wr,3))/(1+.3*Math.min(sn,6));
@@ -399,6 +405,12 @@ registerMinigame({
   effect:'資格知識↑ 仕事評価↑ 精神± ／ 疲労+5 約50分',
   help:'タップ/1-4キーで解答',
   start(body,mg){
+    // 難しさ（開始時に読む）：制限時間・出題の難易度寄せ・50:50ヒントの回数
+    const DIFF=mgDifficulty();
+    mg.el('mg-title').insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);
+    const QT_STD=mgDiff([30,30,25],[22,22,18],[15,15,12]),QT_MOCK=mgDiff([25,25,20],[18,18,15],[13,13,11]);
+    const Q_BIAS=mgDiff(.9,.45,0);
+    let hints=mgDiff(3,1,0);
     const data=getData();
     const ck=(typeof gs.certKnow==='number')?gs.certKnow:0;
     const focus=['L','P','S'][(gs.day||1)%3];
@@ -414,7 +426,7 @@ registerMinigame({
         <span class="quiz-combo"></span></div>
         <div class="quiz-who"><div class="quiz-bub"></div><div class="quiz-face"></div></div></div>
       <div class="quiz-main">
-        <div class="quiz-timer"><div class="quiz-timer-track"><div class="quiz-timer-fill"></div></div><span class="quiz-timer-n">15</span></div>
+        <div class="quiz-timer"><div class="quiz-timer-track"><div class="quiz-timer-fill"></div></div><span class="quiz-timer-n">15</span><button class="quiz-hint" hidden>50:50</button></div>
         <div class="quiz-card"><div class="quiz-card-head"><span class="quiz-card-no">Q.1</span><span class="quiz-card-diff"></span><span class="quiz-card-area"></span></div>
           <div class="quiz-card-q"></div>
           <svg class="quiz-bigmark" viewBox="0 0 150 150"><path d="M88 18 C 40 10, 12 52, 22 92 C 32 132, 96 140, 124 104 C 148 72, 126 22, 80 20 C 66 21, 56 26, 50 30"/></svg>
@@ -433,7 +445,7 @@ registerMinigame({
     const $=s=>root.querySelector(s);
     const bg=$('.quiz-bg'),fxc=$('.quiz-fx'),bx=bg.getContext('2d'),fx=fxc.getContext('2d');
     const elArea=$('.quiz-area'),elQn=$('.quiz-qn'),elRev=$('.quiz-review'),elCombo=$('.quiz-combo');
-    const elTimer=$('.quiz-timer'),elFill=$('.quiz-timer-fill'),elTN=$('.quiz-timer-n');
+    const elTimer=$('.quiz-timer'),elFill=$('.quiz-timer-fill'),elTN=$('.quiz-timer-n'),elHint=$('.quiz-hint');
     const elCard=$('.quiz-card'),elNo=$('.quiz-card-no'),elDiff=$('.quiz-card-diff'),elCA=$('.quiz-card-area'),elQ=$('.quiz-card-q');
     const elBig=$('.quiz-bigmark'),elStamp=$('.quiz-stamp'),elCh=$('.quiz-choices'),elSheet=$('.quiz-sheet');
     const elBanner=$('.quiz-banner'),elOv=$('.quiz-ov'),elMain=$('.quiz-main');
@@ -682,13 +694,14 @@ registerMinigame({
           <button class="quiz-mode" data-m="0" style="--mc:var(--cy)">いつもの10問<small>4択・解説つき／今夜の重点：${AREA[focus].short}</small></button>
           <button class="quiz-mode" data-m="1" style="--mc:var(--rd)" ${canMock?'':'disabled'}>${canMock?'模擬試験モード':'🔒 模擬試験モード'}<small>${canMock?'難問寄り・制限時間短め・得点×1.2':'1回で8問以上正解すると解放'}</small></button>
         </div>
+        <div class="quiz-diff-tag" style="--dc:${DIFF==='easy'?'#44ee88':DIFF==='normal'?'#e8b830':'#ff6a86'}">難しさ：${MG_DIFF_NAMES[DIFF]}</div>
         <div class="quiz-rec">${data.runs?`ランク【${RANKS[rankOf(data.right)][1]}】 BEST ${data.best.toLocaleString()} ・ 最高評価 ${data.bestGrade||'-'}<br>通算正答率 ${['L','P','S'].map(a=>AREA[a].short+' '+(data.area[a][1]?Math.round(data.area[a][0]/data.area[a][1]*100)+'%':'-')).join(' / ')}`:'— FIRST NIGHT —'}</div>`;
       elTitle.querySelectorAll('.quiz-mode').forEach(b=>b.addEventListener('click',()=>pickMode(b.dataset.m==='1')));
       synth('title');
     }
     function pickMode(m){
       if(st!=='title'||(m&&!data.mockOpen))return;
-      mock=m;qs=pickQuestions(ck,data,mock,focus);
+      mock=m;qs=pickQuestions(ck,data,mock,focus,Q_BIAS);
       AU.se('decide');synth('page');
       st='story';elTitle.classList.add('off');
       startStory(storyLines(),showIntro,'char_normal',`<small>PROLOGUE</small>${mock?'模擬試験の夜':'勉強の夜'}`);
@@ -740,6 +753,7 @@ registerMinigame({
           <li>制限時間内に。早いほど高得点</li>
           <li>連続正解で<b>コンボ倍率</b>（最大×2.0）</li>
           <li>肩慣らし → 本番 → <b>実戦</b>（短め・高得点）</li>
+          ${hints?`<li><b>50:50</b>ボタンで選択肢を2つに（今夜あと${hints}回）</li>`:''}
         </ul>
         <div class="quiz-p-note">出題：<b>${lvl}</b>（資格知識 ${ck}）／重点 ${AREA[focus].short}${rev?`<br>復習待ち <b>${rev}問</b>（出やすくなっています）`:''}</div>
         <button class="quiz-btn">はじめる<small>Enter</small></button></div>`;
@@ -767,7 +781,7 @@ registerMinigame({
     function showQuestion(){
       cur=qs[qi];
       const ph=phaseOf(qi);
-      qtime=mock?[13,13,11][ph]:[15,15,12][ph];
+      qtime=(mock?QT_MOCK:QT_STD)[ph];
       st='ask';left=qtime;lastSec=qtime;
       data.seen[cur.id]=(data.seen[cur.id]||0)+1;
       order=[0,1,2,3];for(let i=3;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
@@ -782,6 +796,7 @@ registerMinigame({
       elBig.classList.remove('on');elStamp.classList.remove('on');
       elCard.classList.remove('enter','out');void elCard.offsetWidth;elCard.classList.add('enter');
       elTimer.classList.remove('low');elFill.style.width='100%';elTN.textContent=qtime;
+      elHint.hidden=hints<=0&&!elHint.dataset.used;elHint.disabled=hints<=0;elHint.textContent=`50:50 ×${hints}`;
       elCh.innerHTML='';
       order.forEach((oi,k)=>{
         const b=document.createElement('button');b.className='quiz-ch enter';b.style.animationDelay=(k*.06)+'s';
@@ -798,8 +813,19 @@ registerMinigame({
       AU.se('notif');
     }
 
+    // 50:50：まちがいの選択肢を2つ消す（やさしい・ふつうのみ）
+    function useHint(){
+      if(st!=='ask'||hints<=0)return;
+      hints--;elHint.dataset.used='1';elHint.disabled=true;elHint.textContent=`50:50 ×${hints}`;
+      const btns=[...elCh.children],wrong=btns.map((b,i)=>i).filter(i=>i!==correctIdx);
+      for(let i=wrong.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[wrong[i],wrong[j]]=[wrong[j],wrong[i]];}
+      wrong.slice(0,2).forEach(i=>{btns[i].disabled=true;btns[i].classList.add('is-dim');});
+      AU.se('decide');say('……この2つは違う。',1200);
+    }
+    elHint.addEventListener('click',useHint);
     function choose(k){
       if(st!=='ask')return;
+      if(k>=0&&elCh.children[k]&&elCh.children[k].disabled)return;
       st='reveal';answered++;
       const btns=[...elCh.children];
       btns.forEach(b=>{b.disabled=true;b.style.transform='';});
@@ -940,6 +966,7 @@ registerMinigame({
       if(e.type!=='keydown'||e.repeat)return;
       const k=e.key;
       if(st==='ask'&&k>='1'&&k<='4'){e.preventDefault();choose(+k-1);return;}
+      if(st==='ask'&&(k==='h'||k==='H')){e.preventDefault();useHint();return;}
       if(st==='title'&&(k==='1'||k==='2')){e.preventDefault();pickMode(k==='2');return;}
       if(k==='Enter'||k===' '){
         e.preventDefault();
@@ -951,7 +978,8 @@ registerMinigame({
     showTitle();
 
     // テスト用フック（ゲームには影響しない）
-    body._quiz={BANK,pickQuestions,state:()=>({st,qi,correct,score,combo,answered,correctIdx,cur:cur&&cur.id,byArea:JSON.parse(JSON.stringify(byArea))}),
+    body._quiz={BANK,pickQuestions,state:()=>({st,qi,correct,score,combo,answered,correctIdx,cur:cur&&cur.id,byArea:JSON.parse(JSON.stringify(byArea)),qtime,hints,diff:DIFF}),
+      useHint,
       setLeft:v=>{left=v;}};
 
     return {result(reason){
