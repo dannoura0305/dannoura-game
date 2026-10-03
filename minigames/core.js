@@ -41,6 +41,21 @@ function fxToHtml(fx){
   }).join('<br>');
 }
 
+// 3Dゲーム用：three.js（vendor/three.min.js）を初回だけ読み込む。window.THREE を返すPromise
+let _threePromise=null;
+function loadThree(){
+  if(window.THREE)return Promise.resolve(window.THREE);
+  if(_threePromise)return _threePromise;
+  _threePromise=new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='vendor/three.min.js';
+    s.onload=()=>window.THREE?res(window.THREE):rej(new Error('three.js not available'));
+    s.onerror=()=>{_threePromise=null;rej(new Error('vendor/three.min.js を読み込めませんでした'));};
+    document.head.appendChild(s);
+  });
+  return _threePromise;
+}
+
 function playedMinigameToday(id){return !!(gs.mgDay&&gs.mgDay[id]===gs.day);}
 
 // ── 選択画面 ──
