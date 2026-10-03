@@ -361,7 +361,7 @@ registerMinigame({
         if(l.btn)tx.querySelector('.esc-res').addEventListener('click',ev=>{ev.stopPropagation();AU.se('decide');l.onBtn();});};
       if(/</.test(l.text)){fin();return;}
       let i=0;tx.textContent='';
-      const iv=setInterval(()=>{if(mg._ended){clearInterval(iv);return;}i++;tx.textContent=l.text.slice(0,i);if(i%3===0)sfx('type');if(i>=l.text.length){clearInterval(iv);fin();}},34);
+      const t0=performance.now();const iv=setInterval(()=>{if(mg._ended){clearInterval(iv);return;}const n=Math.min(l.text.length,Math.floor((performance.now()-t0)/32)+1);if(n!==i){if(Math.floor(n/3)!==Math.floor(i/3))sfx('type');i=n;tx.textContent=l.text.slice(0,i);}if(i>=l.text.length){clearInterval(iv);fin();}},30);
       typing={finish(){clearInterval(iv);fin();}};
     }
     dlgEl.addEventListener('click',e=>{if(e.target.closest('button'))return;if(dlgQ){if(curLine&&curLine.btn&&!typing)return;nextLine();}});
@@ -461,7 +461,7 @@ registerMinigame({
         b.classList.remove('new');b.classList.toggle('tut',S.tut===2&&i===0&&!!id);
         if(id&&id===newId){void b.offsetWidth;b.classList.add('new');}
       });
-      const h=$('.esc-hint');h.innerHTML=`ヒント<br>残${3-S.hints}`;h.disabled=S.hints>=3||!S.started||S.door;
+      const h=$('.esc-hint');h.innerHTML=`ヒント<br>残${3-S.hints}`;h.disabled=S.hints>=3||!S.started||S.door||!!S.over;
       updScore();
     }
     function addItem(id,text,h){
@@ -840,7 +840,7 @@ registerMinigame({
       gs.escapeData=REC;
     }
     function endingClear(){
-      if(S.over)return;S.over='clear';closeZoom(true);rainStop();
+      if(S.over)return;S.over='clear';S.tut=0;closeZoom(true);rainStop();renderInv();
       const g=grade(),nb=Math.ceil(S.left)>prevBest;
       const cm={S:'完璧な段取り。ベテランの仕事だ。',A:'手際よし。設備屋の面目躍如。',B:'無事に脱出。次はもっと速く。',C:'ぎりぎり間に合った……。'}[g];
       record('clear');dlgEl.classList.add('lite');
@@ -853,7 +853,7 @@ registerMinigame({
       ]);
     }
     function endingTimeup(){
-      if(S.over)return;S.over='timeup';closeZoom(true);rainStop();record('timeup');
+      if(S.over)return;S.over='timeup';S.tut=0;closeZoom(true);rainStop();record('timeup');renderInv();
       dialog([
         {text:'窓の外が白み……やがて、照明が一斉に戻った。',fx:()=>{flash=1;AU.se('machine');sfx('power');}},
         {who:'だんのうら',img:'char_tired',text:'……結局、朝まで出られなかったか。'},
@@ -1458,7 +1458,7 @@ registerMinigame({
       parts.forEach(p=>{if(p.room!==S.room)return;const a=Math.min(1,p.l*1.6);cx.fillStyle=`rgba(${p.rgb},${a})`;cx.beginPath();cx.arc(X(p.x),Y(p.y),p.s*(W/380),0,7);cx.fill();});
       cx.globalCompositeOperation='source-over';
       // チュートリアルの指差し
-      if(S.tut===1&&S.room==='ctrl'&&!zoomId){
+      if(S.tut===1&&S.room==='ctrl'&&!zoomId&&!S.over&&!S.drawer){
         const h=hsById('ctrl','desk'),px=X(h.x+h.w*.7),py=Y(h.y+h.h*.42),k=(T*1.2)%1;
         cx.strokeStyle=`rgba(0,232,200,${1-k})`;cx.lineWidth=2.5;cx.beginPath();cx.arc(px,py,8+k*26,0,7);cx.stroke();
         const bob=Math.sin(T*5)*4;cx.save();cx.translate(px+14,py+16+bob);cx.rotate(-.5);
