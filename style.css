@@ -585,7 +585,7 @@ body.fatigue-hi .choice-btn:nth-child(odd){transform:translateX(var(--fatigue-dr
 .srf{height:100%;border-radius:1px;transition:width .7s cubic-bezier(.3,.8,.3,1);}
 .srv{font-family:var(--dot);font-size:.7rem;color:#fff;width:30px;text-align:right;text-shadow:1px 1px 0 #000;font-variant-numeric:tabular-nums;}
 /* SDステージ */
-#sd-stage{margin:8px 8px 0;width:auto !important;border-radius:7px;border:2px solid var(--win-hi) !important;box-shadow:var(--win-shadow);}
+#sd-stage{margin:8px auto 0 !important;width:calc(100% - 16px) !important;max-width:464px;border-radius:7px;border:2px solid var(--win-hi) !important;box-shadow:var(--win-shadow);}
 /* スキル */
 .sk-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;}
 .sk-card{position:relative;overflow:hidden;min-height:64px;padding:7px 8px 7px 20px;cursor:pointer;

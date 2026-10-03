@@ -1718,23 +1718,22 @@ registerMinigame({
     resize();
     const onResize=()=>{if(!mg._ended)resize();};
     window.addEventListener('resize',onResize);
-    window.__mgFishingBench=n=>{const t0=performance.now();for(let i=0;i<n;i++)draw();return (performance.now()-t0)/n;};
-    window.__mgFishing=()=>({state,tension,pr:reel.pr,inside:reel.inside,f:reel.f,z:reel.z,zw:reel.zw,ended:mg._ended,casts:castsLeft,catches:catches.length,talk:talk.on,grade});
+    if(mg.onEnd)mg.onEnd(()=>{SFX.ambStop();window.removeEventListener('resize',onResize);});
     mg.loop(dt=>{update(dt);if(!mg._ended)draw();});
 
     return {result(reason){
       window.removeEventListener('resize',onResize);
       SFX.ambStop();
-      try{delete window.__mgFishing;delete window.__mgFishingBench;}catch(_){}
+      
       const done=reason==='done';
       const names=catches.map(c=>SP[c.id].name);
       const uniq=[...new Set(names)];
       const fx=done?{mental:6+(rareCaught?1:0),fatigue:-4,hope:2}:{mental:2};
       const rare=[...new Set(catches.filter(c=>SP[c.id].r===3).map(c=>SP[c.id].name))];
-      const summary=(done?`評価 <span class="up">${grade}</span>（スコア ${score}）<br>`:'')+
-        (catches.length?`釣果 <span class="up">${catches.length}</span>：${uniq.join('、')}`:'釣果なし。波の音を聞いていた。')+
-        (newSpecies?`<br>図鑑に <span class="up">${newSpecies}種</span> 新しく登録（${zCount()}/${SPECIES.length}）`:`<br>魚図鑑 ${zCount()}/${SPECIES.length}`)+
-        (rare.length?`<br><span class="up">★ ${rare.join('、')}</span> に出会った`:'')+`<br>今夜：${WNAME}・${MOON_NAME}`;
+      const summary=(done?`今夜の評価 <span class="up">${grade}</span><br>スコア <span class="up">${score}</span><br>`:'')+
+        (catches.length?`釣果（${uniq.join('、')}） <span class="up">${catches.length}匹</span>`:'釣果なし。波の音を聞いていた。')+
+        (newSpecies?`<br>魚図鑑に新しく登録（${zCount()}/${SPECIES.length}） <span class="up">+${newSpecies}種</span>`:`<br>魚図鑑 ${zCount()}/${SPECIES.length}`)+
+        (rare.length?`<br>★ ${rare.join('、')} <span class="up">出会った</span>`:'')+`<br>今夜：${WNAME}・${MOON_NAME}`;
       return {
         title:done?`🎣 夜釣り、おしまい（評価${grade}）`:'🎣 早めに竿をたたんだ',
         summary,fx,time:done?60:20,sp:done&&newSpecies>0?1:0,

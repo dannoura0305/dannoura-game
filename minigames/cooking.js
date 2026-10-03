@@ -927,7 +927,7 @@ registerMinigame({
       g.save();g.translate(R*.07,R*.14);oniPath(g,0,0,R,o.p);g.fillStyle='rgba(0,0,0,.35)';g.fill();g.restore();
       oniPath(g,0,0,R,o.p);g.save();g.clip();
       g.drawImage(riceTex,-R*1.35,-R*1.35,R*2.7,R*2.7);
-      if(o.paint&&oni.paint){g.globalCompositeOperation='multiply';const pr=oni.paintR,k=R/pr;g.drawImage(oni.paint,-1.4*R,-1.4*R,2.8*R,2.8*R);g.globalCompositeOperation='source-over';void k;}
+      if(o.paint&&oni.paint){g.globalCompositeOperation='multiply';g.drawImage(oni.paint,-1.4*R,-1.4*R,2.8*R,2.8*R);g.globalCompositeOperation='source-over';}
       if(o.grill!==undefined&&o.grill>=0){
         g.globalCompositeOperation='multiply';g.fillStyle=ramp(GRILLR,o.grill);g.fillRect(-R*1.5,-R*1.5,R*3,R*3);
         g.globalCompositeOperation='source-over';g.fillStyle=ramp(GRILLR,o.grill*.92,.42);g.fillRect(-R*1.5,-R*1.5,R*3,R*3);
@@ -1009,7 +1009,7 @@ registerMinigame({
         if(pt>=.42){oni.side=1;oni.c=0;gauge.lockV=-1;gauge.right='裏';hint='もう片面も！ 金色でタップ';go2('oni_grill');}
       }else if(ph==='oni_finish'){
         SND.sizzle(.1);every('of',8,dt,()=>steam(L.cx,L.CY-L.R*.5,L.R*.5,1));
-        if(pt>1.6){SND.sizzle(0);rec.oni.push(...[]);startDish(3);ph='wait';}
+        if(pt>1.6){SND.sizzle(0);startDish(3);ph='wait';}
       }
     }
     function go2(p){ph=p;pt=0;}
@@ -1223,14 +1223,10 @@ registerMinigame({
       g.lineTo(c2.x+c2.w*.75,c2.y+c2.h);g.lineTo(c2.x,c2.y+c2.h);g.fill();
       g.strokeStyle='rgba(220,255,190,.5)';g.lineWidth=1;for(let i=0;i<5;i++){g.beginPath();g.moveTo(c2.x+c2.w*(.08+i*.14),c2.y+c2.h);g.lineTo(c2.x+c2.w*(.12+i*.14),c2.y+c2.h*.3);g.stroke();}
       g.restore();
-      // ごはんの仕切りにふりかけ
-      const c0=L.comps[0];
-      for(let i=0;i<0;i++){}
       // バラン
       const by2=L.comps[1].y+L.comps[1].h+I.dv/2;
       g.fillStyle='#3fa04a';g.beginPath();g.moveTo(L.comps[1].x,by2+3*S);
       for(let x=L.comps[1].x;x<=L.comps[1].x+L.comps[1].w;x+=8*S){g.lineTo(x+4*S,by2-4*S);g.lineTo(x+8*S,by2+3*S);}g.fill();
-      void c0;
     }
     function drawItem(it,p,lifted){
       const s=p.s,land=it.land>0?1+Math.sin(it.land/.35*Math.PI)*.12:1;
@@ -1368,7 +1364,6 @@ registerMinigame({
         txt(s1.slice(0,clamp(n,0,s1.length)),W/2,byy+bh*.36,14*S,'#5a3a2a');
         txt(s2.slice(0,clamp(n-s1.length,0,s2.length)),W/2,byy+bh*.7,13*S,'#8a5a4a');
         g.restore();
-        if(r.grade==='great')every('mh',3,1/60,()=>{});
       }
       if(pt>1.6){const tAlpha=.5+.5*Math.sin(T*4);txtO('タップで つづける',W/2,H-16*S,12*S,`rgba(255,255,255,${tAlpha})`,'rgba(80,50,40,.6)',3*S);}
     }
@@ -1424,7 +1419,6 @@ registerMinigame({
       drawPlateDish(sx,sy+sR*.4,sR*1.25);
       drawEggSlice(sx-sR*.35,sy+sR*.3,sR*.32,.3,avg(egg.layers)||.6);
       drawOni(sx+sR*.35,sy+sR*.35,sR*.45,-.2,{p:oni.shapeP,paint:true,grill:avg(oni.cs),gloss:.6});
-      every('fs',3,1/60,()=>{});
       txt('夜食：端っこと残りごはん',sx,sy+sR*1.95,10*S,'#bbaedd');
       drawNote(px+pw*.7,sy+sR*.5,pw*.48,sR*2.2,-.04,1);
       // レシピ帳
@@ -1694,7 +1688,6 @@ registerMinigame({
       drawSausage(L.cx+W*.08,y+10*S,40*S,1.4,0,.99,0,false,1);
       drawPlateDish(L.cx+W*.26,y,32*S);
       g.save();g.beginPath();g.arc(L.cx+W*.26,y-4*S,22*S,Math.PI,0);g.lineTo(L.cx+W*.26+22*S,y+6*S);g.lineTo(L.cx+W*.26-22*S,y+6*S);g.clip();g.drawImage(riceTex,L.cx+W*.26-24*S,y-28*S,48*S,40*S);g.restore();
-      steam(L.cx+W*.26,y-20*S,10*S,0);
       every('ri',3,1/60,()=>steam(L.cx+W*.26,y-18*S,10*S,1));
     }
     function hud(){

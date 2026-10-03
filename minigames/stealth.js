@@ -437,6 +437,7 @@ registerMinigame({
     resize();
     const onResize=()=>{if(!mg._ended)resize();};
     window.addEventListener('resize',onResize);
+    if(typeof mg.onEnd==='function')mg.onEnd(()=>{window.removeEventListener('resize',onResize);SX.stop();});
 
     // ── 入力 ──
     let joy=null;

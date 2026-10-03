@@ -1019,7 +1019,7 @@ function showDayCard(day, opt){
     return new Promise(r => { DC.resolve = r; });
   }catch(e){ console.warn('[presentation] day card', e); return Promise.resolve(); }
 }
-function hideDayCard(immediate){
+function hideDayCard(immediate){ if(window.__prDbg) console.log("HIDE", new Error().stack);
   if(!DC.el || !DC.active) return;
   clearTimeout(DC.tm); DC.active = false; window.prDayCardActive = false;
   DC.el.classList.add('out');

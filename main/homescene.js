@@ -93,23 +93,23 @@ const HEAD_B=[
 ];
 // 横向き（右向き）の頭
 const HEAD_S=[
-".......kkkk.....",
-".......kppk.....",
-".......kRRk.....",
-".....kkPPPPk....",
-"....khhhhhhkk...",
-"...khhhHHHhhhk..",
-"..khhHHhhhhhhhk.",
-".khfFhhhhhhhhhk.",
-".khhfhhhhhhshhk.",
-"khhhhhhhhhshsshk",
-"khdhhhhgggggggk.",
-"khdhhhhgsgsssgk.",
-"khddhhhhgssssgsk",
-"khddhhhhgggggssk",
-"khdddhhhhsssssk.",
-"khddddhhhkSssk..",
-".kkkdddkk.kkk...",
+"........kkkk....",
+"........kppk....",
+"........kRRk....",
+"......kkPPPPk...",
+"....kkhhhhhhkk..",
+"...khhhHHHhhhhk.",
+"..khhHHhhhhhhhhk",
+".khfFhhhhhhhhhhk",
+".khhfhhhhhhhshhk",
+"khhhhhhhhhhssshk",
+"khhhhhhhhgggggsk",
+"khdhhhhhgggssgsk",
+"khdhhhhhhhgssgsk",
+"khddhhhhhhggggsk",
+"khddhhhhhssbsssk",
+"khdddhhhhSsssmk.",
+".kkddddkkkkkkk..",
 ];
 // 正面の体（立ち） 16x11
 const BODY_F=[
@@ -818,7 +818,7 @@ function drawActor(x,fat,men){
       D2(s.headS,bx+sw,hy);
       // 口
       const open=Math.sin(t*5.3)+Math.sin(t*3.1)>.2;
-      x.fillStyle=PAL.m;x.fillRect(bx+sw+13,hy+14,1,open?2:1);
+      x.fillStyle=open?PAL.k:PAL.m;x.fillRect(bx+sw+13,hy+15,1,open?2:1);
       drawFaceS(x,bx+sw,hy,false,fat,true);
       break;}
     case'kneel':{
@@ -863,14 +863,13 @@ function drawFaceF(x,X,Y,fat,men){
   if(fat>=85&&Math.floor(S.t*.8)%3===0){x.drawImage(S.spr.sweat,X+13,Y+5);}
 }
 function drawFaceS(x,X,Y,flip,fat,sing,calm){
-  // 横顔の目（レンズ内 右向き: x=9..12,y=11..12）
-  const ex=flip?(16-1-11):10;
+  // 横顔の目（右向き: レンズ内 列11-12, 行11-12）
+  const c1=flip?3:12, c2=flip?4:11;
   const closed=sing||A.blink>0||calm;
-  if(closed){x.fillStyle=PAL.E;x.fillRect(X+ex,Y+12,2,1);}
-  else{x.fillStyle=PAL.e;x.fillRect(X+ex,Y+11,2,2);x.fillStyle=PAL.w;x.fillRect(X+(flip?ex:ex+1),Y+11,1,1);}
-  if(fat>=55){x.fillStyle=PAL.u;x.fillRect(X+ex,Y+14,2,1);}
+  if(closed){x.fillStyle=PAL.E;x.fillRect(X+Math.min(c1,c2),Y+12,2,1);}
+  else{x.fillStyle=PAL.e;x.fillRect(X+c1,Y+11,1,2);x.fillStyle=PAL.E;x.fillRect(X+c1,Y+12,1,1);x.fillStyle=PAL.w;x.fillRect(X+c2,Y+11,1,1);}
+  if(fat>=55){x.fillStyle=PAL.u;x.fillRect(X+Math.min(c1,c2),Y+14,2,1);}
 }
-
 function drawParticles(x){
   const s=S.spr;
   for(let i=0;i<PN;i++){const p=P[i];if(!p.on)continue;

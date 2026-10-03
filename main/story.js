@@ -988,7 +988,7 @@ const CSS=`
 .st-bg,.st-bg2{position:absolute;inset:0;background-size:cover;background-position:center;transition:opacity .8s ease;}
 .st-bg{filter:blur(2px) brightness(.5) saturate(1.1);transform:scale(1.08);}
 .st-roofs{position:absolute;left:0;right:0;bottom:12%;width:100%;height:30%;opacity:0;transition:opacity 1.2s ease;filter:blur(.6px);}
-.st-amb.sea~.st-roofs{opacity:.85;}
+.st-amb.sea~.st-roofs{opacity:.9;}
 .st-vig{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 46%,transparent 30%,rgba(2,1,8,.82) 100%),linear-gradient(transparent 62%,rgba(2,1,8,.95));pointer-events:none;}
 .st-amb{position:absolute;inset:0;pointer-events:none;opacity:.5;}
 .st-amb.rain{background:repeating-linear-gradient(103deg,transparent 0 22px,rgba(160,140,255,.14) 22px 23px,transparent 23px 47px);background-size:200% 200%;animation:stRain .6s linear infinite;}
@@ -1012,7 +1012,7 @@ const CSS=`
 .st-fig.dim{filter:brightness(.45) saturate(.6);transform:translate(-50%,4px) scale(.96);}
 .st-fig svg,.st-fig img{display:block;width:100%;height:100%;object-fit:cover;}
 .st-fig.fake{animation:stJit 2.2s steps(1) infinite;}
-.st-low{flex:none;position:relative;padding:0 10px max(12px,env(safe-area-inset-bottom));}
+.st-low{flex:none;position:relative;padding:0 10px max(12px,env(safe-area-inset-bottom));background:linear-gradient(rgba(2,1,8,0),rgba(2,1,8,.96) 36px);}
 .st-fx{position:absolute;left:14px;right:14px;top:-34px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;pointer-events:none;}
 .st-fx span{font-family:var(--mono,monospace);font-size:.66rem;letter-spacing:.06em;padding:3px 8px;border-radius:3px;background:rgba(8,6,26,.9);border:1px solid rgba(232,184,48,.55);color:#ffe7a8;animation:stFx 2.8s ease forwards;}
 .st-fx span.bad{border-color:rgba(232,48,85,.6);color:#ffb4c2;}
@@ -1089,7 +1089,7 @@ function build(){
   root=document.createElement('div');root.id='st-root';root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');
   root.innerHTML=`<div class="st-col">
     <div class="st-stage">
-      <div class="st-bg"></div><div class="st-amb"></div><svg class="st-roofs" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120 L0 92 L18 92 L30 80 L54 80 L66 92 L84 92 L84 86 L104 70 L140 70 L160 86 L160 96 L186 96 L200 84 L232 84 L246 96 L262 96 L262 78 L282 62 L318 62 L338 78 L338 92 L356 92 L370 82 L400 82 L400 120Z" fill="#06182a"/><path d="M110 70 L110 56 L134 56 L134 70 M290 62 L290 46 L310 46 L310 62" fill="#06182a"/></svg>
+      <div class="st-bg"></div><div class="st-amb"></div><svg class="st-roofs" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120 L0 92 L18 92 L30 80 L54 80 L66 92 L84 92 L84 86 L104 70 L140 70 L160 86 L160 96 L186 96 L200 84 L232 84 L246 96 L262 96 L262 78 L282 62 L318 62 L338 78 L338 92 L356 92 L370 82 L400 82 L400 120Z" fill="#0a2740" stroke="#3a8ab0" stroke-width="1.2" stroke-opacity=".55"/><path d="M110 70 L110 56 L134 56 L134 70 M290 62 L290 46 L310 46 L310 62" fill="#0a2740" stroke="#3a8ab0" stroke-width="1.2" stroke-opacity=".55"/></svg>
       <div class="st-lantern" style="left:22%;top:44%"></div><div class="st-lantern" style="left:71%;top:38%;animation-delay:-2s"></div><div class="st-lantern" style="left:58%;top:60%;animation-delay:-3.4s"></div>
       <div class="st-vig"></div>
       <div class="st-fig"></div>
