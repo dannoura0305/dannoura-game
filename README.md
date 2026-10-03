@@ -2,6 +2,9 @@
 だんのうら育成ゲーム
 
 ## 遊び方
+ブラウザで遊べます：https://dannoura0305.github.io/dannoura-game/
+（GitHub Pages を有効にすると、このURLで公開されます。下の「公開のしかた」を参照）
+
 `index.html` をブラウザで開くと遊べます。`index.html`・`style.css`・`game.js`・`assets/` は同じ場所に置いてください。
 
 ## ゲームの流れ
@@ -38,3 +41,11 @@ assets/img/       背景・キャラ・エンディング画像（webp）
 
 音声・画像を差し替えるときは `assets/` のファイルを置き換えるか、
 `game.js` 内の `BGM_DATA` / `VOICE_DATA` / `BG_IMG` / `CHAR_IMG` / `SD_IMG` / `ENDING_IMG` のパスを書き換えてください。
+
+## 公開のしかた（GitHub Pages）
+1. GitHub のリポジトリ画面で **Settings → Pages** を開く
+2. **Build and deployment** の Source を **Deploy from a branch** にする
+3. Branch を **main**、フォルダを **/(root)** にして **Save**
+4. 1〜2分後に https://dannoura0305.github.io/dannoura-game/ で遊べるようになる
+
+以降は `main` に変更を取り込むたびに自動で更新されます。
