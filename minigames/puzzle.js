@@ -889,7 +889,17 @@ registerMinigame({
       if(t>1){cx.font=`${fsM}px ${FONT}`;cx.fillStyle=`rgba(0,232,200,${.55+.45*Math.sin(T*5)})`;cx.fillText('▶ タップでスタート',W/2,H*.8);}
       drawParticles();
     }
-    function drawBoss(x,y,s){
+    function drawBoss(x,y,s,face){
+      // 班長の顔グラ（main/mobs.js の SVG）。読み込み前は下の手描きで代用
+      const mi=typeof mobImage==='function'?mobImage('hancho',face):null;
+      if(mi&&mi.complete&&mi.naturalWidth){
+        const bg=cx.createRadialGradient(x+s*.5,y+s*.38,0,x+s*.5,y+s*.5,s*.75);bg.addColorStop(0,'#4a6a92');bg.addColorStop(1,'#141c30');
+        cx.fillStyle=bg;cx.fillRect(x,y,s,s);cx.drawImage(mi,x,y,s,s);
+        // 電話中の目印
+        cx.fillStyle='rgba(10,7,22,.8)';rr(cx,x+s*.74,y+s*.06,s*.2,s*.13,s*.03);cx.fill();
+        cx.fillStyle=`rgba(0,232,200,${.6+.4*Math.sin(T*6)})`;cx.font=`${Math.round(s*.085)}px ${FONT}`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText('TEL',x+s*.84,y+s*.125);
+        return;
+      }
       let g=cx.createRadialGradient(x+s*.5,y+s*.35,0,x+s*.5,y+s*.5,s*.8);g.addColorStop(0,'#2a3450');g.addColorStop(1,'#0a0c18');
       cx.fillStyle=g;cx.fillRect(x,y,s,s);
       // 作業着
@@ -934,7 +944,7 @@ registerMinigame({
       if(me){
         const g=cx.createLinearGradient(0,pyy,0,pyy+ps);g.addColorStop(0,good?'#5a3060':'#1c1238');g.addColorStop(1,good?'#d08050':'#08060f');cx.fillStyle=g;cx.fillRect(pxx,pyy,ps,ps);
         const im=IMG[L.face||'normal'];if(im&&im.complete&&im.naturalWidth)cx.drawImage(im,pxx,pyy,ps,ps);
-      }else drawBoss(pxx,pyy,ps);
+      }else drawBoss(pxx,pyy,ps,st==='ending'?(good?'happy':grade==='B'?'normal':'worry'):'normal');
       const sh=cx.createLinearGradient(0,pyy+ps*.7,0,pyy+ps);sh.addColorStop(0,'rgba(5,4,14,0)');sh.addColorStop(1,'rgba(5,4,14,.7)');cx.fillStyle=sh;cx.fillRect(pxx,pyy,ps,ps);
       cx.restore();
       rr(cx,pxx,pyy,ps,ps,8);cx.lineWidth=2;cx.strokeStyle=me?'#00e8c8':'#e8b830';cx.stroke();

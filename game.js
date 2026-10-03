@@ -1719,6 +1719,7 @@ function showEvPopup(title,desc,fx,cb){
   document.getElementById('ev-title').textContent=title;
   document.getElementById('ev-desc').textContent=desc;
   document.getElementById('ev-fx').textContent=fx;
+  if(typeof mobEvPortrait==='function')mobEvPortrait(title);
   gs._pev={apply:cb||null};
   document.getElementById('ev-popup').classList.add('active');
 }

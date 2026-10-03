@@ -2802,6 +2802,11 @@ registerMinigame({
         const im=img('char_'+(expr||'normal'));
         if(im.ok){Xp.drawImage(im.src,0,0,Z,Z);Xp.globalCompositeOperation='multiply';Xp.fillStyle='#c4ccf4';Xp.fillRect(0,0,Z,Z);Xp.globalCompositeOperation='source-over';}
         else{Xp.imageSmoothingEnabled=false;Xp.drawImage(sprite(V.form==='tired'||expr==='tired'||expr==='fear'?'danT':'dan','d',0,'',''),4,0,16,16,0,0,Z,Z);}
+      }else if(kind==='mina'&&typeof mobImage==='function'&&(()=>{const mi=mobImage('minamo',expr);return mi&&mi.complete&&mi.naturalWidth;})()){
+        // ミナモの顔グラ（main/mobs.js の SVG）。半透明にゆらめかせる
+        const mi=mobImage('minamo',expr),zz=Z*1.16,bob=Math.sin(V.t*1.2)*Z*.012;
+        Xp.globalAlpha=.9+.06*Math.sin(V.t*2.3);Xp.drawImage(mi,(Z-zz)/2,Z*.0+bob,zz,zz);Xp.globalAlpha=1;
+        Xp.globalCompositeOperation='lighter';const gw=Xp.createLinearGradient(0,Z*.6,0,Z);gw.addColorStop(0,'rgba(80,200,255,0)');gw.addColorStop(1,'rgba(80,200,255,.22)');Xp.fillStyle=gw;Xp.fillRect(0,0,Z,Z);Xp.globalCompositeOperation='source-over';
       }else if(kind==='mina'){const h=Z*2.3,s=h/150;drawMinamo(Xp,Z/2,Z*.44+h*.78-Math.sin(V.t*1.2)*4*s,s,V.t,1.15,expr);}
       else if(kind==='kid'){
         const e2=expr==='happy'?'happy':expr==='sad'?'sad':expr==='sleep'?'sleep':'normal';const im=kidImg(e2);

@@ -244,6 +244,13 @@ const SELF_IMG=f=>{
 function portraitHTML(w,f){
   if(w==='self')return `<img src="${SELF_IMG(f)}" alt="">`;
   const c=CAST[w];if(!c)return '';
+  // 脇役の顔グラ（main/mobs.js の SVG）。読めないときは下の手描きアイコン
+  const mob={hancho:['hancho','#4a6a92','#1a2a40'],sensei:['sensei','#c27a98','#4a2034'],chiyo:['chiyo','#b08a5a','#3a2614'],yodaka:['yodaka']}[w];
+  if(mob&&typeof mobPortrait==='function'&&mobPortrait(mob[0],f)){
+    const src=mobPortrait(mob[0],f);
+    if(!mob[1])return `<img src="${src}" alt="">`;
+    return `<img src="${src}" alt="" style="width:124%;height:124%;max-width:none;margin:-4% 0 0 -12%;background:radial-gradient(circle at 50% 38%,${mob[1]},${mob[2]} 72%)">`;
+  }
   const fn=PORTRAIT[c.por||w];
   return fn?fn(c.pf||f):'';
 }

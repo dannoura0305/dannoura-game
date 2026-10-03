@@ -733,7 +733,10 @@ registerMinigame({
     }
     function talkShow(){
       const L=talk.lines[talk.i];talk.shown=0;
-      if(L.who==='gen'){tkPt.innerHTML='';const c=document.createElement('canvas');c.width=genPortrait.width;c.height=genPortrait.height;c.getContext('2d').drawImage(genPortrait,0,0);tkPt.appendChild(c);
+      if(L.who==='gen'&&typeof mobImgTag==='function'&&mobPortrait('gen')){ // 源さんの顔グラ（main/mobs.js）
+        tkPt.innerHTML=mobImgTag('gen',L.face,'radial-gradient(circle at 50% 38%,#4a5a8a,#141228 72%)','transform:scale(1.18);transform-origin:50% 16%;');
+        tkName.textContent='源さん（常連の釣り人）';tkName.className='fishing-tn gen';}
+      else if(L.who==='gen'){tkPt.innerHTML='';const c=document.createElement('canvas');c.width=genPortrait.width;c.height=genPortrait.height;c.getContext('2d').drawImage(genPortrait,0,0);tkPt.appendChild(c);
         tkName.textContent='源さん（常連の釣り人）';tkName.className='fishing-tn gen';}
       else{tkPt.innerHTML=heroImg(L.face||'normal');tkName.textContent='だんのうら';tkName.className='fishing-tn';}
       tkText.textContent='';
@@ -1191,26 +1194,83 @@ registerMinigame({
       const fx=GEN.float.x+camX*(.8-1),fy=GEN.float.y+Math.sin(t*1.4+1)*1.1-26*scaleAt(GEN.float.y)*.9+camOff*(.95-1);
       cx.strokeStyle='rgba(220,220,240,.22)';cx.lineWidth=.7;cx.beginPath();cx.moveTo(tx,ty);cx.quadraticCurveTo((tx+fx)/2,Math.max(ty,fy)+30,fx,fy);cx.stroke();
       cx.globalCompositeOperation='lighter';gl(glow.gn,tx,ty,5,.5);cx.globalCompositeOperation='source-over';cx.globalAlpha=1;
-      // 体（前かがみ）
-      cx.save();cx.translate(x,y-16*u);cx.rotate(.22);
-      cx.beginPath();cx.moveTo(-13*u,0);cx.lineTo(13*u,0);cx.quadraticCurveTo(16*u,-20*u,8*u,-32*u);cx.quadraticCurveTo(-6*u,-36*u,-13*u,-26*u);cx.quadraticCurveTo(-17*u,-12*u,-13*u,0);cx.closePath();
+      // 脚（バケツに腰かけて膝を立てる・ゴム長靴）
+      const leg=(ox,col,bootC,sole)=>{
+        const hx0=x+ox+2*u,hy0=y-17*u,kx=x+ox+19*u,ky=y-23*u,fx=x+ox+12.5*u,fy=y;
+        cx.strokeStyle=col;cx.lineCap='round';cx.lineWidth=8.5*u;cx.beginPath();cx.moveTo(hx0,hy0);cx.lineTo(kx,ky);cx.stroke();
+        cx.lineWidth=7*u;cx.beginPath();cx.moveTo(kx,ky);cx.lineTo(fx-1*u,fy-10*u);cx.stroke();
+        cx.strokeStyle='rgba(255,190,120,.22)';cx.lineWidth=1.2;cx.beginPath();cx.moveTo(hx0+2*u,hy0-4*u);cx.lineTo(kx+1*u,ky-4*u);cx.stroke();
+        cx.fillStyle=bootC;cx.beginPath();cx.moveTo(fx-5*u,fy-13*u);cx.lineTo(fx+3.2*u,fy-13*u);cx.lineTo(fx+3.6*u,fy-4*u);
+        cx.quadraticCurveTo(fx+9.5*u,fy-4*u,fx+9.5*u,fy-.5*u);cx.lineTo(fx-5.5*u,fy-.5*u);cx.closePath();cx.fill();
+        cx.fillStyle=sole;cx.fillRect(fx-5.5*u,fy-1.6*u,15*u,1.6*u);cx.fillRect(fx-5.4*u,fy-13.5*u,8.8*u,1.6*u);
+        cx.fillStyle='rgba(200,255,220,.16)';cx.fillRect(fx-3.8*u,fy-11.5*u,1.3*u,8*u);
+      };
+      leg(-4*u,'#2c2e22','#1a2a20','#080a08');
+      // 奥の腕（膝に置いた手）
+      limb(x+3*u,y-42*u,x+18*u,y-27*u,6*u,'#1e2016');
+      cx.fillStyle='#9a7254';cx.beginPath();cx.ellipse(x+19*u,y-26.5*u,3*u,2.3*u,.3,0,7);cx.fill();
+      leg(0,'#4a4c38','#2a4434','#0c100c');
+      // 体（前かがみ・作業ジャンパーの上に釣りベスト・首にタオル）
+      cx.save();cx.translate(x,y-16*u);cx.rotate(.22+Math.sin(t*1.2)*.012);
+      const torso=()=>{cx.beginPath();cx.moveTo(-13*u,0);cx.lineTo(13*u,0);cx.quadraticCurveTo(16*u,-20*u,8*u,-32*u);cx.quadraticCurveTo(-6*u,-36*u,-13*u,-26*u);cx.quadraticCurveTo(-17*u,-12*u,-13*u,0);cx.closePath();};
+      torso();
       const jg=cx.createLinearGradient(-15*u,0,15*u,0);jg.addColorStop(0,'#24261a');jg.addColorStop(.6,'#3a3e2a');jg.addColorStop(1,'#5a5a3a');
       cx.fillStyle=jg;cx.fill();
+      cx.save();torso();cx.clip();
+      const vg=cx.createLinearGradient(-15*u,0,15*u,0);vg.addColorStop(0,'#3e3a24');vg.addColorStop(.55,'#6a6240');vg.addColorStop(1,'#8a8054');
+      cx.fillStyle=vg;cx.fillRect(-16*u,-30*u,32*u,30*u);
+      cx.fillStyle='#2e3222';cx.beginPath();cx.ellipse(5*u,-23*u,6*u,7.5*u,.25,0,7);cx.fill();   // 袖ぐり（ジャンパーが見える）
+      cx.fillStyle='#2a2c1c';cx.fillRect(-16*u,-2.5*u,32*u,2.5*u);                                 // 裾
+      // ポケットとフラップ
+      const pk=(px,py,pw,ph)=>{cx.fillStyle='rgba(0,0,0,.22)';cx.fillRect(px,py,pw,ph);cx.fillStyle='#4e482e';cx.fillRect(px-.4*u,py-1.6*u,pw+.8*u,2*u);
+        cx.fillStyle='rgba(255,230,170,.28)';cx.fillRect(px-.4*u,py-1.6*u,pw+.8*u,.6);};
+      pk(5*u,-12*u,6.5*u,7*u);pk(-6*u,-11*u,6*u,7*u);
+      cx.fillStyle='#c8c0a0';cx.fillRect(9.5*u,-19*u,1*u,4*u);                                      // 胸ポケットのラインカッター
+      cx.restore();
       cx.strokeStyle='rgba(255,190,120,.35)';cx.lineWidth=1.3;cx.beginPath();cx.moveTo(13*u,0);cx.quadraticCurveTo(16*u,-20*u,8*u,-32*u);cx.stroke();
       cx.strokeStyle='rgba(0,0,0,.3)';cx.lineWidth=1;cx.beginPath();cx.moveTo(-4*u,-4*u);cx.lineTo(-2*u,-28*u);cx.stroke();
       // 頭
-      const hx=2*u+turn*2*u,hy=-40*u+Math.sin(t*1.2)*.6;
-      cx.fillStyle='#b88a66';cx.fillRect(hx-4*u,hy+6*u,8*u,5*u);
-      cx.fillStyle='#d8d4cc';cx.beginPath();cx.ellipse(hx,hy+5*u,9*u,4*u,0,0,7);cx.fill();
-      cx.fillStyle='#c09068';cx.beginPath();cx.arc(hx+8*u*(turn?1:.6),hy+2*u,3*u,0,7);cx.fill();
-      cx.fillStyle='#1e2a4a';cx.beginPath();cx.arc(hx,hy,9.5*u,Math.PI*.95,Math.PI*2.05);cx.fill();
-      cx.fillRect(hx-9.5*u,hy-1*u,19*u,3*u);
-      cx.fillStyle='#16203a';cx.beginPath();cx.ellipse(hx+(9+turn*3)*u,hy+1.5*u,8*u,2.2*u,.1,0,7);cx.fill();
-      cx.fillStyle='rgba(255,190,120,.25)';cx.beginPath();cx.arc(hx,hy,9.5*u,-.6,.2);cx.lineTo(hx,hy);cx.fill();
+      const hx=3*u+turn*2*u,hy=-41*u+Math.sin(t*1.2)*.6;
+      cx.fillStyle='#8a6448';cx.fillRect(hx-4*u,hy+4*u,7*u,7*u);                                    // 首
+      // タオル（首に巻いて前に垂らす）
+      cx.fillStyle='#d8d8d0';cx.beginPath();cx.ellipse(hx+.5*u,hy+10*u,8*u,3.2*u,.15,0,7);cx.fill();
+      cx.beginPath();cx.moveTo(hx+5*u,hy+10*u);cx.lineTo(hx+9.5*u,hy+10.5*u);cx.lineTo(hx+11*u,hy+19*u+Math.sin(t*1.5)*.6);cx.lineTo(hx+7*u,hy+19*u);cx.closePath();cx.fill();
+      cx.fillStyle='rgba(60,90,160,.6)';cx.fillRect(hx+7.2*u,hy+16.5*u,3.6*u,1*u);
+      cx.fillStyle='rgba(0,0,0,.18)';cx.beginPath();cx.ellipse(hx-1*u,hy+11*u,6*u,1.6*u,.15,0,Math.PI);cx.fill();
+      // 後ろ髪（白髪まじり）と顔
+      cx.fillStyle='#7a7670';cx.beginPath();cx.ellipse(hx-4*u,hy+1.5*u,5*u,5.5*u,0,0,7);cx.fill();
+      const fg=cx.createLinearGradient(hx-8*u,0,hx+9*u,0);fg.addColorStop(0,'#8a6248');fg.addColorStop(.6,'#c49272');fg.addColorStop(1,'#d8a882');
+      cx.fillStyle=fg;cx.beginPath();cx.ellipse(hx+1*u,hy+1*u,7.6*u,8*u,0,0,7);cx.fill();
+      cx.beginPath();cx.moveTo(hx+7.8*u,hy-.5*u);cx.lineTo(hx+10.6*u,hy+3.2*u);cx.lineTo(hx+7.6*u,hy+4.2*u);cx.closePath();cx.fill();   // 鼻
+      cx.fillStyle='#a87656';cx.beginPath();cx.ellipse(hx-1.2*u,hy+2*u,2*u,2.8*u,0,0,7);cx.fill();                                      // 耳
+      cx.strokeStyle='rgba(60,30,20,.5)';cx.lineWidth=.8;cx.beginPath();cx.arc(hx-1*u,hy+2*u,1.1*u,-1.2,1.6);cx.stroke();
+      cx.fillStyle='#b4b0a8';cx.fillRect(hx-4*u,hy-2*u,2.4*u,5*u);                                    // もみあげ
+      // ひげ（無精ひげ）
+      cx.fillStyle='rgba(216,212,204,.92)';cx.beginPath();cx.moveTo(hx-1.5*u,hy+5*u);cx.quadraticCurveTo(hx+1*u,hy+10.5*u,hx+6*u,hy+9*u);
+      cx.quadraticCurveTo(hx+9.5*u,hy+7.5*u,hx+9.2*u,hy+4.6*u);cx.lineTo(hx+5*u,hy+5.2*u);cx.quadraticCurveTo(hx+2*u,hy+4*u,hx-1.5*u,hy+5*u);cx.fill();
+      // 目・眉・口
+      const blink=(t%4.3)<.13;
+      cx.fillStyle='#e8e4dc';cx.fillRect(hx+3.6*u,hy-2.6*u,4*u,1.3*u);
+      cx.fillStyle='#24140c';cx.fillRect(hx+4.6*u,hy-.4*u,2.2*u,blink?.6:1.4*u);
+      cx.strokeStyle='rgba(70,36,20,.55)';cx.lineWidth=.8;cx.beginPath();cx.moveTo(hx+3.6*u,hy+.4*u);cx.lineTo(hx+2.6*u,hy+1.3*u);cx.moveTo(hx+6*u,hy+2.6*u);cx.quadraticCurveTo(hx+7*u,hy+3.6*u,hx+7.8*u,hy+4.4*u);cx.stroke();
+      if(turn){cx.fillStyle='#24140c';cx.fillRect(hx+.6*u,hy-.2*u,1.6*u,blink?.6:1.2*u);}
+      const mo=speaking&&((t*8)|0)%2;
+      cx.fillStyle='#3a1a14';cx.beginPath();cx.ellipse(hx+7*u,hy+6.4*u,1.8*u,mo?1.2*u:.4*u,0,0,7);cx.fill();
+      // キャップ
+      cx.fillStyle='#1e2a4a';cx.beginPath();cx.arc(hx+.5*u,hy-.5*u,8.8*u,Math.PI*.98,Math.PI*2.02);cx.fill();
+      cx.fillStyle='#16203a';cx.fillRect(hx-8.3*u,hy-1.8*u,17.6*u,2.4*u);
+      cx.beginPath();cx.ellipse(hx+(10+turn*2)*u,hy+.2*u,6.8*u,1.9*u,.12,0,7);cx.fill();
+      cx.fillStyle='#2a3a62';cx.beginPath();cx.arc(hx+.5*u,hy-9.2*u,1.2*u,0,7);cx.fill();
+      cx.fillStyle='#d0c890';cx.fillRect(hx+2.5*u,hy-6*u,3.4*u,2.4*u);
+      cx.strokeStyle='rgba(255,190,120,.4)';cx.lineWidth=1;cx.beginPath();cx.arc(hx+.5*u,hy-.5*u,8.6*u,-1.2,-.15);cx.stroke();
+      cx.fillStyle='rgba(255,190,120,.18)';cx.beginPath();cx.arc(hx+1*u,hy+1*u,7.6*u,-.6,.6);cx.lineTo(hx+1*u,hy+1*u);cx.fill();
       cx.restore();
-      // 腕
-      limb(x+6*u,y-44*u,gx,gy,7*u,'#34382a');
-      cx.fillStyle='#c09068';cx.beginPath();cx.arc(gx,gy,3.2*u,0,7);cx.fill();
+      // 手前の腕（ジャンパーの袖・軍手）
+      limb(x+7*u,y-43*u,gx,gy,7.5*u,'#34382a');
+      cx.strokeStyle='rgba(255,190,120,.25)';cx.lineWidth=1;cx.beginPath();cx.moveTo(x+8*u,y-47*u);cx.quadraticCurveTo(x+13*u,y-46*u,gx,gy-3.5*u);cx.stroke();
+      cx.fillStyle='#24271c';cx.beginPath();cx.arc(gx-3*u,gy+.5*u,3.6*u,0,7);cx.fill();
+      cx.fillStyle='#d8d4c4';cx.beginPath();cx.ellipse(gx,gy,3.6*u,3.1*u,.4,0,7);cx.fill();
+      cx.fillStyle='rgba(0,0,0,.18)';cx.fillRect(gx-1*u,gy-.3*u,3*u,.8);
       // 水筒の湯気
       const th=PROP.thermos;
       for(let i=0;i<3;i++){const f=((t*.35+i/3)%1);cx.strokeStyle=`rgba(230,225,255,${.16*(1-f)})`;cx.lineWidth=2*u;cx.beginPath();

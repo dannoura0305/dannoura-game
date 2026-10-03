@@ -220,31 +220,55 @@ function figure(g,kind,x,y,h,o){
   o=o||{};const c=o.c||'#030208';const u=h/100;
   g.save();g.translate(x,y);if(o.flip)g.scale(-1,1);
   g.fillStyle=c;g.beginPath();
-  if(kind==='worker'){
-    g.ellipse(0,-88*u,7.5*u,8.5*u,0,0,TAU);
-    g.moveTo(-10*u,-90*u);g.quadraticCurveTo(0,-104*u,10*u,-90*u);g.lineTo(12*u,-88*u);g.lineTo(-12*u,-88*u);g.closePath();
-    g.moveTo(-14*u,-77*u);g.quadraticCurveTo(0,-81*u,14*u,-77*u);g.lineTo(17*u,-44*u);g.lineTo(11*u,-44*u);g.lineTo(9*u,0);g.lineTo(2*u,0);g.lineTo(0,-40*u);g.lineTo(-2*u,0);g.lineTo(-9*u,0);g.lineTo(-11*u,-44*u);g.lineTo(-17*u,-44*u);g.closePath();
-    g.moveTo(14*u,-72*u);g.lineTo(26*u,-56*u);g.lineTo(30*u,-58*u);g.lineTo(20*u,-74*u);g.closePath();
+  const L=a=>{g.moveTo(a[0]*u,a[1]*u);for(let i=2;i<a.length;i+=2)g.lineTo(a[i]*u,a[i+1]*u);g.closePath();};
+  if(kind==='worker'){ // 作業員：ヘルメット・作業ジャンパー・安全靴、片手に懐中電灯
+    g.ellipse(.5*u,-85*u,6.6*u,7.6*u,0,0,TAU);                                                  // 頭
+    g.moveTo(-9*u,-87*u);g.bezierCurveTo(-9*u,-100*u,9*u,-100*u,9*u,-87*u);g.lineTo(14*u,-86.5*u);g.lineTo(14*u,-85*u);g.lineTo(-10*u,-85*u);g.closePath(); // ヘルメット＋つば
+    L([-2.6,-79,3.4,-79,3.8,-74,-3,-74]);                                                       // 首
+    g.moveTo(-13*u,-74*u);g.quadraticCurveTo(0,-79*u,13.5*u,-74*u);g.quadraticCurveTo(16*u,-66*u,14*u,-56*u);g.lineTo(13*u,-43*u);g.lineTo(-12.5*u,-43*u);g.lineTo(-13.5*u,-56*u);g.quadraticCurveTo(-16*u,-66*u,-13*u,-74*u);g.closePath(); // 胴
+    L([-12,-44,12,-44,10.5,-5,10.8,-3,12.5,0,1.8,0,2,-5,0,-36,-2,-5,-1.8,0,-12,0,-10.5,-3,-10.5,-5]); // 脚と靴
+    L([-13,-73,-9.5,-71,-12.5,-50,-12,-44,-15,-42,-17,-45,-16.5,-52]);                            // 下げた腕
+    L([12,-73,15.5,-70,18,-58,26,-52,25,-48,16,-53,12.5,-60]);                                   // 曲げた腕
+    L([24,-54,32,-58,33,-54,25.5,-48]);                                                         // 懐中電灯
   }else if(kind==='woman'){
     g.moveTo(0,-100*u);g.bezierCurveTo(-11*u,-100*u,-12*u,-86*u,-11*u,-70*u);g.lineTo(-13*u,-60*u);g.lineTo(-8*u,-62*u);
     g.lineTo(-12*u,-28*u);g.lineTo(-6*u,-28*u);g.lineTo(-5*u,0);g.lineTo(-1*u,0);g.lineTo(0,-28*u);g.lineTo(1*u,0);g.lineTo(5*u,0);g.lineTo(6*u,-28*u);g.lineTo(12*u,-28*u);
     g.lineTo(8*u,-62*u);g.lineTo(13*u,-60*u);g.lineTo(11*u,-70*u);g.bezierCurveTo(12*u,-86*u,11*u,-100*u,0,-100*u);g.closePath();
     if(o.umbrella==='open'){g.moveTo(-34*u,-92*u);g.quadraticCurveTo(0,-128*u,34*u,-92*u);g.quadraticCurveTo(24*u,-96*u,17*u,-90*u);g.quadraticCurveTo(8*u,-96*u,0,-90*u);g.quadraticCurveTo(-8*u,-96*u,-17*u,-90*u);g.quadraticCurveTo(-24*u,-96*u,-34*u,-92*u);g.closePath();g.rect(-.8*u,-112*u,1.6*u,52*u);}
     else if(o.umbrella){g.moveTo(14*u,-50*u);g.lineTo(19*u,-50*u);g.lineTo(18*u,-2*u);g.lineTo(16.5*u,4*u);g.lineTo(15*u,-2*u);g.closePath();}
-  }else if(kind==='child'){
-    g.moveTo(0,-62*u);g.bezierCurveTo(-14*u,-62*u,-16*u,-44*u,-13*u,-40*u);g.lineTo(-17*u,-14*u);g.lineTo(-8*u,-14*u);g.lineTo(-8*u,0);g.lineTo(-1*u,0);g.lineTo(-1*u,-14*u);g.lineTo(1*u,-14*u);g.lineTo(1*u,0);g.lineTo(8*u,0);g.lineTo(8*u,-14*u);g.lineTo(17*u,-14*u);g.lineTo(13*u,-40*u);g.bezierCurveTo(16*u,-44*u,14*u,-62*u,0,-62*u);g.closePath();
-  }else if(kind==='hood'){
-    g.moveTo(-3*u,-96*u);g.bezierCurveTo(-16*u,-96*u,-18*u,-80*u,-14*u,-72*u);g.bezierCurveTo(-22*u,-66*u,-20*u,-50*u,-18*u,-36*u);g.lineTo(-12*u,-36*u);g.lineTo(-9*u,0);g.lineTo(-2*u,0);g.lineTo(0,-34*u);g.lineTo(2*u,0);g.lineTo(9*u,0);g.lineTo(12*u,-36*u);g.lineTo(18*u,-36*u);g.bezierCurveTo(20*u,-54*u,18*u,-70*u,10*u,-76*u);g.bezierCurveTo(12*u,-86*u,8*u,-96*u,-3*u,-96*u);g.closePath();
-  }else if(kind==='seated'){
+  }else if(kind==='child'){ // 小さな女の子：おかっぱ＋ふたつ結び・ワンピース・ぬいぐるみ
+    g.ellipse(0,-47*u,12.5*u,12*u,0,0,TAU);
+    g.ellipse(-13*u,-50*u,4*u,4.6*u,-.4,0,TAU);g.ellipse(13*u,-50*u,4*u,4.6*u,.4,0,TAU);
+    L([-11.5,-47,11.5,-47,11,-37,-11,-37]);                                                      // 髪のすそ
+    L([-3,-37,3,-37,3,-33,-3,-33]);
+    g.moveTo(-7*u,-34*u);g.quadraticCurveTo(0,-36*u,7*u,-34*u);g.quadraticCurveTo(12*u,-22*u,14*u,-13*u);g.lineTo(-14*u,-13*u);g.quadraticCurveTo(-12*u,-22*u,-7*u,-34*u);g.closePath(); // ワンピース
+    L([-6.5,-14,-2,-14,-2.2,-3,-1.5,0,-7.5,0,-6.5,-3]);L([2,-14,6.5,-14,6.5,-3,7.5,0,1.5,0,2.2,-3]); // 足
+    L([-7,-33,-4.5,-31,-11,-20,-13,-21]);                                                        // 腕
+    L([7,-33,9.5,-31,14,-24,12,-23]);
+    g.moveTo(16.5*u,-10*u);g.ellipse(16.5*u,-13.5*u,3.8*u,4.6*u,.15,0,TAU);g.moveTo(15.5*u,-20*u);g.ellipse(15.5*u,-20*u,3*u,2.8*u,0,0,TAU); // くま（手からぶら下げる）
+  }else if(kind==='hood'){ // フードの人物：とがったフード・コート・ポケットに手
+    g.moveTo(-1*u,-98*u);g.bezierCurveTo(-13*u,-97*u,-16*u,-84*u,-13*u,-74*u);g.bezierCurveTo(-19*u,-71*u,-21*u,-62*u,-20*u,-52*u);
+    g.lineTo(-18.5*u,-30*u);g.lineTo(-11*u,-28*u);g.lineTo(-9.5*u,-3*u);g.lineTo(-11*u,0);g.lineTo(-2*u,0);g.lineTo(-1.5*u,-4*u);g.lineTo(0,-26*u);g.lineTo(1.5*u,-4*u);g.lineTo(2*u,0);g.lineTo(11*u,0);g.lineTo(9.5*u,-3*u);g.lineTo(11*u,-28*u);
+    g.lineTo(18.5*u,-30*u);g.lineTo(20*u,-52*u);g.bezierCurveTo(21*u,-62*u,18*u,-71*u,11*u,-75*u);g.bezierCurveTo(13*u,-86*u,9*u,-97*u,-1*u,-98*u);g.closePath();
+  }else if(kind==='seated'){ // 椅子に座った配信者（背中ごし）：ぼさぼさの髪・ゲーミングチェア
     g.ellipse(0,-78*u,10*u,11.5*u,0,0,TAU);
-    g.moveTo(-24*u,-56*u);g.quadraticCurveTo(0,-68*u,24*u,-56*u);g.lineTo(28*u,0);g.lineTo(-28*u,0);g.closePath();
-  }else{ // tall
-    g.ellipse(0,-90*u,8*u,10*u,0,0,TAU);
-    g.moveTo(-13*u,-78*u);g.quadraticCurveTo(0,-83*u,13*u,-78*u);g.lineTo(16*u,-30*u);g.lineTo(9*u,0);g.lineTo(-9*u,0);g.lineTo(-16*u,-30*u);g.closePath();
+    for(let i=-2;i<=2;i++){const a=-Math.PI/2+i*.5+.1;g.moveTo(Math.cos(a)*9*u,-79*u+Math.sin(a)*10*u);g.lineTo(Math.cos(a)*12*u,-79*u+Math.sin(a)*12.5*u);g.lineTo(Math.cos(a+.22)*9*u,-79*u+Math.sin(a+.22)*10*u);g.closePath();}
+    L([-4,-68,4,-68,4.5,-63,-4.5,-63]);
+    g.moveTo(-23*u,-56*u);g.quadraticCurveTo(-20*u,-65*u,-6*u,-65*u);g.lineTo(6*u,-65*u);g.quadraticCurveTo(20*u,-65*u,23*u,-56*u);g.lineTo(25*u,-44*u);g.lineTo(-25*u,-44*u);g.closePath(); // 肩
+    g.moveTo(-19*u,-50*u);g.quadraticCurveTo(-19*u,-58*u,-11*u,-58*u);g.lineTo(11*u,-58*u);g.quadraticCurveTo(19*u,-58*u,19*u,-50*u);g.lineTo(21*u,-6*u);g.lineTo(-21*u,-6*u);g.closePath(); // 背もたれ
+    L([-28,-30,-21,-30,-21,-24,-28,-24]);L([21,-30,28,-30,28,-24,21,-24]);                       // ひじ掛け
+    L([-3,-6,3,-6,3,0,-3,0]);L([-24,-2,24,-2,24,0,-24,0]);
+  }else{ // tall：首の長い、腕のだらりと長い影
+    g.ellipse(0,-92*u,6.5*u,8.5*u,.05,0,TAU);
+    L([-2.4,-85,2.6,-85,3,-78,-2.6,-78]);
+    g.moveTo(-12*u,-77*u);g.quadraticCurveTo(0,-81*u,12*u,-77*u);g.lineTo(13*u,-62*u);g.lineTo(11*u,-26*u);g.lineTo(-11*u,-26*u);g.lineTo(-13*u,-62*u);g.closePath(); // 胴（コート）
+    L([-10,-28,-3,-28,-3.5,-2,-4.5,0,-9.5,0,-8,-2]);L([3,-28,10,-28,8,-2,9.5,0,4.5,0,3.5,-2]);    // 細い脚
+    L([-12,-77,-15.5,-72,-17.5,-44,-17,-30,-19,-22,-17,-19,-15,-26,-13.8,-44,-12,-62]);         // 長い腕と指
+    L([12,-77,15.5,-72,17.5,-44,17,-30,19,-22,17,-19,15,-26,13.8,-44,12,-62]);
   }
+  if(o.rim){g.save();g.globalCompositeOperation='lighter';g.strokeStyle=o.rim;g.lineWidth=Math.max(2,2.4*u);g.lineJoin='round';g.stroke();g.restore();}
   g.fill();
   if(kind==='seated'&&o.headset){g.strokeStyle=o.headset;g.lineWidth=2.4*u;g.beginPath();g.arc(0,-78*u,12*u,Math.PI*1.05,Math.PI*1.95);g.stroke();g.fillStyle=o.headset;g.fillRect(-13.5*u,-80*u,4*u,8*u);g.fillRect(9.5*u,-80*u,4*u,8*u);}
-  if(o.rim){g.globalCompositeOperation='lighter';g.strokeStyle=o.rim;g.lineWidth=Math.max(1,1.2*u);g.stroke();}
   g.restore();
 }
 

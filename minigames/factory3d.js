@@ -1045,6 +1045,21 @@ registerMinigame({
       const head=new THREE.Mesh(new THREE.SphereGeometry(.19,14,10),ghostMat);head.position.y=1.7;head.scale.set(1,1.15,1);head.castShadow=true;ghost.add(head);
       const armGeo=new THREE.CylinderGeometry(.035,.015,1.1,6);armGeo.translate(0,-.55,0);extraGeos.push(armGeo);
       const arms=[-1,1].map(s=>{const a=new THREE.Mesh(armGeo,ghostMat);a.position.set(s*.3,1.38,.02);a.rotation.z=s*.12;ghost.add(a);return a;});
+      // 人の名残り：なで肩・ヘルメットのつば・長い指（昔ここで働いていた誰か）
+      {
+        const shGeo=new THREE.SphereGeometry(.2,10,6);extraGeos.push(shGeo);
+        const sh=new THREE.Mesh(shGeo,ghostMat);sh.position.set(0,1.4,0);sh.scale.set(1.75,.55,.9);sh.rotation.z=.06;ghost.add(sh);
+        const neckGeo=new THREE.CylinderGeometry(.06,.09,.22,8);extraGeos.push(neckGeo);
+        const neck=new THREE.Mesh(neckGeo,ghostMat);neck.position.set(0,1.54,.02);neck.rotation.x=.25;ghost.add(neck);
+        const helGeo=new THREE.SphereGeometry(.215,12,6,0,Math.PI*2,0,Math.PI*.5);extraGeos.push(helGeo);
+        const hel=new THREE.Mesh(helGeo,ghostMat);hel.position.set(0,.03,0);head.add(hel);
+        const brimGeo=new THREE.CylinderGeometry(.25,.25,.018,16);brimGeo.scale(1,1,1.18);brimGeo.translate(0,0,.05);extraGeos.push(brimGeo);
+        const brim=new THREE.Mesh(brimGeo,ghostMat);brim.position.set(0,.035,0);brim.rotation.x=.08;head.add(brim);
+        const ridgeGeo=new THREE.BoxGeometry(.035,.05,.36);extraGeos.push(ridgeGeo);
+        const ridge=new THREE.Mesh(ridgeGeo,ghostMat);ridge.position.set(0,.235,0);head.add(ridge);
+        const fGeo=new THREE.ConeGeometry(.018,.24,4);fGeo.translate(0,-.12,0);extraGeos.push(fGeo);
+        arms.forEach((a,k)=>{for(let i=-1;i<=1;i++){const f=new THREE.Mesh(fGeo,ghostMat);f.position.set(i*.025,-1.08,i*.02);f.rotation.set(i*.25,0,(k?-1:1)*(.15+i*.18));a.add(f);}});
+      }
       const eyeMat=new THREE.MeshBasicMaterial({color:0xff2848,fog:false});
       const eyeGlowMat=new THREE.SpriteMaterial({map:T.glow,color:0xff1838,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,opacity:.9});
       const eyes=[-1,1].map(s=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.022,6,4),eyeMat);e.position.set(s*.07,1.72,.16);ghost.add(e);const gl=new THREE.Sprite(eyeGlowMat);gl.scale.set(.22,.22,1);gl.position.copy(e.position);ghost.add(gl);return e;});
@@ -1168,8 +1183,16 @@ registerMinigame({
       ];
       let phaseT=0,storyIdx=-1,typed=0,lineFull=false,pendingHide=null,pendingT=0,glitchT=0;
       const setPor=(elm,por)=>{
+        if(por==='radio'&&typeof mobPortrait==='function'&&mobPortrait('hancho')){
+          // 無線の向こうの班長（main/mobs.js の顔グラ）＋電波のバー
+          elm.className='factory3d-por radio';
+          elm.style.backgroundImage=`linear-gradient(180deg,rgba(7,6,14,0) 58%,rgba(7,6,14,.85)),url(${mobPortrait('hancho')}),radial-gradient(circle at 50% 38%,#2c5a64,#0a141c 72%)`;
+          elm.style.backgroundSize='cover,118% auto,cover';elm.style.backgroundPosition='center,50% 0,center';elm.style.backgroundRepeat='no-repeat';
+          elm.innerHTML='<div style="position:absolute;left:0;right:0;bottom:4px;display:flex;flex-direction:column;align-items:center;gap:2px"><div class="factory3d-wave"><i></i><i style="animation-delay:.15s"></i><i style="animation-delay:.3s"></i><i style="animation-delay:.1s"></i><i style="animation-delay:.25s"></i></div>RADIO</div>';
+          return;
+        }
         if(por==='radio'){elm.className='factory3d-por radio';elm.style.backgroundImage='';elm.innerHTML='<b>📻</b><div class="factory3d-wave"><i></i><i style="animation-delay:.15s"></i><i style="animation-delay:.3s"></i><i style="animation-delay:.1s"></i><i style="animation-delay:.25s"></i></div>RADIO';}
-        else{elm.className='factory3d-por';elm.innerHTML='';elm.style.backgroundImage=`url(assets/img/${por}.webp)`;}
+        else{elm.className='factory3d-por';elm.innerHTML='';elm.style.backgroundSize=elm.style.backgroundPosition=elm.style.backgroundRepeat='';elm.style.backgroundImage=`url(assets/img/${por}.webp)`;}
       };
       function glitchOut(elm){elm.classList.remove('factory3d-gin');elm.classList.add('factory3d-gout');pendingHide=elm;pendingT=.5;wrap.classList.add('factory3d-glitch');glitchT=.55;}
       function showTitle(){

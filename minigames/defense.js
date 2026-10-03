@@ -525,7 +525,20 @@ registerMinigame({
         g.fillStyle='#120c24';g.fillRect(x,y,s,s);
         if(im.complete&&im.naturalWidth){g.drawImage(im,x,y+(talking?Math.sin(t*14)*s*.008:0),s,s);}
         g.strokeStyle='#8a52d4';g.lineWidth=2;g.strokeRect(x+1,y+1,s-2,s-2);
-      }else drawListener(g,x,y,s,spk,t,talking);
+      }else{
+        // 常連の顔グラ（main/mobs.js の SVG）。読み込み前は手描きの立ち絵
+        const mi=typeof mobImage==='function'?mobImage(spk,face):null;
+        if(mi&&mi.complete&&mi.naturalWidth){
+          const sak=spk==='sakura',gr=g.createRadialGradient(x+s/2,y+s*.38,0,x+s/2,y+s/2,s*.75);
+          gr.addColorStop(0,sak?'#6a3a62':'#244a5e');gr.addColorStop(1,sak?'#1a0a18':'#081420');
+          g.fillStyle=gr;g.fillRect(x,y,s,s);
+          g.save();g.beginPath();g.rect(x,y,s,s);g.clip();
+          const z=s*1.18,bob=talking?Math.sin(t*14)*s*.008:0;
+          g.drawImage(mi,x+(s-z)/2,y-s*.04+bob,z,z);
+          g.restore();
+          g.strokeStyle=sak?'#ff7ab8':'#00e8c8';g.lineWidth=2;g.strokeRect(x+1,y+1,s-2,s-2);
+        }else drawListener(g,x,y,s,spk,t,talking);
+      }
     }
     const SPK={dan:{name:'だんのうら',col:'#c9a0ff'},sakura:{name:'さくら',col:'#ff8cc0'},joren:{name:'深夜の常連',col:'#00e8c8'}};
 

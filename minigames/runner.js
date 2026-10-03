@@ -1283,6 +1283,16 @@ registerMinigame({
           g.fillStyle='rgba(120,160,220,.35)';
           g.beginPath();g.moveTo(x+27,GY-31);g.lineTo(x+36,GY-41);g.lineTo(x+56,GY-41);g.lineTo(x+56,GY-31);g.fill();
           g.beginPath();g.moveTo(x+60,GY-31);g.lineTo(x+60,GY-41);g.lineTo(x+78,GY-41);g.lineTo(x+88,GY-31);g.fill();
+          // 運転手のシルエット（メーターの光でうっすら照らされる）
+          g.save();g.beginPath();g.moveTo(x+27,GY-31);g.lineTo(x+36,GY-41);g.lineTo(x+56,GY-41);g.lineTo(x+56,GY-31);g.clip();
+          g.fillStyle='#0c0a18';
+          g.beginPath();g.ellipse(x+48,GY-30,8,5,0,Math.PI,0);g.fill();
+          g.fillRect(x+46.5,GY-35.5,3,3);
+          g.beginPath();g.ellipse(x+48,GY-37.5,3.6,4,0,0,TAU);g.fill();
+          g.fillStyle='#1a1630';g.beginPath();g.ellipse(x+48.5,GY-39.2,4,2.6,0,Math.PI,0);g.fill();
+          g.fillStyle='rgba(120,230,255,.35)';g.fillRect(x+44.4,GY-37.5,1,2.4);g.fillRect(x+44,GY-33.5,4,1);
+          g.strokeStyle='#0c0a18';g.lineWidth=1.6;g.beginPath();g.moveTo(x+40,GY-32);g.lineTo(x+38,GY-36);g.stroke();
+          g.restore();
           g.fillStyle='rgba(190,170,255,.3)';g.fillRect(x+6,GY-30,o.w-14,1);
           g.fillStyle='#0a0814';g.beginPath();g.arc(x+22,GY-8,8,0,TAU);g.arc(x+82,GY-8,8,0,TAU);g.fill();
           g.strokeStyle='#4a4468';g.lineWidth=1.2;g.beginPath();

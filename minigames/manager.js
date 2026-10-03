@@ -24,6 +24,8 @@ addMinigameStyle('manager',`
     linear-gradient(180deg,#09061e,#05040e);}
 .mgr-root button{font-family:var(--dot);-webkit-tap-highlight-color:transparent;cursor:pointer;}
 .mgr-root img.px,.mgr-px{image-rendering:pixelated;image-rendering:crisp-edges;}
+.mgr-root img.px[src$=".svg"]{image-rendering:auto;}
+.mgr-por img.px[src$=".svg"],.mgr-say .pp img.px[src$=".svg"]{transform:scale(1.2);transform-origin:50% 22%;}
 .mgr-plan,.mgr-sim{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;padding:7px 9px 8px;}
 .mgr-panel{border:1px solid rgba(138,82,212,.35);border-radius:6px;background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(10,7,22,.85));box-shadow:inset 0 1px 0 rgba(255,255,255,.07),inset 0 -2px 0 rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.4);}
 .mgr-top{display:flex;gap:6px;align-items:stretch;}
@@ -269,12 +271,45 @@ function heroRows(eye,mouth){
 }
 const PARTNER_PAL=Object.assign({},HERO_PAL,{H:'#16503c',h:'#33b07a',G:'#f8dccb',L:'#f8dccb',F:'#00e8c8',f:'#9ffff0',J:'#2f2f50',j:'#20203a',P:'#00e8c8',C:'#3a3a60',E:'#0e4a32',B:'#ffb0b8'});
 const FAN_PAL=Object.assign({},HERO_PAL,{H:'#1c2236',h:'#2e3a5c',G:'#f8dccb',L:'#f8dccb',F:'#1c2236',f:'#e8b830',J:'#2e3a5c',j:'#1c2236',P:'#e8b830',C:'#2e3a5c',B:'#f8dccb'});
+// コラボ相手・ミドリ（ドット絵）22×24：ボブ＋姫カットの横髪・猫耳なしのヘッドホン・フードつきパーカー
+const MID=[
+'......KKKKKKKKKK......',
+'....KKTHHHHHHHHTKK....',
+'...KTHHhhhhhhhhHHTK...',
+'..KTHhhhhhhhhhhhhHTK..',
+'..KHhhHhhhhhhhhHhhHK..',
+'.KHhhHHHHhhhhHHHHhhHK.',
+'.KHHHSSSHHHHHHSSSHHHK.',
+'KTTHSSSSSSSSSSSSHHHTTK',
+'KTTH111SSSSSS222HHHTTK',
+'KTTH333SSSSSS444HHHTTK',
+'KTTHSSSSSSSSSSSSHhHTTK',
+'KTTHBBSSSSSSSSBBHhHTTK',
+'.KKHSSSS5555SSSSHhHKK.',
+'..HHsSSSS66SSSSsHhhH..',
+'..HHHsSSSSSSSSsHHhhH..',
+'...HH..ssSSss..HHhhH..',
+'..OOOJJJCssCJJJOOO.hH.',
+'.OOJJJJJCTTCJJJJJOO.h.',
+'.JJJjJJJJTTJJJJjJJJ...',
+'.JJjjJJJJTTJJJJjjJJ...',
+'.JJjJJPJJTTJJPJJjJJ...',
+'.JJjJJPJJTTJJPJJjJJ...',
+'.JJjJJJJJTTJJJJJjJJ...',
+'.SSjJJJJJTTJJJJJjSS...',
+];
+const MID_PAL=Object.assign({},PARTNER_PAL,{K:'#1a1030',T:'#00e8c8',O:'#24243e'});
+function midRows(eye,mouth){
+  const [e1,e2]=EYES[eye],[m1,m2]=MOUTH[mouth];
+  const rv=s=>s.split('').reverse().join('');
+  return MID.map(r=>r.replace('111',e1).replace('222',rv(e1)).replace('333',e2).replace('444',rv(e2)).replace('5555',m1).replace('66',m2));
+}
 const _spr={};
 function sprite(who,eye,mouth){
   const key=who+eye+mouth;
   if(!_spr[key]){
-    const pal=who==='mid'?PARTNER_PAL:who==='fan'?FAN_PAL:HERO_PAL;
-    let rows=heroRows(eye,mouth);
+    const pal=who==='mid'?MID_PAL:who==='fan'?FAN_PAL:HERO_PAL;
+    let rows=who==='mid'?midRows(eye,mouth):heroRows(eye,mouth);
     if(who==='mid')rows=rows.map(r=>r.split('').reverse().join(''));
     _spr[key]=pxCanvas(rows,pal,1);
   }
@@ -282,6 +317,9 @@ function sprite(who,eye,mouth){
 }
 const _por={};
 function portrait(who){ // 胸像（頭部を切り出して拡大）
+  // 顔グラ（main/mobs.js の SVG）：常連＝joren、コラボ相手ミドリ＝midori
+  const mob={fan:'joren',mid:'midori'}[who];
+  if(mob&&typeof mobPortrait==='function'&&mobPortrait(mob))return mobPortrait(mob);
   if(!_por[who]){
     const s=sprite(who,'open','smile');const cv=document.createElement('canvas');cv.width=96;cv.height=96;
     const c=cv.getContext('2d');c.imageSmoothingEnabled=false;c.drawImage(s,0,0,22,20,4,10,88,80);
@@ -1095,7 +1133,6 @@ registerMinigame({
         const pS=S*.85;
         const px0=hx-19*S,py0=hy+3*S;
         c.drawImage(ps,px0,py0,22*pS,24*pS);
-        c.fillStyle='#00e8c8';c.fillRect(px0+2*pS,py0,18*pS,pS);c.fillRect(px0,py0+7*pS,2*pS,4*pS);c.fillRect(px0+20*pS,py0+7*pS,2*pS,4*pS);
       }
       c.globalAlpha=off&&!end?.55:1;
       c.drawImage(spr,hx+sway,hy,22*S,24*S);c.globalAlpha=1;
