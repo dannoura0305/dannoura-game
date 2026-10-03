@@ -525,7 +525,20 @@ registerMinigame({
         g.fillStyle='#120c24';g.fillRect(x,y,s,s);
         if(im.complete&&im.naturalWidth){g.drawImage(im,x,y+(talking?Math.sin(t*14)*s*.008:0),s,s);}
         g.strokeStyle='#8a52d4';g.lineWidth=2;g.strokeRect(x+1,y+1,s-2,s-2);
-      }else drawListener(g,x,y,s,spk,t,talking);
+      }else{
+        // 常連の顔グラ（main/mobs.js の SVG）。読み込み前は手描きの立ち絵
+        const mi=typeof mobImage==='function'?mobImage(spk,face):null;
+        if(mi&&mi.complete&&mi.naturalWidth){
+          const sak=spk==='sakura',gr=g.createRadialGradient(x+s/2,y+s*.38,0,x+s/2,y+s/2,s*.75);
+          gr.addColorStop(0,sak?'#6a3a62':'#244a5e');gr.addColorStop(1,sak?'#1a0a18':'#081420');
+          g.fillStyle=gr;g.fillRect(x,y,s,s);
+          g.save();g.beginPath();g.rect(x,y,s,s);g.clip();
+          const z=s*1.18,bob=talking?Math.sin(t*14)*s*.008:0;
+          g.drawImage(mi,x+(s-z)/2,y-s*.04+bob,z,z);
+          g.restore();
+          g.strokeStyle=sak?'#ff7ab8':'#00e8c8';g.lineWidth=2;g.strokeRect(x+1,y+1,s-2,s-2);
+        }else drawListener(g,x,y,s,spk,t,talking);
+      }
     }
     const SPK={dan:{name:'だんのうら',col:'#c9a0ff'},sakura:{name:'さくら',col:'#ff8cc0'},joren:{name:'深夜の常連',col:'#00e8c8'}};
 
@@ -664,9 +677,9 @@ registerMinigame({
       const again=DD.plays>0;
       const L=[
         ['joren','',again?'だんのうらさん、また予告が出てる。今夜も「凸る」って。':'だんのうらさん、まとめ板に予告が出てる。今夜ここを荒らすって。'],
-        ['dan','normal','……来るんか。子ども、やっと寝たとこやのに。'],
+        ['dan','normal','……来るのね。あの子、やっと寝たところなのに。'],
         ['sakura','','モデのみんなも待機してるよ。コメ欄、一緒に守ろ！'],
-        ['dan','normal','ありがとう。配信の心だけは、絶対に折らせへん。'],
+        ['dan','normal','きのどくなぁ、ありがとう。配信の心だけは、絶対に折らせないわよ。'],
       ];
       if(laneKey==='B')L[2]=['sakura','','今夜は流れが二重にうねってる。配置、よく考えてね！'];
       return L;
@@ -697,7 +710,7 @@ registerMinigame({
     const BETWEEN=[
       ['sakura','','ナイス！ 次はBotの群れが来るって。足止めしよ！'],
       ['joren','','粘着アンチが来る。NGフィルターで足を止めて叩け。'],
-      ['dan','normal','……まだや。指、震えてる場合ちゃう。'],
+      ['dan','normal','……まだよ。指、震えてる場合じゃないのよ。'],
       ['sakura','','待って、炎上アカウントが来る！ 通報の準備！'],
     ];
     function say(line,dur){bubble={line,t:0,dur:dur||4.2,shown:0};}
@@ -1085,10 +1098,10 @@ registerMinigame({
       const stars=starsOf(clear,lives),prevStars=DD.stars[laneKey]||0;if(stars>prevStars)DD.stars[laneKey]=stars;
       ending={t:0,grade,clear,better,unlocked,stars,stamped:false,talk:false};
       let lines;
-      if(!clear)lines=[['sakura','','だんのうらさん……大丈夫？ 今夜はもう休も。'],['dan','fear','……ごめん。今夜は、ここまでにさせて。']];
-      else if(grade==='S')lines=[['joren','','ノーダメージ……伝説の夜だ。切り抜かれるぞ、これ。'],['dan','win','みんなのおかげや。今夜の配信、最後まで続けるで。']];
-      else if(grade==='C')lines=[['joren','','ギリギリだった……。でも、守り切った。'],['dan','tired','ボロボロやけど、配信は続いてる。それで十分や。']];
-      else lines=[['sakura','','守りきったね！ おつかれさま！'],['dan','happy','……ちょっと削られたけど、心はまだあったかい。']];
+      if(!clear)lines=[['sakura','','だんのうらさん……大丈夫？ 今夜はもう休も。'],['dan','fear','……ごめんなさいね。今夜は、ここまでにさせて。']];
+      else if(grade==='S')lines=[['joren','','ノーダメージ……伝説の夜だ。切り抜かれるぞ、これ。'],['dan','win','みんなのおかげよ。今夜の配信、最後まで続けるわよ。']];
+      else if(grade==='C')lines=[['joren','','ギリギリだった……。でも、守り切った。'],['dan','tired','ボロボロだけど、配信は続いてる。それで十分ながやちゃ。']];
+      else lines=[['sakura','','守りきったね！ おつかれさま！'],['dan','happy','……ちょっと削られたけど、心はまだあったかいわ。']];
       ending.lines=lines;
       sfx(clear?'clear':'lose');
     }
@@ -1327,7 +1340,7 @@ registerMinigame({
           (ending&&ending.unlocked?'<br><span class="up">第2レーン「深夜の二重螺旋」解放</span>':''),
         fx, time:clear||down?60:30, sp:clear?1:0,
         log:clear?'荒らしのレイドを最後まで防ぎ切った。コメント欄に、いつもの声が戻ってきた。':down?'荒らしに配信を埋め尽くされた。画面の向こうの常連が心配している。':'荒らし対策を途中で切り上げた。',
-        cutin:clear?['win','……守れた。来てくれたみんなの居場所やからな。']:down?['fear','……コメント欄が、知らん言葉で埋まっていく。']:null,
+        cutin:clear?['win','……守れたわ。来てくれたみんなの居場所だもの。']:down?['fear','……コメント欄が、知らない言葉で埋まっていくわ。']:null,
       };
     }};
   },

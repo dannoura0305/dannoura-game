@@ -82,7 +82,7 @@ registerMinigame({
       {id:'mebaru',name:'メバル',r:1,w:11,min:13,max:27,zones:[0,1],beh:'calm',col:['#2f2c3c','#6d6a7c','#b4b0bc'],h:.34,tail:'trunc',fin:'spiky',eye:.11,bars:'rgba(16,14,26,.45)',
         flav:['大きな目で月明かりを見上げている。「春告魚」とも呼ばれる。','凪の夜ほどよく浮く。静かにしてたら、向こうから来てくれる。']},
       {id:'kasago',name:'カサゴ',r:1,w:9,min:12,max:25,zones:[0],beh:'sink',col:['#8e2f22','#c0603e','#ecc0a0'],h:.36,tail:'round',fin:'spiky',eye:.085,mottle:'rgba(60,16,12,.5)',
-        flav:['岸壁の隙間に住む、根の主。トゲに気をつけて。','ゴツゴツした顔やけど、味は優しい。']},
+        flav:['岸壁の隙間に住む、根の主。トゲに気をつけて。','ゴツゴツした顔だけど、味は優しいのよ。']},
       {id:'seigo',name:'セイゴ',r:1,w:8,min:22,max:42,zones:[1,2],beh:'dart',col:['#3f4f62','#93a3b4','#e8eef4'],h:.24,tail:'fork',fin:'spiky',eye:.06,
         flav:['スズキの若い頃の名前。出世魚は、育つたびに名前が変わる。','この子もいつか、名前が変わるくらい大きくなる。']},
       {id:'fugu',name:'クサフグ',r:1,w:9,min:9,max:18,zones:[0,1],beh:'calm',col:['#3f5a30','#7b8f58','#f6f3e6'],h:.54,tail:'round',fin:'soft',eye:.1,dots:'rgba(238,238,214,.75)',
@@ -92,19 +92,19 @@ registerMinigame({
       {id:'mejina',name:'メジナ',r:1,w:7,min:18,max:36,zones:[1,2],beh:'sink',col:['#18222f','#33465a','#6c7e90'],h:.43,tail:'fork',fin:'soft',eye:.07,
         flav:['磯の黒い魚。引きが強くて、手のひらが熱くなる。','夜の海と同じ色をしている。']},
       {id:'tachiuo',name:'タチウオ',kind:'ribbon',r:2,w:5,min:60,max:105,zones:[2],t:1,beh:'dart',
-        flav:['刀みたいに光る、立ったまま泳ぐ魚。月を一本、釣り上げたみたいや。','銀色が手に移りそうなほど、ぴかぴかしている。']},
+        flav:['刀みたいに光る、立ったまま泳ぐ魚。月を一本、釣り上げたみたいね。','銀色が手に移りそうなほど、ぴかぴかしている。']},
       {id:'anago',name:'マアナゴ',kind:'eel',r:2,w:5,min:30,max:62,zones:[0,1],t:1,beh:'sink',
-        flav:['夜の住人。体の白い点々は「はかり目」と呼ばれる。','にょろりと逃げようとする。……今夜は逃がしてやろう。']},
+        flav:['夜の住人。体の白い点々は「はかり目」と呼ばれる。','にょろりと逃げようとする。……今夜は逃がしてあげましょ。']},
       {id:'glass',name:'シーグラス',kind:'glass',r:2,w:3,min:2,max:5,unit:'径',zones:[0],beh:'item',
-        flav:['波に丸められたガラスの欠片。何十年、海を旅してきたんやろう。','角が取れてる。……人も、こんなふうになれたらええのに。']},
+        flav:['波に丸められたガラスの欠片。何十年、海を旅してきたのかしら。','角が取れてる。……人も、こんなふうになれたらいいのにね。']},
       {id:'boot',name:'片方の長靴',kind:'boot',r:2,w:2,min:22,max:28,zones:[0,1],beh:'item',
-        flav:['……長靴やった。もう片方は、どこの海におるんやろ。','重かった。期待した分だけ、ちょっと笑えた。']},
+        flav:['……長靴だった。もう片方は、どこの海にいるのかしら。','重かった。期待した分だけ、ちょっと笑えた。']},
       {id:'ika',name:'光るイカ',kind:'squid',r:3,w:3.2,min:12,max:28,zones:[1,2],t:1,beh:'dart',
-        flav:['水の中で青く光っていた。星がひとつ、海に落ちてきたみたいや。','光で話をする生き物らしい。何を言うてたんやろう。']},
+        flav:['水の中で青く光っていた。星がひとつ、海に落ちてきたみたい。','光で話をする生き物らしい。何を言ってたのかしら。']},
       {id:'heike',name:'平家ガニ',kind:'crab',r:3,w:2.8,min:2,max:4,unit:'甲幅',zones:[0,1],t:1,beh:'sink',
-        flav:['甲羅に怒った人の顔。壇ノ浦に沈んだ平家の武者の無念が宿る、と伝わる。','そっと海に返した。……ここは、そういう海なんや。']},
+        flav:['甲羅に怒った人の顔。壇ノ浦に沈んだ平家の武者の無念が宿る、と伝わる。','そっと海に返した。……ここは、そういう海ながやちゃ。']},
       {id:'suzu',name:'古い鈴',kind:'bell',r:3,w:3,min:3,max:6,unit:'径',zones:[2],t:2,beh:'item',
-        flav:['錆びた鈴。振るとまだ、かすかに鳴る。誰の物やったんやろう。','八百年前、この海峡で鳴っていた音かもしれない。']},
+        flav:['錆びた鈴。振るとまだ、かすかに鳴る。誰の物だったのかしら。','八百年前、この海峡で鳴っていた音かもしれない。']},
     ];
     const SP=Object.fromEntries(SPECIES.map(s=>[s.id,s]));
     const WHERE=s=>s.zones.map(z=>ZONE[z]).join('・')+(s.t?`／${TIMES[s.t]}から`:'');
@@ -733,7 +733,10 @@ registerMinigame({
     }
     function talkShow(){
       const L=talk.lines[talk.i];talk.shown=0;
-      if(L.who==='gen'){tkPt.innerHTML='';const c=document.createElement('canvas');c.width=genPortrait.width;c.height=genPortrait.height;c.getContext('2d').drawImage(genPortrait,0,0);tkPt.appendChild(c);
+      if(L.who==='gen'&&typeof mobImgTag==='function'&&mobPortrait('gen')){ // 源さんの顔グラ（main/mobs.js）
+        tkPt.innerHTML=mobImgTag('gen',L.face,'radial-gradient(circle at 50% 38%,#4a5a8a,#141228 72%)','transform:scale(1.18);transform-origin:50% 16%;');
+        tkName.textContent='源さん（常連の釣り人）';tkName.className='fishing-tn gen';}
+      else if(L.who==='gen'){tkPt.innerHTML='';const c=document.createElement('canvas');c.width=genPortrait.width;c.height=genPortrait.height;c.getContext('2d').drawImage(genPortrait,0,0);tkPt.appendChild(c);
         tkName.textContent='源さん（常連の釣り人）';tkName.className='fishing-tn gen';}
       else{tkPt.innerHTML=heroImg(L.face||'normal');tkName.textContent='だんのうら';tkName.className='fishing-tn';}
       tkText.textContent='';
@@ -753,11 +756,11 @@ registerMinigame({
       const L=[];
       if(FD.visits<=1){
         L.push({who:'hero',face:tired?'tired':'normal',text:'配信、終わり。……同接のことは、今は考えたくない。'});
-        L.push({who:'hero',face:'normal',text:'子どもは寝た。三十分だけ、海の音を聞きに来た。'});
+        L.push({who:'hero',face:'normal',text:'あの子は寝たわ。三十分だけ、海の音を聞きに来たの。'});
         L.push({who:'gen',text:'お、見ん顔じゃのう。竿、余っとるけえ使いんさい。'});
         L.push({who:'gen',text:`今夜は${WNAME}、${TIDE}じゃ。力を抜け。焦っとる奴に、魚は寄ってこん。`});
       }else{
-        L.push({who:'hero',face:tired?'tired':'normal',text:tired?'工場の機械の音が、まだ耳の奥で鳴っとる。':(gs.flame||0)>30?'コメント欄は見んとこ。今夜は海だけ見る。':'……また来てしもた。ここ、落ち着くんよな。'});
+        L.push({who:'hero',face:tired?'tired':'normal',text:tired?'工場の機械の音が、まだ耳の奥で鳴っとるわ。':(gs.flame||0)>30?'コメント欄は見ないでおくわ。今夜は海だけ見るの。':'……また来ちゃった。ここ、落ち着くのよね。'});
         L.push({who:'gen',text:`おう、来たか。図鑑は${zCount()}種か。今夜は${WNAME}、月は${MOON_NAME}じゃ。`});
         if(FD.visits===2)L.push({who:'gen',text:'丑三つ時の沖にはの、ときどき妙なもんがかかる。わしは鈴の音を聞いたことがある。'});
         else if(!FD.seen.heike&&WEATHER==='mist')L.push({who:'gen',text:'こういう霧の晩はの……平家の蟹が上がってくる。'});
@@ -768,11 +771,11 @@ registerMinigame({
       const L=[],n=catches.length;
       const rare=catches.find(c=>SP[c.id].r===3);
       const happy=grade==='S'||grade==='A';
-      if(rare)L.push({who:'gen',text:`……${SP[rare.id].name}か。わしも五十年で二度しか見とらん。`},{who:'hero',face:'happy',text:'この海、まだまだ知らんことばっかりや。'});
-      else if(n>=5)L.push({who:'gen',text:'ようけ釣ったのう。腕が上がったわ。'},{who:'hero',face:'happy',text:'……明日の弁当、ちょっと豪華にしたろ。'});
-      else if(n>=2)L.push({who:'gen',text:'ぼちぼちじゃな。それでええ。'},{who:'hero',face:'normal',text:'うん。……それでええんよな。'});
+      if(rare)L.push({who:'gen',text:`……${SP[rare.id].name}か。わしも五十年で二度しか見とらん。`},{who:'hero',face:'happy',text:'この海、まだまだ知らないことばっかりね。'});
+      else if(n>=5)L.push({who:'gen',text:'ようけ釣ったのう。腕が上がったわ。'},{who:'hero',face:'happy',text:'……明日のお弁当、ちょっと豪華にしちゃおうかしら。'});
+      else if(n>=2)L.push({who:'gen',text:'ぼちぼちじゃな。それでええ。'},{who:'hero',face:'normal',text:'うん。……それでいいのよね。'});
       else L.push({who:'gen',text:'釣れん夜もある。海を見に来た、それで十分じゃ。'},{who:'hero',face:'normal',text:'……なんか、頭が静かになった。'});
-      if(newSpecies)L.push({who:'hero',face:happy?'happy':'normal',text:`図鑑、${newSpecies}つ埋まった。……起きたら、あの子に見せたろ。`});
+      if(newSpecies)L.push({who:'hero',face:happy?'happy':'normal',text:`図鑑、${newSpecies}つ埋まった。……起きたら、あの子に見せてあげよう。`});
       L.push({who:'gen',text:'気ぃつけて帰りんさい。また来いよ。'});
       return L;
     }
@@ -896,7 +899,7 @@ registerMinigame({
       setState('reel');se('decide');buzz(25);
       splash(fl.x,fl.y,14,130);ring(fl.x,fl.y,3,.7,'120,255,230',1.4);SFX.splash(cur.big);
       if(firstReel)say('長押しで光の枠が右へ、離すと左へ。魚を枠に入れて','#00e8c8',3.6);
-      else say(item?'……ん？ 重いだけで、暴れへん':cur.big?'重い……大物や！':'かかった！','#00e8c8',1.6);
+      else say(item?'……ん？ 重いだけで、暴れないわね':cur.big?'重い……大物よ！':'かかった！','#00e8c8',1.6);
       firstReel=false;
     }
     function escape(text){
@@ -1191,26 +1194,83 @@ registerMinigame({
       const fx=GEN.float.x+camX*(.8-1),fy=GEN.float.y+Math.sin(t*1.4+1)*1.1-26*scaleAt(GEN.float.y)*.9+camOff*(.95-1);
       cx.strokeStyle='rgba(220,220,240,.22)';cx.lineWidth=.7;cx.beginPath();cx.moveTo(tx,ty);cx.quadraticCurveTo((tx+fx)/2,Math.max(ty,fy)+30,fx,fy);cx.stroke();
       cx.globalCompositeOperation='lighter';gl(glow.gn,tx,ty,5,.5);cx.globalCompositeOperation='source-over';cx.globalAlpha=1;
-      // 体（前かがみ）
-      cx.save();cx.translate(x,y-16*u);cx.rotate(.22);
-      cx.beginPath();cx.moveTo(-13*u,0);cx.lineTo(13*u,0);cx.quadraticCurveTo(16*u,-20*u,8*u,-32*u);cx.quadraticCurveTo(-6*u,-36*u,-13*u,-26*u);cx.quadraticCurveTo(-17*u,-12*u,-13*u,0);cx.closePath();
+      // 脚（バケツに腰かけて膝を立てる・ゴム長靴）
+      const leg=(ox,col,bootC,sole)=>{
+        const hx0=x+ox+2*u,hy0=y-17*u,kx=x+ox+19*u,ky=y-23*u,fx=x+ox+12.5*u,fy=y;
+        cx.strokeStyle=col;cx.lineCap='round';cx.lineWidth=8.5*u;cx.beginPath();cx.moveTo(hx0,hy0);cx.lineTo(kx,ky);cx.stroke();
+        cx.lineWidth=7*u;cx.beginPath();cx.moveTo(kx,ky);cx.lineTo(fx-1*u,fy-10*u);cx.stroke();
+        cx.strokeStyle='rgba(255,190,120,.22)';cx.lineWidth=1.2;cx.beginPath();cx.moveTo(hx0+2*u,hy0-4*u);cx.lineTo(kx+1*u,ky-4*u);cx.stroke();
+        cx.fillStyle=bootC;cx.beginPath();cx.moveTo(fx-5*u,fy-13*u);cx.lineTo(fx+3.2*u,fy-13*u);cx.lineTo(fx+3.6*u,fy-4*u);
+        cx.quadraticCurveTo(fx+9.5*u,fy-4*u,fx+9.5*u,fy-.5*u);cx.lineTo(fx-5.5*u,fy-.5*u);cx.closePath();cx.fill();
+        cx.fillStyle=sole;cx.fillRect(fx-5.5*u,fy-1.6*u,15*u,1.6*u);cx.fillRect(fx-5.4*u,fy-13.5*u,8.8*u,1.6*u);
+        cx.fillStyle='rgba(200,255,220,.16)';cx.fillRect(fx-3.8*u,fy-11.5*u,1.3*u,8*u);
+      };
+      leg(-4*u,'#2c2e22','#1a2a20','#080a08');
+      // 奥の腕（膝に置いた手）
+      limb(x+3*u,y-42*u,x+18*u,y-27*u,6*u,'#1e2016');
+      cx.fillStyle='#9a7254';cx.beginPath();cx.ellipse(x+19*u,y-26.5*u,3*u,2.3*u,.3,0,7);cx.fill();
+      leg(0,'#4a4c38','#2a4434','#0c100c');
+      // 体（前かがみ・作業ジャンパーの上に釣りベスト・首にタオル）
+      cx.save();cx.translate(x,y-16*u);cx.rotate(.22+Math.sin(t*1.2)*.012);
+      const torso=()=>{cx.beginPath();cx.moveTo(-13*u,0);cx.lineTo(13*u,0);cx.quadraticCurveTo(16*u,-20*u,8*u,-32*u);cx.quadraticCurveTo(-6*u,-36*u,-13*u,-26*u);cx.quadraticCurveTo(-17*u,-12*u,-13*u,0);cx.closePath();};
+      torso();
       const jg=cx.createLinearGradient(-15*u,0,15*u,0);jg.addColorStop(0,'#24261a');jg.addColorStop(.6,'#3a3e2a');jg.addColorStop(1,'#5a5a3a');
       cx.fillStyle=jg;cx.fill();
+      cx.save();torso();cx.clip();
+      const vg=cx.createLinearGradient(-15*u,0,15*u,0);vg.addColorStop(0,'#3e3a24');vg.addColorStop(.55,'#6a6240');vg.addColorStop(1,'#8a8054');
+      cx.fillStyle=vg;cx.fillRect(-16*u,-30*u,32*u,30*u);
+      cx.fillStyle='#2e3222';cx.beginPath();cx.ellipse(5*u,-23*u,6*u,7.5*u,.25,0,7);cx.fill();   // 袖ぐり（ジャンパーが見える）
+      cx.fillStyle='#2a2c1c';cx.fillRect(-16*u,-2.5*u,32*u,2.5*u);                                 // 裾
+      // ポケットとフラップ
+      const pk=(px,py,pw,ph)=>{cx.fillStyle='rgba(0,0,0,.22)';cx.fillRect(px,py,pw,ph);cx.fillStyle='#4e482e';cx.fillRect(px-.4*u,py-1.6*u,pw+.8*u,2*u);
+        cx.fillStyle='rgba(255,230,170,.28)';cx.fillRect(px-.4*u,py-1.6*u,pw+.8*u,.6);};
+      pk(5*u,-12*u,6.5*u,7*u);pk(-6*u,-11*u,6*u,7*u);
+      cx.fillStyle='#c8c0a0';cx.fillRect(9.5*u,-19*u,1*u,4*u);                                      // 胸ポケットのラインカッター
+      cx.restore();
       cx.strokeStyle='rgba(255,190,120,.35)';cx.lineWidth=1.3;cx.beginPath();cx.moveTo(13*u,0);cx.quadraticCurveTo(16*u,-20*u,8*u,-32*u);cx.stroke();
       cx.strokeStyle='rgba(0,0,0,.3)';cx.lineWidth=1;cx.beginPath();cx.moveTo(-4*u,-4*u);cx.lineTo(-2*u,-28*u);cx.stroke();
       // 頭
-      const hx=2*u+turn*2*u,hy=-40*u+Math.sin(t*1.2)*.6;
-      cx.fillStyle='#b88a66';cx.fillRect(hx-4*u,hy+6*u,8*u,5*u);
-      cx.fillStyle='#d8d4cc';cx.beginPath();cx.ellipse(hx,hy+5*u,9*u,4*u,0,0,7);cx.fill();
-      cx.fillStyle='#c09068';cx.beginPath();cx.arc(hx+8*u*(turn?1:.6),hy+2*u,3*u,0,7);cx.fill();
-      cx.fillStyle='#1e2a4a';cx.beginPath();cx.arc(hx,hy,9.5*u,Math.PI*.95,Math.PI*2.05);cx.fill();
-      cx.fillRect(hx-9.5*u,hy-1*u,19*u,3*u);
-      cx.fillStyle='#16203a';cx.beginPath();cx.ellipse(hx+(9+turn*3)*u,hy+1.5*u,8*u,2.2*u,.1,0,7);cx.fill();
-      cx.fillStyle='rgba(255,190,120,.25)';cx.beginPath();cx.arc(hx,hy,9.5*u,-.6,.2);cx.lineTo(hx,hy);cx.fill();
+      const hx=3*u+turn*2*u,hy=-41*u+Math.sin(t*1.2)*.6;
+      cx.fillStyle='#8a6448';cx.fillRect(hx-4*u,hy+4*u,7*u,7*u);                                    // 首
+      // タオル（首に巻いて前に垂らす）
+      cx.fillStyle='#d8d8d0';cx.beginPath();cx.ellipse(hx+.5*u,hy+10*u,8*u,3.2*u,.15,0,7);cx.fill();
+      cx.beginPath();cx.moveTo(hx+5*u,hy+10*u);cx.lineTo(hx+9.5*u,hy+10.5*u);cx.lineTo(hx+11*u,hy+19*u+Math.sin(t*1.5)*.6);cx.lineTo(hx+7*u,hy+19*u);cx.closePath();cx.fill();
+      cx.fillStyle='rgba(60,90,160,.6)';cx.fillRect(hx+7.2*u,hy+16.5*u,3.6*u,1*u);
+      cx.fillStyle='rgba(0,0,0,.18)';cx.beginPath();cx.ellipse(hx-1*u,hy+11*u,6*u,1.6*u,.15,0,Math.PI);cx.fill();
+      // 後ろ髪（白髪まじり）と顔
+      cx.fillStyle='#7a7670';cx.beginPath();cx.ellipse(hx-4*u,hy+1.5*u,5*u,5.5*u,0,0,7);cx.fill();
+      const fg=cx.createLinearGradient(hx-8*u,0,hx+9*u,0);fg.addColorStop(0,'#8a6248');fg.addColorStop(.6,'#c49272');fg.addColorStop(1,'#d8a882');
+      cx.fillStyle=fg;cx.beginPath();cx.ellipse(hx+1*u,hy+1*u,7.6*u,8*u,0,0,7);cx.fill();
+      cx.beginPath();cx.moveTo(hx+7.8*u,hy-.5*u);cx.lineTo(hx+10.6*u,hy+3.2*u);cx.lineTo(hx+7.6*u,hy+4.2*u);cx.closePath();cx.fill();   // 鼻
+      cx.fillStyle='#a87656';cx.beginPath();cx.ellipse(hx-1.2*u,hy+2*u,2*u,2.8*u,0,0,7);cx.fill();                                      // 耳
+      cx.strokeStyle='rgba(60,30,20,.5)';cx.lineWidth=.8;cx.beginPath();cx.arc(hx-1*u,hy+2*u,1.1*u,-1.2,1.6);cx.stroke();
+      cx.fillStyle='#b4b0a8';cx.fillRect(hx-4*u,hy-2*u,2.4*u,5*u);                                    // もみあげ
+      // ひげ（無精ひげ）
+      cx.fillStyle='rgba(216,212,204,.92)';cx.beginPath();cx.moveTo(hx-1.5*u,hy+5*u);cx.quadraticCurveTo(hx+1*u,hy+10.5*u,hx+6*u,hy+9*u);
+      cx.quadraticCurveTo(hx+9.5*u,hy+7.5*u,hx+9.2*u,hy+4.6*u);cx.lineTo(hx+5*u,hy+5.2*u);cx.quadraticCurveTo(hx+2*u,hy+4*u,hx-1.5*u,hy+5*u);cx.fill();
+      // 目・眉・口
+      const blink=(t%4.3)<.13;
+      cx.fillStyle='#e8e4dc';cx.fillRect(hx+3.6*u,hy-2.6*u,4*u,1.3*u);
+      cx.fillStyle='#24140c';cx.fillRect(hx+4.6*u,hy-.4*u,2.2*u,blink?.6:1.4*u);
+      cx.strokeStyle='rgba(70,36,20,.55)';cx.lineWidth=.8;cx.beginPath();cx.moveTo(hx+3.6*u,hy+.4*u);cx.lineTo(hx+2.6*u,hy+1.3*u);cx.moveTo(hx+6*u,hy+2.6*u);cx.quadraticCurveTo(hx+7*u,hy+3.6*u,hx+7.8*u,hy+4.4*u);cx.stroke();
+      if(turn){cx.fillStyle='#24140c';cx.fillRect(hx+.6*u,hy-.2*u,1.6*u,blink?.6:1.2*u);}
+      const mo=speaking&&((t*8)|0)%2;
+      cx.fillStyle='#3a1a14';cx.beginPath();cx.ellipse(hx+7*u,hy+6.4*u,1.8*u,mo?1.2*u:.4*u,0,0,7);cx.fill();
+      // キャップ
+      cx.fillStyle='#1e2a4a';cx.beginPath();cx.arc(hx+.5*u,hy-.5*u,8.8*u,Math.PI*.98,Math.PI*2.02);cx.fill();
+      cx.fillStyle='#16203a';cx.fillRect(hx-8.3*u,hy-1.8*u,17.6*u,2.4*u);
+      cx.beginPath();cx.ellipse(hx+(10+turn*2)*u,hy+.2*u,6.8*u,1.9*u,.12,0,7);cx.fill();
+      cx.fillStyle='#2a3a62';cx.beginPath();cx.arc(hx+.5*u,hy-9.2*u,1.2*u,0,7);cx.fill();
+      cx.fillStyle='#d0c890';cx.fillRect(hx+2.5*u,hy-6*u,3.4*u,2.4*u);
+      cx.strokeStyle='rgba(255,190,120,.4)';cx.lineWidth=1;cx.beginPath();cx.arc(hx+.5*u,hy-.5*u,8.6*u,-1.2,-.15);cx.stroke();
+      cx.fillStyle='rgba(255,190,120,.18)';cx.beginPath();cx.arc(hx+1*u,hy+1*u,7.6*u,-.6,.6);cx.lineTo(hx+1*u,hy+1*u);cx.fill();
       cx.restore();
-      // 腕
-      limb(x+6*u,y-44*u,gx,gy,7*u,'#34382a');
-      cx.fillStyle='#c09068';cx.beginPath();cx.arc(gx,gy,3.2*u,0,7);cx.fill();
+      // 手前の腕（ジャンパーの袖・軍手）
+      limb(x+7*u,y-43*u,gx,gy,7.5*u,'#34382a');
+      cx.strokeStyle='rgba(255,190,120,.25)';cx.lineWidth=1;cx.beginPath();cx.moveTo(x+8*u,y-47*u);cx.quadraticCurveTo(x+13*u,y-46*u,gx,gy-3.5*u);cx.stroke();
+      cx.fillStyle='#24271c';cx.beginPath();cx.arc(gx-3*u,gy+.5*u,3.6*u,0,7);cx.fill();
+      cx.fillStyle='#d8d4c4';cx.beginPath();cx.ellipse(gx,gy,3.6*u,3.1*u,.4,0,7);cx.fill();
+      cx.fillStyle='rgba(0,0,0,.18)';cx.fillRect(gx-1*u,gy-.3*u,3*u,.8);
       // 水筒の湯気
       const th=PROP.thermos;
       for(let i=0;i<3;i++){const f=((t*.35+i/3)%1);cx.strokeStyle=`rgba(230,225,255,${.16*(1-f)})`;cx.lineWidth=2*u;cx.beginPath();
@@ -1277,7 +1337,7 @@ registerMinigame({
       }else if(state==='bite'){
         if(stT>1.35){
           misses++;shadow.r=60;shadow.dart=0;
-          if(misses>=2){escape('……エサだけ取られた。まあ、ええか。');}
+          if(misses>=2){escape('……エサだけ取られた。まあ、いいわ。');}
           else{setState('wait');scheduleBite(rnd(2.2,3.6));say('……離れた。また来るかも','#8e80b0',1.8);}
         }
       }else if(state==='reel'){
@@ -1744,7 +1804,7 @@ registerMinigame({
         title:done?`🎣 夜釣り、おしまい（評価${grade}）`:'🎣 早めに竿をたたんだ',
         summary,fx,time:done?60:20,sp:done&&newSpecies>0?1:0,
         log:done?(rare.length?`壇ノ浦の夜の港で釣りをした。${rare[0]}に出会った、不思議な夜。`:`夜の港で源さんと並んで釣り糸を垂れた。釣果${catches.length}、評価${grade}。`):'夜の港で少しだけ釣りをした。',
-        cutin:done?(rare.length?['happy',`……${rare[0]}って。ほんまにおるんやな、この海。`]:['happy','……波の音しか聞こえん。頭、空っぽになったわ。']):null,
+        cutin:done?(rare.length?['happy',`……${rare[0]}って。ほんとにいるのね、この海。`]:['happy','……波の音しか聞こえない。頭、空っぽになったわね。']):null,
       };
     }};
   },

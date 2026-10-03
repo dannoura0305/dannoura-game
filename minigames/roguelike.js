@@ -213,13 +213,13 @@ registerMinigame({
     // ── 導入：タイトル → 会話 → 遊び方 ──
     const FACE='assets/img/char_';
     talkLines=LAP>1?[
-      ['tired','また臨時の夜間巡回だ。……前より、空気が重い気がする。'],
-      ['normal','子どもは実家に預けてきた。朝には迎えに行く約束だ。'],
-      ['fear','地下の噂、配信で話したら妙に伸びた。……今夜も、いるんだろうな。'],
+      ['tired','また臨時の夜間巡回よ。……前より、空気が重い気がするわ。'],
+      ['normal','あの子は実家に預けてきたの。朝には迎えに行く約束なのよ。'],
+      ['fear','地下の噂、配信で話したら妙に伸びたのよね。……今夜も、いるんでしょうね。'],
     ]:[
-      ['tired',`${gs.day}日目、23時。臨時の夜間巡回。手当が出るなら、断る理由はない。`],
-      ['normal','子どもは実家に預けてきた。朝には迎えに行く約束だ。'],
-      ['fear','地下で“何か”を見たって噂がある。……配信のネタになるなら、それも悪くない。'],
+      ['tired',`${gs.day}日目、23時。臨時の夜間巡回。手当が出るなら、断る理由はないわ。`],
+      ['normal','あの子は実家に預けてきたの。朝には迎えに行く約束なのよ。'],
+      ['fear','地下で“何か”を見たって噂があるのよ。……配信のネタになるなら、それも悪くないわね。'],
     ];
     function setTimer(fn,ms){const tok=sceneTok;setTimeout(()=>{if(!mg._ended&&tok===sceneTok)fn();},ms);}
     function advance(){
@@ -1051,10 +1051,10 @@ registerMinigame({
       const clear=reason==='clear',g=gradeInfo.g;
       const isNew=gradeInfo.g!=='C'&&gradeInfo.score>(REC.bestScore||0);
       let face,lines;
-      if(clear&&(g==='S'||g==='A')){face='win';lines=['点検、全部終わり。夜明けの光が配管に反射してる。','手当で今月の返済、少し楽になる。……さあ、迎えに行こう。'];}
-      else if(clear){face='happy';lines=['なんとか朝まで持った。見落としは、明日の俺に任せる。','眠い。でも、あの子の顔を見たら起きていられる。'];}
-      else{face='collapse';lines=['気がつくと、守衛室のソファにいた。懐中電灯は空っぽだった。','……朝、ちゃんと笑えるかな。あの子の前では。'];}
-      if(bossDown)lines.push('あの怨霊……誰かを待ってたのかもな。今夜の配信で、話してみよう。');
+      if(clear&&(g==='S'||g==='A')){face='win';lines=['点検、全部終わり。夜明けの光が配管に反射してるわ。','手当で今月の返済、少し楽になるわね。……さあ、迎えに行くちゃ。'];}
+      else if(clear){face='happy';lines=['なんとか朝まで持ったわ。見落としは、明日のアタシに任せるの。','がんこ眠いわ。でも、あの子の顔を見たら起きていられるのよ。'];}
+      else{face='collapse';lines=['気がつくと、守衛室のソファにいたわ。懐中電灯は空っぽだった。','……朝、ちゃんと笑えるかしら。あの子の前では。'];}
+      if(bossDown)lines.push('あの怨霊……誰かを待ってたのかもしれないわね。今夜の配信で、話してみようかしら。');
       const col={S:'#e8b830',A:'#00e8c8',B:'#b48cff',C:'#e83055'}[g];
       endEl.innerHTML=`<div class="rg-gl">PATROL RESULT</div><div class="rg-grade" id="rg-grade" style="color:${col}">${g}</div>
         <div class="rg-etitle">${clear?'巡回完了':'巡回失敗'}${LAP>1?`<small style="font-size:.6rem;color:var(--tx-d)">　${LAP}周目</small>`:''}</div>
@@ -1099,7 +1099,7 @@ registerMinigame({
         fx, time:90, sp:clear?2:inspected>0?1:0,
         after(){if(gotNeta){gs.factoryNetaAvail=true;gs.factoryNetaType=bossDown?'地下の怨霊':'深夜巡回の怪異';}},
         log:clear?(bossDown?'深夜の工場を最後まで巡回した。地下の怨霊を鎮めた。':'深夜の工場を最後まで巡回した。'):'深夜の工場を巡回した。何かがいた気がする。',
-        cutin:down?['fear','……今の、なに？']:clear&&bossDown?['win','……成仏、してくれたかな。']:null,
+        cutin:down?['fear','……今の、なに？']:clear&&bossDown?['win','……成仏、してくれたかしら。']:null,
       };
     }};
   },

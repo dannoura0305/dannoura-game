@@ -33,6 +33,10 @@ addMinigameStyle('blocks',`
 .mg-blocks .blocks-por.dim{opacity:.45;transform:scale(.94);filter:grayscale(.5);border-color:rgba(187,174,221,.3);box-shadow:none;}
 .mg-blocks .blocks-boss{position:absolute;right:16px;bottom:138px;width:78px;height:96px;pointer-events:none;transition:opacity .25s,transform .25s;}
 .mg-blocks .blocks-boss.dim{opacity:.3;transform:scale(.94);}
+.mg-blocks .blocks-boss.mob{width:min(40%,180px);height:auto;aspect-ratio:1/1;right:14px;bottom:140px;border-radius:10px;overflow:hidden;
+  border:2px solid rgba(232,184,48,.8);box-shadow:0 0 22px rgba(232,184,48,.3),0 6px 18px rgba(0,0,0,.6);background:radial-gradient(circle at 50% 38%,#4a6a92,#1a2a40 72%);}
+.mg-blocks .blocks-boss.mob img{display:block;width:100%;height:100%;object-fit:cover;}
+.mg-blocks .blocks-boss.mob.dim{opacity:.45;filter:grayscale(.5);border-color:rgba(187,174,221,.3);box-shadow:none;}
 .mg-blocks .blocks-box{position:relative;margin:0 10px 12px;min-height:112px;padding:22px 14px 14px;border-radius:8px;box-sizing:border-box;
   background:linear-gradient(180deg,rgba(18,12,36,.97),rgba(8,6,20,.98));border:1px solid rgba(138,82,212,.7);
   box-shadow:0 0 22px rgba(138,82,212,.25),inset 0 1px 0 rgba(255,255,255,.08);}
@@ -174,6 +178,9 @@ registerMinigame({
     const scPor=scene.querySelector('.blocks-por'),scImg=scPor.querySelector('img'),scBoss=scene.querySelector('.blocks-boss');
     const scName=scene.querySelector('.blocks-name'),scLine=scene.querySelector('.blocks-line'),scSkip=scene.querySelector('.blocks-skip');
     const scGrade=scene.querySelector('.blocks-grade'),scSum=scene.querySelector('.blocks-sum'),scBox=scene.querySelector('.blocks-box');
+    // 班長・岩切の顔グラ（main/mobs.js）。無ければ上の小さな SVG のまま
+    const bossImg=typeof mobPortrait==='function'&&mobPortrait('hancho')?document.createElement('img'):null;
+    if(bossImg){bossImg.alt='';bossImg.src=mobPortrait('hancho');bossImg.onload=()=>{scBoss.innerHTML='';scBoss.appendChild(bossImg);scBoss.classList.add('mob');};}
 
     // ── レイアウト ──
     let W=0,H=0,CH=0,dpr=1,cs=20,wx=0,wy=0,ww=0,wh=0,laneY=0,laneH=40,palY=0,palH=10,BAR=60,fr=4;
@@ -603,6 +610,7 @@ registerMinigame({
       if(L.face){scImg.src=FACE[L.face];}
       scPor.classList.toggle('dim',L.who!=='dan');
       scBoss.classList.toggle('dim',L.who!=='boss');
+      if(bossImg&&L.who==='boss'){const s=mobPortrait('hancho',L.face);if(s&&bossImg.getAttribute('src')!==s)bossImg.src=s;}
       scLine.textContent='';
     }
     function advanceScene(){
@@ -628,11 +636,11 @@ registerMinigame({
         L.push({who:'boss',face:'normal',text:'だんのうら、悪い。組立ラインの子が急に休んでもうて、夜の分が回らへん。'});
         L.push({who:'boss',face:'normal',text:'部品は2個ひと組で流れてくる。同じ部品を3つくっつけたら、1段上の部品に組み上がるんや。'});
         L.push({who:'boss',face:'normal',text:'ネジ→ナット→ギア→モーター→アーム。アーム3本でロボット完成。完成品はフォークで出荷や。'});
-        L.push({who:'dan',face:'tired',text:'……設備保全の仕事ちゃうけどな。ええよ、やります。'});
-        L.push({who:'dan',face:'normal',text:'（残業代は、娘の上履き代や）'});
+        L.push({who:'dan',face:'tired',text:'……設備保全の仕事じゃないけど。いいわよ、やるわ。'});
+        L.push({who:'dan',face:'normal',text:'（残業代は、娘の上履き代ながやちゃ）'});
       }else if(bd.plays%2===1){
         L.push({who:'boss',face:'normal',text:'また組立の手が足らんのや。……前回の手際、評判よかったで。'});
-        L.push({who:'dan',face:'normal',text:'褒めても何も出ませんよ。出るのはロボットだけです。'});
+        L.push({who:'dan',face:'normal',text:'褒めても何も出ないわよ。出るのはロボットだけ。'});
       }else{
         L.push({who:'boss',face:'normal',text:'今夜も頼むわ。最終便は待ってくれへんで。'});
         L.push({who:'dan',face:'tired',text:'（雨の音が、ラインのモーター音に混ざって聞こえる）'});
@@ -653,17 +661,17 @@ registerMinigame({
       if(reason==='topout'){
         L.push({who:'sys',face:'fear',text:'ガガガッ――！　部品があふれて、ラインが緊急停止した。'});
         L.push({who:'boss',face:'collapse',text:'止めろ止めろ！……怪我ないか。部品はええ、お前が無事ならそれでええ。'});
-        L.push({who:'dan',face:'tired',text:shipped?`……ロボット${shipped}台は出せた。でも焦ると詰まる。分かってたのにな。`:'……焦ると詰まる。ラインも、人生も一緒やな。'});
+        L.push({who:'dan',face:'tired',text:shipped?`……ロボット${shipped}台は出せた。でも焦ると詰まる。分かってたのにね。`:'……焦ると詰まる。ラインも、人生も一緒なのよね。'});
       }else if(g==='S'||g==='A'){
         L.push({who:'boss',face:'happy',text:`全便、間に合うた！　ロボット${shipped}台、組立${merges}回やぞ。お前、保全より組立向いとるんちゃうか。`});
-        L.push({who:'dan',face:'win',text:'……勘弁してください。でも、カチッとはまる感じ、ちょっと気持ちよかったです。'});
+        L.push({who:'dan',face:'win',text:'……勘弁してちょうだい。でも、カチッとはまる感じ、ちょっと気持ちよかったわ。'});
         L.push({who:'dan',face:'happy',text:'（テールランプが雨に滲んで遠ざかる。帰ったら、娘の寝顔を見よう）'});
       }else if(g==='B'){
         L.push({who:'boss',face:'normal',text:`組立${merges}回か。まあまあやな、助かったわ。`});
-        L.push({who:'dan',face:'normal',text:'（帰ったら、寝顔だけ見よう。起こさんように）'});
+        L.push({who:'dan',face:'normal',text:'（帰ったら、寝顔だけ見よう。起こさないように）'});
       }else{
         L.push({who:'boss',face:'tired',text:'残りは朝番に回すわ。気にすんな、本業ちゃうんやし。'});
-        L.push({who:'dan',face:'tired',text:'……すんません。次は、もうちょっと組めるようにします。'});
+        L.push({who:'dan',face:'tired',text:'……ごめんなさいね。次は、もうちょっと組めるようにするわ。'});
       }
       return L;
     }
@@ -1103,9 +1111,34 @@ registerMinigame({
       cx.font=`bold ${Math.round(s*.13)}px ${MONO}`;cx.textAlign='center';cx.textBaseline='middle';cx.fillStyle='rgba(40,20,0,.6)';cx.fillText('FL-02',s*.12,-s*.4);
       cx.strokeStyle='#3a3456';cx.lineWidth=Math.max(1.5,s*.04);
       cx.beginPath();cx.moveTo(-s*.25,-s*.5);cx.lineTo(-s*.28,-s*1.02);cx.lineTo(s*.42,-s*1.02);cx.lineTo(s*.42,-s*.5);cx.stroke();
-      cx.fillStyle='#2b2a44';cx.fillRect(s*.0,-s*.78,s*.17,s*.28);
-      cx.fillStyle='#e9c6a4';cx.beginPath();cx.arc(s*.09,-s*.86,s*.09,0,7);cx.fill();
-      cx.fillStyle='#e8b830';cx.beginPath();cx.arc(s*.09,-s*.9,s*.1,Math.PI,0);cx.fill();
+      // 運転手（ヘルメット・作業着・反射ベスト・軍手）
+      {const hb=Math.sin(clock*9+x*.05)*s*.008,L=Math.max(1,s*.012);
+      cx.fillStyle='#1a1628';rr(cx,-s*.13,-s*.76,s*.07,s*.28,s*.02);cx.fill();                    // シートの背もたれ
+      cx.strokeStyle='#16101e';cx.lineWidth=Math.max(1.5,s*.03);cx.lineCap='round';                 // ハンドル
+      cx.beginPath();cx.moveTo(s*.3,-s*.5);cx.lineTo(s*.33,-s*.62);cx.moveTo(s*.27,-s*.66);cx.lineTo(s*.39,-s*.6);cx.stroke();
+      cx.fillStyle='#2a3458';cx.beginPath();cx.moveTo(-s*.06,-s*.5);cx.lineTo(s*.2,-s*.5);cx.lineTo(s*.22,-s*.56);cx.lineTo(-s*.04,-s*.58);cx.closePath();cx.fill(); // 太もも
+      const tg=cx.createLinearGradient(-s*.06,0,s*.16,0);tg.addColorStop(0,'#26305a');tg.addColorStop(1,'#3e4c84');
+      cx.fillStyle=tg;rr(cx,-s*.06,-s*.8+hb,s*.2,s*.3,s*.05);cx.fill();                               // 胴（作業着）
+      cx.fillStyle='#b8d838';cx.fillRect(-s*.055,-s*.72+hb,s*.19,s*.1);                                // 反射ベスト
+      cx.fillStyle='#e8f0f8';cx.fillRect(-s*.055,-s*.685+hb,s*.19,s*.022);
+      cx.strokeStyle='rgba(10,8,20,.55)';cx.lineWidth=L;rr(cx,-s*.06,-s*.8+hb,s*.2,s*.3,s*.05);cx.stroke();
+      cx.strokeStyle='#33407a';cx.lineWidth=Math.max(2,s*.055);                                         // 腕
+      cx.beginPath();cx.moveTo(s*.07,-s*.74+hb);cx.quadraticCurveTo(s*.16,-s*.6,s*.29,-s*.64);cx.stroke();cx.lineCap='butt';
+      cx.fillStyle='#f0ece0';cx.beginPath();cx.arc(s*.3,-s*.64,s*.035,0,7);cx.fill();                  // 軍手
+      const hx=s*.08,hy=-s*.875+hb;
+      cx.fillStyle='#c89878';cx.fillRect(hx-s*.03,hy+s*.05,s*.06,s*.04);                               // 首
+      cx.fillStyle='#ecc6a4';cx.beginPath();cx.arc(hx,hy,s*.075,0,7);cx.fill();                        // 顔
+      cx.beginPath();cx.moveTo(hx+s*.07,hy-s*.01);cx.lineTo(hx+s*.1,hy+s*.02);cx.lineTo(hx+s*.07,hy+s*.03);cx.fill(); // 鼻
+      cx.fillStyle='#d4a888';cx.beginPath();cx.arc(hx-s*.02,hy+s*.01,s*.02,0,7);cx.fill();               // 耳
+      cx.fillStyle='#2a1a14';cx.fillRect(hx+s*.035,hy-s*.005,s*.02,(clock%3.4)<.12?L:s*.025);           // 目
+      cx.fillStyle='#4a3020';cx.fillRect(hx-s*.06,hy-s*.03,s*.05,s*.045);                               // 襟足
+      const hg=cx.createLinearGradient(0,hy-s*.1,0,hy);hg.addColorStop(0,'#ffe680');hg.addColorStop(1,'#d89a18');
+      cx.fillStyle=hg;cx.beginPath();cx.arc(hx,hy-s*.015,s*.088,Math.PI,0);cx.closePath();cx.fill();    // ヘルメット
+      cx.fillStyle='#b87c10';cx.beginPath();cx.ellipse(hx+s*.04,hy-s*.012,s*.1,s*.016,0,0,7);cx.fill(); // つば
+      cx.fillStyle='#fff';cx.fillRect(hx-s*.035,hy-s*.075,s*.035,s*.035);cx.fillStyle='#2a9a48';
+      cx.fillRect(hx-s*.0235,hy-s*.07,s*.012,s*.025);cx.fillRect(hx-s*.03,hy-s*.0635,s*.025,s*.012);       // 緑十字
+      cx.strokeStyle='rgba(255,255,255,.55)';cx.lineWidth=L;cx.beginPath();cx.arc(hx,hy-s*.015,s*.07,Math.PI*1.15,Math.PI*1.45);cx.stroke();
+      cx.strokeStyle='#5a4010';cx.beginPath();cx.moveTo(hx-s*.02,hy);cx.lineTo(hx+s*.02,hy+s*.07);cx.stroke();}
       const on=Math.sin(clock*12)>0;
       cx.fillStyle=on?'#ff9a2a':'#7a3a0a';cx.fillRect(s*.05,-s*1.1,s*.1,s*.08);
       if(on){cx.save();cx.globalCompositeOperation='lighter';const rg=cx.createRadialGradient(s*.1,-s*1.06,0,s*.1,-s*1.06,s*.5);rg.addColorStop(0,'rgba(255,150,40,.45)');rg.addColorStop(1,'rgba(0,0,0,0)');cx.fillStyle=rg;cx.fillRect(-s*.4,-s*1.56,s,s);cx.restore();}
@@ -1369,12 +1402,12 @@ registerMinigame({
         fx={money:Math.min(6000,L*400),jobRep:Math.min(8,Math.floor(L/3)),mental:L>=10?2:0,fatigue:6};
         time=45;sp=L>=12?1:0;
         title=L>=12?'🧱 組立ノルマ達成！':'🧱 定時まで組み立てた';
-        cut=L>=12?['win','……全部組んだった。今夜のロボット、俺の手で出したんや。']:L>=6?['happy','よし、これだけ組めたら上出来や。']:['normal','……手は動いた。それで十分や。'];
+        cut=L>=12?['win','……全部組んでやったわ。今夜のロボット、アタシの手で出したのよ。']:L>=6?['happy','よし、これだけ組めたら上出来よ。']:['normal','……手は動いた。それで十分よ。'];
         log=shipped?`部品組み立てラインでロボット${shipped}台を完成・出荷（組立${merges}回）。フォークの回転灯が、今夜は誇らしく見えた。`:`部品組み立てラインで${merges}回の組み立てをこなした。`;
       }else if(reason==='topout'){
         fx={money:L*300,jobRep:Math.floor(L/4),mental:-2,fatigue:6};
         time=45;title='💥 ライン停止……';
-        cut=['tired','……詰め込みすぎた。焦ると詰まるのは、仕事も人生も一緒やな。'];
+        cut=['tired','……詰め込みすぎた。焦ると詰まるのは、仕事も人生も一緒なのね。'];
         log=`部品組み立てラインで部品があふれてライン停止。組立${merges}回、出荷${shipped}台。`;
       }else{
         fx={money:L*200,fatigue:2};time=20;title='🧱 組み立てを切り上げた';

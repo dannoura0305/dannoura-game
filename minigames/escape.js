@@ -1,6 +1,6 @@
 // ══════════════════════════════════════════════════════════
 // 脱出・謎解き「閉じ込められた夜勤明け」
-// 落雷で停電した工場に閉じ込められた。朝7時までに息子を迎えに行かないと。
+// 落雷で停電した工場に閉じ込められた。朝7時までに娘を迎えに行かないと。
 // 4部屋（更衣室・制御室・部品倉庫・非常口）を行き来し、
 // 懐中電灯＋電池 → ロッカー暗証（勤務表＋エアタンク残圧）→ 盤キーで分電盤
 // → 単線結線図どおりにブレーカー投入 → ドライバーでPLC盤 → ラダー図で出力パターン
@@ -262,7 +262,7 @@ function makePuzzle(rnd){
 
 registerMinigame({
   id:'escape', icon:'🔐', name:'閉じ込められた夜勤明け', genre:'脱出・謎解き', bgm:'kaidan',
-  desc:'夜勤明け、落雷の停電で工場に閉じ込められた。朝までに息子を迎えに行かないと。設備保全の知識で4つの部屋の仕掛けを解き、非常口から脱出しよう。',
+  desc:'夜勤明け、落雷の停電で工場に閉じ込められた。朝までに娘を迎えに行かないと。設備保全の知識で4つの部屋の仕掛けを解き、非常口から脱出しよう。',
   effect:'資格知識+5 仕事評価+6 精神力+4（ヒント1回ごと−1）／ 疲労+6 約60分',
   help:'タップで調べる・持ち物を選んで使う',
   start(body,mg){
@@ -627,7 +627,7 @@ registerMinigame({
         h=`<div class="esc-paper" style="padding:6px">${diagramSVG()}</div>`;
       }else if(id==='note'){
         t='鏡に貼ったメモ';
-        h=`<div class="esc-note">ロッカー暗証（忘れ防止）<br>①② 勤務表の<u>オレ</u>の「夜」の数<br>　　（第1週・第2週）<br>③④ エアタンク残圧の<br>　　小数点以下2ケタ<br><span style="font-size:.66rem">……メモを鏡に貼るのは防犯的にどうなんだ俺。</span></div>`;
+        h=`<div class="esc-note">ロッカー暗証（忘れ防止）<br>①② 勤務表の<u>アタシ</u>の「夜」の数<br>　　（第1週・第2週）<br>③④ エアタンク残圧の<br>　　小数点以下2ケタ<br><span style="font-size:.66rem">……メモを鏡に貼るのは防犯的にどうなのよ、アタシ。</span></div>`;
       }else if(id==='memo'){
         t='申し送りノート';
         h=`<div class="esc-paper" style="line-height:1.9;font-size:.74rem">申し送り（夜勤 → 日勤）<br>・3号ライン コンプレッサー異音。要点検。<br>・非常口シャッターはエア駆動に改造済。<br>　<u>供給圧は現場の札を見ること</u>。<br>・電気錠はPLCのテストSWで動作確認可。<br>　カバーはネジ止め（ドライバー要）。<br>・落雷注意報。……だんのうらさん、お子さんの熱は下がりました？　<span style="color:#a0203c">宮下</span></div>`;
@@ -696,7 +696,7 @@ registerMinigame({
       if(S.dial.join('')===P.code){
         box.classList.add('ok');AU.se('decide');sfx('unlock');
         setTimeout(()=>{if(mg._ended)return;closeZoom(true);S.locker=true;sfx('creak');
-          addItem('key','ガチャッ。ロッカーが開いた。<b>盤キー</b>を手に入れた。……扉の裏に、息子と撮った写真。',hsById('locker','own'));S.gotKey=true;updScore();},700);
+          addItem('key','ガチャッ。ロッカーが開いた。<b>盤キー</b>を手に入れた。……扉の裏に、娘と撮った写真。',hsById('locker','own'));S.gotKey=true;updScore();},700);
       }else{
         box.classList.remove('ng');void box.offsetWidth;box.classList.add('ng');AU.se('warn');sfx('clunk');
         say('……開かない。番号が違う。');
@@ -781,7 +781,7 @@ registerMinigame({
         case 'ctrl/desk':
           if(it)return no();
           if(!S.drawer){S.drawer=true;sfx('creak');addItem('torch0','引き出しに<b>懐中電灯</b>。……スイッチを入れても点かない。電池が空だ。',h);return;}
-          return say('机には息子が描いた「パパのこうじょう」の絵が貼ってある。煙突から虹が出ている。');
+          return say('机には娘が描いた「パパのこうじょう」の絵が貼ってある。煙突から虹が出ている。');
         case 'store/shelf':
           if(it)return no();
           if(!S.gotBatt){S.gotBatt=true;addItem('batt','部品箱に新品の<b>単三電池</b>があった。',h);return;}
@@ -814,10 +814,10 @@ registerMinigame({
         case 'locker/own':
           if(it)return no();
           if(!S.locker)return openZoom('dial');
-          return say('扉の裏に息子と撮った写真。「パパ　はやくかえってきてね」……ああ、帰るよ。');
+          return say('扉の裏に娘と撮った写真。「パパ　はやくかえってきてね」……うん、帰るわよ。');
         case 'locker/note':if(it)return no();return openZoom('note');
         case 'locker/lwin':return say('小さな窓。稲光で、向かいの倉庫の屋根が白く浮かぶ。');
-        case 'locker/bench':return say('ベンチに作業着が脱ぎっぱなし。……俺のじゃない、たぶん。');
+        case 'locker/bench':return say('ベンチに作業着が脱ぎっぱなし。……アタシのじゃないわ、たぶん。');
         case 'exit/sign':return say('誘導灯だけが内蔵バッテリーで緑に光っている。');
         case 'exit/lockpanel':if(it)return no();return openZoom('lockpanel');
         case 'exit/tag':if(it)return no();return openZoom('tag');
@@ -855,8 +855,8 @@ registerMinigame({
       record('clear');dlgEl.classList.add('lite');
       dialog([
         {text:'雨上がりの朝。駐車場の水たまりに、うすい青空が映っている。'},
-        {who:'だんのうら',img:S.hints?'char_happy':'char_win',text:S.hints?'……間に合った。さあ、迎えに行こう。':'……ヒントなしで抜けた。岩城さん、見てたかな。'},
-        {who:'',text:'お隣さんの玄関で、息子が眠そうに手を振っていた。「パパ、おかえり」'},
+        {who:'だんのうら',img:S.hints?'char_happy':'char_win',text:S.hints?'……間に合った。さあ、迎えに行くわよ。':'……ヒントなしで抜けたわ。岩城さん、見てたかしら。'},
+        {who:'',text:'お隣さんの玄関で、娘が眠そうに手を振っていた。「パパ、おかえり」'},
         {who:'RESULT',text:`<div class="esc-grade"><div class="g" style="color:${GRADE_COL[g]}">${g}</div><div class="i">残り時間 ${fmt(S.left)}<br>ヒント ${S.hints}回${TWIST?'<br>二夜目（発電機）':''}<br>${nb?'<span style="color:var(--gd)">★ 自己ベスト更新</span>':'自己ベスト 残り'+fmt(prevBest)}</div></div><div style="text-align:center;font-family:var(--dot);font-size:.74rem;color:var(--tx-b)">${cm}</div>`,
           fx:()=>{AU.se('rank');setTimeout(()=>sfx('clunk'),420);},btn:'リザルトへ',onBtn:()=>mg.end('clear')},
       ]);
@@ -865,8 +865,8 @@ registerMinigame({
       if(S.over)return;S.over='timeup';S.tut=0;closeZoom(true);rainStop();record('timeup');renderInv();
       dialog([
         {text:'窓の外が白み……やがて、照明が一斉に戻った。',fx:()=>{flash=1;AU.se('machine');sfx('power');}},
-        {who:'だんのうら',img:'char_tired',text:'……結局、朝まで出られなかったか。'},
-        {who:'だんのうら',img:'char_tired',text:'お隣さんに電話しないと。……ごめんな、パパ遅くなる。'},
+        {who:'だんのうら',img:'char_tired',text:'……結局、朝まで出られなかったのね。'},
+        {who:'だんのうら',img:'char_tired',text:'お隣さんに電話しないと。……ごめんね、パパ遅くなるわ。'},
         {who:'RESULT',text:`<div class="esc-grade"><div class="g" style="color:var(--rd);font-size:1.6rem">失敗</div><div class="i">進捗 ${progress()}/${PMAX}<br>ヒント ${S.hints}回</div></div><div style="text-align:center;font-family:var(--dot);font-size:.72rem;color:var(--tx)">配置は毎回変わる。次の夜にまた挑もう。</div>`,
           fx:()=>AU.se('warn'),btn:'リザルトへ',onBtn:()=>mg.end('timeup')},
       ]);
@@ -901,10 +901,10 @@ registerMinigame({
       const lines=[
         {text:'午前4時半。夜勤明け。制御室で日報を書き終えた、そのとき――'},
         {text:'ドォン!!　落雷。工場じゅうの明かりが一斉に消えた。',fx:()=>{flash=1;flashEl.style.transition='none';flashEl.style.opacity='.7';requestAnimationFrame(()=>{flashEl.style.transition='opacity 1.2s';flashEl.style.opacity='0';});AU.se('noise');sfx('thunder');}},
-        {who:'だんのうら',img:'char_fear',text:'……停電!? 電気錠もシャッターも、閉じたまま止まってる……'},
+        {who:'だんのうら',img:'char_fear',text:'……停電!? やだ、電気錠もシャッターも、閉じたまま止まってる……'},
       ];
-      if(TWIST)lines.push({who:'だんのうら',img:'char_tired',text:'また雷か……。しかも今夜は、非常用発電機まで止まってる。'});
-      lines.push({who:'だんのうら',img:'char_normal',text:'7時には、お隣さんに息子を迎えに行く約束だ。……設備屋の意地、見せてやる。'});
+      if(TWIST)lines.push({who:'だんのうら',img:'char_tired',text:'また雷なの……。しかも今夜は、非常用発電機まで止まってるじゃない。'});
+      lines.push({who:'だんのうら',img:'char_normal',text:'7時には、お隣さんに娘を迎えに行く約束ながやちゃ。……設備屋の意地、見せてあげるわ。'});
       dialog(lines,()=>{
         S.started=true;S.tut=1;renderInv();rainStart();
         say('暗闇だ。光の中で<b>枠が出る場所をタップで調べる</b>。まずは足もとの<b>机</b>から。',6);
@@ -1100,7 +1100,7 @@ registerMinigame({
       cx.fillStyle='#2e2a38';cx.fillRect(x+w*.12,y+h*.2,w*.3,h*.04);
       cx.fillStyle='#d8d0c4';rr(x+w*.62,y+h*.08,w*.08,h*.15,2);cx.fill();cx.strokeStyle='#d8d0c4';cx.lineWidth=2;cx.beginPath();cx.arc(x+w*.71,y+h*.15,h*.04,-1.4,1.4);cx.stroke();
       cx.fillStyle='#f4f0e2';cx.save();cx.translate(x+w*.78,y-h*.22);cx.rotate(.08);cx.fillRect(0,0,w*.16,h*.22);
-      // 息子のクレヨン画「パパのこうじょう」
+      // 娘のクレヨン画「パパのこうじょう」
       const pw_=w*.16,ph_=h*.22;
       cx.fillStyle='#8a8a9a';cx.fillRect(pw_*.45,-2,pw_*.1,4);
       cx.fillStyle='#e8b830';cx.beginPath();cx.arc(pw_*.18,ph_*.2,pw_*.1,0,7);cx.fill();
@@ -1564,10 +1564,10 @@ registerMinigame({
         const m=Math.max(0,4-S.hints),g=grade();
         return {
           title:`🔐 脱出成功！　評価 ${g}`,
-          summary:`残り時間 <span class="up">${fmt(S.left)}</span>　ヒント <span class="${S.hints?'down':'up'}">${S.hints}回</span>${TWIST?'（二夜目）':''}<br>雨上がりの朝。お隣さんの玄関で、息子が手を振っていた。`,
+          summary:`残り時間 <span class="up">${fmt(S.left)}</span>　ヒント <span class="${S.hints?'down':'up'}">${S.hints}回</span>${TWIST?'（二夜目）':''}<br>雨上がりの朝。お隣さんの玄関で、娘が手を振っていた。`,
           fx:{certKnow:5,jobRep:6,mental:m,fatigue:6},time:60,sp:2,
           log:S.hints?'停電の工場から、設備の知識で脱出した。':'停電の工場から、ヒントなしで脱出した。',
-          cutin:g==='S'?['win','……段取り八分。迎えに行こう。']:['happy','……間に合った。迎えに行こう。'],
+          cutin:g==='S'?['win','……段取り八分よ。迎えに行かなくちゃ。']:['happy','……間に合ったわ。迎えに行かなくちゃ。'],
         };
       }
       if(out==='timeup'){
@@ -1576,7 +1576,7 @@ registerMinigame({
           summary:`進捗 ${progress()}/${PMAX}。朝になって電力が復旧し、ようやく外に出られた。<br>お隣さんに平謝り……。`,
           fx:{mental:-4,fatigue:7},time:60,sp:0,
           log:'停電の工場に朝まで閉じ込められた。',
-          cutin:['tired','……ごめんな、遅くなって。'],
+          cutin:['tired','……ごめんね、遅くなって。'],
         };
       }
       return {

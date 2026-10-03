@@ -720,7 +720,7 @@ registerMinigame({
     function beginRun(){
       if(phase!=='title')return;
       phase='run';phaseT=0;sfx('stage','decide');
-      popup('いってくる…！',cam+PX,GY-80,'#00e8c8',true);
+      popup('いってくるわ…！',cam+PX,GY-80,'#00e8c8',true);
       banner={t:0,no:STAGES[0].no,name:STAGES[0].name};
     }
     function goHome(){
@@ -1283,6 +1283,16 @@ registerMinigame({
           g.fillStyle='rgba(120,160,220,.35)';
           g.beginPath();g.moveTo(x+27,GY-31);g.lineTo(x+36,GY-41);g.lineTo(x+56,GY-41);g.lineTo(x+56,GY-31);g.fill();
           g.beginPath();g.moveTo(x+60,GY-31);g.lineTo(x+60,GY-41);g.lineTo(x+78,GY-41);g.lineTo(x+88,GY-31);g.fill();
+          // 運転手のシルエット（メーターの光でうっすら照らされる）
+          g.save();g.beginPath();g.moveTo(x+27,GY-31);g.lineTo(x+36,GY-41);g.lineTo(x+56,GY-41);g.lineTo(x+56,GY-31);g.clip();
+          g.fillStyle='#0c0a18';
+          g.beginPath();g.ellipse(x+48,GY-30,8,5,0,Math.PI,0);g.fill();
+          g.fillRect(x+46.5,GY-35.5,3,3);
+          g.beginPath();g.ellipse(x+48,GY-37.5,3.6,4,0,0,TAU);g.fill();
+          g.fillStyle='#1a1630';g.beginPath();g.ellipse(x+48.5,GY-39.2,4,2.6,0,Math.PI,0);g.fill();
+          g.fillStyle='rgba(120,230,255,.35)';g.fillRect(x+44.4,GY-37.5,1,2.4);g.fillRect(x+44,GY-33.5,4,1);
+          g.strokeStyle='#0c0a18';g.lineWidth=1.6;g.beginPath();g.moveTo(x+40,GY-32);g.lineTo(x+38,GY-36);g.stroke();
+          g.restore();
           g.fillStyle='rgba(190,170,255,.3)';g.fillRect(x+6,GY-30,o.w-14,1);
           g.fillStyle='#0a0814';g.beginPath();g.arc(x+22,GY-8,8,0,TAU);g.arc(x+82,GY-8,8,0,TAU);g.fill();
           g.strokeStyle='#4a4468';g.lineWidth=1.2;g.beginPath();
@@ -1997,7 +2007,7 @@ registerMinigame({
           :down?'雨の中で転んで、買い出しを諦めた。':'買い出しの途中で引き返した。',
         cutin:clear?(woke?['tired','……起こしちゃったわね。でも、プリンはちゃんとあるわよ。']
           :['happy','……間に合った。熱、下がるといいわね。プリンは朝に一緒に食べましょう。'])
-          :down?['tired','……ごめんね。傘より先に、私が折れそうだったわ。']:null,
+          :down?['tired','……ごめんね。傘より先に、アタシが折れそうだったわ。']:null,
       };
     }};
   },

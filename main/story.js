@@ -244,6 +244,13 @@ const SELF_IMG=f=>{
 function portraitHTML(w,f){
   if(w==='self')return `<img src="${SELF_IMG(f)}" alt="">`;
   const c=CAST[w];if(!c)return '';
+  // 脇役の顔グラ（main/mobs.js の SVG）。読めないときは下の手描きアイコン
+  const mob={hancho:['hancho','#4a6a92','#1a2a40'],sensei:['sensei','#c27a98','#4a2034'],chiyo:['chiyo','#b08a5a','#3a2614'],yodaka:['yodaka']}[w];
+  if(mob&&typeof mobPortrait==='function'&&mobPortrait(mob[0],f)){
+    const src=mobPortrait(mob[0],f);
+    if(!mob[1])return `<img src="${src}" alt="">`;
+    return `<img src="${src}" alt="" style="width:124%;height:124%;max-width:none;margin:-4% 0 0 -12%;background:radial-gradient(circle at 50% 38%,${mob[1]},${mob[2]} 72%)">`;
+  }
   const fn=PORTRAIT[c.por||w];
   return fn?fn(c.pf||f):'';
 }
@@ -299,17 +306,17 @@ const SCENES=[
   K('よるの、おしごと？'),
   K('じゃあ……えほん、いっこだけ。'),
   N('小さな手が差し出したのは、角の擦り切れた絵本だった。\n『うみのそこの　おしろ』。'),
-  C({k:'read',t:'「一冊だけな」と、隣に座る',fx:{childStress:-5,mental:2,fatigue:2},set:{d1_story:true},then:[
+  C({k:'read',t:'「一冊だけよ」と、隣に座る',fx:{childStress:-5,mental:2,fatigue:2},set:{d1_story:true},then:[
       N('読み終わる前に、寝息が聞こえてきた。'),
       K('……うみのそこにも、おうち、あるの……','sleepy'),
-      D('happy','あるよ。……たぶんな。'),
+      D('happy','あるわよ。……たぶんね。'),
       N('開いたままのページには、暗い海の底で灯りをともす、小さなお城が描かれていた。')]},
     {k:'later',t:'「先に寝てて。すぐ行くから」',fx:{childStress:3},set:{d1_later:true},then:[
       K('……うん。すぐね。','sleepy'),
       N('襖が閉まる。絵本は、廊下に置かれたままだった。'),
-      D('tired','……すぐ、な。')]}),
+      D('tired','……すぐ、ね。')]}),
   N('借金、84万。保育料の引き落とし。来月の試験。'),
-  D('normal','さて。……沈むか、這い上がるか、だ。'),
+  D('normal','さて。……沈むか、這い上がるか、よ。'),
  ]},
 
 {id:'d02_hancho',title:'班長',from:2,to:2,prio:10,bg:'factory',
@@ -376,7 +383,7 @@ const SCENES=[
   N('誰が、とは書いていなかった。'),
   C({k:'whisper',t:'今夜は、ささやき声でやってみる',fx:{followers:2,streamPop:1},set:{whisper:true},add:{sakura:1},then:[
       N('マイクのゲインを、少しだけ下げた。'),
-      D('happy','……深夜ラジオっぽくて、悪くないかもな。')]},
+      D('happy','……深夜ラジオっぽくて、悪くないかもね。')]},
     {k:'usual',t:'気にせず、いつも通りやる',set:{no_whisper:true},then:[
       N('返事はしなかった。'),
       N('でも、その夜の声は、自分でも気づかないうちに少しだけ低くなっていた。')]}),
@@ -389,7 +396,7 @@ const SCENES=[
   Y('借金84万、子持ち、工場勤務。……ネタの宝庫じゃないすか。なんで使わないんすか。'),
   Y('泣ける話は伸びますよ。盛ったらもっと伸びる。俺はそうやって三千いきました。'),
   D('tired','…………。'),
-  C({k:'reply',t:'「俺は俺のやり方でやる」と返す',fx:{mental:2},set:{yodaka_reply:true},add:{yodaka:1},then:[
+  C({k:'reply',t:'「アタシはアタシのやり方でやるわ」と返す',fx:{mental:2},set:{yodaka_reply:true},add:{yodaka:1},then:[
       Y('へえ。……そのやり方で、いつまで持つんすかね。'),
       N('既読がついて、それきりだった。')]},
     {k:'ignore',t:'既読だけつけて、閉じる',set:{yodaka_ignore:true},then:[
@@ -424,12 +431,12 @@ const SCENES=[
   K('ごきげんよう、だんのうらです。'),
   N('首をかしげて、得意げに笑っている。\n画面の中の、紫の髪の女の子の——あの挨拶だった。'),
   K('パパのパソコンのなかの、おねえさん。よる、しゃべってるでしょ。'),
-  C({k:'tell',t:'「あれはね、パパなんだよ。夜は声のお仕事をしてるんだ」',fx:{childStress:-3,mental:2},set:{told_child:true},add:{child:1},then:[
+  C({k:'tell',t:'「あれはね、パパなのよ。夜は声のお仕事をしてるの」',fx:{childStress:-3,mental:2},set:{told_child:true},add:{child:1},then:[
       K('パパが、おねえさんなの？'),
-      D('happy','そう。……変か？'),
+      D('happy','そうよ。……変かしら？'),
       K('へんじゃない。かわいい。'),
       N('笑ってしまった。焦げたトーストまで、少し甘く感じた。')]},
-    {k:'hide',t:'「夢でも見たんじゃないか」',fx:{childStress:3},set:{hid_child:true},then:[
+    {k:'hide',t:'「夢でも見たんじゃない？」',fx:{childStress:3},set:{hid_child:true},then:[
       K('……ゆめじゃないもん。','sad'),
       N('子どもは少しだけ口をとがらせて、それ以上は何も言わなかった。')]}),
  ]},
@@ -442,7 +449,7 @@ const SCENES=[
   D('normal','ベアリング……ですかね。まだ小さいけど。'),
   H('夜勤のやつらは「三号が夜に鳴く」って言ってな。気味悪がって近寄らん。'),
   H('止まったら、工場ぜんぶが止まる。……誰かが、ちゃんと見てなきゃならん。'),
-  C({k:'own',t:'「点検表、俺が作ります」',fx:{jobRep:3,fatigue:3},set:{line3_owner:true},add:{hancho:1},then:[
+  C({k:'own',t:'「点検表、アタシが作ります」',fx:{jobRep:3,fatigue:3},set:{line3_owner:true},add:{hancho:1},then:[
       H('……おう。頼んだ。'),
       N('班長はそれだけ言って背中を向けた。でも、少し声が軽かった。')]},
     {k:'watch',t:'「了解です。気にかけておきます」',set:{line3_watch:true},then:[
@@ -457,7 +464,7 @@ const SCENES=[
   SA('三時ごろに起きて、抱っこしてないと泣きやまないんです。その間、ずっとイヤホンで聞いてます。'),
   SA('昨日、だんのうらさんの声を小さく流してたら、腕の中で寝ました。はじめて、朝まで。'),
   N('——隣で寝ている、というのは、そういうことだったのか。'),
-  D('normal','……そっか。'),
+  D('normal','……そうなのね。'),
   SA('すみません、長々と。誰かに言いたかったんです。'),
   C({k:'night',t:'「こちらこそ。おやすみなさい、って言わせてください」',fx:{mental:3},set:{sakura_goodnight:true},add:{sakura:1},then:[
       SA('……はい。おやすみなさい。'),
@@ -504,12 +511,12 @@ const SCENES=[
   SEA('…………。'),
   N('誰かが、呼んでいる。配信の名前じゃない。もっと古い、本当の名前で。'),
   N('でも水が声を丸めてしまって、うまく聞き取れない。'),
-  D('fear','……誰だ。'),
+  D('fear','……誰？'),
   BG('main'),SFX('thud'),
   N('——ゴン、と額が机にぶつかった。'),
   N('時計は22時41分。待機画面のコメント欄に、一行だけ残っていた。'),
   GH('おかえりなさい'),
-  D('tired','……寝てたのか、俺。'),
+  D('tired','……アタシ、寝てたのね。'),
   FX({fatigue:-4,mental:-2},{dream1:true}),
  ]},
 
@@ -546,10 +553,10 @@ const SCENES=[
   K('くらいところでね、あかりをもって、みんなをおうちにかえすの。'),
   K('パパ、みにきてくれる？'),
   N('27日、土曜日。……三号ラインの、定期点検の週だった。'),
-  C({k:'promise',t:'「必ず行く。約束だ」',fx:{childStress:-4,mental:2},set:{promise_recital:true},add:{child:1},then:[
+  C({k:'promise',t:'「必ず行くわ。約束よ」',fx:{childStress:-4,mental:2},set:{promise_recital:true},add:{child:1},then:[
       K('やくそく！'),
       N('小指が、ぎゅっと絡んできた。思っていたより、ずっと強い力だった。')]},
-    {k:'maybe',t:'「行けたら、行くよ」',fx:{childStress:2},set:{maybe_recital:true},then:[
+    {k:'maybe',t:'「行けたら、行くわね」',fx:{childStress:2},set:{maybe_recital:true},then:[
       K('……いけたら？','sad'),
       N('子どもは、その言葉の意味を、もう知っている顔をしていた。')]}),
  ]},
@@ -561,10 +568,10 @@ const SCENES=[
   Y('俺のとこのリスナーも流します。切り抜きも俺が作る。……ちょっと盛ってもらいますけど。'),
   Y('マジで言うと、俺もう一人じゃ数字持たないんすよ。新しい燃料が要る。'),
   N('夜鷹の配信時間の表示は、今夜で52時間になっていた。'),
-  C({k:'collab',t:'「やる」',fx:{followers:10,money:8000,flame:1,fatigue:5},set:{yodaka_collab:true},add:{yodaka:1},then:[
+  C({k:'collab',t:'「やるわ」',fx:{followers:10,money:8000,flame:1,fatigue:5},set:{yodaka_collab:true},add:{yodaka:1},then:[
       Y('話が早い。じゃ、明日の夜。……寝ないでくださいよ。'),
       N('画面の向こうで笑ったような気がした。その笑いは、どこか乾いていた。')]},
-    {k:'refuse',t:'「やらない。……お前も、少し寝ろ」',fx:{mental:2},set:{yodaka_refuse:true},add:{yodaka:1},then:[
+    {k:'refuse',t:'「やらないわ。……アンタも、少し寝られ」',fx:{mental:2},set:{yodaka_refuse:true},add:{yodaka:1},then:[
       Y('……は？　説教とか、いらないんで。'),
       N('既読がついた。数分後、もう一度だけ通知が鳴った。'),
       Y('寝方、忘れたんすよ。')]}),
@@ -591,11 +598,11 @@ const SCENES=[
   HI('あの、急にすみません。私、高校、ずっと行けてなくて。'),
   HI('でも、だんのうらさんの勉強配信を聞きながら、乙4の勉強してたんです。高校生でも受けられるって知って。'),
   HI('教室には入れないけど……試験会場なら、行ける気がして。'),
-  D('normal','……そうか。'),
-  C({k:'together',t:'「じゃあ一緒に受けよう。来月、試験会場で」',fx:{certKnow:3,mental:2},set:{hitori_promise:true},add:{hitori:1},then:[
+  D('normal','……そうなのね。'),
+  C({k:'together',t:'「じゃあ一緒に受けましょ。来月、試験会場で」',fx:{certKnow:3,mental:2},set:{hitori_promise:true},add:{hitori:1},then:[
       HI('……はい。約束です。'),
       HI('名前、ひとりぼっちなのに。ひとりじゃなくなっちゃいました。')]},
-    {k:'gentle',t:'「無理すんなよ。行ける日に、行けばいい」',fx:{mental:2},set:{hitori_gentle:true},add:{hitori:1},then:[
+    {k:'gentle',t:'「無理しちゃだめよ。行ける日に、行けばいいがやちゃ」',fx:{mental:2},set:{hitori_gentle:true},add:{hitori:1},then:[
       HI('……はい。行ける日に、行きます。')]}),
  ]},
 
@@ -605,7 +612,7 @@ const SCENES=[
   TB('今、関門橋を渡って、壇之浦パーキングで休憩中です。'),
   TB('だんのうらさんの名前の場所だなあと思って。海、真っ暗ですよ。'),
   TB('……でも、沖のほうに一個だけ、灯りが見えます。船かな。ずっと動かないんですけど。'),
-  D('normal','……動かない灯り、か。'),
+  D('normal','……動かない灯り、ね。'),
   TB('じゃ、もうひと走りしてきます。九州の朝、見てきますね。'),
   N('地図アプリで調べた。壇之浦パーキングエリア。本当に、ある場所だった。'),
   FX({mental:2},{saw_pa:true}),
@@ -650,10 +657,10 @@ const SCENES=[
   N('寝かしつけの途中で、子どもが服の裾をつかんだ。'),
   K('パパ、きょうも、よるのおしごと？','sad'),
   K('……いかないで。','sad'),
-  C({k:'stay',t:'「今夜は、ずっとここにいるよ」',fx:{childStress:-5,mental:2,fatigue:-2},set:{stayed_child:true},add:{child:1},then:[
+  C({k:'stay',t:'「今夜は、ずっとここにいるわよ」',fx:{childStress:-5,mental:2,fatigue:-2},set:{stayed_child:true},add:{child:1},then:[
       N('子どもの手から、少しずつ力が抜けていった。'),
       K('……ずっと、ね。','sleepy')]},
-    {k:'leave',t:'「ごめん。少しだけ、な」',fx:{childStress:2},set:{left_child:true},then:[
+    {k:'leave',t:'「ごめんね。少しだけ、ね」',fx:{childStress:2},set:{left_child:true},then:[
       K('……すこしだけ、ね。','sad'),
       N('襖を閉める手が、少しだけ重かった。')]}),
  ]},
@@ -664,7 +671,7 @@ const SCENES=[
   JO('おめでとうございます。古参ヅラしていいですか。'),
   TB('最初の夜から聞いてました。ここ、広くなりましたね。'),
   ...when(gs.day<18,SA('おめでとうございます。……ちょっと寂しいけど、うれしい。')),
-  D('happy','……みんなのおかげ、だな。'),
+  D('happy','……みんなのおかげ、ね。'),
   FX({mental:3,streamPop:2},{reached:true}),
  ]},
 
@@ -674,7 +681,7 @@ const SCENES=[
   N('夜中に、小声で練習していたあの曲だった。'),
   K('〜♪　……これ、パパのうた。'),
   K('よるにね、ちっちゃくきこえるの。おふとんのなかで、いっしょにうたってる。'),
-  D('happy','……下手だろ。'),
+  D('happy','……下手でしょ。'),
   K('じょうず。'),
   FX({mental:3,childStress:-2},{child_hums:true}),
  ]},
@@ -684,16 +691,16 @@ const SCENES=[
  lines:f=>[
   N('洗面所の鏡の前で、手が止まった。'),
   N('髪が、白い。\n頭の上に、見覚えのない——耳。猫の、耳。'),
-  Object.assign(D('tired','……なんだ、これ。'),{mirror:true}),
+  Object.assign(D('tired','……なによ、これ。'),{mirror:true}),
   N('瞬きをすると、鏡の中の自分も瞬きをした。\n疲れきった目だけは、いつもの自分だった。'),
   K('パパ……？','sleepy'),
   K('パパ、しろいねこさんになってる。'),
   K('……ねこさん、つかれてるの？'),
   ...when(f.dream1,N('耳の奥で、遠い波の音がした気がした。')),
-  C({k:'tired',t:'「……ちょっと、疲れてるだけだよ」',fx:{childStress:2},set:{white_hid:true},then:[
+  C({k:'tired',t:'「……なーん、ちょっと疲れてるだけよ」',fx:{childStress:2},set:{white_hid:true},then:[
       K('ふうん。……じゃあ、はやくねてね。'),
       N('子どもは、白い耳にそっと触って、布団に戻っていった。')]},
-    {k:'rest',t:'「うん。今夜は、早く休むよ」',fx:{fatigue:-5,mental:2},set:{white_rest:true},then:[
+    {k:'rest',t:'「うん。今夜は、早く休むわね」',fx:{fatigue:-5,mental:2},set:{white_rest:true},then:[
       K('やくそくね。'),
       N('鏡の中の白い自分に、小さく頷いた。……休めば、戻るのだろうか。')]}),
   N('その夜、配信を開くと、画面の中の「だんのうら」も、同じ白い髪をしていた。'),
@@ -704,7 +711,7 @@ const SCENES=[
  lines:()=>[
   K('パパ！　もどった！'),
   N('鏡を見ると、紫の髪が戻っていた。白い耳も、もうない。'),
-  Object.assign(D('happy','……戻った、な。'),{mirror:true}),
+  Object.assign(D('happy','……戻った、わね。'),{mirror:true}),
   K('しろいねこさんも、かわいかったけど。'),
   K('こっちのパパのほうが、げんき。'),
   N('休めば、戻る。——覚えておこう、と思った。'),
@@ -742,8 +749,8 @@ const SCENES=[
       N('耳元で、小さく名前を告げた。\n配信でも、電話でも、ずっと口にしなかった名前。'),
       N('子どもが、たどたどしく、その名前を繰り返した。'),
       K('こんど、うみのひとがよんだら……こっちのほうが、おっきいこえでよぶね。'),
-      D('happy','……ああ。頼む。')]},
-    {k:'keep',t:'「パパは、パパだよ」',fx:{childStress:-2},set:{kept_name:true},then:[
+      D('happy','……ええ。お願いね。')]},
+    {k:'keep',t:'「パパは、パパよ」',fx:{childStress:-2},set:{kept_name:true},then:[
       K('……うん。パパ。','sleepy'),
       N('子どもは胸に顔をうずめて、また眠った。名前のことは、それきりだった。')]}),
  ]},
@@ -781,12 +788,12 @@ const SCENES=[
   N('投稿は、二日前の朝だった。その後、何もない。'),
   ...when(f.yodaka_collab,N('コラボの夜、夜鷹は一度もカメラの前を離れなかった。\n「寝たら数字が落ちるんで」と、笑いながら。')),
   ...when(f.yodaka_refuse,N('「寝方、忘れたんすよ」。あのDMが、まだ一番上に残っている。')),
-  D('tired','……あいつ。'),
-  C({k:'reach',t:'DMを送る。「生きてるか」',fx:{mental:1},set:{yodaka_reached:true},add:{yodaka:1},then:[
+  D('tired','……あの人ったら。'),
+  C({k:'reach',t:'DMを送る。「生きとるけ？」',fx:{mental:1},set:{yodaka_reached:true},add:{yodaka:1},then:[
       N('送信。既読は、つかない。'),
-      D('normal','……寝てるなら、それでいい。')]},
+      D('normal','……寝てるなら、それでいいのよ。')]},
     {k:'silent',t:'……何も送れない',fx:{mental:-2},set:{yodaka_silent:true},then:[
-      N('入力欄に「生きてるか」と打って、消した。'),
+      N('入力欄に「生きとるけ？」と打って、消した。'),
       N('自分が誰かに言えた言葉じゃない気がした。')]}),
  ]},
 
@@ -868,18 +875,18 @@ const SCENES=[
     ...(f.rush_after?[
       N('時計は11時40分。工具を置いて、走った。'),
       N('ホールに着いたとき、ちょうど最後の挨拶だった。\n子どもが、舞台の上から灯籠を振った。'),
-      D('happy','……間に合った、のか。これ。'),
+      D('happy','……間に合った、のかしら。これ。'),
       FX({jobRep:4,childStress:-2,mental:2},{kept_promise:true,late_recital:true}),
     ]:f.chiyo_recital?[
       N('夜。千代さんが、スマホの動画を見せてくれた。'),
       N('灯籠を持った子どもが、客席の後ろを、何度も振り返っている。'),
       CH('ずっと、あんたを探しとったよ。'),
-      D('tired','……ごめんな。'),
+      D('tired','……ごめんね。'),
       FX({jobRep:5,childStress:2},{missed_recital:true,broke_promise:!!f.promise_recital}),
     ]:[
       N('夜、家に帰ると、子どもはもう眠っていた。'),
       N('テーブルの上に、小さな段ボールの灯籠がひとつ。\n『パパのぶん』と書いてあった。'),
-      D('tired','……ごめんな。'),
+      D('tired','……ごめんね。'),
       FX({jobRep:5,childStress:3},{missed_recital:true,broke_promise:!!f.promise_recital}),
     ]),
   ];
@@ -910,11 +917,11 @@ const SCENES=[
   ...(f.hitori_promise?[
     N('帰りの電車で、ひとりぼっちからDMが来た。'),
     HI('模試、自分でやってみました。67点でした。……来月、会場で会えますか。'),
-    D('happy','ああ。会場で。'),
+    D('happy','ええ。会場でね。'),
   ]:f.hitori_gentle?[
     N('帰りの電車で、ひとりぼっちからDMが来た。'),
     HI('今日、少しだけ、学校の保健室に行けました。'),
-    D('happy','……すごいじゃないか。'),
+    D('happy','……がんこすごいじゃない。'),
   ]:[]),
  ];}},
 
@@ -972,7 +979,7 @@ const SCENES=[
     N('DMの通知。差出人は、夜鷹。'),
     Y('生きてます。……寝てました。三日くらい。'),
     Y('お前も寝ろよ、だんのうら。'),
-    D('happy','……お前に言われたくない。'),
+    D('happy','……アンタに言われたくないわよ。'),
   ]:(f.yodaka_reply||f.yodaka_ignore||f.yodaka_collab||f.yodaka_refuse)?[
     N('夜鷹のチャンネルは、非公開のままだった。'),
   ]:[]),
