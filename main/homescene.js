@@ -234,7 +234,7 @@ const CHILD_TURN=[
 "....kwmmmmwk....",
 "...kmmymmmymk...",
 ];
-const CHILD_PAL={k:'#1b1226',h:'#35224e',H:'#6a54a4',f:'#ff9cc8',F:'#ffe066',E:'#3a2048',b:'#f59aae',r:'#d0607a',w:'#f6fbf6',m:'#9fe2c8',y:'#ffe066'};
+const CHILD_PAL={k:'#1b1226',h:'#35224e',H:'#6a54a4',f:'#ffaad4',F:'#ffe066',E:'#3a2048',b:'#f59aae',r:'#d0607a',w:'#f6fbf6',m:'#9fe2c8',y:'#ffe066'};
 // いつも抱いているクマ（左耳＝画面右がほつれている）7x6
 const BEAR=[
 "kk...kt",
@@ -792,7 +792,7 @@ function drawChild(x,k){
   pillow(x,FUTON.x+2,FUTON.y-3,14);
   if(both)pillow(x,FUTON.x+20,FUTON.y-3,18);
   // 娘の頭
-  D2(turn?S.spr.childT:S.spr.child,FUTON.x+1,FUTON.y-10+(stirring&&turn?1:0)+(breath&&!stirring?0:0));
+  D2(turn?S.spr.childT:S.spr.child,FUTON.x+1,FUTON.y-11+(stirring&&turn?1:0)+(breath&&!stirring?0:0));
   // 親（添い寝）
   if(both){const br=(Math.sin(S.t*1.1)>0)?1:0;D2(formSet().sleepF,FUTON.x+21,FUTON.y-14+br);}
   // 掛け布団

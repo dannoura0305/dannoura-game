@@ -83,7 +83,6 @@ registerMinigame({
     const FONT='"DotGothic16", monospace', MONO='"Share Tech Mono", monospace';
     const C={pu:'#8a52d4',cy:'#00e8c8',rd:'#e83055',gd:'#e8b830',gn:'#44ee88',tx:'#bbaedd',txd:'#5e5078',txb:'#deccf8'};
     const NAME={1:'ネジ',2:'ナット',3:'ギア',4:'モーター',5:'アーム',6:'ロボット',9:'不良品'};
-    const FULL={1:'ネジ',2:'ナット',3:'ギア',4:'モーター',5:'ロボットアーム',6:'ロボット'};
     // 段ごとの色（部品の色味・タイル明・タイル暗）
     const TC={1:'#b4cbe2',2:'#f2c454',3:'#4fe0b0',4:'#78a2ff',5:'#ff9a48',6:'#ff74da',9:'#a29cae'};
     const COL={1:['#566a80','#1a2432'],2:['#86661e','#2c1e06'],3:['#1c7660','#08261e'],4:['#2a46a4','#0c143e'],5:['#a4501a','#381404'],6:['#9c2888','#380a30'],9:['#4a4652','#18161c']};
@@ -355,7 +354,7 @@ registerMinigame({
     let board=[];for(let y=0;y<ROWS;y++)board.push(new Array(COLS).fill(null));
     let queue=[],cur=null,hold=null,holdUsed=false,defCool=0,stamp=0;
     let phase='title',t=0,clock=0,acc=0,lockT=0,resets=0,lowY=0,settleT=0;
-    let score=0,merges=0,shipped=0,chain=0,maxChain=0,fixed=0,pieces=0,madeArm=0,rescueUsed=false;
+    let score=0,merges=0,shipped=0,chain=0,maxChain=0,fixed=0,pieces=0,rescueUsed=false;
     let mergeData=null,overT=0,overReason='',topRows=0;
     let shake=0,flash=0,danger=false,dangerSeen=false,introT=0;
     let pulse=0,spIdx=0,banner=null,wipe=null,fade=1,hitstop=0,buf=null,lastInput='touch',endReason='',grade='';
@@ -364,7 +363,7 @@ registerMinigame({
     let lastScoreHtml='',lastTimer='';
     const belt=[];for(let i=0;i<8;i++)belt.push({x:i*70-30,v:22,t:1+(i*3)%5,s:rnd(.7,1)});
     const rain=[];for(let i=0;i<40;i++)rain.push({x:Math.random(),y:Math.random(),s:rnd(.5,.9)});
-    const work=()=>Math.floor(merges/3+shipped*3); // 「出荷列数」に相当する仕事量
+    const work=()=>Math.floor(merges/4+shipped*3); // 「出荷列数」に相当する仕事量
 
     // ── 部品の生成 ──
     const WSUM=WEIGHTS.reduce((a,b)=>a+b,0);
@@ -517,7 +516,6 @@ registerMinigame({
         const T=board[G.ty][G.tx];stamp++;T.t=nt;T.st=stamp;T.bump=1;
         const [px,py]=cellPx(G.tx,G.ty),mx=px+cs/2,my=py+cs/2;
         for(let k=0;k<10+n*2;k++){const a=rnd(0,Math.PI*2),v=rnd(80,260);spark(mx,my,Math.cos(a)*v,Math.sin(a)*v-60,rnd(.3,.7),k%3?'#ffd27a':TC[nt],rnd(1.5,3),true);}
-        if(nt===5)madeArm++;
         if(nt===6)shipRobot(G.tx,G.ty,mult);
         else{pop(`${NAME[nt]} 組立！`,my-cs*.3,TC[nt],nt>=4,0,mx);pop(`+${pts}`,my+cs*.45,C.txb,false,.1,mx,true);}
       });
@@ -552,7 +550,7 @@ registerMinigame({
     // やさしい：班長・岩切が上の部品をまとめて引き取ってくれる（1回だけ）
     function doRescue(){
       rescues--;rescueUsed=true;
-      for(let y=0;y<4;y++)for(let x=0;x<COLS;x++){const c=board[y][x];if(!c)continue;const [px,py]=cellPx(x,y);
+      for(let y=0;y<HID+5;y++)for(let x=0;x<COLS;x++){const c=board[y][x];if(!c)continue;const [px,py]=cellPx(x,y);
         for(let k=0;k<4;k++)spark(px+cs/2,py+cs/2,rnd(-120,120),rnd(-220,-40),rnd(.4,.8),TC[c.t],2.5,true);board[y][x]=null;}
       pop('班長が上の部品を引き取った！',wy+wh*.3,C.gd,true);pop('（助けは一度だけ）',wy+wh*.3+cs*1.1,C.txb,false,.2);
       sfx('whistle');se('notif');shake=6;
@@ -571,7 +569,10 @@ registerMinigame({
       if(parts.length>280)parts.shift();
       parts.push({x,y,vx,vy,life,max:life,col,sz,add});
     }
-    function pop(text,y,col,big,delay,x,small){pops.push({text,y,col,big,small,x,t:-(delay||0)});if(pops.length>10)pops.shift();}
+    function pop(text,y,col,big,delay,x,small){
+      // 近くに表示中の文字があれば上にずらして重ならないようにする
+      if(!small)for(let k=0;k<6;k++){if(!pops.some(p=>!p.small&&p.t<1&&Math.abs(p.y-y)<cs*.7&&Math.abs((p.x==null?wx+ww/2:p.x)-(x==null?wx+ww/2:x))<cs*3))break;y-=cs*.75;}
+      pops.push({text,y,col,big,small,x,t:-(delay||0)});if(pops.length>10)pops.shift();}
     function addLift(n){
       const last=lifts[lifts.length-1];
       const delay=Math.max(.55,last?.9-last.t:0);
@@ -634,7 +635,7 @@ registerMinigame({
     }
     function calcGrade(Lw,reason){
       const order=['C','B','A','S'];
-      let g=Lw>=18?3:Lw>=12?2:Lw>=6?1:0;
+      let g=Lw>=20?3:Lw>=13?2:Lw>=7?1:0;
       if(reason==='topout')g=Math.max(0,g-1);
       return order[g];
     }
@@ -1060,7 +1061,7 @@ registerMinigame({
       const ly0=wy+hh+10+sh+6,lms=Math.min(cs*.5,(palY-ly0-4)/6.4);
       if(lms>=10){
         for(let k=1;k<=6;k++){const yy=ly0+(k-1)*lms*1.07;cx.drawImage(spr[k],lx+2,yy,lms,lms);
-          if(pw>lms+30){cx.font=`${Math.max(8,Math.round(lms*.55))}px ${FONT}`;cx.textAlign='left';cx.textBaseline='middle';cx.fillStyle=TC[k];cx.fillText((k>1?'↑':'')+FULL[k],lx+lms+5,yy+lms/2);}}
+          if(pw>lms+24){cx.font=`${Math.max(8,Math.round(lms*.55))}px ${FONT}`;cx.textAlign='left';cx.textBaseline='middle';cx.fillStyle=TC[k];cx.fillText(NAME[k],lx+lms+4,yy+lms/2,pw-lms-7);}}
       }
       // 残り時間ゲージ（右側）
       const gy=wy+nh+lab+6,gh=Math.max(40,palY-gy-18);
@@ -1178,10 +1179,11 @@ registerMinigame({
         if(p.t<0)continue;
         const a=p.t<.12?p.t/.12:p.t>1.1?Math.max(0,(1.5-p.t)/.4):1;
         const sc=p.t<.12?1.4-p.t/.12*.4:1;
-        const fs=Math.max(10,Math.round((p.big?cs*.72:p.small?cs*.4:cs*.52)*sc));
+        let fs=Math.max(10,Math.round((p.big?cs*.72:p.small?cs*.4:cs*.52)*sc));
         cx.font=`${fs}px ${FONT}`;
+        let tw=cx.measureText(p.text).width;
+        if(tw>W-16){fs=Math.max(9,Math.floor(fs*(W-16)/tw));cx.font=`${fs}px ${FONT}`;tw=cx.measureText(p.text).width;}
         cx.globalAlpha=a;
-        const tw=cx.measureText(p.text).width;
         const x=clamp(p.x==null?wx+ww/2:p.x,tw/2+4,W-tw/2-4);
         const y=p.y-p.t*18;
         cx.lineWidth=4;cx.strokeStyle='rgba(5,4,14,.9)';cx.strokeText(p.text,x,y);
