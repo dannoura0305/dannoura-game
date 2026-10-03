@@ -61,7 +61,7 @@ addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;pad
 const GRADES='SABC';
 const STORY=remix=>[
   {who:'boss',text:remix?'だんのうらさん、夜分にすまん。改修したばかりの第2ラインの配電盤が、また落ちた。':'だんのうらさん、夜分にすまん。第2ラインの配電盤が落ちた。'},
-  {who:'me',face:'tired',text:'……子どもが、やっと寝たところなのに。'},
+  {who:'me',face:'tired',text:'……あの子が、やっと寝たところなのに。'},
   {who:'boss',text:'朝の出荷に間に合わないと、ラインが丸一日止まる。頼めるか。'},
   {who:'me',face:'normal',text:'配信は後回しね。借金の利息は待ってくれないもの。……行くわ。'},
 ];
@@ -71,13 +71,13 @@ const ENDING={
      {who:'me',face:'happy',text:'帰ったら子どもの朝ごはん。今夜の配信のネタもできたわね。'}],
   A:[{who:'me',face:'happy',text:'全部つないだわ。……配線は嘘をつかないのよね。'},
      {who:'boss',text:'助かった。朝の出荷、なんとかなりそうだ。'},
-     {who:'me',face:'normal',text:'少しは借金返済の足しになるかしら。……さ、帰ろう。'}],
+     {who:'me',face:'normal',text:'少しは借金返済の足しになるかしら。……さ、帰りましょ。'}],
   B:[{who:'me',face:'tired',text:'最後の盤は朝番に引き継ぎ……。報告書、書かなきゃ。'},
      {who:'boss',text:'ここまで戻れば十分だ。あとは任せてくれ。'},
-     {who:'me',face:'tired',text:'今夜の配信は短めにしよう。子どもが起きる前に、少しでも眠らないと。'}],
-  C:[{who:'me',face:'fear',text:'……思うように、繋がらなかった。'},
+     {who:'me',face:'tired',text:'今夜の配信は短めにしようかしら。あの子が起きる前に、少しでも眠らないと。'}],
+  C:[{who:'me',face:'fear',text:'……思うように、繋がらなかったわ。'},
      {who:'boss',text:'無理させたな。今日はもう帰って休め。'},
-     {who:'me',face:'tired',text:'子どもの寝顔だけ見て……眠ろう。明日は、もう少しうまくやるわ。'}],
+     {who:'me',face:'tired',text:'あの子の寝顔だけ見て……眠りましょ。明日は、もう少しうまくやるわ。'}],
 };
 
 // 効果音：AU.se に加えて Web Audio で短い音を合成（AU.ctx がある時だけ・音量設定に従う）

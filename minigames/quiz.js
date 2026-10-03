@@ -681,7 +681,7 @@ registerMinigame({
     function face(n,anim){elFace.style.backgroundImage=IMG(n);if(anim){elFace.classList.remove('hop','sad');void elFace.offsetWidth;elFace.classList.add(anim);}}
     function say(txt,ms){elBub.textContent=txt;elBub.classList.add('on');clearTimeout(bubT);bubT=setTimeout(()=>elBub.classList.remove('on'),ms||1500);}
     const rpick=a=>a[Math.floor(Math.random()*a.length)];
-    const OK_LINES=['よし！','覚えてる…！','それだ。','いける。'],COMBO_LINES=['冴えてる…！','止まらない。','頭が澄んでる。'],NG_LINES=['うっ…','そっちか…','付箋、貼っとこう。','くやしい…'];
+    const OK_LINES=['よし！','覚えてる…！','それよ！','いけるわ。'],COMBO_LINES=['冴えてる…！','止まらない。','頭が澄んでる。'],NG_LINES=['うっ…','そっちか…','付箋、貼っとこう。','くやしい…'];
     face('char_normal');
 
     // ── タイトル ──
@@ -808,7 +808,7 @@ registerMinigame({
       });
       elSheet.classList.remove('on');
       if(combo<3)face('char_normal');
-      if((data.wrong[cur.id]||0)>0)say('……これ、前に間違えたやつだ。',1800);
+      if((data.wrong[cur.id]||0)>0)say('……これ、前に間違えたやつね。',1800);
       setCombo(false);hudScore();
       AU.se('notif');
     }
@@ -1001,7 +1001,7 @@ registerMinigame({
         log:done?`乙4の一問一答を解いた（${correct}/${QN}問正解）。`:'乙4の一問一答を途中まで解いた。',
         cutin:done?(correct===QN?['win','……全部わかる。工場の匂いが、少しずつ文字になっていく。']
           :correct>=7?['happy','……覚えてる。ちゃんと、積み上がってる。']
-          :correct<=3?['tired','……頭に入らない夜もある。また明日。']:null):null,
+          :correct<=3?['tired','……頭に入らない夜もあるわよね。また明日。']:null):null,
       };
     }};
   },

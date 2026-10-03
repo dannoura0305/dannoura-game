@@ -720,7 +720,7 @@ registerMinigame({
     function beginRun(){
       if(phase!=='title')return;
       phase='run';phaseT=0;sfx('stage','decide');
-      popup('いってくる…！',cam+PX,GY-80,'#00e8c8',true);
+      popup('いってくるわ…！',cam+PX,GY-80,'#00e8c8',true);
       banner={t:0,no:STAGES[0].no,name:STAGES[0].name};
     }
     function goHome(){

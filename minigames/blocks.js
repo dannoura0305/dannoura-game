@@ -632,7 +632,7 @@ registerMinigame({
         L.push({who:'dan',face:'normal',text:'（残業代は、娘の上履き代ながやちゃ）'});
       }else if(bd.plays%2===1){
         L.push({who:'boss',face:'normal',text:'また組立の手が足らんのや。……前回の手際、評判よかったで。'});
-        L.push({who:'dan',face:'normal',text:'褒めても何も出ませんよ。出るのはロボットだけです。'});
+        L.push({who:'dan',face:'normal',text:'褒めても何も出ないわよ。出るのはロボットだけ。'});
       }else{
         L.push({who:'boss',face:'normal',text:'今夜も頼むわ。最終便は待ってくれへんで。'});
         L.push({who:'dan',face:'tired',text:'（雨の音が、ラインのモーター音に混ざって聞こえる）'});
@@ -656,7 +656,7 @@ registerMinigame({
         L.push({who:'dan',face:'tired',text:shipped?`……ロボット${shipped}台は出せた。でも焦ると詰まる。分かってたのにね。`:'……焦ると詰まる。ラインも、人生も一緒なのよね。'});
       }else if(g==='S'||g==='A'){
         L.push({who:'boss',face:'happy',text:`全便、間に合うた！　ロボット${shipped}台、組立${merges}回やぞ。お前、保全より組立向いとるんちゃうか。`});
-        L.push({who:'dan',face:'win',text:'……勘弁してください。でも、カチッとはまる感じ、ちょっと気持ちよかったです。'});
+        L.push({who:'dan',face:'win',text:'……勘弁してちょうだい。でも、カチッとはまる感じ、ちょっと気持ちよかったわ。'});
         L.push({who:'dan',face:'happy',text:'（テールランプが雨に滲んで遠ざかる。帰ったら、娘の寝顔を見よう）'});
       }else if(g==='B'){
         L.push({who:'boss',face:'normal',text:`組立${merges}回か。まあまあやな、助かったわ。`});

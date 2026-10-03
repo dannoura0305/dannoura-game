@@ -94,7 +94,7 @@ registerMinigame({
       {id:'tachiuo',name:'タチウオ',kind:'ribbon',r:2,w:5,min:60,max:105,zones:[2],t:1,beh:'dart',
         flav:['刀みたいに光る、立ったまま泳ぐ魚。月を一本、釣り上げたみたいね。','銀色が手に移りそうなほど、ぴかぴかしている。']},
       {id:'anago',name:'マアナゴ',kind:'eel',r:2,w:5,min:30,max:62,zones:[0,1],t:1,beh:'sink',
-        flav:['夜の住人。体の白い点々は「はかり目」と呼ばれる。','にょろりと逃げようとする。……今夜は逃がしてやろう。']},
+        flav:['夜の住人。体の白い点々は「はかり目」と呼ばれる。','にょろりと逃げようとする。……今夜は逃がしてあげましょ。']},
       {id:'glass',name:'シーグラス',kind:'glass',r:2,w:3,min:2,max:5,unit:'径',zones:[0],beh:'item',
         flav:['波に丸められたガラスの欠片。何十年、海を旅してきたのかしら。','角が取れてる。……人も、こんなふうになれたらいいのにね。']},
       {id:'boot',name:'片方の長靴',kind:'boot',r:2,w:2,min:22,max:28,zones:[0,1],beh:'item',
@@ -753,7 +753,7 @@ registerMinigame({
       const L=[];
       if(FD.visits<=1){
         L.push({who:'hero',face:tired?'tired':'normal',text:'配信、終わり。……同接のことは、今は考えたくない。'});
-        L.push({who:'hero',face:'normal',text:'子どもは寝た。三十分だけ、海の音を聞きに来た。'});
+        L.push({who:'hero',face:'normal',text:'あの子は寝たわ。三十分だけ、海の音を聞きに来たの。'});
         L.push({who:'gen',text:'お、見ん顔じゃのう。竿、余っとるけえ使いんさい。'});
         L.push({who:'gen',text:`今夜は${WNAME}、${TIDE}じゃ。力を抜け。焦っとる奴に、魚は寄ってこん。`});
       }else{

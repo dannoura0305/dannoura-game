@@ -863,10 +863,10 @@ registerMinigame({
 
     // ═════ 会話（＝チュートリアル）═════
     const LINES=[
-      {who:'hero',face:'normal',t:'来週の配信、7日ぶんの企画を決めよう。借金のためにも、ちゃんと伸ばしたい。'},
+      {who:'hero',face:'normal',t:'来週の配信、7日ぶんの企画を決めるわよ。借金のためにも、ちゃんと伸ばしたいのよね。'},
       {who:'fan',t:`今週は「${T[trend].n}」がトレンドらしいっすよ！ あと、最近は「${T[favs[0]].n}」がウケてるっす。`},
       {who:'mid',t:'コラボは週1回ね。前の日に告知ショート出してくれたら、うちのリスナーも連れてくよ！'},
-      {who:'hero',face:'happy',t:'カードを曜日にドラッグ。同じ企画ばかりだと飽きられるし、疲れたら休み。……よし、会議開始。'},
+      {who:'hero',face:'happy',t:'カードを曜日にドラッグ。同じ企画ばかりだと飽きられるし、疲れたら休み。……さ、会議開始よ。'},
     ];
     let story=null,li=0,typing=null;
     function startStory(){
@@ -1222,9 +1222,9 @@ registerMinigame({
     // ═════ 通信簿 ═════
     const HERO_SAY={
       S:['win','……数字は正直ね。届いた夜が、ちゃんとあった。'],
-      A:['happy','いい並びだった。この感覚、来週も忘れずにいこう。'],
-      B:['normal','悪くない。でも、もう一手あった気がする。メモを見返そう。'],
-      C:['tired','空回りの夜が多かった……。並べ方、見直さないと。'],
+      A:['happy','いい並びだったわ。この感覚、来週も忘れずにいきましょ。'],
+      B:['normal','悪くないわね。でも、もう一手あった気がする。メモを見返さなきゃ。'],
+      C:['tired','空回りの夜が多かったわ……。並べ方、見直さないと。'],
       D:['tired','詰め込みすぎた……。休むのも運営のうち、ね。'],
     };
     const FAN_SAY={S:'今週、神回多すぎっす！ 切り抜き追いつかないっすよｗ',A:'毎晩楽しみにしてたっす。来週も行くっす！',B:'まったり見てたっす〜。次はトレンド企画も見たいっす',C:'……最近ちょっと同じ感じが続いてるっすね',D:'眠そうで心配っす……無理しないでほしいっす'};
@@ -1238,7 +1238,7 @@ registerMinigame({
       const best=streams.slice().sort((a,b)=>b.q-a.q)[0],worst=streams.slice().sort((a,b)=>a.q-b.q)[0];
       const nightLine=n=>`${DAYS[n.i]}曜 ${T[n.t].n}（${n.mult.filter(m=>m[1]!==1).map(m=>`${m[0]}×${m[1].toFixed(2)}`).join('・')}）`;
       let heroLine=HERO_SAY[g][1];
-      if(res.endFat>70&&(g==='S'||g==='A'||g==='B'))heroLine+=' ……でも、さすがに体が重い。';
+      if(res.endFat>70&&(g==='S'||g==='A'||g==='B'))heroLine+=' ……でも、さすがに体ががんこ重いわ。';
       let fanLine=FAN_SAY[g];
       if(g!=='S'&&g!=='D'){
         if(res.found.includes('sleep'))fanLine='寝落ちした夜、ちょっと心配したっすよ…。休みも入れてほしいっす';

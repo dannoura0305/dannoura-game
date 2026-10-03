@@ -1649,7 +1649,7 @@ const REVENTS=[
    cond:()=>gs.day>=12,
    desc:'朝、冷蔵庫に一枚の絵が貼ってあった。\nマイクの前に座る、大きな人の絵。\n「パパのおしごと」と書いてあった。',
    fx:'精神力 +8 | 希望 +6',
-   apply(){gs.mental=Math.min(100,gs.mental+8);gs.personality.hope=Math.min(100,gs.personality.hope+6);logGrow('子どもが配信している俺の絵を描いてくれた。');}},
+   apply(){gs.mental=Math.min(100,gs.mental+8);gs.personality.hope=Math.min(100,gs.personality.hope+6);logGrow('娘が、配信しているアタシの絵を描いてくれた。');}},
   {title:'🌧 雨漏り',
    cond:()=>gs.day>=12,
    desc:'夜中、天井から水が落ちてきた。\nバケツを置いて、配信機材を避難させた。\n大家に連絡したが、修理は来週になるらしい。',
