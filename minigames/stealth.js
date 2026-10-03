@@ -642,7 +642,7 @@ registerMinigame({
       P.x+=P.vx*dt;P.y+=P.vy*dt;
       collide(P,PR);
       const mv=Math.hypot(P.x-px0,P.y-py0);
-      const s=dt>0?Math.min(1,mv/dt/MAXV):0;
+      const s=dt>0&&mv<MAXV*dt*1.6+2?Math.min(1,mv/dt/MAXV):0; // ワープ的な移動（ラグ）は無視
       if(s>.04){
         const ta=Math.atan2(P.vy,P.vx);let da=ta-P.ang;while(da>Math.PI)da-=6.283;while(da<-Math.PI)da+=6.283;P.ang+=da*Math.min(1,dt*12);
         P.walk+=mv*.16;
