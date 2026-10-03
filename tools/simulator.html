@@ -54,18 +54,15 @@ iframe{position:absolute;width:400px;height:800px;left:-9999px;top:0;border:0;vi
   <div class="controls">
     <label>1組あたりの回数<input type="number" id="runs" value="200" min="10" max="2000" step="10"></label>
     <label>乱数シード<input type="number" id="seed" value="1"></label>
-    <label class="chk"><input type="checkbox" id="modeCur" checked>現在の仕様</label>
-    <label class="chk"><input type="checkbox" id="modeFix" checked>夜を22時開始にした場合</label>
     <button class="run" id="run" disabled>読み込み中…</button>
   </div>
   <div id="status"></div>
   <div id="out"></div>
 
   <p class="note">
-    ・プレイ方針は「目標ガイド通り／配信重視／仕事・勉強重視／ランダム」の4種類。<br>
+    ・プレイ方針は「目標ガイド通り／配信重視／仕事・勉強重視／無計画」の4種類。<br>
     ・配信中のコメントによる小さな精神回復と、配信中の異変演出は省略しています。<br>
     ・夜のミニゲームは中身を実際に遊ばず、典型的な結果（成功率60%）を当てはめています。<br>
-    ・「夜を22時開始にした場合」は、翌日の開始時刻を7:00→22:00に変え、配信終了時に日付が2日進まないようにした想定です。<br>
     ・iframe で本体を読むため、file:// で直接開くと動きません。GitHub Pages かローカルサーバー経由で開いてください。
   </p>
 </main>
@@ -83,7 +80,7 @@ const STRATS=[
   {id:'guide', name:'目標ガイド通り', sub:'状態を見て休む・稼ぐを判断'},
   {id:'stream',name:'配信重視',       sub:'休みつつ毎晩配信'},
   {id:'work',  name:'仕事・勉強重視', sub:'工場と資格を優先'},
-  {id:'random',name:'ランダム',       sub:'行動を無作為に選ぶ'},
+  {id:'random',name:'無計画',         sub:'ほとんど休まず思いつきで行動'},
 ];
 // 夜のミニゲームの典型的な結果（実プレイの代わり）
 const MG_TYPICAL={
@@ -97,7 +94,7 @@ const MG_TYPICAL={
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 
 const frame=document.getElementById('game');
-let W,G,snap,queue=[],sim={ending:null,mode:'cur'};
+let W,G,snap,queue=[],sim={ending:null};
 
 frame.addEventListener('load',()=>{
   W=frame.contentWindow;
@@ -114,11 +111,6 @@ frame.addEventListener('load',()=>{
   // ── タイマーは即時実行キューへ ──
   W.setTimeout=fn=>{if(typeof fn==='function')queue.push(fn);return 0;};
   W.setInterval=()=>0;
-  // ── 修正案モード用のラップ ──
-  const origNextDay=W.nextDay;
-  W.nextDay=function(){origNextDay();if(sim.mode==='fix'&&!sim.ending){G.hour=22;G.min=0;}};
-  const origApply=W.applyChoice;
-  W.applyChoice=function(c){if(sim.mode==='fix'&&c.end)G._dayDone=true;return origApply(c);};
   snap=JSON.stringify(W.gsToSaveData());
   const btn=document.getElementById('run');btn.disabled=false;btn.textContent='実行';
 });
@@ -171,7 +163,7 @@ function act(a){
 // ── プレイ方針 ──
 function choose(strat,n){
   const g=G,late=g.hour>=3&&g.hour<6;
-  if(strat==='random'){const a=['rest_light','rest_deep','study','childcare','singpractice','factory','stream','mg'];return a[Math.floor(R()*a.length)];}
+  if(strat==='random'){const a=['rest_light','study','childcare','singpractice','factory','factory','stream','stream','mg'];return a[Math.floor(R()*a.length)];}
   // 共通の危険回避
   if(g.mental<=20||g.fatigue>=85)return 'rest_deep';
   if(g.flame>=5&&!W.playedMinigameToday('shooter'))return 'mg';
@@ -198,24 +190,22 @@ function choose(strat,n){
 
 function runOne(strat){
   resetGame();
-  let guard=0,day=G.day,n=0,actions=0;
+  let guard=0,day=G.day,n=0,actions=0,minMental=100,maxFatigue=0;
   while(!sim.ending&&guard++<3000){
     act(choose(strat,n));actions++;
+    minMental=Math.min(minMental,G.mental);maxFatigue=Math.max(maxFatigue,G.fatigue);
     if(G.day!==day){day=G.day;n=0;}else n++;
   }
-  return {ending:sim.ending||'timeout',day:Math.min(G.day,31),debt:G.debt,followers:G.followers,mental:G.mental,actions};
+  return {ending:sim.ending||'timeout',day:Math.min(G.day,31),debt:G.debt,money:G.money,followers:G.followers,mental:G.mental,minMental,maxFatigue,actions};
 }
 
 async function runAll(){
   const runs=+document.getElementById('runs').value||100,seed=+document.getElementById('seed').value||1;
-  const modes=[];
-  if(document.getElementById('modeCur').checked)modes.push({id:'cur',name:'現在の仕様',sub:'2日目以降は7:00開始'});
-  if(document.getElementById('modeFix').checked)modes.push({id:'fix',name:'夜を22時開始にした場合',sub:'修正案'});
+  const modes=[{id:'cur',name:'結果',sub:''}];
   const btn=document.getElementById('run');btn.disabled=true;
   const results=[];
   const total=modes.length*STRATS.length*runs;let done=0;
   for(const m of modes){
-    sim.mode=m.id;
     for(const s of STRATS){
       W.Math.random=mulberry32(seed*1000+STRATS.indexOf(s));
       const rows=[];
@@ -260,12 +250,12 @@ function render(modes,results){
     });
     sec.appendChild(chart);
     // 表（全エンディング・平均値）
-    let t=`<div class="scroll"><table><thead><tr><th>方針</th>${ENDINGS.map(e=>`<th>${e[1]}</th>`).join('')}<th>平均到達日</th><th>平均借金</th><th>平均フォロワー</th><th>1日の行動数</th></tr></thead><tbody>`;
+    let t=`<div class="scroll"><table><thead><tr><th>方針</th>${ENDINGS.map(e=>`<th>${e[1]}</th>`).join('')}<th>平均到達日</th><th>平均借金</th><th>平均所持金</th><th>平均フォロワー</th><th>1日の行動数</th><th>最低精神</th><th>最高疲労</th></tr></thead><tbody>`;
     rs.forEach(r=>{
       const n=r.rows.length;
       t+=`<tr><td>${r.strat.name}</td>${ENDINGS.map(e=>`<td>${pct(r.rows.filter(x=>x.ending===e[0]).length,n)}%</td>`).join('')}`+
-        `<td>${avg(r.rows,'day').toFixed(1)}</td><td>${Math.round(avg(r.rows,'debt')/10000)}万</td><td>${Math.round(avg(r.rows,'followers'))}</td>`+
-        `<td>${(avg(r.rows,'actions')/Math.max(1,avg(r.rows,'day'))).toFixed(1)}</td></tr>`;
+        `<td>${avg(r.rows,'day').toFixed(1)}</td><td>${Math.round(avg(r.rows,'debt')/10000)}万</td><td>${Math.round(avg(r.rows,'money')/10000)}万</td><td>${Math.round(avg(r.rows,'followers'))}</td>`+
+        `<td>${(avg(r.rows,'actions')/Math.max(1,avg(r.rows,'day'))).toFixed(1)}</td><td>${Math.round(avg(r.rows,'minMental'))}</td><td>${Math.round(avg(r.rows,'maxFatigue'))}</td></tr>`;
     });
     t+='</tbody></table></div>';
     sec.insertAdjacentHTML('beforeend',t);

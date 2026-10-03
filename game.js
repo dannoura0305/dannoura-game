@@ -463,11 +463,11 @@ function buildChoices(){
     {tx:'📡 配信を始める',ac:'stream'},
     {tx:'🔧 設備点検ミニゲーム',ac:'factory'},
     {tx:'🌡 温度・振動診断',ac:'diag'},
-    {tx:'☕ 少し休む（疲労-12 精神+5）',ac:'rest_light'},
-    {tx:'🛏 しっかり休む（疲労-25 精神+10 時間大）',ac:'rest_deep'},
-    {tx:'📚 資格の勉強（知識+5 疲労+6）',ac:'study'},
+    {tx:'☕ 少し休む（疲労-12 精神+4）',ac:'rest_light'},
+    {tx:'🛏 しっかり休む（疲労-25 精神+8 時間大）',ac:'rest_deep'},
+    {tx:'📚 資格の勉強（知識+5 疲労+6 精神-3）',ac:'study'},
     {tx:'👶 子どもの寝かしつけ（育児ストレス-10 精神+3）',ac:'childcare'},
-    {tx:'🎤 歌の練習（歌スキル経験 疲労+4）',ac:'singpractice'},
+    {tx:'🎤 歌の練習（歌スキル経験 疲労+4 精神-2）',ac:'singpractice'},
     {tx:'🎮 夜のミニゲーム（4種・各1日1回）',ac:'minigames'},
   ];
   if(gs.factoryNetaAvail)c.push({tx:`🗣 工場ネタで配信【${gs.factoryNetaType}】`,ac:'factoryneta',cls:'neta'});
@@ -536,14 +536,14 @@ function handleChoice(ac){
 
     case'rest_light':
       gs.fatigue=Math.max(0,gs.fatigue-12-gs.skills.sleepEff*2);
-      gs.mental=Math.min(100,gs.mental+5);
+      gs.mental=Math.min(100,gs.mental+4);
       logGrow('少し休んだ');
       advTime(40); showNotif('☕ 少し休んだ。'); loadScene('rest_light'); updateStats(); break;
 
     case'rest_deep':
       gs.fatigue=Math.max(0,gs.fatigue-25-gs.skills.sleepEff*4);
       gs.sleepHours=Math.min(10,gs.sleepHours+2);
-      gs.mental=Math.min(100,gs.mental+10);
+      gs.mental=Math.min(100,gs.mental+8);
       logGrow('しっかり休んだ');
       advTime(120); showNotif('🛏 しっかり休んだ。体が少し楽になった。'); loadScene('rest_deep'); updateStats(); break;
 
@@ -551,7 +551,7 @@ function handleChoice(ac){
       gs.fatigue=Math.min(100,gs.fatigue+6);
       gs.certKnow=Math.min(100,gs.certKnow+5+gs.skills.focus);
       // 達成感で微回復
-      gs.mental=Math.min(100,gs.mental-2+gs.skills.focus+1);
+      gs.mental=Math.max(0,Math.min(100,gs.mental-3+gs.skills.focus));
       gs.sp+=1;
       if(gs.certKnow>=100&&!gs.completedAchs.has('cert')){
         unlockAch('cert','📜 資格知識が満点になった');
@@ -573,6 +573,7 @@ function handleChoice(ac){
       gs.skills.singSkill=Math.min(10,gs.skills.singSkill+.5);
       gs.throatFatigue=Math.min(100,gs.throatFatigue+4);
       gs.fatigue=Math.min(100,gs.fatigue+4);
+      gs.mental=Math.max(0,gs.mental-2);
       logGrow('歌の練習をした');
       advTime(40); showNotif('🎤 静かに練習した。声が少し育ってきた。'); loadScene('singpractice'); updateStats(); break;
 
@@ -598,13 +599,17 @@ function advTime(min){
 
 // ★ 毎日の自然回復を追加
 function nextDay(){
-  gs._dayDone=false;gs.day++;gs.hour=7;gs.min=0;
+  // 昼間（仕事）は画面外で過ぎ、毎晩22時から行動を選ぶ
+  gs._dayDone=false;gs.day++;gs.hour=22;gs.min=0;
 
   // 夜間の自然回復（睡眠・スキルで変化）
-  const sleepRec=20+gs.skills.sleepEff*5;
-  const mentalRec=7+gs.skills.stressRes*3;
+  // 昼間の仕事の疲れを差し引いた回復量（無理を重ねると持ち越す）
+  const sleepRec=12+gs.skills.sleepEff*5;
+  const mentalRec=2+gs.skills.stressRes*3;
   gs.fatigue=Math.max(0,gs.fatigue-sleepRec);
-  gs.mental=Math.min(100,gs.mental+mentalRec);
+  // 生活の重圧：借金と育児ストレスが毎晩少しずつ心を削る。終盤（21日目〜）はさらに消耗する
+  const pressure=(gs.debt>=600000?3:gs.debt>=300000?2:gs.debt>0?1:0)+(gs.childStress>=60?2:0)+(gs.day>20?2:0);
+  gs.mental=Math.max(0,Math.min(100,gs.mental+mentalRec-pressure));
   gs.sleepHours=Math.max(0,gs.sleepHours-1+gs.skills.sleepEff*.5);
   gs.childStress=Math.min(100,gs.childStress+4); // 少し緩めた
   gs.sp+=1;
@@ -632,7 +637,7 @@ function nextDay(){
 
   if(Math.random()<.4)triggerRandomEvent();
   updateStats();updateDayInfo();
-  showNotif(`☀️ ${gs.day}日目の朝。${evMsg}`);
+  showNotif(`🌙 ${gs.day}日目の夜。${evMsg}`);
   cutin('normal','……今日も、元気にやっていくわよ。');
   loadScene('main');checkGameOver();if(gs.day>30&&!gs._endless)triggerEnding();
   saveGame(true); // 自動セーブ（DAY進行時）
@@ -1063,13 +1068,15 @@ function applyChoice(c){
   if(c.end){
     clearInterval(commentIv);clearInterval(anomalyIv);
     // ★ 配信収益（ランク・フォロワー・ギフトで変動）
-    const baseRev=Math.floor(gs.followers*.8+gs.rank*300+Math.random()*800);
-    const giftBonus=Math.floor(gs.streamPop*20);
+    const baseRev=Math.floor(gs.followers*1.5+gs.rank*600+Math.random()*1000);
+    const giftBonus=Math.floor(gs.streamPop*35);
     const rev=baseRev+giftBonus;
     gs.money+=rev;
     const debtPay=Math.floor(rev*.5);
     gs.debt=Math.max(0,gs.debt-debtPay);
     gs.monthlyPaid+=debtPay;
+    // 配信を終えるとその夜は終わり。下の nextDay() と二重に日付が進まないよう、advTime 側の日送りを止める
+    gs._dayDone=true;
     advTime(90);AU.fadeBGM('night',850);
     setTimeout(()=>{
       document.getElementById('streaming-ol').classList.remove('active');
@@ -1184,9 +1191,9 @@ function fixPanel(i,el){
 function endFactory(){
   clearInterval(ft);document.getElementById('factory-mini').classList.remove('active');AU.fadeBGM('night',800);
   const perfect=ff>=ftt;
-  const money=perfect?4500+gs.skills.wiring*700:ff*800;
+  const money=perfect?8500+gs.skills.wiring*1000:ff*1600;
   // 達成感で精神微回復
-  const mentalChg=perfect?3:-3;
+  const mentalChg=perfect?1:-4;
   gs.money+=money;gs.debt=Math.max(0,gs.debt-Math.floor(money*.4));
   gs.jobRep=Math.min(100,gs.jobRep+(perfect?10:ff*2));
   gs.mental=Math.min(100,Math.max(0,gs.mental+mentalChg));
@@ -1679,7 +1686,7 @@ function checkFixedDayEvents(){
 // ★ 7日ごと生活費チェック
 function checkWeeklyLife(){
   if(gs.day%7!==0)return;
-  const cost=45000; // 週の生活費概算
+  const cost=60000; // 週の生活費概算（家賃・保育料・食費）
   if(gs.money>=cost){
     gs.money-=cost;
     showNotif(`🏠 生活費 -¥${cost.toLocaleString()} （残 ¥${gs.money.toLocaleString()}）`);
@@ -1689,6 +1696,14 @@ function checkWeeklyLife(){
     gs.mental=Math.max(0,gs.mental-5);
     showNotif('⚠️ 生活費が足りず、借金が増えた');
     logGrow(`Day${gs.day}：生活費が不足した`);
+  }
+  // 手元に残したい額を超えた分は繰り上げ返済に回す
+  const KEEP=30000;
+  if(gs.money>KEEP&&gs.debt>0){
+    const pay=Math.min(gs.debt,gs.money-KEEP);
+    gs.money-=pay;gs.debt-=pay;gs.monthlyPaid+=pay;
+    showNotif(`💴 繰り上げ返済 -¥${pay.toLocaleString()}（借金 残り${(gs.debt/10000).toFixed(1)}万）`);
+    logGrow(`Day${gs.day}：繰り上げ返済した`);
   }
 }
 
@@ -2005,16 +2020,17 @@ function triggerEnding(forced){
     else if(gs.debt>2000000)          type='bankrupt';
     else if(gs.flame>=10)             type='flame';
 
+    // ── 借金完済エンド：物語の一番の目標なので最優先 ──
+    else if(gs.debt<=100000&&gs.mental>=30)
+      type='debtfree';
+
     // ── Day30 育成タイプ特化グッドエンド ──
     else if(growType===GROW_TYPE.ENGINEER&&gs.jobRep>=75&&gs.certKnow>=70)
       type='engineer';
     else if(growType===GROW_TYPE.FATHER&&gs.childStress<30&&gs.personality.kindness>=60)
       type='father';
 
-    // ── Day30 新グッドエンド3種 ──
-    // 借金完済エンド：借金を大きく減らした
-    else if(gs.debt<=100000&&gs.mental>=30)
-      type='debtfree';
+    // ── Day30 新グッドエンド ──
     // 深夜の王エンド：フォロワー・人気が高水準
     else if(gs.followers>200&&gs.streamPop>50&&gs.mental>=40&&gs.fatigue<80&&gs.personality.hope>=45)
       type='king';
