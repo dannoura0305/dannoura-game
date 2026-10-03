@@ -15,7 +15,76 @@ registerMinigame({
   help:'タップ:ジャンプ／↓スワイプ:スライド',
   start(body,mg){
     // ── 定数 ──
-    const M=20, GOAL_M=900, GOAL=GOAL_M*M, WAKE=70, MAX_HP=3, PX=72, COIN=30, COIN_CAP=3000;
+    // ── 記録（gs.runnerData）・天気・ルート ──
+    if(!gs.runnerData||typeof gs.runnerData!=='object')gs.runnerData={plays:0,clears:0,best:'',bestTime:0,bestCoins:0};
+    const DATA=gs.runnerData;
+    const FIRST=!DATA.plays;
+    const REMIX=DATA.clears>0;               // 一度クリアすると「近道」ルート（速く・複雑）
+    const WEATHERS=[{id:'rain',name:'雨',drops:130},{id:'mist',name:'霧雨',drops:80},{id:'storm',name:'雷雨',drops:190}];
+    const WEATHER=WEATHERS[Math.abs(gs.day|0)%3];
+    const ROUTE=REMIX?'近道（リミックス）':'いつもの道';
+    const M=20, GOAL_M=900, GOAL=GOAL_M*M, WAKE=REMIX?66:70, MAX_HP=3, PX=72, COIN=30, COIN_CAP=3000;
+    const SPD=REMIX?1.08:1;
+    const STAGES=[{m:0,no:'STAGE 1',name:'眠る住宅街'},{m:300,no:'STAGE 2',name:'ネオン商店街'},{m:600,no:'STAGE 3',name:'高架下の工事区間'}];
+    const stageAt=wx=>wx>=STAGES[2].m*M?2:wx>=STAGES[1].m*M?1:0;
+    const GRADE_RANK={S:4,A:3,B:2,C:1};
+
+    // ── 効果音（Web Audioで合成。使えなければ AU.se） ──
+    let noiseBuf=null;
+    function actx(){
+      if(typeof AU==='undefined'||typeof AUDIO_SET==='undefined'||!(AUDIO_SET.se>0))return null;
+      try{AU.init();}catch(e){}
+      const c=AU.ctx;if(!c)return null;
+      if(c.state==='suspended')c.resume().catch(()=>{});
+      return c;
+    }
+    function tone(c,type,f0,f1,dur,gain,delay){
+      const t0=c.currentTime+(delay||0),o=c.createOscillator(),g=c.createGain();
+      o.type=type;o.frequency.setValueAtTime(f0,t0);if(f1)o.frequency.exponentialRampToValueAtTime(f1,t0+dur);
+      g.gain.setValueAtTime(.0001,t0);g.gain.linearRampToValueAtTime(Math.max(.0002,gain*AUDIO_SET.se),t0+.008);
+      g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+      o.connect(g);g.connect(c.destination);o.start(t0);o.stop(t0+dur+.03);
+    }
+    function noise(c,dur,gain,ft,f0,f1,delay){
+      if(!noiseBuf){noiseBuf=c.createBuffer(1,c.sampleRate|0,c.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
+      const t0=c.currentTime+(delay||0),s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();
+      s.buffer=noiseBuf;f.type=ft;f.frequency.setValueAtTime(f0,t0);if(f1)f.frequency.exponentialRampToValueAtTime(f1,t0+dur);
+      g.gain.setValueAtTime(Math.max(.0002,gain*AUDIO_SET.se),t0);g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+      s.connect(f);f.connect(g);g.connect(c.destination);s.start(t0);s.stop(t0+dur+.03);
+    }
+    const SFX={
+      jump:c=>tone(c,'square',260,640,.12,.045),
+      jump2:c=>{tone(c,'square',440,1040,.13,.04);tone(c,'triangle',880,1760,.1,.02,.03);},
+      land:c=>noise(c,.07,.06,'lowpass',900,250),
+      slide:c=>noise(c,.28,.08,'bandpass',2600,600),
+      coin:c=>{tone(c,'square',988,0,.06,.035);tone(c,'square',1319,0,.18,.035,.06);},
+      drink:c=>[523,659,784,1047].forEach((f,i)=>tone(c,'triangle',f,0,.12,.06,i*.06)),
+      purin:c=>[784,988,1175,1568,1319,1568].forEach((f,i)=>tone(c,'square',f,0,.1,.03,i*.07)),
+      hit:c=>{noise(c,.2,.16,'lowpass',2400,200);tone(c,'sawtooth',190,55,.24,.08);},
+      splash:c=>noise(c,.32,.1,'bandpass',3200,700),
+      cat:c=>{tone(c,'triangle',950,520,.16,.05);tone(c,'triangle',1100,700,.12,.03,.05);},
+      horn:c=>{tone(c,'square',370,0,.4,.03);tone(c,'square',466,0,.4,.026);},
+      thunder:c=>{noise(c,1.8,.2,'lowpass',500,50);noise(c,.25,.12,'lowpass',2500,300);},
+      train:c=>noise(c,2.6,.07,'lowpass',260,120),
+      stage:c=>[523,659,784,1047].forEach((f,i)=>tone(c,'square',f,0,.14,.035,i*.08)),
+      chime:c=>{tone(c,'sine',784,0,.5,.07);tone(c,'sine',622,0,.7,.07,.32);},
+      text:c=>tone(c,'square',1250,0,.022,.012),
+      stamp:c=>{noise(c,.18,.18,'lowpass',1500,120);tone(c,'square',110,55,.2,.07);},
+      fanfare:c=>[523,659,784,1047,784,1047].forEach((f,i)=>tone(c,'square',f,0,i===5?.5:.11,.04,i*.1)),
+      fall:c=>{tone(c,'triangle',520,110,.7,.07);noise(c,.4,.08,'lowpass',800,100,.25);},
+      warn:c=>{tone(c,'square',880,0,.08,.03);tone(c,'square',880,0,.08,.03,.14);},
+      wake:c=>{tone(c,'sine',660,440,.3,.06);tone(c,'sine',550,330,.4,.05,.25);},
+      ui:c=>tone(c,'triangle',700,900,.07,.05),
+    };
+    function sfx(k,fb){
+      const c=actx();
+      if(c&&SFX[k]){try{SFX[k](c);}catch(e){}}
+      else if(fb&&typeof AU!=='undefined')AU.se(fb);
+    }
+    // 立ち絵
+    const IMG={};
+    ['normal','fear','happy','tired','win'].forEach(k=>{const im=new Image();im.src='assets/img/char_'+k+'.webp';IMG[k]=im;});
+
     const DOOR_X=GOAL+PX+130, STORE_X=DOOR_X-60, STORE_W=300;
     const FONT='"DotGothic16", monospace';
     const F9='9px '+FONT, F10='10px '+FONT, F11='11px '+FONT, F12='12px '+FONT, F13='13px '+FONT,
@@ -58,6 +127,136 @@ registerMinigame({
       g.quadraticCurveTo(x,y+h,x,y+h-r);g.lineTo(x,y+r);g.quadraticCurveTo(x,y,x+r,y);g.closePath();
     }
 
+    // 2x2の網点（ディザ）で質感を足す
+    function dither(g,x,y,w,h,col){
+      g.fillStyle=col;
+      for(let yy=y;yy<y+h;yy+=2)for(let xx=x+((yy-y)%4?1:0);xx<x+w;xx+=2)g.fillRect(xx,yy,1,1);
+    }
+    function buildMid(v){
+      const c=mkC(MT,GY),g=c.g,r=seeded(29+v*101),base=GY-10;
+      let gr;
+      const NEON=v===1?['スナック','カラオケ','居酒屋','質','BAR','麻雀','薬','ラーメン','喫茶','酒']:['ランドリー','薬','質'];
+      const NCOL=['#c070ff','#e83055','#00e8c8','#e8b830','#ff6fa8'];
+      const neon=(sx,sy,txt,col)=>{
+        const vert=txt.length<=4&&!/^[A-Z]/.test(txt);
+        g.save();
+        if(vert){
+          const sh=txt.length*13+10;
+          g.fillStyle='#160c24';g.fillRect(sx,sy,16,sh);
+          g.shadowColor=col;g.shadowBlur=10;g.strokeStyle=col;g.lineWidth=1.2;g.strokeRect(sx+.5,sy+.5,15,sh-1);
+          g.fillStyle=col;g.font='11px "DotGothic16", monospace';g.textAlign='center';g.textBaseline='top';
+          for(let i=0;i<txt.length;i++)g.fillText(txt[i],sx+8,sy+5+i*13);
+        }else{
+          g.font='11px "DotGothic16", monospace';
+          const tw=g.measureText(txt).width+10;
+          g.fillStyle='#160c24';g.fillRect(sx,sy,tw,16);
+          g.shadowColor=col;g.shadowBlur=10;g.strokeStyle=col;g.lineWidth=1.2;g.strokeRect(sx+.5,sy+.5,tw-1,15);
+          g.fillStyle=col;g.textAlign='left';g.textBaseline='middle';g.fillText(txt,sx+5,sy+8.5);
+        }
+        g.restore();
+      };
+      // 第3区間：奥にクレーンと工場
+      if(v===2){
+        for(let k=0;k<3;k++){
+          const kx=120+k*320+r()*60, top=base-230-r()*40;
+          g.strokeStyle='#0d0a1e';g.lineWidth=3;
+          g.beginPath();g.moveTo(kx,base);g.lineTo(kx,top);g.lineTo(kx+120,top);g.moveTo(kx-30,top);g.lineTo(kx,top);g.stroke();
+          g.lineWidth=1;g.beginPath();
+          for(let y=base;y>top;y-=12){g.moveTo(kx-4,y);g.lineTo(kx+4,y-12);}
+          g.moveTo(kx,top-20);g.lineTo(kx+120,top);g.moveTo(kx,top-20);g.lineTo(kx-30,top);g.moveTo(kx+90,top);g.lineTo(kx+90,top+50);g.stroke();
+          const gl=g.createRadialGradient(kx,top-20,0,kx,top-20,7);gl.addColorStop(0,'rgba(255,60,80,.95)');gl.addColorStop(1,'rgba(255,60,80,0)');
+          g.fillStyle=gl;g.fillRect(kx-7,top-27,14,14);
+        }
+      }
+      const mb=[];let x=0;
+      while(x<MT){
+        const w=v===0?46+r()*56:v===1?50+r()*60:60+r()*80;
+        const h=v===0?60+r()*100:v===1?110+r()*130:50+r()*90;
+        mb.push([x,w,h,(r()*1e6)|0]);x+=w+(v===1?3+r()*8:8+r()*26);
+      }
+      const drawMid=(bx,w,h,seed)=>{
+        const rr=seeded(seed+7);
+        if(v===0&&w<70){
+          // 木造の一軒家（三角屋根）
+          g.fillStyle='#0c0a1a';g.fillRect(bx,base-h*.6,w,h*.6+12);
+          g.beginPath();g.moveTo(bx-5,base-h*.6);g.lineTo(bx+w/2,base-h*.6-24);g.lineTo(bx+w+5,base-h*.6);g.closePath();g.fill();
+          g.strokeStyle='rgba(138,82,212,.3)';g.lineWidth=1;g.beginPath();g.moveTo(bx-5,base-h*.6);g.lineTo(bx+w/2,base-h*.6-24);g.lineTo(bx+w+5,base-h*.6);g.stroke();
+          if(rr()<.6){g.fillStyle='rgba(242,196,106,.75)';g.fillRect(bx+8,base-h*.6+10,12,10);g.fillStyle='rgba(120,60,40,.5)';g.fillRect(bx+14,base-h*.6+10,1,10);g.fillRect(bx+8,base-h*.6+15,12,1);}
+          if(rr()<.3){g.fillStyle='rgba(120,200,255,.45)';g.fillRect(bx+w-18,base-h*.6+10,10,10);}
+          dither(g,bx,base-h*.6,w,h*.6,'rgba(138,82,212,.06)');
+          return;
+        }
+        const apt=v===0||rr()<.4;
+        g.fillStyle=v===2?'#0b0a16':apt?'#0b0919':'#0d0a1e';g.fillRect(bx,base-h,w,h+12);
+        g.fillStyle='rgba(138,82,212,.28)';g.fillRect(bx,base-h,w,1);g.fillRect(bx,base-h,1,h);
+        if(v===2){
+          // 工場の棟と煙突
+          g.fillStyle='#0b0a16';g.fillRect(bx+w*.7,base-h-50,8,50);
+          for(let wy=base-h+12;wy<base-14;wy+=16){g.fillStyle=rr()<.4?'rgba(140,220,255,.4)':'rgba(30,26,50,.9)';g.fillRect(bx+4,wy,w-8,4);}
+        }else if(apt){
+          for(let wy=base-h+10;wy<base-16;wy+=20){
+            for(let wx=bx+6;wx<bx+w-12;wx+=17){
+              const q=rr();
+              if(q<.3){g.fillStyle='rgba(242,196,106,.82)';g.fillRect(wx,wy,10,10);g.fillStyle='rgba(120,60,40,.45)';g.fillRect(wx+6,wy,4,10);}
+              else if(q<.4){g.fillStyle='rgba(120,200,255,.5)';g.fillRect(wx,wy,10,10);}
+              else{g.fillStyle='#15112a';g.fillRect(wx,wy,10,10);}
+            }
+            g.fillStyle='rgba(90,80,130,.45)';g.fillRect(bx+3,wy+12,w-6,1.5);
+            g.fillStyle='rgba(60,50,90,.3)';g.fillRect(bx+3,wy+13.5,w-6,4);
+          }
+        }else{
+          for(let wy=base-h+8;wy<base-14;wy+=11)for(let wx=bx+4;wx<bx+w-6;wx+=9){
+            const q=rr();
+            g.fillStyle=q<.18?'rgba(200,240,255,.55)':q<.24?'rgba(242,196,106,.6)':'#13102a';
+            g.fillRect(wx,wy,6,7);
+          }
+        }
+        dither(g,bx,base-h,w,h,'rgba(138,82,212,.05)');
+        if(rr()<.5){g.fillStyle='#0b0919';g.fillRect(bx+8,base-h-12,18,12);g.fillRect(bx+10,base-h-16,14,4);}
+        if(rr()<.5){g.fillStyle='#120e24';g.fillRect(bx+w-22,base-h-7,14,7);}
+        const pn=v===1?.92:v===0?.18:0;
+        if(rr()<pn){
+          const txt=NEON[(rr()*NEON.length)|0],col=NCOL[(rr()*NCOL.length)|0];
+          neon(rr()<.5?bx+w-10:bx-6, base-h+20+rr()*Math.max(10,h-130), txt, col);
+        }
+      };
+      mb.forEach(b=>{drawMid(b[0],b[1],b[2],b[3]);drawMid(b[0]-MT,b[1],b[2],b[3]);drawMid(b[0]+MT,b[1],b[2],b[3]);});
+      if(v===0){
+        // 庭木
+        for(let k=0;k<9;k++){const tx=r()*MT,tr=14+r()*14;g.fillStyle='#080714';g.beginPath();g.arc(tx,base-tr*.8,tr,0,TAU);g.arc(tx+tr*.8,base-tr*.5,tr*.8,0,TAU);g.fill();}
+      }
+      if(v===1){
+        // 提灯の列
+        for(let k=0;k<4;k++){
+          const lx0=k*245+20, ly=base-150-r()*30;
+          g.strokeStyle='rgba(20,14,30,.9)';g.lineWidth=1;g.beginPath();g.moveTo(lx0,ly);g.quadraticCurveTo(lx0+100,ly+24,lx0+200,ly);g.stroke();
+          for(let i=1;i<10;i++){
+            const u=i/10, lx=lx0+200*u, lyy=ly+48*u*(1-u)+4;
+            g.save();g.shadowColor='#ff5050';g.shadowBlur=8;
+            g.fillStyle=i%3?'#e84a4a':'#f0c060';g.beginPath();g.ellipse(lx,lyy,3.5,5,0,0,TAU);g.fill();g.restore();
+          }
+        }
+      }
+      if(v===2){
+        // 高架橋
+        const dy=base-122;
+        for(let px=-40;px<MT+40;px+=140){
+          g.fillStyle='#0e0c1c';g.fillRect(px,dy+14,16,base-dy);
+          g.fillStyle='rgba(138,82,212,.18)';g.fillRect(px,dy+14,1,base-dy);
+          g.strokeStyle='#0e0c1c';g.lineWidth=6;g.beginPath();g.arc(px+78,dy+70,62,Math.PI*1.08,Math.PI*1.92);g.stroke();
+        }
+        g.fillStyle='#14112a';g.fillRect(0,dy,MT,14);
+        g.fillStyle='rgba(190,170,255,.22)';g.fillRect(0,dy,MT,1);
+        g.fillStyle='#0e0c1c';g.fillRect(0,dy-6,MT,2);
+        for(let px=0;px<MT;px+=10)g.fillRect(px,dy-6,1.5,6);
+        for(let px=60;px<MT;px+=280){const gl=g.createRadialGradient(px,dy+7,0,px,dy+7,8);gl.addColorStop(0,'rgba(255,200,90,.9)');gl.addColorStop(1,'rgba(255,200,90,0)');g.fillStyle=gl;g.fillRect(px-8,dy-1,16,16);}
+      }
+      gr=g.createLinearGradient(0,base-120,0,base+10);
+      gr.addColorStop(0,'rgba(20,12,40,0)');gr.addColorStop(1,'rgba(20,12,40,.45)');
+      g.fillStyle=gr;g.fillRect(0,base-120,MT,130);
+      return c;
+    }
+
     // ── 背景レイヤーの事前描画（リサイズ時のみ） ──
     function buildLayers(){
       RES=Math.min(2.5,dpr*sc);
@@ -82,6 +281,7 @@ registerMinigame({
       gr=g.createLinearGradient(0,GY-160,0,GY);
       gr.addColorStop(0,'rgba(232,48,85,0)');gr.addColorStop(1,'rgba(232,48,85,.08)');
       g.fillStyle=gr;g.fillRect(0,GY-160,VW,164);
+      dither(g,0,GY*.45,VW,GY*.55,'rgba(150,90,220,.035)');
 
       // 遠景のビル群
       farC=mkC(FT,GY);g=farC.g;r=seeded(11);
@@ -111,69 +311,11 @@ registerMinigame({
       gr.addColorStop(0,'rgba(26,16,50,0)');gr.addColorStop(1,'rgba(26,16,50,.6)');
       g.fillStyle=gr;g.fillRect(0,base-200,FT,228);
 
-      // 中景（住宅・雑居ビル・ネオン）
-      midC=mkC(MT,GY);g=midC.g;r=seeded(29);
-      base=GY-10;
-      const NEON=['スナック','カラオケ','居酒屋','質','BAR','麻雀','薬','ランドリー'];
-      const NCOL=['#c070ff','#e83055','#00e8c8','#e8b830','#ff6fa8'];
-      const mb=[];x=0;
-      while(x<MT){const w=54+r()*70,h=90+r()*150;mb.push([x,w,h,(r()*1e6)|0]);x+=w+6+r()*26;}
-      const drawMid=(bx,w,h,seed)=>{
-        const rr=seeded(seed+7);
-        const apt=rr()<.55;
-        g.fillStyle=apt?'#0b0919':'#0d0a1e';g.fillRect(bx,base-h,w,h+12);
-        g.fillStyle='rgba(138,82,212,.28)';g.fillRect(bx,base-h,w,1);g.fillRect(bx,base-h,1,h);
-        if(apt){
-          for(let wy=base-h+10;wy<base-16;wy+=20){
-            for(let wx=bx+6;wx<bx+w-12;wx+=17){
-              const q=rr();
-              if(q<.3){g.fillStyle='rgba(242,196,106,.82)';g.fillRect(wx,wy,10,10);g.fillStyle='rgba(120,60,40,.45)';g.fillRect(wx+6,wy,4,10);}
-              else if(q<.4){g.fillStyle='rgba(120,200,255,.5)';g.fillRect(wx,wy,10,10);}
-              else{g.fillStyle='#15112a';g.fillRect(wx,wy,10,10);}
-            }
-            g.fillStyle='rgba(90,80,130,.45)';g.fillRect(bx+3,wy+12,w-6,1.5);
-            g.fillStyle='rgba(60,50,90,.3)';g.fillRect(bx+3,wy+13.5,w-6,4);
-          }
-        }else{
-          for(let wy=base-h+8;wy<base-14;wy+=11)for(let wx=bx+4;wx<bx+w-6;wx+=9){
-            const q=rr();
-            g.fillStyle=q<.18?'rgba(200,240,255,.55)':q<.24?'rgba(242,196,106,.6)':'#13102a';
-            g.fillRect(wx,wy,6,7);
-          }
-        }
-        // 屋上の給水タンク・室外機
-        if(rr()<.5){g.fillStyle='#0b0919';g.fillRect(bx+8,base-h-12,18,12);g.fillRect(bx+10,base-h-16,14,4);}
-        if(rr()<.5){g.fillStyle='#120e24';g.fillRect(bx+w-22,base-h-7,14,7);}
-        // ネオン看板
-        if(rr()<.55){
-          const txt=NEON[(rr()*NEON.length)|0],col=NCOL[(rr()*NCOL.length)|0];
-          const vert=txt.length<=4&&!/^[A-Z]/.test(txt);
-          const sx=rr()<.5?bx+w-10:bx-6, sy=base-h+20+rr()*Math.max(10,h-130);
-          g.save();
-          if(vert){
-            const sh=txt.length*13+10;
-            g.fillStyle='#160c24';g.fillRect(sx,sy,16,sh);
-            g.shadowColor=col;g.shadowBlur=10;g.strokeStyle=col;g.lineWidth=1.2;g.strokeRect(sx+.5,sy+.5,15,sh-1);
-            g.fillStyle=col;g.font='11px "DotGothic16", monospace';g.textAlign='center';g.textBaseline='top';
-            for(let i=0;i<txt.length;i++)g.fillText(txt[i],sx+8,sy+5+i*13);
-          }else{
-            g.font='11px "DotGothic16", monospace';
-            const tw=g.measureText(txt).width+10;
-            const hx=Math.min(sx,bx+w-tw-2);
-            g.fillStyle='#160c24';g.fillRect(hx,sy,tw,16);
-            g.shadowColor=col;g.shadowBlur=10;g.strokeStyle=col;g.lineWidth=1.2;g.strokeRect(hx+.5,sy+.5,tw-1,15);
-            g.fillStyle=col;g.textAlign='left';g.textBaseline='middle';g.fillText(txt,hx+5,sy+8.5);
-          }
-          g.restore();
-        }
-      };
-      mb.forEach(b=>{drawMid(b[0],b[1],b[2],b[3]);drawMid(b[0]-MT,b[1],b[2],b[3]);drawMid(b[0]+MT,b[1],b[2],b[3]);});
-      gr=g.createLinearGradient(0,base-120,0,base+10);
-      gr.addColorStop(0,'rgba(20,12,40,0)');gr.addColorStop(1,'rgba(20,12,40,.45)');
-      g.fillStyle=gr;g.fillRect(0,base-120,MT,130);
-
-      // ブロック塀
-      wallC=mkC(64,36);g=wallC.g;
+      // 中景（ステージごとに3種類）
+      midC=[buildMid(0),buildMid(1),buildMid(2)];
+      // 手前の塀（ブロック塀／シャッター／工事フェンス）
+      wallC=[];
+      g=(wallC[0]=mkC(64,36)).g;
       g.fillStyle='#161229';g.fillRect(0,0,64,36);
       g.fillStyle='#231d3c';g.fillRect(0,0,64,5);
       g.fillStyle='rgba(190,170,255,.14)';g.fillRect(0,0,64,1);
@@ -183,7 +325,24 @@ registerMinigame({
       gr=g.createLinearGradient(0,5,0,36);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,.35)');
       g.fillStyle=gr;g.fillRect(0,5,64,31);
       g.fillStyle='rgba(60,40,90,.25)';g.fillRect(22,5,2,20);g.fillRect(50,5,1.5,26);
-
+      dither(g,0,5,64,31,'rgba(255,255,255,.025)');
+      g=(wallC[1]=mkC(64,36)).g;
+      g.fillStyle='#1f1a30';g.fillRect(0,0,64,36);
+      for(let y=4;y<36;y+=3){g.fillStyle='rgba(255,255,255,.06)';g.fillRect(0,y,64,1);g.fillStyle='rgba(0,0,0,.35)';g.fillRect(0,y+1,64,1);}
+      g.fillStyle='#2c2440';g.fillRect(0,0,64,4);g.fillStyle='rgba(255,200,120,.35)';g.fillRect(0,0,64,1);
+      g.fillStyle='#0d0a18';g.fillRect(63,0,1,36);
+      g.fillStyle='rgba(232,48,85,.35)';g.font='9px "DotGothic16", monospace';g.textBaseline='middle';g.fillText('定休日',14,22);
+      dither(g,0,4,64,32,'rgba(255,255,255,.03)');
+      g=(wallC[2]=mkC(64,36)).g;
+      g.fillStyle='#cfd2e4';g.fillRect(0,0,64,36);
+      gr=g.createLinearGradient(0,0,0,36);gr.addColorStop(0,'rgba(10,8,30,.55)');gr.addColorStop(1,'rgba(10,8,30,.8)');
+      g.fillStyle=gr;g.fillRect(0,0,64,36);
+      g.fillStyle='rgba(90,150,230,.45)';g.fillRect(0,8,64,3);g.fillRect(0,13,64,1);
+      g.fillStyle='#e8d040';g.fillRect(0,28,64,8);
+      g.fillStyle='#16121e';for(let k=-1;k<8;k++){g.beginPath();g.moveTo(k*10,36);g.lineTo(k*10+6,28);g.lineTo(k*10+11,28);g.lineTo(k*10+5,36);g.fill();}
+      g.fillStyle='rgba(20,30,80,.75)';g.font='8px "DotGothic16", monospace';g.textBaseline='middle';g.fillText('安全第一',14,20);
+      g.fillStyle='rgba(0,0,0,.45)';g.fillRect(0,0,1,36);
+      dither(g,0,0,64,28,'rgba(0,0,0,.08)');
       // 街灯
       lampC=mkC(60,192);g=lampC.g;
       g.fillStyle='#16112c';g.fillRect(6,20,4,172);
@@ -321,34 +480,85 @@ registerMinigame({
     }):null;
 
     // ── 状態 ──
-    let phase='intro', phaseT=0, t=0, cam=0, speed=0, slowMul=1, wake=0, woke=false;
-    let py=0,vy=0,onG=true,jumps=0,held=false,holdT=0,slideT=0,slideHeld=false,slideAge=0,slideQ=false,fastFall=false;
-    let invul=0,hp=MAX_HP,ph=0,boostT=0,flash=0,flashCol=0,shake=0,jumpBuf=0;
-    let coins=0,drinks=0,purin=0,hits=0,puddles=0,psx=PX,doorOpen=0,fallRot=0,fallVX=0;
+    let phase='story', phaseT=0, t=0, cam=0, speed=0, slowMul=1, wake=0, woke=false;
+    let py=0,vy=0,onG=true,jumps=0,held=false,holdT=0,slideT=0,slideHeld=false,slideAge=0,slideQ=false,fastFall=false,coyote=0;
+    let invul=0,hp=MAX_HP,ph=0,boostT=0,flash=0,shake=0,jumpBuf=0,hitStop=0,hitT=0,cheerT=-1;
+    let coins=0,drinks=0,purin=0,hits=0,puddles=0,psx=PX,doorOpen=0,fallRot=0,runTime=0;
     let umb={x:0,y:0,vx:0,vy:0,r:0,vr:0};
-    let lastScore='';
+    let lastScore='', outcome=null, committed=false, gradeInfo=null, leaving=false;
+    let tr=null, dlg=null, banner=null, stageIdx=0, lightning=0, nextBolt=rnd(3,7), thunderAt=-1, train=null, nextTrain=2;
     const milestones=[700,500,300,100];
     let obs=[],items=[];
     let nextX=620, lastCar=-9999, lastDrink=0, lastObs=null;
     const purinMarks=[GOAL*.38,GOAL*.74];let purinIdx=0;
+    // 最初の3つはチュートリアル（初回はヒント付き）
+    const tutQ=['box','sign','stack'];
 
     // パーティクル／ポップアップ（プール）
-    const P=[];for(let i=0;i<200;i++)P.push({a:false,x:0,y:0,vx:0,vy:0,l:0,m:1,c:'#fff',s:2,g:0});
+    const P=[];for(let i=0;i<220;i++)P.push({a:false,x:0,y:0,vx:0,vy:0,l:0,m:1,c:'#fff',s:2,g:0});
     function emit(x,y,vx,vy,l,c,s,g){
       for(let i=0;i<P.length;i++){const p=P[i];if(!p.a){p.a=true;p.x=x;p.y=y;p.vx=vx;p.vy=vy;p.l=l;p.m=l;p.c=c;p.s=s;p.g=g;return;}}
     }
-    const POP=[];for(let i=0;i<10;i++)POP.push({a:false,x:0,y:0,l:0,txt:'',c:'#fff',big:false});
+    const POP=[];for(let i=0;i<10;i++)POP.push({a:false,x:0,y:0,l:0,m:1,txt:'',c:'#fff',big:false});
     function popup(txt,x,y,c,big){
       let p=POP[0];for(let i=0;i<POP.length;i++){if(!POP[i].a){p=POP[i];break;}}
-      p.a=true;p.txt=txt;p.x=x;p.y=y;p.l=big?1.6:1;p.c=c||'#deccf8';p.big=!!big;
+      p.a=true;p.txt=txt;p.x=x;p.y=y;p.l=p.m=big?1.6:1;p.c=c||'#deccf8';p.big=!!big;
     }
-    // 雨
-    const RN=130;const rx=new Float32Array(RN),ry=new Float32Array(RN),rl=new Float32Array(RN),rv=new Float32Array(RN);
-    function initRain(){for(let i=0;i<RN;i++){rx[i]=Math.random()*(VW+120);ry[i]=Math.random()*VH;rl[i]=9+Math.random()*12;rv[i]=620+Math.random()*320;}}
+    // 雨（天気で量が変わる）
+    const RN=200, rnN=WEATHER.drops;
+    const rx=new Float32Array(RN),ry=new Float32Array(RN),rl=new Float32Array(RN),rv=new Float32Array(RN);
+    function initRain(){for(let i=0;i<RN;i++){rx[i]=Math.random()*(VW+120);ry[i]=Math.random()*VH;rl[i]=(WEATHER.id==='mist'?5:9)+Math.random()*12;rv[i]=(WEATHER.id==='mist'?420:620)+Math.random()*320;}}
+
+    // ── 場面転換（アイリスワイプ） ──
+    function wipe(cb){if(tr)return;tr={t:0,cb,fired:false};}
+    const ease=u=>1-Math.pow(1-u,3);
+    const easeBack=u=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(u-1,3)+c1*Math.pow(u-1,2);};
+
+    // ── 会話 ──
+    // who: 'dan'（立ち絵 face）/'kid'/'narr'
+    function startDialog(lines,done){dlg={lines,i:0,ch:0,hold:0,done,wrapped:null,blip:0};}
+    function dialogNext(){
+      if(!dlg)return;
+      const L=dlg.lines[dlg.i];
+      if(dlg.ch<L.text.length){dlg.ch=L.text.length;return;}
+      dlg.i++;dlg.ch=0;dlg.hold=0;dlg.wrapped=null;sfx('ui','btn');
+      if(dlg.i>=dlg.lines.length){const d=dlg.done;dlg=null;if(d)d();}
+    }
+    const INTRO=FIRST?[
+      {who:'kid',text:'……パパ……あたま、あつい……'},
+      {who:'dan',face:'fear',text:'38度5分……。冷却シート、ちょうど切らしてたわね。'},
+      {who:'dan',face:'normal',text:'すぐ戻るわ。起きたら、好きなプリンも一緒にね。'},
+      {who:'kid',text:'……ぷりん……'},
+      {who:'dan',face:'win',text:'──よし。走るわよ。'},
+    ]:[
+      {who:'kid',text:'……パパ……あつい……'},
+      {who:'dan',face:'fear',text:'また熱が上がってきたわね……。'},
+      {who:'dan',face:'win',text:REMIX?'今夜は近道を使うわ。待っててね。':'すぐ戻るわ。待っててね。'},
+    ];
+    function endingLines(){
+      if(outcome==='down')return [
+        {who:'narr',text:'（傘は折れ、レジ袋は空っぽのまま）'},
+        {who:'kid',text:'パパ……びしょびしょ……'},
+        {who:'dan',face:'tired',text:'ごめんね。今夜は濡れタオルで我慢してね。'},
+        {who:'dan',face:'normal',text:'……朝になったら、一緒に買いに行きましょ。'},
+      ];
+      if(woke)return [
+        {who:'kid',text:'パパ……どこ行ってたの……'},
+        {who:'dan',face:'tired',text:'ごめんね、待たせたわね。ほら、冷たいの。'},
+        {who:'kid',text:'……あ、プリンだ……'},
+        {who:'dan',face:'happy',text:'ひと口だけね。それから、もうひと眠り。'},
+      ];
+      return [
+        {who:'narr',text:'（そっと玄関を開ける。小さな寝息が聞こえる）'},
+        {who:'dan',face:'happy',text:'……ただいま。冷たいの、貼るわね。'},
+        {who:'kid',text:'……ん……つめたい……'},
+        {who:'dan',face:'happy',text:'プリンは冷蔵庫。起きたら一緒に食べましょ。'},
+      ];
+    }
 
     // ── 入力 ──
     let pdown=false,pid=-1,psy=0,psx0=0,pT=0,pPending=false,pSwiped=false;
-    function pressJump(){if(phase==='run'){jumpBuf=.13;held=true;}}
+    function pressJump(){if(phase==='run'){jumpBuf=.14;held=true;}}
     function releaseJump(){held=false;}
     function pressSlide(hold){
       if(phase!=='run')return;
@@ -357,13 +567,16 @@ registerMinigame({
       else{slideQ=true;fastFall=true;}
     }
     function startSlide(){
-      if(slideT<=0){AU.se('back');for(let i=0;i<5;i++)emit(cam+PX-6,GY-2,rnd(-120,-40),rnd(-80,-20),.35,'rgba(170,200,255,.8)',2,300);}
+      if(slideT<=0){sfx('slide','back');for(let i=0;i<6;i++)emit(cam+PX-6,GY-2,rnd(-120,-40),rnd(-80,-20),.35,'rgba(170,200,255,.8)',2,300);}
       slideT=.55;slideAge=0;slideQ=false;
     }
     function tapAdvance(){
-      if(phase==='intro'&&phaseT>.5){beginRun();return true;}
-      if(phase==='arrive'&&phaseT>2.6){mg.end('clear');return true;}
-      return false;
+      if(tr)return true;
+      if(dlg){dialogNext();return true;}
+      if(phase==='title'&&phaseT>.5){beginRun();return true;}
+      if(phase==='arrive'&&phaseT>2.6){goHome();return true;}
+      if(phase==='grade'&&phaseT>1.2){finishGame();return true;}
+      return phase!=='run';
     }
     cv.addEventListener('pointerdown',e=>{
       e.preventDefault();
@@ -374,7 +587,11 @@ registerMinigame({
     cv.addEventListener('pointermove',e=>{
       if(!pdown||e.pointerId!==pid||pSwiped)return;
       const dy=e.clientY-psy,dx=e.clientX-psx0;
-      if(dy>22&&dy>Math.abs(dx)){pSwiped=true;pPending=false;held=false;pressSlide(false);}
+      if(dy>20&&dy>Math.abs(dx)){
+        pSwiped=true;held=false;
+        // 既に跳んでいたら急降下してスライド
+        pPending=false;pressSlide(false);
+      }
     });
     const pUp=e=>{
       if(e.pointerId!==pid)return;
@@ -392,10 +609,44 @@ registerMinigame({
       }else if(k==='ArrowDown'||k==='s'||k==='S'){
         e.preventDefault();
         if(down){if(!e.repeat)pressSlide(true);}else slideHeld=false;
-      }else if(k==='Enter'&&down){tapAdvance();}
+      }else if(k==='Enter'&&down){e.preventDefault();tapAdvance();}
     });
 
-    function beginRun(){if(phase!=='intro')return;phase='run';phaseT=0;AU.se('decide');popup('いってくる…！',cam+PX,GY-80,'#00e8c8',true);}
+    function beginRun(){
+      if(phase!=='title')return;
+      phase='run';phaseT=0;sfx('stage','decide');
+      popup('いってくる…！',cam+PX,GY-80,'#00e8c8',true);
+      banner={t:0,no:STAGES[0].no,name:STAGES[0].name};
+    }
+    function goHome(){
+      if(leaving)return;leaving=true;
+      wipe(()=>{
+        phase='home';phaseT=0;
+        if(outcome==='clear')sfx('chime','notif');
+        startDialog(endingLines(),()=>{phase='grade';phaseT=0;commit();sfx('stamp','rank');});
+      });
+    }
+    function finishGame(){if(!mg._ended)mg.end(outcome||'quit');}
+    // 評価と記録
+    function calcGrade(){
+      if(outcome!=='clear')return 'C';
+      const sc2=100-hits*15-(woke?25:0)+Math.min(2,purin)*6+Math.min(10,Math.floor(coins/6));
+      return sc2>=100?'S':sc2>=80?'A':'B';
+    }
+    function commit(){
+      if(committed)return;committed=true;
+      const g=calcGrade();
+      const prevBest=DATA.best, prevTime=DATA.bestTime;
+      DATA.plays=(DATA.plays|0)+1;
+      let newRec=false;
+      if(outcome==='clear'){
+        DATA.clears=(DATA.clears|0)+1;
+        if(!prevTime||runTime<prevTime){DATA.bestTime=Math.round(runTime*10)/10;newRec=!!prevTime||true;}
+      }
+      if(!prevBest||GRADE_RANK[g]>GRADE_RANK[prevBest]){DATA.best=g;newRec=true;}
+      DATA.bestCoins=Math.max(DATA.bestCoins|0,coins*COIN);
+      gradeInfo={g,newRec:newRec&&outcome==='clear',prevBest};
+    }
 
     // ── 障害物の配置 ──
     function addObs(type,x,o){
