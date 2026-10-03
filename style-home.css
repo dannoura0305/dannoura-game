@@ -31,8 +31,8 @@ body.home-open{overflow:hidden;}
 .hm-close{flex:0 0 auto;}
 
 /* 盤面 */
-.hm-stage{flex:1 1 auto;min-height:120px;display:flex;align-items:center;justify-content:center;position:relative;}
-.hm-cv{display:block;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;cursor:pointer;
+.hm-stage{flex:1 1 0;min-height:120px;position:relative;overflow:hidden;}
+.hm-cv{display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;cursor:pointer;
   border:2px solid #3a2a60;border-radius:4px;box-shadow:0 0 0 2px #04020c,0 10px 26px rgba(0,0,0,.6);background:#140f2c;}
 .hm.editing .hm-cv{border-color:#00e8c8;cursor:crosshair;}
 
@@ -112,7 +112,7 @@ body.home-open{overflow:hidden;}
 .hm-input:focus{outline:3px solid #00e8c8;}
 
 /* 通知 */
-.hm-toast-stack{position:fixed;top:max(64px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:9200;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;width:min(92vw,460px);}
+.hm-toast-stack{position:fixed;top:max(6px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:9200;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;width:min(92vw,460px);}
 .hm-toast{padding:8px 12px;border-radius:6px;font-family:var(--dot,'DotGothic16',sans-serif);font-size:.78rem;line-height:1.45;text-align:center;color:#fff8e8;
   background:rgba(20,14,48,.95);border:1px solid #ffd98a;box-shadow:0 4px 14px rgba(0,0,0,.5);transition:opacity .5s;}
 .hm-toast.out{opacity:0;}
@@ -136,3 +136,18 @@ body.home-open{overflow:hidden;}
   .hm-head .hm-btn{padding:4px 7px;}
 }
 @media (max-width:380px){.hm-head .hm-ic{display:none;}}
+
+/* PC・横長画面：盤面を左に大きく、操作と収納を右の列に */
+@media (min-width:900px) and (min-aspect-ratio:5/4){
+  .hm{display:grid;grid-template-columns:minmax(0,1fr) clamp(320px,30vw,420px);
+    grid-template-rows:auto auto auto auto minmax(0,1fr);column-gap:18px;row-gap:8px;}
+  .hm-head{grid-column:1/-1;}
+  .hm-stage{grid-column:1;grid-row:2/6;min-height:0;}
+  .hm-mode,.hm-info,.hm-actions,.hm-drawer{grid-column:2;width:auto;align-self:start;}
+  .hm-drawer{grid-row:5;min-height:0;max-height:100%;overflow-y:auto;}
+  .hm-inv{flex-wrap:wrap;overflow:visible;}
+  .hm-inv-i{width:calc(33.3% - 4px);}
+  .hm-actions .hm-btn{font-size:.76rem;}
+}
+/* お知らせは見出しのボタンに重ならないよう、見出しの下に出す */
+.hm-toast-stack{top:calc(max(8px,env(safe-area-inset-top)) + 54px);}

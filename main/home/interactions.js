@@ -480,7 +480,7 @@ async function talkKid(){
     kid.path=[];kid.moving=false;kid.x=Math.round(kid.x);kid.y=Math.round(kid.y);
     // 娘の隣まで歩く
     const A=HOME.AREAS[S.area];
-    const cand=[[0,1],[1,0],[-1,0],[0,-1]].map(([dx,dy])=>({x:kid.x+dx,y:kid.y+dy})).filter(q=>q.x>=0&&q.y>=0&&q.x<A.w&&q.y<A.h&&!solidAt(S.area,q.x,q.y));
+    const cand=[[-1,0],[1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:kid.x+dx,y:kid.y+dy})).filter(q=>q.x>=0&&q.y>=0&&q.x<A.w&&q.y<A.h&&!solidAt(S.area,q.x,q.y));
     for(const q of cand){if(await walkTo(dan,q))break;}
     face(dan,kid.x,kid.y);face(kid,dan.x,dan.y);
     HOME.emit('interact',{type:'talkKid',area:S.area});
@@ -738,6 +738,12 @@ function bindInput(){
   });
   on(S.cv,'pointercancel',()=>{down=null;if(S.ed)S.ed.drag=null;});
   on(root,'resize',()=>resize());
+  // 収納欄の開閉などで盤面の高さが変わったら合わせる
+  if(typeof ResizeObserver==='function'){
+    let last='';
+    const ro=new ResizeObserver(()=>{const k=S.stage?S.stage.clientWidth+'x'+S.stage.clientHeight:'';if(k!==last){last=k;resize();}});
+    ro.observe(S.stage);S.offs.push(()=>ro.disconnect());
+  }
   on(root,'keydown',onKey,true);
   on(S.el,'contextmenu',e=>e.preventDefault());
 }
