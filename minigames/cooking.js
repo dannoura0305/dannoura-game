@@ -79,6 +79,9 @@ registerMinigame({
     // ── 立ち絵 ──
     const IMG={};
     ['normal','happy','tired','win'].forEach(k=>{const im=new Image();im.src='assets/img/char_'+k+'.webp';IMG[k]=im;});
+    // 娘の顔（game.js の CHILD_IMG を共通で使う）
+    const KIMG={};
+    ['normal','happy','sad'].forEach(k=>{const im=new Image();im.src=(typeof CHILD_IMG!=='undefined'&&CHILD_IMG[k])||('assets/img/child_'+k+'.svg');KIMG[k]=im;});
     const imgOk=im=>im&&im.complete&&im.naturalWidth>0;
 
     // ── 効果音（AU.se＋Web Audioの合成音。設定で音量0なら鳴らない） ──
@@ -1351,12 +1354,12 @@ registerMinigame({
         drawNote(BW*.18,BH*.02,BW*.42,BH*.62,.04,1);
         g.restore();
       }
-      // 子どもの手
+      // 娘の手（空色スモックの袖）
       const hy=L.by+L.BH+4*S;
       [[L.bx+L.BW*.18,1],[L.bx+L.BW*.82,-1]].forEach(([hx,sd])=>{g.save();g.translate(hx,hy);g.scale(sd,1);
         g.fillStyle='#f6d2b2';g.beginPath();g.ellipse(0,0,16*S,11*S,-.3,0,6.283);g.fill();
         for(let i=0;i<3;i++){g.beginPath();g.ellipse(-8*S+i*6*S,-9*S,3.4*S,6*S,0,0,6.283);g.fill();}
-        g.fillStyle='#e87a9a';g.fillRect(-14*S,6*S,28*S,14*S);g.restore();});
+        g.fillStyle='#8fd0f0';g.fillRect(-14*S,6*S,28*S,14*S);g.fillStyle='#f4fbff';g.fillRect(-14*S,6*S,28*S,3*S);g.restore();});
       // 見出し
       const a=clamp(pt/.5,0,1);
       g.globalAlpha=a;
@@ -1377,6 +1380,12 @@ registerMinigame({
         const s1=r.child[0],s2=r.child[1];
         txt(s1.slice(0,clamp(n,0,s1.length)),W/2,byy+bh*.36,14*S,'#5a3a2a');
         txt(s2.slice(0,clamp(n-s1.length,0,s2.length)),W/2,byy+bh*.7,13*S,'#8a5a4a');
+        // 娘の顔
+        const kim=KIMG[r.grade==='poor'?'normal':'happy'];
+        if(imgOk(kim)){const kr=24*S,kx=bxx+kr*.7,ky=byy+bh+kr*.9;
+          g.save();g.beginPath();g.arc(kx,ky,kr,0,6.283);g.fillStyle='#fff3e0';g.fill();g.clip();
+          g.drawImage(kim,70,30,372,372,kx-kr*1.05,ky-kr*1.05,kr*2.1,kr*2.1);g.restore();
+          g.strokeStyle='#f0a0b0';g.lineWidth=2*S;g.beginPath();g.arc(kx,ky,kr,0,6.283);g.stroke();}
         g.restore();
       }
       if(pt>1.6){const tAlpha=.5+.5*Math.sin(T*4);txtO('タップで つづける',W/2,H-16*S,12*S,`rgba(255,255,255,${tAlpha})`,'rgba(80,50,40,.6)',3*S);}

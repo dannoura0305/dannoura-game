@@ -895,6 +895,13 @@ registerMinigame({
       }
       cx.restore();
     }
+    // 娘のクマ（茶色・左耳＝画面右がほつれている）
+    function drawBear(x,y){
+      cx.fillStyle='#a8724a';cx.beginPath();cx.arc(x,y,5,0,7);cx.fill();cx.beginPath();cx.arc(x-3.5,y-4,2,0,7);cx.fill();cx.beginPath();cx.arc(x+3.5,y-4,2,0,7);cx.fill();
+      cx.strokeStyle='#e8c49a';cx.lineWidth=.6;cx.beginPath();cx.moveTo(x+4.6,y-5.4);cx.lineTo(x+6,y-7);cx.moveTo(x+5.2,y-4.6);cx.lineTo(x+6.8,y-5.2);cx.stroke();
+      cx.fillStyle='#e8c49a';cx.beginPath();cx.arc(x,y+1.5,2,0,7);cx.fill();
+      cx.fillStyle='#24120a';cx.fillRect(x-1.8,y-1.4,1,1);cx.fillRect(x+1,y-1.4,1,1);cx.fillRect(x-.5,y+.8,1,.9);
+    }
     function drawChild(woke){
       const br=Math.sin(clock*1.9)*.5+.5;
       const stir=phase==='play'?Math.max(0,(noise-50)/50):0;
@@ -905,27 +912,33 @@ registerMinigame({
         const k=Math.min(1,Math.max(0,(endT-.3)/.5)),cy=-k*8;
         cx.fillStyle='#8cc4e8';rrp(cx,36,80,66,60,8);cx.fill();
         cx.fillStyle='rgba(255,255,255,.12)';rrp(cx,36,80,66,8,6);cx.fill();
-        cx.fillStyle='#f0c8d8';cx.beginPath();cx.ellipse(69,78+cy*.5,13,10,0,0,7);cx.fill(); // パジャマ
-        cx.fillStyle='#ffd8e8';cx.fillRect(62,74+cy*.5,14,2);
+        cx.fillStyle='#9fe2c8';cx.beginPath();cx.ellipse(69,78+cy*.5,13,10,0,0,7);cx.fill(); // パジャマ（ミント地に星）
+        cx.fillStyle='#f6fbf6';cx.fillRect(62,74+cy*.5,14,2);
+        cx.fillStyle='#ffe066';cx.fillRect(62,80+cy*.5,1.6,1.6);cx.fillRect(74,82+cy*.5,1.6,1.6);cx.fillRect(68,85+cy*.5,1.6,1.6);
         cx.fillStyle='#f6dcc8';cx.beginPath();cx.ellipse(56,80+cy*.4,3.4,2.4,-.6,0,7);cx.fill();cx.beginPath();cx.ellipse(82,80+cy*.4,3.4,2.4,.6,0,7);cx.fill();
-        cx.fillStyle='#f6dcc8';cx.beginPath();cx.arc(69,62+cy,9.5,0,7);cx.fill();
-        cx.fillStyle='#3a2a20';cx.beginPath();cx.arc(69,59+cy,9.8,Math.PI*1.02,Math.PI*1.98);cx.fill();
-        cx.beginPath();cx.arc(64,55+cy,3.2,0,7);cx.fill();cx.beginPath();cx.arc(74,55+cy,3,0,7);cx.fill();
+        cx.fillStyle='#33224c';cx.beginPath();cx.ellipse(58.5,60+cy,3,4.2,.5,0,7);cx.fill();cx.beginPath();cx.ellipse(79.5,60+cy,3,4.2,-.5,0,7);cx.fill(); // ツインテール
+        cx.fillStyle='#33224c';cx.beginPath();cx.arc(69,61+cy,10.6,0,7);cx.fill(); // あご下のボブ
+        cx.fillStyle='#f6dcc8';cx.beginPath();cx.arc(69,63+cy,8.6,0,7);cx.fill();
+        cx.fillStyle='#33224c';cx.beginPath();cx.arc(69,59.5+cy,9.8,Math.PI,Math.PI*2);cx.fill(); // ぱっつん前髪
+        for(const fx of [60.5,77.5]){cx.fillStyle='#ff9cc8';cx.beginPath();cx.arc(fx,54+cy,2,0,7);cx.fill();cx.fillStyle='#ffe066';cx.fillRect(fx-.6,53.4+cy,1.2,1.2);}
         cx.strokeStyle='#3a2a20';cx.lineWidth=1;
         cx.beginPath();cx.moveTo(63.5,62+cy);cx.lineTo(67,63.5+cy);cx.moveTo(74.5,62+cy);cx.lineTo(71,63.5+cy);cx.stroke();
-        cx.fillStyle='#c04060';cx.beginPath();cx.ellipse(69,67.5+cy,2.6,1.4+Math.abs(Math.sin(clock*8))*1.2,0,0,7);cx.fill();
+        cx.fillStyle='#c04060';cx.beginPath();cx.ellipse(69,68.5+cy,1.8,.9+Math.abs(Math.sin(clock*8))*.8,0,0,7);cx.fill();
         cx.fillStyle='rgba(150,210,255,.9)';const tf=(clock*2)%1;
         cx.beginPath();cx.ellipse(63,65+cy+tf*6,1,1.6,0,0,7);cx.fill();cx.beginPath();cx.ellipse(75,65+cy+((tf+.5)%1)*6,1,1.6,0,0,7);cx.fill();
+        drawBear(86,82+cy*.4);
         return;
       }
       // 頭（寝返りで横向きになる）
       cx.save();cx.translate(69+rl*3.5+shk,52+side*1.5);cx.rotate(rl*.35);
       cx.fillStyle='#f6dcc8';cx.beginPath();cx.arc(0,0,8.5,0,7);cx.fill();
       cx.fillStyle='rgba(255,220,200,.35)';cx.beginPath();cx.arc(-2,-2,4,0,7);cx.fill();
-      cx.fillStyle='#3a2a20';
+      cx.fillStyle='#33224c';
       if(side<.45){
         cx.beginPath();cx.arc(0,-2.5,8.8,Math.PI*.95,Math.PI*2.05);cx.fill();
-        cx.beginPath();cx.arc(-4,-7,3,0,7);cx.fill();cx.beginPath();cx.moveTo(-2,-8);cx.quadraticCurveTo(0,-13,3,-9);cx.fill();
+        cx.beginPath();cx.ellipse(-9.5,-1,2.6,4,.4,0,7);cx.fill();cx.beginPath();cx.ellipse(9.5,-1,2.6,4,-.4,0,7);cx.fill(); // ツインテール
+        cx.fillRect(-8.6,-2.5,2,7);cx.fillRect(6.6,-2.5,2,7); // ボブの横髪
+        for(const fx of [-7.5,7.5]){cx.fillStyle='#ff9cc8';cx.beginPath();cx.arc(fx,-6.5,1.9,0,7);cx.fill();cx.fillStyle='#ffe066';cx.fillRect(fx-.5,-7,1,1);}
         cx.fillStyle='#ffb0b8';cx.globalAlpha=.6;cx.beginPath();cx.arc(-5,3,1.8,0,7);cx.fill();cx.beginPath();cx.arc(5,3,1.8,0,7);cx.fill();cx.globalAlpha=1;
         cx.strokeStyle='#5a3a30';cx.lineWidth=.8;
         cx.beginPath();cx.arc(-3,1,1.6,.2,Math.PI-.2);cx.stroke();cx.beginPath();cx.arc(3,1,1.6,.2,Math.PI-.2);cx.stroke();
@@ -933,10 +946,11 @@ registerMinigame({
       }else{
         const sd=rl>0?1:-1;
         cx.beginPath();cx.arc(-sd*1.5,-1.5,9,0,7);cx.fill(); // 後頭部が見える
+        cx.beginPath();cx.ellipse(-sd*10,-2,2.6,4,sd*.4,0,7);cx.fill();
         cx.fillStyle='#f6dcc8';cx.beginPath();cx.ellipse(sd*4.5,2,4.2,6,0,0,7);cx.fill();
         cx.fillStyle='#ffb0b8';cx.globalAlpha=.6;cx.beginPath();cx.arc(sd*5,4,1.8,0,7);cx.fill();cx.globalAlpha=1;
         cx.strokeStyle='#5a3a30';cx.lineWidth=.8;cx.beginPath();cx.arc(sd*4.6,1,1.5,.2,Math.PI-.2);cx.stroke();
-        cx.fillStyle='#4a3628';cx.beginPath();cx.arc(-sd*3,-6,2.6,0,7);cx.fill();
+        cx.fillStyle='#ff9cc8';cx.beginPath();cx.arc(-sd*6,-6.5,1.9,0,7);cx.fill();cx.fillStyle='#ffe066';cx.fillRect(-sd*6-.5,-7,1,1); // 花のヘアゴム
       }
       cx.restore();
       // 掛け布団（呼吸でふくらむ・寝返りで形が変わる）
@@ -956,12 +970,10 @@ registerMinigame({
       // 布団のしわ
       cx.strokeStyle='rgba(30,50,90,.3)';cx.lineWidth=.7;cx.beginPath();cx.moveTo(-28,-30);cx.quadraticCurveTo(-18,-26+rl*3,-10,-31);cx.moveTo(14,30);cx.quadraticCurveTo(20,26,28,31);cx.stroke();
       cx.restore();
-      // ぬいぐるみ（くま）
-      cx.fillStyle='#b88e6c';cx.beginPath();cx.arc(92,60,5,0,7);cx.fill();cx.beginPath();cx.arc(88.5,56,2,0,7);cx.fill();cx.beginPath();cx.arc(95.5,56,2,0,7);cx.fill();
-      cx.fillStyle='#e8c8a8';cx.beginPath();cx.arc(92,61.5,2,0,7);cx.fill();
-      cx.fillStyle='#3a2a20';cx.fillRect(90.2,58.6,1,1);cx.fillRect(93,58.6,1,1);
-      // うとうと中は手が布団から出る
-      if(side>.5){cx.fillStyle='#f0c8d8';cx.beginPath();cx.ellipse(69+rl*22,74,5,3,rl*.6,0,7);cx.fill();cx.fillStyle='#f6dcc8';cx.beginPath();cx.arc(69+rl*27,75,2.3,0,7);cx.fill();}
+      // いつも抱いているクマのぬいぐるみ
+      drawBear(92,60);
+      // うとうと中は手が布団から出る（ミントのパジャマの袖）
+      if(side>.5){cx.fillStyle='#9fe2c8';cx.beginPath();cx.ellipse(69+rl*22,74,5,3,rl*.6,0,7);cx.fill();cx.fillStyle='#f6dcc8';cx.beginPath();cx.arc(69+rl*27,75,2.3,0,7);cx.fill();}
     }
     // だんのうら（見下ろし）。state: idle sneak walk run act startled sit lie
     function drawDad(x,y,ang,state,walk,carry){
