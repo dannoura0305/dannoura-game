@@ -45,6 +45,9 @@
   <label class="set-row">🎵 BGM<input type="range" min="0" max="100" step="5" data-kind="bgm"><span class="set-val"></span></label>
   <label class="set-row">🗣 ボイス<input type="range" min="0" max="100" step="5" data-kind="voice"><span class="set-val"></span></label>
   <label class="set-row">🔔 効果音<input type="range" min="0" max="100" step="5" data-kind="se"><span class="set-val"></span></label>
+  <div class="set-row mg-diff-row">🎮 難しさ<div class="mg-diff" id="mg-diff">
+    <button data-d="easy">やさしい</button><button data-d="normal">ふつう</button><button data-d="hard">むずかしい</button>
+  </div></div>
   <button class="ev-btn set-mute" onclick="toggleMuteAll()">🔇 すべてミュート</button>
   <button class="ev-btn" onclick="closeSettings();openTutorial()">📘 遊び方を見る</button>
   <button class="ev-btn" onclick="closeSettings()">閉じる</button>
@@ -164,6 +167,7 @@
 <!-- ══ 夜のミニゲーム（minigames/*.js） ══ -->
 <div id="mg-picker"><div class="mg-pick-box">
   <div class="endlist-head"><span>NIGHT GAMES</span><span id="mg-pick-count">各1日1回</span></div>
+  <button class="mg-pick-diff" id="mg-pick-diff" onclick="setMgDifficulty({easy:'normal',normal:'hard',hard:'easy'}[mgDifficulty()])">難しさ：やさしい</button>
   <div class="mg-tabs" id="mg-pick-tabs"></div>
   <div id="mg-pick-items"></div>
   <button class="ev-btn" onclick="closeMinigamePicker()">戻る</button>

@@ -17,6 +17,21 @@ function addMinigameStyle(id,css){
   const s=document.createElement('style');s.id='mg-style-'+id;s.textContent=css;document.head.appendChild(s);
 }
 
+// ── ミニゲームの難しさ（設定画面で選ぶ・この端末に保存・初期値はやさしい） ──
+// 各ゲームは mgDiff(やさしい時の値, ふつう時の値, むずかしい時の値) で数値を切り替える
+const MG_DIFF_KEY='dannoura_mg_diff';
+const MG_DIFF_NAMES={easy:'やさしい',normal:'ふつう',hard:'むずかしい'};
+function mgDifficulty(){try{const v=localStorage.getItem(MG_DIFF_KEY);return MG_DIFF_NAMES[v]?v:'easy';}catch(e){return 'easy';}}
+function setMgDifficulty(v){if(!MG_DIFF_NAMES[v])return;try{localStorage.setItem(MG_DIFF_KEY,v);}catch(e){}refreshMgDiffUI();}
+function mgDiff(easy,normal,hard){const d=mgDifficulty();return d==='easy'?easy:d==='normal'?normal:hard;}
+function refreshMgDiffUI(){
+  const cur=mgDifficulty();
+  document.querySelectorAll('#mg-diff button').forEach(b=>b.classList.toggle('on',b.dataset.d===cur));
+  const lab=document.getElementById('mg-pick-diff');if(lab)lab.textContent='難しさ：'+MG_DIFF_NAMES[cur];
+}
+document.querySelectorAll('#mg-diff button').forEach(b=>b.addEventListener('click',()=>{setMgDifficulty(b.dataset.d);if(typeof AU!=='undefined')AU.se('decide');}));
+refreshMgDiffUI();
+
 const FX_LABEL={
   mental:'精神力',fatigue:'疲労',flame:'炎上',money:'収入',jobRep:'仕事評価',
   certKnow:'資格知識',followers:'フォロワー',streamPop:'配信人気',childStress:'育児ストレス',hope:'希望',
@@ -99,6 +114,7 @@ function openMinigamePicker(){
     b.onclick=()=>MG.open(def.id);
     list.appendChild(b);
   });
+  refreshMgDiffUI();
   const left=MINIGAMES.filter(d=>!playedMinigameToday(d.id)).length;
   const cnt=document.getElementById('mg-pick-count');
   if(cnt)cnt.textContent=`今夜あと${left}種`;

@@ -770,3 +770,10 @@ body.mg-active #cutin-wrap{display:none;}
 .ui-counting{position:relative;color:transparent !important;text-shadow:none !important;}
 .ui-counting::after{content:attr(data-anim);position:absolute;right:0;top:0;white-space:nowrap;color:var(--cnt,#fff);text-shadow:1px 1px 0 #000;}
 .res-body .up{--cnt:var(--up);} .res-body .down{--cnt:var(--down);}
+
+/* ミニゲームの難しさ（設定画面・選択画面） */
+.mg-diff-row{grid-template-columns:5.5em 1fr;}
+.mg-diff{display:flex;gap:4px;}
+.mg-diff button{flex:1;min-height:36px;background:transparent;border:1px solid rgba(138,82,212,.4);color:var(--tx);font-family:var(--dot);font-size:.66rem;border-radius:3px;cursor:pointer;}
+.mg-diff button.on{background:rgba(0,232,200,.14);border-color:var(--cy);color:var(--cy);}
+.mg-pick-diff{align-self:flex-end;background:transparent;border:1px solid rgba(0,232,200,.35);color:var(--cy);font-family:var(--mono);font-size:.62rem;padding:5px 10px;border-radius:12px;cursor:pointer;min-height:30px;}
