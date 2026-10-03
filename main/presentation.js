@@ -434,12 +434,13 @@ function injectStyle(){
 .pr-title{position:absolute;inset:0;overflow:hidden;color:#efeaff;font-family:var(--pr-dot);-webkit-tap-highlight-color:transparent;touch-action:manipulation;cursor:pointer;}
 .pr-tcv{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;display:block;}
 .pr-tvig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 120% 90% at 50% 40%,transparent 55%,rgba(2,1,10,.65) 100%),linear-gradient(180deg,rgba(2,1,12,.35),transparent 30%);}
-.pr-tscan{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0 1px,transparent 1px 3px);mix-blend-mode:multiply;opacity:.55;}
+.pr-tscan{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0 1px,transparent 1px 3px);opacity:.55;}
 .pr-tblack{position:absolute;inset:0;background:#000;pointer-events:none;animation:pr-tb 1.6s ease .1s forwards;}
 @keyframes pr-tb{to{opacity:0}}
 .pr-logo-wrap{position:absolute;left:50%;top:clamp(46px,10vh,120px);transform:translateX(-50%);width:min(92vw,600px);display:flex;flex-direction:column;align-items:center;pointer-events:none;}
 .pr-eye{font-family:var(--pr-mono);font-size:clamp(.55rem,2.4vw,.7rem);letter-spacing:.32em;color:#8ff4e6;text-shadow:0 0 8px rgba(0,232,200,.6);opacity:0;animation:pr-fadein 1.2s ease .2s forwards;text-transform:uppercase;margin-bottom:2px;}
 .pr-logo{position:relative;width:100%;}
+.pr-logo svg.pr-shine-svg{position:absolute;left:0;top:0;filter:none;pointer-events:none;}
 .pr-logo svg{width:100%;height:auto;overflow:visible;display:block;filter:drop-shadow(0 0 12px rgba(170,110,255,.55)) drop-shadow(0 3px 0 #0b0522);}
 .pr-g{font-family:var(--pr-serif);font-weight:700;font-size:122px;fill:url(#pr-lg);fill-opacity:0;stroke:#fbf8ff;stroke-width:2.4;stroke-linejoin:round;stroke-dasharray:1000;stroke-dashoffset:1000;animation:pr-draw 1.15s cubic-bezier(.55,.1,.3,1) var(--d) forwards,pr-fill .8s ease calc(var(--d) + .85s) forwards;}
 @keyframes pr-draw{to{stroke-dashoffset:0}}
@@ -517,7 +518,7 @@ function injectStyle(){
 
 /* ── 日替わりカード ── */
 .pr-day{position:fixed;inset:0;z-index:240;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;font-family:var(--pr-dot);color:#fff;-webkit-tap-highlight-color:transparent;}
-.pr-day.on{opacity:1;pointer-events:auto;cursor:pointer;}
+.pr-day.on{opacity:1;pointer-events:auto;cursor:pointer;transition:none;}
 .pr-day-bg{position:absolute;inset:0;background:radial-gradient(ellipse 90% 60% at 50% 50%,var(--pr-dbg2),var(--pr-dbg) 70%);}
 .pr-day-rain{position:absolute;inset:-20% 0 0 0;opacity:var(--pr-rain,0);background:repeating-linear-gradient(100deg,transparent 0 14px,rgba(200,180,255,.12) 14px 15px,transparent 15px 37px);animation:pr-drain .5s linear infinite;}
 @keyframes pr-drain{to{transform:translate(-6px,40px)}}
@@ -681,8 +682,8 @@ function buildTitle(){
             <path class="pr-swash" d="M18,168 C110,146 190,184 300,163 S470,140 584,160"/>
           </g>
           <path class="pr-swash2" d="M60,178 C150,164 230,188 320,174 S470,160 560,172"/>
-          <g clip-path="url(#pr-clip)"><rect class="pr-shine" x="0" y="0" width="140" height="190" fill="url(#pr-shg)" transform="skewX(-20)"/></g>
         </svg>
+        <svg class="pr-shine-svg" viewBox="0 0 600 190" aria-hidden="true"><g clip-path="url(#pr-clip)"><rect class="pr-shine" x="0" y="0" width="140" height="190" fill="url(#pr-shg)" transform="skewX(-20)"/></g></svg>
         <div class="pr-seal pr-intro">壇</div>
       </div>
       <div class="pr-sub pr-intro">${[...sub].map((c,i)=>`<span style="animation-delay:${(3.05+i*.07).toFixed(2)}s">${esc(c)}</span>`).join('')}</div>
@@ -791,7 +792,8 @@ function drawTitleOnce(){ if(T.S) drawStrait(T.ctx, T.S, 4, 0); }
 function loopTitle(){
   T.raf = requestAnimationFrame(loopTitle);
   if(!titleVisible() || document.hidden || !T.S) return;
-  const t = (performance.now() - T.t0)/1000;
+  const now = performance.now(); if(now - (T.last||0) < 31) return; T.last = now;   // 30fps（ドット絵なので十分）
+  const t = (now - T.t0)/1000;
   const cx = Math.sin(t*.07) * T.S.range * .8 + T.px * T.S.range * .6;
   drawStrait(T.ctx, T.S, t, cx);
 }
@@ -856,6 +858,7 @@ function startOpening(){
 function opLoop(){
   OP.raf = requestAnimationFrame(opLoop);
   if(!OP.S || document.hidden) return;
+  const now = performance.now(); if(now - (OP.last||0) < 31) return; OP.last = now;
   const t = (performance.now() - OP.t0)/1000;
   if(RM && OP._drawn && OP.mos<=1) return;
   OP.draw(OP.bctx, OP.S, t);
@@ -1015,11 +1018,14 @@ function showDayCard(day, opt){
     if(act) SFX.gong(); else if(ph===3) SFX.dread(); else SFX.chime();
     // 物語シーンが控えているときは短めにして譲る
     const dur = RM ? 1000 : act ? 1500 : (pending ? 1000 : 1250);
-    DC.tm = setTimeout(hideDayCard, dur);
+    // 実際に描画されてから時間を数える（重い端末でカードが見えないまま消えないように）
+    const myTok = DC.tok = (DC.tok||0) + 1;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(DC.active && DC.tok === myTok){ clearTimeout(DC.tm); DC.tm = setTimeout(()=>hideDayCard(), dur); } }));
+    DC.tm = setTimeout(()=>hideDayCard(), dur + 1500); // 保険
     return new Promise(r => { DC.resolve = r; });
   }catch(e){ console.warn('[presentation] day card', e); return Promise.resolve(); }
 }
-function hideDayCard(immediate){ if(window.__prDbg) console.log("HIDE", new Error().stack);
+function hideDayCard(immediate){
   if(!DC.el || !DC.active) return;
   clearTimeout(DC.tm); DC.active = false; window.prDayCardActive = false;
   DC.el.classList.add('out');
@@ -1270,6 +1276,7 @@ function spawn(kind, W, H){
 function fxLoop(){
   EN.raf = requestAnimationFrame(fxLoop);
   if(document.hidden || !EN.cfg) return;
+  const now = performance.now(); if(now - (EN.last||0) < 31) return; EN.last = now;
   const c = EN.ctx, W = EN.cv.width, H = EN.cv.height, cfg = EN.cfg;
   c.clearRect(0,0,W,H);
   if(RM && EN._fxDrawn) return;

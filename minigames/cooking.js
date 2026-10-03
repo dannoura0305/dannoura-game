@@ -697,7 +697,7 @@ registerMinigame({
       // 焼き色のムラ
       if(c>.62){for(const s of SPOT){g.fillStyle=rgb(shade(col,.72),clamp((c-.62)*2*s.k,0,.6));g.beginPath();g.ellipse(x+s.x*w,y+s.y*h,s.r*S*2,s.r*S*1.3,0,0,6.283);g.fill();}}
       // 気泡
-      if(c<.62){for(const b of BUB){const ph2=(T*1.4+b.p)%2.4;if(ph2>1.2)continue;const rr2=b.r*S*(.4+ph2);const bx=x+b.x*w,by=y+6+b.y*(h-12),al=(.62-c)*1.6*(1-ph2/1.2);g.fillStyle=rgb(shade(col,.9),al*.5);g.beginPath();g.arc(bx,by,rr2,0,6.283);g.fill();g.strokeStyle=`rgba(255,250,225,${al})`;g.lineWidth=1.2;g.stroke();g.fillStyle=`rgba(255,255,255,${al})`;g.beginPath();g.arc(bx-rr2*.35,by-rr2*.35,rr2*.3,0,6.283);g.fill();}}
+      if(c<.62){for(const b of BUB){const ph2=(T*1.4+b.p)%2.4;if(ph2>1.2)continue;const rr2=b.r*S*(.5+ph2)*1.7;const bx=x+b.x*w,by=y+6+b.y*(h-12),al=(.62-c)*1.6*(1-ph2/1.2);g.fillStyle=rgb(shade(col,.9),al*.5);g.beginPath();g.arc(bx,by,rr2,0,6.283);g.fill();g.strokeStyle=`rgba(255,250,225,${al})`;g.lineWidth=1.2;g.stroke();g.fillStyle=`rgba(255,255,255,${al})`;g.beginPath();g.arc(bx-rr2*.35,by-rr2*.35,rr2*.3,0,6.283);g.fill();}}
       // 照り
       gr=g.createLinearGradient(x,y,x+w,y+h);gr.addColorStop(0,`rgba(255,255,255,${.28*(1-c)+.05})`);gr.addColorStop(.35,'rgba(255,255,255,0)');gr.addColorStop(.7,`rgba(255,255,240,${.12*(1-c)})`);gr.addColorStop(1,'rgba(255,255,255,0)');
       g.fillStyle=gr;g.fillRect(x,y,w,h);
@@ -931,7 +931,7 @@ registerMinigame({
       if(o.grill!==undefined&&o.grill>=0){
         g.globalCompositeOperation='multiply';g.fillStyle=ramp(GRILLR,o.grill);g.fillRect(-R*1.5,-R*1.5,R*3,R*3);
         g.globalCompositeOperation='source-over';g.fillStyle=ramp(GRILLR,o.grill*.92,.42);g.fillRect(-R*1.5,-R*1.5,R*3,R*3);
-        const ma=clamp((o.grill-.25)*.9,0,.65);
+        const ma=clamp((o.grill-.15)*1.1,0,.7);
         if(ma>0){g.save();g.rotate(-.6);g.strokeStyle=`rgba(50,22,8,${ma})`;g.lineWidth=R*.08;g.lineCap='round';
           for(let k=-3;k<=3;k++){g.beginPath();g.moveTo(-R*1.2,k*R*.33);g.lineTo(R*1.2,k*R*.33);g.stroke();}g.restore();}
         if(o.grill>.82)for(const s of SPOT){g.fillStyle=`rgba(30,15,6,${clamp((o.grill-.82)*2.5*s.k,0,.7)})`;g.beginPath();g.arc((s.x-.5)*R*1.6,(s.y-.4)*R*1.5,s.r*R*.04,0,6.283);g.fill();}
@@ -1375,10 +1375,10 @@ registerMinigame({
       g.strokeStyle='rgba(120,170,220,.35)';g.lineWidth=1;for(let i=1;i<4;i++){const yy=-h/2+h*i/4;g.beginPath();g.moveTo(-w/2+5,yy);g.lineTo(w/2-5,yy);g.stroke();}
       g.fillStyle='rgba(255,220,150,.6)';g.save();g.rotate(-.1);g.fillRect(-w*.18,-h/2-5*S,w*.36,10*S);g.restore();
       const lines=r.note.split('\n');
-      const fs=Math.min(11*S,w/11);
+      const fs=Math.min(11*S,w/13.5);
       lines.forEach((l,i)=>txt(l,0,-h/2+h*(i+1)/4-h*.03,fs,'#4a3022'));
       txt('パパより',w/2-6*S,h/2-h*.14,fs*.9,'#8a5a3a','right');
-      if(r.grade==='great')drawHanamaru(-w/2+h*.22,h/2-h*.22,h*.2);
+      if(r.grade==='great')drawHanamaru(-w/2+h*.2,h/2-h*.17,h*.12);
       g.restore();
     }
     function drawHanamaru(x,y,r){
@@ -1729,8 +1729,12 @@ registerMinigame({
       const title=r.grade==='great'?`🍱 花まる弁当！（ランク${r.letter}）`:r.grade==='ok'?`🍱 お弁当ができた（ランク${r.letter}）`:`🍱 ちょっと焦げたお弁当（ランク${r.letter}）`;
       return {
         title,
-        summary:`総合 <span class="up">${r.total}</span>点`+(r.isBest?'　<span class="up">NEW RECORD</span>':'')+
-          `<br>${V.egg.name} ${r.eggS}／${V.tako.name} ${r.takoS}<br>${V.oni.name} ${r.oniS}／盛り付け ${r.plateS}`+
+        summary:`総合（ランク${r.letter}） <span class="${r.grade==='poor'?'down':'up'}">${r.total}</span>`+
+          (r.isBest?`<br>ベスト更新 <span class="up">NEW</span>`:'')+
+          `<br>${V.egg.name} <span class="${r.eggS>=55?'up':'down'}">${r.eggS}</span>`+
+          `<br>${V.tako.name} <span class="${r.takoS>=55?'up':'down'}">${r.takoS}</span>`+
+          `<br>${V.oni.name} <span class="${r.oniS>=55?'up':'down'}">${r.oniS}</span>`+
+          `<br>盛り付け <span class="${r.plateS>=55?'up':'down'}">${r.plateS}</span>`+
           `<br>「${r.child[0]}」`+(r.newRec.length?`<br>レシピ帳に追加：${r.newRec.join('・')}`:''),
         fx,time:45,sp:r.grade==='great'?1:0,
         log:r.grade==='great'?'深夜に花まるのお弁当を作った。あの子が笑ってくれた。':r.grade==='ok'?'深夜に子どものお弁当を作った。':'焦がしながらも、子どものお弁当を作った。',

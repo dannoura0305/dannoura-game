@@ -49,7 +49,7 @@ addMinigameStyle('escape',`
 .esc-roster{width:100%;border-collapse:collapse;font-family:var(--dot);font-size:.72rem;margin-bottom:8px;table-layout:fixed;}
 .esc-roster th,.esc-roster td{border:1px solid rgba(60,50,80,.35);text-align:center;padding:3px 0;}
 .esc-roster th{font-weight:normal;color:#5a4c70;font-size:.6rem;}
-.esc-roster td.nm{text-align:left;padding-left:4px;width:74px;color:#2a2236;font-size:.66rem;}
+.esc-roster td.nm,.esc-roster th.nm{text-align:left;padding-left:4px;width:78px;color:#2a2236;font-size:.6rem;white-space:nowrap;letter-spacing:-.02em;}
 .esc-roster td.d{color:#2a6aa8;}.esc-roster td.n{color:#fff;background:#4b2e7d;}.esc-roster td.o{color:#9a90a8;}
 .esc-roster tr.me td.nm{color:#a0203c;}
 .esc-brk{display:flex;flex-direction:column;align-items:center;gap:10px;background:linear-gradient(#2b2a33,#1b1a22);border:2px solid #44424e;border-radius:4px;padding:12px 8px;}

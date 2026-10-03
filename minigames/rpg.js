@@ -1460,7 +1460,7 @@ registerMinigame({
     if(ro)ro.observe(root);
     window.addEventListener('resize',resize);
     let cleaned=false;
-    function cleanup(){if(cleaned)return;cleaned=true;try{ro&&ro.disconnect();}catch(e){}window.removeEventListener('resize',resize);}
+    function cleanup(){if(cleaned)return;cleaned=true;try{ro&&ro.disconnect();}catch(e){}window.removeEventListener('resize',resize);window.removeEventListener('keydown',capKey,true);window.removeEventListener('keyup',capKey,true);}
     if(typeof mg.onEnd==='function')mg.onEnd(cleanup);
 
     // テキストウィンドウ
@@ -1514,14 +1514,24 @@ registerMinigame({
       let j=focus.i;for(let s=0;s<n;s++){j=(j+d+n*4)%n;if(!L[j].disabled)break;}
       if(j!==focus.i){focus.i=j;paintFocus();AU.se('btn');}
     }
-    mg.onKey(e=>{
+    // 画面全体のキー操作（main/ui.js 等）と二重に動かないよう、遊んでいる間は捕捉段階で受け取って止める
+    const OWN_KEYS=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Enter','Escape','z','Z','x','X'];
+    const capKey=e=>{
+      if(mg._ended||!MG.def||MG.def.id!=='rpg'||!root.isConnected)return;
+      if(!OWN_KEYS.includes(e.key))return;
+      e.stopImmediatePropagation();
+      onKeyEv(e);
+    };
+    window.addEventListener('keydown',capKey,true);window.addEventListener('keyup',capKey,true);
+    mg.onKey(e=>onKeyEv(e));
+    function onKeyEv(e){
       const k=e.key;
       if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Enter','Escape'].includes(k))e.preventDefault();
       if(e.type!=='keydown')return;
       if(mode==='text'||mode==='tap'){if(k==='Enter'||k===' '||k==='z'||k==='Z'){if(e.repeat&&mode==='tap')return;onTap();}return;}
       if(focus.list.length){navKey(k);return;}
       kbBuf={k,t:performance.now()};
-    });
+    }
     root.addEventListener('click',()=>onTap());
     function onTap(){
       if(mode==='text')advance();

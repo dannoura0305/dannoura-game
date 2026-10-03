@@ -26,7 +26,7 @@ addMinigameStyle('race',`
 .race-tm.late b{color:var(--rd);text-shadow:0 0 12px rgba(232,48,85,.9);}
 .race-tm.late small{color:var(--rd);}
 @keyframes racePulse{to{opacity:.5;}}
-.race-prog{position:absolute;left:100px;right:96px;top:62px;height:16px;}
+.race-prog{position:absolute;left:100px;right:96px;top:64px;height:16px;}
 .race-prog .tr{position:absolute;left:0;right:0;top:7px;height:3px;background:rgba(187,174,221,.2);border-radius:2px;}
 .race-prog .fl{position:absolute;left:0;top:7px;height:3px;width:0;background:linear-gradient(90deg,var(--pu),var(--cy));border-radius:2px;box-shadow:0 0 6px rgba(0,232,200,.6);}
 .race-prog .mk{position:absolute;top:3px;width:2px;height:11px;margin-left:-1px;border-radius:1px;}
@@ -207,6 +207,7 @@ registerMinigame({
       const e=document.createElement('div');e.className='race-m '+cls;e.textContent=text;el.msgs.appendChild(e);msgs.push({e,t:dur});
     }
     function wipe(){el.wipe.classList.remove('go');void el.wipe.offsetWidth;el.wipe.classList.add('go');}
+    el.wipe.addEventListener('animationend',()=>el.wipe.classList.remove('go'));
     function letterbox(on){el.tbT.classList.toggle('on',on);el.tbB.classList.toggle('on',on);}
 
     // ── 入力 ──
@@ -553,7 +554,8 @@ registerMinigame({
               const col=r<.22?['#ffcf8a','#ffb860']:r<.3?['#a8d8ff','#7ab0ff']:['#ff9ac0','#c070ff'];
               const gr=ge.createLinearGradient(0,y,0,y+wh);gr.addColorStop(0,col[0]);gr.addColorStop(1,col[1]);
               ge.fillStyle=gr;ge.fillRect(x,y,ww,wh);
-              ge.fillStyle='rgba(0,0,0,.55)';if(Math.random()<.6)ge.fillRect(x+ww*(.3+Math.random()*.4),y,ww*.12,wh); // 窓枠・人影
+              ge.fillStyle='rgba(0,0,0,.7)';ge.fillRect(x+ww/2-1,y,2,wh);ge.fillRect(x,y+wh*.42,ww,2); // 窓枠
+              if(Math.random()<.35){ge.fillStyle='rgba(0,0,0,.5)';ge.beginPath();ge.ellipse(x+ww*(.25+Math.random()*.5),y+wh*.75,ww*.12,wh*.35,0,0,TAU);ge.fill();} // 人影
               if(Math.random()<.4){ge.fillStyle='rgba(0,0,0,.4)';ge.fillRect(x,y,ww*.35,wh);}  // カーテン
             }
             if(kind==='apt'){g.fillStyle='rgba(150,140,170,.22)';g.fillRect(i*cw+2,y0+fh*.72,cw-4,2);g.fillRect(i*cw+2,y0+fh*.86,cw-4,1);}
@@ -978,7 +980,7 @@ registerMinigame({
         const NP=180,g3=new T.BufferGeometry();
         g3.setAttribute('position',new T.BufferAttribute(new Float32Array(NP*3),3).setUsage(T.DynamicDrawUsage));
         g3.setAttribute('color',new T.BufferAttribute(new Float32Array(NP*3),3).setUsage(T.DynamicDrawUsage));
-        spray=new T.Points(g3,new T.PointsMaterial({size:.32,map:glowTex,vertexColors:true,transparent:true,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false}));
+        spray=new T.Points(g3,new T.PointsMaterial({size:.22,map:glowTex,vertexColors:true,transparent:true,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false}));
         spray.frustumCulled=false;scene.add(spray);
         sprayData={n:NP,i:0,p:new Float32Array(NP*3),v:new Float32Array(NP*3),life:new Float32Array(NP),max:new Float32Array(NP).fill(1)};
       }

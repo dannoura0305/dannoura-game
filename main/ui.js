@@ -238,7 +238,7 @@ const isActive=el=>el&&el.classList.contains('active');
 const notHidden=el=>el&&!el.classList.contains('hidden');
 const CTX=[
   {id:'share',   el:'share-panel', open:isActive, close:'closeSharePanel'},
-  {id:'ending',  el:'ending-sc',   open:isActive, kbdOnly:true},
+  {id:'ending',  el:'ending-sc',   open:isActive, passive:true},   // 演出・操作は main/presentation.js
   {id:'tutorial',el:'tutorial-sc', open:isActive, close:()=>{if(typeof tutorialStep==='function')tutorialStep(999);}},
   {id:'settings',el:'settings-sc', open:isActive, close:'closeSettings'},
   {id:'endlist', el:'endlist-sc',  open:isActive, close:'closeEndingList'},
@@ -249,8 +249,8 @@ const CTX=[
   {id:'status',  el:'status-sc',   open:isActive, close:'closeStatus'},
   {id:'stream',  el:'streaming-ol',open:isActive, items:'#str-choices button'},
   {id:'game',    el:'game-screen', open:notHidden, items:'#choices-area .choice-btn,.bottom-nav .nav-btn', close:'openSettings'},
-  {id:'story',   el:'story-screen',open:notHidden, kbdOnly:true},
-  {id:'title',   el:'title-screen',open:notHidden, kbdOnly:true},
+  {id:'story',   el:'story-screen',open:notHidden, passive:true},
+  {id:'title',   el:'title-screen',open:notHidden, passive:true},
 ];
 /* ゆびのドット絵（16×11） */
 const HAND_PX=[
@@ -344,13 +344,18 @@ const NAV={
   },
   /* 毎フレーム：文脈の切替とゆびの位置合わせ */
   tick(){
+    try{this._tick();}catch(e){console.error('[ui] tick',e);}
+    raf(()=>this.tick());
+  },
+  _tick(){
+    if(document.hidden)return;
     const c=this.topCtx();
     if(c!==this.ctx){
       this.ctx=c;this.moved=false;
       if(this.cur){this.cur.classList.remove('ui-cur');this.cur=null;}
     }
     let el=this.cur;
-    if(c){
+    if(c&&!c.passive){
       const root=$(c.el);
       if(!el||!el.isConnected||!root.contains(el)||el.disabled){
         const items=this.items(c);
@@ -360,7 +365,7 @@ const NAV={
       }
     }
     const h=this.hand;
-    const show=el&&c&&(!c.kbdOnly||this.kbd);
+    const show=el&&c&&!c.passive&&(!c.kbdOnly||this.kbd);
     if(show){
       const r=el.getBoundingClientRect();
       const cy=r.top+Math.min(r.height/2,26);
@@ -373,7 +378,6 @@ const NAV={
         h.classList.add('on');
       }else h.classList.remove('on');
     }else h.classList.remove('on');
-    raf(()=>this.tick());
   },
   init(){
     const h=document.createElement('div');h.id='ui-hand';h.setAttribute('aria-hidden','true');h.innerHTML=handSVG();
@@ -407,7 +411,7 @@ const NAV={
     if(e.defaultPrevented||e.isComposing||e.altKey||e.ctrlKey||e.metaKey)return;
     const t=e.target;
     if(t&&((t.tagName==='INPUT'&&t.type!=='range')||t.tagName==='TEXTAREA'||t.isContentEditable))return;
-    const c=this.topCtx();if(!c)return;
+    const c=this.topCtx();if(!c||c.passive)return;
     if(c!==this.ctx){this.ctx=c;}
     // 未知のオーバーレイに覆われていたら触らない
     const probe=this.cur&&$(c.el).contains(this.cur)?this.cur:this.items(c)[0];
@@ -421,6 +425,7 @@ const NAV={
     const ok=k==='Enter'||k===' '||k==='z'||k==='Z';
     const back=k==='Escape'||k==='x'||k==='X';
     if(!dir&&!ok&&!back)return;
+    if((ok||back)&&e.repeat){e.preventDefault();return;}
     this.kbd=true;
     // 設定のスライダー：←→で値を変える
     if((dir==='left'||dir==='right')&&this.cur&&this.cur.matches('.set-row')){

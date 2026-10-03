@@ -716,10 +716,10 @@ body.fatigue-hi .choice-btn:nth-child(odd){transform:translateX(var(--fatigue-dr
 /* ══════════════════════════════════════════
    カーソル（ゆび）とシーン切替
    ══════════════════════════════════════════ */
-#ui-hand{position:fixed;left:0;top:0;z-index:400;width:18px;height:14px;pointer-events:none;opacity:0;transition:opacity .12s;
+#ui-hand{position:fixed;left:0;top:0;z-index:400;width:16px;height:11px;pointer-events:none;opacity:0;transition:opacity .12s;
   filter:drop-shadow(1px 1px 0 rgba(0,0,0,.6));will-change:transform;}
 #ui-hand.on{opacity:1;}
-#ui-hand svg{display:block;width:18px;height:14px;animation:handBob .5s steps(2) infinite;}
+#ui-hand svg{display:block;width:16px;height:11px;animation:handBob .5s steps(2) infinite;}
 @keyframes handBob{0%{transform:translateX(0);}50%{transform:translateX(-2px);}}
 #ui-wipe{position:absolute;inset:0;z-index:30;pointer-events:none;opacity:0;}
 #ui-wipe.go{opacity:1;animation:dither .34s steps(1,end) forwards;}
@@ -766,5 +766,3 @@ body.mg-active #cutin-wrap{display:none;}
 .choice-btn[disabled],.sc[disabled],.ev-btn[disabled]{opacity:.4;cursor:not-allowed;filter:saturate(.3);}
 .ui-rich{display:flex;align-items:center;gap:7px;}
 .notif.ui-danger{border-color:#ff9aac;background:var(--win-orn),var(--win-scan),linear-gradient(180deg,#5a1630,#2a0a1a 70%,#1a0612);}
-#ui-hand{width:16px;height:11px;}
-#ui-hand svg{width:16px;height:11px;}

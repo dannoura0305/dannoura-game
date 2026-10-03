@@ -143,7 +143,7 @@ registerMinigame({
   start(body,mg){
     // ── 定数 ──
     const CELL=4, COLS=10, ROWS=15, HW=COLS*CELL/2, HD=ROWS*CELL/2;
-    const FL_MAX=8, TIME_LIMIT=90, NEED=5, P_R=.36, EYE=1.62, SPEED=3.7;
+    const FL_MAX=10, TIME_LIMIT=90, NEED=5, P_R=.36, EYE=1.62, SPEED=3.7;
     const SK=(gs&&gs.skills)||{};
     const HOLD_T=1.5*(1-Math.min(.3,((SK.soundDiag||0)+(SK.emergencyFix||0))*.03));
     const HIT_DMG=Math.round(30*(1-Math.min(.3,(SK.stressRes||0)*.03)));
@@ -522,8 +522,8 @@ registerMinigame({
       // ── テクスチャ（すべて手続き生成） ──
       const T={};
       T.floor=ctex(256,256,(g,w,h)=>{
-        g.fillStyle='#4a4650';g.fillRect(0,0,w,h);
-        for(let i=0;i<2600;i++){const v=50+Math.random()*50|0;g.fillStyle=`rgba(${v},${v-4},${v+6},.5)`;g.fillRect(Math.random()*w,Math.random()*h,2,2);}
+        g.fillStyle='#86828c';g.fillRect(0,0,w,h);
+        for(let i=0;i<2600;i++){const v=105+Math.random()*60|0;g.fillStyle=`rgba(${v},${v-4},${v+6},.5)`;g.fillRect(Math.random()*w,Math.random()*h,2,2);}
         for(let i=0;i<7;i++){const x=Math.random()*w,y=Math.random()*h,r=10+Math.random()*40;const gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,'rgba(20,16,26,.5)');gr.addColorStop(1,'rgba(20,16,26,0)');g.fillStyle=gr;g.fillRect(0,0,w,h);}
         g.strokeStyle='rgba(18,14,22,.8)';g.lineWidth=2;g.strokeRect(0,0,w,h);
         g.strokeStyle='rgba(15,12,20,.55)';g.lineWidth=1;
@@ -536,7 +536,7 @@ registerMinigame({
         noise(g,w,h,900,.4,'rgba(140,140,140,.35)');
       },{repeat:[COLS,ROWS],linear:true});
       T.wall=ctex(256,256,(g,w,h)=>{
-        g.fillStyle='#3c4250';g.fillRect(0,0,w,h);
+        g.fillStyle='#5c6474';g.fillRect(0,0,w,h);
         for(let x=0;x<w;x+=16){g.fillStyle=x%32?'rgba(255,255,255,.05)':'rgba(0,0,0,.18)';g.fillRect(x,0,8,h);}
         for(let i=0;i<14;i++){const x=Math.random()*w,l=40+Math.random()*160;const gr=g.createLinearGradient(0,0,0,l);gr.addColorStop(0,'rgba(110,60,30,.45)');gr.addColorStop(1,'rgba(110,60,30,0)');g.fillStyle=gr;g.fillRect(x,Math.random()*60,3+Math.random()*6,l);}
         g.fillStyle='rgba(0,0,0,.35)';g.fillRect(0,0,w,3);g.fillRect(0,128,w,2);
@@ -585,7 +585,6 @@ registerMinigame({
       T.beam=ctex(8,128,(g,w,h)=>{
         const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.35,'rgba(255,255,255,.35)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,w,h);
       },{linear:true});
-      T.beam.flipY=false;
       T.cookie=ctex(128,128,(g,w,h)=>{
         g.fillStyle='#000';g.fillRect(0,0,w,h);
         const gr=g.createRadialGradient(64,64,0,64,64,62);
@@ -655,7 +654,7 @@ registerMinigame({
         banner:new THREE.MeshLambertMaterial({map:T.banner,transparent:true,depthWrite:false}),
         safety:new THREE.MeshLambertMaterial({map:T.safety}),
       };
-      M.floor.color.setHex(0xa8a4b0);
+      M.floor.color.setHex(0xe8e4f0);
 
       // ── インスタンス部品の収集 ──
       const WALL_H=11;
@@ -880,7 +879,7 @@ registerMinigame({
       const beaconPos=[[-HW+.35,5.2,mirror?-10:-14],[HW-.35,5.6,mirror?12:6],[-HW+.35,5.2,18],[exitCol<5?8:-8,5.4,-HD+.35]];
       const beacons=[];
       const beamGeo=new THREE.ConeGeometry(1.25,7,16,1,true);beamGeo.translate(0,-3.5,0);beamGeo.rotateX(-Math.PI/2);extraGeos.push(beamGeo);
-      const beamMat=new THREE.MeshBasicMaterial({map:T.beam,color:0xff1830,transparent:true,opacity:.16,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false});
+      const beamMat=new THREE.MeshBasicMaterial({map:T.beam,color:0xff1830,transparent:true,opacity:.07,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false});
       const redGlowMat=new THREE.SpriteMaterial({map:T.glow,color:0xff2038,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,opacity:.9});
       const domeMat=new THREE.MeshBasicMaterial({color:0xff3040});
       beaconPos.forEach((p,i)=>{
@@ -1576,7 +1575,7 @@ registerMinigame({
         // 復電（クリア・時間切れ）
         if(S.power)powerV=Math.min(1,powerV+dt*.9);
         hemi.intensity=.5+flashV*3+powerV*1.6;
-        if(powerV>0){M.lampOff.color.setRGB(.08+powerV*.92,.08+powerV*.88,.1+powerV*.7);scene.fog.density=.052-powerV*.026;}
+        if(powerV>0){hemi.color.setRGB(.16+powerV*.84,.2+powerV*.76,.4+powerV*.5);hemi.groundColor.setRGB(.05+powerV*.25,.03+powerV*.22,.06+powerV*.2);M.lampOff.color.setRGB(.08+powerV*.92,.08+powerV*.88,.1+powerV*.7);scene.fog.density=.052-powerV*.026;}
         M.glass.color.setRGB(.35+flashV*.65,.41+flashV*.59,.63+flashV*.37);
         M.shaft.opacity=.045+flashV*.32;
         if(!(S.phase==='over'&&S.endReason==='clear'))el.flash.style.opacity=String(flashV*.22);

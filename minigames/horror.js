@@ -1325,7 +1325,7 @@ registerMinigame({
     let phase='title',overlay=null;
     let hype=0,rei=0,hearts=0,endKey=null,endNew=false,justUnlocked=false,offline=false;
     let S={},bg='room',tr=null,stack=[],line=null,lineDone=false,autoT=0,skipT=0,skip=false;
-    let busyT=0,busyRate=1,buf=null,chOn=false,chList=[],chSel=-1,actNo=0,actTitle='';
+    let busyT=0,busyRate=1,buf=null,chOn=false,chPicked=false,chList=[],chSel=-1,actNo=0,actTitle='';
     let lt=0,ltNext=6+Math.random()*8,glT=0,glAmp=1,microT=3,faceO=null,faceT=0;
     let rainI=1,rainTarget=1,drops=[],chatQ=[],chatT=0,ambT=2,lastSe=0,startedAt=0;
     const LOG=[];
@@ -1504,7 +1504,7 @@ registerMinigame({
       if(phase==='endcard'){finishStory();return;}
     }
     function showChoices(list,meta){
-      phase='choice';chOn=false;chList=list;chSel=-1;stage.classList.add('choosing');nextEl.classList.remove('on');
+      phase='choice';chOn=false;chPicked=false;buf=null;chList=list;chSel=-1;stage.classList.add('choosing');nextEl.classList.remove('on');
       if(skip)setSkip(false);
       chEl.innerHTML='<div class="hr-chq">― どう読む？ ―</div>';
       list.forEach((c,i)=>{const b=document.createElement('button');b.className='hr-ch';b.innerHTML=`<i>${i+1}</i><span>${esc(c.t)}</span>`;
@@ -1517,8 +1517,8 @@ registerMinigame({
     }
     function sel(i){chSel=i;[...chEl.querySelectorAll('.hr-ch')].forEach((b,k)=>b.classList.toggle('sel',k===i));}
     function pick(i){
-      if(phase!=='choice')return;if(!chOn){buf=i;return;}
-      const c=chList[i];if(!c)return;chOn=false;
+      if(phase!=='choice'||chPicked)return;if(!chOn){buf=i;return;}
+      const c=chList[i];if(!c)return;chOn=false;chPicked=true;
       const bs=[...chEl.querySelectorAll('.hr-ch')];bs.forEach((b,k)=>b.classList.add(k===i?'pick':'out'));se('decide');
       LOG.push({ty:'ch',tx:'▶ '+c.t});
       const st0=stg();hype+=c.h;rei=Math.max(0,rei+c.r);
@@ -1692,6 +1692,11 @@ registerMinigame({
           else if(hd.auto&&!overlay){autoT+=dt;if(autoT>1.1+L*.055*(hd.speed===0?1.3:1))advance();}
         }
       }
+      // 霊障が強いと、配信UIそのものが壊れはじめる
+      if(stg()>=3&&!hd.mild&&phase==='play'&&Math.random()<dt*.35){
+        if(line&&line.type==='d'&&Math.random()<.5){nameEl.textContent='　　　　';later(()=>{if(line&&line.type==='d')nameEl.textContent='だんのうら';},200);}
+        else{ttlEl.textContent='実録怪談｜あなたの部屋';later(()=>{ttlEl.textContent='実録怪談｜'+story.short;},260);}
+      }
       pumpChat(dt);
       draw();
     });
@@ -1702,7 +1707,7 @@ registerMinigame({
     // テスト用フック（ゲームには影響しない）
     body._hr={state:()=>({phase,story:story.id,hype,rei,stage:stg(),endKey,bg,line:line&&line.text,choices:phase==='choice'?chList.map(c=>c.t):null,overlay:!!overlay,offline}),
       setStory(id){if(phase==='title'){const s=STORIES.find(x=>x.id===id);if(s){story=s;titleEl&&titleEl.remove();titleEl=null;showTitle();}}},
-      go:()=>titleGo(),letter:()=>letterEl&&letterEl.click(),adv:()=>advance(),pick:i=>{chOn=true;pick(i);},fin:()=>finishStory(),stories:STORIES.map(s=>s.id),
+      go:()=>titleGo(),letter:()=>letterEl&&letterEl.click(),adv:()=>advance(),pick:i=>{if(!chPicked)chOn=true;pick(i);},fin:()=>finishStory(),stories:STORIES.map(s=>s.id),
       scene(id,set,r,st){if(titleEl){titleEl.remove();titleEl=null;}if(st){story=STORIES.find(x=>x.id===st)||story;}bg=id;tr=null;S=Object.assign({},set||{});rei=r||0;phase='busy';busyT=9999;stage.classList.remove('ui-off');}};
 
     function cleanup(){try{ro.disconnect();}catch(e){}SFX.stop();}

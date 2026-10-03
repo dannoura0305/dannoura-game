@@ -397,7 +397,7 @@ function buildSprites(){
   s.sleepF=hc;
   s.child=sprite(CHILD);s.childT=sprite(CHILD_TURN);
   s.Z=sprite(G_Z);s.z=sprite(G_z);s.note=sprite(G_NOTE,{z:'#ffd6f0'});s.note2=sprite(G_NOTE2,{z:'#bfefff'});
-  s.heart=sprite(G_HEART,{r:'#ff7aa8'});s.dots=sprite(G_DOTS);s.sweat=sprite(G_SWEAT);s.sil=sprite(G_SIL,{a:'#dcd6f4',E:'#1a0a14'});
+  s.heart=sprite(G_HEART,{r:'#ff7aa8'});s.dots=sprite(G_DOTS);s.sweat=sprite(G_SWEAT);s.sil=sprite(G_SIL,{a:'#c8c0e8',E:'#2a0010'});
   s.Zb=sprite(G_Z,{z:'#bcd4ff'});s.zb=sprite(G_z,{z:'#bcd4ff'});
   // ライト
   S.lights.lamp=makeLight(72,'255,196,128');
@@ -658,7 +658,7 @@ function drawWindow(x,m,ph){
     if(S.bolt&&S.flash>.5){x.fillStyle='#ffffff';for(let i=0;i<14;i++)x.fillRect(GL.x+S.bolt[i],GL.y+i,1,1);}
   }
   // 映り込み（第3段階）
-  if(S.refl>0){const a=S.refl>2.4?(3-S.refl)/.6:S.refl<.6?S.refl/.6:1;x.globalAlpha=a*.38;x.drawImage(S.spr.sil,GL.x+27,GL.y+GL.h-16);x.globalAlpha=1;}
+  if(S.refl>0){const a=S.refl>2.4?(3-S.refl)/.6:S.refl<.6?S.refl/.6:1;x.globalAlpha=a*(.22+.06*Math.sin(S.t*9));x.drawImage(S.spr.sil,GL.x+27+((S.t*3|0)%7===0?1:0),GL.y+GL.h-16);x.globalAlpha=1;}
   // 雨（遠い筋）
   const rl=rainLevel(),n=Math.min(DN,Math.round(rl*40));
   x.fillStyle='rgba(170,185,255,.55)';
