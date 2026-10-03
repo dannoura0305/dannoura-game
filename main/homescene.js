@@ -791,8 +791,8 @@ function drawChild(x,k){
   const both=A.mode==='lie';
   pillow(x,FUTON.x+2,FUTON.y-3,14);
   if(both)pillow(x,FUTON.x+20,FUTON.y-3,18);
-  // 子どもの頭
-  D2(turn?S.spr.childT:S.spr.child,FUTON.x+4,FUTON.y-7+(stirring&&turn?1:0)+(breath&&!stirring?0:0));
+  // 娘の頭
+  D2(turn?S.spr.childT:S.spr.child,FUTON.x+1,FUTON.y-10+(stirring&&turn?1:0)+(breath&&!stirring?0:0));
   // 親（添い寝）
   if(both){const br=(Math.sin(S.t*1.1)>0)?1:0;D2(formSet().sleepF,FUTON.x+21,FUTON.y-14+br);}
   // 掛け布団
@@ -805,8 +805,10 @@ function drawChild(x,k){
   else{x.fillStyle='#86a2de';x.fillRect(X0+6,by+2,14,2);x.fillStyle='#5670b0';x.fillRect(X0+18,by+4,1,bh-7);}
   // 星柄
   x.fillStyle='#f4dc7a';for(let i=0;i<6;i++){x.fillRect(X0+5+i*9,by+4+(i%2)*3,1,1);if(i%2)x.fillRect(X0+4+i*9,by+5,3,1),x.fillRect(X0+5+i*9,by+4,1,3);}
-  // 寝返り中の腕
-  if(stirring&&Math.floor(S.t*1.5)%2){x.fillStyle='#1b1226';x.fillRect(FUTON.x+12,by-2,7,3);x.fillStyle=PAL.s;x.fillRect(FUTON.x+13,by-1,5,1);}
+  // 抱いているクマ（掛け布団から顔を出す）と寝返り中の腕（ミントのパジャマの袖）
+  const armUp=stirring&&Math.floor(S.t*1.5)%2;
+  D2(S.spr.bear,FUTON.x+14+(armUp?2:0),by-4+(turn&&!armUp?1:0));
+  if(armUp){x.fillStyle='#1b1226';x.fillRect(FUTON.x+11,by-2,8,3);x.fillStyle='#9fe2c8';x.fillRect(FUTON.x+12,by-1,4,1);x.fillStyle=PAL.s;x.fillRect(FUTON.x+16,by-1,2,1);}
 }
 
 function formSet(){
