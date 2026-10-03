@@ -84,10 +84,23 @@ const STRATS=[
 ];
 // 夜のミニゲームの典型的な結果（実プレイの代わり）
 const MG_TYPICAL={
-  shooter:{ok:{flame:-3,mental:6,followers:5,fatigue:6},ng:{mental:-6,fatigue:8},time:40},
-  rogue:  {ok:{jobRep:14,certKnow:6,money:7500,mental:4,fatigue:10},ng:{jobRep:3,money:1500,mental:-8,fatigue:10},time:90},
-  puzzle: {ok:{certKnow:15,jobRep:9,money:6500,mental:5,fatigue:6},ng:{certKnow:4,jobRep:3,money:1500,mental:1,fatigue:6},time:60},
-  cards:  {ok:{followers:20,streamPop:8,money:6000,mental:5,fatigue:8},ng:{mental:-8,flame:1,fatigue:10},time:80},
+  shooter:  {ok:{flame:-3,mental:6,followers:8,fatigue:6},ng:{mental:-6,fatigue:8},time:40},
+  rogue:    {ok:{jobRep:20,certKnow:6,money:12000,mental:4,fatigue:10},ng:{jobRep:6,money:3000,mental:-8,fatigue:10},time:90},
+  puzzle:   {ok:{certKnow:15,jobRep:9,money:6500,mental:5,fatigue:6},ng:{certKnow:4,jobRep:3,money:1500,mental:1,fatigue:6},time:60},
+  cards:    {ok:{followers:25,streamPop:8,money:6000,mental:5,fatigue:8},ng:{mental:-8,flame:1,fatigue:10},time:80},
+  runner:   {ok:{childStress:-10,mental:3,money:1500,fatigue:7},ng:{childStress:-3,mental:-4,fatigue:8},time:40},
+  defense:  {ok:{flame:-2,followers:12,streamPop:5,mental:3,fatigue:8},ng:{mental:-6,flame:1,fatigue:8},time:60},
+  rpg:      {ok:{fatigue:-10,mental:4,hope:4},ng:{fatigue:-5,mental:-4},time:120},
+  stealth:  {ok:{childStress:-10,mental:3,hope:2,fatigue:4},ng:{childStress:4,mental:-3,fatigue:6},time:45},
+  quiz:     {ok:{certKnow:12,jobRep:3,mental:3,fatigue:5},ng:{certKnow:5,jobRep:1,mental:-2,fatigue:5},time:50},
+  horror:   {ok:{streamPop:6,followers:12,mental:-1,fatigue:6},ng:{followers:8,mental:-7,fatigue:8},time:60},
+  factory3d:{ok:{jobRep:10,certKnow:4,money:6000,mental:3,fatigue:8},ng:{jobRep:4,mental:-8,fatigue:9},time:70},
+  cooking:  {ok:{childStress:-8,mental:5,hope:3,fatigue:5,money:-300},ng:{childStress:-2,mental:-1,fatigue:5,money:-300},time:45},
+  escape:   {ok:{certKnow:5,jobRep:6,mental:3,fatigue:6},ng:{mental:-4,fatigue:7},time:60},
+  blocks:   {ok:{money:5000,jobRep:5,mental:2,fatigue:6},ng:{money:2400,jobRep:2,mental:-2,fatigue:6},time:45},
+  manager:  {ok:{followers:10,streamPop:4,fatigue:4},ng:{followers:2,mental:-2,fatigue:4},time:50},
+  fishing:  {ok:{mental:6,fatigue:-4,hope:2},ng:{mental:6,fatigue:-4,hope:2},time:60},
+  race:     {ok:{jobRep:6,mental:3,fatigue:6},ng:{jobRep:-3,mental:-2,fatigue:6},time:30},
 };
 
 // 再現性のある乱数

@@ -7,6 +7,8 @@
    ══════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
+  // バランスシミュレーター（tools/simulator.html）の中では動かない（演出・描画のみのモジュールのため）
+  if((()=>{try{return !!(window.frameElement&&/simulator/.test(window.parent.location.pathname));}catch(e){return false;}})())return;
 
 // ───────── 定数 ─────────
 const RW=256, RH=90;          // 部屋バッファ（仮想ピクセル）

@@ -11,6 +11,8 @@
    ════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
+  // バランスシミュレーター（tools/simulator.html）の中では動かない（演出・描画のみのモジュールのため）
+  if((()=>{try{return !!(window.frameElement&&/simulator/.test(window.parent.location.pathname));}catch(e){return false;}})())return;
 
 const $=id=>document.getElementById(id);
 const RM=window.matchMedia?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};

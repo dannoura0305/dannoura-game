@@ -7,6 +7,8 @@
    ════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
+  // バランスシミュレーター（tools/simulator.html）の中では動かない（演出・描画のみのモジュールのため）
+  if((()=>{try{return !!(window.frameElement&&/simulator/.test(window.parent.location.pathname));}catch(e){return false;}})())return;
 if(window.__prPresentation) return;
 window.__prPresentation = true;
 
