@@ -1520,9 +1520,6 @@ registerMinigame({
           log:'原付で出るのをやめた。',cutin:null,
         };
       },
-      // 自動テスト用の内部状態参照（ゲーム進行には使わない）
-      _dbg:{get P(){return P;},get phase(){return phase;},get rem(){return rem;},get late(){return late;},get cars(){return cars;},SIGS,CPS,get puddles(){return puddles;},GOAL,
-        get info(){return renderer?renderer.info.render:null;},get scene(){return scene;},get camera(){return camera;},input,touch,advance:()=>advance(),setRem:v=>{rem=v;},skip:()=>{if(phase==='count')phT=4.39;else if(phase==='goal')phT=1.79;},get VAR(){return VAR;}},
     };
   },
 });
