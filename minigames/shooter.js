@@ -302,12 +302,13 @@ registerMinigame({
     let combo=0, comboT=0, maxCombo=0, fireCd=0, spawnCd=.8, goodCd=2.2, waveIdx=-1;
     let inv=0, shake=0, hurtFlash=0, whiteFlash=0, slowT=0, spreadT=0, barrierT=0, stop=0;
     let bombUsed=false, bombT=0, bombBuf=0, banner=null, dying=0, boss=null, bossBeaten=false, winT=0;
-    let finalReason=null, grade=null, newRecord=false, trans=null, endCalled=false;
+    let tapBuf=false,finalReason=null, grade=null, newRecord=false, trans=null, endCalled=false;
     let lastScoreHtml='', lastTimer='', glowPulse=0, glowCol='cy', forcePow=null, firstGood=true, touchedOnce=false;
 
     resize();
     const onResize=()=>{if(!mg._ended)resize();};
     window.addEventListener('resize',onResize);
+    if(typeof mg.onEnd==='function')mg.onEnd(()=>window.removeEventListener('resize',onResize));
 
     // ── 場面転換：ベイヤー配列のディザでワイプ ──
     const BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
@@ -398,8 +399,9 @@ registerMinigame({
     function tapAnywhere(){
       if(scene==='title'){goStory();return true;}
       if(scene==='story'||scene==='ending'){advance();return true;}
-      if(scene==='howto'){if(sceneT>.5)beginPlay();return true;}
-      if(scene==='grade'){if(sceneT>1.4)goEnding();return true;}
+      // 早すぎるタップは捨てずに覚えておく（入力バッファ）
+      if(scene==='howto'){tapBuf=true;return true;}
+      if(scene==='grade'){if(sceneT>1.4)goEnding();else if(sceneT>.9)tapBuf=true;return true;}
       return false;
     }
     cv.addEventListener('pointerdown',e=>{
@@ -434,7 +436,7 @@ registerMinigame({
 
     // ── 場面の流れ ──
     function goStory(){if(scene!=='title'||trans)return;sfx('decide');transition(()=>{scene='story';sceneT=0;startDialog(introLines(),goHowto);});}
-    function goHowto(){transition(()=>{scene='howto';sceneT=0;});}
+    function goHowto(){transition(()=>{scene='howto';sceneT=0;tapBuf=false;});}
     function beginPlay(){
       if(scene!=='howto'||trans)return;sfx('decide');
       transition(()=>{scene='play';sceneT=0;t=0;bombBtn.classList.remove('hide');bombBtn.classList.add('ready');
@@ -454,7 +456,7 @@ registerMinigame({
       if(score>SD.best.score){SD.best.score=score;newRecord=true;}
       if(GRADE_RANK[grade]>GRADE_RANK[SD.best.grade||''])SD.best.grade=grade;
       if(maxCombo>SD.best.combo)SD.best.combo=maxCombo;
-      transition(()=>{scene='grade';sceneT=0;stampDone=false;enemies.length=0;goods.length=0;eb.length=0;pb.length=0;corpses.length=0;},.8);
+      transition(()=>{scene='grade';sceneT=0;tapBuf=false;stampDone=false;enemies.length=0;goods.length=0;eb.length=0;pb.length=0;corpses.length=0;},.8);
     }
     let stampDone=false;
     function goEnding(){if(trans||scene!=='grade')return;sfx('decide');transition(()=>{scene='ending';sceneT=0;startDialog(endingLines(),()=>{transition(()=>{scene='done';if(!endCalled){endCalled=true;mg.end(finalReason);}},.6);});});}
@@ -592,7 +594,8 @@ registerMinigame({
       if(whiteFlash>0)whiteFlash-=dt;
       if(scene==='title'&&sceneT>2.6&&!trans)goStory();
       if(scene==='story'||scene==='ending')updateDialog(dt);
-      if(scene==='howto'&&sceneT>5&&!trans)beginPlay();
+      if(scene==='howto'&&(sceneT>5||(tapBuf&&sceneT>.35))&&!trans){tapBuf=false;beginPlay();}
+      if(scene==='grade'&&tapBuf&&sceneT>1.4&&!trans){tapBuf=false;goEnding();}
       if(scene==='grade'&&!stampDone&&sceneT>.9){stampDone=true;sfx('stamp');shake=10;}
       if(scene!=='play'){
         for(const e of amb){e.age+=dt;e.y+=e.vy*dt;if(e.y>H+30){e.y=HUD_H-20;e.x=rnd(e.w/2+6,W-e.w/2-6);}}

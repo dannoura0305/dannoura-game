@@ -462,6 +462,8 @@ registerMinigame({
       wrap.classList.remove('factory3d-hit');
     }
 
+    if(typeof mg.onEnd==='function')mg.onEnd(cleanup);
+
     function showError(msg){
       el.load.classList.remove('hide');
       el.load.innerHTML=`<div style="color:var(--rd);font-size:.8rem">3D表示を開始できませんでした</div>`+

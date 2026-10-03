@@ -168,17 +168,19 @@ const PORTRAIT={
   },
   yodaka(){
     return svgWrap('#3a0812','#060104',
-      `<path d="M8 96 C10 70 28 62 48 62 C68 62 86 70 88 96Z" fill="#1c1a24"/>`+
-      `<path d="M22 60 C18 30 32 14 48 14 C64 14 78 30 74 60 C70 66 26 66 22 60Z" fill="#23202c"/>`+
-      `<path d="M30 58 C30 38 38 28 48 28 C58 28 66 38 66 58 C60 66 36 66 30 58Z" fill="#0e0c12"/>`+
-      `<path d="M36 60 C38 70 58 70 60 60 C58 52 38 52 36 60Z" fill="#cdb6ae"/>`+
-      `<path d="M42 63 h12" stroke="#6a4a46" stroke-width="1.6" stroke-linecap="round"/>`+
-      `<path d="M34 44 C38 38 58 38 62 44 L62 50 C56 47 40 47 34 50Z" fill="#141018"/>`+
-      `<circle cx="42" cy="48.5" r="1.4" fill="#ff3050"/><circle cx="54" cy="48.5" r="1.4" fill="#ff3050"/>`+
-      `<path d="M20 50 C20 22 76 22 76 50" stroke="#55505e" stroke-width="3.5" fill="none"/>`+
-      `<rect x="15" y="44" width="9" height="14" rx="3" fill="#3a3644"/><rect x="72" y="44" width="9" height="14" rx="3" fill="#3a3644"/>`+
-      `<path d="M20 56 Q24 68 38 66" stroke="#55505e" stroke-width="2" fill="none"/><circle cx="39" cy="66" r="2.2" fill="#ff3050"/>`+
-      `<path d="M22 60 C18 30 32 14 48 14 C64 14 78 30 74 60" stroke="#ff3050" stroke-width="1" fill="none" opacity=".55"/>`);
+      `<path d="M8 96 C10 72 28 64 48 64 C68 64 86 72 88 96Z" fill="#1c1a24"/>`+
+      `<path d="M40 64 L48 74 L56 64" fill="none" stroke="#0e0c12" stroke-width="3"/>`+
+      `<path d="M21 66 C15 36 30 14 48 14 C66 14 81 36 75 66 C70 58 66 50 64 44 L32 44 C30 50 26 58 21 66Z" fill="#26222e"/>`+
+      `<rect x="43" y="60" width="10" height="8" fill="#c9b2a8"/>`+
+      `<ellipse cx="48" cy="48" rx="15" ry="17.5" fill="#dcc6bc"/>`+
+      `<path d="M32 50 C30 32 38 26 48 26 C58 26 66 32 64 50 L61 44 L58 52 L55 43 L51 53 L47 43 L43 52 L40 44 L36 52 L34 45Z" fill="#17141c"/>`+
+      `<path d="M37 53.5 h8 M51 53.5 h8" stroke="#ff3050" stroke-width="1.4" opacity=".8"/>`+
+      `<path d="M37 53.5 h8 M51 53.5 h8" stroke="#ff3050" stroke-width="4" opacity=".18"/>`+
+      `<path d="M44 59.5 Q48 58.5 52 59.5" stroke="#7a5450" stroke-width="1.5" fill="none" stroke-linecap="round"/>`+
+      `<path d="M28 44 C28 22 68 22 68 44" stroke="#55505e" stroke-width="3.5" fill="none"/>`+
+      `<rect x="24" y="40" width="9" height="15" rx="3" fill="#3a3644"/><rect x="63" y="40" width="9" height="15" rx="3" fill="#3a3644"/>`+
+      `<path d="M29 54 Q31 64 41 62" stroke="#55505e" stroke-width="2" fill="none"/><circle cx="42" cy="62" r="2" fill="#ff3050"/>`+
+      `<path d="M21 66 C15 36 30 14 48 14 C66 14 81 36 75 66" stroke="#ff3050" stroke-width="1" fill="none" opacity=".5"/>`);
   },
   sakura(f){
     const fake=f==='fake';
@@ -981,11 +983,12 @@ function pickScene(d){
 const CSS=`
 #st-root{position:fixed;inset:0;z-index:235;display:flex;justify-content:center;background:rgba(2,1,8,.0);opacity:0;pointer-events:none;transition:opacity .45s ease,background .45s ease;font-family:var(--serif,'Noto Serif JP',serif);-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;}
 #st-root.st-on{opacity:1;pointer-events:auto;background:rgba(2,1,8,.86);}
-.st-col{position:relative;width:100%;max-width:620px;height:100%;display:flex;flex-direction:column;overflow:hidden;}
+.st-col{position:relative;width:100%;max-width:620px;height:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 0 1px rgba(138,82,212,.18),0 0 80px rgba(0,0,0,.85);}
 .st-stage{position:relative;flex:1 1 auto;min-height:150px;overflow:hidden;}
 .st-bg,.st-bg2{position:absolute;inset:0;background-size:cover;background-position:center;transition:opacity .8s ease;}
 .st-bg{filter:blur(2px) brightness(.5) saturate(1.1);transform:scale(1.08);}
-.st-bg2{top:auto;height:34%;bottom:0;background-size:100% 100%;filter:brightness(.62);-webkit-mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent);opacity:.75;}
+.st-roofs{position:absolute;left:0;right:0;bottom:12%;width:100%;height:30%;opacity:0;transition:opacity 1.2s ease;filter:blur(.6px);}
+.st-amb.sea~.st-roofs{opacity:.85;}
 .st-vig{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 46%,transparent 30%,rgba(2,1,8,.82) 100%),linear-gradient(transparent 62%,rgba(2,1,8,.95));pointer-events:none;}
 .st-amb{position:absolute;inset:0;pointer-events:none;opacity:.5;}
 .st-amb.rain{background:repeating-linear-gradient(103deg,transparent 0 22px,rgba(160,140,255,.14) 22px 23px,transparent 23px 47px);background-size:200% 200%;animation:stRain .6s linear infinite;}
@@ -1003,7 +1006,7 @@ const CSS=`
 .st-cap b{display:block;font-family:var(--dot,'DotGothic16',monospace);font-weight:normal;font-size:.8rem;letter-spacing:.14em;color:#e9e2ff;margin-top:3px;}
 .st-skip{position:absolute;right:10px;top:9px;z-index:3;font-family:var(--mono,monospace);font-size:.6rem;letter-spacing:.14em;color:rgba(233,226,255,.55);background:rgba(10,8,30,.55);border:1px solid rgba(233,226,255,.25);border-radius:3px;padding:5px 9px;cursor:pointer;}
 .st-skip:hover{color:#fff;border-color:rgba(233,226,255,.6);}
-.st-fig{position:absolute;left:50%;bottom:7%;width:min(38vw,150px);aspect-ratio:1;transform:translate(-50%,10px) scale(.94);opacity:0;transition:opacity .45s ease,transform .45s ease,filter .45s ease;border-radius:12px;overflow:hidden;box-shadow:0 0 0 2px rgba(230,224,255,.75),0 0 0 4px rgba(18,12,52,.9),0 0 34px rgba(138,82,212,.45),0 14px 30px rgba(0,0,0,.6);background:#0b0a1e;}
+.st-fig{position:absolute;left:50%;bottom:8%;width:clamp(112px,min(40vw,27vh),230px);aspect-ratio:1;transform:translate(-50%,10px) scale(.94);opacity:0;transition:opacity .45s ease,transform .45s ease,filter .45s ease;border-radius:12px;overflow:hidden;box-shadow:0 0 0 2px rgba(230,224,255,.75),0 0 0 4px rgba(18,12,52,.9),0 0 34px rgba(138,82,212,.45),0 14px 30px rgba(0,0,0,.6);background:#0b0a1e;}
 .st-fig.round{border-radius:50%;}
 .st-fig.show{opacity:1;transform:translate(-50%,0) scale(1);}
 .st-fig.dim{filter:brightness(.45) saturate(.6);transform:translate(-50%,4px) scale(.96);}
@@ -1086,7 +1089,7 @@ function build(){
   root=document.createElement('div');root.id='st-root';root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');
   root.innerHTML=`<div class="st-col">
     <div class="st-stage">
-      <div class="st-bg"></div><div class="st-bg2"></div><div class="st-amb"></div>
+      <div class="st-bg"></div><div class="st-amb"></div><svg class="st-roofs" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120 L0 92 L18 92 L30 80 L54 80 L66 92 L84 92 L84 86 L104 70 L140 70 L160 86 L160 96 L186 96 L200 84 L232 84 L246 96 L262 96 L262 78 L282 62 L318 62 L338 78 L338 92 L356 92 L370 82 L400 82 L400 120Z" fill="#06182a"/><path d="M110 70 L110 56 L134 56 L134 70 M290 62 L290 46 L310 46 L310 62" fill="#06182a"/></svg>
       <div class="st-lantern" style="left:22%;top:44%"></div><div class="st-lantern" style="left:71%;top:38%;animation-delay:-2s"></div><div class="st-lantern" style="left:58%;top:60%;animation-delay:-3.4s"></div>
       <div class="st-vig"></div>
       <div class="st-fig"></div>
@@ -1101,7 +1104,7 @@ function build(){
     <div class="st-card"><div class="st-act"></div><div class="st-actn"></div><div class="st-line"></div><div class="st-day"></div><div class="st-ttl"></div></div>
   </div>`;
   document.body.appendChild(root);
-  ['bg','bg2','amb','fig','cap','skip','fx','choices','win','plate','por','text','next','card'].forEach(k=>{el[k]=root.querySelector('.st-'+k);});
+  ['bg','amb','fig','cap','skip','fx','choices','win','plate','por','text','next','card'].forEach(k=>{el[k]=root.querySelector('.st-'+k);});
   el.win.addEventListener('click',e=>{e.stopPropagation();advance();});
   el.card.addEventListener('click',e=>{e.stopPropagation();cardDone&&cardDone();});
   el.skip.addEventListener('click',e=>{e.stopPropagation();skipAhead();});
@@ -1115,8 +1118,6 @@ function setBg(k){
   const src=BG_SRC[k];
   el.bg.className='st-bg'+(k==='sea'?' sea':'');
   el.bg.style.backgroundImage=src?`url(${src})`:'';
-  el.bg2.style.backgroundImage=src?`url(${src})`:'';
-  el.bg2.style.display=src?'':'none';
   el.amb.className='st-amb '+(BG_AMB[k]||'');
   root.classList.toggle('st-eerie',k==='eerie'||(gs.day>=21&&k!=='child'));
   if(k==='eerie')el.bg.style.filter='blur(2px) brightness(.38) saturate(.5) hue-rotate(-30deg)';

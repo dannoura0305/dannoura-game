@@ -84,7 +84,7 @@ addMinigameStyle('horror',`
 .hr-seg button.on{background:var(--cy);color:#05040e;border-color:var(--cy);}
 .hr-note{font-size:.66rem;color:var(--tx-d);line-height:1.6;}
 /* タイトル */
-.hr-title{justify-content:space-between;padding:56px 18px 20px;background:linear-gradient(rgba(4,3,10,.82),rgba(4,3,10,.35) 38%,rgba(4,3,10,.55) 60%,rgba(4,3,10,.92));}
+.hr-title{justify-content:space-between;padding:56px 18px 20px;background:linear-gradient(rgba(4,3,10,.9),rgba(4,3,10,.6) 38%,rgba(4,3,10,.55) 60%,rgba(4,3,10,.92));}
 .hr-logo{text-align:center;position:relative;}
 .hr-logo .k1{font-family:var(--mono);font-size:.6rem;letter-spacing:.5em;color:var(--rd);margin-bottom:8px;text-shadow:0 0 8px rgba(232,48,85,.7);}
 .hr-logo .k2{font-family:var(--serif);font-weight:900;font-size:2.7rem;line-height:1.05;letter-spacing:.12em;color:#efe6ff;text-shadow:2px 0 rgba(232,48,85,.55),-2px 0 rgba(0,232,200,.4),0 0 24px rgba(138,82,212,.8);animation:hr-logo 7s infinite;}
@@ -142,7 +142,7 @@ addMinigameStyle('horror',`
 @keyframes hr-fade{from{opacity:0}}
 @keyframes hr-nn{0%,100%{opacity:1}48%{opacity:1}50%{opacity:.35;transform:translateX(1px)}52%{opacity:1;transform:none}}
 @keyframes hr-gl{0%{transform:translateX(-4px);text-shadow:3px 0 var(--rd),-3px 0 var(--cy)}100%{transform:translateX(4px)}}
-@keyframes hr-logo{0%,90%,100%{transform:none;opacity:1}91%{transform:translateX(-5px) skewX(8deg);opacity:.7}92%{transform:translateX(4px);clip-path:inset(30% 0 40% 0)}93%{transform:none;clip-path:none}}
+@keyframes hr-logo{0%,90%,94%,100%{transform:none;opacity:1;clip-path:inset(0 0 0 0)}91%{transform:translateX(-5px) skewX(8deg);opacity:.7;clip-path:inset(0 0 0 0)}92%{transform:translateX(4px);opacity:1;clip-path:inset(30% 0 40% 0)}93%{transform:translateX(-2px);clip-path:inset(0 0 55% 0)}}
 @keyframes hr-drip{0%{height:0;opacity:0}20%{opacity:1}70%{height:26px;opacity:1}100%{height:34px;opacity:0}}
 @keyframes hr-letter{from{opacity:0;transform:translateY(24px) rotate(-1.5deg)}to{opacity:1;transform:none}}
 @keyframes hr-actin{0%{opacity:0;letter-spacing:.9em;filter:blur(4px)}25%{opacity:1;filter:none}75%{opacity:1}100%{opacity:0}}
@@ -1379,7 +1379,7 @@ registerMinigame({
         if(st>=2){const p=.5+.5*Math.sin(T*1.3);g.fillStyle=RG(g,W/2,H*.42,H*.3,H*.8,[[0,'rgba(120,0,20,0)'],[1,`rgba(120,0,20,${(st-1)*.18*p})`]]);g.fillRect(0,0,W,H);}}
       if(lt>0){g.save();g.globalCompositeOperation='lighter';rect(g,0,0,W,H,`rgba(140,150,255,${lt*(hd.mild?.05:.12)})`);g.restore();}
       // カメラ枠（配信者のアバター）
-      if(phase!=='title'&&phase!=='letter'&&bg!=='void'&&bg!=='h_dawn'&&!(tr&&(tr.from==='void')))drawCam(E);
+      if(phase!=='title'&&phase!=='letter'&&!offline&&bg!=='void'&&bg!=='h_dawn'&&!(tr&&(tr.from==='void')))drawCam(E);
       // ビネット・ノイズ・走査線
       g.fillStyle=RG(g,W/2,H*.45,Math.min(W,H)*.3,Math.max(W,H)*.75,[[0,'rgba(0,0,0,0)'],[1,`rgba(0,0,0,${.6+st*.08})`]]);g.fillRect(0,0,W,H);
       g.save();g.globalAlpha=(.04+st*.025)*(hd.mild?.6:1);g.globalCompositeOperation='overlay';g.drawImage(TX.noises[(T*20|0)%3],0,0,W,H);g.restore();
@@ -1706,6 +1706,7 @@ registerMinigame({
       scene(id,set,r,st){if(titleEl){titleEl.remove();titleEl=null;}if(st){story=STORIES.find(x=>x.id===st)||story;}bg=id;tr=null;S=Object.assign({},set||{});rei=r||0;phase='busy';busyT=9999;stage.classList.remove('ui-off');}};
 
     function cleanup(){try{ro.disconnect();}catch(e){}SFX.stop();}
+    if(typeof mg.onEnd==='function')mg.onEnd(cleanup);
     return {result(reason){
       cleanup();
       if(reason==='quit'&&endKey)reason=endKey;

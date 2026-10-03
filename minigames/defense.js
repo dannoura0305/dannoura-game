@@ -249,6 +249,7 @@ registerMinigame({
     }
     const ro=new ResizeObserver(()=>{if(mg._ended){ro.disconnect();return;}resize();});
     ro.observe(stage);
+    if(typeof mg.onEnd==='function')mg.onEnd(()=>ro.disconnect());
 
     // ══ 描画ユーティリティ ══
     const GLOW={};

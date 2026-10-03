@@ -419,9 +419,8 @@ registerMinigame({
       for(const p of pops){
         const k=p.t/p.dur, sc=p.t<.16?eback(p.t/.16):1, a=k>.7?1-(k-.7)/.3:1;
         g.save();g.globalAlpha=a;g.translate(p.x,p.y-k*22*S);g.scale(sc,sc);
-        g.shadowColor=p.col;g.shadowBlur=12;
+        g.save();g.globalCompositeOperation='lighter';g.globalAlpha=a*.55;const gw=p.sz*S*4.2;g.drawImage(glowSpr,-gw,-gw*.45,gw*2,gw*.9);g.restore();
         txtO(p.text,0,0,p.sz*S,p.col,'rgba(30,12,8,.9)',4*S);
-        g.shadowBlur=0;
         if(p.sub)txtO(p.sub,0,p.sz*S*.85,11*S,'#fff4dc','rgba(30,12,8,.85)',3*S);
         g.restore();
       }
@@ -1476,11 +1475,10 @@ registerMinigame({
       for(let i=-1;i<=1;i++){g.beginPath();for(let j=0;j<=10;j++){const yy=-R*1.1-j*3*S,xx=i*12*S+Math.sin(T*3+j*.6+i)*4*S;if(j===0)g.moveTo(xx,yy);else g.lineTo(xx,yy);}g.stroke();}
       g.restore();
       // 文字
-      g.shadowColor='rgba(255,170,60,.8)';g.shadowBlur=16*k;
+      g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.35*k;g.drawImage(glowSpr,-130*S,-10*S,260*S,70*S);g.restore();
       txtO('深夜の',-8*S,4*S,16*S,'#f6d8a8','#2a1408',4*S,'right');
       g.font=`${Math.round(34*S)}px ${FONT}`;
       txtO('夜食づくり',0,34*S,34*S,'#ffe9b8','#2a1408',6*S);
-      g.shadowBlur=0;
       g.fillStyle='rgba(232,184,48,.7)';g.fillRect(-90*S,58*S,180*S,1.5);
       txt('LATE NIGHT KITCHEN',0,70*S,10*S,'#e8b830');
       g.restore();
@@ -1551,7 +1549,7 @@ registerMinigame({
       const gx=v=>x+clamp(v,0,1)*w;
       g.fillStyle='rgba(255,255,255,.28)';g.fillRect(gx(gauge.ga),y,gx(gauge.gb)-gx(gauge.ga),h);
       const pul=.65+.35*Math.sin(T*8);
-      g.save();g.shadowColor='#ffd65a';g.shadowBlur=10*pul;g.strokeStyle=`rgba(255,214,90,${pul})`;g.lineWidth=2.5;g.strokeRect(gx(gauge.pa),y-3,gx(gauge.pb)-gx(gauge.pa),h+6);g.restore();
+      g.strokeStyle=`rgba(255,214,90,${pul*.25})`;g.lineWidth=7;g.strokeRect(gx(gauge.pa),y-3,gx(gauge.pb)-gx(gauge.pa),h+6);g.save();g.strokeStyle=`rgba(255,214,90,${pul})`;g.lineWidth=2.5;g.strokeRect(gx(gauge.pa),y-3,gx(gauge.pb)-gx(gauge.pa),h+6);g.restore();
       g.fillStyle='rgba(255,214,90,.35)';g.fillRect(gx(gauge.pa),y,gx(gauge.pb)-gx(gauge.pa),h);
       const v=gauge.lockT>0?gauge.lockV:gauge.v;
       const nx=gx(v);
@@ -1713,6 +1711,7 @@ registerMinigame({
     const onResize=()=>{if(!mg._ended)resize();};
     window.addEventListener('resize',onResize);
     mg.loop(dt=>{update(dt);draw(dt);hud();});
+    if(typeof mg.onEnd==='function')mg.onEnd(()=>{SND.stop();window.removeEventListener('resize',onResize);});
 
     // テスト用（ゲームには影響しない）
     body._ck={st:()=>({ph,pt,gv:gauge.v,gauge:{...gauge},banner:!!banner,wipe:!!wipe,hitstop,egg:{...egg},tako:{i:tako.i,kx:tako.kx,tm:tako.tm,s:tako.s.map(s=>({b:s.b,done:s.done,z:tako.z}))},

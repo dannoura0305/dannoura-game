@@ -40,6 +40,11 @@ addMinigameStyle('race',`
 .race-dmg .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gd),var(--rd));transition:width .25s;}
 .race-dmg .cr{font-family:var(--mono);letter-spacing:2px;color:var(--rd);}
 .race-dmg .cr u{text-decoration:none;color:rgba(187,174,221,.25);}
+.race-nav{position:absolute;left:50%;top:6px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:0;font-family:var(--dot);font-size:10px;color:var(--tx);text-shadow:0 1px 2px #000;}
+.race-nav i{font-style:normal;font-size:24px;line-height:1;color:var(--gd);text-shadow:0 0 10px rgba(232,184,48,.9);display:block;transition:transform .15s linear;}
+.race-curve{position:absolute;left:50%;top:132px;transform:translateX(-50%);font-family:var(--mono);font-size:20px;letter-spacing:-2px;color:var(--gd);text-shadow:0 0 8px rgba(232,184,48,.9);opacity:0;transition:opacity .25s;white-space:nowrap;}
+.race-curve.on{opacity:1;animation:racePulse .4s ease-in-out infinite alternate;}
+.race-curve small{font-family:var(--dot);font-size:11px;letter-spacing:.05em;margin:0 5px;}
 .race-sig{position:absolute;left:50%;top:98px;transform:translateX(-50%);display:none;align-items:center;gap:7px;padding:4px 9px;background:rgba(10,7,22,.8);border:1px solid rgba(138,82,212,.45);border-radius:4px;font-size:11px;font-family:var(--dot);white-space:nowrap;}
 .race-sig.on{display:flex;}
 .race-sig .lt{display:flex;gap:3px;padding:3px 4px;background:#0c0c10;border-radius:3px;}
@@ -180,6 +185,8 @@ registerMinigame({
  <div class="race-tm"><small>打刻まで</small><b>--.-</b><em>${VAR.name}</em></div>
  <div class="race-prog"><div class="tr"></div><div class="fl"></div>${zoneLbl.map(z=>`<span class="zn" style="left:${z[0]/GOAL*100+ (z[0]?0:6)}%">${z[1]}</span>`).join('')}${CPS.map(c=>`<span class="mk cp" style="left:${c.s/GOAL*100}%"></span>`).join('')}${SIGS.map(g=>`<span class="mk sg" style="left:${g.s/GOAL*100}%"></span>`).join('')}<span class="gl">🏭</span><span class="me">🛵</span></div>
  <div class="race-dmg">車体<div class="bar"><i></i></div><span class="cr"></span></div>
+ <div class="race-nav"><i>➤</i><span>工場まで 2.2km</span></div>
+ <div class="race-curve"></div>
  <div class="race-sig"><div class="lt"><i class="g"></i><i class="y"></i><i class="r"></i></div><span></span></div>
  <div class="race-msgs"></div>
  <div class="race-hint l">◀</div><div class="race-hint r">▶</div>
@@ -192,7 +199,7 @@ registerMinigame({
     const $=q=>wrap.querySelector(q);
     const el={hud:$('.race-hud'),gauge:$('.race-gauge'),spd:$('.race-gauge b'),tm:$('.race-tm'),tmL:$('.race-tm small'),tmB:$('.race-tm b'),tmE:$('.race-tm em'),
       fl:$('.race-prog .fl'),me:$('.race-prog .me'),dmg:$('.race-dmg .bar i'),cr:$('.race-dmg .cr'),sig:$('.race-sig'),sigTx:$('.race-sig span'),
-      sigL:[...wrap.querySelectorAll('.race-sig .lt i')],msgs:$('.race-msgs'),hl:$('.race-hint.l'),hr:$('.race-hint.r'),brake:$('.race-brake'),
+      nav:$('.race-nav i'),navT:$('.race-nav span'),curve:$('.race-curve'),sigL:[...wrap.querySelectorAll('.race-sig .lt i')],msgs:$('.race-msgs'),hl:$('.race-hint.l'),hr:$('.race-hint.r'),brake:$('.race-brake'),
       ov:$('.race-main'),fade:$('.race-fade'),wipe:$('.race-wipe'),flash:$('.race-flash'),hit:$('.race-hit'),tbT:$('.race-tbar.t'),tbB:$('.race-tbar.b')};
 
     function msg(text,cls='',dur=1.4){
@@ -241,6 +248,7 @@ registerMinigame({
     });
     const onBlur=()=>{input.l=input.r=input.b=false;pointers.clear();recalcTouch();touch.b=false;};
     window.addEventListener('blur',onBlur);
+    if(mg.onEnd)mg.onEnd(()=>cleanup());
 
     // ══ サウンド（Web Audio：エンジン音・雨音・クラクション） ══
     let SND=null;
@@ -985,7 +993,7 @@ registerMinigame({
       // タイトルへ
       el.ov.className='race-ov race-main';el.ov.innerHTML='';
       toTitle();
-      mg.loop(dt=>{try{frame(dt);}catch(e){console.error('race frame',e&&e.stack||e);throw e;}});
+      mg.loop(frame);
     }
 
     function cleanupGL(){
@@ -1430,6 +1438,11 @@ registerMinigame({
         const dd=Math.max(0,Math.round(g.stop-P.s));
         el.sigTx.textContent=g.state==='red'?(dd>0?`止まれ ${dd}m`:'待機…'):g.state==='yellow'?`黄信号 ${dd}m`:'青 進め';
       }else el.sig.classList.remove('on');
+      {trackAt(GOAL+40,0,tp2);trackAt(P.s,P.d,tp);const dx=tp2.x-tp.x,dz=tp2.z-tp.z;const ang=Math.atan2(dx,-dz)-(tp.h+P.yawRel);
+        el.nav.style.transform=`rotate(${(ang-Math.PI/2).toFixed(3)}rad)`;const rest=Math.max(0,GOAL-P.s);el.navT.textContent=rest>950?`工場まで ${(rest/1000).toFixed(1)}km`:`工場まで ${Math.round(rest)}m`;
+        let kk=0;for(let a=25;a<=85;a+=15)kk+=curvAt(P.s+a);kk/=5;
+        const on=Math.abs(kk)>.0025&&phase==='play';el.curve.classList.toggle('on',on);
+        if(on){const n=Math.abs(kk)>.0045?3:2;el.curve.innerHTML=kk>0?`<small>右カーブ</small>${'&gt;'.repeat(n)}`:`${'&lt;'.repeat(n)}<small>左カーブ</small>`;}}
       el.hl.classList.toggle('on',input.l||touch.l>0);el.hr.classList.toggle('on',input.r||touch.r>0);
       scoreT-=.06;
       if(scoreT<=0){scoreT=.25;
@@ -1507,7 +1520,7 @@ registerMinigame({
       },
       // 自動テスト用の内部状態参照（ゲーム進行には使わない）
       _dbg:{get P(){return P;},get phase(){return phase;},get rem(){return rem;},get late(){return late;},get cars(){return cars;},SIGS,CPS,get puddles(){return puddles;},GOAL,
-        get info(){return renderer?renderer.info.render:null;},get scene(){return scene;},get camera(){return camera;},input,touch,advance:()=>advance(),get VAR(){return VAR;}},
+        get info(){return renderer?renderer.info.render:null;},get scene(){return scene;},get camera(){return camera;},input,touch,advance:()=>advance(),skip:()=>{if(phase==='count')phT=4.39;else if(phase==='goal')phT=1.79;},get VAR(){return VAR;}},
     };
   },
 });

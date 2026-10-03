@@ -468,7 +468,7 @@ function init(){
   const edge=document.createElement('div');edge.className='hs-fade-edge';area.insertBefore(edge,cv.nextSibling);
   S.cv=cv;S.cx=cv.getContext('2d',{alpha:false});
   S.buf=mkCanvas(RW,RH);S.bx=S.buf.getContext('2d');
-  S.light=mkCanvas(RW,RH);S.lx=S.light.getContext('2d');
+  S.light=mkCanvas(RW,RH);S.lx=S.light.getContext('2d');S.glow=mkCanvas(RW,RH);S.gx=S.glow.getContext('2d');
   S.tmp=mkCanvas(RW,RH);S.tx=S.tmp.getContext('2d');
   S.bg=buildBG();buildSprites();buildCity();
   resize();
@@ -581,6 +581,7 @@ function update(dt){
   }else{S.glitch=0;S.refl=0;S.ghost=0;}
   if(S.glitch>0)S.glitch-=dt;if(S.refl>0)S.refl-=dt;if(S.ghost>0)S.ghost-=dt;
   if(S.afterStream>0)S.afterStream-=dt;
+  if(S.flick>0)S.flick-=dt;else if(Math.random()<dt*.08)S.flick=.12;
   // アクター
   updateActor(dt,fat,men);
   // 子ども
@@ -883,29 +884,48 @@ function drawParticles(x){
   x.globalAlpha=1;
 }
 
+const LK=new Int16Array(10), LK2=new Int16Array(10);
 function drawLighting(m,ph){
-  const lx=S.lx,L=S.L;
+  const L=S.L;
   lerpKeys(AMB,m,_c1);
   let f=S.key==='rest_deep'?.72:1;
   if(S.trans){const q=S.trans.t/S.trans.dur;f*=1-Math.sin(Math.min(1,q)*Math.PI)*.9;}
   let r=_c1[0]*f,g=_c1[1]*f,b=_c1[2]*f;
   if(ph===3){r+=6;g-=4;}
   if(S.flash>0){r+=150*S.flash;g+=160*S.flash;b+=190*S.flash;}
-  lx.globalCompositeOperation='source-over';
-  lx.fillStyle='rgb('+(r|0)+','+(g|0)+','+(b|0)+')';lx.fillRect(0,0,RW,RH);
-  lx.globalCompositeOperation='lighter';
-  const flick=1-(ph===3&&S.glitch>0?.35:0)-(Math.random()<.02?.06:0);
-  if(L.lamp>.01){lx.globalAlpha=Math.min(1,L.lamp*flick);lx.drawImage(S.lights.lamp,LAMP.x+5-72,LAMP.y+8-72);}
-  if(L.desk>.01){lx.globalAlpha=L.desk;lx.drawImage(S.lights.desk,240-44,40-44);}
-  if(L.mon>.01){lx.globalAlpha=Math.min(1,L.mon*(S.ghost>0?1.4:1)*(.92+Math.sin(S.t*7)*.04));lx.drawImage(S.lights.mon,MON.x+15-48,MON.y+10-48);}
-  if(S.ghost>0&&L.mon<.5){lx.globalAlpha=.6;lx.drawImage(S.lights.mon,MON.x+15-48,MON.y+10-48);}
-  if(L.night>.01){lx.globalAlpha=L.night;lx.drawImage(S.lights.night,58-26,64-26);}
+  // 量子化したキーが変わった時だけライトマップを作り直す
+  const flick=(ph===3&&S.glitch>0)?.65:(S.flick>0?.94:1);
+  LK[0]=r|0;LK[1]=g|0;LK[2]=b|0;
+  LK[3]=Math.round(Math.min(1,L.lamp*flick)*40);LK[4]=Math.round(L.desk*40);
+  LK[5]=Math.round(Math.min(1,L.mon*(S.ghost>0?1.4:1))*40)+(S.ghost>0&&L.mon<.5?100:0);
+  LK[6]=Math.round(L.night*40);
   const dawn=Math.max(0,(m-400)/80);
-  lx.globalAlpha=Math.min(1,(.35+dawn*.6)*L.win+S.flash*.6);lx.drawImage(S.lights.win,GL.x+GL.w/2-60,GL.y+GL.h-20-30);
-  lx.globalAlpha=1;
-  // ガラス部分は素通し
-  lx.globalCompositeOperation='source-over';lx.fillStyle='#ffffff';
-  lx.fillRect(GL.x,GL.y,MULL_X-GL.x,GL.h);lx.fillRect(MULL_X+2,GL.y,GL.x+GL.w-MULL_X-2,GL.h);
+  LK[7]=Math.round(Math.min(1,(.35+dawn*.6)*L.win+S.flash*.6)*40);
+  let same=true;for(let i=0;i<8;i++)if(LK[i]!==LK2[i]){same=false;LK2[i]=LK[i];}
+  if(!same||!S.lightOk){
+    S.lightOk=true;
+    const lx=S.lx;
+    lx.globalCompositeOperation='source-over';lx.globalAlpha=1;
+    lx.fillStyle='rgb('+LK[0]+','+LK[1]+','+LK[2]+')';lx.fillRect(0,0,RW,RH);
+    lx.globalCompositeOperation='lighter';
+    if(LK[3]>0){lx.globalAlpha=LK[3]/40;lx.drawImage(S.lights.lamp,LAMP.x+5-72,LAMP.y+8-72);}
+    if(LK[4]>0){lx.globalAlpha=LK[4]/40;lx.drawImage(S.lights.desk,240-44,40-44);}
+    const mo=LK[5]%100;if(mo>0){lx.globalAlpha=mo/40;lx.drawImage(S.lights.mon,MON.x+15-48,MON.y+10-48);}
+    if(LK[5]>=100){lx.globalAlpha=.6;lx.drawImage(S.lights.mon,MON.x+15-48,MON.y+10-48);}
+    if(LK[6]>0){lx.globalAlpha=LK[6]/40;lx.drawImage(S.lights.night,58-26,64-26);}
+    lx.globalAlpha=LK[7]/40;lx.drawImage(S.lights.win,GL.x+GL.w/2-60,GL.y+GL.h-20-30);
+    lx.globalAlpha=1;
+    // ガラス部分は素通し
+    lx.globalCompositeOperation='source-over';lx.fillStyle='#ffffff';
+    lx.fillRect(GL.x,GL.y,MULL_X-GL.x,GL.h);lx.fillRect(MULL_X+2,GL.y,GL.x+GL.w-MULL_X-2,GL.h);
+    // 発光体のにじみ（加算用）
+    const gx=S.gx;gx.globalCompositeOperation='source-over';gx.clearRect(0,0,RW,RH);gx.globalCompositeOperation='lighter';
+    if(LK[3]>0){gx.globalAlpha=.35*LK[3]/40;gx.drawImage(S.lights.glowW,LAMP.x+5-14,LAMP.y+5-14);}
+    if(mo>0||LK[5]>=100){gx.globalAlpha=.25*Math.min(1,mo/40+(LK[5]>=100?.6:0));gx.drawImage(S.lights.glowC,MON.x+15-14,MON.y+10-14);}
+    if(LK[4]>0){gx.globalAlpha=.5*LK[4]/40;gx.drawImage(S.lights.glowW,239-14,39-14);}
+    gx.globalAlpha=.18;gx.drawImage(S.lights.glowW,CLK.x+12-14,CLK.y+5-14);
+    gx.globalAlpha=1;gx.globalCompositeOperation='source-over';
+  }
   // 乗算
   const bx=S.bx;bx.globalCompositeOperation='multiply';bx.drawImage(S.light,0,0);bx.globalCompositeOperation='source-over';
 }
@@ -914,13 +934,12 @@ function drawEmissive(x,m,ph){
   const L=S.L;
   // ランプのシェード
   if(L.lamp>.05){x.globalAlpha=Math.min(1,L.lamp);drawLampShade(x,1);x.globalAlpha=1;
-    x.globalCompositeOperation='lighter';x.globalAlpha=.35*L.lamp;x.drawImage(S.lights.glowW,LAMP.x+5-14,LAMP.y+5-14);x.globalAlpha=1;x.globalCompositeOperation='source-over';}
+}
   // モニター画面
   if(L.mon>.05||S.ghost>0){x.globalAlpha=Math.min(1,.35+L.mon);drawScreen(x,S.key,ph);x.globalAlpha=1;
-    x.globalCompositeOperation='lighter';x.globalAlpha=.25*Math.min(1,L.mon+(S.ghost>0?.6:0));x.drawImage(S.lights.glowC,MON.x+15-14,MON.y+10-14);x.globalAlpha=1;x.globalCompositeOperation='source-over';}
+}
   else drawScreen(x,S.key,ph);
   // デスクライトの光点
-  if(L.desk>.05){x.globalCompositeOperation='lighter';x.globalAlpha=.5*L.desk;x.drawImage(S.lights.glowW,239-14,39-14);x.globalAlpha=1;x.globalCompositeOperation='source-over';}
   // 時計
   let h=gsv('hour',22),mi=gsv('min',0);
   if(ph===3&&S.glitch>0){h=4;mi=44;}
@@ -929,7 +948,7 @@ function drawEmissive(x,m,ph){
   digit(x,(h/10|0)%10,X,Y,col);digit(x,h%10,X+4,Y,col);
   if(Math.floor(S.t*2)%2===0){x.fillStyle=col;x.fillRect(X+8,Y+1,1,1);x.fillRect(X+8,Y+3,1,1);}
   digit(x,(mi/10|0)%10,X+10,Y,col);digit(x,mi%10,X+14,Y,col);
-  x.globalCompositeOperation='lighter';x.globalAlpha=.18;x.drawImage(S.lights.glowW,CLK.x+12-14,CLK.y+5-14);x.globalAlpha=1;x.globalCompositeOperation='source-over';
+  x.globalCompositeOperation='lighter';x.drawImage(S.glow,0,0);x.globalCompositeOperation='source-over';
   // PCの LED
   x.fillStyle=Math.floor(S.t*1.5)%4?'#00e8c8':'#007a6a';x.fillRect(238,58,1,1);
   // 常夜灯
@@ -956,31 +975,18 @@ function render(){
   const x=S.bx, m=nightMin(), ph=phase(), fat=gsv('fatigue',30), men=gsv('mental',70);
   x.globalCompositeOperation='source-over';x.globalAlpha=1;x.imageSmoothingEnabled=false;
   x.fillStyle='#07060f';x.fillRect(0,0,RW,RH);
-  if(S.prof){x.getImageData(0,0,1,1);S.pt=performance.now();}
   drawWindow(x,m,ph);
-  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawWindow']=(S.prof['drawWindow']||0)+_n-S.pt;S.pt=_n;}
   x.drawImage(S.bg,0,0);
-  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['x.drawImage']=(S.prof['x.drawImage']||0)+_n-S.pt;S.pt=_n;}
   drawCalendar(x);
-  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawCalendar']=(S.prof['drawCalendar']||0)+_n-S.pt;S.pt=_n;}
   drawLampShade(x,0);
-  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawLampShade']=(S.prof['drawLampShade']||0)+_n-S.pt;S.pt=_n;}
   drawDeskProps(x,S.key);
-  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawDeskProps']=(S.prof['drawDeskProps']||0)+_n-S.pt;S.pt=_n;}
   drawScreen(x,S.key,ph);
-  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawScreen']=(S.prof['drawScreen']||0)+_n-S.pt;S.pt=_n;}
   drawChild(x,S.key);
-  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawChild']=(S.prof['drawChild']||0)+_n-S.pt;S.pt=_n;}
   drawActor(x,fat,men);
-  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawActor']=(S.prof['drawActor']||0)+_n-S.pt;S.pt=_n;}
   drawLighting(m,ph);
-  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawLighting']=(S.prof['drawLighting']||0)+_n-S.pt;S.pt=_n;}
   drawEmissive(x,m,ph);
-  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawEmissive']=(S.prof['drawEmissive']||0)+_n-S.pt;S.pt=_n;}
   drawParticles(x);
-  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['drawParticles']=(S.prof['drawParticles']||0)+_n-S.pt;S.pt=_n;}
   postFX(ph);
-  if(S.prof){x.getImageData(0,0,1,1);const _n=performance.now();S.prof['postFX']=(S.prof['postFX']||0)+_n-S.pt;S.pt=_n;}
   // 拡大表示
   const c=S.cx,cw=S.cv.width,ch=S.cv.height,sc=S.scale;
   c.imageSmoothingEnabled=false;

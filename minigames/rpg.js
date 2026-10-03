@@ -1430,7 +1430,7 @@ registerMinigame({
     try{const R=rpgPeek();if(R.cleared>=5||lockedToday(R))return '見返し：報酬なし ／ 約60分';}catch(e){}
     return '章クリアで 疲労-10 精神↑ 希望↑ SP+1 ／ 約120分（負けると悪夢）';
   },
-  help:'タップ・Enter：進む／決定　矢印：選択　Esc：戻る',
+  help:'タップ/Enter 決定・矢印 選択・Esc 戻る',
   start(body,mg){
     const R=rpgState();
     const sk=Object.assign({},gs.skills||{});
@@ -1459,7 +1459,9 @@ registerMinigame({
     const ro=window.ResizeObserver?new ResizeObserver(()=>resize()):null;
     if(ro)ro.observe(root);
     window.addEventListener('resize',resize);
-    function cleanup(){try{ro&&ro.disconnect();}catch(e){}window.removeEventListener('resize',resize);}
+    let cleaned=false;
+    function cleanup(){if(cleaned)return;cleaned=true;try{ro&&ro.disconnect();}catch(e){}window.removeEventListener('resize',resize);}
+    if(typeof mg.onEnd==='function')mg.onEnd(cleanup);
 
     // テキストウィンドウ
     const box=el('div','rpg-box rpg-hide');

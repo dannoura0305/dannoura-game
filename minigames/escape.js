@@ -1243,7 +1243,7 @@ registerMinigame({
           cx.fillStyle=grad(y,y+hh,a>.5?'#4a565c':'#5a6a70',a>.5?'#283036':'#34404a');
           cx.beginPath();cx.moveTo(x,y);cx.lineTo(ex,y-sk);cx.lineTo(ex,y+hh+sk);cx.lineTo(x,y+hh);cx.closePath();cx.fill();
           cx.strokeStyle='#14181c';cx.lineWidth=1.5;cx.stroke();
-          if(a>.6){const iw=x-ex;cx.fillStyle='rgba(255,255,255,.08)';cx.fillRect(ex+iw*.15,y+hh*.1,iw*.7,hh*.02);
+          if(x-ex>6){const iw=x-ex;cx.fillStyle='rgba(255,255,255,.08)';cx.fillRect(ex+iw*.15,y+hh*.1,iw*.7,hh*.02);
             // 扉の裏の鏡と写真
             cx.fillStyle='#8a98a8';cx.fillRect(ex+iw*.2,y+hh*.14,iw*.6,hh*.12);
             cx.save();cx.translate(ex+iw*.5,y+hh*.36);cx.rotate(-.06);cx.fillStyle='#f4f0e6';cx.fillRect(-iw*.32,0,iw*.64,hh*.12);cx.fillStyle='#e8a050';cx.fillRect(-iw*.27,hh*.012,iw*.54,hh*.08);
@@ -1503,6 +1503,7 @@ registerMinigame({
     if(window.ResizeObserver){ro=new ResizeObserver(()=>{if(!mg._ended)layout();});ro.observe(stage);}
     else window.addEventListener('resize',layout);
     const cleanup=()=>{if(ro)ro.disconnect();else window.removeEventListener('resize',layout);};
+    if(mg.onEnd)mg.onEnd(()=>{cleanup();rainStop();});
     layout();updNav();renderInv();mg.setTimer(fmt(S.left));
 
     const appr=(k,on,dt,sp)=>{S.anim[k]=on?Math.min(1,S.anim[k]+dt*sp):S.anim[k];};
