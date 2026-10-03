@@ -1038,8 +1038,8 @@ registerMinigame({
       cx.fillStyle='rgba(232,48,85,.85)';cx.fillRect(x+2,y+th+1,5,3);
       // 車輪
       cx.fillStyle='#0c0a14';for(const k of [.55,.8]){cx.beginPath();cx.arc(x+tw*k,base-s*.1,s*.13,0,7);cx.fill();}
-      cx.font=`${Math.round(Math.max(8,s*.16))}px ${FONT}`;cx.textAlign='left';cx.textBaseline='top';cx.fillStyle='rgba(222,204,248,.55)';
-      cx.fillText('最終便 22:40発',x+tw*.64,y+5);
+      cx.font=`${Math.round(Math.max(8,s*.2))}px ${FONT}`;cx.textAlign='right';cx.textBaseline='bottom';cx.fillStyle='rgba(222,204,248,.6)';
+      cx.fillText(`${SPEED[spIdx].name} 積込中`,W-4,y-2);
     }
     function drawLane(){
       const base=laneY+laneH*.82;

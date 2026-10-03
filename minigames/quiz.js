@@ -66,7 +66,22 @@ addMinigameStyle('quiz',`
 .quiz-mark.on path+path{animation-delay:.16s;}
 .quiz-light{position:absolute;inset:0;z-index:3;pointer-events:none;mix-blend-mode:screen;background:radial-gradient(ellipse 75% 60% at 80% 18%,rgba(255,196,120,.13),transparent 70%);animation:quiz-flicker 7s infinite;}
 .quiz-sheet{position:absolute;left:8px;right:8px;bottom:8px;z-index:8;max-height:66%;overflow-y:auto;padding:12px 14px 12px;border-radius:10px;background:rgba(10,7,22,.97);border:1px solid rgba(138,82,212,.5);border-top:3px solid var(--sc,var(--cy));box-shadow:0 -10px 30px rgba(0,0,0,.6),0 0 30px -12px var(--sc,var(--cy));transform:translateY(120%);transition:transform .38s cubic-bezier(.2,1,.3,1);}
+.quiz-sheet:not(.on){transform:translateY(calc(100% + 40px));visibility:hidden;transition:transform .3s,visibility 0s .3s;}
 .quiz-sheet.on{transform:translateY(0);}
+.quiz-pre .quiz-main,.quiz-pre .quiz-hud,.quiz-pre .quiz-who{opacity:0;pointer-events:none;}
+.quiz-main,.quiz-hud,.quiz-who{transition:opacity .4s;}
+.quiz-f-hist{display:flex;align-items:flex-end;gap:4px;height:34px;margin-top:4px;}
+.quiz-f-hist i{flex:1;max-width:22px;background:rgba(58,42,88,.35);border-radius:2px 2px 0 0;position:relative;transform-origin:bottom;animation:quiz-grow .6s cubic-bezier(.2,1,.3,1) backwards;}
+.quiz-f-hist i.now{background:#c8243f;}
+.quiz-f-hist i.mk{background:repeating-linear-gradient(45deg,#3a2a58 0 3px,#5a4c80 3px 6px);}
+.quiz-f-hist i.mk.now{background:repeating-linear-gradient(45deg,#c8243f 0 3px,#e05a70 3px 6px);}
+.quiz-f-hist i b{position:absolute;top:-13px;left:0;right:0;text-align:center;font:normal .56rem var(--mono);color:#4a3c60;}
+.quiz-f-rank{margin-top:8px;font-size:.72rem;color:#3a2a58;display:flex;align-items:center;gap:6px;}
+.quiz-f-rank b{font-family:var(--dot);font-weight:normal;color:#c8243f;font-size:.9rem;}
+.quiz-f-rbar{flex:1;height:6px;border-radius:3px;background:rgba(58,42,88,.15);overflow:hidden;}
+.quiz-f-rbar i{display:block;height:100%;background:linear-gradient(90deg,#e8b830,#c8243f);}
+.quiz-rup{font-family:var(--dot);font-size:.66rem;color:#fff;background:#e8b830;padding:1px 6px;border-radius:2px;animation:quiz-blink 1s infinite;}
+@keyframes quiz-grow{from{transform:scaleY(0);}}
 .quiz-verdict{font-family:var(--dot);font-size:1.25rem;letter-spacing:.08em;color:var(--sc);text-shadow:0 0 12px var(--sc);display:flex;align-items:baseline;gap:10px;}
 .quiz-verdict small{font-family:var(--mono);font-size:.74rem;color:var(--gd);text-shadow:none;margin-left:auto;}
 .quiz-ans{margin-top:6px;font-size:.8rem;color:var(--tx-b);padding:5px 8px;border-left:3px solid var(--gn);background:rgba(68,238,136,.07);}
@@ -154,7 +169,7 @@ addMinigameStyle('quiz',`
 .quiz-story-txt{font-family:var(--serif);font-size:.86rem;line-height:1.8;color:var(--tx-b);min-height:3.6em;}
 .quiz-story-nx{position:absolute;right:12px;bottom:6px;font-family:var(--mono);font-size:.62rem;color:var(--cy);animation:quiz-blink 1s infinite;}
 .quiz-story-skip{position:absolute;right:12px;top:10px;z-index:1;font-family:var(--dot);font-size:.68rem;color:var(--tx);background:rgba(10,7,22,.85);border:1px solid rgba(187,174,221,.35);border-radius:14px;padding:6px 12px;cursor:pointer;}
-.quiz-story-ttl{position:absolute;left:0;right:0;top:16%;text-align:center;font-family:var(--dot);color:#fff6e0;font-size:1.1rem;letter-spacing:.2em;text-shadow:0 0 12px rgba(255,190,110,.8);}
+.quiz-story-ttl{position:absolute;left:0;right:0;top:40%;text-align:center;font-family:var(--dot);color:#fff6e0;font-size:1.1rem;letter-spacing:.2em;text-shadow:0 0 12px rgba(255,190,110,.8);}
 .quiz-story-ttl small{display:block;font-family:var(--mono);font-size:.62rem;color:var(--tx);letter-spacing:.3em;margin-bottom:4px;}
 .quiz-grade{position:absolute;right:10px;top:8px;width:74px;height:74px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--dot);color:var(--gc);border:3px double var(--gc);border-radius:50%;transform:rotate(14deg) scale(2.4);opacity:0;line-height:1;}
 .quiz-grade b{font-size:2.1rem;font-weight:normal;}
@@ -290,7 +305,7 @@ function getData(){
   if(!gs.quizData||typeof gs.quizData!=='object')gs.quizData={};
   const d=gs.quizData;
   d.best=d.best||0;d.runs=d.runs||0;d.total=d.total||0;d.right=d.right||0;
-  d.wrong=d.wrong||{};d.seen=d.seen||{};
+  d.wrong=d.wrong||{};d.seen=d.seen||{};d.hist=d.hist||[];d.area=d.area||{L:[0,0],P:[0,0],S:[0,0]};
   return d;
 }
 
@@ -326,6 +341,8 @@ const PHASES=[
 ];
 const phaseOf=i=>i>=7?2:i>=3?1:0;
 const gradeOf=c=>c>=9?{g:'S',t:'合格確実',col:'#c8243f'}:c>=7?{g:'A',t:'合格圏',col:'#c8243f'}:c>=5?{g:'B',t:'あと一歩',col:'#b07a10'}:{g:'C',t:'要復習',col:'#5a4c90'};
+const RANKS=[[0,'見習い'],[15,'研修生'],[35,'一人前'],[60,'ベテラン'],[90,'保全の鬼'],[130,'乙4マスター']];
+const rankOf=n=>{let i=0;while(i+1<RANKS.length&&n>=RANKS[i+1][0])i++;return i;};
 const IMG=n=>`url(assets/img/${n}.webp)`;
 // 夜ごとに変わる導入の1行目
 const OPENERS=[
@@ -389,7 +406,7 @@ registerMinigame({
     const H=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
     // ── DOM ──
-    const root=document.createElement('div');root.className='quiz-root';
+    const root=document.createElement('div');root.className='quiz-root quiz-pre';
     root.innerHTML=`
       <canvas class="quiz-bg"></canvas>
       <div class="quiz-scene"><div class="quiz-hud">
@@ -450,7 +467,8 @@ registerMinigame({
       if(!motes.length)for(let i=0;i<34;i++)motes.push({x:Math.random(),y:Math.random(),vx:(Math.random()-.5)*.01,vy:-.004-Math.random()*.01,r:.6+Math.random()*1.4,p:Math.random()*6});
     }
     function winRect(){const h=Math.max(30,sceneH*.72);return {x:W*.05,y:Math.max(30,sceneH*.16),w:W*.46,h:Math.min(h,sceneH-Math.max(30,sceneH*.16)-6)};}
-    const ro=new ResizeObserver(()=>resize());ro.observe(root);
+    for(let i=0;i<4;i++){const b=document.createElement('button');b.className='quiz-ch';b.disabled=true;b.innerHTML='<span class="quiz-ch-n" style="--c:#5e5078">'+(i+1)+'</span><span class="quiz-ch-t">　</span>';elCh.appendChild(b);}
+    const ro=new ResizeObserver(()=>resize());ro.observe(root);ro.observe(elMain);
     resize();
 
     function drawBg(dt){
@@ -619,7 +637,7 @@ registerMinigame({
           <button class="quiz-mode" data-m="0" style="--mc:var(--cy)">いつもの10問<small>4択・解説つき／今夜の重点：${AREA[focus].short}</small></button>
           <button class="quiz-mode" data-m="1" style="--mc:var(--rd)" ${canMock?'':'disabled'}>${canMock?'模擬試験モード':'🔒 模擬試験モード'}<small>${canMock?'難問寄り・制限時間短め・得点×1.2':'1回で8問以上正解すると解放'}</small></button>
         </div>
-        <div class="quiz-rec">${data.runs?`BEST ${data.best.toLocaleString()} ・ 最高評価 ${data.bestGrade||'-'} ・ 挑戦 ${data.runs}回`:'— FIRST NIGHT —'}</div>`;
+        <div class="quiz-rec">${data.runs?`ランク【${RANKS[rankOf(data.right)][1]}】 BEST ${data.best.toLocaleString()} ・ 最高評価 ${data.bestGrade||'-'}<br>通算正答率 ${['L','P','S'].map(a=>AREA[a].short+' '+(data.area[a][1]?Math.round(data.area[a][0]/data.area[a][1]*100)+'%':'-')).join(' / ')}`:'— FIRST NIGHT —'}</div>`;
       elTitle.querySelectorAll('.quiz-mode').forEach(b=>b.addEventListener('click',()=>pickMode(b.dataset.m==='1')));
       synth('title');
     }
@@ -685,7 +703,7 @@ registerMinigame({
     }
     function begin(){
       if(st!=='intro')return;
-      st='wait';AU.se('decide');elOv.classList.remove('on');
+      st='wait';AU.se('decide');elOv.classList.remove('on');root.classList.remove('quiz-pre');
       later(()=>showPhase(0,showQuestion),250);
     }
     function showPhase(p,cb){
@@ -808,7 +826,12 @@ registerMinigame({
     function showFinal(){
       st='final';finalAt=performance.now();mg.setTimer('');
       grade=gradeOf(correct);
+      const rk0=rankOf(data.right);
       data.runs++;data.total+=QN;data.right+=correct;
+      ['L','P','S'].forEach(a=>{data.area[a][0]+=byArea[a][0];data.area[a][1]+=byArea[a][1];});
+      data.hist.push({d:gs.day||1,c:correct,m:mock?1:0});if(data.hist.length>7)data.hist.shift();
+      const rk=rankOf(data.right),rankUp=rk>rk0;
+      const nx=RANKS[rk+1],rpc=nx?Math.round((data.right-RANKS[rk][0])/(nx[0]-RANKS[rk][0])*100):100;
       if(score>data.best){newBest=data.best>0;data.best=score;}
       data.bestCorrect=Math.max(data.bestCorrect||0,correct);
       if(!data.bestGrade||'SABC'.indexOf(grade.g)<'SABC'.indexOf(data.bestGrade))data.bestGrade=grade.g;
@@ -824,8 +847,12 @@ registerMinigame({
         <div class="quiz-f-areas">${['L','P','S'].map(a=>{const [r,n]=byArea[a],pc=n?Math.round(r/n*100):0;
           return `<div class="quiz-f-row"><span class="quiz-f-lab">${AREA[a].short}</span><span class="quiz-f-bar" style="--c:${AREA[a].col}"><i data-w="${pc}"></i></span><span class="quiz-f-val">${r}/${n} ${pc}%</span></div>`;}).join('')}
           <div class="quiz-p-note" style="margin-top:0">赤い点線＝合格ライン（各科目60%）${missed.length?`<br>復習リストに +${missed.length}問`:''}${unlocked?'<br><b>🔓 模擬試験モードが解放された！</b>':''}</div></div>
+        <div class="quiz-f-rank">ランク <b>${RANKS[rk][1]}</b>${rankUp?'<span class="quiz-rup">RANK UP!</span>':''}<span class="quiz-f-rbar"><i style="width:${rpc}%"></i></span><span style="font-family:var(--mono);font-size:.62rem">${nx?`次まで${nx[0]-data.right}問`:'MAX'}</span></div>
+        <div class="quiz-p-note" style="margin-top:6px">最近の記録（正解数${data.hist.some(h=>h.m)?'・斜線＝模試':''}）</div>
+        <div class="quiz-f-hist">${data.hist.map((h,i)=>`<i class="${i===data.hist.length-1?'now':''}${h.m?' mk':''}" style="height:${Math.max(6,h.c*10)}%;animation-delay:${.3+i*.06}s"><b>${h.c}</b></i>`).join('')}</div>
         <button class="quiz-btn">次へ ▶<small>Enter</small></button></div>`;
       elOv.querySelector('.quiz-btn').addEventListener('click',finish);
+      if(rankUp)later(()=>{banner('ランクアップ！ '+RANKS[rk][1]);synth('fanfare');},1700);
       elOv.classList.add('on');
       synth('page');
       later(()=>{elOv.querySelectorAll('.quiz-f-bar i').forEach(i=>i.style.width=i.dataset.w+'%');},120);
@@ -841,7 +868,7 @@ registerMinigame({
     function finish(){
       if(st!=='final'||performance.now()-finalAt<500)return;
       AU.se('decide');synth('page');
-      st='ending';elOv.classList.remove('on');
+      st='ending';elOv.classList.remove('on');root.classList.add('quiz-pre');
       const E=ENDINGS[grade.g];
       if(grade.g==='B'||grade.g==='C')lampOn=.3;
       later(()=>startStory(E.lines,()=>mg.end('done'),E.face,`<small>EPILOGUE · ${grade.g}</small>${grade.t}`),350);

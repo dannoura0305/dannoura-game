@@ -302,6 +302,66 @@ registerMinigame({
     const stage=$('.esc-stage'),cv=$('.esc-cv'),cx=cv.getContext('2d');
     const msgEl=$('.esc-msg'),zoomEl=$('.esc-zoom'),zt=$('.esc-zt'),zc=$('.esc-zc'),flashEl=$('.esc-flash');
     const dark=document.createElement('canvas'),dx=dark.getContext('2d');
+    const dlgEl=$('.esc-dlg');
+
+    // ── 効果音（Web Audioで合成。AU.ctxがあり、SE音量>0のときだけ） ──
+    let _nb=null,rainSrc=null;
+    const seVol=()=>typeof AUDIO_SET!=='undefined'?+AUDIO_SET.se||0:1;
+    function actx(){try{if(seVol()<=0)return null;if(!AU.ctx&&AU.init)AU.init();const c=AU.ctx;if(!c)return null;if(c.state==='suspended')c.resume().catch(()=>{});return c;}catch(e){return null;}}
+    function noiseBuf(c){if(_nb&&_nb.sampleRate===c.sampleRate)return _nb;const b=c.createBuffer(1,c.sampleRate*2,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return _nb=b;}
+    function sfx(kind){
+      if(mg._ended)return;
+      const c=actx();if(!c)return;
+      try{
+        const t0=c.currentTime,out=c.createGain();out.gain.value=seVol();out.connect(c.destination);
+        const noise=(dur,type,f,q,g,att,dl)=>{const t=t0+(dl||0),s=c.createBufferSource();s.buffer=noiseBuf(c);s.loop=true;const fl=c.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q||1;const gg=c.createGain();gg.gain.setValueAtTime(0,t);gg.gain.linearRampToValueAtTime(g,t+(att||.005));gg.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(fl);fl.connect(gg);gg.connect(out);s.start(t);s.stop(t+dur+.05);return fl;};
+        const tone=(f,type,g,dur,dl,f2)=>{const t=t0+(dl||0),o=c.createOscillator(),gg=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);gg.gain.setValueAtTime(0,t);gg.gain.linearRampToValueAtTime(g,t+.006);gg.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(gg);gg.connect(out);o.start(t);o.stop(t+dur+.05);};
+        switch(kind){
+          case 'thunder':{const f=noise(2.6,'lowpass',500,.7,.55,.02);f.frequency.exponentialRampToValueAtTime(70,t0+2.3);noise(.3,'highpass',1800,.5,.12);break;}
+          case 'clunk':tone(110,'square',.1,.12,0,45);noise(.07,'bandpass',2400,3,.25);break;
+          case 'trip':noise(.35,'highpass',3000,.5,.32);tone(70,'sawtooth',.16,.35,0,30);noise(.08,'bandpass',1500,2,.3,.005,.05);break;
+          case 'click':noise(.03,'bandpass',3600,4,.3);break;
+          case 'unlock':noise(.05,'bandpass',2600,3,.35);noise(.06,'bandpass',1500,3,.35,.005,.09);tone(880,'triangle',.07,.3,.16);tone(1320,'triangle',.06,.5,.27);break;
+          case 'creak':tone(150,'sawtooth',.045,.8,0,90);noise(.7,'bandpass',800,7,.06,.1);break;
+          case 'hiss':noise(1.1,'highpass',2600,.6,.2,.02);break;
+          case 'rumble':noise(2.8,'lowpass',260,.8,.32,.3);tone(46,'sawtooth',.05,2.8,0,38);noise(.08,'bandpass',900,2,.25,.005,2.7);break;
+          case 'power':tone(50,'sawtooth',.09,2,0,120);tone(100,'sine',.08,2,0,240);noise(.5,'bandpass',4200,9,.07,.01,.3);break;
+          case 'pick':tone(660,'triangle',.07,.12);tone(990,'triangle',.07,.2,.08);break;
+          case 'engine':tone(28,'sawtooth',.2,2.6,0,52);noise(2.6,'lowpass',180,1,.28,.5);noise(.4,'bandpass',600,2,.2);break;
+          case 'door':tone(70,'sawtooth',.07,1.4,0,50);noise(1.5,'lowpass',600,.5,.14,.3);tone(523,'sine',.05,1.8,.9);tone(659,'sine',.05,1.8,1.1);tone(784,'sine',.05,2.2,1.3);break;
+          case 'drip':tone(1400,'sine',.03,.09,0,500);break;
+          case 'type':noise(.015,'bandpass',2800,3,.05);break;
+        }
+      }catch(e){}
+    }
+    function rainStart(){
+      const c=actx();if(!c||rainSrc)return;
+      try{const s=c.createBufferSource();s.buffer=noiseBuf(c);s.loop=true;const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=1100;f.Q.value=.4;const g=c.createGain();g.gain.value=0;g.gain.linearRampToValueAtTime(.035*seVol(),c.currentTime+2);s.connect(f);f.connect(g);g.connect(c.destination);s.start();rainSrc={s,g};}catch(e){}
+    }
+    function rainStop(){if(!rainSrc)return;try{const c=AU.ctx;rainSrc.g.gain.linearRampToValueAtTime(0,c.currentTime+.6);const s=rainSrc.s;setTimeout(()=>{try{s.stop();}catch(e){}},700);}catch(e){}rainSrc=null;}
+
+    // ── 会話シーン（顔グラ＋1文字ずつ） ──
+    let dlgQ=null,dlgDone=null,typing=null,curLine=null;
+    function dialog(lines,done){dlgQ=lines.slice();dlgDone=done;dlgEl.classList.remove('off');nextLine();}
+    function nextLine(){
+      if(!dlgQ)return;
+      if(typing){typing.finish();return;}
+      const l=dlgQ.shift();curLine=l;
+      if(!l){dlgEl.classList.add('off');const d=dlgDone;dlgQ=null;dlgDone=null;if(d)d();return;}
+      const pt=dlgEl.querySelector('.pt');
+      if(l.img){pt.classList.remove('hide');pt.querySelector('img').src='assets/img/'+l.img+'.webp';}else pt.classList.add('hide');
+      dlgEl.querySelector('.nm').textContent=l.who||'';
+      const tx=dlgEl.querySelector('.tx');
+      dlgEl.querySelector('.nx').style.display=l.btn?'none':'';
+      if(l.fx)l.fx();else AU.se('btn');
+      const fin=()=>{tx.innerHTML=l.text+(l.btn?`<div class="btns"><button class="ev-btn esc-res">${l.btn}</button></div>`:'');typing=null;
+        if(l.btn)tx.querySelector('.esc-res').addEventListener('click',ev=>{ev.stopPropagation();AU.se('decide');l.onBtn();});};
+      if(/</.test(l.text)){fin();return;}
+      let i=0;tx.textContent='';
+      const iv=setInterval(()=>{if(mg._ended){clearInterval(iv);return;}i++;tx.textContent=l.text.slice(0,i);if(i%3===0)sfx('type');if(i>=l.text.length){clearInterval(iv);fin();}},34);
+      typing={finish(){clearInterval(iv);fin();}};
+    }
+    dlgEl.addEventListener('click',e=>{if(e.target.closest('button'))return;if(dlgQ){if(curLine&&curLine.btn&&!typing)return;nextLine();}});
 
     // ── 背景の固定ランダム（雨・街明かり・埃・汚れ） ──
     const R0=(()=>{let s=12345;return ()=>((s=(s*16807)%2147483647)/2147483647);})();

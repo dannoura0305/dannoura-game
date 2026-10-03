@@ -1022,7 +1022,7 @@ registerMinigame({
         g.strokeStyle='#05040e';g.lineWidth=1;g.stroke();g.restore();
         tipBox(g,x,y+C*.95,'空き枠をタップして防衛を置こう');
       }else if(tut===1&&phase==='prep'){
-        tipBox(g,W-110,30,'▲ 準備できたら開始（自動でも始まる）');
+        tipBox(g,W-110,Y(.05)+C*.95,'▲ 準備できたら開始（自動でも始まる）');
       }else if(tut===2){
         tipBox(g,W/2,H*.62,'防衛をタップ → 強化・売却。×2で倍速');
       }
