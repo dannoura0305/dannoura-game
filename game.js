@@ -2389,7 +2389,9 @@ function checkSaveData(){
     const raw = localStorage.getItem(SAVE_KEY);
     const btn  = document.getElementById('btn-continue');
     const wrap = document.getElementById('btn-delete-wrap');
-    if(!raw || !btn){ return; }
+    if(!btn) return;
+    // セーブが無ければ「つづきから」と削除ボタンを隠す（削除直後にも残らないように）
+    if(!raw){ btn.style.display='none'; if(wrap) wrap.style.display='none'; return; }
 
     const saveData = JSON.parse(raw);
     const d  = saveData.gs.day   || 1;
