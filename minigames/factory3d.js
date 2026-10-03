@@ -1164,7 +1164,7 @@ registerMinigame({
         {who:'班長（無線）',por:'radio',text:`復電まであと${TIME_LIMIT}秒。それまでに圧力計5か所、目視で頼むわ。`},
         {who:'だんのうら',por:'char_normal',text:'了解です。……懐中電灯一本で、ですか。'},
         {who:'班長（無線）',por:'radio',text:DATA.clears?'……また“影”を見たて話が出とる。前より濃いらしい。光、絶やすなよ。':'……それとな。あそこは夜、“影”が出るて噂や。光、絶やすなよ。'},
-        {who:'だんのうら',por:'char_normal',text:'（娘が起きる前には帰らな。――行くか）'},
+        {who:'だんのうら',por:'char_normal',text:'（娘が起きる前には帰らなきゃ。――行くわよ）'},
       ];
       let phaseT=0,storyIdx=-1,typed=0,lineFull=false,pendingHide=null,pendingT=0,glitchT=0;
       const setPor=(elm,por)=>{
@@ -1304,11 +1304,11 @@ registerMinigame({
         if(reason==='timeup'){overT=2;toast('復電――時間切れ','bad');se('warn');S.power=1;}
       }
       const LINES={
-        S:[['班長','よう戻った。完璧や――照明、入れるで。'],['だんのうら','全部異常なしです。……報告書に書けへんもんが一つ、ありましたけど。']],
+        S:[['班長','よう戻った。完璧や――照明、入れるで。'],['だんのうら','全部異常なしです。……報告書に書けないものが一つ、ありましたけどね。']],
         A:[['班長','ご苦労さん。復電したで。全部見てくれたな。'],['だんのうら','はい。……あの影、最後までついてきてました。']],
         B:[['班長','間に合ったか。ようやった、顔色悪いで。'],['だんのうら','……ライト、もうちょっとで切れるとこでした。']],
         down:[['だんのうら','……ライトが、消え――　後ろに、誰か……'],['班長（無線）','だんのうら？　おい、応答せえ！　だんのうら！']],
-        timeup:[['班長（無線）','復電した。残りは朝番に回す。……無事か？'],['だんのうら','なんとか。……影の噂、ほんまやったんですね。']],
+        timeup:[['班長（無線）','復電した。残りは朝番に回す。……無事か？'],['だんのうら','なんとか。……影の噂、ほんとだったのね。']],
       };
       function showEnding(){
         S.phase='ending';phaseT=0;
@@ -1682,7 +1682,7 @@ registerMinigame({
           title:'🏭 第三工場、点検完了',summary:stat+'<br>停電の闇の中、全計器を確認して非常口から脱出した。',
           fx:{jobRep:10,certKnow:4,money:6000,mental:3,fatigue:8},time:70,sp:2,
           log:'停電した第三工場で計器5か所を点検した。暗がりに、確かに何かがいた。',
-          cutin:['win','……全部異常なし。あの影のことは、報告書には書かれへんな。'],
+          cutin:['win','……全部異常なし。あの影のことは、報告書には書けないわね。'],
           after(){gs.factoryNetaAvail=true;gs.factoryNetaType='第三工場の影';},
         };
       }
@@ -1691,7 +1691,7 @@ registerMinigame({
           title:'🔦 ライトが消えた',summary:stat+'<br>電池が尽き、闇の中で何かに肩を掴まれた――気がした。',
           fx:{jobRep:n*2,mental:-8,fatigue:9},time:70,
           log:'第三工場の点検中に懐中電灯が切れた。あの影は何だったのか。',
-          cutin:['fear','……真っ暗や。今、誰か後ろにおったよな……？'],
+          cutin:['fear','……真っ暗よ。今、誰か後ろにいたわよね……？'],
         };
       }
       if(reason==='timeup'){
@@ -1699,7 +1699,7 @@ registerMinigame({
           title:'⏱ 点検、時間切れ',summary:stat+'<br>復電の時刻に間に合わなかった。点検できた分だけ報告する。',
           fx:{jobRep:n*2,money:n*1000,fatigue:8},time:70,
           log:`停電中の第三工場で計器を${n}か所点検した。時間が足りなかった。`,
-          cutin:['tired','……間に合わんかった。残りは朝番に引き継ぎや。'],
+          cutin:['tired','……間に合わなかった。残りは朝番に引き継ぎね。'],
         };
       }
       return {

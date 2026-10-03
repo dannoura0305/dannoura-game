@@ -628,8 +628,8 @@ registerMinigame({
         L.push({who:'boss',face:'normal',text:'だんのうら、悪い。組立ラインの子が急に休んでもうて、夜の分が回らへん。'});
         L.push({who:'boss',face:'normal',text:'部品は2個ひと組で流れてくる。同じ部品を3つくっつけたら、1段上の部品に組み上がるんや。'});
         L.push({who:'boss',face:'normal',text:'ネジ→ナット→ギア→モーター→アーム。アーム3本でロボット完成。完成品はフォークで出荷や。'});
-        L.push({who:'dan',face:'tired',text:'……設備保全の仕事ちゃうけどな。ええよ、やります。'});
-        L.push({who:'dan',face:'normal',text:'（残業代は、娘の上履き代や）'});
+        L.push({who:'dan',face:'tired',text:'……設備保全の仕事じゃないけど。いいわよ、やるわ。'});
+        L.push({who:'dan',face:'normal',text:'（残業代は、娘の上履き代ながやちゃ）'});
       }else if(bd.plays%2===1){
         L.push({who:'boss',face:'normal',text:'また組立の手が足らんのや。……前回の手際、評判よかったで。'});
         L.push({who:'dan',face:'normal',text:'褒めても何も出ませんよ。出るのはロボットだけです。'});
@@ -653,17 +653,17 @@ registerMinigame({
       if(reason==='topout'){
         L.push({who:'sys',face:'fear',text:'ガガガッ――！　部品があふれて、ラインが緊急停止した。'});
         L.push({who:'boss',face:'collapse',text:'止めろ止めろ！……怪我ないか。部品はええ、お前が無事ならそれでええ。'});
-        L.push({who:'dan',face:'tired',text:shipped?`……ロボット${shipped}台は出せた。でも焦ると詰まる。分かってたのにな。`:'……焦ると詰まる。ラインも、人生も一緒やな。'});
+        L.push({who:'dan',face:'tired',text:shipped?`……ロボット${shipped}台は出せた。でも焦ると詰まる。分かってたのにね。`:'……焦ると詰まる。ラインも、人生も一緒なのよね。'});
       }else if(g==='S'||g==='A'){
         L.push({who:'boss',face:'happy',text:`全便、間に合うた！　ロボット${shipped}台、組立${merges}回やぞ。お前、保全より組立向いとるんちゃうか。`});
         L.push({who:'dan',face:'win',text:'……勘弁してください。でも、カチッとはまる感じ、ちょっと気持ちよかったです。'});
         L.push({who:'dan',face:'happy',text:'（テールランプが雨に滲んで遠ざかる。帰ったら、娘の寝顔を見よう）'});
       }else if(g==='B'){
         L.push({who:'boss',face:'normal',text:`組立${merges}回か。まあまあやな、助かったわ。`});
-        L.push({who:'dan',face:'normal',text:'（帰ったら、寝顔だけ見よう。起こさんように）'});
+        L.push({who:'dan',face:'normal',text:'（帰ったら、寝顔だけ見よう。起こさないように）'});
       }else{
         L.push({who:'boss',face:'tired',text:'残りは朝番に回すわ。気にすんな、本業ちゃうんやし。'});
-        L.push({who:'dan',face:'tired',text:'……すんません。次は、もうちょっと組めるようにします。'});
+        L.push({who:'dan',face:'tired',text:'……ごめんなさいね。次は、もうちょっと組めるようにするわ。'});
       }
       return L;
     }
@@ -1369,12 +1369,12 @@ registerMinigame({
         fx={money:Math.min(6000,L*400),jobRep:Math.min(8,Math.floor(L/3)),mental:L>=10?2:0,fatigue:6};
         time=45;sp=L>=12?1:0;
         title=L>=12?'🧱 組立ノルマ達成！':'🧱 定時まで組み立てた';
-        cut=L>=12?['win','……全部組んだった。今夜のロボット、俺の手で出したんや。']:L>=6?['happy','よし、これだけ組めたら上出来や。']:['normal','……手は動いた。それで十分や。'];
+        cut=L>=12?['win','……全部組んでやったわ。今夜のロボット、アタシの手で出したのよ。']:L>=6?['happy','よし、これだけ組めたら上出来よ。']:['normal','……手は動いた。それで十分よ。'];
         log=shipped?`部品組み立てラインでロボット${shipped}台を完成・出荷（組立${merges}回）。フォークの回転灯が、今夜は誇らしく見えた。`:`部品組み立てラインで${merges}回の組み立てをこなした。`;
       }else if(reason==='topout'){
         fx={money:L*300,jobRep:Math.floor(L/4),mental:-2,fatigue:6};
         time=45;title='💥 ライン停止……';
-        cut=['tired','……詰め込みすぎた。焦ると詰まるのは、仕事も人生も一緒やな。'];
+        cut=['tired','……詰め込みすぎた。焦ると詰まるのは、仕事も人生も一緒なのね。'];
         log=`部品組み立てラインで部品があふれてライン停止。組立${merges}回、出荷${shipped}台。`;
       }else{
         fx={money:L*200,fatigue:2};time=20;title='🧱 組み立てを切り上げた';

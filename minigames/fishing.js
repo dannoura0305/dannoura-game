@@ -82,7 +82,7 @@ registerMinigame({
       {id:'mebaru',name:'メバル',r:1,w:11,min:13,max:27,zones:[0,1],beh:'calm',col:['#2f2c3c','#6d6a7c','#b4b0bc'],h:.34,tail:'trunc',fin:'spiky',eye:.11,bars:'rgba(16,14,26,.45)',
         flav:['大きな目で月明かりを見上げている。「春告魚」とも呼ばれる。','凪の夜ほどよく浮く。静かにしてたら、向こうから来てくれる。']},
       {id:'kasago',name:'カサゴ',r:1,w:9,min:12,max:25,zones:[0],beh:'sink',col:['#8e2f22','#c0603e','#ecc0a0'],h:.36,tail:'round',fin:'spiky',eye:.085,mottle:'rgba(60,16,12,.5)',
-        flav:['岸壁の隙間に住む、根の主。トゲに気をつけて。','ゴツゴツした顔やけど、味は優しい。']},
+        flav:['岸壁の隙間に住む、根の主。トゲに気をつけて。','ゴツゴツした顔だけど、味は優しいのよ。']},
       {id:'seigo',name:'セイゴ',r:1,w:8,min:22,max:42,zones:[1,2],beh:'dart',col:['#3f4f62','#93a3b4','#e8eef4'],h:.24,tail:'fork',fin:'spiky',eye:.06,
         flav:['スズキの若い頃の名前。出世魚は、育つたびに名前が変わる。','この子もいつか、名前が変わるくらい大きくなる。']},
       {id:'fugu',name:'クサフグ',r:1,w:9,min:9,max:18,zones:[0,1],beh:'calm',col:['#3f5a30','#7b8f58','#f6f3e6'],h:.54,tail:'round',fin:'soft',eye:.1,dots:'rgba(238,238,214,.75)',
@@ -92,19 +92,19 @@ registerMinigame({
       {id:'mejina',name:'メジナ',r:1,w:7,min:18,max:36,zones:[1,2],beh:'sink',col:['#18222f','#33465a','#6c7e90'],h:.43,tail:'fork',fin:'soft',eye:.07,
         flav:['磯の黒い魚。引きが強くて、手のひらが熱くなる。','夜の海と同じ色をしている。']},
       {id:'tachiuo',name:'タチウオ',kind:'ribbon',r:2,w:5,min:60,max:105,zones:[2],t:1,beh:'dart',
-        flav:['刀みたいに光る、立ったまま泳ぐ魚。月を一本、釣り上げたみたいや。','銀色が手に移りそうなほど、ぴかぴかしている。']},
+        flav:['刀みたいに光る、立ったまま泳ぐ魚。月を一本、釣り上げたみたいね。','銀色が手に移りそうなほど、ぴかぴかしている。']},
       {id:'anago',name:'マアナゴ',kind:'eel',r:2,w:5,min:30,max:62,zones:[0,1],t:1,beh:'sink',
         flav:['夜の住人。体の白い点々は「はかり目」と呼ばれる。','にょろりと逃げようとする。……今夜は逃がしてやろう。']},
       {id:'glass',name:'シーグラス',kind:'glass',r:2,w:3,min:2,max:5,unit:'径',zones:[0],beh:'item',
-        flav:['波に丸められたガラスの欠片。何十年、海を旅してきたんやろう。','角が取れてる。……人も、こんなふうになれたらええのに。']},
+        flav:['波に丸められたガラスの欠片。何十年、海を旅してきたのかしら。','角が取れてる。……人も、こんなふうになれたらいいのにね。']},
       {id:'boot',name:'片方の長靴',kind:'boot',r:2,w:2,min:22,max:28,zones:[0,1],beh:'item',
-        flav:['……長靴やった。もう片方は、どこの海におるんやろ。','重かった。期待した分だけ、ちょっと笑えた。']},
+        flav:['……長靴だった。もう片方は、どこの海にいるのかしら。','重かった。期待した分だけ、ちょっと笑えた。']},
       {id:'ika',name:'光るイカ',kind:'squid',r:3,w:3.2,min:12,max:28,zones:[1,2],t:1,beh:'dart',
-        flav:['水の中で青く光っていた。星がひとつ、海に落ちてきたみたいや。','光で話をする生き物らしい。何を言うてたんやろう。']},
+        flav:['水の中で青く光っていた。星がひとつ、海に落ちてきたみたい。','光で話をする生き物らしい。何を言ってたのかしら。']},
       {id:'heike',name:'平家ガニ',kind:'crab',r:3,w:2.8,min:2,max:4,unit:'甲幅',zones:[0,1],t:1,beh:'sink',
-        flav:['甲羅に怒った人の顔。壇ノ浦に沈んだ平家の武者の無念が宿る、と伝わる。','そっと海に返した。……ここは、そういう海なんや。']},
+        flav:['甲羅に怒った人の顔。壇ノ浦に沈んだ平家の武者の無念が宿る、と伝わる。','そっと海に返した。……ここは、そういう海ながやちゃ。']},
       {id:'suzu',name:'古い鈴',kind:'bell',r:3,w:3,min:3,max:6,unit:'径',zones:[2],t:2,beh:'item',
-        flav:['錆びた鈴。振るとまだ、かすかに鳴る。誰の物やったんやろう。','八百年前、この海峡で鳴っていた音かもしれない。']},
+        flav:['錆びた鈴。振るとまだ、かすかに鳴る。誰の物だったのかしら。','八百年前、この海峡で鳴っていた音かもしれない。']},
     ];
     const SP=Object.fromEntries(SPECIES.map(s=>[s.id,s]));
     const WHERE=s=>s.zones.map(z=>ZONE[z]).join('・')+(s.t?`／${TIMES[s.t]}から`:'');
@@ -757,7 +757,7 @@ registerMinigame({
         L.push({who:'gen',text:'お、見ん顔じゃのう。竿、余っとるけえ使いんさい。'});
         L.push({who:'gen',text:`今夜は${WNAME}、${TIDE}じゃ。力を抜け。焦っとる奴に、魚は寄ってこん。`});
       }else{
-        L.push({who:'hero',face:tired?'tired':'normal',text:tired?'工場の機械の音が、まだ耳の奥で鳴っとる。':(gs.flame||0)>30?'コメント欄は見んとこ。今夜は海だけ見る。':'……また来てしもた。ここ、落ち着くんよな。'});
+        L.push({who:'hero',face:tired?'tired':'normal',text:tired?'工場の機械の音が、まだ耳の奥で鳴っとるわ。':(gs.flame||0)>30?'コメント欄は見ないでおくわ。今夜は海だけ見るの。':'……また来ちゃった。ここ、落ち着くのよね。'});
         L.push({who:'gen',text:`おう、来たか。図鑑は${zCount()}種か。今夜は${WNAME}、月は${MOON_NAME}じゃ。`});
         if(FD.visits===2)L.push({who:'gen',text:'丑三つ時の沖にはの、ときどき妙なもんがかかる。わしは鈴の音を聞いたことがある。'});
         else if(!FD.seen.heike&&WEATHER==='mist')L.push({who:'gen',text:'こういう霧の晩はの……平家の蟹が上がってくる。'});
@@ -768,11 +768,11 @@ registerMinigame({
       const L=[],n=catches.length;
       const rare=catches.find(c=>SP[c.id].r===3);
       const happy=grade==='S'||grade==='A';
-      if(rare)L.push({who:'gen',text:`……${SP[rare.id].name}か。わしも五十年で二度しか見とらん。`},{who:'hero',face:'happy',text:'この海、まだまだ知らんことばっかりや。'});
-      else if(n>=5)L.push({who:'gen',text:'ようけ釣ったのう。腕が上がったわ。'},{who:'hero',face:'happy',text:'……明日の弁当、ちょっと豪華にしたろ。'});
-      else if(n>=2)L.push({who:'gen',text:'ぼちぼちじゃな。それでええ。'},{who:'hero',face:'normal',text:'うん。……それでええんよな。'});
+      if(rare)L.push({who:'gen',text:`……${SP[rare.id].name}か。わしも五十年で二度しか見とらん。`},{who:'hero',face:'happy',text:'この海、まだまだ知らないことばっかりね。'});
+      else if(n>=5)L.push({who:'gen',text:'ようけ釣ったのう。腕が上がったわ。'},{who:'hero',face:'happy',text:'……明日のお弁当、ちょっと豪華にしちゃおうかしら。'});
+      else if(n>=2)L.push({who:'gen',text:'ぼちぼちじゃな。それでええ。'},{who:'hero',face:'normal',text:'うん。……それでいいのよね。'});
       else L.push({who:'gen',text:'釣れん夜もある。海を見に来た、それで十分じゃ。'},{who:'hero',face:'normal',text:'……なんか、頭が静かになった。'});
-      if(newSpecies)L.push({who:'hero',face:happy?'happy':'normal',text:`図鑑、${newSpecies}つ埋まった。……起きたら、あの子に見せたろ。`});
+      if(newSpecies)L.push({who:'hero',face:happy?'happy':'normal',text:`図鑑、${newSpecies}つ埋まった。……起きたら、あの子に見せてあげよう。`});
       L.push({who:'gen',text:'気ぃつけて帰りんさい。また来いよ。'});
       return L;
     }
@@ -896,7 +896,7 @@ registerMinigame({
       setState('reel');se('decide');buzz(25);
       splash(fl.x,fl.y,14,130);ring(fl.x,fl.y,3,.7,'120,255,230',1.4);SFX.splash(cur.big);
       if(firstReel)say('長押しで光の枠が右へ、離すと左へ。魚を枠に入れて','#00e8c8',3.6);
-      else say(item?'……ん？ 重いだけで、暴れへん':cur.big?'重い……大物や！':'かかった！','#00e8c8',1.6);
+      else say(item?'……ん？ 重いだけで、暴れないわね':cur.big?'重い……大物よ！':'かかった！','#00e8c8',1.6);
       firstReel=false;
     }
     function escape(text){
@@ -1277,7 +1277,7 @@ registerMinigame({
       }else if(state==='bite'){
         if(stT>1.35){
           misses++;shadow.r=60;shadow.dart=0;
-          if(misses>=2){escape('……エサだけ取られた。まあ、ええか。');}
+          if(misses>=2){escape('……エサだけ取られた。まあ、いいわ。');}
           else{setState('wait');scheduleBite(rnd(2.2,3.6));say('……離れた。また来るかも','#8e80b0',1.8);}
         }
       }else if(state==='reel'){
@@ -1744,7 +1744,7 @@ registerMinigame({
         title:done?`🎣 夜釣り、おしまい（評価${grade}）`:'🎣 早めに竿をたたんだ',
         summary,fx,time:done?60:20,sp:done&&newSpecies>0?1:0,
         log:done?(rare.length?`壇ノ浦の夜の港で釣りをした。${rare[0]}に出会った、不思議な夜。`:`夜の港で源さんと並んで釣り糸を垂れた。釣果${catches.length}、評価${grade}。`):'夜の港で少しだけ釣りをした。',
-        cutin:done?(rare.length?['happy',`……${rare[0]}って。ほんまにおるんやな、この海。`]:['happy','……波の音しか聞こえん。頭、空っぽになったわ。']):null,
+        cutin:done?(rare.length?['happy',`……${rare[0]}って。ほんとにいるのね、この海。`]:['happy','……波の音しか聞こえない。頭、空っぽになったわね。']):null,
       };
     }};
   },

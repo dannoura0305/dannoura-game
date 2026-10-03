@@ -442,11 +442,11 @@ registerMinigame({
     // 場面：title → talk → game（t<0 は操作説明）→ ending
     let scene='title', sceneT=0, trans=null, endReason=null, grade='', gradeScore=0, newBest=false;
     let talkI=0, talkC=0, blipCd=0;
-    const TALK=[['tired','……やっと寝た。今日は保育園で、ずっと走り回ってたらしい。']];
-    if((gs.childStress||0)>55)TALK.push(['fear','最近は夜中によう泣く。今夜は、ほんまに起こしたくない。']);
-    else if(data.clears>0)TALK.push(['normal','前はおもちゃ踏んで、起こしかけたからな。……今夜も慎重にいこ。']);
-    TALK.push(['normal','洗濯物、洗い物、連絡帳、おもちゃ。0時までに全部片付けたい。']);
-    TALK.push(['tired','そーっと、な。足音ひとつで、また寝かしつけ1時間コースや。']);
+    const TALK=[['tired','……やっと寝たわ。今日は保育園で、ずっと走り回ってたらしいのよ。']];
+    if((gs.childStress||0)>55)TALK.push(['fear','最近は夜中によく泣くのよ。今夜は、ほんとに起こしたくないわ。']);
+    else if(data.clears>0)TALK.push(['normal','前はおもちゃ踏んで、起こしかけたのよね。……今夜も慎重にいくわよ。']);
+    TALK.push(['normal','洗濯物、洗い物、連絡帳、おもちゃ。0時までに全部片付けたいわね。']);
+    TALK.push(['tired','そーっと、ね。足音ひとつで、また寝かしつけ1時間コースながやちゃ。']);
     data.plays=(data.plays||0)+1;
 
     resize();
@@ -1533,7 +1533,7 @@ registerMinigame({
       cx.textAlign='left';
       cx.font=`15px ${FONT}`;cx.fillStyle=col;
       cx.fillText(endReason==='clear'?'起こさずに、ぜんぶ終わった':endReason==='woke'?'起こしてしまった夜':'0時を過ぎてしまった',cxx+86,cy0+24);
-      const line=endReason==='clear'?'連絡帳も書けた。今日も「いってらっしゃい」が言える。':endReason==='woke'?'家事は残ったけど……寝顔が見られたら、それでええか。':'残りは朝のうちに。……まずはコーヒーやな。';
+      const line=endReason==='clear'?'連絡帳も書けた。今日も「いってらっしゃい」が言える。':endReason==='woke'?'家事は残ったけど……寝顔が見られたら、それでいいわ。':'残りは朝のうちに。……まずはコーヒーね。';
       cx.font=`11px ${FONT}`;cx.fillStyle='#bbaedd';
       const ll=wrapText(line,cw-86-78);for(let i=0;i<ll.length&&i<2;i++)cx.fillText(ll[i],cxx+86,cy0+44+i*15);
       // 家事の結果（2×2）
@@ -1646,7 +1646,7 @@ registerMinigame({
         fx={childStress:-10,mental:3,hope:2,fatigue:4};time=45;sp=1;
         title='🤫 起こさずに、ぜんぶ終わった';
         log='子どもを起こさずに家事を終えた。寝顔を見て、少しだけ肩の力が抜けた。';
-        cutin=['happy','……おやすみ。明日もちゃんと起こしたるからな。'];
+        cutin=['happy','……おやすみ。明日もちゃんと起こしてあげるからね。'];
         return {title,time,sp,fx,log,cutin,summary:`評価 <span class="up">${grade}</span><br>家事 <span class="up">${done}/4</span><br>完了時刻 <span class="up">23:${String(Math.min(59,Math.floor(cleared/T_PLAY*60))).padStart(2,'0')}</span>`+
           `<br>最大の物音 <span class="${maxNoise>70?'down':'up'}">${Math.round(maxNoise)}%</span>`+(catPets?`<br>なでたねこ <span class="up">${catPets}</span>`:'')+
           (newBest?'<br>自己ベスト更新！':`<br>最速記録 <span class="up">${data.best}秒</span>`)};
@@ -1655,7 +1655,7 @@ registerMinigame({
         fx={childStress:4,mental:-3,fatigue:6};time=60;
         title='😢 起こしてしまった';
         log='物音で子どもが起きてしまった。抱っこして、もう一度寝かしつけた。';
-        cutin=['tired','ごめんな、起こしてもうたな……よしよし。'];
+        cutin=['tired','ごめんね、起こしちゃったわね……よしよし。'];
         return {title,time,sp,fx,log,cutin,summary:gradeHtml+`終わった家事 <span class="down">${done}/4</span><br>泣き止むまで、背中をとんとんした。`+(toyHits?`<br>踏んだおもちゃ <span class="down">${toyHits}</span>`:'')};
       }
       if(reason==='late'){
@@ -1663,7 +1663,7 @@ registerMinigame({
         fx={childStress:cs,fatigue:5};time=60;
         title='🕛 0時を過ぎてしまった';
         log='家事が終わらないまま日付が変わった。残りは朝にまわす。';
-        cutin=['tired','……もう0時か。残りは朝やな。'];
+        cutin=['tired','……もう0時かしら。残りは朝ね。'];
         return {title,time,sp,fx,log,cutin,summary:gradeHtml+`終わった家事 <span class="down">${done}/4</span><br>子どもは、ぐっすり眠っている。`};
       }
       fx={fatigue:2};time=20;
