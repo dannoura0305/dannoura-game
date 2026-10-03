@@ -766,3 +766,7 @@ body.mg-active #cutin-wrap{display:none;}
 .choice-btn[disabled],.sc[disabled],.ev-btn[disabled]{opacity:.4;cursor:not-allowed;filter:saturate(.3);}
 .ui-rich{display:flex;align-items:center;gap:7px;}
 .notif.ui-danger{border-color:#ff9aac;background:var(--win-orn),var(--win-scan),linear-gradient(180deg,#5a1630,#2a0a1a 70%,#1a0612);}
+/* 数え上げ中：本当の値は残したまま、::after に途中の数字を重ねる */
+.ui-counting{position:relative;color:transparent !important;text-shadow:none !important;}
+.ui-counting::after{content:attr(data-anim);position:absolute;right:0;top:0;white-space:nowrap;color:var(--cnt,#fff);text-shadow:1px 1px 0 #000;}
+.res-body .up{--cnt:var(--up);} .res-body .down{--cnt:var(--down);}

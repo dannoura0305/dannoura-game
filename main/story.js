@@ -245,7 +245,14 @@ const CAST={
   ghost:   {nm:'（削除済み）',cls:'ghost', chat:true},
   sea:     {nm:'？？？',      cls:'sea'},
 };
+// 精神が削れている・疲れきっているときは、元気な表情でも白い姿になる
+function selfFace(f){
+  const low=gs.mental<30||gs.fatigue>=80;
+  if(low&&(!f||f==='normal'||f==='happy'||f==='win'))return 'tired';
+  return f;
+}
 const SELF_IMG=f=>{
+  f=selfFace(f);
   const k=['normal','happy','win','tired','fear','collapse'].includes(f)?f:'normal';
   return (typeof CHAR_IMG!=='undefined'&&CHAR_IMG[k])||('assets/img/char_'+k+'.webp');
 };
@@ -327,7 +334,7 @@ const SCENES=[
   D('tired','夜、ちょっと用事がありまして。'),
   H('用事、ねえ。'),
   H('まあいい。月末の28日、社内で乙4の模試をやる。危険物のな。お前の名前も書いといた。'),
-  D('fear','勝手に……。'),
+  D('normal','勝手に……。'),
   H('受からんでいい。受けろ。紙の上で一回燃やしとけば、本番で燃えん。'),
   H('それとな。三号ラインの機嫌が悪い。音、聞いといてくれ。'),
   C({k:'yes',t:'「受けます」',fx:{certKnow:2,jobRep:1},set:{mock_yes:true},then:[
@@ -344,6 +351,7 @@ const SCENES=[
   D('fear','……はい。'),
   P('夜分に失礼いたします。■■■■様の携帯電話で、お間違いないでしょうか。'),
   N('久しぶりに、自分の本当の名前を聞いた。\n配信では、決して口にしない名前だ。'),
+  N('スマホの暗い画面に映った自分の髪が、一瞬、白く見えた。'),
   P('ご返済が、二か月分確認できておりません。本日はそのご確認でお電話いたしました。'),
   P('お支払いのご予定を、お聞かせいただけますでしょうか。'),
   N('襖の向こうで、子どもが寝返りを打つ音がした。'),
@@ -360,7 +368,7 @@ const SCENES=[
  lines:()=>[
   N('ゴミ出しから戻ると、隣の部屋の戸が開いていた。'),
   CH('あんた、夜遅うまで起きとるねえ。壁が薄いけえ、声がね、ちょっとだけ。'),
-  D('fear','す、すみません。うるさかったですか。'),
+  D('normal','す、すみません。うるさかったですか。'),
   CH('ええんよ。年寄りは夜が長いけえ。ラジオ聞いとるみたいで、よう眠れる。'),
   CH('うちは下関の生まれでね。海の近うで育ったけえ、夜の声には慣れとるんよ。'),
   CH('……あの子、夜中にたまに起きて泣いとるじゃろ。あんたが忙しい晩は、うちに声かけんさい。'),
@@ -427,7 +435,7 @@ const SCENES=[
  lines:()=>[
   N('——朝。トーストを焦がしかけたとき、背中で小さな声がした。'),
   K('ごきげんよう。'),
-  D('fear','……え。'),
+  D('normal','……え。'),
   K('ごきげんよう、だんのうらです。'),
   N('首をかしげて、得意げに笑っている。\n画面の中の、紫の髪の女の子の——あの挨拶だった。'),
   K('パパのパソコンのなかの、おねえさん。よる、しゃべってるでしょ。'),
@@ -481,7 +489,7 @@ const SCENES=[
   N('約束どおり、あの番号から電話が来た。'),
   P('先日はありがとうございました。■■■■様のご状況を、社内で確認いたしました。'),
   P('毎月のご返済額を減らして、期間を延ばすご提案ができます。遅延の損害金も、一部ご相談可能です。'),
-  D('fear','……そんなこと、できるんですか。'),
+  D('normal','……そんなこと、できるんですか。'),
   P('お話しいただけた方には、できることがあります。……私どもも、取り立てたいわけではありませんので。'),
   N('事務的な声だった。でも、それは確かに、人の声だった。'),
   C({k:'plan',t:'「お願いします」',fx:{debt:-10000,mental:3},set:{debt_plan:true},then:[
@@ -528,6 +536,7 @@ const SCENES=[
   f.told_child
    ?CH('あんたの配信の名前……「だんのうら」いうんじゃろ。あの子が「ごきげんよう」言うて、教えてくれたんよ。')
    :CH('あんたの配信の名前……「だんのうら」いうんじゃろ。壁越しに、聞こえたけえ。'),
+  ...when(f.white_seen,CH('……あんた、このあいだ髪が白うなっとったろう。疲れが顔に出る人は、昔からおるんよ。無理しよる証拠じゃ。')),
   CH('壇ノ浦はね、うちの生まれたところのすぐ先よ。平家が、最後に沈んだ海。'),
   CH('幼い帝さまがおってね。お祖母さまが抱いて、海に入ったんよ。'),
   CH('怖がる帝さまに、こう言うたんじゃと。——「浪の下にも、都の候ぞ」。'),
@@ -685,6 +694,38 @@ const SCENES=[
   FX({mental:3,childStress:-2},{child_hums:true}),
  ]},
 
+// ── 白い姿（疲れ果てたとき、だんのうらの姿は白い髪と猫の耳に変わる） ──
+{id:'r_white',title:'白い髪',from:3,to:29,prio:8,bg:'rest',cond:()=>gs.mental<=40||gs.fatigue>=70,
+ lines:f=>[
+  N('洗面所の鏡の前で、手が止まった。'),
+  N('髪が、白い。\n頭の上に、見覚えのない——耳。猫の、耳。'),
+  D('tired','……なんだ、これ。'),
+  N('瞬きをすると、鏡の中の自分も瞬きをした。\n疲れきった目だけは、いつもの自分だった。'),
+  K('パパ……？','sleepy'),
+  K('パパ、しろいねこさんになってる。'),
+  K('……ねこさん、つかれてるの？'),
+  ...when(f.dream1,N('耳の奥で、遠い波の音がした気がした。')),
+  C({k:'tired',t:'「……ちょっと、疲れてるだけだよ」',fx:{childStress:2},set:{white_hid:true},then:[
+      K('ふうん。……じゃあ、はやくねてね。'),
+      N('子どもは、白い耳にそっと触って、布団に戻っていった。')]},
+    {k:'rest',t:'「うん。今夜は、早く休むよ」',fx:{fatigue:-5,mental:2},set:{white_rest:true},then:[
+      K('やくそくね。'),
+      N('鏡の中の白い自分に、小さく頷いた。……休めば、戻るのだろうか。')]}),
+  N('その夜、配信を開くと、画面の中の「だんのうら」も、同じ白い髪をしていた。'),
+  FX(null,{white_seen:true}),
+ ]},
+
+{id:'r_white_back',title:'もどった',from:4,to:30,prio:7,bg:'child',cond:f=>f.white_seen&&!f.white_back&&gs.mental>=50&&gs.fatigue<=45,
+ lines:()=>[
+  K('パパ！　もどった！'),
+  N('鏡を見ると、紫の髪が戻っていた。白い耳も、もうない。'),
+  D('happy','……戻った、な。'),
+  K('しろいねこさんも、かわいかったけど。'),
+  K('こっちのパパのほうが、げんき。'),
+  N('休めば、戻る。——覚えておこう、と思った。'),
+  FX({mental:3},{white_back:true}),
+ ]},
+
 // ── 第三幕 底 ─────────────────────────
 {id:'d21_fake',title:'さくら、が',from:21,to:21,prio:10,bg:'eerie',
  lines:()=>[
@@ -773,6 +814,7 @@ const SCENES=[
   H('俺もな、昔、娘を一人で育てた。夜勤明けに弁当作って、運動会で寝落ちして。'),
   H('娘はもう二十八だ。こないだ「あの頃のお父さん、毎日死にそうな顔してた」って笑われた。'),
   H('……笑い話にするにはな、生き残らにゃならん。'),
+  ...when(f.white_seen&&!f.white_back,H('それとな。お前、ここんとこ頭が白く見える時がある。……疲れの色だ。俺も昔、そうだった。')),
   ...when(f.line3_owner,H('三号の点検表、使わせてもらってる。あれは、いい表だ。'),FX({jobRep:2})),
   C({k:'ask',t:'「班長。……頼っても、いいですか」',fx:{mental:3},set:{asked_help:true},add:{hancho:1},then:[
       H('最初からそう言え、バカタレ。'),
@@ -962,7 +1004,7 @@ const SCENES=[
 const SCENE_BY_ID={};SCENES.forEach((sc,i)=>{sc._i=i;SCENE_BY_ID[sc.id]=sc;});
 
 // 物語上の「光」と「闇」の選択の数（エンディング側の参考用）
-function lightScore(){const f=F();return ['d1_story','debt_honest','chiyo_trust','told_child','line3_owner','promise_morning','promise_recital','sakura_confide','told_name','slept_d23','yodaka_reached','asked_help','kept_promise','sakura_return','stayed_child','flame_calm'].filter(k=>f[k]).length;}
+function lightScore(){const f=F();return ['d1_story','white_rest','debt_honest','chiyo_trust','told_child','line3_owner','promise_morning','promise_recital','sakura_confide','told_name','slept_d23','yodaka_reached','asked_help','kept_promise','sakura_return','stayed_child','flame_calm'].filter(k=>f[k]).length;}
 function darkScore(){const f=F();return ['debt_dodge2','tempted_sea','ignored_fake','pushed_d23','yodaka_silent','refused_help','broke_promise','hid_child','left_child','flame_reply'].filter(k=>f[k]).length+(f.final_words==='sink'?2:0);}
 
 // ──────────────────────────
@@ -1451,7 +1493,11 @@ function storyComments(){
   if((f.hitori_promise||f.hitori_gentle)&&d>=18)out.push({u:'ひとりぼっち',tx:f.hitori_promise?'今夜も一緒に勉強してます。会場で会いましょう':'今日も、行ける分だけ',tp:'normal'});
   if(f.saw_pa)out.push({u:'夜空の旅人',tx:'今夜は名古屋の手前です。聞いてますよ',tp:'normal'});
   if(f.yodaka_reached&&d>=30)out.push({u:'夜鷹',tx:'おつ。寝ろ',tp:'rare'});
-  if(f.told_child&&d>=8&&d<=20&&Math.random()<.5)out.push({u:'深夜の常連',tx:'ごきげんよう、だんのうらさん',tp:'normal'});
+  if(gs.mental<30||gs.fatigue>=80){
+    out.push({u:'深夜の常連',tx:'今日、髪……白くないですか？',tp:'worried'});
+    out.push({u:'夜空の旅人',tx:'ねこみみ……？ 無理してません？',tp:'worried'});
+  }
+  if(d>=8&&d<=20&&f.told_child&&Math.random()<.5)out.push({u:'深夜の常連',tx:'ごきげんよう、だんのうらさん',tp:'normal'});
   return out;
 }
 // その夜いちばん大事な一言（配信開始から少しして流す）
@@ -1510,6 +1556,9 @@ window.storyFlags=function(){
     dreamedOfSea:!!f.dream1,
     heardMiyako:!!f.heard_miyako,
     temptedBySea:!!f.tempted_sea,
+    whiteFormSeen:!!f.white_seen,      // 白い髪・猫耳の姿に初めてなった
+    whiteFormNow:gs.mental<30||gs.fatigue>=80,
+    whiteFormRecovered:!!f.white_back,
     flags:Object.assign({},f),
     bond:Object.assign({},s.bond),
     counts:Object.assign({},s.counts),

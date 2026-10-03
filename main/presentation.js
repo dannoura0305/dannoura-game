@@ -641,6 +641,10 @@ function injectStyle(){
 .pr-cmt{position:absolute;font-family:var(--pr-dot);font-size:.78rem;color:#fff;background:rgba(20,10,50,.7);border:1px solid rgba(255,120,220,.6);border-radius:10px;padding:3px 10px;white-space:nowrap;pointer-events:none;animation:pr-cmt 5s linear forwards;text-shadow:1px 1px 0 #000;}
 @keyframes pr-cmt{0%{opacity:0;transform:translateY(0)}10%{opacity:1}80%{opacity:1}100%{opacity:0;transform:translateY(-140px)}}
 
+@media (max-width:759px){
+  .pr-end-pic{transition:width 1.2s ease;}
+  .pr-end.reading .pr-end-pic{width:min(40vw,190px,27vh);}
+}
 @media (min-width:760px){
   .pr-end-main{flex-direction:row;justify-content:center;align-items:center;gap:40px;padding:40px 40px 60px;}
   .pr-end-pic{width:min(36vw,380px,52vh);}
@@ -1141,7 +1145,7 @@ function startEnding(info){
   const col = info.color || cfg.c;
   el.querySelector('.pr-end-ttl').textContent = info.title; el.querySelector('.pr-end-ttl').style.color = col;
   el.querySelector('.pr-c2').textContent = info.title; el.querySelector('.pr-end-card').style.color = col;
-  el.querySelector('.pr-end-lines').innerHTML = '';
+  el.querySelector('.pr-end-lines').innerHTML = ''; el.classList.remove('reading');
   el.querySelector('.pr-cr-quote').classList.remove('on');
   el.querySelector('.pr-end-main').scrollTop = 0;
   // 既存のボタン群を最終画面へ移す
@@ -1183,6 +1187,7 @@ async function runEnding(tok){
   const box = el.querySelector('.pr-end-lines'), main = el.querySelector('.pr-end-main');
   const lines = String(info.body || '').split('\n');
   const add = (txt, cls) => { const d = document.createElement('div'); d.className = 'pr-el ' + (cls||''); d.textContent = txt; box.appendChild(d); requestAnimationFrame(()=>d.classList.add('on')); try{ d.scrollIntoView({block:'nearest', behavior: RM?'auto':'smooth'}); }catch(e){} return d; };
+  el.classList.add('reading');
   for(const ln of lines){
     if(tok!==EN.tok) return;
     if(!ln.trim()){ add('','gap'); if(!await endWait(380, tok)) return; continue; }
@@ -1201,7 +1206,7 @@ async function runEnding(tok){
 }
 function creditsHTML(){
   const info = EN.info; const g = hasGs() ? gs : null;
-  const day = info.day || (g ? g.day : 30);
+  let day = info.day || (g ? g.day : 30); if(g && !g._endless) day = Math.min(30, day);
   const names = g && Array.isArray(g.listeners) ? g.listeners.map(l=>l.name) : ['夜空の旅人','ひとりぼっち','深夜の常連','さくら'];
   const st = g ? `<div class="st"><span>過ごした夜</span><b>${day} 夜</b><span>フォロワー</span><b>${(g.followers||0).toLocaleString()} 人</b><span>配信回数</span><b>${g.streamCount||0} 回</b><span>残りの借金</span><b>¥${Math.max(0,g.debt||0).toLocaleString()}</b></div>` : '';
   return `

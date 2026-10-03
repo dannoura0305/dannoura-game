@@ -557,42 +557,64 @@ function spawnDelta(el,diff,p,good){
   d.style.left=(r.left+r.width/2)+'px';d.style.top=(r.bottom-6)+'px';
   document.body.appendChild(d);setTimeout(()=>d.remove(),1150);
 }
+function setCnt(el){
+  // 透明にする前の文字色を ::after 用に覚える
+  if(el.classList.contains('ui-counting'))return;
+  el.style.removeProperty('--cnt');
+  el.style.setProperty('--cnt',getComputedStyle(el).color);
+}
 function track(id,inverse,delta){
   const el=$(id);if(!el)return;
   const txt=el.textContent;const p=parseNum(txt);if(!p)return;
   let st=TW[id];
-  if(!st){TW[id]={shown:p.v,target:p.v,final:txt,anim:false};return;}
-  if(st.target===p.v){st.final=txt;if(st.anim)el.textContent=fmtNum(p,st.shown);return;}
+  if(!st){TW[id]={shown:p.v,target:p.v,anim:false};return;}
+  if(st.target===p.v)return;
   const from=st.anim?st.shown:st.target,diff=p.v-from;
-  st.target=p.v;st.final=txt;
+  st.target=p.v;
   const good=(diff>0)!==inverse;
+  setCnt(el);
   if(!document.getElementById('game-screen')?.classList.contains('hidden')){
     flash(el,good);if(delta)spawnDelta(el,diff,p,good);
   }
   if(reduced()){st.shown=p.v;return;}
+  // 表示は data-anim で重ねるだけ。textContent は常に game.js が書いた本当の値
   const t0=performance.now(),dur=Math.min(900,320+Math.abs(diff)*8);
   st.anim=true;const token=st.tok=(st.tok||0)+1;
-  el.textContent=fmtNum(p,from);
+  el.classList.add('ui-counting');el.setAttribute('data-anim',fmtNum(p,from));
+  const end=()=>{st.anim=false;st.shown=st.target;el.classList.remove('ui-counting');el.removeAttribute('data-anim');};
   const step=now=>{
     if(st.tok!==token)return;
+    const cur=parseNum(el.textContent);
+    if(!cur||cur.v!==st.target){end();return;}          // 途中で値が書き換わったら即座に本当の値へ
     const k=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-k,3);
     st.shown=from+diff*e;
-    if(k<1){el.textContent=fmtNum(p,st.shown);raf(step);}
-    else{st.anim=false;st.shown=st.target;el.textContent=st.final;}
+    if(k<1){el.setAttribute('data-anim',fmtNum(cur,st.shown));raf(step);}
+    else end();
   };
   raf(step);
 }
 /* 要素内の数字を0から数え上げる（リザルト等） */
-function countUp(el,delay){
+/* 数字の数え上げは「見た目だけ」：本当の文字列は要素に残し、data-anim を ::after で重ねて描く。
+   → textContent は常に showResult に渡された値のまま（テスト・読み上げ向け）。
+   group を渡すと、同じ group の新しい呼び出しで古いアニメは打ち切られる。 */
+const COUNT_GEN={};
+function countUp(el,delay,group){
   const txt=el.textContent,p=parseNum(txt);if(!p||reduced()||p.v===0)return;
-  el.textContent=fmtNum(p,0);
+  const g=group||'_';const gen=COUNT_GEN[g]=COUNT_GEN[g]||0;
+  const tok=el._uiCount=(el._uiCount||0)+1;
+  const stop=()=>{el.classList.remove('ui-counting');el.removeAttribute('data-anim');};
+  setCnt(el);el.classList.add('ui-counting');el.setAttribute('data-anim',fmtNum(p,0));
   setTimeout(()=>{
     const t0=performance.now(),dur=Math.min(800,300+Math.abs(p.v)*.05+120);
-    const step=now=>{const k=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-k,3);
-      if(k<1){el.textContent=fmtNum(p,p.v*e);raf(step);}else el.textContent=txt;};
+    const step=now=>{
+      if(el._uiCount!==tok||COUNT_GEN[g]!==gen||!el.isConnected||el.textContent!==txt){stop();return;}
+      const k=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-k,3);
+      if(k<1){el.setAttribute('data-anim',fmtNum(p,p.v*e));raf(step);}else stop();
+    };
     raf(step);
   },delay||0);
 }
+function cancelCounts(group){COUNT_GEN[group]=(COUNT_GEN[group]||0)+1;}
 
 /* ══════════════════════════════════════════
    5. メッセージ窓（送り・スキップ）
@@ -645,6 +667,7 @@ function buildResultBox(){
 }
 const BLOCK_TAGS=/^(DIV|P|UL|OL|TABLE|SECTION|H\d)$/;
 function enhanceResult(){
+  cancelCounts('result');
   const body=$('res-body');if(!body)return;
   if([...body.children].some(c=>BLOCK_TAGS.test(c.tagName)))return;
   const rows=[];let cur=[];
@@ -664,7 +687,7 @@ function enhanceResult(){
       const l=document.createElement('span');l.className='res-l';
       nodes.filter(n=>n!==val).forEach(n=>l.appendChild(n));
       row.append(l,val);
-      countUp(val,180+i*110);
+      countUp(val,180+i*110,'result');
     }else nodes.forEach(n=>row.appendChild(n));
     body.appendChild(row);
   });
@@ -686,7 +709,7 @@ function enhanceStatus(){
   fills.forEach(f=>{f.style.transition='none';f.style.width='0';});
   void body.offsetWidth;
   fills.forEach((f,i)=>{f.style.transition='';f.style.transitionDelay=(80+i*25)+'ms';f.style.width=ws[i];});
-  body.querySelectorAll('.srv').forEach((v,i)=>countUp(v,80+i*25));
+  cancelCounts('status');body.querySelectorAll('.srv').forEach((v,i)=>countUp(v,80+i*25,'status'));
   const sc=$('status-sc');if(sc)sc.scrollTop=0;
 }
 function enhanceSkill(){

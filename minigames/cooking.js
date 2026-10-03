@@ -448,7 +448,7 @@ registerMinigame({
       }else if(p==='egg_pour'){egg.sheet=true;egg.pour=0;egg.c=0;gauge.show=false;SND.pour();}
       else if(p==='egg_cook'){setGauge('焼き加減',EGGR,zones(.68,.14,.4,DISH[0].diff),(egg.layers.length+1)+'/3巻');hint='半熟のうちに！ 金色でタップして巻く';}
       else if(p==='egg_roll'){egg.r0y=egg.rh?egg.ry:0;egg.r0h=egg.rh||.05;SND.flip();}
-      else if(p==='egg_finish'){gauge.show=false;hint='';sparkle(L.cx,L.CY,22);pop(V.egg.name+' 完成！',L.cx,L.CY-L.PH*.1,'#ffe9a8',20,1.4);SND.se('ach');}
+      else if(p==='egg_finish'){gauge.show=false;hint='';sparkle(L.cx,L.CY,22);pop(V.egg.name+' 完成！',L.cx,L.CY+L.PH*.3,'#ffe9a8',20,1.4);SND.se('ach');}
       else if(p==='tako_cut'){tako.tm=rnd(.42,.56);setGauge('',null,{},'');gauge.show=false;hint=isKani?'包丁が点線に重なったらタップ（両端に切れ目）':'包丁が点線に重なったらタップ（足を作る）';}
       else if(p==='tako_sear'){
         const rates=[.3,.37,.45].sort(()=>Math.random()-.5);
@@ -457,7 +457,7 @@ registerMinigame({
         const z=zones(.71,.15,.38,DISH[1].diff);tako.z=z;
         hint='きつね色になった'+sausName+'からタップで取り出す';tako.endT=-1;
       }
-      else if(p==='tako_finish'){hint='';sparkle(L.cx,L.CY,20);pop(V.tako.name+' 完成！',L.cx,L.CY-L.PR*.5,'#ffd0b0',20,1.4);SND.se('ach');}
+      else if(p==='tako_finish'){hint='';sparkle(L.cx,L.CY,20);pop(V.tako.name+' 完成！',L.cx,L.CY+L.PR*.62,'#ffd0b0',20,1.4);SND.se('ach');}
       else if(p==='oni_shape'){
         oni.beats=[];const bp=.6;for(let i=0;i<6;i++)oni.beats.push({t:1.25+i*bp,q:''});
         oni.shapeP=0;oni.shapeQ=[];gauge.show=false;hint='輪がごはんに重なる瞬間にタップ（にぎにぎ）';
@@ -466,7 +466,7 @@ registerMinigame({
         setGauge(isMiso?'みそ':'タレ',R_SOY,{pa:.86,pb:1.01,ga:.6,gb:1.01},'');hint='ドラッグで'+(isMiso?'みそ':'醤油ダレ')+'を全体に塗る（Space長押しでも）';}
       else if(p==='oni_grill'){oni.side=0;oni.c=0;setGauge('焼き色',GRILLR,zones(.69,.13,.36,DISH[2].diff),'表');hint='香ばしい焼き色でタップ → 裏返す';}
       else if(p==='oni_flip'){SND.flip();}
-      else if(p==='oni_finish'){gauge.show=false;hint='';sparkle(L.cx,L.CY,22);pop(V.oni.name+' 完成！',L.cx,L.CY-L.R*1.6,'#ffd8a0',20,1.4);SND.se('ach');}
+      else if(p==='oni_finish'){gauge.show=false;hint='';sparkle(L.cx,L.CY,22);pop(V.oni.name+' 完成！',L.cx,L.CY+L.R*1.25,'#ffd8a0',20,1.4);SND.se('ach');}
       else if(p==='plate'){initPlate();gauge.show=false;hint=tutorialPlate?'おかずを同じ形の仕切りへドラッグ！':'仕切りの真ん中に置くほどきれい';}
       else if(p==='plate_done'){hint='';SND.se('ach');}
       else if(p==='morning'){hint='';gauge.show=false;}
@@ -1680,7 +1680,7 @@ registerMinigame({
       g.drawImage(bg,0,0,W,H);
       drawRain(dt);
       g.save();g.translate(sx,sy);
-      if(ph==='title'||ph==='story'||ph==='intro_wait'){
+      if(ph==='story'||ph==='intro_wait'){
         // 調理台に並ぶ材料
         drawIngredients();
       }else if(ph.startsWith('egg')||(ph==='wait'&&dishIdx===0))drawEggScene();

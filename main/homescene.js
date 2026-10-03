@@ -111,6 +111,15 @@ const HEAD_S=[
 "khdddhhhhSsssmk.",
 ".kkddddkkkkkkk..",
 ];
+// ── 変身フォーム（白銀の髪・猫耳・マゼンタのパーカー）──
+const EARS_F=["..kk........kk..","..kik......kik..","..kiik....kiik..","..kiiwkkkkwiik..","..khhhhhhhhhhhk."];
+const EARS_B=["..kk........kk..","..kwk......kwk..","..kwwk....kwwk..",".kwwwkkkkkkwwwk.",".khhhhhhhhhhhhk."];
+const EARS_S=["....kk...kk.....","....kik..kik....","....kiik.kiik...","....kiiwkkiiwk..","....kkhhhhhhkk.."];
+const HEAD_F_T=EARS_F.concat(HEAD_F.slice(5));
+const HEAD_B_T=EARS_B.concat(HEAD_B.slice(5));
+const HEAD_S_T=EARS_S.concat(HEAD_S.slice(5));
+const PAL_T={h:'#dcd8ee',H:'#ffffff',d:'#a8a0c8',i:'#f29ab8',w:'#ffffff',
+  c:'#c8408a',C:'#8a2a66',t:'#2a2236',T:'#16121e',f:'#ff9cc4',F:'#ffe0ec'};
 // 正面の体（立ち） 16x11
 const BODY_F=[
 ".....kksskk..dhk",
@@ -222,6 +231,7 @@ const G_Z=["zzzzz","...z.","..z..",".z...","zzzzz"];
 const G_z=["zzz",".z.","zzz"];
 const G_NOTE=["..zz","..zz","..z.","..z.","zzz.","zz.."];
 const G_NOTE2=[".zzzz",".z..z",".z..z","zz.zz","zz.zz"];
+const G_SPARK=["..z..",".zrz.","zrzrz",".zrz.","..z.."];
 const G_HEART=[".r.r.","rrrrr","rrrrr",".rrr.","..r.."];
 const G_DOTS=["z.z.z"];
 const G_SWEAT=[".x.","xax","xxx",".x."];
@@ -280,7 +290,7 @@ const S={
   wasStream:false, afterStream:0,
 };
 // アクター（だんのうら）
-const A={x:132,tx:132,mode:'stand',face:1,walkF:0,walkT:0,idleT:3,blinkT:2,blink:0,yawn:0,look:0,
+const A={form:0,tfT:0,tfTo:0,init:false,x:132,tx:132,mode:'stand',face:1,walkF:0,walkT:0,idleT:3,blinkT:2,blink:0,yawn:0,look:0,
   bob:0,stand:0,mood:'normal',spot:0,act:0,subT:0};
 // 子ども
 const K={stir:0,turn:0,turnT:20,arm:0};
@@ -383,18 +393,26 @@ function buildBG(){
 }
 
 // ───────── スプライト類の生成 ─────────
-function buildSprites(){
-  const s=S.spr;
-  s.headF=sprite(HEAD_F);s.headB=sprite(HEAD_B);s.headS=sprite(HEAD_S);s.headSL=flipped(s.headS);
-  s.bodyF=sprite(BODY_F);s.bodyB=sprite(BODY_B);
-  s.bodyS=sprite(BODY_S);s.legs=LEGS_S.map(l=>sprite(l));
-  s.walkR=s.legs.map(l=>stack([[s.bodyS,0,0],[l,0,7]]));s.walkL=s.walkR.map(flipped);
-  s.sing=sprite(BODY_SING);s.sit=sprite(BODY_SIT);s.kneel=sprite(BODY_KNEEL);s.kneelL=flipped(s.kneel);
-  // 寝顔（目を閉じた正面の頭を回転）
-  const hc=mkCanvas(16,17),hx=hc.getContext('2d');hx.drawImage(s.headF,0,0);
+function buildForm(HF,HB,HS,pal){
+  const o={};
+  o.headF=sprite(HF,pal);o.headB=sprite(HB,pal);o.headS=sprite(HS,pal);o.headSL=flipped(o.headS);
+  o.bodyF=sprite(BODY_F,pal);o.bodyB=sprite(BODY_B,pal);
+  const bodyS=sprite(BODY_S,pal),legs=LEGS_S.map(l=>sprite(l,pal));
+  o.walkR=legs.map(l=>stack([[bodyS,0,0],[l,0,7]]));o.walkL=o.walkR.map(flipped);
+  o.sing=sprite(BODY_SING,pal);o.sit=sprite(BODY_SIT,pal);o.kneelL=flipped(sprite(BODY_KNEEL,pal));
+  const hc=mkCanvas(16,17),hx=hc.getContext('2d');hx.drawImage(o.headF,0,0);
   hx.fillStyle=PAL.s;hx.fillRect(4,11,2,2);hx.fillRect(10,11,2,2);hx.fillRect(7,11,2,2);
   hx.fillStyle=PAL.E;hx.fillRect(4,12,2,1);hx.fillRect(10,12,2,1);hx.fillStyle=PAL.b;hx.fillRect(4,14,1,1);hx.fillRect(11,14,1,1);
-  s.sleepF=hc;
+  o.sleepF=hc;
+  o.c=(pal&&pal.c)||PAL.c;o.C=(pal&&pal.C)||PAL.C;
+  return o;
+}
+function buildSprites(){
+  const s=S.spr;
+  Object.assign(s,buildForm(HEAD_F,HEAD_B,HEAD_S,null));
+  S.sprT=buildForm(HEAD_F_T,HEAD_B_T,HEAD_S_T,PAL_T);
+  s.spark=sprite(G_SPARK,{z:'#ffffff',r:'#ff9cd8'});
+  S.lights.burst=makeLight(30,'255,230,255');
   s.child=sprite(CHILD);s.childT=sprite(CHILD_TURN);
   s.Z=sprite(G_Z);s.z=sprite(G_z);s.note=sprite(G_NOTE,{z:'#ffd6f0'});s.note2=sprite(G_NOTE2,{z:'#bfefff'});
   s.heart=sprite(G_HEART,{r:'#ff7aa8'});s.dots=sprite(G_DOTS);s.sweat=sprite(G_SWEAT);s.sil=sprite(G_SIL,{a:'#c8c0e8',E:'#2a0010'});
@@ -578,7 +596,7 @@ function update(dt){
     S.glitchT-=dt;if(S.glitchT<=0){S.glitch=.12+Math.random()*.16;S.glitchT=(men<20?6:12)+Math.random()*14;}
     S.reflT-=dt*(A.mode==='back'?2.5:1);if(S.reflT<=0&&S.refl<=0){S.refl=3;S.reflT=28+Math.random()*30;}
     if(S.key==='main'){S.ghostT-=dt;if(S.ghostT<=0&&S.ghost<=0){S.ghost=5.5;S.ghostT=24+Math.random()*26;}}
-  }else{S.glitch=0;S.refl=0;S.ghost=0;}
+  }else{S.refl=0;S.ghost=0;}
   if(S.glitch>0)S.glitch-=dt;if(S.refl>0)S.refl-=dt;if(S.ghost>0)S.ghost-=dt;
   if(S.afterStream>0)S.afterStream-=dt;
   if(S.flick>0)S.flick-=dt;else if(Math.random()<dt*.08)S.flick=.12;
@@ -605,6 +623,14 @@ function makeBolt(){
 function updateActor(dt,fat,men){
   A.blinkT-=dt;if(A.blinkT<=0){A.blink=.14;A.blinkT=2+Math.random()*3.5;}if(A.blink>0)A.blink-=dt;
   if(A.yawn>0)A.yawn-=dt;
+  // 変身判定（疲労75以上 or 精神25以下で変身、疲労65未満かつ精神33超で戻る）
+  const want=A.form?((fat>=65||men<=33)?1:0):((fat>=75||men<=25)?1:0);
+  if(A.tfT>0){A.tfT-=dt;if(A.tfT<.55&&A.form!==A.tfTo){A.form=A.tfTo;S.glitch=Math.max(S.glitch,.18);}}
+  else if(want!==A.form){
+    if(A.init){A.tfT=1.1;A.tfTo=want;const c=actorCenter();for(let i=0;i<12;i++){const an=i/12*Math.PI*2;emit('spark',c[0]+Math.cos(an)*6-2,c[1]+Math.sin(an)*8-2,Math.cos(an)*14,Math.sin(an)*12-6,.9+Math.random()*.5);}}
+    else A.form=want;
+  }
+  A.init=true;
   const tired=fat>=70, low=men<25;
   A.mood=low?'low':tired?'tired':(men>70&&fat<40)?'good':'normal';
   if(S.key==='main'){
@@ -749,7 +775,7 @@ function drawChild(x,k){
   // 子どもの頭
   D2(turn?S.spr.childT:S.spr.child,FUTON.x+4,FUTON.y-7+(stirring&&turn?1:0)+(breath&&!stirring?0:0));
   // 親（添い寝）
-  if(both){const br=(Math.sin(S.t*1.1)>0)?1:0;D2(S.spr.sleepF,FUTON.x+21,FUTON.y-14+br);}
+  if(both){const br=(Math.sin(S.t*1.1)>0)?1:0;D2(formSet().sleepF,FUTON.x+21,FUTON.y-14+br);}
   // 掛け布団
   const by=FUTON.y+1-breath, X0=FUTON.x+1, bw=FUTON.w-3, bh=FUTON.h-1+breath;
   x.fillStyle='#1b1226';x.fillRect(X0-1,by-1,bw+2,bh+1);
@@ -764,8 +790,17 @@ function drawChild(x,k){
   if(stirring&&Math.floor(S.t*1.5)%2){x.fillStyle='#1b1226';x.fillRect(FUTON.x+12,by-2,7,3);x.fillStyle=PAL.s;x.fillRect(FUTON.x+13,by-1,5,1);}
 }
 
+function formSet(){
+  let f=A.form;
+  // 変身中は 2 つの姿が明滅する
+  if(A.tfT>.2&&A.tfT<.95&&(Math.floor(S.t*18)%2))f=1-f;
+  return f?S.sprT:S.spr;
+}
+function actorCenter(){
+  switch(A.mode){case'desk':return[A.x+8,44];case'sit':return[A.x+8,70];case'kneel':return[A.x+6,72];case'lie':return[FUTON.x+29,62];default:return[A.x+8,68];}
+}
 function drawActor(x,fat,men){
-  const s=S.spr, mood=A.mood, t=S.t;
+  const s=formSet(), mood=A.mood, t=S.t;
   const bx=Math.round(A.x), feet=84;
   switch(A.mode){
     case'stand':{
@@ -801,8 +836,8 @@ function drawActor(x,fat,men){
       // 背中（上半身のみ）
       x.drawImage(s.bodyB,0,0,16,6,bx,Y0,16,6);
       // 右腕（鉛筆を動かす）
-      x.fillStyle='#1b1226';x.fillRect(bx+12,Y0+1+scr,5,4);x.fillStyle=PAL.c;x.fillRect(bx+13,Y0+2+scr,3,2);x.fillStyle=PAL.s;x.fillRect(bx+15,Y0+1+scr,1,1);
-      x.fillStyle='#1b1226';x.fillRect(bx-1,Y0+1,4,4);x.fillStyle=PAL.C;x.fillRect(bx,Y0+2,2,2);
+      x.fillStyle='#1b1226';x.fillRect(bx+12,Y0+1+scr,5,4);x.fillStyle=s.c;x.fillRect(bx+13,Y0+2+scr,3,2);x.fillStyle=PAL.s;x.fillRect(bx+15,Y0+1+scr,1,1);
+      x.fillStyle='#1b1226';x.fillRect(bx-1,Y0+1,4,4);x.fillStyle=s.C;x.fillRect(bx,Y0+2,2,2);
       D2(s.headB,bx,Y0-16+nod);
       // 椅子
       x.fillStyle='#1b1226';x.fillRect(bx,Y0+5,16,11);x.fillStyle='#3a3256';x.fillRect(bx+1,Y0+6,14,9);x.fillStyle='#544a7a';x.fillRect(bx+2,Y0+7,12,1);x.fillStyle='#2a2440';x.fillRect(bx+1,Y0+13,14,2);
@@ -827,7 +862,7 @@ function drawActor(x,fat,men){
       D2(s.kneelL,bx,fy-8);
       // 伸ばした腕と手（トントン）
       const ay=fy-5-pat;
-      x.fillStyle='#1b1226';x.fillRect(bx-7,ay-1,12,4);x.fillStyle=PAL.c;x.fillRect(bx-5,ay,10,2);x.fillStyle=PAL.C;x.fillRect(bx-5,ay+1,10,1);
+      x.fillStyle='#1b1226';x.fillRect(bx-7,ay-1,12,4);x.fillStyle=s.c;x.fillRect(bx-5,ay,10,2);x.fillStyle=s.C;x.fillRect(bx-5,ay+1,10,1);
       x.fillStyle='#1b1226';x.fillRect(bx-10,ay-1,4,4);x.fillStyle=PAL.s;x.fillRect(bx-9,ay,3,2);
       const hy=fy-8-16+(K.stir>0?0:1);
       D2(s.headSL,bx,hy);
@@ -876,7 +911,7 @@ function drawParticles(x){
     const a=Math.min(1,p.life/(p.max*.35),(p.max-p.life)/.25+.2);
     x.globalAlpha=Math.max(0,Math.min(1,a));
     let img=null;
-    switch(p.g){case'Z':img=s.Zb;break;case'z':img=s.zb;break;case'zb':img=s.zb;break;case'note':img=s.note;break;case'note2':img=s.note2;break;case'heart':img=s.heart;break;case'dots':img=s.dots;break;case'sweat':img=s.sweat;break;
+    switch(p.g){case'Z':img=s.Zb;break;case'z':img=s.zb;break;case'zb':img=s.zb;break;case'note':img=s.note;break;case'note2':img=s.note2;break;case'heart':img=s.heart;break;case'dots':img=s.dots;break;case'sweat':img=s.sweat;break;case'spark':img=(Math.floor(S.t*12+p.ph*3)%3)?s.spark:null;break;
       case'dot':x.fillStyle='#d8d0e8';x.fillRect(p.x|0,p.y|0,1,1);break;}
     if(img)x.drawImage(img,p.x|0,p.y|0);
   }
@@ -985,6 +1020,11 @@ function render(){
   drawLighting(m,ph);
   drawEmissive(x,m,ph);
   drawParticles(x);
+  if(A.tfT>0){
+    const q=1-Math.abs(A.tfT-.55)/.4; // .15〜.95 の間で山型
+    if(q>0){const c=actorCenter();x.globalCompositeOperation='lighter';x.globalAlpha=Math.min(1,q*1.2);x.drawImage(S.lights.burst,c[0]-30,c[1]-30);
+      x.globalAlpha=q*q*.35;x.fillStyle='#ffe8ff';x.fillRect(0,0,RW,RH);x.globalAlpha=1;x.globalCompositeOperation='source-over';}
+  }
   postFX(ph);
   // 拡大表示
   const c=S.cx,cw=S.cv.width,ch=S.cv.height,sc=S.scale;
