@@ -3,6 +3,16 @@
 // タイルをタップして回転させ、⚡電源からすべての配線に電気を通す。
 // 盤面はランダムな全域木から作るので、必ず解ける。制限時間内に何面解けるか。
 // ══════════════════════════════════════════════════════════
+addMinigameStyle('puzzle',`
+.mg-puzzle{padding:10px;gap:10px;justify-content:center;}
+.pz-hud,.pz-msg{font-family:var(--mono);font-size:.7rem;color:var(--cy);text-align:center;}
+.pz-msg{color:var(--tx-b);font-family:var(--serif);}
+.pz-grid{display:grid;gap:3px;width:min(100%,calc(100vh - 230px),420px);}
+.pz-tile{aspect-ratio:1;padding:0;background:#0d0a1c;border:1px solid rgba(138,82,212,.25);border-radius:3px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+.pz-tile.on{border-color:rgba(0,232,200,.35);background:rgba(0,232,200,.05);}
+.pz-tile svg{width:100%;height:100%;display:block;}
+`);
+
 registerMinigame({
   id:'puzzle', icon:'⚡', name:'配線復旧パズル', genre:'パズル', bgm:'factory',
   desc:'停電したラインの配線をつなぎ直す。タイルを回して、全部のランプを点けよう。',

@@ -3,6 +3,23 @@
 // 毎回自動生成される3フロアの工場を探索する。ターン制。
 // ⚠異常箇所を点検し、👻怪異をかわして（または懐中電灯で追い払って）🚪出口へ。
 // ══════════════════════════════════════════════════════════
+addMinigameStyle('rogue',`
+.mg-rogue{padding:8px;gap:8px;}
+.rg-hud{width:100%;display:flex;justify-content:space-between;font-family:var(--mono);font-size:.68rem;color:var(--cy);}
+.rg-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:2px;width:min(100%,calc((100vh - 290px) * 9 / 11));}
+.rg-c{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:clamp(.8rem,4.6vw,1.3rem);border-radius:2px;}
+.rg-c.dark{background:#020108;}
+.rg-c.wall{background:#1a1430;}
+.rg-c.fl{background:rgba(232,184,48,.13);}
+.rg-c.mem{filter:brightness(.45);}
+.rg-c.wall.mem{background:#120e22;}
+.rg-log{width:100%;min-height:2.6em;font-size:.68rem;line-height:1.7;color:var(--tx-b);text-align:center;}
+.rg-pad{display:grid;grid-template-columns:repeat(3,56px);grid-template-rows:repeat(2,48px);gap:6px;}
+.rg-pad button{background:rgba(0,232,200,.06);border:1px solid rgba(0,232,200,.4);color:var(--cy);font-size:1rem;border-radius:4px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+.rg-pad button:active{background:rgba(0,232,200,.2);}
+.rg-up{grid-column:2;grid-row:1;}.rg-left{grid-column:1;grid-row:2;}.rg-down{grid-column:2;grid-row:2;}.rg-right{grid-column:3;grid-row:2;}
+`);
+
 registerMinigame({
   id:'rogue', icon:'🔦', name:'深夜の工場巡回', genre:'ローグライク', bgm:'kaidan',
   desc:'毎回形が変わる夜の工場を3フロア巡回。異常箇所を点検し、怪異をかわして出口へ。',

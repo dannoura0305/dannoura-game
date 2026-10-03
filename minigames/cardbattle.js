@@ -3,6 +3,28 @@
 // 話題カードで「過疎の夜」の静けさ（HP）を削り、8ターン以内に配信を盛り上げる。
 // 敵の次の行動は事前に表示される。スキルが高いほどデッキが強くなる。
 // ══════════════════════════════════════════════════════════
+addMinigameStyle('cards',`
+.mg-cards{padding:10px;gap:9px;justify-content:space-between;}
+.cb-enemy,.cb-me{width:100%;background:var(--panel);border:1px solid rgba(138,82,212,.3);border-radius:4px;padding:8px 10px;display:flex;flex-direction:column;gap:5px;}
+.cb-name{font-family:var(--dot);font-size:.9rem;color:var(--tx-b);}
+.cb-row{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:.62rem;color:var(--tx);}
+#cb-intent{color:var(--rd);}
+.cb-bar{height:8px;background:#1a1430;border-radius:4px;overflow:hidden;}
+.cb-bar>div{height:100%;background:var(--pu);transition:width .3s;}
+.cb-bar.me>div{background:var(--cy);}
+.cb-log{min-height:2.6em;font-size:.7rem;line-height:1.7;color:var(--tx-b);text-align:center;}
+.cb-hand{width:100%;display:flex;gap:5px;justify-content:center;flex-wrap:wrap;}
+.cb-card{position:relative;width:calc(20% - 4px);min-width:60px;max-width:84px;aspect-ratio:3/4;background:linear-gradient(180deg,#1c1336,#0d0a1c);border:1px solid var(--pu);border-radius:5px;color:var(--tx-b);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px 3px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:transform .12s;}
+.cb-card:active{transform:translateY(-4px);}
+.cb-card.off{opacity:.4;}
+.cb-card.burn{border-color:var(--rd);background:linear-gradient(180deg,#3a1020,#140810);}
+.cb-cost{position:absolute;top:3px;left:4px;font-family:var(--mono);font-size:.6rem;color:var(--gd);}
+.cb-icon{font-size:1.2rem;}
+.cb-cname{font-family:var(--dot);font-size:.62rem;text-align:center;}
+.cb-ctxt{font-size:.56rem;color:var(--tx);text-align:center;line-height:1.4;}
+.cb-endturn{width:100%;padding:9px;background:rgba(232,184,48,.06);border:1px solid var(--gd);color:var(--gd);font-family:var(--dot);font-size:.78rem;letter-spacing:.1em;border-radius:3px;cursor:pointer;min-height:44px;}
+`);
+
 registerMinigame({
   id:'cards', icon:'🃏', name:'配信トークバトル', genre:'カードバトル', bgm:'stream',
   desc:'話題カードで「過疎の夜」に挑む。スキルが高いほどデッキが強くなる。',

@@ -9,6 +9,11 @@
 // ══════════════════════════════════════════════════════════
 const MINIGAMES=[];
 function registerMinigame(def){MINIGAMES.push(def);}
+// 各ゲーム専用のCSSを一度だけ<head>に差し込む（style.cssを共有で編集しなくて済むように）
+function addMinigameStyle(id,css){
+  if(document.getElementById('mg-style-'+id))return;
+  const s=document.createElement('style');s.id='mg-style-'+id;s.textContent=css;document.head.appendChild(s);
+}
 
 const FX_LABEL={
   mental:'精神力',fatigue:'疲労',flame:'炎上',money:'収入',jobRep:'仕事評価',
