@@ -40,8 +40,8 @@ addMinigameStyle('manager',`
 .mgr-kpi b img{width:16px;height:16px;}
 .mgr-kpi .bar{height:4px;border-radius:2px;background:rgba(255,255,255,.07);margin-top:2px;overflow:hidden;}
 .mgr-kpi .bar i{display:block;height:100%;border-radius:2px;background:var(--gn);transition:width .35s,background .35s;}
-.mgr-board{display:flex;flex-direction:column;gap:4px;flex:1;min-height:0;padding:5px;}
-.mgr-row{display:flex;gap:5px;align-items:stretch;flex:1;min-height:44px;max-height:58px;}
+.mgr-board{display:flex;flex-direction:column;justify-content:center;gap:4px;flex:1;min-height:0;padding:5px;}
+.mgr-row{display:flex;gap:5px;align-items:stretch;flex:1;min-height:44px;max-height:64px;}
 .mgr-day{width:32px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:5px;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));font-size:.86rem;color:var(--tx-b);line-height:1;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);}
 .mgr-day small{font-family:var(--mono);font-size:.48rem;color:var(--tx-d);margin-top:3px;}
 .mgr-day.we{color:#ff8fb0;}
@@ -173,7 +173,7 @@ addMinigameStyle('manager',`
 .mgr-wd.done.bad .r{color:var(--rd);}
 .mgr-wd.done.great{border-color:var(--gd);}
 .mgr-wd.done.great .r{color:var(--gd);}
-.mgr-chart{position:relative;flex:1;min-height:150px;border-radius:8px;touch-action:none;}
+.mgr-chart{position:relative;flex:1;min-height:150px;max-height:380px;border-radius:8px;touch-action:none;}
 .mgr-ctrl{display:flex;gap:6px;}
 .mgr-ctrl button{flex:1;min-height:44px;border-radius:6px;border:1px solid rgba(0,232,200,.35);background:linear-gradient(180deg,rgba(0,232,200,.12),rgba(0,232,200,.03));color:var(--cy);font-size:.72rem;box-shadow:inset 0 1px 0 rgba(255,255,255,.08);}
 .mgr-ctrl button.on{background:rgba(0,232,200,.25);}
@@ -213,7 +213,7 @@ const ICONS={
   collab:['.....rr.....','..pp....gg..','.pppp..gggg.','.pttp..gttg.','.tktt..ttkt.','.tttt..tttt.','..tt....tt..','.pppp..cccc.','pppppp.ccccc','pppppp.ccccc','pppppp.ccccc','............'],
   short:['..kkkkkkkk..','..kddddddk..','..kdrrrrdk..','..kdrwrrdk..','..kdrwwrdk..','..kdrwrrdk..','..kdrrrrdk..','..kddddddk..','..kdlllldk..','..kddddddk..','..kdddwddk..','..kkkkkkkk..'],
   rest:['...kkkk.....','..kyyyk..lll','.kyyyk.....l','.kyyk.....l.','kyyyk....lll','kyyyk.......','kyyyyk......','.kyyyyk.....','.kyyyyykkk..','..kkyyyyyyk.','....kkkkkk..','............'],
-  totsu:['....kkkk....','...k....k...','.......k....','......k.....','......k.....','............','.kkk....kkk.','kcck....kcck','kccckkkkccck','.kccccccccck','..kccccccck.','...kkkkkkk..'],
+  totsu:['............','.kkkkkkkkkk.','kcccccccccck','kcckkkkkkcck','.kk.kkkk.kk.','...kcccck...','..kcclwcck..','.kccwkkwcck.','.kcclwwlcck.','.kccccccccck','.kkkkkkkkkk.','............'],
   endure:['.kkkkkkkkkk.','..kllllllk..','..kyyyyyyk..','...kyyyyk...','....kyyk....','.....kk.....','....kllk....','...klyylk...','..klyyyylk..','..kyyyyyyk..','.kkkkkkkkkk.','............'],
   logo:['............','........yyyy','..........yy','.........y.y','....y...y...','...y.y.y....','..y...y.....','.y.......cc.','......cc.cc.','...cc.cc.cc.','cc.cc.cc.cc.','cc.cc.cc.cc.'],
   fire:['.....r......','....rr..r...','...rrr.rr...','..rrorrrr...','..rroorrrr..','.rrooyorrr..','.rroyyyorr..','.rooyyyoor..','.rooywyyor..','..roywwyr...','...ryyyr....','....rrr.....'],
@@ -1004,6 +1004,7 @@ registerMinigame({
         const f=p===0?frac:(lowerNine?frac:0);
         const cx=x+(digits-1-p)*dw;
         c.save();c.beginPath();c.rect(cx,y,dw,dh);c.clip();
+        if(p>0&&iv<10**p&&f===0)c.globalAlpha=.25;
         c.fillText(String(d),cx+dw/2,y+dh/2-f*dh);
         c.fillText(String((d+1)%10),cx+dw/2,y+dh/2+dh-f*dh);
         c.restore();
@@ -1202,7 +1203,7 @@ registerMinigame({
       A:['happy','いい並びだった。この感覚、来週も忘れずにいこう。'],
       B:['normal','悪くない。でも、もう一手あった気がする。メモを見返そう。'],
       C:['tired','空回りの夜が多かった……。並べ方、見直さないと。'],
-      D:['collapse','詰め込みすぎた……。休むのも運営のうち、ね。'],
+      D:['tired','詰め込みすぎた……。休むのも運営のうち、ね。'],
     };
     const FAN_SAY={S:'今週、神回多すぎっす！ 切り抜き追いつかないっすよｗ',A:'毎晩楽しみにしてたっす。来週も行くっす！',B:'まったり見てたっす〜。次はトレンド企画も見たいっす',C:'……最近ちょっと同じ感じが続いてるっすね',D:'眠そうで心配っす……無理しないでほしいっす'};
     function showReport(){

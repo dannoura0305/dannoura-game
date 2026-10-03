@@ -10,7 +10,7 @@
 const MINIGAMES=[];
 function registerMinigame(def){MINIGAMES.push(def);}
 // ミニゲーム画面の見出し：タイトルは折り返さず、説明が長ければ「…」で省略する
-document.head.insertAdjacentHTML('beforeend','<style id="mg-style-core">#mg-screen .mini-hd{min-width:0;}#mg-screen .mini-ttl{white-space:nowrap;flex-shrink:0;}#mg-screen .mg-help{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}</style>');
+document.head.insertAdjacentHTML('beforeend','<style id="mg-style-core">#mg-screen .mini-hd{min-width:0;}#mg-screen .mini-ttl{white-space:nowrap;flex-shrink:0;}#mg-screen .mg-help{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}#mg-screen .mini-endbtn.mg-quit-armed{border-color:var(--rd);color:var(--rd);font-size:.62rem;}</style>');
 // 各ゲーム専用のCSSを一度だけ<head>に差し込む（style.cssを共有で編集しなくて済むように）
 function addMinigameStyle(id,css){
   if(document.getElementById('mg-style-'+id))return;
@@ -147,7 +147,18 @@ const MG={
   // ゲーム終了時（クリア・失敗・中断のどれでも）に一度だけ呼ばれる後片付け
   onEnd(fn){this._onEnd.push(fn);},
   end(reason){if(this.game&&!this._ended)this.finish(this.game.result(reason));},
-  quit(){this.end('quit');},
+  // 終了ボタンは誤タップ防止のため2回押しで確定（2.5秒以内）
+  quit(){
+    const btn=document.querySelector('#mg-screen .mini-endbtn');
+    if(btn&&!this._quitArmed){
+      this._quitArmed=true;const old=btn.textContent;btn.textContent='もう一度で終了';btn.classList.add('mg-quit-armed');
+      clearTimeout(this._quitTO);this._quitTO=setTimeout(()=>{this._quitArmed=false;btn.textContent=old;btn.classList.remove('mg-quit-armed');},2500);
+      return;
+    }
+    clearTimeout(this._quitTO);this._quitArmed=false;
+    if(btn){btn.textContent='終了';btn.classList.remove('mg-quit-armed');}
+    this.end('quit');
+  },
   finish(r){
     if(this._ended)return;
     this._ended=true;

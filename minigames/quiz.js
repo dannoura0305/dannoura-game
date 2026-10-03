@@ -397,7 +397,7 @@ registerMinigame({
   id:'quiz',icon:'📝',name:'危険物取扱者 一問一答',genre:'クイズ',bgm:'factory',
   desc:'来月は乙4の試験。深夜の机で4択を10問。連続正解でコンボ倍率、間違えた問題はまた出る。好成績で模擬試験モード解放。',
   effect:'資格知識↑ 仕事評価↑ 精神± ／ 疲労+5 約50分',
-  help:'タップ／1〜4キーで解答・Enterで次へ',
+  help:'タップ/1-4キーで解答',
   start(body,mg){
     const data=getData();
     const ck=(typeof gs.certKnow==='number')?gs.certKnow:0;
@@ -739,7 +739,7 @@ registerMinigame({
           <li>4択を<b>10問</b>。タップ／<kbd>1</kbd>〜<kbd>4</kbd>キー</li>
           <li>制限時間内に。早いほど高得点</li>
           <li>連続正解で<b>コンボ倍率</b>（最大×2.0）</li>
-          <li>ウォームアップ → 本番 → <b>実戦</b>（時間短め・得点UP）</li>
+          <li>肩慣らし → 本番 → <b>実戦</b>（短め・高得点）</li>
         </ul>
         <div class="quiz-p-note">出題：<b>${lvl}</b>（資格知識 ${ck}）／重点 ${AREA[focus].short}${rev?`<br>復習待ち <b>${rev}問</b>（出やすくなっています）`:''}</div>
         <button class="quiz-btn">はじめる<small>Enter</small></button></div>`;

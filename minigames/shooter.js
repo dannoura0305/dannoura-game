@@ -1035,7 +1035,7 @@ registerMinigame({
       cx.restore();
       cx.strokeStyle='#c9c2e6';cx.lineWidth=1.6;cx.beginPath();cx.arc(0,-10,11,0,6.283);cx.stroke();
       cx.strokeStyle='rgba(0,232,200,.6)';cx.lineWidth=1;cx.beginPath();cx.arc(0,-10,13.5,-2.6,-.55);cx.stroke();
-      if(player.hitT>0||dead){cx.globalCompositeOperation='source-atop';cx.fillStyle='rgba(255,40,80,.5)';cx.fillRect(-14,-24,28,48);cx.globalCompositeOperation='source-over';}
+      if(player.hitT>0||dead){cx.fillStyle='rgba(255,40,80,.5)';cx.beginPath();cx.arc(0,-10,12,0,6.283);cx.fill();cx.beginPath();cx.moveTo(-7,-1);cx.lineTo(7,-1);cx.lineTo(4,23);cx.lineTo(-4,23);cx.closePath();cx.fill();}
       cx.restore();
       cx.globalAlpha=1;
       if(barrierT>0){

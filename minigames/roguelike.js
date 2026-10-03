@@ -225,7 +225,7 @@ registerMinigame({
       scene='talk';talkI=i;talkPos=0;txtEl.textContent='';
       talkEl.classList.remove('hide');
       faceEl.style.backgroundImage=`url(${FACE}${talkLines[i][0]}.webp)`;
-      setTimer(()=>{if(scene==='talk'&&talkI===i)showTalk(i+1);},3600);
+      setTimer(()=>{if(scene==='talk'&&talkI===i)showTalk(i+1);},2700);
     }
     function showTut(){
       sceneTok++;titleEl.classList.add('hide');talkEl.classList.add('hide');
@@ -233,7 +233,7 @@ registerMinigame({
       say('懐中電灯を点けた。巡回を始める。');
       setTimer(()=>{if(scene==='tut')hideIntro();},4500);
     }
-    setTimer(()=>{if(scene==='title')advance();},2600);
+    setTimer(()=>{if(scene==='title')advance();},1900);
     // 画像の先読み
     ['tired','normal','fear','win','happy','collapse'].forEach(n=>{const im=new Image();im.src=FACE+n+'.webp';});
 

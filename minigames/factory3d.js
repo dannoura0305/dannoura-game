@@ -909,7 +909,7 @@ registerMinigame({
       const fbMat=new THREE.MeshBasicMaterial({map:T.beam,color:0xfff0d0,transparent:true,opacity:.055,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.BackSide,fog:false});
       const fbeam=new THREE.Mesh(fbGeo,fbMat);fbeam.position.copy(spot.position);camera.add(fbeam);
       // 懐中電灯に舞う埃
-      const DUST=170,dustPos=new Float32Array(DUST*3),dustVel=new Float32Array(DUST*3);
+      const DUST=110,dustPos=new Float32Array(DUST*3),dustVel=new Float32Array(DUST*3);
       const seedDust=i=>{const d=rnd(1.2,7),a=Math.random()*Math.PI*2,rr=Math.random()*d*.42;dustPos[i*3]=Math.cos(a)*rr+.2;dustPos[i*3+1]=Math.sin(a)*rr-.15;dustPos[i*3+2]=-d;dustVel[i*3]=rnd(-.05,.05);dustVel[i*3+1]=rnd(-.06,.03);dustVel[i*3+2]=rnd(-.03,.03);};
       for(let i=0;i<DUST;i++)seedDust(i);
       const dustGeo=new THREE.BufferGeometry();dustGeo.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
@@ -974,7 +974,7 @@ registerMinigame({
         const post=new THREE.Mesh(new THREE.BoxGeometry(.14,1.05,.14),M.dark);post.position.y=.52;post.castShadow=true;grp.add(post);
         const hous=new THREE.Mesh(new THREE.BoxGeometry(.66,.64,.22),housMat);hous.position.set(0,1.36,0);hous.castShadow=true;hous.receiveShadow=true;grp.add(hous);
         const bez=new THREE.Mesh(new THREE.CylinderGeometry(.27,.27,.05,24),M.metal);bez.rotation.x=Math.PI/2;bez.position.set(0,1.38,.12);grp.add(bez);
-        const dmat=new THREE.MeshPhongMaterial({map:face,emissive:0x2a2618,emissiveMap:face,shininess:90,specular:0xaaaaaa});
+        const dmat=new THREE.MeshPhongMaterial({map:face,color:0xb8b4a8,emissive:0x100e0a,emissiveMap:face,shininess:40,specular:0x444444});
         const dial=new THREE.Mesh(dialGeo,dmat);dial.position.set(0,1.38,.147);grp.add(dial);
         const pivot=new THREE.Group();pivot.position.set(0,1.38,.155);grp.add(pivot);
         const needle=new THREE.Mesh(needleGeo,new THREE.MeshBasicMaterial({color:0xc01818}));pivot.add(needle);
@@ -1313,7 +1313,8 @@ registerMinigame({
       // ── メインループ ──
       showTitle();
       sfxInit();
-      mg.loop(dt=>{
+      mg.loop(dt=>frame(dt,true));
+      function frame(dt,draw){
         if(S.disposed||!G)return;
         dt=clamp(dt||0,0,.05);
         tAll+=dt;
@@ -1337,8 +1338,8 @@ registerMinigame({
         if(S.phase==='title'||S.phase==='story'||S.phase==='howto'){camYaw=Math.sin(tAll*.22)*.5;P.yaw=camYaw;P.pitch=.06+Math.sin(tAll*.31)*.05;}
         world(dt);
         sfxTick(dt,S.phase==='play'?ghostNear:0,burning&&S.phase==='play',S.tension);
-        renderer.render(scene,camera);
-      });
+        if(draw)renderer.render(scene,camera);else camera.updateMatrixWorld(true);
+      }
 
       function update(dt){
         S.elapsed+=dt;S.timeLeft-=dt;
@@ -1553,7 +1554,7 @@ registerMinigame({
         fbeam.lookAt(camera.localToWorld(spotTarget.position.clone()));
         const bs=spot.angle/.48;fbeam.scale.set(bs,bs,1);
         fbMat.opacity=.05*(inten/FL_MAX);
-        dustMat.opacity=.5*Math.min(1.4,inten/FL_MAX);
+        dustMat.opacity=.32*Math.min(1.4,inten/FL_MAX)*(S.phase==='play'||S.phase==='over'?1:.4);
         for(let i=0;i<DUST;i++){
           dustPos[i*3]+=dustVel[i*3]*dt;dustPos[i*3+1]+=dustVel[i*3+1]*dt;dustPos[i*3+2]+=dustVel[i*3+2]*dt;
           if(dustPos[i*3+1]<-2.5||Math.abs(dustPos[i*3])>3.5)seedDust(i);
@@ -1572,7 +1573,7 @@ registerMinigame({
         if(lightSeq.length){lightSeq.forEach(s=>{s.t-=dt;if(s.t<=0&&!s.fired){s.fired=true;flashV=Math.max(flashV,s.v);}});if(lightSeq.every(s=>s.fired))lightSeq=[];}
         // 復電（クリア・時間切れ）
         if(S.power)powerV=Math.min(1,powerV+dt*.9);
-        hemi.intensity=.35+flashV*3+powerV*1.6;
+        hemi.intensity=.5+flashV*3+powerV*1.6;
         if(powerV>0){M.lampOff.color.setRGB(.08+powerV*.92,.08+powerV*.88,.1+powerV*.7);scene.fog.density=.052-powerV*.026;}
         M.glass.color.setRGB(.35+flashV*.65,.41+flashV*.59,.63+flashV*.37);
         M.shaft.opacity=.045+flashV*.32;
@@ -1606,7 +1607,7 @@ registerMinigame({
           else a=g.base+Math.sin(tAll*7+g.i)*.05;
           g.ang+=(a-g.ang)*Math.min(1,dt*12);
           g.pivot.rotation.z=-g.ang*2.2;
-          if(!g.done){const p=.5+.5*Math.sin(tAll*4+g.i);g.lampGlow.material.opacity=.3+.6*p;g.marker.position.y=2.35+Math.sin(tAll*2.2+g.i)*.08;}
+          if(!g.done){const p=.5+.5*Math.sin(tAll*4+g.i);g.lampGlow.material.opacity=.3+.6*p;g.marker.position.y=2.35+Math.sin(tAll*2.2+g.i)*.08;g.marker.visible=Math.hypot(g.x-P.x,g.z-P.z)>3.2;}
           if(g.tickT>0){g.tickT-=dt;g.tick.position.y=2+(1.8-g.tickT)*.3;g.tick.material.opacity=Math.min(1,g.tickT*1.5);if(g.tickT<=0)g.tick.visible=false;}
         });
         // 予備電池
@@ -1644,7 +1645,7 @@ registerMinigame({
         }
       }
       // テスト用フック（localStorage factory3d_debug=1 のときだけ）
-      try{if(localStorage.getItem('factory3d_debug')==='1')window.__f3d={S,P,GH,gauges,bats,exit:{x:exitX,z:exitZ},inp,renderer,DATA,adv:()=>advance(),skip:()=>{advance(true);},start:()=>{if(S.phase!=='play'){goHowto();startPlay();}},setTension,endWith};}catch(e){}
+      try{if(localStorage.getItem('factory3d_debug')==='1')window.__f3d={S,P,GH,gauges,bats,exit:{x:exitX,z:exitZ},inp,renderer,DATA,adv:()=>advance(),skip:()=>{advance(true);},start:()=>{if(S.phase!=='play'){goHowto();startPlay();}},setTension,endWith,tick:(n,dt)=>{for(let i=0;i<n&&!S.disposed&&!mg._ended;i++)frame(dt||.05,false);}};}catch(e){}
     }
 
     // ══════════════════════════════════════════════════════

@@ -133,7 +133,7 @@ registerMinigame({
 
     // ── DOM ──
     const cv=document.createElement('canvas');cv.className='fishing-cv';body.appendChild(cv);
-    const cx=cv.getContext('2d');
+    let cx=cv.getContext('2d');
     const zbtn=document.createElement('button');zbtn.className='fishing-zbtn hide';body.appendChild(zbtn);
     const ov=document.createElement('div');ov.className='fishing-ov';body.appendChild(ov);
     const tk=document.createElement('div');tk.className='fishing-talk';
@@ -258,7 +258,7 @@ registerMinigame({
         const b=R();
         g.fillStyle=`rgba(${b<.15?'255,226,190':b<.3?'190,215,255':'230,228,255'},${(.18+R()*.55)*(WEATHER==='clear'?1:.6)*clamp(d/(moon.r*6),.25,1)})`;
         const s=R()<.08?1.6:1;g.fillRect(x,y,s,s);
-        if(i%5===0&&b>.5)stars.push({x:x-M,y,ph:R()*6.28,sp:rr(1,3)});
+        if(i%5===0&&b>.5&&y<HZ-H*.1)stars.push({x:x-M,y,ph:R()*6.28,sp:rr(1,3)});
       }
       const halo=(WEATHER==='mist'?moon.r*9:WEATHER==='rain'?moon.r*7:moon.r*6)*(.5+lit*.5);
       let rg=g.createRadialGradient(moon.x,moon.y,moon.r*.8,moon.x,moon.y,halo);
@@ -703,6 +703,7 @@ registerMinigame({
     let msg='',msgT=0,msgCol='#bbaedd',banner=null;
     let cardReadyAt=0,ignoreRelease=false,firstReel=true,bucketT=0,lastCatch=null;
     const catches=[];let newSpecies=0,rareCaught=false,bigCaught=false,escapes=0,grade='C',score=0,gradeT=0;
+    let bgCache=null,bgG=null,bgKey='';
     let lhAng=Math.random()*6.28,lastHud='',lastTm='',rzT=0,ambT=0,genTwitch=0;
     const keys={l:false,r:false};
 
@@ -1332,13 +1333,21 @@ registerMinigame({
       const t=clock;
       cx.setTransform(dpr,0,0,dpr,0,0);
       cx.globalAlpha=1;cx.globalCompositeOperation='source-over';
-      cx.drawImage(lySky,-M+camX*.15,-lySky._top+camOff*.35,W+M*2,lySky.height/dpr);
+      // 遠景はカメラ位置が変わったときだけ合成し直す
+      const key=`${Math.round(camX*2)}|${Math.round(camOff)}|${Math.round(nightLv*200)}|${W}|${H}|${dpr}`;
+      if(key!==bgKey){
+        bgKey=key;
+        if(!bgCache||bgCache.width!==cv.width||bgCache.height!==cv.height){bgCache=document.createElement('canvas');bgCache.width=cv.width;bgCache.height=cv.height;bgG=bgCache.getContext('2d');}
+        const g=bgG;g.setTransform(dpr,0,0,dpr,0,0);g.globalAlpha=1;
+        g.drawImage(lySky,-M+camX*.15,-lySky._top+camOff*.35,W+M*2,lySky.height/dpr);
+        g.drawImage(lyFar,-M+camX*.4,camOff*.8,W+M*2,lyFar.height/dpr);
+        g.drawImage(lyWater,-M+camX*.6,HZ+camOff*.9,W+M*2,H-HZ);
+        g.drawImage(lyMid,-M+camX*.7,lyMid._y+camOff*.92,W+M*2,lyMid.height/dpr);
+        if(nightLv>.005){g.fillStyle=`rgba(3,2,14,${nightLv})`;g.fillRect(0,0,W,H);}
+      }
+      cx.setTransform(1,0,0,1,0,0);cx.drawImage(bgCache,0,0);cx.setTransform(dpr,0,0,dpr,0,0);
       for(const s of stars){const a=.3+.7*Math.max(0,Math.sin(t*s.sp+s.ph));cx.fillStyle=`rgba(240,236,255,${a*.8})`;cx.fillRect(s.x+camX*.15-.5,s.y+camOff*.35-.5,1.6,1.6);}
-      cx.drawImage(lyFar,-M+camX*.4,camOff*.8,W+M*2,lyFar.height/dpr);
-      cx.drawImage(lyWater,-M+camX*.6,HZ+camOff*.9,W+M*2,H-HZ);
       drawRefl(t);
-      cx.drawImage(lyMid,-M+camX*.7,lyMid._y+camOff*.92,W+M*2,lyMid.height/dpr);
-      if(nightLv>.005){cx.fillStyle=`rgba(3,2,14,${nightLv})`;cx.fillRect(0,0,W,H);}
       drawLights(t);
       // 水面の物（ひとまとめに少しだけ視差）
       cx.save();cx.translate(camX*.8,camOff*.95);
@@ -1373,11 +1382,25 @@ registerMinigame({
       if(state==='ending'||state==='fadeout')drawEnding(t);
       if(fadeA>0){cx.fillStyle=`rgba(3,2,8,${fadeA})`;cx.fillRect(0,0,W,H);}
     }
+    let rfC=null,rfG=null,rfN=0;
     function drawRefl(t){
+      // 映り込みは2フレームに1回だけ描き直して、加算で重ねる
+      const rh=Math.max(1,PY-HZ);
+      if(!rfC||rfC.width!==Math.round(W*dpr)||rfC.height!==Math.round(rh*dpr)){rfC=document.createElement('canvas');rfC.width=Math.round(W*dpr);rfC.height=Math.round(rh*dpr);rfG=rfC.getContext('2d');rfN=0;}
+      if((rfN++)%2===0){
+        const sv=cx;cx=rfG;
+        cx.setTransform(dpr,0,0,dpr,0,-HZ*dpr);cx.clearRect(0,HZ,W,rh);
+        reflBody(t);
+        cx=sv;
+      }
+      cx.globalCompositeOperation='lighter';cx.globalAlpha=1;
+      cx.drawImage(rfC,0,HZ+camOff*.9,W,rh);
+      cx.globalCompositeOperation='source-over';
+    }
+    function reflBody(t){
       const m=BR.moon;
-      cx.globalCompositeOperation='lighter';
       const mAmp=(WEATHER==='rain'?.55:WEATHER==='mist'?.7:1)*(.25+BR.lit*.75);
-      const mx=m.x+camX*.15,oy=camOff*.9;
+      const mx=m.x+camX*.15,oy=0;
       for(let y=HZ+1;y<PY;){
         const d=depthAt(y);
         const step=1.2+d*5.5;
@@ -1402,7 +1425,6 @@ registerMinigame({
         for(let i=0;i<4;i++){const y=HZ+2+l.dy+i*l.len*.35;const ox=Math.sin(t*1.8+l.ph+i*1.7)*(1+i*.5);
           cx.fillStyle=`rgba(${l.c},${l.a*(1-i*.24)})`;cx.fillRect(l.x+fx+ox,y+oy,1.2+i*.2,1.4+i*.4);}
       }
-      cx.globalCompositeOperation='source-over';cx.globalAlpha=1;
     }
     function drawLights(t){
       cx.globalCompositeOperation='lighter';
@@ -1696,13 +1718,14 @@ registerMinigame({
     resize();
     const onResize=()=>{if(!mg._ended)resize();};
     window.addEventListener('resize',onResize);
+    window.__mgFishingBench=n=>{const t0=performance.now();for(let i=0;i<n;i++)draw();return (performance.now()-t0)/n;};
     window.__mgFishing=()=>({state,tension,pr:reel.pr,inside:reel.inside,f:reel.f,z:reel.z,zw:reel.zw,ended:mg._ended,casts:castsLeft,catches:catches.length,talk:talk.on,grade});
     mg.loop(dt=>{update(dt);if(!mg._ended)draw();});
 
     return {result(reason){
       window.removeEventListener('resize',onResize);
       SFX.ambStop();
-      try{delete window.__mgFishing;}catch(_){}
+      try{delete window.__mgFishing;delete window.__mgFishingBench;}catch(_){}
       const done=reason==='done';
       const names=catches.map(c=>SP[c.id].name);
       const uniq=[...new Set(names)];

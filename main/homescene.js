@@ -509,6 +509,7 @@ function lightsFor(k){
 }
 function applySetup(k,instant){
   S.key=k;S.sceneT=0;lightsFor(k);
+  for(let i=0;i<PN;i++)P[i].on=false;
   A.act=0;A.subT=0;A.yawn=0;A.look=0;
   switch(k){
     case'rest_light':A.mode='sit';A.x=A.tx=124;break;

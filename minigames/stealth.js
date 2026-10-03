@@ -1609,7 +1609,7 @@ registerMinigame({
       // 結果の場面で「終了」を押しても、その夜の結果で精算する
       if(reason==='quit'&&endReason)reason=endReason;
       if(reason!=='quit'&&!grade){endReason=reason;computeGrade();}
-      const gradeHtml=grade?`評価 <span class="up">${grade}</span>　`:'';
+      const gradeHtml=grade?`評価 <span class="up">${grade}</span><br>`:'';
       const done=ORDER.filter(k=>ST[k].done).length;
       const doneNames=ORDER.filter(k=>ST[k].done).map(k=>ST[k].name).join('・')||'なし';
       let fx,title,time,sp=0,log,cutin=null;
@@ -1618,16 +1618,16 @@ registerMinigame({
         title='🤫 起こさずに、ぜんぶ終わった';
         log='子どもを起こさずに家事を終えた。寝顔を見て、少しだけ肩の力が抜けた。';
         cutin=['happy','……おやすみ。明日もちゃんと起こしたるからな。'];
-        return {title,time,sp,fx,log,cutin,summary:gradeHtml+`家事 <span class="up">${done}/4</span>　23:${String(Math.min(59,Math.floor(cleared/T_PLAY*60))).padStart(2,'0')} に完了`+
-          `<br>最大の物音 <span class="${maxNoise>70?'down':'up'}">${Math.round(maxNoise)}%</span>`+(catPets?`　ねこをなでた <span class="up">${catPets}</span>`:'')+
-          (newBest?'<br>自己ベスト更新！':`<br>最速記録 ${data.best}秒`)+(hard?`（難度${'★'.repeat(hard)}）`:'')};
+        return {title,time,sp,fx,log,cutin,summary:`評価 <span class="up">${grade}</span><br>家事 <span class="up">${done}/4</span><br>完了時刻 <span class="up">23:${String(Math.min(59,Math.floor(cleared/T_PLAY*60))).padStart(2,'0')}</span>`+
+          `<br>最大の物音 <span class="${maxNoise>70?'down':'up'}">${Math.round(maxNoise)}%</span>`+(catPets?`<br>なでたねこ <span class="up">${catPets}</span>`:'')+
+          (newBest?'<br>自己ベスト更新！':`<br>最速記録 <span class="up">${data.best}秒</span>`)};
       }
       if(reason==='woke'){
         fx={childStress:4,mental:-3,fatigue:6};time=60;
         title='😢 起こしてしまった';
         log='物音で子どもが起きてしまった。抱っこして、もう一度寝かしつけた。';
         cutin=['tired','ごめんな、起こしてもうたな……よしよし。'];
-        return {title,time,sp,fx,log,cutin,summary:gradeHtml+`終わった家事 ${done}/4（${doneNames}）<br>泣き止むまで、背中をとんとんした。`+(toyHits?`<br>踏んだおもちゃ <span class="down">${toyHits}</span>`:'')};
+        return {title,time,sp,fx,log,cutin,summary:gradeHtml+`終わった家事 <span class="down">${done}/4</span><br>泣き止むまで、背中をとんとんした。`+(toyHits?`<br>踏んだおもちゃ <span class="down">${toyHits}</span>`:'')};
       }
       if(reason==='late'){
         const cs=-Math.min(6,done*2);
@@ -1635,10 +1635,10 @@ registerMinigame({
         title='🕛 0時を過ぎてしまった';
         log='家事が終わらないまま日付が変わった。残りは朝にまわす。';
         cutin=['tired','……もう0時か。残りは朝やな。'];
-        return {title,time,sp,fx,log,cutin,summary:gradeHtml+`終わった家事 ${done}/4（${doneNames}）<br>子どもは、ぐっすり眠っている。`};
+        return {title,time,sp,fx,log,cutin,summary:gradeHtml+`終わった家事 <span class="down">${done}/4</span><br>子どもは、ぐっすり眠っている。`};
       }
       fx={fatigue:2};time=20;
-      return {title:'🤫 家事を切り上げた',time,sp,fx,log:'家事を途中で切り上げた。',cutin:null,summary:`終わった家事 ${done}/4`};
+      return {title:'🤫 家事を切り上げた',time,sp,fx,log:'家事を途中で切り上げた。',cutin:null,summary:`終わった家事 <span class="up">${done}/4</span>`};
     }};
   },
 });

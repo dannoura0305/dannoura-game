@@ -113,6 +113,7 @@ addMinigameStyle('escape',`
 @keyframes esc-blink{50%{opacity:.25;}}
 .esc-dlg{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;justify-content:flex-end;background:linear-gradient(rgba(3,2,10,.15),rgba(3,2,10,.85) 55%);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .35s;}
 .esc-dlg.off{opacity:0;pointer-events:none;}
+.esc-dlg.lite{background:linear-gradient(transparent 50%,rgba(3,2,10,.5));}
 .esc-dlg .pt{position:relative;align-self:flex-start;margin:0 0 -14px 14px;width:118px;height:118px;border-radius:6px;border:2px solid var(--pu);overflow:hidden;box-shadow:0 0 22px rgba(138,82,212,.5);background:#120c22;z-index:1;transition:filter .3s;}
 .esc-dlg .pt img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.8) brightness(.92);}
 .esc-dlg .pt:after{content:'';position:absolute;inset:0;background:linear-gradient(transparent 60%,rgba(20,8,40,.55)),repeating-linear-gradient(transparent 0 2px,rgba(0,0,0,.12) 2px 3px);}
@@ -547,30 +548,30 @@ registerMinigame({
         <path d="M14 30 A40 40 0 0 1 50 8" stroke="#fff" stroke-width="3" fill="none" opacity=".35"/></svg>`;
     }
     function ladderSVG(){
-      const RH=46,w=300,h=14+RH*4;
+      const RH=50,w=300,h=26+RH*4;
       const on=P.rungs.map(r=>!!P.ev(r,S.x));
       const pw=S.power;
       const col=(c)=>pw&&c?'#44ee88':'#4a6a62';
       let s=`<svg class="esc-ladder" viewBox="0 0 ${w} ${h}" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="monospace">`;
       s+=`<line x1="10" y1="4" x2="10" y2="${h-4}" stroke="${pw?'#44ee88':'#4a6a62'}" stroke-width="2.5"/><line x1="${w-10}" y1="4" x2="${w-10}" y2="${h-4}" stroke="#4a6a62" stroke-width="2.5"/>`;
-      const contact=(x,y,a,nc)=>{
+      const contact=(x,y,a,nc,below)=>{
         const cond=nc?!S.x[a]:S.x[a];const c=col(cond);
         return `<line x1="${x-7}" y1="${y-9}" x2="${x-7}" y2="${y+9}" stroke="${c}" stroke-width="2.4"/><line x1="${x+7}" y1="${y-9}" x2="${x+7}" y2="${y+9}" stroke="${c}" stroke-width="2.4"/>`+
           (nc?`<line x1="${x-8}" y1="${y+9}" x2="${x+8}" y2="${y-9}" stroke="${c}" stroke-width="1.8"/>`:'')+
-          `<text x="${x}" y="${y-12}" font-size="10" text-anchor="middle" fill="#9ce">X${a}</text>`;
+          `<text x="${x}" y="${below?y+21:y-12}" font-size="10" text-anchor="middle" fill="#9ce">X${a}</text>`;
       };
       P.rungs.forEach((r,i)=>{
-        const y=18+i*RH,wc='#4a6a62';
+        const y=24+i*RH,wc='#4a6a62';
         s+=`<text x="16" y="${y-11}" font-size="8" fill="#3c5c54">${i}</text>`;
         if(r.t==='A'||r.t==='N'){
           s+=`<line x1="10" y1="${y}" x2="113" y2="${y}" stroke="${wc}" stroke-width="1.6"/><line x1="127" y1="${y}" x2="232" y2="${y}" stroke="${wc}" stroke-width="1.6"/>`+contact(120,y,r.a,r.t==='N');
         }else if(r.t==='AND'){
           s+=`<line x1="10" y1="${y}" x2="73" y2="${y}" stroke="${wc}" stroke-width="1.6"/><line x1="87" y1="${y}" x2="153" y2="${y}" stroke="${wc}" stroke-width="1.6"/><line x1="167" y1="${y}" x2="232" y2="${y}" stroke="${wc}" stroke-width="1.6"/>`+contact(80,y,r.a,false)+contact(160,y,r.b,r.nb);
         }else{
-          const y2=y+20;
+          const y2=y+19;
           s+=`<line x1="10" y1="${y}" x2="93" y2="${y}" stroke="${wc}" stroke-width="1.6"/><line x1="107" y1="${y}" x2="232" y2="${y}" stroke="${wc}" stroke-width="1.6"/>`+
             `<polyline points="50,${y} 50,${y2} 93,${y2}" fill="none" stroke="${wc}" stroke-width="1.6"/><polyline points="107,${y2} 150,${y2} 150,${y}" fill="none" stroke="${wc}" stroke-width="1.6"/>`+
-            contact(100,y,r.a,false)+contact(100,y2+2,r.b,false).replace(/y="(\d+(\.\d+)?)" font-size="10"/,(m,n)=>`y="${+n+30}" font-size="10"`);
+            contact(100,y,r.a,false)+contact(100,y2,r.b,false,true);
         }
         const cc=col(on[i]);
         s+=`<path d="M238 ${y-10} Q232 ${y} 238 ${y+10}" stroke="${cc}" stroke-width="2.2" fill="none"/><path d="M252 ${y-10} Q258 ${y} 252 ${y+10}" stroke="${cc}" stroke-width="2.2" fill="none"/>`+
@@ -842,7 +843,7 @@ registerMinigame({
       if(S.over)return;S.over='clear';closeZoom(true);rainStop();
       const g=grade(),nb=Math.ceil(S.left)>prevBest;
       const cm={S:'完璧な段取り。ベテランの仕事だ。',A:'手際よし。設備屋の面目躍如。',B:'無事に脱出。次はもっと速く。',C:'ぎりぎり間に合った……。'}[g];
-      record('clear');
+      record('clear');dlgEl.classList.add('lite');
       dialog([
         {text:'雨上がりの朝。駐車場の水たまりに、うすい青空が映っている。'},
         {who:'だんのうら',img:S.hints?'char_happy':'char_win',text:S.hints?'……間に合った。さあ、迎えに行こう。':'……ヒントなしで抜けた。岩城さん、見てたかな。'},
@@ -1053,11 +1054,10 @@ registerMinigame({
       cx.fillStyle=grad(y,y+h,'#8a8c98','#50525e');cx.fillRect(x,y,w,h);
       cx.fillStyle='#2a2b33';cx.fillRect(x+w*.06,y+h*.03,w*.88,h*.94);
       // 中のブレーカー列
-      for(let r=0;r<3;r++)for(let c=0;c<(r?3:1);c++){
+      for(let r=0;r<3;r++)for(let c=0;c<(r===0?1:r===1?3:2);c++){
         const bx=r?x+w*(.14+c*.25):x+w*.36,by=y+h*(.1+r*.17),bw=r?w*.2:w*.28;
         cx.fillStyle='#d8d4c8';cx.fillRect(bx,by,bw,h*.12);cx.fillStyle='#222';cx.fillRect(bx+bw*.35,by+h*.03,bw*.3,h*.06);
         const code=r===0?'MCCB':'CB-'+(r===1?c+1:c+4);const on=S.bOn.includes(code)||S.power;
-        if(r===2&&c===2)continue;
         cx.fillStyle=on?'#22aa66':'#555';cx.fillRect(bx+bw*.38,by+h*(on?.035:.06),bw*.24,h*.03);
       }
       // 扉
@@ -1091,8 +1091,15 @@ registerMinigame({
       cx.fillStyle='#2e2a38';cx.fillRect(x+w*.12,y+h*.2,w*.3,h*.04);
       cx.fillStyle='#d8d0c4';rr(x+w*.62,y+h*.08,w*.08,h*.15,2);cx.fill();cx.strokeStyle='#d8d0c4';cx.lineWidth=2;cx.beginPath();cx.arc(x+w*.71,y+h*.15,h*.04,-1.4,1.4);cx.stroke();
       cx.fillStyle='#f4f0e2';cx.save();cx.translate(x+w*.78,y-h*.22);cx.rotate(.08);cx.fillRect(0,0,w*.16,h*.22);
-      cx.fillStyle='#e83055';cx.fillRect(w*.03,h*.1,w*.1,h*.08);cx.fillStyle='#555';cx.fillRect(w*.08,h*.03,w*.025,h*.08);
-      cx.strokeStyle='#e8b830';cx.lineWidth=1.5;cx.beginPath();cx.arc(w*.09,h*.06,w*.05,3.4,6);cx.stroke();cx.restore();
+      // 息子のクレヨン画「パパのこうじょう」
+      const pw_=w*.16,ph_=h*.22;
+      cx.fillStyle='#8a8a9a';cx.fillRect(pw_*.45,-2,pw_*.1,4);
+      cx.fillStyle='#e8b830';cx.beginPath();cx.arc(pw_*.18,ph_*.2,pw_*.1,0,7);cx.fill();
+      cx.fillStyle='#4a6ab0';cx.fillRect(pw_*.3,ph_*.45,pw_*.55,ph_*.4);cx.fillStyle='#e83055';cx.beginPath();cx.moveTo(pw_*.25,ph_*.47);cx.lineTo(pw_*.57,ph_*.22);cx.lineTo(pw_*.9,ph_*.47);cx.fill();
+      cx.fillStyle='#666';cx.fillRect(pw_*.72,ph_*.12,pw_*.08,ph_*.2);
+      cx.strokeStyle='#e83055';cx.lineWidth=1.2;cx.beginPath();cx.arc(pw_*.76,ph_*.12,pw_*.12,3.3,6.1);cx.stroke();cx.strokeStyle='#44bb66';cx.beginPath();cx.arc(pw_*.76,ph_*.12,pw_*.08,3.3,6.1);cx.stroke();
+      cx.strokeStyle='#222';cx.lineWidth=1;cx.beginPath();[[.12,.62],[.2,.7]].forEach(([u,v])=>{cx.moveTo(pw_*u,ph_*v);cx.lineTo(pw_*u,ph_*(v+.2));});cx.stroke();
+      cx.restore();
       // 椅子
       cx.fillStyle='#1e1a28';cx.fillRect(x+w*.2,y+h*.45,w*.22,h*.07);cx.fillRect(x+w*.29,y+h*.52,w*.04,h*.32);cx.fillRect(x+w*.18,y+h*.84,w*.26,h*.03);
       cx.fillStyle='#2a2438';cx.fillRect(x+w*.18,y+h*.05,w*.06,h*.42);
@@ -1228,10 +1235,19 @@ registerMinigame({
           cx.fillStyle='#3a4a6a';cx.beginPath();cx.moveTo(x+w*.3,y+hh*.1);cx.lineTo(x+w*.7,y+hh*.1);cx.lineTo(x+w*.8,y+hh*.55);cx.lineTo(x+w*.2,y+hh*.55);cx.closePath();cx.fill();
           cx.fillStyle='#888';cx.fillRect(x+w*.45,y+hh*.06,w*.1,hh*.05);
           cx.fillStyle='#2a2a30';cx.fillRect(x+w*.2,y+hh*.75,w*.6,hh*.2);
-          const a=S.anim.locker,dw=w*(1-a*.8);
-          cx.fillStyle=grad(y,y+hh,'#6a7a80','#3a464e');cx.beginPath();cx.moveTo(x,y);cx.lineTo(x-dw*.15*a+dw*(1-a*.3),y-hh*.03*a);cx.lineTo(x-dw*.15*a+dw*(1-a*.3),y+hh+hh*.03*a);cx.lineTo(x,y+hh);cx.closePath();cx.fill();
-          // 扉の裏の写真
-          if(a>.5){cx.fillStyle='#f4f0e6';cx.fillRect(x+w*.02,y+hh*.3,w*.1,hh*.1);cx.fillStyle='#e8b830';cx.fillRect(x+w*.03,y+hh*.32,w*.08,hh*.06);}
+          // 中の写真（奥の壁）
+          cx.fillStyle='#f4f0e6';cx.fillRect(x+w*.3,y+hh*.6,w*.4,hh*.1);cx.fillStyle='#c89060';cx.fillRect(x+w*.33,y+hh*.615,w*.34,hh*.07);
+          cx.fillStyle='#ffd8a8';cx.beginPath();cx.arc(x+w*.42,y+hh*.64,w*.05,0,7);cx.arc(x+w*.56,y+hh*.65,w*.035,0,7);cx.fill();
+          // 開いた扉（左ヒンジ・手前に開く）
+          const a=S.anim.locker,ex=x-w*.55*a+w*(1-a),sk=hh*.04*a;
+          cx.fillStyle=grad(y,y+hh,a>.5?'#4a565c':'#5a6a70',a>.5?'#283036':'#34404a');
+          cx.beginPath();cx.moveTo(x,y);cx.lineTo(ex,y-sk);cx.lineTo(ex,y+hh+sk);cx.lineTo(x,y+hh);cx.closePath();cx.fill();
+          cx.strokeStyle='#14181c';cx.lineWidth=1.5;cx.stroke();
+          if(a>.6){const iw=x-ex;cx.fillStyle='rgba(255,255,255,.08)';cx.fillRect(ex+iw*.15,y+hh*.1,iw*.7,hh*.02);
+            // 扉の裏の鏡と写真
+            cx.fillStyle='#8a98a8';cx.fillRect(ex+iw*.2,y+hh*.14,iw*.6,hh*.12);
+            cx.save();cx.translate(ex+iw*.5,y+hh*.36);cx.rotate(-.06);cx.fillStyle='#f4f0e6';cx.fillRect(-iw*.32,0,iw*.64,hh*.12);cx.fillStyle='#e8a050';cx.fillRect(-iw*.27,hh*.012,iw*.54,hh*.08);
+            cx.fillStyle='#ffd8a8';cx.beginPath();cx.arc(-iw*.08,hh*.045,iw*.09,0,7);cx.fill();cx.beginPath();cx.arc(iw*.12,hh*.06,iw*.06,0,7);cx.fill();cx.restore();}
           continue;
         }
         for(let k=0;k<5;k++){cx.fillStyle='#1e262c';cx.fillRect(x+w*.25,y+hh*(.06+k*.025),w*.5,hh*.01);}
@@ -1354,6 +1370,38 @@ registerMinigame({
       }
     }
     function glow(x,y,r,rgb,a){const g=cx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(${rgb},${a})`);g.addColorStop(1,`rgba(${rgb},0)`);cx.fillStyle=g;cx.fillRect(x-r,y-r,r*2,r*2);}
+    // 脱出後：夜明けの工場の外
+    let endT0=-1;
+    function drawOutside(a){
+      if(a<=0)return;
+      if(endT0<0)endT0=T;const t=T-endT0;
+      cx.save();cx.globalAlpha=a;
+      const sky=cx.createLinearGradient(0,0,0,H*.62);sky.addColorStop(0,'#2a2a5a');sky.addColorStop(.45,'#8a5a8a');sky.addColorStop(.8,'#e89870');sky.addColorStop(1,'#ffd8a0');
+      cx.fillStyle=sky;cx.fillRect(0,0,W,H*.62);
+      const sun=cx.createRadialGradient(W*.68,H*.6,0,W*.68,H*.6,W*.5);sun.addColorStop(0,'rgba(255,240,200,.95)');sun.addColorStop(.15,'rgba(255,210,150,.6)');sun.addColorStop(1,'rgba(255,200,150,0)');
+      cx.fillStyle=sun;cx.fillRect(0,0,W,H*.62);
+      // 雲
+      cx.fillStyle='rgba(60,40,80,.35)';[[.2,.18,.3],[.7,.12,.25],[.45,.3,.35]].forEach(([u,v,r])=>{cx.beginPath();cx.ellipse(W*(u+(t*.004)),H*v,W*r,H*.025,0,0,7);cx.fill();});
+      // 工場のシルエット
+      cx.fillStyle='#1c1428';
+      cx.beginPath();cx.moveTo(0,H*.62);cx.lineTo(0,H*.46);cx.lineTo(W*.12,H*.46);cx.lineTo(W*.12,H*.4);cx.lineTo(W*.3,H*.4);
+      for(let i=0;i<4;i++){cx.lineTo(W*(.3+i*.08),H*.36);cx.lineTo(W*(.38+i*.08),H*.4);}
+      cx.lineTo(W*.62,H*.4);cx.lineTo(W*.62,H*.5);cx.lineTo(W*.82,H*.5);cx.lineTo(W*.82,H*.44);cx.lineTo(W,H*.44);cx.lineTo(W,H*.62);cx.fill();
+      cx.fillRect(W*.2,H*.2,W*.035,H*.22);cx.fillRect(W*.86,H*.28,W*.025,H*.16);
+      for(let i=0;i<4;i++){const ph=(t*.25+i/4)%1;cx.fillStyle=`rgba(230,200,220,${.3*(1-ph)})`;cx.beginPath();cx.arc(W*.218+ph*W*.08,H*.2-ph*H*.12,W*(.02+ph*.05),0,7);cx.fill();}
+      cx.fillStyle='rgba(255,220,150,.8)';for(let i=0;i<7;i++)cx.fillRect(W*(.34+i*.04),H*.45,W*.015,H*.012);
+      // 濡れたアスファルトと反射
+      const gr=cx.createLinearGradient(0,H*.62,0,H);gr.addColorStop(0,'#3a2a3a');gr.addColorStop(1,'#141020');cx.fillStyle=gr;cx.fillRect(0,H*.62,W,H*.38);
+      cx.fillStyle='rgba(255,210,160,.35)';cx.beginPath();cx.ellipse(W*.68,H*.68,W*.25,H*.02,0,0,7);cx.fill();
+      for(let i=0;i<6;i++){cx.fillStyle=`rgba(255,220,180,${.12+.06*Math.sin(t*2+i)})`;cx.fillRect(W*(.55+Math.sin(i*2.1)*.12),H*(.7+i*.04),W*(.2-i*.02),1.5);}
+      cx.strokeStyle='rgba(255,255,255,.25)';cx.lineWidth=2;cx.setLineDash([W*.06,W*.05]);cx.beginPath();cx.moveTo(0,H*.84);cx.lineTo(W,H*.8);cx.stroke();cx.setLineDash([]);
+      // 鳥
+      cx.strokeStyle='#2a1a30';cx.lineWidth=1.5;for(let i=0;i<3;i++){const bx=(W*(.1+i*.07)+t*W*.05)%W,by=H*(.15+i*.03),f=Math.sin(t*8+i)*3;cx.beginPath();cx.moveTo(bx-6,by-f);cx.lineTo(bx,by);cx.lineTo(bx+6,by-f);cx.stroke();}
+      cx.globalAlpha=a;
+      txt('脱出成功',W/2,H*.13,W*.1,'#fff4e0');
+      txt(clock()+'　雨上がり',W/2,H*.2,W*.04,'rgba(255,240,220,.9)');
+      cx.restore();
+    }
     const DRAW={ctrl:[drawCtrl,emisCtrl],store:[drawStore,emisStore],locker:[drawLocker,emisLocker],exit:[drawExit,emisExit]};
 
     // 照明の明るさ（復電直後はチカチカ）
@@ -1373,6 +1421,7 @@ registerMinigame({
       let amb=S.power?.92-.5*lit:.95;
       amb=Math.max(.15,amb-flash*.55);
       if(S.door)amb*=Math.max(0,1-S.anim.door*.7);
+      if(S.over==='timeup')amb=.22;
       const L=lx*W,Lc=ly*H;
       const R=(S.torch?.52:.27)*Math.min(W*1.15,H*.9)*(S.torch?1:(.96+.04*Math.sin(T*9)));
       dx.setTransform(dpr,0,0,dpr,0,0);
@@ -1440,8 +1489,10 @@ registerMinigame({
       if(trans){const k=trans.t<.5?trans.t*2:(1-trans.t)*2;cx.fillStyle=`rgba(3,2,10,${Math.min(1,k*1.1)})`;cx.fillRect(0,0,W,H);}
       // 脱出演出
       if(S.door&&S.anim.door>.6){
-        const k=(S.anim.door-.6)/.4;cx.fillStyle=`rgba(255,244,225,${k*.85})`;cx.fillRect(0,0,W,H);
-        txt('脱出成功',W/2,H*.45,W*.09,`rgba(80,40,30,${k})`);txt(clock()+'　雨上がり',W/2,H*.53,W*.04,`rgba(120,80,60,${k})`);
+        const k=(S.anim.door-.6)/.4;
+        cx.fillStyle=`rgba(255,244,225,${Math.min(1,k*2)*(1-Math.max(0,(T-S.clearT-2.4))*1.5)})`;
+        drawOutside(Math.min(1,Math.max(0,(T-S.clearT-2.2)/1.2)));
+        cx.fillRect(0,0,W,H);
       }
       // 残り時間が少ないと赤く脈打つ
       if(S.started&&!S.door&&S.left<30){const a=(.5+.5*Math.sin(T*6))*.18;cx.strokeStyle=`rgba(232,48,85,${a})`;cx.lineWidth=10;cx.strokeRect(0,0,W,H);}
@@ -1483,7 +1534,7 @@ registerMinigame({
         if(S.left<=30&&!warned){warned=true;AU.se('warn');say('……もう空が白んできた。急がないと！');}
         if(S.left<=0){S.left=0;mg.setTimer('0:00');endingTimeup();}
       }
-      if(S.door&&!S.over&&T-S.clearT>3.3)endingClear();
+      if(S.door&&!S.over&&T-S.clearT>4.2)endingClear();
       if(S.tut===2){S.tutT-=dt;if(S.tutT<=0){S.tut=0;renderInv();}}
       cx.setTransform(dpr,0,0,dpr,0,0);
       drawScene();

@@ -278,6 +278,11 @@ const NAV={
   topCtx(){
     for(const id of BLOCKERS){if(isActive($(id)))return null;}
     if(document.body.classList.contains('mg-active'))return null;
+    // 他モジュールのモーダル（aria-modal）が出ている間は何もしない
+    for(const m of document.querySelectorAll('[aria-modal="true"]')){
+      const cs=getComputedStyle(m);
+      if(cs.display!=='none'&&cs.visibility!=='hidden'&&cs.pointerEvents!=='none'&&+cs.opacity>.05)return null;
+    }
     if($('live-intro')?.classList.contains('show'))return null;
     for(const c of CTX){const el=$(c.el);if(el&&c.open(el))return c;}
     return null;
@@ -341,7 +346,7 @@ const NAV={
   tick(){
     const c=this.topCtx();
     if(c!==this.ctx){
-      this.ctx=c;
+      this.ctx=c;this.moved=false;
       if(this.cur){this.cur.classList.remove('ui-cur');this.cur=null;}
     }
     let el=this.cur;
@@ -373,7 +378,18 @@ const NAV={
   init(){
     const h=document.createElement('div');h.id='ui-hand';h.setAttribute('aria-hidden','true');h.innerHTML=handSVG();
     document.body.appendChild(h);this.hand=h;
+    // キー操作中のスクロールで起きる pointerover は無視する（実際にマウスが動いたときだけ追従）
+    let lx=-1,ly=-1;
+    document.addEventListener('pointermove',e=>{
+      if(Math.abs(e.clientX-lx)+Math.abs(e.clientY-ly)>3){
+        this.moved=true;
+        if(lx>=0&&this.kbd&&e.pointerType==='mouse'){this.kbd=false;const it=e.target.closest&&e.target.closest(ITEM_SEL);if(it&&this.ctx&&$(this.ctx.el).contains(it)&&this.items(this.ctx).includes(it))this.set(it,false);}
+        lx=e.clientX;ly=e.clientY;
+      }
+    },{passive:true});
     document.addEventListener('pointerover',e=>{
+      if(this.kbd)return;
+      if(e.pointerType==='mouse'&&!this.moved)return;   // 画面が開いた直後の「下にあっただけ」のホバーは無視
       const c=this.ctx;if(!c||!e.target.closest)return;
       const it=e.target.closest(ITEM_SEL);
       if(it&&$(c.el).contains(it)&&this.items(c).includes(it))this.set(it,false);
@@ -393,6 +409,13 @@ const NAV={
     if(t&&((t.tagName==='INPUT'&&t.type!=='range')||t.tagName==='TEXTAREA'||t.isContentEditable))return;
     const c=this.topCtx();if(!c)return;
     if(c!==this.ctx){this.ctx=c;}
+    // 未知のオーバーレイに覆われていたら触らない
+    const probe=this.cur&&$(c.el).contains(this.cur)?this.cur:this.items(c)[0];
+    if(probe){
+      const r=probe.getBoundingClientRect();
+      const hit=document.elementFromPoint(Math.min(innerWidth-1,Math.max(0,r.left+r.width/2)),Math.min(innerHeight-1,Math.max(0,r.top+Math.min(r.height/2,20))));
+      if(hit&&!$(c.el).contains(hit)&&!hit.closest('#notif-stack,#cutin-wrap'))return;
+    }
     const k=e.key;
     const dir={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'}[k];
     const ok=k==='Enter'||k===' '||k==='z'||k==='Z';

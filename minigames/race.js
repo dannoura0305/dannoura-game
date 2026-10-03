@@ -985,7 +985,7 @@ registerMinigame({
       // タイトルへ
       el.ov.className='race-ov race-main';el.ov.innerHTML='';
       toTitle();
-      mg.loop(frame);
+      mg.loop(dt=>{try{frame(dt);}catch(e){console.error('race frame',e&&e.stack||e);throw e;}});
     }
 
     function cleanupGL(){
