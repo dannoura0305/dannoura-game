@@ -2042,7 +2042,7 @@ const ENDS={
     last:'「ここが、俺の壇ノ浦だ。沈むか、這い上がるか。\n──とりあえず今日は、這い上がった。」',
     hint:'朝へつなぎとめる選択が、もう少し多ければ──ミナモの手も、掴めたかもしれない。'},
   sink:{name:'沈眠',bgm:'collapse',dark:true,
-    scene:['#form tired','#pose dan down','d.tired:「……少しだけ、眠らせてくれ」',
+    scene:['#form tired','#pose dan down','d.tired:「……少しだけ、眠らせてちょうだい」',
       '#emo mina !','m.surprise:「だめ……！　だんのうらさん！」',
       'n:都の灯りが、やさしく近づいてくる。体が温かい。もう、何も考えなくていい。',
       's:「おかえり」','n:遠くで、目覚ましが鳴っている。十回。二十回。',
@@ -3581,7 +3581,7 @@ registerMinigame({
         }
         if(reason==='lost'){
           return {title:'🌊 悪夢',summary:`海の亡者に呑まれ、汗だくで目が覚めた。<br>${isReplay?'（見返し中だった）':`${ch.kan}「${ch.title}」は、明日の夜にやり直せる。<br>夢の中で得た経験（Lv${run.lv}）は残っている。`}`,
-            fx:isReplay?{}:{fatigue:-5,mental:-4},time:90,cutin:['fear','……海の音が、まだ耳に残ってる。'],
+            fx:isReplay?{}:{fatigue:-5,mental:-4},time:90,cutin:['fear','……海の音が、まだ耳に残ってるわ。'],
             log:isReplay?null:'夢の海で亡者に呑まれ、うなされて目が覚めた',
             after(){if(!isReplay){R.lv=run.lv;R.exp=run.exp;}}};
         }
@@ -3601,7 +3601,7 @@ registerMinigame({
             :`夢の中で「${ch.light}の灯」を取り戻した。（灯 ${chNo}/5・Lv${run.lv}・評価 ${run.rank}）<br>次の章は、明日の夜に。`,
           fx,time:last&&endKey==='sink'?150:120,sp:1,
           log:last?(endKey==='sink'?'夢の都で眠ろうとした。朝、起きられなかった':'夢の底から、朝を選んで這い上がった'):`夢の海で「${ch.light}の灯」を取り戻した`,
-          cutin:last?(endKey==='sink'?['collapse','……波の下にも、都はあるんだって。']:['win','おはよう。……ちゃんと、朝だ。']):['happy',`……${ch.light}の灯が、戻ってきた。`],
+          cutin:last?(endKey==='sink'?['collapse','……波の下にも、都はあるんだって。']:['win','おはよう。……ちゃんと、朝よ。']):['happy',`……${ch.light}の灯が、戻ってきた。`],
           after(){
             R.cleared=Math.max(R.cleared,chNo);R.lastDay=gs.day;
             R.lv=run.lv;R.exp=run.exp;R.items=Object.assign({},run.items);
