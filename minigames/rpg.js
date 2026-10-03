@@ -2089,8 +2089,10 @@ registerMinigame({
     const S=k=>+sk[k]||0;
     const ABORT={rpgAbort:true};
     let phase='menu',chNo=0,isReplay=false,endKey=null,run=null;
-    const DF={eAtb:mgDiff(.6,.8,1.05),eDmg:mgDiff(.6,.85,1.1),eHp:mgDiff(.75,.95,1.15),heal:mgDiff(.6,.25,0),
+    const DF={eAtb:mgDiff(.5,.8,1.05),eDmg:mgDiff(.45,.85,1.1),eHp:mgDiff(.65,.95,1.15),heal:mgDiff(1,.25,0),
       sight:mgDiff(36,54,72),chase:mgDiff(28,40,54),runOk:mgDiff(1,.75,.5),retry:mgDifficulty()!=='hard'};
+    // 負けてやり直すたびに受けるダメージが減る（やさしい・ふつうのみ、最大3回分）
+    let retryEase=0;
     const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
     const rnd=(a,b)=>a+Math.random()*(b-a);
 
@@ -3194,7 +3196,7 @@ registerMinigame({
     function pickP(){const al=BT.pa.filter(q=>!q.ko);if(al.length<2)return al[0];return Math.random()<.6?al[0]:al[1];}
     function hitP(p,mult,e){
       const B=BT;if(p.ko)return 0;
-      let d=e.atk*mult*rnd(.9,1.1)*DF.eDmg*(e.charge?1.35:1);
+      let d=e.atk*mult*rnd(.9,1.1)*DF.eDmg*(e.charge?1.35:1)*(1-.2*Math.min(3,retryEase));
       if(B.guard)d*=p.id==='dan'?.35:.5;
       if((p.st.barrier||0)>B.clock)d*=.5;
       d=Math.max(1,Math.round(d));
@@ -3259,11 +3261,16 @@ registerMinigame({
     // ── 戦闘の流れ ──
     async function battle(group,opt={}){
       const snap=JSON.stringify({p:run.party,items:run.items});
-      while(true){
-        const r=await battleOnce(group,opt);
-        if(r!=='retry')return r;
-        const s=JSON.parse(snap);run.party=s.p;run.items=s.items;
-      }
+      retryEase=0;
+      try{
+        while(true){
+          const r=await battleOnce(group,opt);
+          if(r!=='retry')return r;
+          const s=JSON.parse(snap);run.party=s.p;run.items=s.items;
+          retryEase++;
+          if(retryEase<=3&&typeof showNotif==="function")showNotif(`灯が少し強くなった（受けるダメージ −${Math.min(3,retryEase)*20}%）`);
+        }
+      }finally{retryEase=0;}
     }
     async function battleOnce(group,opt){
       const kinds=group.slice();
