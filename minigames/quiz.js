@@ -449,7 +449,7 @@ registerMinigame({
     // ── キャンバス（背景＋演出） ──
     let W=0,Hh=0,dpr=1,sceneH=100;
     const rain=[],drops=[],motes=[],parts=[];
-    let lampOn=1,bld=[],flash=0,flashCol='255,190,110',vign=0,lampF=1,T=0;
+    let lampOn=1,endG=null,endT=0,bld=[],flash=0,flashCol='255,190,110',vign=0,lampF=1,T=0;
     function resize(){
       const r=root.getBoundingClientRect();
       W=Math.max(1,r.width);Hh=Math.max(1,r.height);dpr=Math.min(2,window.devicePixelRatio||1);
@@ -549,6 +549,7 @@ registerMinigame({
       c.strokeStyle='rgba(255,200,140,.05)';c.lineWidth=1;
       for(let i=0;i<9;i++){const yy=dy+12+i*((Hh-dy)/9);c.beginPath();c.moveTo(0,yy);c.bezierCurveTo(W*.3,yy+4,W*.6,yy-5,W,yy+2);c.stroke();}
       c.fillStyle='rgba(255,200,140,.12)';c.fillRect(0,dy,W,1.5);
+      if(endG)drawNotebook(c,dt);
       // ランプ
       lampF+=((Math.random()<.008?.55*lampOn:lampOn)-lampF)*Math.min(1,dt*(lampOn<1?2:12));
       const lx=W*.83,ly=Math.max(26,Math.min(sceneH*.38,90));
@@ -578,6 +579,50 @@ registerMinigame({
       flash=Math.max(0,flash-dt*2.2);
     }
 
+    // エピローグ：机の上のノート（評価で変わる）
+    function drawNotebook(c,dt){
+      endT+=dt;
+      const nw=Math.min(W*.72,300),nh=nw*.46,cx=W/2,cy=sceneH+Math.max(nh*.6,(Hh-sceneH-150)/2);
+      const pop_=Math.min(1,endT/.5),e=1-Math.pow(1-pop_,3);
+      c.save();c.translate(cx,cy+(1-e)*30);c.rotate(-.05);c.globalAlpha=e;
+      c.fillStyle='rgba(0,0,0,.45)';c.fillRect(-nw/2+6,-nh/2+8,nw,nh);
+      if(endG==='C'){
+        const g=c.createLinearGradient(-nw/4,0,nw/4,0);g.addColorStop(0,'#2c2150');g.addColorStop(1,'#3d2d6a');
+        c.fillStyle=g;c.fillRect(-nw/4,-nh/2,nw/2,nh);
+        c.fillStyle='#d9cfb5';c.fillRect(-nw/4+8,-nh/2+12,nw/2-16,16);
+        c.fillStyle='#3a2a58';c.font='10px '+FONT;c.textAlign='center';c.fillText('乙4 ノート',0,-nh/2+24);
+      }else{
+        for(const sd of [-1,1]){
+          const x0=sd<0?-nw/2:0;
+          const g=c.createLinearGradient(x0,0,x0+nw/2,0);
+          if(sd<0){g.addColorStop(0,'#e6dcc4');g.addColorStop(1,'#bfb398');}else{g.addColorStop(0,'#c4b89c');g.addColorStop(.12,'#e9e0c9');g.addColorStop(1,'#e6dcc4');}
+          c.fillStyle=g;c.fillRect(x0,-nh/2,nw/2,nh);
+          c.strokeStyle='rgba(70,100,170,.3)';c.lineWidth=1;
+          for(let y=-nh/2+12;y<nh/2-4;y+=9){c.beginPath();c.moveTo(x0+8,y);c.lineTo(x0+nw/2-8,y);c.stroke();}
+        }
+        // 左ページの走り書き
+        c.strokeStyle='rgba(40,34,60,.55)';c.lineWidth=1.2;
+        for(let i=0;i<6;i++){const y=-nh/2+16+i*9,len=nw*.3*(.5+((i*37)%10)/14);c.beginPath();c.moveTo(-nw/2+12,y);for(let x=0;x<len;x+=4)c.lineTo(-nw/2+12+x,y-1.5*Math.sin(x*.9+i));c.stroke();}
+        if(endG==='S'||endG==='A'){
+          const p=Math.min(1,Math.max(0,(endT-.4)/1.3)),R=nh*.34,mx=nw*.25,my=0;
+          c.strokeStyle='#d21e3c';c.lineWidth=2.4;c.lineCap='round';c.beginPath();
+          const turns=2.2,steps=Math.floor(80*Math.min(1,p*1.6));
+          for(let i=0;i<=steps;i++){const t=i/80,a=t*turns*6.283,r=R*.55*t;const x=mx+Math.cos(a)*r,y=my+Math.sin(a)*r;i?c.lineTo(x,y):c.moveTo(x,y);}
+          c.stroke();
+          if(endG==='S'&&p>.62){const q=Math.min(1,(p-.62)/.38),n=Math.floor(9*q);c.beginPath();
+            for(let i=0;i<n;i++){const a0=i/9*6.283,a1=(i+1)/9*6.283,am=(a0+a1)/2;c.moveTo(mx+Math.cos(a0)*R*.7,my+Math.sin(a0)*R*.7);
+              c.quadraticCurveTo(mx+Math.cos(am)*R*1.15,my+Math.sin(am)*R*1.15,mx+Math.cos(a1)*R*.7,my+Math.sin(a1)*R*.7);}
+            c.stroke();}
+          if(endG==='S'&&Math.random()<dt*6)parts.push({x:cx+mx+(Math.random()-.5)*R*2,y:cy+(Math.random()-.5)*R*2,vx:0,vy:-30,life:0,max:.8,sz:2.5,col:'#ffd38a',rot:0,vr:0,sh:0});
+        }else{
+          // 鉛筆が置いてある
+          c.save();c.translate(nw*.22,nh*.05);c.rotate(-.5);
+          c.fillStyle='#e8b830';c.fillRect(-nw*.2,-3,nw*.36,6);c.fillStyle='#e9cfa0';c.beginPath();c.moveTo(nw*.16,-3);c.lineTo(nw*.16+9,0);c.lineTo(nw*.16,3);c.fill();
+          c.fillStyle='#f3a3b5';c.fillRect(-nw*.2-6,-3,6,6);c.restore();
+        }
+      }
+      c.restore();
+    }
     function burst(x,y,n,cols,power){
       for(let i=0;i<n;i++){
         const a=Math.random()*6.283,s=(60+Math.random()*220)*(power||1);
@@ -870,7 +915,8 @@ registerMinigame({
       AU.se('decide');synth('page');
       st='ending';elOv.classList.remove('on');root.classList.add('quiz-pre');
       const E=ENDINGS[grade.g];
-      if(grade.g==='B'||grade.g==='C')lampOn=.3;
+      if(grade.g==='B'||grade.g==='C')lampOn=grade.g==='C'?.3:.6;
+      endG=grade.g;endT=0;
       later(()=>startStory(E.lines,()=>mg.end('done'),E.face,`<small>EPILOGUE · ${grade.g}</small>${grade.t}`),350);
     }
 

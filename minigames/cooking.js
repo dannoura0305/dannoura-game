@@ -219,7 +219,7 @@ registerMinigame({
       L.comps=[c0,c1,c2];
       const oR=Math.min(c0.w*.4,c0.h*.27);
       const eS=Math.min(c1.w*.1,c1.h*.33);
-      const tS=Math.min(c2.h*.43,c2.w*.2);
+      const tS=Math.min(c2.h*.4,c2.w*.15);
       L.slots=[
         {type:'oni',x:c0.x+c0.w*.5,y:c0.y+c0.h*.28,s:oR},{type:'oni',x:c0.x+c0.w*.5,y:c0.y+c0.h*.74,s:oR},
         {type:'egg',x:c1.x+c1.w*.14,y:c1.y+c1.h*.52,s:eS},{type:'egg',x:c1.x+c1.w*.38,y:c1.y+c1.h*.52,s:eS},{type:'egg',x:c1.x+c1.w*.62,y:c1.y+c1.h*.52,s:eS},
@@ -453,7 +453,7 @@ registerMinigame({
       else if(p==='tako_cut'){tako.tm=rnd(.42,.56);setGauge('',null,{},'');gauge.show=false;hint=isKani?'包丁が点線に重なったらタップ（両端に切れ目）':'包丁が点線に重なったらタップ（足を作る）';}
       else if(p==='tako_sear'){
         const rates=[.3,.37,.45].sort(()=>Math.random()-.5);
-        const pos=[[-.42,-.08,-.35],[0,.22,.08],[.42,-.08,.4]];
+        const pos=[[-.46,-.12,-.3],[0,.26,.06],[.46,-.12,.32]];
         tako.s=pos.map((q,i)=>({fx:q[0],fy:q[1],rot:q[2],b:0,rate:rates[i]*(DISH[1].diff<1?1.1:1),done:false,lift:0,q:'',bf:0}));
         const z=zones(.71,.15,.38,DISH[1].diff);tako.z=z;
         hint='きつね色になった'+sausName+'からタップで取り出す';tako.endT=-1;
@@ -686,6 +686,7 @@ registerMinigame({
       if(h<=1)return;
       const col=rampA(EGGR,c);
       let gr=g.createLinearGradient(x,y,x,y+h);gr.addColorStop(0,rgb(tint(col,.08)));gr.addColorStop(1,rgb(shade(col,.94)));
+      gr=g.createRadialGradient(x+w*.45,y+h*.45,4,x+w*.5,y+h*.5,Math.max(w,h)*.75);gr.addColorStop(0,rgb(tint(col,.12)));gr.addColorStop(.7,rgb(col));gr.addColorStop(1,rgb(shade(col,.86)));
       g.fillStyle=gr;
       // 端は波打つ（生のうち）
       const wob=c<.45?(.45-c)*6*S:0;
@@ -697,7 +698,7 @@ registerMinigame({
       // 焼き色のムラ
       if(c>.62){for(const s of SPOT){g.fillStyle=rgb(shade(col,.72),clamp((c-.62)*2*s.k,0,.6));g.beginPath();g.ellipse(x+s.x*w,y+s.y*h,s.r*S*2,s.r*S*1.3,0,0,6.283);g.fill();}}
       // 気泡
-      if(c<.62){for(const b of BUB){const ph2=(T*1.4+b.p)%2.4;if(ph2>1.2)continue;const rr2=b.r*S*(.4+ph2);g.strokeStyle=`rgba(255,250,220,${(.62-c)*1.2*(1-ph2/1.2)})`;g.lineWidth=1;g.beginPath();g.arc(x+b.x*w,y+6+b.y*(h-12),rr2,0,6.283);g.stroke();}}
+      if(c<.62){for(const b of BUB){const ph2=(T*1.4+b.p)%2.4;if(ph2>1.2)continue;const rr2=b.r*S*(.4+ph2);const bx=x+b.x*w,by=y+6+b.y*(h-12),al=(.62-c)*1.6*(1-ph2/1.2);g.fillStyle=rgb(shade(col,.9),al*.5);g.beginPath();g.arc(bx,by,rr2,0,6.283);g.fill();g.strokeStyle=`rgba(255,250,225,${al})`;g.lineWidth=1.2;g.stroke();g.fillStyle=`rgba(255,255,255,${al})`;g.beginPath();g.arc(bx-rr2*.35,by-rr2*.35,rr2*.3,0,6.283);g.fill();}}
       // 照り
       gr=g.createLinearGradient(x,y,x+w,y+h);gr.addColorStop(0,`rgba(255,255,255,${.28*(1-c)+.05})`);gr.addColorStop(.35,'rgba(255,255,255,0)');gr.addColorStop(.7,`rgba(255,255,240,${.12*(1-c)})`);gr.addColorStop(1,'rgba(255,255,255,0)');
       g.fillStyle=gr;g.fillRect(x,y,w,h);
@@ -785,7 +786,7 @@ registerMinigame({
       g.lineCap='round';
       for(let i=0;i<n;i++){
         const fx=n>1?(i-(n-1)/2)/((n-1)/2):0;
-        const sx=fx*w*.33,ex=sx+fx*(w*.22+curl*w*.6),ey=len/2-curl*len*.13*Math.abs(fx);
+        const sx=fx*w*.33,ex=sx+fx*(w*.12+curl*w*.42),ey=len/2-curl*len*.12*Math.abs(fx);
         const cx2=sx+fx*w*.04,cy2=(split+ey)/2+len*.06;
         g.strokeStyle=rgb(dk);g.lineWidth=lw;g.beginPath();g.moveTo(sx,split-lw*.4);g.quadraticCurveTo(cx2,cy2,ex,ey);g.stroke();
         g.strokeStyle=rgb(col);g.lineWidth=lw*.62;g.beginPath();g.moveTo(sx-lw*.12,split-lw*.4);g.quadraticCurveTo(cx2-lw*.12,cy2,ex-lw*.1,ey-lw*.05);g.stroke();
@@ -837,7 +838,12 @@ registerMinigame({
       g.fillStyle='rgba(0,0,0,.3)';rr(g,x0+3,s.y-s.th/2+5,s.len,s.th,s.th/2);g.fill();
       const gr=g.createLinearGradient(0,s.y-s.th/2,0,s.y+s.th/2);gr.addColorStop(0,rgb(tint(raw,.35)));gr.addColorStop(.45,rgb(raw));gr.addColorStop(1,rgb(shade(raw,.7)));
       g.fillStyle=gr;rr(g,x0,s.y-s.th/2,s.len,s.th,s.th/2);g.fill();
-      g.fillStyle='rgba(255,255,255,.5)';rr(g,x0+s.th*.4,s.y-s.th*.32,s.len-s.th*.8,s.th*.14,s.th*.07);g.fill();
+      g.save();rr(g,x0,s.y-s.th/2,s.len,s.th,s.th/2);g.clip();
+      for(const sp of SPOT){g.fillStyle=sp.k<.5?'rgba(255,225,215,.35)':'rgba(150,40,50,.18)';g.beginPath();g.arc(x0+sp.x*s.len,s.y-s.th/2+sp.y*s.th,sp.r*S*.45,0,6.283);g.fill();}
+      const eg=g.createLinearGradient(x0,0,x0+s.len,0);eg.addColorStop(0,'rgba(120,30,40,.35)');eg.addColorStop(.08,'rgba(120,30,40,0)');eg.addColorStop(.92,'rgba(120,30,40,0)');eg.addColorStop(1,'rgba(120,30,40,.35)');g.fillStyle=eg;g.fillRect(x0,s.y-s.th/2,s.len,s.th);
+      g.restore();
+      g.fillStyle='rgba(255,255,255,.55)';rr(g,x0+s.th*.4,s.y-s.th*.32,s.len-s.th*.8,s.th*.14,s.th*.07);g.fill();
+      g.fillStyle='rgba(255,255,255,.8)';g.beginPath();g.arc(x0+s.th*.55,s.y-s.th*.18,s.th*.06,0,6.283);g.fill();
       // 切れ目
       if(ph==='tako_chop'){
         const c=tako.cuts[tako.cuts.length-1];const k=clamp(pt/.12,0,1);
@@ -884,7 +890,7 @@ registerMinigame({
       const x=L.cx,y=L.CY,R=L.PR;
       drawFlameRing(x,y,R*.98,R*.98,.75);
       drawRoundPan(x,y,R);
-      const len=R*.62;
+      const len=R*.5;
       for(const s of tako.s){
         if(s.done&&s.lift>.45)continue;
         const p=sausPos(s);
@@ -925,7 +931,7 @@ registerMinigame({
       if(o.paint&&oni.paint){g.globalCompositeOperation='multiply';const pr=oni.paintR,k=R/pr;g.drawImage(oni.paint,-1.4*R,-1.4*R,2.8*R,2.8*R);g.globalCompositeOperation='source-over';void k;}
       if(o.grill!==undefined&&o.grill>=0){
         g.globalCompositeOperation='multiply';g.fillStyle=ramp(GRILLR,o.grill);g.fillRect(-R*1.5,-R*1.5,R*3,R*3);
-        g.globalCompositeOperation='source-over';
+        g.globalCompositeOperation='source-over';g.fillStyle=ramp(GRILLR,o.grill*.92,.42);g.fillRect(-R*1.5,-R*1.5,R*3,R*3);
         const ma=clamp((o.grill-.25)*.9,0,.65);
         if(ma>0){g.save();g.rotate(-.6);g.strokeStyle=`rgba(50,22,8,${ma})`;g.lineWidth=R*.08;g.lineCap='round';
           for(let k=-3;k<=3;k++){g.beginPath();g.moveTo(-R*1.2,k*R*.33);g.lineTo(R*1.2,k*R*.33);g.stroke();}g.restore();}
@@ -1058,7 +1064,7 @@ registerMinigame({
       g.beginPath();g.arc(x,y,R,0,6.283);g.clip();
       const gr=g.createRadialGradient(x,y,R*.1,x,y,R);gr.addColorStop(0,'#2a140c');gr.addColorStop(1,'#0e0806');g.fillStyle=gr;g.fillRect(x-R,y-R,R*2,R*2);
       g.restore();
-      drawFlameRing(x,y,R*.45,R*.45,.85);
+      drawFlameRing(x,y,R*.8,R*.8,.6+(ph==='oni_grill'?oni.c*.3:0));
       g.save();g.beginPath();g.arc(x,y,R,0,6.283);g.clip();
       g.translate(x,y);g.rotate(.785);
       const sp=R*.16;
