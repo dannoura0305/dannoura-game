@@ -62,6 +62,15 @@ addMinigameStyle('cards',`
 .cards-pile b{position:absolute;z-index:2;inset:0;display:flex;align-items:center;justify-content:center;font-weight:normal;font-family:var(--mono);font-size:.72rem;color:#fff;text-shadow:0 0 3px #000;}
 .cards-pile span{position:absolute;z-index:2;left:50%;bottom:-11px;transform:translateX(-50%);font-size:.48rem;color:var(--tx-d);white-space:nowrap;}
 .cards-spacer{flex:1;}
+.cards-relics{flex:1;display:flex;gap:4px;justify-content:center;align-items:center;min-width:0;}
+.cards-relic{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3a2a72,#120c26);border:1px solid var(--gd);box-shadow:0 0 8px rgba(232,184,48,.45);display:flex;align-items:center;justify-content:center;cursor:pointer;animation:cards-pop .4s;}
+.cards-relic svg{width:18px;height:18px;}
+.cards-relic.fire{animation:cards-relf .5s;}
+@keyframes cards-relf{40%{transform:scale(1.5);box-shadow:0 0 18px var(--gd)}}
+.cards-rw-relic{display:flex;align-items:center;gap:8px;margin:-4px 0 12px;padding:6px 12px;border:1px solid rgba(232,184,48,.5);border-radius:4px;background:rgba(232,184,48,.08);font-size:.66rem;color:var(--tx-b);text-align:left;animation:cards-bn .5s cubic-bezier(.2,.9,.3,1.3);}
+.cards-rw-relic .cards-relic{width:34px;height:34px;flex-shrink:0;}
+.cards-rw-relic .cards-relic svg{width:24px;height:24px;}
+.cards-rw-relic small{display:block;color:var(--tx);font-size:.6rem;}
 .cards-end{position:relative;min-height:38px;padding:0 12px;border-radius:4px;border:1px solid var(--gd);background:linear-gradient(180deg,rgba(232,184,48,.2),rgba(232,184,48,.05));color:var(--gd);font-family:var(--dot);font-size:.78rem;letter-spacing:.06em;cursor:pointer;white-space:nowrap;touch-action:manipulation;}
 .cards-end.glow{box-shadow:0 0 14px rgba(232,184,48,.6);animation:cards-endp 1.2s ease-in-out infinite;}
 @keyframes cards-endp{50%{box-shadow:0 0 4px rgba(232,184,48,.2)}}
@@ -141,7 +150,7 @@ addMinigameStyle('cards',`
 .cards-say{font-size:.8rem;line-height:1.75;color:#efe6ff;min-height:3.5em;text-shadow:0 1px 0 #000;}
 .cards-dlg.np .cards-say{font-family:var(--serif);font-style:italic;color:var(--tx);text-align:center;}
 .cards-nx{position:absolute;right:10px;bottom:6px;color:var(--cy);font-size:.7rem;animation:cards-bob .8s ease-in-out infinite;}
-.cards-skipd{position:absolute;right:10px;top:10px;z-index:26;padding:6px 12px;min-height:34px;font-family:var(--mono);font-size:.62rem;color:var(--tx);background:rgba(10,7,22,.85);border:1px solid rgba(138,82,212,.5);border-radius:3px;cursor:pointer;letter-spacing:.1em;}
+.cards-skipd{position:absolute;right:14px;bottom:150px;z-index:26;padding:6px 12px;min-height:34px;font-family:var(--mono);font-size:.62rem;color:var(--tx);background:rgba(10,7,22,.85);border:1px solid rgba(138,82,212,.5);border-radius:3px;cursor:pointer;letter-spacing:.1em;}
 .cards-ebub{position:absolute;z-index:8;left:0;top:0;transform:translate(-50%,-100%);max-width:72%;padding:6px 11px;font-size:.72rem;color:#fff;background:rgba(30,6,16,.92);border:1px solid var(--k,#e83055);border-radius:10px;box-shadow:0 0 14px -2px var(--k,#e83055);pointer-events:none;white-space:nowrap;animation:cards-bn .35s cubic-bezier(.2,.9,.3,1.3);}
 .cards-ebub::after{content:'';position:absolute;left:50%;bottom:-7px;margin-left:-6px;border:6px solid transparent;border-bottom:0;border-top-color:var(--k,#e83055);}
 /* ── ワイプ ── */
@@ -264,6 +273,18 @@ registerMinigame({
       hype:   {name:'ハイテンション',cat:'support',cost:1,heat:5,draw:1},
       kamikai:{name:'神回の予感',  cat:'support',cost:0,energy:1,draw:1,exhaust:true},
     };
+    // ── お守り（勝つたびに1つ。戦い全体に効く） ──
+    const CHARM={
+      doodle: {name:'子どもの落書き',desc:'各戦闘の最初のターン、ガード6',ic:'<rect x="4" y="5" width="16" height="14" rx="1" fill="#f5efe0"/><circle cx="9" cy="11" r="2.4" fill="none" stroke="#ff78b4" stroke-width="1.3"/><path d="M13 15l2-5 2 5M6 16h4" stroke="#58c8ff" stroke-width="1.3" fill="none"/><path d="M15 6l3-2" stroke="#e8b830" stroke-width="1.4"/>'},
+      boots:  {name:'工場の安全靴',desc:'毎ターン最初に受けるダメージ-3',ic:'<path d="M6 4h6v8l7 3v4H5z" fill="#3a3550" stroke="#e8b830" stroke-width="1.2"/><path d="M5 17h14" stroke="#e8b830" stroke-width="1.5"/><path d="M12 12l3 1.3" stroke="#e8b830"/>'},
+      mic:    {name:'古いマイク',desc:'歌カードの盛り上がり+3',ic:'<rect x="9" y="3" width="6" height="10" rx="3" fill="#46122f" stroke="#ff9cc8" stroke-width="1.2"/><path d="M7 11a5 5 0 0 0 10 0M12 16v4M9 20h6" fill="none" stroke="#ff9cc8" stroke-width="1.2"/>'},
+      stamp:  {name:'常連のスタンプ',desc:'毎ターン最初のトークで熱気+2',ic:'<circle cx="12" cy="12" r="8" fill="none" stroke="#e83055" stroke-width="1.6"/><circle cx="12" cy="12" r="5.5" fill="none" stroke="#e83055" stroke-width=".8"/><path d="M9 12l2 2 4-4" stroke="#e83055" stroke-width="1.6" fill="none"/>'},
+      onigiri:{name:'夜食のおにぎり',desc:'戦闘に勝つと心+6',ic:'<path d="M12 4l8 13H4z" fill="#f5efe0" stroke="#ddd" stroke-linejoin="round" stroke-width="2"/><rect x="8" y="12" width="8" height="6" fill="#1a2a20"/>'},
+    };
+    const charms=[];const has=k=>charms.includes(k);
+    let bootsUsed=false,stampUsed=false,combo=0,halfSaid=false;
+    function renderRelics(){el.relics.innerHTML=charms.map(k=>`<span class="cards-relic" data-k="${k}" title="${CHARM[k].name}">${svg('0 0 24 24',CHARM[k].ic)}</span>`).join('');}
+    function fireRelic(k){const n=el.relics.querySelector(`[data-k="${k}"]`);if(n){n.classList.remove('fire');void n.offsetWidth;n.classList.add('fire');}}
     const REWARDS=['pickup','jikkyo','radio','tape','hyaku','lullaby','request','totsu','aizuchi','hype','kamikai'];
 
     // ── カードの絵（SVG・viewBox 64×40） ──
@@ -314,13 +335,13 @@ registerMinigame({
     // ── 敵（日が進むほど手強い） ──
     const A=(k,n,label,o)=>Object.assign({k,n,label,times:1},o||{});
     const ENEMIES=[
-      {key:'troll',name:'荒らしアカウント',short:'荒らし',hp:28+Math.floor(day*.7),col:'#e83055',
+      {key:'troll',name:'荒らしアカウント',short:'荒らし',hp:30+Math.floor(day*.7),col:'#e83055',half:'は？ 効いてねーし。ｗ',
         moves:[A('atk',6,'荒らしコメント'),A('atk',3,'連投',{times:2}),A('burn',3,'晒し上げ'),A('block',7,'冷笑（シラけ）')],
         first:0},
-      {key:'bot',name:'スパムBot',short:'スパムBot',hp:34+Math.floor(day*.9),col:'#00e8c8',
+      {key:'bot',name:'スパムBot',short:'スパムBot',hp:38+Math.floor(day*.9),col:'#00e8c8',half:'【エラー】【エラー】【再送信】',
         moves:[A('atk',2,'スパム連投',{times:4}),A('curse',2,'URL貼り（火種を混ぜる）'),A('buff',2,'自己増殖',{block:5}),A('atk',8,'ノイズ')],
         first:0},
-      {key:'night',name:'過疎の夜',short:'過疎の夜',hp:50+Math.floor(day*1.3),col:'#8a52d4',boss:true,
+      {key:'night',name:'過疎の夜',short:'過疎の夜',hp:55+Math.floor(day*1.3),col:'#8a52d4',boss:true,half:'……どうして、まだ話せるの？',heavyLine:'……しずかに、なろう？',
         moves:[A('atk',7,'静寂'),A('atk',4,'離脱の波',{times:2}),A('block',10,'シラけ'),A('curse',2,'炎上の火種',{burn:2})],
         heavy:A('heavy',14,'深い闇'),chill:A('chill',6,'同接ゼロの予感'),first:0},
     ];
@@ -362,7 +383,7 @@ registerMinigame({
     <div class="cards-crow">
       <div class="cards-pile draw"><b>0</b><span>山札</span></div>
       <div class="cards-energy"><div class="cards-orbs"></div><span class="cards-en-num">3</span></div>
-      <div class="cards-spacer"></div>
+      <div class="cards-relics"></div>
       <div class="cards-pile disc"><b>0</b><span>捨て札</span></div>
       <button class="cards-end">ターン終了 ▶</button>
     </div>
@@ -381,7 +402,7 @@ registerMinigame({
       intent:Q('.cards-intent'),intentB:Q('.cards-intent-b'),intentIc:Q('.cards-intent-ic'),intentN:Q('.cards-intent-n'),intentLb:Q('.cards-intent-lb'),
       log:Q('.cards-log'),strip:Q('.cards-strip'),
       pbar:Q('.cards-bar.p'),pfill:Q('.cards-bar.p .cards-bar-fill'),pghost:Q('.cards-bar.p .cards-bar-ghost'),pnum:Q('.cards-bar.p .cards-bar-num'),pchips:Q('.cards-chips.p'),
-      drawPile:Q('.cards-pile.draw'),discPile:Q('.cards-pile.disc'),orbs:Q('.cards-orbs'),enNum:Q('.cards-en-num'),endBtn:Q('.cards-end'),
+      drawPile:Q('.cards-pile.draw'),discPile:Q('.cards-pile.disc'),orbs:Q('.cards-orbs'),enNum:Q('.cards-en-num'),endBtn:Q('.cards-end'),relics:Q('.cards-relics'),
       hl:Q('.cards-hl'),ov:Q('.cards-ov'),ehud:Q('.cards-ehud'),
       dlgw:Q('.cards-dlgw'),dlg:Q('.cards-dlg'),por:Q('.cards-por'),who:Q('.cards-who'),sayD:Q('.cards-say'),nx:Q('.cards-nx'),skipD:Q('.cards-skipd'),wipe:Q('.cards-wipe'),
     };
@@ -743,11 +764,13 @@ registerMinigame({
     }
 
     // ── カードUI ──
+    const comboMul=()=>Math.min(1.6,1+combo*.15);
+    function dmgOf(d){return Math.round((d.dmg+(d.cat==='song'&&has('mic')?3:0)+me.heat)*comboMul());}
     function cardText(id){
       const d=CARD[id],p=[];
       if(d.curse)return '使うと消える<br><em>手札に残すと</em>心-2';
       if(d.clearBlock)p.push('シラけ解除');
-      if(d.dmg){const v=d.dmg+me.heat;p.push(`盛り上がり<b class="${me.heat?'hot':''}">${v}</b>${d.hits?'×'+d.hits:''}`);}
+      if(d.dmg){const v=dmgOf(d);p.push(`盛り上がり<b class="${v>d.dmg?'hot':''}">${v}</b>${d.hits?'×'+d.hits:''}`);}
       if(d.block)p.push(`ガード<b>${d.block}</b>`);
       if(d.heal)p.push(`回復<b>${d.heal}</b>`);
       if(d.heat)p.push(`熱気<b>+${d.heat}</b>`);
@@ -842,6 +865,7 @@ registerMinigame({
       e.addEventListener('pointerenter',ev=>{if(ev.pointerType==='mouse'&&!drag&&!busy){hoverCard=h;layoutHand();}});
       e.addEventListener('pointerleave',ev=>{if(ev.pointerType==='mouse'&&hoverCard===h){hoverCard=null;layoutHand();}});
     }
+    el.relics.addEventListener('pointerdown',e=>{const n=e.target.closest('.cards-relic');if(n){e.stopPropagation();const c=CHARM[n.dataset.k];say(`お守り「${c.name}」：${c.desc}`,true);se('btn');}});
     stage.addEventListener('pointerdown',()=>{if(selCard&&!drag){selCard=null;layoutHand();}});
 
     function showTip(id){const d=CARD[id];say(`${d.name}：${cardText(id).replace(/<br>/g,'・').replace(/<[^>]+>/g,'')}　もう一度タップで使う`,true);}
@@ -865,8 +889,8 @@ registerMinigame({
       el.pfill.style.width=pr+'%';el.pghost.style.width=pr+'%';
       el.pnum.textContent=`心 ${Math.max(0,me.hp)} / ${me.max}`;
       el.pbar.classList.toggle('blk',me.block>0);
-      const kp=me.block+'|'+me.heat+'|'+me.burn;
-      if(kp!==chipKeyP){chipKeyP=kp;el.pchips.innerHTML=(me.block?chip('guard',me.block,'#58c8ff','ガード'):'')+(me.heat?chip('heat',me.heat,'#e8b830','熱気：次の盛り上がりに上乗せ'):'')+(me.burn?chip('burn',me.burn,'#ff7a3c','炎上：ターン終了時に心が減る'):'');}
+      const kp=me.block+'|'+me.heat+'|'+me.burn+'|'+combo;
+      if(kp!==chipKeyP){chipKeyP=kp;el.pchips.innerHTML=(combo>0?`<span class="cards-chip" style="--k:#e8b830" title="連続トーク">×${comboMul().toFixed(2)}</span>`:'')+(me.block?chip('guard',me.block,'#58c8ff','ガード'):'')+(me.heat?chip('heat',me.heat,'#e8b830','熱気：次の盛り上がりに上乗せ'):'')+(me.burn?chip('burn',me.burn,'#ff7a3c','炎上：ターン終了時に心が減る'):'');}
       let o='';const tot=Math.max(ENERGY,me.energy);
       for(let i=0;i<tot;i++)o+=`<div class="cards-orb${i>=me.energy?' off':i>=ENERGY?' x':''}"></div>`;
       el.orbs.innerHTML=o;el.enNum.textContent=me.energy;
@@ -897,13 +921,15 @@ registerMinigame({
     function damageEnemy(v){
       const b=Math.min(enemy.block,v);enemy.block-=b;const d=v-b;
       if(b)floatNum(ex+R*.4,ey-R*.5,'シラけ-'+b,'#9fb4d8',16);
-      if(d>0){enemy.hp-=d;dmgTotal+=d;viewers+=Math.max(1,Math.round(d/3));
+      if(d>0){enemy.hp-=d;dmgTotal+=d;
+        if(!halfSaid&&enemy.hp>0&&enemy.hp<enemy.max*.5&&enemy.def.half){halfSaid=true;later(()=>{if(enemy.hp>0)taunt(enemy.def.half,enemy.def.col);},350);}viewers+=Math.max(1,Math.round(d/3));
         floatNum(ex,ey-R*.3,String(d),d>=15?'#ffe08a':'#fff',d>=15?34:26);ehit=1;shake=Math.max(shake,d>=15?12:6);
         hitStop=d>=15?.12:.06;SFX(d>=15?'big':'hit');
         burst(ex,ey,'#fff',8,180);burst(ex,ey,enemy.def.col,10,140);}
       else{ehit=.3;SFX('block');}
     }
     function hurtMe(v,silent){
+      if(has('boots')&&!bootsUsed&&!silent){bootsUsed=true;v=Math.max(0,v-3);fireRelic('boots');}
       const b=Math.min(me.block,v);me.block-=b;const d=v-b;
       if(b)floatNum(PX.hp.x+40,PX.hp.y-14,'ガード-'+b,'#58c8ff',16);
       if(d>0){me.hp-=d;floatNum(PX.hp.x,PX.hp.y-10,'-'+d,'#ff4d6d',24);flashP=1;shake=Math.max(shake,d>=10?12:7);hitStop=d>=10?.1:.05;SFX('hurt');if(!silent)se('noise');}
@@ -955,11 +981,15 @@ registerMinigame({
       if(d.curse){say('🔥 火種を処理した。');burst(W/2,stripTop-ch*.4,'#ff7a3c',14,120,40);return 0;}
       if(d.clearBlock&&enemy.block){floatNum(ex,ey-R*.6,'シラけ解除','#5ef0c8',18);enemy.block=0;msg.push('シラけを消した');}
       if(d.dmg){
-        const per=d.dmg+me.heat,n=d.hits||1;const heatUsed=me.heat;me.heat=0;
+        const mul=comboMul(),per=dmgOf(d),n=d.hits||1;const heatUsed=me.heat;me.heat=0;
+        if(d.cat==='song'&&has('mic'))fireRelic('mic');
+        if(combo>0){floatNum(ex+R*.55,ey-R*.75,`連続 ×${mul.toFixed(2)}`,'#e8b830',18+combo*3);burst(ex+R*.5,ey-R*.7,'#e8b830',6+combo*3,120);}
+        combo++;
         damageEnemy(per);
         for(let i=1;i<n;i++)later(()=>{if(enemy.hp>0){damageEnemy(per);renderHUD();}},i*150);
         extra=(n-1)*150;
-        msg.push(`盛り上がり${per}${n>1?'×'+n:''}`+(heatUsed?`（熱気+${heatUsed}）`:''));
+        msg.push(`盛り上がり${per}${n>1?'×'+n:''}`+(heatUsed?`（熱気+${heatUsed}）`:'')+(mul>1?` 連続×${mul.toFixed(2)}`:''));
+        if(d.cat==='talk'&&has('stamp')&&!stampUsed){stampUsed=true;me.heat+=2;fireRelic('stamp');floatNum(PX.hp.x-60,PX.hp.y-30,'熱気+2','#e8b830',16);}
         se(d.cat==='kaidan'?'ghost':d.cat==='song'?'live':'comment');
       }
       if(d.block){me.block+=d.block;floatNum(PX.hp.x+40,PX.hp.y-14,'ガード+'+d.block,'#58c8ff',18);msg.push('ガード'+d.block);if(!d.dmg)se('tool');}
@@ -998,7 +1028,8 @@ registerMinigame({
       later(enemyAct,300);
     }
     function enemyAct(){
-      const it=enemy.intent;enemy.block=0;elunge=1;
+      const it=enemy.intent;enemy.block=0;elunge=1;bootsUsed=false;
+      if(it.k==='heavy'&&enemy.def.heavyLine)taunt(enemy.def.heavyLine,enemy.def.col);
       el.intent.style.opacity=0;
       say(`${enemy.def.name}：${it.label}`);
       let wait=500;
@@ -1039,7 +1070,8 @@ registerMinigame({
       enemy.lastMove=i;enemy.intent=d.moves[i];
     }
     function beginTurn(){
-      me.block=0;me.energy=ENERGY;
+      me.block=0;me.energy=ENERGY;combo=0;stampUsed=false;
+      if(enemy.t===0&&has('doodle')){me.block=6;fireRelic('doodle');floatNum(PX.hp.x+40,PX.hp.y-14,'ガード+6','#58c8ff',18);}
       pickIntent();intentDisplay();
       renderHUD();
       drawCards(HAND,110,()=>{release();if(turnsUsed===TURNS-1)say('⏰ 配信枠ラストターン！');});
@@ -1048,7 +1080,7 @@ registerMinigame({
     function startEncounter(i){
       stageIdx=i;const d=ENEMIES[i];
       enemy.def=d;enemy.max=enemy.hp=d.hp;enemy.block=0;enemy.str=0;enemy.t=0;enemy.lastMove=-1;enemy.intent=null;
-      ein=0;edie=0;chipKeyE='x';
+      ein=0;edie=0;chipKeyE='x';halfSaid=false;
       el.ename.innerHTML=(d.boss?'<small>BOSS</small>':'')+d.name;
       draw=shuffle(deck.slice());discard=[];me.block=0;me.heat=0;
       intentDisplay();renderHUD();
@@ -1064,6 +1096,7 @@ registerMinigame({
     function enemyDefeated(){
       if(busy2)return;busy2=true;busy=true;
       edie=.01;el.intent.style.opacity=0;enemy.intent=null;cleared=stageIdx+1;
+      if(has('onigiri')){fireRelic('onigiri');later(()=>healMe(6),500);}
       shake=14;flashE=1;hitStop=.18;se('rank');SFX('defeat');
       burst(ex,ey,enemy.def.col,40,240);burst(ex,ey,'#fff',20,200);
       say(`${enemy.def.name}を追い払った！`);
@@ -1079,8 +1112,10 @@ registerMinigame({
     function showReward(){
       overlay=true;phase='reward';
       const healAmt=Math.min(8,me.max-me.hp);me.hp+=healAmt;me.burn=0;
+      const pool2=Object.keys(CHARM).filter(k=>!has(k));const ck=pool2[Math.floor(Math.random()*pool2.length)];
+      if(ck){charms.push(ck);renderRelics();}
       const pool=shuffle(REWARDS.slice()).slice(0,3);
-      el.ov.innerHTML=`<div class="cards-rw-t">コメント欄が温まってきた</div><div class="cards-rw-s">ひと息ついた：心<b>+${healAmt}</b>・炎上リセット<br>新しい話題をひとつ、デッキに加える</div><div class="cards-rw"></div><button class="cards-skip">選ばずに水を飲む（心+5）</button>`;
+      el.ov.innerHTML=`<div class="cards-rw-t">コメント欄が温まってきた</div><div class="cards-rw-s">ひと息ついた：心<b>+${healAmt}</b>・炎上リセット<br>新しい話題をひとつ、デッキに加える</div>${ck?`<div class="cards-rw-relic"><span class="cards-relic">${svg('0 0 24 24',CHARM[ck].ic)}</span><div>お守り「${CHARM[ck].name}」を手に入れた<small>${CHARM[ck].desc}</small></div></div>`:''}<div class="cards-rw"></div><button class="cards-skip">選ばずに水を飲む（心+5）</button>`;
       const box=el.ov.querySelector('.cards-rw');
       pool.forEach((id,i)=>{const c=makeCard(id,'static');c.querySelector('.cards-key').textContent=i+1;c.addEventListener('click',()=>pickReward(id,c));box.appendChild(c);});
       el.ov.querySelector('.cards-skip').addEventListener('click',()=>pickReward(null));
@@ -1131,8 +1166,8 @@ registerMinigame({
 <linearGradient id="cards-lg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#cdb8ff"/></linearGradient></defs>
 <g transform="rotate(-9 64 70)"><rect x="34" y="18" width="60" height="86" rx="7" fill="#2b1752" stroke="#b484ff" stroke-width="2.5"/><rect x="40" y="24" width="48" height="74" rx="4" fill="none" stroke="#b484ff" stroke-width=".8" opacity=".6"/></g>
 <g transform="rotate(7 76 70)"><rect x="46" y="22" width="60" height="86" rx="7" fill="#0b3430" stroke="#00e8c8" stroke-width="2.5"/><circle cx="76" cy="54" r="12" fill="#05040e" stroke="#00e8c8" stroke-width="2"/><path d="M70 50h12M70 55h12" stroke="#00e8c8" stroke-width="1"/><path d="M64 58a12 12 0 0 0 24 0M76 70v10M68 80h16" fill="none" stroke="#00e8c8" stroke-width="2"/><circle cx="58" cy="32" r="5" fill="#00e8c8"/><text x="58" y="35" font-size="7" text-anchor="middle" fill="#05040e" font-family="monospace">3</text></g>
-<text x="190" y="62" font-size="46" text-anchor="middle" font-family="DotGothic16,monospace" fill="url(#cards-lg2)" stroke="#4a2580" stroke-width="1.5" letter-spacing="4">配信</text>
-<text x="190" y="104" font-size="30" text-anchor="middle" font-family="DotGothic16,monospace" fill="url(#cards-lg1)" letter-spacing="1">トークバトル</text>
+<text x="200" y="62" font-size="46" text-anchor="middle" font-family="DotGothic16,monospace" fill="url(#cards-lg2)" stroke="#4a2580" stroke-width="1.5" letter-spacing="4">配信</text>
+<text x="204" y="104" font-size="26" text-anchor="middle" font-family="DotGothic16,monospace" fill="url(#cards-lg1)" letter-spacing="1">トークバトル</text>
 <path d="M118 114h146" stroke="url(#cards-lg1)" stroke-width="2"/><circle cx="270" cy="114" r="3" fill="#e83055"/>
 <path d="M262 22l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#ffe08a"/><path d="M128 18l1.4 3.4 3.4 1.4-3.4 1.4-1.4 3.4-1.4-3.4-3.4-1.4 3.4-1.4z" fill="#ffe08a" opacity=".7"/></svg>`;
     function title(done){
@@ -1304,7 +1339,7 @@ ${r.isNew?'<div class="cards-grade-new">NEW RECORD</div>':`<div class="cards-gra
       frame(dt);
       if(logTimer>0){logTimer-=dt;if(logTimer<=0)el.log.style.opacity=0;}
     });
-    el.intent.style.opacity=0;
+    el.intent.style.opacity=0;el.ename.textContent=ENEMIES[0].name;
     title(()=>howTo(()=>scene(INTRO,()=>wipe(()=>startEncounter(0)))));
 
     return {result(reason){

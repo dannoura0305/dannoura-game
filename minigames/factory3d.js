@@ -84,7 +84,7 @@ registerMinigame({
   start(body,mg){
     // ── 定数 ──
     const CELL=4, COLS=10, ROWS=15, HW=COLS*CELL/2, HD=ROWS*CELL/2;
-    const TIME_LIMIT=90, NEED=5, P_R=.36, EYE=1.62, SPEED=3.7;
+    const FL_MAX=8,TIME_LIMIT=90, NEED=5, P_R=.36, EYE=1.62, SPEED=3.7;
     const SK=(gs&&gs.skills)||{};
     const HOLD_T=1.5*(1-Math.min(.3,((SK.soundDiag||0)+(SK.emergencyFix||0))*.03));
     const HIT_DMG=Math.round(30*(1-Math.min(.3,(SK.stressRes||0)*.03)));
@@ -669,7 +669,7 @@ registerMinigame({
       exitLamp.position.set(exitX+.75,1.9,exitZ+.2);scene.add(exitLamp);
       const exitGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:T.glow,color:0x30ff80,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,opacity:.7}));
       exitGlow.scale.set(4.2,2,1);exitGlow.position.set(exitX,2.95,exitZ+.3);scene.add(exitGlow);
-      const exitLight=new THREE.PointLight(0x30ff80,6,10,2);exitLight.position.set(exitX,2.6,exitZ+1.2);scene.add(exitLight);
+      const exitLight=new THREE.PointLight(0x30ff80,2,10,1.6);exitLight.position.set(exitX,2.6,exitZ+1.2);scene.add(exitLight);
 
       // ── 非常回転灯（赤） ──
       const beaconPos=[[-HW+.35,5.2,mirror?-10:-14],[HW-.35,5.6,mirror?12:6],[-HW+.35,5.2,18],[exitCol<5?8:-8,5.4,-HD+.35]];
@@ -687,13 +687,13 @@ registerMinigame({
         const b2=new THREE.Mesh(beamGeo,beamMat);b2.rotation.set(.18,Math.PI,0);rot.add(b2);
         const gl=new THREE.Sprite(redGlowMat);gl.scale.set(1.6,1.6,1);g.add(gl);
         let light=null;
-        if(i<3){light=new THREE.PointLight(0xff1830,18,15,1.8);const inward=p[0]<-HW+1?1:p[0]>HW-1?-1:0;light.position.set(p[0]+inward*1.2,p[1]-.4,p[2]+(p[2]<-HD+1?1.2:0));scene.add(light);}
+        if(i<3){light=new THREE.PointLight(0xff1830,4,14,1.6);const inward=p[0]<-HW+1?1:p[0]>HW-1?-1:0;light.position.set(p[0]+inward*1.2,p[1]-.4,p[2]+(p[2]<-HD+1?1.2:0));scene.add(light);}
         beacons.push({g,rot,light,ph:Math.random()*6,pos:new THREE.Vector3(p[0],0,p[2])});
       });
 
       // ── 光源 ──
-      const hemi=new THREE.HemisphereLight(0x2a3466,0x0c0810,.55);scene.add(hemi);
-      const spot=new THREE.SpotLight(0xfff0d8,70,30,.46,.45,1.4);
+      const hemi=new THREE.HemisphereLight(0x2a3466,0x0c0810,.35);scene.add(hemi);
+      const spot=new THREE.SpotLight(0xfff0d8,8,30,.46,.45,1.25);
       spot.position.set(.22,-.18,.05);
       spot.castShadow=true;
       const SMAP=coarse?512:1024;
@@ -1058,7 +1058,7 @@ registerMinigame({
         // ライトで照らしているか
         const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);
         const cosA=(-nx*fx+-nz*fz);
-        const beamOn=S.battery>0&&spot.intensity>8;
+        const beamOn=S.battery>0&&spot.intensity>FL_MAX*.25;
         const lit=beamOn&&dist<15&&cosA>Math.cos(.42)&&!occluded(P.x,P.z,GH.x,GH.z);
         // 暗がりにいるか（非常灯の近くは少し明るい）
         let nearLight=false;
@@ -1117,16 +1117,16 @@ registerMinigame({
         if(Math.abs(camera.fov-fov)>.05){camera.fov=fov;camera.updateProjectionMatrix();}
         // 懐中電灯
         const bf=S.battery/100;
-        let inten=22+70*Math.min(1,bf*1.4+.1);
+        let inten=FL_MAX*(.3+.7*Math.min(1,bf*1.4+.1));
         if(bf<.25&&Math.random()<.09)inten*=rnd(.05,.5);
         if(P.hitT>.3&&Math.random()<.4)inten*=.1;
-        if(S.phase==='over'&&S.endReason==='down')inten=Math.max(0,overT-.3)*20*(Math.random()<.5?1:.2);
+        if(S.phase==='over'&&S.endReason==='down')inten=Math.max(0,overT-.3)*FL_MAX*(Math.random()<.5?1:.2);
         spot.intensity=inten;
         spot.angle=.4+.08*Math.min(1,bf*1.5);
         spotTarget.position.set(clamp(-P.swayX,-1.2,1.2)+Math.sin(tAll*1.3)*.04,clamp(-P.swayY,-1,1)+Math.sin(tAll*1.7)*.03-.25-bobY*2,-6);
         fbeam.lookAt(camera.localToWorld(spotTarget.position.clone()));
-        fbMat.opacity=.06*(inten/92);
-        dustMat.opacity=.55*(inten/92);
+        fbMat.opacity=.05*(inten/FL_MAX);
+        dustMat.opacity=.5*(inten/FL_MAX);
         // 埃
         for(let i=0;i<DUST;i++){
           dustPos[i*3]+=dustVel[i*3]*dt;dustPos[i*3+1]+=dustVel[i*3+1]*dt;dustPos[i*3+2]+=dustVel[i*3+2]*dt-P.vz*0;
@@ -1136,14 +1136,14 @@ registerMinigame({
         // 回転灯
         beacons.forEach(b=>{
           b.ph+=dt*3.2;b.rot.rotation.y=b.ph;
-          if(b.light)b.light.intensity=10+14*Math.abs(Math.cos(b.ph));
+          if(b.light)b.light.intensity=1.5+4*Math.abs(Math.cos(b.ph));
         });
         // 雷
         lightT-=dt;
         if(lightT<=0&&S.phase!=='intro'){scheduleLightning();se('noise');}
         flashV=Math.max(0,flashV-dt*5);
         if(lightSeq.length){lightSeq.forEach(s=>{s.t-=dt;if(s.t<=0&&!s.fired){s.fired=true;flashV=Math.max(flashV,s.v);}});if(lightSeq.every(s=>s.fired))lightSeq=[];}
-        hemi.intensity=.55+flashV*4.5;
+        hemi.intensity=.35+flashV*3;
         M.glass.color.setRGB(.35+flashV*.65,.41+flashV*.59,.63+flashV*.37);
         M.shaft.opacity=.045+flashV*.32;
         if(S.phase!=='over'||S.endReason!=='clear')el.flash.style.opacity=String(flashV*.22);
@@ -1175,8 +1175,8 @@ registerMinigame({
         // 予備電池
         bats.forEach(b=>{if(b.taken)return;b.g.position.y=.5+Math.sin(tAll*2.5+b.ph)*.08;b.g.rotation.y+=dt*1.6;});
         // 非常口
-        if(S.inspected>=NEED){exitLight.intensity=10+6*Math.sin(tAll*4);exitGlow.material.opacity=.8+.2*Math.sin(tAll*4);}
-        else{exitLight.intensity=4;exitGlow.material.opacity=.55;}
+        if(S.inspected>=NEED){exitLight.intensity=4+2*Math.sin(tAll*4);exitGlow.material.opacity=.8+.2*Math.sin(tAll*4);}
+        else{exitLight.intensity=1.5;exitGlow.material.opacity=.55;}
         if(doorOpen>0){door.userData.slab.rotation.y=-doorOpen*1.4;door.userData.slab.position.x=-doorOpen*.6;}
         // 影の見た目
         ghost.position.set(GH.x,.04+Math.sin(tAll*1.7)*.06,GH.z);

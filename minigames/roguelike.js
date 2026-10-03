@@ -32,7 +32,9 @@ addMinigameStyle('rogue',`
 .rg-card li span{flex-shrink:0;width:1.6em;text-align:center;font-family:var(--dot);}
 .rg-card .k1{color:var(--gd);}.rg-card .k2{color:#cfe0ff;}.rg-card .k3{color:var(--rd);}.rg-card .k4{color:#9fd8ff;}.rg-card .k5{color:var(--gn);}
 .rg-card p{margin:8px 0 0;font-family:var(--mono);font-size:.6rem;color:var(--tx-d);text-align:center;}
-.rg-log{width:100%;min-height:2.7em;font-size:.7rem;line-height:1.6;color:var(--tx-b);text-align:center;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0 4px;}
+.rg-log{width:100%;min-height:3.3em;font-size:.68rem;line-height:1.55;color:var(--tx-b);text-align:center;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 4px;}
+.rg-old{color:var(--tx-d);font-size:.62rem;}.rg-cur{animation:rgIn .25s ease-out;}
+@keyframes rgIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .rg-pad{display:grid;grid-template-columns:repeat(3,66px);grid-template-rows:repeat(2,50px);gap:7px;flex-shrink:0;}
 .rg-pad button{background:rgba(0,232,200,.06);border:1px solid rgba(0,232,200,.38);color:var(--cy);font-size:1rem;border-radius:5px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:none;-webkit-user-select:none;user-select:none;}
 .rg-pad button.on,.rg-pad button:active{background:rgba(0,232,200,.22);}
@@ -125,6 +127,7 @@ registerMinigame({
             <li><span class="k3">影</span>黒い影は<b>照らし続けると</b>消える。目を離すと迫る</li>
             <li><span class="k4">⚡</span>漏電床は照らすと見える。<b>3拍子に1度</b>止まる</li>
             <li><span class="k5">非</span>緑の<b>非常口</b>から下の階へ（全3フロア）</li>
+            <li><span class="k5">▮</span>電池は命綱。減るほど<b>光が短く</b>なる</li>
           </ul>
           <p>スワイプ／タップ／十字／矢印・WASD　待機：中央タップ・Space</p>
         </div></div>
@@ -157,7 +160,7 @@ registerMinigame({
     const leakAt=(x,y)=>{for(let i=0;i<leaks.length;i++){const l=leaks[i];if(l.x===x&&l.y===y)return l;}return null;};
     const leakOn=l=>(turn+l.ph)%3!==0;
     const hash=(x,y)=>(((x+11)*73856093)^((y+7)*19349663)^(floor*83492791))>>>0;
-    const say=t=>{if(t===lastSay)return;lastSay=t;logEl.textContent=t;};
+    const say=t=>{if(t===lastSay)return;const prev=lastSay;lastSay=t;logEl.innerHTML=(prev?`<span class="rg-old">${prev}</span>`:'')+`<span class="rg-cur">${t}</span>`;};
     const pick=a=>a[rnd(a.length)];
 
     // ── 入力 ──

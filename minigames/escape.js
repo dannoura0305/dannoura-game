@@ -97,6 +97,47 @@ addMinigameStyle('escape',`
 .esc-intro ul{list-style:none;padding:0;margin:0;font-family:var(--dot);font-size:.68rem;color:var(--cy);line-height:2;}
 .esc-intro button{min-width:180px;min-height:48px;}
 .esc-flash{position:absolute;inset:0;pointer-events:none;background:#fff;opacity:0;z-index:4;}
+.esc-logo{position:relative;text-align:center;line-height:1.05;}
+.esc-logo .k{display:block;font-family:var(--dot);font-size:.78rem;letter-spacing:.5em;color:var(--tx-d);margin-bottom:8px;}
+.esc-logo .t1,.esc-logo .t2{display:block;font-family:var(--dot);font-size:1.75rem;letter-spacing:.08em;color:#e8fff6;text-shadow:0 0 6px var(--cy),0 0 18px var(--cy),0 0 40px rgba(0,232,200,.5);}
+.esc-logo .t2{font-size:2.3rem;color:#ffe8f0;text-shadow:0 0 6px var(--rd),0 0 18px var(--rd),0 0 44px rgba(232,48,85,.55);animation:esc-neon 4.2s infinite;}
+.esc-logo .t2 em{font-style:normal;animation:esc-neon2 2.7s infinite;}
+.esc-logo .en{display:block;font-family:var(--mono);font-size:.62rem;letter-spacing:.42em;color:var(--gd);margin-top:10px;}
+.esc-logo:before{content:'';position:absolute;left:50%;top:50%;width:150%;height:140%;transform:translate(-50%,-50%);background:radial-gradient(ellipse,rgba(138,82,212,.28),transparent 65%);z-index:-1;}
+@keyframes esc-neon{0%,18%,22%,62%,64%,100%{opacity:1;}20%,63%{opacity:.35;}}
+@keyframes esc-neon2{0%,40%,44%,100%{opacity:1;}42%{opacity:.2;}}
+.esc-rec{font-family:var(--mono);font-size:.62rem;color:var(--tx-d);letter-spacing:.06em;}
+.esc-rec b{color:var(--gd);font-weight:normal;}
+.esc-tw{font-family:var(--dot);font-size:.7rem;color:var(--rd);border:1px solid rgba(232,48,85,.5);padding:4px 10px;border-radius:3px;background:rgba(232,48,85,.08);}
+.esc-tap{font-family:var(--dot);font-size:.72rem;color:var(--tx);animation:esc-blink 1.4s infinite;}
+@keyframes esc-blink{50%{opacity:.25;}}
+.esc-dlg{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;justify-content:flex-end;background:linear-gradient(rgba(3,2,10,.15),rgba(3,2,10,.85) 55%);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .35s;}
+.esc-dlg.off{opacity:0;pointer-events:none;}
+.esc-dlg .pt{position:relative;align-self:flex-start;margin:0 0 -14px 14px;width:118px;height:118px;border-radius:6px;border:2px solid var(--pu);overflow:hidden;box-shadow:0 0 22px rgba(138,82,212,.5);background:#120c22;z-index:1;transition:filter .3s;}
+.esc-dlg .pt img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.8) brightness(.92);}
+.esc-dlg .pt:after{content:'';position:absolute;inset:0;background:linear-gradient(transparent 60%,rgba(20,8,40,.55)),repeating-linear-gradient(transparent 0 2px,rgba(0,0,0,.12) 2px 3px);}
+.esc-dlg .pt.hide{opacity:0;}
+.esc-dlg .bx{margin:0 8px 10px;padding:18px 14px 12px;min-height:118px;background:rgba(8,6,22,.96);border:1px solid var(--pu);border-radius:5px;box-shadow:inset 0 0 20px rgba(138,82,212,.2);}
+.esc-dlg .nm{font-family:var(--dot);font-size:.7rem;color:var(--cy);letter-spacing:.1em;margin-bottom:4px;}
+.esc-dlg .tx{font-family:var(--serif);font-size:.86rem;line-height:1.85;color:var(--tx-b);min-height:3.4em;}
+.esc-dlg .nx{text-align:right;font-family:var(--mono);font-size:.62rem;color:var(--tx-d);animation:esc-blink 1s infinite;}
+.esc-grade{display:flex;align-items:center;gap:12px;justify-content:center;margin:6px 0 2px;}
+.esc-grade .g{font-family:var(--dot);font-size:3.2rem;line-height:1;width:76px;height:76px;display:flex;align-items:center;justify-content:center;border:3px solid currentColor;border-radius:50%;transform:rotate(-12deg) scale(2.4);opacity:0;animation:esc-stamp .5s .25s cubic-bezier(.2,1.4,.4,1) forwards;}
+.esc-grade .i{font-family:var(--mono);font-size:.68rem;line-height:1.8;color:var(--tx);text-align:left;}
+@keyframes esc-stamp{to{transform:rotate(-12deg) scale(1);opacity:1;}}
+.esc-dlg .btns{display:flex;justify-content:flex-end;margin-top:6px;}
+.esc-dlg .btns button{min-width:140px;min-height:46px;}
+.esc-slot.tut,.esc-tutp{animation:esc-tut 1.1s infinite;}
+@keyframes esc-tut{0%,100%{box-shadow:0 0 0 0 rgba(0,232,200,.8);}70%{box-shadow:0 0 0 9px rgba(0,232,200,0);}}
+.esc-wh .dg.roll{animation:esc-roll .16s ease-out;}
+@keyframes esc-roll{from{transform:translateY(-10px);opacity:.3;}to{transform:none;opacity:1;}}
+.esc-gen{display:flex;flex-direction:column;gap:8px;}
+.esc-gb{display:flex;gap:6px;}
+.esc-gb button{flex:1;min-height:56px;border:1px solid #6a5a2a;background:linear-gradient(#2a2416,#16120a);color:var(--gd);border-radius:4px;font-family:var(--dot);font-size:.68rem;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.esc-gb button.done{border-color:var(--gn);color:var(--gn);background:#10241a;}
+.esc-gb button[disabled]{opacity:.45;cursor:default;}
+.esc-fuel{height:14px;border:1px solid #555;border-radius:3px;background:#111;overflow:hidden;}
+.esc-fuel i{display:block;height:100%;background:linear-gradient(90deg,#e83055,#e8b830);transition:width 1.2s;}
 `);
 
 (()=>{
@@ -114,6 +155,7 @@ const ITEMS={
   torch:{name:'懐中電灯',desc:'電池を入れた。これで暗い所も読める。'},
   driver:{name:'プラスドライバー',desc:'#2のプラスドライバー。盤のカバー外しに。'},
   key:{name:'盤キー',desc:'分電盤の扉を開ける三角キー。'},
+  fuel:{name:'軽油の携行缶',desc:'発電機用の軽油。ずしりと重い。'},
 };
 // アイテムのアイコン（SVG）
 function iconSVG(id){
@@ -141,6 +183,11 @@ function iconSVG(id){
     return v+`<circle cx="15" cy="17" r="9" fill="none" stroke="#e8b830" stroke-width="4"/><circle cx="15" cy="17" r="9" fill="none" stroke="#fff3b0" stroke-width="1" opacity=".5"/>
       <path d="M21 23 L38 40" stroke="#e8b830" stroke-width="5" stroke-linecap="round"/><path d="M36 38 L41 33 L43 35 L38 40Z" fill="#c09020"/><path d="M33 35 L36 32" stroke="#c09020" stroke-width="3"/>
       <path d="M11 13 L19 13 L15 20Z" fill="#7a5a10"/></svg>`;
+  }
+  if(id==='fuel'){
+    return v+`<path d="M12 14 L30 14 L38 22 L38 42 L12 42Z" fill="#c02838" stroke="#4a0a14" stroke-width="1"/><path d="M14 16 L29 16 L36 23 L36 40 L14 40Z" fill="#e03848"/>
+      <rect x="15" y="8" width="12" height="7" rx="2" fill="none" stroke="#c02838" stroke-width="3"/><rect x="31" y="9" width="5" height="9" rx="1" fill="#e8b830" transform="rotate(35 33 13)"/>
+      <rect x="17" y="24" width="15" height="10" fill="#e8b830"/><text x="24.5" y="31.5" font-size="6" text-anchor="middle" fill="#222" font-family="monospace">軽油</text><rect x="15" y="17" width="2" height="22" fill="#fff" opacity=".25"/></svg>`;
   }
   return v+'</svg>';
 }
@@ -205,7 +252,10 @@ function makePuzzle(rnd){
   // バルブ：3系統の圧力（すべて別の値）、シャッターの札と一致する系統が正解
   const pool=shuf([30,35,40,45,50,55,60,65,70]);
   const valves=pool.slice(0,3),vOk=ri(3);
-  return {roster,nights,tank,code,brk,order,rungs,target,secret,valves,vOk,ev};
+  // 2夜目以降：発電機の始動手順（銘板の順に。最後はセル）
+  const genSteps=shuf(['燃料コック','非常停止解除','グロー予熱']).concat(['セル始動']);
+  const genBtns=shuf([0,1,2,3]);           // ボタンの並び（表示順）
+  return {roster,nights,tank,code,brk,order,rungs,target,secret,valves,vOk,ev,genSteps,genBtns};
 }
 
 registerMinigame({
@@ -215,26 +265,36 @@ registerMinigame({
   help:'タップで調べる・持ち物を選んで使う',
   start(body,mg){
     const P=makePuzzle();
+    const REC=(gs.escapeData=Object.assign({plays:0,clears:0,bestLeft:0,bestGrade:'',grades:{}},gs.escapeData||{}));
+    const TWIST=REC.clears>0;                        // 一度クリアすると「二夜目」：発電機の始動が加わる
     const S={
       room:'ctrl',inv:[],sel:null,left:TIME,started:false,hints:0,
       drawer:false,gotBatt:false,torch:false,gotDriver:false,locker:false,gotKey:false,
       panel:false,bOn:[],power:false,plcCover:false,x:[false,false,false,false],plcOk:false,
       valve:-1,air:false,door:false,seen:{},
-      anim:{drawer:0,locker:0,panel:0,plcCover:0,shutter:0,door:0,lights:0},
-      powerT:-1,clearT:-1,
+      gotFuel:false,fueled:false,gen:!TWIST,genStep:0,
+      anim:{drawer:0,locker:0,panel:0,plcCover:0,shutter:0,door:0,lights:0,gen:0},
+      powerT:-1,clearT:-1,over:null,tut:0,recorded:false,
     };
     let W=0,H=0,dpr=1,T=0,lastSec=-1,warned=false;
     let lx=.5,ly=.45,tlx=.5,tly=.45;             // 光の位置（正規化）
     let flash=0,nextBolt=4+Math.random()*6,trans=null,ripple=null,zoomId=null,msgT=0;
+    const fmt=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+    const GRADE_COL={S:'#e8b830',A:'#00e8c8',B:'#8a52d4',C:'#bbaedd'};
+    const recLine=REC.plays?`挑戦 <b>${REC.plays}</b>　脱出 <b>${REC.clears}</b>`+(REC.bestGrade?`　最高評価 <b>${REC.bestGrade}</b>　最速 残り<b>${fmt(REC.bestLeft)}</b>`:''):'はじめての挑戦';
 
     body.innerHTML=`<div class="esc-root">
       <div class="esc-nav"><button class="esc-nb l" data-nav="-1"></button><div class="esc-cur"><span class="esc-rn"></span><small class="esc-rs"></small><div class="esc-map">${ROOMS.map(()=>'<i></i>').join('')}</div></div><button class="esc-nb r" data-nav="1"></button></div>
       <div class="esc-stage"><canvas class="esc-cv"></canvas><div class="esc-flash"></div><div class="esc-msg"></div>
         <div class="esc-zoom"><div class="esc-zbox"><div class="esc-zh"><span class="esc-zt"></span><button class="esc-x" aria-label="閉じる">✕</button></div><div class="esc-zc"></div></div></div>
-        <div class="esc-intro"><h3>🔐 閉じ込められた夜勤明け</h3>
-          <p>午前4時半。夜勤明けの帰り支度の最中、落雷で工場が停電した。電気錠もシャッターも閉じたまま――。<br>7時にはお隣さんへ息子を迎えに行く約束だ。</p>
-          <ul><li>タップ：調べる／光を向ける</li><li>持ち物を選んで → 場所をタップで使う</li><li>持ち物どうしをタップで組み合わせ</li></ul>
-          <button class="ev-btn esc-start">脱出開始（制限 4:30）</button></div>
+        <div class="esc-dlg off"><div class="pt"><img alt=""></div><div class="bx"><div class="nm"></div><div class="tx"></div><div class="nx">▼ タップ</div></div></div>
+        <div class="esc-intro">
+          <div class="esc-logo"><span class="k">夜 勤 脱 出</span><span class="t1">閉じ込められた</span><span class="t2">夜<em>勤</em>明け</span><span class="en">LOCKED IN AFTER THE NIGHT SHIFT</span></div>
+          ${TWIST?'<div class="esc-tw">二夜目 ― 非常用発電機が止まっている</div>':''}
+          <div class="esc-rec">${recLine}</div>
+          <button class="ev-btn esc-start">はじめる</button>
+          <div class="esc-rec">制限時間 4:30 ／ ヒント3回まで</div>
+        </div>
       </div>
       <div class="esc-inv">${[0,1,2,3,4].map(i=>`<button class="esc-slot" data-slot="${i}"></button>`).join('')}<button class="esc-hint">ヒント<br>残3</button></div>
     </div>`;

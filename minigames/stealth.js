@@ -42,8 +42,12 @@ registerMinigame({
     const CHILD={x:69,y:58};
     const sk=gs.skills||{};
     const holdMul=1-.05*Math.min(5,sk.chores||0);
-    const sensMul=1-.04*Math.min(5,sk.bedtime||0);
-    const data=gs.stealthData||(gs.stealthData={plays:0,clears:0,best:0});
+    // 記録（遅延初期化・JSONで保存できる形）
+    const data=gs.stealthData||(gs.stealthData={plays:0,clears:0,best:0,bestScore:0,bestGrade:''});
+    // 難易度：クリア回数と日数で少しずつ上がる（0〜3）
+    const hard=Math.min(3,(data.clears||0)+((gs.day||1)>=8?1:0)+((gs.day||1)>=15?1:0));
+    const sensMul=(1-.04*Math.min(5,sk.bedtime||0))*(1+.07*hard);
+    const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
 
     const OBST=[
       [0,250,120,258],[190,250,300,258],   // 間仕切り（ふすまの開口 120〜190）
@@ -54,21 +58,28 @@ registerMinigame({
       [244,266,292,472],                   // 流し台・コンロ・冷蔵庫
       [46,318,148,382],                    // テーブル＋椅子
     ];
-    const CREAK=[[122,258,168,278],[176,298,226,316],[66,392,118,408],[196,428,240,446],[150,60,196,84]];
-    const creakFound=[0,0,0,0,0], creakIn=[false,false,false,false,false];
+    // きしむ床板：敷居の板は毎回、ほかは毎晩ちがう場所
+    const CREAK=[[122,258,168,278]].concat(shuffle([[176,298,226,316],[66,392,118,408],[196,428,240,446],[150,60,196,84],[150,330,200,350],[84,284,132,302],[160,410,206,428],[120,170,170,190]]).slice(0,3+Math.min(2,hard)));
+    const creakFound=CREAK.map(()=>0), creakIn=CREAK.map(()=>false);
     const ST={
-      laundry:{x:240,y:62,r:42,hold:3.6,label:'たたむ',name:'洗濯物をたたむ',icon:'衣'},
-      dishes:{x:258,y:330,r:38,hold:4.6,label:'洗う',name:'食器を洗う',icon:'皿'},
-      note:{x:110,y:352,r:50,hold:3.6,label:'書く',name:'連絡帳と明日の準備',icon:'帳'},
-      toys:{x:258,y:220,r:38,hold:1.0,label:'しまう',name:'おもちゃを片付ける',icon:'玩'},
+      laundry:{x:240,y:62,r:42,hold:3.6,label:'たたむ',name:'洗濯物をたたむ',icon:'衣',mx:240,my:100},
+      dishes:{x:258,y:330,r:38,hold:4.6,label:'洗う',name:'食器を洗う',icon:'皿',mx:234,my:330},
+      note:{x:110,y:352,r:50,hold:3.6,label:'書く',name:'連絡帳と明日の準備',icon:'帳',mx:110,my:394},
+      toys:{x:258,y:220,r:38,hold:1.0,label:'しまう',name:'おもちゃを片付ける',icon:'玩',mx:258,my:192},
     };
     const ORDER=['laundry','dishes','note','toys'];
     for(const k of ORDER){ST[k].p=0;ST[k].done=false;ST[k].hold*=holdMul;}
-    const toys=[
-      {x:150,y:112,k:'block',c:'#e85a6a',ch:'あ'},{x:188,y:206,k:'block',c:'#4ab0e8',ch:'い'},
-      {x:96,y:206,k:'car',c:'#e8b830'},{x:170,y:296,k:'duck',c:'#ffd84a'},{x:212,y:150,k:'block',c:'#58d08a',ch:'う'},
-    ];
-    toys.forEach(t=>{t.vx=0;t.vy=0;t.cool=0;t.got=false;t.p=0;t.rot=Math.random()*6;t.tw=Math.random()*6;});
+    // おもちゃ：候補地からランダムに。難しくなるほど数が増える
+    const TOY_SPOTS=shuffle([[150,112],[188,206],[96,206],[170,296],[212,150],[130,160],[62,166],[200,380],[100,432],[176,446],[226,112],[160,36],[214,288],[130,222]]);
+    const nToys=5+Math.min(2,hard);
+    const BLK=[['#e85a6a','あ'],['#4ab0e8','い'],['#58d08a','う'],['#b07ae8','え'],['#ff9a4a','お']];
+    const kinds=shuffle(['block','block','block','car','duck','block','ball']);
+    const toys=[];
+    for(let i=0;i<nToys;i++){
+      const k=kinds[i],b=BLK[i%5];
+      toys.push({x:TOY_SPOTS[i][0],y:TOY_SPOTS[i][1],k,c:k==='car'?'#e8b830':k==='duck'?'#ffd84a':k==='ball'?'#ff7aa8':b[0],ch:b[1],
+        vx:0,vy:0,cool:0,got:false,p:0,rot:Math.random()*6,tw:Math.random()*6});
+    }
     const CAT_WP=[[200,120],[150,200],[160,300],[200,360],[120,440],[214,232],[130,60],[80,170]];
     const CAT_MIS=[
       {x:110,y:308,sx:112,sy:328,txt:'ガシャン',what:'コップ'},
@@ -82,6 +93,85 @@ registerMinigame({
     const act=document.createElement('button');act.className='stealth-act hide';
     act.innerHTML='<b>家事</b><small>HOLD</small>';body.appendChild(act);
     const actB=act.querySelector('b');
+
+    // 立ち絵（タイトル・会話・エンディング用）
+    const IMG={};
+    ['normal','tired','fear','happy'].forEach(k=>{const im=new Image();im.src='assets/img/char_'+k+'.webp';IMG[k]=im;});
+
+    // ── 効果音（Web Audioで合成。AU.se と同じ音量設定に従う） ──
+    const SX={
+      nb:null,water:null,
+      c(){
+        if(typeof AUDIO_SET!=='undefined'&&!(AUDIO_SET.se>0))return null;
+        try{AU.init();}catch(_){}
+        const c=AU.ctx;if(!c)return null;
+        if(c.state==='suspended'){try{c.resume();}catch(_){}}
+        return c;
+      },
+      v(){return typeof AUDIO_SET!=='undefined'?AUDIO_SET.se:1;},
+      buf(c){
+        if(!this.nb){const n=(c.sampleRate*1.2)|0,b=c.createBuffer(1,n,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;this.nb=b;}
+        return this.nb;
+      },
+      tone(c,type,f0,f1,dur,peak,dl,lp){
+        const t0=c.currentTime+(dl||0),o=c.createOscillator(),g=c.createGain();
+        o.type=type;o.frequency.setValueAtTime(f0,t0);o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t0+dur);
+        g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(Math.max(.0002,peak),t0+Math.min(.02,dur*.3));g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+        if(lp){const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=lp;f.Q.value=4;o.connect(f);f.connect(g);}else o.connect(g);
+        g.connect(c.destination);o.start(t0);o.stop(t0+dur+.02);
+      },
+      noise(c,dur,peak,ft,f0,f1,q,dl){
+        const t0=c.currentTime+(dl||0),s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();
+        s.buffer=this.buf(c);f.type=ft;f.frequency.setValueAtTime(f0,t0);f.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t0+dur);f.Q.value=q;
+        g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(Math.max(.0002,peak),t0+Math.min(.015,dur*.3));g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+        s.connect(f);f.connect(g);g.connect(c.destination);s.start(t0,Math.random()*.5);s.stop(t0+dur+.02);
+      },
+      play(k,amt){
+        const c=this.c();if(!c)return;
+        const v=this.v()*(amt||1);
+        try{switch(k){
+          case 'step':this.noise(c,.08,.06*v,'lowpass',240,140,1);break;
+          case 'creak':this.tone(c,'sawtooth',230,120,.45,.05*v,0,900);this.tone(c,'sawtooth',236,128,.4,.03*v,.02,700);break;
+          case 'clack':for(let i=0;i<3;i++){this.noise(c,.05,.14*v,'bandpass',2600-i*300,2200,3,i*.055);this.tone(c,'square',1200-i*220,900,.035,.025*v,i*.055);}break;
+          case 'squeak':this.tone(c,'sine',1300,2100,.12,.08*v);this.tone(c,'sine',2000,1100,.22,.07*v,.12);break;
+          case 'rattle':for(let i=0;i<7;i++)this.noise(c,.03,.07*v,'bandpass',1500+i*60,1400,4,i*.045);break;
+          case 'ball':this.tone(c,'sine',300,180,.12,.09*v);this.tone(c,'sine',280,170,.1,.05*v,.2);break;
+          case 'rustle':this.noise(c,.24,.05*v,'bandpass',3400,2200,.8);break;
+          case 'clink':this.tone(c,'sine',2600,2580,.3,.05*v);this.tone(c,'sine',3950,3900,.2,.03*v);break;
+          case 'scratch':this.noise(c,.1,.025*v,'highpass',5200,4800,.7);break;
+          case 'zip':this.noise(c,.32,.05*v,'bandpass',700,3400,5);break;
+          case 'pick':this.tone(c,'sine',660,990,.12,.05*v);break;
+          case 'done':this.tone(c,'triangle',880,880,.28,.06*v);this.tone(c,'triangle',1320,1320,.45,.05*v,.11);break;
+          case 'box':this.noise(c,.08,.16*v,'lowpass',700,260,1);this.tone(c,'square',170,90,.09,.04*v);break;
+          case 'meow':this.tone(c,'triangle',620,980,.14,.05*v,0,1900);this.tone(c,'triangle',980,520,.3,.05*v,.13,1700);break;
+          case 'purr':this.tone(c,'sawtooth',27,24,.9,.06*v,0,220);break;
+          case 'crash':this.noise(c,.45,.2*v,'highpass',1600,500,.7);this.tone(c,'sine',1900,1700,.6,.04*v);this.tone(c,'sine',2870,2800,.4,.025*v,.05);break;
+          case 'whimper':this.tone(c,'sine',560,430,.35,.035*v,0);this.tone(c,'sine',520,400,.4,.03*v,.4);break;
+          case 'cry':this.tone(c,'sawtooth',470,580,.6,.05*v,0,1500);this.tone(c,'sawtooth',580,400,.9,.05*v,.6,1500);break;
+          case 'heart':this.tone(c,'sine',62,44,.13,.16*v);this.tone(c,'sine',58,42,.13,.1*v,.17);break;
+          case 'blip':this.tone(c,'square',900,900,.025,.012*v);break;
+          case 'whoosh':this.noise(c,.6,.04*v,'bandpass',300,2400,2);break;
+          case 'bird':this.tone(c,'sine',3600,4600,.06,.03*v);this.tone(c,'sine',3800,4800,.06,.025*v,.1);break;
+          case 'stamp':this.noise(c,.12,.2*v,'lowpass',500,120,1);this.tone(c,'triangle',523,523,.5,.05*v,.05);this.tone(c,'triangle',784,784,.6,.05*v,.15);this.tone(c,'triangle',1046,1046,.8,.05*v,.25);break;
+          case 'sad':this.tone(c,'triangle',440,430,.5,.05*v);this.tone(c,'triangle',349,345,.8,.05*v,.25);break;
+          case 'tension':this.tone(c,'sawtooth',55,52,1.4,.05*v,0,260);this.tone(c,'sawtooth',82,78,1.4,.03*v,0,300);break;
+          case 'alert':this.tone(c,'square',740,740,.08,.04*v);this.tone(c,'square',988,988,.12,.04*v,.09);break;
+        }}catch(_){}
+      },
+      setWater(on){
+        const c=on?this.c():AU.ctx;
+        if(!c)return;
+        try{
+          if(on&&!this.water){
+            const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();
+            s.buffer=this.buf(c);s.loop=true;f.type='bandpass';f.frequency.value=1500;f.Q.value=.6;g.gain.value=.0001;
+            s.connect(f);f.connect(g);g.connect(c.destination);s.start();this.water={s,g};
+          }
+          if(this.water)this.water.g.gain.setTargetAtTime(on?.05*this.v():.0001,c.currentTime,.08);
+        }catch(_){}
+      },
+      stop(){if(this.water){try{this.water.s.stop();}catch(_){}this.water=null;}},
+    };
 
     // ── サイズ・事前描画 ──
     let W=0,H=0,dpr=1,S=1,OX=0,OY=0;
@@ -301,7 +391,7 @@ registerMinigame({
 
     // ── 状態 ──
     const P={x:150,y:446,vx:0,vy:0,ang:-Math.PI/2,walk:0,carry:0,yelp:0};
-    const cat={x:160,y:300,tx:160,ty:300,path:[],ang:0,walk:0,mode:'wander',wait:2,mis:null,misT:0,pet:0,tail:0,cd:18};
+    const cat={x:150,y:228,tx:150,ty:228,path:[],ang:.4,walk:0,mode:'nap',wait:2,mis:null,misT:0,pet:0,tail:0,cd:hard>=2?4:7,jump:0};
     const parts=[];for(let i=0;i<220;i++)parts.push({x:0,y:0,vx:0,vy:0,life:0,max:1,sz:1,col:'#fff',g:0});
     let pi=0;
     const rings=[];for(let i=0;i<20;i++)rings.push({x:0,y:0,t:0,max:1,r:20,col:'#fff'});
@@ -315,7 +405,15 @@ registerMinigame({
     let holding=false, keyHold=false, phase='play', endT=0, shake=0, redFlash=0, banner=null;
     let stepAcc=0, chopCd=0, lastScore='', lastTimer='', lastAct='', lastP=-1, curSt=null, curToy=null, seCd=0;
     let toysLeft=toys.length, catPets=0, toyHits=0, creaks=0, cleared=0;
-    let sleepCycle=0; // 0..1 浅さ
+    let waterOn=false, sleepCycle=0, cycT=.05, gphase=1, childRoll=0, rollSide=1, wasLight=false, heartCd=0, alertLv=0, idleT=0;
+    // 場面：title → talk → game（t<0 は操作説明）→ ending
+    let scene='title', sceneT=0, trans=null, endReason=null, grade='', gradeScore=0, newBest=false;
+    let talkI=0, talkC=0, blipCd=0;
+    const TALK=[['tired','……やっと寝た。今日は保育園で、ずっと走り回ってたらしい。']];
+    if((gs.childStress||0)>55)TALK.push(['fear','最近は夜中によう泣く。今夜は、ほんまに起こしたくない。']);
+    else if(data.clears>0)TALK.push(['normal','前はおもちゃ踏んで、起こしかけたからな。……今夜も慎重にいこ。']);
+    TALK.push(['normal','洗濯物、洗い物、連絡帳、おもちゃ。0時までに全部片付けたい。']);
+    TALK.push(['tired','そーっと、な。足音ひとつで、また寝かしつけ1時間コースや。']);
     data.plays=(data.plays||0)+1;
 
     resize();
@@ -325,9 +423,25 @@ registerMinigame({
     // ── 入力 ──
     let joy=null;
     const keys={l:false,r:false,u:false,d:false,run:false};
+    function advance(){
+      if(trans)return;
+      if(scene==='title'){goScene('talk');}
+      else if(scene==='talk'){
+        const L=TALK[talkI][1];
+        if(talkC<L.length){talkC=L.length;return;}
+        talkI++;talkC=0;SX.play('blip');
+        if(talkI>=TALK.length)goScene('game');
+      }
+      else if(scene==='game'&&t<-.3)t=-.3;
+      else if(scene==='ending'&&sceneT>1.6&&!mg._ended){mg.end(endReason);}
+    }
+    function goScene(sc){
+      SX.play('whoosh');
+      trans={t:0,dur:.8,mid:()=>{scene=sc;sceneT=0;if(sc==='game'){t=-T_INTRO;}if(sc==='ending'){SX.stop();SX.play('bird');}},done:false};
+    }
     cv.addEventListener('pointerdown',e=>{
       e.preventDefault();
-      if(t<-.3){t=-.3;return;}
+      if(scene!=='game'||t<-.3){advance();return;}
       if(joy)return;
       try{cv.setPointerCapture(e.pointerId);}catch(_){}
       joy={id:e.pointerId,sx:e.clientX,sy:e.clientY,dx:0,dy:0};
@@ -340,16 +454,18 @@ registerMinigame({
     });
     const endJoy=e=>{if(joy&&joy.id===e.pointerId)joy=null;};
     cv.addEventListener('pointerup',endJoy);cv.addEventListener('pointercancel',endJoy);
-    act.addEventListener('pointerdown',e=>{e.preventDefault();if(t<-.3){t=-.3;}holding=true;try{act.setPointerCapture(e.pointerId);}catch(_){}});
+    act.addEventListener('pointerdown',e=>{e.preventDefault();if(scene!=='game'||t<-.3){advance();return;}holding=true;try{act.setPointerCapture(e.pointerId);}catch(_){}});
     const actUp=e=>{holding=false;};
     act.addEventListener('pointerup',actUp);act.addEventListener('pointercancel',actUp);act.addEventListener('lostpointercapture',actUp);
     act.addEventListener('contextmenu',e=>e.preventDefault());
     mg.onKey(e=>{
       const k=e.key,dn=e.type==='keydown';
       const map={ArrowLeft:'l',a:'l',A:'l',ArrowRight:'r',d:'r',D:'r',ArrowUp:'u',w:'u',W:'u',ArrowDown:'d',s:'d',S:'d'};
-      if(map[k]){e.preventDefault();keys[map[k]]=dn;if(dn&&t<-.3)t=-.3;return;}
+      if(map[k]){e.preventDefault();keys[map[k]]=dn;if(dn&&scene==='game'&&t<-.3)t=-.3;return;}
       if(k==='Shift'){keys.run=dn;return;}
-      if(k===' '||k==='e'||k==='E'||k==='Enter'){e.preventDefault();if(dn&&t<-.3){t=-.3;return;}keyHold=dn;}
+      if(k===' '||k==='e'||k==='E'||k==='Enter'){e.preventDefault();
+        if(scene!=='game'||t<-.3){if(dn&&!e.repeat)advance();return;}
+        keyHold=dn;}
     });
 
     // ── 演出ヘルパ ──
@@ -417,23 +533,23 @@ registerMinigame({
     }
     function completeStation(k){
       const s=ST[k];s.done=true;s.p=1;
-      se('decide',true);
+      se('decide',true);SX.play('done');
       burst(s.x,s.y,22,['#7dffe9','#ffffff','#e8b830'],60,.9,1.6);
       ring(s.x,s.y,30,'#00e8c8',.7);
       const done=ORDER.filter(o=>ST[o].done).length;
       pop(s.x,s.y-22,s.name+' ✓',ORDER.length===done?'#e8b830':'#7dffe9',10,1.6);
-      if(k==='note')spike(5,s.x,s.y,'ジッ…');
-      if(k==='toys')spike(8,s.x,s.y,'カタン');
+      if(k==='note'){spike(5,s.x,s.y,'ジッ…');SX.play('zip');}
+      if(k==='toys'){spike(8,s.x,s.y,'カタン');SX.play('box');}
       if(done===ORDER.length){
         phase='clear';endT=0;cleared=t;
         showBanner('ぜんぶ、終わった','起こさずにすんだ。……おやすみ','#e8b830',2.8);
-        try{AU.se('ach');}catch(_){}
+        try{AU.se('ach');}catch(_){}SX.setWater(false);
         burst(CHILD.x,CHILD.y+10,40,['#e8b830','#ffe8b0','#ffffff'],70,1.6,1.8);
       }
     }
     function wake(){
       phase='woke';endT=0;redFlash=1;shake=10;
-      try{AU.se('warn');}catch(_){}
+      try{AU.se('warn');}catch(_){}SX.setWater(false);SX.play('cry');
       showBanner('……起こしてしまった','「ぱぱぁ……」','#e83055',2.6);
       burst(CHILD.x,CHILD.y,26,['#9ad8ff','#ffffff'],70,1.2,1.6,40);
     }
@@ -443,15 +559,53 @@ registerMinigame({
       if(shake>0)shake=Math.max(0,shake-dt*20);
       if(redFlash>0)redFlash=Math.max(0,redFlash-dt*.8);
       if(P.yelp>0)P.yelp-=dt;
-      if(t<0){t+=dt;if(t>=0){t=0;act.classList.remove('hide');showBanner('23:00','0時までに、家事を4つ','#bbaedd',1.8);}}
+      sceneT+=dt;
+      if(trans){trans.t+=dt;if(!trans.done&&trans.t>=trans.dur/2){trans.done=true;trans.mid();}if(trans.t>=trans.dur)trans=null;}
+      for(const m of motes){m.ph+=dt*m.s;m.y+=dt*3*m.s;m.x+=Math.sin(m.ph)*dt*2;if(m.y>230){m.y=rnd(10,40);m.x=rnd(150,225);}}
+      if(scene==='title'){if(sceneT>3.2&&!trans)goScene('talk');return;}
+      if(scene==='talk'){
+        const L=TALK[Math.min(talkI,TALK.length-1)][1];
+        if(talkC<L.length){talkC=Math.min(L.length,talkC+dt*26);blipCd-=dt;if(blipCd<=0){blipCd=.07;SX.play('blip',.7);}}
+        cat.tail+=dt;
+        return;
+      }
+      if(scene==='ending'){
+        cat.tail+=dt;
+        for(const p of parts){if(p.life>0){p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.g*dt;}}
+        if(sceneT>1.35&&sceneT-dt<=1.35){SX.play(endReason==='woke'?'sad':'stamp');try{AU.se(endReason==='clear'?'rank':'back');}catch(_){}}
+        if(sceneT>3&&sceneT-dt<=3)SX.play('bird');
+        if(sceneT>12&&!mg._ended&&!trans){mg.end(endReason);}
+        return;
+      }
+      if(t<0){t+=dt;if(t>=0){t=0;act.classList.remove('hide');showBanner('23:00','フェーズ1：寝入りばな。ぐっすり眠っている','#8ab0ff',2);SX.play('done',.6);}}
       else if(phase==='play')t+=dt;
       if(banner){banner.t+=dt;if(banner.t>banner.dur)banner=null;}
 
-      // 眠りの周期（20秒で一巡り：ぐっすり→うとうと）
-      const cyc=((t+4)%20)/20; // 0..1
-      let target=cyc<.6?0:cyc<.68?(cyc-.6)/.08:cyc<.92?1:1-(cyc-.92)/.08;
+      // フェーズ（難易度の三段階）
+      const T2=hard>=2?16:24, T3=50;
+      if(phase==='play'){
+        if(gphase===1&&t>=T2){gphase=2;showBanner('23:'+String(Math.floor(T2/T_PLAY*60)).padStart(2,'0')+'　ねこが起きた','フェーズ2：いたずらに気をつけて','#e8b830',2.2);
+          if(cat.mode==='nap'){cat.mode='wander';cat.wait=.8;cat.jump=.5;pop(cat.x,cat.y-14,'ふぁ……','#e8b830',9,1.2);SX.play('meow');}}
+        if(gphase===2&&t>=T3){gphase=3;showBanner('23:37　眠りが浅くなってきた','フェーズ3：「うとうと」が長く、頻繁に','#ff8aa0',2.2);SX.play('tension');}
+      }
+      // 眠りの周期（ぐっすり→うとうと）。フェーズが進むほど浅い時間が長く、周期も短い
+      const period=gphase===1?24:gphase===2?20:14, ls=gphase===1?.72:gphase===2?.6:.45;
+      if(t>0)cycT=(cycT+dt/period)%1;
+      const cyc=cycT;
+      let target=cyc<ls?0:cyc<ls+.08?(cyc-ls)/.08:cyc<.92?1:1-(cyc-.92)/.08;
       sleepCycle+=(target-sleepCycle)*Math.min(1,dt*3);
       if(t<=0)sleepCycle=0;
+      // 寝返り
+      const light=sleepCycle>.5;
+      if(light&&!wasLight&&phase==='play'){rollSide=Math.random()<.5?-1:1;pop(CHILD.x+16,CHILD.y-16,'もぞ……','#e8b830',9,1.2);SX.play('rustle',.5);}
+      wasLight=light;
+      childRoll+=((light?rollSide:0)-childRoll)*Math.min(1,dt*2.2);
+      // 警戒段階（静寂→気配→警戒）
+      const lv=noise>66?2:noise>35?1:0;
+      if(lv>alertLv&&phase==='play'){if(lv===2){SX.play('alert');SX.play('tension',.8);}else SX.play('heart',.6);}
+      alertLv=lv;
+      heartCd-=dt;
+      if(lv===2&&phase==='play'&&heartCd<=0){heartCd=1.05-noise/100*.45;SX.play('heart');}
 
       // 移動
       let ix=0,iy=0,spd=0;
@@ -482,14 +636,14 @@ registerMinigame({
         const q=Math.max(0,(s-.32)/.68);
         if(q>0)addNoise(26*Math.pow(q,1.25)*fm*dt,P.x,P.y);
         stepAcc+=mv;
-        if(stepAcc>22){stepAcc=0;if(s>.2){ring(P.x,P.y,6+s*16,q>0?'rgba(232,184,48,.7)':'rgba(187,174,221,.35)',.5);}}
+        if(stepAcc>22){stepAcc=0;if(s>.2){ring(P.x,P.y,6+s*16,q>0?'rgba(232,184,48,.7)':'rgba(187,174,221,.35)',.5);SX.play('step',.25+s*.9*fm);}}
         // きしむ床
         for(let i=0;i<CREAK.length;i++){
           const c=CREAK[i],inside=P.x>c[0]&&P.x<c[2]&&P.y>c[1]&&P.y<c[3];
           if(inside&&!creakIn[i]&&s>.06){
             const v=3+15*Math.pow(s,1.2);
             spike(v,P.x,P.y,s>.5?'ギィッ！':'ギシ…');creakFound[i]=1;creaks++;
-            se('tool');
+            SX.play('creak',.4+s);
           }
           creakIn[i]=inside;
         }
@@ -500,12 +654,13 @@ registerMinigame({
           const d=dist(P.x,P.y,ty.x,ty.y);
           if(d<PR+5&&s>.12&&ty.cool<=0){
             ty.cool=1.2;toyHits++;
-            const base=ty.k==='block'?16+22*s:ty.k==='duck'?18+14*s:10+16*s;
-            const txt=ty.k==='block'?'ガチャッ':ty.k==='duck'?'ピーッ！':'ガラガラ';
+            const base=ty.k==='block'?16+22*s:ty.k==='duck'?18+14*s:ty.k==='ball'?8+12*s:10+16*s;
+            const txt=ty.k==='block'?'ガチャッ':ty.k==='duck'?'ピーッ！':ty.k==='ball'?'ポン…':'ガラガラ';
             spike(base,ty.x,ty.y,txt);
-            const kk=ty.k==='car'?2.2:1.2;
+            SX.play(ty.k==='block'?'clack':ty.k==='duck'?'squeak':ty.k==='ball'?'ball':'rattle');
+            const kk=ty.k==='car'?2.2:ty.k==='ball'?2.8:1.2;
             ty.vx=P.vx*kk+rnd(-20,20);ty.vy=P.vy*kk+rnd(-20,20);
-            if(ty.k==='block'){P.yelp=1;pop(P.x,P.y-20,'っ……！','#ffd0d8',10,1);P.vx*=.2;P.vy*=.2;}
+            if(ty.k==='block'||ty.k==='duck'){P.yelp=.9;pop(P.x,P.y-20,ty.k==='block'?'っ……！':'わっ','#ffd0d8',10,1);P.vx*=.2;P.vy*=.2;}
             burst(ty.x,ty.y,8,[ty.c,'#ffffff'],60,.4,1.4);
           }
         }
@@ -515,7 +670,7 @@ registerMinigame({
         if(ty.got)continue;
         if(ty.vx||ty.vy){
           ty.x+=ty.vx*dt;ty.y+=ty.vy*dt;ty.rot+=(Math.abs(ty.vx)+Math.abs(ty.vy))*dt*.03;
-          const f=Math.pow(ty.k==='car'?.3:.02,dt);ty.vx*=f;ty.vy*=f;
+          const f=Math.pow(ty.k==='car'||ty.k==='ball'?.35:.02,dt);ty.vx*=f;ty.vy*=f;
           const o={x:ty.x,y:ty.y};collide(o,5);
           if(o.x!==ty.x)ty.vx*=-.5;if(o.y!==ty.y)ty.vy*=-.5;ty.x=o.x;ty.y=o.y;
           if(Math.abs(ty.vx)+Math.abs(ty.vy)<2){ty.vx=ty.vy=0;}
@@ -524,24 +679,29 @@ registerMinigame({
 
       // 家事（長押し）
       curSt=phase==='play'&&t>=0?nearestStation():null;
+      const wOn=isHold&&curSt==='dishes'&&phase==='play';
+      if(wOn!==waterOn){waterOn=wOn;SX.setWater(wOn);}
+      // アニメーション状態
+      P.state=P.yelp>0?'startled':isHold&&curSt?'act':s<.04?'idle':s<.36?'sneak':s<.75?'walk':'run';
+      idleT=(P.state==='idle'&&phase==='play'&&t>0)?idleT+dt:0;
       if(isHold&&curSt){
         P.vx*=.5;P.vy*=.5;
         chopCd-=dt;
         if(curSt==='toy'){
           const ty=curToy;
           ty.p+=dt/(.45*holdMul);
-          if(ty.p>=1){ty.got=true;toysLeft--;P.carry++;se('btn',true);spike(2,ty.x,ty.y,null);
+          if(ty.p>=1){ty.got=true;toysLeft--;P.carry++;se('btn',true);SX.play('pick');spike(2,ty.x,ty.y,null);
             burst(ty.x,ty.y,10,[ty.c,'#ffffff'],40,.5,1.3);pop(ty.x,ty.y-12,'ひろった '+(toys.length-toysLeft)+'/'+toys.length,'#7dffe9',9,1);}
         }else if(curSt==='toys'&&toysLeft>0){
           if(chopCd<=0){chopCd=1.4;pop(ST.toys.x,ST.toys.y-26,'まだ床に '+toysLeft+'個','#e8b830',9,1.2);}
         }else{
           const s0=ST[curSt];
           s0.p+=dt/s0.hold;
-          if(curSt==='laundry'){addNoise(1.4*dt,s0.x,s0.y);if(chopCd<=0){chopCd=rnd(.9,1.4);spike(2.6,s0.x,s0.y,'パサ');burst(s0.x+rnd(-8,8),s0.y+18,4,['#e8e0f0','#c8d8ff'],20,.6,1.2);}}
+          if(curSt==='laundry'){addNoise(1.4*dt,s0.x,s0.y);if(chopCd<=0){chopCd=rnd(.9,1.4);spike(2.6,s0.x,s0.y,'パサ');SX.play('rustle');burst(s0.x+rnd(-8,8),s0.y+18,4,['#e8e0f0','#c8d8ff'],20,.6,1.2);}}
           else if(curSt==='dishes'){addNoise(7*dt,s0.x,s0.y);
             const p=parts[pi];pi=(pi+1)%parts.length;p.x=s0.x+14+rnd(-1,1);p.y=s0.y-6;p.vx=rnd(-14,4);p.vy=rnd(10,30);p.max=p.life=.5;p.sz=1;p.col='#a8d8ff';p.g=60;
-            if(chopCd<=0){chopCd=rnd(.6,1.1);spike(6,s0.x,s0.y,Math.random()<.5?'カチャ':'カン');}}
-          else if(curSt==='note'){addNoise(.4*dt,s0.x,s0.y);if(chopCd<=0){chopCd=1.2;pop(s0.x+rnd(-10,10),s0.y-18,['カリカリ','「きょうも げんきでした」','ハンカチよし','着替えよし'][(Math.random()*4)|0],'#bbaedd',8,1);}}
+            if(chopCd<=0){chopCd=rnd(.6,1.1);spike(6,s0.x,s0.y,Math.random()<.5?'カチャ':'カン');SX.play('clink');}}
+          else if(curSt==='note'){addNoise(.4*dt,s0.x,s0.y);if(chopCd<=0){chopCd=1.2;SX.play('scratch');pop(s0.x+rnd(-10,10),s0.y-18,['カリカリ','「きょうも げんきでした」','ハンカチよし','着替えよし'][(Math.random()*4)|0],'#bbaedd',8,1);}}
           else if(curSt==='toys'){if(s0.p>.05)P.carry=Math.ceil(toys.length*(1-s0.p));}
           if(s0.p>=1){if(curSt==='toys')P.carry=0;completeStation(curSt);}
         }
@@ -557,13 +717,13 @@ registerMinigame({
       maxNoise=Math.max(maxNoise,noise);
       if(phase==='play'&&t>=0){
         if(noise>=100){noise=100;wake();}
-        else if(noise>66&&!stirSaid){stirSaid=true;pop(CHILD.x+22,CHILD.y-14,'ん……ぅ','#ffb0c0',11,1.4);if(warnCd<=0){se('warn',true);warnCd=3;}}
+        else if(noise>66&&!stirSaid){stirSaid=true;pop(CHILD.x+22,CHILD.y-14,'ん……ぅ','#ffb0c0',11,1.4);SX.play('whimper');if(warnCd<=0){se('warn',true);warnCd=3;}}
         else if(noise<50)stirSaid=false;
-        if(t>=T_PLAY){phase='late';endT=0;showBanner('0:00','……日付が変わってしまった','#8a7aa8',2.4);try{AU.se('back');}catch(_){}}
+        if(t>=T_PLAY){phase='late';endT=0;SX.setWater(false);showBanner('0:00','……日付が変わってしまった','#8a7aa8',2.4);try{AU.se('back');}catch(_){}}
       }
       if(phase!=='play'){
         endT+=dt;
-        if(endT>2.8&&!mg._ended){mg.end(phase);return;}
+        if(endT>2.6&&!trans&&scene==='game'){endReason=phase;computeGrade();goScene('ending');}
       }
 
       // Zzz
@@ -577,7 +737,6 @@ registerMinigame({
       for(const p of parts){if(p.life>0){p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.g*dt;p.vx*=.97;p.vy*=.97;}}
       for(const r of rings)if(r.t>0)r.t-=dt;
       for(const o of pops)if(o.t>0){o.t-=dt;o.y-=dt*10;}
-      for(const m of motes){m.ph+=dt*m.s;m.y+=dt*3*m.s;m.x+=Math.sin(m.ph)*dt*2;if(m.y>230){m.y=rnd(10,40);m.x=rnd(150,225);}}
       for(const ty of toys)ty.tw+=dt;
     }
 
@@ -590,7 +749,8 @@ registerMinigame({
     }
     function updateCat(dt){
       cat.tail+=dt;
-      if(t<0)return;
+      if(cat.jump>0)cat.jump=Math.max(0,cat.jump-dt);
+      if(t<0||cat.mode==='nap')return;
       if(cat.pet>0)cat.pet-=dt;
       const d=dist(cat.x,cat.y,cat.tx,cat.ty);
       if(d>2&&cat.mode!=='sit'){
@@ -608,10 +768,10 @@ registerMinigame({
         if(dist(P.x,P.y,cat.x,cat.y)<36&&phase==='play'){
           cat.mode='sit';cat.wait=3;cat.pet=1.4;catPets++;
           pop(cat.x,cat.y-18,'ゴロゴロ…','#ffb0d0',10,1.4);burst(cat.x,cat.y-8,8,['#ff7aa8','#ffd0e0'],30,1,1.6,-10);
-          se('repair');cat.cd=rnd(16,22);return;
+          se('repair');SX.play('purr');cat.cd=rnd(16,22);return;
         }
         if(cat.misT<=0){
-          const m=cat.mis;spike(20,m.sx,m.sy,m.txt);burst(m.sx,m.sy,14,['#dcd4ff','#ffffff','#e8b830'],70,.6,1.6);
+          const m=cat.mis;spike(20,m.sx,m.sy,m.txt);SX.play('crash');cat.jump=.5;burst(m.sx,m.sy,14,['#dcd4ff','#ffffff','#e8b830'],70,.6,1.6);
           cat.mode='flee';catGo(...CAT_WP[(Math.random()*CAT_WP.length)|0]);cat.cd=rnd(16,22);
         }
         return;
@@ -621,7 +781,7 @@ registerMinigame({
       if(cat.wait>0)return;
       if(cat.cd<=0&&phase==='play'&&t<T_PLAY-8){
         cat.mis=CAT_MIS[(Math.random()*CAT_MIS.length)|0];cat.mode='go';catGo(cat.mis.x,cat.mis.y);
-        pop(cat.x,cat.y-14,'にゃ','#e8b830',8,.8);
+        pop(cat.x,cat.y-14,'にゃ','#e8b830',8,.8);SX.play('meow',.6);
       }else{
         cat.mode='wander';cat.wait=rnd(1.5,4);
         const w=CAT_WP[(Math.random()*CAT_WP.length)|0];catGo(w[0],w[1]);

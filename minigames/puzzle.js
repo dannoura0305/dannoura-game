@@ -174,8 +174,8 @@ function makeBoard(cfg,rnd){
 }
 
 // 通電計算：pw[c] bit1=縦/通常, bit2=横（交差タイル）。inD[c*2+ax]=入ってきた口
-function calcPower(n,src,type,m,brk,pw,inD){
-  pw.fill(0);inD.fill(0);
+function calcPower(n,src,type,m,brk,pw,inD,dep){
+  pw.fill(0);inD.fill(0);if(dep)dep[src*2]=0;
   const q=[src*2];pw[src]=1;let cnt=1,need=0;
   for(let c=0;c<n*n;c++)need+=type[c]===T_BR?2:1;
   for(let h=0;h<q.length;h++){
@@ -188,7 +188,7 @@ function calcPower(n,src,type,m,brk,pw,inD){
       if(brk[nc]||!(m[nc]&o))continue;
       const nax=type[nc]===T_BR?((o===N||o===S)?0:1):0,pb=1<<nax;
       if(pw[nc]&pb)continue;
-      pw[nc]|=pb;inD[nc*2+nax]=o;cnt++;q.push(nc*2+nax);
+      pw[nc]|=pb;inD[nc*2+nax]=o;if(dep)dep[nc*2+nax]=dep[node]+1;cnt++;q.push(nc*2+nax);
     }
   }
   return {cnt,need,done:cnt===need};
@@ -214,6 +214,7 @@ registerMinigame({
     let hitStop=0,shakeA=0,wipe=null,mosaicC=null;const tapQ=[];
     const RPX=new Float32Array(8),RPY=new Float32Array(8),RPT=new Float32Array(8).fill(9);let rpH=0;
     let st='title',stT=0,T=0,lastSec=-1,warned=false,clearInfo=null,stampSE=false,starSE=0;
+    let powAt,dep,cascade=0;const pendLamp=[];
     let n=4,src=0,type,m,sol,brk,par=0,anim,pw,inD,litAt,fixAt,lamps=0,lit=0;
     let shakeC=-1,shakeT=0,cursor=0,kbd=false,msgText='',msgT=0,boardIn=0;
     let W=0,H=0,dpr=1,ts=40,ox=0,oy=0,BS=0,bx=0,by=0,pad=10,hudH=64,footH=40,fsS=11,fsM=13;
@@ -267,6 +268,7 @@ registerMinigame({
       g.fillStyle=gr;g.fillRect(0,0,W,H);
       gr=g.createRadialGradient(W*.5,H*1.05,0,W*.5,H*1.05,H*.55);gr.addColorStop(0,'rgba(0,232,200,.07)');gr.addColorStop(1,'rgba(0,232,200,0)');
       g.fillStyle=gr;g.fillRect(0,0,W,H);
+      g.fillStyle=g.createPattern(DITH,'repeat');g.fillRect(0,0,W,H);
       g.strokeStyle='rgba(138,82,212,.06)';g.lineWidth=1;g.beginPath();
       for(let x=12;x<W;x+=24){g.moveTo(x+.5,0);g.lineTo(x+.5,H);}
       for(let y=12;y<H;y+=24){g.moveTo(0,y+.5);g.lineTo(W,y+.5);}
@@ -352,7 +354,7 @@ registerMinigame({
       n=b.n;src=b.src;type=b.type;sol=b.sol;m=b.cur;par=b.par;
       brk=new Uint8Array(n*n);for(let c=0;c<n*n;c++)if(type[c]===T_BRK)brk[c]=1;
       anim=new Float32Array(n*n);pw=new Uint8Array(n*n);inD=new Uint8Array(n*n*2);
-      litAt=new Float32Array(n*n).fill(-9);fixAt=new Float32Array(n*n).fill(-9);
+      litAt=new Float32Array(n*n).fill(-9);powAt=new Float32Array(n*n*2).fill(-9);dep=new Uint8Array(n*n*2);pendLamp.length=0;fixAt=new Float32Array(n*n).fill(-9);
       moves=0;cursor=src;lamps=0;
       for(let c=0;c<n*n;c++)if(isLamp(c))lamps++;
       layout();recalc(true);
@@ -366,14 +368,21 @@ registerMinigame({
     }
     const isLamp=c=>type[c]!==T_SRC&&type[c]!==T_BR&&pop(m[c])===1;
     function recalc(silent){
-      const r=calcPower(n,src,type,m,brk,pw,inD);
-      lit=0;let newLit=false;
+      const r=calcPower(n,src,type,m,brk,pw,inD,dep);
+      // 新しく通電したところは、電源に近い順に少しずつ電気が流れ込む
+      let minD=999;
+      for(let k=0;k<n*n*2;k++)if((pw[k>>1]&(1<<(k&1)))&&powAt[k]<0&&dep[k]<minD)minD=dep[k];
+      cascade=0;
+      for(let k=0;k<n*n*2;k++){
+        if(pw[k>>1]&(1<<(k&1))){if(powAt[k]<0){const d=silent?0:(dep[k]-minD)*.045;powAt[k]=T+d;if(d>cascade)cascade=d;}}
+        else powAt[k]=-9;
+      }
+      lit=0;
       for(let c=0;c<n*n;c++){
         if(!isLamp(c))continue;
-        if(pw[c]){lit++;if(litAt[c]<0){litAt[c]=T+.12;if(!silent){const p=cellXY(c);spark(p[0],p[1],8,1,ts*2.4);newLit=true;}}}
+        if(pw[c]){lit++;if(litAt[c]<0){litAt[c]=powAt[c*2]+.1;if(!silent)pendLamp.push(c);}}
         else litAt[c]=-9;
       }
-      if(newLit)SFX.lamp();
       return r.done;
     }
     const cellXY=c=>[ox+(c%n+.5)*ts,oy+(((c/n)|0)+.5)*ts];
@@ -398,7 +407,7 @@ registerMinigame({
       if(recalc(false)){
         const stars=starsFor(moves),bonus=stars===3?6:stars===2?3:0;
         solved++;starsTotal+=stars;boardStars.push(stars);left+=bonus;
-        clearInfo={stars,bonus,moves,par};st='clear';stT=-.2;stampSE=false;starSE=0;
+        clearInfo={stars,bonus,moves,par};st='clear';stT=-.25-cascade;stampSE=false;starSE=0;
         AU.se('repair');SFX.zap();hitStop=.14;shakeA=ts*.2;updScore();
       }
     }
@@ -491,10 +500,19 @@ registerMinigame({
           let ax=0;
           if(tc===T_BR){ax=b&1;if(ax!==layer)continue;}
           if(cat>=0){
-            const ct=brk[c]?2:(shown&&(pw[c]&(1<<ax)))?1:0;
+            const ct=brk[c]?2:(shown&&(pw[c]&(1<<ax))&&T>=powAt[c*2+ax])?1:0;
             if(ct!==cat)continue;
           }
           const vx=(AX[b]*co-AY[b]*si)*h,vy=(AX[b]*si+AY[b]*co)*h;
+          if(cat===1){
+            const fr=(T-powAt[c*2+ax])/.13;
+            if(fr<1){
+              if(flow)continue;
+              if(inD[c*2+ax]===(1<<b)){const q=Math.min(1,fr*2);cx.moveTo(x0+vx,y0+vy);cx.lineTo(x0+vx*(1-q),y0+vy*(1-q));}
+              else if(c===src||fr>.5){const q=c===src?fr:(fr-.5)*2;cx.moveTo(x0,y0);cx.lineTo(x0+vx*q,y0+vy*q);}
+              continue;
+            }
+          }
           if(flow){
             if(inD[c*2+ax]===(1<<b)){cx.moveTo(x0+vx,y0+vy);cx.lineTo(x0,y0);}
             else{cx.moveTo(x0,y0);cx.lineTo(x0+vx,y0+vy);}
@@ -528,7 +546,7 @@ registerMinigame({
       for(let c=0;c<n*n;c++){
         const tc=type[c];if(tc===T_BR)continue;
         let [x,y]=cellXY(c);if(c===shakeC&&shakeT>0)x+=Math.sin(T*70)*shakeT*ts*.25;
-        const on=pw[c]&&anim[c]<.3;
+        const on=pw[c]&&anim[c]<.3&&T>=powAt[c*2]+.06;
         if(tc===T_SRC){
           const r=ts*.3;
           cx.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3+Math.PI/6;cx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r+ts*.03);}cx.closePath();cx.fillStyle='rgba(0,0,0,.6)';cx.fill();
@@ -616,7 +634,7 @@ registerMinigame({
       for(let i=0;i<RN;i++){const x=rx[i]*W,y=ry[i]*H;if(x>bx-4&&x<bx+BS+8&&y>by-24&&y<by+BS)continue;cx.moveTo(x,y);cx.lineTo(x-rl[i]*.18,y+rl[i]);}
       cx.lineWidth=1;cx.strokeStyle='rgba(150,130,210,.13)';cx.stroke();
       cx.save();
-      for(let c=0;c<n*n;c++)if(pw[c]&&anim[c]<.3){cx.fillStyle='rgba(0,232,200,.05)';cx.fillRect(ox+(c%n)*ts+2,oy+((c/n)|0)*ts+2,ts-4,ts-4);}
+      for(let c=0;c<n*n;c++)if(pw[c]&&anim[c]<.3&&T>=powAt[c*2]){cx.fillStyle='rgba(0,232,200,.05)';cx.fillRect(ox+(c%n)*ts+2,oy+((c/n)|0)*ts+2,ts-4,ts-4);}
       drawCables(0);drawHubs();drawBridgePlates();drawCables(1);
       // カーソル
       if(kbd&&st==='play'){
@@ -1000,6 +1018,7 @@ registerMinigame({
       for(let c=0;c<n*n;c++)if(anim[c]>0)anim[c]=Math.max(0,anim[c]-dt*7.5);
       for(let i=0;i<PMAX;i++)if(pl[i]>0){pl[i]-=dt;px[i]+=pvx[i]*dt;py[i]+=pvy[i]*dt;pvy[i]+=ts*6*dt;pvx[i]*=.96;}
       for(let i=0;i<8;i++)RPT[i]+=dt;
+      if(pendLamp.length){let snd=false;for(let i=pendLamp.length-1;i>=0;i--){const c=pendLamp[i];if(T>=litAt[c]){pendLamp.splice(i,1);if(pw[c]){const p=cellXY(c);spark(p[0],p[1],8,1,ts*2.4);snd=true;}}}if(snd)SFX.lamp();}
       for(let i=0;i<RN;i++){ry[i]+=rv[i]*dt;if(ry[i]>1.05){ry[i]=-.05;rx[i]=Math.random()*1.1;}}
       if((st==='play'||st==='intro'||st==='clear')&&Math.random()<dt*9){const [x,y]=cellXY(src);spark(x,y,1+(Math.random()*2|0),0,ts*2.4);}
       if(!wipe){

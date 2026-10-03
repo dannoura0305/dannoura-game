@@ -23,11 +23,13 @@ addMinigameStyle('blocks',`
 .mg-blocks .blocks-scene{position:absolute;left:0;right:0;top:0;bottom:0;z-index:5;display:flex;flex-direction:column;justify-content:flex-end;
   background:linear-gradient(180deg,rgba(5,4,14,0) 30%,rgba(5,4,14,.82) 70%,rgba(5,4,14,.95));opacity:0;pointer-events:none;transition:opacity .35s;touch-action:none;}
 .mg-blocks .blocks-scene.show{opacity:1;pointer-events:auto;}
-.mg-blocks .blocks-por{position:absolute;left:50%;bottom:150px;transform:translateX(-50%);width:min(64%,250px);height:min(48%,330px);pointer-events:none;
-  transition:opacity .25s,transform .35s;}
-.mg-blocks .blocks-por img{width:100%;height:100%;object-fit:contain;object-position:bottom;filter:drop-shadow(0 0 18px rgba(138,82,212,.45));}
-.mg-blocks .blocks-por.dim{opacity:.35;transform:translateX(-50%) scale(.96);filter:grayscale(.4);}
-.mg-blocks .blocks-boss{position:absolute;right:14px;bottom:150px;width:78px;height:96px;pointer-events:none;transition:opacity .25s,transform .25s;}
+.mg-blocks .blocks-por{position:absolute;left:14px;bottom:140px;width:min(46%,200px);aspect-ratio:1/1;pointer-events:none;border-radius:10px;overflow:hidden;
+  border:2px solid rgba(0,232,200,.7);box-shadow:0 0 22px rgba(0,232,200,.3),0 6px 18px rgba(0,0,0,.6);background:#140e26;transition:opacity .25s,transform .3s,filter .3s;}
+.mg-blocks .blocks-por::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 60%,rgba(10,7,22,.55));
+  box-shadow:inset 0 0 0 4px rgba(10,7,22,.9);}
+.mg-blocks .blocks-por img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;}
+.mg-blocks .blocks-por.dim{opacity:.45;transform:scale(.94);filter:grayscale(.5);border-color:rgba(187,174,221,.3);box-shadow:none;}
+.mg-blocks .blocks-boss{position:absolute;right:16px;bottom:138px;width:78px;height:96px;pointer-events:none;transition:opacity .25s,transform .25s;}
 .mg-blocks .blocks-boss.dim{opacity:.3;transform:scale(.94);}
 .mg-blocks .blocks-box{position:relative;margin:0 10px 12px;min-height:112px;padding:22px 14px 14px;border-radius:8px;box-sizing:border-box;
   background:linear-gradient(180deg,rgba(18,12,36,.97),rgba(8,6,20,.98));border:1px solid rgba(138,82,212,.7);
@@ -139,7 +141,7 @@ registerMinigame({
           case 'lock':tone(150,'square',.05,.08,0,70);noise(.06,.07,0,500);break;
           case 'hard':noise(.2,.2,0,260,.7);tone(110,'sine',.22,.22,0,38);noise(.06,.08,.02,2600,3);break;
           case 'hold':tone(392,'sine',.06,.07);tone(587,'sine',.06,.09,.06);break;
-          case 'clear':{const notes=[523,659,784,1047,1319];const n=arg||1;
+          case 'clear':{const n=arg||1,up=Math.pow(1.0595,Math.min(12,(combo>0?combo:0)*2));const notes=[523,659,784,1047,1319].map(f=>f*up);
             for(let i=0;i<=n;i++)tone(notes[i],'triangle',.08,.16,i*.055);
             noise(.08,.25,0,1800,1.4);if(n>=4){tone(1568,'sine',.06,.5,.28);tone(2093,'sine',.05,.6,.36);}break;}
           case 'beep':tone(1040,'square',.035,.09);tone(1040,'square',.035,.09,.22);break;
@@ -338,7 +340,7 @@ registerMinigame({
     let lines=0,score=0,level=1,combo=-1,b2b=false,maxCombo=0,quads=0,tspins=0,pieces=0;
     let clearRows=[],clearT=0,overT=0,overReason='',topRows=0;
     let shake=0,flash=0,danger=false,dangerSeen=false,introT=0;
-    let spIdx=0,banner=null,wipe=null,fade=1,hitstop=0,buf=null,garbT=0,firstClear=false,lastInput='touch',endReason='',grade='';
+    let pulse=0,spIdx=0,banner=null,wipe=null,fade=1,hitstop=0,buf=null,garbT=0,firstClear=false,lastInput='touch',endReason='',grade='';
     const tut={step:0,t:0,done:[false,false,false,false]};
     const parts=[],pops=[],lifts=[],trails=[];
     let lastScoreHtml='',lastTimer='';
@@ -397,7 +399,7 @@ registerMinigame({
         trails.push({x:cur.x+minx,w:maxx-minx+1,y0:cur.y,y1:gy,t:0,col:COL[cur.t][0]});
       }
       cur.y=gy;score+=d*2;shake=Math.max(shake,3+Math.min(5,d*.3));hitstop=Math.max(hitstop,.035);
-      sfx('hard');tutDone(2);
+      sfx('hard');tutDone(2);pulse=Math.max(pulse,.3);
       lock(true);
     }
     function doHold(){
@@ -446,7 +448,8 @@ registerMinigame({
         const label=(tspin?'Tねじ込み ':'')+(n===4?'一括出荷！！':n===3?'3列出荷！':n===2?'2列出荷！':'出荷！');
         pop(label,mid,n===4||tspin?C.gd:C.cy,n>=3||tspin);
         if(b2bNow)pop('B2B 連続大口出荷',mid+cs*1.3,'#ff9ad0',false,.15);
-        if(combo>=1)pop(`${combo} コンボ`,mid-cs*1.4,C.gn,false,.08);
+        if(combo>=1){const cc=['#44ee88','#00e8c8','#e8b830','#ff9ad0','#ff5a7a'][Math.min(4,combo-1)];pop(`${combo} コンボ！`,mid-cs*1.4,cc,combo>=3,.08);}
+        pulse=1;
         if(perfect)pop('全出荷！ パレット空っぽ',wy+wh*.35,'#ffffff',true,.25);
         full.forEach(y=>{for(let X=0;X<COLS;X++){const [px,py]=cellPx(X,y);
           for(let k=0;k<2;k++)spark(px+cs/2,py+cs/2,rnd(60,260),rnd(-120,80),rnd(.4,.8),COL[board[y][X]][0],rnd(2,3.5),true);}});
@@ -775,7 +778,7 @@ registerMinigame({
       hud();
     }
     function updateFx(dt){
-      shake=Math.max(0,shake-dt*22);flash=Math.max(0,flash-dt*2.2);
+      shake=Math.max(0,shake-dt*22);flash=Math.max(0,flash-dt*2.2);pulse=Math.max(0,pulse-dt*1.8);
       for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.life-=dt;if(p.life<=0){parts.splice(i,1);continue;}p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=380*dt;p.vx*=.985;}
       for(let i=pops.length-1;i>=0;i--){pops[i].t+=dt;if(pops[i].t>1.5)pops.splice(i,1);}
       for(let i=lifts.length-1;i>=0;i--){const L=lifts[i];const pt=L.t;L.t+=dt;if(pt<.05&&L.t>=.05)sfx('beep');if(L.t>L.dur)lifts.splice(i,1);}
@@ -788,7 +791,7 @@ registerMinigame({
       const xs=[W*.18,W*.5,W*.82];
       xs.forEach((x,i)=>{
         const sw=Math.sin(clock*.9+i*1.7)*.035;
-        const flick=i===2&&Math.sin(clock*13)>.97?.35:1;
+        const flick=(i===2&&Math.sin(clock*13)>.97?.35:1)*(1+pulse*1.6);
         const ly=16+(i===1?0:-3);
         const lx=x+Math.sin(sw)*ly;
         // コード
@@ -944,6 +947,8 @@ registerMinigame({
         cx.fillText(PART[queue[0]],rx+rw/2,wy+nh+4);}
       // 実績
       let y=wy+hh+10;
+      cx.fillStyle='rgba(10,7,22,.82)';rr(cx,lx,y-4,pw,Math.min(cs*6.2,palY-y-8),5);cx.fill();
+      cx.strokeStyle='rgba(138,82,212,.3)';cx.lineWidth=1;rr(cx,lx+.5,y-3.5,pw-1,Math.min(cs*6.2,palY-y-8)-1,5);cx.stroke();y+=2;
       const big=Math.max(16,Math.round(cs*.9)),sm=Math.max(9,Math.round(cs*.4));
       const stat=(label,val,col)=>{
         cx.textAlign='left';cx.textBaseline='top';cx.font=`${sm}px ${FONT}`;cx.fillStyle=C.txd;cx.fillText(label,lx+4,y);
@@ -962,6 +967,10 @@ registerMinigame({
         cx.fillStyle='rgba(10,7,22,.85)';rr(cx,rx+rw/2-7,gy,14,gh,4);cx.fill();
         const col=f<.12?C.rd:f<.35?C.gd:C.cy;
         cx.fillStyle=col;cx.globalAlpha=.85;rr(cx,rx+rw/2-5,gy+2+(gh-4)*(1-f),10,(gh-4)*f,3);cx.fill();cx.globalAlpha=1;
+        // 便の区切り
+        SPEED.forEach((S,i)=>{if(!i)return;const yy=gy+2+(gh-4)*(S.t/TIME);cx.fillStyle=S.col;cx.fillRect(rx+rw/2-10,yy,20,2);
+          cx.font=`${Math.max(8,Math.round(cs*.34))}px ${FONT}`;cx.textAlign='left';cx.textBaseline='middle';cx.fillText(S.name.slice(0,2),rx+rw/2+11,yy+1);});
+        cx.textAlign='center';
         cx.font=`${sm}px ${FONT}`;cx.textAlign='center';cx.textBaseline='top';cx.fillStyle=C.txd;cx.fillText('定時',rx+rw/2,gy+gh+3);
       }
     }
@@ -1011,9 +1020,31 @@ registerMinigame({
       cx.fillStyle=gr;cx.beginPath();cx.moveTo(s*.5,-s*.42);cx.lineTo(s*1.6,-s*.6);cx.lineTo(s*1.6,-s*.05);cx.closePath();cx.fill();cx.restore();
       cx.restore();
     }
+    function drawTruck(base,s){
+      const tw=s*1.5,th=s*1.25,x=W-tw*.72,y=base-th-s*.12;
+      // 荷台
+      let gr=cx.createLinearGradient(x,0,x+tw,0);gr.addColorStop(0,'#3a3456');gr.addColorStop(1,'#1c1830');
+      cx.fillStyle=gr;cx.fillRect(x,y,tw,th);
+      // 開いた後部扉と庫内の明かり
+      gr=cx.createLinearGradient(x,0,x+tw*.6,0);gr.addColorStop(0,'rgba(255,214,150,.38)');gr.addColorStop(1,'rgba(255,214,150,.04)');
+      cx.fillStyle='#0d0a18';cx.fillRect(x+4,y+4,tw*.6,th-8);cx.fillStyle=gr;cx.fillRect(x+4,y+4,tw*.6,th-8);
+      // 積み込み済みの荷
+      const sh=Math.min(lines,24),cb=s*.2;
+      for(let i=0;i<sh;i++){const c=i%3,r=(i/3)|0;if(r>4)break;cx.globalAlpha=.85;cx.drawImage(spr[1+(i*5)%7],x+8+c*cb,y+th-6-(r+1)*cb,cb,cb);}
+      cx.globalAlpha=1;
+      cx.strokeStyle='#5a5478';cx.lineWidth=2;cx.strokeRect(x+1,y+1,tw-2,th-2);
+      cx.fillStyle='#e8b830';cx.fillRect(x,y+th-4,tw,4);
+      cx.fillStyle='#16101e';for(let k=0;k<tw;k+=10)cx.fillRect(x+k,y+th-4,5,4);
+      cx.fillStyle='rgba(232,48,85,.85)';cx.fillRect(x+2,y+th+1,5,3);
+      // 車輪
+      cx.fillStyle='#0c0a14';for(const k of [.55,.8]){cx.beginPath();cx.arc(x+tw*k,base-s*.1,s*.13,0,7);cx.fill();}
+      cx.font=`${Math.round(Math.max(8,s*.16))}px ${FONT}`;cx.textAlign='left';cx.textBaseline='top';cx.fillStyle='rgba(222,204,248,.55)';
+      cx.fillText('最終便 22:40発',x+tw*.64,y+5);
+    }
     function drawLane(){
       const base=laneY+laneH*.82;
       const s=Math.min(laneH*1.05,(laneY+laneH*.82)-(palY+palH+8))*1;
+      drawTruck(base,Math.max(26,s));
       for(const L of lifts){
         if(L.t<0)continue;
         const f=L.t/L.dur;
@@ -1064,7 +1095,7 @@ registerMinigame({
     function drawTitle(){
       if(phase!=='title')return;
       cx.fillStyle='rgba(5,4,14,.72)';cx.fillRect(0,0,W,CH);
-      const pw=Math.min(W-24,360),ph=Math.min(CH-24,400),px=(W-pw)/2,py=Math.max(10,(CH-ph)/2-6);
+      const pw=Math.min(W-24,360),ph=Math.min(CH-24,350),px=(W-pw)/2,py=Math.max(10,(CH-ph)/2-6);
       cx.fillStyle='rgba(10,7,22,.96)';rr(cx,px,py,pw,ph,10);cx.fill();
       cx.strokeStyle='rgba(138,82,212,.8)';cx.lineWidth=1;rr(cx,px+.5,py+.5,pw-1,ph-1,10);cx.stroke();
       // 上下の警戒ストライプ
@@ -1197,6 +1228,7 @@ registerMinigame({
       drawTut();
       drawBanner();
       cx.drawImage(lyVig,0,0,W,CH);
+      if(pulse>0){cx.strokeStyle=`rgba(0,232,200,${pulse*.7})`;cx.lineWidth=2+pulse*4;cx.strokeRect(wx-2,wy-2,ww+4,wh+4);}
       if(flash>0){cx.globalCompositeOperation='lighter';cx.fillStyle=`rgba(200,255,245,${flash*.25})`;cx.fillRect(wx,wy,ww,wh);cx.globalCompositeOperation='source-over';}
       cx.setTransform(dpr,0,0,dpr,0,0);
       drawOver();
@@ -1222,7 +1254,7 @@ registerMinigame({
       // 終了演出・エンディング中に「終了」を押しても、本来の結果で精算する
       if(reason==='quit'&&(phase==='over'||phase==='ending')&&overReason)reason=overReason;
       const L=lines;
-      if(!grade&&reason!=='quit'){grade=calcGrade(L,reason);const order='CBAS';if(!bd.bestGrade||order.indexOf(grade)>order.indexOf(grade))bd.bestGrade=bd.bestGrade||grade;}
+      if(!grade&&reason!=='quit'){grade=calcGrade(L,reason);if(!bd.bestGrade||'CBAS'.indexOf(grade)>'CBAS'.indexOf(bd.bestGrade))bd.bestGrade=grade;}
       let fx,time,sp=0,title,cut=null,log;
       if(reason==='timeup'){
         fx={money:Math.min(6000,L*400),jobRep:Math.min(8,Math.floor(L/3)),mental:L>=10?2:0,fatigue:6};

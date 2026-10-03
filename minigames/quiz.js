@@ -424,7 +424,7 @@ registerMinigame({
 
     // ── 状態 ──
     let st='title',qi=0,qtime=QTIME,cur=null,order=[],correctIdx=0,left=QTIME,lastSec=QTIME;
-    let score=0,correct=0,combo=0,maxCombo=0,answered=0,sheetAt=0,finalAt=0,newBest=false,lastTick=0;
+    let score=0,correct=0,combo=0,maxCombo=0,answered=0,sheetAt=0,finalAt=0,newBest=false,grade=null,unlocked=false;
     const byArea={L:[0,0],P:[0,0],S:[0,0]};
     const missed=[];
     const later=(fn,ms)=>setTimeout(()=>{if(!mg._ended)fn();},ms);
@@ -601,9 +601,111 @@ registerMinigame({
     function banner(txt){elBanner.textContent=txt;elBanner.classList.remove('on');void elBanner.offsetWidth;elBanner.classList.add('on');}
     function relRect(el){const a=el.getBoundingClientRect(),b=root.getBoundingClientRect();return {x:a.left-b.left,y:a.top-b.top,w:a.width,h:a.height};}
 
+    // ── だんのうらの反応 ──
+    let bubT=null;
+    function face(n,anim){elFace.style.backgroundImage=IMG(n);if(anim){elFace.classList.remove('hop','sad');void elFace.offsetWidth;elFace.classList.add(anim);}}
+    function say(txt,ms){elBub.textContent=txt;elBub.classList.add('on');clearTimeout(bubT);bubT=setTimeout(()=>elBub.classList.remove('on'),ms||1500);}
+    const rpick=a=>a[Math.floor(Math.random()*a.length)];
+    const OK_LINES=['よし！','覚えてる…！','それだ。','いける。'],COMBO_LINES=['冴えてる…！','止まらない。','頭が澄んでる。'],NG_LINES=['うっ…','そっちか…','付箋、貼っとこう。','くやしい…'];
+    face('char_normal');
+
+    // ── タイトル ──
+    function showTitle(){
+      const canMock=!!data.mockOpen;
+      elTitle.innerHTML=`<div class="quiz-logo"><div class="quiz-logo-badge"><div>乙④<span>KIKENBUTSU</span></div></div>
+        <div class="quiz-logo-ttl">深夜の<em>一問一答</em></div><svg viewBox="0 0 210 12"><path d="M3 8 C 50 2, 120 12, 207 4"/></svg>
+        <div class="quiz-logo-sub">危険物取扱者 乙種第4類</div></div>
+        <div class="quiz-modes">
+          <button class="quiz-mode" data-m="0" style="--mc:var(--cy)">いつもの10問<small>4択・解説つき／今夜の重点：${AREA[focus].short}</small></button>
+          <button class="quiz-mode" data-m="1" style="--mc:var(--rd)" ${canMock?'':'disabled'}>${canMock?'模擬試験モード':'🔒 模擬試験モード'}<small>${canMock?'難問寄り・制限時間短め・得点×1.2':'1回で8問以上正解すると解放'}</small></button>
+        </div>
+        <div class="quiz-rec">${data.runs?`BEST ${data.best.toLocaleString()} ・ 最高評価 ${data.bestGrade||'-'} ・ 挑戦 ${data.runs}回`:'— FIRST NIGHT —'}</div>`;
+      elTitle.querySelectorAll('.quiz-mode').forEach(b=>b.addEventListener('click',()=>pickMode(b.dataset.m==='1')));
+      synth('title');
+    }
+    function pickMode(m){
+      if(st!=='title'||(m&&!data.mockOpen))return;
+      mock=m;qs=pickQuestions(ck,data,mock,focus);
+      AU.se('decide');synth('page');
+      st='story';elTitle.classList.add('off');
+      startStory(storyLines(),showIntro,'char_normal',`<small>PROLOGUE</small>${mock?'模擬試験の夜':'勉強の夜'}`);
+    }
+
+    // ── 会話シーン（導入・エピローグ） ──
+    function storyLines(){
+      return [OPENERS[(gs.day||1)%OPENERS.length],
+        mock?'この前の手ごたえを確かめたい。今夜は本番形式の模擬試験だ。':'来月、危険物取扱者 乙種第4類の試験がある。',
+        '受かれば工場で任される仕事が増える。手当も、少しだけ。',
+        '隣の部屋で、子どもが寝返りを打った。……静かに、10問だけ。'];
+    }
+    let sLines=[],sIdx=0,sChar=0,sAcc=0,sDone=null,sTxt=null;
+    function startStory(lines,done,faceN,title){
+      sLines=lines;sIdx=0;sChar=0;sAcc=0;sDone=done;
+      elStory.innerHTML=`${title?`<div class="quiz-story-ttl">${title}</div>`:''}<button class="quiz-story-skip">スキップ ▶▶</button>`+
+        `<div class="quiz-story-box"><div class="quiz-face" style="background-image:${IMG(faceN)}"></div><div style="flex:1"><div class="quiz-story-name">だんのうら</div><div class="quiz-story-txt"></div></div><div class="quiz-story-nx">▼ TAP</div></div>`;
+      sTxt=elStory.querySelector('.quiz-story-txt');
+      elStory.classList.remove('off');
+      elStory.querySelector('.quiz-story-skip').addEventListener('click',e=>{e.stopPropagation();AU.se('back');endStory();});
+      elStory.onclick=advStory;
+    }
+    function advStory(){
+      if(!sDone)return;
+      const line=sLines[sIdx]||'';
+      if(sChar<line.length){sChar=line.length;sTxt.textContent=line;return;}
+      AU.se('btn');sIdx++;sChar=0;sAcc=0;
+      if(sIdx>=sLines.length)endStory();
+    }
+    function endStory(){if(!sDone)return;const d=sDone;sDone=null;elStory.onclick=null;elStory.classList.add('off');d();}
+    function storyTick(dt){
+      if(!sDone||sIdx>=sLines.length)return;
+      const line=sLines[sIdx];
+      if(sChar>=line.length)return;
+      sAcc+=dt;
+      while(sAcc>.034&&sChar<line.length){sAcc-=.034;sChar++;if(sChar%2)synth('type');}
+      sTxt.textContent=line.slice(0,sChar);
+    }
+
+    // ── 遊び方 ──
+    function showIntro(){
+      st='intro';
+      const lvl=mock?'模擬試験（難問寄り）':ck<30?'やさしめ':ck<60?'標準':'難しめ';
+      const rev=Object.keys(data.wrong).length;
+      elOv.innerHTML=`<div class="quiz-paper">
+        <div class="quiz-p-title"><small>HOW TO PLAY</small>遊び方${mock?'<span class="quiz-mode-tag">模擬試験</span>':''}</div>
+        <ul class="quiz-p-list">
+          <li>4択を<b>10問</b>。タップ／<kbd>1</kbd>〜<kbd>4</kbd>キー</li>
+          <li>制限時間内に。早いほど高得点</li>
+          <li>連続正解で<b>コンボ倍率</b>（最大×2.0）</li>
+          <li>ウォームアップ → 本番 → <b>実戦</b>（時間短め・得点UP）</li>
+        </ul>
+        <div class="quiz-p-note">出題：<b>${lvl}</b>（資格知識 ${ck}）／重点 ${AREA[focus].short}${rev?`<br>復習待ち <b>${rev}問</b>（出やすくなっています）`:''}</div>
+        <button class="quiz-btn">はじめる<small>Enter</small></button></div>`;
+      elOv.querySelector('.quiz-btn').addEventListener('click',begin);
+      elOv.classList.add('on');
+    }
+    function begin(){
+      if(st!=='intro')return;
+      st='wait';AU.se('decide');elOv.classList.remove('on');
+      later(()=>showPhase(0,showQuestion),250);
+    }
+    function showPhase(p,cb){
+      const P=PHASES[p];
+      elPhase.style.setProperty('--pc',P.col);
+      elPhase.querySelector('small').textContent=`PHASE ${p+1} · ${P.en}`;
+      elPhase.querySelector('b').textContent=P.name;
+      elPhase.classList.remove('on');void elPhase.offsetWidth;elPhase.classList.add('on');
+      synth('phase');AU.se('notif');
+      say(['まずは肩慣らし。','ここからが本番。','最後は実戦問題。落ち着いて。'][p],1800);
+      face(p===2?'char_fear':'char_normal','hop');
+      later(cb,1050);
+    }
+
+    // ── 出題 ──
     function showQuestion(){
       cur=qs[qi];
-      st='ask';left=QTIME;lastSec=QTIME;
+      const ph=phaseOf(qi);
+      qtime=mock?[13,13,11][ph]:[15,15,12][ph];
+      st='ask';left=qtime;lastSec=qtime;
       data.seen[cur.id]=(data.seen[cur.id]||0)+1;
       order=[0,1,2,3];for(let i=3;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
       correctIdx=order.indexOf(0);
@@ -612,20 +714,23 @@ registerMinigame({
       elRev.classList.toggle('on',(data.wrong[cur.id]||0)>0);
       elNo.textContent='Q.'+(qi+1);
       elDiff.textContent='難'+'★'.repeat(cur.d)+'☆'.repeat(3-cur.d);
-      elCA.textContent=AREA[cur.a].short;
+      elCA.textContent=PHASES[ph].name+(mock?'・模試':'');
       elQ.textContent=cur.q;
       elBig.classList.remove('on');elStamp.classList.remove('on');
-      elCard.classList.remove('enter');void elCard.offsetWidth;elCard.classList.add('enter');
-      elTimer.classList.remove('low');elFill.style.width='100%';elTN.textContent=QTIME;
+      elCard.classList.remove('enter','out');void elCard.offsetWidth;elCard.classList.add('enter');
+      elTimer.classList.remove('low');elFill.style.width='100%';elTN.textContent=qtime;
       elCh.innerHTML='';
       order.forEach((oi,k)=>{
         const b=document.createElement('button');b.className='quiz-ch enter';b.style.animationDelay=(k*.06)+'s';
         b.style.setProperty('--c',NUMCOL[k]);
         b.innerHTML=`<span class="quiz-ch-n">${k+1}</span><span class="quiz-ch-t">${H(cur.c[oi])}</span><svg class="quiz-mark" viewBox="0 0 40 40"></svg>`;
+        b.addEventListener('pointerdown',()=>{if(st==='ask')b.style.transform='scale(.975)';});
         b.addEventListener('click',()=>choose(k));
         elCh.appendChild(b);
       });
       elSheet.classList.remove('on');
+      if(combo<3)face('char_normal');
+      if((data.wrong[cur.id]||0)>0)say('……これ、前に間違えたやつだ。',1800);
       setCombo(false);hudScore();
       AU.se('notif');
     }
@@ -634,7 +739,7 @@ registerMinigame({
       if(st!=='ask')return;
       st='reveal';answered++;
       const btns=[...elCh.children];
-      btns.forEach(b=>b.disabled=true);
+      btns.forEach(b=>{b.disabled=true;b.style.transform='';});
       const ok=k===correctIdx,timeout=k<0;
       const area=byArea[cur.a];area[1]++;
       mg.setTimer('');
@@ -643,17 +748,20 @@ registerMinigame({
       if(ok){
         correct++;area[0]++;combo++;maxCombo=Math.max(maxCombo,combo);
         const base=100+Math.round(Math.max(0,left)*10);
-        gained=Math.round(base*multOf(combo));score+=gained;
+        gained=Math.round(base*multOf(combo)*(phaseOf(qi)===2?1.25:1)*(mock?1.2:1));score+=gained;
         if(data.wrong[cur.id]){data.wrong[cur.id]--;if(data.wrong[cur.id]<=0)delete data.wrong[cur.id];}
         cb.classList.add('is-correct');
         markSvg(cb,'ok');
         elBig.classList.remove('on');void elBig.offsetWidth;elBig.classList.add('on');
         btns.forEach((b,i)=>{if(i!==k)b.classList.add('is-dim');});
         burst(cr.x+cr.w*.8,cr.y+cr.h/2,22+Math.min(combo,6)*6,['#e8b830','#00e8c8','#44ee88','#fff3c8','#b98cff'],1+Math.min(combo,6)*.08);
+        const cdr=relRect(elCard);burst(cdr.x+cdr.w/2,cdr.y+cdr.h/2,12,['#ff3b5c','#ffd38a'],.7);
         flash=1;flashCol='255,200,120';
         pop(cr.x+cr.w*.55,cr.y-4,`+${gained}${combo>=2?` <small style="font-size:.7em">×${multOf(combo).toFixed(1)}</small>`:''}`);
-        AU.se(combo>=3?'ach':'rank');
-        if([3,5,7,10].includes(combo)){later(()=>{banner(combo===10?'全問連続正解！':combo+'連続正解！');AU.se('ach');},260);}
+        AU.se(combo>=3?'ach':'rank');synth('ok',combo-1);
+        face(combo>=3?'char_win':'char_happy','hop');say(combo>=3?rpick(COMBO_LINES):rpick(OK_LINES),1300);
+        if([3,5,7,10].includes(combo)){later(()=>{banner(combo===10?'全問連続正解！':combo+'連続正解！');AU.se('ach');synth('fanfare');
+          burst(W/2,Hh*.4,40,['#e8b830','#fff3c8','#e83055','#00e8c8'],1.3);},260);}
       }else{
         combo=0;
         data.wrong[cur.id]=Math.min(5,(data.wrong[cur.id]||0)+1);
@@ -661,11 +769,12 @@ registerMinigame({
         cb.classList.add('is-correct');markSvg(cb,'ok');
         if(!timeout){const wb=btns[k];wb.classList.add('is-wrong');markSvg(wb,'ng');const wr=relRect(wb);
           burst(wr.x+wr.w*.85,wr.y+wr.h/2,10,['#5e5078','#8a7a9a','#e83055'],.6);pop(wr.x+wr.w*.55,wr.y-4,'✕ 不正解',true);}
-        else{elStamp.classList.remove('on');void elStamp.offsetWidth;elStamp.classList.add('on');}
+        else{elStamp.classList.remove('on');void elStamp.offsetWidth;elStamp.classList.add('on');synth('stamp');}
         btns.forEach((b,i)=>{if(i!==k&&i!==correctIdx)b.classList.add('is-dim');});
         vign=1;
         root.classList.remove('quiz-shake');void root.offsetWidth;root.classList.add('quiz-shake');
-        AU.se('warn');
+        AU.se('warn');synth('ng');
+        face(timeout?'char_tired':'char_fear','sad');say(timeout?'あ、時間……':rpick(NG_LINES),1400);
       }
       setCombo(ok);hudScore();
       // 解説シート
@@ -676,7 +785,7 @@ registerMinigame({
         `<div class="quiz-exp">${H(cur.e)}</div>`+
         `<button class="quiz-btn">${last?'採点する ▶':'次の問題へ ▶'}<small>Enter</small></button>`;
       elSheet.querySelector('.quiz-btn').addEventListener('click',next);
-      later(()=>{elSheet.classList.add('on');elSheet.scrollTop=0;sheetAt=performance.now();},ok?520:720);
+      later(()=>{elSheet.classList.add('on');elSheet.scrollTop=0;sheetAt=performance.now();},ok?480:650);
     }
     function markSvg(btn,kind){
       const s=btn.querySelector('.quiz-mark');
@@ -685,99 +794,85 @@ registerMinigame({
       requestAnimationFrame(()=>s.classList.add('on'));
     }
     function next(){
-      if(st!=='reveal'||!elSheet.classList.contains('on')||performance.now()-sheetAt<350)return;
-      AU.se('btn');
+      if(st!=='reveal'||!elSheet.classList.contains('on')||performance.now()-sheetAt<300)return;
+      AU.se('btn');synth('page');
       elSheet.classList.remove('on');
-      qi++;
-      if(qi>=QN){later(showFinal,250);st='wait';return;}
-      st='wait';
-      later(showQuestion,260);
-    }
-
-    // ── 説明 ──
-    function showIntro(){
-      const lvl=ck<30?'やさしめ':ck<60?'標準':'難しめ';
-      const rev=Object.keys(data.wrong).length;
-      elOv.innerHTML=`<div class="quiz-paper">
-        <div class="quiz-p-title"><small>DANGEROUS GOODS · OTSU-4</small>深夜の一問一答</div>
-        <ul class="quiz-p-list">
-          <li>4択を<b>10問</b>。タップ／<kbd>1</kbd>〜<kbd>4</kbd>キー</li>
-          <li>1問<b>15秒</b>。早いほど高得点</li>
-          <li>連続正解で<b>コンボ倍率</b>（最大×2.0）</li>
-          <li>答えたら解説を読んで次へ（<kbd>Enter</kbd>）</li>
-        </ul>
-        <div class="quiz-p-note">今夜の出題：<b>${lvl}</b>（資格知識 ${ck}）${rev?`　復習待ち <b>${rev}問</b>`:''}<br>${data.best?`自己ベスト ${data.best.toLocaleString()}点`:'はじめての挑戦'}</div>
-        <button class="quiz-btn">はじめる<small>Enter</small></button></div>`;
-      elOv.querySelector('.quiz-btn').addEventListener('click',begin);
-      elOv.classList.add('on');
-    }
-    function begin(){
-      if(st!=='intro')return;
-      st='wait';AU.se('decide');elOv.classList.remove('on');
-      later(showQuestion,300);
+      elCard.classList.remove('enter');elCard.classList.add('out');
+      qi++;st='wait';
+      if(qi>=QN){later(showFinal,320);return;}
+      if(qi===3||qi===7)later(()=>showPhase(phaseOf(qi),showQuestion),240);
+      else later(showQuestion,240);
     }
 
     // ── 採点 ──
     function showFinal(){
       st='final';finalAt=performance.now();mg.setTimer('');
+      grade=gradeOf(correct);
       data.runs++;data.total+=QN;data.right+=correct;
-      if(score>data.best){newBest=data.best>0||score>0;data.best=score;}
-      const pass=['L','P','S'].every(a=>byArea[a][1]===0||byArea[a][0]/byArea[a][1]>=.6);
-      const stamp=correct===QN?['満点','']:pass&&correct>=6?['合格圏','']:correct>=5?['あと<br>一歩','mid']:['要復習','low'];
-      const cm=correct===QN?'……全部わかる。工場の匂いが、少しずつ文字になっていく。'
-        :correct>=7?'……覚えてる。ちゃんと、積み上がってる。'
-        :correct>=4?'半分くらい。間違えたところだけ、明日もう一回。'
-        :'……頭に入らない夜もある。ノートを閉じて、寝顔を見に行こう。';
+      if(score>data.best){newBest=data.best>0;data.best=score;}
+      data.bestCorrect=Math.max(data.bestCorrect||0,correct);
+      if(!data.bestGrade||'SABC'.indexOf(grade.g)<'SABC'.indexOf(data.bestGrade))data.bestGrade=grade.g;
+      if(correct>=8&&!data.mockOpen){data.mockOpen=true;unlocked=true;}
+      face(grade.g==='S'?'char_win':grade.g==='A'?'char_happy':grade.g==='B'?'char_normal':'char_tired','hop');
       elOv.innerHTML=`<div class="quiz-paper">
-        <div class="quiz-f-stamp ${stamp[1]}">${stamp[0]}</div>
-        <div class="quiz-p-title"><small>RESULT · DAY ${gs.day||1}</small>今夜の採点</div>
+        <div class="quiz-grade" style="--gc:${grade.col}"><b>${grade.g}</b><span>${grade.t}</span></div>
+        <div class="quiz-p-title"><small>RESULT · DAY ${gs.day||1}</small>今夜の採点${mock?'<span class="quiz-mode-tag">模擬試験</span>':''}</div>
         <div class="quiz-f-top">
           <div class="quiz-f-num"><span class="quiz-f-cnt">0</span><small>/${QN}</small><svg viewBox="0 0 100 70" preserveAspectRatio="none"><path d="M60 4 C 20 0, 2 22, 6 40 C 10 62, 80 70, 94 40 C 102 18, 70 2, 50 6"/></svg></div>
           <div class="quiz-f-sc">SCORE<br><b class="quiz-f-pts">0</b>${newBest?'<span class="quiz-f-new">NEW BEST</span>':''}<br>BEST ${data.best.toLocaleString()}　最大コンボ ${maxCombo}</div>
         </div>
         <div class="quiz-f-areas">${['L','P','S'].map(a=>{const [r,n]=byArea[a],pc=n?Math.round(r/n*100):0;
           return `<div class="quiz-f-row"><span class="quiz-f-lab">${AREA[a].short}</span><span class="quiz-f-bar" style="--c:${AREA[a].col}"><i data-w="${pc}"></i></span><span class="quiz-f-val">${r}/${n} ${pc}%</span></div>`;}).join('')}
-          <div class="quiz-p-note" style="margin-top:0">赤い点線＝合格ライン（各科目60%）${missed.length?`　復習リスト +${missed.length}問`:''}</div></div>
-        <div class="quiz-f-cm">${cm}</div>
-        <button class="quiz-btn">結果へ ▶<small>Enter</small></button></div>`;
+          <div class="quiz-p-note" style="margin-top:0">赤い点線＝合格ライン（各科目60%）${missed.length?`<br>復習リストに +${missed.length}問`:''}${unlocked?'<br><b>🔓 模擬試験モードが解放された！</b>':''}</div></div>
+        <button class="quiz-btn">次へ ▶<small>Enter</small></button></div>`;
       elOv.querySelector('.quiz-btn').addEventListener('click',finish);
       elOv.classList.add('on');
+      synth('page');
       later(()=>{elOv.querySelectorAll('.quiz-f-bar i').forEach(i=>i.style.width=i.dataset.w+'%');},120);
-      // カウントアップ
       const cnt=elOv.querySelector('.quiz-f-cnt'),pts=elOv.querySelector('.quiz-f-pts');
       const t0=performance.now();
       const step=()=>{if(mg._ended||st!=='final')return;const k=Math.min(1,(performance.now()-t0)/900),e=1-Math.pow(1-k,3);
-        cnt.textContent=Math.round(correct*e);pts.textContent=Math.round(score*e).toLocaleString();if(k<1)requestAnimationFrame(step);};
+        cnt.textContent=Math.round(correct*e);pts.textContent=Math.round(score*e).toLocaleString();if(k<1){if(Math.random()<.4)synth('tick');requestAnimationFrame(step);}};
       requestAnimationFrame(step);
-      later(()=>{AU.se(correct>=7?'ach':'decide');
-        if(correct>=7){const r=relRect(elOv.querySelector('.quiz-paper'));for(let i=0;i<3;i++)later(()=>burst(r.x+r.w*(.2+.3*i),r.y+30,26,['#e8b830','#00e8c8','#e83055','#44ee88','#b98cff'],1.1),i*160);}
+      later(()=>{synth('stamp');AU.se(correct>=7?'ach':'decide');
+        if(correct>=7){synth('fanfare');const r=relRect(elOv.querySelector('.quiz-paper'));for(let i=0;i<3;i++)later(()=>burst(r.x+r.w*(.2+.3*i),r.y+30,26,['#e8b830','#00e8c8','#e83055','#44ee88','#b98cff'],1.1),i*160);}
       },1150);
     }
-    function finish(){if(st!=='final'||performance.now()-finalAt<500)return;AU.se('decide');mg.end('done');}
+    function finish(){
+      if(st!=='final'||performance.now()-finalAt<500)return;
+      AU.se('decide');synth('page');
+      st='ending';elOv.classList.remove('on');
+      const E=ENDINGS[grade.g];
+      if(grade.g==='B'||grade.g==='C')lampOn=.3;
+      later(()=>startStory(E.lines,()=>mg.end('done'),E.face,`<small>EPILOGUE · ${grade.g}</small>${grade.t}`),350);
+    }
 
     // ── ループ・入力 ──
     mg.loop(dt=>{
       if(st==='ask'){
         left-=dt;
         const s=Math.max(0,Math.ceil(left));
-        elFill.style.width=Math.max(0,left/QTIME*100)+'%';
+        elFill.style.width=Math.max(0,left/qtime*100)+'%';
         if(s!==lastSec){lastSec=s;elTN.textContent=s;mg.setTimer(s+'s');
-          if(s<=5&&s>0){elTimer.classList.add('low');AU.se('comment');}}
+          if(s<=5&&s>0){elTimer.classList.add('low');AU.se('comment');synth('tick');if(s===5){face('char_fear');say('やば、時間……',1200);}}}
         if(left<=0)choose(-1);
       }
+      storyTick(dt);
       drawBg(dt);drawFx(dt);
     });
     mg.onKey(e=>{
       if(e.type!=='keydown'||e.repeat)return;
       const k=e.key;
       if(st==='ask'&&k>='1'&&k<='4'){e.preventDefault();choose(+k-1);return;}
+      if(st==='title'&&(k==='1'||k==='2')){e.preventDefault();pickMode(k==='2');return;}
       if(k==='Enter'||k===' '){
         e.preventDefault();
-        if(st==='intro')begin();else if(st==='reveal')next();else if(st==='final')finish();
+        if(st==='title')pickMode(false);else if(sDone)advStory();
+        else if(st==='intro')begin();else if(st==='reveal')next();else if(st==='final')finish();
       }
     });
     mg.setTimer('');hudScore();
-    showIntro();
+    showTitle();
 
     // テスト用フック（ゲームには影響しない）
     body._quiz={BANK,pickQuestions,state:()=>({st,qi,correct,score,combo,answered,correctIdx,cur:cur&&cur.id,byArea:JSON.parse(JSON.stringify(byArea))}),
