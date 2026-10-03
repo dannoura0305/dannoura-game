@@ -205,7 +205,8 @@ function drawStrait(ctx,S,t,cx){
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; glow(ctx,mx,mo.y,mo.r*4.2,'rgba(150,130,255,A)',.22); ctx.restore();
   C_(ctx,mx,mo.y,mo.r,'#f4ecd8'); C_(ctx,mx-1,mo.y,mo.r-1,'#fff8e8'); C_(ctx,mx+Math.ceil(mo.r*.55),mo.y-Math.ceil(mo.r*.3),mo.r,'#1a1046');
   // 雲
-  for(const c of S.clouds){ const x = ((c.x + t*c.v - cx*.1) % (S.w*1.4) + S.w*1.4) % (S.w*1.4) - S.w*.3; D_(ctx,Math.round(x),c.y,c.w,c.h,'#2a1a56',9); D_(ctx,Math.round(x)+3,c.y-1,Math.round(c.w*.6),1,'#3a2466',6); }
+  for(const c of S.clouds){ const x = Math.round(((c.x + t*c.v - cx*.1) % (S.w*1.4) + S.w*1.4) % (S.w*1.4) - S.w*.3); const rows = c.h + 2;
+    for(let j=0;j<rows;j++){ const k = 1 - Math.abs(j-(rows-1)/2)/((rows-1)/2+1); const ww = Math.round(c.w*(.45+.55*k)); D_(ctx, x + Math.round((c.w-ww)/2) + (j%2), c.y + j - 1, ww, 1, j < rows/2 ? '#36215f' : '#25174f', Math.round(4+6*k)); } }
   // 山・橋
   ctx.drawImage(S.hills, Math.round(-pad + cx*.15), 0);
   const bx = Math.round(-pad + cx*.3);
@@ -452,9 +453,9 @@ function injectStyle(){
 .pr-logo{position:relative;width:100%;}
 .pr-logo svg.pr-shine-svg{position:absolute;left:0;top:0;filter:none;pointer-events:none;}
 .pr-logo svg{width:100%;height:auto;overflow:visible;display:block;filter:drop-shadow(0 0 12px rgba(170,110,255,.55)) drop-shadow(0 3px 0 #0b0522);}
-.pr-g{font-family:var(--pr-serif);font-weight:700;font-size:122px;fill:url(#pr-lg);fill-opacity:0;stroke:#fbf8ff;stroke-width:2.4;stroke-linejoin:round;stroke-dasharray:1000;stroke-dashoffset:1000;animation:pr-draw 1.15s cubic-bezier(.55,.1,.3,1) var(--d) forwards,pr-fill .8s ease calc(var(--d) + .85s) forwards;}
+.pr-g{font-family:var(--pr-serif);font-weight:700;font-size:122px;fill:url(#pr-lg);fill-opacity:0;stroke:#fbf8ff;stroke-width:2.4;stroke-linejoin:round;paint-order:stroke fill;stroke-dasharray:1000;stroke-dashoffset:1000;animation:pr-draw 1.15s cubic-bezier(.55,.1,.3,1) var(--d) forwards,pr-fill .8s ease calc(var(--d) + .85s) forwards;}
 @keyframes pr-draw{to{stroke-dashoffset:0}}
-@keyframes pr-fill{to{fill-opacity:1;stroke-width:1;stroke:#2a1458}}
+@keyframes pr-fill{to{fill-opacity:1;stroke-width:3.2;stroke:#cdbcff}}
 .pr-swash{fill:none;stroke:url(#pr-sw);stroke-width:9;stroke-linecap:round;stroke-dasharray:700;stroke-dashoffset:700;animation:pr-draw .9s cubic-bezier(.6,0,.2,1) 2.15s forwards;}
 .pr-swash2{fill:none;stroke:#8ff4e6;stroke-width:2;stroke-linecap:round;opacity:.7;stroke-dasharray:700;stroke-dashoffset:700;animation:pr-draw 1s cubic-bezier(.6,0,.2,1) 2.35s forwards;}
 .pr-shine{transform:translateX(-700px);animation:pr-shine 6s ease-in-out 3.6s infinite;}

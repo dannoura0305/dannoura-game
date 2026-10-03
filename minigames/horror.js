@@ -1499,12 +1499,12 @@ registerMinigame({
     }
     function advance(){
       if(overlay)return;
-      if(phase==='play'&&line){if(line.n<line.text.length){line.n=line.text.length;return;}snd('tick',2);step();return;}
+      if(phase==='play'&&line){if(line.n<line.text.length){line.n=line.text.length;textEl.textContent=line.text;lineDone=true;nextEl.classList.add('on');return;}snd('tick',2);step();return;}
       if(phase==='busy'){busyRate=Math.max(busyRate,3.5);return;}
       if(phase==='endcard'){finishStory();return;}
     }
     function showChoices(list,meta){
-      phase='choice';chOn=false;chPicked=false;buf=null;chList=list;chSel=-1;stage.classList.add('choosing');nextEl.classList.remove('on');
+      if(line)textEl.textContent=line.text;phase='choice';chOn=false;chPicked=false;buf=null;chList=list;chSel=-1;stage.classList.add('choosing');nextEl.classList.remove('on');
       if(skip)setSkip(false);
       chEl.innerHTML='<div class="hr-chq">― どう読む？ ―</div>';
       list.forEach((c,i)=>{const b=document.createElement('button');b.className='hr-ch';b.innerHTML=`<i>${i+1}</i><span>${esc(c.t)}</span>`;
@@ -1720,7 +1720,7 @@ registerMinigame({
       if(reason==='quit'){
         return {title:'👻 配信を途中で切り上げた',summary:`「${esc(story.title)}」は、途中まで読んだところで配信を閉じた。`,fx:{fatigue:2},time:20,log:null,cutin:null};
       }
-      const head=`今夜の投稿：「${esc(story.title)}」<br>エンディング：<span class="${reason==='cursed'?'down':'up'}">${END_LABEL[reason]}「${esc(story.ends[reason])}」</span>${endNew?' NEW':''}<br>盛り上がり <span class="up">${bar(hype)}</span><br>霊障　　　 <span class="down">${bar(rei)}</span><br>エンディング回収 ${tot}/${all}`+(justUnlocked?'<br><span class="up">最終話が解放された</span>':'');
+      const head=`今夜の投稿：「${esc(story.title)}」<br>エンディング<br><span class="${reason==='cursed'?'down':'up'}">${END_LABEL[reason]}「${esc(story.ends[reason])}」${endNew?'（NEW）':''}</span><br>盛り上がり <span class="up">${bar(hype)}</span><br>霊障　　　 <span class="down">${bar(rei)}</span><br>エンディング回収 ${tot}/${all}`+(justUnlocked?'<br><span class="up">最終話が解放された</span>':'');
       if(reason==='good')return {title:'👻 神回！ 実録怪談配信',summary:head,fx:{streamPop:6,followers:12,mental:-1,fatigue:6},time:60,sp:1,
         log:`実録怪談「${story.title}」の朗読配信が神回になった。`,cutin:['win','……神回だった。投稿者さん、ありがとう。']};
       if(reason==='cursed')return {title:'👻 ……何かを、呼んでしまった',summary:head+'<br>配信は切ったはずなのに、名前のないコメントが残っている。',fx:{followers:8,mental:-7,fatigue:8},time:60,

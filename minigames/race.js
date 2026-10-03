@@ -1303,7 +1303,7 @@ registerMinigame({
       return sc>=16?'S':sc>=9?'A':sc>=3?'B':'C';
     }
     function endScene(reason,atGate){
-      endReason=reason;
+      endReason=reason;setOv('');
       el.brake.classList.remove('show');el.hud.classList.add('off');letterbox(true);
       pointers.clear();recalcTouch();touch.b=false;
       const stamp=late?`22:${String(Math.max(1,Math.round(lateT/8))).padStart(2,'0')}`:'21:59';
@@ -1468,6 +1468,7 @@ registerMinigame({
       dt=dt>0?dt:0;   // 初回フレームはrAFの時刻が開始時より前になることがある
       time+=dt;
       if(dlg&&dlg.shown<dlg.full.length){dlg.shown=Math.min(dlg.full.length,dlg.shown+dt*38);dlg.ln.textContent=dlg.full.slice(0,Math.floor(dlg.shown));}
+      if(phase==='play'&&cdShown===0&&et>.9){cdShown=-2;setOv('');}
       if(phase==='count')updateCount(dt);
       else if(phase==='play')updatePlay(dt);
       else if(phase==='crashed')updateCrash(dt);

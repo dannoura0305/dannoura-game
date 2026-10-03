@@ -1380,7 +1380,7 @@ const CMDS=[
   {k:'item', l:'道具',c:0,d:'道具を使う。'},
   {k:'look', l:'見る',c:0,d:'相手をよく見る。弱点の手がかり（ターンを使わない）。'},
 ];
-const PAR={noise:3,bubble:6,crab:4,rust:7,letters:4,debt:8,echo:4,sheep:8,watcher:13};
+const PAR={noise:3,bubble:6,crab:4,rust:8,letters:4,debt:8,echo:4,sheep:10,watcher:15};
 const RANK_V={S:4,A:3,B:2,C:1};
 const SPEEDS=[24,42,90,9999],SPEED_N=['ゆっくり','ふつう','はやい','瞬間'];
 
@@ -1566,6 +1566,8 @@ registerMinigame({
       plate.textContent=name||'';plate.style.display=name?'':'none';
       por.kind=sp.por||null;
       por.expr=code==='d'?(['normal','happy','win','tired','fear','collapse'].includes(arg)?arg:'normal'):(arg||'normal');
+      // 白い姿（疲弊・恐怖）の間は、顔も白い姿の表情にそろえる
+      if(code==='d'&&V.hero.form==='tired'&&['normal','happy','win'].includes(por.expr))por.expr='tired';
       if(code==='m'||code==='mq')V.mina.expr=arg||'normal';
       porBox.style.display=por.kind?'':'none';
     }
@@ -1700,7 +1702,7 @@ registerMinigame({
       drawFoe();
       if(V.battle){
         const hp=heroBattlePos();
-        V.hero.bform=BT&&BT.p&&BT.p.hp<BT.p.max*.35?'tired':V.hero.form;
+        V.hero.bform=BT&&BT.p&&BT.p.hp<BT.p.max*.6?'tired':V.hero.form;
         drawHeroAt(hp.x,hp.y,sc*.92,1,1,Object.assign({},V.hero,{form:V.hero.bform}));
         if(V.mina.on)drawMinamo(x,W*.08,hp.y,sc*.6,V.t,.75,V.mina.expr);
       }
@@ -1812,7 +1814,7 @@ registerMinigame({
       typeStep(dt);
       render();
       if(por.kind&&!box.classList.contains('rpg-hide'))drawPor(pc,por.kind,por.expr);
-      if(BT&&V.battle)drawPor(BT.pc,'dan',BT.p?(BT.p.hp<BT.p.max*.3?'fear':BT.p.hp<BT.p.max*.6?'tired':'normal'):'normal');
+      if(BT&&V.battle)drawPor(BT.pc,'dan',BT.p?(BT.p.hp<BT.p.max*.3?'fear':(BT.p.hp<BT.p.max*.6||V.hero.form==='tired')?'tired':'normal'):'normal');
     });
 
     // ── 選択肢 ──
