@@ -508,3 +508,9 @@ body.mg-active #cutin-wrap{display:none;}
 .tut-body{font-size:.76rem;line-height:2;color:var(--tx);white-space:pre-line;min-height:12em;}
 .tut-nav{display:flex;gap:8px;}
 .tut-nav .ev-btn{flex:1;}
+
+/* ミニゲーム選択のカテゴリタブ */
+.mg-tabs{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;}
+.mg-tabs::-webkit-scrollbar{display:none;}
+.mg-tab{flex-shrink:0;background:transparent;border:1px solid rgba(138,82,212,.35);color:var(--tx);font-family:var(--mono);font-size:.62rem;padding:6px 10px;border-radius:14px;cursor:pointer;min-height:32px;-webkit-tap-highlight-color:transparent;}
+.mg-tab.on{background:rgba(0,232,200,.12);border-color:var(--cy);color:var(--cy);}

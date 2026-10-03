@@ -58,11 +58,35 @@ function loadThree(){
 
 function playedMinigameToday(id){return !!(gs.mgDay&&gs.mgDay[id]===gs.day);}
 
-// ── 選択画面 ──
+// ── 選択画面（カテゴリ別タブ） ──
+const MG_CATS=[
+  {id:'all',    name:'すべて'},
+  {id:'action', name:'アクション', ids:['shooter','runner','factory3d','race','stealth']},
+  {id:'brain',  name:'頭脳・戦略', ids:['puzzle','blocks','quiz','escape','defense','cards','manager']},
+  {id:'story',  name:'物語',       ids:['rpg','horror','rogue']},
+  {id:'life',   name:'暮らし・癒し',ids:['cooking','fishing']},
+];
+function minigameCat(id){const c=MG_CATS.find(c=>c.ids&&c.ids.includes(id));return c?c.id:'brain';}
+let _mgTab=(()=>{try{return localStorage.getItem('dannoura_mg_tab')||'all';}catch(e){return 'all';}})();
 function openMinigamePicker(){
+  const tabs=document.getElementById('mg-pick-tabs');
+  if(tabs){
+    tabs.innerHTML='';
+    MG_CATS.forEach(c=>{
+      const n=c.id==='all'?MINIGAMES.length:MINIGAMES.filter(d=>minigameCat(d.id)===c.id).length;
+      if(!n)return;
+      const b=document.createElement('button');
+      b.className='mg-tab'+(c.id===_mgTab?' on':'');
+      b.textContent=`${c.name} ${n}`;
+      b.onclick=()=>{_mgTab=c.id;try{localStorage.setItem('dannoura_mg_tab',c.id);}catch(e){}openMinigamePicker();};
+      tabs.appendChild(b);
+    });
+  }
   const list=document.getElementById('mg-pick-items');
   list.innerHTML='';
-  MINIGAMES.forEach(def=>{
+  const shown=MINIGAMES.filter(d=>_mgTab==='all'||minigameCat(d.id)===_mgTab);
+  // まだ遊べるものを上に
+  shown.slice().sort((a,b)=>playedMinigameToday(a.id)-playedMinigameToday(b.id)).forEach(def=>{
     const played=playedMinigameToday(def.id);
     const b=document.createElement('button');
     b.className='mg-pick'+(played?' played':'');
@@ -73,6 +97,10 @@ function openMinigamePicker(){
     b.onclick=()=>MG.open(def.id);
     list.appendChild(b);
   });
+  const left=MINIGAMES.filter(d=>!playedMinigameToday(d.id)).length;
+  const cnt=document.getElementById('mg-pick-count');
+  if(cnt)cnt.textContent=`今夜あと${left}種`;
+  list.scrollTop=0;
   document.getElementById('mg-picker').classList.add('active');
 }
 function closeMinigamePicker(){document.getElementById('mg-picker').classList.remove('active');}
