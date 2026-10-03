@@ -456,7 +456,7 @@ function tapLive(cell){
 }
 function standUp(){
   const d=S.chars&&S.chars.dan;
-  if(d&&d.pose==='sit'){d.pose='stand';if(d.standAt){d.x=d.standAt.x;d.y=d.standAt.y;d.standAt=null;}}
+  if(d&&d.pose==='sit'){d.pose='stand';d.zb=.1;if(d.standAt){d.x=d.standAt.x;d.y=d.standAt.y;d.standAt=null;}}
 }
 async function runBusy(fn){
   if(S.busy)return;
@@ -532,6 +532,8 @@ async function useItem(P){
       const cells=HOME.cellsOf(P);
       const seat=cells.reduce((b,q)=>Math.abs(q.x-dan.x)+Math.abs(q.y-dan.y)<Math.abs(b.x-dan.x)+Math.abs(b.y-dan.y)?q:b,cells[0]);
       dan.standAt={x:dan.x,y:dan.y};dan.x=seat.x;dan.y=seat.y;dan.pose='sit';dan.dir=HOME.ROT_DIR[P.rotation]||'down';
+      // 背もたれが手前（180°）の椅子・ベンチは、人物を家具より先に描く
+      dan.zb=(P.rotation===180&&c.layer==='furniture'&&c.solid)?-.3:.1;
     }
     if(c.light){
       const h=hd();h.flags.lit=h.flags.lit||{};

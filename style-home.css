@@ -129,3 +129,10 @@ body.home-open{overflow:hidden;}
   .hm-mode{display:none;}
 }
 @media (prefers-reduced-motion:reduce){.hm-toast{transition:none;}}
+@media (max-width:460px){
+  .hm-title-t{font-size:.8rem;}
+  .hm-head{flex-wrap:nowrap;}
+  .hm-title{flex:1 1 0;}
+  .hm-head .hm-btn{padding:4px 7px;}
+}
+@media (max-width:380px){.hm-head .hm-ic{display:none;}}

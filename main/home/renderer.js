@@ -17,7 +17,7 @@ const LAYER_ORDER={rug:0,path:0,wall:1,furniture:2};
 
 HOME.layout=function(area,T){
   T=T||32;const A=HOME.AREAS[area]||HOME.AREAS.room;
-  const band=Math.round(T*1.5);
+  const band=T*2;   // 壁帯：壁掛けの絵（床0行目から上へ約1.8マス）が収まる高さ
   return{w:A.w,h:A.h,T,band,cw:A.w*T,ch:A.h*T+band};
 };
 
@@ -177,7 +177,7 @@ HOME.renderArea=function(ctx,area,opts){
     const f=HOME.footprint(P.itemId,P.rotation);
     draws.push({z:P.y+f.h-1+(CAT(P.itemId).solid?0:-.2),fn:()=>drawItem(ctx,P.itemId,Object.assign(itemOpts(P),posOf(P)))});
   });
-  (opts.chars||[]).forEach(c=>draws.push({z:c.y+.1,fn:()=>drawChar(ctx,c,Math.round(c.x*T),Math.round(L.band+c.y*T),T,t)}));
+  (opts.chars||[]).forEach(c=>draws.push({z:c.y+(typeof c.zb==='number'?c.zb:.1),fn:()=>drawChar(ctx,c,Math.round(c.x*T),Math.round(L.band+c.y*T),T,t)}));
   draws.sort((a,b)=>a.z-b.z).forEach(d=>d.fn());
   // 夜：部屋を少し暗く、灯りの周りを明るく
   if(opts.night){
