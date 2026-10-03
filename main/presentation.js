@@ -614,6 +614,8 @@ function injectStyle(){
 .pr-el.gap{height:.8em;}
 .pr-el.quote{margin-top:6px;font-weight:700;font-size:clamp(.98rem,4.4vw,1.15rem);color:var(--pr-ec,#fff);text-shadow:0 0 14px var(--pr-ecg,rgba(138,82,212,.6)),0 2px 6px #000;}
 .pr-el.epi-h{margin-top:14px;font-family:var(--pr-mono);font-size:.6rem;letter-spacing:.4em;color:rgba(230,224,255,.5);}
+.pr-el.epi.cmt,.pr-el.epi.ghost{display:inline-block;width:auto;margin:6px auto 0;font-family:var(--pr-dot);font-style:normal;font-size:.82rem;padding:3px 12px;border-radius:10px;background:rgba(20,10,50,.7);border:1px solid rgba(255,140,220,.6);color:#fff;}
+.pr-el.epi.ghost{border-color:rgba(255,40,80,.7);color:#ffb0c0;text-shadow:-2px 0 rgba(0,240,255,.5),2px 0 rgba(255,20,80,.6);}
 .pr-el.epi{font-size:clamp(.8rem,3.4vw,.9rem);color:#cfc6ef;font-style:italic;}
 .pr-end-card{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:none;opacity:0;transition:opacity .9s;text-align:center;padding:0 16px;}
 .pr-end.s-card .pr-end-card{opacity:1;}
@@ -1133,16 +1135,42 @@ function setStage(s){ EN.stage = s; ['s-card','s-main','s-credits','s-final'].fo
 function endWait(ms, tok){ return new Promise(r=>{ const done = ()=>{ clearTimeout(t); if(EN.waitR===done) EN.waitR = null; r(tok===EN.tok); }; const t = setTimeout(done, RM ? Math.min(ms, 1500) : ms); EN.waitR = done; }); }
 function endTap(){ ensureCtx(); if(EN.waitR){ EN.waitR(); return; } if(EN.stage==='credits' && EN.anim){ EN.anim.playbackRate = EN.anim.playbackRate > 1 ? 1 : 5; } }
 function epilogueLines(type){
+  // main/story.js の物語の結果（window.storyFlags）から、その後の一言を1〜3行。なければ状態から1〜2行。
   const out = [];
-  try{
-    if(typeof window.storyFlags === 'function'){
-      const f = window.storyFlags() || {};
+  let f = null;
+  try{ if(typeof window.storyFlags === 'function') f = window.storyFlags() || null; }catch(e){ f = null; }
+  if(f){
+    try{
       const ep = f.epilogue || f.epilogueLines;
-      if(Array.isArray(ep)) out.push(...ep.filter(x=>typeof x==='string').slice(0,2));
+      if(Array.isArray(ep)) out.push(...ep.filter(x=>typeof x==='string'));
       else if(typeof ep === 'string') out.push(ep);
-    }
-  }catch(e){}
-  if(out.length || !hasGs()) return out.slice(0,2);
+      switch(type){
+        case 'father':
+          if(f.recital==='kept' && f.toldName) out.push('発表会の紙灯籠の劇。幕が下りたあと、子どもは本当の名前で呼んでくれた。');
+          else if(f.recital==='kept') out.push('発表会の紙灯籠の劇。客席の端で、最後まで見届けた。');
+          else if(f.recital==='broken' || f.recital==='missed') out.push('発表会には間に合わなかった。その夜、子どもは台詞を一度だけ、家で聞かせてくれた。');
+          break;
+        case 'collapse':
+          if(f.finalWords==='sink' || f.pushedAtLowPoint){ out.push('……まだ、見てる？'); out.push({ghost:'寝たら終わりますよ', u:'…'}); }
+          break;
+        case 'rebirth': case 'normal': case 'king':
+          if(f.finalWords==='sleep') out.push('「おやすみ、パパ」と、子どもが言った。');
+          if(f.sakuraReturned) out.push({cmt:'さくら', t:'おやすみなさい、だんのうらさん'});
+          break;
+        case 'engineer':
+          if(f.mock==='pass' && f.askedForHelp) out.push('班長に頭を下げて教わった三号ライン。模試は、合格圏だった。');
+          if(f.hitori==='promise') out.push('試験会場で、ひとりぼっちと会う約束をしている。');
+          break;
+        case 'debtfree':
+          if(f.debtPlan) out.push('組み直した返済計画が、最後の最後で効いた。');
+          break;
+        case 'flame': case 'bankrupt':
+          if(f.sakuraReturned) out.push({cmt:'さくら', t:'また、声を聞かせてください'});
+          break;
+      }
+    }catch(e){}
+  }
+  if(out.length || !hasGs()) return out.slice(0,3);
   const bad = EFX[type] && EFX[type].bad;
   const ls = (gs.listeners||[]).slice().sort((a,b)=>(b.trust||0)-(a.trust||0));
   if(bad){
@@ -1156,6 +1184,7 @@ function epilogueLines(type){
 function startEnding(info){
   buildEnd(); fitFx(); ensureCtx();
   hideDayCard(true); closeOpening();
+  if(!EN.active) EN.prevHold = window.storyHold; window.storyHold = true;
   const tok = ++EN.tok; EN.active = true; EN.info = info; EN.shareArgs = null;
   const cfg = EN.cfg = EFX[info.type] || EFX.normal;
   const el = EN.el;
@@ -1223,7 +1252,12 @@ async function runEnding(tok){
   const ep = epilogueLines(info.type);
   if(ep.length){
     add('― その後 ―','epi-h'); if(!await endWait(700, tok)) return;
-    for(const e of ep){ add(e,'epi'); if(!await endWait(1500 + [...e].length*40, tok)) return; }
+    for(const e of ep){
+      const txt = typeof e === 'string' ? e : e.cmt ? `${e.cmt}：${e.t}` : `${e.u||'…'}：${e.ghost}`;
+      add(txt, 'epi' + (e && e.cmt ? ' cmt' : '') + (e && e.ghost ? ' ghost' : ''));
+      if(e && e.ghost) SFX.dread();
+      if(!await endWait(1500 + [...txt].length*40, tok)) return;
+    }
   }
   if(!await endWait(2600, tok)) return;
   await rollCredits(tok);
@@ -1232,6 +1266,13 @@ function creditsHTML(){
   const info = EN.info; const g = hasGs() ? gs : null;
   let day = info.day || (g ? g.day : 30); if(g && !g._endless) day = Math.min(30, day);
   const names = g && Array.isArray(g.listeners) ? g.listeners.map(l=>l.name) : ['夜空の旅人','ひとりぼっち','深夜の常連','さくら'];
+  try{
+    const f = typeof window.storyFlags === 'function' ? window.storyFlags() : null;
+    if(f){
+      if(f.sakuraReturned){ const k = names.indexOf('さくら'); if(k>=0) names[k] = 'さくら（おかえりなさい）'; else names.push('さくら（おかえりなさい）'); }
+      if(f.yodaka && f.yodaka !== 'refused' && !names.includes('夜鷹')) names.push('夜鷹');
+    }
+  }catch(e){}
   const st = g ? `<div class="st"><span>過ごした夜</span><b>${day} 夜</b><span>フォロワー</span><b>${(g.followers||0).toLocaleString()} 人</b><span>配信回数</span><b>${g.streamCount||0} 回</b><span>残りの借金</span><b>¥${Math.max(0,g.debt||0).toLocaleString()}</b></div>` : '';
   return `
     <div class="big">だんのうら</div><div class="s">― 深夜、繋がりの海へ ―</div>
@@ -1290,6 +1331,7 @@ function openShare(){
 function closeEnding(){
   if(!EN.el || !EN.active) return;
   EN.active = false; EN.tok++; clearInterval(EN.cmtIv);
+  window.storyHold = EN.prevHold || false;
   if(EN.anim){ try{ EN.anim.cancel(); }catch(e){} EN.anim = null; }
   EN.el.classList.remove('on');
   const eb = $('end-buttons'); if(eb && EN.ebHome && eb.parentNode !== EN.ebHome) EN.ebHome.appendChild(eb);
