@@ -514,8 +514,71 @@ function flowerCols(color){
   return FLOWER.pink;
 }
 const LEAF_R=["..kk.",".kgGk","kgGk.",".kk.."],LEAF_L=[".kk..","kGgk.",".kGgk","..kk."];
-function plantArt(x,cx,base,stage,color,fr){
+// ── 植物の種類ごとの絵（stage 0..4 共通） ──
+function sprout(x,cx,base){map(x,[".k.k.","kGkGk",".kgk.","..k.."],{k:OL,g:C.g3,G:C.g1},cx-2,base-3);}
+const HEART_R=[".kk.k.","kGgkgk","kgggk.",".kgk..","..k..."],HEART_L=[".k.kk.","kgkgGk",".kgggk","..kgk.","...k.."];
+function morningGlory(x,cx,base,st,color,fr){
+  const LP={k:OL,g:C.g3,G:C.g1};
+  if(st===0){sprout(x,cx,base);return;}
+  if(st===1){R(x,OL,cx-1,base-4,3,5);R(x,C.g3,cx,base-3,1,4);map(x,HEART_R,LP,cx,base-8);map(x,HEART_L,LP,cx-5,base-8);return;}
+  // 支柱（竹）
+  const top=base-[0,0,13,17,19][st];
+  R(x,OL,cx+1,top-1,3,base-top+2);R(x,'#e2cf8a',cx+2,top,1,base-top);R(x,'#b8a060',cx+2,top+4,1,1);R(x,'#b8a060',cx+2,top+10,1,1);
+  // つる（支柱に巻きつく）
+  const vh=[0,0,9,14,17][st];
+  for(let j=0;j<vh;j++)R(x,C.g4,cx+2+[-1,-1,0,1,1,0][j%6],base-1-j,1,1);
+  const leaves=[[],[],[[-4,-5],[3,-9]],[[-4,-5],[3,-9],[-4,-13]],[[-4,-5],[3,-9],[-4,-13],[3,-16]]][st];
+  leaves.forEach(([dx,dy])=>map(x,dx<0?HEART_L:HEART_R,LP,dx<0?cx+dx-1:cx+dx+1,base+dy-2));
+  if(st===3){R(x,OL,cx+4,top-3,3,4);R(x,'#a070e0',cx+5,top-2,1,2);R(x,'#dcc4ff',cx+5,top-2,1,1);}
+  if(st===4){
+    const fl=(X,Y,cols)=>map(x,["..kkk..",".kaabk.","kabwbbk","kbwwwbk","kbbwbck",".kbbck.","..kkk.."],{k:OL,a:cols[0],b:cols[1],c:cols[2],w:'#ffffff'},X-3,Y-3);
+    const c1=FLOWER[color]&&color!=='pink'?flowerCols(color):FLOWER.blue;
+    fl(cx-3+(fr?1:0),base-11,c1);fl(cx+6,base-17,FLOWER.purple);
+  }
+}
+function sunflower(x,cx,base,st,color,fr){
+  const LP={k:OL,g:C.g3,G:C.g1};
+  if(st===0){sprout(x,cx,base);return;}
+  const hgt=[0,4,9,15,18][st],top=base-hgt,sw=(st>=3&&fr)?1:0;
+  R(x,OL,cx-1,top,3,hgt+1);R(x,C.g3,cx,top+1,1,hgt);R(x,C.g4,cx,base-3,1,3);
+  if(st===1){map(x,LEAF_R,LP,cx,top-2);map(x,LEAF_L,LP,cx-4,top-2);return;}
+  // 大きな葉
+  const big=(X,Y,left)=>map(x,left?["..kkk.",".kGggk","kGgggk","kgggk.",".kkk.."]:[".kkk..","kggGk.","kgggGk",".kgggk","..kkk."],LP,X,Y);
+  big(cx+1,base-7,false);big(cx-6,base-9,true);
+  if(st>=3)big(cx+1,base-13,false);
+  if(st===3){R(x,OL,cx-2+sw,top-4,5,5);R(x,C.g2,cx-1+sw,top-3,3,3);R(x,C.g1,cx-1+sw,top-3,1,1);R(x,'#ffd84a',cx+sw,top-4,1,1);}
+  if(st===4){
+    const X=cx+sw,Y=top-5;
+    R(x,OL,X-4,Y-3,9,9);x.clearRect(X-4,Y-3,1,1);x.clearRect(X+4,Y-3,1,1);x.clearRect(X-4,Y+5,1,1);x.clearRect(X+4,Y+5,1,1);
+    R(x,OL,X-5,Y-1,1,5);R(x,OL,X+5,Y-1,1,5);R(x,OL,X-2,Y-4,5,1);R(x,OL,X-2,Y+6,5,1);
+    R(x,'#ffd84a',X-4,Y-1,9,5);R(x,'#ffd84a',X-2,Y-3,5,9);R(x,'#ffd84a',X-3,Y-2,7,7);
+    R(x,'#fff4b0',X-3,Y-2,2,1);R(x,'#fff4b0',X-4,Y-1,1,2);R(x,'#e0a020',X+2,Y+4,2,1);R(x,'#e0a020',X+3,Y+3,1,1);
+    R(x,'#7a4a28',X-2,Y-1,5,5);R(x,'#5a321a',X-1,Y,3,3);R(x,'#9a6638',X-2,Y-1,1,1);R(x,'#3a2418',X,Y+1,1,1);
+  }
+}
+function herb(x,cx,base,st,color,fr,idx){
+  if(st===0){sprout(x,cx,base);return;}
+  const sw=fr?1:0;
+  if(st===1){map(x,[".k.k.k.","kGkgkGk",".kgggk.","..kkk.."],{k:OL,g:C.g3,G:C.g1},cx-3,base-4);return;}
+  const rx=[0,0,3,4,5][st],ry=[0,0,2,3,4][st];
+  const cy=base-ry-1;
+  oell(x,cx,cy,rx,ry,C.g3);
+  ell(x,cx-1,cy-1,rx-1,Math.max(1,ry-1),C.g2);
+  // 葉の重なり
+  srand(31+st+(idx|0)*7);
+  for(let k=0;k<rx*2;k++){const dx=Math.round((rnd()*2-1)*(rx-1)),dy=Math.round((rnd()*2-1)*(ry-1));R(x,rnd()<0.5?C.g1:C.g4,cx+dx,cy+dy,1,1);}
+  R(x,C.g4,cx-rx+1,cy+ry-1,rx*2-1,1);
+  if(st===4){
+    const fc=color==='purple'?'#c6b2ee':'#ffffff';
+    for(const [dx,dy] of [[-3,-3],[0,-4],[3,-2],[-1,-1]]){R(x,fc,cx+dx+(dy<-2?sw:0),cy+dy,1,1);R(x,OL,cx+dx+(dy<-2?sw:0),cy+dy+1,1,1);}
+  }
+}
+
+function plantArt(x,cx,base,stage,color,fr,species,idx){
   const st=Math.max(0,Math.min(4,stage|0)),sw=fr?1:0;
+  if(species==='morning_glory'){morningGlory(x,cx,base,st,color,fr);return;}
+  if(species==='sunflower'){sunflower(x,cx,base,st,color,fr);return;}
+  if(species==='herb'){herb(x,cx,base,st,color,fr,idx);return;}
   const LP={k:OL,g:C.g3,G:C.g1};
   if(st===0){map(x,[".k.k.","kGkGk",".kgk.","..k.."],LP,cx-2,base-3);return;}
   const hgt=[0,4,8,10,11][st];
@@ -546,7 +609,7 @@ function pot(x,o){
   R(x,OL,4,15,8,1);
   R(x,P.lo,3,8,10,1);
   R(x,'#5a3a2a',4,6,8,1);R(x,'#3e2618',5,6,6,1);
-  if(o.plant)plantArt(x,8,6,o.plant.stage,o.plant.color,o.frame);
+  if(o.plant)plantArt(x,8,6,o.plant.stage,o.plant.color,o.frame,o.plant.species);
 }
 
 function flowerbed(x,o){
@@ -682,6 +745,245 @@ function seaGlass(x,o){
   if(o.frame){R(x,'#ffffff',12,-15,1,1);}else{R(x,'#ffffff',3,-4,1,1);}
 }
 
+// ───────── フェーズ2のアイテム ─────────
+function toyBox(x,o){
+  const P=WOOD;
+  shadowRect(x,3,12,14,4);
+  // 立てかけたふた（奥）
+  O(x,1,-9,14,6,P.mid);R(x,P.base,2,-8,12,2);R(x,P.hi,2,-8,12,1);R(x,P.lo,2,-5,12,1);
+  // 箱の口（中は暗い）
+  O(x,0,-4,16,6,P.dk);R(x,'#3a2418',1,-3,14,4);
+  // おもちゃ：赤いボール・青い積み木・黄色いアヒル
+  oell(x,4,-4,3,3,C.red);R(x,'#ff9a9a',3,-6,2,1);R(x,'#ffffff',3,-6,1,1);R(x,'#a83a4a',5,-2,2,1);
+  O(x,8,-6,5,5,'#5a7ad0');R(x,'#9cbaf4',9,-5,3,1);R(x,'#ffffff',10,-4,1,2);R(x,'#3a4f96',9,-2,3,1);
+  oell(x,13,-3,2,2,C.yel);R(x,'#ff9a3a',15,-3,1,1);R(x,OL,13,-4,1,1);R(x,'#fff2a8',12,-4,1,1);
+  // 前の面
+  bev(x,0,1,16,14,P);
+  R(x,C.pk2,1,6,14,4);R(x,C.pk1,1,6,14,1);R(x,C.pk3,1,9,14,1);
+  // 星のシール
+  R(x,C.yel,7,6,2,4);R(x,C.yel,6,7,4,2);R(x,'#fff4b0',7,7,1,1);
+  R(x,P.mid,1,12,14,1);R(x,P.lo,1,13,14,1);
+}
+function kidDesk(x,o){
+  const P={hi:'#fff4dc',base:'#f2d6a6',mid:'#d9b47c',lo:'#b08a56',dk:'#7a5a3a'};
+  const r=o.rot;
+  if(r===0||r===180){
+    shadowRect(x,3,10,14,5);
+    O(x,1,6,3,9,P.lo);O(x,12,6,3,9,P.lo);
+    if(r===0){O(x,0,4,16,4,P.mid);R(x,P.lo,1,6,14,1);}
+    bev(x,0,-4,16,9,P);
+    if(r===0){
+      // 画用紙とクレヨン
+      O(x,2,-3,8,6,C.cr1);R(x,'#ffc83a',7,-2,2,2);R(x,'#7fcf6e',3,1,6,1);R(x,'#f58ab0',4,-1,2,2);R(x,'#6f93e8',6,-1,1,2);
+      R(x,OL,11,-3,4,5);R(x,'#e04a5a',12,-2,1,3);R(x,'#ffd84a',13,-2,1,3);R(x,'#6f93e8',12,0,1,1);R(x,'#5fae5c',13,0,1,1);
+    }else{
+      O(x,0,-4,16,12,P.mid);R(x,P.base,1,-3,14,1);R(x,P.lo,1,6,14,1);
+      R(x,'#f58ab0',3,1,3,2);R(x,C.yel,10,2,2,2);   // 裏のシール
+    }
+  }else{
+    // 270＝右向き（娘は右側に座る）
+    shadowRect(x,5,9,10,6);
+    O(x,3,6,3,9,P.lo);O(x,10,6,3,9,P.lo);
+    bev(x,2,-5,12,12,P);
+    O(x,4,-4,7,6,C.cr1);R(x,'#ffc83a',5,-3,2,1);R(x,'#7fcf6e',5,0,5,1);
+    R(x,OL,11,1,3,4);R(x,'#e04a5a',12,2,1,1);R(x,'#6f93e8',12,3,1,1);
+    R(x,P.lo,3,6,10,1);
+  }
+}
+function oldRadio(x,o){
+  const P=WOOD,B={hi:'#c08a5a',base:'#9a6638',mid:'#7a4a28',lo:'#5a321a'};
+  shE(x,9,14,6,2);
+  // 小さな台
+  O(x,2,8,3,7,P.lo);O(x,11,8,3,7,P.lo);
+  bev(x,1,4,14,6,P);R(x,P.mid,2,8,12,1);
+  // ラジオ本体（角の丸い木箱）
+  R(x,OL,2,-7,12,1);R(x,OL,1,-6,14,11);
+  R(x,B.base,2,-6,12,10);R(x,B.hi,3,-6,10,1);R(x,B.hi,2,-5,1,8);R(x,B.lo,2,3,12,1);R(x,B.mid,13,-5,1,8);
+  // 布のスピーカー
+  R(x,OL,3,-4,6,6);R(x,'#efe2c8',4,-3,4,4);for(let j=0;j<4;j+=2)R(x,'#cdb894',4,-3+j,4,1);
+  // ダイヤル窓（灯り色）と目盛
+  R(x,OL,9,-4,4,3);R(x,C.am2,10,-3,2,1);R(x,'#e08a34',11,-3,1,1);
+  // つまみ
+  R(x,OL,9,0,2,2);R(x,'#efe2c8',9,0,1,1);R(x,OL,12,0,2,2);R(x,'#efe2c8',12,0,1,1);
+  // アンテナ
+  R(x,C.me3,12,-12,1,5);R(x,C.me1,12,-13,1,1);
+}
+function toolbox(x,o){
+  const Rd={hi:'#ff8a8a',base:'#d04a4a',mid:'#a8323a',lo:'#7a2430'};
+  shE(x,9,14,7,2);
+  // 取っ手
+  R(x,OL,4,-4,8,1);R(x,OL,3,-3,1,4);R(x,OL,12,-3,1,4);R(x,C.me2,4,-3,8,1);R(x,C.me1,4,-3,3,1);R(x,C.me3,5,-2,6,1);
+  // ふた
+  bev(x,0,0,16,5,Rd);
+  // 本体
+  O(x,0,4,16,11,Rd.base);R(x,Rd.hi,1,5,1,8);R(x,Rd.mid,1,12,14,1);R(x,Rd.lo,1,13,14,1);R(x,Rd.mid,14,5,1,8);
+  R(x,OL,0,4,16,1);
+  // 留め金
+  R(x,OL,6,3,4,4);R(x,C.me1,7,4,2,2);R(x,C.me3,8,5,1,1);
+  // へこみと擦れ
+  R(x,Rd.lo,12,7,2,1);R(x,Rd.hi,11,8,1,1);R(x,'#e8b48e',3,9,1,1);R(x,'#e8b48e',2,10,2,1);
+  // 古いシール（緑の名札）
+  R(x,OL,4,8,5,4);R(x,'#f4f2ea',5,9,3,2);R(x,'#2f9a52',5,9,1,2);
+}
+function recitalPhoto(x,o){
+  const Y=-24;
+  R(x,SH2,15,Y+1,2,14);R(x,SH2,3,Y+15,14,2);
+  R(x,OL,7,Y-4,2,1);R(x,'#c0a080',6,Y-3,1,1);R(x,'#c0a080',9,Y-3,1,1);R(x,'#c0a080',5,Y-2,1,1);R(x,'#c0a080',10,Y-2,1,1);
+  O(x,1,Y-1,15,15,'#f4efe6');R(x,'#ffffff',2,Y,13,1);R(x,'#ffffff',2,Y,1,13);R(x,C.cr3,2,Y+12,13,1);R(x,C.cr3,14,Y+1,1,12);
+  R(x,OL,3,Y+1,11,11);
+  // 舞台：幕・床・スポットライト
+  R(x,'#3a2a4a',4,Y+2,9,9);
+  R(x,'#c8505a',4,Y+2,2,7);R(x,'#c8505a',11,Y+2,2,7);R(x,'#a83a4a',5,Y+2,1,7);R(x,'#a83a4a',11,Y+2,1,7);R(x,'#e05a6a',4,Y+2,9,1);
+  R(x,'#fff4cc',7,Y+3,3,1);R(x,'rgba(255,244,204,0.5)',6,Y+4,5,5);
+  R(x,'#b97c45',4,Y+9,9,2);R(x,'#d9a066',4,Y+9,9,1);
+  // 花の冠の娘（ピンクのドレス）
+  R(x,'#ff8ab8',7,Y+3,1,1);R(x,C.yel,8,Y+3,1,1);R(x,'#ff8ab8',9,Y+3,1,1);
+  R(x,'#35224e',7,Y+4,3,1);R(x,'#ffe9de',7,Y+5,3,1);R(x,'#35224e',7,Y+5,1,1);
+  R(x,'#f59aae',7,Y+6,3,2);R(x,'#ffd0e0',6,Y+7,5,1);R(x,'#ffe9de',6,Y+6,1,1);R(x,'#ffe9de',10,Y+5,1,1);
+  R(x,'#ffe9de',7,Y+8,1,1);R(x,'#ffe9de',9,Y+8,1,1);
+  // 手書きの日付
+  R(x,'#6a8ad0',4,Y+11,4,1);
+}
+function windChime(x,o){
+  const sw=o.frame?1:0,Y=-29;
+  // 吊り紐
+  R(x,'#8a8aa0',8,Y,1,4);R(x,OL,7,Y,3,1);
+  // ガラスの鐘（夢の海の色・透け感は段差で）
+  R(x,OL,6,Y+3,5,1);R(x,OL,5,Y+4,7,1);R(x,OL,4,Y+5,9,5);
+  R(x,C.te2,6,Y+4,5,1);R(x,C.te2,5,Y+5,7,4);R(x,C.te1,6,Y+5,2,2);R(x,'#ffffff',6,Y+5,1,1);
+  R(x,C.te3,5,Y+8,7,1);R(x,C.te4,10,Y+6,1,2);
+  // 金魚の絵
+  R(x,'#e05a6a',8,Y+6,2,1);R(x,'#ff8a8a',10,Y+6,1,1);R(x,'#e05a6a',10,Y+7,1,1);
+  R(x,OL,4,Y+9,9,1);
+  // 舌と短冊
+  R(x,'#8a8aa0',8+sw,Y+10,1,3);
+  R(x,OL,6+sw*2,Y+13,5,10);R(x,'#fff4e0',7+sw*2,Y+14,3,8);R(x,'#c6b2ee',7+sw*2,Y+14,3,1);
+  R(x,'#6a8ad0',8+sw*2,Y+16,1,4);
+  R(x,SH2,12,Y+5,2,5);
+}
+function seaMobile(x,o){
+  const sw=o.frame?1:0,Y=-29;
+  R(x,'#8a8aa0',8,Y,1,2);
+  // 流木の横木
+  O(x,1,Y+2,15,3,'#c8b8a0');R(x,'#e2d6c2',2,Y+3,13,1);R(x,'#9a8a72',12,Y+3,2,1);
+  // 糸と飾り：魚（ティール）・貝（ピンク）・星（黄）
+  const d=[sw,-sw,sw];
+  R(x,'#8a8aa0',3,Y+5,1,6);R(x,'#8a8aa0',8,Y+5,1,11);R(x,'#8a8aa0',13,Y+5,1,4);
+  // 魚
+  {const X=1+d[0],YY=Y+11;R(x,OL,X,YY,6,4);R(x,C.te3,X+1,YY+1,3,2);R(x,C.te2,X+1,YY+1,2,1);R(x,OL,X+1,YY+1,1,1);R(x,C.te4,X+4,YY+1,1,2);x.clearRect(X+5,YY,1,1);x.clearRect(X+5,YY+3,1,1);}
+  // 貝
+  {const X=6+d[1],YY=Y+16;R(x,OL,X,YY,5,4);R(x,'#f6e2ea',X+1,YY+1,3,2);R(x,'#d4b2c2',X+2,YY+1,1,2);x.clearRect(X,YY,1,1);x.clearRect(X+4,YY,1,1);}
+  // 星
+  {const X=11+d[2],YY=Y+9;R(x,OL,X+1,YY,3,5);R(x,OL,X,YY+1,5,3);R(x,C.yel,X+2,YY+1,1,3);R(x,C.yel,X+1,YY+2,3,1);R(x,'#fff4b0',X+2,YY+2,1,1);}
+  R(x,SH2,14,Y+6,1,8);
+}
+function nameplate(x,o){
+  const P=WOOD;
+  shE(x,9,14,6,2);
+  // 柱
+  O(x,6,-2,5,16,P.lo);R(x,P.mid,7,-1,1,14);
+  R(x,'#7a5a3a',4,13,9,2);
+  // 小さな屋根
+  R(x,OL,1,-14,14,1);R(x,OL,0,-13,16,3);R(x,'#5a4a6a',1,-13,14,1);R(x,'#7a6a8a',1,-12,14,1);R(x,'#4a3a5a',2,-11,12,1);
+  // 表札（白木に彫った字）
+  O(x,2,-10,12,10,'#f4e2c0');R(x,'#fff4dc',3,-9,10,1);R(x,'#d8c09a',3,-2,10,1);R(x,'#d8c09a',12,-8,1,6);
+  const k='#5a3a2a';
+  R(x,k,5,-8,2,1);R(x,k,5,-7,1,2);R(x,k,6,-6,1,1);
+  R(x,k,8,-8,2,1);R(x,k,9,-7,1,1);R(x,k,8,-6,2,1);
+  R(x,k,5,-4,1,1);R(x,k,6,-4,1,1);R(x,k,8,-4,2,1);R(x,k,10,-5,1,2);
+  // 貝の飾り
+  R(x,'#f6e2ea',12,-4,1,1);R(x,C.pk3,12,-3,1,1);
+}
+function laundry(x,X,Y,kind,sw){
+  const pin=(px,py)=>{R(x,OL,px,py-1,1,2);R(x,'#f2cf98',px,py-1,1,1);};
+  if(kind==='dress'){R(x,OL,X+sw,Y,6,1);R(x,OL,X-1+sw,Y+1,8,7);R(x,C.pk2,X+sw,Y+1,6,6);R(x,C.pk1,X+sw,Y+1,6,1);R(x,C.pk3,X+sw,Y+6,6,1);R(x,'#ffffff',X+2+sw,Y+3,1,1);R(x,'#ffffff',X+4+sw,Y+5,1,1);x.clearRect(X-1+sw,Y+1,1,2);x.clearRect(X+6+sw,Y+1,1,2);pin(X+1,Y);pin(X+4,Y);}
+  else if(kind==='shirt'){R(x,OL,X-1,Y,10,4);R(x,OL,X+1,Y+3,6,6);R(x,C.vi1,X,Y+1,8,2);R(x,C.vi1,X+2,Y+3,4,5);R(x,'#ffffff',X+2,Y+1,1,1);R(x,'#9682ca',X+5,Y+3,1,5);R(x,'#f19ac0',X+3,Y+1,2,1);pin(X,Y);pin(X+7,Y);}
+  else{R(x,OL,X,Y,6,9);R(x,C.cr1,X+1,Y+1,4,7);R(x,'#a8c0f0',X+1,Y+5,4,1);R(x,C.cr3,X+4,Y+1,1,7);pin(X+1,Y);pin(X+4,Y);}
+}
+function clothesline(x,o){
+  const P=WOOD,sw=o.frame?1:0;
+  if(o.rot===0){
+    shadowRect(x,4,12,42,3);
+    // 柱（T字）
+    for(const X of[2,43]){O(x,X,-20,3,35,P.lo);R(x,P.mid,X+1,-19,1,33);O(x,X-3,-21,9,3,P.base);R(x,P.hi,X-2,-20,7,1);O(x,X-1,12,5,3,'#7a5a3a');}
+    // ロープ（少したるむ）
+    for(let i=4;i<44;i++){const yy=-19+Math.round(Math.sin((i-4)/40*Math.PI)*3);R(x,'#efe2c8',i,yy,1,1);R(x,'rgba(27,18,38,0.35)',i,yy+1,1,1);}
+    laundry(x,9,-16,'dress',sw);laundry(x,20,-14,'shirt',0);laundry(x,33,-15,'towel',0);
+  }else{
+    // 90：柱が上下。ロープは縦に、洗濯物は横向き（細く）見える
+    shadowRect(x,6,2,6,44);
+    for(let i=1;i<43;i++){const xx=8+Math.round(Math.sin(i/42*Math.PI)*2);R(x,'rgba(27,18,38,0.2)',xx+3,i+4,1,1);}
+    O(x,6,-18,3,24,P.lo);R(x,P.mid,7,-17,1,22);O(x,2,-19,11,3,P.base);R(x,P.hi,3,-18,9,1);
+    for(let j=-16;j<26;j++){const xx=7+Math.round(Math.sin((j+16)/42*Math.PI)*2);R(x,'#efe2c8',xx,j,1,1);}
+    // 洗濯物（横から）
+    const side=(Y,c1,c2,h)=>{R(x,OL,7+sw,Y,4,h);R(x,c1,8+sw,Y+1,2,h-2);R(x,c2,9+sw,Y+1,1,h-2);};
+    side(-12,C.pk2,C.pk3,7);side(-2,C.vi1,'#9682ca',9);side(10,C.cr1,C.cr3,8);
+    O(x,6,24,3,22,P.lo);R(x,P.mid,7,25,1,20);O(x,2,23,11,3,P.base);R(x,P.hi,3,24,9,1);
+    O(x,5,44,5,3,'#7a5a3a');
+  }
+}
+const BULB=['#ffd98a','#ffb0c8','#9ff0e0','#fff4cc'];
+function stringBulbs(rot){
+  // 電球の位置（足元の左上が原点・ドット）
+  const L=[];
+  if(rot===0){for(let i=5;i<=27;i+=4){L.push({x:i,y:-17+Math.round(Math.sin((i-2)/28*Math.PI)*4)});}}
+  else{for(let j=-13;j<=27;j+=5){L.push({x:8+Math.round(Math.sin((j+16)/44*Math.PI)*3),y:j});}}
+  return L;
+}
+function stringLights(x,o){
+  const lit=o.lit,P={hi:'#a8b0c0',base:'#6e7488',lo:'#4a4e60'};
+  const pole=(X,Y,h)=>{R(x,OL,X,Y,3,h);R(x,P.base,X+1,Y+1,1,h-2);R(x,P.hi,X+1,Y+1,1,1);R(x,SH2,X+3,Y+h-2,2,2);};
+  const bulbs=stringBulbs(o.rot===90?90:0);
+  if(o.rot!==90){
+    pole(0,-20,34);pole(29,-20,34);
+    for(let i=2;i<30;i++){const yy=-19+Math.round(Math.sin((i-2)/28*Math.PI)*4);R(x,'#3a3448',i,yy,1,1);}
+  }else{
+    pole(6,-20,26);
+    for(let j=-19;j<30;j++){const xx=8+Math.round(Math.sin((j+16)/44*Math.PI)*3);R(x,'#3a3448',xx,j,1,1);}
+    pole(6,10,22);
+  }
+  bulbs.forEach((b,i)=>{
+    const c=lit?BULB[i%BULB.length]:'#e6e0d0';
+    R(x,OL,b.x-1,b.y+1,3,3);R(x,c,b.x,b.y+2,1,1);R(x,lit?'#ffffff':'#cfc8b8',b.x,b.y+1,1,1);
+  });
+}
+function planterArt(x,o){
+  const P=WOOD;
+  const pl=o.plant;
+  if(o.rot!==90){
+    shadowRect(x,3,10,31,5);
+    // 土
+    O(x,0,0,32,6,'#5a3a2a');R(x,'#6e4a34',1,1,30,4);for(let i=2;i<30;i+=3)R(x,'#4e3020',i,2+(i%2),1,1);
+    if(pl)(pl.species==='herb'||!pl.species||pl.species==='seed'?[8,16,24]:[9,23]).forEach((cx,i)=>plantArt(x,cx,3,pl.stage,pl.color,(o.frame+i)%2,pl.species,i));
+    // 手前の板
+    O(x,0,4,32,11,P.base);R(x,P.hi,1,5,30,1);R(x,P.mid,1,12,30,1);R(x,P.lo,1,13,30,1);
+    for(let i=8;i<32;i+=8)R(x,P.lo,i,6,1,6);
+    R(x,P.dk,2,9,2,1);R(x,P.dk,28,9,2,1);
+  }else{
+    shadowRect(x,3,2,14,30);
+    O(x,0,-4,16,31,'#5a3a2a');R(x,'#6e4a34',1,-3,14,29);
+    bev(x,0,-5,3,32,P);bev(x,13,-5,3,32,P);bev(x,0,-5,16,3,P);
+    if(pl)(pl.species==='herb'||!pl.species||pl.species==='seed'?[-1,8,17]:[1,15]).forEach((by,i)=>plantArt(x,8,by+4,pl.stage,pl.color,(o.frame+i)%2,pl.species,i));
+    O(x,0,25,16,7,P.base);R(x,P.hi,1,26,14,1);R(x,P.lo,1,30,14,1);
+  }
+}
+function wateringCan(x,o){
+  const M={hi:'#e4f0f8',base:'#9cc4dc',mid:'#6e9ab8',lo:'#4a7090'};
+  shE(x,8,14,6,2);
+  // 注ぎ口
+  for(let k=0;k<6;k++){R(x,OL,10+k,6-k,2,3);}
+  for(let k=0;k<6;k++){R(x,M.base,11+k,7-k,1,1);}
+  R(x,OL,15,-1,3,4);R(x,M.hi,16,0,1,2);
+  // 取っ手
+  R(x,OL,3,-2,8,1);R(x,OL,2,-1,1,5);R(x,OL,11,-1,1,4);R(x,M.mid,3,-1,8,1);
+  // 胴
+  R(x,OL,1,3,11,1);R(x,OL,0,4,13,10);R(x,OL,1,14,11,1);
+  R(x,M.base,1,4,11,10);R(x,M.hi,2,4,9,1);R(x,M.hi,1,5,1,7);R(x,M.mid,11,5,1,8);R(x,M.lo,2,12,9,1);
+  R(x,M.mid,1,8,11,1);
+  // 水のしずく
+  R(x,'#bcd4ff',17,4,1,1);
+}
+
 // 「？」の箱
 function qbox(fw,fh){
   const c=mk(fw*U,fh*U),x=c.getContext('2d');
@@ -712,8 +1014,22 @@ const ITEMS={
   'garden.stepping_stone':{w:1,h:1,rots:[0],f:steppingStone},
   'garden.small_tree':{w:1,h:1,rots:[0],f:smallTree,anim:true},
   'deco.rug':{w:3,h:2,rots:[0,90],f:rug},
-  'deco.sea_glass':{w:1,h:1,rots:[0],f:seaGlass,anim:true}
+  'deco.sea_glass':{w:1,h:1,rots:[0],f:seaGlass,anim:true},
+  // フェーズ2
+  'furniture.toy_box':{w:1,h:1,rots:[0],f:toyBox},
+  'furniture.kid_desk':{w:1,h:1,rots:[0,90,180,270],f:kidDesk,flipRot:90},
+  'furniture.old_radio':{w:1,h:1,rots:[0],f:oldRadio},
+  'memento.toolbox':{w:1,h:1,rots:[0],f:toolbox},
+  'memento.recital_photo':{w:1,h:1,rots:[0],f:recitalPhoto,wall:true},
+  'deco.wind_chime':{w:1,h:1,rots:[0],f:windChime,wall:true,anim:true},
+  'deco.sea_mobile':{w:1,h:1,rots:[0],f:seaMobile,wall:true,anim:true},
+  'garden.nameplate':{w:1,h:1,rots:[0],f:nameplate},
+  'garden.clothesline':{w:3,h:1,rots:[0,90],f:clothesline,anim:true},
+  'light.string_lights':{w:2,h:1,rots:[0,90],f:stringLights,light:{rgb:'255,214,140',r:8,a:0.5,spots:rot=>stringBulbs(rot).map(b=>({cx:b.x,cy:b.y+2}))}},
+  'garden.planter':{w:2,h:1,rots:[0,90],f:planterArt,anim:true,plantable:true},
+  'garden.watering_can':{w:1,h:1,rots:[0],f:wateringCan}
 };
+ITEMS['garden.pot'].plantable=true;
 
 function normRot(def,r){
   r=((Math.round((+r||0)/90)*90)%360+360)%360;
@@ -724,7 +1040,7 @@ function normRot(def,r){
 }
 function itemArt(id,rot,variant,plant,lit,frame){
   const def=ITEMS[id];
-  const pk=plant?((plant.stage|0)+':'+(plant.color||'')):'';
+  const pk=plant?((plant.stage|0)+':'+(plant.color||'')+':'+(plant.species||'seed')):'';
   const key='i|'+id+'|'+rot+'|'+variant+'|'+pk+'|'+(lit?1:0)+'|'+frame;
   let c=cache.get(key);if(c)return c;
   const sw=(rot===90||rot===270);
@@ -759,17 +1075,18 @@ function drawItem(ctx,itemId,o){
     if(!def.variants)variant='default';
     const t=typeof o.t==='number'?(o.t>1e5?o.t/1000:o.t):0;
     const frame=def.anim&&o.t!=null?(Math.floor(t*1.4)%2):0;
-    const plant=itemId==='garden.pot'&&o.plant?o.plant:null;
+    const plant=def.plantable&&o.plant?o.plant:null;
     const lit=!!(def.light&&o.lit);
     const img=itemArt(itemId,rot,variant,plant,lit,frame);
     blit(ctx,img,px-PAD*s,py-TOP*s,s);
     if(lit){
       const L=def.light,g=glowCanvas(L.rgb,L.r);
-      let a=0.9;
+      let a=L.a||0.9;
       if(o.t!=null)a*=itemId==='light.shell_lantern'?(0.82+0.18*Math.sin(t*2.1)):(0.9+0.06*Math.sin(t*7.3)+0.04*Math.sin(t*13.1));
       ctx.globalAlpha*=a;
       const op=ctx.globalCompositeOperation;ctx.globalCompositeOperation='lighter';
-      blit(ctx,g,px+(L.cx-L.r)*s,py+(L.cy-L.r)*s,s);
+      const spots=L.spots?L.spots(rot):[{cx:L.cx,cy:L.cy}];
+      spots.forEach(p=>blit(ctx,g,px+(p.cx-L.r)*s,py+(p.cy-L.r)*s,s));
       ctx.globalCompositeOperation=op;
     }
     ctx.restore();
@@ -941,19 +1258,253 @@ const KID={
 // 娘のふたつ結び（花つき）：頭の左右に重ねる
 const TAIL_L=["kfk.","fFfk","kfkh","khhk",".kk."];
 const TAIL_R=[".kfk","kfFf","hkfk","khhk",".kk."];
+// ── 訪問者：千代さん（お隣）・班長 ──
+// 千代さん：銀髪のお団子・かんざし・金縁メガネ・えんじのカーディガン・長いスカート。腰が少し曲がる（横向きで頭が前へ）
+const CHIYO_PAL={k:OL,h:'#dcd8e6',H:'#ffffff',d:'#a7a0b6',s:'#f8dcc8',S:'#e6b49a',g:'#c9a24a',E:'#3a2430',b:'#f2a2ac',m:'#b06a6a',
+  c:'#8e5a84',C:'#5e3658',w:'#fff8ea',y:'#e9d38a',n:'#6a5a72',N:'#4a3e52',o:'#3a2a30'};
+const CHIYO={
+  headF:[
+    "......kkkk......",
+    ".....kHhhhk.....",
+    ".....khhhdk.....",
+    "...kkkkkkkkkk...",
+    "..khHHhhhhhhhk..",
+    ".khHhhhhhhhhhdk.",
+    ".khhhhhhhhhhhdk.",
+    ".khsssssssssshk.",
+    ".khsssssssssshk.",
+    ".kdgEgsggsgEgdk.",
+    ".kdbssssssssbdk.",
+    "..kssssmmssssk..",
+    "...kkSssssSkk...",
+    ".....kkkkkk....."],
+  headB:[
+    "......kkkk......",
+    ".....kHhhhk.....",
+    ".....khhhdk.....",
+    "...kkkkkkkkkk...",
+    "..khhhHHhhhhhk..",
+    ".khhhhhhhHhhhdk.",
+    ".khhhhhhhhhhhdk.",
+    ".khhhhhhhhhhhdk.",
+    ".khdhhhhhhhhddk.",
+    ".khddhhhhhhdddk.",
+    ".kdddddddddddk..",
+    "..kddddddddddk..",
+    "...kkssssssk....",
+    ".....kkkkkk....."],
+  headS:[
+    "..kkkk..........",
+    ".kHhhhk.........",
+    ".khhhdk.........",
+    "..kkkkkkkkk.....",
+    ".khHHhhhhhhkk...",
+    "khHhhhhhhhhhhk..",
+    "khhhhhhhhhhhhk..",
+    "khdhhhhhhssssk..",
+    "khdhhhhhssssk...",
+    "khddhhhhgEgsss..",
+    ".khdhhhhssssbk..",
+    ".kkddhhhssssmk..",
+    "...kkkkkSsssk...",
+    "........kkkk...."],
+  bodyF:[
+    ".....kkwwkk.....",
+    "...kkccwwcckk...",
+    "..kcCccwwccCck..",
+    "..kcCcyckcccCk..",
+    "..kcCcccccccCk..",
+    "..ksskcccccksk..",
+    "...kknnnnnnkk..."],
+  bodyB:[
+    ".....kkkkkk.....",
+    "...kkcccccckk...",
+    "..kcCcccccccCk..",
+    "..kcCcccccccCk..",
+    "..kcCCcccccCCk..",
+    "..ksskccccckssk.",
+    "...kknnnnnnkk..."],
+  bodyS:[
+    ".....kkk........",
+    "...kkcccwk......",
+    "..kccccccwk.....",
+    "..kcCCcccck.....",
+    "..kcCcccssk.....",
+    "...kcccccsk.....",
+    "....knnnnk......"],
+  legsF:[
+    ["...knnnnnnnnk...","...knNnnnnNnk...","....kookkook....","....kkk..kkk...."],
+    ["...knnnnnnnnk...","...knNnnnnNnk...","....kookkkkkk...","....kkk........."],
+    ["...knnnnnnnnk...","...knNnnnnNnk...","....kookkook....","....kkk..kkk...."],
+    ["...knnnnnnnnk...","...knNnnnnNnk...","....kkkkkook....",".........kkk...."]],
+  legsS:[
+    ["...knnnnnk......","...knNnnnk......","....kooook......","....kkkkk......."],
+    ["..knnnnnnk......","..knNnnnnnk.....","..kook.kook.....","..kkk..kkk......"],
+    ["...knnnnnk......","...knNnnnk......","....kooook......","....kkkkk......."],
+    ["...knnnnnnk.....","...knNnnnnk.....","...kook.kook....","...kkk..kkk....."]],
+  sitF:["..kknnnnnnnnkk..","..knNnnnnnnNnk..","...kook..kook...","...kkk....kkk..."],
+  sitS:["...knnnnnnnnk...","...kkkkkknnnk...","..........kook..","..........kkkk.."],
+  sitB:["...kknnnnnnkk...","...kkkkkkkkkk..."],
+  headSdx:1   // 横向きは頭が少し前に出る（腰が少し曲がる）
+};
+// 班長：黄色いヘルメット・紺の作業着・白い襟・緑の名札
+const HANCHO_PAL={k:OL,y:'#ffe680',Y:'#f5c22a',O:'#c98f0e',a:'#6a6560',s:'#f3c9a4',S:'#d9a17c',b:'#3a3430',E:'#1a0f24',m:'#8a4a3a',
+  u:'#4b5b78',U:'#2b3550',w:'#eef0ea',G:'#2f9a52',n:'#3a4866',N:'#24304a',o:'#3a3430',l:'#5a4a3a'};
+const HANCHO={
+  headF:[
+    ".....kkkkkk.....",
+    "...kkyyyYYYkk...",
+    "..kyyYYYYYYYOk..",
+    ".kyYYYYyYYYYYOk.",
+    ".kyYYYYYYYYYYOk.",
+    "kOOOOOOOOOOOOOOk",
+    ".kkkkkkkkkkkkkk.",
+    ".kaSssssssssSak.",
+    ".kabbbssssbbbak.",
+    ".kasEEssssEEsak.",
+    ".kassssSSssssak.",
+    "..kssssmmmmssk..",
+    "..kSSssssssSSk..",
+    "...kkkkkkkkkk..."],
+  headB:[
+    ".....kkkkkk.....",
+    "...kkyyyYYYkk...",
+    "..kyyYYYYYYYOk..",
+    ".kyYYYYYYYYYYOk.",
+    ".kyYYYYYYYYYYOk.",
+    "kOOOOOOOOOOOOOOk",
+    ".kkkkkkkkkkkkkk.",
+    ".kaaaaaaaaaaaak.",
+    ".kaaaaaaaaaaaak.",
+    ".kaaaaaaaaaaaak.",
+    ".kSaaaaaaaaaaSk.",
+    "..kSSSSSSSSSSk..",
+    "..kSSSSSSSSSSk..",
+    "...kkkkkkkkkk..."],
+  headS:[
+    ".....kkkkkk.....",
+    "...kkyyyYYYkk...",
+    "..kyyYYYYYYYOk..",
+    ".kyYYYYYYYYYYOk.",
+    ".kyYYYYYYYYYYOk.",
+    ".kOOOOOOOOOOOOOk",
+    "..kkkkkkkkkkkkkk",
+    "..kaaaaaasssssk.",
+    "..kaaaaasbbbbsk.",
+    "..kaaaaassEEssk.",
+    "..kaaSaasssssSsk",
+    "..kSaSSssssmmsk.",
+    "...kSSSSsssSSk..",
+    "....kkkkkkkkk..."],
+  bodyF:[
+    ".....kkSSkk.....",
+    "...kkuwwwwukk...",
+    "..kuuuuwwuuuuk..",
+    ".kuUukGwkuuuUuk.",
+    ".kuUuuuuuuuuUuk.",
+    ".kssuuuuuuuussk.",
+    "..kkUUUUUUUUkk.."],
+  bodyB:[
+    ".....kkSSkk.....",
+    "...kkuuuuuukk...",
+    "..kuuuuuuuuuuk..",
+    ".kuUuuuuuuuuUuk.",
+    ".kuUuuuUUuuuUuk.",
+    ".kssuuuuuuuussk.",
+    "..kkUUUUUUUUkk.."],
+  bodyS:[
+    "......kSSk......",
+    ".....kuuwwk.....",
+    "....kuuuuuk.....",
+    "....kuUuuuk.....",
+    "....kuUuGuk.....",
+    "....kussuUk.....",
+    ".....kUUUUk....."],
+  legsF:DAN.legsF.map(f=>f.map(r=>r.replace(/o/g,'o'))),
+  legsS:DAN.legsS,
+  sitF:DAN.sitF,
+  sitS:DAN.sitS,
+  sitB:DAN.sitB
+};
+const CHARS={dan:{D:DAN,pal:DAN_PAL},kid:{D:KID,pal:KID_PAL},chiyo:{D:CHIYO,pal:CHIYO_PAL},hancho:{D:HANCHO,pal:HANCHO_PAL}};
+const SEATED={sit:1,read:1,work:1,hold:1};
+// 千代さんのかんざし（赤い軸・赤い玉・金の飾り）
+function kanzashi(x,dir){
+  const st='#b44a3a',ball='#e86a5a',gold='#e8c060';
+  const line=(x0,y0,x1,y1)=>{const n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0));for(let i=0;i<=n;i++)R(x,st,Math.round(x0+(x1-x0)*i/n),Math.round(y0+(y1-y0)*i/n),1,1);};
+  if(dir==='right'){line(0,3,6,0);R(x,OL,6,-1,3,3);R(x,ball,7,0,1,1);R(x,gold,8,2,1,2);return;}
+  if(dir==='up'){line(4,0,12,3);R(x,OL,2,-1,3,3);R(x,ball,3,0,1,1);R(x,gold,2,2,1,2);return;}
+  line(4,3,11,0);R(x,OL,11,-1,3,3);R(x,ball,12,0,1,1);R(x,gold,13,2,1,2);
+}
+// 娘：絵本を読む（座って本をひらく）
+function bookOverlay(x,dir,by,frame){
+  if(dir==='up'){R(x,OL,2,by+2,2,3);R(x,C.pk2,2,by+3,1,1);R(x,OL,12,by+2,2,3);R(x,C.pk2,13,by+3,1,1);return;}
+  if(dir==='right'){R(x,OL,10,by,5,5);R(x,C.cr1,11,by+1,3,3);R(x,C.pk2,14,by+1,1,3);R(x,C.cr3,11,by+2+(frame?1:0),3,1);R(x,'#ffe9de',10,by+3,1,1);return;}
+  // 正面：ひらいた絵本（表紙ピンク・ページに絵）
+  R(x,OL,2,by+1,12,6);R(x,C.pk3,3,by+2,10,4);
+  R(x,C.cr1,3,by+2,4,3);R(x,C.cr1,9,by+2,4,3);R(x,C.cr3,7,by+2,2,3);R(x,OL,7,by+2,1,4);
+  R(x,'#7fcf6e',4,by+4,2,1);R(x,'#ffc83a',10,by+3,1,1);R(x,'#6f93e8',11,by+4,1,1);
+  if(frame){R(x,C.cr2,9,by+1,3,1);}
+  R(x,'#ffe9de',2,by+4,1,1);R(x,'#ffe9de',13,by+4,1,1);
+}
+// だんのうら：机で作業（ペンを動かす）
+function workOverlay(x,dir,by,frame){
+  const sl='#c6b2ee',hand='#f6d6c2';
+  if(dir==='up'){R(x,OL,1+(frame?0:1),by+1,3,4);R(x,sl,2+(frame?0:1),by+2,1,2);R(x,OL,12,by+1-(frame?1:0),3,4);R(x,sl,13,by+2-(frame?1:0),1,2);return;}
+  if(dir==='right'){R(x,OL,9,by+2,5,3);R(x,sl,10,by+3,2,1);R(x,hand,12,by+3,1,1);R(x,OL,13+(frame?1:0),by+1,1,3);R(x,C.yel,13+(frame?1:0),by+2,1,1);return;}
+  R(x,OL,9+(frame?1:0),by+3,4,3);R(x,hand,10+(frame?1:0),by+4,2,1);R(x,C.yel,12+(frame?1:0),by+2,1,2);
+}
+// だんのうら：眠った娘を抱いて座る（布団が無い夜の代わり）
+function holdOverlay(x,dir,by,frame){
+  if(dir!=='down'){R(x,OL,3,by+1,10,5);R(x,C.bl2,4,by+2,8,3);R(x,C.bl1,4,by+2,8,1);R(x,'#35224e',4,by,4,2);return;}
+  // 毛布にくるまった娘
+  R(x,OL,4,by+2,10,6);R(x,C.bl2,5,by+3,8,4);R(x,C.bl1,5,by+3,8,1);R(x,C.bl3,5,by+6,8,1);R(x,'#f4dc7a',9,by+4,1,1);R(x,'#f4dc7a',11,by+5,1,1);
+  // 頭（肩にもたれる）
+  R(x,OL,2,by-1,7,6);R(x,'#35224e',3,by,5,4);R(x,'#6a54a4',4,by,2,1);
+  R(x,'#ffe9de',4,by+2,4,2);R(x,'#3a2048',4,by+2,1,1);R(x,'#3a2048',6,by+2,1,1);R(x,'#f59aae',7,by+3,1,1);
+  R(x,'#ffaad4',2,by+1,1,1);
+  // 抱く腕
+  R(x,OL,3,by+5,12,1);R(x,'#c6b2ee',4,by+5,10,1);R(x,'#f6d6c2',12,by+5,2,1);
+}
+// 娘：布団で寝る（布団の足元範囲の左上が原点。縦＝rot0、横＝rot90）
+function sleepArt(dir,frame){
+  const c=mk(32,48),x=c.getContext('2d');
+  const head=KID.headF.slice();
+  head[7]=".khsssssssssshk.";head[8]=".khsEEssssEEshk.";head[9]=".khbsssssssbshk.";
+  // 枕の上の頭
+  map(x,TAIL_L,KID_PAL,8,6);map(x,TAIL_R,KID_PAL,20,6);
+  map(x,head,KID_PAL,8,1);
+  // 掛け布団のふくらみ（肩まで）
+  // 枕元の襟（ミントのパジャマ）と、体の形にふくらんだ布団（外周線は付けず、色の段差で）
+  R(x,'#9fe2c8',11,12,10,2);R(x,'#6cc4a4',11,13,10,1);
+  R(x,C.cr2,9,13,14,1);R(x,C.bl1,9,14,14,2);
+  R(x,C.bl1,9,16,2,12);R(x,C.bl3,21,16,2,13);R(x,C.bl4,23,17,1,11);R(x,C.bl3,10,28,12,2);R(x,C.bl4,11,30,10,1);
+  // 布団から出た手
+  R(x,OL,10,15,5,4);R(x,'#9fe2c8',11,16,2,2);R(x,'#ffe9de',13,16,1,2);
+  for(const [X,Y] of [[17,20],[12,25],[19,27]]){R(x,'#f4dc7a',X,Y,1,1);R(x,'#f4dc7a',X-1,Y+1,3,1);R(x,'#f4dc7a',X,Y+2,1,1);}
+  const zz=(t,zx,zy)=>{const zc='#e4dcff',zs='rgba(27,18,38,0.45)';R(t,zs,zx+1,zy+1,3,1);R(t,zs,zx+1,zy+4,3,1);R(t,zc,zx,zy,3,1);R(t,zc,zx+1,zy+1,1,1);R(t,zc,zx,zy+2,1,1);R(t,zc,zx,zy+3,3,1);};
+  if(dir==='down'||dir==='up'){zz(x,frame?26:25,frame?0:2);return c;}
+  // 横（rot90：頭が右）：時計回りに90°回す
+  const r=mk(48,32),rx=r.getContext('2d');
+  rx.save();rx.translate(48,-2);rx.rotate(Math.PI/2);rx.drawImage(c,0,0);rx.restore();
+  zz(rx,frame?33:32,frame?0:2);
+  return r;
+}
 
 function charArt(who,dir,frame,pose){
   const key='c|'+who+'|'+dir+'|'+frame+'|'+pose;
   let c=cache.get(key);if(c)return c;
-  const D=who==='kid'?KID:DAN,pal=who==='kid'?KID_PAL:DAN_PAL;
+  if(pose==='sleep'){c=sleepArt(dir,frame);cache.set(key,c);return c;}
+  const ch=CHARS[who]||CHARS.dan,D=ch.D,pal=ch.pal;
   const side=(dir==='left'||dir==='right');
   const back=dir==='up';
   const head=side?D.headS:back?D.headB:D.headF;
   let body=side?D.bodyS:back?D.bodyB:D.bodyF;
   let legs;
-  if(pose==='sit'){legs=side?D.sitS:back?D.sitB:D.sitF;}
+  const seated=!!SEATED[pose];
+  if(seated){legs=side?D.sitS:back?D.sitB:D.sitF;}
   else{const f=pose==='walk'?((frame|0)%4+4)%4:0;legs=(side?D.legsS:D.legsF)[f];}
-  if(pose==='sit'&&!side)body=body.slice(0,body.length-1);
+  if(seated&&!side)body=body.slice(0,body.length-1);
   const hh=head.length,bh=body.length,lh=legs.length;
   const H=hh-1+bh+lh+1;
   c=mk(U,H+1);const x=c.getContext('2d');
@@ -963,22 +1514,32 @@ function charArt(who,dir,frame,pose){
   const hop=(pose==='walk'&&(frame%2===1)&&!side)?0:0;
   map(x,legs,pal,0,by+bh);
   map(x,body,pal,0,by+hop);
-  map(x,head,pal,0,hop);
+  const hdx=side?(D.headSdx|0):0;
+  map(x,head,pal,hdx,hop);
   if(who==='kid'){
     if(side){map(x,TAIL_L,pal,0,5+hop);}
     else{map(x,TAIL_L,pal,0,5+hop);map(x,TAIL_R,pal,12,5+hop);}
+    if(pose==='read')bookOverlay(x,dir==='left'?'right':dir,by,frame&1);
   }
+  if(who==='chiyo'){x.save();x.translate(hdx,0);kanzashi(x,dir==='left'?'right':dir);x.restore();}
+  if(who==='dan'&&pose==='work')workOverlay(x,dir==='left'?'right':dir,by,frame&1);
+  if(who==='dan'&&pose==='hold')holdOverlay(x,dir==='left'?'right':dir,by,frame&1);
   if(dir==='left')c=flipC(c);
   cache.set(key,c);return c;
 }
 function drawChar(ctx,who,dir,frame,px,py,T,pose){
   try{
     const s=scaleOf(T);
-    who=who==='kid'?'kid':'dan';
+    who=CHARS[who]?who:'dan';
     dir=(dir==='up'||dir==='left'||dir==='right')?dir:'down';
-    pose=(pose==='walk'||pose==='sit')?pose:'stand';
+    pose=(pose==='walk'||SEATED[pose]||pose==='sleep')?pose:'stand';
+    if(pose==='sleep'&&who!=='kid')pose='sit';
+    if(pose==='read'&&who!=='kid')pose='sit';
+    if((pose==='work'||pose==='hold')&&who!=='dan')pose='sit';
     const img=charArt(who,dir,frame|0,pose);
-    const lift=pose==='sit'?2:0;
+    // 寝ている娘は布団の足元範囲の左上 (px,py) にそのまま重ねる
+    if(pose==='sleep'){blit(ctx,img,px,py,s);return;}
+    const lift=SEATED[pose]?2:0;
     blit(ctx,img,px+((U-img.width)/2)*s,py+(U-img.height-lift)*s,s);
   }catch(e){}
 }
@@ -990,6 +1551,22 @@ function contentBox(c){
   for(let j=0;j<h;j++)for(let i=0;i<w;i++)if(d[(j*w+i)*4+3]>60){if(i<x0)x0=i;if(i>x1)x1=i;if(j<y0)y0=j;if(j>y1)y1=j;}
   if(x1<0)return{x:0,y:0,w:w,h:h};return{x:x0,y:y0,w:x1-x0+1,h:y1-y0+1};
 }
+// 種の袋（アイコン用・16×16）：袋の絵で種類がわかる＋名前も別に表示する
+function seedPacket(species){
+  const c=mk(16,16),x=c.getContext('2d');
+  const bg={morning_glory:'#dcd4f4',sunflower:'#fff0c0',herb:'#d8f0d0'}[species]||C.cr2;
+  R(x,SH2,3,3,13,13);
+  O(x,2,1,12,14,bg);R(x,'#ffffff',3,2,10,1);R(x,C.cr3,3,13,10,1);
+  // 折り返し
+  R(x,OL,2,4,12,1);R(x,C.cr1,3,2,10,2);
+  // 袋の絵
+  if(species==='morning_glory'){R(x,OL,5,6,6,6);R(x,OL,4,7,8,4);R(x,'#6f93e8',5,7,6,4);R(x,'#6f93e8',6,6+1,4,5-1);R(x,'#ffffff',7,8,2,2);R(x,'#bcd4ff',5,7,2,1);R(x,C.g3,11,11,2,2);}
+  else if(species==='sunflower'){R(x,OL,4,5,8,8);R(x,'#ffd84a',5,6,6,6);R(x,'#7a4a28',6,7,4,4);R(x,'#5a321a',7,8,2,2);R(x,'#fff4b0',5,6,2,1);}
+  else{R(x,OL,4,6,8,7);R(x,C.g3,5,7,6,5);R(x,C.g2,5,7,3,2);R(x,C.g1,6,7,1,1);R(x,C.g4,8,10,3,2);R(x,'#ffffff',9,7,1,1);}
+  // 種つぶ
+  R(x,'#5a3a2a',3,14,1,1);R(x,'#5a3a2a',12,14,1,1);
+  return c;
+}
 function icon(itemId,variant){
   const key='icon|'+itemId+'|'+(variant||'');
   let c=cache.get(key);if(c)return c;
@@ -997,10 +1574,11 @@ function icon(itemId,variant){
   try{
     const def=ITEMS[itemId];
     let art;
-    if(!def)art=qbox(1,1);
+    if(!def&&/^seed\./.test(itemId))art=seedPacket(itemId.slice(5));
+    else if(!def)art=qbox(1,1);
     else{
       let v=variant||'default';if(def.variants&&def.variants.indexOf(v)<0)v=def.variants[0];if(!def.variants)v='default';
-      art=itemArt(itemId,def.rots[0],v,itemId==='garden.pot'?{stage:1,color:'pink'}:null,false,0);
+      art=itemArt(itemId,def.rots[0],v,itemId==='garden.pot'?{stage:1,color:'pink'}:null,itemId==='light.string_lights',0);
     }
     const b=contentBox(art);
     let k=Math.min(44/b.w,44/b.h);if(k>=2)k=Math.floor(k);
@@ -1235,6 +1813,8 @@ window.HOME_ART={
   TILE:32, ART_TILE:U,
   drawTile, drawWall, drawItem, drawChar, icon, uiIcon,
   items, uiNames:Object.keys(UI).concat('rotate'),
+  chars:Object.keys(CHARS), poses:['stand','walk','sit','read','work','hold','sleep'],
+  plantSpecies:['seed','morning_glory','sunflower','herb'],
   palette:C,
   clearCache(){cache.clear();}
 };

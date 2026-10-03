@@ -37,7 +37,29 @@ HOME.CATALOG={
   'garden.small_tree':       it('小さな木',1,1,R1,'furniture',true,['garden'],'near','眺める','引っ越したときに植えた若い木。'),
   'deco.rug':                it('ラグ',3,2,R2,'rug',false,['room'],'none','','やわらかいラグ。上に家具を置ける。'),
   'deco.sea_glass':          it('漂着ガラスの飾り',1,1,R1,'furniture',true,['room','garden'],'near','眺める','浜で拾った、角の丸いガラス。'),
+  // ── フェーズ2 ──
+  'furniture.toy_box':       it('おもちゃ箱',1,1,R1,'furniture',true,['room'],'near','遊ぶ','ふたの閉まりきらない、木のおもちゃ箱。',{kidUse:'play'}),
+  'furniture.kid_desk':      it('娘の小さな机',1,1,R4,'furniture',true,['room'],'front','お絵かきを見る','娘の背丈に合わせた、ひくい机。クレヨンの跡がある。',{kidUse:'draw'}),
+  'furniture.old_radio':     it('千代さんの古いラジオ',1,1,R1,'furniture',true,['room'],'near','ラジオを聴く','千代さんがゆずってくれた、木の箱のラジオ。「夜が長いけえ」',{kidUse:'radio'}),
+  'memento.toolbox':         it('班長の古い工具箱',1,1,R1,'furniture',true,['room','garden'],'near','開けてみる','角のへこんだ赤い工具箱。取っ手に、手のあとがついている。'),
+  'memento.recital_photo':   it('発表会の写真',1,1,R1,'wall',false,['room'],'wall','眺める','おゆうぎかいの舞台の写真。壁にだけ掛けられる。',{wallOnly:true}),
+  'deco.wind_chime':         it('風鈴',1,1,R1,'wall',false,['room'],'wall','鳴らす','ガラスの風鈴。夢の海の色をしている。壁にだけ掛けられる。',{wallOnly:true}),
+  'deco.sea_mobile':         it('海のモビール',1,1,R1,'wall',false,['room'],'wall','眺める','流木に、布の魚と貝を吊るしたモビール。壁にだけ掛けられる。',{wallOnly:true,kidUse:'mobile'}),
+  'garden.nameplate':        it('家の表札',1,1,R1,'furniture',true,['garden'],'near','眺める','「だんのうら」と彫った小さな表札。'),
+  'garden.clothesline':      it('物干し',3,1,R2,'furniture',true,['garden'],'side','洗濯物を干す','二本の柱に渡した物干し。ふたり分の洗濯物が揺れる。'),
+  'light.string_lights':     it('庭の豆電球',2,1,R2,'furniture',false,['garden'],'self','灯りを点ける','二本の柱に渡した、小さな電球の列。下を通れる。',{light:true}),
+  'garden.planter':          it('プランター',2,1,R2,'furniture',true,['garden'],'near','眺める','横長の木のプランター。種をひとつ植えられる。',{plantable:true}),
+  'garden.watering_can':     it('じょうろ',1,1,R1,'furniture',false,['garden','room'],'near','水やりをする','ブリキのじょうろ。近くの鉢やプランターにまとめて水をあげられる。'),
+  // ── 種（消費アイテム：置けない。空の鉢・プランターに植える） ──
+  'seed.morning_glory':      it('あさがおの種',1,1,R1,'none',false,[],'none','','千代さんにもらった、あさがおの種。',{kind:'seed',species:'morning_glory'}),
+  'seed.sunflower':          it('ひまわりの種',1,1,R1,'none',false,[],'none','','しましまの、ひまわりの種。',{kind:'seed',species:'sunflower'}),
+  'seed.herb':               it('ハーブの種',1,1,R1,'none',false,[],'none','','いい匂いのする、ハーブの種。',{kind:'seed',species:'herb'}),
 };
+HOME.CATALOG['garden.pot'].plantable=true;
+HOME.CATALOG['furniture.cushion'].kidUse='cushion';
+HOME.CATALOG['furniture.bookshelf'].kidUse='read';
+HOME.CATALOG['garden.pot'].kidUse='plants';
+HOME.CATALOG['garden.planter'].kidUse='plants';
 Object.keys(HOME.CATALOG).forEach(id=>{HOME.CATALOG[id].id=id;});
 
 HOME.TILES={'floor.wood':{name:'木の床'},'ground.grass':{name:'草地'}};
@@ -57,6 +79,14 @@ HOME.RECIPES={
   fence:         {name:'柵を作る',        out:'garden.fence',            n:1,mats:{wood:1},note:'庭の柵を1本ふやす'},
   sea_glass:     {name:'ガラスの飾り',    out:'deco.sea_glass',          n:1,mats:{sea:1,metal:1},note:'拾ったガラスを金具で吊るす'},
   shell_lantern: {name:'貝殻ランタン',    out:'light.shell_lantern',     n:1,mats:{sea:2,metal:1},note:'夢で見た灯りを、現実の材料で'},
+  // ── フェーズ2 ──（kid_desk/clothesline/string_lights/planter は最初から。ほかは RPG の章クリアで解放）
+  kid_desk:      {name:'娘の机を作る',    out:'furniture.kid_desk',      n:1,mats:{wood:3},note:'娘の背丈に合わせた、ひくい机'},
+  planter:       {name:'プランターを組む',out:'garden.planter',          n:1,mats:{wood:2},note:'横長の箱。種をひとつ植えられる'},
+  clothesline:   {name:'物干しを立てる',  out:'garden.clothesline',      n:1,mats:{wood:2,cloth:1},note:'柱を二本立てて、ロープを渡す'},
+  string_lights: {name:'豆電球をつなぐ',  out:'light.string_lights',     n:1,mats:{metal:2,sea:1},note:'庭に小さな灯りの列を'},
+  wind_chime:    {name:'風鈴を吊るす',    out:'deco.wind_chime',         n:1,mats:{metal:1,sea:1},note:'夢の海の色をした、ガラスの風鈴'},
+  sea_mobile:    {name:'海のモビール',    out:'deco.sea_mobile',         n:1,mats:{sea:2,cloth:1},note:'流木に、布の魚と貝を吊るす'},
+  nameplate:     {name:'表札を彫る',      out:'garden.nameplate',        n:1,mats:{wood:1,metal:1},note:'「だんのうら」と彫った、家の表札'},
 };
 Object.keys(HOME.RECIPES).forEach(id=>{HOME.RECIPES[id].id=id;});
 
@@ -77,6 +107,17 @@ HOME.BAL={
 };
 
 HOME.ROT_DIR={0:'down',90:'left',180:'up',270:'right'};
+// 娘が布団で寝ている時間（23時〜翌5時台）。hour が数でなければ起きている扱い
+HOME.isKidSleepHour=function(hour){const h=Math.floor(+hour);if(!Number.isFinite(h))return false;const n=((h%24)+24)%24;return n>=23||n<6;};
 HOME.STAGE_NAMES=['種','芽','つぼみの準備','つぼみ','花'];
 HOME.POT_COLORS={red:'赤',blue:'青',yellow:'黄'};
+// 植物の種類（plants[id].species）。seed＝フェーズ1の「娘の花」（種アイテムは無い）
+HOME.PLANT_SPECIES={
+  seed:         {name:'花',      seedId:null,                 defName:'ひなた',  color:'pink'},
+  morning_glory:{name:'あさがお',seedId:'seed.morning_glory', defName:'あさがお',color:'blue'},
+  sunflower:    {name:'ひまわり',seedId:'seed.sunflower',     defName:'ひまわり',color:'yellow'},
+  herb:         {name:'ハーブ',  seedId:'seed.herb',          defName:'ハーブ',  color:'white'},
+};
+HOME.isSeed=id=>{const c=HOME.CATALOG[id];return !!(c&&c.kind==='seed');};
+HOME.isPlantable=id=>{const c=HOME.CATALOG[id];return !!(c&&c.plantable);};
 })();

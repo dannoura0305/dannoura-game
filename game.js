@@ -2142,6 +2142,8 @@ function triggerEnding(forced){
 
   const isBad=['collapse','bankrupt','flame'].includes(type);
   document.getElementById('endless-btn').style.display=isBad?'none':'block';
+  // クリア後の暮らしモード（main/home/lifemode.js）：良い結末・ふつうの結末だけ「暮らしを続ける」
+  try{const lb=document.getElementById('life-btn');if(lb)lb.style.display=(window.HOME&&HOME.lifeMode&&HOME.lifeMode.setEnding(type))?'block':'none';}catch(e){}
 
   // エンディング画面表示 → 一定時間後に共有パネルも表示
   setTimeout(()=>{

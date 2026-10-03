@@ -4,6 +4,9 @@
 //   nextDay      … 植物の成長 HOME.tickDay() と HOME.events.tick()
 //   endFactory / handleChoice('childcare') / MG.finish（釣り・RPG） … 素材を少しだけ（1日1回ずつ）
 //   RPG第2章クリア … 貝殻ランタンのレシピ（夢で得た「発想」）＋思い出（grantOnce で一度だけ）
+//   RPG第1章 → 風鈴／第4章 → 海のモビール／第5章 → 家の表札のレシピ、第3章 → 約束の思い出（bonds）
+//   休む・子育て・工場 → HOME.bonds.note（1日1キー）、日送り → HOME.life_events.tick()
+//   エンディング「その後」… 良い結末・ふつうの結末だけ、bonds の一言を足す（結末の種類は変えない）
 //   エンディング … 良い結末のときだけ、家／庭の絵と娘の一言（HOME.endingReflection）
 // 設計：docs/home-story-design.md
 // ═══════════════════════════════════════════════════════════
@@ -42,12 +45,57 @@ function dailyMaterial(key,mat,n,msg){
 
 // ── RPG：章クリアの報酬と第2章のランタン ──
 function rpgCleared(){const g=G();return g&&g.rpg&&Number.isFinite(+g.rpg.cleared)?+g.rpg.cleared:0;}
+// 章ごとの「夢で得た発想」：レシピは毎回そろえ直す（定義が後から増えても取りこぼさない）。通知と思い出は一度だけ
+const CH_RECIPES={
+  1:{item:'deco.wind_chime',guess:'wind_chime',memo:'rpg.ch1.chime',what:'夢の部屋の音',
+     text:'夢の配信部屋で、泡にならずに届いた声。……金具と海のかけらで、風の音を鳴らすものが作れそうな気がした。',
+     notif:'🎐 夢で聞いた音を思い出した。クラフト「風鈴」が作れるようになった'},
+  4:{item:'deco.sea_mobile',guess:'sea_mobile',memo:'rpg.ch4.mobile',what:'眠りの灯の色',
+     text:'眠らない灯籠を抜けたあとの、静かな青い光。……あの子の布団の上で、ゆっくり回る海を作ってみようと思った。',
+     notif:'🐟 夢で見た海の色を思い出した。クラフト「海のモビール」が作れるようになった'},
+  5:{item:'garden.nameplate',guess:'nameplate',memo:'rpg.ch5.nameplate',what:'名前の灯',
+     text:'渦の底で掴んだ名前。……家の戸口に、ふたりの名前を掛けておこうと思った。呼ばれる場所が、ここにあるように。',
+     notif:'🏠 夢で掴んだ名前を思い出した。クラフト「家の表札」が作れるようになった'},
+};
+function recipeFor(itemId,guess){
+  const R=HOME.RECIPES||{};
+  if(R[guess])return guess;
+  for(const k in R)if(R[k]&&R[k].out===itemId)return k;
+  return null;
+}
+function syncChapterRecipes(silent){
+  const c=rpgCleared();let any=false;
+  Object.keys(CH_RECIPES).forEach(k=>{
+    const n=+k,def=CH_RECIPES[k];
+    if(c<n)return;
+    const id=recipeFor(def.item,def.guess);
+    if(!id)return;                                   // まだ定義が無い（後で読み込まれたら、そのときに）
+    try{if(HOME.hasRecipe&&!HOME.hasRecipe(id))HOME.unlockRecipe&&HOME.unlockRecipe(id);}catch(e){}
+    const got=grantOnce('rpg.ch'+n+'.recipe',()=>{
+      try{HOME.memories&&HOME.memories.add&&HOME.memories.add({id:def.memo,day:day(),who:['dan','minamo'],what:def.what,items:[def.item],text:def.text,snapshot:null});}catch(e){}
+      if(!silent)notif(def.notif);
+    });
+    any=any||got;
+  });
+  // 第3章：約束の灯（約束した／正直に言った）→ 思い出と bonds
+  if(c>=3){
+    const g=G();const rf=g&&g.rpg&&g.rpg.flags||{};
+    grantOnce('rpg.ch3.promise',()=>{
+      const p=!!rf.ch3_promise;
+      try{HOME.memories&&HOME.memories.add&&HOME.memories.add({id:'rpg.ch3.promise',day:day(),who:['dan','kid','minamo'],what:p?'夢の中のゆびきり':'夢の中の正直な返事',items:[],
+        text:p?'珊瑚の保育園で、夢の中のあの子とゆびきりをした。「おゆうぎかい、やくそくだよ」':'夢の中のあの子に「行けるか、まだ分からないの」と正直に言った。「…………うん。しってた」',snapshot:null});}catch(e){}
+    });
+    try{HOME.bonds&&HOME.bonds.sync&&HOME.bonds.sync();}catch(e){}
+  }
+  return any;
+}
 function syncRpg(silent){
   const c=rpgCleared();
+  syncChapterRecipes(silent);
   if(c<2)return false;
   return grantOnce('rpg.ch2.shell_lantern',()=>{
     try{HOME.unlockRecipe&&HOME.unlockRecipe('shell_lantern');}catch(e){}
-    try{HOME.memories&&HOME.memories.add&&HOME.memories.add({id:'rpg.ch2.lantern',day:day(),who:['dan'],what:'夢の工場の灯り',items:['light.shell_lantern'],
+    try{HOME.memories&&HOME.memories.add&&HOME.memories.add({id:'rpg.ch2.lantern',day:day(),who:['dan','minamo'],what:'夢の工場の灯り',items:['light.shell_lantern'],
       text:'夢の海の底で見た、琥珀色の灯り。……浜の貝殻と金具があれば、あれに似たものが作れるかもしれない。',snapshot:null});}catch(e){}
     if(!silent)notif('💡 夢で見た灯りを思い出した。クラフト「貝殻ランタン」が作れるようになった');
   });
@@ -102,6 +150,7 @@ wrap('nextDay',prev=>function(){
   try{
     if(typeof HOME.tickDay==='function')HOME.tickDay();
     if(HOME.events&&typeof HOME.events.tick==='function')HOME.events.tick();
+    if(HOME.life_events&&typeof HOME.life_events.tick==='function')HOME.life_events.tick();
     let has=false;try{has=!!localStorage.getItem(typeof SAVE_KEY!=='undefined'?SAVE_KEY:'dannoura_save_v1');}catch(e){}
     if(has&&typeof saveGame==='function')saveGame(true);
   }catch(e){console.warn('[home] nextDay',e);}
@@ -111,11 +160,19 @@ wrap('nextDay',prev=>function(){
 wrap('endFactory',prev=>function(){
   let worked=true;try{worked=typeof ff==='undefined'||ff>0;}catch(e){}
   const r=prev.apply(this,arguments);
+  try{if(worked&&HOME.bonds&&HOME.bonds.note)HOME.bonds.note('work',day());}catch(e){}
   try{if(worked){const metal=day()%2===0;dailyMaterial('factory',metal?'metal':'wood',1,metal?'🔩 持ち帰りを許可された端材の金具をもらった':'🪵 持ち帰りを許可された端材をもらった');}}catch(e){}
   return r;
 });
 // 子育て：小さくなった服を端切れに
 wrap('handleChoice',prev=>function(ac){
+  // 休む・寝かしつけは、元の処理（日付が進むことがある）より前の日付で記録する
+  try{
+    if(HOME.bonds&&HOME.bonds.note){
+      if(ac==='rest_light'||ac==='rest_deep')HOME.bonds.note('rest','act.d'+day());
+      else if(ac==='childcare')HOME.bonds.note('care',day());
+    }
+  }catch(e){}
   const r=prev.apply(this,arguments);
   try{if(ac==='childcare')dailyMaterial('childcare','cloth',1,'🧵 小さくなったあの子の服を、端切れにした');}catch(e){}
   return r;
@@ -150,10 +207,17 @@ function snapshotCanvas(ref){
     return cv&&cv.nodeType===1?cv:null;
   }catch(e){return null;}
 }
+// bonds の一言（悪い結末・未知の結末には何も足さない）
+const BAD_END=['collapse','bankrupt','flame'];
+function bondsLine(type){
+  if(!type||BAD_END.indexOf(type)>=0)return null;
+  try{return HOME.bonds&&typeof HOME.bonds.endingLine==='function'?HOME.bonds.endingLine(type)||null:null;}catch(e){return null;}
+}
 function endingReflection(type){
-  if(!HOME.events||typeof HOME.events.reflection!=='function')return null;
-  let ref=null;try{ref=HOME.events.reflection(type);}catch(e){ref=null;}
-  if(!ref)return null;
+  const bl=bondsLine(type);
+  let ref=null;
+  if(HOME.events&&typeof HOME.events.reflection==='function'){try{ref=HOME.events.reflection(type);}catch(e){ref=null;}}
+  if(!ref)return bl?{head:'― この30日 ―',node:null,lines:[bl],kind:'bonds'}:null;
   const node=document.createElement('div');
   node.className='pr-el home-reflect';
   node.style.cssText='margin:10px auto 4px;max-width:min(92%,420px);';
@@ -164,7 +228,8 @@ function endingReflection(type){
     cv.setAttribute('aria-label',(ref.area==='garden'?'庭':'部屋')+'のようす');
     node.appendChild(cv);
   }else if(ref.kind==='home'){
-    return null;   // 絵が描けないなら、暮らしの振り返りは出さない
+    // 絵が描けないなら、暮らしの振り返りは出さない（bonds の一言だけ）
+    return bl?{head:'― この30日 ―',node:null,lines:[bl],kind:'bonds'}:null;
   }
   // 結末の思い出（花のときだけ・一度だけ）
   try{
@@ -174,12 +239,14 @@ function endingReflection(type){
       const s=HOME.events.state&&HOME.events.state();if(s&&s.step<6&&s.step>=5)s.step=6;
     }
   }catch(e){}
-  return {head:ref.head||'― 暮らし ―',node:cv?node:null,lines:ref.lines.slice(0,2),kind:ref.kind};
+  const lines=ref.lines.slice(0,2);
+  if(bl)lines.push(bl);
+  return {head:ref.head||'― 暮らし ―',node:cv?node:null,lines,kind:ref.kind};
 }
 HOME.endingReflection=endingReflection;
 
 // ── 初期化 ──
-HOME.integrations={dailyMaterial,syncRpg,rpgClearReward,syncFlags,endingReflection};
+HOME.integrations={dailyMaterial,syncRpg,syncChapterRecipes,rpgClearReward,syncFlags,endingReflection,bondsLine};
 function boot(){hookEvents();try{if(G()&&G().homeData){syncFlags();syncRpg(true);}}catch(e){}}
 if(typeof document!=='undefined'&&document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
