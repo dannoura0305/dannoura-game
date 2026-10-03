@@ -1196,6 +1196,9 @@ registerMinigame({
       cx.strokeStyle='rgba(222,204,248,.35)';cx.lineWidth=1;rrp(cx,bx,by,bw,bh,5);cx.stroke();
       cx.fillStyle='rgba(222,204,248,.4)';cx.fillRect(bx+bw*.66,by-2,1,bh+4);
       cx.font=`8px ${FONT}`;cx.fillStyle='rgba(187,174,221,.6)';cx.fillText('起きる→',bx+bw-34,by+bh+8);
+      const AL=[['静寂','#8ab0ff'],['気配','#e8b830'],['警戒！','#e83055']][alertLv];
+      cx.font=`9px ${FONT}`;cx.fillStyle=AL[1];cx.globalAlpha=alertLv===2?.6+Math.sin(clock*10)*.4:1;cx.fillText('● '+AL[0],bx,by+bh+8);cx.globalAlpha=1;
+      cx.fillStyle='rgba(187,174,221,.45)';cx.fillText('フェーズ'+gphase,bx+bw*.42,by+bh+8);
       // 子どもの眠り
       const st=phase==='woke'?['起きた','#e83055']:noise>66?['もぞもぞ…','#ff8aa0']:sleepCycle>.5?['うとうと','#e8b830']:['ぐっすり','#8ab0ff'];
       const sx=W-128;
@@ -1286,10 +1289,8 @@ registerMinigame({
       cx.fillText('タップで開始',W/2,py+ph-16);
       cx.globalAlpha=1;
     }
-    function draw(){
-      setS();
-      cx.fillStyle='#05040e';cx.fillRect(0,0,W,H);
-      const sx=shake>0?(Math.random()-.5)*shake:0,sy=shake>0?(Math.random()-.5)*shake:0;
+    // ── 場面ごとの描画 ──
+    function drawRoomNight(sx,sy){
       cx.setTransform(dpr,0,0,dpr,dpr*(OX+sx),dpr*(OY+sy));
       cx.drawImage(lyStatic,0,0,WW*S,WH*S);
       cx.setTransform(dpr*S,0,0,dpr*S,dpr*(OX+sx),dpr*(OY+sy));
@@ -1304,6 +1305,230 @@ registerMinigame({
       drawLights();
       cx.setTransform(dpr*S,0,0,dpr*S,dpr*(OX+sx),dpr*(OY+sy));
       drawZzz();
+    }
+    function guideTarget(){
+      let bx=0,by=0,bd=1e9;
+      for(const k of ORDER){const s0=ST[k];if(s0.done)continue;
+        if(k==='toys'&&toysLeft>0){for(const ty of toys){if(ty.got)continue;const d=dist(P.x,P.y,ty.x,ty.y);if(d<bd){bd=d;bx=ty.x;by=ty.y;}}continue;}
+        const d=dist(P.x,P.y,s0.mx,s0.my);if(d<bd){bd=d;bx=s0.mx;by=s0.my;}}
+      return bd<1e9&&bd>26?[bx,by,bd]:null;
+    }
+    function drawGuide(){
+      if(scene!=='game'||phase!=='play'||t<=0)return;
+      const anyDone=ORDER.some(k=>ST[k].done)||toysLeft<toys.length;
+      if(!(t<12&&!anyDone)&&idleT<5)return;
+      const g=guideTarget();if(!g)return;
+      const [gx,gy,gd]=g,ux=(gx-P.x)/gd,uy=(gy-P.y)/gd,an=Math.atan2(uy,ux);
+      cx.save();
+      for(let i=0;i<3;i++){
+        const o=22+i*9+((clock*14)%9);
+        if(o>gd-8)break;
+        cx.globalAlpha=.75-i*.2;
+        cx.translate(P.x+ux*o,P.y+uy*o);cx.rotate(an);
+        cx.strokeStyle='#7dffe9';cx.lineWidth=1.6;cx.lineCap='round';
+        cx.beginPath();cx.moveTo(-2.5,-3.5);cx.lineTo(1.5,0);cx.lineTo(-2.5,3.5);cx.stroke();
+        cx.setTransform(dpr*S,0,0,dpr*S,dpr*OX,dpr*OY);
+      }
+      cx.restore();cx.globalAlpha=1;
+    }
+    const RAIN=[];for(let i=0;i<70;i++)RAIN.push({x:Math.random(),y:Math.random(),s:rnd(.5,1),l:rnd(8,18)});
+    function drawRain(a){
+      cx.strokeStyle=`rgba(150,140,220,${a})`;cx.lineWidth=1;cx.beginPath();
+      for(const d of RAIN){const y=((d.y+clock*d.s*.9)%1)*H,x=((d.x+clock*.03)%1)*W;cx.moveTo(x,y);cx.lineTo(x-2,y+d.l);}
+      cx.stroke();
+    }
+    function drawTitle(){
+      setS();
+      const g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#05040e');g.addColorStop(.6,'#120a26');g.addColorStop(1,'#1d0d34');
+      cx.fillStyle=g;cx.fillRect(0,0,W,H);
+      cx.globalCompositeOperation='lighter';
+      gl(glow.moon,W*.74,H*.16,W*.42,.35);gl(glow.pu,W*.2,H*.8,W*.5,.25);
+      cx.globalCompositeOperation='source-over';cx.globalAlpha=1;
+      cx.fillStyle='#e8e4ff';cx.beginPath();cx.arc(W*.74,H*.16,16,0,7);cx.fill();
+      cx.fillStyle='#120a26';cx.beginPath();cx.arc(W*.74+7,H*.16-5,14,0,7);cx.fill();
+      drawRain(.22);
+      // 窓枠のシルエット
+      cx.strokeStyle='rgba(10,6,20,.9)';cx.lineWidth=6;cx.strokeRect(W*.5,H*.05,W*.42,H*.24);
+      cx.beginPath();cx.moveTo(W*.71,H*.05);cx.lineTo(W*.71,H*.29);cx.stroke();
+      const f=Math.min(1,sceneT/.8);
+      cx.globalAlpha=f;cx.textAlign='center';cx.textBaseline='middle';
+      const ly=H*.42;
+      cx.font=`12px ${FONT}`;cx.fillStyle='#8a7aa8';cx.fillText('— 23:00　6畳間とキッチン —',W/2,ly-62);
+      cx.font=`26px ${FONT}`;cx.shadowColor='#00e8c8';cx.shadowBlur=14;cx.fillStyle='#d6fff8';
+      cx.fillText('起こさないで',W/2,ly-28);
+      cx.font=`64px ${FONT}`;cx.shadowColor='#8a52d4';cx.shadowBlur=22;
+      const gj=Math.sin(clock*2)*1.5;
+      cx.fillStyle='#deccf8';cx.fillText('家事',W/2,ly+30+gj);
+      cx.shadowBlur=0;
+      // 「しーっ」の吹き出し
+      cx.fillStyle='rgba(232,184,48,.95)';cx.font=`13px ${FONT}`;cx.fillText('しーっ……',W/2+86,ly-2+Math.sin(clock*3)*2);
+      cx.font=`10px ${FONT}`;cx.fillStyle='#5e5078';cx.fillText('STEALTH CHORES',W/2,ly+72);
+      // 忍び足のだんのうら（大きく）
+      const px=W*.5+Math.sin(sceneT*.5)*W*.18, py=H*.72;
+      cx.save();cx.translate(px,py);cx.scale(3.4,3.4);
+      cx.globalCompositeOperation='lighter';gl(glow.wt,0,0,24,.08);cx.globalCompositeOperation='source-over';cx.globalAlpha=f;
+      drawDad(0,0,Math.cos(sceneT*.5)>0?0:Math.PI,'sneak',sceneT*5,0);
+      cx.restore();
+      // 足音の波紋（ちいさく）
+      const rp=(sceneT*1.2)%1;cx.globalAlpha=(1-rp)*.5*f;cx.strokeStyle='#bbaedd';cx.lineWidth=1;
+      cx.beginPath();cx.ellipse(px,py+30,14+rp*40,5+rp*12,0,0,7);cx.stroke();
+      cx.globalAlpha=f*(.5+Math.sin(clock*4)*.3);cx.font=`12px ${FONT}`;cx.fillStyle='#deccf8';cx.fillText('タップで始める',W/2,H*.9);
+      cx.globalAlpha=1;
+    }
+    function wrapText(txt,maxW){
+      const out=[];let line='';
+      for(const ch of txt){if(cx.measureText(line+ch).width>maxW&&line){out.push(line);line=ch;}else line+=ch;}
+      if(line)out.push(line);return out;
+    }
+    function drawPortrait(key,x,y,sz){
+      cx.fillStyle='#e8e0f4';rrp(cx,x,y,sz,sz,8);cx.fill();
+      const im=IMG[key];
+      if(im&&im.complete&&im.naturalWidth){cx.save();rrp(cx,x,y,sz,sz,8);cx.clip();cx.drawImage(im,x,y,sz,sz);cx.restore();}
+      cx.strokeStyle='#8a52d4';cx.lineWidth=2;rrp(cx,x,y,sz,sz,8);cx.stroke();
+      cx.strokeStyle='rgba(222,204,248,.5)';cx.lineWidth=1;rrp(cx,x+3,y+3,sz-6,sz-6,6);cx.stroke();
+    }
+    function drawTalk(){
+      setS();
+      cx.fillStyle='rgba(5,4,14,.5)';cx.fillRect(0,0,W,H);
+      const i=Math.min(talkI,TALK.length-1),[face,txt]=TALK[i];
+      const bh=132,by=H-bh-18,bx=12,bw=W-24,ps=Math.min(104,W*.27);
+      cx.fillStyle='rgba(10,7,22,.95)';rrp(cx,bx,by,bw,bh,10);cx.fill();
+      cx.strokeStyle='rgba(138,82,212,.8)';cx.lineWidth=1.5;cx.stroke();
+      cx.strokeStyle='rgba(138,82,212,.25)';cx.lineWidth=1;rrp(cx,bx+4,by+4,bw-8,bh-8,7);cx.stroke();
+      drawPortrait(face,bx+12,by-ps*.45,ps);
+      cx.textAlign='left';cx.textBaseline='middle';
+      cx.fillStyle='#8a52d4';rrp(cx,bx+ps+22,by-11,92,22,6);cx.fill();
+      cx.font=`12px ${FONT}`;cx.fillStyle='#fff';cx.fillText('だんのうら',bx+ps+32,by);
+      cx.font=`14px ${FONT}`;cx.fillStyle='#deccf8';
+      const lines=wrapText(txt.slice(0,Math.floor(talkC)),bw-36);
+      for(let k=0;k<lines.length;k++)cx.fillText(lines[k],bx+18,by+ps*.55+8+k*22);
+      if(talkC>=txt.length){cx.fillStyle=`rgba(0,232,200,${.5+Math.sin(clock*6)*.4})`;cx.fillText('▼',bx+bw-24,by+bh-16);}
+      cx.font=`10px ${FONT}`;cx.fillStyle='#5e5078';cx.textAlign='right';cx.fillText((i+1)+'/'+TALK.length+'　タップで次へ',bx+bw-12,by+bh+10);
+      // 上部の場所表示
+      cx.textAlign='center';cx.font=`12px ${FONT}`;cx.fillStyle='#bbaedd';cx.fillText('23:00　子どもが、やっと寝た',W/2,22);
+    }
+    function computeGrade(){
+      const done=ORDER.filter(k=>ST[k].done).length;
+      if(endReason==='clear'){
+        gradeScore=Math.round(clamp(100-maxNoise*.35-toyHits*6-creaks*1.5+(T_PLAY-cleared)*.7+catPets*3+hard*3,0,130));
+        grade=gradeScore>=80?'S':gradeScore>=62?'A':gradeScore>=45?'B':'C';
+      }else if(endReason==='late'){grade=done>=3?'B':'C';gradeScore=done*12;}
+      else{grade='C';gradeScore=done*8;}
+      const R={S:4,A:3,B:2,C:1};
+      if((R[grade]||0)>(R[data.bestGrade]||0)){data.bestGrade=grade;newBest=true;}
+      if(gradeScore>(data.bestScore||0))data.bestScore=gradeScore;
+      if(endReason==='clear'){
+        data.clears=(data.clears||0)+1;
+        const sec=Math.round(cleared);
+        if(!data.best||sec<data.best){data.best=sec;newBest=true;}
+      }
+    }
+    function drawEnding(){
+      // 翌朝：家事の結果が見える部屋
+      setS();
+      cx.setTransform(dpr,0,0,dpr,dpr*OX,dpr*OY);cx.drawImage(lyStatic,0,0,WW*S,WH*S);
+      setW();
+      phase='dawn';
+      drawLaundry();drawDishes();drawNote();
+      for(const ty of toys)drawToy(ty);
+      childRoll=0;drawChild(false);
+      cat.mode='nap';cat.x=120;cat.y=156;drawCat();
+      if(endReason==='clear')drawDad(122,96,Math.PI,'sit',0,0);
+      else if(endReason==='woke')drawDad(124,80,-.1,'lie',0,0);
+      else drawDad(104,398,-Math.PI/2,'sit',0,0);
+      // 朝の光
+      setS();
+      cx.fillStyle='rgba(30,24,60,.32)';cx.fillRect(OX,OY,WW*S,WH*S);
+      setW();
+      cx.globalCompositeOperation='lighter';
+      const k=Math.min(1,sceneT/1.5);
+      gl(glow.gd,205,0,190,.35*k);gl(glow.warm,180,60,140,.3*k);gl(glow.pk,40,470,90,.12*k);
+      cx.globalAlpha=.4*k;cx.setTransform(dpr,0,0,dpr,dpr*OX,dpr*OY);cx.drawImage(lyBeam,0,0,WW*S,WH*S);setW();
+      cx.globalCompositeOperation='source-over';cx.globalAlpha=1;
+      for(const m of motes){cx.globalAlpha=(.25+Math.sin(m.ph*2)*.2)*k;cx.fillStyle='#ffe8b0';cx.fillRect(m.x,m.y,.9,.9);}
+      cx.globalAlpha=1;
+      // 寝言
+      const words=endReason==='clear'?(grade==='S'||grade==='A'?'ぱぱ……おせんたく、おひさまのにおい……':'むにゃ……ぱぱ、おはよ……'):endReason==='woke'?'ぱぱ……きのう、ぎゅってしてくれた……':'ぱぱ……ねむそう……だいじょぶ？';
+      if(sceneT>.6){
+        const a=Math.min(1,(sceneT-.6)/.5);
+        setS();cx.globalAlpha=a;cx.font=`11px ${FONT}`;
+        const tw=Math.min(W-40,cx.measureText(words).width+20);
+        const bx=clamp(wx(CHILD.x)-20,10,W-tw-10),by=wy(CHILD.y)-34;
+        cx.fillStyle='rgba(255,250,240,.95)';rrp(cx,bx,by-14,tw,26,10);cx.fill();
+        cx.beginPath();cx.moveTo(wx(CHILD.x)-2,by+12);cx.lineTo(wx(CHILD.x)+6,by+12);cx.lineTo(wx(CHILD.x),by+20);cx.fill();
+        cx.fillStyle='#5a3a50';cx.textAlign='left';cx.textBaseline='middle';
+        const shown=words.slice(0,Math.floor((sceneT-.6)*16));
+        cx.fillText(shown,bx+10,by-1);
+        cx.globalAlpha=1;
+      }
+      setS();
+      cx.textAlign='center';cx.textBaseline='middle';cx.font=`13px ${FONT}`;cx.fillStyle='#ffe8b0';
+      cx.fillText('— 翌朝 6:30 —',W/2,20);
+      if(sceneT>3&&sceneT<5){cx.globalAlpha=1-Math.abs(sceneT-4);cx.font=`9px ${FONT}`;cx.fillStyle='#e8d8b0';cx.fillText('チュン……',W*.66,OY+20);cx.globalAlpha=1;}
+      // 結果カード
+      const ca=Math.min(1,Math.max(0,(sceneT-.8)/.5)),ease=1-Math.pow(1-ca,3);
+      const ch=196,cy0=H-ch-10+(1-ease)*60,cxx=12,cw=W-24;
+      cx.globalAlpha=ca;
+      cx.fillStyle='rgba(10,7,22,.95)';rrp(cx,cxx,cy0,cw,ch,12);cx.fill();
+      const col=endReason==='clear'?'#e8b830':endReason==='woke'?'#e83055':'#8a7aa8';
+      cx.strokeStyle=col;cx.lineWidth=1.5;cx.stroke();
+      const face=endReason==='clear'?'happy':endReason==='woke'?'tired':'normal';
+      drawPortrait(face,cxx+12,cy0+12,64);
+      cx.textAlign='left';
+      cx.font=`15px ${FONT}`;cx.fillStyle=col;
+      cx.fillText(endReason==='clear'?'起こさずに、ぜんぶ終わった':endReason==='woke'?'起こしてしまった夜':'0時を過ぎてしまった',cxx+86,cy0+24);
+      const line=endReason==='clear'?'連絡帳も書けた。今日も「いってらっしゃい」が言える。':endReason==='woke'?'家事は残ったけど……寝顔が見られたら、それでええか。':'残りは朝のうちに。……まずはコーヒーやな。';
+      cx.font=`11px ${FONT}`;cx.fillStyle='#bbaedd';
+      const ll=wrapText(line,cw-100-70);for(let i=0;i<ll.length&&i<3;i++)cx.fillText(ll[i],cxx+86,cy0+46+i*16);
+      // 家事の結果
+      let lx=cxx+12;const ly=cy0+100;
+      cx.font=`11px ${FONT}`;
+      for(const k2 of ORDER){const s0=ST[k2];const lbl=(s0.done?'✓ ':'✗ ')+s0.name.replace('連絡帳と明日の準備','連絡帳');
+        const w=cx.measureText(lbl).width+12;if(lx+w>cxx+cw-10){lx=cxx+12;}
+        cx.fillStyle=s0.done?'rgba(68,238,136,.14)':'rgba(232,48,85,.1)';rrp(cx,lx,ly+(lx===cxx+12&&k2!=='laundry'&&lx+w>cxx+cw?20:0),w,18,6);
+        cx.fill();cx.fillStyle=s0.done?'#44ee88':'#e87a90';cx.fillText(lbl,lx+6,ly+9);lx+=w+5;}
+      cx.font=`10px ${FONT}`;cx.fillStyle='#8a7aa8';
+      const st=`最大の物音 ${Math.round(maxNoise)}%　踏んだおもちゃ ${toyHits}　きしみ ${creaks}　ねこ ${catPets}`;
+      cx.fillText(st,cxx+12,cy0+134);
+      const best=`ベスト ${data.bestGrade||'-'}`+(data.best?`／最速 ${data.best}秒`:'')+`　プレイ ${data.plays}回`+(hard?`　難度 ${'★'.repeat(hard)}`:'');
+      cx.fillStyle=newBest?'#e8b830':'#5e5078';cx.fillText((newBest?'NEW RECORD!　':'')+best,cxx+12,cy0+152);
+      if(sceneT>1.6){cx.textAlign='center';cx.font=`12px ${FONT}`;cx.fillStyle=`rgba(222,204,248,${.5+Math.sin(clock*4)*.3})`;cx.fillText('タップで終わる',W/2,cy0+ch-16);}
+      // 評価（スタンプ）
+      if(sceneT>1.35){
+        const sk2=Math.min(1,(sceneT-1.35)/.25),sc2=1+(1-sk2)*1.6;
+        const gx=cxx+cw-40,gy=cy0+60;
+        cx.save();cx.translate(gx,gy);cx.scale(sc2,sc2);cx.rotate(-.18);
+        cx.globalAlpha=sk2;
+        const gc=grade==='S'?'#e8b830':grade==='A'?'#00e8c8':grade==='B'?'#b07ae8':'#8a7aa8';
+        cx.globalCompositeOperation='lighter';gl(grade==='S'?glow.gd:grade==='A'?glow.cy:glow.pu,0,0,46,.45);cx.globalCompositeOperation='source-over';cx.globalAlpha=sk2;
+        cx.strokeStyle=gc;cx.lineWidth=3;cx.beginPath();cx.arc(0,0,26,0,7);cx.stroke();
+        cx.lineWidth=1;cx.beginPath();cx.arc(0,0,21,0,7);cx.stroke();
+        cx.fillStyle=gc;cx.font=`34px ${FONT}`;cx.textAlign='center';cx.fillText(grade,0,2);
+        cx.restore();
+      }
+      cx.globalAlpha=1;
+    }
+    function applyTrans(){
+      if(!trans)return;
+      const f=trans.t/trans.dur,a=1-Math.abs(2*f-1);
+      const bs=Math.max(1,Math.round(1+a*a*26));
+      if(bs>1){
+        const w=Math.max(1,Math.ceil(cv.width/bs/dpr)),h=Math.max(1,Math.ceil(cv.height/bs/dpr));
+        if(!applyTrans.c){applyTrans.c=document.createElement('canvas');}
+        const mc=applyTrans.c;if(mc.width!==w||mc.height!==h){mc.width=w;mc.height=h;}
+        const mx=mc.getContext('2d');mx.drawImage(cv,0,0,w,h);
+        cx.setTransform(1,0,0,1,0,0);cx.imageSmoothingEnabled=false;cx.drawImage(mc,0,0,w,h,0,0,cv.width,cv.height);cx.imageSmoothingEnabled=true;
+      }
+      setS();cx.fillStyle=`rgba(5,4,14,${Math.min(1,a*1.1)})`;cx.fillRect(0,0,W,H);
+    }
+    function draw(){
+      setS();
+      cx.fillStyle='#05040e';cx.fillRect(0,0,W,H);
+      if(scene==='title'){drawTitle();applyTrans();return;}
+      if(scene==='ending'){drawEnding();applyTrans();return;}
+      const sx=shake>0?(Math.random()-.5)*shake:0,sy=shake>0?(Math.random()-.5)*shake:0;
+      drawRoomNight(sx,sy);
+      drawGuide();
       drawStationMarks();
       drawFx();
       drawPlayerProgress();
@@ -1317,9 +1542,9 @@ registerMinigame({
       }
       if(redFlash>0){cx.fillStyle=`rgba(232,48,85,${redFlash*.3})`;cx.fillRect(0,0,W,H);}
       if(phase==='late'){cx.fillStyle=`rgba(5,4,14,${Math.min(.5,endT*.25)})`;cx.fillRect(0,0,W,H);}
-      drawHud();
-      drawBanner();
-      drawIntro();
+      if(scene==='talk'){drawTalk();}
+      else{drawHud();drawBanner();drawIntro();}
+      applyTrans();
     }
     function hud(){
       const parts2=ORDER.map(k=>{const s=ST[k];const nm=k==='laundry'?'洗濯':k==='dishes'?'食器':k==='note'?'連絡帳':'玩具';
@@ -1336,13 +1561,15 @@ registerMinigame({
         else{lbl=ST[curSt].label;ready=true;p=ST[curSt].p;}
       }
       on=ready&&(holding||keyHold);
-      const cls='stealth-act'+(t<0?' hide':'')+(ready?(on?' on':' ready'):' off');
+      const cls='stealth-act'+(t<0||scene!=='game'||phase!=='play'?' hide':'')+(ready?(on?' on':' ready'):' off');
       if(cls!==act.className)act.className=cls;
       if(lbl!==lastAct){lastAct=lbl;actB.textContent=lbl;}
       const pp=Math.round(p*50)*2;
       if(pp!==lastP){lastP=pp;act.style.setProperty('--p',pp);}
     }
 
+    // テスト用のハンドル（ゲーム内容には影響しない）
+    cv._dbg={P,ST,toys,cat,get t(){return t;},set t(v){t=v;},get noise(){return noise;},set noise(v){noise=v;},get scene(){return scene;},get phase(){return phase;},get grade(){return grade;}};
     mg.loop(dt=>{
       update(dt);
       if(mg._ended)return;
@@ -1351,27 +1578,29 @@ registerMinigame({
 
     return {result(reason){
       window.removeEventListener('resize',onResize);
+      SX.stop();
+      // 結果の場面で「終了」を押しても、その夜の結果で精算する
+      if(reason==='quit'&&endReason)reason=endReason;
+      if(reason!=='quit'&&!grade){endReason=reason;computeGrade();}
+      const gradeHtml=grade?`評価 <span class="up">${grade}</span>　`:'';
       const done=ORDER.filter(k=>ST[k].done).length;
       const doneNames=ORDER.filter(k=>ST[k].done).map(k=>ST[k].name).join('・')||'なし';
       let fx,title,time,sp=0,log,cutin=null;
       if(reason==='clear'){
-        const sec=Math.round(cleared);
-        data.clears=(data.clears||0)+1;
-        const newBest=!data.best||sec<data.best;if(newBest)data.best=sec;
         fx={childStress:-10,mental:3,hope:2,fatigue:4};time=45;sp=1;
         title='🤫 起こさずに、ぜんぶ終わった';
         log='子どもを起こさずに家事を終えた。寝顔を見て、少しだけ肩の力が抜けた。';
         cutin=['happy','……おやすみ。明日もちゃんと起こしたるからな。'];
-        return {title,time,sp,fx,log,cutin,summary:`家事 <span class="up">${done}/4</span>　23:${String(Math.min(59,Math.floor(cleared/T_PLAY*60))).padStart(2,'0')} に完了`+
+        return {title,time,sp,fx,log,cutin,summary:gradeHtml+`家事 <span class="up">${done}/4</span>　23:${String(Math.min(59,Math.floor(cleared/T_PLAY*60))).padStart(2,'0')} に完了`+
           `<br>最大の物音 <span class="${maxNoise>70?'down':'up'}">${Math.round(maxNoise)}%</span>`+(catPets?`　ねこをなでた <span class="up">${catPets}</span>`:'')+
-          (newBest?'<br>自己ベスト更新！':`<br>最速記録 ${data.best}秒`)};
+          (newBest?'<br>自己ベスト更新！':`<br>最速記録 ${data.best}秒`)+(hard?`（難度${'★'.repeat(hard)}）`:'')};
       }
       if(reason==='woke'){
         fx={childStress:4,mental:-3,fatigue:6};time=60;
         title='😢 起こしてしまった';
         log='物音で子どもが起きてしまった。抱っこして、もう一度寝かしつけた。';
         cutin=['tired','ごめんな、起こしてもうたな……よしよし。'];
-        return {title,time,sp,fx,log,cutin,summary:`終わった家事 ${done}/4（${doneNames}）<br>泣き止むまで、背中をとんとんした。`+(toyHits?`<br>踏んだおもちゃ <span class="down">${toyHits}</span>`:'')};
+        return {title,time,sp,fx,log,cutin,summary:gradeHtml+`終わった家事 ${done}/4（${doneNames}）<br>泣き止むまで、背中をとんとんした。`+(toyHits?`<br>踏んだおもちゃ <span class="down">${toyHits}</span>`:'')};
       }
       if(reason==='late'){
         const cs=-Math.min(6,done*2);
@@ -1379,7 +1608,7 @@ registerMinigame({
         title='🕛 0時を過ぎてしまった';
         log='家事が終わらないまま日付が変わった。残りは朝にまわす。';
         cutin=['tired','……もう0時か。残りは朝やな。'];
-        return {title,time,sp,fx,log,cutin,summary:`終わった家事 ${done}/4（${doneNames}）<br>子どもは、ぐっすり眠っている。`};
+        return {title,time,sp,fx,log,cutin,summary:gradeHtml+`終わった家事 ${done}/4（${doneNames}）<br>子どもは、ぐっすり眠っている。`};
       }
       fx={fatigue:2};time=20;
       return {title:'🤫 家事を切り上げた',time,sp,fx,log:'家事を途中で切り上げた。',cutin:null,summary:`終わった家事 ${done}/4`};

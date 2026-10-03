@@ -470,8 +470,9 @@ registerMinigame({
     function buildLogo(){
       logoC=mkC(300,120);const g=logoC.g;
       // 背後のネオン円
-      let gr=g.createRadialGradient(150,62,10,150,62,140);gr.addColorStop(0,'rgba(138,82,212,.35)');gr.addColorStop(1,'rgba(138,82,212,0)');
-      g.fillStyle=gr;g.fillRect(0,0,300,120);
+      g.save();g.translate(150,62);g.scale(2.4,1);
+      let gr=g.createRadialGradient(0,0,4,0,0,58);gr.addColorStop(0,'rgba(138,82,212,.38)');gr.addColorStop(1,'rgba(138,82,212,0)');
+      g.fillStyle=gr;g.fillRect(-60,-60,120,120);g.restore();
       g.textBaseline='middle';g.textAlign='left';
       g.save();g.shadowColor='#00e8c8';g.shadowBlur=8;g.fillStyle='#7ff8e4';g.font='14px "DotGothic16", monospace';g.fillText('深夜の',26,18);g.restore();
       // 傘アイコン
@@ -486,7 +487,6 @@ registerMinigame({
         g.shadowColor=c1;g.shadowBlur=12;
         const q=g.createLinearGradient(0,-18,0,18);q.addColorStop(0,c0);q.addColorStop(1,c1);
         g.fillStyle=q;g.fillText(txt,0,0);
-        g.shadowBlur=0;g.fillStyle='rgba(255,255,255,.55)';g.fillRect(2,-14,g.measureText(txt).width-4,2);
         g.restore();
       };
       big('買い出し',18,50,'#ffffff','#b88cff',0);
@@ -1025,6 +1025,10 @@ registerMinigame({
 
     function drawWorld(){
       cx.drawImage(skyC,0,0,VW,GY+4);
+      if(lightning>0){
+        cx.fillStyle=`rgba(200,190,255,${(lightning*.35).toFixed(3)})`;cx.fillRect(0,0,VW,GY);
+        if(lightning>.7){cx.strokeStyle='rgba(240,240,255,.9)';cx.lineWidth=1.5;cx.beginPath();let lx=VW*.3+hash(Math.floor(t))*VW*.4,ly=0;cx.moveTo(lx,ly);while(ly<GY*.5){lx+=(hash(ly+t)-.5)*30;ly+=18;cx.lineTo(lx,ly);}cx.stroke();}
+      }
       tile(farC,cam*.08,0);
       // 遠くに見えるコンビニの柱サイン
       const far=(GOAL-cam);
@@ -1038,7 +1042,25 @@ registerMinigame({
           cx.fillStyle='#232a58';cx.font=F9;cx.textAlign='center';cx.textBaseline='middle';cx.fillText('24',fx,fy+3);
         }
       }
-      tile(midC,cam*.3,0);
+      // 中景：区間の境目でクロスフェード
+      {
+        const B1=STAGES[1].m*M,B2=STAGES[2].m*M, c=cam+VW*.5;
+        const B=c<(B1+B2)/2?B1:B2, from=B===B1?0:1;
+        const f=clamp((c-(B-500))/700,0,1);
+        if(f<1)tile(midC[from],cam*.3,0);
+        if(f>0){cx.globalAlpha=f;tile(midC[from+1],cam*.3,0);cx.globalAlpha=1;}
+        // 高架を走る電車
+        if(train&&from===1&&f>.5){
+          const dy=GY-132, x=train.x;
+          cx.globalAlpha=(f-.5)*2;
+          cx.fillStyle='#1c1a34';cx.fillRect(x,dy-17,380,15);
+          cx.fillStyle='rgba(190,170,255,.3)';cx.fillRect(x,dy-17,380,1);
+          for(let k=0;k<380;k+=12){cx.fillStyle=(k%95<8)?'#0c0a18':'rgba(255,236,190,.85)';cx.fillRect(x+k+3,dy-14,7,5);}
+          drawGlow(glowWhite,x,dy-10,14,.8);
+          cx.globalAlpha=1;
+        }
+      }
+      if(WEATHER.id==='mist')cx.drawImage(fogC,0,GY-230,VW,220);
       // 電柱と電線
       const PS=300, pOff=cam*.6;
       const i0=Math.floor((pOff-60)/PS), i1=Math.floor((pOff+VW+60)/PS);
@@ -1057,7 +1079,7 @@ registerMinigame({
         cx.fillStyle='rgba(138,82,212,.22)';cx.fillRect(x+2,top,1,230);
       }
       // ブロック塀
-      tile(wallC,cam,GY-36);
+      for(let wx=Math.floor(cam/64)*64;wx<cam+VW;wx+=64)cx.drawImage(wallC[stageAt(wx)],wx-cam,GY-36,64,36);
       // 街灯・自販機（近景・背面）
       const LS=430, l0=Math.floor((cam-220)/LS), l1=Math.floor((cam+VW+60)/LS);
       for(let i=l0;i<=l1;i++){
@@ -1243,6 +1265,9 @@ registerMinigame({
           g.beginPath();g.moveTo(x+60,GY-31);g.lineTo(x+60,GY-41);g.lineTo(x+78,GY-41);g.lineTo(x+88,GY-31);g.fill();
           g.fillStyle='rgba(190,170,255,.3)';g.fillRect(x+6,GY-30,o.w-14,1);
           g.fillStyle='#0a0814';g.beginPath();g.arc(x+22,GY-8,8,0,TAU);g.arc(x+82,GY-8,8,0,TAU);g.fill();
+          g.strokeStyle='#4a4468';g.lineWidth=1.2;g.beginPath();
+          for(const wx of [x+22,x+82])for(let k=0;k<3;k++){const a=o.anim*-14+k*2.09;g.moveTo(wx,GY-8);g.lineTo(wx+Math.cos(a)*5,GY-8+Math.sin(a)*5);}
+          g.stroke();
           g.fillStyle='#fffbe0';g.fillRect(x,GY-22,5,5);
           g.fillStyle='#e83055';g.fillRect(x+o.w-3,GY-24,3,6);
           break;
@@ -1884,7 +1909,7 @@ registerMinigame({
     if(ro)ro.observe(body);
     startDialog(INTRO,()=>wipe(()=>{phase='title';phaseT=0;sfx('stage','decide');}));
     mg.loop(dt=>{
-      update(dt);
+      update(Math.max(0,dt));
       if(mg._ended)return;
       draw();
       updateFooter();

@@ -125,12 +125,12 @@ addMinigameStyle('quiz',`
 .quiz-f-stamp.mid{color:#b07a10;border-color:#b07a10;}
 .quiz-f-stamp.low{color:#5a4c90;border-color:#5a4c90;}
 .quiz-f-areas{margin-top:12px;display:grid;gap:6px;}
-.quiz-f-row{display:grid;grid-template-columns:76px 1fr 54px;align-items:center;gap:6px;font-size:.72rem;}
+.quiz-f-row{display:grid;grid-template-columns:70px 1fr 66px;align-items:center;gap:6px;font-size:.72rem;}
 .quiz-f-lab{font-family:var(--dot);color:#3a2a58;}
 .quiz-f-bar{position:relative;height:12px;border-radius:2px;background:rgba(58,42,88,.14);overflow:hidden;}
 .quiz-f-bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--c);transition:width .9s cubic-bezier(.2,1,.3,1);}
 .quiz-f-bar::after{content:'';position:absolute;left:60%;top:-2px;bottom:-2px;border-left:2px dashed rgba(200,36,63,.7);}
-.quiz-f-val{font-family:var(--mono);color:#4a3c60;text-align:right;}
+.quiz-f-val{font-family:var(--mono);font-size:.66rem;color:#4a3c60;text-align:right;white-space:nowrap;}
 .quiz-f-cm{margin-top:10px;font-size:.78rem;line-height:1.7;color:#3a2a58;border-top:1px dashed rgba(58,42,88,.3);padding-top:8px;}
 .quiz-shake{animation:quiz-shake .38s;}
 .quiz-card.out{animation:quiz-cardout .26s cubic-bezier(.5,0,.8,.4) forwards;}
@@ -149,7 +149,7 @@ addMinigameStyle('quiz',`
 .quiz-title.off{opacity:0;pointer-events:none;}
 .quiz-logo{position:relative;padding:14px 18px 12px;}
 .quiz-logo-badge{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border:3px solid var(--rd);border-radius:12px;color:var(--rd);font-family:var(--dot);font-size:1.25rem;line-height:1;transform:rotate(-8deg);box-shadow:0 0 18px rgba(232,48,85,.6),inset 0 0 12px rgba(232,48,85,.3);background:rgba(30,6,14,.6);animation:quiz-stamp .5s .15s cubic-bezier(.3,1.4,.5,1) backwards;}
-.quiz-logo-badge span{display:block;font-size:.55rem;letter-spacing:.1em;margin-top:3px;}
+.quiz-logo-badge span{display:block;font-family:var(--mono);font-size:.5rem;letter-spacing:.04em;margin-top:4px;}
 .quiz-logo-ttl{font-family:var(--dot);font-size:1.9rem;letter-spacing:.1em;color:#fff6e0;text-shadow:0 0 10px rgba(255,190,110,.9),0 0 30px rgba(232,184,48,.6),0 3px 0 #2a1a40;margin-top:8px;animation:quiz-chin .6s .35s backwards;}
 .quiz-logo-ttl em{font-style:normal;color:var(--cy);text-shadow:0 0 10px var(--cy),0 0 26px var(--cy),0 3px 0 #002a26;}
 .quiz-logo-sub{font-family:var(--serif);font-size:.74rem;letter-spacing:.2em;color:var(--tx);animation:quiz-chin .6s .5s backwards;}
@@ -630,7 +630,7 @@ registerMinigame({
     // ── タイトル ──
     function showTitle(){
       const canMock=!!data.mockOpen;
-      elTitle.innerHTML=`<div class="quiz-logo"><div class="quiz-logo-badge"><div>乙④<span>KIKENBUTSU</span></div></div>
+      elTitle.innerHTML=`<div class="quiz-logo"><div class="quiz-logo-badge"><div>乙④<span>OTSU-4</span></div></div>
         <div class="quiz-logo-ttl">深夜の<em>一問一答</em></div><svg viewBox="0 0 210 12"><path d="M3 8 C 50 2, 120 12, 207 4"/></svg>
         <div class="quiz-logo-sub">危険物取扱者 乙種第4類</div></div>
         <div class="quiz-modes">

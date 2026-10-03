@@ -273,7 +273,7 @@ registerMinigame({
     const fnt=px=>`${Math.round(px)}px ${FONT}`;
     function wrapText(g,text,maxW){
       const out=[];let line='';
-      for(const ch of text){if(g.measureText(line+ch).width>maxW&&line){out.push(line);line=ch;}else line+=ch;}
+      for(const ch of text){if(g.measureText(line+ch).width>maxW&&line&&!'。、！？」…）'.includes(ch)){out.push(line);line=ch;}else line+=ch;}
       if(line)out.push(line);return out;
     }
 
@@ -472,6 +472,8 @@ registerMinigame({
       const gr=g.createLinearGradient(x,y,x,y+s);
       gr.addColorStop(0,who==='sakura'?'#3a1a3a':'#0c1a2a');gr.addColorStop(1,'#0a0716');
       g.fillStyle=gr;g.fillRect(x,y,s,s);
+      g.save();g.beginPath();g.rect(x,y,s,s);g.clip();
+      g.fillStyle='rgba(255,255,255,.04)';for(let i=0;i<s;i+=4)g.fillRect(x,y+i,s,1);
       const cxp=x+s/2,cy=y+s*.48+(talking?Math.sin(t*14)*s*.01:0);
       if(who==='sakura'){
         g.fillStyle='#ff8cc0';g.beginPath();g.ellipse(cxp,y+s*1.02,s*.38,s*.24,0,0,6.2832);g.fill(); // パーカー
@@ -488,6 +490,8 @@ registerMinigame({
         else{g.fillRect(cxp-s*.1,cy,s*.05,s*.07);g.fillRect(cxp+s*.05,cy,s*.05,s*.07);g.fillStyle='#fff';g.fillRect(cxp-s*.09,cy+s*.005,s*.02,s*.02);g.fillRect(cxp+s*.06,cy+s*.005,s*.02,s*.02);}
         g.fillStyle='rgba(255,110,150,.5)';g.fillRect(cxp-s*.15,cy+s*.08,s*.05,s*.025);g.fillRect(cxp+s*.1,cy+s*.08,s*.05,s*.025);
         g.fillStyle='#a03050';g.fillRect(cxp-s*.025,cy+s*.12,s*.05,talking&&Math.floor(t*10)%2?s*.03:s*.012);
+        g.fillStyle='#ff7ab0';g.fillRect(cxp-s*.23,cy-s*.02,s*.06,s*.22);g.fillRect(cxp+s*.17,cy-s*.02,s*.06,s*.22); // 横髪
+        g.strokeStyle='#ff7ab0';g.lineWidth=Math.max(1.5,s*.025);g.beginPath();g.moveTo(cxp,cy-s*.27);g.quadraticCurveTo(cxp+s*.08,cy-s*.4,cxp+s*.12,cy-s*.33);g.stroke(); // アホ毛
       }else{ // 深夜の常連：フードとヘッドホン
         g.fillStyle='#1c2a44';g.beginPath();g.ellipse(cxp,y+s*1.02,s*.42,s*.26,0,0,6.2832);g.fill();
         g.fillStyle='#22324e';circle(g,cxp,cy,s*.29);g.fill();g.fillRect(cxp-s*.29,cy,s*.58,s*.3);
@@ -500,6 +504,7 @@ registerMinigame({
         glow(g,cxp,cy+s*.03,s*.18,'cy',blink?.15:.35);
         g.fillStyle='#5a3a30';g.fillRect(cxp-s*.03,cy+s*.15,s*.06,talking&&Math.floor(t*10)%2?s*.025:s*.01);
       }
+      g.restore();
       g.strokeStyle=who==='sakura'?'#ff7ab8':'#00e8c8';g.lineWidth=2;g.strokeRect(x+1,y+1,s-2,s-2);
     }
     function drawPortrait(g,x,y,s,spk,face,t,talking){
@@ -1033,11 +1038,11 @@ registerMinigame({
     function drawPreview(g,t){
       if(phase!=='prep'||wave>=WAVES||bubble)return;
       const cnt={};WAVE_DEF[wave].g.forEach(([ty,n])=>{cnt[ty]=(cnt[ty]||0)+n;});
-      const keys=Object.keys(cnt),fs=Math.max(10,C*.19),iw=C*.95;
-      const w=keys.length*iw+C*.95,h=C*.62,x=laneKey==='B'?X(.15):X(6.85)-w,y=Y(.05);
+      const keys=Object.keys(cnt),fs=Math.max(10,C*.19),iw=C*.82;
+      const w=keys.length*iw+C*.85,h=C*.62,x=laneKey==='B'?X(.05):X(6.95)-w,y=Y(.03);
       g.fillStyle='rgba(8,5,20,.88)';rrect(g,x,y,w,h,4);g.fill();g.strokeStyle=wave+1===WAVES?'#ff7a28':'rgba(0,232,200,.6)';g.lineWidth=1;g.stroke();
       g.font=fnt(fs*.9);g.textAlign='left';g.textBaseline='middle';g.fillStyle=wave+1===WAVES?'#ff9a58':'#00e8c8';g.fillText('NEXT',x+5,y+h/2);
-      keys.forEach((k,i)=>{const ix=x+C*.95+i*iw,iy=y+h/2,r=C*.13*(k==='boss'?1.35:1);
+      keys.forEach((k,i)=>{const ix=x+C*.92+i*iw,iy=y+h/2,r=C*.13*(k==='boss'?1.35:1);
         g.fillStyle=PV[k];circle(g,ix,iy,r);g.fill();g.fillStyle='#fff';g.fillRect(ix-r*.5,iy-r*.25,r*.35,r*.35);g.fillRect(ix+r*.15,iy-r*.25,r*.35,r*.35);
         g.fillStyle='#e8dcff';g.fillText('×'+cnt[k],ix+r+3,iy);});
     }

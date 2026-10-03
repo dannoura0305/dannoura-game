@@ -2213,10 +2213,10 @@ registerMinigame({
         const c=RPG_CH[n];
         if(lockedToday(R)){
           const b=add(btn('rpg-btn',`${c.kan}「${c.title}」<small>続きは明日の夜に。今夜はもう夢を見た。</small>`,()=>{}));b.disabled=true;
-        }else add(btn('rpg-btn main',`▶ ${R.cleared?'つづきから':'はじめから'}　${c.kan}「${c.title}」<small>${c.place}</small>`,()=>go(n,false)));
+        }else add(btn('rpg-btn main',`${R.cleared?'つづきから':'はじめから'}　${c.kan}「${c.title}」<small>${c.place}</small>`,()=>go(n,false)));
       }else{
         const E=ENDS[R.ending]||ENDS.wake;
-        add(btn('rpg-btn main',`▶ エピローグ「${E.name}」<small>もう一度、あの朝を（報酬なし）</small>`,()=>epilogue()));
+        add(btn('rpg-btn main',`エピローグ「${E.name}」<small>もう一度、あの朝を（報酬なし）</small>`,()=>epilogue()));
       }
       if(R.cleared>=5||lockedToday(R)){
         const g=el('div','rpg-grid2');bw.appendChild(g);

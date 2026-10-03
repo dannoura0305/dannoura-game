@@ -268,7 +268,7 @@ registerMinigame({
     const REC=(gs.escapeData=Object.assign({plays:0,clears:0,bestLeft:0,bestGrade:'',grades:{}},gs.escapeData||{}));
     const TWIST=REC.clears>0;                        // 一度クリアすると「二夜目」：発電機の始動が加わる
     const S={
-      room:'ctrl',inv:[],sel:null,left:TIME,started:false,hints:0,
+      room:'ctrl',inv:[],sel:null,left:TIME+(TWIST?30:0),started:false,hints:0,
       drawer:false,gotBatt:false,torch:false,gotDriver:false,locker:false,gotKey:false,
       panel:false,bOn:[],power:false,plcCover:false,x:[false,false,false,false],plcOk:false,
       valve:-1,air:false,door:false,seen:{},
@@ -293,7 +293,7 @@ registerMinigame({
           ${TWIST?'<div class="esc-tw">二夜目 ― 非常用発電機が止まっている</div>':''}
           <div class="esc-rec">${recLine}</div>
           <button class="ev-btn esc-start">はじめる</button>
-          <div class="esc-rec">制限時間 4:30 ／ ヒント3回まで</div>
+          <div class="esc-rec">制限時間 ${TWIST?"5:00":"4:30"} ／ ヒント3回まで</div>
         </div>
       </div>
       <div class="esc-inv">${[0,1,2,3,4].map(i=>`<button class="esc-slot" data-slot="${i}"></button>`).join('')}<button class="esc-hint">ヒント<br>残3</button></div>
@@ -370,6 +370,21 @@ registerMinigame({
     const city=Array.from({length:26},()=>({x:R0(),y:.55+R0()*.45,c:['#e83055','#00e8c8','#e8b830','#8a52d4','#8af'][Math.floor(R0()*5)],b:R0()}));
     const dust=Array.from({length:60},()=>({x:R0(),y:R0(),vx:(R0()-.5)*.012,vy:(R0()-.3)*.01,s:.5+R0()*1.6,p:R0()*6}));
     const stains=Array.from({length:8},()=>({x:R0(),y:R0()*.6,r:.05+R0()*.12}));
+    const rusts=Array.from({length:7},()=>({x:R0(),y:.05+R0()*.3,l:.08+R0()*.25,w:.006+R0()*.014}));
+    // 壁と床のざらつき（ノイズのパターン）
+    const grain=document.createElement('canvas');grain.width=grain.height=96;
+    {const g=grain.getContext('2d'),id=g.createImageData(96,96);for(let i=0;i<id.data.length;i+=4){const v=R0()*255;id.data[i]=id.data[i+1]=id.data[i+2]=v;id.data[i+3]=38;}g.putImageData(id,0,0);
+     g.fillStyle='rgba(0,0,0,.25)';for(let k=0;k<40;k++)g.fillRect(R0()*96,R0()*96,1+R0()*3,1);}
+    let grainPat=null;
+    // 粒子（入手・解錠の演出）と天井からの雫
+    const parts=[];
+    function burstAt(room,id,rgb,n){
+      let x=lx,y=ly;
+      if(id){const h=hsById(room,id);if(h){x=h.x+h.w/2;y=h.y+h.h/2;}}
+      for(let i=0;i<n;i++){const a=Math.random()*6.28,v=.08+Math.random()*.3;parts.push({room,x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-.1,l:.6+Math.random()*.7,rgb,s:1+Math.random()*2.2});}
+    }
+    const DRIP={ctrl:.66,store:.45,locker:.69,exit:.6};
+    let drip={y:-1,t:1.5,sp:0},splash=null;
 
     // ── 当たり判定（正規化座標） ──
     const HS={
@@ -429,8 +444,9 @@ registerMinigame({
       $('.esc-rn').textContent=RNAME[S.room];$('.esc-rs').textContent=RSUB[S.room];
       body.querySelectorAll('.esc-map i').forEach((e,k)=>e.classList.toggle('on',k===i));
     }
-    function progress(){return [S.torch,S.locker,S.power,S.plcOk,S.air].filter(Boolean).length;}
-    function updScore(){mg.setScore(`進捗 <span style="color:var(--cy)">${progress()}/5</span>　ヒント ${S.hints}/3`);}
+    const PMAX=TWIST?6:5;
+    function progress(){return [S.torch,S.locker,S.power,S.plcOk,S.air].filter(Boolean).length+(TWIST&&S.gen?1:0);}
+    function updScore(){mg.setScore(`進捗 <span style="color:var(--cy)">${progress()}/${PMAX}</span>　ヒント ${S.hints}/3`);}
     function renderInv(newId){
       body.querySelectorAll('.esc-slot').forEach((b,i)=>{
         const id=S.inv[i];
@@ -438,32 +454,37 @@ registerMinigame({
         b.dataset.item=id||'';
         b.title=id?ITEMS[id].name:'';
         b.classList.toggle('sel',!!id&&S.sel===id);
-        b.classList.remove('new');
+        b.classList.remove('new');b.classList.toggle('tut',S.tut===2&&i===0&&!!id);
         if(id&&id===newId){void b.offsetWidth;b.classList.add('new');}
       });
       const h=$('.esc-hint');h.innerHTML=`ヒント<br>残${3-S.hints}`;h.disabled=S.hints>=3||!S.started||S.door;
       updScore();
     }
-    function addItem(id,text){S.inv.push(id);S.sel=null;AU.se('tool');renderInv(id);if(text)say(text);}
+    function addItem(id,text,h){
+      const tut=S.tut===1&&id==='torch0';if(tut){S.tut=2;S.tutT=9;}
+      S.inv.push(id);S.sel=null;AU.se('tool');sfx('pick');renderInv(id);if(text)say(text);if(h)burstAt(S.room,h.id,'0,232,200',16);
+      if(tut)setTimeout(()=>{if(!mg._ended&&S.tut===2)say('拾った物は下の<b>持ち物</b>に入る。<b>タップで選んで</b>→場所をタップで使う。持ち物どうしは<b>組み合わせ</b>られる。',6);},3200);
+    }
     function removeItem(id){S.inv=S.inv.filter(x=>x!==id);if(S.sel===id)S.sel=null;renderInv();}
     function tapItem(id){
-      if(!id||!S.started||S.door)return;
+      if(!id||!S.started||S.door||S.over)return;
       if(S.sel&&S.sel!==id){
         const pair=[S.sel,id].sort().join('+');
         if(pair==='batt+torch0'){
           S.inv=S.inv.filter(x=>x!=='batt'&&x!=='torch0');S.inv.push('torch');S.sel=null;S.torch=true;
-          AU.se('repair');renderInv('torch');
+          AU.se('repair');sfx('click');renderInv('torch');burstAt(S.room,null,'255,214,150',18);
           say('電池を入れて……カチッ。<b>懐中電灯</b>が点いた！ 光の輪が大きくなった。');
           return;
         }
         AU.se('back');say(`${ITEMS[S.sel].name}と${ITEMS[id].name}は組み合わせられない。`);S.sel=null;renderInv();return;
       }
+      if(S.tut===2)S.tut=0;
       if(S.sel===id){S.sel=null;AU.se('back');renderInv();return;}
       S.sel=id;AU.se('btn');renderInv();
       say(`<b>${ITEMS[id].name}</b>：${ITEMS[id].desc}<br><span style="color:var(--tx-d);font-size:.66rem">場所をタップで使う／持ち物をタップで組み合わせ</span>`,3.5);
     }
     function goRoom(d){
-      if(trans||!S.started||S.door)return;
+      if(trans||!S.started||S.door||S.over)return;
       const i=ROOMS.indexOf(S.room)+d;
       if(i<0||i>=ROOMS.length)return;
       closeZoom(true);
@@ -660,11 +681,11 @@ registerMinigame({
     function tryDial(){
       const box=zc.querySelector('.esc-dial');
       if(S.dial.join('')===P.code){
-        box.classList.add('ok');AU.se('decide');
-        setTimeout(()=>{if(mg._ended)return;closeZoom(true);S.locker=true;
-          addItem('key','ガチャッ。ロッカーが開いた。<b>盤キー</b>を手に入れた。……扉の裏に、息子と撮った写真。');S.gotKey=true;updScore();},700);
+        box.classList.add('ok');AU.se('decide');sfx('unlock');
+        setTimeout(()=>{if(mg._ended)return;closeZoom(true);S.locker=true;sfx('creak');
+          addItem('key','ガチャッ。ロッカーが開いた。<b>盤キー</b>を手に入れた。……扉の裏に、息子と撮った写真。',hsById('locker','own'));S.gotKey=true;updScore();},700);
       }else{
-        box.classList.remove('ng');void box.offsetWidth;box.classList.add('ng');AU.se('warn');
+        box.classList.remove('ng');void box.offsetWidth;box.classList.add('ng');AU.se('warn');sfx('clunk');
         say('……開かない。番号が違う。');
       }
     }
@@ -689,9 +710,9 @@ registerMinigame({
       if(!S.gen){AU.se('back');sfx('clunk');say('レバーは入るが……電圧計がゼロ。<b>発電機が止まっている</b>。');return;}
       const need=P.order[S.bOn.length];
       if(code===need){
-        S.bOn.push(code);AU.se('tool');renderZoom();
+        S.bOn.push(code);AU.se('tool');sfx('clunk');renderZoom();
         if(S.bOn.length===P.order.length){
-          S.power=true;S.powerT=T;AU.se('machine');updScore();
+          S.power=true;S.powerT=T;AU.se('machine');sfx('power');burstAt('ctrl','panel','255,230,150',30);updScore();
           say('ウゥゥン……非常用発電機から給電。<b>照明が点いた！</b> コンプレッサーも回りだした。',5);
           setTimeout(()=>{if(!mg._ended&&zoomId==='breakers')closeZoom(true);},1100);
         }
@@ -699,17 +720,17 @@ registerMinigame({
         const box=zc.querySelector('.esc-brk');
         S.bOn.push(code);renderZoom();
         AU.se('warn');flash=.6;
-        setTimeout(()=>{if(mg._ended)return;S.bOn=[];renderZoom();const bx=zc.querySelector('.esc-brk');if(bx){bx.classList.add('trip');}AU.se('noise');
+        setTimeout(()=>{if(mg._ended)return;S.bOn=[];renderZoom();const bx=zc.querySelector('.esc-brk');if(bx){bx.classList.add('trip');}AU.se('noise');sfx('trip');
           say('<b>バチン！</b> トリップして全部落ちた。投入順が違う……結線図を見直そう。');},180);
       }
     }
     function tapSwitch(i){
       if(!S.power){AU.se('back');say('PLCに電源が来ていない。先に分電盤だ。');return;}
       if(S.plcOk)return;
-      S.x[i]=!S.x[i];AU.se('btn');
+      S.x[i]=!S.x[i];AU.se('btn');sfx('click');
       const outs=P.rungs.map(r=>!!P.ev(r,S.x));
       if(outs.join()===P.target.map(Boolean).join()){
-        S.plcOk=true;AU.se('decide');updScore();
+        S.plcOk=true;AU.se('decide');sfx('unlock');updScore();
         say('出力パターン一致。……遠くで<b>ガチャン</b>。非常口の電気錠が外れた音だ。',5);
       }
       renderZoom();
@@ -717,10 +738,10 @@ registerMinigame({
     function tapValve(i){
       if(!S.power||S.air)return;
       if(i===P.vOk){
-        S.valve=i;S.air=true;AU.se('repair');renderZoom();updScore();
+        S.valve=i;S.air=true;AU.se('repair');sfx('hiss');setTimeout(()=>sfx('rumble'),500);renderZoom();updScore();
         say('シューッ……系統'+'ABC'[i]+'を開いた。非常口のほうで<b>シャッターが上がる音</b>がする。',5);
       }else{
-        S.valve=i;renderZoom();AU.se('noise');S.left=Math.max(1,S.left-10);
+        S.valve=i;renderZoom();AU.se('noise');sfx('hiss');S.left=Math.max(1,S.left-10);
         say('<b>プシューッ！</b> 違う系統だ、圧が抜ける……慌てて閉めた。（残り時間−10秒）');
         setTimeout(()=>{if(mg._ended)return;if(S.valve===i&&!S.air){S.valve=-1;renderZoom();}},1300);
       }
@@ -736,33 +757,44 @@ registerMinigame({
         case 'ctrl/roster':if(it)return no();return openZoom('roster');
         case 'ctrl/panel':
           if(S.panel)return openZoom('breakers');
-          if(it==='key'){removeItem('key');S.panel=true;AU.se('decide');say('盤キーで分電盤の扉を開けた。');setTimeout(()=>{if(!mg._ended&&S.room==='ctrl')openZoom('breakers');},600);return;}
+          if(it==='key'){removeItem('key');S.panel=true;AU.se('decide');sfx('unlock');setTimeout(()=>sfx('creak'),250);say('盤キーで分電盤の扉を開けた。');setTimeout(()=>{if(!mg._ended&&S.room==='ctrl')openZoom('breakers');},600);return;}
           if(it)return no();
           return say('分電盤 LP-1。扉は<b>施錠</b>されている。三角の<b>盤キー</b>が要る。……鍵はたしか自分のロッカーに。');
         case 'ctrl/plc':
           if(S.plcCover)return openZoom('plc');
-          if(it==='driver'){removeItem('driver');S.plcCover=true;AU.se('repair');say('ネジを4本外して、PLC盤のカバーを開けた。');setTimeout(()=>{if(!mg._ended&&S.room==='ctrl')openZoom('plc');},600);return;}
+          if(it==='driver'){removeItem('driver');S.plcCover=true;AU.se('repair');sfx('click');setTimeout(()=>sfx('clunk'),400);say('ネジを4本外して、PLC盤のカバーを開けた。');setTimeout(()=>{if(!mg._ended&&S.room==='ctrl')openZoom('plc');},600);return;}
           if(it)return no();
           return say('PLC盤。電気錠の制御はここだ。カバーが<b>ネジ止め</b>されている。');
         case 'ctrl/desk':
           if(it)return no();
-          if(!S.drawer){S.drawer=true;addItem('torch0','引き出しに<b>懐中電灯</b>。……スイッチを入れても点かない。電池が空だ。');return;}
+          if(!S.drawer){S.drawer=true;sfx('creak');addItem('torch0','引き出しに<b>懐中電灯</b>。……スイッチを入れても点かない。電池が空だ。',h);return;}
           return say('机には息子が描いた「パパのこうじょう」の絵が貼ってある。煙突から虹が出ている。');
         case 'store/shelf':
           if(it)return no();
-          if(!S.gotBatt){S.gotBatt=true;addItem('batt','部品箱に新品の<b>単三電池</b>があった。');return;}
+          if(!S.gotBatt){S.gotBatt=true;addItem('batt','部品箱に新品の<b>単三電池</b>があった。',h);return;}
           return say('ベアリング、Vベルト、近接センサの予備……在庫表と数が合わないのはいつものことだ。');
         case 'store/board':
           if(it)return no();
           if(!S.torch)return say('工具板だ。でも暗くてどれが何だか……<b>スマホの明かりじゃ心もとない</b>。');
-          if(!S.gotDriver){S.gotDriver=true;addItem('driver','<b>プラスドライバー</b>を手に入れた。');return;}
+          if(!S.gotDriver){S.gotDriver=true;addItem('driver','<b>プラスドライバー</b>を手に入れた。',h);return;}
           return say('スパナ、モンキー、ウォーターポンププライヤー。定位置管理は大事。');
         case 'store/tank':
           if(it)return no();
           if(!S.torch)return say('エアタンクの圧力計……<b>スマホの光じゃ針が読めない</b>。');
           return openZoom('tank');
         case 'store/valves':if(it)return no();return openZoom('valves');
-        case 'store/pallet':return say('出荷待ちのパレット。フォークリフトのキーは……事務所の金庫だ。');
+        case 'store/pallet':
+          if(it)return no();
+          if(TWIST&&!S.gotFuel){S.gotFuel=true;addItem('fuel','パレットの陰に<b>軽油の携行缶</b>。発電機に使える。',h);return;}
+          return say('出荷待ちのパレット。フォークリフトのキーは……事務所の金庫だ。');
+        case 'store/oldmemo':if(it)return no();return openZoom('oldmemo');
+        case 'ctrl/memo':if(it)return no();return openZoom('memo');
+        case 'exit/gen':
+          if(!S.fueled){
+            if(it==='fuel'){removeItem('fuel');S.fueled=true;AU.se('repair');sfx('hiss');say('トクトクトク……<b>軽油を給油</b>した。');setTimeout(()=>{if(!mg._ended&&S.room==='exit')openZoom('gen');},700);return;}
+            if(it)return no();
+          }else if(it)return no();
+          return openZoom('gen');
         case 'locker/lk0':case 'locker/lk1':case 'locker/lk3':
           if(it)return no();
           return say(`${NAMES[+h.id[2]]}さんのロッカー。他人のは開けられない。`);
@@ -785,8 +817,44 @@ registerMinigame({
     }
     function openDoor(){
       if(S.door)return;
-      S.door=true;S.clearT=T;AU.se('ach');renderInv();updScore();
+      S.door=true;S.clearT=T;AU.se('ach');sfx('door');renderInv();updScore();closeZoom(true);
       say('扉を押し開ける。冷たい朝の空気。雨はもう上がりかけている。',4);
+    }
+    // ── 評価と記録 ──
+    function grade(){const l=S.left,h=S.hints;if(h===0&&l>=100)return 'S';if(h<=1&&l>=60)return 'A';if(h<=2&&l>=20)return 'B';return 'C';}
+    let prevBest=REC.bestLeft,prevGrade=REC.bestGrade;
+    function record(outcome){
+      if(S.recorded)return;S.recorded=true;
+      REC.plays++;
+      if(outcome==='clear'){
+        const g=grade();REC.clears++;REC.grades[g]=(REC.grades[g]||0)+1;REC.last=g;
+        if(S.left>REC.bestLeft)REC.bestLeft=Math.ceil(S.left);
+        if(!REC.bestGrade||'SABC'.indexOf(g)<'SABC'.indexOf(REC.bestGrade))REC.bestGrade=g;
+      }else REC.last=outcome;
+      gs.escapeData=REC;
+    }
+    function endingClear(){
+      if(S.over)return;S.over='clear';closeZoom(true);rainStop();
+      const g=grade(),nb=Math.ceil(S.left)>prevBest;
+      const cm={S:'完璧な段取り。ベテランの仕事だ。',A:'手際よし。設備屋の面目躍如。',B:'無事に脱出。次はもっと速く。',C:'ぎりぎり間に合った……。'}[g];
+      record('clear');
+      dialog([
+        {text:'雨上がりの朝。駐車場の水たまりに、うすい青空が映っている。'},
+        {who:'だんのうら',img:S.hints?'char_happy':'char_win',text:S.hints?'……間に合った。さあ、迎えに行こう。':'……ヒントなしで抜けた。岩城さん、見てたかな。'},
+        {who:'',text:'お隣さんの玄関で、息子が眠そうに手を振っていた。「パパ、おかえり」'},
+        {who:'RESULT',text:`<div class="esc-grade"><div class="g" style="color:${GRADE_COL[g]}">${g}</div><div class="i">残り時間 ${fmt(S.left)}<br>ヒント ${S.hints}回${TWIST?'<br>二夜目（発電機）':''}<br>${nb?'<span style="color:var(--gd)">★ 自己ベスト更新</span>':'自己ベスト 残り'+fmt(prevBest)}</div></div><div style="text-align:center;font-family:var(--dot);font-size:.74rem;color:var(--tx-b)">${cm}</div>`,
+          fx:()=>{AU.se('rank');setTimeout(()=>sfx('clunk'),420);},btn:'リザルトへ',onBtn:()=>mg.end('clear')},
+      ]);
+    }
+    function endingTimeup(){
+      if(S.over)return;S.over='timeup';closeZoom(true);rainStop();record('timeup');
+      dialog([
+        {text:'窓の外が白み……やがて、照明が一斉に戻った。',fx:()=>{flash=1;AU.se('machine');sfx('power');}},
+        {who:'だんのうら',img:'char_tired',text:'……結局、朝まで出られなかったか。'},
+        {who:'だんのうら',img:'char_tired',text:'お隣さんに電話しないと。……ごめんな、パパ遅くなる。'},
+        {who:'RESULT',text:`<div class="esc-grade"><div class="g" style="color:var(--rd);font-size:1.6rem">失敗</div><div class="i">進捗 ${progress()}/${PMAX}<br>ヒント ${S.hints}回</div></div><div style="text-align:center;font-family:var(--dot);font-size:.72rem;color:var(--tx)">配置は毎回変わる。次の夜にまた挑もう。</div>`,
+          fx:()=>AU.se('warn'),btn:'リザルトへ',onBtn:()=>mg.end('timeup')},
+      ]);
     }
 
     // ── 入力 ──
@@ -803,7 +871,7 @@ registerMinigame({
     cv.addEventListener('pointerdown',e=>{
       e.preventDefault();
       const [x,y]=toNorm(e);tlx=x;tly=y;
-      if(!S.started||trans||S.door)return;
+      if(!S.started||trans||S.door||S.over)return;
       ripple={x,y,t:0};
       const h=hitAt(x,y);
       if(h)tapHotspot(h);
@@ -812,9 +880,20 @@ registerMinigame({
     body.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>goRoom(+b.dataset.nav)));
     body.querySelectorAll('.esc-slot').forEach(b=>b.addEventListener('click',()=>tapItem(b.dataset.item)));
     $('.esc-hint').addEventListener('click',useHint);
+    let introGo=false;
     $('.esc-start').addEventListener('click',()=>{
-      if(S.started)return;S.started=true;AU.se('decide');$('.esc-intro').classList.add('off');renderInv();
-      say('真っ暗だ。スマホのライトだけが頼り。……まずは明かりを探そう。');
+      if(introGo)return;introGo=true;AU.se('decide');$('.esc-intro').classList.add('off');
+      const lines=[
+        {text:'午前4時半。夜勤明け。制御室で日報を書き終えた、そのとき――'},
+        {text:'ドォン!!　落雷。工場じゅうの明かりが一斉に消えた。',fx:()=>{flash=1;flashEl.style.transition='none';flashEl.style.opacity='.7';requestAnimationFrame(()=>{flashEl.style.transition='opacity 1.2s';flashEl.style.opacity='0';});AU.se('noise');sfx('thunder');}},
+        {who:'だんのうら',img:'char_fear',text:'……停電!? 電気錠もシャッターも、閉じたまま止まってる……'},
+      ];
+      if(TWIST)lines.push({who:'だんのうら',img:'char_tired',text:'また雷か……。しかも今夜は、非常用発電機まで止まってる。'});
+      lines.push({who:'だんのうら',img:'char_normal',text:'7時には、お隣さんに息子を迎えに行く約束だ。……設備屋の意地、見せてやる。'});
+      dialog(lines,()=>{
+        S.started=true;S.tut=1;renderInv();rainStart();
+        say('暗闇だ。光の中で<b>枠が出る場所をタップで調べる</b>。まずは足もとの<b>机</b>から。',6);
+      });
     });
     mg.onKey(e=>{
       if(e.type!=='keydown')return;
@@ -838,6 +917,13 @@ registerMinigame({
       cx.strokeStyle='rgba(0,0,0,.35)';cx.lineWidth=1;
       for(let i=1;i<5;i++){cx.beginPath();cx.moveTo(X(i*.2),Y(.035));cx.lineTo(X(i*.2),fy);cx.stroke();}
       stains.forEach(s=>{const g=cx.createRadialGradient(X(s.x),Y(s.y),0,X(s.x),Y(s.y),X(s.r));g.addColorStop(0,'rgba(0,0,0,.22)');g.addColorStop(1,'rgba(0,0,0,0)');cx.fillStyle=g;cx.fillRect(0,0,W,fy);});
+      // 錆の垂れ
+      rusts.forEach(r=>{const g=cx.createLinearGradient(0,Y(r.y),0,Y(r.y+r.l));g.addColorStop(0,'rgba(140,70,30,.38)');g.addColorStop(1,'rgba(120,60,30,0)');cx.fillStyle=g;cx.fillRect(X(r.x),Y(r.y),X(r.w),Y(r.l));cx.fillStyle='rgba(90,50,30,.6)';cx.beginPath();cx.arc(X(r.x+r.w/2),Y(r.y),Math.max(1.5,X(.005)),0,7);cx.fill();});
+      // 腰壁ライン
+      cx.fillStyle='rgba(0,0,0,.22)';cx.fillRect(0,Y(.58),W,fy-Y(.58));cx.fillStyle='rgba(255,255,255,.04)';cx.fillRect(0,Y(.58),W,1.5);
+      // たるんだケーブル
+      cx.strokeStyle='#0c0a12';cx.lineWidth=Math.max(2,W*.007);cx.beginPath();cx.moveTo(0,Y(.05));cx.quadraticCurveTo(X(.25),Y(.11),X(.5),Y(.05));cx.stroke();
+      cx.strokeStyle='#2a1a1a';cx.lineWidth=Math.max(1.5,W*.004);cx.beginPath();cx.moveTo(X(.45),Y(.04));cx.quadraticCurveTo(X(.75),Y(.09),W,Y(.045));cx.stroke();
       // 天井の配管
       cx.fillStyle='#0a0814';cx.fillRect(0,0,W,Y(.035));
       cx.fillStyle=grad(Y(.012),Y(.03),'#3a3548','#16131f');cx.fillRect(0,Y(.012),W,Y(.018));
@@ -849,6 +935,11 @@ registerMinigame({
       for(let i=-9;i<=9;i++){const x0=W/2+i*W*.13;const t=(fy-H)/(vy-H);cx.beginPath();cx.moveTo(x0+(vx-x0)*t,fy);cx.lineTo(x0,H);cx.stroke();}
       for(let k=1;k<8;k++){const y=fy+(H-fy)*Math.pow(k/8,1.7);cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();}
       cx.fillStyle='#08060f';cx.fillRect(0,fy-3,W,5);
+      if(!grainPat)grainPat=cx.createPattern(grain,'repeat');
+      cx.fillStyle=grainPat;cx.fillRect(0,0,W,H);
+      // 床のひび・油じみ
+      cx.strokeStyle='rgba(0,0,0,.45)';cx.lineWidth=1;cx.beginPath();cx.moveTo(X(.12),Y(.9));cx.lineTo(X(.2),Y(.87));cx.lineTo(X(.23),Y(.93));cx.moveTo(X(.8),Y(.95));cx.lineTo(X(.86),Y(.9));cx.stroke();
+      cx.fillStyle='rgba(20,14,30,.6)';cx.beginPath();cx.ellipse(X(.3),Y(.95),X(.08),Y(.012),0,0,7);cx.fill();
       // 床の濡れた反射
       const g=cx.createLinearGradient(0,fy,0,H);g.addColorStop(0,'rgba(140,120,200,.06)');g.addColorStop(1,'rgba(0,0,0,0)');cx.fillStyle=g;cx.fillRect(0,fy,W,H-fy);
     }
@@ -878,7 +969,12 @@ registerMinigame({
       rain.forEach(r=>{const ry=(r.y+T*r.v)%1.2-.1;cx.moveTo(x+r.x*w,y+ry*hh);cx.lineTo(x+r.x*w-w*.02,y+(ry+r.l)*hh);});cx.stroke();
       // ガラスを伝う雫
       cx.globalAlpha=a*.6;cx.fillStyle='#c8d4ff';
-      drips.forEach(d=>{const dy=(d.y+T*d.v)%1;cx.beginPath();cx.arc(x+d.x*w,y+dy*hh,d.r*W*.004+1,0,7);cx.fill();cx.globalAlpha=a*.2;cx.fillRect(x+d.x*w-.5,y+(dy-.15)*hh,1,hh*.15);cx.globalAlpha=a*.6;});
+      drips.forEach(d=>{const dy=(d.y+T*d.v)%1,px=x+d.x*w,py=y+dy*hh,r=d.r*W*.003+.8;
+        cx.globalAlpha=a*.12;cx.fillRect(px-.4,py-hh*.12,.8,hh*.12);
+        cx.globalAlpha=a*.45;cx.fillStyle='#8090c0';cx.beginPath();cx.ellipse(px,py,r,r*1.3,0,0,7);cx.fill();
+        cx.globalAlpha=a*.8;cx.fillStyle='#e8f0ff';cx.fillRect(px-r*.4,py-r*.6,Math.max(.8,r*.5),Math.max(.8,r*.5));});
+      // ガラスの曇り
+      cx.globalAlpha=1;const fg=cx.createLinearGradient(0,y+hh*.6,0,y+hh);fg.addColorStop(0,'rgba(120,130,170,0)');fg.addColorStop(1,`rgba(120,130,170,${a*.18})`);cx.fillStyle=fg;cx.fillRect(x,y,w,hh);
       cx.restore();cx.globalAlpha=1;
       // 枠をもう一度（emissiveで上書きしたので）
       cx.strokeStyle='rgba(40,36,56,.9)';cx.lineWidth=Math.max(3,W*.012);cx.strokeRect(x,y,w,hh);
@@ -987,6 +1083,15 @@ registerMinigame({
       cx.fillStyle='#2a2438';cx.fillRect(x+w*.18,y+h*.05,w*.06,h*.42);
       // 配線ダクト
       cx.fillStyle='#2c2838';cx.fillRect(X(.73),Y(.04),X(.02),Y(.68));
+      for(let k=0;k<6;k++){cx.fillStyle='#1c1a26';cx.fillRect(X(.725),Y(.08+k*.11),X(.03),Y(.008));}
+      // 申し送りのクリップボード
+      [x,y,w,h]=RX(hsById('ctrl','memo'));
+      cx.fillStyle='#222';cx.beginPath();cx.arc(x+w/2,y-2,2,0,7);cx.fill();
+      cx.save();cx.translate(x+w/2,y);cx.rotate(-.05+Math.sin(T*.8)*.012);
+      cx.fillStyle='#6a4a2c';rr(-w*.42,0,w*.84,h*.95,2);cx.fill();cx.fillStyle='#ece6d4';cx.fillRect(-w*.36,h*.12,w*.72,h*.78);
+      cx.fillStyle='#9a9aa6';rr(-w*.18,-h*.03,w*.36,h*.12,2);cx.fill();
+      cx.fillStyle='#3a3046';for(let k=0;k<5;k++)cx.fillRect(-w*.3,h*(.24+k*.12),w*(.5-(k%2)*.15),1.4);
+      cx.fillStyle='#a0203c';cx.fillRect(-w*.3,h*.78,w*.18,1.6);cx.restore();
     }
     function emisCtrl(){
       windowOutside(hsById('ctrl','window'),.85);
@@ -1071,6 +1176,18 @@ registerMinigame({
       cx.fillStyle='#6a4a2a';cx.fillRect(x,y+h*.8,w,h*.2);cx.fillStyle='#3a2a1a';for(let i=0;i<4;i++)cx.fillRect(x+w*(.05+i*.3),y+h*.85,w*.1,h*.15);
       cx.fillStyle='#8a6a44';cx.fillRect(x+w*.05,y+h*.1,w*.42,h*.7);cx.fillStyle='#7a5a3a';cx.fillRect(x+w*.5,y+h*.3,w*.42,h*.5);
       cx.fillStyle='rgba(200,220,255,.15)';cx.fillRect(x+w*.05,y+h*.1,w*.87,h*.06);
+      // 床に落ちた古い手帳
+      [x,y,w,h]=RX(hsById('store','oldmemo'));
+      cx.save();cx.translate(x+w/2,y+h*.55);cx.rotate(-.18);
+      cx.fillStyle='rgba(0,0,0,.4)';cx.fillRect(-w*.32,-h*.2,w*.66,h*.5);
+      cx.fillStyle='#4a2a1c';cx.fillRect(-w*.34,-h*.3,w*.62,h*.5);cx.fillStyle='#d8ccaa';cx.fillRect(-w*.3,-h*.26,w*.27,h*.42);cx.fillRect(-w*.01,-h*.26,w*.27,h*.42);
+      cx.fillStyle='#5a4a3a';for(let k=0;k<3;k++){cx.fillRect(-w*.26,-h*(.16-k*.1),w*.2,1);cx.fillRect(w*.03,-h*(.16-k*.1),w*.2,1);}
+      cx.restore();
+      if(TWIST&&!S.gotFuel){
+        [x,y,w,h]=RX(hsById('store','pallet'));
+        cx.fillStyle='#b02030';cx.fillRect(x+w*.62,y-h*.05,w*.22,h*.35);cx.fillStyle='#e03848';cx.fillRect(x+w*.64,y-h*.02,w*.18,h*.3);
+        cx.strokeStyle='#b02030';cx.lineWidth=2;cx.strokeRect(x+w*.66,y-h*.16,w*.08,h*.1);cx.fillStyle='#e8b830';cx.fillRect(x+w*.66,y+h*.08,w*.14,h*.1);
+      }
       // 誘導矢印
       cx.fillStyle='#1a3a2a';cx.fillRect(X(.82),Y(.76),X(.14),Y(.05));
     }
@@ -1169,6 +1286,24 @@ registerMinigame({
       cx.strokeStyle='#1a3a5a';cx.lineWidth=Math.max(2,W*.008);cx.beginPath();cx.moveTo(x+w*.5,y+h*.9);cx.quadraticCurveTo(x+w*.5,Y(FLOOR+.02),X(.0),Y(FLOOR-.02));cx.stroke();
       // 水たまり
       cx.fillStyle='rgba(60,80,110,.25)';cx.beginPath();cx.ellipse(X(.62),Y(.86),X(.2),Y(.03),0,0,7);cx.fill();
+      // 消火器
+      cx.fillStyle='#c02030';rr(X(.06),Y(.74),X(.06),Y(.11),4);cx.fill();cx.fillStyle='#222';cx.fillRect(X(.075),Y(.72),X(.03),Y(.025));cx.fillStyle='#eee';cx.fillRect(X(.065),Y(.78),X(.04),Y(.03));
+      if(TWIST){
+        [x,y,w,h]=RX(hsById('exit','gen'));
+        const vib=S.gen?Math.sin(T*60)*.8:0;
+        shadow(x+w/2,y+h,w*.7);
+        cx.save();cx.translate(vib,0);
+        cx.fillStyle=grad(y+h*.15,y+h,'#c8a020','#7a5a10');rr(x,y+h*.15,w,h*.8,3);cx.fill();
+        cx.strokeStyle='#3a2a08';cx.lineWidth=1.5;cx.stroke();
+        cx.fillStyle='#2a2208';for(let k=0;k<6;k++)cx.fillRect(x+w*.08,y+h*(.3+k*.07),w*.45,h*.025);
+        cx.fillStyle='#222';rr(x+w*.6,y+h*.28,w*.32,h*.36,2);cx.fill();
+        cx.fillStyle='#ddd';cx.beginPath();cx.arc(x+w*.76,y+h*.4,w*.09,0,7);cx.fill();
+        const fv=S.fueled?(S.gen?.9:.7):.03,fa=(135+270*fv)*Math.PI/180;cx.strokeStyle='#b01828';cx.lineWidth=1.2;cx.beginPath();cx.moveTo(x+w*.76,y+h*.4);cx.lineTo(x+w*.76+Math.cos(fa)*w*.07,y+h*.4+Math.sin(fa)*w*.07);cx.stroke();
+        cx.fillStyle='#e8e0cc';cx.fillRect(x+w*.08,y+h*.78,w*.5,h*.1);
+        cx.fillStyle='#444';cx.fillRect(x+w*.15,y+h*.05,w*.1,h*.12);
+        cx.restore();
+        if(S.gen){for(let k=0;k<3;k++){const ph=(T*.6+k/3)%1;cx.fillStyle=`rgba(120,120,130,${.25*(1-ph)})`;cx.beginPath();cx.arc(x+w*.2+ph*w*.1,y+h*.05-ph*h*.5,w*(.05+ph*.12),0,7);cx.fill();}}
+      }
     }
     function emisExit(){
       let [x,y,w,h]=RX(hsById('exit','sign'));
@@ -1183,6 +1318,7 @@ registerMinigame({
       txt('非常口',x+w*.66,y+h*.52,Math.min(h*.6,W*.04),'#e8fff0');
       // 水たまりの反射
       cx.fillStyle=`rgba(68,238,136,${.12*fl})`;cx.beginPath();cx.ellipse(X(.5),Y(.86),X(.12),Y(.012),0,0,7);cx.fill();
+      if(TWIST){const g_=RX(hsById('exit','gen'));const c_=S.gen?'68,238,136':S.fueled?'232,184,48':'232,48,85';cx.fillStyle=`rgb(${c_})`;cx.beginPath();cx.arc(g_[0]+g_[2]*.66,g_[1]+g_[3]*.56,Math.max(2,W*.006),0,7);cx.fill();glow(g_[0]+g_[2]*.66,g_[1]+g_[3]*.56,W*.03,c_,.5);}
       // 電気錠LED
       [x,y,w,h]=RX(hsById('exit','lockpanel'));
       const c=S.plcOk?'68,238,136':S.power?'232,184,48':'232,48,85';
@@ -1249,6 +1385,23 @@ registerMinigame({
       cx.globalCompositeOperation='source-over';
       tubes();
       emis();
+      // 天井からの雫
+      if(drip.y>=0){const dx_=X(DRIP[S.room]);cx.fillStyle='rgba(180,200,255,.75)';cx.beginPath();cx.ellipse(dx_,Y(drip.y),1.6,2.6,0,0,7);cx.fill();}
+      else{const dx_=X(DRIP[S.room]);const k=Math.max(0,1-drip.t/1.2);cx.fillStyle=`rgba(180,200,255,${.6*(1-k)})`;cx.beginPath();cx.ellipse(dx_,Y(.037)+2,1.4*(1-k)+.5,2*(1-k)+.5,0,0,7);cx.fill();}
+      if(splash){const k=splash.t;cx.strokeStyle=`rgba(170,190,255,${.5*(1-k)})`;cx.lineWidth=1;cx.beginPath();cx.ellipse(X(DRIP[S.room]),Y(.9),4+k*18,(4+k*18)*.25,0,0,7);cx.stroke();}
+      // 粒子
+      cx.globalCompositeOperation='lighter';
+      parts.forEach(p=>{if(p.room!==S.room)return;const a=Math.min(1,p.l*1.6);cx.fillStyle=`rgba(${p.rgb},${a})`;cx.beginPath();cx.arc(X(p.x),Y(p.y),p.s*(W/380),0,7);cx.fill();});
+      cx.globalCompositeOperation='source-over';
+      // チュートリアルの指差し
+      if(S.tut===1&&S.room==='ctrl'&&!zoomId){
+        const h=hsById('ctrl','desk'),px=X(h.x+h.w*.7),py=Y(h.y+h.h*.42),k=(T*1.2)%1;
+        cx.strokeStyle=`rgba(0,232,200,${1-k})`;cx.lineWidth=2.5;cx.beginPath();cx.arc(px,py,8+k*26,0,7);cx.stroke();
+        const bob=Math.sin(T*5)*4;cx.save();cx.translate(px+14,py+16+bob);cx.rotate(-.5);
+        cx.fillStyle='#deccf8';cx.strokeStyle='#05040e';cx.lineWidth=1.5;cx.beginPath();cx.roundRect?cx.roundRect(-5,-2,10,20,4):cx.rect(-5,-2,10,20);cx.fill();cx.stroke();
+        cx.beginPath();cx.roundRect?cx.roundRect(-9,12,18,16,5):cx.rect(-9,12,18,16);cx.fill();cx.stroke();cx.restore();
+        txt('タップ',px,py+48,Math.max(11,W*.03),'rgba(0,232,200,.95)');
+      }
       // 調べられる場所のマーカー（光の中だけ）
       if(S.started&&!S.door){
         HS[S.room].forEach(h=>{
@@ -1284,9 +1437,8 @@ registerMinigame({
     if(window.ResizeObserver){ro=new ResizeObserver(()=>{if(!mg._ended)layout();});ro.observe(stage);}
     else window.addEventListener('resize',layout);
     const cleanup=()=>{if(ro)ro.disconnect();else window.removeEventListener('resize',layout);};
-    layout();updNav();renderInv();mg.setTimer('4:30');
+    layout();updNav();renderInv();mg.setTimer(fmt(S.left));
 
-    const fmt=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
     const appr=(k,on,dt,sp)=>{S.anim[k]=on?Math.min(1,S.anim[k]+dt*sp):S.anim[k];};
     mg.loop(dt=>{
       T+=dt;
@@ -1298,6 +1450,10 @@ registerMinigame({
       nextBolt-=dt;
       if(nextBolt<=0){flash=1;nextBolt=7+Math.random()*12;flashEl.style.transition='none';flashEl.style.opacity='.18';requestAnimationFrame(()=>{flashEl.style.transition='opacity .6s';flashEl.style.opacity='0';});setTimeout(()=>{if(!mg._ended)AU.se('noise');},300+Math.random()*700);}
       dust.forEach(d=>{d.x=(d.x+d.vx*dt+1)%1;d.y=(d.y+d.vy*dt+1)%1;});
+      for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.l-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=.35*dt;p.vx*=.97;if(p.l<=0)parts.splice(i,1);}
+      if(drip.y<0){drip.t+=dt;if(drip.t>2.2+Math.random()*.02){drip.y=.04;drip.sp=0;}}
+      else{drip.sp+=1.6*dt;drip.y+=drip.sp*dt;if(drip.y>=.9){drip.y=-1;drip.t=0;splash={t:0};if(S.started&&!S.over&&Math.random()<.5)sfx('drip');}}
+      if(splash){splash.t+=dt*1.8;if(splash.t>=1)splash=null;}
       appr('drawer',S.drawer,dt,3);appr('locker',S.locker,dt,1.6);appr('panel',S.panel,dt,1.8);appr('plcCover',S.plcCover,dt,1.5);
       appr('shutter',S.air,dt,.35);appr('door',S.door,dt,.42);
       if(trans){
@@ -1305,14 +1461,15 @@ registerMinigame({
         if(!trans.sw&&trans.t>=.5){trans.sw=true;S.room=trans.to;updNav();AU.se('btn');}
         if(trans.t>=1)trans=null;
       }
-      if(S.started&&!S.door){
+      if(S.started&&!S.door&&!S.over){
         S.left-=dt;
         const s=Math.ceil(Math.max(0,S.left));
         if(s!==lastSec){lastSec=s;mg.setTimer(fmt(S.left));}
         if(S.left<=30&&!warned){warned=true;AU.se('warn');say('……もう空が白んできた。急がないと！');}
-        if(S.left<=0){mg.end('timeup');return;}
+        if(S.left<=0){S.left=0;mg.setTimer('0:00');endingTimeup();}
       }
-      if(S.door&&T-S.clearT>3.4){mg.end('clear');return;}
+      if(S.door&&!S.over&&T-S.clearT>3.3)endingClear();
+      if(S.tut===2){S.tutT-=dt;if(S.tutT<=0){S.tut=0;renderInv();}}
       cx.setTransform(dpr,0,0,dpr,0,0);
       drawScene();
     });
@@ -1323,22 +1480,23 @@ registerMinigame({
       busy:()=>!!trans,zoom:()=>zoomId,setLeft:v=>{S.left=v;}};
 
     return {result(reason){
-      cleanup();
-      const left=fmt(S.left);
-      if(reason==='clear'){
-        const m=Math.max(0,4-S.hints);
+      cleanup();rainStop();
+      const out=S.over||reason;
+      record(out);
+      if(out==='clear'){
+        const m=Math.max(0,4-S.hints),g=grade();
         return {
-          title:'🔐 脱出成功！',
-          summary:`残り時間 <span class="up">${left}</span>　ヒント <span class="${S.hints?'down':'up'}">${S.hints}回</span><br>雨上がりの朝。お隣さんちの玄関で、息子が手を振っていた。`,
+          title:`🔐 脱出成功！　評価 ${g}`,
+          summary:`残り時間 <span class="up">${fmt(S.left)}</span>　ヒント <span class="${S.hints?'down':'up'}">${S.hints}回</span>${TWIST?'（二夜目）':''}<br>雨上がりの朝。お隣さんの玄関で、息子が手を振っていた。`,
           fx:{certKnow:5,jobRep:6,mental:m,fatigue:6},time:60,sp:2,
           log:S.hints?'停電の工場から、設備の知識で脱出した。':'停電の工場から、ヒントなしで脱出した。',
-          cutin:['win','……間に合った。迎えに行こう。'],
+          cutin:g==='S'?['win','……段取り八分。迎えに行こう。']:['happy','……間に合った。迎えに行こう。'],
         };
       }
-      if(reason==='timeup'){
+      if(out==='timeup'){
         return {
           title:'🔐 夜明けまで閉じ込められた',
-          summary:`進捗 ${progress()}/5。朝になって電力が復旧し、ようやく外に出られた。<br>お隣さんに平謝り……。`,
+          summary:`進捗 ${progress()}/${PMAX}。朝になって電力が復旧し、ようやく外に出られた。<br>お隣さんに平謝り……。`,
           fx:{mental:-4,fatigue:7},time:60,sp:0,
           log:'停電の工場に朝まで閉じ込められた。',
           cutin:['tired','……ごめんな、遅くなって。'],

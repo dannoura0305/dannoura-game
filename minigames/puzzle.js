@@ -406,7 +406,7 @@ registerMinigame({
       }
       if(recalc(false)){
         const stars=starsFor(moves),bonus=stars===3?6:stars===2?3:0;
-        solved++;starsTotal+=stars;boardStars.push(stars);left+=bonus;
+        solved++;starsTotal+=stars;boardStars.push(stars);left+=bonus;mg.setTimer(String(Math.ceil(left)));
         clearInfo={stars,bonus,moves,par};st='clear';stT=-.25-cascade;stampSE=false;starSE=0;
         AU.se('repair');SFX.zap();hitStop=.14;shakeA=ts*.2;updScore();
       }
@@ -682,6 +682,34 @@ registerMinigame({
       cx.fillStyle=low?(Math.sin(T*10)>0?'#e83055':'#8a1c34'):'#00e8c8';cx.fillRect(L,yb,bw*ratio,4);
       if(!low){cx.fillStyle='rgba(0,232,200,.25)';cx.fillRect(L,yb-1,bw*ratio,6);}
     }
+    // 盤の下：第2ラインのコンベア（点いたランプの割合で動き出す）
+    let beltX=0;
+    function drawConveyor(dt){
+      const top=by+BS+footH+6,hh=Math.min(70,H-top-8);
+      if(hh<40)return;
+      const spd=lamps?lit/lamps:0;beltX=(beltX+dt*spd*60)%40;
+      const x0=Math.max(10,bx),w=W-2*x0,yb=top+hh*.55;
+      cx.textAlign='left';cx.textBaseline='middle';cx.font=`${fsS}px ${FONT}`;
+      cx.fillStyle='#5e5078';cx.fillText('第2ライン　稼働率',x0,top+fsS*.6);
+      cx.textAlign='right';cx.fillStyle=spd>=1?'#44ee88':spd>0?'#e8b830':'#e83055';cx.fillText(`${Math.round(spd*100)}%`,x0+w,top+fsS*.6);
+      // 架台
+      cx.fillStyle='#120e22';cx.fillRect(x0,yb+8,w,hh*.45-8);
+      cx.fillStyle='#2a2340';for(let x=x0+12;x<x0+w;x+=w/5)cx.fillRect(x,yb+8,5,hh*.45-8);
+      // ベルト
+      rr(cx,x0,yb-6,w,14,7);cx.fillStyle='#1d1830';cx.fill();cx.lineWidth=1;cx.strokeStyle='#4a4068';cx.stroke();
+      cx.fillStyle='#3a3354';for(let x=x0+7-beltX%14;x<x0+w-4;x+=14){if(x>x0+4)cx.fillRect(x,yb-5,2,12);}
+      for(let x=x0+7;x<x0+w;x+=w/8){cx.beginPath();cx.arc(x,yb+1,4,0,7);cx.fillStyle='#5a5278';cx.fill();}
+      // 箱
+      for(let i=0;i<5;i++){
+        const bxp=x0+((i*w/5+beltX*(w/40))%w);if(bxp>x0+w-22)continue;
+        const g=cx.createLinearGradient(0,yb-22,0,yb-6);g.addColorStop(0,'#c09060');g.addColorStop(1,'#7a5530');
+        cx.fillStyle=g;cx.fillRect(bxp,yb-22,20,16);cx.fillStyle='rgba(0,0,0,.3)';cx.fillRect(bxp+8,yb-22,4,16);
+      }
+      // 回転灯
+      const lx=x0+w-8,ly=top+fsS*2.1,on=spd>=1;
+      cx.beginPath();cx.arc(lx,ly,5,0,7);cx.fillStyle=on?'#44ee88':(Math.sin(T*8)>0?'#e83055':'#5a1a28');cx.fill();
+      cx.globalCompositeOperation='lighter';cx.globalAlpha=.6;cx.drawImage(on?GL_CY:GL_RD,lx-16,ly-16,32,32);cx.globalAlpha=1;cx.globalCompositeOperation='source-over';
+    }
     function drawFoot(){
       const y=by+BS+footH*.5+2;
       cx.textAlign='center';cx.textBaseline='middle';cx.font=`${fsS}px ${FONT}`;
@@ -773,14 +801,23 @@ registerMinigame({
       if(mood==='dawn'){gr.addColorStop(0,'#160d30');gr.addColorStop(.5,'#3c2250');gr.addColorStop(1,'#b0643e');}
       else{gr.addColorStop(0,'#0b0722');gr.addColorStop(1,'#04030b');}
       cx.fillStyle=gr;cx.fillRect(0,0,W,H);
-      const bh=Math.min(H*.42,W*.62),bw=bh*6,y=H*.16;
+      const bh=Math.min(H*.42,W*.62),bw=bh*6,y=H*.07;
+      // 遠くの空：星と雲の帯
+      cx.fillStyle=mood==='dawn'?'rgba(255,200,160,.5)':'rgba(200,190,255,.5)';
+      for(let i=0;i<14;i++){const sx=(i*97.3%1)*W,sy=(i*53.7%1)*y;if(Math.sin(T*2+i)>.2)cx.fillRect(sx,sy,1.5,1.5);}
       if(BGF.complete&&BGF.naturalWidth){
         const x=-(bw-W)/2+Math.sin(T*.07)*(bw-W)*.35;
-        cx.globalAlpha=mood==='dawn'?.8:.62;cx.drawImage(BGF,x,y,bw,bh);cx.globalAlpha=1;
+        cx.globalAlpha=mood==='dawn'?.8:.62;cx.drawImage(BGF,x,y,bw,bh);
+        // 濡れた地面への映り込み
+        cx.save();cx.translate(0,y+bh*2);cx.scale(1,-1);cx.globalAlpha=mood==='dawn'?.22:.18;
+        cx.drawImage(BGF,x+Math.sin(T*1.3)*3,0,bw,bh);cx.restore();
+        cx.globalAlpha=1;
       }
       gr=cx.createLinearGradient(0,y,0,y+bh);gr.addColorStop(0,'rgba(5,4,14,.85)');gr.addColorStop(.25,'rgba(5,4,14,.1)');gr.addColorStop(.8,'rgba(5,4,14,.25)');gr.addColorStop(1,'rgba(5,4,14,.95)');
       cx.fillStyle=gr;cx.fillRect(0,y,W,bh+1);
-      cx.fillStyle=mood==='dawn'?'rgba(40,20,30,.9)':'#05040e';cx.fillRect(0,y+bh,W,H-y-bh);
+      gr=cx.createLinearGradient(0,y+bh,0,H);gr.addColorStop(0,mood==='dawn'?'rgba(40,20,30,.55)':'rgba(5,4,14,.55)');gr.addColorStop(.6,mood==='dawn'?'rgba(40,20,30,.95)':'#05040e');
+      cx.fillStyle=gr;cx.fillRect(0,y+bh,W,H-y-bh);
+      cx.fillStyle='rgba(180,170,230,.08)';for(let i=0;i<8;i++){const ly=y+bh+6+i*9+((T*12)%9);cx.fillRect(W*.1+((i*37)%50),ly,W*.6-((i*23)%80),1);}
       cx.globalCompositeOperation='lighter';
       if(mood==='dawn'){cx.globalAlpha=.55;cx.drawImage(GL_GOLD,W*.5-W*.8,y+bh*.6-W*.5,W*1.6,W);}
       else{const a=Math.max(0,Math.sin(T*5));cx.globalAlpha=.25+.55*a;const g=bh*.9;cx.drawImage(GL_RD,W*.78-g/2,y+bh*.3-g/2,g,g);}
@@ -916,13 +953,13 @@ registerMinigame({
     function drawGrade(){
       const t=stT;
       cx.fillStyle='rgba(5,4,14,.8)';cx.fillRect(0,0,W,H);cx.fillStyle=dithPat;cx.fillRect(0,0,W,H);
-      const pw_=Math.min(W-32,330),ph_=Math.min(H-40,fsM*19),x=(W-pw_)/2,y=(H-ph_)/2;
+      const pw_=Math.min(W-32,330),ph_=Math.min(H-24,fsM*20.5),x=(W-pw_)/2,y=(H-ph_)/2;
       rr(cx,x,y,pw_,ph_,12);cx.fillStyle='rgba(12,9,26,.97)';cx.fill();cx.lineWidth=2;cx.strokeStyle='#8a52d4';cx.stroke();
       rr(cx,x+5,y+5,pw_-10,ph_-10,9);cx.lineWidth=1;cx.strokeStyle='rgba(0,232,200,.3)';cx.stroke();
       cx.textAlign='center';cx.textBaseline='middle';
       cx.font=`${fsS}px ${FONT}`;cx.fillStyle='#8a7aa8';cx.fillText(remix?'── 改修盤 作業評価 ──':'── 作業評価 ──',W/2,y+fsM*1.5);
       const col={S:'#ffd75a',A:'#00e8c8',B:'#b48cff',C:'#c86478'}[grade];
-      const ly=y+fsM*5.2,lf=Math.round(fsM*5.2);
+      const ly=y+fsM*4.9,lf=Math.round(fsM*4.6);
       if(t>.3){
         const k=Math.min(1,(t-.3)/.16);
         if(k>=1&&gStep<1){gStep=1;SFX.thud();AU.se('rank');hitStop=.1;shakeA=fsM*.6;spark(W/2,ly,24,grade==='C'?2:1,fsM*14);}
@@ -942,7 +979,7 @@ registerMinigame({
       rows.forEach(([a,b],i)=>{
         const ti=.85+i*.18;if(t<ti)return;
         if(gStep<2+i){gStep=2+i;SFX.tap();}
-        const ry_=y+fsM*9.4+i*fsM*2,ka=Math.min(1,(t-ti)/.15);
+        const ry_=y+fsM*10.4+i*fsM*2,ka=Math.min(1,(t-ti)/.15);
         cx.globalAlpha=ka;cx.font=`${fsM}px ${FONT}`;
         cx.textAlign='left';cx.fillStyle='#8a7aa8';cx.fillText(a,x+24-(1-ka)*12,ry_);
         cx.textAlign='right';cx.fillStyle='#deccf8';cx.fillText(b,x+pw_-24,ry_);
@@ -952,7 +989,7 @@ registerMinigame({
       if(newBest&&t>1.7){
         if(gStep<7){gStep=7;SFX.fanfare(true);}
         cx.textAlign='center';cx.font=`${fsM}px ${FONT}`;cx.fillStyle=Math.sin(T*10)>0?'#ffd75a':'#ff8a3a';
-        cx.fillText('NEW RECORD!',W/2,y+fsM*7.9);
+        cx.fillText('NEW RECORD!',W/2,y+fsM*8.2);
       }else if(t>1.7&&gStep<7){gStep=7;SFX.fanfare(grade!=='C');}
       if(t>1.4){cx.textAlign='center';cx.font=`${fsS}px ${FONT}`;cx.fillStyle=`rgba(0,232,200,${.5+.5*Math.sin(T*5)})`;cx.fillText('▶ タップで続ける',W/2,y+ph_-fsS*1.6);}
       drawParticles();
@@ -1049,7 +1086,7 @@ registerMinigame({
       if(st==='title')drawTitle();
       else if(st==='story'||st==='ending')drawDialog();
       else{
-        drawBoard();drawHud();drawFoot();drawRipples();drawGuide();
+        drawBoard();drawHud();drawFoot();drawConveyor(dt);drawRipples();drawGuide();
         if(st==='clear')drawClear();
         if(st==='intro')drawIntro();
         if(st==='timeup')drawTimeUp();

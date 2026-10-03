@@ -454,7 +454,7 @@ registerMinigame({
       if(score>SD.best.score){SD.best.score=score;newRecord=true;}
       if(GRADE_RANK[grade]>GRADE_RANK[SD.best.grade||''])SD.best.grade=grade;
       if(maxCombo>SD.best.combo)SD.best.combo=maxCombo;
-      transition(()=>{scene='grade';sceneT=0;stampDone=false;},.8);
+      transition(()=>{scene='grade';sceneT=0;stampDone=false;enemies.length=0;goods.length=0;eb.length=0;pb.length=0;corpses.length=0;},.8);
     }
     let stampDone=false;
     function goEnding(){if(trans||scene!=='grade')return;sfx('decide');transition(()=>{scene='ending';sceneT=0;startDialog(endingLines(),()=>{transition(()=>{scene='done';if(!endCalled){endCalled=true;mg.end(finalReason);}},.6);});});}
