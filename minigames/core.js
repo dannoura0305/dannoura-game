@@ -136,7 +136,7 @@ const MG={
     let last=performance.now();
     const step=now=>{
       if(this._ended)return;
-      const dt=Math.min(.05,(now-last)/1000);last=now;
+      const dt=Math.max(0,Math.min(.05,(now-last)/1000)); // 初回フレームでマイナスになることがあるlast=now;
       // 1フレームの例外でゲーム全体が止まらないようにする（同じエラーは何度も出さない）
       try{fn(dt);}catch(e){if(!this._loopErr){this._loopErr=true;console.error(e);}}
       if(!this._ended)this._raf=requestAnimationFrame(step);

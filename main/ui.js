@@ -71,7 +71,7 @@ const ACT_GUESS=[
 ];
 const ACT_META={
   stream:     {grp:'earn',extra:[['収益・フォロワー','up'],['夜が明ける','warn']]},
-  factory:    {grp:'earn',extra:[['収入','up'],['仕事評価','up'],['疲労+10']]},
+  factory:    {grp:'earn',extra:[['収入','up'],['疲労+10']]},
   diag:       {grp:'earn',extra:[['収入','up'],['疲労+8']]},
   factoryneta:{grp:'special',extra:[['怪談配信','up']]},
   deepnight:  {grp:'special',extra:[['レア','warn']]},
@@ -115,6 +115,7 @@ function richButton(btn,ac){
   btn.dataset.ui='1';btn.dataset.tx=tx;
   if(ac)btn.dataset.ac=ac;
   const p=parseTx(tx);
+  if(p.icon==='▶')p.icon='';
   const meta=ac&&ACT_META[ac];
   let chips=p.costs.map(c=>chipHTML(c)).join('');
   if(meta&&meta.extra&&!p.costs.length)chips=meta.extra.map(([t,tn])=>chipHTML(t,tn)).join('');
@@ -150,10 +151,10 @@ function enhanceChoices(key){
       const mgBtn=btns[acs.indexOf('minigames')];
       if(mgBtn){
         const left=minigamesLeft();
-        mgBtn.querySelector('.cb-badge')?.remove();
-        if(left!==null){
-          const bd=document.createElement('span');bd.className='cb-badge';bd.textContent=left?`あと${left}`:'済';
-          mgBtn.appendChild(bd);mgBtn.classList.toggle('ui-locked',left===0);
+        const cost=mgBtn.querySelector('.cb-cost');
+        if(left!==null&&cost){
+          cost.innerHTML=left?chipHTML(`今夜あと${left}種`,'up'):chipHTML('今夜は遊び尽くした','');
+          mgBtn.classList.toggle('ui-locked',left===0);
         }
       }
       const order=GROUPS.filter(g=>by[g.id]&&by[g.id].length);
@@ -188,7 +189,13 @@ function enhanceChoices(key){
     if(pick&&NAV.ctx&&NAV.ctx.id==='game'){NAV.set(pick,false);}
     NAV.remember('game',pick);
     ca.scrollTop=0;
+    updateMore();
   }finally{enhancing=false;}
+}
+/* メニューに続きがあるか（▼表示） */
+function updateMore(){
+  const ca=$('choices-area');if(!ca)return;
+  ca.classList.toggle('ui-more',ca.scrollHeight-ca.scrollTop-ca.clientHeight>8);
 }
 /* 選択時：最後の行動を記録＋押し込み */
 document.addEventListener('click',e=>{
@@ -512,12 +519,14 @@ function flash(el,good){
 }
 function spawnDelta(el,diff,p,good){
   if(reduced()||!el.offsetParent)return;
-  const r=el.getBoundingClientRect();if(r.width<1)return;
+  if(!NAV.ctx||NAV.ctx.id!=='game')return;
+  const host=el.closest('.top-cell')||el;
+  const r=host.getBoundingClientRect();if(r.width<1)return;
   const d=document.createElement('div');
   d.className='ui-delta '+(good?'up':'down');
   const abs=Math.abs(diff);
   d.textContent=(diff>0?'+':'-')+(p.pre.includes('¥')?'¥':'')+(p.comma?Math.round(abs).toLocaleString():(p.dec?abs.toFixed(p.dec):Math.round(abs)));
-  d.style.left=(r.left+r.width/2)+'px';d.style.top=(r.bottom+2)+'px';
+  d.style.left=(r.left+r.width/2)+'px';d.style.top=(r.bottom-6)+'px';
   document.body.appendChild(d);setTimeout(()=>d.remove(),1150);
 }
 function track(id,inverse,delta){
@@ -709,6 +718,8 @@ function install(){
     if(el&&/🚨|⚠️/.test(String(msg)))el.classList.add('ui-danger');
   });
   observeChoices();observeStream();
+  $('choices-area')?.addEventListener('scroll',updateMore,{passive:true});
+  window.addEventListener('resize',updateMore);
   NAV.init();
   // 既に表示中の画面があれば反映
   HUD.update();

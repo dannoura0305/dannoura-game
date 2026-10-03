@@ -241,9 +241,13 @@ body.fatigue-hi .choice-btn:nth-child(odd){transform:translateX(var(--fatigue-dr
 
 /* ── コマンドウィンドウ（行動メニュー） ── */
 #choices-area{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;
-  margin:10px 8px 64px;padding:12px 10px;display:grid;grid-template-columns:1fr;gap:6px;align-content:start;
+  margin:10px 8px 64px;padding:12px 10px;display:grid;grid-template-columns:1fr;grid-auto-rows:max-content;gap:6px;align-content:start;
   scrollbar-width:thin;scrollbar-color:var(--win-mid) transparent;}
 #choices-area:empty{display:none;}
+#choices-area:not(.ui-grid){flex:0 1 auto;}
+/* 続きがあるときの▼ */
+#choices-area.ui-more::after{content:'';position:sticky;bottom:-6px;grid-column:1/-1;justify-self:center;width:0;height:0;margin-top:-12px;
+  border-left:7px solid transparent;border-right:7px solid transparent;border-top:8px solid var(--cur);filter:drop-shadow(0 0 0 #000) drop-shadow(1px 1px 0 #000);animation:advBob .8s steps(2) infinite;pointer-events:none;}
 #choices-area.ui-grid{grid-template-columns:1fr 1fr;}
 .ui-grp{grid-column:1/-1;display:flex;align-items:center;gap:6px;margin:4px 2px 0;
   font-family:var(--dot);font-size:.64rem;letter-spacing:.2em;color:var(--cur);text-shadow:1px 1px 0 #000;}
@@ -254,11 +258,11 @@ body.fatigue-hi .choice-btn:nth-child(odd){transform:translateX(var(--fatigue-dr
 
 .choice-btn{
   position:relative;overflow:hidden;display:flex;align-items:center;gap:7px;
-  min-height:48px;padding:7px 8px 7px 20px;
+  min-height:48px;padding:6px 6px 6px 19px;
   background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.012));
   border:1px solid rgba(217,204,255,.16);border-radius:4px;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 1px 0 #04020c;
-  color:var(--tx-b);font-family:var(--dot);font-size:.8rem;line-height:1.35;text-align:left;
+  color:var(--tx-b);font-family:var(--dot);font-size:.78rem;line-height:1.3;text-align:left;
   cursor:pointer;-webkit-tap-highlight-color:transparent;
   transition:border-color .12s,background .12s,color .12s,box-shadow .12s,transform .08s;
 }
@@ -271,7 +275,7 @@ body.fatigue-hi .choice-btn:nth-child(odd){transform:translateX(var(--fatigue-dr
 .choice-btn.neta{border-color:rgba(232,184,48,.5);background:linear-gradient(180deg,rgba(232,184,48,.14),rgba(232,184,48,.03));}
 .choice-btn .ripple,.sk-card .ripple,.sc .ripple,.str-type-btn .ripple{position:absolute;border-radius:50%;background:rgba(255,228,138,.22);transform:scale(0);animation:ripple .45s ease-out forwards;pointer-events:none;}
 @keyframes ripple{to{transform:scale(4);opacity:0;}}
-.cb-ico{flex-shrink:0;width:1.5em;text-align:center;font-size:1.05rem;line-height:1;filter:drop-shadow(1px 1px 0 #000);}
+.cb-ico{flex-shrink:0;width:1.35em;text-align:center;font-size:1.05rem;line-height:1;filter:drop-shadow(1px 1px 0 #000);}
 .cb-main{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1;}
 .cb-lbl{text-shadow:1px 1px 0 #000;word-break:keep-all;overflow-wrap:anywhere;}
 .cb-cost{display:flex;flex-wrap:wrap;gap:3px;}
@@ -342,7 +346,7 @@ body.fatigue-hi .choice-btn:nth-child(odd){transform:translateX(var(--fatigue-dr
 .ss span{color:var(--up);font-weight:bold;display:inline-block;font-variant-numeric:tabular-nums;}
 .str-choices{margin:6px 8px 8px;padding:12px 10px 10px;display:flex;flex-direction:column;gap:5px;max-height:38vh;overflow-y:auto;width:auto !important;}
 .str-choices > div:not([class]){font-family:var(--dot) !important;font-size:.66rem !important;color:var(--cur) !important;letter-spacing:.12em;padding:0 2px 4px !important;}
-.sc,.str-type-btn{position:relative;overflow:hidden;display:block;width:100%;
+.sc,.str-type-btn{flex-shrink:0;position:relative;overflow:hidden;display:block;width:100%;
   min-height:46px;padding:9px 10px 9px 22px;margin:0;
   background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.012));
   border:1px solid rgba(217,204,255,.16);border-radius:4px;box-shadow:0 1px 0 #04020c;
@@ -568,8 +572,11 @@ body.fatigue-hi .choice-btn:nth-child(odd){transform:translateX(var(--fatigue-dr
 .sec-t{font-family:var(--dot);font-size:.66rem;color:var(--cur);letter-spacing:.12em;margin-bottom:8px;text-shadow:1px 1px 0 #000;}
 .sec > .sec-t:first-child{position:absolute;top:-12px;left:10px;margin:0;line-height:1.5;
   background:linear-gradient(180deg,#3a2a7a,#1e1548);border:2px solid var(--win-hi);border-radius:4px;padding:1px 9px 2px;box-shadow:0 0 0 2px #04020c;}
-.sec [style*="color:var(--tx-d)"]{color:var(--tx-dim) !important;}
-.sec [style*="font-size:.58rem"],#skill-body [style*="font-size:.58rem"]{font-size:.6rem !important;}
+.sec [style*="color:var(--tx-d)"],.sec [style*="color: var(--tx-d)"],#skill-body [style*="color: var(--tx-d)"]{color:var(--tx-dim) !important;}
+.sec [style*="font-size:.58rem"],.sec [style*="font-size: 0.58rem"],#skill-body [style*="font-size: 0.58rem"]{font-size:.6rem !important;}
+.sec [style*="color:var(--pu-dim)"]{color:#b48cff !important;}
+#skill-body > div > .sec-t{display:flex;align-items:center;gap:6px;font-size:.7rem;}
+#skill-body > div > .sec-t::after{content:'';flex:1;height:2px;background:linear-gradient(90deg,rgba(217,204,255,.35),transparent);box-shadow:0 1px 0 #04020c;}
 .sr{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
 .srl{font-family:var(--dot);font-size:.64rem;color:var(--tx-b);width:74px;flex-shrink:0;}
 .srb{flex:1;height:10px;position:relative;background:#07051a;border-radius:2px;overflow:hidden;box-shadow:0 0 0 1px #04020c,inset 0 0 0 1px rgba(217,204,255,.25);}
@@ -671,7 +678,7 @@ body.fatigue-hi .choice-btn:nth-child(odd){transform:translateX(var(--fatigue-dr
 .tut-nav .ev-btn{flex:1;}
 .mg-pick-box{position:relative;padding:24px 12px 12px;width:92%;max-width:380px;max-height:88vh;display:flex;flex-direction:column;gap:9px;}
 #mg-pick-items{overflow-y:auto;display:flex;flex-direction:column;gap:7px;padding:2px;}
-.mg-pick{position:relative;text-align:left;padding:9px 10px 9px 22px;min-height:48px;cursor:pointer;color:var(--tx);font-family:var(--serif);
+.mg-pick{flex-shrink:0;position:relative;text-align:left;padding:9px 10px 9px 22px;min-height:48px;cursor:pointer;color:var(--tx);font-family:var(--serif);
   background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.012));border:1px solid rgba(217,204,255,.16);border-radius:4px;box-shadow:0 1px 0 #04020c;
   -webkit-tap-highlight-color:transparent;transition:border-color .12s,background .12s;}
 .mg-pick:hover,.mg-pick.ui-cur{border-color:rgba(255,228,138,.8);background:linear-gradient(90deg,rgba(138,82,212,.4),rgba(138,82,212,.1));}
@@ -698,7 +705,7 @@ body.fatigue-hi .choice-btn:nth-child(odd){transform:translateX(var(--fatigue-dr
 #bgm-ind{position:fixed;bottom:58px;left:6px;font-family:var(--mono);font-size:.6rem;color:rgba(180,140,255,.45);z-index:5;letter-spacing:.07em;pointer-events:none;transition:color 2s;}
 
 /* ══ 共通：ボタン類 ══ */
-.mini-endbtn{padding:8px 14px;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.015));border:1px solid rgba(217,204,255,.35);color:var(--tx-b);
+.mini-endbtn{padding:8px 12px 8px 22px;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.015));border:1px solid rgba(217,204,255,.35);color:var(--tx-b);
   font-family:var(--dot);font-size:.72rem;cursor:pointer;border-radius:4px;min-height:44px;box-shadow:0 1px 0 #04020c;-webkit-tap-highlight-color:transparent;}
 .mini-endbtn:hover,.mini-endbtn.ui-cur{border-color:rgba(255,228,138,.8);color:#fff;}
 .btn-start{margin-top:12px;padding:13px 36px;background:transparent;border:1px solid var(--pu);color:var(--pu);font-family:var(--dot);font-size:.95rem;letter-spacing:.2em;cursor:pointer;position:relative;overflow:hidden;transition:color .3s,border-color .3s;min-height:48px;-webkit-tap-highlight-color:transparent;}
@@ -726,6 +733,8 @@ body.fatigue-hi .choice-btn:nth-child(odd){transform:translateX(var(--fatigue-dr
 }
 :focus{outline:none;}
 :focus-visible{outline:2px solid var(--cur);outline-offset:2px;}
+/* ゆびカーソルで示すボタンは枠線を出さない */
+.choice-btn:focus-visible,.sc:focus-visible,.str-type-btn:focus-visible,.ev-btn:focus-visible,.mg-pick:focus-visible,.nav-btn:focus-visible,.mini-endbtn:focus-visible,.btn-start:focus-visible,.sk-card:focus-visible,.mg-tab:focus-visible{outline:none;}
 
 /* ── Phase3崩壊 ── */
 body.ph3crit .dlg-text{animation:tcrit .15s linear infinite;}

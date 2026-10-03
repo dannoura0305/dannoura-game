@@ -582,6 +582,8 @@ registerMinigame({
     function compact(a){let j=0;for(let i=0;i<a.length;i++)if(!a[i].dead)a[j++]=a[i];a.length=j;}
     let resizeChk=0;
     mg.loop(dt=>{
+      // 最初のフレームで dt が負になることがある（rAFの時刻が開始時刻より前）
+      if(!(dt>0))dt=0;
       clock+=dt;seCd-=dt;sceneT+=dt;
       resizeChk-=dt;if(resizeChk<=0){resizeChk=.5;resize();}
       if(trans){trans.t+=dt;if(!trans.done&&trans.t>=trans.dur/2){trans.done=true;trans.mid&&trans.mid();}if(trans&&trans.t>=trans.dur)trans=null;}

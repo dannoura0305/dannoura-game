@@ -848,7 +848,7 @@ registerMinigame({
         `<div class="quiz-exp">${H(cur.e)}</div>`+
         `<button class="quiz-btn">${last?'採点する ▶':'次の問題へ ▶'}<small>Enter</small></button>`;
       elSheet.querySelector('.quiz-btn').addEventListener('click',next);
-      later(()=>{elSheet.classList.add('on');elSheet.scrollTop=0;sheetAt=performance.now();},ok?480:650);
+      later(openSheet,ok?480:650);
     }
     function markSvg(btn,kind){
       const s=btn.querySelector('.quiz-mark');
@@ -856,8 +856,11 @@ registerMinigame({
       s.classList.add(kind==='ok'?'ok':'ng');
       requestAnimationFrame(()=>s.classList.add('on'));
     }
+    function openSheet(){if(st!=='reveal'||elSheet.classList.contains('on'))return;elSheet.classList.add('on');elSheet.scrollTop=0;sheetAt=performance.now();}
     function next(){
-      if(st!=='reveal'||!elSheet.classList.contains('on')||performance.now()-sheetAt<300)return;
+      if(st!=='reveal')return;
+      if(!elSheet.classList.contains('on')){openSheet();return;}   // 早押しは解説をすぐ出す
+      if(performance.now()-sheetAt<300)return;
       AU.se('btn');synth('page');
       elSheet.classList.remove('on');
       elCard.classList.remove('enter');elCard.classList.add('out');
