@@ -338,8 +338,7 @@ function buildChild(){
   // 布団
   R_(c,34,112,124,24,'#9c96cc'); R_(c,34,112,124,2,'#c8c2e8'); R_(c,34,134,124,2,'#6e68a0');
   R_(c,40,100,26,12,'#e8e4f8'); R_(c,40,110,26,2,'#bcb6dc');
-  // くまのぬいぐるみ
-  C_(c,28,108,6,'#8a6248'); C_(c,24,102,2,'#8a6248'); C_(c,32,102,2,'#8a6248'); C_(c,28,110,2,'#b08a6a'); P_(c,26,107,'#1a1010'); P_(c,30,107,'#1a1010');
+  // （くまのぬいぐるみは娘が抱いている：drawChild で描く）
   // ナイトライト
   R_(c,184,118,8,10,'#e8d0a0'); R_(c,183,128,10,2,'#5a4a3a');
   S.zz = [];
@@ -356,9 +355,23 @@ function drawChild(ctx,S,t){
   ctx.fillStyle = '#5a4c9c'; ctx.beginPath(); ctx.moveTo(60,136); ctx.lineTo(60,112); ctx.quadraticCurveTo(100,100-br*2,150,110); ctx.lineTo(154,136); ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#6e60b4'; ctx.beginPath(); ctx.moveTo(60,113); ctx.quadraticCurveTo(100,101-br*2,150,111); ctx.lineTo(150,114); ctx.quadraticCurveTo(100,105-br*2,60,117); ctx.closePath(); ctx.fill();
   [[80,122],[100,118],[122,126],[138,119],[92,130],[112,131]].forEach(([x,y])=>{ P_(ctx,x,y-br,'#a898e8'); P_(ctx,x+1,y-br,'#8a7ad0'); });
-  // 子どもの寝顔
-  C_(ctx,54,106,7,'#2a2040'); R_(ctx,50,104,9,7,'#f2c8b0'); R_(ctx,50,103,10,2,'#2a2040'); R_(ctx,51,107,2,1,'#5a3a4a'); R_(ctx,56,107,2,1,'#5a3a4a'); P_(ctx,53,110,'#d89a8a'); P_(ctx,50,109,'#f2a8a0'); P_(ctx,58,109,'#f2a8a0');
-  R_(ctx,58,110,6,4,'#f2c8b0');
+  // 娘の寝顔：紫がかった黒髪のボブ＋ぱっつん前髪、ちいさなツインテールにピンクの花、ミントの星柄パジャマ、クマを抱いて
+  { const O='#1a1028', H='#33224c', HL='#6a54a4', SK='#f8d8c8', EY='#3a2048', BL='#f29aae', ST='#ffe066', FL='#ff9cc8';
+    C_(ctx,41,100,4,O); C_(ctx,39,104,3,O); C_(ctx,65,100,4,O); C_(ctx,67,104,3,O); C_(ctx,41,100,3,H); C_(ctx,39,104,2,H); C_(ctx,65,100,3,H); C_(ctx,67,104,2,H); // ツインテール
+    C_(ctx,53,102,10,O); C_(ctx,53,102,9,H);                                                   // 後ろ髪
+    R_(ctx,47,103,13,7,SK); R_(ctx,48,110,11,1,SK);                                            // 顔
+    R_(ctx,46,97,15,6,H); P_(ctx,49,103,H); P_(ctx,53,103,H); P_(ctx,57,103,H);                // ぱっつん前髪
+    R_(ctx,48,95,7,1,HL); P_(ctx,47,96,HL); P_(ctx,55,96,HL);                                 // 天使の輪
+    [[49,51],[55,57]].forEach(([a,b])=>{ P_(ctx,a,106,EY); P_(ctx,a+1,107,EY); P_(ctx,b,106,EY); }); // 閉じた目
+    R_(ctx,48,108,2,1,BL); R_(ctx,57,108,2,1,BL); P_(ctx,53,109,'#c86a7a');                   // ほっぺ・口
+    [[42,97],[64,97]].forEach(([x,y])=>{ P_(ctx,x-1,y,FL); P_(ctx,x+1,y,FL); P_(ctx,x,y-1,FL); P_(ctx,x,y+1,FL); P_(ctx,x,y,ST); }); // 花のヘアゴム
+    R_(ctx,44,111,18,6,O); R_(ctx,45,112,16,5,'#9fe2c8'); R_(ctx,45,115,16,1,'#78c8ac');      // パジャマ
+    R_(ctx,50,111,7,2,'#f6fbf6'); P_(ctx,47,113,ST); P_(ctx,52,115,ST); P_(ctx,58,113,ST);
+    const by = 109 - br;                                                                       // クマ（左耳＝画面右がほつれ）
+    R_(ctx,63,by-7,4,4,O); R_(ctx,64,by-6,2,2,'#a8724a'); R_(ctx,71,by-7,4,4,O); R_(ctx,72,by-6,2,2,'#a8724a'); P_(ctx,74,by-8,'#d9a878'); P_(ctx,75,by-9,'#d9a878');
+    C_(ctx,69,by,5,O); C_(ctx,69,by,4,'#a8724a'); R_(ctx,68,by+1,3,2,'#e8c49a'); P_(ctx,69,by+1,'#2a1410'); P_(ctx,67,by-1,'#2a1410'); P_(ctx,71,by-1,'#2a1410');
+    R_(ctx,63,by+3,3,2,SK);                                                                    // クマを抱く手
+  }
   // ナイトライトの灯り
   const pl = .75+.25*Math.sin(t*1.1);
   ctx.save(); ctx.globalCompositeOperation='lighter'; glow(ctx,188,122,40,'rgba(255,170,90,A)',.22*pl); glow(ctx,188,122,10,'rgba(255,220,160,A)',.6*pl); ctx.restore();
@@ -1280,7 +1293,7 @@ function creditsHTML(){
     <div class="big">だんのうら</div><div class="s">― 深夜、繋がりの海へ ―</div>
     <div class="h">ENDING</div><div class="tl" style="color:${esc(info.color||'#fff')}">${esc(info.title)}</div>
     <div class="h">RECORD</div>${st}
-    <div class="h">CAST</div><div class="n">だんのうら</div><div class="s">設備保全技術者・深夜配信者・ひとりの親</div><div class="n">子ども</div><div class="s">いちばん小さな、いちばん大事なリスナー</div>
+    <div class="h">CAST</div><div class="n">だんのうら</div><div class="s">設備保全技術者・深夜配信者・ひとりの親</div><div class="n">娘</div><div class="s">いちばん小さな、いちばん大事なリスナー</div>
     <div class="h">STAFF</div><div class="s">企画・脚本・制作</div><div class="n">だんのうら制作班</div><div class="s">音楽・効果音</div><div class="n">深夜の雨音とノイズ</div><div class="s">舞台</div><div class="n">壇ノ浦 ― 関門の海</div>
     <div class="h">SPECIAL THANKS</div><div class="s">深夜のリスナーのみなさん</div>${names.map(n=>`<div class="n">${esc(n)}</div>`).join('')}
     <div class="s" style="margin-top:14px">そして ―― 画面の向こうの、あなたへ。</div>

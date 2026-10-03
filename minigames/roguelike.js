@@ -84,7 +84,20 @@ registerMinigame({
   effect:'仕事評価↑ 資格知識↑ 収入↑ 怪談ネタ ／ 疲労+10 約90分',
   help:'スワイプ・十字・矢印で移動',
   start(body,mg){
-    const W=9,H=11,N=W*H,FLOORS=3,MAX_HP=5;
+    // 難しさ（設定画面で選ぶ。むずかしい＝従来の調整）
+    const DIFF=mgDifficulty();
+    const DF={
+      hp:mgDiff(7,6,5),          // 懐中電灯のバッテリー（体力）
+      bat:mgDiff(1,0,0),         // 各階の予備バッテリーの上乗せ
+      ghosts:mgDiff(1,2,2),      // 各階の基本の霊の数
+      chase:mgDiff(.5,.68,.8),   // 霊が追ってくる確率
+      lunge:mgDiff(.08,.16,.25), // 闇から飛びかかる確率
+      bossHp:mgDiff(2,3,3),      // 怨霊の体力（基本）
+      leaks:mgDiff(-1,0,0),      // 漏電床の増減
+    };
+    addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
+    {const tt=mg.el('mg-title');if(tt&&!tt.querySelector('.mg-diffb'))tt.insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);}
+    const W=9,H=11,N=W*H,FLOORS=3,MAX_HP=DF.hp;
     const DIRS=[[0,-1],[1,0],[0,1],[-1,0]];
     const ANG=[-Math.PI/2,0,Math.PI/2,Math.PI];
     const TAU=Math.PI*2;
@@ -113,7 +126,7 @@ registerMinigame({
           <div class="rg-logo-en">FACTORY NIGHT PATROL</div>
           <div class="rg-logo">深夜の<br><b>工場</b>巡回</div>
           <div class="rg-sub">― 懐中電灯ひとつで、地下三階まで ―</div>
-          <div class="rg-lap">${LAP>1?`巡回 ${LAP}周目 ― 怪異が増えている`:'今夜の巡回 B1F〜B3F'}</div>
+          <div class="rg-lap">${LAP>1?`巡回 ${LAP}周目 ― 怪異が増えている`:'今夜の巡回 B1F〜B3F'}　難しさ：${MG_DIFF_NAMES[DIFF]}</div>
           <div class="rg-best">${REC.bestGrade?`ベスト評価 ${REC.bestGrade}　巡回完了 ${REC.clears}回`:'記録なし'}</div>
           <div class="rg-tap">TAP TO START</div></div>
         <div class="rg-ov rg-talk hide" id="rg-talk"><button class="rg-skip" id="rg-skip">スキップ ▶▶</button>
@@ -308,19 +321,20 @@ registerMinigame({
       floorFaults=2+(floor>1?1:0);
       put('fault',floorFaults,2);
       floorFaults=items.length;floorFaultsDone=0;totalFaults+=floorFaults;
-      put('battery',floor===3?2:1,2);
+      put('battery',(floor===3?2:1)+DF.bat,2);
       if(Math.random()<.7)put('memo',1,2);
       // 漏電床：通路（左右or上下だけ床）を優先
       leaks=[];
       const corridor=c=>{const cx=c%W,cy=(c/W)|0;let n=0;for(const [dx,dy] of DIRS)if(isFloor(cx+dx,cy+dy))n++;return n===2;};
-      for(let i=0;i<(floor===1?1:2)+(LAP>=2?1:0);i++){const p=take(2,corridor);if(p)leaks.push({x:p.x,y:p.y,ph:rnd(3)});}
+      for(let i=0;i<(floor===1?1:2)+(LAP>=2?1:0)+DF.leaks;i++){const p=take(2,corridor);if(p)leaks.push({x:p.x,y:p.y,ph:rnd(3)});}
       // 怪異
       enemies=[];
       const spawn=(kind,minD,hpv)=>{const p=take(minD);if(p)enemies.push({x:p.x,y:p.y,rx:p.x,ry:p.y,kind,hp:hpv,max:hpv,cd:0,stun:0,tick:0,hitT:0,lunge:0,lx:0,ly:0,fade:1,frozen:false,id:eid++});};
       // 難しさの段階：B1F 霊だけ → B2F 影が加わる → B3F 怨霊。周回を重ねると増える
-      if(floor===1){spawn('g',4,1);spawn('g',4,1);if(LAP>=2)spawn('g',5,1);if(LAP>=3)spawn('k',6,3);}
-      else if(floor===2){spawn('g',4,1);spawn('g',4,1);spawn('k',5,3);if(LAP>=2)spawn('g',5,1);}
-      else{spawn('g',4,1);spawn('g',4,1);spawn('k',5,3);spawn('b',6,LAP>=3?4:3);}
+      const ghosts=()=>{for(let i=0;i<DF.ghosts;i++)spawn('g',4,1);};
+      if(floor===1){ghosts();if(LAP>=2)spawn('g',5,1);if(LAP>=3)spawn('k',6,3);}
+      else if(floor===2){ghosts();spawn('k',5,3);if(LAP>=2)spawn('g',5,1);}
+      else{ghosts();spawn('k',5,3);spawn('b',6,DF.bossHp+(LAP>=3?1:0));}
       buildStatic();
       computeLight();
       updateHud();
@@ -340,7 +354,7 @@ registerMinigame({
       lastCone=c;
       return c>amb?c:amb;
     }
-    const coneR=()=>2.5+.42*Math.max(hp,0);
+    const coneR=()=>2.5+.42*Math.min(5,Math.max(hp,0));
     function los(x0,y0,x1,y1){
       const dx=x1-x0,dy=y1-y0,n=Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))*3);
       for(let s=1;s<n;s++){const tx=Math.round(x0+dx*s/n),ty=Math.round(y0+dy*s/n);
@@ -561,9 +575,9 @@ registerMinigame({
           }
           const best=stepOpt(en,(en.cd>0?-1:1));
           const chase=en.cd===0&&bfs[idx(en.x,en.y)]>=0&&bfs[idx(en.x,en.y)]<=5;
-          if(best&&(chase?Math.random()<.8:en.cd>0?Math.random()<.6:false)){en.x=best.x;en.y=best.y;
+          if(best&&(chase?Math.random()<DF.chase:en.cd>0?Math.random()<.6:false)){en.x=best.x;en.y=best.y;
             // 闇から飛びかかる（照らされていないときだけ）
-            if(chase&&!cone[idx(en.x,en.y)]&&Math.abs(en.x-player.x)+Math.abs(en.y-player.y)===1&&Math.random()<.25){
+            if(chase&&!cone[idx(en.x,en.y)]&&Math.abs(en.x-player.x)+Math.abs(en.y-player.y)===1&&Math.random()<DF.lunge){
               hurt(true);en.cd=2;en.lunge=1;en.lx=player.x-en.x;en.ly=player.y-en.y;say('👻 闇の中から、白い手が伸びてきた！');}}
           else if(Math.random()<.45){const r=randOpt(en);if(r){en.x=r.x;en.y=r.y;}}
         }else if(en.kind==='k'){

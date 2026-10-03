@@ -4,6 +4,7 @@
 // 常連の源さんの隣で6投だけ糸を垂らす。浅場・中層・沖、宵の口→夜更け→丑三つ時で
 // 寄ってくるものが変わる。釣れたものは魚図鑑（gs.fishingData）に残る。
 // ══════════════════════════════════════════════════════════
+addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
 addMinigameStyle('fishing',`
 .mg-fishing{background:#05040e;}
 .mg-fishing .fishing-cv{position:absolute;left:0;top:0;display:block;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
@@ -67,6 +68,10 @@ registerMinigame({
   help:'長押し→離して投げる／ウキが沈んだらタップ／長押しで枠を右へ',
   start(body,mg){
     const FONT='"DotGothic16", monospace';
+    // 難しさ（開始時に読む）：やり取りの光の枠の幅・魚の動きの速さ・枠から外れた時の逃げやすさ
+    const DIFF=mgDifficulty();
+    mg.el('mg-title').insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);
+    const RZW=mgDiff(1.4,1.18,1),RSPD=mgDiff(.72,.86,1),RDECAY=mgDiff(.055,.085,.12),RGRACE=mgDiff(.8,.4,0);
     const CASTS=6;
     const ZONE=['浅場','中層','沖'];
     const TIMES=['宵の口','夜更け','丑三つ時'];
@@ -886,7 +891,7 @@ registerMinigame({
       const s=cur.sp;
       const item=s.beh==='item';
       cur.str=item?.2:clamp(.3+cur.sf*.45+(s.r-1)*.12,0,1);
-      Object.assign(reel,{z:.35,zv:0,f:.5,fv:0,ft:.5,fcd:.4,pr:.28,zw:item?.38:clamp(.31-cur.sf*.05-(s.r===3?.03:0),.22,.34),inside:true,grace:firstReel?2.2:.8,clickT:0,splT:0});
+      Object.assign(reel,{z:.35,zv:0,f:.5,fv:0,ft:.5,fcd:.4,pr:.28,zw:(item?.38:clamp(.31-cur.sf*.05-(s.r===3?.03:0),.22,.34))*RZW,inside:true,grace:(firstReel?2.2:.8)+RGRACE,clickT:0,splT:0});
       tension=.3;shadow.on=false;
       setState('reel');se('decide');buzz(25);
       splash(fl.x,fl.y,14,130);ring(fl.x,fl.y,3,.7,'120,255,230',1.4);SFX.splash(cur.big);
@@ -1285,14 +1290,14 @@ registerMinigame({
           else if(b==='sink'){R.ft=Math.random()<.6?(Math.random()<.5?rnd(.03,.18):rnd(.82,.97)):rnd(.3,.7);R.fcd=rnd(1.1,2);}
           else{R.ft=clamp(R.f+rnd(-.12,.12),.2,.8);R.fcd=rnd(1.4,2.4);}
         }
-        const k={calm:3.2,dart:5.2,sink:2.6,item:1.5}[c.sp.beh]*(.8+c.str*.5);
+        const k={calm:3.2,dart:5.2,sink:2.6,item:1.5}[c.sp.beh]*(.8+c.str*.5)*RSPD;
         R.fv+=((R.ft-R.f)*k*k-1.6*k*R.fv)*dt;R.f+=R.fv*dt;
         if(R.f<0){R.f=0;R.fv=Math.abs(R.fv)*.3;}if(R.f>1){R.f=1;R.fv=-Math.abs(R.fv)*.3;}
         R.zv+=(holding?2.8:-2.4)*dt;R.zv=clamp(R.zv,-1.5,1.5);R.z+=R.zv*dt;
         if(R.z<0){R.z=0;R.zv=R.zv<-.4?-R.zv*.3:0;}
         if(R.z>1-R.zw){R.z=1-R.zw;R.zv=R.zv>.4?-R.zv*.3:0;}
         R.inside=R.f>=R.z-.015&&R.f<=R.z+R.zw+.015;
-        R.pr+=(R.inside?(c.sp.beh==='item'?.4:.3):(R.grace>0?0:-.12))*dt;
+        R.pr+=(R.inside?(c.sp.beh==='item'?.4:.3):(R.grace>0?0:-RDECAY))*dt;
         const off=R.inside?0:Math.min(Math.abs(R.f-R.z),Math.abs(R.f-R.z-R.zw));
         const tt=R.inside?.28+Math.min(.35,Math.abs(R.fv)*.45):.62+Math.min(.38,off*1.6);
         tension+=(tt-tension)*Math.min(1,dt*6);
@@ -1678,6 +1683,7 @@ registerMinigame({
       cx.font=`11px ${FONT}`;cx.fillStyle='rgba(187,174,221,.8)';
       const b=FD.best;
       cx.fillText(`今夜：${WNAME}・${MOON_NAME}　図鑑 ${zCount()}/${SPECIES.length}`+(b?`　最高評価 ${b.grade}`:''),W/2,y0+fs*.85+26);
+      cx.fillStyle=DIFF==='easy'?'#44ee88':DIFF==='normal'?'#e8b830':'#ff6a86';cx.fillText('難しさ：'+MG_DIFF_NAMES[DIFF],W/2,y0-70);
       if(state==='title'){cx.font=`14px ${FONT}`;cx.fillStyle=`rgba(222,204,248,${.45+.45*Math.sin(t*3)})`;cx.fillText('タップではじめる',W/2,H*.6);}
       cx.restore();
     }

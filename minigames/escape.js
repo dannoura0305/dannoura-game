@@ -146,7 +146,8 @@ const FONT='"DotGothic16", monospace';
 const ROOMS=['locker','ctrl','store','exit'];
 const RNAME={locker:'更衣室',ctrl:'制御室',store:'部品倉庫',exit:'非常口'};
 const RSUB={locker:'LOCKER ROOM',ctrl:'CONTROL ROOM',store:'PARTS STORAGE',exit:'EMERGENCY EXIT'};
-const TIME=270;
+const TIME=270;   // むずかしい時の制限時間（難しさ別の値は start() で決める）
+addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
 const FLOOR=.72;
 const NAMES=['佐伯','宮下','だんのうら','黒川'];
 
@@ -265,6 +266,14 @@ registerMinigame({
   effect:'資格知識+5 仕事評価+6 精神力+4（ヒント1回ごと−1）／ 疲労+6 約60分',
   help:'タップで調べる・持ち物を選んで使う',
   start(body,mg){
+    // 難しさ（開始時に読む）：制限時間・ヒント回数・手がかりの強調
+    const DIFF=mgDifficulty();
+    mg.el('mg-title').insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);
+    const TIME=mgDiff(480,360,270);            // 秒（二夜目は +30）
+    const HMAX=mgDiff(6,4,3);                  // ヒント回数
+    const MARK_MIN=mgDiff(.32,.14,0);          // 光の外でも調べられる場所の枠を薄く出す
+    const CLUE_HL=DIFF==='easy';               // 手がかり（暗証・手順の書かれた物）を金色で強調
+    const CLUES={roster:1,diagram:1,memo:1,note:1,tank:1,oldmemo:1,tag:1,lockpanel:1,gen:1};
     const P=makePuzzle();
     const REC=(gs.escapeData=Object.assign({plays:0,clears:0,bestLeft:0,bestGrade:'',grades:{}},gs.escapeData||{}));
     const TWIST=REC.clears>0;                        // 一度クリアすると「二夜目」：発電機の始動が加わる
@@ -294,10 +303,10 @@ registerMinigame({
           ${TWIST?'<div class="esc-tw">二夜目 ― 非常用発電機が止まっている</div>':''}
           <div class="esc-rec">${recLine}</div>
           <button class="ev-btn esc-start">はじめる</button>
-          <div class="esc-rec">制限時間 ${TWIST?"5:00":"4:30"} ／ ヒント3回まで</div>
+          <div class="esc-rec">制限時間 ${fmt(TIME+(TWIST?30:0))} ／ ヒント${HMAX}回まで ／ 難しさ：${MG_DIFF_NAMES[DIFF]}</div>
         </div>
       </div>
-      <div class="esc-inv">${[0,1,2,3,4].map(i=>`<button class="esc-slot" data-slot="${i}"></button>`).join('')}<button class="esc-hint">ヒント<br>残3</button></div>
+      <div class="esc-inv">${[0,1,2,3,4].map(i=>`<button class="esc-slot" data-slot="${i}"></button>`).join('')}<button class="esc-hint">ヒント<br>残${HMAX}</button></div>
     </div>`;
     const $=s=>body.querySelector(s);
     const stage=$('.esc-stage'),cv=$('.esc-cv'),mainCx=cv.getContext('2d');
@@ -450,7 +459,7 @@ registerMinigame({
     }
     const PMAX=TWIST?6:5;
     function progress(){return [S.torch,S.locker,S.power,S.plcOk,S.air].filter(Boolean).length+(TWIST&&S.gen?1:0);}
-    function updScore(){mg.setScore(`進捗 <span style="color:var(--cy)">${progress()}/${PMAX}</span>　ヒント ${S.hints}/3`);}
+    function updScore(){mg.setScore(`進捗 <span style="color:var(--cy)">${progress()}/${PMAX}</span>　ヒント ${S.hints}/${HMAX}`);}
     function renderInv(newId){
       body.querySelectorAll('.esc-slot').forEach((b,i)=>{
         const id=S.inv[i];
@@ -461,7 +470,7 @@ registerMinigame({
         b.classList.remove('new');b.classList.toggle('tut',S.tut===2&&i===0&&!!id);
         if(id&&id===newId){void b.offsetWidth;b.classList.add('new');}
       });
-      const h=$('.esc-hint');h.innerHTML=`ヒント<br>残${3-S.hints}`;h.disabled=S.hints>=3||!S.started||S.door||!!S.over;
+      const h=$('.esc-hint');h.innerHTML=`ヒント<br>残${HMAX-S.hints}`;h.disabled=S.hints>=HMAX||!S.started||S.door||!!S.over;
       updScore();
     }
     function addItem(id,text,h){
@@ -513,7 +522,7 @@ registerMinigame({
       return '<b>非常口の扉</b>を開けよう！';
     }
     function useHint(){
-      if(S.hints>=3||!S.started||S.door)return;
+      if(S.hints>=HMAX||!S.started||S.door)return;
       S.hints++;AU.se('notif');say('💡 '+hintText(),7);renderInv();
     }
 
@@ -1471,13 +1480,14 @@ registerMinigame({
         HS[S.room].forEach(h=>{
           const [x,y,w,hh]=RX(h),cxp=x+w/2,cyp=y+hh/2;
           const dd=Math.hypot(cxp-L,cyp-Lc);
-          const a=Math.max(0,1-dd/(R*1.05))*(.45+.25*Math.sin(T*3+h.x*9));
+          const clue=CLUE_HL&&CLUES[h.id];
+          const a=Math.max(MARK_MIN*(clue?1.6:1),Math.max(0,1-dd/(R*1.05)))*(.45+.25*Math.sin(T*3+h.x*9));
           if(a<=.02)return;
           const c=Math.min(w,hh)*.18+4;
-          cx.strokeStyle=S.sel?`rgba(232,184,48,${a})`:`rgba(0,232,200,${a})`;cx.lineWidth=1.5;cx.beginPath();
+          cx.strokeStyle=S.sel||clue?`rgba(232,184,48,${a})`:`rgba(0,232,200,${a})`;cx.lineWidth=1.5;cx.beginPath();
           cx.moveTo(x,y+c);cx.lineTo(x,y);cx.lineTo(x+c,y);cx.moveTo(x+w-c,y);cx.lineTo(x+w,y);cx.lineTo(x+w,y+c);
           cx.moveTo(x+w,y+hh-c);cx.lineTo(x+w,y+hh);cx.lineTo(x+w-c,y+hh);cx.moveTo(x+c,y+hh);cx.lineTo(x,y+hh);cx.lineTo(x,y+hh-c);cx.stroke();
-          if(dd<R*.45){txt(h.nm,cxp,y-7>Y(.04)?y-7:y+hh+8,Math.max(9,W*.026),`rgba(222,204,248,${Math.min(1,a*1.6)})`);}
+          if(dd<R*.45||MARK_MIN>.3){txt(h.nm,cxp,y-7>Y(.04)?y-7:y+hh+8,Math.max(9,W*.026),`rgba(222,204,248,${Math.min(1,a*1.6)})`);}
         });
       }
       // タップの波紋

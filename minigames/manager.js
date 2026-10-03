@@ -12,6 +12,7 @@
 // 遊んだ回数／日数で新企画（凸待ち・耐久配信）が解禁。記録は gs.managerData。
 // グラフィックはすべてコード描画（ドット絵のカード・だんのうら・相方）＋ char_*.webp の立ち絵。
 // ══════════════════════════════════════════════════════════
+addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
 addMinigameStyle('manager',`
 .mg-manager{padding:0;}
 .mgr-root{position:relative;flex:1;min-height:0;width:100%;display:flex;flex-direction:column;font-family:var(--dot);color:var(--tx);user-select:none;-webkit-user-select:none;overflow:hidden;
@@ -425,10 +426,19 @@ function affinity(g,taste){
   return a;
 }
 
+// ── 難しさ別のペナルティの強さ（むずかしい＝従来の値）──
+// fatK:配信の疲れの溜まり方 tired:疲れで質が落ち始める値 sleep:寝落ちする値 rep:同じ企画の飽き(1回ごと)
+// bad:悪いハプニングの影響の割合 pen:週末疲労ペナルティが始まる値 late:合わない企画の2時枠
+const MGR_DZ={
+  easy:  {fatK:.7, tired:66,sleep:96,rep:.1, bad:.45,pen:86,late:.93,sc:1.12},
+  normal:{fatK:.85,tired:60,sleep:91,rep:.15,bad:.7, pen:78,late:.87,sc:1.07},
+  hard:  {fatK:1,  tired:55,sleep:86,rep:.2, bad:1,  pen:70,late:.8, sc:1},
+};
 // ── 1週間のシミュレーション（純関数・乱数は rnd）──
-// plan: [{t,b}]×7  env: {aff,trend,startFat,base,fix,flame,rnd}
+// plan: [{t,b}]×7  env: {aff,trend,startFat,base,fix,flame,rnd,dz}
 function simulate(plan,env){
   const rnd=env.rnd||Math.random;
+  const dz=env.dz||MGR_DZ.hard;
   let F=env.startFat,streak=0,score=0;
   const nights=[],found=new Set(),cnt={};
   const top=STREAMS.slice().sort((a,b)=>env.aff[b]-env.aff[a]).slice(0,2);
@@ -450,7 +460,7 @@ function simulate(plan,env){
     let q=env.aff[t];
     n.mult.push(['客層との相性',env.aff[t]]);
     if(top.includes(t))add('fav');
-    let bm=b===1?1.12:b===2?.8:1;
+    let bm=b===1?1.12:b===2?dz.late:1;
     if(b===2&&(t==='kaidan'||t==='radio')){bm=1.35;add('late');}
     else if(b===0&&(t==='uta'||t==='game')){bm=1.15;add('early');}
     else if(b===1)add('midnight');
@@ -459,7 +469,7 @@ function simulate(plan,env){
     q*=bm;
     if(i===4||i===5){q*=1.08;n.mult.push(['週末',1.08]);add('weekend');}
     const c=cnt[t]||0;cnt[t]=c+1;
-    if(c>0){let nv=Math.max(.45,1-.2*c);if(prev===t)nv*=.9;q*=nv;n.mult.push(['新鮮さ低下',nv]);add('repeat');}
+    if(c>0){let nv=Math.max(.45,1-dz.rep*c);if(prev===t)nv*=.9;q*=nv;n.mult.push(['新鮮さ低下',nv]);add('repeat');}
     let sy=1,syl='';
     if(prev==='short'){if(t==='collab'||t==='uta'){sy=1.45;add('short_big');}else{sy=1.15;add('short');}syl='告知の効果';}
     else if(prev==='kaidan'&&t==='radio'){sy=1.2;add('kaidan_radio');syl='怪談の余韻';}
@@ -471,14 +481,14 @@ function simulate(plan,env){
     if(t===env.trend){q*=1.5;n.mult.push(['トレンド一致',1.5]);add('trend');}
     if(t==='endure'){q*=1.45;n.mult.push(['耐久の熱量',1.45]);}
     // 疲労
-    const addF=T[t].fat+streak*3+[0,3,7][b];
+    const addF=Math.round((T[t].fat+streak*3+[0,3,7][b])*dz.fatK);
     if(streak>=3)add('streak');
     streak++;
     const Fmid=Math.min(100,F+addF*.5);
     F=Math.min(100,F+addF);
-    if(Fmid>55){const fm=Math.max(.45,1-(Fmid-55)/70);q*=fm;n.mult.push(['疲れ',fm]);add('tired');}
+    if(Fmid>dz.tired){const fm=Math.max(.45,1-(Fmid-dz.tired)/70);q*=fm;n.mult.push(['疲れ',fm]);add('tired');}
     // ハプニング
-    if(Fmid>=86){q*=.5;n.evt={txt:'途中で寝落ちしてしまった…',c:'#e83055',m:.5,sleep:true};add('sleep');}
+    if(Fmid>=dz.sleep){q*=.5;n.evt={txt:'途中で寝落ちしてしまった…',c:'#e83055',m:.5,sleep:true};add('sleep');}
     else{
       const r=rnd();
       if(r<.05){n.evt={txt:'切り抜きがバズった！',c:'#e8b830',m:1.35,good:true,big:true};}
@@ -490,6 +500,7 @@ function simulate(plan,env){
         const fx=env.fix>=3;n.evt={txt:fx?'回線落ち→設備保全の腕で即復旧':'回線が落ちた…',c:fx?'#e8b830':'#e83055',m:fx?.93:.8};
       }
       else if(r<.30+(b===0?.05:0)+Math.min(.08,(env.flame||0)*.002)){n.evt={txt:'荒らしが来た…',c:'#e83055',m:.85};}
+      if(n.evt&&!n.evt.good&&dz.bad!==1)n.evt.m=Math.round((1-(1-n.evt.m)*dz.bad)*100)/100;
       if(n.evt)q*=n.evt.m;
     }
     if(n.evt)n.mult.push([n.evt.good?'ハプニング（良）':'ハプニング',n.evt.m]);
@@ -499,8 +510,8 @@ function simulate(plan,env){
     nights.push(n);
   }
   let pen=0;
-  if(F>70)pen=(F-70)*.04;
-  score=Math.max(0,score-pen);
+  if(F>dz.pen)pen=(F-dz.pen)*.04;
+  score=Math.max(0,score*dz.sc-pen);
   const grade=gradeOf(score);
   // 新規フォロワーを夜ごとに配分（合計＝評価の報酬）
   const total=REWARD[grade].followers;
@@ -512,13 +523,14 @@ function simulate(plan,env){
   nights.forEach((n,i)=>n.gain=fl[i]);
   return {nights,score,pen,grade,found:[...found],endFat:F,peak:Math.max(0,...nights.map(n=>n.peak))};
 }
-function fatPreview(plan,start){
+function fatPreview(plan,start,dz){
+  const fk=dz?dz.fatK:1;
   let F=start,streak=0;const out=[],streaks=[];
   plan.forEach(p=>{
     if(!p.t){out.push(null);streaks.push(0);return;}
     if(p.t==='rest'){F=Math.max(0,F-28);streak=0;}
     else if(p.t==='short')F=Math.min(100,F+4);
-    else{F=Math.min(100,F+T[p.t].fat+streak*3+[0,3,7][p.b]);streak++;}
+    else{F=Math.min(100,F+Math.round((T[p.t].fat+streak*3+[0,3,7][p.b])*fk));streak++;}
     out.push(F);streaks.push(streak);
   });
   out.streaks=streaks;
@@ -531,8 +543,11 @@ registerMinigame({
   effect:'フォロワー↑ 配信人気↑ 精神±（評価しだい） ／ 疲労+4 約50分',
   help:'カードをドラッグ／タップ→曜日をタップ',
   bgm:'stream',
-  _sim:simulate,_aff:affinity,
+  _sim:simulate,_aff:affinity,_dz:MGR_DZ,
   start(body,mg){
+    // 難しさ（開始時に読む）：ペナルティの強さ（MGR_DZ）と常連のアドバイスの親切さ
+    const DIFF=mgDifficulty(),DZ=MGR_DZ[DIFF];
+    mg.el('mg-title').insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);
     const later=(ms,fn)=>setTimeout(()=>{if(!mg._ended)fn();},ms);
     const se=t=>{try{AU.se(t);}catch(e){}};
     // ── 永続データ ──
@@ -586,7 +601,8 @@ registerMinigame({
         if(phase!=='plan')return;
         if(!isStream(plan[i].t)){se('back');sfx('deny');say('休み・告知の日は時間帯なし',true);return;}
         snap();plan[i].b=(plan[i].b+1)%3;se('tool');sfx('band');
-        say(`${DAYS[i]}曜は ${BANDS[plan[i].b]} から配信`,false,true);renderBoard();
+        const ba=DIFF==='easy'?advise(i):null;
+        if(ba)say(ba,false,false,true);else say(`${DAYS[i]}曜は ${BANDS[plan[i].b]} から配信`,false,true);renderBoard();
       };
       board.appendChild(r);
       return {r,s,bb};
@@ -614,9 +630,14 @@ registerMinigame({
     }
     // 常連のアドバイス（既に見つけた法則だけ口にする）
     function advise(i){
-      const k=plan[i].t,fp=fatPreview(plan,startFat),prev=i?plan[i-1].t:null,next=i<6?plan[i+1].t:null,kn=id=>md.found.includes(id);
-      if(fp[i]>=86)return kn('sleep')?'そこまで詰めると寝落ちするっすよ…！':'その日、だいぶ疲れてそうっす…';
+      // やさしい：法則を全部教えてくれる／ふつう：基本の法則（寝落ち・飽き・連続・告知）は最初から教えてくれる
+      const BASIC={sleep:1,repeat:1,streak:1,short_big:1};
+      const k=plan[i].t,fp=fatPreview(plan,startFat,DZ),prev=i?plan[i-1].t:null,next=i<6?plan[i+1].t:null,kn=id=>DIFF==='easy'||(DIFF==='normal'&&BASIC[id])||md.found.includes(id);
+      if(fp[i]>=DZ.sleep)return kn('sleep')?'そこまで詰めると寝落ちするっすよ…！':'その日、だいぶ疲れてそうっす…';
       if(k===trend)return 'トレンド企画！ 伸びそうっす🔥';
+      if(DIFF!=='hard'&&fp[i]>=DZ.tired+12)return '疲れが溜まってきてるっす。どこかに休みを入れると伸びるっすよ';
+      if(DIFF==='easy'&&(k==='kaidan'||k==='radio')&&plan[i].b!==2)return 'それ、右のボタンで2時（丑三つ）にすると雰囲気出るっす！';
+      if(DIFF==='easy'&&(k==='uta'||k==='game')&&plan[i].b!==0)return 'それは22時（宵）が人の集まる時間っす！ 右のボタンで変えられるっす';
       if(kn('short_big')&&prev==='short'&&(k==='collab'||k==='uta'))return '告知の次の日にそれ、鉄板っす！';
       if(kn('short_big')&&k==='short'&&(next==='collab'||next==='uta'))return '告知→翌日で人を呼べるっす！';
       if(kn('kaidan_radio')&&((prev==='kaidan'&&k==='radio')||(k==='kaidan'&&next==='radio')))return '怪談からのラジオ、余韻で沁みるやつっす';
@@ -661,7 +682,7 @@ registerMinigame({
       se('back');sfx('undo');say('ひとつ前に戻した',false,true);renderBoard();
     };
     function renderBoard(){
-      const fp=fatPreview(plan,startFat);
+      const fp=fatPreview(plan,startFat,DZ);
       rows.forEach(({s,bb},i)=>{
         const p=plan[i];
         s.classList.toggle('full',!!p.t);
@@ -681,7 +702,7 @@ registerMinigame({
       const last=fp.filter(v=>v!=null).pop();
       const fv=last==null?startFat:last;
       kp.querySelector('.k-bud').innerHTML=`${img('collab')}${T.collab.lim-used('collab')}　${img('short')}${T.short.lim-used('short')}`;
-      kp.querySelector('.k-fat').textContent=fv+(fv>70?' ⚠':'');
+      kp.querySelector('.k-fat').textContent=fv+(fv>DZ.pen?' ⚠':'');
       const fb=kp.querySelector('.k-fbar');fb.style.width=fv+'%';fb.style.background=fatCol(fv);
       goBtn.disabled=plan.some(p=>!p.t);
       undoBtn.disabled=!hist.length;
@@ -789,7 +810,7 @@ registerMinigame({
     memoBtn.onclick=()=>{
       if(phase!=='plan')return;se('decide');sfx('next');
       const ov=el('div','mgr-ov');const bx=el('div','mgr-box',`<div class="sub">MEETING MEMO</div><h3>📝 運営メモ</h3>${audienceNote()}
-        <div class="mgr-note" style="border-color:var(--cy)"><b style="color:var(--cy)">基本</b>：🤝コラボ週1・📣告知週2まで。💤休みで疲労−28。日曜夜の疲労が70を超えると減点。</div>${memoHtml()}`);
+        <div class="mgr-note" style="border-color:var(--cy)"><b style="color:var(--cy)">基本</b>：🤝コラボ週1・📣告知週2まで。💤休みで疲労−28。日曜夜の疲労が${DZ.pen}を超えると減点。</div>${memoHtml()}`);
       const b=el('button','mgr-btn','閉じる');b.onclick=()=>{se('back');sfx('remove');ov.remove();};bx.appendChild(b);ov.appendChild(bx);root.appendChild(ov);
     };
 
@@ -798,6 +819,7 @@ registerMinigame({
     const tcv=el('canvas');title.appendChild(tcv);
     title.insertAdjacentHTML('beforeend',`<div class="mgr-logo">${img('logo')}<div class="jp">チャンネル運営会議</div><div class="en">CHANNEL OPS MEETING</div><div class="bar"></div></div>
       <div class="mgr-tstat"><span>会議 <b>${md.plays}</b>回</span><span>BEST <b class="mgr-g${md.best||''}">${md.best||'-'}</b></span><span>気づき <b>${md.found.length}/${Object.keys(FOUND).length}</b></span></div>
+      <div class="mgr-tstat" style="color:${DIFF==='easy'?'#44ee88':DIFF==='normal'?'#e8b830':'#ff6a86'}">難しさ：${MG_DIFF_NAMES[DIFF]}</div>
       ${newly.length?`<div class="mgr-tstat" style="color:var(--gd)">NEW 企画解禁：${newly.map(k=>T[k].n).join('・')}</div>`:''}
       <button class="mgr-press">TAP TO START</button>`);
     let titleT=0;
@@ -902,7 +924,7 @@ registerMinigame({
     function startSim(){
       if(phase!=='plan')return;
       phase='simwait';sel=null;stopCoach();se('live');sfx('go');
-      res=simulate(plan,{aff,trend,startFat,base,fix:(gs.skills&&gs.skills.emergencyFix)||0,flame:gs.flame||0});
+      res=simulate(plan,{aff,trend,startFat,base,fix:(gs.skills&&gs.skills.emergencyFix)||0,flame:gs.flame||0,dz:DZ});
       wipe('ON AIR',()=>{
         pl.remove();
         sim=el('div','mgr-sim');root.appendChild(sim);
@@ -1154,7 +1176,7 @@ registerMinigame({
       const L=30,R=W-38,gap=14,ph=(H-18-gap-18)/2;
       const panels=[
         {name:'新規フォロワー（今週の累計）',y0:16,data:cum,max:Math.max(4,Math.ceil(cum[7]/4)*4),col:'#00e8c8',unit:'人'},
-        {name:'疲労',y0:16+ph+gap,data:fat,max:100,col:'#e8b830',unit:'',danger:70},
+        {name:'疲労',y0:16+ph+gap,data:fat,max:100,col:'#e8b830',unit:'',danger:DZ.pen},
       ];
       const X=i=>L+(R-L)*i/7;
       let tipInfo=null;
@@ -1244,7 +1266,7 @@ registerMinigame({
         ${midLine?say('mid',null,midLine,1.0):''}
         ${best?`<div class="mgr-note" style="border-color:var(--gn)"><b style="color:var(--gn)">ベストの夜</b>：${nightLine(best)}</div>`:''}
         ${worst&&worst!==best?`<div class="mgr-note" style="border-color:var(--rd)"><b style="color:var(--rd)">ワーストの夜</b>：${nightLine(worst)}</div>`:''}
-        ${res.pen>0?`<div class="mgr-note" style="border-color:var(--rd)"><b style="color:var(--rd)">疲労ペナルティ</b>：日曜夜の疲労が70超え（−${res.pen.toFixed(1)}）</div>`:''}
+        ${res.pen>0?`<div class="mgr-note" style="border-color:var(--rd)"><b style="color:var(--rd)">疲労ペナルティ</b>：日曜夜の疲労が${DZ.pen}超え（−${res.pen.toFixed(1)}）</div>`:''}
         <div class="mgr-sec">INSIGHTS ／ 今週の気づき（全${md.found.length}/${Object.keys(FOUND).length}）</div>
         ${res.found.length?res.found.map(f=>`<div class="mgr-found${res.newFound.includes(f)?' new':''}">${FOUND[f]}${res.newFound.includes(f)?'<span class="nw">NEW</span>':''}</div>`).join(''):'<div class="mgr-found">特になし</div>'}
         ${md.reports.length>1?`<div class="mgr-sec">PAST REPORTS ／ 過去の通信簿</div>${pastTable(4,true)}`:''}`;
@@ -1293,7 +1315,7 @@ registerMinigame({
     });
 
     // テスト用フック
-    body._mgr={plan,get phase(){return phase;},get res(){return res;},trend,aff,favs,KEYS,
+    body._mgr={plan,get phase(){return phase;},get res(){return res;},trend,aff,favs,KEYS,DIFF,DZ,advise:i=>advise(i),
       fill(arr){arr.forEach((p,i)=>{plan[i].t=p[0];plan[i].b=p[1]==null?1:p[1];});
         if(phase!=='plan'){const t=root.querySelector('.mgr-title');if(t)t.remove();if(story)story.remove();phase='plan';}
         stopCoach();renderBoard();},

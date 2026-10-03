@@ -203,31 +203,48 @@ const BODY_KNEEL=[
 "..koonnnnnnnk...",
 "..kkkkkkkkkkk...",
 ];
-// 子ども（仰向けで枕の上）8x8
+// 娘（仰向けで枕の上）16x13：紫がかった黒髪・ぱっつん前髪・ちいさなツインテール＋ピンクの花・ミント地に星のパジャマ
 const CHILD=[
-"...kkkk...",
-".kkyyyykk.",
-"kyyYYyyyyk",
-"kyYyyyyyyk",
-"kyysyyssyk",
-"kssssssssk",
-"kskkssKksk",
-"ksbssssbsk",
-".kssssssk.",
-"..kkkkkk..",
+"......kkkk......",
+"....kkhHHhkk....",
+"..fkhhHHhhhhkf..",
+".fFfhHhhhhhhfFf.",
+"kkfkhhhhhhhhkfkk",
+"khhkhhhhhhhhkhhk",
+"khhkhsssssshkhhk",
+"khhkhEEssEEhkhhk",
+".khkhbssssbhkhk.",
+"..kkhsssrsshkk..",
+"....kssssssk....",
+"...kwwmmmmwwk...",
+"..kmmymmmmmymk..",
 ];
 const CHILD_TURN=[
-"...kkkk...",
-".kkyyyykk.",
-"kyyYYyyyyk",
-"kyYyyyyyyk",
-"kyyyyyysyk",
-"kyyyyyssk.",
-"kyyyyskKk.",
-".kyyysbsk.",
-"..kyysssk.",
-"...kkkkk..",
+"......kkkk......",
+"....kkhHHhkk....",
+"..fkhhHHhhhhk...",
+".fFfhHhhhhhhhk..",
+"kkfkhhhhhhhhhk..",
+"khhkhhhhhhhhhk..",
+"khhkhhhhhsssshk.",
+".khkhhhhsEEsssk.",
+"..kkhhhhsssbssk.",
+"...kkhhhssrssk..",
+".....kkksssk....",
+"....kwmmmmwk....",
+"...kmmymmmymk...",
 ];
+const CHILD_PAL={k:'#1b1226',h:'#35224e',H:'#6a54a4',f:'#ffaad4',F:'#ffe066',E:'#3a2048',b:'#f59aae',r:'#d0607a',w:'#f6fbf6',m:'#9fe2c8',y:'#ffe066'};
+// いつも抱いているクマ（左耳＝画面右がほつれている）7x6
+const BEAR=[
+"kk...kt",
+"kbkkkbk",
+"kbbbbbk",
+"kbkbkbk",
+"kbbcbbk",
+".kkkkk.",
+];
+const BEAR_PAL={k:'#1b1226',b:'#a8724a',c:'#e8c49a',t:'#d9a878'};
 // グリフ
 const G_Z=["zzzzz","...z.","..z..",".z...","zzzzz"];
 const G_z=["zzz",".z.","zzz"];
@@ -415,7 +432,7 @@ function buildSprites(){
   S.sprT=buildForm(HEAD_F_T,HEAD_B_T,HEAD_S_T,PAL_T);
   s.spark=sprite(G_SPARK,{z:'#ffffff',r:'#ff9cd8'});
   S.lights.burst=makeLight(30,'255,230,255');
-  s.child=sprite(CHILD);s.childT=sprite(CHILD_TURN);
+  s.child=sprite(CHILD,CHILD_PAL);s.childT=sprite(CHILD_TURN,CHILD_PAL);s.bear=sprite(BEAR,BEAR_PAL);
   s.Z=sprite(G_Z);s.z=sprite(G_z);s.note=sprite(G_NOTE,{z:'#ffd6f0'});s.note2=sprite(G_NOTE2,{z:'#bfefff'});
   s.heart=sprite(G_HEART,{r:'#ff7aa8'});s.dots=sprite(G_DOTS);s.sweat=sprite(G_SWEAT);s.sil=sprite(G_SIL,{a:'#c8c0e8',E:'#2a0010'});
   s.Zb=sprite(G_Z,{z:'#bcd4ff'});s.zb=sprite(G_z,{z:'#bcd4ff'});
@@ -774,8 +791,8 @@ function drawChild(x,k){
   const both=A.mode==='lie';
   pillow(x,FUTON.x+2,FUTON.y-3,14);
   if(both)pillow(x,FUTON.x+20,FUTON.y-3,18);
-  // 子どもの頭
-  D2(turn?S.spr.childT:S.spr.child,FUTON.x+4,FUTON.y-7+(stirring&&turn?1:0)+(breath&&!stirring?0:0));
+  // 娘の頭
+  D2(turn?S.spr.childT:S.spr.child,FUTON.x+1,FUTON.y-11+(stirring&&turn?1:0)+(breath&&!stirring?0:0));
   // 親（添い寝）
   if(both){const br=(Math.sin(S.t*1.1)>0)?1:0;D2(formSet().sleepF,FUTON.x+21,FUTON.y-14+br);}
   // 掛け布団
@@ -788,8 +805,10 @@ function drawChild(x,k){
   else{x.fillStyle='#86a2de';x.fillRect(X0+6,by+2,14,2);x.fillStyle='#5670b0';x.fillRect(X0+18,by+4,1,bh-7);}
   // 星柄
   x.fillStyle='#f4dc7a';for(let i=0;i<6;i++){x.fillRect(X0+5+i*9,by+4+(i%2)*3,1,1);if(i%2)x.fillRect(X0+4+i*9,by+5,3,1),x.fillRect(X0+5+i*9,by+4,1,3);}
-  // 寝返り中の腕
-  if(stirring&&Math.floor(S.t*1.5)%2){x.fillStyle='#1b1226';x.fillRect(FUTON.x+12,by-2,7,3);x.fillStyle=PAL.s;x.fillRect(FUTON.x+13,by-1,5,1);}
+  // 抱いているクマ（掛け布団から顔を出す）と寝返り中の腕（ミントのパジャマの袖）
+  const armUp=stirring&&Math.floor(S.t*1.5)%2;
+  D2(S.spr.bear,FUTON.x+14+(armUp?2:0),by-4+(turn&&!armUp?1:0));
+  if(armUp){x.fillStyle='#1b1226';x.fillRect(FUTON.x+11,by-2,8,3);x.fillStyle='#9fe2c8';x.fillRect(FUTON.x+12,by-1,4,1);x.fillStyle=PAL.s;x.fillRect(FUTON.x+16,by-1,2,1);}
 }
 
 function formSet(){

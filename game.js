@@ -1308,6 +1308,14 @@ const CHAR_SVG={
 };
 // 育成タイプに応じてSVGを切り替えるマッピング
 const TYPE_SVG={streamer:'normal',engineer:'normal',father:'happy',collapse:'collapse'};
+// 娘の顔の画像（全画面共通）。わかばシステム等で作った画像に差し替えるときは、このパスだけ変える
+const CHILD_IMG={
+  normal:'assets/img/child_normal.svg',
+  happy:'assets/img/child_happy.svg',
+  sleep:'assets/img/child_sleep.svg',
+  sad:'assets/img/child_sad.svg',
+  fever:'assets/img/child_fever.svg',
+};
 const CHAR_IMG={
   normal:'assets/img/char_normal.webp',
   happy:'assets/img/char_happy.webp',

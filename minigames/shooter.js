@@ -58,9 +58,26 @@ registerMinigame({
     const remix=SD.clears>=1;
     const phaseNo=(typeof getPhase==='function')?getPhase():1;
 
+    // ── 難しさ（設定画面で選ぶ。むずかしい＝従来の調整） ──
+    const DIFF=mgDifficulty();
+    const DF={
+      shield:mgDiff(8,6,5),      // こころの数
+      spd:mgDiff(.74,.88,1),     // 敵の落ちる速さ
+      iv:mgDiff(1.45,1.18,1),    // 出現間隔の倍率（大きいほど少ない）
+      bossHp:mgDiff(.55,.78,1),  // ボスの体力
+      bossFire:mgDiff(1.55,1.22,1), // ボス弾の間隔の倍率
+      eb:mgDiff(.72,.86,1),      // 敵弾の速さ
+      inv:mgDiff(1.9,1.55,1.3),  // 被弾後の無敵時間
+      hb:mgDiff(.62,.72,.8),     // 自機の当たり判定（敵の幅に対する割合）
+      good:mgDiff(.75,.9,1),     // 応援コメントの間隔の倍率
+      ffShield:DIFF==='hard',    // 誤射でこころが減るか（やさしい・ふつうはコンボだけ）
+    };
+    addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
+    {const tt=mg.el('mg-title');if(tt&&!tt.querySelector('.mg-diffb'))tt.insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);}
+
     // ── 定数 ──
-    const T_BOSS=48, T_END=63, MAX_SHIELD=5, BOSS_HP=remix?70:60, HUD_H=56;
-    const SPD=remix?1.12:1, IVM=remix?.88:1;
+    const T_BOSS=48, T_END=63, MAX_SHIELD=DF.shield, BOSS_HP=Math.round((remix?70:60)*DF.bossHp), HUD_H=56;
+    const SPD=(remix?1.12:1)*DF.spd, IVM=(remix?.88:1)*DF.iv;
     const FONT='"DotGothic16", monospace';
     const C={pu:'#8a52d4',cy:'#00e8c8',rd:'#e83055',gd:'#e8b830',gn:'#44ee88',tx:'#bbaedd',txb:'#deccf8'};
     const WAVES=[
@@ -524,7 +541,7 @@ registerMinigame({
 
     // ── ダメージ・取得 ──
     function loseShield(x,y,msg,kind){
-      shield--;inv=1.3;shake=Math.max(shake,9);hurtFlash=.5;combo=0;stop=Math.max(stop,.09);player.hitT=.4;
+      shield--;inv=DF.inv;shake=Math.max(shake,9);hurtFlash=.5;combo=0;stop=Math.max(stop,.09);player.hitT=.4;
       burst(x,y,18,['#e83055','#ff9aa8','#ffd0d8'],220,.6,3);
       pop(x,y-20,msg,'#ff7a90');
       sfx(kind||'hurt');
@@ -665,12 +682,12 @@ registerMinigame({
           spawnCd-=dt;
           if(spawnCd<=0){spawnEnemy(chooseType());spawnCd=WAVES[Math.max(0,waveIdx)].iv*IVM*rnd(.7,1.3);}
           goodCd-=dt;
-          if(goodCd<=0){spawnGood();goodCd=rnd(3.2,5);}
+          if(goodCd<=0){spawnGood();goodCd=rnd(3.2,5)*DF.good;}
         }else if(boss&&!boss.dead){
           spawnCd-=dt;
           if(spawnCd<=0){spawnEnemy(Math.random()<.5?'zig':'basic');spawnCd=rnd(1.8,2.6)*IVM;}
           goodCd-=dt;
-          if(goodCd<=0){spawnGood();goodCd=rnd(2.6,3.6);}
+          if(goodCd<=0){spawnGood();goodCd=rnd(2.6,3.6)*DF.good;}
         }
       }
 
@@ -685,7 +702,7 @@ registerMinigame({
         else if(e.type==='shooter'){
           if(e.age<7){e.y+=(e.stay-e.y)*Math.min(1,edt*2.2);e.x=e.bx+Math.sin(e.age*.9+e.ph)*Math.min(60,W*.15);
             e.fireCd-=edt;
-            if(e.fireCd<=0&&live){e.fireCd=rnd(1.4,1.9)/(remix?1.15:1);
+            if(e.fireCd<=0&&live){e.fireCd=rnd(1.4,1.9)/(remix?1.15:1)*DF.bossFire;
               const a=Math.atan2(hy-e.y,hx-e.x);
               eb.push({x:e.x,y:e.y+e.h/2,vx:Math.cos(a)*120,vy:Math.sin(a)*120,ch:pick(EB_CH),dead:false,boss:false});
               ring(e.x,e.y+e.h/2,16,C.rd,.25);
@@ -704,7 +721,7 @@ registerMinigame({
         }
         if(e.dead)continue;
         // 当たり判定は見た目より小さめ（やさしめ）
-        if(Math.abs(e.x-hx)<hw*.8+5&&Math.abs(e.y-hy)<hh*.7+9){e.dead=true;burst(e.x,e.y,12,['#e83055','#ffd0d8'],160,.5,3);hurt(hx,hy,'「'+e.text+'」');continue;}
+        if(Math.abs(e.x-hx)<hw*DF.hb+5&&Math.abs(e.y-hy)<hh*(DF.hb-.1)+9){e.dead=true;burst(e.x,e.y,12,['#e83055','#ffd0d8'],160,.5,3);hurt(hx,hy,'「'+e.text+'」');continue;}
         if(e.y-hh>H){e.dead=true;combo=0;if(!e.small)hurt(e.x,H-30,'「'+e.text+'」が刺さった');}
       }
       compact(enemies);
@@ -722,8 +739,8 @@ registerMinigame({
             g.dead=true;friendlyFire++;
             burst(gx,g.y,14,['#ff7aa8','#bff8ee','#fff'],150,.6,3);
             g.x=gx;g.dieT=0;g.absorb=false;corpses.push(g);
-            if(live&&inv<=0)loseShield(gx,g.y+10,'誤射… 応援を消した','ff');
-            else pop(gx,g.y-14,'誤射…','#ff7aa8');
+            if(live&&inv<=0&&DF.ffShield)loseShield(gx,g.y+10,'誤射… 応援を消した','ff');
+            else{pop(gx,g.y-14,'誤射…','#ff7aa8');combo=0;}
             break;
           }
         }
@@ -736,7 +753,7 @@ registerMinigame({
 
       for(const b of eb){
         if(b.dead)continue;
-        b.x+=b.vx*edt;b.y+=b.vy*edt;
+        b.x+=b.vx*edt*DF.eb;b.y+=b.vy*edt*DF.eb;
         if(b.y>H+20||b.y<HUD_H-40||b.x<-20||b.x>W+20){b.dead=true;continue;}
         const dx=b.x-hx,dy=b.y-hy;
         if(dx*dx+dy*dy<(barrierT>0?26*26:13*13)){b.dead=true;hurt(b.x,b.y,'「'+b.ch+'」');}
@@ -761,7 +778,7 @@ registerMinigame({
         if(bs.t>2&&live){
           bs.patT+=edt;if(bs.patT>3.4){bs.patT=-.9;bs.pat=(bs.pat+1)%(remix?4:3);}
           bs.fire-=edt;if(bs.patT<0)bs.fire=Math.max(bs.fire,.05);
-          const enr=bs.hp<bs.max*.4?1.25:1;
+          const enr=(bs.hp<bs.max*.4?1.25:1)/DF.bossFire;
           if(bs.fire<=0){
             if(bs.pat===0){
               bs.fire=.19/enr;const a=bs.t*2.4;
@@ -1148,7 +1165,8 @@ registerMinigame({
       cx.textBaseline='middle';
       cx.font=`10px ${FONT}`;cx.textAlign='left';cx.fillStyle='#bbaedd';cx.fillText('こころ',10,16);
       const hurtShake=player.hitT>0?Math.sin(clock*80)*2:0;
-      for(let i=0;i<MAX_SHIELD;i++)shieldIcon(52+i*15+(i===shield?hurtShake:0),16,i<shield);
+      const sgap=MAX_SHIELD>6?13:15;
+      for(let i=0;i<MAX_SHIELD;i++)shieldIcon(52+i*sgap+(i===shield?hurtShake:0),16,i<shield);
       cx.textAlign='right';
       cx.font=`15px ${FONT}`;cx.fillStyle='#deccf8';cx.fillText(String(score).padStart(6,'0'),W-10,16);
       cx.font=`9px ${FONT}`;cx.fillStyle='#5e5078';cx.fillText('BEST '+String(Math.max(SD.best.score,0)).padStart(6,'0'),W-10,31);
@@ -1258,7 +1276,7 @@ registerMinigame({
       const f=Math.min(1,sceneT/.7);
       drawLogo(W/2,H*.36,lerp(1.6,1,easeOutBack(f)),Math.min(1,sceneT*2));
       cx.textAlign='center';cx.font=`12px ${FONT}`;
-      const night='第'+(SD.plays+1)+'夜'+(remix?'　REMIX':'');
+      const night='第'+(SD.plays+1)+'夜'+(remix?'　REMIX':'')+'　難しさ：'+MG_DIFF_NAMES[DIFF];
       cx.fillStyle=remix?'#ff9a3c':'#bbaedd';cx.fillText(night,W/2,H*.36+90);
       if(SD.best.score>0){cx.fillStyle='#5e5078';cx.font=`10px ${FONT}`;cx.fillText('BEST '+SD.best.score+'　'+(SD.best.grade?'RANK '+SD.best.grade:''),W/2,H*.36+110);}
       if(sceneT>.8){cx.globalAlpha=.5+Math.sin(clock*5)*.4;cx.fillStyle='#deccf8';cx.font=`12px ${FONT}`;cx.fillText('TAP / ENTER',W/2,H*.7);cx.globalAlpha=1;}
@@ -1409,7 +1427,7 @@ registerMinigame({
       const flameDown=clear?Math.min(5,2+Math.floor(kills/20))+(bossBeaten?1:0):Math.floor(kills/25);
       const fx={
         flame:-Math.min(gs.flame,flameDown),
-        mental:clear?2+Math.max(0,shield)+(bossBeaten?1:0):down?-6:0,
+        mental:clear?2+Math.max(0,Math.min(5,shield))+(bossBeaten?1:0):down?-6:0,
         followers:clear?Math.min(10,Math.floor(kills/10))+Math.min(6,caught)+(bossBeaten?3:0):0,
         fatigue:down?8:6,
       };

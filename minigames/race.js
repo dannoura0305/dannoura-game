@@ -140,10 +140,25 @@ registerMinigame({
     };
     let VAR=VARS.normal;
     if(RD.ontime>0){const ks=['normal','storm','fog','rush'].filter(k=>k!==RD.lastVar);VAR=VARS[ks[Math.floor(Math.random()*ks.length)]];}
-    const START_T=40+VAR.tadd;
+    // 難しさ（設定画面で選ぶ。むずかしい＝従来の調整）
+    const DIFF=mgDifficulty();
+    const DF={
+      tAdd:mgDiff(14,7,0),        // 持ち時間の上乗せ（秒）
+      cp:mgDiff(1.25,1.12,1),     // チェックポイントの加算時間の倍率
+      crashes:mgDiff(5,4,3),      // 転倒できる回数（これに達すると終了）
+      dmg:mgDiff(.55,.78,1),      // 車体ダメージの倍率
+      red:mgDiff(3,4,6),          // 信号無視のペナルティ（秒）
+      traffic:mgDiff(.65,.82,1),  // 交通量
+      slipV:mgDiff(16,14,12),     // 水たまりで滑る速度（これより遅いと滑らない）
+      graze:mgDiff(.6,.5,.42),    // 「かすり」で済む横方向の重なり幅
+    };
+    addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
+    {const tt=mg.el('mg-title');if(tt&&!tt.querySelector('.mg-diffb'))tt.insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);}
+    const START_T=40+VAR.tadd+DF.tAdd;
     const SIGS=[{s:900,use:true},{s:1660,use:Math.random()<VAR.sig2}];
     SIGS.forEach(g=>{g.state='green';g.t=0;g.red=0;g.wait=0;g.trig=false;g.ran=false;g.spawnT=0;g.stop=g.s-6.5;});
     const CPS=[{s:540,add:26,done:false},{s:1200,add:22,done:false},{s:1770,add:16,done:false}];
+    CPS.forEach(c=>{c.add=Math.round(c.add*DF.cp);});
     const SHOP0=1040, SHOP1=1320, IND0=1790;
     const zoneAt=s=>s>=SHOP0&&s<SHOP1?'shop':s>=IND0?'ind':'town';
     const intOverlap=(a,b,pad)=>SIGS.some(g=>b>g.s-6-pad&&a<g.s+14+pad);
@@ -1065,7 +1080,7 @@ registerMinigame({
     function laneClear(s,d,r){return !cars.some(c=>c.on&&c.kind!=='cross'&&Math.abs(c.s-s)<r&&Math.abs(c.d-d)<1.5);}
     function updateCars(dt){
       if(phase==='play'){
-        const tr=VAR.traffic*(zoneAt(P.s+200)==='shop'?.45:1);
+        const tr=VAR.traffic*DF.traffic*(zoneAt(P.s+200)==='shop'?.45:1);
         spawnOn-=dt*tr;spawnSame-=dt*tr;
         if(spawnOn<=0){spawnOn=rnd(1.9,3.6);const s=P.s+rnd(190,235);
           if(s<GOAL-15&&laneClear(s,1.8,18)){const big=zoneAt(s)==='ind'&&Math.random()<.5||VAR.key==='rush'&&Math.random()<.4;spawnCar('onc',s,rnd(1.6,2.0),-(zoneAt(s)==='shop'?rnd(8,11):rnd(13,19)),big);}}
@@ -1146,7 +1161,7 @@ registerMinigame({
     function toTitle(){
       phase='title';phT=0;letterbox(true);
       setOv(`<div class="race-title"><div class="race-logo">原付で<span>夜勤へ</span></div><div class="race-sub">NIGHT SHIFT RIDER</div>
-        <div class="race-var">今夜：${VAR.name}</div><div class="race-best">${RD.best!=null?'BEST '+fmtT(RD.best)+'　':''}出勤 ${RD.ontime}/${RD.plays}</div><div class="race-tap">タップでスタート</div></div>`);
+        <div class="race-var">今夜：${VAR.name}　難しさ：${MG_DIFF_NAMES[DIFF]}</div><div class="race-best">${RD.best!=null?'BEST '+fmtT(RD.best)+'　':''}出勤 ${RD.ontime}/${RD.plays}</div><div class="race-tap">タップでスタート</div></div>`);
     }
     function toIntro(){
       wipe();phase='intro';phT=0;setOv('');
@@ -1178,7 +1193,7 @@ registerMinigame({
     }
     function toCount(){
       phase='count';phT=0;letterbox(false);el.hud.classList.remove('off');el.brake.classList.add('show');
-      setOv(`<div class="race-cd rdy">READY</div><div class="race-how"><b>◀ ▶</b> 画面の左右を長押し／←→キーでハンドル<br><b>ブレーキ</b>ボタン／↓キー（アクセルは自動）<br><span class="rd">赤信号</span>は停止線の手前で止まる（信号無視 −6秒）<br>車にぶつかると転倒。<span class="rd">3回で修理送り</span><br>水たまりはスリップ注意。<b>CHECK</b>で時間が延びる</div>`);
+      setOv(`<div class="race-cd rdy">READY</div><div class="race-how"><b>◀ ▶</b> 画面の左右を長押し／←→キーでハンドル<br><b>ブレーキ</b>ボタン／↓キー（アクセルは自動）<br><span class="rd">赤信号</span>は停止線の手前で止まる（信号無視 −${DF.red}秒）<br>車にぶつかると転倒。<span class="rd">${DF.crashes}回で修理送り</span><br>水たまりはスリップ注意。<b>CHECK</b>で時間が延びる</div>`);
     }
     let cdShown=-1;
     function updateCount(dt){
@@ -1194,10 +1209,10 @@ registerMinigame({
     // ══ プレイ ══
     function hitCurb(sign){
       P.latV=-sign*2.2;
-      if(P.v>10&&P.curbCd<=0){P.dmg=Math.min(100,P.dmg+4);P.v*=.8;shake=Math.max(shake,.5);P.curbCd=.8;msg('縁石！','gd sm',.9);se('tool');thud();}
+      if(P.v>10&&P.curbCd<=0){P.dmg=Math.min(100,P.dmg+4*DF.dmg);P.v*=.8;shake=Math.max(shake,.5);P.curbCd=.8;msg('縁石！','gd sm',.9);se('tool');thud();}
     }
     function crash(c){
-      P.crashes++;P.dmg=Math.min(100,P.dmg+25);phase='crashed';P.tumble=0;P.tumbleDir=Math.random()<.5?-1:1;
+      P.crashes++;P.dmg=Math.min(100,P.dmg+25*DF.dmg);phase='crashed';P.tumble=0;P.tumbleDir=Math.random()<.5?-1:1;
       shake=1.3;hitFlash=1;se('warn');thud();msg('転倒！','rd');splash(26,1.4);
       if(c&&c.kind!=='cross')c.v*=.3;
     }
@@ -1225,7 +1240,7 @@ registerMinigame({
         if(p.hit||p.s<P.s-4)continue;if(p.s>P.s+4)break;
         const a=(P.s-p.s)/p.a,b=(P.d-p.d)/(p.b+.2);
         if(a*a+b*b<1){p.hit=true;
-          if(P.v>12&&P.inv<=0){P.slip=.95;P.slipDir=Math.random()<.5?-1:1;P.latV+=P.slipDir*rnd(3.5,5.5);P.v*=.82;P.dmg=Math.min(100,P.dmg+5);P.slips++;
+          if(P.v>DF.slipV&&P.inv<=0){P.slip=.95;P.slipDir=Math.random()<.5?-1:1;P.latV+=P.slipDir*rnd(3.5,5.5);P.v*=.82;P.dmg=Math.min(100,P.dmg+5*DF.dmg);P.slips++;
             shake=Math.max(shake,.45);fovKick=-4;msg('スリップ！','cy');se('noise');splash(30,1.2);}
           else splash(10,.6);}
       }
@@ -1239,8 +1254,8 @@ registerMinigame({
         else{ds=c.s-P.s;dd=c.d-P.d;ha=2.15*c.sz;hc=.88*c.sx;}
         const ova=ha+.85-Math.abs(ds), ovc=hc+.3-Math.abs(dd);
         if(ova>0&&ovc>0){
-          if(ovc<.42&&c.kind!=='cross'){ // かすった
-            const sg=dd>0?-1:1;P.d+=sg*(ovc+.05);P.latV=sg*4.5;P.v*=.86;P.dmg=Math.min(100,P.dmg+6);P.contacts++;P.inv=.5;
+          if(ovc<DF.graze&&c.kind!=='cross'){ // かすった
+            const sg=dd>0?-1:1;P.d+=sg*(ovc+.05);P.latV=sg*4.5;P.v*=.86;P.dmg=Math.min(100,P.dmg+6*DF.dmg);P.contacts++;P.inv=.5;
             shake=Math.max(shake,.6);hitFlash=.45;msg('接触！','gd');se('tool');thud();splash(8,.8);
           }else{crash(c);return;}
         }
@@ -1256,7 +1271,7 @@ registerMinigame({
       for(const g of SIGS){
         if(!g.passed&&P.s>=g.stop){
           g.passed=true;
-          if(g.state==='red'){P.reds++;g.ran=true;if(!late)rem-=6;else lateT+=6;msg('信号無視！ −6秒','rd');se('warn');hitFlash=.5;}
+          if(g.state==='red'){P.reds++;g.ran=true;if(!late)rem-=DF.red;else lateT+=DF.red;msg(`信号無視！ −${DF.red}秒`,'rd');se('warn');hitFlash=.5;}
         }
       }
       // 時間
@@ -1285,10 +1300,10 @@ registerMinigame({
       P.v=Math.max(0,P.v-16*dt);P.s+=P.v*dt;P.d+=P.tumbleDir*P.v*.12*dt;P.d=clamp(P.d,-W+.4,W-.4);
       if(!late){rem-=dt;if(rem<=0){rem=0;late=true;}}else lateT+=dt;
       if(P.tumble>1.8){
-        if(P.crashes>=3||P.dmg>=100){phase='ending';endScene('crash',false);return;}
+        if(P.crashes>=DF.crashes||P.dmg>=100){phase='ending';endScene('crash',false);return;}
         phase='play';P.v=0;P.d=-1.8;P.latV=0;P.slip=0;P.inv=2.2;P.steer=0;
         cars.forEach(c=>{if(c.on&&c.kind!=='cross'&&Math.abs(c.s-P.s)<20)c.on=false;});
-        msg(`再スタート（残り${3-P.crashes}回）`,'sm');se('repair');
+        msg(`再スタート（残り${DF.crashes-P.crashes}回）`,'sm');se('repair');
       }
     }
     function updateGoal(dt){
@@ -1431,7 +1446,7 @@ registerMinigame({
       else{el.tmB.textContent='+'+lateT.toFixed(1);el.tm.classList.add('late');el.tm.classList.remove('hurry');el.tmL.textContent='遅刻';}
       const pr2=clamp(P.s/GOAL,0,1)*100;el.fl.style.width=pr2+'%';el.me.style.left=pr2+'%';
       el.dmg.style.width=P.dmg+'%';
-      el.cr.innerHTML='✕'.repeat(P.crashes)+'<u>'+'✕'.repeat(Math.max(0,3-P.crashes))+'</u>';
+      el.cr.innerHTML='✕'.repeat(P.crashes)+'<u>'+'✕'.repeat(Math.max(0,DF.crashes-P.crashes))+'</u>';
       const g=SIGS.find(g=>g.stop-P.s>-2&&g.stop-P.s<170&&(g.trig||g.state!=='green'));
       if(g&&phase==='play'){
         el.sig.classList.add('on');el.sig.classList.toggle('red',g.state==='red'&&g.stop-P.s>0);
@@ -1447,7 +1462,7 @@ registerMinigame({
       el.hl.classList.toggle('on',input.l||touch.l>0);el.hr.classList.toggle('on',input.r||touch.r>0);
       scoreT-=.06;
       if(scoreT<=0){scoreT=.25;
-        mg.setScore(`${Math.round(Math.min(P.s,GOAL))}m / ${GOAL}m　💥${P.crashes}/3`);
+        mg.setScore(`${Math.round(Math.min(P.s,GOAL))}m / ${GOAL}m　💥${P.crashes}/${DF.crashes}`);
         mg.setTimer(late?`遅刻 +${lateT.toFixed(0)}s`:phase==='play'||phase==='crashed'?`残り ${Math.ceil(rem)}s`:'');
       }
     }
@@ -1508,7 +1523,7 @@ registerMinigame({
         };
         if(r==='crash')return {
           title:'🛵 転倒……修理送り',
-          summary:`雨の路面で3度目の転倒。原付は修理に出すことに。<br>走行 <span class="down">${Math.round(Math.min(P.s,GOAL))}m</span> / ${GOAL}m<br>${stats}`,
+          summary:`雨の路面で${P.crashes}度目の転倒。原付は修理に出すことに。<br>走行 <span class="down">${Math.round(Math.min(P.s,GOAL))}m</span> / ${GOAL}m<br>${stats}`,
           fx:{jobRep:-2,mental:-5,fatigue:8,money:-3000},time:40,sp:0,
           log:'原付で転倒し、夜勤に遅れた。修理代がかかった。',
           cutin:['tired','……体は無事。でも修理代が痛いわね。'],

@@ -63,6 +63,17 @@ registerMinigame({
   help:'空き枠に配置・タップで強化',
   start(body,mg){
     // ══ 定数・データ ══
+    // 難しさ（設定画面で選ぶ。むずかしい＝従来の調整）
+    const DIFF=mgDifficulty();
+    const DF={
+      money:mgDiff(100,50,0),     // 開始資金の上乗せ（¥）
+      hp:mgDiff(.68,.84,1),       // 敵の体力
+      spd:mgDiff(.82,.92,1),      // 敵の速さ
+      bonus:mgDiff(15,8,0),       // ウェーブクリア時ボーナスの上乗せ（¥）
+      bossSpawn:mgDiff(4.6,3.9,3.4), // 炎上アカウントが手下を呼ぶ間隔（秒）
+    };
+    addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
+    {const tt=mg.el('mg-title');if(tt&&!tt.querySelector('.mg-diffb'))tt.insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);}
     const COLS=7, ROWS=11, MAX_LIVES=10, WAVES=5;
     const FONT='"DotGothic16", monospace';
     const LANES={
@@ -631,8 +642,9 @@ registerMinigame({
       const best=DD.best;
       g.fillText(best?`BEST ${best.grade}　心 ${best.lives}/10　撃退 ${best.kills}　クリア ${DD.clears}回`:'BEST ―　初めての防衛戦',cxm,yy+6);
       if(dayScale>1){g.fillStyle='rgba(232,48,85,.75)';g.fillText(`Day ${day}　荒らしの勢い +${Math.round((dayScale-1)*100)}%`,cxm,yy+26);}
+      g.fillStyle=DIFF==='easy'?'#44ee88':DIFF==='normal'?'#e8b830':'#e83055';g.fillText(`難しさ：${MG_DIFF_NAMES[DIFF]}`,cxm,yy+(dayScale>1?44:26));
       // スタート
-      const sy=Math.min(H-40,yy+64);
+      const sy=Math.min(H-40,yy+(dayScale>1?80:64));
       g.font=fnt(Math.max(15,fs1*.62));g.globalAlpha=.55+.45*Math.abs(Math.sin(t*2.5));g.fillStyle='#ffffff';g.fillText('▶ TAP TO START',cxm,sy);g.globalAlpha=1;
       titleBtns.push({x:0,y:sy-24,w:W,h:48,start:true});
       g.textAlign='left';
@@ -692,7 +704,7 @@ registerMinigame({
 
     // ══ ゲーム処理 ══
     function resetGame(){
-      money=160+modBonus+LANE.bonus;lives=MAX_LIVES;wave=0;phase='prep';cd=11;gt=0;
+      money=160+DF.money+modBonus+LANE.bonus;lives=MAX_LIVES;wave=0;phase='prep';cd=11;gt=0;
       towers=[];enemies=[];shots=[];corpses=[];slotTower=new Array(SLOTS.length).fill(null);
       tut=0;tutT=0;
       if(modBonus)addFloat(W/2,H*.32,`モデレーター${Math.min(3,modCount)}人が駆けつけた +¥${modBonus}`,'#00e8c8');
@@ -703,7 +715,7 @@ registerMinigame({
       queue.sort((a,b)=>a.t-b.t);
     }
     function spawnEnemy(type,d,boost){
-      const b=EN[type],hp=b.hp*(1+.12*(wave-1))*dayScale*(boost||1);
+      const b=EN[type],hp=b.hp*(1+.12*(wave-1))*dayScale*DF.hp*(boost||1);
       enemies.push({type,d:d||0,x:0,y:0,hp,max:hp,off:(Math.random()-.5)*(type==='boss'?0:.34),
         ph:Math.random()*6,anim:Math.random(),slowF:1,hitF:0,kx:0,spawnCd:3,shoutT:0,dead:false});
       if(type==='boss'){shake=.4;sfx('boss');}
@@ -718,7 +730,7 @@ registerMinigame({
       sfx(boss?'boss':'wave');se(boss?'warn':'live');
     }
     function waveCleared(){
-      const bonus=25+wave*5;money+=bonus;bumpMoney();
+      const bonus=25+wave*5+DF.bonus;money+=bonus;bumpMoney();
       if(wave>=WAVES){phase='end';endReason='clear';endT=2.2;
         banner={t:rt,text:'防衛成功',sub:'配信の心は守られた',col:'#44ee88'};sfx('clear');se('ach');}
       else{phase='prep';cd=5;banner={t:rt,text:`WAVE ${wave} クリア`,sub:`ボーナス +¥${bonus}`,col:'#e8b830'};sfx('coin');se('decide');
@@ -818,12 +830,12 @@ registerMinigame({
           if(Math.random()<dt*4)spark(X(e.x)+(Math.random()-.5)*C*.3,Y(e.y),0,-30,.4,'#b07cff',2,0);}
       }
       for(let i=0;i<enemies.length;i++){const e=enemies[i];if(e.dead)continue;
-        const b=EN[e.type],v=b.spd*LANE.spd*e.slowF*(e.hitF>0&&e.type!=='boss'?.6:1);
+        const b=EN[e.type],v=b.spd*LANE.spd*DF.spd*e.slowF*(e.hitF>0&&e.type!=='boss'?.6:1);
         e.d+=v*dt;e.anim+=dt*v*.9;e.hitF=Math.max(0,e.hitF-dt);e.shoutT=Math.max(0,e.shoutT-dt);
         const p=posAt(e.d);e.x=p.x+p.nx*e.off;e.y=p.y+p.ny*e.off;
         if(e.type==='boss'){
           e.spawnCd-=dt;if(Math.random()<dt*14)spark(X(e.x)+(Math.random()-.5)*C*.8,Y(e.y)-C*.3,(Math.random()-.5)*20,-60-Math.random()*40,.6,Math.random()<.5?'#ff7a28':'#ffcc33',2.6,0);
-          if(e.spawnCd<=0&&e.d>1){e.spawnCd=3.4;e.shoutT=.5;for(let k=0;k<2;k++)spawnEnemy('bot',Math.max(0,e.d-.3-k*.35),1.4);
+          if(e.spawnCd<=0&&e.d>1){e.spawnCd=DF.bossSpawn;e.shoutT=.5;for(let k=0;k<2;k++)spawnEnemy('bot',Math.max(0,e.d-.3-k*.35),1.4);
             addFloat(X(e.x),Y(e.y)-C*.9,'拡散！','#ff7a28');sfx('spawn');}
         }else if(e.type==='anti'&&Math.random()<dt*3)spark(X(e.x),Y(e.y)+C*.2,0,10,.8,'rgba(176,124,255,.6)',2.5,0);
         if(e.d>=PATH_LEN-.3){

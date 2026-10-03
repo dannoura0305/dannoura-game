@@ -143,14 +143,28 @@ registerMinigame({
   start(body,mg){
     // ── 定数 ──
     const CELL=4, COLS=10, ROWS=15, HW=COLS*CELL/2, HD=ROWS*CELL/2;
-    const FL_MAX=20, TIME_LIMIT=90, NEED=5, P_R=.36, EYE=1.62, SPEED=3.7;
+    // 難しさ（設定画面で選ぶ。むずかしい＝従来の調整）
+    const DIFF=mgDifficulty();
+    const DF={
+      time:mgDiff(130,110,90),    // 制限時間（秒）
+      ghost:mgDiff(.7,.85,1),     // 影の速さ
+      drain:mgDiff(.6,.8,1),      // 電池の減り
+      dmg:mgDiff(.6,.8,1),        // 影に触れられた時の電池ダメージ
+      hold:mgDiff(.7,.85,1),      // 計器の点検に必要な長押し時間
+      burn:mgDiff(1.5,1.2,1),     // 光で影を焼く速さ
+      bats:mgDiff(6,5,4),         // 予備電池の数
+      dash:mgDiff(.5,.8,1),       // 目を離した隙に詰める距離
+    };
+    addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
+    {const tt=mg.el('mg-title');if(tt&&!tt.querySelector('.mg-diffb'))tt.insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);}
+    const FL_MAX=20, TIME_LIMIT=DF.time, NEED=5, P_R=.36, EYE=1.62, SPEED=3.7;
     const SK=(gs&&gs.skills)||{};
-    const HOLD_T=1.5*(1-Math.min(.3,((SK.soundDiag||0)+(SK.emergencyFix||0))*.03));
-    const HIT_DMG=Math.round(30*(1-Math.min(.3,(SK.stressRes||0)*.03)));
+    const HOLD_T=1.5*DF.hold*(1-Math.min(.3,((SK.soundDiag||0)+(SK.emergencyFix||0))*.03));
+    const HIT_DMG=Math.round(30*DF.dmg*(1-Math.min(.3,(SK.stressRes||0)*.03)));
     // 記録と難易度（クリア回数・日数で影が強くなる）
     const DATA=gs.factory3dData=Object.assign({plays:0,clears:0,best:'',bestScore:0,bestTime:0},gs.factory3dData||{});
     const HARD=Math.min(3,DATA.clears)+Math.min(1,(gs.day||1)/30);
-    const GHOST_MUL=1+HARD*.08, DRAIN=.5*(1+HARD*.05);
+    const GHOST_MUL=(1+HARD*.08)*DF.ghost, DRAIN=.5*(1+HARD*.05)*DF.drain;
     const rnd=(a,b)=>a+Math.random()*(b-a);
     const pick=a=>a[(Math.random()*a.length)|0];
     const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -1003,7 +1017,7 @@ registerMinigame({
       const used=new Set(gaugeSpots.map(g=>g.r+','+g.c));
       const batSpots=[];
       shuffle(freeCells.slice()).forEach(([r,c])=>{
-        if(batSpots.length>=4||used.has(r+','+c)||r>=ROWS-2)return;
+        if(batSpots.length>=DF.bats||used.has(r+','+c)||r>=ROWS-2)return;
         const x=cx(c)+rnd(-1,1),z=cz(r)+rnd(-1,1);
         if(batSpots.some(b=>Math.hypot(b.x-x,b.z-z)<10))return;
         batSpots.push({x,z});
@@ -1163,7 +1177,7 @@ registerMinigame({
         el.load.className='factory3d-ov factory3d-loadov factory3d-titleov factory3d-gin';
         el.load.innerHTML=`<div class="factory3d-sub">NIGHT SHIFT ／ PLANT No.3 ／ POWER FAILURE</div>
           <div class="factory3d-logo"><small>夜勤の</small>第三工場</div>
-          <div class="factory3d-sub">${DATA.clears?`影の濃さ Lv.${1+Math.min(3,DATA.clears)}`:'—— 停電の夜 ——'}</div>
+          <div class="factory3d-sub">${DATA.clears?`影の濃さ Lv.${1+Math.min(3,DATA.clears)}`:'—— 停電の夜 ——'}　難しさ：${MG_DIFF_NAMES[DIFF]}</div>
           ${DATA.best?`<div class="factory3d-rec">BEST ${DATA.best}　${DATA.bestScore} pts</div>`:''}
           <div class="factory3d-tap">TAP TO START</div>`;
         se('notif');
@@ -1492,7 +1506,7 @@ registerMinigame({
         if(lit&&GH.fade>.5){
           // 光で“まとい”が焼ける。焼き切ると霧散する
           burning=true;
-          GH.shroud-=dt*(focusing?1.5:.5);GH.stun=.5;
+          GH.shroud-=dt*(focusing?1.5:.5)*DF.burn;GH.stun=.5;
           const push=focusing?3.2:1.8;
           GH.x-=nx*dt*push;GH.z-=nz*dt*push;
           if(GH.shroud<=0){
@@ -1511,7 +1525,7 @@ registerMinigame({
               GH.x+=nx*v*dt;GH.z+=nz*v*dt;
               // 目を離した隙に、ふっと距離を詰める
               stutterT-=dt;
-              if(stutterT<=0&&!seen&&dist>4.5&&dist<16){stutterT=rnd(2.2,4);GH.x+=nx*1.7;GH.z+=nz*1.7;if(SFX.whisper)ghostNear=Math.min(1,ghostNear+.4);}
+              if(stutterT<=0&&!seen&&dist>4.5&&dist<16){stutterT=rnd(2.2,4);GH.x+=nx*1.7*DF.dash;GH.z+=nz*1.7*DF.dash;if(SFX.whisper)ghostNear=Math.min(1,ghostNear+.4);}
             }else{
               const wx=GH.wx-GH.x,wz=GH.wz-GH.z,wd=Math.hypot(wx,wz);
               if(wd<1)newWander();else{GH.x+=wx/wd*1.3*dt;GH.z+=wz/wd*1.3*dt;}
