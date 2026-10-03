@@ -82,6 +82,7 @@ function named(who){
     if(u.speakers&&u.speakers[who])return true;
     if(typeof u.knows==='function'&&u.knows(who))return true;
     if(HOME.WHO_NAME&&HOME.WHO_NAME[who])return true;
+    if(typeof HOME.setVisitor==='function')return true;   // フェーズ2の会話UI（訪問者に対応）は千代さん・班長の名札も出す
   }catch(e){}
   return false;
 }
@@ -428,6 +429,7 @@ function pending(area,o){
   const d=day(),f=F();
   const meta=peek('meta');
   if(!o.ignoreDaily&&meta.lastDay===d)return null;      // 一日一つまで
+  if(asleep(activity()))return null;                    // 娘が眠っているあいだは起こさない（どの場面にも娘がいるので、起きている時間まで待つ）
   if(flowerBusy())return null;
   const rec=peek('recital');
   if(f.kept_promise&&!rec.photo)return 'recital_photo';

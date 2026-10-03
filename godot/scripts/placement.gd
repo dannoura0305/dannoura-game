@@ -364,7 +364,7 @@ static func can_use(area: String, placements: Array, p: Dictionary) -> Dictionar
 		return {"ok": false, "reason": "%sは使うものではありません" % cname, "cell": null}
 	var a: Dictionary = Catalog.area(area)
 	var cell: Variant = use_cell(area, placements, p)
-	if cell == null:
+	if not (cell is Vector2i):
 		return {"ok": false, "reason": "%sの使う側が%sの外を向いていて使えません" % [cname, a.get("name", "")], "cell": null}
 	if use == "self":
 		return {"ok": true, "reason": "", "cell": cell}

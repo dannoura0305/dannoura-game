@@ -379,6 +379,18 @@ await test('娘の会話：過ごし方（kidActivity）と植えた種類で変
   assert.ok(T.ui.said.some(l => /おはなのたね/.test(l.text)));
 });
 
+await test('娘が眠っているあいだは、花の段階も生活イベントも起こさない（起きている時間まで待つ）', async () => {
+  const S = makeSandbox(); const { H, ui } = S;
+  S.setDay(6); ui.activity = 'sleep';
+  assert.equal(await H.hooks.onOpen('garden'), false);
+  assert.equal(H.events.state().askedDay, undefined, '花の話も始まらない');
+  assert.equal(H.life_events.pending('garden'), null);
+  S.flags({ promise_recital: true, kept_promise: true });
+  assert.equal(H.life_events.pending('room', { ignoreDaily: true }), null);
+  ui.activity = 'read';
+  assert.equal(await H.hooks.onOpen('garden'), true, '起きたら花が先');
+});
+
 await test('訪問者と話す：一言のあと帰っていく（画面から消す）', async () => {
   const S = makeSandbox(); const { H, ui } = S;
   assert.equal(typeof H.hooks.talkVisitor, 'function');

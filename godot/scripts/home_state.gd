@@ -168,7 +168,8 @@ static func repair(src: Dictionary) -> Dictionary:
 		flags["lit"] = {}
 	flags["repairedShelf"] = bool(flags.get("repairedShelf", false))
 	# v1 → v2：新しい初期収納とレシピを一度だけ渡す
-	if flags.get("v2Items") != true:
+	var v2: Variant = flags.get("v2Items")
+	if not (v2 is bool and v2):
 		for pair: Variant in V2_STORED:
 			_inv_add(hd, str(pair[0]), int(pair[1]))
 		for r: Variant in V2_RECIPES:
