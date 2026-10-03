@@ -28,6 +28,7 @@ const ED={
     S.ed={
       draft:HOME.createDraft({room:hd.room.placements,garden:hd.garden.placements},{
         owned:(i,v)=>HOME.owned(i,v),seq:hd.seq,plantIds:Object.keys(hd.plants||{}),
+        plantHolder:id=>{const p=hd.plants&&hd.plants[id];return (p&&p.holder)||'garden.pot';},
       }),
       sel:null,          // {kind:'new',itemId,variant,rotation,x,y} | {kind:'placed',id,moving,x,y,rotation}
       check:null,        // 直近の canPlace 結果
@@ -115,6 +116,7 @@ const ED={
     const out=[];
     Object.keys(HOME.CATALOG).forEach(id=>{
       const c=CAT(id);
+      if(c.kind==='seed')return;            // 種は置けない（暮らしモードで鉢に植える）
       if(E.filter!=='all'&&c.areas.indexOf(E.filter)<0)return;
       const inv=hd.inventory[id];if(!inv)return;
       Object.keys(inv).forEach(v=>{

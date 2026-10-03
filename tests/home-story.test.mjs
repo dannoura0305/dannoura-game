@@ -9,7 +9,8 @@ import assert from 'node:assert/strict';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BASE = ['main/home/catalog.js', 'main/home/state.js', 'main/home/placement.js', 'main/home/crafting.js'].filter(f => existsSync(join(ROOT, f)));
-const MINE = ['main/home/events.js', 'main/memories.js', 'main/integrations.js'];
+// フェーズ2の bonds / life_events も一緒に読み込み、フェーズ1の流れを壊していないことを確かめる
+const MINE = ['main/home/events.js', 'main/memories.js', 'main/home/bonds.js', 'main/home/life_events.js', 'main/integrations.js'].filter(f => existsSync(join(ROOT, f)));
 
 // 本編（game.js / minigames/core.js）の必要な部分だけを真似たスタブ
 const GAME_STUB = `
@@ -151,7 +152,7 @@ await test('3〜5 の段階は日数と行動の両方で一度ずつ。再読�
   const planted = s0.plantedDay;
   // 植えて2日後：まだ名札は来ない
   growDays(S, 2);
-  assert.equal(await H.hooks.onOpen('garden'), false);
+  assert.equal(await H.hooks.onOpen('room'), false);   // 庭だと千代さん（フェーズ2）が来るので部屋で確かめる
   growDays(S, 1);                                       // 3日後
   assert.equal(H.events.state().step, 2);
   assert.equal(await H.hooks.onOpen('garden'), true);
@@ -175,7 +176,7 @@ await test('3〜5 の段階は日数と行動の両方で一度ずつ。再読�
   // 5 振り返り：つぼみでも23日目より前は話さない
   while (H.data().plants[H.events.state().potId].stage < 3) growDays(S, 1);
   if (gsDay(S) < 23) {
-    assert.equal(await H.hooks.onOpen('garden'), false);
+    assert.equal(await H.hooks.onOpen('room'), false);
     setDay(S, 23);
   }
   assert.equal(await H.hooks.onOpen('garden'), true);
@@ -185,7 +186,7 @@ await test('3〜5 の段階は日数と行動の両方で一度ずつ。再読�
   assert.deepEqual(before, ['wp.1.start', 'wp.2.plant', 'wp.3.tag', 'wp.4.grow', 'wp.5.reason']);
   reload();
   for (let i = 0; i < 3; i++) { await H.hooks.onOpen('garden'); await H.hooks.talkKid(); }
-  assert.deepEqual(memIds(H), before, '再読込・何度開いても思い出は増えない');
+  assert.deepEqual(memIds(H).filter(id => /^wp\./.test(id)), before, '再読込・何度開いても思い出は増えない（生活イベントの思い出は別）');
   assert.equal(new Set(memIds(H)).size, memIds(H).length);
 });
 function gsDay(S) { return S.run('gs.day'); }

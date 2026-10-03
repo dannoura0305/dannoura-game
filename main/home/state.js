@@ -14,7 +14,11 @@ const today=()=>{const g=G();return g&&Number.isFinite(+g.day)?+g.day:1;};
 const isObj=o=>!!o&&typeof o==='object'&&!Array.isArray(o);
 const int0=v=>{v=Math.floor(+v);return Number.isFinite(v)&&v>0?v:0;};
 
-const INIT_RECIPES=['repaired_shelf','cushion','flowerbed','fence','sea_glass'];
+const INIT_RECIPES=['repaired_shelf','cushion','flowerbed','fence','sea_glass','kid_desk','planter','clothesline','string_lights'];
+// フェーズ2（v2）で足したもの：旧セーブには移行のとき一度だけ渡す
+const V2_RECIPES=['kid_desk','planter','clothesline','string_lights'];
+const V2_STORED=[['furniture.toy_box',1],['garden.watering_can',1]];
+const VERSION=2;
 const INIT_MATS={wood:4,cloth:2,metal:2,sea:0};
 const INIT_ROOM=[
   ['furniture.futon',0,1,0],
@@ -31,7 +35,7 @@ const INIT_GARDEN=[
   ['garden.fence',10,8,0],['garden.fence',11,8,0],['garden.fence',12,8,0],['garden.fence',13,8,0],['garden.fence',14,8,0],['garden.fence',15,8,0],
   ['garden.stepping_stone',7,1,0],['garden.stepping_stone',7,2,0],['garden.stepping_stone',6,3,0],['garden.stepping_stone',5,4,0],
 ];
-const INIT_STORED=[['furniture.wood_chair',1],['furniture.cushion',2],['garden.bench',1],['garden.stepping_stone',2]];
+const INIT_STORED=[['furniture.wood_chair',1],['furniture.cushion',2],['garden.bench',1],['garden.stepping_stone',2]].concat(V2_STORED);
 
 function defVariant(itemId,v){
   const c=CAT(itemId);
@@ -46,10 +50,11 @@ function invAdd(hd,itemId,n,variant){
   if(!Object.keys(o).length)delete hd.inventory[itemId];
 }
 function fresh(){
-  const hd={version:1,inventory:{},materials:Object.assign({},INIT_MATS),unlockedRecipes:INIT_RECIPES.slice(),
+  const hd={version:VERSION,inventory:{},materials:Object.assign({},INIT_MATS),unlockedRecipes:INIT_RECIPES.slice(),
     room:{width:12,height:8,floorId:'floor.wood',placements:[]},
     garden:{width:16,height:12,groundId:'ground.grass',placements:[]},
-    plants:{},events:{},memories:[],appliedRewards:{},flags:{repairedShelf:false,lit:{}},seq:1};
+    plants:{},events:{},memories:[],appliedRewards:{},flags:{repairedShelf:false,lit:{},v2Items:true},seq:1,
+    bonds:{},life:{}};
   const put=(area,[itemId,x,y,rotation])=>{
     const c=CAT(itemId);if(!c)return;
     const variant=defVariant(itemId);
@@ -64,7 +69,7 @@ function fresh(){
 
 /* 壊れたデータを直す：不明ID・不正座標・重なり・所持数超過の配置は「収納へ戻す」（＝配置だけ外す。所持数は増やさない） */
 function repair(hd){
-  hd.version=1;
+  hd.version=VERSION;
   // 所持
   const inv=isObj(hd.inventory)?hd.inventory:{};hd.inventory={};
   Object.keys(inv).forEach(id=>{
@@ -84,11 +89,22 @@ function repair(hd){
   if(!Array.isArray(hd.memories))hd.memories=[];
   if(!isObj(hd.flags.lit))hd.flags.lit={};
   if(typeof hd.flags.repairedShelf!=='boolean')hd.flags.repairedShelf=!!hd.flags.repairedShelf;
+  // v1 → v2：新しい初期収納とレシピを一度だけ渡す（目印 flags.v2Items）
+  if(hd.flags.v2Items!==true){
+    V2_STORED.forEach(([id,n])=>invAdd(hd,id,n));
+    V2_RECIPES.forEach(r=>{if(hd.unlockedRecipes.indexOf(r)<0)hd.unlockedRecipes.push(r);});
+    hd.flags.v2Items=true;
+  }
+  // 他のモジュール（bonds.js / lifemode.js）が中身を管理する入れ物：無いときだけ用意
+  if(hd.bonds==null)hd.bonds={};
+  if(hd.life==null)hd.life={};
   Object.keys(hd.plants).forEach(id=>{
     const p=hd.plants[id];
     if(!isObj(p)){delete hd.plants[id];return;}
     p.name=String(p.name==null?'':p.name).slice(0,8)||'ひなた';
     p.color=typeof p.color==='string'?p.color:'pink';
+    p.species=(typeof p.species==='string'&&HOME.PLANT_SPECIES&&HOME.PLANT_SPECIES[p.species])?p.species:'seed';
+    if(p.holder!==undefined&&!(typeof p.holder==='string'&&HOME.isPlantable&&HOME.isPlantable(p.holder)))delete p.holder;
     p.stage=Math.min(HOME.BAL.maxStage,int0(p.stage));
     p.growth=int0(p.growth);
     p.plantedDay=Number.isFinite(+p.plantedDay)?+p.plantedDay:today();
@@ -156,7 +172,7 @@ HOME.ensure=function(){
   }
 };
 HOME._fresh=fresh;
-const HD=()=>{const g=G();if(!g)return null;if(!isObj(g.homeData)||g.homeData.version!==1)return HOME.ensure();return g.homeData;};
+const HD=()=>{const g=G();if(!g)return null;if(!isObj(g.homeData)||g.homeData.version!==VERSION)return HOME.ensure();return g.homeData;};
 HOME.data=HD;
 
 HOME.owned=function(itemId,variant,hdIn){
@@ -221,13 +237,50 @@ HOME.grantOnce=function(rewardId,fn){
 };
 
 // ── 植物（枯れない・責めない） ──
+// o={name,color,species,holder}。species 省略時は 'seed'（娘の花）
 HOME.plant=function(potId,o){
   const hd=HD();if(!hd||!potId)return null;
   o=o||{};
-  const name=String(o.name==null?'':o.name).trim().slice(0,8)||'ひなた';
-  const p={name,color:typeof o.color==='string'?o.color:'pink',stage:0,growth:0,plantedDay:today(),lastWateredDay:today()};
+  const SP=HOME.PLANT_SPECIES||{};
+  const species=(typeof o.species==='string'&&SP[o.species])?o.species:'seed';
+  const sp=SP[species]||{};
+  const name=String(o.name==null?'':o.name).trim().slice(0,8)||sp.defName||'ひなた';
+  const p={name,color:typeof o.color==='string'?o.color:(sp.color||'pink'),species,stage:0,growth:0,plantedDay:today(),lastWateredDay:today()};
+  if(typeof o.holder==='string'&&HOME.isPlantable&&HOME.isPlantable(o.holder))p.holder=o.holder;
   hd.plants[potId]=p;HOME.emit('change',{type:'plant',potId});
   return p;
+};
+// ── 種（消費アイテム） ──
+HOME.seedId=species=>{const sp=HOME.PLANT_SPECIES&&HOME.PLANT_SPECIES[species];return sp&&sp.seedId||null;};
+HOME.seedCount=function(species){const id=HOME.seedId(species);return id?HOME.owned(id):0;};
+HOME.giveSeed=function(species,n){
+  const id=HOME.seedId(species);if(!id)return false;
+  return HOME.addItem(id,n===undefined?1:n);
+};
+// 持っている種：[{species,itemId,name,count}]
+HOME.ownedSeeds=function(){
+  const SP=HOME.PLANT_SPECIES||{};
+  return Object.keys(SP).filter(k=>SP[k].seedId&&HOME.owned(SP[k].seedId)>0)
+    .map(k=>({species:k,itemId:SP[k].seedId,name:SP[k].name,count:HOME.owned(SP[k].seedId)}));
+};
+HOME.plantOf=function(id){const hd=HD();return (hd&&hd.plants&&id&&isObj(hd.plants[id]))?hd.plants[id]:null;};
+// 空の鉢・プランター（置いてあるもの）に種を植える。種は1つ消費。→ {ok, reason, plant}
+HOME.plantSeed=function(instanceId,species,name){
+  try{
+    const hd=HD();if(!hd)return{ok:false,reason:'データを読み込めません'};
+    const f=HOME.findPlacement(instanceId);
+    if(!f)return{ok:false,reason:'その鉢は置かれていません'};
+    const c=CAT(f.P.itemId);
+    if(!c||!c.plantable)return{ok:false,reason:`${c?c.name:'それ'}には植えられません`};
+    if(hd.plants[instanceId])return{ok:false,reason:'もう植えてあります'};
+    const sid=HOME.seedId(species);
+    if(!sid)return{ok:false,reason:'その種はありません'};
+    if(HOME.owned(sid)<1)return{ok:false,reason:`${HOME.itemName(sid)}を持っていません`};
+    invAdd(hd,sid,-1,'default');
+    const p=HOME.plant(instanceId,{name,species,holder:f.P.itemId});
+    HOME.emit('change',{type:'seed',species,potId:instanceId});
+    return{ok:true,reason:'',plant:p};
+  }catch(e){return{ok:false,reason:'うまく植えられませんでした'};}
 };
 HOME.water=function(potId){
   const hd=HD();const p=hd&&hd.plants[potId];if(!p)return false;

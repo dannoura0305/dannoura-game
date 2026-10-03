@@ -1,0 +1,54 @@
+{
+  "4": {
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": { "title": "Checkpoint (PLACEHOLDER: anime SDXL / Illustrious / Pony 系の名前に変える)" },
+    "inputs": { "ckpt_name": "YOUR_ANIME_SDXL_CHECKPOINT.safetensors" }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Positive (PLACEHOLDER: prompt-pack.json の positive)" },
+    "inputs": {
+      "text": "best quality, high detail, pixel art, anime style, bust-up portrait, upper body, facing viewer, slight three-quarter view, clean dark outline, limited palette, cel shading, soft warm amber rim light, centered, plain pale lavender background, adult, androgynous young man, long dark purple hair, loose side ponytail on the right, purple eyes, black rectangular glasses, small pink top hat tilted on head, pink five-petal flower hair ornaments, lavender collared shirt, gentle closed-mouth smile, calm eyes",
+      "clip": ["4", 1]
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Negative (PLACEHOLDER: prompt-pack.json の negative)" },
+    "inputs": {
+      "text": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
+      "clip": ["4", 1]
+    }
+  },
+  "5": {
+    "class_type": "EmptyLatentImage",
+    "_meta": { "title": "Latent (gen_width x gen_height, batch_size=候補枚数)" },
+    "inputs": { "width": 1024, "height": 1024, "batch_size": 4 }
+  },
+  "3": {
+    "class_type": "KSampler",
+    "_meta": { "title": "KSampler (PLACEHOLDER: seed = prompt-pack.json の seed)" },
+    "inputs": {
+      "seed": 110101,
+      "steps": 28,
+      "cfg": 6.0,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "normal",
+      "denoise": 1.0,
+      "model": ["4", 0],
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "latent_image": ["5", 0]
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "_meta": { "title": "VAE Decode" },
+    "inputs": { "samples": ["3", 0], "vae": ["4", 2] }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "_meta": { "title": "Save (PLACEHOLDER: filename_prefix = prompt-pack.json の filename_prefix)" },
+    "inputs": { "filename_prefix": "dannoura/P1/portrait_dan_normal", "images": ["8", 0] }
+  }
+}

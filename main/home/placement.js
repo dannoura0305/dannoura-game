@@ -76,6 +76,7 @@ function canPlace(area,placements,cand,opts){
   const res=(ok,reason,cells,bad)=>({ok,reason:reason||'',cells:cells||[],bad:bad||[]});
   const c=cand&&CAT(cand.itemId);
   if(!c)return res(false,'知らないアイテムです');
+  if(c.kind==='seed')return res(false,`${c.name}は置けません（空の鉢かプランターに植えます）`);
   const A=AREA(area);if(!A)return res(false,'場所が不明です');
   if(c.areas.indexOf(area)<0)return res(false,`${c.name}は${A.name}には置けません（${c.areas.map(a=>AREA(a).name).join('・')}だけ）`);
   const rot=normRot(cand.rotation);
@@ -156,8 +157,51 @@ function canUse(area,placements,P){
   return{ok:true,reason:'',cell};
 }
 
+/* 人が立てるマス：solid でない・出入口でない・avoid（他の人物）でない。(x,y) に最も近いマスを返す（無ければ null）
+   訪問者の位置決めに使う（壁ぎわ・家具の上・出入口には決して置かない） */
+function standCell(area,placements,x,y,avoid){
+  const A=AREA(area);if(!A)return null;
+  const solid=solidGrid(A,placements),seen=bfs(A,solid,A.door);
+  const av=new Set((avoid||[]).filter(Boolean).map(q=>Math.round(q.x)+','+Math.round(q.y)));
+  x=Number.isFinite(+x)?Math.round(+x):A.door.x;y=Number.isFinite(+y)?Math.round(+y):A.door.y;
+  let best=null,bd=1e9;
+  for(let pass=0;pass<2&&!best;pass++){
+    for(let yy=0;yy<A.h;yy++)for(let xx=0;xx<A.w;xx++){
+      const k=yy*A.w+xx;
+      if(solid[k]||isExit(A,xx,yy)||av.has(xx+','+yy))continue;
+      if(pass===0&&!seen[k])continue;            // まずは出入口から歩いて行けるマス
+      const d=Math.abs(xx-x)+Math.abs(yy-y)+(yy*A.w+xx)*1e-6;
+      if(d<bd){bd=d;best={x:xx,y:yy};}
+    }
+  }
+  return best;
+}
+
+/* ねこの昼寝の場所の候補：[{x,y,on}]。on=null は床（solid でないマス）、on=instanceId は家具の上（ベンチ・布団）
+   クッション・ラグの上・庭の日なた（家の壁から離れた草地）・ベンチ・布団の足もと。出入口は除く */
+function catSpots(area,placements,opts){
+  opts=opts||{};
+  const A=AREA(area);if(!A)return[];
+  const solid=solidGrid(A,placements),out=[],seen=new Set();
+  const add=(x,y,on,kind)=>{const k=x+','+y;if(seen.has(k)||!inB(A,x,y)||isExit(A,x,y))return;if(!on&&solid[y*A.w+x])return;seen.add(k);out.push({x,y,on:on||null,kind});};
+  (placements||[]).forEach(P=>{
+    const c=CAT(P.itemId);if(!c)return;
+    if(P.itemId==='furniture.cushion')add(P.x,P.y,null,'cushion');
+    else if(P.itemId==='deco.rug')cellsOf(P).forEach(q=>add(q.x,q.y,null,'rug'));
+    else if(P.itemId==='garden.bench')cellsOf(P).forEach(q=>add(q.x,q.y,P.instanceId,'bench'));
+    else if(P.itemId==='furniture.futon'){const cs=cellsOf(P);const f=footprint(P.itemId,P.rotation);
+      // 足もと：縦なら下の行、横なら左の列（頭は上／右）
+      cs.filter(q=>f.h>f.w?q.y===P.y+f.h-1:q.x===P.x).forEach(q=>add(q.x,q.y,P.instanceId,'futon'));}
+  });
+  if(area==='garden'&&!opts.night){
+    for(let y=3;y<A.h;y++)for(let x=0;x<A.w;x++)if((x*7+y*3)%5===0)add(x,y,null,'sun');
+  }
+  return out;
+}
+
 /* ── 模様替えの下書き（純ロジック・取り消し/やり直し） ──
-   src: {room:[P], garden:[P]}  opts: {owned(itemId,variant)→n, seq, plantIds:[id]}
+   src: {room:[P], garden:[P]}  opts: {owned(itemId,variant)→n, seq, plantIds:[id], plantHolder(id)→itemId}
+   収納した鉢・プランターを置き直すと、同じ種類の入れ物に植わっていた植物（持ち主のいない記録）を引き継ぐ
    所持総数は変えず、配置だけを動かす → 収納数＝所持−配置 は常に整合する */
 function clone(o){return JSON.parse(JSON.stringify(o));}
 function createDraft(src,opts){
@@ -168,13 +212,15 @@ function createDraft(src,opts){
   const past=[],future=[];
   let seq=Math.max(1,opts.seq|0);
   const plantIds=(opts.plantIds||[]).slice();
+  const holderOf=typeof opts.plantHolder==='function'?opts.plantHolder:(()=>'garden.pot');
   const all=()=>state.room.concat(state.garden);
   const placed=(itemId,variant)=>all().filter(P=>P.itemId===itemId&&(variant===undefined||P.variant===variant)).length;
   const stored=(itemId,variant)=>Math.max(0,owned(itemId,variant)-placed(itemId,variant));
   const find=id=>{for(const a of['room','garden']){const i=state[a].findIndex(P=>P.instanceId===id);if(i>=0)return{area:a,i,P:state[a][i]};}return null;};
   const commit=fn=>{const snap=clone(state);const r=fn();if(r&&r.ok){past.push(snap);if(past.length>200)past.shift();future.length=0;}return r;};
   const newId=itemId=>{
-    if(itemId==='garden.pot'){const used=new Set(all().map(P=>P.instanceId));const orphan=plantIds.find(id=>!used.has(id));if(orphan)return orphan;}
+    const c=CAT(itemId);
+    if(c&&c.plantable){const used=new Set(all().map(P=>P.instanceId));const orphan=plantIds.find(id=>!used.has(id)&&(holderOf(id)||'garden.pot')===itemId);if(orphan)return orphan;}
     let id;const used=new Set(all().map(P=>P.instanceId));do{id='p'+(seq++);}while(used.has(id)||plantIds.indexOf(id)>=0);return id;
   };
   const D={
@@ -244,6 +290,6 @@ function createDraft(src,opts){
   return D;
 }
 
-Object.assign(HOME,{normRot,footprint,cellsOf,layerOf,solidGrid,reachable,canPlace,useCell,canUse,createDraft,
+Object.assign(HOME,{normRot,footprint,cellsOf,layerOf,solidGrid,reachable,canPlace,useCell,canUse,createDraft,standCell,catSpots,
   _isExit:(area,x,y)=>{const A=AREA(area);return !!(A&&isExit(A,x,y));}});
 })();

@@ -44,7 +44,7 @@ console.log('home-logic');
 test('新規：初期の所持・配置・素材・レシピ', () => {
   const { H, ctx } = makeSandbox();
   const hd = H.ensure();
-  assert.equal(hd.version, 1);
+  assert.equal(hd.version, 2);
   assert.equal(hd.room.placements.length, 8);
   assert.equal(hd.garden.placements.length, 11);
   assert.equal(H.stored('furniture.wood_chair'), 1);
@@ -54,7 +54,10 @@ test('新規：初期の所持・配置・素材・レシピ', () => {
   assert.equal(H.stored('garden.stepping_stone'), 2);
   assert.equal(H.owned('garden.fence'), 6);
   assert.deepEqual({ ...hd.materials }, { wood: 4, cloth: 2, metal: 2, sea: 0 });
-  assert.deepEqual([...hd.unlockedRecipes].sort(), ['cushion', 'fence', 'flowerbed', 'repaired_shelf', 'sea_glass']);
+  assert.deepEqual([...hd.unlockedRecipes].sort(), ['clothesline', 'cushion', 'fence', 'flowerbed', 'kid_desk', 'planter', 'repaired_shelf', 'sea_glass', 'string_lights']);
+  assert.equal(H.stored('furniture.toy_box'), 1);
+  assert.equal(H.stored('garden.watering_can'), 1);
+  assert.equal(hd.flags.v2Items, true);
   assert.ok(H.reachable('room', hd.room.placements).ok, H.reachable('room', hd.room.placements).reason);
   assert.ok(H.reachable('garden', hd.garden.placements).ok);
   // 2回目の ensure で変わらない
@@ -262,7 +265,7 @@ test('セーブ移行：ゴミデータでも例外を出さない', () => {
     const { H, ctx } = makeSandbox();
     ctx.gs.homeData = bad;
     const hd = H.ensure();
-    assert.ok(hd && hd.version === 1 && Array.isArray(hd.room.placements) && Array.isArray(hd.garden.placements));
+    assert.ok(hd && hd.version === 2 && Array.isArray(hd.room.placements) && Array.isArray(hd.garden.placements));
     assert.equal(typeof H.stored('furniture.futon'), 'number');
   }
   const { H, ctx } = makeSandbox();
@@ -377,6 +380,174 @@ test('HOME.save は saveGame の成否を返す', () => {
   assert.equal(H.save(), true);
   ctx.saveGame = () => false; assert.equal(H.save(), false);
   ctx.saveGame = () => { throw new Error('quota'); }; assert.equal(H.save(), false);
+});
+
+// ── フェーズ2 ──
+function v1Save(H, ctx) {
+  // フェーズ1の形（version 1・新アイテム無し・species 無し・bonds/life 無し）
+  const hd = H.ensure();
+  const v1 = JSON.parse(JSON.stringify(hd));
+  v1.version = 1;
+  delete v1.inventory['furniture.toy_box']; delete v1.inventory['garden.watering_can'];
+  v1.unlockedRecipes = ['repaired_shelf', 'cushion', 'flowerbed', 'fence', 'sea_glass'];
+  delete v1.flags.v2Items; delete v1.bonds; delete v1.life;
+  v1.plants = { p40: { name: 'ひなた', color: 'red', stage: 2, growth: 1, plantedDay: 3, lastWateredDay: 4 } };
+  return v1;
+}
+
+test('v1 → v2 移行：一度だけ足す・何度 ensure しても同じ', () => {
+  const { H, ctx } = makeSandbox({ day: 9 });
+  const v1 = v1Save(H, ctx);
+  ctx.gs.homeData = JSON.parse(JSON.stringify(v1));
+  const hd = H.ensure();
+  assert.equal(hd.version, 2);
+  assert.equal(H.owned('furniture.toy_box'), 1);
+  assert.equal(H.owned('garden.watering_can'), 1);
+  assert.ok(H.hasRecipe('kid_desk') && H.hasRecipe('planter') && H.hasRecipe('clothesline') && H.hasRecipe('string_lights'));
+  assert.ok(!H.hasRecipe('wind_chime') && !H.hasRecipe('sea_mobile') && !H.hasRecipe('nameplate'), '章クリアのレシピは未解放のまま');
+  assert.equal(hd.plants.p40.species, 'seed');
+  assert.equal(hd.plants.p40.stage, 2);
+  assert.deepEqual({ ...hd.bonds }, {}); assert.deepEqual({ ...hd.life }, {});
+  assert.equal(hd.room.placements.length, v1.room.placements.length, '配置はそのまま');
+  const once = JSON.stringify(hd);
+  H.ensure(); H.ensure();
+  assert.equal(JSON.stringify(ctx.gs.homeData), once, '冪等');
+  // セーブ往復でも二重に足されない
+  ctx.gs.homeData = JSON.parse(once); H.ensure();
+  assert.equal(H.owned('furniture.toy_box'), 1);
+  // 収納のおもちゃ箱を使い切っても（所持0）、移行で再付与されない
+  ctx.gs.homeData.inventory['furniture.toy_box'] = { default: 0 }; H.ensure();
+  assert.equal(H.owned('furniture.toy_box'), 0);
+  // 他モジュールが入れた bonds / life は消さない
+  ctx.gs.homeData.bonds = { askedHelp: 2 }; ctx.gs.homeData.life = { active: true, day: 3 }; H.ensure();
+  assert.equal(ctx.gs.homeData.bonds.askedHelp, 2); assert.equal(ctx.gs.homeData.life.day, 3);
+  checkCounts(H);
+});
+
+test('種：置けない・植えると1つだけ減る・二度植えられない', () => {
+  const { H, ctx } = makeSandbox({ day: 6 });
+  const hd = H.ensure();
+  assert.ok(H.giveSeed('morning_glory', 2));
+  assert.ok(!H.giveSeed('nope'));
+  assert.equal(H.seedCount('morning_glory'), 2);
+  assert.equal(H.CATALOG['seed.morning_glory'].kind, 'seed');
+  for (const area of ['room', 'garden']) {
+    const r = H.canPlace(area, [], cand('seed.morning_glory', 3, 3));
+    assert.ok(!r.ok && /植え/.test(r.reason), r.reason);
+  }
+  // 下書きでも置けない
+  const d = H.createDraft({ room: hd.room.placements, garden: hd.garden.placements }, { owned: (i, v) => H.owned(i, v), seq: hd.seq });
+  assert.ok(!d.place('garden', cand('seed.morning_glory', 3, 5)).ok);
+  // 鉢を置いて植える
+  H.addItem('garden.pot', 1, 'red');
+  hd.garden.placements.push({ instanceId: 'p90', itemId: 'garden.pot', x: 3, y: 9, rotation: 0, variant: 'red', layer: 'furniture' });
+  assert.ok(!H.plantSeed('p90', 'sunflower').ok, '持っていない種');
+  const r1 = H.plantSeed('p90', 'morning_glory', '');
+  assert.ok(r1.ok, r1.reason);
+  assert.equal(r1.plant.species, 'morning_glory');
+  assert.equal(r1.plant.name, 'あさがお');
+  assert.equal(H.seedCount('morning_glory'), 1);
+  const r2 = H.plantSeed('p90', 'morning_glory');
+  assert.ok(!r2.ok && /もう/.test(r2.reason));
+  assert.equal(H.seedCount('morning_glory'), 1, '失敗では減らない');
+  // 植えられないもの・置いていないもの
+  assert.ok(!H.plantSeed(hd.garden.placements.find(p => p.itemId === 'garden.small_tree').instanceId, 'morning_glory').ok);
+  assert.ok(!H.plantSeed('p999', 'morning_glory').ok);
+  // 最後の1つも使える → 0（所持から消える）
+  H.addItem('garden.pot', 1, 'blue');
+  hd.garden.placements.push({ instanceId: 'p91', itemId: 'garden.pot', x: 4, y: 9, rotation: 0, variant: 'blue', layer: 'furniture' });
+  assert.ok(H.plantSeed('p91', 'morning_glory', 'あお').ok);
+  assert.equal(H.seedCount('morning_glory'), 0);
+  assert.equal(hd.inventory['seed.morning_glory'], undefined);
+  assert.equal(hd.plants.p91.name, 'あお');
+  // 育ち方は共通・枯れない
+  for (let dd = 7; dd < 30; dd++) { ctx.gs.day = dd; H.water('p90'); H.tickDay(); }
+  assert.equal(hd.plants.p90.stage, 4);
+  // セーブ往復で species が残る
+  H.ensure(); const s = JSON.stringify(ctx.gs.homeData); ctx.gs.homeData = JSON.parse(s); H.ensure();
+  assert.equal(ctx.gs.homeData.plants.p90.species, 'morning_glory');
+  assert.equal(JSON.stringify(ctx.gs.homeData), s);
+});
+
+test('プランター：2×1・回転で1×2・1つだけ植わる・収納→再配置で植物を引き継ぐ', () => {
+  const { H } = makeSandbox();
+  const hd = H.ensure();
+  assert.deepEqual({ ...H.footprint('garden.planter', 0) }, { w: 2, h: 1 });
+  assert.deepEqual({ ...H.footprint('garden.planter', 90) }, { w: 1, h: 2 });
+  assert.ok(!H.canPlace('garden', [], cand('garden.planter', 15, 5, 0)).ok, 'はみ出す');
+  assert.ok(H.canPlace('garden', [], cand('garden.planter', 15, 5, 90)).ok);
+  assert.ok(!H.canPlace('garden', [], cand('garden.planter', 3, 3, 180)).ok, '180は無い');
+  assert.ok(!H.canPlace('room', [], cand('garden.planter', 3, 3)).ok, '部屋には置けない');
+  assert.ok(H.craft('planter').ok);
+  const d = H.createDraft({ room: hd.room.placements, garden: hd.garden.placements }, { owned: (i, v) => H.owned(i, v), seq: hd.seq });
+  const r = d.place('garden', cand('garden.planter', 2, 9, 90));
+  assert.ok(r.ok, r.reason);
+  hd.garden.placements = d.result().garden; hd.seq = d.seq;
+  H.giveSeed('sunflower', 1); H.giveSeed('herb', 1);
+  assert.ok(H.plantSeed(r.P.instanceId, 'sunflower').ok);
+  assert.ok(!H.plantSeed(r.P.instanceId, 'herb').ok, '1つだけ');
+  assert.equal(hd.plants[r.P.instanceId].holder, 'garden.planter');
+  // 収納して置き直すと同じ植物が戻る（鉢には付かない）
+  const d2 = H.createDraft({ room: hd.room.placements, garden: hd.garden.placements }, {
+    owned: (i, v) => H.owned(i, v), seq: hd.seq, plantIds: Object.keys(hd.plants), plantHolder: id => hd.plants[id].holder || 'garden.pot' });
+  assert.ok(d2.store(r.P.instanceId).ok);
+  H.addItem('garden.pot', 1, 'yellow');
+  const pot = d2.place('garden', cand('garden.pot', 6, 9, 0, 'yellow'));
+  assert.ok(pot.ok); assert.notEqual(pot.P.instanceId, r.P.instanceId);
+  const again = d2.place('garden', cand('garden.planter', 9, 9, 0));
+  assert.ok(again.ok); assert.equal(again.P.instanceId, r.P.instanceId);
+});
+
+test('新アイテム：定義・壁専用・レシピ', () => {
+  const { H } = makeSandbox();
+  H.ensure();
+  const ids = ['furniture.toy_box', 'furniture.kid_desk', 'furniture.old_radio', 'memento.toolbox', 'memento.recital_photo', 'deco.wind_chime',
+    'deco.sea_mobile', 'garden.nameplate', 'garden.clothesline', 'light.string_lights', 'garden.planter', 'garden.watering_can'];
+  for (const id of ids) assert.ok(H.CATALOG[id], id);
+  for (const id of ['memento.recital_photo', 'deco.wind_chime', 'deco.sea_mobile']) {
+    assert.ok(H.canPlace('room', [], cand(id, 4, 0)).ok, id);
+    assert.ok(!H.canPlace('room', [], cand(id, 4, 3)).ok, id + ' 床には置けない');
+  }
+  assert.deepEqual({ ...H.footprint('garden.clothesline', 90) }, { w: 1, h: 3 });
+  assert.ok(H.canPlace('garden', [P('a', 'light.string_lights', 3, 3)], cand('garden.stepping_stone', 3, 3)).ok, '豆電球の下に飛び石');
+  for (const r of ['wind_chime', 'sea_mobile', 'nameplate', 'kid_desk', 'clothesline', 'string_lights', 'planter']) assert.ok(H.RECIPES[r] && H.CATALOG[H.RECIPES[r].out], r);
+});
+
+test('訪問者・ねこ：立つマスは solid でも出入口でもない', () => {
+  const { H } = makeSandbox();
+  const hd = H.ensure();
+  for (const area of ['room', 'garden']) {
+    const L = hd[area].placements, A = H.AREAS[area];
+    const solid = H.solidGrid(A, L);
+    for (let y = -1; y <= A.h; y++) for (let x = -1; x <= A.w; x++) {
+      const c = H.standCell(area, L, x, y, [{ x: 4, y: 5 }]);
+      assert.ok(c, `${area} ${x},${y}`);
+      assert.equal(solid[c.y * A.w + c.x], 0, `${area} ${x},${y} → solid ${c.x},${c.y}`);
+      assert.ok(!H._isExit(area, c.x, c.y));
+      assert.ok(!(c.x === 4 && c.y === 5), '人のいるマスは避ける');
+    }
+    // 家具の上を指定しても、いちばん近い空きマスへ
+    const solidP = L.find(p => H.CATALOG[p.itemId].solid && H.CATALOG[p.itemId].layer === 'furniture');
+    const c = H.standCell(area, L, solidP.x, solidP.y);
+    assert.equal(solid[c.y * A.w + c.x], 0);
+    assert.ok(Math.abs(c.x - solidP.x) + Math.abs(c.y - solidP.y) <= 2);
+    // ねこの昼寝場所：床のものは solid でない／家具の上はベンチ・布団だけ
+    const spots = H.catSpots(area, L.concat(area === 'garden' ? [P('b1', 'garden.bench', 2, 9)] : [P('c1', 'furniture.cushion', 8, 6)]), { night: false });
+    assert.ok(spots.length > 0);
+    for (const s of spots) {
+      if (!s.on) assert.equal(solid[s.y * A.w + s.x], 0, `cat ${area} ${s.x},${s.y}`);
+      else assert.ok(/bench|futon/.test(s.kind));
+      assert.ok(!H._isExit(area, s.x, s.y));
+    }
+  }
+});
+
+test('娘の寝る時間：23時〜5時台', () => {
+  const { H } = makeSandbox();
+  const asleep = [23, 0, 1, 2, 3, 4, 5, 24, -1];
+  const awake = [6, 7, 12, 18, 21, 22, 22.9, NaN, undefined, 'x'];
+  for (const h of asleep) assert.equal(H.isKidSleepHour(h), true, String(h));
+  for (const h of awake) assert.equal(H.isKidSleepHour(h), false, String(h));
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

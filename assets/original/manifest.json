@@ -307,7 +307,7 @@
     "#a8d88a",
     "#5f9e5c"
    ],
-   "notes": "鉢色＝variant。opts.plant={stage,color}：0=土と芽 1=双葉 2=葉 3=つぼみ 4=花。color は red/pink/blue/yellow/white/purple/orange か #rrggbb。t で花が1ドット揺れる。"
+   "notes": "鉢色＝variant。opts.plant={stage,color}：0=土と芽 1=双葉 2=葉 3=つぼみ 4=花。color は red/pink/blue/yellow/white/purple/orange か #rrggbb。t で花が1ドット揺れる。 フェーズ2：opts.plant.species（seed/morning_glory/sunflower/herb）で植物の絵が変わる。"
   },
   {
    "id": "garden.flowerbed",
@@ -558,7 +558,9 @@
    "frames": [
     "down/left/right/up × stand",
     "walk 0-3",
-    "sit"
+    "sit",
+    "work",
+    "hold"
    ],
    "palette": [
     "#1b1226",
@@ -587,7 +589,9 @@
    "frames": [
     "down/left/right/up × stand",
     "walk 0-3",
-    "sit"
+    "sit",
+    "read",
+    "sleep"
    ],
    "palette": [
     "#1b1226",
@@ -985,6 +989,514 @@
     "#ffffff"
    ],
    "notes": "未定義の itemId / uiIcon 名で描く「？」の箱。例外は出さない。"
+  },
+  {
+   "id": "furniture.toy_box",
+   "category": "furniture",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('furniture.toy_box')",
+   "atlas": null,
+   "frames": [
+    "r0"
+   ],
+   "palette": [
+    "#1b1226",
+    "#f2cf98",
+    "#d9a066",
+    "#b97c45",
+    "#8a5530",
+    "#f59aae",
+    "#e05a6a",
+    "#5a7ad0",
+    "#ffe066"
+   ],
+   "notes": "1×1。立てかけたふた、ボール・積み木・アヒルがのぞく。ピンクの帯に星のシール。"
+  },
+  {
+   "id": "furniture.kid_desk",
+   "category": "furniture",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('furniture.kid_desk')",
+   "atlas": null,
+   "frames": [
+    "r0",
+    "r90",
+    "r180",
+    "r270"
+   ],
+   "palette": [
+    "#1b1226",
+    "#fff4dc",
+    "#f2d6a6",
+    "#d9b47c",
+    "#b08a56",
+    "#fffaf0"
+   ],
+   "notes": "1×1。娘の低い机（画用紙・クレヨン）。r90 は r270 の左右反転。"
+  },
+  {
+   "id": "furniture.old_radio",
+   "category": "furniture",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('furniture.old_radio')",
+   "atlas": null,
+   "frames": [
+    "r0"
+   ],
+   "palette": [
+    "#1b1226",
+    "#c08a5a",
+    "#9a6638",
+    "#efe2c8",
+    "#ffd98a",
+    "#6e7488"
+   ],
+   "notes": "1×1。小さな台にのった木箱のラジオ（布スピーカー・ダイヤル窓・アンテナ）。"
+  },
+  {
+   "id": "memento.toolbox",
+   "category": "memento",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('memento.toolbox')",
+   "atlas": null,
+   "frames": [
+    "r0"
+   ],
+   "palette": [
+    "#1b1226",
+    "#ff8a8a",
+    "#d04a4a",
+    "#a8323a",
+    "#e4e8f0",
+    "#2f9a52"
+   ],
+   "notes": "1×1。角のへこんだ赤い工具箱、緑の名札シール（班長の名札色）。"
+  },
+  {
+   "id": "memento.recital_photo",
+   "category": "memento",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('memento.recital_photo')",
+   "atlas": null,
+   "frames": [
+    "wall"
+   ],
+   "palette": [
+    "#1b1226",
+    "#f4efe6",
+    "#c8505a",
+    "#fff4cc",
+    "#f59aae",
+    "#35224e"
+   ],
+   "notes": "壁掛け。舞台（赤い幕・スポットライト）で花の冠の娘。"
+  },
+  {
+   "id": "deco.wind_chime",
+   "category": "deco",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('deco.wind_chime')",
+   "atlas": null,
+   "frames": [
+    "wall",
+    "frame0-1"
+   ],
+   "palette": [
+    "#1b1226",
+    "#e4fff8",
+    "#9ff0e0",
+    "#4fc8bc",
+    "#e05a6a",
+    "#fff4e0"
+   ],
+   "notes": "壁掛け。夢の海の色のガラス風鈴（金魚の絵）と短冊。短冊が2コマで揺れる。"
+  },
+  {
+   "id": "deco.sea_mobile",
+   "category": "deco",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('deco.sea_mobile')",
+   "atlas": null,
+   "frames": [
+    "wall",
+    "frame0-1"
+   ],
+   "palette": [
+    "#1b1226",
+    "#c8b8a0",
+    "#4fc8bc",
+    "#f6e2ea",
+    "#ffe066"
+   ],
+   "notes": "壁掛け。流木に布の魚・貝・星。2コマで揺れる。"
+  },
+  {
+   "id": "garden.nameplate",
+   "category": "garden",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('garden.nameplate')",
+   "atlas": null,
+   "frames": [
+    "r0"
+   ],
+   "palette": [
+    "#1b1226",
+    "#f4e2c0",
+    "#5a3a2a",
+    "#5a4a6a",
+    "#8a5530"
+   ],
+   "notes": "1×1。小さな屋根つきの柱に「だんのうら」の表札。"
+  },
+  {
+   "id": "garden.clothesline",
+   "category": "garden",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('garden.clothesline')",
+   "atlas": null,
+   "frames": [
+    "r0",
+    "r90",
+    "frame0-1"
+   ],
+   "palette": [
+    "#1b1226",
+    "#efe2c8",
+    "#f59aae",
+    "#c6b2ee",
+    "#fffaf0",
+    "#8a5530"
+   ],
+   "notes": "3×1。T字の柱2本とロープ、娘のワンピース・パパのシャツ・タオル。r90 は縦。"
+  },
+  {
+   "id": "light.string_lights",
+   "category": "light",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('light.string_lights')",
+   "atlas": null,
+   "frames": [
+    "r0",
+    "r90",
+    "lit"
+   ],
+   "palette": [
+    "#1b1226",
+    "#6e7488",
+    "#ffd98a",
+    "#ffb0c8",
+    "#9ff0e0",
+    "#e6e0d0"
+   ],
+   "notes": "2×1・非solid。柱2本と電球の列。lit で電球ごとに小さなグロー（light.spots）。"
+  },
+  {
+   "id": "garden.planter",
+   "category": "garden",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('garden.planter')",
+   "atlas": null,
+   "frames": [
+    "r0",
+    "r90",
+    "plant stage0-4 × species"
+   ],
+   "palette": [
+    "#1b1226",
+    "#f2cf98",
+    "#d9a066",
+    "#b97c45",
+    "#8a5530",
+    "#5a3a2a",
+    "#6e4a34"
+   ],
+   "notes": "2×1。植物を1つ植えられる（seed/herb は3株、morning_glory/sunflower は2株で描く）。"
+  },
+  {
+   "id": "garden.watering_can",
+   "category": "garden",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('garden.watering_can')",
+   "atlas": null,
+   "frames": [
+    "r0"
+   ],
+   "palette": [
+    "#1b1226",
+    "#e4f0f8",
+    "#9cc4dc",
+    "#6e9ab8",
+    "#4a7090"
+   ],
+   "notes": "1×1・非solid。ブリキのじょうろ。"
+  },
+  {
+   "id": "seed.morning_glory",
+   "category": "seed",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('seed.morning_glory')",
+   "atlas": null,
+   "frames": [
+    "icon"
+   ],
+   "palette": [
+    "#1b1226",
+    "#dcd4f4",
+    "#6f93e8",
+    "#5f9e5c"
+   ],
+   "notes": "消費アイテム（置けない）。アイコンは種の袋（あさがおの絵）。"
+  },
+  {
+   "id": "seed.sunflower",
+   "category": "seed",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('seed.sunflower')",
+   "atlas": null,
+   "frames": [
+    "icon"
+   ],
+   "palette": [
+    "#1b1226",
+    "#fff0c0",
+    "#ffd84a",
+    "#7a4a28"
+   ],
+   "notes": "消費アイテム（置けない）。アイコンは種の袋（ひまわりの絵）。"
+  },
+  {
+   "id": "seed.herb",
+   "category": "seed",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('seed.herb')",
+   "atlas": null,
+   "frames": [
+    "icon"
+   ],
+   "palette": [
+    "#1b1226",
+    "#d8f0d0",
+    "#5f9e5c",
+    "#7fbf6e"
+   ],
+   "notes": "消費アイテム（置けない）。アイコンは種の袋（ハーブの絵）。"
+  },
+  {
+   "id": "plant.species",
+   "category": "plant",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "seed 0-4",
+    "morning_glory 0-4",
+    "sunflower 0-4",
+    "herb 0-4"
+   ],
+   "palette": [
+    "#1b1226",
+    "#5f9e5c",
+    "#a8d88a",
+    "#6f93e8",
+    "#a070e0",
+    "#ffd84a",
+    "#7a4a28",
+    "#e2cf8a"
+   ],
+   "notes": "drawItem の opts.plant={stage,color,species}。あさがお＝竹の支柱に巻くつる＋青紫のラッパ形の花、ひまわり＝背が高く大きな花、ハーブ＝こんもりした茂みに小花。"
+  },
+  {
+   "id": "char.chiyo",
+   "category": "character",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "down/left/right/up × stand",
+    "walk 0-3",
+    "sit"
+   ],
+   "palette": [
+    "#1b1226",
+    "#dcd8e6",
+    "#a7a0b6",
+    "#f8dcc8",
+    "#c9a24a",
+    "#8e5a84",
+    "#5e3658",
+    "#b44a3a",
+    "#e86a5a",
+    "#6a5a72"
+   ],
+   "notes": "16×約23ドット。銀髪のお団子＋赤いかんざし（金の飾り）、金縁の丸メガネ、えんじのカーディガン、長いスカート。横向きは頭が1ドット前（腰が少し曲がる）。mob_chiyo.svg の配色。"
+  },
+  {
+   "id": "char.hancho",
+   "category": "character",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "down/left/right/up × stand",
+    "walk 0-3",
+    "sit"
+   ],
+   "palette": [
+    "#1b1226",
+    "#ffe680",
+    "#f5c22a",
+    "#c98f0e",
+    "#f3c9a4",
+    "#6a6560",
+    "#4b5b78",
+    "#2b3550",
+    "#eef0ea",
+    "#2f9a52"
+   ],
+   "notes": "16×25ドット。黄色いヘルメット、白髪まじりのもみあげ、太い眉、紺の作業着に白い襟と緑の名札。mob_hancho.svg の配色。"
+  },
+  {
+   "id": "char.cat",
+   "category": "character",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.icon('char.cat')",
+   "atlas": null,
+   "frames": [
+    "down/left/right/up × stand",
+    "walk 0-1",
+    "sit",
+    "sleep（丸くなる）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#fbf6ee",
+    "#ddd2c4",
+    "#f0a050",
+    "#c87030",
+    "#3a2a36",
+    "#d8ec60",
+    "#f5a0b0"
+   ],
+   "notes": "16×14ドット。家の三毛猫（白地に茶と黒のぶち）。黄緑の目・ピンクの耳はステルスのねこと同じ。名前は無し（「ねこ」）。HOME_ART.drawChar(ctx,'cat',...)。アイコン HOME_ART.icon('char.cat')。"
+  },
+  {
+   "id": "pose.kid.sleep",
+   "category": "pose",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "vertical（rot0 の布団）",
+    "horizontal（rot90）",
+    "Zz 0-1"
+   ],
+   "palette": [
+    "#1b1226",
+    "#35224e",
+    "#ffe9de",
+    "#9fe2c8",
+    "#a8c0f0",
+    "#7f9ad8",
+    "#5f78b8",
+    "#e4dcff"
+   ],
+   "notes": "布団の足元範囲の左上に重ねる（drawChar の px,py＝布団の左上）。枕に頭、ふくらんだ掛け布団、手、Zz。rot90 は縦の絵を時計回りに回したもの。"
+  },
+  {
+   "id": "pose.kid.read",
+   "category": "pose",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "down/right/up/left"
+   ],
+   "palette": [
+    "#1b1226",
+    "#d9708e",
+    "#fffaf0",
+    "#ddd2c0"
+   ],
+   "notes": "座って絵本をひらく（sit＋本の重ね描き、2コマでページ）。"
+  },
+  {
+   "id": "pose.dan.work",
+   "category": "pose",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "up/left/right/down",
+    "frame0-1"
+   ],
+   "palette": [
+    "#1b1226",
+    "#c6b2ee",
+    "#f6d6c2",
+    "#ffe066"
+   ],
+   "notes": "机で作業（sit＋腕とペン、2コマ）。"
+  },
+  {
+   "id": "pose.dan.hold",
+   "category": "pose",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "down",
+    "frame0-1"
+   ],
+   "palette": [
+    "#1b1226",
+    "#7f9ad8",
+    "#a8c0f0",
+    "#35224e",
+    "#ffe9de"
+   ],
+   "notes": "布団が無い夜に、毛布にくるんだ眠る娘を抱いて座る。"
+  },
+  {
+   "id": "wall.room.day",
+   "category": "wall",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "day"
+   ],
+   "palette": [
+    "#a89cc4",
+    "#8ec8f0",
+    "#d4ecf8",
+    "#ffffff",
+    "#9aa0c0"
+   ],
+   "notes": "drawWall(...,{night:false})：青空・雲・明るい家並み、明るい壁紙、壁灯は消灯。省略時・night:true は従来の夜の窓。"
   }
  ]
 }

@@ -28,6 +28,9 @@ const FB={
   'light.shell_lantern':'#f2d6c0','memento.child_drawing':'#f8f0d8','memento.bear':'#b07850','memento.flower_tag':'#f0e0b0',
   'garden.pot':'#c0603a','garden.flowerbed':'#6a4a2a','garden.bench':'#a87038','garden.fence':'#c8a070','garden.stepping_stone':'#9a9aa2',
   'garden.small_tree':'#3f8f4a','deco.rug':'#7d64c8','deco.sea_glass':'#7ad8d0',
+  'furniture.toy_box':'#e8a0b0','furniture.kid_desk':'#f2d6a6','furniture.old_radio':'#9a6638','memento.toolbox':'#d04a4a',
+  'memento.recital_photo':'#f4efe6','deco.wind_chime':'#9ff0e0','deco.sea_mobile':'#4fc8bc','garden.nameplate':'#f4e2c0',
+  'garden.clothesline':'#efe2c8','light.string_lights':'#ffd98a','garden.planter':'#d9a066','garden.watering_can':'#9cc4dc',
 };
 const POT={red:'#c0503a',blue:'#4a6ac8',yellow:'#d8b030'};
 function fbItem(ctx,itemId,o){
@@ -58,14 +61,16 @@ function fbItem(ctx,itemId,o){
 function fbChar(ctx,who,dir,frame,px,py,T,pose){
   const kid=who==='kid';
   const s=T/32,bob=(frame%2)*s;
+  if(pose==='sleep'){ctx.save();ctx.fillStyle='#3a2418';ctx.beginPath();ctx.arc(px+T,py+T*.4,6*s,0,Math.PI*2);ctx.fill();ctx.restore();return;}
+  const BODY={kid:'#9fe2c8',dan:'#5a4a8a',chiyo:'#8e5a84',hancho:'#4b5b78'},HAIR={kid:'#3a2418',dan:'#2a2030',chiyo:'#dcd8e6',hancho:'#f5c22a'};
   const cx=px+T/2;
   ctx.save();
   ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(cx,py+T-3*s,9*s,3*s,0,0,Math.PI*2);ctx.fill();
   const bh=(kid?12:18)*s,hr=(kid?6:6.5)*s;
   const by=py+T-4*s-bh-(pose==='sit'?-4*s:0)+bob;
-  ctx.fillStyle=kid?'#f08ab0':'#5a4a8a';ctx.fillRect(cx-(kid?6:8)*s,by,(kid?12:16)*s,bh);
+  ctx.fillStyle=BODY[who]||'#5a4a8a';ctx.fillRect(cx-(kid?6:8)*s,by,(kid?12:16)*s,bh);
   ctx.fillStyle='#f3d2b8';ctx.beginPath();ctx.arc(cx,by-hr+1*s,hr,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=kid?'#3a2418':'#2a2030';ctx.beginPath();ctx.arc(cx,by-hr-1*s,hr,Math.PI,Math.PI*2);ctx.fill();
+  ctx.fillStyle=HAIR[who]||'#2a2030';ctx.beginPath();ctx.arc(cx,by-hr-1*s,hr,Math.PI,Math.PI*2);ctx.fill();
   if(dir!=='up'){ctx.fillStyle='#20141c';ctx.fillRect(cx-3*s,by-hr,1.5*s,2*s);ctx.fillRect(cx+1.5*s,by-hr,1.5*s,2*s);}
   ctx.restore();
 }
@@ -78,9 +83,10 @@ function drawItem(ctx,itemId,o){
 }
 function drawChar(ctx,c,px,py,T,t){
   const a=ART();
-  const frame=c.frame!==undefined?c.frame:(c.moving?Math.floor(t*6)%2:0);
+  const frame=c.frame!==undefined?c.frame:(c.moving?Math.floor(t*6)%4:0);
+  const pose=(c.moving&&(!c.pose||c.pose==='stand'))?'walk':(c.pose||'stand');
   if(a&&typeof a.drawChar==='function'){
-    try{a.drawChar(ctx,c.who,c.dir||'down',frame,px,py,T,c.pose||'stand');return;}catch(e){}
+    try{a.drawChar(ctx,c.who,c.dir||'down',frame,px,py,T,pose);return;}catch(e){}
   }
   fbChar(ctx,c.who,c.dir||'down',frame,px,py,T,c.pose||'stand');
 }
@@ -100,7 +106,7 @@ function drawBand(ctx,area,L,o){
   const T=L.T;
   if(area==='room'){
     const a=ART();
-    if(a&&typeof a.drawWall==='function'){try{a.drawWall(ctx,0,0,L.cw,L.band,T);return;}catch(e){}}
+    if(a&&typeof a.drawWall==='function'){try{a.drawWall(ctx,0,0,L.cw,L.band,T,{night:o.wallNight!==undefined?!!o.wallNight:!!o.night});return;}catch(e){}}
     ctx.fillStyle='#d9cdb4';ctx.fillRect(0,0,L.cw,L.band);
     ctx.fillStyle='#c4b596';for(let x=0;x<L.cw;x+=8)ctx.fillRect(x,0,1,L.band);
     ctx.fillStyle='#8a6440';ctx.fillRect(0,L.band-6,L.cw,6);
@@ -166,7 +172,7 @@ HOME.renderArea=function(ctx,area,opts){
   }
   const vis=placements.filter(P=>P&&CAT(P.itemId)&&P.instanceId!==opts.hideId);
   const itemOpts=P=>({rotation:P.rotation,variant:P.variant,T,t,lit:!!lit[P.instanceId],
-    plant:(P.itemId==='garden.pot'&&plants[P.instanceId])?{stage:plants[P.instanceId].stage|0,color:plants[P.instanceId].color,name:plants[P.instanceId].name}:null});
+    plant:(CAT(P.itemId).plantable&&plants[P.instanceId])?{stage:plants[P.instanceId].stage|0,color:plants[P.instanceId].color,name:plants[P.instanceId].name,species:plants[P.instanceId].species||'seed'}:null});
   const posOf=P=>{const c=CAT(P.itemId);return c.layer==='wall'?{px:P.x*T,py:wallPy(L)}:{px:P.x*T,py:L.band+P.y*T};};
   // 床の上（ラグ・飛び石）→ 壁の飾り
   vis.filter(P=>LAYER_ORDER[CAT(P.itemId).layer]<2).sort((a,b)=>LAYER_ORDER[CAT(a.itemId).layer]-LAYER_ORDER[CAT(b.itemId).layer]||a.y-b.y)
@@ -186,7 +192,7 @@ HOME.renderArea=function(ctx,area,opts){
     ctx.globalCompositeOperation='lighter';
     vis.forEach(P=>{
       const c=CAT(P.itemId);if(!c.light||!lit[P.instanceId])return;
-      const p=posOf(P),cx=p.px+T/2,cy=p.py+T/2;
+      const p=posOf(P),f=HOME.footprint(P.itemId,P.rotation),cx=p.px+f.w*T/2,cy=p.py+f.h*T/2;
       const g=ctx.createRadialGradient(cx,cy,2,cx,cy,T*3);
       g.addColorStop(0,'rgba(255,190,90,.22)');g.addColorStop(1,'rgba(255,190,90,0)');
       ctx.fillStyle=g;ctx.fillRect(cx-T*3,cy-T*3,T*6,T*6);
@@ -244,7 +250,7 @@ HOME.snapshot=function(area,o){
     cv.width=Math.round(L.cw*scale);cv.height=Math.round(L.ch*scale);
     const ctx=cv.getContext('2d');ctx.imageSmoothingEnabled=false;
     ctx.scale(scale,scale);
-    HOME.renderArea(ctx,area,{placements:o.placements,plants:o.plants,lit:o.lit,night:!!o.night,chars:o.chars||[],T:32,t:0});
+    HOME.renderArea(ctx,area,{placements:o.placements,plants:o.plants,lit:o.lit,night:!!o.night,wallNight:o.night===undefined?true:!!o.night,chars:o.chars||[],T:32,t:0});
     return cv;
   }catch(e){try{console.error('[home] snapshot',e);}catch(_){}return null;}
 };

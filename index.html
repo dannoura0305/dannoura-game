@@ -278,6 +278,7 @@
 <div id="ending-sc"><div class="end-icon" id="end-icon">🌅</div>
   <div id="end-img-wrap" style="width:100%;max-width:280px;margin:0 auto 8px;border-radius:8px;overflow:hidden;display:none;box-shadow:0 4px 24px rgba(138,82,212,.3);aspect-ratio:2/3;background:#0a0818;"><img id="end-img" style="width:100%;height:100%;display:block;object-fit:contain;object-position:center;" src=""/></div><div class="end-title" id="end-title"></div><div class="end-body" id="end-body"></div><div id="end-comments"></div>
 <div id="end-buttons" style="display:flex;flex-direction:column;gap:10px;margin-top:16px;align-items:center;">
+  <button class="btn-start" id="life-btn" onclick="window.HOME&&HOME.lifeMode&&HOME.lifeMode.startFromEnding()" style="display:none;">🏡 暮らしを続ける</button>
   <button class="btn-start" id="endless-btn" onclick="startEndlessMode()" style="display:none;">🌙 まだ夜を続ける</button>
   <button class="btn-start" onclick="location.reload()">もう一度</button>
 </div></div>
@@ -318,6 +319,9 @@
 <script src="main/home/interactions.js"></script>
 <script src="main/home/events.js"></script>
 <script src="main/memories.js"></script>
+<script src="main/home/bonds.js"></script>
+<script src="main/home/life_events.js"></script>
+<script src="main/home/lifemode.js"></script>
 <script src="main/integrations.js"></script>
 </body>
 </html>

@@ -154,3 +154,78 @@ memories.js：`HOME.memories.add(M)`（id重複は追加しない）、`HOME.mem
 
 ## 第3章の約束の整合
 本編（story.js）の約束は「発表会（おゆうぎかい）」。RPG 第3章は「えんそく」と「おゆうぎかい」が混在 → 「おゆうぎかい（発表会）」に統一する（約束の場面・途中の言及・回収を一緒に直す）。
+
+---
+
+# フェーズ2 追記（物語と暮らしの拡張）
+
+対象：既存人物との生活イベント／家具・植物の追加／会話・人物行動の差分／思い出帳の拡張／RPG各章との連動／「選択＋その後の行動」による分岐／クリア後の暮らしモード。
+フェーズ1の契約（ID・API・保存形式）は維持し、追加のみ行う。`gs.homeData.version` は 2 に上げ、v1 からは `HOME.ensure()` で自動移行（欠けた項目を足すだけ）。
+
+## 追加ファイル（index.html では main/integrations.js の直前に、この順で読み込む）
+```
+main/home/bonds.js        「約束・行動・話し合い・頼る・休む」の記録と評価（HOME.bonds）
+main/home/life_events.js  千代さん・班長などとの生活イベント（HOME.life_events）
+main/home/lifemode.js     クリア後の暮らしモード（HOME.lifeMode）
+```
+
+## 追加アイテム（12種・catalog.js / sprites.js）
+| id | 名前 | size | 回転 | layer | solid | area | 入手 |
+|---|---|---|---|---|---|---|---|
+| furniture.toy_box | おもちゃ箱 | 1×1 | 0 | furniture | ○ | room | 初期収納 |
+| furniture.kid_desk | 娘の小さな机 | 1×1 | 0,90,180,270 | furniture | ○ | room | クラフト（木3） |
+| furniture.old_radio | 千代さんの古いラジオ | 1×1 | 0 | furniture | ○ | room | 千代さんイベント |
+| memento.toolbox | 班長の古い工具箱 | 1×1 | 0 | furniture | ○ | room,garden | 班長イベント |
+| memento.recital_photo | 発表会の写真 | 1×1 | 0 | wall | × | room | 本編 27日の発表会に行けたら |
+| deco.wind_chime | 風鈴 | 1×1 | 0 | wall | × | room | RPG第1章クリアでレシピ（金具1・海1） |
+| deco.sea_mobile | 海のモビール | 1×1 | 0 | wall | × | room | RPG第4章クリアでレシピ（海2・布1） |
+| garden.nameplate | 家の表札 | 1×1 | 0 | furniture | ○ | garden | RPG第5章クリアでレシピ（木1・金具1） |
+| garden.clothesline | 物干し | 3×1 | 0,90 | furniture | ○ | garden | クラフト（木2・布1） |
+| light.string_lights | 庭の豆電球 | 2×1 | 0,90 | furniture | × | garden | クラフト（金具2・海1） |
+| garden.planter | プランター | 2×1 | 0,90 | furniture | ○ | garden | クラフト（木2）※植物を植えられる |
+| garden.watering_can | じょうろ | 1×1 | 0 | furniture | × | garden,room | 初期収納 |
+
+`wall` の扱いはフェーズ1と同じ（部屋の y=0 の列）。
+
+## 植物の種類（plants に `species` を追加、既定 'seed'＝フェーズ1の花）
+- `seed`（娘の花）／`morning_glory`（あさがお：千代さんの種）／`sunflower`（ひまわり）／`herb`（ハーブ：料理ミニゲームに少し関係しなくてよい）
+- 鉢（garden.pot）とプランター（garden.planter）に植えられる。植える操作は暮らしモードで空の鉢・プランターを使う→所持している種を選ぶ。
+- 種は `inventory` に `seed.morning_glory` などの消費アイテムとして持つ（配置不可、カタログでは `kind:'seed'`）。
+- 成長段階 0..4 は共通、見た目は species ごとに描く（HOME_ART.drawItem の opts.plant に species を追加）。
+
+## 訪問者（renderer / interactions）
+- `HOME.setVisitor({who:'chiyo'|'hancho', area, x, y, dir})`／`HOME.clearVisitor()`：一時的な人物を画面に出す（保存しない）。
+- タップで `HOME.hooks.talkVisitor(who)` → Promise<boolean>。
+- HOME_ART.drawChar は 'chiyo'（銀髪のお団子・かんざし・金縁メガネ・えんじのカーディガン、腰が少し曲がる）と 'hancho'（黄色ヘルメット・紺の作業着）に対応。ポーズ stand/walk/sit。
+- 'kid' に `pose:'sleep'`（布団で寝る）と `pose:'read'`、'dan' に `pose:'work'`（机で作業）を追加。
+
+## 人物行動の差分（interactions）
+- 娘は配置に応じて過ごし方が変わる：クッションに座る、本棚の前で絵本を読む、娘の机でお絵かき、おもちゃ箱で遊ぶ、鉢・プランターを眺める、ラジオの前に座る、モビールの下で見上げる。
+- 23時以降（gs.hour>=23 または 0〜5時）は布団で寝ている（話すと「寝顔を見る」になり、起こさない）。布団が収納中なら、だんのうらが抱いて座っている扱いで代用。
+- どの動きも「その家具が置かれていて使う位置が空いている」ときだけ。
+
+## 生活イベント（life_events.js）
+各イベントは任意・一度きり・保存/再読込で重複しない。日付と行動の両条件。思い出を記録。
+- 千代さん（お隣・下関寄りの言葉）：①庭に出ると垣根越しにあいさつ、あさがおの種をおすそ分け ②後日、古いラジオをゆずってくれる（「夜が長いけえ」本編の設定と合わせる）③ベンチがあれば、娘と並んで座る場面
+- 班長（関西弁のまま）：①工場の仕事を一定回数こなした後、休みの日に古い工具箱を持ってくる（棚を直していれば「ええ仕事や」）②頼る/頼らないの選択（物干しを一緒に立てる等）→ bonds の「頼る」
+- 本編の約束（発表会）：行けたら `memento.recital_photo` を付与、行けなかったら後日娘と話し合う場面（bonds の「話し合い」）
+- 既存の人物の口調・関係・設定は main/story.js を読んで合わせる。
+
+## bonds（bonds.js）
+`gs.homeData.bonds = { promises:[{id,day,kept:null|true|false,talked:false}], acted:{[key]:day}, askedHelp:n, rested:n, log:[...] }`
+- 本編・RPG・家のイベントから記録する：約束した（story の promise_recital、RPG ch3_promise、花の受諾）／実際に行動した（花の世話、発表会に行った、修理）／守れなかったときに話し合った／助けを求めた（班長に頼る、RPG ch2_share、ミナモに頼る）／休息を選べた（休む行動・ch4_rest）
+- `HOME.bonds.evaluate()` → {score, traits:['kept','talked','relied','rested','acted'], summary}
+- 使い道：エンディングの「その後」に一言を足す・思い出帳の最後に「この30日」のまとめ。**結末の種類は変えない**。一つの選択を逃しても、別の行動で補える（例：約束を破っても話し合えば 'talked' が付く）。
+
+## RPG各章との連動（integrations.js / rpg.js）
+- 第1章クリア → 風鈴レシピ、第3章 → 約束の思い出（bonds）、第4章 → 海のモビールのレシピ、第5章 → 表札のレシピ。すべて grantOnce。
+- 家の状態が RPG に返る小さな会話（任意・本筋に影響しない）：第1章でラジオを置いていれば、第4章でモビールを飾っていれば、第5章で表札があれば。
+
+## 思い出帳（memories.js）
+- 人物で絞り込み（娘・千代さん・班長・ミナモ・すべて）、日付順、スナップショットの拡大表示、「この30日」まとめページ（bonds.evaluate の summary）。
+
+## クリア後の暮らしモード（lifemode.js）
+- 良い結末・ふつうの結末の最終画面に「🏡 暮らしを続ける」。悪い結末には出さない。
+- 状態 `gs.homeData.life = { active:false, day:0, startedFrom:endingType }`。元のクリア記録（エンディング一覧）は保持。
+- 暮らしモードでは本編の画面ではなく家・庭の画面を開いたままにし、「一日を過ごす」で `life.day++`、植物の成長・生活イベントの進行・少量の素材。本編のパラメータ（借金・精神・疲労など）は動かさず、`checkGameOver`／`triggerEnding` は発火しない。
+- タイトルの「つづきから」は、暮らしモード中のセーブなら家・庭の画面から再開する。「本編のはじめから」は通常どおり新規ゲーム（前の家は残らない）。

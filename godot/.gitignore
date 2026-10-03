@@ -1,0 +1,4 @@
+# Godot 4 のキャッシュ（インポート結果など）。*.import はコミットする
+.godot/
+/android/
+*.tmp

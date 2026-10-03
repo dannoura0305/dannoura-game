@@ -1498,7 +1498,7 @@ wrap('startEndlessMode', prev => function(){
   return prev.apply(this, arguments);
 });
 // 他スクリプトから状態を確認できるように
-window.PR = { _op: OP, _en: EN, showDayCard, hideDayCard, startOpening, finishOpening, endingActive: () => EN.active, openingActive: () => OP.active };
+window.PR = { _op: OP, _en: EN, showDayCard, hideDayCard, startOpening, finishOpening, closeEnding, endingActive: () => EN.active, openingActive: () => OP.active };
 
 /* ───────────────────────── 起動 ───────────────────────── */
 function boot(){

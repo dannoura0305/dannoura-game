@@ -1,0 +1,916 @@
+{
+ "generated_by": "tools/export_sprites.mjs (from main/home/catalog.js)",
+ "items": {
+  "furniture.desk_small": {
+   "name": "小さな木の机",
+   "w": 2,
+   "h": 1,
+   "rots": [
+    0,
+    90
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "room"
+   ],
+   "use": "front",
+   "verb": "作業する",
+   "desc": "ちいさな机。夜はここで勉強したり、繕いものをしたり。",
+   "id": "furniture.desk_small"
+  },
+  "furniture.wood_chair": {
+   "name": "木の椅子",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0,
+    90,
+    180,
+    270
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "room",
+    "garden"
+   ],
+   "use": "front",
+   "verb": "座る",
+   "desc": "座面が少しすり減った木の椅子。",
+   "id": "furniture.wood_chair"
+  },
+  "furniture.repaired_shelf": {
+   "name": "修理した棚",
+   "w": 2,
+   "h": 1,
+   "rots": [
+    0,
+    90,
+    180,
+    270
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "room"
+   ],
+   "use": "front",
+   "verb": "調べる",
+   "desc": "ガタついていた棚を、端材と金具で直したもの。",
+   "id": "furniture.repaired_shelf"
+  },
+  "furniture.bookshelf": {
+   "name": "本棚",
+   "w": 2,
+   "h": 1,
+   "rots": [
+    0,
+    90,
+    180,
+    270
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "room"
+   ],
+   "use": "front",
+   "verb": "本を読む",
+   "desc": "絵本と資格の参考書が、同じ段に並んでいる。",
+   "kidUse": "read",
+   "id": "furniture.bookshelf"
+  },
+  "furniture.futon": {
+   "name": "布団",
+   "w": 2,
+   "h": 3,
+   "rots": [
+    0,
+    90
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "room"
+   ],
+   "use": "side",
+   "verb": "寝かしつける",
+   "desc": "娘といっしょに眠る布団。",
+   "id": "furniture.futon"
+  },
+  "furniture.cushion": {
+   "name": "クッション",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "furniture",
+   "solid": false,
+   "areas": [
+    "room",
+    "garden"
+   ],
+   "use": "self",
+   "verb": "座る",
+   "desc": "ふかふかのクッション。上に乗れる。",
+   "kidUse": "cushion",
+   "id": "furniture.cushion"
+  },
+  "furniture.low_table": {
+   "name": "低い食卓",
+   "w": 2,
+   "h": 2,
+   "rots": [
+    0,
+    90
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "room"
+   ],
+   "use": "near",
+   "verb": "一緒に食べる",
+   "desc": "ふたりで囲む、ちゃぶ台。",
+   "id": "furniture.low_table"
+  },
+  "light.desk_lamp": {
+   "name": "卓上ランプ",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "room"
+   ],
+   "use": "near",
+   "verb": "灯りを点ける",
+   "desc": "オレンジ色の小さな灯り。",
+   "light": true,
+   "id": "light.desk_lamp"
+  },
+  "light.shell_lantern": {
+   "name": "貝殻ランタン",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "room",
+    "garden"
+   ],
+   "use": "near",
+   "verb": "灯りを点ける",
+   "desc": "夢で見た灯りを、浜の貝殻で作ったランタン。",
+   "light": true,
+   "id": "light.shell_lantern"
+  },
+  "memento.child_drawing": {
+   "name": "娘の絵の額",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "wall",
+   "solid": false,
+   "areas": [
+    "room"
+   ],
+   "use": "wall",
+   "verb": "眺める",
+   "desc": "クレヨンで描いた「パパとわたし」。壁にだけ掛けられる。",
+   "wallOnly": true,
+   "id": "memento.child_drawing"
+  },
+  "memento.bear": {
+   "name": "クマのぬいぐるみ（娘のクマ）",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "furniture",
+   "solid": false,
+   "areas": [
+    "room"
+   ],
+   "use": "near",
+   "verb": "眺める",
+   "desc": "娘のいちばんのともだち。置くと、そこにちょこんと座る。",
+   "id": "memento.bear"
+  },
+  "memento.flower_tag": {
+   "name": "花の名札",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "furniture",
+   "solid": false,
+   "areas": [
+    "garden",
+    "room"
+   ],
+   "use": "near",
+   "verb": "名前を読む",
+   "desc": "娘が書いた、花の名前の札。",
+   "id": "memento.flower_tag"
+  },
+  "garden.pot": {
+   "name": "鉢植え",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "garden",
+    "room"
+   ],
+   "use": "near",
+   "verb": "眺める",
+   "desc": "花を育てる鉢。",
+   "variants": [
+    "red",
+    "blue",
+    "yellow"
+   ],
+   "plantable": true,
+   "kidUse": "plants",
+   "id": "garden.pot"
+  },
+  "garden.flowerbed": {
+   "name": "花壇",
+   "w": 2,
+   "h": 1,
+   "rots": [
+    0,
+    90
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "garden"
+   ],
+   "use": "near",
+   "verb": "眺める",
+   "desc": "木枠で囲った小さな花壇。",
+   "id": "garden.flowerbed"
+  },
+  "garden.bench": {
+   "name": "木のベンチ",
+   "w": 2,
+   "h": 1,
+   "rots": [
+    0,
+    90,
+    180,
+    270
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "garden"
+   ],
+   "use": "front",
+   "verb": "座る",
+   "desc": "ふたりで並んで座れるベンチ。",
+   "id": "garden.bench"
+  },
+  "garden.fence": {
+   "name": "木の柵",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0,
+    90
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "garden"
+   ],
+   "use": "none",
+   "verb": "",
+   "desc": "低い木の柵。",
+   "id": "garden.fence"
+  },
+  "garden.stepping_stone": {
+   "name": "飛び石",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "path",
+   "solid": false,
+   "areas": [
+    "garden"
+   ],
+   "use": "none",
+   "verb": "",
+   "desc": "庭に並べる平たい石。上に物も置ける。",
+   "id": "garden.stepping_stone"
+  },
+  "garden.small_tree": {
+   "name": "小さな木",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "garden"
+   ],
+   "use": "near",
+   "verb": "眺める",
+   "desc": "引っ越したときに植えた若い木。",
+   "id": "garden.small_tree"
+  },
+  "deco.rug": {
+   "name": "ラグ",
+   "w": 3,
+   "h": 2,
+   "rots": [
+    0,
+    90
+   ],
+   "layer": "rug",
+   "solid": false,
+   "areas": [
+    "room"
+   ],
+   "use": "none",
+   "verb": "",
+   "desc": "やわらかいラグ。上に家具を置ける。",
+   "id": "deco.rug"
+  },
+  "deco.sea_glass": {
+   "name": "漂着ガラスの飾り",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "room",
+    "garden"
+   ],
+   "use": "near",
+   "verb": "眺める",
+   "desc": "浜で拾った、角の丸いガラス。",
+   "id": "deco.sea_glass"
+  },
+  "furniture.toy_box": {
+   "name": "おもちゃ箱",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "room"
+   ],
+   "use": "near",
+   "verb": "遊ぶ",
+   "desc": "ふたの閉まりきらない、木のおもちゃ箱。",
+   "kidUse": "play",
+   "id": "furniture.toy_box"
+  },
+  "furniture.kid_desk": {
+   "name": "娘の小さな机",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0,
+    90,
+    180,
+    270
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "room"
+   ],
+   "use": "front",
+   "verb": "お絵かきを見る",
+   "desc": "娘の背丈に合わせた、ひくい机。クレヨンの跡がある。",
+   "kidUse": "draw",
+   "id": "furniture.kid_desk"
+  },
+  "furniture.old_radio": {
+   "name": "千代さんの古いラジオ",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "room"
+   ],
+   "use": "near",
+   "verb": "ラジオを聴く",
+   "desc": "千代さんがゆずってくれた、木の箱のラジオ。「夜が長いけえ」",
+   "kidUse": "radio",
+   "id": "furniture.old_radio"
+  },
+  "memento.toolbox": {
+   "name": "班長の古い工具箱",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "room",
+    "garden"
+   ],
+   "use": "near",
+   "verb": "開けてみる",
+   "desc": "角のへこんだ赤い工具箱。取っ手に、手のあとがついている。",
+   "id": "memento.toolbox"
+  },
+  "memento.recital_photo": {
+   "name": "発表会の写真",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "wall",
+   "solid": false,
+   "areas": [
+    "room"
+   ],
+   "use": "wall",
+   "verb": "眺める",
+   "desc": "おゆうぎかいの舞台の写真。壁にだけ掛けられる。",
+   "wallOnly": true,
+   "id": "memento.recital_photo"
+  },
+  "deco.wind_chime": {
+   "name": "風鈴",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "wall",
+   "solid": false,
+   "areas": [
+    "room"
+   ],
+   "use": "wall",
+   "verb": "鳴らす",
+   "desc": "ガラスの風鈴。夢の海の色をしている。壁にだけ掛けられる。",
+   "wallOnly": true,
+   "id": "deco.wind_chime"
+  },
+  "deco.sea_mobile": {
+   "name": "海のモビール",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "wall",
+   "solid": false,
+   "areas": [
+    "room"
+   ],
+   "use": "wall",
+   "verb": "眺める",
+   "desc": "流木に、布の魚と貝を吊るしたモビール。壁にだけ掛けられる。",
+   "wallOnly": true,
+   "kidUse": "mobile",
+   "id": "deco.sea_mobile"
+  },
+  "garden.nameplate": {
+   "name": "家の表札",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "garden"
+   ],
+   "use": "near",
+   "verb": "眺める",
+   "desc": "「だんのうら」と彫った小さな表札。",
+   "id": "garden.nameplate"
+  },
+  "garden.clothesline": {
+   "name": "物干し",
+   "w": 3,
+   "h": 1,
+   "rots": [
+    0,
+    90
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "garden"
+   ],
+   "use": "side",
+   "verb": "洗濯物を干す",
+   "desc": "二本の柱に渡した物干し。ふたり分の洗濯物が揺れる。",
+   "id": "garden.clothesline"
+  },
+  "light.string_lights": {
+   "name": "庭の豆電球",
+   "w": 2,
+   "h": 1,
+   "rots": [
+    0,
+    90
+   ],
+   "layer": "furniture",
+   "solid": false,
+   "areas": [
+    "garden"
+   ],
+   "use": "self",
+   "verb": "灯りを点ける",
+   "desc": "二本の柱に渡した、小さな電球の列。下を通れる。",
+   "light": true,
+   "id": "light.string_lights"
+  },
+  "garden.planter": {
+   "name": "プランター",
+   "w": 2,
+   "h": 1,
+   "rots": [
+    0,
+    90
+   ],
+   "layer": "furniture",
+   "solid": true,
+   "areas": [
+    "garden"
+   ],
+   "use": "near",
+   "verb": "眺める",
+   "desc": "横長の木のプランター。種をひとつ植えられる。",
+   "plantable": true,
+   "kidUse": "plants",
+   "id": "garden.planter"
+  },
+  "garden.watering_can": {
+   "name": "じょうろ",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "furniture",
+   "solid": false,
+   "areas": [
+    "garden",
+    "room"
+   ],
+   "use": "near",
+   "verb": "水やりをする",
+   "desc": "ブリキのじょうろ。近くの鉢やプランターにまとめて水をあげられる。",
+   "id": "garden.watering_can"
+  },
+  "seed.morning_glory": {
+   "name": "あさがおの種",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "none",
+   "solid": false,
+   "areas": [],
+   "use": "none",
+   "verb": "",
+   "desc": "千代さんにもらった、あさがおの種。",
+   "kind": "seed",
+   "species": "morning_glory",
+   "id": "seed.morning_glory"
+  },
+  "seed.sunflower": {
+   "name": "ひまわりの種",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "none",
+   "solid": false,
+   "areas": [],
+   "use": "none",
+   "verb": "",
+   "desc": "しましまの、ひまわりの種。",
+   "kind": "seed",
+   "species": "sunflower",
+   "id": "seed.sunflower"
+  },
+  "seed.herb": {
+   "name": "ハーブの種",
+   "w": 1,
+   "h": 1,
+   "rots": [
+    0
+   ],
+   "layer": "none",
+   "solid": false,
+   "areas": [],
+   "use": "none",
+   "verb": "",
+   "desc": "いい匂いのする、ハーブの種。",
+   "kind": "seed",
+   "species": "herb",
+   "id": "seed.herb"
+  }
+ },
+ "tiles": {
+  "floor.wood": {
+   "name": "木の床"
+  },
+  "ground.grass": {
+   "name": "草地"
+  }
+ },
+ "materials": {
+  "wood": {
+   "name": "木材",
+   "icon": "🪵"
+  },
+  "cloth": {
+   "name": "布",
+   "icon": "🧵"
+  },
+  "metal": {
+   "name": "金具",
+   "icon": "🔩"
+  },
+  "sea": {
+   "name": "海のかけら",
+   "icon": "🐚"
+  }
+ },
+ "recipes": {
+  "repaired_shelf": {
+   "name": "棚を直す",
+   "out": "furniture.repaired_shelf",
+   "n": 1,
+   "mats": {
+    "wood": 2,
+    "metal": 1
+   },
+   "note": "ガタついた棚を端材と金具で直す",
+   "id": "repaired_shelf"
+  },
+  "cushion": {
+   "name": "クッションを縫う",
+   "out": "furniture.cushion",
+   "n": 1,
+   "mats": {
+    "cloth": 2
+   },
+   "note": "余り布でクッションを縫う",
+   "id": "cushion"
+  },
+  "flowerbed": {
+   "name": "花壇を組む",
+   "out": "garden.flowerbed",
+   "n": 1,
+   "mats": {
+    "wood": 2
+   },
+   "note": "板を組んで花壇の枠を作る",
+   "id": "flowerbed"
+  },
+  "fence": {
+   "name": "柵を作る",
+   "out": "garden.fence",
+   "n": 1,
+   "mats": {
+    "wood": 1
+   },
+   "note": "庭の柵を1本ふやす",
+   "id": "fence"
+  },
+  "sea_glass": {
+   "name": "ガラスの飾り",
+   "out": "deco.sea_glass",
+   "n": 1,
+   "mats": {
+    "sea": 1,
+    "metal": 1
+   },
+   "note": "拾ったガラスを金具で吊るす",
+   "id": "sea_glass"
+  },
+  "shell_lantern": {
+   "name": "貝殻ランタン",
+   "out": "light.shell_lantern",
+   "n": 1,
+   "mats": {
+    "sea": 2,
+    "metal": 1
+   },
+   "note": "夢で見た灯りを、現実の材料で",
+   "id": "shell_lantern"
+  },
+  "kid_desk": {
+   "name": "娘の机を作る",
+   "out": "furniture.kid_desk",
+   "n": 1,
+   "mats": {
+    "wood": 3
+   },
+   "note": "娘の背丈に合わせた、ひくい机",
+   "id": "kid_desk"
+  },
+  "planter": {
+   "name": "プランターを組む",
+   "out": "garden.planter",
+   "n": 1,
+   "mats": {
+    "wood": 2
+   },
+   "note": "横長の箱。種をひとつ植えられる",
+   "id": "planter"
+  },
+  "clothesline": {
+   "name": "物干しを立てる",
+   "out": "garden.clothesline",
+   "n": 1,
+   "mats": {
+    "wood": 2,
+    "cloth": 1
+   },
+   "note": "柱を二本立てて、ロープを渡す",
+   "id": "clothesline"
+  },
+  "string_lights": {
+   "name": "豆電球をつなぐ",
+   "out": "light.string_lights",
+   "n": 1,
+   "mats": {
+    "metal": 2,
+    "sea": 1
+   },
+   "note": "庭に小さな灯りの列を",
+   "id": "string_lights"
+  },
+  "wind_chime": {
+   "name": "風鈴を吊るす",
+   "out": "deco.wind_chime",
+   "n": 1,
+   "mats": {
+    "metal": 1,
+    "sea": 1
+   },
+   "note": "夢の海の色をした、ガラスの風鈴",
+   "id": "wind_chime"
+  },
+  "sea_mobile": {
+   "name": "海のモビール",
+   "out": "deco.sea_mobile",
+   "n": 1,
+   "mats": {
+    "sea": 2,
+    "cloth": 1
+   },
+   "note": "流木に、布の魚と貝を吊るす",
+   "id": "sea_mobile"
+  },
+  "nameplate": {
+   "name": "表札を彫る",
+   "out": "garden.nameplate",
+   "n": 1,
+   "mats": {
+    "wood": 1,
+    "metal": 1
+   },
+   "note": "「だんのうら」と彫った、家の表札",
+   "id": "nameplate"
+  }
+ },
+ "areas": {
+  "room": {
+   "name": "部屋",
+   "w": 12,
+   "h": 8,
+   "base": "floor.wood",
+   "door": {
+    "x": 6,
+    "y": 7
+   },
+   "exits": [
+    {
+     "x": 6,
+     "y": 7
+    }
+   ]
+  },
+  "garden": {
+   "name": "庭",
+   "w": 16,
+   "h": 12,
+   "base": "ground.grass",
+   "door": {
+    "x": 7,
+    "y": 0
+   },
+   "gate": {
+    "x": 0,
+    "y": 6
+   },
+   "exits": [
+    {
+     "x": 7,
+     "y": 0
+    },
+    {
+     "x": 0,
+     "y": 6
+    }
+   ]
+  }
+ },
+ "bal": {
+  "craftMin": 30,
+  "craftFatigue": 2,
+  "dailyMentalCap": 4,
+  "talkMental": 1,
+  "waterMental": 1,
+  "growPerStage": 2,
+  "waterGraceDays": 2,
+  "maxStage": 4
+ },
+ "rot_dir": {
+  "0": "down",
+  "90": "left",
+  "180": "up",
+  "270": "right"
+ },
+ "stage_names": [
+  "種",
+  "芽",
+  "つぼみの準備",
+  "つぼみ",
+  "花"
+ ],
+ "pot_colors": {
+  "red": "赤",
+  "blue": "青",
+  "yellow": "黄"
+ },
+ "plant_species": {
+  "seed": {
+   "name": "花",
+   "seedId": null,
+   "defName": "ひなた",
+   "color": "pink"
+  },
+  "morning_glory": {
+   "name": "あさがお",
+   "seedId": "seed.morning_glory",
+   "defName": "あさがお",
+   "color": "blue"
+  },
+  "sunflower": {
+   "name": "ひまわり",
+   "seedId": "seed.sunflower",
+   "defName": "ひまわり",
+   "color": "yellow"
+  },
+  "herb": {
+   "name": "ハーブ",
+   "seedId": "seed.herb",
+   "defName": "ハーブ",
+   "color": "white"
+  }
+ }
+}

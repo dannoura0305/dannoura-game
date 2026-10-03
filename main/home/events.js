@@ -365,7 +365,10 @@ function nextAction(s,h){
   if(s.step===4)return stageOf(h,s)>=3&&d>=REASON_DAY?'reason':null;
   return null;
 }
+// 娘が眠っている（夜23時以降など・interactions の HOME.kidActivity()==='sleep'）あいだは、娘が話す段階を起きている時間まで待つ
+function kidAsleep(){try{return typeof HOME.kidActivity==='function'&&HOME.kidActivity()==='sleep';}catch(e){return false;}}
 function onOpen(area){
+  if(kidAsleep())return Promise.resolve(false);
   return run(async()=>{
     const s=state(),h=hd();if(!s||!h)return false;
     const a=nextAction(s,h);
@@ -527,7 +530,7 @@ function reflection(type){
 }
 
 HOME.events=Object.assign(HOME.events||{},{
-  ID:EID,state,tick,reflection,sanitizeName,onOpen,talkKid,useItem,
+  ID:EID,state,tick,reflection,sanitizeName,onOpen,talkKid,useItem,kidAsleep,
   _nextAction:nextAction,_findSpot:findSpot,_relinkPot:relinkPot,
 });
 
