@@ -15,9 +15,9 @@ addMinigameStyle('factory3d',`
 .factory3d-wrap.factory3d-glitch canvas{animation:factory3d-warp .25s steps(3) 2;}
 .factory3d-lay{position:absolute;inset:0;pointer-events:none;}
 .factory3d-vig{background:radial-gradient(ellipse 78% 72% at 50% 50%,rgba(0,0,0,0) 42%,rgba(3,2,10,.5) 72%,rgba(0,0,0,.93) 100%);transition:transform .12s;}
-.factory3d-grain{inset:-60%;opacity:.07;mix-blend-mode:screen;background-size:160px 160px;animation:factory3d-grain .6s steps(6) infinite;}
+.factory3d-grain{inset:-60%;opacity:.045;mix-blend-mode:screen;background-size:160px 160px;animation:factory3d-grain .6s steps(6) infinite;}
 @keyframes factory3d-grain{0%{transform:translate(0,0)}17%{transform:translate(-7%,4%)}33%{transform:translate(5%,-6%)}50%{transform:translate(-3%,7%)}67%{transform:translate(7%,2%)}83%{transform:translate(-5%,-4%)}100%{transform:translate(0,0)}}
-.factory3d-scan{background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,rgba(0,0,0,0) 1px 3px);opacity:.5;}
+.factory3d-scan{background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,rgba(0,0,0,0) 1px 3px);opacity:.28;}
 .factory3d-red{background:radial-gradient(ellipse at 50% 50%,rgba(232,48,85,0) 30%,rgba(150,10,40,.5) 72%,rgba(60,0,20,.95) 100%);opacity:0;}
 .factory3d-flash{background:#c8d4ff;opacity:0;mix-blend-mode:screen;}
 .factory3d-dark{background:#000;opacity:0;}
@@ -143,7 +143,7 @@ registerMinigame({
   start(body,mg){
     // ── 定数 ──
     const CELL=4, COLS=10, ROWS=15, HW=COLS*CELL/2, HD=ROWS*CELL/2;
-    const FL_MAX=10, TIME_LIMIT=90, NEED=5, P_R=.36, EYE=1.62, SPEED=3.7;
+    const FL_MAX=20, TIME_LIMIT=90, NEED=5, P_R=.36, EYE=1.62, SPEED=3.7;
     const SK=(gs&&gs.skills)||{};
     const HOLD_T=1.5*(1-Math.min(.3,((SK.soundDiag||0)+(SK.emergencyFix||0))*.03));
     const HIT_DMG=Math.round(30*(1-Math.min(.3,(SK.stressRes||0)*.03)));
@@ -491,7 +491,7 @@ registerMinigame({
       renderer.setPixelRatio(dpr);
       renderer.outputColorSpace=THREE.SRGBColorSpace;
       renderer.toneMapping=THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure=1.25;
+      renderer.toneMappingExposure=1.2;
       renderer.shadowMap.enabled=true;
       renderer.shadowMap.type=THREE.PCFShadowMap;
       renderer.setClearColor(0x05040e,1);
@@ -543,9 +543,9 @@ registerMinigame({
         noise(g,w,h,1400,.12);
       },{repeat:[8,2]});
       T.mach=ctex(256,256,(g,w,h)=>{
-        g.fillStyle='#8a9290';g.fillRect(0,0,w,h);
-        const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'rgba(255,255,255,.12)');gr.addColorStop(1,'rgba(0,0,0,.35)');g.fillStyle=gr;g.fillRect(0,0,w,h);
-        g.strokeStyle='rgba(20,22,26,.85)';g.lineWidth=2;
+        g.fillStyle='#a8b0ac';g.fillRect(0,0,w,h);
+        const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'rgba(255,255,255,.18)');gr.addColorStop(.7,'rgba(0,0,0,.1)');gr.addColorStop(1,'rgba(20,10,0,.55)');g.fillStyle=gr;g.fillRect(0,0,w,h);
+        g.strokeStyle='rgba(10,10,14,.95)';g.lineWidth=3;
         [[6,6,120,150],[132,6,118,90],[132,100,118,56],[6,162,244,88]].forEach(r=>{g.strokeRect(...r);g.fillStyle='rgba(30,30,30,.7)';[[r[0]+5,r[1]+5],[r[0]+r[2]-5,r[1]+5],[r[0]+5,r[1]+r[3]-5],[r[0]+r[2]-5,r[1]+r[3]-5]].forEach(p=>{g.beginPath();g.arc(p[0],p[1],2,0,7);g.fill();});});
         g.fillStyle='rgba(15,16,20,.85)';for(let i=0;i<9;i++)g.fillRect(20,176+i*8,110,4);
         g.fillStyle='#d8b020';g.fillRect(150,20,80,40);g.fillStyle='#111';
@@ -588,7 +588,7 @@ registerMinigame({
       T.cookie=ctex(128,128,(g,w,h)=>{
         g.fillStyle='#000';g.fillRect(0,0,w,h);
         const gr=g.createRadialGradient(64,64,0,64,64,62);
-        gr.addColorStop(0,'#fff');gr.addColorStop(.45,'#e8e2d4');gr.addColorStop(.62,'#ffffff');gr.addColorStop(.7,'#8a8476');gr.addColorStop(.92,'#2a2824');gr.addColorStop(1,'#000');
+        gr.addColorStop(0,'#fff');gr.addColorStop(.5,'#f4f0e8');gr.addColorStop(.64,'#ffffff');gr.addColorStop(.74,'#a8a294');gr.addColorStop(.93,'#2a2824');gr.addColorStop(1,'#000');
         g.fillStyle=gr;g.fillRect(0,0,w,h);
         for(let i=0;i<8;i++){g.fillStyle=`rgba(0,0,0,${.03+Math.random()*.06})`;g.beginPath();g.arc(30+Math.random()*68,30+Math.random()*68,4+Math.random()*12,0,7);g.fill();}
       });
@@ -634,7 +634,7 @@ registerMinigame({
       const M={
         floor:new THREE.MeshPhongMaterial({map:T.floor,specularMap:T.floorSpec,specular:0x8890a0,shininess:70}),
         wall:new THREE.MeshPhongMaterial({map:T.wall,shininess:10,specular:0x222222}),
-        mach:new THREE.MeshPhongMaterial({map:T.mach,shininess:38,specular:0x555555}),
+        mach:new THREE.MeshPhongMaterial({map:T.mach,shininess:45,specular:0x666666}),
         metal:new THREE.MeshPhongMaterial({map:T.metal,shininess:55,specular:0x666666}),
         dark:new THREE.MeshPhongMaterial({color:0x24262c,shininess:30,specular:0x333333}),
         pipe:new THREE.MeshPhongMaterial({map:T.metal,color:0x8a8070,shininess:60,specular:0x777777}),
@@ -727,7 +727,7 @@ registerMinigame({
       const isSolid=(r,c)=>inb(r,c)&&(grid[r][c]==='M'||grid[r][c]==='T');
       const cols=[];          // 当たり判定 {x0,x1,z0,z1,h}
       const addCol=(x,z,w,d,h)=>cols.push({x0:x-w/2,x1:x+w/2,z0:z-d/2,z1:z+d/2,h});
-      const machTints=[0x8aa0a0,0x9aa08a,0x8890a8,0xa09a88,0x7a9a98,0xa8a8b0];
+      const machTints=[0x6fb0a8,0xb8b070,0x7890c8,0xc89a60,0x60a890,0xb0b4c0,0xc87060];
       const sparkSpots=[];
 
       // 機械：横に連続するMを1台の長い機械にまとめる
@@ -757,7 +757,7 @@ registerMinigame({
             // 操作盤とLED
             const side=Math.random()<.5?1:-1;
             part('trim',sx+rnd(-.8,.8),1.2,z+side*(d/2+.12),.8,.9,.24);
-            for(let k=0;k<3;k++)part('led',sx+rnd(-1.2,1.2),rnd(.8,h),z+side*(d/2+.02),.07,.07,.02,0,0,0,pick([0xff2030,0xff2030,0x30ff70,0xffb020]));
+            for(let k=0;k<3;k++)part('led',sx+rnd(-1.2,1.2),rnd(.8,h),z+side*(d/2+.02),.1,.1,.03,0,0,0,pick([0xff2030,0xff2030,0x30ff70,0xffb020]));
             if(Math.random()<.25)sparkSpots.push(new THREE.Vector3(sx+rnd(-1,1),.24+h+.05,z+side*d/2));
           }
         }
@@ -825,7 +825,12 @@ registerMinigame({
       // 非常灯（白緑の小さな表示灯）
       const emergPos=[];
       for(let z=-HD+8;z<HD-4;z+=13){emergPos.push([-HW+.06,2.5,z,'x']);emergPos.push([HW-.06,2.5,z+6,'x']);}
-      emergPos.forEach(p=>part('emerg',p[0],p[1],p[2],.04,.18,.5));
+      const emSignGeo=new THREE.PlaneGeometry(.9,.34);extraGeos.push(emSignGeo);
+      const emGlowMat=new THREE.SpriteMaterial({map:T.glow,color:0x30ff80,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:.45});
+      emergPos.forEach(p=>{
+        const m=new THREE.Mesh(emSignGeo,M.exitSign);m.position.set(p[0]+(p[0]<0?.03:-.03),p[1],p[2]);m.rotation.y=p[0]<0?Math.PI/2:-Math.PI/2;scene.add(m);
+        const gl=new THREE.Sprite(emGlowMat);gl.scale.set(1.8,.9,1);gl.position.set(p[0]+(p[0]<0?.25:-.25),p[1],p[2]);scene.add(gl);
+      });
 
       // ── 高窓と雨 ──
       const winGeo=new THREE.PlaneGeometry(4.2,2.6);extraGeos.push(winGeo);
@@ -896,8 +901,8 @@ registerMinigame({
       });
 
       // ── 光源 ──
-      const hemi=new THREE.HemisphereLight(0x2a3466,0x0c0810,.35);scene.add(hemi);
-      const spot=new THREE.SpotLight(0xfff0d8,8,30,.46,.45,1.25);
+      const hemi=new THREE.HemisphereLight(0x3a4680,0x120c18,.5);scene.add(hemi);
+      const spot=new THREE.SpotLight(0xffe8c8,20,36,.46,.35,1.15);
       spot.position.set(.22,-.18,.05);
       spot.castShadow=true;
       const SMAP=coarse?512:1024;
@@ -975,7 +980,7 @@ registerMinigame({
         const post=new THREE.Mesh(new THREE.BoxGeometry(.14,1.05,.14),M.dark);post.position.y=.52;post.castShadow=true;grp.add(post);
         const hous=new THREE.Mesh(new THREE.BoxGeometry(.66,.64,.22),housMat);hous.position.set(0,1.36,0);hous.castShadow=true;hous.receiveShadow=true;grp.add(hous);
         const bez=new THREE.Mesh(new THREE.CylinderGeometry(.27,.27,.05,24),M.metal);bez.rotation.x=Math.PI/2;bez.position.set(0,1.38,.12);grp.add(bez);
-        const dmat=new THREE.MeshPhongMaterial({map:face,color:0xb8b4a8,emissive:0x100e0a,emissiveMap:face,shininess:40,specular:0x444444});
+        const dmat=new THREE.MeshPhongMaterial({map:face,color:0xb8b4a8,emissive:0x3a3426,emissiveMap:face,shininess:40,specular:0x444444});
         const dial=new THREE.Mesh(dialGeo,dmat);dial.position.set(0,1.38,.147);grp.add(dial);
         const pivot=new THREE.Group();pivot.position.set(0,1.38,.155);grp.add(pivot);
         const needle=new THREE.Mesh(needleGeo,new THREE.MeshBasicMaterial({color:0xc01818}));pivot.add(needle);
@@ -1021,7 +1026,7 @@ registerMinigame({
       const lathe=new THREE.LatheGeometry(prof,14);extraGeos.push(lathe);
       const ghostMat=new THREE.MeshBasicMaterial({color:0x020104,transparent:true,opacity:.94});
       const gBody=new THREE.Mesh(lathe,ghostMat);gBody.castShadow=true;ghost.add(gBody);
-      const auraMat=new THREE.MeshBasicMaterial({color:0x4a1460,transparent:true,opacity:.35,blending:THREE.AdditiveBlending,side:THREE.BackSide,depthWrite:false});
+      const auraMat=new THREE.MeshBasicMaterial({color:0x7a2aa0,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,side:THREE.BackSide,depthWrite:false});
       const aura=new THREE.Mesh(lathe,auraMat);aura.scale.set(1.12,1.04,1.12);ghost.add(aura);
       const head=new THREE.Mesh(new THREE.SphereGeometry(.19,14,10),ghostMat);head.position.y=1.7;head.scale.set(1,1.15,1);head.castShadow=true;ghost.add(head);
       const armGeo=new THREE.CylinderGeometry(.035,.015,1.1,6);armGeo.translate(0,-.55,0);extraGeos.push(armGeo);
@@ -1574,7 +1579,7 @@ registerMinigame({
         if(lightSeq.length){lightSeq.forEach(s=>{s.t-=dt;if(s.t<=0&&!s.fired){s.fired=true;flashV=Math.max(flashV,s.v);}});if(lightSeq.every(s=>s.fired))lightSeq=[];}
         // 復電（クリア・時間切れ）
         if(S.power)powerV=Math.min(1,powerV+dt*.9);
-        hemi.intensity=.5+flashV*3+powerV*1.6;
+        hemi.intensity=.62+flashV*3+powerV*1.6;
         if(powerV>0){hemi.color.setRGB(.16+powerV*.84,.2+powerV*.76,.4+powerV*.5);hemi.groundColor.setRGB(.05+powerV*.25,.03+powerV*.22,.06+powerV*.2);M.lampOff.color.setRGB(.08+powerV*.92,.08+powerV*.88,.1+powerV*.7);scene.fog.density=.052-powerV*.026;}
         M.glass.color.setRGB(.35+flashV*.65,.41+flashV*.59,.63+flashV*.37);
         M.shaft.opacity=.045+flashV*.32;
@@ -1627,8 +1632,8 @@ registerMinigame({
           const sr=GH.shroud;
           const flick=burning?(Math.random()<.5?.3:.85):1;
           ghostMat.opacity=.94*GH.fade*flick;ragMat.opacity=.9*GH.fade*flick;
-          auraMat.opacity=(.3+(1-sr)*.6)*GH.fade*flick;
-          auraMat.color.setRGB(.29+(1-sr)*.7,.08+(1-sr)*.25,.38-(1-sr)*.1);
+          auraMat.opacity=(.55+(1-sr)*.45)*GH.fade*flick;
+          auraMat.color.setRGB(.48+(1-sr)*.5,.16+(1-sr)*.25,.63-(1-sr)*.2);
           smoke.material.opacity=.7*GH.fade;
           eyeMat.color.setRGB(1,.16,.28).multiplyScalar(GH.fade);eyeGlowMat.opacity=.9*GH.fade*flick;
           const sc=.8+.2*sr;
