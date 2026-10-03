@@ -726,9 +726,9 @@ registerMinigame({
       let newRec=false;
       if(outcome==='clear'){
         DATA.clears=(DATA.clears|0)+1;
-        if(!prevTime||runTime<prevTime){DATA.bestTime=Math.round(runTime*10)/10;newRec=!!prevTime||true;}
+        if(!prevTime||runTime<prevTime){DATA.bestTime=Math.round(runTime*10)/10;newRec=true;}
       }
-      if(!prevBest||GRADE_RANK[g]>GRADE_RANK[prevBest]){DATA.best=g;newRec=true;}
+      if(outcome&&(!prevBest||GRADE_RANK[g]>GRADE_RANK[prevBest])){DATA.best=g;newRec=true;}
       DATA.bestCoins=Math.max(DATA.bestCoins|0,coins*COIN);
       gradeInfo={g,newRec:newRec&&outcome==='clear',prevBest};
     }
@@ -1808,7 +1808,7 @@ registerMinigame({
       const u=clamp(phaseT*3,0,1);
       cx.fillStyle=`rgba(4,3,10,${(.55*u).toFixed(2)})`;cx.fillRect(0,0,VW,VH);
       const g=gradeInfo?gradeInfo.g:'C';
-      const w=Math.min(VW-28,300),h=250,x=(VW-w)/2,y=Math.max(30,(VH-h)/2-30)+16*(1-ease(u));
+      const w=Math.min(VW-28,300),h=262,x=(VW-w)/2,y=Math.max(30,(VH-h)/2-30)+16*(1-ease(u));
       cx.globalAlpha=u;
       drawPanel(x,y,w,h);
       cx.textAlign='center';cx.textBaseline='middle';
@@ -1818,7 +1818,7 @@ registerMinigame({
       if(su>0){
         const k=3-2*easeBack(su);
         const col={S:'#e8b830',A:'#00e8c8',B:'#8a52d4',C:'#e83055'}[g];
-        cx.save();cx.translate(VW/2,y+72);cx.scale(k,k);cx.rotate(-.12);
+        cx.save();cx.translate(VW/2,y+68);cx.scale(k,k);cx.rotate(-.12);
         cx.globalAlpha=u*su;
         drawGlow(g==='S'?glowGold:g==='A'?glowCyan:g==='B'?glowPink:glowRed,0,0,46,.6);
         cx.strokeStyle=col;cx.lineWidth=3;cx.beginPath();cx.arc(0,0,30,0,TAU);cx.stroke();
@@ -1827,12 +1827,13 @@ registerMinigame({
         cx.restore();cx.globalAlpha=u;
       }
       cx.font=F12;cx.textAlign='left';
-      let ly=y+124;const lx=x+28;
+      let ly=y+138;const lx=x+28;
       const row=(a,b,c)=>{shadowText(a,lx,ly,'#bbaedd');cx.textAlign='right';shadowText(b,x+w-28,ly,c);cx.textAlign='left';ly+=20;};
       if(outcome==='clear'){
         row('タイム',runTime.toFixed(1)+'秒','#deccf8');
         row('被弾',hits+'回',hits?'#ff8aa0':'#44ee88');
-        row('小銭・プリン','¥'+Math.min(COIN_CAP,coins*COIN).toLocaleString()+'　🍮'+purin,'#e8b830');
+        row('小銭','¥'+Math.min(COIN_CAP,coins*COIN).toLocaleString(),'#e8b830');
+        row('おまけのプリン',purin+'個',purin?'#ff9ccf':'#9a8cc0');
         row('子ども',woke?'起きて待ってた':'ぐっすり',woke?'#ff8aa0':'#44ee88');
       }else{
         row('走った距離',Math.min(GOAL_M,Math.floor(cam/M))+'m / '+GOAL_M+'m','#deccf8');
@@ -1840,7 +1841,7 @@ registerMinigame({
       }
       cx.textAlign='center';cx.font=F10;
       shadowText(`ベスト ${DATA.best||'-'}　最速 ${DATA.bestTime?DATA.bestTime.toFixed(1)+'秒':'--'}　プレイ ${DATA.plays}回`,VW/2,y+h-34,'#9a8cc0');
-      if(gradeInfo&&gradeInfo.newRec&&blink()){cx.font=F12;shadowText('NEW RECORD!',VW/2,y+108,'#e8b830');}
+      if(gradeInfo&&gradeInfo.newRec&&blink()){cx.font=F12;shadowText('NEW RECORD!',VW/2,y+114,'#e8b830');}
       if(phaseT>1.2&&blink()){cx.font=F11;shadowText('タップで終わる',VW/2,y+h-14,'#deccf8');}
       cx.globalAlpha=1;
     }
@@ -1902,7 +1903,7 @@ registerMinigame({
       const rem=Math.max(0,GOAL_M-Math.floor(cam/M));
       const s=`小銭 ¥${Math.min(COIN_CAP,coins*COIN).toLocaleString()}${purin?'　🍮'+purin:''}　☂${'■'.repeat(clamp(hp,0,MAX_HP))}${'□'.repeat(clamp(MAX_HP-hp,0,MAX_HP))}`;
       if(s!==lastScore){lastScore=s;mg.setScore(s);}
-      mg.setTimer(phase==='story'||phase==='title'?'深夜2:14':rem+'m');
+      mg.setTimer(phase==='story'||phase==='title'?'深夜2:14':phase==='home'||phase==='grade'?'帰宅':rem+'m');
     }
 
     resize();

@@ -107,14 +107,14 @@ function closeMinigamePicker(){document.getElementById('mg-picker').classList.re
 
 // ── 実行管理 ──
 const MG={
-  def:null,game:null,_iv:[],_raf:null,_keys:null,_ended:true,
+  def:null,game:null,_iv:[],_raf:null,_keys:null,_ended:true,_onEnd:[],
   el(id){return document.getElementById(id);},
   open(id){
     const def=MINIGAMES.find(m=>m.id===id);
     if(!def)return;
     if(playedMinigameToday(id)){showNotif('今日はもうプレイした。また明日。');return;}
     closeMinigamePicker();
-    this.def=def;this._ended=false;
+    this.def=def;this._ended=false;this._onEnd=[];
     this.el('mg-title').textContent=def.icon+' '+def.name;
     this.el('mg-help').textContent=def.help;
     const body=this.el('mg-body');
@@ -141,6 +141,8 @@ const MG={
     this._raf=requestAnimationFrame(step);
   },
   onKey(fn){this._keys=fn;},
+  // ゲーム終了時（クリア・失敗・中断のどれでも）に一度だけ呼ばれる後片付け
+  onEnd(fn){this._onEnd.push(fn);},
   end(reason){if(this.game&&!this._ended)this.finish(this.game.result(reason));},
   quit(){this.end('quit');},
   finish(r){
@@ -149,6 +151,7 @@ const MG={
     this._iv.forEach(clearInterval);this._iv=[];
     if(this._raf)cancelAnimationFrame(this._raf);
     this._raf=null;this._keys=null;
+    this._onEnd.forEach(fn=>{try{fn();}catch(e){console.warn(e);}});this._onEnd=[];
     this.el('mg-screen').classList.remove('active');
     document.body.classList.remove('mg-active');
     AU.fadeBGM('night',800);

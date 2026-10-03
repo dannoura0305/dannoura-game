@@ -193,7 +193,7 @@ registerMinigame({
 
     // ── レイアウト ──
     let W=0,H=0,CH=0,dpr=1,cs=20,wx=0,wy=0,ww=0,wh=0,side=60,laneY=0,laneH=40,palY=0,palH=10,BAR=60;
-    let lyBg=null,lyVig=null;const spr={};
+    let lyBg=null,lyVig=null,logo=null;const openAt=performance.now();const spr={};
     const mkCanvas=(w,h)=>{const c=document.createElement('canvas');c.width=Math.max(1,Math.ceil(w*dpr));c.height=Math.max(1,Math.ceil(h*dpr));const g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);return [c,g];};
     function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
 
@@ -329,7 +329,7 @@ registerMinigame({
       palH=Math.max(8,Math.round(cs*.42));palY=wy+wh+2;
       laneY=CH-laneH;
       side=wx-8;
-      cv.width=Math.round(W*dpr);cv.height=Math.round(CH*dpr);cv.style.width=W+'px';cv.style.height=CH+'px';
+      logo=null;cv.width=Math.round(W*dpr);cv.height=Math.round(CH*dpr);cv.style.width=W+'px';cv.style.height=CH+'px';
       buildSprites();buildBg();
     }
 
@@ -642,7 +642,7 @@ registerMinigame({
     const TOUCH_DAS=240,TOUCH_ARR=.06;
     cv.addEventListener('pointerdown',e=>{
       e.preventDefault();lastInput='touch';
-      if(phase==='title'){if(introT>.5)toStory();return;}
+      if(phase==='title'){if(performance.now()-openAt>450)toStory();return;}
       if(phase!=='play'&&phase!=='clear')return;
       try{cv.setPointerCapture(e.pointerId);}catch(_){}
       const r=cv.getBoundingClientRect();
@@ -1114,13 +1114,18 @@ registerMinigame({
       });
       // ロゴ文字
       const ly=by+ms*2+30,fs=Math.min(40,pw/7.2);
-      cx.font=`${fs}px ${FONT}`;
       const la=Math.min(1,Math.max(0,(introT-.9)/.4));
       cx.globalAlpha=la;
-      cx.lineJoin='round';cx.lineWidth=8;cx.strokeStyle='#05040e';cx.strokeText('部品積み込み',W/2,ly);
-      cx.lineWidth=3;cx.strokeStyle='#8a52d4';cx.strokeText('部品積み込み',W/2,ly);
-      const lg=cx.createLinearGradient(0,ly-fs/2,0,ly+fs/2);lg.addColorStop(0,'#fff6d8');lg.addColorStop(.45,'#ffd65a');lg.addColorStop(.55,'#c88a12');lg.addColorStop(1,'#ffe9a0');
-      cx.shadowColor='rgba(232,184,48,.6)';cx.shadowBlur=16;cx.fillStyle=lg;cx.fillText('部品積み込み',W/2,ly);cx.shadowBlur=0;
+      // ロゴは事前描画（影・グラデーションが重いため）
+      if(!logo||logo._fs!==fs){
+        const lw=Math.ceil(fs*6.6),lh=Math.ceil(fs*1.8);let g;[logo,g]=mkCanvas(lw,lh);logo._fs=fs;logo._w=lw;logo._h=lh;
+        g.font=`${fs}px ${FONT}`;g.textAlign='center';g.textBaseline='middle';const mx=lw/2,my=lh/2;
+        g.lineJoin='round';g.lineWidth=8;g.strokeStyle='#05040e';g.strokeText('部品積み込み',mx,my);
+        g.lineWidth=3;g.strokeStyle='#8a52d4';g.strokeText('部品積み込み',mx,my);
+        const lg=g.createLinearGradient(0,my-fs/2,0,my+fs/2);lg.addColorStop(0,'#fff6d8');lg.addColorStop(.45,'#ffd65a');lg.addColorStop(.55,'#c88a12');lg.addColorStop(1,'#ffe9a0');
+        g.shadowColor='rgba(232,184,48,.6)';g.shadowBlur=16;g.fillStyle=lg;g.fillText('部品積み込み',mx,my);g.shadowBlur=0;
+      }
+      cx.drawImage(logo,W/2-logo._w/2,ly-logo._h/2,logo._w,logo._h);
       // 光の走査
       const sx=((introT*.6)%2)*pw*1.4+px-pw*.2;
       cx.save();cx.globalCompositeOperation='lighter';const sg=cx.createLinearGradient(sx-30,0,sx+30,0);sg.addColorStop(0,'rgba(255,255,255,0)');sg.addColorStop(.5,'rgba(255,255,255,.22)');sg.addColorStop(1,'rgba(255,255,255,0)');
@@ -1242,11 +1247,12 @@ registerMinigame({
       if(tm!==lastTimer){lastTimer=tm;mg.setTimer(tm);}
     }
     hud();
-    mg.loop(dt=>{update(dt);if(!mg._ended)draw();});
+    let perfMs=0;
+    mg.loop(dt=>{const t0=performance.now();update(dt);if(!mg._ended)draw();perfMs=perfMs*.95+(performance.now()-t0)*.05;});
 
     // テスト用の内部状態参照
     this._dbg={get board(){return board;},set board(b){board=b;},get cur(){return cur;},get phase(){return phase;},get queue(){return queue;},
-      get lines(){return lines;},set lines(v){lines=v;},get t(){return t;},set t(v){t=v;},get score(){return score;},get spIdx(){return spIdx;},get mode(){return mode;},
+      get lines(){return lines;},set lines(v){lines=v;},get t(){return t;},set t(v){t=v;},get score(){return score;},get spIdx(){return spIdx;},get mode(){return mode;},get perfMs(){return perfMs;},
       toStory,startGame,advanceScene,finishScene,hardDrop,move,rotate,doHold,spawn,pushGarbage};
 
     return {result(reason){

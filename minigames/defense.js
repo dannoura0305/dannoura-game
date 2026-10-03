@@ -87,15 +87,15 @@ registerMinigame({
     const EN={
       troll:{name:'荒らし',        hp:34,  spd:2.0, r:.25, gold:8,  dmg:1},
       bot:  {name:'スパムBot',     hp:13,  spd:3.0, r:.16, gold:3,  dmg:1},
-      anti: {name:'粘着アンチ',    hp:120, spd:1.25,r:.3,  gold:16, dmg:2},
-      boss: {name:'炎上アカウント',hp:900, spd:.85, r:.55, gold:80, dmg:5},
+      anti: {name:'粘着アンチ',    hp:115, spd:1.45,r:.3,  gold:16, dmg:2},
+      boss: {name:'炎上アカウント',hp:720, spd:1.0, r:.55, gold:80, dmg:5},
     };
     // ウェーブ構成 [種類, 数, 間隔秒, 開始秒]（×1で全体120秒以内に収まる長さ）
     const WAVE_DEF=[
       {sub:'荒らしの先遣隊が来る',      g:[['troll',6,.75,0]]},
       {sub:'スパムBotの群れ',          g:[['troll',4,.8,0],['bot',6,.2,2],['bot',6,.2,4.5]]},
       {sub:'粘着アンチが張り付いてくる',g:[['troll',7,.6,0],['anti',3,1.6,1],['bot',6,.2,4]]},
-      {sub:'大規模レイド',              g:[['bot',8,.2,0],['troll',9,.5,1],['anti',4,1.3,2.5],['bot',8,.2,6]]},
+      {sub:'大規模レイド',              g:[['bot',8,.2,0],['troll',8,.5,1],['anti',4,1.1,2.2],['bot',8,.2,5]]},
       {sub:'炎上アカウント 襲来',       g:[['troll',6,.55,0],['bot',8,.2,1.5],['anti',3,1.5,2.5],['boss',1,0,3.5]]},
     ];
     const CHAT=['草','888','おつ','初見','www','乙','うぽつ','神回','？？','ｗ','わこつ','ナイス','つよい','えぇ…','ねむい','雨すごい','おやすみ','かわいい'];
@@ -691,7 +691,7 @@ registerMinigame({
 
     // ══ ゲーム処理 ══
     function resetGame(){
-      money=150+modBonus+LANE.bonus;lives=MAX_LIVES;wave=0;phase='prep';cd=12;gt=0;
+      money=160+modBonus+LANE.bonus;lives=MAX_LIVES;wave=0;phase='prep';cd=11;gt=0;
       towers=[];enemies=[];shots=[];corpses=[];slotTower=new Array(SLOTS.length).fill(null);
       tut=0;tutT=0;
       if(modBonus)addFloat(W/2,H*.32,`モデレーター${Math.min(3,modCount)}人が駆けつけた +¥${modBonus}`,'#00e8c8');
@@ -720,7 +720,7 @@ registerMinigame({
       const bonus=20+wave*5;money+=bonus;bumpMoney();
       if(wave>=WAVES){phase='end';endReason='clear';endT=2.2;
         banner={t:rt,text:'防衛成功',sub:'配信の心は守られた',col:'#44ee88'};sfx('clear');se('ach');}
-      else{phase='prep';cd=6;banner={t:rt,text:`WAVE ${wave} クリア`,sub:`ボーナス +¥${bonus}`,col:'#e8b830'};sfx('coin');se('decide');
+      else{phase='prep';cd=5;banner={t:rt,text:`WAVE ${wave} クリア`,sub:`ボーナス +¥${bonus}`,col:'#e8b830'};sfx('coin');se('decide');
         say(BETWEEN[wave-1]);}
       refreshMenu();
     }

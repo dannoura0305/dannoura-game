@@ -1176,7 +1176,7 @@ registerMinigame({
       el.ov.classList.add('on');el.ov.style.background='rgba(4,3,10,.6)';se('micOn');
       let fired=false;
       const go=()=>{if(fired||phase!=='title')return;fired=true;SFX('select');se('decide');el.ov.classList.remove('on');done();};
-      ovTap=go;later(go,2600);
+      ovTap=go;later(go,3000);
     }
 
     // ── 会話シーン ──
