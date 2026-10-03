@@ -97,6 +97,7 @@ registerMinigame({
     // 立ち絵（タイトル・会話・エンディング用）
     const IMG={};
     ['normal','tired','fear','happy'].forEach(k=>{const im=new Image();im.src='assets/img/char_'+k+'.webp';IMG[k]=im;});
+    IMG.sd=new Image();IMG.sd.src='assets/img/sd_normal.webp';
 
     // ── 効果音（Web Audioで合成。AU.se と同じ音量設定に従う） ──
     const SX={
@@ -1361,17 +1362,25 @@ registerMinigame({
       cx.fillStyle='#deccf8';cx.fillText('家事',W/2,ly+30+gj);
       cx.shadowBlur=0;
       // 「しーっ」の吹き出し
-      cx.fillStyle='rgba(232,184,48,.95)';cx.font=`13px ${FONT}`;cx.fillText('しーっ……',W/2+86,ly-2+Math.sin(clock*3)*2);
       cx.font=`10px ${FONT}`;cx.fillStyle='#5e5078';cx.fillText('STEALTH CHORES',W/2,ly+72);
-      // 忍び足のだんのうら（大きく）
-      const px=W*.5+Math.sin(sceneT*.5)*W*.18, py=H*.72;
-      cx.save();cx.translate(px,py);cx.scale(3.4,3.4);
-      cx.globalCompositeOperation='lighter';gl(glow.wt,0,0,24,.08);cx.globalCompositeOperation='source-over';cx.globalAlpha=f;
-      drawDad(0,0,Math.cos(sceneT*.5)>0?0:Math.PI,'sneak',sceneT*5,0);
-      cx.restore();
+      // 忍び足のだんのうら（SDの立ち絵を、つま先立ちで揺らす）
+      const dir=Math.cos(sceneT*.6)>0?1:-1;
+      const px=W*.5+Math.sin(sceneT*.6)*W*.2, py=H*.74;
+      const im=IMG.sd,sh=Math.min(150,H*.2);
+      const step=Math.sin(sceneT*5);
+      cx.globalAlpha=f*.5;cx.fillStyle='#000';cx.beginPath();cx.ellipse(px,py+sh*.48,sh*.26,sh*.05,0,0,7);cx.fill();
+      cx.globalAlpha=f;
+      if(im.complete&&im.naturalWidth){
+        const iw=sh*im.naturalWidth/im.naturalHeight;
+        cx.save();cx.translate(px,py+sh*.48-Math.abs(step)*5);cx.rotate(step*.06);cx.scale(dir,1);
+        cx.drawImage(im,-iw/2,-sh,iw,sh);cx.restore();
+      }
+      // 口元に指（しーっ）の吹き出し
+      cx.font=`12px ${FONT}`;cx.fillStyle='rgba(232,184,48,.95)';cx.textAlign='center';
+      cx.fillText('しーっ……',px+dir*sh*.42,py-sh*.42+Math.sin(clock*3)*2);
       // 足音の波紋（ちいさく）
       const rp=(sceneT*1.2)%1;cx.globalAlpha=(1-rp)*.5*f;cx.strokeStyle='#bbaedd';cx.lineWidth=1;
-      cx.beginPath();cx.ellipse(px,py+30,14+rp*40,5+rp*12,0,0,7);cx.stroke();
+      cx.beginPath();cx.ellipse(px,py+sh*.48,14+rp*44,4+rp*10,0,0,7);cx.stroke();
       cx.globalAlpha=f*(.5+Math.sin(clock*4)*.3);cx.font=`12px ${FONT}`;cx.fillStyle='#deccf8';cx.fillText('タップで始める',W/2,H*.9);
       cx.globalAlpha=1;
     }
@@ -1479,24 +1488,24 @@ registerMinigame({
       cx.fillText(endReason==='clear'?'起こさずに、ぜんぶ終わった':endReason==='woke'?'起こしてしまった夜':'0時を過ぎてしまった',cxx+86,cy0+24);
       const line=endReason==='clear'?'連絡帳も書けた。今日も「いってらっしゃい」が言える。':endReason==='woke'?'家事は残ったけど……寝顔が見られたら、それでええか。':'残りは朝のうちに。……まずはコーヒーやな。';
       cx.font=`11px ${FONT}`;cx.fillStyle='#bbaedd';
-      const ll=wrapText(line,cw-100-70);for(let i=0;i<ll.length&&i<3;i++)cx.fillText(ll[i],cxx+86,cy0+46+i*16);
-      // 家事の結果
-      let lx=cxx+12;const ly=cy0+100;
+      const ll=wrapText(line,cw-86-78);for(let i=0;i<ll.length&&i<2;i++)cx.fillText(ll[i],cxx+86,cy0+44+i*15);
+      // 家事の結果（2×2）
       cx.font=`11px ${FONT}`;
-      for(const k2 of ORDER){const s0=ST[k2];const lbl=(s0.done?'✓ ':'✗ ')+s0.name.replace('連絡帳と明日の準備','連絡帳');
-        const w=cx.measureText(lbl).width+12;if(lx+w>cxx+cw-10){lx=cxx+12;}
-        cx.fillStyle=s0.done?'rgba(68,238,136,.14)':'rgba(232,48,85,.1)';rrp(cx,lx,ly+(lx===cxx+12&&k2!=='laundry'&&lx+w>cxx+cw?20:0),w,18,6);
-        cx.fill();cx.fillStyle=s0.done?'#44ee88':'#e87a90';cx.fillText(lbl,lx+6,ly+9);lx+=w+5;}
+      const cwh=(cw-30)/2;
+      ORDER.forEach((k2,i)=>{const s0=ST[k2];const lbl=(s0.done?'✓ ':'✗ ')+s0.name.replace('連絡帳と明日の準備','連絡帳と明日の準備');
+        const x0=cxx+12+(i%2)*(cwh+6),y0=cy0+82+((i/2)|0)*22;
+        cx.fillStyle=s0.done?'rgba(68,238,136,.14)':'rgba(232,48,85,.1)';rrp(cx,x0,y0,cwh,18,6);cx.fill();
+        cx.fillStyle=s0.done?'#44ee88':'#e87a90';cx.fillText(lbl,x0+6,y0+9.5);});
       cx.font=`10px ${FONT}`;cx.fillStyle='#8a7aa8';
       const st=`最大の物音 ${Math.round(maxNoise)}%　踏んだおもちゃ ${toyHits}　きしみ ${creaks}　ねこ ${catPets}`;
-      cx.fillText(st,cxx+12,cy0+134);
+      cx.fillText(st,cxx+12,cy0+140);
       const best=`ベスト ${data.bestGrade||'-'}`+(data.best?`／最速 ${data.best}秒`:'')+`　プレイ ${data.plays}回`+(hard?`　難度 ${'★'.repeat(hard)}`:'');
-      cx.fillStyle=newBest?'#e8b830':'#5e5078';cx.fillText((newBest?'NEW RECORD!　':'')+best,cxx+12,cy0+152);
+      cx.fillStyle=newBest?'#e8b830':'#5e5078';cx.fillText((newBest?'NEW RECORD!　':'')+best,cxx+12,cy0+157);
       if(sceneT>1.6){cx.textAlign='center';cx.font=`12px ${FONT}`;cx.fillStyle=`rgba(222,204,248,${.5+Math.sin(clock*4)*.3})`;cx.fillText('タップで終わる',W/2,cy0+ch-16);}
       // 評価（スタンプ）
       if(sceneT>1.35){
         const sk2=Math.min(1,(sceneT-1.35)/.25),sc2=1+(1-sk2)*1.6;
-        const gx=cxx+cw-40,gy=cy0+60;
+        const gx=cxx+cw-34,gy=cy0-4;
         cx.save();cx.translate(gx,gy);cx.scale(sc2,sc2);cx.rotate(-.18);
         cx.globalAlpha=sk2;
         const gc=grade==='S'?'#e8b830':grade==='A'?'#00e8c8':grade==='B'?'#b07ae8':'#8a7aa8';

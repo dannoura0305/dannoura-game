@@ -1154,7 +1154,7 @@ registerMinigame({
     }
     // 便の切り替えバナー
     function drawBanner(){
-      if(!banner)return;
+      if(!banner||phase==='over'||phase==='ending')return;
       const S=SPEED[banner.i],bt=banner.t;
       const inT=Math.min(1,bt/.25),outT=bt>1.6?(bt-1.6)/.4:0;
       const x=(1-inT)*-W+outT*W,y=wy+wh*.3,h=cs*2.4;

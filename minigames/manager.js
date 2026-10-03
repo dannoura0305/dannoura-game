@@ -138,7 +138,7 @@ addMinigameStyle('manager',`
 .mgr-msg .who{display:inline-block;font-size:.62rem;color:#05040e;background:var(--pc,#8a52d4);padding:1px 8px;border-radius:3px;margin-bottom:5px;}
 .mgr-msg .tx{font-family:var(--serif);font-size:.78rem;line-height:1.75;color:var(--tx-b);min-height:3.4em;}
 .mgr-msg .nx{position:absolute;right:9px;bottom:5px;color:var(--cy);font-size:.6rem;animation:mgrBlink 1s steps(2) infinite;}
-.mgr-skip{position:absolute;top:10px;right:10px;min-height:44px;min-width:64px;border-radius:22px;border:1px solid rgba(222,204,248,.35);background:rgba(10,7,22,.8);color:var(--tx);font-size:.66rem;}
+.mgr-skip{position:absolute;bottom:130px;right:10px;min-height:44px;min-width:64px;border-radius:22px;border:1px solid rgba(222,204,248,.35);background:rgba(10,7,22,.8);color:var(--tx);font-size:.66rem;}
 .mgr-dots{display:flex;gap:4px;justify-content:center;margin-top:7px;}
 .mgr-dots i{width:6px;height:6px;border-radius:50%;background:rgba(222,204,248,.2);}
 .mgr-dots i.on{background:var(--cy);}
@@ -160,7 +160,7 @@ addMinigameStyle('manager',`
 .mgr-evt{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);z-index:3;padding:7px 13px;border-radius:6px;font-size:.74rem;white-space:nowrap;background:linear-gradient(180deg,rgba(26,18,52,.96),rgba(5,4,14,.96));border:1px solid var(--c,#e8b830);color:var(--tx-b);box-shadow:0 0 18px color-mix(in srgb,var(--c,#e8b830) 55%,transparent);animation:mgrEvt 2s ease-out forwards;pointer-events:none;}
 .mgr-evt small{display:block;font-family:var(--mono);font-size:.56rem;color:var(--c,#e8b830);text-align:center;}
 @keyframes mgrEvt{0%{opacity:0;transform:translate(-50%,-30%) scale(.8)}12%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}20%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-80%)}}
-.mgr-disc{position:absolute;left:8px;right:8px;top:30px;z-index:4;padding:5px 9px;border-radius:6px;border:1px solid var(--gd);background:linear-gradient(90deg,rgba(80,56,6,.95),rgba(20,14,4,.92));color:#fff4d0;font-size:.64rem;line-height:1.45;box-shadow:0 0 18px rgba(232,184,48,.5);animation:mgrDisc 2.3s ease-out forwards;pointer-events:none;}
+.mgr-disc{position:absolute;left:8px;width:46%;bottom:10px;z-index:4;padding:5px 9px;border-radius:6px;border:1px solid var(--gd);background:linear-gradient(90deg,rgba(80,56,6,.95),rgba(20,14,4,.92));color:#fff4d0;font-size:.64rem;line-height:1.45;box-shadow:0 0 18px rgba(232,184,48,.5);animation:mgrDisc 2.3s ease-out forwards;pointer-events:none;}
 .mgr-disc b{font-weight:normal;font-family:var(--mono);color:#05040e;background:var(--gd);padding:0 5px;border-radius:2px;margin-right:6px;font-size:.58rem;}
 @keyframes mgrDisc{0%{opacity:0;transform:translateY(-12px) scale(.95)}10%{opacity:1;transform:none}85%{opacity:1}100%{opacity:0;transform:translateY(-6px)}}
 .mgr-week{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
@@ -258,16 +258,16 @@ const HERO=[
 '.JJjJJJJJPPJJJJJjJJ...',
 '.SSjJJJJJPPJJJJJjSS...',
 ];
-const HERO_PAL={H:'#3d2163',h:'#6b3fa8',S:'#f8dccb',s:'#e2b09e',E:'#2a1440',W:'#ffffff',G:'#1a1426',B:'#ff9aaa',M:'#b8304f',m:'#ff7a95',F:'#ff9ad5',f:'#fff0f8',J:'#b9a6e6',j:'#8c78c4',P:'#ff8fb0',C:'#efe8ff'};
-const EYES={open:['WEE','EEE'],blink:['SSS','EEE'],tired:['sss','WEE'],happy:['SES','ESS'],sleep:['SSS','sss']};
+const HERO_PAL={H:'#3d2163',h:'#6b3fa8',S:'#f8dccb',s:'#e2b09e',E:'#2a1440',W:'#ffffff',G:'#211634',L:'#fff1ea',B:'#ff9aaa',M:'#b8304f',m:'#ff7a95',F:'#ff9ad5',f:'#fff0f8',J:'#b9a6e6',j:'#8c78c4',P:'#ff8fb0',C:'#efe8ff'};
+const EYES={open:['LWE','LEE'],blink:['LLL','EEE'],tired:['GGG','LEE'],happy:['LEL','ELE'],sleep:['LLL','sEs']};
 const MOUTH={close:['SMMS','SS'],talk:['MmmM','MM'],sing:['MmmM','mm'],smile:['MSSM','SS']};
 function heroRows(eye,mouth){
   const [e1,e2]=EYES[eye],[m1,m2]=MOUTH[mouth];
   const rv=s=>s.split('').reverse().join('');
   return HERO.map(r=>r.replace('111',e1).replace('222',rv(e1)).replace('333',e2).replace('444',rv(e2)).replace('5555',m1).replace('66',m2));
 }
-const PARTNER_PAL=Object.assign({},HERO_PAL,{H:'#16503c',h:'#33b07a',G:'#f8dccb',F:'#00e8c8',f:'#9ffff0',J:'#2f2f50',j:'#20203a',P:'#00e8c8',C:'#3a3a60',E:'#0e4a32',B:'#ffb0b8'});
-const FAN_PAL=Object.assign({},HERO_PAL,{H:'#1c2236',h:'#2e3a5c',G:'#c8c8e0',F:'#1c2236',f:'#e8b830',J:'#2e3a5c',j:'#1c2236',P:'#e8b830',C:'#2e3a5c',B:'#f8dccb'});
+const PARTNER_PAL=Object.assign({},HERO_PAL,{H:'#16503c',h:'#33b07a',G:'#f8dccb',L:'#f8dccb',F:'#00e8c8',f:'#9ffff0',J:'#2f2f50',j:'#20203a',P:'#00e8c8',C:'#3a3a60',E:'#0e4a32',B:'#ffb0b8'});
+const FAN_PAL=Object.assign({},HERO_PAL,{H:'#1c2236',h:'#2e3a5c',G:'#f8dccb',L:'#f8dccb',F:'#1c2236',f:'#e8b830',J:'#2e3a5c',j:'#1c2236',P:'#e8b830',C:'#2e3a5c',B:'#f8dccb'});
 const _spr={};
 function sprite(who,eye,mouth){
   const key=who+eye+mouth;
@@ -575,7 +575,7 @@ registerMinigame({
     const kp=el('div','mgr-kpis');pl.appendChild(kp);
     kp.innerHTML=`<div class="mgr-kpi mgr-panel"><small>FOLLOWERS</small><b>${(gs.followers||0).toLocaleString()}</b></div>`+
       `<div class="mgr-kpi mgr-panel"><small>コラボ / 告知 残り</small><b class="k-bud"></b></div>`+
-      `<div class="mgr-kpi mgr-panel"><small>週末の疲労 見込み</small><b class="k-fat"></b><div class="bar"><i class="k-fbar"></i></div></div>`;
+      `<div class="mgr-kpi mgr-panel"><small>日曜夜の疲労 見込み</small><b class="k-fat"></b><div class="bar"><i class="k-fbar"></i></div></div>`;
     const board=el('div','mgr-board mgr-panel');pl.appendChild(board);
     const rows=DAYS.map((d,i)=>{
       const r=el('div','mgr-row');
@@ -789,7 +789,7 @@ registerMinigame({
     memoBtn.onclick=()=>{
       if(phase!=='plan')return;se('decide');sfx('next');
       const ov=el('div','mgr-ov');const bx=el('div','mgr-box',`<div class="sub">MEETING MEMO</div><h3>📝 運営メモ</h3>${audienceNote()}
-        <div class="mgr-note" style="border-color:var(--cy)"><b style="color:var(--cy)">基本</b>：🤝コラボ週1・📣告知週2まで。💤休みで疲労−28。週末の疲労が70を超えると減点。</div>${memoHtml()}`);
+        <div class="mgr-note" style="border-color:var(--cy)"><b style="color:var(--cy)">基本</b>：🤝コラボ週1・📣告知週2まで。💤休みで疲労−28。日曜夜の疲労が70を超えると減点。</div>${memoHtml()}`);
       const b=el('button','mgr-btn','閉じる');b.onclick=()=>{se('back');sfx('remove');ov.remove();};bx.appendChild(b);ov.appendChild(bx);root.appendChild(ov);
     };
 
@@ -801,6 +801,7 @@ registerMinigame({
       ${newly.length?`<div class="mgr-tstat" style="color:var(--gd)">NEW 企画解禁：${newly.map(k=>T[k].n).join('・')}</div>`:''}
       <button class="mgr-press">TAP TO START</button>`);
     let titleT=0;
+    const tChat=['888888','こんばんは〜','今週も楽しみ','初見です！','神回きた','おつかれさま','トレンド何？','コラボ待ってた'].map(t=>({t,x:Math.random(),v:.05+Math.random()*.05,o:Math.random()}));
     const tBars=Array.from({length:14},()=>({h:.2+Math.random()*.6,s:.5+Math.random()}));
     function drawTitle(dt){
       titleT+=dt;
@@ -816,8 +817,15 @@ registerMinigame({
       const bw=W/tBars.length;
       tBars.forEach((b,i)=>{const h=(H*.3)*(b.h+.15*Math.sin(titleT*b.s*2+i));const rgb=i%3?'0,232,200':'138,82,212';c.fillStyle=`rgba(${rgb},.12)`;c.fillRect(i*bw+3,hy-h,bw-6,h);c.fillStyle=`rgba(${rgb},.5)`;c.fillRect(i*bw+3,hy-h,bw-6,2);});
       // だんのうらのドット絵がタイトルで小さく揺れる
-      const S=3,sp=sprite('hero',(titleT%3)<.12?'blink':'open',(titleT*6|0)%2?'talk':'close');
-      c.imageSmoothingEnabled=false;c.globalAlpha=.9;c.drawImage(sp,W-22*S-14,hy-24*S+Math.round(Math.sin(titleT*3)*2),22*S,24*S);c.globalAlpha=1;
+      tChat.forEach(b=>{const y=H*.68-((titleT*b.v+b.o)%1)*H*.62,a=Math.sin(((titleT*b.v+b.o)%1)*Math.PI);
+        c.globalAlpha=a*.35;c.font=`11px ${FONT}`;c.textAlign='left';const tw=c.measureText(b.t).width+14;
+        c.fillStyle='rgba(138,82,212,.35)';c.fillRect(b.x*(W-tw),y-9,tw,18);c.fillStyle='#deccf8';c.fillText(b.t,b.x*(W-tw)+7,y+4);});
+      c.globalAlpha=1;
+      const S=3,blink=(titleT%3)<.12,sp=sprite('hero',blink?'blink':'open',(titleT*6|0)%2?'talk':'close');
+      const sm=sprite('mid',(titleT%3.7)<.12?'blink':'open',(titleT*5|0)%3?'close':'talk');
+      c.imageSmoothingEnabled=false;
+      c.drawImage(sm,14,hy-24*S+Math.round(Math.sin(titleT*3+1)*2),22*S,24*S);
+      c.drawImage(sp,W-22*S-14,hy-24*S+Math.round(Math.sin(titleT*3)*2),22*S,24*S);
     }
     title.onclick=()=>{
       if(phase!=='title')return;phase='story0';se('decide');sfx('go');
@@ -1021,7 +1029,16 @@ registerMinigame({
       c.fillStyle='#2a1a52';c.fillRect(wx-6,wy-6,10,wh+14);c.fillRect(wx+ww-4,wy-6,10,wh+14);
       // 部屋の光（企画カラー）
       if(!off){const rg=c.createRadialGradient(W*.6,H*.55,10,W*.6,H*.55,W*.6);rg.addColorStop(0,col+'48');rg.addColorStop(1,'transparent');c.fillStyle=rg;c.fillRect(0,0,W,H);}
-      const S=Math.max(2,Math.floor(H*.62/24));
+      const S=Math.max(2,Math.floor(H*.46/24));
+      // モニター（机の上・左）
+      {const mw=W*.26,mh=H*.21,mxx=W*.05,myy=H*.86-mh-8;
+      c.fillStyle='#0a0716';c.fillRect(mxx-3,myy-3,mw+6,mh+6);c.fillStyle='#2a2050';c.fillRect(mxx+mw/2-4,myy+mh+3,8,5);
+      if(!off||end){
+        const sg=c.createLinearGradient(0,myy,0,myy+mh);sg.addColorStop(0,col+'55');sg.addColorStop(1,col+'15');c.fillStyle=sg;c.fillRect(mxx,myy,mw,mh);
+        const isz=Math.max(12,Math.floor(mh*.75/12)*12);
+        c.drawImage(iconCv(end?'logo':n.t),mxx+mw/2-isz/2,myy+mh/2-isz/2+Math.round(Math.sin(clock*3)),isz,isz);
+        c.fillStyle='rgba(255,255,255,.06)';for(let y=myy;y<myy+mh;y+=3)c.fillRect(mxx,y,mw,1);
+      }else{c.fillStyle='#05040e';c.fillRect(mxx,myy,mw,mh);}}
       c.imageSmoothingEnabled=false;
       // だんのうら（スプライトのコマ：目パチ・口パク・歌・疲れ・寝落ち・笑顔）
       const fatNow=end?res.endFat:n.fat0+(n.fat-n.fat0)*p;
@@ -1040,14 +1057,15 @@ registerMinigame({
         if(n.evt&&n.evt.sleep&&evtShown){eye='sleep';mouth='close';}
       }
       const spr=sprite('hero',eye,mouth);
-      const hx=Math.round(W*.62-11*S),sway=n.t==='uta'&&live?Math.round(Math.sin(clock*4)*S*.6):0;
+      const hx=Math.round(W*.66-11*S),sway=n.t==='uta'&&live?Math.round(Math.sin(clock*4)*S*.6):0;
       const nod=(n.evt&&n.evt.sleep&&evtShown)?S*2:0;
       const hy=Math.round(H*.88-24*S+(off&&!end?S:0)+(live&&mouthOpen?-1:0)+nod);
       if(n.t==='collab'&&!end){
         const ps=sprite('mid',blinkT>.6&&blinkT<.75?'blink':'open',!mouthOpen&&live?'talk':'close');
         const pS=S*.85;
-        c.drawImage(ps,hx-17*S,hy+3*S,22*pS,24*pS);
-        c.fillStyle='#00e8c8';c.fillRect(hx-17*S,hy+3*S+7*pS,2*pS,4*pS);c.fillRect(hx-17*S+20*pS,hy+3*S+7*pS,2*pS,4*pS);
+        const px0=hx-19*S,py0=hy+3*S;
+        c.drawImage(ps,px0,py0,22*pS,24*pS);
+        c.fillStyle='#00e8c8';c.fillRect(px0+2*pS,py0,18*pS,pS);c.fillRect(px0,py0+7*pS,2*pS,4*pS);c.fillRect(px0+20*pS,py0+7*pS,2*pS,4*pS);
       }
       c.globalAlpha=off&&!end?.55:1;
       c.drawImage(spr,hx+sway,hy,22*S,24*S);c.globalAlpha=1;
@@ -1058,15 +1076,6 @@ registerMinigame({
       if(live){const mx2=hx+18*S+sway,my2=hy+11*S;c.fillStyle='#4a4a60';c.fillRect(mx2+S,my2+3*S,S,H*.86-my2-3*S);c.fillStyle='#2b2b36';c.fillRect(mx2,my2,3*S,4*S);c.fillStyle='#6a6a80';c.fillRect(mx2,my2,3*S,S);}
       // スマホ（告知の夜）
       if(n.t==='short'&&!end){const px=hx+8*S,py=hy+17*S;c.fillStyle='#1a1030';c.fillRect(px,py,6*S,8*S);c.fillStyle='#e83055';c.fillRect(px+S,py+S,4*S,Math.max(S,6*S*p));c.fillStyle='#fff';c.fillRect(px+2.5*S,py+2*S,S,S);}
-      // モニター
-      const mw=W*.26,mh=H*.21,mxx=W*.05,myy=H*.86-mh-8;
-      c.fillStyle='#0a0716';c.fillRect(mxx-3,myy-3,mw+6,mh+6);c.fillStyle='#2a2050';c.fillRect(mxx+mw/2-4,myy+mh+3,8,5);
-      if(!off||end){
-        const sg=c.createLinearGradient(0,myy,0,myy+mh);sg.addColorStop(0,col+'55');sg.addColorStop(1,col+'15');c.fillStyle=sg;c.fillRect(mxx,myy,mw,mh);
-        const isz=Math.max(12,Math.floor(mh*.75/12)*12);
-        c.drawImage(iconCv(end?'logo':n.t),mxx+mw/2-isz/2,myy+mh/2-isz/2+Math.round(Math.sin(clock*3)),isz,isz);
-        c.fillStyle='rgba(255,255,255,.06)';for(let y=myy;y<myy+mh;y+=3)c.fillRect(mxx,y,mw,1);
-      }else{c.fillStyle='#05040e';c.fillRect(mxx,myy,mw,mh);}
       // 演出パーティクル
       if(live){
         c.font=`${Math.round(H*.065)}px ${FONT}`;c.textAlign='center';c.textBaseline='middle';
@@ -1100,7 +1109,7 @@ registerMinigame({
       // 同接（回転式カウンター）
       if(live){
         const viewers=n.peak*Math.min(1,p/.55)*(p>.85?1-(p-.85)*.8:1);
-        vShown+=(viewers-vShown)*Math.min(1,dt*6);
+        vShown+=(Math.round(viewers)-vShown)*Math.min(1,dt*7);if(Math.abs(vShown-Math.round(viewers))<.03)vShown=Math.round(viewers);
         const dw=9,dh=16,dg=Math.max(2,String(n.peak).length);
         const tw=dg*dw+34;
         c.fillStyle='rgba(5,4,14,.8)';roundRect(c,W-tw-8,by,tw,22,4);c.fill();c.strokeStyle='rgba(222,204,248,.2)';c.lineWidth=1;c.stroke();
@@ -1213,14 +1222,14 @@ registerMinigame({
         <div class="mgr-stats">
           <div class="mgr-stat"><small>新規フォロワー</small><b style="color:var(--cy)">+${REWARD[g].followers}</b></div>
           <div class="mgr-stat"><small>最高同接</small><b>${res.peak}人</b></div>
-          <div class="mgr-stat"><small>週末の疲労</small><b style="color:${fatCol(res.endFat)}">${res.endFat}</b></div>
+          <div class="mgr-stat"><small>日曜夜の疲労</small><b style="color:${fatCol(res.endFat)}">${res.endFat}</b></div>
           <div class="mgr-stat"><small>週間スコア</small><b>${res.score.toFixed(1)}</b></div>
         </div>
         ${say('fan',null,fanLine,.8)}
         ${midLine?say('mid',null,midLine,1.0):''}
         ${best?`<div class="mgr-note" style="border-color:var(--gn)"><b style="color:var(--gn)">ベストの夜</b>：${nightLine(best)}</div>`:''}
         ${worst&&worst!==best?`<div class="mgr-note" style="border-color:var(--rd)"><b style="color:var(--rd)">ワーストの夜</b>：${nightLine(worst)}</div>`:''}
-        ${res.pen>0?`<div class="mgr-note" style="border-color:var(--rd)"><b style="color:var(--rd)">疲労ペナルティ</b>：週末の疲労が70超え（−${res.pen.toFixed(1)}）</div>`:''}
+        ${res.pen>0?`<div class="mgr-note" style="border-color:var(--rd)"><b style="color:var(--rd)">疲労ペナルティ</b>：日曜夜の疲労が70超え（−${res.pen.toFixed(1)}）</div>`:''}
         <div class="mgr-sec">INSIGHTS ／ 今週の気づき（全${md.found.length}/${Object.keys(FOUND).length}）</div>
         ${res.found.length?res.found.map(f=>`<div class="mgr-found${res.newFound.includes(f)?' new':''}">${FOUND[f]}${res.newFound.includes(f)?'<span class="nw">NEW</span>':''}</div>`).join(''):'<div class="mgr-found">特になし</div>'}
         ${md.reports.length>1?`<div class="mgr-sec">PAST REPORTS ／ 過去の通信簿</div>${pastTable(4,true)}`:''}`;
@@ -1292,7 +1301,7 @@ registerMinigame({
       const g=res.grade,fx=Object.assign({},REWARD[g]);
       return {
         title:`📈 週間通信簿：${g}評価`,
-        summary:`トレンド「${T[trend].n}」 ・ 最高同接 <span class="up">${res.peak}人</span> ・ 週末の疲労 <span class="${res.endFat>70?'down':'up'}">${res.endFat}</span>`+
+        summary:`トレンド「${T[trend].n}」 ・ 最高同接 <span class="up">${res.peak}人</span> ・ 日曜夜の疲労 <span class="${res.endFat>70?'down':'up'}">${res.endFat}</span>`+
           (res.newFound&&res.newFound.length?`<br>新しい気づき <span class="up">${res.newFound.length}件</span>（会議メモに記録）`:''),
         fx,time:50,sp:g==='S'?1:0,
         log:`来週の配信計画を立てた（${g}評価）。`,

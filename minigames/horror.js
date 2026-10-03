@@ -1277,3 +1277,434 @@ function pickStory(d){
   return pool[Math.floor(Math.random()*pool.length)]||avail[0];
 }
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ───────────────────────── 本体 ─────────────────────────
+const CPS=[22,40,72,9999],SPEED_L=['遅い','普通','速い','瞬間'];
+const OUTDOOR={room:1,f_gate:1,f_corr:1,f_office:1,e_danchi:1,e_hall:1,n_genkan:1,n_window:1,k_ext:1,void:1};
+registerMinigame({
+  id:'horror', icon:'👻', name:'怪談配信・実録編', genre:'ホラーノベル', bgm:'kaidan',
+  desc:'リスナーから届いた「実録怪談」を生配信で朗読するサウンドノベル。読み方の選び方で、コメント欄の盛り上がりと……部屋の様子が変わっていく。',
+  effect:'配信人気↑ フォロワー↑ 精神↓リスク ／ 疲労+6〜8 約60分',
+  help:'タップで読み進める・1〜3で選択',
+  start(body,mg){
+    textures();
+    const hd=hdata();
+    let story=pickStory(hd);
+    const SFX=makeSnd();
+    body.innerHTML=`<div class="hr-stage"><canvas class="hr-cv"></canvas>
+<div class="hr-top"><span class="hr-live"><i></i><span class="hr-lv">LIVE</span></span><span class="hr-view">👁 --</span><span class="hr-heart">♥ 0</span><span class="hr-ttl"></span></div>
+<div class="hr-chat"></div><div class="hr-choices"></div>
+<div class="hr-box"><div class="hr-bar"><span class="hr-name none">　</span><div class="hr-tgs"><button class="hr-tg" data-k="log">LOG</button><button class="hr-tg" data-k="auto">AUTO</button><button class="hr-tg" data-k="skip">SKIP</button><button class="hr-tg" data-k="cfg">⚙</button></div></div><div class="hr-text"></div><div class="hr-mode"></div><div class="hr-next">▼</div></div>
+<div class="hr-flash"></div></div>`;
+    const stage=body.firstChild,cv=stage.querySelector('.hr-cv'),g=cv.getContext('2d');
+    const $=s=>stage.querySelector(s);
+    const chatEl=$('.hr-chat'),chEl=$('.hr-choices'),boxEl=$('.hr-box'),nameEl=$('.hr-name'),textEl=$('.hr-text'),nextEl=$('.hr-next'),modeEl=$('.hr-mode'),flashEl=$('.hr-flash');
+    const viewEl=$('.hr-view'),heartEl=$('.hr-heart'),ttlEl=$('.hr-ttl'),lvEl=$('.hr-lv');
+    const tgEls={};stage.querySelectorAll('.hr-tg').forEach(b=>tgEls[b.dataset.k]=b);
+    const faces={};['normal','happy','fear','tired'].forEach(k=>{const im=new Image();im.src=`assets/img/char_${k}.webp`;faces[k]=im;});
+
+    // ── 状態 ──
+    let W=0,H=0,dpr=1,T=0;
+    let phase='title',overlay=null;
+    let hype=0,rei=0,hearts=0,endKey=null,endNew=false,justUnlocked=false,offline=false;
+    let S={},bg='room',tr=null,stack=[],line=null,lineDone=false,autoT=0,skipT=0,skip=false;
+    let busyT=0,busyRate=1,buf=null,chOn=false,chList=[],chSel=-1,actNo=0,actTitle='';
+    let lt=0,ltNext=6+Math.random()*8,glT=0,glAmp=1,microT=3,faceO=null,faceT=0;
+    let rainI=1,rainTarget=1,drops=[],chatQ=[],chatT=0,ambT=2,lastSe=0,startedAt=0;
+    const LOG=[];
+    const bakes={};let bufA=null,bufB=null,tiny=null;
+    const stg=()=>rei>=6?3:rei>=4?2:rei>=2?1:0;
+    const later=(fn,ms)=>setTimeout(()=>{if(!mg._ended)fn();},ms);
+    const se=t=>{try{AU.se(t);}catch(e){}};
+    const snd=(n,k)=>{const sudden={static:1,thunder:1,knock:1,intercom:1,phone:1,sting:1,creak:1};if(hd.mild&&sudden[n]){if(n==='static'||n==='sting'||n==='thunder')return;k=(k||1)*.35;}SFX.play(n,k);};
+
+    // ── サイズ ──
+    function resize(){
+      const r=stage.getBoundingClientRect();W=Math.max(200,r.width|0);H=Math.max(300,r.height|0);
+      dpr=Math.min(2,window.devicePixelRatio||1);cv.width=W*dpr|0;cv.height=H*dpr|0;
+      for(const k in bakes)delete bakes[k];bufA=bufB=null;
+      const hb=Math.round(clamp(H*.24,148,196));stage.style.setProperty('--hb',hb+'px');
+      const n=Math.min(170,(W*H/2600)|0);drops=Array.from({length:n},()=>({x:Math.random()*W,y:Math.random()*H,l:8+Math.random()*16,v:420+Math.random()*380,a:.05+Math.random()*.12}));
+    }
+    const ro=new ResizeObserver(()=>resize());ro.observe(stage);resize();
+    function bake(id){
+      if(bakes[id])return bakes[id];
+      const c=mkC(W*dpr,H*dpr),x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);SC[id].bake(x,W,H,mkRnd(id.length*977+id.charCodeAt(0)*31));
+      return bakes[id]=c;
+    }
+    function env(){return {lt,st:offline&&endKey==='cursed'?3:stg(),bleed:story.bleed,mild:hd.mild};}
+    function renderScene(id,x){x.drawImage(bake(id),0,0,W,H);SC[id].draw(x,W,H,T,S,env());}
+    function mkBuf(){const c=mkC(W*dpr,H*dpr);c.getContext('2d').setTransform(dpr,0,0,dpr,0,0);return c;}
+
+    // ── 描画 ──
+    function draw(){
+      g.setTransform(dpr,0,0,dpr,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';
+      if(tr){
+        if(!bufA)bufA=mkBuf();if(!bufB)bufB=mkBuf();
+        const a=bufA.getContext('2d'),b=bufB.getContext('2d');
+        renderScene(tr.from,a);renderScene(bg,b);
+        const p=clamp(tr.t/tr.dur,0,1);
+        if(tr.type==='fade'){g.drawImage(p<.5?bufA:bufB,0,0,W,H);rect(g,0,0,W,H,`rgba(3,2,8,${1-Math.abs(p-.5)*2})`);}
+        else if(tr.type==='mosaic'){const src=p<.5?bufA:bufB,k=1-Math.abs(p-.5)*2,bs=Math.max(1,Math.round(1+k*k*26));
+          const tw=Math.max(2,(W/bs)|0),th=Math.max(2,(H/bs)|0);if(!tiny)tiny=mkC(tw,th);tiny.width=tw;tiny.height=th;const tx=tiny.getContext('2d');tx.imageSmoothingEnabled=true;tx.drawImage(src,0,0,tw,th);
+          g.imageSmoothingEnabled=false;g.drawImage(tiny,0,0,W,H);g.imageSmoothingEnabled=true;rect(g,0,0,W,H,`rgba(3,2,8,${k*.45})`);}
+        else if(tr.type==='wipe'){g.drawImage(bufA,0,0,W,H);const n=12;g.save();g.beginPath();
+          for(let i=0;i<n;i++){const q=clamp(p*1.6-((i*7)%n)/n*.6,0,1),x=i*W/n;g.rect(x,0,W/n+1,q*H);g.moveTo(x+W/n*.5,q*H);g.arc(x+W/n*.5,q*H,W/n*.5,0,Math.PI);}
+          g.clip();g.drawImage(bufB,0,0,W,H);g.restore();}
+        else{g.drawImage(p<.5?bufA:bufB,0,0,W,H);glT=Math.max(glT,.12);glAmp=hd.mild?.4:2.2;rect(g,0,0,W,H,`rgba(0,0,0,${(1-Math.abs(p-.5)*2)*.5})`);}
+      }else renderScene(bg,g);
+      const E=env();
+      // 前景の雨
+      if(rainI>.02){g.strokeStyle=`rgba(175,185,255,${.13*rainI})`;g.lineWidth=1;g.beginPath();for(const d of drops){g.moveTo(d.x,d.y);g.lineTo(d.x-d.l*.16,d.y+d.l);}g.stroke();}
+      // 色調（霊障）
+      const st=E.st;
+      if(st>0){g.save();g.globalCompositeOperation='multiply';rect(g,0,0,W,H,['#fff','#e6def2','#dcbfd2','#d29aaa'][st]);g.globalCompositeOperation='saturation';rect(g,0,0,W,H,`rgba(128,128,128,${st*.12})`);g.restore();
+        if(st>=2){const p=.5+.5*Math.sin(T*1.3);g.fillStyle=RG(g,W/2,H*.42,H*.3,H*.8,[[0,'rgba(120,0,20,0)'],[1,`rgba(120,0,20,${(st-1)*.18*p})`]]);g.fillRect(0,0,W,H);}}
+      if(lt>0){g.save();g.globalCompositeOperation='lighter';rect(g,0,0,W,H,`rgba(140,150,255,${lt*(hd.mild?.05:.12)})`);g.restore();}
+      // カメラ枠（配信者のアバター）
+      if(phase!=='title'&&phase!=='letter'&&bg!=='void'&&bg!=='h_dawn'&&!(tr&&(tr.from==='void')))drawCam(E);
+      // ビネット・ノイズ・走査線
+      g.fillStyle=RG(g,W/2,H*.45,Math.min(W,H)*.3,Math.max(W,H)*.75,[[0,'rgba(0,0,0,0)'],[1,`rgba(0,0,0,${.6+st*.08})`]]);g.fillRect(0,0,W,H);
+      g.save();g.globalAlpha=(.04+st*.025)*(hd.mild?.6:1);g.globalCompositeOperation='overlay';g.drawImage(TX.noises[(T*20|0)%3],0,0,W,H);g.restore();
+      texFill(g,TX.scan,.16,0,0,W,H);
+      // グリッチ
+      if(glT>0){g.setTransform(1,0,0,1,0,0);const n=3+(Math.random()*5|0);
+        for(let i=0;i<n;i++){const sy=Math.random()*cv.height,sh=(3+Math.random()*26)*dpr,off=(Math.random()-.5)*36*dpr*glAmp;g.drawImage(cv,0,sy,cv.width,sh,off,sy,cv.width,sh);}
+        if(!hd.mild){g.globalCompositeOperation='lighter';g.fillStyle=`rgba(232,48,85,${.1*glAmp})`;g.fillRect(0,Math.random()*cv.height,cv.width,(4+Math.random()*12)*dpr);g.fillStyle=`rgba(0,232,200,${.08*glAmp})`;g.fillRect(0,Math.random()*cv.height,cv.width,(2+Math.random()*8)*dpr);g.globalCompositeOperation='source-over';}
+        g.setTransform(dpr,0,0,dpr,0,0);}
+    }
+    function drawCam(E){
+      const cw=Math.round(Math.min(118,W*.3)),ch=Math.round(cw*.8),x=W-cw-8,y=36,st=E.st;
+      g.save();g.beginPath();g.rect(x,y,cw,ch);g.clip();
+      rect(g,x,y,cw,ch,LG(g,0,y,0,y+ch,[[0,st>=3?'#2a0e18':'#1a1230'],[1,'#0a0716']]));
+      // 背後の窓
+      const wx=x+cw*.06,wy=y+ch*.1,ww=cw*.34,wh=ch*.42;rect(g,wx,wy,ww,wh,'#0a1430');if(lt>0)rect(g,wx,wy,ww,wh,`rgba(170,180,255,${lt*.6})`);glassRain(g,wx,wy,ww,wh,T,11,.3);
+      if(st>=2){const v=lt>0?1:clamp(Math.sin(T*.6+1)*2-.5,0,.7);if(v>0){g.globalAlpha=v;figure(g,'tall',wx+ww*.5,wy+wh+2,wh*.85,{c:'#010103'});g.globalAlpha=1;}}
+      g.strokeStyle='#1c1530';g.lineWidth=2;g.strokeRect(wx,wy,ww,wh);
+      const lf=st>=1&&Math.sin(T*17)>.85?.3:1;glow(g,x+cw*.12,y+ch*.85,cw*.4,'232,170,90',.25*lf);
+      if(st>=2){rect(g,x+cw*.9,y+ch*.08,cw*.06,ch*.8,'#010102');}
+      // アバター
+      const face=faceO||(st>=3||(rei>=4&&Math.sin(T*.4)>0)?'fear':hype>=5?'happy':(gs.fatigue>70?'tired':'normal'));
+      const im=faces[face],ax=x+cw*.66,ay=y+ch*.6,ar=ch*.36;
+      g.save();g.beginPath();g.arc(ax,ay,ar,0,TAU);g.clip();rect(g,ax-ar,ay-ar,ar*2,ar*2,'#2a2040');
+      if(im.complete&&im.naturalWidth){const jx=st>=3&&Math.random()<.08?(Math.random()-.5)*8:0;g.drawImage(im,ax-ar+jx,ay-ar,ar*2,ar*2);}
+      rect(g,ax-ar,ay-ar,ar*2,ar*2,`rgba(10,6,24,${.22+st*.06})`);g.restore();
+      g.strokeStyle=st>=3?'#e83055':'rgba(0,232,200,.7)';g.lineWidth=1.5;g.beginPath();g.arc(ax,ay,ar+1,0,TAU);g.stroke();
+      // 音量メーター
+      const talking=line&&!lineDone&&line.type!=='s';for(let i=0;i<5;i++){const on=talking&&Math.random()<.7-i*.12;rect(g,x+5,y+ch-8-i*5,4,3,on?(i>3?'#e83055':'#44ee88'):'rgba(255,255,255,.12)');}
+      if(st>=1){g.globalAlpha=.06*st;g.drawImage(TX.noises[(T*30|0)%3],x,y,cw,ch);g.globalAlpha=1;}
+      g.restore();
+      g.strokeStyle=st>=3?'rgba(232,48,85,.8)':'rgba(138,82,212,.7)';g.lineWidth=1;g.strokeRect(x+.5,y+.5,cw-1,ch-1);
+      g.font=`9px ${FM}`;g.fillStyle='rgba(222,204,248,.85)';g.fillText(offline?'CAM ─ OFF':'CAM ● '+(st>=3&&Math.sin(T*2)>.6?'？？？':'だんのうら'),x+4,y+11);
+      if(!offline&&Math.sin(T*3)>0){g.fillStyle='#e83055';g.beginPath();g.arc(x+cw-8,y+8,2.5,0,TAU);g.fill();}
+    }
+
+    // ── チャット ──
+    function addChat(name,msg,cls){
+      const d=document.createElement('div');d.className='hr-msg'+(cls?' '+cls:'');
+      const nb=document.createElement('b');if(cls!=='nn'&&cls!=='sys')nb.textContent=name;if(REG_COL[name])nb.style.color=REG_COL[name];
+      if(cls!=='sys')d.appendChild(nb);d.appendChild(document.createTextNode(msg));
+      chatEl.appendChild(d);while(chatEl.children.length>8)chatEl.removeChild(chatEl.firstChild);
+      if(T-lastSe>.22){lastSe=T;se('comment');}
+    }
+    function queueChat(raw){
+      const m=raw.match(/^c(\d?):([^|]*)\|(.*)$/);if(!m)return;
+      let name=m[2],need=m[1]===''?null:+m[1];const nn=name==='？';
+      if(need==null)need=nn?2:0;
+      if(rei<need&&!(offline&&need===0))return;
+      if(CHAT_NAMES[name])name=CHAT_NAMES[name];
+      chatQ.push({name,msg:m[3],cls:nn?'nn':''});
+    }
+    function pumpChat(dt){
+      chatT-=dt*(skip?6:1);
+      if(chatQ.length&&chatT<=0){const c=chatQ.shift();addChat(c.name,c.msg,c.cls);if(c.cls==='nn'&&stg()>=2&&!hd.mild){chatEl.classList.add('gl');later(()=>chatEl.classList.remove('gl'),500);}
+        chatT=.45+Math.random()*.55;if(skip&&chatQ.length>5)chatQ.splice(0,chatQ.length-5);}
+      if(phase==='play'||phase==='choice'||phase==='busy'){ambT-=dt;if(ambT<=0&&!chatQ.length&&!offline){ambient();ambT=Math.max(.9,3.2-hype*.25+Math.random()*1.6-(stg()>=2?.4:0));}}
+    }
+    function ambient(){
+      const r=Math.random(),st=stg();
+      if(st>=2&&r<.12+st*.05){addChat('',AMB.know[Math.random()*AMB.know.length|0],'nn');if(Math.random()<.55){const re=AMB.react[Math.random()*AMB.react.length|0];later(()=>addChat(re[0],re[1]),900+Math.random()*700);}return;}
+      if(st>=1&&r<.28){addChat(AMB.oddNames[Math.random()*AMB.oddNames.length|0],AMB.odd[Math.random()*AMB.odd.length|0],'odd');return;}
+      if(hype>=4&&r<.5){addChat(AMB.crowd[Math.random()*AMB.crowd.length|0],AMB.hype[Math.random()*AMB.hype.length|0],'hype');return;}
+      if(r<.72){const n=Object.keys(AMB.reg)[Math.random()*4|0];const l=AMB.reg[n];addChat(n,l[Math.random()*l.length|0]);return;}
+      addChat(AMB.crowd[Math.random()*AMB.crowd.length|0],AMB.msg[Math.random()*AMB.msg.length|0]);
+    }
+
+    // ── 演出 ──
+    function fx(k){
+      if(k==='glitch'){glT=.55;glAmp=hd.mild?.35:1.3;if(!hd.mild){boxEl.animate([{transform:'translateX(-3px)',filter:'hue-rotate(40deg)'},{transform:'translateX(3px)'},{transform:'none'}],{duration:260});}}
+      else if(k==='tear'){glT=1.2;glAmp=hd.mild?.4:3;snd('static');if(!hd.mild)stage.animate([{filter:'contrast(1.6) saturate(0)'},{filter:'none'}],{duration:900});}
+      else if(k==='flash'||k==='redflash'){if(hd.mild){glT=.3;glAmp=.3;return;}flashEl.style.background=k==='flash'?'#e8eaff':'#e83055';flashEl.animate([{opacity:k==='flash'?.85:.55},{opacity:0}],{duration:k==='flash'?420:650,easing:'ease-out'});snd('sting',.7);}
+      else if(k==='shake'){if(hd.mild)return;stage.animate([{transform:'translate(0,0)'},{transform:'translate(-7px,3px)'},{transform:'translate(6px,-4px)'},{transform:'translate(-4px,2px)'},{transform:'translate(2px,-1px)'},{transform:'none'}],{duration:420});}
+      else if(k==='thunder'){strike(1);}
+    }
+    function strike(big){lt=hd.mild?.35:1;later(()=>snd('thunder',big?1:.35),big?250:1100);}
+
+    // ── 進行 ──
+    const isChat=s=>typeof s==='string'&&/^c\d?:/.test(s);
+    function step(){
+      while(true){
+        const top=stack[stack.length-1];
+        if(!top){if(endKey&&phase!=='endcard'&&phase!=='done')showEnd();return;}
+        if(top.i>=top.a.length){stack.pop();continue;}
+        const s=top.a[top.i++];
+        if(typeof s==='string'){
+          if(isChat(s)){queueChat(s);continue;}
+          const ty=s[0],tx=s.slice(2);showLine(ty,tx);
+          while(isChat(top.a[top.i]))queueChat(top.a[top.i++]);
+          return;
+        }
+        if(s.set)Object.assign(S,s.set);
+        if(s.rain!=null){rainTarget=s.rain;SFX.ambient(s.rain,stg()*.012);}
+        if(s.snd)snd(s.snd);
+        if(s.face){faceO=s.face;faceT=5;}
+        if(s.fx)fx(s.fx);
+        if(s.choice){showChoices(s.choice,s.meta);return;}
+        if(s.go){stack=[{a:story.nodes[s.go],i:0}];continue;}
+        if(s.ending){decideEnding();continue;}
+        if(s.bg){
+          if(s.tr&&s.bg!==bg){tr={from:bg,type:s.tr,t:0,dur:s.tr==='glitch'?.7:s.tr==='wipe'?1.1:s.tr==='mosaic'?1.1:1.0};bg=s.bg;busy(tr.dur,'tr');snd(s.tr==='glitch'?'static':'page',.6);return;}
+          bg=s.bg;continue;
+        }
+        if(s.act){showAct(s.act,s.title);return;}
+        if(s.wait){busy(s.wait/1000,'wait');return;}
+      }
+    }
+    function busy(sec,kind){phase='busy';busyT=sec;busyRate=skip?3:1;line=null;nextEl.classList.remove('on');}
+    function showLine(ty,tx){
+      phase='play';line={type:ty,text:tx,n:0};lineDone=false;autoT=0;skipT=0;
+      const hid=story.hidden&&ty==='r';
+      nameEl.className='hr-name'+(ty==='s'?' none':ty==='r'?(hid?' h':' r'):'');
+      nameEl.textContent=ty==='d'?'だんのうら':ty==='r'?(hid?'📄 ――':'📄 投稿文'):'　';
+      textEl.className='hr-text '+(hid?'h':ty);textEl.textContent='';nextEl.classList.remove('on');
+      LOG.push({ty,tx,who:nameEl.textContent});
+      if(CPS[hd.speed]>999||skip){line.n=tx.length;}
+    }
+    function advance(){
+      if(overlay)return;
+      if(phase==='play'&&line){if(line.n<line.text.length){line.n=line.text.length;return;}snd('tick',2);step();return;}
+      if(phase==='busy'){busyRate=Math.max(busyRate,3.5);return;}
+      if(phase==='endcard'){finishStory();return;}
+    }
+    function showChoices(list,meta){
+      phase='choice';chOn=false;chList=list;chSel=-1;stage.classList.add('choosing');nextEl.classList.remove('on');
+      if(skip)setSkip(false);
+      chEl.innerHTML='<div class="hr-chq">― どう読む？ ―</div>';
+      list.forEach((c,i)=>{const b=document.createElement('button');b.className='hr-ch';b.innerHTML=`<i>${i+1}</i><span>${esc(c.t)}</span>`;
+        b.onclick=e=>{e.stopPropagation();pick(i);};b.onmouseenter=()=>sel(i);chEl.appendChild(b);later(()=>b.classList.add('in'),80+i*90);});
+      later(()=>chEl.firstChild&&chEl.firstChild.classList.add('in'),30);
+      snd('pick',.6);
+      later(()=>{chOn=true;if(buf!=null&&typeof buf==='number'){const k=buf;buf=null;pick(k);}},80+list.length*90+200);
+      // メタ演出：選択肢が書き換わる
+      if(meta&&rei>=4)later(()=>{if(phase!=='choice')return;const sp=[...chEl.querySelectorAll('.hr-ch span')];const orig=sp.map(s=>s.textContent);sp.forEach(s=>s.textContent=list[0].t);if(!hd.mild){snd('static',.5);glT=.3;}later(()=>sp.forEach((s,i)=>s.textContent=orig[i]),900);},1400);
+    }
+    function sel(i){chSel=i;[...chEl.querySelectorAll('.hr-ch')].forEach((b,k)=>b.classList.toggle('sel',k===i));}
+    function pick(i){
+      if(phase!=='choice')return;if(!chOn){buf=i;return;}
+      const c=chList[i];if(!c)return;chOn=false;
+      const bs=[...chEl.querySelectorAll('.hr-ch')];bs.forEach((b,k)=>b.classList.add(k===i?'pick':'out'));se('decide');
+      LOG.push({ty:'ch',tx:'▶ '+c.t});
+      const st0=stg();hype+=c.h;rei=Math.max(0,rei+c.r);
+      if(c.h>0){hearts+=c.h*(7+(Math.random()*6|0));if(c.h>=2){for(let k=0;k<c.h;k++)later(()=>addChat(AMB.crowd[Math.random()*AMB.crowd.length|0],AMB.hype[Math.random()*AMB.hype.length|0],'hype'),300+k*260);}}
+      const st1=stg();if(st1>st0){later(()=>{fx('glitch');snd('sting',.5);},500);}
+      SFX.ambient(rainTarget,st1*.012);
+      stage.classList.toggle('r2',st1>=2);stage.classList.toggle('r3',st1>=3);
+      later(()=>{chEl.innerHTML='';stage.classList.remove('choosing');phase='play';stack=[{a:story.nodes[c.go],i:0}];step();},420);
+    }
+    function decideEnding(){
+      const key=rei>=6?'cursed':hype>=6?'good':'normal';endKey=key;
+      const id=story.id+':'+key;endNew=!hd.ends[id];const wasOpen=hiddenOpen(hd);
+      hd.ends[id]=1;hd.read[story.id]=1;hd.last=story.id;hd.plays++;
+      justUnlocked=!wasOpen&&hiddenOpen(hd);
+      if(key==='cursed'){offline=true;lvEl.textContent='OFF';$('.hr-live').style.background='#3a3048';}
+      stack=[{a:story.nodes['end_'+key],i:0}];
+    }
+    function showAct(n,title){
+      actNo=n;actTitle=title;updScore();
+      const o=document.createElement('div');o.className='hr-ov hr-act';
+      o.innerHTML=`<div class="a1">第${'一二三'[n-1]}幕</div><div class="a2">${esc(title)}</div><div class="a3"></div>`;
+      stage.appendChild(o);LOG.push({ty:'act',tx:`第${'一二三'[n-1]}幕　${title}`});
+      snd('act');busy(2.3,'act');o._kill=()=>o.remove();actEl=o;
+    }
+    let actEl=null;
+    function endBusy(){
+      if(tr){tr=null;}
+      if(actEl){const o=actEl;actEl=null;o.style.transition='opacity .25s';o.style.opacity='0';later(()=>o.remove(),260);}
+      phase='play';step();
+    }
+    function showEnd(){
+      phase='endcard';nextEl.classList.remove('on');
+      const n=storyEnds(hd,story),tot=totalEnds(hd),all=STORIES.length*3;
+      const o=document.createElement('div');o.className='hr-ov hr-end '+endKey;
+      o.innerHTML=`<div class="e1">ENDING</div><div class="e2">${END_LABEL[endKey]}</div><div class="e3">「${esc(story.ends[endKey])}」${endNew?'<span class="new">NEW</span>':''}</div>`+
+        `<div class="e4">${esc(story.title)}　回収 ${n}/3<br>全エンディング ${tot}/${all}（${Math.round(tot/all*100)}%）`+
+        (!story.hidden?`<br><span style="color:#b9d0e6;font-family:var(--serif)">――投稿の末尾に、送り主の知らない一文。「三十日目まで、見ています」</span>`:'')+
+        (justUnlocked?`<br><span style="color:var(--gd)">◆ 最終話「？？？」が解放されました</span>`:'')+`</div><div class="e5">▶ タップで配信を終える</div>`;
+      o.onclick=e=>{e.stopPropagation();finishStory();};
+      stage.appendChild(o);
+      if(endKey==='good')se('rank');else if(endKey==='cursed'){if(!hd.mild)se('ghost');snd('sting',.6);}else se('notif');
+      mg.setScore(`📖 ${esc(story.short)}　<span style="color:var(--gd)">END ${tot}/${all}</span>`);
+    }
+    function finishStory(){if(phase==='done')return;phase='done';se('decide');mg.end(endKey);}
+
+    // ── オーバーレイ ──
+    function closeOv(){if(overlay){overlay.remove();overlay=null;se('back');}}
+    function openOv(html,cls){if(overlay)overlay.remove();const o=document.createElement('div');o.className='hr-ov dim '+(cls||'');o.innerHTML=html;o.onclick=e=>e.stopPropagation();stage.appendChild(o);overlay=o;se('btn');return o;}
+    function openLog(){
+      const rows=LOG.slice(-80).map(e=>e.ty==='ch'?`<div class="hr-log-e ch">${esc(e.tx)}</div>`:e.ty==='act'?`<div class="hr-log-e act">${esc(e.tx)}</div>`:e.ty==='s'?`<div class="hr-log-e s">${esc(e.tx)}</div>`:`<div class="hr-log-e ${e.ty}"><b>${esc(e.who)}</b>${esc(e.tx)}</div>`).join('')||'<div class="hr-note">まだ何もありません。</div>';
+      const o=openOv(`<div class="hr-panel"><div class="hr-ph">BACKLOG<button class="hr-btn sm" data-x>閉じる</button></div><div class="hr-pb">${rows}</div></div>`);
+      o.querySelector('[data-x]').onclick=closeOv;const pb=o.querySelector('.hr-pb');pb.scrollTop=pb.scrollHeight;
+    }
+    function openCfg(){
+      const o=openOv(`<div class="hr-panel"><div class="hr-ph">SETTINGS<button class="hr-btn sm" data-x>閉じる</button></div><div class="hr-pb">
+<div class="hr-row"><span>文字の速さ</span><div class="hr-seg" data-seg="speed">${SPEED_L.map((l,i)=>`<button class="hr-btn sm${hd.speed===i?' on':''}" data-v="${i}">${l}</button>`).join('')}</div></div>
+<div class="hr-row"><span>怖さ控えめ</span><div class="hr-seg" data-seg="mild"><button class="hr-btn sm${!hd.mild?' on':''}" data-v="0">OFF</button><button class="hr-btn sm${hd.mild?' on':''}" data-v="1">ON</button></div></div>
+<div class="hr-note">怖さ控えめ：画面のフラッシュ・揺れ・急な大きい音をなくし、ノイズ演出を弱めます。</div>
+<div class="hr-row"><button class="hr-btn sm" data-tut style="flex:1">遊び方</button><button class="hr-btn sm" data-end style="flex:1">エンディング一覧</button></div></div></div>`);
+      o.querySelector('[data-x]').onclick=closeOv;
+      o.querySelectorAll('[data-seg]').forEach(sg=>sg.querySelectorAll('button').forEach(b=>b.onclick=()=>{const v=+b.dataset.v;if(sg.dataset.seg==='speed')hd.speed=v;else hd.mild=!!v;sg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));se('notif');updTitle();}));
+      o.querySelector('[data-tut]').onclick=()=>openTut();o.querySelector('[data-end]').onclick=()=>openEnds();
+    }
+    function openTut(after){
+      const o=openOv(`<div class="hr-panel"><div class="hr-ph">HOW TO PLAY<button class="hr-btn sm" data-x>${after?'はじめる':'閉じる'}</button></div><div class="hr-pb hr-tut"><ul>
+<li><b>TAP</b><span>画面をタップ（Enter／Space）で読み進めます。文字の途中でタップすると、一気に表示。</span></li>
+<li><b>1-3</b><span>選択肢はタップか数字キーで。どう読むかで、配信の空気が変わります。</span></li>
+<li><b>CHAT</b><span>コメント欄は生きています。盛り上がれば神回に。……ただ、話に深入りしすぎると、名前のないコメントが増えていきます。</span></li>
+<li><b>LOG</b><span>読み返し。AUTO＝自動送り、SKIP＝早送り（選択肢で止まります）。⚙で文字の速さと「怖さ控えめ」。</span></li>
+<li><b>END</b><span>1話につきエンディングは3つ。すべての投稿を読むと……。</span></li></ul></div></div>`);
+      o.querySelector('[data-x]').onclick=()=>{hd.tut=1;closeOv();if(after)after();};
+    }
+    function openEnds(){
+      const tot=totalEnds(hd),all=STORIES.length*3,ho=hiddenOpen(hd);
+      const rows=STORIES.map(s=>{const lock=s.hidden&&!ho,n=storyEnds(hd,s);
+        return `<div class="hr-es"><div class="hr-es-h">${lock?'？？？':esc(s.title)}${hd.read[s.id]?'':' <i style="font-style:normal;color:var(--gd);font-size:.6rem">未読</i>'}<span>${Math.round(n/3*100)}%</span></div><div class="hr-es-bar"><i style="width:${n/3*100}%"></i></div>`+
+          ENDK.map((k,j)=>{const got=hd.ends[s.id+':'+k];return `<div class="hr-es-e${got?'':' lock'}"><em class="${'gnc'[j]}">${END_LABEL[k]}</em>${got?'「'+esc(s.ends[k])+'」':'？？？'}</div>`;}).join('')+'</div>';}).join('');
+      const o=openOv(`<div class="hr-panel"><div class="hr-ph">ENDINGS ${tot}/${all}（${Math.round(tot/all*100)}%）<button class="hr-btn sm" data-x>閉じる</button></div><div class="hr-pb">${rows}</div></div>`);
+      o.querySelector('[data-x]').onclick=closeOv;
+    }
+
+    // ── タイトル・投稿 ──
+    let titleEl=null;
+    function updTitle(){if(!titleEl)return;const tot=totalEnds(hd),all=STORIES.length*3;const eb=titleEl.querySelector('[data-end]');if(eb)eb.textContent=`エンディング一覧 ${Math.round(tot/all*100)}%`;}
+    function showTitle(){
+      phase='title';stage.classList.add('ui-off');
+      const o=document.createElement('div');o.className='hr-ov hr-title';
+      const tot=totalEnds(hd),all=STORIES.length*3;
+      const drips=[18,37,61,79].map((l,i)=>`<i class="drip" style="left:${l}%;animation-delay:${i*1.3}s"></i>`).join('');
+      o.innerHTML=`<div class="hr-logo">${drips}<div class="k1">KAIDAN STREAM</div><div class="k2">怪談配信</div><div class="k3">実録編</div><div class="k4">― リスナー投稿・実録怪談 朗読配信 ―</div></div>
+<div class="hr-menu"><div class="hr-next-s">今夜の投稿：<em>${story.hidden?'差出人のない投稿':esc(story.title)}</em>${hd.read[story.id]?'（再読）':''}</div>
+<button class="hr-btn main" data-go>▶ 配信を始める</button>
+<div class="two"><button class="hr-btn" data-end>エンディング一覧 ${Math.round(tot/all*100)}%</button><button class="hr-btn" data-cfg>⚙ 設定</button></div>
+<div class="hr-press">TAP START ・ ENTER</div></div>`;
+      o.querySelector('[data-go]').onclick=e=>{e.stopPropagation();titleGo();};
+      o.querySelector('[data-end]').onclick=e=>{e.stopPropagation();openEnds();};
+      o.querySelector('[data-cfg]').onclick=e=>{e.stopPropagation();openCfg();};
+      o.onclick=e=>e.stopPropagation();
+      stage.appendChild(o);titleEl=o;
+      mg.setScore('👻 怪談配信・実録編');mg.setTimer('STANDBY');
+    }
+    function titleGo(){if(phase!=='title'||overlay)return;se('decide');try{AU.init();}catch(e){}SFX.ambient(1,0);if(!hd.tut){openTut(()=>showLetter());return;}showLetter();}
+    function showLetter(){
+      if(titleEl){const t=titleEl;titleEl=null;t.style.transition='opacity .4s';t.style.opacity='0';later(()=>t.remove(),420);}
+      phase='letter';snd('page');
+      const o=document.createElement('div');o.className='hr-ov dim';
+      const hid=story.hidden;
+      o.innerHTML=`<div class="hr-letter${hid?' hid':''}"><div class="no">LISTENER SUBMISSION　No.${story.no}</div><div class="tt">${esc(story.title)}</div><div class="fr">${hid?'差出人：　　　　　':'差出人：'+esc(story.from)}</div><div class="bl">${esc(story.blurb)}</div><div class="st"><span>既読 ${baseStories().filter(s=>hd.read[s.id]).length}/${baseStories().length}</span><span>回収 ${storyEnds(hd,story)}/3</span></div><div class="go">▶ タップで朗読をはじめる</div></div>`;
+      o.onclick=e=>{e.stopPropagation();if(phase!=='letter')return;o.style.transition='opacity .35s';o.style.opacity='0';later(()=>o.remove(),360);beginStory();};
+      stage.appendChild(o);letterEl=o;
+    }
+    let letterEl=null;
+    function beginStory(){
+      phase='play';stage.classList.remove('ui-off');startedAt=T;ttlEl.textContent='実録怪談｜'+story.short;updScore();
+      se('live');addChat('','🔴 配信を開始しました','sys');
+      stack=[{a:story.nodes.start,i:0}];step();
+    }
+    function updScore(){mg.setScore(`📖 ${esc(story.short)}${actNo?`　<span style="color:var(--tx-d)">第${'一二三'[actNo-1]}幕</span>`:''}`);}
+    function setSkip(v){skip=v;tgEls.skip.classList.toggle('on',v);modeEl.textContent=v?'SKIP ▶▶':hd.auto?'AUTO ▶':'';}
+    function setAuto(v){hd.auto=v;tgEls.auto.classList.toggle('on',v);modeEl.textContent=skip?'SKIP ▶▶':v?'AUTO ▶':'';}
+    setAuto(hd.auto);
+
+    // ── 入力 ──
+    stage.addEventListener('click',e=>{if(e.target.closest('button'))return;if(phase==='title'){return;}if(phase==='letter')return;advance();});
+    Object.entries(tgEls).forEach(([k,b])=>b.addEventListener('click',e=>{e.stopPropagation();
+      if(k==='log'){openLog();}else if(k==='cfg'){openCfg();}
+      else if(k==='auto'){setAuto(!hd.auto);se('notif');}
+      else if(k==='skip'){setSkip(!skip);se('notif');}}));
+    mg.onKey(e=>{
+      if(e.type!=='keydown')return;const k=e.key;
+      if(k==='Escape'){if(overlay){closeOv();e.preventDefault();}return;}
+      if(overlay){if(k==='Enter'||k===' '){const x=overlay.querySelector('[data-x]');if(x)x.click();e.preventDefault();}return;}
+      if(k==='Enter'||k===' '){e.preventDefault();if(e.repeat&&phase!=='play')return;
+        if(phase==='title')titleGo();else if(phase==='letter')letterEl&&letterEl.click();else if(phase==='choice'){if(chSel>=0)pick(chSel);}else advance();return;}
+      if(/^[1-3]$/.test(k)&&phase==='choice'){pick(+k-1);return;}
+      if(phase==='choice'&&(k==='ArrowDown'||k==='ArrowUp')){e.preventDefault();const n=chList.length;sel(chSel<0?0:(chSel+(k==='ArrowDown'?1:n-1))%n);return;}
+      if(k==='a'||k==='A')tgEls.auto.click();else if(k==='s'||k==='S')tgEls.skip.click();else if(k==='l'||k==='L')tgEls.log.click();
+    });
+
+    // ── 毎フレーム ──
+    mg.every(()=>{
+      if(phase==='title'||phase==='letter')return;
+      const sec=Math.max(0,T-startedAt|0);mg.setTimer((offline?'OFF ':'LIVE ')+String(sec/60|0).padStart(2,'0')+':'+String(sec%60).padStart(2,'0'));
+      let v=18+Math.min(260,Math.round((gs.followers||0)*.12))+hype*21+Math.round(Math.sin(T*.7)*4+Math.random()*5);
+      if(S.viewers1)v=1;else if(stg()>=3&&Math.random()<.25)v=[13,30,1][Math.random()*3|0];
+      if(offline&&!S.viewers1)v=0;
+      viewEl.textContent='👁 '+v;heartEl.textContent='♥ '+(hearts+Math.round(T*.15));
+    },1000);
+    mg.loop(dt=>{
+      T+=dt;
+      // 雷
+      ltNext-=dt;if(ltNext<=0){ltNext=9+Math.random()*14;if(rainI>.4&&OUTDOOR[bg]&&phase!=='title'){lt=hd.mild?.35:.9;if(!hd.mild)later(()=>snd('thunder',.3),900+Math.random()*900);}else if(rainI>.4&&phase==='title'){lt=.6;}}
+      if(lt>0){const ph=lt;lt=Math.max(0,lt-dt*(lt>.6?1.4:2.2));if(ph>.75&&lt<=.75&&Math.random()<.6)lt=.95;}
+      rainI=lerp(rainI,rainTarget,Math.min(1,dt*.8));
+      for(const d of drops){d.y+=d.v*dt;d.x-=d.v*dt*.16;if(d.y>H){d.y=-20;d.x=Math.random()*W*1.2;}}
+      if(glT>0)glT-=dt;
+      if(stg()>=3&&!hd.mild){microT-=dt;if(microT<=0){microT=2+Math.random()*4;glT=Math.max(glT,.12);glAmp=.8;}}
+      if(faceT>0){faceT-=dt;if(faceT<=0)faceO=null;}
+      if(S.fig&&(S._figT||0)<1)S._figT=(S._figT||0)+dt*.8;
+      // 遷移・待ち
+      if(tr)tr.t+=dt*busyRate;
+      if(phase==='busy'){busyT-=dt*busyRate;if(busyT<=0){busyT=0;endBusy();}}
+      // 文字送り
+      if(phase==='play'&&line){
+        const L=line.text.length;
+        if(line.n<L){const before=line.n|0;line.n=Math.min(L,line.n+dt*CPS[hd.speed]*(skip?20:1));const now=line.n|0;
+          if(now!==before){let s=line.text.slice(0,now);if(stg()>=3&&line.type==='r'&&now<L&&Math.random()<.35)s+='▓';textEl.textContent=s;if(!skip&&line.type!=='s'&&now%4===0)snd('tick');}
+        }else if(!lineDone){lineDone=true;textEl.textContent=line.text;nextEl.classList.add('on');}
+        else{
+          if(skip){skipT+=dt;if(skipT>.08)advance();}
+          else if(hd.auto&&!overlay){autoT+=dt;if(autoT>1.1+L*.055*(hd.speed===0?1.3:1))advance();}
+        }
+      }
+      pumpChat(dt);
+      draw();
+    });
+
+    // ── 開始 ──
+    showTitle();
+
+    // テスト用フック（ゲームには影響しない）
+    body._hr={state:()=>({phase,story:story.id,hype,rei,stage:stg(),endKey,bg,line:line&&line.text,choices:phase==='choice'?chList.map(c=>c.t):null,overlay:!!overlay,offline}),
+      setStory(id){if(phase==='title'){const s=STORIES.find(x=>x.id===id);if(s){story=s;titleEl&&titleEl.remove();titleEl=null;showTitle();}}},
+      go:()=>titleGo(),letter:()=>letterEl&&letterEl.click(),adv:()=>advance(),pick:i=>{chOn=true;pick(i);},fin:()=>finishStory(),stories:STORIES.map(s=>s.id)};
+
+    function cleanup(){try{ro.disconnect();}catch(e){}SFX.stop();}
+    return {result(reason){
+      cleanup();
+      if(reason==='quit'&&endKey)reason=endKey;
+      const bar=v=>'■'.repeat(clamp(v,0,9))+'□'.repeat(9-clamp(v,0,9));
+      const tot=totalEnds(hd),all=STORIES.length*3;
+      if(reason==='quit'){
+        return {title:'👻 配信を途中で切り上げた',summary:`「${esc(story.title)}」は、途中まで読んだところで配信を閉じた。`,fx:{fatigue:2},time:20,log:null,cutin:null};
+      }
+      const head=`今夜の投稿：「${esc(story.title)}」<br>エンディング：<span class="${reason==='cursed'?'down':'up'}">${END_LABEL[reason]}「${esc(story.ends[reason])}」</span>${endNew?' NEW':''}<br>盛り上がり <span class="up">${bar(hype)}</span><br>霊障　　　 <span class="down">${bar(rei)}</span><br>エンディング回収 ${tot}/${all}`+(justUnlocked?'<br><span class="up">最終話が解放された</span>':'');
+      if(reason==='good')return {title:'👻 神回！ 実録怪談配信',summary:head,fx:{streamPop:6,followers:12,mental:-1,fatigue:6},time:60,sp:1,
+        log:`実録怪談「${story.title}」の朗読配信が神回になった。`,cutin:['win','……神回だった。投稿者さん、ありがとう。']};
+      if(reason==='cursed')return {title:'👻 ……何かを、呼んでしまった',summary:head+'<br>配信は切ったはずなのに、名前のないコメントが残っている。',fx:{followers:8,mental:-7,fatigue:8},time:60,
+        log:`実録怪談「${story.title}」を読んだ夜、名前のないコメントが部屋のことを書いていた。`,cutin:['fear','……配信、切ったよな？　まだ、コメントが流れてる。'],
+        after(){gs.factoryNetaAvail=true;gs.factoryNetaType='実録怪談の続き';}};
+      return {title:'👻 実録怪談配信 おつかれさま',summary:head,fx:{streamPop:3,followers:5,fatigue:6},time:60,
+        log:`実録怪談「${story.title}」を朗読配信した。`,cutin:null};
+    }};
+  },
+});
+})();

@@ -1398,7 +1398,7 @@ registerMinigame({
       g.drawImage(morningBg,0,0,W,H);
       drawPlateScene();
       g.fillStyle=`rgba(14,8,10,${clamp(pt/.3,0,1)*.78})`;g.fillRect(0,0,W,H);
-      const pw=Math.min(W-24,360*S),px=W/2-pw/2,py=14*S,phh=H-28*S;
+      const pw=Math.min(W-24,360*S),px=W/2-pw/2,sR=Math.min(38*S,pw*.13),sy=14*S+262*S,by3=sy+sR*2.6,py=14*S,phh=Math.min(H-28*S,by3-py+140*S);
       const k=eo(pt/.4);
       g.save();g.globalAlpha=k;g.translate(0,(1-k)*20);
       g.fillStyle='rgba(16,10,14,.95)';rr(g,px,py,pw,phh,12*S);g.fill();
@@ -1421,8 +1421,7 @@ registerMinigame({
         const gr=g.createLinearGradient(bx2,0,bx2+bw2,0);gr.addColorStop(0,'#e8903a');gr.addColorStop(1,'#ffd65a');g.fillStyle=gr;rr(g,bx2,yy-5*S,Math.max(1,bw2*v/100*bk),10*S,5*S);g.fill();
         txt(String(Math.round(v*bk)),px+pw-14*S,yy,12*S,'#fff4dc','right');});
       // 夜食とメモ
-      const sy=py+228*S;
-      const sx=px+pw*.24,sR=Math.min(38*S,pw*.13);
+      const sx=px+pw*.24;
       drawPlateDish(sx,sy+sR*.4,sR*1.25);
       drawEggSlice(sx-sR*.35,sy+sR*.3,sR*.32,.3,avg(egg.layers)||.6);
       drawOni(sx+sR*.35,sy+sR*.35,sR*.45,-.2,{p:oni.shapeP,paint:true,grill:avg(oni.cs),gloss:.6});
@@ -1430,7 +1429,6 @@ registerMinigame({
       txt('夜食：端っこと残りごはん',sx,sy+sR*1.95,10*S,'#bbaedd');
       drawNote(px+pw*.7,sy+sR*.5,pw*.48,sR*2.2,-.04,1);
       // レシピ帳
-      const by3=sy+sR*2.6;
       const total=Object.values(CK_RECIPES).reduce((s,a)=>s+a.length,0);
       const have=new Set(Object.keys(cd.book));[V.egg,V.tako,V.oni].forEach(x=>have.add(x.id));
       txt(`レシピ帳 ${have.size}/${total}`,px+16*S,by3,11.5*S,'#e8b830','left');
@@ -1441,9 +1439,9 @@ registerMinigame({
       if(r.unlockNext.length){txt('次回：'+r.unlockNext.join('・')+' が作れそう',px+16*S,by3+17*S+Math.min(2,lines.length)*14*S,10*S,'#c8b8ff','left');}
       // 立ち絵
       const face=r.grade==='great'?IMG.win:r.grade==='ok'?IMG.happy:IMG.tired;
-      if(pt>.9&&py+phh-by3>120*S){drawPortrait(px+16*S,py+phh-74*S,58*S,face);
+      if(pt>.9){const qy=by3+50*S;drawPortrait(px+16*S,qy,58*S,face);
         const sayl={great:'……花まる弁当。ふた開けた顔、見たかったわね。',ok:'……悪くないわ。また作ろう。',poor:'……ちょっと焦げた。愛情は焦げてないわよ。'}[r.grade];
-        const ls=wrap(sayl,pw-100*S,11*S);ls.forEach((l,i)=>txt(l,px+84*S,py+phh-56*S+i*15*S,11*S,'#f6e6c8','left'));}
+        const ls=wrap(sayl,pw-100*S,11*S);ls.forEach((l,i)=>txt(l,px+84*S,qy+18*S+i*15*S,11*S,'#f6e6c8','left'));}
       if(pt>.9){const al=.5+.5*Math.sin(T*4);txt('タップで片付けて寝る',W/2,py+phh-12*S,11.5*S,`rgba(232,184,48,${al})`);}
       g.restore();
     }
