@@ -184,3 +184,8 @@ const MG={
   },
 };
 ['keydown','keyup'].forEach(t=>document.addEventListener(t,e=>{if(MG._keys&&!MG._ended)MG._keys(e);}));
+// タブが裏に回ったら、ミニゲームの効果音（Web Audio）を止めて戻ったら再開する
+document.addEventListener('visibilitychange',()=>{
+  if(MG._ended||typeof AU==='undefined'||!AU.ctx)return;
+  try{document.hidden?AU.ctx.suspend():AU.ctx.resume();}catch(e){}
+});
