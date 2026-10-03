@@ -1585,12 +1585,10 @@ registerMinigame({
       // 目覚めゲージ
       const gx=VW-96,gy=44,gw=78;
       const fcx=gx-12;
-      cx.fillStyle='#e6cdd8';cx.beginPath();cx.arc(fcx,gy-2,6,0,TAU);cx.fill();
-      cx.fillStyle='#5a3a7a';cx.beginPath();cx.arc(fcx,gy-3,6.3,Math.PI*1.05,Math.PI*1.95);cx.fill();
-      cx.strokeStyle='#2a1838';cx.lineWidth=1;cx.beginPath();
-      if(woke){cx.fillStyle='#2a1838';cx.fillRect(fcx-3.5,gy-2,1.6,2);cx.fillRect(fcx+2,gy-2,1.6,2);}
-      else{cx.moveTo(fcx-4,gy-1.5);cx.quadraticCurveTo(fcx-2.5,gy,fcx-1,gy-1.5);cx.moveTo(fcx+1,gy-1.5);cx.quadraticCurveTo(fcx+2.5,gy,fcx+4,gy-1.5);cx.stroke();}
-      cx.fillStyle='rgba(232,48,85,.6)';cx.beginPath();cx.arc(fcx-4,gy+1,1.5,0,TAU);cx.arc(fcx+4,gy+1,1.5,0,TAU);cx.fill();
+      // 娘の顔アイコン（寝顔／起きちゃった）
+      const kic=KIMG[woke?'sad':'sleep'];
+      if(kic&&kic.complete&&kic.naturalWidth)cx.drawImage(kic,90,40,330,330,fcx-10,gy-13,20,20);
+      else drawKidFace(fcx,gy-4,6,woke,false,false);
       cx.fillStyle='rgba(138,82,212,.25)';cx.fillRect(gx,gy-4,gw,6);
       const wc=wake<.6?'#8a52d4':wake<.85?'#e8b830':'#e83055';
       cx.fillStyle=(wake>.85&&!woke&&Math.sin(t*12)>0)?'#ff8aa0':wc;cx.fillRect(gx,gy-4,gw*wake,6);

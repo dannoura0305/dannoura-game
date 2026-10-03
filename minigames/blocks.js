@@ -504,7 +504,7 @@ registerMinigame({
       const md=mergeData;mergeData=null;
       const fixes=new Map();
       const mult=chain;
-      md.groups.forEach(G=>{
+      md.groups.forEach((G,gi)=>{
         const n=G.cells.length,nt=G.tier+1;
         merges++;
         const pts=TP[G.tier]*n*mult;score+=pts;
@@ -517,9 +517,9 @@ registerMinigame({
         const [px,py]=cellPx(G.tx,G.ty),mx=px+cs/2,my=py+cs/2;
         for(let k=0;k<10+n*2;k++){const a=rnd(0,Math.PI*2),v=rnd(80,260);spark(mx,my,Math.cos(a)*v,Math.sin(a)*v-60,rnd(.3,.7),k%3?'#ffd27a':TC[nt],rnd(1.5,3),true);}
         if(nt===6)shipRobot(G.tx,G.ty,mult);
-        else{pop(`${NAME[nt]} 組立！`,my-cs*.3,TC[nt],nt>=4,0,mx);pop(`+${pts}`,my+cs*.45,C.txb,false,.1,mx,true);}
+        else pop(`${NAME[nt]} 組立！ +${pts}`,my-cs*.3,TC[nt],nt>=4,gi*.18,mx,false,'merge');
       });
-      if(chain>=2){const cc=['#44ee88','#00e8c8','#e8b830','#ff9ad0','#ff5a7a'][Math.min(4,chain-2)];pop(`${chain}連鎖組立！ ×${chain}`,wy+wh*.28,cc,true,.05);pulse=1;}
+      if(chain>=2){const cc=['#44ee88','#00e8c8','#e8b830','#ff9ad0','#ff5a7a'][Math.min(4,chain-2)];pop(`${chain}連鎖組立！ ×${chain}`,wy+wh*.22,cc,true,.2,null,false,'chain');pulse=1;}
       flash=Math.max(flash,.25+Math.min(.4,chain*.08));shake=Math.max(shake,2+chain*1.5);hitstop=Math.max(hitstop,.04+Math.min(.06,chain*.015));
       fixes.forEach((v,k)=>{
         const x=k%COLS,y=(k/COLS)|0,c=board[y][x];if(!c||c.t!==9)return;
@@ -527,7 +527,7 @@ registerMinigame({
         if(c.hp<=0){stamp++;c.t=1;c.hp=0;c.st=stamp;c.bump=1;fixed++;
           pop('不良品 修理完了→ネジ',py,C.gn,false,.12,px+cs/2);sfx('fix');
           for(let q=0;q<10;q++)spark(px+cs/2,py+cs/2,rnd(-140,140),rnd(-180,20),rnd(.3,.6),C.gn,2,true);}
-        else{c.bump=.6;pop(`あと${c.hp}回`,py,'#ff7a90',false,.12,px+cs/2,true);sfx('tick');}
+        else{c.bump=.6;pop(`あと${c.hp}回`,py,'#ff7a90',false,.12,px+cs/2,true,'merge');sfx('tick');}
       });
     }
     function shipRobot(x,y,mult){
@@ -536,7 +536,7 @@ registerMinigame({
       const [px,py]=cellPx(x,y);
       flyers.push({x:px,y:py,t:0});
       addLift(shipped);
-      pop('ロボット完成！ 出荷！',py,'#ff74da',true,0,px+cs/2);pop(`+${pts}`,py+cs*.9,C.gd,false,.15,px+cs/2);
+      pop(`ロボット完成！ 出荷！ +${pts}`,py,'#ff74da',true,0,px+cs/2);
       flash=.7;shake=Math.max(shake,8);sfx('ship');se('rank');
     }
     function afterResolve(){
@@ -569,10 +569,19 @@ registerMinigame({
       if(parts.length>280)parts.shift();
       parts.push({x,y,vx,vy,life,max:life,col,sz,add});
     }
-    function pop(text,y,col,big,delay,x,small){
-      // 近くに表示中の文字があれば上にずらして重ならないようにする
-      if(!small)for(let k=0;k<6;k++){if(!pops.some(p=>!p.small&&p.t<1&&Math.abs(p.y-y)<cs*.7&&Math.abs((p.x==null?wx+ww/2:p.x)-(x==null?wx+ww/2:x))<cs*3))break;y-=cs*.75;}
-      pops.push({text,y,col,big,small,x,t:-(delay||0)});if(pops.length>10)pops.shift();}
+    function pop(text,y,col,big,delay,x,small,tag){
+      // 連鎖の表示は最新の1つだけ。前の段の組立表示は早めに消して積み上がりすぎないようにする
+      if(tag==='chain')for(let i=pops.length-1;i>=0;i--){if(pops[i].tag==='chain')pops.splice(i,1);}
+      if(tag==='merge')pops.forEach(p2=>{if(p2.tag==='merge'&&p2.t>=0)p2.t=Math.max(p2.t,.8);});
+      // 表示中（待機中も含む）の文字と重なるなら、1行ぶん上へ積んで少し遅らせる
+      const lh=p2=>(p2.big?cs*.72:p2.small?cs*.4:cs*.52)*1.45,me={text,y,col,big,small,x,tag,t:-(delay||0)};
+      const px0=x==null?wx+ww/2:x;
+      for(let k=0;k<8;k++){
+        const hit=pops.find(p2=>p2.t<.9&&Math.abs((p2.x==null?wx+ww/2:p2.x)-px0)<cs*3.2&&Math.abs((p2.y-Math.max(0,p2.t)*12)-me.y)<(lh(p2)+lh(me))/2);
+        if(!hit)break;
+        me.y=hit.y-Math.max(0,hit.t)*12-(lh(hit)+lh(me))/2;me.t=Math.min(me.t,hit.t-.15);
+      }
+      pops.push(me);if(pops.length>10)pops.shift();}
     function addLift(n){
       const last=lifts[lifts.length-1];
       const delay=Math.max(.55,last?.9-last.t:0);
@@ -864,7 +873,7 @@ registerMinigame({
     function updateFx(dt){
       shake=Math.max(0,shake-dt*22);flash=Math.max(0,flash-dt*2.2);pulse=Math.max(0,pulse-dt*1.8);
       for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.life-=dt;if(p.life<=0){parts.splice(i,1);continue;}p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=380*dt;p.vx*=.985;}
-      for(let i=pops.length-1;i>=0;i--){pops[i].t+=dt;if(pops[i].t>1.5)pops.splice(i,1);}
+      for(let i=pops.length-1;i>=0;i--){pops[i].t+=dt;if(pops[i].t>1.15)pops.splice(i,1);}
       for(let i=lifts.length-1;i>=0;i--){const L=lifts[i];const pt=L.t;L.t+=dt;if(pt<.05&&L.t>=.05)sfx('beep');if(L.t>L.dur)lifts.splice(i,1);}
       for(let i=trails.length-1;i>=0;i--){trails[i].t+=dt;if(trails[i].t>.28)trails.splice(i,1);}
       for(let i=flyers.length-1;i>=0;i--){const f=flyers[i];f.t+=dt;if(f.t>.9)flyers.splice(i,1);else if(Math.random()<.6)spark(f.cx||f.x,f.cy||f.y,rnd(-40,40),rnd(-20,40),.4,'#ffe066',2,true);}
@@ -1177,17 +1186,19 @@ registerMinigame({
       cx.textAlign='center';cx.textBaseline='middle';
       for(const p of pops){
         if(p.t<0)continue;
-        const a=p.t<.12?p.t/.12:p.t>1.1?Math.max(0,(1.5-p.t)/.4):1;
-        const sc=p.t<.12?1.4-p.t/.12*.4:1;
+        const a=p.t<.12?p.t/.12:p.t>.8?Math.max(0,(1.15-p.t)/.35):1;
+        const sc=p.t<.12?1.2-p.t/.12*.2:1;
         let fs=Math.max(10,Math.round((p.big?cs*.72:p.small?cs*.4:cs*.52)*sc));
         cx.font=`${fs}px ${FONT}`;
         let tw=cx.measureText(p.text).width;
-        if(tw>W-16){fs=Math.max(9,Math.floor(fs*(W-16)/tw));cx.font=`${fs}px ${FONT}`;tw=cx.measureText(p.text).width;}
+        if(tw>ww-6){fs=Math.max(9,Math.floor(fs*(ww-6)/tw));cx.font=`${fs}px ${FONT}`;tw=cx.measureText(p.text).width;}
         cx.globalAlpha=a;
-        const x=clamp(p.x==null?wx+ww/2:p.x,tw/2+4,W-tw/2-4);
-        const y=p.y-p.t*18;
-        cx.lineWidth=4;cx.strokeStyle='rgba(5,4,14,.9)';cx.strokeText(p.text,x,y);
-        cx.shadowColor=p.col;cx.shadowBlur=p.small?0:12;cx.fillStyle=p.col;cx.fillText(p.text,x,y);cx.shadowBlur=0;
+        // 作業台（ウェル）の中に収める（入りきらない長さなら画面内）
+        const x=tw<ww-4?clamp(p.x==null?wx+ww/2:p.x,wx+tw/2+2,wx+ww-tw/2-2):clamp(p.x==null?wx+ww/2:p.x,tw/2+4,W-tw/2-4);
+        const y=clamp(p.y-p.t*12,wy+fs*.6,wy+wh-fs*.6);
+        cx.lineJoin='round';cx.lineWidth=Math.max(4,fs*.28);cx.strokeStyle='rgba(5,4,14,.95)';
+        cx.shadowColor='rgba(0,0,0,.9)';cx.shadowBlur=6;cx.shadowOffsetY=2;cx.strokeText(p.text,x,y);cx.shadowOffsetY=0;
+        cx.shadowColor=p.col;cx.shadowBlur=p.small?4:12;cx.fillStyle=p.col;cx.fillText(p.text,x,y);cx.shadowBlur=0;
       }
       cx.globalAlpha=1;
     }
