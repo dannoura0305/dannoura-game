@@ -175,9 +175,13 @@ function endingLine(type){
   let ev;try{ev=evaluate();}catch(e){return null;}
   const t=ev.traits;
   const has=k=>t.indexOf(k)>=0;
-  if(has('kept')&&has('relied'))return '約束を守れたのは、ひとりで抱えなかったからだ。';
-  if(has('kept'))return '守れた約束は、小さな灯りみたいに、まだ部屋に残っている。';
-  if(ev.counts.brokenTalked>0)return '守れなかった約束のことは、ちゃんと話した。だから、次の約束ができる。';
+  // 守れなかった約束があるなら「守れた」とは言わない（話し合えていれば、その一言）
+  if(ev.counts.broken>0){
+    if(ev.counts.brokenTalked>0)return '守れなかった約束のことは、ちゃんと話した。だから、次の約束ができる。';
+  }else{
+    if(has('kept')&&has('relied'))return '約束を守れたのは、ひとりで抱えなかったからだ。';
+    if(has('kept'))return '守れた約束は、小さな灯りみたいに、まだ部屋に残っている。';
+  }
   if(has('relied')&&has('rested'))return '頼ることも、眠ることも、もう負けだとは思わない。';
   if(has('relied'))return '頼ってもいいのだと、ようやく覚えた。';
   if(has('rested'))return '眠ることを、もう負けだとは思わない。';

@@ -48,6 +48,36 @@
 - 壁掛け（`memento.child_drawing`）は y=0 の行の上、`py-29`〜`py-8`ドットの範囲（壁帯）に描かれる。壁帯は行0の真上に `1.5T` 以上で描く想定。
 - `opts.t` は秒（1e5 を超える値はミリ秒とみなして1000で割る）。
 
+## 1b. 家・庭（フェーズ2 追加、`main/home/sprites.js`・すべてコード描画）
+
+### アイテム（12）＋種（3）
+| id | 大きさ | 回転 / variant | 状態 | 備考 |
+|---|---|---|---|---|
+| furniture.toy_box | 1×1 | 0 | verified | ボール・積み木・アヒル、星のシール |
+| furniture.kid_desk | 1×1 | 0,90,180,270 | verified | 画用紙とクレヨン。90 は 270 の反転 |
+| furniture.old_radio | 1×1 | 0 | verified | 台にのった木箱のラジオ |
+| memento.toolbox | 1×1 | 0 | verified | 赤い工具箱、緑の名札 |
+| memento.recital_photo | 1×1（壁） | 0 | verified | 舞台の娘の写真 |
+| deco.wind_chime | 1×1（壁） | 0 | verified | ガラスの風鈴、短冊が揺れる2コマ |
+| deco.sea_mobile | 1×1（壁） | 0 | verified | 魚・貝・星が揺れる2コマ |
+| garden.nameplate | 1×1 | 0 | verified | 屋根つきの表札 |
+| garden.clothesline | 3×1 | 0,90 | verified | 洗濯物3枚 |
+| light.string_lights | 2×1（非solid） | 0,90 / lit | verified | 電球ごとの小さなグロー |
+| garden.planter | 2×1 | 0,90 ＋ plant | verified | species ごとに2〜3株 |
+| garden.watering_can | 1×1（非solid） | 0 | verified | ブリキ |
+| seed.morning_glory / sunflower / herb | アイコンのみ | — | verified | 種の袋（置けない） |
+
+### 植物・人物・ポーズ
+| id | 種類 | 状態 | 備考 |
+|---|---|---|---|
+| plant species | 植物 0–4 | verified | seed（娘の花）／morning_glory（支柱とつる・青紫のラッパ形）／sunflower（背が高い）／herb（茂み） |
+| char.chiyo | キャラ | verified | 4方向 × stand / walk(4) / sit。銀髪のお団子・かんざし・金縁メガネ・えんじのカーディガン |
+| char.hancho | キャラ | verified | 4方向 × stand / walk(4) / sit。黄色いヘルメット・紺の作業着 |
+| char.cat | キャラ | verified | 三毛猫。4方向 × stand / walk(2) / sit / sleep（丸くなる）。アイコン `icon('char.cat')` |
+| kid: sleep / read | ポーズ | verified | sleep は布団の左上に重ねる（縦・横）、Zz 2コマ |
+| dan: work / hold | ポーズ | verified | 机で作業（2コマ）、眠る娘を抱いて座る |
+| wall.room（昼） | 壁帯 | verified | `drawWall(...,{night:false})` で青空の窓 |
+
 ## 2. 既存素材（フェーズ3 統一のための棚卸し）
 
 ### 画像ファイル `assets/img/`

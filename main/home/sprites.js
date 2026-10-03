@@ -144,12 +144,13 @@ function drawTile(ctx,tileId,px,py,T,gx,gy){
 }
 
 // ───────── 壁（部屋の奥の帯） ─────────
-function wallArt(aw,ah){
+function wallArt(aw,ah,day){
   const c=mk(aw,ah),x=c.getContext('2d');
-  // 壁紙：くすんだ藤色にうすい縦縞
-  R(x,'#7c6f9a',0,0,aw,ah);
-  for(let i=0;i<aw;i+=8){R(x,'#75688f',i,0,1,ah);R(x,'#8578a2',i+4,0,1,ah);}
-  for(let i=0;i<aw;i+=8)for(let j=6;j<ah-6;j+=8)R(x,'#8f82ac',i+4,j,1,1);
+  // 壁紙：くすんだ藤色にうすい縦縞（昼は明るい藤色）
+  const WP=day?['#a89cc4','#a194bc','#b1a6cc','#bcb2d4']:['#7c6f9a','#75688f','#8578a2','#8f82ac'];
+  R(x,WP[0],0,0,aw,ah);
+  for(let i=0;i<aw;i+=8){R(x,WP[1],i,0,1,ah);R(x,WP[2],i+4,0,1,ah);}
+  for(let i=0;i<aw;i+=8)for(let j=6;j<ah-6;j+=8)R(x,WP[3],i+4,j,1,1);
   // 天井際の陰
   R(x,'#4a3f66',0,0,aw,2);R(x,'#5e5280',0,2,aw,1);R(x,'#6c608c',0,3,aw,1);
   // 幅木
@@ -160,19 +161,25 @@ function wallArt(aw,ah){
     const ww=Math.min(54,Math.max(30,Math.round(aw*0.28)))&~1, wh=Math.min(ah-12,30);
     const wx=Math.round((aw-ww)/2), wy=Math.max(4,Math.round((bb-wh)/2)-1);
     // 窓からのアンバー（部屋の灯りの照り返し）
-    for(let k=3;k>=1;k--){x.fillStyle='rgba(255,196,120,'+(0.05*k)+')';x.fillRect(wx-4*k,wy-2*k,ww+8*k,wh+4*k+2);}
+    for(let k=3;k>=1;k--){x.fillStyle=(day?'rgba(255,250,220,':'rgba(255,196,120,')+(0.05*k)+')';x.fillRect(wx-4*k,wy-2*k,ww+8*k,wh+4*k+2);}
     O(x,wx-2,wy-2,ww+4,wh+4,'#e6d6bc');R(x,'#fff2da',wx-1,wy-1,ww+2,1);R(x,'#c4ae8c',wx-1,wy+wh,ww+2,1);
     R(x,OL,wx,wy,ww,wh);
     // 夜空（段階）
-    const bands=[C.ny4,C.ny3,C.ny2,C.ny1];
+    const bands=day?['#8ec8f0','#a4d4f4','#bce0f6','#d4ecf8']:[C.ny4,C.ny3,C.ny2,C.ny1];
     for(let j=0;j<wh-2;j++){R(x,bands[Math.min(3,Math.floor(j/(wh-2)*4))],wx+1,wy+1+j,ww-2,1);}
-    srand(42);for(let k=0;k<Math.floor(ww*wh/50);k++){const sx=wx+2+Math.floor(rnd()*(ww-4)),sy=wy+2+Math.floor(rnd()*(wh*0.6));R(x,rnd()<0.3?'#ffffff':'#fff4c8',sx,sy);}
-    // 三日月
-    const mx=wx+ww-9,my=wy+4;ell(x,mx,my,3,3,'#fff1b8');ell(x,mx+2,my-1,3,3,C.ny4);
-    // 遠くの家並み（窓にアンバーの灯り）
     const hy=wy+wh-1;
-    for(let i=1;i<ww-1;i++){const hh=3+Math.floor(hash(i>>2,5,6)*5)+((i>>2)%3===0?2:0);R(x,'#141028',wx+i,hy-hh,1,hh);}
-    for(let i=3;i<ww-3;i+=4){if(hash(i,3,7)<0.55)R(x,C.am2,wx+i,hy-3,1,1);}
+    if(day){
+      // 昼：白い雲と、明るい家並み
+      srand(7);for(let k=0;k<3;k++){const cx0=wx+3+Math.floor(rnd()*(ww-12)),cy0=wy+3+Math.floor(rnd()*(wh*0.35));ell(x,cx0+3,cy0+1,3,1,'#ffffff');ell(x,cx0+6,cy0,2,1,'#ffffff');R(x,'#e4f0f8',cx0+1,cy0+2,7,1);}
+      for(let i=1;i<ww-1;i++){const hh=3+Math.floor(hash(i>>2,5,6)*5)+((i>>2)%3===0?2:0);R(x,(i>>2)%2?'#9aa0c0':'#aab0cc',wx+i,hy-hh,1,hh);R(x,'#c8cce0',wx+i,hy-hh,1,1);}
+    }else{
+      srand(42);for(let k=0;k<Math.floor(ww*wh/50);k++){const sx=wx+2+Math.floor(rnd()*(ww-4)),sy=wy+2+Math.floor(rnd()*(wh*0.6));R(x,rnd()<0.3?'#ffffff':'#fff4c8',sx,sy);}
+      // 三日月
+      const mx=wx+ww-9,my=wy+4;ell(x,mx,my,3,3,'#fff1b8');ell(x,mx+2,my-1,3,3,C.ny4);
+      // 遠くの家並み（窓にアンバーの灯り）
+      for(let i=1;i<ww-1;i++){const hh=3+Math.floor(hash(i>>2,5,6)*5)+((i>>2)%3===0?2:0);R(x,'#141028',wx+i,hy-hh,1,hh);}
+      for(let i=3;i<ww-3;i+=4){if(hash(i,3,7)<0.55)R(x,C.am2,wx+i,hy-3,1,1);}
+    }
     // 桟
     R(x,'#e6d6bc',wx+ww/2-1,wy+1,2,wh-1);R(x,'#c4ae8c',wx+ww/2,wy+1,1,wh-1);
     R(x,'#e6d6bc',wx+1,wy+Math.round(wh*0.45),ww-2,1);
@@ -190,7 +197,7 @@ function wallArt(aw,ah){
     R(x,'#3a2e3a',wx-12,wy-6,ww+24,2);R(x,OL,wx-12,wy-4,ww+24,1);
   }
   // 壁の灯り（左右の小さな壁灯）
-  if(aw>=120&&ah>=22){
+  if(aw>=120&&ah>=22&&!day){
     for(const fx of[Math.round(aw*0.14),Math.round(aw*0.86)]){
       const fy=Math.round(bb*0.38);
       for(let k=4;k>=1;k--){x.fillStyle='rgba(255,190,110,'+(0.045*k)+')';x.fillRect(fx-3*k-1,fy-2*k,6*k+3,4*k+3);}
@@ -199,11 +206,13 @@ function wallArt(aw,ah){
   }
   return c;
 }
-function drawWall(ctx,px,py,w,h,T){
+// opts.night：false なら昼の窓（青空・雲・明るい壁紙・壁灯は消灯）。省略時は夜（フェーズ1と同じ）
+function drawWall(ctx,px,py,w,h,T,opts){
   try{
     const s=scaleOf(T),aw=Math.max(1,Math.round(w/s)),ah=Math.max(1,Math.round(h/s));
-    const key='w|'+aw+'|'+ah;let img=cache.get(key);
-    if(!img){img=wallArt(aw,ah);cache.set(key,img);}
+    const day=!!(opts&&opts.night===false);
+    const key='w|'+aw+'|'+ah+'|'+(day?'d':'n');let img=cache.get(key);
+    if(!img){img=wallArt(aw,ah,day);cache.set(key,img);}
     const sm=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=false;
     ctx.drawImage(img,Math.round(px),Math.round(py),Math.round(w),Math.round(h));
     ctx.imageSmoothingEnabled=sm;
@@ -1530,6 +1539,12 @@ function charArt(who,dir,frame,pose){
 function drawChar(ctx,who,dir,frame,px,py,T,pose){
   try{
     const s=scaleOf(T);
+    if(who==='cat'){
+      dir=(dir==='up'||dir==='left'||dir==='right')?dir:'down';
+      pose=(pose==='walk'||pose==='sit'||pose==='sleep')?pose:'stand';
+      const key='cat|'+dir+'|'+(frame&1)+'|'+pose;let img=cache.get(key);if(!img){img=catArt(dir,frame|0,pose);cache.set(key,img);}
+      blit(ctx,img,px,py+(U-img.height)*s,s);return;
+    }
     who=CHARS[who]?who:'dan';
     dir=(dir==='up'||dir==='left'||dir==='right')?dir:'down';
     pose=(pose==='walk'||SEATED[pose]||pose==='sleep')?pose:'stand';
@@ -1544,6 +1559,61 @@ function drawChar(ctx,who,dir,frame,px,py,T,pose){
   }catch(e){}
 }
 
+
+// ── 家のねこ（三毛猫：白地に茶と黒のぶち。目は黄緑、耳の内側はピンク＝ステルスのねこと同じ） ──
+const CAT_C={w:'#fbf6ee',W:'#ddd2c4',o:'#f0a050',O:'#c87030',b:'#3a2a36',B:'#5a4a56',e:'#d8ec60',p:'#f5a0b0',n:'#e87a90'};
+function catArt(dir,frame,pose){
+  const t=mk(16,14),x=t.getContext('2d'),K=CAT_C;
+  const f=frame&1;
+  if(pose==='sleep'){
+    // 丸くなって眠る（しっぽで体を包む）
+    ell(x,8,9,6,3.6,K.w);ell(x,6,8,3,2,K.o);ell(x,10,7,2,1.4,K.b);
+    ell(x,12,9,2.6,2.4,K.w);R(x,K.o,11,7,2,1);R(x,K.b,13,7,1,1);
+    R(x,K.o,10,6,1,1);R(x,K.b,14,6,1,1);                  // 耳
+    R(x,'#8a7a80',12,9,2,1);                              // 閉じた目
+    for(let i=2;i<12;i++)R(x,i>9?K.b:K.O,i,12-(i<4?1:0),1,1);  // しっぽ
+    R(x,K.W,4,11,7,1);
+    if(f)R(x,K.W,6,6,3,1);                                // 寝息でふくらむ
+    const o=outlined(t);const c=mk(16,14),cx=c.getContext('2d');ell(cx,8,12,6,1.2,SH);cx.drawImage(o,0,0);return c;
+  }
+  const side=dir==='left'||dir==='right';
+  if(side){
+    if(pose==='sit'){
+      ell(x,7,9,3.5,3.5,K.w);ell(x,6,8,2,2,K.o);R(x,K.W,8,11,3,1);
+      R(x,K.w,8,10,1,3);R(x,K.w,10,10,1,3);                // 前足
+      for(let i=1;i<7;i++)R(x,i<3?K.b:K.o,i,12,1,1);R(x,K.b,1,11,1,1);   // しっぽ
+      ell(x,9,4,3,2.6,K.w);R(x,K.o,7,3,2,2);R(x,K.b,10,2,1,1);
+      R(x,K.o,7,1,1,2);R(x,K.b,11,1,1,2);R(x,K.p,7,2,1,1);
+      R(x,K.e,10,4,1,1);R(x,K.n,12,5,1,1);
+    }else{
+      const lg=pose==='walk'?(f?1:-1):0;
+      ell(x,7,8,5,2.6,K.w);ell(x,5,7,2.2,1.6,K.o);ell(x,9,7,1.6,1,K.b);R(x,K.W,4,10,7,1);
+      R(x,K.w,3+lg,10,1,3);R(x,K.w,5-lg,10,1,3);R(x,K.w,9+lg,10,1,3);R(x,K.w,11-lg,10,1,3);
+      // しっぽ（ゆらゆら）
+      R(x,K.o,2,7,1,1);R(x,K.o,1,6,1,1);R(x,K.O,1,5,1,1);R(x,K.b,1+(f?1:0),4,1,1);R(x,K.b,1+(f?1:0),3,1,1);
+      ell(x,12,5,2.6,2.4,K.w);R(x,K.o,10,4,2,2);R(x,K.b,13,3,1,1);
+      R(x,K.o,10,2,1,2);R(x,K.b,13,2,1,2);R(x,K.p,10,3,1,1);
+      R(x,K.e,13,5,1,1);R(x,K.n,15,6,1,1);
+    }
+  }else if(dir==='up'){
+    ell(x,8,9,4,3,K.w);ell(x,6,8,2,2,K.o);ell(x,10,10,1.6,1.2,K.b);
+    if(pose!=='sit'){const lg=pose==='walk'?(f?1:0):0;R(x,K.w,5,11+lg,1,2-lg);R(x,K.w,10,11+(1-lg),1,1+lg);}
+    for(let j=4;j<9;j++)R(x,j<6?K.b:K.o,12+(j<6&&f?1:0),j,1,1);   // 立てたしっぽ
+    ell(x,8,4,3.4,2.6,K.w);R(x,K.o,5,3,3,2);R(x,K.b,10,3,1,2);
+    R(x,K.o,5,1,1,2);R(x,K.b,11,1,1,2);
+  }else{
+    ell(x,8,9,3.6,3,K.w);R(x,K.W,6,11,5,1);ell(x,10,9,1.4,1.4,K.o);
+    if(pose==='sit'){R(x,K.w,6,10,1,3);R(x,K.w,9,10,1,3);for(let i=10;i<14;i++)R(x,i>12?K.b:K.o,i,12,1,1);}
+    else{const lg=pose==='walk'?(f?1:0):0;R(x,K.w,6,10+lg,1,3-lg);R(x,K.w,9,11-lg,1,2+lg);R(x,K.o,12,7,1,4);R(x,K.b,13,6,1,2);}
+    ell(x,8,5,3.6,2.8,K.w);R(x,K.o,5,3,3,2);R(x,K.b,10,3,2,1);
+    R(x,K.o,5,1,1,2);R(x,K.b,11,1,1,2);R(x,K.p,5,2,1,1);R(x,K.p,11,2,1,1);
+    R(x,K.e,6,5,1,1);R(x,K.e,10,5,1,1);R(x,OL,6,5,1,1);R(x,OL,10,5,1,1);R(x,K.e,6,4,1,1);R(x,K.e,10,4,1,1);
+    R(x,K.n,8,6,1,1);
+  }
+  const o=outlined(t);
+  const c=mk(16,14),cx=c.getContext('2d');ell(cx,8,13,5,1,SH);cx.drawImage(o,0,0);
+  return dir==='left'?flipC(c):c;
+}
 // ───────── アイコン ─────────
 function contentBox(c){
   const w=c.width,h=c.height,d=c.getContext('2d').getImageData(0,0,w,h).data;
@@ -1575,6 +1645,7 @@ function icon(itemId,variant){
     const def=ITEMS[itemId];
     let art;
     if(!def&&/^seed\./.test(itemId))art=seedPacket(itemId.slice(5));
+    else if(itemId==='char.cat')art=catArt('down',0,'sit');
     else if(!def)art=qbox(1,1);
     else{
       let v=variant||'default';if(def.variants&&def.variants.indexOf(v)<0)v=def.variants[0];if(!def.variants)v='default';
@@ -1813,7 +1884,7 @@ window.HOME_ART={
   TILE:32, ART_TILE:U,
   drawTile, drawWall, drawItem, drawChar, icon, uiIcon,
   items, uiNames:Object.keys(UI).concat('rotate'),
-  chars:Object.keys(CHARS), poses:['stand','walk','sit','read','work','hold','sleep'],
+  chars:Object.keys(CHARS).concat('cat'), poses:['stand','walk','sit','read','work','hold','sleep'],
   plantSpecies:['seed','morning_glory','sunflower','herb'],
   palette:C,
   clearCache(){cache.clear();}

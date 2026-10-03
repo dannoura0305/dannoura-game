@@ -1,0 +1,264 @@
+{
+ "version": 2,
+ "inventory": {
+  "furniture.futon": {
+   "default": 1
+  },
+  "furniture.bookshelf": {
+   "default": 1
+  },
+  "furniture.desk_small": {
+   "default": 1
+  },
+  "furniture.wood_chair": {
+   "default": 2
+  },
+  "light.desk_lamp": {
+   "default": 1
+  },
+  "deco.rug": {
+   "default": 1
+  },
+  "furniture.low_table": {
+   "default": 1
+  },
+  "memento.bear": {
+   "default": 1
+  },
+  "garden.small_tree": {
+   "default": 1
+  },
+  "garden.fence": {
+   "default": 6
+  },
+  "garden.stepping_stone": {
+   "default": 6
+  },
+  "furniture.cushion": {
+   "default": 2
+  },
+  "garden.bench": {
+   "default": 1
+  },
+  "furniture.toy_box": {
+   "default": 1
+  },
+  "garden.watering_can": {
+   "default": 1
+  }
+ },
+ "materials": {
+  "wood": 4,
+  "cloth": 2,
+  "metal": 2,
+  "sea": 0
+ },
+ "unlockedRecipes": [
+  "repaired_shelf",
+  "cushion",
+  "flowerbed",
+  "fence",
+  "sea_glass",
+  "kid_desk",
+  "planter",
+  "clothesline",
+  "string_lights"
+ ],
+ "room": {
+  "width": 12,
+  "height": 8,
+  "floorId": "floor.wood",
+  "placements": [
+   {
+    "instanceId": "p1",
+    "itemId": "furniture.futon",
+    "x": 0,
+    "y": 1,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "furniture"
+   },
+   {
+    "instanceId": "p2",
+    "itemId": "furniture.bookshelf",
+    "x": 3,
+    "y": 0,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "furniture"
+   },
+   {
+    "instanceId": "p3",
+    "itemId": "furniture.desk_small",
+    "x": 9,
+    "y": 0,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "furniture"
+   },
+   {
+    "instanceId": "p4",
+    "itemId": "furniture.wood_chair",
+    "x": 11,
+    "y": 2,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "furniture"
+   },
+   {
+    "instanceId": "p5",
+    "itemId": "light.desk_lamp",
+    "x": 11,
+    "y": 0,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "furniture"
+   },
+   {
+    "instanceId": "p6",
+    "itemId": "deco.rug",
+    "x": 4,
+    "y": 3,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "rug"
+   },
+   {
+    "instanceId": "p7",
+    "itemId": "furniture.low_table",
+    "x": 5,
+    "y": 3,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "furniture"
+   },
+   {
+    "instanceId": "p8",
+    "itemId": "memento.bear",
+    "x": 0,
+    "y": 4,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "furniture"
+   }
+  ]
+ },
+ "garden": {
+  "width": 16,
+  "height": 12,
+  "groundId": "ground.grass",
+  "placements": [
+   {
+    "instanceId": "p9",
+    "itemId": "garden.small_tree",
+    "x": 12,
+    "y": 3,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "furniture"
+   },
+   {
+    "instanceId": "p10",
+    "itemId": "garden.fence",
+    "x": 10,
+    "y": 8,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "furniture"
+   },
+   {
+    "instanceId": "p11",
+    "itemId": "garden.fence",
+    "x": 11,
+    "y": 8,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "furniture"
+   },
+   {
+    "instanceId": "p12",
+    "itemId": "garden.fence",
+    "x": 12,
+    "y": 8,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "furniture"
+   },
+   {
+    "instanceId": "p13",
+    "itemId": "garden.fence",
+    "x": 13,
+    "y": 8,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "furniture"
+   },
+   {
+    "instanceId": "p14",
+    "itemId": "garden.fence",
+    "x": 14,
+    "y": 8,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "furniture"
+   },
+   {
+    "instanceId": "p15",
+    "itemId": "garden.fence",
+    "x": 15,
+    "y": 8,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "furniture"
+   },
+   {
+    "instanceId": "p16",
+    "itemId": "garden.stepping_stone",
+    "x": 7,
+    "y": 1,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "path"
+   },
+   {
+    "instanceId": "p17",
+    "itemId": "garden.stepping_stone",
+    "x": 7,
+    "y": 2,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "path"
+   },
+   {
+    "instanceId": "p18",
+    "itemId": "garden.stepping_stone",
+    "x": 6,
+    "y": 3,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "path"
+   },
+   {
+    "instanceId": "p19",
+    "itemId": "garden.stepping_stone",
+    "x": 5,
+    "y": 4,
+    "rotation": 0,
+    "variant": "default",
+    "layer": "path"
+   }
+  ]
+ },
+ "plants": {},
+ "events": {},
+ "memories": [],
+ "appliedRewards": {},
+ "flags": {
+  "repairedShelf": false,
+  "lit": {},
+  "v2Items": true
+ },
+ "seq": 20,
+ "bonds": {},
+ "life": {}
+}

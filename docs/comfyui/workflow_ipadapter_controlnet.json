@@ -1,0 +1,96 @@
+{
+  "4": {
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": { "title": "Checkpoint (PLACEHOLDER)" },
+    "inputs": { "ckpt_name": "YOUR_ANIME_SDXL_CHECKPOINT.safetensors" }
+  },
+  "20": {
+    "class_type": "LoadImage",
+    "_meta": { "title": "Reference image for IPAdapter (PLACEHOLDER: ComfyUI/input/ に char_normal.png などを置く)" },
+    "inputs": { "image": "ref_char_normal.png", "upload": "image" }
+  },
+  "21": {
+    "class_type": "IPAdapterUnifiedLoader",
+    "_meta": { "title": "IPAdapter Unified Loader (要 custom node: ComfyUI_IPAdapter_plus)" },
+    "inputs": { "preset": "PLUS (high strength)", "model": ["4", 0] }
+  },
+  "22": {
+    "class_type": "IPAdapterAdvanced",
+    "_meta": { "title": "IPAdapter Advanced (weight 0.6-0.8 = 同一キャラ / 0.3-0.5 = 雰囲気だけ)" },
+    "inputs": {
+      "weight": 0.7,
+      "weight_type": "linear",
+      "combine_embeds": "concat",
+      "start_at": 0.0,
+      "end_at": 1.0,
+      "embeds_scaling": "V only",
+      "model": ["21", 0],
+      "ipadapter": ["21", 1],
+      "image": ["20", 0]
+    }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Positive (PLACEHOLDER)" },
+    "inputs": { "text": "POSITIVE_PROMPT_HERE", "clip": ["4", 1] }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Negative (PLACEHOLDER)" },
+    "inputs": { "text": "NEGATIVE_PROMPT_HERE", "clip": ["4", 1] }
+  },
+  "30": {
+    "class_type": "LoadImage",
+    "_meta": { "title": "ControlNet hint image (PLACEHOLDER: 前処理済みの lineart / depth / openpose 画像)" },
+    "inputs": { "image": "hint_lineart.png", "upload": "image" }
+  },
+  "31": {
+    "class_type": "ControlNetLoader",
+    "_meta": { "title": "ControlNet model (PLACEHOLDER: SDXL 用の lineart / depth / openpose / union)" },
+    "inputs": { "control_net_name": "YOUR_SDXL_CONTROLNET.safetensors" }
+  },
+  "32": {
+    "class_type": "ControlNetApplyAdvanced",
+    "_meta": { "title": "Apply ControlNet (strength 0.5-0.8, end 0.6-0.8)" },
+    "inputs": {
+      "strength": 0.6,
+      "start_percent": 0.0,
+      "end_percent": 0.7,
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "control_net": ["31", 0],
+      "image": ["30", 0]
+    }
+  },
+  "5": {
+    "class_type": "EmptyLatentImage",
+    "_meta": { "title": "Latent" },
+    "inputs": { "width": 1024, "height": 1024, "batch_size": 4 }
+  },
+  "3": {
+    "class_type": "KSampler",
+    "_meta": { "title": "KSampler (PLACEHOLDER: seed)" },
+    "inputs": {
+      "seed": 110101,
+      "steps": 28,
+      "cfg": 6.0,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "normal",
+      "denoise": 1.0,
+      "model": ["22", 0],
+      "positive": ["32", 0],
+      "negative": ["32", 1],
+      "latent_image": ["5", 0]
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "_meta": { "title": "VAE Decode" },
+    "inputs": { "samples": ["3", 0], "vae": ["4", 2] }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "_meta": { "title": "Save (PLACEHOLDER: filename_prefix)" },
+    "inputs": { "filename_prefix": "dannoura/P1/portrait_dan_happy", "images": ["8", 0] }
+  }
+}

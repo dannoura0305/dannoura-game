@@ -203,7 +203,7 @@ function dlgKey(e){
 const S={
   open:false,el:null,cv:null,ctx:null,area:'room',mode:'live',T:32,k:1,scale:1,raf:0,last:0,t:0,
   chars:null,sel:null,msg:'',ed:null,craftOpen:false,busy:false,offs:[],kidTimer:2,crafting:false,
-  visitor:null,visitorReq:null,kidAct:{key:'wander'},lastAct:'',sleepCheck:0,
+  visitor:null,visitorReq:null,kidAct:{key:'wander'},catAct:{key:'sit'},catTimer:2,lastAct:'',sleepCheck:0,
   ui:HOME.ui,sfx,
 };
 S.refresh=()=>refresh();
@@ -307,11 +307,18 @@ function placeChars(){
   };
   S.kidTimer=2+Math.random()*2;
   S.kidAct={key:'wander'};
+  // ねこ（三毛猫）：保存しない。開くたびに近くのどこかにいる
+  const cs=HOME.standCell(a,placements(a),a==='room'?2+Math.floor(Math.random()*8):3+Math.floor(Math.random()*10),a==='room'?3+Math.floor(Math.random()*3):4+Math.floor(Math.random()*6),[d,k])||{x:1,y:1};
+  S.chars.cat={who:'cat',x:cs.x,y:cs.y,dir:Math.random()<.5?'left':'right',pose:'sit',path:[],moving:false,zb:.1};
+  S.catAct={key:'sit'};S.catTimer=2+Math.random()*3;
   syncSleep(true);
   placeVisitor();
 }
 function fixChars(){
   if(!S.chars)return;
+  {const c=S.chars.cat;if(c){c.path=[];c.moving=false;c.onArrive=null;
+    if(!c.on&&solidAt(S.area,Math.round(c.x),Math.round(c.y))||c.on&&!placements(S.area).some(P=>P.instanceId===c.on)){const f=HOME.standCell(S.area,placements(S.area),c.x,c.y,occupied('cat'));if(f){c.x=f.x;c.y=f.y;}c.on=null;c.pose='sit';c.zb=.1;}
+    S.catAct={key:c.pose==='sleep'?'nap':'sit'};S.catTimer=1;}}
   ['dan','kid'].forEach(w=>{
     const c=S.chars[w];c.path=[];c.moving=false;
     if(w==='kid'&&(S.kidAct.key==='sleep'||S.kidAct.key==='held'))return;   // 眠っている娘は動かさない
@@ -341,10 +348,10 @@ function face(c,tx,ty){
 }
 function updateChars(dt){
   if(!S.chars)return;
-  ['dan','kid'].forEach(w=>{
-    const c=S.chars[w];
+  ['dan','kid','cat'].forEach(w=>{
+    const c=S.chars[w];if(!c)return;
     if(c.path&&c.path.length){
-      const n=c.path[0],sp=(w==='kid'?3:3.6)*dt;
+      const n=c.path[0],sp=(w==='kid'?3:w==='cat'?1.7:3.6)*dt;
       const dx=n.x-c.x,dy=n.y-c.y,d=Math.hypot(dx,dy);
       if(d>0.001)c.dir=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
       if(d<=sp){c.x=n.x;c.y=n.y;c.path.shift();}else{c.x+=dx/d*sp;c.y+=dy/d*sp;}
@@ -360,6 +367,73 @@ function updateChars(dt){
     S.sleepCheck-=dt;
     if(S.sleepCheck<=0){S.sleepCheck=1;syncSleep(false);}
     updateKid(dt);
+    updateCat(dt);
+  }
+  if(S.chars.cat)S.chars.cat.frame=S.chars.cat.pose==='sleep'?Math.floor(S.t/1.6)%2:undefined;
+}
+
+/* ── ねこ：ゆっくり歩き、クッション・ラグ・布団・ベンチ・庭の日なたで昼寝する。solid なマスは歩かない ── */
+function catHopOff(c){
+  if(!c.on)return;
+  const f=HOME.standCell(S.area,placements(S.area),c.x,c.y,occupied('cat'));
+  if(f){c.x=f.x;c.y=f.y;}
+  c.on=null;c.zb=.1;
+}
+function catGoNap(c,spot){
+  // 家具の上なら、そばの立てるマスまで歩いてから飛び乗る
+  const to=spot.on?HOME.standCell(S.area,placements(S.area),spot.x,spot.y,occupied('cat')):{x:spot.x,y:spot.y};
+  if(!to)return false;
+  catHopOff(c);
+  const p=pathTo(S.area,{x:c.x,y:c.y},to);if(!p)return false;
+  c.pose='stand';c.path=p;S.catAct={key:'going'};
+  const arrive=()=>{
+    if(spot.on){
+      const P=placements(S.area).find(q=>q.instanceId===spot.on);if(!P){S.catAct={key:'sit'};c.pose='sit';S.catTimer=2;return;}
+      const f=HOME.footprint(P.itemId,P.rotation);
+      face(c,spot.x,spot.y);c.x=spot.x;c.y=spot.y;c.on=spot.on;c.zb=(P.y+f.h-1-spot.y)+.12;
+    }
+    c.pose='sleep';S.catAct={key:'nap',kind:spot.kind,night:S.catAct.night};S.catTimer=14+Math.random()*12;
+  };
+  if(!p.length)arrive();else c.onArrive=arrive;
+  return true;
+}
+function updateCat(dt){
+  const c=S.chars.cat;if(!c||c.moving)return;
+  if(S.catAct.key==='going'&&!(c.path&&c.path.length)){c.onArrive=null;S.catAct={key:'sit'};c.pose='sit';S.catTimer=2;}
+  // 夜：娘が寝ていたら、布団の足もとで丸くなる
+  if(S.kidAct.key==='sleep'||S.kidAct.key==='held'){
+    if(S.catAct.night)return;
+    let ok=false;
+    if(S.kidAct.key==='sleep'){
+      const fut=placements(S.area).find(P=>P.instanceId===S.kidAct.id);
+      const spot=fut&&HOME.catSpots(S.area,[fut]).find(s=>s.kind==='futon');
+      if(spot)ok=catGoNap(c,spot);
+    }else{
+      const d=S.chars.dan,f=HOME.standCell(S.area,placements(S.area),d.x+1,d.y,occupied('cat'));
+      if(f)ok=catGoNap(c,{x:f.x,y:f.y,on:null,kind:'dan'});
+    }
+    S.catAct.night=true;
+    if(!ok){c.pose='sleep';S.catAct={key:'nap',night:true};}
+    return;
+  }
+  if(S.catAct.night){S.catAct={key:'sit'};S.catTimer=0;}
+  S.catTimer-=dt;if(S.catTimer>0)return;
+  const r=Math.random();
+  if(r<.45){
+    const occ=occupied('cat');
+    const spots=HOME.catSpots(S.area,placements(S.area),{night:isNight()}).filter(s=>!isOcc(occ,s.x,s.y));
+    if(spots.length&&catGoNap(c,spots[Math.floor(Math.random()*spots.length)]))return;
+  }
+  catHopOff(c);
+  if(r<.7){c.pose='sit';S.catAct={key:'sit'};S.catTimer=5+Math.random()*4;return;}
+  // ゆっくり2〜3マス歩く
+  c.pose='stand';S.catAct={key:'walk'};S.catTimer=3+Math.random()*3;
+  const A=HOME.AREAS[S.area],occ=occupied('cat');
+  for(let tries=0;tries<12;tries++){
+    const tx=Math.round(c.x)+Math.floor(Math.random()*5)-2,ty=Math.round(c.y)+Math.floor(Math.random()*5)-2;
+    if(tx<0||ty<0||tx>=A.w||ty>=A.h||isOcc(occ,tx,ty)||HOME._isExit(S.area,tx,ty))continue;
+    const p=pathTo(S.area,{x:c.x,y:c.y},{x:tx,y:ty});
+    if(p&&p.length&&p.length<=4){c.path=p;c.onArrive=()=>{c.pose='sit';};break;}
   }
 }
 
@@ -367,7 +441,7 @@ function updateChars(dt){
 const sleepHour=()=>{const g=G();return !!(g&&HOME.isKidSleepHour&&HOME.isKidSleepHour(g.hour));};
 function occupied(except){
   const L=[];
-  if(S.chars){['dan','kid'].forEach(w=>{if(w!==except&&!S.chars[w].hidden)L.push({x:Math.round(S.chars[w].x),y:Math.round(S.chars[w].y)});});
+  if(S.chars){['dan','kid','cat'].forEach(w=>{if(w!==except&&S.chars[w]&&!S.chars[w].hidden)L.push({x:Math.round(S.chars[w].x),y:Math.round(S.chars[w].y)});});
     const d=S.chars.dan;if(d.path&&d.path.length&&except!=='dan'){const e=d.path[d.path.length-1];L.push({x:e.x,y:e.y});}}
   if(S.visitor)L.push({x:S.visitor.x,y:S.visitor.y});
   return L;
@@ -406,7 +480,7 @@ function syncSleep(force){
   if(f){k.x=f.x;k.y=f.y;}
   S.kidAct={key:'wander'};S.kidTimer=2;
 }
-function faceDir(c,P){const fp=HOME.footprint(P.itemId,P.rotation);face(c,P.x+(fp.w-1)/2,P.y+(fp.h-1)/2);}
+function faceDir(c,P){if(!P.itemId){face(c,P.x,P.y);return;}const fp=HOME.footprint(P.itemId,P.rotation);face(c,P.x+(fp.w-1)/2,P.y+(fp.h-1)/2);}
 const OPP={down:'up',up:'down',left:'right',right:'left'};
 // 今いる場所で選べる過ごし方の候補
 function kidOptions(){
@@ -431,6 +505,13 @@ function kidOptions(){
     const w=c.kidUse==='plants'?((hd0&&hd0.plants&&hd0.plants[P.instanceId])?2:.6):1.6;
     out.push({key:c.kidUse,P,cell,pose,dir,w});
   });
+  // ねこをなでに行く（ねこが座っているか寝ているとき）
+  const cat=S.chars&&S.chars.cat;
+  if(cat&&!cat.moving&&(cat.pose==='sit'||cat.pose==='sleep')){
+    const cx=Math.round(cat.x),cy=Math.round(cat.y);
+    const cell=[[0,1],[-1,0],[1,0],[0,-1]].map(([dx,dy])=>({x:cx+dx,y:cy+dy})).find(q=>!solidAt(area,q.x,q.y)&&!isOcc(occ,q.x,q.y)&&!HOME._isExit(area,q.x,q.y));
+    if(cell)out.push({key:'cat',P:{instanceId:'cat',itemId:'',x:cx,y:cy,rotation:0},cell,pose:'sit',dir:null,w:1.1,cat:true});
+  }
   return out;
 }
 function updateKid(dt){
@@ -455,7 +536,7 @@ function updateKid(dt){
         const still=kidOptions().find(o=>o.key===pick.key&&o.P.instanceId===pick.P.instanceId&&o.cell.x===pick.cell.x&&o.cell.y===pick.cell.y);
         if(!still||Math.round(k.x)!==pick.cell.x||Math.round(k.y)!==pick.cell.y){S.kidAct={key:'wander'};S.kidTimer=1.5;return;}
         k.pose=pick.pose;k.zb=.1;
-        if(pick.dir)k.dir=pick.dir;else faceDir(k,pick.P);
+        if(pick.dir)k.dir=pick.dir;else if(pick.cat)face(k,pick.P.x,pick.P.y);else faceDir(k,pick.P);
         S.kidAct={key:pick.key,id:pick.P.instanceId};S.lastAct=pick.key;
         S.kidTimer=9+Math.random()*7;
       };
@@ -546,7 +627,7 @@ function draw(){
   if(S.mode==='edit'&&S.ed)o=ED().renderOpts(S);
   else{
     o={placements:placements(S.area),selId:S.sel&&S.sel.kind==='item'?S.sel.id:null};
-    o.chars=S.chars?[S.chars.dan,S.chars.kid].filter(c=>!c.hidden):[];
+    o.chars=S.chars?[S.chars.dan,S.chars.kid,S.chars.cat].filter(c=>c&&!c.hidden):[];
     if(S.visitor)o.chars.push(S.visitor);
     if(S.sel&&S.sel.kind==='item'){
       const P=findP(S.sel.id);
@@ -568,6 +649,8 @@ function frame(ts){
 /* ── 暮らしモード：選択・調べる・使う・話す ── */
 function hitLive(cell){
   if(S.chars){
+    const ct=S.chars.cat;
+    if(ct&&!cell.band&&cell.x===Math.round(ct.x)&&cell.y===Math.round(ct.y))return{kind:'char',who:'cat'};
     const v=S.visitor;
     if(v&&cell.x===v.x&&(cell.y===v.y||(!cell.band&&cell.y===v.y-1&&!itemAt(cell))))return{kind:'char',who:'visitor'};
     const k=S.chars.kid;
@@ -598,7 +681,7 @@ function plantText(P){
   return `植えた${sp}「${p.name}」：${st}（水やり：${HOME.wateredToday&&HOME.wateredToday(P.instanceId)?'今日はあげた':'今日はまだ'}）`;
 }
 const VISITOR_INFO={chiyo:'お隣の千代さん。下関の言葉で話す、世話好きなおばあちゃん。［話す］で話しかけられます。',hancho:'工場の班長。口は悪いが面倒見がいい。［話す］で話しかけられます。'};
-const KID_INFO={sleep:'娘（4さい）。布団で、すうすう眠っている。［寝顔を見る］',held:'娘（4さい）。パパの腕の中で眠っている。［寝顔を見る］',
+const KID_INFO={cat:'娘（4さい）。ねこのそばにしゃがんで、そっと撫でている。',sit:'娘（4さい）。ちょこんと座っている。',sleep:'娘（4さい）。布団で、すうすう眠っている。［寝顔を見る］',held:'娘（4さい）。パパの腕の中で眠っている。［寝顔を見る］',
   cushion:'娘（4さい）。クッションにちょこんと座っている。',read:'娘（4さい）。本棚の前で、絵本をひらいている。',draw:'娘（4さい）。小さな机でお絵かきをしている。',
   play:'娘（4さい）。おもちゃ箱で遊んでいる。',plants:'娘（4さい）。植物をじっと眺めている。',radio:'娘（4さい）。ラジオの前に座って、耳をすませている。',mobile:'娘（4さい）。モビールを見上げている。'};
 function liveInfo(){
@@ -607,6 +690,7 @@ function liveInfo(){
   if(!s)return `暮らしモード（${HOME.AREAS[S.area].name}）：人や家具をタップすると調べられます。`;
   if(s.kind==='char'){
     if(s.who==='visitor')return S.visitor?VISITOR_INFO[S.visitor.who]:'';
+    if(s.who==='cat')return S.catAct.key==='nap'?'うちのねこ（三毛猫）。丸くなって眠っている。［やさしく撫でる］':'うちのねこ（三毛猫）。夜になると、ときどきいたずらをする。［やさしく撫でる］';
     if(s.who==='kid')return KID_INFO[S.kidAct.key]?KID_INFO[S.kidAct.key]+(kidSleeping()?'':'［話す］で話しかけられます。'):'娘（4さい）。くまのぬいぐるみと、パパの声が大好き。［話す］で話しかけられます。';
     return 'だんのうら。設備保全の仕事と深夜配信をこなす、シングルファーザー。';
   }
@@ -625,6 +709,7 @@ const kidSleeping=()=>S.kidAct.key==='sleep'||S.kidAct.key==='held';
 function liveActions(){
   const a=[];const s=S.sel;
   if(s&&s.kind==='char'&&s.who==='kid')a.push(kidSleeping()?{label:'寝顔を見る',icon:'talk',fn:watchKid,primary:true}:{label:'話す',icon:'talk',fn:talkKid,primary:true});
+  if(s&&s.kind==='char'&&s.who==='cat'&&S.chars&&S.chars.cat)a.push({label:'やさしく撫でる',icon:'talk',fn:petCat,primary:true});
   if(s&&s.kind==='char'&&s.who==='visitor'&&S.visitor)a.push({label:'話す',icon:'talk',fn:talkVisitor,primary:true});
   if(s&&s.kind==='item'){
     const P=findP(s.id);
@@ -742,6 +827,31 @@ async function talkVisitor(){
     if(!handled)await HOME.ui.say(VISITOR_LINES[v.who]||[NAR('お客さんに、会釈をした。')]);
   });
 }
+// ねこ：撫でる。フック HOME.hooks.talkCat() が扱わなければ短い一言
+const CAT_LINES=[
+  [NAR('やさしく撫でると、ゴロゴロと喉を鳴らした。')],
+  [NAR('背中を撫でると、しっぽがゆっくり揺れた。'),DAN('……夜のいたずらは、ほどほどにしてね。')],
+  [NAR('撫でようとしたら、手のひらに頭をこすりつけてきた。')],
+  [NAR('茶色と黒のぶちが、灯りの下でつやつやしている。'),DAN('あんたも、うちの家族よね。','smile')],
+];
+async function petCat(){
+  const c=S.chars&&S.chars.cat;if(!c)return;
+  await runBusy(async()=>{
+    const dan=S.chars.dan,A=HOME.AREAS[S.area],cx=Math.round(c.x),cy=Math.round(c.y);
+    if(dan.pose!=='hold'){
+      const cand=[[-1,0],[1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:cx+dx,y:cy+dy})).filter(q=>q.x>=0&&q.y>=0&&q.x<A.w&&q.y<A.h&&!solidAt(S.area,q.x,q.y));
+      for(const q of cand){if(await walkTo(dan,q))break;}
+      face(dan,cx,cy);
+    }
+    HOME.emit('interact',{type:'talkCat',area:S.area});
+    let handled=false;
+    if(typeof HOME.hooks.talkCat==='function'){try{handled=!!(await HOME.hooks.talkCat());}catch(e){handled=false;}}
+    if(handled)return;
+    const h=hd();const i=((h&&h.flags.catIdx)|0)%CAT_LINES.length;if(h)h.flags.catIdx=i+1;
+    await HOME.ui.say(CAT_LINES[i]);
+  });
+}
+HOME.catActivity=function(){return S.open&&S.chars&&S.chars.cat?S.catAct.key:null;};
 const USE_LINES={
   'furniture.desk_small':[DAN('さ、ちょっとだけ勉強しとこうかしら。……あと5分だけよ、アタシ。')],
   'furniture.wood_chair':[DAN('ふぅ……座ると、どっと来るわね。')],

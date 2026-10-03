@@ -253,6 +253,7 @@ await test('発表会：行けなかったら後日話し合う（今夜は話�
   S.reload();
   assert.equal(H.bonds.evaluate().counts.brokenTalked, 1, '再読込しても保たれる');
   assert.equal(count(H, /^life\.recital\.talk$/), 1);
+  assert.equal(H.bonds.endingLine('father'), '守れなかった約束のことは、ちゃんと話した。だから、次の約束ができる。', '花の約束を守っていても、発表会を逃したなら「守れた」とは言わない');
   // 守った約束が他に無ければ、「話し合えた」の一言になる
   const T = makeSandbox();
   T.flags({ promise_recital: true, missed_recital: true, broke_promise: true });

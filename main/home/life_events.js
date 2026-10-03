@@ -86,7 +86,7 @@ function named(who){
   return false;
 }
 function fmt(L){
-  if(L&&(L.who==='chiyo'||L.who==='hancho')&&!named(L.who))return {who:'',face:'',text:`${NAME[L.who]}「${L.text}」`};
+  if(L&&(L.who==='chiyo'||L.who==='hancho')&&!named(L.who))return {who:'',face:'',text:`${NAME[L.who]}「${String(L.text).replace(/「/g,'『').replace(/」/g,'』')}」`};
   return L;
 }
 const say=lines=>{try{return HOME.ui&&HOME.ui.say?Promise.resolve(HOME.ui.say(lines.filter(Boolean).map(fmt))):Promise.resolve();}catch(e){return Promise.resolve();}};

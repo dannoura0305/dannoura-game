@@ -177,6 +177,28 @@ function standCell(area,placements,x,y,avoid){
   return best;
 }
 
+/* ねこの昼寝の場所の候補：[{x,y,on}]。on=null は床（solid でないマス）、on=instanceId は家具の上（ベンチ・布団）
+   クッション・ラグの上・庭の日なた（家の壁から離れた草地）・ベンチ・布団の足もと。出入口は除く */
+function catSpots(area,placements,opts){
+  opts=opts||{};
+  const A=AREA(area);if(!A)return[];
+  const solid=solidGrid(A,placements),out=[],seen=new Set();
+  const add=(x,y,on,kind)=>{const k=x+','+y;if(seen.has(k)||!inB(A,x,y)||isExit(A,x,y))return;if(!on&&solid[y*A.w+x])return;seen.add(k);out.push({x,y,on:on||null,kind});};
+  (placements||[]).forEach(P=>{
+    const c=CAT(P.itemId);if(!c)return;
+    if(P.itemId==='furniture.cushion')add(P.x,P.y,null,'cushion');
+    else if(P.itemId==='deco.rug')cellsOf(P).forEach(q=>add(q.x,q.y,null,'rug'));
+    else if(P.itemId==='garden.bench')cellsOf(P).forEach(q=>add(q.x,q.y,P.instanceId,'bench'));
+    else if(P.itemId==='furniture.futon'){const cs=cellsOf(P);const f=footprint(P.itemId,P.rotation);
+      // 足もと：縦なら下の行、横なら左の列（頭は上／右）
+      cs.filter(q=>f.h>f.w?q.y===P.y+f.h-1:q.x===P.x).forEach(q=>add(q.x,q.y,P.instanceId,'futon'));}
+  });
+  if(area==='garden'&&!opts.night){
+    for(let y=3;y<A.h;y++)for(let x=0;x<A.w;x++)if((x*7+y*3)%5===0)add(x,y,null,'sun');
+  }
+  return out;
+}
+
 /* ── 模様替えの下書き（純ロジック・取り消し/やり直し） ──
    src: {room:[P], garden:[P]}  opts: {owned(itemId,variant)→n, seq, plantIds:[id], plantHolder(id)→itemId}
    収納した鉢・プランターを置き直すと、同じ種類の入れ物に植わっていた植物（持ち主のいない記録）を引き継ぐ
@@ -268,6 +290,6 @@ function createDraft(src,opts){
   return D;
 }
 
-Object.assign(HOME,{normRot,footprint,cellsOf,layerOf,solidGrid,reachable,canPlace,useCell,canUse,createDraft,standCell,
+Object.assign(HOME,{normRot,footprint,cellsOf,layerOf,solidGrid,reachable,canPlace,useCell,canUse,createDraft,standCell,catSpots,
   _isExit:(area,x,y)=>{const A=AREA(area);return !!(A&&isExit(A,x,y));}});
 })();
