@@ -45,7 +45,7 @@ registerMinigame({
   id:'rogue', icon:'🔦', name:'深夜の工場巡回', genre:'ローグライク', bgm:'kaidan',
   desc:'毎回形が変わる夜の工場を3フロア巡回。懐中電灯で照らし、異常箇所を点検し、怪異をかわして出口へ。',
   effect:'仕事評価↑ 資格知識↑ 収入↑ 怪談ネタ ／ 疲労+10 約90分',
-  help:'スワイプ／十字／矢印キーで移動・体当たりで追い払う',
+  help:'スワイプ・十字・矢印で移動',
   start(body,mg){
     const W=9,H=11,N=W*H,FLOORS=3,MAX_HP=5;
     const DIRS=[[0,-1],[1,0],[0,1],[-1,0]];
@@ -55,7 +55,7 @@ registerMinigame({
     let floorFaults=0,floorFaultsDone=0,dying=false,lightMul=1,flickDip=0,hurtT=0,shake=0,time=0;
     let trans=null,clearing=0,introOn=true,heldDir=null,holdT=0,nextRep=0,lastSay='';
     const map=new Uint8Array(N),seen=new Uint8Array(N),losA=new Uint8Array(N),cone=new Uint8Array(N);
-    const litL=new Float32Array(N),losD=new Float32Array(N),lightD=new Float32Array(N);
+    const litL=new Float32Array(N),losD=new Float32Array(N),lightD=new Float32Array(N),lightR=new Float32Array(N);
     const bfs=new Int16Array(N),q=new Int16Array(N);
     const player={x:4,y:9,face:0,rx:4,ry:9,ra:-Math.PI/2,walk:0,step:0};
     let enemies=[],items=[],leaks=[],lamps=[],exit={x:0,y:0};
@@ -193,7 +193,7 @@ registerMinigame({
       const spawn=(kind,minD,hpv)=>{const p=take(minD);if(p)enemies.push({x:p.x,y:p.y,rx:p.x,ry:p.y,kind,hp:hpv,max:hpv,cd:0,stun:0,tick:0,hitT:0,lunge:0,lx:0,ly:0,fade:1,frozen:false,id:eid++});};
       if(floor===1){spawn('g',4,1);spawn('g',4,1);}
       else if(floor===2){spawn('g',4,1);spawn('g',4,1);spawn('k',5,3);}
-      else{spawn('g',4,1);spawn('k',5,3);spawn('b',6,3);}
+      else{spawn('g',4,1);spawn('g',4,1);spawn('k',5,3);spawn('b',6,3);}
       buildStatic();
       computeLight();
       updateHud();
@@ -244,8 +244,8 @@ registerMinigame({
     }
     function drawFloorTile(c,x,y){
       const X=x*T,Y=y*T,h=hash(x,y);
-      c.fillStyle='#2a2438';c.fillRect(X,Y,T,T);
-      c.fillStyle='#3a3350';c.fillRect(X+1,Y+1,T-2,T-2);
+      c.fillStyle='#2e283e';c.fillRect(X,Y,T,T);
+      c.fillStyle='#423a5a';c.fillRect(X+1,Y+1,T-2,T-2);
       if(h%5===0){ // 縞鋼板
         c.fillStyle='#4a4264';
         for(let j=0;j<4;j++)for(let i=0;i<4;i++){
@@ -392,7 +392,6 @@ registerMinigame({
         say(`怨霊がよろめいた。（あと${en.hp}）`);
       }else if(en.kind==='k')say('影が揺らいだ。光の中なら、消せる。');
       else say('👻 光にひるんだが、まだそこにいる……');
-      endTurn();
     }
     function banish(en){
       enemies.splice(enemies.indexOf(en),1);banished++;
@@ -421,13 +420,13 @@ registerMinigame({
         if(en.kind==='g'){
           if(en.cd>0)en.cd--;
           if(man===1&&en.cd===0){
-            hurt(true);en.cd=3;en.lunge=1;en.lx=player.x-en.x;en.ly=player.y-en.y;
+            hurt(true);en.cd=2;en.lunge=1;en.lx=player.x-en.x;en.ly=player.y-en.y;
             say(pick(['👻 背後で何かが囁いた。バッテリーが減っていく……','👻 冷たい指が首筋を撫でた。','👻 耳元で、名前を呼ばれた。']));
             continue;
           }
           const best=stepOpt(en,(en.cd>0?-1:1));
           const chase=en.cd===0&&bfs[idx(en.x,en.y)]>=0&&bfs[idx(en.x,en.y)]<=5;
-          if(best&&(chase?Math.random()<.68:en.cd>0?Math.random()<.6:false)){en.x=best.x;en.y=best.y;}
+          if(best&&(chase?Math.random()<.8:en.cd>0?Math.random()<.6:false)){en.x=best.x;en.y=best.y;}
           else if(Math.random()<.45){const r=randOpt(en);if(r){en.x=r.x;en.y=r.y;}}
         }else if(en.kind==='k'){
           if(cone[idx(en.x,en.y)]){en.frozen=true;continue;}
@@ -506,10 +505,12 @@ registerMinigame({
       let x=(en.rx+.5+en.lx*lo)*s,y=(en.ry+.38+en.ly*lo)*s+bob;
       const hit=en.hitT>0;
       if(en.kind==='k'&&en.frozen){x+=Math.sin(t*60)*s*.02;}
-      const a=en.fade;
+      const vis=clamp01((lightR[idx(en.x,en.y)]-.12)/.3);
+      const a=en.fade*(en.kind==='b'?Math.max(.22,vis):vis);
+      if(a<=.01)return;
       ctx.globalAlpha=a;
       if(en.kind==='g'){
-        const r=s*.3;
+        const r=s*.34;
         const g=ctx.createRadialGradient(x,y-r*.2,r*.1,x,y+r*.3,r*1.7);
         g.addColorStop(0,hit?'rgba(255,255,255,.95)':'rgba(232,242,255,.9)');g.addColorStop(.55,'rgba(170,195,255,.55)');g.addColorStop(1,'rgba(120,140,255,0)');
         ctx.fillStyle=g;ghostPath(ctx,x,y,r,t+en.id,.82);ctx.fill();
@@ -522,6 +523,16 @@ registerMinigame({
         g.addColorStop(0,hit?'rgba(120,70,190,.95)':'rgba(16,6,26,.96)');g.addColorStop(.6,'rgba(40,14,64,.8)');g.addColorStop(1,'rgba(60,20,90,0)');
         ctx.fillStyle=g;ghostPath(ctx,x,y,r,t*.7+en.id,1);ctx.fill();
         ctx.strokeStyle='rgba(160,100,240,.45)';ctx.lineWidth=1;ghostPath(ctx,x,y,r,t*.7+en.id,1);ctx.stroke();
+        // 長い腕
+        ctx.strokeStyle='rgba(20,6,32,.85)';ctx.lineWidth=s*.05;ctx.lineCap='round';
+        const reach=en.frozen?.1:.25+Math.sin(t*3+en.id)*.08;
+        ctx.beginPath();ctx.moveTo(x-r*.8,y+r*.2);ctx.quadraticCurveTo(x-r*1.2,y+r*.5,x-r*(1.1+reach),y+r*1.1);
+        ctx.moveTo(x+r*.8,y+r*.2);ctx.quadraticCurveTo(x+r*1.2,y+r*.5,x+r*(1.1+reach),y+r*1.1);ctx.stroke();
+        // 赤い目（凍っているときは細い）
+        const eh=en.frozen?r*.06:r*.13;
+        ctx.fillStyle='rgba(255,40,72,.35)';ctx.beginPath();ctx.arc(x-r*.34,y-r*.05,r*.24,0,TAU);ctx.arc(x+r*.34,y-r*.05,r*.24,0,TAU);ctx.fill();
+        ctx.fillStyle='#ff3050';ctx.beginPath();ctx.ellipse(x-r*.34,y-r*.05,r*.11,eh,-.25,0,TAU);ctx.ellipse(x+r*.34,y-r*.05,r*.11,eh,.25,0,TAU);ctx.fill();
+        ctx.fillStyle='#ffe0e6';ctx.beginPath();ctx.arc(x-r*.34,y-r*.05,r*.035,0,TAU);ctx.arc(x+r*.34,y-r*.05,r*.035,0,TAU);ctx.fill();
         // 光で焼けているひび
         if(en.hp<en.max){ctx.strokeStyle='rgba(255,220,255,.7)';ctx.lineWidth=1.2;ctx.beginPath();
           ctx.moveTo(x-r*.5,y-r*.6);ctx.lineTo(x-r*.1,y-r*.1);ctx.lineTo(x-r*.3,y+r*.4);
@@ -548,7 +559,7 @@ registerMinigame({
       ctx.globalAlpha=1;
     }
     function drawEyesInDark(en,t){
-      const i=idx(en.x,en.y);const L=lightD[i];
+      const i=idx(en.x,en.y);const L=lightR[i];
       if(L>.45)return;
       const d=Math.abs(en.x-player.x)+Math.abs(en.y-player.y);
       if(en.kind==='g'&&d>3)return;
@@ -728,9 +739,10 @@ registerMinigame({
         let L=lightFn(x,y,player.rx,player.ry,player.ra,R)*losD[i]*flick;
         const ed=Math.abs(x-exit.x)+Math.abs(y-exit.y);
         if(ed<=1)L=Math.max(L,ed?.2:.42);
+        lightR[i]=L;
         if(seen[i]&&L<.17)L=.17;
         lightD[i]=L;
-        const al=1-clamp01(L*1.18);
+        const al=1-clamp01(L*1.32);
         const o=i*4;data[o]=5;data[o+1]=4;data[o+2]=14;data[o+3]=al*255;
       }
       lctx.putImageData(lowImg,0,0);
@@ -756,8 +768,9 @@ registerMinigame({
       ctx.fillStyle=g1;ctx.fillRect(px-s*1.8,py-s*1.8,s*3.6,s*3.6);
       if(R>.5){
         const g2=ctx.createRadialGradient(px,py,s*.3,px,py,s*R);
-        g2.addColorStop(0,`rgba(255,236,180,${.2*flick})`);g2.addColorStop(1,'rgba(255,236,180,0)');
-        ctx.fillStyle=g2;ctx.beginPath();ctx.moveTo(px,py);ctx.arc(px,py,s*R,player.ra-.5,player.ra+.5);ctx.closePath();ctx.fill();
+        g2.addColorStop(0,`rgba(255,236,180,${.07*flick})`);g2.addColorStop(1,'rgba(255,236,180,0)');
+        ctx.fillStyle=g2;
+        for(let k=0;k<3;k++){const w=.22+k*.16;ctx.beginPath();ctx.moveTo(px,py);ctx.arc(px,py,s*R,player.ra-w,player.ra+w);ctx.closePath();ctx.fill();}
       }
       ctx.globalCompositeOperation='source-over';
       // 闇
@@ -812,6 +825,7 @@ registerMinigame({
     resize();
     mg.loop(frame);
     // テスト用の読み取り口（ゲームには影響しない）
+    cv._rgDbg=f=>f({enemies,player,items,leaks,setTurn:v=>{turn=v;},computeLight});
     cv._rgState=()=>({W,H,map:Array.from(map),player:{x:player.x,y:player.y,face:player.face},exit,enemies:enemies.map(e=>({x:e.x,y:e.y,kind:e.kind,hp:e.hp})),items:items.map(i=>({x:i.x,y:i.y,type:i.type,done:i.done})),leaks:leaks.map(l=>({x:l.x,y:l.y,on:leakOn(l)})),turn,hp,floor,busy:busy||!!trans});
     return {result(reason){
       if(ro)ro.disconnect();else window.removeEventListener('resize',resize);

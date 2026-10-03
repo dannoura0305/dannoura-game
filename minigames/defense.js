@@ -77,18 +77,18 @@ registerMinigame({
     };
     const TW_KEYS=['mod','ng','cheer','report'];
     const EN={
-      troll:{name:'荒らし',     hp:34,  spd:1.65,r:.25, gold:6,  dmg:1},
-      bot:  {name:'スパムBot',  hp:13,  spd:2.6, r:.16, gold:2,  dmg:1},
-      anti: {name:'粘着アンチ', hp:125, spd:1.0, r:.3,  gold:12, dmg:2},
-      boss: {name:'炎上アカウント',hp:1150,spd:.62,r:.55,gold:80, dmg:5},
+      troll:{name:'荒らし',     hp:34,  spd:1.85,r:.25, gold:7,  dmg:1},
+      bot:  {name:'スパムBot',  hp:13,  spd:2.8, r:.16, gold:3,  dmg:1},
+      anti: {name:'粘着アンチ', hp:120, spd:1.15, r:.3,  gold:15, dmg:2},
+      boss: {name:'炎上アカウント',hp:950,spd:.72,r:.55,gold:80, dmg:5},
     };
     // ウェーブ構成 [種類, 数, 間隔秒, 開始秒]
     const WAVE_DEF=[
-      {sub:'荒らしの先遣隊が来る',      g:[['troll',8,.95,0]]},
-      {sub:'スパムBotの群れ',          g:[['troll',5,1.1,0],['bot',7,.22,3],['bot',7,.22,8]]},
-      {sub:'粘着アンチが張り付いてくる',g:[['troll',9,.8,0],['anti',4,2.2,2],['bot',8,.22,6]]},
-      {sub:'大規模レイド',              g:[['bot',10,.2,0],['troll',12,.62,1.5],['anti',6,1.6,4],['bot',10,.2,9]]},
-      {sub:'炎上アカウント 襲来',       g:[['troll',8,.7,0],['bot',12,.22,2.5],['anti',4,1.8,4],['boss',1,0,7]]},
+      {sub:'荒らしの先遣隊が来る',      g:[['troll',8,.8,0]]},
+      {sub:'スパムBotの群れ',          g:[['troll',6,.9,0],['bot',7,.2,2.5],['bot',7,.2,6]]},
+      {sub:'粘着アンチが張り付いてくる',g:[['troll',9,.7,0],['anti',4,1.9,1.5],['bot',8,.2,5]]},
+      {sub:'大規模レイド',              g:[['bot',10,.2,0],['troll',12,.55,1.5],['anti',5,1.5,3.5],['bot',10,.2,8]]},
+      {sub:'炎上アカウント 襲来',       g:[['troll',8,.6,0],['bot',12,.2,2],['anti',4,1.6,3.5],['boss',1,0,5]]},
     ];
     const CHAT=['草','888','おつ','初見','www','乙','うぽつ','神回','？？','ｗ','わこつ','ナイス','つよい','えぇ…','ねむい','雨すごい','おやすみ','かわいい'];
 
@@ -111,7 +111,7 @@ registerMinigame({
     // ── 状態 ──
     const modCount=(gs.listeners||[]).filter(l=>l.type==='mod').length;
     const modBonus=Math.min(3,modCount)*30;
-    let money=140+modBonus, lives=MAX_LIVES, wave=0, phase='prep', cd=14, speed=1;
+    let money=150+modBonus, lives=MAX_LIVES, wave=0, phase='prep', cd=13, speed=1;
     let gt=0, rt=0, spawnT=0, queue=[], qi=0, endT=0, endReason='', kills=0, leaked=0, earlyBonus=0, bossKilled=false;
     let towers=[], enemies=[], shots=[], floats=[], rings=[];
     let sel=null;            // {slot index}
@@ -345,7 +345,7 @@ registerMinigame({
       queue.sort((a,b)=>a.t-b.t);
     }
     function spawnEnemy(type,d,boost){
-      const b=EN[type],mult=1+.16*(wave-1);
+      const b=EN[type],mult=1+.14*(wave-1);
       enemies.push({type,d:d||0,x:0,y:0,hp:b.hp*mult*(boost||1),max:b.hp*mult*(boost||1),off:(Math.random()-.5)*(type==='boss'?0:.34),
         ph:Math.random()*6,slowF:1,hit:0,spawnCd:3,dead:false});
     }
@@ -358,10 +358,10 @@ registerMinigame({
       AU.se(boss?'warn':'live');
     }
     function waveCleared(){
-      const bonus=15+wave*5;money+=bonus;
+      const bonus=20+wave*5;money+=bonus;
       if(wave>=WAVES){phase='end';endReason='clear';endT=2.4;
         banner={t:rt,text:'防衛成功',sub:'配信の心は守られた',col:'#44ee88'};AU.se('ach');}
-      else{phase='prep';cd=8;banner={t:rt,text:`WAVE ${wave} クリア`,sub:`ボーナス +¥${bonus}`,col:'#e8b830'};AU.se('decide');}
+      else{phase='prep';cd=6;banner={t:rt,text:`WAVE ${wave} クリア`,sub:`ボーナス +¥${bonus}`,col:'#e8b830'};AU.se('decide');}
       refreshMenu();
     }
     function addFloat(x,y,text,col){floats.push({x,y,text,col,life:1.1});if(floats.length>30)floats.shift();}
@@ -710,7 +710,7 @@ registerMinigame({
     resize();
     if(modBonus)addFloat(W/2,H*.3,`モデレーター${Math.min(3,modCount)}人が駆けつけた +¥${modBonus}`,'#00e8c8');
     // デバッグ・テスト用の参照（ゲーム外からは使わない）
-    cv._dbg={get state(){return{money,lives,wave,phase,cd,enemies:enemies.length,towers:towers.length,kills,speed};},slots:SLOTS,
+    cv._dbg={get state(){return{money,lives,wave,phase,cd,enemies:enemies.length,towers:towers.length,kills,speed,gt};},slots:SLOTS,
       cell:(c,r)=>({x:ox+(c+.5)*C,y:oy+(r+.5)*C})};
 
     mg.loop(rdt=>{

@@ -6,13 +6,13 @@
 addMinigameStyle('shooter',`
 .mg-shooter{background:#05040e;}
 .mg-shooter .shooter-cv{position:absolute;left:0;top:0;display:block;touch-action:none;user-select:none;-webkit-user-select:none;}
-.mg-shooter .shooter-bomb{position:absolute;right:10px;bottom:10px;z-index:3;touch-action:none;
-  min-width:78px;padding:6px 9px 5px;border-radius:10px;border:1px solid rgba(0,232,200,.65);
+.mg-shooter .shooter-bomb{position:absolute;right:8px;bottom:8px;z-index:3;touch-action:none;
+  padding:5px 8px 4px;border-radius:10px;border:1px solid rgba(0,232,200,.65);
   background:linear-gradient(180deg,rgba(0,60,58,.86),rgba(8,12,30,.9));color:#c8fff5;
   font-family:var(--dot);font-size:.62rem;line-height:1.25;text-align:center;cursor:pointer;
   box-shadow:0 0 12px rgba(0,232,200,.35),inset 0 0 8px rgba(0,232,200,.18);
   transition:opacity .3s,filter .3s,transform .08s;-webkit-tap-highlight-color:transparent;}
-.mg-shooter .shooter-bomb b{display:block;font-size:.78rem;font-weight:normal;color:#eafffb;letter-spacing:.04em;}
+.mg-shooter .shooter-bomb b{display:block;font-size:.68rem;font-weight:normal;color:#eafffb;letter-spacing:.04em;}
 .mg-shooter .shooter-bomb small{display:block;font-family:var(--mono);font-size:.55rem;color:rgba(200,255,245,.6);}
 .mg-shooter .shooter-bomb.ready{animation:shooter-pulse 1.8s ease-in-out infinite;}
 .mg-shooter .shooter-bomb:active{transform:scale(.95);}
@@ -28,7 +28,7 @@ registerMinigame({
   help:'ドラッグ／矢印で移動・自動射撃・Bでモデ召喚',
   start(body,mg){
     // ── 定数 ──
-    const T_INTRO=3.2, T_BOSS=48, T_END=62, MAX_SHIELD=5, BOSS_HP=110;
+    const T_INTRO=3.2, T_BOSS=48, T_END=63, MAX_SHIELD=5, BOSS_HP=60;
     const FONT='"DotGothic16", monospace';
     const C={pu:'#8a52d4',cy:'#00e8c8',rd:'#e83055',gd:'#e8b830',gn:'#44ee88',tx:'#bbaedd',txb:'#deccf8'};
     const WAVES=[
@@ -261,12 +261,13 @@ registerMinigame({
     function spawnGood(){
       let kind;
       const r=Math.random();
-      if(shield<=2&&r<.5)kind='heal';
+      if(forcePow){kind=forcePow;forcePow=null;}
+      else if(shield<=2&&r<.5)kind='heal';
       else kind=r<.32?'spread':r<.56?'barrier':r<.76?'slow':'heal';
       const text=pick(TXT.good);
       const tw=measure(text,13);
       const w=tw+42;
-      goods.push({good:true,dead:false,pow:kind,text,tw,w,h:28,x:rnd(w/2+8,W-w/2-8),y:-20,vy:rnd(52,64),age:0});
+      goods.push({good:true,dead:false,hp:3,flash:0,warned:false,pow:kind,text,tw,w,h:28,x:rnd(w/2+8,W-w/2-8),y:-20,vy:rnd(52,64),age:0});
     }
     function chooseType(){
       if(waveIdx<0)return 'basic';
@@ -280,6 +281,7 @@ registerMinigame({
     function startBoss(){
       const R=Math.max(46,Math.min(78,W*.17));
       boss={x:W/2,y:-R*1.6,R,hp:BOSS_HP,max:BOSS_HP,t:0,pat:0,patT:0,fire:0,ang:0,flash:0,dead:false,dieT:0};
+      forcePow='spread';goodCd=2.2;
       showBanner('WARNING','炎上の渦が近づいてくる','#e83055',2.4);
       try{AU.se('warn');}catch(_){}
       shake=Math.max(shake,6);
@@ -323,7 +325,7 @@ registerMinigame({
       glowPulse=.4;glowCol=gc;
       try{AU.se('ach');}catch(_){}
     }
-    let glowPulse=0,glowCol='cy';
+    let glowPulse=0,glowCol='cy',forcePow=null;
     function bomb(){
       if(bombUsed||t<0||dying>0||winT>0||mg._ended)return;
       bombUsed=true;bombT=1.4;whiteFlash=.6;shake=Math.max(shake,12);
@@ -380,7 +382,7 @@ registerMinigame({
         // 射撃
         fireCd-=dt;
         if(fireCd<=0){
-          fireCd=.15;
+          fireCd=.12;
           const sx=player.x,sy=player.y-22;
           pb.push({x:sx,y:sy,vx:0,vy:-560,dead:false,gold:false});
           if(spreadT>0){
@@ -443,12 +445,14 @@ registerMinigame({
       // 応援コメント
       for(const g of goods){
         if(g.dead)continue;
-        g.age+=dt;g.y+=g.vy*dt;
+        g.age+=dt;g.y+=g.vy*dt;if(g.flash>0)g.flash-=dt;
         const gx=g.x+Math.sin(g.age*2)*6;
         for(const b of pb){
           if(b.dead)continue;
           if(Math.abs(b.x-gx)<g.w/2&&Math.abs(b.y-g.y)<g.h/2+4){
-            b.dead=true;g.dead=true;friendlyFire++;
+            b.dead=true;g.hp--;g.flash=.12;
+            if(g.hp>0){if(!g.warned){g.warned=true;pop(gx,g.y-18,'撃たないで！','#ff9ec0');}break;}
+            g.dead=true;friendlyFire++;
             burst(gx,g.y,14,['#ff7aa8','#bff8ee','#fff'],150,.6,3);
             pop(gx,g.y-14,'誤射… 応援を消した','#ff7aa8');
             if(dying<=0&&winT<=0&&inv<=0){shield--;inv=1;hurtFlash=.35;combo=0;shake=Math.max(shake,5);try{AU.se('back');}catch(_){}if(shield<=0){dying=1.3;burst(player.x,player.y,40,['#e83055','#ffd0d8'],300,1,4);}}
@@ -482,19 +486,19 @@ registerMinigame({
           bs.ang+=edt*2.2;
           const active=bs.t>2&&dying<=0&&winT<=0;
           if(active){
-            bs.patT+=edt;if(bs.patT>3.6){bs.patT=0;bs.pat=(bs.pat+1)%3;}
-            bs.fire-=edt;
+            bs.patT+=edt;if(bs.patT>3.4){bs.patT=-.9;bs.pat=(bs.pat+1)%3;}
+            bs.fire-=edt;if(bs.patT<0)bs.fire=Math.max(bs.fire,.05);
             const enr=bs.hp<bs.max*.4?1.25:1;
             if(bs.fire<=0){
               if(bs.pat===0){ // 渦巻き
-                bs.fire=.11/enr;const a=bs.t*2.7;
-                for(let s=0;s<2;s++){const aa=a+s*Math.PI;eb.push({x:bs.x+Math.cos(aa)*bs.R*.6,y:bs.y+Math.sin(aa)*bs.R*.6,vx:Math.cos(aa)*95,vy:Math.sin(aa)*95+20,ch:'炎',dead:false,boss:true});}
+                bs.fire=.19/enr;const a=bs.t*2.4;
+                for(let s=0;s<2;s++){const aa=a+s*Math.PI;eb.push({x:bs.x+Math.cos(aa)*bs.R*.6,y:bs.y+Math.sin(aa)*bs.R*.6,vx:Math.cos(aa)*105,vy:Math.sin(aa)*105+25,ch:'炎',dead:false,boss:true});}
               }else if(bs.pat===1){ // 自機狙いの扇
                 bs.fire=.85/enr;const a=Math.atan2(hy-bs.y,hx-bs.x);
                 for(let s=-2;s<=2;s++){const aa=a+s*.2;eb.push({x:bs.x,y:bs.y+bs.R*.5,vx:Math.cos(aa)*150,vy:Math.sin(aa)*150,ch:pick(EB_CH),dead:false,boss:true});}
                 ring(bs.x,bs.y+bs.R*.5,26,'#ff7a1e',.3);
               }else{ // 輪（ひとつだけ隙間）
-                bs.fire=1.15/enr;const n=16,gap=(Math.random()*n)|0,off=Math.random();
+                bs.fire=1.3/enr;const n=14,gap=(Math.random()*n)|0,off=Math.random();
                 for(let s=0;s<n;s++){if(s===gap||s===(gap+1)%n)continue;const aa=(s+off)/n*6.283;eb.push({x:bs.x,y:bs.y,vx:Math.cos(aa)*100,vy:Math.sin(aa)*100,ch:'炎',dead:false,boss:true});}
               }
             }
@@ -550,7 +554,7 @@ registerMinigame({
       cx.drawImage(lySky,0,0,W,H);
       // 流れるコメントの残像
       const ch=lyChat.height/dpr,off=(clock*14)%ch;
-      cx.drawImage(lyChat,0,-off,W,ch);cx.drawImage(lyChat,0,ch-off,W,ch);
+      cx.globalAlpha=.45;cx.drawImage(lyChat,0,-off,W,ch);cx.drawImage(lyChat,0,ch-off,W,ch);cx.globalAlpha=1;
       const pxo=(player.x-W/2)/W;
       cx.drawImage(lyFar,-40-pxo*16+Math.sin(clock*.05)*6,0,W+80,H);
       cx.drawImage(lyNear,-80-pxo*40,0,W+160,H);
@@ -643,8 +647,8 @@ registerMinigame({
       gl(glow.cy,x,y,w*.5,.25);
       cx.globalAlpha=1;
       rr(x-w/2,y-h/2,w,h,h/2);
-      cx.fillStyle='rgba(10,48,52,.82)';cx.fill();
-      cx.lineWidth=1.5;cx.strokeStyle='rgba(160,255,240,.9)';cx.stroke();
+      cx.fillStyle=g.flash>0?'rgba(120,30,60,.9)':'rgba(10,48,52,.82)';cx.fill();
+      cx.lineWidth=1.5;cx.strokeStyle=g.hp<3?(g.hp<2?'#ff7aa8':'#ffc0d8'):'rgba(160,255,240,.9)';cx.stroke();
       // 小さなハート
       cx.fillStyle='#ff9ec0';
       const hx=x-w/2+12,hy=y;
@@ -671,7 +675,7 @@ registerMinigame({
       gl(glow.cy,x,y,48,.45+(glowPulse>0?glowPulse:0));
       if(glowPulse>0)gl(glow[glowCol],x,y,70,glowPulse*1.5);
       cx.globalAlpha=blink?.35:1;
-      cx.save();cx.translate(x,y);cx.rotate(player.tilt);
+      cx.save();cx.translate(x,y);cx.rotate(player.tilt);cx.scale(1.2,1.2);
       // 推進炎
       const fl=10+Math.sin(clock*40)*3+Math.random()*3;
       cx.globalCompositeOperation='lighter';
@@ -724,7 +728,7 @@ registerMinigame({
       }
       cx.globalCompositeOperation='source-over';
       // 中心の暗い目
-      cx.fillStyle=b.flash>0?'#fff':'#12040a';cx.beginPath();cx.arc(x,y,R*.42,0,6.283);cx.fill();
+      cx.fillStyle=b.flash>0?'#4a1208':'#12040a';cx.beginPath();cx.arc(x,y,R*.42,0,6.283);cx.fill();
       cx.strokeStyle='#ff7a1e';cx.lineWidth=2;cx.stroke();
       const ey=y-R*.05;
       cx.fillStyle='#ffcc55';
@@ -803,8 +807,8 @@ registerMinigame({
       }
       // ボスHP
       if(boss&&(!boss.dead||boss.dieT<1)){
-        const bw=Math.min(260,W-150),bx=(W-bw)/2,by=14;
-        cx.textAlign='center';cx.font=`10px ${FONT}`;cx.fillStyle='#ff9a6a';cx.fillText('炎上の渦',W/2,by-1);
+        const bw=Math.min(300,W-120),bx=(W-bw)/2,by=56;
+        cx.textAlign='center';cx.font=`11px ${FONT}`;cx.fillStyle='#ff9a6a';cx.fillText('炎上の渦',W/2,by-2);
         cx.fillStyle='rgba(5,4,14,.7)';cx.fillRect(bx-1,by+6,bw+2,7);
         const f=Math.max(0,boss.hp/boss.max);
         cx.fillStyle=f<.4?'#ff3b3b':'#ff7a1e';cx.fillRect(bx,by+7,bw*f,5);
@@ -869,9 +873,13 @@ registerMinigame({
       for(const e of enemies)drawEnemy(e);
       // 自弾
       cx.globalCompositeOperation='lighter';
+      cx.lineWidth=2.2;cx.lineCap='round';
       for(const b of pb){
-        gl(b.gold?glow.gd:glow.cy,b.x,b.y,10,.7);
-        cx.globalAlpha=1;cx.fillStyle=b.gold?'#ffe9a8':'#d8fff8';cx.fillRect(b.x-1.5,b.y-7,3,12);
+        gl(b.gold?glow.gd:glow.cy,b.x,b.y,14,.75);
+        cx.globalAlpha=1;cx.strokeStyle=b.gold?'#ffe9a8':'#c8fff6';
+        const an=Math.atan2(b.vy,b.vx);
+        cx.beginPath();cx.arc(b.x-Math.cos(an)*7,b.y-Math.sin(an)*7,9,an-.8,an+.8);cx.stroke();
+        cx.globalAlpha=.55;cx.beginPath();cx.arc(b.x-Math.cos(an)*13,b.y-Math.sin(an)*13,9,an-.6,an+.6);cx.stroke();
       }
       cx.globalCompositeOperation='source-over';cx.globalAlpha=1;
       cx.font=`11px ${FONT}`;cx.textAlign='center';

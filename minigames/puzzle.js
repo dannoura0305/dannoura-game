@@ -128,7 +128,7 @@ registerMinigame({
     let n=4,src=0,type,m,sol,brk,par=0,anim,pw,inD,litAt,fixAt,lamps=0,lit=0;
     let shakeC=-1,shakeT=0,cursor=0,kbd=false,msgText='',msgT=0,boardIn=0;
     let W=0,H=0,dpr=1,ts=40,ox=0,oy=0,BS=0,bx=0,by=0,pad=10,hudH=64,footH=40,fsS=11,fsM=13;
-    let tiles={},bgImg=null;
+    let tiles={},bgImg=null,staticImg=null,staticOk=false;
 
     body.innerHTML='<div class="pz-wrap"><canvas class="pz-cv"></canvas></div>';
     const wrap=body.firstChild,cv=wrap.firstChild,cx=cv.getContext('2d');
@@ -165,8 +165,8 @@ registerMinigame({
       const avail=Math.min(W-20,H-hudH-footH-8,540);
       pad=Math.max(8,Math.min(16,avail*.035));
       ts=Math.max(16,Math.floor((avail-2*pad)/n));
-      BS=ts*n+2*pad;bx=(W-BS)/2;by=hudH+Math.max(0,(H-hudH-footH-BS)/2);ox=bx+pad;oy=by+pad;
-      buildBg();buildTiles();
+      BS=ts*n+2*pad;bx=(W-BS)/2;by=hudH+Math.max(0,(H-hudH-footH-BS)*.3);ox=bx+pad;oy=by+pad;
+      buildBg();buildTiles();staticOk=false;
     }
     function buildBg(){
       const c=mkC(cv.width,cv.height),g=c.getContext('2d');g.scale(dpr,dpr);
@@ -291,7 +291,7 @@ registerMinigame({
       moves++;
       const p=cellXY(c);
       if(brk[c]){
-        brk[c]=0;fixAt[c]=T;AU.se('machine');spark(p[0],p[1],16,1,ts*3);spark(p[0],p[1],8,2,ts*2);msg('修理完了。これで回せる');
+        brk[c]=0;fixAt[c]=T;staticOk=false;AU.se('machine');spark(p[0],p[1],16,1,ts*3);spark(p[0],p[1],8,2,ts*2);msg('修理完了。これで回せる');
       }else{
         m[c]=rot(m[c]);anim[c]=Math.min(2,anim[c]+1);AU.se('tool');
       }
@@ -363,8 +363,7 @@ registerMinigame({
     }
     function drawCables(layer){
       cx.lineCap='butt';
-      if(layer===1){armPath(1,-1,false,0);cx.lineWidth=ts*.52;cx.strokeStyle='rgba(0,0,0,.55)';cx.stroke();}
-      armPath(layer,-1,false,0);cx.lineWidth=ts*.36;cx.strokeStyle='#06040c';cx.stroke();
+            armPath(layer,-1,false,0);cx.lineWidth=ts*.36;cx.strokeStyle='#06040c';cx.stroke();
       armPath(layer,-1,false,.8);cx.lineWidth=ts*.42;cx.strokeStyle='#3e3656';cx.stroke();
       cx.lineWidth=ts*.08;cx.strokeStyle='#8a80a8';cx.stroke();
       armPath(layer,0,false,0);cx.lineWidth=ts*.25;cx.strokeStyle='#2a2142';cx.stroke();
@@ -422,7 +421,7 @@ registerMinigame({
             cx.beginPath();cx.arc(x,y,r*.5,0,7);cx.fillStyle='#ffffff';cx.fill();
             cx.globalCompositeOperation='lighter';
             const boost=1+Math.max(0,.6-(T-litAt[c]))*1.5;
-            cx.globalAlpha=la*fl;const g=ts*1.5*boost;cx.drawImage(GL_GOLD,x-g/2,y-g/2,g,g);
+            cx.globalAlpha=la*fl*.9;const g=ts*2.3*boost;cx.drawImage(GL_GOLD,x-g/2,y-g/2,g,g);
             cx.globalAlpha=1;cx.globalCompositeOperation='source-over';
           }else{
             cx.strokeStyle='rgba(255,255,255,.18)';cx.lineWidth=Math.max(1,ts*.02);cx.beginPath();cx.arc(x,y,r*.65,Math.PI*1.1,Math.PI*1.5);cx.stroke();
@@ -436,11 +435,17 @@ registerMinigame({
         if(T-fixAt[c]<.6){cx.globalCompositeOperation='lighter';cx.globalAlpha=1-(T-fixAt[c])/.6;cx.drawImage(GL_GOLD,x-ts,y-ts,ts*2,ts*2);cx.globalAlpha=1;cx.globalCompositeOperation='source-over';}
       }
     }
-    function drawBridges(){
+    // 交差タイル：横の線を載せる金属の橋板（縦の線はこの下をくぐる）
+    function drawBridgePlates(){
       for(let c=0;c<n*n;c++){
         if(type[c]!==T_BR)continue;
-        const [x,y]=cellXY(c);
-        cx.fillStyle='#3e3656';cx.fillRect(x-ts*.06-ts*.16,y-ts*.2,ts*.06,ts*.4);cx.fillRect(x+ts*.16,y-ts*.2,ts*.06,ts*.4);
+        const [x,y]=cellXY(c),w=ts*.5,h=ts*.66;
+        cx.fillStyle='rgba(0,0,0,.55)';rr(cx,x-w/2-ts*.03,y-h/2+ts*.05,w+ts*.06,h,ts*.07);cx.fill();
+        const gr=cx.createLinearGradient(x,y-h/2,x,y+h/2);gr.addColorStop(0,'#5a5280');gr.addColorStop(1,'#2a2440');
+        rr(cx,x-w/2,y-h/2,w,h,ts*.07);cx.fillStyle=gr;cx.fill();
+        cx.lineWidth=Math.max(1,ts*.02);cx.strokeStyle='#9a90b8';cx.stroke();
+        cx.fillStyle='#c0b8d8';
+        for(const sy of [-1,1]){cx.beginPath();cx.arc(x,y+sy*h*.39,Math.max(1,ts*.03),0,7);cx.fill();}
       }
     }
     function drawStar(x,y,r,fill,stroke){
@@ -448,27 +453,35 @@ registerMinigame({
       for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr_=i&1?r*.45:r;cx.lineTo(x+Math.cos(a)*rr_,y+Math.sin(a)*rr_);}
       cx.closePath();if(fill){cx.fillStyle=fill;cx.fill();}if(stroke){cx.lineWidth=Math.max(1,r*.12);cx.strokeStyle=stroke;cx.stroke();}
     }
-    function drawBoard(){
-      if(!bgImg)return;
-      cx.drawImage(bgImg,0,0,W,H);
-      // 雨
-      cx.beginPath();
-      for(let i=0;i<RN;i++){const x=rx[i]*W,y=ry[i]*H;cx.moveTo(x,y);cx.lineTo(x-rl[i]*.18,y+rl[i]);}
-      cx.lineWidth=1;cx.strokeStyle='rgba(150,130,210,.13)';cx.stroke();
-      // 盤の出入り
-      let offX=0,alpha=1;
-      if(st==='out'){const k=Math.min(1,stT/.4);offX=-ease(k)*W*.35;alpha=1-k;}
-      else if(boardIn<1){const k=ease(boardIn);offX=(1-k)*W*.35;alpha=k;}
-      cx.save();cx.globalAlpha=alpha;cx.translate(offX,0);
-      // タイル
+    function drawTileBgs(g){
       for(let c=0;c<n*n;c++){
         const tc=type[c];
         const k=tc===T_LOCK?'lock':tc===T_BR?'br':tc===T_SRC?'src':tc===T_BRK?(brk[c]?'brk':'fix'):'n';
-        let x=ox+(c%n)*ts,y=oy+((c/n)|0)*ts;if(c===shakeC&&shakeT>0)x+=Math.sin(T*70)*shakeT*ts*.25;
-        cx.drawImage(tiles[k],x,y,ts,ts);
-        if(pw[c]&&anim[c]<.3){cx.fillStyle='rgba(0,232,200,.05)';cx.fillRect(x+2,y+2,ts-4,ts-4);}
+        g.drawImage(tiles[k],ox+(c%n)*ts,oy+((c/n)|0)*ts,ts,ts);
       }
-      drawCables(0);drawHubs();drawCables(1);drawBridges();
+    }
+    // 背景＋盤＋タイル板を1枚にまとめておく（毎フレームの描画を軽くする）
+    function buildStatic(){
+      if(!staticImg||staticImg.width!==cv.width||staticImg.height!==cv.height)staticImg=mkC(cv.width,cv.height);
+      const g=staticImg.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,staticImg.width,staticImg.height);
+      g.setTransform(dpr,0,0,dpr,0,0);g.drawImage(bgImg,0,0,W,H);drawTileBgs(g);staticOk=true;
+    }
+    function drawBoard(){
+      if(!bgImg)return;
+      let offX=0,alpha=1;
+      if(st==='out'){const k=Math.min(1,stT/.4);offX=-ease(k)*W*.35;alpha=1-k;}
+      else if(boardIn<1){const k=ease(boardIn);offX=(1-k)*W*.35;alpha=k;}
+      const still=offX===0&&alpha===1;
+      if(still){if(!staticOk)buildStatic();cx.drawImage(staticImg,0,0,W,H);}
+      else cx.drawImage(bgImg,0,0,W,H);
+      // 雨（盤の上は降らせない）
+      cx.beginPath();
+      for(let i=0;i<RN;i++){const x=rx[i]*W,y=ry[i]*H;if(x>bx-4&&x<bx+BS+8&&y>by-24&&y<by+BS)continue;cx.moveTo(x,y);cx.lineTo(x-rl[i]*.18,y+rl[i]);}
+      cx.lineWidth=1;cx.strokeStyle='rgba(150,130,210,.13)';cx.stroke();
+      cx.save();cx.globalAlpha=alpha;cx.translate(offX,0);
+      if(!still)drawTileBgs(cx);
+      for(let c=0;c<n*n;c++)if(pw[c]&&anim[c]<.3){cx.fillStyle='rgba(0,232,200,.05)';cx.fillRect(ox+(c%n)*ts+2,oy+((c/n)|0)*ts+2,ts-4,ts-4);}
+      drawCables(0);drawHubs();drawBridgePlates();drawCables(1);
       // カーソル
       if(kbd&&st==='play'){
         const x=ox+(cursor%n)*ts,y=oy+((cursor/n)|0)*ts;
@@ -565,6 +578,7 @@ registerMinigame({
           drawStar(cxm+(i-1)*sr*2.6,sy,s2,i<clearInfo.stars?'#e8b830':'#1e1830',i<clearInfo.stars?'#fff0b0':'#5e5078');
         }
         if(t>1.3){
+          cx.fillStyle='rgba(5,4,14,.75)';rr(cx,cxm-BS*.3,sy+sr*1.25,BS*.6,fsS*(clearInfo.bonus?3.2:1.6)+4,6);cx.fill();
           cx.textAlign='center';cx.textBaseline='middle';cx.font=`${fsS}px ${FONT}`;cx.fillStyle='#bbaedd';
           cx.fillText(`手数 ${clearInfo.moves} ／ 目安 ${clearInfo.par}`,cxm,sy+sr*1.9);
           if(clearInfo.bonus){cx.fillStyle='#44ee88';cx.fillText(`残り時間 +${clearInfo.bonus}秒`,cxm,sy+sr*1.9+fsS*1.6);}
