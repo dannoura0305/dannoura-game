@@ -101,7 +101,7 @@
    "priority": "P1",
    "category": "portrait",
    "name_ja": "保育園の先生 normal",
-   "file": null,
+   "file": "assets/gen/portrait/sensei_normal.png",
    "rev": null,
    "target": "assets/gen/portrait/sensei_normal.png",
    "size": "256x256",
@@ -116,14 +116,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "保育園の先生・表情 normal。既存 mob_sensei.svg の服・髪色を維持",
    "comfyui": "portrait.sensei.normal",
-   "first15": 9
+   "first15": 9,
+   "status": "verified"
   },
   {
    "id": "portrait.sensei.happy",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "保育園の先生 happy",
-   "file": null,
+   "file": "assets/gen/portrait/sensei_happy.png",
    "rev": null,
    "target": "assets/gen/portrait/sensei_happy.png",
    "size": "256x256",
@@ -138,14 +139,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "保育園の先生・表情 happy。既存 mob_sensei_happy.svg の服・髪色を維持",
    "comfyui": "portrait.sensei.happy",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "portrait.sensei.worry",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "保育園の先生 worry",
-   "file": null,
+   "file": "assets/gen/portrait/sensei_worry.png",
    "rev": null,
    "target": "assets/gen/portrait/sensei_worry.png",
    "size": "256x256",
@@ -160,7 +162,8 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "保育園の先生・表情 worry。既存 mob_sensei_worry.svg の服・髪色を維持",
    "comfyui": "portrait.sensei.worry",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "portrait.chiyo.normal",

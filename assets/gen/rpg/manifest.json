@@ -336,8 +336,8 @@
    "transparent": true,
    "facing": "行＝下・左・右・上向き",
    "ref": "assets/gen/rpg/ref/npc.teacher.png",
-   "status": "requested",
-   "file": null
+   "status": "verified",
+   "file": "assets/gen/rpg/npc.teacher.png"
   },
   {
    "id": "npc.sleeper",
@@ -2820,8 +2820,8 @@
    "transparent": false,
    "facing": "正面のバストアップ",
    "ref": "assets/gen/rpg/ref/portrait.teacher.png",
-   "status": "requested",
-   "file": null
+   "status": "verified",
+   "file": "assets/gen/rpg/portrait.teacher.png"
   },
   {
    "id": "portrait.sleeper",
