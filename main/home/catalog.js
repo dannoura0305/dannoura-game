@@ -66,11 +66,12 @@ Object.keys(HOME.CATALOG).forEach(id=>{HOME.CATALOG[id].id=id;});
 
 HOME.TILES={'floor.wood':{name:'木の床'},'floor.tatami':{name:'畳'},'floor.dark':{name:'濃い木の床'},'ground.grass':{name:'草地'}};
 
+// 画面ではドット絵（HOME_ART.icon('mat.'+id) ／ ICONS の wood・cloth・metal・sea）を使う。icon の絵文字は文字だけの場所の予備
 HOME.MATERIALS={
-  wood: {name:'木材',  icon:'🪵'},
-  cloth:{name:'布',    icon:'🧵'},
-  metal:{name:'金具',  icon:'🔩'},
-  sea:  {name:'海のかけら',icon:'🐚'},
+  wood: {name:'木材',  icon:'🪵', art:'mat.wood'},
+  cloth:{name:'布',    icon:'🧵', art:'mat.cloth'},
+  metal:{name:'金具',  icon:'🔩', art:'mat.metal'},
+  sea:  {name:'海のかけら',icon:'🐚', art:'mat.sea'},
 };
 
 // 並び順＝クラフト画面の表示順

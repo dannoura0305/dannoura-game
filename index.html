@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>だんのうら ― 深夜、繋がりの海へ</title>
+<meta name="theme-color" content="#0a0820">
+<meta name="description" content="借金・夜勤・配信・子育て。30日間を生き延びる、深夜のサバイバル育成ゲーム。">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/pwa/icon-192.png">
+<link rel="apple-touch-icon" href="assets/pwa/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="だんのうら">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;700&family=Share+Tech+Mono&family=DotGothic16&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="style-home.css">
@@ -286,24 +297,10 @@
 <script src="main/icons.js"></script>
 <script src="game.js"></script>
 <script src="main/mobs.js"></script>
+<!-- 夜のミニゲーム：目録（registry.js）と共通部分（core.js）だけ先に読む。
+     各ゲーム本体（minigames/<file>.js）は遊ぶときに MG.open が読み込む -->
+<script src="minigames/registry.js"></script>
 <script src="minigames/core.js"></script>
-<script src="minigames/shooter.js"></script>
-<script src="minigames/roguelike.js"></script>
-<script src="minigames/puzzle.js"></script>
-<script src="minigames/cardbattle.js"></script>
-<script src="minigames/runner.js"></script>
-<script src="minigames/defense.js"></script>
-<script src="minigames/rpg.js"></script>
-<script src="minigames/stealth.js"></script>
-<script src="minigames/quiz.js"></script>
-<script src="minigames/horror.js"></script>
-<script src="minigames/factory3d.js"></script>
-<script src="minigames/cooking.js"></script>
-<script src="minigames/escape.js"></script>
-<script src="minigames/blocks.js"></script>
-<script src="minigames/manager.js"></script>
-<script src="minigames/fishing.js"></script>
-<script src="minigames/race.js"></script>
 <!-- 本編の拡張（game.js の処理を包んで強化する） -->
 <script src="main/ui.js"></script>
 <script src="main/homescene.js"></script>
@@ -327,5 +324,7 @@
 <script src="main/home/life_events.js"></script>
 <script src="main/home/lifemode.js"></script>
 <script src="main/integrations.js"></script>
+<!-- ホーム画面に追加・オフライン（sw.js の登録と更新のお知らせ） -->
+<script src="pwa.js"></script>
 </body>
 </html>

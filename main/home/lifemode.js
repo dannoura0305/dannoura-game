@@ -245,7 +245,7 @@ function startFromEnding(){
 // タイトルの「つづきから」
 function resumeFromSave(){
   let sd=null;
-  try{const raw=localStorage.getItem(typeof SAVE_KEY!=='undefined'?SAVE_KEY:'dannoura_save_v1');sd=raw?JSON.parse(raw):null;}catch(e){sd=null;}
+  try{const raw=readActiveRaw();sd=raw?JSON.parse(raw):null;}catch(e){sd=null;}
   if(!saveIsLife(sd))return false;
   try{if(!sd.version||(typeof SAVE_VERSION!=='undefined'&&sd.version>SAVE_VERSION))return false;}catch(e){}
   try{root.saveDataToGs(sd.gs);}catch(e){try{console.warn('[lifemode] resume',e);}catch(_){}return false;}
@@ -255,9 +255,16 @@ function resumeFromSave(){
   if(ok){const l=lifeOf(G().homeData);setTimeout(()=>toast(`📂 暮らし ${(l.day|0)+1}日目から再開しました。`),400);}
   return ok;
 }
+// 今のスロット（game.js の SAVESLOTS / SAVE_SLOT）のセーブ。旧版（スロットなし）は SAVE_KEY をそのまま読む
+function readActiveRaw(){
+  try{if(typeof SAVESLOTS!=='undefined'&&typeof SAVE_SLOT!=='undefined')return SAVESLOTS.raw(SAVE_SLOT);}catch(e){}
+  try{return localStorage.getItem(typeof SAVE_KEY!=='undefined'?SAVE_KEY:'dannoura_save_v1');}catch(e){return null;}
+}
 // タイトルの「つづきから」の表示（暮らしモードのセーブなら日数を出す）
+// スロットがある版では game.js の checkSaveData が各スロットの「暮らし ○日目」まで出すので、ここでは何もしない
 function updateContinueLabel(){
   if(!HAS_DOM)return;
+  try{if(typeof SAVESLOTS!=='undefined')return;}catch(e){}
   try{
     const raw=localStorage.getItem(typeof SAVE_KEY!=='undefined'?SAVE_KEY:'dannoura_save_v1');if(!raw)return;
     const sd=JSON.parse(raw);if(!saveIsLife(sd))return;

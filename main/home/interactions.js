@@ -54,6 +54,19 @@ function itemIcon(itemId,variant){
   c.setAttribute('aria-label',(CAT(itemId)||{}).name||'？？？');
   return c;
 }
+// 素材のアイコン＋文字（絵文字は使わない）
+function matIcon(k){
+  const a=ART();let c=null;
+  if(a&&typeof a.icon==='function'){try{c=copyCanvas(a.icon('mat.'+k));}catch(e){c=null;}}
+  if(!c&&root.ICONS){try{c=root.ICONS.canvas(k,20);}catch(e){c=null;}}
+  if(c){c.classList.add('hm-mat-ic');c.setAttribute('aria-hidden','true');}
+  return c;
+}
+function matTag(cls,k,text){
+  const s=$el('span',cls);const ic=matIcon(k);if(ic)s.appendChild(ic);
+  s.appendChild($el('span','hm-mat-t',text));
+  return s;
+}
 function btn(label,icon,fn,cls){
   const b=$el('button','hm-btn'+(cls?' '+cls:''));
   b.type='button';
@@ -177,7 +190,13 @@ HOME.ui.toast=function(text){
     let st=document.getElementById('home-toast');
     if(!st){st=$el('div','hm-toast-stack');st.id='home-toast';st.setAttribute('role','status');st.setAttribute('aria-live','polite');document.body.appendChild(st);}
     while(st.children.length>=3)st.firstChild.remove();
-    const t=$el('div','hm-toast',String(text));st.appendChild(t);
+    const t=$el('div','hm-toast');
+    // 先頭の絵文字は操作アイコン（main/icons.js）に置き換える（素材の 🪵🧵🔩🐚 も）
+    let body=String(text);
+    const I=root.ICONS;
+    if(I&&typeof I.lead==='function'){try{const l=I.lead(body);if(l.name){const c=I.canvas(l.name,20);c.classList.add('hm-toast-ic');c.setAttribute('aria-hidden','true');t.appendChild(c);body=l.rest;}}catch(e){}}
+    t.appendChild(document.createTextNode(body));
+    st.appendChild(t);
     setTimeout(()=>t.classList.add('out'),2600);setTimeout(()=>t.remove(),3200);
   }catch(e){}
 };
@@ -1024,7 +1043,7 @@ function renderCraft(){
   head.appendChild(btn('閉じる','close',()=>closeCraft(),'hm-close'));
   box.appendChild(head);
   const mats=$el('div','hm-mats');
-  Object.keys(HOME.MATERIALS).forEach(k=>{const m=HOME.MATERIALS[k];mats.appendChild($el('span','hm-mat',`${m.icon} ${m.name} ${h.materials[k]|0}`));});
+  Object.keys(HOME.MATERIALS).forEach(k=>{const m=HOME.MATERIALS[k];mats.appendChild(matTag('hm-mat',k,`${m.name} ${h.materials[k]|0}`));});
   box.appendChild(mats);
   const list=$el('div','hm-recipes');
   Object.keys(HOME.RECIPES).forEach(id=>{
@@ -1042,7 +1061,7 @@ function renderCraft(){
     const need=$el('div','hm-need');
     info.need.forEach(n=>{
       const ok=n.have>=n.need;
-      need.appendChild($el('span','hm-need-i'+(ok?' ok':' ng'),`${HOME.MATERIALS[n.id].icon} ${n.name} ${n.need}（所持 ${n.have}）${ok?'':'・足りない'}`));
+      need.appendChild(matTag('hm-need-i'+(ok?' ok':' ng'),n.id,`${n.name} ${n.need}（所持 ${n.have}）${ok?'':'・足りない'}`));
     });
     t.appendChild(need);card.appendChild(t);
     const b=btn('つくる','craft',()=>doCraft(id,b),'hm-primary');
@@ -1065,7 +1084,7 @@ function renderCraft(){
       t.appendChild($el('div','hm-recipe-note',I.done?`広げました（${I.to.w}×${I.to.h}マス）`:`${I.from.w}×${I.from.h} → ${I.to.w}×${I.to.h}マス　${area==='room'?'奥の納戸の仕切りを外す':'お隣との間の空き地を借りる'}`));
       if(!I.done){
         const need=$el('div','hm-need');
-        I.mats.forEach(n=>{const ok=n.have>=n.need;need.appendChild($el('span','hm-need-i'+(ok?' ok':' ng'),`${HOME.MATERIALS[n.id].icon} ${n.name} ${n.need}（所持 ${n.have}）${ok?'':'・足りない'}`));});
+        I.mats.forEach(n=>{const ok=n.have>=n.need;need.appendChild(matTag('hm-need-i'+(ok?' ok':' ng'),n.id,`${n.name} ${n.need}（所持 ${n.have}）${ok?'':'・足りない'}`));});
         const okm=I.moneyHave>=I.money;
         need.appendChild($el('span','hm-need-i'+(okm?' ok':' ng'),`💴 ¥${I.money.toLocaleString('ja-JP')}（所持 ¥${Math.floor(I.moneyHave).toLocaleString('ja-JP')}）${okm?'':'・足りない'}`));
         t.appendChild(need);
@@ -1172,6 +1191,8 @@ function renderDrawer(){
     b.setAttribute('aria-pressed',E.filter===f?'true':'false');chips.appendChild(b);
   });
   if(ED().lookGroups){const lb=btn('外観・内装','look',()=>ED().togglePanel(S),'hm-chip hm-chip-look');lb.setAttribute('aria-pressed','false');chips.appendChild(lb);}
+  // 最初の状態に戻す（確認ダイアログ → 下書きに1操作。［取り消し］で戻せる）
+  if(ED().askReset){const rs=btn(ED().resetLabel(S),'undo',()=>{if(!S.busy)ED().askReset(S);},'hm-chip hm-chip-reset');rs.setAttribute('aria-label',ED().resetLabel(S)+'（確認があります）');chips.appendChild(rs);}
   el.appendChild(chips);
   const inv=$el('div','hm-inv');inv.setAttribute('role','list');inv.setAttribute('aria-label','収納');
   const items=ED().inventory(S);
