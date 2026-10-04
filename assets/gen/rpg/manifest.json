@@ -42,8 +42,8 @@
    "transparent": true,
    "facing": "行＝下・左・右・上向き",
    "ref": "assets/gen/rpg/ref/party.dan.png",
-   "status": "requested",
-   "file": null
+   "status": "verified",
+   "file": "assets/gen/rpg/party.dan.png"
   },
   {
    "id": "party.danT",
@@ -2609,6 +2609,45 @@
    "ref": "assets/gen/rpg/ref/bg.abyss.png",
    "status": "requested",
    "file": null
+  },
+  {
+   "id": "portrait.dan",
+   "category": "portrait",
+   "name": "だんのうら（ふだん）",
+   "size": {
+    "w": 456,
+    "h": 76
+   },
+   "frames": {
+    "cols": 6,
+    "rows": 1,
+    "cell": {
+     "w": 76,
+     "h": 76
+    },
+    "layout": {
+     "cols": [
+      "normal",
+      "happy",
+      "smile",
+      "wink",
+      "surprise",
+      "sad"
+     ],
+     "rows": [
+      "face"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "正面のバストアップ",
+   "ref": "assets/gen/rpg/ref/portrait.dan.png",
+   "status": "verified",
+   "file": "assets/gen/rpg/portrait.dan.png"
   },
   {
    "id": "portrait.mina",

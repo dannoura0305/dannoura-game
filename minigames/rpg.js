@@ -2319,7 +2319,7 @@ const PROP_PAD=24;            // 小物のシートは、タイルの上に24ド
 const TILE_COLS=['floor0','floor1','floor2','floor3','path','deco','plank','face','top','water','pit','conveyor','fence'];
 const PROP_STATES={chest:['closed','open'],toro:['lit','dim'],panel:['broken','fixed'],mailbox:['letters','empty'],biglantern:['lit','taken'],
   window:['night','morning'],futon:['night','morning'],press:['running','stopped'],nursery:['dark','lit'],vortex:['storm','calm']};
-const PORTRAIT_FACES={mina:['normal','smile','sad','surprise','closed'],fish:['normal'],miyako:['normal'],worker:['normal'],teacher:['normal'],sleeper:['normal']};
+const PORTRAIT_FACES={dan:['normal','happy','smile','wink','surprise','sad'],mina:['normal','smile','sad','surprise','closed'],fish:['normal'],miyako:['normal'],worker:['normal'],teacher:['normal'],sleeper:['normal']};
 const CHAR_NAMES={dan:'だんのうら（ふだん）',danT:'だんのうら（疲れ切った夜の姿）',mina:'ミナモ',kidOut:'娘（お出かけ）',kidHome:'娘（パジャマ）',
   miyako:'都の人',worker:'夜勤の亡者',teacher:'珊瑚の先生',sleeper:'眠れない人',fish:'魚の子'};
 const THEME_NAMES={home:'夜の部屋',ruins:'海底の廃墟（第一章）',room:'沈んだ配信部屋（第一章）',factory:'海底の工場（第二章）',coral:'珊瑚の森・保育園（第三章）',
@@ -3271,6 +3271,11 @@ registerMinigame({
       if(pe){const fs=PORTRAIT_FACES[kind==='mina'?'mina':V.porNpc]||['normal'];const fi=Math.max(0,fs.indexOf(expr||'normal'));
         if(kind==='mina')Xp.globalAlpha=.94+.05*Math.sin(V.t*2.3);
         genBlit(Xp,pe,fi,0,0,kind==='mina'?Math.round(Math.sin(V.t*1.2)*2):0,Z/PORZ);Xp.globalAlpha=1;}
+      else if(kind==='dan'&&V.form!=='tired'&&expr!=='tired'&&expr!=='fear'&&gen('portrait.dan')){
+        // 生成画像のドット絵の顔（疲れ・恐れは猫耳の姿なので従来の立ち絵のまま）
+        const de=gen('portrait.dan'),fi=Math.max(0,PORTRAIT_FACES.dan.indexOf(expr||'normal'));
+        genBlit(Xp,de,fi,0,0,0,Z/PORZ);
+      }
       else if(kind==='dan'){
         const im=img('char_'+(expr||'normal'));
         if(im.ok){Xp.drawImage(im.src,0,0,Z,Z);Xp.globalCompositeOperation='multiply';Xp.fillStyle='#c4ccf4';Xp.fillRect(0,0,Z,Z);Xp.globalCompositeOperation='source-over';}
