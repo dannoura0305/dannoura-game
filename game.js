@@ -1043,7 +1043,9 @@ function startSession(type){
 function addComment(u,tx,tp){
   const feed=document.getElementById('comment-feed');
   const el=document.createElement('div');el.className='ci '+(tp||'normal');
-  el.innerHTML=`<span class="ci-u">${u}</span><span class="ci-t">${tx}</span>`;
+  // アイコン（main/mobs.js の listenerAvatarHTML。モデレーターは盾つき）
+  let av='';try{if(typeof listenerAvatarHTML==='function'&&(u||tp==='ghost')){const li=gs.listeners&&gs.listeners.find(l=>l.name===u);av=listenerAvatarHTML(u,tp,{mod:!!(li&&li.type==='mod')});}}catch(e){}
+  el.innerHTML=`${av}<span class="ci-u">${u}</span><span class="ci-t">${tx}</span>`;
   feed.appendChild(el);if(feed.children.length>80)feed.removeChild(feed.firstChild);
   feed.scrollTop=feed.scrollHeight;
 }
@@ -1525,7 +1527,8 @@ function openStatus(){
   gs.listeners.forEach(l=>{
     const evoL=['初期','認識','心配','深い心配','推し化','……'];
     const r=document.createElement('div');r.style.cssText='font-family:var(--mono);font-size:.58rem;color:var(--tx-d);margin-bottom:6px;line-height:1.9;';
-    r.innerHTML=`<span style="color:var(--pu)">${l.name}</span> — ${l.type==='mod'?'🛡モデレーター':l.type==='anti'?'🔴アンチ':'💜常連'}<br>信頼${l.trust} Lv.${l.evo}(${evoL[Math.min(5,l.evo)]}) 危険${Math.floor(l.danger*10)/10}`;
+    const av=typeof listenerAvatarHTML==='function'?listenerAvatarHTML(l.name,'normal',{mod:l.type==='mod',style:'display:inline-block;vertical-align:-5px;margin-right:7px;width:18px;height:18px;'}):'';
+    r.innerHTML=`${av}<span style="color:var(--pu)">${l.name}</span> —${l.type==='mod'?'🛡モデレーター':l.type==='anti'?'🔴アンチ':'💜常連'}<br>信頼${l.trust} Lv.${l.evo}(${evoL[Math.min(5,l.evo)]}) 危険${Math.floor(l.danger*10)/10}`;
     ld.appendChild(r);
   });body.appendChild(ld);
   // 成長履歴

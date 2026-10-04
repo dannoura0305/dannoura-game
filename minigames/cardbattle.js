@@ -705,7 +705,10 @@ registerMinigame({
       const c=ofx;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,off.width,off.height);
       c.setTransform(dpr,0,0,dpr,offS/2*dpr,offS/2*dpr);
       const r=R*.92;
-      if(enemy.def.key==='troll')drawTroll(c,r,tm);else if(enemy.def.key==='bot')drawBot(c,r,tm);else drawNight(c,r,tm,enemy.hp/enemy.max);
+      // 生成画像（main/artpack.js の mg.cards.<敵>）があればそれを描く（横4コマならゆらぎに使う）
+      const gid='mg.cards.'+enemy.def.key;
+      if(window.ARTPACK&&ARTPACK.has(gid))ARTPACK.draw(c,gid,-r*1.15,-r*1.15,r*2.3,r*2.3,{frame:Math.floor(tm*4)%4});
+      else if(enemy.def.key==='troll')drawTroll(c,r,tm);else if(enemy.def.key==='bot')drawBot(c,r,tm);else drawNight(c,r,tm,enemy.hp/enemy.max);
       if(ehit>0){c.setTransform(1,0,0,1,0,0);c.globalCompositeOperation='source-atop';c.fillStyle=ehit>.6?'rgba(255,255,255,.7)':'rgba(255,60,110,.45)';c.globalAlpha=Math.min(1,ehit*1.4);c.fillRect(0,0,off.width,off.height);c.globalAlpha=1;c.globalCompositeOperation='source-over';}
       // 貼り付け
       // ポーズ：溜め（のけぞる）／突進／被弾ののけぞり

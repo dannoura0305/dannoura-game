@@ -1,0 +1,2822 @@
+{
+ "version": 1,
+ "about": "RPG「壇ノ浦夢譚」の生成画像の差し替え口。file に PNG のパス（assets/gen/rpg/ 以下）を書くと、その絵がコード描画の代わりに使われる。null ならコード描画。詳しくは docs/rpg-art.md。",
+ "scaleRule": "PNG は size の整数倍（1倍・2倍・4倍…）。倍率は横幅から自動で判定し、最近傍で原寸に戻して描く。",
+ "assets": [
+  {
+   "id": "party.dan",
+   "category": "party",
+   "name": "だんのうら（ふだん）",
+   "size": {
+    "w": 144,
+    "h": 128
+   },
+   "frames": {
+    "cols": 6,
+    "rows": 4,
+    "cell": {
+     "w": 24,
+     "h": 32
+    },
+    "layout": {
+     "cols": [
+      "walk0",
+      "walk1",
+      "walk2",
+      "walk3",
+      "cast",
+      "win"
+     ],
+     "rows": [
+      "down",
+      "left",
+      "right",
+      "up"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 12,
+    "y": 28
+   },
+   "transparent": true,
+   "facing": "行＝下・左・右・上向き",
+   "ref": "assets/gen/rpg/ref/party.dan.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "party.danT",
+   "category": "party",
+   "name": "だんのうら（疲れ切った夜の姿）",
+   "size": {
+    "w": 144,
+    "h": 128
+   },
+   "frames": {
+    "cols": 6,
+    "rows": 4,
+    "cell": {
+     "w": 24,
+     "h": 32
+    },
+    "layout": {
+     "cols": [
+      "walk0",
+      "walk1",
+      "walk2",
+      "walk3",
+      "cast",
+      "win"
+     ],
+     "rows": [
+      "down",
+      "left",
+      "right",
+      "up"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 12,
+    "y": 28
+   },
+   "transparent": true,
+   "facing": "行＝下・左・右・上向き",
+   "ref": "assets/gen/rpg/ref/party.danT.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "party.mina",
+   "category": "party",
+   "name": "ミナモ",
+   "size": {
+    "w": 144,
+    "h": 128
+   },
+   "frames": {
+    "cols": 6,
+    "rows": 4,
+    "cell": {
+     "w": 24,
+     "h": 32
+    },
+    "layout": {
+     "cols": [
+      "walk0",
+      "walk1",
+      "walk2",
+      "walk3",
+      "cast",
+      "win"
+     ],
+     "rows": [
+      "down",
+      "left",
+      "right",
+      "up"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 12,
+    "y": 28
+   },
+   "transparent": true,
+   "facing": "行＝下・左・右・上向き",
+   "ref": "assets/gen/rpg/ref/party.mina.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "npc.kidOut",
+   "category": "npc",
+   "name": "娘（お出かけ）",
+   "size": {
+    "w": 144,
+    "h": 128
+   },
+   "frames": {
+    "cols": 6,
+    "rows": 4,
+    "cell": {
+     "w": 24,
+     "h": 32
+    },
+    "layout": {
+     "cols": [
+      "walk0",
+      "walk1",
+      "walk2",
+      "walk3",
+      "cast",
+      "win"
+     ],
+     "rows": [
+      "down",
+      "left",
+      "right",
+      "up"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 12,
+    "y": 28
+   },
+   "transparent": true,
+   "facing": "行＝下・左・右・上向き",
+   "ref": "assets/gen/rpg/ref/npc.kidOut.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "npc.kidHome",
+   "category": "npc",
+   "name": "娘（パジャマ）",
+   "size": {
+    "w": 144,
+    "h": 128
+   },
+   "frames": {
+    "cols": 6,
+    "rows": 4,
+    "cell": {
+     "w": 24,
+     "h": 32
+    },
+    "layout": {
+     "cols": [
+      "walk0",
+      "walk1",
+      "walk2",
+      "walk3",
+      "cast",
+      "win"
+     ],
+     "rows": [
+      "down",
+      "left",
+      "right",
+      "up"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 12,
+    "y": 28
+   },
+   "transparent": true,
+   "facing": "行＝下・左・右・上向き",
+   "ref": "assets/gen/rpg/ref/npc.kidHome.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "npc.miyako",
+   "category": "npc",
+   "name": "都の人",
+   "size": {
+    "w": 144,
+    "h": 128
+   },
+   "frames": {
+    "cols": 6,
+    "rows": 4,
+    "cell": {
+     "w": 24,
+     "h": 32
+    },
+    "layout": {
+     "cols": [
+      "walk0",
+      "walk1",
+      "walk2",
+      "walk3",
+      "cast",
+      "win"
+     ],
+     "rows": [
+      "down",
+      "left",
+      "right",
+      "up"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 12,
+    "y": 28
+   },
+   "transparent": true,
+   "facing": "行＝下・左・右・上向き",
+   "ref": "assets/gen/rpg/ref/npc.miyako.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "npc.worker",
+   "category": "npc",
+   "name": "夜勤の亡者",
+   "size": {
+    "w": 144,
+    "h": 128
+   },
+   "frames": {
+    "cols": 6,
+    "rows": 4,
+    "cell": {
+     "w": 24,
+     "h": 32
+    },
+    "layout": {
+     "cols": [
+      "walk0",
+      "walk1",
+      "walk2",
+      "walk3",
+      "cast",
+      "win"
+     ],
+     "rows": [
+      "down",
+      "left",
+      "right",
+      "up"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 12,
+    "y": 28
+   },
+   "transparent": true,
+   "facing": "行＝下・左・右・上向き",
+   "ref": "assets/gen/rpg/ref/npc.worker.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "npc.teacher",
+   "category": "npc",
+   "name": "珊瑚の先生",
+   "size": {
+    "w": 144,
+    "h": 128
+   },
+   "frames": {
+    "cols": 6,
+    "rows": 4,
+    "cell": {
+     "w": 24,
+     "h": 32
+    },
+    "layout": {
+     "cols": [
+      "walk0",
+      "walk1",
+      "walk2",
+      "walk3",
+      "cast",
+      "win"
+     ],
+     "rows": [
+      "down",
+      "left",
+      "right",
+      "up"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 12,
+    "y": 28
+   },
+   "transparent": true,
+   "facing": "行＝下・左・右・上向き",
+   "ref": "assets/gen/rpg/ref/npc.teacher.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "npc.sleeper",
+   "category": "npc",
+   "name": "眠れない人",
+   "size": {
+    "w": 144,
+    "h": 128
+   },
+   "frames": {
+    "cols": 6,
+    "rows": 4,
+    "cell": {
+     "w": 24,
+     "h": 32
+    },
+    "layout": {
+     "cols": [
+      "walk0",
+      "walk1",
+      "walk2",
+      "walk3",
+      "cast",
+      "win"
+     ],
+     "rows": [
+      "down",
+      "left",
+      "right",
+      "up"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 12,
+    "y": 28
+   },
+   "transparent": true,
+   "facing": "行＝下・左・右・上向き",
+   "ref": "assets/gen/rpg/ref/npc.sleeper.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "npc.fish",
+   "category": "npc",
+   "name": "魚の子",
+   "size": {
+    "w": 32,
+    "h": 12
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 12
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1"
+     ],
+     "rows": [
+      "right"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 8,
+    "y": 6
+   },
+   "transparent": true,
+   "facing": "右向き（左は反転）",
+   "ref": "assets/gen/rpg/ref/npc.fish.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "enemy.noise",
+   "category": "enemy",
+   "name": "ノイズの群れ",
+   "size": {
+    "w": 152,
+    "h": 38
+   },
+   "frames": {
+    "cols": 4,
+    "rows": 1,
+    "cell": {
+     "w": 38,
+     "h": 38
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1",
+      "f2",
+      "f3"
+     ],
+     "rows": [
+      "idle"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 19,
+    "y": 19
+   },
+   "transparent": true,
+   "facing": "正面（二人は画面の下側にいる）",
+   "ref": "assets/gen/rpg/ref/enemy.noise.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "enemy.spark",
+   "category": "enemy",
+   "name": "罵声の泡",
+   "size": {
+    "w": 128,
+    "h": 32
+   },
+   "frames": {
+    "cols": 4,
+    "rows": 1,
+    "cell": {
+     "w": 32,
+     "h": 32
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1",
+      "f2",
+      "f3"
+     ],
+     "rows": [
+      "idle"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 16,
+    "y": 16
+   },
+   "transparent": true,
+   "facing": "正面（二人は画面の下側にいる）",
+   "ref": "assets/gen/rpg/ref/enemy.spark.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "boss.bubble",
+   "category": "boss",
+   "name": "炎上の泡",
+   "size": {
+    "w": 368,
+    "h": 92
+   },
+   "frames": {
+    "cols": 4,
+    "rows": 1,
+    "cell": {
+     "w": 92,
+     "h": 92
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1",
+      "f2",
+      "f3"
+     ],
+     "rows": [
+      "idle"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 46,
+    "y": 46
+   },
+   "transparent": true,
+   "facing": "正面（二人は画面の下側にいる）",
+   "ref": "assets/gen/rpg/ref/boss.bubble.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "enemy.crab",
+   "category": "enemy",
+   "name": "錆びた蟹",
+   "size": {
+    "w": 160,
+    "h": 40
+   },
+   "frames": {
+    "cols": 4,
+    "rows": 1,
+    "cell": {
+     "w": 40,
+     "h": 40
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1",
+      "f2",
+      "f3"
+     ],
+     "rows": [
+      "idle"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 20,
+    "y": 20
+   },
+   "transparent": true,
+   "facing": "正面（二人は画面の下側にいる）",
+   "ref": "assets/gen/rpg/ref/enemy.crab.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "boss.rust",
+   "category": "boss",
+   "name": "鉄錆の番人",
+   "size": {
+    "w": 416,
+    "h": 104
+   },
+   "frames": {
+    "cols": 4,
+    "rows": 1,
+    "cell": {
+     "w": 104,
+     "h": 104
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1",
+      "f2",
+      "f3"
+     ],
+     "rows": [
+      "idle"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 52,
+    "y": 52
+   },
+   "transparent": true,
+   "facing": "正面（二人は画面の下側にいる）",
+   "ref": "assets/gen/rpg/ref/boss.rust.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "enemy.letters",
+   "category": "enemy",
+   "name": "督促状",
+   "size": {
+    "w": 152,
+    "h": 38
+   },
+   "frames": {
+    "cols": 4,
+    "rows": 1,
+    "cell": {
+     "w": 38,
+     "h": 38
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1",
+      "f2",
+      "f3"
+     ],
+     "rows": [
+      "idle"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 19,
+    "y": 19
+   },
+   "transparent": true,
+   "facing": "正面（二人は画面の下側にいる）",
+   "ref": "assets/gen/rpg/ref/enemy.letters.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "boss.debt",
+   "category": "boss",
+   "name": "借金取りの影",
+   "size": {
+    "w": 440,
+    "h": 110
+   },
+   "frames": {
+    "cols": 4,
+    "rows": 1,
+    "cell": {
+     "w": 110,
+     "h": 110
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1",
+      "f2",
+      "f3"
+     ],
+     "rows": [
+      "idle"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 55,
+    "y": 55
+   },
+   "transparent": true,
+   "facing": "正面（二人は画面の下側にいる）",
+   "ref": "assets/gen/rpg/ref/boss.debt.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "enemy.echo",
+   "category": "enemy",
+   "name": "残響のノイズ",
+   "size": {
+    "w": 176,
+    "h": 44
+   },
+   "frames": {
+    "cols": 4,
+    "rows": 1,
+    "cell": {
+     "w": 44,
+     "h": 44
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1",
+      "f2",
+      "f3"
+     ],
+     "rows": [
+      "idle"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 22,
+    "y": 22
+   },
+   "transparent": true,
+   "facing": "正面（二人は画面の下側にいる）",
+   "ref": "assets/gen/rpg/ref/enemy.echo.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "enemy.lamb",
+   "category": "enemy",
+   "name": "眠れぬ子羊",
+   "size": {
+    "w": 136,
+    "h": 34
+   },
+   "frames": {
+    "cols": 4,
+    "rows": 1,
+    "cell": {
+     "w": 34,
+     "h": 34
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1",
+      "f2",
+      "f3"
+     ],
+     "rows": [
+      "idle"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 17,
+    "y": 17
+   },
+   "transparent": true,
+   "facing": "正面（二人は画面の下側にいる）",
+   "ref": "assets/gen/rpg/ref/enemy.lamb.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "boss.sheep",
+   "category": "boss",
+   "name": "眠れぬ羊",
+   "size": {
+    "w": 400,
+    "h": 100
+   },
+   "frames": {
+    "cols": 4,
+    "rows": 1,
+    "cell": {
+     "w": 100,
+     "h": 100
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1",
+      "f2",
+      "f3"
+     ],
+     "rows": [
+      "idle"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 50,
+    "y": 50
+   },
+   "transparent": true,
+   "facing": "正面（二人は画面の下側にいる）",
+   "ref": "assets/gen/rpg/ref/boss.sheep.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "enemy.shade",
+   "category": "enemy",
+   "name": "名前を呑む影",
+   "size": {
+    "w": 176,
+    "h": 44
+   },
+   "frames": {
+    "cols": 4,
+    "rows": 1,
+    "cell": {
+     "w": 44,
+     "h": 44
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1",
+      "f2",
+      "f3"
+     ],
+     "rows": [
+      "idle"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 22,
+    "y": 22
+   },
+   "transparent": true,
+   "facing": "正面（二人は画面の下側にいる）",
+   "ref": "assets/gen/rpg/ref/enemy.shade.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "enemy.eye",
+   "category": "enemy",
+   "name": "見ている目",
+   "size": {
+    "w": 136,
+    "h": 34
+   },
+   "frames": {
+    "cols": 4,
+    "rows": 1,
+    "cell": {
+     "w": 34,
+     "h": 34
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1",
+      "f2",
+      "f3"
+     ],
+     "rows": [
+      "idle"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 17,
+    "y": 17
+   },
+   "transparent": true,
+   "facing": "正面（二人は画面の下側にいる）",
+   "ref": "assets/gen/rpg/ref/enemy.eye.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "boss.watcher",
+   "category": "boss",
+   "name": "名無しの観測者",
+   "size": {
+    "w": 496,
+    "h": 124
+   },
+   "frames": {
+    "cols": 4,
+    "rows": 1,
+    "cell": {
+     "w": 124,
+     "h": 124
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1",
+      "f2",
+      "f3"
+     ],
+     "rows": [
+      "idle"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 62,
+    "y": 62
+   },
+   "transparent": true,
+   "facing": "正面（二人は画面の下側にいる）",
+   "ref": "assets/gen/rpg/ref/boss.watcher.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "tile.home",
+   "category": "tile",
+   "name": "夜の部屋",
+   "size": {
+    "w": 208,
+    "h": 16
+   },
+   "frames": {
+    "cols": 13,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 16
+    },
+    "layout": {
+     "cols": [
+      "floor0",
+      "floor1",
+      "floor2",
+      "floor3",
+      "path",
+      "deco",
+      "plank",
+      "face",
+      "top",
+      "water",
+      "pit",
+      "conveyor",
+      "fence"
+     ],
+     "rows": [
+      "tiles"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "見下ろし3/4",
+   "ref": "assets/gen/rpg/ref/tile.home.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "tile.ruins",
+   "category": "tile",
+   "name": "海底の廃墟（第一章）",
+   "size": {
+    "w": 208,
+    "h": 16
+   },
+   "frames": {
+    "cols": 13,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 16
+    },
+    "layout": {
+     "cols": [
+      "floor0",
+      "floor1",
+      "floor2",
+      "floor3",
+      "path",
+      "deco",
+      "plank",
+      "face",
+      "top",
+      "water",
+      "pit",
+      "conveyor",
+      "fence"
+     ],
+     "rows": [
+      "tiles"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "見下ろし3/4",
+   "ref": "assets/gen/rpg/ref/tile.ruins.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "tile.room",
+   "category": "tile",
+   "name": "沈んだ配信部屋（第一章）",
+   "size": {
+    "w": 208,
+    "h": 16
+   },
+   "frames": {
+    "cols": 13,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 16
+    },
+    "layout": {
+     "cols": [
+      "floor0",
+      "floor1",
+      "floor2",
+      "floor3",
+      "path",
+      "deco",
+      "plank",
+      "face",
+      "top",
+      "water",
+      "pit",
+      "conveyor",
+      "fence"
+     ],
+     "rows": [
+      "tiles"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "見下ろし3/4",
+   "ref": "assets/gen/rpg/ref/tile.room.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "tile.factory",
+   "category": "tile",
+   "name": "海底の工場（第二章）",
+   "size": {
+    "w": 208,
+    "h": 16
+   },
+   "frames": {
+    "cols": 13,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 16
+    },
+    "layout": {
+     "cols": [
+      "floor0",
+      "floor1",
+      "floor2",
+      "floor3",
+      "path",
+      "deco",
+      "plank",
+      "face",
+      "top",
+      "water",
+      "pit",
+      "conveyor",
+      "fence"
+     ],
+     "rows": [
+      "tiles"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "見下ろし3/4",
+   "ref": "assets/gen/rpg/ref/tile.factory.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "tile.coral",
+   "category": "tile",
+   "name": "珊瑚の森・保育園（第三章）",
+   "size": {
+    "w": 208,
+    "h": 16
+   },
+   "frames": {
+    "cols": 13,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 16
+    },
+    "layout": {
+     "cols": [
+      "floor0",
+      "floor1",
+      "floor2",
+      "floor3",
+      "path",
+      "deco",
+      "plank",
+      "face",
+      "top",
+      "water",
+      "pit",
+      "conveyor",
+      "fence"
+     ],
+     "rows": [
+      "tiles"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "見下ろし3/4",
+   "ref": "assets/gen/rpg/ref/tile.coral.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "tile.lantern",
+   "category": "tile",
+   "name": "眠らない灯籠の回廊（第四章）",
+   "size": {
+    "w": 208,
+    "h": 16
+   },
+   "frames": {
+    "cols": 13,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 16
+    },
+    "layout": {
+     "cols": [
+      "floor0",
+      "floor1",
+      "floor2",
+      "floor3",
+      "path",
+      "deco",
+      "plank",
+      "face",
+      "top",
+      "water",
+      "pit",
+      "conveyor",
+      "fence"
+     ],
+     "rows": [
+      "tiles"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "見下ろし3/4",
+   "ref": "assets/gen/rpg/ref/tile.lantern.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "tile.vortex",
+   "category": "tile",
+   "name": "沈んだ御所・渦（第五章）",
+   "size": {
+    "w": 208,
+    "h": 16
+   },
+   "frames": {
+    "cols": 13,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 16
+    },
+    "layout": {
+     "cols": [
+      "floor0",
+      "floor1",
+      "floor2",
+      "floor3",
+      "path",
+      "deco",
+      "plank",
+      "face",
+      "top",
+      "water",
+      "pit",
+      "conveyor",
+      "fence"
+     ],
+     "rows": [
+      "tiles"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "見下ろし3/4",
+   "ref": "assets/gen/rpg/ref/tile.vortex.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "tile.abyss",
+   "category": "tile",
+   "name": "沈眠の都（悪い目覚め）",
+   "size": {
+    "w": 208,
+    "h": 16
+   },
+   "frames": {
+    "cols": 13,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 16
+    },
+    "layout": {
+     "cols": [
+      "floor0",
+      "floor1",
+      "floor2",
+      "floor3",
+      "path",
+      "deco",
+      "plank",
+      "face",
+      "top",
+      "water",
+      "pit",
+      "conveyor",
+      "fence"
+     ],
+     "rows": [
+      "tiles"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "見下ろし3/4",
+   "ref": "assets/gen/rpg/ref/tile.abyss.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.roof",
+   "category": "prop",
+   "name": "沈んだ瓦屋根",
+   "size": {
+    "w": 48,
+    "h": 56
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 48,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.roof.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.torii",
+   "category": "prop",
+   "name": "朱のはげた鳥居",
+   "size": {
+    "w": 48,
+    "h": 72
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 48,
+     "h": 72
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.torii.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.kelp",
+   "category": "prop",
+   "name": "昆布",
+   "size": {
+    "w": 32,
+    "h": 56
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.kelp.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.rock",
+   "category": "prop",
+   "name": "岩",
+   "size": {
+    "w": 16,
+    "h": 40
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 40
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.rock.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.chest",
+   "category": "prop",
+   "name": "宝箱",
+   "size": {
+    "w": 32,
+    "h": 40
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 40
+    },
+    "layout": {
+     "cols": [
+      "closed",
+      "open"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.chest.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.save",
+   "category": "prop",
+   "name": "休める灯籠（青）",
+   "size": {
+    "w": 32,
+    "h": 56
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.save.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.toro",
+   "category": "prop",
+   "name": "石灯籠",
+   "size": {
+    "w": 32,
+    "h": 56
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "lit",
+      "dim"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.toro.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.desk",
+   "category": "prop",
+   "name": "配信机とモニター",
+   "size": {
+    "w": 128,
+    "h": 56
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 64,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.desk.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.window",
+   "category": "prop",
+   "name": "窓",
+   "size": {
+    "w": 64,
+    "h": 40
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 32,
+     "h": 40
+    },
+    "layout": {
+     "cols": [
+      "night",
+      "morning"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.window.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.boxes",
+   "category": "prop",
+   "name": "段ボール",
+   "size": {
+    "w": 32,
+    "h": 40
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 32,
+     "h": 40
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.boxes.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.chair",
+   "category": "prop",
+   "name": "椅子",
+   "size": {
+    "w": 16,
+    "h": 40
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 40
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.chair.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.bubbles",
+   "category": "prop",
+   "name": "泡の吹きだまり",
+   "size": {
+    "w": 32,
+    "h": 40
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 40
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.bubbles.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.futon",
+   "category": "prop",
+   "name": "布団",
+   "size": {
+    "w": 96,
+    "h": 56
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 48,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "night",
+      "morning"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.futon.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.tank",
+   "category": "prop",
+   "name": "タンク",
+   "size": {
+    "w": 32,
+    "h": 72
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 32,
+     "h": 72
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.tank.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.crate",
+   "category": "prop",
+   "name": "木箱",
+   "size": {
+    "w": 16,
+    "h": 40
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 40
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.crate.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.locker",
+   "category": "prop",
+   "name": "ロッカー",
+   "size": {
+    "w": 48,
+    "h": 56
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 48,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.locker.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.panel",
+   "category": "prop",
+   "name": "制御盤",
+   "size": {
+    "w": 64,
+    "h": 56
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 32,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "broken",
+      "fixed"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.panel.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.press",
+   "category": "prop",
+   "name": "プレス機",
+   "size": {
+    "w": 128,
+    "h": 72
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 64,
+     "h": 72
+    },
+    "layout": {
+     "cols": [
+      "running",
+      "stopped"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.press.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.coral",
+   "category": "prop",
+   "name": "珊瑚",
+   "size": {
+    "w": 32,
+    "h": 56
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.coral.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.jelly",
+   "category": "prop",
+   "name": "クラゲ",
+   "size": {
+    "w": 32,
+    "h": 40
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 40
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.jelly.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.nursery",
+   "category": "prop",
+   "name": "珊瑚の保育園",
+   "size": {
+    "w": 256,
+    "h": 88
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 128,
+     "h": 88
+    },
+    "layout": {
+     "cols": [
+      "dark",
+      "lit"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.nursery.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.shoes",
+   "category": "prop",
+   "name": "靴箱",
+   "size": {
+    "w": 32,
+    "h": 56
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 32,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.shoes.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.swing",
+   "category": "prop",
+   "name": "ぶらんこ",
+   "size": {
+    "w": 96,
+    "h": 56
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 48,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.swing.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.slide",
+   "category": "prop",
+   "name": "すべり台",
+   "size": {
+    "w": 48,
+    "h": 56
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 48,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.slide.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.mailbox",
+   "category": "prop",
+   "name": "ポスト",
+   "size": {
+    "w": 32,
+    "h": 56
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "letters",
+      "empty"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.mailbox.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.tulips",
+   "category": "prop",
+   "name": "チューリップ",
+   "size": {
+    "w": 32,
+    "h": 40
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 32,
+     "h": 40
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.tulips.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.pillar",
+   "category": "prop",
+   "name": "朱の柱",
+   "size": {
+    "w": 16,
+    "h": 56
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.pillar.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.biglantern",
+   "category": "prop",
+   "name": "大灯籠",
+   "size": {
+    "w": 64,
+    "h": 72
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 32,
+     "h": 72
+    },
+    "layout": {
+     "cols": [
+      "lit",
+      "taken"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.biglantern.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.lone",
+   "category": "prop",
+   "name": "ひとつだけの灯籠",
+   "size": {
+    "w": 32,
+    "h": 56
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.lone.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.palace",
+   "category": "prop",
+   "name": "沈んだ御所",
+   "size": {
+    "w": 192,
+    "h": 72
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 96,
+     "h": 72
+    },
+    "layout": {
+     "cols": [
+      "f0",
+      "f1"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.palace.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.throne",
+   "category": "prop",
+   "name": "玉座",
+   "size": {
+    "w": 32,
+    "h": 56
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 32,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.throne.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.vortex",
+   "category": "prop",
+   "name": "名前を呑む渦",
+   "size": {
+    "w": 224,
+    "h": 104
+   },
+   "frames": {
+    "cols": 2,
+    "rows": 1,
+    "cell": {
+     "w": 112,
+     "h": 104
+    },
+    "layout": {
+     "cols": [
+      "storm",
+      "calm"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.vortex.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.sign",
+   "category": "prop",
+   "name": "立て札",
+   "size": {
+    "w": 16,
+    "h": 40
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 40
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.sign.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.shelf",
+   "category": "prop",
+   "name": "本棚",
+   "size": {
+    "w": 32,
+    "h": 56
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 32,
+     "h": 56
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.shelf.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.toybox",
+   "category": "prop",
+   "name": "おもちゃ箱と絵本",
+   "size": {
+    "w": 32,
+    "h": 40
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 32,
+     "h": 40
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.toybox.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "prop.bear",
+   "category": "prop",
+   "name": "クマのぬいぐるみ",
+   "size": {
+    "w": 16,
+    "h": 40
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 16,
+     "h": 40
+    },
+    "layout": {
+     "cols": [
+      "f0"
+     ],
+     "rows": [
+      "state"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 24
+   },
+   "transparent": true,
+   "facing": "正面3/4（足元＝下端）",
+   "ref": "assets/gen/rpg/ref/prop.bear.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "bg.menu",
+   "category": "bg",
+   "name": "タイトル（海の底の都）",
+   "size": {
+    "w": 270,
+    "h": 480
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 270,
+     "h": 480
+    },
+    "layout": {
+     "cols": [
+      "still"
+     ],
+     "rows": [
+      "bg"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "縦長（画面いっぱいに切り抜いて貼る）",
+   "ref": "assets/gen/rpg/ref/bg.menu.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "bg.dawn",
+   "category": "bg",
+   "name": "目覚めの水面",
+   "size": {
+    "w": 270,
+    "h": 480
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 270,
+     "h": 480
+    },
+    "layout": {
+     "cols": [
+      "still"
+     ],
+     "rows": [
+      "bg"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "縦長（画面いっぱいに切り抜いて貼る）",
+   "ref": "assets/gen/rpg/ref/bg.dawn.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "bg.abyss",
+   "category": "bg",
+   "name": "沈眠の都",
+   "size": {
+    "w": 270,
+    "h": 480
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 270,
+     "h": 480
+    },
+    "layout": {
+     "cols": [
+      "still"
+     ],
+     "rows": [
+      "bg"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "縦長（画面いっぱいに切り抜いて貼る）",
+   "ref": "assets/gen/rpg/ref/bg.abyss.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "portrait.mina",
+   "category": "portrait",
+   "name": "ミナモ",
+   "size": {
+    "w": 380,
+    "h": 76
+   },
+   "frames": {
+    "cols": 5,
+    "rows": 1,
+    "cell": {
+     "w": 76,
+     "h": 76
+    },
+    "layout": {
+     "cols": [
+      "normal",
+      "smile",
+      "sad",
+      "surprise",
+      "closed"
+     ],
+     "rows": [
+      "face"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "正面のバストアップ",
+   "ref": "assets/gen/rpg/ref/portrait.mina.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "portrait.fish",
+   "category": "portrait",
+   "name": "魚の子",
+   "size": {
+    "w": 76,
+    "h": 76
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 76,
+     "h": 76
+    },
+    "layout": {
+     "cols": [
+      "normal"
+     ],
+     "rows": [
+      "face"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "正面のバストアップ",
+   "ref": "assets/gen/rpg/ref/portrait.fish.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "portrait.miyako",
+   "category": "portrait",
+   "name": "都の人",
+   "size": {
+    "w": 76,
+    "h": 76
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 76,
+     "h": 76
+    },
+    "layout": {
+     "cols": [
+      "normal"
+     ],
+     "rows": [
+      "face"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "正面のバストアップ",
+   "ref": "assets/gen/rpg/ref/portrait.miyako.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "portrait.worker",
+   "category": "portrait",
+   "name": "夜勤の亡者",
+   "size": {
+    "w": 76,
+    "h": 76
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 76,
+     "h": 76
+    },
+    "layout": {
+     "cols": [
+      "normal"
+     ],
+     "rows": [
+      "face"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "正面のバストアップ",
+   "ref": "assets/gen/rpg/ref/portrait.worker.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "portrait.teacher",
+   "category": "portrait",
+   "name": "珊瑚の先生",
+   "size": {
+    "w": 76,
+    "h": 76
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 76,
+     "h": 76
+    },
+    "layout": {
+     "cols": [
+      "normal"
+     ],
+     "rows": [
+      "face"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "正面のバストアップ",
+   "ref": "assets/gen/rpg/ref/portrait.teacher.png",
+   "status": "requested",
+   "file": null
+  },
+  {
+   "id": "portrait.sleeper",
+   "category": "portrait",
+   "name": "眠れない人",
+   "size": {
+    "w": 76,
+    "h": 76
+   },
+   "frames": {
+    "cols": 1,
+    "rows": 1,
+    "cell": {
+     "w": 76,
+     "h": 76
+    },
+    "layout": {
+     "cols": [
+      "normal"
+     ],
+     "rows": [
+      "face"
+     ]
+    }
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "transparent": false,
+   "facing": "正面のバストアップ",
+   "ref": "assets/gen/rpg/ref/portrait.sleeper.png",
+   "status": "requested",
+   "file": null
+  }
+ ]
+}

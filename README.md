@@ -8,6 +8,14 @@
 `index.html` をブラウザで開くと遊べます。`index.html`・`style.css`・`game.js`・`assets/` は同じ場所に置いてください。
 
 
+
+## 🎨 生成画像の入れ方（RPG・脇役・リスナー・敵）
+お手元の画像生成ツール（ChatGPT・Gemini・Midjourney・ComfyUI など）で作った画像を置くと、コードで描いた絵の代わりに表示されます。置いていない絵は今のまま。
+- RPG：`assets/gen/rpg/`（依頼書 `docs/rpg-art.md`、下絵 `assets/gen/rpg/ref/`）
+- 脇役の顔・娘・リスナーのアイコン・ミニゲームの敵：`assets/gen/`（依頼書 `docs/gen-art.md`）
+- 家・庭：`assets/original/manifest.json`（`docs/comfyui/README.md`）
+GitHub の画面で PNG をアップロードして Claude に伝えれば、目録（manifest）の書き換えまで行います。
+
 ## 🏡 家・庭づくり（フェーズ1）
 
 メニューの「🏡 家・庭をひらく」で、娘と暮らす部屋（12×8マス）と小さな庭（16×12マス）を整えられます。遊ばなくても本編は進められます。

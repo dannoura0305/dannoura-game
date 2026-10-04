@@ -389,25 +389,52 @@ registerMinigame({
       const x=X(e.x)+(e.hitF>0?e.kx*C*.04:0),y=Y(e.y)+bob,r=b.r*C;
       const hurt=e.hitF>0;
       if(e.slowF<.99){g.save();g.setLineDash([3,3]);g.lineDashOffset=t*10;g.strokeStyle='rgba(176,124,255,.75)';g.lineWidth=1.5;circle(g,x,y,r+3);g.stroke();g.restore();}
-      if(e.type==='troll'){
+      // 生成画像（main/artpack.js の mg.defense.<種類>）があればそれを描く。横に4コマ並べた PNG なら歩きのコマも使う
+      const gid='mg.defense.'+e.type;
+      if(window.ARTPACK&&ARTPACK.has(gid)){
+        const sz=r*(e.type==='boss'?2.9:2.6),sq=[1,1.05,1,.96][fr];
+        glow(g,x,y,r*2,e.type==='boss'?'or':e.type==='anti'?'pu':'rd',.25);
+        ARTPACK.draw(g,gid,x-sz*sq/2,y-sz/sq/2,sz*sq,sz/sq,{frame:fr});
+        if(e.type==='boss'){g.font=fnt(C*.2);g.textAlign='center';g.fillStyle='#ffb070';g.fillText('炎上アカウント',x,y-r*1.6);g.textAlign='left';}
+      }else if(e.type==='troll'){
+        // 荒らし：角の生えた赤い吹き出し（シューティングの炎上コメントと同じ系統）。4コマで弾み、しっぽが左右に振れる
         const sx=[1,1.07,1,.95][fr],sy=2-sx;
         glow(g,x,y,r*2,'rd',.25);
         g.save();g.translate(x,y);g.scale(sx,sy);
-        g.fillStyle='#b81d3c';circle(g,0,0,r);g.fill();
-        const tf=fr<2?1:-1;   // しっぽの向きがコマで入れ替わる
-        g.beginPath();g.moveTo(-r*.55*tf,r*.6);g.lineTo(-r*.95*tf,r*1.15);g.lineTo(-r*.1*tf,r*.85);g.fill();
-        g.fillStyle='rgba(255,90,120,.35)';circle(g,-r*.25,-r*.3,r*.45);g.fill();
-        g.strokeStyle='#ff9ab0';g.lineWidth=1.2;circle(g,0,0,r);g.stroke();
-        g.strokeStyle='#1a0008';g.fillStyle='#fff';g.lineWidth=Math.max(1.2,r*.13);
+        const w=r*2.15,h=r*1.62,rad=r*.5,lw=Math.max(1.2,r*.11),tf=fr<2?1:-1,O='#1b1226';
+        g.fillStyle='rgba(0,0,0,.35)';rrect(g,-w/2+r*.1,-h/2+r*.14,w,h,rad);g.fill();
+        g.lineJoin='round';g.strokeStyle=O;g.lineWidth=lw;
+        // 角（小さな2本）
+        g.fillStyle='#7a0c22';
+        for(const s2 of[-1,1]){g.beginPath();g.moveTo(s2*r*.62,-h/2+r*.08);g.lineTo(s2*r*.86,-h/2-r*.38);g.lineTo(s2*r*.3,-h/2+r*.02);g.closePath();g.fill();g.stroke();}
+        // しっぽ
+        g.fillStyle='#b81d3c';
+        g.beginPath();g.moveTo(-r*.42*tf,h/2-lw);g.lineTo(-r*.82*tf,h/2+r*.58);g.lineTo(r*.12*tf,h/2-lw);g.closePath();g.fill();g.stroke();
+        // 体
+        rrect(g,-w/2,-h/2,w,h,rad);g.fill();
+        g.save();rrect(g,-w/2,-h/2,w,h,rad);g.clip();
+        g.fillStyle='#d8304e';g.fillRect(-w/2,-h/2,w,h*.4);
+        g.fillStyle='#8a1028';g.fillRect(-w/2,h/2-h*.2,w,h*.2);
+        g.fillStyle='rgba(255,190,205,.7)';g.fillRect(-w/2+rad*.7,-h/2+h*.1,w*.34,Math.max(1,h*.07));g.fillRect(-w/2+rad*.45,-h/2+h*.1,Math.max(1,h*.07),h*.16);
+        g.restore();
+        rrect(g,-w/2,-h/2,w,h,rad);g.stroke();
+        // しっぽの付け根の線を消す
+        g.fillStyle='#8a1028';g.fillRect(Math.min(-r*.42*tf,r*.12*tf)+lw*.6,h/2-lw*1.6,Math.abs(r*.54)-lw*1.2,lw*1.4);
+        // 顔
+        const ey=-h*.04;
         if(hurt){ // ＞＜
-          g.beginPath();g.moveTo(-r*.55,-r*.2);g.lineTo(-r*.25,-r*.05);g.lineTo(-r*.55,r*.1);g.moveTo(r*.55,-r*.2);g.lineTo(r*.25,-r*.05);g.lineTo(r*.55,r*.1);g.stroke();
+          g.strokeStyle=O;g.lineWidth=lw*1.15;
+          g.beginPath();g.moveTo(-r*.6,ey-r*.18);g.lineTo(-r*.3,ey);g.lineTo(-r*.6,ey+r*.18);g.moveTo(r*.6,ey-r*.18);g.lineTo(r*.3,ey);g.lineTo(r*.6,ey+r*.18);g.stroke();
+          g.fillStyle=O;g.beginPath();g.ellipse(0,h*.3,r*.2,r*.14,0,0,6.2832);g.fill();
         }else{
-          circle(g,-r*.36,-r*.05,r*.2);g.fill();circle(g,r*.36,-r*.05,r*.2);g.fill();
-          g.fillStyle='#1a0008';circle(g,-r*.32,-r*.01,r*.1);g.fill();circle(g,r*.32,-r*.01,r*.1);g.fill();
-          g.beginPath();g.moveTo(-r*.65,-r*.42);g.lineTo(-r*.15,-r*.22);g.moveTo(r*.65,-r*.42);g.lineTo(r*.15,-r*.22);g.stroke();
+          g.fillStyle='#fff';g.fillRect(-r*.56,ey-r*.1,r*.32,r*.26);g.fillRect(r*.24,ey-r*.1,r*.32,r*.26);
+          g.fillStyle=O;g.fillRect(-r*.44,ey-r*.04,r*.16,r*.18);g.fillRect(r*.28,ey-r*.04,r*.16,r*.18);
+          g.strokeStyle=O;g.lineWidth=lw*1.3;g.lineCap='round';
+          g.beginPath();g.moveTo(-r*.68,ey-r*.36);g.lineTo(-r*.2,ey-r*.16);g.moveTo(r*.68,ey-r*.36);g.lineTo(r*.2,ey-r*.16);g.stroke();
+          g.lineWidth=lw;g.lineCap='butt';
+          if(fr%2===0){g.beginPath();g.moveTo(-r*.42,h*.3);for(let i=1;i<=6;i++)g.lineTo(-r*.42+i*r*.14,h*.3+(i%2?-r*.12:0));g.stroke();}
+          else{g.fillStyle=O;g.beginPath();g.ellipse(0,h*.28,r*.26,r*.15,0,0,6.2832);g.fill();g.fillStyle='#ff6b81';g.fillRect(-r*.1,h*.3,r*.2,r*.06);}
         }
-        if(fr%2===0&&!hurt){g.beginPath();g.moveTo(-r*.35,r*.45);g.lineTo(-r*.17,r*.32);g.lineTo(0,r*.45);g.lineTo(r*.17,r*.32);g.lineTo(r*.35,r*.45);g.stroke();}
-        else{g.fillStyle='#1a0008';g.beginPath();g.ellipse(0,r*.42,r*.2,r*.15,0,0,6.2832);g.fill();}
         g.restore();
       }else if(e.type==='bot'){
         const tilt=[-.2,0,.2,0][fr];

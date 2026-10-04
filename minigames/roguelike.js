@@ -667,7 +667,15 @@ registerMinigame({
       if(en.sc){gx*=en.sc;gy*=en.sc*en.sy;}
       ctx.save();ctx.translate(x,y);ctx.scale(gx,gy);ctx.translate(-x,-y);
       ctx.globalAlpha=a;
-      if(en.kind==='g'){
+      // 生成画像（main/artpack.js の mg.rogue.ghost / shadow / boss）があればそれを描く（横4コマならゆらぎに使う）
+      const gid='mg.rogue.'+(en.kind==='g'?'ghost':en.kind==='k'?'shadow':'boss');
+      if(window.ARTPACK&&ARTPACK.has(gid)){
+        const r=s*(en.kind==='b'?.46:.34),sz=r*3.1;
+        if(hit)ctx.filter='brightness(2)';
+        ARTPACK.draw(ctx,gid,x-sz/2,y-sz*.45,sz,sz,{frame:Math.floor(t*6+en.id)%4});
+        ctx.filter='none';
+        if(en.kind==='b')for(let i=0;i<en.max;i++){ctx.fillStyle=i<en.hp?'#ff3860':'rgba(255,56,96,.2)';ctx.fillRect(x-s*.24+i*s*.17,y-r*1.25,s*.13,s*.06);}
+      }else if(en.kind==='g'){
         const r=s*.34;
         const g=ctx.createRadialGradient(x,y-r*.2,r*.1,x,y+r*.3,r*1.7);
         g.addColorStop(0,hit?'rgba(255,255,255,.95)':'rgba(232,242,255,.9)');g.addColorStop(.55,'rgba(170,195,255,.55)');g.addColorStop(1,'rgba(120,140,255,0)');
