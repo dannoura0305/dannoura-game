@@ -167,7 +167,7 @@
    "priority": "P1",
    "category": "portrait",
    "name_ja": "お隣の千代さん normal",
-   "file": null,
+   "file": "assets/gen/portrait/chiyo_normal.png",
    "rev": null,
    "target": "assets/gen/portrait/chiyo_normal.png",
    "size": "256x256",
@@ -182,14 +182,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "千代さん・表情 normal。既存 mob_chiyo.svg の服・髪色を維持",
    "comfyui": "portrait.chiyo.normal",
-   "first15": 8
+   "first15": 8,
+   "status": "verified"
   },
   {
    "id": "portrait.chiyo.happy",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "お隣の千代さん happy",
-   "file": null,
+   "file": "assets/gen/portrait/chiyo_happy.png",
    "rev": null,
    "target": "assets/gen/portrait/chiyo_happy.png",
    "size": "256x256",
@@ -204,14 +205,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "千代さん・表情 happy。既存 mob_chiyo_happy.svg の服・髪色を維持",
    "comfyui": "portrait.chiyo.happy",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "portrait.chiyo.worry",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "お隣の千代さん worry",
-   "file": null,
+   "file": "assets/gen/portrait/chiyo_worry.png",
    "rev": null,
    "target": "assets/gen/portrait/chiyo_worry.png",
    "size": "256x256",
@@ -226,7 +228,8 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "千代さん・表情 worry。既存 mob_chiyo_worry.svg の服・髪色を維持",
    "comfyui": "portrait.chiyo.worry",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "portrait.gen.normal",

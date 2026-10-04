@@ -1381,7 +1381,7 @@
    "id": "char.chiyo",
    "category": "character",
    "status": "verified",
-   "sourceType": "code",
+   "sourceType": "generated",
    "icon": null,
    "atlas": null,
    "frames": [
@@ -1402,7 +1402,33 @@
     "#6a5a72"
    ],
    "notes": "16×約23ドット。銀髪のお団子＋赤いかんざし（金の飾り）、金縁の丸メガネ、えんじのカーディガン、長いスカート。横向きは頭が1ドット前（腰が少し曲がる）。mob_chiyo.svg の配色。",
-   "file": null
+   "file": {
+    "down_stand_0": "assets/original/home/chiyo/down_stand_0.png",
+    "down_walk_0": "assets/original/home/chiyo/down_walk_0.png",
+    "down_walk_1": "assets/original/home/chiyo/down_walk_1.png",
+    "down_walk_2": "assets/original/home/chiyo/down_walk_2.png",
+    "down_walk_3": "assets/original/home/chiyo/down_walk_3.png",
+    "left_stand_0": "assets/original/home/chiyo/left_stand_0.png",
+    "left_walk_0": "assets/original/home/chiyo/left_walk_0.png",
+    "left_walk_1": "assets/original/home/chiyo/left_walk_1.png",
+    "left_walk_2": "assets/original/home/chiyo/left_walk_2.png",
+    "left_walk_3": "assets/original/home/chiyo/left_walk_3.png",
+    "right_stand_0": "assets/original/home/chiyo/right_stand_0.png",
+    "right_walk_0": "assets/original/home/chiyo/right_walk_0.png",
+    "right_walk_1": "assets/original/home/chiyo/right_walk_1.png",
+    "right_walk_2": "assets/original/home/chiyo/right_walk_2.png",
+    "right_walk_3": "assets/original/home/chiyo/right_walk_3.png",
+    "up_stand_0": "assets/original/home/chiyo/up_stand_0.png",
+    "up_walk_0": "assets/original/home/chiyo/up_walk_0.png",
+    "up_walk_1": "assets/original/home/chiyo/up_walk_1.png",
+    "up_walk_2": "assets/original/home/chiyo/up_walk_2.png",
+    "up_walk_3": "assets/original/home/chiyo/up_walk_3.png"
+   },
+   "anchor": {
+    "x": 21,
+    "y": 46,
+    "tile": 54
+   }
   },
   {
    "id": "char.hancho",

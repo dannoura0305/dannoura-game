@@ -87,7 +87,7 @@ function portrait(who,face){
   try{
     if(who==='kid'&&typeof CHILD_IMG!=='undefined'){const m={smile:'happy',tired:'sad',cry:'sad',sleepy:'sleep'};return CHILD_IMG[face]||CHILD_IMG[m[face]]||CHILD_IMG.normal;}
     if(who==='dan'&&typeof CHAR_IMG!=='undefined'){const m={smile:'happy',good:'happy',sad:'tired',worry:'tired',cry:'tired'};return CHAR_IMG[face]||CHAR_IMG[m[face]]||CHAR_IMG.normal;}
-    if(VISITOR_FACES[who]){const m={smile:'happy',good:'happy',sad:'worry',angry:'shout'};const f=VISITOR_FACES[who].indexOf(face)>=0?face:VISITOR_FACES[who].indexOf(m[face])>=0?m[face]:'';return `assets/img/mob_${who}${f?'_'+f:''}.svg`;}
+    if(VISITOR_FACES[who]){const m={smile:'happy',good:'happy',sad:'worry',angry:'shout'};const f=VISITOR_FACES[who].indexOf(face)>=0?face:VISITOR_FACES[who].indexOf(m[face])>=0?m[face]:'';if(typeof mobPortrait==='function'){const mp=mobPortrait(who,f||'normal');if(mp)return mp;}return `assets/img/mob_${who}${f?'_'+f:''}.svg`;}
   }catch(e){}
   return null;
 }
