@@ -208,6 +208,8 @@ function createDraft(src,opts){
   opts=opts||{};
   const owned=opts.owned||(()=>0);
   let state={room:clone((src&&src.room)||[]),garden:clone((src&&src.garden)||[])};
+  // フェーズ3：外観・内装（{exterior:{roof,wall,door}, wallpaper, floorId}）も下書きに入れて、取り消し/やり直しの対象にする
+  if(src&&src.look&&typeof src.look==='object')state.look=clone(src.look);
   const orig=JSON.stringify(state);
   const past=[],future=[];
   let seq=Math.max(1,opts.seq|0);
@@ -282,6 +284,17 @@ function createDraft(src,opts){
         state[f.area].splice(f.i,1);
         return{ok:true,reason:'',P:f.P};
       });
+    },
+    look:()=>state.look||null,
+    // 外観・内装を変える。patch={exterior:{roof:'red'}} / {wallpaper:'mint'} / {floorId:'floor.tatami'}
+    setLook(patch){
+      if(!state.look)return{ok:false,reason:'外観・内装は変えられません'};
+      const cur=JSON.stringify(state.look);
+      const next=clone(state.look);
+      if(patch&&patch.exterior&&typeof patch.exterior==='object')next.exterior=Object.assign({},next.exterior||{},patch.exterior);
+      ['wallpaper','floorId'].forEach(k=>{if(patch&&typeof patch[k]==='string')next[k]=patch[k];});
+      if(JSON.stringify(next)===cur)return{ok:true,reason:'',same:true};
+      return commit(()=>{state.look=next;return{ok:true,reason:''};});
     },
     undo(){if(!past.length)return false;future.push(clone(state));state=past.pop();return true;},
     redo(){if(!future.length)return false;past.push(clone(state));state=future.pop();return true;},

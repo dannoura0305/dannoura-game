@@ -1,5 +1,5 @@
 {
- "version": 1,
+ "version": 2,
  "generatedBy": "hand-written canvas code (main/home/sprites.js)",
  "tile": 32,
  "artPerTile": 16,
@@ -25,7 +25,8 @@
     "#f4efe6",
     "#c6b2ee"
    ],
-   "notes": "2×1。r90 は左側に引き出しの取っ手。天板にノート・鉛筆・マグ。上に7ドットはみ出す。"
+   "notes": "2×1。r90 は左側に引き出しの取っ手。天板にノート・鉛筆・マグ。上に7ドットはみ出す。",
+   "file": null
   },
   {
    "id": "furniture.wood_chair",
@@ -50,7 +51,8 @@
     "#d2c8dc",
     "#a99cb8"
    ],
-   "notes": "1×1。r90 は r270 の左右反転（影は右下に描き直し）。背もたれは上に12ドットはみ出す。r180 は背もたれが手前なので、座った人より後に描くと自然。"
+   "notes": "1×1。r90 は r270 の左右反転（影は右下に描き直し）。背もたれは上に12ドットはみ出す。r180 は背もたれが手前なので、座った人より後に描くと自然。",
+   "file": null
   },
   {
    "id": "furniture.repaired_shelf",
@@ -75,7 +77,8 @@
     "#f0d4a0",
     "#a8b0c0"
    ],
-   "notes": "2×1。明るい新しい板（中段）とL字金具で「直した」ことが分かる。r180 は背面に筋交い。"
+   "notes": "2×1。明るい新しい板（中段）とL字金具で「直した」ことが分かる。r180 は背面に筋交い。",
+   "file": null
   },
   {
    "id": "furniture.bookshelf",
@@ -103,7 +106,8 @@
     "#5f9e5c",
     "#8c5fcc"
    ],
-   "notes": "2×1、背が高い（上に28ドット）。横向きは開口側に本の背が覗く。"
+   "notes": "2×1、背が高い（上に28ドット）。横向きは開口側に本の背が覗く。",
+   "file": null
   },
   {
    "id": "furniture.futon",
@@ -126,7 +130,8 @@
     "#5f78b8",
     "#f4dc7a"
    ],
-   "notes": "2×3。homescene の掛け布団（青紫・星柄）を継承。r90 は枕が右。"
+   "notes": "2×3。homescene の掛け布団（青紫・星柄）を継承。r90 は枕が右。",
+   "file": null
   },
   {
    "id": "furniture.cushion",
@@ -146,7 +151,8 @@
     "#a54a70",
     "#ffe066"
    ],
-   "notes": "1×1、非solid。四隅に黄色の房。"
+   "notes": "1×1、非solid。四隅に黄色の房。",
+   "file": null
   },
   {
    "id": "furniture.low_table",
@@ -170,7 +176,8 @@
     "#f59aae",
     "#ff9a3a"
    ],
-   "notes": "2×2。ふたり分の湯のみと、みかんの皿。r90 は木目が縦。"
+   "notes": "2×2。ふたり分の湯のみと、みかんの皿。r90 は木目が縦。",
+   "file": null
   },
   {
    "id": "light.desk_lamp",
@@ -194,7 +201,8 @@
     "#ffd98a",
     "#ffb85a"
    ],
-   "notes": "1×1。小さな台にランプ。lit でシェードが明るくなり、アンバーの段階グロー（lighter合成）。t でわずかに揺らぐ。"
+   "notes": "1×1。小さな台にランプ。lit でシェードが明るくなり、アンバーの段階グロー（lighter合成）。t でわずかに揺らぐ。",
+   "file": null
   },
   {
    "id": "light.shell_lantern",
@@ -217,7 +225,8 @@
     "#5fb0ac",
     "#c8b8a0"
    ],
-   "notes": "1×1。流木の台に帆立貝と真珠。lit でティール/真珠色のグロー（夢の海の色）。"
+   "notes": "1×1。流木の台に帆立貝と真珠。lit でティール/真珠色のグロー（夢の海の色）。",
+   "file": null
   },
   {
    "id": "memento.child_drawing",
@@ -243,7 +252,8 @@
     "#7ad8b8",
     "#ffc83a"
    ],
-   "notes": "壁レイヤー。y=0 の行に置き、足元行の上（py-29〜py-8 ドット）の壁帯に額が掛かる。クレヨン画：めがね・紫髪のパパとふたつ結びの娘が手をつなぐ、太陽・ハート・草。"
+   "notes": "壁レイヤー。y=0 の行に置き、足元行の上（py-29〜py-8 ドット）の壁帯に額が掛かる。クレヨン画：めがね・紫髪のパパとふたつ結びの娘が手をつなぐ、太陽・ハート・草。",
+   "file": null
   },
   {
    "id": "memento.bear",
@@ -262,7 +272,8 @@
     "#e8c49a",
     "#d9b088"
    ],
-   "notes": "座ったクマ。画面右の耳（クマの左耳）がほつれて糸くずが出ている。娘の手からは消える前提（drawChar では持たせない）。"
+   "notes": "座ったクマ。画面右の耳（クマの左耳）がほつれて糸くずが出ている。娘の手からは消える前提（drawChar では持たせない）。",
+   "file": null
   },
   {
    "id": "memento.flower_tag",
@@ -281,7 +292,8 @@
     "#d05a8a",
     "#6a8ad0"
    ],
-   "notes": "木の杭に札。ピンクのクレヨン字と小さな花の落書き。"
+   "notes": "木の杭に札。ピンクのクレヨン字と小さな花の落書き。",
+   "file": null
   },
   {
    "id": "garden.pot",
@@ -307,7 +319,8 @@
     "#a8d88a",
     "#5f9e5c"
    ],
-   "notes": "鉢色＝variant。opts.plant={stage,color}：0=土と芽 1=双葉 2=葉 3=つぼみ 4=花。color は red/pink/blue/yellow/white/purple/orange か #rrggbb。t で花が1ドット揺れる。 フェーズ2：opts.plant.species（seed/morning_glory/sunflower/herb）で植物の絵が変わる。"
+   "notes": "鉢色＝variant。opts.plant={stage,color}：0=土と芽 1=双葉 2=葉 3=つぼみ 4=花。color は red/pink/blue/yellow/white/purple/orange か #rrggbb。t で花が1ドット揺れる。 フェーズ2：opts.plant.species（seed/morning_glory/sunflower/herb）で植物の絵が変わる。",
+   "file": null
   },
   {
    "id": "garden.flowerbed",
@@ -333,7 +346,8 @@
     "#ffd84a",
     "#a070e0"
    ],
-   "notes": "2×1 の木枠の花壇、混ざった色の花。t で揺れる。"
+   "notes": "2×1 の木枠の花壇、混ざった色の花。t で揺れる。",
+   "file": null
   },
   {
    "id": "garden.bench",
@@ -356,7 +370,8 @@
     "#8a5530",
     "#5e3820"
    ],
-   "notes": "2×1。r90 は r270 の反転。背もたれは上に12ドット。"
+   "notes": "2×1。r90 は r270 の反転。背もたれは上に12ドット。",
+   "file": null
   },
   {
    "id": "garden.fence",
@@ -377,7 +392,8 @@
     "#8a5530",
     "#5e3820"
    ],
-   "notes": "1×1。r0 は横木が左右の端までつながる（並べると連続）。r90 は縦に連続する横木＋杭の頭。"
+   "notes": "1×1。r0 は横木が左右の端までつながる（並べると連続）。r90 は縦に連続する横木＋杭の頭。",
+   "file": null
   },
   {
    "id": "garden.stepping_stone",
@@ -396,7 +412,8 @@
     "#87839c",
     "#625e78"
    ],
-   "notes": "path レイヤー。平たい石＋小石。"
+   "notes": "path レイヤー。平たい石＋小石。",
+   "file": null
   },
   {
    "id": "garden.small_tree",
@@ -418,7 +435,8 @@
     "#2e5640",
     "#8a5a3a"
    ],
-   "notes": "1×1、樹冠が上に20ドット。白い小花。t で葉が1ドット揺れる。"
+   "notes": "1×1、樹冠が上に20ドット。白い小花。t で葉が1ドット揺れる。",
+   "file": null
   },
   {
    "id": "deco.rug",
@@ -440,7 +458,8 @@
     "#a05a70",
     "#f2c4a0"
    ],
-   "notes": "3×2。ひし形模様、短辺に房。"
+   "notes": "3×2。ひし形模様、短辺に房。",
+   "file": null
   },
   {
    "id": "deco.sea_glass",
@@ -461,7 +480,8 @@
     "#bff0c8",
     "#4fb4c8"
    ],
-   "notes": "1×1。流木の吊り飾りに漂着ガラス4片。t で揺れ・きらめき。"
+   "notes": "1×1。流木の吊り飾りに漂着ガラス4片。t で揺れ・きらめき。",
+   "file": null
   },
   {
    "id": "floor.wood",
@@ -481,7 +501,8 @@
     "#8e6344",
     "#6e4a36"
    ],
-   "notes": "HOME_ART.drawTile(ctx,\"floor.wood\",px,py,T,gx,gy)。1タイル4枚板。"
+   "notes": "HOME_ART.drawTile(ctx,\"floor.wood\",px,py,T,gx,gy)。1タイル4枚板。",
+   "file": null
   },
   {
    "id": "ground.grass",
@@ -502,7 +523,8 @@
     "#ffe066",
     "#f59aae"
    ],
-   "notes": "約22%のタイルに小花。"
+   "notes": "約22%のタイルに小花。",
+   "file": null
   },
   {
    "id": "ground.path",
@@ -519,7 +541,8 @@
     "#9a7c58",
     "#d4b88e"
    ],
-   "notes": "予備（踏み固めた土）。現仕様では未使用・未確認。"
+   "notes": "予備（踏み固めた土）。現仕様では未使用・未確認。",
+   "file": null
   },
   {
    "id": "wall.room",
@@ -546,7 +569,8 @@
     "#6a7cc0",
     "#ffd98a"
    ],
-   "notes": "HOME_ART.drawWall(ctx,px,py,w,h,T)。推奨高さ 1.5T。藤色の壁紙・幅木・中央の窓（夜空・三日月・遠い家並みのアンバーの灯）・カーテン・窓台・左右の壁灯。"
+   "notes": "HOME_ART.drawWall(ctx,px,py,w,h,T)。推奨高さ 1.5T。藤色の壁紙・幅木・中央の窓（夜空・三日月・遠い家並みのアンバーの灯）・カーテン・窓台・左右の壁灯。",
+   "file": null
   },
   {
    "id": "char.dan",
@@ -577,7 +601,8 @@
     "#5a3f80",
     "#2a2036"
    ],
-   "notes": "16×25ドット（約1×1.6タイル）。homescene.js の頭・体の文字マップを圧縮・再構成。紫髪・めがね・ピンクの髪飾り・ラベンダーのパーカー。left は right の反転。"
+   "notes": "16×25ドット（約1×1.6タイル）。homescene.js の頭・体の文字マップを圧縮・再構成。紫髪・めがね・ピンクの髪飾り・ラベンダーのパーカー。left は right の反転。",
+   "file": null
   },
   {
    "id": "char.kid",
@@ -605,7 +630,8 @@
     "#9fe2c8",
     "#6cc4a4"
    ],
-   "notes": "16×20ドット（約1×1.25タイル）。紫がかった黒のおかっぱ・ぱっつん前髪・ピンクの花で結んだ小さなふたつ結び・大きな紫の目・ほっぺ・星柄のミントのパジャマ。クマは持たない。"
+   "notes": "16×20ドット（約1×1.25タイル）。紫がかった黒のおかっぱ・ぱっつん前髪・ピンクの花で結んだ小さなふたつ結び・大きな紫の目・ほっぺ・星柄のミントのパジャマ。クマは持たない。",
+   "file": null
   },
   {
    "id": "ui.place",
@@ -633,7 +659,8 @@
     "#8c5fcc",
     "#aeaabe"
    ],
-   "notes": "配置（下向き矢印＋床板）。右下に落ち影。"
+   "notes": "配置（下向き矢印＋床板）。右下に落ち影。",
+   "file": null
   },
   {
    "id": "ui.rotate",
@@ -661,7 +688,8 @@
     "#8c5fcc",
     "#aeaabe"
    ],
-   "notes": "回転（時計回りの輪の矢印）。右下に落ち影。"
+   "notes": "回転（時計回りの輪の矢印）。右下に落ち影。",
+   "file": null
   },
   {
    "id": "ui.store",
@@ -689,7 +717,8 @@
     "#8c5fcc",
     "#aeaabe"
    ],
-   "notes": "収納（箱へ下向き矢印）。右下に落ち影。"
+   "notes": "収納（箱へ下向き矢印）。右下に落ち影。",
+   "file": null
   },
   {
    "id": "ui.undo",
@@ -717,7 +746,8 @@
     "#8c5fcc",
     "#aeaabe"
    ],
-   "notes": "取り消し（左へ戻る曲がり矢印）。右下に落ち影。"
+   "notes": "取り消し（左へ戻る曲がり矢印）。右下に落ち影。",
+   "file": null
   },
   {
    "id": "ui.redo",
@@ -745,7 +775,8 @@
     "#8c5fcc",
     "#aeaabe"
    ],
-   "notes": "やり直し（undo の反転）。右下に落ち影。"
+   "notes": "やり直し（undo の反転）。右下に落ち影。",
+   "file": null
   },
   {
    "id": "ui.craft",
@@ -773,7 +804,8 @@
     "#8c5fcc",
     "#aeaabe"
    ],
-   "notes": "クラフト（金槌＋きらめき）。右下に落ち影。"
+   "notes": "クラフト（金槌＋きらめき）。右下に落ち影。",
+   "file": null
   },
   {
    "id": "ui.memories",
@@ -801,7 +833,8 @@
     "#8c5fcc",
     "#aeaabe"
    ],
-   "notes": "思い出帳（ハートの本）。右下に落ち影。"
+   "notes": "思い出帳（ハートの本）。右下に落ち影。",
+   "file": null
   },
   {
    "id": "ui.close",
@@ -829,7 +862,8 @@
     "#8c5fcc",
     "#aeaabe"
    ],
-   "notes": "閉じる（×）。右下に落ち影。"
+   "notes": "閉じる（×）。右下に落ち影。",
+   "file": null
   },
   {
    "id": "ui.edit",
@@ -857,7 +891,8 @@
     "#8c5fcc",
     "#aeaabe"
    ],
-   "notes": "模様替え（鉛筆）。右下に落ち影。"
+   "notes": "模様替え（鉛筆）。右下に落ち影。",
+   "file": null
   },
   {
    "id": "ui.room",
@@ -885,7 +920,8 @@
     "#8c5fcc",
     "#aeaabe"
    ],
-   "notes": "部屋（家）。右下に落ち影。"
+   "notes": "部屋（家）。右下に落ち影。",
+   "file": null
   },
   {
    "id": "ui.garden",
@@ -913,7 +949,8 @@
     "#8c5fcc",
     "#aeaabe"
    ],
-   "notes": "庭（花と芽）。右下に落ち影。"
+   "notes": "庭（花と芽）。右下に落ち影。",
+   "file": null
   },
   {
    "id": "ui.water",
@@ -941,7 +978,8 @@
     "#8c5fcc",
     "#aeaabe"
    ],
-   "notes": "水やり（じょうろ）。右下に落ち影。"
+   "notes": "水やり（じょうろ）。右下に落ち影。",
+   "file": null
   },
   {
    "id": "ui.talk",
@@ -969,7 +1007,8 @@
     "#8c5fcc",
     "#aeaabe"
    ],
-   "notes": "話す（吹き出し）。右下に落ち影。"
+   "notes": "話す（吹き出し）。右下に落ち影。",
+   "file": null
   },
   {
    "id": "ui.unknown",
@@ -988,7 +1027,8 @@
     "#b08a5a",
     "#ffffff"
    ],
-   "notes": "未定義の itemId / uiIcon 名で描く「？」の箱。例外は出さない。"
+   "notes": "未定義の itemId / uiIcon 名で描く「？」の箱。例外は出さない。",
+   "file": null
   },
   {
    "id": "furniture.toy_box",
@@ -1011,7 +1051,8 @@
     "#5a7ad0",
     "#ffe066"
    ],
-   "notes": "1×1。立てかけたふた、ボール・積み木・アヒルがのぞく。ピンクの帯に星のシール。"
+   "notes": "1×1。立てかけたふた、ボール・積み木・アヒルがのぞく。ピンクの帯に星のシール。",
+   "file": null
   },
   {
    "id": "furniture.kid_desk",
@@ -1034,7 +1075,8 @@
     "#b08a56",
     "#fffaf0"
    ],
-   "notes": "1×1。娘の低い机（画用紙・クレヨン）。r90 は r270 の左右反転。"
+   "notes": "1×1。娘の低い机（画用紙・クレヨン）。r90 は r270 の左右反転。",
+   "file": null
   },
   {
    "id": "furniture.old_radio",
@@ -1054,7 +1096,8 @@
     "#ffd98a",
     "#6e7488"
    ],
-   "notes": "1×1。小さな台にのった木箱のラジオ（布スピーカー・ダイヤル窓・アンテナ）。"
+   "notes": "1×1。小さな台にのった木箱のラジオ（布スピーカー・ダイヤル窓・アンテナ）。",
+   "file": null
   },
   {
    "id": "memento.toolbox",
@@ -1074,7 +1117,8 @@
     "#e4e8f0",
     "#2f9a52"
    ],
-   "notes": "1×1。角のへこんだ赤い工具箱、緑の名札シール（班長の名札色）。"
+   "notes": "1×1。角のへこんだ赤い工具箱、緑の名札シール（班長の名札色）。",
+   "file": null
   },
   {
    "id": "memento.recital_photo",
@@ -1094,7 +1138,8 @@
     "#f59aae",
     "#35224e"
    ],
-   "notes": "壁掛け。舞台（赤い幕・スポットライト）で花の冠の娘。"
+   "notes": "壁掛け。舞台（赤い幕・スポットライト）で花の冠の娘。",
+   "file": null
   },
   {
    "id": "deco.wind_chime",
@@ -1115,7 +1160,8 @@
     "#e05a6a",
     "#fff4e0"
    ],
-   "notes": "壁掛け。夢の海の色のガラス風鈴（金魚の絵）と短冊。短冊が2コマで揺れる。"
+   "notes": "壁掛け。夢の海の色のガラス風鈴（金魚の絵）と短冊。短冊が2コマで揺れる。",
+   "file": null
   },
   {
    "id": "deco.sea_mobile",
@@ -1135,7 +1181,8 @@
     "#f6e2ea",
     "#ffe066"
    ],
-   "notes": "壁掛け。流木に布の魚・貝・星。2コマで揺れる。"
+   "notes": "壁掛け。流木に布の魚・貝・星。2コマで揺れる。",
+   "file": null
   },
   {
    "id": "garden.nameplate",
@@ -1154,7 +1201,8 @@
     "#5a4a6a",
     "#8a5530"
    ],
-   "notes": "1×1。小さな屋根つきの柱に「だんのうら」の表札。"
+   "notes": "1×1。小さな屋根つきの柱に「だんのうら」の表札。",
+   "file": null
   },
   {
    "id": "garden.clothesline",
@@ -1176,7 +1224,8 @@
     "#fffaf0",
     "#8a5530"
    ],
-   "notes": "3×1。T字の柱2本とロープ、娘のワンピース・パパのシャツ・タオル。r90 は縦。"
+   "notes": "3×1。T字の柱2本とロープ、娘のワンピース・パパのシャツ・タオル。r90 は縦。",
+   "file": null
   },
   {
    "id": "light.string_lights",
@@ -1198,7 +1247,8 @@
     "#9ff0e0",
     "#e6e0d0"
    ],
-   "notes": "2×1・非solid。柱2本と電球の列。lit で電球ごとに小さなグロー（light.spots）。"
+   "notes": "2×1・非solid。柱2本と電球の列。lit で電球ごとに小さなグロー（light.spots）。",
+   "file": null
   },
   {
    "id": "garden.planter",
@@ -1221,7 +1271,8 @@
     "#5a3a2a",
     "#6e4a34"
    ],
-   "notes": "2×1。植物を1つ植えられる（seed/herb は3株、morning_glory/sunflower は2株で描く）。"
+   "notes": "2×1。植物を1つ植えられる（seed/herb は3株、morning_glory/sunflower は2株で描く）。",
+   "file": null
   },
   {
    "id": "garden.watering_can",
@@ -1240,7 +1291,8 @@
     "#6e9ab8",
     "#4a7090"
    ],
-   "notes": "1×1・非solid。ブリキのじょうろ。"
+   "notes": "1×1・非solid。ブリキのじょうろ。",
+   "file": null
   },
   {
    "id": "seed.morning_glory",
@@ -1258,7 +1310,8 @@
     "#6f93e8",
     "#5f9e5c"
    ],
-   "notes": "消費アイテム（置けない）。アイコンは種の袋（あさがおの絵）。"
+   "notes": "消費アイテム（置けない）。アイコンは種の袋（あさがおの絵）。",
+   "file": null
   },
   {
    "id": "seed.sunflower",
@@ -1276,7 +1329,8 @@
     "#ffd84a",
     "#7a4a28"
    ],
-   "notes": "消費アイテム（置けない）。アイコンは種の袋（ひまわりの絵）。"
+   "notes": "消費アイテム（置けない）。アイコンは種の袋（ひまわりの絵）。",
+   "file": null
   },
   {
    "id": "seed.herb",
@@ -1294,7 +1348,8 @@
     "#5f9e5c",
     "#7fbf6e"
    ],
-   "notes": "消費アイテム（置けない）。アイコンは種の袋（ハーブの絵）。"
+   "notes": "消費アイテム（置けない）。アイコンは種の袋（ハーブの絵）。",
+   "file": null
   },
   {
    "id": "plant.species",
@@ -1319,7 +1374,8 @@
     "#7a4a28",
     "#e2cf8a"
    ],
-   "notes": "drawItem の opts.plant={stage,color,species}。あさがお＝竹の支柱に巻くつる＋青紫のラッパ形の花、ひまわり＝背が高く大きな花、ハーブ＝こんもりした茂みに小花。"
+   "notes": "drawItem の opts.plant={stage,color,species}。あさがお＝竹の支柱に巻くつる＋青紫のラッパ形の花、ひまわり＝背が高く大きな花、ハーブ＝こんもりした茂みに小花。",
+   "file": null
   },
   {
    "id": "char.chiyo",
@@ -1345,7 +1401,8 @@
     "#e86a5a",
     "#6a5a72"
    ],
-   "notes": "16×約23ドット。銀髪のお団子＋赤いかんざし（金の飾り）、金縁の丸メガネ、えんじのカーディガン、長いスカート。横向きは頭が1ドット前（腰が少し曲がる）。mob_chiyo.svg の配色。"
+   "notes": "16×約23ドット。銀髪のお団子＋赤いかんざし（金の飾り）、金縁の丸メガネ、えんじのカーディガン、長いスカート。横向きは頭が1ドット前（腰が少し曲がる）。mob_chiyo.svg の配色。",
+   "file": null
   },
   {
    "id": "char.hancho",
@@ -1371,7 +1428,8 @@
     "#eef0ea",
     "#2f9a52"
    ],
-   "notes": "16×25ドット。黄色いヘルメット、白髪まじりのもみあげ、太い眉、紺の作業着に白い襟と緑の名札。mob_hancho.svg の配色。"
+   "notes": "16×25ドット。黄色いヘルメット、白髪まじりのもみあげ、太い眉、紺の作業着に白い襟と緑の名札。mob_hancho.svg の配色。",
+   "file": null
   },
   {
    "id": "char.cat",
@@ -1396,7 +1454,8 @@
     "#d8ec60",
     "#f5a0b0"
    ],
-   "notes": "16×14ドット。家の三毛猫（白地に茶と黒のぶち）。黄緑の目・ピンクの耳はステルスのねこと同じ。名前は無し（「ねこ」）。HOME_ART.drawChar(ctx,'cat',...)。アイコン HOME_ART.icon('char.cat')。"
+   "notes": "16×14ドット。家の三毛猫（白地に茶と黒のぶち）。黄緑の目・ピンクの耳はステルスのねこと同じ。名前は無し（「ねこ」）。HOME_ART.drawChar(ctx,'cat',...)。アイコン HOME_ART.icon('char.cat')。",
+   "file": null
   },
   {
    "id": "pose.kid.sleep",
@@ -1420,7 +1479,8 @@
     "#5f78b8",
     "#e4dcff"
    ],
-   "notes": "布団の足元範囲の左上に重ねる（drawChar の px,py＝布団の左上）。枕に頭、ふくらんだ掛け布団、手、Zz。rot90 は縦の絵を時計回りに回したもの。"
+   "notes": "布団の足元範囲の左上に重ねる（drawChar の px,py＝布団の左上）。枕に頭、ふくらんだ掛け布団、手、Zz。rot90 は縦の絵を時計回りに回したもの。",
+   "file": null
   },
   {
    "id": "pose.kid.read",
@@ -1438,7 +1498,8 @@
     "#fffaf0",
     "#ddd2c0"
    ],
-   "notes": "座って絵本をひらく（sit＋本の重ね描き、2コマでページ）。"
+   "notes": "座って絵本をひらく（sit＋本の重ね描き、2コマでページ）。",
+   "file": null
   },
   {
    "id": "pose.dan.work",
@@ -1457,7 +1518,8 @@
     "#f6d6c2",
     "#ffe066"
    ],
-   "notes": "机で作業（sit＋腕とペン、2コマ）。"
+   "notes": "机で作業（sit＋腕とペン、2コマ）。",
+   "file": null
   },
   {
    "id": "pose.dan.hold",
@@ -1477,7 +1539,8 @@
     "#35224e",
     "#ffe9de"
    ],
-   "notes": "布団が無い夜に、毛布にくるんだ眠る娘を抱いて座る。"
+   "notes": "布団が無い夜に、毛布にくるんだ眠る娘を抱いて座る。",
+   "file": null
   },
   {
    "id": "wall.room.day",
@@ -1496,7 +1559,221 @@
     "#ffffff",
     "#9aa0c0"
    ],
-   "notes": "drawWall(...,{night:false})：青空・雲・明るい家並み、明るい壁紙、壁灯は消灯。省略時・night:true は従来の夜の窓。"
+   "notes": "drawWall(...,{night:false})：青空・雲・明るい家並み、明るい壁紙、壁灯は消灯。省略時・night:true は従来の夜の窓。",
+   "file": null
+  },
+  {
+   "id": "floor.tatami",
+   "category": "tile",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "gx,gy：2×2マスごとに横2枚／縦2枚の畳を交互に"
+   ],
+   "palette": [
+    "#cdc683",
+    "#d9d396",
+    "#b4ae6c",
+    "#56684a",
+    "#74865e"
+   ],
+   "notes": "フェーズ3。部屋の床の選択肢「畳」。1枚＝2×1マス、長い辺に緑の縁（へり）。",
+   "file": null
+  },
+  {
+   "id": "floor.dark",
+   "category": "tile",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "gx,gy で板目・継ぎ目が変化"
+   ],
+   "palette": [
+    "#6e4a36",
+    "#644232",
+    "#74503a",
+    "#5e3e2e",
+    "#3a2418",
+    "#8a6448"
+   ],
+   "notes": "フェーズ3。部屋の床の選択肢「濃い木の床」（ウォルナット）。",
+   "file": null
+  },
+  {
+   "id": "ground.grass.seasons",
+   "category": "tile",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "summer",
+    "autumn（落ち葉）",
+    "winter（霜）",
+    "winter+snow（雪の地面）",
+    "spring（花が多い）"
+   ],
+   "palette": [
+    "#7fbf6e",
+    "#a3b45e",
+    "#8fa088",
+    "#eef2f8",
+    "#86c870"
+   ],
+   "notes": "フェーズ3。drawTile の 8 番目の引数 {season, snow}。",
+   "file": null
+  },
+  {
+   "id": "wall.room.wallpaper",
+   "category": "wall",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "lavender（縦縞）",
+    "mint（菱の水玉）",
+    "cream（格子）",
+    "night（星）",
+    "× day/night",
+    "× 窓の外：clear/cloudy/rain/snow・季節の枝"
+   ],
+   "palette": [
+    "#a89cc4",
+    "#a8d6c6",
+    "#eadcc0",
+    "#2c2a5e",
+    "#7c8ca4",
+    "#b8c2d6"
+   ],
+   "notes": "フェーズ3。drawWall(ctx,x,y,w,h,T,{night,wallpaper,weather,season})。窓のガラスの範囲は HOME_ART.wallWindow(w,h,T)。",
+   "file": null
+  },
+  {
+   "id": "house.front",
+   "category": "exterior",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "roof: navy/red/green/brown",
+    "wall: cream/white/wood",
+    "door: wood/blue",
+    "day/night（窓・戸・ランタンの灯りは glow で重ねる）",
+    "季節（屋根の雪・落ち葉・花箱）",
+    "右側：千代さんの垣根と夜の海・灯台"
+   ],
+   "palette": [
+    "#4a5a9a",
+    "#d86a5a",
+    "#6aa070",
+    "#a07050",
+    "#f6e8c8",
+    "#f0eef4",
+    "#c08858",
+    "#5a7ad0"
+   ],
+   "notes": "フェーズ3。庭の上端（壁帯 3 マス）に家の正面。HOME_ART.drawHouse(ctx,x,y,w,h,T,{roof,wall,door,doorX,night,season,weather,glow})。file を指定する場合は帯全体（w×h）に引き伸ばさずに貼る1枚絵。キーは '<roof>_<wall>_<door>' か 'default'。",
+   "file": null
+  },
+  {
+   "id": "tree.small.seasons",
+   "category": "garden",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "summer（緑・白い花）",
+    "autumn（橙・落ち葉）",
+    "winter（枝だけ・雪の日は枝に雪）",
+    "spring（桜色）"
+   ],
+   "palette": [
+    "#e08a34",
+    "#b8562e",
+    "#f59aae",
+    "#8a5a3a"
+   ],
+   "notes": "フェーズ3。garden.small_tree は drawItem の opts.season / opts.snow で描き分ける（file を指定するとコード描画の季節差分は使わない）。",
+   "file": null
+  },
+  {
+   "id": "fx.weather",
+   "category": "effect",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": null,
+   "atlas": null,
+   "frames": [
+    "rain（2×4〜6ドット）",
+    "snow（1ドット／十字）",
+    "leaf（秋）",
+    "petal（春）",
+    "firefly（夏の夜・glow）"
+   ],
+   "palette": [
+    "#cee0ff",
+    "#ffffff",
+    "#e08a34",
+    "#ffd0e0",
+    "#f4ffb0"
+   ],
+   "notes": "フェーズ3。main/home/seasons.js。最大 60 個、reduce-motion では出さない。",
+   "file": null
+  },
+  {
+   "id": "ui.photo",
+   "category": "ui",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.uiIcon('photo')",
+   "atlas": null,
+   "frames": [
+    "32×32（16ドット×2）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#aeaabe",
+    "#625e78",
+    "#7ab8f0",
+    "#4a7ac8",
+    "#ffd98a"
+   ],
+   "notes": "フェーズ3。［写真を撮る］。",
+   "file": null
+  },
+  {
+   "id": "ui.look",
+   "category": "ui",
+   "status": "verified",
+   "sourceType": "code",
+   "icon": "HOME_ART.uiIcon('look')",
+   "atlas": null,
+   "frames": [
+    "32×32（16ドット×2）"
+   ],
+   "palette": [
+    "#1b1226",
+    "#f59aae",
+    "#a54a70",
+    "#fffaf0",
+    "#ddd2c0",
+    "#ffd98a"
+   ],
+   "notes": "フェーズ3。［外観・内装］。",
+   "file": null
   }
- ]
+ ],
+ "rasterOverride": {
+  "about": "フェーズ3 §6：asset に file（PNG）があり読み込めたら、Web 版の家・庭（HOME_ART.drawItem / drawChar / drawTile / drawHouse）はコード描画の代わりにその画像を描く。既定はすべて null（コード描画）。",
+  "file": "'assets/original/home/<name>.png'（全状態共通）または {\"r0_default\":\"…\",\"r90\":\"…\",\"r0_lit\":\"…\",\"default\":\"…\"}。人物は {\"down_stand_0\":\"…\",\"down_walk_1\":\"…\",\"down\":\"…\"}。キーは長いものから順に探し、無ければ短いものへ。",
+  "anchor": "{x, y, tile}：PNG の中で『足元範囲（回転後の占有マス）の左上』が来る位置（PNG の px）と、PNG 上の1マスの大きさ（既定 32）。人物は『立っているマスの左上』。省略時：アイテム x=8,y=60（コード描画と同じ余白）、人物は下端中央、床・地面は画像1枚＝1マス。",
+  "notes": "植物の入った鉢・プランターはコード描画のまま（成長段階の差分が要るため）。読み込みに失敗した画像は無視してコード描画に戻る。手順は docs/comfyui/README.md §9。"
+ }
 }

@@ -44,7 +44,7 @@ console.log('home-logic');
 test('新規：初期の所持・配置・素材・レシピ', () => {
   const { H, ctx } = makeSandbox();
   const hd = H.ensure();
-  assert.equal(hd.version, 2);
+  assert.equal(hd.version, 3);
   assert.equal(hd.room.placements.length, 8);
   assert.equal(hd.garden.placements.length, 11);
   assert.equal(H.stored('furniture.wood_chair'), 1);
@@ -265,7 +265,7 @@ test('セーブ移行：ゴミデータでも例外を出さない', () => {
     const { H, ctx } = makeSandbox();
     ctx.gs.homeData = bad;
     const hd = H.ensure();
-    assert.ok(hd && hd.version === 2 && Array.isArray(hd.room.placements) && Array.isArray(hd.garden.placements));
+    assert.ok(hd && hd.version === 3 && Array.isArray(hd.room.placements) && Array.isArray(hd.garden.placements));
     assert.equal(typeof H.stored('furniture.futon'), 'number');
   }
   const { H, ctx } = makeSandbox();
@@ -400,7 +400,7 @@ test('v1 → v2 移行：一度だけ足す・何度 ensure しても同じ', ()
   const v1 = v1Save(H, ctx);
   ctx.gs.homeData = JSON.parse(JSON.stringify(v1));
   const hd = H.ensure();
-  assert.equal(hd.version, 2);
+  assert.equal(hd.version, 3);
   assert.equal(H.owned('furniture.toy_box'), 1);
   assert.equal(H.owned('garden.watering_can'), 1);
   assert.ok(H.hasRecipe('kid_desk') && H.hasRecipe('planter') && H.hasRecipe('clothesline') && H.hasRecipe('string_lights'));

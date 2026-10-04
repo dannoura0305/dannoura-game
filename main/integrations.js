@@ -202,7 +202,10 @@ function snapshotCanvas(ref){
   try{
     const opt={scale:1};
     if(ref.snapshot){opt.placements=ref.snapshot.placements;opt.plants=ref.snapshot.plants;
-      if(HOME.memories&&HOME.memories.litMap)opt.lit=HOME.memories.litMap(ref.snapshot);}
+      if(HOME.memories&&HOME.memories.litMap)opt.lit=HOME.memories.litMap(ref.snapshot);
+      // フェーズ3：その日の季節・天候・外観（思い出に入っていれば）
+      ['season','weather','look'].forEach(k=>{if(ref.snapshot[k])opt[k]=ref.snapshot[k];});}
+    else{try{if(typeof HOME.season==='function'){opt.season=HOME.season();opt.weather=HOME.weather();}}catch(e){}}
     const cv=HOME.snapshot(ref.area,opt);
     return cv&&cv.nodeType===1?cv:null;
   }catch(e){return null;}

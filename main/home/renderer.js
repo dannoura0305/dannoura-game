@@ -2,7 +2,8 @@
 // 家・庭づくり：見下ろし2Dグリッドの描画
 //   HOME.layout(area, T)                 → {w,h,T,band,cw,ch}  キャンバスの大きさと床の原点
 //   HOME.renderArea(ctx, area, opts)     → 床・壁・配置・人物・プレビューを描く
-//   HOME.snapshot(area, {placements, plants, scale, lit, night}) → HTMLCanvasElement
+//   HOME.snapshot(area, {placements, plants, scale, lit, night, season, weather, chars, look}) → HTMLCanvasElement
+//   フェーズ3：庭の上端は家の正面（屋根・壁・戸口・窓）。季節・天候（opts.season / opts.weather）と外観・内装（opts.look）を描き分ける
 // 絵は HOME_ART（sprites.js）に任せ、無いときは色つきの箱で代用する（例外を出さない）
 // ═══════════════════════════════════════════════════════════
 (function(){
@@ -17,7 +18,8 @@ const LAYER_ORDER={rug:0,path:0,wall:1,furniture:2};
 
 HOME.layout=function(area,T){
   T=T||32;const A=HOME.AREAS[area]||HOME.AREAS.room;
-  const band=T*2;   // 壁帯：壁掛けの絵（床0行目から上へ約1.8マス）が収まる高さ
+  // 壁帯：部屋＝壁掛けの絵（床0行目から上へ約1.8マス）が収まる高さ。庭＝家の正面（屋根つき）
+  const band=area==='garden'?T*3:T*2;
   return{w:A.w,h:A.h,T,band,cw:A.w*T,ch:A.h*T+band};
 };
 
@@ -90,9 +92,9 @@ function drawChar(ctx,c,px,py,T,t){
   }
   fbChar(ctx,c.who,c.dir||'down',frame,px,py,T,c.pose||'stand');
 }
-function drawTile(ctx,id,px,py,T,gx,gy){
+function drawTile(ctx,id,px,py,T,gx,gy,o){
   const a=ART();
-  if(a&&typeof a.drawTile==='function'){try{a.drawTile(ctx,id,px,py,T,gx,gy);return;}catch(e){}}
+  if(a&&typeof a.drawTile==='function'){try{a.drawTile(ctx,id,px,py,T,gx,gy,o);return;}catch(e){}}
   if(id==='ground.grass'){
     ctx.fillStyle=(gx+gy)%2?'#5f9a4c':'#66a352';ctx.fillRect(px,py,T,T);
     ctx.fillStyle='#7cb85e';ctx.fillRect(px+((gx*7+gy*3)%5)*5+3,py+((gx*5+gy*11)%5)*5+4,2,3);
@@ -102,11 +104,11 @@ function drawTile(ctx,id,px,py,T,gx,gy){
     ctx.fillRect(px+((gy*13)%T),py,1,T);
   }
 }
-function drawBand(ctx,area,L,o){
+function drawBand(ctx,area,L,o,K){
   const T=L.T;
+  const a=ART();
   if(area==='room'){
-    const a=ART();
-    if(a&&typeof a.drawWall==='function'){try{a.drawWall(ctx,0,0,L.cw,L.band,T,{night:o.wallNight!==undefined?!!o.wallNight:!!o.night});return;}catch(e){}}
+    if(a&&typeof a.drawWall==='function'){try{a.drawWall(ctx,0,0,L.cw,L.band,T,{night:o.wallNight!==undefined?!!o.wallNight:!!o.night,wallpaper:K.look.wallpaper,weather:K.weather,season:K.season});return;}catch(e){}}
     ctx.fillStyle='#d9cdb4';ctx.fillRect(0,0,L.cw,L.band);
     ctx.fillStyle='#c4b596';for(let x=0;x<L.cw;x+=8)ctx.fillRect(x,0,1,L.band);
     ctx.fillStyle='#8a6440';ctx.fillRect(0,L.band-6,L.cw,6);
@@ -116,6 +118,7 @@ function drawBand(ctx,area,L,o){
     ctx.fillStyle='#6a5030';ctx.fillRect(wx+T*.75-1,wy,2,L.band-18);
     if(o.night){ctx.fillStyle='#fff6c0';ctx.fillRect(wx+T*1.1,wy+5,3,3);}
   }else{
+    if(a&&typeof a.drawHouse==='function'){try{a.drawHouse(ctx,0,0,L.cw,L.band,T,houseOpts(o,K,false));return;}catch(e){}}
     // 家の外壁（戸口つき）
     ctx.fillStyle='#8a6a4e';ctx.fillRect(0,0,L.cw,L.band);
     ctx.fillStyle='#7a5c42';for(let y=0;y<L.band;y+=8)ctx.fillRect(0,y,L.cw,2);
@@ -126,6 +129,22 @@ function drawBand(ctx,area,L,o){
     ctx.fillStyle='#6a4a30';ctx.fillRect(d.x*T+T-11,L.band/2+2,3,3);
     [[3,'win'],[11,'win']].forEach(([x])=>{ctx.fillStyle='#5a4030';ctx.fillRect(x*T-2,8,T+4,L.band-20);ctx.fillStyle=o.night?'#f0c870':'#9fd0f0';ctx.fillRect(x*T,10,T,L.band-24);});
   }
+}
+function houseOpts(o,K,glow){
+  const ex=K.look.exterior||{};
+  return{roof:ex.roof,wall:ex.wall,door:ex.door,doorX:HOME.AREAS.garden.door.x,night:!!o.night,season:K.season,weather:K.weather,t:o.t,glow};
+}
+// 季節・天候・外観・内装（描画の条件）。指定が無ければ「夏・晴れ・初期の見た目」（昔の思い出の絵が変わらないように）
+function condOf(area,opts,hd){
+  const look=Object.assign({exterior:(hd&&hd.exterior)||{},wallpaper:(hd&&hd.room&&hd.room.wallpaper)||'lavender',floorId:(hd&&hd.room&&hd.room.floorId)||'floor.wood'},opts.look||{});
+  const season=typeof opts.season==='string'?opts.season:'summer';
+  const weather=typeof opts.weather==='string'?opts.weather:'clear';
+  return{look,season,weather,snow:weather==='snow'};
+}
+// 季節はずれの花は咲かない（ひまわり＝夏、あさがお＝夏〜秋）。枯れない
+function bloomOf(species,season){
+  const sp=HOME.PLANT_SPECIES&&HOME.PLANT_SPECIES[species];
+  return !(sp&&Array.isArray(sp.bloom))||sp.bloom.indexOf(season)>=0;
 }
 function drawExits(ctx,area,L){
   const T=L.T,A=HOME.AREAS[area];
@@ -159,11 +178,13 @@ HOME.renderArea=function(ctx,area,opts){
   const placements=opts.placements||(hd&&hd[area]&&hd[area].placements)||[];
   const plants=opts.plants||(hd&&hd.plants)||{};
   const lit=opts.lit||(hd&&hd.flags&&hd.flags.lit)||{};
+  const K=condOf(area,opts,hd);
   ctx.save();
   ctx.imageSmoothingEnabled=false;
-  drawBand(ctx,area,L,opts);
-  const base=area==='room'?((hd&&hd.room&&hd.room.floorId)||'floor.wood'):((hd&&hd.garden&&hd.garden.groundId)||'ground.grass');
-  for(let y=0;y<A.h;y++)for(let x=0;x<A.w;x++)drawTile(ctx,base,x*T,L.band+y*T,T,x,y);
+  drawBand(ctx,area,L,opts,K);
+  const base=area==='room'?K.look.floorId:((hd&&hd.garden&&hd.garden.groundId)||'ground.grass');
+  const tileO=area==='garden'?{season:K.season,snow:K.snow}:undefined;
+  for(let y=0;y<A.h;y++)for(let x=0;x<A.w;x++)drawTile(ctx,base,x*T,L.band+y*T,T,x,y,tileO);
   drawExits(ctx,area,L);
   if(opts.grid){
     ctx.strokeStyle='rgba(255,255,255,.13)';ctx.lineWidth=1;
@@ -171,8 +192,9 @@ HOME.renderArea=function(ctx,area,opts){
     for(let y=1;y<A.h;y++){ctx.beginPath();ctx.moveTo(0,L.band+y*T+.5);ctx.lineTo(L.cw,L.band+y*T+.5);ctx.stroke();}
   }
   const vis=placements.filter(P=>P&&CAT(P.itemId)&&P.instanceId!==opts.hideId);
-  const itemOpts=P=>({rotation:P.rotation,variant:P.variant,T,t,lit:!!lit[P.instanceId],
-    plant:(CAT(P.itemId).plantable&&plants[P.instanceId])?{stage:plants[P.instanceId].stage|0,color:plants[P.instanceId].color,name:plants[P.instanceId].name,species:plants[P.instanceId].species||'seed'}:null});
+  const itemOpts=P=>({rotation:P.rotation,variant:P.variant,T,t,lit:!!lit[P.instanceId],season:area==='garden'?K.season:'summer',snow:area==='garden'&&K.snow,
+    plant:(CAT(P.itemId).plantable&&plants[P.instanceId])?{stage:plants[P.instanceId].stage|0,color:plants[P.instanceId].color,name:plants[P.instanceId].name,species:plants[P.instanceId].species||'seed',
+      bloom:bloomOf(plants[P.instanceId].species||'seed',K.season)}:null});
   const posOf=P=>{const c=CAT(P.itemId);return c.layer==='wall'?{px:P.x*T,py:wallPy(L)}:{px:P.x*T,py:L.band+P.y*T};};
   // 床の上（ラグ・飛び石）→ 壁の飾り
   vis.filter(P=>LAYER_ORDER[CAT(P.itemId).layer]<2).sort((a,b)=>LAYER_ORDER[CAT(a.itemId).layer]-LAYER_ORDER[CAT(b.itemId).layer]||a.y-b.y)
@@ -198,6 +220,16 @@ HOME.renderArea=function(ctx,area,opts){
       ctx.fillStyle=g;ctx.fillRect(cx-T*3,cy-T*3,T*6,T*6);
     });
     ctx.restore();
+    if(area==='garden'){const a=ART();if(a&&typeof a.drawHouse==='function'){try{a.drawHouse(ctx,0,0,L.cw,L.band,T,houseOpts(opts,K,true));}catch(e){}}}
+  }
+  // 天候の色合い（庭）と、季節・天候のパーティクル（seasons.js。閉じたら止まる・reduce-motion では出ない）
+  if(area==='garden'&&K.weather!=='clear'){
+    ctx.save();
+    ctx.fillStyle=K.weather==='rain'?'rgba(40,52,84,.20)':K.weather==='snow'?'rgba(230,236,255,.07)':'rgba(70,72,96,.10)';
+    ctx.fillRect(0,0,L.cw,L.ch);ctx.restore();
+  }
+  if(opts.particles&&HOME.seasons&&typeof HOME.seasons.drawParticles==='function'){
+    try{HOME.seasons.drawParticles(ctx,area,L,{season:K.season,weather:K.weather,night:!!opts.night,t,frozen:opts.particles==='frozen'});}catch(e){}
   }
   // 目印（使う位置など）
   (opts.marks||[]).forEach(m=>{
@@ -250,7 +282,8 @@ HOME.snapshot=function(area,o){
     cv.width=Math.round(L.cw*scale);cv.height=Math.round(L.ch*scale);
     const ctx=cv.getContext('2d');ctx.imageSmoothingEnabled=false;
     ctx.scale(scale,scale);
-    HOME.renderArea(ctx,area,{placements:o.placements,plants:o.plants,lit:o.lit,night:!!o.night,wallNight:o.night===undefined?true:!!o.night,chars:o.chars||[],T:32,t:0});
+    HOME.renderArea(ctx,area,{placements:o.placements,plants:o.plants,lit:o.lit,night:!!o.night,wallNight:o.night===undefined?true:!!o.night,chars:o.chars||[],T:32,t:o.t||0,
+      season:o.season,weather:o.weather,look:o.look,particles:o.particles});
     return cv;
   }catch(e){try{console.error('[home] snapshot',e);}catch(_){}return null;}
 };

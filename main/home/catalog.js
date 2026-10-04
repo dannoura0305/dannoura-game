@@ -3,7 +3,9 @@
 //   HOME.CATALOG[itemId]  … 名前・大きさ・回転・レイヤー・置ける場所・使い方
 //   HOME.MATERIALS[id]    … 素材の名前
 //   HOME.RECIPES[id]      … クラフトの材料と完成品
-//   HOME.AREAS[area]      … 部屋（12×8）・庭（16×12）の広さと出入口
+//   HOME.AREAS[area]      … 部屋（12×8→拡張後14×9）・庭（16×12→拡張後20×14）の広さと出入口（今のセーブに合わせて HOME.syncAreas が書き換える）
+//   HOME.AREA_SIZES       … 拡張前／拡張後の広さと出入口（フェーズ3）
+//   HOME.EXTERIOR / WALLPAPERS / FLOORS … 外観・内装の選択肢（フェーズ3）
 //   HOME.BAL              … 時間・疲労・精神の上限
 // 設計：docs/home-story-design.md
 // ═══════════════════════════════════════════════════════════
@@ -62,7 +64,7 @@ HOME.CATALOG['garden.pot'].kidUse='plants';
 HOME.CATALOG['garden.planter'].kidUse='plants';
 Object.keys(HOME.CATALOG).forEach(id=>{HOME.CATALOG[id].id=id;});
 
-HOME.TILES={'floor.wood':{name:'木の床'},'ground.grass':{name:'草地'}};
+HOME.TILES={'floor.wood':{name:'木の床'},'floor.tatami':{name:'畳'},'floor.dark':{name:'濃い木の床'},'ground.grass':{name:'草地'}};
 
 HOME.MATERIALS={
   wood: {name:'木材',  icon:'🪵'},
@@ -94,6 +96,21 @@ HOME.AREAS={
   room:  {name:'部屋',w:12,h:8, base:'floor.wood',  door:{x:6,y:7},exits:[{x:6,y:7}]},
   garden:{name:'庭',  w:16,h:12,base:'ground.grass',door:{x:7,y:0},gate:{x:0,y:6},exits:[{x:7,y:0},{x:0,y:6}]},
 };
+// フェーズ3：一回きりの拡張。広がるのは右と下だけ（既存の配置の座標はそのまま有効）。
+//   部屋の出入口は新しい下端の行へ移る（旧出入口 (6,7) の真下の行とつながるので、到達できる範囲は減らない）
+//   庭の戸口・門は同じ位置のまま
+HOME.AREA_SIZES={
+  room:  {base:{w:12,h:8, door:{x:6,y:7}},             expanded:{w:14,h:9, door:{x:7,y:8}}},
+  garden:{base:{w:16,h:12,door:{x:7,y:0},gate:{x:0,y:6}},expanded:{w:20,h:14,door:{x:7,y:0},gate:{x:0,y:6}}},
+};
+// 外観（庭の上端の家の正面）・内装。時間も素材も使わない。並び順＝選択肢の表示順、先頭が初期値
+HOME.EXTERIOR={
+  roof:{label:'屋根',opts:{navy:'紺',red:'赤',green:'緑',brown:'こげ茶'}},
+  wall:{label:'外壁',opts:{cream:'クリーム',white:'白',wood:'板張り'}},
+  door:{label:'戸',  opts:{wood:'木',blue:'青'}},
+};
+HOME.WALLPAPERS={lavender:'藤色',mint:'ミント',cream:'クリーム',night:'夜空'};
+HOME.FLOORS={'floor.wood':'木の床','floor.tatami':'畳','floor.dark':'濃い木の床'};
 
 HOME.BAL={
   craftMin:30,          // クラフト1回の時間（分）
@@ -104,6 +121,14 @@ HOME.BAL={
   growPerStage:2,       // 何日分の成長で1段階
   waterGraceDays:2,     // 水やりから何日以内なら育つ
   maxStage:4,
+  // フェーズ3：部屋・庭を広げる（一回きり）。借金の返済と競合しすぎない額
+  expand:{
+    room:  {money:15000,mats:{wood:5,metal:2}},
+    garden:{money:8000, mats:{wood:4,cloth:1}},
+  },
+  // 季節ごとの育ち：1＝毎日、2＝2日に1回（冬はゆっくり。枯れない）
+  seasonGrowEvery:{summer:1,autumn:1,winter:2,spring:1},
+  particleMax:60,       // 天候・季節のパーティクルの上限
 };
 
 HOME.ROT_DIR={0:'down',90:'left',180:'up',270:'right'};
@@ -114,8 +139,8 @@ HOME.POT_COLORS={red:'赤',blue:'青',yellow:'黄'};
 // 植物の種類（plants[id].species）。seed＝フェーズ1の「娘の花」（種アイテムは無い）
 HOME.PLANT_SPECIES={
   seed:         {name:'花',      seedId:null,                 defName:'ひなた',  color:'pink'},
-  morning_glory:{name:'あさがお',seedId:'seed.morning_glory', defName:'あさがお',color:'blue'},
-  sunflower:    {name:'ひまわり',seedId:'seed.sunflower',     defName:'ひまわり',color:'yellow'},
+  morning_glory:{name:'あさがお',seedId:'seed.morning_glory', defName:'あさがお',color:'blue',  bloom:['summer','autumn']},  // 夏〜初秋に咲く
+  sunflower:    {name:'ひまわり',seedId:'seed.sunflower',     defName:'ひまわり',color:'yellow',bloom:['summer']},
   herb:         {name:'ハーブ',  seedId:'seed.herb',          defName:'ハーブ',  color:'white'},
 };
 HOME.isSeed=id=>{const c=HOME.CATALOG[id];return !!(c&&c.kind==='seed');};

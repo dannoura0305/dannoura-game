@@ -777,3 +777,19 @@ body.mg-active #cutin-wrap{display:none;}
 .mg-diff button{flex:1;min-height:36px;background:transparent;border:1px solid rgba(138,82,212,.4);color:var(--tx);font-family:var(--dot);font-size:.66rem;border-radius:3px;cursor:pointer;}
 .mg-diff button.on{background:rgba(0,232,200,.14);border-color:var(--cy);color:var(--cy);}
 .mg-pick-diff{align-self:flex-end;background:transparent;border:1px solid rgba(0,232,200,.35);color:var(--cy);font-family:var(--mono);font-size:.62rem;padding:5px 10px;border-radius:12px;cursor:pointer;min-height:30px;}
+
+/* ── 操作アイコン（main/icons.js のドット絵。絵文字の置き換え） ── */
+img.ic{display:inline-block;vertical-align:middle;image-rendering:pixelated;flex-shrink:0;pointer-events:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;}
+img.ic.ic-lead{margin-right:.34em;}
+.ic-w{display:inline-flex;align-items:center;gap:.34em;vertical-align:middle;min-width:0;}
+.cb-ico.cb-ic{width:auto;min-width:26px;font-size:0;line-height:0;filter:none;display:inline-flex;align-items:center;justify-content:center;}
+.nav-btn .icon{line-height:0;}
+.sub-gear img.ic{display:block;margin:auto;}
+.top-lbl img.ic{vertical-align:-1px;margin-right:3px;}
+.top-lbl{white-space:nowrap;}
+#daily-guide.ic-has > span:first-child{display:none;}
+.notif.ic-notif{display:flex;align-items:flex-start;gap:7px;}
+.notif.ic-notif img.ic{margin-top:1px;}
+.mg-tab{display:inline-flex;align-items:center;gap:5px;}
+.mg-pick-name,#mg-title{display:inline-flex;align-items:center;}
+#res-title .ic-w{gap:.4em;}

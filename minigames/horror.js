@@ -254,6 +254,8 @@ function figure(g,kind,x,y,h,o){
     g.ellipse(0,-78*u,10*u,11.5*u,0,0,TAU);
     for(let i=-2;i<=2;i++){const a=-Math.PI/2+i*.5+.1;g.moveTo(Math.cos(a)*9*u,-79*u+Math.sin(a)*10*u);g.lineTo(Math.cos(a)*12*u,-79*u+Math.sin(a)*12.5*u);g.lineTo(Math.cos(a+.22)*9*u,-79*u+Math.sin(a+.22)*10*u);g.closePath();}
     L([-4,-68,4,-68,4.5,-63,-4.5,-63]);
+    L([-2.5,-99,5.5,-99,5.5,-89,-2.5,-89]);L([-5,-89.5,8,-89.5,8,-87,-5,-87]);                   // 小さなシルクハット（だんのうらの目印）
+    g.moveTo(14*u,-71*u);g.ellipse(11*u,-71*u,3*u,7.5*u,.3,0,TAU);                              // 横に流したポニーテール
     g.moveTo(-23*u,-56*u);g.quadraticCurveTo(-20*u,-65*u,-6*u,-65*u);g.lineTo(6*u,-65*u);g.quadraticCurveTo(20*u,-65*u,23*u,-56*u);g.lineTo(25*u,-44*u);g.lineTo(-25*u,-44*u);g.closePath(); // 肩
     g.moveTo(-19*u,-50*u);g.quadraticCurveTo(-19*u,-58*u,-11*u,-58*u);g.lineTo(11*u,-58*u);g.quadraticCurveTo(19*u,-58*u,19*u,-50*u);g.lineTo(21*u,-6*u);g.lineTo(-21*u,-6*u);g.closePath(); // 背もたれ
     L([-28,-30,-21,-30,-21,-24,-28,-24]);L([21,-30,28,-30,28,-24,21,-24]);                       // ひじ掛け

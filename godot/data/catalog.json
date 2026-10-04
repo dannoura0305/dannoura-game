@@ -655,6 +655,12 @@
   "floor.wood": {
    "name": "木の床"
   },
+  "floor.tatami": {
+   "name": "畳"
+  },
+  "floor.dark": {
+   "name": "濃い木の床"
+  },
   "ground.grass": {
    "name": "草地"
   }
@@ -867,7 +873,30 @@
   "waterMental": 1,
   "growPerStage": 2,
   "waterGraceDays": 2,
-  "maxStage": 4
+  "maxStage": 4,
+  "expand": {
+   "room": {
+    "money": 15000,
+    "mats": {
+     "wood": 5,
+     "metal": 2
+    }
+   },
+   "garden": {
+    "money": 8000,
+    "mats": {
+     "wood": 4,
+     "cloth": 1
+    }
+   }
+  },
+  "seasonGrowEvery": {
+   "summer": 1,
+   "autumn": 1,
+   "winter": 2,
+   "spring": 1
+  },
+  "particleMax": 60
  },
  "rot_dir": {
   "0": "down",
@@ -898,13 +927,20 @@
    "name": "あさがお",
    "seedId": "seed.morning_glory",
    "defName": "あさがお",
-   "color": "blue"
+   "color": "blue",
+   "bloom": [
+    "summer",
+    "autumn"
+   ]
   },
   "sunflower": {
    "name": "ひまわり",
    "seedId": "seed.sunflower",
    "defName": "ひまわり",
-   "color": "yellow"
+   "color": "yellow",
+   "bloom": [
+    "summer"
+   ]
   },
   "herb": {
    "name": "ハーブ",

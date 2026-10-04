@@ -765,17 +765,19 @@ function buildTitle(){
   if(!RM) loopTitle(); else drawTitleOnce();
 }
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+// タイトルメニューの操作アイコン（main/icons.js）
+function prIc(n){ return window.ICONS ? ICONS.html(n, 20).replace('class="ic ', 'class="ic ic-lead ') : ''; }
 function relabel(){
   const sb = $('btn-start-main'), cb = $('btn-continue'), eb = $('btn-endings');
-  if(sb){ const want = sb.disabled ? 'L' : 'R'; if(sb.dataset.prL !== want || !sb.querySelector('.pr-lbl')){ sb.dataset.prL = want; sb.innerHTML = sb.disabled ? '<span class="pr-lbl">読み込み中<span class="pr-dots">…</span></span><span class="pr-hint">LOADING</span>' : '<span class="pr-lbl">はじめから</span><span class="pr-hint">NEW GAME</span>'; } }
+  if(sb){ const want = sb.disabled ? 'L' : 'R'; if(sb.dataset.prL !== want || !sb.querySelector('.pr-lbl')){ sb.dataset.prL = want; sb.innerHTML = sb.disabled ? '<span class="pr-lbl">読み込み中<span class="pr-dots">…</span></span><span class="pr-hint">LOADING</span>' : '<span class="pr-lbl">'+prIc('play')+'はじめから</span><span class="pr-hint">NEW GAME</span>'; } }
   if(cb && !cb.querySelector('.pr-lbl')){
     const raw = cb.textContent.replace(/^▶\s*/,'').trim(); const m = raw.match(/つづきから\s*(.*)$/);
     const det = m ? m[1].split('/').map(s=>s.trim()).filter(Boolean).join(' ・ ') : '';
-    cb.innerHTML = `<span class="pr-lbl">つづきから</span><span class="pr-hint">${esc(det)}</span>`;
+    cb.innerHTML = `<span class="pr-lbl">${prIc('load')}つづきから</span><span class="pr-hint">${esc(det)}</span>`;
   }
-  if(eb && !eb.querySelector('.pr-lbl')){ const m = eb.textContent.match(/（(\d+)\/(\d+)）/); eb.innerHTML = `<span class="pr-lbl">エンディング一覧</span><span class="pr-hint">${m ? m[1]+' / '+m[2] : ''}</span>`; }
+  if(eb && !eb.querySelector('.pr-lbl')){ const m = eb.textContent.match(/（(\d+)\/(\d+)）/); eb.innerHTML = `<span class="pr-lbl">${prIc('endings')}エンディング一覧</span><span class="pr-hint">${m ? m[1]+' / '+m[2] : ''}</span>`; }
   const set = T.el && T.el.querySelector('[data-pr-kind="settings"]');
-  if(set && !set.querySelector('.pr-lbl')) set.innerHTML = '<span class="pr-lbl">設定・遊び方</span><span class="pr-hint">OPTION</span>';
+  if(set && !set.querySelector('.pr-lbl')) set.innerHTML = '<span class="pr-lbl">'+prIc('settings')+'設定・遊び方</span><span class="pr-hint">OPTION</span>';
   refreshItems();
 }
 function refreshItems(){
@@ -1117,7 +1119,7 @@ function buildEnd(){
     <div class="pr-end-card"><div class="pr-c1">ENDING</div><div class="pr-c2"></div><div class="pr-c3"></div></div>
     <div class="pr-cr"><div class="pr-cr-roll"></div></div>
     <div class="pr-cr-quote"><div class="q">沈むか、這い上がるか。</div><div class="f"></div></div>
-    <div class="pr-end-final"><div class="pr-fpic"></div><div class="pr-fttl"></div><div class="pr-fcnt"></div><div class="pr-fbar"><i></i></div><button class="pr-share" type="button">📤 結果カードを見る・共有する</button></div>
+    <div class="pr-end-final"><div class="pr-fpic"></div><div class="pr-fttl"></div><div class="pr-fcnt"></div><div class="pr-fbar"><i></i></div><button class="pr-share" type="button">${prIc('share')}結果カードを見る・共有する</button></div>
     <div class="pr-end-vig"></div><div class="pr-end-scan"></div><div class="pr-end-flash"></div>
     <div class="pr-end-ctl">TAP ▶ 次へ</div>
     <button class="pr-skip" type="button">SKIP ▶▶</button>`;

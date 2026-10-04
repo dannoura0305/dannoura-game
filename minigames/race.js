@@ -876,12 +876,16 @@ registerMinigame({
         const dark=new T.MeshStandardMaterial({color:0x16141c,metalness:.3,roughness:.6});
         const chrome=new T.MeshStandardMaterial({color:0xd0d4e0,metalness:1,roughness:.18,envMapIntensity:1.6});
         const seat=new T.MeshStandardMaterial({color:0x2a1c18,metalness:.1,roughness:.35});
-        const hood=new T.MeshStandardMaterial({color:0xc0306a,metalness:.05,roughness:.75});
-        const fur=new T.MeshStandardMaterial({color:0xf0ecf4,roughness:.95});
-        const pants=new T.MeshStandardMaterial({color:0x2a2a3a,roughness:.8});
+        // ライダー＝だんのうら。ふだんは紫の髪＋ラベンダーの上着（家・本編と同じ）。
+        // 疲れ切っているとき（家の部屋と同じ条件）だけ、白い髪・マゼンタのパーカーの姿になる
+        const tiredForm=(()=>{try{return (gs.fatigue||0)>=75||(typeof gs.mental==='number'&&gs.mental<=25);}catch(e){return false;}})();
+        const hood=new T.MeshStandardMaterial({color:tiredForm?0xc0306a:0xb9a6e6,metalness:.05,roughness:.75});
+        const fur=new T.MeshStandardMaterial({color:tiredForm?0xf0ecf4:0xe07fb0,roughness:.95});
+        const pants=new T.MeshStandardMaterial({color:tiredForm?0x2a2a3a:0x3d2a5c,roughness:.8});
+        const bloom=new T.MeshStandardMaterial({color:0xff9ac8,roughness:.6});                // ピンクの花の髪飾り
         const helm=new T.MeshStandardMaterial({color:0xf4f2fa,metalness:.2,roughness:.18,envMapIntensity:1.5});
         const visor=new T.MeshStandardMaterial({color:0x0a0a18,metalness:.9,roughness:.05,envMapIntensity:2});
-        const hair=new T.MeshStandardMaterial({color:0xd8c8f0,roughness:.6});
+        const hair=new T.MeshStandardMaterial({color:tiredForm?0xd8c8f0:0x5a3590,roughness:.6});
         const refl=new T.MeshBasicMaterial({color:0xd8e8a0,toneMapped:false});
         const sets=new Map();
         const put=(mat,geo,m)=>{if(!sets.has(mat))sets.set(mat,[]);sets.get(mat).push([geo,m]);};
@@ -925,6 +929,7 @@ registerMinigame({
         put(visor,new T.SphereGeometry(.168,16,10,-Math.PI*.78,Math.PI*.56,Math.PI*.33,Math.PI*.3),M4(0,1.74,.02));
         put(hair,new T.CapsuleGeometry(.07,.22,3,8),M4(0,1.55,.18,.5,0,0));                   // 束ねた髪
         put(hair,new T.ConeGeometry(.05,.12,6),M4(.09,1.62,.16,.6,0,.4));put(hair,new T.ConeGeometry(.05,.12,6),M4(-.09,1.62,.16,.6,0,-.4));
+        for(let i=0;i<5;i++){const a=i*Math.PI*2/5;put(bloom,new T.SphereGeometry(.026,6,5),M4(.1+Math.cos(a)*.03,1.6+Math.sin(a)*.03,.2));} // 髪飾り（束ねた髪の右）
         sets.forEach((list,mat)=>{const m=new T.Mesh(merge(list),mat);bikeLean.add(m);});
         // タイヤ（回転）
         const tire=new T.MeshStandardMaterial({color:0x101014,roughness:.7});

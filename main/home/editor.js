@@ -26,7 +26,8 @@ const ED={
   start(S){
     const hd=HOME.ensure();if(!hd)return false;
     S.ed={
-      draft:HOME.createDraft({room:hd.room.placements,garden:hd.garden.placements},{
+      draft:HOME.createDraft({room:hd.room.placements,garden:hd.garden.placements,
+        look:{exterior:Object.assign({},hd.exterior||{}),wallpaper:hd.room.wallpaper||'lavender',floorId:hd.room.floorId||'floor.wood'}},{
         owned:(i,v)=>HOME.owned(i,v),seq:hd.seq,plantIds:Object.keys(hd.plants||{}),
         plantHolder:id=>{const p=hd.plants&&hd.plants[id];return (p&&p.holder)||'garden.pot';},
       }),
@@ -35,6 +36,7 @@ const ED={
       msg:'',
       filter:S.area,
       drag:null,
+      panel:'inv',       // 下の欄：'inv'＝収納、'look'＝外観・内装
     };
     S.mode='edit';
     return true;
@@ -46,6 +48,7 @@ const ED={
   renderOpts(S){
     const E=S.ed,D=E.draft;
     const o={placements:D.placements(S.area),grid:true,selId:null,hideId:null,ghost:null};
+    if(D.look&&D.look())o.look=D.look();
     const s=E.sel;
     if(s&&s.kind==='placed'){
       o.selId=s.id;
@@ -110,6 +113,26 @@ const ED={
     ];
   },
 
+  // ── 外観・内装（時間も素材も使わない。確定で保存、取り消し/やり直しできる） ──
+  togglePanel(S){const E=S.ed;if(!E)return;E.panel=E.panel==='look'?'inv':'look';E.msg=E.panel==='look'?(S.area==='garden'?'外観：屋根・外壁・戸の色を選べます（庭の上の家の正面）。［確定］で保存。':'内装：壁紙と床を選べます。［確定］で保存。'):'';S.refresh();},
+  lookGroups(S){
+    const L=(S.ed&&S.ed.draft.look&&S.ed.draft.look())||{};
+    if(S.area==='garden'){
+      const E=HOME.EXTERIOR||{};
+      return Object.keys(E).map(k=>({key:k,label:E[k].label,cur:(L.exterior||{})[k],opts:Object.keys(E[k].opts).map(v=>({v,name:E[k].opts[v]})),patch:v=>({exterior:{[k]:v}})}));
+    }
+    return[
+      {key:'wallpaper',label:'壁紙',cur:L.wallpaper,opts:Object.keys(HOME.WALLPAPERS||{}).map(v=>({v,name:HOME.WALLPAPERS[v]})),patch:v=>({wallpaper:v})},
+      {key:'floorId',label:'床',cur:L.floorId,opts:Object.keys(HOME.FLOORS||{}).map(v=>({v,name:HOME.FLOORS[v]})),patch:v=>({floorId:v})},
+    ];
+  },
+  setLook(S,patch,name){
+    const E=S.ed;if(!E||!E.draft.setLook)return;
+    const r=E.draft.setLook(patch);
+    if(r.ok&&!r.same){S.sfx&&S.sfx('place');E.msg=`「${name}」にしました。［確定］で保存、［取り消し］で戻せます。`;}
+    else if(!r.ok)E.msg=r.reason;
+    S.refresh();
+  },
   // ── 収納リスト ──
   inventory(S){
     const E=S.ed,D=E.draft,hd=HOME.data();
@@ -284,6 +307,13 @@ const ED={
     const before={room:hd.room.placements,garden:hd.garden.placements};
     const after=E.draft.result();
     hd.room.placements=after.room;hd.garden.placements=after.garden;
+    if(after.look){
+      const lk=after.look,EX=HOME.EXTERIOR||{};
+      hd.exterior=hd.exterior||{};
+      Object.keys(EX).forEach(k=>{const v=lk.exterior&&lk.exterior[k];if(typeof v==='string'&&EX[k].opts[v])hd.exterior[k]=v;});
+      if(HOME.WALLPAPERS&&HOME.WALLPAPERS[lk.wallpaper])hd.room.wallpaper=lk.wallpaper;
+      if(HOME.FLOORS&&HOME.FLOORS[lk.floorId])hd.room.floorId=lk.floorId;
+    }
     hd.seq=Math.max(hd.seq|0,E.draft.seq|0);
     // 収納した灯りの点灯状態は消す
     const live=new Set(after.room.concat(after.garden).map(P=>P.instanceId));
