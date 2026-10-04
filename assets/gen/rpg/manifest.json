@@ -126,8 +126,8 @@
    "transparent": true,
    "facing": "行＝下・左・右・上向き",
    "ref": "assets/gen/rpg/ref/party.mina.png",
-   "status": "requested",
-   "file": null
+   "status": "verified",
+   "file": "assets/gen/rpg/party.mina.png"
   },
   {
    "id": "npc.kidOut",
@@ -2645,8 +2645,8 @@
    "transparent": false,
    "facing": "正面のバストアップ",
    "ref": "assets/gen/rpg/ref/portrait.mina.png",
-   "status": "requested",
-   "file": null
+   "status": "verified",
+   "file": "assets/gen/rpg/portrait.mina.png"
   },
   {
    "id": "portrait.fish",
