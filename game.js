@@ -351,6 +351,8 @@ function goToGame(){
   document.getElementById('game-screen').classList.remove('hidden');
   logGrow('物語が始まった');
   loadMain();
+  // 「はじめから」で選んだスロットに最初の保存（上書きの確認はスロット選択で済んでいる）
+  if(_newSlotPending){ _newSlotPending=false; saveGame(true); try{ checkSaveData(); }catch(e){} }
   setTimeout(()=>cutin('normal','ご機嫌よう……きょうもきょうとてよろしくよ。'),600);
   maybeShowTutorial();
 }
@@ -2124,6 +2126,8 @@ function triggerEnding(forced){
   const e=E[type];
   // 30日クリア時は日付が31に進んだ後で呼ばれるので、過ごした日数で記録する
   recordEnding(type, forced ? gs.day : gs.day-1);
+  // スロット一覧に「どの結末に着いたか」を出すため、結末の種類も保存しておく
+  gs.endingReached=type; saveGame(true);
   document.getElementById('end-icon').textContent=e.icon;
   document.getElementById('end-title').textContent=e.title;
   document.getElementById('end-title').style.color=e.color;
@@ -2276,8 +2280,118 @@ function maybeShowTutorial(){
 // ★ セーブ・ロードシステム
 // ══════════════════════════════════════════════════════════
 
-const SAVE_KEY = 'dannoura_save_v1';
+// ==SAVE-SLOTS:BEGIN==（tests/save-slots.test.mjs がこの範囲だけを node:vm で読み込む。DOM に触らないこと）
+// セーブは3スロット：dannoura_save_slot1〜3。どれを使っているかは dannoura_save_meta.active。
+// 旧版の単一セーブ（dannoura_save_v1）は、初回にスロット1へ写す。写せたのを読み戻して確かめてから旧キーを消す。
+// 写せなかったとき（容量不足など）は旧キーをそのまま残し、スロット1が空の間は旧キーをスロット1として読む。
+// エンディング一覧（dannoura_endings）・設定・遊び方の既読はスロットと無関係（全体で共通）。
+const SAVE_LEGACY_KEY = 'dannoura_save_v1';
+const SAVE_META_KEY   = 'dannoura_save_meta';
+const SAVE_SLOT_COUNT = 3;
 const SAVE_VERSION = 1;
+
+function makeSaveSlots(ls, opts){
+  opts = opts || {};
+  const maxVersion = opts.version || SAVE_VERSION;
+  const N = SAVE_SLOT_COUNT;
+  const slotKey = n => 'dannoura_save_slot' + n;
+  const valid = n => Number.isInteger(n) && n >= 1 && n <= N;
+  const get = k => { try{ return ls.getItem(k); }catch(e){ return null; } };
+  const del = k => { try{ ls.removeItem(k); return true; }catch(e){ return false; } };
+  function readMeta(){
+    try{ const m = JSON.parse(get(SAVE_META_KEY) || '{}'); return (m && typeof m === 'object' && !Array.isArray(m)) ? m : {}; }catch(e){ return {}; }
+  }
+  function writeMeta(m){ try{ ls.setItem(SAVE_META_KEY, JSON.stringify(m)); return true; }catch(e){ return false; } }
+  function active(){ const n = +readMeta().active; return valid(n) ? n : 1; }
+  function setActive(n){
+    n = +n; if(!valid(n)) return false;
+    const m = readMeta(); m.active = n; writeMeta(m);   // 書けなくても、このページの中では n を使う（呼び出し側が保持）
+    return true;
+  }
+  // スロットの中身（文字列）。スロット1は、まだ書いていなければ旧キーを読む
+  function raw(n){
+    n = +n; if(!valid(n)) return null;
+    const r = get(slotKey(n));
+    if(r != null) return r;
+    return n === 1 ? get(SAVE_LEGACY_KEY) : null;
+  }
+  // 旧セーブ → スロット1（非破壊）
+  function migrate(){
+    const old = get(SAVE_LEGACY_KEY);
+    if(old == null) return 'none';
+    if(get(slotKey(1)) != null) return 'kept';          // スロット1が既にある：旧キーには触らない
+    try{ ls.setItem(slotKey(1), old); }catch(e){ return 'failed'; }
+    if(get(slotKey(1)) !== old) return 'failed';
+    del(SAVE_LEGACY_KEY);
+    return 'migrated';
+  }
+  // 書く（失敗は例外のまま返す：呼び出し側が容量不足などを見分ける）
+  function write(n, str){
+    n = +n; if(!valid(n)) throw new Error('bad slot ' + n);
+    ls.setItem(slotKey(n), str);
+    if(n === 1 && get(slotKey(1)) === str) del(SAVE_LEGACY_KEY);   // スロット1が書けたので旧キーは不要
+    return true;
+  }
+  function remove(n){
+    n = +n; if(!valid(n)) return false;
+    const ok = del(slotKey(n));
+    if(n === 1) del(SAVE_LEGACY_KEY);                   // 旧キーが残っていると「消したのに戻る」ので一緒に消す
+    return ok;
+  }
+  // 読む：{slot, empty} | {slot, corrupt, reason} | {slot, data}
+  function read(n){
+    n = +n;
+    const r = raw(n);
+    if(r == null) return {slot:n, empty:true};
+    let d;
+    try{ d = JSON.parse(r); }catch(e){ return {slot:n, corrupt:true, reason:'broken'}; }
+    if(!d || typeof d !== 'object' || !d.gs || typeof d.gs !== 'object' || Array.isArray(d.gs)) return {slot:n, corrupt:true, reason:'broken'};
+    if(!d.version || d.version > maxVersion) return {slot:n, corrupt:true, reason:'version'};
+    return {slot:n, data:d};
+  }
+  const num = v => Number.isFinite(+v) ? +v : 0;
+  // 一覧に出す要約（DOM なし）
+  function summary(n){
+    const r = read(n);
+    if(r.empty || r.corrupt) return r;
+    const g = r.data.gs;
+    const hd = g.homeData && typeof g.homeData === 'object' ? g.homeData : null;
+    const life = hd && hd.life && typeof hd.life === 'object' && hd.life.active === true ? hd.life : null;
+    return {
+      slot:n,
+      day: Math.max(1, Math.floor(num(g.day) || 1)),
+      money: Math.floor(num(g.money)),
+      debt: Math.floor(num(g.debt)),
+      rank: Math.max(0, Math.min(4, Math.floor(num(g.rank)))),
+      lifeDay: life ? (Math.floor(num(life.day)) + 1) : null,
+      lifeFrom: life ? (life.startedFrom || '') : '',
+      ending: typeof g.endingReached === 'string' && g.endingReached ? g.endingReached : null,
+      endless: !!g._endless,
+      savedAt: typeof r.data.savedAt === 'string' ? r.data.savedAt : '',
+    };
+  }
+  function list(){ const out = []; for(let i = 1; i <= N; i++) out.push(summary(i)); return out; }
+  function used(){ return list().filter(s => !s.empty); }
+  // いちばん新しく保存したスロット（無ければ null）
+  function latest(){
+    let best = null;
+    list().forEach(s => { if(s.empty || s.corrupt) return; if(!best || String(s.savedAt) > String(best.savedAt)) best = s; });
+    return best;
+  }
+  return {N, slotKey, active, setActive, raw, migrate, write, remove, read, summary, list, used, latest};
+}
+
+const SAVESLOTS = makeSaveSlots((()=>{ try{ return localStorage; }catch(e){ return {getItem(){return null;},setItem(){throw new Error('no storage');},removeItem(){}}; } })());
+SAVESLOTS.migrateResult = SAVESLOTS.migrate();
+let SAVE_SLOT = SAVESLOTS.active();
+// 他のスクリプトが localStorage.getItem(SAVE_KEY) で今のスロットを読めるように、使っているスロットのキーを指す
+let SAVE_KEY = SAVESLOTS.slotKey(SAVE_SLOT);
+function setActiveSlot(n){
+  n = +n; if(!(n >= 1 && n <= SAVE_SLOT_COUNT)) return false;
+  SAVE_SLOT = n; SAVE_KEY = SAVESLOTS.slotKey(n);
+  SAVESLOTS.setActive(n);
+  return true;
+}
 
 // gs を JSON化可能な形式に変換（Set→配列など）
 function gsToSaveData(){
@@ -2302,8 +2416,9 @@ function gsToSaveData(){
 
 // セーブデータから gs を復元
 function saveDataToGs(saved){
-  // ミニゲーム・物語の記録（gs.rpg / gs.story / gs.○○Data / gs.mgDay）は、読み込むセーブに無ければ消しておく
-  Object.keys(gs).forEach(k=>{if(!(k in saved)&&(k==='rpg'||k==='story'||k==='mgDay'||/Data$/.test(k)))delete gs[k];});
+  // ミニゲーム・物語の記録（gs.rpg / gs.story / gs.○○Data / gs.mgDay）と到達した結末は、読み込むセーブに無ければ消しておく
+  // （別のスロットの家・暮らし gs.homeData が残らない）
+  Object.keys(gs).forEach(k=>{if(!(k in saved)&&(k==='rpg'||k==='story'||k==='mgDay'||k==='endingReached'||/Data$/.test(k)))delete gs[k];});
   Object.assign(gs, saved);
   // 配列 → Set
   gs.completedAchs = new Set(saved.completedAchs || []);
@@ -2326,43 +2441,43 @@ function saveDataToGs(saved){
   }
 }
 
-// ── セーブ ──
+// ── セーブ（今のスロットへ）──
 function saveGame(silent){
   try{
     const saveData = {
       version:  SAVE_VERSION,
       savedAt:  new Date().toISOString(),
+      slot:     SAVE_SLOT,
       gs:       gsToSaveData(),
     };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
-    if(!silent) showNotif('💾 セーブしました。');
+    SAVESLOTS.write(SAVE_SLOT, JSON.stringify(saveData));
+    if(!silent) showNotif('💾 セーブしました（スロット' + SAVE_SLOT + '）。');
     return true;
   }catch(e){
-    const msg = e.name === 'QuotaExceededError'
+    const msg = e && e.name === 'QuotaExceededError'
       ? '💾 保存に失敗しました（ストレージ容量不足）。'
       : '💾 保存に失敗しました。プライベートブラウズではセーブできない場合があります。';
     if(!silent) showNotif(msg);
     return false;
   }
 }
+// ==SAVE-SLOTS:END==
 
-// ── ロード ──
+// ── ロード（今のスロットから）──
 function loadGame(){
   try{
-    const raw = localStorage.getItem(SAVE_KEY);
-    if(!raw){ showNotif('セーブデータが見つかりません。'); return false; }
-
-    const saveData = JSON.parse(raw);
-
-    // バージョンチェック
-    if(!saveData.version || saveData.version > SAVE_VERSION){
-      showNotif('セーブデータのバージョンが対応していません。新規で始めてください。');
+    const r = SAVESLOTS.read(SAVE_SLOT);
+    if(r.empty){ showNotif('セーブデータが見つかりません。'); return false; }
+    if(r.corrupt){
+      showNotif(r.reason === 'version' ? 'セーブデータのバージョンが対応していません。新規で始めてください。' : 'セーブデータが壊れていて読み込めません。');
       return false;
     }
+    const saveData = r.data;
 
     saveDataToGs(saveData.gs);
 
     // 画面を切り替えてゲームを再開
+    closeSlotPicker();
     document.getElementById('title-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
 
@@ -2376,7 +2491,7 @@ function loadGame(){
     // BGM再生（loadGameはタップイベント内なのでunlockAudio経由）
     unlockAudio(()=>{ AU.playBGM('night'); });
 
-    showNotif('📂 DAY' + gs.day + 'から再開しました。');
+    showNotif('📂 DAY' + gs.day + 'から再開しました（スロット' + SAVE_SLOT + '）。');
     setTimeout(()=> cutin('normal', '……おかえり。続きをやろう。'), 800);
     return true;
 
@@ -2386,11 +2501,11 @@ function loadGame(){
   }
 }
 
-// ── セーブ削除 ──
-function deleteSave(){
-  if(!confirm('セーブデータを削除しますか？\nこの操作は戻せません。')) return;
-  localStorage.removeItem(SAVE_KEY);
-  showNotif('🗑 セーブデータを削除しました。');
+// ── セーブ削除（スロットを指定。指定なしはスロット選択を開く）──
+function deleteSave(n){
+  if(!n){ openSlotPicker('load'); return; }
+  SAVESLOTS.remove(n);
+  showNotif('🗑 スロット' + n + 'のセーブデータを削除しました。');
   checkSaveData(); // ボタン表示を更新
 }
 
@@ -2399,27 +2514,198 @@ function manualSave(){
   saveGame(false);
 }
 
+// ── スロットの要約 → 表示用の文 ──
+function fmtYenShort(v){
+  v = Math.floor(+v || 0);
+  const a = Math.abs(v), s = v < 0 ? '-' : '';
+  if(a >= 10000){ const m = a / 10000; return s + '¥' + (m >= 100 ? Math.round(m) : Math.round(m * 10) / 10) + '万'; }
+  return s + '¥' + a.toLocaleString('ja-JP');
+}
+function slotEndingName(type){
+  try{ const e = ENDING_LIST.find(x => x.type === type); if(e) return e.name; }catch(e){}
+  return '';
+}
+function fmtSavedAt(iso){
+  const d = new Date(iso); if(!iso || isNaN(d)) return '';
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function slotStateText(s){
+  if(s.lifeDay != null) return '暮らし ' + s.lifeDay + '日目';
+  if(s.ending){ const nm = slotEndingName(s.ending); return '結末：' + (nm || s.ending) + (s.endless ? '（その後の夜）' : ''); }
+  return '進行中';
+}
+
 // ── セーブデータ確認（タイトル画面のボタン表示用） ──
 function checkSaveData(){
-  try{
-    const raw = localStorage.getItem(SAVE_KEY);
-    const btn  = document.getElementById('btn-continue');
-    const wrap = document.getElementById('btn-delete-wrap');
-    if(!btn) return;
-    // セーブが無ければ「つづきから」と削除ボタンを隠す（削除直後にも残らないように）
-    if(!raw){ btn.style.display='none'; if(wrap) wrap.style.display='none'; return; }
+  const btn  = document.getElementById('btn-continue');
+  const wrap = document.getElementById('btn-delete-wrap');
+  if(!btn) return;
+  // 削除はスロット選択の中で行う（旧「セーブデータを削除」は出さない）
+  if(wrap) wrap.style.display = 'none';
+  // 「はじめから」はスロットを選んでから（index.html の onclick="startStory()" をここで差し替える）
+  const sb = document.getElementById('btn-start-main');
+  if(sb && !sb._slotWired){ sb._slotWired = true; sb.onclick = () => newGameFromTitle(); }
+  btn.onclick = () => openSlotPicker('load');
+  const used = SAVESLOTS.used();
+  if(!used.length){ btn.style.display = 'none'; return; }
+  const last = SAVESLOTS.latest();
+  const det = last ? `最新 スロット${last.slot} DAY${last.day}` + (last.lifeDay != null ? `・暮らし ${last.lifeDay}日目` : '') : '';
+  btn.textContent = `▶ つづきから  ${det} / セーブ ${used.length}件`;
+  btn.style.display = 'block';
+}
 
-    const saveData = JSON.parse(raw);
-    const d  = saveData.gs.day   || 1;
-    const debt = (saveData.gs.debt || 0).toLocaleString();
-    const rank = ['E','D','C','B','A'][saveData.gs.rank || 0] || 'E';
-    btn.textContent = `▶ つづきから  DAY${d} / 借金¥${debt} / RANK ${rank}`;
-    btn.style.display = 'block';
-    if(wrap) wrap.style.display = 'block';
-  }catch(e){
-    // 壊れたデータは無視
-    localStorage.removeItem(SAVE_KEY);
+// ══ スロット選択（つづきから／はじめから）══
+const SLOTUI = {mode:'load', el:null, prevFocus:null};
+let _newSlotPending = false;
+function slotIc(name, px, label){ try{ return window.ICONS ? ICONS.html(name, px || 18, label) : ''; }catch(e){ return ''; } }
+function slotEsc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function ensureSlotPicker(){
+  let el = document.getElementById('slot-sc');
+  if(el) return el;
+  el = document.createElement('div'); el.id = 'slot-sc';
+  el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'slot-title');
+  el.innerHTML = `<div class="slot-box">
+    <div class="slot-head"><span id="slot-title">つづきから</span><span class="slot-sub">SAVE SLOT</span></div>
+    <div class="slot-lead" id="slot-lead"></div>
+    <div class="slot-list" id="slot-list"></div>
+    <div class="slot-confirm" id="slot-confirm" hidden role="alertdialog" aria-labelledby="slot-confirm-msg">
+      <div class="slot-confirm-msg" id="slot-confirm-msg"></div>
+      <div class="slot-confirm-btns"><button type="button" class="ev-btn slot-cf-yes"></button><button type="button" class="ev-btn slot-cf-no">やめる</button></div>
+    </div>
+    <button type="button" class="ev-btn slot-close">${slotIc('close',18)}<span>閉じる</span></button>
+  </div>`;
+  document.body.appendChild(el);
+  el.addEventListener('click', e => { if(e.target === el) closeSlotPicker(); });
+  el.querySelector('.slot-close').addEventListener('click', () => { try{ AU.se('cancel'); }catch(_){} closeSlotPicker(); });
+  el.addEventListener('keydown', e => {
+    if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); const cf = document.getElementById('slot-confirm'); if(cf && !cf.hidden){ hideSlotConfirm(); } else closeSlotPicker(); return; }
+    if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+      e.preventDefault(); e.stopPropagation();
+      const bs = [...el.querySelectorAll('button')].filter(b => !b.disabled && b.offsetParent !== null && !b.closest('[hidden]'));
+      if(!bs.length) return;
+      const i = bs.indexOf(document.activeElement);
+      const n = i < 0 ? 0 : (i + (e.key === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length;
+      bs[n].focus();
+    }
+  });
+  SLOTUI.el = el;
+  return el;
+}
+function slotPickerOpen(){ const el = document.getElementById('slot-sc'); return !!(el && el.classList.contains('active')); }
+function openSlotPicker(mode){
+  SLOTUI.mode = mode === 'new' ? 'new' : 'load';
+  const el = ensureSlotPicker();
+  SLOTUI.prevFocus = document.activeElement;
+  renderSlotPicker();
+  el.classList.add('active');
+  try{ AU.se('decide'); }catch(e){}
+  setTimeout(() => { const b = el.querySelector('.slot-main:not([disabled])') || el.querySelector('.slot-close'); if(b) b.focus(); }, 30);
+}
+function closeSlotPicker(){
+  const el = document.getElementById('slot-sc'); if(!el) return;
+  hideSlotConfirm();
+  el.classList.remove('active');
+  const pf = SLOTUI.prevFocus; SLOTUI.prevFocus = null;
+  try{ if(pf && pf.isConnected && pf.focus) pf.focus(); }catch(e){}
+}
+function renderSlotPicker(){
+  const el = ensureSlotPicker(), isNew = SLOTUI.mode === 'new';
+  el.querySelector('#slot-title').textContent = isNew ? 'はじめから' : 'つづきから';
+  el.querySelector('#slot-lead').textContent = isNew ? '新しい30日をどのスロットに保存しますか？' : '続きを遊ぶスロットを選んでください。';
+  const list = el.querySelector('#slot-list'); list.textContent = '';
+  SAVESLOTS.list().forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'slot-card' + (s.empty ? ' empty' : '') + (s.corrupt ? ' corrupt' : '') + (s.slot === SAVE_SLOT && !s.empty ? ' cur' : '');
+    const main = document.createElement('button'); main.type = 'button'; main.className = 'slot-main';
+    let l1, l2 = '', l3 = '', aria;
+    if(s.empty){
+      l1 = '― 空き ―'; l2 = isNew ? 'ここから新しく始める' : 'データなし';
+      aria = `スロット${s.slot}：空き`;
+      if(!isNew) main.disabled = true;
+    }else if(s.corrupt){
+      l1 = s.reason === 'version' ? '新しい版のデータ（読めません）' : 'データが壊れています';
+      l2 = isNew ? '上書きして新しく始められます' : '削除するか、はじめからで上書きできます';
+      aria = `スロット${s.slot}：${l1}`;
+      if(!isNew) main.disabled = true;
+    }else{
+      l1 = `DAY ${s.day}　所持 ${fmtYenShort(s.money)}　借金 ${fmtYenShort(s.debt)}`;
+      const st = slotStateText(s);
+      l2 = (s.lifeDay != null ? slotIc('home', 16) : s.ending ? slotIc('endings', 16) : slotIc('play', 16)) + `<span>${slotEsc(st)}</span>`;
+      l3 = s.savedAt ? fmtSavedAt(s.savedAt) + ' に保存' : '';
+      aria = `スロット${s.slot}：DAY${s.day}、所持${fmtYenShort(s.money)}、借金${fmtYenShort(s.debt)}、${st}${l3 ? '、' + l3 : ''}`;
+    }
+    main.setAttribute('aria-label', aria + (isNew ? (s.empty ? '。ここで始める' : '。上書きして始める') : '。続きから遊ぶ'));
+    main.innerHTML = `<span class="slot-no">SLOT ${s.slot}</span>`
+      + `<span class="slot-l1">${slotEsc(l1)}</span>`
+      + `<span class="slot-l2">${s.empty || s.corrupt ? slotEsc(l2) : l2}</span>`
+      + (l3 ? `<span class="slot-l3">${slotEsc(l3)}</span>` : '');
+    main.addEventListener('click', () => onSlotPick(s));
+    card.appendChild(main);
+    if(!s.empty){
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'slot-del';
+      del.innerHTML = slotIc('trash', 20) + '<span class="slot-del-t">削除</span>';
+      del.setAttribute('aria-label', `スロット${s.slot}のセーブを削除`);
+      del.addEventListener('click', e => { e.stopPropagation(); askSlotDelete(s); });
+      card.appendChild(del);
+    }
+    list.appendChild(card);
+  });
+}
+function showSlotConfirm(msg, yesLabel, onYes, danger){
+  const cf = document.getElementById('slot-confirm'); if(!cf) return;
+  cf.querySelector('.slot-confirm-msg').textContent = msg;
+  const y = cf.querySelector('.slot-cf-yes'), n = cf.querySelector('.slot-cf-no');
+  y.textContent = yesLabel; y.classList.toggle('danger', !!danger);
+  y.onclick = () => { hideSlotConfirm(); onYes(); };
+  n.onclick = () => { try{ AU.se('cancel'); }catch(_){} hideSlotConfirm(); };
+  cf.hidden = false;
+  document.getElementById('slot-list').setAttribute('aria-hidden', 'true');
+  document.getElementById('slot-sc').classList.add('confirming');
+  setTimeout(() => n.focus(), 20);
+}
+function hideSlotConfirm(){
+  const cf = document.getElementById('slot-confirm'); if(!cf || cf.hidden) return;
+  cf.hidden = true;
+  const l = document.getElementById('slot-list'); if(l) l.removeAttribute('aria-hidden');
+  const el = document.getElementById('slot-sc'); if(el) el.classList.remove('confirming');
+  const b = el && el.querySelector('.slot-main:not([disabled])'); if(b) b.focus();
+}
+function askSlotDelete(s){
+  const what = s.corrupt ? '読めないデータ' : `DAY${s.day}・${slotStateText(s)}`;
+  showSlotConfirm(`スロット${s.slot}（${what}）を削除しますか？\nこの操作は戻せません。`, '削除する', () => {
+    SAVESLOTS.remove(s.slot);
+    try{ AU.se('cancel'); }catch(e){}
+    showNotif('🗑 スロット' + s.slot + 'のセーブデータを削除しました。');
+    checkSaveData();
+    if(!SAVESLOTS.used().length && SLOTUI.mode === 'load'){ closeSlotPicker(); return; }
+    renderSlotPicker();
+    const el = document.getElementById('slot-sc'); const b = el && (el.querySelector('.slot-main:not([disabled])') || el.querySelector('.slot-close')); if(b) b.focus();
+  }, true);
+}
+function onSlotPick(s){
+  if(SLOTUI.mode === 'new'){
+    if(s.empty){ startNewInSlot(s.slot); return; }
+    const what = s.corrupt ? '読めないデータ' : `DAY${s.day}・${slotStateText(s)}`;
+    showSlotConfirm(`スロット${s.slot}には（${what}）が入っています。\n新しく始めると、最初の保存のときに上書きされます。`, '上書きして始める', () => startNewInSlot(s.slot), true);
+    return;
   }
+  if(s.empty || s.corrupt) return;
+  setActiveSlot(s.slot);
+  closeSlotPicker();
+  loadGame();
+}
+function startNewInSlot(n){
+  setActiveSlot(n);
+  closeSlotPicker();
+  _newSlotPending = true;     // 序章のあと（goToGame）でこのスロットに最初の保存をする
+  startStory();
+}
+// タイトルの「はじめから」：セーブが一つも無ければ、そのままスロット1で始める
+function newGameFromTitle(){
+  const used = SAVESLOTS.used();
+  if(!used.length){ startNewInSlot(1); return; }
+  openSlotPicker('new');
 }
 
 // ──────────────────────────

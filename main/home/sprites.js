@@ -1816,6 +1816,67 @@ function seedPacket(species){
   R(x,'#5a3a2a',3,14,1,1);R(x,'#5a3a2a',12,14,1,1);
   return c;
 }
+// 素材のアイコン（16×16・外周線つき）：main/icons.js の wood/cloth/metal/sea と同じ絵（パレットはスタイルガイド）
+const MAT_PAL={o:'#f2cf98',O:'#d9a066',x:'#b97c45',X:'#8a5530',Z:'#5e3820',b:'#ffd98a',d:'#e08a34',p:'#ffd0e0',P:'#f59aae',q:'#d9708e',w:'#fffaf0',m:'#e4e8f0',M:'#a8b0c0',z:'#6e7488',v:'#c6b2ee',V:'#8c5fcc',u:'#5a3590',a:'#fff4cc',e:'#9ff0e0',E:'#4fc8bc',f:'#2a8f96'};
+const MAT_ROWS={
+  wood:[
+    ".............",
+    "..oo.........",
+    ".obbo.xxxxxx.",
+    "obxdbxOOOOOOx",
+    "obdZdxbOOOOOX",
+    "obxdbxOOOOOOX",
+    ".obbo.XXXXXX.",
+    "..oo.........",
+    "...bbbbbbbbb.",
+    "..oOOOOOOOOOx",
+    "..oOxOOOOxOOX",
+    "...XXXXXXXXX."],
+  cloth:[
+    "..........m..",
+    ".........mz..",
+    ".ppppppppmp..",
+    "pPPPPPPPmPPq.",
+    "pPwPwPwmwPPq.",
+    "pPPPPPmPPPPq.",
+    "qqqqqzqqqqqq.",
+    "vvvvvvvvvvvV.",
+    "vVVVVVVVVVVu.",
+    "vVaVaVaVaVVu.",
+    "uuuuuuuuuuuu."],
+  metal:[
+    "....mmmmm....",
+    "...mMMMMMz...",
+    "..mMMmmmMMz..",
+    ".mMMm...zMMz.",
+    ".mMm.....zMz.",
+    ".mMm.....zMz.",
+    ".mMm.....zMz.",
+    ".mMMz...zMMz.",
+    "..zMMzzzMMz..",
+    "...zMMMMMz...",
+    "....zzzzz...."],
+  sea:[
+    "....ppppp....",
+    "..ppPpPpPpp..",
+    ".pPwPpPpPpPq.",
+    ".pPpPpPpPpPq.",
+    "pwPpPpPpPpPpq",
+    "pPpPpPpPpPpPq",
+    ".qPpPpPpPpPq.",
+    "..qPpPpPpPq..",
+    "...qqPpPqq..e",
+    "....pqqqp..eE",
+    "....qq.qq.eEf",
+    "..........ff."],
+};
+function materialArt(id){
+  const R0=MAT_ROWS[id];if(!R0)return null;
+  const a=mk(16,16),ax=a.getContext('2d');
+  const w=Math.max(...R0.map(r=>r.length)),h=R0.length;
+  map(ax,R0,MAT_PAL,1+((14-w)>>1),1+((14-h)>>1));
+  return outlined(a);
+}
 function icon(itemId,variant){
   const key='icon|'+itemId+'|'+(variant||'');
   let c=cache.get(key);if(c)return c;
@@ -1824,6 +1885,7 @@ function icon(itemId,variant){
     const def=ITEMS[itemId];
     let art;
     if(!def&&/^seed\./.test(itemId))art=seedPacket(itemId.slice(5));
+    else if(!def&&/^mat\./.test(itemId))art=materialArt(itemId.slice(4))||qbox(1,1);
     else if(itemId==='char.cat')art=catArt('down',0,'sit');
     else if(!def)art=qbox(1,1);
     else{
@@ -2328,6 +2390,7 @@ window.HOME_ART={
   items, uiNames:Object.keys(UI).concat('rotate'),
   chars:Object.keys(CHARS).concat('cat'), poses:['stand','walk','sit','read','work','hold','sleep'],
   plantSpecies:['seed','morning_glory','sunflower','herb'],
+  materials:Object.keys(MAT_ROWS),   // HOME_ART.icon('mat.'+id)
   palette:C,
   clearCache(){cache.clear();}
 };

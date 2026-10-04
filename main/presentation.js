@@ -792,7 +792,7 @@ function placeCursor(){
   if(c && b){ c.style.top = (b.offsetTop + b.offsetHeight/2 - 7) + 'px'; c.style.display = 'block'; }
 }
 function titleVisible(){ const ts = $('title-screen'); return ts && !ts.classList.contains('hidden'); }
-function modalOpen(){ return ['settings-sc','endlist-sc','tutorial-sc'].some(id=>{ const e = $(id); return e && e.classList.contains('active'); }); }
+function modalOpen(){ return ['settings-sc','endlist-sc','tutorial-sc','slot-sc'].some(id=>{ const e = $(id); return e && e.classList.contains('active'); }); }
 function setTitleState(s){
   if(!T.el) return; T.st = s; T.el.dataset.st = s;
   if(s !== 'intro') T.el.classList.add('pr-skipintro');
@@ -1466,11 +1466,11 @@ wrap('loadGame', prev => function(){
   try{ if(r && hasGs()) showDayCard(gs.day, {noAct: true, sub: `― ${weekLabel(gs.day)} ・ つづきから ―`}); }catch(e){}
   return r;
 });
-// セーブ削除後、つづきからを隠す（checkSaveDataはデータ無しのとき何もしないため）
+// セーブ削除後、どのスロットにもデータが無ければ、つづきからを隠してカーソルを戻す
 wrap('deleteSave', prev => function(){
   const r = prev.apply(this, arguments);
   try{
-    let has = false; try{ has = !!localStorage.getItem(typeof SAVE_KEY !== 'undefined' ? SAVE_KEY : 'dannoura_save_v1'); }catch(e){}
+    let has = false; try{ has = typeof SAVESLOTS !== 'undefined' ? SAVESLOTS.used().length > 0 : !!localStorage.getItem(SAVE_KEY); }catch(e){}
     if(!has){ const b = $('btn-continue'), w = $('btn-delete-wrap'); if(b) b.style.display = 'none'; if(w) w.style.display = 'none'; T.cur = 0; refreshItems(); }
   }catch(e){}
   return r;

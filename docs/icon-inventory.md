@@ -22,7 +22,7 @@
 3. 起動時に一覧の PNG を先読みし、読み込めたものだけ差し替える（`ICONS.overridden()` で確認）。読み込み失敗・一覧にないものはコード描画のまま。表示済みの `<img class="ic">` も自動で描き直す。
    - 一覧ファイルを使うのは、全アイコン分の 404 を毎回出さないため。`file://` で開いたときは差し替えなし。
 
-## アイコン一覧（`ICONS.names()`、82 種）
+## アイコン一覧（`ICONS.names()`、87 種）
 
 | 区分 | 名前 |
 |---|---|
@@ -33,6 +33,7 @@
 | 通知の種類 | info, warn, good, bad |
 | ミニゲーム 17 | shooter, roguelike, puzzle, cardbattle, runner, defense, rpg（灯籠）, stealth（猫）, quiz, horror, factory3d, cooking, escape, blocks, manager, fishing, race |
 | ミニゲームのカテゴリ | all, action（稲妻）, brain（電球）, story（巻物）, life（葉） |
+| 素材（家・庭） | wood（丸太と板）, cloth（たたんだ布と針）, metal（ナット）, sea（貝殻と海のガラス）, seed（種の袋）。別名 `mat.wood` などと `seeds`。同じ絵を `HOME_ART.icon('mat.wood')` などでも描く（main/home/sprites.js） |
 
 ## 置き換えの一覧
 
@@ -67,6 +68,9 @@
 | エンディングの大きな絵・本文、共有テキスト | 🌅 🐾 など | 物語 | — | × | — |
 | 配信コメント・ギフト表記 | 🎁 💎 💜 | コメント本文 | — | × | — |
 | 思い出帳（main/memories.js）・家と庭の画面（main/home/*） | 📖 ほか | — | — | ×（担当外。家・庭の UI は `HOME_ART.uiIcon` を使用済み） | — |
+| 素材の表示（クラフトの所持・必要数、家の改修） | 🪵 🧵 🔩 🐚 | 木材・布・金具・海のかけら | HOME_ART.icon('mat.*')（ドット絵＋名前の文字） | ○ | main/home/interactions.js `matTag` |
+| 素材の通知（工場・子育て・釣り・RPG・暮らしの一日） | 文頭の 🪵 🧵 🔩 🐚 | 素材を手に入れた | wood, cloth, metal, sea | ○ | 本編の通知は ui.js `iconNotif`（`ICONS.lead` の対応表）、家の画面のトーストは `HOME.ui.toast` が文頭の絵文字をアイコンに置き換える。🔩 は以前 work に対応していたが metal に変えた（設備更新のイベント見出しなどもナットの絵になる） |
+| タイトルのセーブスロット | 📂 🗑 ✖ 🏡 | つづきから・削除・閉じる・暮らし | load, trash, close, home, play, endings | ○ | game.js `renderSlotPicker` |
 
 ## 確認
 

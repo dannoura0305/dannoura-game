@@ -238,9 +238,9 @@ const img=(k,cls)=>`<img class="px${cls?' '+cls:''}" src="${icon(k)}" alt="">`;
 const HERO=[
 '......HHHHHHHH........',
 '....HHhhhhhhhhHH......',
-'...HhhhHHHHHHhhhH..FF.',
+'...HhhhHHHHHHhhhH..F..',
 '..HhhHHHHHHHHHHhhHFfF.',
-'..HhHHHHHHHHHHHHhHHFF.',
+'..HhHHHHHHHHHHHHhHHF..',
 '.HHHHSSHSSSSHSSHHHHH..',
 '.HHHSSSSSSSSSSSSHHHHH.',
 '.HHGGGGGsSSsGGGGGHHHH.',
@@ -304,17 +304,42 @@ function midRows(eye,mouth){
   const rv=s=>s.split('').reverse().join('');
   return MID.map(r=>r.replace('111',e1).replace('222',rv(e1)).replace('333',e2).replace('444',rv(e2)).replace('5555',m1).replace('66',m2));
 }
+// 正典の目印：ピンクの小さなシルクハット（頭の左上に少し傾けて）。髪飾りの花は HERO の F（5枚花びら）
+const HAT=[
+'......QQQq............',
+'......QqQq............',
+'......QqQq............',
+'.....RRRRRRR..........',
+'....qqqqqqqqq.........',
+];
+const HAT_PAL={Q:'#ffb0c8',q:'#e8709a',R:'#b8304f'};
+// 外周線（スタイルガイドの #1b1226）：不透明ドットの上下左右の空きに1ドット。胸像の下端（切り口）には付けない
+const SPR_OL='#1b1226',SPR_PAD=1,SPR_TOP=HAT.length+1;   // 余白：左右1・上は帽子ぶん＋外周線1
+function outlineRows(rows){
+  const h=rows.length,w=Math.max(...rows.map(r=>r.length));
+  const op=(x,y)=>y>=0&&y<h&&x>=0&&x<w&&(rows[y][x]||'.')!=='.';
+  return rows.map((r,y)=>{let o='';for(let x=0;x<w;x++){const ch=r[x]||'.';o+=ch!=='.'?ch:(op(x-1,y)||op(x+1,y)||op(x,y-1)||(y<h-1&&op(x,y+1)))?'@':'.';}return o;});
+}
+// 22×24 の絵を 24×(24+SPR_TOP) に広げて描く。体の位置は今までと同じ（描く側で SPR_PAD・SPR_TOP だけずらす）
+function padRows(rows,hat){
+  const blank='.'.repeat(22),out=[];
+  for(let i=0;i<SPR_TOP;i++){const k=i-(SPR_TOP-HAT.length);out.push('.'+(hat&&k>=0?HAT[k]:blank)+'.');}
+  rows.forEach(r=>out.push('.'+r+'.'));   // 帽子のつば（HAT の最終行）は髪の1行目のすぐ上に乗る
+  return out;
+}
 const _spr={};
 function sprite(who,eye,mouth){
   const key=who+eye+mouth;
   if(!_spr[key]){
-    const pal=who==='mid'?MID_PAL:who==='fan'?FAN_PAL:HERO_PAL;
+    const pal=Object.assign({},who==='mid'?MID_PAL:who==='fan'?FAN_PAL:HERO_PAL,HAT_PAL,{'@':SPR_OL});
     let rows=who==='mid'?midRows(eye,mouth):heroRows(eye,mouth);
     if(who==='mid')rows=rows.map(r=>r.split('').reverse().join(''));
-    _spr[key]=pxCanvas(rows,pal,1);
+    _spr[key]=pxCanvas(outlineRows(padRows(rows,who==='hero')),pal,1);
   }
   return _spr[key];
 }
+// 描く：x,y は今までどおり「22×24 の絵の左上」。S は拡大率
+function drawSpr(c,spr,x,y,S){c.drawImage(spr,Math.round(x-SPR_PAD*S),Math.round(y-SPR_TOP*S),spr.width*S,spr.height*S);}
 const _por={};
 function portrait(who){ // 胸像（頭部を切り出して拡大）
   // 顔グラ（main/mobs.js の SVG）：常連＝joren、コラボ相手ミドリ＝midori
@@ -322,7 +347,7 @@ function portrait(who){ // 胸像（頭部を切り出して拡大）
   if(mob&&typeof mobPortrait==='function'&&mobPortrait(mob))return mobPortrait(mob);
   if(!_por[who]){
     const s=sprite(who,'open','smile');const cv=document.createElement('canvas');cv.width=96;cv.height=96;
-    const c=cv.getContext('2d');c.imageSmoothingEnabled=false;c.drawImage(s,0,0,22,20,4,10,88,80);
+    const c=cv.getContext('2d');c.imageSmoothingEnabled=false;c.drawImage(s,SPR_PAD,SPR_TOP,22,20,4,10,88,80);
     if(who==='mid'){ // ヘッドホン
       c.fillStyle='#1a1030';c.fillRect(6,12,84,6);c.fillStyle='#00e8c8';c.fillRect(8,10,80,5);
       c.fillStyle='#1a1030';c.fillRect(0,38,14,26);c.fillRect(82,38,14,26);c.fillStyle='#00e8c8';c.fillRect(2,40,10,22);c.fillRect(84,40,10,22);
@@ -891,8 +916,8 @@ registerMinigame({
       const S=3,blink=(titleT%3)<.12,sp=sprite('hero',blink?'blink':'open',(titleT*6|0)%2?'talk':'close');
       const sm=sprite('mid',(titleT%3.7)<.12?'blink':'open',(titleT*5|0)%3?'close':'talk');
       c.imageSmoothingEnabled=false;
-      c.drawImage(sm,14,hy-24*S+Math.round(Math.sin(titleT*3+1)*2),22*S,24*S);
-      c.drawImage(sp,W-22*S-14,hy-24*S+Math.round(Math.sin(titleT*3)*2),22*S,24*S);
+      drawSpr(c,sm,14,hy-24*S+Math.round(Math.sin(titleT*3+1)*2),S);
+      drawSpr(c,sp,W-22*S-14,hy-24*S+Math.round(Math.sin(titleT*3)*2),S);
     }
     title.onclick=()=>{
       if(phase!=='title')return;phase='story0';se('decide');sfx('go');
@@ -1132,10 +1157,10 @@ registerMinigame({
         const ps=sprite('mid',blinkT>.6&&blinkT<.75?'blink':'open',!mouthOpen&&live?'talk':'close');
         const pS=S*.85;
         const px0=hx-19*S,py0=hy+3*S;
-        c.drawImage(ps,px0,py0,22*pS,24*pS);
+        drawSpr(c,ps,px0,py0,pS);
       }
       c.globalAlpha=off&&!end?.55:1;
-      c.drawImage(spr,hx+sway,hy,22*S,24*S);c.globalAlpha=1;
+      drawSpr(c,spr,hx+sway,hy,S);c.globalAlpha=1;
       // 机
       c.fillStyle='#1d1540';c.fillRect(0,H*.86,W,H*.14);c.fillStyle='#3a2c70';c.fillRect(0,H*.86,W,2);
       c.fillStyle='rgba(0,0,0,.25)';c.fillRect(0,H*.86+2,W,4);

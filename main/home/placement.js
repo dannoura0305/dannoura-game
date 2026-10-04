@@ -285,6 +285,35 @@ function createDraft(src,opts){
         return{ok:true,reason:'',P:f.P};
       });
     },
+    // 場所ごとの「最初の状態に戻す」（1回の取り消しで元に戻る）
+    //   layout が無い：その場所に置いてあるものをすべて収納へ（出入口をふさぐものは無いので、全部外して安全）
+    //   layout=[[itemId,x,y,rotation],...]：すべて収納してから、収納にあるぶんだけ最初の配置に置く
+    //   所持数（owned）は触らない＝増えない・消えない。置けないもの・足りないものは収納のまま（skipped）
+    reset(area,layout){
+      if(!state[area])return{ok:false,reason:'場所が不明です'};
+      const sig=L=>JSON.stringify(L.map(P=>[P.itemId,P.x,P.y,normRot(P.rotation),P.variant].join(',')).sort());
+      const before=sig(state[area]);
+      const r=commit(()=>{
+        const removed=state[area].length;
+        state[area]=[];
+        let placed=0;const skipped=[];
+        (Array.isArray(layout)?layout:[]).forEach(row=>{
+          const itemId=row[0],x=row[1],y=row[2],rotation=normRot(row[3]);
+          const c=CAT(itemId);if(!c){skipped.push(itemId);return;}
+          const vars=c.variants&&c.variants.length?c.variants:['default'];
+          const v=vars.find(v=>stored(itemId,v)>0);
+          if(!v){skipped.push(itemId);return;}
+          const chk=canPlace(area,state[area],{itemId,x,y,rotation,variant:v},{stored:stored(itemId,v)});
+          if(!chk.ok){skipped.push(itemId);return;}
+          state[area].push({instanceId:newId(itemId),itemId,x,y,rotation,variant:v,layer:c.layer});
+          placed++;
+        });
+        if(!removed&&!placed)return{ok:false,reason:'置いてあるものがありません'};
+        return{ok:true,reason:'',removed,placed,skipped};
+      });
+      if(r.ok&&sig(state[area])===before){state=past.pop();return{ok:false,reason:'もう最初の状態です',same:true};}
+      return r;
+    },
     look:()=>state.look||null,
     // 外観・内装を変える。patch={exterior:{roof:'red'}} / {wallpaper:'mint'} / {floorId:'floor.tatami'}
     setLook(patch){

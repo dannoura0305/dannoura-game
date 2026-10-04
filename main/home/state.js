@@ -70,6 +70,8 @@ function syncAreas(hd){
   });
 }
 HOME.syncAreas=syncAreas;
+// 最初の配置（模様替えの「最初の状態に戻す」が使う）。書き換えられないよう写しを返す
+HOME.defaultLayout=area=>(area==='room'?INIT_ROOM:area==='garden'?INIT_GARDEN:[]).map(r=>r.slice());
 HOME.areaSize=sizeOf;
 function fresh(){
   const hd={version:VERSION,inventory:{},materials:Object.assign({},INIT_MATS),unlockedRecipes:INIT_RECIPES.slice(),

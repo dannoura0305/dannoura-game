@@ -133,6 +133,35 @@ const ED={
     else if(!r.ok)E.msg=r.reason;
     S.refresh();
   },
+  // ── 最初の状態に戻す（いまの場所だけ。確定するまで保存されず、［取り消し］で戻せる） ──
+  resetLabel(S){return `${AREA_NAME(S.area)}を最初の状態に戻す`;},
+  async askReset(S){
+    const E=S.ed;if(!E||!E.draft.reset)return false;
+    const nm=AREA_NAME(S.area);
+    const i=await S.ui.choice(`${nm}を最初の状態に戻しますか？ 持ち物は増えも減りもしません。［取り消し］で戻せます。`,
+      [{t:'最初の配置に戻す',s:'いったん全部収納して、持っているものだけで最初の並びに置き直す'},{t:'すべて収納する',s:`${nm}に置いてあるものを全部収納へ`},{t:'やめる'}]);
+    if(!S.ed||(i!==0&&i!==1))return false;
+    return ED.reset(S,i===0?'default':'store');
+  },
+  reset(S,mode){
+    const E=S.ed;if(!E)return false;
+    const layout=mode==='default'&&typeof HOME.defaultLayout==='function'?HOME.defaultLayout(S.area):null;
+    const r=E.draft.reset(S.area,layout);
+    E.sel=null;
+    if(r.ok){
+      S.sfx&&S.sfx('place');
+      const nm=AREA_NAME(S.area);
+      E.msg=mode==='default'
+        ?`${nm}を最初の配置に戻しました（${r.placed}個を配置${r.skipped.length?`・${r.skipped.length}個は収納に無いか置けないので収納のまま`:''}）。［取り消し］で戻せます。［確定］で保存。`
+        :`${nm}のもの${r.removed}個をすべて収納しました。［取り消し］で戻せます。［確定］で保存。`;
+      S.ui.toast(mode==='default'?`${nm}を最初の配置に戻しました`:`${nm}のものを収納しました`);
+    }else{
+      E.msg=r.reason;
+      S.sfx&&S.sfx('bad');
+    }
+    S.refresh();
+    return !!r.ok;
+  },
   // ── 収納リスト ──
   inventory(S){
     const E=S.ed,D=E.draft,hd=HOME.data();

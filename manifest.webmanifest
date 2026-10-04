@@ -1,0 +1,20 @@
+{
+  "name": "だんのうら ― 深夜、繋がりの海へ",
+  "short_name": "だんのうら",
+  "description": "借金・夜勤・配信・子育て。30日間を生き延びる、深夜のサバイバル育成ゲーム。",
+  "lang": "ja",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#05040e",
+  "theme_color": "#0a0820",
+  "categories": ["games"],
+  "icons": [
+    { "src": "assets/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/pwa/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -268,3 +268,20 @@ main/home/lifemode.js     クリア後の暮らしモード（HOME.lifeMode）
 ## 6. 生成画像の受け口（Web版の家・庭）
 - `assets/original/manifest.json` の各 asset に `file` があり、その PNG が読み込めたら、`HOME_ART.drawItem/drawChar/drawTile` はそれを優先して描く（足元位置・はみ出しは manifest の `anchor` で指定）。読み込み失敗・未指定ならコード描画のまま。
 - 既定では file は null（すべてコード描画）。ComfyUI 生成物を入れる手順を docs/comfyui/README.md に追記。
+
+
+# 追記：セーブスロットと「最初の状態に戻す」
+
+## セーブスロット（game.js）
+- キー：`dannoura_save_slot1`〜`3`、使っているスロットは `dannoura_save_meta` の `active`。`SAVE_KEY` は**今のスロットのキー**を指す（`let`。他のスクリプトの `localStorage.getItem(SAVE_KEY)` はそのまま今のスロットを読む）。
+- 公開：`SAVESLOTS`（`raw(n)`・`read(n)`・`summary(n)`・`list()`・`used()`・`latest()`・`write(n,str)`・`remove(n)`・`migrate()`）、`SAVE_SLOT`、`setActiveSlot(n)`、`openSlotPicker('load'|'new')`。
+- 旧セーブ `dannoura_save_v1`：起動時にスロット1へ写し、読み戻して一致したら旧キーを消す。写せなければ旧キーを残し、スロット1が空の間は旧キーをスロット1として読む（スロット1に保存できた時点で旧キーを消す）。
+- 結末：`triggerEnding` が `gs.endingReached`（結末の種類）を保存する。スロット一覧の「結末：○○」に使う。`saveDataToGs` は読み込むセーブに無い `endingReached`・`rpg`・`story`・`mgDay`・`○○Data`（`homeData` を含む）を消すので、別スロットの家・暮らし・結末は残らない。
+- 暮らしモード：`lifemode.js` の再開は `SAVESLOTS.raw(SAVE_SLOT)` を読む（スロットごと）。「タイトルへ」→再読込しても `active` が残るので、同じスロットに保存が続く。
+- 共通のまま：`dannoura_endings`（エンディング一覧）、音量設定、遊び方の既読。
+
+## 模様替え：最初の状態に戻す（placement.js / editor.js / state.js）
+- `HOME.defaultLayout(area)`：新規の初期配置（`INIT_ROOM`／`INIT_GARDEN`）の写し。
+- `draft.reset(area, layout)`：1回の取り消しで戻る1操作。layout なし＝その場所のものをすべて収納。layout あり＝すべて収納してから、収納にあるぶんだけ初期配置に置く（足りない・置けないものは収納のまま `skipped`）。所持数（inventory）には触らない。結果が今と同じなら何もしない（履歴も増えない）。
+- 出入口をふさぐ置き方は初期配置に無く、すべて収納しても出入口は空くので、どちらも到達性を壊さない。壁紙・床・外観は戻さない（配置だけ）。
+- UI：模様替えの収納欄の上に「部屋（庭）を最初の状態に戻す」→ `HOME.ui.choice` で「最初の配置に戻す／すべて収納する／やめる」。確定するまで保存しない。
