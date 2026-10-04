@@ -607,7 +607,7 @@
    "priority": "P1",
    "category": "portrait",
    "name_ja": "娘 normal",
-   "file": null,
+   "file": "assets/gen/portrait/kid_normal.png",
    "rev": null,
    "target": "assets/gen/portrait/kid_normal.png",
    "size": "256x256",
@@ -622,14 +622,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, nsfw, adult body, mature, makeup, revealing clothes, photorealistic, 3d render, multiple people",
    "note_ja": "娘（4歳）・ふつう。家ではミントのパジャマ。クマは「左耳（画面では右）がほつれ」",
    "comfyui": "portrait.kid.normal",
-   "first15": 2
+   "first15": 2,
+   "status": "verified"
   },
   {
    "id": "portrait.kid.happy",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "娘 happy",
-   "file": null,
+   "file": "assets/gen/portrait/kid_happy.png",
    "rev": null,
    "target": "assets/gen/portrait/kid_happy.png",
    "size": "256x256",
@@ -644,14 +645,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, nsfw, adult body, mature, makeup, revealing clothes, photorealistic, 3d render, multiple people",
    "note_ja": "娘（4歳）・笑顔。家ではミントのパジャマ。クマは「左耳（画面では右）がほつれ」",
    "comfyui": "portrait.kid.happy",
-   "first15": 3
+   "first15": 3,
+   "status": "verified"
   },
   {
    "id": "portrait.kid.sleep",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "娘 sleep",
-   "file": null,
+   "file": "assets/gen/portrait/kid_sleep.png",
    "rev": null,
    "target": "assets/gen/portrait/kid_sleep.png",
    "size": "256x256",
@@ -666,14 +668,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, nsfw, adult body, mature, makeup, revealing clothes, photorealistic, 3d render, multiple people",
    "note_ja": "娘（4歳）・寝顔。家ではミントのパジャマ。クマは「左耳（画面では右）がほつれ」",
    "comfyui": "portrait.kid.sleep",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "portrait.kid.sad",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "娘 sad",
-   "file": null,
+   "file": "assets/gen/portrait/kid_sad.png",
    "rev": null,
    "target": "assets/gen/portrait/kid_sad.png",
    "size": "256x256",
@@ -688,14 +691,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, nsfw, adult body, mature, makeup, revealing clothes, photorealistic, 3d render, multiple people",
    "note_ja": "娘（4歳）・泣き顔。家ではミントのパジャマ。クマは「左耳（画面では右）がほつれ」",
    "comfyui": "portrait.kid.sad",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "portrait.kid.fever",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "娘 fever",
-   "file": null,
+   "file": "assets/gen/portrait/kid_fever.png",
    "rev": null,
    "target": "assets/gen/portrait/kid_fever.png",
    "size": "256x256",
@@ -710,7 +714,8 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, nsfw, adult body, mature, makeup, revealing clothes, photorealistic, 3d render, multiple people",
    "note_ja": "娘（4歳）・お熱。家ではミントのパジャマ。クマは「左耳（画面では右）がほつれ」",
    "comfyui": "portrait.kid.fever",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "avatar.tabibito",
