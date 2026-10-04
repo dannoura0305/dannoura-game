@@ -1451,6 +1451,8 @@ registerMinigame({
     function addChat(name,msg,cls){
       const d=document.createElement('div');d.className='hr-msg'+(cls?' '+cls:'');
       const nb=document.createElement('b');if(cls!=='nn'&&cls!=='sys')nb.textContent=name;if(REG_COL[name])nb.style.color=REG_COL[name];
+      // リスナーのアイコン（main/mobs.js。名前のない者は砂嵐のアイコン）
+      if(cls!=='sys'&&typeof listenerAvatarHTML==='function'){try{d.insertAdjacentHTML('beforeend',listenerAvatarHTML(cls==='nn'?'':name,cls==='nn'||cls==='odd'?'ghost':'normal'));}catch(e){}}
       if(cls!=='sys')d.appendChild(nb);d.appendChild(document.createTextNode(msg));
       chatEl.appendChild(d);while(chatEl.children.length>6)chatEl.removeChild(chatEl.firstChild);
       if(T-lastSe>.22){lastSe=T;se('comment');}

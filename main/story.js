@@ -251,6 +251,10 @@ function portraitHTML(w,f){
     if(!mob[1])return `<img src="${src}" alt="">`;
     return `<img src="${src}" alt="" style="width:124%;height:124%;max-width:none;margin:-4% 0 0 -12%;background:radial-gradient(circle at 50% 38%,${mob[1]},${mob[2]} 72%)">`;
   }
+  // 生成画像（main/artpack.js）：リスナーなどのアイコン avatar.<w>（なりすましは avatar.fake）
+  const gk=w==='fake'?'fake':w;
+  const gen=w!=='kid'&&window.ARTPACK&&ARTPACK.src('avatar.'+gk);
+  if(gen)return `<img src="${gen}" alt="" style="width:100%;height:100%;object-fit:cover">`;
   const fn=PORTRAIT[c.por||w];
   return fn?fn(c.pf||f):'';
 }

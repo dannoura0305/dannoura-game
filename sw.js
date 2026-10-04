@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-10-04.1';
+const VERSION = '2026-10-04.2';
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）
@@ -26,6 +26,7 @@ const SHELL_FILES = [
   'main/icons.js',
   'game.js',
   'main/mobs.js',
+  'main/artpack.js',
   'minigames/registry.js',
   'minigames/core.js',
   'main/ui.js',
@@ -84,6 +85,7 @@ function kindOf(url) {
   if (!url.href.startsWith(BASE)) return null;                  // スコープ外
   const p = url.href.slice(BASE.length).split('?')[0];
   if (SHELL_URLS.has(url.origin + url.pathname)) return 'shell';
+  if (/^assets\/(.+\/)?manifest\.json$/.test(p)) return 'shell';     // 生成画像の目録は差し替えがすぐ効くようにネット優先
   if (/^(minigames|vendor)\/.+\.js$/.test(p)) return 'code';
   if (/^assets\/.+\.(mp3|m4a|ogg|wav)$/i.test(p)) return 'audio';
   if (/^assets\//.test(p)) return 'media';
