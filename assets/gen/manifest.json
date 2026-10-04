@@ -13,7 +13,7 @@
    "priority": "P1",
    "category": "portrait",
    "name_ja": "班長・岩切（工場の班長） normal",
-   "file": null,
+   "file": "assets/gen/portrait/hancho_normal.png",
    "rev": null,
    "target": "assets/gen/portrait/hancho_normal.png",
    "size": "256x256",
@@ -28,14 +28,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "班長・岩切・表情 normal。既存 mob_hancho.svg の服・髪色を維持",
    "comfyui": "portrait.hancho.normal",
-   "first15": 1
+   "first15": 1,
+   "status": "verified"
   },
   {
    "id": "portrait.hancho.happy",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "班長・岩切（工場の班長） happy",
-   "file": null,
+   "file": "assets/gen/portrait/hancho_happy.png",
    "rev": null,
    "target": "assets/gen/portrait/hancho_happy.png",
    "size": "256x256",
@@ -50,14 +51,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "班長・岩切・表情 happy。既存 mob_hancho_happy.svg の服・髪色を維持",
    "comfyui": "portrait.hancho.happy",
-   "first15": 14
+   "first15": 14,
+   "status": "verified"
   },
   {
    "id": "portrait.hancho.worry",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "班長・岩切（工場の班長） worry",
-   "file": null,
+   "file": "assets/gen/portrait/hancho_worry.png",
    "rev": null,
    "target": "assets/gen/portrait/hancho_worry.png",
    "size": "256x256",
@@ -72,14 +74,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "班長・岩切・表情 worry。既存 mob_hancho_worry.svg の服・髪色を維持",
    "comfyui": "portrait.hancho.worry",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "portrait.hancho.shout",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "班長・岩切（工場の班長） shout",
-   "file": null,
+   "file": "assets/gen/portrait/hancho_shout.png",
    "rev": null,
    "target": "assets/gen/portrait/hancho_shout.png",
    "size": "256x256",
@@ -94,7 +97,8 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "班長・岩切・表情 shout。既存 mob_hancho_shout.svg の服・髪色を維持",
    "comfyui": "portrait.hancho.shout",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "portrait.sensei.normal",

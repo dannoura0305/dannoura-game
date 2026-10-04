@@ -1434,7 +1434,7 @@
    "id": "char.hancho",
    "category": "character",
    "status": "verified",
-   "sourceType": "code",
+   "sourceType": "generated",
    "icon": null,
    "atlas": null,
    "frames": [
@@ -1455,7 +1455,33 @@
     "#2f9a52"
    ],
    "notes": "16×25ドット。黄色いヘルメット、白髪まじりのもみあげ、太い眉、紺の作業着に白い襟と緑の名札。mob_hancho.svg の配色。",
-   "file": null
+   "file": {
+    "down_stand_0": "assets/original/home/hancho/down_stand_0.png",
+    "down_walk_0": "assets/original/home/hancho/down_walk_0.png",
+    "down_walk_1": "assets/original/home/hancho/down_walk_1.png",
+    "down_walk_2": "assets/original/home/hancho/down_walk_2.png",
+    "down_walk_3": "assets/original/home/hancho/down_walk_3.png",
+    "left_stand_0": "assets/original/home/hancho/left_stand_0.png",
+    "left_walk_0": "assets/original/home/hancho/left_walk_0.png",
+    "left_walk_1": "assets/original/home/hancho/left_walk_1.png",
+    "left_walk_2": "assets/original/home/hancho/left_walk_2.png",
+    "left_walk_3": "assets/original/home/hancho/left_walk_3.png",
+    "right_stand_0": "assets/original/home/hancho/right_stand_0.png",
+    "right_walk_0": "assets/original/home/hancho/right_walk_0.png",
+    "right_walk_1": "assets/original/home/hancho/right_walk_1.png",
+    "right_walk_2": "assets/original/home/hancho/right_walk_2.png",
+    "right_walk_3": "assets/original/home/hancho/right_walk_3.png",
+    "up_stand_0": "assets/original/home/hancho/up_stand_0.png",
+    "up_walk_0": "assets/original/home/hancho/up_walk_0.png",
+    "up_walk_1": "assets/original/home/hancho/up_walk_1.png",
+    "up_walk_2": "assets/original/home/hancho/up_walk_2.png",
+    "up_walk_3": "assets/original/home/hancho/up_walk_3.png"
+   },
+   "anchor": {
+    "x": 28,
+    "y": 51,
+    "tile": 49
+   }
   },
   {
    "id": "char.cat",
