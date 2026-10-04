@@ -1055,6 +1055,8 @@ registerMinigame({
       }
     }
     function drawPlayer(){drawDad(P.x,P.y,P.ang,P.state||'idle',P.walk,P.carry);}
+    // 三毛猫の配色（docs/asset-style-guide.md「三毛猫」＝家の猫と同じ）
+    const CAT_C={ol:'#1b1226',wh:'#fbf6ee',ws:'#ddd2c4',or:'#f0a050',bk:'#3a2a36',ear:'#f5a0b0',eye:'#d8ec60'};
     function drawCat(){
       const c=cat;
       cx.save();cx.translate(c.x,c.y-c.jump*14*Math.sin(Math.min(1,c.jump/.5)*Math.PI));
@@ -1062,12 +1064,25 @@ registerMinigame({
       if(c.mode==='nap'){ // 丸くなって寝ている
         const b=1+Math.sin(clock*1.6)*.04;
         cx.scale(b,b);
-        cx.fillStyle='#120e18';cx.beginPath();cx.arc(0,0,7.5,0,7);cx.fill();
-        cx.strokeStyle='#120e18';cx.lineWidth=2.6;cx.lineCap='round';cx.beginPath();cx.arc(0,0,8.6,.4,2.6);cx.stroke();cx.lineCap='butt';
-        cx.beginPath();cx.arc(-3,-4,3.8,0,7);cx.fill();
-        cx.beginPath();cx.moveTo(-6,-6);cx.lineTo(-7,-10);cx.lineTo(-3,-7.4);cx.closePath();cx.fill();
-        cx.beginPath();cx.moveTo(-2,-7.5);cx.lineTo(0,-10.5);cx.lineTo(.6,-6.4);cx.closePath();cx.fill();
-        cx.fillStyle='rgba(138,82,212,.3)';cx.beginPath();cx.arc(1.5,1,4,3.6,5.6);cx.fill();
+        // 三毛（家の猫 HOME_ART 'cat' と同じ配色：白地に茶と黒のぶち・ピンクの耳・外周線 #1b1226）
+        cx.strokeStyle=CAT_C.ol;cx.lineWidth=.9;
+        cx.fillStyle=CAT_C.wh;cx.beginPath();cx.arc(0,0,7.5,0,7);cx.fill();
+        cx.save();cx.beginPath();cx.arc(0,0,7.5,0,7);cx.clip();
+        cx.fillStyle=CAT_C.ws;cx.beginPath();cx.arc(2.2,2.2,7.5,0,7);cx.arc(0,0,7.5,0,7,true);cx.fill(); // 右下の陰（光は左上）
+        cx.fillStyle=CAT_C.or;cx.beginPath();cx.ellipse(3,1.5,4.2,3.2,.4,0,7);cx.fill();
+        cx.fillStyle=CAT_C.bk;cx.beginPath();cx.ellipse(-2.5,4.2,3,2.2,-.3,0,7);cx.fill();
+        cx.restore();
+        cx.beginPath();cx.arc(0,0,7.5,0,7);cx.stroke();
+        cx.lineCap='round';cx.strokeStyle=CAT_C.ol;cx.lineWidth=3.8;cx.beginPath();cx.arc(0,0,8.6,.4,2.6);cx.stroke();
+        cx.strokeStyle=CAT_C.or;cx.lineWidth=2.2;cx.beginPath();cx.arc(0,0,8.6,.4,2.0);cx.stroke();
+        cx.strokeStyle=CAT_C.bk;cx.beginPath();cx.arc(0,0,8.6,2.0,2.6);cx.stroke();cx.lineCap='butt';
+        cx.strokeStyle=CAT_C.ol;cx.lineWidth=.9;
+        cx.fillStyle=CAT_C.bk;cx.beginPath();cx.moveTo(-6,-6);cx.lineTo(-7,-10);cx.lineTo(-3,-7.4);cx.closePath();cx.fill();cx.stroke();
+        cx.fillStyle=CAT_C.or;cx.beginPath();cx.moveTo(-2,-7.5);cx.lineTo(0,-10.5);cx.lineTo(.6,-6.4);cx.closePath();cx.fill();cx.stroke();
+        cx.fillStyle=CAT_C.wh;cx.beginPath();cx.arc(-3,-4,3.8,0,7);cx.fill();cx.stroke();
+        cx.fillStyle=CAT_C.bk;cx.beginPath();cx.arc(-3,-4,3.8,Math.PI*1.05,Math.PI*1.6);cx.lineTo(-3,-4);cx.closePath();cx.fill();
+        cx.fillStyle=CAT_C.ear;cx.beginPath();cx.moveTo(-1.4,-7.2);cx.lineTo(-.2,-9.2);cx.lineTo(.1,-6.8);cx.closePath();cx.fill();
+        cx.strokeStyle=CAT_C.ol;cx.lineWidth=.6;cx.beginPath();cx.moveTo(-5.2,-3.4);cx.lineTo(-3.6,-3.2);cx.moveTo(-2.4,-3.4);cx.lineTo(-.8,-3.6);cx.stroke(); // 閉じた目
         cx.restore();
         if(Math.sin(clock*1.2)>.3){cx.globalAlpha=.6;cx.fillStyle='#a8c0ff';cx.font=`6px ${FONT}`;cx.fillText('z',c.x+7+Math.sin(clock)*1,c.y-9);cx.globalAlpha=1;}
         return;
@@ -1075,25 +1090,38 @@ registerMinigame({
       cx.rotate(c.ang);
       const moving=dist(c.x,c.y,c.tx,c.ty)>2&&c.mode!=='sit'&&c.mode!=='mis';
       const sit=!moving;
-      // 足（歩きの4コマ）
-      cx.fillStyle='#0c0a10';
+      // 足（歩きの4コマ）白い足先
+      cx.fillStyle=CAT_C.ws;cx.strokeStyle=CAT_C.ol;cx.lineWidth=.6;
       if(moving){const w=Math.sin(c.walk*2)*3;
-        cx.fillRect(3+w,-4.6,2.4,1.8);cx.fillRect(3-w,2.8,2.4,1.8);cx.fillRect(-6-w,-4.4,2.4,1.8);cx.fillRect(-6+w,2.6,2.4,1.8);}
-      // しっぽ
-      cx.strokeStyle='#120e18';cx.lineWidth=2.4;cx.lineCap='round';
+        for(const [fx,fy] of [[3+w,-4.6],[3-w,2.8],[-6-w,-4.4],[-6+w,2.6]]){cx.fillRect(fx,fy,2.4,1.8);cx.strokeRect(fx,fy,2.4,1.8);}}
+      // しっぽ（茶で先が黒）
       const agit=c.mode==='mis'?7:c.pet>0?1:2.4,tw=Math.sin(c.tail*agit)*(c.mode==='mis'?7:4);
-      cx.beginPath();cx.moveTo(-7,0);cx.quadraticCurveTo(-13,tw,-17+(sit?3:0),tw*.4+(sit?5:0));cx.stroke();
+      const tailP=()=>{cx.beginPath();cx.moveTo(-7,0);cx.quadraticCurveTo(-13,tw,-17+(sit?3:0),tw*.4+(sit?5:0));};
+      cx.lineCap='round';
+      cx.strokeStyle=CAT_C.ol;cx.lineWidth=3.8;tailP();cx.stroke();
+      cx.strokeStyle=CAT_C.or;cx.lineWidth=2.2;tailP();cx.stroke();
+      cx.fillStyle=CAT_C.bk;cx.beginPath();cx.arc(-17+(sit?3:0),tw*.4+(sit?5:0),1.2,0,7);cx.fill();
       cx.lineCap='butt';
-      cx.fillStyle='#120e18';
-      cx.beginPath();cx.ellipse(-1,0,sit?6.5:8,sit?5.6:4.4,0,0,7);cx.fill();
+      // 胴（白地に茶と黒のぶち）
+      const bw=sit?6.5:8,bh=sit?5.6:4.4;
+      cx.fillStyle=CAT_C.wh;cx.beginPath();cx.ellipse(-1,0,bw,bh,0,0,7);cx.fill();
+      cx.save();cx.beginPath();cx.ellipse(-1,0,bw,bh,0,0,7);cx.clip();
+      cx.fillStyle=CAT_C.or;cx.beginPath();cx.ellipse(-3.5,-1.6,3.6,2.6,.3,0,7);cx.fill();
+      cx.fillStyle=CAT_C.bk;cx.beginPath();cx.ellipse(2,1.8,2.8,2,-.2,0,7);cx.fill();
+      cx.restore();
+      cx.strokeStyle=CAT_C.ol;cx.lineWidth=.9;cx.beginPath();cx.ellipse(-1,0,bw,bh,0,0,7);cx.stroke();
       const hx=c.mode==='mis'?8+Math.max(0,Math.sin(clock*10))*1.5:7;
-      cx.beginPath();cx.arc(hx,0,4.2,0,7);cx.fill();
-      cx.beginPath();cx.moveTo(hx,-3);cx.lineTo(hx+3,-6.4);cx.lineTo(hx+2.5,-1.5);cx.closePath();cx.fill();
-      cx.beginPath();cx.moveTo(hx,3);cx.lineTo(hx+3,6.4);cx.lineTo(hx+2.5,1.5);cx.closePath();cx.fill();
-      cx.fillStyle='rgba(255,140,180,.5)';cx.beginPath();cx.moveTo(hx+.6,-3);cx.lineTo(hx+2.4,-5.2);cx.lineTo(hx+2,-2.2);cx.closePath();cx.fill();
+      // 耳（片方黒・片方茶、内側ピンク）
+      cx.fillStyle=CAT_C.bk;cx.beginPath();cx.moveTo(hx,-3);cx.lineTo(hx+3,-6.4);cx.lineTo(hx+2.5,-1.5);cx.closePath();cx.fill();cx.stroke();
+      cx.fillStyle=CAT_C.or;cx.beginPath();cx.moveTo(hx,3);cx.lineTo(hx+3,6.4);cx.lineTo(hx+2.5,1.5);cx.closePath();cx.fill();cx.stroke();
+      // 頭
+      cx.fillStyle=CAT_C.wh;cx.beginPath();cx.arc(hx,0,4.2,0,7);cx.fill();
+      cx.fillStyle=CAT_C.bk;cx.beginPath();cx.arc(hx,0,4.2,Math.PI*1.2,Math.PI*1.75);cx.lineTo(hx,0);cx.closePath();cx.fill();
+      cx.beginPath();cx.arc(hx,0,4.2,0,7);cx.stroke();
+      cx.fillStyle=CAT_C.ear;cx.beginPath();cx.moveTo(hx+.6,-3);cx.lineTo(hx+2.4,-5.2);cx.lineTo(hx+2,-2.2);cx.closePath();cx.fill();
+      cx.beginPath();cx.moveTo(hx+.6,3);cx.lineTo(hx+2.4,5.2);cx.lineTo(hx+2,2.2);cx.closePath();cx.fill();
       // いたずらの前足
-      if(c.mode==='mis'){const pw=Math.max(0,Math.sin(clock*6))*3;cx.fillStyle='#120e18';cx.beginPath();cx.ellipse(hx+3+pw,3.5,2.4,1.6,0,0,7);cx.fill();}
-      cx.fillStyle='rgba(138,82,212,.28)';cx.beginPath();cx.ellipse(-2,-1.5,5,1.6,0,0,7);cx.fill();
+      if(c.mode==='mis'){const pw=Math.max(0,Math.sin(clock*6))*3;cx.fillStyle=CAT_C.ws;cx.beginPath();cx.ellipse(hx+3+pw,3.5,2.4,1.6,0,0,7);cx.fill();cx.lineWidth=.6;cx.stroke();}
       cx.restore();
     }
     function drawCatEyes(){
@@ -1103,7 +1131,7 @@ registerMinigame({
       const blink=(Math.sin(clock*.9+1)>.97)||c.pet>0;
       if(blink)return;
       gl(glow.gd,ex,ey,7,.5);
-      cx.globalAlpha=1;cx.fillStyle='#e8f070';
+      cx.globalAlpha=1;cx.fillStyle=CAT_C.eye;
       cx.fillRect(ex+nx-.6,ey+ny-.6,1.2,1.2);cx.fillRect(ex-nx-.6,ey-ny-.6,1.2,1.2);
     }
 

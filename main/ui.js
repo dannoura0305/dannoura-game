@@ -126,7 +126,7 @@ function richButton(btn,ac){
   const bm=label.match(/^([\s\S]*?)(【[^】]*】)\s*$/);
   if(bm&&bm[1].trim()){label=bm[1].trim();sub=bm[2];}
   if(sub)chips=chipHTML(sub,'warn')+chips;
-  btn.innerHTML=(p.icon?`<span class="cb-ico" aria-hidden="true">${esc(p.icon)}</span>`:'')+
+  btn.innerHTML=icoHTML(p.icon,ac,26)+
     `<span class="cb-main"><span class="cb-lbl">${esc(label)}</span>${chips?`<span class="cb-cost">${chips}</span>`:''}</span>`;
   btn.setAttribute('aria-label',tx);
 }
@@ -222,7 +222,7 @@ function observeStream(){
       let label=p.label,chips=p.costs.map(c=>chipHTML(c)).join('');
       const bm=label.match(/^(【[^】]*】)\s*([\s\S]+)$/);
       if(bm){label=bm[2];chips=chipHTML(bm[1].replace(/[【】]/g,''),'warn')+chips;}
-      b.innerHTML=`<span class="ui-rich">${p.icon?`<span class="cb-ico" aria-hidden="true">${esc(p.icon)}</span>`:''}<span class="cb-main"><span class="cb-lbl">${esc(label)}</span>${chips?`<span class="cb-cost">${chips}</span>`:''}</span></span>`;
+      b.innerHTML=`<span class="ui-rich">${icoHTML(p.icon,null,24)}<span class="cb-main"><span class="cb-lbl">${esc(label)}</span>${chips?`<span class="cb-cost">${chips}</span>`:''}</span></span>`;
       b.setAttribute('aria-label',tx);
     });
     const first=sc.querySelector('button');
@@ -750,6 +750,69 @@ document.addEventListener('click',e=>{
 });
 
 /* ══════════════════════════════════════════
+   7b. 操作アイコン（main/icons.js のドット絵に置き換える）
+   物語の本文・コメント・イベント本文の絵文字はそのまま。文字ラベルは必ず残す。
+   ══════════════════════════════════════════ */
+const IC=()=>window.ICONS||null;
+// 行動 → アイコン（絵文字より優先）
+const AC_ICON={stream:'stream',factory:'work',diag:'thermo',rest_light:'tea',rest_deep:'sleep',study:'study',childcare:'child',
+  singpractice:'music',minigames:'minigame',home:'home',factoryneta:'radio',deepnight:'night'};
+function icoHTML(emo,ac,px){
+  const I=IC();
+  const n=I&&((ac&&AC_ICON[ac])||I.fromEmoji(emo));
+  if(n)return `<span class="cb-ico cb-ic" aria-hidden="true">${I.html(n,px||26)}</span>`;
+  return emo?`<span class="cb-ico" aria-hidden="true">${esc(emo)}</span>`:'';
+}
+/* 要素の最初の文字が対応する絵文字なら、アイコン画像に差し替える（中の input などはそのまま） */
+function swapLead(el,px){
+  const I=IC();if(!I||!el)return false;
+  const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let t;
+  while((t=w.nextNode())&&!t.nodeValue.trim()){}
+  if(!t)return false;
+  if(t.parentNode.classList&&t.parentNode.classList.contains('ic-w'))return false;
+  const s=t.nodeValue,pre=(s.match(/^\s*/)||[''])[0];
+  const l=I.lead(s.slice(pre.length));if(!l.name)return false;
+  // アイコン＋文字をひとまとまりにする（grid/flex の親でも1項目のまま）
+  const w2=document.createElement('span');w2.className='ic-w';
+  w2.innerHTML=I.html(l.name,px||18);
+  t.parentNode.insertBefore(w2,t);
+  t.nodeValue=l.rest.replace(/\s+$/,'');
+  if(t.nodeValue)w2.appendChild(t);else t.remove();
+  return true;
+}
+function swapAll(sel,px,root){(root||document).querySelectorAll(sel).forEach(el=>swapLead(el,px));}
+const IC_STATIC=[
+  ['.sub-bar > span',15],['#daily-guide > span:first-child',18],['#settings-sc .set-row',20],['#settings-sc .ev-btn',20],
+  ['.ov-ttl',20],['#status-sc .ov-hd .mini-endbtn',16],['.str-stats .ss',14],['.viewer-cnt',14],['.mini-ttl',18],
+  ['#share-panel .share-btn',18],['#end-buttons .btn-start',20],['#title-screen .btn-endings',18]
+];
+function iconizeStatic(){
+  const I=IC();if(!I)return;
+  document.querySelectorAll('.nav-btn .icon').forEach(sp=>{
+    if(sp.querySelector('img'))return;
+    const n=I.fromEmoji(sp.textContent.trim());if(n)sp.innerHTML=I.html(n,22);
+  });
+  const gear=document.querySelector('.sub-gear');
+  if(gear&&!gear.querySelector('img'))gear.innerHTML=I.html('settings',20);
+  // 上部バーの見出し（精神・疲労・RANK）に小さなアイコン
+  [['tb-mental','mental'],['tb-fatigue','fatigue'],['tb-rank','rank']].forEach(([id,n])=>{
+    const lbl=$(id)?.parentElement?.querySelector('.top-lbl');
+    if(lbl&&!lbl.querySelector('img'))lbl.insertAdjacentHTML('afterbegin',I.html(n,12).replace('class="ic ','class="ic ic-lead '));
+  });
+  IC_STATIC.forEach(([sel,px])=>swapAll(sel,px));
+}
+/* 通知：先頭の絵文字 → アイコン（無ければ「お知らせ」） */
+function iconNotif(msg){
+  const I=IC();if(!I)return;
+  const st=$('notif-stack');const el=st&&st.lastElementChild;if(!el||el.querySelector('img.ic'))return;
+  const l=I.lead(String(msg==null?'':msg));
+  const n=l.name||(l.emoji?null:'info');
+  if(!n)return;
+  el.innerHTML=I.html(n,18)+`<span class="ic-t">${esc(l.name?l.rest:String(msg))}</span>`;
+  el.classList.add('ic-notif');
+}
+
+/* ══════════════════════════════════════════
    8. 関数を包む
    ══════════════════════════════════════════ */
 function install(){
@@ -763,14 +826,20 @@ function install(){
   });
   wrap('updateStats',()=>HUD.update());
   wrap('updateDayInfo',()=>HUD.update());
-  wrap('showResult',()=>{enhanceResult();se('notif');});
+  wrap('showResult',()=>{swapLead($('res-title'),24);enhanceResult();se('notif');});
   wrap('showEvPopup',()=>{enhanceEvent();se('notif');});
-  wrap('openStatus',()=>enhanceStatus());
-  wrap('openSkill',()=>enhanceSkill());
+  wrap('openStatus',()=>{swapAll('#status-body .sec-t',18);enhanceStatus();});
+  wrap('openSkill',()=>{swapAll('#skill-body .sec-t',18);enhanceSkill();});
+  wrap('toggleMuteAll',()=>swapAll('#settings-sc .set-mute',20));
+  // 今日の目標：文の先頭の絵文字をアイコンに（アイコンが付いたら🎯の印は隠す）
+  wrap('updateDailyGuide',()=>{const has=swapLead($('daily-guide-text'),18);$('daily-guide')?.classList.toggle('ic-has',has);});
+  wrap('openSettings',()=>swapAll('#settings-sc .ev-btn',20));
   wrap('showNotif',(r,msg)=>{
     const st=$('notif-stack');const el=st&&st.lastElementChild;
     if(el&&/🚨|⚠️/.test(String(msg)))el.classList.add('ui-danger');
+    iconNotif(msg);
   });
+  iconizeStatic();
   observeChoices();observeStream();
   $('choices-area')?.addEventListener('scroll',updateMore,{passive:true});
   window.addEventListener('resize',updateMore);

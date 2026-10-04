@@ -7,7 +7,8 @@
 //   HOME.memories.openBook() / closeBook()
 //   HOME.memories.filter(person) … 'all'|'kid'|'chiyo'|'hancho'|'minamo' で絞り込んだ一覧（日付順）
 //   画面：人物で絞り込み・絵をタップで拡大・「この30日」まとめ（HOME.bonds.evaluate）
-// M = { id, day, who:['dan','kid'], what, items:[itemId], text, snapshot:null|{area, placements, plants} }
+// M = { id, day, who:['dan','kid'], what, items:[itemId], text, snapshot:null|{area, placements, plants, season?, weather?, night?, look?} }
+//   season/weather/night/look（フェーズ3・写真を貼るとき）は文字列だけ。画像データは入れない
 // 保存されるのは配置データだけ。サムネイルは開くたびに HOME.snapshot で描き直す。
 // 設計：docs/home-story-design.md
 // ═══════════════════════════════════════════════════════════
@@ -51,14 +52,31 @@ function cleanSnapshot(s){
       if(typeof pl.species==='string'&&pl.species)plants[p.instanceId].species=str(pl.species,24);
     }
   });
-  return {area,placements,plants};
+  const out={area,placements,plants};
+  // フェーズ3：季節・天候・昼夜・外観（文字列だけ・決まった値だけ）
+  if(/^(summer|autumn|winter|spring)$/.test(s.season))out.season=s.season;
+  if(/^(clear|cloudy|rain|snow)$/.test(s.weather))out.weather=s.weather;
+  if(s.night===true)out.night=true;
+  if(s.look&&typeof s.look==='object'){
+    const L={},ex=s.look.exterior&&typeof s.look.exterior==='object'?s.look.exterior:null;
+    const okv=v=>typeof v==='string'&&/^[a-z_.]{1,24}$/.test(v);
+    if(ex){L.exterior={};['roof','wall','door'].forEach(k=>{if(okv(ex[k]))L.exterior[k]=ex[k];});}
+    if(okv(s.look.wallpaper))L.wallpaper=s.look.wallpaper;
+    if(okv(s.look.floorId))L.floorId=s.look.floorId;
+    out.look=L;
+  }
+  return out;
 }
 function snapshotOf(area){
   const h=hd();if(!h)return null;
   area=area==='garden'?'garden':'room';
   const A=h[area];if(!A)return null;
   const lit=h.flags&&h.flags.lit&&typeof h.flags.lit==='object'?h.flags.lit:{};
-  return cleanSnapshot({area,placements:(A.placements||[]).map(p=>lit[p&&p.instanceId]?Object.assign({},p,{lit:true}):p),plants:h.plants||{}});
+  const snap={area,placements:(A.placements||[]).map(p=>lit[p&&p.instanceId]?Object.assign({},p,{lit:true}):p),plants:h.plants||{},
+    look:{exterior:h.exterior||{},wallpaper:h.room&&h.room.wallpaper,floorId:h.room&&h.room.floorId}};
+  // フェーズ3：その日の季節・天候も（文字列だけ）
+  try{if(typeof HOME.season==='function'){snap.season=HOME.season();snap.weather=HOME.weather();}}catch(e){}
+  return cleanSnapshot(snap);
 }
 
 function add(M){
@@ -146,7 +164,9 @@ function litMap(snap){const m={};((snap&&snap.placements)||[]).forEach(p=>{if(p.
 function thumb(snap,scale){
   if(!snap||typeof HOME.snapshot!=='function')return null;
   try{
-    const cv=HOME.snapshot(snap.area,{placements:snap.placements,plants:snap.plants,lit:litMap(snap),scale:scale||.5});
+    const o={placements:snap.placements,plants:snap.plants,lit:litMap(snap),scale:scale||.5};
+    if(snap.season)o.season=snap.season;if(snap.weather)o.weather=snap.weather;if(snap.night)o.night=true;if(snap.look)o.look=snap.look;
+    const cv=HOME.snapshot(snap.area,o);
     return cv&&cv.nodeType===1?cv:null;
   }catch(e){return null;}
 }

@@ -1,5 +1,5 @@
 {
- "version": 2,
+ "version": 3,
  "inventory": {
   "furniture.futon": {
    "default": 1
@@ -68,6 +68,7 @@
   "width": 12,
   "height": 8,
   "floorId": "floor.wood",
+  "wallpaper": "lavender",
   "placements": [
    {
     "instanceId": "p1",
@@ -260,5 +261,15 @@
  },
  "seq": 20,
  "bonds": {},
- "life": {}
+ "life": {},
+ "expanded": {
+  "room": false,
+  "garden": false
+ },
+ "exterior": {
+  "roof": "navy",
+  "wall": "cream",
+  "door": "wood"
+ },
+ "weatherSeed": 7
 }

@@ -1706,6 +1706,20 @@
    "size": 32,
    "note": "cell (gx%8, gy%8) is the variation for grid cell (gx, gy)"
   },
+  "floor.tatami": {
+   "file": "tiles/floor.tatami_atlas.png",
+   "cols": 8,
+   "rows": 8,
+   "size": 32,
+   "note": "cell (gx%8, gy%8) is the variation for grid cell (gx, gy)"
+  },
+  "floor.dark": {
+   "file": "tiles/floor.dark_atlas.png",
+   "cols": 8,
+   "rows": 8,
+   "size": 32,
+   "note": "cell (gx%8, gy%8) is the variation for grid cell (gx, gy)"
+  },
   "ground.grass": {
    "file": "tiles/ground.grass_atlas.png",
    "cols": 8,
@@ -1731,6 +1745,13 @@
    "cols": 12,
    "rows": 8
   },
+  "garden_front_day": {
+   "file": "bg/garden_front_day.png",
+   "w": 512,
+   "h": 96,
+   "band": 96,
+   "note": "house front (roof/wall/door/windows) with the full Web band height"
+  },
   "garden_day": {
    "file": "bg/garden_bg_day.png",
    "w": 512,
@@ -1738,6 +1759,13 @@
    "band": 64,
    "cols": 16,
    "rows": 12
+  },
+  "garden_front_night": {
+   "file": "bg/garden_front_night.png",
+   "w": 512,
+   "h": 96,
+   "band": 96,
+   "note": "house front (roof/wall/door/windows) with the full Web band height"
   },
   "garden_night": {
    "file": "bg/garden_bg_night.png",
@@ -2003,6 +2031,16 @@
   },
   "redo": {
    "file": "ui/redo.png",
+   "w": 32,
+   "h": 32
+  },
+  "photo": {
+   "file": "ui/photo.png",
+   "w": 32,
+   "h": 32
+  },
+  "look": {
+   "file": "ui/look.png",
    "w": 32,
    "h": 32
   },

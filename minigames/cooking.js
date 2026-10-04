@@ -314,8 +314,12 @@ registerMinigame({
       c.strokeStyle='#5fb35a';c.beginPath();c.moveTo(-dw*.48,dh*.36);c.quadraticCurveTo(0,dh*.3,dw*.48,dh*.38);c.stroke();
       const fig=(x,s,col)=>{c.strokeStyle=col;c.lineWidth=1.8*S;c.beginPath();c.arc(x,dh*.36-s*1.05,s*.22,0,6.283);c.stroke();
         c.beginPath();c.moveTo(x,dh*.36-s*.83);c.lineTo(x,dh*.36-s*.35);c.moveTo(x,dh*.36-s*.35);c.lineTo(x-s*.18,dh*.36);c.moveTo(x,dh*.36-s*.35);c.lineTo(x+s*.18,dh*.36);c.moveTo(x-s*.25,dh*.36-s*.62);c.lineTo(x+s*.25,dh*.36-s*.62);c.stroke();};
-      fig(-dw*.2,dh*.62,'#4a6fd8');fig(dw*.05,dh*.4,'#e2508a');
-      c.fillStyle='#4a6fd8';c.font=`${Math.round(7*S)}px ${FONT}`;c.textAlign='center';c.fillText('パパ',-dw*.2,-dh*.36);
+      fig(-dw*.2,dh*.62,'#7a4ad0');fig(dw*.05,dh*.4,'#e2508a');
+      // パパ＝紫のクレヨン、小さなシルクハットとピンクの花（娘から見た、だんのうら）
+      {const s=dh*.62,hx=-dw*.2,ht=dh*.36-s*1.05-s*.22;c.strokeStyle='#e2508a';c.lineWidth=1.6*S;
+        c.beginPath();c.moveTo(hx-s*.2,ht);c.lineTo(hx+s*.2,ht);c.moveTo(hx-s*.1,ht);c.lineTo(hx-s*.1,ht-s*.09);c.lineTo(hx+s*.1,ht-s*.09);c.lineTo(hx+s*.1,ht);c.stroke();
+        c.fillStyle='#ff9ac8';c.beginPath();c.arc(hx-s*.22,dh*.36-s*1.12,s*.07,0,6.283);c.fill();}
+      c.fillStyle='#7a4ad0';c.font=`${Math.round(7*S)}px ${FONT}`;c.textAlign='center';c.fillText('パパ',-dw*.2,-dh*.36);
       c.fillStyle='rgba(255,240,200,.45)';c.fillRect(-dw*.12,-dh/2-3,dw*.24,7);
       c.restore();
       // 棚と瓶

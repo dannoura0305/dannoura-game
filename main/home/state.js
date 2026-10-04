@@ -18,7 +18,8 @@ const INIT_RECIPES=['repaired_shelf','cushion','flowerbed','fence','sea_glass','
 // フェーズ2（v2）で足したもの：旧セーブには移行のとき一度だけ渡す
 const V2_RECIPES=['kid_desk','planter','clothesline','string_lights'];
 const V2_STORED=[['furniture.toy_box',1],['garden.watering_can',1]];
-const VERSION=2;
+const VERSION=3;
+const WEATHER_SEED=7;          // 天候の疑似乱数のシード（セーブごとに持つ。既定は固定値）
 const INIT_MATS={wood:4,cloth:2,metal:2,sea:0};
 const INIT_ROOM=[
   ['furniture.futon',0,1,0],
@@ -49,12 +50,35 @@ function invAdd(hd,itemId,n,variant){
   if(!o[v])delete o[v];
   if(!Object.keys(o).length)delete hd.inventory[itemId];
 }
+const firstKey=o=>Object.keys(o||{})[0];
+function defExterior(){const E=HOME.EXTERIOR||{},o={};Object.keys(E).forEach(k=>{o[k]=firstKey(E[k].opts);});return o;}
+// 拡張の有無 → 広さ・出入口
+function sizeOf(area,expanded){
+  const Z=HOME.AREA_SIZES&&HOME.AREA_SIZES[area];
+  if(Z)return expanded?Z.expanded:Z.base;
+  const A=HOME.AREAS[area];return{w:A.w,h:A.h,door:A.door,gate:A.gate};
+}
+/* HOME.AREAS（placement.js などが読む広さ・出入口）を、このセーブの拡張状態に合わせる */
+function syncAreas(hd){
+  syncedFor=hd||null;
+  ['room','garden'].forEach(area=>{
+    const A=HOME.AREAS[area];if(!A)return;
+    const z=sizeOf(area,!!(hd&&hd.expanded&&hd.expanded[area]));
+    A.w=z.w;A.h=z.h;A.door={x:z.door.x,y:z.door.y};
+    if(z.gate)A.gate={x:z.gate.x,y:z.gate.y};
+    A.exits=[A.door].concat(A.gate?[A.gate]:[]).map(e=>({x:e.x,y:e.y}));
+  });
+}
+HOME.syncAreas=syncAreas;
+HOME.areaSize=sizeOf;
 function fresh(){
   const hd={version:VERSION,inventory:{},materials:Object.assign({},INIT_MATS),unlockedRecipes:INIT_RECIPES.slice(),
-    room:{width:12,height:8,floorId:'floor.wood',placements:[]},
+    room:{width:12,height:8,floorId:'floor.wood',wallpaper:firstKey(HOME.WALLPAPERS)||'lavender',placements:[]},
     garden:{width:16,height:12,groundId:'ground.grass',placements:[]},
     plants:{},events:{},memories:[],appliedRewards:{},flags:{repairedShelf:false,lit:{},v2Items:true},seq:1,
-    bonds:{},life:{}};
+    bonds:{},life:{},
+    expanded:{room:false,garden:false},exterior:defExterior(),weatherSeed:WEATHER_SEED};
+  syncAreas(hd);
   const put=(area,[itemId,x,y,rotation])=>{
     const c=CAT(itemId);if(!c)return;
     const variant=defVariant(itemId);
@@ -98,6 +122,15 @@ function repair(hd){
   // 他のモジュール（bonds.js / lifemode.js）が中身を管理する入れ物：無いときだけ用意
   if(hd.bonds==null)hd.bonds={};
   if(hd.life==null)hd.life={};
+  // v2 → v3：拡張（未拡張）・外観・内装・天候のシード。足りない・おかしい値だけ初期値にする（何度呼んでも同じ結果）
+  // 縮めることはない：印が壊れていても、保存されている広さが拡張後なら拡張済みとみなす
+  const ex=isObj(hd.expanded)?hd.expanded:{};
+  const big=area=>{const b=hd[area],Z=HOME.AREA_SIZES&&HOME.AREA_SIZES[area];return !!(isObj(b)&&Z&&+b.width>=Z.expanded.w&&+b.height>=Z.expanded.h);};
+  hd.expanded={room:ex.room===true||big('room'),garden:ex.garden===true||big('garden')};
+  const E=HOME.EXTERIOR||{},ext=isObj(hd.exterior)?hd.exterior:{},defs=defExterior();
+  hd.exterior={};Object.keys(E).forEach(k=>{hd.exterior[k]=(typeof ext[k]==='string'&&Object.prototype.hasOwnProperty.call(E[k].opts,ext[k]))?ext[k]:defs[k];});
+  if(!Number.isFinite(+hd.weatherSeed))hd.weatherSeed=WEATHER_SEED;else hd.weatherSeed=Math.floor(+hd.weatherSeed);
+  syncAreas(hd);
   Object.keys(hd.plants).forEach(id=>{
     const p=hd.plants[id];
     if(!isObj(p)){delete hd.plants[id];return;}
@@ -120,7 +153,10 @@ function repair(hd){
     const raw=Array.isArray(box.placements)?box.placements:[];
     hd[area]=box;
     box.width=A.w;box.height=A.h;
-    if(area==='room')box.floorId=typeof box.floorId==='string'?box.floorId:'floor.wood';
+    if(area==='room'){
+      box.floorId=(typeof box.floorId==='string'&&(!HOME.FLOORS||HOME.FLOORS[box.floorId]))?box.floorId:'floor.wood';
+      const W=HOME.WALLPAPERS||{};box.wallpaper=(typeof box.wallpaper==='string'&&W[box.wallpaper])?box.wallpaper:(firstKey(W)||'lavender');
+    }
     else box.groundId=typeof box.groundId==='string'?box.groundId:'ground.grass';
     const list=[];
     raw.forEach(P=>{
@@ -172,7 +208,10 @@ HOME.ensure=function(){
   }
 };
 HOME._fresh=fresh;
-const HD=()=>{const g=G();if(!g)return null;if(!isObj(g.homeData)||g.homeData.version!==VERSION)return HOME.ensure();return g.homeData;};
+let syncedFor=null;
+const HD=()=>{const g=G();if(!g)return null;if(!isObj(g.homeData)||g.homeData.version!==VERSION)return HOME.ensure();
+  if(syncedFor!==g.homeData){syncedFor=g.homeData;syncAreas(g.homeData);}   // 別のセーブに差し替わったら広さを合わせ直す
+  return g.homeData;};
 HOME.data=HD;
 
 HOME.owned=function(itemId,variant,hdIn){
@@ -282,13 +321,26 @@ HOME.plantSeed=function(instanceId,species,name){
     return{ok:true,reason:'',plant:p};
   }catch(e){return{ok:false,reason:'うまく植えられませんでした'};}
 };
+// 雨の日は、植えてあるものすべてに「今日の水やり済み」を付ける（seasons.js の HOME.weather があるときだけ）
+function rainingOn(d){try{return typeof HOME.weather==='function'&&HOME.weather(d)==='rain';}catch(e){return false;}}
+HOME.applyRain=function(){
+  try{
+    const hd=HD();if(!hd)return 0;const d=today();
+    if(!rainingOn(d))return 0;
+    let n=0;Object.keys(hd.plants).forEach(id=>{const p=hd.plants[id];if(p&&p.lastWateredDay!==d){p.lastWateredDay=d;n++;}});
+    if(n)HOME.emit('change',{type:'rain',n});
+    return n;
+  }catch(e){return 0;}
+};
+HOME.isRainyToday=()=>rainingOn(today());
 HOME.water=function(potId){
   const hd=HD();const p=hd&&hd.plants[potId];if(!p)return false;
+  if(rainingOn(today()))p.lastWateredDay=today();  // 雨：水やり不要（自動で済んでいる）
   if(p.lastWateredDay===today())return false;   // 今日はもう水をあげた
   p.lastWateredDay=today();HOME.emit('change',{type:'water',potId});
   return true;
 };
-HOME.wateredToday=function(potId){const hd=HD();const p=hd&&hd.plants[potId];return !!(p&&p.lastWateredDay===today());};
+HOME.wateredToday=function(potId){const hd=HD();const p=hd&&hd.plants[potId];return !!(p&&(p.lastWateredDay===today()||rainingOn(today())));};
 HOME.tickDay=function(){
   try{
     const hd=HD();if(!hd)return false;
@@ -296,9 +348,14 @@ HOME.tickDay=function(){
     if(hd.flags.plantTick===d)return false;      // 同じ日に二度育たない
     hd.flags.plantTick=d;
     const B=HOME.BAL;
+    HOME.applyRain();                              // 雨の日は自動で水やり済み
+    // 季節：冬はゆっくり（2日に1回）。季節の仕組みが無いときは毎日
+    let every=1;
+    try{if(typeof HOME.season==='function'&&B.seasonGrowEvery)every=Math.max(1,B.seasonGrowEvery[HOME.season()]|0||1);}catch(e){every=1;}
+    const grows=every<=1||(((d%every)+every)%every===0);
     Object.keys(hd.plants).forEach(id=>{
       const p=hd.plants[id];
-      if(d-p.lastWateredDay<=B.waterGraceDays){
+      if(grows&&d-p.lastWateredDay<=B.waterGraceDays){
         p.growth=(p.growth|0)+1;
         if(p.growth>=B.growPerStage&&p.stage<B.maxStage){p.stage++;p.growth=0;}
         if(p.stage>=B.maxStage)p.growth=Math.min(p.growth,B.growPerStage);

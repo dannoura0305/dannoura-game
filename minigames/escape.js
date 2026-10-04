@@ -1247,6 +1247,8 @@ registerMinigame({
           // 中の写真（奥の壁）
           cx.fillStyle='#f4f0e6';cx.fillRect(x+w*.3,y+hh*.6,w*.4,hh*.1);cx.fillStyle='#c89060';cx.fillRect(x+w*.33,y+hh*.615,w*.34,hh*.07);
           cx.fillStyle='#ffd8a8';cx.beginPath();cx.arc(x+w*.42,y+hh*.64,w*.05,0,7);cx.arc(x+w*.56,y+hh*.65,w*.035,0,7);cx.fill();
+          cx.fillStyle='#5a3590';cx.beginPath();cx.arc(x+w*.42,y+hh*.64,w*.055,Math.PI,0);cx.fill();   // だんのうら：紫の髪
+          cx.fillStyle='#33224c';cx.beginPath();cx.arc(x+w*.56,y+hh*.65,w*.04,Math.PI,0);cx.fill();    // 娘：紫がかった黒のおかっぱ
           // 開いた扉（左ヒンジ・手前に開く）
           const a=S.anim.locker,ex=x-w*.55*a+w*(1-a),sk=hh*.04*a;
           cx.fillStyle=grad(y,y+hh,a>.5?'#4a565c':'#5a6a70',a>.5?'#283036':'#34404a');
@@ -1256,7 +1258,14 @@ registerMinigame({
             // 扉の裏の鏡と写真
             cx.fillStyle='#8a98a8';cx.fillRect(ex+iw*.2,y+hh*.14,iw*.6,hh*.12);
             cx.save();cx.translate(ex+iw*.5,y+hh*.36);cx.rotate(-.06);cx.fillStyle='#f4f0e6';cx.fillRect(-iw*.32,0,iw*.64,hh*.12);cx.fillStyle='#e8a050';cx.fillRect(-iw*.27,hh*.012,iw*.54,hh*.08);
-            cx.fillStyle='#ffd8a8';cx.beginPath();cx.arc(-iw*.08,hh*.045,iw*.09,0,7);cx.fill();cx.beginPath();cx.arc(iw*.12,hh*.06,iw*.06,0,7);cx.fill();cx.restore();}
+            cx.fillStyle='#ffd8a8';cx.beginPath();cx.arc(-iw*.08,hh*.045,iw*.09,0,7);cx.fill();cx.beginPath();cx.arc(iw*.12,hh*.06,iw*.06,0,7);cx.fill();
+            // 写真の二人：紫の髪＋めがね＋ピンクの花（だんのうら）／おかっぱ＋ふたつ結び（娘）
+            cx.fillStyle='#5a3590';cx.beginPath();cx.arc(-iw*.08,hh*.045,iw*.1,Math.PI*1.02,Math.PI*1.98);cx.fill();
+            cx.strokeStyle='#2a1c36';cx.lineWidth=1;cx.beginPath();cx.moveTo(-iw*.14,hh*.05);cx.lineTo(-iw*.02,hh*.05);cx.stroke();
+            cx.fillStyle='#ff9ac8';cx.beginPath();cx.arc(-iw*.16,hh*.03,iw*.025,0,7);cx.fill();
+            cx.fillStyle='#33224c';cx.beginPath();cx.arc(iw*.12,hh*.06,iw*.065,Math.PI*1.02,Math.PI*1.98);cx.fill();
+            for(const tx of [iw*.05,iw*.19]){cx.beginPath();cx.arc(tx,hh*.055,iw*.022,0,7);cx.fill();}
+            cx.restore();}
           continue;
         }
         for(let k=0;k<5;k++){cx.fillStyle='#1e262c';cx.fillRect(x+w*.25,y+hh*(.06+k*.025),w*.5,hh*.01);}

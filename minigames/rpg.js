@@ -708,7 +708,7 @@ function outline(c){
   const g=c.getContext('2d'),w=c.width,h=c.height,d=g.getImageData(0,0,w,h),p=d.data;
   const a=new Uint8Array(w*h);for(let i=0;i<w*h;i++)a[i]=p[i*4+3]>40?1:0;
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;if(a[i])continue;
-    if((x>0&&a[i-1])||(x<w-1&&a[i+1])||(y>0&&a[i-w])||(y<h-1&&a[i+w])){p[i*4]=20;p[i*4+1]=10;p[i*4+2]=36;p[i*4+3]=255;}}
+    if((x>0&&a[i-1])||(x<w-1&&a[i+1])||(y>0&&a[i-w])||(y<h-1&&a[i+w])){p[i*4]=27;p[i*4+1]=18;p[i*4+2]=38;p[i*4+3]=255;}} // 外周線 #1b1226（スタイルガイド共通）
   g.putImageData(d,0,0);
 }
 function sprite(key,dir,fr,pose,ex){

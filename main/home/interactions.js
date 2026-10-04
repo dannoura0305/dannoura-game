@@ -217,6 +217,8 @@ function build(){
   el.tabIndex=-1;
   const head=$el('div','hm-head');
   const title=$el('div','hm-title');title.appendChild($el('span','hm-title-t','🏡 だんのうらの家'));
+  // 季節・天候（文字ラベル）
+  const sw=$el('span','hm-sw');sw.setAttribute('aria-live','polite');title.appendChild(sw);
   head.appendChild(title);
   const tabs=$el('div','hm-tabs');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','場所');
   ['room','garden'].forEach(a=>{
@@ -237,24 +239,37 @@ function build(){
   const drawer=$el('div','hm-drawer');drawer.hidden=true;el.appendChild(drawer);
   const craft=$el('div','hm-craft');craft.hidden=true;craft.setAttribute('role','dialog');craft.setAttribute('aria-label','クラフト');el.appendChild(craft);
   document.body.appendChild(el);
-  Object.assign(S,{el,cv,ctx:cv.getContext('2d'),stage,info,acts,drawer,craft,modeEl:mode,tabs});
+  Object.assign(S,{el,cv,ctx:cv.getContext('2d'),stage,info,acts,drawer,craft,modeEl:mode,tabs,swEl:sw});
 }
 
 function on(target,type,fn,opt){target.addEventListener(type,fn,opt);S.offs.push(()=>target.removeEventListener(type,fn,opt));}
 
+// 1マスの最小の大きさ（CSS px）。広げた庭がスマホで小さくなりすぎないよう、足りないときは盤面をスクロールにする
+const MIN_CELL=22;
 function resize(){
   if(!S.open)return;
   const L=HOME.layout(S.area,S.T);
   const aw=Math.max(80,S.stage.clientWidth-8),ah=Math.max(80,S.stage.clientHeight-8);
   let sc=Math.min(aw/L.cw,ah/L.ch);
   if(sc>1)sc=Math.min(3,Math.floor(sc*4)/4);
+  const minSc=MIN_CELL/L.T;
+  const scroll=sc<minSc&&ah/L.ch>=minSc*0.98;     // 横がはみ出すだけなら横スクロール
+  if(scroll)sc=Math.min(minSc,ah/L.ch);
+  S.stage.classList.toggle('hm-scroll',scroll);
   S.scale=sc;
   const dpr=root.devicePixelRatio||1;
   S.k=Math.max(1,Math.min(4,Math.ceil(sc*dpr)));
   S.cv.width=L.cw*S.k;S.cv.height=L.ch*S.k;
   S.cv.style.width=Math.round(L.cw*sc)+'px';S.cv.style.height=Math.round(L.ch*sc)+'px';
   S.ctx=S.cv.getContext('2d');S.ctx.imageSmoothingEnabled=false;
+  if(scroll&&S.scrollArea!==S.area+L.cw){
+    // はじめは戸口（庭）・出入口（部屋）のあたりが見えるように
+    S.scrollArea=S.area+L.cw;
+    const A=HOME.AREAS[S.area];const cx=(A.door.x+.5)*L.T*sc;
+    S.stage.scrollLeft=Math.max(0,cx-S.stage.clientWidth/2);
+  }else if(!scroll)S.scrollArea='';
 }
+S.onResize=()=>resize();
 
 function cellAt(ev){
   const L=HOME.layout(S.area,S.T),r=S.cv.getBoundingClientRect();
@@ -629,6 +644,7 @@ function draw(){
     o={placements:placements(S.area),selId:S.sel&&S.sel.kind==='item'?S.sel.id:null};
     o.chars=S.chars?[S.chars.dan,S.chars.kid,S.chars.cat].filter(c=>c&&!c.hidden):[];
     if(S.visitor)o.chars.push(S.visitor);
+    o.particles=true;
     if(S.sel&&S.sel.kind==='item'){
       const P=findP(S.sel.id);
       if(P){const c=HOME.useCell(S.area,placements(S.area),P);if(c&&CAT(P.itemId).use!=='self')o.marks=[c];}
@@ -636,6 +652,8 @@ function draw(){
     if(S.sel&&S.sel.kind==='char'&&S.chars){const c=S.sel.who==='visitor'?S.visitor:S.chars[S.sel.who];if(c&&!c.hidden)o.marks=c.sleepCells&&c.pose==='sleep'?[]:[{x:Math.round(c.x),y:Math.round(c.y)}];}
   }
   o.T=S.T;o.t=S.t;o.night=isNight();
+  if(S.mode==='edit')o.particles=true;
+  try{if(typeof HOME.season==='function'){o.season=HOME.season();o.weather=HOME.weather();}}catch(e){}
   try{HOME.renderArea(ctx,S.area,o);}catch(e){if(!S._errLogged){S._errLogged=true;try{console.error('[home] render',e);}catch(_){}}}
 }
 function frame(ts){
@@ -722,6 +740,7 @@ function liveActions(){
   a.push({label:'模様替え',icon:'edit',fn:()=>enterEdit(),row:2});
   a.push({label:'クラフト',icon:'craft',fn:()=>openCraft(),row:2});
   if(HOME.memories&&typeof HOME.memories.openBook==='function')a.push({label:'思い出帳',icon:'memories',fn:()=>{try{HOME.memories.openBook();}catch(e){}},row:2});
+  if(HOME.photo&&typeof HOME.photo.open==='function')a.push({label:'写真を撮る',icon:'photo',fn:()=>{if(!S.busy)HOME.photo.open();},row:2,id:'photo'});
   return a;
 }
 function tapLive(cell){
@@ -1033,6 +1052,35 @@ function renderCraft(){
     list.appendChild(card);
   });
   box.appendChild(list);
+  // 家の改修（部屋・庭を広げる：一回きり・素材＋お金）
+  if(typeof HOME.expandInfo==='function'&&HOME.expansion){
+    const sec=$el('div','hm-recipes hm-expand');
+    sec.appendChild($el('div','hm-craft-sub','🏗 家の改修（一回きり）'));
+    ['room','garden'].forEach(area=>{
+      const I=HOME.expandInfo(area);if(!I||!I.from)return;
+      const card=$el('div','hm-recipe'+(I.done?' done':''));
+      const q=$el('div','hm-item-ic hm-q',area==='room'?'⌂':'✿');q.setAttribute('aria-hidden','true');card.appendChild(q);
+      const t=$el('div','hm-recipe-t');
+      t.appendChild($el('div','hm-recipe-name',area==='room'?'部屋を広げる':'庭を広げる'));
+      t.appendChild($el('div','hm-recipe-note',I.done?`広げました（${I.to.w}×${I.to.h}マス）`:`${I.from.w}×${I.from.h} → ${I.to.w}×${I.to.h}マス　${area==='room'?'奥の納戸の仕切りを外す':'お隣との間の空き地を借りる'}`));
+      if(!I.done){
+        const need=$el('div','hm-need');
+        I.mats.forEach(n=>{const ok=n.have>=n.need;need.appendChild($el('span','hm-need-i'+(ok?' ok':' ng'),`${HOME.MATERIALS[n.id].icon} ${n.name} ${n.need}（所持 ${n.have}）${ok?'':'・足りない'}`));});
+        const okm=I.moneyHave>=I.money;
+        need.appendChild($el('span','hm-need-i'+(okm?' ok':' ng'),`💴 ¥${I.money.toLocaleString('ja-JP')}（所持 ¥${Math.floor(I.moneyHave).toLocaleString('ja-JP')}）${okm?'':'・足りない'}`));
+        t.appendChild(need);
+      }
+      card.appendChild(t);
+      if(!I.done){
+        const b=btn('広げる','craft',()=>{closeCraft();runBusy(async()=>{await HOME.expansion.run(area);if(S.open){resize();fixChars();}});},I.enough?'hm-primary':'');
+        b.disabled=!I.enough||S.busy;
+        b.setAttribute('aria-label',`${area==='room'?'部屋':'庭'}を広げる${I.enough?'':'：'+I.reason}`);
+        card.appendChild(b);
+      }
+      sec.appendChild(card);
+    });
+    box.appendChild(sec);
+  }
   el.appendChild(box);
 }
 function doCraft(id,b){
@@ -1061,6 +1109,7 @@ function refresh(){
   S.info.textContent=edit?ED().info(S):liveInfo();
   S.info.classList.toggle('warn',!!(edit?/^(置けません|ここへは動かせません|回せません|収納に|「.*」は.*には置けません)/.test(S.info.textContent):/^使えない/.test(S.info.textContent)));
   S.cv.setAttribute('aria-label',`${HOME.AREAS[S.area].name}の見取り図（${HOME.AREAS[S.area].w}×${HOME.AREAS[S.area].h}マス）`);
+  if(S.swEl){let t='';try{t=typeof HOME.seasonLabel==='function'?HOME.seasonLabel():'';}catch(e){}if(S.swEl.textContent!==t)S.swEl.textContent=t;S.swEl.hidden=!t;}
   // ボタン
   S.acts.textContent='';
   const list=edit?ED().actions(S):liveActions();
@@ -1077,8 +1126,44 @@ function refresh(){
   if(edit)renderDrawer();
   if(S.craftOpen)renderCraft();
 }
+// 外観・内装の見本の色（ボタンには必ず名前も書く）
+const SWATCH={
+  roof:{navy:'#3a4680',red:'#b84a44',green:'#4e8058',brown:'#7e5438'},
+  wall:{cream:'#f6e8c8',white:'#f0eef4',wood:'#c08858'},
+  door:{wood:'#d9a066',blue:'#5a7ad0'},
+  wallpaper:{lavender:'#a89cc4',mint:'#a8d6c6',cream:'#eadcc0',night:'#2c2a5e'},
+  floorId:{'floor.wood':'#a87a56','floor.tatami':'#c8c47c','floor.dark':'#644232'},
+};
+function renderLook(el){
+  const E=S.ed;
+  el.textContent='';
+  const wrap=$el('div','hm-look');wrap.setAttribute('role','group');wrap.setAttribute('aria-label',S.area==='garden'?'外観':'内装');
+  const hd0=$el('div','hm-look-top');
+  hd0.appendChild($el('div','hm-look-h',S.area==='garden'?'外観（庭から見た家）：時間も素材も使いません':'内装：時間も素材も使いません'));
+  const back=btn('収納にもどる','store',()=>ED().togglePanel(S),'hm-chip hm-look-back');back.setAttribute('aria-label','収納の一覧にもどる');
+  hd0.appendChild(back);wrap.appendChild(hd0);
+  ED().lookGroups(S).forEach(g=>{
+    const row=$el('div','hm-look-row');
+    row.appendChild($el('span','hm-look-l',g.label));
+    const opts=$el('div','hm-look-opts');opts.setAttribute('role','radiogroup');opts.setAttribute('aria-label',g.label);
+    g.opts.forEach(o=>{
+      const on=o.v===g.cur;
+      const b=$el('button','hm-btn hm-chip hm-look-b'+(on?' on':''));b.type='button';
+      b.setAttribute('role','radio');b.setAttribute('aria-checked',on?'true':'false');
+      const sw=$el('span','hm-swatch');sw.style.background=(SWATCH[g.key]||{})[o.v]||'#888';sw.setAttribute('aria-hidden','true');
+      b.appendChild(sw);b.appendChild($el('span','hm-btn-t',o.name+(on?' ✓':'')));
+      b.addEventListener('click',e=>{e.stopPropagation();ED().setLook(S,g.patch(o.v),`${g.label}：${o.name}`);});
+      opts.appendChild(b);
+    });
+    row.appendChild(opts);wrap.appendChild(row);
+  });
+  wrap.appendChild($el('div','hm-look-note',S.area==='garden'?'部屋のタブに切りかえると、壁紙と床を選べます。':'庭のタブに切りかえると、屋根・外壁・戸の色を選べます。'));
+  el.appendChild(wrap);
+  void E;
+}
 function renderDrawer(){
   const E=S.ed,el=S.drawer;
+  if(E.panel==='look'){renderLook(el);return;}
   const keep=el.querySelector('.hm-inv');const sl=keep?keep.scrollLeft:0;
   el.textContent='';
   const chips=$el('div','hm-chips');chips.setAttribute('role','group');chips.setAttribute('aria-label','収納の絞り込み');
@@ -1086,6 +1171,7 @@ function renderDrawer(){
     const b=btn(l,null,()=>{E.filter=f;refresh();},'hm-chip'+(E.filter===f?' on':''));
     b.setAttribute('aria-pressed',E.filter===f?'true':'false');chips.appendChild(b);
   });
+  if(ED().lookGroups){const lb=btn('外観・内装','look',()=>ED().togglePanel(S),'hm-chip hm-chip-look');lb.setAttribute('aria-pressed','false');chips.appendChild(lb);}
   el.appendChild(chips);
   const inv=$el('div','hm-inv');inv.setAttribute('role','list');inv.setAttribute('aria-label','収納');
   const items=ED().inventory(S);
@@ -1120,7 +1206,7 @@ function setArea(a){
 function bindInput(){
   let down=null;
   on(S.cv,'pointerdown',e=>{
-    if(DLG.active||S.craftOpen)return;
+    if(DLG.active||S.craftOpen||S.overlay)return;
     const cell=cellAt(e);
     down={x:e.clientX,y:e.clientY,id:e.pointerId,cell,dragged:false};
     if(S.mode==='edit'&&S.ed&&ED().down(S,cell,e)){try{S.cv.setPointerCapture(e.pointerId);}catch(_){}}
@@ -1155,6 +1241,7 @@ function bindInput(){
 function onKey(e){
   if(!S.open)return;
   if(DLG.active){dlgKey(e);e.stopPropagation();return;}
+  if(S.overlay){try{S.overlay.key&&S.overlay.key(e);}catch(_){}e.stopPropagation();return;}
   const t=e.target;
   if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA')){e.stopPropagation();return;}
   if(e.key==='Tab')return;
@@ -1209,7 +1296,7 @@ function teardown(){
   if(DLG.active){try{const st=DLG.active;(st.cancel||st.advance||(()=>st.finish(null)))();}catch(e){}}
   document.body.classList.remove('home-open');
   S.open=false;S.el=null;S.cv=null;S.ctx=null;S.ed=null;S.mode='live';S.chars=null;S.sel=null;S.craftOpen=false;S.busy=false;
-  S.visitor=null;S.visitorReq=null;S.kidAct={key:'wander'};
+  S.visitor=null;S.visitorReq=null;S.kidAct={key:'wander'};S.overlay=null;S.scrollArea='';
 }
 let closing=false;
 async function requestClose(){

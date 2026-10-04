@@ -84,6 +84,15 @@ const MG_CATS=[
   {id:'story',  name:'物語',       ids:['rpg','horror','rogue']},
   {id:'life',   name:'暮らし・癒し',ids:['cooking','fishing']},
 ];
+// ミニゲームのアイコン（main/icons.js のドット絵。無ければ定義の絵文字）
+function mgIconHTML(def,px){
+  if(window.ICONS&&ICONS.has(def.id))return ICONS.html(def.id,px).replace('class="ic ','class="ic ic-lead ');
+  return def.icon+' ';
+}
+// アイコン＋文字のボタン中身（文字はコード内の固定文言のみ）
+function mgBtnHTML(name,label){
+  return (window.ICONS?ICONS.html(name,16).replace('class="ic ','class="ic ic-lead '):'')+label;
+}
 function minigameCat(id){const c=MG_CATS.find(c=>c.ids&&c.ids.includes(id));return c?c.id:'brain';}
 let _mgTab=(()=>{try{return localStorage.getItem('dannoura_mg_tab')||'all';}catch(e){return 'all';}})();
 function openMinigamePicker(){
@@ -95,7 +104,8 @@ function openMinigamePicker(){
       if(!n)return;
       const b=document.createElement('button');
       b.className='mg-tab'+(c.id===_mgTab?' on':'');
-      b.textContent=`${c.name} ${n}`;
+      if(window.ICONS)b.innerHTML=ICONS.html(c.id,18)+`<span class="ic-t">${c.name} ${n}</span>`;
+      else b.textContent=`${c.name} ${n}`;
       b.onclick=()=>{_mgTab=c.id;try{localStorage.setItem('dannoura_mg_tab',c.id);}catch(e){}openMinigamePicker();};
       tabs.appendChild(b);
     });
@@ -109,7 +119,7 @@ function openMinigamePicker(){
     const b=document.createElement('button');
     b.className='mg-pick'+(played?' played':'');
     b.disabled=played;
-    b.innerHTML=`<div class="mg-pick-top"><span class="mg-pick-name">${def.icon} ${def.name}</span><span class="mg-pick-genre">${def.genre}</span></div>`+
+    b.innerHTML=`<div class="mg-pick-top"><span class="mg-pick-name">${mgIconHTML(def,24)}${def.name}</span><span class="mg-pick-genre">${def.genre}</span></div>`+
       `<div class="mg-pick-desc">${def.desc}</div>`+
       `<div class="mg-pick-fx">${played?'今日はプレイ済み。また明日。':def.effect}</div>`;
     b.onclick=()=>MG.open(def.id);
@@ -134,8 +144,10 @@ const MG={
     if(playedMinigameToday(id)){showNotif('今日はもうプレイした。また明日。');return;}
     closeMinigamePicker();
     this.def=def;this._ended=false;this._onEnd=[];this._loopErr=false;
-    this.el('mg-title').textContent=def.icon+' '+def.name;
+    if(window.ICONS&&ICONS.has(def.id))this.el('mg-title').innerHTML=mgIconHTML(def,20)+`<span class="ic-t">${def.name}</span>`;
+    else this.el('mg-title').textContent=def.icon+' '+def.name;
     this.el('mg-help').textContent=def.help;
+    {const qb=document.querySelector('#mg-screen .mini-endbtn');if(qb&&!this._quitArmed)qb.innerHTML=mgBtnHTML('close','終了');}
     const body=this.el('mg-body');
     body.innerHTML='';body.className='mg-body mg-'+def.id;
     this.setScore('');this.setTimer('');
@@ -170,12 +182,12 @@ const MG={
   quit(){
     const btn=document.querySelector('#mg-screen .mini-endbtn');
     if(btn&&!this._quitArmed){
-      this._quitArmed=true;const old=btn.textContent;btn.textContent='もう一度で終了';btn.classList.add('mg-quit-armed');
-      clearTimeout(this._quitTO);this._quitTO=setTimeout(()=>{this._quitArmed=false;btn.textContent=old;btn.classList.remove('mg-quit-armed');},2500);
+      this._quitArmed=true;btn.innerHTML=mgBtnHTML('warn','もう一度で終了');btn.classList.add('mg-quit-armed');
+      clearTimeout(this._quitTO);this._quitTO=setTimeout(()=>{this._quitArmed=false;btn.innerHTML=mgBtnHTML('close','終了');btn.classList.remove('mg-quit-armed');},2500);
       return;
     }
     clearTimeout(this._quitTO);this._quitArmed=false;
-    if(btn){btn.textContent='終了';btn.classList.remove('mg-quit-armed');}
+    if(btn){btn.innerHTML=mgBtnHTML('close','終了');btn.classList.remove('mg-quit-armed');}
     this.end('quit');
   },
   finish(r){

@@ -151,3 +151,36 @@ body.home-open{overflow:hidden;}
 }
 /* お知らせは見出しのボタンに重ならないよう、見出しの下に出す */
 .hm-toast-stack{top:calc(max(8px,env(safe-area-inset-top)) + 54px);}
+
+/* ═══ フェーズ3：季節・天候の見出し／広げた盤面のスクロール／外観・内装／写真 ═══ */
+.hm-title{display:flex;flex-direction:column;justify-content:center;line-height:1.25;}
+.hm-title-t{overflow:hidden;text-overflow:ellipsis;}
+.hm-sw{font-size:.68rem;letter-spacing:.08em;color:#9fe2c8;text-shadow:none;overflow:hidden;text-overflow:ellipsis;}
+.hm-sw[hidden]{display:none;}
+/* 広げた庭がスマホで小さくなりすぎるときは、盤面を横にスクロール */
+.hm-stage.hm-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;display:flex;align-items:center;}
+.hm-stage.hm-scroll .hm-cv{position:relative;left:auto;top:auto;transform:none;margin:auto 4px;flex:0 0 auto;touch-action:pan-x;}
+/* 外観・内装（模様替えの下の欄） */
+.hm-look{display:flex;flex-direction:column;gap:6px;padding:6px 8px;border-radius:6px;background:rgba(10,7,22,.7);border:1px solid #4a3a80;}
+.hm-look-h{font-size:.74rem;color:#fff3d8;}
+.hm-look-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.hm-look-l{flex:0 0 3.4em;font-size:.74rem;color:#b8a8e0;}
+.hm-look-opts{display:flex;flex-wrap:wrap;gap:4px;flex:1 1 0;min-width:0;}
+.hm-look-b{flex:0 1 auto;min-width:0;gap:5px;}
+.hm-swatch{width:16px;height:16px;border-radius:3px;border:2px solid #1b1226;box-shadow:0 0 0 1px rgba(255,255,255,.35);flex:0 0 auto;}
+.hm-look-note{font-size:.66rem;color:#9a8cc0;}
+/* 家の改修（クラフト画面の下） */
+.hm-craft-sub{font-size:.85rem;color:#ffe08a;margin-top:6px;}
+.hm-recipe.done{opacity:.7;}
+/* 写真 */
+.hm-photo{position:absolute;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;background:rgba(4,2,14,.78);padding:10px;}
+.hm-photo-box{width:min(620px,100%);max-height:100%;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:8px;
+  background:linear-gradient(180deg,#231a56 0%,#161040 40%,#0e0a2c 100%);border:2px solid #ffd98a;box-shadow:0 0 0 2px #04020c,0 12px 30px rgba(0,0,0,.6);}
+.hm-photo-cv{display:block;width:100%;height:auto;max-height:52vh;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges;border-radius:4px;background:#1b1226;}
+.hm-photo-name{font-size:.68rem;color:#b8a8e0;word-break:break-all;}
+.hm-photo-msg{min-height:1.4em;font-size:.78rem;color:#fff3d8;}
+.hm-photo-note{font-size:.64rem;color:#9a8cc0;}
+.hm-look-top{display:flex;align-items:center;gap:6px;}
+.hm-look-top .hm-look-h{flex:1 1 auto;min-width:0;}
+.hm-look-back{flex:0 0 auto;}
+.hm-chip-look{flex:1.3 1 0;}

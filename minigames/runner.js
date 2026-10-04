@@ -1452,9 +1452,12 @@ registerMinigame({
       cx.fillRect(hdx-7,hdy-2,4,11);
       if(!pal.rim){
         cx.fillStyle=pal.hairHi;cx.fillRect(hdx-4,hdy-7,5,1.5);
-        // 眼鏡のきらめき
+        // 眼鏡（濃い紫の枠）とレンズのきらめき
+        cx.strokeStyle='#2a1c36';cx.lineWidth=1;cx.strokeRect(hdx+3.5,hdy-.6,4.4,3);
         cx.fillStyle='rgba(200,255,250,.85)';cx.fillRect(hdx+4,hdy,3.5,2);
-        cx.fillStyle='#d890b0';cx.beginPath();cx.arc(hdx-5,hdy-6,1.8,0,TAU);cx.fill();
+        // ピンクの花の髪飾り
+        cx.fillStyle='#ff9ac8';for(let i=0;i<5;i++){const a=i*TAU/5;cx.beginPath();cx.arc(hdx-5+Math.cos(a)*1.3,hdy-6+Math.sin(a)*1.3,1.1,0,TAU);cx.fill();}
+        cx.fillStyle='#fff0a0';cx.beginPath();cx.arc(hdx-5,hdy-6,.7,0,TAU);cx.fill();
       }
       // 小さなシルクハット
       cx.save();cx.translate(hdx+1,hdy-7);cx.rotate(J.lean*.6-.12);

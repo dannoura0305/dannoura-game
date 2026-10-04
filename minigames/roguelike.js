@@ -778,6 +778,11 @@ registerMinigame({
       if(f===2){ctx.fillStyle='#1a2448';ctx.fillRect(-s*.15,hy-s*.06,s*.3,s*.05);}
       else if(f!==0){ctx.fillStyle='#1a2448';ctx.fillRect(s*.06,hy-s*.06,s*.2,s*.045);}
       ctx.fillStyle='#e8b830';ctx.fillRect(-s*.03,hy-s*.16,s*.06,s*.04);
+      // ピンクの花の髪飾り（家・本編のだんのうらと同じ。正面は向かって左、横・後ろは後頭部側）
+      {const fx=f===2?-s*.15:f===0?s*.13:-s*.13,fy=hy-s*.02,pr=s*.035;
+        ctx.fillStyle='#1b1226';ctx.beginPath();ctx.arc(fx,fy,pr*2.1,0,TAU);ctx.fill();
+        ctx.fillStyle='#ff9ac8';for(let i=0;i<5;i++){const a=i*TAU/5-Math.PI/2;ctx.beginPath();ctx.arc(fx+Math.cos(a)*pr,fy+Math.sin(a)*pr,pr*.85,0,TAU);ctx.fill();}
+        ctx.fillStyle='#fff0a0';ctx.beginPath();ctx.arc(fx,fy,pr*.55,0,TAU);ctx.fill();}
       ctx.restore();
     }
     function drawItems(t){

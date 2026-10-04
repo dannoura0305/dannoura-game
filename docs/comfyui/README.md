@@ -23,7 +23,7 @@
    - **疲れが限界に近づくと白髪（ラベンダーがかった白）・猫耳・マゼンタのパーカー姿に変わる**のは設定どおり（`char_tired / fear / collapse`、`sd_tired / collapse`）。直さないこと。
    - 参考画像は「光の色・夜の青紫・アンバーの灯り・ティールの夢の海・紺＋金のUI」の雰囲気にだけ使い、顔や髪型は写さない（IPAdapter で使うなら重み 0.3〜0.5 の“雰囲気だけ”）。
 2. **家・庭のドット絵（`main/home/sprites.js`）は今はすべてコード描画**で、`docs/asset-style-guide.md` には「外部画像・生成画像は使わない」と書いてあります。
-   - 家・庭の生成画像（id が `home.` で始まるもの）は、**Godot 版でそのまま使う**か、ブラウザ版で使うなら「sprites.js に画像を読む処理を足す」「スタイルガイドの方針を書き換える」という別作業が必要です。生成しても、置いただけではブラウザ版には出ません。
+   - 家・庭の生成画像（id が `home.` で始まるもの）は、**Godot 版でそのまま使う**か、ブラウザ版でも使えます（フェーズ3 で受け口を追加）：`assets/original/manifest.json` の該当 asset の `file` に PNG のパスを書くと、`HOME_ART` がコード描画の代わりにそれを描きます（手順は §11）。`file` が null・読み込み失敗のときはコード描画のまま。
    - 立ち絵・背景・エンディング絵などは既存の画像ファイルを同じ名前で上書きするだけで反映されます（§8）。
 3. 既存の作品のキャラ名・画風名・作家名はプロンプトに入れない（一覧のプロンプトもすべて独自の言葉で書いてあります）。
 
@@ -200,7 +200,7 @@ for a in pack["assets"]:
 | 飼い猫（三毛） | `assets/img/mob_cat.webp`・`mob_cat_happy.webp`・`mob_cat_closed.webp` | `main/mobs.js` の `MOB_FACES` に `cat:['normal','happy','closed'],` を追加（使う台詞・場面は別作業） |
 | シーン背景 | `assets/img/bg_<key>.webp`（上書き） | `game.js` の `BG_IMG` — 同じ名前なら変更不要 |
 | エンディング絵 | `assets/img/ending_<type>.webp`（上書き） | `game.js` の `ENDING_IMG` — 同上 |
-| 家・庭（家具・植物・タイル・キャラ・家UI） | `assets/img/home/…`（新規フォルダ） | 今は `main/home/sprites.js`（`HOME_ART`）がコードで描いているので、**画像を使う処理の追加とスタイルガイドの更新が別途必要**（§0） |
+| 家・庭（家具・タイル・人物・家の正面） | `assets/original/home/<id>.png`（新規フォルダ） | `assets/original/manifest.json` の該当 asset の `file`（と必要なら `anchor`）を書くだけ。コードの変更は不要（§11） |
 | ミニゲーム キーアート・UI・イベントCG | `assets/img/mg/` `assets/img/ui/` `assets/img/cg/`（新規フォルダ） | まだ登録先がない。表示する場所の実装は別作業 |
 | Godot 版 | 既存の `godot/assets/sprites/{items,chars,tiles,icons,ui,bg}/` の同名ファイルを上書き（キーアート・CG は `bg/mg_<id>_key.webp`・`bg/cg_<id>.webp` を新規） | Godot 側の画像は**原寸の2倍・余白トリム済み**で、位置と大きさは `godot/data/sprites.json`（`w` `h` `ox` `oy`）に入っています。原寸で作った画像は最近傍で2倍にし、透明な余白を切ってから置き、大きさが変わったら sprites.json の値も直す（このファイルは `tools/export_sprites.mjs` が書き出したもの。作り直すとコード描画に戻るので注意）。インポート設定：Filter = Nearest、Mipmaps = オフ、Compress = Lossless。UIパネルは `StyleBoxTexture`（9スライス） |
 
@@ -271,3 +271,27 @@ convert x.png -scale 800% x_zoom.png                                       # 最
 10. `home.light.shell_lantern` — RPG 第2章「手の灯」とつながる家具（ティールの灯り）
 
 その後は P1 の残り（表情差分 → 脇役 → 家具・タイル → 家のキャラ）→ P2 → P3 の順がおすすめです。
+
+---
+
+## 11. 家・庭（ブラウザ版）に生成画像を入れる（フェーズ3 §6 の受け口）
+
+`main/home/sprites.js` は起動時に `assets/original/manifest.json` を読み、`file` が書いてある asset の PNG を読み込みます。読み込めたものだけ、`HOME_ART.drawItem` / `drawChar` / `drawTile` / `drawHouse` がコード描画の代わりに描きます。**既定ではすべて `"file": null`**（コード描画）。
+
+1. §5 の手順でドット化した PNG を `assets/original/home/` に置く（例：`assets/original/home/garden.small_tree.png`）。
+   - 1マス＝32px（原寸 16 ドットの 2 倍、最近傍で拡大）で作ると `anchor` を省略しやすい。
+2. manifest の asset に書く：
+   ```json
+   { "id": "garden.small_tree", "file": "assets/original/home/garden.small_tree.png", "anchor": { "x": 8, "y": 60, "tile": 32 } }
+   ```
+   - `file` は1枚（すべての向き・色で共通）か、状態ごとの表：`{"r0_default": "…", "r90": "…", "r0_lit": "…", "default": "…"}`。人物（`char.dan` `char.kid` `char.cat` など）は `{"down_stand_0": "…", "down_walk_1": "…", "left_sit_0": "…", "down": "…"}`。キーは細かいものから順に探し、無ければ短いキー → `default`。
+   - `anchor` = PNG の中で「足元範囲（回転後の占有マス）の左上」が来る位置（PNG の px）と、PNG 上の1マスの大きさ `tile`（既定 32）。人物は「立っているマスの左上」。
+   - 省略時：アイテムは `x=8, y=60, tile=32`（コード描画の画像と同じ余白＝上に 30 ドット・左右下に 4 ドット）、人物は下端中央、床・地面（`floor.wood` など）は画像1枚＝1マス、家の正面（`house.front`、キー `<roof>_<wall>_<door>` か `default`）は壁帯いっぱいに貼る。
+   - Godot 用に書き出した `godot/data/sprites.json` の `ox`,`oy` を使うなら `anchor = {x: -ox, y: -oy, tile: 32}`。
+3. ブラウザで `index.html` を **http(s) で**開いて確認（`file://` では manifest を読まないのでコード描画のまま）。強制再読み込みでキャッシュを捨てる。
+4. 注意：
+   - 植物の入った鉢・プランターは、成長段階・季節の差分が要るのでコード描画のまま。
+   - 画像を指定したアイテムは季節の描き分け（木の葉の色など）をしない。季節ごとに替えたいときは、今はコード描画のままにしておく。
+   - 点灯中の灯りは、画像の上にコードのグロー（光のにじみ）を重ねる。
+   - パス に `..` や絶対パスは使えない（無視される）。読めない画像は黙ってコード描画に戻る。
+   - `docs/asset-inventory.md` の該当行に「生成画像（ComfyUI）・採用日」を追記し、manifest の `sourceType` を `comfyui` に、`status` を検品後 `verified` に。

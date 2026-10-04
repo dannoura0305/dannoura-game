@@ -157,6 +157,19 @@ try {
           HOME.renderArea(dx, area, { placements: [], chars: [], T, t: 0, night: false, grid: false });
           x.drawImage(d, 0, L.band, L.cw, L.ch - L.band, 0, L.band, L.cw, L.ch - L.band);
         }
+        // フェーズ3：Web 版の庭は家の正面（屋根つき）を描くため壁帯が 3 マス。Godot 版（home.gd の BAND=64）に合わせて上を切る。
+        // 切らない家の正面は bg/garden_front_<day|night>.png（band 96）に別に書き出す
+        const GODOT_BAND = 64;
+        if (L.band > GODOT_BAND) {
+          const cut = L.band - GODOT_BAND;
+          const f = document.createElement('canvas'); f.width = L.cw; f.height = L.band;
+          f.getContext('2d').drawImage(c, 0, 0);
+          json.bg[`${area}_front_${k}`] = { file: save(`bg/${area}_front_${k}.png`, f), w: L.cw, h: L.band, band: L.band, note: 'house front (roof/wall/door/windows) with the full Web band height' };
+          const o = document.createElement('canvas'); o.width = L.cw; o.height = L.ch - cut;
+          o.getContext('2d').drawImage(c, 0, cut, L.cw, L.ch - cut, 0, 0, L.cw, L.ch - cut);
+          json.bg[`${area}_${k}`] = { file: save(`bg/${area}_bg_${k}.png`, o), w: L.cw, h: L.ch - cut, band: GODOT_BAND, cols: L.w, rows: L.h };
+          return;
+        }
         json.bg[`${area}_${k}`] = { file: save(`bg/${area}_bg_${k}.png`, c), w: L.cw, h: L.ch, band: L.band, cols: L.w, rows: L.h };
       });
     });

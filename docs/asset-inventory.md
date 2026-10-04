@@ -1,6 +1,7 @@
 # 素材インベントリ
 
-機械可読版：`assets/original/manifest.json`（id, category, status, sourceType, icon, atlas, frames, palette, notes）。
+機械可読版：`assets/original/manifest.json`（id, category, status, sourceType, icon, atlas, frames, palette, notes, file）。
+`file`（フェーズ3）：生成画像の受け口。既定は null（コード描画）。PNG を指定すると Web 版の家・庭がそれを描く（`docs/comfyui/README.md` §11）。
 状態：`verified` = 原寸（32px/タイル、1x・1.5x・2x）で描画を目視確認済み。`draft` = 未確認・未使用。
 
 ## 1. 家・庭（フェーズ1 新規、`main/home/sprites.js`・すべてコード描画）
@@ -110,3 +111,17 @@
 | minigames/*.js | 各5〜40 | ★ ♥ ⚡ 👻 🔦 🚪 🎣 🍳 など |
 
 フェーズ3候補：素材（wood/cloth/metal/sea）のドットアイコン、メニューの主要絵文字（🏠 🎮 💾 📖）をこのガイドの UI アイコンに置き換え。
+
+## フェーズ3 追加（家・庭の拡張・外観・季節と天候・写真、すべてコード描画）
+| id | 内容 | 状態 | 備考 |
+|---|---|---|---|
+| floor.tatami | 畳（2×2 マスごとに横2枚／縦2枚、緑の縁） | verified | 部屋の床の選択肢 |
+| floor.dark | 濃い木の床（ウォルナット） | verified | 部屋の床の選択肢 |
+| ground.grass（季節） | 夏・秋（落ち葉）・冬（霜）・冬の雪・春（花） | verified | `drawTile(…, {season, snow})` |
+| wall.room（壁紙・天候） | 壁紙 lavender / mint / cream / night × 昼夜、窓の外の天候（晴・曇・雨・雪）と季節の枝 | verified | `drawWall(…, {night, wallpaper, weather, season})`、窓の範囲 `wallWindow()` |
+| house.front | 庭の上端の家の正面：屋根 4色 × 外壁 3種 × 戸 2色、窓・花箱・戸口のランタン、右に千代さんの垣根と海・灯台 | verified | `drawHouse()`。夜は窓・戸・ランタンの灯りを glow で重ねる |
+| garden.small_tree（季節） | 夏（緑）・秋（橙）・冬（枝・雪）・春（桜色） | verified | `drawItem(…, {season, snow})` |
+| 植物（季節） | ひまわりは夏だけ、あさがおは夏〜秋に花。季節はずれはつぼみ（枯れない） | verified | `PLANT_SPECIES[].bloom` |
+| fx.weather | 雨・雪・落ち葉・花びら・蛍（夏の夜） | verified | main/home/seasons.js。最大 60 個、reduce-motion では出さない |
+| ui.photo / ui.look | 写真を撮る（カメラ）／外観・内装（家） | verified | 32×32 |
+| 写真の額縁 | 紺の額＋アンバーの線＋ひとことの帯（場所・日・季節・天候） | verified | main/home/photo.js。PNG は 2 倍（1 ドット＝4px） |
