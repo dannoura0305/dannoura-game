@@ -2551,7 +2551,7 @@ function checkSaveData(){
   if(!used.length){ btn.style.display = 'none'; return; }
   const last = SAVESLOTS.latest();
   const det = last ? `最新 スロット${last.slot} DAY${last.day}` + (last.lifeDay != null ? `・暮らし ${last.lifeDay}日目` : '') : '';
-  btn.textContent = `▶ つづきから  ${det} / セーブ ${used.length}/${SAVE_SLOT_COUNT}`;
+  btn.textContent = `▶ つづきから  ${det} / セーブ ${used.length}件`;
   btn.style.display = 'block';
 }
 
@@ -2571,7 +2571,7 @@ function ensureSlotPicker(){
     <div class="slot-list" id="slot-list"></div>
     <div class="slot-confirm" id="slot-confirm" hidden role="alertdialog" aria-labelledby="slot-confirm-msg">
       <div class="slot-confirm-msg" id="slot-confirm-msg"></div>
-      <div class="slot-confirm-btns"><button type="button" class="ev-btn slot-yes"></button><button type="button" class="ev-btn slot-no">やめる</button></div>
+      <div class="slot-confirm-btns"><button type="button" class="ev-btn slot-cf-yes"></button><button type="button" class="ev-btn slot-cf-no">やめる</button></div>
     </div>
     <button type="button" class="ev-btn slot-close">${slotIc('close',18)}<span>閉じる</span></button>
   </div>`;
@@ -2655,7 +2655,7 @@ function renderSlotPicker(){
 function showSlotConfirm(msg, yesLabel, onYes, danger){
   const cf = document.getElementById('slot-confirm'); if(!cf) return;
   cf.querySelector('.slot-confirm-msg').textContent = msg;
-  const y = cf.querySelector('.slot-yes'), n = cf.querySelector('.slot-no');
+  const y = cf.querySelector('.slot-cf-yes'), n = cf.querySelector('.slot-cf-no');
   y.textContent = yesLabel; y.classList.toggle('danger', !!danger);
   y.onclick = () => { hideSlotConfirm(); onYes(); };
   n.onclick = () => { try{ AU.se('cancel'); }catch(_){} hideSlotConfirm(); };
