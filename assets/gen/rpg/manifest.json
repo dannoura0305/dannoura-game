@@ -894,8 +894,8 @@
    "transparent": true,
    "facing": "正面（二人は画面の下側にいる）",
    "ref": "assets/gen/rpg/ref/boss.watcher.png",
-   "status": "requested",
-   "file": null
+   "status": "verified",
+   "file": "assets/gen/rpg/boss.watcher.png"
   },
   {
    "id": "tile.home",
