@@ -243,7 +243,7 @@
    "priority": "P1",
    "category": "portrait",
    "name_ja": "源さん（夜釣りの常連） normal",
-   "file": null,
+   "file": "assets/gen/portrait/gen_normal.png",
    "rev": null,
    "target": "assets/gen/portrait/gen_normal.png",
    "size": "256x256",
@@ -258,14 +258,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "源さん・表情 normal。既存 mob_gen.svg の服・髪色を維持",
    "comfyui": "portrait.gen.normal",
-   "first15": 10
+   "first15": 10,
+   "status": "verified"
   },
   {
    "id": "portrait.gen.happy",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "源さん（夜釣りの常連） happy",
-   "file": null,
+   "file": "assets/gen/portrait/gen_happy.png",
    "rev": null,
    "target": "assets/gen/portrait/gen_happy.png",
    "size": "256x256",
@@ -280,7 +281,8 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "源さん・表情 happy。既存 mob_gen_happy.svg の服・髪色を維持",
    "comfyui": "portrait.gen.happy",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "portrait.minamo.normal",
@@ -507,7 +509,7 @@
    "priority": "P1",
    "category": "portrait",
    "name_ja": "ミドリ（コラボ相手の配信者） normal",
-   "file": null,
+   "file": "assets/gen/portrait/midori_normal.png",
    "rev": null,
    "target": "assets/gen/portrait/midori_normal.png",
    "size": "256x256",
@@ -522,14 +524,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "ミドリ（配信者）・表情 normal。既存 mob_midori.svg の服・髪色を維持",
    "comfyui": "portrait.midori.normal",
-   "first15": 11
+   "first15": 11,
+   "status": "verified"
   },
   {
    "id": "portrait.midori.happy",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "ミドリ（コラボ相手の配信者） happy",
-   "file": null,
+   "file": "assets/gen/portrait/midori_happy.png",
    "rev": null,
    "target": "assets/gen/portrait/midori_happy.png",
    "size": "256x256",
@@ -544,14 +547,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "ミドリ（配信者）・表情 happy。既存 mob_midori_happy.svg の服・髪色を維持",
    "comfyui": "portrait.midori.happy",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "portrait.senpai.normal",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "定年間近の先輩 normal",
-   "file": null,
+   "file": "assets/gen/portrait/senpai_normal.png",
    "rev": null,
    "target": "assets/gen/portrait/senpai_normal.png",
    "size": "256x256",
@@ -566,14 +570,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "定年間近の先輩・表情 normal。既存 mob_senpai.svg の服・髪色を維持",
    "comfyui": "portrait.senpai.normal",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "portrait.senpai.happy",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "定年間近の先輩 happy",
-   "file": null,
+   "file": "assets/gen/portrait/senpai_happy.png",
    "rev": null,
    "target": "assets/gen/portrait/senpai_happy.png",
    "size": "256x256",
@@ -588,14 +593,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "定年間近の先輩・表情 happy。既存 mob_senpai_happy.svg の服・髪色を維持",
    "comfyui": "portrait.senpai.happy",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "portrait.yodaka.normal",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "夜鷹（アイコン：赤い目の鳥） normal",
-   "file": null,
+   "file": "assets/gen/portrait/yodaka_normal.png",
    "rev": null,
    "target": "assets/gen/portrait/yodaka_normal.png",
    "size": "256x256",
@@ -610,7 +616,8 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "夜鷹・表情 normal。既存 mob_yodaka.svg の服・髪色を維持。円形アイコン（円の外は透過）",
    "comfyui": "portrait.yodaka.normal",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "portrait.kid.normal",
@@ -842,7 +849,7 @@
    "priority": "P2",
    "category": "avatar",
    "name_ja": "配信アイコン 夜鷹",
-   "file": null,
+   "file": "assets/gen/avatar/yodaka.png",
    "rev": null,
    "target": "assets/gen/avatar/yodaka.png",
    "size": "128x128",
@@ -857,7 +864,8 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, letters, nsfw, photorealistic, 3d render, multiple subjects, cropped, busy background, human face close-up",
    "note_ja": "赤い目の鳥（mob_yodaka.svg と同じ）。22px でも形が分かるよう、モチーフは大きく1つ",
    "comfyui": null,
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "avatar.gift",

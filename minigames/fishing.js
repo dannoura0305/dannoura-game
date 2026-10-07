@@ -772,7 +772,7 @@ registerMinigame({
       const rare=catches.find(c=>SP[c.id].r===3);
       const happy=grade==='S'||grade==='A';
       if(rare)L.push({who:'gen',text:`……${SP[rare.id].name}か。わしも五十年で二度しか見とらん。`},{who:'hero',face:'happy',text:'この海、まだまだ知らないことばっかりね。'});
-      else if(n>=5)L.push({who:'gen',text:'ようけ釣ったのう。腕が上がったわ。'},{who:'hero',face:'happy',text:'……明日のお弁当、ちょっと豪華にしちゃおうかしら。'});
+      else if(n>=5)L.push({who:'gen',face:'happy',text:'ようけ釣ったのう。腕が上がったわ。'},{who:'hero',face:'happy',text:'……明日のお弁当、ちょっと豪華にしちゃおうかしら。'});
       else if(n>=2)L.push({who:'gen',text:'ぼちぼちじゃな。それでええ。'},{who:'hero',face:'normal',text:'うん。……それでいいのよね。'});
       else L.push({who:'gen',text:'釣れん夜もある。海を見に来た、それで十分じゃ。'},{who:'hero',face:'normal',text:'……なんか、頭が静かになった。'});
       if(newSpecies)L.push({who:'hero',face:happy?'happy':'normal',text:`図鑑、${newSpecies}つ埋まった。……起きたら、あの子に見せてあげよう。`});
