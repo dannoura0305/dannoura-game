@@ -524,8 +524,8 @@
    "transparent": true,
    "facing": "正面（二人は画面の下側にいる）",
    "ref": "assets/gen/rpg/ref/boss.bubble.png",
-   "status": "requested",
-   "file": null
+   "status": "verified",
+   "file": "assets/gen/rpg/boss.bubble.png"
   },
   {
    "id": "enemy.crab",
