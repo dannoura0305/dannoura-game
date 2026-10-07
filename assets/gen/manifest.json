@@ -243,7 +243,7 @@
    "priority": "P1",
    "category": "portrait",
    "name_ja": "源さん（夜釣りの常連） normal",
-   "file": null,
+   "file": "assets/gen/portrait/gen_normal.png",
    "rev": null,
    "target": "assets/gen/portrait/gen_normal.png",
    "size": "256x256",
@@ -258,14 +258,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "源さん・表情 normal。既存 mob_gen.svg の服・髪色を維持",
    "comfyui": "portrait.gen.normal",
-   "first15": 10
+   "first15": 10,
+   "status": "verified"
   },
   {
    "id": "portrait.gen.happy",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "源さん（夜釣りの常連） happy",
-   "file": null,
+   "file": "assets/gen/portrait/gen_happy.png",
    "rev": null,
    "target": "assets/gen/portrait/gen_happy.png",
    "size": "256x256",
@@ -280,7 +281,8 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "源さん・表情 happy。既存 mob_gen_happy.svg の服・髪色を維持",
    "comfyui": "portrait.gen.happy",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "portrait.minamo.normal",
