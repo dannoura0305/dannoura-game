@@ -555,7 +555,7 @@
    "priority": "P1",
    "category": "portrait",
    "name_ja": "定年間近の先輩 normal",
-   "file": null,
+   "file": "assets/gen/portrait/senpai_normal.png",
    "rev": null,
    "target": "assets/gen/portrait/senpai_normal.png",
    "size": "256x256",
@@ -570,14 +570,15 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "定年間近の先輩・表情 normal。既存 mob_senpai.svg の服・髪色を維持",
    "comfyui": "portrait.senpai.normal",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "portrait.senpai.happy",
    "priority": "P1",
    "category": "portrait",
    "name_ja": "定年間近の先輩 happy",
-   "file": null,
+   "file": "assets/gen/portrait/senpai_happy.png",
    "rev": null,
    "target": "assets/gen/portrait/senpai_happy.png",
    "size": "256x256",
@@ -592,7 +593,8 @@
    "negative": "lowres, blurry, jpeg artifacts, watermark, signature, logo, text, cropped head, extra fingers, bad hands, deformed face, asymmetrical eyes, extra arms, nsfw, photorealistic, 3d render, anti-aliasing, gradient background, multiple people",
    "note_ja": "定年間近の先輩・表情 happy。既存 mob_senpai_happy.svg の服・髪色を維持",
    "comfyui": "portrait.senpai.happy",
-   "first15": null
+   "first15": null,
+   "status": "verified"
   },
   {
    "id": "portrait.yodaka.normal",
