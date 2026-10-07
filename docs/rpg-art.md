@@ -47,8 +47,8 @@
 
 - **STYLE（ドット絵）**：`16-bit JRPG pixel art, SNES era top-down 3/4 view, crisp pixels, 1px dark purple outline (#1b1226), light from top-left, limited palette, no anti-aliasing, clean grid-aligned sprite sheet, transparent background`
 - **WORLD**：`dreamlike sunken city under the night sea, deep indigo and teal water, amber lantern light, marine snow, light shafts from above, soft bubbles`
-- **DAN**：`young woman, long purple hair, small pink mini top hat tilted on her head, pink five-petal flower hair ornament, black square glasses, lavender open jacket, pink striped shirt, plum trousers, white shoes`
-- **DAN_T**：`same young woman in her exhausted form, lavender-white long hair, white cat ears with pink inside, magenta hoodie, black square glasses, pink flower hair ornament`
+- **DAN**：`adult man, androgynous young man, father, long purple hair, small pink mini top hat tilted on his head, pink five-petal flower hair ornament, black square glasses, lavender open jacket, pink striped shirt, plum trousers, white shoes`
+- **DAN_T**：`same young man in his exhausted form, lavender-white long hair, white cat ears with pink inside, magenta hoodie, black square glasses, pink flower hair ornament`
 - **MINA**：`translucent ghost girl, pale aqua long flowing hair drifting in water, pink seashell hair ornament, white nightgown with small pink ribbon, hem dissolving into water, faint cyan glow, gentle eyes`
 - **NEG（共通のネガティブ）**：`blurry, anti-aliasing, smooth gradient shading, painterly, 3d render, photo, realistic, text, letters, logo, watermark, signature, frame, border, background scenery (for sprites), cropped, cut off, inconsistent cell size, misaligned grid, extra limbs, deformed hands, jpeg artifacts, glow baked in`
 - だんのうら用に足す NEG：`short hair, male, boy, brown hair, no glasses, hoodie (normal form)`
