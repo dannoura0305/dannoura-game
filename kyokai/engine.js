@@ -39,6 +39,12 @@
   17. K.explore の hint は文字列のほかに K=>文字列 も受け付ける（進み具合に合わせて「目的」の表示を変える）。
       K.explore の ready（K=>bool）：必要な調べ物がそろうと、地図と場所の画面に「調査を終える」が出て、押すと explore が終わる。
       goal は任意の調べ物まで含めた条件にしておけば、全部済ませた人は自動で先へ進む（任意の謎を取り逃さないため）。
+      K.explore の pending（K=>[文字列]）：まだ残っている任意の調べ物。残っているのに「調査を終える」を押すと、ゲーム内の確認
+      「まだ調べられる場所があります：…。本当に調査を終えますか？」（戻る／終える）を出す。pendingNote で一言足せる。
+  18. オートセーブ：場所に入ったとき・章の区切り・K.step の後・推理が解けたときはすぐ。証拠を得た・手帳・フラグの変化
+      （推理のあとの myst_* など）は 0.3 秒まとめてから 1 回書く。書くのは kyokai_save_v1 だけ（本編の dannoura_* には触れない）。
+  19. 調べ物の fig:'nagi'|'mido'|'yuu'：その調べ物が出ている間、場面の絵に opts.flags.<fig> が渡り、聞き込みの相手が絵にも出る
+      （center_office / center_lab）。会話の場面では演出コマンド #stage 名前 [on|off]（= フラグ stage_<名前>）で同じ絵を出す。
    ══════════════════════════════════════════════════════════════════════ */
 (function (root) {
   'use strict';
@@ -136,13 +142,13 @@
 
   /* ───────── フラグ ───────── */
   KY.flag = function (name, val) {
-    if (arguments.length >= 2) { S.flags[name] = val; return val; }
-    if (S.flags[name] === undefined) S.flags[name] = true;
+    if (arguments.length >= 2) { if (S.flags[name] !== val) autosaveSoon(); S.flags[name] = val; return val; }
+    if (S.flags[name] === undefined) { S.flags[name] = true; autosaveSoon(); }
     return S.flags[name];
   };
   KY.get = name => S.flags[name];
   KY.has = name => !!S.flags[name];
-  KY.unflag = name => { delete S.flags[name]; };
+  KY.unflag = name => { if (name in S.flags) autosaveSoon(); delete S.flags[name]; };
   KY.inc = function (name, n) {
     const c = typeof S.flags[name] === 'number' ? S.flags[name] : 0;
     S.flags[name] = c + (n == null ? 1 : (+n || 0));
@@ -157,6 +163,7 @@
     if (!id) return false;
     if (S.evidence.indexOf(id) >= 0) return false;
     S.evidence.push(id);
+    autosaveSoon();
     if (!KY.EVIDENCE[id]) console.warn('[KY] 未定義の証拠 id:', id);
     // 撮影中に得た写真の証拠は、撮った場面をそのまま絵として残す
     if (KY._photoCtx && KY.ev(id).type === 'photo' && !S.photos[id]) S.photos[id] = KY._photoCtx;
@@ -176,6 +183,7 @@
     const e = Object.assign({}, prev || {}, o);
     if (!prev) e.n = (S.noteN = (S.noteN || 0) + 1);
     c[id] = e;
+    autosaveSoon();
     if (!prev) UI.toast('手帳に記録：' + (e.title || id), 'note');
     else if (prev.solved !== e.solved && e.solved) UI.toast('手帳：「' + (e.title || id) + '」が解けた', 'note');
     return e;
@@ -225,6 +233,8 @@
       case 'face': if (a[1]) G.faces[a[1]] = a[2] || 'normal'; break;
       case 'mainui': await KY.mainUI(+a[1] || 1500); break;
       case 'world': if (KY.setWorld) KY.setWorld(a[1]); break;
+      // #stage 名前 [on|off]：フラグ stage_<名前> を立てる／消す（場面の絵の opts.flags.<名前>。例 #stage nagi＝分室にナギがいる）
+      case 'stage': if (a[1]) { if ((a[2] || 'on').toLowerCase() === 'off') KY.unflag('stage_' + a[1]); else KY.flag('stage_' + a[1], true); } break;
       default: console.warn('[KY] 不明な演出コマンド', s);
     }
   }
@@ -353,8 +363,25 @@
   /* ───────── セーブ ───────── */
   function addPlay() { if (G.t0) { const t = Date.now(); S.playtime = (S.playtime || 0) + (t - G.t0) / 1000; G.t0 = t; } }
   function snapshot() { addPlay(); S.savedAt = Date.now(); return JSON.stringify(S); }
-  function autosave() { if (!G.running) return false; return lsSet(KEY, snapshot()); }
+  // オートセーブ：場所移動・章の区切り・区切り(step)の後はすぐ。証拠を得た・手帳・フラグが変わった（推理の結果など）ときは
+  // 少しまとめてから（autosaveSoon：連続しても 1 回だけ書く）。書くのは kyokai_save_v1 だけ（本編の dannoura_* には触れない）。
+  let saveT = 0;
+  function autosave() { if (saveT) { clearTimeout(saveT); saveT = 0; } if (!G.running) return false; return lsSet(KEY, snapshot()); }
+  function autosaveSoon() {
+    if (!G.running || saveT) return;
+    const gen = G.gen;
+    saveT = setTimeout(() => { saveT = 0; if (gen === G.gen) autosave(); }, 300);
+    try { if (saveT && typeof saveT.unref === 'function') saveT.unref(); } catch (e) {}
+  }
+  RESET.push(() => { if (saveT) { clearTimeout(saveT); saveT = 0; } });
+  // まとめ待ちのまま閉じられても取りこぼさない（再読み込み・タブを閉じる・裏へ回る）
+  if (root.addEventListener) {
+    const flushSave = () => { if (saveT) autosave(); };
+    root.addEventListener('pagehide', flushSave);
+    if (root.document) root.document.addEventListener('visibilitychange', () => { if (root.document.hidden) flushSave(); });
+  }
   KY.autosave = autosave;
+  KY.autosaveSoon = autosaveSoon;
   KY.save = manual => lsSet(manual ? KEY_M : KEY, snapshot());
   function validate(o) {
     if (!o || typeof o !== 'object' || o.version !== 1) return null;
@@ -1345,7 +1372,7 @@
   const HEADLESS_UI = {
     line(L) { AUTO.log.push(L.who + ':' + L.text); return Promise.resolve(); },
     sayEnd() {}, hud() {}, stage() {}, game() {}, hideGameUI() {}, showTitle() {}, crash(e) { AUTO.log.push('crash:' + (e && e.message)); },
-    choice(q, list) { const v = AUTO.choices.length ? AUTO.choices.shift() : 0; return Promise.resolve(clamp(v | 0, 0, list.length - 1)); },
+    choice(q, list) { AUTO.log.push('choice:' + q); const v = AUTO.choices.length ? AUTO.choices.shift() : 0; return Promise.resolve(clamp(v | 0, 0, list.length - 1)); },
     input(q, def) { return Promise.resolve(AUTO.inputs.length ? AUTO.inputs.shift() : def); },
     title() { return Promise.resolve(); }, notice() { return Promise.resolve(); },
     toast(t) { AUTO.log.push('toast:' + t); }, gainFx() {}, fx() { return Promise.resolve(); }, mainUI() { return Promise.resolve(); },

@@ -29,7 +29,7 @@
         await K.say(['n:境界測定端末を向ける。', '#se beep', 't:境界反応 0.0 … 0.0 … 3.8 … 0.1', 'n:空き枠の前でだけ、数値が跳ねた。', 'y:何もない枠が、どこかとつながってるみたいだな。']);
         K.gain('c2_meter_reading');
       } } },
-    { id: 'c2_mido', x: 0.62, y: 0.62, w: 0.12, h: 0.25, label: '御堂室長', acts: ['talk'], cond: C2,
+    { id: 'c2_mido', fig: 'mido', x: 0.62, y: 0.62, w: 0.12, h: 0.25, label: '御堂室長', acts: ['talk'], cond: C2,
       on: { talk: async K => {
         if (!K.got('c2_hash')) return K.say(['m:まずはサーバー室で、写真データの改ざん検査をしよう。話はそれからだ。']);
         if (!K.got('c2_office_today')) return K.say(['m:……今日の分室の写真は、もう撮ったかい。毎日の決まりだからね。']);
