@@ -1,0 +1,1642 @@
+{
+ "version": 1,
+ "generatedBy": "hand-written canvas code (kyokai/art.js: window.KY_ART)",
+ "notes": "file が null のあいだはコード描画。PNG/JPG/WEBP を assets/kyokai/ 以下に置き、file にリポジトリ直下からの相対パスを書くと差し替わる。scene は 16:9 で cover 表示（大事な物は横 0.14〜0.86）、scene.<id>（世界なし）も全世界の共通差し替えとして使える。portrait は透明背景・下端中央合わせ、portrait.<who>（表情なし）も可。文字（看板）は差し替え画像に描き込むこと。",
+ "assets": [
+  {
+   "id": "scene.center_office.A",
+   "kind": "scene",
+   "name": "観測センター月代分室・事務室（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.center_office.B",
+   "kind": "scene",
+   "name": "観測センター月代分室・事務室（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.center_office.C",
+   "kind": "scene",
+   "name": "観測センター月代分室・事務室（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.center_server.A",
+   "kind": "scene",
+   "name": "観測センター・サーバー室（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.center_server.B",
+   "kind": "scene",
+   "name": "観測センター・サーバー室（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.center_server.C",
+   "kind": "scene",
+   "name": "観測センター・サーバー室（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.center_lab.A",
+   "kind": "scene",
+   "name": "観測センター・観測装置室（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.center_lab.B",
+   "kind": "scene",
+   "name": "観測センター・観測装置室（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.center_lab.C",
+   "kind": "scene",
+   "name": "観測センター・観測装置室（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.center_basement.A",
+   "kind": "scene",
+   "name": "観測センター・地下通路（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.center_basement.B",
+   "kind": "scene",
+   "name": "観測センター・地下通路（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.center_basement.C",
+   "kind": "scene",
+   "name": "観測センター・地下通路（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.shotengai.A",
+   "kind": "scene",
+   "name": "月代商店街（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.shotengai.B",
+   "kind": "scene",
+   "name": "月代商店街（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.shotengai.C",
+   "kind": "scene",
+   "name": "月代商店街（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.school.A",
+   "kind": "scene",
+   "name": "月代小学校（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.school.B",
+   "kind": "scene",
+   "name": "月代小学校（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.school.C",
+   "kind": "scene",
+   "name": "月代小学校（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.shrine.A",
+   "kind": "scene",
+   "name": "月代神社（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.shrine.B",
+   "kind": "scene",
+   "name": "月代神社（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.shrine.C",
+   "kind": "scene",
+   "name": "月代神社（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.tunnel.A",
+   "kind": "scene",
+   "name": "廃トンネル（月代隧道）（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.tunnel.B",
+   "kind": "scene",
+   "name": "廃トンネル（月代隧道）（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.tunnel.C",
+   "kind": "scene",
+   "name": "廃トンネル（月代隧道）（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.mountain_road.A",
+   "kind": "scene",
+   "name": "山道（地図にない道）（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.mountain_road.B",
+   "kind": "scene",
+   "name": "山道（地図にない道）（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.mountain_road.C",
+   "kind": "scene",
+   "name": "山道（地図にない道）（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.station_ruin.A",
+   "kind": "scene",
+   "name": "月代駅（廃墟）（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.station_ruin.B",
+   "kind": "scene",
+   "name": "月代駅（廃墟）（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.station_ruin.C",
+   "kind": "scene",
+   "name": "月代駅（廃墟）（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.station_live.A",
+   "kind": "scene",
+   "name": "月代駅（営業中）（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.station_live.B",
+   "kind": "scene",
+   "name": "月代駅（営業中）（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.residential.A",
+   "kind": "scene",
+   "name": "住宅街（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.residential.B",
+   "kind": "scene",
+   "name": "住宅街（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.residential.C",
+   "kind": "scene",
+   "name": "住宅街（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.riverbank.A",
+   "kind": "scene",
+   "name": "河川敷（崩れた橋）（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.riverbank.B",
+   "kind": "scene",
+   "name": "河川敷（崩れた橋）（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.riverbank.C",
+   "kind": "scene",
+   "name": "河川敷（崩れた橋）（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.old_lab.A",
+   "kind": "scene",
+   "name": "旧研究施設（月代第二研究所）（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.old_lab.B",
+   "kind": "scene",
+   "name": "旧研究施設（月代第二研究所）（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.old_lab.C",
+   "kind": "scene",
+   "name": "旧研究施設（月代第二研究所）（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.empty_town.A",
+   "kind": "scene",
+   "name": "誰もいない月代町（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.empty_town.B",
+   "kind": "scene",
+   "name": "誰もいない月代町（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.empty_town.C",
+   "kind": "scene",
+   "name": "誰もいない月代町（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.bureau.A",
+   "kind": "scene",
+   "name": "境界現象対策局・記録保管室（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.bureau.C",
+   "kind": "scene",
+   "name": "境界現象対策局・記録保管室（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.stream_room.A",
+   "kind": "scene",
+   "name": "境界の向こうの配信部屋（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.factory_glimpse.A",
+   "kind": "scene",
+   "name": "工場（一瞬の幻）（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.collapse.A",
+   "kind": "scene",
+   "name": "混ざり合う世界（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.core.A",
+   "kind": "scene",
+   "name": "境界核（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.town_map.A",
+   "kind": "scene",
+   "name": "月代町の地図（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.town_map.B",
+   "kind": "scene",
+   "name": "月代町の地図（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.town_map.C",
+   "kind": "scene",
+   "name": "月代町の地図（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.board_bg.A",
+   "kind": "scene",
+   "name": "観測ボードの背景（世界A）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.board_bg.B",
+   "kind": "scene",
+   "name": "観測ボードの背景（世界B）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "scene.board_bg.C",
+   "kind": "scene",
+   "name": "観測ボードの背景（世界C）",
+   "size": [
+    1920,
+    1080
+   ],
+   "fit": "cover",
+   "file": null
+  },
+  {
+   "id": "portrait.yuu.normal",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.yuu.smile",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.yuu.worry",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.yuu.surprise",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.yuu.serious",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.mido.normal",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.mido.smile",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.mido.worry",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.mido.surprise",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.mido.serious",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.nagi.normal",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.nagi.smile",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.nagi.worry",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.nagi.surprise",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.nagi.serious",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.kujo.normal",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.kujo.smile",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.kujo.worry",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.kujo.surprise",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.kujo.serious",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.kujo.cold",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.kujo.sad",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.shiro.idle",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.shiro.alert",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.shiro.glow",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.shiro.normal",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.shiro.smile",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.shiro.worry",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.shiro.surprise",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.shiro.serious",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_a.normal",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_a.smile",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_a.worry",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_a.surprise",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_a.serious",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_b.normal",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_b.smile",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_b.worry",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_b.surprise",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_b.serious",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_c.normal",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_c.smile",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_c.worry",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_c.surprise",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_c.serious",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_d.normal",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_d.smile",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_d.worry",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_d.surprise",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_d.serious",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_e.normal",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_e.smile",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_e.worry",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_e.surprise",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_e.serious",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_f.normal",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_f.smile",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_f.worry",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_f.surprise",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.resident_f.serious",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.player.normal",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.player.smile",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.player.worry",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.player.surprise",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "portrait.player.serious",
+   "kind": "portrait",
+   "size": [
+    512,
+    640
+   ],
+   "anchor": "bottom-center",
+   "file": null
+  },
+  {
+   "id": "icon.look",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.photo",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.ev_photo",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.record",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.scan",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.talk",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.world_A",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.world_B",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.world_C",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.battery",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.light",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.med",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.stab",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.phone",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.flashlight",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.magnet",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.boundary_meter",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.hq_recorder",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.wave_scanner",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.portable_observer",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.anchor",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.shiro_link",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.testimony",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.audio",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.map",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.video",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.log",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.item",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.person",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.article",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.board",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.notebook",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.evidence",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.diff",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.people",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.danger",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.sync",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.b30",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.save",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.settings",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  },
+  {
+   "id": "icon.back",
+   "kind": "icon",
+   "size": [
+    64,
+    64
+   ],
+   "file": null
+  }
+ ]
+}

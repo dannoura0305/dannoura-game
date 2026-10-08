@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>境界事象 ― 月代町観測記録 ―</title>
+<meta name="theme-color" content="#050a16">
+<meta name="description" content="月代町の特殊現象観測センターに配属された新人観測員の記録。探索・推理・並行世界の観測。『だんのうら』のおまけゲーム。">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/pwa/icon-192.png">
+<link rel="apple-touch-icon" href="assets/pwa/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Share+Tech+Mono&family=DotGothic16&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kyokai/style.css">
+</head>
+<body>
+<div id="ky-app" class="ky">
+  <div class="ky-boot">観測端末を起動しています……</div>
+  <noscript><p style="color:#e3ebf5;padding:20px">このゲームを遊ぶには JavaScript を有効にしてください。</p></noscript>
+</div>
+<script src="kyokai/engine.js"></script>
+<script src="kyokai/systems.js"></script>
+<script src="kyokai/board.js"></script>
+<script src="kyokai/art.js"></script>
+<script src="kyokai/link.js"></script>
+<script src="kyokai/data/evidence.js"></script>
+<script>
+// 章ファイルは順番どおりに読む（無いファイル・読み込み失敗は飛ばして起動する）
+(function () {
+  var files = [];
+  for (var i = 0; i <= 14; i++) files.push('kyokai/story/ch' + (i < 10 ? '0' : '') + i + '.js');
+  files.push('kyokai/story/side.js', 'kyokai/story/endings.js');
+  var demo = /[?&]demo=1(&|$)/.test(location.search);
+  if (demo) files.push('kyokai/story/_demo.js');   // 動作確認用の章（通常は読まない）
+  var left = files.length, booted = false;
+  function boot() {
+    if (booted) return; booted = true;
+    if (!window.KY || !KY.boot) { document.querySelector('.ky-boot').textContent = '起動に失敗しました。再読み込みしてください。'; return; }
+    KY.boot(demo ? { only: ['demo'] } : {});
+  }
+  function one() { if (--left <= 0) boot(); }
+  files.forEach(function (f) {
+    var s = document.createElement('script');
+    s.src = f; s.async = false;
+    s.onload = one;
+    s.onerror = function () { one(); };
+    document.body.appendChild(s);
+  });
+  setTimeout(boot, 15000);   // 回線が止まっても起動だけはする
+})();
+</script>
+</body>
+</html>

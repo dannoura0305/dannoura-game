@@ -21,6 +21,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 function gameBusy(){
   try{
     if(document.body.classList.contains('mg-active')) return true;
+    if(window.DAY31 && window.DAY31.active) return true;
     for(const id of ['mg-picker','streaming-ol','song-mini','mg-screen']){ const e = document.getElementById(id); if(e && e.classList.contains('active')) return true; }
     if(document.querySelector('.mini-screen.active')) return true;
   }catch(e){}
@@ -740,10 +741,10 @@ function buildTitle(){
   T.el = w; T.cv = w.querySelector('.pr-tcv'); T.ctx = T.cv.getContext('2d');
   // 既存ボタンをメニューへ移動（id・onclickはそのまま）
   const menu = w.querySelector('.pr-menu');
-  const startBtn = $('btn-start-main'), contBtn = $('btn-continue'), endBtn = $('btn-endings');
+  const startBtn = $('btn-start-main'), contBtn = $('btn-continue'), endBtn = $('btn-endings'), d31Btn = $('btn-day31'), kyBtn = $('btn-kyokai');
   const setBtn = [...ts.querySelectorAll('button')].find(b => /openSettings/.test(b.getAttribute('onclick')||'') && !menu.contains(b));
   const delWrap = $('btn-delete-wrap');
-  [contBtn, startBtn, endBtn, setBtn].forEach(b=>{ if(b){ b.classList.add('pr-mi'); b.setAttribute('role','menuitem'); menu.appendChild(b); } });
+  [contBtn, startBtn, d31Btn, endBtn, kyBtn, setBtn].forEach(b=>{ if(b){ b.classList.add('pr-mi'); b.setAttribute('role','menuitem'); menu.appendChild(b); } });
   if(delWrap) menu.appendChild(delWrap);
   if(setBtn) setBtn.dataset.prKind = 'settings';
   relabel();
