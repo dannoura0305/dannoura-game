@@ -38,6 +38,8 @@
   <button class="btn-start" id="btn-start-main" onclick="startStory()" disabled style="opacity:0.5;pointer-events:none;">読み込み中...</button>
   <button class="btn-start" id="btn-continue" onclick="loadGame()" style="display:none;margin-top:8px;font-size:.78rem;border-color:rgba(0,232,200,.5);color:rgba(0,232,200,.8);"></button>
   <button class="btn-endings" id="btn-endings" onclick="openEndingList()">📖 エンディング一覧</button>
+  <button class="btn-endings" id="btn-day31" onclick="openDay31()" style="display:none">DAY 31</button>
+  <button class="btn-endings" id="btn-kyokai" onclick="openKyokai()">おまけ：境界事象</button>
   <button class="btn-endings" onclick="openSettings()">⚙ 設定・遊び方</button>
   <div id="btn-delete-wrap" style="display:none;margin-top:6px;">
     <button onclick="deleteSave()" style="background:none;border:none;font-family:var(--mono);font-size:.6rem;color:rgba(232,80,80,.4);cursor:pointer;letter-spacing:.08em;padding:4px 8px;">セーブデータを削除</button>
@@ -307,6 +309,7 @@
 <script src="main/homescene.js"></script>
 <script src="main/story.js"></script>
 <script src="main/presentation.js"></script>
+<script src="main/day31.js"></script>
 <!-- 家・庭づくり（見下ろしの部屋と庭・模様替え・クラフト・思い出帳） -->
 <script src="main/home/catalog.js"></script>
 <script src="main/home/sprites.js"></script>
