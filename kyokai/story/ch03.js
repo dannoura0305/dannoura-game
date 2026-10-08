@@ -11,7 +11,7 @@
   const ext = (id, w, spots) => { const a = KY.AREAS[id]; a.worlds[w] = a.worlds[w] || { scene: a.worlds.A.scene, spots: [] }; a.worlds[w].spots.push(...spots); };
 
   ext('center_office', 'A', [
-    { id: 'c3_nagi', x: 0.42, y: 0.68, w: 0.1, h: 0.24, label: 'ナギ', acts: ['talk', 'record', 'look'], cond: C3,
+    { id: 'c3_nagi', fig: 'nagi', x: 0.42, y: 0.68, w: 0.1, h: 0.24, label: 'ナギ', acts: ['talk', 'record', 'look'], cond: C3,
       on: {
         look: async K => {
           if (!K.got('c3_pass')) {
@@ -36,7 +36,7 @@
         },
         record: async K => { await K.say(['#se rec', 'g:録るの？ ……あたしの声、へんじゃない？', 'g:毎朝、二両の汽車。海のほうに行くの。']); K.gain('c3_tes_train'); },
       } },
-    { id: 'c3_saeki', x: 0.02, y: 0.62, w: 0.1, h: 0.3, label: '佐伯さん', acts: ['talk'], cond: C3,
+    { id: 'c3_saeki', fig: 'saeki', x: 0.8, y: 0.6, w: 0.09, h: 0.3, label: '佐伯さん', acts: ['talk'], cond: C3,
       on: { talk: async K => {
         if (K.got('c3_registry')) return K.say(['x:佐伯|ナギちゃん、甘いもの好きかな。プリン買ってきちゃった。']);
         await K.say(['x:佐伯|町役場に照会しました。', 'x:佐伯|「ナギ」という名前の子、月代町の住民台帳にはいません。転出入にも、近隣の市町村の捜索願にも。', 'x:佐伯|三丁目十四番は……空き地です。何年も前から。', 'p:三丁目。新聞配達の高野さんが「家が建っていた」と言った場所ですね。']);
@@ -65,7 +65,7 @@
         await K.say(['n:廊下に並ぶ、歴代の卒業写真。', 'g:お母さん、ここの卒業じゃないけど……第一小の、っていうか、この学校の写真なら、おばあちゃんが写ってるはず。', 'n:ナギは一枚ずつ指でなぞっていく。', 'g:……いない。', 'g:おばあちゃんも。お母さんの友だちのミヨちゃんのお母さんも。知ってる名前が、一人もいない。', 'p:……。']);
         K.gain('c3_classphoto');
       }, photo: async K => { await K.say(['#se shutter', 'n:卒業写真を撮影した。']); K.gain('c3_classphoto'); } } },
-    { id: 'c3_terada', x: 0.23, y: 0.56, w: 0.07, h: 0.28, label: '寺田さん', acts: ['talk'], cond: C3,
+    { id: 'c3_terada', fig: 'terada', x: 0.23, y: 0.56, w: 0.07, h: 0.28, label: '寺田さん', acts: ['talk'], cond: C3,
       on: { talk: async K => K.say(['x:寺田|あっ、その子だ。あの朝の。', 'g:こんにちは。……おじさん、あたしのこと知ってるの？', 'x:寺田|いや……見かけただけだよ。', 'x:寺田|（小声で）分室さん。この子のランドセル、名札の住所が「月代町三丁目」なのに、学校名が知らない名前だ。']) } },
   ]);
 

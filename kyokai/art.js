@@ -268,11 +268,58 @@ function room(g,o){
 }
 function tube(g,x,y,w,on){R(g,OL,x-1,y-1,w+2,4);R(g,on?'#f4fbff':'#4a4a5a',x,y,w,2);if(on){glowE(g,x+w/2,y+6,w*.9,22,'200,225,255',.16);}}
 
+// ───────── 分室の人（聞き込みの相手を絵にも出す：opts.flags.nagi / mido / yuu） ─────────
+// 色は顔（PORTRAITS）と同じ：ナギ＝黒いおかっぱ・赤い髪留め・白い丸えり・紺のジャンパースカート（少し古い型）／
+// 御堂＝白髪まじり・茶のカーディガン／如月＝黒髪・キャメルのコート。主人公は描かない。
+function staffFig(g,who,x,yb,h,face){
+  if(who==='nagi'){
+    // 別の世界の子なので、輪郭にうっすら境界の光
+    glowE(g,x,yb-h*.5,h*.42,h*.6,'159,240,224',.10);
+    person(g,x,yb,h,{kid:true,f:face||'f',hair:'#1e1a24',skin:'#f6e0d2',top:'#34466a',top2:'#26344e',bot:'#34466a',skirt:true,shoe:'#5a3a2a',rim:.18,rimc:[200,250,240]});
+    const hh=Math.max(3,Math.round(h*.24)),hw=Math.max(3,Math.round(hh*.92)),top=yb-h;
+    R(g,'#1e1a24',x-hw/2-1,top+1,1,hh);R(g,'#1e1a24',x+hw/2,top+1,1,hh);   // おかっぱの横
+    R(g,'#c83a3a',x+1,top,2,1);                                            // 赤い髪留め
+    R(g,'#ffffff',x-2,top+hh+1,4,1);px(g,'#c83a3a',x,top+hh+1);           // 白い丸えりとリボン
+    return;
+  }
+  if(who==='mido'){person(g,x,yb,h,{f:face||'l',hair:'#6a6460',skin:'#e4c4ae',top:'#7a5a44',top2:'#5e4232',bot:'#3a3640',shoe:'#1e1a22'});
+    R(g,'#d4dcea',x-1,yb-h+Math.round(h*.17)+1,2,2);return;}
+  if(who==='yuu'){person(g,x,yb,h,{f:face||'r',hair:'#23263a',skin:'#f0d6c6',top:'#a88a64',top2:'#86684a',bot:'#2c2c3c',shoe:'#1a1624',coat:true});
+    R(g,'#2c2c3c',x-1,yb-h+Math.round(h*.17)+1,3,2);return;}
+}
+
+// 町の人（聞き込みの相手）：opts.figs=[{id,x,y,w,h}]（調べ物の枠。0..1）の下端に立たせる。場面が自分で描く人（figs:[…]）は除く
+const FIGS={
+  saeki:{o:{f:'l',hair:'#3a2a20',skin:'#ecd0bc',top:'#6a7a6a',top2:'#52604f',bot:'#3a3a48',bag:null}},                       // 事務の佐伯さん
+  takano:{o:{f:'l',hair:'#2a2020',top:'#4a5a7a',bot:'#2e3040',hat:'cap',hatc:'#3a4a6a',bag:'#c8b890'}},                      // 新聞配達の青年
+  matsui:{o:{f:'r',hair:'#d8d8d8',skin:'#dcbca4',top:'#7a5a6a',bot:'#4a3a44',apron:'#c8c0b0',hat:'bun'},k:.86},               // 駄菓子屋の松井さん（年配）
+  hayase:{o:{f:'l',hair:'#4a3a30',top:'#7a6a8a',bot:'#3a3448'}},                                                            // 早瀬さん
+  miura:{o:{f:'r',hair:'#3a2a2a',top:'#8a6a5a',bot:'#4a4050',apron:'#d8d0c0',skirt:true,bag:'#e8e8e0'}},                    // ゴミ出しの三浦さん（白い袋）
+  terada:{o:{f:'r',hair:'#4a4a4a',skin:'#d8b8a0',top:'#5a6a4a',bot:'#3a3a32',hat:'cap',hatc:'#4a5a3a'}},                     // 学校の寺田さん（用務員）
+  shiramine:{o:{f:'l',hair:'#9a9aa0',skin:'#dcc0a8',top:'#f0f0ec',top2:'#c8c8c8',bot:'#7a5aa0',skirt:true}},                // 宮司の白峰さん（白衣に紫の袴）
+};
+const FIGC=new Map();
+function figSprite(id,h,wld){
+  const key=id+'/'+h+'/'+wld;let c=FIGC.get(key);if(c)return c;
+  const d=FIGS[id];c=mk(h+24,h+12);person(c.getContext('2d'),c.width/2,h+8,Math.round(h*(d.k||1)),Object.assign({rim:.14},d.o));
+  FIGC.set(key,c);return c;
+}
+function drawFigs(g,def,figs,wld){
+  const own=def.figs||[];
+  figs.forEach(f=>{
+    if(!f||!FIGS[f.id]||own.indexOf(f.id)>=0)return;
+    const h=Math.max(18,Math.min(58,Math.round(f.h*H*.9))),c=figSprite(f.id,h,wld);
+    const x=Math.round((f.x+f.w/2)*W),yb=Math.round((f.y+f.h)*H)-2;
+    g.drawImage(c,x-c.width/2,yb-(h+8));
+  });
+}
+
 // ───────── 観測センター：事務室 ─────────
-scene('center_office',{worlds:'ABC',name:'観測センター月代分室・事務室',
+scene('center_office',{worlds:'ABC',name:'観測センター月代分室・事務室',figs:['nagi','mido','yuu'],
   // flags.boardBlank：着任初日（2:17 の前）のホワイトボード／違和感探し c2_office の「初日の写真」側も同じ
-  // flags.clockAlt：END B の分室（壁時計の銘が「月代時計」）
-  key(o){return (officeBoardBlank(o)?'bb':'')+(flag2(o,'clockAlt')?'ca':'');},
+  // flags.clockAlt：END B の分室（壁時計の銘が「月代時計」）。opts.zoom==='clock'：壁時計の拡大（銘が読める大きさ）
+  // flags.nagi / mido / yuu：分室にいる人（A のときだけ描く）
+  key(o){return (officeBoardBlank(o)?'bb':'')+(flag2(o,'clockAlt')?'ca':'')+(flag2(o,'nagi')?'n':'')+(flag2(o,'mido')?'m':'')+(flag2(o,'yuu')?'y':'');},
   bg(g,w,o){
     if(w==='A'){room(g,{wall:['#565a78','#4c5070','#3e4260'],floorY:122,floor:['#3a3c52','#2a2a3e','#1e1e2e'],tiles:true,ceil:'#6a6e8a',base:'#2a2a3a'});}
     else if(w==='B'){room(g,{wall:['#6a5a52','#5a4a44','#4a3c38'],wain:['#5a3a26','#4a2e1e'],wainY:88,floorY:122,floor:['#5a3c28','#4a3020','#3a2418'],boards:true,ceil:'#7a6658',base:'#2e1c14'});}
@@ -308,12 +355,12 @@ scene('center_office',{worlds:'ABC',name:'観測センター月代分室・事�
     else{R(g,OL,bx-2,by-2,bw+4,bh+4);R(g,'#5a5e6e',bx,by,bw,bh);line(g,'#3a3e4e',bx,by+6,bx+bw,by+bh-4);tx(bx+3,by+12,4.4,'2:17',{c:'#3a4a7a',a:.6});}
     mark('board',w==='B'?'黒板（本日ノ観測 異常ナシ）':w==='A'&&officeBoardBlank(o)?'ホワイトボード（着任初日：ようこそ／当直表）':'ホワイトボード（2:17 通信障害のメモ）',bx,by,bw,bh);
     // 時計
-    const cx=172,cy=42;
+    const cx=172,cy=43;
     if(w==='B'){R(g,OL,cx-8,cy-11,16,34);R(g,'#5a3a22',cx-7,cy-10,14,32);clock(g,cx,cy-2,6,2,17,{face:'#f0e4c8'});R(g,OL,cx-4,cy+7,8,12);R(g,'#2a1810',cx-3,cy+8,6,10);
       tx(cx,cy+22.5,2.6,'明光舎',{c:'#e8d4a0',al:'center',f:'m'});}
-    else if(w==='A'){clock(g,cx,cy,9,2,17,{sec:12});tx(cx,cy+3,2.2,flag2(o,'clockAlt')?'月代時計':'TSUKUYO',{c:'#6a6a7a',al:'center',f:flag2(o,'clockAlt')?'m':'g'});}
+    else if(w==='A'){clock(g,cx,cy,12,2,17,{sec:12});tx(cx,cy+3.6,3.7,flag2(o,'clockAlt')?'月代時計':'TSUKUYO',{c:'#2e2c40',al:'center',f:flag2(o,'clockAlt')?'m':'g',b:!flag2(o,'clockAlt'),sp:flag2(o,'clockAlt')?0:.15});}
     else{clock(g,cx,cy,9,4,44,{face:'#9a98a8'});crack(g,'#5a5868',cx-6,cy-7,6,4);}
-    mark('clock',w==='A'?(flag2(o,'clockAlt')?'壁の時計（メーカー 月代時計・END B）':'壁の時計（メーカー TSUKUYO・2:17）'):w==='B'?'振り子時計（メーカー 明光舎）':'止まった時計（4:44）',cx-10,cy-11,20,w==='B'?36:22);
+    mark('clock',w==='A'?(flag2(o,'clockAlt')?'壁の時計（メーカー 月代時計・END B）':'壁の時計（メーカー TSUKUYO・2:17）'):w==='B'?'振り子時計（メーカー 明光舎）':'止まった時計（4:44）',cx-13,cy-13,26,w==='B'?36:26);
     // 職員写真
     const px0=190,py0=30;R(g,OL,px0-2,py0-2,52,36);R(g,w==='B'?'#4a3020':'#c8b898',px0-1,py0-1,50,34);R(g,w==='B'?'#3a2618':'#a89878',px0,py0,48,32);
     const staff=[['#2a2030','#d8b8a8','#4a5a7a'],['#5a5a60','#d0b0a0','#6a4a3a'],['#1a1820','#e0c0b0','#2a3a5a'],['#3a2a20','#d8b8a0','#5a6a5a'],['#2a2a3a','#d8c0b0','#3a3a4a'],['#8a8890','#d0b0a0','#4a3a5a']];
@@ -367,6 +414,12 @@ scene('center_office',{worlds:'ABC',name:'観測センター月代分室・事�
     // 椅子
     if(w!=='C'){chair(g,74,124,{c:w==='B'?'#5a3a2a':'#2a2c44'});chair(g,232,124,{c:w==='B'?'#5a3a2a':'#2a2c44'});}
     else{poly(g,'#1a1a28',[70,150,84,140,92,152,78,160]);}
+    // 分室にいる人（聞き込みの相手。座標は各章の調べ物と合わせてある：ユウ x.17〜.29／ナギ x.42〜.52／御堂 x.62〜.74）
+    if(w==='A'){
+      if(flag2(o,'yuu')){staffFig(g,'yuu',74,160,46,'r');mark('yuu','如月ユウ',58,112,32,50);}
+      if(flag2(o,'mido')){staffFig(g,'mido',218,158,46,'l');mark('mido','御堂室長',202,110,32,50);}
+      if(flag2(o,'nagi')){staffFig(g,'nagi',150,158,30,'f');mark('nagi','ナギ',138,126,24,34);}
+    }
     // 手前：自分の机のふち
     if(w!=='C'){const top=w==='B'?'#7a5236':'#8a90a4';poly(g,OL,[60,163,260,163,272,180,48,180]);poly(g,top,[61,164,259,164,270,180,50,180]);R(g,mix(top,'#ffffff',.2),61,164,198,1);
       R(g,OL,96,166,26,12);R(g,P.p1,97,167,24,10);for(let k=0;k<4;k++)R(g,'#8a8a9a',99,169+k*2,16-(k%2)*5,1);line(g,w==='B'?'#2a2a2a':'#2a40a0',124,176,132,168);
@@ -381,11 +434,32 @@ scene('center_office',{worlds:'ABC',name:'観測センター月代分室・事�
     if(w==='A'){if(Math.sin(t*23)>.97&&Math.sin(t*1.3)>.2)R(g,'rgba(10,10,30,.25)',140,6,42,30);
       for(let i=0;i<3;i++){const a=((t*.6+i/3)%1);px(g,`rgba(230,230,240,${(1-a)*.5})`,276+Math.sin(t*2+i)*1.5,103-a*10);}
       R(g,`rgba(120,170,255,${.05+.03*Math.sin(t*3)})`,40,88,70,26);
-      const s=(t|0)%60;clock(g,172,42,9,2,17,{sec:s});}
+      const s=(t|0)%60;clock(g,172,43,12,2,17,{sec:s});}
     if(w==='B'){const sw=Math.sin(t*3.1)*2;R(g,'#2a1810',169,50,6,10);line(g,'#c8a050',172,50,172+sw,56);ell(g,'#e0b860',172+sw,57,1.5,1.5);
       R(g,`rgba(60,255,120,${.04+.02*Math.sin(t*5)})`,48,90,30,22);if((t*2|0)%2)R(g,'#6aff9a',53,100,2,1);
       glow(g,22,110,8+Math.sin(t*7)*1.5,'255,140,60',.12);}
     if(w==='C'){motes(g,t,14,'159,240,224',[20,100,280,80],3);}
+  },
+  // 壁時計の拡大（END A/B/TRUE の帰還で一瞬だけ。END B では銘が「月代時計」）
+  post(ctx,L,w,t,o){
+    if(w!=='A'||!o||o.zoom!=='clock')return;
+    const cw=ctx.canvas.width,ch=ctx.canvas.height;
+    ctx.save();
+    ctx.fillStyle='rgba(6,5,26,.62)';ctx.fillRect(0,0,cw,ch);
+    const cx=172,cy=43,half=15;                        // 拡大する範囲（原寸ドット）
+    const size=Math.round(Math.min(H*L.s*.78,cw*.8)),k=size/(half*2);
+    const dx=Math.round(L.ox+W*L.s/2-size/2),dy=Math.round(L.oy+H*L.s/2-size/2);
+    ctx.imageSmoothingEnabled=false;
+    ctx.beginPath();ctx.arc(dx+size/2,dy+size/2,size/2,0,TAU);ctx.closePath();
+    ctx.save();ctx.clip();
+    ctx.drawImage(FR,cx-half,cy-half,half*2,half*2,dx,dy,size,size);
+    // 銘（拡大後の解像度で）
+    const alt=flag2(o,'clockAlt'),fs=Math.max(10,Math.round(3.7*k*.9));
+    ctx.font=(alt?'':'bold ')+fs+'px '+(alt?FM:FG);ctx.textAlign='center';ctx.textBaseline='top';ctx.fillStyle='#2e2c40';
+    ctx.fillText(alt?'月代時計':'TSUKUYO',dx+size/2,dy+(half+3.6)*k);
+    ctx.restore();
+    ctx.lineWidth=Math.max(2,size/90);ctx.strokeStyle='rgba(159,240,224,.75)';ctx.beginPath();ctx.arc(dx+size/2,dy+size/2,size/2,0,TAU);ctx.stroke();
+    ctx.restore();
   }
 });
 
@@ -458,8 +532,8 @@ scene('center_server',{worlds:'ABC',name:'観測センター・サーバー室',
 });
 
 // ───────── 観測センター：観測装置室 ─────────
-scene('center_lab',{worlds:'ABC',name:'観測センター・観測装置室',
-  key(o){return o&&o.flags&&o.flags.feed?'feed':'';},
+scene('center_lab',{worlds:'ABC',name:'観測センター・観測装置室',figs:['mido','nagi'],
+  key(o){return (o&&o.flags&&o.flags.feed?'feed':'')+(flag2(o,'mido')?'m':'')+(flag2(o,'nagi')?'n':'');},
   bg(g,w,o){
     room(g,w==='B'?{wall:['#2e2a30','#26222a','#1e1a22'],floorY:126,floor:['#2a2420','#221c18','#1a1410'],boards:true,base:'#140e0c'}:w==='C'?{wall:['#121620','#0e121a','#0a0c14'],floorY:126,floor:['#141820','#0e1218','#0a0c10'],base:'#08080c'}:{wall:['#161c34','#121830','#0e1226'],floorY:126,floor:['#1a2036','#141a2c','#0e1220'],tiles:true,base:'#0a0c18'});
     const D={};
@@ -483,6 +557,11 @@ scene('center_lab',{worlds:'ABC',name:'観測センター・観測装置室',
     if(w==='C'){crack(g,OL,ax-10,ay-30,14,3);poly(g,'#0a0c10',[ax+8,ay-31,ax+26,ay-20,ax+18,ay-8]);}
     mark('apparatus','観測装置（リング）',ax-30,ay-34,60,58);
     D.ring={ax,ay};
+    // 部屋にいる人（聞き込みの相手：御堂 x.64〜.74）
+    if(w==='A'){
+      if(flag2(o,'mido')){staffFig(g,'mido',221,136,50,'l');mark('mido','御堂室長',205,84,32,54);}
+      if(flag2(o,'nagi')){staffFig(g,'nagi',96,140,30,'r');mark('nagi','ナギ',84,108,24,34);}
+    }
     // 操作卓（手前）
     poly(g,OL,[34,150,286,150,300,180,20,180]);poly(g,w==='B'?'#5a4a36':'#2a3048',[36,151,284,151,297,180,23,180]);
     R(g,w==='B'?'#7a6648':'#3a4260',36,151,248,2);
@@ -2351,7 +2430,7 @@ function draw(ctx,id,world,t,opts){
     const def=SC[id];const e=getStatic(id,ww.w,o);
     const g=frame();g.globalCompositeOperation='source-over';g.globalAlpha=1;g.clearRect(0,0,W,H);g.drawImage(e.c,0,0);
     const prev=S;S={txt:[],mk:[],w:ww.w,o,stab:e.sb};let dyn;
-    try{if(def.fx)def.fx(g,ww.w,t,o,e.data);dyn=S.txt;}finally{S=prev;}
+    try{if(def.fx)def.fx(g,ww.w,t,o,e.data);if(o.figs&&o.figs.length&&!o.thumb)drawFigs(g,def,o.figs,ww.w);dyn=S.txt;}finally{S=prev;}
     drift(g,id,e.sb,t);
     if(ww.fb)tintFallback(g,ww.fb);
     if(o.dark)darkness(g,o);

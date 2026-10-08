@@ -324,6 +324,58 @@ test('探索：目的の文は関数でもよい・ready で「調査を終え�
   assert.equal(KY.exReady({}), false);
 });
 
+test('探索：任意の調べ物が残っているのに「調査を終える」→ ゲーム内の確認（戻る／終える）で残りを見せる', async () => {
+  const { KY } = load();
+  addArea(KY);
+  KY.equip('phone');
+  const opts = { ready: K => K.got('e_look'), goal: K => K.got('e_look') && K.got('e_photo'), areas: ['t_area'],
+    pending: K => (K.got('e_photo') ? [] : ['駅名標の写真']) };
+  assert.deepEqual(Array.from(KY.exPending(opts)), ['駅名標の写真']);
+  // 1回目は「戻る」（0）→ 探索が続く。地図からの「調査を終える」でも同じ確認。2回目は「終える」（1）
+  KY._auto.choices.push(0, 1);
+  KY._auto.explore.push({ area: 't_area' }, { act: 'look', spot: 's1' }, { nav: 'finish' }, { act: 'look', spot: 'p1' }, { nav: 'map' }, { nav: 'finish' });
+  await KY.explore(opts);
+  const asked = KY._auto.log.filter(l => /^choice:まだ調べられる場所があります：駅名標の写真。/.test(l));
+  assert.equal(asked.length, 2, '終える前に 2 回確認した');
+  assert.ok(/本当に調査を終えますか/.test(asked[0]));
+  assert.equal(KY._auto.explore.length, 0, '「戻る」のあとも探索が続いた');
+  assert.ok(KY.got('e_look') && !KY.got('e_photo'));
+  // 残りが無ければ確認なしで終わる
+  const n = KY._auto.log.length;
+  KY._auto.explore.push({ area: 't_area' }, { act: 'photo', spot: 's1' });
+  await KY.explore(opts);
+  assert.ok(KY.got('e_photo'));
+  assert.equal(await KY.exConfirmFinish(opts), true);
+  assert.ok(!KY._auto.log.slice(n).some(l => /^choice:まだ調べられる/.test(l)));
+  assert.deepEqual(Array.from(KY.exPending({})), []);
+});
+
+test('オートセーブ：証拠・手帳・フラグ（推理の結果）でも少しまとめて書く・本編のキーには触れない', async () => {
+  const { KY, LS } = load();
+  KY._G.running = true;
+  KY.gain('e_new'); KY.gain('e_new2'); KY.note('person', 'nagi', { title: 'ナギ' }); KY.flag('myst_nagi', true);
+  assert.equal(LS.getItem('kyokai_save_v1'), null, 'すぐには書かない（まとめる）');
+  await new Promise(r => setTimeout(r, 420));
+  const s = JSON.parse(LS.getItem('kyokai_save_v1'));
+  assert.deepEqual(Array.from(s.evidence), ['e_new', 'e_new2']);
+  assert.equal(s.flags.myst_nagi, true); assert.ok(s.notebook.person.nagi);
+  // まとめて 1 回だけ書く
+  let writes = 0; const set0 = LS.setItem; LS.setItem = (k, v) => { writes++; set0(k, v); };
+  KY.gain('e3'); KY.flag('x1', 1); KY.flag('x2', 2); KY.unflag('x1');
+  await new Promise(r => setTimeout(r, 420));
+  assert.equal(writes, 1);
+  // 値が変わらないフラグ・読むだけの呼び出しでは書かない
+  writes = 0; KY.flag('x2', 2); KY.flag('x2'); KY.got('e3');
+  await new Promise(r => setTimeout(r, 420));
+  assert.equal(writes, 0);
+  // タイトルへ戻ったら（進行が止まったら）書かない
+  KY._abort();
+  KY.gain('e4');
+  await new Promise(r => setTimeout(r, 420));
+  assert.ok(!JSON.parse(LS.getItem('kyokai_save_v1')).evidence.includes('e4'), '進行していないときは書かない');
+  for (const k of LS._m.keys()) assert.ok(!/^dannoura_/.test(k), '本編のキーに書かない ' + k);
+});
+
 test('追跡・違和感探し・エンディング', async () => {
   const { KY, LS } = load();
   addArea(KY);

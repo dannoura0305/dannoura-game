@@ -72,7 +72,7 @@ function makeK(env, opt) {
           if (a[0] === 'fx' && !FX.has(a[1])) log.problems.push('未知のfx ' + s);
           if (a[0] === 'se' && !SE.has(a[1])) log.problems.push('未知のse ' + s);
           if (a[0] === 'amb' && !AMB.has(a[1])) log.problems.push('未知のamb ' + s);
-          if (!['scene', 'fx', 'se', 'amb', 'wait', 'face', 'mainui', 'world'].includes(a[0])) log.problems.push('未知の演出 ' + s);
+          if (!['scene', 'fx', 'se', 'amb', 'wait', 'face', 'mainui', 'world', 'stage'].includes(a[0])) log.problems.push('未知の演出 ' + s);
           continue;
         }
         if (!/^[npymgksdctx]:/.test(s)) log.problems.push('話者の接頭辞が無い行 ' + s);
@@ -96,8 +96,10 @@ function makeK(env, opt) {
     async step(id, fn) { return fn(); },
     async explore(def) {
       const tried = new Set();
+      log.explores = (log.explores || []).concat([{ ch: curCh, pending: def.pending ? def.pending(K) : null, hint: typeof def.hint === 'function' ? def.hint(K) : def.hint }]);
+      const th = opt.thorough || !!(opt.thoroughIf && opt.thoroughIf(def, K));
       for (let pass = 0; pass < 40; pass++) {
-        if (!opt.thorough && (def.goal(K) || (def.ready && def.ready(K)))) return;
+        if (!th && (def.goal(K) || (def.ready && def.ready(K)))) return;
         let progressed = false;
         for (const aid of def.areas || Object.keys(KY.AREAS)) {
           const a = KY.AREAS[aid]; if (!a) continue;
@@ -110,7 +112,7 @@ function makeK(env, opt) {
                 if (tried.has(key) || !sp.on || !sp.on[act]) continue;
                 tried.add(key); progressed = true;
                 await sp.on[act](K);
-                if (!opt.thorough && (def.goal(K) || (def.ready && def.ready(K)))) return;
+                if (!th && (def.goal(K) || (def.ready && def.ready(K)))) return;
               }
             }
           }
@@ -210,6 +212,22 @@ await test('END A：本編クリア済みでも、寄り道せず謎を解き残
   assert.deepEqual(r.log.problems, []);
   assert.ok(r.env.KY.part2.mysteries(r.K) < 4, '最短では謎が4つ未満');
   assert.deepEqual(r.log.endings, ['A']);
+});
+
+await test('「調査を終える」で任意の謎を残すと確認が出る（pending）・最終章の前の最後の機会で取り戻せば TRUE', async () => {
+  // 第十二・十三章は必要な調べ物だけで「調査を終える」、最後の機会（第十三章の終わり）だけ寄り道する
+  const r = await playthrough(MAIN_CLEARED(), { thorough: false, thoroughIf: def => /最終章の前に/.test(typeof def.hint === 'function' ? def.hint({ has: () => false, got: () => false, get: () => undefined }) : String(def.hint)) });
+  assert.deepEqual(r.log.problems, []);
+  const e12 = r.log.explores.find(e => e.ch === 12), e13 = r.log.explores.filter(e => e.ch === 13);
+  assert.ok(e12 && e12.pending.length === 2 && e12.pending.some(t => /ナギ/.test(t)) && e12.pending.some(t => /シロ/.test(t)), '第十二章：ナギ・シロが残っていると分かる');
+  assert.ok(e13[0].pending.length === 1 && /机/.test(e13[0].pending[0]), '第十三章：写真立てが残っていると分かる');
+  assert.ok(e13.some(e => /最終章の前に/.test(e.hint)), '最後の機会が開く');
+  for (const f of ['myst_nagi', 'myst_shiro', 'myst_kujo', 'd13_last_done']) assert.ok(r.S.flags[f], f);
+  assert.ok(r.env.KY.part2.mysteries(r.K) >= 4);
+  assert.deepEqual(r.log.endings, ['TRUE']);
+  // 全部済ませていれば、最後の機会は出ない
+  const r2 = await playthrough(MAIN_CLEARED(), { thorough: true });
+  assert.ok(!r2.S.flags.d13_last, '寄り道を済ませた人には最後の機会を出さない');
 });
 
 await test('END B：帰り道を「ユウの声」で選ぶ／安定度が低い／何度もずれた', async () => {

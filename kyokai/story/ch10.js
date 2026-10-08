@@ -33,7 +33,7 @@
           scan: async function (K) { await K.say(['#se beep', 't:体温 36.4℃／脈拍 72', 't:境界反応：足元（影）のみ B側 2.2', 'p:影だけが、別の世界に傾いている。']); K.gain('d10_shadow_scan'); },
           record: async function (K) { await K.say(['#se rec', 'x:坂口|録るの？　……三代続いた時計屋だ。ちゃんと残してくれよ。']); }
         } },
-      { id: 'd10_rumor', x: .5, y: .45, w: .16, h: .38, label: '柏木さん', acts: ['talk'], cond: IN10,
+      { id: 'd10_rumor', obj: 'shopkeeper', x: .5, y: .45, w: .16, h: .38, label: '柏木さん', acts: ['talk'], cond: IN10,
         on: { talk: async function (K) { await K.say(['x:柏木|坂口さん？　……昨日まで八百屋だったよね。私だけ？', 'x:柏木|今朝、商店会の名簿見たら「坂口時計店」って印刷されてるの。紙ごと。', 'x:柏木|怖いのはさ、坂口さん本人が全然困ってないことよ。']); } } },
     ] },
     B: { scene: 'shotengai', spots: [

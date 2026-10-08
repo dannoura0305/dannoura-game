@@ -67,7 +67,7 @@ function makeK(env, full) {
           if (a[0] === 'se' && !SE.has(a[1])) log.problems.push(`${cur}: 未知のse ${s}`);
           if (a[0] === 'amb' && !AMB.has(a[1])) log.problems.push(`${cur}: 未知のamb ${s}`);
           if (a[0] === 'world') { S.world = a[1]; S.baseWorld = a[1]; }
-          if (!['scene', 'fx', 'se', 'amb', 'wait', 'face', 'mainui', 'world'].includes(a[0])) log.problems.push(`${cur}: 未知の演出 ${s}`);
+          if (!['scene', 'fx', 'se', 'amb', 'wait', 'face', 'mainui', 'world', 'stage'].includes(a[0])) log.problems.push(`${cur}: 未知の演出 ${s}`);
           continue;
         }
         if (!/^[npymgksdctx]:/.test(s)) log.problems.push(`${cur}: 話者の接頭辞が無い行 ${s}`);

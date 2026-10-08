@@ -8,6 +8,17 @@
   'use strict';
   var KY = window.KY, P2 = KY.part2;
   var IN12 = function (K) { return K.has('ch12') && !K.has('ch12_done'); };
+  // 最後の機会（第十三章の終わり、最終章の前）：取り逃した任意の謎（ナギ・シロ・九条）をもう一度調べられる間
+  P2.lastChance = function (K) { return K.has('d13_last') && !K.has('d13_last_done'); };
+  var OPT12 = function (K) { return IN12(K) || P2.lastChance(K); };
+  // まだ解いていない任意の謎（TRUE END 用）。「調査を終える」の確認と、目的の表示に使う
+  P2.optLeft = function (K, withKujo) {
+    var a = [];
+    if (!K.has('myst_nagi')) a.push(K.got('d12_nagi_home') ? '分室のナギ（家のことを伝える）' : 'ナギの家（別の歴史（B）の住宅街・三丁目十四番の家を撮影）');
+    if (!K.has('myst_shiro')) a.push('観測装置室のシロ（三つの世界から同時にスキャン）');
+    if (withKujo && !K.has('myst_kujo')) a.push('旧研究施設・別の歴史（B）の机');
+    return a;
+  };
 
   P2.area('bureau', { name: '境界現象対策局', worlds: { C: { scene: 'bureau', spots: [
     { id: 'd12_reg', obj: 'observer_panel', x: .2, y: .4, w: .26, h: .32, label: '観測者名簿', acts: ['look', 'scan'], cond: IN12,
@@ -39,15 +50,16 @@
       } } },
   ] } } });
   P2.area('residential', { name: '住宅街', worlds: { B: { scene: 'residential', spots: [
-    { id: 'd12_nagihome', obj: 'house_2', x: .4, y: .35, w: .22, h: .4, label: '三丁目十四番の家', acts: ['look', 'photo'], cond: IN12,
+    { id: 'd12_nagihome', obj: 'house_2', x: .4, y: .35, w: .22, h: .4, label: '三丁目十四番の家', acts: ['look', 'photo'], cond: OPT12,
       on: {
         look: async function (K) { await K.say(['n:こちらの世界では売家の前の空き地だった場所に、二階建ての家がある。', 'n:表札。窓辺に「月代鉄道」の時刻表。物干しに、小さな体操服。', 'n:台所の窓に、人影。誰かが夕飯を作っている。']); },
         photo: async function (K) { await K.say(['#se shutter', 'n:家を撮った。']); K.gain('d12_nagi_home'); }
       } },
   ] } } });
   P2.area('center_office', { name: '観測センター 分室', worlds: { A: { scene: 'center_office', spots: [
-    { id: 'd12_nagi', x: .62, y: .45, w: .16, h: .4, label: 'ナギ', acts: ['talk'], cond: function (K) { return IN12(K) && !K.has('myst_nagi'); },
+    { id: 'd12_nagi', fig: 'nagi', x: .42, y: .66, w: .1, h: .26, label: 'ナギ', acts: ['talk'], cond: OPT12,
       on: { talk: async function (K) {
+        if (K.has('myst_nagi')) { await K.say(['g:お母さんの晩ごはん、今日はなにかな。', 'n:ナギは窓の外を見ながら、足をぶらぶらさせている。']); return; }
         if (!K.got('d12_nagi_home')) { await K.say(['g:お母さん、ナギのこと探してるかな。', 'p:……きっと。', 'n:ナギの家は、別の世界の三丁目十四番にある――はずだ。']); return; }
         await K.say(['p:ナギさん。家、見てきたよ。', 'g:……ほんと？', 'p:窓に時刻表が貼ってあった。台所に、誰かいた。', 'g:お母さんだ。', 'n:ナギは膝を抱えて、少しだけ泣いた。',
           'g:ねえ。テレビの人のこと、見てるもう一人の人、知ってる？', 'p:もう一人？', 'g:よんよんよんの人。テレビの人も、ナギのことも、町のことも、ぜんぶ見てる。', 'g:でも、どこにもいないの。駅にも、学校にも、どっちの町にも。',
@@ -57,7 +69,7 @@
       } } },
   ] } } });
   P2.area('center_lab', { name: '観測装置室', worlds: { A: { scene: 'center_lab', spots: [
-    { id: 'd12_shiro', obj: 'apparatus', x: .1, y: .55, w: .18, h: .3, label: 'シロ', acts: ['look', 'scan'], cond: function (K) { return IN12(K) && !K.has('myst_shiro'); },
+    { id: 'd12_shiro', obj: 'apparatus', x: .1, y: .55, w: .18, h: .3, label: 'シロ', acts: ['look', 'scan'], cond: function (K) { return OPT12(K) && !K.has('myst_shiro'); },
       on: {
         look: async function (K) { await K.say(['s:きゅ。', 'n:シロが装置の上で、こちらを見ている。輪郭が、いつもより少しだけはっきりしている。']); },
         scan: async function (K) {
@@ -113,13 +125,15 @@
           if (!K.got('d12_registry')) need.push('対策局（C）の観測者名簿');
           if (!K.got('d12_kujo_list')) need.push('旧研究施設の誰もいない側（C）の研究ノートを撮影');
           if (!K.got('d12_444_streams')) need.push('サーバー室の接続履歴');
-          if (!K.has('myst_nagi')) opt.push(K.got('d12_nagi_home') ? '分室のナギに、家のことを伝える' : 'ナギの家を、別の歴史（B）の住宅街で確かめる');
+          if (!K.has('myst_nagi')) opt.push(K.got('d12_nagi_home') ? '分室のナギに、家のことを伝える' : 'ナギの家を、別の歴史（B）の住宅街で確かめる（三丁目十四番の家を撮影）');
           if (!K.has('myst_shiro')) opt.push('観測装置室でシロを三つの世界から同時にスキャンする');
           if (need.length) return '444番の観測者を追う：' + need.join('・') + (opt.length ? '（気になること：' + opt.join('／') + '）' : '');
           return '記録はそろった。「調査を終える」で先へ進む' + (opt.length ? '（その前に：' + opt.join('／') + '）' : '');
         },
         areas: ['bureau', 'old_lab', 'center_server', 'center_office', 'center_lab', 'residential', 'empty_town'],
         ready: need12,
+        pending: function (K) { return P2.optLeft(K, false); },
+        pendingNote: '（ナギとシロのことは、真相に関わるかもしれない）',
         goal: function (K) { return need12(K) && K.has('myst_nagi') && K.has('myst_shiro'); }
       });
     });

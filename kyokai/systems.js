@@ -346,7 +346,7 @@
         const list = KY.exploreAreas(opts);
         const id = next || (list.length === 1 && !opts.mapAlways && !EX.wasIn ? list[0] : await UI().exMap(opts, list));
         next = null;
-        if (id === FINISH && KY.exReady(opts)) break;
+        if (id === FINISH && KY.exReady(opts)) { if (await KY.exConfirmFinish(opts)) break; continue; }
         if (!id || !KY.AREAS[id]) continue;
         const r = await areaLoop(id, opts, goal);
         EX.wasIn = true;
@@ -366,6 +366,28 @@
   KY.exReady = function (opts) {
     if (!opts || typeof opts.ready !== 'function') return false;
     try { return !!opts.ready(G.K || KY); } catch (e) { console.error('[KY] explore ready', e); return false; }
+  };
+  // pending：K=>[文字列]。まだ調べられる任意の調べ物（TRUE END に関わる謎など）。残っているのに「調査を終える」を押すと、
+  // ゲーム内の確認（戻る／終える）を出して、何が残っているかを見せる（うっかり取り逃さないため）。
+  KY.exPending = function (opts) {
+    if (!opts || typeof opts.pending !== 'function') return [];
+    try { const r = opts.pending(G.K || KY); return Array.isArray(r) ? r.filter(Boolean).map(String) : []; } catch (e) { console.error('[KY] explore pending', e); return []; }
+  };
+  KY.exConfirmFinish = async function (opts) {
+    const left = KY.exPending(opts);
+    if (!left.length) return true;
+    const v = await KY.choice('まだ調べられる場所があります：' + left.join('／') + '。\n本当に調査を終えますか？' + (opts.pendingNote ? '\n' + opts.pendingNote : ''), [
+      { t: '戻る', v: 'back', s: '調査を続ける' },
+      { t: '終える', v: 'end', s: '残りは調べないまま先へ進む' },
+    ]);
+    return v === 'end';
+  };
+  // 場面に人物を描く：調べ物に fig:'nagi'|'mido'|'yuu' を置くと、その調べ物が出ている間、場面の絵に opts.flags.<fig> が渡る
+  // （聞き込みの相手が絵にいない、を防ぐ。会話の場面では #stage nagi on/off で同じ絵を出せる）
+  KY.figOpts = function (areaId, w) {
+    const f = {}, figs = [];
+    spotsOf(areaId, w).forEach(sp => { if (sp.fig) { f[sp.fig] = true; figs.push({ id: sp.fig, x: sp.x, y: sp.y, w: sp.w, h: sp.h }); } });
+    return figs.length ? { flags: f, figs } : {};
   };
   // 目的の表示：hint は文字列か K=>文字列（進み具合で変わる目的）
   KY.hintText = function (opts) {
@@ -392,7 +414,7 @@
       for (;;) {
         dangerLayer(KY.dangerOf(id, s.world));
         const W = a.worlds[s.world] || {};
-        KY.stageOpts({});
+        KY.stageOpts(KY.figOpts(id, s.world));
         KY.scene(W.scene || id, s.world);
         await KY._flush();
         if (G.slipNow) return 'slip';
@@ -400,7 +422,7 @@
         const it = await UI().exArea(id, opts);
         if (!it) continue;
         if (it.nav === 'map') return 'map';
-        if (it.nav === 'finish' && KY.exReady(opts)) return 'finish';
+        if (it.nav === 'finish' && KY.exReady(opts)) { if (await KY.exConfirmFinish(opts)) return 'finish'; continue; }
         if (it.nav === 'switch') {
           const r = KY.switchWorld(id, it.to);
           if (!r.ok) { KY.se('error'); await KY.say(['n:' + r.reason]); }

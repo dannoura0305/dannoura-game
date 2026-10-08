@@ -34,13 +34,37 @@
         } } },
     ] },
     B: { scene: 'old_lab', spots: [
-      { id: 'd13_frame', obj: 'family_photo', x: .7, y: .45, w: .2, h: .3, label: '机の写真立て', acts: ['look', 'photo'], cond: IN13,
+      { id: 'd13_frame', obj: 'family_photo', x: .7, y: .45, w: .2, h: .3, label: '机の写真立て', acts: ['look', 'photo'], cond: function (K) { return IN13(K) || (P2.lastChance(K) && !K.has('myst_kujo')); },
         on: {
           look: async function (K) { await K.say(['n:前に来たとき、指が通り抜けた写真立て。同期Lv4の今なら、手に取れる。', 'n:白衣の男性と、女性と、小さな男の子。三人とも笑っている。', 'n:白衣の名札。「九条」。', 'n:裏に日付。この世界の、去年の夏。']); },
           photo: async function (K) { await K.say(['#se shutter']); K.gain('d13_family'); }
         } },
     ] },
   } });
+
+  // 九条の目的の推理（第十三章の探索のあと／最後の機会で写真立てを見たあと）
+  async function kujoMotive(K) {
+    var ok = await K.deduce({
+      id: 'd13_motive',
+      q: '九条は、無数の世界を観測して何を探しているのか',
+      options: [
+        { id: 'power', text: '境界を支配する方法', need: ['d13_kujo_terminal'], refute: ['d13_search_log'] },
+        { id: 'study', text: '純粋な研究の対象', need: ['d13_kujo_terminal'], refute: ['d13_family'] },
+        { id: 'family', text: '家族を失わなかった世界', need: ['d13_search_log', 'd13_family'] },
+      ],
+      answer: 'family',
+      hint: {
+        power: 'それなら記録の末尾がすべて「家族：在／不在」である必要はない。',
+        study: '研究のためだけに、写真立てを伏せて置いていくか？',
+      },
+      link: 2,
+    });
+    if (ok) {
+      K.flag('myst_kujo', true);
+      await K.say(['p:家族が生きている世界を探していた。四千以上も。', 'p:見つけた一つには――九条さん自身が、いなかった。', 'y:……そこへは、行けないな。行ったら、その世界の何かを壊す。']);
+      K.note('person', 'kujo_p', { title: '九条シン', text: '家族を失わなかった世界を探して、四千以上の世界を観測した。家族が生きている世界は一つだけ。そこには九条自身がいなかった。', solved: true });
+    }
+  }
 
   /* ── 第十三章 ── */
   window.KY_STORY.register('ch13', async function (K) {
@@ -73,30 +97,12 @@
         },
         areas: ['old_lab', 'center_office', 'empty_town'],
         ready: need13,
+        pending: function (K) { return K.got('d13_family') ? [] : ['旧研究施設・別の歴史（B）の机']; },
+        pendingNote: '（九条さんが何を探しているのか、分かるかもしれない）',
         goal: function (K) { return need13(K) && K.got('d13_family'); }
       });
-      if (K.got('d13_family')) {
-        var ok = await K.deduce({
-          id: 'd13_motive',
-          q: '九条は、無数の世界を観測して何を探しているのか',
-          options: [
-            { id: 'power', text: '境界を支配する方法', need: ['d13_kujo_terminal'], refute: ['d13_search_log'] },
-            { id: 'study', text: '純粋な研究の対象', need: ['d13_kujo_terminal'], refute: ['d13_family'] },
-            { id: 'family', text: '家族を失わなかった世界', need: ['d13_search_log', 'd13_family'] },
-          ],
-          answer: 'family',
-          hint: {
-            power: 'それなら記録の末尾がすべて「家族：在／不在」である必要はない。',
-            study: '研究のためだけに、写真立てを伏せて置いていくか？',
-          },
-          link: 2,
-        });
-        if (ok) {
-          K.flag('myst_kujo', true);
-          await K.say(['p:家族が生きている世界を探していた。四千以上も。', 'p:見つけた一つには――九条さん自身が、いなかった。', 'y:……そこへは、行けないな。行ったら、その世界の何かを壊す。']);
-          K.note('person', 'kujo_p', { title: '九条シン', text: '家族を失わなかった世界を探して、四千以上の世界を観測した。家族が生きている世界は一つだけ。そこには九条自身がいなかった。', solved: true });
-        }
-      } else {
+      if (K.got('d13_family')) await kujoMotive(K);
+      else {
         await K.say(['p:九条さんが何を探しているのか。……まだ、分からない。']);
       }
     });
@@ -138,6 +144,28 @@
       await K.say(['#fx glitch', '#se static', 'n:九条の輪郭がぶれた。', 'k:明日の 2時17分。来るなら、シロを連れておいで。あれは迷わない。', 'n:そう言って、彼は崩れた壁の向こうへ、歩いて消えた。']);
       K.note('person', 'kujo_view', { title: '九条への態度', text: v === 'stop' ? '止めるべきだと伝えた。' : v === 'understand' ? '理解できると伝えた。' : 'まだ判断できないと伝えた。' });
       K.flag('ch13_done', true);
+    });
+
+    // 最後の機会：第十二・十三章で取り逃した任意の謎（ナギ・シロ・九条）を、最終章の前にもう一度だけ調べられる
+    await K.step('d13_last', async function () {
+      var left = function (K) { return P2.optLeft(K, true); };
+      if (!left(K).length) return;
+      K.flag('d13_last', true);
+      await K.say(['#scene center_office A', '#amb clock',
+        'n:分室に戻ると、窓の外はもう暗かった。',
+        'y:2時17分まで、まだ丸一日ある。', 'y:……気になってることが残ってるなら、今のうちに片づけておけ。向こうへ行ったら、戻ってこられる保証はない。',
+        'n:（最終章の前に、やり残した調べ物ができる。準備ができたら「調査を終える」）']);
+      await K.explore({
+        hint: function (K) { var a = left(K); return a.length ? '最終章の前に（任意）：' + a.join('／') : 'やり残しはない。'; },
+        areas: ['center_office', 'center_lab', 'residential', 'old_lab'],
+        start: 'center_office',
+        ready: function () { return true; },
+        pending: left,
+        pendingNote: '（最終章が始まると、もう調べられない）',
+        goal: function (K) { return !left(K).length; }
+      });
+      if (K.got('d13_family') && !K.has('myst_kujo')) await kujoMotive(K);
+      K.flag('d13_last_done', true);
     });
   });
 })();
