@@ -237,7 +237,12 @@
     await K.step('c6_basement', async () => {
       await K.say(['#scene center_basement A', '#amb wire', 'n:分室の地下通路。蛍光灯が一本、ちらついている。', 'n:突き当たりに「第二観測室」。電子錠の赤いランプ。', 'y:世界を切り替えて、三つとも見てみろ。同じ通路でも、たぶん違う。']);
       await K.explore({ goal: K => K.has('basement_open'),
-        hint: '第二観測室を開ける：A＝電気あり・扉は施錠／B＝停電・扉は開いている／C＝壁が崩れている。三つの世界を行き来する', areas: ['center_basement'], start: 'center_basement' });
+        hint: K => K.has('c6_lock_cut')
+          ? (inRoom(K) ? '錠の電気は切れた。壁が崩れている層（C）に切り替えて穴から通路へ戻り、Aの扉を開ける' : '錠の電気は切れた。電気のある層（A）で第二観測室の扉を調べる')
+          : inRoom(K)
+            ? (K.got('c6_breaker_diagram') ? '配電室の中：電気が生きている層（A）に切り替え、配電図どおりにブレーカーを落とす' : '配電室の中：層を切り替えて、どのブレーカーが錠の系統か分かるもの（配電図）を探す')
+            : '第二観測室を開ける：A＝電気あり・扉は施錠／B＝停電・扉は開いている／C＝壁が崩れている。三つの世界を行き来する',
+        areas: ['center_basement'], start: 'center_basement' });
     });
 
     await K.step('c6_room', async () => {

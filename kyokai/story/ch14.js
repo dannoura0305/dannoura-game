@@ -14,7 +14,13 @@
   P2.stab = function (K) {
     try { var v = +(K.state && K.state.stability); return isFinite(v) ? v : 100; } catch (e) { return 100; }
   };
-  P2.slipped = function (K) { var v = +K.get('slipped'); return isFinite(v) ? v : 0; };
+  // END B に数える「押し戻された回数」は第十二章から（序盤・中盤の事故で END B にならないように）。
+  // 第十二章の冒頭で slip_base に、それまでの回数を控えておく。
+  P2.slipped = function (K) {
+    var v = +K.get('slipped'), b = +K.get('slip_base');
+    v = isFinite(v) ? v : 0; b = isFinite(b) ? b : 0;
+    return Math.max(0, v - b);
+  };
 
   /* ── 混ざり合う月代町（危険度5） ── */
   P2.area('collapse', {
@@ -136,7 +142,7 @@
   /* ── 境界核 ── */
   var SEP = [
     { obj: '十円玉。刻印は「昭和九十五年」', ans: 'B' },
-    { obj: '丸い壁時計。文字盤の下に「常盤時計」', ans: 'A' },
+    { obj: '丸い壁時計。文字盤に「TSUKUYO」', ans: 'A' },
     { obj: '2時17分で止まった腕時計。持ち主の姿はない', ans: 'C' },
     { obj: '硬券「月代鉄道 月代→海浜公園」', ans: 'B' },
     { obj: 'ホワイトボードのメモ「2:17 通信障害」。私の字だ', ans: 'A' },

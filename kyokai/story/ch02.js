@@ -116,6 +116,7 @@
           { x: 0.500, y: 0.078, r: 0.08, label: '室名の札：「月代分室」が「國立 月代觀測所」に' },
           { x: 0.810, y: 0.240, r: 0.06, label: 'カレンダー：「令和八年」が「昭和百一年」に' },
           { x: 0.200, y: 0.570, r: 0.08, label: '端末：液晶モニターがブラウン管に' },
+          { x: 0.410, y: 0.270, r: 0.065, label: '板書：ホワイトボードが黒板に（「本日ノ観測 異常ナシ」）' },
         ] });
       K.flag('c2_spot_done');
       await K.say(['p:時計。室名。カレンダーの年号――昭和百一年。端末も古い。それに、職員写真が一枚多い。', 'n:顔を上げて、実際の分室を見る。', 'n:液晶モニター。TSUKUYO の時計。「特殊現象観測センター 月代分室」。令和八年のカレンダー。', 'n:目の前の部屋は、何も変わっていない。', 'n:写真だけが、知らない分室を写している。', 'y:……昭和百一年なんて年は、ない。', 'p:昭和は六十四年で終わっています。', 'y:じゃあ、これはどこの分室だ。', 'n:誰も答えなかった。私は職員写真の右下――写真の中で白髪の誰かが収まっていた、空き枠を見た。']);
@@ -124,7 +125,16 @@
 
     await K.step('c2_log', async () => {
       await K.explore({ goal: K => K.got('c2_staff_photo') && K.has('c2_meter') && K.got('c2_user444') && K.got('c2_meter_reading'),
-        hint: '四枚目の職員写真を調べる／御堂室長と話す／新しい端末で写真をスキャン／サーバー室のログを確かめる', areas: ['center_office', 'center_server', 'center_lab'] });
+        hint: K => {
+          const left = [];
+          if (!K.got('c2_staff_photo')) left.push('職員写真の空き枠を調べる');
+          if (!K.has('c2_meter')) left.push('御堂室長と話す');
+          else {
+            if (!K.got('c2_meter_reading')) left.push('もらった境界測定端末で職員写真をスキャン');
+            if (!K.got('c2_user444')) left.push('サーバー室のログ端末をもう一度確かめる');
+          }
+          return left.join('／');
+        }, areas: ['center_office', 'center_server', 'center_lab'] });
     });
 
     await K.step('c2_deduce', async () => {

@@ -60,7 +60,14 @@
 
     await K.step('d11_gather', async function () {
       await K.explore({
-        hint: '分室の受動観測アーカイブと、第七章の録画を調べ直す',
+        hint: function (K) {
+          var left = [];
+          if (!K.got('d11_obs_log')) left.push('サーバー室の受動観測アーカイブを調べる');
+          else if (!K.got('d11_test_strings')) left.push('アーカイブをもう一度調べる（同じフォルダに、まだ記録がある）');
+          else if (!K.got('d11_missing')) left.push('アーカイブをもう一度調べて、送信記録を検索する');
+          if (!K.got('d11_counter')) left.push('観測装置室の操作卓で第七章の録画をコマ送りし、そのコマを撮影する');
+          return '受動観測と、第七章の録画を調べ直す：' + left.join('／');
+        },
         areas: ['center_server', 'center_lab', 'center_office'],
         goal: function (K) { return K.got('d11_obs_log') && K.got('d11_test_strings') && K.got('d11_counter') && K.got('d11_missing'); }
       });

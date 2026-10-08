@@ -61,10 +61,19 @@
     });
 
     await K.step('d13_lab', async function () {
+      // 必要：九条の端末（調べる＋スキャン）。任意（TRUE 用）：別の歴史（B）の写真立て。
+      // 旧研究施設は A に調べる物がない。「境界観測」で C に切り替えるところまで目的に書く。
+      var need13 = function (K) { return K.got('d13_kujo_terminal') && K.got('d13_search_log'); };
       await K.explore({
-        hint: '旧研究施設の誰もいない側（C）で九条の端末を調べる。別の歴史（B）の研究室にも何かあるかもしれない',
+        hint: function (K) {
+          var opt = K.got('d13_family') ? '' : '（別の歴史（B）の研究室の机にも、何かあるかもしれない）';
+          if (!K.got('d13_kujo_terminal')) return '旧研究施設で「境界観測」を押し、誰もいない側（C）に切り替えて、九条の端末を調べる' + opt;
+          if (!K.got('d13_search_log')) return '九条の端末を「スキャン」して、探索の記録を読む（電力が尽きたら分室で補給）' + opt;
+          return '端末の記録はそろった。「調査を終える」で先へ進む' + (opt ? '（その前に：別の歴史（B）の研究室の机を確かめられる）' : '');
+        },
         areas: ['old_lab', 'center_office', 'empty_town'],
-        goal: function (K) { return K.got('d13_kujo_terminal') && K.got('d13_search_log'); }
+        ready: need13,
+        goal: function (K) { return need13(K) && K.got('d13_family'); }
       });
       if (K.got('d13_family')) {
         var ok = await K.deduce({

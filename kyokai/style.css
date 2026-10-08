@@ -282,6 +282,7 @@ button { font: inherit; color: inherit; }
 .nav-btn .ic { color: var(--cy); font-size: 15px; width: 18px; height: 18px; line-height: 18px; text-align: center; }
 .nav-btn.switch { border-color: rgba(255, 255, 255, .5); color: #fff; background: linear-gradient(180deg, rgba(80, 100, 140, .35), rgba(20, 30, 60, .6)); }
 .nav-btn.switch .ic { color: #fff; }
+.nav-btn.finish { border-color: var(--cy); color: #fff; background: linear-gradient(180deg, rgba(95, 214, 230, .35), rgba(20, 60, 80, .6)); }
 .ex-areas { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; overflow-y: auto; min-height: 0; }
 .area-btn { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; min-height: 50px; padding: 6px 10px; }
 .ab-n { font-size: 14px; }

@@ -309,6 +309,21 @@ test('探索：目的を満たすと戻る・撮影で写真の証拠・条件�
   assert.ok(KY.unlock('later')); assert.equal(KY.unlock('later'), false); KY.lockArea('later'); assert.ok(!KY.state.areas.unlocked.includes('later'));
 });
 
+test('探索：目的の文は関数でもよい・ready で「調査を終える」（任意の調べ物を残して先へ）', async () => {
+  const { KY } = load();
+  addArea(KY);
+  KY.equip('phone');
+  const opts = { hint: K => K.got('e_look') ? '終えてよい' : '石を調べる', ready: K => K.got('e_look'), goal: K => K.got('e_look') && K.got('e_photo'), areas: ['t_area'] };
+  assert.equal(KY.hintText(opts), '石を調べる');
+  assert.equal(KY.exReady(opts), false);
+  KY._auto.explore.push({ area: 't_area' }, { act: 'look', spot: 's1' }, { nav: 'finish' });
+  await KY.explore(opts);
+  assert.ok(KY.got('e_look') && !KY.got('e_photo'), 'ready を満たしたら finish で終わる（goal は未達のまま）');
+  assert.equal(KY.hintText(opts), '終えてよい');
+  assert.equal(KY.hintText({ hint: '文字列' }), '文字列');
+  assert.equal(KY.exReady({}), false);
+});
+
 test('追跡・違和感探し・エンディング', async () => {
   const { KY, LS } = load();
   addArea(KY);

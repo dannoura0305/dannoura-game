@@ -84,7 +84,7 @@ function makeK(env, opt) {
       let m;
       if ((m = /経過 \+(\d+)日/.exec(q))) return +m[1] + 1;
       if (/どの世界へ返す/.test(q)) {
-        const ans = /昭和九十五年|月代鉄道/.test(q) ? 'B' : /常盤時計|2:17 通信障害/.test(q) ? 'A' : 'C';
+        const ans = /昭和九十五年|月代鉄道/.test(q) ? 'B' : /TSUKUYO|2:17 通信障害/.test(q) ? 'A' : 'C';
         return ans;
       }
       if ((m = /拍 (\d+)／/.exec(q))) { const N = { '汽笛': 'whistle', '時計': 'clock', '電線': 'wire' }; return N[log.lastPattern[+m[1] - 1]]; }
@@ -97,7 +97,7 @@ function makeK(env, opt) {
     async explore(def) {
       const tried = new Set();
       for (let pass = 0; pass < 40; pass++) {
-        if (!opt.thorough && def.goal(K)) return;
+        if (!opt.thorough && (def.goal(K) || (def.ready && def.ready(K)))) return;
         let progressed = false;
         for (const aid of def.areas || Object.keys(KY.AREAS)) {
           const a = KY.AREAS[aid]; if (!a) continue;
@@ -110,14 +110,15 @@ function makeK(env, opt) {
                 if (tried.has(key) || !sp.on || !sp.on[act]) continue;
                 tried.add(key); progressed = true;
                 await sp.on[act](K);
-                if (!opt.thorough && def.goal(K)) return;
+                if (!opt.thorough && (def.goal(K) || (def.ready && def.ready(K)))) return;
               }
             }
           }
         }
         if (!progressed) break;
       }
-      if (!def.goal(K)) throw new Error('探索が終わらない: ' + def.hint);
+      // ready（必要な調べ物がそろった＝「調査を終える」が押せる）なら、任意の調べ物が残っていても先へ進める
+      if (!def.goal(K) && !(def.ready && def.ready(K))) throw new Error('探索が終わらない: ' + (typeof def.hint === 'function' ? def.hint(K) : def.hint));
     },
     async deduce(def) {
       const ans = def.options.find(o => o.id === def.answer);
@@ -214,8 +215,15 @@ await test('END A：本編クリア済みでも、寄り道せず謎を解き残
 await test('END B：帰り道を「ユウの声」で選ぶ／安定度が低い／何度もずれた', async () => {
   let r = await playthrough(MAIN_CLEARED(), { thorough: true, anchor: 'voice' });
   assert.deepEqual(r.log.endings, ['B']);
+  // 序盤・中盤（第十二章より前）に押し戻された回数は END B に数えない（うっかり END B にならない）
   r = await playthrough(fakeLS(), { thorough: false, anchor: 'id', preset: S => { S.flags.slipped = 3; } });
-  assert.deepEqual(r.log.endings, ['B']);
+  assert.deepEqual(r.log.endings, ['A']);
+  assert.equal(r.S.flags.slip_base, 3, '第十二章の冒頭で、それまでの回数を控える');
+  // 第十二章以降に 3 回押し戻されたら B
+  { const env = loadStory(fakeLS()); const k = makeK(env, {}); k.S.flags.anchor = 'shiro'; k.S.stability = 80;
+    k.S.flags.slipped = 5; k.S.flags.slip_base = 2; assert.equal(env.KY.part2.decideEnding(k.K), 'B');
+    k.S.flags.slipped = 4; assert.equal(env.KY.part2.decideEnding(k.K), 'A');
+    delete k.S.flags.slip_base; k.S.flags.slipped = 3; assert.equal(env.KY.part2.decideEnding(k.K), 'B', '控えが無い古いセーブは全部数える'); }
   // 職員証で確かめても、安定度40未満なら所属が対策局に見えていて B
   const env = loadStory(fakeLS()); const k = makeK(env, {});
   k.S.flags.anchor = 'id'; k.S.stability = 35; assert.equal(env.KY.part2.decideEnding(k.K), 'B');

@@ -122,7 +122,13 @@
 
     await K.step('d9_frag', async function () {
       await K.explore({
-        hint: 'サーバー室で B-30 の断片を並べ直し、DAY 30 を調べる',
+        hint: function (K) {
+          if (!K.got('d9_fragments')) return 'サーバー室で B-30 の写しを調べ、断片を並べ直す';
+          var left = [];
+          if (!K.got('d9_status')) left.push('もう一度「調べる」で DAY 30 の行を見る');
+          if (!K.got('d9_scan30')) left.push('黒塗りを「スキャン」する');
+          return 'サーバー室の B-30 の写しで、DAY 30 を調べる：' + left.join('／');
+        },
         areas: ['center_server', 'center_office', 'center_lab'],
         goal: function (K) { return K.got('d9_fragments') && K.got('d9_status') && K.got('d9_scan30'); }
       });

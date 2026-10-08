@@ -141,6 +141,9 @@ function tx(x,y,s,str,o){if(S)S.txt.push(Object.assign({x,y,s,str:String(str)},o
 function mark(id,label,x,y,w,h){if(S&&!S.mk.some(m=>m.id===id))S.mk.push({id,label,x:+(x/W).toFixed(3),y:+(y/H).toFixed(3),w:+(w/W).toFixed(3),h:+(h/H).toFixed(3)});}
 function stab(){return S?S.stab:100;}
 function flag(n){return !!(S&&S.o&&S.o.flags&&S.o.flags[n]);}
+function flag2(o,n){return !!(o&&o.flags&&o.flags[n]);}
+// 分室のホワイトボードが「着任初日（2:17 より前）」の板書か
+function officeBoardBlank(o){return flag2(o,'boardBlank')||!!(o&&o.spot==='c2_office'&&o.side==='a');}
 
 // ───────── 人（場面用の小さな全身） ─────────
 // o: {f:'f'|'b'|'l'|'r', hair, skin, top, top2, bot, shoe, hat:'cap'|'conductor'|'helmet'|'bun'|'kerchief', long:bool, skirt:bool, bag, kid, apron, umbrella, light:'l'|'r'}
@@ -267,7 +270,10 @@ function tube(g,x,y,w,on){R(g,OL,x-1,y-1,w+2,4);R(g,on?'#f4fbff':'#4a4a5a',x,y,w
 
 // ───────── 観測センター：事務室 ─────────
 scene('center_office',{worlds:'ABC',name:'観測センター月代分室・事務室',
-  bg(g,w){
+  // flags.boardBlank：着任初日（2:17 の前）のホワイトボード／違和感探し c2_office の「初日の写真」側も同じ
+  // flags.clockAlt：END B の分室（壁時計の銘が「月代時計」）
+  key(o){return (officeBoardBlank(o)?'bb':'')+(flag2(o,'clockAlt')?'ca':'');},
+  bg(g,w,o){
     if(w==='A'){room(g,{wall:['#565a78','#4c5070','#3e4260'],floorY:122,floor:['#3a3c52','#2a2a3e','#1e1e2e'],tiles:true,ceil:'#6a6e8a',base:'#2a2a3a'});}
     else if(w==='B'){room(g,{wall:['#6a5a52','#5a4a44','#4a3c38'],wain:['#5a3a26','#4a2e1e'],wainY:88,floorY:122,floor:['#5a3c28','#4a3020','#3a2418'],boards:true,ceil:'#7a6658',base:'#2e1c14'});}
     else{room(g,{wall:['#2a2e40','#22263a','#1a1c2c'],floorY:122,floor:['#22222e','#1a1a24','#121218'],ceil:'#30324a',base:'#141420'});}
@@ -295,17 +301,19 @@ scene('center_office',{worlds:'ABC',name:'観測センター月代分室・事�
     const bx=108,by=30,bw=46,bh=36;
     if(w==='B'){R(g,OL,bx-2,by-2,bw+4,bh+4);R(g,'#7a5a3a',bx-1,by-1,bw+2,bh+2);R(g,'#24382c',bx,by,bw,bh);speck(g,'#34483c',bx,by,bw,bh,40,3);
       tx(bx+3,by+3,4.6,'本日ノ観測',{c:'#e8eee0',f:'m'});tx(bx+3,by+10,4.2,'異常 ナシ',{c:'#e8eee0',f:'m'});tx(bx+3,by+17,4,'当番 御堂',{c:'#d8e0d0',f:'m'});R(g,'#e8eee0',bx+28,by+bh-3,6,1);}
+    else if(w==='A'&&officeBoardBlank(o)){R(g,OL,bx-2,by-2,bw+4,bh+4);R(g,'#b8bccc',bx-1,by-1,bw+2,bh+2);R(g,'#e8ecf4',bx,by,bw,bh);
+      tx(bx+3,by+3,4.4,'ようこそ 月代分室へ',{c:'#2a40a0'});tx(bx+3,by+11,4.2,'当直：如月・新人',{c:'#2a40a0'});tx(bx+3,by+18,4,'日報は朝9時まで',{c:'#c03040'});R(g,'#c03040',bx+bw-8,by+bh+1,5,2);R(g,'#2a40a0',bx+bw-14,by+bh+1,5,2);}
     else if(w==='A'){R(g,OL,bx-2,by-2,bw+4,bh+4);R(g,'#b8bccc',bx-1,by-1,bw+2,bh+2);R(g,'#e8ecf4',bx,by,bw,bh);
       tx(bx+3,by+3,4.6,'2:17 通信障害',{c:'#2a40a0'});tx(bx+3,by+10,4.2,'約1分／映像・音声のみ',{c:'#2a40a0'});tx(bx+3,by+17,4.2,'※停電なし',{c:'#c03040'});line(g,'#2a40a0',bx+4,by+30,bx+40,by+26);R(g,'#c03040',bx+bw-8,by+bh+1,5,2);R(g,'#2a40a0',bx+bw-14,by+bh+1,5,2);}
     else{R(g,OL,bx-2,by-2,bw+4,bh+4);R(g,'#5a5e6e',bx,by,bw,bh);line(g,'#3a3e4e',bx,by+6,bx+bw,by+bh-4);tx(bx+3,by+12,4.4,'2:17',{c:'#3a4a7a',a:.6});}
-    mark('board',w==='B'?'黒板（本日ノ観測 異常ナシ）':'ホワイトボード（2:17 通信障害のメモ）',bx,by,bw,bh);
+    mark('board',w==='B'?'黒板（本日ノ観測 異常ナシ）':w==='A'&&officeBoardBlank(o)?'ホワイトボード（着任初日：ようこそ／当直表）':'ホワイトボード（2:17 通信障害のメモ）',bx,by,bw,bh);
     // 時計
     const cx=172,cy=42;
     if(w==='B'){R(g,OL,cx-8,cy-11,16,34);R(g,'#5a3a22',cx-7,cy-10,14,32);clock(g,cx,cy-2,6,2,17,{face:'#f0e4c8'});R(g,OL,cx-4,cy+7,8,12);R(g,'#2a1810',cx-3,cy+8,6,10);
       tx(cx,cy+22.5,2.6,'明光舎',{c:'#e8d4a0',al:'center',f:'m'});}
-    else if(w==='A'){clock(g,cx,cy,9,2,17,{sec:12});tx(cx,cy+3,2.2,'TSUKUYO',{c:'#6a6a7a',al:'center',f:'g'});}
+    else if(w==='A'){clock(g,cx,cy,9,2,17,{sec:12});tx(cx,cy+3,2.2,flag2(o,'clockAlt')?'月代時計':'TSUKUYO',{c:'#6a6a7a',al:'center',f:flag2(o,'clockAlt')?'m':'g'});}
     else{clock(g,cx,cy,9,4,44,{face:'#9a98a8'});crack(g,'#5a5868',cx-6,cy-7,6,4);}
-    mark('clock',w==='A'?'壁の時計（メーカー TSUKUYO・2:17）':w==='B'?'振り子時計（メーカー 明光舎）':'止まった時計（4:44）',cx-10,cy-11,20,w==='B'?36:22);
+    mark('clock',w==='A'?(flag2(o,'clockAlt')?'壁の時計（メーカー 月代時計・END B）':'壁の時計（メーカー TSUKUYO・2:17）'):w==='B'?'振り子時計（メーカー 明光舎）':'止まった時計（4:44）',cx-10,cy-11,20,w==='B'?36:22);
     // 職員写真
     const px0=190,py0=30;R(g,OL,px0-2,py0-2,52,36);R(g,w==='B'?'#4a3020':'#c8b898',px0-1,py0-1,50,34);R(g,w==='B'?'#3a2618':'#a89878',px0,py0,48,32);
     const staff=[['#2a2030','#d8b8a8','#4a5a7a'],['#5a5a60','#d0b0a0','#6a4a3a'],['#1a1820','#e0c0b0','#2a3a5a'],['#3a2a20','#d8b8a0','#5a6a5a'],['#2a2a3a','#d8c0b0','#3a3a4a'],['#8a8890','#d0b0a0','#4a3a5a']];

@@ -97,15 +97,30 @@
         'm:分室の観測者には番号がある。001 が私、002 が如月。', 'm:地下の記録は 003 で止まっていたね。',
         'p:対策局の名簿なら、もっと先まであるはずです。', 'm:もう一度、誰もいない側へ行けるか。', 'p:シロが一緒なら。', 's:きゅ。',
         'y:持ってけ。シロ同期装置。境界観測しても安定度が減らない。……シロが気にしてる場所も分かる。',
+        'y:それと、ここから先は境界から押し戻されるな。安定度が下がったら、安定剤を使え。……何度も押し戻されると、帰り道を間違える。',
       ]);
+      K.flag('slip_base', +K.get('slipped') || 0);   // END B に数えるのはここから先の回数（endings.js / P2.slipped）
       K.equip('shiro_link');
     });
 
     await K.step('d12_gather', async function () {
+      // 必要：名簿・九条のノート・接続履歴。任意（TRUE 用）：ナギの家／シロの同時観測。
+      // 必要な三つがそろうと「調査を終える」が出る（任意の二つも済ませれば自動で先へ）。
+      var need12 = function (K) { return K.got('d12_registry') && K.got('d12_kujo_list') && K.got('d12_444_streams'); };
       await K.explore({
-        hint: '444番の観測者を追う（対策局の名簿・誰もいない側（C）の旧研究施設・分室の接続履歴）',
+        hint: function (K) {
+          var need = [], opt = [];
+          if (!K.got('d12_registry')) need.push('対策局（C）の観測者名簿');
+          if (!K.got('d12_kujo_list')) need.push('旧研究施設の誰もいない側（C）の研究ノートを撮影');
+          if (!K.got('d12_444_streams')) need.push('サーバー室の接続履歴');
+          if (!K.has('myst_nagi')) opt.push(K.got('d12_nagi_home') ? '分室のナギに、家のことを伝える' : 'ナギの家を、別の歴史（B）の住宅街で確かめる');
+          if (!K.has('myst_shiro')) opt.push('観測装置室でシロを三つの世界から同時にスキャンする');
+          if (need.length) return '444番の観測者を追う：' + need.join('・') + (opt.length ? '（気になること：' + opt.join('／') + '）' : '');
+          return '記録はそろった。「調査を終える」で先へ進む' + (opt.length ? '（その前に：' + opt.join('／') + '）' : '');
+        },
         areas: ['bureau', 'old_lab', 'center_server', 'center_office', 'center_lab', 'residential', 'empty_town'],
-        goal: function (K) { return K.got('d12_registry') && K.got('d12_kujo_list') && K.got('d12_444_streams'); }
+        ready: need12,
+        goal: function (K) { return need12(K) && K.has('myst_nagi') && K.has('myst_shiro'); }
       });
     });
 

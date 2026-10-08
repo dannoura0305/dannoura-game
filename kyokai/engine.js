@@ -34,6 +34,11 @@
       baseWorld / steps / seen / photos / chTitle / sceneWorld / noteN / savedAt を持つ。
   14. スタッフロールは KY.CREDITS（行の配列）、ポストクレジットは KY.POSTCREDIT（async K=>{} か行の配列）で差し替え可。
   15. kyokai.html?demo=1 のときだけ kyokai/story/_demo.js（動作確認用の章）を読む。
+  16. フラグ stage_<名前> を立てると、場面の絵に opts.flags.<名前> として渡る（K.stageOpts と違い、探索中も消えずセーブに残る）。
+      例：stage_boardBlank（着任初日の分室ホワイトボード）。消すときは K.unflag('stage_<名前>')。
+  17. K.explore の hint は文字列のほかに K=>文字列 も受け付ける（進み具合に合わせて「目的」の表示を変える）。
+      K.explore の ready（K=>bool）：必要な調べ物がそろうと、地図と場所の画面に「調査を終える」が出て、押すと explore が終わる。
+      goal は任意の調べ物まで含めた条件にしておけば、全部済ませた人は自動で先へ進む（任意の謎を取り逃さないため）。
    ══════════════════════════════════════════════════════════════════════ */
 (function (root) {
   'use strict';
@@ -728,6 +733,12 @@
     const W = Math.max(64, Math.round(r.width * dpr)), H = Math.max(48, Math.round(r.height * dpr));
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
   }
+  // フラグ stage_<名前> は、場面の絵の opts.flags.<名前> として渡る（セーブに残る絵の状態。例：stage_boardBlank）
+  function stageFlags() {
+    let out = null;
+    for (const k in S.flags) if (k.charCodeAt(0) === 115 && k.indexOf('stage_') === 0 && S.flags[k]) (out = out || {})[k.slice(6)] = S.flags[k];
+    return out;
+  }
   function drawStage(ts) {
     const cv = D.stage; if (!cv || ST.hidden) return;
     stageSize();
@@ -736,7 +747,11 @@
     if (ST.flick && ts < ST.flick.until) { if (((ts - ST.flick.t0) / 60 | 0) % 3 === 1) w = ST.flick.from; }
     else ST.flick = null;
     if (!ST.scene) { ctx.fillStyle = '#060b18'; ctx.fillRect(0, 0, W, H); }
-    else KY.drawScene(ctx, ST.scene, w, t, Object.assign({ w: W, h: H, stab: S.stability, danger: ST.danger || 0 }, ST.opts));
+    else {
+      const o = Object.assign({ w: W, h: H, stab: S.stability, danger: ST.danger || 0 }, ST.opts);
+      const sf = stageFlags(); if (sf) o.flags = Object.assign(sf, ST.opts.flags || {});
+      KY.drawScene(ctx, ST.scene, w, t, o);
+    }
     // ずれ（glitch / 世界切替 / 安定度低下）
     const glitchOn = ts < ST.glitch, lowStab = S.stability < 30 && G.running && Math.random() < (30 - S.stability) / 400;
     if ((glitchOn || ST.flick || lowStab) && !KY.reduced()) {
@@ -1341,6 +1356,7 @@
   RESET.push(() => {
     if (!HAS_DOM || !D.app) return;
     G.adv = null; closeAllOv(); hideDlg();
+    ST.opts = {};
     if (D.ex) { D.ex.hidden = true; D.ex.innerHTML = ''; }
     if (D.spots) D.spots.innerHTML = '';
     HUDX.loc = '';

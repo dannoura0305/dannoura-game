@@ -217,9 +217,14 @@
     if (act === 'photo' && !KY.hasEquip('phone')) return { ok: false, reason: '撮影する機材がない。' };
     if (act === 'record' && !KY.hasEquip('phone') && !KY.hasEquip('hq_recorder')) return { ok: false, reason: '録音する機材がない。' };
     if (act === 'scan' && !KY.hasEquip('magnet') && !KY.hasEquip('boundary_meter') && !KY.hasEquip('wave_scanner')) return { ok: false, reason: '計測する機材がない。' };
-    if ((act === 'photo' || act === 'scan') && s.world !== 'A' && (s.items.battery | 0) <= 0) return { ok: false, reason: '端末の電力が足りない。研究所で充電しよう。' };
+    if ((act === 'photo' || act === 'scan') && s.world !== 'A' && (s.items.battery | 0) <= 0 && !spareCell()) return { ok: false, reason: '端末の電力が足りない。研究所で充電しよう。' };
     return { ok: true };
   };
+  // 詰み防止：研究所へ戻れない探索（駅・トンネルだけの探索など）で電力が尽きたら、非常用の予備電池に切り替える
+  function spareCell() {
+    if (!EX || !EX.opts) return false;
+    return !KY.exploreAreas(EX.opts).some(id => /^center/.test(id) || id === KY.HOME_AREA);
+  }
   function hash(str) { let h = 2166136261; for (const ch of String(str)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return h; }
   function rnd(seed) { let x = seed || 1; return () => { x ^= x << 13; x >>>= 0; x ^= x >> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; }; }
   KY.scanData = function (areaId, spot, w) {
@@ -266,6 +271,10 @@
     const a = getArea(areaId); if (!a) return false;
     const st = KY.actState(areaId, spot, act);
     if (!st.ok) { KY.se('error'); await KY.say(['n:' + st.reason]); return false; }
+    if ((act === 'photo' || act === 'scan') && s.world !== 'A' && (s.items.battery | 0) <= 0) {
+      s.items.battery = 2; hud();
+      await KY.say(['n:端末の電力が尽きた。……非常用の予備電池に切り替える。（電力 +2）']);
+    }
     const w = s.world, W = a.worlds[w] || {};
     if (w !== 'A' && (s.items.battery | 0) > 0) s.items.battery--;
     const handler = spot ? (spot.on && spot.on[act]) : (W.on && W.on[act]);
@@ -337,10 +346,11 @@
         const list = KY.exploreAreas(opts);
         const id = next || (list.length === 1 && !opts.mapAlways && !EX.wasIn ? list[0] : await UI().exMap(opts, list));
         next = null;
+        if (id === FINISH && KY.exReady(opts)) break;
         if (!id || !KY.AREAS[id]) continue;
         const r = await areaLoop(id, opts, goal);
         EX.wasIn = true;
-        if (r === 'goal') break;
+        if (r === 'goal' || r === 'finish') break;
       }
     } finally {
       EX = prevEX;
@@ -350,6 +360,18 @@
       hud();
     }
     return true;
+  };
+  // ready：K=>bool。必要な記録がそろったら「調査を終える」を出す（goal は任意の調べ物まで含めた完了条件。満たせば自動で終わる）
+  const FINISH = KY.EX_FINISH = '__finish';
+  KY.exReady = function (opts) {
+    if (!opts || typeof opts.ready !== 'function') return false;
+    try { return !!opts.ready(G.K || KY); } catch (e) { console.error('[KY] explore ready', e); return false; }
+  };
+  // 目的の表示：hint は文字列か K=>文字列（進み具合で変わる目的）
+  KY.hintText = function (opts) {
+    const h = opts && opts.hint;
+    if (typeof h !== 'function') return h || '';
+    try { return String(h(G.K || KY) || ''); } catch (e) { console.error('[KY] explore hint', e); return ''; }
   };
   KY.exploreAreas = function (opts) {
     const K = G.K || KY;
@@ -378,6 +400,7 @@
         const it = await UI().exArea(id, opts);
         if (!it) continue;
         if (it.nav === 'map') return 'map';
+        if (it.nav === 'finish' && KY.exReady(opts)) return 'finish';
         if (it.nav === 'switch') {
           const r = KY.switchWorld(id, it.to);
           if (!r.ok) { KY.se('error'); await KY.say(['n:' + r.reason]); }
@@ -445,7 +468,7 @@
   AUTO.chase = AUTO.chase || [];
   const HEADLESS = {
     exMap(opts, list) {
-      while (AUTO.explore.length) { const it = AUTO.explore.shift(); if (it && it.area) return Promise.resolve(it.area); }
+      while (AUTO.explore.length) { const it = AUTO.explore.shift(); if (it && it.nav === 'finish') return Promise.resolve('__finish'); if (it && it.area) return Promise.resolve(it.area); }
       return Promise.reject(new Error('KY test: explore の台本が尽きた（地図）'));
     },
     exArea() {
@@ -540,7 +563,8 @@
       D.ex.innerHTML = '';
       D.ex.dataset.mode = 'map';
       const top = $('div', 'ex-top');
-      top.append($('span', 'ex-tag', 'MAP ▍月代町'), $('span', 'ex-goal', opts.hint ? '目的：' + opts.hint : '調べる場所を選ぶ'));
+      const hn = KY.hintText(opts);
+      top.append($('span', 'ex-tag', 'MAP ▍月代町'), $('span', 'ex-goal', hn ? '目的：' + hn : '調べる場所を選ぶ'));
       const grid = $('div', 'ex-areas');
       list.forEach(id => {
         const b = button('', () => pick(id), 'area-btn');
@@ -554,6 +578,7 @@
       });
       const nav = $('div', 'ex-nav');
       nav.append(navBtn('観測ボード', 'board', () => KY.openMenu('board')), navBtn('手帳', 'item', () => KY.openMenu('notebook')), navBtn('持ち物', 'item', () => KY.openMenu('items')));
+      if (KY.exReady(opts)) { const fb = navBtn('調査を終える', 'map', () => { clearSpots(); D.ex.hidden = true; KY.se('beep'); KY.stageOpts({}); done(FINISH); }, 'finish primary'); nav.prepend(fb); }
       D.ex.append(top, grid, nav);
       KY._focusFirst(grid);
     });
@@ -604,7 +629,8 @@
     top.append($('span', 'ex-tag', KY.areaName(id)));
     if (s.sync >= 2 || w !== 'A') { const wc = $('span', 'ex-world', KY.WORLD_LABEL[w]); wc.dataset.w = w; top.appendChild(wc); }
     top.appendChild(dz);
-    if (opts.hint) top.appendChild($('span', 'ex-goal', '目的：' + opts.hint));
+    const hn = KY.hintText(opts);
+    if (hn) top.appendChild($('span', 'ex-goal', '目的：' + hn));
     // 境界反応（同期Lv1以上）
     if (s.sync >= 1 && worldsOf(id).length > 1) {
       const other = worldsOf(id).filter(x => x !== w).some(x => spotsOf(id, x).some(sp => sp.on));
@@ -628,6 +654,7 @@
     // 移動・境界観測
     const nav = $('div', 'ex-nav');
     nav.appendChild(navBtn('地図へ', 'map', () => emit({ nav: 'map' })));
+    if (KY.exReady(opts)) nav.appendChild(navBtn('調査を終える', 'map', () => emit({ nav: 'finish' }), 'finish primary'));
     const ws = worldsOf(id);
     if (s.sync >= 2 && ws.length > 1) {
       const sb = navBtn('境界観測', 'switch', () => openSwitch(id), 'switch');
