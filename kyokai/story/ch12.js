@@ -41,7 +41,7 @@
   P2.area('residential', { name: '住宅街', worlds: { B: { scene: 'residential', spots: [
     { id: 'd12_nagihome', obj: 'house_2', x: .4, y: .35, w: .22, h: .4, label: '三丁目十四番の家', acts: ['look', 'photo'], cond: IN12,
       on: {
-        look: async function (K) { await K.say(['n:こちらの世界では空き地の場所に、二階建ての家がある。', 'n:表札。窓辺に「月代鉄道」の時刻表。物干しに、小さな体操服。', 'n:台所の窓に、人影。誰かが夕飯を作っている。']); },
+        look: async function (K) { await K.say(['n:こちらの世界では売家の前の空き地だった場所に、二階建ての家がある。', 'n:表札。窓辺に「月代鉄道」の時刻表。物干しに、小さな体操服。', 'n:台所の窓に、人影。誰かが夕飯を作っている。']); },
         photo: async function (K) { await K.say(['#se shutter', 'n:家を撮った。']); K.gain('d12_nagi_home'); }
       } },
   ] } } });

@@ -84,7 +84,7 @@ function makeK(env, opt) {
       let m;
       if ((m = /経過 \+(\d+)日/.exec(q))) return +m[1] + 1;
       if (/どの世界へ返す/.test(q)) {
-        const ans = /光文|月代鉄道/.test(q) ? 'B' : /常盤時計|月代銀座/.test(q) ? 'A' : 'C';
+        const ans = /昭和九十五年|月代鉄道/.test(q) ? 'B' : /常盤時計|2:17 通信障害/.test(q) ? 'A' : 'C';
         return ans;
       }
       if ((m = /拍 (\d+)／/.exec(q))) { const N = { '汽笛': 'whistle', '時計': 'clock', '電線': 'wire' }; return N[log.lastPattern[+m[1] - 1]]; }

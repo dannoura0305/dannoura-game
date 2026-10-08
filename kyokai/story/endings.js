@@ -141,6 +141,9 @@
       'n:端末を終了する。',
       '#wait 800',
       'n:画面が暗くなる。',
+    ]);
+    P2.view(K, { dark: true, flashlight: false, vignette: false });
+    await K.say([
       '#wait 1600',
       '#se beep',
       'n:――端末が、勝手に再起動した。',
@@ -155,6 +158,7 @@
       '#wait 600',
       '#fx blackout',
     ]);
+    P2.view(K, {});
     try { localStorage.setItem('kyokai_true_end', '1'); } catch (e) {}
     await K.ending('TRUE');
   };

@@ -114,7 +114,7 @@
 
   P2.area('center_lab', { name: '観測装置室', worlds: { A: { scene: 'center_lab', spots: [
     { id: 'd8_return', obj: 'apparatus', x: .41, y: .47, w: .19, h: .32, label: 'シロ（誰もいない側へ戻る）', acts: ['look'],
-      cond: function (K) { return IN8(K) && K.has('empty_town_open') && !K.has('d8_bureau') && K.state.baseWorld !== 'C'; },
+      cond: function (K) { return IN8(K) && K.has('empty_town_open') && K.state.baseWorld !== 'C'; },
       on: { look: async function (K) { await K.say(['s:きゅ。', 'y:……まだ行くのか。', 'p:途中です。', 'n:シロに指先を触れる。視界の端が、白くほどけていく。', '#se whistle']); K.setWorld('C'); } } },
   ] } } });
 
@@ -140,7 +140,7 @@
       C: { scene: 'bureau', spots: [
         { id: 'd8_plate', obj: 'sign', x: .04, y: .2, w: .16, h: .14, label: '室名の札', acts: ['look', 'photo'],
           on: {
-            look: async function (K) { await K.say(['n:札「境界現象対策局 第三記録保管室」。', 'n:その下に、小さな銘板。「月代支局（旧 特殊現象観測センター月代分室）」。', 'n:刻まれた年号は、こちらの暦より先だ。']); },
+            look: async function (K) { await K.say(['n:札「境界現象対策局 第三記録保管室」。', 'n:その下に、小さな銘板。「月代支局（旧 特殊現象観測センター月代分室）」。', 'n:刻まれた年号は、こちらの暦より先だ。']); K.gain('d8_bureau_plate'); },
             photo: async function (K) { await K.say(['#se shutter']); K.gain('d8_bureau_plate'); }
           } },
         { id: 'd8_locker', obj: 'archive', x: .74, y: .3, w: .16, h: .45, label: '保管棚の引き出し', acts: ['look'],
@@ -239,8 +239,8 @@
         'n:扉は、私の端末をかざすと開いた。', 'p:……開いた？', 'y:お前の端末を「知ってる」のか、そこは。']);
       K.flag('d8_bureau', true);
       await K.explore({
-        hint: '対策局を調べる（入口の定礎板・ロッカー・記録端末）',
-        areas: ['bureau'],
+        hint: '対策局を調べる（室名の札・保管棚・記録端末）。電力が尽きたら観測装置室で補給',
+        areas: ['bureau', 'center_lab'],
         goal: function (K) { return K.has('b30_read') && K.got('d8_bureau_plate') && K.got('d8_bureau_badge'); }
       });
     });
