@@ -11,7 +11,7 @@
 
   P2.area('old_lab', { name: '旧研究施設', worlds: {
     C: { scene: 'old_lab', spots: [
-      { id: 'd13_term', x: .3, y: .25, w: .3, h: .32, label: '九条の端末', acts: ['look', 'scan'], cond: IN13,
+      { id: 'd13_term', obj: 'old_pc', x: .3, y: .25, w: .3, h: .32, label: '九条の端末', acts: ['look', 'scan'], cond: IN13,
         on: {
           look: async function (K) {
             await K.say(['n:崩れた研究室の奥で、端末が一台だけ光っている。', 'n:画面には、無数の人生の記録。名前、年齢、世界番号。何千、何万。', 'n:その中に――B-30。', 'n:一人の男性の三十日が、何百通りも並んでいる。どの列も DAY 01 から始まって、DAY 30 で途切れている。']);
@@ -28,15 +28,15 @@
             K.gain('d13_search_log');
           }
         } },
-      { id: 'd13_black', x: .66, y: .3, w: .2, h: .3, label: '黒塗りの記録', acts: ['look'], cond: IN13,
+      { id: 'd13_black', obj: 'blackboard', x: .66, y: .3, w: .2, h: .3, label: '黒板の隅', acts: ['look'], cond: IN13,
         on: { look: async function (K) {
-          await P2.t444(K, 'kujo_black', ['n:端末の別の窓。観測者ごとのログ。', 'n:444 の記録だけが、一行残らず黒く塗りつぶされている。手で、何度も。', 'p:見たくなかったのか。見られたくなかったのか。'], { title: '九条の黒塗り', text: '九条の端末の 444 の記録は、すべて手作業で黒塗りにされていた。' });
+          await P2.t444(K, 'kujo_black', ['n:黒板。かすれた数式と「T=30」。', 'n:隅に、何度も消した跡がある。チョークの粉の下から、同じ三桁が浮かぶ。444。', 'n:端末のログも同じだった。444 の記録だけが、一行残らず黒く塗りつぶされている。手で、何度も。', 'p:見たくなかったのか。見られたくなかったのか。'], { title: '九条の黒塗り', text: '九条の端末の 444 の記録は、すべて手作業で黒塗りにされていた。' });
         } } },
     ] },
     B: { scene: 'old_lab', spots: [
-      { id: 'd13_frame', x: .7, y: .45, w: .2, h: .3, label: '伏せた写真立て', acts: ['look', 'photo'], cond: IN13,
+      { id: 'd13_frame', obj: 'family_photo', x: .7, y: .45, w: .2, h: .3, label: '机の写真立て', acts: ['look', 'photo'], cond: IN13,
         on: {
-          look: async function (K) { await K.say(['n:前に来たとき、指が通り抜けた写真立て。同期Lv4の今なら、起こせる。', 'n:白衣の男性と、女性と、小さな男の子。三人とも笑っている。', 'n:白衣の名札。「九条」。', 'n:裏に日付。この世界の、去年の夏。']); },
+          look: async function (K) { await K.say(['n:前に来たとき、指が通り抜けた写真立て。同期Lv4の今なら、手に取れる。', 'n:白衣の男性と、女性と、小さな男の子。三人とも笑っている。', 'n:白衣の名札。「九条」。', 'n:裏に日付。この世界の、去年の夏。']); },
           photo: async function (K) { await K.say(['#se shutter']); K.gain('d13_family'); }
         } },
     ] },

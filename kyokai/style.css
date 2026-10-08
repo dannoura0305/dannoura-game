@@ -237,12 +237,16 @@ button { font: inherit; color: inherit; }
 .hs.sel { background: rgba(217, 180, 90, .1); outline: 1px dashed rgba(217, 180, 90, .55); outline-offset: -1px; }
 .hs.sel i { border-color: var(--gd); width: 16px; height: 16px; }
 .hs-l { position: absolute; left: 50%; top: -6px; transform: translate(-50%, -100%); white-space: nowrap; font-size: 12px; padding: 3px 8px; background: rgba(6, 14, 30, .92); border: 1px solid var(--gd); color: #fff4d6; border-radius: 2px; pointer-events: none; }
-.hs[style*="top: 0%"] .hs-l, .hs[style*="top: 1%"] .hs-l, .hs[style*="top: 2%"] .hs-l, .hs[style*="top: 3%"] .hs-l, .hs[style*="top: 4%"] .hs-l, .hs[style*="top: 5%"] .hs-l, .hs[style*="top: 6%"] .hs-l, .hs[style*="top: 7%"] .hs-l, .hs[style*="top: 8%"] .hs-l, .hs[style*="top: 9%"] .hs-l { top: auto; bottom: -6px; transform: translate(-50%, 100%); }
+.hs.top .hs-l { top: auto; bottom: -6px; transform: translate(-50%, 100%); }
 .hs-shiro { position: absolute; right: -4px; top: -4px; width: 9px; height: 9px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px #fff; animation: blink 1.6s ease-in-out infinite; }
 /* 地図のピン */
 .ky-spots.map .pin { position: absolute; transform: translate(-50%, -50%); min-width: 44px; min-height: 44px; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; background: none; border: none; cursor: pointer; }
 .pin-dot { width: 16px; height: 16px; margin-top: 6px; border-radius: 50%; border: 2px solid var(--cy); background: rgba(5, 10, 22, .7); box-shadow: 0 0 0 4px rgba(95, 214, 230, .15), 0 0 10px rgba(95, 214, 230, .5); }
 .pin:hover .pin-dot, .pin:focus-visible .pin-dot { border-color: var(--gd); }
+.pin.on-art { min-width: 56px; min-height: 52px; }
+.pin.on-art .pin-dot { width: 40px; height: 34px; margin-top: 0; border-radius: 4px; border: 1px dashed rgba(95, 214, 230, .55); background: transparent; box-shadow: none; }
+.pin.on-art:hover .pin-dot, .pin.on-art:focus-visible .pin-dot { border-style: solid; border-color: var(--gd); }
+.pin.on-art .pin-new { right: -4px; }
 .pin-l { margin-top: 3px; font-size: 11.5px; white-space: nowrap; padding: 2px 6px; background: rgba(5, 10, 22, .85); border: 1px solid var(--line-d); border-radius: 2px; color: var(--tx); }
 .pin-new { position: absolute; top: -2px; right: -14px; font-family: var(--mono); font-size: 9px; color: #1a1205; background: var(--gd); padding: 0 3px; border-radius: 1px; }
 .pin[data-d="2"] .pin-dot, .pin[data-d="3"] .pin-dot { border-color: var(--wn); }
@@ -344,7 +348,7 @@ button { font: inherit; color: inherit; }
 .set-row { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; }
 .set-row input[type=range] { flex: 1; min-height: 44px; accent-color: var(--gd); }
 .set-v { font-family: var(--mono); width: 3em; text-align: right; }
-.set-note { font-size: 12.5px; color: var(--tx2); line-height: 1.6; }
+.set-note { font-size: 12.5px; color: var(--tx2); line-height: 1.6; white-space: pre-line; }
 .seg { display: flex; gap: 6px; flex-wrap: wrap; }
 .seg-btn[aria-pressed="true"], .chip[aria-pressed="true"] { border-color: var(--gd); color: #fff4d6; background: rgba(217, 180, 90, .14); }
 .empty { color: var(--tx3); font-size: 13px; padding: 14px 4px; }

@@ -18,7 +18,7 @@
 
   /* ── 混ざり合う月代町（危険度5） ── */
   P2.area('collapse', {
-    name: '混ざり合う月代町', map: { x: .5, y: .5 }, danger: { A: 5, B: 5, C: 5 }, cond: function (K) { return IN14(K); },
+    name: '混ざり合う月代町', map: { x: .5, y: .62 }, danger: { A: 5, B: 5, C: 5 }, cond: function (K) { return IN14(K); },
     worlds: {
       A: { scene: 'collapse', spots: [
         { id: 'd14_station', x: .05, y: .3, w: .2, h: .35, label: '駅のホーム', acts: ['look', 'record'],
@@ -45,7 +45,7 @@
           on: { look: async function (K) {
             await P2.t444(K, 'collapse_cam', ['n:どの世界のものとも分からない監視カメラが、電柱に一つ。', 'n:その小さな画面に、私の後ろ姿が映っている。', 't:CAM 444', 'n:振り返る。誰もいない。'], { title: '崩壊のなかのカメラ', text: '混ざり合う月代町で、私の後ろ姿を映していた「CAM 444」。' });
           } } },
-        { id: 'd14_door', x: .44, y: .5, w: .12, h: .3, label: '光の漏れる扉', acts: ['look'],
+        { id: 'd14_door', obj: 'center', x: .44, y: .5, w: .12, h: .3, label: '光の漏れる扉', acts: ['look'],
           cond: function (K) { return ['d14_v_station', 'd14_v_sea', 'd14_v_sky', 'd14_v_factory'].filter(function (f) { return K.has(f); }).length >= 3; },
           on: { look: async function (K) { K.flag('d14_door', true); await K.say(['n:瓦礫のあいだに、ドアが一枚だけ立っている。壁はないのに、隙間から、青白いモニターの光が漏れている。', 's:……きゅ。', 'n:シロが、珍しく足を止めた。']); } } },
       ] }
@@ -55,6 +55,9 @@
   /* ── 「後ろ」イベント ── */
   P2.backEvent = async function (K) {
     var b = P2.link().b30;
+    // 配信部屋の絵：本編の結末に合わせる（崩壊系は「本人がいない部屋」になるので、この場面だけは通常の部屋）
+    var rv0 = P2.roomVariant(); if (rv0 === 'collapse') rv0 = null;
+    P2.view(K, rv0 ? { variant: rv0, noise: .12 } : { noise: .12 });
     await K.say([
       '#amb off', '#wait 900',
       'n:ドアを押す。',
@@ -97,11 +100,13 @@
       '#wait 1400',
       'n:彼が、話すのをやめた。',
       '#se whistle',
-      'n:ゆっくりと。',
-      'n:肩越しに。',
-      'n:後ろを――',
-      '#wait 900',
-      'n:振り返った。',
+    ]);
+    var base = rv0 ? { variant: rv0 } : {};
+    var turn = async function (v, lines) { P2.view(K, Object.assign({ noise: .12 + v * .2, turn: v }, base)); await K.say(lines); };
+    await turn(.12, ['n:ゆっくりと。']);
+    await turn(.3, ['n:肩越しに。']);
+    await turn(.5, ['n:後ろを――', '#wait 900']);
+    await turn(1, ['n:振り返った。',
       '#wait 500',
       'n:めがねの奥の目が、まっすぐ、こちらを見た。',
       'n:一瞬だけ。',
@@ -112,6 +117,7 @@
       't:通信切断',
       '#wait 1200',
     ]);
+    P2.view(K, {});
     K.gain('d14_back'); K.flag('back_seen', true);
     await K.say([
       '#scene collapse A', '#amb whistle_far',
@@ -155,6 +161,7 @@
     await K.say(['#fx flash', 'n:' + v.t].concat(hit ? ['n:……その姿だけ、輪郭がくっきりしている。誰かが、確かに一度、見届けた姿のように。'] : []));
   };
   P2.coreBattle = async function (K) {
+    P2.view(K, { progress: 0 });
     await K.say([
       '#scene core', '#amb whistle_far',
       'n:世界の真ん中に、それはあった。', 'n:光でも闇でもない、脈打つ結び目。無数の世界の糸が、一点に絡まっている。',
@@ -170,7 +177,7 @@
         var w = await K.choice(r.obj + '――どの世界へ返す？', [
           { t: '世界A（いつもの月代町）', v: 'A' }, { t: '世界B（別の歴史の月代町）', v: 'B' }, { t: '世界C（誰もいない月代町）', v: 'C' },
         ]);
-        if (w === r.ans) { await K.say(['#se beep', 'n:シロが糸を一本くわえて、正しい方へ引いた。結び目が、一つほどける。']); break; }
+        if (w === r.ans) { P2.view(K, { progress: (i + 1) / SEP.length * .6 }); await K.say(['#se beep', 'n:シロが糸を一本くわえて、正しい方へ引いた。結び目が、一つほどける。']); break; }
         K.stab(-4);
         await K.say(['#fx shake', 's:きゅうっ……', 'n:糸が逆に締まった。違う。' + (r.ans === 'B' ? 'こっちの月代町に、鉄道や光文はない。' : r.ans === 'A' ? 'いつもの分室で見た物だ。' : '時間が止まって、人がいない場所の物だ。')]);
       }
@@ -195,7 +202,7 @@
           if (c !== pat[j]) { ok = false; break; }
           await K.say(['#se ' + c]);
         }
-        if (ok) { await K.say(['#fx flash', 'n:シロと拍が重なった。核が、一段、静かになる。']); break; }
+        if (ok) { P2.view(K, { progress: .6 + (p + 1) / PATS.length * .4 }); await K.say(['#fx flash', 'n:シロと拍が重なった。核が、一段、静かになる。']); break; }
         K.stab(-3);
         await K.say(['#fx shake', 'n:拍がずれた。核が跳ねる。', 's:きゅ。', 'n:シロが、もう一度最初から、と言うように鳴いた。']);
       }
@@ -215,6 +222,7 @@
     ]);
     await P2.vision(K, VISIONS.length - 1);
     await K.say(['#fx whiteout', '#se whistle', 'n:最後の糸が、ほどけた。', 'n:境界が、閉じていく。', 'n:九条の姿は、もう、どこにもなかった。']);
+    P2.view(K, {});
     K.flag('core_done', true);
   };
 
@@ -225,11 +233,13 @@
       await K.title('最終章', '月代町崩壊');
       await K.say([
         '#scene center_office A', '#amb clock',
+        'n:その日の昼、御堂室長は私を仮眠室に押し込んだ。', 'm:眠りなさい。境界の中で、自分を見失わないために。', 'n:夢は見なかった。目が覚めると、職員証の文字は、ちゃんと「月代分室」に戻っていた。',
         'n:午前2時16分。', 'm:行くのか。', 'p:シロが一緒なら。', 'y:無線は切るな。こっちから見えるのは、お前の端末の位置だけだ。', 'y:……戻ってこい。',
         'g:シロ、ちゃんと連れて帰ってきてね。', 's:きゅ。',
         '#se clock', '#wait 800', 'n:2時17分。', '#se whistle', '#fx shake',
         'n:分室の床が、ずれた。', 'n:窓の外の月代町が、ほどけていく。',
       ]);
+      K.stab(100);
       if (K.sync) K.sync(5);
       if (K.setWorld) K.setWorld('A');
       K.unlock('collapse');

@@ -10,14 +10,14 @@
 
   P2.area('old_lab', { name: '旧研究施設', danger: { B: 3, C: 5 }, worlds: {
     B: { scene: 'old_lab', spots: [
-      { id: 'd9_plate', x: .36, y: .22, w: .26, h: .3, label: '実験装置の銘板', acts: ['look', 'photo', 'scan'], cond: IN9,
+      { id: 'd9_plate', obj: 'blackboard', x: .36, y: .22, w: .26, h: .3, label: '黒板', acts: ['look', 'photo', 'scan'], cond: IN9,
         on: {
-          look: async function (K) { await K.say(['n:この世界の旧研究施設は、廃墟ではない。床は磨かれ、装置には電源が入っている。', 'n:装置の銘板。「境界共鳴実験　周期30」。']); },
-          photo: async function (K) { await K.say(['#se shutter', 'n:銘板を撮った。']); K.gain('d9_cycle'); },
+          look: async function (K) { await K.say(['n:この世界の旧研究施設は、廃墟ではない。床は磨かれ、装置には電源が入っている。', 'n:黒板に、きれいな字で。「境界共鳴実験　観測周期 T=30」', 'n:その下に、もう一行。「固定観測者 1」。']); },
+          photo: async function (K) { await K.say(['#se shutter', 'n:黒板を撮った。']); K.gain('d9_cycle'); if (K.has('paper_viewer1')) await K.say(['p:固定観測者 1……。古新聞の「固定視聴者：1」と、同じ数字。']); },
           scan: async function (K) { await K.say(['t:境界反応 2.6（周期的）', 't:周期：30.0', 'p:単位が書いていない。30日？　30秒？　……30回？']); }
         } },
-      { id: 'd9_desk', x: .7, y: .45, w: .2, h: .3, label: '研究者の机', acts: ['look'], cond: IN9,
-        on: { look: async function (K) { await K.say(['n:整頓された机。書類はすべて持ち去られている。', 'n:写真立てだけが伏せて置いてある。起こそうとすると、指が通り抜けた。', 'p:……見るだけの世界、か。']); K.flag('d9_frame_seen', true); } } },
+      { id: 'd9_desk', obj: 'family_photo', x: .7, y: .45, w: .2, h: .3, label: '机の写真立て', acts: ['look'], cond: IN9,
+        on: { look: async function (K) { await K.say(['n:整頓された机。書類はすべて持ち去られている。', 'n:写真立てが一つ。三人家族の影。顔を見ようと近づくと、指が額を通り抜けた。', 'p:……見るだけの世界、か。']); K.flag('d9_frame_seen', true); } } },
     ] },
   } });
   P2.area('station', { name: '月代駅', worlds: { B: { scene: 'station_live', spots: [
@@ -26,6 +26,13 @@
         await K.say(['x:駅員|ああ、またあなた。切符は……いいです、いいです。', 'x:駅員|変な話ですがね。夜中の二時四十分すぎ、誰もいない改札を、誰かが通る音がするんですよ。']);
         await P2.t444(K, 'gate', ['x:駅員|朝に通過カウンターを見ると、決まって数字が増えてる。……ここ半年で、ちょうど444。', 'x:駅員|気味が悪いから、もう数えるのやめました。'], { title: '改札の通過カウンター', text: '世界Bの月代駅。誰もいない深夜の改札を「誰か」が通る。通過数はちょうど444。' });
       } } },
+  ] } } });
+
+  P2.area('shrine', { name: '月代神社', worlds: { A: { scene: 'shrine', spots: [
+    { id: 'd9_shiramine', obj: 'offering_box', x: .46, y: .48, w: .08, h: .17, label: '宮司の白峰さん', acts: ['talk'], cond: IN9,
+      on: { talk: async function (K) { await K.say(['x:白峰|三十、ですか。……この神社にも、三十にまつわる古い神事がありましてね。「月送り」と言います。',
+        'x:白峰|月の満ち欠けはおよそ三十日。昔の人は、三十日ごとに「今月の自分」を神さまにお返しして、新しい月の自分をいただいた。',
+        'x:白峰|返しそびれた月は、どこかで続いてしまう――そんな言い伝えもあります。', 'p:続いてしまう？', 'x:白峰|終わらない三十日目、というやつです。子どもを寝かしつける脅し文句ですよ。']); K.flag('d9_tsukiokuri', true); } } },
   ] } } });
 
   // 断片を並べ直す：経過時間 → DAY（観測開始の瞬間が DAY 01 の 0時）
@@ -105,7 +112,7 @@
     await K.step('d9_lab', async function () {
       await K.explore({
         hint: '旧研究施設を境界観測で別の歴史（B）に切り替え、「周期」を確かめる',
-        areas: ['old_lab', 'station', 'shotengai', 'center_office'],
+        areas: ['old_lab', 'station', 'shotengai', 'shrine', 'center_office'],
         goal: function (K) { return K.got('d9_cycle'); }
       });
       await K.say(['#scene center_office A', 'p:周期30。単位はありませんでした。', 'y:記録番号30、観測期間30日、実験周期30。', 'm:……三つ並ぶと、偶然と言うには少し重いね。', 'y:写しの修復が終わった。サーバー室で見られる。']);

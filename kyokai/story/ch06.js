@@ -191,7 +191,7 @@
       on: { look: async K => K.say(['n:崩れた世界の第二観測室の扉は、枠ごと歪んで動かない。']) } },
     { id: 'c6_backC', x: 0.09, y: 0.33, w: 0.18, h: 0.40, label: '（別室）穴から通路へ戻る', acts: ['look'], cond: K => C6(K) && inRoom(K),
       on: { look: async K => { K.unflag('c6_in_room'); await K.say(['n:穴をくぐって、通路へ戻った。']); } } },
-    { id: 'c6_rubbleC', x: 0.70, y: 0.70, w: 0.20, h: 0.20, label: '瓦礫', acts: ['look'], cond: K => C6(K) && !inRoom(K),
+    { id: 'c6_rubbleC', x: 0.17, y: 0.66, w: 0.20, h: 0.09, label: '瓦礫', acts: ['look'], cond: K => C6(K) && !inRoom(K),
       on: { look: async K => { if (K.has('c6_rubble')) return K.say(['n:瓦礫。']); K.flag('c6_rubble'); K.item('stab', 1); await K.say(['n:瓦礫の下に、割れていないアンプルが一本。', 't:境界安定剤 ×1 を手に入れた']); } } },
     { id: 'c6_roomC', x: 0.21, y: 0.32, w: 0.12, h: 0.24, label: '（別室）配電盤の残骸', acts: ['look'], cond: K => C6(K) && inRoom(K),
       on: { look: async K => K.say(['n:崩れた配電盤。この世界では、もう何も流れていない。', 'n:札も焼けて読めない。']) } },

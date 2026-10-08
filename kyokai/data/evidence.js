@@ -213,26 +213,26 @@ Object.assign(KY.EVIDENCE, {
 /* ───────────── 第八章「誰もいない月代町」（ch08） ───────────── */
 Object.assign(KY.EVIDENCE, {
   d8_empty_clock: { title: '止まった時計たち', type: 'photo', world: 'C', art: 'empty_town', ch: 8,
-    desc: '誰もいない商店街。店の時計はすべて 2:17 で止まっている。一つだけ、秒針が逆に動いていた。' },
+    desc: '誰もいない町。見える時計はすべて 2:17 で止まっている。一つだけ、秒針が逆に動いていた。' },
   d8_school_board: { title: '黒板の正の字', type: 'photo', world: 'C', art: 'school', ch: 8,
     desc: '無人の教室の黒板に「正」の字が六つ。数えると30。誰が何を数えたのかは分からない。' },
-  d8_bureau_plate: { title: '定礎板', type: 'photo', world: 'C', art: 'bureau', ch: 8,
-    desc: '施設の入口の定礎板。「境界現象対策局 月代支局（旧 特殊現象観測センター月代分室）」。年号はこちらの暦より先。' },
+  d8_bureau_plate: { title: '室名の銘板', type: 'photo', world: 'C', art: 'bureau', ch: 8,
+    desc: '札「境界現象対策局 第三記録保管室」の下の銘板。「月代支局（旧 特殊現象観測センター月代分室）」。年号はこちらの暦より先。' },
   d8_bureau_badge: { title: '対策局の職員証', type: 'item', world: 'C', art: 'bureau', ch: 8,
-    desc: 'ロッカーに残っていた職員証。所属「境界現象対策局」。肩書「主任観測員」。氏名欄は、私の名前だった。' },
+    desc: '保管棚の引き出しに残っていた職員証。所属「境界現象対策局」。肩書「主任観測員」。氏名欄は、私の名前だった。' },
   d8_b30: { title: '境界観測記録 B-30', type: 'log', world: 'C', art: 'bureau', ch: 8,
     desc: '対象：男性／職業：設備関連業務／深夜に定期的な映像配信／対象周辺において低確率で境界ノイズを検出／特記事項：精神状態・睡眠状態により観測強度が変動している可能性。氏名欄は破損。' },
   d8_b30_image: { title: 'B-30 の観測画像', type: 'photo', world: 'C', art: 'stream_room', ch: 8,
     desc: 'B-30 に添付された粗い観測画像。暗い部屋、机、モニター、マイク。人物は後ろ姿か、ノイズの向こう。' },
   d8_cctv: { title: '対策局の監視映像', type: 'video', world: 'C', art: 'bureau', ch: 8,
-    desc: '無人のはずの局内を映す監視カメラ。在室者表示は「0」。ただし入退室記録の最後の行に「444」。' },
+    desc: '右の表示板に映る、無人のはずの局内の監視カメラ。在室者表示は「0」。ただし入退室記録の最後の行に「444」。' },
 });
 /* ───────────── 第九章「30」（ch09） ───────────── */
 Object.assign(KY.EVIDENCE, {
   d9_period: { title: '観測期間：30日', type: 'log', world: 'C', art: 'bureau', ch: 9,
     desc: 'B-30 の表紙。「観測期間 30日（延長不可）」。' },
   d9_cycle: { title: '実験周期：30', type: 'photo', world: 'B', art: 'old_lab', ch: 9,
-    desc: '別の歴史の旧研究施設。実験装置の銘板「境界共鳴実験 周期30」。' },
+    desc: '別の歴史の旧研究施設。黒板に「境界共鳴実験 観測周期 T=30」「固定観測者 1」。' },
   d9_fragments: { title: 'B-30 の断片（DAY記録）', type: 'log', world: null, art: 'bureau', ch: 9,
     desc: '30個の小さな記録。読めたもの：DAY 04 睡眠不足／DAY 07 配信／DAY 11 仕事上のトラブル／DAY 15 怪異反応上昇／DAY 18 歌唱／DAY 23 精神状態低下／DAY 27 異常視聴者を確認／DAY 30 ――――（黒塗り）' },
   d9_status: { title: 'DAY 30 の状態欄', type: 'log', world: null, art: 'bureau', ch: 9,
@@ -259,6 +259,8 @@ Object.assign(KY.EVIDENCE, {
     desc: '観測員が送信試験に使った定型文。「昨日も同じ時間にここにいた」「後ろ、雨の音だけじゃないですよ」「さっきも同じ話、聞きました」。試験の相手先は「なし」のはずだった。' },
   d11_counter: { title: '視聴者数のちらつき', type: 'photo', world: null, art: 'stream_room', ch: 11,
     desc: '第七章の録画を一コマずつ送ると、分室が接続した瞬間だけ、向こうの画面の視聴者数が 444 に跳ねている。' },
+  d11_leak: { title: '漏れていた秒針', type: 'audio', world: null, art: 'stream_room', ch: 11,
+    desc: '第七章の録画の音声を高感度録音機で解析。雨音のノイズの底に、分室の壁時計と同じ周期の秒針の音。こちらの部屋の音が、向こうの配信に漏れていた。' },
   d11_missing: { title: 'ログにない言葉', type: 'log', world: 'A', art: 'center_server', ch: 11,
     desc: '向こうのコメント欄に出ていた「30日目まで見ています」「寝たら終わりますよ」は、分室の送信記録のどこにもない。' },
 });
@@ -280,7 +282,7 @@ Object.assign(KY.EVIDENCE, {
   d13_kujo_terminal: { title: '九条の端末', type: 'log', world: 'C', art: 'old_lab', ch: 13,
     desc: '無数の人生の記録。その中に B-30 の記録もある。一人の男性の三十日が、何百通りも並んでいる。' },
   d13_family: { title: '九条の家族写真', type: 'photo', world: 'B', art: 'old_lab', ch: 13,
-    desc: '別の歴史の研究施設の机。九条と、妻と、小さな息子。裏に日付。この世界では、三人とも生きている。' },
+    desc: '別の歴史の研究施設（札「九条研究室」）の机。九条と、妻と、小さな息子。裏に日付。この世界では、三人とも生きている。' },
   d13_search_log: { title: '探索記録', type: 'log', world: 'C', art: 'old_lab', ch: 13,
     desc: '九条が観測した世界の一覧。各行の末尾に「家族：不在」。何千行も。一行だけ「家族：在」。その世界には、九条自身がいない。' },
 });

@@ -4,7 +4,7 @@
    条件（P2.decideEnding）
      C    … 最終章で「境界に残る」を選んだ
      B    … 帰り道を「ユウの声」で選んだ／「職員証」で選んだが安定度40未満（所属が対策局に見えていた）
-            ／安定度0で研究所へ戻された回数（slipped）3回以上／最後の安定度20未満
+            ／安定度0で研究所へ戻された回数（slipped）3回以上／最後の安定度15未満
      TRUE … B・Cでなく、主要な謎（B-30・USER_444の痕跡5つ以上・ナギ・九条・シロ）のうち4つ以上を解明
             ＋本編『だんのうら』のエンディングを1つ以上見ている（KY_LINK.cleared()）
      A    … それ以外
@@ -17,7 +17,7 @@
 
   P2.bCondition = function (K) {
     var anchor = K.get('anchor'), stab = P2.stab(K), slip = P2.slipped(K);
-    return anchor === 'voice' || (anchor === 'id' && stab < 40) || slip >= 3 || stab < 20;
+    return anchor === 'voice' || (anchor === 'id' && stab < 40) || slip >= 3 || stab < 15;
   };
   P2.decideEnding = function (K) {
     if (K.get('final_choice') === 'stay') return 'C';
@@ -30,7 +30,7 @@
   P2.homecoming = async function (K, w) {
     var B = w === 'B';
     await K.say([
-      '#scene center_office ' + (B ? 'B' : 'A'), '#amb clock',
+      '#scene center_office A', '#amb clock',
       'n:気がつくと、分室の床に座り込んでいた。',
       'n:窓の外は、白みはじめている。',
       'y:……おかえり。',
@@ -82,14 +82,14 @@
     await P2.homecoming(K, 'B');
     await K.say([
       'n:遠くで、踏切の音がした。',
-      'n:壁の職員写真は四枚。御堂室長、如月さん、佐伯さん、そして私。',
+      'n:壁の職員写真。右下の空いていた枠に、私の写真が入っている。',
       'n:いつ撮ったのか、思い出せない。来月のはずだった気がする。……たぶん、気のせいだ。',
       'y:報告書、手伝う。', 'p:珍しいですね。', 'y:……いつも手伝ってるだろ。',
     ]);
     await P2.nagiHome(K, false);
     await P2.kujoFate(K);
     await K.say([
-      '#scene center_office B', '#amb clock',
+      '#scene center_office A', '#amb clock',
       'n:事件は、終わった。月代町は、いつもどおりの朝を迎えている。',
       'n:商店街の時計屋の前を通ると、坂口さんが手を振ってくれた。',
       'n:観測装置で、もう一度だけあの周波数を受けてみた。',
@@ -160,6 +160,7 @@
   };
 
   P2.finale = async function (K) {
+    P2.view(K, {});
     var id = P2.decideEnding(K);
     K.flag('ending_decided', id);
     if (id === 'C') return P2.endC(K);

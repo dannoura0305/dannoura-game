@@ -32,10 +32,14 @@
       } },
   ] } } });
   P2.area('center_lab', { name: '観測装置室', worlds: { A: { scene: 'center_lab', spots: [
-    { id: 'd11_frames', obj: 'console', x: .3, y: .22, w: .4, h: .36, label: '操作卓（録画をコマ送り）', acts: ['look', 'photo'], cond: IN11,
+    { id: 'd11_frames', obj: 'console', x: .3, y: .22, w: .4, h: .36, label: '操作卓（録画をコマ送り）', acts: ['look', 'photo', 'record'], cond: IN11,
       on: {
         look: async function (K) { await K.say(['n:第七章の夜の録画を、一コマずつ送る。', 'n:受信が始まった瞬間――向こうの画面の右上、視聴者数の表示が、一コマだけ跳ねた。', 't:視聴者数 3 → 444 → 3', 'p:……分室がつながった、その瞬間に。']); },
-        photo: async function (K) { await K.say(['#se shutter', 'n:そのコマを撮った。']); K.gain('d11_counter'); }
+        photo: async function (K) { await K.say(['#se shutter', 'n:そのコマを撮った。']); K.gain('d11_counter'); },
+        record: async function (K) {
+          await K.say(['#se rec', 'n:録画の音声を、高感度録音機に通す。', 'n:ほとんどが雨の音。……いや、雨の帯域の底に、規則正しい音がある。', '#se clock', 'n:秒針。', 'p:この周期……分室の壁時計と、同じだ。', 'y:向こうの部屋に、こっちの時計の音が漏れてた、ってことか。', 'p:「後ろ、雨の音だけじゃないですよ」。……あのコメントの意味が、少しだけ分かった気がします。']);
+          K.gain('d11_leak');
+        }
       } },
   ] } } });
 

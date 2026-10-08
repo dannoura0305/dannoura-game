@@ -75,6 +75,10 @@
     if (K.has('myst_shiro')) n++;
     return n;
   };
+  // 場面の小さな差分（KY_ART の opts：stream_room の variant/turn、core の progress など）
+  P2.view = function (K, o) { try { if (K && typeof K.stageOpts === 'function') K.stageOpts(o || {}); } catch (e) {} };
+  // B-30 の差分 → 配信部屋の絵（stream_room の variant）
+  P2.roomVariant = function () { var v = P2.link().b30.variant; return v === 'cert' ? 'study' : v === 'father' ? 'success' : v || null; };
   P2.link = function () {
     var L = window.KY_LINK;
     var dflt = { study: false, stream: false, factory: false, unwell: false, good: false, bad: false, ending: null, variant: null, child: false, anomaly: false, any: false };
@@ -149,7 +153,9 @@
         '#wait 600', '#se static',
         'n:そのとき、大型モニターがひとりでに点いた。',
         't:受信中――発信元：不明', 't:形式：ライブ配信',
-        '#scene stream_room',
+      ]);
+      P2.view(K, { flags: { feed: true } });
+      await K.say([
         'y:……は？　観測装置が映像を受けてる？',
         '#fx noise',
         'n:暗い部屋。机。モニターの光。誰かが一人で喋っている。音はほとんどノイズで、言葉にならない。',
@@ -167,7 +173,9 @@
         'n:ゆっくりと、肩越しに、後ろを――',
         '#fx glitch', '#se static',
         'n:映像が止まった。',
-        '#scene center_lab A',
+      ]);
+      P2.view(K, {});
+      await K.say([
         '#wait 600',
         'p:誰、この人……',
         'y:それより。最後のコメント。……投稿時刻を見ろ。',

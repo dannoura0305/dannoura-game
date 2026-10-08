@@ -41,21 +41,21 @@
     name: '誰もいない月代町', map: { x: .52, y: .88 }, danger: { C: 4 },
     worlds: {
       C: { scene: 'empty_town', spots: [
-        { id: 'd8_clocks', x: .06, y: .18, w: .24, h: .3, label: '店先の時計', acts: ['look', 'photo', 'scan'], cond: IN8,
+        { id: 'd8_clocks', obj: 'street_clock', x: .06, y: .18, w: .24, h: .3, label: '止まった時計', acts: ['look', 'photo', 'scan'], cond: IN8,
           on: {
-            look: async function (K) { await K.say(['#se clock', 'n:並んだ店先の時計が、全部 2時17分 を指して止まっている。', 'n:一つだけ、秒針が逆に回っている。']); },
+            look: async function (K) { await K.say(['#se clock', 'n:通りの時計。店先の掛け時計。腕時計の露店。見える時計が全部、2時17分 を指して止まっている。', 'n:一つだけ、秒針が逆に回っている。']); },
             photo: async function (K) { await K.say(['#se shutter', 'n:止まった時計たちを撮る。逆回りの秒針は、写真の中でも止まらなかった。']); K.gain('d8_empty_clock'); },
             scan: async function (K) { await K.say(['t:境界反応 4.1／時刻情報：取得不能', 'p:ここでは、時間が「2時17分」のまま止まっている……？']); }
           } },
-        { id: 'd8_sign', x: .62, y: .2, w: .2, h: .3, label: '案内標識', acts: ['look', 'photo'], cond: IN8,
+        { id: 'd8_sign', obj: 'far_tower', x: .62, y: .2, w: .2, h: .3, label: '地平の白い塔', acts: ['look', 'photo'], cond: IN8,
           on: {
             look: async function (K) {
-              await K.say(['n:見慣れない青い標識。「境界現象対策局 月代支局 →」', 'n:矢印の先は、分室のある方角。', 'p:……分室の場所に？']);
+              await K.say(['n:町並みの向こう、白い空の地平に、白い塔が一本。', 'n:足元の白紙の看板に、一瞬だけ文字が浮かんで消えた。「境界現象対策局 月代支局 →」', 'n:矢印の先も、塔の方角も、分室のある場所だ。', 'p:……分室の場所に？']);
               K.flag('d8_sign_seen', true);
             },
-            photo: async function (K) { await K.say(['#se shutter', 'n:標識を撮った。矢印の向きを地図と照らし合わせると、やはり分室だ。']); K.flag('d8_sign_seen', true); }
+            photo: async function (K) { await K.say(['#se shutter', 'n:塔を撮った。地図と照らし合わせると、やはり分室の場所だ。']); K.flag('d8_sign_seen', true); }
           } },
-        { id: 'd8_radio', x: .4, y: .55, w: .2, h: .3, label: '無線', acts: ['talk'], cond: IN8,
+        { id: 'd8_radio', obj: 'bus_stop', x: .4, y: .55, w: .2, h: .3, label: 'バス停の無線', acts: ['talk'], cond: IN8,
           on: { talk: async function (K) { await K.say(['#se static', 'y:……聞こえるか。こっちからは、お前の端末の位置しか見えない。', 'y:電力を使いすぎるな。安定度が30を切ったら、何をしていても戻れ。', 'p:戻り方が分かりません。', 'y:……シロに聞け。']); } } },
       ] }
     }
@@ -90,17 +90,17 @@
       } } },
   ] } } });
   P2.area('residential', { name: '住宅街', danger: { C: 3 }, worlds: { C: { scene: 'residential', spots: [
-    { id: 'd8_alley', x: .4, y: .35, w: .22, h: .45, label: '路地の奥', acts: ['look', 'record'], cond: function (K) { return IN8(K) && !K.has('d8_chased'); },
+    { id: 'd8_alley', obj: 'house_2', x: .4, y: .35, w: .22, h: .45, label: '崩れた家の奥', acts: ['look', 'record'], cond: function (K) { return IN8(K) && !K.has('d8_chased'); },
       on: {
         look: async function (K) { await P2.chase8(K); },
         record: async function (K) { await K.say(['#se rec', 'n:路地の奥から、人の声を逆に回したような音。', 'p:……ヨドミ。']); await P2.chase8(K); }
       } },
-    { id: 'd8_lot', x: .1, y: .55, w: .2, h: .3, label: '三丁目の空き地', acts: ['look'], cond: IN8,
-      on: { look: async function (K) { await K.say(['n:この世界でも、ここは空き地だ。', 'n:ただ、雑草の中に、汽車の時刻表の切れ端が落ちていた。']); } } },
+    { id: 'd8_lot', obj: 'pole', x: .1, y: .55, w: .2, h: .3, label: '電柱の住所札', acts: ['look'], cond: IN8,
+      on: { look: async function (K) { await K.say(['n:電柱の住所札。「月代町三丁目」。', 'n:足元の雑草の中に、汽車の時刻表の切れ端が落ちていた。この世界にも、どこかで汽車が走っていたのかもしれない。']); } } },
   ] } } });
 
   P2.area('station', { name: '月代駅', danger: { C: 5 }, worlds: { C: { scene: 'station_ruin', spots: [
-    { id: 'd8_platform', x: .3, y: .45, w: .36, h: .3, label: '崩れたホーム', acts: ['look', 'record', 'scan'], cond: IN8,
+    { id: 'd8_platform', obj: 'name_board', x: .3, y: .45, w: .36, h: .3, label: '崩れたホーム', acts: ['look', 'record', 'scan'], cond: IN8,
       on: {
         look: async function (K) { await K.say(['n:誰もいない世界の月代駅。ホームは崩れ、レールは途中で宙に消えている。', 'n:それなのに、時刻表の「2:17」の欄だけが新しい紙に貼り替えられていた。', 'y:（無線）そこは危険度5だ。長居するな。']); },
         record: async function (K) { await K.say(['#se whistle', 'n:録音機が、汽笛を拾った。', 'n:列車は来ない。音だけが、ホームを通り過ぎていく。', 'n:通り過ぎた後に、窓の灯りの残像が、二両分。']); },
@@ -108,7 +108,7 @@
       } },
   ] } } });
   P2.area('shrine', { name: '月代神社', danger: { C: 3 }, worlds: { C: { scene: 'shrine', spots: [
-    { id: 'd8_ema', x: .55, y: .4, w: .2, h: .25, label: '絵馬掛け', acts: ['look'], cond: IN8,
+    { id: 'd8_ema', obj: 'ema', x: .55, y: .4, w: .2, h: .25, label: '絵馬掛け', acts: ['look'], cond: IN8,
       on: { look: async function (K) { await K.say(['n:誰もいない神社。絵馬掛けに、絵馬が一枚も残っていない。', 'n:紐だけが、願い事の数だけ揺れている。', 'n:――いや。一枚だけ。裏返しで、何も書かれていない絵馬。', 'p:誰の願いも、ここには届かなかったのかな。']); } } },
   ] } } });
 
@@ -135,31 +135,31 @@
   };
 
   P2.area('bureau', {
-    name: '境界現象対策局', map: { x: .2, y: .34 }, danger: { C: 4 }, cond: function (K) { return K.has('d8_bureau_open'); },
+    name: '境界現象対策局', map: { x: .27, y: .72 }, danger: { C: 4 }, cond: function (K) { return K.has('d8_bureau_open'); },
     worlds: {
       C: { scene: 'bureau', spots: [
-        { id: 'd8_plate', x: .04, y: .2, w: .16, h: .14, label: '定礎板', acts: ['look', 'photo'],
+        { id: 'd8_plate', obj: 'sign', x: .04, y: .2, w: .16, h: .14, label: '室名の札', acts: ['look', 'photo'],
           on: {
-            look: async function (K) { await K.say(['n:入口の定礎板。「境界現象対策局 月代支局（旧 特殊現象観測センター月代分室）」。', 'n:刻まれた年号は、こちらの暦より先だ。']); },
+            look: async function (K) { await K.say(['n:札「境界現象対策局 第三記録保管室」。', 'n:その下に、小さな銘板。「月代支局（旧 特殊現象観測センター月代分室）」。', 'n:刻まれた年号は、こちらの暦より先だ。']); },
             photo: async function (K) { await K.say(['#se shutter']); K.gain('d8_bureau_plate'); }
           } },
-        { id: 'd8_locker', x: .74, y: .3, w: .16, h: .45, label: 'ロッカー', acts: ['look'],
+        { id: 'd8_locker', obj: 'archive', x: .74, y: .3, w: .16, h: .45, label: '保管棚の引き出し', acts: ['look'],
           on: { look: async function (K) {
-            if (K.got('d8_bureau_badge')) { await K.say(['n:空のロッカー。名札の跡。']); return; }
+            if (K.got('d8_bureau_badge')) { await K.say(['n:空の引き出し。名札の跡。']); return; }
             var n = P2.nm(K);
-            await K.say(['n:ロッカーの名札。「' + n + '」。', 'n:中に職員証が一枚。', 't:境界現象対策局　主任観測員　' + n, 'p:…………', 'p:私は、こんな部署にいた……？', '#fx glitch']);
+            await K.say(['n:記録シリンダーの並ぶ保管棚。いちばん下の引き出しに、名札。「' + n + '」。', 'n:中に職員証が一枚。', 't:境界現象対策局　主任観測員　' + n, 'p:…………', 'p:私は、こんな部署にいた……？', '#fx glitch']);
             K.gain('d8_bureau_badge'); K.stab(-5);
           } } },
-        { id: 'd8_cctv', x: .42, y: .08, w: .18, h: .2, label: '監視モニター', acts: ['look', 'photo'],
+        { id: 'd8_cctv', obj: 'observer_panel', x: .42, y: .08, w: .18, h: .2, label: '右の表示板（入退室）', acts: ['look', 'photo'], cond: function (K) { return !K.has('ch12'); },
           on: {
             look: async function (K) {
-              await K.say(['n:局内を映す監視モニター。どの画面にも人はいない。在室者表示「0」。']);
+              await K.say(['n:右の表示板。局内の監視カメラの映像と、入退室の記録。どの画面にも人はいない。在室者表示「0」。']);
               await P2.t444(K, 'cctv', ['n:入退室記録の最後の行だけ、名前の代わりに番号がある。', 't:2:44　入室　444　（退室記録なし）', 'p:……誰もいないのに。'], { title: '対策局の入退室記録', text: '無人の対策局。最後の入室者「444」。退室の記録はない。' });
               K.gain('d8_cctv');
             },
             photo: async function (K) { await K.say(['#se shutter', 'n:モニターを撮った。写真では、在室者表示が「1」になっていた。']); K.gain('d8_cctv'); }
           } },
-        { id: 'd8_archive', x: .2, y: .4, w: .26, h: .32, label: '記録端末', acts: ['look', 'scan'],
+        { id: 'd8_archive', obj: 'terminal', x: .2, y: .4, w: .26, h: .32, label: '記録端末', acts: ['look', 'scan'],
           on: {
             look: async function (K) {
               if (!K.has('b30_read')) { await P2.readB30(K); return; }
@@ -174,9 +174,14 @@
   P2.readB30 = async function (K) {
     await K.say(['n:端末を起こす。大量の異常記録の一覧。月代町の事件番号が延々と続く。', 'n:その中に、一件だけ。月代町と関係のない記録がある。', '#se beep']);
     var t = P2.b30Lines(K);
+    P2.view(K, { flags: { b30: true } });
     await K.say(t.rec);
-    await K.say(['#fx noise']);
+    var rv = P2.roomVariant();
+    P2.view(K, rv ? { variant: rv, noise: .35 } : { noise: .5 });
+    await K.say(['#fx noise', '#scene stream_room']);
     await K.say(t.img);
+    P2.view(K, {});
+    await K.say(['#scene bureau C']);
     var tf = +K.get('traces_found') || 0;
     if (tf >= 2) await K.say(['p:……参考書。マイク。工具箱。子どもの絵。', 'p:別々の世界で、別々に見つけた物。それが、この一枚の画像の中に全部ある。', 'p:同じ人の、持ち物だった……？']);
     else if (K.has('glimpse_stream')) await K.say(['p:この部屋……シロを追ったときに一瞬だけ見えた、あの配信の部屋だ。']);

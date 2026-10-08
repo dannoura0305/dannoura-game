@@ -45,16 +45,16 @@
     ] },
   } });
   P2.area('residential', { name: '住宅街', worlds: { A: { scene: 'residential', spots: [
-    { id: 'd10_hayase', x: .15, y: .4, w: .16, h: .4, label: '早瀬さん', acts: ['talk', 'scan'], cond: IN10,
+    { id: 'd10_hayase', obj: 'house_1', x: .15, y: .4, w: .16, h: .4, label: '早瀬さん', acts: ['talk', 'scan'], cond: IN10,
       on: {
         talk: async function (K) { await K.say(['x:早瀬|夫がね、今朝から左手でお箸を持ってるの。', 'x:早瀬|本人は「昔からだ」って。結婚して二十年、右だったのに。', 'x:早瀬|でもね。……優しいのよ。前より、ちょっとだけ。', 'x:早瀬|困ってるのは私だけ。困ってるって言っていいのかも、分からない。', 'p:……記録しておきます。早瀬さんが困っていることも、ちゃんと。']); },
         scan: async function (K) { await K.say(['t:早瀬さん：境界反応 ―', 'n:早瀬さん本人には、何の反応もない。入れ替わったのは、ご主人のほうだ。']); }
       } },
-    { id: 'd10_miura', x: .6, y: .42, w: .16, h: .4, label: '三浦さん', acts: ['talk'], cond: IN10,
+    { id: 'd10_miura', obj: 'house_3', x: .6, y: .42, w: .16, h: .4, label: '三浦さん', acts: ['talk'], cond: IN10,
       on: { talk: async function (K) { await K.say(['x:三浦|入れ替わり？　うちは平気よ。', 'x:三浦|……ただ、ゆうべ、また女の子に「お母さん」って呼ばれたの。今度はちゃんと顔を見た。', 'x:三浦|ランドセルに「月代第二小」って縫い取りがあった。', 'p:（ナギさんと同じ学校……？）', 'x:三浦|あの子、私の顔を見て「間違えました」って謝ったのよ。……間違えたのは、どっちなのかしらね。']); } } },
   ] } } });
   P2.area('school', { name: '月代小学校', worlds: { A: { scene: 'school', spots: [
-    { id: 'd10_terada', x: .1, y: .45, w: .16, h: .4, label: '用務員の寺田さん', acts: ['talk'], cond: IN10,
+    { id: 'd10_terada', obj: 'lit_window', x: .1, y: .45, w: .16, h: .4, label: '宿直室の寺田さん', acts: ['talk'], cond: IN10,
       on: { talk: async function (K) {
         await K.say(['x:寺田|最近、子どもらが変な噂をしててね。「よるのひと」がどうとか。']);
         await P2.t444(K, 'rumor', ['x:寺田|夜中にテレビをつけると、黒い画面に「よんよんよん」って数字が出て、ずっとこっちを見てる人がいるんだと。', 'x:寺田|見てるだけで、なんにもしないんだって。……それが一番気味悪いって、子どもらは言うんだ。'], { title: '子どもたちの噂', text: '「よるのひと」。真夜中の黒い画面に「444」。見ているだけで、何もしない。' });
@@ -127,9 +127,14 @@
       ]);
       for (var i = 0; i < P2.FUTURES.length; i++) {
         var f = P2.FUTURES[i], hit = f.ends.some(function (e) { return seen.indexOf(e) >= 0; });
+        P2.view(K, f.id === 'success' ? { variant: 'success' } : f.id === 'cert' ? { variant: 'study' } : f.id === 'stream' ? { variant: 'stream' } : f.id === 'gone' ? { variant: 'collapse', noise: .8 } : { noise: .45 });
         await K.say(['t:未来観測 ' + (i + 1) + '／5　' + f.label + (hit ? '　［既観測］' : '')].concat(f.lines).concat(hit ? ['n:この像にだけ、装置が「すでに一度観測された未来」の印をつけている。誰が観測したのかは、記録にない。'] : []));
       }
       K.gain('d10_futures'); K.flag('d10_futures', true);
+      await K.say([
+        '#wait 300',
+      ]);
+      P2.view(K, {});
       await K.say([
         '#scene center_lab A',
         '#wait 600',

@@ -147,7 +147,7 @@
   const emaOpen = K => open('ema')(K) && K.got('c6_self_desk');
   ext('shrine', 'A', [
     { id: 'sd_emaA', x: 0.778, y: 0.5, w: 0.106, h: 0.133, label: '【相談】絵馬掛け', acts: ['look'], cond: emaOpen,
-      on: { look: async K => { K.flag('sd_ema_a'); await K.say(['n:白峰さんの相談。「絵馬の文字が、ときどき変わる気がする」。', 'n:一枚の絵馬。「店を続けられますように　松井」。', 'n:――駄菓子屋の松井さんの字だ。シャッターに閉店のあいさつを貼った、あの店の。', 'y:境界観測で、向こう側の同じ場所を見てみろ。']); } } },
+      on: { look: async K => { K.flag('sd_ema_a'); await K.say(['n:白峰さんの相談。「絵馬の文字が、ときどき変わる気がする」。', 'n:一枚の絵馬。「店を続けられますように　松井」。', 'n:――駄菓子屋の松井さんの字だ。「月末で店じまい」の札を出していた、あの店の。', 'y:境界観測で、向こう側の同じ場所を見てみろ。']); } } },
   ]);
   ext('shrine', 'B', [
     { id: 'sd_emaB', x: 0.778, y: 0.5, w: 0.106, h: 0.133, label: '【相談】おみくじ結び（向こう側）', acts: ['look', 'photo'], cond: K => emaOpen(K) && K.has('sd_ema_a'),

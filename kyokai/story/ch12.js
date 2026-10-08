@@ -10,20 +10,22 @@
   var IN12 = function (K) { return K.has('ch12') && !K.has('ch12_done'); };
 
   P2.area('bureau', { name: '境界現象対策局', worlds: { C: { scene: 'bureau', spots: [
-    { id: 'd12_reg', x: .2, y: .4, w: .26, h: .32, label: '観測者名簿', acts: ['look', 'scan'], cond: IN12,
+    { id: 'd12_reg', obj: 'observer_panel', x: .2, y: .4, w: .26, h: .32, label: '観測者名簿', acts: ['look', 'scan'], cond: IN12,
       on: {
         look: async function (K) {
-          await K.say(['n:記録端末の奥、対策局の観測者名簿。',
+          P2.view(K, { flags: { observers: true } });
+          await K.say(['n:右の表示板に、対策局の観測者名簿。',
             't:001　御堂　分室', 't:002　如月　分室', 't:003　' + P2.nm(K) + '　対策局', 't:004　佐伯　分室', 't:005 …… 017',
             't:444　――　所属なし　観測方法：不明　接続元：不明',
             'n:017 の次が、いきなり 444。間に何もない。']);
           K.gain('d12_registry');
+          P2.view(K, {});
         },
         scan: async function (K) { await K.say(['t:444 の項目　作成日時：不明　更新日時：いま', 'p:……更新日時が「いま」。読んでいる最中に、書き換わっている。']); }
       } },
   ] } } });
   P2.area('old_lab', { name: '旧研究施設', worlds: { C: { scene: 'old_lab', spots: [
-    { id: 'd12_notes', x: .62, y: .4, w: .24, h: .32, label: '研究ノート', acts: ['look', 'photo'], cond: IN12,
+    { id: 'd12_notes', obj: 'shelf', x: .62, y: .4, w: .24, h: .32, label: '研究ノート', acts: ['look', 'photo'], cond: IN12,
       on: {
         look: async function (K) { await K.say(['n:崩れた研究室に、新しいノートが一冊だけ置いてある。誰かが最近まで、ここに通っていた。', 'n:観測者の一覧。分室、対策局、そして「K」で始まる番号がいくつも。', 'n:444 の欄にだけ、赤いペンで――', 't:誰だ', 'p:このノートの持ち主にも、分からない。']); },
         photo: async function (K) { await K.say(['#se shutter', 'n:ノートを撮った。表紙の名前は、九条。']); K.gain('d12_kujo_list'); K.flag('kujo_note', true); }
@@ -37,7 +39,7 @@
       } } },
   ] } } });
   P2.area('residential', { name: '住宅街', worlds: { B: { scene: 'residential', spots: [
-    { id: 'd12_nagihome', x: .4, y: .35, w: .22, h: .4, label: '三丁目十四番の家', acts: ['look', 'photo'], cond: IN12,
+    { id: 'd12_nagihome', obj: 'house_2', x: .4, y: .35, w: .22, h: .4, label: '三丁目十四番の家', acts: ['look', 'photo'], cond: IN12,
       on: {
         look: async function (K) { await K.say(['n:こちらの世界では空き地の場所に、二階建ての家がある。', 'n:表札。窓辺に「月代鉄道」の時刻表。物干しに、小さな体操服。', 'n:台所の窓に、人影。誰かが夕飯を作っている。']); },
         photo: async function (K) { await K.say(['#se shutter', 'n:家を撮った。']); K.gain('d12_nagi_home'); }
@@ -55,7 +57,7 @@
       } } },
   ] } } });
   P2.area('center_lab', { name: '観測装置室', worlds: { A: { scene: 'center_lab', spots: [
-    { id: 'd12_shiro', x: .1, y: .55, w: .18, h: .3, label: 'シロ', acts: ['look', 'scan'], cond: function (K) { return IN12(K) && !K.has('myst_shiro'); },
+    { id: 'd12_shiro', obj: 'apparatus', x: .1, y: .55, w: .18, h: .3, label: 'シロ', acts: ['look', 'scan'], cond: function (K) { return IN12(K) && !K.has('myst_shiro'); },
       on: {
         look: async function (K) { await K.say(['s:きゅ。', 'n:シロが装置の上で、こちらを見ている。輪郭が、いつもより少しだけはっきりしている。']); },
         scan: async function (K) {
@@ -143,6 +145,9 @@
           'y:見てるだけか。', 'p:見てるだけ、です。……今のところは。',
         ]);
       }
+      await K.say(['#scene center_office A', '#amb clock',
+        'n:その夜、一人で日報を書いていた。', 'n:ふと、私の端末の隅に、小さな数字が出ているのに気づいた。', 't:視聴者　1',
+        'p:……視聴者？', 'n:瞬きをすると、もう消えていた。', 'n:誰かが、こちらを見ている。私たちがあの人を見ていたように。', 'n:そう思っても、不思議と怖くはなかった。怖くないのが、少しだけ怖かった。']);
       K.note('444', 'n444_who', { title: 'USER_444／444番の観測者', text: '登録名不明・所属なし・観測方法不明・接続元不明。B-30 の配信にも何度も接続。どこにも属していない。――正体は、分からない。', solved: false });
       K.flag('ch12_done', true);
     });

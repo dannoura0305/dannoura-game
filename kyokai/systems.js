@@ -370,6 +370,7 @@
       for (;;) {
         dangerLayer(KY.dangerOf(id, s.world));
         const W = a.worlds[s.world] || {};
+        KY.stageOpts({});
         KY.scene(W.scene || id, s.world);
         await KY._flush();
         if (G.slipNow) return 'slip';
@@ -476,6 +477,30 @@
   }
   function cloneCanvas(c) { const n = document.createElement('canvas'); n.width = c.width; n.height = c.height; try { n.getContext('2d').drawImage(c, 0, 0); } catch (e) {} return n; }
   KY._icon = icon;
+  // 場面の 0..1 座標 → 場面キャンバス上の % （KY_ART の cover 配置に合わせる。16:9 の画面では等倍）
+  function toPct(x, y) {
+    const A = root.KY_ART, cv = D.stage;
+    if (A && typeof A.toCanvas === 'function' && cv && cv.width > 0) {
+      try { const p = A.toCanvas(x, y, cv.width, cv.height); return [p.x / cv.width * 100, p.y / cv.height * 100]; } catch (e) {}
+    }
+    return [x * 100, y * 100];
+  }
+  KY._toPct = toPct;
+  // 地図：章の場所 id → KY_ART.MAP_AREAS の地点（絵の地点アイコンにピンを重ねる）
+  function artKey(id) {
+    const M = root.KY_ART && root.KY_ART.MAP_AREAS; if (!M) return null;
+    if (M[id]) return id;
+    const a = KY.AREAS[id], sc = a && a.worlds && (a.worlds.A || a.worlds[Object.keys(a.worlds)[0]] || {}).scene;
+    if (/^center/.test(id) || /^center_/.test(sc || '')) return M.center ? 'center' : null;
+    return Object.keys(M).find(k => M[k].scene && M[k].scene === sc) || null;
+  }
+  KY._artKey = artKey;
+  KY.mapOpts = function (current) {
+    const s = S(), K = G.K || KY;
+    const un = [], vis = [];
+    Object.keys(KY.AREAS).forEach(id => { const k = artKey(id); if (!k) return; if (KY.areaOpen(id, K) && un.indexOf(k) < 0) un.push(k); if (s.areas.visited.indexOf(id) >= 0 && vis.indexOf(k) < 0) vis.push(k); });
+    return { unlocked: un, visited: vis, current: current ? artKey(current) : null };
+  };
   function clearSpots() { D.spots.innerHTML = ''; D.spots.className = 'ky-spots'; }
   function showPanel() { KY._hideDlg(); D.ex.hidden = false; }
 
@@ -485,19 +510,26 @@
       const s = S();
       KY._hudExtra.loc = '月代町';
       hud();
+      KY.stageOpts(KY.mapOpts(EX && EX.lastArea));
       KY.scene('town_map', s.baseWorld);
       KY._ambLayer([]);
       clearSpots();
+      const M = root.KY_ART && root.KY_ART.MAP_AREAS, groups = {};
+      list.forEach(id => { const k = artKey(id); if (k) (groups[k] = groups[k] || []).push(id); });
       D.spots.classList.add('map');
-      const pick = id => { clearSpots(); D.ex.hidden = true; KY.se('beep'); done(id); };
+      const pick = id => { clearSpots(); D.ex.hidden = true; KY.se('beep'); if (EX) EX.lastArea = id; KY.stageOpts({}); done(id); };
       const bm = KY.hasEquip('boundary_meter');
       list.forEach(id => {
-        const a = KY.AREAS[id]; const m = a.map || { x: 0.5, y: 0.5 };
+        const a = KY.AREAS[id]; let m = a.map || { x: 0.5, y: 0.5 };
+        const k = artKey(id), g = k ? groups[k] : null;
+        let onArt = false;
+        if (k && M && M[k]) { const i = g.indexOf(id); m = { x: M[k].x + (g.length > 1 ? (i - (g.length - 1) / 2) * 0.1 : 0), y: M[k].y + (g.length > 1 ? 0.1 : 0) }; onArt = g.length === 1; }
         const okW = worldsOf(id).indexOf(s.baseWorld) >= 0 || s.baseWorld === 'A';
-        const b = button('', () => pick(id), 'pin');
-        b.style.left = (clamp(m.x, 0.04, 0.96) * 100) + '%'; b.style.top = (clamp(m.y, 0.05, 0.95) * 100) + '%';
+        const b = button('', () => pick(id), 'pin' + (onArt ? ' on-art' : ''));
+        const [px, py] = toPct(clamp(m.x, 0.04, 0.96), clamp(m.y, 0.05, 0.95));
+        b.style.left = px + '%'; b.style.top = py + '%';
         b.appendChild($('span', 'pin-dot'));
-        b.appendChild($('span', 'pin-l', KY.areaName(id)));
+        if (!onArt) b.appendChild($('span', 'pin-l', KY.areaName(id)));
         if (s.areas.visited.indexOf(id) < 0) b.appendChild($('span', 'pin-new', 'NEW'));
         if (bm) { const d = KY.dangerOf(id, s.baseWorld); b.dataset.d = d; }
         if (!okW) b.disabled = true;
@@ -552,7 +584,9 @@
         if (EXUI.sel[id + '/' + w] === sp.id) { const first = (sp.acts || ['look'])[0]; act(first, sp); return; }
         EXUI.sel[id + '/' + w] = sp.id; renderArea();
       }, 'hs' + (sp.id === sel ? ' sel' : ''));
-      b.style.left = (sp.x * 100) + '%'; b.style.top = (sp.y * 100) + '%'; b.style.width = (sp.w * 100) + '%'; b.style.height = (sp.h * 100) + '%';
+      const [x0, y0] = toPct(sp.x, sp.y), [x1, y1] = toPct(sp.x + sp.w, sp.y + sp.h);
+      b.style.left = x0 + '%'; b.style.top = y0 + '%'; b.style.width = (x1 - x0) + '%'; b.style.height = (y1 - y0) + '%';
+      if (sp.y < 0.1) b.classList.add('top');
       b.setAttribute('aria-label', sp.label || sp.id);
       b.append($('i', 'c1'), $('i', 'c2'), $('i', 'c3'), $('i', 'c4'));
       if (sp.id === sel) b.appendChild($('span', 'hs-l', sp.label || ''));
@@ -798,12 +832,13 @@
       const s = S();
       const wrap = $('div', 'mm-map');
       const c = $('canvas', 'mm-cv'); c.width = 640; c.height = 360;
-      KY.drawScene(c.getContext('2d'), 'town_map', s.baseWorld, performance.now() / 1000, { w: 640, h: 360, thumb: true });
+      KY.drawScene(c.getContext('2d'), 'town_map', s.baseWorld, performance.now() / 1000, Object.assign({ w: 640, h: 360, thumb: true }, KY.mapOpts(null)));
       wrap.appendChild(c);
       const ids = Object.keys(KY.AREAS).filter(id => KY.areaOpen(id));
-      ids.forEach(id => { const a = KY.AREAS[id], m = a.map || { x: .5, y: .5 }; const p = $('span', 'mm-pin' + (s.areas.visited.indexOf(id) >= 0 ? ' v' : ''), KY.areaName(id)); p.style.left = m.x * 100 + '%'; p.style.top = m.y * 100 + '%'; wrap.appendChild(p); });
+      const M = root.KY_ART && root.KY_ART.MAP_AREAS;
+      ids.filter(id => !(M && artKey(id))).forEach(id => { const a = KY.AREAS[id], m = a.map || { x: .5, y: .5 }; const p = $('span', 'mm-pin' + (s.areas.visited.indexOf(id) >= 0 ? ' v' : ''), KY.areaName(id)); p.style.left = m.x * 100 + '%'; p.style.top = m.y * 100 + '%'; wrap.appendChild(p); });
       el.appendChild(wrap);
-      el.appendChild($('div', 'set-note', ids.length ? `調査地点 ${ids.length}か所（訪れた場所 ${s.areas.visited.length}）。探索中は地図から場所を選んで移動します。` : 'まだ調査地点はない。'));
+      el.appendChild($('div', 'set-note', ids.length ? ids.map(id => KY.areaName(id)).join('・') + '\n' + `調査地点 ${ids.length}か所（訪れた場所 ${s.areas.visited.length}）。探索中は地図から場所を選んで移動します。` : 'まだ調査地点はない。'));
     });
     // 境界危険度
     KY.addMenu('danger', '境界危険度', 70, el => {
