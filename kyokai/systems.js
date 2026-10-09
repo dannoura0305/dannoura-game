@@ -770,7 +770,7 @@
       L.appendChild(p);
       const t0 = performance.now(); let raf = 0, shown = false;
       const draw = () => {
-        const t = (performance.now() - t0) / 1000, c = wv.getContext('2d'), W = wv.width, H = wv.height;
+        const t = (performance.now() - t0) / 1000, c = KY._gbw(wv.getContext('2d')), W = wv.width, H = wv.height;
         c.fillStyle = 'rgba(4,10,24,.9)'; c.fillRect(0, 0, W, H);
         c.strokeStyle = 'rgba(95,214,230,.18)'; c.lineWidth = 1;
         for (let x = 0; x < W; x += 40) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke(); }
@@ -925,7 +925,7 @@
       const s = S(), lv = KY.stabLevel();
       const card = $('div', 'idcard' + (lv >= 1 ? ' drift' : ''));
       const ph = $('canvas', 'id-photo'); ph.width = 120; ph.height = 150;
-      const g = ph.getContext('2d'); g.fillStyle = '#c9d6e3'; g.fillRect(0, 0, 120, 150);
+      const g = KY._gbw(ph.getContext('2d')); g.fillStyle = '#c9d6e3'; g.fillRect(0, 0, 120, 150);
       const fig = (x, a) => { g.fillStyle = `rgba(40,56,80,${a})`; g.beginPath(); g.arc(x, 58, 24, 0, 7); g.fill(); g.beginPath(); g.ellipse(x, 150, 46, 50, 0, Math.PI, 0); g.fill(); };
       fig(60, 1); if (lv >= 1) fig(92, 0.35); if (lv >= 3) { g.fillStyle = 'rgba(201,214,227,.5)'; g.fillRect(0, 50 + (Date.now() % 40), 120, 6); }
       const info = $('div', 'id-info');

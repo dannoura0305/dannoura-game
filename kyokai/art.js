@@ -13,7 +13,7 @@
 
 const W=320,H=180,TAU=Math.PI*2;
 const OL='#1b1226';
-const FG="'Hiragino Kaku Gothic ProN','Yu Gothic','Noto Sans JP','Meiryo','IPAPGothic',sans-serif";
+const FG="'DotGothic16','Hiragino Kaku Gothic ProN','Yu Gothic','Noto Sans JP','Meiryo','IPAPGothic',sans-serif";
 const FM="'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP','IPAPMincho','IPAMincho',serif";
 const FMONO="'Consolas','Menlo','Noto Sans Mono','DejaVu Sans Mono',monospace";
 
@@ -455,7 +455,7 @@ scene('center_office',{worlds:'ABC',name:'観測センター月代分室・事�
     ctx.drawImage(FR,cx-half,cy-half,half*2,half*2,dx,dy,size,size);
     // 銘（拡大後の解像度で）
     const alt=flag2(o,'clockAlt'),fs=Math.max(10,Math.round(3.7*k*.9));
-    ctx.font=(alt?'':'bold ')+fs+'px '+(alt?FM:FG);ctx.textAlign='center';ctx.textBaseline='top';ctx.fillStyle='#2e2c40';
+    ctx.font=(alt?'':'bold ')+fs+'px '+(alt?FM:FG);ctx.textAlign='center';ctx.textBaseline='top';ctx.fillStyle='#1a1424';
     ctx.fillText(alt?'月代時計':'TSUKUYO',dx+size/2,dy+(half+3.6)*k);
     ctx.restore();
     ctx.lineWidth=Math.max(2,size/90);ctx.strokeStyle='rgba(159,240,224,.75)';ctx.beginPath();ctx.arc(dx+size/2,dy+size/2,size/2,0,TAU);ctx.stroke();
@@ -2211,8 +2211,15 @@ function portrait(ctx,who,face,w,h,opts){
   if(!ctx)return;const o=opts||{};
   try{
     w=w||ctx.canvas.width;h=h||ctx.canvas.height;const x0=o.x||0,y0=o.y||0;
+    const gbOn=GB.on&&o.gb!==false,pk=gbKey(o.pal||GB.cur);
     const im=raster(['portrait.'+who+'.'+face,'portrait.'+who]);
-    if(im){ctx.save();const s=Math.min(w/im.naturalWidth,h/im.naturalHeight);const dw=im.naturalWidth*s,dh=im.naturalHeight*s;ctx.drawImage(im,x0+(w-dw)/2,y0+h-dh,dw,dh);ctx.restore();return;}
+    if(im&&!gbOn){ctx.save();const s=Math.min(w/im.naturalWidth,h/im.naturalHeight);const dw=im.naturalWidth*s,dh=im.naturalHeight*s;ctx.drawImage(im,x0+(w-dw)/2,y0+h-dh,dw,dh);ctx.restore();return;}
+    if(im){
+      // 生成画像の顔も 4 階調に（高さ 96 ドットに縮めてから）
+      let m=GB_IMT.get(im);if(!m||!m.tagName){const k=96/im.naturalHeight,t=mk(Math.max(1,Math.round(im.naturalWidth*k)),96);t.getContext('2d').drawImage(im,0,0,t.width,t.height);m=t;GB_IMT.set(im,m);}
+      const q=gbSprite(m,pk);const s=Math.min(w/q.width,h/q.height);const dw=q.width*s,dh=q.height*s;
+      ctx.save();ctx.imageSmoothingEnabled=false;if(o.bg){ctx.fillStyle=gbCss(o.bg,pk);ctx.fillRect(x0,y0,w,h);}ctx.drawImage(q,Math.round(x0+(w-dw)/2),Math.round(y0+h-dh),Math.round(dw),Math.round(dh));ctx.restore();return;
+    }
     let P0=PORTRAITS[who];
     if(!P0&&/^resident_/.test(String(who)))P0=PORTRAITS.resident_a;
     if(!P0)P0=PORTRAITS.player;
@@ -2221,10 +2228,11 @@ function portrait(ctx,who,face,w,h,opts){
     if(P0.live){const t=o.t!=null?+o.t:(typeof performance!=='undefined'?performance.now()/1000:0);const fr=Math.floor(t*8)%64;const key=who+'|'+f+'|'+fr;c=PCACHE.get(key);
       if(!c){c=mk(PW,PH);P0.draw(c.getContext('2d'),f,fr/8);PCACHE.set(key,c);if(PCACHE.size>400)PCACHE.delete(PCACHE.keys().next().value);}}
     else{const key=who+'|'+f;c=PCACHE.get(key);if(!c){c=mk(PW,PH);P0.draw(c.getContext('2d'),f);PCACHE.set(key,c);}}
+    if(gbOn)c=gbSprite(c,pk);
     let s=Math.min(w/PW,h/PH);if(s>=1&&!o.smooth)s=Math.max(1,Math.floor(s*2)/2);
     const dw=PW*s,dh=PH*s;
     ctx.save();const sm=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=false;
-    if(o.bg){ctx.fillStyle=o.bg;ctx.fillRect(x0,y0,w,h);}
+    if(o.bg){ctx.fillStyle=gbOn?gbCss(o.bg,pk):o.bg;ctx.fillRect(x0,y0,w,h);}
     ctx.drawImage(c,Math.round(x0+(w-dw)/2),Math.round(y0+h-dh),Math.round(dw),Math.round(dh));
     ctx.imageSmoothingEnabled=sm;ctx.restore();
   }catch(e){try{ctx.restore();}catch(e2){}}
@@ -2287,20 +2295,124 @@ const ICON_NAMES=Object.keys(ICON_DEF);
 function icon(name){
   name=String(name||'');let n=ICON_ALIAS[name]||name;
   if(!ICON_DEF[n]){const m=n.replace(/^(act|item|eq|equip|menu|ev)_/,'');if(ICON_DEF[m])n=m;}
-  const key=n;if(ICONS.has(key))return ICONS.get(key);
+  const key=n+'|'+(GB.on?GB.cur:'');if(ICONS.has(key))return ICONS.get(key);
   const out=mk(32,32),o=out.getContext('2d');
   try{
     const im=raster(['icon.'+n]);
-    if(im){o.drawImage(im,0,0,32,32);return out;}
+    if(im){o.drawImage(im,0,0,32,32);if(GB.on){const q=gbSprite(out,GB.cur);o.clearRect(0,0,32,32);o.drawImage(q,0,0);}return out;}
     const c=mk(16,16),q=c.getContext('2d');
     if(ICON_DEF[n])ICON_DEF[n](q);
     else{R(q,IC.d,3,3,10,10);R(q,IC.k,4,4,8,8);R(q,IC.m,7,5,2,1);R(q,IC.m,8,6,1,2);R(q,IC.m,7,8,1,1);R(q,IC.m,7,10,1,1);}
     post(q,16,16,{minA:70});
-    o.imageSmoothingEnabled=false;o.drawImage(c,0,0,32,32);
+    o.imageSmoothingEnabled=false;o.drawImage(GB.on?gbSprite(c,GB.cur):c,0,0,32,32);
   }catch(e){}
   if(ICON_DEF[n])ICONS.set(key,out);
   return out;
 }
+
+// ════════════════════════════════════════════════════════════════
+//  ゲームボーイ風 4 階調（場面・顔・アイコン・UI のキャンバスを同じ 4 色にそろえる）
+//   ・場面は 320×180 で描いたあと、2×2 を平均して 160×90 に縮め、明るさを 4 段に分けて（境目だけ軽い網点）最近傍で拡大する。
+//   ・段の境目は場面ごとの明るさの分布から決める（夜の場面が真っ黒にならないように）。
+//   ・看板などの文字は拡大後の解像度で、下の色と反対の濃さ（濃い地に明るい字／明るい地に濃い字）で描く。
+//   ・世界ごとに 4 色を変える：A 通常＝初代の緑、B 別の歴史＝セピア、C 崩壊＝冷たい青灰、
+//     配信部屋・工場の幻＝紫（S）、境界核・混ざる世界＝青緑（X）、危険のちらつき＝赤（R）。
+// ════════════════════════════════════════════════════════════════
+const GB_PAL={
+  A:['#0f380f','#306230','#8bac0f','#cadc9f'],
+  B:['#2a1a0c','#6e4a26','#c09058','#f2e2bc'],
+  C:['#0c1219','#384a5c','#8a9cac','#dfe7ec'],
+  S:['#1b0f2e','#4e3478','#a688d4','#ece2fa'],
+  X:['#04201e','#17605a','#5fc4b4','#e2fbf4'],
+  R:['#240608','#7a1a28','#e0606e','#fbe0e0']
+};
+const GB_RGB={};for(const k in GB_PAL)GB_RGB[k]=GB_PAL[k].map(hexRgb);
+const GB_SCENE_PAL={stream_room:'S',factory_glimpse:'S',core:'X',collapse:'X'};
+const GB={cur:'A',on:true,scale:2,dither:.3};
+function gbKey(k){return GB_PAL[k]?k:'A';}
+function palOf(id,world){return GB_SCENE_PAL[id]||gbKey(String(world||'A').toUpperCase());}
+// 明るさ 0..1
+function lum(r,g,b){return (r*.299+g*.587+b*.114)/255;}
+// 明るさの分布から 3 本の境目を決める（固定値と半々に混ぜる）
+function gbThr(data,n,step){
+  const hist=new Uint32Array(64);let cnt=0;
+  for(let i=0;i<n;i+=step||1){const j=i*4;if(data[j+3]<100)continue;hist[Math.min(63,(lum(data[j],data[j+1],data[j+2])*64)|0)]++;cnt++;}
+  if(!cnt)return [.2,.45,.7];
+  const pct=q=>{let s=0;const lim=cnt*q;for(let b=0;b<64;b++){s+=hist[b];if(s>=lim)return (b+.5)/64;}return 1;};
+  const P=[pct(.3),pct(.62),pct(.88)],F=[.16,.4,.66];
+  const t=P.map((v,i)=>v*.55+F[i]*.45);
+  t[0]=Math.max(.03,t[0]);t[1]=Math.max(t[0]+.05,t[1]);t[2]=Math.min(.97,Math.max(t[1]+.06,t[2]));
+  return t;
+}
+function lv4(l,T){return l<T[0]?.5*l/T[0]:l<T[1]?.5+(l-T[0])/(T[1]-T[0]):l<T[2]?1.5+(l-T[1])/(T[2]-T[1]):2.5+.5*(l-T[2])/Math.max(.01,1-T[2]);}
+// 4 階調にする：src（w×h の RGBA）→ dst（(w/sc)×(h/sc) の ImageData）と段の番号
+function gbQuant(src,w,h,sc,T,pk,o){
+  o=o||{};const gw=(w/sc)|0,gh=(h/sc)|0,pal=GB_RGB[gbKey(pk)],inv=!!o.invert,dz=o.dither==null?GB.dither:o.dither,keepA=!!o.alpha;
+  const out=o.out&&o.out.width===gw&&o.out.height===gh?o.out:new ImageData(gw,gh),d=out.data;
+  const idx=o.idx&&o.idx.length===gw*gh?o.idx:new Uint8Array(gw*gh);const k=1/(sc*sc);
+  for(let y=0;y<gh;y++)for(let x=0;x<gw;x++){
+    let l=0,a=0;
+    for(let j=0;j<sc;j++){let p=((y*sc+j)*w+x*sc)*4;for(let i=0;i<sc;i++,p+=4){l+=lum(src[p],src[p+1],src[p+2]);a+=src[p+3];}}
+    l*=k;a*=k;
+    let v=lv4(l,T)+.5+(bay(x,y)-.5)*dz;let q=v<1?0:v<2?1:v<3?2:3;if(inv)q=3-q;
+    const n=y*gw+x;idx[n]=q;const c=pal[q],p=n*4;d[p]=c[0];d[p+1]=c[1];d[p+2]=c[2];d[p+3]=keepA?(a<110?0:255):255;
+  }
+  return {img:out,idx,gw,gh};
+}
+// CSS の色を、同じ明るさの段の色にする（透明度はそのまま）
+const GB_CSS=new Map();
+function parseCss(c){
+  c=String(c).trim();let m;
+  if(c[0]==='#'){let h=c.slice(1);if(h.length===3||h.length===4)h=h.split('').map(x=>x+x).join('');const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16),a=h.length>=8?parseInt(h.slice(6,8),16)/255:1;return isNaN(r+g+b)?null:[r,g,b,a];}
+  if((m=/^rgba?\(([^)]+)\)$/i.exec(c))){const p=m[1].split(/[\s,\/]+/).filter(Boolean).map(parseFloat);if(p.length<3)return null;return [p[0],p[1],p[2],p.length>3?p[3]:1];}
+  if(c==='black')return [0,0,0,1];if(c==='white')return [255,255,255,1];if(c==='transparent')return [0,0,0,0];
+  return null;
+}
+function gbShade(l){return l<.18?0:l<.42?1:l<.68?2:3;}
+function gbCss(c,pk){
+  if(typeof c!=='string')return c;pk=gbKey(pk||GB.cur);const key=pk+'|'+c;let v=GB_CSS.get(key);if(v)return v;
+  const p=parseCss(c);if(!p)return c;
+  const q=GB_RGB[pk][gbShade(lum(p[0],p[1],p[2]))];
+  v=p[3]>=1?GB_PAL[pk][gbShade(lum(p[0],p[1],p[2]))]:`rgba(${q[0]},${q[1]},${q[2]},${(+p[3]).toFixed(3)})`;
+  if(GB_CSS.size>3000)GB_CSS.clear();GB_CSS.set(key,v);return v;
+}
+// 拡大後の描画（文字・拡大鏡・ハイライト）用：色を 4 色に読み替える 2D コンテキスト
+function gbWrap(ctx,pk){
+  if(!ctx||ctx.__gb)return ctx;pk=gbKey(pk||GB.cur);
+  return new Proxy(ctx,{
+    get(t,p){
+      if(p==='__gb')return true;if(p==='__raw')return t;
+      const v=t[p];
+      if(typeof v!=='function')return v;
+      if(p==='createLinearGradient'||p==='createRadialGradient'){return function(){const g=v.apply(t,arguments);const ac=g.addColorStop;g.addColorStop=(o,c)=>ac.call(g,o,gbCss(c,pk));return g;};}
+      return v.bind(t);
+    },
+    set(t,p,v){if((p==='fillStyle'||p==='strokeStyle'||p==='shadowColor')&&typeof v==='string')v=gbCss(v,pk);if(p==='shadowBlur')v=0;t[p]=v;return true;}
+  });
+}
+function raw(ctx){return ctx&&ctx.__gb?ctx.__raw:ctx;}
+// キャンバスをその場で 4 階調にする（タイトルの背景・生成画像など）。sc＝何ドットを 1 マスにするか
+function gbCanvas(cv,pk,o){
+  o=o||{};const w=cv.width,h=cv.height,sc=Math.max(1,o.scale|0||1);if(!w||!h)return cv;
+  const g=raw(cv.getContext('2d'));const d=g.getImageData(0,0,w,h);
+  const T=o.thr||gbThr(d.data,w*h,Math.max(1,(w*h/20000)|0));
+  const r=gbQuant(d.data,w-(w%sc),h-(h%sc),sc,T,pk,{alpha:o.alpha,dither:o.dither,invert:o.invert});
+  if(sc===1){g.putImageData(r.img,0,0);return cv;}
+  const t=mk(r.gw,r.gh);t.getContext('2d').putImageData(r.img,0,0);
+  g.save();g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,w,h);g.imageSmoothingEnabled=false;g.drawImage(t,0,0,r.gw*sc,r.gh*sc);g.restore();return cv;
+}
+// 小さな絵（顔・アイコン）：透明はそのまま、明るさの分布で 4 段
+const GB_SPR=new WeakMap();
+function gbSprite(c,pk){
+  pk=gbKey(pk||GB.cur);let m=GB_SPR.get(c);if(!m){m={};GB_SPR.set(c,m);}
+  if(m[pk])return m[pk];
+  const g=c.getContext('2d'),d=g.getImageData(0,0,c.width,c.height);
+  const T=gbThr(d.data,c.width*c.height,1);
+  const r=gbQuant(d.data,c.width,c.height,1,T,pk,{alpha:true,dither:.18});
+  const o=mk(c.width,c.height);o.getContext('2d').putImageData(r.img,0,0);m[pk]=o;return o;
+}
+// 生成画像（assets/kyokai/manifest.json）を場面と同じ大きさの原寸に貼る
+const GB_IMT=new WeakMap();
 
 // ════════════════════════════════════════════════════════════════
 //  描画の流れ：静止レイヤー（キャッシュ）→ 揺れもの → 安定度のズレ → 暗さ → 拡大 → 文字 → ハイライト
@@ -2342,8 +2454,8 @@ function drawText(ctx,list,L,o,sb,t){
     ctx.globalAlpha=T.a==null?1:T.a;
     const fam=T.f==='m'?FM:T.f==='mono'?FMONO:FG;
     ctx.font=(T.b?'700 ':'400 ')+fs.toFixed(1)+'px '+fam;
-    ctx.fillStyle=T.c||'#fff';ctx.textBaseline='top';
-    if(T.gl){ctx.shadowColor=T.gl;ctx.shadowBlur=fs*.6;}
+    ctx.fillStyle=GBX?gbTextColor(T,str):(T.c||'#fff');ctx.textBaseline='top';
+    if(T.gl&&!GBX){ctx.shadowColor=T.gl;ctx.shadowBlur=fs*.6;}
     const x=L.ox+T.x*L.s,y=L.oy+T.y*L.s;
     if(T.rot){ctx.translate(x,y);ctx.rotate(T.rot);ctx.translate(-x,-y);}
     if(T.v){ctx.textAlign='center';const step=fs*(T.sp?1+T.sp:1.04);const chars=Array.from(str);for(let i=0;i<chars.length;i++){const ch=chars[i];if(ch==='ー'||ch==='－'){ctx.save();ctx.translate(x,y+i*step+fs/2);ctx.rotate(Math.PI/2);ctx.fillText(ch,0,-fs/2);ctx.restore();}else ctx.fillText(ch,x,y+i*step);}}
@@ -2352,6 +2464,20 @@ function drawText(ctx,list,L,o,sb,t){
       ctx.fillText(str,x,y);}
     ctx.restore();
   }
+}
+// 4 階調の場面の上の文字：下の段の平均が明るければ一番濃い色、暗ければ一番明るい色（読めることを優先）
+let GBX=null;   // 描画中の場面の段 {idx,gw,gh,sc,pk}
+function gbTextColor(T,str){
+  const X=GBX,n=Math.max(1,Array.from(str).length);let x0,x1,y0=T.y,y1=T.y+T.s;
+  if(T.v){x0=T.x-T.s/2;x1=T.x+T.s/2;y1=T.y+T.s*n*(T.sp?1+T.sp:1.04);}
+  else{const wd=Math.min(T.max||1e9,n*T.s*.85);if(T.al==='center'){x0=T.x-wd/2;x1=T.x+wd/2;}else if(T.al==='right'){x0=T.x-wd;x1=T.x;}else{x0=T.x;x1=T.x+wd;}}
+  let sum=0,cnt=0;
+  for(let j=0;j<3;j++)for(let i=0;i<6;i++){
+    const sx=x0+(x1-x0)*(i+.5)/6,sy=y0+(y1-y0)*(j+.5)/3;
+    const gx=Math.floor(sx/X.sc),gy=Math.floor(sy/X.sc);if(gx<0||gy<0||gx>=X.gw||gy>=X.gh)continue;
+    sum+=X.idx[gy*X.gw+gx];cnt++;
+  }
+  const avg=cnt?sum/cnt:0;return GB_PAL[X.pk][avg>=1.5?0:3];
 }
 const GL_CH='▓▒░#@%&?_＃■□◆ノイズ〓';
 function glitchStr(s,amt,t){const a=Array.from(s);const k=(t*12)|0;return a.map((c,i)=>hash(i*31+k,k*7+i)<amt*.7?GL_CH[(hash(i,k)*GL_CH.length)|0]:c).join('');}
@@ -2418,33 +2544,73 @@ function highlights(ctx,L,o,t){
 }
 function vignette(ctx,cw,ch,a){const g=ctx.createRadialGradient(cw/2,ch/2,Math.min(cw,ch)*.35,cw/2,ch/2,Math.max(cw,ch)*.75);g.addColorStop(0,'rgba(4,3,12,0)');g.addColorStop(1,`rgba(4,3,12,${a})`);ctx.fillStyle=g;ctx.fillRect(0,0,cw,ch);}
 
+// 4 階調の 1 コマ（sc ごとに使い回す）
+const GBF={};
+function gbFrame(o,pk,T,sc){
+  const B=GBF[sc]||(GBF[sc]={c:null,img:null,idx:null});
+  const d=FG2.getImageData(0,0,W,H);
+  const r=gbQuant(d.data,W,H,sc,T,pk,{invert:o.gbFx==='invert',out:B.img,idx:B.idx});
+  B.img=r.img;B.idx=r.idx;
+  if(!B.c){B.c=mk(r.gw,r.gh);}
+  B.c.getContext('2d').putImageData(r.img,0,0);
+  // 原寸にも書き戻す（拡大鏡など、原寸の絵を読む post 用）
+  FG2.save();FG2.imageSmoothingEnabled=false;FG2.globalCompositeOperation='source-over';FG2.globalAlpha=1;FG2.clearRect(0,0,W,H);FG2.drawImage(B.c,0,0,W,H);FG2.restore();
+  GBX={idx:r.idx,gw:r.gw,gh:r.gh,sc,pk};
+  return B.c;
+}
+function lowVignette(g,a){const gr=g.createRadialGradient(W/2,H/2,H*.42,W/2,H/2,W*.62);gr.addColorStop(0,'rgba(4,3,12,0)');gr.addColorStop(1,`rgba(4,3,12,${a})`);g.fillStyle=gr;g.fillRect(0,0,W,H);}
 function draw(ctx,id,world,t,opts){
   if(!ctx||!ctx.canvas)return;
+  ctx=raw(ctx);
   const cw=ctx.canvas.width,ch=ctx.canvas.height;t=+t||0;const o=opts||{};
+  const gbOn=GB.on&&o.gb!==false;
+  const pk=gbKey(o.pal||palOf(id,world));
+  const X=gbOn?gbWrap(ctx,pk):ctx;
+  GBX=null;
   try{
     ctx.save();ctx.setTransform(1,0,0,1,0,0);
-    if(!SC[id]){ctx.restore();placeholder(ctx,id,cw,ch);return;}
+    if(!SC[id]){ctx.restore();placeholder(X,id,cw,ch);return;}
     const ww=worldOf(id,world);
     const im=raster(['scene.'+id+'.'+String(world||'A').toUpperCase(),'scene.'+id]);
-    if(im&&!o.noRaster){ctx.fillStyle='#06051a';ctx.fillRect(0,0,cw,ch);cover(ctx,im,0,0,cw,ch,o.fit);const L=layout(cw,ch,o.fit);highlights(ctx,L,o,t);ctx.restore();return;}
-    const def=SC[id];const e=getStatic(id,ww.w,o);
-    const g=frame();g.globalCompositeOperation='source-over';g.globalAlpha=1;g.clearRect(0,0,W,H);g.drawImage(e.c,0,0);
-    const prev=S;S={txt:[],mk:[],w:ww.w,o,stab:e.sb};let dyn;
-    try{if(def.fx)def.fx(g,ww.w,t,o,e.data);if(o.figs&&o.figs.length&&!o.thumb)drawFigs(g,def,o.figs,ww.w);dyn=S.txt;}finally{S=prev;}
-    drift(g,id,e.sb,t);
-    if(ww.fb)tintFallback(g,ww.fb);
-    if(o.dark)darkness(g,o);
-    const L=layout(cw,ch,o.fit);
-    ctx.fillStyle='#06051a';ctx.fillRect(0,0,cw,ch);
-    ctx.imageSmoothingEnabled=false;ctx.drawImage(FR,0,0,W,H,L.ox,L.oy,W*L.s,H*L.s);
-    if(!o.dark){drawText(ctx,e.txt,L,o,e.sb,t);}
-    else{ctx.save();ctx.globalAlpha=.25;drawText(ctx,e.txt,L,o,e.sb,t);ctx.restore();}
-    drawText(ctx,dyn||[],L,o,e.sb,t);
-    if(def.post)def.post(ctx,L,ww.w,t,o,e.data);
-    if(o.vignette!==false)vignette(ctx,cw,ch,def.vig==null?.45:def.vig);
-    highlights(ctx,L,o,t);
+    if(im&&!o.noRaster&&!gbOn){ctx.fillStyle='#06051a';ctx.fillRect(0,0,cw,ch);cover(ctx,im,0,0,cw,ch,o.fit);const L=layout(cw,ch,o.fit);highlights(ctx,L,o,t);ctx.restore();return;}
+    const def=SC[id];const L=layout(cw,ch,o.fit);
+    const g=frame();g.globalCompositeOperation='source-over';g.globalAlpha=1;g.clearRect(0,0,W,H);
+    let e=null,dyn=null,T;
+    if(im&&!o.noRaster){
+      // 生成画像も同じ 4 階調に通す
+      g.fillStyle='#06051a';g.fillRect(0,0,W,H);g.imageSmoothingEnabled=true;cover(g,im,0,0,W,H,'cover');
+      T=GB_IMT.get(im);if(!T){T=gbThr(g.getImageData(0,0,W,H).data,W*H,2);GB_IMT.set(im,T);}
+    }else{
+      e=getStatic(id,ww.w,o);g.drawImage(e.c,0,0);
+      const prev=S;S={txt:[],mk:[],w:ww.w,o,stab:e.sb};
+      try{if(def.fx)def.fx(g,ww.w,t,o,e.data);if(o.figs&&o.figs.length&&!o.thumb)drawFigs(g,def,o.figs,ww.w);dyn=S.txt;}finally{S=prev;}
+      drift(g,id,e.sb,t);
+      if(ww.fb)tintFallback(g,ww.fb);
+      if(o.dark)darkness(g,o);
+      if(gbOn&&!e.gbT)e.gbT=gbThr(e.c.getContext('2d').getImageData(0,0,W,H).data,W*H,2);
+      T=e&&e.gbT;
+    }
+    if(gbOn){
+      if(o.vignette!==false)lowVignette(g,(def.vig==null?.45:def.vig)*.75);
+      const sc=Math.max(1,o.gbScale||(o.zoom?1:GB.scale));
+      const gc=gbFrame(o,pk,T,sc);
+      ctx.fillStyle=GB_PAL[pk][0];ctx.fillRect(0,0,cw,ch);
+      ctx.imageSmoothingEnabled=false;ctx.drawImage(gc,0,0,gc.width,gc.height,L.ox,L.oy,W*L.s,H*L.s);
+    }else{
+      ctx.fillStyle='#06051a';ctx.fillRect(0,0,cw,ch);
+      ctx.imageSmoothingEnabled=false;ctx.drawImage(FR,0,0,W,H,L.ox,L.oy,W*L.s,H*L.s);
+    }
+    if(e){
+      if(!o.dark){drawText(X,e.txt,L,o,e.sb,t);}
+      else{X.save();X.globalAlpha=.25;drawText(X,e.txt,L,o,e.sb,t);X.restore();}
+      drawText(X,dyn||[],L,o,e.sb,t);
+      if(def.post)def.post(X,L,ww.w,t,o,e.data);
+      if(!gbOn&&o.vignette!==false)vignette(ctx,cw,ch,def.vig==null?.45:def.vig);
+    }
+    highlights(X,L,o,t);
+    GBX=null;
     ctx.restore();
-  }catch(err){try{ctx.restore();}catch(e2){}placeholder(ctx,id,cw,ch);if(!API._warned){API._warned=1;try{console.warn('[KY_ART]',id,err&&err.message);}catch(e3){}}}
+  }catch(err){GBX=null;try{ctx.restore();}catch(e2){}placeholder(X,id,cw,ch);if(!API._warned){API._warned=1;try{console.warn('[KY_ART]',id,err&&err.message);}catch(e3){}}}
 }
 function objects(id,world,opts){
   if(!SC[id])return [];const ww=worldOf(id,world);const e=getStatic(id,ww.w,opts||{});return e.mk.map(m=>Object.assign({},m));
@@ -2465,6 +2631,13 @@ const API={
   palette:P,
   loadRaster,rasterCount:0,hasRaster:id=>RASTER.has(id),
   clearCache(){STATIC.clear();ICONS.clear();PCACHE.clear();},
+  // ゲームボーイ風 4 階調（engine / systems / board も使う）
+  gb:{
+    PAL:GB_PAL,palOf,css:gbCss,wrap:gbWrap,canvas:gbCanvas,sprite:gbSprite,
+    get cur(){return GB.cur;},set(k){GB.cur=gbKey(k);return GB.cur;},
+    get on(){return GB.on;},enable(v){GB.on=v!==false;ICONS.clear();},
+    get scale(){return GB.scale;},setScale(v){GB.scale=Math.max(1,Math.min(4,v|0||2));}
+  },
   _warned:0
 };
 window.KY_ART=API;
