@@ -537,6 +537,32 @@
     blow(t + 0.78, 2.5);
     return 4.6;
   }
+  // ゲームボーイ風の音（矩形波・パルス波・ノイズ）。UI の効果音はこれで鳴らす
+  const PWAVE = {};
+  function pulseWave(duty) {
+    if (PWAVE[duty]) return PWAVE[duty];
+    const n = 48, re = new Float32Array(n), im = new Float32Array(n);
+    for (let k = 1; k < n; k++) re[k] = (2 / (k * Math.PI)) * Math.sin(k * Math.PI * duty);
+    return (PWAVE[duty] = AU.ctx.createPeriodicWave(re, im));
+  }
+  function chip(f, t, dur, o) {
+    o = o || {};
+    const c = AU.ctx, os = c.createOscillator(), g = c.createGain();
+    try { os.setPeriodicWave(pulseWave(o.duty || 0.5)); } catch (e) { os.type = 'square'; }
+    os.frequency.setValueAtTime(f, t); if (o.to) os.frequency.linearRampToValueAtTime(o.to, t + dur);
+    const v = o.vol == null ? 0.04 : o.vol;
+    g.gain.setValueAtTime(v, t); g.gain.setValueAtTime(v, t + dur * 0.75); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    os.connect(g); g.connect(o.dest || AU.out); os.start(t); os.stop(t + dur + 0.03);
+  }
+  function chipSeq(notes, t, len, o) { notes.forEach((f, i) => { if (f) chip(f, t + i * len, len * (o && o.hold && i === notes.length - 1 ? o.hold : 0.95), o); }); }
+  function chipNoise(t, dur, o) {
+    o = o || {};
+    const c = AU.ctx, s = noiseSrc(false), f = c.createBiquadFilter(), g = c.createGain();
+    f.type = 'highpass'; f.frequency.value = o.f || 1800;
+    const v = o.vol == null ? 0.08 : o.vol, st = 4;
+    g.gain.setValueAtTime(v, t); for (let i = 1; i <= st; i++) g.gain.setValueAtTime(v * (1 - i / st) + 0.0001, t + dur * i / st);
+    s.connect(f); f.connect(g); g.connect(o.dest || AU.out); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.05);
+  }
   function tick(t, hi, vol, dest) { envNoise(t, 0.035, { f: hi ? 3600 : 2600, q: 9, vol: vol == null ? 0.22 : vol, dest }); envTone(hi ? 2100 : 1700, t, 0.03, { vol: (vol == null ? 0.22 : vol) * 0.25, dest }); }
   function step1(t, vol, dest) { envNoise(t, 0.12, { type: 'lowpass', f: 380, q: 0.7, vol: vol || 0.35, dest }); envNoise(t + 0.01, 0.05, { f: 1800, q: 2, vol: (vol || 0.35) * 0.25, dest }); }
   const VOWELS = [[730, 1090], [270, 2290], [300, 870], [530, 1840], [570, 840]];
@@ -567,18 +593,21 @@
     wire: () => { const t = T(), g = gainNode(0.0001, AU.out); g.gain.linearRampToValueAtTime(0.12, t + 0.6); g.gain.linearRampToValueAtTime(0.0001, t + 2.6); [50, 100, 150, 250].forEach((f, i) => envTone(f, t, 2.6, { vol: 0.6 / (i + 1), dest: g, a: 0.5 })); envNoise(t, 2.4, { f: 2400, q: 3, vol: 0.04, a: 0.6 }); },
     steps: () => { const t = T(); for (let i = 0; i < 5; i++) step1(t + i * 0.48, 0.3 - i * 0.03); },
     voice: () => murmur(T(), 1.8, 0.05),
-    beep: () => envTone(1000, T(), 0.09, { vol: 0.12 }),
-    shutter: () => { const t = T(); envNoise(t, 0.04, { f: 4000, q: 1, vol: 0.35 }); envNoise(t + 0.07, 0.05, { f: 2500, q: 1, vol: 0.25 }); envTone(180, t + 0.01, 0.05, { vol: 0.15, type: 'square' }); },
-    rec: () => { const t = T(); envTone(880, t, 0.08, { vol: 0.1 }); envTone(1320, t + 0.12, 0.1, { vol: 0.1 }); },
-    tap: () => envTone(1400, T(), 0.03, { vol: 0.035 }),
-    gain: () => { const t = T(); envTone(988, t, 0.12, { vol: 0.08 }); envTone(1319, t + 0.09, 0.22, { vol: 0.07 }); },
-    note: () => { const t = T(); envTone(784, t, 0.1, { vol: 0.05 }); },
-    switch: () => { const t = T(); envNoise(t, 0.25, { f: 900, q: 4, vol: 0.12 }); envTone(220, t, 0.4, { vol: 0.05, to: 330 }); },
-    error: () => { const t = T(); envTone(220, t, 0.12, { vol: 0.08, type: 'square' }); },
-    scan: () => { const t = T(); envTone(600, t, 0.9, { vol: 0.05, to: 1800 }); envNoise(t, 0.9, { f: 3000, q: 8, vol: 0.03 }); },
+    // ここから下はゲームボーイ風（矩形波・パルス波・ノイズ）
+    beep: () => { const t = T(); chip(988, t, 0.06, { duty: 0.25, vol: 0.035 }); chip(1319, t + 0.065, 0.08, { duty: 0.25, vol: 0.03 }); },
+    shutter: () => { const t = T(); chipNoise(t, 0.05, { f: 3000, vol: 0.12 }); chipNoise(t + 0.08, 0.07, { f: 1500, vol: 0.09 }); chip(196, t + 0.01, 0.04, { duty: 0.5, vol: 0.04 }); },
+    rec: () => { const t = T(); chip(880, t, 0.07, { duty: 0.25, vol: 0.035 }); chip(1319, t + 0.1, 0.09, { duty: 0.25, vol: 0.035 }); },
+    tap: () => chip(1568, T(), 0.028, { duty: 0.125, vol: 0.028 }),
+    type: () => chip(1175, T(), 0.02, { duty: 0.5, vol: 0.012 }),
+    gain: () => { const t = T(); chipSeq([1047, 1319, 1568, 2093], t, 0.065, { duty: 0.25, vol: 0.035, hold: 3 }); chipSeq([523, 659, 784, 1047], t, 0.065, { duty: 0.5, vol: 0.02, hold: 3 }); },
+    note: () => { const t = T(); chip(784, t, 0.06, { duty: 0.25, vol: 0.03 }); chip(1047, t + 0.07, 0.1, { duty: 0.25, vol: 0.03 }); },
+    switch: () => { const t = T(); chip(220, t, 0.28, { duty: 0.5, vol: 0.03, to: 880 }); chipNoise(t, 0.25, { f: 1200, vol: 0.05 }); },
+    error: () => { const t = T(); chip(196, t, 0.08, { duty: 0.5, vol: 0.04 }); chip(147, t + 0.09, 0.14, { duty: 0.5, vol: 0.04 }); },
+    scan: () => { const t = T(); chip(600, t, 0.7, { duty: 0.125, vol: 0.025, to: 1800 }); chipNoise(t + 0.6, 0.12, { f: 4000, vol: 0.03 }); },
     heart: () => { const t = T(); envTone(60, t, 0.18, { vol: 0.4 }); envTone(55, t + 0.22, 0.2, { vol: 0.3 }); },
-    chime: () => { const t = T(); envTone(659, t, 1.2, { vol: 0.08 }); envTone(523, t + 0.6, 1.4, { vol: 0.08 }); },
-    stream: () => { const t = T(); envTone(523, t, 0.15, { vol: 0.07 }); envTone(784, t + 0.12, 0.15, { vol: 0.07 }); envTone(1047, t + 0.24, 0.3, { vol: 0.07 }); },
+    chime: () => { const t = T(); chip(659, t, 0.5, { duty: 0.25, vol: 0.035 }); chip(523, t + 0.55, 0.8, { duty: 0.25, vol: 0.035 }); },
+    stream: () => { const t = T(); chipSeq([523, 784, 1047], t, 0.1, { duty: 0.125, vol: 0.035, hold: 2.5 }); },
+    cursor: () => chip(1047, T(), 0.03, { duty: 0.25, vol: 0.025 }),
   };
   KY.se = function (name) {
     if (!name || !AU.ok) return;
@@ -714,7 +743,11 @@
 
   /* ── 場面キャンバス ── */
   const ST = KY._ST = { scene: null, world: 'A', last: 0, glitch: 0, flick: null, opts: {}, warned: {}, hidden: false };
+  // 4 階調に読み替えたコンテキスト（KY_ART が無いときはそのまま）
+  const gbw = ctx => { try { return root.KY_ART && KY_ART.gb ? KY_ART.gb.wrap(ctx) : ctx; } catch (e) { return ctx; } };
+  KY._gbw = gbw;
   function drawPlaceholder(ctx, scene, world, t, o) {
+    ctx = gbw(ctx);
     const w = o.w, h = o.h;
     const g = ctx.createLinearGradient(0, 0, 0, h);
     const tint = world === 'B' ? ['#15203a', '#2a2036'] : world === 'C' ? ['#100c10', '#231414'] : ['#0b1630', '#0a2230'];
@@ -747,6 +780,7 @@
     if (has) {
       try { ctx.save(); A.portrait(ctx, who, face || 'normal', w, h); ctx.restore(); return true; } catch (e) { try { ctx.restore(); } catch (e2) {} }
     }
+    ctx = gbw(ctx);
     ctx.fillStyle = '#0d1a33'; ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = 'rgba(95,214,230,.35)';
     ctx.beginPath(); ctx.arc(w / 2, h * 0.4, w * 0.2, 0, Math.PI * 2); ctx.fill();
@@ -758,7 +792,12 @@
     const cv = D.stage; if (!cv) return;
     const r = cv.getBoundingClientRect(), dpr = Math.min(2, root.devicePixelRatio || 1);
     const W = Math.max(64, Math.round(r.width * dpr)), H = Math.max(48, Math.round(r.height * dpr));
-    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    if (cv.width !== W || cv.height !== H) {
+      cv.width = W; cv.height = H;
+      // 液晶のドットの格子：1 ドット（160×90 の 1 マス）が大きい画面だけ薄く出す
+      const px = r.width / 160;
+      if (D.stageWrap) { D.stageWrap.style.setProperty('--gbpx', px.toFixed(3) + 'px'); D.stageWrap.style.setProperty('--gbgrid', px >= 5 ? '0.13' : '0'); }
+    }
   }
   // フラグ stage_<名前> は、場面の絵の opts.flags.<名前> として渡る（セーブに残る絵の状態。例：stage_boardBlank）
   function stageFlags() {
@@ -766,6 +805,18 @@
     for (const k in S.flags) if (k.charCodeAt(0) === 115 && k.indexOf('stage_') === 0 && S.flags[k]) (out = out || {})[k.slice(6)] = S.flags[k];
     return out;
   }
+  // 画面全体の 4 色（場面と観測層で変わる。CSS は .ky[data-pal] の変数で色を変える）
+  const PAL_META = { A: '#0f380f', B: '#2a1a0c', C: '#0c1219', S: '#1b0f2e', X: '#04201e', R: '#240608' };
+  function setPal(k) {
+    k = PAL_META[k] ? k : 'A';
+    try { if (root.KY_ART && KY_ART.gb) KY_ART.gb.set(k); } catch (e) {}
+    if (D.app && D.app.dataset.pal !== k) {
+      D.app.dataset.pal = k;
+      try { const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', PAL_META[k]); } catch (e) {}
+    }
+  }
+  KY.setPal = setPal;
+  KY.palOf = (scene, world) => { try { return root.KY_ART && KY_ART.gb ? KY_ART.gb.palOf(scene, world) : 'A'; } catch (e) { return 'A'; } };
   function drawStage(ts) {
     const cv = D.stage; if (!cv || ST.hidden) return;
     stageSize();
@@ -773,21 +824,24 @@
     let w = ST.world;
     if (ST.flick && ts < ST.flick.until) { if (((ts - ST.flick.t0) / 60 | 0) % 3 === 1) w = ST.flick.from; }
     else ST.flick = null;
-    if (!ST.scene) { ctx.fillStyle = '#060b18'; ctx.fillRect(0, 0, W, H); }
+    // ずれ（glitch / 世界切替 / 安定度低下）
+    const glitchOn = ts < ST.glitch, lowStab = S.stability < 30 && G.running && Math.random() < (30 - S.stability) / 400;
+    if (D.app && D.app.classList.contains('in-game') && ST.scene) setPal(KY.palOf(ST.scene, ST.world));
+    if (!ST.scene) { ctx.fillStyle = (root.KY_ART && KY_ART.gb) ? KY_ART.gb.PAL[KY_ART.gb.cur][0] : '#060b18'; ctx.fillRect(0, 0, W, H); }
     else {
       const o = Object.assign({ w: W, h: H, stab: S.stability, danger: ST.danger || 0 }, ST.opts);
       const sf = stageFlags(); if (sf) o.flags = Object.assign(sf, ST.opts.flags || {});
+      // ゲームボーイ風のちらつき：glitch 中は 4 色が反転、安定度が低いとときどき反転
+      if (!KY.reduced() && ((glitchOn && ((ts / 70) | 0) % 2 === 0) || lowStab)) o.gbFx = 'invert';
       KY.drawScene(ctx, ST.scene, w, t, o);
     }
-    // ずれ（glitch / 世界切替 / 安定度低下）
-    const glitchOn = ts < ST.glitch, lowStab = S.stability < 30 && G.running && Math.random() < (30 - S.stability) / 400;
     if ((glitchOn || ST.flick || lowStab) && !KY.reduced()) {
       const n = glitchOn ? 7 : 2;
       for (let i = 0; i < n; i++) {
         const y = Math.random() * H | 0, hh = (Math.random() * H / 12 + 2) | 0, dx = ((Math.random() - 0.5) * W / (glitchOn ? 12 : 40)) | 0;
         try { ctx.drawImage(cv, 0, y, W, hh, dx, y, W, hh); } catch (e) {}
       }
-      if (glitchOn) { ctx.fillStyle = 'rgba(95,214,230,.06)'; ctx.fillRect(0, (Math.random() * H) | 0, W, (H / 30) | 0); }
+      if (glitchOn) { ctx.fillStyle = root.KY_ART && KY_ART.gb ? KY_ART.gb.PAL[KY_ART.gb.cur][3] : '#5fd6e6'; ctx.globalAlpha = 0.5; ctx.fillRect(0, (Math.random() * H) | 0, W, (H / 30) | 0); ctx.globalAlpha = 1; }
     }
   }
   function loop(ts) {
@@ -908,9 +962,10 @@
     const cps = SPEED[SET.speed] == null ? 40 : SPEED[SET.speed];
     const chars = Array.from(text);
     if (!cps || chars.length < 2) { el.textContent = text; onDone(); return () => {}; }
-    let n = 0, done = false;
+    let n = 0, done = false, k = 0;
     const iv = setInterval(() => {
       n += Math.max(1, Math.round(cps / 30));
+      if (AU.ok && (k++ % 2) === 0 && n < chars.length && /\S/.test(chars[n] || '')) { try { SE.type(); } catch (e) {} }
       if (n >= chars.length) { clearInterval(iv); el.textContent = text; done = true; onDone(); return; }
       el.textContent = chars.slice(0, n).join('');
     }, 1000 / 30);
@@ -1112,6 +1167,7 @@
   /* ── エンディング・スタッフロール ── */
   function endCard(id) {
     return pend(done => {
+      setPal(id === 'B' ? 'B' : id === 'C' ? 'C' : 'A');
       const h = openOv('ov-end', { label: 'END' });
       const w = $('div', 'end-card');
       w.append($('div', 'end-k', id === 'TRUE' ? 'TRUE END' : 'END ' + id), $('div', 'end-t', '「' + (END_NAME[id] || id) + '」'), $('div', 'end-s', '観測記録を保存しました'));
@@ -1278,37 +1334,48 @@
   }
 
   /* ── タイトル ── */
+  // タイトルの背景：ゲームボーイの画面のように、小さな解像度に 4 色だけで描いてドットのまま拡大する
   function drawTitleBg(ts) {
-    const cv = D.titleCv; const r = cv.getBoundingClientRect(), dpr = Math.min(2, root.devicePixelRatio || 1);
-    const W = Math.round(r.width * dpr), H = Math.round(r.height * dpr); if (!W || !H) return;
-    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
-    const c = cv.getContext('2d'), t = ts / 1000;
-    const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#04081a'); g.addColorStop(0.55, '#0a1834'); g.addColorStop(1, '#0c1f2c');
-    c.fillStyle = g; c.fillRect(0, 0, W, H);
-    // 星
-    for (let i = 0; i < 70; i++) { const x = (i * 97.13 % 1) * W, y = ((i * 53.71) % 1) * H * 0.5; c.fillStyle = `rgba(200,230,255,${0.15 + 0.25 * Math.abs(Math.sin(t * 0.5 + i))})`; c.fillRect((x * 7.3) % W, y, dpr, dpr); }
-    // 月
-    c.fillStyle = 'rgba(232,226,200,.85)'; c.beginPath(); c.arc(W * 0.78, H * 0.17, H * 0.045, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#060c20'; c.beginPath(); c.arc(W * 0.78 + H * 0.018, H * 0.16, H * 0.042, 0, Math.PI * 2); c.fill();
-    // 山
-    c.fillStyle = '#071027'; c.beginPath(); c.moveTo(0, H * 0.62);
-    for (let x = 0; x <= W; x += W / 24) c.lineTo(x, H * (0.52 + 0.06 * Math.sin(x / W * 7 + 1) + 0.03 * Math.sin(x / W * 19)));
-    c.lineTo(W, H); c.lineTo(0, H); c.fill();
-    // 電線と電柱
-    c.strokeStyle = 'rgba(120,170,200,.35)'; c.lineWidth = dpr;
-    const poles = [0.08, 0.38, 0.68, 0.98];
-    poles.forEach(px => { c.fillStyle = '#050a18'; c.fillRect(W * px - 2 * dpr, H * 0.5, 4 * dpr, H * 0.5); c.fillRect(W * px - 14 * dpr, H * 0.53, 28 * dpr, 2 * dpr); });
-    for (let k = 0; k < 3; k++) { for (let i = 0; i < poles.length - 1; i++) { const x0 = W * poles[i], x1 = W * poles[i + 1], y = H * 0.535 + k * 5 * dpr; c.beginPath(); c.moveTo(x0, y); c.quadraticCurveTo((x0 + x1) / 2, y + H * 0.04 + Math.sin(t * 0.4 + k) * dpr, x1, y); c.stroke(); } }
+    const cv = D.titleCv; const r = cv.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const lw = Math.max(110, Math.min(200, Math.round(r.width / 3))), lh = Math.max(60, Math.round(lw * r.height / r.width));
+    if (cv.width !== lw || cv.height !== lh) { cv.width = lw; cv.height = lh; }
+    titleScene(cv, lw, lh, ts / 1000);
+  }
+  const BAY4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+  function titleScene(cv, W, H, t) {
+    const c = cv.getContext('2d');
+    const P = (root.KY_ART && KY_ART.gb) ? KY_ART.gb.PAL.A : ['#0f380f', '#306230', '#8bac0f', '#cadc9f'];
+    const px = (col, x, y, w, h) => { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), w || 1, h || 1); };
+    const disc = (col, cx, cy, rr) => { for (let dy = -Math.ceil(rr); dy <= rr; dy++) { const hw = Math.round(Math.sqrt(Math.max(0, rr * rr - dy * dy))); px(col, cx - hw, cy + dy, hw * 2 + 1, 1); } };
+    // 空：上は濃く、地平線に向かって網点で一段明るく
+    px(P[0], 0, 0, W, H);
+    const y0 = Math.round(H * 0.3), y1 = Math.round(H * 0.56);
+    for (let y = y0; y < H; y++) { const f = Math.min(1, (y - y0) / (y1 - y0)); for (let x = 0; x < W; x++) if (f * 16 > BAY4[(y & 3) * 4 + (x & 3)]) px(P[1], x, y); }
+    // 星（ゆっくり瞬く）
+    for (let i = 0; i < 46; i++) { const x = ((i * 97.13 % 1) * 7.3 % 1) * W, y = ((i * 53.71) % 1) * H * 0.42; const b = Math.sin(t * 0.8 + i * 1.7); if (b > -0.2) px(b > 0.75 ? P[3] : P[2], x, y); }
+    // 月（三日月）
+    const mr = Math.max(4, Math.round(Math.min(W, H) * 0.06)), mx = Math.round(W * 0.8), my = Math.round(H * 0.14);
+    disc(P[3], mx, my, mr); disc(P[0], mx + Math.round(mr * 0.45), my - Math.round(mr * 0.2), mr * 0.85);
+    // 山（影）
+    for (let x = 0; x < W; x++) { const ym = Math.round(H * (0.54 + 0.05 * Math.sin(x / W * 7 + 1) + 0.025 * Math.sin(x / W * 19))); px(P[0], x, ym, 1, H - ym); if (x % 2 === 0) px(P[1], x, ym, 1, 1); }
+    // 電柱と電線（電線は風でわずかに揺れる）
+    const poles = [0.08, 0.38, 0.68, 0.98], top = Math.round(H * 0.5);
+    poles.forEach(p => { const x = Math.round(W * p); px(P[0], x - 1, top, 2, H - top); px(P[0], x - 6, top + 3, 13, 1); });
+    for (let k = 0; k < 3; k++) for (let i = 0; i < poles.length - 1; i++) {
+      const x0 = W * poles[i], x1 = W * poles[i + 1], yb = top + 3 + k * 2, sag = H * 0.035 + Math.sin(t * 0.4 + k) * 0.6;
+      for (let x = Math.ceil(x0); x < x1; x++) { const u = (x - x0) / (x1 - x0); px(P[2], x, yb + Math.sin(u * Math.PI) * sag, 1, 1); }
+    }
     // 廃駅の灯り（ときどき点く）
     const on = (Math.sin(t * 0.7) > 0.6) || (Math.sin(t * 3.1) > 0.97);
-    c.fillStyle = on ? 'rgba(255,214,140,.75)' : 'rgba(255,214,140,.12)'; c.fillRect(W * 0.2, H * 0.575, 6 * dpr, 3 * dpr);
-    c.fillStyle = 'rgba(95,214,230,.05)'; c.fillRect(0, ((t * 40) % H) | 0, W, 2 * dpr);
+    px(on ? P[3] : P[1], W * 0.2, H * 0.6, 3, 2);
   }
   function showTitle() {
     if (!HAS_DOM) return;
     mount();
     closeAllOv(); hideDlg();
     UI.game(false);
+    setPal('A');
     const old = document.querySelector('.ky-titlescr'); if (old) old.remove();
     const scr = D.title = $('div', 'ky-titlescr');
     D.titleCv = $('canvas', 'title-cv'); D.titleCv.setAttribute('aria-hidden', 'true'); D.titleOn = true;

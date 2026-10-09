@@ -146,11 +146,11 @@
   KY.thumb = function (cv, id) {
     const ev = KY.ev(id), ph = S().photos[id];
     const W = cv.width, H = cv.height, c = cv.getContext('2d');
-    const key = id + '|' + W + 'x' + H + '|' + (ph ? 'p' : '') + (root.KY_ART ? 'a' : '');
+    const key = id + '|' + W + 'x' + H + '|' + (ph ? 'p' : '') + (root.KY_ART ? 'a' + (root.KY_ART.gb ? root.KY_ART.gb.cur : '') : '');
     const hit = TH_CACHE.get(key);
     if (hit) { c.clearRect(0, 0, W, H); c.drawImage(hit, 0, 0); return; }
     const off = document.createElement('canvas'); off.width = W; off.height = H;
-    const o = off.getContext('2d');
+    const o = KY._gbw(off.getContext('2d'));
     const scene = ph ? ph.scene : ev.art, world = ph ? ph.world : (ev.world || 'A');
     if (scene) {
       if (ph && ph.rect) {
@@ -442,7 +442,7 @@
           const r = P.cv.getBoundingClientRect(), dpr = Math.min(2, root.devicePixelRatio || 1);
           const W = Math.max(64, Math.round(r.width * dpr)), H = Math.max(48, Math.round(r.height * dpr));
           if (P.cv.width !== W || P.cv.height !== H) { P.cv.width = W; P.cv.height = H; }
-          KY.drawScene(P.cv.getContext('2d'), P.scene, P.w, ts / 1000, { w: W, h: H, side: P.side, spot: def.id, stab: S().stability });
+          KY.drawScene(P.cv.getContext('2d'), P.scene, P.w, ts / 1000, { w: W, h: H, side: P.side, spot: def.id, stab: S().stability, gbScale: 1 });
         });
         raf = setTimeout(() => requestAnimationFrame(draw), KY.reduced() ? 200 : 80);
       };

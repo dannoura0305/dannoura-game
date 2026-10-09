@@ -12,7 +12,7 @@
 ## ファイル構成（独立ページ）
 ```
 kyokai.html                 おまけゲームの入口（本編と同じオリジン。localStorage を読める）
-kyokai/style.css            観測端末風UI
+kyokai/style.css            ゲームボーイ風UI（4 色。観測層・場面で 4 色が変わる。art.js の KY_ART.gb と同じ色）
 kyokai/engine.js            状態・セーブ・シーン進行DSL・UI（会話・選択・入力）・効果・音（担当A）
 kyokai/systems.js           探索（地図・場所・調べる/撮影/録音/スキャン/聞き込み）・世界切替・危険度・存在安定度・装備/消耗品・シロ同期（担当A）
 kyokai/board.js             観測ボード（証拠配置・線で結ぶ・仮説）・調査手帳・違和感探し（担当A）
@@ -40,6 +40,13 @@ kyokai/story/ch07.js … ch14.js, endings.js  第七章〜最終章・ラスト�
 ## セーブ
 - `localStorage['kyokai_save_v1']`：{version:1, name, chapter, scene, flags:{}, evidence:[ids], board:{}, notebook:{}, items:{}, equip:[], sync:0-5, stability:0-100, world, areas:{unlocked:[], visited:[]}, endings:[], playtime}。オートセーブ（章の区切り・場所移動時・区切り(step)の後・推理が解けたとき。証拠を得た・手帳・フラグの変化は 0.3 秒まとめてから）と手動セーブ1枠。
 - `localStorage['kyokai_true_end']='1'`（TRUE END 到達）、`kyokai_endings`（見たEND一覧）。
+
+## 見た目（ゲームボーイ風・2026-10-09）
+- 画面全体を 4 色だけで描く。場面は 320×180 で描いたあと 160×90 に縮めて明るさを 4 段に分け（境目だけ軽い網点）、ドットのまま拡大（`KY_ART.draw`）。違和感探しと壁時計の拡大は 320×180 のまま 4 段。
+- 4 色：A 通常 `#0f380f #306230 #8bac0f #cadc9f`／B 別の歴史（セピア）`#2a1a0c #6e4a26 #c09058 #f2e2bc`／C 崩壊（青灰）`#0c1219 #384a5c #8a9cac #dfe7ec`／配信部屋・工場の幻 S（紫）`#1b0f2e #4e3478 #a688d4 #ece2fa`／境界核・混ざる世界 X（青緑）`#04201e #17605a #5fc4b4 #e2fbf4`。
+- UI の色は `.ky[data-pal]` の CSS 変数 `--g0`〜`--g3`。表示中の場面と観測層で engine.js の `KY.setPal` が切り替える。顔・アイコン・証拠の絵・生成画像（manifest）も同じ 4 色に通す（`KY_ART.gb`）。
+- 場面の看板などの文字は拡大後の解像度で描き、下の色と反対の濃さにする（読めることを優先）。glitch・安定度低下では 4 色が反転する。
+- 効果音（UI）は矩形波・パルス波・ノイズ（ゲームボーイ風）。汽笛・環境音はそのまま。
 
 ## エンジンDSL（`KY`）——章スクリプトはこれだけで書く
 章は `KY_STORY.register('ch01', async K => {...})`。`K` は KY。進行はエンジンが `KY_STORY` を章順に呼ぶ（章の途中から再開できるよう、章内は `K.step('id', async()=>{...})` で区切ると、セーブ再開時に済んだ step を飛ばす）。
