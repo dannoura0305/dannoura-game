@@ -927,6 +927,10 @@
       return;
     }
     const list = availList();
+    if (list.indexOf(wp.to) < 0 && /^center_/.test(wp.to) && /^center_/.test(OW.mapId)) {
+      // 分室の中で、通り道の部屋が今回の調べ物に入っていないときは、そのまま建物の外（町）へ出る
+      OW.lastArea = OW.mapId; KY.se('steps'); emit({ nav: 'map' }); return;
+    }
     if (list.indexOf(wp.to) < 0) {
       stepBack();
       const open = KY.areaOpen(wp.to);
