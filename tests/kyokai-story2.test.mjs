@@ -133,6 +133,7 @@ function makeK(env, opt) {
       return true;
     },
     async chase() { return true; }, async spot() { return true; },
+    async battle(id, o) { log.battles = (log.battles || 0) + 1; if (o && o.intro) await K.say(o.intro); if (o && o.outro) await K.say(o.outro); return { result: 'win' }; },
     async mainUI() { log.mainUI++; }, async fx() {}, se() {}, amb() {}, scene() {},
     setWorld(w) { S.world = w; }, unlock() {}, lockArea() {}, item() { return 1; }, equip() {}, sync() {}, carry() { return true; },
     stab(n) { S.stability = Math.max(0, Math.min(100, S.stability + n)); },

@@ -146,6 +146,15 @@
       K.flag('ch13_done', true);
     });
 
+    // ボス戦（kyokai/battle.js）：九条が旧研究施設に残した観測装置
+    await K.step('d13_construct', async function () {
+      await K.battle('kikou9', { lv: 18, world: 'C', pal: 'C',
+        intro: ['#scene old_lab C', '#se scan', 'n:九条が消えたあと。', 'n:研究室の奥で、三脚に載った大きなレンズが、ひとりでに起き上がった。',
+          't:観測機構〈九〉　起動', 't:対象：観測員 1 名・境界生物 1 体　――標本として固定します',
+          'p:……見られている。九条さんの、観測装置。', 's:きゅ。', 'n:シロが、レンズと私のあいだに立った。'],
+        outro: ['n:レンズにひびが走り、装置は静かに倒れた。', 't:観測機構〈九〉　停止', 't:記録：標本 0 件', 'p:……あの人は、これで何千もの世界を見ていた。', 'n:ひび割れたレンズには、もう何も映っていなかった。'] });
+    });
+
     // 最後の機会：第十二・十三章で取り逃した任意の謎（ナギ・シロ・九条）を、最終章の前にもう一度だけ調べられる
     await K.step('d13_last', async function () {
       var left = function (K) { return P2.optLeft(K, true); };
