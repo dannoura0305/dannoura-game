@@ -633,3 +633,122 @@ button { font: inherit; color: inherit; }
 .nb-q:empty { display: none; }
 /* 選択肢・タイトルの項目は、キーボードでなくても今いる項目に ▶ を出す */
 .choice-btn:focus::before, .title-menu .ky-btn:focus:not(:disabled)::before { content: '▶'; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   バトル（kyokai/battle.js）— ここから下はバトル画面とメニュー「シロのようす」だけ
+   4 色は観測層ごと：.ov-battle[data-bpal] で --g0〜--g3 を入れ替える（場面の色とは独立）
+   ══════════════════════════════════════════════════════════════════════ */
+.ov-battle { --g0: #0f380f; --g1: #306230; --g2: #8bac0f; --g3: #cadc9f; background: var(--g0); align-items: stretch; justify-content: center; z-index: 2; color: var(--g0); }
+.ov-battle[data-bpal="B"] { --g0: #2a1a0c; --g1: #6e4a26; --g2: #c09058; --g3: #f2e2bc; }
+.ov-battle[data-bpal="C"] { --g0: #0c1219; --g1: #384a5c; --g2: #8a9cac; --g3: #dfe7ec; }
+.ov-battle[data-bpal="S"] { --g0: #1b0f2e; --g1: #4e3478; --g2: #a688d4; --g3: #ece2fa; }
+.ov-battle[data-bpal="X"] { --g0: #04201e; --g1: #17605a; --g2: #5fc4b4; --g3: #e2fbf4; }
+.ov-battle[data-bpal="R"] { --g0: #240608; --g1: #7a1a28; --g2: #e0606e; --g3: #fbe0e0; }
+.ov-battle.out { animation: btOut .32s steps(4) forwards; }
+@keyframes btOut { to { opacity: 0; } }
+.ov-battle { align-items: center; }
+.bt-screen { position: relative; width: min(720px, 100%); height: 100%; max-height: 920px; margin: auto; display: flex; flex-direction: column; background: var(--g3);
+  border: 4px solid var(--g0); border-radius: 6px; box-shadow: 0 0 0 3px var(--g1); overflow: hidden; padding-bottom: env(safe-area-inset-bottom); }
+.bt-screen.shake { animation: btShake .28s steps(4); }
+@keyframes btShake { 25% { transform: translate(-6px, 2px); } 50% { transform: translate(5px, -2px); } 75% { transform: translate(-3px, 1px); } }
+/* 入り：横縞が閉じる → 開く */
+.bt-wipe { position: absolute; inset: 0; pointer-events: none; z-index: 5;
+  background: repeating-linear-gradient(180deg, var(--g0) 0 12px, transparent 12px 24px); opacity: 0; }
+.bt-wipe.on { animation: btWipeOn .6s steps(6) forwards; }
+.bt-wipe.off { animation: btWipeOff .5s steps(5) forwards; }
+@keyframes btWipeOn { 0% { opacity: 1; background-size: 100% 24px; clip-path: inset(0 100% 0 0); } 60% { opacity: 1; clip-path: inset(0 0 0 0); } 100% { opacity: 1; background: var(--g0); clip-path: inset(0 0 0 0); } }
+@keyframes btWipeOff { 0% { opacity: 1; background: var(--g0); clip-path: inset(0 0 0 0); } 100% { opacity: 1; background: var(--g0); clip-path: inset(50% 0 50% 0); } }
+/* 戦闘の場 */
+.bt-field { position: relative; flex: 0 0 auto; height: clamp(250px, min(120vw, 640px, calc(100dvh - 330px)), 600px); background: var(--g3);
+  background-image: radial-gradient(color-mix(in srgb, var(--g2) 55%, transparent) 1px, transparent 1.5px); background-size: 8px 8px; }
+.bt-box { position: absolute; background: var(--g3); color: var(--g0); border: 3px solid var(--g0); border-radius: 4px 4px 4px 14px; padding: 6px 10px 8px; min-width: 0;
+  box-shadow: 0 0 0 2px var(--g3), 4px 4px 0 0 color-mix(in srgb, var(--g1) 60%, transparent); }
+.bt-ebox { left: 4%; top: 5%; width: min(54%, 300px); border-radius: 4px 4px 14px 4px; }
+.bt-pbox { right: 4%; bottom: 6%; width: min(54%, 300px); opacity: 0; transform: translateX(30%); transition: opacity .2s steps(2), transform .3s steps(3); }
+.bt-pbox.in { opacity: 1; transform: none; }
+.bt-name { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; font-size: 17px; letter-spacing: .06em; white-space: nowrap; }
+.bt-nm { overflow: hidden; text-overflow: ellipsis; }
+.bt-lv { font-size: 15px; }
+.bt-type { font-size: 12px; color: var(--g1); margin: 2px 0 3px; letter-spacing: .08em; }
+.bt-type[data-t]:not([data-t=""]) { color: var(--g0); }
+.bt-hp, .bt-exp { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.bt-hpl { font-size: 11px; letter-spacing: .04em; background: var(--g0); color: var(--g3); padding: 0 4px; border-radius: 2px; line-height: 15px; }
+.bt-hpbar, .bt-expbar { flex: 1; display: block; height: 13px; border: 2px solid var(--g0); border-radius: 6px; padding: 2px; background: var(--g3); }
+.bt-hpbar b, .bt-expbar b { display: block; height: 100%; background: var(--g0); border-radius: 2px; }
+.bt-hp[data-lv="1"] .bt-hpbar b { background: repeating-linear-gradient(90deg, var(--g0) 0 2px, var(--g1) 2px 4px); }
+.bt-hp[data-lv="2"] .bt-hpbar b { background: var(--g1); animation: gbBlink .6s steps(1) infinite; }
+.bt-expbar { height: 9px; border-width: 2px; padding: 1px; }
+.bt-expbar b { background: var(--g1); }
+.bt-num { text-align: right; font-size: 16px; letter-spacing: .1em; margin-top: 2px; }
+/* スプライト */
+.bt-slot { position: absolute; width: clamp(120px, 34vw, 192px); aspect-ratio: 1; }
+.bt-eslot { right: 6%; top: 3%; }
+.bt-pslot { left: 6%; bottom: 3%; width: clamp(120px, 34vw, 184px); }
+.ov-battle[data-boss="1"] .bt-eslot { width: clamp(140px, 40vw, 220px); }
+.bt-spr { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+.bt-pspr { transform: scaleX(1); }
+.bt-plat { position: absolute; left: -8%; right: -8%; bottom: 2%; height: 16%; border-radius: 50%; background: var(--g2); box-shadow: inset 0 -4px 0 var(--g1); }
+.bt-pslot .bt-plat { bottom: -2%; }
+.bt-screen.enter .bt-eslot { transform: translateX(-140%); }
+.bt-screen.enter .bt-pslot { transform: translateX(160%); }
+.bt-screen.slide .bt-eslot, .bt-screen.slide .bt-pslot { transform: none; transition: transform .5s steps(8); }
+.bt-slot.faint .bt-spr { transform: translateY(100%); clip-path: inset(0 0 100% 0); transition: transform .6s steps(6), clip-path .6s steps(6); }
+.bt-slot { overflow: visible; }
+.bt-slot.gone .bt-spr { visibility: hidden; }
+.bt-slot.lvup .bt-spr { animation: btHop .3s steps(2) 3; }
+@keyframes btHop { 50% { transform: translateY(-8%); } }
+.bt-spr.bt-down { animation: btDown .42s steps(3); }
+@keyframes btDown { 50% { transform: translateY(6%) scaleY(.92); } }
+.bt-flash { position: absolute; inset: 0; pointer-events: none; background: var(--g3); mix-blend-mode: difference; animation: gbBlink .1s steps(1) 3; }
+.bt-flash.scan { background: repeating-linear-gradient(180deg, transparent 0 6px, color-mix(in srgb, var(--g0) 45%, transparent) 6px 8px); mix-blend-mode: normal; animation: btScan .5s steps(6); }
+@keyframes btScan { from { transform: translateY(-100%); } to { transform: translateY(100%); } }
+.bt-stat { right: 4%; top: 4%; width: min(52%, 220px); z-index: 3; font-size: 14px; line-height: 1.6; }
+.bt-stat > div { display: flex; justify-content: space-between; gap: 6px; }
+.bt-stat b { margin-left: auto; font-weight: normal; }
+.bt-stat em { font-style: normal; width: 3.2em; text-align: right; }
+.bt-st-h { justify-content: center !important; letter-spacing: .2em; border-bottom: 2px dotted var(--g1); margin-bottom: 2px; }
+/* 下：メッセージとコマンド */
+.bt-bottom { position: relative; flex: 1 1 auto; justify-content: flex-start; display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 10px; background: var(--g3); border-top: 4px solid var(--g0); }
+.bt-msg { position: relative; min-height: 96px; padding: 12px 16px 14px; font-size: 18px; line-height: 1.7; color: var(--g0); background: var(--g3);
+  border: 3px solid var(--g0); border-radius: 6px; box-shadow: 0 0 0 2px var(--g3), inset 0 0 0 2px var(--g3), inset 0 0 0 4px var(--g1); cursor: pointer; white-space: pre-line; }
+.bt-msg.menuon { min-height: 56px; cursor: default; font-size: 16px; }
+.bt-next { position: absolute; right: 12px; bottom: 6px; font-size: 12px; animation: gbBlink .8s steps(1) infinite; }
+.bt-menu { display: flex; flex-direction: column; gap: 6px; }
+.bt-menu[data-kind="top"] { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.bt-cmd, .bt-move, .bt-item, .bt-back { text-align: left; min-height: 52px; font-size: 17px; padding-left: 26px; box-shadow: none; }
+.bt-cmd:focus::before, .bt-move:focus::before, .bt-item:focus::before, .bt-back:focus::before { content: '▶'; }
+.bt-mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.bt-move { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 6px; position: relative; }
+.bt-mn { font-size: 16px; }
+.bt-mpp { font-size: 12px; color: var(--g1); }
+.bt-meff { position: absolute; right: 6px; top: 2px; font-size: 11px; }
+.bt-move[data-type="echo"] .bt-mn::after { content: ' ≋'; font-size: 11px; color: var(--g1); }
+.bt-move[data-type="flux"] .bt-mn::after { content: ' ∿'; font-size: 11px; color: var(--g1); }
+.bt-move[data-type="void"] .bt-mn::after { content: ' ○'; font-size: 11px; color: var(--g1); }
+.bt-minfo { font-size: 13px; line-height: 1.55; color: var(--g0); padding: 6px 10px; border: 2px dashed var(--g1); border-radius: 4px; white-space: pre-line; min-height: 44px; }
+.bt-ilist { display: flex; flex-direction: column; gap: 4px; }
+.bt-item { display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; column-gap: 8px; }
+.bt-ic { font-size: 15px; }
+.bt-id { grid-column: 1 / -1; font-size: 12px; color: var(--g1); }
+.bt-back { min-height: 44px; font-size: 15px; }
+@media (min-width: 760px) {
+  .bt-screen { border-radius: 0; }
+  .bt-bottom { display: grid; grid-template-columns: 1fr minmax(260px, 46%); align-items: start; align-content: start; }
+  .bt-msg { min-height: 120px; }
+  .bt-menu { align-self: stretch; }
+  .bt-menu[hidden] + * { grid-column: 1 / -1; }
+  .bt-bottom:has(.bt-menu[hidden]) { grid-template-columns: 1fr; }
+  .bt-bottom:has(.bt-menu:not([data-kind="top"]):not([hidden])) { grid-template-columns: 1fr; }
+}
+@media (max-height: 640px) { .bt-field { height: clamp(200px, calc(100dvh - 260px), 400px); } .bt-msg { min-height: 72px; font-size: 16px; } .bt-cmd, .bt-move, .bt-item { min-height: 44px; } }
+/* メニュー「シロのようす」 */
+.bts-top { display: flex; gap: 14px; align-items: center; }
+.bts-face { width: 112px; height: 112px; border: 3px solid var(--g0); border-radius: 6px; background: var(--g3); flex: 0 0 auto; }
+.bts-info { flex: 1; min-width: 0; }
+.bts-name { font-size: 20px; letter-spacing: .08em; }
+.bts-name span { font-size: 12px; color: var(--g1); margin-left: 8px; }
+.bts-lv { font-size: 16px; margin: 2px 0; }
+.bts-num { font-size: 13px; text-align: right; color: var(--g1); }
+.bts-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; margin: 10px 0 4px; }
+.bts-row { display: flex; justify-content: space-between; border-bottom: 2px dotted var(--g1); padding: 2px 0; font-size: 15px; }
+.bts-row b { font-weight: normal; }

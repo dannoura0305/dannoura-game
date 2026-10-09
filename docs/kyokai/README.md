@@ -18,12 +18,15 @@ kyokai/systems.js           探索（地図・場所・調べる/撮影/録音/�
 kyokai/board.js             観測ボード（証拠配置・線で結ぶ・仮説）・調査手帳・違和感探し（担当A）
 kyokai/art.js               場面イラスト・人物の顔・シロ・UIアイコン（コード描画＋生成画像の受け口）（担当B）
 kyokai/link.js              本編データの読み取り（読むだけ）（担当D）
+kyokai/overworld.js         歩いて回る月代町（上から見たタイルの地図・移動・人物・境界ノイズ→戦闘）。global KY_WORLD（2026-10-09）
+kyokai/overworld.css        歩く画面・十字キー・行動メニュー・一枚絵の大写しの見た目
+kyokai/data/maps.js         町と全場所の地図・調べ物の置き場所の表（global KY_MAPS。DOM なしで読める）
 kyokai/data/evidence.js     証拠の定義（担当C/D が追記：章ごとのブロックに分けて衝突を避ける）
 kyokai/story/ch00.js … ch06.js, side.js   プロローグ〜第六章・任意事件（担当C）
 kyokai/story/ch07.js … ch14.js, endings.js  第七章〜最終章・ラストバトル・各END・スタッフロール後（担当D）
 ```
-読み込み順（kyokai.html）：style.css → engine.js → systems.js → board.js → art.js → link.js → data/evidence.js → story/*.js（章番号順）→ 起動。
-グローバルは `window.KY`（エンジン）、`window.KY_ART`、`window.KY_LINK`、`window.KY_STORY`（章の登録先）のみ。
+読み込み順（kyokai.html）：style.css → overworld.css → engine.js → systems.js → battle.js → data/maps.js → overworld.js → board.js → art.js → link.js → data/evidence.js → story/*.js（章番号順）→ 起動。
+グローバルは `window.KY`（エンジン）、`window.KY_ART`、`window.KY_LINK`、`window.KY_STORY`（章の登録先）、`window.KY_BATTLE`（戦闘）、`window.KY_MAPS`（地図データ）、`window.KY_WORLD`（歩く画面）のみ。
 
 ## 本編側の変更（担当D）
 - タイトルメニューに「おまけ：境界事象」→ `kyokai.html` へ（最初から表示）。
@@ -38,7 +41,7 @@ kyokai/story/ch07.js … ch14.js, endings.js  第七章〜最終章・ラスト�
 - `KY_LINK.cleared()`：本編エンディングを1つ以上見たか（TRUE END 条件・DAY 31 用）。
 
 ## セーブ
-- `localStorage['kyokai_save_v1']`：{version:1, name, chapter, scene, flags:{}, evidence:[ids], board:{}, notebook:{}, items:{}, equip:[], sync:0-5, stability:0-100, world, areas:{unlocked:[], visited:[]}, endings:[], playtime}。オートセーブ（章の区切り・場所移動時・区切り(step)の後・推理が解けたとき。証拠を得た・手帳・フラグの変化は 0.3 秒まとめてから）と手動セーブ1枠。
+- `localStorage['kyokai_save_v1']`：{version:1, name, chapter, scene, flags:{}, evidence:[ids], board:{}, notebook:{}, items:{}, equip:[], sync:0-5, stability:0-100, world, areas:{unlocked:[], visited:[]}, endings:[], playtime, ow:{pos:{}, field}}（ow は歩く地図の位置）。オートセーブ（章の区切り・場所移動時・区切り(step)の後・推理が解けたとき。証拠を得た・手帳・フラグの変化は 0.3 秒まとめてから）と手動セーブ1枠。
 - `localStorage['kyokai_true_end']='1'`（TRUE END 到達）、`kyokai_endings`（見たEND一覧）。
 
 ## 見た目（ゲームボーイ風・2026-10-09）
@@ -82,6 +85,21 @@ kyokai/story/ch07.js … ch14.js, endings.js  第七章〜最終章・ラスト�
 - `K.fx(name)`、`K.se(name)`、`K.amb(name)`（環境音：clock, wire, whistle_far, radio, steps, voices, rain, station, factory, room）——すべて WebAudio で合成（音声ファイル不要）。月代駅の汽笛は最重要の音。
 - `K.mainUI(ms)`：本編のステータス表示（体力・疲労・精神・残り日数）が右上に一瞬出て消える演出（§40）。
 - `K.ending(id)`：'A'|'B'|'C'|'TRUE'。到達記録・タイトルへ。TRUE はスタッフロール→ポストクレジット。
+
+## 歩いて回る月代町（overworld・2026-10-09）
+ゲームボーイの携帯 RPG のように、上から見た地図を歩いて調べる。**章スクリプトは書き換えない**：`K.explore` の画面（systems.js の `KY.UI.exMap` / `exArea` / `exClose`）だけを overworld.js が差し替える。探索ループ・行動（`KY._doAction`）・証拠・フラグ・推理・追跡・「調査を終える」の確認はそのまま動く。
+- 画面：16×16 ドットのマスで 10×9 マス（160×144 を最近傍で拡大）。4 色は場面と観測層の 4 色（`KY_ART.gb.PAL`。分室・町は A/B/C、混ざる世界は X）。探索中だけ液晶が 10:9 になる（`.ky-stagewrap.ow`）。
+- 町（フィールド）＝ 地図の画面。建物・道・石段の入口に入ると、その場所へ（＝地図で選ぶのと同じ）。行けない場所の入口は「今は用がない」で一歩戻る。境界側の場所（対策局・誰もいない町・混ざる世界）は町に開く「境界の裂け目」から入る（行ける時だけ光る）。メニューの「町の地図」で歩かずに移動もできる（従来の地図選択）。
+- 場所の中：調べ物（spot）は地図の上の家具・壁の掲示・人物・小物。まだ調べていない物はきらめく。正面に立って A で行動メニュー（調べる／撮影／録音／スキャン／聞き込み。できない行動は点線で理由つき）。聞き込みだけの人物はすぐ話す。カウンター（机・店先）越しにも話せる。分室の中はサーバー室・観測装置室・地下へ扉と階段でつながる。山道の上は月代駅へ続く。
+- 調べる・撮影・スキャンのあいだは、その場所の一枚絵を**額縁つきの大写し**で見せ、調べ物の位置を点線で囲む（駅の広告は `adCloseup` の大写し）。章が `#scene` で別の場面を出したときも同じ額縁。話しかけ・録音は地図のまま会話窓を出す。探索の外の会話・演出は従来どおり 16:9 の一枚絵。
+- 境界観測（メニュー／パネルのボタン）で層を切り替えると、同じ地図の別の層（B：昭和風の看板・木の壁・営業中の駅と列車・丸ポスト・ガス灯、C：瓦礫・ひび・枯れ木・倒れたラック）に一瞬のちらつきで変わる。立っている場所はそのまま（ふさがっていれば近くへ）。
+- 人物：調べ物の人（御堂・ユウ・ナギ・佐伯・商店街や住宅街の人・宮司・駅員…）は歩く地図の人物になり、話すとこちらを向く。町の人（`KY_MAPS.AMBIENT`）は少し歩き回り、一言だけ話す。シロと出会った後（`shiro_met`）はシロが後ろをついて来る。**だんのうらは歩く人物として出さない**（後ろ姿・ノイズの一枚絵のみ）。主人公は性別の分からない観測員の白衣。
+- 境界ノイズ（`n` のマス・草むらの代わり）：観測層 B/C で危険度 >0 のときだけ砂嵐になる。踏むと `KY_BATTLE.encounter({area, world, danger, chapter})` → 敵 id なら画面が光って渦に閉じ、`await KY_BATTLE.start(id, {area, world, danger, from:'overworld'})`。`shiro_met` の前・大写し中・会話中は出ない。戦闘の直後は 3 歩出ない（直後のマスでは決して出ない）。負けて研究所へ押し戻されたら探索ループに任せる。
+- 操作：矢印/WASD（Shift で走る）・Z/Enter/Space＝A・X＝B（メニュー）・M＝町の地図・B キー＝境界観測・Esc＝本体のメニュー。スマホは十字キーと A/B（地図の下）。地図をタップ／クリックするとそのマスまで歩き、物なら正面まで歩いて A。
+- 位置は `S.ow.pos[場所]`・`S.ow.field`（`kyokai_save_v1` に入る。オートセーブもそのまま）。続きから・ロードで同じマスに戻る。
+- データ（`kyokai/data/maps.js`）：`KY_MAPS.MAPS[場所] = {rows, warps, spawn, anchors, patch:{A|B|C}, proj}`、調べ物の置き場所 `KY_MAPS.SPOTS[場所][調べ物id] = 'アンカー' | 'アンカー@人物'`。**新しい調べ物を足したら表にも足す**（足さなくても動く：場面の座標 `proj` から近い空きマスに「？」の立て札として置き、コンソールに `[KY_WORLD] 地図に置き場所のない調べ物` と出す）。地図の無い場所は小さな部屋を作る。
+- テスト：`tests/kyokai-overworld.test.mjs`（全場所×全世界に地図・文字・出入口の行き先と戻り・全調べ物が表にあり入口から正面に立てる（人物をすべて置いた状態の BFS）・町の入口すべてに A/B/C で行ける）。
+- 自動プレイ用：`KY_WORLD.state() / objects() / entrances() / exits() / walkToSpot(id) / walkToArea(id) / walkToExit(to) / goTo(x,y)`（画面タップと同じ歩き方）。
 
 ## 場面ID（担当Bが描く・各世界の差分つき）
 `center_office`（観測センター月代分室：机・端末・窓・職員写真・時計）、`center_server`（サーバー室）、`center_lab`（観測装置室：大きなモニター）、`center_basement`（地下）、`shotengai`（月代商店街）、`school`（月代小学校）、`shrine`（神社）、`tunnel`（廃トンネル）、`mountain_road`（山道・地図にない道）、`station_ruin`（廃墟の月代駅）、`station_live`（営業中の月代駅：乗客・駅員・列車・広告）、`residential`（住宅街）、`riverbank`（河川敷・崩れた橋）、`old_lab`（旧研究施設）、`empty_town`（誰もいない月代町）、`bureau`（境界現象対策局・未来の施設）、`stream_room`（暗い部屋・机・モニター・マイク：境界の向こうの配信部屋。人物は顔が見えない・後ろ姿）、`factory_glimpse`（工場・配管・工具：一瞬の幻）、`collapse`（最終章：混ざり合う世界）、`core`（境界核）、`town_map`（町の地図）、`board_bg`（観測ボード背景）。

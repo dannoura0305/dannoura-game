@@ -100,6 +100,8 @@ function makeK(env, full) {
       return true;
     },
     async spot(def) { log.spots++; if (!SCENES.has(def.a) || !SCENES.has(def.b)) log.problems.push(`${cur}: 違和感探しの場面が不正`); for (const p of def.spots) if (!(p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1)) log.problems.push(`${cur}: 違和感の座標が範囲外`); return def.spots.length; },
+    // バトル（kyokai/battle.js）：前口上・後口上の行も検査に通す
+    async battle(id, o) { log.battles = (log.battles || 0) + 1; if (o && o.intro) await K.say(o.intro); if (o && o.outro) await K.say(o.outro); return { result: 'win' }; },
     async chase(def) {
       log.chases++;
       if (!Array.isArray(def.rounds) || !def.rounds.length) log.problems.push(`${cur}: chase ${def.id} に rounds がない`);

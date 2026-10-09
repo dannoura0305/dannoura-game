@@ -85,6 +85,7 @@
       items: { battery: 0, light: 0, med: 0, stab: 0 }, equip: [], sync: 0, stability: 100, world: 'A',
       areas: { unlocked: [], visited: [] }, endings: [], playtime: 0,
       baseWorld: 'A', steps: {}, seen: {}, photos: {}, chTitle: '', sceneWorld: 'A', noteN: 0, savedAt: 0,
+      ow: {},   // 歩いて回る地図の位置（overworld.js：{pos:{場所:[x,y,向き]}, field:[x,y,向き]}）
     };
   }
   let S = fresh();

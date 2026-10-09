@@ -266,6 +266,13 @@
     });
 
     await K.step('d14_back', async function () { await P2.backEvent(K); });
+    // ボス戦（kyokai/battle.js）：境界核へ続く道をふさぐ糸の塊
+    await K.step('d14_guard', async function () {
+      await K.battle('musubi_ban', { lv: 22, world: 'C', pal: 'X',
+        intro: ['#scene core', '#amb whistle_far', 'n:境界核へ続く光の道。その途中を、ほどけかけた糸の塊がふさいでいた。', 'n:糸の一本一本が、別々の世界の音を立てている。汽笛。時計。電線。',
+          'y:（無線）……核の番人みたいなもんか。そいつをどかさないと、核に届かない。', 'm:（無線）半分ほどけると、性質が変わるはずだ。よく見なさい。', 's:きゅ！'],
+        outro: ['n:糸の塊が、音を一つずつ手放して、ほどけていった。', 'n:道が開く。その先で、何かが脈打っている。'] });
+    });
     await K.step('d14_core', async function () { await P2.coreBattle(K); });
 
     await K.step('d14_choice', async function () {
