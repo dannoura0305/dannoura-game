@@ -866,7 +866,7 @@
       const ds = ['u', 'd', 'l', 'r'], d = ds[(Math.random() * 4) | 0]; a.dir = d;
       const near = Math.abs(a.x - p.x) + Math.abs(a.y - p.y) <= 2;
       const [dx, dy] = DIRV[d], nx = a.x + dx, ny = a.y + dy;
-      if (!near && Math.random() < 0.5 && Math.abs(nx - a.hx) + Math.abs(ny - a.hy) <= 1 && !MP.warpAt(OW.m, nx, ny) && !MP.solidAt(OW.m, nx, ny) && !objAt(nx, ny) && !(nx === p.x && ny === p.y) && !(p.mv && p.mv.tx === nx && p.mv.ty === ny))
+      if (!near && Math.random() < 0.5 && Math.abs(nx - a.hx) + Math.abs(ny - a.hy) <= 1 && !MP.warpAt(OW.m, nx, ny) && !MP.solidAt(OW.m, nx, ny) && !OW.objs.some(o => Math.abs(o.x - nx) + Math.abs(o.y - ny) <= 1) && !(nx === p.x && ny === p.y) && !(p.mv && p.mv.tx === nx && p.mv.ty === ny))
         a.mv = { tx: nx, ty: ny, fx: a.x, fy: a.y, t0: ts, dur: 260 };
     }
     for (const o of OW.objs) {
@@ -948,6 +948,7 @@
     let id = null;
     try { id = B.encounter(ctx); } catch (e) { console.error('[KY_WORLD] encounter', e); return; }
     if (!id) return;
+    API.encounters = (API.encounters | 0) + 1;
     await startBattle(id, ctx);
   }
   async function startBattle(id, ctx) {
