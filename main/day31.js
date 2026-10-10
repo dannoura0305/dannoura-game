@@ -289,6 +289,8 @@
   function initTitle() {
     var ky = document.getElementById('btn-kyokai');
     if (ky) ky.innerHTML = lbl('radio', 'おまけ：境界事象', 'EXTRA');
+    var tb = document.getElementById('btn-tobinezumi');
+    if (tb) tb.innerHTML = lbl('paw', 'おまけ：トビネズミ', 'EXTRA');
     var d = document.getElementById('btn-day31');
     if (d) {
       var ok = false; try { ok = visible(root.localStorage); } catch (e) { ok = false; }
@@ -297,6 +299,7 @@
     }
   }
   root.openKyokai = function () { try { location.href = 'kyokai.html'; } catch (e) {} };
+  root.openTobinezumi = function () { try { location.href = 'tobinezumi.html'; } catch (e) {} };
   root.openDay31 = function () { play(); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initTitle); else initTitle();
 })(typeof window !== 'undefined' ? window : globalThis);

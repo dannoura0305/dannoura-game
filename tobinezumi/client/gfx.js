@@ -1,7 +1,7 @@
 // tobinezumi/client/gfx.js — 画面：内部解像度 480×270 のドット絵キャンバス（最近傍で整数倍拡大）＋
 // その上に高解像度の UI キャンバス（名札・吹き出しなどの文字をくっきり描く）＋ DOM の HUD。
 export const W = 480, H = 270;
-export const FONT = "'DotGothic16', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', sans-serif";
+export const FONT = "'DotGothic16', 'DotGothic16 Local', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', sans-serif";
 
 export class Screen {
   constructor(stage, game, ui) {

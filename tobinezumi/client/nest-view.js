@@ -6,6 +6,7 @@ import { Sprites } from './sprites.js';
 import { C, CELL, cellsOf, roomAt } from '../shared/nest-rules.js';
 import { walkLayout } from './nest-layout.js';
 import { hash2 } from '../shared/rng.js';
+import { FURN_ASSET } from './ui.js';
 
 export class NestView {
   constructor() { this.data = null; this.base = null; this.layout = null; this.fill = 0; }
@@ -13,19 +14,15 @@ export class NestView {
     if (data === this.data && fill === this.fill) return;
     this.data = data; this.fill = fill;
     this.layout = walkLayout(data);
-    this.base = renderBase(data, this.layout);
+    this.assets = Sprites.has('nest.soil') && Sprites.has('nest.wall') && Sprites.has('nest.edge');
+    this.lift = this.assets ? 3 : 0;   // 素材の床は縁の分だけ 3px 高い（見た目だけ。当たり判定はセルの下辺）
+    const lm = Sprites.meta('nest.lantern');
+    if (lm && lm.light) for (const l of this.layout.lights) { l.r = Math.round(lm.light.radius * 1.5); l.y = l.y - 9 + 2 + lm.light.y; }
+    this.base = this.assets ? renderBaseAssets(data, this.layout) : renderBase(data, this.layout);
   }
   /** 家具・備え付け（t でランタンが揺れる） */
   drawObjects(g, t) {
-    for (const o of this.layout.objects) {
-      const key = 'nest.' + o.type;
-      if (Sprites.has(key)) {
-        g.save();
-        if (o.rot) { g.translate(o.px + o.pw, 0); g.scale(-1, 1); g.translate(-o.px, 0); }
-        Sprites.drawEntry(g, key, Math.floor(t * 4), o.px + o.pw / 2, o.py + o.ph);
-        g.restore();
-      } else A.drawFurniture(g, o.type, o.px, o.py, o.w, o.h, o.rot, t, { fill: this.fill });
-    }
+    for (const o of this.layout.objects) drawObject(g, o, t, this.fill, this.lift);
   }
   /** 暗がりと灯り。cam=(x,y) は画面左上の巣座標、z は拡大率、(vx,vy) は画面上の原点 */
   drawLight(g, W, H, cam, z, dark, t, extra = []) {
@@ -178,5 +175,78 @@ export function renderBase(data, layout) {
   gr.addColorStop(0, 'rgba(255,214,150,0.55)'); gr.addColorStop(1, 'rgba(255,214,150,0)');
   g.fillStyle = gr; g.fillRect(ex + 2, ey - 8, CELL - 4, CELL * 3 + 8);
   P(g, '#2a160c', ex - 2, ey - 2, CELL + 4, 2);
+  return cv;
+}
+
+/** 家具・備え付け 1 つ（素材があれば素材、無ければコード描画）。全体モードの置く前の影もこれ */
+export function drawObject(g, o, t, fill = 0, lift = 0) {
+  const fa = FURN_ASSET[o.type];
+  if (fa && Sprites.has(fa.key)) {
+    const flip = !!o.rot;
+    if (o.type === 'lamp') { Sprites.drawCell(g, fa.key, Math.floor(t * 4), o.px, o.py + 2, 0, flip); return; }
+    const floorY = o.py + o.ph - lift;
+    if (o.type === 'storage') {
+      Sprites.drawEntry(g, 'nest.shelf', 0, o.px + o.pw / 2, floorY, { flip });
+      if (fill > 0.05 && Sprites.has('nest.seed_pile')) Sprites.drawEntry(g, 'nest.seed_pile', fill > 0.6 ? 2 : fill > 0.25 ? 1 : 0, o.px - 6, floorY);
+      return;
+    }
+    Sprites.drawEntry(g, fa.key, fa.col || 0, o.px + o.pw / 2, floorY, { flip });
+    return;
+  }
+  A.drawFurniture(g, o.type, o.px, o.py, o.w, o.h, o.rot, t, { fill });
+}
+
+/** 素材（nest.*）で描く断面 */
+export function renderBaseAssets(data, layout) {
+  const w = data.w, h = data.h, sy = data.surfaceY;
+  const cv = A.mk(w * CELL, h * CELL), g = cv.getContext('2d');
+  const cells = cellsOf(data);
+  const at = (x, y) => (x < 0 || y < 0 || x >= w || y >= h) ? C.SOIL : cells[y * w + x];
+  const solidC = (x, y) => { const c = at(x, y); return c === C.SOIL || c === C.ROCK || c === C.AIR; };
+  const ladder = (x, y) => at(x, y) === C.OPEN && layout.climb.has(y * w + x) && !roomAt(data, x, y);
+  const slope = (x, y) => layout.slopes.get(y * w + x) || 0;
+  // 空と遠くの丘
+  const skyH = sy * CELL + 8;
+  const sky = g.createLinearGradient(0, 0, 0, skyH);
+  sky.addColorStop(0, '#2e284e'); sky.addColorStop(0.55, '#8a5468'); sky.addColorStop(1, '#e89658');
+  g.fillStyle = sky; g.fillRect(0, 0, w * CELL, skyH);
+  for (let x = 0; x < w * CELL; x++) {
+    const hh = Math.round(10 + 8 * (Math.sin(x / 37) * 0.5 + Math.sin(x / 13 + 1) * 0.25 + 0.6));
+    P(g, '#7a5446', x, sy * CELL - hh + 6, 1, hh);
+  }
+  for (let y = sy; y < h; y++) for (let x = 0; x < w; x++) {
+    const c = at(x, y), ox = x * CELL, oy = y * CELL, v = Math.floor(hash2(x, y, 4) * 9);
+    if (y === sy) { Sprites.drawCell(g, 'nest.surface', x * 5, ox, oy); continue; }
+    if (c === C.SOIL) { Sprites.drawCell(g, 'nest.soil', v, ox, oy); continue; }
+    if (c === C.ROCK) { Sprites.drawCell(g, 'nest.soil', v, ox, oy); Sprites.drawCell(g, 'nest.rock', x, ox, oy); continue; }
+    if (c !== C.OPEN) continue;
+    const s = slope(x, y);
+    if (s) {
+      Sprites.drawCell(g, 'nest.wall', v, ox, oy);
+      if (Sprites.has('nest.tunnel_d')) { Sprites.drawCell(g, 'nest.soil', v, ox, oy); Sprites.drawCell(g, 'nest.tunnel_d', 0, ox, oy, 0, s > 0); }
+      continue;
+    }
+    if (ladder(x, y)) { Sprites.drawCell(g, 'nest.wall', v, ox, oy); Sprites.drawCell(g, 'nest.tunnel_v', 0, ox, oy); continue; }
+    Sprites.drawCell(g, 'nest.wall', v, ox, oy);
+    let bits = 0;
+    [[0, -1], [1, 0], [0, 1], [-1, 0]].forEach(([dx, dy], b) => {
+      const nx = x + dx, ny = y + dy;
+      if (solidC(nx, ny) || (dy === 0 && ladder(nx, ny) && !roomAt(data, x, y) && false) || slope(nx, ny)) bits |= 1 << b;
+    });
+    if (ladder(x, y - 1)) bits &= ~1;
+    if (ladder(x, y + 1)) bits &= ~4;
+    if (bits) Sprites.drawCell(g, 'nest.edge', bits, ox, oy);
+  }
+  // 部屋：敷き草・角の補強・柱
+  for (const r of layout.rooms) {
+    const fy = (r.y + r.h - 1) * CELL - 2;
+    for (let x = r.x; x < r.x + r.w; x++) Sprites.drawCell(g, 'nest.straw', x, x * CELL, fy);
+    if (Sprites.has('nest.brace')) { Sprites.drawCell(g, 'nest.brace', 0, r.x * CELL, r.y * CELL); Sprites.drawCell(g, 'nest.brace', 0, (r.x + r.w - 1) * CELL, r.y * CELL, 0, true); }
+    if (Sprites.has('nest.post') && r.w >= 6) for (let y = r.y + 1; y < r.y + r.h; y++) { Sprites.drawCell(g, 'nest.post', 0, r.x * CELL - 6, y * CELL); Sprites.drawCell(g, 'nest.post', 0, (r.x + r.w - 1) * CELL + 6, y * CELL, 0, true); }
+  }
+  // 入口（地表の行＋その下のセル）
+  if (!Sprites.drawCell(g, 'nest.entrance', 0, data.entrance.x * CELL, sy * CELL)) {
+    P(g, '#2a160c', data.entrance.x * CELL - 2, sy * CELL - 2, CELL + 4, 2);
+  }
   return cv;
 }

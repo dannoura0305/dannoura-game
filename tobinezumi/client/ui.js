@@ -13,11 +13,17 @@ export function el(tag, cls, html) {
 export function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
 const iconCache = new Map();
+/** 家具の種類 → 素材のキー（assets/manifest.json） */
+export const FURN_ASSET = {
+  lamp: { key: 'nest.lantern' }, rug: { key: 'nest.rug' }, pebble_deco: { key: 'nest.pebble_deco' },
+  seed_pile: { key: 'nest.seed_pile', col: 2 }, dried_flower: { key: 'nest.dried_flower' }, shelf: { key: 'nest.shelf' },
+  nestbed: { key: 'nest.bed' }, storage: { key: 'nest.shelf' },
+};
 /** 持ち物アイコンの画像 URL（manifest の item.<id> があればそれ、無ければコード描画） */
 export function iconURL(id) {
   if (iconCache.has(id)) return iconCache.get(id);
   const c = A.mk(16, 16), g = c.getContext('2d');
-  if (!Sprites.drawEntry(g, 'item.' + id, 0, 8, 16)) A.drawItem(g, id, 0, 0);
+  if (!Sprites.drawCell(g, 'item.' + id + '.icon', 0, 0, 0)) A.drawItem(g, id, 0, 0);
   const url = c.toDataURL();
   iconCache.set(id, url);
   return url;
@@ -26,14 +32,16 @@ export function toolIconURL(tool) {
   const k = 'tool:' + tool;
   if (iconCache.has(k)) return iconCache.get(k);
   const c = A.mk(16, 16), g = c.getContext('2d');
-  if (!Sprites.drawEntry(g, 'ui.tool_' + tool, 0, 8, 16)) A.drawToolIcon(g, tool, 0, 0);
+  const i = Sprites.nameIndex('ui.tools', tool);
+  if (!(i >= 0 && Sprites.drawCell(g, 'ui.tools', i, 0, 0))) A.drawToolIcon(g, tool, 0, 0);
   const url = c.toDataURL(); iconCache.set(k, url); return url;
 }
 export function furnitureIconURL(type, w, h) {
   const k = 'furn:' + type;
   if (iconCache.has(k)) return iconCache.get(k);
   const c = A.mk(w * 16, h * 16), g = c.getContext('2d');
-  if (!Sprites.drawEntry(g, 'nest.' + type, 0, w * 8, h * 16)) A.drawFurniture(g, type, 0, 0, w, h, 0, 0, { fill: 0.7 });
+  const fa = FURN_ASSET[type];
+  if (!(fa && Sprites.drawEntry(g, fa.key, fa.col || 0, w * 8, h * 16))) A.drawFurniture(g, type, 0, 0, w, h, 0, 0, { fill: 0.7 });
   const url = c.toDataURL(); iconCache.set(k, url); return url;
 }
 
@@ -74,6 +82,16 @@ export class UI {
     while (this.chatLog.children.length > 4) this.chatLog.firstChild.remove();
   }
 
+  /** ホットバーとチャットは最初に 1 回だけ作り、画面ごとに見せる／隠す */
+  mountHotbarOnce(onChat) {
+    if (this.hotbar) return;
+    this.mountHotbar();
+    this.mountChat(onChat || this._onChat || (() => {}));
+  }
+  showHUD(chat, hotbar = chat) {
+    if (this.hotbar) this.hotbar.classList.toggle('hidden', !hotbar);
+    if (this.chatLog) this.chatLog.classList.toggle('hidden', !chat);
+  }
   // ── ホットバー（持ち物 8 枠をそのまま映す）──
   mountHotbar() {
     this.hotbar = el('div', 'tb-hotbar');

@@ -130,29 +130,40 @@ nest.data = {
 - **閲覧モード**は同じデータから「横スクロールの断面」を生成：掘った空間＝歩ける床と天井、縦通路＝はしご／坂、部屋の家具＝同じグリッド座標に同じスプライト。カメラが寄るだけで、**変換表を持たない**（同じ座標系）。
 - 編集はすべて「操作（op）」として送る：`{op:"dig",x,y}` `{op:"room",kind,x,y,w,h}` `{op:"place",type,x,y}` `{op:"remove",id}`。サーバーとクライアントが**同じ `shared/nest-rules.js`** で妥当性を判定し、サーバー確定後に全閲覧者へ配信。
 
-## 7. フォルダ構成（独立したゲームとして）
+## 7. フォルダ構成（『だんのうら』リポジトリの中の「おまけゲーム」として）
+
+> 決定（2026-10-10）：本作は**このリポジトリ内のおまけゲーム**として作る。本編タイトルメニューの「おまけ：トビネズミ」（`index.html` の `#btn-tobinezumi` → `tobinezumi.html`）から入り、ゲーム内の「本編に戻る」で戻る。
+> 本編・境界事象のコードは import しない（考え方だけ移植）。保存は `tobi_` で始まる localStorage の鍵だけ。
 
 ```
+tobinezumi.html          入口（リポジトリのルート。GitHub Pages でそのまま開ける）
 tobinezumi/
-  client/      index.html, src/*.js（field, nest-build, nest-walk, ui, net, render）
-  shared/      move.js, nest-rules.js, items.js, regions.js（クライアント・サーバー共通）
-  server/      index.js, rooms/field.js, rooms/nest.js, db.js, auth.js, migrations/
-  assets/      sprites/, tiles/, manifest.json
-  tools/       normalize_sprites.py, backup.mjs, bots.mjs（多人数接続試験）
-  tests/       node のテスト一式
-  docs/        本書ほか
-  package.json （依存は ws のみ予定）
+  client/      main.js（起動・ループ）, gfx.js（480×270＋UI 層）, input.js, ui.js（DOM の UI）,
+               net.js（OfflineBackend / OnlineBackend / Predictor / Interp）,
+               scene-title.js, scene-field.js, scene-nest-build.js, scene-nest-walk.js,
+               nest-view.js（断面の描画：両モード共通）, nest-layout.js（配置：両モード共通・DOM なし）,
+               sprites.js（manifest の読み込み・毛色の置き換え）, art.js（コード描画のプレースホルダ）, style.css
+  shared/      move.js, nest-rules.js, items.js, regions.js, protocol.js, rng.js（ブラウザと Node の両方で import する ES Modules・DOM なし）
+  server/      （段階 3 以降）index.js, rooms/, db.js, auth.js, migrations/ … package.json はここ（依存は ws のみ予定）
+  assets/      manifest.json と画像（tools/make_assets.py が生成。ASSET_LIST.md §8）
+  tools/       make_assets.py, normalize_sprites.py, preview.py（今後：backup.mjs, bots.mjs）
+  docs/        本書・PROTOCOL.md ほか
+tests/tobinezumi-*.test.mjs   リポジトリ共通の `node tests/run.mjs` で回る（移動・建築ルール・移行・オフライン保存・予測）
 ```
 
-## 8. 運用・費用
+## 8. 動かし方・公開・費用
 
-| 段階 | 置き場所 | 月額目安 |
-|---|---|---|
-| 開発・検証 | ローカル（`npm start` → `http://localhost:8080`、ブラウザを複数開く）、Docker | 0 円 |
-| 少人数公開（〜20 人） | 小さな VPS／PaaS（Fly.io・Render・Railway・さくら VPS 等）1 台。クライアントも同じサーバーから配信（または GitHub Pages＋WSS 接続先設定） | 0〜800 円程度 |
-| 拡大時 | DB を PostgreSQL へ、地域ごとに Field プロセスを分割 | 規模次第 |
+| 段階 | 置き場所 | 遊び方 | 月額目安 |
+|---|---|---|---|
+| **いま（Ver.0.1・段階 1〜2）** | GitHub Pages（静的） | **オフライン 1 人プレイ**：サーバーが見つからなければ自動で localStorage 版（`OfflineBackend`）。採集・巣作り・閲覧モード・保存まで遊べる。NPC のトビネズミ 3 匹（うち 1 匹の巣は見学可） | 0 円 |
+| Ver.0.1 の完成（段階 3〜6） | **ローカル**：`cd tobinezumi/server && npm start` → `http://localhost:8080/tobinezumi.html` | **オンライン**：サーバーがリポジトリのルートを配り、`/tobi-server.json` に `{"ws":"/ws"}` を返すので自動で接続。Pages 版からでも `?server=ws://localhost:8080/ws` で同じサーバーへ | 0 円 |
+| 少人数公開（〜20 人・未定） | 小さな VPS／PaaS 1 台（クラウドへの公開は Ver.0.1 ではしない） | Pages のクライアント＋`?server=wss://…`、またはサーバーから配信 | 0〜800 円程度 |
+| 拡大時 | DB を PostgreSQL へ、地域ごとに Field プロセスを分割 | | 規模次第 |
 
-- バックアップ：`tools/backup.mjs` が 1 時間ごとに `VACUUM INTO backups/game-YYYYMMDD-HH.db`（世代数指定で古いものを削除）。復元は停止→ファイル差し替え→起動。手順は README に記載。
+- 接続先の決め方・メッセージの形は **PROTOCOL.md**。オフライン版とオンライン版は同じ API なので、画面側のコードは変えない。
+- `?offline=1` で常にオフライン。オンラインにつながらなかったときもオフラインに戻り、タイトルにその旨を出す。
+- 本編の PWA（`sw.js`）は `tobinezumi/` を先読みしない（通信は素通し）。本作を更新したら本編と同じく `sw.js` の VERSION を上げる。
+- バックアップ（サーバー段階）：`tools/backup.mjs` が 1 時間ごとに `VACUUM INTO backups/game-YYYYMMDD-HH.db`（世代数指定で古いものを削除）。復元は停止→ファイル差し替え→起動。手順は README に記載。
 
 ## 9. 評価まとめ
 

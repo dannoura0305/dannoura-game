@@ -128,6 +128,14 @@ export function stepSide(st, input, dt, q) {
   if (!s.climbing) {
     if (my < 0 && climbAt(s.x, s.y)) s.climbing = true;
     else if (my > 0 && s.onGround && q.climbable(cellX(s.x), Math.floor((s.y + 1) / C))) { s.climbing = true; s.y += 1; }
+    else if (my < 0 && s.onGround && s.vy >= 0) {
+      // 頭の上（3 マス以内）に縦通路があれば、跳びついてつかまる
+      const cx = cellX(s.x), cy = Math.floor((s.y - 1) / C);
+      for (let k = 1; k <= 3; k++) {
+        if (q.climbable(cx, cy - k)) { s.vy = -SIDE.JUMP; s.onGround = false; break; }
+        if (!q.open(cx, cy - k)) break;
+      }
+    }
   }
 
   if (s.climbing) {

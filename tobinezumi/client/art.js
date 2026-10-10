@@ -10,8 +10,8 @@ export const OL = '#2a1a10';
 export const FURS = [
   { id: 'sand',  name: '砂色',     l: '#ecd09a', m: '#d4ad6e', d: '#a8804c', s: '#7a5634', belly: '#f8eedb' },
   { id: 'cream', name: '淡黄',     l: '#f7e8b4', m: '#e6cc86', d: '#bf9f5e', s: '#8c6e3e', belly: '#fdf7e6' },
-  { id: 'rust',  name: '赤茶',     l: '#e2a676', m: '#c07a4c', d: '#8e5234', s: '#5e3422', belly: '#f4dfc8' },
-  { id: 'gray',  name: '灰褐',     l: '#cbbcaa', m: '#a39280', d: '#7a6a5a', s: '#54483c', belly: '#eee7dc' },
+  { id: 'rufous',  name: '赤茶',     l: '#e2a676', m: '#c07a4c', d: '#8e5234', s: '#5e3422', belly: '#f4dfc8' },
+  { id: 'graybrown',  name: '灰褐',     l: '#cbbcaa', m: '#a39280', d: '#7a6a5a', s: '#54483c', belly: '#eee7dc' },
   { id: 'white', name: '白っぽい', l: '#fffaf0', m: '#ece3d3', d: '#c6baa6', s: '#968b78', belly: '#ffffff' },
 ];
 export const furById = id => FURS.find(f => f.id === id) || FURS[0];

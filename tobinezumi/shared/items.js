@@ -123,9 +123,15 @@ export function addCost(a, b) {
   for (const k in b || {}) o[k] = (o[k] || 0) + b[k];
   return o;
 }
+/** 撤去で戻る分：半分（切り捨て）。ただし何か使っていれば最低 1 つ（いちばん多く使った素材）は戻る */
 export function halfCost(cost) {
   const o = {};
-  for (const k in cost || {}) { const v = Math.floor(cost[k] / 2); if (v > 0) o[k] = v; }
+  let top = null;
+  for (const k in cost || {}) {
+    const v = Math.floor(cost[k] / 2); if (v > 0) o[k] = v;
+    if (cost[k] > 0 && (!top || cost[k] > cost[top])) top = k;
+  }
+  if (top && !Object.keys(o).length) o[top] = 1;
   return o;
 }
 

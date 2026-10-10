@@ -27,52 +27,72 @@ export class FieldScene {
   _prerender() {
     const m = this.map;
     const cv = A.mk(m.pxW, m.pxH), g = cv.getContext('2d');
-    const variants = {};
-    const tileFor = (kind, v) => {
-      const k = kind + ':' + v;
-      if (!variants[k]) {
-        const key = ['tile.sand', 'tile.dirt', 'tile.grass'][kind];
-        const e = Sprites.get(key);
-        if (e) { const c = A.mk(16, 16); Sprites.drawEntry(c.getContext('2d'), key, v, 8, 16); variants[k] = c; }
-        else variants[k] = A.groundTile(kind, v * 3, v * 7, 1);
+    const useAssets = Sprites.has('tile.sand') && Sprites.has('tile.trans.sand_dirt') && Sprites.has('tile.trans.dirt_grass');
+    if (useAssets) {
+      // 角（コーナー）ごとの地形：0 砂・1 土・2 草。角はその右下のタイルの地面（見た目だけ半タイルずれる）
+      const corner = (cx, cy) => m.ground[Math.max(0, Math.min(m.h - 1, cy)) * m.w + Math.max(0, Math.min(m.w - 1, cx))];
+      const lvl = k => k === T.GRASS ? 2 : k === T.DIRT ? 1 : 0;
+      for (let ty = 0; ty < m.h; ty++) for (let tx = 0; tx < m.w; tx++) {
+        const cs = [lvl(corner(tx, ty)), lvl(corner(tx + 1, ty)), lvl(corner(tx + 1, ty + 1)), lvl(corner(tx, ty + 1))];
+        const x = tx * 16, y = ty * 16;
+        Sprites.drawCell(g, 'tile.sand', Math.floor(hash2(tx, ty, 3) * 4), x, y);
+        let bits = cs.reduce((a, c, i) => a | (c >= 1 ? 1 << i : 0), 0);
+        if (bits === 15) Sprites.drawCell(g, 'tile.dirt', Math.floor(hash2(tx, ty, 4) * 3), x, y);
+        else if (bits) Sprites.drawCell(g, 'tile.trans.sand_dirt', bits, x, y);
+        bits = cs.reduce((a, c, i) => a | (c >= 2 ? 1 << i : 0), 0);
+        if (bits === 15) Sprites.drawCell(g, 'tile.grass', Math.floor(hash2(tx, ty, 5) * 4), x, y);
+        else if (bits) Sprites.drawCell(g, 'tile.trans.dirt_grass', bits, x, y);
       }
-      return variants[k];
-    };
-    for (let ty = 0; ty < m.h; ty++) for (let tx = 0; tx < m.w; tx++) {
-      const gk = m.ground[ty * m.w + tx];
-      g.drawImage(tileFor(gk, Math.floor(hash2(tx, ty, 3) * 4)), tx * 16, ty * 16);
-    }
-    // 境目をぼかす（優先度の高い地面が低い地面へにじむ）
-    const col = { [T.DIRT]: A.PAL.dirt, [T.GRASS]: A.PAL.grass };
-    for (let ty = 0; ty < m.h; ty++) for (let tx = 0; tx < m.w; tx++) {
-      const gk = m.ground[ty * m.w + tx];
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        const nx = tx + dx, ny = ty + dy;
-        if (nx < 0 || ny < 0 || nx >= m.w || ny >= m.h) continue;
-        const nk = m.ground[ny * m.w + nx];
-        if (PRIO[nk] <= PRIO[gk]) continue;
-        const pal = col[nk];
-        for (let i = 0; i < 16; i++) {
-          const depth = 1 + Math.floor(hash2(tx * 16 + i, ty * 16 + dx * 3 + dy, 21) * 4);
-          for (let d = 0; d < depth; d++) {
-            if (hash2(tx * 31 + i, ty * 17 + d, 5) < 0.25 && d === depth - 1) continue;
-            const px = dx === 1 ? 15 - d : dx === -1 ? d : i;
-            const py = dy === 1 ? 15 - d : dy === -1 ? d : i;
-            g.fillStyle = pal[(i + d) % 2 ? 0 : 1];
-            g.fillRect(tx * 16 + px, ty * 16 + py, 1, 1);
+    } else {
+      const variants = {};
+      const tileFor = (kind, v) => {
+        const k = kind + ':' + v;
+        if (!variants[k]) variants[k] = A.groundTile(kind, v * 3, v * 7, 1);
+        return variants[k];
+      };
+      for (let ty = 0; ty < m.h; ty++) for (let tx = 0; tx < m.w; tx++) {
+        const gk = m.ground[ty * m.w + tx];
+        g.drawImage(tileFor(gk, Math.floor(hash2(tx, ty, 3) * 4)), tx * 16, ty * 16);
+      }
+      // 境目をぼかす（優先度の高い地面が低い地面へにじむ）
+      const col = { [T.DIRT]: A.PAL.dirt, [T.GRASS]: A.PAL.grass };
+      for (let ty = 0; ty < m.h; ty++) for (let tx = 0; tx < m.w; tx++) {
+        const gk = m.ground[ty * m.w + tx];
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = tx + dx, ny = ty + dy;
+          if (nx < 0 || ny < 0 || nx >= m.w || ny >= m.h) continue;
+          const nk = m.ground[ny * m.w + nx];
+          if (PRIO[nk] <= PRIO[gk]) continue;
+          const pal = col[nk];
+          for (let i = 0; i < 16; i++) {
+            const depth = 1 + Math.floor(hash2(tx * 16 + i, ty * 16 + dx * 3 + dy, 21) * 4);
+            for (let d = 0; d < depth; d++) {
+              if (hash2(tx * 31 + i, ty * 17 + d, 5) < 0.25 && d === depth - 1) continue;
+              const px = dx === 1 ? 15 - d : dx === -1 ? d : i;
+              const py = dy === 1 ? 15 - d : dy === -1 ? d : i;
+              g.fillStyle = pal[(i + d) % 2 ? 0 : 1];
+              g.fillRect(tx * 16 + px, ty * 16 + py, 1, 1);
+            }
           }
         }
       }
     }
     // 平たい飾り
     this.tall = [];
+    const bigUsed = new Set();
     for (let ty = 0; ty < m.h; ty++) for (let tx = 0; tx < m.w; tx++) {
       const t = m.tiles[ty * m.w + tx], v = Math.floor(hash2(tx, ty, 8) * 6);
       const x = tx * 16 + 8, y = ty * 16 + 8;
-      if (t === T.TUFT) { if (!Sprites.drawEntry(g, 'tile.tuft', v, x, y + 6)) A.drawTuft(g, x, y + 5, v); }
-      else if (t === T.PEBBLE) { if (!Sprites.drawEntry(g, 'tile.pebble', v, x, y + 6)) A.drawPebbleDeco(g, x, y + 4, v); }
+      if (t === T.TUFT) { if (!Sprites.drawCell(g, 'tile.grass_tuft', v, x - 8, y - 8)) A.drawTuft(g, x, y + 5, v); }
+      else if (t === T.PEBBLE) { if (!Sprites.drawCell(g, 'tile.pebbles', v, x - 8, y - 8)) A.drawPebbleDeco(g, x, y + 4, v); }
       else if (t === T.SHRUB) this.tall.push({ kind: 'shrub', x, y: y + 6, v });
-      else if (t === T.ROCK) this.tall.push({ kind: 'rock', x, y: y + 6, v });
+      else if (t === T.ROCK) {
+        // 岩場は 2 タイル分の大岩をなるべく使う（右隣も岩で、まだ使っていなければ）
+        const right = tx + 1 < m.w && m.tiles[ty * m.w + tx + 1] === T.ROCK && !bigUsed.has(ty * m.w + tx + 1);
+        if (bigUsed.has(ty * m.w + tx)) continue;
+        if (right && Sprites.has('tile.rock_big')) { bigUsed.add(ty * m.w + tx + 1); this.tall.push({ kind: 'rock_big', x: x + 8, y: y + 6, v }); }
+        else this.tall.push({ kind: 'rock', x, y: y + 6, v });
+      }
       else if (t === T.STONES) this.tall.push({ kind: 'stones', x, y: y + 5, v });
       else if (t === T.TREE) this.tall.push({ kind: 'tree', x, y: y + 6, v });
     }
@@ -80,6 +100,17 @@ export class FieldScene {
     for (let ty = 0; ty < m.h; ty++) for (let tx = 0; tx < m.w; tx++) if (m.tiles[ty * m.w + tx] === T.WATER) {
       const isW = (x, y) => x < 0 || y < 0 || x >= m.w || y >= m.h || m.tiles[y * m.w + x] === T.WATER;
       this.water.push({ tx, ty, edges: { n: !isW(tx, ty - 1), s: !isW(tx, ty + 1), w: !isW(tx - 1, ty), e: !isW(tx + 1, ty) } });
+    }
+    // 水辺（陸のタイルに重ねる波打ち際）：角が水に接しているもの
+    if (Sprites.has('tile.edge.water')) {
+      const isW = (x, y) => x >= 0 && y >= 0 && x < m.w && y < m.h && m.tiles[y * m.w + x] === T.WATER;
+      this.shore = [];
+      for (let ty = 0; ty < m.h; ty++) for (let tx = 0; tx < m.w; tx++) {
+        if (isW(tx, ty)) continue;
+        const cw = (cx, cy) => isW(cx - 1, cy - 1) || isW(cx, cy - 1) || isW(cx - 1, cy) || isW(cx, cy);
+        const bits = (cw(tx, ty) ? 1 : 0) | (cw(tx + 1, ty) ? 2 : 0) | (cw(tx + 1, ty + 1) ? 4 : 0) | (cw(tx, ty + 1) ? 8 : 0);
+        if (bits) this.shore.push({ tx, ty, bits });
+      }
     }
     this.ground = cv;
     // ミニマップ（1 タイル 1 ピクセル）
@@ -208,9 +239,8 @@ export class FieldScene {
       const d = Math.hypot(r.x - s.x, r.y - s.y);
       if (d < PICK_R && d < bd) { bd = d; best = { kind: 'res', res: r, label: itemName(r.kind) + ' を拾う' }; }
     }
-    if (best) return best;
     for (const e of this.entrances) {
-      const d = Math.hypot(e.x - s.x, e.y - s.y);
+      const d = Math.hypot(e.x - s.x, e.y - s.y) - 4;   // 同じくらいの近さなら巣穴を優先
       if (d < ENT_R && d < bd) { bd = d; best = { kind: 'ent', ent: e, label: e.own ? '巣に入る（' + e.name + 'の巣）' : '訪ねる（' + e.name + 'の巣）' }; }
     }
     if (best) return best;
@@ -272,11 +302,16 @@ export class FieldScene {
     for (const w of this.water) {
       const x = w.tx * 16, y = w.ty * 16;
       if (x < cx - 16 || y < cy - 16 || x > cx + W || y > cy + H) continue;
-      if (!Sprites.drawEntry(g, 'tile.water', Math.floor(this.t * 2) + w.tx, x + 8, y + 16)) A.drawWater(g, x, y, this.t, w.edges, w.tx, w.ty);
+      if (!Sprites.drawCell(g, 'tile.water', Math.floor(this.t * 3 + (w.tx + w.ty) * 0.5), x, y)) A.drawWater(g, x, y, this.t, w.edges, w.tx, w.ty);
+    }
+    if (this.shore) for (const w of this.shore) {
+      const x = w.tx * 16, y = w.ty * 16;
+      if (x < cx - 16 || y < cy - 16 || x > cx + W || y > cy + H) continue;
+      Sprites.drawCell(g, 'tile.edge.water', w.bits, x, y, Math.floor(this.t * 3) % 4);
     }
     // 巣穴
     for (const e of this.entrances) {
-      if (!Sprites.drawEntry(g, e.own ? 'tile.burrow_own' : 'tile.burrow', 0, e.x, e.y + 6)) A.drawBurrow(g, e.x, e.y, e.own);
+      if (!Sprites.drawEntry(g, 'tile.burrow', e.own ? 0 : 1, e.x, e.y + 2)) A.drawBurrow(g, e.x, e.y, e.own);
     }
     // 採集物
     const tgt = this.curTarget;
@@ -284,10 +319,10 @@ export class FieldScene {
       if (r.x < cx - 16 || r.y < cy - 16 || r.x > cx + W + 16 || r.y > cy + H + 16) continue;
       const hi = tgt && tgt.kind === 'res' && tgt.res === r;
       g.globalAlpha = r.pending ? 0.4 : 1;
-      g.fillStyle = 'rgba(40,24,10,.25)'; g.fillRect(r.x - 4, r.y + 2, 8, 2);
+      if (!Sprites.has('item.' + r.kind + '.ground')) { g.fillStyle = 'rgba(40,24,10,.25)'; g.fillRect(r.x - 4, r.y + 2, 8, 2); }
       if (hi) { g.fillStyle = 'rgba(255,240,180,' + (0.35 + 0.25 * Math.sin(this.t * 8)) + ')'; g.beginPath(); g.ellipse(r.x, r.y + 1, 8, 4, 0, 0, Math.PI * 2); g.fill(); }
       const bob = hi ? Math.round(Math.sin(this.t * 6) * 1) - 1 : 0;
-      if (!Sprites.drawEntry(g, 'item.' + r.kind, 0, r.x, r.y + 4 + bob)) A.drawItem(g, r.kind, r.x - 8, r.y - 12 + bob);
+      if (!Sprites.drawEntry(g, 'item.' + r.kind + '.ground', 0, r.x, r.y + 3 + bob)) A.drawItem(g, r.kind, r.x - 8, r.y - 12 + bob);
       g.globalAlpha = 1;
     }
     // 背の高いもの＋トビネズミを y でならべる
@@ -312,8 +347,13 @@ export class FieldScene {
     for (const o of list) {
       if (o.kind === 'player') this.drawJerboa(g, o);
       else if (o.kind === 'shrub') { if (!Sprites.drawEntry(g, 'tile.shrub', o.v, o.x, o.y)) A.drawShrub(g, o.x, o.y, o.v); }
-      else if (o.kind === 'rock') { if (!Sprites.drawEntry(g, 'tile.rock', o.v, o.x, o.y)) A.drawRock(g, o.x, o.y, o.v); }
-      else if (o.kind === 'stones') { if (!Sprites.drawEntry(g, 'tile.stones', o.v, o.x, o.y)) A.drawStones(g, o.x, o.y, o.v); }
+      else if (o.kind === 'rock') { if (!Sprites.drawEntry(g, 'tile.rock_small', o.v, o.x, o.y)) A.drawRock(g, o.x, o.y, o.v); }
+      else if (o.kind === 'rock_big') { Sprites.drawEntry(g, 'tile.rock_big', o.v, o.x, o.y); }
+      else if (o.kind === 'stones') {
+        // 小石の山（大ジャンプで越えられる）：小石の飾りを 3 つ寄せて積む
+        if (Sprites.has('tile.pebbles')) { Sprites.drawEntry(g, 'tile.pebbles', o.v, o.x - 4, o.y + 2); Sprites.drawEntry(g, 'tile.pebbles', o.v + 1, o.x + 4, o.y + 3); Sprites.drawEntry(g, 'tile.pebbles', o.v + 2, o.x, o.y - 1); }
+        else A.drawStones(g, o.x, o.y, o.v);
+      }
       else if (o.kind === 'tree') { if (!Sprites.drawEntry(g, 'tile.tree', 0, o.x, o.y)) A.drawTree(g, o.x, o.y); }
     }
     // 砂ぼこり
@@ -344,8 +384,7 @@ export class FieldScene {
     const fr = this._frame(o);
     // 影（跳ぶと小さく）
     const z = o.z || 0, sh = Math.max(0.45, 1 - z / 28);
-    g.fillStyle = 'rgba(40,22,10,0.35)';
-    g.beginPath(); g.ellipse(Math.round(o.x), Math.round(o.y) - 1, 7 * sh, 2.6 * sh, 0, 0, Math.PI * 2); g.fill();
+    Sprites.drawShadow(g, o.x, o.y - 1, sh);
     Sprites.drawJerboa(g, o.fur, 'field', fr.anim, o.dir || 'down', fr.frame, o.x, o.y - z);
     if (o.me && o.cd > 0) {   // 大ジャンプのクールダウン
       const k = o.cd / FIELD.JUMP_CD;

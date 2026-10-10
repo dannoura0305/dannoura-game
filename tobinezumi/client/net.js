@@ -17,7 +17,7 @@ import { C2S, S2C, encode, decode, cleanChat, validName, validUsername, validPas
 import { buildFieldMap, initialResources, resourceSpawnPoints, pickRespawnPoint, canDigBurrow, RESPAWN_MIN, RESPAWN_MAX, TILE } from '../shared/regions.js';
 import { stepField, makeFieldState, STEP_DT } from '../shared/move.js';
 import { createNest, migrateNest, tryOp, KIND_COST } from '../shared/nest-rules.js';
-import { makeInventory, normalizeInventory, addItem, removeItem, canAdd, payCost, refund, countItem, START_INVENTORY, STORAGE_SLOTS, ITEMS } from '../shared/items.js';
+import { swapSlots, makeInventory, normalizeInventory, addItem, removeItem, canAdd, payCost, refund, countItem, START_INVENTORY, STORAGE_SLOTS, ITEMS } from '../shared/items.js';
 import { hash2 } from '../shared/rng.js';
 
 export const SAVE_KEY = 'tobi_save_v1';
@@ -102,9 +102,9 @@ export class Interp {
 
 // ───────── オフライン ─────────
 const NPCS = [
-  { id: 'npc_nuts', name: 'ナッツ', fur: 'rust',  home: { x: 30 * TILE + 8, y: 40 * TILE + 8 }, policy: 'private' },
+  { id: 'npc_nuts', name: 'ナッツ', fur: 'rufous',  home: { x: 30 * TILE + 8, y: 40 * TILE + 8 }, policy: 'private' },
   { id: 'npc_moka', name: 'モカ',   fur: 'cream', home: { x: 56 * TILE + 8, y: 24 * TILE + 8 }, policy: 'public' },
-  { id: 'npc_riko', name: 'リコ',   fur: 'gray',  home: { x: 66 * TILE + 8, y: 38 * TILE + 8 }, policy: 'private' },
+  { id: 'npc_riko', name: 'リコ',   fur: 'graybrown',  home: { x: 66 * TILE + 8, y: 38 * TILE + 8 }, policy: 'private' },
 ];
 const NPC_LINES = ['ここに木の実がありますよ！', '巣の場所を探してます', 'いい風だね', '夜になると種が増えるらしい', 'ぴょん！', 'オアシスの水はつめたい'];
 const NPC_REPLY = [[/こんにち|やあ|はじめ|hello|hi/i, 'こんにちは！'], [/ありがと/, 'どういたしまして'], [/巣|すみか/, 'モカの巣は だれでも遊びに来ていいよ'], [/種|たね/, '低木のまわりに よく落ちてるよ']];
@@ -340,12 +340,12 @@ export class OfflineBackend extends Emitter {
     if (this.save.nests[nestId]) return this.save.nests[nestId];
     const npc = NPCS.find(n => 'n_' + n.id === nestId);
     if (!npc) return null;
-    if (!this.npcNests[nestId]) this.npcNests[nestId] = { id: nestId, owner: npc.id, ownerName: npc.name, rev: 1, data: buildNpcNest(77 + npc.name.length), storage: makeInventory(STORAGE_SLOTS, [{ id: 'seed', n: 40 }, { id: 'grass', n: 22 }]), policy: npc.policy };
+    if (!this.npcNests[nestId]) this.npcNests[nestId] = { id: nestId, owner: npc.id, ownerName: npc.name, rev: 1, data: buildNpcNest(77 + npc.name.length), storage: makeInventory(STORAGE_SLOTS, [{ id: 'seed', n: 40 }, { id: 'grass', n: 22 }]), policy: npc.policy, hostFur: npc.fur };
     return this.npcNests[nestId];
   }
   _nestOut(rec) {
     const own = rec.owner === this.save.account.id;
-    return { id: rec.id, owner: rec.owner, ownerName: rec.ownerName, rev: rec.rev, data: rec.data, storage: rec.storage.map(s => s && { ...s }), policy: rec.policy, canEdit: own, own };
+    return { id: rec.id, owner: rec.owner, ownerName: rec.ownerName, rev: rec.rev, data: rec.data, storage: rec.storage.map(s => s && { ...s }), policy: rec.policy, canEdit: own, own, hostFur: rec.hostFur || null };
   }
 
   async enterNest(owner) {
@@ -377,9 +377,9 @@ export class OfflineBackend extends Emitter {
   get curNestId() { return this._curNest; }
 
   async nestOp(nestId, rev, op) {
-    const rec = this.save.nests[nestId];
+    const rec = this._nestRec(nestId);
     if (!rec) return { ok: false, reason: '巣が無い', code: 'not_found' };
-    if (rec.owner !== this.save.account.id) return { ok: false, reason: '自分の巣ではない', code: 'forbidden' };
+    if (rec.owner !== this.save.account.id) return { ok: false, reason: '自分の巣ではない（見学中は編集できない）', code: 'forbidden' };
     if (rev !== rec.rev) return { ok: false, reason: '巣が更新された。もう一度', code: 'stale_rev', rev: rec.rev, data: rec.data };
     const inv = this.save.player.inv;
     const r = tryOp(rec.data, op, inv);
@@ -427,6 +427,12 @@ export class OfflineBackend extends Emitter {
     return { ok: true };
   }
   nestMove() { /* オフラインでは見る人がいない */ }
+  async moveSlot(from, to) {
+    const inv = this.save.player.inv;
+    if (!swapSlots(inv, from, to)) return { ok: false };
+    this.flush();
+    return { ok: true, inv: inv.map(s => s && { ...s }) };
+  }
   kindCost(kind) { return KIND_COST[kind]; }
 }
 
@@ -522,6 +528,7 @@ export class OnlineBackend extends Emitter {
   async store(nestId, dir, item, n) { return this._req(C2S.STORE, { nestId, dir, item, n }); }
   async chat(text) { const t = cleanChat(text); if (!t) return { ok: false }; this._send({ t: C2S.CHAT, text: t }); return { ok: true }; }
   async setVisitPolicy(policy, list) { return this._req(C2S.VISIT_POLICY, { policy, list }); }
+  async moveSlot(from, to) { return this._req(C2S.INV_MOVE, { from, to }); }
   nestMove(st) { this._send({ t: C2S.NEST_MOVE, x: Math.round(st.x), y: Math.round(st.y), facing: st.facing, anim: st.anim }); }
   savePosition() {}
   flush() {}

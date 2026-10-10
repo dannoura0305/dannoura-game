@@ -15,7 +15,7 @@ export const RECONNECT_GRACE_MS = 60000; // これ以内の再接続なら同じ
 export const CHAT_MAX = 80;
 export const NAME_MIN = 1, NAME_MAX = 10;
 export const USER_MIN = 3, USER_MAX = 16, PASS_MIN = 8;
-export const FUR_IDS = ['sand', 'cream', 'rust', 'gray', 'white'];
+export const FUR_IDS = ['sand', 'cream', 'rufous', 'graybrown', 'white'];   // assets/manifest.json の fur.order と同じ
 export const VISIT_POLICIES = ['private', 'public', 'list'];
 
 // クライアント → サーバー
@@ -35,6 +35,7 @@ export const C2S = {
   NEST_MOVE: 'nest_move',     // {x, y, facing, anim}                 巣の中の位置（訪問者どうしで見える）
   STORE: 'store',             // {nestId, dir:'deposit'|'withdraw', item, n} → res {ok, inv, storage}
   CHAT: 'chat',               // {text}
+  INV_MOVE: 'inv_move',       // {from, to}  持ち物の並べ替え     → res {ok, inv}
   VISIT_POLICY: 'visit_policy', // {policy, list?:[name]}            → res {ok}
   PING: 'ping',               // {ct}                                 → pong {ct, st}
 };

@@ -1,20 +1,22 @@
-// tobinezumi/client/sprites.js — 素材の読み込み（assets/manifest.json）と、無いときのプレースホルダ（art.js）
+// tobinezumi/client/sprites.js — 素材の読み込み（tobinezumi/assets/manifest.json）と、無いときのプレースホルダ（art.js）
 //
-// manifest.json の形（素材担当と共通）：
-//   { "jerboa.field.hop": {"file":"sprites/jerboa_field_hop.png", "cell":[32,32], "frames":4, "dirs":3}, "tile.sand": {...}, ... }
-//   ・file は assets/ からの相対パス。cell=1 コマの大きさ、frames=横に並ぶコマ数。
-//   ・dirs があれば縦に方向の行が並ぶ。行の順は "order"（例 ["down","up","side"]）、無ければ
-//       dirs=3 → ["down","up","side"]（left は side を左右反転）／dirs=4 → ["down","left","right","up"]／dirs=2 → ["right","left"]
-//       side 系（jerboa.side.*）は dirs が無ければ右向き 1 行（左は反転）。
-//   ・anchor:[ax,ay] は足元の点（既定はセルの下辺中央）。fur:"sand" は描いてある毛色（既定 sand）。
-//   ・palette:{"l":"#..","m":"#..","d":"#..","s":"#..","belly":"#.."} があれば、その色を毛色ごとに置き換える。
-//     無ければ art.js の砂色パレットに近い色を置き換える（近似）。
-// 画像が無い・読めない鍵は、いつでも art.js のコード描画に戻る（ゲームは素材ゼロでも動く）。
+// manifest の形は docs/ASSET_LIST.md §8：
+//   { "version":1, "tile":16, "<key>": {"file":"jerboa/field_hop.png", "cell":[32,32], "frames":4 | "variants":4,
+//      "dirs":["down","up","side"], "side_faces":"right", "anchor":[16,29], ...}, "fur.palettes": {...}, ... }
+//   ・シートは横＝コマ（またはバリエーション）、縦＝方向（dirs の順）または段。
+//   ・anchor は足元（無ければセルの下辺中央）。
+//   ・毛色：スプライトは fur.palettes.base の 9 色で描いてあり、完全一致の画素を fur.palettes[<毛色>] に置き換える。
+// キーが無い・読めない素材は art.js のコード描画に戻る（素材ゼロでもゲームは動く）。
 import * as A from './art.js';
 
-const entries = new Map();      // key → {img, cell, frames, dirs, order, anchor, ...}
+const entries = new Map();      // key → manifest の値 + img
 const recolorCache = new Map(); // key|fur → canvas
 const frameCache = new Map();   // プレースホルダのコマ
+let palettes = null;            // fur.palettes
+
+// 地上のアニメ名（クライアント → 素材）
+const FIELD_ANIM = { jump: 'bigjump', walk: 'hop' };
+const SIDE_ANIM = { hop: 'walk', climb_idle: 'climb' };
 
 export const Sprites = {
   base: 'tobinezumi/assets/',
@@ -29,11 +31,17 @@ export const Sprites = {
     } catch (e) { man = null; }
     this.manifest = man;
     if (!man || typeof man !== 'object') return this;
-    const list = Object.entries(man).filter(([k, v]) => v && typeof v === 'object' && typeof v.file === 'string');
+    if (man['fur.palettes'] && man['fur.palettes'].base) palettes = man['fur.palettes'];
+    const list = Object.entries(man).filter(([, v]) => v && typeof v === 'object' && typeof v.file === 'string');
     await Promise.all(list.map(([k, v]) => new Promise(res => {
       const img = new Image();
-      const timer = setTimeout(() => { this.failed++; res(); }, 8000);
-      img.onload = () => { clearTimeout(timer); entries.set(k, { ...v, img, cell: v.cell || [img.naturalWidth, img.naturalHeight], frames: v.frames || 1 }); this.loaded++; res(); };
+      const timer = setTimeout(() => { this.failed++; res(); }, 10000);
+      img.onload = () => {
+        clearTimeout(timer);
+        const cell = v.cell || [img.naturalWidth, img.naturalHeight];
+        entries.set(k, { ...v, img, cell, cols: Math.max(1, Math.floor(img.naturalWidth / cell[0])), rows: Math.max(1, Math.floor(img.naturalHeight / cell[1])) });
+        this.loaded++; res();
+      };
       img.onerror = () => { clearTimeout(timer); this.failed++; res(); };
       img.src = this.base + v.file;
     })));
@@ -42,49 +50,57 @@ export const Sprites = {
 
   has(key) { return entries.has(key); },
   get(key) { return entries.get(key) || null; },
+  /** 横に並ぶ数（frames か variants） */
+  count(key) { const e = entries.get(key); return e ? (e.frames || e.variants || e.cols || 1) : 0; },
+  meta(key) { return entries.get(key) || null; },
 
-  /** 画像素材 1 コマを描く。(x,y) は足元（anchor）。row は方向の行。成功したら true */
-  drawEntry(g, key, frame, x, y, { row = 0, flip = false, fur = null, scale = 1 } = {}) {
+  /** 1 コマを描く。(x,y) は anchor（無ければ下辺中央）の位置。成功したら true */
+  drawEntry(g, key, col, x, y, { row = 0, flip = false, fur = null, scale = 1, alpha = 1 } = {}) {
     const e = entries.get(key);
     if (!e) return false;
     const [cw, ch] = e.cell;
-    const fr = ((frame % e.frames) + e.frames) % e.frames;
+    const n = e.cols;
+    const c = ((Math.floor(col) % n) + n) % n;
+    const r = Math.max(0, Math.min(e.rows - 1, row | 0));
     const ax = e.anchor ? e.anchor[0] : cw / 2, ay = e.anchor ? e.anchor[1] : ch;
-    const src = fur && fur !== (e.fur || 'sand') ? recolored(key, e, fur) : e.img;
+    const src = fur && fur !== 'sand' && palettes ? recolored(key, e, fur) : e.img;
     g.save();
+    if (alpha !== 1) g.globalAlpha *= alpha;
     g.translate(Math.round(x), Math.round(y));
     if (flip) g.scale(-1, 1);
-    g.drawImage(src, fr * cw, row * ch, cw, ch, Math.round(-ax * scale), Math.round(-ay * scale), cw * scale, ch * scale);
+    g.drawImage(src, c * cw, r * ch, cw, ch, Math.round(-ax * scale), Math.round(-ay * scale), cw * scale, ch * scale);
     g.restore();
     return true;
   },
-
-  /** 方向名 → {row, flip}（manifest の dirs/order に合わせる） */
-  dirRow(e, dir) {
-    const n = e.dirs || 1;
-    const order = e.order || (n === 3 ? ['down', 'up', 'side'] : n === 4 ? ['down', 'left', 'right', 'up'] : n === 2 ? ['right', 'left'] : ['side']);
-    let i = order.indexOf(dir);
-    if (i >= 0) return { row: i, flip: false };
-    if (dir === 'left' || dir === 'right') {
-      const si = order.indexOf('side'); const ri = order.indexOf('right'); const li = order.indexOf('left');
-      if (si >= 0) return { row: si, flip: dir === 'left' };
-      if (ri >= 0) return { row: ri, flip: dir === 'left' };
-      if (li >= 0) return { row: li, flip: dir === 'right' };
-    }
-    return { row: 0, flip: dir === 'left' };
+  /** 左上を (x,y) にして描く（タイル・オートタイル用） */
+  drawCell(g, key, col, x, y, row = 0, flip = false) {
+    const e = entries.get(key);
+    if (!e) return false;
+    const [cw, ch] = e.cell;
+    const c = ((Math.floor(col) % e.cols) + e.cols) % e.cols, r = Math.max(0, Math.min(e.rows - 1, row | 0));
+    if (flip) { g.save(); g.translate(x + cw, y); g.scale(-1, 1); g.drawImage(e.img, c * cw, r * ch, cw, ch, 0, 0, cw, ch); g.restore(); }
+    else g.drawImage(e.img, c * cw, r * ch, cw, ch, x, y, cw, ch);
+    return true;
   },
+  /** names の中の位置 */
+  nameIndex(key, name) { const e = entries.get(key); return e && e.names ? e.names.indexOf(name) : -1; },
 
   /**
-   * トビネズミを描く。view='field'（見下ろし：dir=down/up/left/right）|'side'（巣：dir=left/right）
-   * (x,y) は足元。画像があれば画像、無ければ art.js のコマ
+   * トビネズミ。view='field'（dir=down/up/left/right）|'side'（dir=left/right）。(x,y) は足元
    */
   drawJerboa(g, fur, view, anim, dir, frame, x, y) {
-    const key = 'jerboa.' + view + '.' + anim;
-    const e = entries.get(key) || (anim === 'walk' ? entries.get('jerboa.' + view + '.hop') : null) || (anim === 'climb_idle' ? entries.get('jerboa.' + view + '.climb') : null);
+    const a = view === 'field' ? (FIELD_ANIM[anim] || anim) : (SIDE_ANIM[anim] || anim);
+    const key = 'jerboa.' + view + '.' + a;
+    const e = entries.get(key);
     if (e) {
-      const k = entries.get(key) ? key : (anim === 'walk' ? 'jerboa.' + view + '.hop' : 'jerboa.' + view + '.climb');
-      const { row, flip } = view === 'side' && !e.dirs ? { row: 0, flip: dir === 'left' } : this.dirRow(e, dir);
-      return this.drawEntry(g, k, frame, x, y, { row, flip, fur });
+      let row = 0, flip = dir === 'left';
+      if (Array.isArray(e.dirs)) {
+        const want = dir === 'left' || dir === 'right' ? 'side' : dir;
+        row = Math.max(0, e.dirs.indexOf(want));
+        flip = dir === 'left';
+        if (e.side_faces === 'left') flip = dir === 'right';
+      } else if (e.faces === 'left') flip = dir === 'right';
+      return this.drawEntry(g, key, frame, x, y, { row, flip, fur });
     }
     const pv = view === 'side' ? 'side' : dir === 'down' ? 'front' : dir === 'up' ? 'back' : 'side';
     const n = (A.ANIMS[anim] || A.ANIMS.idle).length;
@@ -99,60 +115,58 @@ export const Sprites = {
     g.restore();
     return true;
   },
+  /** 影（跳ぶと縮む）。k=1 で原寸 */
+  drawShadow(g, x, y, k = 1) {
+    const e = entries.get('jerboa.shadow');
+    if (e) {
+      const [cw, ch] = e.cell, w = Math.max(4, Math.round(cw * k)), h = Math.max(2, Math.round(ch * k));
+      g.drawImage(e.img, 0, 0, cw, ch, Math.round(x - w / 2), Math.round(y - h / 2), w, h);
+      return;
+    }
+    g.fillStyle = 'rgba(40,22,10,0.35)';
+    g.beginPath(); g.ellipse(Math.round(x), Math.round(y), 7 * k, 2.6 * k, 0, 0, Math.PI * 2); g.fill();
+  },
 
   /** アニメのコマ数 */
   frames(view, anim) {
-    const e = entries.get('jerboa.' + view + '.' + anim);
-    return e ? e.frames : (A.ANIMS[anim] || A.ANIMS.idle).length;
+    const a = view === 'field' ? (FIELD_ANIM[anim] || anim) : (SIDE_ANIM[anim] || anim);
+    const e = entries.get('jerboa.' + view + '.' + a);
+    return e ? (e.frames || e.cols) : (A.ANIMS[anim] || A.ANIMS.idle).length;
   },
 
-  /** キャラ作成の立ち絵（ui.portrait か jerboa.portrait があれば） */
+  /** キャラ作成の立ち絵 128×128 */
   portrait(fur) {
-    const e = entries.get('jerboa.portrait') || entries.get('ui.portrait');
-    if (e) {
-      const c = A.mk(e.cell[0], e.cell[1]);
-      const g = c.getContext('2d');
-      g.drawImage(fur !== (e.fur || 'sand') ? recolored(entries.get('jerboa.portrait') ? 'jerboa.portrait' : 'ui.portrait', e, fur) : e.img, 0, 0, e.cell[0], e.cell[1], 0, 0, e.cell[0], e.cell[1]);
-      return c;
-    }
+    const e = entries.get('jerboa.portrait.' + fur);
+    if (e) { const c = A.mk(e.cell[0], e.cell[1]); c.getContext('2d').drawImage(e.img, 0, 0); return c; }
     return A.portrait(fur);
   },
+  furLabels() { return (this.manifest && this.manifest['fur.labels']) || null; },
 };
 
-// ───────── 毛色の差し替え ─────────
-function hex(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+// ───────── 毛色の差し替え（base の色と完全一致する画素だけ）─────────
+function hexRGB(h) { const n = parseInt(String(h).slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
 function recolored(key, e, furId) {
   const ck = key + '|' + furId;
   let c = recolorCache.get(ck);
   if (c) return c;
   const img = e.img;
-  c = A.mk(img.naturalWidth || img.width, img.naturalHeight || img.height);
+  c = A.mk(img.naturalWidth, img.naturalHeight);
   const g = c.getContext('2d');
   g.drawImage(img, 0, 0);
-  try {
-    const im = g.getImageData(0, 0, c.width, c.height), d = im.data;
-    const basePal = e.palette || A.furById(e.fur || 'sand');
-    const target = A.furById(furId);
-    const names = ['l', 'm', 'd', 's', 'belly'].filter(n => basePal[n]);
-    const from = names.map(n => hex(basePal[n])), to = names.map(n => hex(target[n]));
-    const tol = e.palette ? 6 : 34;
-    for (let i = 0; i < d.length; i += 4) {
-      if (d[i + 3] < 20) continue;
-      let best = -1, bd = 1e9;
-      for (let k = 0; k < from.length; k++) {
-        const dr = d[i] - from[k][0], dg = d[i + 1] - from[k][1], db = d[i + 2] - from[k][2];
-        const dist = Math.sqrt(dr * dr + dg * dg + db * db);
-        if (dist < bd) { bd = dist; best = k; }
+  const to = palettes[furId];
+  if (to) {
+    try {
+      const im = g.getImageData(0, 0, c.width, c.height), d = im.data;
+      const map = new Map();
+      palettes.base.forEach((h, i) => { const [r, gg, b] = hexRGB(h); map.set((r << 16) | (gg << 8) | b, hexRGB(to[i])); });
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3] === 0) continue;
+        const v = map.get((d[i] << 16) | (d[i + 1] << 8) | d[i + 2]);
+        if (v) { d[i] = v[0]; d[i + 1] = v[1]; d[i + 2] = v[2]; }
       }
-      if (best >= 0 && bd <= tol) {
-        // 元の色との差（陰影の微妙な違い）を保ったまま置き換える
-        d[i] = Math.max(0, Math.min(255, to[best][0] + (d[i] - from[best][0])));
-        d[i + 1] = Math.max(0, Math.min(255, to[best][1] + (d[i + 1] - from[best][1])));
-        d[i + 2] = Math.max(0, Math.min(255, to[best][2] + (d[i + 2] - from[best][2])));
-      }
-    }
-    g.putImageData(im, 0, 0);
-  } catch (err) { /* file:// などで読めなければそのまま */ }
+      g.putImageData(im, 0, 0);
+    } catch (err) { /* 読めなければそのまま */ }
+  }
   recolorCache.set(ck, c);
   return c;
 }

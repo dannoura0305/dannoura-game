@@ -11,7 +11,7 @@
 // 編集はすべて「操作（op）」：
 //   {op:'dig', x, y}                      土を 1 セル掘る
 //   {op:'fill', x, y}                     掘ったセルを埋める（撤去・取り消し用）
-//   {op:'tunnel', x, y, len, dir, s}      通路（h=右へ / v=下へ / slope=斜め下へ s=+1 右下・-1 左下。坂は頭の上も 1 段掘る）
+//   {op:'tunnel', x, y, len, dir, s}      通路（h=右へ / v=下へ / slope=斜め下へ s=+1 右下・-1 左下。坂は 2 段の帯：上が通る空間・下が坂）
 //   {op:'room', x, y, w, h, kind}         部屋（最小 4×3）
 //   {op:'room-resize', id, x, y, w, h}    部屋の拡張・縮小（辺のドラッグ）
 //   {op:'set-kind', id, kind}             寝床・倉庫・ふつう
@@ -86,7 +86,7 @@ export function createNest({ seed = 1, entranceX = 8 } = {}) {
   for (let k = 0; k < 9; k++) {   // 岩のかたまり
     const cx = 2 + Math.floor(rnd() * (w - 4)), cy = 9 + Math.floor(rnd() * (h - 11));
     const r = 1 + rnd() * 1.6;
-    if (cx > ex - 6 && cx < ex + 10 && cy < 13) continue;     // 入口のまわりは空けておく
+    if (cx > ex - 7 && cx < ex + 22 && cy < 17) continue;     // 入口のまわり（最初に広げる場所）は空けておく
     for (let y = cy - 2; y <= cy + 2; y++) for (let x = cx - 2; x <= cx + 2; x++) {
       if (x < 1 || x > w - 2 || y <= sy + 3 || y > h - 2) continue;
       if (Math.hypot(x - cx, (y - cy) * 1.3) <= r) cells[y * w + x] = C.ROCK;
@@ -166,13 +166,16 @@ export function tunnelCells(t) {
   const out = [];
   if (t.dir === 'h') for (let i = 0; i < t.len; i++) out.push([t.x + i, t.y]);
   else if (t.dir === 'v') for (let i = 0; i < t.len; i++) out.push([t.x, t.y + i]);
-  else { const s = t.s === -1 ? -1 : 1; for (let i = 0; i < t.len; i++) { out.push([t.x + s * i, t.y + i]); out.push([t.x + s * i, t.y + i - 1]); } }
+  else { const s = t.s === -1 ? -1 : 1; for (let i = 0; i < t.len; i++) { out.push([t.x + s * i, t.y + i]); out.push([t.x + s * i, t.y + i + 1]); } }
   return out;
 }
-/** 坂のセルだけ */
+/**
+ * 坂のセルだけ。坂は 1 段ごとに「上＝通れる空間（行 y+i）」と「下＝坂のセル（行 y+i+1、対角線より下は土）」。
+ * 坂の上端は (x, y) の行の床の高さ、下端は (x+s*len, y+len) の行の床の高さにつながる。
+ */
 export function slopeCells(t) {
   const s = t.s === -1 ? -1 : 1, out = [];
-  for (let i = 0; i < t.len; i++) out.push([t.x + s * i, t.y + i]);
+  for (let i = 0; i < t.len; i++) out.push([t.x + s * i, t.y + i + 1]);
   return out;
 }
 const inRect = (r, x, y) => x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h;

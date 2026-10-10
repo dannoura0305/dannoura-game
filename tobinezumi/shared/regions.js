@@ -58,9 +58,9 @@ export function buildFieldMap(seed = FIELD_SEED) {
     const west = 1 - x / w + (fbm(x / 14, y / 14, seed) - 0.5) * 0.7;
     const n2 = fbm(x / 6, y / 6, seed + 7);
     let g;
-    if (west > 0.62) g = n2 > 0.58 ? T.DIRT : T.GRASS;
-    else if (west > 0.47) g = n2 > 0.5 ? T.GRASS : T.DIRT;
-    else g = n2 > 0.7 ? T.DIRT : T.SAND;
+    if (west > 0.66) g = n2 > 0.64 ? T.DIRT : n2 > 0.36 ? T.GRASS : T.SAND;
+    else if (west > 0.5) g = n2 > 0.6 ? T.GRASS : n2 > 0.47 ? T.DIRT : T.SAND;
+    else g = n2 > 0.72 ? T.DIRT : T.SAND;
     // オアシスのまわりは草
     const pd = Math.hypot((x - POND.x) / (POND.rx + 4), (y - POND.y) / (POND.ry + 3));
     if (pd < 1) g = T.GRASS;
@@ -88,16 +88,16 @@ export function buildFieldMap(seed = FIELD_SEED) {
     const r = rnd();
     const g = ground[i];
     if (g === T.GRASS || g === T.DIRT) {
-      if (r < 0.055) tiles[i] = T.SHRUB;
-      else if (r < 0.062) tiles[i] = T.STONES;
-      else if (r < 0.13) tiles[i] = T.TUFT;
-      else if (r < 0.15) tiles[i] = T.PEBBLE;
+      if (r < 0.04) tiles[i] = T.SHRUB;
+      else if (r < 0.046) tiles[i] = T.STONES;
+      else if (r < 0.085) tiles[i] = T.TUFT;
+      else if (r < 0.095) tiles[i] = T.PEBBLE;
     } else {
-      if (r < 0.018) tiles[i] = T.SHRUB;
-      else if (r < 0.034) tiles[i] = T.STONES;
-      else if (r < 0.04) tiles[i] = T.ROCK;
-      else if (r < 0.08) tiles[i] = T.PEBBLE;
-      else if (r < 0.095) tiles[i] = T.TUFT;
+      if (r < 0.016) tiles[i] = T.SHRUB;
+      else if (r < 0.028) tiles[i] = T.STONES;
+      else if (r < 0.034) tiles[i] = T.ROCK;
+      else if (r < 0.055) tiles[i] = T.PEBBLE;
+      else if (r < 0.07) tiles[i] = T.TUFT;
     }
   }
   const spawn = { x: 46 * TILE + 8, y: 32 * TILE + 8 };
