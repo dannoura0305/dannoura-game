@@ -1,0 +1,998 @@
+{
+ "version": 1,
+ "generator": "tobinezumi/tools/make_assets.py",
+ "outline": "#2a1a10",
+ "tile": 16,
+ "jerboa.field.idle": {
+  "file": "jerboa/field_idle.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 2,
+  "dirs": [
+   "down",
+   "up",
+   "side"
+  ],
+  "fps": 3,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "side_faces": "right"
+ },
+ "jerboa.field.hop": {
+  "file": "jerboa/field_hop.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 4,
+  "dirs": [
+   "down",
+   "up",
+   "side"
+  ],
+  "fps": 10,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "side_faces": "right"
+ },
+ "jerboa.field.bigjump": {
+  "file": "jerboa/field_bigjump.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 6,
+  "dirs": [
+   "down",
+   "up",
+   "side"
+  ],
+  "fps": 12,
+  "loop": false,
+  "anchor": [
+   16,
+   29
+  ],
+  "side_faces": "right"
+ },
+ "jerboa.field.gather": {
+  "file": "jerboa/field_gather.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 3,
+  "dirs": [
+   "down",
+   "up",
+   "side"
+  ],
+  "fps": 6,
+  "loop": false,
+  "anchor": [
+   16,
+   29
+  ],
+  "side_faces": "right"
+ },
+ "jerboa.field.dig": {
+  "file": "jerboa/field_dig.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 4,
+  "dirs": [
+   "down",
+   "up",
+   "side"
+  ],
+  "fps": 8,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "side_faces": "right"
+ },
+ "jerboa.field.eat": {
+  "file": "jerboa/field_eat.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 3,
+  "dirs": [
+   "down",
+   "up",
+   "side"
+  ],
+  "fps": 5,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "side_faces": "right"
+ },
+ "jerboa.field.sleep": {
+  "file": "jerboa/field_sleep.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 2,
+  "dirs": [
+   "down",
+   "up",
+   "side"
+  ],
+  "fps": 1.5,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "side_faces": "right"
+ },
+ "jerboa.side.idle": {
+  "file": "jerboa/side_idle.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 2,
+  "fps": 3,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "faces": "right"
+ },
+ "jerboa.side.walk": {
+  "file": "jerboa/side_walk.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 4,
+  "fps": 10,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "faces": "right"
+ },
+ "jerboa.side.jump": {
+  "file": "jerboa/side_jump.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 4,
+  "fps": 10,
+  "loop": false,
+  "anchor": [
+   16,
+   29
+  ],
+  "faces": "right"
+ },
+ "jerboa.side.climb": {
+  "file": "jerboa/side_climb.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 4,
+  "fps": 8,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "faces": "right"
+ },
+ "jerboa.side.gather": {
+  "file": "jerboa/side_gather.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 3,
+  "fps": 6,
+  "loop": false,
+  "anchor": [
+   16,
+   29
+  ],
+  "faces": "right"
+ },
+ "jerboa.side.eat": {
+  "file": "jerboa/side_eat.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 3,
+  "fps": 5,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "faces": "right"
+ },
+ "jerboa.side.sleep": {
+  "file": "jerboa/side_sleep.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 2,
+  "fps": 1.5,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "faces": "right"
+ },
+ "jerboa.shadow": {
+  "file": "jerboa/shadow.png",
+  "cell": [
+   16,
+   8
+  ],
+  "anchor": [
+   8,
+   4
+  ]
+ },
+ "jerboa.portrait.sand": {
+  "file": "jerboa/portrait_sand.png",
+  "cell": [
+   128,
+   128
+  ]
+ },
+ "jerboa.portrait.cream": {
+  "file": "jerboa/portrait_cream.png",
+  "cell": [
+   128,
+   128
+  ]
+ },
+ "jerboa.portrait.rufous": {
+  "file": "jerboa/portrait_rufous.png",
+  "cell": [
+   128,
+   128
+  ]
+ },
+ "jerboa.portrait.graybrown": {
+  "file": "jerboa/portrait_graybrown.png",
+  "cell": [
+   128,
+   128
+  ]
+ },
+ "jerboa.portrait.white": {
+  "file": "jerboa/portrait_white.png",
+  "cell": [
+   128,
+   128
+  ]
+ },
+ "fur.palettes": {
+  "base": [
+   "#6b4527",
+   "#9c6b3e",
+   "#c69459",
+   "#e3bb85",
+   "#d8c09c",
+   "#f4e7cf",
+   "#b9705c",
+   "#e2a08c",
+   "#3a271a"
+  ],
+  "sand": [
+   "#6b4527",
+   "#9c6b3e",
+   "#c69459",
+   "#e3bb85",
+   "#d8c09c",
+   "#f4e7cf",
+   "#b9705c",
+   "#e2a08c",
+   "#3a271a"
+  ],
+  "cream": [
+   "#80633a",
+   "#b8955a",
+   "#dcbd80",
+   "#f2dcaa",
+   "#e2d3b2",
+   "#fbf3df",
+   "#c98572",
+   "#efb5a0",
+   "#4a3624"
+  ],
+  "rufous": [
+   "#5a2c16",
+   "#8a4a25",
+   "#b8703f",
+   "#d99a65",
+   "#d6b796",
+   "#f1dfc6",
+   "#a85e4c",
+   "#d98c78",
+   "#2e1a10"
+  ],
+  "graybrown": [
+   "#46392f",
+   "#6d5d4e",
+   "#958270",
+   "#b9a791",
+   "#cfc4b5",
+   "#ebe4d9",
+   "#a07468",
+   "#cf9d90",
+   "#2b221c"
+  ],
+  "white": [
+   "#8a7b68",
+   "#bcae98",
+   "#ddd2c0",
+   "#f3ece0",
+   "#e4dccd",
+   "#fcf9f2",
+   "#d39a8c",
+   "#f0bdb0",
+   "#6a5a4a"
+  ]
+ },
+ "fur.order": [
+  "sand",
+  "cream",
+  "rufous",
+  "graybrown",
+  "white"
+ ],
+ "fur.labels": {
+  "sand": "砂色",
+  "cream": "淡黄",
+  "rufous": "赤茶",
+  "graybrown": "灰褐",
+  "white": "白っぽい"
+ },
+ "fur.keys": [
+  "fur_shadow",
+  "fur_dark",
+  "fur_mid",
+  "fur_light",
+  "belly_shade",
+  "belly",
+  "ear_dark",
+  "ear_light",
+  "tuft"
+ ],
+ "tile.sand": {
+  "file": "field/sand.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 4
+ },
+ "tile.dirt": {
+  "file": "field/dirt.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 3
+ },
+ "tile.grass": {
+  "file": "field/grass.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 4
+ },
+ "tile.water": {
+  "file": "field/water.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 4,
+  "anim": true,
+  "fps": 3
+ },
+ "tile.trans.sand_dirt": {
+  "file": "field/trans_sand_dirt.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 16,
+  "autotile": "corner4",
+  "bits": {
+   "TL": 1,
+   "TR": 2,
+   "BR": 4,
+   "BL": 8
+  },
+  "lower": "sand",
+  "upper": "dirt"
+ },
+ "tile.trans.dirt_grass": {
+  "file": "field/trans_dirt_grass.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 16,
+  "autotile": "corner4",
+  "bits": {
+   "TL": 1,
+   "TR": 2,
+   "BR": 4,
+   "BL": 8
+  },
+  "lower": "dirt",
+  "upper": "grass"
+ },
+ "tile.trans.sand_grass": {
+  "file": "field/trans_sand_grass.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 16,
+  "autotile": "corner4",
+  "bits": {
+   "TL": 1,
+   "TR": 2,
+   "BR": 4,
+   "BL": 8
+  },
+  "lower": "sand",
+  "upper": "grass"
+ },
+ "tile.edge.water": {
+  "file": "field/water_edge.png",
+  "autotile": "corner4",
+  "bits": {
+   "TL": 1,
+   "TR": 2,
+   "BR": 4,
+   "BL": 8
+  },
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 16,
+  "frames": 4,
+  "fps": 3,
+  "lower": "sand",
+  "upper": "water",
+  "note": "rows = animation frames"
+ },
+ "tile.grass_tuft": {
+  "file": "field/grass_tuft.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 4,
+  "decor": true
+ },
+ "tile.pebbles": {
+  "file": "field/pebbles.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 3,
+  "decor": true
+ },
+ "tile.rock_big": {
+  "file": "field/rock_big.png",
+  "cell": [
+   32,
+   32
+  ],
+  "variants": 2,
+  "solid": true,
+  "anchor": [
+   16,
+   28
+  ],
+  "footprint": [
+   2,
+   1
+  ]
+ },
+ "tile.rock_small": {
+  "file": "field/rock_small.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 2,
+  "solid": true,
+  "anchor": [
+   8,
+   14
+  ],
+  "footprint": [
+   1,
+   1
+  ]
+ },
+ "tile.shrub": {
+  "file": "field/shrub.png",
+  "cell": [
+   32,
+   32
+  ],
+  "variants": 3,
+  "solid": true,
+  "jumpable": true,
+  "anchor": [
+   16,
+   28
+  ],
+  "footprint": [
+   1,
+   1
+  ]
+ },
+ "tile.burrow": {
+  "file": "field/burrow.png",
+  "cell": [
+   24,
+   16
+  ],
+  "variants": 2,
+  "names": [
+   "own",
+   "other"
+  ],
+  "anchor": [
+   12,
+   10
+  ]
+ },
+ "tile.tree": {
+  "file": "field/tree.png",
+  "cell": [
+   48,
+   64
+  ],
+  "variants": 1,
+  "solid": true,
+  "anchor": [
+   24,
+   61
+  ],
+  "footprint": [
+   1,
+   1
+  ]
+ },
+ "item.seed.ground": {
+  "file": "items/seed_ground.png",
+  "cell": [
+   16,
+   16
+  ],
+  "anchor": [
+   8,
+   13
+  ]
+ },
+ "item.seed.icon": {
+  "file": "items/seed_icon.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.grass.ground": {
+  "file": "items/grass_ground.png",
+  "cell": [
+   16,
+   16
+  ],
+  "anchor": [
+   8,
+   13
+  ]
+ },
+ "item.grass.icon": {
+  "file": "items/grass_icon.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.pebble.ground": {
+  "file": "items/pebble_ground.png",
+  "cell": [
+   16,
+   16
+  ],
+  "anchor": [
+   8,
+   13
+  ]
+ },
+ "item.pebble.icon": {
+  "file": "items/pebble_icon.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "nest.soil": {
+  "file": "nest/soil.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 3
+ },
+ "nest.rock": {
+  "file": "nest/rock.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 2,
+  "diggable": false
+ },
+ "nest.surface": {
+  "file": "nest/surface.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 3
+ },
+ "nest.wall": {
+  "file": "nest/wall.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 3
+ },
+ "nest.edge": {
+  "file": "nest/edge.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 16,
+  "autotile": "nsew4",
+  "bits": {
+   "N": 1,
+   "E": 2,
+   "S": 4,
+   "W": 8
+  },
+  "note": "overlay on a dug cell; bit set = that neighbour is solid soil"
+ },
+ "nest.tunnel_h": {
+  "file": "nest/tunnel_h.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 1
+ },
+ "nest.tunnel_v": {
+  "file": "nest/tunnel_v.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 1,
+  "ladder": true
+ },
+ "nest.tunnel_d": {
+  "file": "nest/tunnel_d.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 1,
+  "rises": "right",
+  "mirror_for": "left"
+ },
+ "nest.straw": {
+  "file": "nest/straw.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 2
+ },
+ "nest.post": {
+  "file": "nest/post.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 1
+ },
+ "nest.brace": {
+  "file": "nest/brace.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 1,
+  "corner": "top-left",
+  "mirror_for": "top-right"
+ },
+ "nest.bed": {
+  "file": "nest/bed.png",
+  "cell": [
+   32,
+   16
+  ],
+  "variants": 1,
+  "anchor": [
+   16,
+   15
+  ]
+ },
+ "nest.shelf": {
+  "file": "nest/shelf.png",
+  "cell": [
+   32,
+   32
+  ],
+  "variants": 1,
+  "anchor": [
+   16,
+   31
+  ]
+ },
+ "nest.seed_pile": {
+  "file": "nest/seed_pile.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 3,
+  "names": [
+   "few",
+   "some",
+   "full"
+  ],
+  "anchor": [
+   8,
+   15
+  ]
+ },
+ "nest.lantern": {
+  "file": "nest/lantern.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 2,
+  "anim": true,
+  "fps": 4,
+  "light": {
+   "x": 8,
+   "y": 9,
+   "radius": 40,
+   "color": "#ffb050"
+  }
+ },
+ "nest.pebble_deco": {
+  "file": "nest/pebble_deco.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 1,
+  "anchor": [
+   8,
+   15
+  ]
+ },
+ "nest.dried_flower": {
+  "file": "nest/dried_flower.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 1,
+  "anchor": [
+   8,
+   15
+  ]
+ },
+ "nest.rug": {
+  "file": "nest/rug.png",
+  "cell": [
+   32,
+   16
+  ],
+  "variants": 1,
+  "anchor": [
+   16,
+   15
+  ]
+ },
+ "nest.entrance": {
+  "file": "nest/entrance.png",
+  "cell": [
+   16,
+   32
+  ],
+  "variants": 1,
+  "note": "top 16px = surface row"
+ },
+ "ui.frame": {
+  "file": "ui/frame.png",
+  "cell": [
+   24,
+   24
+  ],
+  "slice": [
+   8,
+   8,
+   8,
+   8
+  ]
+ },
+ "ui.button": {
+  "file": "ui/button.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 3,
+  "names": [
+   "normal",
+   "hover",
+   "pressed"
+  ],
+  "slice": [
+   5,
+   5,
+   5,
+   5
+  ]
+ },
+ "ui.tools": {
+  "file": "ui/tools.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 6,
+  "names": [
+   "dig",
+   "tunnel",
+   "bed",
+   "store",
+   "furniture",
+   "remove"
+  ],
+  "labels": [
+   "掘る",
+   "通路",
+   "寝床",
+   "倉庫",
+   "家具",
+   "撤去"
+  ]
+ },
+ "ui.slot": {
+  "file": "ui/slot.png",
+  "cell": [
+   20,
+   20
+  ],
+  "variants": 2,
+  "names": [
+   "normal",
+   "selected"
+  ],
+  "slice": [
+   4,
+   4,
+   4,
+   4
+  ]
+ },
+ "ui.minimap": {
+  "file": "ui/minimap.png",
+  "cell": [
+   24,
+   24
+  ],
+  "slice": [
+   5,
+   5,
+   5,
+   5
+  ]
+ },
+ "ui.bubble": {
+  "file": "ui/bubble.png",
+  "cell": [
+   16,
+   16
+  ],
+  "slice": [
+   4,
+   4,
+   4,
+   4
+  ]
+ },
+ "ui.bubble_tail": {
+  "file": "ui/bubble_tail.png",
+  "cell": [
+   6,
+   4
+  ],
+  "anchor": [
+   3,
+   3
+  ]
+ },
+ "ui.nametag": {
+  "file": "ui/nametag.png",
+  "cell": [
+   12,
+   12
+  ],
+  "variants": 2,
+  "names": [
+   "other",
+   "self"
+  ],
+  "slice": [
+   3,
+   3,
+   3,
+   3
+  ]
+ },
+ "ui.cursor": {
+  "file": "ui/cursor.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 3,
+  "names": [
+   "dig",
+   "place",
+   "invalid"
+  ]
+ }
+}

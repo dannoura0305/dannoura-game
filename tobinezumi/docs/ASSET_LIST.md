@@ -56,3 +56,76 @@
 2. `tools/normalize_sprites.py`：指定セルに切り出し → 背景除去 → 縮小（最近傍）→ パレット減色（素材ごとの固定パレット）→ 輪郭付け → シート化。
 3. `assets/manifest.json` に登録（無い素材はコード描画のプレースホルダで代用）。
 4. コンタクトシート（一覧画像）で色調・大きさの統一を目視確認。
+
+## 8. manifest.json の形式
+
+素材はすべて `tools/make_assets.py` がコードで描いて書き出す（Pillow のみ・固定シードで毎回同じ PNG）。
+外部で描いた画像に差し替えるときは `tools/normalize_sprites.py` で規格化し、同じキーで登録する（§7）。
+クライアントは `assets/manifest.json` を読み、**キーが無い素材はコード描画のプレースホルダで代用**する。
+
+```
+python3 tobinezumi/tools/make_assets.py              # assets/ と manifest.json を生成
+python3 tobinezumi/tools/make_assets.py --preview    # + docs/reference/assets_contact.png と試し合成
+python3 tobinezumi/tools/normalize_sprites.py --help # 外部画像の規格化
+```
+
+### 共通
+- トップレベル：`version`(1)・`outline`("#2a1a10")・`tile`(16) と、以下の素材キー。
+- 各素材 `{ "file": "assets/ からの相対パス", "cell": [w, h], ... }`。シートは**横＝コマ（またはバリエーション）、縦＝方向（または段）**。
+- `frames` = アニメのコマ数、`variants` = 見た目違い（ランダムに選んでよい）の数。`anim: true` の `variants` は時間で順に切り替える。
+- `fps`（目安）、`loop`（false は最後のコマで止める）。
+- `anchor: [x, y]` = セル内の足元／接地点（y ソートと配置の基準）。
+- `names` = バリエーションの名前（順番どおり）。`slice: [左, 上, 右, 下]` = 9 スライスの境界 px。
+- 画素は整数倍・最近傍で拡大すること（補間しない）。
+
+### トビネズミ
+| キー | 内容 |
+|---|---|
+| `jerboa.field.<anim>` | 地上（見下ろし 3/4）。anim = idle 2 / hop 4 / bigjump 6 / gather 3 / dig 4 / eat 3 / sleep 2。`dirs: ["down","up","side"]` が行の順。`side_faces: "right"`（左向きは左右反転）。`anchor: [16,29]` |
+| `jerboa.side.<anim>` | 巣の横向き。anim = idle 2 / walk 4 / jump 4 / climb 4 / gather 3 / eat 3 / sleep 2。1 行。`faces: "right"` |
+| `jerboa.shadow` | 16×8 の半透明の影。跳躍の高さに応じてクライアントが縮める（スプライト側のジャンプの高さはコマに 1〜3px しか入っていないので、大ジャンプの弧は y オフセットで描く） |
+| `jerboa.portrait.<fur>` | 立ち絵 128×128（毛色ごとに描き出し済み） |
+| `fur.palettes` | `{ "base": [9 色], "sand": [...], "cream": [...], "rufous": [...], "graybrown": [...], "white": [...] }`。スプライトは base の色で描いてあり、**base[i] と完全一致する画素を <fur>[i] に置き換える**と毛色が変わる（base の 9 色は輪郭・目・鼻・地形とは重複しない）。 |
+| `fur.keys` | 9 色の意味：毛(影・暗・中・明)、腹(陰・明)、耳の内側(暗・明)、尾の房 |
+| `fur.order` / `fur.labels` | 選択画面の並び順と表示名（砂色・淡黄・赤茶・灰褐・白っぽい） |
+
+### 地上（`tile.*`）
+| キー | 内容 |
+|---|---|
+| `tile.sand` 4 / `tile.dirt` 3 / `tile.grass` 4 | 地面。同じ地形のバリエーションはどれを並べても継ぎ目なし |
+| `tile.water` 4 | `anim: true`（4 コマの水面） |
+| `tile.trans.sand_dirt` / `dirt_grass` / `sand_grass` | 境界の重ね絵 16 種。`autotile: "corner4"`、`bits: {TL:1, TR:2, BR:4, BL:8}`。タイルの 4 隅のうち `upper` の地形である隅のビットを立てた番号のコマを、`lower` の地面の上に重ねる（15 = 全面）。砂→土→草の順に重ねる |
+| `tile.edge.water` | 水辺の重ね絵（corner4・16 種）。行 = 4 コマのアニメ（泡と濡れた砂を含む） |
+| `tile.grass_tuft` 4 / `tile.pebbles` 3 | 通れる装飾（`decor: true`） |
+| `tile.rock_big` 32×32×2 / `tile.rock_small` 16×16×2 / `tile.shrub` 32×32×3 / `tile.tree` 48×64 | `solid: true`、低木は `jumpable: true`。`anchor` は根元、`footprint` は塞ぐタイル数 [横, 縦] |
+| `tile.burrow` 24×16×2 | 巣穴の入口。`names: ["own","other"]`（自分の巣は小石の輪と花の目印つき） |
+
+### 採集物
+- `item.<seed|grass|pebble>.ground`（地面に落ちている姿・影つき・16×16）、`item.<…>.icon`（持ち物・16×16）。
+
+### 巣穴（`nest.*`、断面・16×16 セル）
+| キー | 内容 |
+|---|---|
+| `nest.soil` 3 / `nest.rock` 2（`diggable: false`）/ `nest.surface` 3 | 土壁。地表タイルは上 5px が透過（空はクライアントが描く） |
+| `nest.wall` 3 | 掘った空間の奥壁 |
+| `nest.edge` 16 | 掘ったセルに重ねる縁。`autotile: "nsew4"`、`bits: {N:1, E:2, S:4, W:8}`＝その方向の隣が**土（未掘削）**ならビットを立てる。S＝床の縁、N＝天井の縁、E/W＝壁の縁 |
+| `nest.tunnel_h` / `nest.tunnel_v`（根のはしご、`ladder: true`）/ `nest.tunnel_d` | 通路。斜めは右上がり（`rises: "right"`、左上がりは反転） |
+| `nest.straw` 2 | 床の敷き草（セル下部に重ねる） |
+| `nest.post` / `nest.brace` | 柱・角の補強（brace は左上角用、右上は反転） |
+| `nest.bed` 32×16 / `nest.shelf` 32×32 / `nest.rug` 32×16 | 寝床・棚・敷物。`anchor` は床に接する点 |
+| `nest.seed_pile` 3 | 種の山（`names: ["few","some","full"]`） |
+| `nest.lantern` 2 | `anim: true`（揺らぎ 2 コマ）。`light: {x, y, radius, color}` は光の円の目安（光はクライアントが加算描画） |
+| `nest.pebble_deco` / `nest.dried_flower` | 装飾品 |
+| `nest.entrance` 16×32 | 地表からの縦穴の口。上 16px が地表の行、下 16px がその下のセル |
+
+### UI（`ui.*`）
+| キー | 内容 |
+|---|---|
+| `ui.frame` 24×24 | 枠（`slice: [8,8,8,8]`） |
+| `ui.button` 16×16×3 | `names: normal/hover/pressed`、`slice: [5,5,5,5]` |
+| `ui.tools` 16×16×6 | `names: dig/tunnel/bed/store/furniture/remove`、`labels: 掘る/通路/寝床/倉庫/家具/撤去` |
+| `ui.slot` 20×20×2 | 持ち物の枠（normal/selected） |
+| `ui.minimap` 24×24 | ミニマップの枠（`slice: [5,5,5,5]`） |
+| `ui.bubble` 16×16 + `ui.bubble_tail` 6×4 | 吹き出し（`slice: [4,4,4,4]`）としっぽ（`anchor` = 先端） |
+| `ui.nametag` 12×12×2 | 名札（other/self、`slice: [3,3,3,3]`） |
+| `ui.cursor` 16×16×3 | 巣ビルドのセルカーソル（dig/place/invalid） |
