@@ -1,0 +1,18 @@
+{
+  "name": "tobinezumi-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "トビネズミMMO（仮称）Ver.0.1 の権威サーバー（静的配信＋WebSocket＋SQLite）",
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning index.js",
+    "bots": "node --disable-warning=ExperimentalWarning tools/bots.mjs",
+    "backup": "node --disable-warning=ExperimentalWarning tools/backup.mjs",
+    "restore": "node --disable-warning=ExperimentalWarning tools/restore.mjs",
+    "test": "node --disable-warning=ExperimentalWarning test/run.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
