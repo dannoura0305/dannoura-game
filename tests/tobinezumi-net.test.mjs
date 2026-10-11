@@ -210,10 +210,13 @@ await test('補間：100ms 遅れで 2 つのスナップショットの間を�
   assert.equal(m.x, 32); assert.ok(m.z > 15);
 });
 
-await test('オンライン（ひな形）：入力はまとめて送る・要求には rid を付ける', async () => {
+await test('オンライン：入力はまとめて送る（地上にいる間だけ）・要求には rid を付け、その前に入力を送り切る', async () => {
   const sent = [];
   const on = new OnlineBackend('ws://example.invalid', { storage: makeLS() });
   on.ws = { readyState: 1, send: t => sent.push(JSON.parse(t)) };
+  on.sendInput({ seq: 1, mx: 1, my: 0, jump: false });
+  assert.equal(on.queue.length, 0, '地上にいないときはためない');
+  on.place = 'field';
   on.sendInput({ seq: 1, mx: 1, my: 0, jump: false }); on.sendInput({ seq: 2, mx: 1, my: 0, jump: true });
   on.tick(0.06);
   assert.equal(sent.length, 1); assert.equal(sent[0].t, 'input'); assert.deepEqual(sent[0].inputs.map(i => i.seq), [1, 2]);
@@ -225,6 +228,50 @@ await test('オンライン（ひな形）：入力はまとめて送る・要�
   on._msg({ t: 'res_gone', id: 'r9', by: 'a1' });
   assert.equal(got[0].id, 'r9');
   assert.equal((await on.register('ab', 'x')).ok, false, '送る前に形を確かめる');
+  // 拾う直前の入力は、要求より先に送る（サーバーの確定位置が追いつく）
+  sent.length = 0;
+  on.sendInput({ seq: 3, mx: 0, my: 1, jump: false });
+  on.pickup('r10');
+  assert.deepEqual(sent.map(m => m.t), ['input', 'pickup']);
+});
+
+await test('オンライン：切れたら「つながりなおしています」→ バックオフで再接続 → hello(token) → join_field で続きから', async () => {
+  const ls = makeLS({ tobi_token: 'tok-123' });
+  const socks = [];
+  class FakeWS {
+    constructor(url) { this.url = url; this.readyState = 0; this.sent = []; socks.push(this); }
+    send(t) { const m = JSON.parse(t); this.sent.push(m); if (this.auto) this.auto(m); }
+    close() { this.readyState = 3; }
+    open() { this.readyState = 1; this.onopen && this.onopen(); }
+    recv(m) { this.onmessage && this.onmessage({ data: JSON.stringify(m) }); }
+  }
+  const on = new OnlineBackend('ws://x/ws', { storage: ls, WS: FakeWS });
+  const p = on.connect(); socks[0].open(); await p;
+  on.place = 'field';
+  const st = []; on.on('status', m => st.push(m.state));
+  const rejoined = new Promise(res => on.on('rejoin', res));
+  const pending = on.pickup('r1');
+  socks[0].readyState = 3; socks[0].onclose();          // 切断
+  assert.equal((await pending).ok, false, '待っていた要求は失敗で返る');
+  assert.deepEqual(st, ['reconnecting']);
+  assert.equal(on.backoff, 1000, '次の待ちは倍');
+  await new Promise(r => setTimeout(r, 560));           // 0.5 秒後に 1 回目
+  assert.equal(socks.length, 2);
+  const s2 = socks[1];
+  s2.auto = m => setTimeout(() => {
+    if (m.t === 'hello') { assert.equal(m.token, 'tok-123'); s2.recv({ t: 'res', rid: m.rid, ok: true, account: { id: 1, username: 'u' }, character: { name: 'c' } }); }
+    if (m.t === 'join_field') s2.recv({ t: 'res', rid: m.rid, ok: true, world: { you: { x: 5, y: 6 } } });
+  }, 0);
+  s2.open();
+  const w = await rejoined;
+  assert.equal(w.you.x, 5);
+  await new Promise(r => setTimeout(r, 0));
+  assert.deepEqual(st, ['reconnecting', 'online']);
+  assert.equal(on.backoff, 500, '成功したら最初の間隔へ');
+  // 何も届かない（ネットが黙って切れた）→ 6 秒で切断とみなす
+  on.lastRecv = Date.now() - 7000; on.tick(0.016);
+  assert.equal(on.state, 'reconnecting');
+  on.close();
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

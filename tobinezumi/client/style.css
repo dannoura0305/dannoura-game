@@ -31,7 +31,7 @@ html, body { margin: 0; height: 100%; background: #120a06; color: var(--txt); fo
 .tb-btn.wide { display: block; width: 100%; margin: calc(var(--u) * 3px) 0; }
 .tb-btns { display: flex; gap: calc(var(--u) * 4px); justify-content: center; margin-top: calc(var(--u) * 5px); }
 .tb-field { display: block; margin: calc(var(--u) * 3px) 0; color: var(--dim); }
-.tb-field input, .tb-field select, .tb-btop select { display: block; width: 100%; margin-top: calc(var(--u) * 1.5px); font: inherit; color: var(--txt); background: #1e130c; border: calc(var(--u) * 1px) solid var(--edge); border-radius: calc(var(--u) * 1.5px); padding: calc(var(--u) * 2px) calc(var(--u) * 3px); }
+.tb-field input, .tb-prompt-in, .tb-field select, .tb-btop select { display: block; width: 100%; margin-top: calc(var(--u) * 1.5px); font: inherit; color: var(--txt); background: #1e130c; border: calc(var(--u) * 1px) solid var(--edge); border-radius: calc(var(--u) * 1.5px); padding: calc(var(--u) * 2px) calc(var(--u) * 3px); }
 .tb-err { display: block; color: var(--ng); min-height: 1.2em; font-size: .85em; }
 kbd { font: inherit; font-size: .85em; background: #1e130c; border: 1px solid var(--edge); border-radius: 3px; padding: 0 .3em; margin-right: .15em; color: var(--ok); }
 
@@ -130,3 +130,4 @@ kbd { font: inherit; font-size: .85em; background: #1e130c; border: 1px solid va
 .tb-guide { position: absolute; left: calc(var(--u) * 4px); right: calc(var(--u) * 4px); bottom: calc(var(--u) * 3px); display: flex; gap: calc(var(--u)*2px); flex-wrap: wrap; font-size: .78em; }
 .tb-guide span { background: rgba(42,26,16,.86); border: 1px solid #7a5a38; padding: calc(var(--u)*1px) calc(var(--u)*4px); border-radius: calc(var(--u)*1.5px); }
 .tb-walk .tb-chatlog, .tb-walk ~ .tb-chatlog { bottom: calc(var(--u) * 18px); }
+.tb-prompt-in { margin: calc(var(--u) * 2px) 0; pointer-events: auto; }

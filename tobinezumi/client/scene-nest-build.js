@@ -37,6 +37,8 @@ export class NestBuildScene {
     this.t = 0;
   }
   leave() { if (this.dom) this.dom.remove(); this.dom = null; this.game.screen.clearUI(); }
+  /** ほかの人（所有者）の編集が届いた：見学中の画面を描き直す */
+  onRemoteUpdate(nest) { this.nest = nest; this.view.setData(nest.data, { fill: this._fill() }); this.hover = null; }
   _fill() { const s = this.nest.storage || []; let n = 0; for (const it of s) if (it) n += it.n; return Math.min(1, n / 60); }
 
   get z() { return ZOOMS[this.zi]; }
@@ -50,12 +52,27 @@ export class NestBuildScene {
     const edit = nest.canEdit;
     const top = el('div', 'tb-btop tb-ui-block');
     top.innerHTML = `<span class="tb-bname">${esc(nest.ownerName)}の巣</span><span class="tb-bmode">${edit ? '全体モード（ビルド）' : '見学中（編集できません）'}</span>` +
-      (edit ? `<select class="tb-policy" title="巣の訪問設定"><option value="private">非公開</option><option value="public">公開（だれでも）</option></select>` : '') +
+      (edit ? `<select class="tb-policy" title="巣の訪問設定"><option value="private">非公開</option><option value="public">公開（だれでも）</option>${g.net.mode === 'online' ? '<option value="list">許可リスト（名前で）</option>' : ''}</select>` : '') +
       `<span class="tb-zoom"></span>`;
     this.dom.appendChild(top);
     if (edit) {
       const sel = top.querySelector('.tb-policy'); sel.value = nest.policy || 'private';
-      sel.onchange = async () => { const r = await g.net.setVisitPolicy(sel.value); if (r.ok) { nest.policy = sel.value; g.ui.toast(sel.value === 'public' ? '巣を公開した（だれでも訪ねてこられる）' : '巣を非公開にした'); } sel.blur(); };
+      sel.onchange = async () => {
+        const v = sel.value;
+        let list;
+        if (v === 'list') {
+          const txt = await g.ui.prompt('許可リスト', '巣に入ってよいトビネズミの<b>なまえ</b>を「、」か「,」で区切って入れてね（30 匹まで）', (nest.list || []).join('、'));
+          if (txt == null) { sel.value = nest.policy || 'private'; sel.blur(); return; }
+          list = txt.split(/[,、，\s]+/).map(x => x.trim()).filter(Boolean);
+        }
+        const r = await g.net.setVisitPolicy(v, list);
+        if (r.ok) {
+          nest.policy = v; if (list) nest.list = r.list || list;
+          const msg = { public: '巣を公開した（だれでも訪ねてこられる）', private: '巣を非公開にした', list: '許可リストの子だけ入れるようにした' }[v];
+          g.ui.toast(msg + (r.unknown && r.unknown.length ? '（見つからない名前：' + r.unknown.join('、') + '）' : ''));
+        } else { sel.value = nest.policy || 'private'; g.ui.toast(r.reason || '変えられなかった', 'bad'); }
+        sel.blur();
+      };
     }
     this.zoomEl = top.querySelector('.tb-zoom');
     // ツール

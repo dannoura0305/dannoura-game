@@ -1,0 +1,177 @@
+// tobinezumi/server/rooms/nest.js — 巣ごとのインスタンス（所有者＋許可された訪問者）。サーバーが正。
+//
+//  ・入れるか：自分の巣 / public / list（nest_access に入っている）。private は所有者だけ。
+//  ・nest_op：所有者だけ（訪問者は閲覧のみ）。rev が今と違えば stale_rev（最新の rev・data を付けて返す）。
+//    shared/nest-rules.js の tryOp で検査 → 素材を払う・返す → rev+1 → 1 トランザクションで保存 → 中にいる人へ nest_update。
+//  ・倉庫：自分の巣・倉庫の部屋がある。持ち物と倉庫を 1 トランザクションで同時に書く。
+//  ・nest_peers：中にいる人の位置（10Hz まで）。巣の中のチャットは中にいる人だけへ。
+import { tryOp, CELL } from '../../shared/nest-rules.js';
+import { payCost, refund, countItem, removeItem, addItem, canAdd, ITEMS } from '../../shared/items.js';
+import { VISIT_POLICIES, validName } from '../../shared/protocol.js';
+
+const clone = inv => inv.map(s => s && { ...s });
+const OPS = new Set(['dig', 'fill', 'tunnel', 'room', 'room-resize', 'set-kind', 'place', 'remove']);
+const NUM_KEYS = ['x', 'y', 'w', 'h', 'len', 's', 'rot'];
+const STR_KEYS = ['id', 'dir', 'kind', 'type'];
+export const MAX_ALLOW = 30;
+
+/** 送られてきた op を、知っている形だけに切り詰める（余計なキー・変な値は落とす） */
+export function sanitizeOp(op) {
+  if (!op || typeof op !== 'object' || Array.isArray(op) || !OPS.has(op.op)) return null;
+  const o = { op: op.op };
+  for (const k of NUM_KEYS) if (op[k] != null) { const v = Number(op[k]); if (!Number.isInteger(v) || Math.abs(v) > 1000) return null; o[k] = v; }
+  for (const k of STR_KEYS) if (op[k] != null) { if (typeof op[k] !== 'string' || op[k].length > 32) return null; o[k] = op[k]; }
+  return o;
+}
+
+export class NestHub {
+  constructor({ store, now = () => Date.now(), log = () => {} }) {
+    this.store = store; this.now = now; this.log = log;
+    this.inst = new Map();     // nestId → {members:Set<Player>, dirty}
+    this.metaCache = new Map();
+  }
+  /** 入口の表示用：{ownerName, policy} */
+  meta(nestId) {
+    let m = this.metaCache.get(nestId);
+    if (!m) { const n = this.store.nest(nestId); if (!n) return null; m = { ownerName: n.ownerName, policy: n.policy, owner: n.owner }; this.metaCache.set(nestId, m); }
+    return m;
+  }
+  forget(nestId) { this.metaCache.delete(nestId); }
+
+  canVisit(nest, accountId) {
+    if (nest.owner === accountId) return true;
+    if (nest.policy === 'public') return true;
+    if (nest.policy === 'list') return this.store.hasNestAccess(nest.id, accountId, 'visitor');
+    return false;
+  }
+  record(nest, p) {
+    const own = nest.owner === p.accountId;
+    const out = { id: nest.id, owner: nest.owner, ownerName: nest.ownerName, rev: nest.rev, data: nest.data, storage: this.store.nestStorage(nest.id), policy: nest.policy, canEdit: own, own, hostFur: null };
+    if (own) out.list = this.store.nestAccess(nest.id).filter(a => a.role === 'visitor').map(a => a.name).filter((v, i, a) => v && a.indexOf(v) === i);
+    return out;
+  }
+
+  /** 入る（入口の距離などは呼ぶ側で確認済み） */
+  enter(p, nest) {
+    if (!this.canVisit(nest, p.accountId)) return { ok: false, code: 'forbidden', reason: (nest.ownerName || '') + 'の巣は 今は入れないようだ' };
+    this.leave(p);
+    let I = this.inst.get(nest.id);
+    if (!I) { I = { members: new Set(), dirty: false }; this.inst.set(nest.id, I); }
+    const d = nest.data;
+    p.place = 'nest'; p.nestId = nest.id;
+    p.nestPos = { x: d.entrance.x * CELL + CELL / 2, y: (d.surfaceY + 1) * CELL + 6, facing: 1, anim: 'climb' };
+    I.members.add(p);
+    if (nest.owner !== p.accountId) {
+      for (const o of I.members) if (o !== p && o.conn) o.conn.send({ t: 'toast', text: p.name + ' が 巣に たずねてきた' });
+    }
+    this.flushPeers(nest.id);
+    return { ok: true, nest: this.record(nest, p) };
+  }
+  leave(p) {
+    if (p.place !== 'nest' || p.nestId == null) return false;
+    const id = p.nestId, I = this.inst.get(id);
+    p.place = 'none'; p.nestId = null;
+    if (!I) return true;
+    I.members.delete(p);
+    if (!I.members.size) this.inst.delete(id); else this.flushPeers(id);
+    return true;
+  }
+  members(nestId) { const I = this.inst.get(nestId); return I ? [...I.members] : []; }
+
+  peersMsg(nestId) {
+    return { t: 'nest_peers', nestId, peers: this.members(nestId).map(o => ({ id: o.accountId, name: o.name, fur: o.fur, x: Math.round(o.nestPos.x), y: Math.round(o.nestPos.y), facing: o.nestPos.facing, anim: o.nestPos.anim })) };
+  }
+  flushPeers(nestId) {
+    const I = this.inst.get(nestId);
+    if (!I) return;
+    I.dirty = false;
+    const s = JSON.stringify(this.peersMsg(nestId));
+    for (const o of I.members) if (o.conn) o.conn.sendRaw(s);
+  }
+  move(p, m) {
+    if (p.place !== 'nest') return;
+    const t = this.now();
+    if (p._nmT && t - p._nmT < 80) return;     // 10Hz まで
+    p._nmT = t;
+    const x = Number(m.x), y = Number(m.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x > 48 * CELL || y > 24 * CELL) return;
+    p.nestPos = { x, y, facing: Number(m.facing) < 0 ? -1 : 1, anim: ['idle', 'walk', 'jump', 'climb', 'climb_idle', 'sleep'].includes(m.anim) ? m.anim : 'idle' };
+    const I = this.inst.get(p.nestId);
+    if (I) I.dirty = true;
+  }
+  tick() { for (const [id, I] of this.inst) if (I.dirty) this.flushPeers(id); }
+  broadcast(nestId, msg, except = null) {
+    const s = JSON.stringify(msg);
+    for (const o of this.members(nestId)) if (o !== except && o.conn) o.conn.sendRaw(s);
+  }
+
+  // ───────── 建築 ─────────
+  op(p, nestId, rev, rawOp) {
+    const nest = this.store.nest(Number(nestId));
+    if (!nest) return { ok: false, code: 'not_found', reason: '巣が無い' };
+    if (nest.owner !== p.accountId) return { ok: false, code: 'forbidden', reason: '自分の巣ではない（見学中は編集できない）' };
+    if (p.place !== 'nest' || p.nestId !== nest.id) return { ok: false, code: 'forbidden', reason: '巣の中にいない' };
+    if (Number(rev) !== nest.rev) return { ok: false, code: 'stale_rev', reason: '巣が更新された。もう一度', rev: nest.rev, data: nest.data };
+    const op = sanitizeOp(rawOp);
+    if (!op) return { ok: false, code: 'bad_request', reason: '操作の形が変' };
+    const inv = clone(p.inv);
+    let r;
+    try { r = tryOp(nest.data, op, inv); } catch (e) { return { ok: false, code: 'bad_request', reason: '操作の形が変' }; }
+    if (!r.ok) return { ok: false, code: 'rule', reason: r.reason };
+    if (!payCost(inv, r.cost)) return { ok: false, code: 'rule', reason: '素材が足りない' };
+    const back = refund(inv, r.refund);
+    let changed = 0;
+    this.store.tx(() => {
+      changed = this.store.updateNestData(nest.id, nest.rev, r.data, this.now());
+      if (changed !== 1) return;
+      this.store.setCharInventory(p.charId, inv);
+    });
+    if (changed !== 1) { const cur = this.store.nest(nest.id); return { ok: false, code: 'stale_rev', reason: '巣が更新された。もう一度', rev: cur.rev, data: cur.data }; }
+    p.inv = inv;
+    const newRev = nest.rev + 1;
+    this.broadcast(nest.id, { t: 'nest_update', nestId: nest.id, rev: newRev, op, data: r.data }, p);
+    return { ok: true, rev: newRev, data: r.data, inv: clone(inv), created: r.created, cost: r.cost, refund: back };
+  }
+
+  // ───────── 倉庫 ─────────
+  storeItems(p, nestId, dir, item, n) {
+    const nest = this.store.nest(Number(nestId));
+    if (!nest || nest.owner !== p.accountId) return { ok: false, code: 'forbidden', reason: '自分の巣の倉庫ではない' };
+    if (p.place !== 'nest' || p.nestId !== nest.id) return { ok: false, code: 'forbidden', reason: '巣の中にいない' };
+    if (!nest.data.rooms.some(r => r.kind === 'store')) return { ok: false, code: 'rule', reason: '倉庫が無い' };
+    n = Number(n);
+    if (!ITEMS[item] || !Number.isInteger(n) || n <= 0 || n > 999) return { ok: false, code: 'bad_request', reason: '預けられない' };
+    if (dir !== 'deposit' && dir !== 'withdraw') return { ok: false, code: 'bad_request', reason: '向きが変' };
+    const inv = clone(p.inv), storage = this.store.nestStorage(nest.id);
+    const [from, to] = dir === 'deposit' ? [inv, storage] : [storage, inv];
+    const k = Math.min(n, countItem(from, item));
+    if (k <= 0) return { ok: false, code: 'rule', reason: dir === 'deposit' ? '持っていない' : '倉庫に無い' };
+    if (!canAdd(to, item, k)) return { ok: false, code: 'full', reason: 'いっぱいで入らない' };
+    removeItem(from, item, k); addItem(to, item, k);
+    this.store.tx(() => { this.store.setCharInventory(p.charId, inv); this.store.setNestStorage(nest.id, storage); });
+    p.inv = inv;
+    return { ok: true, moved: k, inv: clone(inv), storage: clone(storage) };
+  }
+
+  // ───────── 訪問設定 ─────────
+  setPolicy(p, policy, list) {
+    const nest = this.store.nestByOwner(p.accountId);
+    if (!nest) return { ok: false, code: 'not_found', reason: '巣が無い' };
+    if (!VISIT_POLICIES.includes(policy)) return { ok: false, code: 'bad_request', reason: '訪問設定が変' };
+    let unknown = [], names = null;
+    if (list != null) {
+      if (!Array.isArray(list) || list.length > MAX_ALLOW) return { ok: false, code: 'bad_request', reason: `許可リストは ${MAX_ALLOW} 人まで` };
+      names = [...new Set(list.map(s => String(s || '').trim()).filter(s => s && !validName(s)))];
+      const entries = [];
+      for (const nm of names) {
+        const ids = this.store.accountsByCharName(nm).filter(id => id !== p.accountId);
+        if (!ids.length) unknown.push(nm);
+        for (const id of ids) entries.push({ accountId: id, name: nm });
+      }
+      this.store.setNestAccess(nest.id, entries, 'visitor');
+    }
+    this.store.setVisitPolicy(nest.id, policy);
+    const m = this.metaCache.get(nest.id); if (m) m.policy = policy;
+    return { ok: true, policy, list: names || undefined, unknown };
+  }
+}

@@ -158,6 +158,21 @@ export class UI {
     });
   }
   /** Esc メニュー。items = [{label, act, cls}] */
+  /** 1 行の入力（OK で文字列、やめると null） */
+  prompt(title, body, value = '', yes = '決定', no = 'やめる') {
+    return new Promise(res => {
+      const p = el('div', 'tb-panel tb-dialog tb-ui-block');
+      p.innerHTML = `<div class="tb-ph">${esc(title)}</div><div class="tb-body">${body}</div><input class="tb-prompt-in" maxlength="200"><div class="tb-btns"><button class="tb-btn yes">${esc(yes)}</button><button class="tb-btn no">${esc(no)}</button></div>`;
+      const inp = p.querySelector('input'); inp.value = value;
+      let done = false;
+      const fin = v => { if (done) return; done = true; this.closeModal(); res(v); };
+      inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); fin(inp.value); } else if (e.key === 'Escape') { e.preventDefault(); fin(null); } });
+      p.querySelector('.yes').onclick = () => fin(inp.value);
+      p.querySelector('.no').onclick = () => fin(null);
+      this._openModal(p, () => fin(null));
+      setTimeout(() => inp.focus(), 0);
+    });
+  }
   menu(title, html, items) {
     const p = el('div', 'tb-panel tb-menu tb-ui-block');
     p.innerHTML = `<div class="tb-ph">${esc(title)}<button class="tb-x">×</button></div>${html || ''}<div class="tb-menu-items"></div>`;

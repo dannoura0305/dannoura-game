@@ -189,7 +189,7 @@ export class FieldScene {
   // ───────── 入力と更新 ─────────
   fixed(dt) {
     const g = this.game, inp = g.input;
-    const locked = g.ui.busy() || performance.now() < this.busyUntil;
+    const locked = g.ui.busy() || performance.now() < this.busyUntil || (g.net.mode === 'online' && g.net.state !== 'online');   // 再接続中は止まって待つ
     const ax = locked ? { mx: 0, my: 0 } : inp.axis();
     const jump = !locked && !!inp.take('Space');
     const i = this.pred.input({ mx: ax.mx, my: ax.my, jump });

@@ -53,7 +53,7 @@ game.startGame = async function () {
   game.go(game.field);
 };
 game.enterNest = function (nest) {
-  game.nest = nest;
+  game.nest = nest; game.nestPeers = [];
   game.walk = game.walk || new NestWalkScene(game);
   game.go(game.walk, { nest, from: 'field' });
   game.ui.toast(nest.own ? 'わが家に帰ってきた' : nest.ownerName + 'の巣におじゃました');
@@ -81,8 +81,8 @@ function wire(net) {
   net.on('res_gone', m => game.field && game.field.onResGone(m));
   net.on('res_spawn', m => game.field && game.field.onResSpawn(m));
   net.on('entrance', m => game.field && game.field.onEntrance(m));
-  net.on('player_join', m => { if (game.field) { game.field.addPlayer(m.player); game.ui.toast(m.player.name + ' が やってきた'); } });
-  net.on('player_leave', m => { if (game.field) { const p = game.field.players.get(m.id); game.field.players.delete(m.id); if (p) game.ui.toast(p.name + ' が 帰っていった'); } });
+  net.on('player_join', m => { if (game.field && game.field.ready) { game.field.addPlayer(m.player); if (m.why !== 'nest') game.ui.toast(m.player.name + ' が やってきた'); } });
+  net.on('player_leave', m => { if (game.field && game.field.players) { const p = game.field.players.get(m.id); game.field.players.delete(m.id); if (p && m.why !== 'nest') game.ui.toast(p.name + ' が 帰っていった'); } });
   net.on('chat', m => {
     const me = game.account && m.from === game.account.id;
     game.ui.chatLine(m.name, m.text, me);
@@ -90,12 +90,36 @@ function wire(net) {
     if (me) game.myBubble = { text: m.text, until: performance.now() + 5000 };
   });
   net.on('nest_update', m => {
-    if (game.nest && game.nest.id === m.nestId) { game.nest.data = m.data; game.nest.rev = m.rev; if (game.scene === game.walk) game.walk.updateNest(game.nest); }
+    if (game.nest && game.nest.id === m.nestId && m.rev > (game.nest.rev || 0)) {
+      game.nest.data = m.data; game.nest.rev = m.rev;
+      if (game.scene === game.walk) game.walk.updateNest(game.nest);
+      else if (game.scene === game.build) game.build.onRemoteUpdate(game.nest);
+    }
+  });
+  // 巣の中にいるほかのトビネズミ（オンライン）
+  net.on('nest_peers', m => {
+    if (!game.nest || game.nest.id !== m.nestId) return;
+    const me = game.account && game.account.id;
+    game.nestPeers = (m.peers || []).filter(p => p.id !== me);
   });
   net.on('toast', m => game.ui.toast(m.text));
-  net.on('status', m => game.ui.setOffline(m.state === 'reconnecting'));
-  net.on('rejoin', w => { if (game.field) { game.field.init(w); } });
-  net.on('kick', m => { game.ui.toast(m.reason || '切断された', 'bad'); });
+  net.on('status', m => { game.ui.setOffline(m.state === 'reconnecting'); game.debug.net = m.state; });
+  // 再接続できた：地上なら同じ位置（60 秒をすぎたら巣の入口）から、巣の中なら巣の中から続ける
+  net.on('rejoin', w => {
+    if (!game.field || game.scene instanceof TitleScene) return;
+    game.field.init(w);
+    game.setInv(w.you.inv);
+    if (game.scene !== game.field) { game.nest = null; game.nestPeers = []; game.go(game.field); }
+  });
+  net.on('rejoin_nest', nest => {
+    if (!game.nest || game.nest.id !== nest.id) return;
+    game.nest.data = nest.data; game.nest.rev = nest.rev; game.nest.storage = nest.storage;
+    if (game.scene === game.walk) game.walk.updateNest(game.nest);
+    else if (game.scene === game.build) game.build.onRemoteUpdate(game.nest);
+  });
+  const toTitle = text => { game.ui.setOffline(false); game.ui.toast(text, 'bad'); game.field = null; game.walk = null; game.build = null; game.nest = null; game.go(new TitleScene(game)); };
+  net.on('session_lost', () => toTitle('ログインの期限が切れた。もう一度ログインしてね'));
+  net.on('kick', m => toTitle(m.reason || '切断された'));
 }
 
 // ── ループ ──

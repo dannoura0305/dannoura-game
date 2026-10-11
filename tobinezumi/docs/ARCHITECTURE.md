@@ -1,6 +1,6 @@
 # ARCHITECTURE — トビネズミMMO（仮称）クライアント・サーバー構成
 
-> 状態：**設計案（承認待ち）**。この文書の「推奨」は承認後に確定する。
+> 状態：**承認済み・Ver.0.1 実装済み**（Node.js 22＋`ws`＋SQLite `node:sqlite`、ローカル運用）。実装と違った所はこの文書を直してある。
 
 ## 0. 環境調査の結果（2026-10-10 時点）
 
@@ -91,23 +91,32 @@
 
 ## 5. データ構造（将来拡張を見越して先に分ける）
 
+実装：`server/migrations/001_init.js`・`002_world_containers.js`（起動時に未適用分を番号順に当て、`schema_migrations` に記録）。
+
 ```
-accounts(id, username UNIQUE, pass_hash, created_at, last_login)
-characters(id, account_id, name, active INTEGER, individual_id)       -- いま操作している個体
+schema_migrations(version, name, applied_at)                         -- どこまで当てたか
+accounts(id, username UNIQUE COLLATE NOCASE, pass_hash, created_at, last_login)
+sessions(token_hash PK, account_id, created_at, expires_at)            -- token は SHA-256 だけ保存（30 日）
+characters(id, account_id, individual_id, name, fur, active INTEGER, created_at,
+           pos_x, pos_y, dir, place('field'|'nest:<id>'), exit_kind('new'|'live'|'logout'|'disconnect'|'shutdown'), saved_at)
+                                                                      -- いま操作している個体＋位置の保存（再接続 60 秒の判定に exit_kind/saved_at）
 individuals(id, species, name, sex, born_at, generation,
             father_id NULL, mother_id NULL,                           -- 家系図（Ver0.1 は NULL）
-            genes JSON, traits JSON, status JSON)                     -- 毛色・耳・脚・尾・体格／空腹など
-inventories(owner_id, item_id, qty)                                   -- 持ち物（個体 or 巣の倉庫）
-lands(id, region_id, x, y, info JSON)                                 -- 土地情報（食料・危険・地質・気候…Ver0.1 は器だけ）
-nests(id, owner_account_id, land_id NULL, schema_version, rev,
+            genes JSON, traits JSON, status JSON)                     -- 毛色・耳・脚・尾・体格／空腹など（Ver0.1 は genes.fur だけ）
+inventories(owner_kind 'char'|'nest', owner_id, slot, item_id, qty)   -- 持ち物 8 枠 / 巣の倉庫 24 枠（枠の並びも保存）
+lands(id, region_id, x, y, info JSON)                                 -- 土地（巣穴の入口の場所）。info は食料・危険・地質・気候…の器
+nests(id, owner_account_id UNIQUE, land_id, schema_version, rev,
       data JSON, visit_policy, created_at, updated_at)                -- 巣は土地と分離 → 引っ越し可
-nest_access(nest_id, account_id, role)                                -- visitor / builder
-regions(id, name, kind, hidden INTEGER, data JSON)                    -- 砂漠・草原…・富山（hidden=1）
-world_resources(id, region_id, kind, x, y, respawn_at)               -- 採集物（サーバー管理）
-collectibles(id, kind, data JSON)  /  account_collectibles(...)       -- 収集品（他作品との連動アイテムの器）
+nest_access(nest_id, account_id, role, name)                          -- visitor（許可リスト。name は入力したキャラ名）/ builder（Ver.0.2）
+world_resources(id, region_id, kind, x, y, respawn_at)               -- 採集物。respawn_at NULL＝地上にある、値あり＝再出現待ち
+meta(key, value)                                                      -- 採集物の初期化済み・次の id
+regions(id, name, kind, hidden INTEGER, data JSON)                    -- 砂漠・草原・オアシス・丘・富山（hidden=1）
+collectibles(id, kind, data JSON)  /  account_collectibles(account_id, collectible_id, got_at, data)   -- 収集品の器
 events(id, key, data JSON) / account_flags(account_id, key, value)    -- 物語・隠し演出の器
 ```
 
+- 巣データ（`nests.data`）の版が古ければ、起動時に `shared/nest-rules.js` の `migrateNest` で最新へ（`schema_version` も更新）。
+- 書き込みは同期 API（`DatabaseSync`）＋`BEGIN IMMEDIATE` のトランザクション。採集は「資源を消す＋持ち物を書く＋再出現待ちを積む」、建築は「`rev` が一致したときだけ巣を書く＋持ち物」、倉庫は「持ち物＋倉庫」を 1 トランザクションで。
 - 「アカウント」と「操作個体」を分けておくことで、**世代交代＝操作個体の切り替え**になる。
 - 巣は土地 ID を参照するだけなので、**引っ越し＝land_id の付け替え**で済む。
 
@@ -144,11 +153,14 @@ tobinezumi/
                nest-view.js（断面の描画：両モード共通）, nest-layout.js（配置：両モード共通・DOM なし）,
                sprites.js（manifest の読み込み・毛色の置き換え）, art.js（コード描画のプレースホルダ）, style.css
   shared/      move.js, nest-rules.js, items.js, regions.js, protocol.js, rng.js（ブラウザと Node の両方で import する ES Modules・DOM なし）
-  server/      （段階 3 以降）index.js, rooms/, db.js, auth.js, migrations/ … package.json はここ（依存は ws のみ予定）
+  server/      index.js（静的配信・/tobi-server.json・/healthz・WebSocket /ws）, game.js（接続・認証・振り分け。ws に依存しない）,
+               rooms/field.js（地上 20Hz・スナップショット 10Hz・採集・巣穴）, rooms/nest.js（巣のインスタンス・建築・倉庫・訪問設定）,
+               db.js, auth.js, backup.js, migrations/NNN_*.js, tools/（bots.mjs, backup.mjs, restore.mjs, proto-client.mjs）,
+               test/（core：ws 不要 / e2e：本物の WebSocket）, package.json（依存は ws だけ）, Dockerfile（任意）
   assets/      manifest.json と画像（tools/make_assets.py が生成。ASSET_LIST.md §8）
-  tools/       make_assets.py, normalize_sprites.py, preview.py（今後：backup.mjs, bots.mjs）
+  tools/       make_assets.py, normalize_sprites.py, preview.py（素材づくり。サーバーの道具は server/tools/）
   docs/        本書・PROTOCOL.md ほか
-tests/tobinezumi-*.test.mjs   リポジトリ共通の `node tests/run.mjs` で回る（移動・建築ルール・移行・オフライン保存・予測）
+tests/tobinezumi-*.test.mjs   リポジトリ共通の `node tests/run.mjs` で回る（移動・建築ルール・移行・オフライン保存・予測・再接続、サーバーの core/e2e）
 ```
 
 ## 8. 動かし方・公開・費用
@@ -156,14 +168,14 @@ tests/tobinezumi-*.test.mjs   リポジトリ共通の `node tests/run.mjs` で�
 | 段階 | 置き場所 | 遊び方 | 月額目安 |
 |---|---|---|---|
 | **いま（Ver.0.1・段階 1〜2）** | GitHub Pages（静的） | **オフライン 1 人プレイ**：サーバーが見つからなければ自動で localStorage 版（`OfflineBackend`）。採集・巣作り・閲覧モード・保存まで遊べる。NPC のトビネズミ 3 匹（うち 1 匹の巣は見学可） | 0 円 |
-| Ver.0.1 の完成（段階 3〜6） | **ローカル**：`cd tobinezumi/server && npm start` → `http://localhost:8080/tobinezumi.html` | **オンライン**：サーバーがリポジトリのルートを配り、`/tobi-server.json` に `{"ws":"/ws"}` を返すので自動で接続。Pages 版からでも `?server=ws://localhost:8080/ws` で同じサーバーへ | 0 円 |
+| Ver.0.1 の完成（段階 3〜6・**完了**） | **ローカル**：`cd tobinezumi/server && npm install && npm start` → `http://localhost:8080/tobinezumi.html` | **オンライン**：サーバーがリポジトリのルートの必要な所（`tobinezumi.html`・`tobinezumi/client・shared・assets`・フォント・本編）を配り、`/tobi-server.json` に `{"ws":"/ws"}` を返すので自動で接続。Pages 版からでも `?server=ws://localhost:8080/ws` で同じサーバーへ | 0 円 |
 | 少人数公開（〜20 人・未定） | 小さな VPS／PaaS 1 台（クラウドへの公開は Ver.0.1 ではしない） | Pages のクライアント＋`?server=wss://…`、またはサーバーから配信 | 0〜800 円程度 |
 | 拡大時 | DB を PostgreSQL へ、地域ごとに Field プロセスを分割 | | 規模次第 |
 
 - 接続先の決め方・メッセージの形は **PROTOCOL.md**。オフライン版とオンライン版は同じ API なので、画面側のコードは変えない。
 - `?offline=1` で常にオフライン。オンラインにつながらなかったときもオフラインに戻り、タイトルにその旨を出す。
 - 本編の PWA（`sw.js`）は `tobinezumi/` を先読みしない（通信は素通し）。本作を更新したら本編と同じく `sw.js` の VERSION を上げる。
-- バックアップ（サーバー段階）：`tools/backup.mjs` が 1 時間ごとに `VACUUM INTO backups/game-YYYYMMDD-HH.db`（世代数指定で古いものを削除）。復元は停止→ファイル差し替え→起動。手順は README に記載。
+- バックアップ：サーバー（`npm start`）が 1 時間ごとに `VACUUM INTO backups/game-YYYYMMDD-HH.db`（48 世代）。今すぐは `npm run backup`、復元は停止 → `npm run restore -- <file>`（今の DB を `pre-restore-*.db` に退避して差し替え）→ 起動。手順は `tobinezumi/README.md`。
 
 ## 9. 評価まとめ
 

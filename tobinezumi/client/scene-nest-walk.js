@@ -61,7 +61,7 @@ export class NestWalkScene {
     this.st = stepSide(this.st, { mx: ax.mx, my: ax.my, jump }, dt, this.q);
     if (this.st.exit && !this.exiting) { this.exiting = true; this.exit(); }
     this._sendT = (this._sendT || 0) + dt;
-    if (this._sendT > 0.1 && (prev.x !== this.st.x || prev.y !== this.st.y)) { this._sendT = 0; g.net.nestMove(this.st); }
+    if (this._sendT > 0.1 && (prev.x !== this.st.x || prev.y !== this.st.y || prev.anim !== this.st.anim || this._sendT > 2)) { this._sendT = 0; g.net.nestMove(this.st); }
   }
 
   async exit() {
@@ -75,6 +75,7 @@ export class NestWalkScene {
   update(dt) {
     const g = this.game, inp = g.input;
     this.t += dt;
+    this.viewPeers = this._peerList(dt);
     if (this.sleeping) {
       this.promptEl.classList.add('hidden');
       this.sleepT += dt;
@@ -160,7 +161,11 @@ export class NestWalkScene {
     g.drawImage(this.view.base, 0, 0);
     this.view.drawObjects(g, this.t);
     const lift = this.view.lift;
-    for (const p of this.peers) Sprites.drawJerboa(g, p.fur, 'side', 'idle', p.facing > 0 ? 'right' : 'left', Math.floor(this.t * 2) % 2, p.x, p.y - lift);
+    const peers = this.viewPeers || this.peers;
+    for (const p of peers) {
+      const fr = this._peerFrame(p);
+      Sprites.drawJerboa(g, p.fur, 'side', fr.anim, p.facing > 0 ? 'right' : 'left', fr.frame, p.x, p.y - (p.anim === 'climb' || p.anim === 'climb_idle' ? 0 : lift));
+    }
     const s = this.st;
     const fr = this._frame(s);
     const footLift = s.climbing ? 0 : lift;
@@ -169,9 +174,12 @@ export class NestWalkScene {
     this.view.drawLight(g, W, H, { x: cx, y: cy }, 1, this.sleeping ? 0.8 : 0.6, this.t, [{ x: s.x, y: s.y - 10, r: 34, a: 0.45 }]);
     sc.clearUI();
     sc.nameTag(s.x - cx, s.y - cy - 30 - footLift, this.game.character.name, { me: true });
-    for (const p of this.peers) {
+    const online = this.game.net.mode === 'online';
+    for (const p of peers) {
       sc.nameTag(p.x - cx, p.y - cy - 30 - lift, p.name);
-      if (this.t < 6) sc.bubble(p.x - cx, p.y - cy - 38 - lift, 'いらっしゃい！ ゆっくりしていってね');
+      const b = online && this.game.field && this.game.field.bubbles && this.game.field.bubbles.get(p.id);
+      if (b && b.until > performance.now()) sc.bubble(p.x - cx, p.y - cy - 38 - lift, b.text);
+      else if (!online && this.t < 6) sc.bubble(p.x - cx, p.y - cy - 38 - lift, 'いらっしゃい！ ゆっくりしていってね');
     }
     const b = this.game.myBubble;
     if (b && b.until > performance.now()) sc.bubble(s.x - cx, s.y - cy - 38 - footLift, b.text);
@@ -179,6 +187,28 @@ export class NestWalkScene {
       const k = this.sleepT;
       for (let i = 0; i < 3; i++) { const p = (k * 0.6 + i / 3) % 1; sc.text(s.x - cx + 8 + p * 14, s.y - cy - 20 - p * 24, 'z', { size: 6 + p * 5, color: '#e8f0ff', alpha: 1 - p }); }
     }
+  }
+  /** オンライン：巣の中のほかのトビネズミ（nest_peers・10Hz）を少しずつ寄せて表示 */
+  _peerList(dt) {
+    if (this.game.net.mode !== 'online') return this.peers;
+    const src = this.game.nestPeers || [];
+    if (!this.pv) this.pv = new Map();
+    const k = Math.min(1, dt * 12), out = [];
+    for (const p of src) {
+      let v = this.pv.get(p.id);
+      if (!v || Math.hypot(p.x - v.x, p.y - v.y) > 64) { v = { x: p.x, y: p.y }; this.pv.set(p.id, v); }
+      v.x += (p.x - v.x) * k; v.y += (p.y - v.y) * k;
+      out.push({ ...p, x: v.x, y: v.y });
+    }
+    return out;
+  }
+  _peerFrame(p) {
+    const n = a => Sprites.frames('side', a);
+    if (p.anim === 'walk') return { anim: 'walk', frame: Math.floor(this.t * 6) % n('walk') };
+    if (p.anim === 'jump') return { anim: 'jump', frame: 2 };
+    if (p.anim === 'climb' || p.anim === 'climb_idle') return { anim: 'climb', frame: p.anim === 'climb' ? Math.floor(this.t * 5) % n('climb') : 1 };
+    if (p.anim === 'sleep') return { anim: 'sleep', frame: Math.floor(this.t * 1.5) % n('sleep') };
+    return { anim: 'idle', frame: Math.floor(this.t * 2) % 2 };
   }
   _frame(s) {
     const n = a => Sprites.frames('side', a);

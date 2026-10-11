@@ -436,70 +436,126 @@ export class OfflineBackend extends Emitter {
   kindCost(kind) { return KIND_COST[kind]; }
 }
 
-// ───────── オンライン（サーバー担当と合わせる・PROTOCOL.md）─────────
-// ★ 未検証のひな形：サーバーはまだ無い。メッセージの形は shared/protocol.js と docs/PROTOCOL.md のとおり。
+// ───────── オンライン（PROTOCOL.md・tobinezumi/server）─────────
+export const RECONNECT_MIN_MS = 500, RECONNECT_MAX_MS = 30000;
+export const PING_MS = 2000, DEAD_MS = 6000;
 export class OnlineBackend extends Emitter {
-  constructor(url, { storage = globalThis.localStorage } = {}) {
+  constructor(url, { storage = globalThis.localStorage, WS = globalThis.WebSocket } = {}) {
     super();
     this.mode = 'online';
     this.url = url;
     this.storage = storage;
+    this.WS = WS;
     this.ws = null; this.rid = 0; this.waiting = new Map();
     this.queue = []; this.sendT = 0;
-    this.backoff = 500; this.closedByUser = false; this.place = 'none';
+    this.backoff = RECONNECT_MIN_MS; this.closedByUser = false; this.place = 'none';
+    this.joining = false; this.curNestOwner = null;
+    this.state = 'connecting';
     this.clockOffset = 0;
+    this.lastRecv = Date.now(); this.pingT = 0;
+    this.reconnects = 0;
     this.map = buildFieldMap();
   }
   serverTime() { return Date.now() + this.clockOffset; }
+  get online() { return !!this.ws && this.ws.readyState === 1 && this.state === 'online'; }
+
+  /** 1 回つなぐ（失敗したら reject。再接続はしない） */
   connect(timeoutMs = 4000) {
     return new Promise((resolve, reject) => {
-      let done = false;
-      let ws;
-      try { ws = new WebSocket(this.url); } catch (e) { reject(e); return; }
-      this.ws = ws;
-      const t = setTimeout(() => { if (!done) { done = true; try { ws.close(); } catch (e) {} reject(new Error('timeout')); } }, timeoutMs);
-      ws.onopen = () => { if (done) return; done = true; clearTimeout(t); this.backoff = 500; this.emit('status', { state: 'online' }); resolve(this); };
-      ws.onerror = () => { if (!done) { done = true; clearTimeout(t); reject(new Error('ws error')); } };
-      ws.onclose = () => { this._closed(); };
-      ws.onmessage = ev => this._msg(decode(ev.data));
+      let done = false, ws;
+      try { ws = new this.WS(this.url); } catch (e) { reject(e); return; }
+      const t = setTimeout(() => { if (!done) { done = true; this._drop(ws); reject(new Error('timeout')); } }, timeoutMs);
+      ws.onopen = () => {
+        if (done) return; done = true; clearTimeout(t);
+        this.ws = ws; this.lastRecv = Date.now(); this.state = 'online';
+        ws.onclose = () => { if (this.ws === ws) this._lost(); };
+        resolve(this);
+      };
+      ws.onerror = () => { if (!done) { done = true; clearTimeout(t); this._drop(ws); reject(new Error('ws error')); } };
+      ws.onclose = () => { if (!done) { done = true; clearTimeout(t); reject(new Error('closed')); } };
+      ws.onmessage = ev => { if (this.ws === ws || !done) { this.lastRecv = Date.now(); this._msg(decode(ev.data)); } };
     });
   }
-  _closed() {
+  /** ソケットを捨てる（ハンドラを外して閉じる。閉じる合図が届かないネット断でもすぐ次へ進める） */
+  _drop(ws) {
+    if (!ws) return;
+    ws.onopen = ws.onclose = ws.onerror = ws.onmessage = null;
+    try { ws.close(); } catch (e) {}
+  }
+  /** 切れた：待っている要求を失敗にして、再接続を始める（1 本だけ） */
+  _lost() {
+    const ws = this.ws; this.ws = null; this._drop(ws);
     for (const [, w] of this.waiting) w.reject(new Error('切断'));
     this.waiting.clear();
-    if (this.closedByUser) return;
+    this.queue = [];
+    if (this.closedByUser || this.state === 'reconnecting') return;
+    this.state = 'reconnecting';
     this.emit('status', { state: 'reconnecting' });
-    const wait = this.backoff; this.backoff = Math.min(30000, this.backoff * 2);   // 指数バックオフ
-    setTimeout(async () => {
-      try {
-        await this.connect();
-        const h = await this.hello();
-        if (h.ok && this.place === 'field') { const j = await this.joinField(); if (j.ok) this.emit('rejoin', j.world); }
-        this.emit('status', { state: 'online' });
-      } catch (e) { this._closed(); }
-    }, wait);
+    this._retry();
   }
-  _send(msg) { if (this.ws && this.ws.readyState === 1) this.ws.send(encode(msg)); }
+  _retry() {
+    if (this.closedByUser) return;
+    const wait = this.backoff; this.backoff = Math.min(RECONNECT_MAX_MS, this.backoff * 2);   // 指数バックオフ 0.5→1→2…→30 秒
+    clearTimeout(this._retryTimer);
+    this._retryTimer = setTimeout(() => this._resume(), wait);
+  }
+  async _resume() {
+    try { await this.connect(); }
+    catch (e) { this._retry(); return; }
+    this.reconnects++;
+    try {
+      const h = await this.hello();
+      if (!h.ok || !h.account) { this.place = 'none'; this.backoff = RECONNECT_MIN_MS; this.emit('status', { state: 'online' }); this.emit('session_lost', h); return; }
+      if (this.place === 'nest' && this.curNestOwner != null) {
+        const r = await this.enterNest(this.curNestOwner, true);
+        if (r.ok) this.emit('rejoin_nest', r.nest);
+        else { const j = await this.joinField(); if (j.ok) this.emit('rejoin', j.world); else throw new Error(j.reason); }
+      } else if (this.place === 'field') {
+        const j = await this.joinField();
+        if (j.ok) this.emit('rejoin', j.world); else throw new Error(j.reason);
+      }
+      this.backoff = RECONNECT_MIN_MS;
+      this.emit('status', { state: 'online' });
+    } catch (e) {
+      if (this.ws) { const ws = this.ws; this.ws = null; this._drop(ws); }
+      this._retry();
+    }
+  }
+  _send(msg) { if (this.ws && this.ws.readyState === 1) { this.ws.send(encode(msg)); return true; } return false; }
+  _flushInputs() {
+    while (this.queue.length) {
+      const chunk = this.queue.splice(0, 30);
+      if (!this._send({ t: C2S.INPUT, inputs: chunk })) { this.queue = []; break; }
+    }
+  }
   _req(t, payload = {}, timeoutMs = 8000) {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
+      if (!this.ws || this.ws.readyState !== 1) { resolve({ ok: false, reason: 'つながっていない', code: 'offline' }); return; }
+      this._flushInputs();           // 拾う・掘るの前に、そこまでの移動をサーバーへ（確定位置を合わせる）
       const rid = ++this.rid;
       const timer = setTimeout(() => { this.waiting.delete(rid); resolve({ ok: false, reason: '返事が無い' }); }, timeoutMs);
-      this.waiting.set(rid, { resolve: v => { clearTimeout(timer); resolve(v); }, reject: e => { clearTimeout(timer); resolve({ ok: false, reason: e.message }); } });
+      this.waiting.set(rid, { resolve: v => { clearTimeout(timer); resolve(v); }, reject: e => { clearTimeout(timer); resolve({ ok: false, reason: e.message, code: 'offline' }); } });
       this._send({ t, rid, ...payload });
     });
   }
   _msg(m) {
     if (!m) return;
     if (m.t === S2C.RES) { const w = this.waiting.get(m.rid); if (w) { this.waiting.delete(m.rid); w.resolve(m); } return; }
-    if (m.t === S2C.WELCOME) { if (m.serverTime) this.clockOffset = m.serverTime - Date.now(); return; }
-    if (m.t === S2C.PONG) { this.clockOffset = m.st - (m.ct + Date.now()) / 2; return; }
-    const map = { [S2C.SNAPSHOT]: 'snapshot', [S2C.PLAYER_JOIN]: 'player_join', [S2C.PLAYER_LEAVE]: 'player_leave', [S2C.CHAT]: 'chat', [S2C.RES_GONE]: 'res_gone', [S2C.RES_SPAWN]: 'res_spawn', [S2C.NEST_UPDATE]: 'nest_update', [S2C.NEST_PEERS]: 'nest_peers', [S2C.ENTRANCE]: 'entrance', [S2C.TOAST]: 'toast', [S2C.KICK]: 'kick' };
+    if (m.t === S2C.WELCOME) { if (m.serverTime) this.clockOffset = m.serverTime - Date.now(); this._ping(); return; }
+    if (m.t === S2C.PONG) { const now = Date.now(); this.rtt = now - m.ct; this.clockOffset = m.st - (m.ct + now) / 2; return; }
+    if (m.t === S2C.KICK) { this.closedByUser = true; this.state = 'kicked'; this.emit('kick', m); this._drop(this.ws); this.ws = null; return; }
+    const map = { [S2C.SNAPSHOT]: 'snapshot', [S2C.PLAYER_JOIN]: 'player_join', [S2C.PLAYER_LEAVE]: 'player_leave', [S2C.CHAT]: 'chat', [S2C.RES_GONE]: 'res_gone', [S2C.RES_SPAWN]: 'res_spawn', [S2C.NEST_UPDATE]: 'nest_update', [S2C.NEST_PEERS]: 'nest_peers', [S2C.ENTRANCE]: 'entrance', [S2C.TOAST]: 'toast' };
     if (map[m.t]) this.emit(map[m.t], m);
   }
+  _ping() { this._send({ t: C2S.PING, ct: Date.now() }); }
   _token() { try { return this.storage.getItem(TOKEN_KEY); } catch (e) { return null; } }
   _setToken(t) { try { if (t) this.storage.setItem(TOKEN_KEY, t); else this.storage.removeItem(TOKEN_KEY); } catch (e) {} }
 
-  async hello() { const r = await this._req(C2S.HELLO, { v: PROTOCOL_VERSION, token: this._token() }); return { mode: 'online', ...r }; }
+  async hello() {
+    const r = await this._req(C2S.HELLO, { v: PROTOCOL_VERSION, token: this._token() });
+    if (r.ok && r.expired) this._setToken(null);
+    return { mode: 'online', ...r };
+  }
   async register(username, password) {
     const e = validUsername(username) || validPassword(password);
     if (e) return { ok: false, reason: e };
@@ -512,27 +568,51 @@ export class OnlineBackend extends Emitter {
     if (r.ok) this._setToken(r.token);
     return r;
   }
-  async logout() { await this._req(C2S.LOGOUT); this._setToken(null); this.place = 'none'; return { ok: true }; }
+  async logout() { this.place = 'none'; this.queue = []; await this._req(C2S.LOGOUT); this._setToken(null); return { ok: true }; }
   async createCharacter({ name, fur }) { const e = validName(name); if (e) return { ok: false, reason: e }; return this._req(C2S.CREATE_CHAR, { name, fur }); }
-  async joinField() { const r = await this._req(C2S.JOIN_FIELD); if (r.ok) this.place = 'field'; return r; }
-  sendInput(inp) { this.queue.push({ seq: inp.seq, mx: inp.mx, my: inp.my, jump: inp.jump ? 1 : 0 }); }
+  async joinField() {
+    this.joining = true; this.queue = [];
+    const r = await this._req(C2S.JOIN_FIELD);
+    this.joining = false;
+    if (r.ok) { this.place = 'field'; this.curNestOwner = null; }
+    return r;
+  }
+  /** 入力：地上にいて、つながっている間だけためる（50ms ごとにまとめて送る・1 通 30 個まで） */
+  sendInput(inp) {
+    if (this.place !== 'field' || this.joining || !this.ws || this.ws.readyState !== 1) return;
+    this.queue.push({ seq: inp.seq, mx: inp.mx, my: inp.my, jump: inp.jump ? 1 : 0 });
+    if (this.queue.length > 120) this.queue.splice(0, this.queue.length - 120);
+  }
   tick(dt) {
     this.sendT += dt * 1000;
-    if (this.sendT >= INPUT_SEND_MS && this.queue.length) { this.sendT = 0; this._send({ t: C2S.INPUT, inputs: this.queue.splice(0) }); }
+    if (this.sendT >= INPUT_SEND_MS) { this.sendT = 0; if (this.queue.length) this._flushInputs(); }
+    // 生存確認：2 秒ごとに ping。6 秒なにも届かなければ切れたとみなして再接続へ
+    if (this.ws && this.state === 'online') {
+      this.pingT += dt * 1000;
+      if (this.pingT >= PING_MS) { this.pingT = 0; this._ping(); }
+      if (Date.now() - this.lastRecv > DEAD_MS) this._lost();
+    }
   }
   async pickup(resId) { return this._req(C2S.PICKUP, { resId }); }
   async digBurrow(x, y) { return this._req(C2S.DIG_BURROW, { x, y }); }
-  async enterNest(owner) { const r = await this._req(C2S.ENTER_NEST, { owner }); if (r.ok) this.place = 'nest'; return r; }
-  async leaveNest() { const r = await this._req(C2S.LEAVE_NEST); if (r.ok) this.place = 'field'; return r; }
+  async enterNest(owner, resume = false) {
+    const r = await this._req(C2S.ENTER_NEST, resume ? { owner, resume: true } : { owner });
+    if (r.ok) { this.place = 'nest'; this.curNestOwner = owner; this.queue = []; }
+    return r;
+  }
+  async leaveNest() { const r = await this._req(C2S.LEAVE_NEST); if (r.ok) { this.place = 'field'; this.curNestOwner = null; } return r; }
   async nestOp(nestId, rev, op) { return this._req(C2S.NEST_OP, { nestId, rev, op }); }
   async store(nestId, dir, item, n) { return this._req(C2S.STORE, { nestId, dir, item, n }); }
-  async chat(text) { const t = cleanChat(text); if (!t) return { ok: false }; this._send({ t: C2S.CHAT, text: t }); return { ok: true }; }
-  async setVisitPolicy(policy, list) { return this._req(C2S.VISIT_POLICY, { policy, list }); }
+  async chat(text) { const t = cleanChat(text); if (!t) return { ok: false }; return this._send({ t: C2S.CHAT, text: t }) ? { ok: true } : { ok: false, reason: 'つながっていない' }; }
+  async setVisitPolicy(policy, list) { return this._req(C2S.VISIT_POLICY, list ? { policy, list } : { policy }); }
   async moveSlot(from, to) { return this._req(C2S.INV_MOVE, { from, to }); }
   nestMove(st) { this._send({ t: C2S.NEST_MOVE, x: Math.round(st.x), y: Math.round(st.y), facing: st.facing, anim: st.anim }); }
   savePosition() {}
   flush() {}
-  close() { this.closedByUser = true; try { this.ws && this.ws.close(); } catch (e) {} }
+  kindCost(kind) { return KIND_COST[kind]; }
+  close() { this.closedByUser = true; clearTimeout(this._retryTimer); const ws = this.ws; this.ws = null; this._drop(ws); }
+  /** 動作確認用：ネットが切れたふり（ソケットを黙って捨てる） */
+  _simulateDrop() { this._lost(); }
 }
 
 // ───────── どちらを使うか ─────────
