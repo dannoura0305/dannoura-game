@@ -9,7 +9,11 @@ import { nestQuery, CELL, KIND_NAME } from '../shared/nest-rules.js';
 import { stepSide, makeSideState, STEP_DT } from '../shared/move.js';
 import { FURNITURE, FIXTURES } from '../shared/items.js';
 
+const GUIDE_KEYS = '<span><kbd>←</kbd><kbd>→</kbd> 移動</span><span><kbd>Space</kbd> ジャンプ</span><span><kbd>↑</kbd><kbd>↓</kbd> 登る・降りる</span><span><kbd>E</kbd> 調べる</span><span><kbd>B</kbd> ビルドモード</span><span><kbd>Tab</kbd> 全体</span>';
+const GUIDE_TOUCH = '<span>◀ ▶ 移動</span><span>▲ ▼ 登る・降りる（入口の縦穴を▲で地上へ）</span><span>ジャンプ・調べる</span><span>ビルド＝全体モード</span>';
+
 export class NestWalkScene {
+  get touchLayout() { return 'walk'; }
   constructor(game) { this.game = game; this.view = new NestView(); }
 
   enter({ nest, from = 'field' }) {
@@ -28,14 +32,19 @@ export class NestWalkScene {
     this.dom = el('div', 'tb-scene tb-walk');
     this.dom.innerHTML = `<div class="tb-wtop">${esc(nest.ownerName)}の巣${nest.canEdit ? '' : '　<span class="tb-dim">（見学中）</span>'}</div>
       <div class="tb-roomlabel"></div>
-      <div class="tb-guide"><span><kbd>←</kbd><kbd>→</kbd> 移動</span><span><kbd>Space</kbd> ジャンプ</span><span><kbd>↑</kbd><kbd>↓</kbd> 登る・降りる</span><span><kbd>E</kbd> 調べる</span><span><kbd>B</kbd> ビルドモード</span><span><kbd>Tab</kbd> 全体</span></div>
-      <div class="tb-prompt hidden"></div>`;
+      <div class="tb-guide">${g.isTouch ? GUIDE_TOUCH : GUIDE_KEYS}</div>
+      <div class="tb-prompt tb-ui-block hidden"></div>`;
     this.roomEl = this.dom.querySelector('.tb-roomlabel');
     this.promptEl = this.dom.querySelector('.tb-prompt');
+    this.promptEl.addEventListener('click', () => { if (!g.ui.busy()) this.interact(); });
+    this.guideEl = this.dom.querySelector('.tb-guide');
+    if (g.isTouch) setTimeout(() => { if (this.guideEl) this.guideEl.classList.add('fade'); }, 12000);
     g.hud.appendChild(this.dom);
     g.ui.showHUD(true, false);
   }
   leave() { if (this.dom) this.dom.remove(); this.dom = null; this.game.screen.clearUI(); this.game.ui.showHUD(false); }
+  helpHTML() { return this.game.isTouch ? '<b>◀ ▶</b> 歩く／<b>▲ ▼</b> はしご・縦の通路を登る・降りる（入口の縦穴を ▲ で地上へ）<br><b>ジャンプ</b>／<b>調べる</b> 寝床で眠る・倉庫を開く<br><b>ビルド</b> 全体モード（掘る・部屋・家具）' : '<b>← →</b> 歩く／<b>↑ ↓</b> 登る・降りる／<b>Space</b> ジャンプ<br><b>E</b> 調べる（眠る・倉庫）／<b>B・Tab</b> 全体モード'; }
+  onTouchChange(on) { if (this.guideEl) this.guideEl.innerHTML = on ? GUIDE_TOUCH : GUIDE_KEYS; }
   _setData(data) { this.data = data; this.q = nestQuery(data); this.view.setData(data, { fill: this._fill() }); }
   _fill() { const s = this.nest.storage || []; let n = 0; for (const it of s) if (it) n += it.n; return Math.min(1, n / 60); }
   /** 見学先の主（オフラインのモカなど）。部屋の床に座っている */
@@ -91,7 +100,9 @@ export class NestWalkScene {
     } else if (g.ui.modal && (inp.take('Escape') || (g.ui.invPanel && inp.take('KeyI')))) g.ui.closeModal();
     // カメラ
     const mw = this.data.w * CELL, mh = this.data.h * CELL;
-    const tx = Math.max(0, Math.min(mw - W, this.st.x - W / 2)), ty = Math.max(-8, Math.min(mh - H, this.st.y - H / 2 - 10));
+    // 巣より画面が大きいときは真ん中に
+    const tx = mw <= W ? (mw - W) / 2 : Math.max(0, Math.min(mw - W, this.st.x - W / 2));
+    const ty = mh + 8 <= H ? (mh - H) / 2 : Math.max(-8, Math.min(mh - H, this.st.y - H / 2 - 10));
     this.cam.x += (tx - this.cam.x) * Math.min(1, dt * 7); this.cam.y += (ty - this.cam.y) * Math.min(1, dt * 7);
     // 部屋の名前
     const cx = Math.floor(this.st.x / CELL), cy = Math.floor((this.st.y - 1) / CELL);
@@ -103,7 +114,11 @@ export class NestWalkScene {
     }
     const tgt = this.target();
     this.curTarget = tgt;
-    if (tgt && !g.ui.busy()) { this.promptEl.innerHTML = `<b>E</b> ${esc(tgt.label)}`; this.promptEl.classList.remove('hidden'); }
+    if (tgt && !g.ui.busy()) {
+      const html = `<b>${g.isTouch ? '調べる' : 'E'}</b> ${esc(g.isTouch ? tgt.label.replace('↑ で', '▲ で') : tgt.label)}`;
+      if (this._promptHTML !== html) { this._promptHTML = html; this.promptEl.innerHTML = html; }
+      this.promptEl.classList.remove('hidden');
+    }
     else this.promptEl.classList.add('hidden');
   }
 
@@ -131,11 +146,11 @@ export class NestWalkScene {
   interact() {
     const g = this.game, tgt = this.target();
     if (!tgt) return;
-    if (tgt.kind === 'exit') { g.ui.toast('↑ を押し続けると地上へ出る'); return; }
+    if (tgt.kind === 'exit') { g.ui.toast(g.isTouch ? '▲ を押し続けると地上へ出る' : '↑ を押し続けると地上へ出る'); return; }
     if (tgt.kind === 'sleep') {
       this.sleeping = true; this.sleepT = 0;
       this.st = { ...this.st, x: (tgt.it.x0 + tgt.it.x1) / 2, anim: 'sleep' };
-      g.ui.toast('すやすや…（何かキーで起きる）');
+      g.ui.toast(g.isTouch ? 'すやすや…（ボタンで起きる）' : 'すやすや…（何かキーで起きる）');
       return;
     }
     if (tgt.kind === 'store') {

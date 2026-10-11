@@ -1,0 +1,21 @@
+{
+  "name": "トビネズミMMO（仮称）",
+  "short_name": "トビネズミ",
+  "description": "一匹のトビネズミとして乾いた大地を跳ね回り、自分だけの巣を掘って暮らす。『だんのうら』のおまけゲーム。",
+  "lang": "ja",
+  "dir": "ltr",
+  "id": "./tobinezumi.html",
+  "start_url": "./tobinezumi.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#120a06",
+  "theme_color": "#2a1a10",
+  "categories": ["games"],
+  "icons": [
+    { "src": "tobinezumi/assets/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "tobinezumi/assets/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "tobinezumi/assets/pwa/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

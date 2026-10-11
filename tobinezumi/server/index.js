@@ -24,7 +24,7 @@ const MIME = {
   '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav', '.m4a': 'audio/mp4', '.txt': 'text/plain; charset=utf-8',
 };
 // 配ってよい所（GitHub Pages に出ているものと同じ範囲）。tobinezumi/server（DB・バックアップ）・.git・tools・tests は配らない
-const ALLOW_FILES = new Set(['tobinezumi.html', 'index.html', 'kyokai.html', 'style.css', 'style-home.css', 'game.js', 'pwa.js', 'sw.js', 'manifest.webmanifest']);
+const ALLOW_FILES = new Set(['tobinezumi.html', 'tobinezumi.webmanifest', 'index.html', 'kyokai.html', 'style.css', 'style-home.css', 'game.js', 'pwa.js', 'sw.js', 'manifest.webmanifest']);
 const ALLOW_DIRS = ['tobinezumi/client/', 'tobinezumi/shared/', 'tobinezumi/assets/', 'assets/', 'main/', 'minigames/', 'kyokai/', 'vendor/', 'godot/assets/fonts/'];
 
 export function staticPath(urlPath) {

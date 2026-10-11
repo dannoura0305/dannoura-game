@@ -18,6 +18,9 @@ GitHub Pages など静的な置き場所でそのまま `tobinezumi.html` を開
 | 持ち物 / チャット / メニュー | I / Enter / Esc |
 | 巣：全体モード（ビルド）⇄ 閲覧モード | B・Tab（ビルドはマウス。1〜7 でツール、Ctrl+Z で取り消し） |
 
+**スマホ・タブレット**：そのまま開けばタッチ用の画面になる（縦向き＝下に操作の帯、横向き＝左右の端にボタン）。地上は左のスティックで跳ね、地面や採集物・巣穴をタップするとそこへ行って拾う・入る。巣の全体モードは 1 本指でツール、2 本指で移動・拡大縮小。詳しくは `docs/SCREEN_SPEC.md` の「F」。
+ホーム画面に追加すると全画面のアプリとして開く（`tobinezumi.webmanifest`。https か localhost で開いたとき、オフライン用の保存も効く）。
+
 ## 2. ローカルのサーバーで複数人で遊ぶ
 
 Node.js 22.13 以上（組み込みの `node:sqlite` を使う）。依存は `ws` だけ。
@@ -30,6 +33,15 @@ npm start
 
 → `http://localhost:8080/tobinezumi.html` を**複数のブラウザ（または別のプロファイル・シークレットウィンドウ）**で開き、それぞれ「新規登録」→ キャラクター作成。
 同じ LAN のほかの PC からは `http://<このPCのIP>:8080/tobinezumi.html`。
+
+### スマホからつなぐ（同じ Wi-Fi）
+
+1. サーバーは最初から全部の口（`HOST=0.0.0.0`）で待ち受けている。PC の LAN の IP を調べる：
+   - Windows：`ipconfig`（「IPv4 アドレス」例 `192.168.1.23`）／macOS：`ipconfig getifaddr en0`／Linux：`hostname -I`
+2. スマホのブラウザで `http://192.168.1.23:8080/tobinezumi.html` を開く（PC と同じ Wi-Fi に）。自動でオンラインになり、「新規登録」→ キャラクター作成。
+3. つながらないとき：PC のファイアウォールで TCP 8080 の受信を許可する（Windows は初回起動時の「アクセスを許可」）。ゲスト用 Wi-Fi など端末どうしの通信を止めているネットワークでは使えない。
+4. http（LAN）では service worker が動かないので、オフライン用の保存とアプリとしてのインストールは効かない（ホーム画面へのブックマークはできる）。遊ぶこと自体は問題ない。外から使うなら下の「安全のための注意」のとおり HTTPS の逆プロキシを置く。
+
 
 - サーバーはリポジトリのルートから必要なファイルだけを配り（`tobinezumi.html`・`tobinezumi/client|shared|assets`・フォント・本編）、`/tobi-server.json` に `{"ws":"/ws"}` を返すので、開くだけで自動でオンラインになる。
 - GitHub Pages 版のクライアントから同じサーバーへつなぐ：`tobinezumi.html?server=ws://localhost:8080/ws`

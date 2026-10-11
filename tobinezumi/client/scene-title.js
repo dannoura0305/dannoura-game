@@ -81,7 +81,7 @@ export class TitleScene {
     pw.addEventListener('keydown', e => { if (e.key === 'Enter') go(); e.stopPropagation(); });
     u.addEventListener('keydown', e => e.stopPropagation());
     p.querySelector('.back').onclick = () => this.showTop();
-    setTimeout(() => u.focus(), 0);
+    if (!g.isTouch) setTimeout(() => u.focus(), 0);   // スマホでは勝手にキーボードを出さない
   }
 
   showCreate() {
@@ -126,7 +126,7 @@ export class TitleScene {
     p.querySelector('.ok').onclick = decide;
     this._keys = e => { if (document.activeElement === nm) return; if (e.key === 'ArrowLeft') step(-1); if (e.key === 'ArrowRight') step(1); };
     draw();
-    setTimeout(() => nm.focus(), 0);
+    if (!g.isTouch) setTimeout(() => nm.focus(), 0);
   }
 
   showConfirm() {
@@ -153,15 +153,18 @@ export class TitleScene {
     const sky = g.createLinearGradient(0, 0, 0, H);
     sky.addColorStop(0, '#141026'); sky.addColorStop(0.5, '#3a2a4e'); sky.addColorStop(0.78, '#8a4e52'); sky.addColorStop(1, '#c8784e');
     g.fillStyle = sky; g.fillRect(0, 0, W, H);
+    const gy = H - 270;   // 画面の高さが変わっても、砂丘は下端に
     for (let i = 0; i < 70; i++) {
-      const x = Math.floor(hash2(i, 1, 3) * W), y = Math.floor(hash2(1, i, 3) * 140);
+      const x = Math.floor(hash2(i, 1, 3) * W), y = Math.floor(hash2(1, i, 3) * (140 + gy));
       const tw = 0.5 + 0.5 * Math.sin(t * (1 + hash2(i, i, 2) * 2) + i);
       g.fillStyle = `rgba(255,244,214,${0.3 + tw * 0.6})`; g.fillRect(x, y, 1, 1);
     }
-    g.fillStyle = '#f4e8c8'; g.beginPath(); g.arc(380, 52, 13, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#3a2a4e'; g.beginPath(); g.arc(386, 48, 12, 0, Math.PI * 2); g.fill();
+    const mx = Math.round(W * 0.79), my = Math.round(52 + gy * 0.3);
+    g.fillStyle = '#f4e8c8'; g.beginPath(); g.arc(mx, my, 13, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#3a2a4e'; g.beginPath(); g.arc(mx + 6, my - 4, 12, 0, Math.PI * 2); g.fill();
     const dune = (base, amp, f, ph, col, speed) => {
       g.fillStyle = col;
+      base += gy;
       for (let x = 0; x < W; x++) { const y = Math.round(base + Math.sin((x + t * speed) / f + ph) * amp + Math.sin((x + t * speed) / (f * 0.37) + ph * 2) * amp * 0.3); g.fillRect(x, y, 1, H - y); }
     };
     dune(196, 9, 60, 1, '#5a3a3e', 4);
@@ -171,7 +174,7 @@ export class TitleScene {
     const span = W + 80, x = ((t * 46) % span) - 40;
     const hop = (t * 46 / 26) % 1;
     const z = Math.sin(hop * Math.PI) * 10;
-    const y = 246 + Math.round(Math.sin((x + t * 14) / 30 + 5) * 5);
+    const y = 246 + gy + Math.round(Math.sin((x + t * 14) / 30 + 5) * 5);
     Sprites.drawShadow(g, x, y, 1 - z / 30);
     Sprites.drawJerboa(g, 'sand', 'side', 'walk', 'right', Math.floor(hop * 4), x, y - z);
     sc.clearUI();

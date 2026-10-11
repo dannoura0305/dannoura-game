@@ -9,11 +9,17 @@ import { buildFieldMap, T, TILE, regionAt, canDigBurrow, POND } from '../shared/
 import { stepField, makeFieldState, STEP_DT, FIELD } from '../shared/move.js';
 import { itemName } from '../shared/items.js';
 import { hash2 } from '../shared/rng.js';
+import { pickTapTarget, steerToward } from './touch-logic.js';
 
 const PICK_R = 22, ENT_R = 20;
+const HELP_KEYS = 'WASD/方向キー 跳ねる　Space 大ジャンプ　E 調べる・拾う　I 持ち物　Enter チャット　Esc メニュー';
+const HELP_TOUCH = 'スティックで跳ねる・地面や採集物をタップでそこへ（メニュー→ヘルプ）';
+const HELP_FULL_KEYS = '<b>WASD・方向キー</b> 跳ねる／<b>Space</b> 大ジャンプ（小石の山や草むらを越える）<br><b>E</b> 拾う・調べる・巣に入る・巣を掘る<br><b>I</b> 持ち物／<b>Enter</b> チャット／<b>Esc</b> メニュー／<b>H</b> 下の案内を出す・隠す';
+const HELP_FULL_TOUCH = '<b>左のスティック</b> 跳ねる（左側のどこを触ってもよい）<br><b>ジャンプ</b> 大ジャンプ（小石の山や草むらを越える）<br><b>地面をタップ</b> そこへ跳ねていく<br><b>採集物・巣穴をタップ</b> 歩いて行って拾う・入る<br><b>自分をタップ・調べる</b> 拾う・巣を掘る・巣に入る<br><b>持ち物・チャット・メニュー</b> 上の帯のボタン（ホットバーを押しても持ち物）'; 
 const PRIO = { [T.SAND]: 0, [T.DIRT]: 1, [T.GRASS]: 2 };
 
 export class FieldScene {
+  get touchLayout() { return 'field'; }
   constructor(game) {
     this.game = game;
     this.map = (game.net && game.net.map) || buildFieldMap();
@@ -168,9 +174,12 @@ export class FieldScene {
     const g = this.game;
     this.dom = el('div', 'tb-scene');
     this.regionEl = el('div', 'tb-region'); this.dom.appendChild(this.regionEl);
-    this.helpEl = el('div', 'tb-help', 'WASD/方向キー 跳ねる　Space 大ジャンプ　E 調べる・拾う　I 持ち物　Enter チャット　Esc メニュー');
+    this.helpEl = el('div', 'tb-help', g.isTouch ? HELP_TOUCH : HELP_KEYS);
     this.dom.appendChild(this.helpEl);
-    this.promptEl = el('div', 'tb-prompt hidden'); this.dom.appendChild(this.promptEl);
+    // 「E 拾う」の案内。タッチでは押せる（調べるボタンと同じ）
+    this.promptEl = el('div', 'tb-prompt tb-ui-block hidden'); this.dom.appendChild(this.promptEl);
+    this.promptEl.addEventListener('click', () => { if (!g.ui.busy()) this.interact(); });
+    this.autoGo = null;
     g.hud.appendChild(this.dom);
     g.ui.mountHotbarOnce();
     g.ui.setInventory(this.inv);
@@ -180,7 +189,9 @@ export class FieldScene {
     this.lastRegion = null;
     this._snapCam();
   }
-  leave() { if (this.dom) this.dom.remove(); this.dom = null; this.game.ui.showHUD(false); }
+  leave() { if (this.dom) this.dom.remove(); this.dom = null; this.autoGo = null; this.game.ui.showHUD(false); }
+  onTouchChange(on) { if (this.helpEl) this.helpEl.textContent = on ? HELP_TOUCH : HELP_KEYS; }
+  helpHTML() { return this.game.isTouch ? HELP_FULL_TOUCH : HELP_FULL_KEYS; }
 
   _snapCam() { const v = this.pred.state; this.cam.x = this._clampX(v.x - W / 2); this.cam.y = this._clampY(v.y - H / 2); }
   _clampX(x) { return Math.max(0, Math.min(this.map.pxW - W, x)); }
@@ -190,8 +201,10 @@ export class FieldScene {
   fixed(dt) {
     const g = this.game, inp = g.input;
     const locked = g.ui.busy() || performance.now() < this.busyUntil || (g.net.mode === 'online' && g.net.state !== 'online');   // 再接続中は止まって待つ
-    const ax = locked ? { mx: 0, my: 0 } : inp.axis();
+    let ax = locked ? { mx: 0, my: 0 } : inp.axis();
     const jump = !locked && !!inp.take('Space');
+    if (ax.mx || ax.my || jump) this.autoGo = null;            // 自分で動かしたらタップ移動はやめる
+    else if (this.autoGo && !locked) ax = this._steer(dt);
     const i = this.pred.input({ mx: ax.mx, my: ax.my, jump });
     g.net.sendInput(i);
   }
@@ -208,12 +221,22 @@ export class FieldScene {
     this._wasJump = !!st.jump;
     if (st.anim === 'hop' && (st.hop % 1) < (this._lastHop % 1) && Math.random() < 0.5) this.puff(st.x - st.fx * 4, st.y, '#e6c690', 2);
     this._lastHop = st.hop;
-    for (const p of this.fx) p.t += dt;
-    this.fx = this.fx.filter(p => p.t < p.life);
+    let n = 0;
+    for (const p of this.fx) { p.t += dt; if (p.t < p.life) this.fx[n++] = p; }
+    this.fx.length = n;
     // 地域名
     const reg = regionAt(this.map, st.x, st.y);
     if (reg !== this.lastRegion) { this.lastRegion = reg; this.regionEl.textContent = reg.name; this.regionEl.classList.remove('flash'); void this.regionEl.offsetWidth; this.regionEl.classList.add('flash'); }
-    if (this.t > 25) this.helpEl.classList.add('dim');
+    if (this.t > (g.isTouch ? 6 : 25) && !this._helpPinned) this.helpEl.classList.add('dim');   // 最初の数秒だけ（メニュー→ヘルプでいつでも）
+    // 画面のタップ（タッチ）。マウスのクリックは従来どおり何もしない
+    for (const ev of inp.takeMouse()) {
+      if (ev.pt === 'mouse') continue;
+      if (ev.type === 'down') this._tap = { id: ev.id, x: ev.x, y: ev.y, t: this.t };
+      else if (ev.type === 'up' && this._tap && this._tap.id === ev.id) {
+        const tp = this._tap; this._tap = null;
+        if (Math.hypot(ev.x - tp.x, ev.y - tp.y) < 10 && this.t - tp.t < 0.6 && !g.ui.busy()) this.tapAt(ev.x, ev.y);
+      } else if (ev.type === 'cancel') this._tap = null;
+    }
     // キー
     if (!g.ui.busy()) {
       if (inp.take('KeyE')) this.interact();
@@ -225,8 +248,40 @@ export class FieldScene {
     // 近くの対象の案内
     const tgt = this.target();
     this.curTarget = tgt;
-    if (tgt && !g.ui.busy()) { this.promptEl.innerHTML = `<b>E</b> ${esc(tgt.label)}`; this.promptEl.classList.remove('hidden'); }
-    else this.promptEl.classList.add('hidden');
+    if (tgt && !g.ui.busy()) {
+      const html = `<b>${g.isTouch ? '調べる' : 'E'}</b> ${esc(tgt.label)}`;
+      if (this._promptHTML !== html) { this._promptHTML = html; this.promptEl.innerHTML = html; }
+      this.promptEl.classList.remove('hidden');
+    } else this.promptEl.classList.add('hidden');
+  }
+
+  // ───────── タップで移動（タッチ）─────────
+  /** タップした所（画面の内部座標）へ向かう。採集物・巣穴なら着いたら拾う・入る */
+  tapAt(sx, sy) {
+    const wx = sx + this.cam.x, wy = sy + this.cam.y, s = this.pred.state;
+    // 自分をタップ：調べる（E と同じ）
+    if (Math.hypot(wx - s.x, wy - (s.y - 10)) < 12) { this.autoGo = null; this.interact(); return; }
+    const hit = pickTapTarget(wx, wy, { resources: [...this.resources.values()], entrances: this.entrances, players: this.remoteViews || [] });
+    if (hit && hit.kind === 'res') this.autoGo = { x: hit.ref.x, y: hit.ref.y, kind: 'res', ref: hit.ref, arrive: PICK_R - 8 };
+    else if (hit && hit.kind === 'ent') this.autoGo = { x: hit.ref.x, y: hit.ref.y + 2, kind: 'ent', ref: hit.ref, arrive: ENT_R - 8 };
+    else if (hit && hit.kind === 'player') this.autoGo = { x: hit.ref.x, y: hit.ref.y, kind: 'player', ref: hit.ref, arrive: 18 };
+    else this.autoGo = { x: wx, y: wy, kind: 'spot', arrive: 3 };
+    this.autoGo.best = 1e9; this.autoGo.stuck = 0; this.autoGo.t0 = this.t;
+  }
+  _steer(dt) {
+    const a = this.autoGo, s = this.pred.state;
+    if (s.jump) return { mx: 0, my: 0 };
+    if (a.kind === 'player' && a.ref) { const p = (this.remoteViews || []).find(v => v.id === a.ref.id); if (p) { a.x = p.x; a.y = p.y; } }
+    const st = steerToward(s.x, s.y, a.x, a.y, a.arrive);
+    if (st.done) {
+      this.autoGo = null;
+      if (a.kind === 'res' || a.kind === 'ent') { const tgt = this.target(); if (tgt && (tgt.res === a.ref || tgt.ent === a.ref)) this.interact(tgt); }
+      return { mx: 0, my: 0 };
+    }
+    // 岩や水で止まったら（0.8 秒近づけない）あきらめる
+    if (st.dist < a.best - 0.5) { a.best = st.dist; a.stuck = 0; } else a.stuck += dt;
+    if (a.stuck > 0.8) { this.autoGo = null; if (a.kind !== 'spot' || st.dist > 12) this.game.ui.toast('そこまで行けない'); return { mx: 0, my: 0 }; }
+    return st;
   }
 
   /** いちばん近い対象：採集物 > 巣穴 > 巣を掘る */
@@ -251,8 +306,8 @@ export class FieldScene {
     return null;
   }
 
-  async interact() {
-    const g = this.game, tgt = this.target();
+  async interact(pre) {
+    const g = this.game, tgt = pre || this.target();
     if (!tgt) return;
     if (tgt.kind === 'res') {
       const r = tgt.res;
@@ -282,7 +337,7 @@ export class FieldScene {
       this.onEntrance({ entrance: res.entrance });
       this.myNest = { id: res.entrance.nestId, x: res.entrance.x, y: res.entrance.y };
       this.puff(res.entrance.x, res.entrance.y, '#b98552', 10);
-      g.ui.toast('巣穴ができた！ 入口で E を押すと入れる');
+      g.ui.toast(g.isTouch ? '巣穴ができた！ 入口をタップすると入れる' : '巣穴ができた！ 入口で E を押すと入れる');
     } else if (tgt.kind === 'nodig') {
       g.ui.toast(tgt.label, 'bad');
     }
@@ -356,6 +411,12 @@ export class FieldScene {
       }
       else if (o.kind === 'tree') { if (!Sprites.drawEntry(g, 'tile.tree', 0, o.x, o.y)) A.drawTree(g, o.x, o.y); }
     }
+    // タップで向かっている所
+    if (this.autoGo) {
+      const a = this.autoGo, k = (this.t * 2) % 1;
+      g.strokeStyle = `rgba(255,236,170,${0.9 - k * 0.6})`; g.lineWidth = 1;
+      g.beginPath(); g.ellipse(Math.round(a.x) + 0.5, Math.round(a.y) + 0.5, 3 + k * 4, 1.5 + k * 2, 0, 0, Math.PI * 2); g.stroke();
+    }
     // 砂ぼこり
     for (const p of this.fx) { g.globalAlpha = 1 - p.t / p.life; g.fillStyle = p.color; g.fillRect(Math.round(p.x + p.vx * p.t), Math.round(p.y + p.vy * p.t), 2, 1); }
     g.globalAlpha = 1;
@@ -403,7 +464,7 @@ export class FieldScene {
   }
 
   drawMinimap(g) {
-    const m = this.map, s = 0.75, mw = Math.round(m.w * s), mh = Math.round(m.h * s);
+    const m = this.map, s = W < 340 ? 0.5 : 0.75, mw = Math.round(m.w * s), mh = Math.round(m.h * s);
     const x0 = W - mw - 6, y0 = 6;
     g.fillStyle = '#2a1a10'; g.fillRect(x0 - 3, y0 - 3, mw + 6, mh + 6);
     g.fillStyle = '#c8a46a'; g.fillRect(x0 - 2, y0 - 2, mw + 4, mh + 4);

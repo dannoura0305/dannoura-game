@@ -2,13 +2,15 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>トビネズミMMO（仮称）</title>
 <meta name="theme-color" content="#2a1a10">
 <meta name="description" content="一匹のトビネズミとして乾いた大地を跳ね回り、自分だけの巣を掘って暮らす。『だんのうら』のおまけゲーム（ver.0.1・オフラインでも遊べます）。">
-<link rel="icon" type="image/png" sizes="192x192" href="assets/pwa/icon-192.png">
-<link rel="apple-touch-icon" href="assets/pwa/apple-touch-icon.png">
+<link rel="manifest" href="tobinezumi.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="tobinezumi/assets/pwa/icon-192.png">
+<link rel="apple-touch-icon" href="tobinezumi/assets/pwa/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="トビネズミ">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,5 +28,6 @@
   <noscript><p class="tb-noscript">このゲームを遊ぶには JavaScript を有効にしてください。<a href="index.html">本編に戻る</a></p></noscript>
 </div>
 <script type="module" src="tobinezumi/client/main.js"></script>
+<script src="pwa.js"></script>
 </body>
 </html>
