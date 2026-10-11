@@ -74,6 +74,7 @@ export class UI {
     this.chatOpen = false;
   }
   toast(text, kind = '') {
+    this.layoutTop();
     const t = el('div', 'tb-toast ' + kind, esc(text));
     this.toastBox.appendChild(t);
     while (this.toastBox.children.length > 3) this.toastBox.firstChild.remove();
@@ -143,6 +144,33 @@ export class UI {
     if (this.lifeEl) this.lifeEl.classList.toggle('hidden', !life);
     if (this.clockEl) this.clockEl.classList.toggle('hidden', !life);
     if (this.hud) this.hud.classList.toggle('tb-hud-nohotbar', !hotbar);
+    this.layoutTop();
+  }
+  /**
+   * タッチ：左上は「地域名／巣の名前」→ その下に体調・空腹・水分のバー → トーストはバーの下から。
+   * 実際の大きさを測って並べるので、名前が 2 行になっても・画面の向きが変わっても重ならない。
+   */
+  layoutTop() {
+    const life = this.lifeEl, tb = this.toastBox;
+    const on = !!(this.touch && life && !life.classList.contains('hidden') && life.offsetParent);
+    const horiz = document.documentElement.classList.contains('tb-horiz');
+    if (this.chatLog && !(on && horiz)) this.chatLog.style.top = '';
+    const ck = this.clockEl, ckOn = on && horiz && ck && !ck.classList.contains('hidden');
+    if (ck && !ckOn) { ck.style.top = ''; ck.style.left = ''; ck.style.right = ''; }
+    if (!on) { if (life) life.style.top = ''; if (tb) tb.style.top = ''; return; }
+    const H = this.hud.getBoundingClientRect();
+    const title = this.hud.querySelector('.tb-scene .tb-region, .tb-scene .tb-wtop');
+    const tr = title && title.offsetParent ? title.getBoundingClientRect() : null;
+    const top = Math.round((tr && tr.height ? tr.bottom : H.top + 6) - H.top + 3);
+    if (life.style.top !== top + 'px') life.style.top = top + 'px';
+    let L = life.getBoundingClientRect();
+    if (ckOn) {   // 横向き：右の端はボタンの列なので、時計はバーのすぐ下（左）に
+      Object.assign(ck.style, { top: Math.round(L.bottom - H.top + 3) + 'px', left: Math.round(L.left - H.left) + 'px', right: 'auto' });
+      L = ck.getBoundingClientRect();
+    }
+    const tt = Math.round(L.bottom - H.top + 4) + 'px';
+    if (tb.style.top !== tt) tb.style.top = tt;
+    if (horiz && this.chatLog && this.chatLog.style.top !== tt) this.chatLog.style.top = tt;   // 横向きのチャットログもバーの下
   }
 
   // ── 暮らしの数値（体調・空腹・水分）。添付イメージのホットバー右の 3 本のバー ──
@@ -174,6 +202,7 @@ export class UI {
       row.classList.toggle('empty', v <= 0);
     }
     this.lifeEl.classList.toggle('sleeping', !!life.sleep);
+    this.layoutTop();
   }
   /** 時計：tod = shared/daynight.js の timeOfDay */
   setClock(tod) {

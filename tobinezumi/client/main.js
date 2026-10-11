@@ -23,6 +23,7 @@ const game = {
   iconURL,
 };
 game.ui = new UI(game.hud);
+game.screen.onResize(() => requestAnimationFrame(() => game.ui.layoutTop()));
 game.input.blocked = () => game.ui.chatOpen;
 
 function loadSettings() { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch (e) { return {}; } }

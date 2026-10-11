@@ -327,3 +327,8 @@ html.tb-horiz .tc-main .tc-btn[data-id="eat"] { position: absolute; right: 152px
 html.tb-touch.tb-horiz .tb-chatlog { top: calc(var(--u) * 15px + 60px); }
 .tc-btn[data-id="eat"] span { white-space: nowrap; font-size: 11px; }
 html.tb-touch .tb-help { top: calc(var(--u) * 15px + 62px); }
+/* タッチ：左上の名前（地域名・巣の名前）は右のミニマップ・時計に重ならない幅で折り返し、全部読めるように。バーとトーストの位置は ui.js の layoutTop が測って決める */
+html.tb-touch .tb-region, html.tb-touch .tb-wtop { max-width: calc(100% - max(calc(var(--u) * 60px), 110px)); white-space: normal; line-height: 1.25; }
+html.tb-touch .tb-toasts { max-width: calc(100% - 12px); }
+html.tb-touch .tb-toast { white-space: normal; text-align: center; max-width: 100%; }
+html.tb-touch.tb-horiz .tb-guide { right: 214px; }   /* 「食べる」の丸（右から 152〜200px）を避ける */
