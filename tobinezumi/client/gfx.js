@@ -30,7 +30,8 @@ export class Screen {
   onResize(fn) { this.listeners.push(fn); }
   setZoomPref(p) { this.zoomPref = p; this.resize(); }
   setTouch(on) { if (this.touch !== !!on) { this.touch = !!on; this.resize(); } }
-  setControls(on) { if (this.controls !== !!on) { this.controls = !!on; this.resize(); } }
+  /** タッチ操作の帯を使うか・縦向きのときの帯の高さ（CSS px） */
+  setControls(on, strip = 0) { if (this.controls !== !!on || this.strip !== strip) { this.controls = !!on; this.strip = strip; this.resize(); } }
   safeArea() {
     const cs = getComputedStyle(this.probe), n = v => parseFloat(v) || 0;
     return { t: n(cs.paddingTop), r: n(cs.paddingRight), b: n(cs.paddingBottom), l: n(cs.paddingLeft) };
@@ -40,7 +41,7 @@ export class Screen {
     let s, w = 480, h = 270, pos = null;
     if (this.touch) {
       const pref = ['small', 'large'].includes(this.zoomPref) ? this.zoomPref : 'auto';
-      const L = touchLayout(vw, vh, this.safeArea(), { controls: this.controls, pref });
+      const L = touchLayout(vw, vh, this.safeArea(), { controls: this.controls, pref, strip: this.strip || 0 });
       this.layout = L;
       s = L.scale; w = L.W; h = L.H; pos = L;
     } else {

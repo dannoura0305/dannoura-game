@@ -7,17 +7,17 @@ import { stickVector } from './touch-logic.js';
 /** 画面ごとのボタン。key＝押した瞬間、hold＝押している間、act＝動作、toggle＝切り替え */
 const LAYOUTS = {
   field: {
-    pad: 'stick',
+    pad: 'stick', strip: 196,
     main: [{ id: 'jump', label: 'ジャンプ', key: 'Space', big: true }, { id: 'use', label: '調べる', key: 'KeyE' }],
     sys: [{ id: 'inv', label: '持ち物', key: 'KeyI' }, { id: 'chat', label: 'チャット', act: 'chat' }, { id: 'menu', label: 'メニュー', key: 'Escape' }],
   },
   walk: {
-    pad: 'dpad',
+    pad: 'dpad', strip: 204,
     main: [{ id: 'jump', label: 'ジャンプ', key: 'Space', big: true }, { id: 'use', label: '調べる', key: 'KeyE' }],
     sys: [{ id: 'build', label: 'ビルド', key: 'KeyB' }, { id: 'inv', label: '持ち物', key: 'KeyI' }, { id: 'chat', label: 'チャット', act: 'chat' }, { id: 'menu', label: 'メニュー', key: 'Escape' }],
   },
   build: {
-    pad: null,
+    pad: null, strip: 118,
     main: [],
     sys: [{ id: 'pan', label: '見回し', toggle: 'pan' }, { id: 'undo', label: '取り消し', act: 'undo' }, { id: 'rot', label: '向き', key: 'KeyR' },
       { id: 'zin', label: '拡大＋', act: 'zoomIn' }, { id: 'zout', label: '縮小－', act: 'zoomOut' }, { id: 'walk', label: '歩く', key: 'Tab' }, { id: 'inv', label: '持ち物', key: 'KeyI' }],
@@ -59,7 +59,8 @@ export class TouchControls {
     const vis = this.active;
     this.root.classList.toggle('hidden', !vis);
     this.showBtn.classList.toggle('hidden', !(this.enabled && this.hidden && this.layoutName));
-    this.game.screen.setControls(vis);
+    const L = LAYOUTS[this.layoutName];
+    this.game.screen.setControls(vis, L ? L.strip : 0);
     if (!vis) this._releasePad();
   }
   /** 入力をふさぐもの（持ち物・チャット）が開いているあいだは方向とボタンを隠す */

@@ -43,6 +43,7 @@ export class NestWalkScene {
     g.ui.showHUD(true, false);
   }
   leave() { if (this.dom) this.dom.remove(); this.dom = null; this.game.screen.clearUI(); this.game.ui.showHUD(false); }
+  helpHTML() { return this.game.isTouch ? '<b>◀ ▶</b> 歩く／<b>▲ ▼</b> はしご・縦の通路を登る・降りる（入口の縦穴を ▲ で地上へ）<br><b>ジャンプ</b>／<b>調べる</b> 寝床で眠る・倉庫を開く<br><b>ビルド</b> 全体モード（掘る・部屋・家具）' : '<b>← →</b> 歩く／<b>↑ ↓</b> 登る・降りる／<b>Space</b> ジャンプ<br><b>E</b> 調べる（眠る・倉庫）／<b>B・Tab</b> 全体モード'; }
   onTouchChange(on) { if (this.guideEl) this.guideEl.innerHTML = on ? GUIDE_TOUCH : GUIDE_KEYS; }
   _setData(data) { this.data = data; this.q = nestQuery(data); this.view.setData(data, { fill: this._fill() }); }
   _fill() { const s = this.nest.storage || []; let n = 0; for (const it of s) if (it) n += it.n; return Math.min(1, n / 60); }

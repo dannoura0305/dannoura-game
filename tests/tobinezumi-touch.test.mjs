@@ -128,6 +128,13 @@ test('配置：縦向きの電話は上にゲーム・下に操作の帯。画�
     assert.ok(L.scale >= 1.4, '絵が小さすぎない: ' + L.scale);
   }
 });
+test('配置：操作の帯は中身の高さ（strip）だけ取り、残りはゲーム画面', () => {
+  const big = touchLayout(390, 844), field = touchLayout(390, 844, undefined, { strip: 196 }), build = touchLayout(390, 844, undefined, { strip: 118 });
+  assert.equal(field.controlsH, 196); assert.equal(build.controlsH, 118);
+  assert.ok(build.height > field.height && field.height >= big.height);
+  assert.ok(field.top + field.height <= 844 - 196 + 1);
+  assert.ok(touchLayout(390, 500, undefined, { strip: 400 }).controlsH <= 200, '帯は画面の 4 割まで');
+});
 test('配置：横向きの電話は画面いっぱい（ノッチを避ける）', () => {
   const L = touchLayout(844, 390, { t: 0, r: 47, b: 21, l: 47 });
   assert.ok(!L.portrait && L.controlsH === 0);

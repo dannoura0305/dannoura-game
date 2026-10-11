@@ -138,13 +138,14 @@ export function snapZoom(z, steps = [0.5, 0.75, 1, 1.5, 2, 3]) {
  * pref：'auto' | 'small'（内部の画素を多めに＝絵が小さい）| 'large'
  * 返り値：{ W, H, scale, left, top, width, height, portrait, controlsH }
  */
-export function touchLayout(vw, vh, safe = { t: 0, r: 0, b: 0, l: 0 }, { controls = true, pref = 'auto' } = {}) {
+export function touchLayout(vw, vh, safe = { t: 0, r: 0, b: 0, l: 0 }, { controls = true, pref = 'auto', strip = 0 } = {}) {
   const aw0 = Math.max(1, vw - safe.l - safe.r), ah0 = Math.max(1, vh - safe.t - safe.b);
   const portrait = ah0 > aw0 * 1.05;
   const short = Math.min(aw0, ah0);
   const tablet = short >= 600;
   let controlsH = 0;
-  if (portrait && controls) controlsH = Math.round(Math.max(190, Math.min(tablet ? 300 : 330, ah0 * (tablet ? 0.27 : 0.36))));
+  // strip：操作の帯の高さ（中身に合わせて画面が決める）。無ければ画面の約 1/4
+  if (portrait && controls) controlsH = Math.round(strip > 0 ? Math.min(strip, ah0 * 0.4) : Math.max(190, Math.min(tablet ? 300 : 330, ah0 * (tablet ? 0.27 : 0.36))));
   const aw = aw0, ah = Math.max(1, ah0 - controlsH);
   let [MW, MH] = portrait ? (tablet ? [400, 360] : [240, 300]) : (tablet ? [480, 270] : [416, 234]);
   const k = pref === 'small' ? 1.25 : pref === 'large' ? 0.8 : 1;

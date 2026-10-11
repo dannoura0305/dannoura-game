@@ -45,7 +45,7 @@ export class NestBuildScene {
     this.zf = this.zf != null ? this.zf : 0.5;
     this.drag = null; this.hover = null; this.busy = Promise.resolve(); this.pending = 0;
     this.view.setData(nest.data, { fill: this._fill() });
-    if (!this.cam || this._nestId !== nest.id) { this._nestId = nest.id; this.undo = []; this._fit(); }
+    if (!this.cam || this._nestId !== nest.id) { this._nestId = nest.id; this.undo = []; this._fit(); this._needHome = true; }
     this._mount();
     g.ui.showHUD(false);
     this.t = 0;
@@ -56,9 +56,24 @@ export class NestBuildScene {
     tc.on('zoomOut', () => this.zoomStep(-1));
     tc.on('toggle:pan', on => { this.panMode = on; this._syncMenu(); });
     this.panMode = false;
-    requestAnimationFrame(() => this._measure());
+    g.hud.classList.add('tb-hud-build');
+    requestAnimationFrame(() => { this._measure(); if (this._needHome && g.isTouch) this._fitHome(); this._needHome = false; });
   }
-  leave() { if (this.dom) this.dom.remove(); this.dom = null; this.game.screen.clearUI(); }
+  leave() { if (this.dom) this.dom.remove(); this.dom = null; this.game.screen.clearUI(); this.game.hud.classList.remove('tb-hud-build'); }
+  /** タッチ：入口と部屋が、ツール欄に隠れない所の真ん中に来るように。1 マスが指で押せる大きさ（約 24px 以上）に */
+  _fitHome() {
+    const d = this.nest.data, s = this.game.screen.scale || 1;
+    let x0 = d.entrance.x, x1 = d.entrance.x + 1, y0 = d.surfaceY, y1 = d.surfaceY + 1;
+    for (const r of d.rooms) { x0 = Math.min(x0, r.x); x1 = Math.max(x1, r.x + r.w); y0 = Math.min(y0, r.y); y1 = Math.max(y1, r.y + r.h); }
+    const need = 24 / (CELL * s);
+    this.zf = [0.5, 0.75, 1, 1.5, 2].find(z => z >= need - 1e-6) || 2;
+    this.cam.x = (x0 + x1) / 2 * CELL; this.cam.y = (y0 + y1) / 2 * CELL;
+    this._clampCam(); this._syncMenu();
+  }
+  helpHTML() {
+    if (!this.game.isTouch) return '左のツール（<b>1〜7</b>）を選んでマウスで編集。<b>ホイール</b> 拡大縮小、<b>右ドラッグ</b>・方向キー 見回し、<b>Ctrl+Z</b> 取り消し、<b>R</b> 家具の向き、<b>Tab・B</b> 歩く';
+    return '<b>1 本指</b> ツール（タップで 1 回・なぞって続けて。家具は押したまま位置を合わせて離す）<br><b>2 本指</b> 動かす・つまんで拡大縮小<br><b>見回し</b> 1 本指で動かす／<b>取り消し</b>／<b>向き</b> 家具の反転<br>部屋ツールでは辺の <b>●</b> をつかんで広げる。撤去は確認が出ます。左の <b>◂</b> でツール欄をたためる';
+  }
   onTouchChange() { if (this.dom) { this.dom.remove(); this._mount(); requestAnimationFrame(() => this._measure()); } }
   /** ツール欄の右端（内部 px）→ 見える範囲の左端 */
   _measure() {

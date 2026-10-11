@@ -212,13 +212,13 @@ html.tb-touch .tb-btop { left: max(calc(var(--u) * 40px), 62px); flex-wrap: wrap
 /* 縦向き：ゲーム画面の下（--stage-b から下）に操作の帯 */
 html.tb-vert #tb-touch::before { content: ''; position: absolute; left: 0; right: 0; top: var(--stage-b); bottom: 0; background: linear-gradient(#1e130c, #120a06); border-top: 1px solid #3a2618; }
 html.tb-vert .tc-sys { left: 8px; right: 8px; top: calc(var(--stage-b) + 8px); justify-content: center; flex-wrap: wrap; gap: 6px; }
-html.tb-vert .tc-zone { left: 0; width: 56%; top: calc(var(--stage-b) + 54px); bottom: 0; }
+html.tb-vert .tc-zone { left: 0; width: 56%; top: calc(var(--stage-b) + 50px); bottom: 0; }
 html.tb-vert .tc-base { left: calc(22px + env(safe-area-inset-left)); bottom: calc(18px + env(safe-area-inset-bottom)); }
-html.tb-vert .tc-zone.dpad .tc-base { width: 140px; height: 140px; }
+html.tb-vert .tc-zone.dpad .tc-base { width: 128px; height: 128px; bottom: calc(14px + env(safe-area-inset-bottom)); }
 html.tb-vert .tc-main { right: calc(14px + env(safe-area-inset-right)); bottom: calc(22px + env(safe-area-inset-bottom)); gap: 12px; align-items: flex-end; flex-direction: row-reverse; }
 html.tb-vert .tc-main .tc-btn:not(.big) { margin-bottom: 52px; }
 html.tb-vert #tb-touch[data-layout="build"] .tc-sys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-html.tb-vert #tb-touch[data-layout="build"] .tc-sbtn { height: 50px; min-width: 0; font-size: 14px; }
+html.tb-vert #tb-touch[data-layout="build"] .tc-sbtn { height: 46px; min-width: 0; font-size: 14px; }
 /* 横向き：左下にスティック、右下にボタン、右の端に小さいボタン */
 html.tb-horiz .tc-zone { left: 0; bottom: 0; width: 30%; height: 58%; }
 html.tb-horiz .tc-base { left: calc(18px + env(safe-area-inset-left)); bottom: calc(16px + env(safe-area-inset-bottom)); width: 112px; height: 112px; }
@@ -229,4 +229,27 @@ html.tb-horiz .tc-main .tc-btn:not(.big) { margin-bottom: 30px; }
 html.tb-horiz .tc-sys { right: calc(6px + env(safe-area-inset-right)); top: 0; bottom: 0; flex-direction: column; justify-content: center; gap: 5px; }
 html.tb-horiz #tb-touch:not([data-layout="build"]) .tc-sys { bottom: 110px; top: 70px; }
 html.tb-horiz .tc-sbtn { height: 32px; min-width: 70px; font-size: 12px; opacity: .92; }
-html.tb-vert .tc-sbtn { min-width: 0; padding: 0 12px; }
+html.tb-vert .tc-sbtn { min-width: 0; padding: 0 9px; flex: 0 1 auto; }
+html.tb-vert #tb-touch:not([data-layout="build"]) .tc-sys { flex-wrap: nowrap; }
+html.tb-vert .tc-sbtn.dim { min-width: 0; padding: 0 7px; }
+
+/* 全体モード：トーストは上の帯（巣の名前・訪問設定）の下に出す */
+#tb-hud.tb-hud-build .tb-toasts { top: calc(var(--u) * 17px); }
+html.tb-touch #tb-hud.tb-hud-build .tb-toasts { top: calc(max(calc(var(--u) * 14px), 40px) + 4px); }
+html.tb-touch .tb-btop { flex-wrap: nowrap; white-space: nowrap; overflow: hidden; }
+html.tb-touch .tb-bname { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+html.tb-touch .tb-tools { top: max(calc(var(--u) * 14px), 40px); }
+.tb-help-full { line-height: 1.6; margin-bottom: calc(var(--u) * 3px); font-size: .9em; }
+.tb-help-full b { color: var(--ok); font-weight: normal; }
+/* 横向き（タッチ）：高さが足りないので詰める */
+html.tb-touch.tb-horiz .tb-tool { min-height: 37px; padding: 1px 0; }
+html.tb-touch.tb-horiz .tb-tool img { width: 22px; height: 22px; }
+html.tb-touch.tb-horiz .tb-tool span { font-size: .8em; line-height: 1.1; }
+html.tb-touch.tb-horiz .tb-tool.tb-fold { min-height: 26px; }
+html.tb-touch.tb-horiz .tb-guide { left: calc(30% + 8px); right: 190px; bottom: 4px; }
+html.tb-touch.tb-horiz .tb-cols { flex-wrap: nowrap; }
+html.tb-touch.tb-horiz .tb-storage .tb-slot.big { width: 40px; height: 40px; }
+html.tb-touch.tb-horiz .tb-storage .tb-slot.big img { width: 28px; height: 28px; }
+html.tb-touch.tb-horiz .tb-menu { width: min(calc(100% - 200px), 460px); }
+html.tb-touch.tb-horiz .tb-menu-items { display: grid; grid-template-columns: 1fr 1fr; column-gap: 8px; }
+html.tb-touch.tb-horiz .tb-menu .tb-field { display: inline-block; width: calc(50% - 6px); margin-right: 4px; vertical-align: top; }

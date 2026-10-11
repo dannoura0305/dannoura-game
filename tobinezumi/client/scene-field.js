@@ -13,7 +13,9 @@ import { pickTapTarget, steerToward } from './touch-logic.js';
 
 const PICK_R = 22, ENT_R = 20;
 const HELP_KEYS = 'WASD/方向キー 跳ねる　Space 大ジャンプ　E 調べる・拾う　I 持ち物　Enter チャット　Esc メニュー';
-const HELP_TOUCH = '左のスティックで跳ねる　ジャンプ＝大ジャンプ　地面・採集物・巣穴をタップでそこへ行く（着いたら拾う・入る）　調べる＝拾う・巣を掘る';
+const HELP_TOUCH = 'スティックで跳ねる・地面や採集物をタップでそこへ（メニュー→ヘルプ）';
+const HELP_FULL_KEYS = '<b>WASD・方向キー</b> 跳ねる／<b>Space</b> 大ジャンプ（小石の山や草むらを越える）<br><b>E</b> 拾う・調べる・巣に入る・巣を掘る<br><b>I</b> 持ち物／<b>Enter</b> チャット／<b>Esc</b> メニュー／<b>H</b> 下の案内を出す・隠す';
+const HELP_FULL_TOUCH = '<b>左のスティック</b> 跳ねる（左側のどこを触ってもよい）<br><b>ジャンプ</b> 大ジャンプ（小石の山や草むらを越える）<br><b>地面をタップ</b> そこへ跳ねていく<br><b>採集物・巣穴をタップ</b> 歩いて行って拾う・入る<br><b>自分をタップ・調べる</b> 拾う・巣を掘る・巣に入る<br><b>持ち物・チャット・メニュー</b> 上の帯のボタン（ホットバーを押しても持ち物）'; 
 const PRIO = { [T.SAND]: 0, [T.DIRT]: 1, [T.GRASS]: 2 };
 
 export class FieldScene {
@@ -189,6 +191,7 @@ export class FieldScene {
   }
   leave() { if (this.dom) this.dom.remove(); this.dom = null; this.autoGo = null; this.game.ui.showHUD(false); }
   onTouchChange(on) { if (this.helpEl) this.helpEl.textContent = on ? HELP_TOUCH : HELP_KEYS; }
+  helpHTML() { return this.game.isTouch ? HELP_FULL_TOUCH : HELP_FULL_KEYS; }
 
   _snapCam() { const v = this.pred.state; this.cam.x = this._clampX(v.x - W / 2); this.cam.y = this._clampY(v.y - H / 2); }
   _clampX(x) { return Math.max(0, Math.min(this.map.pxW - W, x)); }
@@ -224,7 +227,7 @@ export class FieldScene {
     // 地域名
     const reg = regionAt(this.map, st.x, st.y);
     if (reg !== this.lastRegion) { this.lastRegion = reg; this.regionEl.textContent = reg.name; this.regionEl.classList.remove('flash'); void this.regionEl.offsetWidth; this.regionEl.classList.add('flash'); }
-    if (this.t > 25) this.helpEl.classList.add('dim');
+    if (this.t > (g.isTouch ? 6 : 25) && !this._helpPinned) this.helpEl.classList.add('dim');   // 最初の数秒だけ（メニュー→ヘルプでいつでも）
     // 画面のタップ（タッチ）。マウスのクリックは従来どおり何もしない
     for (const ev of inp.takeMouse()) {
       if (ev.pt === 'mouse') continue;
