@@ -220,10 +220,12 @@ await test('採集：距離（サーバーの確定位置で 28px）・持ち物
   const k = respawnScale(dayPhase(H.game.clock, H.clock.t));
   assert.ok(q.at - H.clock.t >= 120000 * k - 1 && q.at - H.clock.t <= 300000 * k + 1, `${q.at - H.clock.t} / ×${k}`);
   H.clock.t = q.at + 1; a.inbox = []; H.game.tick();
-  const sp = a.take('res_spawn');
+  // 夜に当たると夜露・夜の種子（id が d／n で始まる）も同時に出るので、それは数えない
+  const isNight = x => x.id[0] === 'd' || x.id[0] === 'n';
+  const sp = a.take('res_spawn').filter(m => !isNight(m.res));
   assert.equal(sp.length, 1); assert.equal(sp[0].res.kind, r.kind);
   assert.equal(H.store.respawnQueue().length, 0);
-  assert.equal(H.store.resources().length, 90);
+  assert.equal(H.store.resources().filter(x => !isNight(x)).length, 90);
   H.close(); rmDir(H.dir);
 });
 
