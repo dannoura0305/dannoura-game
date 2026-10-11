@@ -25,7 +25,7 @@ export class NestView {
     for (const o of this.layout.objects) drawObject(g, o, t, this.fill, this.lift);
   }
   /** 暗がりと灯り。cam=(x,y) は画面左上の巣座標、z は拡大率、(vx,vy) は画面上の原点 */
-  drawLight(g, W, H, cam, z, dark, t, extra = []) {
+  drawLight(g, W, H, cam, z, dark, t, extra = [], { entrance = 0.95, entranceTint = null } = {}) {
     if (!this._lc || this._lc.width !== W || this._lc.height !== H) { this._lc = A.mk(W, H); }
     const lc = this._lc, lg = lc.getContext('2d');
     lg.globalCompositeOperation = 'source-over';
@@ -41,9 +41,15 @@ export class NestView {
     };
     for (const l of this.layout.lights) hole(l.x, l.y, l.r * (1 + 0.04 * Math.sin(t * 7 + l.x)), 1);
     const ex = this.layout.exit;
-    hole(ex.x, ex.y - 16, 56, 0.95);
+    hole(ex.x, ex.y - 16, 56, entrance);   // 入口から差しこむ外の光（昼は明るく、夜は月明かりだけ）
     for (const e of extra) hole(e.x, e.y, e.r, e.a || 0.8);
     g.drawImage(lc, 0, 0);
+    if (entranceTint) {   // 入口の光の色（夜は青白い月明かり）
+      const [sx, sy] = S(ex.x, ex.y - 16), R = 56 * z;
+      const gr = g.createRadialGradient(sx, sy, 0, sx, sy, R);
+      gr.addColorStop(0, entranceTint); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = gr; g.fillRect(sx - R, sy - R, R * 2, R * 2); g.restore();
+    }
     // 暖かい灯りの色
     g.save(); g.globalCompositeOperation = 'lighter';
     for (const l of this.layout.lights) {

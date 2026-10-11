@@ -110,29 +110,12 @@ export class NestBuildScene {
     this.dom = el('div', 'tb-scene tb-build');
     const edit = nest.canEdit;
     const top = el('div', 'tb-btop tb-ui-block');
-    top.innerHTML = `<span class="tb-bname">${esc(nest.ownerName)}の巣</span><span class="tb-bmode">${edit ? '全体モード（ビルド）' : '見学中（編集できません）'}</span>` +
-      (edit ? `<select class="tb-policy" title="巣の訪問設定"><option value="private">非公開</option><option value="public">公開（だれでも）</option>${g.net.mode === 'online' ? '<option value="list">許可リスト（名前で）</option>' : ''}</select>` : '') +
+    const mode = !edit ? '見学中（編集できません）' : nest.own ? '全体モード（ビルド）' : '共同作業者として編集';
+    top.innerHTML = `<span class="tb-bname">${esc(nest.ownerName)}の巣</span><span class="tb-bmode">${mode}</span>` +
+      (nest.own ? `<button type="button" class="tb-btn tb-nestset-btn" title="訪問設定・共同作業者">巣の設定</button>` : '') +
       `<span class="tb-zoom"></span>`;
     this.dom.appendChild(top);
-    if (edit) {
-      const sel = top.querySelector('.tb-policy'); sel.value = nest.policy || 'private';
-      sel.onchange = async () => {
-        const v = sel.value;
-        let list;
-        if (v === 'list') {
-          const txt = await g.ui.prompt('許可リスト', '巣に入ってよいトビネズミの<b>なまえ</b>を「、」か「,」で区切って入れてね（30 匹まで）', (nest.list || []).join('、'));
-          if (txt == null) { sel.value = nest.policy || 'private'; sel.blur(); return; }
-          list = txt.split(/[,、，\s]+/).map(x => x.trim()).filter(Boolean);
-        }
-        const r = await g.net.setVisitPolicy(v, list);
-        if (r.ok) {
-          nest.policy = v; if (list) nest.list = r.list || list;
-          const msg = { public: '巣を公開した（だれでも訪ねてこられる）', private: '巣を非公開にした', list: '許可リストの子だけ入れるようにした' }[v];
-          g.ui.toast(msg + (r.unknown && r.unknown.length ? '（見つからない名前：' + r.unknown.join('、') + '）' : ''));
-        } else { sel.value = nest.policy || 'private'; g.ui.toast(r.reason || '変えられなかった', 'bad'); }
-        sel.blur();
-      };
-    }
+    if (nest.own) top.querySelector('.tb-nestset-btn').onclick = () => { if (!g.ui.busy()) g.openNestSettings(nest); };
     this.zoomEl = top.querySelector('.tb-zoom');
     // ツール（タッチでは「ツール ▾」でたためる）
     const menu = el('div', 'tb-tools tb-ui-block' + (edit ? '' : ' disabled') + (this.collapsed ? ' collapsed' : ''));
@@ -171,6 +154,8 @@ export class NestBuildScene {
     this._syncMenu(); this._mats();
   }
   setTool(id) { this.tool = id; this.drag = null; this._syncMenu(); }
+  /** 共同作業者にされた・外された（nest_role）：画面を作りなおす */
+  onRoleChange(nest) { this.game.go(this, { nest }); }
   _syncMenu() {
     if (!this.menuEl) return;
     for (const b of this.menuEl.children) if (b.dataset.tool) b.classList.toggle('on', b.dataset.tool === this.tool);
@@ -476,6 +461,13 @@ export class NestBuildScene {
       }
       g.strokeStyle = r.kind === 'bed' ? 'rgba(240,200,110,.7)' : r.kind === 'store' ? 'rgba(170,210,120,.7)' : 'rgba(255,230,190,.35)';
       g.lineWidth = 1 / z; g.strokeRect(r.x * CELL + 0.5 / z, r.y * CELL + 0.5 / z, r.w * CELL - 1 / z, r.h * CELL - 1 / z);
+    }
+    // 地表より上の空だけ、昼夜の色（Ver.0.2。巣の中は変えない）
+    const tod = this.game.tod ? this.game.tod() : null;
+    if (tod) {
+      const sh = d.surfaceY * CELL + (this.view.assets ? 8 : 0), k = tod.dark / 0.66;
+      if (tod.period === 'day') { g.fillStyle = 'rgba(140,190,235,0.42)'; g.fillRect(0, 0, d.w * CELL, sh); }
+      if (k > 0.05) { g.fillStyle = `rgba(10,12,40,${0.75 * k})`; g.fillRect(0, 0, d.w * CELL, sh); }
     }
     this._drawHover(g);
     g.restore();

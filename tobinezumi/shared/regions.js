@@ -197,3 +197,27 @@ export function canDigBurrow(map, px, py, entrances = []) {
   for (const e of entrances) if (Math.hypot(e.x - px, e.y - py) < BURROW_MIN_DIST) return { ok: false, reason: 'ほかの巣に近すぎる' };
   return { ok: true, x: tx * TILE + 8, y: ty * TILE + 8 };
 }
+
+/** 夜だけ出るもの（夜露・夜の種子）の出現点：草や種の出る所（小石の所は除く）。kind を付け替えて返す */
+export function nightSpawnPoints(points) {
+  const out = [];
+  for (const p of points) {
+    if (p.kind === 'pebble') continue;
+    out.push({ x: p.x, y: p.y, kind: 'dew' });
+    if (p.kind === 'seed') out.push({ x: p.x, y: p.y, kind: 'seed' });
+  }
+  return out;
+}
+
+export const DRINK_RANGE = 20;
+/** 水場のふち（足元から r px 以内に水のタイルがある）か。水を飲める所 */
+export function nearWater(map, px, py, r = DRINK_RANGE) {
+  const t0x = Math.floor((px - r) / TILE), t1x = Math.floor((px + r) / TILE);
+  const t0y = Math.floor((py - r) / TILE), t1y = Math.floor((py + r) / TILE);
+  for (let ty = t0y; ty <= t1y; ty++) for (let tx = t0x; tx <= t1x; tx++) {
+    if (tileAt(map, tx, ty) !== T.WATER) continue;
+    const cx = Math.max(tx * TILE, Math.min(px, tx * TILE + TILE)), cy = Math.max(ty * TILE, Math.min(py, ty * TILE + TILE));
+    if (Math.hypot(cx - px, cy - py) <= r) return true;
+  }
+  return false;
+}

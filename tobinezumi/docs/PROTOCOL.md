@@ -1,4 +1,4 @@
-# PROTOCOL — クライアント⇄サーバーの通信（Ver.0.1）
+# PROTOCOL — クライアント⇄サーバーの通信（Ver.0.1＋0.2「暮らし」）
 
 > 状態：**実装済み（Ver.0.1）**。サーバー＝`tobinezumi/server`（Node.js 22＋`ws`＋`node:sqlite`）、クライアント＝`client/net.js` の `OnlineBackend`。2 ブラウザ＋ボット 10 体で受け入れ確認済み。
 > この文書と `tobinezumi/shared/protocol.js` が「約束」。サーバー担当はここに合わせ、ずれたら両方を直す。
@@ -44,7 +44,7 @@
 | `inv_move` | `{from, to}` | `{ok, inv}` | `swapSlots`（同じ物はまとめる） |
 | `nest_move` | `{x, y, facing, anim}` | なし | 巣の中の位置（訪問者どうしの表示用）。10Hz まで |
 | `chat` | `{text}` | なし（同じ場所の全員へ `chat`） | `cleanChat`（80 文字・制御文字除去）、連投制限（10 秒に 5 回・0.4 秒あける。超えると本人へ `toast`）。地上は地上の全員、巣の中は同じ巣の中の人だけ |
-| `visit_policy` | `{policy, list?:[キャラ名]}` | `{ok, policy, list?, unknown:[見つからない名前]}` | `policy ∈ private/public/list`。list は 30 人まで、キャラ名 → アカウントに直して `nest_access` に保存（同じ名前は全員） |
+| `visit_policy` | `{policy, list?:[キャラ名]}` | `{ok, policy, list?, unknown:[見つからない名前]}` | `policy ∈ private/friends/list/public`（friends は Ver.0.2）。list は 30 人まで、キャラ名 → アカウントに直して `nest_access` に保存（同じ名前は全員） |
 | `ping` | `{ct}` | `pong {ct, st}` | 時計合わせ＋生存確認（クライアントは 2 秒ごと） |
 
 ### op（`nest_op` の中身・`shared/nest-rules.js`）
@@ -64,7 +64,7 @@
 
 | t | 中身 |
 |---|---|
-| `welcome` | `{v, serverTime}`（接続直後。任意） |
+| `welcome` | `{v, serverTime, clock}`（接続直後。clock は §8） |
 | `snapshot` | `{st, ack, you, players:[PlayerSnap]}` を **10Hz**。`st`=サーバー時刻(ms)、`ack`=処理済みの最後の入力 seq、`you`=自分の確定状態（`stepField` の state そのもの：`{x,y,z,fx,fy,dir,anim,hop,cd,jump,seq}`） |
 | `player_join` | `{player:{id, name, fur, x, y, dir}, why:'join'\|'nest'}`（`nest`＝巣から出てきた：クライアントは通知を出さない） |
 | `player_leave` | `{id, why:'leave'\|'logout'\|'nest'}`（`nest`＝巣に入った） |
@@ -82,7 +82,7 @@
 
 ```
 Character  = {id, name, fur, createdAt, individual:{species:'jerboa', sex, generation, father_id, mother_id, genes:{fur}, traits:{}, status:{}}}
-WorldInit  = {serverTime, you:{id(=アカウント id), name, fur, x, y, dir, inv:[Slot|null ×8], nest:{id,x,y}|null},
+WorldInit  = {serverTime, clock, life, friends:[Friend], visitors:[{name, at}], you:{id(=アカウント id), name, fur, x, y, dir, inv:[Slot|null ×8], nest:{id,x,y}|null},
               resources:[{id, kind:'seed'|'grass'|'pebble', x, y}], players:[{id,name,fur,x,y,dir}], entrances:[Entrance]}
 Slot       = {id:'seed'|'grass'|'pebble', n:1..99}
 Entrance   = {owner(アカウント id), name(キャラ名), nestId, x, y, own:boolean(受け手から見て), policy}
@@ -112,3 +112,43 @@ NestRecord = {id, owner, ownerName, rev, data:(巣データ v1・ARCHITECTURE §
 - 保存は `tobi_save_v1`（1 つの JSON）と `tobi_settings`（拡大率）、オンラインの token は `tobi_token`。**`tobi_` 以外の鍵には触れない**（本編 `dannoura_*`・境界事象 `kyokai_*`）。
 - `tobi_save_v1 = {v:1, account, character, player:{x,y,dir,inv,nestId,place}, nests:{[id]:NestRecord の中身}, entrances:[...], world:{resources, respawns:[{kind, at}], nextId}}`。読み込み時に巣データは `migrateNest` で最新版へ。
 - オフラインの「ほかのトビネズミ」（ナッツ・モカ・リコ）は `snapshot.players` に入る NPC。モカの巣は公開（見学できる）、ほかは非公開。サーバー版では本物のプレイヤーに置き換わる。
+
+## 8. Ver.0.2「暮らし」（追加分。PROTOCOL_VERSION は 1 のまま＝足しただけ）
+
+### 8.1 C2S
+| t | 中身 | 返事 | サーバーの検証 |
+|---|---|---|---|
+| `eat` | `{from:'inv'\|'pile'}` | `{ok, life, inv, storage?, left?, src}` | 地上か巣の中・眠っていない・満腹でない（`canEat`）・0.4 秒あける（`rate`）。inv：持ち物に種子（無ければ `rule`）。pile：自分の巣の中・「種の山」の近く（`nest_move` の位置）・倉庫に種子 |
+| `drink` | `{resId?}` | `{ok, life, src:'water'\|'dew'}` | 地上・跳んでいない・水分が満タンでない。resId あり＝夜露（`kind:'dew'`）が 28px 以内（飲むと消えて `res_gone`）。無し＝確定位置から 20px 以内に水のタイル（`nearWater`）。夜露は `pickup` できない（`rule`） |
+| `sleep` | `{}` | `{ok, life}` | 巣の中・所有者／共同作業者／所有者のフレンド・`nest_move` の位置が寝床（`nestbed`）の上（左右 12px・床 12px の余裕）。中の人の `nest_peers` で anim が `sleep` になる |
+| `wake` | `{}` | `{ok, life}` | いつでも。`sleep` 以外の anim の `nest_move` でも起きる。体調が 100 になると自然に起きる（`life` が sleep:false で届く） |
+| `friends` | `{}` | `{ok, list:[Friend]}` | |
+| `friend_req` | `{name}` | `{ok, state:'outgoing'\|'friend', list}` | キャラ名 → 1 アカウント（見つからない `not_found`・同名が複数 `rule`・自分 `rule`）。もうフレンド／申請済みは `rule`。向こうからの申請があればそのまま friend。50 匹まで（`full`）。相手がいれば `toast`＋`friends` |
+| `friend_ok` | `{id}` | `{ok, list}` | id（アカウント）からの申請があるとき |
+| `friend_del` | `{id}` | `{ok, list}` | 断る・取り消す・やめる（どれも行を消す）。フレンド操作 3 つは 1 分 12 回まで（`rate`） |
+| `set_builders` | `{list:[キャラ名]}` | `{ok, list, unknown}` | 自分の巣の所有者だけ（巣が無ければ `not_found`）。10 匹まで（`bad_request`）。`nest_access` の role=builder を全部入れ替え。加わった／外れた人がオンラインなら `toast`、その巣の中にいれば `nest_role` |
+| `visitors` | `{}` | `{ok, list:[{name, at}]}` | 自分の巣の最近の訪問者 20 件 |
+
+- `nest_op`：所有者か共同作業者（role=builder）。素材は**操作した本人**の持ち物から。`store`・`visit_policy`・`set_builders` は所有者だけ。
+- `enter_nest`：所有者・共同作業者はいつでも、`friends` は所有者のフレンドだけ。`NestRecord` に `role:'owner'|'builder'|'visitor'`、所有者には `builders:[名前]` も。
+- 地上の移動（`input`）：体調 25 未満（`isTired`）なら `stepField(..., {tired:true})`（速さ ×0.7・大ジャンプなし）。クライアントの予測も `game.life` で同じ補正をかける（境目のずれは通常の補正で吸収）。
+
+### 8.2 S2C
+| t | 中身 |
+|---|---|
+| `life` | `{life:{hunger, thirst, cond, sleep}}`：2 秒ごと（地上・巣の中にいる間だけ減る）＋食べた・飲んだ・眠った・起きたとき |
+| `clock` | `{clock}`（今は送らない。時計を変えたときのための予約） |
+| `friends` | `{list:[Friend]}`：申請が来た・受けてもらえた・やめられた・フレンドがログイン／ログアウトした |
+| `visit` | `{name, nestId, at}`：自分の巣にだれかが入った（所有者がオンラインのとき。同じ子の 2 分以内の出入りは 1 回） |
+| `nest_role` | `{nestId, canEdit, role}`：いる巣で共同作業者にされた・外された |
+
+```
+Friend = {id(アカウント), name, fur, state:'friend'|'incoming'|'outgoing', online, where:'field'|'nest'|null, nest:{x,y}|null, at}
+clock  = {scale, origin, base}   世界の経過 ms = base + (t - origin) × scale、1 日 = 24 分（shared/daynight.js の dayPhase）
+life   = {hunger, thirst, cond, sleep}   0〜100（shared/life.js）
+```
+- 時計：ふだんは `{scale:1, origin:0, base:0}`＝サーバーの Unix 時刻そのまま。クライアントは `pong` で合わせた `serverTime()` から時刻を出すので、全員の昼夜がそろう。`TOBI_DEV=1 TOBI_TIMESCALE=n TOBI_START_HOUR=h` のときだけ scale・base が変わる（暮らしの減り・採集物の戻り・夜の物も n 倍速）。
+- 夜（19〜5 時）：6 秒（世界の時間）ごとに夜露（id `d…`・上限 20）と夜の種子（id `n…`・上限 16・拾っても戻らない）が `res_spawn`。昼（7〜17 時）になると夜露は `res_gone {by:0}`。拾った物の再出現待ちは 2〜5 分 × 夜 0.45／朝夕 0.75／昼 1.4。
+- 保存：`individuals.status.life`（`json_set`）を位置の保存と同じとき（30 秒ごと・切断・ログアウト・停止）に。ログアウト中は減らない（再接続したときの値から続ける）。眠りは保存しない（入り直すと起きている）。
+- DB：`migrations/003_life_social.js`＝`friends(a, b, state)`（a が申請した側）、`nest_visits(nest_id, visitor_id, visitor_name, at, seen)`、`nest_access` の主キーを `(nest_id, account_id, role)` に、既存の個体に life の初期値。
+- オフライン版（`OfflineBackend`）も同じ API：フレンドは NPC（ナッツ・モカ・リコ）、`setBuilders` は「オンラインで使えます」、NPC のフレンドが訪ねてくる。保存 `tobi_save_v1` の中身は版 2：`player.life`・`friends`・`visits`・`lastPlayed`（v1 は読み込み時に移行）。

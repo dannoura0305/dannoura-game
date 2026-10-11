@@ -11,19 +11,26 @@
 //   await net.chat(text) / net.setVisitPolicy(policy) / net.nestMove(state)
 //   net.tick(dt)                               … 毎フレーム呼ぶ（入力の送信・オフラインのシミュレーション）
 //   net.on('snapshot'|'player_join'|'player_leave'|'chat'|'res_gone'|'res_spawn'|'entrance'|'nest_update'|'nest_peers'|'toast'|'status', fn)
+//   Ver.0.2「暮らし」：
+//   await net.eat('inv'|'pile') / net.drink(resId?) / net.sleep() / net.wake()   → {ok, life, …}
+//   await net.friends() / net.friendRequest(name) / net.friendAccept(id) / net.friendRemove(id) → {ok, list}
+//   await net.setBuilders([name]) / net.visitors()
+//   net.clock（世界の時計：shared/daynight.js）・net.on('life'|'friends'|'visit'|'nest_role'|'clock', fn)
 //
 // オフラインの保存は localStorage の 'tobi_' で始まる鍵だけ（本編 dannoura_* ・境界事象 kyokai_* には触れない）。
 import { C2S, S2C, encode, decode, cleanChat, validName, validUsername, validPassword, FUR_IDS, INPUT_SEND_MS, INTERP_DELAY_MS, SNAPSHOT_HZ, POS_SAVE_MS, PROTOCOL_VERSION } from '../shared/protocol.js';
-import { buildFieldMap, initialResources, resourceSpawnPoints, pickRespawnPoint, canDigBurrow, RESPAWN_MIN, RESPAWN_MAX, TILE } from '../shared/regions.js';
+import { buildFieldMap, initialResources, resourceSpawnPoints, pickRespawnPoint, canDigBurrow, nightSpawnPoints, nearWater, RESPAWN_MIN, RESPAWN_MAX, TILE } from '../shared/regions.js';
 import { stepField, makeFieldState, STEP_DT } from '../shared/move.js';
-import { createNest, migrateNest, tryOp, KIND_COST } from '../shared/nest-rules.js';
+import { createNest, migrateNest, tryOp, KIND_COST, objectsWithFixtures, CELL } from '../shared/nest-rules.js';
+import { makeLife, normalizeLife, stepLife, lifeOut, moveMods, eatSeed, drink, canEat, canDrink, LIFE } from '../shared/life.js';
+import { makeClock, dayPhase, periodOf, respawnScale, NIGHT_EXTRA, NIGHT_SPAWN_MS } from '../shared/daynight.js';
 import { swapSlots, makeInventory, normalizeInventory, addItem, removeItem, canAdd, payCost, refund, countItem, START_INVENTORY, STORAGE_SLOTS, ITEMS } from '../shared/items.js';
 import { hash2 } from '../shared/rng.js';
 
 export const SAVE_KEY = 'tobi_save_v1';
 export const SETTINGS_KEY = 'tobi_settings';
 export const TOKEN_KEY = 'tobi_token';
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;   // v2（Ver.0.2）：player.life・friends・visits・lastPlayed。鍵の名前（tobi_save_v1）はそのまま
 const PICK_RANGE = 28, ENTER_RANGE = 34;
 
 export class Emitter {
@@ -101,11 +108,12 @@ export class Interp {
 }
 
 // ───────── オフライン ─────────
-const NPCS = [
+export const NPCS = [
   { id: 'npc_nuts', name: 'ナッツ', fur: 'rufous',  home: { x: 30 * TILE + 8, y: 40 * TILE + 8 }, policy: 'private' },
   { id: 'npc_moka', name: 'モカ',   fur: 'cream', home: { x: 56 * TILE + 8, y: 24 * TILE + 8 }, policy: 'public' },
-  { id: 'npc_riko', name: 'リコ',   fur: 'graybrown',  home: { x: 66 * TILE + 8, y: 38 * TILE + 8 }, policy: 'private' },
+  { id: 'npc_riko', name: 'リコ',   fur: 'graybrown',  home: { x: 66 * TILE + 8, y: 38 * TILE + 8 }, policy: 'friends' },   // フレンドになると入れる
 ];
+export const NPC_VISIT_MIN_S = 240, NPC_VISIT_MAX_S = 420;   // NPC のフレンドが巣を訪ねてくる間隔（世界の時間・秒）
 const NPC_LINES = ['ここに木の実がありますよ！', '巣の場所を探してます', 'いい風だね', '夜になると種が増えるらしい', 'ぴょん！', 'オアシスの水はつめたい'];
 const NPC_REPLY = [[/こんにち|やあ|はじめ|hello|hi/i, 'こんにちは！'], [/ありがと/, 'どういたしまして'], [/巣|すみか/, 'モカの巣は だれでも遊びに来ていいよ'], [/種|たね/, '低木のまわりに よく落ちてるよ']];
 
@@ -128,11 +136,15 @@ function buildNpcNest(seed) {
 }
 
 export class OfflineBackend extends Emitter {
-  constructor({ storage = globalThis.localStorage, now = () => Date.now(), npc = true, map = null } = {}) {
+  /** timeScale・startHour：動作確認用の早回し（?timescale=60&hour=22。オフラインだけ） */
+  constructor({ storage = globalThis.localStorage, now = () => Date.now(), npc = true, map = null, timeScale = 1, startHour = null, random = Math.random } = {}) {
     super();
     this.mode = 'offline';
     this.storage = storage;
     this.now = now;
+    this.random = random;
+    this.clock = makeClock({ scale: timeScale, startHour, now: now() });
+    this.nightPts = null; this.nightT = 0; this.lifeSendT = 0; this.visitT = null;
     this.map = map || buildFieldMap();
     this.spawnPts = resourceSpawnPoints(this.map);
     this.npcOn = npc;
@@ -154,7 +166,15 @@ export class OfflineBackend extends Emitter {
   _migrate(s) {
     if (!s || typeof s !== 'object') return null;
     if (!s.v) s.v = 1;
-    if (s.player) s.player.inv = normalizeInventory(s.player.inv);
+    if (s.v < 2) {   // v1 → v2（Ver.0.2「暮らし」）：暮らしの数値・フレンド・訪問の記録を足す（持ち物・巣はそのまま）
+      if (s.player && !s.player.life) s.player.life = makeLife();
+      if (!Array.isArray(s.friends)) s.friends = [];
+      if (!Array.isArray(s.visits)) s.visits = [];
+      s.v = 2;
+    }
+    if (s.player) { s.player.inv = normalizeInventory(s.player.inv); s.player.life = normalizeLife(s.player.life); s.player.life.sleep = false; }
+    if (!Array.isArray(s.friends)) s.friends = [];
+    if (!Array.isArray(s.visits)) s.visits = [];
     for (const id in s.nests || {}) {
       const n = s.nests[id];
       n.data = migrateNest(n.data);     // 巣データの版の移行（v0 → v1 …）
@@ -179,7 +199,7 @@ export class OfflineBackend extends Emitter {
   async register(username) { return this._local(username); }
   async login(username) { return this._local(username); }
   async _local(username) {
-    if (!this.save) this.save = { v: SAVE_VERSION, account: { id: 'local', username: username || 'local', createdAt: this.now() }, character: null, player: null, nests: {}, entrances: [], world: null };
+    if (!this.save) this.save = { v: SAVE_VERSION, account: { id: 'local', username: username || 'local', createdAt: this.now() }, character: null, player: null, nests: {}, entrances: [], world: null, friends: [], visits: [] };
     this.flush();
     return { ok: true, account: this.save.account, character: this.save.character };
   }
@@ -193,7 +213,8 @@ export class OfflineBackend extends Emitter {
     const ch = { id: 'c1', name: String(name).trim(), fur, createdAt: this.now(),
       individual: { species: 'jerboa', sex: null, generation: 1, father_id: null, mother_id: null, genes: { fur }, traits: {}, status: {} } };
     this.save.character = ch;
-    this.save.player = { x: this.map.spawn.x, y: this.map.spawn.y, dir: 'down', inv: makeInventory(undefined, START_INVENTORY), nestId: null, place: 'field', savedAt: this.now() };
+    this.save.player = { x: this.map.spawn.x, y: this.map.spawn.y, dir: 'down', inv: makeInventory(undefined, START_INVENTORY), nestId: null, place: 'field', savedAt: this.now(), life: makeLife() };
+    this.save.friends = []; this.save.visits = [];
     this.flush();
     return { ok: true, character: ch };
   }
@@ -224,8 +245,15 @@ export class OfflineBackend extends Emitter {
     }
     const me = this.save.character;
     const nest = p.nestId ? this.save.entrances.find(e => e.nestId === p.nestId) : null;
+    if (!this.joinedOnce) { this.joinedOnce = true; this._awayVisits(); }
+    const visitors = this.save.visits.filter(v => !v.seen).map(v => ({ name: v.name, at: v.at }));
+    for (const v of this.save.visits) v.seen = true;
+    p.life.sleep = false; this.sleeping = false;
+    this.flush();
     return { ok: true, world: {
       serverTime: this.now(),
+      clock: { ...this.clock },
+      life: lifeOut(p.life), friends: this._friendList(), visitors,
       you: { id: this.save.account.id, name: me.name, fur: me.fur, x: p.x, y: p.y, dir: p.dir || 'down', inv: p.inv, nest: nest ? { id: nest.nestId, x: nest.x, y: nest.y } : null },
       resources: this.save.world.resources.map(r => ({ ...r })),
       players: this.npcs.map(n => ({ id: n.id, name: n.name, fur: n.fur, x: n.st.x, y: n.st.y, dir: n.st.dir })),
@@ -235,13 +263,17 @@ export class OfflineBackend extends Emitter {
 
   sendInput(inp) {
     if (this.place !== 'field' || !this.auth) return;
-    this.auth = stepField(this.auth, inp, STEP_DT, this.map);
+    this.auth = stepField(this.auth, inp, STEP_DT, this.map, moveMods(this.save.player.life));
     this.ack = inp.seq;
   }
 
   tick(dt) {
     if (!this.save || this.place === 'none') return;
     const now = this.now();
+    // 暮らしの数値（遊んでいる間だけ減る）・夜の採集物・NPC の訪問
+    this._lifeTick(dt);
+    if (now >= this.nightT) this.nightTick(now);
+    if (this.place === 'field') this._npcVisitTick(dt);
     // 採集物の再出現
     const w = this.save.world;
     if (w && w.respawns.length) {
@@ -300,6 +332,7 @@ export class OfflineBackend extends Emitter {
     if (!this.auth || !this.save || !this.save.player) return;
     const p = this.save.player;
     p.x = Math.round(this.auth.x * 10) / 10; p.y = Math.round(this.auth.y * 10) / 10; p.dir = this.auth.dir; p.savedAt = this.now();
+    this.save.lastPlayed = this.now();
     this.flush();
   }
   savePosition() { this._savePos(); }
@@ -309,11 +342,13 @@ export class OfflineBackend extends Emitter {
     const i = w.resources.findIndex(r => r.id === resId);
     if (i < 0) return { ok: false, reason: 'もう無い' };
     const r = w.resources[i];
+    if (r.kind === 'dew') return { ok: false, reason: '夜露は拾えない（E で飲む）' };
     if (!this.auth || Math.hypot(r.x - this.auth.x, r.y - this.auth.y) > PICK_RANGE) return { ok: false, reason: '遠すぎる' };
     if (!canAdd(p.inv, r.kind, 1)) return { ok: false, reason: '持ち物がいっぱい' };
     w.resources.splice(i, 1);
     addItem(p.inv, r.kind, 1);
-    w.respawns.push({ kind: r.kind, at: this.now() + (RESPAWN_MIN + Math.random() * (RESPAWN_MAX - RESPAWN_MIN)) * 1000 });
+    // 戻るまでの待ちは時間帯で変わる（夜は早い）。夜の種子（id 'n…'）は戻らない
+    if (r.id[0] !== 'n') w.respawns.push({ kind: r.kind, at: this.now() + (RESPAWN_MIN + this.random() * (RESPAWN_MAX - RESPAWN_MIN)) * 1000 * respawnScale(this.phase()) / this.clock.scale });
     this.flush();
     this.emit('res_gone', { id: resId, by: this.save.account.id });
     return { ok: true, item: r.kind, inv: p.inv.map(s => s && { ...s }) };
@@ -355,8 +390,10 @@ export class OfflineBackend extends Emitter {
     const rec = this._nestRec(ent.nestId);
     if (!rec) return { ok: false, reason: '巣が無い' };
     const own = rec.owner === this.save.account.id;
-    if (!own && rec.policy !== 'public') return { ok: false, reason: (rec.ownerName || '') + 'の巣は 今は入れないようだ' };
+    const friendOk = rec.policy === 'friends' && this._isFriend(rec.owner);
+    if (!own && rec.policy !== 'public' && !friendOk) return { ok: false, reason: (rec.ownerName || '') + 'の巣は 今は入れないようだ' + (rec.policy === 'friends' ? '（フレンドだけ）' : '') };
     this._savePos();
+    this.sleeping = false; this.save.player.life.sleep = false; this.nestPos = null;
     this.place = 'nest';
     this.curNestId = ent.nestId;
     this.save.player.place = 'nest';
@@ -365,6 +402,7 @@ export class OfflineBackend extends Emitter {
   }
   async leaveNest() {
     const ent = this._entrances().find(e => e.nestId === this.curNestId) || null;
+    this.sleeping = false; this.save.player.life.sleep = false;
     this.place = 'field';
     const p = this.save.player;
     if (ent) { p.x = ent.x; p.y = ent.y + 12; }
@@ -426,7 +464,7 @@ export class OfflineBackend extends Emitter {
     rec.policy = policy; this.flush();
     return { ok: true };
   }
-  nestMove() { /* オフラインでは見る人がいない */ }
+  nestMove(st) { this.nestPos = { x: st.x, y: st.y }; if (this.sleeping && st.anim !== 'sleep') this._wake(); }   // 見る人はいない。寝床の判定にだけ使う
   async moveSlot(from, to) {
     const inv = this.save.player.inv;
     if (!swapSlots(inv, from, to)) return { ok: false };
@@ -434,6 +472,176 @@ export class OfflineBackend extends Emitter {
     return { ok: true, inv: inv.map(s => s && { ...s }) };
   }
   kindCost(kind) { return KIND_COST[kind]; }
+
+  // ───────── 昼夜・暮らし（Ver.0.2）─────────
+  phase() { return dayPhase(this.clock, this.now()); }
+  get life() { return this.save && this.save.player ? this.save.player.life : null; }
+  _lifeTick(dt) {
+    const p = this.save.player;
+    if (!p) return;
+    const before = p.life;
+    p.life = stepLife(before, dt * this.clock.scale, { sleeping: this.sleeping });
+    if (this.sleeping && !p.life.sleep) { this.sleeping = false; this.emit('life', { life: lifeOut(p.life) }); return; }   // 満タンで自然に起きる
+    this.lifeSendT -= dt;
+    if (this.lifeSendT <= 0) { this.lifeSendT = 0.5; this.emit('life', { life: lifeOut(p.life) }); }
+  }
+  /** 夜：夜露・夜の種子を足す。昼：夜露が乾く（サーバーの FieldRoom.nightTick と同じ） */
+  nightTick(now = this.now()) {
+    this.nightT = now + NIGHT_SPAWN_MS / this.clock.scale;
+    const w = this.save && this.save.world;
+    if (!w) return;
+    if (!this.nightPts) this.nightPts = nightSpawnPoints(this.spawnPts);
+    const period = periodOf(this.phase());
+    if (period === 'night') {
+      for (const kind of ['dew', 'seed']) {
+        const prefix = kind === 'dew' ? 'd' : 'n';
+        if (w.resources.filter(r => r.id[0] === prefix).length >= NIGHT_EXTRA[kind]) continue;
+        const pt = pickRespawnPoint(this.nightPts, kind, w.resources, this.random);
+        if (!pt) continue;
+        const res = { id: prefix + (w.nextId++), kind, x: pt.x, y: pt.y };
+        w.resources.push(res);
+        this.emit('res_spawn', { res });
+      }
+    } else if (period === 'day') {
+      const dew = w.resources.filter(r => r.kind === 'dew');
+      if (dew.length) { w.resources = w.resources.filter(r => r.kind !== 'dew'); for (const r of dew) this.emit('res_gone', { id: r.id, by: 0 }); }
+    }
+  }
+  async eat(from = 'inv') {
+    const p = this.save.player;
+    if (this.sleeping) return { ok: false, reason: '眠っている' };
+    if (!canEat(p.life)) return { ok: false, reason: 'おなかいっぱい' };
+    if (from === 'pile') {
+      const rec = this.curNestId && this.save.nests[this.curNestId];
+      if (this.place !== 'nest' || !rec) return { ok: false, reason: '自分の巣の種の山だけ' };
+      if (!this._nearObject(rec.data, 'seed_pile')) return { ok: false, reason: '種の山から遠い' };
+      if (!removeItem(rec.storage, 'seed', 1)) return { ok: false, reason: '倉庫に種子が無い' };
+      p.life = eatSeed(p.life); this.flush();
+      return { ok: true, life: lifeOut(p.life), inv: p.inv.map(s => s && { ...s }), storage: rec.storage.map(s => s && { ...s }), src: 'pile' };
+    }
+    if (!removeItem(p.inv, 'seed', 1)) return { ok: false, reason: '種子を持っていない' };
+    p.life = eatSeed(p.life); this.flush();
+    return { ok: true, life: lifeOut(p.life), inv: p.inv.map(s => s && { ...s }), left: countItem(p.inv, 'seed'), src: 'inv' };
+  }
+  async drink(resId) {
+    const p = this.save.player, w = this.save.world;
+    if (this.place !== 'field' || !this.auth) return { ok: false, reason: '地上にいない' };
+    if (!canDrink(p.life)) return { ok: false, reason: 'もうおなかいっぱい（水分は満タン）' };
+    if (resId != null) {
+      const i = w.resources.findIndex(r => r.id === resId && r.kind === 'dew');
+      if (i < 0) return { ok: false, reason: '夜露はもう乾いてしまった' };
+      const r = w.resources[i];
+      if (Math.hypot(r.x - this.auth.x, r.y - this.auth.y) > PICK_RANGE) return { ok: false, reason: '遠すぎる' };
+      w.resources.splice(i, 1);
+      p.life = drink(p.life, LIFE.DEW_DRINK); this.flush();
+      this.emit('res_gone', { id: resId, by: this.save.account.id });
+      return { ok: true, life: lifeOut(p.life), src: 'dew' };
+    }
+    if (!nearWater(this.map, this.auth.x, this.auth.y)) return { ok: false, reason: '近くに水が無い（オアシスのふちか、夜の夜露で）' };
+    p.life = drink(p.life, LIFE.WATER_DRINK); this.flush();
+    return { ok: true, life: lifeOut(p.life), src: 'water' };
+  }
+  _nearObject(data, type, slack = 12) {
+    const pos = this.nestPos;
+    if (!pos) return null;
+    for (const o of objectsWithFixtures(data)) {
+      if (o.type !== type) continue;
+      const x0 = o.x * CELL - slack, x1 = (o.x + o.w) * CELL + slack, floor = (o.y + o.h) * CELL;
+      if (pos.x >= x0 && pos.x <= x1 && Math.abs(pos.y - floor) <= 12) return o;
+    }
+    return null;
+  }
+  async sleep() {
+    if (this.place !== 'nest') return { ok: false, reason: '巣の中でだけ眠れる' };
+    const rec = this._nestRec(this.curNestId);
+    if (!rec) return { ok: false, reason: '巣が無い' };
+    if (rec.owner !== this.save.account.id && !this._isFriend(rec.owner)) return { ok: false, reason: 'よその寝床では眠れない（フレンドならだいじょうぶ）' };
+    if (!this._nearObject(rec.data, 'nestbed')) return { ok: false, reason: '寝床の上で眠ろう' };
+    this.sleeping = true; this.save.player.life.sleep = true;
+    return { ok: true, life: lifeOut(this.save.player.life) };
+  }
+  _wake() { const was = this.sleeping; this.sleeping = false; if (this.save.player) this.save.player.life.sleep = false; if (was) this.flush(); }
+  async wake() { this._wake(); return { ok: true, life: lifeOut(this.save.player.life) }; }
+
+  // ───────── フレンド（オフライン：NPC だけ）─────────
+  _isFriend(id) { return !!(this.save && this.save.friends.some(f => f.id === id && f.state === 'friend')); }
+  _friendList() {
+    if (!this.save) return [];
+    return this.save.friends.map(f => {
+      const n = NPCS.find(x => x.id === f.id);
+      const ent = this._entrances().find(e => e.owner === f.id);
+      const isF = f.state === 'friend';
+      return { id: f.id, name: n ? n.name : f.name, fur: n ? n.fur : 'sand', state: f.state, online: isF && this.npcOn, where: isF && this.npcOn ? 'field' : null, nest: isF && ent ? { x: ent.x, y: ent.y } : null, at: f.at };
+    });
+  }
+  async friends() { return { ok: true, list: this._friendList() }; }
+  async friendRequest(name) {
+    const nm = String(name || '').trim();
+    const n = NPCS.find(x => x.name === nm);
+    if (this.save.character && nm === this.save.character.name) return { ok: false, reason: '自分とはフレンドになれない' };
+    if (!n || !this.npcOn) return { ok: false, reason: '「' + nm + '」という子は見つからない（オフラインでは ナッツ・モカ・リコ とフレンドになれる）' };
+    const f = this.save.friends.find(x => x.id === n.id);
+    if (f && f.state === 'friend') return { ok: false, reason: 'もうフレンド' };
+    if (f) return { ok: false, reason: 'もう申請してある（返事待ち）' };
+    this.save.friends.push({ id: n.id, name: n.name, state: 'outgoing', at: this.now() });
+    this.flush();
+    // NPC は少しして受けてくれる
+    setTimeout(() => {
+      const g = this.save && this.save.friends.find(x => x.id === n.id);
+      if (!g || g.state !== 'outgoing') return;
+      g.state = 'friend'; g.at = this.now(); this.flush();
+      this.emit('toast', { text: n.name + ' が フレンド申請を受けてくれた' });
+      this.emit('friends', { list: this._friendList() });
+    }, 1500);
+    return { ok: true, state: 'outgoing', list: this._friendList() };
+  }
+  async friendAccept(id) {
+    const f = this.save.friends.find(x => x.id === id && x.state === 'incoming');
+    if (!f) return { ok: false, reason: '申請が見つからない' };
+    f.state = 'friend'; this.flush();
+    return { ok: true, list: this._friendList() };
+  }
+  async friendRemove(id) {
+    const n = this.save.friends.length;
+    this.save.friends = this.save.friends.filter(x => x.id !== id);
+    if (n === this.save.friends.length) return { ok: false, reason: 'フレンドではない' };
+    this.flush();
+    return { ok: true, list: this._friendList() };
+  }
+  async setBuilders() { return { ok: false, reason: '共同作業者はオンラインで使えます' }; }
+  async visitors() { return { ok: true, list: this.save.visits.slice(-20).reverse().map(v => ({ name: v.name, at: v.at })) }; }
+
+  // ───────── NPC の訪問（オフライン）─────────
+  /** NPC のフレンドが自分の巣を訪ねてくる（巣が公開、またはフレンドだけ公開のとき）。遊んでいる最中は通知 */
+  _canNpcVisit(npcId) {
+    const p = this.save.player, rec = p.nestId && this.save.nests[p.nestId];
+    if (!rec) return false;
+    return rec.policy === 'public' || (rec.policy === 'friends' && this._isFriend(npcId));
+  }
+  _npcVisitTick(dt) {
+    if (!this.npcOn) return;
+    if (this.visitT == null) this.visitT = NPC_VISIT_MIN_S + this.random() * (NPC_VISIT_MAX_S - NPC_VISIT_MIN_S);
+    this.visitT -= dt * this.clock.scale;
+    if (this.visitT > 0) return;
+    this.visitT = null;
+    const cand = NPCS.filter(n => this._isFriend(n.id) && this._canNpcVisit(n.id));
+    if (!cand.length) return;
+    const n = cand[Math.floor(this.random() * cand.length)];
+    const v = { name: n.name, at: this.now(), seen: true };
+    this.save.visits.push(v);
+    if (this.save.visits.length > 50) this.save.visits.splice(0, this.save.visits.length - 50);
+    this.flush();
+    this.emit('visit', { name: n.name, nestId: this.save.player.nestId, at: v.at });
+  }
+  /** 前に遊んでから時間がたっていたら、留守のあいだに NPC のフレンドが来ていたことにする（次のログインで一覧に出る） */
+  _awayVisits() {
+    const last = this.save.lastPlayed || 0;
+    this.save.lastPlayed = this.now();
+    if (!last || this.now() - last < 10 * 60 * 1000 || !this.npcOn) return;
+    const cand = NPCS.filter(n => this._isFriend(n.id) && this._canNpcVisit(n.id));
+    for (const n of cand) if (this.random() < 0.7) this.save.visits.push({ name: n.name, at: last + this.random() * (this.now() - last), seen: false });
+    this.save.visits.sort((a, b) => a.at - b.at);
+  }
 }
 
 // ───────── オンライン（PROTOCOL.md・tobinezumi/server）─────────
@@ -455,7 +663,10 @@ export class OnlineBackend extends Emitter {
     this.lastRecv = Date.now(); this.pingT = 0;
     this.reconnects = 0;
     this.map = buildFieldMap();
+    this.clock = makeClock();     // 世界の時計（welcome・join_field で受け取る）
+    this.life = null;
   }
+  phase() { return dayPhase(this.clock, this.serverTime()); }
   serverTime() { return Date.now() + this.clockOffset; }
   get online() { return !!this.ws && this.ws.readyState === 1 && this.state === 'online'; }
 
@@ -541,10 +752,13 @@ export class OnlineBackend extends Emitter {
   _msg(m) {
     if (!m) return;
     if (m.t === S2C.RES) { const w = this.waiting.get(m.rid); if (w) { this.waiting.delete(m.rid); w.resolve(m); } return; }
-    if (m.t === S2C.WELCOME) { if (m.serverTime) this.clockOffset = m.serverTime - Date.now(); this._ping(); return; }
+    if (m.t === S2C.WELCOME) { if (m.serverTime) this.clockOffset = m.serverTime - Date.now(); if (m.clock) this.clock = m.clock; this._ping(); return; }
+    if (m.t === S2C.CLOCK) { if (m.clock) this.clock = m.clock; this.emit('clock', m); return; }
+    if (m.t === S2C.LIFE) { this.life = m.life; this.emit('life', m); return; }
     if (m.t === S2C.PONG) { const now = Date.now(); this.rtt = now - m.ct; this.clockOffset = m.st - (m.ct + now) / 2; return; }
     if (m.t === S2C.KICK) { this.closedByUser = true; this.state = 'kicked'; this.emit('kick', m); this._drop(this.ws); this.ws = null; return; }
-    const map = { [S2C.SNAPSHOT]: 'snapshot', [S2C.PLAYER_JOIN]: 'player_join', [S2C.PLAYER_LEAVE]: 'player_leave', [S2C.CHAT]: 'chat', [S2C.RES_GONE]: 'res_gone', [S2C.RES_SPAWN]: 'res_spawn', [S2C.NEST_UPDATE]: 'nest_update', [S2C.NEST_PEERS]: 'nest_peers', [S2C.ENTRANCE]: 'entrance', [S2C.TOAST]: 'toast' };
+    const map = { [S2C.SNAPSHOT]: 'snapshot', [S2C.PLAYER_JOIN]: 'player_join', [S2C.PLAYER_LEAVE]: 'player_leave', [S2C.CHAT]: 'chat', [S2C.RES_GONE]: 'res_gone', [S2C.RES_SPAWN]: 'res_spawn', [S2C.NEST_UPDATE]: 'nest_update', [S2C.NEST_PEERS]: 'nest_peers', [S2C.ENTRANCE]: 'entrance', [S2C.TOAST]: 'toast',
+      [S2C.FRIENDS]: 'friends', [S2C.VISIT]: 'visit', [S2C.NEST_ROLE]: 'nest_role' };
     if (map[m.t]) this.emit(map[m.t], m);
   }
   _ping() { this._send({ t: C2S.PING, ct: Date.now() }); }
@@ -574,7 +788,7 @@ export class OnlineBackend extends Emitter {
     this.joining = true; this.queue = [];
     const r = await this._req(C2S.JOIN_FIELD);
     this.joining = false;
-    if (r.ok) { this.place = 'field'; this.curNestOwner = null; }
+    if (r.ok) { this.place = 'field'; this.curNestOwner = null; if (r.world.clock) this.clock = r.world.clock; if (r.world.life) this.life = r.world.life; }
     return r;
   }
   /** 入力：地上にいて、つながっている間だけためる（50ms ごとにまとめて送る・1 通 30 個まで） */
@@ -606,6 +820,17 @@ export class OnlineBackend extends Emitter {
   async chat(text) { const t = cleanChat(text); if (!t) return { ok: false }; return this._send({ t: C2S.CHAT, text: t }) ? { ok: true } : { ok: false, reason: 'つながっていない' }; }
   async setVisitPolicy(policy, list) { return this._req(C2S.VISIT_POLICY, list ? { policy, list } : { policy }); }
   async moveSlot(from, to) { return this._req(C2S.INV_MOVE, { from, to }); }
+  // Ver.0.2
+  async eat(from = 'inv') { const r = await this._req(C2S.EAT, { from }); if (r.ok && r.life) this.life = r.life; return r; }
+  async drink(resId) { const r = await this._req(C2S.DRINK, resId != null ? { resId } : {}); if (r.ok && r.life) this.life = r.life; return r; }
+  async sleep() { const r = await this._req(C2S.SLEEP); if (r.ok && r.life) this.life = r.life; return r; }
+  async wake() { const r = await this._req(C2S.WAKE); if (r.ok && r.life) this.life = r.life; return r; }
+  async friends() { return this._req(C2S.FRIENDS); }
+  async friendRequest(name) { return this._req(C2S.FRIEND_REQ, { name }); }
+  async friendAccept(id) { return this._req(C2S.FRIEND_OK, { id }); }
+  async friendRemove(id) { return this._req(C2S.FRIEND_DEL, { id }); }
+  async setBuilders(list) { return this._req(C2S.SET_BUILDERS, { list }); }
+  async visitors() { return this._req(C2S.VISITORS); }
   nestMove(st) { this._send({ t: C2S.NEST_MOVE, x: Math.round(st.x), y: Math.round(st.y), facing: st.facing, anim: st.anim }); }
   savePosition() {}
   flush() {}
@@ -623,7 +848,10 @@ export class OnlineBackend extends Emitter {
  */
 export async function chooseBackend({ search = (globalThis.location && location.search) || '', storage = globalThis.localStorage } = {}) {
   const q = new URLSearchParams(search);
-  if (q.get('offline') === '1') return new OfflineBackend({ storage });
+  // 動作確認用：?timescale=60（時計・暮らしを 60 倍速）・?hour=22（22 時から）。オフラインだけ効く（オンラインはサーバーの時計）
+  const dev = { timeScale: Math.max(1, Math.min(600, Number(q.get('timescale')) || 1)), startHour: q.get('hour') != null && q.get('hour') !== '' ? Number(q.get('hour')) : null };
+  const Off = (extra = {}) => new OfflineBackend({ storage, ...dev, ...extra });
+  if (q.get('offline') === '1') return Off();
   let url = q.get('server');
   if (!url) {
     try {
@@ -638,7 +866,7 @@ export async function chooseBackend({ search = (globalThis.location && location.
     if (url.startsWith('/')) url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + url;
     const on = new OnlineBackend(url, { storage });
     try { await on.connect(); return on; }
-    catch (e) { const off = new OfflineBackend({ storage }); off.fallbackFrom = url; return off; }
+    catch (e) { const off = Off(); off.fallbackFrom = url; return off; }
   }
-  return new OfflineBackend({ storage });
+  return Off();
 }

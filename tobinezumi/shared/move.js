@@ -59,8 +59,11 @@ function dirName(fx, fy) {
 
 /**
  * 地上の 1 歩。input = {mx, my, jump}（mx,my は -1/0/1）
+ * mods = {tired}（shared/life.js の moveMods）：へとへとなら跳ねる速さ ×TIRED_SPEED、大ジャンプできない
  */
-export function stepField(st, input, dt, map) {
+export const TIRED_SPEED = 0.7;
+export function stepField(st, input, dt, map, mods = null) {
+  const tired = !!(mods && mods.tired);
   const s = { ...st };
   s.cd = Math.max(0, s.cd - dt);
   const mx = Math.sign(input.mx || 0), my = Math.sign(input.my || 0);
@@ -78,7 +81,7 @@ export function stepField(st, input, dt, map) {
     s.fx = mx / len; s.fy = my / len;
     s.dir = dirName(mx, my);
   }
-  if (input.jump && s.cd <= 0) {
+  if (input.jump && s.cd <= 0 && !tired) {
     const land = jumpLanding(map, s.x, s.y, s.fx, s.fy);
     s.jump = { t: 0, dur: FIELD.JUMP_DUR, x0: s.x, y0: s.y, x1: land.x, y1: land.y };
     s.cd = FIELD.JUMP_CD;
@@ -87,7 +90,8 @@ export function stepField(st, input, dt, map) {
   }
   if (mx || my) {
     const len = Math.hypot(mx, my);
-    const vx = mx / len * FIELD.HOP_SPEED * dt, vy = my / len * FIELD.HOP_SPEED * dt;
+    const sp = FIELD.HOP_SPEED * (tired ? TIRED_SPEED : 1);
+    const vx = mx / len * sp * dt, vy = my / len * sp * dt;
     if (boxFree(map, s.x + vx, s.y)) s.x += vx;
     if (boxFree(map, s.x, s.y + vy)) s.y += vy;
     s.hop += dt / FIELD.HOP_PERIOD;

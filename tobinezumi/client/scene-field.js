@@ -5,17 +5,19 @@ import { el, esc } from './ui.js';
 import * as A from './art.js';
 import { Sprites } from './sprites.js';
 import { Predictor, Interp } from './net.js';
-import { buildFieldMap, T, TILE, regionAt, canDigBurrow, POND } from '../shared/regions.js';
+import { buildFieldMap, T, TILE, regionAt, canDigBurrow, nearWater, POND } from '../shared/regions.js';
+import { moveMods } from '../shared/life.js';
 import { stepField, makeFieldState, STEP_DT, FIELD } from '../shared/move.js';
 import { itemName } from '../shared/items.js';
 import { hash2 } from '../shared/rng.js';
 import { pickTapTarget, steerToward } from './touch-logic.js';
 
 const PICK_R = 22, ENT_R = 20;
-const HELP_KEYS = 'WASD/方向キー 跳ねる　Space 大ジャンプ　E 調べる・拾う　I 持ち物　Enter チャット　Esc メニュー';
+const HELP_KEYS = 'WASD/方向キー 跳ねる　Space 大ジャンプ　E 調べる・拾う・飲む　Q 種子を食べる　I 持ち物　F フレンド　Enter チャット　Esc メニュー';
 const HELP_TOUCH = 'スティックで跳ねる・地面や採集物をタップでそこへ（メニュー→ヘルプ）';
-const HELP_FULL_KEYS = '<b>WASD・方向キー</b> 跳ねる／<b>Space</b> 大ジャンプ（小石の山や草むらを越える）<br><b>E</b> 拾う・調べる・巣に入る・巣を掘る<br><b>I</b> 持ち物／<b>Enter</b> チャット／<b>Esc</b> メニュー／<b>H</b> 下の案内を出す・隠す';
-const HELP_FULL_TOUCH = '<b>左のスティック</b> 跳ねる（左側のどこを触ってもよい）<br><b>ジャンプ</b> 大ジャンプ（小石の山や草むらを越える）<br><b>地面をタップ</b> そこへ跳ねていく<br><b>採集物・巣穴をタップ</b> 歩いて行って拾う・入る<br><b>自分をタップ・調べる</b> 拾う・巣を掘る・巣に入る<br><b>持ち物・チャット・メニュー</b> 上の帯のボタン（ホットバーを押しても持ち物）'; 
+const HELP_LIFE = '<br><b>くらし</b>：右下（スマホは左上）のハート＝体調・稲妻＝空腹・しずく＝水分。種子を食べる（Q・「食べる」）、オアシスのふちや夜の夜露で E（調べる）で水を飲む、巣の寝床で眠ると体調が戻る。へとへと（体調 25 未満）だと遅く、大ジャンプできない。<br><b>昼と夜</b>：24 分で 1 日。トビネズミは夜行性で、夜は採集物が早く戻り、夜だけの種子と夜露が出る。';
+const HELP_FULL_KEYS = '<b>WASD・方向キー</b> 跳ねる／<b>Space</b> 大ジャンプ（小石の山や草むらを越える）<br><b>E</b> 拾う・調べる・巣に入る・巣を掘る・水を飲む<br><b>Q</b> 種子を 1 つ食べる／<b>I</b> 持ち物／<b>F</b> フレンド／<b>Enter</b> チャット／<b>Esc</b> メニュー／<b>H</b> 下の案内を出す・隠す' + HELP_LIFE;
+const HELP_FULL_TOUCH = '<b>左のスティック</b> 跳ねる（左側のどこを触ってもよい）<br><b>ジャンプ</b> 大ジャンプ（小石の山や草むらを越える）<br><b>地面をタップ</b> そこへ跳ねていく<br><b>採集物・巣穴をタップ</b> 歩いて行って拾う・入る<br><b>自分をタップ・調べる</b> 拾う・巣を掘る・巣に入る・水を飲む<br><b>食べる</b> 種子を 1 つ食べる／<b>フレンド</b> メニューから<br><b>持ち物・チャット・メニュー</b> 上の帯のボタン（ホットバーを押しても持ち物）' + HELP_LIFE; 
 const PRIO = { [T.SAND]: 0, [T.DIRT]: 1, [T.GRASS]: 2 };
 
 export class FieldScene {
@@ -133,7 +135,7 @@ export class FieldScene {
     this.inv = y.inv;
     this.myNest = y.nest;
     const st = makeFieldState(y.x, y.y); st.dir = y.dir || 'down';
-    this.pred = new Predictor(st, (s, i) => stepField(s, i, STEP_DT, this.map));
+    this.pred = new Predictor(st, (s, i) => stepField(s, i, STEP_DT, this.map, moveMods(this.game.life)));
     this.pred.onReconcile = info => { this.game.debug.reconciles = (this.game.debug.reconciles || 0) + 1; this.game.debug.lastReconcile = info; };
     this.resources = new Map(world.resources.map(r => [r.id, { ...r }]));
     this.entrances = world.entrances.slice();
@@ -142,8 +144,15 @@ export class FieldScene {
     this.bubbles = new Map();
     this.view = { ...st };
     this.clockOffset = (world.serverTime || Date.now()) - Date.now();
+    this.ping = null;
     this.ready = true;
   }
+  /** フレンドの一覧が変わった：入口の名札・ミニマップの色に使う */
+  onFriends(list) { this.friendIds = new Set((list || []).filter(f => f.state === 'friend').map(f => f.id)); }
+  isFriend(id) { return !!(this.friendIds && this.friendIds.has(id)); }
+  /** ミニマップの点を光らせる（フレンドの巣の場所など） */
+  pingAt(x, y, label) { this.ping = { x, y, label, until: this.t + 12 }; }
+  onEat() { this.eatT = this.t; }
   addPlayer(p) {
     if (!p || p.id === this.me.id) return;
     const rp = { id: p.id, name: p.name, fur: p.fur || 'sand', interp: new Interp(), last: { x: p.x, y: p.y, z: 0, dir: p.dir || 'down', anim: 'idle' }, hop: 0 };
@@ -240,6 +249,8 @@ export class FieldScene {
     // キー
     if (!g.ui.busy()) {
       if (inp.take('KeyE')) this.interact();
+      if (inp.take('KeyQ')) g.eat('inv');
+      if (inp.take('KeyF')) g.openFriends();
       if (inp.take('KeyI')) g.ui.toggleInventory((a, b) => g.moveSlot(a, b));
       if (inp.take('Enter') && !(g.ui._chatClosedAt && performance.now() - g.ui._chatClosedAt < 200)) g.ui.openChat();
       if (inp.take('Escape')) g.openMenu();
@@ -292,13 +303,14 @@ export class FieldScene {
     for (const r of this.resources.values()) {
       if (r.pending) continue;
       const d = Math.hypot(r.x - s.x, r.y - s.y);
-      if (d < PICK_R && d < bd) { bd = d; best = { kind: 'res', res: r, label: itemName(r.kind) + ' を拾う' }; }
+      if (d < PICK_R && d < bd) { bd = d; best = r.kind === 'dew' ? { kind: 'dew', res: r, label: '夜露を飲む' } : { kind: 'res', res: r, label: itemName(r.kind) + ' を拾う' }; }
     }
     for (const e of this.entrances) {
       const d = Math.hypot(e.x - s.x, e.y - s.y) - 4;   // 同じくらいの近さなら巣穴を優先
       if (d < ENT_R && d < bd) { bd = d; best = { kind: 'ent', ent: e, label: e.own ? '巣に入る（' + e.name + 'の巣）' : '訪ねる（' + e.name + 'の巣）' }; }
     }
     if (best) return best;
+    if (nearWater(this.map, s.x, s.y)) return { kind: 'water', label: '水を飲む' };
     if (!this.myNest) {
       const chk = canDigBurrow(this.map, s.x, s.y, this.entrances);
       return chk.ok ? { kind: 'dig', label: 'ここに巣を掘る' } : { kind: 'nodig', label: '巣を掘れない：' + chk.reason };
@@ -338,6 +350,16 @@ export class FieldScene {
       this.myNest = { id: res.entrance.nestId, x: res.entrance.x, y: res.entrance.y };
       this.puff(res.entrance.x, res.entrance.y, '#b98552', 10);
       g.ui.toast(g.isTouch ? '巣穴ができた！ 入口をタップすると入れる' : '巣穴ができた！ 入口で E を押すと入れる');
+    } else if (tgt.kind === 'dew' || tgt.kind === 'water') {
+      const r = tgt.res;
+      if (r) r.pending = true;
+      const res = await g.net.drink(r ? r.id : undefined);
+      if (r) r.pending = false;
+      if (!res.ok) { g.ui.toast(res.reason || '飲めなかった', 'bad'); return; }
+      if (r) { this.resources.delete(r.id); this.puff(r.x, r.y, '#bfe8ff', 5); }
+      g.setLife(res.life, true);
+      this.eatT = this.t;
+      g.ui.toast((res.src === 'dew' ? '夜露を飲んだ' : '水を飲んだ') + '（水分 ' + Math.round(res.life.thirst) + '）');
     } else if (tgt.kind === 'nodig') {
       g.ui.toast(tgt.label, 'bad');
     }
@@ -374,10 +396,11 @@ export class FieldScene {
       if (r.x < cx - 16 || r.y < cy - 16 || r.x > cx + W + 16 || r.y > cy + H + 16) continue;
       const hi = tgt && tgt.kind === 'res' && tgt.res === r;
       g.globalAlpha = r.pending ? 0.4 : 1;
-      if (!Sprites.has('item.' + r.kind + '.ground')) { g.fillStyle = 'rgba(40,24,10,.25)'; g.fillRect(r.x - 4, r.y + 2, 8, 2); }
+      if (r.kind !== 'dew' && !Sprites.has('item.' + r.kind + '.ground')) { g.fillStyle = 'rgba(40,24,10,.25)'; g.fillRect(r.x - 4, r.y + 2, 8, 2); }
       if (hi) { g.fillStyle = 'rgba(255,240,180,' + (0.35 + 0.25 * Math.sin(this.t * 8)) + ')'; g.beginPath(); g.ellipse(r.x, r.y + 1, 8, 4, 0, 0, Math.PI * 2); g.fill(); }
       const bob = hi ? Math.round(Math.sin(this.t * 6) * 1) - 1 : 0;
-      if (!Sprites.drawEntry(g, 'item.' + r.kind + '.ground', 0, r.x, r.y + 3 + bob)) A.drawItem(g, r.kind, r.x - 8, r.y - 12 + bob);
+      if (r.kind === 'dew') A.drawDew(g, r.x, r.y + bob, this.t + r.x * 0.13);
+      else if (!Sprites.drawEntry(g, 'item.' + r.kind + '.ground', 0, r.x, r.y + 3 + bob)) A.drawItem(g, r.kind, r.x - 8, r.y - 12 + bob);
       g.globalAlpha = 1;
     }
     // 背の高いもの＋トビネズミを y でならべる
@@ -396,6 +419,7 @@ export class FieldScene {
     let myAnim = me.anim;
     if (this.digT != null && this.t - this.digT < 1.1) myAnim = 'dig';
     else if (this.gatherT != null && this.t - this.gatherT < 0.35) myAnim = 'gather';
+    else if (this.eatT != null && this.t - this.eatT < 0.7 && me.anim === 'idle') myAnim = 'eat';
     const meV = { kind: 'player', me: true, x: me.x, y: me.y, z: me.z, dir: me.dir, anim: myAnim, hop: me.hop, jump: me.jump, fur: this.me.fur, name: this.me.name, id: this.me.id, cd: me.cd };
     list.push(meV);
     list.sort((a, b) => a.y - b.y);
@@ -421,8 +445,8 @@ export class FieldScene {
     for (const p of this.fx) { g.globalAlpha = 1 - p.t / p.life; g.fillStyle = p.color; g.fillRect(Math.round(p.x + p.vx * p.t), Math.round(p.y + p.vy * p.t), 2, 1); }
     g.globalAlpha = 1;
     g.restore();
-    // 夕暮れの色をうっすら
-    g.fillStyle = 'rgba(255,140,80,0.06)'; g.fillRect(0, 0, W, H);
+    // 昼夜：色味と暗さ（自分のまわりはほんのり明るい）・水面の星と月
+    this.drawNight(g, cx, cy, list);
     this.drawMinimap(g);
 
     // UI レイヤー：名札・吹き出し・巣穴の名前
@@ -431,7 +455,8 @@ export class FieldScene {
     for (const e of this.entrances) {
       const x = e.x - cx, y = e.y - cy;
       if (x < -40 || y < -20 || x > W + 40 || y > H + 20) continue;
-      sc.text(x, y + 14, e.name + 'の巣', { size: 6, color: e.own ? '#ffe9a8' : '#f2dcc0', alpha: 0.9 });
+      const fr = !e.own && this.isFriend(e.owner);
+      sc.text(x, y + 14, e.name + 'の巣' + (fr ? '（フレンド）' : ''), { size: 6, color: e.own ? '#ffe9a8' : fr ? '#bff0c8' : '#f2dcc0', alpha: 0.9 });
     }
     for (const o of list) if (o.kind === 'player') {
       const x = o.x - cx, y = o.y - cy - (o.z || 0);
@@ -458,20 +483,78 @@ export class FieldScene {
     if (o.anim === 'jump' && o.jump) { const k = Math.min(0.999, o.jump.t / o.jump.dur); return { anim: 'jump', frame: Math.floor(k * n('jump')) }; }
     if (o.anim === 'jump') return { anim: 'jump', frame: 2 };
     if (o.anim === 'hop') return { anim: 'hop', frame: Math.floor(((o.hop || 0) % 1) * n('hop')) };
-    if (o.anim === 'dig' || o.anim === 'gather') return { anim: o.anim, frame: Math.floor(this.t * 8) % n(o.anim) };
+    if (o.anim === 'dig' || o.anim === 'gather' || o.anim === 'eat') return { anim: o.anim, frame: Math.floor(this.t * 8) % n(o.anim) };
     const tw = Math.floor(this.t * 2 + hash2(o.id ? o.id.length : 0, 1, 1) * 7) % 7 === 0;
     return { anim: 'idle', frame: tw ? 1 : 0 };
+  }
+
+  /** 夜の暗さ・夕焼けの色。光は自分（大きめ）・ほかのトビネズミ・自分の巣穴の灯り・夜露のきらめき */
+  drawNight(g, cx, cy, list) {
+    const tod = this.game.tod();
+    this.tod = tod;
+    const [r, gg, b, a] = tod.tint;
+    if (a > 0) { g.fillStyle = `rgba(${r},${gg | 0},${b | 0},${a})`; g.fillRect(0, 0, W, H); }
+    if (tod.dark <= 0.01) return;
+    if (!this._nl || this._nl.width !== W || this._nl.height !== H) this._nl = A.mk(W, H);
+    const lc = this._nl, lg = lc.getContext('2d');
+    lg.globalCompositeOperation = 'source-over';
+    lg.clearRect(0, 0, W, H);
+    lg.fillStyle = `rgba(8,10,34,${tod.dark})`; lg.fillRect(0, 0, W, H);
+    lg.globalCompositeOperation = 'destination-out';
+    const hole = (x, y, rad, k) => {
+      const gr = lg.createRadialGradient(x, y, 0, x, y, rad);
+      gr.addColorStop(0, `rgba(0,0,0,${k})`); gr.addColorStop(0.5, `rgba(0,0,0,${k * 0.55})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      lg.fillStyle = gr; lg.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+    };
+    for (const o of list) if (o.kind === 'player') hole(o.x - cx, o.y - cy - 6, o.me ? 74 : 30, o.me ? 0.92 : 0.6);
+    for (const e of this.entrances) if (e.own) hole(e.x - cx, e.y - cy, 26 + Math.sin(this.t * 6) * 1.5, 0.7);
+    for (const rs of this.resources.values()) if (rs.kind === 'dew') hole(rs.x - cx, rs.y - cy, 9, 0.5);
+    g.drawImage(lc, 0, 0);
+    // 水面に映る星と月（夜）
+    const k = tod.dark / 0.66;
+    if (k > 0.3 && this.water.length) {
+      g.save();
+      const wx0 = (POND.x - POND.rx) * 16 - cx, wy0 = (POND.y - POND.ry) * 16 - cy;
+      if (wx0 < W && wy0 < H && wx0 + POND.rx * 32 > 0 && wy0 + POND.ry * 32 > 0) {
+        for (const w of this.water) {
+          const h = hash2(w.tx, w.ty, 77);
+          if (h > 0.35) continue;
+          const tw = 0.5 + 0.5 * Math.sin(this.t * (2 + h * 5) + h * 40);
+          g.fillStyle = `rgba(240,240,255,${(0.3 + 0.6 * tw) * k})`;
+          g.fillRect(w.tx * 16 + Math.floor(h * 37) % 14 + 1 - cx, w.ty * 16 + Math.floor(h * 91) % 14 + 1 - cy, 1, 1);
+        }
+        // 月の映り込み（ゆらゆら）
+        const mx = POND.x * 16 + 18 - cx, my = POND.y * 16 - 10 - cy;
+        for (let i = 0; i < 4; i++) { g.fillStyle = `rgba(250,246,200,${0.55 * k - i * 0.1})`; g.fillRect(Math.round(mx - 4 + Math.sin(this.t * 2 + i) * 1.5), Math.round(my + i * 3), 8 - i, 1); }
+      }
+      g.restore();
+    }
+    // 夜露のきらめき（暗い中で光る）
+    if (k > 0.2) for (const rs of this.resources.values()) if (rs.kind === 'dew') {
+      const tw = 0.5 + 0.5 * Math.sin(this.t * 4 + rs.x);
+      g.fillStyle = `rgba(220,245,255,${0.5 + 0.5 * tw})`; g.fillRect(Math.round(rs.x - cx), Math.round(rs.y - cy - 3), 1, 1);
+    }
   }
 
   drawMinimap(g) {
     const m = this.map, s = W < 340 ? 0.5 : 0.75, mw = Math.round(m.w * s), mh = Math.round(m.h * s);
     const x0 = W - mw - 6, y0 = 6;
+    const ct = y0 + mh + 5;   // 時計（DOM）はミニマップのすぐ下
+    if (this._ct !== ct) { this._ct = ct; this.game.hud.style.setProperty('--clock-top', `calc(var(--u) * ${ct}px)`); }
     g.fillStyle = '#2a1a10'; g.fillRect(x0 - 3, y0 - 3, mw + 6, mh + 6);
     g.fillStyle = '#c8a46a'; g.fillRect(x0 - 2, y0 - 2, mw + 4, mh + 4);
     g.fillStyle = '#2a1a10'; g.fillRect(x0 - 1, y0 - 1, mw + 2, mh + 2);
     g.imageSmoothingEnabled = true; g.drawImage(this.minimap, x0, y0, mw, mh); g.imageSmoothingEnabled = false;
     const P = (x, y, c, r = 1) => { g.fillStyle = c; g.fillRect(Math.round(x0 + x / 16 * s) - r, Math.round(y0 + y / 16 * s) - r, r * 2 + 1, r * 2 + 1); };
-    for (const e of this.entrances) P(e.x, e.y, e.own ? '#ffe070' : '#5a3018', e.own ? 1 : 0);
+    for (const e of this.entrances) {
+      const fr = !e.own && this.isFriend(e.owner);
+      P(e.x, e.y, e.own ? '#ffe070' : fr ? (Math.floor(this.t * 2) % 2 ? '#7ff0a0' : '#2a9050') : '#5a3018', e.own || fr ? 1 : 0);
+    }
+    if (this.ping && this.t < this.ping.until) {   // 「巣の場所」で光らせた所
+      const k = (this.t * 1.5) % 1, px = x0 + this.ping.x / 16 * s, py = y0 + this.ping.y / 16 * s;
+      g.strokeStyle = `rgba(150,255,180,${1 - k})`; g.lineWidth = 1;
+      g.beginPath(); g.arc(Math.round(px) + 0.5, Math.round(py) + 0.5, 2 + k * 7, 0, Math.PI * 2); g.stroke();
+    }
     for (const v of this.remoteViews || []) P(v.x, v.y, '#f4f0e8', 0);
     if (Math.floor(this.t * 3) % 3) P(this.view.x, this.view.y, '#e83a2a', 1);
     // 視界の枠

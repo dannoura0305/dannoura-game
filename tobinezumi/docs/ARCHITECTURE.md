@@ -91,7 +91,7 @@
 
 ## 5. データ構造（将来拡張を見越して先に分ける）
 
-実装：`server/migrations/001_init.js`・`002_world_containers.js`（起動時に未適用分を番号順に当て、`schema_migrations` に記録）。
+実装：`server/migrations/001_init.js`・`002_world_containers.js`・`003_life_social.js`（Ver.0.2：friends・nest_visits・nest_access の主キー）（起動時に未適用分を番号順に当て、`schema_migrations` に記録）。
 
 ```
 schema_migrations(version, name, applied_at)                         -- どこまで当てたか
@@ -107,7 +107,9 @@ inventories(owner_kind 'char'|'nest', owner_id, slot, item_id, qty)   -- 持ち�
 lands(id, region_id, x, y, info JSON)                                 -- 土地（巣穴の入口の場所）。info は食料・危険・地質・気候…の器
 nests(id, owner_account_id UNIQUE, land_id, schema_version, rev,
       data JSON, visit_policy, created_at, updated_at)                -- 巣は土地と分離 → 引っ越し可
-nest_access(nest_id, account_id, role, name)                          -- visitor（許可リスト。name は入力したキャラ名）/ builder（Ver.0.2）
+nest_access(nest_id, account_id, role, name)  PK(nest_id, account_id, role) -- visitor（許可リスト）/ builder（共同作業者・Ver.0.2）
+friends(a, b, state 'pending'|'friend', created_at, updated_at)       -- Ver.0.2：a が申請した側
+nest_visits(id, nest_id, visitor_id, visitor_name, at, seen)          -- Ver.0.2：訪問の記録（seen=0 は留守中の訪問）
 world_resources(id, region_id, kind, x, y, respawn_at)               -- 採集物。respawn_at NULL＝地上にある、値あり＝再出現待ち
 meta(key, value)                                                      -- 採集物の初期化済み・次の id
 regions(id, name, kind, hidden INTEGER, data JSON)                    -- 砂漠・草原・オアシス・丘・富山（hidden=1）
@@ -152,7 +154,7 @@ tobinezumi/
                scene-title.js, scene-field.js, scene-nest-build.js, scene-nest-walk.js,
                nest-view.js（断面の描画：両モード共通）, nest-layout.js（配置：両モード共通・DOM なし）,
                sprites.js（manifest の読み込み・毛色の置き換え）, art.js（コード描画のプレースホルダ）, style.css
-  shared/      move.js, nest-rules.js, items.js, regions.js, protocol.js, rng.js（ブラウザと Node の両方で import する ES Modules・DOM なし）
+  shared/      move.js, nest-rules.js, items.js, regions.js, protocol.js, rng.js, life.js（暮らしの数値）, daynight.js（昼夜の時計）（ブラウザと Node の両方で import する ES Modules・DOM なし）
   server/      index.js（静的配信・/tobi-server.json・/healthz・WebSocket /ws）, game.js（接続・認証・振り分け。ws に依存しない）,
                rooms/field.js（地上 20Hz・スナップショット 10Hz・採集・巣穴）, rooms/nest.js（巣のインスタンス・建築・倉庫・訪問設定）,
                db.js, auth.js, backup.js, migrations/NNN_*.js, tools/（bots.mjs, backup.mjs, restore.mjs, proto-client.mjs）,

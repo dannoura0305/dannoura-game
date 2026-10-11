@@ -5,6 +5,7 @@ import { stepField, makeFieldState, STEP_DT } from '../tobinezumi/shared/move.js
 import { buildFieldMap, canDigBurrow, TILE } from '../tobinezumi/shared/regions.js';
 import { MIGRATIONS } from '../tobinezumi/shared/nest-rules.js';
 import { countItem } from '../tobinezumi/shared/items.js';
+import { respawnScale } from '../tobinezumi/shared/daynight.js';
 
 let pass = 0, fail = 0;
 async function test(name, fn) {
@@ -68,11 +69,13 @@ await test('採集：近くの物だけ・拾うと消えて持ち物に入る�
   assert.ok(res.ok); assert.equal(res.item, r.kind);
   assert.deepEqual(gone, [r.id]);
   assert.equal((await net.pickup(r.id)).reason, 'もう無い', '同じ物は 2 回拾えない');
+  // 待ち時間は 2〜5 分 × 時間帯の倍率（昼 ×1.4・夜 ×0.45。shared/daynight.js）。夜だけの物（id 'd…' 'n…'）は数えない
+  const k = respawnScale(net.phase());
   const spawned = [];
-  net.on('res_spawn', m => spawned.push(m.res));
-  clock += 119_000; net.tick(STEP_DT);
-  assert.equal(spawned.length, 0, '2 分たつまでは出ない');
-  clock += 182_000; net.tick(STEP_DT);
+  net.on('res_spawn', m => { if (m.res.id[0] === 'r') spawned.push(m.res); });
+  clock += 119_000 * k; net.tick(STEP_DT);
+  assert.equal(spawned.length, 0, '2 分（×倍率）たつまでは出ない');
+  clock += 182_000 * k; net.tick(STEP_DT);
   assert.equal(spawned.length, 1); assert.equal(spawned[0].kind, r.kind);
 });
 

@@ -10,6 +10,8 @@ import { FieldScene } from './scene-field.js';
 import { NestBuildScene } from './scene-nest-build.js';
 import { NestWalkScene } from './scene-nest-walk.js';
 import { TouchControls, detectTouch } from './touch.js';
+import { lifeAlerts, normalizeLife } from '../shared/life.js';
+import { dayPhase, timeOfDay } from '../shared/daynight.js';
 
 const stage = document.getElementById('tb-stage');
 const game = {
@@ -81,6 +83,76 @@ game.inv = () => (game.field && game.field.inv) || [];
 game.setInv = inv => { if (game.field) game.field.inv = inv; game.ui.setInventory(inv); };
 game.moveSlot = async (a, b) => { const r = await game.net.moveSlot(a, b); if (r.ok) game.setInv(r.inv); };
 
+// ── 昼夜・暮らし（Ver.0.2）──
+/** 世界の時刻（0..1、0 = 真夜中）と見た目（shared/daynight.js） */
+game.phase = () => game.net ? dayPhase(game.net.clock, game.net.serverTime()) : 0.5;
+game.tod = () => timeOfDay(game.phase());
+game.life = null;
+/** 暮らしの数値が届いた：HUD を更新し、境目をまたいだら知らせる */
+game.setLife = function (life, quiet = false) {
+  if (!life) return;
+  const prev = game.life;
+  game.life = normalizeLife(life);
+  game.ui.setLife(game.life);
+  if (prev && !quiet) for (const t of lifeAlerts(prev, game.life)) game.ui.toast(t, /へとへと|ぺこぺこ|からから/.test(t) ? 'bad' : '');
+  if (prev && prev.sleep && !game.life.sleep && game.walk && game.walk.sleeping) game.walk.wakeUp(false);
+};
+/** 種子を 1 つ食べる（持ち物から。from='pile' は巣の種の山＝倉庫から） */
+game.eat = async function (from = 'inv') {
+  const r = await game.net.eat(from);
+  if (!r.ok) { game.ui.toast(r.reason || '食べられない', 'bad'); return r; }
+  if (r.inv) game.setInv(r.inv);
+  if (r.storage && game.nest) game.nest.storage = r.storage;
+  game.setLife(r.life, true);
+  game.ui.toast(from === 'pile' ? '種の山から 種子を食べた（空腹 ' + Math.round(r.life.hunger) + '）' : '種子を食べた（空腹 ' + Math.round(r.life.hunger) + '・のこり ' + (r.left != null ? r.left : '?') + ' 個）');
+  if (game.scene && game.scene.onEat) game.scene.onEat();
+  return r;
+};
+game.openLife = function () {
+  if (!game.life) return;
+  game.ui.lifePanel(game.life, [{ label: '種子を 1 つ食べる', act: () => { game.ui.closeModal(); game.eat('inv'); } }]);
+};
+
+// ── フレンド・巣の設定（Ver.0.2）──
+game.friends = [];
+game.setFriends = function (list) {
+  game.friends = list || [];
+  if (game.ui.updateFriends) game.ui.updateFriends(game.friends);
+  if (game.field && game.field.onFriends) game.field.onFriends(game.friends);
+};
+game.openFriends = async function () {
+  const net = game.net;
+  const r = await net.friends();
+  if (r.ok) game.setFriends(r.list);
+  game.ui.friendsPanel(game.friends, {
+    request: async name => { const x = await net.friendRequest(name); if (!x.ok) { game.ui.toast(x.reason || 'できなかった', 'bad'); return; } game.setFriends(x.list); game.ui.toast(x.state === 'friend' ? name + ' と フレンドになった' : name + ' に フレンド申請を送った'); },
+    accept: async id => { const x = await net.friendAccept(id); if (!x.ok) { game.ui.toast(x.reason || 'できなかった', 'bad'); return; } game.setFriends(x.list); game.ui.toast('フレンドになった'); },
+    remove: async id => { const x = await net.friendRemove(id); if (!x.ok) { game.ui.toast(x.reason || 'できなかった', 'bad'); return; } game.setFriends(x.list); },
+    ping: f => { game.ui.closeModal(); if (game.field) game.field.pingAt(f.nest.x, f.nest.y, f.name + 'の巣'); game.ui.toast(f.name + 'の巣は ミニマップで光っている所'); },
+  }, { offline: net.mode === 'offline' });
+};
+game.openNestSettings = function (nest) {
+  const net = game.net;
+  game.ui.nestSettings(nest, {
+    policy: async (v, list) => {
+      const r = await net.setVisitPolicy(v, list);
+      if (!r.ok) { game.ui.toast(r.reason || '変えられなかった', 'bad'); return false; }
+      nest.policy = v; if (list) nest.list = r.list || list;
+      const msg = { public: '巣を公開した（だれでも訪ねてこられる）', private: '巣を非公開にした', list: '許可リストの子だけ入れるようにした', friends: 'フレンドだけ入れるようにした' }[v];
+      game.ui.toast(msg + (r.unknown && r.unknown.length ? '（見つからない名前：' + r.unknown.join('、') + '）' : ''));
+      return true;
+    },
+    builders: async list => {
+      const r = await net.setBuilders(list);
+      if (!r.ok) { game.ui.toast(r.reason || '変えられなかった', 'bad'); return false; }
+      nest.builders = r.list;
+      game.ui.toast('共同作業者：' + (r.list.length ? r.list.join('、') : 'なし') + (r.unknown && r.unknown.length ? '（見つからない名前：' + r.unknown.join('、') + '）' : ''));
+      return true;
+    },
+    visitors: async () => { const r = await net.visitors(); return r.ok ? r.list : []; },
+  }, { online: net.mode === 'online' });
+};
+
 // ── 流れ ──
 game.startGame = async function () {
   const h = await game.net.hello();
@@ -88,10 +160,16 @@ game.startGame = async function () {
   const r = await game.net.joinField();
   if (!r.ok) { game.ui.toast(r.reason || '入れなかった', 'bad'); return; }
   game.field = game.field || new FieldScene(game);
-  game.field.init(r.world);
   game.ui.mountHotbarOnce(text => game.net.chat(text));
+  game.ui.mountLife(() => game.openLife());
   game.ui.onHotbar = () => game.ui.toggleInventory((a, b) => game.moveSlot(a, b));
+  game.ui.onEat = () => game.eat('inv');
+  game.life = null;
+  game.setLife(r.world.life);
+  game.setFriends(r.world.friends || []);
+  game.field.init(r.world);
   game.go(game.field);
+  if (r.world.visitors && r.world.visitors.length) setTimeout(() => { if (!game.ui.busy()) game.ui.visitorsPanel(r.world.visitors); }, 600);
 };
 game.enterNest = function (nest) {
   game.nest = nest; game.nestPeers = [];
@@ -112,6 +190,7 @@ game.openMenu = function () {
     <label class="tb-field">${game.isTouch ? '表示の大きさ' : '拡大率'} <select class="zoom">${zooms.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
     <label class="tb-field">タッチ操作のボタン <select class="touchui">${touchOpts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>`, [
     { label: 'ゲームにもどる', act: () => game.ui.closeModal() },
+    ...(game.field ? [{ label: 'フレンド', act: () => { game.ui.closeModal(); game.openFriends(); } }, { label: 'くらし（体調・空腹・水分）', act: () => { game.ui.closeModal(); game.openLife(); } }] : []),
     ...(game.scene && game.scene.helpHTML ? [{ label: 'ヘルプ（操作のしかた）', act: () => { const h = game.scene.helpHTML(); game.ui.closeModal(); game.ui.menu('ヘルプ', `<div class="tb-help-full">${h}</div>`, [{ label: 'とじる', act: () => game.ui.closeModal() }]); } }] : []),
     ...(fsOK && game.isTouch ? [{ label: document.fullscreenElement ? '全画面をやめる' : '全画面にする', act: () => { game.ui.closeModal(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); } }] : []),
     { label: '保存してタイトルへ（ログアウト）', act: async () => { net.savePosition && net.savePosition(); await net.logout(); game.ui.closeModal(); game.field = null; game.walk = null; game.build = null; game.go(new TitleScene(game)); } },
@@ -151,12 +230,24 @@ function wire(net) {
     game.nestPeers = (m.peers || []).filter(p => p.id !== me);
   });
   net.on('toast', m => game.ui.toast(m.text));
+  // Ver.0.2
+  net.on('life', m => game.setLife(m.life));
+  net.on('friends', m => game.setFriends(m.list));
+  net.on('visit', m => game.ui.toast(m.name + ' が あなたの巣を たずねてきた'));
+  net.on('nest_role', m => {
+    if (!game.nest || game.nest.id !== m.nestId) return;
+    game.nest.canEdit = !!m.canEdit; game.nest.role = m.role;
+    if (game.scene === game.build) game.build.onRoleChange && game.build.onRoleChange(game.nest);
+    else if (game.scene === game.walk) game.walk.onRoleChange && game.walk.onRoleChange(game.nest);
+  });
   net.on('status', m => { game.ui.setOffline(m.state === 'reconnecting'); game.debug.net = m.state; });
   // 再接続できた：地上なら同じ位置（60 秒をすぎたら巣の入口）から、巣の中なら巣の中から続ける
   net.on('rejoin', w => {
     if (!game.field || game.scene instanceof TitleScene) return;
     game.field.init(w);
     game.setInv(w.you.inv);
+    if (w.life) game.setLife(w.life, true);
+    if (w.friends) game.setFriends(w.friends);
     if (game.scene !== game.field) { game.nest = null; game.nestPeers = []; game.go(game.field); }
   });
   net.on('rejoin_nest', nest => {
@@ -185,6 +276,7 @@ function frame(now) {
   }
   if (n === 6) acc = 0;
   if (sc) { sc.update(dt); sc.draw(); }
+  if (game.field && game.ui.clockEl && (sc === game.field || sc === game.walk)) game.ui.setClock(game.tod());
   if (game.isTouch) game.touch.setBusy(game.ui.busy());
   game.input.endFrame();
   requestAnimationFrame(frame);

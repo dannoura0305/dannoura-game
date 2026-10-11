@@ -5,9 +5,23 @@
 //
 // 各ボット：登録（あればログイン）→ キャラ作成 → 地上へ → うろうろ跳ねる・ときどき大ジャンプ・チャット・
 // 近くの採集物を拾いに行く・公開の巣があれば入って少し歩いて出る。終わると 1 体ずつの統計を出す。
+// Ver.0.2：おなかがすいたら種子を食べる・のどがかわいたら夜露かオアシスへ行って飲む・巣のあるボットは寝床を作り、ときどき眠る。
 import { ProtoClient, fieldMap } from './proto-client.mjs';
 import { FUR_IDS } from '../../shared/protocol.js';
-import { CELL } from '../../shared/nest-rules.js';
+import { CELL, objectsWithFixtures } from '../../shared/nest-rules.js';
+import { T, TILE, tileAt, nearWater } from '../../shared/regions.js';
+
+/** 水を飲める立ち位置（水のタイルのすぐ下の陸）をいくつか */
+function waterSpots() {
+  const map = fieldMap(), out = [];
+  for (let ty = 2; ty < map.h - 2; ty++) for (let tx = 2; tx < map.w - 2; tx++) {
+    if (tileAt(map, tx, ty) !== T.WATER || tileAt(map, tx, ty + 1) !== map.ground[(ty + 1) * map.w + tx]) continue;
+    const x = tx * TILE + 8, y = (ty + 1) * TILE + 10;
+    if (nearWater(map, x, y)) out.push({ x, y, water: true });
+  }
+  return out;
+}
+const WATER = waterSpots();
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
@@ -24,7 +38,7 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 
 async function runBot(i, stats) {
   const c = new ProtoClient(URL_);
-  const s = { name: PREFIX + i, picks: 0, pickFail: 0, chats: 0, jumps: 0, nests: 0, errors: 0, snaps: 0, maxGapMs: 0, corrections: 0, resGone: 0 };
+  const s = { name: PREFIX + i, picks: 0, pickFail: 0, chats: 0, jumps: 0, nests: 0, errors: 0, snaps: 0, maxGapMs: 0, corrections: 0, resGone: 0, eats: 0, drinks: 0, sleeps: 0 };
   stats.push(s);
   await c.connect();
   const world = await c.enter(`${PREFIX}${i}`, PASS, { name: `ボット${i}`, fur: FUR_IDS[i % FUR_IDS.length] });
@@ -44,7 +58,7 @@ async function runBot(i, stats) {
   c.on('close', () => { if (!c.stopping) s.errors++; });
 
   const end = Date.now() + SECS * 1000;
-  let mx = 0, my = 0, until = 0, target = null, chatAt = Date.now() + rnd(3000, 15000), nestAt = Date.now() + rnd(12000, 30000);
+  let mx = 0, my = 0, until = 0, target = null, chatAt = Date.now() + rnd(3000, 15000), nestAt = Date.now() + rnd(12000, 30000), eatAt = 0;
   // 3 体に 1 体は自分の巣穴を掘って公開する（ほかのボットが訪ねてくる）
   let hasNest = !!world.you.nest, digAt = i % 3 === 1 ? Date.now() + rnd(2000, 6000) : Infinity;
   while (Date.now() < end && !c.closed) {
@@ -54,15 +68,27 @@ async function runBot(i, stats) {
       const dx = target.x - c.st.x, dy = target.y - c.st.y;
       mx = Math.abs(dx) > 3 ? Math.sign(dx) : 0; my = Math.abs(dy) > 3 ? Math.sign(dy) : 0;
       if (Math.hypot(dx, dy) < 14 || t > until) {
-        if (Math.hypot(dx, dy) < 26 && target.id && res.has(target.id)) {
-          const r = await c.req('pickup', { resId: target.id });
-          if (r.ok) s.picks++; else s.pickFail++;
+        if (target.water && Math.hypot(dx, dy) < 26) {          // オアシスのふちで飲む
+          const r = await c.req('drink', {}); if (r.ok) s.drinks++;
+        } else if (Math.hypot(dx, dy) < 26 && target.id && res.has(target.id)) {
+          const r = target.kind === 'dew' ? await c.req('drink', { resId: target.id }) : await c.req('pickup', { resId: target.id });
+          if (r.ok) { if (target.kind === 'dew') s.drinks++; else s.picks++; } else s.pickFail++;
         }
         target = null; until = t + rnd(500, 1500);
       }
     } else if (t > until) {
       until = t + rnd(400, 2000);
-      if (Math.random() < 0.35) {      // 近くの採集物へ
+      const L = c.life || { hunger: 80, thirst: 80, cond: 100 };
+      if (L.hunger < 60 && t > eatAt) {          // おなかがすいたら種子を食べる
+        eatAt = t + rnd(4000, 9000);
+        const r = await c.req('eat', { from: 'inv' }); if (r.ok) s.eats++;
+      }
+      if (L.thirst < 55) {                       // のどがかわいたら夜露（近ければ）かオアシスへ
+        let best = null, bd = 220;
+        for (const r of res.values()) if (r.kind === 'dew') { const d = Math.hypot(r.x - c.st.x, r.y - c.st.y); if (d < bd) { bd = d; best = r; } }
+        if (!best && WATER.length) best = WATER.reduce((a, b) => Math.hypot(a.x - c.st.x, a.y - c.st.y) < Math.hypot(b.x - c.st.x, b.y - c.st.y) ? a : b);
+        if (best) { target = best; until = t + 15000; }
+      } else if (Math.random() < 0.35) {      // 近くの採集物へ
         let best = null, bd = 160;
         for (const r of res.values()) { const d = Math.hypot(r.x - c.st.x, r.y - c.st.y); if (d < bd) { bd = d; best = r; } }
         if (best) { target = best; until = t + 6000; }
@@ -75,7 +101,12 @@ async function runBot(i, stats) {
     if (!hasNest && t > digAt) {
       digAt = t + 2500;
       const d = await c.req('dig_burrow', { x: c.st.x, y: c.st.y });
-      if (d.ok) { hasNest = true; s.dug = 1; entrances.set(d.entrance.owner, { ...d.entrance, policy: 'public' }); await c.req('visit_policy', { policy: 'public' }); }
+      if (d.ok) {
+        hasNest = true; s.dug = 1; entrances.set(d.entrance.owner, { ...d.entrance, policy: 'public' }); await c.req('visit_policy', { policy: 'public' });
+        // 最初の部屋を寝床にする（草 4）
+        const e = await c.req('enter_nest', { owner: c.account.id });
+        if (e.ok) { await c.req('nest_op', { nestId: e.nest.id, rev: e.nest.rev, op: { op: 'set-kind', id: e.nest.data.rooms[0].id, kind: 'bed' } }); const l = await c.req('leave_nest'); if (l.ok) { c.st = { ...c.st, x: l.x, y: l.y, jump: null }; await c.join(); } }
+      }
     }
     if (t > chatAt) { chatAt = t + rnd(8000, 25000); c.send({ t: 'chat', text: LINES[Math.floor(Math.random() * LINES.length)] }); s.chats++; }
     if (t > nestAt) {
@@ -95,6 +126,14 @@ async function runBot(i, stats) {
           s.nests++;
           const d = e.nest.data;
           for (let k = 0; k < 20; k++) { c.send({ t: 'nest_move', x: (d.entrance.x + Math.sin(k / 3) * 3) * CELL, y: (d.surfaceY + 7) * CELL, facing: k % 2 ? 1 : -1, anim: 'walk' }); await sleep(100); }
+          // 自分の巣なら寝床でひと眠り（体調が戻る）
+          const bed = e.nest.own && objectsWithFixtures(d).find(o => o.type === 'nestbed');
+          if (bed && (!c.life || c.life.cond < 85)) {
+            c.send({ t: 'nest_move', x: (bed.x + bed.w / 2) * CELL, y: (bed.y + bed.h) * CELL, facing: 1, anim: 'idle' });
+            await sleep(150);
+            const z = await c.req('sleep', {});
+            if (z.ok) { s.sleeps++; await sleep(rnd(2000, 4000)); await c.req('wake', {}); }
+          }
           if (Math.random() < 0.5) c.send({ t: 'chat', text: 'おじゃまします' });
           const l = await c.req('leave_nest');
           if (l.ok) { c.st = { ...c.st, x: l.x, y: l.y, jump: null }; await c.join(); }
@@ -116,7 +155,7 @@ for (let i = 1; i <= N; i++) { all.push(runBot(i, stats).catch(e => { console.er
 await Promise.all(all);
 const sec = (Date.now() - t0) / 1000;
 const sum = k => stats.reduce((a, s) => a + (s[k] || 0), 0);
-const out = { bots: N, secs: Math.round(sec), picks: sum('picks'), pickFail: sum('pickFail'), chats: sum('chats'), jumps: sum('jumps'), burrows: sum('dug'), nestVisits: sum('nests'), nestRefused: sum('nestFail'),
+const out = { bots: N, secs: Math.round(sec), picks: sum('picks'), pickFail: sum('pickFail'), eats: sum('eats'), drinks: sum('drinks'), sleeps: sum('sleeps'), chats: sum('chats'), jumps: sum('jumps'), burrows: sum('dug'), nestVisits: sum('nests'), nestRefused: sum('nestFail'),
   errors: sum('errors'), corrections: sum('corrections'), snapshotsPerBotPerSec: +(sum('snaps') / N / sec).toFixed(2), maxSnapshotGapMs: Math.max(0, ...stats.map(s => s.maxGapMs)), kbInPerBotPerSec: +(sum('kbIn') / N / sec).toFixed(2) };
 console.log(JSON.stringify(out));
 process.exit(out.errors ? 1 : 0);
