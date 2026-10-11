@@ -6,6 +6,7 @@ import { el, esc, toolIconURL, furnitureIconURL } from './ui.js';
 import { NestView } from './nest-view.js';
 import { CELL, validateOp, structureAt, roomEdgeAt, resizeByEdge, tunnelFromDrag, tunnelCells, rectCells, roomAt, inverseOps, KIND_COST, KIND_NAME, ROOM_COST, cellAt, C } from '../shared/nest-rules.js';
 import { FURNITURE, FURNITURE_ORDER, countItem, costText, addCost, halfCost } from '../shared/items.js';
+import { Gestures, snapZoom } from './touch-logic.js';
 
 export const TOOLS = [
   { id: 'dig', name: '掘る', key: '1', hint: 'クリック・ドラッグで土を 1 マスずつ掘る' },
@@ -16,11 +17,24 @@ export const TOOLS = [
   { id: 'furniture', name: '家具', key: '6', hint: '部屋の中をクリックで置く（R で向き）' },
   { id: 'remove', name: '撤去', key: '7', hint: 'クリックで撤去（素材の一部が戻る）' },
 ];
-const ZOOMS = [0.5, 1, 2];
-const VX = 36, VW = W - 36;    // 左のツール欄を除いた見える範囲
+/** タッチ用の説明 */
+const TOUCH_HINT = {
+  dig: 'タップで 1 マス、なぞると続けて掘る', tunnel: 'なぞって通路（横・縦・斜め＝坂）', room: 'なぞって部屋（4×3 以上）。部屋の辺の ● をつかんで広げる',
+  bed: '部屋をタップで寝床にする', store: '部屋をタップで倉庫にする', furniture: '部屋の中をタップ（押したまま動かして位置を合わせ、離すと置く）', remove: 'タップで撤去（確認が出ます）',
+};
+const ZOOMS = [0.5, 1, 2];             // ホイール・ボタンの段階
+const ZMIN = 0.5, ZMAX = 3;            // ピンチの範囲
 
 export class NestBuildScene {
-  constructor(game) { this.game = game; this.view = new NestView(); this.undo = []; }
+  get touchLayout() { return 'build'; }
+  constructor(game) {
+    this.game = game; this.view = new NestView(); this.undo = [];
+    this.vx = 36;                       // 左のツール欄の幅（内部 px）。DOM の大きさから測る
+    this.gest = new Gestures({ slop: 6, holdMs: 220 });
+    game.screen.onResize(() => { if (this.dom) this._measure(); });
+  }
+  get VX() { return this.vx; }
+  get VW() { return W - this.vx; }
 
   enter({ nest }) {
     const g = this.game;
@@ -28,23 +42,53 @@ export class NestBuildScene {
     this.tool = this.tool || 'dig';
     this.furn = this.furn || 'lamp';
     this.rot = 0;
-    this.zi = this.zi != null ? this.zi : 0;
+    this.zf = this.zf != null ? this.zf : 0.5;
     this.drag = null; this.hover = null; this.busy = Promise.resolve(); this.pending = 0;
     this.view.setData(nest.data, { fill: this._fill() });
     if (!this.cam || this._nestId !== nest.id) { this._nestId = nest.id; this.undo = []; this._fit(); }
     this._mount();
     g.ui.showHUD(false);
     this.t = 0;
+    this.touchPt = null; this.gest.reset(); this.pan = null;
+    const tc = g.touch;
+    tc.on('undo', () => { if (!g.ui.busy()) this.doUndo(); });
+    tc.on('zoomIn', () => this.zoomStep(1));
+    tc.on('zoomOut', () => this.zoomStep(-1));
+    tc.on('toggle:pan', on => { this.panMode = on; this._syncMenu(); });
+    this.panMode = false;
+    requestAnimationFrame(() => this._measure());
   }
   leave() { if (this.dom) this.dom.remove(); this.dom = null; this.game.screen.clearUI(); }
+  onTouchChange() { if (this.dom) { this.dom.remove(); this._mount(); requestAnimationFrame(() => this._measure()); } }
+  /** ツール欄の右端（内部 px）→ 見える範囲の左端 */
+  _measure() {
+    if (!this.menuEl) return;
+    const sr = this.game.screen.stage.getBoundingClientRect(), mr = this.menuEl.getBoundingClientRect();
+    const s = this.game.screen.scale || 1;
+    this.vx = mr.width ? Math.max(0, Math.min(W * 0.4, Math.ceil((mr.right - sr.left) / s) + 2)) : 0;
+  }
   /** ほかの人（所有者）の編集が届いた：見学中の画面を描き直す */
   onRemoteUpdate(nest) { this.nest = nest; this.view.setData(nest.data, { fill: this._fill() }); this.hover = null; }
   _fill() { const s = this.nest.storage || []; let n = 0; for (const it of s) if (it) n += it.n; return Math.min(1, n / 60); }
 
-  get z() { return ZOOMS[this.zi]; }
+  get z() { return this.zf; }
+  /** ホイール・ボタン：段階を 1 つ進める（d=+1 で拡大）。sx,sy はその点を動かさない */
+  zoomStep(d, sx = this.VX + this.VW / 2, sy = H / 2) {
+    const z = this.zf;
+    let nz = d > 0 ? ZOOMS.find(v => v > z + 1e-6) : [...ZOOMS].reverse().find(v => v < z - 1e-6);
+    if (nz == null) nz = d > 0 ? Math.min(ZMAX, ZOOMS[ZOOMS.length - 1]) : ZOOMS[0];
+    this.setZoom(nz, sx, sy);
+  }
+  setZoom(nz, sx, sy) {
+    const before = this.toNest(sx, sy);
+    this.zf = Math.max(ZMIN, Math.min(ZMAX, nz));
+    const after = this.toNest(sx, sy);
+    this.cam.x += before[0] - after[0]; this.cam.y += before[1] - after[1];
+    this._clampCam(); this._syncMenu();
+  }
   _fit() { this.cam = { x: (this.nest.data.w * CELL) / 2, y: (this.nest.data.h * CELL) / 2 + 4 }; }
-  toScreen(px, py) { return [(px - this.cam.x) * this.z + VX + VW / 2, (py - this.cam.y) * this.z + H / 2]; }
-  toNest(sx, sy) { return [(sx - VX - VW / 2) / this.z + this.cam.x, (sy - H / 2) / this.z + this.cam.y]; }
+  toScreen(px, py) { return [(px - this.cam.x) * this.z + this.VX + this.VW / 2, (py - this.cam.y) * this.z + H / 2]; }
+  toNest(sx, sy) { return [(sx - this.VX - this.VW / 2) / this.z + this.cam.x, (sy - H / 2) / this.z + this.cam.y]; }
 
   _mount() {
     const g = this.game, nest = this.nest;
@@ -75,18 +119,24 @@ export class NestBuildScene {
       };
     }
     this.zoomEl = top.querySelector('.tb-zoom');
-    // ツール
-    const menu = el('div', 'tb-tools tb-ui-block' + (edit ? '' : ' disabled'));
+    // ツール（タッチでは「ツール ▾」でたためる）
+    const menu = el('div', 'tb-tools tb-ui-block' + (edit ? '' : ' disabled') + (this.collapsed ? ' collapsed' : ''));
+    if (g.isTouch) {
+      const fold = el('button', 'tb-tool tb-fold', this.collapsed ? '▸' : '◂');
+      fold.type = 'button';
+      fold.onclick = () => { this.collapsed = !this.collapsed; menu.classList.toggle('collapsed', this.collapsed); fold.textContent = this.collapsed ? '▸' : '◂'; requestAnimationFrame(() => this._measure()); };
+      menu.appendChild(fold);
+    }
     for (const t of TOOLS) {
       const b = el('button', 'tb-tool', `<img src="${toolIconURL(t.id)}" alt=""><span>${t.name}</span><kbd>${t.key}</kbd>`);
-      b.dataset.tool = t.id; b.title = t.hint;
+      b.dataset.tool = t.id; b.title = g.isTouch ? TOUCH_HINT[t.id] : t.hint;
       b.onclick = () => { if (edit) this.setTool(t.id); };
       menu.appendChild(b);
     }
     this.dom.appendChild(menu);
     this.menuEl = menu;
     // 家具の小メニュー
-    const fm = el('div', 'tb-furn tb-ui-block hidden');
+    const fm = el('div', 'tb-furn tb-ui-block tb-scroll hidden');
     for (const id of FURNITURE_ORDER) {
       const f = FURNITURE[id];
       const b = el('button', 'tb-furn-b', `<img src="${furnitureIconURL(id, f.w, f.h)}" alt=""><span>${f.name}</span><small>${costText(f.cost)}</small>`);
@@ -99,7 +149,7 @@ export class NestBuildScene {
     bot.innerHTML = `<div class="tb-mats"></div><div class="tb-status"></div>`;
     this.dom.appendChild(bot);
     this.matsEl = bot.querySelector('.tb-mats'); this.statusEl = bot.querySelector('.tb-status');
-    const walk = el('button', 'tb-btn tb-walkbtn tb-ui-block', '歩いてみる（Tab）');
+    const walk = el('button', 'tb-btn tb-walkbtn tb-ui-block', g.isTouch ? '歩いてみる' : '歩いてみる（Tab）');
     walk.onclick = () => g.toWalk(this.nest);
     this.dom.appendChild(walk);
     g.hud.appendChild(this.dom);
@@ -108,12 +158,16 @@ export class NestBuildScene {
   setTool(id) { this.tool = id; this.drag = null; this._syncMenu(); }
   _syncMenu() {
     if (!this.menuEl) return;
-    for (const b of this.menuEl.children) b.classList.toggle('on', b.dataset.tool === this.tool);
+    for (const b of this.menuEl.children) if (b.dataset.tool) b.classList.toggle('on', b.dataset.tool === this.tool);
     this.furnEl.classList.toggle('hidden', this.tool !== 'furniture' || !this.nest.canEdit);
     for (const b of this.furnEl.children) b.classList.toggle('on', b.dataset.furn === this.furn);
-    this.zoomEl.textContent = '×' + this.z + '（ホイール）';
+    const touch = this.game.isTouch;
+    this.zoomEl.textContent = '×' + (Math.round(this.z * 100) / 100) + (touch ? '' : '（ホイール）');
     const t = TOOLS.find(t => t.id === this.tool);
-    this.baseHint = this.nest.canEdit ? t.name + '：' + t.hint : 'マウス右ドラッグで見回せます。Tab で中を歩く。';
+    if (touch) {
+      this.baseHint = this.panMode ? '見回し中：なぞって動かす（もう一度「見回し」で編集にもどる）。2 本指でも動かせる・つまんで拡大縮小'
+        : this.nest.canEdit ? t.name + '：' + TOUCH_HINT[t.id] + '。2 本指で動かす・つまんで拡大' : '2 本指（または「見回し」）で見回せます。「歩く」で中を歩く。';
+    } else this.baseHint = this.nest.canEdit ? t.name + '：' + t.hint : 'マウス右ドラッグで見回せます。Tab で中を歩く。';
   }
   _mats() {
     const inv = this.game.inv();
@@ -125,7 +179,7 @@ export class NestBuildScene {
   update(dt) {
     const g = this.game, inp = g.input;
     this.t += dt;
-    if (g.ui.busy()) { if (g.ui.modal && inp.take('Escape')) g.ui.closeModal(); inp.takeMouse(); return; }
+    if (g.ui.busy()) { if (g.ui.modal && inp.take('Escape')) g.ui.closeModal(); inp.takeMouse(); this.gest.reset(); this.touchPt = null; return; }
     // キー
     if (inp.take('Tab')) { g.toWalk(this.nest); return; }
     if (inp.take('KeyB') || inp.take('Escape')) { g.toWalk(this.nest); return; }
@@ -138,22 +192,102 @@ export class NestBuildScene {
     const ax = inp.axis();
     this.cam.x += ax.mx * 220 * dt / this.z; this.cam.y += ax.my * 220 * dt / this.z;
     const wh = inp.takeWheel();
-    if (wh) {
-      const before = this.toNest(inp.mouse.x, inp.mouse.y);
-      this.zi = Math.max(0, Math.min(ZOOMS.length - 1, this.zi - wh));
-      const after = this.toNest(inp.mouse.x, inp.mouse.y);
-      this.cam.x += before[0] - after[0]; this.cam.y += before[1] - after[1];
-      this._syncMenu();
-    }
+    if (wh) this.zoomStep(-wh, inp.mouse.x, inp.mouse.y);
     this._clampCam();
-    for (const ev of inp.takeMouse()) this.onMouse(ev);
+    for (const ev of inp.takeMouse()) { if (ev.pt === 'mouse') this.onMouse(ev); else this.onTouch(ev); }
+    for (const a of this.gest.tick(performance.now())) this._gesture(a);
     this._updateHover();
   }
   _clampCam() {
     const d = this.nest.data, mw = d.w * CELL, mh = d.h * CELL;
-    const hw = VW / 2 / this.z, hh = H / 2 / this.z;
+    const hw = this.VW / 2 / this.z, hh = H / 2 / this.z;
     this.cam.x = mw <= hw * 2 ? mw / 2 : Math.max(hw - 24, Math.min(mw - hw + 24, this.cam.x));
     this.cam.y = mh <= hh * 2 ? mh / 2 + 4 : Math.max(hh - 24, Math.min(mh - hh + 24, this.cam.y));
+  }
+
+  // ───────── タッチ：1 本指＝ツール（見回し中は移動）、2 本指＝移動・拡大縮小 ─────────
+  onTouch(ev) {
+    const G = this.gest;
+    let acts = [];
+    if (ev.type === 'down') acts = G.down(ev.id, ev.x, ev.y, ev.t);
+    else if (ev.type === 'move') acts = G.move(ev.id, ev.x, ev.y, ev.t);
+    else if (ev.type === 'up') acts = G.up(ev.id, ev.x, ev.y, ev.t);
+    else if (ev.type === 'cancel') acts = G.cancel(ev.id);
+    for (const a of acts) this._gesture(a);
+  }
+  _gesture(a) {
+    const click = ['bed', 'store', 'furniture', 'remove'].includes(this.tool);
+    const pan = this.panMode || !this.nest.canEdit;
+    switch (a.type) {
+      case 'start':
+        if (pan) { this.pan = { x: a.x, y: a.y, cx: this.cam.x, cy: this.cam.y, touch: true }; return; }
+        this.touchPt = { x: a.x, y: a.y };
+        if (!click) this.onMouse({ type: 'down', button: 0, x: a.x, y: a.y, touch: true });
+        return;
+      case 'drag':
+        if (this.pan && this.pan.touch) { this.cam.x = this.pan.cx - (a.x - this.pan.x) / this.z; this.cam.y = this.pan.cy - (a.y - this.pan.y) / this.z; this._clampCam(); return; }
+        this.touchPt = { x: a.x, y: a.y };
+        if (!click) this.onMouse({ type: 'move', buttons: 1, x: a.x, y: a.y, touch: true });
+        return;
+      case 'end':
+        if (this.pan && this.pan.touch) { this.pan = null; return; }
+        this.touchPt = null;
+        if (click) this._touchClick(a.x, a.y);
+        else this.onMouse({ type: 'up', button: 0, x: a.x, y: a.y, touch: true });
+        return;
+      case 'tap':
+        if (pan) return;
+        if (click) { this._touchClick(a.x, a.y); return; }
+        if (this.tool === 'tunnel' || (this.tool === 'room' && !this._edgeAt(a.x, a.y, true))) { this.game.ui.toast(TOUCH_HINT[this.tool]); return; }
+        this.onMouse({ type: 'down', button: 0, x: a.x, y: a.y, touch: true });
+        this.onMouse({ type: 'up', button: 0, x: a.x, y: a.y, touch: true });
+        return;
+      case 'abort':
+        this.drag = null; this.pan = null; this.touchPt = null; return;
+      case 'pinch-start': {
+        this.drag = null; this.pan = null; this.touchPt = null;
+        this.pinch = { z0: this.z, anchor: this.toNest(a.cx, a.cy) };
+        return;
+      }
+      case 'pinch': {
+        const p = this.pinch; if (!p) return;
+        this.zf = Math.max(ZMIN, Math.min(ZMAX, p.z0 * a.scale));
+        // つまんだ所が指の真ん中についてくる
+        this.cam.x = p.anchor[0] - (a.cx - this.VX - this.VW / 2) / this.zf;
+        this.cam.y = p.anchor[1] - (a.cy - H / 2) / this.zf;
+        this.pinch.last = { cx: a.cx, cy: a.cy };
+        this._clampCam(); this._syncMenu();
+        return;
+      }
+      case 'pinch-end': {
+        const p = this.pinch; this.pinch = null;
+        if (p) { const c = p.last || { cx: this.VX + this.VW / 2, cy: H / 2 }; this.setZoom(snapZoom(this.zf), c.cx, c.cy); }
+        return;
+      }
+    }
+  }
+  /** タッチで部屋の辺をつかめるか（指は太いので、当たりを広めに） */
+  _edgeAt(sx, sy, touch) {
+    const [px, py] = this.toNest(sx, sy);
+    const tol = touch ? Math.max(0.4, 9 / (CELL * this.z)) : 0.4;
+    return roomEdgeAt(this.nest.data, px / CELL, py / CELL, tol);
+  }
+  /** タッチの 1 回操作（寝床・倉庫・家具・撤去）。撤去は確認してから */
+  async _touchClick(sx, sy) {
+    if (!this.nest.canEdit) return;
+    const [px, py] = this.toNest(sx, sy);
+    const cx = Math.floor(px / CELL), cy = Math.floor(py / CELL);
+    const op = this.opAt(cx, cy, px, py);
+    if (!op) { if (this.tool === 'remove') this.game.ui.toast('撤去できる物が無い'); return; }
+    if (op._why) { this.game.ui.toast(op._why, 'bad'); return; }
+    const v = validateOp(this.nest.data, op, this.game.inv());
+    if (!v.ok) { this.game.ui.toast(v.reason, 'bad'); return; }
+    if (op.op === 'remove' || op.op === 'fill' || (op.op === 'set-kind' && this.tool === 'remove')) {
+      const back = v.refund && Object.keys(v.refund).length ? '<br><span class="tb-dim">戻る素材：' + esc(costText(v.refund)) + '</span>' : '';
+      const ok = await this.game.ui.confirm('撤去', esc(describe(op, this.nest.data).replace(/た$/, 'ますか？')) + back, '撤去する', 'やめる');
+      if (!ok) return;
+    }
+    this.send(op);
   }
 
   onMouse(ev) {
@@ -172,7 +306,7 @@ export class NestBuildScene {
       if (t === 'dig') { this.drag = { kind: 'dig', last: null }; this._digAt(cx, cy); }
       else if (t === 'tunnel') this.drag = { kind: 'tunnel', x0: cx, y0: cy, x1: cx, y1: cy };
       else if (t === 'room') {
-        const edge = roomEdgeAt(d, px / CELL, py / CELL);
+        const edge = this._edgeAt(ev.x, ev.y, !!ev.touch);
         if (edge) this.drag = { kind: 'resize', room: { ...edge.room }, edge: edge.edge, x1: cx, y1: cy };
         else this.drag = { kind: 'room', x0: cx, y0: cy, x1: cx, y1: cy };
       } else { const op = this.opAt(cx, cy, px, py); if (op) this.send(op); }
@@ -188,10 +322,11 @@ export class NestBuildScene {
   _digAt(cx, cy) {
     const k = cx + ',' + cy;
     if (this.drag.last === k) return;
-    this.drag.last = k;
     const op = { op: 'dig', x: cx, y: cy };
-    // ドラッグ中は前の掘りが確定する前でも、手元の予想（いま掘ってある所の隣）で判定して送る
-    if (validateOp(this._predicted(), op, null).ok) this.send(op, true);
+    // ドラッグ中は前の掘りが確定する前でも、手元の予想（いま掘ってある所の隣）で判定して送る。
+    // まだ隣が掘れていなければ、次に指（マウス）が動いたときにもう一度ためす
+    if (this.pending > 2) return;
+    if (validateOp(this._predicted(), op, null).ok) { this.drag.last = k; this.send(op, true); }
   }
   _predicted() { return this._pred && this._predRev === this.nest.rev ? this._pred : this.nest.data; }
 
@@ -233,15 +368,23 @@ export class NestBuildScene {
 
   _updateHover() {
     const inp = this.game.input;
-    const [px, py] = this.toNest(inp.mouse.x, inp.mouse.y);
-    const cx = Math.floor(px / CELL), cy = Math.floor(py / CELL);
+    const touch = inp.lastPointer !== 'mouse';
+    const pt = touch ? this.touchPt : inp.mouse;
     const d = this.nest.data, inv = this.game.inv();
     let op = null, edge = null;
-    if (!this.nest.canEdit || !inp.mouse.inside || inp.mouse.x < VX) { this.hover = null; this.statusEl.innerHTML = esc(this.baseHint); return; }
+    if (!this.nest.canEdit || !pt || (!touch && !inp.mouse.inside) || pt.x < this.VX) {
+      this.hover = null;
+      // タッチ：直前の結果（送信中など）をしばらく残す
+      const msg = esc(this.baseHint) + (this.pending ? '　<span class="tb-dim">送信中…</span>' : '');
+      if (this._lastMsg !== msg) { this._lastMsg = msg; this.statusEl.innerHTML = msg; }
+      return;
+    }
+    const [px, py] = this.toNest(pt.x, pt.y);
+    const cx = Math.floor(px / CELL), cy = Math.floor(py / CELL);
     if (this.drag && this.drag.kind !== 'dig') op = this._dragOp(this.drag);
     else if (this.tool === 'dig') op = { op: 'dig', x: cx, y: cy };
     else if (this.tool === 'tunnel') op = null;
-    else if (this.tool === 'room') { edge = roomEdgeAt(d, px / CELL, py / CELL); op = null; }
+    else if (this.tool === 'room') { edge = this._edgeAt(pt.x, pt.y, touch); op = null; }
     else op = this.opAt(cx, cy, px, py);
     let v = null;
     if (op) v = op._why ? { ok: false, reason: op._why } : validateOp(d, op, inv);
@@ -309,7 +452,13 @@ export class NestBuildScene {
     for (let y = d.surfaceY; y <= d.h; y++) g.fillRect(0, y * CELL, d.w * CELL, 1 / z);
     g.globalAlpha = 1;
     // 部屋の種類の札と辺
+    const handles = this.game.isTouch && this.tool === 'room' && this.nest.canEdit && !this.panMode;
     for (const r of d.rooms) {
+      if (handles) {   // 辺の真ん中の「つまみ」（タッチ）
+        const hs = Math.max(3, 4 / z), x0 = r.x * CELL, y0 = r.y * CELL, x1 = (r.x + r.w) * CELL, y1 = (r.y + r.h) * CELL;
+        g.fillStyle = 'rgba(255,233,160,.85)';
+        for (const [hx, hy] of [[x0, (y0 + y1) / 2], [x1, (y0 + y1) / 2], [(x0 + x1) / 2, y0], [(x0 + x1) / 2, y1]]) { g.beginPath(); g.arc(hx, hy, hs, 0, Math.PI * 2); g.fill(); }
+      }
       g.strokeStyle = r.kind === 'bed' ? 'rgba(240,200,110,.7)' : r.kind === 'store' ? 'rgba(170,210,120,.7)' : 'rgba(255,230,190,.35)';
       g.lineWidth = 1 / z; g.strokeRect(r.x * CELL + 0.5 / z, r.y * CELL + 0.5 / z, r.w * CELL - 1 / z, r.h * CELL - 1 / z);
     }
@@ -325,10 +474,12 @@ export class NestBuildScene {
       const [rx, ry] = this.toScreen((r.x + r.w / 2) * CELL, r.y * CELL);
       if (r.kind !== 'plain' || z >= 1) sc.text(rx, ry + 9 * Math.max(1, z * 0.8), KIND_NAME[r.kind], { size: 6, color: r.kind === 'bed' ? '#ffe2a0' : r.kind === 'store' ? '#d8f0b0' : '#f0dcc0', alpha: 0.9 });
     }
-    // カーソル脇の理由
-    const h = this.hover;
-    if (h && h.v && !h.v.ok) { const m = this.game.input.mouse; sc.text(m.x + 8, m.y - 6, h.v.reason, { size: 6.5, color: '#ffb0a0', align: 'left' }); }
-    if (this.rot && this.tool === 'furniture') { const m = this.game.input.mouse; sc.text(m.x + 8, m.y + 12, '向き：反転（R）', { size: 6, color: '#ffe9a8', align: 'left' }); }
+    // カーソル脇の理由（タッチでは指に隠れないよう上に）
+    const h = this.hover, touch = this.game.input.lastPointer !== 'mouse';
+    const m = touch ? (this.touchPt || this.game.input.mouse) : this.game.input.mouse;
+    const ty = touch ? -26 : -6, tx = touch ? -20 : 8;
+    if (h && h.v && !h.v.ok) sc.text(Math.max(this.VX + 2, m.x + tx), Math.max(10, m.y + ty), h.v.reason, { size: 6.5, color: '#ffb0a0', align: 'left' });
+    if (this.rot && this.tool === 'furniture') sc.text(m.x + 8, m.y + 12, touch ? '向き：反転' : '向き：反転（R）', { size: 6, color: '#ffe9a8', align: 'left' });
   }
 
   _drawHover(g) {

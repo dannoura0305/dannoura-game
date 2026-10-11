@@ -65,16 +65,44 @@ export class UI {
   mountChat(onSend) {
     this.chatLog = el('div', 'tb-chatlog'); this.hud.appendChild(this.chatLog);
     this.chatWrap = el('div', 'tb-chatin tb-ui-block hidden');
-    this.chatInput = el('input'); this.chatInput.maxLength = 80; this.chatInput.placeholder = 'Enter で送信／Esc で閉じる';
-    this.chatWrap.appendChild(this.chatInput); this.hud.appendChild(this.chatWrap);
+    this.chatInput = el('input'); this.chatInput.maxLength = 80; this.chatInput.placeholder = this.touch ? 'ひとこと（80 文字まで）' : 'Enter で送信／Esc で閉じる';
+    this.chatInput.enterKeyHint = 'send'; this.chatInput.autocomplete = 'off';
+    const send = el('button', 'tb-btn tb-chat-send', '送信'), x = el('button', 'tb-btn tb-chat-x', '×');
+    send.type = 'button'; x.type = 'button';
+    this.chatWrap.append(this.chatInput, send, x); this.hud.appendChild(this.chatWrap);
+    const go = () => { const v = this.chatInput.value; this.chatInput.value = ''; this.closeChat(); if (v.trim()) onSend(v); };
+    // 送信ボタンを押してもキーボードが閉じないうちに送る（pointerdown で preventDefault して入力欄のフォーカスを保つ）
+    send.addEventListener('pointerdown', e => e.preventDefault());
+    send.addEventListener('click', go);
+    x.addEventListener('click', () => this.closeChat());
     this.chatInput.addEventListener('keydown', e => {
       e.stopPropagation();
-      if (e.key === 'Enter') { const v = this.chatInput.value; this.chatInput.value = ''; this.closeChat(); if (v.trim()) onSend(v); }
+      if (e.isComposing || e.keyCode === 229) return;     // 日本語の変換中の Enter は確定だけ
+      if (e.key === 'Enter') go();
       else if (e.key === 'Escape') this.closeChat();
     });
   }
-  openChat() { if (!this.chatWrap) return; this.chatOpen = true; this.chatWrap.classList.remove('hidden'); setTimeout(() => this.chatInput.focus(), 0); }
-  closeChat() { if (!this.chatWrap) return; this.chatOpen = false; this.chatWrap.classList.add('hidden'); this.chatInput.blur(); this._chatClosedAt = performance.now(); }
+  /** sync=true：タッチのボタンから（キーボードを出すには押した瞬間に focus する必要がある） */
+  openChat(sync = false) {
+    if (!this.chatWrap) return;
+    this.chatOpen = true; this.chatWrap.classList.remove('hidden');
+    if (sync) this.chatInput.focus(); else setTimeout(() => this.chatInput.focus(), 0);
+    this._kbFollow(this.chatWrap);
+  }
+  closeChat() { if (!this.chatWrap) return; this.chatOpen = false; this.chatWrap.classList.add('hidden'); this.chatInput.blur(); this._chatClosedAt = performance.now(); this._kbFollow(null); }
+  /** 画面キーボードが出ても入力欄が隠れないように、見えている範囲（visualViewport）の下端に合わせる */
+  _kbFollow(node) {
+    const vv = globalThis.visualViewport;
+    if (this._kbOff) { this._kbOff(); this._kbOff = null; }
+    if (!node || !vv || !this.touch) { if (node) node.style.bottom = ''; return; }
+    const f = () => {
+      const kb = Math.max(0, innerHeight - (vv.offsetTop + vv.height));
+      node.style.bottom = (kb + 8) + 'px';
+    };
+    vv.addEventListener('resize', f); vv.addEventListener('scroll', f);
+    this._kbOff = () => { vv.removeEventListener('resize', f); vv.removeEventListener('scroll', f); node.style.bottom = ''; };
+    f();
+  }
   chatLine(name, text, me = false) {
     if (!this.chatLog) return;
     const l = el('div', 'tb-chatline' + (me ? ' me' : ''), `<b>[${esc(name)}]</b> ${esc(text)}`);
@@ -94,9 +122,11 @@ export class UI {
   }
   // ── ホットバー（持ち物 8 枠をそのまま映す）──
   mountHotbar() {
-    this.hotbar = el('div', 'tb-hotbar');
+    this.hotbar = el('div', 'tb-hotbar tb-ui-block');
     for (let i = 0; i < INV_SLOTS; i++) this.hotbar.appendChild(el('div', 'tb-slot'));
     this.hud.appendChild(this.hotbar);
+    // 押すと持ち物を開く（タッチでもマウスでも）
+    this.hotbar.addEventListener('click', () => { if (!this.busy() && this.onHotbar) this.onHotbar(); });
   }
   renderSlots(container, inv) {
     [...container.children].forEach((s, i) => {
@@ -114,11 +144,21 @@ export class UI {
   toggleInventory(onMove) {
     if (this.invPanel) { this.closeModal(); return; }
     const p = el('div', 'tb-panel tb-inv tb-ui-block');
-    p.innerHTML = `<div class="tb-ph">持ち物 <span class="tb-dim">（8 枠・1 枠 ${STACK_MAX} まで／ドラッグで並べ替え）</span><button class="tb-x">×</button></div><div class="tb-grid"></div><div class="tb-detail">枠をクリックすると説明が出ます。</div>`;
+    const how = this.touch ? '枠をタップで選び、別の枠をタップで入れかえ' : 'ドラッグ、または クリック→クリックで並べ替え';
+    p.innerHTML = `<div class="tb-ph">持ち物 <span class="tb-dim">（8 枠・1 枠 ${STACK_MAX} まで）</span><button class="tb-x">×</button></div><div class="tb-grid"></div><div class="tb-detail">${how}。</div>`;
     const grid = p.querySelector('.tb-grid');
+    let sel = null;
+    const mark = () => { [...grid.children].forEach((c, k) => c.classList.toggle('sel', k === sel)); };
     for (let i = 0; i < INV_SLOTS; i++) {
       const s = el('div', 'tb-slot big'); s.draggable = true; s.dataset.i = i;
-      s.addEventListener('click', () => { const it = this.inv[i]; p.querySelector('.tb-detail').textContent = it ? `${itemName(it.id)} ×${it.n} — ${(ITEMS[it.id] || {}).desc || ''}` : '空いている枠。'; });
+      s.addEventListener('click', () => {
+        const it = this.inv[i], det = p.querySelector('.tb-detail');
+        // 選んでいる枠があれば、ここへ動かす（入れかえ）
+        if (sel != null && sel !== i) { const from = sel; sel = null; mark(); onMove(from, i); det.textContent = '入れかえた。'; return; }
+        if (sel === i) { sel = null; mark(); det.textContent = how + '。'; return; }
+        if (it) { sel = i; mark(); }
+        det.textContent = it ? `${itemName(it.id)} ×${it.n} — ${(ITEMS[it.id] || {}).desc || ''}` : '空いている枠。';
+      });
       s.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', String(i)); });
       s.addEventListener('dragover', e => e.preventDefault());
       s.addEventListener('drop', e => { e.preventDefault(); const from = +e.dataTransfer.getData('text/plain'); if (from !== i) onMove(from, i); });
@@ -166,7 +206,7 @@ export class UI {
       const inp = p.querySelector('input'); inp.value = value;
       let done = false;
       const fin = v => { if (done) return; done = true; this.closeModal(); res(v); };
-      inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); fin(inp.value); } else if (e.key === 'Escape') { e.preventDefault(); fin(null); } });
+      inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.isComposing || e.keyCode === 229) return; if (e.key === 'Enter') { e.preventDefault(); fin(inp.value); } else if (e.key === 'Escape') { e.preventDefault(); fin(null); } });
       p.querySelector('.yes').onclick = () => fin(inp.value);
       p.querySelector('.no').onclick = () => fin(null);
       this._openModal(p, () => fin(null));
@@ -190,14 +230,19 @@ export class UI {
   /** 倉庫：持ち物 ⇄ 倉庫。onMove(dir, item, n) */
   storagePanel(inv, storage, onMove) {
     const p = el('div', 'tb-panel tb-storage tb-ui-block');
-    p.innerHTML = `<div class="tb-ph">倉庫 <span class="tb-dim">（クリックで 1 つ／Shift+クリックで全部）</span><button class="tb-x">×</button></div>
+    p.innerHTML = `<div class="tb-ph">倉庫 <span class="tb-dim">（${this.touch ? 'タップで 1 つ' : 'クリックで 1 つ／Shift+クリックで全部'}）</span><button class="tb-x">×</button></div>
+      <div class="tb-amount"><button class="tb-btn one on" type="button">1 つずつ</button><button class="tb-btn all" type="button">全部</button></div>
       <div class="tb-cols"><div><div class="tb-sub">持ち物 → 預ける</div><div class="tb-grid a"></div></div><div><div class="tb-sub">倉庫 → 引き出す</div><div class="tb-grid b"></div></div></div>`;
     const ga = p.querySelector('.a'), gb = p.querySelector('.b');
+    let all = false;
+    const bOne = p.querySelector('.one'), bAll = p.querySelector('.all');
+    const setAll = v => { all = v; bOne.classList.toggle('on', !v); bAll.classList.toggle('on', v); };
+    bOne.onclick = () => setAll(false); bAll.onclick = () => setAll(true);
     const fill = (grid, list, dir) => {
       grid.innerHTML = '';
       list.forEach(it => {
         const s = el('div', 'tb-slot big');
-        if (it) { s.innerHTML = `<img src="${iconURL(it.id)}" alt=""><span class="n">${it.n}</span>`; s.title = itemName(it.id); s.onclick = e => onMove(dir, it.id, e.shiftKey ? it.n : 1); }
+        if (it) { s.innerHTML = `<img src="${iconURL(it.id)}" alt=""><span class="n">${it.n}</span>`; s.title = itemName(it.id); s.onclick = e => onMove(dir, it.id, e.shiftKey || all ? it.n : 1); }
         grid.appendChild(s);
       });
     };

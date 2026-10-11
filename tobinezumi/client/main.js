@@ -9,6 +9,7 @@ import { TitleScene } from './scene-title.js';
 import { FieldScene } from './scene-field.js';
 import { NestBuildScene } from './scene-nest-build.js';
 import { NestWalkScene } from './scene-nest-walk.js';
+import { TouchControls, detectTouch } from './touch.js';
 
 const stage = document.getElementById('tb-stage');
 const game = {
@@ -25,13 +26,52 @@ game.input.blocked = () => game.ui.chatOpen;
 function loadSettings() { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch (e) { return {}; } }
 function saveSettings(s) { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch (e) {} }
 game.settings = loadSettings();
+game.saveSettings = () => saveSettings(game.settings);
 if (game.settings.zoom) game.screen.setZoomPref(game.settings.zoom);
+
+// ── タッチ（スマホ・タブレット）──
+game.touch = new TouchControls(game, document.getElementById('tb-app'));
+/** タッチ用の画面にするか切り替える（設定・端末・最初の指の操作で決まる） */
+game.setTouch = function (on) {
+  on = !!on;
+  game.isTouch = on;
+  game.ui.touch = on;
+  document.documentElement.classList.toggle('tb-touch', on);
+  game.screen.setTouch(on);
+  game.touch.hidden = !!game.settings.touchHidden;
+  game.touch.setEnabled(on);
+  if (game.scene && game.scene.onTouchChange) game.scene.onTouchChange(on);
+};
+game.setTouch(detectTouch(game.settings.touchUI || 'auto'));
+// 自動のとき：タッチパネル付きの PC でも、指で触ったらタッチ用に切り替える
+game.input.onPointer = e => { if (e.pointerType === 'touch' && !game.isTouch && (game.settings.touchUI || 'auto') === 'auto') game.setTouch(true); };
+addEventListener('pointerdown', e => game.input.onPointer(e), { capture: true, passive: true });
+
+// ページのスクロール・拡大・引っぱって更新・長押しメニューを止める（入力欄は除く）
+const isField = t => t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
+document.addEventListener('touchmove', e => { if (e.touches.length > 1 || !e.target.closest || !e.target.closest('.tb-scroll, .tb-panel, .tb-tools')) e.preventDefault(); }, { passive: false });
+document.addEventListener('contextmenu', e => { if (!isField(e.target)) e.preventDefault(); });
+document.addEventListener('gesturestart', e => e.preventDefault());   // iOS のピンチ拡大
+document.addEventListener('dblclick', e => { if (!isField(e.target)) e.preventDefault(); });
+// 画面キーボード：見えている範囲の高さを CSS へ（入力欄が隠れないようにパネルを上へ寄せる）
+{
+  const vv = globalThis.visualViewport, root = document.documentElement;
+  const kb = () => {
+    const h = vv ? Math.max(0, innerHeight - (vv.offsetTop + vv.height)) : 0;
+    root.style.setProperty('--kb', Math.round(h) + 'px');
+    root.classList.toggle('tb-kb', game.isTouch && h > 80 && isField(document.activeElement));
+  };
+  if (vv) { vv.addEventListener('resize', kb); vv.addEventListener('scroll', kb); }
+  document.addEventListener('focusin', e => { kb(); if (game.isTouch && isField(e.target)) setTimeout(() => { try { e.target.scrollIntoView({ block: 'nearest' }); } catch (err) {} kb(); }, 300); });
+  document.addEventListener('focusout', () => setTimeout(kb, 50));
+}
 
 game.go = function (scene, params = {}) {
   if (game.scene && game.scene.leave) game.scene.leave();
   game.ui.closeModal();
   game.input.clear();
   game.scene = scene;
+  game.touch.setLayout(scene.touchLayout || null);
   scene.enter(params);
   game.debug.scene = scene.constructor.name;
 };
@@ -50,6 +90,7 @@ game.startGame = async function () {
   game.field = game.field || new FieldScene(game);
   game.field.init(r.world);
   game.ui.mountHotbarOnce(text => game.net.chat(text));
+  game.ui.onHotbar = () => game.ui.toggleInventory((a, b) => game.moveSlot(a, b));
   game.go(game.field);
 };
 game.enterNest = function (nest) {
@@ -64,15 +105,21 @@ game.backToField = function (pos) { game.nest = null; game.go(game.field, { pos 
 
 game.openMenu = function () {
   const net = game.net, s = game.settings;
-  const zooms = ['auto', '1', '2', '3', '4'];
+  const zooms = game.isTouch ? [['auto', '自動'], ['large', '大きめ'], ['small', '小さめ（広く見える）']] : [['auto', '自動'], ['1', '×1'], ['2', '×2'], ['3', '×3'], ['4', '×4']];
+  const touchOpts = [['auto', '自動'], ['on', 'いつも出す'], ['off', '出さない（キーボード・マウス）']];
+  const fsOK = document.fullscreenEnabled && document.documentElement.requestFullscreen;
   const p = game.ui.menu('メニュー', `<div class="tb-menu-info">${net.mode === 'offline' ? 'オフライン（この端末に保存）' : 'オンライン'}　${game.character ? '「' + game.character.name + '」' : ''}</div>
-    <label class="tb-field">拡大率 <select class="zoom">${zooms.map(z => `<option value="${z}">${z === 'auto' ? '自動' : '×' + z}</option>`).join('')}</select></label>`, [
+    <label class="tb-field">${game.isTouch ? '表示の大きさ' : '拡大率'} <select class="zoom">${zooms.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
+    <label class="tb-field">タッチ操作のボタン <select class="touchui">${touchOpts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>`, [
     { label: 'ゲームにもどる', act: () => game.ui.closeModal() },
+    ...(fsOK && game.isTouch ? [{ label: document.fullscreenElement ? '全画面をやめる' : '全画面にする', act: () => { game.ui.closeModal(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); } }] : []),
     { label: '保存してタイトルへ（ログアウト）', act: async () => { net.savePosition && net.savePosition(); await net.logout(); game.ui.closeModal(); game.field = null; game.walk = null; game.build = null; game.go(new TitleScene(game)); } },
     { label: '本編（だんのうら）に戻る', act: () => { net.savePosition && net.savePosition(); net.flush && net.flush(); location.href = 'index.html'; } },
   ]);
-  const zs = p.querySelector('.zoom'); zs.value = s.zoom || 'auto';
+  const zs = p.querySelector('.zoom'); zs.value = zooms.some(z => z[0] === s.zoom) ? s.zoom : 'auto';
   zs.onchange = () => { s.zoom = zs.value; saveSettings(s); game.screen.setZoomPref(zs.value); };
+  const ts = p.querySelector('.touchui'); ts.value = s.touchUI || 'auto';
+  ts.onchange = () => { s.touchUI = ts.value; s.touchHidden = false; saveSettings(s); game.setTouch(detectTouch(ts.value)); };
 };
 
 // ── 通信の通知 ──
@@ -123,8 +170,9 @@ function wire(net) {
 }
 
 // ── ループ ──
-let last = performance.now(), acc = 0;
+let last = performance.now(), acc = 0, paused = false;
 function frame(now) {
+  if (paused) return;
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   acc += dt;
   const sc = game.scene;
@@ -136,6 +184,7 @@ function frame(now) {
   }
   if (n === 6) acc = 0;
   if (sc) { sc.update(dt); sc.draw(); }
+  if (game.isTouch) game.touch.setBusy(game.ui.busy());
   game.input.endFrame();
   requestAnimationFrame(frame);
 }
@@ -153,7 +202,13 @@ async function boot() {
   if (bootEl) bootEl.remove();
   game.go(new TitleScene(game));
   addEventListener('pagehide', () => { try { game.net.savePosition && game.net.savePosition(); game.net.flush && game.net.flush(); } catch (e) {} });
-  addEventListener('visibilitychange', () => { if (document.hidden) { try { game.net.savePosition && game.net.savePosition(); } catch (e) {} } });
+  // 裏に回ったら止める（電池の節約）。もどったら時計を合わせなおして再開。押しっぱなしの指は離したことにする
+  addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      try { game.net.savePosition && game.net.savePosition(); } catch (e) {}
+      paused = true; game.input.releaseAll(); game.input.clear();
+    } else if (paused) { paused = false; last = performance.now(); acc = 0; requestAnimationFrame(frame); }
+  });
   requestAnimationFrame(frame);
 }
 window.__tobi = game;   // 動作確認用（Playwright）

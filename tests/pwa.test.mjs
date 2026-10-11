@@ -95,5 +95,28 @@ test('pwa.js：https か localhost・枠の外のときだけ登録する', () =
   assert.match(read('sw.js'), /SKIP_WAITING/);
 });
 
+test('トビネズミ：専用の manifest（全画面・向き自由・アイコン）と sw.js の振り分け', () => {
+  const m = JSON.parse(read('tobinezumi.webmanifest'));
+  assert.equal(m.start_url, './tobinezumi.html');
+  assert.equal(m.display, 'fullscreen');
+  assert.equal(m.orientation, 'any');
+  for (const ic of m.icons) { const [w, h] = pngSize(ic.src); assert.equal(`${w}x${h}`, ic.sizes, ic.src); }
+  assert.deepEqual(pngSize('tobinezumi/assets/pwa/apple-touch-icon.png'), [180, 180]);
+  const html = read('tobinezumi.html');
+  assert.match(html, /<link rel="manifest" href="tobinezumi\.webmanifest">/);
+  assert.match(html, /<script src="pwa\.js"><\/script>/);
+  assert.match(html, new RegExp(`<meta name="theme-color" content="${m.theme_color}">`));
+  const { sw } = loadSW();
+  const k = p => sw.kindOf(new URL(p, sw.BASE));
+  assert.equal(k('tobinezumi.html'), 'shell');
+  assert.equal(k('tobinezumi.webmanifest'), 'shell');
+  assert.equal(k('tobinezumi/client/main.js'), 'shell');
+  assert.equal(k('tobinezumi/shared/move.js'), 'shell');
+  assert.equal(k('tobinezumi/assets/manifest.json'), 'shell');
+  assert.equal(k('tobinezumi/assets/jerboa/shadow.png'), 'media');
+  assert.equal(k('tobinezumi/server/index.js'), null, 'サーバーは扱わない');
+  assert.equal(k('tobi-server.json'), null, 'サーバーの有無はいつもネットで確かめる');
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -26,7 +26,7 @@ export class NestView {
   }
   /** 暗がりと灯り。cam=(x,y) は画面左上の巣座標、z は拡大率、(vx,vy) は画面上の原点 */
   drawLight(g, W, H, cam, z, dark, t, extra = []) {
-    if (!this._lc || this._lc.width !== W) { this._lc = A.mk(W, H); }
+    if (!this._lc || this._lc.width !== W || this._lc.height !== H) { this._lc = A.mk(W, H); }
     const lc = this._lc, lg = lc.getContext('2d');
     lg.globalCompositeOperation = 'source-over';
     lg.clearRect(0, 0, W, H);

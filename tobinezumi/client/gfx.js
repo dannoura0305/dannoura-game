@@ -1,6 +1,9 @@
-// tobinezumi/client/gfx.js — 画面：内部解像度 480×270 のドット絵キャンバス（最近傍で整数倍拡大）＋
+// tobinezumi/client/gfx.js — 画面：内部解像度のドット絵キャンバス（最近傍で拡大）＋
 // その上に高解像度の UI キャンバス（名札・吹き出しなどの文字をくっきり描く）＋ DOM の HUD。
-export const W = 480, H = 270;
+// PC（マウスとキーボード）：内部 480×270 を整数倍。タッチ端末：画面いっぱいに合わせて内部解像度を変え（W・H が変わる）、
+// 拡大率は整数でなくてもよい（touch-logic.js の touchLayout）。W・H は live binding なので import 先でも最新の値になる。
+import { touchLayout } from './touch-logic.js';
+export let W = 480, H = 270;
 export const FONT = "'DotGothic16', 'DotGothic16 Local', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', sans-serif";
 
 export class Screen {
@@ -10,24 +13,63 @@ export class Screen {
     this.g.imageSmoothingEnabled = false;
     this.ug = ui.getContext('2d');
     this.scale = 1; this.dpr = 1; this.zoomPref = 'auto';
+    this.touch = false;        // タッチ用の配置（main.js が決める）
+    this.controls = false;     // いまの画面がタッチ操作の帯を使うか
+    this.layout = null;
+    this.listeners = [];
+    // ノッチ（safe-area）を読むための見えない箱
+    this.probe = document.createElement('div');
+    this.probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+    document.body.appendChild(this.probe);
     this.resize();
-    addEventListener('resize', () => this.resize());
+    let q = 0;
+    const later = () => { if (q) return; q = requestAnimationFrame(() => { q = 0; this.resize(); }); };
+    addEventListener('resize', later);
+    addEventListener('orientationchange', () => { later(); setTimeout(() => this.resize(), 250); });
   }
+  onResize(fn) { this.listeners.push(fn); }
   setZoomPref(p) { this.zoomPref = p; this.resize(); }
+  setTouch(on) { if (this.touch !== !!on) { this.touch = !!on; this.resize(); } }
+  setControls(on) { if (this.controls !== !!on) { this.controls = !!on; this.resize(); } }
+  safeArea() {
+    const cs = getComputedStyle(this.probe), n = v => parseFloat(v) || 0;
+    return { t: n(cs.paddingTop), r: n(cs.paddingRight), b: n(cs.paddingBottom), l: n(cs.paddingLeft) };
+  }
   resize() {
     const vw = innerWidth, vh = innerHeight;
-    const fit = Math.min(vw / W, vh / H);
-    let s = Math.max(1, Math.floor(fit));
-    if (fit < 1) s = fit;                                  // とても小さい画面だけは縮小
-    if (this.zoomPref !== 'auto') s = Math.min(Math.max(1, +this.zoomPref), Math.max(1, Math.floor(fit)) || 1);
+    let s, w = 480, h = 270, pos = null;
+    if (this.touch) {
+      const pref = ['small', 'large'].includes(this.zoomPref) ? this.zoomPref : 'auto';
+      const L = touchLayout(vw, vh, this.safeArea(), { controls: this.controls, pref });
+      this.layout = L;
+      s = L.scale; w = L.W; h = L.H; pos = L;
+    } else {
+      this.layout = null;
+      const fit = Math.min(vw / 480, vh / 270);
+      s = Math.max(1, Math.floor(fit));
+      if (fit < 1) s = fit;                                  // とても小さい画面だけは縮小
+      if (this.zoomPref !== 'auto' && +this.zoomPref) s = Math.min(Math.max(1, +this.zoomPref), Math.max(1, Math.floor(fit)) || 1);
+    }
+    const changed = w !== W || h !== H;
+    W = w; H = h;
+    if (this.cv.width !== W || this.cv.height !== H) { this.cv.width = W; this.cv.height = H; this.g.imageSmoothingEnabled = false; }
     this.scale = s;
     const cw = Math.round(W * s), ch = Math.round(H * s);
     Object.assign(this.stage.style, { width: cw + 'px', height: ch + 'px' });
+    if (pos) Object.assign(this.stage.style, { position: 'fixed', left: pos.left + 'px', top: pos.top + 'px' });
+    else Object.assign(this.stage.style, { position: '', left: '', top: '' });
     this.stage.style.setProperty('--u', String(s));
-    this.dpr = Math.min(3, devicePixelRatio || 1);
-    this.uiCv.width = Math.round(cw * this.dpr); this.uiCv.height = Math.round(ch * this.dpr);
+    const root = document.documentElement;
+    root.classList.toggle('tb-vert', !!(pos && pos.portrait));
+    root.classList.toggle('tb-horiz', !!(pos && !pos.portrait));
+    root.style.setProperty('--ctlh', (pos ? pos.controlsH : 0) + 'px');
+    root.style.setProperty('--stage-b', (pos ? pos.top + ch : 0) + 'px');
+    this.dpr = Math.min(this.touch ? 2 : 3, devicePixelRatio || 1);   // 高精細すぎる画面は UI キャンバスを間引く
+    const uw = Math.round(cw * this.dpr), uh = Math.round(ch * this.dpr);
+    if (this.uiCv.width !== uw || this.uiCv.height !== uh) { this.uiCv.width = uw; this.uiCv.height = uh; }
     this.uiCv.style.width = cw + 'px'; this.uiCv.style.height = ch + 'px';
     this.ug.imageSmoothingEnabled = false;
+    for (const f of this.listeners) { try { f({ W, H, scale: s, changed }); } catch (e) { console.error(e); } }
   }
   /** UI キャンバスの 1 内部ピクセルあたりの実ピクセル */
   get k() { return this.scale * this.dpr; }
