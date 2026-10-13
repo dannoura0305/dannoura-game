@@ -129,3 +129,15 @@ python3 tobinezumi/tools/normalize_sprites.py --help # 外部画像の規格化
 | `ui.bubble` 16×16 + `ui.bubble_tail` 6×4 | 吹き出し（`slice: [4,4,4,4]`）としっぽ（`anchor` = 先端） |
 | `ui.nametag` 12×12×2 | 名札（other/self、`slice: [3,3,3,3]`） |
 | `ui.cursor` 16×16×3 | 巣ビルドのセルカーソル（dig/place/invalid） |
+
+### Ver.0.3「危険と土地」（`tools/art_danger.py` が描く。無ければ `client/art.js` のコード描画）
+| キー | 内容 |
+|---|---|
+| `pred.fox` 32×24×8 | キツネ（右向き。`names: run0〜3/idle/alert/dig0/dig1`、`anchor: [16,22]`）。左向きは反転 |
+| `pred.owl` 32×32×3 | フクロウ（`fly0/fly1/dive`、`anchor: [16,16]`）。高さ z の分だけ上に描き、地面には影（狙うと大きくなる） |
+| `pred.snake` 32×16×5 | ヘビ（`coil0/coil1/rattle0/rattle1/lunge`、`anchor: [15,14]`）。待ち伏せ中は半透明 |
+| `tile.puddle` 16×16×2 | 雨の水たまり（飲める） |
+| `item.rare_seed.*` / `item.pretty_stone.*` | 希少資源（地面・アイコン。地面版は小さくきらめく） |
+| `tile.plug` 24×16 | ふさいだ入口（`tile.burrow` の上に重ねる小石） |
+| `ui.land_flag` 16×16 | 土地を調べた所の旗 |
+| `ui.alert` 12×14 | 捕食者の「！」 |

@@ -23,7 +23,8 @@ export async function makeGame({ dir = tempDir(), clock = { t: 1_700_000_000_000
   const now = () => clock.t;
   const store = await openDb(join(dir, 'game.db'), { log: () => {} });
   const auth = new Auth(store, { now, ...authOpts });
-  const game = new Game({ store, auth, now, log: () => {}, ...gameOpts });
+  // Ver.0.3：天気・季節・捕食者は、ことわらない限り切っておく（前からのテストの数値が変わらないように）。新しいテストは gameOpts で入れる
+  const game = new Game({ store, auth, now, log: () => {}, env: false, predators: 'off', ...gameOpts });
   return { dir, clock, now, store, auth, game, close() { game.stop(); store.close(); } };
 }
 

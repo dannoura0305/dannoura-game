@@ -9,7 +9,7 @@ catch (e) { console.log('tobinezumi server e2e：ws が無いので飛ばす（c
 
 console.log('tobinezumi server e2e (HTTP + WebSocket)');
 const dir = tempDir();
-let srv = await startServer({ port: 0, host: '127.0.0.1', dataDir: dir, backupHours: 0, log: () => {} });
+let srv = await startServer({ port: 0, host: '127.0.0.1', dataDir: dir, backupHours: 0, log: () => {}, gameOpts: { predators: 'off', weather: 'clear' } });
 const base = () => `http://127.0.0.1:${srv.port}`;
 const wsUrl = () => `ws://127.0.0.1:${srv.port}/ws`;
 const opened = [];
@@ -75,7 +75,7 @@ await test('サーバーを止めて起動し直しても：token でそのま�
   const s = await a.synced();
   const pos = { x: s.you.x, y: s.you.y };
   await srv.close();
-  srv = await startServer({ port: 0, host: '127.0.0.1', dataDir: dir, backupHours: 0, log: () => {} });
+  srv = await startServer({ port: 0, host: '127.0.0.1', dataDir: dir, backupHours: 0, log: () => {}, gameOpts: { predators: 'off', weather: 'clear' } });
   const b = await client();
   const h = await b.req('hello', { v: 1, token: a.token });
   assert.equal(h.account.username, 'e2e_keep');
@@ -108,6 +108,27 @@ await test('壊れた送信（JSON でない・巨大）でもサーバーは落
   await closed;
   assert.equal((await (await fetch(base() + '/healthz')).json()).ok, true);
   a.close();
+});
+
+await test('Ver.0.3（本物の WebSocket）：捕食者が 2 人のスナップショットに同じように届く・dev で天気を変えると全員に clock・土地を調べる', async () => {
+  const dir2 = tempDir();
+  const s2 = await startServer({ port: 0, host: '127.0.0.1', dataDir: dir2, backupHours: 0, log: () => {}, gameOpts: { predators: 'normal', weather: 'clear', devMode: true, startHour: 22 } });
+  const url = `ws://127.0.0.1:${s2.port}/ws`;
+  const a = await new ProtoClient(url).connect(), b = await new ProtoClient(url).connect();
+  await a.enter('e2e_pred_a', 'password123'); await b.enter('e2e_pred_b', 'password123');
+  const sp = await a.req('dev', { spawn: 'owl', dx: 200, dy: 0 });
+  assert.equal(sp.ok, true); assert.ok(sp.spawned);
+  const sa = await a.wait('snapshot', m => (m.preds || []).some(p => p.id === sp.spawned));
+  const sb = await b.wait('snapshot', m => (m.preds || []).some(p => p.id === sp.spawned));
+  const pa = sa.preds.find(p => p.id === sp.spawned), pb = sb.preds.find(p => p.id === sp.spawned);
+  assert.equal(pa.kind, 'owl'); assert.equal(pb.kind, 'owl');
+  const cp = b.wait('clock', m => m.clock && m.clock.weather === 'rain');
+  await a.req('dev', { weather: 'rain' });
+  assert.equal((await cp).clock.weather, 'rain', '天気は全員に');
+  const sv = await b.req('survey', {});
+  assert.equal(sv.ok, true); assert.equal(sv.land.here.weather, 'rain'); assert.ok(sv.land.id.startsWith('L'));
+  a.close(); b.close();
+  await s2.close(); rmDir(dir2);
 });
 
 for (const c of opened) c.close();

@@ -11,7 +11,10 @@ export const STORAGE_SLOTS = 24;
 export const ITEMS = {
   seed:   { id: 'seed',   name: '種子', desc: '乾いた草原の植物の種。トビネズミの主食。' },
   grass:  { id: 'grass',  name: '草',   desc: '乾いた細い草。寝床や敷物の材料になる。' },
-  pebble: { id: 'pebble', name: '小石', desc: '丸い小石。巣の補強や飾りに使う。' },
+  pebble: { id: 'pebble', name: '小石', desc: '丸い小石。巣の補強や飾りに使う。入口をふさぐのにも使う。' },
+  // Ver.0.3：土地の希少資源（区画によって、ときどき 1 つだけ見つかる）
+  rare_seed:    { id: 'rare_seed',    name: '珍しい種',   desc: '甘い香りの大きな種。食べると空腹 +40・体調 +10。' },
+  pretty_stone: { id: 'pretty_stone', name: 'きれいな石', desc: '光に透ける小石。見ているだけで うれしい（いつか飾りに）。' },
 };
 export const RESOURCE_KINDS = ['seed', 'grass', 'pebble'];
 

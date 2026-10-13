@@ -59,7 +59,8 @@ function dirName(fx, fy) {
 
 /**
  * 地上の 1 歩。input = {mx, my, jump}（mx,my は -1/0/1）
- * mods = {tired}（shared/life.js の moveMods）：へとへとなら跳ねる速さ ×TIRED_SPEED、大ジャンプできない
+ * mods = {tired, speed}（shared/life.js の moveMods・shared/season.js の fieldMods）：へとへとなら跳ねる速さ ×TIRED_SPEED、大ジャンプできない。
+ *   speed は天気（砂嵐 ×0.8）の倍率（跳ねる速さだけ。大ジャンプの距離は変わらない）
  */
 export const TIRED_SPEED = 0.7;
 export function stepField(st, input, dt, map, mods = null) {
@@ -90,7 +91,7 @@ export function stepField(st, input, dt, map, mods = null) {
   }
   if (mx || my) {
     const len = Math.hypot(mx, my);
-    const sp = FIELD.HOP_SPEED * (tired ? TIRED_SPEED : 1);
+    const sp = FIELD.HOP_SPEED * (tired ? TIRED_SPEED : 1) * (mods && mods.speed > 0 ? mods.speed : 1);
     const vx = mx / len * sp * dt, vy = my / len * sp * dt;
     if (boxFree(map, s.x + vx, s.y)) s.x += vx;
     if (boxFree(map, s.x, s.y + vy)) s.y += vy;

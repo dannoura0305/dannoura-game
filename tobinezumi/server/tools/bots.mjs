@@ -6,10 +6,13 @@
 // 各ボット：登録（あればログイン）→ キャラ作成 → 地上へ → うろうろ跳ねる・ときどき大ジャンプ・チャット・
 // 近くの採集物を拾いに行く・公開の巣があれば入って少し歩いて出る。終わると 1 体ずつの統計を出す。
 // Ver.0.2：おなかがすいたら種子を食べる・のどがかわいたら夜露かオアシスへ行って飲む・巣のあるボットは寝床を作り、ときどき眠る。
+// Ver.0.3：捕食者に狙われたら（snapshot の preds で target が自分）逃げる：反対へ跳ね、大ジャンプ、近くに自分の巣があれば飛び込む。
+//          つかまったら（caught）安全な所から続ける。落とし物（id 'x…'）も拾いに行く。
 import { ProtoClient, fieldMap } from './proto-client.mjs';
 import { FUR_IDS } from '../../shared/protocol.js';
 import { CELL, objectsWithFixtures } from '../../shared/nest-rules.js';
 import { T, TILE, tileAt, nearWater } from '../../shared/regions.js';
+import { ALERT_STATES } from '../../shared/predators.js';
 
 /** 水を飲める立ち位置（水のタイルのすぐ下の陸）をいくつか */
 function waterSpots() {
@@ -38,7 +41,7 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 
 async function runBot(i, stats) {
   const c = new ProtoClient(URL_);
-  const s = { name: PREFIX + i, picks: 0, pickFail: 0, chats: 0, jumps: 0, nests: 0, errors: 0, snaps: 0, maxGapMs: 0, corrections: 0, resGone: 0, eats: 0, drinks: 0, sleeps: 0 };
+  const s = { name: PREFIX + i, picks: 0, pickFail: 0, chats: 0, jumps: 0, nests: 0, errors: 0, snaps: 0, maxGapMs: 0, corrections: 0, resGone: 0, eats: 0, drinks: 0, sleeps: 0, flees: 0, caught: 0, hides: 0 };
   stats.push(s);
   await c.connect();
   const world = await c.enter(`${PREFIX}${i}`, PASS, { name: `ボット${i}`, fur: FUR_IDS[i % FUR_IDS.length] });
@@ -56,6 +59,8 @@ async function runBot(i, stats) {
     if (m.ack === c.seq && Math.hypot(m.you.x - c.st.x, m.you.y - c.st.y) > 0.01) { s.corrections++; c.st = { ...m.you }; }
   });
   c.on('close', () => { if (!c.stopping) s.errors++; });
+  c.on('caught', () => { s.caught++; target = null; });
+  let fleeing = 0;
 
   const end = Date.now() + SECS * 1000;
   let mx = 0, my = 0, until = 0, target = null, chatAt = Date.now() + rnd(3000, 15000), nestAt = Date.now() + rnd(12000, 30000), eatAt = 0;
@@ -63,6 +68,30 @@ async function runBot(i, stats) {
   let hasNest = !!world.you.nest, digAt = i % 3 === 1 ? Date.now() + rnd(2000, 6000) : Infinity;
   while (Date.now() < end && !c.closed) {
     const t = Date.now();
+    // 捕食者に狙われている → 逃げる（自分の巣が近ければ飛び込む）
+    const preds = (c.lastSnap && c.lastSnap.preds) || [];
+    const th = preds.find(p => p.target === c.account.id && ALERT_STATES.has(p.state));
+    if (th) {
+      if (!fleeing) s.flees++;
+      fleeing = t + 1500;
+      const own = [...entrances.values()].find(e => e.owner === c.account.id);
+      if (own && Math.hypot(own.x - c.st.x, own.y - c.st.y) < 26) {
+        const e = await c.req('enter_nest', { owner: c.account.id });
+        if (e.ok) { s.hides++; await sleep(rnd(2000, 4000)); const l = await c.req('leave_nest'); if (l.ok) { c.st = { ...c.st, x: l.x, y: l.y, jump: null }; await c.join(); } lastSnapAt = 0; continue; }
+      }
+      let dx = c.st.x - th.x, dy = c.st.y - (th.sy ?? th.y);
+      if (own && Math.hypot(own.x - c.st.x, own.y - c.st.y) < 140) { dx = own.x - c.st.x; dy = own.y - c.st.y; }
+      const l = Math.hypot(dx, dy) || 1;
+      mx = Math.abs(dx / l) > 0.38 ? Math.sign(dx) : 0; my = Math.abs(dy / l) > 0.38 ? Math.sign(dy) : 0;
+      if (!mx && !my) mx = 1;
+      const jump = c.st.cd <= 0 && !c.st.jump;
+      if (jump) s.jumps++;
+      c.inputs([{ mx, my, jump }, { mx, my }, { mx, my }]);
+      target = null; until = t + 800;
+      await sleep(50);
+      continue;
+    }
+    if (fleeing && t > fleeing) fleeing = 0;
     // 3 フレームぶん（50ms）の入力をまとめて送る
     if (target) {
       const dx = target.x - c.st.x, dy = target.y - c.st.y;
@@ -155,7 +184,7 @@ for (let i = 1; i <= N; i++) { all.push(runBot(i, stats).catch(e => { console.er
 await Promise.all(all);
 const sec = (Date.now() - t0) / 1000;
 const sum = k => stats.reduce((a, s) => a + (s[k] || 0), 0);
-const out = { bots: N, secs: Math.round(sec), picks: sum('picks'), pickFail: sum('pickFail'), eats: sum('eats'), drinks: sum('drinks'), sleeps: sum('sleeps'), chats: sum('chats'), jumps: sum('jumps'), burrows: sum('dug'), nestVisits: sum('nests'), nestRefused: sum('nestFail'),
+const out = { bots: N, secs: Math.round(sec), picks: sum('picks'), pickFail: sum('pickFail'), eats: sum('eats'), drinks: sum('drinks'), sleeps: sum('sleeps'), chats: sum('chats'), jumps: sum('jumps'), burrows: sum('dug'), nestVisits: sum('nests'), nestRefused: sum('nestFail'), flees: sum('flees'), caught: sum('caught'), hidInNest: sum('hides'),
   errors: sum('errors'), corrections: sum('corrections'), snapshotsPerBotPerSec: +(sum('snaps') / N / sec).toFixed(2), maxSnapshotGapMs: Math.max(0, ...stats.map(s => s.maxGapMs)), kbInPerBotPerSec: +(sum('kbIn') / N / sec).toFixed(2) };
 console.log(JSON.stringify(out));
 process.exit(out.errors ? 1 : 0);

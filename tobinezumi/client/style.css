@@ -332,3 +332,30 @@ html.tb-touch .tb-region, html.tb-touch .tb-wtop { max-width: calc(100% - max(ca
 html.tb-touch .tb-toasts { max-width: calc(100% - 12px); }
 html.tb-touch .tb-toast { white-space: normal; text-align: center; max-width: 100%; }
 html.tb-touch.tb-horiz .tb-guide { right: 214px; }   /* 「食べる」の丸（右から 152〜200px）を避ける */
+
+/* ───────── Ver.0.3「危険と土地」：時計の横の季節・天気、土地を調べる、入口のふさぎ ───────── */
+.tb-clock .wx { display: inline-flex; align-items: center; gap: calc(var(--u) * 1px); margin-left: calc(var(--u) * 1.5px); padding-left: calc(var(--u) * 2px); border-left: 1px solid #5a3e26; }
+.tb-clock .wx:empty { display: none; }
+.tb-clock .wx b { font-weight: normal; }
+.tb-clock .wx .wi svg { width: calc(var(--u) * 8px); height: calc(var(--u) * 8px); display: block; }
+.tb-clock .wx .ww { font-size: .9em; }
+.tb-clock[data-weather="sandstorm"] { border-color: #e8b060; }
+.tb-clock[data-weather="rain"] { border-color: #7ab4e0; }
+.tb-clock[data-cold="1"] { box-shadow: 0 0 0 1px #cfe8ff; }
+.tb-bad { color: var(--ng); font-size: .85em; }
+.tb-stars { color: #ffd060; letter-spacing: -.05em; white-space: nowrap; }
+.tb-stars i { font-style: normal; color: #5a4430; }
+.tb-landpanel { width: calc(var(--u) * 236px); max-height: calc(100% - var(--u) * 8px); overflow-y: auto; }
+.tb-landname { color: var(--edge2); margin-bottom: calc(var(--u) * 2px); }
+.tb-lrowp { display: flex; align-items: baseline; gap: calc(var(--u) * 3px); padding: calc(var(--u) * 0.6px) 0; flex-wrap: wrap; }
+.tb-lrowp .k { width: 2.4em; color: var(--dim); flex: none; }
+.tb-lrowp b { font-weight: normal; color: var(--ok); }
+.tb-landhere { margin-top: calc(var(--u) * 2px); line-height: 1.5; }
+.tb-landmini { margin: calc(var(--u) * 2px) 0; font-size: .85em; line-height: 1.6; }
+.tb-btn.off { opacity: .5; }
+.tb-plugtag { color: #e2d6c4; font-size: .8em; border: 1px solid #a09080; border-radius: 3px; padding: 0 .3em; }
+html.tb-touch .tb-landpanel { width: min(calc(100% - 8px), 420px); }
+html.tb-touch.tb-horiz .tb-landpanel { width: min(calc(100% - 200px), 460px); }
+/* 横向きの地上：ボタンの列（持ち物・土地・チャット・メニュー・隠す）はミニマップの下から（--mm-bottom は scene-field.js が測る） */
+html.tb-horiz #tb-touch[data-layout="field"] .tc-sys { top: calc(var(--mm-bottom, 96px) + 6px); bottom: 104px; gap: 4px; justify-content: flex-start; }
+html.tb-horiz #tb-touch[data-layout="field"] .tc-sbtn { height: 29px; }

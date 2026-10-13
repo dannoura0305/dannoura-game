@@ -193,19 +193,19 @@ await test('オフライン：眠る（自分の巣の寝床の上だけ）→ �
   const saved = JSON.parse(G.ls.getItem(SAVE_KEY));
   assert.equal(saved.v, SAVE_VERSION); assert.ok(saved.player.life.cond > 99);
 });
-await test('オフライン：セーブの移行 v1 → v2（持ち物・巣はそのまま、暮らしの数値・フレンド・訪問の記録を足す）', async () => {
+await test('オフライン：セーブの移行 v1 → v2 → v3（持ち物・巣はそのまま、暮らしの数値・フレンド・訪問の記録を足す）', async () => {
   const v1 = { v: 1, account: { id: 'local', username: 'local', createdAt: 1 }, character: { id: 'c1', name: 'むかし', fur: 'white', createdAt: 1, individual: { genes: { fur: 'white' } } },
     player: { x: map.spawn.x, y: map.spawn.y, dir: 'down', inv: [{ id: 'seed', n: 9 }, null], nestId: null, place: 'field', savedAt: 1 }, nests: {}, entrances: [], world: null };
   const ls = makeLS({ [SAVE_KEY]: JSON.stringify(v1), dannoura_save: 'keep' });
   const n = new OfflineBackend({ storage: ls, now: () => NOON, npc: false, map });
-  assert.equal(n.save.v, 2);
+  assert.equal(n.save.v, SAVE_VERSION);
   assert.deepEqual(n.save.player.life, makeLife());
   assert.deepEqual(n.save.friends, []); assert.deepEqual(n.save.visits, []);
   assert.equal(countItem(n.save.player.inv, 'seed'), 9, '持ち物は残る');
   const j = await n.joinField();
   assert.equal(j.world.you.name, 'むかし'); assert.equal(j.world.life.cond, 100);
   const saved = JSON.parse(ls.getItem(SAVE_KEY));
-  assert.equal(saved.v, 2); assert.equal(ls.getItem('dannoura_save'), 'keep');
+  assert.equal(saved.v, SAVE_VERSION); assert.equal(ls.getItem('dannoura_save'), 'keep');
   // 壊れた life でも読める
   saved.player.life = { hunger: 'abc', cond: 999 };
   const n2 = new OfflineBackend({ storage: makeLS({ [SAVE_KEY]: JSON.stringify(saved) }), now: () => NOON, npc: false, map });

@@ -11,6 +11,9 @@ import { nestQuery, CELL, KIND_NAME } from '../shared/nest-rules.js';
 import { stepSide, makeSideState, STEP_DT } from '../shared/move.js';
 import { FURNITURE, FIXTURES } from '../shared/items.js';
 import { hash2 } from '../shared/rng.js';
+import * as A from './art.js';
+import { PLUG_COST } from '../shared/protocol.js';
+import { sfx } from './sfx.js';
 
 const GUIDE_KEYS = '<span><kbd>←</kbd><kbd>→</kbd> 移動</span><span><kbd>Space</kbd> ジャンプ</span><span><kbd>↑</kbd><kbd>↓</kbd> 登る・降りる</span><span><kbd>E</kbd> 調べる・眠る</span><span><kbd>Q</kbd> 食べる</span><span><kbd>B</kbd> ビルドモード</span>';
 const GUIDE_TOUCH = '<span>◀ ▶ 移動</span><span>▲ ▼ 登る・降りる（入口の縦穴を▲で地上へ）</span><span>調べる＝寝床で眠る</span><span>ビルド＝全体モード</span>';
@@ -38,7 +41,7 @@ export class NestWalkScene {
       <div class="tb-guide">${g.isTouch ? GUIDE_TOUCH : GUIDE_KEYS}</div>
       <div class="tb-prompt tb-ui-block hidden"></div>`;
     this.roomEl = this.dom.querySelector('.tb-roomlabel');
-    this.promptEl = this.dom.querySelector('.tb-prompt');
+    this.promptEl = this.dom.querySelector('.tb-prompt'); this._promptHTML = null;
     this.promptEl.addEventListener('click', () => { if (!g.ui.busy()) this.interact(); });
     this.guideEl = this.dom.querySelector('.tb-guide');
     if (g.isTouch) setTimeout(() => { if (this.guideEl) this.guideEl.classList.add('fade'); }, 12000);
@@ -47,14 +50,18 @@ export class NestWalkScene {
   }
   _title() {
     const n = this.nest;
-    return `${esc(n.ownerName)}の巣${n.own ? '' : n.canEdit ? '　<span class="tb-dim">（共同作業者）</span>' : '　<span class="tb-dim">（見学中）</span>'}`;
+    return `${esc(n.ownerName)}の巣${n.own ? '' : n.canEdit ? '　<span class="tb-dim">（共同作業者）</span>' : '　<span class="tb-dim">（見学中）</span>'}${n.plugged ? '　<span class="tb-plugtag">入口：ふさいである</span>' : ''}`;
   }
+  _retitle() { const t = this.dom && this.dom.querySelector('.tb-wtop'); if (t) t.innerHTML = this._title(); this.game.ui.layoutTop(); }
   onRoleChange(nest) { this.nest = nest; const t = this.dom && this.dom.querySelector('.tb-wtop'); if (t) t.innerHTML = this._title(); }
   leave() {
     if (this.sleeping) this.wakeUp(true, true);
     if (this.dom) this.dom.remove(); this.dom = null; this.game.screen.clearUI(); this.game.ui.showHUD(false);
   }
-  helpHTML() { return this.game.isTouch ? '<b>◀ ▶</b> 歩く／<b>▲ ▼</b> はしご・縦の通路を登る・降りる（入口の縦穴を ▲ で地上へ）<br><b>ジャンプ</b>／<b>調べる</b> 寝床で眠る（体調が戻る）・種の山で食べる・倉庫を開く<br><b>食べる</b> 持ち物の種子を食べる／<b>ビルド</b> 全体モード（掘る・部屋・家具）' : '<b>← →</b> 歩く／<b>↑ ↓</b> 登る・降りる／<b>Space</b> ジャンプ<br><b>E</b> 調べる（寝床で眠る＝体調が戻る・種の山で食べる・倉庫）／<b>Q</b> 種子を食べる／<b>B・Tab</b> 全体モード'; }
+  helpHTML() {
+    const plug = '<br><b>入口をふさぐ</b>：入口の縦穴の下で 調べる（小石×2）。夜のキツネに掘られても倉庫が無事・ほかの子は入れない。もう一度で ひらく。<br><b>休眠</b>：夏の昼・冬に寝床で眠ると、体調の戻りが早く空腹も減りにくい。';
+    return (this.game.isTouch ? '<b>◀ ▶</b> 歩く／<b>▲ ▼</b> はしご・縦の通路を登る・降りる（入口の縦穴を ▲ で地上へ）<br><b>ジャンプ</b>／<b>調べる</b> 寝床で眠る（体調が戻る）・種の山で食べる・倉庫を開く<br><b>食べる</b> 持ち物の種子を食べる／<b>ビルド</b> 全体モード（掘る・部屋・家具）' : '<b>← →</b> 歩く／<b>↑ ↓</b> 登る・降りる／<b>Space</b> ジャンプ<br><b>E</b> 調べる（寝床で眠る＝体調が戻る・種の山で食べる・倉庫）／<b>Q</b> 種子を食べる／<b>B・Tab</b> 全体モード') + plug;
+  }
   onTouchChange(on) { if (this.guideEl) this.guideEl.innerHTML = on ? GUIDE_TOUCH : GUIDE_KEYS; }
   _setData(data) { this.data = data; this.q = nestQuery(data); this.view.setData(data, { fill: this._fill() }); }
   _fill() { const s = this.nest.storage || []; let n = 0; for (const it of s) if (it) n += it.n; return Math.min(1, n / 60); }
@@ -143,6 +150,11 @@ export class NestWalkScene {
       if (Math.floor(s.x / CELL) === d.entrance.x && s.y < (d.surfaceY + 3) * CELL) return { kind: 'exit', label: '↑ で地上へ出る' };
       return null;
     }
+    // 入口の縦穴の下：入口をふさぐ・ひらく（Ver.0.3：所有者・共同作業者）
+    if (this.nest.canEdit) {
+      const d = this.data, ex = d.entrance.x * CELL + CELL / 2;
+      if (Math.abs(s.x - ex) < 14 && s.y <= (d.surfaceY + 9) * CELL) return { kind: 'plug', label: this.nest.plugged ? '入口をひらく（小石が 1 つ戻る）' : '入口をふさぐ（小石×' + PLUG_COST.pebble + '・夜のキツネから巣を守る）' };
+    }
     let best = null, bd = 1e9;
     for (const it of this.view.layout.interact) {
       if (s.x < it.x0 || s.x > it.x1 || Math.abs(s.y - it.floorY) > 6) continue;
@@ -162,6 +174,7 @@ export class NestWalkScene {
     if (!tgt) return;
     if (tgt.kind === 'exit') { g.ui.toast(g.isTouch ? '▲ を押し続けると地上へ出る' : '↑ を押し続けると地上へ出る'); return; }
     if (tgt.kind === 'sleep') { this.goSleep(tgt); return; }
+    if (tgt.kind === 'plug') { this.togglePlug(); return; }
     if (tgt.kind === 'pile') { g.eat('pile'); return; }
     if (tgt.kind === 'store') {
       if (!this.nest.canEdit) { g.ui.toast('ほかの子の倉庫だ。中身はいっぱい'); return; }
@@ -178,6 +191,22 @@ export class NestWalkScene {
     g.ui.toast(f ? f.desc : '…');
   }
 
+  /** 入口をふさぐ・ひらく（サーバーが確かめる：小石 2・巣の中から・所有者か共同作業者） */
+  async togglePlug() {
+    const g = this.game;
+    if (this._asking) return;
+    this._asking = true;
+    const r = await g.net.plug(!this.nest.plugged);
+    this._asking = false;
+    if (!r.ok) { g.ui.toast(r.reason || 'できなかった', 'bad'); return; }
+    this.nest.plugged = r.plugged;
+    if (r.inv) g.setInv(r.inv);
+    if (g.field && g.field.myNest && this.nest.own) g.field.myNest.plugged = r.plugged;
+    if (g.field) for (const e of g.field.entrances) if (e.nestId === this.nest.id) e.plugged = r.plugged;
+    this._retitle();
+    sfx('plug');
+    g.ui.toast(r.plugged ? '入口を小石でふさいだ（キツネに掘られても無事・ほかの子は入れない）' : '入口をひらいた（小石が 1 つ戻った）');
+  }
   /** 寝床で眠る：サーバー（オフラインは同じ API）が寝床の上か確かめる */
   async goSleep(tgt) {
     const g = this.game;
@@ -234,6 +263,7 @@ export class NestWalkScene {
     const tod = this.game.tod();
     this.drawSky(g, tod);
     this.view.drawObjects(g, this.t);
+    if (this.nest.plugged) { const d = this.data; A.drawPlug(g, d.entrance.x * CELL + CELL / 2, (d.surfaceY + 1) * CELL - 3); A.drawPlug(g, d.entrance.x * CELL + CELL / 2, (d.surfaceY + 1) * CELL + 2); }
     const lift = this.view.lift;
     const peers = this.viewPeers || this.peers;
     for (const p of peers) {

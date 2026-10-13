@@ -91,7 +91,7 @@
 
 ## 5. データ構造（将来拡張を見越して先に分ける）
 
-実装：`server/migrations/001_init.js`・`002_world_containers.js`・`003_life_social.js`（Ver.0.2：friends・nest_visits・nest_access の主キー）（起動時に未適用分を番号順に当て、`schema_migrations` に記録）。
+実装：`server/migrations/001_init.js`・`002_world_containers.js`・`003_life_social.js`（Ver.0.2：friends・nest_visits・nest_access の主キー）・`004_danger_land.js`（Ver.0.3：lands.plot・nests.plugged/relocated_at/raided_at・nest_events・world_resources.qty/expires_at）（起動時に未適用分を番号順に当て、`schema_migrations` に記録）。
 
 ```
 schema_migrations(version, name, applied_at)                         -- どこまで当てたか
@@ -104,13 +104,15 @@ individuals(id, species, name, sex, born_at, generation,
             father_id NULL, mother_id NULL,                           -- 家系図（Ver0.1 は NULL）
             genes JSON, traits JSON, status JSON)                     -- 毛色・耳・脚・尾・体格／空腹など（Ver0.1 は genes.fur だけ）
 inventories(owner_kind 'char'|'nest', owner_id, slot, item_id, qty)   -- 持ち物 8 枠 / 巣の倉庫 24 枠（枠の並びも保存）
-lands(id, region_id, x, y, info JSON)                                 -- 土地（巣穴の入口の場所）。info は食料・危険・地質・気候…の器
+lands(id, region_id, x, y, info JSON, plot)                           -- 土地（巣穴の入口の場所）。plot＝区画 'L列-行'、info＝区画の性能（食料・危険・地質・景観・気候・希少：Ver.0.3）
 nests(id, owner_account_id UNIQUE, land_id, schema_version, rev,
-      data JSON, visit_policy, created_at, updated_at)                -- 巣は土地と分離 → 引っ越し可
+      data JSON, visit_policy, created_at, updated_at,
+      plugged, relocated_at, raided_at)                               -- 巣は土地と分離 → 引っ越し＝新しい lands を足して land_id を付け替え（Ver.0.3）
+nest_events(id, nest_id, kind 'raid'|'blocked', data JSON, at, seen)  -- Ver.0.3：キツネの襲撃（seen=0 は留守中 → 次のログインで）
 nest_access(nest_id, account_id, role, name)  PK(nest_id, account_id, role) -- visitor（許可リスト）/ builder（共同作業者・Ver.0.2）
 friends(a, b, state 'pending'|'friend', created_at, updated_at)       -- Ver.0.2：a が申請した側
 nest_visits(id, nest_id, visitor_id, visitor_name, at, seen)          -- Ver.0.2：訪問の記録（seen=0 は留守中の訪問）
-world_resources(id, region_id, kind, x, y, respawn_at)               -- 採集物。respawn_at NULL＝地上にある、値あり＝再出現待ち
+world_resources(id, region_id, kind, x, y, respawn_at, qty, expires_at) -- 採集物。respawn_at NULL＝地上にある、値あり＝再出現待ち。qty・expires_at は落とし物（Ver.0.3）
 meta(key, value)                                                      -- 採集物の初期化済み・次の id
 regions(id, name, kind, hidden INTEGER, data JSON)                    -- 砂漠・草原・オアシス・丘・富山（hidden=1）
 collectibles(id, kind, data JSON)  /  account_collectibles(account_id, collectible_id, got_at, data)   -- 収集品の器
@@ -120,7 +122,8 @@ events(id, key, data JSON) / account_flags(account_id, key, value)    -- 物語�
 - 巣データ（`nests.data`）の版が古ければ、起動時に `shared/nest-rules.js` の `migrateNest` で最新へ（`schema_version` も更新）。
 - 書き込みは同期 API（`DatabaseSync`）＋`BEGIN IMMEDIATE` のトランザクション。採集は「資源を消す＋持ち物を書く＋再出現待ちを積む」、建築は「`rev` が一致したときだけ巣を書く＋持ち物」、倉庫は「持ち物＋倉庫」を 1 トランザクションで。
 - 「アカウント」と「操作個体」を分けておくことで、**世代交代＝操作個体の切り替え**になる。
-- 巣は土地 ID を参照するだけなので、**引っ越し＝land_id の付け替え**で済む。
+- 巣は土地 ID を参照するだけなので、**引っ越し＝land_id の付け替え**で済む（Ver.0.3 で実装。古い土地の行は履歴として残す）。
+- Ver.0.3：捕食者は `FieldRoom.predTick`（20Hz・`shared/predators.js` の `PredatorWorld`）がサーバーで動かし、スナップショットに `preds` を入れる。オフラインは `OfflineBackend` が同じクラスを 1/20 秒刻みで回す。天気・季節は時計から計算するので送らない。
 
 ## 6. 巣データ（全体モードと閲覧モードの共通データ）
 
@@ -153,8 +156,9 @@ tobinezumi/
                net.js（OfflineBackend / OnlineBackend / Predictor / Interp）,
                scene-title.js, scene-field.js, scene-nest-build.js, scene-nest-walk.js,
                nest-view.js（断面の描画：両モード共通）, nest-layout.js（配置：両モード共通・DOM なし）,
-               sprites.js（manifest の読み込み・毛色の置き換え）, art.js（コード描画のプレースホルダ）, style.css
-  shared/      move.js, nest-rules.js, items.js, regions.js, protocol.js, rng.js, life.js（暮らしの数値）, daynight.js（昼夜の時計）（ブラウザと Node の両方で import する ES Modules・DOM なし）
+               sprites.js（manifest の読み込み・毛色の置き換え）, art.js（コード描画のプレースホルダ）, sfx.js（WebAudio の効果音）, style.css
+  shared/      move.js, nest-rules.js, items.js, regions.js, protocol.js, rng.js, life.js（暮らしの数値）, daynight.js（昼夜の時計）,
+               predators.js（捕食者の AI・Ver.0.3）, season.js（季節・天気・影響）, lands.js（土地の区画と性能）（ブラウザと Node の両方で import する ES Modules・DOM なし）
   server/      index.js（静的配信・/tobi-server.json・/healthz・WebSocket /ws）, game.js（接続・認証・振り分け。ws に依存しない）,
                rooms/field.js（地上 20Hz・スナップショット 10Hz・採集・巣穴）, rooms/nest.js（巣のインスタンス・建築・倉庫・訪問設定）,
                db.js, auth.js, backup.js, migrations/NNN_*.js, tools/（bots.mjs, backup.mjs, restore.mjs, proto-client.mjs）,

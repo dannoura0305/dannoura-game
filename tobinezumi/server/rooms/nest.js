@@ -7,7 +7,8 @@
 //  ・nest_peers：中にいる人の位置（10Hz まで）。巣の中のチャットは中にいる人だけへ。
 import { tryOp, CELL, objectsWithFixtures } from '../../shared/nest-rules.js';
 import { payCost, refund, countItem, removeItem, addItem, canAdd, ITEMS } from '../../shared/items.js';
-import { VISIT_POLICIES, validName, MAX_BUILDERS } from '../../shared/protocol.js';
+import { VISIT_POLICIES, validName, MAX_BUILDERS, PLUG_COST, PLUG_GAP_MS } from '../../shared/protocol.js';
+import { RELOCATE_COOLDOWN_MS } from '../../shared/lands.js';
 
 const clone = inv => inv.map(s => s && { ...s });
 const OPS = new Set(['dig', 'fill', 'tunnel', 'room', 'room-resize', 'set-kind', 'place', 'remove']);
@@ -30,10 +31,14 @@ export class NestHub {
     this.inst = new Map();     // nestId → {members:Set<Player>, dirty}
     this.metaCache = new Map();
   }
-  /** 入口の表示用：{ownerName, policy} */
+  /** 入口の表示用：{ownerName, policy, plugged, raidedAt, danger}（Ver.0.3：ふさいだ入口・襲撃・土地の危険） */
   meta(nestId) {
     let m = this.metaCache.get(nestId);
-    if (!m) { const n = this.store.nest(nestId); if (!n) return null; m = { ownerName: n.ownerName, policy: n.policy, owner: n.owner }; this.metaCache.set(nestId, m); }
+    if (!m) {
+      const n = this.store.nest(nestId); if (!n) return null;
+      m = { ownerName: n.ownerName, policy: n.policy, owner: n.owner, plugged: n.plugged, raidedAt: n.raidedAt, danger: n.land ? n.land.danger || 0 : 0 };
+      this.metaCache.set(nestId, m);
+    }
     return m;
   }
   forget(nestId) { this.metaCache.delete(nestId); }
@@ -46,6 +51,7 @@ export class NestHub {
   }
   canVisit(nest, accountId) {
     if (this.role(nest, accountId) !== 'visitor') return true;
+    if (nest.plugged) return false;          // 入口がふさがれている（所有者と共同作業者だけ）
     if (nest.policy === 'public') return true;
     if (nest.policy === 'list') return this.store.hasNestAccess(nest.id, accountId, 'visitor');
     if (nest.policy === 'friends') return this.store.isFriend(nest.owner, accountId);
@@ -55,14 +61,15 @@ export class NestHub {
   record(nest, p) {
     const role = this.role(nest, p.accountId), own = role === 'owner';
     const out = { id: nest.id, owner: nest.owner, ownerName: nest.ownerName, rev: nest.rev, data: nest.data, storage: this.store.nestStorage(nest.id), policy: nest.policy,
-      canEdit: role !== 'visitor', own, role, hostFur: null };
+      canEdit: role !== 'visitor', own, role, hostFur: null, plugged: !!nest.plugged, land: nest.land || null };
+    if (own) { out.relocatedAt = nest.relocatedAt || 0; out.relocateCooldownMs = this.relocateCooldownMs != null ? this.relocateCooldownMs : RELOCATE_COOLDOWN_MS; }
     if (own) { out.list = this._names(nest.id, 'visitor'); out.builders = this._names(nest.id, 'builder'); }
     return out;
   }
 
   /** 入る（入口の距離などは呼ぶ側で確認済み） */
   enter(p, nest) {
-    if (!this.canVisit(nest, p.accountId)) return { ok: false, code: 'forbidden', reason: (nest.ownerName || '') + 'の巣は 今は入れないようだ' };
+    if (!this.canVisit(nest, p.accountId)) return { ok: false, code: 'forbidden', reason: (nest.ownerName || '') + 'の巣は 今は入れないようだ' + (nest.plugged ? '（入口がふさがれている）' : '') };
     this.leave(p);
     let I = this.inst.get(nest.id);
     if (!I) { I = { members: new Set(), dirty: false }; this.inst.set(nest.id, I); }
@@ -196,6 +203,28 @@ export class NestHub {
     const storage = this.store.nestStorage(nest.id);
     if (!removeItem(storage, 'seed', 1)) return { ok: false, code: 'rule', reason: '倉庫に種子が無い' };
     return { ok: true, nest, storage };
+  }
+
+  // ───────── 入口をふさぐ（Ver.0.3）─────────
+  /** 巣の中から入口を小石でふさぐ（小石 2）・ひらく（小石 1 つ戻る）。所有者と共同作業者。ふさぐとキツネに掘られても無事・訪問者は入れない */
+  plug(p, on) {
+    if (p.place !== 'nest') return { ok: false, code: 'forbidden', reason: '巣の中からだけ ふさげる' };
+    const nest = this.store.nest(p.nestId);
+    if (!nest) return { ok: false, code: 'not_found', reason: '巣が無い' };
+    if (this.role(nest, p.accountId) === 'visitor') return { ok: false, code: 'forbidden', reason: '自分の巣ではない' };
+    const t = this.now();
+    if (p._plugT && t - p._plugT < PLUG_GAP_MS) return { ok: false, code: 'rate', reason: 'ちょっと待って' };
+    p._plugT = t;
+    if (!!nest.plugged === !!on) return { ok: false, code: 'rule', reason: on ? 'もう ふさいである' : 'もう ひらいている' };
+    const inv = clone(p.inv);
+    if (on && !payCost(inv, PLUG_COST)) return { ok: false, code: 'rule', reason: '小石が足りない（小石×' + PLUG_COST.pebble + '）' };
+    if (!on) addItem(inv, 'pebble', 1);
+    this.store.tx(() => { this.store.setPlugged(nest.id, on); this.store.setCharInventory(p.charId, inv); });
+    p.inv = inv;
+    this.forget(nest.id);
+    for (const o of this.members(nest.id)) if (o !== p && o.conn) o.conn.send({ t: 'toast', text: on ? p.name + ' が 入口を小石でふさいだ' : p.name + ' が 入口をひらいた' });
+    if (this.onPlug) this.onPlug(nest, on);
+    return { ok: true, plugged: !!on, inv: clone(inv) };
   }
 
   // ───────── 共同作業者（Ver.0.2）─────────
