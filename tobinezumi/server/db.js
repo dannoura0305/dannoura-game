@@ -11,6 +11,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { migrateNest, NEST_SCHEMA } from '../shared/nest-rules.js';
 import { normalizeInventory, INV_SLOTS, STORAGE_SLOTS } from '../shared/items.js';
+import { makeLife } from '../shared/life.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const MIGRATIONS_DIR = join(HERE, 'migrations');
@@ -104,7 +105,7 @@ export class Store {
   createCharacter(accountId, { name, fur, x, y, inv }, now = Date.now()) {
     return this.tx(() => {
       const ind = Number(this.q('INSERT INTO individuals (species, name, sex, born_at, generation, genes, traits, status) VALUES (?, ?, ?, ?, 1, ?, ?, ?)')
-        .run('jerboa', name, null, now, J({ fur }), J({}), J({})).lastInsertRowid);
+        .run('jerboa', name, null, now, J({ fur }), J({}), J({ life: makeLife() })).lastInsertRowid);
       this.q('UPDATE characters SET active = 0 WHERE account_id = ?').run(accountId);
       const id = Number(this.q('INSERT INTO characters (account_id, individual_id, name, fur, active, created_at, pos_x, pos_y, dir, place, exit_kind, saved_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)')
         .run(accountId, ind, name, fur, now, x, y, 'down', 'field', 'new', now).lastInsertRowid);
@@ -126,6 +127,12 @@ export class Store {
     this.q('UPDATE characters SET pos_x = ?, pos_y = ?, dir = ?, place = ?, exit_kind = ?, saved_at = ? WHERE id = ?')
       .run(Math.round(x * 10) / 10, Math.round(y * 10) / 10, dir || 'down', place || 'field', exit || 'live', now, charId);
   }
+  /** 暮らしの数値（individuals.status.life）だけを書き換える */
+  setLife(individualId, life) {
+    this.q("UPDATE individuals SET status = json_set(CASE WHEN json_valid(status) THEN status ELSE '{}' END, '$.life', json(?)) WHERE id = ?").run(JSON.stringify(life), individualId);
+  }
+  /** アカウントのいまのキャラ（名前・毛色だけ） */
+  charBrief(accountId) { return this.q('SELECT name, fur FROM characters WHERE account_id = ? AND active = 1 ORDER BY id DESC LIMIT 1').get(accountId) || null; }
   /** 名前（キャラ名）→ アカウント id（同じ名前は全員） */
   accountsByCharName(name) { return this.q('SELECT DISTINCT account_id FROM characters WHERE name = ? AND active = 1').all(name).map(r => r.account_id); }
 
@@ -181,6 +188,30 @@ export class Store {
   }
   nestAccess(nestId) { return this.q('SELECT account_id, role, name FROM nest_access WHERE nest_id = ?').all(nestId).map(r => ({ accountId: r.account_id, role: r.role, name: r.name })); }
   hasNestAccess(nestId, accountId, role = 'visitor') { return !!this.q('SELECT 1 FROM nest_access WHERE nest_id = ? AND account_id = ? AND role = ?').get(nestId, accountId, role); }
+
+  // ───────── フレンド（Ver.0.2）─────────
+  /** a と b の行（向きは問わない）：{a, b, state} か null */
+  friendRow(x, y) { return this.q('SELECT a, b, state FROM friends WHERE (a = ? AND b = ?) OR (a = ? AND b = ?)').get(x, y, y, x) || null; }
+  friendRequest(a, b, now = Date.now()) { this.q("INSERT INTO friends (a, b, state, created_at, updated_at) VALUES (?, ?, 'pending', ?, ?)").run(a, b, now, now); }
+  friendAccept(a, b, now = Date.now()) { return this.q("UPDATE friends SET state = 'friend', updated_at = ? WHERE a = ? AND b = ? AND state = 'pending'").run(now, a, b).changes; }
+  friendDelete(x, y) { return this.q('DELETE FROM friends WHERE (a = ? AND b = ?) OR (a = ? AND b = ?)').run(x, y, y, x).changes; }
+  isFriend(x, y) { const r = this.friendRow(x, y); return !!r && r.state === 'friend'; }
+  /** 自分に関わる行：{other, state:'friend'|'outgoing'|'incoming', at} */
+  friendsOf(acct) {
+    return this.q('SELECT a, b, state, updated_at FROM friends WHERE a = ? OR b = ? ORDER BY updated_at DESC').all(acct, acct).map(r => ({
+      other: r.a === acct ? r.b : r.a, state: r.state === 'friend' ? 'friend' : r.a === acct ? 'outgoing' : 'incoming', at: r.updated_at,
+    }));
+  }
+  friendIds(acct) { return this.friendsOf(acct).filter(f => f.state === 'friend').map(f => f.other); }
+
+  // ───────── 訪問の記録（Ver.0.2）─────────
+  addVisit(nestId, visitorId, name, at, seen) { this.q('INSERT INTO nest_visits (nest_id, visitor_id, visitor_name, at, seen) VALUES (?, ?, ?, ?, ?)').run(nestId, visitorId, name, at, seen ? 1 : 0); }
+  lastVisit(nestId, visitorId) { const r = this.q('SELECT at FROM nest_visits WHERE nest_id = ? AND visitor_id = ? ORDER BY at DESC LIMIT 1').get(nestId, visitorId); return r ? r.at : 0; }
+  unseenVisits(nestId, limit = 20) { return this.q('SELECT visitor_name name, at FROM nest_visits WHERE nest_id = ? AND seen = 0 ORDER BY at DESC LIMIT ?').all(nestId, limit).map(r => ({ name: r.name, at: r.at })); }
+  markVisitsSeen(nestId) { this.q('UPDATE nest_visits SET seen = 1 WHERE nest_id = ? AND seen = 0').run(nestId); }
+  recentVisits(nestId, limit = 20) { return this.q('SELECT visitor_name name, at FROM nest_visits WHERE nest_id = ? ORDER BY at DESC LIMIT ?').all(nestId, limit).map(r => ({ name: r.name, at: r.at })); }
+  /** 古い記録を消す（巣ごとに新しい 200 件だけ残す） */
+  trimVisits(nestId, keep = 200) { this.q('DELETE FROM nest_visits WHERE nest_id = ? AND id NOT IN (SELECT id FROM nest_visits WHERE nest_id = ? ORDER BY at DESC LIMIT ?)').run(nestId, nestId, keep); }
 
   // ───────── 採集物 ─────────
   resources() { return this.q('SELECT id, kind, x, y FROM world_resources WHERE respawn_at IS NULL').all().map(r => ({ id: r.id, kind: r.kind, x: r.x, y: r.y })); }

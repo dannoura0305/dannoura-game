@@ -12,6 +12,7 @@ import { countItem } from '../../shared/items.js';
 import { TILE, T, tileAt } from '../../shared/regions.js';
 import { FIELD, boxFree } from '../../shared/move.js';
 import { NEST_SCHEMA } from '../../shared/nest-rules.js';
+import { dayPhase, respawnScale } from '../../shared/daynight.js';
 
 console.log('tobinezumi server core');
 
@@ -214,13 +215,17 @@ await test('採集：距離（サーバーの確定位置で 28px）・持ち物
   a.place(r2.x, r2.y);
   assert.equal((await a.req('pickup', { resId: r2.id })).code, 'full');
   // 再出現
+  // 待ち時間は 2〜5 分 × 時間帯の倍率（夜 ×0.45・昼 ×1.4・朝夕 ×0.75。shared/daynight.js）
   const q = H.store.respawnQueue()[0];
-  assert.ok(q.at - H.clock.t >= 120000 && q.at - H.clock.t <= 300000);
+  const k = respawnScale(dayPhase(H.game.clock, H.clock.t));
+  assert.ok(q.at - H.clock.t >= 120000 * k - 1 && q.at - H.clock.t <= 300000 * k + 1, `${q.at - H.clock.t} / ×${k}`);
   H.clock.t = q.at + 1; a.inbox = []; H.game.tick();
-  const sp = a.take('res_spawn');
+  // 夜に当たると夜露・夜の種子（id が d／n で始まる）も同時に出るので、それは数えない
+  const isNight = x => x.id[0] === 'd' || x.id[0] === 'n';
+  const sp = a.take('res_spawn').filter(m => !isNight(m.res));
   assert.equal(sp.length, 1); assert.equal(sp[0].res.kind, r.kind);
   assert.equal(H.store.respawnQueue().length, 0);
-  assert.equal(H.store.resources().length, 90);
+  assert.equal(H.store.resources().filter(x => !isNight(x)).length, 90);
   H.close(); rmDir(H.dir);
 });
 
@@ -460,7 +465,7 @@ await test('再起動後も：持ち物・巣（rev・データ）・位置・�
 });
 
 // ───────── マイグレーション ─────────
-await test('マイグレーション：古い DB（001 だけ・v0 の巣データ）を開くと 002 と巣データ v1 まで上がる', async () => {
+await test('マイグレーション：古い DB（001 だけ・v0 の巣データ）を開くと 003 と巣データ v1 まで上がる', async () => {
   const dir = tempDir();
   const file = join(dir, 'game.db');
   const old = new Store(file);
@@ -472,9 +477,9 @@ await test('マイグレーション：古い DB（001 だけ・v0 の巣デー�
   old.db.prepare("INSERT INTO nests (owner_account_id, schema_version, rev, data, visit_policy, created_at, updated_at) VALUES (1, 0, 3, ?, 'private', 1, 1)").run(JSON.stringify(v0));
   old.close();
   const db = await openDb(file, { log: () => {} });
-  assert.equal(db.schemaVersion(), 2);
+  assert.equal(db.schemaVersion(), 3);
   assert.equal(db.db.prepare("SELECT hidden FROM regions WHERE id = 'toyama'").get().hidden, 1);
-  for (const t of ['collectibles', 'account_collectibles', 'events', 'account_flags', 'lands', 'individuals', 'nest_access']) assert.ok(db.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?").get(t), t);
+  for (const t of ['collectibles', 'account_collectibles', 'events', 'account_flags', 'lands', 'individuals', 'nest_access', 'friends', 'nest_visits']) assert.ok(db.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?").get(t), t);
   const n = db.nest(1);
   assert.equal(n.schemaVersion, NEST_SCHEMA); assert.equal(n.data.v, 1); assert.equal(n.rev, 3);
   assert.equal(n.data.rooms[0].kind, 'bed');
@@ -482,7 +487,7 @@ await test('マイグレーション：古い DB（001 だけ・v0 の巣デー�
   // もう一度開いても何もしない
   db.close();
   const again = await openDb(file, { log: () => {} });
-  assert.equal(again.db.prepare('SELECT COUNT(*) n FROM schema_migrations').get().n, 2);
+  assert.equal(again.db.prepare('SELECT COUNT(*) n FROM schema_migrations').get().n, 3);
   again.close(); rmDir(dir);
 });
 

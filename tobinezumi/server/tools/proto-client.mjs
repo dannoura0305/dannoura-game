@@ -2,6 +2,7 @@
 // Node 22 の組み込み WebSocket を使う（ws パッケージは要らない）。
 import { stepField, makeFieldState, STEP_DT } from '../../shared/move.js';
 import { buildFieldMap } from '../../shared/regions.js';
+import { moveMods } from '../../shared/life.js';
 
 let MAP = null;
 export const fieldMap = () => MAP || (MAP = buildFieldMap());
@@ -27,6 +28,7 @@ export class ProtoClient {
         let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
         if (m.t === 'res') { const w = this.waiting.get(m.rid); if (w) { this.waiting.delete(m.rid); w(m); } return; }
         if (m.t === 'snapshot') { this.lastSnap = m; this.snaps++; }
+        if (m.t === 'life') this.life = m.life;      // Ver.0.2：暮らしの数値（へとへとだと移動が変わる）
         this._emit(m.t, m);
       };
     });
@@ -66,6 +68,7 @@ export class ProtoClient {
     const j = await this.req('join_field');
     if (!j.ok) throw new Error('join_field: ' + j.reason);
     this.world = j.world;
+    if (j.world.life) this.life = j.world.life;
     this.st = makeFieldState(j.world.you.x, j.world.you.y);
     this.st.dir = j.world.you.dir;
     return j.world;
@@ -75,7 +78,7 @@ export class ProtoClient {
     const out = [];
     for (const i of list) {
       const inp = { seq: ++this.seq, mx: i.mx | 0, my: i.my | 0, jump: i.jump ? 1 : 0 };
-      if (this.st) this.st = stepField(this.st, inp, STEP_DT, fieldMap());
+      if (this.st) this.st = stepField(this.st, inp, STEP_DT, fieldMap(), moveMods(this.life));
       out.push(inp);
     }
     for (let k = 0; k < out.length; k += 30) this.send({ t: 'input', inputs: out.slice(k, k + 30) });

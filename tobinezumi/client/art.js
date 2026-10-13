@@ -438,3 +438,19 @@ export function drawToolIcon(g, tool, x, y) {
   outline(c);
   g.drawImage(c, x, y);
 }
+
+/** 夜露（夜だけ草むらに出る水滴。E で飲む）。(x,y) は足元 */
+export function drawDew(g, x, y, t = 0) {
+  x = Math.round(x); y = Math.round(y);
+  g.fillStyle = 'rgba(30,50,60,.25)'; g.fillRect(x - 4, y + 1, 8, 1);
+  // 草の葉
+  g.fillStyle = '#6f8a3a'; g.fillRect(x - 3, y - 3, 1, 4); g.fillRect(x + 2, y - 4, 1, 5); g.fillRect(x - 1, y - 2, 1, 3);
+  g.fillStyle = '#8fa84a'; g.fillRect(x - 4, y - 4, 1, 2); g.fillRect(x + 3, y - 5, 1, 2);
+  // しずく
+  const drops = [[-3, -5], [2, -6], [0, -3]];
+  drops.forEach(([dx, dy], i) => {
+    const tw = 0.6 + 0.4 * Math.sin(t * 3 + i * 2);
+    g.fillStyle = '#5ab4d8'; g.fillRect(x + dx - 1, y + dy, 3, 2); g.fillRect(x + dx, y + dy - 1, 1, 4);
+    g.fillStyle = `rgba(230,250,255,${tw})`; g.fillRect(x + dx, y + dy, 1, 1);
+  });
+}

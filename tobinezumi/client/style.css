@@ -253,3 +253,82 @@ html.tb-touch.tb-horiz .tb-storage .tb-slot.big img { width: 28px; height: 28px;
 html.tb-touch.tb-horiz .tb-menu { width: min(calc(100% - 200px), 460px); }
 html.tb-touch.tb-horiz .tb-menu-items { display: grid; grid-template-columns: 1fr 1fr; column-gap: 8px; }
 html.tb-touch.tb-horiz .tb-menu .tb-field { display: inline-block; width: calc(50% - 6px); margin-right: 4px; vertical-align: top; }
+
+/* ───────── Ver.0.2「暮らし」：体調・空腹・水分（添付イメージ：ホットバーの右に 3 本のバー）・時計・フレンド・巣の設定 ───────── */
+.tb-help { bottom: calc(var(--u) * 32px); }
+.tb-life { position: absolute; right: calc(var(--u) * 5px); bottom: calc(var(--u) * 4px); display: flex; flex-direction: column; gap: calc(var(--u) * 1px); padding: calc(var(--u) * 1.5px) calc(var(--u) * 2.5px); background: rgba(42,26,16,.85); border: 1px solid var(--edge); border-radius: calc(var(--u)*2px); cursor: pointer; }
+.tb-lrow { display: flex; align-items: center; gap: calc(var(--u) * 1.5px); }
+.tb-lic { width: calc(var(--u) * 7px); height: calc(var(--u) * 7px); flex: none; }
+.tb-lbar { position: relative; display: block; width: calc(var(--u) * 46px); height: calc(var(--u) * 3.5px); background: #1e130c; border: calc(var(--u) * 0.5px) solid #120a06; box-shadow: inset 0 0 0 calc(var(--u)*0.5px) #3a2618; border-radius: calc(var(--u)*1px); overflow: hidden; }
+.tb-lbar i { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; transition: width .5s; border-radius: calc(var(--u)*0.5px); }
+.tb-lrow.cond .tb-lbar i { background: linear-gradient(#ff7a64, #c8302a); }
+.tb-lrow.hunger .tb-lbar i { background: linear-gradient(#a8dc5a, #5a9a2a); }
+.tb-lrow.thirst .tb-lbar i { background: linear-gradient(#7ae0f0, #2a90b0); }
+.tb-lrow.low .tb-lic { animation: tblow 1s infinite; }
+.tb-lrow.empty .tb-lbar { box-shadow: inset 0 0 0 calc(var(--u)*0.5px) var(--ng); }
+@keyframes tblow { 50% { transform: scale(1.25); filter: brightness(1.4); } }
+.tb-life.sleeping { box-shadow: 0 0 0 1px #8aa0ff; }
+.tb-clock { position: absolute; right: calc(var(--u) * 6px); top: var(--clock-top, calc(var(--u) * 58px)); display: flex; align-items: center; gap: calc(var(--u) * 1.5px); background: rgba(42,26,16,.82); border: 1px solid var(--edge); border-radius: calc(var(--u)*2px); padding: 0 calc(var(--u) * 3px); font-size: .8em; white-space: nowrap; }
+.tb-clock .ic svg { width: calc(var(--u) * 8px); height: calc(var(--u) * 8px); display: block; }
+.tb-clock[data-period="night"] { border-color: #8aa0ff; color: #dde4ff; }
+#tb-hud.tb-hud-nohotbar .tb-life { top: calc(var(--u) * 15px); bottom: auto; }
+#tb-hud.tb-hud-nohotbar .tb-clock { top: calc(var(--u) * 4px); }
+/* くらしの説明 */
+.tb-lifepanel { width: calc(var(--u) * 210px); }
+.tb-lifep .tb-lrow.big { gap: calc(var(--u) * 3px); margin: calc(var(--u) * 1.5px) 0; }
+.tb-lifep .tb-lrow.big b { font-weight: normal; width: 2.6em; }
+.tb-lifep .tb-lrow.big .tb-lbar { width: calc(var(--u) * 70px); height: calc(var(--u) * 5px); }
+.tb-lifep .v { width: 2em; text-align: right; color: var(--ok); }
+.tb-lifep .w { color: var(--dim); font-size: .85em; }
+.tb-lifehint { margin: calc(var(--u) * 3px) 0; line-height: 1.5; }
+.tb-btn.small { padding: calc(var(--u) * 1px) calc(var(--u) * 4px); font-size: .85em; }
+.tb-eatbtn { margin-left: .4em; }
+/* フレンド */
+.tb-friends { width: calc(var(--u) * 220px); }
+.tb-fadd { display: flex; gap: calc(var(--u) * 2px); }
+.tb-fadd input, .tb-chipadd input { flex: 1; min-width: 0; font: inherit; color: var(--txt); background: #1e130c; border: calc(var(--u) * 1px) solid var(--edge); border-radius: calc(var(--u) * 1.5px); padding: calc(var(--u) * 1px) calc(var(--u) * 3px); }
+.tb-fnote { margin: calc(var(--u) * 2px) 0; }
+.tb-flist { max-height: calc(var(--u) * 110px); overflow-y: auto; }
+.tb-frow { display: flex; align-items: center; gap: calc(var(--u) * 3px); padding: calc(var(--u) * 1.5px) 0; border-bottom: 1px solid #4e3420; flex-wrap: wrap; }
+.tb-frow .nm { color: var(--edge2); min-width: 5em; }
+.tb-frow .bt { margin-left: auto; display: flex; gap: calc(var(--u) * 2px); }
+.tb-on { color: #8ff0a8; font-size: .85em; } .tb-off { color: var(--dim); font-size: .85em; } .tb-ok { color: var(--ok); font-size: .85em; }
+.tb-inline-q { display: flex; align-items: center; gap: calc(var(--u) * 2px); padding: calc(var(--u) * 1px) 0; color: var(--ng); }
+/* 巣の設定 */
+.tb-nestset { width: calc(var(--u) * 250px); max-height: calc(100% - var(--u) * 8px); overflow-y: auto; }
+.tb-nestset .tb-sub { margin-top: calc(var(--u) * 3px); }
+.tb-sub { color: var(--edge2); font-size: .9em; margin-bottom: calc(var(--u) * 1.5px); }
+.tb-pols { display: grid; grid-template-columns: repeat(2, 1fr); gap: calc(var(--u) * 2px); }
+.tb-pol { display: flex; flex-direction: column; align-items: flex-start; text-align: left; padding: calc(var(--u) * 1.5px) calc(var(--u) * 3px); }
+.tb-pol b { font-weight: normal; } .tb-pol small { color: var(--dim); font-size: .78em; }
+.tb-pol.on { box-shadow: inset 0 0 0 calc(var(--u) * 1px) var(--acc); color: var(--ok); }
+.tb-names { display: flex; flex-wrap: wrap; gap: calc(var(--u) * 2px); align-items: center; }
+.tb-chip { display: inline-flex; align-items: center; gap: .2em; background: #4e3420; border: 1px solid var(--edge); border-radius: 1em; padding: 0 0 0 .6em; }
+.tb-chip button { font: inherit; color: var(--ng); background: none; border: none; cursor: pointer; padding: 0 .5em; }
+.tb-chipadd { display: inline-flex; gap: calc(var(--u) * 1.5px); min-width: 50%; }
+.tb-visits { max-height: calc(var(--u) * 50px); overflow-y: auto; font-size: .88em; }
+.tb-nestset-btn { padding: 0 calc(var(--u) * 4px); font-size: .9em; }
+/* タッチ：指で押しやすく */
+html.tb-touch .tb-life { left: calc(var(--u) * 4px); right: auto; top: calc(var(--u) * 15px); bottom: auto; padding: 4px 6px; gap: 3px; }
+html.tb-touch .tb-lic { width: max(calc(var(--u) * 7px), 13px); height: max(calc(var(--u) * 7px), 13px); }
+html.tb-touch .tb-lbar { width: max(calc(var(--u) * 40px), 64px); height: max(calc(var(--u) * 3.5px), 7px); }
+html.tb-touch .tb-btn.small { min-height: 34px; padding: 0 10px; }
+html.tb-touch .tb-friends, html.tb-touch .tb-nestset, html.tb-touch .tb-lifepanel { width: min(calc(100% - 8px), 420px); }
+html.tb-touch .tb-fadd input, html.tb-touch .tb-chipadd input { min-height: 40px; }
+html.tb-touch .tb-pol { min-height: 48px; }
+html.tb-touch .tb-chip button { min-width: 34px; min-height: 30px; }
+html.tb-touch .tb-flist { max-height: 46vh; }
+html.tb-touch .tb-nestset-btn { min-height: 30px; }
+/* 「食べる」ボタン（3 つめの丸）：ジャンプの左下に小さく */
+#tb-touch .tc-main { position: absolute; }
+.tc-btn[data-id="eat"] { width: 50px; height: 50px; font-size: 12px; }
+html.tb-vert .tc-main .tc-btn[data-id="eat"] { position: absolute; right: 94px; bottom: -6px; margin: 0 !important; }
+html.tb-horiz .tc-main .tc-btn[data-id="eat"] { position: absolute; right: 152px; bottom: 0; margin: 0 !important; width: 48px; height: 48px; }
+html.tb-touch.tb-horiz .tb-chatlog { top: calc(var(--u) * 15px + 60px); }
+.tc-btn[data-id="eat"] span { white-space: nowrap; font-size: 11px; }
+html.tb-touch .tb-help { top: calc(var(--u) * 15px + 62px); }
+/* タッチ：左上の名前（地域名・巣の名前）は右のミニマップ・時計に重ならない幅で折り返し、全部読めるように。バーとトーストの位置は ui.js の layoutTop が測って決める */
+html.tb-touch .tb-region, html.tb-touch .tb-wtop { max-width: calc(100% - max(calc(var(--u) * 60px), 110px)); white-space: normal; line-height: 1.25; }
+html.tb-touch .tb-toasts { max-width: calc(100% - 12px); }
+html.tb-touch .tb-toast { white-space: normal; text-align: center; max-width: 100%; }
+html.tb-touch.tb-horiz .tb-guide { right: 214px; }   /* 「食べる」の丸（右から 152〜200px）を避ける */

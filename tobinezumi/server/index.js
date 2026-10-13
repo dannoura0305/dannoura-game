@@ -4,6 +4,7 @@
 //
 // 環境変数：PORT(8080) HOST(0.0.0.0) TOBI_DATA(./data) TOBI_BACKUPS(./backups) TOBI_BACKUP_KEEP(48) TOBI_BACKUP_HOURS(1, 0 で止める)
 //           TOBI_STATS_SEC(60, 0 で止める：CPU・メモリ・通信量のログ) TOBI_REGISTER_MAX(20 / 10 分 / 接続元)
+//           開発用（TOBI_DEV=1 のときだけ効く）：TOBI_TIMESCALE（時計・暮らし・採集物の戻りを何倍速にするか）TOBI_START_HOUR（起動時の世界の時刻 0〜23）
 import http from 'node:http';
 import { createReadStream, statSync, writeFileSync, unlinkSync, existsSync, readFileSync } from 'node:fs';
 import { join, dirname, resolve, extname, sep } from 'node:path';
@@ -154,7 +155,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     backupDir: resolve(HERE, env.TOBI_BACKUPS || 'backups'), backupKeep: +(env.TOBI_BACKUP_KEEP || 48), backupHours: +(env.TOBI_BACKUP_HOURS ?? 1),
     statsSec: +(env.TOBI_STATS_SEC ?? 60), pidFile: join(dataDir, 'server.pid'),
     authOpts: { registerMax: +(env.TOBI_REGISTER_MAX || 20) },
+    gameOpts: env.TOBI_DEV === '1' ? { timeScale: +(env.TOBI_TIMESCALE || 1) || 1, startHour: env.TOBI_START_HOUR != null && env.TOBI_START_HOUR !== '' ? +env.TOBI_START_HOUR : null } : {},
   });
+  if (env.TOBI_DEV === '1') console.log(`[tobinezumi] 開発モード：時計 ×${srv.game.clock.scale}${env.TOBI_START_HOUR ? '、開始 ' + env.TOBI_START_HOUR + ' 時' : ''}`);
   console.log(`[tobinezumi] http://localhost:${srv.port}/tobinezumi.html  （WebSocket: /ws、DB: ${join(dataDir, 'game.db')}、PID ${process.pid}）`);
   let stopping = false;
   const stop = async sig => {

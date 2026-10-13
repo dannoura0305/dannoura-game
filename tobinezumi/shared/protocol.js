@@ -16,7 +16,9 @@ export const CHAT_MAX = 80;
 export const NAME_MIN = 1, NAME_MAX = 10;
 export const USER_MIN = 3, USER_MAX = 16, PASS_MIN = 8;
 export const FUR_IDS = ['sand', 'cream', 'rufous', 'graybrown', 'white'];   // assets/manifest.json の fur.order と同じ
-export const VISIT_POLICIES = ['private', 'public', 'list'];
+export const VISIT_POLICIES = ['private', 'friends', 'list', 'public'];   // friends は Ver.0.2
+export const MAX_FRIENDS = 50, MAX_BUILDERS = 10;
+export const FRIEND_OPS_PER_MIN = 12;     // フレンド申請・承認・削除の回数（1 分あたり）
 
 // クライアント → サーバー
 export const C2S = {
@@ -38,6 +40,17 @@ export const C2S = {
   INV_MOVE: 'inv_move',       // {from, to}  持ち物の並べ替え     → res {ok, inv}
   VISIT_POLICY: 'visit_policy', // {policy, list?:[name]}            → res {ok}
   PING: 'ping',               // {ct}                                 → pong {ct, st}
+  // ── Ver.0.2「暮らし」──
+  EAT: 'eat',                 // {from:'inv'|'pile'}                  → res {ok, life, inv, storage?}
+  DRINK: 'drink',             // {resId?}（夜露なら id、無ければ水場） → res {ok, life, src}
+  SLEEP: 'sleep',             // {}（巣の寝床の上で）                 → res {ok, life}
+  WAKE: 'wake',               // {}                                   → res {ok, life}
+  FRIENDS: 'friends',         // {}                                   → res {ok, list:[Friend]}
+  FRIEND_REQ: 'friend_req',   // {name}                               → res {ok, state, list}
+  FRIEND_OK: 'friend_ok',     // {id}                                 → res {ok, list}
+  FRIEND_DEL: 'friend_del',   // {id}（断る・取り消す・やめる）       → res {ok, list}
+  SET_BUILDERS: 'set_builders', // {list:[name]}                       → res {ok, list, unknown}
+  VISITORS: 'visitors',       // {}                                   → res {ok, list:[{name, at}]}
 };
 
 // サーバー → クライアント
@@ -56,6 +69,12 @@ export const S2C = {
   TOAST: 'toast',             // {text}
   KICK: 'kick',               // {reason}
   PONG: 'pong',               // {ct, st}
+  // ── Ver.0.2 ──
+  LIFE: 'life',               // {life:{hunger, thirst, cond, sleep}}  自分の暮らしの数値（2 秒ごと・変わったとき）
+  CLOCK: 'clock',             // {clock:{scale, origin, base}, st}      世界の時計（接続直後・変わったとき）
+  FRIENDS: 'friends',         // {list:[Friend]}                       フレンドの一覧が変わった（申請が来た・承認・オンライン/オフライン）
+  VISIT: 'visit',             // {name, nestId, at}                    自分の巣にだれかが入った（所有者がオンラインのとき）
+  NEST_ROLE: 'nest_role',     // {nestId, canEdit, role}               いる巣での役割が変わった（共同作業者にされた・外された）
 };
 
 export const ERR = {
