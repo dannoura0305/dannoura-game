@@ -49,7 +49,6 @@
 | 設定 | 🎵 🗣 🔔 🎮 🔇/🔊 📘 | BGM／ボイス／効果音／難しさ／ミュート／遊び方 | music, voice, se, minigame, mute/sound, help | ○ | ui.js（ミュート切替後も再適用） |
 | 状態画面 見出し | 📊 💾 🌱 💭 💴 😴 🔧 👥 📖 🏅 📅 | 各セクション | stats, save, growth, thought, money, fatigue, work, followers, endings, medal, calendar | ○ | ui.js `openStatus` を包む |
 | スキル画面 見出し | ⭐ 🔧 📡 💫 👶 | カテゴリ | skills, work, stream, mental, child | ○ | ui.js `openSkill` を包む |
-| 工場ミニ・診断ミニの見出し | ⚙ 🌡 | 設備点検／温度・振動診断 | settings, thermo | ○ | ui.js |
 | 通知（showNotif） | 文頭の絵文字 | 種類 | 対応表で変換、絵文字なしは info、⚠/🚨 は warn、✅ は good、❌ は bad | ○ | ui.js `showNotif` を包む |
 | 結果画面の見出し | 文頭の絵文字（⚙ 🔧 🌡 📊 🎵 など） | 結果 | 対応表で変換 | ○ | ui.js `showResult` を包む |
 | ミニゲーム選択 タブ | （なし） | すべて／アクション／頭脳・戦略／物語／暮らし・癒し | all, action, brain, story, life | ○（追加） | core.js |

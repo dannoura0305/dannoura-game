@@ -230,7 +230,7 @@ function initPersonality(){return {kindness:40,willpower:50,loneliness:60,hope:4
 function calcGrowType(){
   const p=gs.personality,sk=gs.skills;
   const sS=(sk.chatSkill*10+sk.singSkill*5+sk.radioVibe*10+gs.streamPop)*.5+p.empathy*.4+p.hope*.2;
-  const sE=(sk.soundDiag*15+sk.emergencyFix*15+sk.wiring*12+sk.plc*12+gs.certKnow)*.5+p.willpower*.4;
+  const sE=(sk.soundDiag*15+sk.emergencyFix*15+sk.wiring*12+sk.plc*12+(sk.examTech||0)*12+(sk.riding||0)*4+gs.certKnow)*.5+p.willpower*.4+(gs.jobRep||0)*.06;
   const sC=(100-gs.mental)*.6+gs.anomalyCount*5+gs.fatigue*.3+p.loneliness*.4+p.dependence*.3;
   const sF=(100-gs.childStress)*.5+(sk.bedtime*15+sk.chores*15)*.8+p.kindness*.4+p.hope*.3;
   const scores={[GROW_TYPE.STREAMER]:sS,[GROW_TYPE.ENGINEER]:sE,[GROW_TYPE.COLLAPSE]:sC,[GROW_TYPE.FATHER]:sF};
@@ -286,7 +286,7 @@ const gs={
   flame:0, jobRep:40, streamPop:10, certKnow:15, childStress:20, money:12400,
   day:1, hour:22, min:17,
   sp:0,
-  skills:{soundDiag:0,emergencyFix:0,wiring:0,plc:0,chatSkill:0,kaidanSkill:0,singSkill:0,radioVibe:0,stressRes:0,focus:0,sleepEff:0,emoCtrl:0,bedtime:0,chores:0},
+  skills:{soundDiag:0,emergencyFix:0,wiring:0,plc:0,examTech:0,riding:0,chatSkill:0,kaidanSkill:0,singSkill:0,radioVibe:0,stressRes:0,focus:0,sleepEff:0,emoCtrl:0,bedtime:0,chores:0},
   rank:0, rankPts:0, rankThresholds:[0,30,80,160,300,500],
   throatFatigue:0,
   hadBuzz:false, hadFlame:false, hadAnom:false,
@@ -300,6 +300,7 @@ const gs={
     {name:'さくら',      trust:0,regular:0,danger:0,evo:0,type:'normal'},
   ],
   factoryNetaAvail:false,factoryNetaType:'',
+  factoryShiftDay:0,   // 工場タブで夜勤手当を受け取った日（minigames/core.js MG.finish）
   streamCount:0,anomalyCount:0,
   _dayDone:false,_c30:false,_c10:false,_endless:false,
 };
@@ -1476,14 +1477,54 @@ function closeStatus(){
 // ──────────────────────────
 // SKILLS
 // ──────────────────────────
-const SKDEF={soundDiag:{name:'異音診断',cat:'🔧設備',desc:'故障発見+',max:3},emergencyFix:{name:'緊急復旧',cat:'🔧設備',desc:'修理時間+',max:3},wiring:{name:'配線理解',cat:'🔧設備',desc:'収入UP',max:3},plc:{name:'PLC解析',cat:'🔧設備',desc:'仕事評価UP',max:3},chatSkill:{name:'雑談力',cat:'📡配信',desc:'フォロワー獲得率UP',max:3},kaidanSkill:{name:'怪談力',cat:'📡配信',desc:'怪談効果UP',max:5},singSkill:{name:'歌唱力',cat:'📡配信',desc:'歌ミニゲーム精度UP',max:10},radioVibe:{name:'深夜ラジオ感',cat:'📡配信',desc:'精神消耗軽減',max:3},stressRes:{name:'ストレス耐性',cat:'💫精神',desc:'精神消耗軽減',max:3},focus:{name:'集中力',cat:'💫精神',desc:'勉強効率UP',max:3},sleepEff:{name:'睡眠効率',cat:'💫精神',desc:'疲労回復量UP',max:3},emoCtrl:{name:'感情制御',cat:'💫精神',desc:'炎上消耗軽減',max:3},bedtime:{name:'寝かしつけ',cat:'👶育児',desc:'育児ストレス軽減UP',max:3},chores:{name:'家事効率',cat:'👶育児',desc:'時間節約',max:2}};
+// 本編での効果（desc）と、ミニゲームでの効果（minigames/registry.js の MG_SKILL_FX）を並べて見せる。
+// キーを消したり名前を変えたりすると古いセーブのスキルが消えるので、増やすだけにすること（saveDataToGs で補う）。
+const SKDEF={
+  soundDiag:   {name:'異音診断',    cat:'🔧工場・資格',max:3,desc:'機械の音で異常を聞き分ける。「凄腕保全」の育ちに大きく効く'},
+  emergencyFix:{name:'緊急復旧',    cat:'🔧工場・資格',max:3,desc:'止まった設備を素早く立て直す。「凄腕保全」の育ちに大きく効く'},
+  wiring:      {name:'配線理解',    cat:'🔧工場・資格',max:3,desc:'工場ミニゲームの収入 +5%/Lv'},
+  plc:         {name:'PLC解析',     cat:'🔧工場・資格',max:3,desc:'工場ミニゲームの仕事評価 +1/Lv'},
+  examTech:    {name:'試験勘',      cat:'🔧工場・資格',max:3,desc:'資格試験の解き方のコツ。「凄腕保全」の育ちにも効く'},
+  riding:      {name:'原付さばき',  cat:'🔧工場・資格',max:3,desc:'雨の夜道を原付で夜勤へ。転ばない運転'},
+  chatSkill:   {name:'雑談力',      cat:'📡配信',max:3,desc:'「配信者」の育ちに大きく効く'},
+  kaidanSkill: {name:'怪談力',      cat:'📡配信',max:5,desc:'怪談配信で異変が起きやすくなる（ネタになる）'},
+  singSkill:   {name:'歌唱力',      cat:'📡配信',max:10,desc:'配信の歌ミニゲーム：時間と精度↑（歌の練習でも育つ）'},
+  radioVibe:   {name:'深夜ラジオ感',cat:'📡配信',max:3,desc:'「配信者」の育ちに大きく効く'},
+  stressRes:   {name:'ストレス耐性',cat:'💫精神',max:3,desc:'日をまたぐときの精神回復 +3/Lv'},
+  focus:       {name:'集中力',      cat:'💫精神',max:3,desc:'資格の勉強：知識 +1/Lv・精神の消耗 -1/Lv'},
+  sleepEff:    {name:'睡眠効率',    cat:'💫精神',max:3,desc:'休む・眠るときの疲労回復↑'},
+  emoCtrl:     {name:'感情制御',    cat:'💫精神',max:3,desc:'荒らしや炎上に心を持っていかれない'},
+  bedtime:     {name:'寝かしつけ',  cat:'👶育児',max:3,desc:'寝かしつけ：育児ストレス -3/Lv'},
+  chores:      {name:'家事効率',    cat:'👶育児',max:3,desc:'家事と買い出しの段取り。「父親」の育ちに大きく効く'},
+};
+function defaultSkills(){const o={};Object.keys(SKDEF).forEach(k=>{o[k]=0;});return o;}
+// 古いセーブのスキルを今の定義に合わせる（無いキーは0・壊れた値は0・上限を超えた分はSPで返す）
+function migrateSkills(raw){
+  const out=defaultSkills();let refund=0;
+  if(raw&&typeof raw==='object')Object.keys(raw).forEach(k=>{
+    let v=+raw[k];if(!Number.isFinite(v)||v<0)v=0;
+    const d=SKDEF[k];
+    if(d&&v>d.max){refund+=Math.floor(v-d.max);v=d.max;}
+    out[k]=v;
+  });
+  return {skills:out,refund};
+}
+// スキル → そのスキルが効くミニゲームと効果の一覧（[{name,icon,tx,place}]）
+function skillMinigameFx(key){
+  const T=(typeof MG_SKILL_FX!=='undefined'&&MG_SKILL_FX)||{};
+  const meta=(typeof MG_META!=='undefined'&&MG_META)||[];
+  const out=[];
+  (T._factory||[]).forEach(([k,tx])=>{if(k===key)out.push({name:'工場タブの全ミニゲーム',icon:'🔧',tx,place:'factory'});});
+  meta.forEach(m=>{(T[m.id]||[]).forEach(([k,tx])=>{if(k===key)out.push({name:m.name,icon:m.icon,tx,place:(typeof mgPlaceOf==='function'?mgPlaceOf(m.id):'night')});});});
+  return out;
+}
 function openSkill(){
   updateNavActive('skills');document.getElementById('skill-sp').textContent=gs.sp;
   const body=document.getElementById('skill-body');body.innerHTML='';
   const type=calcGrowType();const meta=GROW_META[type];
   const rec=document.createElement('div');rec.style.cssText='font-family:var(--mono);font-size:.58rem;color:var(--tx-d);padding:6px 0 10px;line-height:1.7;';
-  const typeRec={streamer:'chatSkill・radioVibe・singSkillを優先',engineer:'soundDiag・emergencyFix・plcを優先',collapse:'stressRes・emoCtrlで精神を守る',father:'bedtime・chores・sleepEffを優先'};
-  rec.innerHTML=`現在の傾向: <span style="color:${meta.color}">${meta.icon} ${meta.label}型</span><br>${typeRec[type]||''}`;
+  const typeRec={streamer:'雑談力・深夜ラジオ感・歌唱力を優先',engineer:'異音診断・緊急復旧・PLC解析・試験勘を優先',collapse:'ストレス耐性・感情制御で精神を守る',father:'寝かしつけ・家事効率・睡眠効率を優先'};
+  rec.innerHTML=`現在の傾向: <span style="color:${meta.color}">${meta.icon} ${meta.label}型</span><br>${typeRec[type]||''}<br>🎮 どのスキルも、どれかのミニゲームを有利にする（カードの下に効果）。`;
   body.appendChild(rec);
   const cats={};Object.entries(SKDEF).forEach(([k,d])=>{if(!cats[d.cat])cats[d.cat]=[];cats[d.cat].push({k,d});});
   Object.entries(cats).forEach(([cat,skills])=>{
@@ -1492,15 +1533,17 @@ function openSkill(){
     const grid=document.createElement('div');grid.className='sk-grid';
     skills.forEach(({k,d})=>{
       const lv=Math.floor(gs.skills[k]||0),maxed=lv>=d.max;
-      const card=document.createElement('div');card.className='sk-card'+(maxed?' maxed':'');
-      card.innerHTML=`<div class="sk-name">${d.name}</div><div class="sk-lv">Lv.${lv}/${d.max}${maxed?' ✓':''}</div><div class="sk-desc">${d.desc}</div>${maxed?'':'<div style="margin-top:2px;font-family:var(--mono);font-size:.5rem;color:var(--gd)">SP1消費 → タップ</div>'}`;
+      const card=document.createElement('div');card.className='sk-card'+(maxed?' maxed':'');card.dataset.sk=k;
+      const mg=skillMinigameFx(k);
+      const mgHtml=mg.length?`<div class="sk-mg"><div class="sk-mg-h">🎮 ミニゲームでの効果</div>${mg.map(r=>`<div class="sk-mg-r${r.place==='factory'?' fac':''}"><b>${r.icon} ${r.name}</b>${r.tx}</div>`).join('')}</div>`:'';
+      card.innerHTML=`<div class="sk-name">${d.name}</div><div class="sk-lv">Lv.${lv}/${d.max}${maxed?' ✓':''}</div><div class="sk-desc">${d.desc}</div>${mgHtml}${maxed?'':'<div style="margin-top:2px;font-family:var(--mono);font-size:.5rem;color:var(--gd)">SP1消費 → タップ</div>'}`;
       if(!maxed)card.onclick=e=>{addRipple(card,e);buySkill(k,d);};
       grid.appendChild(card);
     });cd.appendChild(grid);body.appendChild(cd);
   });
   document.getElementById('skill-sc').classList.add('active');
 }
-function buySkill(key,def){if(gs.sp<1){showNotif('SPが足りません');return;}if(Math.floor(gs.skills[key])>=def.max){showNotif('最大レベルです');return;}gs.sp--;gs.skills[key]=(gs.skills[key]||0)+1;document.getElementById('skill-sp').textContent=gs.sp;AU.se('decide');showNotif(`⭐ ${def.name} Lv.${Math.floor(gs.skills[key])} 習得！`);saveGame(true);openSkill();}
+function buySkill(key,def){if(gs.sp<1){showNotif('SPが足りません');return;}if(Math.floor(gs.skills[key]||0)>=def.max){showNotif('最大レベルです');return;}gs.sp--;gs.skills[key]=(gs.skills[key]||0)+1;document.getElementById('skill-sp').textContent=gs.sp;AU.se('decide');showNotif(`⭐ ${def.name} Lv.${Math.floor(gs.skills[key])} 習得！`);saveGame(true);openSkill();}
 function closeSkill(){document.getElementById('skill-sc').classList.remove('active');updateNavActive('main');}
 
 // ──────────────────────────
@@ -1937,7 +1980,7 @@ function closeEndingList(){
 }
 
 function triggerEnding(forced){
-  clearInterval(commentIv);clearInterval(anomalyIv);clearInterval(ft);clearInterval(dt);
+  clearInterval(commentIv);clearInterval(anomalyIv);
   if(_endingIv){ clearInterval(_endingIv); _endingIv=null; }
   saveGame(true); // エンディング到達時に自動セーブ
 
@@ -2175,7 +2218,8 @@ const TUTORIAL=[
   {t:'🌙 30日間を生き延びる',b:'毎晩22時から、深夜の時間をどう使うかを選ぶゲーム。\n配信で稼ぎ、工場の仕事・資格の勉強・子育て・休息をやりくりして、借金84万の壇ノ浦から這い上がろう。'},
   {t:'📊 上のバーを見る',b:'精神・疲労・借金・炎上が、ゲームオーバーに関わる値。\n・精神が0\n・疲労100で精神20未満\n・借金200万超\n・炎上10\nのどれかで終わってしまう。危なくなると赤く光って知らせてくれる。'},
   {t:'🎯 今日の目標を頼りに',b:'画面上の「🎯」が、次にやるとよいことを教えてくれる。\n配信を終えるか朝6時になると、夜が明けて次の日へ進む。'},
-  {t:'🎮 夜のミニゲーム',b:'メニューの「夜のミニゲーム」で、シューティングやパズル、ストーリーRPGなど、いろいろなジャンルが遊べる（各1日1回）。結果がパラメータに反映される。\nRPG「壇ノ浦夢譚」は1晩に1章ずつ進む物語。'},
+  {t:'🔧 工場で働く',b:'下のナビの「🔧 工場」か、メニューの「工場で働く」で、工場の仕事ミニゲーム（深夜巡回・配線復旧・部品組み立て・危険物の一問一答・原付で夜勤へ など）が遊べる（各1日1回）。\nその日はじめての仕事には夜勤手当がつく。収入と仕事評価はここで稼ごう。'},
+  {t:'🎮 夜のミニゲーム',b:'メニューの「夜のミニゲーム」で、シューティングやカードバトル、ストーリーRPGなど、いろいろなジャンルが遊べる（各1日1回）。結果がパラメータに反映される。\nRPG「壇ノ浦夢譚」は1晩に1章ずつ進む物語。\n⭐スキルを上げると、それぞれのミニゲームが有利になる。'},
   {t:'📖 エンディングは9種類',b:'30日目の状態や育て方で結末が変わる。\n到達したエンディングはタイトル画面の「エンディング一覧」に記録される。\n\nそれでは、今夜も配信を始めよう。'},
 ];
 let _tutIdx=0;
@@ -2344,7 +2388,7 @@ function gsToSaveData(){
 function saveDataToGs(saved){
   // ミニゲーム・物語の記録（gs.rpg / gs.story / gs.○○Data / gs.mgDay）と到達した結末は、読み込むセーブに無ければ消しておく
   // （別のスロットの家・暮らし gs.homeData が残らない）
-  Object.keys(gs).forEach(k=>{if(!(k in saved)&&(k==='rpg'||k==='story'||k==='mgDay'||k==='endingReached'||/Data$/.test(k)))delete gs[k];});
+  Object.keys(gs).forEach(k=>{if(!(k in saved)&&(k==='rpg'||k==='story'||k==='mgDay'||k==='endingReached'||k==='factoryShiftDay'||/Data$/.test(k)))delete gs[k];});
   Object.assign(gs, saved);
   // 配列 → Set
   gs.completedAchs = new Set(saved.completedAchs || []);
@@ -2352,6 +2396,8 @@ function saveDataToGs(saved){
   gs._dayDone = false;
   gs._c30     = false;
   gs._c10     = false;
+  // スキル：増えたスキル（試験勘・原付さばき）を0で補い、上限を超えた分はSPで返す
+  if(typeof migrateSkills==='function'){const m=migrateSkills(saved.skills);gs.skills=m.skills;if(m.refund>0)gs.sp=(+gs.sp||0)+m.refund;}
   // personalityが存在しない古いデータ対策
   if(!gs.personality) gs.personality = initPersonality();
   // growHistory等が存在しない対策

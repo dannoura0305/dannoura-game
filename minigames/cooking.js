@@ -45,7 +45,8 @@ registerMinigame({
     // 難しさ（開始時に読む）：WK=タイミング判定の幅の倍率 SPD=ゲージ・焼き色・包丁の速さ BEAT=にぎにぎの間隔(秒)
     // PLATE_ADD=盛り付けの追加秒 NEAT_K=仕切りの真ん中からのずれの許容（大きいほど甘い）
     const DIFF=mgDifficulty();
-    const WK=mgDiff(1.45,1.2,1),SPD=mgDiff(.7,.85,1),BEAT=mgDiff(.75,.68,.6),PLATE_ADD=mgDiff(12,6,0),NEAT_K=mgDiff(1.35,1.15,1);
+    const WK=mgDiff(1.45,1.2,1)*(1+.08*mgSkill('chores',3)),   // 家事効率（スキル）：金色ゾーン +8%/Lv
+    SPD=mgDiff(.7,.85,1),BEAT=mgDiff(.75,.68,.6),PLATE_ADD=mgDiff(12,6,0),NEAT_K=mgDiff(1.35,1.15,1);
     addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
     mg.el('mg-title').insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);
     // 焼き色のグラデーション（0=生 … 1=焦げ）

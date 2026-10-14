@@ -1354,7 +1354,8 @@ registerMinigame({
     // ── 状態 ──
     let W=0,H=0,dpr=1,T=0;
     let phase='title',overlay=null;
-    let hype=0,rei=0,hearts=0,endKey=null,endNew=false,justUnlocked=false,offline=false;
+    // 怪談力（スキル）：配信開始時の盛り上がり Lv2で+1・Lv4で+2
+    let hype=Math.floor(mgSkill('kaidanSkill',5)/2),rei=0,hearts=0,endKey=null,endNew=false,justUnlocked=false,offline=false;
     let S={},bg='room',tr=null,stack=[],line=null,lineDone=false,autoT=0,skipT=0,skip=false;
     let busyT=0,busyRate=1,buf=null,chOn=false,chPicked=false,chList=[],chSel=-1,actNo=0,actTitle='';
     let lt=0,ltNext=6+Math.random()*8,glT=0,glAmp=1,microT=3,faceO=null,faceT=0;

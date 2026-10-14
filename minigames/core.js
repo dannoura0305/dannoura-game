@@ -110,6 +110,10 @@ const MG_CATS=[
 const MG_FACTORY_CATS=[
   {id:'factory',name:'工場',icon:'work'},
 ];
+// 夜勤手当：工場タブのミニゲームで、その日はじめて働いたとき（収入か仕事評価が増えたとき）に1回だけ。
+// 以前の「設備点検ミニゲーム」1回ぶん（完璧で¥8,500・仕事評価+10）の代わり。危険物の一問一答は勉強なので出ない。
+const MG_FACTORY_WAGE={money:6000,jobRep:3};
+const MG_NO_WAGE=['quiz'];
 const MG_PLACE_LABEL={night:{head:'NIGHT GAMES',left:'今夜あと'},factory:{head:'FACTORY 工場',left:'今日あと'}};
 // ミニゲームのアイコン（main/icons.js のドット絵。無ければ定義の絵文字）
 function mgIconHTML(def,px){
@@ -138,25 +142,24 @@ function mgSkillFxFor(id){
 }
 function mgPickSkillLine(id){
   const on=mgSkillFxFor(id).filter(r=>r.lv>0);
-  if(on.length)return `<div class="mg-pick-sk on">★ ${on.map(r=>`${r.name}Lv${r.lv}`).join('・')} が効いている</div>`;
-  const all=mgSkillFxFor(id);
-  return all.length?`<div class="mg-pick-sk">☆ 有利になるスキル：${all.slice(0,3).map(r=>r.name).join('・')}</div>`:'';
+  if(on.length)return `<div class="mg-pick-sk on">★ ${[...new Set(on.map(r=>`${r.name}Lv${r.lv}`))].join('・')} が効いている</div>`;
+  const names=[...new Set(mgSkillFxFor(id).map(r=>r.name))];
+  return names.length?`<div class="mg-pick-sk">☆ 有利になるスキル：${names.slice(0,4).join('・')}</div>`:'';
 }
 addMinigameStyle('picker-place',`
-.mg-pick-sk{font-family:var(--mono);font-size:.58rem;color:var(--tx-d);margin-top:3px;line-height:1.5;}
+.mg-pick-sk{font-family:var(--mono);font-size:.58rem;color:#a99cc8;margin-top:3px;line-height:1.5;}
 .mg-pick-sk.on{color:var(--gd);}
 #mg-picker.mg-place-factory .mg-pick-box{border-color:rgba(232,184,48,.7);}
 #mg-picker.mg-place-factory .endlist-head{color:var(--gd);}
 #mg-picker .mg-pick-lead{flex-shrink:0;font-size:.64rem;line-height:1.6;color:var(--tx);margin:-2px 2px 0;}
 #mg-picker.mg-place-night .mg-pick-lead{display:none;}
 @media (min-width:700px){#mg-picker .mg-pick-box{max-width:440px;}}
-#mg-screen .mg-skillfx{position:absolute;left:50%;top:6px;transform:translateX(-50%);z-index:30;max-width:92%;padding:4px 10px;border:1px solid rgba(232,184,48,.7);border-radius:4px;background:rgba(10,8,30,.92);color:var(--gd);font-family:var(--mono);font-size:.6rem;line-height:1.5;text-align:center;pointer-events:none;opacity:1;transition:opacity .6s;box-shadow:0 2px 12px rgba(0,0,0,.5);}
+#mg-screen .mg-skillfx{position:absolute;left:50%;top:50px;transform:translateX(-50%);z-index:30;max-width:92%;padding:4px 10px;border:1px solid rgba(232,184,48,.7);border-radius:4px;background:rgba(10,8,30,.92);color:var(--gd);font-family:var(--mono);font-size:.6rem;line-height:1.5;text-align:center;pointer-events:none;opacity:1;transition:opacity .6s;box-shadow:0 2px 12px rgba(0,0,0,.5);}
 #mg-screen .mg-skillfx.out{opacity:0;}
 #mg-screen .mg-skillfx b{color:#fff;font-weight:normal;}
 `);
 function openMinigamePicker(place){
-  if(place==='factory'||place==='night')_mgPlace=place;
-  else if(place!==undefined)_mgPlace='night';
+  _mgPlace=place==='factory'?'factory':'night';   // 引数なし（以前の呼び方）は夜の🎮
   const P=_mgPlace,pool=minigamesIn(P);
   const picker=document.getElementById('mg-picker');
   if(picker){picker.classList.toggle('mg-place-factory',P==='factory');picker.classList.toggle('mg-place-night',P!=='factory');}
@@ -164,7 +167,7 @@ function openMinigamePicker(place){
   if(head)head.textContent=MG_PLACE_LABEL[P].head;
   let lead=document.getElementById('mg-pick-lead');
   if(!lead&&picker){const box=picker.querySelector('.mg-pick-box'),tb=document.getElementById('mg-pick-tabs');if(box&&tb){lead=document.createElement('div');lead.id='mg-pick-lead';lead.className='mg-pick-lead';box.insertBefore(lead,tb);}}
-  if(lead)lead.textContent=P==='factory'?'設備保全・資格・通勤の仕事ミニゲーム。収入と仕事評価が上がる。各1日1回。':'';
+  if(lead)lead.textContent=P==='factory'?(gs.factoryShiftDay===gs.day?'設備保全・資格・通勤の仕事。各1日1回。今日の夜勤手当は受け取り済み。':`設備保全・資格・通勤の仕事。各1日1回。今日はじめて働くと夜勤手当 ¥${MG_FACTORY_WAGE.money.toLocaleString()}（一問一答は勉強なので除く）。`):'';
   const cats=P==='factory'?MG_FACTORY_CATS:MG_CATS;
   let tab=P==='factory'?'factory':_mgTab;
   if(P!=='factory'&&tab!=='all'&&!pool.some(d=>minigameCat(d.id)===tab))tab='all';
@@ -426,13 +429,21 @@ const MG={
     AU.fadeBGM('night',800);
     gs.mgDay=gs.mgDay||{};
     gs.mgDay[this.def.id]=gs.day;
-    // 工場のミニゲーム：配線理解（収入）・PLC解析（仕事評価）の上乗せと、工場で働いた扱い
+    // 工場のミニゲーム：その日はじめての仕事に夜勤手当、配線理解（収入）・PLC解析（仕事評価）の上乗せ、工場で働いた扱い
+    let wageLine='';
     if(minigamePlace(this.def.id)==='factory'&&r&&r.fx){
       const f=r.fx=Object.assign({},r.fx);
+      const worked=(+f.money||0)>0||(+f.jobRep||0)>0;
+      if(worked&&!MG_NO_WAGE.includes(this.def.id)&&gs.factoryShiftDay!==gs.day){
+        gs.factoryShiftDay=gs.day;
+        f.money=(+f.money||0)+MG_FACTORY_WAGE.money;f.jobRep=(+f.jobRep||0)+MG_FACTORY_WAGE.jobRep;
+        wageLine=`🔧 うち夜勤手当（今日はじめての仕事・評価+${MG_FACTORY_WAGE.jobRep}込み） <span class="up">+¥${MG_FACTORY_WAGE.money.toLocaleString()}</span>`;
+      }
       const w=mgSkill('wiring',3),pl=mgSkill('plc',3);
       if(f.money>0&&w)f.money=Math.round(f.money*(1+.05*w)/100)*100;
       if(f.jobRep>0&&pl)f.jobRep+=pl;
-      if((f.money>0||f.jobRep>0)&&typeof updatePersonality==='function')try{updatePersonality('factory');}catch(e){}
+      // 性格：工場で働くと意志↑・やさしさ↓（以前の設備点検1回と同じ量＝2回ぶん）
+      if(worked&&typeof updatePersonality==='function')try{updatePersonality('factory');updatePersonality('factory');}catch(e){}
     }
     applyMinigameFx(r.fx||{});
     if(r.sp)gs.sp+=r.sp;
@@ -441,7 +452,7 @@ const MG={
     if(r.cutin)cutin(r.cutin[0],r.cutin[1]);
     updateNavActive('main');
     const spLine=r.sp?`<br>スキルポイント <span class="up">+${r.sp}</span>`:'';
-    showResult(r.title,(r.summary?r.summary+'<br>':'')+fxToHtml(r.fx||{})+spLine);
+    showResult(r.title,(r.summary?r.summary+'<br>':'')+fxToHtml(r.fx||{})+(wageLine?'<br>'+wageLine:'')+spLine);
     advTime(r.time||60);
     loadScene('main');
     checkGameOver();

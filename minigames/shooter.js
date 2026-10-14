@@ -72,6 +72,8 @@ registerMinigame({
       good:mgDiff(.75,.9,1),     // 応援コメントの間隔の倍率
       ffShield:DIFF==='hard',    // 誤射でこころが減るか（やさしい・ふつうはコンボだけ）
     };
+    // 感情制御（スキル）：こころ +1/Lv・被弾後の無敵 +0.15秒/Lv
+    {const L=mgSkill('emoCtrl',3);DF.shield+=L;DF.inv+=.15*L;}
     addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
     {const tt=mg.el('mg-title');if(tt&&!tt.querySelector('.mg-diffb'))tt.insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);}
 

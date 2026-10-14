@@ -75,10 +75,11 @@ registerMinigame({
     const COLS=6, VIS=12, HID=1, ROWS=VIS+HID;
     const DIFF=mgDifficulty();
     const DIFF_NAME={easy:'やさしい',normal:'ふつう',hard:'むずかしい'}[DIFF]||'やさしい';
-    const TIME=mgDiff(150,120,100);
-    const LOCK_DELAY=mgDiff(.8,.6,.45), MAX_RESETS=12, MERGE_T=.38;
+    const SK_PLC=mgSkill('plc',3);   // PLC解析：落ちる速さ -7%/Lv・置くまでの猶予 +0.08秒/Lv・制限時間 +8秒/Lv
+    const TIME=mgDiff(150,120,100)+8*SK_PLC;
+    const LOCK_DELAY=mgDiff(.8,.6,.45)+.08*SK_PLC, MAX_RESETS=12, MERGE_T=.38;
     const DAS=.17, ARR=.07;
-    const FALL=mgDiff([.95,.8,.66],[.72,.56,.44],[.52,.4,.3]);   // 1段落ちるのにかかる秒（便ごと）
+    const FALL=mgDiff([.95,.8,.66],[.72,.56,.44],[.52,.4,.3]).map(v=>v/(1-.07*SK_PLC));   // 1段落ちるのにかかる秒（便ごと）
     const DEF_RATE=mgDiff(.04,.09,.15), DEF_FROM=mgDiff(25,15,8), DEF_COOL=mgDiff(9,5,3);
     const WEIGHTS=mgDiff([40,33,21,6],[36,31,22,11],[31,28,24,17]); // ネジ・ナット・ギア・モーターの出やすさ
     const BIAS=mgDiff(.55,.3,.12);  // 積んである一番上の部品と同じものが来やすい

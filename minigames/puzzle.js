@@ -220,8 +220,9 @@ registerMinigame({
     // 難しさ（開始時に読む）：時間・盤の大きさ・特殊タイル数・★の目安の甘さ
     const DIFF=mgDifficulty();
     mg.el('mg-title').insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);
-    const TIME=mgDiff(180,130,90);
-    const SLACK_MIN=mgDiff(6,4,3),SLACK_K=mgDiff(.8,.55,.35);
+    const SK_W=mgSkill('wiring',3);   // 配線理解：制限時間 +10秒/Lv・★2の手数の余裕 +1/Lv
+    const TIME=mgDiff(180,130,90)+10*SK_W;
+    const SLACK_MIN=mgDiff(6,4,3)+SK_W,SLACK_K=mgDiff(.8,.55,.35);
     // 記録（gs.puzzleData に保存・初回だけ作る）
     if(!gs.puzzleData||typeof gs.puzzleData!=='object')gs.puzzleData={plays:0,clears:0,bestGrade:'',bestStars:0,bestLeft:0,bestSolved:0};
     const D=gs.puzzleData;
@@ -404,7 +405,7 @@ registerMinigame({
       return r.done;
     }
     const cellXY=c=>[ox+(c%n+.5)*ts,oy+(((c/n)|0)+.5)*ts];
-    const slack=()=>Math.max(SLACK_MIN,Math.ceil(par*SLACK_K));
+    const slack=()=>Math.max(SLACK_MIN,Math.ceil(par*SLACK_K)+SK_W);
     const starsFor=mv=>mv<=par?3:mv<=par+slack()?2:1;
 
     function msg(t){msgText=t;msgT=1.8;}

@@ -159,12 +159,15 @@ registerMinigame({
     {const tt=mg.el('mg-title');if(tt&&!tt.querySelector('.mg-diffb'))tt.insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);}
     const FL_MAX=20, TIME_LIMIT=DF.time, NEED=5, P_R=.36, EYE=1.62, SPEED=3.7;
     const SK=(gs&&gs.skills)||{};
-    const HOLD_T=1.5*DF.hold*(1-Math.min(.3,((SK.soundDiag||0)+(SK.emergencyFix||0))*.03));
+    // スキル（minigames/registry.js MG_SKILL_FX と同じ数値）
+    //   緊急復旧：点検の長押し -8%/Lv・電池の減り -5%/Lv　異音診断：影の動き -5%/Lv　ストレス耐性：影のダメージ -3%/Lv
+    const SK_EF=mgSkill('emergencyFix',3),SK_SD=mgSkill('soundDiag',3);
+    const HOLD_T=1.5*DF.hold*(1-.08*SK_EF);
     const HIT_DMG=Math.round(30*DF.dmg*(1-Math.min(.3,(SK.stressRes||0)*.03)));
     // 記録と難易度（クリア回数・日数で影が強くなる）
     const DATA=gs.factory3dData=Object.assign({plays:0,clears:0,best:'',bestScore:0,bestTime:0},gs.factory3dData||{});
     const HARD=Math.min(3,DATA.clears)+Math.min(1,(gs.day||1)/30);
-    const GHOST_MUL=(1+HARD*.08)*DF.ghost, DRAIN=.5*(1+HARD*.05)*DF.drain;
+    const GHOST_MUL=(1+HARD*.08)*DF.ghost*(1-.05*SK_SD), DRAIN=.5*(1+HARD*.05)*DF.drain*(1-.05*SK_EF);
     const rnd=(a,b)=>a+Math.random()*(b-a);
     const pick=a=>a[(Math.random()*a.length)|0];
     const clamp=(v,a,b)=>v<a?a:v>b?b:v;

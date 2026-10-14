@@ -71,7 +71,9 @@ registerMinigame({
     // 難しさ（開始時に読む）：やり取りの光の枠の幅・魚の動きの速さ・枠から外れた時の逃げやすさ
     const DIFF=mgDifficulty();
     mg.el('mg-title').insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);
-    const RZW=mgDiff(1.4,1.18,1),RSPD=mgDiff(.72,.86,1),RDECAY=mgDiff(.055,.085,.12),RGRACE=mgDiff(.8,.4,0);
+    // ストレス耐性（スキル）：引き寄せゾーンの幅 +6%/Lv・ゾーンを外れても糸が切れるまでの猶予 +0.15秒/Lv
+    const SK_SR=mgSkill('stressRes',3);
+    const RZW=mgDiff(1.4,1.18,1)*(1+.06*SK_SR),RSPD=mgDiff(.72,.86,1),RDECAY=mgDiff(.055,.085,.12),RGRACE=mgDiff(.8,.4,0)+.15*SK_SR;
     const CASTS=6;
     const ZONE=['浅場','中層','沖'];
     const TIMES=['宵の口','夜更け','丑三つ時'];

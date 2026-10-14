@@ -36,6 +36,8 @@ registerMinigame({
       slack:mgDiff(5,3,0),         // 当たり判定のゆるさ（px）
       drink:mgDiff(2600,3400,4200),// 栄養ドリンクの間隔
     };
+    // 家事効率（スキル）：子どもが起きるまでの時間 +6%/Lv・Lv2で傘の耐久 +1
+    {const L=mgSkill('chores',3);DF.wake*=1+.06*L;if(L>=2)DF.hp+=1;}
     addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
     {const tt=mg.el('mg-title');if(tt&&!tt.querySelector('.mg-diffb'))tt.insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);}
     const M=20, GOAL_M=900, GOAL=GOAL_M*M, WAKE=(REMIX?66:70)*DF.wake, MAX_HP=DF.hp, PX=72, COIN=30, COIN_CAP=3000;

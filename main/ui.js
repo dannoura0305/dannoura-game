@@ -66,15 +66,14 @@ function parseTx(tx){
    2. 行動メニュー
    ══════════════════════════════════════════ */
 const ACT_GUESS=[
-  [/配信を始める/,'stream'],[/設備点検/,'factory'],[/温度・振動/,'diag'],
+  [/配信を始める/,'stream'],[/工場で働く/,'factorywork'],
   [/少し休む/,'rest_light'],[/しっかり休む/,'rest_deep'],[/資格の勉強/,'study'],
   [/寝かしつけ/,'childcare'],[/歌の練習/,'singpractice'],[/ミニゲーム/,'minigames'],
   [/工場ネタ/,'factoryneta'],[/深夜2時/,'deepnight'],
 ];
 const ACT_META={
   stream:     {grp:'earn',extra:[['収益・フォロワー','up'],['夜が明ける','warn']]},
-  factory:    {grp:'earn',extra:[['収入','up'],['疲労+10']]},
-  diag:       {grp:'earn',extra:[['収入','up'],['疲労+8']]},
+  factorywork:{grp:'earn',extra:[['収入・仕事評価','up']]},
   factoryneta:{grp:'special',extra:[['怪談配信','up']]},
   deepnight:  {grp:'special',extra:[['レア','warn']]},
   rest_light: {grp:'rest'}, rest_deep:{grp:'rest'},
@@ -107,8 +106,13 @@ function acFor(btn,i){
 function minigamesLeft(){
   try{
     if(typeof MINIGAMES==='undefined'||typeof playedMinigameToday!=='function')return null;
+    // 夜の🎮に出るものだけ（工場タブのミニゲームは factoryLeft）
+    if(typeof minigamesLeftIn==='function')return minigamesLeftIn('night');
     return MINIGAMES.filter(d=>!playedMinigameToday(d.id)).length;
   }catch(e){return null;}
+}
+function factoryLeft(){
+  try{return typeof minigamesLeftIn==='function'?minigamesLeftIn('factory'):null;}catch(e){return null;}
 }
 /* ボタン1個をリッチ表示にする（元の文字列は data-tx に保存） */
 function richButton(btn,ac){
@@ -157,6 +161,16 @@ function enhanceChoices(key){
         if(left!==null&&cost){
           cost.innerHTML=left?chipHTML(`今夜あと${left}種`,'up'):chipHTML('今夜は遊び尽くした','');
           mgBtn.classList.toggle('ui-locked',left===0);
+        }
+      }
+      // 工場で働く：今日あと何種
+      const fBtn=btns[acs.indexOf('factorywork')];
+      if(fBtn){
+        const left=factoryLeft();
+        const cost=fBtn.querySelector('.cb-cost');
+        if(left!==null&&cost){
+          cost.innerHTML=left?chipHTML(`今日あと${left}種`,'up')+chipHTML('収入・仕事評価','up'):chipHTML('今日の仕事は終わり','');
+          fBtn.classList.toggle('ui-locked',left===0);
         }
       }
       const order=GROUPS.filter(g=>by[g.id]&&by[g.id].length);
@@ -235,7 +249,7 @@ function observeStream(){
    3. ゆびカーソル＆キー操作
    ══════════════════════════════════════════ */
 const ITEM_SEL='button,.sk-card,.set-row';
-const BLOCKERS=['mg-screen','factory-mini','diag-mini','song-mini'];
+const BLOCKERS=['mg-screen','song-mini'];
 const isActive=el=>el&&el.classList.contains('active');
 const notHidden=el=>el&&!el.classList.contains('hidden');
 const CTX=[
@@ -755,7 +769,7 @@ document.addEventListener('click',e=>{
    ══════════════════════════════════════════ */
 const IC=()=>window.ICONS||null;
 // 行動 → アイコン（絵文字より優先）
-const AC_ICON={stream:'stream',factory:'work',diag:'thermo',rest_light:'tea',rest_deep:'sleep',study:'study',childcare:'child',
+const AC_ICON={stream:'stream',factory:'work',factorywork:'work',rest_light:'tea',rest_deep:'sleep',study:'study',childcare:'child',
   singpractice:'music',minigames:'minigame',home:'home',factoryneta:'radio',deepnight:'night'};
 function icoHTML(emo,ac,px){
   const I=IC();
