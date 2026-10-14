@@ -100,7 +100,7 @@ export function losClear(map, x0, y0, x1, y1) {
   for (let i = 1; i < n; i++) {
     const x = x0 + (x1 - x0) * i / n, y = y0 + (y1 - y0) * i / n;
     const t = tileAt(map, Math.floor(x / TILE), Math.floor((y - 2) / TILE));
-    if (t === T.ROCK || t === T.TREE) return false;
+    if (t === T.ROCK || t === T.TREE || t === T.CLIFF || t === T.HOUSE || t === T.SAKURA || t === T.MOUNT) return false;
   }
   return true;
 }
@@ -480,7 +480,7 @@ export function dropSpots(map, x, y, n) {
 }
 /** 安全な所（つかまったあと戻される）：自分の巣の入口の下 → 無ければ出発点 */
 export function safePoint(map, ownEntrance) {
-  if (ownEntrance) return { x: ownEntrance.x, y: ownEntrance.y + 12 };
+  if (ownEntrance && (!ownEntrance.region || !map.region || ownEntrance.region === map.region)) return { x: ownEntrance.x, y: ownEntrance.y + 12 };
   return { x: map.spawn.x, y: map.spawn.y };
 }
 export const DROP_TTL_MS = 10 * 60 * 1000;   // 落とし物は 10 分で消える

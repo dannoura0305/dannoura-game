@@ -10,7 +10,7 @@
 // 巣（横断面）：
 //   ・← → で歩く（小さく跳ねる）、Space でジャンプ、縦の通路は ↑↓ で登り降り、坂は ← → だけで上り下り
 //   ・入口の縦穴を上まで登ると exit=true（地上へ出る）
-import { TILE, isBlocking, isHigh } from './regions.js';
+import { TILE, isBlocking, isHigh, tileAt, TILE_INFO } from './regions.js';
 
 export const STEP_DT = 1 / 60;
 
@@ -25,28 +25,34 @@ export function makeFieldState(x, y) {
   return { x, y, z: 0, fx: 0, fy: 1, dir: 'down', anim: 'idle', hop: 0, cd: 0, jump: null, seq: 0 };
 }
 
-/** 足元の箱が通れるか */
-export function boxFree(map, x, y) {
+/** 足元の箱が通れるか。down=true（下＝南へ向かっている）なら段差（渓谷の一方通行）も通れる（Ver.0.5） */
+export function boxFree(map, x, y, down = false) {
   const x0 = Math.floor((x - FIELD.BW) / TILE), x1 = Math.floor((x + FIELD.BW - 0.01) / TILE);
   const y0 = Math.floor((y - FIELD.BH) / TILE), y1 = Math.floor((y - 0.01) / TILE);
-  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) if (isBlocking(map, tx, ty)) return false;
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) if (isBlocking(map, tx, ty, down)) return false;
   return true;
 }
-function boxHigh(map, x, y) {
+function boxHigh(map, x, y, down = false) {
   const x0 = Math.floor((x - FIELD.BW) / TILE), x1 = Math.floor((x + FIELD.BW - 0.01) / TILE);
   const y0 = Math.floor((y - FIELD.BH) / TILE), y1 = Math.floor((y - 0.01) / TILE);
-  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) if (isHigh(map, tx, ty)) return true;
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) if (isHigh(map, tx, ty, down)) return true;
   return false;
 }
+/** 足元の地面が跳ねる速さに効くか（砂丘のさらさら砂 ×0.85。Ver.0.5） */
+export function groundSlow(map, x, y) {
+  const t = tileAt(map, Math.floor(x / TILE), Math.floor((y - 1) / TILE));
+  return t >= 0 && TILE_INFO[t] && TILE_INFO[t].slow ? TILE_INFO[t].slow : 1;
+}
 
-/** 大ジャンプの着地点（遠い方から探す）。高い障害物を通る線は不可、着地点はふさがっていないこと */
+/** 大ジャンプの着地点（遠い方から探す）。高い障害物を通る線は不可、着地点はふさがっていないこと。段差は下へ跳ぶときだけ越えられる */
 export function jumpLanding(map, x, y, fx, fy, dist = FIELD.JUMP_DIST) {
+  const down = fy > 0.3;
   for (let d = Math.round(dist / 2) * 2; d >= 0; d -= 2) {
     let ok = true;
-    for (let s = 0; s <= d; s += 4) if (boxHigh(map, x + fx * s, y + fy * s)) { ok = false; break; }
+    for (let s = 0; s <= d; s += 4) if (boxHigh(map, x + fx * s, y + fy * s, down)) { ok = false; break; }
     if (!ok) continue;
     const tx = x + fx * d, ty = y + fy * d;
-    if (boxFree(map, tx, ty)) return { x: tx, y: ty, d };
+    if (boxFree(map, tx, ty, down)) return { x: tx, y: ty, d };
   }
   return { x, y, d: 0 };
 }
@@ -92,10 +98,11 @@ export function stepField(st, input, dt, map, mods = null) {
   }
   if (mx || my) {
     const len = Math.hypot(mx, my);
-    const sp = FIELD.HOP_SPEED * (tired ? TIRED_SPEED : 1) * (mods && mods.speed > 0 ? mods.speed : 1) * (mods && mods.hop > 0 ? mods.hop : 1);
+    const sp = FIELD.HOP_SPEED * (tired ? TIRED_SPEED : 1) * (mods && mods.speed > 0 ? mods.speed : 1) * (mods && mods.hop > 0 ? mods.hop : 1) * (map.slowTiles ? groundSlow(map, s.x, s.y) : 1);
     const vx = mx / len * sp * dt, vy = my / len * sp * dt;
-    if (boxFree(map, s.x + vx, s.y)) s.x += vx;
-    if (boxFree(map, s.x, s.y + vy)) s.y += vy;
+    // 段差（一方通行）：下（南）へ向かって押しているときだけ通れる
+    if (boxFree(map, s.x + vx, s.y, my > 0)) s.x += vx;
+    if (boxFree(map, s.x, s.y + vy, vy > 0)) s.y += vy;
     s.hop += dt / FIELD.HOP_PERIOD;
     s.anim = 'hop';
   } else if (s.hop % 1 > 0.001) {

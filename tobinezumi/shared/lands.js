@@ -19,6 +19,7 @@ export const CLIMATES = {
   dry:  { id: 'dry',  name: '乾いている', desc: '昼は少しのどがかわきやすい' },
   hot:  { id: 'hot',  name: '暑い', desc: '夏の昼は のどがとても早くかわく' },
   cool: { id: 'cool', name: '冷える', desc: '冬の夜は ひときわ寒い' },
+  cold: { id: 'cold', name: '寒い', desc: '雪がよく降る。冬の夜はとても寒い' },   // Ver.0.5：富山
 };
 export const RARES = {
   rare_seed:    { id: 'rare_seed', name: '珍しい種' },
@@ -28,6 +29,7 @@ export const PROP_NAMES = { food: '食料', danger: '危険', hardness: '地質�
 
 /** 安全地帯（捕食者が入らない）：オアシスのほとりの真ん中と、出発点の広場。px 単位 */
 export function safeZones(map) {
+  if (map.safe) return map.safe;     // Ver.0.5：ほかの土地の地図は自分で持つ（はじまりの原は下の 2 つ）
   return [
     { id: 'oasis', x: POND.x * TILE, y: POND.y * TILE, r: 11 * TILE },
     { id: 'plaza', x: map.spawn.x, y: map.spawn.y, r: 5 * TILE },
@@ -68,7 +70,7 @@ export function buildLands(map) {
       const g = map.ground[ty * map.w + tx], t = tileAt(map, tx, ty);
       if (g === T.SAND) n.sand++; else if (g === T.DIRT) n.dirt++; else n.grass++;
       if (t === T.ROCK) n.rock++; else if (t === T.STONES) n.stones++; else if (t === T.SHRUB) n.shrub++;
-      else if (t === T.TUFT) n.tuft++; else if (t === T.WATER) n.water++; else if (t === T.TREE) n.tree++;
+      else if (t === T.TUFT) n.tuft++; else if (t === T.WATER || t === T.RIVER || t === T.PADDY || t === T.CHANNEL) n.water++; else if (t === T.TREE || t === T.SAKURA) n.tree++;
     }
     const px = (x0 + PLOT_W / 2) * TILE, py = (y0 + PLOT_H / 2) * TILE;
     const region = regionAt(map, px, py);
@@ -78,21 +80,24 @@ export function buildLands(map) {
     // 地質：砂 1.2・草 2.2・土 3、岩・小石の山が多いほど硬い
     const hard = (n.sand * 1.2 + n.grass * 2.2 + n.dirt * 3) / cells + (n.rock * 3 + n.stones * 1.5) / cells * 6;
     // 危険：地域で決まる基本 ＋ ゆらぎ、安全地帯に近いほど下がる
-    const base = { oasis: 1, steppe: 2.4, desert: 3, hill: 4 }[region.id] ?? 2;
+    const base = map.region === 'toyama' ? -9 : ({ oasis: 1, steppe: 2.4, desert: 3, hill: 4, canyon: 2.2 }[region.id] ?? 2);
     let dz = 1e9;
     for (const z of zones) dz = Math.min(dz, Math.hypot(px - z.x, py - z.y) - z.r);
     let danger = base + (hash2(cx, cy, map.seed + 404) - 0.5) * 1.6;
     if (dz < 2 * TILE) danger = 0; else if (dz < 8 * TILE) danger -= 1.5;
     // 景観：水・木・草花・低木
     const scen = n.water * 0.25 + n.tree * 2.2 + n.tuft * 0.12 + n.shrub * 0.1 + n.grass / cells * 1.4 + (region.id === 'oasis' ? 1 : 0) + hash2(cx, cy, map.seed + 77) * 0.8;
-    const climate = region.id === 'oasis' ? 'mild' : region.id === 'desert' ? 'hot' : region.id === 'hill' ? 'cool' : 'dry';
-    // 希少資源：草の多い所に珍しい種、岩・砂の所にきれいな石（区画の 1/4 くらい）
+    // 気候：地図が決めていればそれ（Ver.0.5：岩場・渓谷は冷える・砂丘は暑い・富山は寒い）。渓谷の川べりはおだやか
+    const climate = map.climate ? (map.climate === 'cool' && n.water > 6 ? 'mild' : map.climate)
+      : region.id === 'oasis' ? 'mild' : region.id === 'desert' ? 'hot' : region.id === 'hill' ? 'cool' : 'dry';
+    // 希少資源：草の多い所に珍しい種、岩・砂の所にきれいな石（区画の 1/4 くらい。岩場はきれいな石が多い）
     const h = hash2(cx, cy, map.seed + 913);
+    const rareP = map.rareP != null ? map.rareP : 0.26;
     let rare = null;
-    if (h < 0.26 && danger > 0) rare = (region.id === 'hill' || region.id === 'desert' || n.rock + n.stones > 4) ? 'pretty_stone' : 'rare_seed';
+    if (h < rareP && danger > 0) rare = (region.id === 'hill' || region.id === 'desert' || n.rock + n.stones > 4) ? 'pretty_stone' : 'rare_seed';
     out.set(plotIdOf(cx, cy), {
       id: plotIdOf(cx, cy), cx, cy, region: region.id, regionName: region.name,
-      name: region.name + ' ' + (cx + 1) + '-' + (cy + 1),
+      name: region.name + ' ' + (cx + 1) + '-' + (cy + 1), field: map.region || 'plains',
       foodRaw: food, danger: clamp5(danger), hardness: Math.max(1, clamp5(hard)), scenery: Math.max(1, clamp5(scen)), climate, rare,
       x: px, y: py,
     });
@@ -113,7 +118,7 @@ export function landById(map, id) { return buildLands(map).get(id) || null; }
 /** 送信・保存用の形（余計なものを落とす） */
 export function landOut(L) {
   if (!L) return null;
-  return { id: L.id, name: L.name, region: L.region, food: L.food, danger: L.danger, hardness: L.hardness, scenery: L.scenery, climate: L.climate, rare: L.rare };
+  return { id: L.id, name: L.name, region: L.region, field: L.field || 'plains', food: L.food, danger: L.danger, hardness: L.hardness, scenery: L.scenery, climate: L.climate, rare: L.rare };
 }
 
 // ───────── 巣穴を掘る手間・引っ越し ─────────
