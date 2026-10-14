@@ -741,10 +741,10 @@ function buildTitle(){
   T.el = w; T.cv = w.querySelector('.pr-tcv'); T.ctx = T.cv.getContext('2d');
   // 既存ボタンをメニューへ移動（id・onclickはそのまま）
   const menu = w.querySelector('.pr-menu');
-  const startBtn = $('btn-start-main'), contBtn = $('btn-continue'), endBtn = $('btn-endings'), d31Btn = $('btn-day31'), kyBtn = $('btn-kyokai'), tbBtn = $('btn-tobinezumi');
+  const startBtn = $('btn-start-main'), contBtn = $('btn-continue'), endBtn = $('btn-endings'), d31Btn = $('btn-day31'), kyBtn = $('btn-kyokai'), tbBtn = $('btn-tobinezumi'), shBtn = $('btn-shinshoku');
   const setBtn = [...ts.querySelectorAll('button')].find(b => /openSettings/.test(b.getAttribute('onclick')||'') && !menu.contains(b));
   const delWrap = $('btn-delete-wrap');
-  [contBtn, startBtn, d31Btn, endBtn, kyBtn, tbBtn, setBtn].forEach(b=>{ if(b){ b.classList.add('pr-mi'); b.setAttribute('role','menuitem'); menu.appendChild(b); } });
+  [contBtn, startBtn, d31Btn, endBtn, kyBtn, tbBtn, shBtn, setBtn].forEach(b=>{ if(b){ b.classList.add('pr-mi'); b.setAttribute('role','menuitem'); menu.appendChild(b); } });
   if(delWrap) menu.appendChild(delWrap);
   if(setBtn) setBtn.dataset.prKind = 'settings';
   relabel();
