@@ -463,8 +463,7 @@ function buildChoices(){
   const ph=getPhase();
   const c=[
     {tx:'📡 配信を始める',ac:'stream'},
-    {tx:'🔧 設備点検ミニゲーム',ac:'factory'},
-    {tx:'🌡 温度・振動診断',ac:'diag'},
+    {tx:'🔧 工場で働く（ミニゲーム）',ac:'factorywork'},
     {tx:'☕ 少し休む（疲労-12 精神+4）',ac:'rest_light'},
     {tx:'🛏 しっかり休む（疲労-25 精神+8 時間大）',ac:'rest_deep'},
     {tx:'📚 資格の勉強（知識+5 疲労+6 精神-3）',ac:'study'},
@@ -534,8 +533,8 @@ function handleChoice(ac){
   updatePersonality(ac);
   switch(ac){
     case'stream': openStream(); break;
-    case'factory': openFactory('repair'); break;
-    case'diag':    openFactory('diag'); break;
+    // 工場の仕事：工場タブのミニゲーム選択画面（古い行動名 factory/diag も同じ画面へ）
+    case'factorywork': case'factory': case'diag': openFactory(); break;
 
     case'rest_light':
       gs.fatigue=Math.max(0,gs.fatigue-12-gs.skills.sleepEff*2);
@@ -1168,97 +1167,13 @@ function checkRankUp(){
 }
 
 // ──────────────────────────
-// FACTORY
+// FACTORY（工場タブ）
+// 以前の「設備点検ミニゲーム」「温度・振動診断」は削除した。
+// 工場の仕事は、工場タブのミニゲーム（minigames/registry.js MG_FACTORY_IDS）で行う。
 // ──────────────────────────
-const EQ=[{e:'⚙️',n:'ギア'},{e:'🔩',n:'ボルト'},{e:'💡',n:'照明'},{e:'🔌',n:'配線'},{e:'🌡️',n:'温度計'},{e:'🔋',n:'電源'},{e:'📡',n:'センサー'},{e:'⛽',n:'燃料'},{e:'🔧',n:'バルブ'},{e:'🛢️',n:'タンク'},{e:'🔆',n:'ランプ'},{e:'💨',n:'換気'}];
-let ft=null,ftl=30,ff=0,ftt=0,ps=[];
-function openFactory(mode){
-  if(mode==='diag'){openDiag();return;}
-  AU.fadeBGM('factory',580);updateNavActive('factory');
-  document.getElementById('panel-grid').innerHTML='';ps=[];ff=0;
-  ftt=Math.floor(3+Math.random()*4+gs.skills.soundDiag);
-  const fi=new Set();while(fi.size<ftt)fi.add(Math.floor(Math.random()*12));
-  for(let i=0;i<12;i++){
-    const fault=fi.has(i);ps.push({fault,fixed:false});const eq=EQ[i];
-    const el=document.createElement('div');el.className='panel-item'+(fault?' fault':'');
-    el.innerHTML=`${eq.e}<span class="plbl">${eq.n}</span>`;
-    if(fault){const lb=document.createElement('div');lb.className='fault-lb';lb.textContent='ERR';el.appendChild(lb);}
-    el.onclick=()=>{AU.se('tool');fixPanel(i,el);};
-    document.getElementById('panel-grid').appendChild(el);
-  }
-  document.getElementById('mf-fixed').textContent=ff;document.getElementById('mf-total').textContent=ftt;
-  ftl=30+gs.skills.emergencyFix*5;document.getElementById('mf-timer').textContent=ftl;
-  clearInterval(ft);ft=setInterval(()=>{ftl--;document.getElementById('mf-timer').textContent=ftl;if(ftl<=0){AU.se('warn');clearInterval(ft);endFactory();}},1000);
-  document.getElementById('factory-mini').classList.add('active');
-}
-function fixPanel(i,el){
-  if(!ps[i].fault||ps[i].fixed)return;ps[i].fixed=true;ff++;
-  el.classList.remove('fault');el.classList.add('fixed');el.querySelector('.fault-lb')?.remove();
-  document.getElementById('mf-fixed').textContent=ff;AU.se('repair');
-  if(ff>=ftt){clearInterval(ft);setTimeout(endFactory,320);}
-}
-function endFactory(){
-  clearInterval(ft);document.getElementById('factory-mini').classList.remove('active');AU.fadeBGM('night',800);
-  const perfect=ff>=ftt;
-  const money=perfect?8500+gs.skills.wiring*1000:ff*1600;
-  // 達成感で精神微回復
-  const mentalChg=perfect?1:-4;
-  gs.money+=money;gs.debt=Math.max(0,gs.debt-Math.floor(money*.4));
-  gs.jobRep=Math.min(100,gs.jobRep+(perfect?10:ff*2));
-  gs.mental=Math.min(100,Math.max(0,gs.mental+mentalChg));
-  gs.fatigue=Math.min(100,gs.fatigue+10);
-  gs.certKnow=Math.min(100,gs.certKnow+(perfect?3:1));gs.sp+=perfect?2:1;
-  updatePersonality('factory');
-  if(perfect&&Math.random()<.4){gs.factoryNetaAvail=true;gs.factoryNetaType='設備保全の怖い話';}
-  logGrow(perfect?'設備点検を完璧にこなした':'設備点検を行った');
-  advTime(120);updateStats();updateNavActive('main');
-
-  // 行動後ナレーション
-  const narr=getActNarr('factory_done');
-  scenes.main.getText=getMainText;
-  document.getElementById('dlg-speaker').textContent='ナレーター';
-  typeText('dlg-content',narr,()=>{setTimeout(()=>loadScene('main'),1800);});
-
-  if(perfect)cutin('normal','……今日の仕事も悪くなかったわね。');
-  showResult(perfect?'⚙ 完璧な修理！':'🔧 修理完了',
-    `修理 <span class="up">${ff}/${ftt}</span><br>`+
-    `収入 <span class="up">+¥${money.toLocaleString()}</span><br>`+
-    `精神力 <span class="${mentalChg>=0?'up':'down'}">${mentalChg>=0?'+':''}${mentalChg}</span>`);
-}
-
-// ──────────────────────────
-// DIAG
-// ──────────────────────────
-let dt=null,dtl=25,df=0,dtt=0,dm=[];
-function openDiag(){
-  AU.fadeBGM('factory',580);updateNavActive('factory');
-  df=0;dtt=4+Math.floor(gs.skills.soundDiag*.5);dtl=25;dm=[];
-  const names=['ポンプA','モーターB','換気C','配管D','圧力E','温度F'];
-  const cont=document.getElementById('diag-meters');cont.innerHTML='';
-  for(let i=0;i<dtt;i++){
-    const tgt=35+Math.random()*30,sv=Math.random()*100;dm.push({name:names[i%names.length],val:sv,tgt,adj:false});
-    const row=document.createElement('div');row.className='meter-row';
-    const cls=sv>80||sv<10?'m-danger':Math.abs(sv-tgt)<15?'m-ok':'m-warn';
-    row.innerHTML=`<div class="meter-lbl">${names[i%names.length]}</div><div class="meter-bar"><div class="meter-fill ${cls}" id="mf${i}" style="width:${sv}%"></div></div><button style="padding:2px 8px;font-family:var(--mono);font-size:.56rem;background:rgba(0,232,200,.06);border:1px solid var(--cy);color:var(--cy);cursor:pointer;border-radius:2px;margin-left:5px;" onclick="adjustM(${i})">調整</button>`;
-    cont.appendChild(row);
-  }
-  document.getElementById('dm-fixed').textContent=df;document.getElementById('dm-total').textContent=dtt;document.getElementById('dm-timer').textContent=dtl;
-  document.getElementById('diag-res').textContent='危険域（赤）に入る前に調整してください';
-  clearInterval(dt);dt=setInterval(()=>{dtl--;document.getElementById('dm-timer').textContent=dtl;dm.forEach((m,i)=>{if(m.adj)return;m.val+=(Math.random()-.28)*8;m.val=Math.max(0,Math.min(100,m.val));const f=document.getElementById('mf'+i);if(f){f.style.width=m.val+'%';f.className='meter-fill '+(m.val>80||m.val<10?'m-danger':Math.abs(m.val-m.tgt)<15?'m-ok':'m-warn');}});if(dtl<=0){AU.se('warn');clearInterval(dt);endDiag();}},740);
-  document.getElementById('diag-mini').classList.add('active');
-}
-function adjustM(i){const m=dm[i];if(m.adj)return;m.adj=true;m.val=m.tgt+(Math.random()-.5)*8;df++;const f=document.getElementById('mf'+i);if(f){f.style.width=m.val+'%';f.className='meter-fill m-ok';}document.getElementById('dm-fixed').textContent=df;document.getElementById('diag-res').textContent=m.name+' → 正常範囲に調整完了';AU.se('repair');if(df>=dtt){clearInterval(dt);endDiag();}}
-function endDiag(){
-  clearInterval(dt);document.getElementById('diag-mini').classList.remove('active');AU.fadeBGM('night',800);
-  const perfect=df>=dtt,money=perfect?3800:df*600;
-  const mentalChg=perfect?3:-2;
-  gs.money+=money;gs.debt=Math.max(0,gs.debt-Math.floor(money*.3));
-  gs.jobRep=Math.min(100,gs.jobRep+(perfect?8:df*1.5));
-  gs.mental=Math.min(100,Math.max(0,gs.mental+mentalChg));
-  gs.fatigue=Math.min(100,gs.fatigue+8);gs.sp+=1;
-  logGrow('温度・振動診断を行った');
-  advTime(90);updateStats();updateNavActive('main');loadScene('main');
-  showResult(perfect?'🌡 完璧な診断！':'📊 診断完了',`調整 <span class="up">${df}/${dtt}</span><br>収入 <span class="up">+¥${money.toLocaleString()}</span><br>精神力 <span class="${mentalChg>=0?'up':'down'}">${mentalChg>=0?'+':''}${mentalChg}</span>`);
+function openFactory(){
+  if(typeof openMinigamePicker==='function')openMinigamePicker('factory');
+  else showNotif('⚠️ 工場のミニゲームを読み込めませんでした。minigames/ フォルダが index.html と同じ場所にあるか確認してください。');
 }
 
 // ──────────────────────────
@@ -2184,7 +2099,7 @@ function startEndlessMode(){
 function checkEndlessDay(){
   if(gs._endless&&gs.day>30) return; // 継続
 }
-function showSection(s){AU.se('btn');if(s==='stream'){openStream();return;}if(s==='factory'){openFactory('repair');return;}if(s==='status'){openStatus();return;}if(s==='skills'){openSkill();return;}loadScene('main');updateNavActive(s);}
+function showSection(s){AU.se('btn');if(s==='stream'){openStream();return;}if(s==='factory'){openFactory();return;}if(s==='status'){openStatus();return;}if(s==='skills'){openSkill();return;}loadScene('main');updateNavActive(s);}
 function updateNavActive(k){['main','factory','stream','status','skills'].forEach(x=>document.getElementById('nav-'+x)?.classList.remove('active'));document.getElementById('nav-'+k)?.classList.add('active');}
 // ── typeText：グローバルタイマー管理で文字混線を防止 ──
 let _typingTimer = null;
@@ -2230,8 +2145,21 @@ function refreshSettingsUI(){
   const muted=['bgm','voice','se'].every(k=>AUDIO_SET[k]===0);
   document.querySelector('#settings-sc .set-mute').textContent=muted?'🔊 ミュート解除':'🔇 すべてミュート';
 }
-function openSettings(){refreshSettingsUI();document.getElementById('settings-sc').classList.add('active');}
-function closeSettings(){document.getElementById('settings-sc').classList.remove('active');}
+function openSettings(){refreshSettingsUI();
+  // タイトル画面に戻るボタンは、遊んでいる最中（タイトルが隠れているとき）だけ出す
+  const tt=document.getElementById('set-totitle'),ts=document.getElementById('title-screen');
+  if(tt)tt.style.display=(ts&&!ts.classList.contains('hidden'))?'none':'';
+  document.getElementById('settings-sc').classList.add('active');}
+// セーブしてタイトル画面へ戻る（ページを読み直してタイトルから「つづきから」で再開できる状態にする）
+let _toTitleArmed=0;
+function returnToTitle(){
+  const b=document.getElementById('set-totitle');
+  if(Date.now()-_toTitleArmed>3000){_toTitleArmed=Date.now();if(b)b.textContent='もう一度押すとセーブしてタイトルへ';return;}
+  try{if(typeof saveGame==='function')saveGame(true);}catch(e){}
+  try{closeSettings();}catch(e){}
+  setTimeout(()=>location.reload(),150);
+}
+function closeSettings(){document.getElementById('settings-sc').classList.remove('active');_toTitleArmed=0;const b=document.getElementById('set-totitle');if(b)b.textContent='🏠 タイトル画面に戻る';}
 let _beforeMute=null;
 function toggleMuteAll(){
   const muted=['bgm','voice','se'].every(k=>AUDIO_SET[k]===0);
