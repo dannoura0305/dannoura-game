@@ -67,7 +67,8 @@ export class Brain {
     if (this.hp <= 0) { this.atk = null; this.resolution = 'kill'; this.chainable = false; this.go('dead', evs, 'hp0'); evs.push({ t: 'die' }); return dmg; }
     this.hostileBy = 'attacked';
     // 体幹を削る。0 で大きくよろける（青い縁）
-    if (opt.poise) { this.poise -= opt.poise; this.poiseT = 0; }
+    if (this.state === 'down') return dmg;                                         // 崩れている間は崩れたまま（体幹も減らない）
+    if (opt.poise) { this.poise -= opt.poise * (this.def.poiseMul ?? 1); this.poiseT = 0; }
     if (this.poise <= 0) {
       this.poise = this.poiseMax; this.atk = null; this.chainable = true;
       this.staggerFor = (this.def.stagger.broken || 1.6); this.state = 'hostile'; this.go(this.def.downState || 'stagger', evs, 'broken'); this.chainable = true;

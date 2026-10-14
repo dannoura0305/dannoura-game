@@ -10,7 +10,7 @@ import { EQUIP } from './data/equip.js';
 import { BUILDERS } from './world/areas.js';
 import { buildDannoura, buildCompanion, buildKiro, buildHeiten, buildShuuyou, buildCivilian } from './actor/models.js';
 import { Player, EnemyActor, CompanionActor, CivilianActor } from './actor/actors.js';
-import { loadManifest, loadCharacter } from './actor/vrm.js';
+import { loadManifest, loadCharacter, prepareClone, cloneCharacter } from './actor/vrm.js';
 import { Kiro } from './ai/kiro.js';
 import { Heiten } from './ai/heiten.js';
 import { Shuuyou } from './ai/shuuyou.js';
@@ -29,7 +29,8 @@ import { SaveStore, makeSlot } from './save/save.js';
 import { createWP } from './link/progress.js';
 import { newRouteState } from './story/route.js';
 import { CutscenePlayer } from './story/cutscene.js';
-import { stepDef, streetState, atLeast, weaponsAt, STEPS } from './story/chapters.js';
+import { stepDef, streetState, atLeast, weaponsAt, STEPS, TARGETS } from './story/chapters.js';
+import { AREA_GRAPH } from './data/areas.js';
 import { bossName } from './story/puzzles.js';
 import { combatWithEquip, toggleEquip } from './combat/equip.js';
 import { combatMethods } from './game/combat.js';
@@ -125,11 +126,15 @@ class Game {
   }
   presetVals() { const k = this.settings.preset === 'auto' ? this.autoPresetKey : this.settings.preset; return PRESETS[k] || PRESETS[this.autoPresetKey] || PRESETS.high; }
   async loadCharacterModels() {
-    const m = this.manifest && this.manifest.characters; if (!m) return;
-    this.portraits = {};
+    const m = this.manifest && this.manifest.characters; this.portraits = {}; if (!m) return;
     for (const [k, v] of Object.entries(m)) if (v && v.portrait) this.portraits[k] = new URL('./assets/characters/' + v.portrait, import.meta.url).href;
     if (m.dannoura && m.dannoura.file) { const v = await loadCharacter(m.dannoura); if (v) { this.player.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('dannoura'); } }
     if (m.companion && m.companion.file) { const v = await loadCharacter(m.companion); if (v) { this.companion.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('companion'); } }
+    // 異形（glTF 推奨）：読めたら次に区画を読み込む時から差し替え
+    this.extModels = {};
+    for (const k of ['kiro', 'heiten', 'shuuyou']) if (m[k] && m[k].file) { const v = await loadCharacter(m[k]); if (v) { await prepareClone(); this.extModels[k] = v; this.vrmLoaded = (this.vrmLoaded || []).concat(k); } }
+    if (Object.keys(this.extModels).length && this.area) this.spawnEnemies(this.area.id);
+    if (this.portraits.dannoura) this.ui.setPortrait(this.portraits.dannoura);
   }
   makeSignStand() {
     const hp = LEVEL.heiten.help.sign;
@@ -207,6 +212,8 @@ class Game {
     for (const h of A.halos) {
       if (h.strip) h.off = st === 'normal' ? !!out : !h.onOutbreak;
       if (h.shopFront) h.off = !(st === 'normal' && !out);
+      if (h.lantern) { h.off = st === 'normal' ? !!out : !h.alt; h.flicker = st !== 'normal'; }
+      if (h.neon) { h.off = st === 'normal' && out; }
     }
     if (A.dyn.lampMat) A.dyn.lampMat.color.setScalar(st === 'normal' && !out ? 1 : st === 'normal' ? 0.12 : 0.55);
     this.sfx.setAmbience(st === 'normal' && !out ? 'street_normal' : 'street');
@@ -218,7 +225,8 @@ class Game {
     for (const e of this.enemies) this.scene.remove(e.root);
     for (const c of this.civilians) this.scene.remove(c.root);
     this.enemies = []; this.civilians = []; this.boss = null; this.heiten = null;
-    const add = (brain, model) => { const e = new EnemyActor(brain, model); this.enemies.push(e); this.scene.add(e.root); return e; };
+    const ext = k => (this.extModels && this.extModels[k] ? cloneCharacter(this.extModels[k]) : null);
+    const add = (brain, model) => { const x = ext(brain.kind); if (x) { x.bodyR = model.bodyR; x.height = model.height; model = x; } const e = new EnemyActor(brain, model); this.enemies.push(e); this.scene.add(e.root); return e; };
     const s = this.story.step;
     const mkKiro = (k, i, doors) => {
       const brain = new Kiro({ id: k.id, path: k.path.map(([x, z]) => ({ x, z })), home: k.door, startIdx: k.start, seed: 11 + i * 7, def: k.def });
@@ -267,10 +275,10 @@ class Game {
     // 序章の鉄パイプ（自販機の横）
     this.pipeSpot = null;
     if (id === 'shotengai' && !this.player.fighter.owned.includes('pipe')) {
-      const sp = { id: 'pipe', kind: 'pickupSpot', give: 'weapon:pipe', x: -3.3, z: -30.6, r: 1.3, label: '鉄パイプを拾う' };
+      const sp = { id: 'pipe', kind: 'pickupSpot', give: 'weapon:pipe', x: -2.6, z: -30.2, r: 1.3, label: '鉄パイプを拾う' };
       this.pipeSpot = sp;
-      const m = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.92, 8), toon(0x8a8580)); m.rotation.z = Math.PI / 2; m.rotation.y = 0.4; m.position.set(-3.5, 0.03, -30.4); this.scene.add(m); sp.mesh = m;
-      this.pipeMesh = m; sp.halo = this.halos.add([-3.5, 0.15, -30.4], 0.7, 0xfff0c0, 0.35);
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.92, 8), toon(0x8a8580)); m.rotation.z = Math.PI / 2; m.rotation.y = 0.4; m.position.set(-2.8, 0.03, -30.0); this.scene.add(m); sp.mesh = m;
+      this.pipeMesh = m; sp.halo = this.halos.add([-2.8, 0.15, -30.0], 0.7, 0xfff0c0, 0.35);
     } else if (this.pipeMesh) { this.scene.remove(this.pipeMesh); this.pipeMesh = null; }
     this.pickupsList = list;
     if (!list.length) return;
@@ -287,6 +295,7 @@ class Game {
 
   // ── タイトル ──
   title() {
+    try { this.makePortrait(); } catch (e) { console.warn('portrait', e); }
     const el = document.getElementById('sh-title');
     const has = !!this.store.load('auto');
     el.querySelector('[data-a="cont"]').hidden = !has;
@@ -316,7 +325,8 @@ class Game {
     this.story.step = step;
     for (const w of weaponsAt(step)) F.give(w);
     if (F.owned.length && !F.owned.includes(F.weapon)) { F.weapon = F.owned.includes('katana') ? 'katana' : F.owned[0]; F.lastMelee = F.weapon; }
-    if (atLeast(step, 'pro_pipe')) this.flags.lights_out = true;
+    if (atLeast(step, 'pro_pipe')) this.flags.lights_out = true; else delete this.flags.lights_out;
+    if (!atLeast(step, 'ch1_alley')) { delete this.flags.reunited; if (step !== 'pro_meet') this.companion.brain.setMode('scripted'); }
     if (atLeast(step, 'pro_home')) this.enemyRes.kiro_t = 'escape';
     if (atLeast(step, 'ch1_alley')) { this.flags.reunited = true; this.companion.brain.setMode('follow'); }
     if (atLeast(step, 'ch2_shelter')) this.flags.plaza_broadcast = true;
@@ -441,7 +451,7 @@ class Game {
   bark(key, dur = 3) { const b = (this.events.barks || {})[key]; if (!b) return; const sp = this.events.speakers[b.who] || {}; this.ui.bark(sp.name, b.text, sp.color, dur); }
   playEvent(id, done) { const lines = (this.events.events || {})[id]; if (!lines) { if (done) done(); return; } this.playLines(lines, done, id); }
   playLines(lines, done, id) { this.dialog = { lines, i: 0, done, id, prevMode: this.mode }; this.mode = 'dialog'; this.showLine(); }
-  showLine() { const d = this.dialog, L = d.lines[d.i]; const sp = (this.events.speakers || {})[L.who] || {}; this.ui.showLine(sp, L.text); }
+  showLine() { const d = this.dialog, L = d.lines[d.i]; const sp = (this.events.speakers || {})[L.who] || {}; this.ui.showLine(sp, L.text, L.who); }
   dialogNext() {
     const d = this.dialog; if (!d) return; this.sfx.play('ui');
     d.i++;
@@ -521,7 +531,7 @@ class Game {
     if (k === 'invertY') this.cam.invertY = v;
     if (k === 'volume') this.sfx.setVolume(v);
     if (k === 'rain') this.sfx.setRain(v);
-    if (k === 'touchUI' && this.touchUI) this.touchUI.show(v);
+    if (k === 'touchUI' && this.touchUI) { this.touchUI.show(v); document.getElementById('sh-ui').classList.toggle('touch', !!v); }
     if (k === 'subSize') { const r = document.getElementById('sh-ui'); r.classList.remove('sub-s', 'sub-m', 'sub-l'); r.classList.add('sub-' + v); }
     if (!silent) this.store.writeSettings(this.settings);
   }
@@ -544,7 +554,7 @@ class Game {
   // ── 描画 ──
   render(dt, steps) {
     const P = this.player, F = P.fighter, A = this.area, S = this.settings, PV = this.presetVals();
-    const playing = this.mode === 'play' || this.cut.active;
+    const playing = this.mode === 'play' || this.cut.active || !!this.closeup;   // 撮影用の寄りは止めたまま体だけ動かす
     const wdt = dt * (this.mode === 'play' && !this.cut.active ? this.worldScale : 1) * (this.hitstop > 0 ? 0.05 : 1) * (playing ? 1 : 0);
     const pdt = playing ? (this.hitstop > 0 ? dt * 0.05 : dt) : (this.mode === 'title' ? dt : 0);
     const look = this.input.consumeLook();
@@ -563,7 +573,7 @@ class Game {
     const cp = this.camera.position;
     for (const e of this.enemies) {
       const dc = Math.hypot(e.pos.x - cp.x, e.pos.z - cp.z), far = dc > PV.enemyFar; e.model.root.visible = !far;
-      const hull = S.outline && (dc < PV.outlineDist || e.brain.chainable || e.kind === 'shuuyou'); if (e.hullOn !== hull) { e.hullOn = hull; e.model.outline.visible = hull; }
+      const hull = S.outline && (dc < PV.outlineDist || e.brain.chainable || e.kind === 'shuuyou'); if (e.hullOn !== hull && e.model.outline) { e.hullOn = hull; e.model.outline.visible = hull; }
       if (e.root.visible && !far) e.animate(Math.max(wdt, 0));
       if (e.markT > 0) e.markT -= wdt; if (e.markT <= 0) e.mark = null;
     }
@@ -601,7 +611,7 @@ class Game {
     this.sfx.setListener(cp.x, cp.z, Math.atan2(-fwd.x, -fwd.z)); this.sfx.update(dt);
     // 画面の部品
     this.ui.tick(dt);
-    if (this.mode === 'play' || this.mode === 'dialog') this.ui.hud(P);
+    if (this.mode === 'play' || this.mode === 'dialog' || this.closeup) this.ui.hud(P);
     const proj = (x, y, z) => { const v = new THREE.Vector3(x, y, z).project(this.camera); if (v.z > 1) return null; return { x: (v.x * 0.5 + 0.5) * innerWidth, y: (-v.y * 0.5 + 0.5) * innerHeight }; };
     this.ui.lockAt(this.lock && !this.cut.active ? proj(this.lock.pos.x, this.lock.h * 0.6, this.lock.pos.z) : null);
     const issenOpen = F.mikiri && (F.frame - F.mikiri.at) <= F.w.mikiri || F.hajiki && (F.frame - F.hajiki.at) <= F.w.hajiki || F.utsu && (F.frame - F.utsu.at) <= F.w.utsu || F.chain && (F.frame - F.chain.at) <= F.w.chain;
@@ -609,12 +619,17 @@ class Game {
       const tgt = issenOpen && ((F.mikiri && F.mikiri.src === e) || (F.hajiki && F.hajiki.src === e) || (F.utsu && F.utsu.src === e) || (F.chain && F.chain.src === e));
       const kind = this.cut.active ? null : tgt ? 'issen' : e.root.visible && e.brain.alive ? e.mark : null;
       this.ui.mark(e.id, kind ? proj(e.pos.x, e.h + 0.35, e.pos.z) : null, kind);
+      // 光る目（紫）
+      if (e.eyeHalos == null) e.eyeHalos = (e.model.eyeGlow || []).map(() => this.halos.add([0, -50, 0], e.kind === 'shuuyou' ? 0.35 : 0.2, 0xb070ff, 0));
+      if (e.eyeHalos.length) { const on = e.brain.alive && e.root.visible && e.model.root.visible && !['home', 'rest', 'neutral', 'dormant', 'gone'].includes(e.brain.state); const v = new THREE.Vector3(); e.model.eyeGlow.forEach((o, i) => { o.getWorldPosition(v); this.halos.setPos(e.eyeHalos[i], v.x, v.y, v.z); this.halos.setK(e.eyeHalos[i], on ? (e.brain.state === 'hostile' || e.brain.state === 'rollcall' ? 1.4 : 0.8) * (0.85 + Math.sin(this.playSec * 3 + i) * 0.15) : 0); }); }
       // 弱点の光（帰路の頭・閉店のレジ・収容者のスピーカー）
       if (e.weakHalo == null && e.model.weak) e.weakHalo = this.halos.add([0, -50, 0], e.kind === 'shuuyou' ? 1.2 : 0.55, e.model.weakColor || 0xffd27a, 0);
-      if (e.weakHalo != null && e.weakHalo >= 0) { const w = this.weakPos(e); this.halos.setPos(e.weakHalo, w.x, w.y, w.z); const k = !e.brain.alive || !e.root.visible ? 0 : e.kind === 'kiro' ? e.weakGlow || 0 : e.kind === 'shuuyou' ? (e.brain.state === 'dormant' ? 0 : 0.35 + (e.brain.state === 'rollcall' ? 0.5 + Math.sin(this.playSec * 9) * 0.3 : 0)) : 0.45; this.halos.setK(e.weakHalo, k); }
+      if (e.weakHalo != null && e.weakHalo >= 0 && e.model.weak) { const w = this.weakPos(e); this.halos.setPos(e.weakHalo, w.x, w.y, w.z); const k = !e.brain.alive || !e.root.visible ? 0 : e.kind === 'kiro' ? e.weakGlow || 0 : e.kind === 'shuuyou' ? (e.brain.state === 'dormant' ? 0 : 0.35 + (e.brain.state === 'rollcall' ? 0.5 + Math.sin(this.playSec * 9) * 0.3 : 0)) : 0.45; this.halos.setK(e.weakHalo, k); }
     }
-    if (this.touchUI) { this.touchUI.setUse(!!this.nearSpot); this.touchUI.setIssen(issenOpen); }
+    if (this.touchUI) { this.touchUI.setUse(!!this.nearSpot || this.cut.active); this.touchUI.setIssen(issenOpen); }
     const dev = this.input.device;
+    if ((this.mapTick = (this.mapTick || 0) + 1) % 2 === 0 && (this.mode === 'play' || this.mode === 'dialog')) this.drawMinimap();
+    this.ui.hints(dev, { gun: F.weapon === 'handgun', melee: F.melee });
     this.ui.prompt(this.mode === 'play' && !this.cut.active && this.nearSpot && !(this.nearSpot.kind === 'exit' && this.nearSpot.auto) ? this.nearSpot.label : null, dev === 'pad' ? 'B' : dev === 'touch' ? '調' : 'E');
     const C = this.companion; this.ui.companion(C.root.visible && !this.cut.active && C.brain.mode !== 'scripted' ? C.brain.mode : null, '（相棒）');
     if (this.boss && this.boss.brain.alive && !['dormant', 'rest', 'neutral', 'rise'].includes(this.boss.brain.state) && !this.cut.active) { const b = this.boss.brain; this.ui.boss('収容者（仮）', b.hp / b.hpMax, b.state === 'rollcall' ? '点呼中 ―― 今なら名前を呼べる' : b.state === 'stuck' ? '器具庫に挟まっている' : b.state === 'down' ? '崩れている（青い縁）' : ['', '照明が落ちた', '必死'][b.phase] || '', b.state === 'rollcall' || b.state === 'stuck'); }
@@ -646,7 +661,8 @@ class Game {
     for (const h of A.halos) if (h.idx >= 0) {
       let k = h.off ? 0 : h.k;
       if (h.light) k = h.light.off ? 0 : h.k * Math.min(1.2, (h.light.cur || 0) / Math.max(0.01, h.light.base || 1));
-      if (h.flicker) k *= 0.75 + Math.sin(t * 9 + h.p[0]) * 0.25;
+      if (h.flicker) k *= 0.75 + Math.sin(t * 9 + h.p[0] + h.p[2]) * 0.25;
+      if (h.hazard) k *= Math.sin(t * 5.5) > 0 ? 1 : 0.08;
       this.halos.setK(h.idx, k);
     }
     for (const w of A.wet) if (w.idx >= 0 && w.light) { const L = A.lights.find(l => l.id === w.light); this.wet.setK(w.idx, L && !L.off ? w.k : 0); }
@@ -667,6 +683,60 @@ class Game {
     d.innerHTML = '<b>?tune=1（ふつうの値・f）</b>' + rows.map(([n, o, k], i) => `<label>${n}<input type="number" data-i="${i}" value="${o[k]}" min="0" max="120"></label>`).join('');
     d.oninput = e => { const i = +e.target.dataset.i; const [, o, k] = rows[i]; o[k] = +e.target.value; this.applyEquip(); };
     document.body.appendChild(d);
+  }
+
+  /** HUD の顔：manifest の portrait があればそれ、無ければ今のモデルの顔を小さく描いて使う */
+  makePortrait() {
+    if (this.portraits && this.portraits.dannoura) { this.ui.setPortrait(this.portraits.dannoura); return; }
+    const P = this.player, N = 128;
+    P.animate(0.016); P.root.updateMatrixWorld(true);
+    const head = new THREE.Vector3(); P.model.J.head.getWorldPosition(head); head.y += 0.1;
+    const cam = new THREE.PerspectiveCamera(28, 1, 0.05, 10), a = P.yaw + 0.35;
+    cam.position.set(head.x + Math.sin(a) * 0.62, head.y + 0.03, head.z + Math.cos(a) * 0.62); cam.lookAt(head.x, head.y - 0.02, head.z);
+    const hidden = []; for (const o of this.scene.children) if (o !== P.root && o.visible && !o.isLight) { hidden.push(o); o.visible = false; }
+    const bg = this.scene.background.getHex(), fd = this.scene.fog.density; this.scene.background.setHex(0x4a3070); this.scene.fog.density = 0;
+    const M = this.moon, mp = M.position.clone(), mt = M.target.position.clone(), mi = M.intensity, mc = M.color.getHex();
+    M.position.copy(cam.position).add(new THREE.Vector3(0.4, 0.6, 0)); M.target.position.copy(head); M.intensity = 2.4; M.color.setHex(0xfff4ec); M.target.updateMatrixWorld();
+    const rt = new THREE.WebGLRenderTarget(N, N); this.renderer.setRenderTarget(rt); this.renderer.render(this.scene, cam); this.renderer.setRenderTarget(null);
+    M.position.copy(mp); M.target.position.copy(mt); M.intensity = mi; M.color.setHex(mc);
+    for (const o of hidden) o.visible = true; this.scene.background.setHex(bg); this.scene.fog.density = fd;
+    const px = new Uint8Array(N * N * 4); this.renderer.readRenderTargetPixels(rt, 0, 0, N, N, px); rt.dispose();
+    const c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d'); const im = g.createImageData(N, N);
+    for (let y = 0; y < N; y++) im.data.set(px.subarray((N - 1 - y) * N * 4, (N - y) * N * 4), y * N * 4);
+    g.putImageData(im, 0, 0); this.ui.setPortrait(c.toDataURL());
+  }
+  /** ミニマップの下絵（区画ごとに 1 回）：歩ける所を明るく、壁・建物を暗く */
+  mapImage(A) {
+    if (A.mapImg) return A.mapImg;
+    const ppm = 6, b = A.bounds, pad = 6, minX = b.minX - pad, minZ = b.minZ - pad, W = Math.ceil((b.maxX - b.minX + pad * 2) * ppm), H = Math.ceil((b.maxZ - b.minZ + pad * 2) * ppm);
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+    g.fillStyle = 'rgba(10,6,18,1)'; g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(120,100,160,.55)'; g.fillRect((b.minX - minX) * ppm, (b.minZ - minZ) * ppm, (b.maxX - b.minX) * ppm, (b.maxZ - b.minZ) * ppm);
+    for (const x of A.boxes) { if (x.maxY < 0.9 || x.minY > 2) continue; g.fillStyle = x.maxY < 1.6 ? 'rgba(60,46,86,1)' : 'rgba(24,16,38,1)'; g.fillRect((x.minX - minX) * ppm, (x.minZ - minZ) * ppm, (x.maxX - x.minX) * ppm, (x.maxZ - x.minZ) * ppm); }
+    for (const s of A.spots) if (s.kind === 'exit') { g.fillStyle = '#60e0a0'; g.fillRect((s.x - minX) * ppm - 5, (s.z - minZ) * ppm - 5, 10, 10); }
+    A.mapImg = { img: c, minX, minZ, ppm };
+    return A.mapImg;
+  }
+  /** 目標の場所（ほかの区画なら、そこへ向かう出口） */
+  objectiveTarget() {
+    const t = TARGETS[this.story.step]; if (!t) return null;
+    if (typeof t === 'string') { const e = this.enemies.find(x => x.id === t.slice(6)); return e && e.brain.alive && e.root.visible ? { x: e.pos.x, z: e.pos.z } : null; }
+    const [area, x, z] = t;
+    if (area === this.area.id) return { x, z };
+    const prev = { [this.area.id]: null }, q = [this.area.id];
+    while (q.length) { const a = q.shift(); if (a === area) break; for (const n of AREA_GRAPH[a].exits) if (!(n in prev)) { prev[n] = a; q.push(n); } }
+    if (!(area in prev)) return null;
+    let hop = area; while (prev[hop] !== this.area.id && prev[hop] != null) hop = prev[hop];
+    const ex = this.area.spots.find(s => s.kind === 'exit' && s.to === hop);
+    return ex ? { x: ex.x, z: ex.z } : null;
+  }
+  drawMinimap() {
+    const A = this.area, P = this.player.pos, M = this.mapImage(A), tgt = this.objectiveTarget();
+    const dots = [];
+    for (const e of this.enemies) if (e.brain.alive && e.root.visible && !['home', 'rest', 'neutral', 'gone'].includes(e.brain.state) && Math.hypot(e.pos.x - P.x, e.pos.z - P.z) < 30) dots.push({ x: e.pos.x, z: e.pos.z, c: ['hostile', 'assess', 'rollcall', 'stuck', 'stagger', 'down'].includes(e.brain.state) ? '#ff4060' : '#a070ff', r: e.kind === 'shuuyou' ? 9 : 5 });
+    if (this.companion.root.visible) dots.push({ x: this.companion.brain.pos.x, z: this.companion.brain.pos.z, c: '#ffd7a8', r: 5 });
+    for (const p of this.pickupsList) if (!this.picked.has(p.id)) dots.push({ x: p.pos[0], z: p.pos[1], c: '#e8c060', r: 3 });
+    this.ui.minimap({ img: M.img, minX: M.minX, minZ: M.minZ, ppm: M.ppm, px: P.x, pz: P.z, yaw: this.cam.yaw, dots, target: tgt, dist: tgt ? Math.hypot(tgt.x - P.x, tgt.z - P.z) : null, k: this.touch ? 6 : 6.5 });
   }
 
   // ── 自動プレイ・検証用 ──
@@ -727,14 +797,14 @@ class Game {
   }
   /** 撮影用：キャラクターの寄り（相手：player|companion|boss） */
   viewMode(name, opt = {}) {
-    if (name === 'normal') { this.cineCam = null; this.ui.letterbox(false); this.mode = 'play'; return true; }
+    if (name === 'normal') { this.closeup = false; this.cineCam = null; this.ui.letterbox(false); this.mode = 'play'; return true; }
     if (name === 'closeup') {
       const who = opt.who || 'player';
       const t = who === 'player' ? { x: this.player.pos.x, z: this.player.pos.z, yaw: this.player.yaw, h: 1.5 } : who === 'companion' ? { x: this.companion.brain.pos.x, z: this.companion.brain.pos.z, yaw: this.companion.brain.yaw, h: 1.45 } : { x: this.boss.pos.x, z: this.boss.pos.z, yaw: this.boss.brain.yaw, h: 1.8 };
       const d = opt.dist || 1.2, side = opt.side || 0.35, hy = opt.y != null ? opt.y : t.h;
       const a = t.yaw + side;
       this.cineCam = { pos: [t.x + Math.sin(a) * d, hy + (opt.up || 0.02), t.z + Math.cos(a) * d], look: [t.x, hy - (opt.down || 0.05), t.z], fov: opt.fov || 38 };
-      this.mode = 'pause'; this.ui.closeMenu(); return true;
+      this.mode = 'pause'; this.closeup = true; this.ui.closeMenu(); return true;
     }
     return false;
   }

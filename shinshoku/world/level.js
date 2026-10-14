@@ -3,10 +3,11 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { LEVEL } from '../data/level.js';
+import { skyDome } from '../render/sky.js';
 import { box as cbox } from './collide.js';
 import { toon, gradientMap, canvasTex, JP_FONT, JP_SERIF } from '../render/toon.js';
 
-const ATLAS_W = 1024, ATLAS_H = 1024, SLOT_W = 512, SLOT_H = 64;
+const ATLAS_W = 1024, ATLAS_H = 2048, SLOT_W = 512, SLOT_H = 64;
 
 export class Atlas {
   constructor() {
@@ -105,7 +106,7 @@ export function groundTex(opt = {}) {
 
 /** 商店街＋自宅（area 'shotengai'）。戻り値は区画の組（world/areas.js の形）。opt.state：'normal'（序章）|'outbreak' */
 export function buildLevel(_unused, opt = {}) {
-  const scene = new THREE.Group(); scene.name = 'area_shotengai';
+  const scene = new THREE.Group(); scene.name = 'area_shotengai'; scene.add(skyDome());
   const L = LEVEL, B = new Builder(), atlas = new Atlas();
   const boxes = [], spots = [], dyn = {}, halos = [], hideSpots = [];
   const solid = (cx, cz, w, d, h = 7, y0 = 0) => { boxes.push(cbox(cx, cz, w, d, h, y0)); };
@@ -221,6 +222,41 @@ export function buildLevel(_unused, opt = {}) {
   B.box('prop', 3.9, 3.5, 3.6, 0.28, 7, 0.28, 0x5a5650); solid(3.9, 3.6, 0.3, 0.3, 7);
   B.box('prop', 3.3, 5.0, 3.6, 1.2, 0.08, 0.1, 0x5a5650);
   B.box('glow', 2.8, 4.92, 3.6, 0.4, 0.06, 0.2, 0xffe2b0, { edges: false });
+
+  // ── 雰囲気（イメージ資料 concept_01）：赤い提灯・縦の看板（ネオン）・工事中の柵とコーン・事故の車 ──
+  for (let z = -8; z >= -68; z -= 8) for (const sx of [-1, 1]) {
+    const x = sx * 4.18, cz = z + (sx > 0 ? 2.5 : 0);
+    const lg = new THREE.CylinderGeometry(0.15, 0.15, 0.34, 10); lg.translate(x, 2.95, cz); B.add('lamp', lg, 0xd8342a);
+    for (const dy of [-0.19, 0.19]) B.box('prop', x, 2.95 + dy, cz, 0.22, 0.04, 0.22, 0x1a1414, { edges: false });
+    B.box('prop', x, 3.25, cz, 0.02, 0.4, 0.02, 0x1a1414, { edges: false });
+    halos.push({ p: [x, 2.95, cz], size: 1.1, color: 0xff5a3a, k: 0.75, lantern: true, z: cz, alt: ((z / 8) + (sx > 0 ? 1 : 0)) % 2 === 0 });
+  }
+  const neon = [[-1, -19.5, '喫茶', '#ff7ab8', 0xff6ab0], [1, -29.5, '電器', '#7ad8ff', 0x6ad0ff], [-1, -46.5, '精肉', '#ffb070', 0xffa060], [1, -58, '写真', '#c08aff', 0xb070ff], [-1, -52, 'ゆ', '#7affd0', 0x60ffc0]];
+  for (const [sx, z, text, css, col] of neon) {
+    const uv = atlas.add((g, w, h) => { g.fillStyle = '#120a18'; g.fillRect(0, 0, w, h); g.strokeStyle = css; g.lineWidth = 5; g.strokeRect(4, 4, w - 8, h - 8); g.fillStyle = css; g.font = `bold 40px ${JP_FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = css; g.shadowBlur = 12; g.fillText(text.split('').join('  '), w / 2, h / 2 + 2); });
+    B.box('sign', sx * 4.32, 4.1, z, 0.12, 0.42, 2.0, 0xffffff, { uv, face: sx > 0 ? 1 : 0, edges: false });
+    halos.push({ p: [sx * 4.05, 4.1, z], size: 2.4, color: col, k: 0.5, neon: true, flicker: text === '写真' });
+  }
+  // 工事中（序章の鉄パイプはここ）：柵・コーン・「立入禁止」
+  const kj = atlas.add(signDraw('立入禁止', { bg: '#f4f2ea', fg: '#c01818', size: 40 }));
+  const kj2 = atlas.add(signDraw('工事中　ご迷惑をおかけします', { bg: '#f8d830', fg: '#1a1a1a', size: 30 }));
+  for (const [x, z, ry, uv] of [[-3.95, -29.4, Math.PI / 2, kj], [-1.6, -63.5, -0.3, kj2], [2.8, -64.5, 0.5, kj]]) {
+    const geo = new THREE.BoxGeometry(1.4, 0.5, 0.04); geo.translate(0, 0.75, 0); geo.rotateY(ry); geo.translate(x, 0, z); B.add('prop', geo, 0xf4f2ea);
+    B.box('sign', x, 0.75, z, 1.36, 0.44, 0.05, 0xffffff, { uv, face: 4, ry, edges: false });
+    for (const lx of [-0.6, 0.6]) B.box('prop', x + Math.cos(ry) * lx, 0.45, z - Math.sin(ry) * lx, 0.05, 0.9, 0.3, 0x2a2a2a, { edges: false });
+    solid(x, z, 1.4, 0.4, 1.0);
+  }
+  for (const [x, z] of [[-3.3, -28.2], [-3.3, -31.3], [-0.8, -64.2], [1.4, -63.0], [3.3, -63.4]]) { const cg = new THREE.ConeGeometry(0.16, 0.6, 10); cg.translate(x, 0.3, z); B.add('prop', cg, 0xe85a1a); B.box('prop', x, 0.03, z, 0.38, 0.05, 0.38, 0x2a2a2a, { edges: false }); }
+  // 事故の車（右・電柱にぶつかって止まった）
+  {
+    const cx = 2.6, cz = -60.5, ry = 0.55;
+    const part = (w, h, d, ox, oy, oz, c, key = 'prop') => { const g = new THREE.BoxGeometry(w, h, d); g.translate(ox, oy, oz); g.rotateZ(0.05); g.rotateY(ry); g.translate(cx, 0, cz); B.add(key, g, c); };
+    part(1.7, 0.6, 3.9, 0, 0.55, 0, 0xc8ccd4); part(1.5, 0.55, 2.0, 0, 1.12, -0.2, 0xb8bcc4); part(1.45, 0.45, 0.04, 0, 1.12, 0.82, 0x10141c, 'glass'); part(0.04, 0.4, 1.7, 0.76, 1.12, -0.2, 0x10141c, 'glass');
+    for (const [wx, wz] of [[-0.8, 1.3], [0.8, 1.3], [-0.8, -1.3], [0.8, -1.3]]) { const g = new THREE.CylinderGeometry(0.32, 0.32, 0.22, 12); g.rotateZ(Math.PI / 2); g.translate(wx, 0.32, wz); g.rotateY(ry); g.translate(cx, 0, cz); B.add('prop', g, 0x1a1a1e); }
+    boxes.push(cbox(cx, cz, 2.6, 3.9, 1.4));
+    for (const [hx, hz] of [[-0.6, 1.95], [0.6, 1.95]]) { const wx = cx + Math.cos(ry) * hx + Math.sin(ry) * hz, wz = cz - Math.sin(ry) * hx + Math.cos(ry) * hz; halos.push({ p: [wx, 0.6, wz], size: 0.8, color: 0xffa020, k: 0.8, hazard: true }); }
+    spots.push({ id: 'car', kind: 'read', x: 1.4, z: -58.8, r: 1.6, label: '止まった車', text: 'car' });
+  }
 
   // ── 自宅 ──
   buildHome(B, atlas, scene, boxes, spots, dyn);

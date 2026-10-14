@@ -32,8 +32,10 @@ class Looks {
   }
   tickFlinch(dt, J) {
     const f = this.flinch;
-    f.vx += (-f.x * 160 - f.vx * 14) * dt; f.vy += (-f.y * 160 - f.vy * 14) * dt;
-    f.x += f.vx * dt; f.y += f.vy * dt;
+    // ばねは小さな刻みで解く（描画が遅い端末で dt が大きいと発散するため）
+    const T = Math.min(dt, 0.1), n = Math.max(1, Math.ceil(T * 120)), h = T / n;
+    for (let i = 0; i < n; i++) { f.vx += (-f.x * 160 - f.vx * 14) * h; f.vy += (-f.y * 160 - f.vy * 14) * h; f.x += f.vx * h; f.y += f.vy * h; }
+    if (!Number.isFinite(f.x + f.y + f.vx + f.vy)) { f.x = f.y = f.vx = f.vy = 0; }
     if (J.spine && (Math.abs(f.x) > 1e-3 || Math.abs(f.y) > 1e-3)) { J.spine.rotateX(f.x * 0.5); J.chest.rotateX(f.x * 0.4); J.spine.rotateY(f.y * 0.4); if (J.head) J.head.rotateX(f.x * 0.3); }
     const u = this.model.mats && this.model.mats.body && this.model.mats.body.userData.u;
     if (u) { this.flashT = Math.max(0, this.flashT - dt); u.uFlash.value = this.flashT > 0 ? 0.55 * (this.flashT / 0.12) : 0; }
@@ -104,12 +106,13 @@ export class Player {
     this.setWeaponVisual();
     this.looks.tickFace(dt); this.looks.tickFlinch(dt, m.J);
     // 髪・燕尾のばね：速さ・回転・回避で揺れる
-    const turn = this.prevYaw != null ? angWrap(this.yaw - this.prevYaw) / Math.max(dt, 1e-3) : 0; this.prevYaw = this.yaw;
+    const turn = this.prevYaw != null ? Math.max(-12, Math.min(12, angWrap(this.yaw - this.prevYaw) / Math.max(dt, 1 / 60))) : 0; this.prevYaw = this.yaw;
+    const T = Math.min(dt, 0.1), n = Math.max(1, Math.ceil(T * 120)), h = T / n;
     const push = this.speed * 0.09 + (F.st.name === 'dodge' ? 0.5 : 0) + (F.st.name === 'attack' ? 0.15 : 0);
     for (const s of this.springs) {
       const wantX = s.base + push * s.gain + Math.sin(this.time * 2.1 + s.k) * 0.03, wantZ = -turn * 0.05 * s.gain + Math.sin(this.time * 1.7 + s.k) * 0.03;
-      s.vx += ((wantX - s.x) * s.k - s.vx * s.d) * dt; s.vz += ((wantZ - s.z) * s.k - s.vz * s.d) * dt;
-      s.x += s.vx * dt; s.z += s.vz * dt;
+      for (let i = 0; i < n; i++) { s.vx += ((wantX - s.x) * s.k - s.vx * s.d) * h; s.vz += ((wantZ - s.z) * s.k - s.vz * s.d) * h; s.x += s.vx * h; s.z += s.vz * h; }
+      if (!Number.isFinite(s.x + s.z + s.vx + s.vz)) { s.x = s.base; s.z = 0; s.vx = s.vz = 0; }
       s.b.rotation.x = s.coat ? Math.max(-0.05, s.x) : s.x; s.b.rotation.z = s.z;
     }
     if (m.update) m.update(dt);

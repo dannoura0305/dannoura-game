@@ -53,7 +53,7 @@ export const ENEMIES = {
   // 輪：点呼（番号を呼び、ベッドへ戻そうとする）。守る：収容の規則。救う：本人の名前を点呼で呼ぶ（名簿の照合で分かる）。
   // 無力化：突進を器具庫へ誘い、シャッターを下ろす。倒す：体力 0。段階：照明が落ちる（6 割）・必死（2.5 割）。
   shuuyou: {
-    name: '収容者', hp: 420, provisional: true,
+    name: '収容者', hp: 640, provisional: true,
     speed: { walk: 1.1, angry: 2.1, charge: 8.5 },
     cause: { body: 0.9, memory: 0.6, env: 0.7 },
     senses: { fov: 140, sight: 22, sightDark: 14, hear: { gun: 30, run: 14, walk: 6 }, memory: 30 },
@@ -72,10 +72,10 @@ export const ENEMIES = {
     ],
     pattern: ['sweep', 'sweep', 'slam', 'charge'],
     cooldown: 1.25,
-    rollcall: { every: 21, dur: 6.5, first: 9 },
+    rollcall: { every: 20, dur: 6.5, first: 6 },
     stagger: { parried: 1.0, hit: 0.15, broken: 3.0 },
     downState: 'down',
-    poise: 140,
+    poise: 200, poiseMul: 0.5,
     stuck: 5.0,
     resolve: { rescue: 'call_name_at_rollcall', neutralize: 'shut_in_storage', escape: false, kill: true },
     weak: { part: 'speaker', mul: 2.5 },

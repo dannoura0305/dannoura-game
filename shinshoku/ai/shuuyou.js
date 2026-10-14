@@ -61,6 +61,7 @@ export class Shuuyou extends Brain {
     this.t += dt; this.total += dt;
     const p = sense.player;
     if (this.enraged > 0) this.enraged -= dt;
+    if (['stagger', 'down'].includes(this.state)) this.rcT += dt * 0.5;      // よろけている間も点呼の時は近づく（半分の速さ）
     switch (this.state) {
       case 'dormant': case 'rest': case 'neutral': case 'dead': break;
       case 'rollcall': {

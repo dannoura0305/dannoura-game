@@ -193,6 +193,8 @@ export const combatMethods = {
   damageEnemy(e, dmg, kind, opt = {}) {
     const evs = [];
     if (e.held && this.companion.brain.mode === 'grabbed' && this.companion.brain.grab && this.companion.brain.grab.id === e.id) this.freeCompanion(e, true);
+    // 序章の帰路：一撃で倒しきらない（弱ると帰っていく＝追い払う）
+    if (e.brain.def.tutorial && !e.fleeing && e.brain.hp > e.brain.hpMax * 0.5 && e.brain.hp - dmg <= 0) dmg = e.brain.hp - 1;
     const done = e.brain.hurt(dmg, kind, evs, opt);
     if (done) this.enemyEvents(e, evs);
     return done;

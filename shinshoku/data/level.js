@@ -75,7 +75,7 @@ export const LEVEL = {
     { pos: [-3.3, 1.6, -33.5], color: 0x9fd0ff, intensity: 4, dist: 6, vending: true },
     { pos: [0, 5.2, -56], color: 0xbfd8ff, intensity: 10, dist: 15, flicker: true },
   ],
-  homeLight: { pos: [0, 2.5, 12], color: 0xffd2a0, intensity: 9, dist: 11 },
+  homeLight: { pos: [0, 2.5, 12], color: 0xffd2a0, intensity: 5, dist: 11 },
   // 調べられる物（自宅）
   homeSpots: {
     safe: [4.9, 14.9], laptop: [-3.8, 13.4], calendar: [-1.6, 15.8], companion: [-1.4, 7.6],

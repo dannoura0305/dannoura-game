@@ -125,7 +125,7 @@ export class Input {
       for (const [a, n] of Object.entries(s.hold || {})) this.scriptHeld.set(a, f + n);
       if (s.move) this.scriptMove = { x: s.move[0], y: s.move[1], until: f + (s.move[2] || 1) };
     }
-    for (const [a, until] of this.scriptHeld) { if (f < until) o[a] = true; else this.scriptHeld.delete(a); }
+    for (const [a, until] of this.scriptHeld) { if (f < until) { o[a] = true; if (a === 'interact' || a === 'pause' || a === 'dodge') o.skipHeld = true; } else this.scriptHeld.delete(a); }
     if (this.scriptMove && f < this.scriptMove.until) { o.moveX = this.scriptMove.x; o.moveY = this.scriptMove.y; }
     const m = Math.hypot(o.moveX, o.moveY); if (m > 1) { o.moveX /= m; o.moveY /= m; }
     if (!this.enabled) { for (const a of ACTIONS) if (a !== 'pause') o[a] = false; o.moveX = o.moveY = 0; }

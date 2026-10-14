@@ -23,6 +23,12 @@ export const STEPS = [
   { id: 'ch2_boss', ch: 'ch2', area: 'shelter', obj: '収容者を止める', sub: '点呼の間に名前を呼ぶ（マイク）／器具庫へ誘って閉じ込める／倒す' },
   { id: 'ch2_end', ch: 'ch2', area: 'shelter', obj: '（試作はここまで。自由に歩けます）' },
 ];
+// 目標の場所（ミニマップの印・距離）。[区画, x, z]。'enemy:<id>' は敵の位置
+export const TARGETS = {
+  pro_meet: ['shotengai', -2.5, -33.8], pro_pipe: ['shotengai', -2.6, -30.2], pro_fight: 'enemy:kiro_t', pro_home: ['shotengai', 0, 8.6], pro_tv: ['shotengai', -3.5, 14.0],
+  ch1_katana: ['shotengai', 5.0, 14.0], ch1_street: ['shotengai', -3.7, -66.5], ch1_alley: ['alley', 12, -23.0], ch1_plaza: ['plaza', -14, 0],
+  ch2_shelter: ['plaza', 17.8, 5], ch2_roster: ['shelter', -6.0, 15.4], ch2_key: ['shelter', 1.4, 13.6], ch2_gym: ['shelter', 0, 1.0], ch2_boss: 'enemy:shuuyou_1', ch2_end: null,
+};
 export const STEP_INDEX = Object.fromEntries(STEPS.map((s, i) => [s.id, i]));
 export function stepDef(id) { return STEPS[STEP_INDEX[id]] || STEPS[0]; }
 export function nextStepId(id) { const i = STEP_INDEX[id]; return i == null || i >= STEPS.length - 1 ? id : STEPS[i + 1].id; }

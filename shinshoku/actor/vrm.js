@@ -6,45 +6,14 @@
 import * as THREE from 'three';
 
 const BASE = new URL('../assets/characters/', import.meta.url);
-export const JOINT_NAMES = ['hips', 'spine', 'chest', 'neck', 'head', 'leftUpperArm', 'leftLowerArm', 'leftHand', 'rightUpperArm', 'rightLowerArm', 'rightHand', 'leftUpperLeg', 'leftLowerLeg', 'leftFoot', 'rightUpperLeg', 'rightLowerLeg', 'rightFoot'];
+import { JOINT_NAMES, matchBones } from './bones.js';
+export { JOINT_NAMES, matchBones };
 
 export async function loadManifest() {
   try { const r = await fetch(new URL('manifest.json', BASE), { cache: 'no-cache' }); if (!r.ok) return null; return await r.json(); } catch (e) { return null; }
 }
 /** 会話の顔絵（manifest の portrait）。URL か null */
 export function portraitURL(entry) { return entry && entry.portrait ? new URL(entry.portrait, BASE).href : null; }
-
-/** よくある骨の名前の候補（小文字・記号を除いて比べる） */
-const ALIASES = {
-  hips: ['hips', 'pelvis', 'mixamorighips', 'hip', 'root_hips', 'jbipchips', 'cc_base_hip'],
-  spine: ['spine', 'mixamorigspine', 'spine1', 'spine01', 'jbipcspine'],
-  chest: ['chest', 'upperchest', 'mixamorigspine2', 'mixamorigspine1', 'spine2', 'spine03', 'spine02', 'jbipcchest'],
-  neck: ['neck', 'mixamorigneck', 'neck01', 'jbipcneck'],
-  head: ['head', 'mixamorighead', 'jbipchead'],
-  leftUpperArm: ['leftupperarm', 'mixamorigleftarm', 'upperarml', 'upperarmleft', 'larm', 'leftarm', 'jbiplupperarm', 'upper_arml'],
-  leftLowerArm: ['leftlowerarm', 'mixamorigleftforearm', 'forearml', 'lowerarml', 'leftforearm', 'jbipllowerarm'],
-  leftHand: ['lefthand', 'mixamoriglefthand', 'handl', 'jbiplhand'],
-  rightUpperArm: ['rightupperarm', 'mixamorigrightarm', 'upperarmr', 'upperarmright', 'rarm', 'rightarm', 'jbipr upperarm', 'jbiprupperarm', 'upper_armr'],
-  rightLowerArm: ['rightlowerarm', 'mixamorigrightforearm', 'forearmr', 'lowerarmr', 'rightforearm', 'jbiprlowerarm'],
-  rightHand: ['righthand', 'mixamorigrighthand', 'handr', 'jbiprhand'],
-  leftUpperLeg: ['leftupperleg', 'mixamorigleftupleg', 'thighl', 'upperlegl', 'leftupleg', 'leftthigh', 'jbiplupperleg'],
-  leftLowerLeg: ['leftlowerleg', 'mixamorigleftleg', 'shinl', 'calfl', 'lowerlegl', 'leftleg', 'leftcalf', 'jbipllowerleg'],
-  leftFoot: ['leftfoot', 'mixamorigleftfoot', 'footl', 'jbiplfoot'],
-  rightUpperLeg: ['rightupperleg', 'mixamorigrightupleg', 'thighr', 'upperlegr', 'rightupleg', 'rightthigh', 'jbiprupperleg'],
-  rightLowerLeg: ['rightlowerleg', 'mixamorigrightleg', 'shinr', 'calfr', 'lowerlegr', 'rightleg', 'rightcalf', 'jbiprlowerleg'],
-  rightFoot: ['rightfoot', 'mixamorigrightfoot', 'footr', 'jbiprfoot'],
-};
-const norm = s => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
-/** glTF の骨の対応を探す（テスト用に純粋関数）。names：骨の名前の一覧、map：manifest の対応表 */
-export function matchBones(names, map = {}) {
-  const out = {}, byNorm = new Map(names.map(n => [norm(n), n]));
-  for (const j of JOINT_NAMES) {
-    if (map[j] && names.includes(map[j])) { out[j] = map[j]; continue; }
-    for (const a of ALIASES[j]) { const hit = byNorm.get(norm(a)); if (hit) { out[j] = hit; break; } }
-  }
-  if (!out.chest && out.spine) out.chest = out.spine;
-  return out;
-}
 
 /** 種類で振り分け（.vrm／.glb／.gltf）。戻り値は { root, J, rest, isExternal, height, portrait } か null */
 export async function loadCharacter(entry) {
@@ -128,3 +97,13 @@ export async function loadGLTF(entry) {
 }
 function worldDir(a, b) { const p = new THREE.Vector3(), q = new THREE.Vector3(); a.getWorldPosition(p); b.getWorldPosition(q); return q.sub(p).normalize(); }
 const add3 = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+
+/** 敵など、同じモデルを何体も出す時の複製（glTF 推奨。VRM は 1 体用） */
+let _clone = null;
+export async function prepareClone() { if (!_clone) _clone = (await import('three/addons/utils/SkeletonUtils.js')).clone; return _clone; }
+export function cloneCharacter(m) {
+  if (!_clone || !m) return null;
+  const root = _clone(m.root); const J = {};
+  for (const [k, b] of Object.entries(m.J)) { const o = root.getObjectByName(b.name); if (o) J[k] = o; }
+  return Object.assign({}, m, { root, J, update: null, mixer: null });
+}

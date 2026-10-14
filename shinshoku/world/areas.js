@@ -7,6 +7,7 @@ import { Builder, Atlas, signDraw, groundTex, buildLevel } from './level.js';
 import { box as cbox } from './collide.js';
 import { gradientMap, canvasTex } from '../render/toon.js';
 import { AREA_DATA } from '../data/areas.js';
+import { skyDome } from '../render/sky.js';
 
 function mats(atlas) {
   const tex = atlas.texture();
@@ -52,7 +53,7 @@ function finish(id, B, atlas, root, extra) {
 
 // ───────────────────────── 裏路地 ─────────────────────────
 export function buildAlley() {
-  const root = new THREE.Group(); root.name = 'area_alley';
+  const root = new THREE.Group(); root.name = 'area_alley'; root.add(skyDome({ moon: [0.2, 0.45, -0.9] }));
   const B = new Builder(), atlas = new Atlas(), boxes = [], spots = [], dyn = {}, halos = [], hideSpots = [];
   const solid = (cx, cz, w, d, h = 7, y0 = 0) => boxes.push(cbox(cx, cz, w, d, h, y0));
   const W1 = 0x6a6470, W2 = 0x5a5562, W3 = 0x726a66;
@@ -126,7 +127,7 @@ export function buildAlley() {
 
 // ───────────────────────── 商業施設の前 ─────────────────────────
 export function buildPlaza() {
-  const root = new THREE.Group(); root.name = 'area_plaza';
+  const root = new THREE.Group(); root.name = 'area_plaza'; root.add(skyDome({ moon: [0.4, 0.3, -0.85] }));
   const B = new Builder(), atlas = new Atlas(), boxes = [], spots = [], dyn = {}, halos = [], hideSpots = [];
   const solid = (cx, cz, w, d, h = 7, y0 = 0) => boxes.push(cbox(cx, cz, w, d, h, y0));
   root.add(ground(44, 40, 0, -1, { base: '#34323c', repeat: [16, 14] }));

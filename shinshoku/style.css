@@ -157,7 +157,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0a16; col
 .tc-menu { right: 16px; top: 14px; width: 44px; height: 44px; font-size: 20px; }
 @media (max-height: 460px) {
   .sh-vital { left: 14px; top: 10px; } .sh-hp { width: 150px; } .sh-face { width: 40px; height: 40px; }
-  .sh-weapon { right: 260px; bottom: 14px; } .sh-wslot { width: 42px; height: 42px; } .sh-wslot b { font-size: 18px; }
+
   .sh-prompt { bottom: 60px; } .sh-bark { bottom: 90px; font-size: 14px; } .sh-toast { font-size: 26px; } .sh-toast.issen { font-size: 34px; }
   #sh-dialog { min-height: 80px; padding: 16px 20px 12px; bottom: 10px; } .sh-dtext { font-size: 15px; }
   .sh-log { top: 64px; }
@@ -224,3 +224,54 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0a16; col
 @media (max-height: 460px) { .sh-obj { top: 70px; max-width: 40vw; } .sh-objt { font-size: 12px; } .sh-objs { display: none; } .sh-comp { top: 128px; } .sh-sub { font-size: 15px; } .sh-pcols { grid-template-columns: 1fr 1fr; } .sh-pbox { padding: 10px 12px; } .sh-pname, .sh-pcard { font-size: 12px; padding: 3px 8px; } .sh-boss { top: 8px; } .sh-lightic { bottom: 150px; right: 260px; } }
 .sh-hint { left: 50%; top: auto; bottom: 168px; transform: translateX(-50%); font-size: 13px; color: #ffe8c8; text-shadow: 0 1px 3px #000; padding: 4px 12px; background: rgba(14, 10, 26, .5); white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
 @media (max-height: 460px) { .sh-hint { bottom: 120px; font-size: 11px; } }
+
+/* ── HUD（イメージ資料 concept_01 の配置：左上 顔＋体力＋ミッション／右上 円の地図／左下 道具 4 枠／右下 武器＋弾数／右 操作のヒント） ── */
+.sh-vital { left: 18px; top: 14px; }
+.sh-face { width: 64px; height: 64px; border-radius: 10px; overflow: hidden; transform: rotate(-4deg); background: radial-gradient(circle at 40% 35%, #c9a8ff, #3a2060); border: 2px solid #e8dcff; }
+.sh-face::after { display: none; }
+.sh-face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.sh-face.img img { opacity: 1; } .sh-face.img span { display: none; }
+.sh-hpname { font-size: 15px; letter-spacing: .12em; font-family: var(--jps); }
+.sh-paw::before { content: '🐾'; font-style: normal; font-size: 12px; filter: grayscale(1) brightness(2); }
+.sh-hp { width: 250px; height: 10px; }
+.sh-hpnum { font-size: 12px; color: #f0e8ff; text-align: right; width: 250px; margin-top: 2px; text-shadow: 0 1px 2px #000; font-family: var(--jps); letter-spacing: .05em; }
+.sh-obj { left: 18px; top: 92px; padding: 6px 14px 8px 12px; border-left: 3px solid var(--p); background: linear-gradient(90deg, rgba(14, 10, 26, .78), rgba(14, 10, 26, 0)); max-width: min(42vw, 400px); }
+.sh-objc { font-size: 10px; } .sh-objh, .sh-objsh { font-size: 11px; color: var(--p); letter-spacing: .15em; margin-top: 2px; }
+.sh-objh::before, .sh-objsh::before { content: '◆ '; font-size: 9px; color: var(--p2); }
+.sh-objt { font-size: 16px; font-family: var(--jps); font-weight: 700; line-height: 1.45; }
+.sh-objs { font-size: 12px; color: #d8d0e8; } .sh-objs::before { content: '□ '; }
+.sh-comp { top: auto; bottom: 108px; left: 18px; }
+.sh-map { position: absolute; right: 16px; top: 14px; width: 150px; height: 150px; }
+.sh-map canvas { width: 100%; height: 100%; }
+.sh-mapdist { position: absolute; right: 8px; bottom: -4px; font-family: var(--jps); font-size: 15px; font-weight: 700; color: #fff; text-shadow: 0 1px 3px #000; }
+.sh-log { top: 176px; }
+.sh-slots4 { position: absolute; left: 18px; bottom: 18px; display: flex; gap: 8px; }
+.sh-slot { position: relative; width: 58px; height: 58px; background: rgba(14, 10, 26, .62); border: 1px solid rgba(220, 200, 255, .45); border-radius: 6px; display: grid; place-items: center; }
+.sh-slot svg { width: 36px; height: 36px; } .sh-slot b { position: absolute; right: 4px; bottom: 1px; font-size: 14px; text-shadow: 0 1px 2px #000; } .sh-slot small { position: absolute; left: 0; right: 0; top: -15px; text-align: center; font-size: 9px; color: var(--dim); white-space: nowrap; opacity: .8; }
+.sh-slot.empty { opacity: .4; }
+.sh-weapon { right: 18px; bottom: 18px; display: grid; gap: 6px; justify-items: end; }
+.sh-wmain { display: flex; align-items: center; gap: 10px; min-width: 210px; padding: 8px 12px; background: rgba(14, 10, 26, .7); border: 1px solid rgba(220, 200, 255, .5); border-radius: 4px; }
+.sh-wicon, .sh-wicon2 { width: 52px; height: 40px; } .sh-wicon svg, .sh-wicon2 svg { width: 100%; height: 100%; }
+.sh-wtext { display: grid; text-align: right; flex: 1; }
+.sh-ammo { position: static; transform: none; font-family: var(--jps); font-size: 24px; color: #fff; } .sh-weapon.gun .sh-ammo { font-size: 26px; color: #fff; }
+.sh-wname { font-size: 11px; color: var(--dim); }
+.sh-wsub { display: flex; align-items: center; gap: 8px; padding: 4px 10px; background: rgba(14, 10, 26, .55); border: 1px solid rgba(220, 200, 255, .3); border-radius: 4px; font-size: 11px; color: var(--dim); }
+.sh-wicon2 { width: 38px; height: 28px; opacity: .8; }
+.sh-wkey::before { content: '替'; } .sh-wkey { font-size: 10px; border: 1px solid var(--dim); border-radius: 3px; padding: 0 4px; }
+.sh-swapbar { position: static; width: 100%; height: 3px; }
+.sh-hints { position: absolute; right: 18px; bottom: 150px; display: grid; gap: 4px; font-size: 12px; color: #e8e0f4; text-shadow: 0 1px 2px #000; }
+.sh-hints div { display: flex; align-items: center; gap: 8px; justify-content: flex-end; } .sh-hints kbd { min-width: 30px; text-align: center; font-size: 10px; padding: 1px 5px; border: 1px solid rgba(232, 224, 244, .7); border-radius: 4px; font-family: var(--jp); }
+.sh-lightic { bottom: auto; top: 172px; right: 30px; }
+.sh-hint { bottom: 196px; }
+#sh-ui.touch .sh-hints { display: none; }
+@media (max-height: 460px) {
+  .sh-face { width: 44px; height: 44px; } .sh-hp, .sh-hpnum { width: 160px; } .sh-hpname { font-size: 12px; }
+  .sh-obj { top: 64px; max-width: 38vw; padding: 4px 10px; } .sh-objt { font-size: 12px; } .sh-objh, .sh-objsh, .sh-objs, .sh-objc { display: none; }
+  .sh-map { width: 92px; height: 92px; right: 64px; top: 6px; } .sh-mapdist { font-size: 12px; }
+  .sh-slots4 { display: none; }
+  .sh-weapon { right: 160px; top: 8px; bottom: auto; } .sh-wmain { min-width: 0; padding: 4px 8px; } .sh-wicon { width: 34px; height: 26px; } .sh-ammo { font-size: 16px !important; } .sh-wname { display: none; } .sh-wsub { display: none; }
+  .sh-comp { bottom: auto; top: 112px; } .sh-lightic { top: 104px; right: 72px; } .sh-log { top: 104px; right: 110px; }
+  .sh-boss { top: 52px; width: 50vw; } .sh-hint { bottom: 128px; }
+}
+.sh-dport { position: absolute; left: -10px; bottom: 100%; width: 150px; height: auto; max-height: 220px; object-fit: contain; filter: drop-shadow(0 4px 8px #000); pointer-events: none; }
+#sh-dialog.port { padding-left: 28px; }
