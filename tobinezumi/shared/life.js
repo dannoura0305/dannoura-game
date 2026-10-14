@@ -44,21 +44,32 @@ export function lifeOut(L) { return { hunger: r2(L.hunger), thirst: r2(L.thirst)
 /**
  * dt 秒ぶん進める（L は書き換えない）。sleeping は寝床で眠っているか。
  * 眠っていて体調が満タンになったら sleep=false（自然に起きる）。
+ * env（Ver.0.3・shared/season.js の envAt(...).life）：{thirstMul, hungerMul, condPerSec, restMul, sleepDrainMul}
+ *   暑さで水分が早く減る・砂嵐や寒い夜で体調が減る・休眠で眠りが深い。無ければ Ver.0.2 と同じ。
  */
-export function stepLife(L, dt, { sleeping = !!L.sleep } = {}) {
+export function stepLife(L, dt, { sleeping = !!L.sleep, env = null } = {}) {
   if (!(dt > 0)) return { ...L };
   const n = { ...L };
-  const drain = sleeping ? LIFE.SLEEP_DRAIN : 1;
-  n.hunger = clamp(n.hunger - STAT_MAX / LIFE.HUNGER_SEC * dt * drain);
-  n.thirst = clamp(n.thirst - STAT_MAX / LIFE.THIRST_SEC * dt * drain);
+  const E = env || {};
+  const drain = sleeping ? LIFE.SLEEP_DRAIN * (E.sleepDrainMul || 1) : 1;
+  n.hunger = clamp(n.hunger - STAT_MAX / LIFE.HUNGER_SEC * dt * drain * (E.hungerMul || 1));
+  n.thirst = clamp(n.thirst - STAT_MAX / LIFE.THIRST_SEC * dt * drain * (E.thirstMul || 1));
   const empty = (n.hunger <= 0 ? 1 : 0) + (n.thirst <= 0 ? 1 : 0);
   let dc = -empty * STAT_MAX / LIFE.STARVE_SEC * dt;
-  if (sleeping) dc += STAT_MAX / LIFE.SLEEP_FULL_SEC * dt * (empty ? 0.5 : 1);   // おなかが空っぽだと眠りが浅い
+  if (sleeping) dc += STAT_MAX / LIFE.SLEEP_FULL_SEC * dt * (empty ? 0.5 : 1) * (E.restMul || 1);   // おなかが空っぽだと眠りが浅い
   else dc -= STAT_MAX / LIFE.COND_SEC * dt;
+  if (!sleeping && E.condPerSec) dc += E.condPerSec * dt;     // 砂嵐・寒い夜（負の値）
   n.cond = clamp(n.cond + dc);
   n.sleep = sleeping && n.cond < STAT_MAX;
   return n;
 }
+
+/** 捕食者につかまった（Ver.0.3）：体調が大きく減る（死なない）。easy はやさしい設定 */
+export const CAUGHT_COND = 35, CAUGHT_COND_EASY = 18;
+export function caughtLife(L, easy = false) { return { ...L, cond: clamp(L.cond - (easy ? CAUGHT_COND_EASY : CAUGHT_COND)), sleep: false }; }
+/** 珍しい種を食べる：空腹 +40・体調 +10 */
+export const RARE_SEED_FOOD = 40, RARE_SEED_COND = 10;
+export function eatRareSeed(L) { return { ...L, hunger: clamp(L.hunger + RARE_SEED_FOOD), cond: clamp(L.cond + RARE_SEED_COND) }; }
 
 export function isTired(L) { return !!L && L.cond < LIFE.TIRED; }
 /** 移動ルールに渡す補正（shared/move.js の stepField の第 5 引数） */

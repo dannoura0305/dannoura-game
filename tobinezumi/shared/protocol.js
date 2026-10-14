@@ -51,6 +51,11 @@ export const C2S = {
   FRIEND_DEL: 'friend_del',   // {id}（断る・取り消す・やめる）       → res {ok, list}
   SET_BUILDERS: 'set_builders', // {list:[name]}                       → res {ok, list, unknown}
   VISITORS: 'visitors',       // {}                                   → res {ok, list:[{name, at}]}
+  // ── Ver.0.3「危険と土地」──
+  SURVEY: 'survey',           // {}（いる場所の土地を調べる）          → res {ok, land, here:{canDig, reason?, digCost, digTime, relocateCost, cooldownMs, nests}}
+  RELOCATE: 'relocate',       // {}（いる場所へ巣を引っ越す）          → res {ok, entrance, inv, cost, land}
+  PLUG: 'plug',               // {on}（巣の中から入口をふさぐ・ひらく）→ res {ok, plugged, inv}
+  DEV: 'dev',                 // {weather?, season?, spawn?}           開発用（TOBI_DEV=1 のときだけ）→ res {ok}
 };
 
 // サーバー → クライアント
@@ -75,7 +80,12 @@ export const S2C = {
   FRIENDS: 'friends',         // {list:[Friend]}                       フレンドの一覧が変わった（申請が来た・承認・オンライン/オフライン）
   VISIT: 'visit',             // {name, nestId, at}                    自分の巣にだれかが入った（所有者がオンラインのとき）
   NEST_ROLE: 'nest_role',     // {nestId, canEdit, role}               いる巣での役割が変わった（共同作業者にされた・外された）
+  // ── Ver.0.3 ──（snapshot には preds:[PredSnap] が加わる）
+  CAUGHT: 'caught',           // {kind, x, y, life, inv, drops:[{id,n}], until}  捕食者につかまった（本人だけ）
+  RAID: 'raid',               // {nestId, kind:'raid'|'blocked', lost, at}       自分の巣がキツネに掘られた（所有者がオンラインのとき）
 };
+export const PLUG_COST = { pebble: 2 };     // 入口をふさぐ（ひらくと小石 1 つ戻る）
+export const SURVEY_GAP_MS = 1000, PLUG_GAP_MS = 1000;
 
 export const ERR = {
   BAD_REQUEST: 'bad_request', AUTH: 'auth', TAKEN: 'taken', NOT_FOUND: 'not_found',

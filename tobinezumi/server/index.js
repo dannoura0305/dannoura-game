@@ -4,7 +4,9 @@
 //
 // 環境変数：PORT(8080) HOST(0.0.0.0) TOBI_DATA(./data) TOBI_BACKUPS(./backups) TOBI_BACKUP_KEEP(48) TOBI_BACKUP_HOURS(1, 0 で止める)
 //           TOBI_STATS_SEC(60, 0 で止める：CPU・メモリ・通信量のログ) TOBI_REGISTER_MAX(20 / 10 分 / 接続元)
+//           TOBI_PREDATORS（normal / easy / off：捕食者の強さ）TOBI_RAIDS（0 でキツネの巣の襲撃なし）
 //           開発用（TOBI_DEV=1 のときだけ効く）：TOBI_TIMESCALE（時計・暮らし・採集物の戻りを何倍速にするか）TOBI_START_HOUR（起動時の世界の時刻 0〜23）
+//             TOBI_WEATHER（clear / sandstorm / rain に固定）TOBI_SEASON（spring / summer / autumn / winter に固定）・C2S dev（天気・季節の切り替え、捕食者を出す）
 import http from 'node:http';
 import { createReadStream, statSync, writeFileSync, unlinkSync, existsSync, readFileSync } from 'node:fs';
 import { join, dirname, resolve, extname, sep } from 'node:path';
@@ -155,9 +157,13 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     backupDir: resolve(HERE, env.TOBI_BACKUPS || 'backups'), backupKeep: +(env.TOBI_BACKUP_KEEP || 48), backupHours: +(env.TOBI_BACKUP_HOURS ?? 1),
     statsSec: +(env.TOBI_STATS_SEC ?? 60), pidFile: join(dataDir, 'server.pid'),
     authOpts: { registerMax: +(env.TOBI_REGISTER_MAX || 20) },
-    gameOpts: env.TOBI_DEV === '1' ? { timeScale: +(env.TOBI_TIMESCALE || 1) || 1, startHour: env.TOBI_START_HOUR != null && env.TOBI_START_HOUR !== '' ? +env.TOBI_START_HOUR : null } : {},
+    gameOpts: {
+      predators: ['normal', 'easy', 'off'].includes(env.TOBI_PREDATORS) ? env.TOBI_PREDATORS : 'normal', raids: env.TOBI_RAIDS !== '0',
+      ...(env.TOBI_DEV === '1' ? { devMode: true, timeScale: +(env.TOBI_TIMESCALE || 1) || 1, startHour: env.TOBI_START_HOUR != null && env.TOBI_START_HOUR !== '' ? +env.TOBI_START_HOUR : null,
+        weather: env.TOBI_WEATHER || null, season: env.TOBI_SEASON || null } : {}),
+    },
   });
-  if (env.TOBI_DEV === '1') console.log(`[tobinezumi] 開発モード：時計 ×${srv.game.clock.scale}${env.TOBI_START_HOUR ? '、開始 ' + env.TOBI_START_HOUR + ' 時' : ''}`);
+  if (env.TOBI_DEV === '1') console.log(`[tobinezumi] 開発モード：時計 ×${srv.game.clock.scale}${env.TOBI_START_HOUR ? '、開始 ' + env.TOBI_START_HOUR + ' 時' : ''}${srv.game.clock.weather ? '、天気 ' + srv.game.clock.weather : ''}${srv.game.clock.season ? '、季節 ' + srv.game.clock.season : ''}`);
   console.log(`[tobinezumi] http://localhost:${srv.port}/tobinezumi.html  （WebSocket: /ws、DB: ${join(dataDir, 'game.db')}、PID ${process.pid}）`);
   let stopping = false;
   const stop = async sig => {

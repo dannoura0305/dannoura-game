@@ -339,6 +339,10 @@ export function drawItem(g, id, x, y, big = false) {
     P(s, '#9a6a3c', 5, 11, 7, 2);
   } else if (id === 'pebble') {
     ell(s, 8, 9, 5, 4, '#9a8a78'); ell(s, 7, 8, 3.5, 2.5, '#b8a894'); P(s, '#d8ccbc', 6, 7, 2, 1); ell(s, 9, 12, 4, 1, '#6e6056');
+  } else if (id === 'rare_seed') {
+    ell(s, 8, 9, 4.5, 5.5, '#b8628a'); ell(s, 7, 8, 3, 3.6, '#e08eb0'); P(s, '#f6c4d6', 6, 6, 2, 1); line(s, '#7a6e62', 9, 3, 10, 1);
+  } else if (id === 'pretty_stone') {
+    ell(s, 8, 9, 5, 5, '#46a0b4'); ell(s, 7, 7, 3, 3, '#7ccede'); P(s, '#c8f2f4', 6, 6, 2, 1); ell(s, 10, 12, 3, 1, '#2c7088');
   } else return;
   outline(c);
   g.drawImage(c, x, y);
@@ -453,4 +457,47 @@ export function drawDew(g, x, y, t = 0) {
     g.fillStyle = '#5ab4d8'; g.fillRect(x + dx - 1, y + dy, 3, 2); g.fillRect(x + dx, y + dy - 1, 1, 4);
     g.fillStyle = `rgba(230,250,255,${tw})`; g.fillRect(x + dx, y + dy, 1, 1);
   });
+}
+
+// ───────── Ver.0.3：捕食者・水たまり・入口のふさぎ（素材が無いときのコード描画）─────────
+/** キツネ（右向き。flip で左）。(x,y) は足元 */
+export function drawFox(g, x, y, { frame = 0, flip = false, dig = false } = {}) {
+  g.save(); g.translate(Math.round(x), Math.round(y)); if (flip) g.scale(-1, 1);
+  const bob = dig ? 2 : Math.round(Math.sin(frame * Math.PI / 2));
+  ell(g, -9, -9 - bob, 4, 2.6, '#b85a24'); ell(g, -12, -11 - bob, 2, 1.6, '#f4ecdc');
+  for (const lx of [-5, 4]) P(g, '#45301e', lx + (frame % 2 ? 1 : -1), -5, 2, 5);
+  ell(g, 0, -8 - bob, 8, 3.6, '#d87a34'); ell(g, 1, -6 - bob, 6, 1.6, '#f4ecdc');
+  const hy = dig ? -4 : -11 - bob;
+  ell(g, 8, hy, 3.5, 3, '#d87a34'); ell(g, 12, hy + 1, 2.4, 1.3, '#d87a34'); P(g, OL, 14, hy + 1);
+  P(g, '#b85a24', 6, hy - 6, 2, 3); P(g, '#b85a24', 9, hy - 6, 2, 3); P(g, OL, 9, hy - 1);
+  g.restore();
+}
+/** フクロウ（空から。z は高さ。wings: 0/1 羽ばたき、2 急降下） */
+export function drawOwl(g, x, y, { frame = 0, flip = false } = {}) {
+  g.save(); g.translate(Math.round(x), Math.round(y)); if (flip) g.scale(-1, 1);
+  if (frame < 2) { const up = frame === 0 ? -5 : 2; line(g, '#7e6248', -3, 0, -13, up); line(g, '#7e6248', 3, 0, 13, up); line(g, '#a08262', -4, 1, -12, up + 2); line(g, '#a08262', 4, 1, 12, up + 2); }
+  ell(g, 0, 2, 4.5, 6, '#7e6248'); ell(g, 0, 3, 3, 4, '#cbb48e');
+  ell(g, 0, -5, 4.2, 3.6, '#7e6248'); ell(g, 0.5, -4.6, 3.2, 2.6, '#e2d0ae');
+  P(g, '#f0c020', -2, -5, 1, 1); P(g, '#f0c020', 2, -5, 1, 1); P(g, OL, -2, -4, 1, 1); P(g, OL, 2, -4, 1, 1);
+  P(g, '#5c4430', -4, -9, 2, 2); P(g, '#5c4430', 3, -9, 2, 2);
+  g.restore();
+}
+/** ヘビ（待ち伏せ：とぐろ・飛びかかり） */
+export function drawSnake(g, x, y, { frame = 0, flip = false, lunge = false } = {}) {
+  g.save(); g.translate(Math.round(x), Math.round(y)); if (flip) g.scale(-1, 1);
+  if (lunge) { for (let i = 0; i < 6; i++) ell(g, -12 + i * 4, -2 - i * 0.8, 2.2, 1.6, i % 2 ? '#7a7234' : '#9c9448'); ell(g, 12, -7, 2.6, 1.8, '#9c9448'); }
+  else { ell(g, -1, -3, 7.5, 3, '#7a7234'); ell(g, -1, -5, 5, 2.2, '#9c9448'); ell(g, 6, -9, 2.4, 1.7, '#9c9448'); line(g, '#7a7234', 3, -6, 5, -8); }
+  P(g, '#f0c020', lunge ? 13 : 7, lunge ? -8 : -10, 1, 1);
+  if (frame % 2) P(g, '#c02a2a', lunge ? 15 : 9, lunge ? -7 : -9, 2, 1);
+  g.restore();
+}
+/** 水たまり（雨のあと。E で飲む） */
+export function drawPuddle(g, x, y, t = 0) {
+  ell(g, x, y, 6.5, 3, '#2f6e9a'); ell(g, x, y - 0.4, 5, 2, '#5fa9c9');
+  const tw = 0.5 + 0.5 * Math.sin(t * 2 + x);
+  g.fillStyle = `rgba(230,250,255,${0.5 + 0.4 * tw})`; g.fillRect(Math.round(x - 2), Math.round(y - 1), 2, 1);
+}
+/** ふさいだ入口（小石を積む） */
+export function drawPlug(g, x, y) {
+  for (const [dx, dy, r] of [[-4, 0, 2.4], [0, -1, 2.6], [4, 0, 2.3], [-2, 2, 2], [2, 2, 2.2]]) { ell(g, x + dx, y + dy, r, r * 0.75, '#a09080'); P(g, '#e2d6c4', x + dx - 1, y + dy - 1); }
 }

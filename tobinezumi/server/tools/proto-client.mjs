@@ -3,6 +3,8 @@
 import { stepField, makeFieldState, STEP_DT } from '../../shared/move.js';
 import { buildFieldMap } from '../../shared/regions.js';
 import { moveMods } from '../../shared/life.js';
+import { envAt, fieldMods } from '../../shared/season.js';
+import { makeClock } from '../../shared/daynight.js';
 
 let MAP = null;
 export const fieldMap = () => MAP || (MAP = buildFieldMap());
@@ -29,6 +31,8 @@ export class ProtoClient {
         if (m.t === 'res') { const w = this.waiting.get(m.rid); if (w) { this.waiting.delete(m.rid); w(m); } return; }
         if (m.t === 'snapshot') { this.lastSnap = m; this.snaps++; }
         if (m.t === 'life') this.life = m.life;      // Ver.0.2：暮らしの数値（へとへとだと移動が変わる）
+        if (m.t === 'welcome' || m.t === 'clock') { if (m.clock) this.clock = m.clock; if (m.serverTime) this.offset = m.serverTime - Date.now(); }
+        if (m.t === 'caught') { this.st = makeFieldState(m.x, m.y); this.caught = (this.caught || 0) + 1; }   // Ver.0.3：つかまって安全な所へ
         this._emit(m.t, m);
       };
     });
@@ -69,6 +73,7 @@ export class ProtoClient {
     if (!j.ok) throw new Error('join_field: ' + j.reason);
     this.world = j.world;
     if (j.world.life) this.life = j.world.life;
+    if (j.world.clock) this.clock = j.world.clock;
     this.st = makeFieldState(j.world.you.x, j.world.you.y);
     this.st.dir = j.world.you.dir;
     return j.world;
@@ -78,11 +83,17 @@ export class ProtoClient {
     const out = [];
     for (const i of list) {
       const inp = { seq: ++this.seq, mx: i.mx | 0, my: i.my | 0, jump: i.jump ? 1 : 0 };
-      if (this.st) this.st = stepField(this.st, inp, STEP_DT, fieldMap(), moveMods(this.life));
+      if (this.st) this.st = stepField(this.st, inp, STEP_DT, fieldMap(), fieldMods(moveMods(this.life), this.moveEnv()));
       out.push(inp);
     }
     for (let k = 0; k < out.length; k += 30) this.send({ t: 'input', inputs: out.slice(k, k + 30) });
     return this.st;
+  }
+  /** 移動に効く天気（砂嵐は遅い）。サーバーと同じ時計で（0.25 秒ごとに作りなおす） */
+  moveEnv() {
+    const t = Date.now() + (this.offset || 0);
+    if (!this._env || t > this._envT) { this._envT = t + 250; this._env = envAt(this.clock || makeClock(), t, { enabled: !this.world || !this.world.danger || this.world.danger.env !== false }); }
+    return this._env;
   }
   /** ack が seq に追いつくまで待つ */
   async synced(timeoutMs = 3000) {

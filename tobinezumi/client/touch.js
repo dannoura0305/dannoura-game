@@ -9,7 +9,7 @@ const LAYOUTS = {
   field: {
     pad: 'stick', strip: 196,
     main: [{ id: 'jump', label: 'ジャンプ', key: 'Space', big: true }, { id: 'use', label: '調べる', key: 'KeyE' }, { id: 'eat', label: '食べる', key: 'KeyQ' }],
-    sys: [{ id: 'inv', label: '持ち物', key: 'KeyI' }, { id: 'chat', label: 'チャット', act: 'chat' }, { id: 'menu', label: 'メニュー', key: 'Escape' }],
+    sys: [{ id: 'inv', label: '持ち物', key: 'KeyI' }, { id: 'land', label: '土地', key: 'KeyL' }, { id: 'chat', label: 'チャット', act: 'chat' }, { id: 'menu', label: 'メニュー', key: 'Escape' }],
   },
   walk: {
     pad: 'dpad', strip: 204,

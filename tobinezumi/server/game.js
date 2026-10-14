@@ -8,8 +8,12 @@ import { buildFieldMap } from '../shared/regions.js';
 import { boxFree } from '../shared/move.js';
 import { makeInventory, swapSlots, removeItem, countItem, START_INVENTORY, INV_SLOTS } from '../shared/items.js';
 import { C2S, S2C, ERR, decode, cleanChat, validName, validUsername, validPassword, FUR_IDS, PROTOCOL_VERSION, SERVER_TICK_HZ, POS_SAVE_MS, RECONNECT_GRACE_MS, MAX_FRIENDS, FRIEND_OPS_PER_MIN } from '../shared/protocol.js';
-import { normalizeLife, stepLife, lifeOut, eatSeed, canEat, LIFE } from '../shared/life.js';
+import { normalizeLife, stepLife, lifeOut, eatSeed, eatRareSeed, canEat, caughtLife, LIFE } from '../shared/life.js';
 import { makeClock } from '../shared/daynight.js';
+import { envAt, WEATHERS, SEASONS } from '../shared/season.js';
+import { TUNING, PRED, INVULN_MS, dropItems, dropSpots, safePoint, raidLoss, RAID_COOLDOWN_MS } from '../shared/predators.js';
+import { landAt, landOut } from '../shared/lands.js';
+import { makeFieldState } from '../shared/move.js';
 import { FieldRoom } from './rooms/field.js';
 import { NestHub } from './rooms/nest.js';
 
@@ -24,18 +28,34 @@ const fail = (code, reason, extra = {}) => ({ ok: false, code, reason, ...extra 
 export class Game {
   /**
    * timeScale / startHour：開発用の早回し（index.js は TOBI_DEV=1 のときだけ渡す）。世界の時計・暮らしの減り・採集物の戻りが速くなる
+   * Ver.0.3：env（天気・季節・気候の影響。テストでは切れる）・predators（'normal'|'easy'|'off'）・raids（キツネの巣の襲撃）・
+   *   weather / season（固定：開発用）・devMode（C2S dev を受ける：TOBI_DEV=1 のときだけ）・relocateCooldownMs・predSeed
    */
-  constructor({ store, auth, now = () => Date.now(), random = Math.random, log = console.log, respawnScale = 1, graceMs = RECONNECT_GRACE_MS, saveMs = POS_SAVE_MS, timeScale = 1, startHour = null } = {}) {
+  constructor({ store, auth, now = () => Date.now(), random = Math.random, log = console.log, respawnScale = 1, graceMs = RECONNECT_GRACE_MS, saveMs = POS_SAVE_MS, timeScale = 1, startHour = null,
+    env = true, predators = 'normal', raids = true, weather = null, season = null, devMode = false, relocateCooldownMs = undefined, predSeed = null } = {}) {
     this.store = store; this.auth = auth; this.now = now; this.random = random; this.log = log;
     this.graceMs = graceMs; this.saveMs = saveMs;
     this.map = buildFieldMap();
     this.clock = makeClock({ scale: timeScale, startHour, now: now() });
+    if (weather && WEATHERS[weather]) this.clock.weather = weather;
+    if (season && SEASONS.some(x => x.id === season)) this.clock.season = season;
+    this.envOn = env !== false; this.devMode = !!devMode;
+    this.tuning = { ...(TUNING[predators] || TUNING.normal) };
+    if (raids === false) this.tuning.raids = false;
     this.stats = { msgIn: 0, msgOut: 0, bytesIn: 0, bytesOut: 0, errors: 0, conns: 0, startedAt: now() };
-    this.field = new FieldRoom({ store, map: this.map, now, random, log, respawnScale, stats: this.stats, clock: this.clock });
+    this.field = new FieldRoom({ store, map: this.map, now, random, log, respawnScale, stats: this.stats, clock: this.clock, env: this.envOn, tuning: this.tuning, predSeed,
+      ...(relocateCooldownMs != null ? { relocateCooldownMs } : {}) });
     this.nests = new NestHub({ store, now, log });
     this.nests.onWake = p => this.wake(p);
     this._lifeAt = now(); this._lifeSendAt = now();
     this.field.nestInfo = id => this.nests.meta(id);
+    this.field.onCatch = (p, e) => this.caught(p, e);
+    this.field.onRaid = e => this.raid(e);
+    this.field.canShelter = (p, e) => this.canShelter(p, e);
+    this.field.raidInfo = (e, t) => this.raidInfo(e, t);
+    this.field.onRelocate = (p, nest, ent) => this.relocated(p, nest, ent);
+    this.nests.relocateCooldownMs = this.field.relocateCooldownMs;
+    this.nests.onPlug = nest => { const e = this.field.entrances.get(nest.owner); if (e) for (const o of this.field.players.values()) if (o.conn) o.conn.send({ t: 'entrance', entrance: this.field.entranceOut(e, o.accountId) }); };
     this.field.load();
     this.players = new Map();    // accountId → Player（いま接続中）
     this.sessions = new Set();
@@ -65,12 +85,19 @@ export class Game {
     for (const p of this.players.values()) {
       if (p.place !== 'field' && p.place !== 'nest') continue;
       const was = p.sleeping;
-      p.life = stepLife(p.life, dt, { sleeping: p.sleeping });
+      const env = this.envOf(p, t);
+      p.env = env;
+      p.life = stepLife(p.life, dt, { sleeping: p.sleeping, env: env.life });
       if (was && !p.life.sleep) this.wake(p, false);        // 満タンで自然に起きる
       else if (send) this.sendLife(p);
     }
   }
-  sendLife(p) { if (p.conn) p.conn.send({ t: S2C.LIFE, life: lifeOut(p.life) }); }
+  sendLife(p) { if (p.conn) p.conn.send({ t: S2C.LIFE, life: lifeOut(p.life), ...(p.env && p.env.labels.length ? { env: p.env.labels } : {}), ...(p.env && p.env.rest && p.sleeping ? { rest: p.env.rest } : {}) }); }
+  /** その子のいる場所の天気・季節・気候の影響（shared/season.js） */
+  envOf(p, t = this.now()) {
+    const pos = p.place === 'field' && p.st ? p.st : p.place === 'nest' ? (this._entranceOfNest(p.nestId) || { x: 0, y: 0 }) : { x: 0, y: 0 };
+    return envAt(this.clock, t, { map: this.map, x: pos.x, y: pos.y, place: p.place, entrances: [...this.field.entrances.values()], enabled: this.envOn });
+  }
 
   /** 位置の保存（地上にいる人は確定位置、巣の中の人は巣の入口の下） */
   savePlayer(p, exit = 'live') {
@@ -184,7 +211,11 @@ export class Game {
       case C2S.FRIEND_OK: return this.friendOk(p, m.id);
       case C2S.FRIEND_DEL: return this.friendDel(p, m.id);
       case C2S.SET_BUILDERS: return this.nests.setBuilders(p, m.list, this.players);
-      case C2S.VISITORS: { const n = this.store.nestByOwner(p.accountId); return { ok: true, list: n ? this.store.recentVisits(n.id) : [] }; }
+      case C2S.VISITORS: { const n = this.store.nestByOwner(p.accountId); return { ok: true, list: n ? this.store.recentVisits(n.id) : [], events: n ? this.store.recentNestEvents(n.id) : [] }; }
+      case C2S.SURVEY: return this.field.survey(p);
+      case C2S.RELOCATE: return this.field.relocate(p);
+      case C2S.PLUG: return this.nests.plug(p, !!m.on);
+      case C2S.DEV: return this.dev(p, m);
     }
     return fail(ERR.BAD_REQUEST, '知らない要求: ' + String(m.t).slice(0, 20));
   }
@@ -288,6 +319,11 @@ export class Game {
     const own = this.store.nestByOwner(p.accountId);
     world.visitors = own ? this.store.unseenVisits(own.id) : [];
     if (own && world.visitors.length) this.store.markVisitsSeen(own.id);
+    // Ver.0.3：留守のあいだの襲撃（1 回見せたら既読）・自分の巣の土地・捕食者の設定
+    world.raids = own ? this.store.unseenNestEvents(own.id) : [];
+    if (own && world.raids.length) this.store.markNestEventsSeen(own.id);
+    if (own && world.you.nest) { world.you.nest.land = own.land || landOut(landAt(this.map, own.x, own.y)); world.you.nest.plugged = own.plugged; world.you.nest.relocatedAt = own.relocatedAt; }
+    world.danger = { predators: this.tuning.enabled ? (this.tuning.easy ? 'easy' : 'normal') : 'off', env: this.envOn, relocateCooldownMs: this.field.relocateCooldownMs };
     return { ok: true, world };
   }
 
@@ -309,7 +345,7 @@ export class Game {
       this.field.drain(p);
       if (Math.hypot(ent.x - p.st.x, ent.y - p.st.y) > ENTER_RANGE) return fail(ERR.TOO_FAR, '入口から遠い');
     }
-    if (!this.nests.canVisit(nest, p.accountId)) return fail(ERR.FORBIDDEN, (nest.ownerName || '') + 'の巣は 今は入れないようだ');
+    if (!this.nests.canVisit(nest, p.accountId)) return fail(ERR.FORBIDDEN, (nest.ownerName || '') + 'の巣は 今は入れないようだ' + (nest.plugged ? '（入口がふさがれている）' : ''));
     if (p.place === 'field') { p.lastField = { x: ent.x, y: ent.y + 12, dir: 'down' }; this.field.leave(p, 'nest'); }
     p.sleeping = false; p.life.sleep = false;
     const r = this.nests.enter(p, nest);
@@ -360,12 +396,13 @@ export class Game {
       return { ok: true, life: lifeOut(p.life), inv: p.inv.map(x => x && { ...x }), storage: r.storage.map(x => x && { ...x }), src: 'pile' };
     }
     const inv = p.inv.map(x => x && { ...x });
-    if (!removeItem(inv, 'seed', 1)) return fail(ERR.RULE, '種子を持っていない');
+    const item = m.item === 'rare_seed' ? 'rare_seed' : 'seed';
+    if (!removeItem(inv, item, 1)) return fail(ERR.RULE, item === 'seed' ? '種子を持っていない' : '珍しい種を持っていない');
     this.store.setCharInventory(p.charId, inv);
     p.inv = inv;
-    p.life = eatSeed(p.life);
+    p.life = item === 'rare_seed' ? eatRareSeed(p.life) : eatSeed(p.life);
     this.sendLife(p);
-    return { ok: true, life: lifeOut(p.life), inv: inv.map(x => x && { ...x }), left: countItem(inv, 'seed'), src: 'inv' };
+    return { ok: true, life: lifeOut(p.life), inv: inv.map(x => x && { ...x }), left: countItem(inv, item), src: 'inv', item };
   }
   drink(p, m) {
     if (this._actGap(p)) return fail(ERR.RATE, 'ごくごく…（ちょっと待って）');
@@ -393,6 +430,94 @@ export class Game {
     }
     if (!reply || was) this.sendLife(p);
     return { ok: true, life: lifeOut(p.life) };
+  }
+
+  // ───────── 危険と土地（Ver.0.3）─────────
+  /** 捕食者につかまった：体調が大きく減る・持ち物の一部を落とす（だれでも拾える）・安全な所へ戻る・しばらく狙われない。死なない */
+  caught(p, e) {
+    if (p.place !== 'field' || !p.st) return;
+    const t = this.now(), easy = !!this.tuning.easy;
+    p.life = caughtLife(p.life, easy);
+    const inv = p.inv.map(x => x && { ...x });
+    const drops = dropItems(inv, easy);
+    const spots = dropSpots(this.map, p.st.x, p.st.y, drops.length);
+    this.store.setCharInventory(p.charId, inv);
+    p.inv = inv;
+    const placed = this.field.placeDrops(drops, spots);
+    const sp = safePoint(this.map, this.field.entrances.get(p.accountId));
+    const st = makeFieldState(sp.x, sp.y); st.seq = p.lastSeq;
+    p.st = st; p.stillT = 0;
+    p.invulnUntil = t + INVULN_MS;
+    p.caughtN = (p.caughtN || 0) + 1;
+    if (p.conn) p.conn.send({ t: S2C.CAUGHT, kind: e.kind, name: PRED[e.kind].name, at: { x: Math.round(e.x), y: Math.round(e.y) }, x: sp.x, y: sp.y, life: lifeOut(p.life), inv: inv.map(x => x && { ...x }),
+      drops: placed.map(r => ({ id: r.id, kind: r.kind, n: r.n })), until: p.invulnUntil });
+    this.field.broadcast({ t: S2C.TOAST, text: p.name + ' が ' + PRED[e.kind].name + ' につかまった！' }, p);
+    this.sendLife(p);
+    this.savePlayer(p, 'live');
+  }
+  /** キツネが巣の入口を掘った：ふさいでいれば無事。ふさいでいなければ倉庫の種子を少し（1 割・最大 5）取られる。所有者へ知らせる（留守なら次のログインで） */
+  raid(e) {
+    const nest = this.store.nest(e.nestId);
+    if (!nest) return null;
+    const t = this.now();
+    const owner = this.players.get(nest.owner);
+    const online = !!(owner && owner.conn);
+    let lost = 0;
+    if (!e.blocked) {
+      const storage = this.store.nestStorage(nest.id);
+      lost = raidLoss(countItem(storage, 'seed'));
+      if (lost) { removeItem(storage, 'seed', lost); this.store.setNestStorage(nest.id, storage); }
+    }
+    const kind = e.blocked ? 'blocked' : 'raid';
+    this.store.setRaided(nest.id, t);
+    this.store.addNestEvent(nest.id, kind, { lost }, t, online);
+    this.nests.forget(nest.id);
+    if (online) owner.conn.send({ t: S2C.RAID, nestId: nest.id, kind, lost, at: t });
+    return { kind, lost };
+  }
+  /** キツネが掘りに行ける巣か（所有者が巣の中にいない・前の襲撃から 1 日（世界の時間）たった・危険の度合い） */
+  raidInfo(ent, t) {
+    if (!this.tuning.raids) return null;
+    const m = this.nests.meta(ent.nestId);
+    if (!m) return null;
+    const o = this.players.get(ent.owner);
+    const home = !!(o && o.place === 'nest' && o.nestId === ent.nestId);
+    const ready = t - (m.raidedAt || 0) >= RAID_COOLDOWN_MS / (this.clock.scale || 1);
+    return { plugged: !!m.plugged, raidable: !home && ready, danger: m.danger || 0 };
+  }
+  /** その子が逃げ込める入口か（自分・共同作業者・公開・フレンド・許可リスト。ふさいだ入口は所有者と共同作業者だけ） */
+  canShelter(p, ent) {
+    if (ent.owner === p.accountId) return true;
+    const m = this.nests.meta(ent.nestId);
+    if (!m) return false;
+    const builder = this.store.hasNestAccess(ent.nestId, p.accountId, 'builder');
+    if (builder) return true;
+    if (m.plugged) return false;
+    if (m.policy === 'public') return true;
+    if (m.policy === 'friends') return this.store.isFriend(ent.owner, p.accountId);
+    if (m.policy === 'list') return this.store.hasNestAccess(ent.nestId, p.accountId, 'visitor');
+    return false;
+  }
+  /** 引っ越した：フレンドに巣の場所の変化を知らせる */
+  relocated(p, nest, ent) {
+    this.nests.forget(nest.id);
+    this.pushFriends(p.accountId, true);
+    void ent;
+  }
+  /** 開発用（devMode のときだけ）：天気・季節を変える（全員の時計へ）・捕食者を近くに出す */
+  dev(p, m) {
+    if (!this.devMode) return fail(ERR.FORBIDDEN, '開発用（TOBI_DEV=1 のときだけ）');
+    if (m.weather !== undefined) { if (m.weather && WEATHERS[m.weather]) this.clock.weather = m.weather; else delete this.clock.weather; }
+    if (m.season !== undefined) { if (m.season && SEASONS.some(x => x.id === m.season)) this.clock.season = m.season; else delete this.clock.season; }
+    if (m.weather !== undefined || m.season !== undefined) { const msg = { t: S2C.CLOCK, clock: { ...this.clock }, st: this.now() }; for (const s of this.sessions) if (s.player) s.conn.send(msg); }
+    let spawned = null;
+    if (m.spawn && PRED[m.spawn] && p.place === 'field') {
+      const dx = Number(m.dx) || 70, dy = Number(m.dy) || 0;
+      const q = this.field.preds.spawn(m.spawn, p.st.x + dx, p.st.y + dy);
+      spawned = q && q.id;
+    }
+    if (m.clear) this.field.preds.preds = [];
+    return { ok: true, clock: { ...this.clock }, spawned };
   }
 
   // ───────── フレンド（Ver.0.2）─────────

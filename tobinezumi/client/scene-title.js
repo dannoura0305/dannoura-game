@@ -34,7 +34,7 @@ export class TitleScene {
     const off = net.mode === 'offline';
     const ch = hello.character;
     const p = this._panel(`
-      <div class="tb-logo"><div class="tb-logo-main">トビネズミ</div><div class="tb-logo-sub">MMO（仮称）　ver.0.2「暮らし」</div></div>
+      <div class="tb-logo"><div class="tb-logo-main">トビネズミ</div><div class="tb-logo-sub">MMO（仮称）　ver.0.3「危険と土地」</div></div>
       <div class="tb-mode ${off ? 'off' : 'on'}">${off ? 'オフライン：ひとりで遊ぶ（この端末に保存）' + (net.fallbackFrom ? '<br><small>サーバーにつながらなかったので、ひとりで遊びます</small>' : '') : 'オンライン：' + esc(net.url)}</div>
       <div class="tb-title-btns"></div>
       <a class="tb-back" href="index.html">← 本編（だんのうら）に戻る</a>`, 'tb-titlebox');

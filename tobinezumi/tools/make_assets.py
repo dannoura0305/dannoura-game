@@ -20,6 +20,7 @@ import art_jerboa as J  # noqa: E402
 import art_field as F  # noqa: E402
 import art_nest as N  # noqa: E402
 import art_ui as U  # noqa: E402
+import art_danger as DG  # noqa: E402
 
 ROOT = os.path.normpath(os.path.join(HERE, '..'))
 OUT = os.path.join(ROOT, 'assets')
@@ -131,6 +132,26 @@ def build():
     strip('nest.dried_flower', 'nest/dried_flower.png', [N.dried_flower()], {'anchor': [8, 15]})
     strip('nest.rug', 'nest/rug.png', [N.rug()], {'anchor': [16, 15]})
     strip('nest.entrance', 'nest/entrance.png', [N.entrance()], {'note': 'top 16px = surface row'})
+
+    # ------------------------------------------------------------- Ver.0.3 危険と土地
+    fx = DG.fox_sheet()
+    B.put('pred.fox', 'danger/fox.png', hstack(fx),
+          {'cell': [32, 24], 'frames': len(fx), 'names': ['run0', 'run1', 'run2', 'run3', 'idle', 'alert', 'dig0', 'dig1'],
+           'anchor': [16, 22], 'faces': 'right', 'fps': 12})
+    ow = DG.owl_sheet()
+    B.put('pred.owl', 'danger/owl.png', hstack(ow), {'cell': [32, 32], 'frames': len(ow), 'names': ['fly0', 'fly1', 'dive'],
+                                                    'anchor': [16, 16], 'faces': 'right', 'fps': 6})
+    sn = DG.snake_sheet()
+    B.put('pred.snake', 'danger/snake.png', hstack(sn), {'cell': [32, 16], 'frames': len(sn),
+                                                        'names': ['coil0', 'coil1', 'rattle0', 'rattle1', 'lunge'],
+                                                        'anchor': [15, 14], 'faces': 'right', 'fps': 4})
+    strip('tile.puddle', 'danger/puddle.png', [DG.puddle(v) for v in range(2)], {'anchor': [8, 11]})
+    for name in ('rare_seed', 'pretty_stone'):
+        B.put('item.%s.ground' % name, 'items/%s_ground.png' % name, DG.rare_ground(name), {'cell': [16, 16], 'anchor': [8, 13]})
+        B.put('item.%s.icon' % name, 'items/%s_icon.png' % name, DG.rare_icon(name), {'cell': [16, 16]})
+    strip('tile.plug', 'danger/plug.png', [DG.plug()], {'anchor': [12, 10], 'note': 'overlay on tile.burrow (entrance plugged)'})
+    strip('ui.land_flag', 'danger/land_flag.png', [DG.land_flag()], {'anchor': [5, 15]})
+    strip('ui.alert', 'danger/alert.png', [DG.alert_icon()], {'anchor': [6, 13]})
 
     # ------------------------------------------------------------- ui
     img, sl = U.frame()

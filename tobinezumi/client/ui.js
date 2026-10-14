@@ -1,7 +1,9 @@
 // tobinezumi/client/ui.js — DOM の UI 部品（トースト・チャット・ホットバー・持ち物・ダイアログ・メニュー・倉庫）
 // 文字はすべて DOM（ブラウザの文字描画）でくっきり。大きさは --u（拡大率）に合わせる（style.css）。
 import { ITEMS, INV_SLOTS, itemName, STACK_MAX } from '../shared/items.js';
-import { lifeWord, LIFE } from '../shared/life.js';
+import { lifeWord, LIFE, RARE_SEED_FOOD } from '../shared/life.js';
+import { CLIMATES, RARES } from '../shared/lands.js';
+import { REST_NAME } from '../shared/season.js';
 import * as A from './art.js';
 import { Sprites } from './sprites.js';
 
@@ -57,6 +59,15 @@ const LIFE_ICON = {
 };
 const SUN_SVG = '<svg viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="2.4" fill="#ffd060" stroke="#2a1a10" stroke-width=".6"/><g stroke="#ffd060" stroke-width=".9" stroke-linecap="round"><path d="M5 .6v1M5 8.4v1M.6 5h1M8.4 5h1M1.9 1.9l.7.7M7.4 7.4l.7.7M1.9 8.1l.7-.7M7.4 2.6l.7-.7"/></g></svg>';
 const MOON_SVG = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M6.6 1.2 A4 4 0 1 0 8.8 7 A3.2 3.2 0 1 1 6.6 1.2 Z" fill="#f4eebc" stroke="#2a1a10" stroke-width=".6"/></svg>';
+// 天気（Ver.0.3）：砂嵐・雨・寒い夜（雪の結晶）
+const WX_SVG = {
+  sandstorm: '<svg viewBox="0 0 10 10" aria-hidden="true"><g stroke="#e8b060" stroke-width="1.1" stroke-linecap="round" fill="none"><path d="M1 3h5.5a1.3 1.3 0 1 0-1.3-1.3"/><path d="M1 5.5h7.5"/><path d="M2 8h4a1.2 1.2 0 1 1-1.2 1.2"/></g></svg>',
+  rain: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 5.2a2.4 2.4 0 0 1 2.2-3 3 3 0 0 1 4.6 1.8A1.7 1.7 0 0 1 8.2 7H2.6A1.6 1.6 0 0 1 2 5.2z" fill="#c8d4e0" stroke="#2a1a10" stroke-width=".5"/><g stroke="#56c8e0" stroke-width=".9" stroke-linecap="round"><path d="M3.5 8l-.5 1.4M5.6 8l-.5 1.4M7.6 8l-.5 1.4"/></g></svg>',
+  cold: '<svg viewBox="0 0 10 10" aria-hidden="true"><g stroke="#cfe8ff" stroke-width=".9" stroke-linecap="round"><path d="M5 .8v8.4M1.4 2.9l7.2 4.2M1.4 7.1l7.2-4.2"/></g></svg>',
+};
+const SEASON_COLOR = { spring: '#f0a8c0', summer: '#ffd060', autumn: '#e8904a', winter: '#cfe0ff' };
+const STARS = n => '<span class="tb-stars">' + '★'.repeat(Math.max(0, Math.min(5, n))) + '<i>' + '★'.repeat(Math.max(0, 5 - n)) + '</i></span>';
+const ITEM_JA = { pebble: '小石', grass: '草', seed: '種子' };
 export function fmtWhen(at, now = Date.now()) {
   const m = Math.max(0, Math.round((now - at) / 60000));
   if (m < 1) return 'さっき';
@@ -205,19 +216,66 @@ export class UI {
     this.layoutTop();
   }
   /** 時計：tod = shared/daynight.js の timeOfDay */
-  setClock(tod) {
+  setClock(tod, env = null) {
     if (!this.clockEl || !tod) return;
-    const key = tod.label + tod.period;
+    const wx = env ? env.weather + '|' + env.season + '|' + (env.cold ? 1 : 0) : '';
+    const key = tod.label + tod.period + wx;
     if (this._clockKey === key) return;
     this._clockKey = key;
     this.clockEl.querySelector('.ic').innerHTML = tod.moon ? MOON_SVG : SUN_SVG;
     this.clockEl.querySelector('.tx').textContent = tod.name + ' ' + tod.label;
     this.clockEl.dataset.period = tod.period;
+    // 季節と天気（時計の横）
+    let w = this.clockEl.querySelector('.wx');
+    if (!w) { w = el('span', 'wx'); this.clockEl.appendChild(w); }
+    if (env) {
+      const icon = env.weather !== 'clear' ? WX_SVG[env.weather] : env.cold ? WX_SVG.cold : '';
+      const word = env.weather === 'sandstorm' ? '砂嵐' : env.weather === 'rain' ? '雨' : env.cold ? '寒い' : '';
+      w.innerHTML = `<b style="color:${SEASON_COLOR[env.season] || '#fff'}">${esc(env.seasonName || '')}</b>${icon ? '<span class="wi">' + icon + '</span>' : ''}${word ? '<span class="ww">' + word + '</span>' : ''}`;
+      this.clockEl.dataset.weather = env.weather; this.clockEl.dataset.cold = env.cold ? '1' : '';
+      this.clockEl.title = env.seasonName + '・' + (env.weatherName || '') + (env.cold ? '・寒い夜' : '');
+    } else w.innerHTML = '';
+    this.layoutTop();
+  }
+
+  // ── 土地（Ver.0.3）──
+  costHTML(cost) { const e = Object.entries(cost || {}); return e.length ? e.map(([k, v]) => `<b>${ITEM_JA[k] || k}×${v}</b>`).join('・') : '<b>なし</b>'; }
+  /** 土地の性能の短い一覧（確認の中にも出す） */
+  landSummaryHTML(L) {
+    if (!L) return '';
+    const c = CLIMATES[L.climate] || { name: L.climate };
+    return `<div class="tb-landmini"><b>${esc(L.name)}</b>　食料 ${STARS(L.food)}　危険 ${STARS(L.danger)}　地質 ${STARS(L.hardness)}　景観 ${STARS(L.scenery)}　気候 ${esc(c.name)}${L.rare ? '　<span class="tb-ok">' + esc(RARES[L.rare].name) + '</span>' : ''}</div>`;
+  }
+  /** 土地を調べた結果。h = {dig(), relocate()}（使えないものは null） */
+  landPanel(L, here, h = {}) {
+    const c = CLIMATES[L.climate] || { name: L.climate, desc: '' };
+    const row = (k, label, n, note) => `<div class="tb-lrowp"><span class="k">${label}</span>${STARS(n)}<span class="tb-dim">${note}</span></div>`;
+    const dangerNote = ['安全地帯（捕食者が来ない）', 'ほとんど来ない', 'ときどき出る', 'よく出る', 'とても危ない', '捕食者だらけ'][L.danger];
+    const hardNote = ['', 'やわらかい砂', 'ふつう', 'ふつう', '硬い（素材がいる）', '岩まじり（素材が多くいる）'][L.hardness];
+    const p = this.menu('土地を調べた', `<div class="tb-landp">
+      <div class="tb-landname">${esc(L.name)}</div>
+      ${row('food', '食料', L.food, '種・草の出やすさ')}
+      ${row('danger', '危険', L.danger, dangerNote)}
+      ${row('hard', '地質', L.hardness, hardNote)}
+      ${row('scen', '景観', L.scenery, '水・木・草花')}
+      <div class="tb-lrowp"><span class="k">気候</span><b>${esc(c.name)}</b><span class="tb-dim">${esc(c.desc)}</span></div>
+      <div class="tb-lrowp"><span class="k">希少</span><b>${L.rare ? esc(RARES[L.rare].name) : 'なし'}</b><span class="tb-dim">${L.rare ? 'ときどき 1 つ見つかる' : ''}</span></div>
+      <div class="tb-landhere tb-dim">ここに巣を掘るなら：${here.canDig ? '掘れる（' + Math.round(here.digTime * 10) / 10 + ' 秒・素材 ' + this.costHTML(here.digCost) + '）' : '掘れない（' + esc(here.reason || '') + '）'}　この区画の巣 ${here.nests} 個</div>
+      ${here.hasNest ? `<div class="tb-landhere">引っ越し：${here.cooldownMs > 0 ? '<span class="tb-bad">あと ' + Math.ceil(here.cooldownMs / 60000) + ' 分は引っ越せない</span>' : here.canMove ? '費用 ' + this.costHTML(here.relocateCost) + '（巣の中はそのまま）' : '<span class="tb-bad">' + esc(here.moveReason || here.reason || 'ここには移せない') + '</span>'}</div>` : ''}
+    </div>`, [
+      ...(h.dig ? [{ label: 'ここに巣を掘る', cls: 'primary', act: () => h.dig() }] : []),
+      ...(h.relocate ? [{ label: here.cooldownMs > 0 ? '引っ越し（待ち）' : 'ここへ引っ越す', cls: here.canMove && !(here.cooldownMs > 0) ? 'primary' : 'off', act: () => { if (here.canMove && !(here.cooldownMs > 0)) { this.closeModal(); h.relocate(); } } }] : []),
+      { label: 'とじる', act: () => this.closeModal() },
+    ]);
+    p.classList.add('tb-landpanel');
+    return p;
   }
   /** くらしの説明（体調バーを押したとき）。actions = [{label, act}] */
   lifePanel(life, actions = []) {
     const row = k => `<div class="tb-lrow big ${k}">${LIFE_ICON[k]}<b>${LIFE_NAME[k]}</b><span class="tb-lbar"><i style="width:${Math.round(life[k])}%"></i></span><span class="v">${Math.round(life[k])}</span><span class="w">${lifeWord(k, life[k])}</span></div>`;
     const p = this.menu('くらし', `<div class="tb-lifep">${LIFE_ORDER.map(row).join('')}</div>
+      ${this.envLabels && this.envLabels.length ? '<div class="tb-bad tb-lifehint">' + this.envLabels.map(esc).join('<br>') + '</div>' : ''}
+      ${this.restName ? '<div class="tb-ok tb-lifehint">' + esc(this.restName) + '（よく休める）</div>' : ''}
       <div class="tb-dim tb-lifehint">種子を食べると空腹が戻る（1 つ +${LIFE.SEED_FOOD}）。オアシスのふちで水を飲む（+${LIFE.WATER_DRINK}）。夜は草むらに夜露が出る（+${LIFE.DEW_DRINK}）。<br>
       体調は起きているとゆっくり減り、空腹・水分が 0 だと早く減る。${LIFE.TIRED} 未満だと跳ねるのが遅く、大ジャンプできない。巣の寝床で眠ると戻る。</div>`,
       [...actions, { label: 'とじる', act: () => this.closeModal() }]);
@@ -324,9 +382,11 @@ export class UI {
     });
     return p;
   }
-  /** 留守のあいだに巣を訪ねてきた子（ログインした直後に 1 回） */
-  visitorsPanel(list) {
-    this.menu('留守のあいだに', `<div class="tb-body">あなたの巣を たずねてきた子がいます。</div><div class="tb-visits tb-scroll">${list.map(v => `<div>${esc(v.name)} <span class="tb-dim">${fmtWhen(v.at)}</span></div>`).join('')}</div>`,
+  /** 留守のあいだに巣を訪ねてきた子・キツネの襲撃（ログインした直後に 1 回） */
+  visitorsPanel(list, raids = []) {
+    const rv = raids.map(r => `<div class="${r.kind === 'raid' ? 'tb-bad' : 'tb-ok'}">${r.kind === 'raid' ? 'キツネが巣の入口を掘り返した（倉庫の種子 −' + r.lost + '）' : 'キツネが来たが、ふさいだ入口のおかげで無事だった'} <span class="tb-dim">${fmtWhen(r.at)}</span></div>`).join('');
+    this.menu('留守のあいだに', `${list.length ? '<div class="tb-body">あなたの巣を たずねてきた子がいます。</div>' : ''}<div class="tb-visits tb-scroll">${list.map(v => `<div>${esc(v.name)} <span class="tb-dim">${fmtWhen(v.at)}</span></div>`).join('')}${rv}</div>
+      ${raids.some(r => r.kind === 'raid') ? '<div class="tb-dim">巣の中で入口の縦穴の下に立つと「入口をふさぐ」（小石×2）。夜のキツネから倉庫を守れる。</div>' : ''}`,
       [{ label: 'とじる', act: () => this.closeModal() }]);
   }
   // ── ホットバー（持ち物 8 枠をそのまま映す）──
@@ -367,9 +427,9 @@ export class UI {
         if (sel === i) { sel = null; mark(); det.textContent = how + '。'; return; }
         if (it) { sel = i; mark(); }
         det.textContent = it ? `${itemName(it.id)} ×${it.n} — ${(ITEMS[it.id] || {}).desc || ''}` : '空いている枠。';
-        if (it && it.id === 'seed' && this.onEat) {   // 種子は食べられる
-          const b = el('button', 'tb-btn small primary tb-eatbtn', '1 つ食べる'); b.type = 'button';
-          b.onclick = e => { e.stopPropagation(); this.onEat(); };
+        if (it && (it.id === 'seed' || it.id === 'rare_seed') && this.onEat) {   // 種子・珍しい種は食べられる
+          const b = el('button', 'tb-btn small primary tb-eatbtn', it.id === 'rare_seed' ? '食べる（空腹 +' + RARE_SEED_FOOD + '）' : '1 つ食べる'); b.type = 'button';
+          b.onclick = e => { e.stopPropagation(); this.onEat(it.id); };
           det.appendChild(document.createTextNode(' ')); det.appendChild(b);
         }
       });

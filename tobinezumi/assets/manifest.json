@@ -853,6 +853,155 @@
   "variants": 1,
   "note": "top 16px = surface row"
  },
+ "pred.fox": {
+  "file": "danger/fox.png",
+  "cell": [
+   32,
+   24
+  ],
+  "frames": 8,
+  "names": [
+   "run0",
+   "run1",
+   "run2",
+   "run3",
+   "idle",
+   "alert",
+   "dig0",
+   "dig1"
+  ],
+  "anchor": [
+   16,
+   22
+  ],
+  "faces": "right",
+  "fps": 12
+ },
+ "pred.owl": {
+  "file": "danger/owl.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 3,
+  "names": [
+   "fly0",
+   "fly1",
+   "dive"
+  ],
+  "anchor": [
+   16,
+   16
+  ],
+  "faces": "right",
+  "fps": 6
+ },
+ "pred.snake": {
+  "file": "danger/snake.png",
+  "cell": [
+   32,
+   16
+  ],
+  "frames": 5,
+  "names": [
+   "coil0",
+   "coil1",
+   "rattle0",
+   "rattle1",
+   "lunge"
+  ],
+  "anchor": [
+   15,
+   14
+  ],
+  "faces": "right",
+  "fps": 4
+ },
+ "tile.puddle": {
+  "file": "danger/puddle.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 2,
+  "anchor": [
+   8,
+   11
+  ]
+ },
+ "item.rare_seed.ground": {
+  "file": "items/rare_seed_ground.png",
+  "cell": [
+   16,
+   16
+  ],
+  "anchor": [
+   8,
+   13
+  ]
+ },
+ "item.rare_seed.icon": {
+  "file": "items/rare_seed_icon.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.pretty_stone.ground": {
+  "file": "items/pretty_stone_ground.png",
+  "cell": [
+   16,
+   16
+  ],
+  "anchor": [
+   8,
+   13
+  ]
+ },
+ "item.pretty_stone.icon": {
+  "file": "items/pretty_stone_icon.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "tile.plug": {
+  "file": "danger/plug.png",
+  "cell": [
+   24,
+   16
+  ],
+  "variants": 1,
+  "anchor": [
+   12,
+   10
+  ],
+  "note": "overlay on tile.burrow (entrance plugged)"
+ },
+ "ui.land_flag": {
+  "file": "danger/land_flag.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 1,
+  "anchor": [
+   5,
+   15
+  ]
+ },
+ "ui.alert": {
+  "file": "danger/alert.png",
+  "cell": [
+   12,
+   14
+  ],
+  "variants": 1,
+  "anchor": [
+   6,
+   13
+  ]
+ },
  "ui.frame": {
   "file": "ui/frame.png",
   "cell": [

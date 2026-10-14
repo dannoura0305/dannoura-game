@@ -158,26 +158,45 @@ export class Store {
   setNestStorage(nestId, inv) { this.setInventory('nest', nestId, inv, STORAGE_SLOTS); }
 
   // ───────── 巣・土地 ─────────
-  createNest(ownerId, { data, x, y, regionId = null }, now = Date.now()) {
+  /** 巣を作る：土地（入口の場所・区画・性能）を足して、巣がその土地を指す。land = {plot, info}（shared/lands.js の landOut） */
+  createNest(ownerId, { data, x, y, regionId = null, land = null }, now = Date.now()) {
     return this.tx(() => {
-      const land = Number(this.q('INSERT INTO lands (region_id, x, y, info) VALUES (?, ?, ?, ?)').run(regionId, x, y, '{}').lastInsertRowid);
+      const lid = Number(this.q('INSERT INTO lands (region_id, x, y, info, plot) VALUES (?, ?, ?, ?, ?)').run(regionId, x, y, J(land || {}), land ? land.id : null).lastInsertRowid);
       const id = Number(this.q('INSERT INTO nests (owner_account_id, land_id, schema_version, rev, data, visit_policy, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?, ?, ?)')
-        .run(ownerId, land, data.v, JSON.stringify(data), 'private', now, now).lastInsertRowid);
+        .run(ownerId, lid, data.v, JSON.stringify(data), 'private', now, now).lastInsertRowid);
       return id;
     });
   }
+  /** 引っ越し：新しい土地を足して巣をそちらへ付け替える（巣の中身・倉庫・訪問設定はそのまま）。入口のふさぎは外れる */
+  relocateNest(nestId, { x, y, regionId = null, land = null }, now = Date.now()) {
+    return this.tx(() => {
+      const lid = Number(this.q('INSERT INTO lands (region_id, x, y, info, plot) VALUES (?, ?, ?, ?, ?)').run(regionId, x, y, J(land || {}), land ? land.id : null).lastInsertRowid);
+      this.q('UPDATE nests SET land_id = ?, plugged = 0, relocated_at = ?, updated_at = ? WHERE id = ?').run(lid, now, now, nestId);
+      return lid;
+    });
+  }
+  setPlugged(nestId, on) { this.q('UPDATE nests SET plugged = ?, updated_at = ? WHERE id = ?').run(on ? 1 : 0, Date.now(), nestId); }
+  setRaided(nestId, at) { this.q('UPDATE nests SET raided_at = ? WHERE id = ?').run(at, nestId); }
   _nestRow(r) {
     if (!r) return null;
-    return { id: r.id, owner: r.owner_account_id, landId: r.land_id, schemaVersion: r.schema_version, rev: r.rev, data: P(r.data, null), policy: r.visit_policy, x: r.x, y: r.y, ownerName: r.owner_name || '', ownerFur: r.owner_fur || null };
+    return { id: r.id, owner: r.owner_account_id, landId: r.land_id, schemaVersion: r.schema_version, rev: r.rev, data: P(r.data, null), policy: r.visit_policy, x: r.x, y: r.y, ownerName: r.owner_name || '', ownerFur: r.owner_fur || null,
+      plugged: !!r.plugged, relocatedAt: r.relocated_at || 0, raidedAt: r.raided_at || 0, plot: r.plot || null, land: P(r.land_info, null) };
   }
-  static NEST_SQL = 'SELECT n.*, l.x, l.y, (SELECT name FROM characters c WHERE c.account_id = n.owner_account_id AND c.active = 1 ORDER BY c.id DESC LIMIT 1) owner_name, (SELECT fur FROM characters c WHERE c.account_id = n.owner_account_id AND c.active = 1 ORDER BY c.id DESC LIMIT 1) owner_fur FROM nests n LEFT JOIN lands l ON l.id = n.land_id';
+  static NEST_SQL = 'SELECT n.*, l.x, l.y, l.plot, l.info land_info, (SELECT name FROM characters c WHERE c.account_id = n.owner_account_id AND c.active = 1 ORDER BY c.id DESC LIMIT 1) owner_name, (SELECT fur FROM characters c WHERE c.account_id = n.owner_account_id AND c.active = 1 ORDER BY c.id DESC LIMIT 1) owner_fur FROM nests n LEFT JOIN lands l ON l.id = n.land_id';
   nest(id) { return this._nestRow(this.q(Store.NEST_SQL + ' WHERE n.id = ?').get(id)); }
   nestByOwner(accountId) { return this._nestRow(this.q(Store.NEST_SQL + ' WHERE n.owner_account_id = ?').get(accountId)); }
   allNests() { return this.q(Store.NEST_SQL).all().map(r => this._nestRow(r)); }
+  /** 区画にある巣の数（土地を調べたときの「近所の巣」） */
+  nestsInPlot(plot) { const r = this.q('SELECT COUNT(*) n FROM nests n JOIN lands l ON l.id = n.land_id WHERE l.plot = ?').get(plot); return r ? r.n : 0; }
   /** rev が一致したときだけ書く（変わった行の数を返す：0 なら古い rev） */
   updateNestData(id, oldRev, data, now = Date.now()) {
     return this.q('UPDATE nests SET data = ?, rev = rev + 1, schema_version = ?, updated_at = ? WHERE id = ? AND rev = ?').run(JSON.stringify(data), data.v, now, id, oldRev).changes;
   }
+  // ───────── 巣の出来事（Ver.0.3：キツネの襲撃）─────────
+  addNestEvent(nestId, kind, data, at, seen) { this.q('INSERT INTO nest_events (nest_id, kind, data, at, seen) VALUES (?, ?, ?, ?, ?)').run(nestId, kind, J(data), at, seen ? 1 : 0); }
+  unseenNestEvents(nestId, limit = 20) { return this.q('SELECT kind, data, at FROM nest_events WHERE nest_id = ? AND seen = 0 ORDER BY at DESC LIMIT ?').all(nestId, limit).map(r => ({ kind: r.kind, ...P(r.data), at: r.at })); }
+  markNestEventsSeen(nestId) { this.q('UPDATE nest_events SET seen = 1 WHERE nest_id = ? AND seen = 0').run(nestId); }
+  recentNestEvents(nestId, limit = 20) { return this.q('SELECT kind, data, at FROM nest_events WHERE nest_id = ? ORDER BY at DESC LIMIT ?').all(nestId, limit).map(r => ({ kind: r.kind, ...P(r.data), at: r.at })); }
   setVisitPolicy(id, policy) { this.q('UPDATE nests SET visit_policy = ?, updated_at = ? WHERE id = ?').run(policy, Date.now(), id); }
   setNestAccess(nestId, entries, role = 'visitor') {
     this.tx(() => {
@@ -214,9 +233,10 @@ export class Store {
   trimVisits(nestId, keep = 200) { this.q('DELETE FROM nest_visits WHERE nest_id = ? AND id NOT IN (SELECT id FROM nest_visits WHERE nest_id = ? ORDER BY at DESC LIMIT ?)').run(nestId, nestId, keep); }
 
   // ───────── 採集物 ─────────
-  resources() { return this.q('SELECT id, kind, x, y FROM world_resources WHERE respawn_at IS NULL').all().map(r => ({ id: r.id, kind: r.kind, x: r.x, y: r.y })); }
+  resources() { return this.q('SELECT id, kind, x, y, qty, expires_at FROM world_resources WHERE respawn_at IS NULL').all().map(r => ({ id: r.id, kind: r.kind, x: r.x, y: r.y, ...(r.qty > 1 ? { n: r.qty } : {}), ...(r.expires_at ? { exp: r.expires_at } : {}) })); }
   respawnQueue() { return this.q('SELECT id, kind, respawn_at FROM world_resources WHERE respawn_at IS NOT NULL ORDER BY respawn_at').all().map(r => ({ id: r.id, kind: r.kind, at: r.respawn_at })); }
-  insertResource(r, regionId = null) { this.q('INSERT INTO world_resources (id, region_id, kind, x, y, respawn_at) VALUES (?, ?, ?, ?, ?, NULL)').run(r.id, regionId, r.kind, r.x, r.y); }
+  /** r = {id, kind, x, y, n?（落とし物の数）, exp?（消える時刻）} */
+  insertResource(r, regionId = null) { this.q('INSERT INTO world_resources (id, region_id, kind, x, y, respawn_at, qty, expires_at) VALUES (?, ?, ?, ?, ?, NULL, ?, ?)').run(r.id, regionId, r.kind, r.x, r.y, r.n > 1 ? r.n : 1, r.exp || null); }
   /** 地上から消す（あったときだけ 1） */
   takeResource(id) { return this.q('DELETE FROM world_resources WHERE id = ? AND respawn_at IS NULL').run(id).changes; }
   queueRespawn(id, kind, at) { this.q('INSERT INTO world_resources (id, kind, x, y, respawn_at) VALUES (?, ?, NULL, NULL, ?)').run(id, kind, at); }

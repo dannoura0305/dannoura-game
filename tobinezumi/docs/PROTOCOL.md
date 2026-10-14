@@ -1,4 +1,4 @@
-# PROTOCOL — クライアント⇄サーバーの通信（Ver.0.1＋0.2「暮らし」）
+# PROTOCOL — クライアント⇄サーバーの通信（Ver.0.1＋0.2「暮らし」＋0.3「危険と土地」）
 
 > 状態：**実装済み（Ver.0.1）**。サーバー＝`tobinezumi/server`（Node.js 22＋`ws`＋`node:sqlite`）、クライアント＝`client/net.js` の `OnlineBackend`。2 ブラウザ＋ボット 10 体で受け入れ確認済み。
 > この文書と `tobinezumi/shared/protocol.js` が「約束」。サーバー担当はここに合わせ、ずれたら両方を直す。
@@ -152,3 +152,43 @@ life   = {hunger, thirst, cond, sleep}   0〜100（shared/life.js）
 - 保存：`individuals.status.life`（`json_set`）を位置の保存と同じとき（30 秒ごと・切断・ログアウト・停止）に。ログアウト中は減らない（再接続したときの値から続ける）。眠りは保存しない（入り直すと起きている）。
 - DB：`migrations/003_life_social.js`＝`friends(a, b, state)`（a が申請した側）、`nest_visits(nest_id, visitor_id, visitor_name, at, seen)`、`nest_access` の主キーを `(nest_id, account_id, role)` に、既存の個体に life の初期値。
 - オフライン版（`OfflineBackend`）も同じ API：フレンドは NPC（ナッツ・モカ・リコ）、`setBuilders` は「オンラインで使えます」、NPC のフレンドが訪ねてくる。保存 `tobi_save_v1` の中身は版 2：`player.life`・`friends`・`visits`・`lastPlayed`（v1 は読み込み時に移行）。
+
+## 9. Ver.0.3「危険と土地」（追加分。PROTOCOL_VERSION は 1 のまま＝足しただけ）
+
+### 9.1 C2S
+| t | 中身 | 返事 | サーバーの検証 |
+|---|---|---|---|
+| `survey` | `{}` | `{ok, land:Land+{here:{weather, season, sheltered}}, here:{canDig, reason, digCost, digTime, relocateCost, nests, hasNest, cooldownMs, canMove, moveReason?, x, y}}` | 地上にいる・1 秒あける（`rate`）。確定位置の区画（`shared/lands.js` の `landAt`） |
+| `relocate` | `{}` | `{ok, entrance, inv, cost, land, from:{x,y}}` | 自分の巣がある（`not_found`）・跳んでいない・前の引っ越しから 10 分（`rate`＋`cooldownMs`）・`canDigBurrow`（自分の入口は除く）・今の入口から 8 タイル以上・費用 `relocateCost(land)` を持ち物から（`rule`）。持ち物と `lands` の追加・`nests.land_id`・`plugged=0`・`relocated_at` を 1 トランザクション。ほかの子へ `entrance {moved:true, from}`、フレンドへ `friends` |
+| `plug` | `{on}` | `{ok, plugged, inv}` | 巣の中・所有者か共同作業者・1 秒あける・ふさぐのは小石 ×2（`PLUG_COST`）、ひらくと小石 1 つ戻る・同じ状態なら `rule`。地上の子へ `entrance`（`plugged`）、中の子へ `toast` |
+| `dev` | `{weather?, season?, spawn?:'owl'\|'fox'\|'snake', dx?, dy?, clear?}` | `{ok, clock, spawned}` | **`TOBI_DEV=1` のときだけ**（それ以外は `forbidden`）。天気・季節を固定（`null` で外す）→ 全員へ `clock`。捕食者を自分の確定位置＋(dx,dy) に出す |
+- `dig_burrow` の返事に `inv, cost, land, digTime`。硬い土（地質 4〜5）は素材がいる（`rule`「土が硬い。素材が足りない」）。巣は掘った区画の土地（`lands.plot`・`lands.info`）を持つ。
+- `eat` に `item:'rare_seed'`（珍しい種：空腹 +40・体調 +10）。
+- `drink` の `resId` は夜露（`d…`）か水たまり（`w…`・`kind:'puddle'`・水分 +20）。返事の `src` は `dew`／`puddle`／`water`。
+- `pickup`：落とし物（`x…`）は `n` 個まとめて（持ち物に入りきらなければ `full`）、返事に `n`。落とし物・希少資源（`g…`）・水たまり・夜露・夜の種子は再出現待ちに積まない。水たまりは拾えない（`rule`）。
+- `enter_nest`：入口がふさがれていれば所有者と共同作業者だけ（訪問者は `forbidden`「入口がふさがれている」）。
+- `visitors` の返事に `events`（最近の巣の出来事）。
+
+### 9.2 S2C
+| t | 中身 |
+|---|---|
+| `snapshot` | `preds:[PredSnap]` が加わる（10Hz・地上の全員に同じもの） |
+| `caught` | `{kind, name, at:{x,y}, x, y, life, inv, drops:[{id, kind, n}], until}`：自分がつかまった。`(x,y)` は戻された所（自分の巣の入口の下か出発点）、`until` までは狙われない（サーバー時刻）。落とし物はみんなに `res_spawn`、ほかの子には `toast`「○○ が キツネ につかまった！」 |
+| `raid` | `{nestId, kind:'raid'\|'blocked', lost, at}`：自分の巣の入口をキツネが掘った（所有者がオンラインのとき。留守なら `join_field` の `world.raids` に 1 回だけ） |
+| `clock` | `{clock, st}`：dev で天気・季節を変えたとき（clock に `weather`・`season` が入ると固定） |
+| `life` | `env:[文字列]`（砂嵐・寒い夜で体調が減っている理由）・`rest:'aestivation'\|'hibernation'`（休眠中）が加わることがある |
+| `entrance` | `{entrance:{…, plugged}, moved?, from?}`：引っ越し（`moved`）・ふさいだ／ひらいた（`plugged`） |
+
+```
+PredSnap = {id:'p…', kind:'owl'|'fox'|'snake', x, y, z, dir:'left'|'right', state, t, target:アカウント id|null, sx?, sy?, sr?}
+  state：fox = roam / alert / chase / lost / toNest / dig / leave、owl = circle / stalk / dive / rise / leave、snake = lurk / rattle / lunge / recover / leave
+  sx, sy, sr：フクロウが狙っている地面の影（stalk・dive のとき）。alert / chase / stalk / dive / rattle / lunge で target が自分なら「！」と画面の赤
+Land     = {id:'L列-行', name, region, food, danger, hardness, scenery, climate:'mild'|'dry'|'hot'|'cool', rare:'rare_seed'|'pretty_stone'|null}
+WorldInit に：raids:[{kind, lost, at}]（留守中の襲撃）、danger:{predators:'normal'|'easy'|'off', env, relocateCooldownMs}、you.nest に land・plugged・relocatedAt
+NestRecord に：plugged、land、（所有者に）relocatedAt・relocateCooldownMs
+Resource に：n（落とし物の数）、exp（消える時刻）
+```
+- 天気・季節は時計から計算（`shared/season.js` の `weatherAt`・`seasonOf`）。送るのは時計だけなので、全員の天気がそろう。砂嵐の跳ねる速さ ×0.8 はクライアントの予測（`fieldMods`）とサーバー（`FieldRoom.drain`）で同じ。
+- 捕食者はサーバーの `FieldRoom.predTick`（20Hz・1/20 秒）で動き、「つかまった」もサーバーが決める。クライアントは `preds` を 100ms 遅れで補間して描くだけ。
+- DB：`migrations/004_danger_land.js`＝`lands.plot`（と `info` に性能）、`nests.plugged / relocated_at / raided_at`、`nest_events(nest_id, kind, data, at, seen)`、`world_resources.qty / expires_at`。今ある巣の土地にも区画と性能を入れる。
+- オフライン版（`OfflineBackend`）も同じ API・同じ AI（`net.preds` が `PredatorWorld`）。保存 `tobi_save_v1` の版 3：巣に `plugged`・`land`・`relocatedAt`・`raidedAt`、`events`（襲撃）、落とし物・水たまり・希少資源は `world.resources` に（v2 は読み込み時に移行）。捕食者の強さはメニュー（`tobi_settings.danger`）。
