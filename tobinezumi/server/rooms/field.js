@@ -37,6 +37,7 @@ import { WildWorld, WILD_DT } from '../../shared/wild.js';
 import { mulberry32 } from '../../shared/rng.js';
 import { trailPush, kidSpots, kidsHidden, packSpots } from '../../shared/follow.js';
 import { CURIOS, CURIO_TICK_MS, CURIO_TTL_MS, pickCurioSpawn, curioEligible, curioSpots } from '../../shared/collect.js';
+import { festivalAt, marksVisible, FEST } from '../../shared/festival.js';
 
 export const PICK_RANGE = 28;
 export const INPUT_RATE = 60;          // 1 秒あたりの入力（= クライアントの 60Hz）
@@ -77,6 +78,7 @@ export class FieldRoom {
     this.entrances = new Map();        // owner(accountId) → {owner, nestId, x, y}
     this.spawnPts = resourceSpawnPoints(map);
     this.tickN = 0;
+    this.festMarks = [];               // Ver.0.8：季節の行事の印（この土地・いまと 1 つ前の回）
   }
 
   /** 起動時：DB から採集物・再出現待ち・巣穴を読む（初回は初期配置を作る） */
@@ -95,6 +97,20 @@ export class FieldRoom {
     for (const r of st.resources(this.region)) this.resources.set(r.id, r);
     this.respawns = st.respawnQueue(this.region);
     for (const n of st.allNests()) if (n.x != null && (n.field || 'plains') === this.region) this.entrances.set(n.owner, { owner: n.owner, nestId: n.id, x: n.x, y: n.y, region: this.region });
+    // Ver.0.8：季節の行事の印（2 回より前は消す）
+    const occ = festivalAt(this.clock, this.now()).occ;
+    if (st.schemaVersion && st.schemaVersion() >= 8) { st.purgeFestMarks(occ - 2); this.festMarks = st.festMarks(this.region, occ - 1); }
+  }
+  /** Ver.0.8：いま見える印（同じ回のもの） */
+  festVisible(t = this.now()) { return marksVisible(this.festMarks, this.clock, t, this.region); }
+  /** Ver.0.8：印が増えた → この土地のみんなへ（古い回の印は ここで片づける） */
+  addFestMark(mark) {
+    const occ = festivalAt(this.clock, this.now()).occ;
+    this.festMarks = this.festMarks.filter(m => m.occ >= occ - 1);
+    if (this.festMarks.filter(m => m.occ === mark.occ).length >= FEST.MAX_MARKS) return false;
+    this.festMarks.push(mark);
+    this.broadcast({ t: 'fest', mark });
+    return true;
   }
   _nextId(prefix) {
     const n = parseInt(this.store.getMeta('next_res', '1000'), 10) || 1000;
@@ -133,6 +149,7 @@ export class FieldRoom {
       resources: [...this.resources.values()].map(r => ({ id: r.id, kind: r.kind, x: r.x, y: r.y, ...(r.cid ? { cid: r.cid } : {}), ...(r.n > 1 ? { n: r.n } : {}) })),
       players: [...this.players.values()].filter(o => o !== p).map(o => this.playerInfo(o)),
       entrances: this.entranceList(p.accountId),
+      fest: { marks: this.festVisible() },   // Ver.0.8
     };
   }
   entranceOut(e, forAcct) {

@@ -548,3 +548,53 @@ export function drawBusstop(g, x, y) {
   g.fillStyle = '#8a8070'; for (let i = 0; i < 3; i++) g.fillRect(x + 3, y - 16 + i * 2, 4, 1);
   g.fillStyle = '#7a5a3a'; g.fillRect(x - 12, y - 6, 9, 2); g.fillRect(x - 11, y - 4, 1, 4); g.fillRect(x - 5, y - 4, 1, 4);
 }
+
+// ───────── Ver.0.8：季節の行事（素材が無いときのコード描画。素材は tools/art_fest.py）─────────
+const FEST_PETAL = [['#f4a6c0', '#fbd3e0'], ['#f6d46a', '#fff0a8'], ['#a8c4f4', '#d8e6ff'], ['#f2f2f6', '#ffffff']];
+/** 花の種まきの花（3 輪の小さな株）。v＝色 0..3。足元 (x, y) */
+export function drawFestFlower(g, x, y, v = 0, t = 0) {
+  x = Math.round(x); y = Math.round(y);
+  const [c0, c1] = FEST_PETAL[v % 4];
+  g.fillStyle = '#4f8a3a'; g.fillRect(x - 4, y - 5, 1, 5); g.fillRect(x, y - 8, 1, 8); g.fillRect(x + 4, y - 4, 1, 4);
+  g.fillStyle = '#6aa848'; g.fillRect(x - 3, y - 2, 2, 1); g.fillRect(x + 1, y - 3, 2, 1);
+  for (const [dx, dy] of [[-4, -6], [0, -9], [4, -5]]) {
+    const sw = Math.round(Math.sin(t * 2 + dx) * 0.6);
+    g.fillStyle = c0; g.fillRect(x + dx - 1 + sw, y + dy, 3, 1); g.fillRect(x + dx + sw, y + dy - 1, 1, 3);
+    g.fillStyle = c1; g.fillRect(x + dx + sw, y + dy, 1, 1);
+  }
+}
+/** 灯りの夜の小さな灯り（草で編んだ笠）。lit＝ともっている */
+export function drawFestLantern(g, x, y, lit = false, t = 0) {
+  x = Math.round(x); y = Math.round(y);
+  g.fillStyle = '#6a4a2a'; g.fillRect(x, y - 12, 1, 12);
+  g.fillStyle = '#c8a46a'; g.fillRect(x - 3, y - 13, 7, 2);
+  g.fillStyle = lit ? `rgba(255,${196 + Math.round(30 * Math.sin(t * 8 + x))},110,1)` : '#d8c8a0'; g.fillRect(x - 2, y - 11, 5, 5);
+  g.fillStyle = '#8a6a3c'; g.fillRect(x - 2, y - 6, 5, 1);
+  if (lit) { g.fillStyle = '#fff4c0'; g.fillRect(x, y - 9, 1, 2); }
+}
+/** 月見の種の山（size 1..4） */
+export function drawOfferPile(g, x, y, size = 1, moon = false) {
+  x = Math.round(x); y = Math.round(y);
+  g.fillStyle = '#8a8478'; g.beginPath(); g.ellipse(x, y - 1, 11, 4, 0, 0, Math.PI * 2); g.fill();   // 平らな石
+  g.fillStyle = '#a8a294'; g.beginPath(); g.ellipse(x, y - 2, 10, 3, 0, 0, Math.PI * 2); g.fill();
+  const r = [0, 3, 4.5, 6, 7.5][Math.max(0, Math.min(4, size))];
+  if (r) {
+    g.fillStyle = moon ? '#f4ecd0' : '#d8c08a'; g.beginPath(); g.ellipse(x, y - 3, r + 1, r * 0.8, 0, Math.PI, 0); g.fill();
+    g.fillStyle = moon ? '#fffbe8' : '#ecd8a4'; for (let i = 0; i < size * 3; i++) g.fillRect(x - r + ((i * 7) % (r * 2)), y - 3 - ((i * 5) % Math.max(1, Math.round(r * 0.7))), 1, 1);
+  }
+}
+/** 富山：平らな石の上の米つぶ */
+export function drawRiceStone(g, x, y) {
+  x = Math.round(x); y = Math.round(y);
+  g.fillStyle = '#7a7a76'; g.beginPath(); g.ellipse(x, y - 2, 7, 3, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#9c9c96'; g.beginPath(); g.ellipse(x, y - 3, 6, 2, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#fbf8ee'; for (const [dx, dy] of [[-2, -4], [0, -4], [1, -5], [-1, -5], [2, -4], [0, -5]]) g.fillRect(x + dx, y + dy, 1, 1);
+}
+/** 富山：丸く ねた草 */
+export function drawFlatGrass(g, x, y) {
+  x = Math.round(x); y = Math.round(y);
+  g.strokeStyle = 'rgba(70,110,50,.8)'; g.lineWidth = 1;
+  g.beginPath(); g.ellipse(x + 0.5, y - 2.5, 8, 4, 0, 0, Math.PI * 2); g.stroke();
+  g.fillStyle = 'rgba(150,190,100,.55)'; g.beginPath(); g.ellipse(x, y - 3, 6, 3, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#5f8c3c'; for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; g.fillRect(Math.round(x + Math.cos(a) * 5), Math.round(y - 3 + Math.sin(a) * 2.5), 2, 1); }
+}

@@ -44,6 +44,7 @@ import { landAt, landOut, digCost, digTime, relocateCost, RELOCATE_COOLDOWN_MS, 
 import { PLUG_COST, SEXES, MAX_RESIDENTS } from '../shared/protocol.js';
 import { Household, walkerOut } from '../shared/household.js';
 import { toyamaEventBlock, TOYAMA_EVENT_IDS } from '../shared/toyama.js';
+import { festivalAt, festActBlock, makeMark, marksVisible, npcMarks, npcSeat, FEST, FEST_ACTS } from '../shared/festival.js';
 import { founderInd, indOut, courtBlock, stageOf, ageDays, STAGE, FOUNDER_AGE_DAYS, friendBlock, makeInd } from '../shared/family.js';
 import { PET } from '../shared/family-life.js';
 import { devFamily } from '../shared/dev-family.js';
@@ -59,12 +60,13 @@ import { CURIOS, isCurio, CURIO_TICK_MS, CURIO_TTL_MS, pickCurioSpawn, curioElig
 export const SAVE_KEY = 'tobi_save_v1';
 export const SETTINGS_KEY = 'tobi_settings';
 export const TOKEN_KEY = 'tobi_token';
-export const SAVE_VERSION = 7;   // v2（Ver.0.2）：player.life・friends・visits・lastPlayed。v3（Ver.0.3）：nests[].plugged・land・relocatedAt・raidedAt、events（襲撃）。
+export const SAVE_VERSION = 8;   // v2（Ver.0.2）：player.life・friends・visits・lastPlayed。v3（Ver.0.3）：nests[].plugged・land・relocatedAt・raidedAt、events（襲撃）。
                                  // v4（Ver.0.4）：house（操作個体の年齢・遺伝子・巣の家族・お産の予定）・lineage（ご先祖・巣立った子）・nextInd。鍵の名前（tobi_save_v1）はそのまま
                                  // v5（Ver.0.5）：player.region（いる土地）・worlds（はじまりの原以外の土地の採集物。原は前からの world）・entrances[].region・
                                  //   collection（図鑑 {id: 時刻}）・achievements（実績 {id: 時刻}）・progress（季節・土地・訪ねた巣・砂嵐）・toyama（たどり着いた）
                                  // v6（Ver.0.6）：npcResidents（オフラインの共同巣：NPC の住人 [{id, since}]）・house.members[].species / pettedAt
                                  // v7（Ver.0.7）：toyamaEvents（見た富山の小さな出来事 {id: 時刻}）・house.companion（地上へ連れて行く なかまの id）
+                                 // v8（Ver.0.8）：fest {marks:[{kind, fest, occ, region, x, y, owner, name, v, at}]}（季節の行事で 自分が置いた印。NPC の印は保存しない）
 const NO_RESPAWN = new Set(['n', 'x', 'g', 'w', 'd', 'c']);
 const RARE_MIN = 8 * 60, RARE_MAX = 12 * 60;
 const PICK_RANGE = 28, ENTER_RANGE = 34;
@@ -183,7 +185,7 @@ export class OfflineBackend extends Emitter {
    *   どれも指定しなければ切ってある（テスト用の既定）。ゲームは chooseBackend が設定から入れる
    */
   constructor({ storage = globalThis.localStorage, now = () => Date.now(), npc = true, map = null, timeScale = 1, startHour = null, random = Math.random,
-    env = false, predators = 'off', weather = null, season = null, predSeed = null, relocateCooldownMs = RELOCATE_COOLDOWN_MS, wild = true, wildSeed = null, curios = null, toyama = false } = {}) {
+    env = false, predators = 'off', weather = null, season = null, predSeed = null, relocateCooldownMs = RELOCATE_COOLDOWN_MS, wild = true, wildSeed = null, curios = null, toyama = false, fest = null } = {}) {
     super();
     this.mode = 'offline';
     this.storage = storage;
@@ -192,6 +194,8 @@ export class OfflineBackend extends Emitter {
     this.clock = makeClock({ scale: timeScale, startHour, now: now() });
     if (weather && WEATHERS[weather]) this.clock.weather = weather;
     if (season && SEASONS.some(x => x.id === season)) this.clock.season = season;
+    if (fest === 'on' || fest === 'off') this.clock.fest = fest;   // Ver.0.8：開発用（?fest=1：いつでも行事の夜）
+    this.festT = 0; this._festSent = new Set();
     this.envOn = !!env;
     this.setDanger(predators, false);
     this.relocateCooldownMs = relocateCooldownMs;
@@ -295,6 +299,11 @@ export class OfflineBackend extends Emitter {
       if (s.house && s.house.companion === undefined) s.house.companion = null;
       s.v = 7;
     }
+    if (s.v < 8) {   // v7 → v8（Ver.0.8「季節のたのしみ」）：季節の行事の印（はじめは 空）
+      s.fest = s.fest && Array.isArray(s.fest.marks) ? s.fest : { marks: [] };
+      s.v = 8;
+    }
+    if (!s.fest || !Array.isArray(s.fest.marks)) s.fest = { marks: [] };
     if (!s.toyamaEvents || typeof s.toyamaEvents !== 'object') s.toyamaEvents = {};
     if (!Array.isArray(s.npcResidents)) s.npcResidents = [];
     if (!s.collection) s.collection = {};
@@ -345,7 +354,7 @@ export class OfflineBackend extends Emitter {
   async login(username) { return this._local(username); }
   async _local(username) {
     if (!this.save) this.save = { v: SAVE_VERSION, account: { id: 'local', username: username || 'local', createdAt: this.now() }, character: null, player: null, nests: {}, entrances: [], world: null, friends: [], visits: [], events: [],
-      worlds: {}, collection: {}, achievements: {}, progress: { seasons: [], regions: [], visited: [], storm: 0 }, toyamaEvents: {} };
+      worlds: {}, collection: {}, achievements: {}, progress: { seasons: [], regions: [], visited: [], storm: 0 }, toyamaEvents: {}, fest: { marks: [] } };
     this.flush();
     return { ok: true, account: this.save.account, character: this.save.character };
   }
@@ -417,6 +426,7 @@ export class OfflineBackend extends Emitter {
       serverTime: this.now(),
       region: this.region, gate: this.gate,
       collection: { owned: { ...this.save.collection }, achievements: { ...this.save.achievements }, found: !!this.save.toyama, tev: { ...(this.save.toyamaEvents || {}) } },
+      fest: { marks: this._festMarks(this.region) },   // Ver.0.8
       clock: { ...this.clock },
       life: lifeOut(p.life), friends: this._friendList(), visitors, raids,
       danger: { predators: this.tuning.enabled ? (this.tuning.easy ? 'easy' : 'normal') : 'off', env: this.envOn, relocateCooldownMs: this.relocateCooldownMs },
@@ -459,6 +469,7 @@ export class OfflineBackend extends Emitter {
     if (now >= this.puddleT) this.weatherTick(now);
     if (now >= this.expireT) { this.expireT = now + 1000; this._expireTick(now); }
     if (this.place === 'field' && this.curiosOn && now >= this.curioT) this.curioTick(now);
+    if (this.place === 'field' && now >= this.festT) this.festTick(now);
     if (now >= this.gateT) this._gateTick();
     if (this.place === 'field' && this.auth) {
       this.predAcc += dt;
@@ -487,7 +498,12 @@ export class OfflineBackend extends Emitter {
     for (const n of this.npcs) {
       const b = n.brain;
       b.t -= dt;
-      if (b.t <= 0) {
+      const seat = this._npcSeat(n);   // Ver.0.8：星見の夜は 丘へ行って すわる
+      if (seat) {
+        const dx = seat.x - n.st.x, dy = seat.y - n.st.y, far = Math.hypot(dx, dy) > 6;
+        if (Math.hypot(dx, dy) > 260) { n.st = makeFieldState(seat.x, seat.y); n.st.dir = 'up'; }   // 遠いときは 丘へ（オフラインの近道）
+        b.mx = far ? (Math.abs(dx) > 4 ? Math.sign(dx) : 0) : 0; b.my = far ? (Math.abs(dy) > 4 ? Math.sign(dy) : 0) : 0; b.jump = false; b.t = 0.3;
+      } else if (b.t <= 0) {
         const r = Math.random();
         if (r < 0.4) { b.mx = 0; b.my = 0; b.t = 1 + Math.random() * 2.5; }
         else {
@@ -592,7 +608,7 @@ export class OfflineBackend extends Emitter {
     return { id: rec.id, owner: rec.owner, ownerName: rec.ownerName, rev: rec.rev, data: rec.data, storage: rec.storage.map(s => s && { ...s }), policy: rec.policy, canEdit: own, own, role: own ? 'owner' : 'visitor', home: own, region: rec.region || 'plains', residents: own ? this._npcResMembers().map(m => ({ id: m.id, name: m.name, npc: true })) : [], hostFur: rec.hostFur || null,
       plugged: !!rec.plugged, land: rec.land || null, ...(own ? { relocatedAt: rec.relocatedAt || 0, relocateCooldownMs: this.relocateCooldownMs } : {}),
       family: own && this.house ? this.house.publicOut() : [],
-      tales: own ? { toyama: !!this.save.toyama, companion: this.house ? this.house.companion ?? null : null } : null,
+      tales: own ? { toyama: !!this.save.toyama, companion: this.house ? this.house.companion ?? null : null, fest: this._festJoined() } : null,
       ...(own && this.npcOn ? { npcResidents: this._npcResMembers() } : {}) };
   }
 
@@ -953,6 +969,8 @@ export class OfflineBackend extends Emitter {
     }
     if (m.weather !== undefined || m.season !== undefined || m.hour != null) this.emit('clock', { clock: { ...this.clock } });
     if (m.tevReset) { this.save.toyamaEvents = {}; this.flush(); }   // Ver.0.7：富山の出来事の記録を消す（確認用）
+    if (m.fest !== undefined) { if (m.fest === 'on' || m.fest === 'off') this.clock.fest = m.fest; else delete this.clock.fest; this.emit('clock', { clock: { ...this.clock } }); this.festT = 0; }   // Ver.0.8
+    if (m.festReset) { this.save.fest = { marks: [] }; for (const c of Object.keys(this.save.collection)) if (CURIOS[c] && CURIOS[c].kind === 'fest') delete this.save.collection[c]; this._festSent = new Set(); this.flush(); }
     let spawned = null;
     if (m.spawn && PRED[m.spawn] && this.auth) { const q = this.preds.spawn(m.spawn, this.auth.x + (Number(m.dx) || 70), this.auth.y + (Number(m.dy) || 0)); spawned = q && q.id; }
     if (m.clear) this.preds.preds = [];
@@ -1103,6 +1121,60 @@ export class OfflineBackend extends Emitter {
     this.flush();
     return { ok: true, family: h.out(), kids: this._kidsLook(), swapped: r.swapped };
   }
+  // ───────── Ver.0.8：季節の行事（shared/festival.js。サーバーと同じ条件）─────────
+  _fest(t = this.now()) { return festivalAt(this.clock, t); }
+  _npcHomes() { return this.npcOn ? NPCS : []; }
+  /** いま この土地で見える印（自分の印＋NPC の印） */
+  _festMarks(region = this.region, t = this.now()) {
+    const f = this._fest(t);
+    const mine = marksVisible((this.save && this.save.fest && this.save.fest.marks) || [], this.clock, t, region);
+    const npc = region === 'plains' ? npcMarks(f, this._npcHomes(), f.w) : [];
+    return [...mine, ...npc].map(m => ({ ...m }));
+  }
+  _festJoined(t = this.now()) {
+    const f = this._fest(t), acct = this.save && this.save.account ? this.save.account.id : 'local';
+    return ((this.save && this.save.fest && this.save.fest.marks) || []).some(m => m.occ === f.occ && m.owner === acct);
+  }
+  /** 星見の夜の NPC の すわる所（はじまりの原・行事の夜だけ） */
+  _npcSeat(n) {
+    if (this.region !== 'plains') return null;
+    const f = this._fest();
+    if (f.phase !== 'during' || f.act !== 'gaze') return null;
+    return npcSeat(NPCS.findIndex(x => x.id === n.id));
+  }
+  /** 1 秒ごと：NPC の印が増えたら知らせる・古い回の自分の印を片づける */
+  festTick(now = this.now()) {
+    this.festT = now + 1000;
+    if (!this.save) return;
+    const f = this._fest(now);
+    const keep = this.save.fest.marks.filter(m => m.occ >= f.occ - 1);
+    if (keep.length !== this.save.fest.marks.length) { this.save.fest.marks = keep; this.flush(); }
+    for (const m of this._festMarks(this.region, now)) {
+      const k = m.occ + ':' + m.owner + ':' + m.region;
+      if (this._festSent.has(k)) continue;
+      this._festSent.add(k);
+      if (String(m.owner).startsWith('npc_')) this.emit('fest', { mark: m });
+    }
+  }
+  /** 季節の行事に参加する（1 回の行事に 1 回・条件はサーバーと同じ festActBlock）。はじめての行事なら図鑑の品 */
+  async festAct(act) {
+    if (this.place !== 'field' || !this.auth || !this.save) return { ok: false, reason: '地上で' };
+    const t = this.now(), f = this._fest(t), p = this.save.player, acct = this.save.account.id;
+    const ent = this.save.entrances.find(e => e.owner === acct && (e.region || 'plains') === this.region) || null;
+    const done = this.save.fest.marks.some(m => m.occ === f.occ && m.owner === acct);
+    const why = festActBlock({ fest: f, act, region: this.region, x: this.auth.x, y: this.auth.y, entrance: ent, spawn: this.map.spawn, done, inv: p.inv, still: this.stillT, place: 'field' });
+    if (why) return { ok: false, reason: why };
+    for (const [k, n] of Object.entries(f.cost)) removeItem(p.inv, k, n);
+    const mark = makeMark({ fest: f, region: this.region, x: this.auth.x, y: this.auth.y + (act === 'lantern' ? 2 : 0), owner: acct, name: this.save.character.name, at: t });
+    this.save.fest.marks.push(mark);
+    this._festSent.add(mark.occ + ':' + mark.owner + ':' + mark.region);
+    let reward = null;
+    if (!this.save.collection[f.reward]) { reward = f.reward; this._collected(f.reward, t); }
+    this.flush();
+    this.emit('fest', { mark: { ...mark } });
+    return { ok: true, mark: { ...mark }, inv: p.inv.map(x => x && { ...x }), reward, fest: { id: f.id, occ: f.occ } };
+  }
+
   /** Ver.0.7：富山の小さな出来事を見た（1 回だけ・条件はサーバーと同じ toyamaEventBlock） */
   async toyamaEvent(id) {
     if (!TOYAMA_EVENT_IDS.includes(id)) return { ok: false, reason: 'そんな出来事は ない' };
@@ -1560,7 +1632,7 @@ export class OnlineBackend extends Emitter {
     const map = { [S2C.SNAPSHOT]: 'snapshot', [S2C.PLAYER_JOIN]: 'player_join', [S2C.PLAYER_LEAVE]: 'player_leave', [S2C.CHAT]: 'chat', [S2C.RES_GONE]: 'res_gone', [S2C.RES_SPAWN]: 'res_spawn', [S2C.NEST_UPDATE]: 'nest_update', [S2C.NEST_PEERS]: 'nest_peers', [S2C.ENTRANCE]: 'entrance', [S2C.TOAST]: 'toast',
       [S2C.FRIENDS]: 'friends', [S2C.VISIT]: 'visit', [S2C.NEST_ROLE]: 'nest_role', [S2C.CAUGHT]: 'caught', [S2C.RAID]: 'raid',
       [S2C.FAMILY]: 'family', [S2C.PLAYER_UPDATE]: 'player_update', [S2C.WILD]: 'wild',
-      [S2C.COLLECT]: 'collect', [S2C.ACHIEVEMENT]: 'achievement', [S2C.RESIDENTS]: 'residents' };
+      [S2C.COLLECT]: 'collect', [S2C.ACHIEVEMENT]: 'achievement', [S2C.RESIDENTS]: 'residents', [S2C.FEST]: 'fest' };
     if (map[m.t]) this.emit(map[m.t], m);
   }
   _ping() { this._send({ t: C2S.PING, ct: Date.now() }); }
@@ -1675,6 +1747,7 @@ export class OnlineBackend extends Emitter {
   async kidsFollow(on) { return this._req(C2S.KIDS_FOLLOW, { on: !!on }); }
   async setCompanion(id) { return this._req(C2S.COMPANION, { id: id == null ? null : id }); }   // Ver.0.7
   async toyamaEvent(id) { return this._req(C2S.TOYAMA_EVENT, { id }); }
+  async festAct(act) { this._flushInputs(); return this._req(C2S.FEST_ACT, { act }); }   // Ver.0.8：ここまでの移動を先に送る（サーバーの確定位置で場所を確かめる）
   async petFamily(id) { const r = await this._req(C2S.FAMILY_PET, { id }); if (r.ok && r.life) this.life = r.life; return r; }
   async lineage() { return this._req(C2S.LINEAGE); }
   async succeed(id) { return this._req(C2S.SUCCEED, { id }); }
@@ -1702,7 +1775,7 @@ export async function chooseBackend({ search = (globalThis.location && location.
   try { settings = JSON.parse(storage.getItem(SETTINGS_KEY)) || {}; } catch (e) { settings = {}; }
   const dev = { timeScale: Math.max(1, Math.min(600, Number(q.get('timescale')) || 1)), startHour: q.get('hour') != null && q.get('hour') !== '' ? Number(q.get('hour')) : null,
     env: true, predators: ['normal', 'easy', 'off'].includes(q.get('danger')) ? q.get('danger') : (['normal', 'easy', 'off'].includes(settings.danger) ? settings.danger : 'normal'),
-    weather: q.get('weather') || null, season: q.get('season') || null, toyama: q.get('toyama') === '1' };
+    weather: q.get('weather') || null, season: q.get('season') || null, toyama: q.get('toyama') === '1', fest: q.get('fest') === '1' ? 'on' : q.get('fest') === '0' ? 'off' : null };
   const Off = (extra = {}) => new OfflineBackend({ storage, ...dev, ...extra });
   if (q.get('offline') === '1') return Off();
   let url = q.get('server');

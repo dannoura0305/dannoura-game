@@ -8,12 +8,14 @@
 // Ver.0.2：おなかがすいたら種子を食べる・のどがかわいたら夜露かオアシスへ行って飲む・巣のあるボットは寝床を作り、ときどき眠る。
 // Ver.0.3：捕食者に狙われたら（snapshot の preds で target が自分）逃げる：反対へ跳ね、大ジャンプ、近くに自分の巣があれば飛び込む。
 //          つかまったら（caught）安全な所から続ける。落とし物（id 'x…'）も拾いに行く。
+// Ver.0.8：季節の行事の夜は ときどき参加する（巣のそば・広場で花や灯り・オアシスで供える・丘で すわって星を見る）。
 // Ver.0.5：4 体に 1 体は旅をする（地図の端の出口へ歩いて、となりの土地へ・しばらくしたら戻る）。収集品（kind 'curio'）が近くにあれば拾う。
 import { ProtoClient, fieldMap } from './proto-client.mjs';
 import { FUR_IDS } from '../../shared/protocol.js';
 import { CELL, objectsWithFixtures } from '../../shared/nest-rules.js';
 import { T, TILE, tileAt, nearWater } from '../../shared/regions.js';
 import { ALERT_STATES } from '../../shared/predators.js';
+import { festivalAt, OFFER_SPOT, HILL_SEATS, FEST } from '../../shared/festival.js';
 
 /** 水を飲める立ち位置（水のタイルのすぐ下の陸）をいくつか */
 function waterSpots() {
@@ -42,7 +44,7 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 
 async function runBot(i, stats) {
   const c = new ProtoClient(URL_);
-  const s = { name: PREFIX + i, travels: 0, curios: 0, picks: 0, pickFail: 0, chats: 0, jumps: 0, nests: 0, errors: 0, snaps: 0, maxGapMs: 0, corrections: 0, resGone: 0, eats: 0, drinks: 0, sleeps: 0, flees: 0, caught: 0, hides: 0 };
+  const s = { name: PREFIX + i, fests: 0, travels: 0, curios: 0, picks: 0, pickFail: 0, chats: 0, jumps: 0, nests: 0, errors: 0, snaps: 0, maxGapMs: 0, corrections: 0, resGone: 0, eats: 0, drinks: 0, sleeps: 0, flees: 0, caught: 0, hides: 0 };
   stats.push(s);
   await c.connect();
   const world = await c.enter(`${PREFIX}${i}`, PASS, { name: `ボット${i}`, fur: FUR_IDS[i % FUR_IDS.length] });
@@ -61,6 +63,8 @@ async function runBot(i, stats) {
   });
   c.on('close', () => { if (!c.stopping) s.errors++; });
   c.on('caught', () => { s.caught++; target = null; });
+  let clock = world.clock || {}, festDone = -1, festAt = Date.now() + rnd(4000, 15000);
+  c.on('clock', m => { if (m.clock) clock = m.clock; });
   let fleeing = 0;
 
   const end = Date.now() + SECS * 1000;
@@ -147,6 +151,25 @@ async function runBot(i, stats) {
       if (g) { const r = await c.travelTo(g.to, { sleep, maxMs: 25000 }); if (r.ok) { s.travels++; resetWorld(r.world); } }
       continue;
     }
+    if (t > festAt) {             // Ver.0.8：行事の夜なら ときどき参加（半分くらいの子だけ・1 回の行事に 1 回）
+      festAt = t + rnd(15000, 30000);
+      const f = festivalAt(c.clock || clock, t + (c.offset || 0));
+      if (f.phase === 'during' && festDone !== f.occ && (c.region || 'plains') === 'plains' && Math.random() < 0.6) {
+        const own = [...entrances.values()].find(e => e.owner === c.account.id);
+        const spot = f.act === 'offer' ? OFFER_SPOT : f.act === 'gaze' ? HILL_SEATS[i % HILL_SEATS.length] : own ? { x: own.x + 24, y: own.y + 14 } : { x: c.map.spawn.x + 30 - (i % 5) * 14, y: c.map.spawn.y + 20 };
+        const go = Date.now() + 15000;
+        while (Date.now() < go && Math.hypot(spot.x - c.st.x, spot.y - c.st.y) > 10) {
+          const dx = spot.x - c.st.x, dy = spot.y - c.st.y;
+          c.inputs(new Array(3).fill({ mx: Math.abs(dx) > 3 ? Math.sign(dx) : 0, my: Math.abs(dy) > 3 ? Math.sign(dy) : 0 }));
+          await sleep(50);
+        }
+        if (f.act === 'gaze') for (let k = 0; k < (FEST.SIT_SEC + 0.6) * 20; k++) { c.inputs([{ mx: 0, my: 0 }, { mx: 0, my: 0 }, { mx: 0, my: 0 }]); await sleep(50); }
+        const r = await c.req('fest_act', { act: f.act });
+        if (r.ok) { s.fests++; festDone = f.occ; if (f.act === 'gaze') await sleep(rnd(3000, 8000)); }
+        else if (r.reason && /もう/.test(r.reason)) festDone = f.occ;
+      }
+      continue;
+    }
     if (t > chatAt) { chatAt = t + rnd(8000, 25000); c.send({ t: 'chat', text: LINES[Math.floor(Math.random() * LINES.length)] }); s.chats++; }
     if (t > nestAt) {
       nestAt = t + rnd(20000, 45000);
@@ -195,7 +218,7 @@ await Promise.all(all);
 const sec = (Date.now() - t0) / 1000;
 const sum = k => stats.reduce((a, s) => a + (s[k] || 0), 0);
 const out = { bots: N, secs: Math.round(sec), picks: sum('picks'), pickFail: sum('pickFail'), eats: sum('eats'), drinks: sum('drinks'), sleeps: sum('sleeps'), chats: sum('chats'), jumps: sum('jumps'), burrows: sum('dug'), nestVisits: sum('nests'), nestRefused: sum('nestFail'), flees: sum('flees'), caught: sum('caught'), hidInNest: sum('hides'),
-  travels: sum('travels'), curios: sum('curios'), errors: sum('errors'), corrections: sum('corrections'), snapshotsPerBotPerSec: +(sum('snaps') / N / sec).toFixed(2), maxSnapshotGapMs: Math.max(0, ...stats.map(s => s.maxGapMs)), kbInPerBotPerSec: +(sum('kbIn') / N / sec).toFixed(2) };
+  travels: sum('travels'), curios: sum('curios'), fests: sum('fests'), errors: sum('errors'), corrections: sum('corrections'), snapshotsPerBotPerSec: +(sum('snaps') / N / sec).toFixed(2), maxSnapshotGapMs: Math.max(0, ...stats.map(s => s.maxGapMs)), kbInPerBotPerSec: +(sum('kbIn') / N / sec).toFixed(2) };
 console.log(JSON.stringify(out));
 process.exit(out.errors ? 1 : 0);
 void fieldMap;

@@ -25,6 +25,7 @@ import { REGION } from '../shared/world.js';
 import { FURNITURE } from '../shared/items.js';
 import { seasonOf } from '../shared/season.js';
 import { Ambient } from './ambient.js';
+import { festNote } from '../shared/festival.js';
 
 const stage = document.getElementById('tb-stage');
 const game = {
@@ -395,7 +396,10 @@ game.openMenu = function () {
   const touchOpts = [['auto', '自動'], ['on', 'いつも出す'], ['off', '出さない（キーボード・マウス）']];
   const dangerOpts = [['normal', 'ふつう'], ['easy', 'やさしい（見つかりにくい・遅い・罰が軽い・巣は襲われない）'], ['off', '出ない']];
   const fsOK = document.fullscreenEnabled && document.documentElement.requestFullscreen;
+  const fn = net.clock ? festNote(net.clock, net.serverTime()) : null;   // Ver.0.8：小さな暦（次の行事）
+  game.debug.festNote = fn ? fn.text : null;
   const p = game.ui.menu('メニュー', `<div class="tb-menu-info">${net.mode === 'offline' ? 'オフライン（この端末に保存）' : 'オンライン'}　${game.character ? '「' + game.character.name + '」' : ''}</div>
+    ${fn ? `<div class="tb-festnote${fn.now ? ' now' : ''}"><b>${esc(fn.text)}</b><span>${esc(fn.sub)}</span></div>` : ''}
     <label class="tb-field">${game.isTouch ? '表示の大きさ' : '拡大率'} <select class="zoom">${zooms.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
     <label class="tb-field">タッチ操作のボタン <select class="touchui">${touchOpts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
     ${net.mode === 'offline' ? `<label class="tb-field">捕食者（フクロウ・キツネ・ヘビ） <select class="danger">${dangerOpts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>` : ''}
@@ -465,7 +469,8 @@ function wire(net) {
     game.debug.caught = (game.debug.caught || 0) + 1;
   });
   net.on('raid', m => { game.ui.toast(m.kind === 'raid' ? 'キツネが あなたの巣の入口を掘り返した！ 倉庫の種子 −' + m.lost : 'キツネが巣を掘ろうとしたが、ふさいだ入口で守れた', m.kind === 'raid' ? 'bad' : ''); });
-  net.on('clock', () => { game.updateEnv(true); });
+  net.on('clock', () => { game.updateEnv(true); if (game.field && game.field.ready) game.field._festT = 0; });
+  net.on('fest', m => game.field && game.field.onFest(m));   // Ver.0.8：季節の行事の印
   net.on('friends', m => game.setFriends(m.list));
   // Ver.0.4
   net.on('family', m => game.setFamily(m.family, m.events || []));

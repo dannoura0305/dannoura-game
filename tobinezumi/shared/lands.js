@@ -97,7 +97,7 @@ export function buildLands(map) {
     if (h < rareP && danger > 0) rare = (region.id === 'hill' || region.id === 'desert' || n.rock + n.stones > 4) ? 'pretty_stone' : 'rare_seed';
     out.set(plotIdOf(cx, cy), {
       id: plotIdOf(cx, cy), cx, cy, region: region.id, regionName: region.name,
-      name: region.name + ' ' + (cx + 1) + '-' + (cy + 1), field: map.region || 'plains',
+      name: region.name + ' ' + (cx + 1) + '-' + (cy + 1), code: region.name + ' ' + (cx + 1) + '-' + (cy + 1), field: map.region || 'plains', feat: plotFeature(n, region.id, map.region),
       foodRaw: food, danger: clamp5(danger), hardness: Math.max(1, clamp5(hard)), scenery: Math.max(1, clamp5(scen)), climate, rare,
       x: px, y: py,
     });
@@ -108,9 +108,82 @@ export function buildLands(map) {
     const rank = sorted.indexOf(L.foodRaw) / Math.max(1, sorted.length - 1);
     L.food = L.foodRaw === 0 ? 0 : Math.max(1, Math.min(5, 1 + Math.floor(rank * 5)));
   }
+  // Ver.0.8：土地の名前（0.3 の残り「土地の名前の手書き」）。区画の様子から決まる自然な名前・同じ土地（地図）の中で重ならない
+  nameLands(out, map);
   cache.set(map, out);
   return out;
 }
+
+// ───────── 土地の名前（Ver.0.8）─────────
+// 区画の様子（いちばん目立つもの：水・木・岩・砂・草・雪の国の田）から、ことばの組み合わせ「〇〇の＋地形」を決まった順に試して、
+// 同じ地図の中でまだ使っていない最初の名前にする（地図と区画の id だけで決まる＝サーバーとクライアントで同じ）。id（'L3-5'）はそのまま。
+export const LAND_WORDS = {
+  common: ['風の', 'ひだまり', '月見の', '星の', 'しずかな', 'ゆうひの', 'あさつゆの', 'まるい', 'ねむりの', 'はねる', 'とおい', 'ちいさな', 'ゆらぎの', 'こもれびの'],
+  water: ['水の', 'せせらぎの', 'つゆの', 'さざなみの', 'みずべの', '青い'],
+  tree: ['木かげの', 'こずえの', '木の実の', 'みどりの'],
+  rock: ['岩の', '石の', 'こいしの', '苔の', 'かたい', 'いわかげの'],
+  sand: ['白砂の', '砂の', 'さらさら', 'こがね色の', 'かげろうの', '砂紋の'],
+  grass: ['草の', 'くさぶえの', '花の', 'つばなの', 'のはらの', 'すすきの'],
+  snow: ['雪の', '桜の', '田の', 'しずくの', 'あぜの', 'ほたるの'],
+};
+export const LAND_FORMS = {
+  water: ['辺', 'ほとり', '岸', '淵', '入り江', 'みぎわ', '浅瀬', '泉'],
+  tree: ['森', '木立', '丘', '辺', '小道', 'しげみ'],
+  rock: ['台', '尾根', '岩屋', '坂', 'すそ', '丘', 'いわ間', '崖'],
+  sand: ['背', '窪', '丘', '原', '浜', '坂', '波', '道'],
+  grass: ['原', '野', '丘', '窪', '辺', 'つつみ', 'しげみ', '小道'],
+  canyon: ['谷間', '段', '瀬', '岸', '淵', '坂', '小道', '岩棚'],
+  snow: ['あぜ', '田', 'すそ', '辺', '小道', '原', '並木', '野'],
+};
+/** 区画の目立つもの（名前のことばを選ぶ） */
+export function plotFeature(n, regionId, field) {
+  if (field === 'toyama') return n.water > 10 ? 'snow_water' : 'snow';
+  const cells = PLOT_W * PLOT_H;
+  if (n.water > 8) return 'water';
+  if (n.tree > 0) return 'tree';
+  if (n.rock + n.stones > 10 || regionId === 'hill') return 'rock';
+  if (field === 'canyon') return 'canyon';
+  return n.sand > cells * 0.55 ? 'sand' : 'grass';
+}
+function wordsFor(feat) {
+  const W = LAND_WORDS, F = LAND_FORMS;
+  switch (feat) {
+    case 'snow_water': return [W.snow.concat(W.water.slice(0, 2)), F.snow.concat(F.water.slice(0, 3))];
+    case 'snow': return [W.snow.concat(['しずかな', 'ゆうひの', 'ちいさな']), F.snow];
+    case 'water': return [W.water.concat(W.common), F.water];
+    case 'tree': return [W.tree.concat(W.common), F.tree];
+    case 'rock': return [W.rock.concat(W.common), F.rock];
+    case 'canyon': return [W.water.concat(W.rock, W.common), F.canyon];
+    case 'sand': return [W.sand.concat(W.common), F.sand];
+    default: return [W.grass.concat(W.common), F.grass];
+  }
+}
+/** 同じことばの重なり（「田の田」「あぜのあぜ」）・言いにくい組み合わせは使わない */
+const awkward = (a, b) => { const r = a.replace(/の$/, ''); return b === r || b.startsWith(r) || r.endsWith(b) || (a === 'かたい' && b === 'いわ間') || (a === 'いわかげの' && b === 'いわ間'); };
+/** 名前の候補（決まった順）。「の」で終わることばは そのまま、ほかは そのまま続ける（「ひだまり窪」） */
+export function landNameCandidates(feat, cx, cy, seed) {
+  const [A, B] = wordsFor(feat);
+  const out = [];
+  for (const a of A) for (const b of B) if (!awkward(a, b)) out.push({ s: a + b, a, h: hash2(cx * 31 + A.indexOf(a), cy * 17 + B.indexOf(b), seed + 5150) });
+  // 目立つもののことば（前半）を先に・その中は区画ごとの決まった混ぜ方
+  const k = A.length;
+  return out.map(o => ({ ...o, pri: A.indexOf(o.a) < Math.min(6, k) ? 0 : 1 })).sort((x, y) => x.pri - y.pri || x.h - y.h).map(o => o.s);
+}
+/** 地図の全区画に名前をつける（区画の id の順に・同じ地図で重ならない） */
+export function nameLands(lands, map) {
+  const used = new Set();
+  const list = [...lands.values()].sort((a, b) => a.cy - b.cy || a.cx - b.cx);
+  for (const L of list) {
+    let name = null;
+    for (const c of landNameCandidates(L.feat, L.cx, L.cy, map.seed | 0)) if (!used.has(c)) { name = c; break; }
+    if (!name) { let i = 2; while (used.has(L.code + i)) i++; name = L.code + i; }
+    used.add(name);
+    L.name = name;
+  }
+  return lands;
+}
+/** 区画の id から名前（無ければ null） */
+export function landNameOf(map, id) { const L = buildLands(map).get(id); return L ? L.name : null; }
 
 /** (px, py) のある区画の性能 */
 export function landAt(map, px, py) { return buildLands(map).get(plotAt(px, py).id); }
@@ -118,7 +191,7 @@ export function landById(map, id) { return buildLands(map).get(id) || null; }
 /** 送信・保存用の形（余計なものを落とす） */
 export function landOut(L) {
   if (!L) return null;
-  return { id: L.id, name: L.name, region: L.region, field: L.field || 'plains', food: L.food, danger: L.danger, hardness: L.hardness, scenery: L.scenery, climate: L.climate, rare: L.rare };
+  return { id: L.id, name: L.name, code: L.code, region: L.region, field: L.field || 'plains', food: L.food, danger: L.danger, hardness: L.hardness, scenery: L.scenery, climate: L.climate, rare: L.rare };
 }
 
 // ───────── 巣穴を掘る手間・引っ越し ─────────

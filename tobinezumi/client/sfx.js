@@ -40,6 +40,8 @@ const SOUNDS = {
   hiss: t => tone(t, { f0: 5000, f1: 4000, dur: 0.45, noise: true, vol: 0.08 }),                                               // シャーッ
   caught: t => { tone(t, { f0: 300, f1: 90, dur: 0.3, type: 'square', vol: 0.08 }); tone(t + 0.05, { f0: 900, f1: 200, dur: 0.25, noise: true, vol: 0.1 }); },
   safe: t => { tone(t, { f0: 660, dur: 0.08, type: 'triangle' }); tone(t + 0.09, { f0: 880, dur: 0.12, type: 'triangle' }); },
+  fest: t => { tone(t, { f0: 784, dur: 0.12, type: 'triangle', vol: 0.07 }); tone(t + 0.12, { f0: 988, dur: 0.12, type: 'triangle', vol: 0.07 }); tone(t + 0.24, { f0: 1175, dur: 0.22, type: 'sine', vol: 0.06 }); },   // Ver.0.8：行事に参加した（ちりん）
+  star: t => tone(t, { f0: 2200, f1: 1500, dur: 0.18, type: 'sine', vol: 0.025 }),   // Ver.0.8：流れ星（ごく小さく）
   // Ver.0.7：富山の 4:44 ごろ、遠くを通りすぎる長い音（低いうなり・レールの継ぎ目の音・かすかな汽笛のような音）
   train: t => {
     tone(t, { f0: 160, f1: 120, dur: 3.6, noise: true, vol: 0.03 });

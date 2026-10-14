@@ -8,7 +8,7 @@ import { FURNITURE } from '../shared/items.js';
 import * as A from './art.js';
 
 const DIR_JA = { n: '北', s: '南', e: '東', w: '西' };
-const KIND_JA = { nature: 'その土地のもの', sign: 'しるし', crossover: '不思議な品', season: '季節の品' };
+const KIND_JA = { nature: 'その土地のもの', sign: 'しるし', crossover: '不思議な品', season: '季節の品', fest: '季節の行事の品' };
 
 /** 収集品のアイコン（素材が無ければコード描画） */
 export function curioIconURL(cid) { return iconURL('curio.' + cid); }
@@ -87,7 +87,7 @@ export async function collectionPanel(game) {
     const sec = c.region === 'toyama' ? 'toyama' : c.region;
     if (sec !== section) {
       section = sec;
-      const name = sec === 'toyama' ? (found ? '富山（他の世界とのつながり？）' : '？？？') : REGION[sec].name;
+      const name = sec === 'toyama' ? (found ? '富山（他の世界とのつながり？）' : '？？？') : sec === 'fest' ? '季節の行事（参加すると）' : REGION[sec].name;
       grid.appendChild(el('div', 'tb-zsec', esc(name)));
     }
     const have = !!owned[id];
@@ -98,7 +98,7 @@ export async function collectionPanel(game) {
     b.onclick = () => {
       for (const x of grid.querySelectorAll('.tb-zslot')) x.classList.toggle('sel', x === b);
       det.innerHTML = have
-        ? `<b>${esc(c.name)}</b> <span class="tb-dim">（${esc(KIND_JA[c.kind])}・${esc(c.region === 'toyama' ? '富山' : REGION[c.region].name)}・${fmtWhen(owned[id])}）</span><br>${esc(c.desc)}`
+        ? `<b>${esc(c.name)}</b> <span class="tb-dim">（${esc(KIND_JA[c.kind])}・${esc(c.region === 'toyama' ? '富山' : c.region === 'fest' ? '季節の行事' : REGION[c.region].name)}・${fmtWhen(owned[id])}）</span><br>${esc(c.desc)}`
         : `<b>？？？</b><br><span class="tb-dim">${hidden ? 'まだ知らない土地の品のようだ。' : esc(c.hint)}</span>`;
     };
     grid.appendChild(b);
@@ -212,7 +212,7 @@ export async function residentsPanel(game) {
 export function discoveryCard(game, cid) {
   const c = CURIOS[cid];
   if (!c) return;
-  const card = el('div', 'tb-found tb-ui-block', `<img src="${curioIconURL(cid)}" alt=""><div><b>${esc(c.name)}</b><span>${esc(c.desc)}</span><small>図鑑に加わった${c.kind === 'sign' ? '（しるし）' : c.kind === 'crossover' ? '（不思議な品）' : ''}</small></div>`);
+  const card = el('div', 'tb-found tb-ui-block', `<img src="${curioIconURL(cid)}" alt=""><div><b>${esc(c.name)}</b><span>${esc(c.desc)}</span><small>図鑑に加わった${c.kind === 'sign' ? '（しるし）' : c.kind === 'crossover' ? '（不思議な品）' : c.kind === 'fest' ? '（季節の行事）' : ''}</small></div>`);
   game.hud.appendChild(card);
   setTimeout(() => { card.classList.add('out'); setTimeout(() => card.remove(), 500); }, 4200);
 }

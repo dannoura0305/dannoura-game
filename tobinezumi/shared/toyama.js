@@ -104,3 +104,20 @@ export function toyamaEventBlock(id, ctx = {}) {
   }
   return 'ない';
 }
+
+// ───────── Ver.0.8「季節のたのしみ」：行事の夜にだけ、富山にも ひとつだけ 小さなものが現れる（説明しない・決めない）─────────
+// ・はじまりの原の 季節の行事（shared/festival.js）の夜（phase 'during'）のあいだだけ。だれが・なぜ は決めない。名前は出さない。
+// ・春 花の種まき：祠のそばに 小さな花がひとつ。夏 星見の夜：あぜ道の草が 丸く ねている（空に 山の方へ落ちる流れ星がひとつ・画面だけ）。
+//   秋 月見：平らな石の上に 米つぶが すこし。冬 灯りの夜：来た穴のそばに 小さな灯りがひとつ。
+// ・地図は変えない（重ねて描く・調べられるだけ・ぶつからない）。記録も残さない（見るだけ）。
+export const TOYAMA_FEST = {
+  hana:  { kind: 'tflower', ...at(9, 18, 12), text: '祠のそばに、小さな花が ひとつ 咲いている。…さっきまで なかった気がする。' },
+  hoshi: { kind: 'tgrass', ...at(20, TOYAMA.MOUNT_ROWS + 5, 12), text: 'あぜ道の草が 小さく 丸く ねている。だれかが ここで 空を 見ていたように。' },
+  tsuki: { kind: 'trice', ...at(10, 27, 12), text: '平らな石の上に、米つぶが すこし 供えてある。月が よく 映っている。' },
+  akari: { kind: 'tlantern', ...at(8, 33, 12), text: '小さな灯りが ひとつ、ともっている。足あとは ない。…だれの だろう。' },
+};
+/** 行事の夜の 富山の小さなもの（festival.js の festivalAt の結果を渡す。行事の夜でなければ 空） */
+export function toyamaFestProps(fest) {
+  if (!fest || fest.phase !== 'during' || !TOYAMA_FEST[fest.id]) return [];
+  return [{ ...TOYAMA_FEST[fest.id], season: fest.season, fest: fest.id }];
+}

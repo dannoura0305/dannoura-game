@@ -19,6 +19,7 @@ import { lookOfInd } from './family-ui.js';
 import { STAGE_NAME, ageLabel, PUP, stageOf } from '../shared/family.js';
 import { familyScene, familyBubble, famRooms, petReply, familyLine, PET } from '../shared/family-life.js';
 import { talkInSlot, talkLineAt, nextTalk, TALK } from '../shared/family-talk.js';
+import { festTalkCtx } from '../shared/festival.js';
 
 const FAM_ROLE = { pup: '子ども', kin: 'きょうだい', mate: 'つれあい', friend: 'なかま', resident: '共同巣の住人' };
 
@@ -289,9 +290,10 @@ export class NestWalkScene {
     const ctx = { season: env.season || 'spring', period: tod.period, weather: env.weather || 'clear', seeds };
     // Ver.0.7：家族どうしの短いやりとり（shared/family-talk.js：巣の id ＋ 時計 ＋ 個体の id で決まる。親の位置は使わない＝訪問者の画面でも同じ）
     const tales = this.nest.tales || null;
-    const tin = { key: this.nest.id, members: list, ctx: { ...ctx, tales, companion: tales ? tales.companion : null },
+    const clk = g.net.clock;
+    const tin = { key: this.nest.id, members: list, ctx: { ...ctx, tales, companion: tales ? tales.companion : null, ...(clk ? { festAt: tt => festTalkCtx(clk, tt) } : {}) },   // Ver.0.8：行事の様子は やりとりの始まりの時刻で
       sceneAt: tt => familyScene({ key: this.nest.id, members: list, rooms: this._famRooms, bed: this._famBed, t: tt, period: tod.period, parents: {} }) };
-    const tslot = Math.floor(t / TALK.SLOT_MS), tkey = tslot + '|' + list.map(m => m.id + ':' + m.stage + ':' + Math.round(m.fed ?? 100)).join(',') + '|' + JSON.stringify(tin.ctx);
+    const tslot = Math.floor(t / TALK.SLOT_MS), tkey = tslot + '|' + list.map(m => m.id + ':' + m.stage + ':' + Math.round(m.fed ?? 100)).join(',') + '|' + JSON.stringify(tin.ctx) + '|' + (clk ? JSON.stringify(festTalkCtx(clk, tslot * TALK.SLOT_MS + TALK.START_MS)) : '');
     if (this._talkKey !== tkey) { this._talkKey = tkey; this._talk = talkInSlot({ ...tin, slot: tslot }); }
     const talk = this._talk && t >= this._talk.t0 - 200 && t <= this._talk.t1 ? this._talk : null;
     const tline = talkLineAt(talk, t);

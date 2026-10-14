@@ -318,6 +318,15 @@ export class Store {
   setFlagOnce(accountId, key, value) { return this.q('INSERT OR IGNORE INTO account_flags (account_id, key, value) VALUES (?, ?, ?)').run(accountId, key, value == null ? null : String(value)).changes; }
   setFlag(accountId, key, value) { this.q('INSERT INTO account_flags (account_id, key, value) VALUES (?, ?, ?) ON CONFLICT(account_id, key) DO UPDATE SET value = excluded.value').run(accountId, key, value == null ? null : String(value)); }
 
+  // ───────── 季節の行事の印（Ver.0.8）─────────
+  /** 印を書く（1 回の行事に 1 アカウント 1 つ。もうあれば 0） */
+  addFestMark(m) { return this.q('INSERT OR IGNORE INTO fest_marks (field_id, occ, fest, kind, account_id, name, x, y, v, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(m.region || 'plains', m.occ, m.fest, m.kind, m.owner, m.name || '', m.x, m.y, m.v | 0, m.at).changes; }
+  /** その土地の印（occ 以上） */
+  festMarks(field, minOcc) { return this.q('SELECT field_id, occ, fest, kind, account_id, name, x, y, v, at FROM fest_marks WHERE field_id = ? AND occ >= ? ORDER BY id').all(field, minOcc).map(r => ({ kind: r.kind, fest: r.fest, occ: r.occ, region: r.field_id, x: r.x, y: r.y, owner: r.account_id, name: r.name, v: r.v, at: r.at })); }
+  festJoined(accountId, occ) { return !!this.q('SELECT 1 FROM fest_marks WHERE account_id = ? AND occ = ?').get(accountId, occ); }
+  purgeFestMarks(beforeOcc) { return this.q('DELETE FROM fest_marks WHERE occ < ?').run(beforeOcc).changes; }
+  deleteFestMarks(accountId) { return this.q('DELETE FROM fest_marks WHERE account_id = ?').run(accountId).changes; }
+
   // ───────── フレンド（Ver.0.2）─────────
   /** a と b の行（向きは問わない）：{a, b, state} か null */
   friendRow(x, y) { return this.q('SELECT a, b, state FROM friends WHERE (a = ? AND b = ?) OR (a = ? AND b = ?)').get(x, y, y, x) || null; }
