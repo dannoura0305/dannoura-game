@@ -32,6 +32,9 @@ export class Fighter {
     this.pending = null;                                         // パリィの「後 2f」待ちの被弾
     this.lastDodgeEnd = -999; this.dodgeChain = 0;
     this.log = [];                                                // 直近の出来事（テスト・記録用）
+    // 白髪形態（COMBAT_SYSTEM_SPEC §4）：form と妖力（yoki）。紫の姿では妖力は溜まるだけ（yokiOn のとき）
+    this.form = 'purple'; this.yoki = opt.yoki != null ? opt.yoki : 0; this.yokiOn = !!opt.yokiOn; this.prevWeapon = null;
+    this.combo = { n: 0, last: -9999, max: 0 };                    // 連撃の数（画面の「Combo」）
   }
   setDifficulty(diff, opt = {}) {
     this.diff = diff; this.touch = !!opt.touch; this.assist = !!opt.assist;
@@ -39,9 +42,38 @@ export class Fighter {
   }
   /** 装備などで戦闘の数値を差し替える（combat/equip.js の combatWithEquip の結果） */
   setCombat(C) { this.C = C; this.setDifficulty(this.diff, { touch: this.touch, assist: this.assist }); }
-  get melee() { return this.weapon === 'pipe' || this.weapon === 'katana'; }
-  /** 近接の武器の値（刀・鉄パイプ） */
-  _mw() { return this.C[this.weapon === 'pipe' ? 'pipe' : 'katana']; }
+  get melee() { return this.weapon === 'pipe' || this.weapon === 'katana' || this.weapon === 'claw'; }
+  get white() { return this.form === 'white'; }
+  /** 近接の武器の値（刀・鉄パイプ・妖爪） */
+  _mw() { if (this.weapon === 'claw') return { light: this.C.white.claw, heavy: this.C.white.blade }; return this.C[this.weapon === 'pipe' ? 'pipe' : 'katana']; }
+  // ── 白髪形態・妖力・連撃 ──
+  /** 姿を変える（'white'|'purple'）。妖力が足りない・状態が悪いと false。許可（ルート・相棒の目）はゲーム側で見る */
+  setForm(form, force) {
+    if (form === this.form) return false;
+    if (form === 'white') {
+      if (!force && (this.yoki < this.C.white.gauge.min || !['free', 'attack', 'charge'].includes(this.st.name))) return false;
+      this.prevWeapon = this.weapon === 'claw' ? this.prevWeapon : this.weapon; this.form = 'white'; this.weapon = 'claw'; this.lastMelee = 'claw';
+    } else {
+      this.form = 'purple'; const w = this.prevWeapon && this.owned.includes(this.prevWeapon) ? this.prevWeapon : (this.owned.find(x => x !== 'handgun') || this.owned[0] || 'none');
+      this.weapon = w; this.lastMelee = w === 'handgun' ? (this.owned.includes('katana') ? 'katana' : 'pipe') : w;
+    }
+    if (this.st.name !== 'dead') this._go('free');
+    this.mikiri = this.hajiki = this.utsu = this.chain = null; this.pending = null;
+    return true;
+  }
+  /** 妖力を得る。kind：'hit'|'issen'|数値 */
+  gainYoki(kind) {
+    if (!this.yokiOn && !this.white) return 0;
+    const G = this.C.white.gauge, n = typeof kind === 'number' ? kind : this.white ? (kind === 'issen' ? G.issen : G.hit) : (kind === 'issen' ? G.purpleIssen : G.purpleHit);
+    const b = this.yoki; this.yoki = Math.max(0, Math.min(G.max, this.yoki + n)); return this.yoki - b;
+  }
+  spendYoki(n) { if (this.yoki < n) return false; this.yoki -= n; return true; }
+  /** 当たった（連撃の数を数える） */
+  registerHit() { const W = this.C.white.comboWindow; this.combo.n = this.frame - this.combo.last <= W ? this.combo.n + 1 : 1; this.combo.last = this.frame; this.combo.max = Math.max(this.combo.max, this.combo.n); return this.combo.n; }
+  get comboN() { return this.frame - this.combo.last <= this.C.white.comboWindow ? this.combo.n : 0; }
+  /** 連撃の倍率（白い姿だけ：10 連撃ごとに +0.1、最大 ×1.8） */
+  comboMul() { return this.white ? 1 + Math.min(0.8, Math.floor(this.comboN / 10) * 0.1) : 1; }
+  _dodgeC() { return this.white ? Object.assign({}, this.C.dodge, this.C.white.dash) : this.C.dodge; }
   /** 持ち替えの行き先：近接→銃、銃→最後に使った近接 */
   swapTarget() {
     if (this.weapon === 'handgun') return this.owned.includes(this.lastMelee) ? this.lastMelee : this.owned.find(w => w !== 'handgun') || null;
@@ -53,7 +85,7 @@ export class Fighter {
   get name() { return this.st.name; }
   get aiming() { return this.weapon === 'handgun' && this.st.name === 'free' && this.aimHeld && this.aimF >= this.C.handgun.aimIn; }
   get dead() { return this.st.name === 'dead'; }
-  isInvuln() { return this.st.name === 'issen' || this.frame < this.invulnUntil || (this.st.name === 'dodge' && this.st.f >= this.w.iStart && this.st.f <= this.w.iEnd); }
+  isInvuln() { const D = this.st.white ? this.C.white.dash : this.w; return this.st.name === 'issen' || this.frame < this.invulnUntil || (this.st.name === 'dodge' && this.st.f >= D.iStart && this.st.f <= D.iEnd); }
 
   /** 移動の倍率（0 なら移動不可）。走る・歩くの区別はゲーム側 */
   moveMul() {
@@ -87,6 +119,12 @@ export class Fighter {
     if (this.weapon === 'handgun' && inp.aim && (st.name === 'free')) this.aimF++; else if (!inp.aim) this.aimF = 0;
 
     if (this.dead) { this.frame++; return evs; }
+    // 白い姿：妖力が減っていく。0 で静かに紫へ戻る（暴走しない）
+    if (this.white) {
+      this.yoki = Math.max(0, this.yoki - this.C.white.gauge.drain / 60);
+      if (this.yoki <= 0) { this.setForm('purple'); this._ev(evs, { t: 'revert', why: 'empty' }); }
+    } else if (this.yokiOn && this.yoki < this.C.white.gauge.max) this.yoki = Math.min(this.C.white.gauge.max, this.yoki + this.C.white.gauge.regen / 60);
+    if (this.combo.n && this.frame - this.combo.last > this.C.white.comboWindow) { this.combo.n = 0; }
 
     // パリィの「後 2f」：被弾の保留
     if (this.pending) {
@@ -118,8 +156,9 @@ export class Fighter {
       case 'free': this._free(evs, inp); break;
       case 'attack': this._attack(evs, inp); break;
       case 'charge': this._charge(evs, inp); break;
+      case 'cast': if (s.f >= s.total) this._go('free'); break;
       case 'dodge': {
-        if (s.f >= C.dodge.total + (s.lag || 0)) { this.lastDodgeEnd = this.frame; this._go('free'); this._free(evs, inp, true); }
+        if (s.f >= (s.white ? C.white.dash.total : C.dodge.total) + (s.lag || 0)) { this.lastDodgeEnd = this.frame; this._go('free'); this._free(evs, inp, true); }
         break;
       }
       case 'parry': {
@@ -163,6 +202,7 @@ export class Fighter {
   _free(evs, inp, justEntered) {
     const C = this.C;
     if (this._buffered('dodge')) { this._consume('dodge'); return this._startDodge(evs, inp); }
+    if (this.white) return this._freeWhite(evs, inp);
     if (inp.parry && this.melee) return this._startParry(evs);
     if (inp.swap) { const to = this.swapTarget(); if (to) return this._startSwap(evs, to); }
     if (inp.wantWeapon && inp.wantWeapon !== this.weapon && this.owned.includes(inp.wantWeapon)) return this._startSwap(evs, inp.wantWeapon);
@@ -178,6 +218,26 @@ export class Fighter {
     }
   }
 
+  /** 白い姿の「何もしていない」時：妖爪・妖刀の溜め・猫火（構え＋撃つ）・幻術（弾く） */
+  _freeWhite(evs, inp) {
+    const W = this.C.white;
+    if (inp.parry) return this._illusion(evs);
+    if (this.aimHeld && this._buffered('attack')) { this._consume('attack'); return this._foxfire(evs); }
+    if (inp.heavy && !this.aimHeld) { this._go('charge'); this._ev(evs, { t: 'chargeStart' }); return; }
+    if (this._buffered('attack') && !this.aimHeld) { this._consume('attack'); return this._startAttack(evs, 0); }
+    void W;
+  }
+  _illusion(evs) {
+    const I = this.C.white.illusion;
+    if (!this.spendYoki(I.cost)) { this._ev(evs, { t: 'noYoki', need: I.cost }); return; }
+    this._go('cast', { total: I.cast, what: 'illusion' }); this._ev(evs, { t: 'illusion', dur: I.dur });
+  }
+  _foxfire(evs) {
+    const X = this.C.white.foxfire;
+    if (this.fireCd > 0) return;
+    if (!this.spendYoki(X.cost)) { this._ev(evs, { t: 'noYoki', need: X.cost }); return; }
+    this.fireCd = X.cd; this._go('cast', { total: 10, what: 'foxfire' }); this._ev(evs, { t: 'foxfire', n: X.n, dmg: X.dmg });
+  }
   _startAttack(evs, step, atk) {
     const a = atk || this._mw().light[step];
     this._go('attack', { step, atk: a, hit: false, next: false });
@@ -194,8 +254,9 @@ export class Fighter {
         this._consume('attack'); return this._startAttack(evs, s.step + 1);
       }
       if (this._buffered('dodge') && !s.iai) { this._consume('dodge'); return this._startDodge(evs, inp); }
+      if (inp.parry && this.white) return this._illusion(evs);
       if (inp.parry && this.melee && !s.iai) return this._startParry(evs);
-      if ((inp.swap || (inp.aim && !s.aimWas)) && !s.iai && this.owned.includes('handgun')) {
+      if (!this.white && (inp.swap || (inp.aim && !s.aimWas)) && !s.iai && this.owned.includes('handgun')) {
         const fr = swapFrames(this.weapon, 'handgun', { recoveryFrame: rf }, C);
         return this._startSwap(evs, 'handgun', inp.aim ? 'fire' : null, fr);
       }
@@ -207,6 +268,14 @@ export class Fighter {
     const s = this.st, C = this.C;
     if (this._buffered('dodge')) { this._consume('dodge'); return this._startDodge(evs, inp); }
     const pipe = this.weapon === 'pipe';
+    if (this.white) {                                                       // 妖刀：溜めて離すと刃の伸びる刀（妖力 5）
+      if (!inp.heavy) {
+        const B = C.white.blade;
+        if (s.f >= 10 && this.spendYoki(B.cost)) { const a = Object.assign({}, B, { startup: 0 }); this._go('attack', { step: 8, atk: a, heavy: true, blade: true, hit: false }); this._ev(evs, { t: 'attackStart', step: 8, atk: a, heavy: true, blade: true }); }
+        else this._startAttack(evs, 0);
+      }
+      return;
+    }
     if (s.f === this.w.iaiHold && !pipe) this._ev(evs, { t: 'iaiReady' });
     if (!inp.heavy) {
       if (s.f >= this.w.iaiHold && !pipe) {
@@ -220,7 +289,7 @@ export class Fighter {
       } else this._startAttack(evs, 0);
     }
   }
-  get iaiStance() { return this.st.name === 'charge' && this.weapon === 'katana' && this.st.f >= this.w.iaiHold; }
+  get iaiStance() { return !this.white && this.st.name === 'charge' && this.weapon === 'katana' && this.st.f >= this.w.iaiHold; }
 
   _startDodge(evs, inp) {
     const C = this.C;
@@ -228,8 +297,8 @@ export class Fighter {
     const lag = this.dodgeChain > C.dodge.chainMax ? C.dodge.chainLag : 0;
     if (lag) this.dodgeChain = 0;
     this.pending = null;
-    this._go('dodge', { lag, justDone: false });
-    this._ev(evs, { t: 'dodge', chain: this.dodgeChain, lag });
+    this._go('dodge', { lag, justDone: false, white: this.white });
+    this._ev(evs, { t: 'dodge', chain: this.dodgeChain, lag, white: this.white });
   }
   _startParry(evs) { this._go('parry', { at: this.frame, ok: false }); this._ev(evs, { t: 'parryStart' }); }
   _parrySuccess(evs, src) {
@@ -257,7 +326,7 @@ export class Fighter {
     this._ev(evs, { t: 'shot', aimed, quick: !!quick, dmg: this.C.handgun.dmg });
   }
   _startIssen(evs, kind, target) {
-    if (this.owned.includes('katana')) this.weapon = 'katana'; else if (this.weapon === 'handgun') this.weapon = this.lastMelee;
+    if (this.white) { /* 白い姿：妖爪のまま（刀は一閃の間だけ見せる） */ } else if (this.owned.includes('katana')) this.weapon = 'katana'; else if (this.weapon === 'handgun') this.weapon = this.lastMelee;
     this.pending = null;
     this._go('issen', { kind, target });
     this._ev(evs, { t: 'issen', kind, target });
@@ -280,6 +349,7 @@ export class Fighter {
       }
       if (r !== 'hit') return 'evade';
     }
+    if (s.name === 'dodge' && s.white) { const D = this.C.white.dash; if (s.f >= D.iStart && s.f <= D.iEnd) return 'evade'; }
     if (!atk.inRange) return 'miss';
     if (this.iaiStance) { this._startIssen(evs, 'iai', atk.src); return 'iai'; }
     if (this.frame < this.invulnUntil) return 'invuln';
@@ -301,7 +371,7 @@ export class Fighter {
   _damage(evs, atk, mul, guard) {
     const dmg = Math.max(1, Math.round(atk.dmg * mul * this.w.dmgMul));
     this.hp = Math.max(0, this.hp - dmg);
-    this.invulnUntil = this.frame + this.C.hurt.invuln;
+    this.invulnUntil = this.frame + this.C.hurt.invuln; this.combo.n = 0;
     this._ev(evs, { t: guard ? 'guard' : 'hurt', dmg, src: atk.src, grab: !!atk.grab });
     if (this.hp <= 0) { this._go('dead'); this._ev(evs, { t: 'dead' }); }
     else if (!guard) this._go('hurt');
