@@ -18,10 +18,13 @@ import { TUNING, PRED, INVULN_MS, dropItems, dropSpots, safePoint, raidLoss, RAI
 import { landAt, landOut } from '../shared/lands.js';
 import { makeFieldState } from '../shared/move.js';
 import { Household } from '../shared/household.js';
-import { founderInd, indOut, courtBlock, needsFood } from '../shared/family.js';
+import { founderInd, indOut, courtBlock, needsFood, friendBlock } from '../shared/family.js';
 import { traitMoveMods, traitMods, lookOf, seedOf } from '../shared/genetics.js';
 import { lifeEnvWithTraits, makeLife } from '../shared/life.js';
 import { WILD, devWildGenes } from '../shared/wild.js';
+import { PET } from '../shared/family-life.js';
+import { RANK, weekKey, weekRange, prevWeekKey, weekBoard, finalizeWeek, lastWeekWinners, weekLabel } from '../shared/ranking.js';
+import { devFamily } from '../shared/dev-family.js';
 import { DAY_MS } from '../shared/daynight.js';
 import { SEXES } from '../shared/protocol.js';
 import { FieldRoom } from './rooms/field.js';
@@ -71,6 +74,7 @@ export class Game {
       room.raidInfo = (e, t) => this.raidInfo(e, t);
       room.onRelocate = (p, nest, ent, fromRegion) => this.relocated(p, nest, ent, fromRegion);
       room.courtOk = p => !this._courtBlock(p);
+      room.friendOk = p => !this._friendBlock(p);
       room.onWild = e => { const o = this.players.get(e.by); if (o && o.conn) o.conn.send({ t: S2C.WILD, type: e.type, id: e.id, name: e.name || (room.wild.get(e.id) || {}).name }); };
       room.onCollect = (p, cid, at) => this.collected(p, cid, at);
       room.ownedOf = p => p.owned || new Set();
@@ -95,6 +99,7 @@ export class Game {
     const tickMs = 1000 / SERVER_TICK_HZ;
     this._timers.push(setInterval(() => this.tick(), tickMs));
     this._timers.push(setInterval(() => this.saveAll('live'), this.saveMs));
+    this._timers.push(setInterval(() => { try { this.rankTick(); } catch (e) { this.stats.errors++; this.log('[rank] ' + (e && e.stack || e)); } }, 60 * 1000));
     this._timers.push(setInterval(() => { this.store.purgeSessions(this.now()); this.auth.loginFails.sweep(); this.auth.ipFails.sweep(); }, 3600 * 1000));
     return this;
   }
@@ -281,6 +286,8 @@ export class Game {
       case C2S.RESIDENT_ANSWER: return this.residentAnswer(p, m.nestId, !!m.ok);
       case C2S.RESIDENT_LEAVE: return this.residentLeave(p);
       case C2S.RESIDENT_REMOVE: return this.residentRemove(p, m.id);
+      // Ver.0.6
+      case C2S.FAMILY_PET: return this.petFamily(p, m);
     }
     return fail(ERR.BAD_REQUEST, '知らない要求: ' + String(m.t).slice(0, 20));
   }
@@ -647,9 +654,16 @@ export class Game {
       this.saveHouse(p);
     }
     let wild = null;
-    if (m.wild && p.place === 'field') { const n = room.wild.spawn(p.st.x + (Number(m.dx) || 40), p.st.y + (Number(m.dy) || 0), devWildGenes(room.wild, m)); wild = n.id; }
+    if (m.wild && p.place === 'field') { const n = room.wild.spawn(p.st.x + (Number(m.dx) || 40), p.st.y + (Number(m.dy) || 0), devWildGenes(room.wild, m), m.species === 'longear' ? 'longear' : 'jerboa'); wild = n.id; }
     if (m.trust && p.place === 'field') { const n = room.wild.get(String(m.trust)) || room.wild.npcs[0]; if (n) { n.trust[p.accountId] = 99.5; n.st = makeFieldState(p.st.x + 12, p.st.y); } }
     if (m.birth && h && h.pending) h.pending.dueAgeMs = h.me.ageMs;
+    if (m.family && typeof m.family === 'object' && h) {   // Ver.0.6：家族をすぐに作る（{mate, pups, young, friend}）
+      const nid = this._ownNestId(p);
+      const made = devFamily(h, m.family, () => this.store.allocIndividual(p.accountId, this.now()), this.now());
+      this.store.tx(() => { for (const x of made) this.store.saveInd(x, { accountId: p.accountId, nestId: nid }); });
+      this._updateKids(p, true); this._sendFamily(p);
+      if (nid != null) this.nests.forget(nid);
+    }
     // 持ち物・倉庫へ足す（{give:{seed:10}}・{store:{seed:40}}）
     let inv = null;
     if (m.give && typeof m.give === 'object') {
@@ -676,6 +690,15 @@ export class Game {
     }
     if (Array.isArray(m.collect)) for (const cid of m.collect.slice(0, 30)) if (CURIOS[cid] && this.store.addCollectible(p.accountId, cid, this.now(), { dev: true }) === 1) this.collected(p, cid, this.now());
     if (m.achieve && ACH[m.achieve]) this.grant(p, m.achieve);
+    if (m.rankRoll) {   // Ver.0.6：いまの週を「先週」にして しめる（週の区切りの画面を確かめる）
+      const t = this.now(), wk = weekKey(t), prev = prevWeekKey(t);
+      this.store.tx(() => {
+        this.store.q('DELETE FROM rank_weeks WHERE week = ?').run(prev);
+        this.store.q("UPDATE rank_weeks SET week = ? WHERE week = ?").run(prev, wk);
+        this.store.setMeta('rank_week', prev);
+      });
+      this.rankTick(t);
+    }
     return { ok: true, clock: { ...this.clock }, spawned, wild, family: h ? h.out() : null, ...(inv ? { inv: inv.map(x => x && { ...x }) } : {}), ...(world ? { world } : {}), ...(curio ? { curio } : {}), gate: p.gate || null };
   }
 
@@ -737,6 +760,12 @@ export class Game {
     if (!h || !h.me) return 'キャラクターが無い';
     return courtBlock({ ageMs: h.me.ageMs, life: p.life, season: this.envOf(p).season, pending: !!h.pending });
   }
+  /** Ver.0.6：ほかの種の子と なかよくなれるか */
+  _friendBlock(p) {
+    const h = p.house;
+    if (!h || !h.me) return 'キャラクターが無い';
+    return friendBlock({ ageMs: h.me.ageMs, friends: h.friends().length });
+  }
   /** 野生の子に種子をあげる */
   court(p, m) {
     if (p.place !== 'field') return fail(ERR.FORBIDDEN, '地上にいない');
@@ -744,11 +773,12 @@ export class Game {
     room.drain(p);
     const n = room.wild.get(String(m.wildId));
     if (!n) return fail(ERR.NOT_FOUND, 'もう どこかへ行ってしまった');
-    const why = this._courtBlock(p);
+    const other = n.species && n.species !== 'jerboa';
+    const why = other ? this._friendBlock(p) : this._courtBlock(p);
     if (why) return fail(ERR.RULE, why, { shy: true });
     const inv = p.inv.map(x => x && { ...x });
     if (!removeItem(inv, 'seed', 1)) return fail(ERR.RULE, '種子を持っていない');
-    const r = room.wild.offer(n.id, { id: p.accountId, x: p.st.x, y: p.st.y, eligible: true }, this.now());
+    const r = room.wild.offer(n.id, { id: p.accountId, x: p.st.x, y: p.st.y, eligible: true, friendOk: true }, this.now());
     if (!r.ok) return fail(ERR.RULE, r.reason);
     this.store.setCharInventory(p.charId, inv);
     p.inv = inv;
@@ -770,9 +800,14 @@ export class Game {
     const room = this.fieldOf(p);
     const n = room.wild.followerOf(p.accountId);
     if (!h || !n || !p.st || Math.hypot(n.st.x - p.st.x, n.st.y - p.st.y) > WILD.INVITE_R) return null;
-    const r = h.invite({ name: n.name, genes: n.genes }, this._breedCtx(p, nest));
+    const r = h.invite({ name: n.name, genes: n.genes, species: n.species }, this._breedCtx(p, nest));
     if (!r.ok) return { ok: false, name: n.name, reason: r.reason };
     room.wild.take(n.id);
+    if (r.friend) {   // Ver.0.6：ほかの種のなかま（つれあいにはならない・お産の予定は作らない）
+      this.store.tx(() => { this.store.saveInd(r.mate, { accountId: p.accountId, nestId: nest.id }); });
+      this._sendFamily(p, [{ type: 'friend', name: r.mate.name, species: r.mate.species }]);
+      return { ok: true, friend: true, name: n.name, species: r.mate.species, mate: indOut(r.mate), note: r.note };
+    }
     this.store.tx(() => {
       this.store.dropPendingLitters(p.accountId);
       this.store.saveInd(r.mate, { accountId: p.accountId, nestId: nest.id });
@@ -822,6 +857,22 @@ export class Game {
     this.store.tx(() => { this.store.setCharInventory(p.charId, inv); this.store.saveIndAge(r.member); });
     p.inv = inv;
     return { ok: true, inv: inv.map(x => x && { ...x }), member: indOut(r.member), family: h.out() };
+  }
+  /** Ver.0.6：巣の家族をなでる（自分の家の巣の中で・1 匹ごとに PET.COOLDOWN_MS）。体調 +PET.COND */
+  petFamily(p, m) {
+    const h = p.house;
+    if (!h) return fail(ERR.NOT_FOUND, 'キャラクターが無い');
+    const nestId = this._ownNestId(p);
+    if (p.place !== 'nest' || nestId == null || p.nestId !== nestId) return fail(ERR.FORBIDDEN, '自分の巣の中で');
+    if (p.sleeping) return fail(ERR.RULE, '眠っている');
+    const id = Number(m.id);
+    if (!Number.isInteger(id)) return fail(ERR.BAD_REQUEST, 'だれ？');
+    const r = h.pet(id, this.now());
+    if (!r.ok) return fail(r.cooldown ? ERR.RATE : ERR.RULE, r.reason);
+    p.life = { ...p.life, cond: Math.min(PET.MAX_COND, p.life.cond + r.cond) };
+    this.store.tx(() => { this.store.saveInd(r.member, { accountId: p.accountId, nestId }); this.store.setLife(p.indId, { ...lifeOut(p.life), sleep: false }); });
+    this.sendLife(p);
+    return { ok: true, member: indOut(r.member), life: lifeOut(p.life), family: h.out(), cond: r.cond };
   }
   kidsFollow(p, m) {
     const h = p.house;
@@ -1079,18 +1130,41 @@ export class Game {
     return { ok: true, owned: this.store.collection(p.accountId), achievements: this.store.achievements(p.accountId),
       stats: { seasons: [...p.seasonsSeen], regions: [...p.regionsSeen], visited: p.visitedNests.size, found: !!p.toyamaFound } };
   }
-  /** 穏やかなランキング「豊かな巣」：巣の豊かさの上位 10（30 秒は同じ結果） */
+  /** いまの巣の豊かさ（全部の巣） */
+  _richRows() { return this.store.allNests().map(n => ({ nestId: n.id, owner: n.owner, name: n.ownerName, region: n.field || 'plains', ...nestRichness(n.data) })); }
+  /**
+   * Ver.0.6：豊かな巣の週（shared/ranking.js）。週が変わっていたら前の週をしめて、新しい週の base を入れる。
+   * 1 分ごと（start のタイマー）と、ranking の要求のたびに呼ぶ。返り値 いまの週の鍵
+   */
+  rankTick(t = this.now()) {
+    const wk = weekKey(t), cur = this.store.getMeta('rank_week');
+    if (cur === wk) return wk;
+    const rows = this._richRows();
+    if (cur) {   // 前の週をしめる（いまの豊かさを、その週の最後の数として）
+      const final = finalizeWeek(weekBoard(rows, this.store.rankBases(cur)));
+      this.store.finalizeRankWeek(cur, final, t);
+      this.log(`[rank] ${cur} をしめた（${final.length} 巣・${final.filter(r => r.title).map(r => r.name + '=' + r.title).join(' ')}）`);
+    }
+    this.store.tx(() => { for (const r of rows) this.store.upsertRankWeek(wk, r, r.score, t); this.store.setMeta('rank_week', wk); });
+    this._rankCache = null;
+    return wk;
+  }
+  /** 穏やかなランキング「豊かな巣」：今週ふえた豊かさの上位 10・先週ほめられた巣（30 秒は同じ結果） */
   ranking(p) {
     const t = this.now();
-    if (!this._rankCache || t - this._rankCache.at > 30000) {
-      const rows = this.store.allNests().map(n => ({ nestId: n.id, owner: n.owner, name: n.ownerName, region: n.field || 'plains', ...nestRichness(n.data) }));
-      rows.sort((a, b) => b.score - a.score || a.nestId - b.nestId);
-      this._rankCache = { at: t, rows };
+    const wk = this.rankTick(t);
+    if (!this._rankCache || this._rankCache.week !== wk || t - this._rankCache.at > RANK.REFRESH_MS) {
+      const rows = this._richRows(), bases = this.store.rankBases(wk);
+      this.store.tx(() => { for (const r of rows) this.store.upsertRankWeek(wk, r, bases.has(r.nestId) ? bases.get(r.nestId) : 0, t); });
+      const board = weekBoard(rows, this.store.rankBases(wk));
+      const lastKey = prevWeekKey(t), last = this.store.rankWeek(lastKey).filter(r => r.final);
+      this._rankCache = { at: t, week: wk, board, last, lastKey };
     }
-    const rows = this._rankCache.rows;
-    const mine = rows.findIndex(r => r.owner === p.accountId);
-    const list = rows.slice(0, 10).map((r, i) => ({ rank: i + 1, name: r.name, region: r.region, score: r.score, rooms: r.rooms, decor: r.decor, curios: r.curios, me: r.owner === p.accountId }));
-    return { ok: true, list, mine: mine >= 0 ? { rank: mine + 1, ...rows[mine], me: true } : null, total: rows.length };
+    const { board, last, lastKey } = this._rankCache;
+    const out = r => ({ rank: r.rank, name: r.name, region: r.region, score: r.score, gain: r.gain, rooms: r.rooms, decor: r.decor, curios: r.curios, me: r.owner === p.accountId });
+    const mine = board.find(r => r.owner === p.accountId);
+    return { ok: true, week: { key: wk, label: weekLabel(t) }, list: board.slice(0, RANK.TOP).map(out), mine: mine ? out(mine) : null, total: board.length,
+      last: { key: lastKey, label: weekLabel(weekRange(t).start - 1), winners: lastWeekWinners(last.map(r => ({ ...r, gain: Math.max(0, r.score - r.base), me: r.owner === p.accountId }))), count: last.length } };
   }
 
   // ── 共同巣：所有者がフレンドを住人に誘う（nest_access の role 'invite' → 'resident'）──

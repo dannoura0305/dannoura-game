@@ -23,6 +23,7 @@ import art_ui as U  # noqa: E402
 import art_danger as DG  # noqa: E402
 import art_family as FM  # noqa: E402
 import art_regions as RG  # noqa: E402
+import art_life as LF  # noqa: E402
 
 ROOT = os.path.normpath(os.path.join(HERE, '..'))
 OUT = os.path.join(ROOT, 'assets')
@@ -160,6 +161,7 @@ def build():
 
     # ------------------------------------------------------------- Ver.0.5 広がり（岩場・砂丘・渓谷・富山・収集品・巣の飾り・世界地図）
     RG.build(B, strip)
+    LF.build(B, strip)
 
     # ------------------------------------------------------------- ui
     img, sl = U.frame()

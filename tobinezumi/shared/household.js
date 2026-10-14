@@ -9,9 +9,11 @@
 import { DAY_MS } from './daynight.js';
 import {
   BREED, ROLES_IN_NEST, FOLLOW_MAX, stageOf, stepAge, stepFamily, breedBlock, makeLitter, makeInd, feedOne, needsFood, successionPlan, farewellBlock,
-  relativeInd, litterSeed, indOut, isGrown, heirsOf, STAGE, ageDays,
+  relativeInd, litterSeed, indOut, isGrown, heirsOf, STAGE, ageDays, speciesBlock, speciesOf, FRIEND_MAX, FAMILY_MAX, SPECIES,
 } from './family.js';
+import { petBlock, PET } from './family-life.js';
 import { seedOf } from './genetics.js';
+void PET;
 
 export class Household {
   constructor(raw = {}) {
@@ -27,6 +29,8 @@ export class Household {
   toJSON() { return { me: this.me, members: this.members, pending: this.pending, litters: this.litters, lastBirthMs: this.lastBirthMs, follow: this.follow, promptDay: this.promptDay, nestKey: this.nestKey }; }
 
   get mate() { return this.members.find(m => m.role === 'mate') || null; }
+  /** ほかの種のなかま（Ver.0.6） */
+  friends() { return this.members.filter(m => m.role === 'friend'); }
   kids() { return this.members.filter(m => m.role === 'pup' || m.role === 'kin'); }
   smallKids() { return this.kids().filter(m => !isGrown(m.ageMs)).length; }
   heirs() { return this.me ? heirsOf(this.me, this.members) : []; }
@@ -72,6 +76,7 @@ export class Household {
   }
   /** なかよしの野生の子を巣へ迎える：つれあいになり、お産の予定ができる。npc = {name, genes}。ctx = {life, season, nestData, seeds, newId, now} */
   invite(npc, ctx) {
+    if (npc.species && npc.species !== speciesOf(this.me)) return this.inviteFriend(npc, ctx);
     const why = this._block(ctx);
     if (why) return { ok: false, reason: why };
     const old = this.mate;
@@ -84,10 +89,38 @@ export class Household {
     this._conceive(mate, ctx);
     return { ok: true, mate, left };
   }
+  /**
+   * Ver.0.6：ほかの種（ミミナガトビネズミなど）のなかよしを巣へ迎える。つれあいにはならない（種の壁）＝お産の予定は できない。
+   * 条件：巣がある・寝床の部屋・なかまは FRIEND_MAX まで・家族 FAMILY_MAX 未満
+   */
+  inviteFriend(npc, ctx) {
+    if (!ctx.nestData) return { ok: false, reason: 'まず巣を掘ろう' };
+    if (!ctx.nestData.rooms || !ctx.nestData.rooms.some(r => r.kind === 'bed')) return { ok: false, reason: '巣に寝床の部屋が要る（ビルドで部屋を「寝床」に）' };
+    if (this.friends().length >= FRIEND_MAX) return { ok: false, reason: 'なかまは ' + FRIEND_MAX + ' 匹まで' };
+    if (this.members.length >= FAMILY_MAX) return { ok: false, reason: '巣がにぎやかすぎる' };
+    const sp = SPECIES[npc.species] ? npc.species : 'longear';
+    const age = (5 + ((seedOf(npc.name, ctx.now || 0) % 100) / 100) * 6) * DAY_MS;
+    const f = makeInd({ id: ctx.newId(), name: npc.name, sex: (seedOf(npc.name, 'sex') % 2) ? 'f' : 'm', generation: 1, genes: npc.genes, role: 'friend', ageMs: age, fed: 100, named: true, bornAt: ctx.now || 0, species: sp });
+    f.wild = true;
+    this.members.push(f);
+    return { ok: true, friend: true, mate: f, left: [], note: speciesBlock(this.me, f) };
+  }
+  /** Ver.0.6：家族をなでる（毛づくろいしてあげる）。返り値 {ok, member, cond}（体調 +PET.COND は呼ぶ側が life に足す） */
+  pet(id, now = 0) {
+    const m = this.find(id);
+    if (!m || !ROLES_IN_NEST.has(m.role)) return { ok: false, reason: 'その子は 巣にいない' };
+    const why = petBlock(m, now);
+    if (why) return { ok: false, reason: why, cooldown: true };
+    const n = { ...m, pettedAt: now };
+    this.members = this.members.map(x => (x === m ? n : x));
+    return { ok: true, member: n, cond: PET.COND };
+  }
   /** つれあいと もう一度（巣の中で） */
   mateAgain(ctx) {
     const mate = this.mate;
     if (!mate) return { ok: false, reason: 'つれあいがいない（野生の子と なかよくなろう）' };
+    const sb = speciesBlock(this.me, mate);
+    if (sb) return { ok: false, reason: sb };
     const why = this._block(ctx);
     if (why) return { ok: false, reason: why };
     this._conceive(mate, ctx);
@@ -128,7 +161,7 @@ export class Household {
       if (m.id === plan.heir.id) continue;
       if (R.has(String(m.id))) retired.push({ ...m, role: 'ancestor', retiredAt: now });
       else if (L.has(String(m.id))) left.push({ ...m, role: 'left', retiredAt: now });
-      else rest.push({ ...m, role: 'kin' });
+      else rest.push({ ...m, role: m.role === 'friend' ? 'friend' : 'kin' });
     }
     this.me = { ...plan.heir, role: 'player', named: true };
     this.members = rest;
@@ -144,6 +177,7 @@ export class Household {
     const rest = [];
     for (const m of this.members) {
       if (m.role === 'mate') retired.push({ ...m, role: 'ancestor', retiredAt: ctx.now || 0 });
+      else if (m.role === 'friend') rest.push(m);
       else if (isGrown(m.ageMs) && stageOf(m.ageMs) !== 'young') left.push({ ...m, role: 'left', retiredAt: ctx.now || 0 });
       else rest.push({ ...m, role: 'kin' });
     }

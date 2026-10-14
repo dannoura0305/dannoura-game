@@ -76,6 +76,8 @@ export const C2S = {
   RESIDENT_ANSWER: 'resident_answer', // {nestId, ok}（誘いに答える）     → res {ok, ...ResidentsInfo}
   RESIDENT_LEAVE: 'resident_leave',   // {}（住んでいる巣を出る）         → res {ok, ...ResidentsInfo}
   RESIDENT_REMOVE: 'resident_remove', // {id}（所有者が住人・誘いを外す） → res {ok, ...ResidentsInfo}
+  // ── Ver.0.6「くらしの深まり＋公開準備」──（PROTOCOL.md §12）
+  FAMILY_PET: 'family_pet',   // {id}（巣の家族をなでる）               → res {ok, member, life, family, cond}
 };
 
 // サーバー → クライアント
@@ -112,6 +114,7 @@ export const S2C = {
   ACHIEVEMENT: 'achievement', // {id, at, reward?}                      実績をとった（本人へ）
   RESIDENTS: 'residents',     // {...ResidentsInfo, text?}             共同巣の誘い・住人が変わった（本人へ）
 };
+// Ver.0.6：snapshot の PlayerSnap に k:[[x,y],…]（ついてくる若者の位置：サーバーが足あとから決める）・kh:1（巣へかくれている）
 export const MAX_RESIDENTS = 3;      // 共同巣：所有者のほかに住める子（Ver.0.5）
 export const TRAVEL_GAP_MS = 1500;   // 旅の間隔
 export const PLUG_COST = { pebble: 2 };     // 入口をふさぐ（ひらくと小石 1 つ戻る）

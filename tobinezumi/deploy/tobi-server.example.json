@@ -1,0 +1,5 @@
+{
+  "ws": "wss://tobinezumi-CHANGE-ME.fly.dev/ws",
+  "name": "tobinezumi",
+  "note": "GitHub Pages の版をオンラインにするには、このファイルを tobi-server.json という名前でリポジトリのルート（tobinezumi.html の隣）に置く。くわしくは tobinezumi/docs/DEPLOY.md"
+}

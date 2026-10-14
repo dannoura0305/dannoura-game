@@ -9,6 +9,8 @@ import { Sprites } from './sprites.js';
 import { Predictor, Interp } from './net.js';
 import { buildFieldMap, T, TILE, regionAt, canDigBurrow, nearWater, POND, gateAt, isWaterTile } from '../shared/regions.js';
 import { regionMap, REGION, TOYAMA } from '../shared/world.js';
+import { trailPush, kidSpots, kidsHidden, unpackSpots } from '../shared/follow.js';
+import { toyamaSeasonProps, paddyHarvested, glimpseSpot, shrineText, GLIMPSE } from '../shared/toyama.js';
 import { CURIOS, GATE_R, gateHint } from '../shared/collect.js';
 import { discoveryCard, regionCard } from './world-ui.js';
 import { moveMods } from '../shared/life.js';
@@ -43,7 +45,7 @@ const HELP_FULL_TOUCH = '<b>左のスティック</b> 跳ねる（左側のど�
 const PRIO = { [T.SAND]: 0, [T.DIRT]: 1, [T.GRASS]: 2 };
 // Ver.0.5：土地ごとの地面の色味（素材の砂・土・草の上に重ねる）
 const REGION_TINT = { rocks: 'rgba(110,112,120,0.22)', dunes: 'rgba(255,226,170,0.16)', canyon: 'rgba(60,120,60,0.12)', toyama: 'rgba(70,130,70,0.18)' };
-const PROP_NAME = { shrine: '祠', post: '道しるべ', machine: '金属のかたまり', phone: '光る板', stone: '古い石の標', lights: '遠くの灯り' };
+const PROP_NAME = { shrine: '祠', post: '道しるべ', machine: '金属のかたまり', phone: '光る板', stone: '古い石の標', lights: '遠くの灯り', busstop: 'バス停', hasa: 'はさ掛け', lantern: '雪の灯り' };
 const SEASON_IX = { spring: 0, summer: 1, autumn: 2, winter: 3 };
 
 export class FieldScene {
@@ -226,7 +228,7 @@ export class FieldScene {
   /** 野生の子との出来事 */
   onWild(m) {
     const ui = this.game.ui;
-    if (m.type === 'befriend') { ui.toast((m.name || '野生の子') + ' と なかよしになった！ ついてくる。いっしょに自分の巣へ入ろう'); sfx('safe'); const v = this.wild.get(m.id); if (v && v.latest) this.hearts(v.latest.x, v.latest.y); }
+    if (m.type === 'befriend') { const lw = this.wild.get(m.id), le = lw && lw.latest && lw.latest.sp === 'longear'; ui.toast((m.name || '野生の子') + ' と なかよしになった！ ついてくる。' + (le ? '巣へ入ると なかまとして住む（ミミナガトビネズミ：種がちがうので赤ちゃんはできない）' : 'いっしょに自分の巣へ入ろう')); sfx('safe'); const v = this.wild.get(m.id); if (v && v.latest) this.hearts(v.latest.x, v.latest.y); }
     else if (m.type === 'lost') ui.toast((m.name || '野生の子') + ' は 帰っていった');
     else if (m.type === 'startle') { const t = performance.now(); if (t - (this._startleT || 0) > 6000) { this._startleT = t; ui.toast((m.name || '野生の子') + ' が びっくりして逃げた（そっと近づいて、じっとしよう）', 'bad'); } }
   }
@@ -472,7 +474,7 @@ export class FieldScene {
       if (d < WILD_R && d < bd) {
         bd = d;
         const tr = Math.round(this.trust[w.id] || 0), mine = w.fol === this.me.id;
-        best = { kind: 'wild', w, label: mine ? w.name + '：なかよし（いっしょに巣へ入ろう）' : '種子をあげる（' + w.name + '・信頼 ' + tr + '/100）' };
+        best = { kind: 'wild', w, label: mine ? w.name + '：なかよし（いっしょに巣へ入ろう）' : '種子をあげる（' + (w.sp === 'longear' ? 'ミミナガの' : '') + w.name + '・信頼 ' + tr + '/100）' };
       }
     }
     for (const r of this.resources.values()) {
@@ -484,7 +486,7 @@ export class FieldScene {
     }
     // Ver.0.5：不思議な穴・来た穴・調べられる物
     if (this.gate) { const d = Math.hypot(this.gate.x - s.x, this.gate.y - s.y); if (d < GATE_R && d < bd) { bd = d; best = { kind: 'gate', label: this.gate.back ? '来た穴に入る（谷へ戻る）' : '不思議な穴に入る' }; } }
-    for (const pr of this.map.props || []) {
+    for (const pr of [...(this.map.props || []), ...this.seasonProps()]) {
       if (pr.kind === 'lights') continue;
       const d = Math.hypot(pr.x - s.x, pr.y - 6 - s.y);
       if (d < 26 && d < bd + 6) { bd = d; best = { kind: 'prop', prop: pr, label: '調べる（' + (PROP_NAME[pr.kind] || '…') + '）' }; }
@@ -557,7 +559,8 @@ export class FieldScene {
       this.enterGate();
     } else if (tgt.kind === 'prop') {
       const pr = tgt.prop;
-      let text = pr.text;
+      let text = pr.kind === 'shrine' && this.map.region === 'toyama' ? shrineText(pr.text, (g.env && g.env.season) || 'spring') : pr.text;
+      g.debug.lastProp = pr.kind;
       if (pr.kind === 'stone' && !this.gate) { const col = g.collection || {}; text += '<br><span class="tb-dim">' + esc(gateHint({ env: g.env, owned: col.owned || {}, found: !!col.found })) + '</span>'; }
       g.ui.note(text);
     } else if (tgt.kind === 'wild') {
@@ -597,7 +600,10 @@ export class FieldScene {
     g.arrive(r.world, 'gate', r.first);
     this._traveling = false;
   }
-  /** 富山の夜：遠くに白い小さな影が見えることがある（近づくと消える。名前はない） */
+  /**
+   * 富山の夜：遠くに白い小さな影が見えることがある（近づくと消える。名前はない）。
+   * Ver.0.6：季節ごとに決まった所（shared/toyama.js の GLIMPSE_SPOTS）にだけ、その所が 100〜300px 先に見えているとき。説明はしない。
+   */
   _glimpseTick(dt) {
     if (this.map.region !== 'toyama') { this.glimpse = null; return; }
     const tod = this.tod, s = this.pred.state;
@@ -612,15 +618,13 @@ export class FieldScene {
     if (!tod || tod.period !== 'night') return;
     this._glimpseT -= dt;
     if (this._glimpseT > 0) return;
-    this._glimpseT = 35 + Math.random() * 30;
-    for (let k = 0; k < 10; k++) {
-      const a = Math.random() * Math.PI * 2, r = 170 + Math.random() * 60;
-      const x = s.x + Math.cos(a) * r, y = s.y + Math.sin(a) * r * 0.6;
-      if (x < 40 || y < TOYAMA.MOUNT_ROWS * 16 + 30 || x > this.map.pxW - 40 || y > this.map.pxH - 40) continue;
-      this.glimpse = { x, y, t: 0, life: 5 };
-      if (!this._glimpsed) { this._glimpsed = true; setTimeout(() => this.game.ui.toast('…いま、なにか白いものが いた気がする'), 1600); }
-      break;
-    }
+    const season = (this.game.env && this.game.env.season) || 'spring';
+    const at = glimpseSpot(season, tod.period, s.x, s.y);
+    if (!at) { this._glimpseT = 2; return; }
+    this._glimpseT = GLIMPSE.GAP_MIN + Math.random() * (GLIMPSE.GAP_MAX - GLIMPSE.GAP_MIN);
+    this.glimpse = { x: at.x, y: at.y, t: 0, life: GLIMPSE.LIFE, season };
+    this.game.debug.glimpse = { season, x: at.x, y: at.y, n: (this.game.debug.glimpse ? this.game.debug.glimpse.n : 0) + 1 };
+    if (!this._glimpsed) { this._glimpsed = true; setTimeout(() => this.game.ui.toast('…いま、なにか白いものが いた気がする'), 1600); }
   }
   /** 蛍（夏の夜の富山・谷の水べ）・富山と谷の冬の雪のつもり */
   _fliesTick(dt) {
@@ -654,7 +658,8 @@ export class FieldScene {
       for (const w of this.wet) {
         const x = w.tx * 16, y = w.ty * 16;
         if (x < cx - 16 || y < cy - 16 || x > cx + W || y > cy + H) continue;
-        const ok = w.t === T.RIVER ? Sprites.drawCell(g, 'tile.river', (fr + w.tx) % 4, x, y) : w.t === T.PADDY ? Sprites.drawCell(g, 'tile.paddy', sIx, x, y) : Sprites.drawCell(g, 'tile.channel', (fr >> 1) % 2, x, y);
+        const cut = w.t === T.PADDY && this.map.region === 'toyama' && paddyHarvested(this.game.env && this.game.env.season, w.tx);
+        const ok = w.t === T.RIVER ? Sprites.drawCell(g, 'tile.river', (fr + w.tx) % 4, x, y) : cut ? (Sprites.drawCell(g, 'tile.paddy_cut', (w.tx + w.ty) % 2, x, y) || A.drawStubble(g, x, y, w.tx, w.ty)) : w.t === T.PADDY ? Sprites.drawCell(g, 'tile.paddy', sIx, x, y) : Sprites.drawCell(g, 'tile.channel', (fr >> 1) % 2, x, y);
         if (!ok) { g.fillStyle = w.t === T.PADDY ? (sIx === 3 ? '#dfe6ee' : '#5fa9c9') : '#3f8ab5'; g.fillRect(x, y, 16, 16); }
       }
     }
@@ -713,13 +718,14 @@ export class FieldScene {
     // 背の高いもの＋トビネズミを y でならべる
     const list = [];
     for (const o of this.tall) if (o.x > cx - 40 && o.x < cx + W + 40 && o.y > cy - 10 && o.y < cy + H + 70) list.push(o);
+    for (const pr of this.seasonProps()) if (pr.x > cx - 40 && pr.x < cx + W + 40 && pr.y > cy - 10 && pr.y < cy + H + 70) list.push({ kind: 'prop', pk: pr.kind, x: pr.x, y: pr.y, v: pr.v || 0, prop: pr });
     const now = this.serverNow();
     this.remoteViews = [];
     for (const rp of this.players.values()) {
       const s = rp.interp.sample(now) || rp.last;
       if (s.anim === 'hop' || s.anim === 'walk') rp.hop += 1 / 60 / FIELD.HOP_PERIOD; else rp.hop = 0;
       rp.last = s;
-      const v = { kind: 'player', x: s.x, y: s.y, z: s.z || 0, dir: s.dir, anim: s.anim, hop: rp.hop, jump: s.jump, fur: rp.fur, look: rp.look, name: rp.name, id: rp.id };
+      const v = { kind: 'player', x: s.x, y: s.y, z: s.z || 0, dir: s.dir, anim: s.anim, hop: rp.hop, jump: s.jump, fur: rp.fur, look: rp.look, name: rp.name, id: rp.id, k: s.k || null, kh: s.kh ? 1 : 0 };
       list.push(v); this.remoteViews.push(v);
     }
     for (const pv of this.predViews) if (pv.kind !== 'owl') list.push({ ...pv, kind: 'pred', pkind: pv.kind });
@@ -729,7 +735,7 @@ export class FieldScene {
     for (const v of this.wild.values()) {
       const q = v.interp.sample(now0) || v.latest;
       if (!q || v.goneAt) continue;
-      const wv = { kind: 'wild', id: v.id, x: q.x, y: q.y, z: q.z || 0, dir: q.dir || v.latest.dir, anim: q.anim || 'idle', jump: q.jump, look: v.latest.look, name: v.latest.name, fol: v.latest.fol, mood: v.latest.mood, hop: (v.hop = (q.anim === 'hop' ? (v.hop || 0) + 1 / 60 / FIELD.HOP_PERIOD : 0)) };
+      const wv = { kind: 'wild', id: v.id, x: q.x, y: q.y, z: q.z || 0, dir: q.dir || v.latest.dir, anim: q.anim || 'idle', jump: q.jump, look: v.latest.look, name: v.latest.name, fol: v.latest.fol, mood: v.latest.mood, sp: v.latest.sp || null, hop: (v.hop = (q.anim === 'hop' ? (v.hop || 0) + 1 / 60 / FIELD.HOP_PERIOD : 0)) };
       list.push(wv); this.wildViews.push(wv);
     }
     const me = this.view;
@@ -813,7 +819,7 @@ export class FieldScene {
     for (const o of list) if (o.kind === 'wild') {
       const x = o.x - cx, y = o.y - cy - (o.z || 0);
       if (x < -30 || x > W + 30 || y < -30 || y > H + 30) continue;
-      sc.text(x, y - 34, (o.fol === this.me.id ? '♥ ' : '') + '野生の' + o.name, { size: 6, color: o.fol === this.me.id ? '#ffc0cc' : '#e8e0c8', alpha: 0.9 });
+      sc.text(x, y - (o.sp === 'longear' ? 40 : 34), (o.fol === this.me.id ? '♥ ' : '') + (o.sp === 'longear' ? 'ミミナガの' : '野生の') + o.name, { size: 6, color: o.fol === this.me.id ? '#ffc0cc' : o.sp === 'longear' ? '#d8e8ff' : '#e8e0c8', alpha: 0.9 });
     }
     for (const o of list) if (o.kind === 'player') {
       const x = o.x - cx, y = o.y - cy - (o.z || 0);
@@ -838,8 +844,19 @@ export class FieldScene {
     }
   }
   /** 富山の調べられる物・谷の石の標 */
+  /** Ver.0.6：富山の季節の物（shared/toyama.js：重ねて描く・調べられる。地図は変えない） */
+  seasonProps() {
+    if (this.map.region !== 'toyama') return [];
+    const se = (this.game.env && this.game.env.season) || 'spring';
+    if (this._spSeason !== se) { this._spSeason = se; this._sp = toyamaSeasonProps(se); this.game.debug.toyamaProps = this._sp.map(p => p.kind); }
+    return this._sp;
+  }
   drawProp(g, o) {
-    const key = { shrine: 'tile.shrine', post: 'tile.post', machine: 'tile.machine', phone: 'tile.phone', stone: 'tile.stone_marker' }[o.pk];
+    const key = { shrine: 'tile.shrine', post: 'tile.post', machine: 'tile.machine', phone: 'tile.phone', stone: 'tile.stone_marker', busstop: 'tile.busstop', hasa: 'tile.hasa', lantern: 'tile.snow_lantern' }[o.pk];
+    if (o.pk === 'lantern') { const night = this.tod && this.tod.dark > 0.2; if (!Sprites.drawEntry(g, key, night ? 1 + (Math.floor(this.t * 3 + o.x) % 2) : 0, o.x, o.y)) A.drawSnowLantern(g, o.x, o.y, night, this.t); return; }
+    if (o.pk === 'hasa' && !Sprites.drawEntry(g, key, 0, o.x, o.y)) { A.drawHasa(g, o.x, o.y); return; }
+    if (o.pk === 'busstop' && !Sprites.drawEntry(g, key, (this.game.env && this.game.env.season) === 'winter' ? 1 : 0, o.x, o.y)) { A.drawBusstop(g, o.x, o.y); return; }
+    if (o.pk === 'hasa' || o.pk === 'busstop') return;
     const col = o.pk === 'phone' ? Math.floor(this.t * 0.7) % 2 : 0;
     if (!key || !Sprites.drawEntry(g, key, col, o.x, o.y)) { g.fillStyle = '#8a7a6a'; g.fillRect(Math.round(o.x) - 4, Math.round(o.y) - 10, 8, 10); }
     if (o.pk === 'phone' && col && Math.random() < 0.05) this.fx.push({ x: o.x, y: o.y - 8, vx: 0, vy: -6, t: 0, life: 0.6, color: '#bfe0ff' });
@@ -929,32 +946,39 @@ export class FieldScene {
       else if (Math.floor(this.t * 2) % 2) Sprites.drawEntry(g, 'ui.sparkle', 0, o.x + 7, o.y - z - 24);
     }
   }
-  /** 足あと（その子の通った所）をたどって、後ろについてくる若者の位置を決める */
+  /**
+   * ついてくる若者（Ver.0.6：shared/follow.js）。自分の若者は予測の位置から足あとをたどる（サーバーと同じ計算）。
+   * ほかの子の若者は、サーバーがスナップショットで送る位置（k）・かくれている（kh）をそのまま補間して描く（どの画面でも同じ道を歩く）。
+   */
   _kids(list, owner, kids, mine) {
     if (!kids.length) return;
-    let tr = this.trails.get(owner.id);
-    if (!tr) { tr = []; this.trails.set(owner.id, tr); }
-    const last = tr[tr.length - 1];
-    if (!last || Math.hypot(owner.x - last.x, owner.y - last.y) > 2) { tr.push({ x: owner.x, y: owner.y }); if (tr.length > 80) tr.shift(); }
+    let spots, danger;
+    if (mine || this.game.net.mode !== 'online' || !owner.k) {
+      let tr = this.trails.get(owner.id);
+      if (!tr) { tr = []; this.trails.set(owner.id, tr); }
+      trailPush(tr, owner.x, owner.y);
+      spots = kidSpots(tr, owner, kids.length);
+      danger = kidsHidden((this.predViews || []).filter(p => !p.gone), owner);
+    } else {
+      spots = unpackSpots(owner.k);
+      danger = !!owner.kh;
+    }
     // 捕食者が近い：巣へかくれる（消える）。いなくなったら戻ってくる
-    const danger = (this.predViews || []).some(p => !p.gone && Math.hypot(p.x - owner.x, p.y - owner.y) < 150);
     const k0 = this.kidVis.get(owner.id) ?? 1;
     const k = Math.max(0, Math.min(1, k0 + (danger ? -0.06 : 0.03)));
     this.kidVis.set(owner.id, k);
     if (mine && danger && k0 >= 1) { this.game.ui.toast('若者たちは 巣へ かくれた'); this.puff(owner.x, owner.y, '#e6c690', 6); }
     if (mine && !danger && k0 <= 0 && k > 0) this.game.ui.toast('若者たちが もどってきた');
-    if (mine) this.game.debug.kidsVisible = k;
+    if (mine) { this.game.debug.kidsVisible = k; this.game.debug.myKids = spots.map(q => [Math.round(q.x), Math.round(q.y)]); }
+    if (!mine) { this.game.debug.remoteKids = (this.game.debug.remoteKids || {}); this.game.debug.remoteKids[owner.id] = spots.map(q => [Math.round(q.x), Math.round(q.y)]); }
     if (k <= 0) return;
     kids.forEach((kd, i) => {
-      const want = 18 + i * 16;
-      let acc = 0, px = owner.x, py = owner.y, q = null;
-      for (let j = tr.length - 1; j >= 0; j--) { const t = tr[j]; acc += Math.hypot(t.x - px, t.y - py); px = t.x; py = t.y; if (acc >= want) { q = t; break; } }
-      if (!q) q = { x: owner.x - 10 - i * 9, y: owner.y + 4 + (i % 2) * 3 };
+      const q = spots[i] || { x: owner.x - 10 - i * 9, y: owner.y + 4 };
       let st = this.kidSt.get(kd.id);
-      if (!st) { st = { x: q.x, y: q.y, hop: 0 }; this.kidSt.set(kd.id, st); }
+      if (!st || Math.hypot(q.x - st.x, q.y - st.y) > 80) { st = { x: q.x, y: q.y, hop: 0 }; this.kidSt.set(kd.id, st); }
       const dx = q.x - st.x, dy = q.y - st.y, d = Math.hypot(dx, dy);
       const moving = d > 0.5;
-      st.x += dx * 0.25; st.y += dy * 0.25;
+      st.x += dx * 0.35; st.y += dy * 0.35;
       st.hop = moving ? st.hop + 1 / 60 / FIELD.HOP_PERIOD : 0;
       if (moving) st.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : dy < 0 ? 'up' : 'down';
       list.push({ kind: 'kid', x: st.x, y: st.y, look: kd.look, name: kd.name, dir: st.dir || owner.dir || 'down', hop: st.hop, anim: moving ? 'hop' : 'idle', alpha: k, mine });
@@ -993,6 +1017,7 @@ export class FieldScene {
     if (this.gate) hole(this.gate.x - cx, this.gate.y - cy, 30 + Math.sin(this.t * 3) * 3, 0.85);
     for (const f of this.flies) hole(f.x - cx, f.y - cy, 7, 0.7 * (0.5 + 0.5 * Math.sin(this.t * 5 + f.ph)));
     if (this.glimpse) hole(this.glimpse.x - cx, this.glimpse.y - cy - 6, 16, 0.5);
+    for (const pr of this.seasonProps()) if (pr.kind === 'lantern') hole(pr.x - cx, pr.y - cy - 6, 22 + Math.sin(this.t * 7 + pr.x) * 2, 0.75);
     g.drawImage(lc, 0, 0);
     // 蛍（暗い中で光る）・富山の遠くの灯り
     for (const f of this.flies) {

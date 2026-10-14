@@ -130,7 +130,7 @@ await test('土地ごとの天気：はじまりの原は前と同じ・砂丘�
 
 // ───────── 収集品・穴・実績 ─────────
 await test('収集品：土地・季節・時間帯・天気の条件・全員が持っている物は出ない・???の札は不思議な品 4 つから・出る場所のくせ', () => {
-  assert.equal(CURIO_ORDER.length, 18); assert.equal(SIGNS.length, 3); assert.equal(CROSSOVER.length, 6);
+  assert.equal(CURIO_ORDER.length, 20);   // Ver.0.6：富山の季節の品 2 つ（稲穂・ろうそく） assert.equal(SIGNS.length, 3); assert.equal(CROSSOVER.length, 6);
   assert.equal(CURIOS.dragons_card.desc, 'どこかで見た絵が描かれた札');
   assert.equal(CURIOS.machine_part.desc, '人間の世界のものらしい');
   assert.equal(CURIOS.charm.desc, '見たことのない紋章が刻まれている');
@@ -345,13 +345,13 @@ await test('オフライン：セーブの移行 v4 → v5（いる土地・図�
   for (const e of s.entrances) delete e.region;
   const ls = makeLS({ [SAVE_KEY]: JSON.stringify(s), dannoura_save: 'keep' });
   const n2 = new OfflineBackend({ storage: ls, now: () => G.clock.t, npc: false, wild: false });
-  assert.equal(n2.save.v, SAVE_VERSION); assert.equal(SAVE_VERSION, 5);
+  assert.equal(n2.save.v, SAVE_VERSION); assert.ok(SAVE_VERSION >= 5);   // Ver.0.6 で 6
   assert.equal(n2.save.player.region, 'plains');
   assert.deepEqual(n2.save.collection, {}); assert.deepEqual(n2.save.achievements, {});
   assert.deepEqual(n2.save.player.inv, G.n.save.player.inv);
   assert.equal(n2.save.world.resources.length, G.n.save.world.resources.length);
   n2.flush();
-  assert.equal(JSON.parse(ls.getItem(SAVE_KEY)).v, 5); assert.equal(ls.getItem('dannoura_save'), 'keep');
+  assert.equal(JSON.parse(ls.getItem(SAVE_KEY)).v, SAVE_VERSION); assert.equal(ls.getItem('dannoura_save'), 'keep');
   const j = await n2.joinField();
   assert.equal(j.world.region, 'plains'); assert.ok(j.world.collection);
 });

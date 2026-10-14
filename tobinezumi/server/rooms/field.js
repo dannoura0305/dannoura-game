@@ -35,6 +35,7 @@ import { hash2 } from '../../shared/rng.js';
 import { SNAPSHOT_HZ, SERVER_TICK_HZ } from '../../shared/protocol.js';
 import { WildWorld, WILD_DT } from '../../shared/wild.js';
 import { mulberry32 } from '../../shared/rng.js';
+import { trailPush, kidSpots, kidsHidden, packSpots } from '../../shared/follow.js';
 import { CURIOS, CURIO_TICK_MS, CURIO_TTL_MS, pickCurioSpawn, curioEligible, curioSpots } from '../../shared/collect.js';
 
 export const PICK_RANGE = 28;
@@ -108,6 +109,7 @@ export class FieldRoom {
     const st = makeFieldState(pos.x, pos.y);
     st.dir = pos.dir || 'down';
     p.st = st; p.lastSeq = 0; p.inbox = []; p.budget = INPUT_BURST; p.place = 'field'; p.nestId = null;
+    p.trail = [{ x: st.x, y: st.y }];      // Ver.0.6：ついてくる若者のための足あと
     p.lastBudgetAt = this.now();
     const already = this.players.has(p.accountId);
     this.players.set(p.accountId, p);
@@ -180,7 +182,10 @@ export class FieldRoom {
   tick() {
     this.tickN++;
     const t = this.now();
-    for (const p of this.players.values()) { this.drain(p); p.stillT = stillTime(p.stillT, p.st, 1 / SERVER_TICK_HZ); }
+    for (const p of this.players.values()) {
+      this.drain(p); p.stillT = stillTime(p.stillT, p.st, 1 / SERVER_TICK_HZ);
+      if (p.kids && p.kids.length) { if (!p.trail) p.trail = []; trailPush(p.trail, p.st.x, p.st.y); }
+    }
     // 再出現
     if (this.respawns.length && this.respawns[0].at <= t) this._respawn(t);
     // 夜だけの物（夜露・夜の種子）
@@ -198,11 +203,14 @@ export class FieldRoom {
   snapshot(t = this.now()) {
     const list = [...this.players.values()];
     if (!list.length) return;
+    const preds = this.preds.snapshot();
     const snaps = list.map(p => {
       const s = p.st;
-      return { id: p.accountId, x: r1(s.x), y: r1(s.y), z: r1(s.z), dir: s.dir, anim: s.anim, jump: s.jump ? { t: s.jump.t, dur: s.jump.dur, x0: s.jump.x0, y0: s.jump.y0, x1: s.jump.x1, y1: s.jump.y1 } : null };
+      const o = { id: p.accountId, x: r1(s.x), y: r1(s.y), z: r1(s.z), dir: s.dir, anim: s.anim, jump: s.jump ? { t: s.jump.t, dur: s.jump.dur, x0: s.jump.x0, y0: s.jump.y0, x1: s.jump.x1, y1: s.jump.y1 } : null };
+      // Ver.0.6：ついてくる若者の位置（足あとをたどる）・かくれている
+      if (p.kids && p.kids.length) { o.k = packSpots(kidSpots(p.trail || [], s, p.kids.length)); if (kidsHidden(preds, s)) o.kh = 1; }
+      return o;
     });
-    const preds = this.preds.snapshot();
     const wild = this.wildOn ? this.wild.snapshot() : [];
     for (let i = 0; i < list.length; i++) {
       const p = list[i];
@@ -485,8 +493,8 @@ export class FieldRoom {
 // ───────── 野生のトビネズミ（Ver.0.4）─────────
 FieldRoom.prototype.wildTick = function (t = this.now()) {
   const env = this.env(t);
-  if (t >= (this._courtT || 0)) { this._courtT = t + 500; for (const p of this.players.values()) p.courtOk = this.courtOk(p); }
-  const players = [...this.players.values()].filter(p => p.st).map(p => ({ id: p.accountId, x: p.st.x, y: p.st.y, z: p.st.z, jump: !!p.st.jump, moving: p.st.anim === 'hop', still: p.stillT || 0, eligible: !!p.courtOk }));
+  if (t >= (this._courtT || 0)) { this._courtT = t + 500; for (const p of this.players.values()) { p.courtOk = this.courtOk(p); p.friendOk = this.friendOk ? this.friendOk(p) : p.courtOk; } }
+  const players = [...this.players.values()].filter(p => p.st).map(p => ({ id: p.accountId, x: p.st.x, y: p.st.y, z: p.st.z, jump: !!p.st.jump, moving: p.st.anim === 'hop', still: p.stillT || 0, eligible: !!p.courtOk, friendOk: !!p.friendOk }));
   const ev = this.wild.step({ season: env.season, period: env.period, scale: this.clock.scale || 1, players }, WILD_DT);
   for (const e of ev) if (this.onWild && (e.type === 'befriend' || e.type === 'lost' || e.type === 'startle')) this.onWild(e);
   return ev;

@@ -5,6 +5,8 @@ import * as A from './art.js';
 import { lookOf, traitWords, TRAIT_NAME } from '../shared/genetics.js';
 import { STAGE_NAME, ageLabel, stageOf, PUP, STAGE, BREED, heirBlock } from '../shared/family.js';
 import { NAME_MAX } from '../shared/protocol.js';
+import { layoutLineage, lineageExportLayout, lineageText, ROLE_NAME as ROLE_JA } from '../shared/lineage.js';
+export { layoutLineage };
 
 const ROLE_NAME = { player: 'いまの子', pup: '子ども', kin: 'きょうだい', mate: 'つれあい', ancestor: 'ご先祖', left: '巣立った' };
 const SEX = { f: '<span class="tb-sexf" title="女の子">♀</span>', m: '<span class="tb-sexm" title="男の子">♂</span>' };
@@ -12,7 +14,7 @@ const SEX = { f: '<span class="tb-sexf" title="女の子">♀</span>', m: '<span
 /** その子の見た目（子ども・若者は小さく） */
 export function lookOfInd(m) {
   const st = m.stage || stageOf(m.ageMs);
-  return lookOf(m.traits, { pup: st === 'pup', young: st === 'young', ps: (Number(m.id) || 0) % 97 });
+  return lookOf(m.traits, { pup: st === 'pup', young: st === 'young', ps: (Number(m.id) || 0) % 97, sp: m.species });
 }
 const portraitCache = new Map();
 export function portraitURL(m, size = 48) {
@@ -106,75 +108,11 @@ export function farewellScene(game, retired, heir, onClose) {
 }
 
 // ───────── 家系図 ─────────
-/** 並べ方：世代ごとの段（つれあいは相手と同じ段）。段の中は親の位置の順。返り値 {pos: Map(id→{x,y}), links:[{a,b,kids}], w, h} */
-export function layoutLineage(nodes) {
-  const byId = new Map(nodes.map(n => [String(n.id), n]));
-  const kidsOf = new Map();
-  for (const n of nodes) for (const pid of [n.mother_id, n.father_id, n.kinOf]) if (pid != null && byId.has(String(pid))) { const k = String(pid); if (!kidsOf.has(k)) kidsOf.set(k, []); kidsOf.get(k).push(n); }
-  const rowOf = n => {
-    const ks = kidsOf.get(String(n.id));
-    if (ks && ks.length && n.mother_id == null && n.father_id == null && n.kinOf == null) return Math.max(0, Math.min(...ks.map(k => k.generation)) - 2);
-    return Math.max(0, (n.generation || 1) - 1);
-  };
-  const rows = [];
-  for (const n of nodes) { const r = rowOf(n); (rows[r] = rows[r] || []).push(n); }
-  const X = new Map(), GAP = 74, RG = 104;
-  const partnerOf = n => { for (const k of kidsOf.get(String(n.id)) || []) { const o = String(k.mother_id) === String(n.id) ? k.father_id : k.mother_id; if (o != null && byId.has(String(o))) return byId.get(String(o)); } return null; };
-  rows.forEach((list, r) => {
-    if (!list) { rows[r] = []; return; }
-    const key = n => {
-      const ps = [n.mother_id, n.father_id, n.kinOf].map(x => X.get(String(x))).filter(v => v != null);
-      if (ps.length) return ps.reduce((a, b) => a + b, 0) / ps.length + (n.id % 1000) * 1e-4;
-      const pt = partnerOf(n);
-      if (pt && pt !== n && (pt.mother_id != null || pt.father_id != null || pt.kinOf != null) && X.has(String(pt.id))) return X.get(String(pt.id)) + 0.5;
-      return -1e6 + (n.role === 'mate' || n.wild ? 0.5 : 0) + Number(n.id) * 1e-3;
-    };
-    // 親のいる子を先に決める（つれあいはその横）
-    const withParents = list.filter(n => n.mother_id != null || n.father_id != null || n.kinOf != null);
-    const tmp = new Map();
-    withParents.sort((a, b) => key(a) - key(b)).forEach((n, i) => tmp.set(String(n.id), i));
-    const order = [...list].sort((a, b) => {
-      const ka = tmp.has(String(a.id)) ? tmp.get(String(a.id)) : (() => { const pt = partnerOf(a); return pt && tmp.has(String(pt.id)) ? tmp.get(String(pt.id)) + 0.5 : 1e5 + a.id * 1e-3; })();
-      const kb = tmp.has(String(b.id)) ? tmp.get(String(b.id)) : (() => { const pt = partnerOf(b); return pt && tmp.has(String(pt.id)) ? tmp.get(String(pt.id)) + 0.5 : 1e5 + b.id * 1e-3; })();
-      return ka - kb;
-    });
-    if (r === 0) order.sort((a, b) => (partnerOf(a) === b ? -1 : 0) || (a.wild ? 1 : 0) - (b.wild ? 1 : 0) || a.id - b.id);
-    // 親の真ん中の下に寄せる（重ならないように左から詰める）
-    let last = -1e9;
-    const want = n => { const ps = [n.mother_id, n.father_id, n.kinOf].map(x => X.get(String(x))).filter(v => v != null); return ps.length ? ps.reduce((a, b) => a + b, 0) / ps.length : null; };
-    const groups = [];
-    for (const n of order) { const w = want(n); const g = groups[groups.length - 1]; if (g && g.w === w && w != null) g.list.push(n); else groups.push({ w, list: [n] }); }
-    for (const g of groups) {
-      const width = (g.list.length - 1) * GAP;
-      let x0 = g.w != null ? g.w - width / 2 : last + GAP;
-      if (x0 < last + GAP) x0 = last + GAP;
-      g.list.forEach((n, i) => { X.set(String(n.id), x0 + i * GAP); });
-      last = x0 + width;
-    }
-    rows[r] = order;
-  });
-  const pos = new Map();
-  let minX = 1e9, maxX = -1e9;
-  rows.forEach((list, r) => list.forEach(n => { const x = X.get(String(n.id)); pos.set(String(n.id), { x, y: r * RG }); minX = Math.min(minX, x); maxX = Math.max(maxX, x); }));
-  for (const v of pos.values()) v.x -= (minX + maxX) / 2;
-  const links = [];
-  const seen = new Map();
-  for (const n of nodes) {
-    const a = n.mother_id != null && byId.has(String(n.mother_id)) ? String(n.mother_id) : null, b = n.father_id != null && byId.has(String(n.father_id)) ? String(n.father_id) : null;
-    const k = n.kinOf != null && byId.has(String(n.kinOf)) ? String(n.kinOf) : null;
-    if (!a && !b && !k) continue;
-    const key = (a || '') + '|' + (b || '') + '|' + (k || '');
-    if (!seen.has(key)) { const L = { a, b, kin: k, kids: [] }; seen.set(key, L); links.push(L); }
-    seen.get(key).kids.push(String(n.id));
-  }
-  return { pos, links, rows: rows.length, w: maxX - minX, h: (rows.length - 1) * RG };
-}
-
 /** 家系図の画面。data = {nodes, current} */
 export function lineagePanel(game, data) {
   const ui = game.ui;
   const p = el('div', 'tb-panel tb-lineage tb-ui-block');
-  p.innerHTML = `<div class="tb-ph">家系図 <span class="tb-dim">（${data.nodes.length} 匹・${new Set(data.nodes.map(n => n.generation)).size} 代）</span><button class="tb-x">×</button></div>
+  p.innerHTML = `<div class="tb-ph">家系図 <span class="tb-dim">（${data.nodes.length} 匹・${new Set(data.nodes.map(n => n.generation)).size} 代）</span><span class="tb-linexp"><button class="tb-btn small primary tb-linpng" type="button">${game.isTouch && navigator.share ? '画像で共有' : '画像に書き出す'}</button><button class="tb-btn small tb-lintxt" type="button">文字でコピー</button></span><button class="tb-x">×</button></div>
     <div class="tb-lincv"><canvas></canvas><div class="tb-linzoom"><button class="tb-btn small zin" type="button">＋</button><button class="tb-btn small zout" type="button">－</button><button class="tb-btn small zfit" type="button">全体</button></div></div>
     <div class="tb-lininfo tb-dim">${game.isTouch ? '指で動かす・2 本指でつまんで拡大・タップでくわしく' : 'ドラッグで動かす・ホイールで拡大・クリックでくわしく'}</div>`;
   ui._openModal(p, () => { cancelAnimationFrame(raf); });
@@ -287,8 +225,90 @@ export function lineagePanel(game, data) {
   const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => { const ow = S.w; S = size(); if (Math.abs(ow - S.w) > 2) fit(); dirty = true; }) : null;
   if (ro) ro.observe(box);
   game.debug.lineage = { nodes: data.nodes.length, gens: L.rows, view: () => ({ z, tx, ty }) };
+  // Ver.0.6：書き出し（画像・文字）
+  const opts = { owner: (game.character && game.character.name) || '', date: dateLabel(new Date()) };
+  p.querySelector('.tb-linpng').onclick = () => exportLineagePNG(game, data, opts);
+  p.querySelector('.tb-lintxt').onclick = () => copyLineageText(game, data, opts);
   return p;
 }
+const dateLabel = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+
+/** 家系図を 1 枚の絵に（shared/lineage.js の配置どおりに描く）。返り値 canvas */
+export function renderLineageCanvas(data, opts = {}) {
+  const Lx = lineageExportLayout(data.nodes, data.current, opts);
+  const k = Lx.scale;
+  const cv = A.mk(Math.round(Lx.w * k), Math.round(Lx.h * k)), g = cv.getContext('2d');
+  g.scale(k, k);
+  g.imageSmoothingEnabled = false;
+  // 背景：夜の砂の色＋上に見出し
+  const bg = g.createLinearGradient(0, 0, 0, Lx.h);
+  bg.addColorStop(0, '#2a1c14'); bg.addColorStop(1, '#3e2a1c');
+  g.fillStyle = bg; g.fillRect(0, 0, Lx.w, Lx.h);
+  g.fillStyle = 'rgba(255,240,200,0.05)';
+  for (let i = 0; i < 60; i++) { const x = (i * 97) % Lx.w, y = (i * 53) % Lx.h; g.fillRect(x, y, 2, 2); }
+  const F = s => s + "px 'DotGothic16','DotGothic16 Local',sans-serif";
+  g.textAlign = 'center'; g.textBaseline = 'top';
+  g.fillStyle = '#ffe9a8'; g.font = F(26); g.fillText(Lx.title, Lx.w / 2, 16);
+  g.fillStyle = '#d8c4a0'; g.font = F(14); g.fillText(Lx.sub, Lx.w / 2, 48);
+  // 線
+  for (const l of Lx.lines) {
+    g.strokeStyle = l.kind === 'pair' ? '#e8485a' : '#c9a24a'; g.lineWidth = 3;
+    g.setLineDash(l.kind === 'kin' ? [6, 5] : []);
+    g.beginPath(); g.moveTo(l.x0, l.y0); g.lineTo(l.x1, l.y1); g.stroke();
+  }
+  g.setLineDash([]);
+  // 札
+  const frame = Sprites.get('ui.lineage_frame');
+  for (const c of Lx.cards) {
+    g.fillStyle = c.faded ? '#2e2218' : '#3a2a1e'; g.fillRect(c.x, c.y, c.w, c.h);
+    if (frame) nine(g, frame, c.cur ? 1 : 0, c.x - 3, c.y - 3, c.w + 6, c.portrait.size + 16);
+    else { g.strokeStyle = c.cur ? '#e8c060' : '#a88c68'; g.lineWidth = 2; g.strokeRect(c.x, c.y, c.w, c.portrait.size + 10); }
+    const node = data.nodes.find(n => String(n.id) === String(c.id));
+    if (node) { g.globalAlpha = c.faded ? 0.85 : 1; g.drawImage(Sprites.lookPortrait(lookOfInd(node), c.portrait.size), c.portrait.x, c.portrait.y); g.globalAlpha = 1; }
+    let y = c.y + c.portrait.size + 14;
+    g.fillStyle = c.cur ? '#ffe9a8' : '#f2dcc0'; g.font = F(13); g.fillText(c.sex + c.name, c.x + c.w / 2, y); y += 17;
+    g.fillStyle = '#b8a48a'; g.font = F(10); g.fillText(c.line1, c.x + c.w / 2, y); y += 13;
+    g.fillText(c.line2, c.x + c.w / 2, y); y += 13;
+    g.fillStyle = '#9ad0c0'; g.font = F(9);
+    const chips = c.chips.map(t => t.text).join('・');
+    if (chips) g.fillText(chips.length > 14 ? chips.slice(0, 13) + '…' : chips, c.x + c.w / 2, y);
+    if (c.cur) { g.strokeStyle = '#ffe9a8'; g.lineWidth = 2; g.strokeRect(c.x - 5, c.y - 5, c.w + 10, c.h + 10); }
+  }
+  g.fillStyle = '#8a7660'; g.font = F(11); g.textAlign = 'right'; g.fillText(Lx.foot, Lx.w - 14, Lx.h - 24);
+  return cv;
+}
+/** PNG に書き出す：スマホは共有（Web Share API でファイル）、できなければダウンロード */
+export async function exportLineagePNG(game, data, opts = {}) {
+  const ui = game.ui;
+  const cv = renderLineageCanvas(data, opts);
+  const name = 'tobinezumi-lineage-' + (opts.date || 'today') + '.png';
+  const blob = await new Promise(res => (cv.toBlob ? cv.toBlob(res, 'image/png') : res(null)));
+  game.debug.lineageExport = { w: cv.width, h: cv.height, bytes: blob ? blob.size : 0 };
+  if (!blob) { ui.toast('画像を作れなかった', 'bad'); return null; }
+  try {
+    if (game.isTouch && typeof File !== 'undefined' && navigator.canShare) {
+      const file = new File([blob], name, { type: 'image/png' });
+      if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: '家系図', text: lineageText(data.nodes, data.current, opts).split('\n')[0] }); ui.toast('家系図を共有した'); return blob; }
+    }
+  } catch (e) { if (e && e.name === 'AbortError') return blob; }
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  ui.toast('家系図の画像を保存した（' + name + '）');
+  return blob;
+}
+/** 文字のまとめをコピー（できなければ選べる欄を出す） */
+export async function copyLineageText(game, data, opts = {}) {
+  const text = lineageText(data.nodes, data.current, opts);
+  game.debug.lineageText = text;
+  try { await navigator.clipboard.writeText(text); game.ui.toast('家系図を文字でコピーした'); return text; }
+  catch (e) {
+    game.ui.note('<textarea class="tb-lincopy" readonly rows="8">' + esc(text) + '</textarea><br><span class="tb-dim">選んでコピーしてね</span>');
+    const ta = document.querySelector('.tb-lincopy'); if (ta) { ta.addEventListener('click', ev => ev.stopPropagation()); ta.focus(); ta.select(); }
+    return text;
+  }
+}
+void ROLE_JA;
 /** 9 スライスの枠（variant 列） */
 function nine(g, e, col, x, y, w, h) {
   const [cw, ch] = e.cell, s = (e.slice || [6, 6, 6, 6])[0], img = e.img, sx = col * cw;

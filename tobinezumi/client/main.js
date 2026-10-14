@@ -186,6 +186,7 @@ game._familyEvent = function (e) {
   } else if (e.type === 'lifespan') game.lifespanDialog();
   else if (e.type === 'wait') ui.toast('冬のあいだは巣ごもり。赤ちゃんは春に生まれる');
   else if (e.type === 'mate') ui.toast(e.name + ' が つれあいとして巣に住むことになった');
+  else if (e.type === 'friend') ui.toast(e.name + ' が なかまとして巣に住むことになった');
 };
 game.openNaming = function () {
   const pups = game.pendingNames;
@@ -365,7 +366,8 @@ game.enterNest = function (nest, ent, invite = null) {
   game.nest = nest; game.nestPeers = [];
   game.walk = game.walk || new NestWalkScene(game);
   game.go(game.walk, { nest, from: 'field' });
-  if (invite && invite.ok) { sfx('safe'); game.ui.toast(invite.name + ' を 巣に むかえた！ つれあいになった（世界の半日ほどで 赤ちゃんが生まれる）'); }
+  if (invite && invite.ok && invite.friend) { sfx('safe'); game.ui.toast(invite.name + ' が なかまとして 巣に住むことになった（ミミナガトビネズミ：種がちがうので 赤ちゃんはできない）'); }
+  else if (invite && invite.ok) { sfx('safe'); game.ui.toast(invite.name + ' を 巣に むかえた！ つれあいになった（世界の半日ほどで 赤ちゃんが生まれる）'); }
   else if (invite) game.ui.toast(invite.name + ' は 入口で待っている：' + invite.reason, 'bad');
   else game.ui.toast(nest.own ? 'わが家に帰ってきた' : nest.ownerName + 'の巣におじゃました');
   if (nest.own && game.pendingNames) setTimeout(() => { if (!game.ui.busy()) game.openNaming(); }, 400);
@@ -473,6 +475,11 @@ function wire(net) {
     game.ui.toast('実績「' + a.name + '」' + (m.reward && FURNITURE[m.reward] ? '　ごほうび：' + FURNITURE[m.reward].name + '（巣の家具に）' : ''));
   });
   net.on('residents', m => { if (m.text) game.ui.toast(m.text); game.onResidents(m); });
+  // Ver.0.6：オフラインの共同巣（NPC の住人が倉庫に種子を持ってきた）
+  net.on('npc_gift', m => {
+    if (game.nest && game.nest.id === m.nestId) { game.nest.storage = m.storage; if (game.scene === game.walk && game.walk.onStorage) game.walk.onStorage(m); }
+    game.debug.npcGifts = (game.debug.npcGifts || 0) + 1;
+  });
   net.on('nest_role', m => {
     if (!game.nest || game.nest.id !== m.nestId) return;
     game.nest.canEdit = !!m.canEdit; game.nest.role = m.role;

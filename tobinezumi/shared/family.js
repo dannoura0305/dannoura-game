@@ -29,7 +29,21 @@ export const LITTER = {                // 季節ごとの子の数 [最小, 最�
   autumn: { min: 2, max: 4, w: [3, 3, 1] },
   winter: null,
 };
-export const ROLES_IN_NEST = new Set(['pup', 'kin', 'mate']);
+export const ROLES_IN_NEST = new Set(['pup', 'kin', 'mate', 'friend']);   // friend：ほかの種のなかま（Ver.0.6・つれあいにはならない）
+// Ver.0.6：種（individuals.species）。近縁種は なかよくなって巣に住むことはできるが、赤ちゃんはできない（種の壁）
+export const SPECIES = {
+  jerboa: { id: 'jerboa', name: 'トビネズミ' },
+  longear: { id: 'longear', name: 'ミミナガトビネズミ', desc: '耳がとても大きく、鼻先の長い なかま。すなの海の夜に まれに出る' },
+};
+export const SPECIES_IDS = Object.keys(SPECIES);
+export const speciesOf = m => (m && SPECIES[m.species] ? m.species : 'jerboa');
+export const FRIEND_MAX = 2;           // 巣に住める ほかの種のなかま
+/** 赤ちゃんができるか（同じ種どうしだけ）。だめなら理由 */
+export function speciesBlock(a, b) {
+  const sa = speciesOf(a), sb = speciesOf(b);
+  if (sa === sb) return null;
+  return SPECIES[sa === 'jerboa' ? sb : sa].name + 'とは 赤ちゃんは できない（種がちがう）。なかまとして いっしょに住める';
+}
 export const PUP_NAMES = ['ポポ', 'チロ', 'ミミ', 'ココ', 'ピピ', 'ルル', 'モモ', 'ナナ', 'トト', 'キキ', 'ソラ', 'マメ', 'クー', 'ララ', 'ノノ', 'フク', 'チャチャ', 'ハル', 'ユズ', 'コロ', 'ミント', 'サラ', 'ピコ', 'ムギ'];
 export const WILD_NAMES = ['サラ', 'ジン', 'ハナ', 'リオ', 'ユキ', 'カイ', 'ノア', 'ミラ', 'セナ', 'トア', 'ルカ', 'エマ', 'アル', 'ニコ'];
 
@@ -48,9 +62,11 @@ export const ageLabel = ms => (Math.floor(ageDays(ms) * 10) / 10).toFixed(1) + '
  *   role：'player'（いま操作している）/ 'pup'（自分の子：巣にいる）/ 'kin'（きょうだい・親せき：巣にいる）/ 'mate'（つれあい）/
  *         'ancestor'（ご先祖・隠居）/ 'left'（巣立った）
  */
-export function makeInd({ id, name, sex = 'f', generation = 1, father_id = null, mother_id = null, genes, role = 'pup', ageMs = 0, fed = PUP.START, named = false, bornAt = 0, fur = 'sand' }) {
+export function makeInd({ id, name, sex = 'f', generation = 1, father_id = null, mother_id = null, genes, role = 'pup', ageMs = 0, fed = PUP.START, named = false, bornAt = 0, fur = 'sand', species = 'jerboa' }) {
   const g = normalizeGenes(genes, fur);
-  return { id, name, sex, generation, father_id, mother_id, genes: g, traits: expressTraits(g), role, ageMs, fed, named, bornAt };
+  const o = { id, name, sex, generation, father_id, mother_id, genes: g, traits: expressTraits(g), role, ageMs, fed, named, bornAt };
+  if (species && species !== 'jerboa' && SPECIES[species]) o.species = species;
+  return o;
 }
 /** 最初の 1 匹 */
 export function founderInd({ id, name, fur, sex, seed = 1, bornAt = 0 }) {
@@ -62,6 +78,9 @@ export function indOut(m, { genes = false } = {}) {
     ageMs: Math.round(m.ageMs || 0), stage: stageOf(m.ageMs), fed: Math.round((m.fed ?? 100) * 10) / 10, named: !!m.named };
   if (m.retiredAt) o.retiredAt = m.retiredAt;
   if (m.kinOf) o.kinOf = m.kinOf;
+  if (m.species && m.species !== 'jerboa') o.species = m.species;
+  if (m.wild) o.wild = true;
+  if (m.pettedAt) o.pettedAt = m.pettedAt;
   if (genes) o.genes = m.genes;
   return o;
 }
@@ -76,6 +95,12 @@ export function courtBlock({ ageMs, life, season, pending = false, hasMate = fal
   if (pending) return 'もうすぐ 赤ちゃんが生まれる';
   if (hasMate) return 'もう つれあいがいる（巣でなかよくしよう）';
   if (life && (life.cond < BREED.COND || life.hunger < BREED.HUNGER || life.thirst < BREED.THIRST)) return '体調を整えてから（体調 ' + BREED.COND + '・空腹 ' + BREED.HUNGER + '・水分 ' + BREED.THIRST + ' 以上）';
+  return null;
+}
+/** Ver.0.6：ほかの種の子と なかよくなれるか（子ども以外・なかまが FRIEND_MAX 未満）。だめなら理由 */
+export function friendBlock({ ageMs, friends = 0 }) {
+  if (stageOf(ageMs) === 'pup') return 'まだ小さい';
+  if (friends >= FRIEND_MAX) return 'なかまは ' + FRIEND_MAX + ' 匹まで';
   return null;
 }
 /** 巣へ迎える（赤ちゃんを授かる）ことができるか。nest = {data, seeds}、fam = 巣の家族の数・前のお産（遊んだ時間）・いまの遊んだ時間 */
@@ -157,7 +182,7 @@ export function stepFamily(members, dtMs, { seeds = 0 } = {}) {
       const before = stageOf(m.ageMs);
       m.ageMs = (m.ageMs || 0) + dtMs;
       const after = stageOf(m.ageMs);
-      if (after !== before && m.role !== 'mate') events.push({ type: 'stage', id: m.id, name: m.name, stage: after });
+      if (after !== before && m.role !== 'mate' && m.role !== 'friend') events.push({ type: 'stage', id: m.id, name: m.name, stage: after });
     }
     out.push(m);
   }
@@ -198,6 +223,7 @@ export function successionPlan(current, members, heirId) {
     if (m.id === heirId) continue;
     if (m.role === 'mate') retire.push(m.id);
     else if (m.role === 'pup' || m.role === 'kin') { const st = stageOf(m.ageMs); if (st === 'adult' || st === 'elder') leave.push(m.id); else stay.push(m.id); }
+    else if (m.role === 'friend') stay.push(m.id);   // なかま（ほかの種）は巣に残る
   }
   return { ok: true, heir, retire, leave, stay };
 }

@@ -511,3 +511,40 @@ export function drawPuddle(g, x, y, t = 0) {
 export function drawPlug(g, x, y) {
   for (const [dx, dy, r] of [[-4, 0, 2.4], [0, -1, 2.6], [4, 0, 2.3], [-2, 2, 2], [2, 2, 2.2]]) { ell(g, x + dx, y + dy, r, r * 0.75, '#a09080'); P(g, '#e2d6c4', x + dx - 1, y + dy - 1); }
 }
+
+// ───────── Ver.0.6：富山の季節の物（素材が無いときのコード描画。素材は tools/art_life.py）─────────
+/** 秋の刈り株の田（16×16） */
+export function drawStubble(g, x, y, tx = 0, ty = 0) {
+  g.fillStyle = '#8a6a3c'; g.fillRect(x, y, 16, 16);
+  g.fillStyle = '#6e5230'; for (let i = 0; i < 16; i += 4) g.fillRect(x, y + i + 2, 16, 1);
+  g.fillStyle = '#d8b25a';
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) g.fillRect(x + 1 + c * 4 + ((r + tx) % 2), y + 1 + r * 4 + ((c + ty) % 2), 1, 2);
+  return true;
+}
+/** はさ掛け（稲を干す木の組み）。足元 (x, y) */
+export function drawHasa(g, x, y) {
+  x = Math.round(x); y = Math.round(y);
+  g.fillStyle = '#5a3c22';
+  for (const dx of [-14, 0, 14]) g.fillRect(x + dx - 1, y - 22, 2, 22);
+  g.fillRect(x - 16, y - 20, 32, 2);
+  g.fillStyle = '#e0b84a';
+  for (let i = -15; i < 16; i += 3) { g.fillRect(x + i, y - 18, 2, 9 + ((i + 15) % 2)); }
+  g.fillStyle = '#b08a2c'; for (let i = -14; i < 16; i += 6) g.fillRect(x + i, y - 18, 1, 8);
+}
+/** 雪の灯り（雪灯籠）。lit＝夜はろうそくがゆれる */
+export function drawSnowLantern(g, x, y, lit = false, t = 0) {
+  x = Math.round(x); y = Math.round(y);
+  g.fillStyle = '#e8eef6'; g.beginPath(); g.ellipse(x, y - 4, 6, 4, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#f4f8ff'; g.fillRect(x - 4, y - 12, 8, 8); g.beginPath(); g.ellipse(x, y - 13, 6, 3, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = lit ? `rgba(255,${200 + Math.round(30 * Math.sin(t * 9))},120,1)` : '#9aa6b8'; g.fillRect(x - 2, y - 10, 4, 4);
+}
+/** 古いバス停 */
+export function drawBusstop(g, x, y) {
+  x = Math.round(x); y = Math.round(y);
+  g.fillStyle = '#6a7078'; g.fillRect(x - 1, y - 26, 2, 26);
+  g.fillStyle = '#c84a3a'; g.beginPath(); g.arc(x, y - 27, 5, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#f0ece0'; g.fillRect(x - 3, y - 29, 6, 4);
+  g.fillStyle = '#e8e2d0'; g.fillRect(x + 2, y - 18, 6, 8);
+  g.fillStyle = '#8a8070'; for (let i = 0; i < 3; i++) g.fillRect(x + 3, y - 16 + i * 2, 4, 1);
+  g.fillStyle = '#7a5a3a'; g.fillRect(x - 12, y - 6, 9, 2); g.fillRect(x - 11, y - 4, 1, 4); g.fillRect(x - 5, y - 4, 1, 4);
+}

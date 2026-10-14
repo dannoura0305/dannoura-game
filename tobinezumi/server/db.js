@@ -153,6 +153,8 @@ export class Store {
     if (st.retiredAt) o.retiredAt = st.retiredAt;
     if (st.wild) o.wild = true;
     if (st.kinOf) o.kinOf = st.kinOf;
+    if (st.pettedAt) o.pettedAt = st.pettedAt;
+    if (r.species && r.species !== 'jerboa') o.species = r.species;   // Ver.0.6：近縁種（なかま）
     return o;
   }
   individual(id) { return this._ind(this.q('SELECT * FROM individuals WHERE id = ?').get(id)); }
@@ -168,9 +170,10 @@ export class Store {
     if (m.retiredAt) st.retiredAt = m.retiredAt;
     if (m.wild) st.wild = true;
     if (m.kinOf) st.kinOf = m.kinOf;
-    const inNest = m.role === 'pup' || m.role === 'kin' || m.role === 'mate';
-    this.q('UPDATE individuals SET name = ?, sex = ?, generation = ?, father_id = ?, mother_id = ?, genes = ?, traits = ?, status = ?, role = ?, nest_id = ?, account_id = COALESCE(?, account_id) WHERE id = ?')
-      .run(m.name, m.sex, m.generation || 1, m.father_id ?? null, m.mother_id ?? null, J(m.genes), J(m.traits || expressTraits(m.genes)), J(st), m.role, inNest ? nestId : null, accountId, m.id);
+    if (m.pettedAt) st.pettedAt = m.pettedAt;
+    const inNest = m.role === 'pup' || m.role === 'kin' || m.role === 'mate' || m.role === 'friend';
+    this.q('UPDATE individuals SET name = ?, sex = ?, generation = ?, father_id = ?, mother_id = ?, genes = ?, traits = ?, status = ?, role = ?, nest_id = ?, account_id = COALESCE(?, account_id), species = ? WHERE id = ?')
+      .run(m.name, m.sex, m.generation || 1, m.father_id ?? null, m.mother_id ?? null, J(m.genes), J(m.traits || expressTraits(m.genes)), J(st), m.role, inNest ? nestId : null, accountId, m.species || 'jerboa', m.id);
   }
   /** 年齢・おなかだけ（30 秒ごと） */
   saveIndAge(m) {
@@ -187,7 +190,7 @@ export class Store {
     if (!me) return null;
     me.role = 'player';
     const flags = (c.individual.status && c.individual.status.house) || {};
-    const members = this.q("SELECT * FROM individuals WHERE account_id = ? AND role IN ('pup', 'kin', 'mate') ORDER BY id").all(accountId).map(r => this._ind(r));
+    const members = this.q("SELECT * FROM individuals WHERE account_id = ? AND role IN ('pup', 'kin', 'mate', 'friend') ORDER BY id").all(accountId).map(r => this._ind(r));
     const L = this.q('SELECT * FROM litters WHERE account_id = ? AND born_at IS NULL ORDER BY id DESC LIMIT 1').get(accountId);
     let pending = null;
     if (L) {
@@ -205,9 +208,9 @@ export class Store {
   dropPendingLitters(accountId) { this.q('DELETE FROM litters WHERE account_id = ? AND born_at IS NULL').run(accountId); }
   litterRows(accountId) { return this.q('SELECT * FROM litters WHERE account_id = ? ORDER BY id').all(accountId); }
   /** 巣にいる家族（所有者がオフラインのとき訪問者に見せる） */
-  nestFamily(nestId) { return this.q("SELECT * FROM individuals WHERE nest_id = ? AND role IN ('pup', 'kin', 'mate') ORDER BY id").all(nestId).map(r => this._ind(r)); }
+  nestFamily(nestId) { return this.q("SELECT * FROM individuals WHERE nest_id = ? AND role IN ('pup', 'kin', 'mate', 'friend') ORDER BY id").all(nestId).map(r => this._ind(r)); }
   /** 家系図：その家の個体すべて（'pending' を除く） */
-  lineage(accountId) { return this.q("SELECT * FROM individuals WHERE account_id = ? AND role != 'pending' ORDER BY generation, id").all(accountId).map(r => this._ind(r)); }
+  lineage(accountId) { return this.q("SELECT * FROM individuals WHERE account_id = ? AND role NOT IN ('pending', 'friend') ORDER BY generation, id").all(accountId).map(r => this._ind(r)); }
   /** 世代交代：古いキャラクターを休ませて、あとをつぐ子のキャラクターを作る（持ち物を写す）。位置は前の子の場所 */
   switchCharacter(accountId, heir, now = Date.now()) {
     return this.tx(() => {
@@ -348,6 +351,19 @@ export class Store {
   delayRespawn(id, at) { this.q('UPDATE world_resources SET respawn_at = ? WHERE id = ?').run(at, id); }
 
   /** VACUUM INTO（動いている間でも一貫したコピーが取れる） */
+  // ───────── 豊かな巣の週（Ver.0.6）─────────
+  rankWeek(week) { return this.q('SELECT * FROM rank_weeks WHERE week = ? ORDER BY COALESCE(place, 999999), nest_id').all(week).map(r => ({ week: r.week, nestId: r.nest_id, owner: r.owner, name: r.name, region: r.region, base: r.base, score: r.score, rooms: r.rooms, decor: r.decor, curios: r.curios, final: !!r.final, place: r.place, title: r.title })); }
+  rankBases(week) { const m = new Map(); for (const r of this.q('SELECT nest_id, base FROM rank_weeks WHERE week = ?').all(week)) m.set(r.nest_id, r.base); return m; }
+  /** その週の行を書く（無ければ base も入れる。あれば base はそのまま） */
+  upsertRankWeek(week, r, base, now = Date.now()) {
+    this.q(`INSERT INTO rank_weeks (week, nest_id, owner, name, region, base, score, rooms, decor, curios, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(week, nest_id) DO UPDATE SET owner = excluded.owner, name = excluded.name, region = excluded.region, score = excluded.score, rooms = excluded.rooms, decor = excluded.decor, curios = excluded.curios, updated_at = excluded.updated_at`)
+      .run(week, r.nestId, r.owner ?? null, r.name || '', r.region || 'plains', base | 0, r.score | 0, r.rooms | 0, r.decor | 0, r.curios | 0, now);
+  }
+  /** 週をしめる（順位・呼び名） */
+  finalizeRankWeek(week, rows, now = Date.now()) {
+    this.tx(() => { for (const r of rows) { this.upsertRankWeek(week, r, r.base, now); this.q('UPDATE rank_weeks SET final = 1, place = ?, title = ? WHERE week = ? AND nest_id = ?').run(r.place, r.title, week, r.nestId); } });
+  }
   vacuumInto(path) { this.db.exec(`VACUUM INTO '${String(path).replace(/'/g, "''")}'`); }
 }
 

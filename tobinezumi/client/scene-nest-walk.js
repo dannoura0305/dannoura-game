@@ -16,9 +16,10 @@ import * as A from './art.js';
 import { PLUG_COST } from '../shared/protocol.js';
 import { sfx } from './sfx.js';
 import { lookOfInd } from './family-ui.js';
-import { STAGE_NAME, ageLabel, PUP } from '../shared/family.js';
+import { STAGE_NAME, ageLabel, PUP, stageOf } from '../shared/family.js';
+import { familyScene, familyBubble, famRooms, petReply, familyLine, PET } from '../shared/family-life.js';
 
-const FAM_ROLE = { pup: '子ども', kin: 'きょうだい', mate: 'つれあい' };
+const FAM_ROLE = { pup: '子ども', kin: 'きょうだい', mate: 'つれあい', friend: 'なかま', resident: '共同巣の住人' };
 
 const GUIDE_KEYS = '<span><kbd>←</kbd><kbd>→</kbd> 移動</span><span><kbd>Space</kbd> ジャンプ</span><span><kbd>↑</kbd><kbd>↓</kbd> 登る・降りる</span><span><kbd>E</kbd> 調べる・眠る</span><span><kbd>Q</kbd> 食べる</span><span><kbd>K</kbd> 家族</span><span><kbd>B</kbd> ビルドモード</span>';
 const GUIDE_TOUCH = '<span>◀ ▶ 移動</span><span>▲ ▼ 登る・降りる（入口の縦穴を▲で地上へ）</span><span>調べる＝寝床で眠る</span><span>ビルド＝全体モード</span>';
@@ -168,9 +169,11 @@ export class NestWalkScene {
     for (const f of this.famViews || []) { const d = Math.abs(f.x - s.x); if (d < fd && Math.abs(f.y - s.y) < 8) { fd = d; fb = f; } }
     if (fb) {
       const m = fb.m, st = m.stage;
-      if (this._mine(m) && (m.role === 'pup' || m.role === 'kin') && (st === 'pup' || st === 'young')) return { kind: 'feed', m, label: m.name + ' に種子をあげる（おなか ' + Math.round(m.fed) + '）' };
-      if (this._mine(m) && m.role === 'mate') return { kind: 'mate', m, label: 'つれあいの' + m.name + 'と なかよくする（赤ちゃん）' };
-      return { kind: 'fam', m, label: m.name + '（' + (FAM_ROLE[m.role] || '') + '・' + STAGE_NAME[st] + '）' };
+      const h = this.game.house;
+      if (this._mine(m) && (m.role === 'pup' || m.role === 'kin') && (st === 'pup' || st === 'young') && (m.fed ?? 100) < 60) return { kind: 'feed', m, label: m.name + ' に種子をあげる（おなか ' + Math.round(m.fed) + '）' };
+      if (this._mine(m) && m.role === 'mate' && h && !h.pending && !(h.cooldown > 0) && m.species == null && (h.me.stage === 'adult')) return { kind: 'mate', m, label: 'つれあいの' + m.name + 'と なかよくする（赤ちゃん）' };
+      if (this._mine(m)) return { kind: 'pet', m, label: m.name + ' を なでる（' + (m.role === 'pup' || m.role === 'kin' ? STAGE_NAME[st] : FAM_ROLE[m.role] || '') + '・体調 +' + PET.COND + '）' };
+      return { kind: 'fam', m, label: (m.npc ? m.name + ' にあいさつ（共同巣の住人）' : m.name + ' にあいさつ（' + (FAM_ROLE[m.role] || '') + '・' + STAGE_NAME[st] + '）') };
     }
     let best = null, bd = 1e9;
     for (const it of this.view.layout.interact) {
@@ -196,7 +199,8 @@ export class NestWalkScene {
     if (tgt.kind === 'pile') { g.eat('pile'); return; }
     if (tgt.kind === 'feed') { this.feedFam(tgt.m); return; }
     if (tgt.kind === 'mate') { this.mateAgain(tgt.m); return; }
-    if (tgt.kind === 'fam') { const m = tgt.m; g.ui.toast(m.name + '：' + (FAM_ROLE[m.role] || '') + '・' + STAGE_NAME[m.stage] + '・' + ageLabel(m.ageMs) + (this.nest.own ? '' : '（' + this.nest.ownerName + 'の家族）')); return; }
+    if (tgt.kind === 'pet') { this.petFam(tgt.m); return; }
+    if (tgt.kind === 'fam') { this.greetFam(tgt.m); return; }
     if (tgt.kind === 'store') {
       if (!this.nest.canEdit) { g.ui.toast('ほかの子の倉庫だ。中身はいっぱい'); return; }
       g.ui.storagePanel(g.inv(), this.nest.storage, async (dir, item, n) => {
@@ -239,51 +243,94 @@ export class NestWalkScene {
     if (r.family) g.setFamily(r.family);
     g.ui.toast(m.name + ' と なかよくした。世界の半日ほどで 赤ちゃんが生まれる');
   }
-  /** 巣の家族（自分の巣は手元の最新、よその巣は入ったときの様子） */
+  /** 巣の家族（自分の巣は手元の最新、よその巣は入ったときの様子）。Ver.0.6：オフラインの共同巣の NPC の住人も */
   _family() {
     const me = this.game.account && this.game.account.id;
+    let list;
     // 自分の家の巣（所有者・共同巣の住人）：自分の家族は手元の最新、ほかの住人の家族は入ったときの様子（Ver.0.5）
-    if ((this.nest.own || this.nest.home) && this.game.house) return [...this.game.house.members, ...(this.nest.family || []).filter(m => m.acct != null && m.acct !== me)];
-    return this.nest.family || [];
+    if ((this.nest.own || this.nest.home) && this.game.house) list = [...this.game.house.members, ...(this.nest.family || []).filter(m => m.acct != null && m.acct !== me)];
+    else list = this.nest.family || [];
+    if (this.nest.own && this.game.net.mode === 'offline' && this.game.net._npcResMembers) list = [...list, ...this.game.net._npcResMembers()];
+    else if (this.nest.npcResidents) list = [...list, ...this.nest.npcResidents];
+    return list;
   }
   _mine(m) { return !!((this.nest.own || this.nest.home) && this.game.house && this.game.house.members.some(x => x.id === m.id)); }
-  /** 家族の動き（見た目だけ）：寝床の部屋にいて、自分が同じ部屋にいるとついてくる。昼（トビネズミは夜行性）と、親が眠ると寝床で眠る */
-  _famUpdate(dt) {
-    const list = this._family(), d = this.data;
-    const rooms = d.rooms;
-    if (!rooms.length) { this.famViews = []; return; }
-    const home = rooms.find(r => r.kind === 'bed') || rooms.find(r => r.kind === 'plain') || rooms[0];
-    const s = this.st;
+  /** 家の子（親）のいま：自分は手元の位置、ほかの家は nest_peers（訪問者の画面でも同じ入力になる） */
+  _parents() {
+    const out = {};
+    const s = this.st, rid = r => (r ? r.id : null);
     const myRoom = this.q.room(Math.floor(s.x / CELL), Math.floor((s.y - 1) / CELL));
-    if (myRoom && myRoom !== this._lastRoom) { this._lastRoom = myRoom; this._roomT = 0; }
-    this._roomT = (this._roomT || 0) + dt;
-    const day = this.game.tod().period === 'day';
-    const bed = this.view.layout.interact.find(it => it.action === 'sleep');
-    const out = [];
-    let fi = 0;
-    list.forEach((m, i) => {
-      let v = this.fam.get(m.id);
-      const roomOf = r => ({ x0: r.x * CELL + 6, x1: (r.x + r.w) * CELL - 6, y: (r.y + r.h) * CELL });
-      if (!v) { const R = roomOf(home); v = { x: R.x0 + ((i * 23) % Math.max(8, R.x1 - R.x0)), room: home, facing: i % 2 ? 1 : -1, hop: 0, wait: Math.random() * 2, tx: null }; this.fam.set(m.id, v); }
-      if (!rooms.includes(v.room)) v.room = home;
-      const st = m.stage;
-      const sleepy = (this.sleeping || day) && st !== 'adult' && st !== 'elder' ? true : (this.sleeping && m.role === 'mate');
-      // 自分の部屋へついてくる（子ども・若者。2 秒同じ部屋にいたら）
-      const follower = this._mine(m) && (st === 'pup' || st === 'young') && !sleepy;
-      if (follower && myRoom && v.room !== myRoom && this._roomT > 2 && fi < 8) { v.room = myRoom; const R = roomOf(myRoom); v.x = Math.max(R.x0, Math.min(R.x1, s.x - s.facing * 18)); v.pop = this.t; }
-      const R = roomOf(sleepy && bed ? home : v.room);
-      if (sleepy && bed) { v.room = home; v.tx = Math.max(R.x0, Math.min(R.x1, (bed.x0 + bed.x1) / 2 + ((i % 5) - 2) * 6)); }
-      else if (follower && myRoom === v.room) { v.tx = Math.max(R.x0, Math.min(R.x1, s.x - s.facing * (14 + fi * 11))); fi++; }
-      else { v.wait -= dt; if (v.wait <= 0 || v.tx == null) { v.wait = 1.5 + Math.random() * 3; v.tx = R.x0 + Math.random() * Math.max(1, R.x1 - R.x0); } }
-      const dx = v.tx - v.x, sp = st === 'pup' ? 34 : 46;
-      let anim = 'idle';
-      if (Math.abs(dx) > 2) { v.x += Math.sign(dx) * Math.min(Math.abs(dx), sp * dt); v.facing = Math.sign(dx); v.hop += dt / 0.24; anim = 'walk'; }
-      else if (sleepy) anim = 'sleep';
-      else v.hop = 0;
-      out.push({ m, x: v.x, y: R.y, facing: v.facing, anim, hop: v.hop, eat: v.eatT != null && this.t - v.eatT < 0.8, pop: v.pop && this.t - v.pop < 0.4 });
-    });
-    this.famViews = out;
+    if ((this.nest.own || this.nest.home) && myRoom && !s.climbing) out.me = { x: s.x, roomId: rid(myRoom), facing: s.facing || 1, sleep: !!this.sleeping };
+    for (const p of this.viewPeers || this.peers || []) {
+      const r = this.q.room(Math.floor(p.x / CELL), Math.floor((p.y - 1) / CELL));
+      if (r && p.anim !== 'climb' && p.anim !== 'climb_idle') out[p.id] = { x: p.x, roomId: r.id, facing: p.facing || 1, sleep: p.anim === 'sleep' };
+    }
+    return out;
   }
+  /**
+   * 家族の動き（Ver.0.6：shared/family-life.js）。巣の id ＋ サーバーの時計 ＋ 個体の id で決まる（同期の通信なし・どの画面でも同じ）。
+   * 子ども・若者は親が同じ部屋にいると ついていく（親の位置は nest_peers で みんなに見えている）。昼・親が眠ると寝床にかたまって眠る。
+   */
+  _famUpdate(dt) {
+    const list = this._family().map(m => ({ ...m, stage: m.stage || stageOf(m.ageMs) }));
+    const d = this.data;
+    if (!d.rooms.length || !list.length) { this.famViews = []; return; }
+    const g = this.game, t = g.net.serverTime ? g.net.serverTime() : Date.now();
+    if (!this._famRooms || this._famData !== d) {
+      this._famData = d; this._famRooms = famRooms(d, CELL);
+      const bi = this.view.layout.interact.find(it => it.action === 'sleep');
+      const br = bi ? this.q.room(Math.floor((bi.x0 + bi.x1) / 2 / CELL), Math.floor((bi.floorY - 1) / CELL)) : null;
+      this._famBed = bi ? { x0: bi.x0, x1: bi.x1, roomId: br ? br.id : null } : null;
+    }
+    const tod = g.tod(), env = g.env || {};
+    const scene = familyScene({ key: this.nest.id, members: list, rooms: this._famRooms, bed: this._famBed, t, period: tod.period, parents: this._parents() });
+    const seeds = (this.nest.storage || []).reduce((a, it) => a + (it && it.id === 'seed' ? it.n : 0), 0);
+    const ctx = { season: env.season || 'spring', period: tod.period, weather: env.weather || 'clear', seeds };
+    const out = [];
+    for (const m of list) {
+      const q = scene.get(m.id);
+      if (!q) continue;
+      let v = this.fam.get(m.id);
+      if (!v || q.pop || v.room !== q.roomId || Math.abs(v.x - q.x) > 60) { if (v && v.room !== q.roomId) v.popT = this.t; v = { ...(v || {}), x: q.x, room: q.roomId, hop: 0 }; this.fam.set(m.id, v); }
+      const dx = q.x - v.x;
+      v.x += dx * Math.min(1, dt * 10);
+      const walking = q.anim === 'walk' || Math.abs(dx) > 1.5;
+      v.hop = walking ? v.hop + dt / 0.24 : 0;
+      const bub = familyBubble({ key: this.nest.id, m, t, view: q, ctx });
+      const say = v.say && v.say.until > this.t ? v.say.text : bub ? bub.text : null;
+      out.push({ m, x: v.x, y: q.y, facing: q.facing, anim: walking ? 'walk' : q.anim, act: q.act, hop: v.hop, eat: v.eatT != null && this.t - v.eatT < 0.8, pop: v.popT != null && this.t - v.popT < 0.4, say, heart: v.heartT != null && this.t - v.heartT < 1.4 ? this.t - v.heartT : null });
+    }
+    this.famViews = out;
+    // 動作確認用：同じ時刻 t でのしぐさ（2 つの画面で同じになるか）
+    const inputs = { key: this.nest.id, members: list, rooms: this._famRooms, bed: this._famBed, period: tod.period, parents: this._parents() };
+    g.debug.famAt = tt => [...familyScene({ ...inputs, t: tt }).entries()].map(([id, v]) => ({ id, act: v.act, x: v.x, roomId: v.roomId }));
+    g.debug.famScene = out.map(f => ({ id: f.m.id, name: f.m.name, act: f.act, anim: f.anim, x: Math.round(f.x), say: f.say || null }));
+  }
+  /** Ver.0.6：なでる（毛づくろいしてあげる）。体調が少し戻り、その子は うれしそうに ひとこと */
+  async petFam(m) {
+    const g = this.game;
+    if (this._asking) return;
+    this._asking = true;
+    const r = await g.net.petFamily(m.id);
+    this._asking = false;
+    if (!r.ok) { g.ui.toast(r.reason || 'いまは そっとしておこう', r.code === 'rate' || /さっき/.test(r.reason || '') ? '' : 'bad'); return; }
+    if (r.family) g.setFamily(r.family);
+    if (r.life) g.setLife(r.life, true);
+    const v = this.fam.get(m.id);
+    const reply = petReply(m, (this.t * 7.13) % 1);
+    if (v) { v.say = { text: reply, until: this.t + 2.6 }; v.heartT = this.t; }
+    sfx('safe');
+    g.ui.toast(m.name + ' を なでた。' + reply + '（体調 +' + (r.cond || PET.COND) + '）');
+    g.debug.pets = (g.debug.pets || 0) + 1;
+  }
+  /** あいさつ（よその家族・NPC の住人：通信なし） */
+  greetFam(m) {
+    const v = this.fam.get(m.id);
+    const text = m.npc ? familyLine(m, {}, (this.t * 3.7) % 1) : petReply({ ...m, role: m.role === 'mate' ? 'kin' : m.role }, (this.t * 3.7) % 1);
+    if (v) { v.say = { text, until: this.t + 2.4 }; v.heartT = this.t; }
+    this.game.ui.toast(m.name + '：' + (m.npc ? '共同巣の住人' : (FAM_ROLE[m.role] || '') + '・' + STAGE_NAME[m.stage] + (m.ageMs != null ? '・' + ageLabel(m.ageMs) : '')) + (this.nest.own || m.npc ? '' : '（' + this.nest.ownerName + 'の家族）'));
+  }
+  onStorage() { this.view.setData(this.data, { fill: this._fill() }); }
 
   /** 入口をふさぐ・ひらく（サーバーが確かめる：小石 2・巣の中から・所有者か共同作業者） */
   async togglePlug() {
@@ -360,11 +407,21 @@ export class NestWalkScene {
     if (this.nest.plugged) { const d = this.data; A.drawPlug(g, d.entrance.x * CELL + CELL / 2, (d.surfaceY + 1) * CELL - 3); A.drawPlug(g, d.entrance.x * CELL + CELL / 2, (d.surfaceY + 1) * CELL + 2); }
     const lift = this.view.lift;
     const peers = this.viewPeers || this.peers;
-    for (const f of this.famViews || []) {
-      const L = lookOfInd(f.m), n = Sprites.frames('side', f.anim === 'walk' ? 'walk' : f.anim);
-      const frame = f.anim === 'walk' ? Math.floor((f.hop % 1) * 4) : f.anim === 'sleep' ? Math.floor(this.t * 1.5) % 2 : (f.eat ? Math.floor(this.t * 6) % 2 : Math.floor(this.t * 1.2 + f.x) % 5 === 0 ? 1 : 0);
-      void n;
-      Sprites.drawJerboa(g, L.fur, 'side', f.eat && !L.pup ? 'eat' : f.anim, f.facing > 0 ? 'right' : 'left', frame, f.x, f.y - lift, L);
+    // 家族（Ver.0.6：しぐさ。毛づくろい＝前足を口へ（eat）・くんくん＝かがむ（gather）・眠る＝寝床にかたまる）
+    const fams = [...(this.famViews || [])].sort((a, b) => (b.m.stage === 'pup') - (a.m.stage === 'pup'));
+    for (const f of fams) {
+      const L = lookOfInd(f.m);
+      let anim = f.anim, frame;
+      if (f.eat) anim = 'eat';
+      if (anim === 'groom') anim = L.pup ? 'idle' : 'eat';
+      else if (anim === 'sniff') anim = L.pup ? 'idle' : 'gather';
+      if (anim === 'walk') frame = Math.floor((f.hop % 1) * 4);
+      else if (anim === 'sleep') frame = Math.floor(this.t * 1.5 + f.x * 0.05) % 2;
+      else if (anim === 'eat' || anim === 'gather') frame = Math.floor(this.t * (f.act === 'groom' ? 4 : 3) + f.x * 0.1) % Math.max(1, Sprites.frames('side', anim));
+      else frame = Math.floor(this.t * 1.2 + f.x) % 5 === 0 ? 1 : 0;
+      const bob = f.act === 'sniff' && L.pup ? Math.round(Math.sin(this.t * 9 + f.x)) : 0;
+      Sprites.drawJerboa(g, L.fur, 'side', anim, f.facing > 0 ? 'right' : 'left', frame, f.x, f.y - lift + bob, L);
+      if (f.heart != null) { const k = f.heart / 1.4; if (!Sprites.drawEntry(g, 'ui.heart', 4, f.x, f.y - lift - 24 - k * 10)) { g.fillStyle = `rgba(232,72,90,${1 - k})`; g.fillRect(Math.round(f.x) - 2, Math.round(f.y - lift - 28 - k * 10), 4, 3); } }
     }
     for (const p of peers) {
       const fr = this._peerFrame(p);
@@ -381,12 +438,19 @@ export class NestWalkScene {
     if (this.sleepFade > 0) { g.fillStyle = `rgba(6,4,14,${0.82 * this.sleepFade})`; g.fillRect(0, 0, W, H); }
     sc.clearUI();
     sc.nameTag(s.x - cx, s.y - cy - 30 - footLift, this.game.character.name, { me: true });
+    const bubbles = [];
     for (const f of this.famViews || []) {
-      const tall = f.m.stage === 'pup' ? 17 : f.m.stage === 'young' ? 24 : 28;
-      sc.text(f.x - cx, f.y - cy - lift - tall, (f.m.role === 'mate' ? '♥' : '') + f.m.name, { size: 5, color: f.m.role === 'mate' ? '#ffc0cc' : '#f2e2c2', alpha: 0.85 });
+      const tall = f.m.stage === 'pup' ? 17 : f.m.stage === 'young' ? 24 : f.m.species === 'longear' ? 34 : 28;
+      const tag = (f.m.role === 'mate' ? '♥' : f.m.role === 'friend' ? '☆' : f.m.npc ? '⌂' : '') + f.m.name;
+      sc.text(f.x - cx, f.y - cy - lift - tall, tag, { size: 5, color: f.m.role === 'mate' ? '#ffc0cc' : f.m.role === 'friend' ? '#d8e8ff' : f.m.npc ? '#c8f0c0' : '#f2e2c2', alpha: 0.85 });
       if (f.anim === 'sleep') { const q = (this.t * 0.6 + f.x * 0.01) % 1; sc.text(f.x - cx + 6 + q * 8, f.y - cy - lift - 12 - q * 12, 'z', { size: 4 + q * 3, color: '#e8f0ff', alpha: 1 - q }); }
-      else if (this._mine(f.m) && (f.m.stage === 'pup' || f.m.stage === 'young') && f.m.fed < PUP.AUTO_BELOW / 2) sc.text(f.x - cx, f.y - cy - lift - tall - 7, 'おなかすいた', { size: 5, color: '#ffb8a0', alpha: 0.9 });
+      if (f.say && !this.sleeping) bubbles.push({ x: f.x - cx, y: f.y - cy - lift - tall - 6, text: f.say });
+      else if (!f.say && this._mine(f.m) && (f.m.stage === 'pup' || f.m.stage === 'young') && f.m.fed < PUP.AUTO_BELOW / 2 && f.anim !== 'sleep') sc.text(f.x - cx, f.y - cy - lift - tall - 7, 'おなかすいた', { size: 5, color: '#ffb8a0', alpha: 0.9 });
     }
+    // ひとこと（重ならないように、近いものは上へずらす）
+    bubbles.sort((a, b) => a.x - b.x);
+    for (let i = 0; i < bubbles.length; i++) { for (let j = 0; j < i; j++) if (Math.abs(bubbles[i].x - bubbles[j].x) < 46 && Math.abs(bubbles[i].y - bubbles[j].y) < 12) bubbles[i].y = bubbles[j].y - 12; }
+    for (const b of bubbles) sc.bubble(b.x, b.y, b.text, { size: 6 });
     const online = this.game.net.mode === 'online';
     for (const p of peers) {
       sc.nameTag(p.x - cx, p.y - cy - 30 - lift, p.name);

@@ -472,3 +472,24 @@ html.tb-touch .tb-note { bottom: calc(var(--u) * 32px); }
 .tb-furn-sec { grid-column: 1 / -1; }
 html.tb-touch .tb-furn { max-height: none; overflow-y: hidden; }
 html.tb-touch .tb-furn-sec { flex: none; width: 70px; align-self: center; white-space: normal; }
+
+/* ───────── Ver.0.6「くらしの深まり＋公開準備」───────── */
+/* 豊かな巣：今週／先週 */
+.tb-tabs { display: flex; gap: calc(var(--u)*2px); margin-bottom: calc(var(--u)*2px); }
+.tb-tab { flex: 1; font: inherit; color: var(--dim); background: #1e130c; border: calc(var(--u)*1px) solid #5a3c24; border-radius: calc(var(--u)*1.5px); padding: calc(var(--u)*1.5px) calc(var(--u)*2px); cursor: pointer; min-height: 32px; }
+.tb-tab small { display: block; font-size: .75em; }
+.tb-tab.on { color: var(--txt); border-color: var(--edge); background: #2a1a10; }
+.tb-rpane.hidden { display: none; }
+.tb-gain { font-style: normal; color: var(--ok); margin-right: .4em; font-size: .85em; }
+.tb-rrow { grid-template-columns: 1.6em 1fr auto auto; }
+.tb-rwin { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 calc(var(--u)*3px); padding: calc(var(--u)*1.5px) 0; border-bottom: 1px solid rgba(200,164,106,.15); }
+.tb-rwin .tb-dim { width: 100%; font-size: .8em; }
+.tb-rwin.me .nm { color: var(--ok); }
+.tb-rtitle { color: #ffe08a; border: 1px solid rgba(255,224,138,.5); border-radius: 999px; padding: 0 .6em; font-size: .85em; }
+/* 家系図の書き出し */
+.tb-linexp { display: inline-flex; gap: calc(var(--u)*2px); margin-left: auto; margin-right: calc(var(--u)*3px); flex-wrap: wrap; vertical-align: middle; }
+.tb-lineage .tb-ph { display: flex; align-items: center; gap: calc(var(--u)*2px); }
+html.tb-touch .tb-linexp .tb-btn { min-height: 36px; }
+.tb-lincopy { width: min(80vw, 420px); font: inherit; font-size: 12px; background: #1e130c; color: var(--txt); border: 1px solid #5a3c24; }
+/* 共同巣（オフライン：NPC の住人） */
+.tb-npcres .tb-frow .nm small { color: var(--dim); margin-left: .4em; }

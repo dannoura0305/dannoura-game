@@ -477,7 +477,7 @@ await test('マイグレーション：古い DB（001 だけ・v0 の巣デー�
   old.db.prepare("INSERT INTO nests (owner_account_id, schema_version, rev, data, visit_policy, created_at, updated_at) VALUES (1, 0, 3, ?, 'private', 1, 1)").run(JSON.stringify(v0));
   old.close();
   const db = await openDb(file, { log: () => {} });
-  assert.equal(db.schemaVersion(), 6);   // Ver.0.5 の 006 まで
+  assert.equal(db.schemaVersion(), 7);   // Ver.0.6 の 007 まで
   assert.equal(db.db.prepare("SELECT hidden FROM regions WHERE id = 'toyama'").get().hidden, 1);
   for (const t of ['collectibles', 'account_collectibles', 'events', 'account_flags', 'lands', 'individuals', 'nest_access', 'friends', 'nest_visits', 'nest_events']) assert.ok(db.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?").get(t), t);
   const n = db.nest(1);
@@ -487,7 +487,7 @@ await test('マイグレーション：古い DB（001 だけ・v0 の巣デー�
   // もう一度開いても何もしない
   db.close();
   const again = await openDb(file, { log: () => {} });
-  assert.equal(again.db.prepare('SELECT COUNT(*) n FROM schema_migrations').get().n, 6);
+  assert.equal(again.db.prepare('SELECT COUNT(*) n FROM schema_migrations').get().n, 7);
   again.close(); rmDir(dir);
 });
 

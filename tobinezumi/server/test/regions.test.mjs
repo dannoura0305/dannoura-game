@@ -379,7 +379,7 @@ await test('マイグレーション 005 → 006：巣と採集物は はじま�
   old.db.exec("INSERT INTO world_resources (id, region_id, kind, x, y) VALUES ('r1', 'steppe', 'seed', 10, 10)");
   old.close();
   const db = await openDb(file, { log: () => {} });
-  assert.equal(db.schemaVersion(), 6);
+  assert.equal(db.schemaVersion(), 7);
   assert.equal(db.db.prepare('SELECT field_id FROM lands').get().field_id, 'plains');
   assert.equal(db.resources('plains').length, 1); assert.equal(db.resources('dunes').length, 0);
   assert.equal(db.db.prepare('SELECT COUNT(*) n FROM collectibles').get().n, Object.keys(CURIOS).length);
