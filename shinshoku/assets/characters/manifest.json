@@ -1,0 +1,10 @@
+{
+  "_note": "キャラクターの差し替え表。file に .vrm（このフォルダに置く）を書くと、コードで組んだ仮のキャラクターの代わりに読み込みます。null のときは仮のキャラクター（provisional）。license・author・source は必ず記入。",
+  "ver": 1,
+  "characters": {
+    "dannoura": { "file": null, "provisional": true, "height": 1.64, "scale": 1, "rotateY": 0, "source": "code-built placeholder (shinshoku/actor/models.js)", "license": "project", "author": "project" },
+    "companion": { "file": null, "provisional": true, "height": 1.58, "scale": 1, "rotateY": 0, "source": "code-built placeholder", "license": "project", "author": "project" },
+    "kiro": { "file": null, "provisional": true, "source": "code-built placeholder", "license": "project", "author": "project" },
+    "heiten": { "file": null, "provisional": true, "source": "code-built placeholder", "license": "project", "author": "project" }
+  }
+}

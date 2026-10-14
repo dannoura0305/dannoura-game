@@ -1,0 +1,7 @@
+// 武器の一覧（WEAPON_SYSTEM_SPEC §1）。フェーズ2では刀と拳銃のみ使う。鉄パイプ・火縄銃は定義だけ（持ち替え時間の計算用）。
+export const WEAPONS = {
+  katana: { name: '刀', kind: 'melee', parry: true, weight: 1 },
+  handgun: { name: '拳銃', kind: 'gun', parry: false, weight: 1 },
+  pipe: { name: '鉄パイプ', kind: 'melee', parry: true, heavy: true, weight: 2 },
+  matchlock: { name: '火縄銃', kind: 'melee', parry: false, heavy: true, weight: 3 },
+};

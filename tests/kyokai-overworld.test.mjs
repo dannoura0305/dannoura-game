@@ -3,6 +3,7 @@
 // ・地図の行の長さがそろい、知らない文字が無い。出入口（ワープ）の行き先がある・戻りの出入口がある
 // ・すべての調べ物が表（SPOTS）に載っていて、アンカーがあり、入口から歩いて正面に立てる（ほかの人物・小物をすべて置いた状態で BFS）
 // ・町（フィールド）の入口すべてに、A/B/C どの世界でも歩いて行ける
+// ・ドット絵（kyokai/tiles.js）：どの地図・世界も 4 色だけで描く・屋内の壁は 2 マスの高さ・人物は 16×16 の 4 方向 2 歩・だんのうらは歩く人物にしない
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -31,9 +32,14 @@ function load() {
   for (const f of files) vm.runInContext(read(f), ctx, { filename: f });
   for (const [id, w, sp] of pend) { const a = ctx.KY.AREAS[id]; if (!a) continue; a.worlds[w] = a.worlds[w] || { scene: a.worlds.A.scene, spots: [] }; a.worlds[w].spots.push(...sp); }
   vm.runInContext(read('kyokai/data/maps.js'), ctx, { filename: 'maps.js' });
-  return { AREAS: ctx.KY.AREAS, M: ctx.KY_MAPS };
+  // 絵を描く関数は、色だけを記録する偽のキャンバスで動かす
+  const used = new Set();
+  const ctx2d = { set fillStyle(v) { used.add(v); }, get fillStyle() { return ''; }, fillRect() {} };
+  ctx.document = { createElement: () => ({ width: 0, height: 0, getContext: () => ctx2d }) };
+  vm.runInContext(read('kyokai/tiles.js'), ctx, { filename: 'tiles.js' });
+  return { AREAS: ctx.KY.AREAS, M: ctx.KY_MAPS, KT: ctx.KY_TILES, used };
 }
-const { AREAS, M } = load();
+const { AREAS, M, KT, used } = load();
 const AREA_IDS = Object.keys(AREAS);
 const K = (x, y) => x + ',' + y;
 const N4 = (x, y) => [[x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]];
@@ -163,8 +169,62 @@ test('地図の無い場所は汎用の部屋（町への出口つき）にな�
 test('経路：M.path が入口から調べ物の正面まで道を返す', () => {
   const m = M.compile('center_office', 'A');
   const goal = (x, y) => x === 6 && y === 2;
-  const p = M.path(m, 6, 8, goal, null);
+  const p = M.path(m, 6, 11, goal, null);
   assert.ok(Array.isArray(p) && p.length >= 6, 'path ' + JSON.stringify(p));
+});
+
+test('ドット絵：どの地図・世界も 4 色だけで描く（描いている途中で落ちない）', () => {
+  const PAL = ['#010101', '#020202', '#030303', '#040404'];
+  const bad = [];
+  for (const id of Object.keys(M.MAPS).concat(['town'])) for (const w of ['A', 'B', 'C']) {
+    used.clear();
+    const m = M.compile(id, w);
+    for (const flags of [{}, { boardBlank: true, basementOpen: true }]) KT.render(m, w, PAL, flags);
+    const extra = [...used].filter(c => PAL.indexOf(c) < 0);
+    if (extra.length) bad.push(`${id}/${w}: ${extra.join(',')}`);
+  }
+  assert.deepEqual(bad, []);
+  assert.equal(KT.errors, 0, '描いている途中で落ちたマスがある');
+});
+
+test('屋内の部屋：上の壁は 2 マスの高さ（上段＋物を掛ける下段）・壁の扉の下は床・スマホでも入る幅', () => {
+  const bad = [];
+  const WALLT = '#wjcIaMeJD';
+  for (const [id, d] of Object.entries(M.MAPS)) {
+    if (!d.indoor) continue;
+    const m = M.compile(id, 'A');
+    if (m.w > 14) bad.push(id + ' 幅 ' + m.w);
+    if (!/^#+$/.test(d.rows[0])) bad.push(id + ' 1 行目が壁でない');
+    for (let x = 1; x < m.w - 1; x++) {
+      if (WALLT.indexOf(m.g[1][x]) < 0) bad.push(`${id} (${x},1) が壁の下段でない`);
+      if (m.g[1][x] === 'D' && !M.walkable(m.g[2][x])) bad.push(`${id} (${x},1) の扉の下が床でない`);
+    }
+  }
+  assert.deepEqual(bad, []);
+});
+
+test('人物・生き物の絵：16×16・4 色の文字だけ・人は 4 方向で歩く 2 コマ・だんのうらは出さない', () => {
+  const bad = [];
+  assert.ok(KT.SPRITES.length > 20);
+  for (const id of KT.SPRITES) for (const d of ['u', 'd', 'l', 'r']) for (const f of [0, 1, 2]) {
+    const rows = KT.sprite(id, d, f);
+    if (rows.length !== 16 || rows.some(r => r.length !== 16 || /[^0-3.]/.test(r))) bad.push(`${id}/${d}/${f}`);
+  }
+  for (const id of Object.keys(KT.PEOPLE)) for (const d of ['u', 'd', 'l']) {
+    if (KT.sprite(id, d, 1).join() === KT.sprite(id, d, 0).join()) bad.push(id + '/' + d + ' 歩くコマが同じ');
+  }
+  assert.ok(KT.isPerson('player') && KT.isPerson('nagi') && KT.isPerson('kujo') && KT.SPRITES.indexOf('shiro') >= 0);
+  assert.ok(!KT.SPRITES.some(id => /dannoura|danno/i.test(id)), 'だんのうらは歩く人物にしない');
+  assert.deepEqual(bad, []);
+});
+
+test('正面の物の名札：分室の時計・ホワイトボード・カレンダー・世界 B の振り子時計', () => {
+  const m = M.compile('center_office', 'A');
+  const a = M.MAPS.center_office.anchors;
+  assert.equal(KT.name(m, a.clock[0], a.clock[1], 'A'), '壁の時計');
+  assert.equal(KT.name(m, a.board[0], a.board[1], 'A'), 'ホワイトボード');
+  assert.equal(KT.name(m, a.calendar[0], a.calendar[1], 'A'), 'カレンダー');
+  assert.equal(KT.name(M.compile('center_office', 'B'), a.clock[0], a.clock[1], 'B'), '振り子時計');
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

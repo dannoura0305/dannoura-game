@@ -1,0 +1,117 @@
+{
+ "ver": 1,
+ "gameVer": "0.2.0",
+ "slots": {
+  "auto": {
+   "savedAt": "2026-10-14T12:00:00.000Z",
+   "playSec": 5421,
+   "place": {
+    "area": "shotengai",
+    "state": "outbreak",
+    "spawn": "save_home",
+    "pos": [
+     12.3,
+     0,
+     -4.1
+    ],
+    "yaw": 1.57
+   },
+   "difficulty": "normal",
+   "story": {
+    "chapter": "slice",
+    "step": "free",
+    "route": null,
+    "routeLock": null,
+    "reveal": {
+     "companionKnows": false,
+     "firstWhiteAt": null
+    },
+    "forms": {
+     "whiteFree": false,
+     "giantSeen": false
+    },
+    "flags": {
+     "safe_opened": true
+    },
+    "trust": {
+     "companion": 58
+    },
+    "resolutions": {
+     "kiro": {
+      "rescue": 2,
+      "neutralize": 0,
+      "escape": 1,
+      "kill": 3
+     }
+    },
+    "docs": [],
+    "subquests": {},
+    "bosses": {},
+    "yokaiLog": [],
+    "branchLog": []
+   },
+   "player": {
+    "hp": 82,
+    "hpMax": 100,
+    "yoki": 0,
+    "weapons": {
+     "pipe": null,
+     "katana": {
+      "lv": 1
+     },
+     "handgun": {
+      "lv": 1,
+      "mag": 9
+     },
+     "matchlock": null
+    },
+    "ammo": {
+     "handgun": 61
+    },
+    "equipSlot": [
+     "katana",
+     "handgun"
+    ],
+    "equipped": "katana",
+    "items": [
+     {
+      "id": "medkit_s",
+      "n": 2
+     }
+    ],
+    "storage": {
+     "home": [],
+     "office": []
+    },
+    "skills": [],
+    "skillPts": 0
+   },
+   "world": {
+    "areas": {
+     "shotengai": {
+      "visited": true,
+      "state": "outbreak",
+      "opened": [
+       "door_k1"
+      ],
+      "picked": [
+       "it_ammo_03"
+      ]
+     }
+    },
+    "enemies": {
+     "shotengai": {
+      "kiro_2": "rescued",
+      "kiro_3": "dead"
+     }
+    }
+   },
+   "seed": 918273,
+   "futureField": "keep"
+  },
+  "slot1": null,
+  "slot2": null,
+  "slot3": null,
+  "branch": null
+ }
+}

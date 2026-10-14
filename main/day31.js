@@ -291,6 +291,8 @@
     if (ky) ky.innerHTML = lbl('radio', '境界事象', 'MYSTERY');
     var tb = document.getElementById('btn-tobinezumi');
     if (tb) tb.innerHTML = lbl('paw', 'トビネズミ', 'LIFE');
+    var sh = document.getElementById('btn-shinshoku');
+    if (sh) sh.innerHTML = lbl('horror', '境界侵食', 'ACTION');
     var d = document.getElementById('btn-day31');
     if (d) {
       var ok = false; try { ok = visible(root.localStorage); } catch (e) { ok = false; }
@@ -300,6 +302,7 @@
   }
   root.openKyokai = function () { try { location.href = 'kyokai.html'; } catch (e) {} };
   root.openTobinezumi = function () { try { location.href = 'tobinezumi.html'; } catch (e) {} };
+  root.openShinshoku = function () { try { location.href = 'shinshoku.html'; } catch (e) {} };
   root.openDay31 = function () { play(); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initTitle); else initTitle();
 })(typeof window !== 'undefined' ? window : globalThis);

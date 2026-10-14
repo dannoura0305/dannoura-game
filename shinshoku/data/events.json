@@ -1,0 +1,67 @@
+{
+  "_note": "『境界侵食』切片の台詞・調べた時の文（データ駆動）。相棒は仮 ID companion・表示名は未決定（Q8）。物語は切片の外へ進めない。fixed:true の原文台詞はこの切片には無い。",
+  "speakers": {
+    "dan": { "name": "だんのうら", "color": "#c9a8ff" },
+    "companion": { "name": "（相棒・名前未定）", "color": "#ffd7a8", "provisional": true },
+    "heiten": { "name": "閉店", "color": "#9fe0b8" },
+    "kiro": { "name": "帰路", "color": "#b8c4d8" },
+    "sys": { "name": "", "color": "#cfc8dc" }
+  },
+  "events": {
+    "ev_intro": [
+      { "who": "companion", "text": "だんのうらさん。……よかった、起きてたんですね。" },
+      { "who": "dan", "text": "アンタこそ、こんな夜中にどうしたのよ。商店街の明かり、一列ずつ消えてったわよ。" },
+      { "who": "companion", "text": "帰り道で、知ってる人たちが……同じ道を何度も歩いてるんです。声をかけても、こっちを見なくて。" },
+      { "who": "dan", "text": "……ふうん。ちょっと見てくるわ。アンタはここにいなさい。戸締まり、しっかりね。" },
+      { "who": "companion", "text": "はい。……気をつけてください。" },
+      { "who": "sys", "text": "左クリック：刀　右クリック：銃を構える　Space：回避　F：弾く　E：調べる　（Esc：操作の一覧）" }
+    ],
+    "ev_companion_hint": [
+      { "who": "companion", "text": "あの人たち、自分の家の前で戸を叩いてるんです。……鍵が開いてたら、入れるのかな。" },
+      { "who": "dan", "text": "戸の灯りの色、マフラーの色と同じね。……覚えとくわ。" }
+    ],
+    "ev_companion_heiten": [
+      { "who": "companion", "text": "スーパーの店員さん、ずっと閉店の準備をしてるみたいでした。明かり、レジ、それから……札。" },
+      { "who": "dan", "text": "手順どおり、ね。真面目な人だったのよ、きっと。" }
+    ],
+    "ev_companion_after": [
+      { "who": "companion", "text": "……静かになりましたね。" },
+      { "who": "dan", "text": "そうね。……でも、まだ終わってない気がするわ。" },
+      { "who": "sys", "text": "切片（フェーズ2）はここまでです。続けて歩き回れます。" }
+    ],
+    "ev_companion_idle": [
+      { "who": "companion", "text": "ここで待ってます。……無理しないでくださいね。" }
+    ],
+    "ev_safe_open": [
+      { "who": "dan", "text": "救急箱と、弾の箱。……とりあえず、もらっていくわ。" }
+    ]
+  },
+  "barks": {
+    "first_rescue": { "who": "dan", "text": "……おやすみなさい。ちゃんと帰れたわね。" },
+    "first_kill": { "who": "dan", "text": "……ごめんなさいね。" },
+    "first_just": { "who": "dan", "text": "……猫の目は、ごまかせないのよ。" },
+    "heiten_closing": { "who": "heiten", "text": "……ほんじつは……閉店……いたしました……" },
+    "heiten_rescued": { "who": "heiten", "text": "……またの……ご来店を……" },
+    "heiten_wrong": { "who": "heiten", "text": "……じゅんばん……が……" },
+    "heiten_helped": { "who": "heiten", "text": "……ありがとう……ございます……" },
+    "heiten_killed": { "who": "dan", "text": "……お疲れさま。もう、閉めていいのよ。" },
+    "kiro_notice": { "who": "kiro", "text": "……ただいま……ただいま……" },
+    "door_opened": { "who": "dan", "text": "開けといたわよ。……おかえりなさい。" },
+    "low_hp": { "who": "dan", "text": "……ちょっと、まずいわね。" },
+    "all_resolved": { "who": "dan", "text": "……一度、家に戻ろうかしら。" }
+  },
+  "texts": {
+    "board": "回覧板。「夜間の外出はひかえてください。停電の復旧は未定です。商店会」……日付の欄が空白のまま。",
+    "clock": "時計店の大きな時計。秒針が、同じ一秒を行ったり来たりしている。",
+    "shutter": "シャッターが下りている。",
+    "barricade": "配送のトラックが横倒しになっている。この先へは通れない。",
+    "calendar": "カレンダーの隅に、娘の字で数字が書いてある。「{code}」　……金庫の番号、メモしといたんだったわね。（番号は仮）",
+    "tv": "テレビは砂嵐。音を消しても、ときどき誰かの笑い声のような音がする。",
+    "vending": "温かい缶コーヒーが一本、取り出し口に残っていた。",
+    "vending_empty": "もう何も出てこない。",
+    "door_locked": "鍵がかかっている。",
+    "door_open": "戸は開いている。",
+    "safe_opened": "金庫は空だ。",
+    "laptop": "ノートPC。ここでセーブできる。"
+  }
+}

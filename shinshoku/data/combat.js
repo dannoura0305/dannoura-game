@@ -1,0 +1,51 @@
+// 『境界侵食』戦闘の数値（COMBAT_SYSTEM_SPEC §2・§3・§7 の初期値）。
+// 単位は 60Hz のフレーム（1f = 16.67ms）。距離は m、速さは m/s。
+// DOM・three.js に依存しない（node のテストから読む）。?tune=1 で上書きできるよう、値はここだけに置く。
+export const FPS = 60;
+
+export const COMBAT = {
+  move: { walk: 2.2, run: 5.0, aim: 1.7, charge: 0.0, reload: 1.6, turn: 14 },
+  hp: { max: 100 },
+  hitstop: { light: 3, heavy: 5, issen: 8 },
+  hurt: { stun: 16, invuln: 30 },
+  buffer: 10,                                   // 入力の先行受付（攻撃・回避とも）
+  dodge: { total: 24, iStart: 3, iEnd: 14, just: 8, dist: 3.4, chainMax: 2, chainLag: 12, chainGap: 30 },
+  justSlow: { scale: 0.3, frames: 36 },          // ジャスト回避の成功：世界 0.3 倍速を実時間 36f
+  parry: { before: 6, after: 2, stagger: 54, failLag: 18, guardMul: 0.5 },
+  issen: {
+    mikiri: { window: 21, dmg: 60, total: 34, strike: 10, slow: 0.25 },   // 見切り一閃：背後へ抜けて斬る
+    hajiki: { window: 24, dmg: 50, total: 30, strike: 8, slow: 0.3 },     // 弾き一閃：正面から斬り返す
+    iai: { hold: 36, dmg: 55, total: 30, strike: 4, miss: 30 },           // 抜刀一閃：構え中に攻撃が届くと自動で居合
+    utsu: { window: 30, dmg: 45, total: 28, strike: 7 },                   // 撃ち一閃：弱点を撃った怯み光の間に刀
+  },
+  katana: {
+    light: [
+      { startup: 6, active: 4, recovery: 14, dmg: 10, reach: 2.2, arc: 140, lunge: 0.6, stop: 'light' },
+      { startup: 8, active: 4, recovery: 16, dmg: 10, reach: 2.2, arc: 140, lunge: 0.6, stop: 'light' },
+      { startup: 10, active: 4, recovery: 22, dmg: 16, reach: 2.6, arc: 120, lunge: 1.6, stop: 'heavy' },
+    ],
+    heavy: { startup: 18, active: 6, recovery: 26, dmg: 30, reach: 2.8, arc: 160, lunge: 1.0, stop: 'heavy' },
+    iaiSwing: { active: 5, recovery: 20, dmg: 30, reach: 3.0, arc: 120, stop: 'heavy' },
+  },
+  handgun: { aimIn: 6, interval: 15, hip: 4, dmg: 12, weakMul: 2.5, mag: 12, reload: 84, range: 40, hipCone: 35 },
+  // 持ち替え（COMBAT §3.4）
+  swap: { katanaToGun: 9, gunToKatana: 9, quickShot: 4, quickShotFrom: 8, afterFire: 12, afterFireSpan: 15, heavyMin: 18, heavyMax: 27 },
+  // 難しさ（COMBAT §7）
+  difficulty: {
+    easy: { just: 12, parryBefore: 10, parryAfter: 3, dmgMul: 0.6, dropMul: 1.5 },
+    normal: { just: 8, parryBefore: 6, parryAfter: 2, dmgMul: 1.0, dropMul: 1.0 },
+    hard: { just: 6, parryBefore: 4, parryAfter: 1, dmgMul: 1.4, dropMul: 0.7 },
+  },
+  touchBonus: 2,                                 // タッチは窓を +2f（指の遅れ）
+  assist: { windowBonus: 4, slowBonus: 18 },     // 「一閃の手助け」
+};
+
+export const ITEMS = {
+  medkit_s: { name: 'ばんそうこう', heal: 25 },
+  medkit_l: { name: '救急箱', heal: 60 },
+  coffee: { name: '温かい缶コーヒー', heal: 12 },
+  ammo_box: { name: '拳銃の弾（12発）', ammo: 12 },
+};
+
+export const f2ms = f => Math.round(f * 1000 / FPS);
+export const ms2f = ms => ms * FPS / 1000;

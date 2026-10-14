@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>境界侵食（仮題）</title>
+<meta name="theme-color" content="#0c0a16">
+<meta name="description" content="『だんのうら』の新作 3D ホラーアクション（開発中・フェーズ2の切片）。夜の商店街で、帰り道をくり返す異形と向き合う。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="shinshoku/style.css">
+<!-- three.js は版を固定して同梱（vendor/three-esm/。既存の vendor/three.min.js r158 とは別） -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three-esm/three-0.185.1/three.module.min.js",
+    "three/addons/": "./vendor/three-esm/three-0.185.1/addons/",
+    "@pixiv/three-vrm": "./vendor/three-esm/three-vrm-3.5.5/three-vrm.module.min.js"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="sh-canvas"></canvas>
+<div id="sh-ui"></div>
+<div id="sh-boot">読み込み中……</div>
+<div id="sh-title" hidden>
+  <div class="tt-sub">だんのうら ― 新作（開発中）</div>
+  <h1>境界侵食<small>（仮題）</small></h1>
+  <div class="tt-tag">フェーズ2　遊べる切片：発生後の商店街</div>
+  <button data-a="new">はじめから</button>
+  <button data-a="cont" hidden>つづきから</button>
+  <button data-a="back" class="tt-back">本編のタイトルへ</button>
+  <p class="tt-note">PC：キーボード＋マウス（クリックで視点を固定）／ゲームパッド。スマホ：横向き・タッチ。<br>素材はすべて仮（provisional）。音が出ます。</p>
+</div>
+<noscript><p style="color:#fff;padding:2em">このゲームを遊ぶには JavaScript を有効にしてください。<a href="index.html" style="color:#c9a8ff">本編に戻る</a></p></noscript>
+<script type="module" src="shinshoku/main.js"></script>
+</body>
+</html>

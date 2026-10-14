@@ -609,6 +609,10 @@
     chime: () => { const t = T(); chip(659, t, 0.5, { duty: 0.25, vol: 0.035 }); chip(523, t + 0.55, 0.8, { duty: 0.25, vol: 0.035 }); },
     stream: () => { const t = T(); chipSeq([523, 784, 1047], t, 0.1, { duty: 0.125, vol: 0.035, hold: 2.5 }); },
     cursor: () => chip(1047, T(), 0.03, { duty: 0.25, vol: 0.025 }),
+    // 歩く地図（overworld.js）：足音・ぶつかる・扉
+    step: () => chipNoise(T(), 0.025, { f: 700, vol: 0.022 }),
+    bump: () => { const t = T(); chip(98, t, 0.05, { duty: 0.5, vol: 0.03 }); chipNoise(t, 0.04, { f: 400, vol: 0.03 }); },
+    door: () => { const t = T(); chipNoise(t, 0.06, { f: 1200, vol: 0.05 }); chip(392, t + 0.05, 0.05, { duty: 0.25, vol: 0.025 }); chip(262, t + 0.11, 0.07, { duty: 0.25, vol: 0.025 }); },
   };
   KY.se = function (name) {
     if (!name || !AU.ok) return;

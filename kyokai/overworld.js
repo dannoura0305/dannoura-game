@@ -25,7 +25,8 @@
   let OW = null;
   if (!KY.HAS_DOM) return;
 
-  const TS = 16, VW = 10, VH = 9, CW = TS * VW, CH = TS * VH;
+  const TS = 16;
+  let CW = 160, CH = 144, VS = 1;   // 画面に映すドット数（端末の大きさで変わる）と 1 ドットの CSS px
   const now = () => performance.now();
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const DIRV = MP.DIRS;
@@ -33,8 +34,7 @@
   const $ = (t, c, x) => KY._el(t, c, x);
   const FIELD_DANGER = { A: 0, B: 1, C: 3 };
   const CENTER = ['center_office', 'center_server', 'center_lab', 'center_basement'];
-  const PERSON = new Set(['player', 'yuu', 'mido', 'nagi', 'kujo', 'saeki', 'shopkeeper', 'oldwoman', 'oldwoman2', 'youth', 'woman', 'woman2', 'janitor', 'priest',
-    'fisher', 'fisher2', 'staff', 'staff2', 'passenger', 'child', 'oldman', 'researcher']);
+  const PERSON = new Set(root.KY_TILES ? Object.keys(root.KY_TILES.PEOPLE) : ['player']);
 
   OW = {
     active: false, mode: null, mapId: null, world: 'A', m: null, p: { x: 0, y: 0, dir: 'd', mv: null, step: 0 }, objs: [], amb: [],
@@ -57,238 +57,32 @@
       S: ['#1b0f2e', '#4e3478', '#a688d4', '#ece2fa'], X: ['#04201e', '#17605a', '#5fc4b4', '#e2fbf4'] })[k] || ['#0f380f', '#306230', '#8bac0f', '#cadc9f'];
   }
 
-  /* ═════════════════════════ マスの絵（16×16・4 階調） ═════════════════════════ */
+  /* ═════════════════════════ マス・人物の絵（kyokai/tiles.js） ═════════════════════════ */
   const hash = MP.hash2;
-  function circle(F, cx, cy, r, s) { for (let dy = -r; dy <= r; dy++) { const w = Math.round(Math.sqrt(r * r - dy * dy)); F(cx - w, cy + dy, w * 2 + 1, 1, s); } }
-  function ringC(F, cx, cy, r, s, fill) { circle(F, cx, cy, r, s); circle(F, cx, cy, r - 1, fill); }
-  // 地面
-  const GROUND = {
-    '.': (F, h) => { F(0, 0, 16, 16, 3); F(0, 15, 16, 1, 2); F(15, 0, 1, 16, 2); if (h % 5 === 0) F(5 + h % 5, 6, 1, 1, 2); },
-    ',': (F, h) => { F(0, 0, 16, 16, 3); const n = 2 + h % 2; for (let i = 0; i < n; i++) { const x = (h >> (i * 4)) % 12 + 1, y = (h >> (i * 4 + 2)) % 11 + 2; F(x, y, 1, 1, 2); F(x + 2, y, 1, 1, 2); F(x + 1, y + 1, 1, 1, 2); } if (h % 7 === 0) F((h >> 9) % 13 + 1, (h >> 11) % 13 + 1, 1, 1, 1); },
-    ':': (F, h) => { F(0, 0, 16, 16, 3); F((h % 11) + 2, (h >> 4) % 11 + 2, 2, 1, 2); F((h >> 8) % 12 + 2, (h >> 12) % 12 + 2, 1, 1, 2); if (h % 3 === 0) F((h >> 6) % 12 + 2, (h >> 10) % 9 + 4, 1, 1, 1); },
-    '-': (F, h, c) => { F(0, 0, 16, 16, 3); F(0, 7, 16, 1, 2); F(0, 15, 16, 1, 2); F(7, 0, 1, 7, 2); F(15, 8, 1, 7, 2); if (c.world === 'B' && h % 4 === 0) F(2, 2, 3, 3, 2); },
-    '=': (F, h) => { F(0, 0, 16, 16, 2); for (let i = 0; i < 4; i++) F((h >> (i * 3)) % 15, (h >> (i * 3 + 5)) % 15, 1, 1, 1); },
-    'U': (F, h) => { F(0, 0, 16, 16, 1); F((h % 13) + 1, (h >> 5) % 13 + 1, 1, 1, 0); F((h >> 3) % 13 + 1, (h >> 9) % 13 + 1, 2, 1, 0); },
-  };
-  function groundOf(ch, c) {
-    if (GROUND[ch]) return ch;
-    const g = c.m.ground || '.';
-    return GROUND[g] ? g : '.';
-  }
-  function drawGround(F, ch, c) {
-    let g = groundOf(ch, c);
-    if (c.m.def && c.m.def.mixed) g = ['.', ',', ':', '-', '='][c.h % 5];
-    GROUND[g](F, c.h, c);
-    if (c.world === 'C' && c.h % 9 === 0) { F(3 + c.h % 6, 5 + (c.h >> 3) % 6, 5, 1, 1); F(7 + c.h % 6, 6 + (c.h >> 3) % 6, 1, 3, 1); }
-  }
-  function wallBg(F, c) {
-    if (c.m.def && c.m.def.indoor) { F(0, 0, 16, 16, 1); F(0, 0, 16, 1, 2); F(0, 13, 16, 3, 0); }
-    else drawExtWall(F, c, true);
-  }
-  function drawExtWall(F, c, plain) {
-    F(0, 0, 16, 16, 3);
-    if (c.world === 'B') { for (let x = 3; x < 16; x += 4) F(x, 0, 1, 15, 2); }
-    else { for (let y = 3; y < 16; y += 4) F(0, y, 16, 1, 2); }
-    F(0, 15, 16, 1, 0);
-    if (!plain && c.tx % 2 === 1) { F(4, 3, 8, 7, 0); F(5, 4, 6, 5, c.world === 'B' ? 2 : 1); F(8, 4, 1, 5, 0); }
-    if (c.world === 'C' && c.h % 4 === 0) { F(2 + c.h % 9, 2, 1, 6, 0); F(3 + c.h % 9, 7, 1, 4, 0); }
-  }
-  const T = {};
-  T['#'] = (F, c) => {
-    const below = c.at(0, 1);
-    if (MP.walkable(below) && c.ty < c.m.h - 1) { F(0, 0, 16, 16, 1); F(0, 0, 16, 1, 2); F(0, 13, 16, 3, 0); if (c.world === 'C' && c.h % 3 === 0) { F(4 + c.h % 7, 2, 1, 6, 0); F(5 + c.h % 7, 8, 1, 4, 0); } }
-    else { F(0, 0, 16, 16, 0); if (c.h % 3 === 0) F(c.h % 14 + 1, (c.h >> 4) % 14 + 1, 2, 1, 1); }
-  };
-  T.w = (F, c) => { wallBg(F, c); F(2, 2, 12, 9, 0); F(3, 3, 10, 7, c.world === 'B' ? 3 : 2); F(7, 3, 1, 7, 0); F(3, 6, 10, 1, 0); if (c.world === 'C') { F(4, 4, 3, 1, 0); F(10, 7, 2, 2, 0); } };
-  T.j = (F, c) => { wallBg(F, c); const white = c.world === 'A' && (c.m.id === 'center_office' || c.m.id === 'bureau'); F(1, 2, 14, 10, 0); F(2, 3, 12, 8, white ? 3 : 1); F(3, 5, 6, 1, white ? 1 : 3); F(3, 7, 8, 1, white ? 1 : 3); if ((c.h & 1) && !white) F(10, 4, 2, 2, 3); F(1, 12, 14, 1, 2); };
-  T.c = (F, c) => {
-    wallBg(F, c);
-    if (c.world === 'B') { F(5, 1, 6, 12, 0); circle(F, 8, 5, 2, 3); F(7, 8, 2, 4, 2); F(8, 4, 1, 2, 0); return; }
-    ringC(F, 8, 6, 5, 0, 3); F(8, 3, 1, 4, 0); F(8, 6, 3, 1, 0);
-    if (c.world === 'C') { F(5, 4, 1, 1, 0); F(10, 8, 2, 1, 0); }
-  };
-  T.I = (F, c) => { wallBg(F, c); F(1, 3, 6, 7, 0); F(2, 4, 4, 5, 3); F(3, 5, 2, 2, 1); F(9, 3, 6, 7, 0); F(10, 4, 4, 5, 3); F(11, 5, 2, 2, 1); };
-  T.a = (F, c) => { wallBg(F, c); F(3, 2, 10, 11, 0); F(4, 3, 8, 9, 3); F(5, 5, 6, 1, 1); F(5, 8, 5, 1, 1); if (c.world === 'C' && c.h % 2) F(9, 10, 3, 2, 1); };
-  T.M = (F, c) => {
-    wallBg(F, c); const L = c.at(-1, 0) === 'M', R = c.at(1, 0) === 'M';
-    F(L ? 0 : 1, 1, 16 - (L ? 0 : 1) - (R ? 0 : 1), 11, 0); F(L ? 0 : 2, 2, 16 - (L ? 0 : 2) - (R ? 0 : 2), 9, c.world === 'C' ? 0 : 1);
-    if (c.world !== 'C') { F(3, 7 - (c.h % 3), 3, 1, 3); F(7, 5 + (c.h % 3), 4, 1, 2); F(12, 6, 2, 1, 3); }
-  };
-  T.e = (F, c) => { wallBg(F, c); F(2, 2, 12, 11, 0); F(3, 3, 10, 9, 2); F(5, 5, 2, 4, 0); F(9, 5, 2, 4, 0); F(5, 5, 2, 1, 3); };
-  T.D = (F, c) => {
-    const above = c.at(0, -1);
-    if (!MP.walkable(above) || c.ty === 0) { if (c.m.def && c.m.def.indoor) { F(0, 0, 16, 16, 1); F(0, 13, 16, 3, 0); } else drawExtWall(F, c, true); F(2, 1, 12, 15, 0); F(2, 1, 12, 1, 2); if (c.world === 'B') F(4, 4, 8, 3, 1); }
-    else { drawGround(F, '.', c); F(1, 4, 14, 9, 1); for (let y = 5; y < 12; y += 2) F(2, y, 12, 1, 2); }
-  };
-  T.o = (F, c) => { F(0, 0, 16, 16, 3); for (let i = 0; i < 4; i++) { F(0, i * 4, 16, 1, 1); F(0, i * 4 + 1, 16, 1, 2); } F(0, 0, 1, 16, 0); F(15, 0, 1, 16, 0); };
-  T.B = (F, c) => { F(0, 0, 16, 16, 2); for (let y = 2; y < 16; y += 4) F(0, y, 16, 1, 1); F(0, 0, 1, 16, 0); F(15, 0, 1, 16, 0); };
-  T.O = (F, c) => { F(0, 0, 16, 16, 3); F(0, 0, 16, 2, 0); for (let x = 0; x < 16; x += 4) F(x, 4, 2, 2, 2); F(0, 15, 16, 1, 2); };
-  T.z = (F, c) => { drawGround(F, c.m.ground === 'U' ? 'U' : '=', c); for (let y = 1; y < 16; y += 5) F(1, y, 14, 2, 1); F(3, 0, 1, 16, 0); F(12, 0, 1, 16, 0); };
-  T.n = (F, c) => drawGround(F, c.m.ground, c);
-  T.Z = (F, c) => drawGround(F, c.m.ground, c);
-  T.F = (F, c) => {
-    drawGround(F, '.', c);
-    if (c.m.id === 'bureau') { F(2, 0, 12, 16, 0); F(3, 1, 5, 14, 2); F(8, 1, 5, 14, 2); F(6, 7, 1, 2, 0); F(9, 7, 1, 2, 0); return; }
-    if (c.world === 'B') { F(3, 6, 10, 9, 0); F(4, 7, 8, 7, 1); F(5, 9, 6, 3, 2); F(7, 0, 2, 6, 0); return; }
-    F(4, 4, 8, 11, 0); F(5, 5, 6, 9, 3); F(5, 0, 6, 5, 0); F(6, 1, 4, 3, 2); F(6, 9, 2, 1, 1);
-  };
-  T.d = (F, c) => {
-    drawGround(F, '.', c); const L = c.at(-1, 0) === 'd' || c.at(-1, 0) === 'm', R = c.at(1, 0) === 'd' || c.at(1, 0) === 'm';
-    F(0, 2, 16, 13, 0); F(L ? 0 : 1, 3, 16 - (L ? 0 : 1) - (R ? 0 : 1), 7, 2); F(L ? 0 : 1, 10, 16 - (L ? 0 : 1) - (R ? 0 : 1), 4, 1);
-    if (c.h % 3 === 0) F(3 + c.h % 6, 4, 4, 3, 3);
-  };
-  T.m = (F, c) => { T.d(F, c); F(4, 0, 8, 7, 0); F(5, 1, 6, 4, c.world === 'C' ? 0 : c.world === 'B' ? 2 : 3); F(7, 7, 2, 2, 0); if (c.world === 'B') F(6, 2, 3, 1, 1); };
-  T.k = (F, c) => { drawGround(F, c.m.ground === ',' ? ',' : '.', c); F(1, 0, 14, 16, 0); F(2, 1, 12, 14, 1); F(2, 5, 12, 1, 0); F(2, 10, 12, 1, 0); for (let i = 0; i < 5; i++) { F(3 + i * 2, 1 + (i % 2), 1, 4 - (i % 2), (i + c.h) % 2 ? 3 : 2); F(3 + i * 2, 6 + ((i + 1) % 2), 1, 4 - ((i + 1) % 2), (i + c.h) % 3 ? 2 : 3); } };
-  T.K = (F, c) => { drawGround(F, '.', c); F(1, 0, 14, 16, 0); F(2, 1, 12, 14, 1); for (let y = 3; y < 15; y += 3) F(3, y, 10, 1, 0); F(11, 2, 1, 1, 2); F(11, 8, 1, 1, 2); if (c.world === 'B') { ringC(F, 8, 7, 3, 0, 2); } };
-  T.g = (F, c) => { drawGround(F, '.', c); ringC(F, 8, 8, 7, 0, 2); circle(F, 8, 8, 4, c.world === 'B' ? 3 : 1); circle(F, 8, 8, 2, c.world === 'C' ? 0 : 3); };
-  T.p = (F, c) => { drawGround(F, c.m.ground, c); circle(F, 8, 6, 5, 0); circle(F, 8, 6, 4, 1); F(6, 4, 2, 2, 2); F(5, 10, 6, 5, 0); F(6, 11, 4, 3, 2); };
-  T.b = (F, c) => { drawGround(F, c.m.ground, c); F(1, 3, 14, 3, 0); F(2, 4, 12, 1, 1); F(1, 7, 14, 4, 0); F(2, 8, 12, 2, 2); F(2, 11, 2, 4, 0); F(12, 11, 2, 4, 0); };
-  T.s = (F, c) => { drawGround(F, c.m.ground, c); F(7, 9, 2, 7, 0); F(1, 2, 14, 8, 0); F(2, 3, 12, 6, 3); F(3, 5, 8, 1, 1); F(3, 7, 6, 1, 1); if (c.world === 'C') F(10, 3, 3, 2, 1); };
-  T.v = (F, c) => {
-    drawGround(F, c.m.ground, c);
-    if (c.world === 'B') { F(4, 3, 8, 13, 0); F(5, 4, 6, 11, 1); F(5, 1, 6, 3, 0); F(6, 2, 4, 1, 1); F(6, 6, 4, 1, 0); return; }
-    if (c.world === 'A' && c.m.id === 'residential') { F(2, 11, 12, 4, 0); F(3, 12, 10, 2, 2); return; }   // A は台の跡だけ
-    F(2, 0, 12, 16, 0); F(3, 1, 10, 14, 3); F(4, 2, 8, 6, c.world === 'C' ? 0 : 1); F(4, 9, 8, 1, 2); F(5, 12, 6, 2, 0);
-  };
-  T.L = (F, c) => { drawGround(F, c.m.ground, c); F(7, 4, 2, 12, 0); if (c.world === 'B') { F(5, 0, 6, 5, 0); F(6, 1, 4, 3, 2); } else { F(3, 0, 10, 4, 0); F(4, 1, 8, 2, c.world === 'C' ? 1 : 3); } };
-  T.P = (F, c) => { drawGround(F, c.m.ground, c); F(7, 0, 2, 16, 0); F(2, 2, 12, 2, 0); F(3, 1, 1, 1, 3); F(12, 1, 1, 1, 3); F(0, 6, 16, 1, 1); };
-  T.E = (F, c) => { drawGround(F, c.m.ground, c); F(3, 3, 1, 13, 0); F(12, 3, 1, 13, 0); for (let y = 4; y < 16; y += 4) { F(4, y, 8, 1, 0); F(5 + (y % 8 ? 0 : 4), y + 1, 3, 1, 1); } F(5, 0, 6, 3, 0); F(6, 1, 4, 1, 3); };
-  T.T = (F, c) => {
-    drawGround(F, c.m.ground === 'U' ? ':' : (c.m.ground === '.' ? ',' : c.m.ground), c);
-    if (c.world === 'C') { F(7, 4, 2, 12, 0); F(3, 5, 4, 1, 0); F(9, 3, 4, 1, 0); F(4, 2, 1, 3, 0); F(12, 1, 1, 3, 0); return; }
-    F(7, 11, 2, 5, 0); circle(F, 8, 7, 7, 0); circle(F, 8, 7, 6, 1); F(4, 3, 2, 2, 2); F(9, 5, 2, 1, 2); F(6, 8, 1, 1, 2); F(11, 9, 1, 1, 0);
-  };
-  T.t = (F, c) => { drawGround(F, c.m.ground === 'U' ? ':' : c.m.ground, c); circle(F, 8, 9, 6, 0); circle(F, 8, 9, 5, 1); F(5, 6, 2, 1, 2); F(9, 9, 2, 1, 2); };
-  T['~'] = (F, c) => { F(0, 0, 16, 16, 1); F((c.h % 8), 4, 5, 1, 2); F((c.h >> 3) % 8 + 6, 10, 4, 1, 2); };
-  T.f = (F, c) => { drawGround(F, c.m.ground === '=' ? ',' : c.m.ground, c); F(0, 5, 16, 2, 0); F(0, 10, 16, 2, 0); F(1, 3, 2, 12, 0); F(13, 3, 2, 12, 0); F(1, 6, 14, 0, 0); };
-  T.x = (F, c) => { drawGround(F, c.m.ground, c); F(2, 8, 7, 6, 0); F(3, 9, 5, 4, 1); F(8, 4, 6, 6, 0); F(9, 5, 4, 4, 2); F(5, 3, 3, 3, 0); F(6, 4, 1, 1, 2); };
-  T.X = (F, c) => {
-    F(0, 0, 16, 16, 2); const N = (dx, dy) => c.at(dx, dy) === 'X';
-    if (!N(0, -1)) F(0, 0, 16, 1, 0); if (!N(0, 1)) F(0, 15, 16, 1, 0); if (!N(-1, 0)) F(0, 0, 1, 16, 0); if (!N(1, 0)) F(15, 0, 1, 16, 0);
-    F(3 + c.h % 6, 3, 4, 1, 3); F(9, 9 + c.h % 3, 1, 4, 1); F(2, 11, 3, 1, 1); F(10 + c.h % 3, 5, 3, 1, 1);
-  };
-  T.h = (F, c) => { F(0, 0, 16, 16, c.world === 'B' ? 0 : 1); for (let y = 3; y < 16; y += 4) { F(0, y, 16, 1, c.world === 'B' ? 1 : 0); F(((y >> 2) % 2) * 8 + 3, y - 3, 1, 3, c.world === 'B' ? 1 : 0); } if (c.at(0, 1) !== 'h') F(0, 13, 16, 3, 0); if (c.world === 'C' && c.h % 5 === 0) F(4, 4, 6, 4, 2); };
-  T.W = (F, c) => drawExtWall(F, c, false);
-  T.H = (F, c) => { drawExtWall(F, c, true); F(4, 3, 8, 13, 0); F(5, 4, 6, 12, c.world === 'B' ? 2 : 1); F(9, 10, 1, 1, 3); };
-  T.S = (F, c) => {
-    drawExtWall(F, c, true);
-    for (let x = 0; x < 16; x += 4) F(x, 0, 2, 4, 0), F(x + 2, 0, 2, 4, 2);
-    if ((c.tx + c.h) % 3 === 0 && c.world !== 'C') { F(1, 5, 14, 10, 0); F(2, 6, 12, 8, 1); F(4, 8, 3, 3, 3); F(9, 9, 3, 2, 2); }
-    else { F(1, 5, 14, 11, 0); F(2, 6, 12, 9, 2); for (let y = 7; y < 15; y += 2) F(2, y, 12, 1, 1); if (c.world === 'C') { F(4, 9, 4, 4, 0); F(10, 6, 2, 3, 0); } }
-  };
-  T.Y = (F, c) => { drawGround(F, c.m.ground, c); const s = c.world === 'B' ? 1 : 0; F(6, 2, 4, 14, s); F(0, 0, 16, 3, 0); F(0, 5, 16, 2, s); };
-  T.Q = (F, c) => {
-    F(0, 0, 16, 16, 0); for (let y = 2; y < 16; y += 4) F(0, y, 16, 1, 1);
-    if (MP.walkable(c.at(0, 1))) { F(0, 6, 16, 10, 2); F(0, 6, 16, 1, 0); F(1, 7, 2, 9, 0); F(13, 7, 2, 9, 0); if (c.tx % 2) F(5, 9, 6, 7, 0); F(0, 15, 16, 1, 1); }
-  };
-  T.q = (F, c) => { drawGround(F, c.m.ground, c); F(5, 11, 6, 4, 1); F(4, 4, 8, 7, 0); F(5, 5, 6, 5, 2); F(6, 6, 4, 2, c.world === 'B' ? 3 : 0); F(3, 2, 10, 2, 0); F(7, 0, 2, 2, 0); };
-  T.G = (F, c) => { drawGround(F, c.m.ground, c); F(3, 11, 10, 4, 0); F(4, 12, 8, 2, 1); F(5, 4, 6, 7, 0); F(6, 5, 4, 5, 2); F(6, 1, 4, 4, 0); F(7, 2, 2, 2, 2); if (c.world === 'B' && c.m.id === 'shrine') { F(5, 0, 1, 2, 0); F(10, 0, 1, 2, 0); F(6, 7, 4, 2, 1); } };
-  T.C = (F, c) => { drawGround(F, c.m.ground, c); F(2, 4, 12, 11, 0); F(3, 5, 10, 9, 2); F(3, 9, 10, 1, 1); F(7, 5, 1, 9, 1); };
-  T.R = (F, c) => {
-    F(0, 0, 16, 16, 2); F((c.h % 13) + 1, (c.h >> 4) % 13 + 1, 1, 1, 1);
-    const horiz = c.at(-1, 0) === 'R' || c.at(1, 0) === 'R' || c.at(-1, 0) === '[' || c.at(1, 0) === '[';
-    if (horiz) { for (let x = 1; x < 16; x += 5) F(x, 2, 2, 12, 1); F(0, 4, 16, 1, 0); F(0, 11, 16, 1, 0); }
-    else { for (let y = 1; y < 16; y += 5) F(2, y, 12, 2, 1); F(4, 0, 1, 16, 0); F(11, 0, 1, 16, 0); }
-  };
-  T['['] = (F, c) => { T.R(F, c); const L = c.at(-1, 0) === '[', R = c.at(1, 0) === '['; F(0, 1, 16, 13, 0); F(L ? 0 : 1, 2, 16 - (L ? 0 : 1) - (R ? 0 : 1), 11, 3); F(2, 4, 5, 4, 1); F(9, 4, 5, 4, 1); F(0, 10, 16, 2, 2); if (!R) F(15, 1, 1, 13, 0); };
-  T.V = (F, c) => { F(0, 0, 16, 16, 0); if (c.h % 11 === 0) F(c.h % 14 + 1, (c.h >> 5) % 14 + 1, 1, 1, 1); };
-  T.J = (F, c) => {
-    if (c.m.id === 'collapse') { drawGround(F, c.m.ground, c); F(2, 0, 12, 16, 0); F(3, 1, 10, 15, 3); F(7, 1, 2, 15, 2); return; }
-    wallBg(F, c); F(1, 0, 14, 16, 0);
-    if (KY.has('basement_open')) { F(2, 1, 12, 15, 0); F(2, 1, 1, 15, 1); return; }
-    F(2, 1, 12, 15, 1); F(2, 4, 12, 1, 2); F(2, 9, 12, 1, 2); F(11, 7, 2, 2, 3);
-  };
-  T.i = (F, c) => { drawGround(F, c.m.ground, c); F(4, 0, 8, 16, 0); F(5, 0, 6, 16, 2); F(5, 3, 6, 1, 1); if (c.world === 'B') { F(6, 5, 4, 6, 3); F(6, 6, 4, 1, 1); } };
-  T.u = (F, c) => { drawGround(F, c.m.ground, c); F(7, 6, 2, 10, 0); ringC(F, 8, 4, 4, 0, 3); F(6, 4, 4, 1, 1); };
-  T.l = (F, c) => { drawGround(F, c.m.ground, c); F(7, 8, 2, 8, 0); ringC(F, 8, 5, 5, 0, 3); F(8, 2, 1, 3, 0); F(8, 5, 2, 1, 0); };
-  T.y = (F, c) => { drawGround(F, c.m.ground, c); for (let i = 0; i < 7; i++) { F(8 - i, 2 + i, i * 2 + 1, 1, 0); } for (let i = 0; i < 6; i++) F(8 - i, 9 + i, (6 - i) * 2 - 1 > 0 ? (6 - i) * 2 - 1 : 1, 1, 0); for (let i = 1; i < 6; i++) F(9 - i, 3 + i, i * 2 - 1, 1, i % 2 ? 2 : 3); };
-
+  const KT = root.KY_TILES;
+  function stageFlags() { return { boardBlank: KY.has('stage_boardBlank'), clockAlt: KY.has('stage_clockAlt'), basementOpen: KY.has('basement_open') }; }
   function renderStatic(m, world, palK) {
+    if (KT && KT.render) { try { return KT.render(m, world, palColors(palK), stageFlags()); } catch (e) { console.error('[KY_WORLD] tiles', e); } }
     const cv = document.createElement('canvas'); cv.width = m.w * TS; cv.height = m.h * TS;
     const ctx = cv.getContext('2d'), col = palColors(palK);
-    for (let ty = 0; ty < m.h; ty++) for (let tx = 0; tx < m.w; tx++) {
-      const ch = m.g[ty][tx], ox = tx * TS, oy = ty * TS;
-      const F = (x, y, w, h, s) => { if (w <= 0 || h <= 0) return; ctx.fillStyle = col[s]; ctx.fillRect(ox + x, oy + y, w, h); };
-      const c = { m, world, tx, ty, h: hash(tx, ty, 3), at: (dx, dy) => MP.at(m, tx + dx, ty + dy) };
-      try { if (T[ch]) T[ch](F, c); else drawGround(F, ch, c); } catch (e) { F(0, 0, 16, 16, 2); }
-    }
+    for (let ty = 0; ty < m.h; ty++) for (let tx = 0; tx < m.w; tx++) { ctx.fillStyle = col[MP.walkable(m.g[ty][tx]) ? 3 : 1]; ctx.fillRect(tx * TS, ty * TS, TS, TS); }
     return cv;
   }
-
-  /* ═════════════════════════ 人物・生き物・小物の絵 ═════════════════════════ */
-  const P_DOWN = ['................', '....00000000....', '...0hhhhhhhh0...', '..0hhhhhhhhhh0..', '..0hhhhhhhhhh0..', '..0hssssssssh0..', '..0hs0ssss0sh0..', '...0ssssssss0...',
-    '....0cc33cc0....', '...0ccc33xcc0...', '..0sccccccccs0..', '...0cccccccc0...', '...0cccccccc0...', '....0cc00cc0....', '....0ll00ll0....', '....000..000....'];
-  const P_UP = ['................', '....00000000....', '...0hhhhhhhh0...', '..0hhhhhhhhhh0..', '..0hhhhhhhhhh0..', '..0hhhhhhhhhh0..', '..0hhhhhhhhhh0..', '...0hhhhhhhh0...',
-    '....0cccccc0....', '...0cccccccc0...', '..0sccccccccs0..', '...0cccccccc0...', '...0cccccccc0...', '....0cc00cc0....', '....0ll00ll0....', '....000..000....'];
-  const P_LEFT = ['................', '.....0000000....', '....0hhhhhhh0...', '...0hhhhhhhhh0..', '...0hhhhhhhhh0..', '...0sshhhhhhh0..', '...0s0shhhhhh0..', '....0sssshhh0...',
-    '.....0cccc0.....', '....0ccccccc0...', '....0csccccc0...', '....0ccccccc0...', '....0ccccccc0...', '.....0cc0cc0....', '.....0ll0ll0....', '.....000.000....'];
-  const STEP_V = { 14: '....0ll0.000....', 15: '....000.........' };
-  const STEP_L = { 13: '....0cc0..0cc0..', 14: '....0ll0..0ll0..', 15: '....000...000...' };
-  const HAIR = {
-    long: { d: { 6: '.0hhs0ssss0shh0.', 7: '.0h0ssssssss0h0.', 8: '.0h00cc33cc00h0.', 9: '.0h0ccc33xcc0h0.' }, u: { 8: '....0hhhhhh0....', 9: '...0hhhhhhhh0...' }, l: { 8: '.....0cchh0.....', 9: '....0ccccchh0...' } },
-    cap: { d: { 2: '...0kkkkkkkk0...', 3: '..0kkkkkkkkkk0..', 4: '.00000000000000.' }, u: { 2: '...0kkkkkkkk0...', 3: '..0kkkkkkkkkk0..', 4: '..0kkkkkkkkkk0..' }, l: { 2: '....0kkkkkkk0...', 3: '...0kkkkkkkkk0..', 4: '.000000000000...' } },
-    bald: { d: { 2: '...0ssssssss0...', 3: '..0ssssssssss0..', 4: '..0hssssssssh0..' }, u: { 2: '...0ssssssss0...', 3: '..0ssssssssss0..', 4: '..0ssssssssss0..' }, l: { 2: '....0sssssss0...', 3: '...0ssssssssh0..', 4: '...0sssssshhh0..' } },
-    bun: { d: { 0: '......0hh0......' }, u: { 0: '......0hh0......' }, l: { 0: '........0hh0....' } },
-  };
-  const PEOPLE = {
-    player: { h: 1, c: 3, l: 1, x: 1 },
-    yuu: { h: 0, c: 1, l: 0, x: 1 }, mido: { h: 2, c: 1, l: 1, x: 3 }, nagi: { hair: 'long', h: 0, c: 3, l: 3, x: 2 }, kujo: { h: 0, c: 0, l: 0, x: 1 },
-    saeki: { hair: 'bun', h: 1, c: 2, l: 1, x: 2 }, shopkeeper: { hair: 'cap', h: 0, k: 3, c: 2, l: 1, x: 1 }, oldwoman: { hair: 'bun', h: 2, c: 1, l: 1, x: 2 },
-    oldwoman2: { hair: 'bun', h: 3, c: 2, l: 1, x: 1 }, youth: { hair: 'cap', h: 0, k: 0, c: 0, l: 1, x: 3 }, woman: { hair: 'long', h: 1, c: 2, l: 1, x: 2 },
-    woman2: { hair: 'long', h: 0, c: 1, l: 2, x: 3 }, janitor: { hair: 'cap', h: 1, k: 1, c: 2, l: 1, x: 1 }, priest: { h: 0, c: 3, l: 1, x: 1 },
-    fisher: { hair: 'cap', h: 2, k: 2, c: 1, l: 1, x: 2 }, fisher2: { hair: 'cap', h: 0, k: 1, c: 2, l: 0, x: 3 }, staff: { hair: 'cap', h: 0, k: 0, c: 1, l: 1, x: 3 },
-    staff2: { hair: 'cap', h: 0, k: 0, c: 1, l: 0, x: 2 }, passenger: { h: 1, c: 1, l: 0, x: 2 }, child: { hair: 'cap', h: 0, k: 2, c: 3, l: 1, x: 1 },
-    oldman: { hair: 'bald', h: 2, c: 2, l: 1, x: 1 }, researcher: { h: 1, c: 3, l: 1, x: 2 },
-  };
-  const CREATURES = {
-    shiro: ['................', '................', '................', '....0......0....', '...030....030...', '...0330000330...', '..033333333330..', '..033033330330..',
-      '..033333333330..', '..033332233330..', '...0333333330...', '...0333333330...', '....03300330....', '.....00..00.....', '................', '................'],
-    dog: ['................', '................', '................', '................', '................', '..00............', '.0110.......0...', '.01110000000110.',
-      '.01011111111110.', '.01111111111110.', '..000111111110..', '....0111111110..', '....010...010...', '....00....00....', '................', '................'],
-    dog2: ['................', '................', '................', '................', '................', '..00............', '.0330.......0...', '.03330000000330.',
-      '.03031133113330.', '.03333311333330.', '..000333333330..', '....0331133330..', '....030...030...', '....00....00....', '................', '................'],
-    cat: ['................', '................', '................', '................', '................', '.....0...0......', '.....00000......', '....0303030.....',
-      '....0000000.....', '.....00000......', '....0000000.....', '....00000000....', '....00000000.0..', '.....0000000.0..', '......0..0.00...', '................'],
-    paper: ['................', '................', '................', '................', '................', '................', '................', '................',
-      '..000000000.....', '..033333330.....', '..031111300000..', '..033333303330..', '..031113303130..', '..000000003330..', '.........00000..', '................'],
-    mark: ['................', '................', '................', '................', '................', '................', '.......0........', '......030.......',
-      '.....03330......', '....0333330.....', '.....03330......', '......030.......', '.......0........', '.....1.....1....', '...1...1.1...1..', '................'],
-    phone: ['................', '................', '...0000000000...', '...0222222220...', '...0200000020...', '...0222222220...', '...0000000000...', '....02222220....',
-      '....02100120....', '....02222220....', '....02222220....', '.....000000.....', '.......00.......', '.......00.......', '.....000000.....', '................'],
-    q: ['................', '.000000000000...', '.033333333330...', '.033300003330...', '.033033330330...', '.033333303330...', '.033333033330...', '.033330333330...',
-      '.033330333330...', '.033333333330...', '.033330333330...', '.033333333330...', '.000000000000...', '......00........', '......00........', '................'],
-  };
   const SPR = new Map();
-  function personRows(id, dir, frame) {
-    const P = PEOPLE[id] || PEOPLE.passenger;
-    const base = dir === 'u' ? P_UP : dir === 'd' ? P_DOWN : P_LEFT;
-    const rows = base.slice();
-    const hv = P.hair && HAIR[P.hair] && HAIR[P.hair][dir === 'r' ? 'l' : dir];
-    if (hv) Object.keys(hv).forEach(k => { rows[+k] = hv[k]; });
-    if (frame) { const st = (dir === 'u' || dir === 'd') ? STEP_V : STEP_L; Object.keys(st).forEach(k => { rows[+k] = st[k]; }); }
-    return rows;
-  }
   function spriteCanvas(id, dir, frame, palK) {
     const key = id + '|' + dir + '|' + frame + '|' + palK;
     if (SPR.has(key)) return SPR.get(key);
     const col = palColors(palK);
-    let rows, flip = false;
-    if (CREATURES[id]) { rows = CREATURES[id]; flip = dir === 'r' && id !== 'q' && id !== 'paper' && id !== 'phone' && id !== 'mark'; }
-    else {
-      const P = PEOPLE[id] || PEOPLE.passenger;
-      rows = personRows(id, dir, frame === 2 ? 1 : frame);
-      flip = dir === 'r' || ((dir === 'u' || dir === 'd') && frame === 2);
-      const map = { h: P.h, s: 3, c: P.c, l: P.l, x: P.x, k: P.k == null ? P.h : P.k, '0': 0, '1': 1, '2': 2, '3': 3 };
-      rows = rows.map(r => r.replace(/[hsclxk]/g, ch => String(map[ch])));
-    }
+    const rows = KT ? KT.sprite(id, dir, frame) : ['................'];
+    const flip = dir === 'r' && !(KT && KT.NOFLIP.has(id));
     const cv = document.createElement('canvas'); cv.width = 16; cv.height = 16;
     const ctx = cv.getContext('2d');
     rows.forEach((r, y) => { const s = String(r).padEnd(16, '.').slice(0, 16); for (let x = 0; x < 16; x++) { const ch = s[flip ? 15 - x : x]; if (ch >= '0' && ch <= '3') { ctx.fillStyle = col[+ch]; ctx.fillRect(x, y, 1, 1); } } });
     SPR.set(key, cv);
-    if (SPR.size > 900) SPR.clear();
+    if (SPR.size > 1200) SPR.clear();
     return cv;
   }
-  API.SPRITES = Object.keys(PEOPLE).concat(Object.keys(CREATURES));
+  API.SPRITES = KT ? KT.SPRITES.slice() : [];
   API._sprite = spriteCanvas;
   API._renderMap = (id, world, palK) => renderStatic(MP.compile(id, world), world, palK || palKeyFor(id, world));
 
@@ -301,7 +95,9 @@
     OWD.ctx = cv.getContext('2d'); OWD.ctx.imageSmoothingEnabled = false;
     OWD.frame = $('div', 'ow-cutframe'); OWD.hl = $('div', 'ow-hl'); OWD.frame.appendChild(OWD.hl);
     OWD.name = $('div', 'ow-name');
-    D.stageWrap.appendChild(OWD.frame); D.stageWrap.appendChild(OWD.name);
+    OWD.tag = $('div', 'ow-tag'); OWD.tag.setAttribute('aria-hidden', 'true');
+    D.stageWrap.appendChild(OWD.frame); D.stageWrap.appendChild(OWD.name); D.stageWrap.appendChild(OWD.tag);
+    if (KY._resize) KY._resize.push(() => { if (OW.active) fitView(); });
     cv.addEventListener('pointerdown', onTap);
     document.addEventListener('keyup', e => { const k = keyDir(e.key); if (k) OW.keys = OW.keys.filter(x => x !== k); if (e.key === 'Shift') OW.run = false; });
     root.addEventListener('blur', () => { OW.keys = []; OW.pad = null; OW.run = false; });
@@ -311,8 +107,50 @@
     if (!D.app) return;
     D.app.classList.toggle('ow-on', !!on);
     D.stageWrap.classList.toggle('ow', !!on);
-    if (!on) { D.stageWrap.classList.remove('cut'); OWD.hl && (OWD.hl.hidden = true); }
+    if (!on) { D.stageWrap.classList.remove('cut'); OWD.hl && (OWD.hl.hidden = true); clearCutBox(); }
     try { root.dispatchEvent(new Event('resize')); } catch (e) {}
+    if (on) { fitView(); requestAnimationFrame(() => { if (OW.active) fitView(); }); }
+  }
+  /* 画面の大きさ：地図の 1 ドットを何 px で見せるか（整数倍を優先・だめなら近い倍率でくっきり）
+     ・最低でもゲームボーイの 10×9 マスが入る大きさ。部屋（屋内）は部屋全体が入る倍率まで縮める（小さくなりすぎない範囲で）。
+     ・映すドット数（CW×CH）は枠いっぱい。部屋が画面より小さいときは真ん中に置き、まわりは地の色。 */
+  function fitView() {
+    const wrap = D.stageWrap, cv = OWD.cv; if (!wrap || !cv) return;
+    const cs = getComputedStyle(wrap);
+    const pl = parseFloat(cs.paddingLeft) || 0, pr = parseFloat(cs.paddingRight) || 0, pt = parseFloat(cs.paddingTop) || 0, pb = parseFloat(cs.paddingBottom) || 0;
+    const bw = wrap.clientWidth - pl - pr, bh = wrap.clientHeight - pt - pb;
+    if (bw < 40 || bh < 40) return;
+    const dpr = root.devicePixelRatio || 1, m = OW.m;
+    const base = Math.min(bw / 160, bh / 144, 4.25);
+    let s = base;
+    const sMin = Math.min(base, 1.75);
+    if (m && m.def && m.def.indoor) { const fit = Math.min(bw / (m.w * TS), bh / (m.h * TS)); s = clamp(fit, sMin, base); }
+    const k = Math.floor(s * dpr + 1e-6);
+    if (k >= 1 && k / dpr >= Math.max(s * 0.85, sMin)) s = k / dpr;
+    const W = Math.max(64, Math.floor(bw / s)), H = Math.max(64, Math.floor(bh / s));
+    const cssW = W * s, cssH = H * s;
+    const left = Math.round((pl + (bw - cssW) / 2) * dpr) / dpr, top = Math.round((pt + (bh - cssH) / 2) * dpr) / dpr;
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; OWD.ctx = cv.getContext('2d'); OWD.ctx.imageSmoothingEnabled = false; }
+    CW = W; CH = H; VS = s;
+    Object.assign(cv.style, { left: left + 'px', top: top + 'px', width: cssW + 'px', height: cssH + 'px' });
+    OW.box = { left, top, w: cssW, h: cssH };
+    // 一枚絵の大写し（16:9）の場所。会話の窓が地図の下に重なる画面（--owdlg）では、その上の空きの真ん中
+    const dl = Math.min(bh * 0.5, parseFloat(cs.getPropertyValue('--owdlg')) || 0), ah = bh - dl;
+    let fw = Math.min(bw * 0.94, ah * 0.88 * 16 / 9), fh = fw * 9 / 16;
+    const fl = pl + (bw - fw) / 2, ft = pt + (ah - fh) / 2;
+    [D.stage, OWD.frame].forEach(el => { if (el) Object.assign(el.style, { left: fl + 'px', top: ft + 'px', width: fw + 'px', height: fh + 'px' }); });
+  }
+  function clearCutBox() { [D.stage, OWD.frame, OWD.cv].forEach(el => { if (el) ['left', 'top', 'width', 'height'].forEach(k => { el.style[k] = ''; }); }); }
+  // 正面の物の名札（地図の上の小さな窓）
+  function placeTag() {
+    const el = OWD.tag; if (!el) return;
+    const show = !!(OW.tagText && OW.tagAt && OW.done && !OW.busy && !OW.p.mv && !OW.cut && !KY._OV.length && OW.box);
+    if (!show) { if (el.classList.contains('on')) el.classList.remove('on'); return; }
+    const [x, y, lift] = OW.tagAt;
+    const cx = OW.box.left + (x * TS - OW.camX + 8) * VS, cy = OW.box.top + (y * TS - OW.camY - (lift ? 14 : 4)) * VS;
+    const k = Math.round(cx) + ',' + Math.round(cy);
+    if (OW.tagPos !== k) { OW.tagPos = k; el.style.left = Math.round(cx) + 'px'; el.style.top = Math.round(cy) + 'px'; el.classList.toggle('below', cy < OW.box.top + 30); if (cy < OW.box.top + 30) el.style.top = Math.round(cy + (lift ? 34 : 24) * VS) + 'px'; }
+    if (!el.classList.contains('on')) el.classList.add('on');
   }
 
   /* ═════════════════════════ 地図の用意 ═════════════════════════ */
@@ -334,6 +172,14 @@
     }
     return [x, y];
   }
+  // 保存された位置が使えるか（壁・出入口の上・入口から歩いて行けない所なら使わない＝地図が変わった古いセーブ）
+  function validPos(m, pos) {
+    if (!Array.isArray(pos) || MP.solidAt(m, pos[0], pos[1]) || MP.warpAt(m, pos[0], pos[1])) return false;
+    const key = m.id + '/' + m.world; OW.reach = OW.reach || {};
+    if (!OW.reach[key]) OW.reach[key] = MP.bfs(m, m.spawn[0], m.spawn[1], null);
+    return OW.reach[key].has(pos[0] + ',' + pos[1]);
+  }
+  function fadeIn() { OW.fade = KY.reduced() ? null : { dir: 'in', t0: now(), dur: 240 }; }
   function setMap(id, world, pos) {
     const changedWorld = OW.mapId === id && OW.world !== world;
     const prevStat = OW.stat;
@@ -342,6 +188,7 @@
     OW.palK = palKeyFor(id, world);
     OW.statKey = '';
     buildStatic();
+    fitView();
     if (changedWorld && prevStat && !KY.reduced()) OW.flick = { prev: prevStat, t0: now(), until: now() + 360 };
     if (pos) { OW.p.x = pos[0]; OW.p.y = pos[1]; if (pos[2]) OW.p.dir = pos[2]; }
     OW.p.mv = null; OW.path = null; OW.pathThen = null;
@@ -426,6 +273,8 @@
     OW.active = false; OW.done = null; OW.busy = false; OW.cut = false; OW.acting = null; OW.path = null; OW.pathThen = null; OW.trans = null; OW.keys = []; OW.pad = null;
     setLayout(false);
     if (OWD.name) OWD.name.classList.remove('on');
+    if (OWD.tag) OWD.tag.classList.remove('on');
+    OW.fade = null;
   }
   function showName(text) {
     if (!OWD.name) return;
@@ -458,7 +307,7 @@
         if (ek) { const [ex, ey] = MP.ENTRANCES[ek]; pos = MP.entryFor(m, { x: ex, y: ey }); }
       }
       const sv = so().field;
-      if (!pos && Array.isArray(sv) && !MP.solidAt(m, sv[0], sv[1]) && !MP.warpAt(m, sv[0], sv[1])) pos = sv;
+      if (!pos && validPos(m, sv)) pos = sv;
       if (!pos) pos = m.spawn;
       const entering = OW.mapId !== 'town' || OW.world !== w;
       OW.objs = []; setMap('town', w, null);
@@ -466,7 +315,8 @@
       OW.lastArea = null;
       OW.done = done; OW.busy = false; OW.acting = null;
       activate();
-      if (entering) showName('月代町' + (w !== 'A' ? '（' + KY.WORLD_LABEL[w] + '）' : ''));
+      if (entering) { showName('月代町' + (w !== 'A' ? '（' + KY.WORLD_LABEL[w] + '）' : '')); fadeIn(); }
+      else if (OW.fade && OW.fade.dir === 'out') fadeIn();
       savePos();
       renderPanel();
     });
@@ -482,15 +332,17 @@
       if (entering) {
         const m = MP.compile(id, w);
         if (OW.arriveFrom) pos = MP.arrival(m, OW.arriveFrom);
-        else { const sv = so().pos[id]; if (Array.isArray(sv) && !MP.solidAt(m, sv[0], sv[1]) && !MP.warpAt(m, sv[0], sv[1])) pos = sv; }
+        else { const sv = so().pos[id]; if (validPos(m, sv)) pos = sv; }
         if (!pos) pos = m.spawn;
         OW.arriveFrom = null;
         OW.objs = [];
         setMap(id, w, pos);
         showName(KY.areaName(id) + (w !== 'A' ? '（' + KY.WORLD_LABEL[w] + '）' : ''));
+        fadeIn();
       } else if (OW.world !== w) {
         setMap(id, w, [OW.p.x, OW.p.y, OW.p.dir]);
       } else buildStatic();
+      if (OW.fade && OW.fade.dir === 'out') fadeIn();
       buildObjects();
       if (entering || OW.world !== w) { const [nx, ny] = nudge(OW.p.x, OW.p.y); OW.p.x = nx; OW.p.y = ny; }
       else if (!freeTile(OW.p.x, OW.p.y)) { const [nx, ny] = nudge(OW.p.x, OW.p.y); OW.p.x = nx; OW.p.y = ny; }
@@ -526,6 +378,16 @@
     OW.done = null; OW.busy = true; OW.path = null; OW.pathThen = null; OW.keys = []; OW.pad = null;
     if (D.ex) D.ex.hidden = true;
     d(it);
+  }
+  // 扉・出入口：網点で暗くしてから次へ
+  function fadeEmit(it, direct) {
+    const d = OW.done; if (!d) return;
+    OW.done = null; OW.busy = true; OW.path = null; OW.pathThen = null; OW.keys = []; OW.pad = null;
+    if (D.ex) D.ex.hidden = true;
+    KY.se('door');
+    const dur = KY.reduced() ? 60 : 200;
+    OW.fade = { dir: 'out', t0: now(), dur };
+    setTimeout(() => { d(it); }, dur + 20);
   }
   function savePos() {
     const o = so(), v = [OW.p.x, OW.p.y, OW.p.dir];
@@ -592,14 +454,20 @@
     return o;
   }
   function updateNear(force) {
-    if (!OWD.near || !OW.done) return;
-    let t = '';
+    if (!OWD.near || !OW.done) { OW.nearT = null; return; }
+    let t = '', tag = '', tgt = null, at = null;
     if (!OW.p.mv) {
       const o = targetAhead();
-      if (o && o.spots) t = 'Ａ：' + o.spots.map(sp => sp.label || sp.id).join('／');
-      else if (o && o.text) t = 'Ａ：話しかける';
-      else if (OW.mode === 'field') { const [fx, fy] = facing(); const wp = MP.warpAt(OW.m, fx, fy); if (wp) t = '▶ ' + fieldLabel(wp); }
+      const [fx, fy] = facing();
+      if (o && o.spots) { const lb = o.spots.map(sp => sp.label || sp.id).join('／'); t = 'Ａ：' + lb; tag = lb; tgt = [o.x, o.y, o.person || o.sprite === 'shiro' ? 1 : 0]; }
+      else if (o && o.text) { t = 'Ａ：話しかける'; tag = String(o.text).split('|')[0]; tgt = [o.x, o.y, 1]; }
+      else if (OW.mode === 'field') { const wp = MP.warpAt(OW.m, fx, fy); if (wp) { t = '▶ ' + fieldLabel(wp); tag = fieldLabel(wp); at = [fx, fy, 0]; } }
+      if (!tag && KT && !MP.walkable(MP.at(OW.m, fx, fy))) { const nm = KT.name(OW.m, fx, fy, OW.world); if (nm) { tag = nm; at = [fx, fy, 0]; } }
+      if (tgt) at = tgt;
     }
+    OW.nearT = tgt;
+    OW.tagAt = at;
+    if (tag !== OW.tagText && OWD.tag) { OW.tagText = tag; OWD.tag.textContent = tag; OW.tagPos = ''; }
     if (t !== OW.near || force) { OW.near = t; OWD.near.textContent = t || ' '; OWD.near.classList.toggle('on', !!t); }
   }
   function fieldLabel(wp) {
@@ -839,11 +707,12 @@
             if (fromPath) OW.path.shift();
             p.mv = { fx: p.x, fy: p.y, tx: nx, ty: ny, t0: ts, dur: fromPath ? PATH_MS : OW.run ? RUN_MS : STEP_MS };
             p.step = (p.step + 1) % 4;
+            if (p.step % 2 === 0) KY.se('step');
             OW.walking = true;
             if (OW.follower) { OW.follower.fx = OW.follower.x; OW.follower.fy = OW.follower.y; OW.follower.tx = p.x; OW.follower.ty = p.y; OW.follower.t0 = ts; OW.follower.dur = p.mv.dur; }
           } else {
             if (fromPath) { OW.path = null; OW.pathThen = null; }
-            if (ts - OW.bumpT > 400) { OW.bumpT = ts; }
+            if (ts - OW.bumpT > 450) { OW.bumpT = ts; if (!fromPath) KY.se('bump'); }
           }
         }
       } else OW.walking = false;
@@ -914,22 +783,20 @@
       const okW = KY.worldsOf(id).indexOf(s.baseWorld) >= 0 || s.baseWorld === 'A';
       if (!okW) { stepBack(); message(['この層からは、そこへ行けないようだ。']); return; }
       OW.arriveFrom = 'town';
-      const d = OW.done; if (!d) return;
-      OW.done = null; OW.busy = true; D.ex.hidden = true; KY.se('steps');
-      d(id);
+      fadeEmit(id);
       return;
     }
     // 場所の中
     if (wp.to === 'town') {
       if (OW.m.def && OW.m.def.noExit) { stepBack(); message(['戻る道は、もう無い。']); return; }
-      OW.lastArea = OW.mapId; KY.se('steps');
-      emit({ nav: 'map' });
+      OW.lastArea = OW.mapId;
+      fadeEmit({ nav: 'map' });
       return;
     }
     const list = availList();
     if (list.indexOf(wp.to) < 0 && /^center_/.test(wp.to) && /^center_/.test(OW.mapId)) {
       // 分室の中で、通り道の部屋が今回の調べ物に入っていないときは、そのまま建物の外（町）へ出る
-      OW.lastArea = OW.mapId; KY.se('steps'); emit({ nav: 'map' }); return;
+      OW.lastArea = OW.mapId; fadeEmit({ nav: 'map' }); return;
     }
     if (list.indexOf(wp.to) < 0) {
       stepBack();
@@ -939,8 +806,8 @@
     }
     const okW = KY.worldsOf(wp.to).indexOf(s.baseWorld) >= 0 || s.baseWorld === 'A';
     if (!okW) { stepBack(); message(['この層からは、その先へ行けないようだ。']); return; }
-    OW.pendingWarp = wp.to; OW.arriveFrom = OW.mapId; OW.lastArea = OW.mapId; KY.se('steps');
-    emit({ nav: 'map' });
+    OW.pendingWarp = wp.to; OW.arriveFrom = OW.mapId; OW.lastArea = OW.mapId;
+    fadeEmit({ nav: 'map' });
   }
 
   /* ═════════════════════════ 境界ノイズ → 戦闘 ═════════════════════════ */
@@ -992,12 +859,26 @@
     if (o.mv) { const t = clamp((ts - o.mv.t0) / o.mv.dur, 0, 1); return [(o.mv.fx + (o.mv.tx - o.mv.fx) * t) * TS, (o.mv.fy + (o.mv.ty - o.mv.fy) * t) * TS, t]; }
     return [o.x * TS, o.y * TS, 0];
   }
+  // 網点（濃さ 1〜4 段）の模様：フェードと周辺減光に使う
+  const PATS = {};
+  function pat(ctx, col, lv) {
+    const key = col[0] + lv; if (PATS[key]) return PATS[key];
+    const c = document.createElement('canvas'); c.width = 4; c.height = 4; const x = c.getContext('2d'); x.fillStyle = col[0];
+    const on = { 1: [[0, 0], [2, 2]], 2: [[0, 0], [2, 0], [1, 1], [3, 1], [0, 2], [2, 2], [1, 3], [3, 3]] }[lv];
+    if (lv >= 4) x.fillRect(0, 0, 4, 4);
+    else if (lv === 3) { x.fillRect(0, 0, 4, 4); x.clearRect(0, 0, 1, 1); x.clearRect(2, 2, 1, 1); }
+    else (on || []).forEach(([a, b]) => x.fillRect(a, b, 1, 1));
+    return (PATS[key] = ctx.createPattern(c, 'repeat'));
+  }
+  function shade(ctx, col, lv, x, y, w, h) { if (lv <= 0) return; ctx.fillStyle = pat(ctx, col, Math.min(4, lv)); ctx.fillRect(x, y, w, h); }
   function draw(ts) {
+    if (D.stageWrap) { const k = D.stageWrap.clientWidth + 'x' + D.stageWrap.clientHeight + '/' + (OW.m && OW.m.id) + '/' + (root.devicePixelRatio || 1); if (k !== OW.wrapKey) { OW.wrapKey = k; fitView(); } }
     const ctx = OWD.ctx, m = OW.m; if (!m || !OW.stat) return;
     buildStatic();
     const col = palColors(OW.palK);
     const [ppx, ppy, pt] = lerpPos(OW.p, ts);
     const mw = m.w * TS, mh = m.h * TS;
+    // カメラ：画面より小さい部屋は真ん中に（まわりは地の色）、大きい地図は端で止める
     let camX = mw <= CW ? -Math.floor((CW - mw) / 2) : clamp(Math.round(ppx + 8 - CW / 2), 0, mw - CW);
     let camY = mh <= CH ? -Math.floor((CH - mh) / 2) : clamp(Math.round(ppy + 8 - CH / 2), 0, mh - CH);
     OW.camX = camX; OW.camY = camY;
@@ -1006,11 +887,12 @@
     if (OW.flick) { if (ts > OW.flick.until) OW.flick = null; else if (((ts - OW.flick.t0) / 60 | 0) % 2 === 0) stat = OW.flick.prev; }
     ctx.drawImage(stat, -camX, -camY);
     // 動くマス
-    const x0 = Math.max(0, Math.floor(camX / TS)), y0 = Math.max(0, Math.floor(camY / TS)), x1 = Math.min(m.w - 1, Math.floor((camX + CW) / TS)), y1 = Math.min(m.h - 1, Math.floor((camY + CH) / TS));
+    const x0 = Math.max(0, Math.floor(camX / TS)), y0 = Math.max(0, Math.floor(camY / TS)), x1 = Math.min(m.w - 1, Math.floor((camX + CW) / TS) + 1), y1 = Math.min(m.h - 1, Math.floor((camY + CH) / TS) + 1);
     const nOn = noiseOn(), list = OW.mode === 'field' ? (OW.list || []) : null, fr = (ts / 120) | 0;
+    const ind = !!(m.def && m.def.indoor);
     for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
       const ch = m.g[ty][tx], ox = tx * TS - camX, oy = ty * TS - camY;
-      if (ch === '~') { const sh = ((ts / 400) | 0) % 4; ctx.fillStyle = col[2]; ctx.fillRect(ox + ((hash(tx, ty, 1) + sh * 2) % 10), oy + 4 + (sh % 2), 4, 1); ctx.fillRect(ox + ((hash(tx, ty, 2) + 16 - sh * 2) % 10) + 2, oy + 11, 3, 1); }
+      if (ch === '~') { const sh = ((ts / 400) | 0) % 4; ctx.fillStyle = col[2]; ctx.fillRect(ox + ((hash(tx, ty, 1) + sh * 2) % 10) + 2, oy + 6 + (sh % 2), 4, 1); ctx.fillRect(ox + ((hash(tx, ty, 2) + 16 - sh * 2) % 8) + 3, oy + 11, 3, 1); }
       else if (ch === 'n' && nOn) {
         const hs = hash(tx, ty, fr);
         for (let i = 0; i < 14; i++) { const v = hash(i, hs, 5); ctx.fillStyle = col[v % 3 === 0 ? 0 : v % 3 === 1 ? 1 : 3]; ctx.fillRect(ox + (v >> 3) % 15, oy + (v >> 7) % 15, 2, 1); }
@@ -1020,39 +902,81 @@
         const wp = MP.warpAt(m, tx, ty); const on = wp && list && resolveEntrance(wp);
         if (on) { const ph = ((ts / 150) | 0) % 4; ctx.fillStyle = col[0]; ctx.fillRect(ox + 5, oy + 1, 6, 14); ctx.fillStyle = col[ph % 2 ? 2 : 3]; ctx.fillRect(ox + 6, oy + 2 + ph, 4, 10 - ph); ctx.fillStyle = col[1]; ctx.fillRect(ox + 3 - (ph % 2), oy + 6, 1, 4); ctx.fillRect(ox + 12 + (ph % 2), oy + 4, 1, 5); }
       }
-      else if (ch === 'K' && (hash(tx, ty, fr >> 2) & 3) === 0) { ctx.fillStyle = col[3]; ctx.fillRect(ox + 11, oy + 2 + (hash(tx, ty, 9) % 10), 1, 1); }
+      else if (ch === 'K' && ind && OW.world !== 'B' && KT) {
+        // サーバーラックの LED
+        KT.LEDS.forEach(([lx, ly], i) => { const v = hash(tx * 7 + i, ty, (fr >> 1) + i * 3); if (OW.world === 'C' && i % 3) return; ctx.fillStyle = col[v % 3 === 0 ? 3 : v % 3 === 1 ? 2 : 0]; ctx.fillRect(ox + lx, oy + ly, 1, 1); });
+      }
       if (OW.mode === 'field') { const wx = MP.warpAt(m, tx, ty); if (wx && wx.extra) { const q = spriteCanvas('q', 'd', 0, OW.palK); ctx.drawImage(q, ox, oy - 2); } }
-      // 町の入口の目印（行ける場所だけ）
-      if (OW.mode === 'field' && ch !== 'Z') { const wp = MP.warpAt(m, tx, ty); if (wp && resolveEntrance(wp) && ((ts / 400) | 0) % 2 === 0) { ctx.fillStyle = col[0]; ctx.fillRect(ox + 6, oy - 4, 4, 3); ctx.fillStyle = col[3]; ctx.fillRect(ox + 7, oy - 3, 2, 1); } }
+      // 町の入口の目印（行ける場所だけ・はずむ矢印）
+      if (OW.mode === 'field' && ch !== 'Z') {
+        const wp = MP.warpAt(m, tx, ty);
+        if (wp && resolveEntrance(wp) && !(MP.warpAt(m, tx - 1, ty) && resolveEntrance(MP.warpAt(m, tx - 1, ty)))) {
+          const by = oy - 9 + [0, 1, 2, 1][((ts / 160) | 0) % 4];
+          ctx.fillStyle = col[0]; ctx.fillRect(ox + 4, by, 9, 4); ctx.fillRect(ox + 5, by + 4, 7, 1); ctx.fillRect(ox + 6, by + 5, 5, 1); ctx.fillRect(ox + 7, by + 6, 3, 1);
+          ctx.fillStyle = col[3]; ctx.fillRect(ox + 5, by + 1, 7, 2); ctx.fillRect(ox + 6, by + 3, 5, 1); ctx.fillRect(ox + 7, by + 4, 3, 1); ctx.fillRect(ox + 8, by + 5, 1, 1);
+        }
+      }
     }
     // 人物・物（下にいるものほど手前）
     const ents = [];
     for (const o of OW.objs) if (o.sprite) ents.push({ y: o.y * TS, x: o.x * TS, spr: o.sprite, dir: o.dir || 'd', frame: 0, o });
     for (const a of OW.amb) { const [ax, ay, at] = lerpPos(a, ts); ents.push({ y: ay, x: ax, spr: a.sprite, dir: a.dir, frame: a.mv ? (at < 0.5 ? 1 : 0) : 0 }); }
-    if (OW.follower) { const f = OW.follower; let fx = f.x * TS, fy = f.y * TS; if (f.t0) { const t = clamp((ts - f.t0) / f.dur, 0, 1); fx = (f.fx + (f.tx - f.fx) * t) * TS; fy = (f.fy + (f.ty - f.fy) * t) * TS; } const fd = f.tx > f.fx ? 'r' : f.tx < f.fx ? 'l' : 'd'; ents.push({ y: fy, x: fx, spr: 'shiro', dir: fd, frame: 0, bob: ((ts / 300) | 0) % 2 }); }
+    if (OW.follower) { const f = OW.follower; let fx = f.x * TS, fy = f.y * TS, moving = false; if (f.t0) { const t = clamp((ts - f.t0) / f.dur, 0, 1); fx = (f.fx + (f.tx - f.fx) * t) * TS; fy = (f.fy + (f.ty - f.fy) * t) * TS; moving = t < 1; } const fd = f.tx > f.fx ? 'r' : f.tx < f.fx ? 'l' : 'd'; ents.push({ y: fy, x: fx, spr: 'shiro', dir: fd, frame: moving || ((ts / 420) | 0) % 2 ? 1 : 0 }); }
+    for (const o of OW.objs) if (o.sprite === 'shiro') { const e = ents.find(v => v.o === o); if (e) e.frame = ((ts / 420) | 0) % 2; }
     const pf = OW.p.mv ? (pt < 0.5 ? (OW.p.step % 2 ? 1 : 2) : 0) : 0;
     ents.push({ y: ppy, x: ppx, spr: 'player', dir: OW.p.dir, frame: pf, me: true });
     ents.sort((a, b) => a.y - b.y || (a.me ? 1 : -1));
     for (const e of ents) {
+      const person = PERSON.has(e.spr);
       const cv = spriteCanvas(e.spr, e.dir, e.frame, OW.palK);
-      const lift = PERSON.has(e.spr) ? 4 : 0;
-      ctx.drawImage(cv, Math.round(e.x - camX), Math.round(e.y - camY - lift - (e.frame ? 1 : 0) - (e.bob || 0)));
+      const lift = person ? 4 : 0;
+      const sx = Math.round(e.x - camX), sy = Math.round(e.y - camY - lift - (person && e.frame ? 1 : 0));
+      // 足もとの影
+      if (person || e.spr === 'shiro') { ctx.fillStyle = col[1]; ctx.fillRect(sx + 4, Math.round(e.y - camY) + 11, 8, 1); ctx.fillRect(sx + 5, Math.round(e.y - camY) + 12, 6, 1); }
+      ctx.drawImage(cv, sx, sy);
     }
-    // まだ調べていない物のきらめき
-    const blink = ((ts / 260) | 0) % 3;
+    // 調べられる物の目印：まだ調べていない物の上に、はずむ「！」の吹き出し
+    const bounce = [0, -1, -2, -1][((ts / 140) | 0) % 4];
     for (const o of OW.objs) {
       if (o.seen || !o.live) continue;
-      const ox = o.x * TS - camX, oy = o.y * TS - camY - (o.person ? 9 : 2);
+      const wallItem = !MP.walkable(MP.at(m, o.x, o.y)) && !o.sprite;
+      const ox = o.x * TS - camX + 4, oy = o.y * TS - camY - (o.person ? 16 : wallItem ? 12 : 10) + bounce;
       if (ox < -16 || oy < -16 || ox > CW || oy > CH) continue;
-      if (blink === 2) continue;
-      ctx.fillStyle = col[0]; ctx.fillRect(ox + 10, oy - 1, 5, 5); ctx.fillStyle = col[3]; ctx.fillRect(ox + 12, oy, 1, 3); ctx.fillRect(ox + 11, oy + 1, 3, 1);
-      if (blink === 1) { ctx.fillStyle = col[2]; ctx.fillRect(ox + 12, oy + 1, 1, 1); }
+      ctx.fillStyle = col[0]; ctx.fillRect(ox, oy, 8, 10); ctx.fillRect(ox + 2, oy + 10, 3, 1); ctx.fillRect(ox + 2, oy + 11, 1, 1);
+      ctx.fillStyle = col[3]; ctx.fillRect(ox + 1, oy + 1, 6, 8); ctx.fillRect(ox + 2, oy + 9, 2, 1);
+      ctx.fillStyle = col[0]; ctx.fillRect(ox + 3, oy + 2, 2, 4); ctx.fillRect(ox + 3, oy + 7, 2, 1);
+    }
+    // 正面の調べられる物：四隅のかっこ
+    const tg = OW.done && !OW.busy && !OW.p.mv ? OW.nearT : null;
+    if (tg && ((ts / 400) | 0) % 3 !== 2) {
+      const bx = tg[0] * TS - camX, by = tg[1] * TS - camY - (tg[2] ? 4 : 0);
+      ctx.fillStyle = col[0];
+      [[-1, -1, 5, 2], [-1, -1, 2, 5], [12, -1, 5, 2], [15, -1, 2, 5], [-1, 15, 5, 2], [-1, 12, 2, 5], [12, 15, 5, 2], [15, 12, 2, 5]].forEach(([x, y, w, h]) => ctx.fillRect(bx + x, by + y, w, h));
+      ctx.fillStyle = col[3];
+      ctx.fillRect(bx, by, 3, 1); ctx.fillRect(bx, by, 1, 3); ctx.fillRect(bx + 13, by, 3, 1); ctx.fillRect(bx + 15, by, 1, 3); ctx.fillRect(bx, by + 15, 3, 1); ctx.fillRect(bx, by + 13, 1, 3); ctx.fillRect(bx + 13, by + 15, 3, 1); ctx.fillRect(bx + 15, by + 13, 1, 3);
+    }
+    // 世界ごとの空気：B は周りが少し暗い（古い写真）、C は埃が舞う
+    {
+      if (OW.world === 'B') { shade(ctx, col, 1, 0, 0, CW, 6); shade(ctx, col, 1, 0, CH - 6, CW, 6); shade(ctx, col, 1, 0, 6, 6, CH - 12); shade(ctx, col, 1, CW - 6, 6, 6, CH - 12); shade(ctx, col, 2, 0, 0, CW, 2); shade(ctx, col, 2, 0, CH - 2, CW, 2); }
+      else if (OW.world === 'C') {
+        const tt = KY.reduced() ? 0 : ts / 1000;
+        ctx.fillStyle = col[2];
+        for (let i = 0; i < 18; i++) { const v = hash(i, 7, 77); const x = ((v % 997) + tt * (6 + v % 5)) % CW, y = (((v >> 10) % 991) + tt * (9 + (v >> 4) % 7)) % CH; ctx.fillRect(x | 0, y | 0, 1, 1); }
+      }
     }
     // 安定度が低いと、ときどき横にずれる
     const st = S().stability;
     if (st < 30 && !KY.reduced() && Math.random() < (30 - st) / 300) { const y = (Math.random() * CH) | 0, hh = 3 + (Math.random() * 10 | 0); try { ctx.drawImage(OWD.cv, 0, y, CW, hh, ((Math.random() - 0.5) * 12) | 0, y, CW, hh); } catch (e) {} }
     // 大写しの間は、地図を網点で暗くする
-    if (OW.cut) { ctx.fillStyle = col[0]; for (let y = 0; y < CH; y += 2) for (let x = (y >> 1) % 2; x < CW; x += 2) ctx.fillRect(x, y, 1, 1); }
+    if (OW.cut) shade(ctx, col, 2, 0, 0, CW, CH);
+    // 扉・出入口のフェード（網点 4 段）
+    if (OW.fade) {
+      const f = OW.fade, t = clamp((now() - f.t0) / f.dur, 0, 1);
+      const lv = f.dir === 'out' ? Math.ceil(t * 4) : 4 - Math.floor(t * 4);
+      shade(ctx, col, lv, 0, 0, CW, CH);
+      if (t >= 1 && f.dir === 'in') OW.fade = null;
+      if (t >= 1 && f.dir === 'out' && now() - f.t0 > f.dur + 1500) OW.fade = { dir: 'in', t0: now(), dur: 200 };
+    }
     // 戦闘の入り・明け
     if (OW.trans) {
       const tr = OW.trans, t = clamp((now() - tr.t0) / tr.dur, 0, 1);
@@ -1062,10 +986,17 @@
       } else spiral(ctx, col, 1 - t);
       if (t >= 1) { OW.trans = null; tr.res(); }
     }
+    placeTag();
   }
   // 外側からうず巻きに黒く埋める（8×8 のブロック）
-  const SPIRAL = (() => { const W = CW / 8, H = CH / 8, out = []; let x0 = 0, y0 = 0, x1 = W - 1, y1 = H - 1; while (x0 <= x1 && y0 <= y1) { for (let x = x0; x <= x1; x++) out.push([x, y0]); for (let y = y0 + 1; y <= y1; y++) out.push([x1, y]); if (y0 < y1) for (let x = x1 - 1; x >= x0; x--) out.push([x, y1]); if (x0 < x1) for (let y = y1 - 1; y > y0; y--) out.push([x0, y]); x0++; y0++; x1--; y1--; } return out; })();
-  function spiral(ctx, col, t) { const n = Math.floor(SPIRAL.length * clamp(t, 0, 1)); ctx.fillStyle = col[0]; for (let i = 0; i < n; i++) ctx.fillRect(SPIRAL[i][0] * 8, SPIRAL[i][1] * 8, 8, 8); }
+  let SPIRAL = null, SPK = '';
+  function spiralList() {
+    const k = CW + 'x' + CH; if (SPIRAL && SPK === k) return SPIRAL;
+    const W = Math.ceil(CW / 8), H = Math.ceil(CH / 8), out = []; let x0 = 0, y0 = 0, x1 = W - 1, y1 = H - 1;
+    while (x0 <= x1 && y0 <= y1) { for (let x = x0; x <= x1; x++) out.push([x, y0]); for (let y = y0 + 1; y <= y1; y++) out.push([x1, y]); if (y0 < y1) for (let x = x1 - 1; x >= x0; x--) out.push([x, y1]); if (x0 < x1) for (let y = y1 - 1; y > y0; y--) out.push([x0, y]); x0++; y0++; x1--; y1--; }
+    SPK = k; return (SPIRAL = out);
+  }
+  function spiral(ctx, col, t) { const L = spiralList(); const n = Math.floor(L.length * clamp(t, 0, 1)); ctx.fillStyle = col[0]; for (let i = 0; i < n; i++) ctx.fillRect(L[i][0] * 8, L[i][1] * 8, 8, 8); }
 
   /* ═════════════════════════ 自動プレイ・テスト用（画面タップと同じ動き） ═════════════════════════ */
   API.state = () => ({ active: OW.active, mode: OW.mode, map: OW.mapId, world: OW.world, x: OW.p.x, y: OW.p.y, dir: OW.p.dir, moving: !!OW.p.mv, busy: OW.busy, ready: !!OW.done && !OW.busy && !OW.p.mv && !(OW.path && OW.path.length) && !OW.pathThen && !OW.pendingA && !OW.trans && !KY._OV.length, cut: OW.cut, steps: OW.steps, pal: OW.palK });
@@ -1092,4 +1023,19 @@
   API.startBattle = (id, ctx) => startBattle(id, Object.assign({ area: OW.mapId, world: OW.world, danger: dangerHere() }, ctx || {}));
   API.noiseTiles = () => { const out = []; if (!OW.m) return out; OW.m.g.forEach((r, y) => r.forEach((c, x) => { if (c === 'n') out.push([x, y]); })); return out; };
   API.noiseOn = () => !!(OW.m && noiseOn());
+  // 見た目の確認用（スクリーンショット）：探索の流れとは別に、その場所・世界の地図をそのまま出す
+  API.preview = (id, world, at) => {
+    world = String(world || 'A').toUpperCase(); const s = S(); s.world = world;
+    OW.mode = id === 'town' ? 'field' : 'area'; OW.objs = [];
+    try { KY.scene(sceneOf(id, world), world); } catch (e) {}
+    setMap(id, world, null);
+    const m = OW.m;
+    let pos = at || (id === 'town' ? MP.entryFor(m, { x: MP.ENTRANCES['@center'][0], y: MP.ENTRANCES['@center'][1] }) : MP.arrival(m, 'town'));
+    OW.p.x = pos[0]; OW.p.y = pos[1]; OW.p.dir = pos[2] || 'u';
+    if (id !== 'town') buildObjects();
+    activate(); fadeIn();
+    if (OW.done) { const keep = OW.mode; renderPanel(); OW.mode = keep; }
+    showName((id === 'town' ? '月代町' : KY.areaName(id)) + (world !== 'A' ? '（' + KY.WORLD_LABEL[world] + '）' : ''));
+    return true;
+  };
 })(typeof window !== 'undefined' ? window : globalThis);

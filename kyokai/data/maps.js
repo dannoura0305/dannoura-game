@@ -10,8 +10,9 @@
               F冷水器/ストーブ/ロッカー d机 m机の端末・操作卓 k棚 K機械ラック g観測装置 p鉢植え b長椅子 s立て札
               v自動販売機（B は丸ポスト） L街灯/カーブミラー P電柱 E鉄塔/火の見やぐら/塔 T木 t茂み ~水 f柵
               x瓦礫 X岩 h屋根 W外壁 H閉じた玄関 S店先 Y鳥居の柱 Q社殿 q灯籠 G像（地蔵・狛犬・狐・銅像） C木箱
-              R線路 [列車 V虚空 J重い扉 i柱 u停留所 l街頭の時計 y破片（混ざる世界）
-   ■ 地図 = { ground, rows:[文字列], warps:[[x,y,行き先]], spawn:[x,y,向き], anchors:{名前:[x,y]}, patch:{A|B|C:[[x,y,文字]]},
+              R線路 [列車 V虚空 J重い扉 i柱 u停留所 l街頭の時計 y破片（混ざる世界） r椅子 A書類棚（キャビネット）
+     屋内（indoor）は壁を 2 マスの高さで描く（いちばん上の行＝壁の上段、2 行目＝壁の物を掛ける下段）。家具の絵は kyokai/tiles.js。
+   ■ 地図 = { ground, indoor, style（屋内の作り：office/server/lab/basement/bureau/oldlab）, art:[[x,y,'calendar']]（そのマスだけ別の絵）, rows:[文字列], warps:[[x,y,行き先]], spawn:[x,y,向き], anchors:{名前:[x,y]}, patch:{A|B|C:[[x,y,文字]]},
               proj:[x0,y0,x1,y1]（場面の 0..1 をマスに写す範囲・表に無い調べ物の置き場所）, noExit }
      行き先は 'town'（町）か場所 id（その場所の地図の、こちらへ戻る出入口の前に出る）。
    ■ SPOTS[場所][調べ物id] = 'アンカー名' | 'アンカー名@人物' | 'アンカー名@人物:向き(u/d/l/r)' | [x,y,'人物?']
@@ -25,7 +26,7 @@
   /* ───────── マスの性質 ───────── */
   const WALK = new Set(['.', ',', ':', '-', '=', 'n', 'D', 'o', 'B', 'U', 'z', 'Z', 'O']);
   const WALLISH = new Set(['#', 'w', 'j', 'c', 'I', 'a', 'M', 'e', 'W', 'H', 'S', 'h']);   // 壁に付く物（壁の地を先に描く）
-  const ALL = '.,:-=nDoBUzZO#wjcIaMeFdmkKgpbsvLPETt~fxXhWHSYQqGCR[VJiuly';
+  const ALL = '.,:-=nDoBUzZO#wjcIaMeFdmkKgpbsvLPETt~fxXhWHSYQqGCR[VJiulyrA';
   M.WALK = WALK; M.WALLISH = WALLISH; M.CHARS = ALL;
   M.walkable = ch => WALK.has(ch);
   M.DIRS = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
@@ -34,58 +35,63 @@
   const MAPS = M.MAPS = {};
 
   MAPS.center_office = {
-    ground: '.', indoor: true,
+    ground: '.', indoor: true, style: 'office',
     rows: [
-      '##############',
-      '#wwDjjcIIaa#D#',
-      '#F...........#',
-      '#..mm........#',
-      '#s.dd....dd..#',
-      '#............#',
-      '#...n.....n.o#',
-      '#.dddddddd...#',
-      '#............#',
-      '######DD######',
+      '############',
+      '#awDjjjcIaD#',
+      '#F.........#',
+      '#A.mm..dmd.#',
+      '#..rr..r...#',
+      '#.........k#',
+      '#s........k#',
+      '#..ddm.....#',
+      '#p...r.....#',
+      '#.........o#',
+      '#A.........#',
+      '#p........p#',
+      '#####DD#####',
     ],
-    warps: [[6, 9, 'town'], [7, 9, 'town'], [3, 1, 'center_server'], [12, 1, 'center_lab'], [12, 6, 'center_basement']],
-    spawn: [6, 8, 'u'],
-    anchors: { clock: [6, 1], window: [2, 1], board: [5, 1], photos: [7, 1], plate: [9, 1], calendar: [10, 1], cooler: [1, 2],
-      term: [3, 3], mapstand: [1, 4], yuu: [2, 3], mido: [9, 3], nagi: [6, 5], saeki: [11, 4], entrance: [8, 8], paper: [2, 5], selfdesk: [8, 7] },
-    patch: { C: [[10, 2, 'x'], [1, 8, 'x'], [4, 8, 'x'], [11, 5, 'x']] },
-    proj: [1, 2, 12, 8],
+    warps: [[5, 12, 'town'], [6, 12, 'town'], [3, 1, 'center_server'], [10, 1, 'center_lab'], [10, 9, 'center_basement']],
+    spawn: [5, 11, 'u'],
+    art: [[1, 1, 'calendar']],
+    anchors: { clock: [7, 1], window: [2, 1], board: [5, 1], photos: [8, 1], plate: [9, 1], calendar: [1, 1], cooler: [1, 2],
+      term: [8, 3], mapstand: [1, 6], yuu: [2, 4], mido: [8, 4], nagi: [6, 6], saeki: [9, 7], entrance: [3, 11], paper: [3, 9], selfdesk: [5, 7] },
+    patch: { C: [[9, 2, 'x'], [2, 9, 'x'], [8, 10, 'x'], [6, 4, 'x']] },
+    proj: [1, 2, 10, 11],
   };
 
   MAPS.center_server = {
-    ground: '.', indoor: true,
+    ground: '.', indoor: true, style: 'server',
     rows: [
       '##########',
-      '#aa#ee####',
-      '#K.K..mm.#',
-      '#K.K.....#',
-      '#K.K...KK#',
-      '#...n....#',
+      '#a#ee#M###',
+      '#K.K.K.mm#',
+      '#K.K.K...#',
+      '#K.K.K.KK#',
+      '#........#',
       '#K.K..KK.#',
+      '#K.K.....#',
       '#........#',
       '####DD####',
     ],
-    warps: [[4, 8, 'center_office'], [5, 8, 'center_office']],
-    spawn: [4, 7, 'u'],
-    anchors: { rack: [1, 3], notice: [1, 1], logterm: [6, 2], sync: [7, 4], archive: [6, 6], panel: [4, 1] },
+    warps: [[4, 9, 'center_office'], [5, 9, 'center_office']],
+    spawn: [4, 8, 'u'],
+    anchors: { rack: [1, 3], notice: [1, 1], logterm: [7, 2], sync: [7, 4], archive: [6, 6], panel: [3, 1] },
     patch: { C: [[3, 2, 'x'], [3, 3, 'x'], [8, 7, 'x']] },
-    proj: [1, 2, 8, 7],
+    proj: [1, 2, 8, 8],
   };
 
   MAPS.center_lab = {
-    ground: '.', indoor: true,
+    ground: '.', indoor: true, style: 'lab',
     rows: [
       '############',
       '#ee#MMMM#ee#',
       '#....mm....#',
       '#k.......gg#',
-      '#k..n......#',
-      '#....gg..kk#',
+      '#k.........#',
+      '#....gg...A#',
       '#..........#',
-      '#m.......n.#',
+      '#m..dd..dd.#',
       '#..........#',
       '#####DD#####',
     ],
@@ -97,16 +103,16 @@
   };
 
   MAPS.center_basement = {
-    ground: '.', indoor: true,
+    ground: '.', indoor: true, style: 'basement',
     rows: [
       '##############',
       '#e##e###Ja####',
-      '#..#.........#',
+      '#..#........C#',
       '#..#.........#',
       '#..#....n....#',
       '#.......n....#',
       '#..#.........#',
-      '#..#.........#',
+      '#C.#........C#',
       '###########o##',
     ],
     warps: [[11, 8, 'center_office']],
@@ -325,22 +331,22 @@
   };
 
   MAPS.old_lab = {
-    ground: '.', indoor: true,
+    ground: '.', indoor: true, style: 'oldlab',
     rows: [
       '##############',
-      '#k#jjjj#kk#ee#',
-      '#............#',
+      '#w#jjjj#ww#e##',
+      '#k.......kk..#',
       '#.mm.....gg..#',
-      '#........gg..#',
+      '#.rr.....gg..#',
       '#............#',
       '#..n....dd...#',
-      '#..........n.#',
+      '#.......r..n.#',
       '#............#',
       '######DD######',
     ],
     warps: [[6, 9, 'town'], [7, 9, 'town']],
     spawn: [6, 8, 'u'],
-    anchors: { board: [4, 1], corner: [6, 1], shelf: [9, 1], pc: [2, 3], desk: [8, 6], tank: [9, 3], panel: [11, 1] },
+    anchors: { board: [4, 1], corner: [6, 1], shelf: [9, 2], pc: [2, 3], desk: [8, 6], tank: [9, 3], panel: [11, 1] },
     patch: { C: [[5, 5, 'x'], [12, 2, 'x'], [1, 8, 'x']] },
     proj: [1, 1, 12, 8],
   };
@@ -368,17 +374,17 @@
   };
 
   MAPS.bureau = {
-    ground: '.', indoor: true,
+    ground: '.', indoor: true, style: 'bureau',
     rows: [
       '##############',
-      '#a###MMM###kk#',
-      '#...........k#',
+      '#a#w#MMM#jj#e#',
+      '#.A........FF#',
       '#..mmm.......#',
       '#..ddd....n..#',
-      '#............#',
-      '#..n.....FF..#',
-      '#............#',
-      '#............#',
+      '#..rrr.......#',
+      '#..n.....dd..#',
+      '#.........r..#',
+      '#p..........p#',
       '######DD######',
     ],
     warps: [[6, 9, 'town'], [7, 9, 'town']],
