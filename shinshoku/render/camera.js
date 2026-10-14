@@ -19,10 +19,10 @@ export class ThirdPersonCamera {
       this.pitch += (0.22 - this.pitch) * Math.min(1, dt * 3);
     }
     this.aimT += ((opt.aim ? 1 : 0) - this.aimT) * Math.min(1, dt * 14);
-    const a = this.aimT;
-    const dist = (opt.indoor ? 3.0 : this.dist) * (1 - a) + 1.55 * a;
-    const shoulder = 0.35 * (1 - a) + 0.62 * a;
-    const height = 1.5 * (1 - a) + 1.55 * a;
+    const a = this.aimT, sc = opt.scale || 1;                       // sc：巨大猫又の縮尺（遠め・高め）
+    const dist = ((opt.indoor ? 3.0 : this.dist) * (1 - a) + 1.55 * a) * sc;
+    const shoulder = (0.35 * (1 - a) + 0.62 * a) * (sc > 1 ? 0.4 : 1);
+    const height = (1.5 * (1 - a) + 1.55 * a) * (sc > 1 ? sc * 0.95 : 1);
     this.pivot.set(target.x, target.y + height, target.z);
     // 右肩へのずらし（カメラの右）
     const rx = Math.cos(this.yaw), rz = -Math.sin(this.yaw);
@@ -32,7 +32,7 @@ export class ThirdPersonCamera {
     const hit = rayBoxes(this.pivot, new THREE.Vector3(rx, 0, rz), shoulder, boxes);
     if (hit < shoulder) piv.set(this.pivot.x + rx * Math.max(0, hit - 0.25), this.pivot.y, this.pivot.z + rz * Math.max(0, hit - 0.25));
     const t = rayBoxes(piv, dir, dist, boxes);
-    const want = Math.max(0.6, Math.min(dist, t - 0.25));
+    const want = Math.max(0.6 * sc, Math.min(dist, t - 0.25));
     this.curDist = want < this.curDist ? want : this.curDist + (want - this.curDist) * Math.min(1, dt * 4);
     const pos = piv.clone().addScaledVector(dir, this.curDist);
     if (this.shakeT > 0) {

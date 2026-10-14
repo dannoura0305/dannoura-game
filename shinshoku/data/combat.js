@@ -65,6 +65,29 @@ export const COMBAT = {
     transformHold: 30,                                                                                                                 // 化けを解く：長押し 30f
     comboWindow: 150,                                                                                                                  // 連撃の数が続く間（f）
   },
+  // 火縄銃（WEAPON_SYSTEM_SPEC §1・COMBAT §3.5・§4）【仮】：登録証つきの古い持ち物。紫の姿では「撃てない」＝銃床の打撃だけ（重い・ガード崩し）。
+  // 白い姿では「妖弾」：妖力で撃つ。溜め 30f・妖力 20・貫通・威力 60。1 発ごとに込め直し（遅い：96f）。
+  matchlock: {
+    light: [{ startup: 20, active: 6, recovery: 30, dmg: 28, reach: 2.3, arc: 120, lunge: 0.5, stop: 'heavy', poise: 55, guardBreak: true, stock: true }],
+    heavy: { startup: 26, active: 6, recovery: 34, dmg: 40, reach: 2.4, arc: 100, lunge: 0.8, stop: 'heavy', poise: 85, guardBreak: true, stock: true },
+    yodan: { cost: 20, charge: 30, reload: 96, dmg: 60, range: 42, pierce: 4, width: 0.5, poise: 90, recoil: 14 },
+  },
+  // 巨大猫又（COMBAT_SYSTEM_SPEC §5・concept_04 の操作：妖爪連撃・紫の咆哮・跳躍・妖気放出）【仮】。距離は m（巨体の縮尺のまま）。
+  // 第4章 reveal の「先触れ」戦だけで使う（暴走→我に返る→守るは第6章A）。市民を攻撃する操作は無い（区画に市民を置かない）。
+  giant: {
+    hp: 1000, scale: 8, r: 4.2, speed: { walk: 7, run: 12 },
+    claw: [
+      { startup: 10, active: 5, recovery: 14, dmg: 40, reach: 14, arc: 150, lunge: 3, poise: 30 },
+      { startup: 10, active: 5, recovery: 14, dmg: 40, reach: 14, arc: 150, lunge: 3, poise: 30 },
+      { startup: 14, active: 6, recovery: 24, dmg: 72, reach: 16, arc: 200, lunge: 5, poise: 60 },
+    ],
+    roar: { startup: 8, active: 24, recovery: 26, cost: 20, range: 48, stun: 2.4, dmg: 15 },
+    leap: { total: 42, iStart: 3, iEnd: 30, just: 10, dist: 22, land: { dmg: 35, r: 10 } },
+    beam: { startup: 18, tick: 6, dmg: 10, max: 150, drain: 0.35, range: 70, width: 4, recovery: 18, min: 15 },
+    gauge: { max: 100, start: 100, hit: 3, regen: 0.5, weakMul: 0.7 },
+    hurt: { stun: 24, invuln: 40 },
+    buffer: 10,
+  },
   touchBonus: 2,                                 // タッチは窓を +2f（指の遅れ）
   assist: { windowBonus: 4, slowBonus: 18 },     // 「一閃の手助け」
 };

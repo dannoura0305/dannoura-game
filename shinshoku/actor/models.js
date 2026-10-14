@@ -249,6 +249,8 @@ export function buildWeaponBones(sb) {
   bone('wHolsterGun', 'wHolster', [0, 0, 0], [0, 0, 0]);
   bone('wPipe', 'rightHand', [0, -0.06, 0.02], [2.0, 0, 0]);
   bone('wPipeBack', 'chest', [-0.13, -0.02, -0.17], [0, 0, 0.35]);
+  bone('wMatch', 'rightHand', [0, -0.06, 0.02], [2.0, 0, 0]);                  // 火縄銃（第4章から・登録証つきの古い持ち物）
+  bone('wMatchBack', 'chest', [0.12, 0.0, -0.19], [0, 0, -0.42]);
   const steel = 0xdde2ee, dark = 0x1c1822, tsuba = 0xb08a3a, saya = 0x2a1630, wrap = 0x5a2a6a;
   const K = boneXf(sb, 'wKatana'), w = sb.rigid('wKatana');
   sb.box([0, -0.02, 0], [0.03, 0.2, 0.034], { xf: K, weights: w, color: wrap, oth: 0.4 });
@@ -274,9 +276,21 @@ export function buildWeaponBones(sb) {
   for (const y of [0.15, 0.55, 0.8]) sb.cyl([0, y, 0], 0.0185, 0.0185, 0.03, { xf: PI, weights: pw, color: 0x8a4a2a, seg: 8, oth: 0 });
   const PB = boneXf(sb, 'wPipeBack');
   sb.cyl([0, 0, 0], 0.016, 0.016, 0.9, { xf: PB, weights: sb.rigid('wPipeBack'), color: 0x8a8580, seg: 8, oth: 0.45 });
+  // 火縄銃：木の銃床・黒い銃身・真鍮の帯・火ばさみと火縄（赤茶）。長さ 1.3m ほど
+  const matchParts = (X, w) => {
+    sb.box([0, -0.05, 0.0], [0.045, 0.34, 0.05], { xf: X, weights: w, color: 0x6a3a22, oth: 0.45 });
+    sb.box([0, 0.2, 0.004], [0.036, 0.3, 0.04], { xf: X, weights: w, color: 0x7a4428, oth: 0.45 });
+    sb.cyl([0, 0.72, 0.012], 0.012, 0.015, 0.92, { xf: X, weights: w, color: 0x26242a, seg: 8, oth: 0.45 });
+    for (const y of [0.34, 0.58, 0.86]) sb.cyl([0, y, 0.01], 0.019, 0.019, 0.02, { xf: X, weights: w, color: 0xb8902a, seg: 8, oth: 0 });
+    sb.box([0.024, 0.12, 0.02], [0.01, 0.07, 0.02], { xf: X, weights: w, color: 0x8a7a50, oth: 0.2 });
+    sb.tube([[0.03, 0.15, 0.03], [0.04, 0.05, 0.05], [0.03, -0.08, 0.03]].map(q => { const v = V(...q).applyMatrix4(X); return { c: [v.x, v.y, v.z], r: [0.004, 0.004] }; }), { sides: 4, weights: w, color: 0x8a3a1a, oth: 0 });
+  };
+  matchParts(boneXf(sb, 'wMatch'), sb.rigid('wMatch'));
+  matchParts(boneXf(sb, 'wMatchBack'), sb.rigid('wMatchBack'));
   const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0.02, 0.15); sb.B.wGun.add(muzzle);
+  const mMuzzle = new THREE.Object3D(); mMuzzle.position.set(0, 1.18, 0.012); sb.B.wMatch.add(mMuzzle);
   const B = sb.B;
-  return { katana: B.wKatana, sayaHilt: B.wSayaHilt, saya: B.wSaya, gun: B.wGun, holster: B.wHolster, holsterGun: B.wHolsterGun, pipe: B.wPipe, pipeBack: B.wPipeBack, muzzle, bones: true };
+  return { katana: B.wKatana, sayaHilt: B.wSayaHilt, saya: B.wSaya, gun: B.wGun, holster: B.wHolster, holsterGun: B.wHolsterGun, pipe: B.wPipe, pipeBack: B.wPipeBack, match: B.wMatch, matchBack: B.wMatchBack, muzzle, mMuzzle, bones: true };
 }
 
 /** VRM／glTF のモデル用：手の骨に普通の網で武器を付ける（スキン網の武器の骨と同じ取り扱いができる形） */
@@ -287,10 +301,12 @@ export function attachRigidWeapons(J) {
   add(katana, new THREE.BoxGeometry(0.03, 0.2, 0.034), 0x5a2a6a, [0, -0.02, 0]); add(katana, new THREE.BoxGeometry(0.011, 0.74, 0.03), 0xdde2ee, [0, 0.46, 0]);
   const gun = mk(J.rightHand, [0, -0.07, 0.03], [0, 0, 0]); add(gun, new THREE.BoxGeometry(0.03, 0.045, 0.17), 0x1c1822, [0, 0.02, 0.06]);
   const pipe = mk(J.rightHand, [0, -0.06, 0.02], [2.0, 0, 0]); add(pipe, new THREE.CylinderGeometry(0.017, 0.017, 0.92, 8), 0x8a8580, [0, 0.38, 0]);
+  const match = mk(J.rightHand, [0, -0.06, 0.02], [2.0, 0, 0]); add(match, new THREE.BoxGeometry(0.04, 0.6, 0.045), 0x6a3a22, [0, 0.1, 0]); add(match, new THREE.CylinderGeometry(0.013, 0.015, 0.92, 8), 0x26242a, [0, 0.72, 0.012]);
   const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0.02, 0.15); gun.add(muzzle);
+  const mMuzzle = new THREE.Object3D(); mMuzzle.position.set(0, 1.18, 0.012); match.add(mMuzzle);
   const none = new THREE.Group(); J.hips.add(none);
-  addOutlines(katana, 0.006); addOutlines(gun, 0.006); addOutlines(pipe, 0.006);
-  return { katana, gun, pipe, muzzle, sayaHilt: none, saya: none, holster: none, holsterGun: none, pipeBack: none, bones: false };
+  addOutlines(katana, 0.006); addOutlines(gun, 0.006); addOutlines(pipe, 0.006); addOutlines(match, 0.006);
+  return { katana, gun, pipe, match, muzzle, mMuzzle, sayaHilt: none, saya: none, holster: none, holsterGun: none, pipeBack: none, matchBack: none, bones: false };
 }
 
 // ───────────────────────── 相棒 ─────────────────────────
@@ -339,6 +355,15 @@ export function buildCompanion() {
   const bangs = [[-0.55, 0.42], [-0.25, 0.48], [0.05, 0.5], [0.35, 0.36], [0.62, 0.22]];
   for (const [x, len] of bangs) sb.strand([onHead(sb, R, [x * 0.5 - 0.15, 0.85, 0.5], 1.06), onHead(sb, R, [x * 0.85, 0.5, 0.9], 1.12), onHead(sb, R, [x * 0.95 + 0.06, 0.48 - len, 0.97], 1.1)], R * 0.24, { base: H, root: HD, tip: H, weights: hw, out: [x, 0.3, 1], segs: 5 });
   sb.box(onHead(sb, R, [0.72, 0.42, 0.55], 1.13), [0.012, 0.012, 0.05], { rot: [0.2, 0.9, 0.5], weights: hw, color: 0xf2c440, oth: 0.4 });
+  // フェーズ5の細部：髪の明るい房・パーカーのポケットとファスナーの引き手・腕時計・ジーンズの縫い目とポケット・靴ひも・鞄の金具
+  for (const [x, len] of [[-0.35, 0.3], [0.2, 0.36]]) sb.strand([onHead(sb, R, [x * 0.5, 0.88, 0.45], 1.08), onHead(sb, R, [x * 0.8, 0.55, 0.88], 1.13), onHead(sb, R, [x * 0.9, 0.5 - len, 0.97], 1.11)], R * 0.12, { base: HL, root: H, tip: HL, weights: hw, out: [x, 0.3, 1], segs: 4 });
+  const cw2 = sb.rigid('spine'), hy2 = sb.W('hips').y;
+  for (const sx of [1, -1]) { sb.box([sx * 0.07, hy2 + 0.035, 0.112], [0.075, 0.085, 0.006], { rot: [0.12, sx * 0.25, 0], weights: cw2, color: PK2, oth: 0.2 }); sb.box([sx * 0.07, hy2 + 0.078, 0.115], [0.075, 0.006, 0.004], { rot: [0.12, sx * 0.25, 0], weights: cw2, color: 0x4a5236, oth: 0 }); }
+  sb.box([0.03, 1.12, 0.1], [0.008, 0.026, 0.006], { weights: sb.rigid('chest'), color: 0xc8c8b0, oth: 0 });
+  { const w = sb.W('leftHand'); sb.tube([{ c: [w.x, w.y + 0.03, 0], r: [0.03, 0.028] }, { c: [w.x, w.y + 0.012, 0], r: [0.03, 0.028] }], { sides: 10, weights: sb.rigid('leftLowerArm'), color: 0x3a2a22, capStart: false, capEnd: false, oth: 0.3 }); sb.box([w.x + 0.026, w.y + 0.021, 0], [0.008, 0.024, 0.024], { weights: sb.rigid('leftLowerArm'), color: 0xd8d4c8, oth: 0.2 }); }
+  for (const [UL, sx] of [['leftUpperLeg', 1], ['rightUpperLeg', -1]]) { const h = sb.W(UL), k = sb.W(UL === 'leftUpperLeg' ? 'leftLowerLeg' : 'rightLowerLeg'); sb.box([h.x + sx * 0.068, (h.y + k.y) / 2, 0], [0.004, h.y - k.y - 0.02, 0.012], { weights: sb.rigid(UL), color: 0x2e4870, oth: 0 }); sb.box([h.x, h.y - 0.04, -0.072], [0.06, 0.06, 0.006], { rot: [0.1, 0, 0], weights: sb.rigid(UL), color: 0x34507e, oth: 0.15 }); }
+  for (const FT of ['leftFoot', 'rightFoot']) { const a = sb.W(FT); for (let i = 0; i < 3; i++) sb.box([a.x, a.y + 0.03 - i * 0.004, a.z + 0.06 + i * 0.022], [0.04, 0.004, 0.006], { weights: sb.rigid(FT), color: 0xd8d4cc, oth: 0 }); }
+  sb.box([0.158, 0.855, 0.11], [0.03, 0.018, 0.012], { rot: [0, 0.2, 0], weights: sb.rigid('hips'), color: 0xc8a050, oth: 0.2 });
   const tex = faceAtlasExpr((g, E) => {
     drawEye(g, 0, 0, { iris: '#7a5232', dark: '#24140a', light: '#f5dcbc', lash: '#20120c', lashW: 10, rw: 40, rh: 48, lid: E.lid, happy: E.happy });
     drawBrow(g, Object.assign({ color: '#3a2618', w: 6, arch: 4 }, E.brow, { tilt: -2 + (E.brow.tilt || 0) }));

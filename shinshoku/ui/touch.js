@@ -22,6 +22,7 @@ export function setupTouch(root, input, game) {
         if (a === 'gun') { T.held.add('aim'); game.touchAimAssist = true; }
         else if (a === 'attack') { T.pressQ.push('attack'); btnTimers.set(t.identifier, { a, t0: performance.now(), el: b, timer: setTimeout(() => T.held.add('heavy'), 260) }); continue; }
         else if (a === 'transform') { T.held.add('transform'); }
+        else if (a === 'swap') { const rec = { a, el: b, long: false }; rec.timer = setTimeout(() => { rec.long = true; T.pressQ.push('cycleMelee'); }, 380); btnTimers.set(t.identifier, rec); continue; }
         else { T.pressQ.push(a); if (a === 'interact' || a === 'pause') T.held.add(a); }
         btnTimers.set(t.identifier, { a, el: b });
         continue;
@@ -49,7 +50,8 @@ export function setupTouch(root, input, game) {
       const b = btnTimers.get(t.identifier);
       if (b) {
         b.el.classList.remove('on');
-        if (b.a === 'gun') { T.held.delete('aim'); T.pressQ.push('attack'); T.fireRelease = 10; }
+        if (b.a === 'gun') { T.held.delete('aim'); if (!game.giantMode) { T.pressQ.push('attack'); T.fireRelease = 10; } }
+        if (b.a === 'swap') { clearTimeout(b.timer); if (!b.long) T.pressQ.push('swap'); }
         if (b.a === 'attack') { clearTimeout(b.timer); T.held.delete('heavy'); }
         if (b.a === 'interact' || b.a === 'pause') T.held.delete(b.a);
         if (b.a === 'transform') T.held.delete('transform');

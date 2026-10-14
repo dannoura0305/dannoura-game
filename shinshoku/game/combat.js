@@ -22,6 +22,7 @@ export const combatMethods = {
     const mag = Math.min(1, Math.hypot(mx, mz)); if (mag > 1e-3) { const L = Math.hypot(mx, mz); P.moveDir = { x: mx / L, z: mz / L }; }
     this.curMoveMag = mag;
     if (this.touchAimAssist || this.input.device !== 'kbm') this.autoAimLock(I);
+    if (I.cycleMelee) { const M = ['katana', 'pipe', 'matchlock'].filter(w => F.owned.includes(w)); if (M.length) I.wantWeapon = M[(M.indexOf(F.weapon) + 1) % M.length]; }
     const evs = F.tick({ attack: I.attack, heavy: I.heavy, dodge: I.dodge, parry: I.parry, swap: I.swap, aim: I.aim, reload: I.reload, wantWeapon: I.wantWeapon });
     this.handleFighter(evs);
     if (I.heal) this.useHeal();
@@ -122,15 +123,19 @@ export const combatMethods = {
       this.metrics.events.push({ t: ev.t, frame: this.frame, f: ev.frame, kind: ev.kind, step: ev.step }); if (this.metrics.events.length > 400) this.metrics.events.shift();
       switch (ev.t) {
         case 'foxfire': case 'illusion': case 'noYoki': case 'revert': this.handleWhiteEvent(ev); break;
+        case 'yodan': this.fireYodan(ev); break;
+        case 'mchargeStart': this.sfx.play('yodan_charge'); this.pushAct('shot'); break;
+        case 'mreloadStart': this.sfx.play('mreload'); break;
+        case 'mreloadDone': this.metrics.mReloads = (this.metrics.mReloads || 0) + 1; break;
         case 'parryStart': this.pushAct('parry'); break;
         case 'attackStart': {
-          this.pushAct(F.weapon === 'claw' ? (ev.blade ? 'blade' : 'claw') : ev.iai ? 'iai' : ev.heavy ? 'heavy' : F.weapon === 'pipe' ? 'pipe' : 'slash');
+          this.pushAct(F.weapon === 'claw' ? (ev.blade ? 'blade' : 'claw') : ev.iai ? 'iai' : ev.heavy ? 'heavy' : F.weapon === 'pipe' || F.weapon === 'matchlock' ? 'pipe' : 'slash');
           const t = (this.lock && this.lock.hittable() && Math.hypot(this.lock.pos.x - P.pos.x, this.lock.pos.z - P.pos.z) < 5) ? this.lock : this.nearestEnemy(3.6, true, 220);
           this.softTarget = t;
           if (t) P.yaw = Math.atan2(t.pos.x - P.pos.x, t.pos.z - P.pos.z);
           else if (this.curMoveMag > 0.3) P.yaw = Math.atan2(P.moveDir.x, P.moveDir.z);
           this.swingHits = new Set(); this.trail.cut(); this.swingT = 0;
-          this.sfx.play(F.weapon === 'claw' ? (ev.blade ? 'blade' : 'claw') : F.weapon === 'pipe' ? 'swing_pipe' : ev.heavy || ev.iai || ev.step === 2 ? 'swing_heavy' : 'swing');
+          this.sfx.play(F.weapon === 'claw' ? (ev.blade ? 'blade' : 'claw') : F.weapon === 'pipe' || F.weapon === 'matchlock' ? 'swing_pipe' : ev.heavy || ev.iai || ev.step === 2 ? 'swing_heavy' : 'swing');
           if (F.weapon === 'claw') { const hp = P.model.J[ev.step % 2 ? 'leftHand' : 'rightHand']; if (hp) { const v = new THREE.Vector3(); hp.getWorldPosition(v); for (let i = 0; i < 4; i++) this.fx.puff(v.x, v.y, v.z, (Math.random() - 0.5) * 0.5, 0.3, (Math.random() - 0.5) * 0.5, 0xa060ff, 0.4, 0.45); } }
           break;
         }
@@ -174,10 +179,11 @@ export const combatMethods = {
       }
     }
   },
-  onPlayerDead() { if (this.deadPending) return; if (this.boss && this.boss.kind === 'utsushimi' && this.boss.brain.alive) { this.ch3Losses = (this.ch3Losses || 0) + 1; this.metrics.ch3Losses = this.ch3Losses; } this.deadPending = true; setTimeout(() => { this.mode = 'dead'; this.input.exitLock(); this.ui.showDead(true); this.deadPending = false; }, this.isTest() ? 10 : 1400); },
+  onPlayerDead() { if (this.deadPending) return; if (this.onDead4 && this.onDead4()) return; if (this.boss && this.boss.kind === 'utsushimi' && this.boss.brain.alive) { this.ch3Losses = (this.ch3Losses || 0) + 1; this.metrics.ch3Losses = this.ch3Losses; } this.deadPending = true; setTimeout(() => { this.mode = 'dead'; this.input.exitLock(); this.ui.showDead(true); this.deadPending = false; }, this.isTest() ? 10 : 1400); },
   meleeHits(atk, ev) {
     const P = this.player, F = P.fighter;
-    const pipe = F.weapon === 'pipe';
+    const pipe = F.weapon === 'pipe' || F.weapon === 'matchlock';
+    if (F.weapon === 'matchlock') this.metrics.stockSwings = (this.metrics.stockSwings || 0) + (ev.first ? 1 : 0);
     for (const e of this.enemies) {
       if (!e.hittable() || this.swingHits.has(e)) continue;
       const dx = e.pos.x - P.pos.x, dz = e.pos.z - P.pos.z, d = Math.hypot(dx, dz);
@@ -194,7 +200,8 @@ export const combatMethods = {
       this.hitstop = heavy ? COMBAT.hitstop.heavy : COMBAT.hitstop.light;
       this.cam.shake(heavy ? 0.12 : 0.06, 0.15);
       this.fx.sparks(new THREE.Vector3(e.pos.x - dx / d * e.r, 1.2, e.pos.z - dz / d * e.r), heavy ? 16 : 9, pipe ? 0xffd8a0 : 0xfff0c0);
-      this.sfx.play(F.weapon === 'claw' ? 'claw_hit' : pipe ? 'hit_pipe' : heavy ? 'hit_heavy' : 'hit');
+      this.sfx.play(F.weapon === 'claw' ? 'claw_hit' : F.weapon === 'matchlock' ? 'stock' : pipe ? 'hit_pipe' : heavy ? 'hit_heavy' : 'hit');
+      if (F.weapon === 'matchlock') this.metrics.stockHits = (this.metrics.stockHits || 0) + 1;
       if (F.weapon === 'claw') {                                         // 爪痕：3 本の紫の筋（concept_03 の斬撃の光を独自に簡単化）
         this.fx.sparks(new THREE.Vector3(e.pos.x - dx / d * e.r, 1.2, e.pos.z - dz / d * e.r), 10, 0xc890ff);
         const sx = -dz / d, sz = dx / d, dir = (atk.claw || 1) % 2 ? 1 : -1, h0 = e.h * 0.75;
@@ -205,6 +212,7 @@ export const combatMethods = {
   damageEnemy(e, dmg, kind, opt = {}) {
     const evs = [];
     if (e.held && this.companion.brain.mode === 'grabbed' && this.companion.brain.grab && this.companion.brain.grab.id === e.id) this.freeCompanion(e, true);
+    if (e.targetCompanion) e.targetCompanion = false;                    // 叩かれたら、だんのうらの方を向く（守り）
     // 序章の帰路：一撃で倒しきらない（弱ると帰っていく＝追い払う）
     if (e.brain.def.tutorial && !e.fleeing && e.brain.hp > e.brain.hpMax * 0.5 && e.brain.hp - dmg <= 0) dmg = e.brain.hp - 1;
     const done = e.brain.hurt(dmg, kind, evs, opt);
@@ -309,17 +317,19 @@ export const combatMethods = {
     if (e.fleeing) { this.flee(e, dt); return; }
     if (e.confusedT > 0) e.confusedT -= dt;
     const dec = this.senseTarget ? this.senseTarget(e) : null;
-    const tp = dec || P.pos;
+    const tp = dec || (this.giantMode ? this.giant.pos : P.pos);
     const dist = Math.hypot(b.pos.x - tp.x, b.pos.z - tp.z);
     const los = dist < 30 ? lineOfSight(b.pos, tp, this.boxes) : false;
     const Z = this.heitenZone;
-    const sense = { player: { x: tp.x, z: tp.z, noise: dec ? 'run' : P.noise, dead: P.fighter.dead }, los, dark: this.isDark(b.pos), gunshot: this.gunshot,
+    const sense = { player: { x: tp.x, z: tp.z, noise: dec ? 'run' : P.noise, dead: this.giantMode ? this.giant.fighter.dead : P.fighter.dead }, los, dark: this.isDark(b.pos), gunshot: this.gunshot,
+      steam: this.inSteam ? this.inSteam(b.pos) : false, protect: !!e.targetCompanion, chime: this.chimeNow > 0, shelter: this.area.giant ? { x: -36, z: 30 } : null,
       inShop: !!Z && P.pos.x > Z.minX && P.pos.x < Z.maxX && P.pos.z > Z.minZ && P.pos.z < Z.maxZ, light: this.flashlightOn,
       hist: this.actHist, nurse: !!this.flags.nurse_badge, lit: this.flashlightOn && this.inFlashCone(b.pos) };
     if (e.kind === 'mamori') sense.threats = this.enemies.filter(o => o.kind === 'mimic' && o.brain.alive && o.brain.revealed && o.root.visible).map(o => ({ id: o.id, x: o.pos.x, z: o.pos.z }));
     e.targetDecoy = !!dec;
     if (this.flashlightOn && b.def.senses) sense.dark = false;    // 懐中電灯：暗くても遠くから見える
-    const out = e.step(dt, sense, this.boxes, P);
+    const out = e.step(dt, sense, this.boxes, this.giantMode ? null : P);
+    if (e.kind === 'sakibure') { this.bossEvents4(e, out.events); return; }
     this.enemyEvents(e, out.events);
     // 突進の当たり（ボス）
     if (b.atk && b.atk.phase === 'active' && b.def.attacks[b.atk.name].dash && !b.atk.hitDone) {
@@ -332,6 +342,7 @@ export const combatMethods = {
   /** 敵の攻撃が出た：当たるか（扇・円・突進） */
   resolveEnemyHit(e, A, forced, at) {
     const P = this.player, F = P.fighter, b = e.brain;
+    if (e.targetCompanion && this.hitCompanion4) { const rc = this.hitCompanion4(e, A); if (rc) return rc; }
     if (e.targetDecoy && this.decoy) {                                    // 幻術の分身を攻めた：分身が消えて「幻・見切り」
       const dd = Math.hypot(this.decoy.x - b.pos.x, this.decoy.z - b.pos.z);
       if (dd <= (A.range || 2) + 1.0 || (A.aoe && at)) { this.decoyStruck(e); return 'decoy'; }
@@ -389,7 +400,8 @@ export const combatMethods = {
         case 'broken': this.sfx.play('broken', b.pos); this.ui.toast('崩し', 'parry', 0.8); this.metrics.broken = (this.metrics.broken || 0) + 1; break;
         case 'notice': this.sfx.play('notice', b.pos); e.justNoticed = 1.0; if (e.kind === 'kiro' && Math.random() < 0.5) { this.bark('kiro_notice', 2.2); this.sfx.play('kiro_voice', b.pos); } break;
         case 'knock': this.sfx.play('knock', b.pos); break;
-        case 'say': if (ev.key === 'shuuyou_rollcall') { this.sfx.play('rollcall', b.pos); this.bark('shuuyou_rollcall', 1.6); } else if (e.kind === 'kanja') { if (Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z) < 9) { this.bark(ev.key, 2.4); this.sfx.play('kanja_voice', b.pos); } } else if (e.kind === 'mimic' || e.kind === 'utsushimi') { if (Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z) < 15) { this.bark(ev.key, 2.4); this.sfx.play('mimic_voice', b.pos); } } else if (e.kind === 'mamori') { this.bark(ev.key, 2.4); this.sfx.play('kanja_voice', b.pos); } else { this.bark(ev.key, 3); this.sfx.play('heiten_voice', b.pos); } break;
+        case 'resonate': { if (e.kind !== 'outou') break; let n = 0; for (const o of this.enemies) if (o !== e && o.kind === 'outou' && Math.hypot(o.pos.x - b.pos.x, o.pos.z - b.pos.z) < (b.def.resonance || { r: 7 }).r) { const ev2 = []; if (o.brain.state !== 'hostile' && o.brain.resonate(ev2, 0.3, P.pos)) n++; this.enemyEvents(o, ev2); } if (n) { this.metrics.resonance = (this.metrics.resonance || 0) + n; if (!this.flags.reso_bark) { this.flags.reso_bark = true; this.bark('outou_wake', 2.4); } this.sfx.play('outou_voice', b.pos); } break; }
+        case 'say': if (e.kind === 'outou') { if (Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z) < 11) { this.bark(ev.key, 2.2); this.sfx.play('outou_voice', b.pos); } break; } if (ev.key === 'shuuyou_rollcall') { this.sfx.play('rollcall', b.pos); this.bark('shuuyou_rollcall', 1.6); } else if (e.kind === 'kanja') { if (Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z) < 9) { this.bark(ev.key, 2.4); this.sfx.play('kanja_voice', b.pos); } } else if (e.kind === 'mimic' || e.kind === 'utsushimi') { if (Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z) < 15) { this.bark(ev.key, 2.4); this.sfx.play('mimic_voice', b.pos); } } else if (e.kind === 'mamori') { this.bark(ev.key, 2.4); this.sfx.play('kanja_voice', b.pos); } else { this.bark(ev.key, 3); this.sfx.play('heiten_voice', b.pos); } break;
         case 'step': this.heitenStep(ev.id); break;
         case 'reset': this.heitenStep('reset'); break;
         case 'helped': this.bark('heiten_helped', 2); this.sfx.play('ui_ok'); break;
@@ -405,7 +417,7 @@ export const combatMethods = {
           else if (!this.flags.first_rescue) { this.flags.first_rescue = true; this.bark('first_rescue'); }
           break;
         }
-        case 'neutralized': if (e.kind === 'kanja') { this.resolve(e, 'neutralize'); break; } this.sfx.play('shutter'); this.resolve(e, 'neutralize'); this.onBossResolved('neutralize'); break;
+        case 'neutralized': if (e.kind === 'kanja' || e.kind === 'outou') { this.resolve(e, 'neutralize'); if (e.kind === 'outou') this.sfx.play('steam', b.pos); break; } this.sfx.play('shutter'); this.resolve(e, 'neutralize'); this.onBossResolved('neutralize'); break;
         case 'die': {
           this.sfx.play('die', b.pos); this.fx.mist(new THREE.Vector3(b.pos.x, 0, b.pos.z), 70, e.h); this.resolve(e, 'kill'); e.fadeT = 0;
           if (this.lock === e) this.lock = null;

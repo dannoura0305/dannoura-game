@@ -99,6 +99,7 @@ export class Player {
     set(W.saya, own.includes('katana')); set(W.sayaHilt, own.includes('katana') && hand !== 'katana');
     set(W.holster, own.includes('handgun')); set(W.holsterGun, own.includes('handgun') && hand !== 'handgun');
     set(W.pipeBack, own.includes('pipe') && hand !== 'pipe' && !this.model.white);
+    set(W.match, hand === 'matchlock'); set(W.matchBack, own.includes('matchlock') && hand !== 'matchlock');
     if (this.model.white) { set(W.holster, false); set(W.holsterGun, false); if (hand === 'claw') { set(W.katana, n === 'issen' || (n === 'attack' && !!F.st.blade)); } }
   }
   /** 刃の根元と先（世界座標）：刀か鉄パイプ */
@@ -109,7 +110,7 @@ export class Player {
     const a = new THREE.Vector3(0, 0.12, 0), c = new THREE.Vector3(0, F.weapon === 'pipe' ? 0.82 : 0.88, 0);
     b.updateWorldMatrix(true, false); a.applyMatrix4(b.matrixWorld); c.applyMatrix4(b.matrixWorld); return [a, c];
   }
-  muzzleWorld() { const W = this.model.weapons; const v = new THREE.Vector3(); if (W && W.muzzle) W.muzzle.getWorldPosition(v); else v.copy(this.pos).add(new THREE.Vector3(0, 1.3, 0)); return v; }
+  muzzleWorld(match) { const W = this.model.weapons; const v = new THREE.Vector3(); const mz = match && W && W.mMuzzle ? W.mMuzzle : W && W.muzzle; if (mz) mz.getWorldPosition(v); else v.copy(this.pos).add(new THREE.Vector3(0, 1.3, 0)); return v; }
   /** 進んだ距離で歩きの位相を進める。足が着いたら 'L'|'R' を返す（足音） */
   advance(moved, speed) {
     const prev = this.phase; this.phase += moved * phaseRate(speed);

@@ -12,6 +12,8 @@ export const CONTROLS = [
   ['装填', 'R', '構え中に X', '弾切れで自動'], ['ロックオン／相手の切替', '中クリック・T ／ Z・C（ロック中にマウスを素早く振っても）', 'R3 ／ 十字キー左右', '自動／敵をタップ'],
   ['懐中電灯', 'L', '十字キー下', '灯'], ['調べる・話す', 'E', 'B', '調'],
   ['回復', 'H', '十字キー上', '回'], ['化けを解く／戻す（白髪形態・第3章の転機のあと）', 'V 長押し', 'View（Back）長押し', '化 長押し'],
+  ['火縄銃（第4章から）', '4 キー（紫：銃床で打つ）／白で 替＝妖爪⇄火縄銃・攻撃で妖弾（溜め 0.5 秒）', 'RB（白）', '替 長押しで近接を順に／白で 替'],
+  ['巨大猫又：妖爪連撃／紫の咆哮／跳躍／妖気放出', '左クリック／F／Space／右クリック（押し続ける）', 'X／LB／A／LT', '斬／弾／避／銃（押し続ける）'],
   ['白髪形態：妖爪／妖刀／猫火／瞬歩／幻術', '左クリック／長押し／構え＋左クリック／Space／F', 'X／Y 長押し／LT＋RT／A／LB', '斬／斬 長押し／銃／避／弾'], ['一時停止', 'Esc／P', 'Start', '≡'], ['場面を飛ばす', 'E・Esc・Space を 1 秒長押し', 'B／Start 長押し', '調／≡ 長押し'],
 ];
 
@@ -20,6 +22,7 @@ const WEAPON_UI = {
   handgun: { name: 'ハンドガン（仮）', svg: svg('<path d="M6 16h30l3 4h4v6H24l-2 4h-6l2 8H9l3-12H6z" fill="#e8e0f4"/><rect x="12" y="19" width="20" height="2" fill="#7a6a9a"/>') },
   katana: { name: '日本刀', svg: svg('<path d="M4 40 L40 6 l3 2 L9 42z" fill="#e8ecf6"/><rect x="4" y="36" width="9" height="4" transform="rotate(-42 8 38)" fill="#8a5ab8"/><circle cx="12" cy="35" r="3" fill="#c8a040"/>') },
   pipe: { name: '鉄パイプ', svg: svg('<rect x="6" y="21" width="36" height="6" rx="2" transform="rotate(-30 24 24)" fill="#a8a4a0"/><rect x="6" y="21" width="9" height="6" transform="rotate(-30 24 24)" fill="#5a3a2a"/>') },
+  matchlock: { name: '火縄銃（登録証つき）', svg: svg('<rect x="4" y="25" width="15" height="7" rx="2" transform="rotate(-18 12 28)" fill="#8a5a34"/><rect x="16" y="19" width="28" height="3.5" transform="rotate(-18 30 21)" fill="#2a2830"/><rect x="24" y="17.5" width="2.5" height="6" transform="rotate(-18 25 20)" fill="#c8a040"/><rect x="34" y="14.4" width="2.5" height="6" transform="rotate(-18 35 17)" fill="#c8a040"/><path d="M14 30q2 6-3 9" stroke="#b04a2a" stroke-width="2" fill="none"/>') },
   claw: { name: '妖爪（白髪形態）', svg: svg('<path d="M12 40 Q16 22 30 8 Q22 26 18 40z M20 42 Q26 24 40 12 Q30 30 26 42z M28 44 Q34 30 44 22 Q36 34 33 44z" fill="#e8d8ff"/>') },
   none: { name: '素手', svg: svg('<circle cx="24" cy="24" r="9" fill="none" stroke="#9c92b0" stroke-width="3"/>') },
 };
@@ -53,6 +56,7 @@ export class UI {
   <div class="sh-marks"></div>
   <div class="sh-slow"></div><div class="sh-flash"></div><div class="sh-lowhp"></div><div class="sh-vignette"></div>
   <div class="sh-hint"></div>
+  <div class="sh-gskills"></div>
 </div>
 <div class="sh-lb sh-lbt"></div><div class="sh-lb sh-lbb"></div><div class="sh-sub"></div><div class="sh-skip">長押しで飛ばす</div>
 <div class="sh-card"><div class="sh-cardt"></div></div><div class="sh-fade"></div>
@@ -70,7 +74,7 @@ export class UI {
       cross: $('.sh-cross', root), prompt: $('.sh-prompt', root), toast: $('.sh-toast', root), bark: $('.sh-bark', root), log: $('.sh-log', root), lock: $('.sh-lock', root), marks: $('.sh-marks', root),
       slow: $('.sh-slow', root), flash: $('.sh-flash', root), lowhp: $('.sh-lowhp', root), hint: $('.sh-hint', root),
       obj: $('.sh-obj', root), objc: $('.sh-objc', root), objt: $('.sh-objt', root), objs: $('.sh-objs', root), comp: $('.sh-comp', root), lightic: $('.sh-lightic', root),
-      boss: $('.sh-boss', root), yoki: $('.sh-yoki', root), ykfill: $('.sh-ykbar i', root), ykmin: $('.sh-ykbar b', root), ykn: $('.sh-ykn', root), combo: $('.sh-combo', root), cn: $('.sh-cn', root), cb: $('.sh-cb', root), form: $('.sh-form', root), bossn: $('.sh-bossn', root), bossbar: $('.sh-bossbar i', root), bossp: $('.sh-bossp', root),
+      gskills: $('.sh-gskills', root), boss: $('.sh-boss', root), yoki: $('.sh-yoki', root), ykfill: $('.sh-ykbar i', root), ykmin: $('.sh-ykbar b', root), ykn: $('.sh-ykn', root), combo: $('.sh-combo', root), cn: $('.sh-cn', root), cb: $('.sh-cb', root), form: $('.sh-form', root), bossn: $('.sh-bossn', root), bossbar: $('.sh-bossbar i', root), bossp: $('.sh-bossp', root),
       lbt: $('.sh-lbt', root), lbb: $('.sh-lbb', root), sub: $('.sh-sub', root), skip: $('.sh-skip', root), card: $('.sh-card', root), cardt: $('.sh-cardt', root), fadeEl: $('.sh-fade', root), puz: $('#sh-puz', root),
       dialog: $('#sh-dialog', root), dname: $('.sh-dname', root), dtext: $('.sh-dtext', root), menu: $('#sh-menu', root), safe: $('#sh-safe', root), dead: $('#sh-dead', root), perf: $('#sh-perf', root), rotate: $('#sh-rotate', root),
     };
@@ -112,6 +116,8 @@ export class UI {
   hints(dev, ctx) {
     const K = dev === 'pad' ? { aim: 'LT', fire: 'RT', atk: 'X', reload: 'X長', swap: 'RB', dodge: 'A', parry: 'LB', use: 'B', heal: '↑', light: '↓', lock: 'R3' } : { aim: '右クリ', fire: '左クリ', atk: '左クリ', reload: 'R', swap: 'ホイール', dodge: 'Space', parry: 'F', use: 'E', heal: 'H', light: 'L', lock: 'T' };
     const rows = ctx.gun ? [[K.aim, '構える'], [K.fire, '発砲'], [K.reload, 'リロード'], [K.swap, '武器切替'], [K.dodge, '回避'], [K.heal, '回復']]
+      : ctx.match && ctx.white ? [[K.atk, '妖弾（溜め）'], [K.aim, '構える'], [K.swap, '妖爪へ'], [K.dodge, '瞬歩'], [K.parry, '幻術'], [K.lock, 'ロックオン']]
+      : ctx.match ? [[K.atk, '銃床で打つ（長押し：強）'], [K.dodge, '回避'], [K.swap, '武器切替'], [dev === 'pad' ? '—' : '1〜4', '武器を選ぶ'], [K.lock, 'ロックオン'], [K.light, '懐中電灯']]
       : [[K.atk, ctx.melee ? '攻撃（長押し：強）' : '—'], [K.parry, '弾く'], [K.dodge, '回避'], [K.swap, '武器切替'], [K.lock, 'ロックオン'], [K.light, '懐中電灯']];
     const html = rows.map(([k, t]) => `<div><kbd>${k}</kbd>${t}</div>`).join('');
     if (html !== this.hintHtml) { this.hintHtml = html; this.el.hints.innerHTML = html; }
@@ -234,6 +240,35 @@ export class UI {
       <p class="sh-note">カルテが無い患者は、どの病室？（札の名前とカルテの名前を見比べる）${state.miss ? `（ちがう選択 ${state.miss} 回）` : ''}</p><div class="sh-sbtn"><button data-close="1">閉じる</button></div>`;
     this._puz(html, d => { if (d.close) return onClose(); if (d.room) { const ns = onPick(d.room); if (ns) this.recordsUI(R, ns, onPick, onClose); } });
   }
+  /** 入退室の記録（第4章の必須）：あり得ない時刻の行を選ぶ */
+  logsUI(logs, state, onPick, onClose, note) {
+    const html = `<div class="sh-ptitle">入退室の記録（研究区画 B・分室） <small>時刻・職員証の番号はすべて仮</small></div>
+      <div class="sh-logs">${logs.map(l => `<button class="sh-logrow ${state.picked === l.id ? 'hit' : ''}" data-log="${l.id}" ${state.done ? 'disabled' : ''}><code>${esc(l.time)}</code><b>${esc(l.card)}</b><span>${esc(l.what)}</span></button>`).join('')}</div>
+      <p class="sh-note">${esc(note || '')}${state.miss ? `（ちがう選択 ${state.miss} 回）` : ''}</p><div class="sh-sbtn"><button data-close="1">閉じる</button></div>`;
+    this._puz(html, d => { if (d.close) return onClose(); if (d.log) { const ns = onPick(d.log); if (ns) this.logsUI(logs, ns, onPick, onClose, note); } });
+  }
+  /** 配電盤（第4章 secret の必須）：遮断器を入れ切りして「投入」 */
+  breakerUI(B, on, hint, onApply, onClose, msg) {
+    const load = B.list.filter(b => on.has(b.id)).reduce((s, b) => s + b.load, 0);
+    const html = `<div class="sh-ptitle">配電盤（非常電源） <small>容量 ${B.capacity}・名前と値は仮</small></div>
+      <div class="sh-brk">${B.list.map(b => `<button data-brk="${b.id}" class="${on.has(b.id) ? 'on' : ''}"><i></i><b>${esc(b.name)}</b><small>${hint ? '負荷 ' + b.load : '負荷 ？'}</small></button>`).join('')}</div>
+      <p class="sh-note">いまの負荷 ${hint ? load : '？'} ／ ${B.capacity}。${hint ? '保全記録：応答炉は非常時に入れないこと。' : '（盤の横に保全記録がある）'}${msg ? '<br>→ ' + esc(msg) : ''}</p>
+      <div class="sh-sbtn"><button data-apply="1">投入する</button><button data-close="1">閉じる</button></div>`;
+    this._puz(html, d => {
+      if (d.close) return onClose();
+      if (d.brk) { if (on.has(d.brk)) on.delete(d.brk); else on.add(d.brk); this.g.sfx.play('breaker'); return this.breakerUI(B, on, hint, onApply, onClose, msg); }
+      if (d.apply) { const r = onApply([...on]); if (r && !r.ok) this.breakerUI(B, on, hint, onApply, onClose, r.msg); else if (r && r.ok) this.breakerUI(B, on, hint, onApply, onClose, r.msg); }
+    });
+  }
+  /** 巨大猫又の技の案内（concept_04 の配置を参考に独自に：右下に 4 つ） */
+  giantSkills(dev, F) {
+    const K = dev === 'pad' ? ['X', 'LB', 'A', 'LT'] : dev === 'touch' ? ['斬', '弾', '避', '銃'] : ['左クリ', 'F', 'Space', '右クリ'];
+    const st = F.st.name, need = F.G.roar.cost;
+    const items = [['妖爪連撃', K[0], st === 'claw'], ['紫の咆哮', K[1], st === 'roar', F.gauge < need], ['跳躍', K[2], st === 'leap'], ['妖気放出', K[3], st === 'beam', F.gauge < 5]];
+    const key = items.map(i => i.join()).join('|') + dev;
+    if (key === this.gsKey) return; this.gsKey = key;
+    this.el.gskills.innerHTML = items.map(([n, k, act, dim]) => `<div class="${act ? 'act' : ''} ${dim ? 'dim' : ''}"><kbd>${k}</kbd><b>${n}</b></div>`).join('');
+  }
   /** 選択（時間制限なし・閉じられない）。options：[{id,label,sub}] */
   choiceUI(title, options, onPick, note) {
     const html = `<div class="sh-ptitle sh-choice-t">${esc(title)}</div><div class="sh-choice">${options.map((o, i) => `<button data-pick="${o.id}"><kbd>${i + 1}</kbd><b>${esc(o.label)}</b><small>${esc(o.sub || '')}</small></button>`).join('')}</div>${note ? `<p class="sh-note">${esc(note)}</p>` : ''}`;
@@ -280,7 +315,7 @@ export class UI {
       </div><p class="sh-note">セーブは自宅のノートPC（手動）と、場所の移動・決着のあと（自動）。戦闘中は自動セーブしません。</p>`;
     } else if (tab === 'load') {
       const L = g.store.list();
-      body = `<div class="sh-slots">${['auto', 'slot1', 'slot2', 'slot3'].map(k => { const s = L[k]; return `<button data-load="${k}" ${s ? '' : 'disabled'}>${k === 'auto' ? '自動' : '枠' + k.slice(-1)}　${s ? new Date(s.savedAt).toLocaleString('ja-JP') + '　' + fmtSec(s.playSec) : '（空き）'}</button>`; }).join('')}</div>`;
+      body = `<div class="sh-slots">${['auto', 'slot1', 'slot2', 'slot3', 'tenki', 'branch'].filter(k => k !== 'tenki' && k !== 'branch' || L[k]).map(k => { const s = L[k]; return `<button data-load="${k}" ${s ? '' : 'disabled'}>${k === 'auto' ? '自動' : k === 'tenki' ? '転機の前' : k === 'branch' ? '◆ 分岐の前' : '枠' + k.slice(-1)}　${s ? new Date(s.savedAt).toLocaleString('ja-JP') + '　' + fmtSec(s.playSec) : '（空き）'}</button>`; }).join('')}</div>`;
     } else {
       body = `<div class="sh-mtitle">境界侵食<small>（仮題）序章〜第2章 試作</small></div><p class="sh-note">${esc(g.chapterTitle())}　／　${esc(g.objectiveText())}</p><p class="sh-note">救った帰路：${g.count('kiro', 'rescue')}　倒した帰路：${g.count('kiro', 'kill')}　閉店：${g.heitenStatus()}　収容者：${g.bossStatus()}　（相棒）の信頼：${g.companionTrust()}</p>`;
     }

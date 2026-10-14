@@ -179,13 +179,13 @@ t('病院の調べ物【必須】：札とカルテを照らし合わせ、記�
   let s = PZ.pickRecord({}, '305'); assert.equal(s.done, false); assert.equal(s.miss, 1); s = PZ.pickRecord(s, '306'); assert.equal(s.done, true);
   assert.deepEqual(PZ.memoryMismatch(), ['東 ミヨ']); assert.equal(PZ.plainName('日向 ユウ（小児・7）'), '日向 ユウ');
 });
-t('原文の台詞：第3章はだんのうらが 1 回だけ（子どもを相棒に預けた後の場面）。相棒は同じ台詞を言わない（第4章で）', () => {
+t('原文の台詞：第3章はだんのうらが 1 回だけ（子どもを相棒に預けた後の場面）。第3章では相棒は同じ台詞を言わない（第4章で 1 回）', () => {
   const F = fixedLines(CUTSCENES3); assert.equal(F.length, 1);
   assert.deepEqual(F[0], { id: 'cs03_line', who: 'dan', text: '見た目だけで決めつけちゃ駄目ってことかしらね' }); assert.equal(LINE_CH3, '見た目だけで決めつけちゃ駄目ってことかしらね');
   const cs = CUTSCENES3.cs03_line; const at = cs.lines.find(l => l.fixed).t;
   const handed = cs.actors.filter(a => a.id === 'child' && a.to).map(a => a.t); assert.ok(handed.length && handed.every(x => x < at), '預けた後');
   const reply = cs.lines.find(l => l.who === 'companion'); assert.ok(reply && reply.text !== LINE_CH3);
-  const all = JSON.stringify(CUTSCENES) + JSON.stringify(events); assert.equal(all.split(LINE_CH3).length - 1, 1, '3 回目は無い・ほかの場所にも無い');
+  const all = JSON.stringify(CUTSCENES) + JSON.stringify(events); assert.equal(all.split(LINE_CH3).length - 1, 2, '第3章のだんのうら 1 回＋第4章の相棒 1 回だけ（3 回目は無い・ほかの場所にも無い）');
   // 真相の場面（救う・倒す）のどちらからでも cs03_line へ（game/ch3.js）
   const src = readFileSync(new URL('../shinshoku/game/ch3.js', import.meta.url), 'utf8'); assert.ok(/cs03_truth_rescue' : 'cs03_truth_kill', \(\) => this\.later\(0\.2, \(\) => this\.playCutscene\('cs03_line'\)\)/.test(src));
 });
