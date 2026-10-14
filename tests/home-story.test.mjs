@@ -25,8 +25,8 @@ function saveDataToGs(saved){
   Object.assign(gs,saved);
 }
 function nextDay(){gs.day++;saveGame(true);}
-var ff=0;
-function endFactory(){}
+// 工場タブのミニゲームを1回終える（worked=収入・仕事評価が増えたか）
+function __factory(worked,id){MG.def={id:id||'puzzle'};MG._ended=false;MG.finish({fx:worked?{money:6000,jobRep:5,fatigue:6}:{fatigue:6,mental:-2}});}
 function handleChoice(ac){}
 const MG={def:null,_ended:true,finish(r){if(this._ended)return;this._ended=true;if(r&&r.after)r.after();}};
 `;
@@ -264,13 +264,15 @@ await test('素材は1日1回ずつ（工場・子育て・釣り）', () => {
   H.ensure();
   const m = () => Object.assign({}, H.data().materials);
   const m0 = m();
-  run('ff=3'); run('endFactory()'); run('endFactory()');
+  run("__factory(true,'puzzle')"); run("__factory(true,'blocks')");
   const m1 = m();
   assert.equal((m1.wood + m1.metal) - (m0.wood + m0.metal), 1);
-  run('ff=0'); run('nextDay()'); run('endFactory()');
-  assert.equal((m().wood + m().metal), (m1.wood + m1.metal), '何も直さなかった日はなし');
-  run('ff=2'); run('endFactory()');
+  run('nextDay()'); run("__factory(false,'rogue')");
+  assert.equal((m().wood + m().metal), (m1.wood + m1.metal), '何もできなかった（収入・仕事評価なし）ときはなし');
+  run("__factory(true,'race')");
   assert.equal((m().wood + m().metal), (m1.wood + m1.metal) + 1);
+  run('nextDay()'); run("__factory(true,'shooter')");
+  assert.equal((m().wood + m().metal), (m1.wood + m1.metal) + 1, '夜の🎮（工場以外）では端材は出ない');
   const c0 = m().cloth;
   run("handleChoice('childcare');handleChoice('childcare');handleChoice('study')");
   assert.equal(m().cloth, c0 + 1);

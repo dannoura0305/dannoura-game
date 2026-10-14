@@ -178,7 +178,7 @@ await test('マイグレーション 006 → 007：species の索引・空の sp
   old.db.exec("INSERT INTO individuals (species, name, born_at, account_id, role) VALUES ('???', 'a', 1, 1, 'pup')");
   old.close();
   const db = await openDb(file, { log: () => {} });
-  assert.equal(db.schemaVersion(), 7);
+  assert.equal(db.schemaVersion(), 8);
   assert.ok(!db.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = 'rank_weeks'").get());
   assert.ok(db.db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name = 'nests_updated'").get());
   assert.ok(db.db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name = 'individuals_species'").get());

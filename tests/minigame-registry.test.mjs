@@ -79,12 +79,63 @@ test('並び順：以前の <script> の順のまま（シミュレーターの�
   assert.deepEqual(plain(META.map(m => m.id)), ['shooter', 'rogue', 'puzzle', 'cards', 'runner', 'defense', 'rpg', 'stealth', 'quiz', 'horror', 'factory3d', 'cooking', 'escape', 'blocks', 'manager', 'fishing', 'race']);
 });
 
-test('選択画面のカテゴリ・シミュレーターの典型結果・アイコンが全ゲームを覆う', () => {
+test('選択画面のカテゴリ（夜の🎮＋工場タブ）・シミュレーターの典型結果・アイコンが全ゲームを覆う', () => {
   const core = read('minigames/core.js');
   const cats = [...core.matchAll(/ids:\[([^\]]*)\]/g)].flatMap(m => m[1].match(/'[^']+'/g).map(s => s.slice(1, -1)));
-  assert.deepEqual(cats.slice().sort(), plain(META.map(m => m.id)).sort());
+  const { ctx } = loadRegistry({ day: 1 });
+  const fac = plain(vm.runInContext('MG_FACTORY_IDS', ctx));
+  assert.equal(cats.filter(id => fac.includes(id)).length, 0, '工場タブのゲームは夜の🎮のカテゴリに入れない');
+  assert.deepEqual(cats.concat(fac).sort(), plain(META.map(m => m.id)).sort());
   const sim = read('tools/simulator.html');
   for (const m of META) assert.match(sim, new RegExp('\\n\\s*' + m.id + ':\\s*\\{ok:'), 'MG_TYPICAL.' + m.id);
+});
+
+test('工場タブ：仕事・資格・通勤の7本（巡回・配線・組み立て・第三工場・危険物・脱出・原付）／夜の🎮は残り10本', () => {
+  const { ctx } = loadRegistry({ day: 1 });
+  const fac = plain(vm.runInContext('MG_FACTORY_IDS', ctx));
+  assert.deepEqual(fac, ['rogue', 'puzzle', 'blocks', 'factory3d', 'quiz', 'escape', 'race']);
+  for (const id of fac) assert.equal(vm.runInContext(`mgPlaceOf(${JSON.stringify(id)})`, ctx), 'factory');
+  const night = META.filter(m => !fac.includes(m.id)).map(m => m.id);
+  assert.deepEqual(plain(night), ['shooter', 'cards', 'runner', 'defense', 'rpg', 'stealth', 'horror', 'cooking', 'manager', 'fishing']);
+  for (const id of night) assert.equal(vm.runInContext(`mgPlaceOf(${JSON.stringify(id)})`, ctx), 'night');
+});
+
+test('スキル：どのミニゲームにも有利になるスキルがあり、ゲーム本体がそのスキルを読んでいる', () => {
+  const { ctx } = loadRegistry({ day: 1 });
+  const FX = plain(vm.runInContext('MG_SKILL_FX', ctx));
+  const game = read('game.js');
+  const skdef = game.slice(game.indexOf('const SKDEF={'), game.indexOf('function defaultSkills'));
+  const keys = [...skdef.matchAll(/^\s+(\w+):\s*\{name:/gm)].map(m => m[1]);
+  assert.ok(keys.length >= 14 && keys.length <= 16, 'スキルの数 ' + keys.length);
+  for (const k of ['examTech', 'riding']) assert.ok(keys.includes(k), '新スキル ' + k);
+  for (const m of META) {
+    const rows = FX[m.id] || [];
+    assert.ok(rows.length >= 1, m.id + ' に効くスキルがある');
+    const src = read('minigames/' + m.file + '.js');
+    for (const [k, tx] of rows) {
+      assert.ok(keys.includes(k), `${m.id}: ${k} は SKDEF にある`);
+      assert.ok(tx && tx.length >= 4, `${m.id}.${k} の説明`);
+      assert.ok(src.includes(k), `${m.file}.js が ${k} を読む`);
+    }
+  }
+  for (const [k] of FX._factory) assert.ok(read('minigames/core.js').includes(`mgSkill('${k}'`), 'core.js が工場の ' + k + ' を読む');
+  // どのスキルも、どれかのミニゲームに効く（歌唱力・睡眠効率も）
+  const used = new Set(Object.values(FX).flat().map(r => r[0]));
+  for (const k of keys) assert.ok(used.has(k), k + ' がどのミニゲームにも効かない');
+});
+
+test('スキル：古いセーブの移行（無いキーは0・壊れた値は0・上限超えはSPで返す・知らないキーは残す）', () => {
+  const game = read('game.js');
+  const src = game.slice(game.indexOf('const SKDEF={'), game.indexOf('// スキル → そのスキルが効くミニゲーム'));
+  const ctx = Object.assign({}, BUILTINS); vm.createContext(ctx);
+  vm.runInContext(src + ';globalThis.__m=migrateSkills;', ctx);
+  const old = { soundDiag: 2, emergencyFix: 3, wiring: 0, plc: 1, chatSkill: 'x', kaidanSkill: 5, singSkill: 12.5, radioVibe: -1, stressRes: 0, focus: 3, sleepEff: 1, emoCtrl: 0, bedtime: 2, chores: 2, legacy: 4 };
+  const r = plain(ctx.__m(old));
+  assert.equal(r.skills.examTech, 0); assert.equal(r.skills.riding, 0);
+  assert.equal(r.skills.chatSkill, 0); assert.equal(r.skills.radioVibe, 0);
+  assert.equal(r.skills.singSkill, 10); assert.equal(r.refund, 2);
+  assert.equal(r.skills.soundDiag, 2); assert.equal(r.skills.chores, 2); assert.equal(r.skills.legacy, 4);
+  assert.deepEqual(plain(ctx.__m(undefined)).refund, 0);
 });
 
 test('index.html はゲーム本体を先に読まない（目録と core だけ）', () => {

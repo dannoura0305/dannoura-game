@@ -22,8 +22,13 @@ import { landAt, digTime, overlayColor, buildLands, PLOT_W, PLOT_H, CLIMATES, RA
 import { fieldMods } from '../shared/season.js';
 import { threatTo, ALERT_STATES, inGrass, HIDE_AFTER, PRED } from '../shared/predators.js';
 import { sfx } from './sfx.js';
+import { festivalAt, festActBlock, marksVisible, offerPileSize, sparkleSet, shootingStars, onHill, FEST, OFFER_SPOT, HILL_SPOT } from '../shared/festival.js';
+import { toyamaFestProps } from '../shared/toyama.js';
+import { plotAt } from '../shared/lands.js';
+import { HOUR_MS } from '../shared/daynight.js';
 
 const WILD_R = 30;   // 野生の子に種子をあげられる距離
+const costText = c => { const k = Object.entries(c || {}); return k.length ? '（' + k.map(([id, n]) => itemName(id) + ' ' + n).join('・') + '）' : ''; };
 
 const PICK_R = 22, ENT_R = 20;
 const HELP_KEYS = 'WASD/方向キー 跳ねる　Space 大ジャンプ　E 調べる・拾う・飲む　Q 食べる　L 土地　N 世界地図　C 図鑑　M 重ね表示　I 持ち物　F フレンド　K 家族　Enter チャット　Esc メニュー';
@@ -45,7 +50,8 @@ const HELP_FULL_TOUCH = '<b>左のスティック</b> 跳ねる（左側のど�
 const PRIO = { [T.SAND]: 0, [T.DIRT]: 1, [T.GRASS]: 2 };
 // Ver.0.5：土地ごとの地面の色味（素材の砂・土・草の上に重ねる）
 const REGION_TINT = { rocks: 'rgba(110,112,120,0.22)', dunes: 'rgba(255,226,170,0.16)', canyon: 'rgba(60,120,60,0.12)', toyama: 'rgba(70,130,70,0.18)' };
-const PROP_NAME = { shrine: '祠', post: '道しるべ', machine: '金属のかたまり', phone: '光る板', stone: '古い石の標', lights: '遠くの灯り', busstop: 'バス停', hasa: 'はさ掛け', lantern: '雪の灯り', footend: '雪の上の足あと' };
+const PROP_NAME = { shrine: '祠', post: '道しるべ', machine: '金属のかたまり', phone: '光る板', stone: '古い石の標', lights: '遠くの灯り', busstop: 'バス停', hasa: 'はさ掛け', lantern: '雪の灯り', footend: '雪の上の足あと',
+  tflower: '小さな花', tgrass: '丸く ねた草', trice: '平らな石', tlantern: '小さな灯り' };   // Ver.0.8：富山の行事の夜の小さなもの
 const SEASON_IX = { spring: 0, summer: 1, autumn: 2, winter: 3 };
 
 export class FieldScene {
@@ -215,6 +221,7 @@ export class FieldScene {
     // Ver.0.4：野生のトビネズミ（補間）・信頼・連れている若者の足あと
     this.wild = new Map(); this.trust = {}; this.trails = new Map(); this.kidVis = new Map(); this.kidSt = new Map();
     this.glimpse = null; this._glimpseT = 20; this.flies = [];
+    this._festInit(world);   // Ver.0.8
     this.ready = true;
   }
   /** 世代交代・連れている若者が変わった（ほかの子） */
@@ -382,7 +389,16 @@ export class FieldScene {
     this.hidden = this.stillT >= HIDE_AFTER && inGrass(this.map, st.x, st.y);
     // 地域名
     const reg = regionAt(this.map, st.x, st.y);
-    if (!this.lastRegion || reg.name !== this.lastRegion.name) { this.lastRegion = reg; this.regionEl.textContent = reg.name; this.regionEl.classList.remove('flash'); void this.regionEl.offsetWidth; this.regionEl.classList.add('flash'); }
+    // Ver.0.8：区画の名前（土地の名前：shared/lands.js の nameLands）も 地域名の横に
+    const plot = plotAt(st.x, st.y).id;
+    if (!this.lastRegion || reg.name !== this.lastRegion.name || plot !== this._lastPlot) {
+      const flash = !this.lastRegion || reg.name !== this.lastRegion.name;
+      this.lastRegion = reg; this._lastPlot = plot;
+      const L = landAt(this.map, st.x, st.y);
+      this.regionEl.innerHTML = esc(reg.name) + (L ? '<small class="tb-landlabel">・' + esc(L.name) + '</small>' : '');
+      this.game.debug.landName = L ? L.name : null;
+      if (flash) { this.regionEl.classList.remove('flash'); void this.regionEl.offsetWidth; this.regionEl.classList.add('flash'); }
+    }
     // Ver.0.5：出口に足を入れて、外へ向かっていたら旅をする
     const gt = gateAt(this.map, st.x, st.y);
     const outward = gt && ({ n: 'up', s: 'down', e: 'right', w: 'left' }[gt.dir] === st.dir) && (st.anim === 'hop' || this.autoGo);
@@ -390,6 +406,8 @@ export class FieldScene {
     this._glimpseTick(dt);
     this._tevTick(dt);
     this._fliesTick(dt);
+    this._festTick(dt);   // Ver.0.8
+    this._mmHoverTick();
     if (this.t > (g.isTouch ? 6 : 25) && !this._helpPinned) this.helpEl.classList.add('dim');   // 最初の数秒だけ（メニュー→ヘルプでいつでも）
     // 画面のタップ（タッチ）。マウスのクリックは従来どおり何もしない
     for (const ev of inp.takeMouse()) {
@@ -429,7 +447,7 @@ export class FieldScene {
   // ───────── タップで移動（タッチ）─────────
   /** タップした所（画面の内部座標）へ向かう。採集物・巣穴なら着いたら拾う・入る */
   tapAt(sx, sy) {
-    if (this._mm && sx >= this._mm.x0 - 4 && sx <= this._mm.x0 + this._mm.w + 4 && sy >= this._mm.y0 - 4 && sy <= this._mm.y0 + this._mm.h + 4) { this.cycleOverlay(); return; }
+    if (this._mm && sx >= this._mm.x0 - 4 && sx <= this._mm.x0 + this._mm.w + 4 && sy >= this._mm.y0 - 4 && sy <= this._mm.y0 + this._mm.h + 4) { this._mmTipAt(sx, sy, 3); this.cycleOverlay(); return; }
     const wx = sx + this.cam.x, wy = sy + this.cam.y, s = this.pred.state;
     // 自分をタップ：調べる（E と同じ）
     if (Math.hypot(wx - s.x, wy - (s.y - 10)) < 12) { this.autoGo = null; this.interact(); return; }
@@ -497,6 +515,8 @@ export class FieldScene {
       const d = Math.hypot(e.x - s.x, e.y - s.y) - 4;   // 同じくらいの近さなら巣穴を優先
       if (d < ENT_R && d < bd) { bd = d; best = { kind: 'ent', ent: e, label: e.own ? '巣に入る（' + e.name + 'の巣）' : e.plugged ? e.name + 'の巣（入口がふさがれている）' : '訪ねる（' + e.name + 'の巣）' }; }
     }
+    // Ver.0.8：季節の行事（行事の夜・その場所・まだなら、落ちている物や水より先に。巣の入口・野生の子・穴は そのまま）
+    if (!best || best.kind === 'res' || best.kind === 'dew' || best.kind === 'prop') { const ft = this._festTarget(s); if (ft && (ft.kind === 'fest' || !best)) return ft; }
     if (best) return best;
     if (nearWater(this.map, s.x, s.y)) return { kind: 'water', label: '水を飲む' };
     const gt = gateAt(this.map, s.x, s.y);
@@ -555,6 +575,10 @@ export class FieldScene {
       g.ui.toast((res.src === 'dew' ? '夜露を飲んだ' : '水を飲んだ') + '（水分 ' + Math.round(res.life.thirst) + '）');
     } else if (tgt.kind === 'nodig') {
       g.ui.toast(tgt.label, 'bad');
+    } else if (tgt.kind === 'fest') {   // Ver.0.8
+      if (tgt.why) g.ui.toast(tgt.why, 'bad'); else this.doFest(tgt.act);
+    } else if (tgt.kind === 'festsit') {
+      g.ui.toast('そのまま じっと すわって、空を 見上げよう');
     } else if (tgt.kind === 'travel') {
       this.travel(tgt.gate);
     } else if (tgt.kind === 'gate') {
@@ -789,6 +813,9 @@ export class FieldScene {
     const list = [];
     for (const o of this.tall) if (o.x > cx - 40 && o.x < cx + W + 40 && o.y > cy - 10 && o.y < cy + H + 70) list.push(o);
     for (const pr of this.seasonProps()) if (pr.x > cx - 40 && pr.x < cx + W + 40 && pr.y > cy - 10 && pr.y < cy + H + 70) list.push({ kind: 'prop', pk: pr.kind, x: pr.x, y: pr.y, v: pr.v || 0, prop: pr });
+    // Ver.0.8：季節の行事の印（花・灯り・供えた種の山）
+    for (const m of this.festView()) if (m.kind !== 'gaze' && m.kind !== 'offer' && m.x > cx - 30 && m.x < cx + W + 30 && m.y > cy - 10 && m.y < cy + H + 30) list.push({ kind: 'fmark', x: m.x, y: m.y, m });
+    if (this._offerN > 0 && OFFER_SPOT.x > cx - 40 && OFFER_SPOT.x < cx + W + 40 && OFFER_SPOT.y > cy - 20 && OFFER_SPOT.y < cy + H + 30) list.push({ kind: 'fpile', x: OFFER_SPOT.x, y: OFFER_SPOT.y });
     const now = this.serverNow();
     this.remoteViews = [];
     for (const rp of this.players.values()) {
@@ -837,6 +864,8 @@ export class FieldScene {
       else if (o.kind === 'house') { if (!Sprites.drawEntry(g, 'tile.house', o.v, o.x, o.y)) { g.fillStyle = '#ebe2cf'; g.fillRect(o.x - 42, o.y - 40, 84, 38); g.fillStyle = '#2c3644'; g.fillRect(o.x - 46, o.y - 74, 92, 36); } }
       else if (o.kind === 'prop') this.drawProp(g, o);
       else if (o.kind === 'glimpse') this.drawGlimpse(g, o);
+      else if (o.kind === 'fmark') this.drawFestMark(g, o);
+      else if (o.kind === 'fpile') { const sz = offerPileSize(this._offerN); if (!Sprites.drawEntry(g, 'tile.fest_offering', sz - 1, o.x, o.y)) A.drawOfferPile(g, o.x, o.y, sz, this._moonK > 0.2); }
     }
     // タップで向かっている所
     if (this.autoGo) {
@@ -862,6 +891,7 @@ export class FieldScene {
     // 天気・季節の色（夜の暗さより下に塗る）→ 昼夜：色味と暗さ（自分のまわりはほんのり明るい）・水面の星と月 → 天気の粒
     this.drawWeather(g, cx, cy, 'tint');
     this.drawNight(g, cx, cy, list);
+    this.drawFestSky(g, cx, cy, list);   // Ver.0.8：流れ星・いっしょに すわった子の きらきら・灯り
     this.drawWeather(g, cx, cy, 'fx');
     // 捕食者の「！」（暗くても見える）・狙われているときの画面の端の赤・つかまった瞬間の赤
     this.drawAlerts(g, cx, cy);
@@ -871,6 +901,7 @@ export class FieldScene {
     sc.clearUI();
     const nowMs = performance.now();
     if (this.overlay && this._mm) sc.text(this._mm.x0 + this._mm.w / 2, this._mm.y0 + this._mm.h + 2, this.overlay === 'danger' ? '危険（緑→赤）' : '食料（多いほど緑）', { size: 6, color: this.overlay === 'danger' ? '#ffb8a0' : '#b8f0a8', alpha: 0.95 });
+    this.drawMmTip(sc);   // Ver.0.8：ミニマップの土地の名前
     for (const e of this.entrances) {
       const x = e.x - cx, y = e.y - cy;
       if (x < -40 || y < -20 || x > W + 40 || y > H + 20) continue;
@@ -901,6 +932,173 @@ export class FieldScene {
     }
   }
 
+  // ───────── Ver.0.8「季節のたのしみ」：季節の行事（shared/festival.js）─────────
+  _festInit(world) {
+    this.festMarks = new Map(); this.fest = null; this._festT = 0; this._festTry = 0; this._festView = []; this._offerN = 0; this._moonK = 0;
+    for (const m of (world.fest && world.fest.marks) || []) this._addMark(m);
+    this._festRefresh();
+  }
+  _markKey(m) { return m.occ + ':' + m.owner + ':' + (m.region || 'plains'); }
+  _addMark(m) {
+    if (!m || (m.region || 'plains') !== (this.map.region || 'plains')) return false;
+    this.festMarks.set(this._markKey(m), m);
+    return true;
+  }
+  /** 行事の印が増えた（自分・ほかの子・NPC） */
+  onFest(msg) {
+    const m = msg && msg.mark;
+    if (!this.ready || !m) return;
+    const isNew = !this.festMarks.has(this._markKey(m));
+    if (!this._addMark(m)) return;
+    this._festRefresh();
+    if (isNew && m.kind !== 'gaze') this.puff(m.kind === 'offer' ? OFFER_SPOT.x : m.x, (m.kind === 'offer' ? OFFER_SPOT.y : m.y) - 4, m.kind === 'lantern' ? '#ffd890' : m.kind === 'plant' ? '#ffc8dc' : '#f4ecd0', 6);
+  }
+  /** いま見える印（同じ回のもの） */
+  festView() { return this._festView; }
+  _festRefresh() {
+    const net = this.game.net;
+    if (!net || !net.clock) return;
+    const t = this.serverNow();
+    this.fest = festivalAt(net.clock, t);
+    this._festView = marksVisible([...this.festMarks.values()], net.clock, t, this.map.region || 'plains');
+    this._offerN = this._festView.filter(m => m.kind === 'offer').length;
+    this.festJoined = this._festView.some(m => String(m.owner) === String(this.me.id));
+    const d = this.game.debug;
+    d.fest = { id: this.fest.id, phase: this.fest.phase, occ: this.fest.occ, act: this.fest.act, joined: this.festJoined, marks: this._festView.map(m => ({ kind: m.kind, owner: m.owner, name: m.name, x: m.x, y: m.y })), offer: this._offerN };
+  }
+  /** 0.5 秒ごと：行事の様子・お知らせ（やさしいトースト）・星見の すわる（自動） */
+  _festTick(dt) {
+    const g = this.game;
+    // すわっている秒（ほかの子・NPC：補間した見た目の動きで）
+    for (const rp of this.players.values()) { const s = rp.last; rp.sitT = s && s.anim === 'idle' && !s.jump ? (rp.sitT || 0) + dt : 0; }
+    this._festT -= dt;
+    if (this._festT > 0) return;
+    this._festT = 0.5;
+    const before = this.fest;
+    this._festRefresh();
+    const f = this.fest;
+    if (!f) return;
+    // お知らせ：行事の夜になった（その回に 1 回）・もうすぐ（世界の 3 時間前から 1 回）。富山では出さない
+    if (this.map.region !== 'toyama' && !g.ui.busy()) {
+      if (f.phase === 'during' && this._festToast !== f.occ + 'd') { this._festToast = f.occ + 'd'; this._festToastSoon = f.occ; g.ui.toast(f.toast); g.debug.festToast = f.toast; if (before && before.phase === 'before') sfx('fest'); }
+      else if (f.phase === 'before' && f.startW - f.w <= 3 * HOUR_MS && this._festToastSoon !== f.occ) { this._festToastSoon = f.occ; g.ui.toast('もうすぐ「' + f.name + '」（今夜 19 時から・' + f.where + '）'); g.debug.festToast = 'soon:' + f.id; }
+    }
+    // 星見：丘で じっと すわったら 参加（1 回）
+    const s = this.pred.state;
+    if (f.phase === 'during' && f.act === 'gaze' && !this.festJoined && onHill(this.map.region || 'plains', s.x, s.y) && this.stillT >= FEST.SIT_SEC && this.t - this._festTry > 3 && !this._festBusy) this.doFest('gaze', true);
+  }
+  /** 「調べる」の案内（行事の夜で、その場所にいるとき） */
+  _festTarget(s) {
+    const f = this.fest, g = this.game;
+    if (!f || f.phase !== 'during' || this.festJoined || this.map.region === 'toyama') return null;
+    const region = this.map.region || 'plains';
+    if (f.act === 'gaze') return onHill(region, s.x, s.y) ? { kind: 'festsit', label: '星見：じっと すわって 空を見る（' + Math.min(FEST.SIT_SEC, Math.floor(this.stillT)) + '/' + FEST.SIT_SEC + '）' } : null;
+    const ent = this.myNest && (this.myNest.region || 'plains') === region ? this.entrances.find(e => e.own) || null : null;
+    const ctx = { fest: f, act: f.act, region, x: s.x, y: s.y, entrance: ent, spawn: this.map.spawn, done: false, inv: this.inv, still: 99, place: 'field' };
+    const why = festActBlock(ctx);
+    if (!why) return { kind: 'fest', act: f.act, label: f.name + '：' + f.verb + costText(f.cost) };
+    // 場所は合っていて 持ち物だけ足りない → 理由つきで案内
+    if (/要る$/.test(why)) return { kind: 'fest', act: f.act, why: f.name + '：' + why, label: f.name + '：' + f.verb + '（' + why + '）' };
+    return null;
+  }
+  async doFest(act, quiet = false) {
+    const g = this.game;
+    if (this._festBusy) return;
+    this._festBusy = true; this._festTry = this.t;
+    let r = null;
+    try { r = g.net.festAct ? await g.net.festAct(act) : null; } finally { this._festBusy = false; }
+    if (!r) return;
+    if (!r.ok) { if (!quiet) g.ui.toast(r.reason || 'できなかった', 'bad'); return; }
+    if (r.inv) { this.inv = r.inv; g.ui.setInventory(this.inv); }
+    this.onFest({ mark: r.mark });
+    const f = this.fest || {};
+    g.ui.toast(f.done || '参加した');
+    sfx('fest');
+    const s = this.pred.state;
+    for (let i = 0; i < 10; i++) this.fx.push({ x: s.x + (Math.random() - 0.5) * 14, y: s.y - 10, vx: (Math.random() - 0.5) * 18, vy: -16 - Math.random() * 14, t: 0, life: 1 + Math.random() * 0.6, color: act === 'lantern' ? '#ffe0a0' : act === 'plant' ? '#ffd0e0' : act === 'offer' ? '#fff6d8' : '#e8f0ff' });
+    g.debug.festDone = (g.debug.festDone || []).concat(act);
+  }
+  drawFestMark(g, o) {
+    const m = o.m;
+    if (m.kind === 'plant') { if (!Sprites.drawEntry(g, 'tile.fest_flower', m.v % 4, m.x, m.y)) A.drawFestFlower(g, m.x, m.y, m.v, this.t); }
+    else if (m.kind === 'lantern') { const lit = this.tod && this.tod.dark > 0.15; if (!Sprites.drawEntry(g, 'tile.fest_lantern', lit ? 1 + (Math.floor(this.t * 3 + m.x) % 2) : 0, m.x, m.y)) A.drawFestLantern(g, m.x, m.y, lit, this.t); }
+  }
+  /** 夜の上に：流れ星（星見の夜はたくさん）・いっしょに すわった子の きらきら・富山の山へ落ちる星 */
+  drawFestSky(g, cx, cy, list) {
+    const tod = this.tod;
+    if (!tod || tod.dark < 0.2) { this.game.debug.sparkle = []; return; }
+    const f = this.fest, region = this.map.region || 'plains';
+    const hoshi = !!f && f.phase === 'during' && f.act === 'gaze';
+    const k = tod.dark / 0.66, now = this.serverNow();
+    const env = this.game.env || {};
+    const clearSky = env.weather !== 'rain' && env.weather !== 'snow' && env.weather !== 'sandstorm';
+    if (clearSky && region !== 'toyama') {
+      const stars = shootingStars(now, hoshi && region === 'plains');
+      for (const st of stars) {
+        const x0 = st.x0 * W, y0 = st.y0 * H, x1 = st.x1 * W, y1 = st.y1 * H;
+        const hx = x0 + (x1 - x0) * st.k, hy = y0 + (y1 - y0) * st.k;
+        for (let i = 0; i < 9; i++) {
+          const tk = Math.max(0, st.k - i * 0.035);
+          g.fillStyle = `rgba(255,252,230,${(1 - i / 9) * k * (1 - st.k * 0.5)})`;
+          g.fillRect(Math.round(x0 + (x1 - x0) * tk), Math.round(y0 + (y1 - y0) * tk), i ? 1 : 2, 1);
+        }
+        void hx; void hy;
+        if (hoshi && this._lastStar !== st.id && st.k < 0.2) { this._lastStar = st.id; if (onHill(region, this.view.x, this.view.y)) sfx('star'); }
+      }
+      this.game.debug.stars = stars.length;
+    }
+    if (region === 'toyama' && f && f.phase === 'during' && f.act === 'gaze') {   // 富山：山の方へ落ちる星がひとつ（ときどき）
+      const p = (now % 9000) / 1600;
+      if (p < 1) { const bandY = TOYAMA.MOUNT_ROWS * 16 - cy; const x0 = W * 0.3, y0 = Math.max(4, bandY - 60); for (let i = 0; i < 8; i++) { const tk = Math.max(0, p - i * 0.04); g.fillStyle = `rgba(240,248,255,${(1 - i / 8) * k})`; g.fillRect(Math.round(x0 + 60 * tk), Math.round(y0 + 50 * tk), 1, 1); } }
+    }
+    // いっしょに すわった子の きらきら（星見の夜・はじまりの原の丘）
+    let sp = new Set();
+    if (hoshi && region === 'plains') {
+      const sit = [{ id: this.me.id, x: this.view.x, y: this.view.y, sit: this.stillT }];
+      for (const v of this.remoteViews || []) { const rp = this.players.get(v.id); sit.push({ id: v.id, x: v.x, y: v.y, sit: rp ? rp.sitT || 0 : 0 }); }
+      sp = sparkleSet(sit, region);
+      for (const o of list) if (o.kind === 'player' && sp.has(o.id)) {
+        for (let i = 0; i < 4; i++) {
+          const a = this.t * 1.7 + i * 1.57 + (String(o.id).length % 3), r = 9 + Math.sin(this.t * 3 + i) * 2;
+          const tw = 0.5 + 0.5 * Math.sin(this.t * 6 + i * 2);
+          g.fillStyle = `rgba(255,250,200,${0.4 + 0.6 * tw})`;
+          const x = Math.round(o.x - cx + Math.cos(a) * r), y = Math.round(o.y - cy - 12 + Math.sin(a) * r * 0.6);
+          g.fillRect(x, y, 1, 1); if (tw > 0.8) { g.fillRect(x - 1, y, 3, 1); g.fillRect(x, y - 1, 1, 3); }
+        }
+      }
+    }
+    this.game.debug.sparkle = [...sp];
+    void HILL_SPOT;
+  }
+  // ───────── Ver.0.8：ミニマップの土地の名前（PC はマウスを重ねる・タッチはタップ）─────────
+  _mmHoverTick() {
+    const inp = this.game.input, m = inp.mouse;
+    if (this.game.isTouch || !this._mm || !m.inside) { if (this.mmTip && this.mmTip.hover) this.mmTip = null; return; }
+    const mm = this._mm;
+    if (m.x >= mm.x0 && m.x < mm.x0 + mm.w && m.y >= mm.y0 && m.y < mm.y0 + mm.h) this._mmTipAt(m.x, m.y, 0, true);
+    else if (this.mmTip && this.mmTip.hover) this.mmTip = null;
+  }
+  _mmTipAt(sx, sy, secs = 3, hover = false) {
+    const mm = this._mm;
+    if (!mm) return;
+    const wx = (sx - mm.x0) / mm.w * this.map.pxW, wy = (sy - mm.y0) / mm.h * this.map.pxH;
+    const L = landAt(this.map, Math.max(0, Math.min(this.map.pxW - 1, wx)), Math.max(0, Math.min(this.map.pxH - 1, wy)));
+    if (!L) return;
+    this.mmTip = { name: L.name, cx: L.cx, cy: L.cy, sy, until: hover ? Infinity : this.t + secs, hover };
+    this.game.debug.mmTip = L.name;
+  }
+  drawMmTip(sc) {
+    const tip = this.mmTip, mm = this._mm;
+    if (!tip || !mm || this.t > tip.until) return;
+    const s = mm.w / this.map.w, g = sc.ug;
+    void g;
+    const w = sc.measure(tip.name, 6.5) + 6;
+    const x = Math.max(w / 2 + 2, mm.x0 - 4 - w / 2), y = Math.max(10, Math.min(mm.y0 + mm.h, tip.sy + 3));
+    sc.nameTag(x, y, tip.name);
+    this._mmTipBox = { x0: x - w / 2, x1: x + w / 2, y0: y - 8.5, y1: y + 2 };
+    void s;
+  }
+
   // ───────── 広がり（Ver.0.5）の描画 ─────────
   /** 出口：地面に矢印の石と、土地の境目の道しるべ */
   drawGates(g) {
@@ -920,9 +1118,10 @@ export class FieldScene {
     if (this.map.region !== 'toyama') return [];
     const se = (this.game.env && this.game.env.season) || 'spring';
     const foot = this._footOn();
-    if (this._spSeason !== se || this._spFoot !== foot) {
-      this._spSeason = se; this._spFoot = foot;
-      this._sp = toyamaSeasonProps(se);
+    const fk = this.fest && this.fest.phase === 'during' ? this.fest.id : '';
+    if (this._spSeason !== se || this._spFoot !== foot || this._spFest !== fk) {
+      this._spSeason = se; this._spFoot = foot; this._spFest = fk;
+      this._sp = toyamaSeasonProps(se).concat(toyamaFestProps(this.fest));   // Ver.0.8：行事の夜にだけ ひとつ
       if (foot) this._sp.push({ kind: 'footend', x: FOOT_END.x, y: FOOT_END.y + 6, text: FOOT_TEXT, tev: 'footprints', season: 'winter' });   // Ver.0.7
       this.game.debug.toyamaProps = this._sp.map(p => p.kind);
     }
@@ -930,6 +1129,11 @@ export class FieldScene {
   }
   drawProp(g, o) {
     if (o.pk === 'footend') return;   // 足あとは地面に（drawFootprints）
+    // Ver.0.8：行事の夜の 富山の小さなもの
+    if (o.pk === 'tflower') { if (!Sprites.drawEntry(g, 'tile.fest_flower', 3, o.x, o.y)) A.drawFestFlower(g, o.x, o.y, 3, this.t); return; }
+    if (o.pk === 'tlantern') { const lit = this.tod && this.tod.dark > 0.2; if (!Sprites.drawEntry(g, 'tile.fest_lantern', lit ? 1 + (Math.floor(this.t * 3 + o.x) % 2) : 0, o.x, o.y)) A.drawFestLantern(g, o.x, o.y, lit, this.t); return; }
+    if (o.pk === 'trice') { if (!Sprites.drawEntry(g, 'tile.fest_rice', 0, o.x, o.y)) A.drawRiceStone(g, o.x, o.y); return; }
+    if (o.pk === 'tgrass') { A.drawFlatGrass(g, o.x, o.y); return; }
     const key = { shrine: 'tile.shrine', post: 'tile.post', machine: 'tile.machine', phone: 'tile.phone', stone: 'tile.stone_marker', busstop: 'tile.busstop', hasa: 'tile.hasa', lantern: 'tile.snow_lantern' }[o.pk];
     if (o.pk === 'lantern') { const night = this.tod && this.tod.dark > 0.2; if (!Sprites.drawEntry(g, key, night ? 1 + (Math.floor(this.t * 3 + o.x) % 2) : 0, o.x, o.y)) A.drawSnowLantern(g, o.x, o.y, night, this.t); return; }
     if (o.pk === 'hasa' && !Sprites.drawEntry(g, key, 0, o.x, o.y)) { A.drawHasa(g, o.x, o.y); return; }
@@ -1085,7 +1289,9 @@ export class FieldScene {
     const lc = this._nl, lg = lc.getContext('2d');
     lg.globalCompositeOperation = 'source-over';
     lg.clearRect(0, 0, W, H);
-    lg.fillStyle = `rgba(8,10,34,${tod.dark})`; lg.fillRect(0, 0, W, H);
+    // Ver.0.8：月見の夜（はじまりの原）は 月が明るい（暗さを少し弱めて、銀色に）
+    const moonK = this._moonK = this.fest && this.fest.phase === 'during' && this.fest.act === 'offer' && (this.map.region || 'plains') === 'plains' ? 1 : 0;
+    lg.fillStyle = moonK ? `rgba(14,18,40,${tod.dark * 0.62})` : `rgba(8,10,34,${tod.dark})`; lg.fillRect(0, 0, W, H);
     lg.globalCompositeOperation = 'destination-out';
     const hole = (x, y, rad, k) => {
       const gr = lg.createRadialGradient(x, y, 0, x, y, rad);
@@ -1098,8 +1304,16 @@ export class FieldScene {
     if (this.gate) hole(this.gate.x - cx, this.gate.y - cy, 30 + Math.sin(this.t * 3) * 3, 0.85);
     for (const f of this.flies) hole(f.x - cx, f.y - cy, 7, 0.7 * (0.5 + 0.5 * Math.sin(this.t * 5 + f.ph)));
     if (this.glimpse) hole(this.glimpse.x - cx, this.glimpse.y - cy - 6, 16, 0.5);
-    for (const pr of this.seasonProps()) if (pr.kind === 'lantern') hole(pr.x - cx, pr.y - cy - 6, 22 + Math.sin(this.t * 7 + pr.x) * 2, 0.75);
+    for (const pr of this.seasonProps()) if (pr.kind === 'lantern' || pr.kind === 'tlantern') hole(pr.x - cx, pr.y - cy - 6, (pr.kind === 'tlantern' ? 18 : 22) + Math.sin(this.t * 7 + pr.x) * 2, 0.75);
+    // Ver.0.8：みんなの灯り・夜に咲く花・供えた種の山
+    for (const m of this.festView()) {
+      if (m.x < cx - 40 || m.x > cx + W + 40 || m.y < cy - 40 || m.y > cy + H + 40) continue;
+      if (m.kind === 'lantern') hole(m.x - cx, m.y - cy - 8, 26 + Math.sin(this.t * 6 + m.x) * 2, 0.8);
+      else if (m.kind === 'plant') hole(m.x - cx, m.y - cy - 6, 10, 0.35);
+    }
+    if (this._offerN > 0) hole(OFFER_SPOT.x - cx, OFFER_SPOT.y - cy - 4, 14 + offerPileSize(this._offerN) * 2, 0.5);
     g.drawImage(lc, 0, 0);
+    if (moonK) { g.fillStyle = `rgba(200,214,255,${0.07 * tod.dark / 0.66})`; g.fillRect(0, 0, W, H); }
     // 蛍（暗い中で光る）・富山の遠くの灯り
     for (const f of this.flies) {
       const a = Math.min(1, f.t, f.life - f.t) * (0.45 + 0.55 * Math.sin(this.t * 4 + f.ph));
@@ -1125,9 +1339,13 @@ export class FieldScene {
           g.fillStyle = `rgba(240,240,255,${(0.3 + 0.6 * tw) * k})`;
           g.fillRect(w.tx * 16 + Math.floor(h * 37) % 14 + 1 - cx, w.ty * 16 + Math.floor(h * 91) % 14 + 1 - cy, 1, 1);
         }
-        // 月の映り込み（ゆらゆら）
+        // 月の映り込み（ゆらゆら）。Ver.0.8：月見の夜は まんまるで大きい
         const mx = POND.x * 16 + 18 - cx, my = POND.y * 16 - 10 - cy;
-        for (let i = 0; i < 4; i++) { g.fillStyle = `rgba(250,246,200,${0.55 * k - i * 0.1})`; g.fillRect(Math.round(mx - 4 + Math.sin(this.t * 2 + i) * 1.5), Math.round(my + i * 3), 8 - i, 1); }
+        if (moonK) {
+          g.fillStyle = `rgba(255,250,220,${0.25 * k})`; g.beginPath(); g.ellipse(mx, my + 4, 16, 9, 0, 0, Math.PI * 2); g.fill();
+          g.fillStyle = `rgba(255,252,232,${0.85 * k})`; g.beginPath(); g.ellipse(mx + Math.sin(this.t * 1.5) * 0.8, my + 4, 9, 6, 0, 0, Math.PI * 2); g.fill();
+          for (let i = 0; i < 5; i++) { g.fillStyle = `rgba(255,250,220,${0.5 * k - i * 0.08})`; g.fillRect(Math.round(mx - 7 + Math.sin(this.t * 2 + i) * 2), Math.round(my + 11 + i * 2), 14 - i * 2, 1); }
+        } else for (let i = 0; i < 4; i++) { g.fillStyle = `rgba(250,246,200,${0.55 * k - i * 0.1})`; g.fillRect(Math.round(mx - 4 + Math.sin(this.t * 2 + i) * 1.5), Math.round(my + i * 3), 8 - i, 1); }
       }
       g.restore();
     }
@@ -1311,6 +1529,10 @@ export class FieldScene {
         g.fillStyle = c;
         g.fillRect(Math.round(x0 + L.cx * PLOT_W * s), Math.round(y0 + L.cy * PLOT_H * s), Math.round(PLOT_W * s), Math.round(PLOT_H * s));
       }
+    }
+    if (this.mmTip && this.t <= this.mmTip.until) {   // Ver.0.8：名前を見ている区画
+      g.strokeStyle = 'rgba(255,244,200,.9)'; g.lineWidth = 1;
+      g.strokeRect(Math.round(x0 + this.mmTip.cx * PLOT_W * s) + 0.5, Math.round(y0 + this.mmTip.cy * PLOT_H * s) + 0.5, Math.round(PLOT_W * s) - 1, Math.round(PLOT_H * s) - 1);
     }
     const P = (x, y, c, r = 1) => { g.fillStyle = c; g.fillRect(Math.round(x0 + x / 16 * s) - r, Math.round(y0 + y / 16 * s) - r, r * 2 + 1, r * 2 + 1); };
     for (const e of this.entrances) {

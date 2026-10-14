@@ -1715,6 +1715,95 @@
    16
   ]
  },
+ "tile.fest_flower": {
+  "file": "fest/flower.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 4,
+  "anchor": [
+   8,
+   15
+  ],
+  "names": [
+   "pink",
+   "yellow",
+   "blue",
+   "white"
+  ]
+ },
+ "tile.fest_lantern": {
+  "file": "fest/lantern.png",
+  "cell": [
+   12,
+   20
+  ],
+  "variants": 3,
+  "anchor": [
+   6,
+   19
+  ],
+  "names": [
+   "off",
+   "lit1",
+   "lit2"
+  ]
+ },
+ "tile.fest_offering": {
+  "file": "fest/offering.png",
+  "cell": [
+   28,
+   16
+  ],
+  "variants": 4,
+  "anchor": [
+   14,
+   15
+  ],
+  "note": "moon-viewing seed pile, size 1..4"
+ },
+ "tile.fest_rice": {
+  "file": "fest/rice.png",
+  "cell": [
+   16,
+   10
+  ],
+  "variants": 1,
+  "anchor": [
+   8,
+   9
+  ],
+  "note": "toyama: rice grains on a flat stone (festival night only)"
+ },
+ "item.curio.pressed_flower.icon": {
+  "file": "items/curio_pressed_flower.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.star_sand.icon": {
+  "file": "items/curio_star_sand.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.moon_seed.icon": {
+  "file": "items/curio_moon_seed.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.little_lantern.icon": {
+  "file": "items/curio_little_lantern.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
  "ui.frame": {
   "file": "ui/frame.png",
   "cell": [

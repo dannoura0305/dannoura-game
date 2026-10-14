@@ -152,6 +152,8 @@ registerMinigame({
       slipV:mgDiff(16,14,12),     // 水たまりで滑る速度（これより遅いと滑らない）
       graze:mgDiff(.6,.5,.42),    // 「かすり」で済む横方向の重なり幅
     };
+    // 原付さばき（スキル）：車体ダメージ -10%/Lv・水たまりで滑る速度 +1.5/Lv（滑りにくい）・持ち時間 +3秒/Lv
+    {const L=mgSkill('riding',3);DF.dmg*=1-.1*L;DF.slipV+=1.5*L;DF.tAdd+=3*L;}
     addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
     {const tt=mg.el('mg-title');if(tt&&!tt.querySelector('.mg-diffb'))tt.insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);}
     const START_T=40+VAR.tadd+DF.tAdd;

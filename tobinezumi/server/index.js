@@ -93,7 +93,7 @@ export async function startServer({ port = 8080, host = '0.0.0.0', dataDir = joi
       // 死活確認（Fly.io・Render のヘルスチェック）。中身は最小限（人数とどれだけ動いているか）。止めている途中は 503
       res.writeHead(state.shuttingDown ? 503 : 200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...cors(req) });
       const st = game.statsSnapshot();
-      res.end(JSON.stringify({ ok: !state.shuttingDown, v: '0.7', uptime: st.uptime, players: st.players, sessions: st.sessions }));
+      res.end(JSON.stringify({ ok: !state.shuttingDown, v: '0.8', uptime: st.uptime, players: st.players, sessions: st.sessions }));
       return;
     }
     if (path === '/statsz') {

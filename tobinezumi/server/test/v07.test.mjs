@@ -110,12 +110,12 @@ await test('巣の記録の tales：富山へ行ったことがある・地上�
   a.place(a.ent.x, a.ent.y + 10);
   const ea = await a.req('enter_nest', { owner: a.account.id });
   assert.ok(ea.ok, ea.reason);
-  assert.deepEqual(ea.nest.tales, { toyama: false, companion: f.id });
+  assert.deepEqual(ea.nest.tales, { toyama: false, companion: f.id, fest: false });
   H.store.setFlag(a.account.id, 'toyama', '1'); a.player.toyamaFound = true;
   b.place(a.ent.x, a.ent.y + 10);
   const eb = await b.req('enter_nest', { owner: a.account.id });
   assert.ok(eb.ok, eb.reason);
-  assert.deepEqual(eb.nest.tales, { toyama: true, companion: f.id }, '訪問者にも');
+  assert.deepEqual(eb.nest.tales, { toyama: true, companion: f.id, fest: false }, '訪問者にも');
   assert.deepEqual(eb.nest.family.map(m => m.id).sort(), ea.nest.family.map(m => m.id).sort());
   H.close();
 });

@@ -348,7 +348,7 @@ await test('マイグレーション 003 → 004：今ある巣の土地に区�
   old.db.prepare("INSERT INTO nests (owner_account_id, land_id, schema_version, rev, data, visit_policy, created_at, updated_at) VALUES (1, 1, 1, 1, '{}', 'private', 1, 1)").run();
   old.close();
   const db = await openDb(file, { log: () => {} });
-  assert.equal(db.schemaVersion(), 7);   // Ver.0.6 の 007 まで
+  assert.equal(db.schemaVersion(), 8);   // Ver.0.6 の 007 まで
   const n = db.nest(1);
   assert.equal(n.plot, 'L1-2'); assert.equal(n.land.id, 'L1-2'); assert.equal(n.plugged, false); assert.ok(n.land.hardness >= 1);
   db.close(); rmDir(dir);

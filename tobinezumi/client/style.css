@@ -90,6 +90,13 @@ kbd { font: inherit; font-size: .85em; background: #1e130c; border: 1px solid va
 .tb-dialog, .tb-menu { left: 50%; top: 50%; transform: translate(-50%, -50%); width: calc(var(--u) * 180px); z-index: 25; text-align: center; }
 .tb-menu { text-align: left; }
 .tb-menu-info { color: var(--dim); font-size: .85em; margin-bottom: calc(var(--u)*3px); }
+/* Ver.0.8：小さな暦（次の行事） */
+.tb-festnote { display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--edge); border-radius: calc(var(--u)*2px); background: rgba(60,40,24,.55); padding: calc(var(--u)*1.5px) calc(var(--u)*3px); margin-bottom: calc(var(--u)*3px); font-size: .85em; }
+.tb-festnote b { color: #ffe9a8; font-weight: normal; }
+.tb-festnote span { color: var(--dim); font-size: .9em; }
+.tb-festnote.now { border-color: #f0c870; box-shadow: 0 0 0 1px rgba(240,200,112,.35); }
+/* Ver.0.8：土地の名前（左上の地域名の横） */
+.tb-region .tb-landlabel { font-size: .8em; opacity: .92; }
 .tb-body { margin: calc(var(--u)*3px) 0; }
 .tb-storage { left: 50%; top: 50%; transform: translate(-50%, -50%); width: calc(var(--u) * 260px); z-index: 20; }
 .tb-cols { display: flex; gap: calc(var(--u)*8px); justify-content: center; }

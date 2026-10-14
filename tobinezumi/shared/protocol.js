@@ -82,6 +82,8 @@ export const C2S = {
   // ── Ver.0.7「小さなできごと」──（PROTOCOL.md §13）
   COMPANION: 'companion',     // {id|null}（なかまを地上へ連れて行く・巣で待つ。1 匹だけ）→ res {ok, family, kids}
   TOYAMA_EVENT: 'toyama_event', // {id}（富山の小さな出来事を見た：1 回だけ）→ res {ok, id, first, seen}
+  // ── Ver.0.8「季節のたのしみ」──（PROTOCOL.md §14）
+  FEST_ACT: 'fest_act',       // {act:'plant'|'gaze'|'offer'|'lantern'}（季節の行事に参加：1 回の行事に 1 回）→ res {ok, mark, inv, reward?, fest}
 };
 
 // サーバー → クライアント
@@ -117,6 +119,8 @@ export const S2C = {
   COLLECT: 'collect',         // {cid, at, total}                       図鑑に加わった（本人へ）
   ACHIEVEMENT: 'achievement', // {id, at, reward?}                      実績をとった（本人へ）
   RESIDENTS: 'residents',     // {...ResidentsInfo, text?}             共同巣の誘い・住人が変わった（本人へ）
+  // ── Ver.0.8 ──
+  FEST: 'fest',               // {mark}                                 季節の行事の印が増えた（その土地のみんなへ：花・灯り・供えた種・すわった所）
 };
 // Ver.0.6：snapshot の PlayerSnap に k:[[x,y],…]（ついてくる若者の位置：サーバーが足あとから決める）・kh:1（巣へかくれている）
 export const MAX_RESIDENTS = 3;      // 共同巣：所有者のほかに住める子（Ver.0.5）

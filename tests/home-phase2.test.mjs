@@ -22,8 +22,8 @@ function saveDataToGs(saved){
   Object.assign(gs,saved);
 }
 function nextDay(){gs.day++;saveGame(true);}
-var ff=0;
-function endFactory(){}
+// 工場タブのミニゲームを1回終える（worked=収入・仕事評価が増えたか）
+function __factory(worked,id){MG.def={id:id||'puzzle'};MG._ended=false;MG.finish({fx:worked?{money:6000,jobRep:5,fatigue:6}:{fatigue:6,mental:-2}});}
 function handleChoice(ac){}
 const MG={def:null,_ended:true,finish(r){if(this._ended)return;this._ended=true;if(r&&r.after)r.after();}};
 `;
@@ -174,7 +174,7 @@ await test('班長①：工場を何度かこなした後の休みの日に工�
   const S = makeSandbox(); const { H, run } = S;
   skipFlower(S);
   S.setDay(10);
-  run('ff=2'); for (let d = 3; d <= 6; d++) { S.setDay(d); run('endFactory()'); }
+  for (let d = 3; d <= 6; d++) { S.setDay(d); run(`__factory(true,'${['puzzle','rogue','blocks','quiz'][d-3]}')`); }
   assert.equal(H.bonds.workDays(), 4);
   H.data().flags.repairedShelf = true;
   S.setDay(12); assert.equal(H.life_events.pending('room'), null, '休みの日（土日）まで待つ');

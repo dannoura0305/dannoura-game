@@ -408,9 +408,11 @@ registerMinigame({
     // 難しさ（開始時に読む）：制限時間・出題の難易度寄せ・50:50ヒントの回数
     const DIFF=mgDifficulty();
     mg.el('mg-title').insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);
-    const QT_STD=mgDiff([30,30,25],[22,22,18],[15,15,12]),QT_MOCK=mgDiff([25,25,20],[18,18,15],[13,13,11]);
+    // 試験勘（スキル）：1問の制限時間 +3秒/Lv・50:50 +1回/Lv
+    const SK_EX=mgSkill('examTech',3);
+    const QT_STD=mgDiff([30,30,25],[22,22,18],[15,15,12]).map(v=>v+3*SK_EX),QT_MOCK=mgDiff([25,25,20],[18,18,15],[13,13,11]).map(v=>v+3*SK_EX);
     const Q_BIAS=mgDiff(.9,.45,0);
-    let hints=mgDiff(3,1,0);
+    let hints=mgDiff(3,1,0)+SK_EX;
     const data=getData();
     const ck=(typeof gs.certKnow==='number')?gs.certKnow:0;
     const focus=['L','P','S'][(gs.day||1)%3];

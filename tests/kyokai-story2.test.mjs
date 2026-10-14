@@ -328,7 +328,7 @@ await test('DAY 31：kyokai_true_end==="1" かつ本編エンディング1つ以
   assert.doesNotMatch(read('main/day31.js'), /setItem|removeItem/);
 });
 
-await test('本編タイトル：「おまけ：境界事象」（常に表示）と DAY 31（初期は非表示）・読み込み順・sw.js', () => {
+await test('本編タイトル：「境界事象」（常に表示）と DAY 31（初期は非表示）・読み込み順・sw.js', () => {
   const html = read('index.html');
   const ky = /<button[^>]*id="btn-kyokai"[^>]*>/.exec(html); assert.ok(ky, 'btn-kyokai');
   assert.doesNotMatch(ky[0], /display:\s*none/); assert.match(ky[0], /openKyokai\(\)/);

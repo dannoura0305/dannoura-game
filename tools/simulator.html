@@ -62,7 +62,8 @@ iframe{position:absolute;width:400px;height:800px;left:-9999px;top:0;border:0;vi
   <p class="note">
     ・プレイ方針は「目標ガイド通り／配信重視／仕事・勉強重視／無計画」の4種類。<br>
     ・配信中のコメントによる小さな精神回復と、配信中の異変演出は省略しています。<br>
-    ・夜のミニゲームは中身を実際に遊ばず、典型的な結果（成功率60%）を当てはめています。<br>
+    ・夜のミニゲーム・工場タブのミニゲームは中身を実際に遊ばず、典型的な結果（成功率60%）を当てはめています。<br>
+    ・「工場」は工場タブのミニゲーム（各1日1回）を1本遊ぶ。その日ぶん遊び尽くしたら資格の勉強に回します。<br>
     ・iframe で本体を読むため、file:// で直接開くと動きません。GitHub Pages かローカルサーバー経由で開いてください。
   </p>
 </main>
@@ -152,19 +153,28 @@ function doStream(kind){
   for(let i=0;i<n&&!sim.ending;i++){W.applyChoice(talk[Math.floor(R()*talk.length)]);flush();}
   if(!sim.ending){W.applyChoice(end[0]);flush();}
 }
-function doFactory(){
-  W.handleChoice('factory');
-  W.eval(`ff=Math.min(ftt,Math.round(ftt*(${(.55+R()*.45).toFixed(3)})));`);
-  W.endFactory();flush();
-}
-function doMinigame(){
-  const MG=W.eval('MG'),list=W.eval('MINIGAMES').filter(d=>!W.playedMinigameToday(d.id));
-  if(!list.length)return false;
-  const def=list[Math.floor(R()*list.length)],t=MG_TYPICAL[def.id];
+// 工場の仕事＝工場タブのミニゲーム（minigames/registry.js MG_FACTORY_IDS）を1本。
+// 今日ぜんぶ遊んでいたら資格の勉強に回す。夜の🎮（mg）は工場以外から選ぶ。
+function playTypical(def){
+  const MG=W.eval('MG'),t=MG_TYPICAL[def.id];
   if(!t)return false;
   MG.def=def;MG._ended=false;MG.game=null;
   MG.finish({title:'',fx:{...(R()<.6?t.ok:t.ng)},time:t.time});flush();
   return true;
+}
+function pickUnplayed(place){
+  const place_=id=>W.eval('typeof minigamePlace==="function"')?W.minigamePlace(id):'night';
+  return W.eval('MINIGAMES').filter(d=>place_(d.id)===place&&!W.playedMinigameToday(d.id));
+}
+function doFactory(){
+  const list=pickUnplayed('factory');
+  if(!list.length){W.handleChoice('study');flush();return;}
+  playTypical(list[Math.floor(R()*list.length)]);
+}
+function doMinigame(){
+  const list=pickUnplayed('night');
+  if(!list.length)return false;
+  return playTypical(list[Math.floor(R()*list.length)]);
 }
 function act(a){
   if(a==='stream')doStream();

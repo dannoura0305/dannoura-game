@@ -91,7 +91,7 @@ registerMinigame({
       bat:mgDiff(1,0,0),         // 各階の予備バッテリーの上乗せ
       ghosts:mgDiff(1,2,2),      // 各階の基本の霊の数
       chase:mgDiff(.5,.68,.8),   // 霊が追ってくる確率
-      lunge:mgDiff(.08,.16,.25), // 闇から飛びかかる確率
+      lunge:mgDiff(.08,.16,.25)*(1-.2*mgSkill('soundDiag',3)), // 闇から飛びかかる確率（異音診断で -20%/Lv）
       bossHp:mgDiff(2,3,3),      // 怨霊の体力（基本）
       leaks:mgDiff(-1,0,0),      // 漏電床の増減
     };
@@ -354,7 +354,8 @@ registerMinigame({
       lastCone=c;
       return c>amb?c:amb;
     }
-    const coneR=()=>2.5+.42*Math.min(5,Math.max(hp,0));
+    const SK_CONE=.35*mgSkill('soundDiag',3);   // 異音診断：懐中電灯の届く距離 +0.35マス/Lv
+    const coneR=()=>2.5+SK_CONE+.42*Math.min(5,Math.max(hp,0));
     function los(x0,y0,x1,y1){
       const dx=x1-x0,dy=y1-y0,n=Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))*3);
       for(let s=1;s<n;s++){const tx=Math.round(x0+dx*s/n),ty=Math.round(y0+dy*s/n);

@@ -4,7 +4,7 @@
 //   拾うとアカウントの図鑑に入る（1 種類 1 回。account_collectibles の主キーで二重に入らない）。持ち物の枠は使わない。
 //   巣の中に飾れる（家具 curio。同じ巣に同じ物は 1 つ）。図鑑の中身はアカウントにつくので、世代交代してもそのまま。
 //   kind：nature（その土地のもの）・sign（しるし：富山への手がかり 3 つ）・crossover（富山だけ：ほかの世界から来たような物）・
-//         season（Ver.0.6：富山の季節の品。秋の稲穂・冬のろうそく）
+//         season（Ver.0.6：富山の季節の品。秋の稲穂・冬のろうそく）・fest（Ver.0.8：季節の行事に はじめて参加したとき。地上には出ない）
 // 富山への穴（gateOpen）：みずおとの谷の奥・夜・初めては「冬・雪・しるし 3 つ」がそろったときだけ。一度たどり着いたら夜ならいつでも。
 // 実績（ACHIEVEMENTS）：やさしい目標。ごほうびは飾り（家具）が使えるようになるだけ。
 import { REGION } from './world.js';
@@ -45,10 +45,16 @@ export const CURIOS = {
   rice_ear:      { id: 'rice_ear', name: '金色の稲穂', region: 'toyama', kind: 'season', rate: 0.05, near: 'paddy', when: { seasons: ['autumn'] }, desc: '重たく実った ひとふさ。ここでは だれかが 毎年 育てているらしい。', hint: '？？？' },
   candle_stub:   { id: 'candle_stub', name: 'ちびたろうそく', region: 'toyama', kind: 'season', rate: 0.04, near: 'shrine', when: { seasons: ['winter'], periods: ['night', 'dusk'] }, desc: '雪の灯りの そばに落ちていた。まだ少し あたたかい。', hint: '？？？' },
   unknown_card:  { id: 'unknown_card', name: '???の札', region: 'toyama', kind: 'crossover', rate: 0.012, near: 'any', when: { periods: ['night'] }, needs: 4, desc: 'よく分からない絵が描かれている。少し硬い。巣に飾れそうだ。とても貴重なもののようだ…', hint: '？？？', rarest: true },
+  // Ver.0.8：季節の行事の品（kind 'fest'・region 'fest'＝地上には出ない。その行事に はじめて参加したときだけ図鑑へ。巣に飾れる）
+  pressed_flower: { id: 'pressed_flower', name: '押し花', region: 'fest', kind: 'fest', rate: 0, near: 'any', desc: '花の種まきの夜に咲いた花を、そっと押して 残したもの。', hint: '春の行事「花の種まき」' },
+  star_sand:      { id: 'star_sand', name: '星の砂つぶ', region: 'fest', kind: 'fest', rate: 0, near: 'any', desc: '星見の夜、みんなで見上げた丘で 拾った。ときどき ちかっと光る。', hint: '夏の行事「星見の夜」' },
+  moon_seed:      { id: 'moon_seed', name: '月見の種', region: 'fest', kind: 'fest', rate: 0, near: 'any', desc: '月見の夜の 種の山から、ひとつぶ もらってきた。まるくて 白い。', hint: '秋の行事「月見」' },
+  little_lantern: { id: 'little_lantern', name: '小さな灯り', region: 'fest', kind: 'fest', rate: 0, near: 'any', desc: '灯りの夜に ともした 小さな灯り。巣に飾ると ほんのり あたたかい。', hint: '冬の行事「灯りの夜」' },
 };
 export const CURIO_ORDER = Object.keys(CURIOS);
 export const SIGNS = CURIO_ORDER.filter(id => CURIOS[id].kind === 'sign');
 export const CROSSOVER = CURIO_ORDER.filter(id => CURIOS[id].kind === 'crossover');
+export const FEST_CURIOS = CURIO_ORDER.filter(id => CURIOS[id].kind === 'fest');   // Ver.0.8
 export const isCurio = id => Object.prototype.hasOwnProperty.call(CURIOS, id);
 
 /** いまこの土地で出てよい収集品か（env = shared/season.js の envAt の結果） */

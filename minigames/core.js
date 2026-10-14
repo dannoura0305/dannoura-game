@@ -93,13 +93,28 @@ function loadThree(){
 function playedMinigameToday(id){return !!(gs.mgDay&&gs.mgDay[id]===gs.day);}
 
 // ── 選択画面（カテゴリ別タブ） ──
+// 選択画面は2つ：夜の🎮（place='night'）と、下部ナビ「🔧 工場」・行動「工場で働く」から開く工場（place='factory'）。
+// どちらに出すかは minigames/registry.js の MG_FACTORY_IDS で決まる。
+const MG_FACTORY=(typeof MG_FACTORY_IDS!=='undefined'&&Array.isArray(MG_FACTORY_IDS))?MG_FACTORY_IDS.slice():[];
+function minigamePlace(id){return MG_FACTORY.includes(id)?'factory':'night';}
+function minigamesIn(place){return MINIGAMES.filter(d=>minigamePlace(d.id)===place);}
+function minigamesLeftIn(place){return minigamesIn(place).filter(d=>!playedMinigameToday(d.id)).length;}
 const MG_CATS=[
   {id:'all',    name:'すべて'},
-  {id:'action', name:'アクション', ids:['shooter','runner','factory3d','race','stealth']},
-  {id:'brain',  name:'頭脳・戦略', ids:['puzzle','blocks','quiz','escape','defense','cards','manager']},
-  {id:'story',  name:'物語',       ids:['rpg','horror','rogue']},
+  {id:'action', name:'アクション', ids:['shooter','runner','stealth']},
+  {id:'brain',  name:'頭脳・戦略', ids:['defense','cards','manager']},
+  {id:'story',  name:'物語',       ids:['rpg','horror']},
   {id:'life',   name:'暮らし・癒し',ids:['cooking','fishing']},
 ];
+// 工場の選択画面のタブ（アイコンは main/icons.js の work）
+const MG_FACTORY_CATS=[
+  {id:'factory',name:'工場',icon:'work'},
+];
+// 夜勤手当：工場タブのミニゲームで、その日はじめて働いたとき（収入か仕事評価が増えたとき）に1回だけ。
+// 以前の「設備点検ミニゲーム」1回ぶん（完璧で¥8,500・仕事評価+10）の代わり。危険物の一問一答は勉強なので出ない。
+const MG_FACTORY_WAGE={money:6000,jobRep:3};
+const MG_NO_WAGE=['quiz'];
+const MG_PLACE_LABEL={night:{head:'NIGHT GAMES',left:'今夜あと'},factory:{head:'FACTORY 工場',left:'今日あと'}};
 // ミニゲームのアイコン（main/icons.js のドット絵。無ければ定義の絵文字）
 function mgIconHTML(def,px){
   if(window.ICONS&&ICONS.has(def.id))return ICONS.html(def.id,px).replace('class="ic ','class="ic ic-lead ');
@@ -111,24 +126,69 @@ function mgBtnHTML(name,label){
 }
 function minigameCat(id){const c=MG_CATS.find(c=>c.ids&&c.ids.includes(id));return c?c.id:'brain';}
 let _mgTab=(()=>{try{return localStorage.getItem('dannoura_mg_tab')||'all';}catch(e){return 'all';}})();
-function openMinigamePicker(){
+let _mgPlace='night';
+// スキルのレベル（gs.skills が無い・壊れていても 0。max で頭打ち）
+function mgSkill(key,max){
+  let v=0;try{v=Math.floor(+((gs&&gs.skills&&gs.skills[key])||0));}catch(e){v=0;}
+  if(!Number.isFinite(v)||v<0)v=0;
+  return Math.min(max==null?5:max,v);
+}
+// そのゲームで効くスキル（MG_SKILL_FX）。[{k,name,lv,tx}]
+function mgSkillFxFor(id){
+  const T=(typeof MG_SKILL_FX!=='undefined'&&MG_SKILL_FX)||{};
+  const rows=(T[id]||[]).concat(minigamePlace(id)==='factory'?(T._factory||[]):[]);
+  const D=(typeof SKDEF!=='undefined'&&SKDEF)||{};
+  return rows.map(([k,tx])=>({k,tx,name:(D[k]&&D[k].name)||k,lv:mgSkill(k,(D[k]&&D[k].max)||10)}));
+}
+function mgPickSkillLine(id){
+  const on=mgSkillFxFor(id).filter(r=>r.lv>0);
+  if(on.length)return `<div class="mg-pick-sk on">★ ${[...new Set(on.map(r=>`${r.name}Lv${r.lv}`))].join('・')} が効いている</div>`;
+  const names=[...new Set(mgSkillFxFor(id).map(r=>r.name))];
+  return names.length?`<div class="mg-pick-sk">☆ 有利になるスキル：${names.slice(0,4).join('・')}</div>`:'';
+}
+addMinigameStyle('picker-place',`
+.mg-pick-sk{font-family:var(--mono);font-size:.58rem;color:#a99cc8;margin-top:3px;line-height:1.5;}
+.mg-pick-sk.on{color:var(--gd);}
+#mg-picker.mg-place-factory .mg-pick-box{border-color:rgba(232,184,48,.7);}
+#mg-picker.mg-place-factory .endlist-head{color:var(--gd);}
+#mg-picker .mg-pick-lead{flex-shrink:0;font-size:.64rem;line-height:1.6;color:var(--tx);margin:-2px 2px 0;}
+#mg-picker.mg-place-night .mg-pick-lead{display:none;}
+@media (min-width:700px){#mg-picker .mg-pick-box{max-width:440px;}}
+#mg-screen .mg-skillfx{position:absolute;left:50%;top:50px;transform:translateX(-50%);z-index:30;max-width:92%;padding:4px 10px;border:1px solid rgba(232,184,48,.7);border-radius:4px;background:rgba(10,8,30,.92);color:var(--gd);font-family:var(--mono);font-size:.6rem;line-height:1.5;text-align:center;pointer-events:none;opacity:1;transition:opacity .6s;box-shadow:0 2px 12px rgba(0,0,0,.5);}
+#mg-screen .mg-skillfx.out{opacity:0;}
+#mg-screen .mg-skillfx b{color:#fff;font-weight:normal;}
+`);
+function openMinigamePicker(place){
+  _mgPlace=place==='factory'?'factory':'night';   // 引数なし（以前の呼び方）は夜の🎮
+  const P=_mgPlace,pool=minigamesIn(P);
+  const picker=document.getElementById('mg-picker');
+  if(picker){picker.classList.toggle('mg-place-factory',P==='factory');picker.classList.toggle('mg-place-night',P!=='factory');}
+  const head=document.getElementById('mg-pick-ttl');
+  if(head)head.textContent=MG_PLACE_LABEL[P].head;
+  let lead=document.getElementById('mg-pick-lead');
+  if(!lead&&picker){const box=picker.querySelector('.mg-pick-box'),tb=document.getElementById('mg-pick-tabs');if(box&&tb){lead=document.createElement('div');lead.id='mg-pick-lead';lead.className='mg-pick-lead';box.insertBefore(lead,tb);}}
+  if(lead)lead.textContent=P==='factory'?(gs.factoryShiftDay===gs.day?'設備保全・資格・通勤の仕事。各1日1回。今日の夜勤手当は受け取り済み。':`設備保全・資格・通勤の仕事。各1日1回。今日はじめて働くと夜勤手当 ¥${MG_FACTORY_WAGE.money.toLocaleString()}（一問一答は勉強なので除く）。`):'';
+  const cats=P==='factory'?MG_FACTORY_CATS:MG_CATS;
+  let tab=P==='factory'?'factory':_mgTab;
+  if(P!=='factory'&&tab!=='all'&&!pool.some(d=>minigameCat(d.id)===tab))tab='all';
+  const inTab=(d,id)=>P==='factory'||id==='all'||minigameCat(d.id)===id;
   const tabs=document.getElementById('mg-pick-tabs');
   if(tabs){
     tabs.innerHTML='';
-    MG_CATS.forEach(c=>{
-      const n=c.id==='all'?MINIGAMES.length:MINIGAMES.filter(d=>minigameCat(d.id)===c.id).length;
+    cats.forEach(c=>{
+      const n=pool.filter(d=>inTab(d,c.id)).length;
       if(!n)return;
       const b=document.createElement('button');
-      b.className='mg-tab'+(c.id===_mgTab?' on':'');
-      if(window.ICONS)b.innerHTML=ICONS.html(c.id,18)+`<span class="ic-t">${c.name} ${n}</span>`;
+      b.className='mg-tab'+(c.id===tab?' on':'');
+      if(window.ICONS)b.innerHTML=ICONS.html(c.icon||c.id,18)+`<span class="ic-t">${c.name} ${n}</span>`;
       else b.textContent=`${c.name} ${n}`;
-      b.onclick=()=>{_mgTab=c.id;try{localStorage.setItem('dannoura_mg_tab',c.id);}catch(e){}openMinigamePicker();};
+      b.onclick=()=>{if(P!=='factory'){_mgTab=c.id;try{localStorage.setItem('dannoura_mg_tab',c.id);}catch(e){}}openMinigamePicker(P);};
       tabs.appendChild(b);
     });
   }
   const list=document.getElementById('mg-pick-items');
   list.innerHTML='';
-  const shown=MINIGAMES.filter(d=>_mgTab==='all'||minigameCat(d.id)===_mgTab);
+  const shown=pool.filter(d=>inTab(d,tab));
   // まだ遊べるものを上に
   shown.slice().sort((a,b)=>playedMinigameToday(a.id)-playedMinigameToday(b.id)).forEach(def=>{
     const played=playedMinigameToday(def.id);
@@ -137,7 +197,8 @@ function openMinigamePicker(){
     b.disabled=played;
     b.innerHTML=`<div class="mg-pick-top"><span class="mg-pick-name">${mgIconHTML(def,24)}${def.name}</span><span class="mg-pick-genre">${def.genre}</span></div>`+
       `<div class="mg-pick-desc">${def.desc}</div>`+
-      `<div class="mg-pick-fx">${played?'今日はプレイ済み。また明日。':def.effect}</div>`;
+      `<div class="mg-pick-fx">${played?'今日はプレイ済み。また明日。':def.effect}</div>`+
+      (played?'':mgPickSkillLine(def.id));
     b.onclick=()=>MG.open(def.id);
     // 指を置いた・マウスを乗せた・キーで選んだ時点で本体を先読みする
     if(!played&&!minigameLoaded(def.id)){
@@ -149,13 +210,14 @@ function openMinigamePicker(){
     list.appendChild(b);
   });
   refreshMgDiffUI();
-  const left=MINIGAMES.filter(d=>!playedMinigameToday(d.id)).length;
+  const left=minigamesLeftIn(P);
   const cnt=document.getElementById('mg-pick-count');
-  if(cnt)cnt.textContent=`今夜あと${left}種`;
+  if(cnt)cnt.textContent=`${MG_PLACE_LABEL[P].left}${left}種`;
   list.scrollTop=0;
+  if(P==='factory'&&typeof updateNavActive==='function')updateNavActive('factory');
   document.getElementById('mg-picker').classList.add('active');
 }
-function closeMinigamePicker(){document.getElementById('mg-picker').classList.remove('active');}
+function closeMinigamePicker(){document.getElementById('mg-picker').classList.remove('active');if(_mgPlace==='factory'&&typeof updateNavActive==='function'&&!document.body.classList.contains('mg-active'))updateNavActive('main');}
 
 // ── 本体の遅延読み込み ──
 // 読み込み中の小さな表示（選択画面の上に重ねる。ほかの画面の状態は変えない）
@@ -231,6 +293,22 @@ addMinigameStyle('avatar',`
 @media (max-width:360px){#mg-screen .mg-avatar{width:24px;height:26px;margin:-4px 0 -4px -6px;image-rendering:auto;}}
 `);
 
+// 遊び始めに、効いているスキルを数秒だけ見せる（スキル画面で上げた効果がゲーム内で分かるように）
+function mgShowSkillFx(id){
+  try{
+    const on=mgSkillFxFor(id).filter(r=>r.lv>0);
+    const scr=document.getElementById('mg-screen');if(!scr)return;
+    scr.querySelectorAll('.mg-skillfx').forEach(e=>e.remove());
+    if(!on.length)return;
+    const el=document.createElement('div');el.className='mg-skillfx';el.setAttribute('role','status');
+    el.innerHTML='★ スキル効果　'+on.slice(0,4).map(r=>`<b>${r.name}Lv${r.lv}</b>：${r.tx}`).join('<br>')+(on.length>4?`<br>ほか${on.length-4}件（⭐スキル画面に一覧）`:'');
+    scr.appendChild(el);
+    // 3Dのゲームは始めの準備で画面が止まることがあるので、描き始めてから数える
+    const later=()=>{setTimeout(()=>el.classList.add('out'),4200);setTimeout(()=>el.remove(),5000);};
+    if(typeof requestAnimationFrame==='function')requestAnimationFrame(()=>requestAnimationFrame(later));else later();
+  }catch(e){}
+}
+
 // ── 実行管理 ──
 const MG={
   def:null,game:null,_iv:[],_raf:null,_keys:null,_ended:true,_onEnd:[],
@@ -305,6 +383,7 @@ const MG={
     document.body.classList.add('mg-active');
     this.el('mg-screen').classList.add('active');
     this.game=def.start(body,this);
+    mgShowSkillFx(def.id);
     // 見出しに難しさの表示が無いゲームには自動で付ける
     {const tt=this.el('mg-title');const d=mgDifficulty();if(tt&&!tt.querySelector('.mg-diffb'))tt.insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${d}">${MG_DIFF_NAMES[d]}</span>`);}
   },
@@ -351,6 +430,22 @@ const MG={
     AU.fadeBGM('night',800);
     gs.mgDay=gs.mgDay||{};
     gs.mgDay[this.def.id]=gs.day;
+    // 工場のミニゲーム：その日はじめての仕事に夜勤手当、配線理解（収入）・PLC解析（仕事評価）の上乗せ、工場で働いた扱い
+    let wageLine='';
+    if(minigamePlace(this.def.id)==='factory'&&r&&r.fx){
+      const f=r.fx=Object.assign({},r.fx);
+      const worked=(+f.money||0)>0||(+f.jobRep||0)>0;
+      if(worked&&!MG_NO_WAGE.includes(this.def.id)&&gs.factoryShiftDay!==gs.day){
+        gs.factoryShiftDay=gs.day;
+        f.money=(+f.money||0)+MG_FACTORY_WAGE.money;f.jobRep=(+f.jobRep||0)+MG_FACTORY_WAGE.jobRep;
+        wageLine=`🔧 うち夜勤手当（今日はじめての仕事・評価+${MG_FACTORY_WAGE.jobRep}込み） <span class="up">+¥${MG_FACTORY_WAGE.money.toLocaleString()}</span>`;
+      }
+      const w=mgSkill('wiring',3),pl=mgSkill('plc',3);
+      if(f.money>0&&w)f.money=Math.round(f.money*(1+.05*w)/100)*100;
+      if(f.jobRep>0&&pl)f.jobRep+=pl;
+      // 性格：工場で働くと意志↑・やさしさ↓（以前の設備点検1回と同じ量＝2回ぶん）
+      if(worked&&typeof updatePersonality==='function')try{updatePersonality('factory');updatePersonality('factory');}catch(e){}
+    }
     applyMinigameFx(r.fx||{});
     if(r.sp)gs.sp+=r.sp;
     if(r.after)r.after();
@@ -358,7 +453,7 @@ const MG={
     if(r.cutin)cutin(r.cutin[0],r.cutin[1]);
     updateNavActive('main');
     const spLine=r.sp?`<br>スキルポイント <span class="up">+${r.sp}</span>`:'';
-    showResult(r.title,(r.summary?r.summary+'<br>':'')+fxToHtml(r.fx||{})+spLine);
+    showResult(r.title,(r.summary?r.summary+'<br>':'')+fxToHtml(r.fx||{})+(wageLine?'<br>'+wageLine:'')+spLine);
     advTime(r.time||60);
     loadScene('main');
     checkGameOver();

@@ -4,6 +4,7 @@
 //   訪問者の画面でも、同じ時刻なら同じ 2 匹が同じ言葉をかわす。
 // ・時間は TALK.SLOT_MS ごとの「枠」。枠ごとに TALK.CHANCE の見込みで、枠の始め＋TALK.START_MS から 1 つのやりとりがある。
 //   2 匹は「やりとりの始まりの時刻に、同じ部屋で起きている」組から選ぶ（しぐさの計算 familyScene をその時刻で呼ぶ）。
+// ・Ver.0.8：季節の行事（もうすぐ・いま・あと・参加した）と、季節×天気のことばを足した（ctx.festAt(t) で枠の始めの行事の様子）。
 // ・中身は 組の種類（子どもどうし・つれあいと子・なかまと子・なかまとおとな・住人・おとなどうし）と、
 //   季節・昼夜・天気・倉庫の種子・おなか・できごと（赤ちゃんが生まれたばかり・世代交代のあと・富山へ行ったことがある・なかまと地上へ出た）で変わる。
 //   やさしい言葉だけ。富山のことは ほのめかすだけ（「白い山」「ゆきの国」まで。題名・名前は出さない）。
@@ -24,6 +25,8 @@ const stg = m => m.stage || stageOf(m.ageMs);
 const isSmall = m => (m.role === 'pup' || m.role === 'kin') && (stg(m) === 'pup' || stg(m) === 'young');
 const isAdult = m => !m.npc && m.role !== 'friend' && !isSmall(m);
 const hungry = m => isSmall(m) && (m.fed ?? 100) < 40;
+/** Ver.0.8：季節の行事の様子（c.fest = {id, phase}）。id が null なら どの行事でも */
+const fe = (c, id, ...phases) => !!c.fest && (id == null || c.fest.id === id) && phases.includes(c.fest.phase);
 
 /** 組の種類と、話す順の a / b（a が最初に話すとは限らない：行ごとに a / b を指定） */
 export function pairType(x, y) {
@@ -102,12 +105,57 @@ const D = [
   { id: 'a_litter', type: 'adults', w: 2.5, when: c => c.newLitter, lines: [['a', '赤ちゃん、よく ねてる'], ['b', 'しーっ、おこさないようにね']] },
   { id: 'a_succ', type: 'adults', w: 2, when: c => c.succession, lines: [['a', 'ここも 代が かわったね'], ['b', '巣は おなじ。においも おなじ']] },
   { id: 'a_toyama', type: 'adults', w: 2, when: c => c.toyama, lines: [['a', 'あの子、ときどき 遠くを 見てるね'], ['b', '…白い山の ほうかな']] },
+  // ── Ver.0.8「季節のたのしみ」：季節の行事（もうすぐ・いま・あと）と、季節×天気のことば ──
+  // 春：花の種まき
+  { id: 'k_hana_before', type: 'kids', w: 2, when: c => fe(c, 'hana', 'before'), lines: [['a', 'こんやは 花の種まきだって！'], ['b', 'どんな花が さくのかな']] },
+  { id: 'k_hana_after', type: 'kids', w: 1.5, when: c => fe(c, 'hana', 'during', 'after') && c.festJoined, lines: [['a', 'いりぐちの 花、見た？'], ['b', 'うん！ ちいさくて かわいい']] },
+  { id: 'p_hana_before', type: 'parent', w: 2, when: c => fe(c, 'hana', 'before'), lines: [['b', 'たね、まいても いいの？'], ['a', 'ひとつぶだけね。だいじに まこう']] },
+  { id: 'p_hana_during', type: 'parent', w: 2, when: c => fe(c, 'hana', 'during') && !c.festJoined, lines: [['b', 'もう 花の種まき、はじまった？'], ['a', 'ええ。入口の そばに まいてこようね']] },
+  { id: 'a_hana_after', type: 'adults', w: 1.5, when: c => fe(c, 'hana', 'during', 'after') && c.festJoined, lines: [['a', 'うちの 花、よく ひらいたね'], ['b', 'となりの 巣の花も きれいだった']] },
+  { id: 'fm_hana', type: 'friendMate', w: 1.5, when: c => fe(c, 'hana', 'during', 'after'), lines: [['a', 'すなの海には 花が すくないの'], ['b', 'じゃあ たくさん 見ていってね']] },
+  { id: 'n_hana', type: 'npc', w: 1.5, when: c => fe(c, 'hana', 'during', 'after'), lines: [['a', '花の種、まいてきたよ'], ['b', 'わあ、ありがとう']] },
+  // 夏：星見の夜
+  { id: 'k_hoshi_before', type: 'kids', w: 2, when: c => fe(c, 'hoshi', 'before'), lines: [['a', 'こんや、星が ながれるんだって'], ['b', 'ねがいごと、かんがえなきゃ']] },
+  { id: 'k_hoshi_during', type: 'kids', w: 2, when: c => fe(c, 'hoshi', 'during'), lines: [['a', 'そとで 星が いっぱい ながれてる？'], ['b', 'みんな 丘に いるのかな'], ['a', 'いいなあ']] },
+  { id: 'p_hoshi_before', type: 'parent', w: 2, when: c => fe(c, 'hoshi', 'before'), lines: [['b', '星見って なあに？'], ['a', '丘に すわって 空を 見るの'], ['b', 'いつか いっしょに 行きたい']] },
+  { id: 'p_hoshi_after', type: 'parent', w: 1.5, when: c => fe(c, 'hoshi', 'after'), lines: [['b', 'ながれ星、見えた？'], ['a', 'ええ。ねがいごと したよ']] },
+  { id: 'f_hoshi', type: 'friendKid', w: 1.5, when: c => fe(c, 'hoshi', 'before', 'during', 'after'), lines: [['a', 'すなの海でも 星は よく見えるよ'], ['b', 'ほんと？ いつか 見たいな']] },
+  { id: 'a_hoshi_after', type: 'adults', w: 1.5, when: c => fe(c, 'hoshi', 'after'), lines: [['a', 'きのうの 星、すごかったね'], ['b', 'みんなで すわると あったかいね']] },
+  { id: 'n_hoshi', type: 'npc', w: 1.5, when: c => fe(c, 'hoshi', 'before', 'during'), lines: [['a', '丘で 星を 見てくるね'], ['b', 'いってらっしゃい']] },
+  // 秋：月見
+  { id: 'k_tsuki_before', type: 'kids', w: 2, when: c => fe(c, 'tsuki', 'before'), lines: [['a', 'もうすぐ 月見だよ'], ['b', 'まんまるの 月？'], ['a', 'うん、まんまる！']] },
+  { id: 'k_tsuki_during', type: 'kids', w: 2, when: c => fe(c, 'tsuki', 'during'), lines: [['a', 'そと、月で あかるいね'], ['b', 'ひるみたい！']] },
+  { id: 'p_tsuki_before', type: 'parent', w: 2, when: c => fe(c, 'tsuki', 'before'), lines: [['b', 'たねを おそなえ するの？'], ['a', 'ええ。みのりの おれいにね']] },
+  { id: 'p_tsuki_after', type: 'parent', w: 1.5, when: c => fe(c, 'tsuki', 'after'), lines: [['b', 'たねの 山、大きかった？'], ['a', 'みんなの ぶんで こんもりよ']] },
+  { id: 'fm_tsuki', type: 'friendMate', w: 1.5, when: c => fe(c, 'tsuki', 'before', 'during'), lines: [['a', 'こんやの 月は 大きいね'], ['b', 'すなの海でも 見えるかな']] },
+  { id: 'a_tsuki_during', type: 'adults', w: 2, when: c => fe(c, 'tsuki', 'during'), lines: [['a', '月が きれいだね'], ['b', '…うん、とっても']] },
+  { id: 'n_tsuki', type: 'npc', w: 1.5, when: c => fe(c, 'tsuki', 'before', 'during'), lines: [['a', '月見の たね、もってきたよ'], ['b', 'いっしょに おそなえしよう']] },
+  // 冬：灯りの夜
+  { id: 'k_akari_before', type: 'kids', w: 2, when: c => fe(c, 'akari', 'before'), lines: [['a', 'こんやは 灯りの夜だって'], ['b', 'あかり、ともしたい！']] },
+  { id: 'k_akari_during', type: 'kids', w: 2, when: c => fe(c, 'akari', 'during'), lines: [['a', 'そとが ぽかぽか 光ってる'], ['b', 'みんなの 灯りだね']] },
+  { id: 'p_akari_before', type: 'parent', w: 2, when: c => fe(c, 'akari', 'before'), lines: [['b', 'くさで 灯りが できるの？'], ['a', 'ちいさいのならね。作ってみよう']] },
+  { id: 'p_akari_after', type: 'parent', w: 1.5, when: c => fe(c, 'akari', 'after') && c.festJoined, lines: [['b', 'うちの 灯り、まだ ついてる？'], ['a', 'ええ。入口で まってるよ']] },
+  { id: 'f_akari', type: 'friendKid', w: 1.5, when: c => fe(c, 'akari', 'during', 'after'), lines: [['a', 'あかりって あったかいね'], ['b', 'みみも ぽかぽか？'], ['a', 'うん']] },
+  { id: 'a_akari_after', type: 'adults', w: 1.5, when: c => fe(c, 'akari', 'during', 'after'), lines: [['a', 'みんなの 灯りで 原が あかるいね'], ['b', 'さむい夜も こわくないね']] },
+  { id: 'n_akari', type: 'npc', w: 1.5, when: c => fe(c, 'akari', 'during', 'after'), lines: [['a', '灯り、うちの前にも おいたよ'], ['b', 'ありがとう。あったかいね']] },
+  { id: 'a_akari_toyama', type: 'adults', w: 2, when: c => fe(c, 'akari', 'during', 'after') && c.toyama, lines: [['a', 'ゆきの国にも 灯りが あったって'], ['b', '…だれが ともしたんだろうね']] },
+  // 行事に参加したあと
+  { id: 'p_joined', type: 'parent', w: 1.5, when: c => c.festJoined && fe(c, null, 'during', 'after'), lines: [['b', 'きょうの 行事、たのしかった？'], ['a', 'ええ、とっても']] },
+  { id: 'k_joined', type: 'kids', w: 1.2, when: c => c.festJoined && fe(c, null, 'during', 'after'), lines: [['a', 'こんどは わたしも 行きたい'], ['b', 'つぎの 季節に いっしょに 行こう']] },
+  // 季節×天気・時間
+  { id: 'k_spring_rain', type: 'kids', w: 2, when: c => c.season === 'spring' && c.weather === 'rain', lines: [['a', 'はるの あめって いいにおい'], ['b', 'くさが のびる においだね']] },
+  { id: 'p_summer_storm', type: 'parent', w: 2, when: c => c.season === 'summer' && c.weather === 'sandstorm', lines: [['b', 'あついし すなあらし…'], ['a', '巣の奥で いっしょに すずもう']] },
+  { id: 'a_autumn_night', type: 'adults', w: 1.2, when: c => c.season === 'autumn' && c.period === 'night' && c.weather === 'clear', lines: [['a', '風が ひんやりしてきたね'], ['b', 'たね、たくさん あつめておこう']] },
+  { id: 'k_winter_tale', type: 'kids', w: 1.2, when: c => c.season === 'winter' && c.weather !== 'snow', lines: [['a', 'さむい夜は おはなし しよ'], ['b', 'うん。むかしむかし…']] },
+  { id: 'a_spring_dawn', type: 'adults', w: 1.5, when: c => c.season === 'spring' && c.period === 'dawn', lines: [['a', 'はるの 明け方は きもちいいね'], ['b', 'もうすぐ ねる じかんだね']] },
+  { id: 'fm_rain', type: 'friendMate', w: 2, when: c => c.weather === 'rain', lines: [['a', 'あめって ふしぎ'], ['b', 'すなの海では めずらしいの？'], ['a', 'うん、とっても']] },
+  { id: 'n_snow', type: 'npc', w: 2, when: c => c.weather === 'snow', lines: [['a', 'ゆきで まっしろ だったよ'], ['b', 'こっちで あったまっていって']] },
 ];
 export const DIALOGUES = D;
 export const TALK_TYPES = ['kids', 'parent', 'friendKid', 'friendMate', 'npc', 'adults'];
 
 /**
- * 文脈（家族の一覧から決まる分も足す）。ctx = {season, period, weather, seeds, tales:{toyama}, companion}
+ * 文脈（家族の一覧から決まる分も足す）。ctx = {season, period, weather, seeds, tales:{toyama, fest}, companion, fest:{id, phase}}
  * できごと：newLitter（いちばん若い子が TALK.NEW_LITTER_MS より若い）・succession（きょうだい＝前の代の子が巣にいる）・toyama（その家の子が富山へ行ったことがある）
  */
 export function talkContext(members, ctx = {}) {
@@ -119,6 +167,8 @@ export function talkContext(members, ctx = {}) {
     toyama: !!(ctx.tales && ctx.tales.toyama),
     companion: ctx.companion ?? null,
     smallKids: members.filter(isSmall).length,
+    fest: ctx.fest && ctx.fest.id ? { id: ctx.fest.id, phase: ctx.fest.phase } : null,   // Ver.0.8：季節の行事（shared/festival.js の festTalkCtx）
+    festJoined: !!(ctx.tales && ctx.tales.fest),                                          // Ver.0.8：この家の子が この季節の行事に参加した
   };
 }
 
@@ -146,7 +196,8 @@ export function talkInSlot({ key, members = [], slot, sceneAt, ctx = {} }) {
   const pr = pairs[Math.floor(famRand(key, 'talkpair', slot, pairs.length) * pairs.length) % pairs.length];
   const flip = famRand(key, 'talkflip', slot, 1) < 0.5;
   const P = pairType(flip ? pr[1] : pr[0], flip ? pr[0] : pr[1]);
-  const c = talkContext(members, ctx);
+  // Ver.0.8：行事の様子は やりとりの始まりの時刻で決める（ctx.festAt(t)：どの画面でも同じ）
+  const c = talkContext(members, typeof ctx.festAt === 'function' ? { ...ctx, fest: ctx.festAt(t0) } : ctx);
   const opts = D.filter(d => d.type === P.type && d.when(c, P.a, P.b));
   if (!opts.length) return null;
   const sum = opts.reduce((s, d) => s + d.w, 0);

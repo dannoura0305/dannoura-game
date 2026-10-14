@@ -2,7 +2,7 @@
 // 家・庭と本編／RPG／エンディングの接続（関数を包むだけ。元の関数は必ず呼ぶ）
 //   saveDataToGs … 読込直後に HOME.ensure()（前のセーブの家は残らない：/Data$/ キーは元関数が消す）
 //   nextDay      … 植物の成長 HOME.tickDay() と HOME.events.tick()
-//   endFactory / handleChoice('childcare') / MG.finish（釣り・RPG） … 素材を少しだけ（1日1回ずつ）
+//   MG.finish（工場タブのミニゲーム・釣り・RPG）/ handleChoice('childcare') … 素材を少しだけ（1日1回ずつ）
 //   RPG第2章クリア … 貝殻ランタンのレシピ（夢で得た「発想」）＋思い出（grantOnce で一度だけ）
 //   RPG第1章 → 風鈴／第4章 → 海のモビール／第5章 → 家の表札のレシピ、第3章 → 約束の思い出（bonds）
 //   休む・子育て・工場 → HOME.bonds.note（1日1キー）、日送り → HOME.life_events.tick()
@@ -156,14 +156,17 @@ wrap('nextDay',prev=>function(){
   }catch(e){console.warn('[home] nextDay',e);}
   return r;
 });
-// 工場の仕事：許可された端材を持ち帰る
-wrap('endFactory',prev=>function(){
-  let worked=true;try{worked=typeof ff==='undefined'||ff>0;}catch(e){}
-  const r=prev.apply(this,arguments);
-  try{if(worked&&HOME.bonds&&HOME.bonds.note)HOME.bonds.note('work',day());}catch(e){}
-  try{if(worked){const metal=day()%2===0;dailyMaterial('factory',metal?'metal':'wood',1,metal?'🔩 持ち帰りを許可された端材の金具をもらった':'🪵 持ち帰りを許可された端材をもらった');}}catch(e){}
-  return r;
-});
+// 工場の仕事（工場タブのミニゲーム。minigames/registry.js MG_FACTORY_IDS）：許可された端材を持ち帰る
+// 収入か仕事評価が増えたとき＝ちゃんと働いたときだけ（途中でやめた・何もできなかった日はなし）
+const FACTORY_IDS=(()=>{try{if(typeof MG_FACTORY_IDS!=='undefined'&&Array.isArray(MG_FACTORY_IDS))return MG_FACTORY_IDS.slice();}catch(e){}return ['rogue','puzzle','blocks','factory3d','quiz','escape','race'];})();
+function factoryWorked(id,r){
+  if(!FACTORY_IDS.includes(id)||!r||!r.fx)return false;
+  return (+r.fx.money||0)>0||(+r.fx.jobRep||0)>0;
+}
+function noteFactoryWork(){
+  try{if(HOME.bonds&&HOME.bonds.note)HOME.bonds.note('work',day());}catch(e){}
+  try{const metal=day()%2===0;dailyMaterial('factory',metal?'metal':'wood',1,metal?'🔩 持ち帰りを許可された端材の金具をもらった':'🪵 持ち帰りを許可された端材をもらった');}catch(e){}
+}
 // 子育て：小さくなった服を端切れに
 wrap('handleChoice',prev=>function(ac){
   // 休む・寝かしつけは、元の処理（日付が進むことがある）より前の日付で記録する
@@ -177,7 +180,7 @@ wrap('handleChoice',prev=>function(ac){
   try{if(ac==='childcare')dailyMaterial('childcare','cloth',1,'🧵 小さくなったあの子の服を、端切れにした');}catch(e){}
   return r;
 });
-// ミニゲーム：釣り・RPG（MG は minigames/core.js のトップレベル const）
+// ミニゲーム：工場タブ・釣り・RPG（MG は minigames/core.js のトップレベル const）
 (function(){
   let mg=null;try{mg=typeof MG!=='undefined'?MG:null;}catch(e){mg=null;}
   if(!mg||typeof mg.finish!=='function')return;
@@ -189,6 +192,7 @@ wrap('handleChoice',prev=>function(ac){
     const out=prev.apply(this,arguments);
     if(wasEnded)return out;
     try{
+      if(factoryWorked(id,r))noteFactoryWork();
       if(id==='fishing'&&r&&r.fx&&r.fx.hope>0)dailyMaterial('fishing','sea',1,'🐚 港の波打ち際で、海のかけらを拾った');
       if(id==='rpg'){const after=rpgCleared();if(after>before){for(let n=before+1;n<=after;n++)rpgClearReward(n);syncRpg(false);}}
     }catch(e){console.warn('[home] minigame',e);}

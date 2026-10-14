@@ -1402,7 +1402,7 @@ window.addEventListener('keydown',e=>{
 // ══════════════════════════════════════════════════════════
 // いつ出すか：画面がひと段落した（ポップアップ・結果・配信・ミニゲーム等が閉じた）とき
 // ══════════════════════════════════════════════════════════
-const BLOCKERS=['ev-popup','result-sc','ending-sc','streaming-ol','factory-mini','diag-mini','song-mini','status-sc','skill-sc',
+const BLOCKERS=['ev-popup','result-sc','ending-sc','streaming-ol','song-mini','status-sc','skill-sc',
   'mg-picker','mg-screen','settings-sc','tutorial-sc','endlist-sc','share-panel'];
 function visibleModal(x){
   if(!x)return false;

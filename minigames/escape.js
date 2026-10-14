@@ -269,9 +269,11 @@ registerMinigame({
     // 難しさ（開始時に読む）：制限時間・ヒント回数・手がかりの強調
     const DIFF=mgDifficulty();
     mg.el('mg-title').insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);
-    const TIME=mgDiff(480,360,270);            // 秒（二夜目は +30）
-    const HMAX=mgDiff(6,4,3);                  // ヒント回数
-    const MARK_MIN=mgDiff(.32,.14,0);          // 光の外でも調べられる場所の枠を薄く出す
+    // スキル：集中力＝制限時間 +20秒/Lv・調べられる場所が見えやすい／緊急復旧＝ヒント +1回/Lv
+    const SK_FO=mgSkill('focus',3),SK_EF=mgSkill('emergencyFix',3);
+    const TIME=mgDiff(480,360,270)+20*SK_FO;   // 秒（二夜目は +30）
+    const HMAX=mgDiff(6,4,3)+SK_EF;            // ヒント回数
+    const MARK_MIN=mgDiff(.32,.14,0)+.1*SK_FO; // 光の外でも調べられる場所の枠を薄く出す
     const CLUE_HL=DIFF==='easy';               // 手がかり（暗証・手順の書かれた物）を金色で強調
     const CLUES={roster:1,diagram:1,memo:1,note:1,tank:1,oldmemo:1,tag:1,lockpanel:1,gen:1};
     const P=makePuzzle();

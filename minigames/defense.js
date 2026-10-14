@@ -72,6 +72,8 @@ registerMinigame({
       bonus:mgDiff(15,8,0),       // ウェーブクリア時ボーナスの上乗せ（¥）
       bossSpawn:mgDiff(4.6,3.9,3.4), // 炎上アカウントが手下を呼ぶ間隔（秒）
     };
+    // 雑談力（スキル）：開始資金 +¥20/Lv・ウェーブクリアのボーナス +¥5/Lv
+    {const L=mgSkill('chatSkill',3);DF.money+=20*L;DF.bonus+=5*L;}
     addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
     {const tt=mg.el('mg-title');if(tt&&!tt.querySelector('.mg-diffb'))tt.insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);}
     const COLS=7, ROWS=11, MAX_LIVES=10, WAVES=5;

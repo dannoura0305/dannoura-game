@@ -19,6 +19,7 @@ import { landAt, landOut } from '../shared/lands.js';
 import { makeFieldState } from '../shared/move.js';
 import { Household, walkerOut } from '../shared/household.js';
 import { toyamaEventBlock, TEV, TOYAMA_EVENT_IDS } from '../shared/toyama.js';
+import { festivalAt, festActBlock, makeMark, FEST_ACTS, FEST } from '../shared/festival.js';
 import { founderInd, indOut, courtBlock, needsFood, friendBlock } from '../shared/family.js';
 import { traitMoveMods, traitMods, lookOf, seedOf } from '../shared/genetics.js';
 import { lifeEnvWithTraits, makeLife } from '../shared/life.js';
@@ -291,6 +292,7 @@ export class Game {
       // Ver.0.7
       case C2S.COMPANION: return this.setCompanion(p, m);
       case C2S.TOYAMA_EVENT: return this.toyamaEvent(p, m);
+      case C2S.FEST_ACT: return this.festAct(p, m);   // Ver.0.8
     }
     return fail(ERR.BAD_REQUEST, '知らない要求: ' + String(m.t).slice(0, 20));
   }
@@ -645,7 +647,13 @@ export class Game {
       this.clock.origin = c.origin; this.clock.base = c.base;   // 同じ入れ物を書きかえる（部屋も同じ時計を見ている）
     }
     if (m.tevReset) { p.tev = {}; this.store.q("DELETE FROM account_flags WHERE account_id = ? AND substr(key, 1, 4) = 'tev:'").run(p.accountId); }
-    if (m.weather !== undefined || m.season !== undefined || m.hour != null) { const msg = { t: S2C.CLOCK, clock: { ...this.clock }, st: this.now() }; for (const s of this.sessions) if (s.player) s.conn.send(msg); }
+    if (m.fest !== undefined) { if (m.fest === 'on' || m.fest === 'off') this.clock.fest = m.fest; else delete this.clock.fest; }   // Ver.0.8：いつでも行事の夜（全員）
+    if (m.festReset) {   // Ver.0.8：自分の印と 行事の品を消す（確認用）
+      this.store.deleteFestMarks(p.accountId);
+      for (const room of this.fields.values()) room.festMarks = room.festMarks.filter(x => x.owner !== p.accountId);
+      for (const cid of [...p.owned]) if (CURIOS[cid] && CURIOS[cid].kind === 'fest') { p.owned.delete(cid); this.store.q('DELETE FROM account_collectibles WHERE account_id = ? AND collectible_id = ?').run(p.accountId, cid); }
+    }
+    if (m.weather !== undefined || m.season !== undefined || m.hour != null || m.fest !== undefined) { const msg = { t: S2C.CLOCK, clock: { ...this.clock }, st: this.now() }; for (const s of this.sessions) if (s.player) s.conn.send(msg); }
     let spawned = null;
     const room = this.fieldOf(p);
     if (m.spawn && PRED[m.spawn] && p.place === 'field') {
@@ -884,6 +892,37 @@ export class Game {
     this.store.setHouseFlags(h.me.id, this._houseFlags(h));
     this._updateKids(p);
     return { ok: true, family: h.out(), kids: p.kids, swapped: r.swapped };
+  }
+  /**
+   * Ver.0.8：季節の行事に参加する（1 回の行事に 1 回・条件は shared/festival.js の festActBlock をサーバーの確定位置で）。
+   * 費用（種子・草）を払い、印を DB（fest_marks：UNIQUE(account_id, occ)）とその土地のみんなへ。はじめての行事なら図鑑の品（1 回だけ）。
+   */
+  festAct(p, m) {
+    const act = String(m.act || '');
+    if (!FEST_ACTS[act]) return fail(ERR.BAD_REQUEST, 'そんな行事は ない');
+    if (p.place !== 'field' || !p.st) return fail(ERR.RULE, '地上で');
+    const room = this.fieldOf(p), t = this.now();
+    room.drain(p);
+    if (p.festT && t - p.festT < 800) return fail(ERR.RATE, 'ちょっと待って');
+    p.festT = t;
+    const f = festivalAt(this.clock, t);
+    const ent = room.entrances.get(p.accountId) || null;
+    const done = this.store.festJoined(p.accountId, f.occ);
+    const why = festActBlock({ fest: f, act, region: room.region, x: p.st.x, y: p.st.y, entrance: ent, spawn: room.map.spawn, done, inv: p.inv, still: p.stillT || 0, place: 'field' });
+    if (why) return fail(ERR.RULE, why);
+    const mark = makeMark({ fest: f, region: room.region, x: p.st.x, y: p.st.y + (act === 'lantern' ? 2 : 0), owner: p.accountId, name: p.name, at: t });
+    if (room.festMarks.filter(x => x.occ === f.occ).length >= FEST.MAX_MARKS) return fail(ERR.FULL, 'もう いっぱい（また次の季節に）');
+    const inv = p.inv.map(x => x && { ...x });
+    for (const [k, n] of Object.entries(f.cost)) removeItem(inv, k, n);
+    let wrote = 0;
+    this.store.tx(() => { wrote = this.store.addFestMark(mark); if (wrote) this.store.setCharInventory(p.charId, inv); });
+    if (!wrote) return fail(ERR.RULE, 'この夜は もう 参加した（また次の季節に）');
+    p.inv = inv;
+    room.addFestMark(mark);
+    let reward = null;
+    if (this.store.addCollectible(p.accountId, f.reward, t, { fest: f.id, occ: f.occ }) === 1) { reward = f.reward; this.collected(p, f.reward, t); }
+    this.log(`[fest] ${p.name}: ${f.id}（${act}）`);
+    return { ok: true, mark, inv: inv.map(x => x && { ...x }), reward, fest: { id: f.id, occ: f.occ } };
   }
   /** Ver.0.7：富山の小さな出来事（1 回だけ）。条件はサーバーが確かめる（shared/toyama.js の toyamaEventBlock） */
   toyamaEvent(p, m) {
@@ -1266,7 +1305,8 @@ export class Game {
     const toyama = o ? !!o.toyamaFound : this.store.flag(nest.owner, 'toyama') === '1';
     let companion = o && o.house ? o.house.companion ?? null : null;
     if (!o) { const hj = this.store.household(nest.owner); companion = hj ? hj.companion ?? null : null; }
-    return { toyama, companion };
+    const fest = this.store.festJoined(nest.owner, festivalAt(this.clock, this.now()).occ);   // Ver.0.8：この季節の行事に参加した
+    return { toyama, companion, fest };
   }
   _indAcct(id) { const r = this.store.q('SELECT account_id FROM individuals WHERE id = ?').get(id); return r ? r.account_id : null; }
 
