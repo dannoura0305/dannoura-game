@@ -301,10 +301,11 @@ function mgShowSkillFx(id){
     scr.querySelectorAll('.mg-skillfx').forEach(e=>e.remove());
     if(!on.length)return;
     const el=document.createElement('div');el.className='mg-skillfx';el.setAttribute('role','status');
-    el.innerHTML='★ スキル効果　'+on.map(r=>`<b>${r.name}Lv${r.lv}</b>：${r.tx}`).join('<br>');
+    el.innerHTML='★ スキル効果　'+on.slice(0,4).map(r=>`<b>${r.name}Lv${r.lv}</b>：${r.tx}`).join('<br>')+(on.length>4?`<br>ほか${on.length-4}件（⭐スキル画面に一覧）`:'');
     scr.appendChild(el);
-    setTimeout(()=>el.classList.add('out'),4200);
-    setTimeout(()=>el.remove(),5000);
+    // 3Dのゲームは始めの準備で画面が止まることがあるので、描き始めてから数える
+    const later=()=>{setTimeout(()=>el.classList.add('out'),4200);setTimeout(()=>el.remove(),5000);};
+    if(typeof requestAnimationFrame==='function')requestAnimationFrame(()=>requestAnimationFrame(later));else later();
   }catch(e){}
 }
 
