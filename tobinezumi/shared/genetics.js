@@ -62,14 +62,14 @@ export function expressFur(col) {
 }
 
 /**
- * 最初の 1 匹（キャラクター作成）の遺伝子：選んだ毛色を 2 つ持つ（その色が必ず出る）。体の形は種から少しずつばらつく
+ * 最初の 1 匹（キャラクター作成）の遺伝子：選んだ毛色を 2 つ持つ（その色が必ず出る）。体つきは「ふつう」（どの形質も 0：前の版と同じ動き）。
+ * 斑・白い房の遺伝子を 1 つだけ隠し持っていることがある（種で決まる。表には出ない）→ 野生の子との間で孫の代にまれに現れる
  */
 export function founderGenes(fur, seed = 1) {
   const rng = mulberry32(seed >>> 0);
   const f = FUR_RANK[fur] != null ? fur : 'sand';
-  const g = { v: GENE_VERSION, fur: f, col: [f, f], pied: [0, rng() < 0.12 ? 1 : 0], tuft: [0, rng() < 0.2 ? 1 : 0], tint: [] };
-  for (let i = 0; i < TINT_N; i++) g.tint.push(allele(rng, 0.84));
-  for (const k of POLY) { g[k] = []; for (let i = 0; i < POLY_N; i++) g[k].push(allele(rng, 0.45)); }
+  const g = { v: GENE_VERSION, fur: f, col: [f, f], pied: [0, rng() < 0.25 ? 1 : 0], tuft: [0, rng() < 0.3 ? 1 : 0], tint: new Array(TINT_N).fill(0) };
+  for (const k of POLY) g[k] = new Array(POLY_N).fill(0);
   return g;
 }
 

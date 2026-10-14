@@ -141,3 +141,16 @@ python3 tobinezumi/tools/normalize_sprites.py --help # 外部画像の規格化
 | `tile.plug` 24×16 | ふさいだ入口（`tile.burrow` の上に重ねる小石） |
 | `ui.land_flag` 16×16 | 土地を調べた所の旗 |
 | `ui.alert` 12×14 | 捕食者の「！」 |
+
+### Ver.0.4「いのちをつなぐ」（`tools/art_family.py` が描く。毛色は FUR_BASE で描いてあり fur.palettes で差し替え）
+| キー | セル | 中身 |
+|---|---|---|
+| `pup.field.idle` / `hop` / `sleep` | 32×32・dirs down/up/side・2/4/2 コマ | 子ども（地上）。大人の姿勢を足元 (16,29) を中心に 0.66 倍・頭 1.3 倍・耳と尾を短く |
+| `pup.side.idle` / `walk` / `sleep` | 32×32・2/4/2 コマ・右向き | 子ども（巣の横向き） |
+| `jerboa.field.sniff` | 32×32・dirs down/up/side・2 コマ | 野生の子が後ろ脚で立ち上がって見る（気になる） |
+| `ui.heart` | 7×7・5 種（0/25/50/75/100） | 信頼のハート（下から満ちる） |
+| `ui.sparkle` | 5×5 | なかよしのきらきら |
+| `ui.traits` | 10×10・10 種（ear, leg, tail, size, fur, pied, female, male, pup, mate） | 形質のアイコン（家系図の札） |
+| `ui.lineage_frame` | 24×24・2 種（normal, current）・9 スライス 6px | 家系図の額縁（いまの子は明るい金） |
+
+- 形質の描き分け（耳・脚・尾の長さ、体の大きさ、濃淡・斑・白い房）は素材を増やさず、`client/sprites.js` の `_drawLook` がコマごとに画素を伸び縮み・色を差し替えて作る（キャッシュ）。若者は大人の素材を 0.84 倍、子どもは `pup.*`。

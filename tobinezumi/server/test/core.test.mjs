@@ -465,7 +465,7 @@ await test('再起動後も：持ち物・巣（rev・データ）・位置・�
 });
 
 // ───────── マイグレーション ─────────
-await test('マイグレーション：古い DB（001 だけ・v0 の巣データ）を開くと 004 と巣データ v1 まで上がる', async () => {
+await test('マイグレーション：古い DB（001 だけ・v0 の巣データ）を開くと 005 と巣データ v1 まで上がる', async () => {
   const dir = tempDir();
   const file = join(dir, 'game.db');
   const old = new Store(file);
@@ -477,7 +477,7 @@ await test('マイグレーション：古い DB（001 だけ・v0 の巣デー�
   old.db.prepare("INSERT INTO nests (owner_account_id, schema_version, rev, data, visit_policy, created_at, updated_at) VALUES (1, 0, 3, ?, 'private', 1, 1)").run(JSON.stringify(v0));
   old.close();
   const db = await openDb(file, { log: () => {} });
-  assert.equal(db.schemaVersion(), 4);
+  assert.equal(db.schemaVersion(), 5);
   assert.equal(db.db.prepare("SELECT hidden FROM regions WHERE id = 'toyama'").get().hidden, 1);
   for (const t of ['collectibles', 'account_collectibles', 'events', 'account_flags', 'lands', 'individuals', 'nest_access', 'friends', 'nest_visits', 'nest_events']) assert.ok(db.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?").get(t), t);
   const n = db.nest(1);
@@ -487,7 +487,7 @@ await test('マイグレーション：古い DB（001 だけ・v0 の巣デー�
   // もう一度開いても何もしない
   db.close();
   const again = await openDb(file, { log: () => {} });
-  assert.equal(again.db.prepare('SELECT COUNT(*) n FROM schema_migrations').get().n, 4);
+  assert.equal(again.db.prepare('SELECT COUNT(*) n FROM schema_migrations').get().n, 5);
   again.close(); rmDir(dir);
 });
 

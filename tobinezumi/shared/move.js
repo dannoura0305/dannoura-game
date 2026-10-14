@@ -40,8 +40,8 @@ function boxHigh(map, x, y) {
 }
 
 /** 大ジャンプの着地点（遠い方から探す）。高い障害物を通る線は不可、着地点はふさがっていないこと */
-export function jumpLanding(map, x, y, fx, fy) {
-  for (let d = FIELD.JUMP_DIST; d >= 0; d -= 2) {
+export function jumpLanding(map, x, y, fx, fy, dist = FIELD.JUMP_DIST) {
+  for (let d = Math.round(dist / 2) * 2; d >= 0; d -= 2) {
     let ok = true;
     for (let s = 0; s <= d; s += 4) if (boxHigh(map, x + fx * s, y + fy * s)) { ok = false; break; }
     if (!ok) continue;
@@ -61,6 +61,7 @@ function dirName(fx, fy) {
  * 地上の 1 歩。input = {mx, my, jump}（mx,my は -1/0/1）
  * mods = {tired, speed}（shared/life.js の moveMods・shared/season.js の fieldMods）：へとへとなら跳ねる速さ ×TIRED_SPEED、大ジャンプできない。
  *   speed は天気（砂嵐 ×0.8）の倍率（跳ねる速さだけ。大ジャンプの距離は変わらない）
+ *   Ver.0.4：hop（跳ねる速さ）・jumpDist（大ジャンプの距離）・cd（大ジャンプの待ち）は形質の倍率（shared/genetics.js の traitMoveMods・±10% まで）
  */
 export const TIRED_SPEED = 0.7;
 export function stepField(st, input, dt, map, mods = null) {
@@ -83,15 +84,15 @@ export function stepField(st, input, dt, map, mods = null) {
     s.dir = dirName(mx, my);
   }
   if (input.jump && s.cd <= 0 && !tired) {
-    const land = jumpLanding(map, s.x, s.y, s.fx, s.fy);
+    const land = jumpLanding(map, s.x, s.y, s.fx, s.fy, FIELD.JUMP_DIST * (mods && mods.jumpDist > 0 ? mods.jumpDist : 1));
     s.jump = { t: 0, dur: FIELD.JUMP_DUR, x0: s.x, y0: s.y, x1: land.x, y1: land.y };
-    s.cd = FIELD.JUMP_CD;
+    s.cd = FIELD.JUMP_CD * (mods && mods.cd > 0 ? mods.cd : 1);
     s.anim = 'jump'; s.z = 0;
     return s;
   }
   if (mx || my) {
     const len = Math.hypot(mx, my);
-    const sp = FIELD.HOP_SPEED * (tired ? TIRED_SPEED : 1) * (mods && mods.speed > 0 ? mods.speed : 1);
+    const sp = FIELD.HOP_SPEED * (tired ? TIRED_SPEED : 1) * (mods && mods.speed > 0 ? mods.speed : 1) * (mods && mods.hop > 0 ? mods.hop : 1);
     const vx = mx / len * sp * dt, vy = my / len * sp * dt;
     if (boxFree(map, s.x + vx, s.y)) s.x += vx;
     if (boxFree(map, s.x, s.y + vy)) s.y += vy;

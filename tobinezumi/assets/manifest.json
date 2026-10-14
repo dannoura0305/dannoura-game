@@ -1002,6 +1002,201 @@
    13
   ]
  },
+ "pup.field.idle": {
+  "file": "family/pup_field_idle.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 2,
+  "dirs": [
+   "down",
+   "up",
+   "side"
+  ],
+  "fps": 3,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "side_faces": "right"
+ },
+ "pup.field.hop": {
+  "file": "family/pup_field_hop.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 4,
+  "dirs": [
+   "down",
+   "up",
+   "side"
+  ],
+  "fps": 10,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "side_faces": "right"
+ },
+ "pup.field.sleep": {
+  "file": "family/pup_field_sleep.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 2,
+  "dirs": [
+   "down",
+   "up",
+   "side"
+  ],
+  "fps": 1.5,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "side_faces": "right"
+ },
+ "pup.side.idle": {
+  "file": "family/pup_side_idle.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 2,
+  "fps": 3,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "faces": "right"
+ },
+ "pup.side.walk": {
+  "file": "family/pup_side_walk.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 4,
+  "fps": 10,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "faces": "right"
+ },
+ "pup.side.sleep": {
+  "file": "family/pup_side_sleep.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 2,
+  "fps": 1.5,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "faces": "right"
+ },
+ "jerboa.field.sniff": {
+  "file": "family/wild_sniff.png",
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 2,
+  "dirs": [
+   "down",
+   "up",
+   "side"
+  ],
+  "fps": 2,
+  "loop": true,
+  "anchor": [
+   16,
+   29
+  ],
+  "side_faces": "right",
+  "note": "野生のトビネズミが立ち上がってこちらを見る（気になる）"
+ },
+ "ui.heart": {
+  "file": "family/heart.png",
+  "cell": [
+   7,
+   7
+  ],
+  "variants": 5,
+  "anchor": [
+   3,
+   6
+  ],
+  "names": [
+   "0",
+   "25",
+   "50",
+   "75",
+   "100"
+  ]
+ },
+ "ui.sparkle": {
+  "file": "family/sparkle.png",
+  "cell": [
+   5,
+   5
+  ],
+  "variants": 1,
+  "anchor": [
+   2,
+   2
+  ]
+ },
+ "ui.traits": {
+  "file": "family/traits.png",
+  "cell": [
+   10,
+   10
+  ],
+  "variants": 10,
+  "names": [
+   "ear",
+   "leg",
+   "tail",
+   "size",
+   "fur",
+   "pied",
+   "female",
+   "male",
+   "pup",
+   "mate"
+  ]
+ },
+ "ui.lineage_frame": {
+  "file": "family/lineage_frame.png",
+  "cell": [
+   24,
+   24
+  ],
+  "variants": 2,
+  "names": [
+   "normal",
+   "current"
+  ],
+  "slice": [
+   6,
+   6,
+   6,
+   6
+  ]
+ },
  "ui.frame": {
   "file": "ui/frame.png",
   "cell": [

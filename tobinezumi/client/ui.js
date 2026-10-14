@@ -273,7 +273,7 @@ export class UI {
   /** くらしの説明（体調バーを押したとき）。actions = [{label, act}] */
   lifePanel(life, actions = []) {
     const row = k => `<div class="tb-lrow big ${k}">${LIFE_ICON[k]}<b>${LIFE_NAME[k]}</b><span class="tb-lbar"><i style="width:${Math.round(life[k])}%"></i></span><span class="v">${Math.round(life[k])}</span><span class="w">${lifeWord(k, life[k])}</span></div>`;
-    const p = this.menu('くらし', `<div class="tb-lifep">${LIFE_ORDER.map(row).join('')}</div>
+    const p = this.menu('くらし', `${this.ageHTML || ''}<div class="tb-lifep">${LIFE_ORDER.map(row).join('')}</div>
       ${this.envLabels && this.envLabels.length ? '<div class="tb-bad tb-lifehint">' + this.envLabels.map(esc).join('<br>') + '</div>' : ''}
       ${this.restName ? '<div class="tb-ok tb-lifehint">' + esc(this.restName) + '（よく休める）</div>' : ''}
       <div class="tb-dim tb-lifehint">種子を食べると空腹が戻る（1 つ +${LIFE.SEED_FOOD}）。オアシスのふちで水を飲む（+${LIFE.WATER_DRINK}）。夜は草むらに夜露が出る（+${LIFE.DEW_DRINK}）。<br>

@@ -12,6 +12,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { migrateNest, NEST_SCHEMA } from '../shared/nest-rules.js';
 import { normalizeInventory, INV_SLOTS, STORAGE_SLOTS } from '../shared/items.js';
 import { makeLife } from '../shared/life.js';
+import { normalizeGenes, expressTraits } from '../shared/genetics.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const MIGRATIONS_DIR = join(HERE, 'migrations');
@@ -102,10 +103,13 @@ export class Store {
   purgeSessions(now = Date.now()) { return this.q('DELETE FROM sessions WHERE expires_at < ?').run(now).changes; }
 
   // ───────── 個体・キャラクター ─────────
-  createCharacter(accountId, { name, fur, x, y, inv }, now = Date.now()) {
+  /** ind（Ver.0.4・shared/family.js の founderInd）：性・遺伝子・年齢。無ければ毛色だけの 1 代目 */
+  createCharacter(accountId, { name, fur, x, y, inv, ind: I = null }, now = Date.now()) {
     return this.tx(() => {
-      const ind = Number(this.q('INSERT INTO individuals (species, name, sex, born_at, generation, genes, traits, status) VALUES (?, ?, ?, ?, 1, ?, ?, ?)')
-        .run('jerboa', name, null, now, J({ fur }), J({}), J({ life: makeLife() })).lastInsertRowid);
+      const genes = normalizeGenes(I ? I.genes : { fur }, fur);
+      const st = { life: makeLife(), ageMs: I ? I.ageMs : 0, fed: 100, named: true, bornAt: now };
+      const ind = Number(this.q('INSERT INTO individuals (species, name, sex, born_at, generation, genes, traits, status, account_id, role) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?)')
+        .run('jerboa', name, I ? I.sex : null, now, J(genes), J(expressTraits(genes)), J(st), accountId, 'player').lastInsertRowid);
       this.q('UPDATE characters SET active = 0 WHERE account_id = ?').run(accountId);
       const id = Number(this.q('INSERT INTO characters (account_id, individual_id, name, fur, active, created_at, pos_x, pos_y, dir, place, exit_kind, saved_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)')
         .run(accountId, ind, name, fur, now, x, y, 'down', 'field', 'new', now).lastInsertRowid);
@@ -135,6 +139,85 @@ export class Store {
   charBrief(accountId) { return this.q('SELECT name, fur FROM characters WHERE account_id = ? AND active = 1 ORDER BY id DESC LIMIT 1').get(accountId) || null; }
   /** 名前（キャラ名）→ アカウント id（同じ名前は全員） */
   accountsByCharName(name) { return this.q('SELECT DISTINCT account_id FROM characters WHERE name = ? AND active = 1').all(name).map(r => r.account_id); }
+
+  // ───────── 家族（Ver.0.4）─────────
+  /** individuals の行 → 個体の記録（shared/family.js の形） */
+  _ind(r) {
+    if (!r) return null;
+    const st = P(r.status);
+    const genes = normalizeGenes(P(r.genes), 'sand');
+    const o = { id: r.id, name: r.name, sex: r.sex === 'm' || r.sex === 'f' ? r.sex : (r.id % 2 ? 'f' : 'm'), generation: r.generation || 1, father_id: r.father_id ?? null, mother_id: r.mother_id ?? null,
+      genes, traits: expressTraits(genes), role: r.role || 'player', ageMs: Number(st.ageMs) || 0, fed: st.fed ?? 100, named: st.named !== false, bornAt: st.bornAt || r.born_at || 0 };
+    if (st.retiredAt) o.retiredAt = st.retiredAt;
+    if (st.wild) o.wild = true;
+    if (st.kinOf) o.kinOf = st.kinOf;
+    return o;
+  }
+  individual(id) { return this._ind(this.q('SELECT * FROM individuals WHERE id = ?').get(id)); }
+  individualStatus(id) { const r = this.q('SELECT status FROM individuals WHERE id = ?').get(id); return r ? P(r.status) : {}; }
+  /** id だけ先に取る（お産・つれあい）。中身は saveInd で書く */
+  allocIndividual(accountId, now = Date.now()) {
+    return Number(this.q("INSERT INTO individuals (species, name, born_at, generation, genes, traits, status, account_id, role) VALUES ('jerboa', '', ?, 1, '{}', '{}', '{}', ?, 'pending')").run(now, accountId).lastInsertRowid);
+  }
+  /** 個体を書く（status の life・house はそのまま残す） */
+  saveInd(m, { accountId = null, nestId = null } = {}) {
+    const st = this.individualStatus(m.id);
+    st.ageMs = Math.round(m.ageMs || 0); st.fed = Math.round((m.fed ?? 100) * 100) / 100; st.named = !!m.named; st.bornAt = m.bornAt || st.bornAt || 0;
+    if (m.retiredAt) st.retiredAt = m.retiredAt;
+    if (m.wild) st.wild = true;
+    if (m.kinOf) st.kinOf = m.kinOf;
+    const inNest = m.role === 'pup' || m.role === 'kin' || m.role === 'mate';
+    this.q('UPDATE individuals SET name = ?, sex = ?, generation = ?, father_id = ?, mother_id = ?, genes = ?, traits = ?, status = ?, role = ?, nest_id = ?, account_id = COALESCE(?, account_id) WHERE id = ?')
+      .run(m.name, m.sex, m.generation || 1, m.father_id ?? null, m.mother_id ?? null, J(m.genes), J(m.traits || expressTraits(m.genes)), J(st), m.role, inNest ? nestId : null, accountId, m.id);
+  }
+  /** 年齢・おなかだけ（30 秒ごと） */
+  saveIndAge(m) {
+    this.q("UPDATE individuals SET status = json_set(json_set(CASE WHEN json_valid(status) THEN status ELSE '{}' END, '$.ageMs', ?), '$.fed', ?) WHERE id = ?").run(Math.round(m.ageMs || 0), Math.round((m.fed ?? 100) * 100) / 100, m.id);
+  }
+  setHouseFlags(indId, flags) {
+    this.q("UPDATE individuals SET status = json_set(CASE WHEN json_valid(status) THEN status ELSE '{}' END, '$.house', json(?)) WHERE id = ?").run(JSON.stringify(flags || {}), indId);
+  }
+  /** 家（shared/household.js の形）：操作個体＋巣の家族＋もうすぐ生まれるお産 */
+  household(accountId) {
+    const c = this.activeCharacter(accountId);
+    if (!c) return null;
+    const me = this.individual(c.individual.id);
+    if (!me) return null;
+    me.role = 'player';
+    const flags = (c.individual.status && c.individual.status.house) || {};
+    const members = this.q("SELECT * FROM individuals WHERE account_id = ? AND role IN ('pup', 'kin', 'mate') ORDER BY id").all(accountId).map(r => this._ind(r));
+    const L = this.q('SELECT * FROM litters WHERE account_id = ? AND born_at IS NULL ORDER BY id DESC LIMIT 1').get(accountId);
+    let pending = null;
+    if (L) {
+      const mateId = L.mother_id === me.id ? L.father_id : L.mother_id;
+      const mate = members.find(m => m.id === mateId) || this.individual(mateId);
+      pending = { litterId: L.id, mateId, mateName: mate ? mate.name : '？', mateGenes: mate ? mate.genes : null, nth: L.nth, dueAgeMs: L.due_play, conceivedAt: L.conceived_at };
+    }
+    return { me, members, pending, litters: flags.litters | 0, lastBirthMs: flags.lastBirthMs ?? null, follow: flags.follow !== false, promptDay: flags.promptDay ?? null, nestKey: 'acct' + accountId };
+  }
+  /** お産の予定を書く（つれあいを迎えた・もう一度） */
+  addLitter({ accountId, nestId, motherId, fatherId, nth, conceivedAt, duePlay }) {
+    return Number(this.q('INSERT INTO litters (account_id, nest_id, mother_id, father_id, nth, conceived_at, due_play) VALUES (?, ?, ?, ?, ?, ?, ?)').run(accountId, nestId, motherId, fatherId, nth, conceivedAt, duePlay).lastInsertRowid);
+  }
+  litterBorn(id, { bornAt, size, season, seed }) { this.q('UPDATE litters SET born_at = ?, size = ?, season = ?, seed = ? WHERE id = ?').run(bornAt, size, season, seed, id); }
+  dropPendingLitters(accountId) { this.q('DELETE FROM litters WHERE account_id = ? AND born_at IS NULL').run(accountId); }
+  litterRows(accountId) { return this.q('SELECT * FROM litters WHERE account_id = ? ORDER BY id').all(accountId); }
+  /** 巣にいる家族（所有者がオフラインのとき訪問者に見せる） */
+  nestFamily(nestId) { return this.q("SELECT * FROM individuals WHERE nest_id = ? AND role IN ('pup', 'kin', 'mate') ORDER BY id").all(nestId).map(r => this._ind(r)); }
+  /** 家系図：その家の個体すべて（'pending' を除く） */
+  lineage(accountId) { return this.q("SELECT * FROM individuals WHERE account_id = ? AND role != 'pending' ORDER BY generation, id").all(accountId).map(r => this._ind(r)); }
+  /** 世代交代：古いキャラクターを休ませて、あとをつぐ子のキャラクターを作る（持ち物を写す）。位置は前の子の場所 */
+  switchCharacter(accountId, heir, now = Date.now()) {
+    return this.tx(() => {
+      const old = this.q('SELECT * FROM characters WHERE account_id = ? AND active = 1 ORDER BY id DESC LIMIT 1').get(accountId);
+      this.q('UPDATE characters SET active = 0 WHERE account_id = ?').run(accountId);
+      const id = Number(this.q('INSERT INTO characters (account_id, individual_id, name, fur, active, created_at, pos_x, pos_y, dir, place, exit_kind, saved_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)')
+        .run(accountId, heir.id, heir.name, heir.traits.fur, now, old ? old.pos_x : null, old ? old.pos_y : null, old ? old.dir : 'down', old ? old.place : 'field', 'live', now).lastInsertRowid);
+      if (old) this.setInventory('char', id, this.inventory('char', old.id, INV_SLOTS), INV_SLOTS);
+      this.q("UPDATE individuals SET status = json_set(CASE WHEN json_valid(status) THEN status ELSE '{}' END, '$.life', json(?)) WHERE id = ?").run(JSON.stringify(makeLife()), heir.id);
+      return id;
+    });
+  }
 
   // ───────── 持ち物（枠の並びごと）─────────
   inventory(kind, ownerId, slots) {

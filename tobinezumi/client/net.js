@@ -19,6 +19,10 @@
 //   Ver.0.3「危険と土地」：
 //   snapshot に preds（捕食者）。net.on('caught'|'raid', fn)。await net.survey() / net.relocate() / net.plug(on) / net.dev({weather, season, spawn})
 //   オフラインだけ：net.setDanger('normal'|'easy'|'off')（捕食者の強さ）
+//   Ver.0.4「いのちをつなぐ」：
+//   snapshot に wild（野生のトビネズミ）・wt（信頼）。net.on('family'|'player_update'|'wild', fn)
+//   await net.court(wildId) / net.family() / net.namePups([{id,name}]) / net.feedPup(id) / net.mateAgain() / net.kidsFollow(on)
+//   await net.lineage() / net.succeed(id) / net.farewell()
 //
 // オフラインの保存は localStorage の 'tobi_' で始まる鍵だけ（本編 dannoura_* ・境界事象 kyokai_* には触れない）。
 import { C2S, S2C, encode, decode, cleanChat, validName, validUsername, validPassword, FUR_IDS, INPUT_SEND_MS, INTERP_DELAY_MS, SNAPSHOT_HZ, POS_SAVE_MS, PROTOCOL_VERSION } from '../shared/protocol.js';
@@ -33,12 +37,19 @@ import { eatRareSeed, caughtLife } from '../shared/life.js';
 import { PredatorWorld, PRED_DT, PRED, playerView, stillTime, TUNING, INVULN_MS, dropItems, dropSpots, safePoint, raidLoss, RAID_COOLDOWN_MS, DROP_TTL_MS } from '../shared/predators.js';
 import { envAt, fieldMods, ENV, WEATHERS, SEASONS } from '../shared/season.js';
 import { landAt, landOut, digCost, digTime, relocateCost, RELOCATE_COOLDOWN_MS, RELOCATE_MIN_DIST, buildLands, plotAt } from '../shared/lands.js';
-import { PLUG_COST } from '../shared/protocol.js';
+import { PLUG_COST, SEXES } from '../shared/protocol.js';
+import { Household } from '../shared/household.js';
+import { founderInd, indOut, courtBlock, stageOf, ageDays, STAGE, FOUNDER_AGE_DAYS } from '../shared/family.js';
+import { traitMoveMods, traitMods, lookOf, seedOf } from '../shared/genetics.js';
+import { WildWorld, WILD, WILD_DT, devWildGenes } from '../shared/wild.js';
+import { lifeEnvWithTraits } from '../shared/life.js';
+import { DAY_MS } from '../shared/daynight.js';
 
 export const SAVE_KEY = 'tobi_save_v1';
 export const SETTINGS_KEY = 'tobi_settings';
 export const TOKEN_KEY = 'tobi_token';
-export const SAVE_VERSION = 3;   // v2（Ver.0.2）：player.life・friends・visits・lastPlayed。v3（Ver.0.3）：nests[].plugged・land・relocatedAt・raidedAt、events（襲撃）。鍵の名前（tobi_save_v1）はそのまま
+export const SAVE_VERSION = 4;   // v2（Ver.0.2）：player.life・friends・visits・lastPlayed。v3（Ver.0.3）：nests[].plugged・land・relocatedAt・raidedAt、events（襲撃）。
+                                 // v4（Ver.0.4）：house（操作個体の年齢・遺伝子・巣の家族・お産の予定）・lineage（ご先祖・巣立った子）・nextInd。鍵の名前（tobi_save_v1）はそのまま
 const NO_RESPAWN = new Set(['n', 'x', 'g', 'w', 'd']);
 const RARE_MIN = 8 * 60, RARE_MAX = 12 * 60;
 const PICK_RANGE = 28, ENTER_RANGE = 34;
@@ -152,7 +163,7 @@ export class OfflineBackend extends Emitter {
    *   どれも指定しなければ切ってある（テスト用の既定）。ゲームは chooseBackend が設定から入れる
    */
   constructor({ storage = globalThis.localStorage, now = () => Date.now(), npc = true, map = null, timeScale = 1, startHour = null, random = Math.random,
-    env = false, predators = 'off', weather = null, season = null, predSeed = null, relocateCooldownMs = RELOCATE_COOLDOWN_MS } = {}) {
+    env = false, predators = 'off', weather = null, season = null, predSeed = null, relocateCooldownMs = RELOCATE_COOLDOWN_MS, wild = true, wildSeed = null } = {}) {
     super();
     this.mode = 'offline';
     this.storage = storage;
@@ -178,6 +189,10 @@ export class OfflineBackend extends Emitter {
     this.npcs = [];
     this.npcNests = {};
     this.place = 'none';
+    // Ver.0.4：野生のトビネズミ（なかよくなる相手）。wild=false で出さない
+    this.wildOn = wild !== false;
+    this.wild = new WildWorld({ map: this.map, seed: wildSeed != null ? wildSeed : Math.floor(random() * 4294967296) });
+    this.wildAcc = 0; this.famSendT = 0; this.hh = null;
   }
   _read() {
     try {
@@ -205,6 +220,19 @@ export class OfflineBackend extends Emitter {
       if (!Array.isArray(s.events)) s.events = [];
       s.v = 3;
     }
+    if (s.v < 4) {   // v3 → v4（Ver.0.4「いのちをつなぐ」）：いまの子を 1 代目のおとな（4 日）にして、遺伝子・性・家族の入れ物を足す
+      if (s.character) {
+        const ch = s.character, seed = seedOf(ch.name, ch.createdAt || 0);
+        const me = founderInd({ id: 1, name: ch.name, fur: ch.fur, sex: ch.individual && SEXES.includes(ch.individual.sex) ? ch.individual.sex : null, seed, bornAt: ch.createdAt || 0 });
+        me.ageMs = STAGE.YOUNG_END * DAY_MS;
+        s.house = new Household({ me, nestKey: 'n_' + ((s.account && s.account.id) || 'local') }).toJSON();
+        ch.individual = { ...(ch.individual || {}), id: 1, sex: me.sex, generation: 1, genes: me.genes, traits: me.traits };
+      }
+      s.lineage = []; s.nextInd = 2;
+      s.v = 4;
+    }
+    if (!Array.isArray(s.lineage)) s.lineage = [];
+    if (!s.nextInd) s.nextInd = 2;
     if (!Array.isArray(s.events)) s.events = [];
     if (s.player) { s.player.inv = normalizeInventory(s.player.inv); s.player.life = normalizeLife(s.player.life); s.player.life.sleep = false; }
     if (!Array.isArray(s.friends)) s.friends = [];
@@ -218,6 +246,7 @@ export class OfflineBackend extends Emitter {
   }
   flush() {
     if (!this.storage || !this.save) return;
+    if (this.hh) this.save.house = this.hh.toJSON();
     try { this.storage.setItem(SAVE_KEY, JSON.stringify(this.save)); } catch (e) { console.warn('[tobi] 保存できない', e); }
   }
   /** トビネズミの保存だけ消す（tobi_ で始まる鍵だけ） */
@@ -225,8 +254,19 @@ export class OfflineBackend extends Emitter {
     const keys = [];
     for (let i = 0; i < this.storage.length; i++) { const k = this.storage.key(i); if (k && k.startsWith('tobi_')) keys.push(k); }
     for (const k of keys) this.storage.removeItem(k);
-    this.save = null;
+    this.save = null; this.hh = null;
   }
+  /** 家（操作個体・巣の家族・お産の予定）。Ver.0.4 */
+  get house() {
+    if (!this.hh && this.save && this.save.house && this.save.house.me) this.hh = new Household(this.save.house);
+    return this.hh;
+  }
+  _newInd() { const id = this.save.nextInd || 2; this.save.nextInd = id + 1; return id; }
+  _myLook() { const h = this.house; return h && h.me ? lookOf(h.me.traits) : null; }
+  _kidsLook() { const h = this.house; return h ? h.followers().map(m => ({ id: m.id, name: m.name, look: lookOf(m.traits, { young: 1, ps: m.id % 97 }) })) : []; }
+  _traitMove() { const h = this.house; return h && h.me ? traitMoveMods(h.me.traits) : null; }
+  _seedsInStore() { const p = this.save.player, rec = p && p.nestId && this.save.nests[p.nestId]; return rec ? countItem(rec.storage, 'seed') : 0; }
+  _familyOut() { const h = this.house; return h ? h.out() : null; }
   serverTime() { return this.now(); }
 
   async hello() { return { ok: true, mode: 'offline', account: this.save ? this.save.account : null, character: this.save ? this.save.character : null }; }
@@ -239,14 +279,18 @@ export class OfflineBackend extends Emitter {
   }
   async logout() { this.flush(); this.place = 'none'; return { ok: true }; }
 
-  async createCharacter({ name, fur }) {
+  async createCharacter({ name, fur, sex }) {
     if (!this.save) await this._local('local');
     const e = validName(name);
     if (e) return { ok: false, reason: e };
     if (!FUR_IDS.includes(fur)) return { ok: false, reason: '毛色が変' };
-    const ch = { id: 'c1', name: String(name).trim(), fur, createdAt: this.now(),
-      individual: { species: 'jerboa', sex: null, generation: 1, father_id: null, mother_id: null, genes: { fur }, traits: {}, status: {} } };
+    const nm = String(name).trim(), at = this.now();
+    const me = founderInd({ id: 1, name: nm, fur, sex: SEXES.includes(sex) ? sex : null, seed: seedOf(nm, at, Math.floor(this.random() * 1e9)), bornAt: at });
+    const ch = { id: 'c1', name: nm, fur, createdAt: at,
+      individual: { id: 1, species: 'jerboa', sex: me.sex, generation: 1, father_id: null, mother_id: null, genes: me.genes, traits: me.traits, status: {} } };
     this.save.character = ch;
+    this.hh = new Household({ me, nestKey: 'n_' + this.save.account.id });
+    this.save.house = this.hh.toJSON(); this.save.lineage = []; this.save.nextInd = 2;
     this.save.player = { x: this.map.spawn.x, y: this.map.spawn.y, dir: 'down', inv: makeInventory(undefined, START_INVENTORY), nestId: null, place: 'field', savedAt: this.now(), life: makeLife() };
     this.save.friends = []; this.save.visits = []; this.save.events = [];
     this.flush();
@@ -293,7 +337,8 @@ export class OfflineBackend extends Emitter {
       clock: { ...this.clock },
       life: lifeOut(p.life), friends: this._friendList(), visitors, raids,
       danger: { predators: this.tuning.enabled ? (this.tuning.easy ? 'easy' : 'normal') : 'off', env: this.envOn, relocateCooldownMs: this.relocateCooldownMs },
-      you: { id: this.save.account.id, name: me.name, fur: me.fur, x: p.x, y: p.y, dir: p.dir || 'down', inv: p.inv,
+      family: this._familyOut(),
+      you: { id: this.save.account.id, name: me.name, fur: me.fur, look: this._myLook(), kids: this._kidsLook(), x: p.x, y: p.y, dir: p.dir || 'down', inv: p.inv,
         nest: nest ? { id: nest.nestId, x: nest.x, y: nest.y, land: rec && rec.land, plugged: !!(rec && rec.plugged), relocatedAt: rec ? rec.relocatedAt || 0 : 0 } : null },
       resources: this.save.world.resources.map(r => ({ ...r })),
       players: this.npcs.map(n => ({ id: n.id, name: n.name, fur: n.fur, x: n.st.x, y: n.st.y, dir: n.st.dir })),
@@ -303,7 +348,7 @@ export class OfflineBackend extends Emitter {
 
   sendInput(inp) {
     if (this.place !== 'field' || !this.auth) return;
-    this.auth = stepField(this.auth, inp, STEP_DT, this.map, fieldMods(moveMods(this.save.player.life), this._moveEnv()));
+    this.auth = stepField(this.auth, inp, STEP_DT, this.map, fieldMods(moveMods(this.save.player.life), this._moveEnv(), this._traitMove()));
     this.stillT = stillTime(this.stillT, this.auth, STEP_DT);
     this.ack = inp.seq;
   }
@@ -332,7 +377,7 @@ export class OfflineBackend extends Emitter {
     if (this.place === 'field' && this.auth) {
       this.predAcc += dt;
       let n = 0;
-      while (this.predAcc >= PRED_DT && n++ < 6) { this.predAcc -= PRED_DT; this._predStep(this.now()); }
+      while (this.predAcc >= PRED_DT && n++ < 6) { this.predAcc -= PRED_DT; this._predStep(this.now()); if (this.wildOn) this._wildStep(); }
       if (n >= 6) this.predAcc = 0;
     }
     // 採集物の再出現
@@ -383,7 +428,8 @@ export class OfflineBackend extends Emitter {
     if (this.snapT <= 0) {
       this.snapT = 1 / SNAPSHOT_HZ;
       this.emit('snapshot', { st: now, ack: this.ack, you: this.auth ? { ...this.auth } : null,
-        players: this.npcs.map(n => ({ id: n.id, x: n.st.x, y: n.st.y, z: n.st.z, dir: n.st.dir, anim: n.st.anim, jump: n.st.jump ? { ...n.st.jump } : null })), preds: this.preds.snapshot() });
+        players: this.npcs.map(n => ({ id: n.id, x: n.st.x, y: n.st.y, z: n.st.z, dir: n.st.dir, anim: n.st.anim, jump: n.st.jump ? { ...n.st.jump } : null })), preds: this.preds.snapshot(),
+        wild: this.wild.snapshot(), wt: this.wild.trustOf(this.save.account.id) });
     }
     // 位置の保存（30 秒ごと）
     this.saveT += dt * 1000;
@@ -447,7 +493,8 @@ export class OfflineBackend extends Emitter {
   _nestOut(rec) {
     const own = rec.owner === this.save.account.id;
     return { id: rec.id, owner: rec.owner, ownerName: rec.ownerName, rev: rec.rev, data: rec.data, storage: rec.storage.map(s => s && { ...s }), policy: rec.policy, canEdit: own, own, role: own ? 'owner' : 'visitor', hostFur: rec.hostFur || null,
-      plugged: !!rec.plugged, land: rec.land || null, ...(own ? { relocatedAt: rec.relocatedAt || 0, relocateCooldownMs: this.relocateCooldownMs } : {}) };
+      plugged: !!rec.plugged, land: rec.land || null, ...(own ? { relocatedAt: rec.relocatedAt || 0, relocateCooldownMs: this.relocateCooldownMs } : {}),
+      family: own && this.house ? this.house.publicOut() : [] };
   }
 
   async enterNest(owner) {
@@ -465,8 +512,9 @@ export class OfflineBackend extends Emitter {
     this.place = 'nest';
     this.curNestId = ent.nestId;
     this.save.player.place = 'nest';
+    const inv = own ? this._tryInvite(rec) : null;
     this.flush();
-    return { ok: true, nest: this._nestOut(rec) };
+    return { ok: true, nest: this._nestOut(rec), ...(inv ? { invite: inv } : {}) };
   }
   async leaveNest() {
     const ent = this._entrances().find(e => e.nestId === this.curNestId) || null;
@@ -551,7 +599,9 @@ export class OfflineBackend extends Emitter {
     this.lifeEnvT = (this.lifeEnvT || 0) - dt;
     if (!this.lifeEnv || this.lifeEnvT <= 0) { this.lifeEnvT = 0.5; this.lifeEnv = this.env(); }
     const env = this.lifeEnv;
-    p.life = stepLife(before, dt * this.clock.scale, { sleeping: this.sleeping, env: env.life });
+    const h = this.house;
+    p.life = stepLife(before, dt * this.clock.scale, { sleeping: this.sleeping, env: lifeEnvWithTraits(env.life, h && h.me ? traitMods(h.me.traits) : null) });
+    if (h) this._familyTick(dt, env);
     if (this.sleeping && !p.life.sleep) { this.sleeping = false; this.emit('life', { life: lifeOut(p.life) }); return; }   // 満タンで自然に起きる
     this.lifeSendT -= dt;
     if (this.lifeSendT <= 0) { this.lifeSendT = 0.5; this.emit('life', { life: lifeOut(p.life), ...(env.labels.length ? { env: env.labels } : {}), ...(env.rest && this.sleeping ? { rest: env.rest } : {}) }); }
@@ -796,7 +846,166 @@ export class OfflineBackend extends Emitter {
     let spawned = null;
     if (m.spawn && PRED[m.spawn] && this.auth) { const q = this.preds.spawn(m.spawn, this.auth.x + (Number(m.dx) || 70), this.auth.y + (Number(m.dy) || 0)); spawned = q && q.id; }
     if (m.clear) this.preds.preds = [];
-    return { ok: true, clock: { ...this.clock }, spawned };
+    // Ver.0.4：年齢を進める（日）・野生の子を近くに出す・信頼を満たす・お産を今に
+    const h = this.house;
+    if (h && Number(m.age) > 0) {
+      const events = [], rec = this.save.player.nestId && this.save.nests[this.save.player.nestId];
+      for (let left = Math.min(40, Number(m.age)) * DAY_MS; left > 0; left -= DAY_MS / 20) {
+        const r = h.tick(Math.min(left, DAY_MS / 20), { seeds: rec ? countItem(rec.storage, 'seed') : 0, season: this.env().season, newId: () => this._newInd(), now: this.now() });
+        if (r.used && rec) removeItem(rec.storage, 'seed', r.used);
+        events.push(...r.events);
+      }
+      this.flush();
+      this.emit('family', { family: h.out(), events: events.map(e => (e.type === 'born' ? { ...e, pups: e.pups.map(x => indOut(x)) } : e)) });
+    }
+    let wild = null;
+    if (m.wild && this.auth) { const n = this.wild.spawn(this.auth.x + (Number(m.dx) || 40), this.auth.y + (Number(m.dy) || 0), devWildGenes(this.wild, m)); wild = n.id; }
+    if (m.trust && this.auth) { const n = this.wild.get(m.trust) || this.wild.npcs[0]; if (n) { n.trust[this.save.account.id] = 99.5; n.st = makeFieldState(this.auth.x + 12, this.auth.y); } }
+    if (m.birth && h && h.pending) { h.pending.dueAgeMs = h.me.ageMs; }
+    let inv = null;
+    if (m.give && typeof m.give === 'object' && this.save.player) { inv = this.save.player.inv; for (const [k, v] of Object.entries(m.give)) if (ITEMS[k] && Number(v) > 0) addItem(inv, k, Math.min(99, Number(v) | 0)); }
+    if (m.store && typeof m.store === 'object') { const rec = this.save.player && this.save.player.nestId && this.save.nests[this.save.player.nestId]; if (rec) for (const [k, v] of Object.entries(m.store)) if (ITEMS[k] && Number(v) > 0) addItem(rec.storage, k, Math.min(99, Number(v) | 0)); }
+    if (inv || m.store) this.flush();
+    return { ok: true, clock: { ...this.clock }, spawned, wild, family: h ? h.out() : null, ...(inv ? { inv: inv.map(x => x && { ...x }) } : {}) };
+  }
+
+
+  // ───────── いのちをつなぐ（Ver.0.4）─────────
+  /** 年齢・家族の時間（遊んでいる間だけ）。お産・育った・おなかがすいた・寿命の目安を知らせる */
+  _familyTick(dt, env) {
+    const h = this.house;
+    const p = this.save.player, rec = p.nestId && this.save.nests[p.nestId];
+    const seeds = rec ? countItem(rec.storage, 'seed') : 0;
+    const r = h.tick(dt * this.clock.scale * 1000, { seeds, season: env.season, newId: () => this._newInd(), now: this.now() });
+    if (r.used && rec) removeItem(rec.storage, 'seed', r.used);
+    const evs = r.events.slice();
+    if (h.wantsPrompt()) evs.push({ type: 'lifespan' });
+    const kidsKey = h.followers().map(m => m.id).join(',');
+    if (kidsKey !== this._kidsKey) { this._kidsKey = kidsKey; }
+    this.famSendT -= dt;
+    if (evs.length || r.used || this.famSendT <= 0) {
+      this.famSendT = 2;
+      if (evs.length) this.flush();
+      this.emit('family', { family: h.out(), events: evs.map(e => (e.type === 'born' ? { ...e, pups: e.pups.map(m => indOut(m)) } : e)) });
+    }
+  }
+  /** なかよくなれるか（おとな・体調・季節）。null ならなれる */
+  _courtBlock() {
+    const h = this.house;
+    if (!h || !h.me) return 'キャラクターがいない';
+    return courtBlock({ ageMs: h.me.ageMs, life: this.save.player.life, season: this.env('field').season, pending: !!h.pending });
+  }
+  _wildStep() {
+    if (!this.auth) return;
+    const env = this._moveEnv();
+    const me = { id: this.save.account.id, x: this.auth.x, y: this.auth.y, z: this.auth.z, jump: !!this.auth.jump, moving: this.auth.anim === 'hop', still: this.stillT, eligible: this._courtCache() === null };
+    const ev = this.wild.step({ season: env.season, period: env.period, scale: this.clock.scale, players: [me] }, WILD_DT);
+    for (const e of ev) if (e.type === 'befriend' || e.type === 'lost' || e.type === 'startle') this.emit('wild', { ...e, name: e.name || (this.wild.get(e.id) || {}).name });
+  }
+  _courtCache() { const t = this.now(); if (this._ccT == null || t >= this._ccT) { this._ccT = t + 500; this._cc = this._courtBlock(); } return this._cc; }
+  /** 野生の子に種子をあげる（持ち物の種子 1 つ） */
+  async court(wildId) {
+    if (this.place !== 'field' || !this.auth) return { ok: false, reason: '地上にいない' };
+    const n = this.wild.get(wildId);
+    if (!n) return { ok: false, reason: 'もう どこかへ行ってしまった' };
+    const why = this._courtBlock();
+    if (why) return { ok: false, reason: why, shy: true };
+    const inv = this.save.player.inv;
+    if (countItem(inv, 'seed') < 1) return { ok: false, reason: '種子を持っていない' };
+    const r = this.wild.offer(wildId, { id: this.save.account.id, x: this.auth.x, y: this.auth.y, eligible: true }, this.now());
+    if (!r.ok) return r;
+    removeItem(inv, 'seed', 1);
+    this.flush();
+    if (r.befriended) this.emit('wild', { type: 'befriend', id: wildId, by: this.save.account.id, name: r.name });
+    return { ...r, inv: inv.map(x => x && { ...x }) };
+  }
+  /** 自分の巣へ入ったとき：ついてきた野生の子をつれあいに迎える */
+  _tryInvite(rec) {
+    const h = this.house;
+    const n = this.wild.followerOf(this.save.account.id);
+    if (!h || !n || !this.auth || Math.hypot(n.st.x - this.auth.x, n.st.y - this.auth.y) > WILD.INVITE_R) return null;
+    const r = h.invite({ name: n.name, genes: n.genes }, { life: this.save.player.life, season: this.env('field').season, nestData: rec.data, seeds: countItem(rec.storage, 'seed'), newId: () => this._newInd(), now: this.now() });
+    if (!r.ok) return { ok: false, name: n.name, reason: r.reason };
+    this.wild.take(n.id);
+    for (const l of r.left) this.save.lineage.push(l);
+    this.flush();
+    this.emit('family', { family: h.out(), events: [] });
+    return { ok: true, name: n.name, mate: indOut(r.mate) };
+  }
+  async family() { const h = this.house; return h ? { ok: true, family: h.out() } : { ok: false, reason: 'キャラクターがいない' }; }
+  async namePups(list) {
+    const h = this.house;
+    if (!h || !Array.isArray(list)) return { ok: false, reason: '名前が変' };
+    for (const it of list.slice(0, 16)) {
+      const nm = String(it && it.name || '').trim();
+      if (validName(nm)) return { ok: false, reason: validName(nm) };
+      const r = h.rename(it.id, nm);
+      if (!r.ok) return r;
+    }
+    this.flush();
+    return { ok: true, family: h.out() };
+  }
+  async feedPup(id) {
+    const h = this.house;
+    if (!h) return { ok: false, reason: 'キャラクターがいない' };
+    if (this.place !== 'nest' || this.curNestId !== this.save.player.nestId) return { ok: false, reason: '自分の巣の中で あげよう' };
+    const inv = this.save.player.inv;
+    if (countItem(inv, 'seed') < 1) return { ok: false, reason: '種子を持っていない' };
+    const r = h.feed(id);
+    if (!r.ok) return r;
+    removeItem(inv, 'seed', 1);
+    this.flush();
+    return { ok: true, inv: inv.map(x => x && { ...x }), member: indOut(r.member), family: h.out() };
+  }
+  async mateAgain() {
+    const h = this.house;
+    const rec = this.save.player.nestId && this.save.nests[this.save.player.nestId];
+    if (!h || !rec) return { ok: false, reason: '巣が無い' };
+    if (this.place !== 'nest' || this.curNestId !== rec.id) return { ok: false, reason: '自分の巣の中で' };
+    const r = h.mateAgain({ life: this.save.player.life, season: this.env('nest').season, nestData: rec.data, seeds: countItem(rec.storage, 'seed'), now: this.now() });
+    if (!r.ok) return r;
+    this.flush();
+    return { ok: true, family: h.out() };
+  }
+  async kidsFollow(on) { const h = this.house; if (!h) return { ok: false }; h.follow = !!on; this.flush(); return { ok: true, family: h.out(), kids: this._kidsLook() }; }
+  /** 家系図：ご先祖・巣立った子・いまの家族（全員） */
+  async lineage() {
+    const h = this.house;
+    if (!h) return { ok: false, reason: 'キャラクターがいない' };
+    const nodes = [...this.save.lineage, h.me, ...h.members].map(m => indOut(m));
+    return { ok: true, nodes, current: h.me.id };
+  }
+  /** 世代交代：選んだ子が新しい操作個体になる（巣・倉庫・持ち物・フレンドはそのまま） */
+  async succeed(id) {
+    const h = this.house;
+    if (!h) return { ok: false, reason: 'キャラクターがいない' };
+    if (this.sleeping) this._wake();
+    const r = h.succeed(Number(id), this.now());
+    if (!r.ok) return r;
+    return this._afterSuccession(r);
+  }
+  async farewell() {
+    const h = this.house;
+    if (!h) return { ok: false, reason: 'キャラクターがいない' };
+    const r = h.farewell({ newId: () => this._newInd(), now: this.now() });
+    if (!r.ok) return r;
+    return this._afterSuccession(r);
+  }
+  _afterSuccession(r) {
+    const h = this.house, heir = r.heir;
+    for (const x of [...r.retired, ...r.left]) this.save.lineage.push(x);
+    const ch = this.save.character;
+    ch.name = heir.name; ch.fur = heir.traits.fur;
+    ch.individual = { id: heir.id, species: 'jerboa', sex: heir.sex, generation: heir.generation, father_id: heir.father_id, mother_id: heir.mother_id, genes: heir.genes, traits: heir.traits, status: {} };
+    const p = this.save.player;
+    p.life = makeLife();
+    for (const e of this.save.entrances) if (e.owner === this.save.account.id) e.name = heir.name;
+    for (const id in this.save.nests) if (this.save.nests[id].owner === this.save.account.id) this.save.nests[id].ownerName = heir.name;
+    this.flush();
+    this.emit('life', { life: lifeOut(p.life) });
+    const own = this._entrances().find(e => e.own);
+    if (own) this.emit('entrance', { entrance: own });
+    return { ok: true, character: { ...ch }, family: h.out(), life: lifeOut(p.life), inv: p.inv.map(x => x && { ...x }), look: this._myLook(), kids: this._kidsLook(), retired: r.retired.map(m => indOut(m)), left: r.left.map(m => indOut(m)) };
   }
 
   // ───────── フレンド（オフライン：NPC だけ）─────────
@@ -996,7 +1205,8 @@ export class OnlineBackend extends Emitter {
     if (m.t === S2C.PONG) { const now = Date.now(); this.rtt = now - m.ct; this.clockOffset = m.st - (m.ct + now) / 2; return; }
     if (m.t === S2C.KICK) { this.closedByUser = true; this.state = 'kicked'; this.emit('kick', m); this._drop(this.ws); this.ws = null; return; }
     const map = { [S2C.SNAPSHOT]: 'snapshot', [S2C.PLAYER_JOIN]: 'player_join', [S2C.PLAYER_LEAVE]: 'player_leave', [S2C.CHAT]: 'chat', [S2C.RES_GONE]: 'res_gone', [S2C.RES_SPAWN]: 'res_spawn', [S2C.NEST_UPDATE]: 'nest_update', [S2C.NEST_PEERS]: 'nest_peers', [S2C.ENTRANCE]: 'entrance', [S2C.TOAST]: 'toast',
-      [S2C.FRIENDS]: 'friends', [S2C.VISIT]: 'visit', [S2C.NEST_ROLE]: 'nest_role', [S2C.CAUGHT]: 'caught', [S2C.RAID]: 'raid' };
+      [S2C.FRIENDS]: 'friends', [S2C.VISIT]: 'visit', [S2C.NEST_ROLE]: 'nest_role', [S2C.CAUGHT]: 'caught', [S2C.RAID]: 'raid',
+      [S2C.FAMILY]: 'family', [S2C.PLAYER_UPDATE]: 'player_update', [S2C.WILD]: 'wild' };
     if (map[m.t]) this.emit(map[m.t], m);
   }
   _ping() { this._send({ t: C2S.PING, ct: Date.now() }); }
@@ -1021,7 +1231,7 @@ export class OnlineBackend extends Emitter {
     return r;
   }
   async logout() { this.place = 'none'; this.queue = []; await this._req(C2S.LOGOUT); this._setToken(null); return { ok: true }; }
-  async createCharacter({ name, fur }) { const e = validName(name); if (e) return { ok: false, reason: e }; return this._req(C2S.CREATE_CHAR, { name, fur }); }
+  async createCharacter({ name, fur, sex }) { const e = validName(name); if (e) return { ok: false, reason: e }; return this._req(C2S.CREATE_CHAR, sex ? { name, fur, sex } : { name, fur }); }
   async joinField() {
     this.joining = true; this.queue = [];
     const r = await this._req(C2S.JOIN_FIELD);
@@ -1076,6 +1286,16 @@ export class OnlineBackend extends Emitter {
   async plug(on) { return this._req(C2S.PLUG, { on: !!on }); }
   async dev(m = {}) { return this._req(C2S.DEV, m); }
   setDanger() { return { ok: false, reason: 'オンラインではサーバーの設定に従います' }; }
+  // Ver.0.4
+  async court(wildId) { return this._req(C2S.COURT, { wildId }); }
+  async family() { return this._req(C2S.FAMILY); }
+  async namePups(list) { return this._req(C2S.NAME_PUPS, { list }); }
+  async feedPup(id) { return this._req(C2S.FEED_PUP, { id }); }
+  async mateAgain() { return this._req(C2S.MATE_AGAIN); }
+  async kidsFollow(on) { return this._req(C2S.KIDS_FOLLOW, { on: !!on }); }
+  async lineage() { return this._req(C2S.LINEAGE); }
+  async succeed(id) { return this._req(C2S.SUCCEED, { id }); }
+  async farewell() { return this._req(C2S.FAREWELL); }
   env(place = this.place) { return envAt(this.clock, this.serverTime(), { enabled: this.envOn !== false, place }); }
   savePosition() {}
   flush() {}

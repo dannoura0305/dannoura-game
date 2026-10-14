@@ -18,8 +18,10 @@ import { fieldMods } from '../shared/season.js';
 import { threatTo, ALERT_STATES, inGrass, HIDE_AFTER, PRED } from '../shared/predators.js';
 import { sfx } from './sfx.js';
 
+const WILD_R = 30;   // 野生の子に種子をあげられる距離
+
 const PICK_R = 22, ENT_R = 20;
-const HELP_KEYS = 'WASD/方向キー 跳ねる　Space 大ジャンプ　E 調べる・拾う・飲む　Q 食べる　L 土地　M 地図の重ね表示　I 持ち物　F フレンド　Enter チャット　Esc メニュー';
+const HELP_KEYS = 'WASD/方向キー 跳ねる　Space 大ジャンプ　E 調べる・拾う・飲む　Q 食べる　L 土地　M 地図の重ね表示　I 持ち物　F フレンド　K 家族　Enter チャット　Esc メニュー';
 const HELP_TOUCH = 'スティックで跳ねる・地面や採集物をタップでそこへ（メニュー→ヘルプ）';
 const HELP_LIFE = '<br><b>くらし</b>：右下（スマホは左上）のハート＝体調・稲妻＝空腹・しずく＝水分。種子を食べる（Q・「食べる」）、オアシスのふちや夜の夜露で E（調べる）で水を飲む、巣の寝床で眠ると体調が戻る。へとへと（体調 25 未満）だと遅く、大ジャンプできない。<br><b>昼と夜</b>：24 分で 1 日。トビネズミは夜行性で、夜は採集物が早く戻り、夜だけの種子と夜露が出る。';
 const HELP_DANGER = '<br><b>危険（捕食者）</b>：夜と夕方は<b>フクロウ</b>（空から。地面の影が大きくなったら急降下）と<b>キツネ</b>（地上を追ってくる。低木や岩は越えられない）、昼は<b>ヘビ</b>（岩や草のかげで待ち伏せ・短く飛びかかる）。見つかると頭の上に<b>！</b>。<br>' +
@@ -27,8 +29,12 @@ const HELP_DANGER = '<br><b>危険（捕食者）</b>：夜と夕方は<b>フク
   'つかまると体調が大きく減り、持ち物の一部を落とす（だれでも拾える）。安全な所へ戻され、しばらく狙われない（死なない）。<br>' +
   '<b>天気と季節</b>：時計の横に季節と天気。砂嵐は遅くなり、物かげ（岩・低木・巣穴）にいないと体調が減る。雨は水たまり（飲める）ができて草や種がよく育つ。冬の夜は寒く、巣の外では体調が減る。夏の昼・冬に巣で眠ると休眠（よく休める）。<br>' +
   '<b>土地</b>：L（土地）でいる場所の食料・危険・地質・気候・希少資源・景観を調べる。巣は土地を選んで掘り、あとから引っ越しもできる（巣の中身はそのまま）。M でミニマップに危険・食料を重ねる。';
-const HELP_FULL_KEYS = '<b>WASD・方向キー</b> 跳ねる／<b>Space</b> 大ジャンプ（小石の山や草むらを越える）<br><b>E</b> 拾う・調べる・巣に入る・巣を掘る・水を飲む<br><b>Q</b> 種子を 1 つ食べる／<b>L</b> 土地を調べる・引っ越す／<b>M</b> ミニマップの重ね表示／<b>I</b> 持ち物／<b>F</b> フレンド／<b>Enter</b> チャット／<b>Esc</b> メニュー／<b>H</b> 下の案内を出す・隠す' + HELP_LIFE + HELP_DANGER;
-const HELP_FULL_TOUCH = '<b>左のスティック</b> 跳ねる（左側のどこを触ってもよい）<br><b>ジャンプ</b> 大ジャンプ（小石の山や草むらを越える）<br><b>地面をタップ</b> そこへ跳ねていく<br><b>採集物・巣穴をタップ</b> 歩いて行って拾う・入る<br><b>自分をタップ・調べる</b> 拾う・巣を掘る・巣に入る・水を飲む<br><b>食べる</b> 種子を 1 つ食べる／<b>土地</b> いる場所の土地を調べる・引っ越す／<b>ミニマップをタップ</b> 危険・食料の重ね表示／<b>フレンド</b> メニューから<br><b>持ち物・チャット・メニュー</b> 上の帯のボタン（ホットバーを押しても持ち物）' + HELP_LIFE + HELP_DANGER; 
+const HELP_FAMILY = '<br><b>いのちをつなぐ</b>：遊んでいる間だけ年をとる（世界の 1 日 = 24 分）。子ども → 若者 → おとな（4 日）→ 年寄り（24 日）。<br>' +
+  'おとなになったら、ときどき現れる<b>野生のトビネズミ</b>（春に多い）に<b>そっと近づいてじっとする</b>か<b>種子をあげる</b>と、頭の上のハート（信頼）が満ちて なかよしになり ついてくる。跳ね回ったり大ジャンプすると逃げる。<br>' +
+  'なかよしの子と自分の巣へ入ると つれあいに（寝床の部屋・倉庫の種子 10 以上・冬はだめ）。遊んだ時間で世界の半日たつと 2〜6 匹の赤ちゃんが生まれる。子は倉庫の種子を食べて育ち、若者になると外へついてくる（捕食者が来ると巣へかくれる）。<br>' +
+  '<b>家族</b>（K・メニュー）から 育った子に<b>あとをつがせる</b>（巣・倉庫・持ち物・フレンドはそのまま）。家系図で毛色や耳・脚・尾・体の違いが見られる。';
+const HELP_FULL_KEYS = '<b>WASD・方向キー</b> 跳ねる／<b>Space</b> 大ジャンプ（小石の山や草むらを越える）<br><b>E</b> 拾う・調べる・巣に入る・巣を掘る・水を飲む・野生の子に種子をあげる<br><b>Q</b> 種子を 1 つ食べる／<b>L</b> 土地を調べる・引っ越す／<b>M</b> ミニマップの重ね表示／<b>I</b> 持ち物／<b>F</b> フレンド／<b>K</b> 家族・家系図／<b>Enter</b> チャット／<b>Esc</b> メニュー／<b>H</b> 下の案内を出す・隠す' + HELP_LIFE + HELP_DANGER + HELP_FAMILY;
+const HELP_FULL_TOUCH = '<b>左のスティック</b> 跳ねる（左側のどこを触ってもよい）<br><b>ジャンプ</b> 大ジャンプ（小石の山や草むらを越える）<br><b>地面をタップ</b> そこへ跳ねていく<br><b>採集物・巣穴をタップ</b> 歩いて行って拾う・入る<br><b>自分をタップ・調べる</b> 拾う・巣を掘る・巣に入る・水を飲む<br><b>食べる</b> 種子を 1 つ食べる／<b>土地</b> いる場所の土地を調べる・引っ越す／<b>ミニマップをタップ</b> 危険・食料の重ね表示／<b>フレンド</b> メニューから<br><b>持ち物・チャット・メニュー</b> 上の帯のボタン（ホットバーを押しても持ち物）／<b>家族</b> 体調のバーを押す・メニューから' + HELP_LIFE + HELP_DANGER + HELP_FAMILY; 
 const PRIO = { [T.SAND]: 0, [T.DIRT]: 1, [T.GRASS]: 2 };
 
 export class FieldScene {
@@ -142,11 +148,11 @@ export class FieldScene {
   // ───────── 世界の受け取り（joinField の結果）─────────
   init(world) {
     const y = world.you;
-    this.me = { id: y.id, name: y.name, fur: y.fur };
+    this.me = { id: y.id, name: y.name, fur: y.fur, look: y.look || this.game.look || null };
     this.inv = y.inv;
     this.myNest = y.nest;
     const st = makeFieldState(y.x, y.y); st.dir = y.dir || 'down';
-    this.pred = new Predictor(st, (s, i) => stepField(s, i, STEP_DT, this.map, fieldMods(moveMods(this.game.life), this.game.env)));
+    this.pred = new Predictor(st, (s, i) => stepField(s, i, STEP_DT, this.map, fieldMods(moveMods(this.game.life), this.game.env, this.game.traitMove)));
     this.pred.onReconcile = info => { this.game.debug.reconciles = (this.game.debug.reconciles || 0) + 1; this.game.debug.lastReconcile = info; };
     this.resources = new Map(world.resources.map(r => [r.id, { ...r }]));
     this.entrances = world.entrances.slice();
@@ -158,8 +164,26 @@ export class FieldScene {
     this.ping = null;
     this.preds = new Map(); this.predLatest = []; this.threat = null; this.stillT = 0; this.wx = []; this.shake = 0; this.flash = 0;
     this.danger = world.danger || { predators: 'off', env: false };
+    // Ver.0.4：野生のトビネズミ（補間）・信頼・連れている若者の足あと
+    this.wild = new Map(); this.trust = {}; this.trails = new Map(); this.kidVis = new Map(); this.kidSt = new Map();
     this.ready = true;
   }
+  /** 世代交代・連れている若者が変わった（ほかの子） */
+  updatePlayer(p) {
+    if (!p) return;
+    if (p.id === this.me.id) { this.me.name = p.name; this.me.fur = p.fur; this.me.look = p.look; return; }
+    const rp = this.players.get(p.id);
+    if (!rp) return;
+    rp.name = p.name; rp.fur = p.fur || rp.fur; rp.look = p.look || null; rp.kids = p.kids || [];
+  }
+  /** 野生の子との出来事 */
+  onWild(m) {
+    const ui = this.game.ui;
+    if (m.type === 'befriend') { ui.toast((m.name || '野生の子') + ' と なかよしになった！ ついてくる。いっしょに自分の巣へ入ろう'); sfx('safe'); const v = this.wild.get(m.id); if (v && v.latest) this.hearts(v.latest.x, v.latest.y); }
+    else if (m.type === 'lost') ui.toast((m.name || '野生の子') + ' は 帰っていった');
+    else if (m.type === 'startle') { const t = performance.now(); if (t - (this._startleT || 0) > 6000) { this._startleT = t; ui.toast((m.name || '野生の子') + ' が びっくりして逃げた（そっと近づいて、じっとしよう）', 'bad'); } }
+  }
+  hearts(x, y) { for (let i = 0; i < 5; i++) this.fx.push({ x: x + (Math.random() - 0.5) * 10, y: y - 16, vx: (Math.random() - 0.5) * 14, vy: -14 - Math.random() * 10, t: 0, life: 1 + Math.random() * 0.5, color: '#ff8aa0', heart: true }); }
   /** フレンドの一覧が変わった：入口の名札・ミニマップの色に使う */
   onFriends(list) { this.friendIds = new Set((list || []).filter(f => f.state === 'friend').map(f => f.id)); }
   isFriend(id) { return !!(this.friendIds && this.friendIds.has(id)); }
@@ -168,7 +192,7 @@ export class FieldScene {
   onEat() { this.eatT = this.t; }
   addPlayer(p) {
     if (!p || p.id === this.me.id) return;
-    const rp = { id: p.id, name: p.name, fur: p.fur || 'sand', interp: new Interp(), last: { x: p.x, y: p.y, z: 0, dir: p.dir || 'down', anim: 'idle' }, hop: 0 };
+    const rp = { id: p.id, name: p.name, fur: p.fur || 'sand', look: p.look || null, kids: p.kids || [], interp: new Interp(), last: { x: p.x, y: p.y, z: 0, dir: p.dir || 'down', anim: 'idle' }, hop: 0 };
     rp.interp.push(this.serverNow() - 200, { x: p.x, y: p.y, z: 0, dir: p.dir || 'down', anim: 'idle' });
     this.players.set(p.id, rp);
   }
@@ -203,6 +227,16 @@ export class FieldScene {
     for (const [id, v] of this.preds) if (!seen.has(id)) { if (!v.goneAt) v.goneAt = m.st; else if (m.st - v.goneAt > 400) this.preds.delete(id); }
     this.predLatest = m.preds || [];
     this.threat = threatTo(this.predLatest, me);
+    // 野生のトビネズミ
+    const ws = new Set();
+    for (const q of m.wild || []) {
+      ws.add(q.id);
+      let v = this.wild.get(q.id);
+      if (!v) { v = { id: q.id, interp: new Interp() }; this.wild.set(q.id, v); }
+      v.interp.push(m.st, q); v.latest = q; v.goneAt = 0;
+    }
+    for (const [id, v] of this.wild) if (!ws.has(id)) { if (!v.goneAt) v.goneAt = m.st; else if (m.st - v.goneAt > 400) this.wild.delete(id); }
+    this.trust = m.wt || {};
   }
   /** つかまった（サーバー／オフラインから）：安全な所へ戻る・画面がゆれる・落とした物 */
   onCaught(m) {
@@ -306,6 +340,7 @@ export class FieldScene {
       if (inp.take('KeyE')) this.interact();
       if (inp.take('KeyQ')) g.eat('inv');
       if (inp.take('KeyF')) g.openFriends();
+      if (inp.take('KeyK')) g.openFamily();
       if (inp.take('KeyL')) this.openSurvey();
       if (inp.take('KeyM')) this.cycleOverlay();
       if (inp.take('KeyI')) g.ui.toggleInventory((a, b) => g.moveSlot(a, b));
@@ -330,6 +365,8 @@ export class FieldScene {
     const wx = sx + this.cam.x, wy = sy + this.cam.y, s = this.pred.state;
     // 自分をタップ：調べる（E と同じ）
     if (Math.hypot(wx - s.x, wy - (s.y - 10)) < 12) { this.autoGo = null; this.interact(); return; }
+    const wv = (this.wildViews || []).find(w => Math.hypot(w.x - wx, w.y - 8 - wy) < 14);
+    if (wv) { this.autoGo = { x: wv.x, y: wv.y, kind: 'wild', ref: wv, arrive: WILD_R - 6, best: 1e9, stuck: 0, t0: this.t }; return; }
     const hit = pickTapTarget(wx, wy, { resources: [...this.resources.values()], entrances: this.entrances, players: this.remoteViews || [] });
     if (hit && hit.kind === 'res') this.autoGo = { x: hit.ref.x, y: hit.ref.y, kind: 'res', ref: hit.ref, arrive: PICK_R - 8 };
     else if (hit && hit.kind === 'ent') this.autoGo = { x: hit.ref.x, y: hit.ref.y + 2, kind: 'ent', ref: hit.ref, arrive: ENT_R - 8 };
@@ -341,10 +378,12 @@ export class FieldScene {
     const a = this.autoGo, s = this.pred.state;
     if (s.jump) return { mx: 0, my: 0 };
     if (a.kind === 'player' && a.ref) { const p = (this.remoteViews || []).find(v => v.id === a.ref.id); if (p) { a.x = p.x; a.y = p.y; } }
+    if (a.kind === 'wild' && a.ref) { const w = (this.wildViews || []).find(v => v.id === a.ref.id); if (w) { a.x = w.x; a.y = w.y; } }
     const st = steerToward(s.x, s.y, a.x, a.y, a.arrive);
     if (st.done) {
       this.autoGo = null;
       if (a.kind === 'res' || a.kind === 'ent') { const tgt = this.target(); if (tgt && (tgt.res === a.ref || tgt.ent === a.ref)) this.interact(tgt); }
+      if (a.kind === 'wild') { const tgt = this.target(); if (tgt && tgt.kind === 'wild') this.game.ui.toast('じっとしていると信頼が増える。調べる＝種子をあげる'); }
       return { mx: 0, my: 0 };
     }
     // 岩や水で止まったら（0.8 秒近づけない）あきらめる
@@ -358,6 +397,14 @@ export class FieldScene {
     const s = this.pred.state;
     if (s.jump) return null;
     let best = null, bd = 1e9;
+    for (const w of this.wildViews || []) {
+      const d = Math.hypot(w.x - s.x, w.y - s.y) + (w.fol === this.me.id ? 14 : -6);   // 同じくらいなら野生の子を優先（ついてきている子は後回し：巣の入口を先に）
+      if (d < WILD_R && d < bd) {
+        bd = d;
+        const tr = Math.round(this.trust[w.id] || 0), mine = w.fol === this.me.id;
+        best = { kind: 'wild', w, label: mine ? w.name + '：なかよし（いっしょに巣へ入ろう）' : '種子をあげる（' + w.name + '・信頼 ' + tr + '/100）' };
+      }
+    }
     for (const r of this.resources.values()) {
       if (r.pending) continue;
       const d = Math.hypot(r.x - s.x, r.y - s.y);
@@ -394,7 +441,7 @@ export class FieldScene {
       const e = tgt.ent;
       const res = await g.net.enterNest(e.owner);
       if (!res.ok) { g.ui.toast(res.reason || '入れない', 'bad'); return; }
-      g.enterNest(res.nest, e);
+      g.enterNest(res.nest, e, res.invite || null);
     } else if (tgt.kind === 'dig') {
       const L = landAt(this.map, this.pred.state.x, this.pred.state.y), dt = digTime(L);
       const ok = await g.ui.confirm('巣を掘る', 'ここに あなたの巣穴を掘りますか？<br>' + g.ui.landSummaryHTML(L) + '<span class="tb-dim">（巣穴は 1 つだけ。あとから中を広げられる。土地は「土地」で調べられ、あとで引っ越しもできる）</span>', '掘る', 'やめる');
@@ -422,6 +469,18 @@ export class FieldScene {
       g.ui.toast((res.src === 'dew' ? '夜露を飲んだ' : '水を飲んだ') + '（水分 ' + Math.round(res.life.thirst) + '）');
     } else if (tgt.kind === 'nodig') {
       g.ui.toast(tgt.label, 'bad');
+    } else if (tgt.kind === 'wild') {
+      const w = tgt.w;
+      if (w.fol === this.me.id) { g.ui.toast(w.name + ' は ついてくる。自分の巣の入口へ行って、いっしょに入ろう'); return; }
+      if (this._courting) return;
+      this._courting = true;
+      const res = await g.net.court(w.id);
+      this._courting = false;
+      if (!res.ok) { g.ui.toast(res.reason || 'うけとってくれなかった', 'bad'); return; }
+      if (res.inv) { this.inv = res.inv; g.ui.setInventory(this.inv); }
+      this.eatT = this.t; this.hearts(w.x, w.y);
+      g.ui.toast(res.befriended ? (res.name || w.name) + ' と なかよしになった！' : (res.name || w.name) + ' が 種子を食べた（信頼 ' + res.trust + '/100）');
+      g.debug.court = (g.debug.court || 0) + 1;
     }
   }
 
@@ -488,20 +547,33 @@ export class FieldScene {
       const s = rp.interp.sample(now) || rp.last;
       if (s.anim === 'hop' || s.anim === 'walk') rp.hop += 1 / 60 / FIELD.HOP_PERIOD; else rp.hop = 0;
       rp.last = s;
-      const v = { kind: 'player', x: s.x, y: s.y, z: s.z || 0, dir: s.dir, anim: s.anim, hop: rp.hop, jump: s.jump, fur: rp.fur, name: rp.name, id: rp.id };
+      const v = { kind: 'player', x: s.x, y: s.y, z: s.z || 0, dir: s.dir, anim: s.anim, hop: rp.hop, jump: s.jump, fur: rp.fur, look: rp.look, name: rp.name, id: rp.id };
       list.push(v); this.remoteViews.push(v);
     }
     for (const pv of this.predViews) if (pv.kind !== 'owl') list.push({ ...pv, kind: 'pred', pkind: pv.kind });
+    // 野生のトビネズミ
+    this.wildViews = [];
+    for (const v of this.wild.values()) {
+      const q = v.interp.sample(now0) || v.latest;
+      if (!q || v.goneAt) continue;
+      const wv = { kind: 'wild', id: v.id, x: q.x, y: q.y, z: q.z || 0, dir: q.dir || v.latest.dir, anim: q.anim || 'idle', jump: q.jump, look: v.latest.look, name: v.latest.name, fol: v.latest.fol, mood: v.latest.mood, hop: (v.hop = (q.anim === 'hop' ? (v.hop || 0) + 1 / 60 / FIELD.HOP_PERIOD : 0)) };
+      list.push(wv); this.wildViews.push(wv);
+    }
     const me = this.view;
     let myAnim = me.anim;
     if (this.digT != null && this.t - this.digT < (this.digDur || 1) + 0.2) myAnim = 'dig';
     else if (this.gatherT != null && this.t - this.gatherT < 0.35) myAnim = 'gather';
     else if (this.eatT != null && this.t - this.eatT < 0.7 && me.anim === 'idle') myAnim = 'eat';
-    const meV = { kind: 'player', me: true, x: me.x, y: me.y, z: me.z, dir: me.dir, anim: myAnim, hop: me.hop, jump: me.jump, fur: this.me.fur, name: this.me.name, id: this.me.id, cd: me.cd };
+    const meV = { kind: 'player', me: true, x: me.x, y: me.y, z: me.z, dir: me.dir, anim: myAnim, hop: me.hop, jump: me.jump, fur: this.me.fur, look: this.me.look || this.game.look, name: this.me.name, id: this.me.id, cd: me.cd };
     list.push(meV);
+    // 連れている若者（足あとをたどってついてくる・捕食者が来ると巣へかくれる）
+    this._kids(list, meV, this.game.myKids || [], true);
+    for (const v of this.remoteViews) { const rp = this.players.get(v.id); if (rp && rp.kids && rp.kids.length) this._kids(list, v, rp.kids, false); }
     list.sort((a, b) => a.y - b.y);
     for (const o of list) {
       if (o.kind === 'player') this.drawJerboa(g, o);
+      else if (o.kind === 'wild') this.drawWild(g, o);
+      else if (o.kind === 'kid') this.drawKid(g, o);
       else if (o.kind === 'pred') this.drawPred(g, o);
       else if (o.kind === 'shrub') { if (!Sprites.drawEntry(g, 'tile.shrub', o.v, o.x, o.y)) A.drawShrub(g, o.x, o.y, o.v); }
       else if (o.kind === 'rock') { if (!Sprites.drawEntry(g, 'tile.rock_small', o.v, o.x, o.y)) A.drawRock(g, o.x, o.y, o.v); }
@@ -520,7 +592,11 @@ export class FieldScene {
       g.beginPath(); g.ellipse(Math.round(a.x) + 0.5, Math.round(a.y) + 0.5, 3 + k * 4, 1.5 + k * 2, 0, 0, Math.PI * 2); g.stroke();
     }
     // 砂ぼこり
-    for (const p of this.fx) { g.globalAlpha = 1 - p.t / p.life; g.fillStyle = p.color; g.fillRect(Math.round(p.x + p.vx * p.t), Math.round(p.y + p.vy * p.t), 2, 1); }
+    for (const p of this.fx) {
+      g.globalAlpha = 1 - p.t / p.life;
+      if (p.heart) { if (!Sprites.drawEntry(g, 'ui.heart', 4, p.x + p.vx * p.t, p.y + p.vy * p.t)) { g.fillStyle = p.color; g.fillRect(Math.round(p.x + p.vx * p.t), Math.round(p.y + p.vy * p.t), 3, 3); } }
+      else { g.fillStyle = p.color; g.fillRect(Math.round(p.x + p.vx * p.t), Math.round(p.y + p.vy * p.t), 2, 1); }
+    }
     g.globalAlpha = 1;
     // フクロウの影の輪（トビネズミより上に：影が見えるように）と、空のフクロウ（いちばん上）
     for (const pv of this.predViews) if (pv.kind === 'owl' && (pv.state === 'stalk' || pv.state === 'dive')) {
@@ -548,6 +624,11 @@ export class FieldScene {
       const fr = !e.own && this.isFriend(e.owner);
       sc.text(x, y + 14, e.name + 'の巣' + (fr ? '（フレンド）' : ''), { size: 6, color: e.own ? '#ffe9a8' : fr ? '#bff0c8' : '#f2dcc0', alpha: 0.9 });
     }
+    for (const o of list) if (o.kind === 'wild') {
+      const x = o.x - cx, y = o.y - cy - (o.z || 0);
+      if (x < -30 || x > W + 30 || y < -30 || y > H + 30) continue;
+      sc.text(x, y - 34, (o.fol === this.me.id ? '♥ ' : '') + '野生の' + o.name, { size: 6, color: o.fol === this.me.id ? '#ffc0cc' : '#e8e0c8', alpha: 0.9 });
+    }
     for (const o of list) if (o.kind === 'player') {
       const x = o.x - cx, y = o.y - cy - (o.z || 0);
       sc.nameTag(x, y - 29, o.name, { me: !!o.me });
@@ -566,7 +647,7 @@ export class FieldScene {
     Sprites.drawShadow(g, o.x, o.y - 1, sh);
     const hid = o.me && this.hidden;
     if (hid) g.globalAlpha = 0.62;                              // 草むらでじっとして隠れている
-    Sprites.drawJerboa(g, o.fur, 'field', fr.anim, o.dir || 'down', fr.frame, o.x, o.y - z);
+    Sprites.drawJerboa(g, o.fur, 'field', fr.anim, o.dir || 'down', fr.frame, o.x, o.y - z, o.look || null);
     if (hid) { g.globalAlpha = 1; for (let i = 0; i < 3; i++) { g.fillStyle = i % 2 ? '#6f8a3a' : '#8fa84a'; g.fillRect(Math.round(o.x) - 5 + i * 4, Math.round(o.y) - 4 - (i % 2), 1, 4); } }
     if (o.me && o.cd > 0) {   // 大ジャンプのクールダウン
       const k = o.cd / FIELD.JUMP_CD;
@@ -582,6 +663,66 @@ export class FieldScene {
     if (o.anim === 'dig' || o.anim === 'gather' || o.anim === 'eat') return { anim: o.anim, frame: Math.floor(this.t * 8) % n(o.anim) };
     const tw = Math.floor(this.t * 2 + hash2(o.id ? o.id.length : 0, 1, 1) * 7) % 7 === 0;
     return { anim: 'idle', frame: tw ? 1 : 0 };
+  }
+
+  // ───────── いのちをつなぐ（Ver.0.4）─────────
+  /** 野生のトビネズミ：見た目（遺伝子どおり）・気になると立ち上がる・頭の上に信頼のハート */
+  drawWild(g, o) {
+    const z = o.z || 0;
+    Sprites.drawShadow(g, o.x, o.y - 1, Math.max(0.45, 1 - z / 28));
+    let anim = o.anim === 'jump' ? 'jump' : o.anim === 'hop' ? 'hop' : (o.mood === 'curious' ? 'sniff' : 'idle');
+    let frame = 0;
+    if (anim === 'hop') frame = Math.floor(((o.hop || 0) % 1) * Sprites.frames('field', 'hop'));
+    else if (anim === 'jump' && o.jump) frame = Math.floor(Math.min(0.999, o.jump.t / o.jump.dur) * Sprites.frames('field', 'jump'));
+    else frame = Math.floor(this.t * 2 + o.x) % 2;
+    if (!Sprites.drawJerboa(g, o.look ? o.look.fur : 'sand', 'field', anim, o.dir || 'down', frame, o.x, o.y - z, o.look || null)) Sprites.drawJerboa(g, 'sand', 'field', 'idle', o.dir || 'down', 0, o.x, o.y - z);
+    const tr = this.trust[o.id] || 0, mine = o.fol === this.me.id;
+    if (tr > 0 || mine) {
+      const lv = mine ? 4 : Math.min(4, Math.floor(tr / 25));
+      const bob = Math.round(Math.sin(this.t * 3 + o.x) * 1);
+      if (!Sprites.drawEntry(g, 'ui.heart', lv, o.x, o.y - z - 27 + bob)) { g.fillStyle = '#e8485a'; g.fillRect(Math.round(o.x) - 2, Math.round(o.y - z) - 31 + bob, 4, 3); }
+      if (!mine) { g.fillStyle = 'rgba(42,26,16,.75)'; g.fillRect(Math.round(o.x) - 7, Math.round(o.y - z) - 25 + bob, 14, 2); g.fillStyle = '#ff8aa0'; g.fillRect(Math.round(o.x) - 7, Math.round(o.y - z) - 25 + bob, Math.round(14 * tr / 100), 2); }
+      else if (Math.floor(this.t * 2) % 2) Sprites.drawEntry(g, 'ui.sparkle', 0, o.x + 7, o.y - z - 24);
+    }
+  }
+  /** 足あと（その子の通った所）をたどって、後ろについてくる若者の位置を決める */
+  _kids(list, owner, kids, mine) {
+    if (!kids.length) return;
+    let tr = this.trails.get(owner.id);
+    if (!tr) { tr = []; this.trails.set(owner.id, tr); }
+    const last = tr[tr.length - 1];
+    if (!last || Math.hypot(owner.x - last.x, owner.y - last.y) > 2) { tr.push({ x: owner.x, y: owner.y }); if (tr.length > 80) tr.shift(); }
+    // 捕食者が近い：巣へかくれる（消える）。いなくなったら戻ってくる
+    const danger = (this.predViews || []).some(p => !p.gone && Math.hypot(p.x - owner.x, p.y - owner.y) < 150);
+    const k0 = this.kidVis.get(owner.id) ?? 1;
+    const k = Math.max(0, Math.min(1, k0 + (danger ? -0.06 : 0.03)));
+    this.kidVis.set(owner.id, k);
+    if (mine && danger && k0 >= 1) { this.game.ui.toast('若者たちは 巣へ かくれた'); this.puff(owner.x, owner.y, '#e6c690', 6); }
+    if (mine && !danger && k0 <= 0 && k > 0) this.game.ui.toast('若者たちが もどってきた');
+    if (mine) this.game.debug.kidsVisible = k;
+    if (k <= 0) return;
+    kids.forEach((kd, i) => {
+      const want = 18 + i * 16;
+      let acc = 0, px = owner.x, py = owner.y, q = null;
+      for (let j = tr.length - 1; j >= 0; j--) { const t = tr[j]; acc += Math.hypot(t.x - px, t.y - py); px = t.x; py = t.y; if (acc >= want) { q = t; break; } }
+      if (!q) q = { x: owner.x - 10 - i * 9, y: owner.y + 4 + (i % 2) * 3 };
+      let st = this.kidSt.get(kd.id);
+      if (!st) { st = { x: q.x, y: q.y, hop: 0 }; this.kidSt.set(kd.id, st); }
+      const dx = q.x - st.x, dy = q.y - st.y, d = Math.hypot(dx, dy);
+      const moving = d > 0.5;
+      st.x += dx * 0.25; st.y += dy * 0.25;
+      st.hop = moving ? st.hop + 1 / 60 / FIELD.HOP_PERIOD : 0;
+      if (moving) st.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : dy < 0 ? 'up' : 'down';
+      list.push({ kind: 'kid', x: st.x, y: st.y, look: kd.look, name: kd.name, dir: st.dir || owner.dir || 'down', hop: st.hop, anim: moving ? 'hop' : 'idle', alpha: k, mine });
+    });
+  }
+  drawKid(g, o) {
+    g.globalAlpha = o.alpha;
+    Sprites.drawShadow(g, o.x, o.y - 1, 0.75);
+    const n = Sprites.frames('field', 'hop');
+    const frame = o.anim === 'hop' ? Math.floor(((o.hop || 0) % 1) * n) : Math.floor(this.t * 2 + o.x) % 2;
+    Sprites.drawJerboa(g, o.look ? o.look.fur : 'sand', 'field', o.anim, o.dir, frame, o.x, o.y - (o.anim === 'hop' ? Math.round(Math.sin(((o.hop || 0) % 1) * Math.PI) * 3) : 0), o.look || null);
+    g.globalAlpha = 1;
   }
 
   /** 夜の暗さ・夕焼けの色。光は自分（大きめ）・ほかのトビネズミ・自分の巣穴の灯り・夜露のきらめき */

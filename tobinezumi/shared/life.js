@@ -98,3 +98,10 @@ export function lifeWord(k, v) {
   if (k === 'hunger') return v >= 70 ? '満腹' : v >= LIFE.LOW ? 'ふつう' : v > 0 ? 'すいている' : 'ぺこぺこ';
   return v >= 70 ? 'うるおっている' : v >= LIFE.LOW ? 'ふつう' : v > 0 ? 'かわいている' : 'からから';
 }
+
+/** Ver.0.4：形質の効き目（shared/genetics.js の traitMods）を暮らしの減り方へ。耳が大きいと水分・体が大きいと空腹と寒さ */
+export function lifeEnvWithTraits(envLife, tm) {
+  if (!tm) return envLife;
+  const E = envLife || {};
+  return { ...E, thirstMul: (E.thirstMul || 1) * (tm.thirst || 1), hungerMul: (E.hungerMul || 1) * (tm.hunger || 1), condPerSec: (E.condPerSec || 0) * (tm.cold || 1) };
+}

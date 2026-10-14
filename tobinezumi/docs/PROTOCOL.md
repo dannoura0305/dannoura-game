@@ -192,3 +192,43 @@ Resource に：n（落とし物の数）、exp（消える時刻）
 - 捕食者はサーバーの `FieldRoom.predTick`（20Hz・1/20 秒）で動き、「つかまった」もサーバーが決める。クライアントは `preds` を 100ms 遅れで補間して描くだけ。
 - DB：`migrations/004_danger_land.js`＝`lands.plot`（と `info` に性能）、`nests.plugged / relocated_at / raided_at`、`nest_events(nest_id, kind, data, at, seen)`、`world_resources.qty / expires_at`。今ある巣の土地にも区画と性能を入れる。
 - オフライン版（`OfflineBackend`）も同じ API・同じ AI（`net.preds` が `PredatorWorld`）。保存 `tobi_save_v1` の版 3：巣に `plugged`・`land`・`relocatedAt`・`raidedAt`、`events`（襲撃）、落とし物・水たまり・希少資源は `world.resources` に（v2 は読み込み時に移行）。捕食者の強さはメニュー（`tobi_settings.danger`）。
+
+## 10. Ver.0.4「いのちをつなぐ」（追加分。PROTOCOL_VERSION は 1 のまま＝足しただけ）
+
+### 10.1 C2S
+| t | 中身 | 返事 | サーバーの検証 |
+|---|---|---|---|
+| `create_char` | `{name, fur, sex?:'f'\|'m'}` | `{ok, character}` | sex が無い・変なら種から決める。1 代目は若者（3 日）・選んだ毛色を 2 つ持つ遺伝子・体つきはふつう（`founderInd`） |
+| `court` | `{wildId}` | `{ok, trust, befriended, name, inv}` | 地上・その野生の子がいる（無ければ `not_found`）・**おとなで体調がよく冬でない**（`courtBlock`。だめなら `rule`＋`shy:true`）・持ち物に種子・30px 以内・同じ子へは 1.2 秒あける。種子 1 つで信頼 +25。100 で `wild {type:'befriend'}` |
+| `family` | `{}` | `{ok, family}` | |
+| `name_pups` | `{list:[{id, name}]}` | `{ok, family}` | 16 匹まで・名前は `validName`・自分の家の巣にいる子（pup/kin）だけ |
+| `feed_pup` | `{id}` | `{ok, inv, member, family}` | 自分の巣の中・持ち物に種子・その子が子ども／若者・満腹でない。0.4 秒あける |
+| `mate_again` | `{}` | `{ok, family}` | 自分の巣の中・つれあいがいる・`breedBlock`（下）。`litters` に予定を足す |
+| `kids_follow` | `{on}` | `{ok, family, kids}` | 若者（3 匹まで）を地上へ連れて行くか。変わると地上のみんなへ `player_update` |
+| `lineage` | `{}` | `{ok, nodes:[Ind], current}` | その家（アカウント）の個体すべて（ご先祖・つれあい・巣立った子も） |
+| `succeed` | `{id}` | `{ok, character, family, life, inv, look, kids, retired, left}` | **自分の子（father_id か mother_id がいまの個体）で、若者以上、巣にいる（pup/kin）**だけ（それ以外は `rule`）。古い `characters` を active=0、新しい行（持ち物を写す・位置はそのまま）、前の子とつれあいは role `ancestor`、おとなのきょうだいは `left`、小さいきょうだいは `kin`、もうすぐのお産は取り消し |
+| `farewell` | `{}` | `succeed` と同じ | 年寄り（24 日）で育った子がいないときだけ。親せきの若者（`kinOf`）があとをつぐ |
+| `dev` | `{age?, wild?, fur?, pied?, ear?, leg?, tail?, size?, trust?, birth?, give?, store?}` | | `TOBI_DEV=1` のときだけ。age＝日を進める、wild＝近くに出す（形質を指定できる）、give／store＝持ち物・倉庫へ足す |
+
+- **巣へ迎える**：`enter_nest` で自分の巣へ入るとき、ついてきている野生の子（90px 以内）がいれば `breedBlock`（おとな・体調 50／空腹 35／水分 35 以上・冬でない・寝床の部屋・倉庫の種子 10 以上・前のお産から 2 日・小さい子 10 匹未満・家族 16 匹未満）を確かめる。返事に `invite:{ok, name, mate?|reason?}`。だめなら野生の子は外で待つ。前のつれあいがいれば `left`（旅に出た）。
+- **お産**：`litters` の行（`due_play`＝親の ageMs で世界の半日後）。親が遊んでいる間の `lifeTick` で年齢が `due_play` をこえ、冬でなければ、`makeLitter`（種＝両親の id・何回目か・アカウント）で 2〜6 匹（春 3〜6・夏 2〜5・秋 2〜4）。冬は春まで待つ（`family` に `{type:'wait'}`）。子は `individuals`（role `pup`・nest_id・father_id・mother_id・generation）。
+- **年齢**：`individuals.status.ageMs`（遊んだ世界の ms）。地上か巣の中にいる間だけ進む（ログアウト中・タイトルでは進まない）。家族も同じ。30 秒ごと・切断・ログアウト・交代のときに保存。
+- **移動**：形質の倍率（`traitMoveMods`：脚 → 跳ねる速さ・大ジャンプの距離、尾 → 大ジャンプの待ち。どれも ±10% まで）を `stepField` の mods へ。クライアントの予測も `family.me.traits` で同じ。
+
+### 10.2 S2C
+| t | 中身 |
+|---|---|
+| `snapshot` | `wild:[WildSnap]`（全員同じ）・`wt:{wildId: 信頼}`（その子から見た 0〜100） |
+| `family` | `{family, events:[…]}`：4 秒ごと＋変わったとき。events = `born {pups:[Ind], mother, father, seed, season}`・`stage {id, name, stage}`・`hungry {id, name}`・`me {crossed:'adult'\|'elder'\|'lifespan'}`・`lifespan`（30 日をすぎて世界の 1 日に 1 回）・`wait`・`mate {name}` |
+| `player_update` | `{player:{id, name, fur, look, kids}}`：世代交代・連れている若者が変わった（地上のみんなへ） |
+| `wild` | `{type:'befriend'\|'lost'\|'startle', id, name}`（本人へ） |
+
+```
+Ind       = {id, name, sex, generation, father_id, mother_id, traits, role, ageMs, stage:'pup'|'young'|'adult'|'elder', fed, named, retiredAt?, kinOf?}
+Family    = {me:Ind, members:[Ind]（つれあい・子・きょうだい）, pending:{mateId, dueIn, wait}|null, litters, follow, heirs:[id], cooldown}
+WildSnap  = {id, name, x, y, z, dir, anim, jump?, look, fol（ついていく相手のアカウント id）, mood:'wander'|'curious'|'flee'|'follow'}
+look      = {fur, tint, pied, tuft, ear, leg, tail, size（−2〜2 の整数）, pup?, young?, ps（斑の模様の種）}
+```
+- `join_field` の world に `family`、`you`・`players[]` に `look`・`kids:[{id, name, look}]`。`enter_nest` の NestRecord に `family:[Ind]`（訪問者にも。所有者が留守なら DB から）。`nest_peers` に `look`。
+- DB：`migrations/005_family.js`＝`individuals.account_id / role / nest_id`、`litters(account_id, nest_id, mother_id, father_id, nth, seed, season, conceived_at, due_play, born_at, size)`、既存の個体は 1 代目のおとな（4 日）に。
+- オフライン版も同じ API（野生の子はブラウザの中の `WildWorld`）。保存 `tobi_save_v1` は版 4：`house`（Household）・`lineage`（ご先祖・巣立った子）・`nextInd`。v3 は読み込み時に移行。

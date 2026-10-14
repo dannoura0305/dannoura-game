@@ -1,7 +1,7 @@
 // tobinezumi/client/main.js — 起動・画面の切り替え・ゲームループ（固定 60Hz）・通信の通知の振り分け
 import { Screen } from './gfx.js';
 import { Input } from './input.js';
-import { UI, el, iconURL } from './ui.js';
+import { UI, el, esc, iconURL } from './ui.js';
 import { Sprites } from './sprites.js';
 import { chooseBackend, SETTINGS_KEY } from './net.js';
 import { STEP_DT } from '../shared/move.js';
@@ -15,6 +15,9 @@ import { itemName } from '../shared/items.js';
 import { dayPhase, timeOfDay } from '../shared/daynight.js';
 import { envAt, REST_NAME } from '../shared/season.js';
 import { initSfx, setSfx, sfx } from './sfx.js';
+import { familyPanel, namingDialog, farewellScene, lineagePanel } from './family-ui.js';
+import { lookOf, traitMoveMods } from '../shared/genetics.js';
+import { STAGE_NAME, ageLabel, STAGE } from '../shared/family.js';
 
 const stage = document.getElementById('tb-stage');
 const game = {
@@ -138,7 +141,109 @@ game.eat = async function (from = 'inv', item = 'seed') {
 };
 game.openLife = function () {
   if (!game.life) return;
-  game.ui.lifePanel(game.life, [{ label: '種子を 1 つ食べる', act: () => { game.ui.closeModal(); game.eat('inv'); } }]);
+  const me = game.house && game.house.me;
+  game.ui.ageHTML = me ? `<div class="tb-lifeage"><b>${esc(me.name)}</b>　${STAGE_NAME[me.stage]}・${ageLabel(me.ageMs)}<span class="tb-dim">（遊んでいる間だけ年をとる。世界の 1 日 = 24 分。寿命の目安 ${STAGE.LIFESPAN} 日）</span></div>` : '';
+  game.ui.lifePanel(game.life, [{ label: '種子を 1 つ食べる', act: () => { game.ui.closeModal(); game.eat('inv'); } }, { label: '家族・家系図', act: () => { game.ui.closeModal(); game.openFamily(); } }]);
+};
+
+// ── いのちをつなぐ（Ver.0.4）：年齢・家族・野生の子・世代交代・家系図 ──
+game.house = null; game.look = null; game.traitMove = null; game.myKids = [];
+/** 家族の様子が届いた（joinField・family 通知・操作の返事） */
+game.setFamily = function (fam, events = []) {
+  if (!fam || !fam.me) return;
+  game.house = fam;
+  game.look = lookOf(fam.me.traits);
+  game.traitMove = traitMoveMods(fam.me.traits);
+  game.myKids = fam.follow ? fam.members.filter(m => (m.role === 'pup' || m.role === 'kin') && m.stage === 'young').slice(0, 3).map(m => ({ id: m.id, name: m.name, look: lookOf(m.traits, { young: 1, ps: m.id % 97 }) })) : [];
+  if (game.field && game.field.me) game.field.me.look = game.look;
+  for (const e of events) game._familyEvent(e);
+  game.debug.family = { me: fam.me.name, stage: fam.me.stage, age: Math.round(fam.me.ageMs / 1000), kids: fam.members.filter(m => m.role === 'pup' || m.role === 'kin').length, mate: !!fam.members.find(m => m.role === 'mate'), pending: !!fam.pending };
+};
+game._familyEvent = function (e) {
+  const ui = game.ui;
+  if (e.type === 'born') {
+    sfx('safe');
+    ui.toast('巣で 赤ちゃんが ' + e.pups.length + ' 匹 生まれた！');
+    game.pendingNames = e.pups;
+    if (game.scene === game.walk && game.nest && game.nest.own && !ui.busy()) game.openNaming();
+  } else if (e.type === 'stage') {
+    if (e.stage === 'young') ui.toast(e.name + ' が 若者になった！（外へ連れて行ける・次の世代に選べる）');
+    else if (e.stage === 'adult') ui.toast(e.name + ' が おとなになった');
+  } else if (e.type === 'hungry') {
+    const t = performance.now(); if (t - (game._hungryT || 0) > 20000) { game._hungryT = t; ui.toast(e.name + ' が おなかをすかせている（倉庫に種子を・巣で種子をあげる）', 'bad'); }
+  } else if (e.type === 'me') {
+    if (e.crossed === 'adult') ui.toast('おとなになった！ 野生のトビネズミと なかよくなれる（そっと近づいてじっと・種子をあげる）');
+    else if (e.crossed === 'elder') ui.toast('年寄りになった。のんびり子や孫を見守ろう');
+  } else if (e.type === 'lifespan') game.lifespanDialog();
+  else if (e.type === 'wait') ui.toast('冬のあいだは巣ごもり。赤ちゃんは春に生まれる');
+  else if (e.type === 'mate') ui.toast(e.name + ' が つれあいとして巣に住むことになった');
+};
+game.openNaming = function () {
+  const pups = game.pendingNames;
+  if (!pups || !pups.length) return;
+  game.pendingNames = null;
+  namingDialog(game, pups, async list => {
+    const r = await game.net.namePups(list);
+    if (!r.ok) { game.ui.toast(r.reason || '名前をつけられなかった', 'bad'); return; }
+    game.setFamily(r.family);
+    game.ui.toast('名前をつけた：' + list.map(x => x.name).join('・'));
+  });
+};
+game.openFamily = async function () {
+  const net = game.net;
+  const r = await net.family();
+  if (!r.ok) { game.ui.toast(r.reason || '家族を見られない', 'bad'); return; }
+  game.setFamily(r.family);
+  familyPanel(game, r.family, {
+    rename: async m => {
+      const v = await game.ui.prompt('名前を変える', esc(m.name) + ' の新しい名前（' + 10 + ' 文字まで）', m.name);
+      if (v == null || !v.trim()) { game.openFamily(); return; }
+      const x = await net.namePups([{ id: m.id, name: v.trim() }]);
+      if (!x.ok) game.ui.toast(x.reason || '変えられなかった', 'bad'); else game.setFamily(x.family);
+      game.openFamily();
+    },
+    succeed: m => game.succeed(m),
+    follow: async on => { const x = await net.kidsFollow(on); if (x.ok) { game.setFamily(x.family); game.ui.toast(on ? '若者を連れて行く（地上でついてくる）' : '若者は巣で待つ'); } },
+    lineage: () => game.openLineage(),
+    farewell: () => game.farewell(),
+  });
+};
+game.openLineage = async function () {
+  const r = await game.net.lineage();
+  if (!r.ok) { game.ui.toast(r.reason || '家系図を見られない', 'bad'); return; }
+  lineagePanel(game, r);
+};
+game.succeed = async function (m) {
+  const ok = await game.ui.confirm('次の世代へ', `<b>${esc(m.name)}</b>（${STAGE_NAME[m.stage]}・${ageLabel(m.ageMs)}）が あとをつぎます。<br>巣・倉庫・持ち物・フレンドは そのまま。いまの子は ご先祖になって家系図に残ります。`, 'あとをつがせる', 'やめる');
+  if (!ok) return;
+  game._afterSuccession(await game.net.succeed(m.id));
+};
+game.farewell = async function () {
+  const ok = await game.ui.confirm('旅立ち', '育った子がいないので、親せきの若者が 巣をまかされます。<br>巣・倉庫・持ち物・フレンドは そのまま。いまの子は ご先祖として家系図に残ります。', '旅立つ', 'やめる');
+  if (!ok) return;
+  game._afterSuccession(await game.net.farewell());
+};
+game._afterSuccession = function (r) {
+  if (!r || !r.ok) { game.ui.toast((r && r.reason) || 'あとをつげなかった', 'bad'); return; }
+  game.character = r.character;
+  game.setFamily(r.family);
+  if (r.life) game.setLife(r.life, true);
+  if (r.inv) game.setInv(r.inv);
+  if (game.field && game.field.me) { game.field.me.name = r.character.name; game.field.me.fur = r.character.fur; game.field.me.look = game.look; }
+  if (game.scene === game.walk && game.walk._retitle) { if (game.nest && game.nest.own) game.nest.ownerName = r.character.name; game.walk._retitle(); }
+  farewellScene(game, r.retired || [], r.family.me);
+  game.debug.successions = (game.debug.successions || 0) + 1;
+};
+game.lifespanDialog = function () {
+  if (game.ui.busy()) { setTimeout(() => game.lifespanDialog(), 3000); return; }
+  const me = game.house && game.house.me;
+  if (!me) return;
+  const heirs = (game.house.heirs || []).length;
+  game.ui.menu('そろそろ次の世代へ', `<div class="tb-body">${esc(me.name)} も ${ageLabel(me.ageMs)}。ずいぶん長く生きてきた。<br>${heirs ? '育った子が ' + heirs + ' 匹いる。「家族」から あとをつぐ子を選べる。' : '育った子はいない。「旅立ち」で親せきの若者に巣をまかせることもできる。'}<br><span class="tb-dim">このまま遊び続けてもだいじょうぶ（いなくなったりしない）。</span></div>`, [
+    { label: '家族を見る（次の世代を選ぶ）', cls: 'primary', act: () => { game.ui.closeModal(); game.openFamily(); } },
+    ...(heirs ? [] : [{ label: '旅立つ', act: () => { game.ui.closeModal(); game.farewell(); } }]),
+    { label: 'まだ このまま', act: () => game.ui.closeModal() },
+  ]);
 };
 
 // ── フレンド・巣の設定（Ver.0.2）──
@@ -196,15 +301,20 @@ game.startGame = async function () {
   game.life = null;
   game.setLife(r.world.life);
   game.setFriends(r.world.friends || []);
+  if (r.world.family) game.setFamily(r.world.family);
   game.field.init(r.world);
   game.go(game.field);
   if ((r.world.visitors && r.world.visitors.length) || (r.world.raids && r.world.raids.length)) setTimeout(() => { if (!game.ui.busy()) game.ui.visitorsPanel(r.world.visitors || [], r.world.raids || []); }, 600);
 };
-game.enterNest = function (nest) {
+game.enterNest = function (nest, ent, invite = null) {
   game.nest = nest; game.nestPeers = [];
   game.walk = game.walk || new NestWalkScene(game);
   game.go(game.walk, { nest, from: 'field' });
-  game.ui.toast(nest.own ? 'わが家に帰ってきた' : nest.ownerName + 'の巣におじゃました');
+  if (invite && invite.ok) { sfx('safe'); game.ui.toast(invite.name + ' を 巣に むかえた！ つれあいになった（世界の半日ほどで 赤ちゃんが生まれる）'); }
+  else if (invite) game.ui.toast(invite.name + ' は 入口で待っている：' + invite.reason, 'bad');
+  else game.ui.toast(nest.own ? 'わが家に帰ってきた' : nest.ownerName + 'の巣におじゃました');
+  if (nest.own && game.pendingNames) setTimeout(() => { if (!game.ui.busy()) game.openNaming(); }, 400);
+  void ent;
 };
 game.toBuild = function (nest) { game.build = game.build || new NestBuildScene(game); game.go(game.build, { nest }); };
 game.toWalk = function (nest) { game.walk = game.walk || new NestWalkScene(game); game.go(game.walk, { nest, from: 'build' }); };
@@ -222,7 +332,8 @@ game.openMenu = function () {
     ${net.mode === 'offline' ? `<label class="tb-field">捕食者（フクロウ・キツネ・ヘビ） <select class="danger">${dangerOpts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>` : ''}
     <label class="tb-field">効果音 <select class="sound"><option value="on">鳴らす</option><option value="off">鳴らさない</option></select></label>`, [
     { label: 'ゲームにもどる', act: () => game.ui.closeModal() },
-    ...(game.field ? [{ label: 'フレンド', act: () => { game.ui.closeModal(); game.openFriends(); } }, { label: 'くらし（体調・空腹・水分）', act: () => { game.ui.closeModal(); game.openLife(); } }] : []),
+    ...(game.field ? [{ label: 'フレンド', act: () => { game.ui.closeModal(); game.openFriends(); } }, { label: 'くらし（体調・空腹・水分・年齢）', act: () => { game.ui.closeModal(); game.openLife(); } },
+      { label: '家族', act: () => { game.ui.closeModal(); game.openFamily(); } }, { label: '家系図', act: () => { game.ui.closeModal(); game.openLineage(); } }] : []),
     ...(game.scene && game.scene.helpHTML ? [{ label: 'ヘルプ（操作のしかた）', act: () => { const h = game.scene.helpHTML(); game.ui.closeModal(); game.ui.menu('ヘルプ', `<div class="tb-help-full">${h}</div>`, [{ label: 'とじる', act: () => game.ui.closeModal() }]); } }] : []),
     ...(fsOK && game.isTouch ? [{ label: document.fullscreenElement ? '全画面をやめる' : '全画面にする', act: () => { game.ui.closeModal(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); } }] : []),
     { label: '保存してタイトルへ（ログアウト）', act: async () => { net.savePosition && net.savePosition(); await net.logout(); game.ui.closeModal(); game.field = null; game.walk = null; game.build = null; game.go(new TitleScene(game)); } },
@@ -281,6 +392,10 @@ function wire(net) {
   net.on('raid', m => { game.ui.toast(m.kind === 'raid' ? 'キツネが あなたの巣の入口を掘り返した！ 倉庫の種子 −' + m.lost : 'キツネが巣を掘ろうとしたが、ふさいだ入口で守れた', m.kind === 'raid' ? 'bad' : ''); });
   net.on('clock', () => { game.updateEnv(true); });
   net.on('friends', m => game.setFriends(m.list));
+  // Ver.0.4
+  net.on('family', m => game.setFamily(m.family, m.events || []));
+  net.on('player_update', m => { if (game.field && game.field.updatePlayer) game.field.updatePlayer(m.player); });
+  net.on('wild', m => { if (game.field && game.field.onWild) game.field.onWild(m); });
   net.on('visit', m => game.ui.toast(m.name + ' が あなたの巣を たずねてきた'));
   net.on('nest_role', m => {
     if (!game.nest || game.nest.id !== m.nestId) return;

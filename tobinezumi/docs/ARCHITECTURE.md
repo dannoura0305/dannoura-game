@@ -91,7 +91,7 @@
 
 ## 5. データ構造（将来拡張を見越して先に分ける）
 
-実装：`server/migrations/001_init.js`・`002_world_containers.js`・`003_life_social.js`（Ver.0.2：friends・nest_visits・nest_access の主キー）・`004_danger_land.js`（Ver.0.3：lands.plot・nests.plugged/relocated_at/raided_at・nest_events・world_resources.qty/expires_at）（起動時に未適用分を番号順に当て、`schema_migrations` に記録）。
+実装：`server/migrations/001_init.js`・`002_world_containers.js`・`003_life_social.js`（Ver.0.2：friends・nest_visits・nest_access の主キー）・`004_danger_land.js`（Ver.0.3：lands.plot・nests.plugged/relocated_at/raided_at・nest_events・world_resources.qty/expires_at）・`005_family.js`（Ver.0.4：individuals.account_id/role/nest_id・litters）（起動時に未適用分を番号順に当て、`schema_migrations` に記録）。
 
 ```
 schema_migrations(version, name, applied_at)                         -- どこまで当てたか
@@ -101,8 +101,11 @@ characters(id, account_id, individual_id, name, fur, active INTEGER, created_at,
            pos_x, pos_y, dir, place('field'|'nest:<id>'), exit_kind('new'|'live'|'logout'|'disconnect'|'shutdown'), saved_at)
                                                                       -- いま操作している個体＋位置の保存（再接続 60 秒の判定に exit_kind/saved_at）
 individuals(id, species, name, sex, born_at, generation,
-            father_id NULL, mother_id NULL,                           -- 家系図（Ver0.1 は NULL）
-            genes JSON, traits JSON, status JSON)                     -- 毛色・耳・脚・尾・体格／空腹など（Ver0.1 は genes.fur だけ）
+            father_id NULL, mother_id NULL,                           -- 家系図（Ver.0.4 で使う）
+            genes JSON, traits JSON, status JSON,                     -- 遺伝子（shared/genetics.js）・表の形質／status：life・ageMs・fed・named・retiredAt・wild・kinOf・house
+            account_id, role, nest_id)                                -- Ver.0.4：どの家か・'player'|'pup'|'kin'|'mate'|'ancestor'|'left'|'pending'・巣にいる家族
+litters(id, account_id, nest_id, mother_id, father_id, nth, seed, season,
+        conceived_at, due_play, born_at NULL, size)                   -- Ver.0.4：お産（born_at NULL＝もうすぐ。due_play＝親の ageMs）
 inventories(owner_kind 'char'|'nest', owner_id, slot, item_id, qty)   -- 持ち物 8 枠 / 巣の倉庫 24 枠（枠の並びも保存）
 lands(id, region_id, x, y, info JSON, plot)                           -- 土地（巣穴の入口の場所）。plot＝区画 'L列-行'、info＝区画の性能（食料・危険・地質・景観・気候・希少：Ver.0.3）
 nests(id, owner_account_id UNIQUE, land_id, schema_version, rev,
@@ -121,7 +124,7 @@ events(id, key, data JSON) / account_flags(account_id, key, value)    -- 物語�
 
 - 巣データ（`nests.data`）の版が古ければ、起動時に `shared/nest-rules.js` の `migrateNest` で最新へ（`schema_version` も更新）。
 - 書き込みは同期 API（`DatabaseSync`）＋`BEGIN IMMEDIATE` のトランザクション。採集は「資源を消す＋持ち物を書く＋再出現待ちを積む」、建築は「`rev` が一致したときだけ巣を書く＋持ち物」、倉庫は「持ち物＋倉庫」を 1 トランザクションで。
-- 「アカウント」と「操作個体」を分けておくことで、**世代交代＝操作個体の切り替え**になる。
+- 「アカウント」と「操作個体」を分けておくことで、**世代交代＝操作個体の切り替え**になる（Ver.0.4 で実装：古い `characters` を active=0、あとをつぐ子の行を足して持ち物を写す。巣・倉庫・フレンド・収集品はアカウントにつくのでそのまま）。
 - 巣は土地 ID を参照するだけなので、**引っ越し＝land_id の付け替え**で済む（Ver.0.3 で実装。古い土地の行は履歴として残す）。
 - Ver.0.3：捕食者は `FieldRoom.predTick`（20Hz・`shared/predators.js` の `PredatorWorld`）がサーバーで動かし、スナップショットに `preds` を入れる。オフラインは `OfflineBackend` が同じクラスを 1/20 秒刻みで回す。天気・季節は時計から計算するので送らない。
 

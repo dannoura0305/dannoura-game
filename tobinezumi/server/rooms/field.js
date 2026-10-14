@@ -17,6 +17,8 @@
 //    天気（shared/season.js）：砂嵐は跳ねる速さ ×0.8（stepField の speed）。雨は水たまり（id 'w…'・飲める）を出し、やむと乾く。
 //    土地（shared/lands.js）：巣穴を掘る素材は土の硬さで決まる。区画ごとの希少資源（id 'g…'）がときどき 1 つ出る。
 //    落とし物（id 'x…'・qty 個・10 分で消える）はだれでも拾える（先着 1 人）。
+//  ・Ver.0.4「いのちをつなぐ」：野生のトビネズミ（shared/wild.js の WildWorld）を捕食者と同じ刻みで動かし、スナップショットに wild（全員同じ）と
+//    wt（その子から見た信頼）を入れる。なかよくなれる子か（courtOk）は Game が決める。形質（脚・尾）の移動の倍率は p.traitMove。
 import { stepField, makeFieldState, STEP_DT } from '../../shared/move.js';
 import { initialResources, resourceSpawnPoints, pickRespawnPoint, canDigBurrow, regionAt, nightSpawnPoints, nearWater, RESPAWN_MIN, RESPAWN_MAX } from '../../shared/regions.js';
 import { dayPhase, periodOf, respawnScale as timeRespawnScale, makeClock, NIGHT_EXTRA, NIGHT_SPAWN_MS } from '../../shared/daynight.js';
@@ -28,6 +30,7 @@ import { envAt, fieldMods, ENV } from '../../shared/season.js';
 import { landAt, landOut, digCost, digTime, relocateCost, RELOCATE_COOLDOWN_MS, RELOCATE_MIN_DIST, buildLands, plotAt } from '../../shared/lands.js';
 import { hash2 } from '../../shared/rng.js';
 import { SNAPSHOT_HZ, SERVER_TICK_HZ } from '../../shared/protocol.js';
+import { WildWorld, WILD_DT } from '../../shared/wild.js';
 
 export const PICK_RANGE = 28;
 export const INPUT_RATE = 60;          // 1 秒あたりの入力（= クライアントの 60Hz）
@@ -41,12 +44,15 @@ const r1 = v => Math.round(v * 10) / 10;
 const clone = inv => inv.map(s => s && { ...s });
 
 export class FieldRoom {
-  constructor({ store, map, now = () => Date.now(), random = Math.random, log = () => {}, respawnScale = 1, stats = null, clock = null, env = true, tuning = TUNING.normal, predSeed = null, relocateCooldownMs = RELOCATE_COOLDOWN_MS }) {
+  constructor({ store, map, now = () => Date.now(), random = Math.random, log = () => {}, respawnScale = 1, stats = null, clock = null, env = true, tuning = TUNING.normal, predSeed = null, relocateCooldownMs = RELOCATE_COOLDOWN_MS, wild = true, wildSeed = null }) {
     this.store = store; this.map = map; this.now = now; this.random = random; this.log = log;
     this.respawnScale = respawnScale;
     this.envOn = env; this.tuning = tuning; this.relocateCooldownMs = relocateCooldownMs;
     this.preds = new PredatorWorld({ map, seed: predSeed != null ? predSeed : Math.floor(random() * 4294967296) });
     this.predEvents = [];      // 直近の出来事（テスト・ログ用）
+    this.wildOn = wild !== false;
+    this.wild = new WildWorld({ map, seed: wildSeed != null ? wildSeed : ((now() ^ 0x5bd1e995) >>> 0) });   // random() は使わない（前からのテストの乱数の並びを変えない）
+    this.courtOk = () => false; this.onWild = null;
     this.puddleT = 0; this.rareT = new Map(); this.expireT = 0; this.raidViewT = 0; this.raidViews = [];
     // ホスト（Game）が差し込む：つかまった・襲撃・逃げ込める入口・巣の襲撃の可否
     this.onCatch = null; this.onRaid = null; this.canShelter = (p, e) => e.owner === p.accountId; this.raidInfo = () => null;
@@ -83,7 +89,7 @@ export class FieldRoom {
   }
 
   // ───────── 出入り ─────────
-  playerInfo(p) { return { id: p.accountId, name: p.name, fur: p.fur, x: r1(p.st.x), y: r1(p.st.y), dir: p.st.dir }; }
+  playerInfo(p) { return { id: p.accountId, name: p.name, fur: p.fur, look: p.look || null, kids: p.kids || [], x: r1(p.st.x), y: r1(p.st.y), dir: p.st.dir }; }
   /** 地上に入れる。pos = {x, y, dir} */
   join(p, pos, why = 'join') {
     const st = makeFieldState(pos.x, pos.y);
@@ -107,7 +113,7 @@ export class FieldRoom {
     return {
       serverTime: this.now(),
       clock: { ...this.clock },
-      you: { id: p.accountId, name: p.name, fur: p.fur, x: p.st.x, y: p.st.y, dir: p.st.dir, inv: clone(p.inv), nest: ent ? { id: ent.nestId, x: ent.x, y: ent.y } : null },
+      you: { id: p.accountId, name: p.name, fur: p.fur, look: p.look || null, kids: p.kids || [], x: p.st.x, y: p.st.y, dir: p.st.dir, inv: clone(p.inv), nest: ent ? { id: ent.nestId, x: ent.x, y: ent.y } : null },
       resources: [...this.resources.values()].map(r => ({ id: r.id, kind: r.kind, x: r.x, y: r.y })),
       players: [...this.players.values()].filter(o => o !== p).map(o => this.playerInfo(o)),
       entrances: this.entranceList(p.accountId),
@@ -144,7 +150,7 @@ export class FieldRoom {
     const t = this.now();
     p.budget = Math.min(INPUT_BURST, p.budget + (t - p.lastBudgetAt) / 1000 * INPUT_RATE);
     p.lastBudgetAt = t;
-    const mods = fieldMods(moveMods(p.life), this.env(t));   // へとへと・砂嵐（クライアントの予測も同じ）
+    const mods = fieldMods(moveMods(p.life), this.env(t), p.traitMove || null);   // へとへと・砂嵐・形質（クライアントの予測も同じ）
     for (const i of p.inbox) {
       if (i.seq <= p.lastSeq) continue;          // 古い・重複した入力
       p.lastSeq = i.seq;
@@ -167,8 +173,9 @@ export class FieldRoom {
     // 雨の水たまり・希少資源・落とし物の期限（Ver.0.3）
     if (t >= this.puddleT) this.weatherTick(t);
     if (t >= this.expireT) { this.expireT = t + 1000; this.expireTick(t); }
-    // 捕食者（1 刻み = 1/20 秒）
+    // 捕食者・野生のトビネズミ（1 刻み = 1/20 秒）
     this.predTick(t);
+    if (this.wildOn) this.wildTick(t);
     // スナップショット（10Hz）
     if (this.tickN % Math.max(1, Math.round(SERVER_TICK_HZ / SNAPSHOT_HZ)) === 0) this.snapshot(t);
   }
@@ -180,11 +187,12 @@ export class FieldRoom {
       return { id: p.accountId, x: r1(s.x), y: r1(s.y), z: r1(s.z), dir: s.dir, anim: s.anim, jump: s.jump ? { t: s.jump.t, dur: s.jump.dur, x0: s.jump.x0, y0: s.jump.y0, x1: s.jump.x1, y1: s.jump.y1 } : null };
     });
     const preds = this.preds.snapshot();
+    const wild = this.wildOn ? this.wild.snapshot() : [];
     for (let i = 0; i < list.length; i++) {
       const p = list[i];
       if (!p.conn) continue;
       const others = list.length > 1 ? snaps.filter((_, k) => k !== i) : [];
-      p.conn.send({ t: 'snapshot', st: t, ack: p.lastSeq, you: p.st, players: others, preds });
+      p.conn.send({ t: 'snapshot', st: t, ack: p.lastSeq, you: p.st, players: others, preds, wild, wt: this.wildOn ? this.wild.trustOf(p.accountId) : {} });
     }
   }
   _respawn(t) {
@@ -454,6 +462,16 @@ export class FieldRoom {
     return ev;
   }
 }
+
+// ───────── 野生のトビネズミ（Ver.0.4）─────────
+FieldRoom.prototype.wildTick = function (t = this.now()) {
+  const env = this.env(t);
+  if (t >= (this._courtT || 0)) { this._courtT = t + 500; for (const p of this.players.values()) p.courtOk = this.courtOk(p); }
+  const players = [...this.players.values()].filter(p => p.st).map(p => ({ id: p.accountId, x: p.st.x, y: p.st.y, z: p.st.z, jump: !!p.st.jump, moving: p.st.anim === 'hop', still: p.stillT || 0, eligible: !!p.courtOk }));
+  const ev = this.wild.step({ season: env.season, period: env.period, scale: this.clock.scale || 1, players }, WILD_DT);
+  for (const e of ev) if (this.onWild && (e.type === 'befriend' || e.type === 'lost' || e.type === 'startle')) this.onWild(e);
+  return ev;
+};
 
 function costLabel(c) { return Object.entries(c).map(([k, v]) => ({ pebble: '小石', grass: '草', seed: '種子' }[k] || k) + '×' + v).join('・'); }
 void hasCost; void RELOCATE_COOLDOWN_MS;
