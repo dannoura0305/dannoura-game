@@ -44,3 +44,18 @@ export function cctvCams(code = SAFE.code) {
 }
 export function cctvAnswer(code = SAFE.code) { return cctvCams(code).find(c => !c.ok).id; }
 export function checkCctv(id, code = SAFE.code) { return id === cctvAnswer(code); }
+
+// ── 第3章：病院の「記録のない患者」【必須】（data/areas.js の HOSP） ──
+import { HOSP } from '../data/areas.js';
+/** 札の名前の「（小児・7）」などの添え書きを除いた名前 */
+export const plainName = n => n.replace(/（.*?）/g, '').trim();
+export function hospPlates() { return HOSP.plates.map(([room, name]) => ({ room, name, plain: plainName(name) })); }
+export function hospCharts() { return HOSP.charts.slice(); }
+/** カルテの無い患者（札にあってカルテ棚に無い人） */
+export function recordlessPatients() { const names = new Set(HOSP.charts.map(c => c.name)); return hospPlates().filter(p => !names.has(p.plain)); }
+export function checkRecord(room) { return recordlessPatients().some(p => p.room === room); }
+export function recordAnswer() { return recordlessPatients()[0].room; }
+/** 照合の状態 { picked, miss, done } を進める */
+export function pickRecord(state, room) { const s = { miss: (state && state.miss) || 0, done: !!(state && state.done), picked: (state && state.picked) || null }; if (s.done) return s; if (checkRecord(room)) { s.done = true; s.picked = room; } else s.miss++; return s; }
+/** カルテと本人の記憶の食い違い（置き換えの証拠）がある患者 */
+export function memoryMismatch() { return HOSP.charts.filter(c => /本人「/.test(c.note)).map(c => c.name); }

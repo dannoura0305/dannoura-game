@@ -11,7 +11,8 @@ export const CONTROLS = [
   ['武器を選ぶ', '1 刀・2 銃・3 鉄パイプ', '—', '—'],
   ['装填', 'R', '構え中に X', '弾切れで自動'], ['ロックオン／相手の切替', '中クリック・T ／ Z・C（ロック中にマウスを素早く振っても）', 'R3 ／ 十字キー左右', '自動／敵をタップ'],
   ['懐中電灯', 'L', '十字キー下', '灯'], ['調べる・話す', 'E', 'B', '調'],
-  ['回復', 'H', '十字キー上', '回'], ['一時停止', 'Esc／P', 'Start', '≡'], ['場面を飛ばす', 'E・Esc・Space を 1 秒長押し', 'B／Start 長押し', '調／≡ 長押し'],
+  ['回復', 'H', '十字キー上', '回'], ['化けを解く／戻す（白髪形態・第3章の転機のあと）', 'V 長押し', 'View（Back）長押し', '化 長押し'],
+  ['白髪形態：妖爪／妖刀／猫火／瞬歩／幻術', '左クリック／長押し／構え＋左クリック／Space／F', 'X／Y 長押し／LT＋RT／A／LB', '斬／斬 長押し／銃／避／弾'], ['一時停止', 'Esc／P', 'Start', '≡'], ['場面を飛ばす', 'E・Esc・Space を 1 秒長押し', 'B／Start 長押し', '調／≡ 長押し'],
 ];
 
 const svg = d => `<svg viewBox="0 0 48 48" aria-hidden="true">${d}</svg>`;
@@ -19,6 +20,7 @@ const WEAPON_UI = {
   handgun: { name: 'ハンドガン（仮）', svg: svg('<path d="M6 16h30l3 4h4v6H24l-2 4h-6l2 8H9l3-12H6z" fill="#e8e0f4"/><rect x="12" y="19" width="20" height="2" fill="#7a6a9a"/>') },
   katana: { name: '日本刀', svg: svg('<path d="M4 40 L40 6 l3 2 L9 42z" fill="#e8ecf6"/><rect x="4" y="36" width="9" height="4" transform="rotate(-42 8 38)" fill="#8a5ab8"/><circle cx="12" cy="35" r="3" fill="#c8a040"/>') },
   pipe: { name: '鉄パイプ', svg: svg('<rect x="6" y="21" width="36" height="6" rx="2" transform="rotate(-30 24 24)" fill="#a8a4a0"/><rect x="6" y="21" width="9" height="6" transform="rotate(-30 24 24)" fill="#5a3a2a"/>') },
+  claw: { name: '妖爪（白髪形態）', svg: svg('<path d="M12 40 Q16 22 30 8 Q22 26 18 40z M20 42 Q26 24 40 12 Q30 30 26 42z M28 44 Q34 30 44 22 Q36 34 33 44z" fill="#e8d8ff"/>') },
   none: { name: '素手', svg: svg('<circle cx="24" cy="24" r="9" fill="none" stroke="#9c92b0" stroke-width="3"/>') },
 };
 const ITEM_UI = [
@@ -33,7 +35,8 @@ export class UI {
     this.root = root; this.g = game; this.toastT = 0; this.barkT = 0;
     root.innerHTML = `
 <div id="sh-hud">
-  <div class="sh-vital"><div class="sh-face"><img alt=""><span>だ</span></div><div class="sh-hpwrap"><div class="sh-hpname">だんのうら <i class="sh-paw"></i></div><div class="sh-hp"><i class="sh-hpfill"></i><i class="sh-hplag"></i></div><div class="sh-hpnum"></div></div></div>
+  <div class="sh-vital"><div class="sh-face"><img alt=""><span>だ</span></div><div class="sh-hpwrap"><div class="sh-hpname">だんのうら <i class="sh-paw"></i></div><div class="sh-hp"><i class="sh-hpfill"></i><i class="sh-hplag"></i></div><div class="sh-hpnum"></div><div class="sh-yoki"><span>妖力</span><div class="sh-ykbar"><i></i><b></b></div><em class="sh-ykn"></em></div></div></div>
+  <div class="sh-combo"><b class="sh-cn"></b><span>Combo</span><div class="sh-cb"></div></div><div class="sh-form">白髪形態</div>
   <div class="sh-weapon"><div class="sh-wmain"><div class="sh-wicon"></div><div class="sh-wtext"><b class="sh-ammo"></b><span class="sh-wname"></span></div></div><div class="sh-wsub"><div class="sh-wicon2"></div><span class="sh-wname2"></span><kbd class="sh-wkey"></kbd></div><div class="sh-swapbar"><i></i></div><div class="sh-items"></div></div>
   <div class="sh-obj"><div class="sh-objc"></div><div class="sh-objh">メインミッション</div><div class="sh-objt"></div><div class="sh-objsh">サブミッション</div><div class="sh-objs"></div></div>
   <div class="sh-comp"></div><div class="sh-lightic">灯</div>
@@ -67,7 +70,7 @@ export class UI {
       cross: $('.sh-cross', root), prompt: $('.sh-prompt', root), toast: $('.sh-toast', root), bark: $('.sh-bark', root), log: $('.sh-log', root), lock: $('.sh-lock', root), marks: $('.sh-marks', root),
       slow: $('.sh-slow', root), flash: $('.sh-flash', root), lowhp: $('.sh-lowhp', root), hint: $('.sh-hint', root),
       obj: $('.sh-obj', root), objc: $('.sh-objc', root), objt: $('.sh-objt', root), objs: $('.sh-objs', root), comp: $('.sh-comp', root), lightic: $('.sh-lightic', root),
-      boss: $('.sh-boss', root), bossn: $('.sh-bossn', root), bossbar: $('.sh-bossbar i', root), bossp: $('.sh-bossp', root),
+      boss: $('.sh-boss', root), yoki: $('.sh-yoki', root), ykfill: $('.sh-ykbar i', root), ykmin: $('.sh-ykbar b', root), ykn: $('.sh-ykn', root), combo: $('.sh-combo', root), cn: $('.sh-cn', root), cb: $('.sh-cb', root), form: $('.sh-form', root), bossn: $('.sh-bossn', root), bossbar: $('.sh-bossbar i', root), bossp: $('.sh-bossp', root),
       lbt: $('.sh-lbt', root), lbb: $('.sh-lbb', root), sub: $('.sh-sub', root), skip: $('.sh-skip', root), card: $('.sh-card', root), cardt: $('.sh-cardt', root), fadeEl: $('.sh-fade', root), puz: $('#sh-puz', root),
       dialog: $('#sh-dialog', root), dname: $('.sh-dname', root), dtext: $('.sh-dtext', root), menu: $('#sh-menu', root), safe: $('#sh-safe', root), dead: $('#sh-dead', root), perf: $('#sh-perf', root), rotate: $('#sh-rotate', root),
     };
@@ -83,6 +86,12 @@ export class UI {
     this.el.hpfill.classList.toggle('low', r < 0.3);
     this.el.hpnum.textContent = `HP ${Math.ceil(F.hp)} / ${F.hpMax}`;
     this.el.lowhp.style.opacity = r < 0.3 ? (0.35 + Math.sin(performance.now() / 300) * 0.15).toFixed(2) : '0';
+    // 妖力（白髪形態の解禁後）・連撃の数（concept_03 の「Combo」）
+    const yk = F.yokiOn || F.white;
+    if (this.el.yoki.classList.contains('on') !== yk) this.el.yoki.classList.toggle('on', yk);
+    if (yk) { const v = F.yoki / F.C.white.gauge.max; this.el.ykfill.style.width = (v * 100).toFixed(1) + '%'; this.el.ykmin.style.left = (F.C.white.gauge.min / F.C.white.gauge.max * 100) + '%'; this.el.ykfill.parentElement.classList.toggle('ready', F.yoki >= F.C.white.gauge.min && !F.white); this.el.ykn.textContent = Math.floor(F.yoki); }
+    const cn = F.comboN;
+    if (cn !== this.comboShown) { this.comboShown = cn; this.el.combo.classList.toggle('on', cn >= 2); if (cn >= 2) { this.el.cn.textContent = cn; const m = F.comboMul(); this.el.cb.textContent = F.white ? `連撃ボーナス ×${m.toFixed(1)}` : ''; this.el.combo.classList.remove('pop'); void this.el.combo.offsetWidth; this.el.combo.classList.add('pop'); } }
     // 武器の札（今の武器・持ち替え先）
     const W = WEAPON_UI, cur = W[F.weapon] || W.none, alt = W[F.swapTarget() || 'none'] || W.none;
     if (this.wKey !== F.weapon + '|' + F.swapTarget()) { this.wKey = F.weapon + '|' + F.swapTarget(); this.el.wicon.innerHTML = cur.svg; this.el.wname.textContent = cur.name; this.el.wicon2.innerHTML = alt.svg; this.el.wname2.textContent = alt.name; this.el.wsub.hidden = !F.swapTarget(); }
@@ -150,13 +159,16 @@ export class UI {
   }
   /** 画面上の印（ロックオン・敵の予兆） */
   lockAt(sp) { const l = this.el.lock; if (!sp) { l.classList.remove('on'); return; } l.style.transform = `translate(${sp.x}px,${sp.y}px)`; l.classList.add('on'); }
-  mark(id, sp, kind) {
+  mark(id, sp, kind, label) {
     let e = this.markEls.get(id);
     if (!sp || !kind) { if (e) e.className = 'sh-mark'; return; }
     if (!e) { e = h('div', 'sh-mark'); this.el.marks.appendChild(e); this.markEls.set(id, e); }
-    e.className = 'sh-mark on ' + kind; e.textContent = kind === 'red' ? '危' : kind === 'issen' ? '閃' : '！';
+    e.className = 'sh-mark on ' + kind + (label ? ' copy' : ''); const t = kind === 'red' ? '危' : kind === 'issen' ? '閃' : '！';
+    if (e.dataset.t !== t + (label || '')) { e.dataset.t = t + (label || ''); e.innerHTML = label ? `${t}<small>${esc(label)}</small>` : t; }
     e.style.transform = `translate(${sp.x}px,${sp.y}px)`;
   }
+  /** 白髪形態の表示 */
+  form(on) { this.el.form.classList.toggle('on', !!on); this.root.classList.toggle('white', !!on); }
   // ── 会話 ──
   showLine(sp, text, who) {
     const pid = { dan: 'dannoura', companion: 'companion' }[who], url = pid && this.g.portraits && this.g.portraits[pid];
@@ -178,7 +190,7 @@ export class UI {
   chapterCard(title, dur = 3.2) { const c = this.el.card; this.el.cardt.textContent = title; c.classList.remove('on'); void c.offsetWidth; c.classList.add('on'); clearTimeout(this.cardTimer); this.cardTimer = setTimeout(() => c.classList.remove('on'), dur * 1000); }
   fade(on) { this.el.fadeEl.classList.toggle('on', !!on); }
   // ── 調べ物の画面 ──
-  closePuzzle() { this.el.puz.hidden = true; this.el.puz.innerHTML = ''; if (this.puzKey) { removeEventListener('keydown', this.puzKey); this.puzKey = null; } }
+  closePuzzle() { this.el.puz.hidden = true; this.el.puz.innerHTML = ''; this.el.puz.classList.remove('choice'); if (this.puzKey) { removeEventListener('keydown', this.puzKey); this.puzKey = null; } }
   _puz(html, onClick, onKey) {
     const p = this.el.puz; p.hidden = false; p.innerHTML = `<div class="sh-pbox">${html}</div>`;
     p.onclick = e => { const b = e.target.closest('button'); if (b) { this.g.sfx.play('ui'); onClick(b.dataset, b); } };
@@ -214,14 +226,28 @@ export class UI {
     this._puz(html, d => { if (d.close) return onClose(); if (d.cam) onPick(d.cam); });
     for (const cv of this.el.puz.querySelectorAll('canvas')) draw(cv.dataset.c, cv.getContext('2d'), cv.width, cv.height);
   }
+  /** 病院の「記録のない患者」：病室の札とカルテ棚を照らし合わせ、カルテの無い患者（の病室）を選ぶ */
+  recordsUI(R, state, onPick, onClose) {
+    const html = `<div class="sh-ptitle">病室の札とカルテの照合 <small>名前はすべて仮</small></div>
+      <div class="sh-pcols"><div><div class="sh-phead">病室の札（ホワイトボード）</div>${R.plates.map(p => `<button class="sh-pname" data-room="${p.room}" ${state.done ? 'disabled' : ''}>${p.room}　${esc(p.name)}</button>`).join('')}</div>
+      <div><div class="sh-phead">カルテ棚</div>${R.charts.map(c => `<div class="sh-pcard"><b>${c.room}</b>　${esc(c.name)}<br><small>${esc(c.note)}</small></div>`).join('')}</div></div>
+      <p class="sh-note">カルテが無い患者は、どの病室？（札の名前とカルテの名前を見比べる）${state.miss ? `（ちがう選択 ${state.miss} 回）` : ''}</p><div class="sh-sbtn"><button data-close="1">閉じる</button></div>`;
+    this._puz(html, d => { if (d.close) return onClose(); if (d.room) { const ns = onPick(d.room); if (ns) this.recordsUI(R, ns, onPick, onClose); } });
+  }
+  /** 選択（時間制限なし・閉じられない）。options：[{id,label,sub}] */
+  choiceUI(title, options, onPick, note) {
+    const html = `<div class="sh-ptitle sh-choice-t">${esc(title)}</div><div class="sh-choice">${options.map((o, i) => `<button data-pick="${o.id}"><kbd>${i + 1}</kbd><b>${esc(o.label)}</b><small>${esc(o.sub || '')}</small></button>`).join('')}</div>${note ? `<p class="sh-note">${esc(note)}</p>` : ''}`;
+    this._puz(html, d => { if (d.pick) onPick(d.pick); }, e => { const m = /^Digit([1-9])$/.exec(e.code); if (m && options[+m[1] - 1]) onPick(options[+m[1] - 1].id); });
+    this.el.puz.classList.add('choice');
+  }
   /** 装備の欄 */
   equipBody(g) {
     const own = g.ownedEquip || [], on = g.equipped || [];
     if (!own.length) return '<p class="sh-note">まだ装備を持っていません。（金庫・裏路地の祠・警備室の落とし物箱）</p>';
     return `<div class="sh-equip">${own.map(id => { const e = g.EQUIP[id]; return `<button data-eq="${id}" class="${on.includes(id) ? 'on' : ''}"><b>${esc(e.name)}</b><small>${esc(e.desc)}</small>${on.includes(id) ? '<em>装備中</em>' : ''}</button>`; }).join('')}</div><p class="sh-note">装備の枠は 2 つ。持ち替え・居合・見切りの時間が変わります（名前・効果は仮）。</p>`;
   }
-  endCard(stats, onClose) {
-    const html = `<div class="sh-ptitle">第2章（避難所）　試作はここまで</div><div class="sh-stats">${stats.map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(String(v))}</b></div>`).join('')}</div><p class="sh-note">続けて歩き回れます。第3章（ショッピングモール）は次の段階で作ります。</p><div class="sh-sbtn"><button data-close="1">続ける</button></div>`;
+  endCard(stats, onClose, title = '第2章（避難所）　ここまで', note = '') {
+    const html = `<div class="sh-ptitle">${esc(title)}</div><div class="sh-stats">${stats.map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(String(v))}</b></div>`).join('')}</div><p class="sh-note">${esc(note)}</p><div class="sh-sbtn"><button data-close="1">続ける</button></div>`;
     this._puz(html, d => { if (d.close) onClose(); });
   }
   // ── 一時停止メニュー ──

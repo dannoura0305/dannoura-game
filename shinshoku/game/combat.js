@@ -28,8 +28,8 @@ export const combatMethods = {
     if (I.interact && this.nearSpot) this.useSpot(this.nearSpot);
     const st = F.st; let vx = 0, vz = 0;
     if (st.name === 'dodge') {
-      const t = st.f / 24, k = t < 0.72 ? Math.cos(t / 0.72 * Math.PI / 2) : 0;
-      const sp = COMBAT.dodge.dist / 0.28 * k * 0.9;
+      const tot = st.white ? COMBAT.white.dash.total : 24, t = st.f / tot, k = t < 0.72 ? Math.cos(t / 0.72 * Math.PI / 2) : 0;
+      const sp = (st.white ? COMBAT.white.dash.dist / (tot / 60 * 0.6) : COMBAT.dodge.dist / 0.28) * k * 0.9;
       vx = P.dodgeDir.x * sp; vz = P.dodgeDir.z * sp;
       P.yaw = turnTo(P.yaw, Math.atan2(P.dodgeDir.x, P.dodgeDir.z), 0.5);
     } else if (st.name === 'attack' && st.f < st.atk.startup + st.atk.active + 2 && st.atk.lunge) {
@@ -121,20 +121,26 @@ export const combatMethods = {
     for (const ev of evs) {
       this.metrics.events.push({ t: ev.t, frame: this.frame, f: ev.frame, kind: ev.kind, step: ev.step }); if (this.metrics.events.length > 400) this.metrics.events.shift();
       switch (ev.t) {
+        case 'foxfire': case 'illusion': case 'noYoki': case 'revert': this.handleWhiteEvent(ev); break;
+        case 'parryStart': this.pushAct('parry'); break;
         case 'attackStart': {
+          this.pushAct(F.weapon === 'claw' ? (ev.blade ? 'blade' : 'claw') : ev.iai ? 'iai' : ev.heavy ? 'heavy' : F.weapon === 'pipe' ? 'pipe' : 'slash');
           const t = (this.lock && this.lock.hittable() && Math.hypot(this.lock.pos.x - P.pos.x, this.lock.pos.z - P.pos.z) < 5) ? this.lock : this.nearestEnemy(3.6, true, 220);
           this.softTarget = t;
           if (t) P.yaw = Math.atan2(t.pos.x - P.pos.x, t.pos.z - P.pos.z);
           else if (this.curMoveMag > 0.3) P.yaw = Math.atan2(P.moveDir.x, P.moveDir.z);
           this.swingHits = new Set(); this.trail.cut(); this.swingT = 0;
-          this.sfx.play(F.weapon === 'pipe' ? 'swing_pipe' : ev.heavy || ev.iai || ev.step === 2 ? 'swing_heavy' : 'swing');
+          this.sfx.play(F.weapon === 'claw' ? (ev.blade ? 'blade' : 'claw') : F.weapon === 'pipe' ? 'swing_pipe' : ev.heavy || ev.iai || ev.step === 2 ? 'swing_heavy' : 'swing');
+          if (F.weapon === 'claw') { const hp = P.model.J[ev.step % 2 ? 'leftHand' : 'rightHand']; if (hp) { const v = new THREE.Vector3(); hp.getWorldPosition(v); for (let i = 0; i < 4; i++) this.fx.puff(v.x, v.y, v.z, (Math.random() - 0.5) * 0.5, 0.3, (Math.random() - 0.5) * 0.5, 0xa060ff, 0.4, 0.45); } }
           break;
         }
         case 'active': this.meleeHits(ev.atk, ev); break;
         case 'dodge': {
           const d = P.moveDir;
           P.dodgeDir = this.curMoveMag > 0.1 ? { x: d.x, z: d.z } : { x: -Math.sin(P.yaw), z: -Math.cos(P.yaw) };
-          this.sfx.play('dodge'); this.fx.dust(P.pos); break;
+          this.pushAct(ev.white ? 'dash' : 'dodge');
+          if (ev.white) { this.sfx.play('dash'); for (let i = 0; i < 10; i++) this.fx.puff(P.pos.x + (Math.random() - 0.5) * 0.4, 0.3 + Math.random() * 1.3, P.pos.z + (Math.random() - 0.5) * 0.4, 0, 0.2, 0, 0x8a50e0, 0.5, 0.5); }
+          else { this.sfx.play('dodge'); this.fx.dust(P.pos); } break;
         }
         case 'just': {
           this.metrics.just++; this.sfx.play('just'); this.ui.toast('見切り', 'just', 0.9);
@@ -168,7 +174,7 @@ export const combatMethods = {
       }
     }
   },
-  onPlayerDead() { if (this.deadPending) return; this.deadPending = true; setTimeout(() => { this.mode = 'dead'; this.input.exitLock(); this.ui.showDead(true); this.deadPending = false; }, this.isTest() ? 10 : 1400); },
+  onPlayerDead() { if (this.deadPending) return; if (this.boss && this.boss.kind === 'utsushimi' && this.boss.brain.alive) { this.ch3Losses = (this.ch3Losses || 0) + 1; this.metrics.ch3Losses = this.ch3Losses; } this.deadPending = true; setTimeout(() => { this.mode = 'dead'; this.input.exitLock(); this.ui.showDead(true); this.deadPending = false; }, this.isTest() ? 10 : 1400); },
   meleeHits(atk, ev) {
     const P = this.player, F = P.fighter;
     const pipe = F.weapon === 'pipe';
@@ -181,13 +187,19 @@ export const combatMethods = {
       this.swingHits.add(e);
       F.markSwingHit();
       const heavy = atk.stop === 'heavy';
-      this.damageEnemy(e, atk.dmg, 'slash', { poise: atk.poise || COMBAT.poise.slash, guardBreak: atk.guardBreak });
+      this.damageEnemy(e, Math.round(atk.dmg * F.comboMul()), 'slash', { poise: atk.poise || COMBAT.poise.slash, guardBreak: atk.guardBreak });
+      F.registerHit(); F.gainYoki('hit');
       this.metrics.slashHits++; if (pipe) this.metrics.pipeHits = (this.metrics.pipeHits || 0) + 1;
       e.looks.hit(dx, dz, e.brain.yaw, heavy ? 1.2 : 0.7);
       this.hitstop = heavy ? COMBAT.hitstop.heavy : COMBAT.hitstop.light;
       this.cam.shake(heavy ? 0.12 : 0.06, 0.15);
       this.fx.sparks(new THREE.Vector3(e.pos.x - dx / d * e.r, 1.2, e.pos.z - dz / d * e.r), heavy ? 16 : 9, pipe ? 0xffd8a0 : 0xfff0c0);
-      this.sfx.play(pipe ? 'hit_pipe' : heavy ? 'hit_heavy' : 'hit');
+      this.sfx.play(F.weapon === 'claw' ? 'claw_hit' : pipe ? 'hit_pipe' : heavy ? 'hit_heavy' : 'hit');
+      if (F.weapon === 'claw') {                                         // 爪痕：3 本の紫の筋（concept_03 の斬撃の光を独自に簡単化）
+        this.fx.sparks(new THREE.Vector3(e.pos.x - dx / d * e.r, 1.2, e.pos.z - dz / d * e.r), 10, 0xc890ff);
+        const sx = -dz / d, sz = dx / d, dir = (atk.claw || 1) % 2 ? 1 : -1, h0 = e.h * 0.75;
+        for (let k = -1; k <= 1; k++) { const o = k * 0.11; this.fx.streak(new THREE.Vector3(e.pos.x - dx / d * (e.r * 0.8) + sx * (0.45 * dir + o), h0 + 0.35 + o * 0.6, e.pos.z - dz / d * (e.r * 0.8) + sz * (0.45 * dir + o)), new THREE.Vector3(e.pos.x - dx / d * (e.r * 0.8) - sx * (0.45 * dir - o), h0 - 0.35 + o * 0.6, e.pos.z - dz / d * (e.r * 0.8) - sz * (0.45 * dir - o)), k ? 0xb070ff : 0xf4e8ff, 0.32, 0.035); }
+      }
     }
   },
   damageEnemy(e, dmg, kind, opt = {}) {
@@ -229,7 +241,8 @@ export const combatMethods = {
     if (e && e.pos) { const mid = new THREE.Vector3(e.pos.x, 1.2, e.pos.z); const dir = b.clone().sub(a); if (dir.length() < 0.5) { dir.set(Math.sin(P.yaw), 0, Math.cos(P.yaw)); a.copy(mid).addScaledVector(dir, -1.6); b.copy(mid).addScaledVector(dir, 1.6); } else { a.addScaledVector(dir.normalize(), -0.8); b.addScaledVector(dir, 0.8); } }
     this.fx.streak(a, b, 0xffffff, 0.6, 0.045);
     const hit = [];
-    if (e && e.hittable && e.hittable()) { this.damageEnemy(e, ev.dmg, 'issen', { poise: COMBAT.poise.issen }); hit.push(e.id); e.looks.hit(e.pos.x - from.x, e.pos.z - from.z, e.brain.yaw, 1.6); this.fx.sparks(new THREE.Vector3(e.pos.x, 1.3, e.pos.z), 24, 0xffffff); }
+    F.gainYoki('issen'); F.registerHit();
+    if (e && e.hittable && e.hittable()) { this.damageEnemy(e, Math.round(ev.dmg * F.comboMul()), 'issen', { poise: COMBAT.poise.issen }); hit.push(e.id); e.looks.hit(e.pos.x - from.x, e.pos.z - from.z, e.brain.yaw, 1.6); this.fx.sparks(new THREE.Vector3(e.pos.x, 1.3, e.pos.z), 24, 0xffffff); }
     if (ev.kind === 'mikiri') for (const o of this.enemies) if (o !== e && o.hittable() && Math.hypot(o.pos.x - P.pos.x, o.pos.z - P.pos.z) < 2.6) { this.damageEnemy(o, Math.round(ev.dmg / 2), 'issen', { poise: 30 }); hit.push(o.id); }
     this.hitstop = COMBAT.hitstop.issen; this.cam.shake(0.25, 0.3); this.ui.flash('strike'); this.sfx.play('hit_heavy');
     if (this.WP.achieve('first_issen')) this.ui.log('実績：はじめての一閃');
@@ -268,12 +281,12 @@ export const combatMethods = {
     }
     const end = o.clone().addScaledVector(d, Math.min(ht, maxT));
     this.fx.flash(muzzle, 0xffd890, 0.12); this.fx.tracer(muzzle, end); this.sfx.play('shot'); this.cam.shake(0.05, 0.1);
-    this.gunshot = { x: P.pos.x, z: P.pos.z }; this.gunshotT = 3;
+    this.gunshot = { x: P.pos.x, z: P.pos.z }; this.gunshotT = 3; this.pushAct('shot');
     this.flashMuzzle = 0.06;
     if (hit) {
       this.metrics.shotHits++;
       const dmg = Math.round(ev.dmg * (weak ? COMBAT.handgun.weakMul : 1));
-      this.damageEnemy(hit, dmg, 'shot', { poise: weak ? COMBAT.poise.weak : COMBAT.poise.shot }); this.fx.sparks(end, weak ? 14 : 6, weak ? 0xffd27a : 0xd0d0d0);
+      this.damageEnemy(hit, dmg, 'shot', { poise: weak ? COMBAT.poise.weak : COMBAT.poise.shot }); this.fx.sparks(end, weak ? 14 : 6, weak ? 0xffd27a : 0xd0d0d0); F.registerHit(); F.gainYoki('hit');
       hit.looks.hit(d.x, d.z, hit.brain.yaw, weak ? 1 : 0.4);
       if (weak) { this.metrics.weakHits++; F.markWeakHit(hit); if (hit.brain.alive && hit.kind !== 'shuuyou') { hit.brain.atk = null; if (hit.brain.state !== 'stagger') { hit.brain.staggerFor = 0.6; hit.brain.go('stagger', [], 'weak'); } } this.ui.toast('怯み', 'weak', 0.6); }
     } else if (ht < maxT) this.fx.sparks(end, 4, 0xa0a0a0);
@@ -294,11 +307,17 @@ export const combatMethods = {
     if (b.state === 'home') { this.enterHome(e, dt); return; }
     if (!e.fleeing && b.def.tutorial && b.alive && b.hp < b.hpMax * 0.5) { e.fleeing = true; e.fleeTo = { x: 1.0, z: -64 }; b.atk = null; e.mark = null; this.bark('kiro_flee', 2.4); }
     if (e.fleeing) { this.flee(e, dt); return; }
-    const dist = Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z);
-    const los = dist < 30 ? lineOfSight(b.pos, P.pos, this.boxes) : false;
+    if (e.confusedT > 0) e.confusedT -= dt;
+    const dec = this.senseTarget ? this.senseTarget(e) : null;
+    const tp = dec || P.pos;
+    const dist = Math.hypot(b.pos.x - tp.x, b.pos.z - tp.z);
+    const los = dist < 30 ? lineOfSight(b.pos, tp, this.boxes) : false;
     const Z = this.heitenZone;
-    const sense = { player: { x: P.pos.x, z: P.pos.z, noise: P.noise, dead: P.fighter.dead }, los, dark: this.isDark(b.pos), gunshot: this.gunshot,
-      inShop: !!Z && P.pos.x > Z.minX && P.pos.x < Z.maxX && P.pos.z > Z.minZ && P.pos.z < Z.maxZ, light: this.flashlightOn };
+    const sense = { player: { x: tp.x, z: tp.z, noise: dec ? 'run' : P.noise, dead: P.fighter.dead }, los, dark: this.isDark(b.pos), gunshot: this.gunshot,
+      inShop: !!Z && P.pos.x > Z.minX && P.pos.x < Z.maxX && P.pos.z > Z.minZ && P.pos.z < Z.maxZ, light: this.flashlightOn,
+      hist: this.actHist, nurse: !!this.flags.nurse_badge, lit: this.flashlightOn && this.inFlashCone(b.pos) };
+    if (e.kind === 'mamori') sense.threats = this.enemies.filter(o => o.kind === 'mimic' && o.brain.alive && o.brain.revealed && o.root.visible).map(o => ({ id: o.id, x: o.pos.x, z: o.pos.z }));
+    e.targetDecoy = !!dec;
     if (this.flashlightOn && b.def.senses) sense.dark = false;    // 懐中電灯：暗くても遠くから見える
     const out = e.step(dt, sense, this.boxes, P);
     this.enemyEvents(e, out.events);
@@ -309,9 +328,15 @@ export const combatMethods = {
     }
   },
   isDark(p) { return !!this.darkness && this.darkness > 0.5 && !this.flashlightOn; },
+  inFlashCone(p) { const P = this.player.pos; const dx = p.x - P.x, dz = p.z - P.z, d = Math.hypot(dx, dz); if (d > 12 || d < 0.01) return false; const fw = this.cam.forward(); return (dx * fw.x + dz * fw.z) / d > 0.86; },
   /** 敵の攻撃が出た：当たるか（扇・円・突進） */
   resolveEnemyHit(e, A, forced, at) {
     const P = this.player, F = P.fighter, b = e.brain;
+    if (e.targetDecoy && this.decoy) {                                    // 幻術の分身を攻めた：分身が消えて「幻・見切り」
+      const dd = Math.hypot(this.decoy.x - b.pos.x, this.decoy.z - b.pos.z);
+      if (dd <= (A.range || 2) + 1.0 || (A.aoe && at)) { this.decoyStruck(e); return 'decoy'; }
+      return 'miss';
+    }
     let inRange, nearMiss;
     if (forced) { inRange = true; nearMiss = true; }
     else if (A.aoe && at) { const d = Math.hypot(P.pos.x - at.x, P.pos.z - at.z); inRange = d <= A.aoe.r + P.r * 0.5; nearMiss = d <= A.aoe.r + 1.4; }
@@ -333,6 +358,7 @@ export const combatMethods = {
           e.mark = ev.parryable ? 'parry' : 'red'; e.markT = ev.def.windup + 0.2;
           this.sfx.play(ev.parryable ? 'tel_parry' : 'tel_red', b.pos);
           if (e.kind === 'kiro') e.weakGlow = 0.85;
+          if (ev.plan) { e.copyLabel = ev.plan.label; e.copyT = (ev.def.windup || 0.6) + 0.3; if (!ev.follow) this.sfx.play('copy', b.pos); if (!this.flags.copy_bark && ev.plan.seq && ev.plan.seq.length >= 2) { this.flags.copy_bark = true; this.bark('mimic_copy', 2.6); } if (e.model.mats && e.model.mats.outline) e.model.mats.outline.color.setHex(ev.plan.white ? 0xf0e8ff : e.outlineBase); }
           const A = ev.def;
           if (A.aoe && ev.at) this.fx.decal('circle', ev.at.x, ev.at.z, { r: A.aoe.r, dur: A.windup, hold: 0.25, color: 0xff3040 });
           else if (A.dash) this.fx.decal('line', b.pos.x, b.pos.z, { r: A.range, w: e.r * 2 + 0.6, yaw: b.yaw, dur: A.windup, hold: 0.4, color: 0xff3040 });
@@ -347,15 +373,23 @@ export const combatMethods = {
           if (ev.name === 'shutter' || ev.name === 'slam') { this.sfx.play('slam', b.pos); this.cam.shake(0.18, 0.3); const p = ev.at || { x: b.pos.x + Math.sin(b.yaw) * 2, z: b.pos.z + Math.cos(b.yaw) * 2 }; this.fx.dust(p, 18); for (let i = 0; i < 6; i++) this.fx.puff(p.x + (Math.random() - 0.5) * 2, 0.2, p.z + (Math.random() - 0.5) * 2, 0, 0.4, 0, 0x8a8478, 1.0, 0.4); }
           if (ev.name === 'blanket') { this.sfx.play('swing_heavy', ev.at || b.pos); }
           if (ev.name === 'sweep') this.sfx.play('chairs', b.pos);
+          if (ev.name === 'mwave') { this.sfx.play('wave', b.pos); this.cam.shake(0.2, 0.35); for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; this.fx.puff(b.pos.x + Math.sin(a) * 1.2, 0.3, b.pos.z + Math.cos(a) * 1.2, Math.sin(a) * 3.5, 0.2, Math.cos(a) * 3.5, 0x2a1040, 0.8, 0.6); } }
+          if (ev.name === 'mshot' && ev.at) { const h = new THREE.Vector3(b.pos.x, e.h * 0.7, b.pos.z); this.fx.streak(h, new THREE.Vector3(ev.at.x, 0.3, ev.at.z), 0x8a40ff, 0.35, 0.05); this.sfx.play('fire_hit', ev.at); }
           if (e.kind === 'kiro') e.weakGlow = 0;
           break;
         }
         case 'crash': this.sfx.play('crash', b.pos); this.cam.shake(0.22, 0.35); this.fx.dust(b.pos, 22); break;
+        // 第3章
+        case 'reveal': e.revealT = 0; this.sfx.play('mimic_reveal', b.pos); e.mark = 'red'; e.markT = 1.0; if (!this.flags.mimic_first) { this.flags.mimic_first = true; this.later(0.6, () => this.bark('mimic_first', 3)); } else this.bark('mimic_reveal', 2); this.metrics.mimicReveals = (this.metrics.mimicReveals || 0) + 1; break;
+        case 'tenki': this.metrics.tenki = true; break;
+        case 'voice': this.sfx.play('mimic_voice', b.pos); if (this.flags.memo) this.bark('utsushimi_voice_hint', 3); this.metrics.voices = (this.metrics.voices || 0) + 1; break;
+        case 'voiceEnd': break;
+        case 'protect': { const o = this.enemies.find(x => x.id === ev.id); if (o && o.hittable() && Math.hypot(o.pos.x - b.pos.x, o.pos.z - b.pos.z) < ev.range + o.r) { this.damageEnemy(o, ev.dmg, 'slash', { poise: 40 }); o.looks.hit(o.pos.x - b.pos.x, o.pos.z - b.pos.z, o.brain.yaw, 1.2); this.sfx.play('hit_heavy', o.pos); this.cam.shake(0.08, 0.2); this.metrics.mamoriHits = (this.metrics.mamoriHits || 0) + 1; } break; }
         case 'state': if (ev.to !== 'hostile') e.mark = null; if (ev.to === 'stagger' || ev.to === 'dead' || ev.to === 'down') { e.mark = null; e.weakGlow = 0; } break;
         case 'broken': this.sfx.play('broken', b.pos); this.ui.toast('崩し', 'parry', 0.8); this.metrics.broken = (this.metrics.broken || 0) + 1; break;
         case 'notice': this.sfx.play('notice', b.pos); e.justNoticed = 1.0; if (e.kind === 'kiro' && Math.random() < 0.5) { this.bark('kiro_notice', 2.2); this.sfx.play('kiro_voice', b.pos); } break;
         case 'knock': this.sfx.play('knock', b.pos); break;
-        case 'say': if (ev.key === 'shuuyou_rollcall') { this.sfx.play('rollcall', b.pos); this.bark('shuuyou_rollcall', 1.6); } else { this.bark(ev.key, 3); this.sfx.play('heiten_voice', b.pos); } break;
+        case 'say': if (ev.key === 'shuuyou_rollcall') { this.sfx.play('rollcall', b.pos); this.bark('shuuyou_rollcall', 1.6); } else if (e.kind === 'kanja') { if (Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z) < 9) { this.bark(ev.key, 2.4); this.sfx.play('kanja_voice', b.pos); } } else if (e.kind === 'mimic' || e.kind === 'utsushimi') { if (Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z) < 15) { this.bark(ev.key, 2.4); this.sfx.play('mimic_voice', b.pos); } } else if (e.kind === 'mamori') { this.bark(ev.key, 2.4); this.sfx.play('kanja_voice', b.pos); } else { this.bark(ev.key, 3); this.sfx.play('heiten_voice', b.pos); } break;
         case 'step': this.heitenStep(ev.id); break;
         case 'reset': this.heitenStep('reset'); break;
         case 'helped': this.bark('heiten_helped', 2); this.sfx.play('ui_ok'); break;
@@ -365,15 +399,19 @@ export const combatMethods = {
           this.sfx.play('rescue'); this.resolve(e, 'rescue');
           if (e.kind === 'heiten') { this.bark('heiten_rescued', 3.5); this.heitenSign.set('本日は\n閉店しました'); this.heitenStep('rest'); }
           else if (e.kind === 'shuuyou') this.onBossResolved('rescue');
+          else if (e.kind === 'utsushimi') this.onBossResolved3('rescue');
+          else if (e.kind === 'kanja') { this.metrics.kanjaRescued = (this.metrics.kanjaRescued || 0) + 1; }
+          else if (e.kind === 'mamori') { /* 第3章の山場：storyTick3 が演出へ */ }
           else if (!this.flags.first_rescue) { this.flags.first_rescue = true; this.bark('first_rescue'); }
           break;
         }
-        case 'neutralized': this.sfx.play('shutter'); this.resolve(e, 'neutralize'); this.onBossResolved('neutralize'); break;
+        case 'neutralized': if (e.kind === 'kanja') { this.resolve(e, 'neutralize'); break; } this.sfx.play('shutter'); this.resolve(e, 'neutralize'); this.onBossResolved('neutralize'); break;
         case 'die': {
           this.sfx.play('die', b.pos); this.fx.mist(new THREE.Vector3(b.pos.x, 0, b.pos.z), 70, e.h); this.resolve(e, 'kill'); e.fadeT = 0;
           if (this.lock === e) this.lock = null;
           if (e.kind === 'heiten') this.bark('heiten_killed', 3);
           else if (e.kind === 'shuuyou') this.onBossResolved('kill');
+          else if (e.kind === 'utsushimi') this.onBossResolved3('kill');
           else if (!this.flags.first_kill) { this.flags.first_kill = true; this.bark('first_kill'); }
           break;
         }

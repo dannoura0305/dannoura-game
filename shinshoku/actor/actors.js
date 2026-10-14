@@ -42,6 +42,25 @@ class Looks {
   }
 }
 
+/**
+ * 揺れもの（尾・影の帯）のばね。list：[{ b:骨, k, d, gain, baseX, amp, freq, ph, tail }]。
+ * 動き（速さ・向きの変化・回避）で後ろへ流れ、止まると base（休みの曲がり）へ戻る。尾はゆっくり左右に振る（猫の尾）。
+ */
+export class Sway {
+  constructor(list = []) { this.list = list.map(s => Object.assign({ x: s.baseX || 0, z: 0, vx: 0, vz: 0 }, s)); }
+  step(dt, time, speed, turn, extra = 0) {
+    if (!this.list.length) return;
+    const T = Math.min(dt, 0.1), n = Math.max(1, Math.ceil(T * 120)), h = T / n;
+    for (const s of this.list) {
+      const wantX = (s.baseX || 0) - speed * 0.06 * s.gain - extra * s.gain + Math.sin(time * (s.freq || 1.5) * 0.7 + (s.ph || 0)) * (s.amp || 0.05) * 0.3;
+      const wantZ = -turn * 0.06 * s.gain + Math.sin(time * (s.freq || 1.5) + (s.ph || 0)) * (s.amp || 0.05) * (s.tail ? 1 : 0.6);
+      for (let i = 0; i < n; i++) { s.vx += ((wantX - s.x) * s.k - s.vx * s.d) * h; s.vz += ((wantZ - s.z) * s.k - s.vz * s.d) * h; s.x += s.vx * h; s.z += s.vz * h; }
+      if (!Number.isFinite(s.x + s.z + s.vx + s.vz)) { s.x = s.baseX || 0; s.z = 0; s.vx = s.vz = 0; }
+      s.b.rotation.x = s.x; s.b.rotation.z = s.z;
+    }
+  }
+}
+
 export class Player {
   constructor(model, opt) {
     this.root = new THREE.Group(); this.root.name = 'dannoura';
@@ -62,20 +81,25 @@ export class Player {
     this.springs = [];
     for (const [i, b] of (model.tail || []).entries()) this.springs.push({ b, k: i === 0 ? 70 : 45, d: 8, base: 0, x: 0, z: 0, vx: 0, vz: 0, gain: i === 0 ? 0.6 : 0.35 });
     for (const b of model.coat || []) this.springs.push({ b, k: 55, d: 7, base: 0, x: 0, z: 0, vx: 0, vz: 0, gain: 0.5, coat: true });
+    this.sway = new Sway(model.sway || []);
+    this.earT = 1.5; this.expr = null; this.exprT = 0;
     this.setWeaponVisual();
   }
+  /** 表情（skin.js の EXPR の名前）。dur 秒後に base へ戻す */
+  setExpr(name, dur = 0) { if (!this.model.setExpr) return; if (this.expr !== name) { this.model.setExpr(name); this.expr = name; } this.exprT = dur; }
   /** 武器の見た目：持っている物・手に持つ物（骨の大きさ／表示） */
   setWeaponVisual() {
     const W = this.model.weapons; if (!W) return;
     const F = this.fighter, n = F.st.name, own = F.owned;
     let hand = F.weapon;
     if (n === 'swap') hand = F.st.f < F.st.total / 2 ? F.st.from : F.st.to;
-    if (n === 'issen') hand = own.includes('katana') ? 'katana' : F.weapon;
+    if (n === 'issen' && F.weapon !== 'claw') hand = own.includes('katana') ? 'katana' : F.weapon;
     const set = (o, on) => { if (!o) return; if (W.bones) o.scale.setScalar(on ? 1 : HIDE); else o.visible = on; };
     set(W.katana, hand === 'katana'); set(W.gun, hand === 'handgun'); set(W.pipe, hand === 'pipe');
     set(W.saya, own.includes('katana')); set(W.sayaHilt, own.includes('katana') && hand !== 'katana');
     set(W.holster, own.includes('handgun')); set(W.holsterGun, own.includes('handgun') && hand !== 'handgun');
-    set(W.pipeBack, own.includes('pipe') && hand !== 'pipe');
+    set(W.pipeBack, own.includes('pipe') && hand !== 'pipe' && !this.model.white);
+    if (this.model.white) { set(W.holster, false); set(W.holsterGun, false); if (hand === 'claw') { set(W.katana, n === 'issen' || (n === 'attack' && !!F.st.blade)); } }
   }
   /** 刃の根元と先（世界座標）：刀か鉄パイプ */
   bladePoints() {
@@ -95,12 +119,12 @@ export class Player {
   animate(dt, extra = {}) {
     this.time += dt;
     const F = this.fighter, m = this.model;
-    const ctx = { st: F.st, f: F.st.f, w: F.weapon, speed: this.speed, phase: this.phase, time: this.time, aiming: F.aimHeld && F.weapon === 'handgun', issen: this.issenInfo, hurtDir: this.hurtDir };
+    const ctx = { st: F.st, f: F.st.f, w: F.weapon, speed: this.speed, phase: this.phase, time: this.time, aiming: F.aimHeld && F.weapon === 'handgun', issen: this.issenInfo, hurtDir: this.hurtDir, white: F.white };
     let { pose, rate } = extra.override || dannouraPose(ctx);
     if (extra.aimPitch != null && ctx.aiming) { pose.rightUpperArm = [(pose.rightUpperArm || [0, 0, 0])[0] - extra.aimPitch, pose.rightUpperArm[1], pose.rightUpperArm[2]]; pose.leftUpperArm = [(pose.leftUpperArm || [0, 0, 0])[0] - extra.aimPitch, pose.leftUpperArm[1], pose.leftUpperArm[2]]; pose.chest = [(pose.chest || [0, 0, 0])[0] - extra.aimPitch * 0.3, (pose.chest || [0, 0, 0])[1], 0]; }
     this.poser.apply(pose, 1 - Math.pow(1 - rate, dt * 60));
     // 回避の転がり（体ごと前へ回る）
-    if (F.st.name === 'dodge' && !extra.override) { const r = rollAt(F.st.f); this.pivot.rotation.x = r.angle; this.pivot.position.y = 0.55 - r.drop; }
+    if (F.st.name === 'dodge' && !extra.override && !F.st.white) { const r = rollAt(F.st.f); this.pivot.rotation.x = r.angle; this.pivot.position.y = 0.55 - r.drop; }
     else { this.pivot.rotation.x = 0; this.pivot.position.y = 0.55; }
     this.root.position.copy(this.pos); this.root.rotation.y = this.yaw;
     this.setWeaponVisual();
@@ -115,6 +139,13 @@ export class Player {
       if (!Number.isFinite(s.x + s.z + s.vx + s.vz)) { s.x = s.base; s.z = 0; s.vx = s.vz = 0; }
       s.b.rotation.x = s.coat ? Math.max(-0.05, s.x) : s.x; s.b.rotation.z = s.z;
     }
+    this.sway.step(dt, this.time, this.speed, turn, F.st.name === 'dodge' ? 0.6 : 0);
+    // 猫耳：ときどきぴくっと動く・走ると後ろへ寝る
+    if (m.earBones) {
+      this.earT -= dt; const tw = this.earT < 0.12 && this.earT > 0 ? Math.sin(this.earT / 0.12 * Math.PI) * 0.35 : 0; if (this.earT <= 0) this.earT = 1.5 + Math.random() * 3;
+      m.earBones.forEach((b, i) => { b.rotation.x = -Math.min(0.5, this.speed * 0.08) - (i ? tw : 0); b.rotation.z = (i ? -1 : 1) * tw * 0.4; });
+    }
+    if (this.exprT > 0) { this.exprT -= dt; if (this.exprT <= 0 && this.baseExpr) this.setExpr(this.baseExpr); }
     if (m.update) m.update(dt);
   }
 }
@@ -129,6 +160,7 @@ export class EnemyActor {
     this.y = 0; this.looks = new Looks(model); this.weakGlow = 0;
     this.root.position.set(brain.pos.x, 0, brain.pos.z);
     this.outlineBase = model.mats && model.mats.outline ? model.mats.outline.color.getHex() : 0;
+    this.sway = new Sway(model.sway || []);
   }
   get pos() { return this.brain.pos; }
   hittable() { const b = this.brain; return b.alive && !b.immune() && this.root.visible; }
@@ -161,15 +193,36 @@ export class EnemyActor {
   animate(dt) {
     const b = this.brain; this.time += dt;
     const ctx = { state: b.state, t: b.t, sub: b.sub, speed: this.speed, phase: this.phase, atk: b.atk, atkDef: b.atk ? b.def.attacks[b.atk.name] : null, atStation: b.atStation, step: b.step && b.step.id, stepT: b.stepT };
-    const fn = this.kind === 'heiten' ? heitenPose : this.kind === 'shuuyou' ? shuuyouPose : kiroPose;
+    const fn = this.poseFn || (this.kind === 'heiten' ? heitenPose : this.kind === 'shuuyou' ? shuuyouPose : kiroPose);
     const { pose, rate } = fn(ctx);
     this.poser.apply(pose, 1 - Math.pow(1 - rate, dt * 60));
     this.root.position.set(b.pos.x, this.y, b.pos.z); this.root.rotation.y = b.yaw;
     this.looks.tickFlinch(dt, this.model.J);
+    this.sway.step(dt, this.time, this.speed, 0, b.atk && b.atk.phase === 'active' ? 0.5 : 0);
+    if (this.alt) this.altAnimate(dt, pose, rate);
     // 見切り状態（青い縁）：輪郭線を青く
     const M = this.model.mats;
     if (M && M.outline) { const want = b.chainable && b.alive ? 0x3a9aff : this.outlineBase; if (M.outline.color.getHex() !== want) M.outline.color.setHex(want); M.outline.userData.u.uOutline.value = b.chainable ? 0.02 : (this.model.outlineThick || 0.011); }
     if (this.model.update) this.model.update(dt);
+  }
+  /** 化けの姿（模倣する影の「見舞い客」「（相棒）」）。本体と同じ位置に重ね、崩れると本体（影）が現れる */
+  setAlt(model, poseFn) {
+    this.alt = model; this.altPoseFn = poseFn; this.altPoser = new Poser(model.J, model.rest || {}); this.altLooks = new Looks(model);
+    this.model.root.add(model.root); this.altK = 0; this.setReveal(0);
+  }
+  altAnimate(dt) {
+    if (!this.alt.root.visible) return;
+    const { pose, rate } = this.altPoseFn({ time: this.time, speed: this.speed, phase: this.phase, talking: true, mode: null });
+    this.altPoser.apply(pose, 1 - Math.pow(1 - rate, dt * 60));
+  }
+  /** 化けの崩れ（0＝化けた姿だけ、1＝影だけ） */
+  setReveal(k) {
+    this.altK = k;
+    const A = this.alt && this.alt.mats, M = this.model.mats;
+    if (A) for (const m of [A.body, A.face, A.outline]) if (m && m.userData.u) m.userData.u.uDissolve.value = k;
+    if (this.alt) this.alt.root.visible = k < 0.999;
+    if (M) for (const m of [M.body, M.face, M.outline]) if (m && m.userData.u) m.userData.u.uDissolve.value = 1 - k;
+    for (const o of [this.model.mesh, this.model.faceMesh, this.model.outline]) if (o) o.visible = k > 0.001;
   }
   /** 黒い霧になって崩れる（0〜1） */
   setDissolve(k) { const M = this.model.mats; if (!M) return; for (const m of [M.body, M.face, M.outline]) if (m && m.userData.u) m.userData.u.uDissolve.value = k; }

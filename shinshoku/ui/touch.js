@@ -7,7 +7,7 @@ export function setupTouch(root, input, game) {
   <button class="tc-b tc-atk" data-a="attack">斬</button><button class="tc-b tc-dodge" data-a="dodge">避</button>
   <button class="tc-b tc-parry" data-a="parry">弾</button><button class="tc-b tc-gun" data-a="gun">銃</button>
   <button class="tc-b tc-swap" data-a="swap">替</button><button class="tc-b tc-use" data-a="interact">調</button>
-  <button class="tc-b tc-heal" data-a="heal">回</button><button class="tc-b tc-light" data-a="light">灯</button><button class="tc-b tc-menu" data-a="pause">≡</button>`;
+  <button class="tc-b tc-heal" data-a="heal">回</button><button class="tc-b tc-form" data-a="transform">化</button><button class="tc-b tc-light" data-a="light">灯</button><button class="tc-b tc-menu" data-a="pause">≡</button>`;
   root.appendChild(wrap);
   const stick = wrap.querySelector('.tc-stick'), knob = wrap.querySelector('.tc-knob');
   let stickId = null, sx = 0, sy = 0, lookId = null, lx = 0, ly = 0, tap0 = null;
@@ -21,6 +21,7 @@ export function setupTouch(root, input, game) {
         const a = b.dataset.a; b.classList.add('on');
         if (a === 'gun') { T.held.add('aim'); game.touchAimAssist = true; }
         else if (a === 'attack') { T.pressQ.push('attack'); btnTimers.set(t.identifier, { a, t0: performance.now(), el: b, timer: setTimeout(() => T.held.add('heavy'), 260) }); continue; }
+        else if (a === 'transform') { T.held.add('transform'); }
         else { T.pressQ.push(a); if (a === 'interact' || a === 'pause') T.held.add(a); }
         btnTimers.set(t.identifier, { a, el: b });
         continue;
@@ -51,6 +52,7 @@ export function setupTouch(root, input, game) {
         if (b.a === 'gun') { T.held.delete('aim'); T.pressQ.push('attack'); T.fireRelease = 10; }
         if (b.a === 'attack') { clearTimeout(b.timer); T.held.delete('heavy'); }
         if (b.a === 'interact' || b.a === 'pause') T.held.delete(b.a);
+        if (b.a === 'transform') T.held.delete('transform');
         btnTimers.delete(t.identifier);
       }
     }
@@ -62,5 +64,6 @@ export function setupTouch(root, input, game) {
     show(on) { wrap.style.display = on ? '' : 'none'; },
     setUse(on) { wrap.querySelector('.tc-use').classList.toggle('vis', !!on); },
     setIssen(on) { wrap.querySelector('.tc-atk').classList.toggle('issen', !!on); },
+    setForm(vis, white) { const b = wrap.querySelector('.tc-form'); b.classList.toggle('vis', !!vis); b.classList.toggle('white', !!white); },
   };
 }

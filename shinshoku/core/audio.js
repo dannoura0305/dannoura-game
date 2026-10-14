@@ -129,6 +129,25 @@ export class Sfx {
       case 'chairs': for (let i = 0; i < 4; i++) this.tone(400 + Math.random() * 400, 0.1, 'triangle', 0.06, 0.7, i * 0.08); break;
       case 'crash': this.noise(0.6, 0.55, 'lowpass', 500); this.tone(70, 0.5, 'sine', 0.35, 0.5); for (let i = 0; i < 5; i++) this.tone(500 + Math.random() * 600, 0.12, 'triangle', 0.05, 0.6, 0.1 + i * 0.07); break;
       case 'lights_out': this.tone(90, 0.8, 'sawtooth', 0.05, 0.4); this.noise(0.1, 0.15, 'highpass', 4000); break;
+      // 第3章：白い姿・模倣する影・写し身・病院
+      case 'claw': this.noise(0.1, 0.16, 'bandpass', 3800, 1.2, 0, 0.35); this.tone(1700, 0.06, 'triangle', 0.025, 0.7); break;
+      case 'claw_hit': this.noise(0.07, 0.3, 'highpass', 2600); this.tone(260, 0.08, 'square', 0.08, 0.6); break;
+      case 'blade': this.tone(1200, 0.5, 'sine', 0.08, 0.6); this.noise(0.3, 0.2, 'bandpass', 2000, 0.8, 0, 0.5); break;
+      case 'foxfire': for (let i = 0; i < 3; i++) this.tone(660 + i * 220, 0.35, 'sine', 0.05, 1.6, i * 0.06); this.noise(0.3, 0.06, 'bandpass', 1800, 1.5); break;
+      case 'fire_hit': this.noise(0.2, 0.22, 'lowpass', 1600); this.tone(440, 0.2, 'triangle', 0.05, 0.6); break;
+      case 'dash': this.noise(0.18, 0.18, 'highpass', 2600, 1, 0, 0.3); this.tone(1600, 0.12, 'sine', 0.03, 1.6); break;
+      case 'illusion': this.tone(523, 0.6, 'sine', 0.06, 1.5); this.tone(784, 0.6, 'sine', 0.05, 1.5, 0.08); this.tone(1046, 0.8, 'sine', 0.04, 1.2, 0.16); break;
+      case 'transform': this.tone(220, 1.6, 'sine', 0.06, 2.0); this.tone(330, 1.6, 'sine', 0.04, 2.0, 0.2); this.tone(1320, 1.0, 'sine', 0.025, 1.0, 0.8); this.noise(1.4, 0.06, 'bandpass', 900, 0.8, 0, 0.6); break;
+      case 'revert': this.tone(660, 0.8, 'sine', 0.05, 0.5); this.noise(0.6, 0.04, 'lowpass', 900); break;
+      case 'no_yoki': this.tone(300, 0.12, 'triangle', 0.05, 0.7); break;
+      case 'mimic_reveal': this.noise(0.9, 0.18, 'bandpass', 500, 1.2, 0, 0.3); this.voice(240, 0.7, 0.05, [[700, 1100], [400, 1800]], 0, 5); this.tone(90, 0.8, 'sawtooth', 0.05, 0.5); break;
+      case 'mimic_voice': this.voice(260 + Math.random() * 40, 0.9, 0.05, [[650, 1150], [380, 2100], [500, 1000]], 0, 3); break;
+      case 'copy': this.tone(1000, 0.08, 'square', 0.03); this.tone(1500, 0.08, 'square', 0.03, 1, 0.09); this.tone(2000, 0.1, 'square', 0.03, 1, 0.18); break;
+      case 'wave': this.noise(1.0, 0.25, 'lowpass', 400, 1, 0, 0.4); this.tone(45, 1.0, 'sine', 0.2, 0.6); break;
+      case 'kanja_voice': this.voice(110 + Math.random() * 20, 1.3, 0.04, [[500, 900], [300, 1800]], 0, 2); break;
+      case 'drip_stand': this.tone(2400, 0.05, 'triangle', 0.02); this.tone(2900, 0.05, 'triangle', 0.015, 1, 0.12); break;
+      case 'memo': this.tone(880, 0.1, 'square', 0.03); this.voice(300, 1.6, 0.05, [[700, 1200], [450, 2200], [600, 1100]], 0.15, 4); break;
+      case 'heartbeat': this.tone(52, 0.18, 'sine', 0.25, 0.7); this.tone(48, 0.16, 'sine', 0.18, 0.7, 0.28); break;
     }
     this.out = null;
   }
@@ -172,6 +191,8 @@ export class Sfx {
       alley: { hum: 0.4, rain: 1.2, wind: 1, vent: 0.4, buzz: 0.8, shop: 0 },
       plaza: { hum: 0.8, rain: 1, wind: 1.2, vent: 0, buzz: 0.3, shop: 0 },
       gym: { hum: 0.5, rain: 0.25, wind: 0.2, vent: 1, buzz: 1, shop: 0 },
+      hospital: { hum: 0.9, rain: 0.15, wind: 0.1, vent: 1.2, buzz: 1.4, shop: 0 },
+      tunnel: { hum: 0.6, rain: 0, wind: 0.5, vent: 1.6, buzz: 0.3, shop: 0 },
     }[kind] || {};
     const t = this.ctx.currentTime;
     for (const [k, b] of Object.entries(this.beds)) b.g.gain.setTargetAtTime((P[k] || 0) * b.vol * (k === 'rain' && this.rainOff ? 0 : 1), t, 0.8);
@@ -185,9 +206,9 @@ export class Sfx {
     const T = this.timers, outdoor = ['street', 'alley', 'plaza', 'street_normal'].includes(this.amb);
     T.siren -= dt; T.drip -= dt; T.muzak -= dt; T.creak -= dt;
     if (T.siren <= 0) { T.siren = 35 + Math.random() * 45; if (outdoor) this.siren(); }
-    if (T.drip <= 0) { T.drip = 0.6 + Math.random() * 2.2; if (this.amb === 'alley') { this.out = this._spatial({ x: this.L.x + (Math.random() - 0.5) * 10, z: this.L.z + (Math.random() - 0.5) * 10 }); if (this.out) this.tone(1800 + Math.random() * 1400, 0.09, 'sine', 0.025, 0.6); this.out = null; } }
+    if (T.drip <= 0) { T.drip = 0.6 + Math.random() * 2.2; if (this.amb === 'alley' || this.amb === 'tunnel') { this.out = this._spatial({ x: this.L.x + (Math.random() - 0.5) * 10, z: this.L.z + (Math.random() - 0.5) * 10 }); if (this.out) this.tone(1800 + Math.random() * 1400, 0.09, 'sine', 0.025, 0.6); this.out = null; } }
     if (T.muzak <= 0) { T.muzak = 14 + Math.random() * 20; if (this.amb === 'plaza') { const notes = [523, 659, 587, 494]; notes.forEach((f, i) => { this.out = this._spatial({ x: 0, z: -14 }, 2, 60); if (this.out) this.tone(f * (1 + (Math.random() - 0.5) * 0.02), 0.5, 'triangle', 0.012, 0.98, i * 0.55); this.out = null; }); } }
-    if (T.creak <= 0) { T.creak = 10 + Math.random() * 16; if (this.amb === 'gym') this.noise(0.6, 0.02, 'bandpass', 180, 6, 0, 1.4); }
+    if (T.creak <= 0) { T.creak = 10 + Math.random() * 16; if (this.amb === 'gym' || this.amb === 'hospital') this.noise(0.6, 0.02, 'bandpass', 180, 6, 0, 1.4); if (this.amb === 'hospital' && Math.random() < 0.5) { this.tone(1046, 0.25, 'sine', 0.012); this.tone(1046, 0.25, 'sine', 0.012, 1, 0.5); } }
   }
   /** 遠いサイレン（ゆっくり上下・遠くでこもる） */
   siren() {

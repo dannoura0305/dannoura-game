@@ -1,4 +1,5 @@
 // 『境界侵食』の自動プレイ（Playwright）：フェーズ3「序章〜第2章（避難所）」を最初から収容者の決着まで通し、画面を撮る。
+// フェーズ4：第2章の終わりから第3章（病院・地下通路・写し身・白髪形態）を通す（--only ch3｜ch3pc｜ch3phone）。
 // 使い方：python3 -m http.server 8797 --directory <repo> を起動してから
 //   node tools/shinshoku_play.mjs [出力フォルダ] [--base http://localhost:8797] [--only pc|phone]
 // 環境変数：PW_MODULE（playwright の index.mjs）、PW_CHROMIUM（chromium の実行ファイル）
@@ -495,13 +496,315 @@ async function runPhone(browser) {
   return { perf, errs };
 }
 
+// ───────────────────────── 第3章（フェーズ4）：病院 → 地下通路 → 写し身・白髪形態 ─────────────────────────
+// 自動の戦い方（ページの中で動かす）：予兆を見て、白（弾ける）は弾く→弾き一閃、赤は避ける→見切り一閃、それ以外は近づいて斬る。
+const AUTOFIGHT = function (opt) {
+  const D = __sh.debug, g = __sh.game, P = g.player, F = P.fighter; const R = { deaths: 0, parries: 0, dodges: 0, swings: 0, white: 0, memo: 0, it: 0 };
+  let k = 0;
+  for (let it = 0; it < (opt.max || 900); it++) {
+    R.it = it;
+    const T = g.enemies.filter(e => opt.ids.includes(e.id) && e.brain.alive && e.root.visible);
+    if (!T.length) break;
+    if (g.cut.active) { if (opt.stopOnCut) break; D.skipCutscene(); continue; }
+    if (g.mode === 'dialog') { D.skipDialog(); continue; }
+    if (g.mode === 'puzzle') break;
+    if (g.mode === 'dead' || F.dead) { R.deaths++; if (opt.noRetry) break; g.retry(); D.fastSim(20); continue; }
+    if (opt.heal && F.hp < 45) D.heal();
+    const near = (e) => Math.hypot(e.pos.x - P.pos.x, e.pos.z - P.pos.z);
+    const atk = T.find(e => e.brain.atk && e.brain.atk.phase === 'windup' && near(e) < 8 && !e.targetDecoy);
+    if (atk) {
+      const b = atk.brain, A = b.def.attacks[b.atk.name], w = (b.atk.hitN > 0 && A.next) ? A.next : A.windup, left = Math.max(0, Math.round((w - b.atk.t) * 60 / (g.worldScale || 1)));
+      if (A.parryable && !F.white && near(atk) < (A.range || 2) + 1.5) { __sh.input.script([{ f: Math.max(0, left - 3), press: ['parry'] }, { f: left + 4, press: ['attack'] }]); R.parries++; D.fastSim(left + 26); continue; }
+      __sh.input.script([{ f: Math.max(0, left - 4), press: ['dodge'] }, { f: left + 6, press: ['attack'] }]); R.dodges++; D.fastSim(left + 30); continue;
+    }
+    const e = T.reduce((a, c) => (near(a) < near(c) ? a : c));
+    if (e.brain.state === 'voice' && opt.memo && g.flags.memo) { const sp = g.nearSpot; if (sp && sp.kind === 'memo') { g.useSpot(sp); R.memo++; D.fastSim(10); continue; } }
+    const dx = e.pos.x - P.pos.x, dz = e.pos.z - P.pos.z, d = Math.hypot(dx, dz);
+    if (d > (opt.range || 2.0) + e.r * 0.5) { g.cam.yaw = Math.atan2(-dx, -dz); __sh.input.script([{ f: 0, move: [0, 1, 10] }, { f: 0, hold: { run: 10 } }]); D.fastSim(10); continue; }
+    D.faceTo(e.pos.x, e.pos.z);
+    if (F.white) {
+      R.white++; k++;
+      if (k % 7 === 3 && F.yoki > 20) { __sh.input.script([{ f: 0, hold: { aim: 14 } }, { f: 8, press: ['attack'] }]); D.fastSim(26); continue; }
+      if (k % 9 === 5 && F.yoki > 30) { __sh.input.script([{ f: 0, press: ['parry'] }]); D.fastSim(18); continue; }
+      __sh.input.script([{ f: 0, press: ['attack'] }, { f: 9, press: ['attack'] }, { f: 18, press: ['attack'] }, { f: 28, press: ['attack'] }, { f: 40, press: ['attack'] }]); D.fastSim(58); continue;
+    }
+    __sh.input.script([{ f: 0, press: ['attack'] }, { f: 16, press: ['attack'] }]); R.swings++; D.fastSim(34);
+  }
+  return R;
+};
+const injectAF = page => page.evaluate(src => { window.__af = (0, eval)('(' + src + ')'); }, AUTOFIGHT.toString());
+const AF = (page, opt) => page.evaluate(opt => window.__af(Object.assign(opt, { until: null })), opt);
+const step3 = async (page, n = 1) => { for (let i = 0; i < n; i++) await page.evaluate(() => { const D = __sh.debug, g = __sh.game; if (g.cut.active) D.skipCutscene(); if (g.mode === 'dialog') D.skipDialog(); D.fastSim(20); }); };
+
+async function runCh3PC(browser) {
+  const errs = []; const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const { page } = await openGame(ctx, 'autostart=1&step=ch2_end&perf=1', errs);
+  await injectAF(page);
+  // 第2章の終わりの表 →「続ける」→ 第3章へ
+  await page.evaluate(() => { __sh.debug.skipDialog(); __sh.game.showEndCard(); });
+  await page.click('#sh-puz [data-close]'); await page.waitForTimeout(800);
+  await page.evaluate(() => { __sh.debug.fastSim(40); __sh.debug.skipDialog(); __sh.debug.fastSim(5); });
+  let st = await S(page); ok('第3章：第2章の終わりの表から続けて始まる（台詞→章の札）', st.step === 'ch3_hosp' && st.flags.ch3_started, st.step);
+  const ex = await page.evaluate(() => { const g = __sh.game; const s = g.area.spots.find(x => x.id === 'exit_hospital'); return s && { x: s.x, z: s.z }; });
+  await page.evaluate(() => __sh.debug.teleport(-4.6, 18.4, Math.PI / 2));
+  const w1 = await walkTo(page, ex.x - 0.1, ex.z, 300, false);
+  st = await S(page); ok('避難所のロビー西の連絡通路を歩いて病院へ（区画の読み込み）→ 着いた演出', st.area === 'hospital' && st.cut === 'cs03_hospital', JSON.stringify({ w1, area: st.area, cut: st.cut }));
+  await sim(page, 60 * 7.6); await page.evaluate(() => __sh.debug.hold(true)); await shot(page, 'pc_30_hospital_arrive.png', 1800); await page.evaluate(() => __sh.debug.hold(false));
+  await skipCut(page); await sim(page, 4);
+  st = await S(page); ok('病院：記録のない患者（4）・化けた影（見舞い客）がいる', st.step === 'ch3_lobby' && st.enemies.filter(e => e.kind === 'kanja').length === 4 && st.enemies.some(e => e.id === 'mimic_h1' && e.state === 'disguise'), st.enemies.map(e => e.id + ':' + e.state).join(','));
+  // 化けた見舞い客：懐中電灯で目が光る（見分け方）→ 近づくと崩れる（予兆）→ 影
+  await page.evaluate(() => { const D = __sh.debug, g = __sh.game; D.teleport(-6.2, 10.2, 0); D.faceTo(-6.2, 13.9); g.cam.pitch = 0.12; if (!g.flashlightOn) g.toggleFlashlight(); D.fastSim(10); });
+  await page.waitForTimeout(700); st = await S(page); ok('化けた影の見分け方：懐中電灯を当てると目が紫に光る・足元に影が無い', st.metrics.tellSeen === true && await page.evaluate(() => { const e = __sh.game.enemies.find(x => x.id === 'mimic_h1'); return e.alt && e.alt.mesh.castShadow === false || e.model.mesh.castShadow === false; }), JSON.stringify(st.metrics.tellSeen));
+  await clearUI(page); await shot(page, 'pc_31_mimic_disguise.png', 1200);
+  await page.evaluate(() => { const D = __sh.debug, g = __sh.game; D.teleport(-6.2, 11.3, 0); D.faceTo(-6.2, 13.9); __sh.input.script([{ f: 0, move: [0, 1, 20] }]); D.fastSim(28); g.cam.yaw = g.player.yaw + Math.PI + 0.8; g.cam.pitch = 0.08; D.hold(true); });
+  await shot(page, 'pc_32_mimic_reveal.png', 1500); await page.evaluate(() => __sh.debug.hold(false));
+  st = await S(page); ok('近づくと 0.9 秒かけて崩れる（赤い予兆）→ 影になって襲う', st.metrics.mimicReveals >= 1, JSON.stringify(st.enemies.find(e => e.id === 'mimic_h1')));
+  // 写す：3 回斬ってから攻めを待つ → 「写：斬斬斬」の 3 連撃
+  const copy = await page.evaluate(() => {
+    const D = __sh.debug, g = __sh.game, e = g.enemies.find(x => x.id === 'mimic_h1'); D.fastSim(70); D.heal();
+    g.actHist = []; e.brain.atk = null; e.brain.cool = 99; D.faceTo(e.pos.x, e.pos.z);
+    for (let i = 0; i < 3; i++) { __sh.input.script([{ f: 0, press: ['attack'] }]); D.fastSim(32); }
+    e.brain.cool = 0; e.brain.pos.x = g.player.pos.x; e.brain.pos.z = g.player.pos.z + 1.5;
+    for (let i = 0; i < 40 && !e.brain.atk; i++) D.fastSim(2);
+    D.fastSim(6); g.cam.yaw = g.player.yaw + Math.PI + 1.0; g.cam.pitch = 0.05; D.hold(true);
+    return { label: e.copyLabel, plan: e.brain.plan && e.brain.plan.name, hits: e.brain.atk && e.brain.atk.hits, hist: g.actHist.slice(-4) };
+  });
+  ok('模倣する影は直前の動きを写す（斬×3 → 写：斬斬斬・3 連撃）・頭の上に表示', copy.plan === 'mslash' && copy.hits === 3 && /斬斬斬/.test(copy.label || ''), JSON.stringify(copy));
+  await shot(page, 'pc_33_mimic_copy.png', 1200); await page.evaluate(() => __sh.debug.hold(false));
+  let f1 = await AF(page, { ids: ['mimic_h1'], max: 400, heal: true });
+  st = await S(page); ok('模倣する影を倒す（弾く／避ける／斬る）', st.enemyRes.mimic_h1 === 'kill', JSON.stringify(f1));
+  // 受付 → カルテの照合（必須・UI をクリック）
+  await page.evaluate(() => { const D = __sh.debug; D.teleport(0.6, 11.8, Math.PI); D.fastSim(3); D.use('hosp_reception'); });
+  const rcp = await page.evaluate(() => document.querySelector('.sh-dtext').textContent);
+  await skipDlg(page);
+  st = await S(page); ok('受付の入院記録（「氏名不明・記録なし」）→ 目標がカルテの照合へ', st.step === 'ch3_records' && /記録なし/.test(rcp), st.step);
+  await page.evaluate(() => { const D = __sh.debug; D.teleport(-6.0, 0.6, Math.PI); D.fastSim(3); D.use('hosp_board'); D.skipDialog(); D.use('hosp_keybox'); });
+  const kb0 = await page.evaluate(() => document.querySelector('.sh-dtext').textContent); await skipDlg(page);
+  await page.evaluate(() => { const D = __sh.debug; D.teleport(-10.6, 3.4, -Math.PI / 2); D.fastSim(3); D.use('hosp_charts'); D.skipDialog(); });
+  await page.waitForTimeout(300); await shot(page, 'pc_34_records.png', 500);
+  await page.click('[data-room="305"]'); await page.waitForTimeout(150);
+  const miss = await page.evaluate(() => __sh.game.puz.records && __sh.game.puz.records.miss);
+  await page.click('[data-room="306"]'); await page.waitForTimeout(700); await skipDlg(page);
+  st = await S(page); ok('病院の調べ物【必須】：札とカルテの照合 → 306 小野寺ケイ（記録が無い）。間違えると数える', st.flags.records_done && st.step === 'ch3_ward' && miss === 1 && /まだ分からない/.test(kb0), JSON.stringify({ step: st.step, miss, kb0 }));
+  await page.evaluate(() => { const D = __sh.debug; D.teleport(-9.6, 0.4, Math.PI); D.fastSim(3); D.use('hosp_keybox'); D.skipDialog(); D.teleport(1.0, -16.0, Math.PI / 2); D.fastSim(3); D.use('door_306'); });
+  st = await S(page); ok('鍵箱で 306 の鍵 → 306 の戸を開ける', st.flags.key306 && st.flags.door306, JSON.stringify({ k: st.flags.key306, d: st.flags.door306 }));
+  // 任意：処置室の看護記録（子ども用の携帯の留守電・白衣の名札）→ 記録のない患者を「看護の人」として救う
+  await page.evaluate(() => { const D = __sh.debug; D.teleport(8.4, 4.0, 0); D.fastSim(3); D.use('hosp_treat'); D.skipDialog(); });
+  const nurse = await page.evaluate(() => {
+    const D = __sh.debug, g = __sh.game, k = g.enemies.find(e => e.id === 'kanja_1'); const b = k.brain; b.state = 'loop'; b.hostileBy = null; b.atk = null;
+    D.teleport(b.pos.x + Math.sin(b.yaw) * 2.0, b.pos.z + Math.cos(b.yaw) * 2.0, b.yaw + Math.PI); D.faceTo(b.pos.x, b.pos.z); D.fastSim(60);
+    const st1 = b.state; D.fastSim(30); const sp = g.nearSpot && g.nearSpot.kind; if (sp === 'callout') g.useSpot(g.nearSpot); D.fastSim(10);
+    return { st1, sp, res: g.enemyRes.kanja_1, state: b.state };
+  });
+  ok('任意の手掛かり（処置室）：白衣の名札 → 患者は「看護の人」と取り違える → 声をかけると眠る（救う）', nurse.st1 === 'nurse' && nurse.res === 'rescue', JSON.stringify(nurse));
+  const sw = await page.evaluate(() => { const D = __sh.debug, g = __sh.game; D.teleport(-1.2, -6.2, Math.PI); D.fastSim(3); for (const e of g.enemies) if (e.kind === 'kanja' && e.id !== 'kanja_4' && e.brain.state !== 'sleep') { e.brain.state = 'loop'; e.brain.hostileBy = null; } const k4 = g.enemies.find(e => e.id === 'kanja_4'); k4.brain.state = 'hostile'; k4.brain.hostileBy = 'x'; D.use('hosp_switch'); D.fastSim(10); const r = { ...g.enemyRes }; D.use('hosp_switch'); return r; });
+  ok('病棟の照明を落とす → 戦っていない患者は眠る（無力化）・戦っている患者は眠らない', sw.kanja_2 === 'neutralize' && sw.kanja_3 === 'neutralize' && !sw.kanja_4, JSON.stringify(sw));
+  f1 = await AF(page, { ids: ['kanja_4'], max: 300, heal: true });
+  st = await S(page); ok('記録のない患者を倒す（点滴の管＝白・すがりつき＝赤）', st.enemyRes.kanja_4 === 'kill', JSON.stringify(f1));
+  // 306：子どもの前の大きな患者（守り手）
+  await page.evaluate(() => { const D = __sh.debug, g = __sh.game; D.heal(); D.teleport(1.2, -16, Math.PI / 2); D.fastSim(2); D.teleport(3.0, -16, Math.PI / 2); D.fastSim(4); });
+  st = await S(page); ok('306 に入る → 演出「子どもの前に大きな異形」', st.cut === 'cs03_guard', st.cut);
+  await sim(page, 60 * 4.9); await page.evaluate(() => __sh.debug.hold(true)); await shot(page, 'pc_35_guard_child.png', 1800); await page.evaluate(() => __sh.debug.hold(false));
+  await sim(page, 60 * 6.6); await page.evaluate(() => __sh.debug.hold(true)); await shot(page, 'pc_36_guard.png', 1600); await page.evaluate(() => __sh.debug.hold(false));
+  await skipCut(page); await sim(page, 4);
+  const push = await page.evaluate(() => { const D = __sh.debug, g = __sh.game, m = g.enemies.find(e => e.id === 'mamori'); D.teleport(7.4, -17.4, Math.PI / 2); D.fastSim(80); return { att: g.metrics.enemyAttacks.mamori || 0, st: m.brain.state, hp: g.player.fighter.hp }; });
+  ok('大きな患者は子どもに近づくと押し返す（白い予兆・弱い）・追ってこない', push.att >= 1 && push.hp >= 85, JSON.stringify(push));
+  await page.evaluate(() => { const D = __sh.debug; D.heal(); D.teleport(4.2, -16.0, Math.PI / 2); D.fastSim(60 * 8); });
+  st = await S(page); ok('しばらくすると影が母の声を真似て来る（演出）', st.cut === 'cs03_mimics', st.cut);
+  await sim(page, 60 * 3.8); await page.evaluate(() => __sh.debug.hold(true)); await shot(page, 'pc_37_mimics_come.png', 1600); await page.evaluate(() => __sh.debug.hold(false));
+  await skipCut(page); await sim(page, 3);
+  const tw = await AF(page, { ids: ['mimic_t1', 'mimic_t2', 'mimic_t3'], max: 600, heal: true, stopOnCut: true });
+  await sim(page, 90);
+  st = await S(page); ok('影を払う：大きな患者も影から子どもを守る（影を払う）→ 道を空ける（救う）', ['mimic_t1', 'mimic_t2', 'mimic_t3'].every(id => st.enemyRes[id] === 'kill') && st.enemyRes.mamori === 'rescue' && (st.metrics.mamoriHits || 0) >= 1, JSON.stringify({ tw, res: st.enemyRes, mh: st.metrics.mamoriHits, cut: st.cut }));
+  for (let i = 0; i < 30; i++) { if ((await S(page)).cut === 'cs03_truth_rescue') break; await sim(page, 10); }
+  await skipCut(page); await sim(page, 30);
+  st = await S(page); ok('真相の演出（救った版）→ 子どもを相棒に預ける → CS-03', st.cut === 'cs03_line', st.cut);
+  // 原文の台詞：字幕を見る
+  let line = ''; for (let i = 0; i < 60; i++) { await sim(page, 10); line = await page.evaluate(() => document.querySelector('.sh-sub').textContent); if (/見た目/.test(line)) break; }
+  await page.evaluate(() => __sh.debug.hold(true)); await shot(page, 'pc_38_line.png', 1600); await page.evaluate(() => __sh.debug.hold(false));
+  ok('原文：だんのうら「見た目だけで決めつけちゃ駄目ってことかしらね」（字幕・一字一句）', line === 'だんのうら見た目だけで決めつけちゃ駄目ってことかしらね', line);
+  for (let i = 0; i < 60; i++) { await sim(page, 10); if (!(await S(page)).cut) break; }
+  st = await S(page); ok('子どもは（相棒）と手をつないでついて来る・地下へ', st.step === 'ch3_down' && st.child.visible && st.child.mode === 'follow' && st.metrics.fixedLines && st.metrics.fixedLines.length === 1, JSON.stringify({ step: st.step, child: st.child, fl: st.metrics.fixedLines }));
+  // 地下通路
+  await page.evaluate(() => { const D = __sh.debug; D.teleport(-6.0, -21.4, -Math.PI / 2); D.fastSim(3); });
+  await walkTo(page, -9.8, -21.6, 300, false);
+  st = await S(page); ok('階段から地下通路へ（相棒・子どもも一緒）', st.area === 'tunnel' && (st.cut === 'cs03_tunnel'), `${st.area} ${st.cut}`);
+  await skipCut(page); await sim(page, 4);
+  await page.evaluate(() => { const D = __sh.debug, g = __sh.game; g.cam.yaw = 0; D.teleport(0, -9.6, Math.PI); D.fastSim(4); D.teleport(0, -9.0, Math.PI); D.fastSim(8); });
+  const fake = await page.evaluate(() => { const g = __sh.game, u1 = g.enemies.find(e => e.id === 'mimic_u1'), u2 = g.enemies.find(e => e.id === 'mimic_u2'); return { u1: u1.brain.state, u2: u2.brain.state, comp: [g.companion.brain.pos.x, g.companion.brain.pos.z], compVis: g.companion.root.visible }; });
+  ok('地下通路：くぼみの影が飛び出す・先に（相棒）の姿の影が呼ぶ（本物の相棒は後ろ＝ミニマップの点）', fake.u1 === 'disguise' && fake.u2 === 'hostile' && fake.compVis && fake.comp[1] > -9, JSON.stringify(fake));
+  f1 = await AF(page, { ids: ['mimic_u2'], max: 300, heal: true });
+  await page.evaluate(() => { const D = __sh.debug, g = __sh.game; D.teleport(0, -9.4, Math.PI); g.cam.yaw = 0; g.cam.pitch = 0.1; D.fastSim(30); D.hold(true); });
+  await clearUI(page); await shot(page, 'pc_39_fake_companion.png', 1500); await page.evaluate(() => __sh.debug.hold(false));
+  await page.evaluate(() => { const D = __sh.debug; __sh.input.script([{ f: 0, move: [0, 1, 70] }]); D.fastSim(80); });
+  f1 = await AF(page, { ids: ['mimic_u1'], max: 300, heal: true });
+  st = await S(page); ok('（相棒）に化けた影は近づくと崩れる → 倒す', st.enemyRes.mimic_u1 === 'kill' && st.enemyRes.mimic_u2 === 'kill', JSON.stringify({ f1, r: st.enemyRes }));
+  // 分かれ道の広場：写し身
+  await page.evaluate(() => { const D = __sh.debug; D.heal(); D.teleport(0, -21.0, Math.PI); D.fastSim(3); });
+  await walkTo(page, 0, -23.8, 200, false);
+  st = await S(page); ok('広場：二人を詰所へ → 影が、だんのうらの形を写す（演出）', st.cut === 'cs03_boss', st.cut);
+  await sim(page, 60 * 11.6); await page.evaluate(() => __sh.debug.hold(true)); await shot(page, 'pc_40_boss_rise.png', 1800); await page.evaluate(() => __sh.debug.hold(false));
+  await skipCut(page); await sim(page, 4);
+  st = await S(page); ok('写し身（ボス）との戦い：相棒と子どもは詰所の中（シャッターが閉まる）', st.step === 'ch3_boss' && st.boss.state === 'hostile' && !st.companion.visible && !st.child.visible, JSON.stringify({ step: st.step, b: st.boss, c: st.companion.visible }));
+  await page.evaluate(() => { const D = __sh.debug, g = __sh.game; g.cam.yaw = 0.3; g.cam.pitch = 0.14; D.teleport(0.8, -30.5, Math.PI); D.fastSim(40); D.hold(true); });
+  await clearUI(page); await shot(page, 'pc_41_boss.png', 1500); await page.evaluate(() => __sh.debug.hold(false));
+  const p1 = await AF(page, { ids: ['utsushimi'], max: 900, heal: true, stopOnCut: true });
+  st = await S(page); ok('写し身：体力 60% で転機（止まる）→ 転機の前の専用セーブ', st.cut === 'cs03_tenki' && st.boss.state === 'tenki' && !!(await page.evaluate(() => __sh.store.load('tenki'))), JSON.stringify({ p1, cut: st.cut, b: st.boss }));
+  await sim(page, 60 * 9.6); await page.evaluate(() => __sh.debug.hold(true)); await shot(page, 'pc_42_tenki.png', 1600); await page.evaluate(() => __sh.debug.hold(false));
+  await skipCut(page); await sim(page, 3); await page.waitForTimeout(300);
+  const opts = await page.evaluate(() => [...document.querySelectorAll('#sh-puz [data-pick]')].map(b => b.dataset.pick));
+  await shot(page, 'pc_43_choice.png', 500);
+  ok('構えの選択（時間制限なし）：「化けを、解く」／「このまま、人として」', JSON.stringify(opts) === '["reveal","secret"]', JSON.stringify(opts));
+  await page.click('[data-pick="reveal"]'); await page.waitForTimeout(200);
+  st = await S(page); ok('「化けを、解く」→ 変身の演出（静かに・暴走ではない）。分岐の記録に kind:stance（ルートは未確定）', st.cut === 'cs03_transform' && st.stance === 'reveal' && st.route === null && st.branchLog.some(e => e.kind === 'stance' && e.decision === 'reveal' && e.locksRoute === false), JSON.stringify({ cut: st.cut, bl: st.branchLog }));
+  await sim(page, 60 * 2.6); await page.evaluate(() => __sh.debug.hold(true)); await shot(page, 'pc_44_transform_a.png', 1500); await page.evaluate(() => __sh.debug.hold(false));
+  await sim(page, 60 * 1.6); await page.evaluate(() => __sh.debug.hold(true)); await shot(page, 'pc_45_transform_b.png', 1500); await page.evaluate(() => __sh.debug.hold(false));
+  await sim(page, 60 * 4.6); await page.evaluate(() => __sh.debug.hold(true)); await shot(page, 'pc_46_transform_c.png', 1500); await page.evaluate(() => __sh.debug.hold(false));
+  await skipCut(page); await sim(page, 4);
+  st = await S(page); ok('白髪形態：白い乱れ髪・猫耳・白い尾（揺れる）・黒いパーカー・爪。第 2 段階へ', st.form === 'white' && st.step === 'ch3_boss2' && st.boss.phase === 1, JSON.stringify({ form: st.form, step: st.step, b: st.boss }));
+  // 白髪形態の寄り（前・後ろ）
+  await page.evaluate(() => { const g = __sh.game; g.boss.brain.cool = 99; g.boss.brain.vT = -99; __sh.debug.teleport(0, -27, 0); __sh.debug.fastSim(30); g.player.setExpr('calm'); });
+  await page.evaluate(() => __sh.debug.view('closeup', { who: 'player', dist: 0.95, side: 0.25, y: 1.48, fov: 36 })); await clearUI(page); await shot(page, 'pc_47_white_face.png', 1400);
+  await page.evaluate(() => __sh.debug.view('closeup', { who: 'player', dist: 3.1, side: 0.45, y: 0.95 })); await shot(page, 'pc_48_white_front.png', 1400);
+  await page.evaluate(() => __sh.debug.view('closeup', { who: 'player', dist: 3.1, side: Math.PI - 0.5, y: 1.0 })); await shot(page, 'pc_49_white_back.png', 1400);
+  await page.evaluate(() => __sh.debug.view('normal'));
+  // 白髪形態の技：妖爪 5 段・猫火・幻術・瞬歩・妖刀 → 連撃の数
+  const moves = await page.evaluate(() => {
+    const D = __sh.debug, g = __sh.game, F = g.player.fighter, b = g.boss.brain; F.yoki = 100; b.cool = 99; b.vT = -99; b.atk = null; b.state = 'hostile';
+    D.teleport(0, -32.6, Math.PI); b.pos.x = 0; b.pos.z = -34.2; D.faceTo(0, -34.2); const c0 = F.combo.max;
+    __sh.input.script([0, 9, 18, 28, 40].map(f => ({ f, press: ['attack'] }))); D.fastSim(70);
+    const claws = g.actHist.filter(a => a === 'claw').length;
+    __sh.input.script([{ f: 0, hold: { aim: 14 } }, { f: 8, press: ['attack'] }]); D.fastSim(30); const fires = g.fires.length + (g.metrics.foxfire || 0);
+    D.fastSim(80); const fireHits = g.metrics.foxfireHits || 0;
+    __sh.input.script([{ f: 0, press: ['parry'] }]); D.fastSim(4); const decoy = !!g.decoy;
+    D.fastSim(30); __sh.input.script([{ f: 0, press: ['dodge'] }]); D.fastSim(4); const dash = F.st.name === 'dodge' && F.st.white;
+    D.fastSim(30); __sh.input.script([{ f: 0, hold: { heavy: 16 } }]); D.fastSim(40);
+    return { claws, fires, fireHits, decoy, dash, blade: g.actHist.includes('blade'), comboMax: F.combo.max, yoki: Math.round(F.yoki), hist: g.actHist.slice(-8) };
+  });
+  ok('白髪形態の技：妖爪 5 段・猫火（追尾して当たる）・幻術（分身）・瞬歩・妖刀', moves.claws >= 5 && moves.fires >= 1 && moves.fireHits >= 1 && moves.decoy && moves.dash && moves.blade, JSON.stringify(moves));
+  await page.evaluate(() => { const D = __sh.debug, g = __sh.game, F = g.player.fighter, b = g.boss.brain; F.yoki = 100; b.cool = 99; D.teleport(0, -32.6, Math.PI); b.pos.x = 0; b.pos.z = -34.0; D.faceTo(0, -34); g.cam.yaw = 0.5 + Math.PI * 0; g.cam.pitch = 0.1;
+    for (let i = 0; i < 3; i++) { __sh.input.script([0, 9, 18, 28, 40].map(f => ({ f, press: ['attack'] }))); D.fastSim(56); }
+    __sh.input.script([0, 9, 18].map(f => ({ f, press: ['attack'] }))); D.fastSim(14); D.hold(true); });
+  await shot(page, 'pc_50_white_combo.png', 1700); await page.evaluate(() => __sh.debug.hold(false));
+  st = await S(page); ok('連撃の数（Combo）と連撃ボーナスの表示', st.comboMax >= 10 && await page.evaluate(() => document.querySelector('.sh-combo').classList.contains('on') || __sh.game.player.fighter.combo.max >= 10), `max ${st.comboMax}`);
+  // 妖力が尽きると静かに紫へ戻る（暴走しない）→ もう一度化けを解く（V 長押し）
+  const rv = await page.evaluate(() => { const D = __sh.debug, g = __sh.game, F = g.player.fighter; g.input.script.length = 0; g.input.scriptHeld.clear(); D.fastSim(70); g.boss.brain.cool = 99; g.boss.brain.atk = null; F.yoki = 1; D.fastSim(90); const a = F.form; F.yoki = 70; __sh.input.script([{ f: 0, hold: { transform: 34 } }]); D.fastSim(40); return { after: a, again: F.form }; });
+  ok('妖力が 0 になると静かに紫へ戻る → V 長押しでもう一度白へ（妖力 30 以上）', rv.after === 'purple' && rv.again === 'white', JSON.stringify(rv));
+  // 呼び声の間に「本物の声」（留守電）→ 救う
+  const voice = await page.evaluate(() => { const D = __sh.debug, g = __sh.game, b = g.boss.brain; b.cool = 0; b.vT = 99; D.fastSim(20); return b.state; });
+  await page.evaluate(() => { __sh.debug.fastSim(30); __sh.debug.hold(true); }); await clearUI(page); await shot(page, 'pc_51_boss_voice.png', 1300); await page.evaluate(() => __sh.debug.hold(false));
+  const p2 = await AF(page, { ids: ['utsushimi'], max: 900, heal: true, memo: true, stopOnCut: true });
+  await sim(page, 60);
+  st = await S(page); ok('写し身：「呼び声」の間に子ども用の携帯の留守電（本物の声）を聞かせる → 救う', (voice === 'voice' || p2.memo >= 1) && st.metrics.voices >= 1 && st.enemyRes.utsushimi === 'rescue' && st.metrics.memo === 'rescued', JSON.stringify({ voice, p2, res: st.enemyRes.utsushimi, v: st.metrics.voices }));
+  await sim(page, 60 * 2.2); const formAtShutter = (await S(page)).form; await sim(page, 60 * 3.6);
+  await page.evaluate(() => __sh.debug.hold(true)); await shot(page, 'pc_52_end.png', 1500); await page.evaluate(() => __sh.debug.hold(false));
+  ok('決着：シャッターが上がる前に紫の姿へ戻る（相棒は白い姿を見ない）', formAtShutter === 'purple' && (await S(page)).companionKnows === false, formAtShutter);
+  await skipCut(page); await sim(page, 30);
+  st = await S(page); ok('第3章（試作）ここまで：終わりの表', st.step === 'ch3_end' && st.mode === 'puzzle' && st.metrics.endCard3, `${st.step} ${st.mode}`);
+  await shot(page, 'pc_53_endcard.png', 600);
+  await page.evaluate(() => __sh.debug.closeMenu());
+  // 相棒が見ている所では化けを解かない
+  const watched = await page.evaluate(() => { const D = __sh.debug, g = __sh.game, F = g.player.fighter; D.fastSim(60); g.companion.brain.pos = { x: g.player.pos.x + 1.5, z: g.player.pos.z }; g.companion.root.visible = true; F.yoki = 80; g.toggleWhite(); return { form: F.form, why: g.metrics.whiteRefusedWhy }; });
+  ok('（相棒）が見ている所では化けを解かない（正体を知らない間）', watched.form === 'purple' && watched.why === 'watched', JSON.stringify(watched));
+  // セーブ → 再読み込み
+  const sv = await page.evaluate(() => { __sh.save('slot1'); const a = __sh.state(); __sh.load('slot1'); __sh.debug.fastSim(5); const b = __sh.state(); return { a: [a.step, a.area, a.stance, a.flags.child_saved, a.flags.tunnel_clear, a.enemyRes.utsushimi, a.yoki], b: [b.step, b.area, b.stance, b.flags.child_saved, b.flags.tunnel_clear, b.enemyRes.utsushimi, b.yoki] }; });
+  ok('セーブ→再読み込みで段・区画・構え・妖力・決着が戻る', JSON.stringify(sv.a) === JSON.stringify(sv.b), JSON.stringify(sv));
+  // 転機の前から選び直す：「このまま、人として」→ 白い姿の入力は無効 → 3 回負けると「手助けあり」
+  await page.evaluate(() => { __sh.load('tenki'); __sh.debug.fastSim(30); });
+  await page.waitForTimeout(400);
+  let o2 = await page.evaluate(() => [...document.querySelectorAll('#sh-puz [data-pick]')].map(b => b.dataset.pick));
+  await page.click('[data-pick="secret"]'); await page.waitForTimeout(200); await skipCut(page); await sim(page, 5);
+  const sec = await page.evaluate(() => { const g = __sh.game, F = g.player.fighter; F.yoki = 90; __sh.input.script([{ f: 0, hold: { transform: 40 } }]); __sh.debug.fastSim(45); return { form: F.form, why: g.metrics.whiteRefusedWhy, stance: g.route.stance, log: g.route.branchLog.filter(e => e.kind === 'stance').map(e => e.decision + ':' + e.via), step: g.story.step }; });
+  ok('転機の前のセーブから選び直せる（両方いつも選べる）→「このまま、人として」では白い姿の入力が無効', JSON.stringify(o2) === '["reveal","secret"]' && sec.form === 'purple' && sec.why === 'stance' && sec.stance === 'secret' && sec.log.join(',') === 'secret:load_tenki', JSON.stringify(sec));
+  const assist = await page.evaluate(async () => {
+    const D = __sh.debug, g = __sh.game; const out = [];
+    for (let i = 0; i < 3; i++) { g.player.fighter.hp = 1; g.player.fighter._go('dead'); g.onPlayerDead(); D.fastSim(5); await new Promise(r => setTimeout(r, 60)); g.retry(); D.fastSim(30); await new Promise(r => setTimeout(r, 200)); out.push([...document.querySelectorAll('#sh-puz [data-pick]')].map(b => b.dataset.pick).join('/')); if (i < 2) { document.querySelector('[data-pick="secret"]').click(); D.fastSim(3); D.skipCutscene(); D.fastSim(5); } }
+    return out;
+  });
+  ok('秘匿の構えで 3 回負けると「このまま、人として（手助けあり）」が出る（勝手に白い姿にはしない）', /secret_assist/.test(assist[2]) && !/secret_assist/.test(assist[0]), JSON.stringify(assist));
+  await page.click('[data-pick="secret_assist"]'); await page.waitForTimeout(200); await skipCut(page); await sim(page, 5);
+  const as = await page.evaluate(() => { const b = __sh.game.boss.brain; return { assisted: b.assisted, hp: b.hp, max: b.hpMax, stance: __sh.game.route.stance }; });
+  const p3 = await AF(page, { ids: ['utsushimi'], max: 1200, heal: true, stopOnCut: true });
+  await sim(page, 60);
+  st = await S(page); ok('手助けありでも構えは「人として」のまま・紫の姿だけで写し身を倒せる', as.assisted && as.stance === 'secret' && st.enemyRes.utsushimi === 'kill' && st.form === 'purple', JSON.stringify({ as, p3, res: st.enemyRes.utsushimi }));
+  await skipCut(page); await sim(page, 30); await page.evaluate(() => __sh.debug.closeMenu());
+  // 性能（ソフト描画）
+  const perf = {};
+  await page.evaluate(() => { __sh.debug.jump('ch3_lobby'); __sh.debug.skipCutscene(); __sh.debug.teleport(0, 4, Math.PI); __sh.debug.fastSim(30); });
+  await page.waitForTimeout(1500); perf.hospital = await page.evaluate(() => Object.assign(__sh.debug.renderInfo(), { fps: __sh.debug.perf() && +__sh.debug.perf().fps.toFixed(1) }));
+  await shot(page, 'pc_54_hospital_corridor.png', 300);
+  await page.evaluate(() => { __sh.debug.jump('ch3_boss2'); __sh.debug.skipCutscene(); __sh.debug.white(true); __sh.debug.teleport(0, -30, Math.PI); __sh.debug.fastSim(30); });
+  await page.waitForTimeout(1500); perf.tunnelBoss = await page.evaluate(() => Object.assign(__sh.debug.renderInfo(), { fps: __sh.debug.perf() && +__sh.debug.perf().fps.toFixed(1) }));
+  ok('PC 第3章 ページエラー 0', errs.length === 0, errs.slice(0, 5).join(' | '));
+  await ctx.close();
+  return { perf, errs };
+}
+
+async function runCh3Phone(browser) {
+  const errs = []; const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  const { page } = await openGame(ctx, 'autostart=1&step=ch3_lobby&perf=1', errs);
+  await injectAF(page);
+  const cdp = await ctx.newCDPSession(page);
+  const touch = async (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map((p, i) => ({ x: p[0], y: p[1], id: p[2] ?? i })) });
+  const box = async sel => page.evaluate(sel => { const r = document.querySelector(sel).getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }, sel);
+  const tap = async (sel, ms = 60) => { const [x, y] = await box(sel); await touch('touchStart', [[x, y, 5]]); await page.waitForTimeout(ms); await touch('touchEnd', []); };
+  await skipCut(page); await skipDlg(page);
+  const q = await page.evaluate(() => ({ preset: __sh.game.autoPresetKey, area: __sh.game.area.id }));
+  ok('スマホ：第3章（章の飛び先）・画質は自動で「低」', q.preset === 'low' && q.area === 'hospital', JSON.stringify(q));
+  // スティックで廊下を歩く
+  await page.evaluate(() => { __sh.debug.teleport(0, 6, Math.PI); __sh.game.cam.yaw = 0; });
+  const z0 = (await S(page)).player.z;
+  await touch('touchStart', [[150, 300, 1]]); await touch('touchMove', [[150, 250, 1]]); await page.waitForTimeout(2000); await touch('touchEnd', []);
+  let st = await S(page); ok('スマホ：タッチのスティックで病院の廊下を歩く', st.player.z < z0 - 0.5, `${z0.toFixed(1)}→${st.player.z.toFixed(1)}`);
+  await clearUI(page); await shot(page, 'phone_10_hospital.png', 1500);
+  const perfHosp = await page.evaluate(() => __sh.debug.renderInfo());
+  // 照合（タップ）
+  await page.evaluate(() => { const D = __sh.debug; D.use('hosp_reception'); D.skipDialog(); D.use('hosp_board'); D.skipDialog(); D.use('hosp_charts'); D.skipDialog(); });
+  await page.waitForTimeout(300);
+  const [rx, ry] = await box('[data-room="306"]'); await touch('touchStart', [[rx, ry, 7]]); await touch('touchEnd', []); await page.evaluate(() => { const b = document.querySelector('[data-room="306"]'); if (b) b.click(); });
+  await page.waitForTimeout(700); await skipDlg(page);
+  st = await S(page); ok('スマホ：カルテの照合（タップ）', st.flags.records_done, st.step);
+  // 地下通路の写し身まで飛ぶ（守り手の場面は PC で通す）
+  await page.evaluate(() => { __sh.debug.jump('ch3_tunnel'); __sh.debug.fastSim(5); });
+  await page.evaluate(() => { const D = __sh.debug; D.teleport(0, -21, Math.PI); D.fastSim(3); D.teleport(0, -23.6, Math.PI); D.fastSim(5); D.skipCutscene(); D.fastSim(5); });
+  st = await S(page); ok('スマホ：写し身との戦いが始まる', st.step === 'ch3_boss' && st.boss && st.boss.state === 'hostile', JSON.stringify(st.boss));
+  // タッチのボタンで攻める（斬・避）
+  await page.evaluate(() => { const g = __sh.game; g.boss.brain.cool = 99; __sh.debug.teleport(0, -32.6, Math.PI); g.boss.brain.pos.x = 0; g.boss.brain.pos.z = -34.2; __sh.debug.faceTo(0, -34.2); __sh.debug.fastSim(2); });
+  const ev0 = await page.evaluate(() => __sh.game.metrics.events.length);
+  await tap('.tc-atk'); await page.waitForTimeout(500); await tap('.tc-atk'); await page.waitForTimeout(500); await tap('.tc-dodge'); await page.waitForTimeout(600);
+  const evs = await page.evaluate(n => __sh.game.metrics.events.slice(-30).map(e => e.t), ev0);
+  ok('スマホ：タッチの斬・避で写し身を攻める', evs.includes('attackStart') && evs.includes('dodge'), [...new Set(evs)].join(','));
+  await page.evaluate(() => { __sh.game.boss.brain.cool = 0; });
+  const p1 = await AF(page, { ids: ['utsushimi'], max: 900, heal: true, stopOnCut: true });
+  await skipCut(page); await sim(page, 3); await page.waitForTimeout(400);
+  const [cx, cy] = await box('[data-pick="reveal"]'); await touch('touchStart', [[cx, cy, 8]]); await touch('touchEnd', []); await page.evaluate(() => { const b = document.querySelector('[data-pick="reveal"]'); if (b) b.click(); });
+  await page.waitForTimeout(200); await skipCut(page); await sim(page, 4);
+  st = await S(page); ok('スマホ：転機で「化けを、解く」（タップ）→ 白髪形態', st.form === 'white' && st.stance === 'reveal', JSON.stringify({ p1, form: st.form, stance: st.stance }));
+  const formBtn = await page.evaluate(() => getComputedStyle(document.querySelector('.tc-form')).display !== 'none');
+  ok('スマホ：「化」ボタン（長押しで化けを解く／戻す）が出る', formBtn);
+  await page.evaluate(() => { const g = __sh.game, b = g.boss.brain; b.cool = 99; __sh.debug.teleport(0, -32.6, Math.PI); b.pos.x = 0; b.pos.z = -34.2; __sh.debug.faceTo(0, -34.2); g.player.fighter.yoki = 100; for (let i = 0; i < 3; i++) { __sh.input.script([0, 9, 18, 28, 40].map(f => ({ f, press: ['attack'] }))); __sh.debug.fastSim(56); } __sh.input.script([0, 9].map(f => ({ f, press: ['attack'] }))); __sh.debug.fastSim(12); g.cam.yaw = 0.4; __sh.debug.hold(true); });
+  await shot(page, 'phone_11_white_combo.png', 1600); await page.evaluate(() => __sh.debug.hold(false));
+  const perfBoss = await page.evaluate(() => __sh.debug.renderInfo());
+  await page.evaluate(() => { __sh.game.boss.brain.cool = 0; });
+  const p2 = await AF(page, { ids: ['utsushimi'], max: 1200, heal: true, stopOnCut: true });
+  await sim(page, 60);
+  st = await S(page); ok('スマホ：写し身を倒す → 決着', st.enemyRes.utsushimi === 'kill' || st.enemyRes.utsushimi === 'rescue', JSON.stringify({ p2, r: st.enemyRes.utsushimi }));
+  await skipCut(page); await sim(page, 30);
+  st = await S(page); ok('スマホ：第3章ここまで', st.step === 'ch3_end', st.step);
+  const perf = { hospital: perfHosp, boss: perfBoss };
+  ok('スマホ：描画呼び出し 120 以下（病院・写し身の戦い）', perfHosp.calls <= 120 && perfBoss.calls <= 120, JSON.stringify(perf));
+  ok('スマホ 第3章 ページエラー 0', errs.length === 0, errs.slice(0, 5).join(' | '));
+  await ctx.close();
+  return { perf, errs };
+}
+
 // ───────────────────────── 一覧の絵（overview.png） ─────────────────────────
-async function overview(browser, list) {
+async function overview(browser, list, title = '境界侵食（仮題）フェーズ3 試作：序章〜第2章（避難所）— 自動プレイの画面（ソフト描画）', name = 'overview.png') {
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } }); const page = await ctx.newPage();
   const imgs = list.map(n => ({ n, src: 'data:image/png;base64,' + readFileSync(join(OUT, n)).toString('base64') }));
-  await page.setContent(`<html><body style="margin:0;background:#0c0a16;color:#eee;font:13px sans-serif"><div style="padding:10px 14px;font-size:18px">境界侵食（仮題）フェーズ3 試作：序章〜第2章（避難所）— 自動プレイの画面（ソフト描画）</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px">${imgs.map(i => `<figure style="margin:0"><img src="${i.src}" style="width:100%;display:block;border:1px solid #444"><figcaption style="padding:2px 4px;color:#bbb">${i.n}</figcaption></figure>`).join('')}</div></body></html>`);
+  await page.setContent(`<html><body style="margin:0;background:#0c0a16;color:#eee;font:13px sans-serif"><div style="padding:10px 14px;font-size:18px">${title}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px">${imgs.map(i => `<figure style="margin:0"><img src="${i.src}" style="width:100%;display:block;border:1px solid #444"><figcaption style="padding:2px 4px;color:#bbb">${i.n}</figcaption></figure>`).join('')}</div></body></html>`);
   await page.waitForTimeout(500);
-  const outPath = process.env.OVERVIEW || join(OUT, 'overview.png');
+  const outPath = name === 'overview.png' && process.env.OVERVIEW ? process.env.OVERVIEW : join(OUT, name);
   await page.screenshot({ path: outPath, fullPage: true }); await ctx.close(); return outPath;
 }
 
@@ -509,12 +812,19 @@ const browser = await launch();
 const report = {};
 if (!ONLY || ONLY === 'pc') report.pc = await runPC(browser);
 if (!ONLY || ONLY === 'phone') report.phone = await runPhone(browser);
-const pick = ['pc_02_cutscene_lightsout.png', 'pc_14_dannoura_face.png', 'pc_15_dannoura_full.png', 'pc_16_dannoura_back.png', 'pc_17_companion_face.png', 'pc_18_companion_full.png', 'pc_09_chain_issen.png', 'pc_19_street.png', 'pc_20_plaza.png', 'pc_10_roster.png', 'pc_11_cutscene_boss.png', 'pc_21_boss_telegraph.png', 'pc_06_cutscene_reunion.png', 'pc_13_endcard.png', 'phone_03_boss.png', 'phone_04_street_hud.png'].filter(n => shots.includes(n));
-if (pick.length) console.log('overview:', await overview(browser, pick));
+if (!ONLY || ONLY === 'ch3' || ONLY === 'ch3pc') report.ch3pc = await runCh3PC(browser);
+if (!ONLY || ONLY === 'ch3' || ONLY === 'ch3phone') report.ch3phone = await runCh3Phone(browser);
+const shotsHave = n => shots.includes(n);
+const pick = ['pc_02_cutscene_lightsout.png', 'pc_14_dannoura_face.png', 'pc_15_dannoura_full.png', 'pc_16_dannoura_back.png', 'pc_17_companion_face.png', 'pc_18_companion_full.png', 'pc_09_chain_issen.png', 'pc_19_street.png', 'pc_20_plaza.png', 'pc_10_roster.png', 'pc_11_cutscene_boss.png', 'pc_21_boss_telegraph.png'].filter(shotsHave);
+const pick4 = ['pc_30_hospital_arrive.png', 'pc_54_hospital_corridor.png', 'pc_31_mimic_disguise.png', 'pc_32_mimic_reveal.png', 'pc_33_mimic_copy.png', 'pc_36_guard.png', 'pc_37_mimics_come.png', 'pc_38_line.png', 'pc_39_fake_companion.png', 'pc_41_boss.png', 'pc_43_choice.png', 'pc_44_transform_a.png', 'pc_45_transform_b.png', 'pc_46_transform_c.png', 'pc_47_white_face.png', 'pc_48_white_front.png', 'pc_49_white_back.png', 'pc_50_white_combo.png', 'pc_51_boss_voice.png', 'pc_52_end.png', 'phone_10_hospital.png', 'phone_11_white_combo.png'].filter(shotsHave);
+if (pick4.length) console.log('overview（第3章）:', await overview(browser, pick4, '境界侵食（仮題）フェーズ4：第3章（病院・地下通路）と白髪形態 — 自動プレイの画面（ソフト描画）', 'overview.png'));
+else if (pick.length) console.log('overview:', await overview(browser, pick));
 await browser.close();
 const fail = results.filter(r => !r.pass);
 writeFileSync(join(OUT, 'results.json'), JSON.stringify({ results, report }, null, 1));
 console.log(`\n${results.length - fail.length}/${results.length} 合格`);
 if (report.pc) console.log('PC 参考（ソフト描画）：', JSON.stringify(report.pc.perf));
 if (report.phone) console.log('スマホ 参考（ソフト描画）：', JSON.stringify(report.phone.perf));
+if (report.ch3pc) console.log('第3章 PC 参考（ソフト描画）：', JSON.stringify(report.ch3pc.perf));
+if (report.ch3phone) console.log('第3章 スマホ 参考（ソフト描画）：', JSON.stringify(report.ch3phone.perf));
 process.exit(fail.length ? 1 : 0);

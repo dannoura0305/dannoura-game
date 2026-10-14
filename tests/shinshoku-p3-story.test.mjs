@@ -14,8 +14,8 @@ import { phaseRate, footfall, strideAmp, locomotion } from '../shinshoku/actor/a
 let n = 0; const t = (name, fn) => { fn(); n++; console.log('  ✓ ' + name); };
 const events = JSON.parse(readFileSync(new URL('../shinshoku/data/events.json', import.meta.url)));
 
-t('段：序章→第1章→第2章の順。章の名前・目標の文がある', () => {
-  assert.deepEqual([...new Set(STEPS.map(s => s.ch))], ['prologue', 'ch1', 'ch2']);
+t('段：序章→第1章→第2章→第3章の順。章の名前・目標の文がある', () => {
+  assert.deepEqual([...new Set(STEPS.map(s => s.ch))], ['prologue', 'ch1', 'ch2', 'ch3']);
   for (const s of STEPS) { assert.ok(CHAPTERS[s.ch]); assert.ok(s.obj.length > 3); assert.ok(AREA_GRAPH[s.area], s.id); }
   assert.equal(atLeast('ch1_street', 'ch1_katana'), true); assert.equal(atLeast('pro_meet', 'ch1_katana'), false);
   assert.equal(streetState('pro_tv'), 'normal'); assert.equal(streetState('ch1_katana'), 'outbreak');
@@ -63,16 +63,16 @@ t('演出場面：カメラの補間・切り替え・字幕・出来事の区�
   const L = [{ t: 1, text: 'a', dur: 1 }, { t: 3, text: 'b' }]; assert.equal(lineAt(L, 0.5), null); assert.equal(lineAt(L, 1.5).text, 'a'); assert.equal(lineAt(L, 2.5), null);
   assert.equal(eventsBetween([{ t: 1 }, { t: 2 }], 0, 1).length, 1); assert.equal(duration({ cam: K, lines: L }), 3 + 2.6);
 });
-t('演出場面のデータ：区画・段・話し手が正しい。この範囲に原文（fixed）の台詞は無い', () => {
+t('演出場面のデータ：区画・段・話し手が正しい。原文（fixed）の台詞は第3章の 1 つだけ（だんのうら）', () => {
   const stepIds = new Set(STEPS.map(s => s.id));
   for (const cs of Object.values(CUTSCENES)) {
     assert.ok(AREA_GRAPH[cs.area], cs.id); assert.ok(duration(cs) > 3);
     for (const e of cs.events || []) if (e.do === 'setStep') assert.ok(stepIds.has(e.arg), e.arg);
     for (const l of cs.lines || []) assert.ok(events.speakers[l.who], l.who);
   }
-  assert.equal(fixedLines(CUTSCENES).length, 0);
+  const F = fixedLines(CUTSCENES); assert.equal(F.length, 1); assert.equal(F[0].who, 'dan'); assert.equal(F[0].id, 'cs03_line');
   const texts = JSON.stringify(CUTSCENES) + JSON.stringify(events);
-  assert.equal(texts.includes('見た目だけで決めつけちゃ駄目'), false, '第3章以降の原文はまだ使わない');
+  assert.equal(texts.split('見た目だけで決めつけちゃ駄目').length - 1, 1, '原文は第3章のだんのうらの 1 回だけ（相棒の 2 回目は第4章）');
 });
 t('演出場面の再生：飛ばしても出来事は 1 回ずつ全部起きる・字幕と黒い帯は消える', () => {
   const log = []; const host = { setCam() {}, subtitle: (w, x) => log.push(['sub', x]), letterbox: on => log.push(['lb', on]), event: (d, a) => log.push(['ev', d, a]), actor() {}, sound() {}, done: () => log.push(['done']) };
