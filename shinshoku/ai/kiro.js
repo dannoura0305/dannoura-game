@@ -71,9 +71,11 @@ export class Kiro extends Brain {
         break;
       }
       case 'stagger': if (this.t >= (this.staggerFor || 0.5)) this.go('hostile', evs, 'recover'); break;
-      case 'family': {                                           // 家族だと思って、家に入る
-        const door = this.path[this.path.length - 1];
-        if (dist2(this.pos, door) > 0.35) { out.move = { x: door.x, z: door.z, speed: this.def.speed.walk * 1.2 }; out.face = { x: door.x, z: door.z }; }
+      case 'family': {                                           // 家族だと思って、帰り道を通って家に入る
+        if (this.famIdx == null) { this.famIdx = this.nearestIdx(); if (this.famIdx < this.path.length - 1 && dist2(this.pos, this.path[this.famIdx + 1]) < dist2(this.path[this.famIdx], this.path[this.famIdx + 1])) this.famIdx++; }
+        const tgt = this.path[this.famIdx], last = this.famIdx === this.path.length - 1;
+        if (dist2(this.pos, tgt) > (last ? 0.35 : 0.5)) { out.move = { x: tgt.x, z: tgt.z, speed: this.def.speed.walk * 1.2 }; out.face = { x: tgt.x, z: tgt.z }; }
+        else if (!last) this.famIdx++;
         else { this.go('home', evs, 'enter'); this.resolution = 'rescue'; evs.push({ t: 'rescued' }); }
         break;
       }

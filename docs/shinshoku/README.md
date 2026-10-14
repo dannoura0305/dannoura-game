@@ -1,7 +1,12 @@
 # 『境界侵食』（仮題）設計資料 — フェーズ0
 
-『だんのうら30日間サバイバル』に組み込む新作 3D ホラーアクションの、**調査と設計の資料**です。
-ゲームのコードはまだありません（フェーズ0＝調査・設計のみ。既存のファイルは変えていません）。
+『だんのうら30日間サバイバル』に組み込む新作 3D ホラーアクションの、調査・設計の資料と開発の記録です。
+
+## いまの状態（2026-10-14）
+- **フェーズ1（3D の土台）＋フェーズ2（紫の姿の戦闘・遊べる切片）を実装**。入口は `shinshoku.html`（本編タイトルの「境界侵食」ボタンからも開ける）。
+- 中身・操作・受け入れ結果・VRM の差し替え方・制限は **[IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)**。
+- 確認：`node tests/run.mjs`（本作のテスト 3 本を含む）、`node tools/shinshoku_play.mjs <出力先>`（Playwright の通しプレイ・PC 1280×800／スマホ横 844×390）。
+- 実機（利用者の PC・スマホ）での fps・手触りは**未検証**。`shinshoku.html?perf=1` で測ってください。
 
 作成：2026-10-14（ブランチ `claude/exciting-bardeen-oilbot`）
 
@@ -31,6 +36,8 @@
 | 14 | [SAVE_DATA_SPEC.md](SAVE_DATA_SPEC.md) | セーブの形（JSON 例）・共通の進行 `wakaba_progress_v1`・版と移行 | – |
 | 15 | [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md) | フェーズ0〜10（入る条件・受け入れ基準・確かめ方・見積もり・リスク）・最初の遊べる切片 | STEP 4・5 |
 | 16 | [TEST_PLAN.md](TEST_PLAN.md) | 検証の計画（node テスト・Playwright・実機） | – |
+| 17 | [DECISIONS.md](DECISIONS.md) | 開発者の決定事項（最優先） | – |
+| 18 | [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) | 実装の記録（フェーズ1・2）・操作・VRM の差し替え・制限・次の作業 | – |
 
 ## 要約
 - **既存の本編エンディングは9種で企画書と一致**（`game.js:1921`）。変えません。

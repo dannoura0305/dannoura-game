@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-10-14.8';
+const VERSION = '2026-10-14.9';
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）
@@ -92,6 +92,11 @@ function kindOf(url) {
   if (/^tobinezumi\/(client|shared)\/.+\.(js|css)$/.test(p)) return 'shell';
   if (/^tobinezumi\/assets\/manifest\.json$/.test(p)) return 'shell';
   if (/^tobinezumi\/assets\//.test(p)) return 'media';
+  // 新作『境界侵食』（開発中）：ページ・ES モジュール・データはネット優先（オフラインなら保存分）、素材は保存分。three.js（vendor/three-esm）は下の code
+  if (/^shinshoku\.html$/.test(p)) return 'shell';
+  if (/^shinshoku\/.+\.(js|css|json)$/.test(p) && !/^shinshoku\/assets\//.test(p)) return 'shell';
+  if (/^shinshoku\/assets\/(.+\/)?manifest\.json$/.test(p)) return 'shell';
+  if (/^shinshoku\/assets\//.test(p)) return 'media';
   if (/^(minigames|vendor)\/.+\.js$/.test(p)) return 'code';
   if (/^assets\/.+\.(mp3|m4a|ogg|wav)$/i.test(p)) return 'audio';
   if (/^assets\//.test(p)) return 'media';
