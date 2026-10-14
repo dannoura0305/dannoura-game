@@ -21,6 +21,7 @@ import art_field as F  # noqa: E402
 import art_nest as N  # noqa: E402
 import art_ui as U  # noqa: E402
 import art_danger as DG  # noqa: E402
+import art_family as FM  # noqa: E402
 
 ROOT = os.path.normpath(os.path.join(HERE, '..'))
 OUT = os.path.join(ROOT, 'assets')
@@ -152,6 +153,9 @@ def build():
     strip('tile.plug', 'danger/plug.png', [DG.plug()], {'anchor': [12, 10], 'note': 'overlay on tile.burrow (entrance plugged)'})
     strip('ui.land_flag', 'danger/land_flag.png', [DG.land_flag()], {'anchor': [5, 15]})
     strip('ui.alert', 'danger/alert.png', [DG.alert_icon()], {'anchor': [6, 13]})
+
+    # ------------------------------------------------------------- Ver.0.4 いのちをつなぐ
+    FM.build(B, strip)
 
     # ------------------------------------------------------------- ui
     img, sl = U.frame()

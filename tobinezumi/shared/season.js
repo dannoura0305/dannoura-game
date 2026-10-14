@@ -157,11 +157,11 @@ export function envAt(clock, t, { map = null, x = 0, y = 0, place = 'field', ent
   return env;
 }
 
-/** 移動ルール（stepField）に渡す補正をまとめる。life の tired と、天気の速さ */
-export function fieldMods(lifeMods, env) {
+/** 移動ルール（stepField）に渡す補正をまとめる。life の tired と、天気の速さ・形質（Ver.0.4：traitMoveMods の hop・jumpDist・cd） */
+export function fieldMods(lifeMods, env, traitMods = null) {
   const sp = env && env.move ? env.move.speed : 1;
-  if (!lifeMods && sp === 1) return null;
-  return { ...(lifeMods || {}), ...(sp !== 1 ? { speed: sp } : {}) };
+  if (!lifeMods && sp === 1 && !traitMods) return null;
+  return { ...(traitMods || {}), ...(lifeMods || {}), ...(sp !== 1 ? { speed: sp } : {}) };
 }
 
 export const REST_NAME = { aestivation: '夏の休眠', hibernation: '冬眠' };

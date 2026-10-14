@@ -61,7 +61,8 @@ export class NestHub {
   record(nest, p) {
     const role = this.role(nest, p.accountId), own = role === 'owner';
     const out = { id: nest.id, owner: nest.owner, ownerName: nest.ownerName, rev: nest.rev, data: nest.data, storage: this.store.nestStorage(nest.id), policy: nest.policy,
-      canEdit: role !== 'visitor', own, role, hostFur: null, plugged: !!nest.plugged, land: nest.land || null };
+      canEdit: role !== 'visitor', own, role, hostFur: null, plugged: !!nest.plugged, land: nest.land || null,
+      family: this.familyOf ? this.familyOf(nest) : [] };   // Ver.0.4：巣にいる家族（つれあい・子・きょうだい）。訪問者にも見える
     if (own) { out.relocatedAt = nest.relocatedAt || 0; out.relocateCooldownMs = this.relocateCooldownMs != null ? this.relocateCooldownMs : RELOCATE_COOLDOWN_MS; }
     if (own) { out.list = this._names(nest.id, 'visitor'); out.builders = this._names(nest.id, 'builder'); }
     return out;
@@ -96,7 +97,7 @@ export class NestHub {
   members(nestId) { const I = this.inst.get(nestId); return I ? [...I.members] : []; }
 
   peersMsg(nestId) {
-    return { t: 'nest_peers', nestId, peers: this.members(nestId).map(o => ({ id: o.accountId, name: o.name, fur: o.fur, x: Math.round(o.nestPos.x), y: Math.round(o.nestPos.y), facing: o.nestPos.facing, anim: o.nestPos.anim })) };
+    return { t: 'nest_peers', nestId, peers: this.members(nestId).map(o => ({ id: o.accountId, name: o.name, fur: o.fur, look: o.look || null, x: Math.round(o.nestPos.x), y: Math.round(o.nestPos.y), facing: o.nestPos.facing, anim: o.nestPos.anim })) };
   }
   flushPeers(nestId) {
     const I = this.inst.get(nestId);

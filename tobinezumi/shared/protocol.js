@@ -55,7 +55,17 @@ export const C2S = {
   SURVEY: 'survey',           // {}（いる場所の土地を調べる）          → res {ok, land, here:{canDig, reason?, digCost, digTime, relocateCost, cooldownMs, nests}}
   RELOCATE: 'relocate',       // {}（いる場所へ巣を引っ越す）          → res {ok, entrance, inv, cost, land}
   PLUG: 'plug',               // {on}（巣の中から入口をふさぐ・ひらく）→ res {ok, plugged, inv}
-  DEV: 'dev',                 // {weather?, season?, spawn?}           開発用（TOBI_DEV=1 のときだけ）→ res {ok}
+  DEV: 'dev',                 // {weather?, season?, spawn?, age?, wild?, trust?, birth?}  開発用（TOBI_DEV=1 のときだけ）→ res {ok}
+  // ── Ver.0.4「いのちをつなぐ」──
+  COURT: 'court',             // {wildId}（野生の子に種子をあげる）     → res {ok, trust, befriended, inv, name}
+  FAMILY: 'family',           // {}                                   → res {ok, family}
+  NAME_PUPS: 'name_pups',     // {list:[{id, name}]}                   → res {ok, family}
+  FEED_PUP: 'feed_pup',       // {id}（持ち物の種子を 1 つ）            → res {ok, inv, family}
+  MATE_AGAIN: 'mate_again',   // {}（巣の中・つれあいと）               → res {ok, family}
+  KIDS_FOLLOW: 'kids_follow', // {on}（若者を地上へ連れて行く）         → res {ok, family}
+  LINEAGE: 'lineage',         // {}                                   → res {ok, nodes:[Ind], current}
+  SUCCEED: 'succeed',         // {id}（育った自分の子へ世代交代）       → res {ok, character, family, life, inv}
+  FAREWELL: 'farewell',       // {}（子がいない年寄りの旅立ち）         → res {ok, character, family, life, inv}
 };
 
 // サーバー → クライアント
@@ -83,8 +93,13 @@ export const S2C = {
   // ── Ver.0.3 ──（snapshot には preds:[PredSnap] が加わる）
   CAUGHT: 'caught',           // {kind, x, y, life, inv, drops:[{id,n}], until}  捕食者につかまった（本人だけ）
   RAID: 'raid',               // {nestId, kind:'raid'|'blocked', lost, at}       自分の巣がキツネに掘られた（所有者がオンラインのとき）
+  // ── Ver.0.4 ──（snapshot には wild:[WildSnap]・wt:{wildId: 信頼} が加わる。PlayerSnap の入口・名札に look・kids）
+  FAMILY: 'family',           // {family, events?:[…]}                  家族が変わった（生まれた・育った・おなかがすいた・寿命の目安）
+  PLAYER_UPDATE: 'player_update', // {player:{id, name, fur, look, kids}}  世代交代・連れている若者が変わった（地上のみんなへ）
+  WILD: 'wild',               // {type:'befriend'|'lost'|'startle', id, name}  野生の子との出来事（本人へ）
 };
 export const PLUG_COST = { pebble: 2 };     // 入口をふさぐ（ひらくと小石 1 つ戻る）
+export const SEXES = ['f', 'm'];     // Ver.0.4：個体の性（家系図の父・母）
 export const SURVEY_GAP_MS = 1000, PLUG_GAP_MS = 1000;
 
 export const ERR = {

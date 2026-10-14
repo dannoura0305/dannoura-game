@@ -501,14 +501,14 @@ await test('オフライン：セーブの移行 v2 → v3（巣に土地・ふ�
   for (const id in s.nests) { delete s.nests[id].plugged; delete s.nests[id].land; delete s.nests[id].relocatedAt; delete s.nests[id].raidedAt; }
   const ls = makeLS({ [SAVE_KEY]: JSON.stringify(s), dannoura_save: 'keep' });
   const n2 = new OfflineBackend({ storage: ls, now: () => NOON, npc: false, map });
-  assert.equal(n2.save.v, SAVE_VERSION); assert.equal(SAVE_VERSION, 3);
+  assert.equal(n2.save.v, SAVE_VERSION); assert.ok(SAVE_VERSION >= 3);
   const nest = Object.values(n2.save.nests)[0];
   assert.equal(nest.plugged, false); assert.equal(nest.land.id, landAt(map, spot.x, spot.y).id); assert.equal(nest.relocatedAt, 0);
   assert.deepEqual(n2.save.events, []);
   assert.equal(JSON.stringify(nest.data), JSON.stringify(Object.values(s.nests)[0].data));
   assert.deepEqual(n2.save.player.inv, G.n.save.player.inv);
   n2.flush();
-  assert.equal(JSON.parse(ls.getItem(SAVE_KEY)).v, 3); assert.equal(ls.getItem('dannoura_save'), 'keep');
+  assert.equal(JSON.parse(ls.getItem(SAVE_KEY)).v, SAVE_VERSION); assert.equal(ls.getItem('dannoura_save'), 'keep');
 });
 
 console.log(`\ntobinezumi-danger: ${pass} passed, ${fail} failed`);

@@ -34,7 +34,7 @@ export class TitleScene {
     const off = net.mode === 'offline';
     const ch = hello.character;
     const p = this._panel(`
-      <div class="tb-logo"><div class="tb-logo-main">トビネズミ</div><div class="tb-logo-sub">MMO（仮称）　ver.0.3「危険と土地」</div></div>
+      <div class="tb-logo"><div class="tb-logo-main">トビネズミ</div><div class="tb-logo-sub">MMO（仮称）　ver.0.4「いのちをつなぐ」</div></div>
       <div class="tb-mode ${off ? 'off' : 'on'}">${off ? 'オフライン：ひとりで遊ぶ（この端末に保存）' + (net.fallbackFrom ? '<br><small>サーバーにつながらなかったので、ひとりで遊びます</small>' : '') : 'オンライン：' + esc(net.url)}</div>
       <div class="tb-title-btns"></div>
       <a class="tb-back" href="index.html">← 本編（だんのうら）に戻る</a>`, 'tb-titlebox');
@@ -96,6 +96,7 @@ export class TitleScene {
           <div class="tb-sub">毛色を選択</div>
           <div class="tb-furpick"><button class="tb-arrow l">◀</button><div class="tb-samples"><canvas width="32" height="32"></canvas><canvas width="32" height="32"></canvas><canvas width="32" height="32"></canvas></div><button class="tb-arrow r">▶</button></div>
           <div class="tb-furname"></div>
+          <div class="tb-sexpick"><button type="button" class="tb-btn small sx" data-s="f">♀ 女の子</button><button type="button" class="tb-btn small sx" data-s="m">♂ 男の子</button></div>
           <div class="tb-btns"><button class="tb-btn primary ok" id="tb-decide">決定</button></div>
         </div>
       </div>`, 'tb-createbox');
@@ -114,6 +115,10 @@ export class TitleScene {
       const f = FURS.find(f => f.id === this.fur);
       p.querySelector('.tb-furname').textContent = (labels[this.fur] || (f && f.name) || this.fur) + `（${FUR_IDS.indexOf(this.fur) + 1}/${FUR_IDS.length}）`;
     };
+    this.sex = this.sex || (Math.random() < 0.5 ? 'f' : 'm');
+    const markSex = () => { for (const b of p.querySelectorAll('.sx')) b.classList.toggle('on', b.dataset.s === this.sex); };
+    for (const b of p.querySelectorAll('.sx')) b.onclick = () => { this.sex = b.dataset.s; markSex(); };
+    markSex();
     const step = d => { const i = FUR_IDS.indexOf(this.fur); this.fur = FUR_IDS[(i + d + FUR_IDS.length) % FUR_IDS.length]; draw(); };
     p.querySelector('.l').onclick = () => step(-1);
     p.querySelector('.r').onclick = () => step(1);
@@ -133,12 +138,12 @@ export class TitleScene {
     const g = this.game;
     const p = this._panel(`
       <div class="tb-ph">確認</div>
-      <div class="tb-confirm"><canvas width="128" height="128"></canvas><div><div class="tb-big">「${esc(this.name)}」</div><div>この子で はじめますか？</div></div></div>
+      <div class="tb-confirm"><canvas width="128" height="128"></canvas><div><div class="tb-big">「${esc(this.name)}」</div><div>${this.sex === 'm' ? '♂ 男の子' : '♀ 女の子'}・若者（3 日）から</div><div>この子で はじめますか？</div></div></div>
       <div class="tb-btns"><button class="tb-btn primary ok" id="tb-begin">はじめる</button><button class="tb-btn back">もどる</button></div>`, 'tb-confirmbox');
     const c = p.querySelector('canvas').getContext('2d'); c.imageSmoothingEnabled = false; c.drawImage(Sprites.portrait(this.fur), 0, 0);
     p.querySelector('.back').onclick = () => this.showCreate();
     p.querySelector('.ok').onclick = async () => {
-      const r = await g.net.createCharacter({ name: this.name, fur: this.fur });
+      const r = await g.net.createCharacter({ name: this.name, fur: this.fur, sex: this.sex });
       if (!r.ok) { g.ui.toast(r.reason || '作れなかった', 'bad'); this.showCreate(); return; }
       g.startGame();
     };
