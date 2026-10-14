@@ -68,7 +68,7 @@ export class NestHub {
     const out = { id: nest.id, owner: nest.owner, ownerName: nest.ownerName, rev: nest.rev, data: nest.data, storage: this.store.nestStorage(nest.id), policy: nest.policy,
       canEdit: role !== 'visitor', own, role, home: own || role === 'resident', region: nest.field || 'plains', hostFur: null, plugged: !!nest.plugged, land: nest.land || null,
       residents: this.store.nestMembers(nest.id, 'resident').map(id => ({ id, name: (this.store.charBrief(id) || { name: '？' }).name })),
-      family: this.familyOf ? this.familyOf(nest) : [] };   // Ver.0.4：巣にいる家族（つれあい・子・きょうだい）。訪問者にも見える
+      family: this.familyOf ? this.familyOf(nest) : [], tales: this.talesOf ? this.talesOf(nest) : null };   // Ver.0.4：巣にいる家族（つれあい・子・きょうだい）。訪問者にも見える
     if (own) { out.relocatedAt = nest.relocatedAt || 0; out.relocateCooldownMs = this.relocateCooldownMs != null ? this.relocateCooldownMs : RELOCATE_COOLDOWN_MS; }
     if (own) { out.list = this._names(nest.id, 'visitor'); out.builders = this._names(nest.id, 'builder'); }
     return out;

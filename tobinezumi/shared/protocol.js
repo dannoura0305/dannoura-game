@@ -79,6 +79,9 @@ export const C2S = {
   // ── Ver.0.6「くらしの深まり＋公開準備」──（PROTOCOL.md §12）
   NEST_TOUR: 'nest_tour',     // {}（巣めぐり：入れる巣の紹介。順位・点数なし）→ res {ok, list:[{nestId, name, region, desc, rooms, decor, curios, recent, x, y}], count}
   FAMILY_PET: 'family_pet',   // {id}（巣の家族をなでる）               → res {ok, member, life, family, cond}
+  // ── Ver.0.7「小さなできごと」──（PROTOCOL.md §13）
+  COMPANION: 'companion',     // {id|null}（なかまを地上へ連れて行く・巣で待つ。1 匹だけ）→ res {ok, family, kids}
+  TOYAMA_EVENT: 'toyama_event', // {id}（富山の小さな出来事を見た：1 回だけ）→ res {ok, id, first, seen}
 };
 
 // サーバー → クライアント

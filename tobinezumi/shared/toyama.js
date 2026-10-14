@@ -7,6 +7,7 @@
 // ・いつでも：山のふもとの道の 古いバス停（2 つめの「読めそうで読めない」文）。季節で張り紙が少し変わる。
 // ・白い小さな影：夜、季節ごとに決まった所（春は祠のそばの桜・夏は西の水路・秋は はさ掛け・冬は雪の灯り）に、遠くから見たときだけ。近づくと消える。
 import { TOYAMA } from './world.js';
+import { CROSSOVER } from './collect.js';
 
 const T = 16, P = TOYAMA.PADDY;
 const at = (tx, ty, dy = 12) => ({ x: tx * T + 8, y: ty * T + dy });
@@ -47,4 +48,59 @@ export function glimpseSpot(season, period, px, py) {
 export function shrineText(base, season) {
   const add = { spring: '　桜の花びらが 供えてある。', summer: '　小さな 青い花が 供えてある。', autumn: '　稲穂が ひとふさ 供えてある。', winter: '　しめ縄に 雪が つもっている。' }[season];
   return base + (add || '');
+}
+
+// ───────── Ver.0.7「小さなできごと」：富山の小さな出来事（1 回だけ。説明しない・決めない）─────────
+// ・どれも 1 回だけ（見たら アカウントの印 account_flags 'tev:<id>'／オフラインのセーブ toyamaEvents に残し、二度と起きない）。
+// ・board：夏の夜、草の中の光る板に 一行だけ文字が出る（世界の時刻で文字が変わる）。調べたとき。
+// ・train：世界の時刻 4:44 ごろ、遠くを 長い音が通りすぎる（季節を問わない）。
+// ・footprints：冬、雪の上に小さな足あとが続いて、ふっと途切れている（見るまで、冬のあいだ そこにある）。途切れた所を調べたとき。
+// ・white_near：ほかの世界から来たような品（crossover）を ぜんぶ集めたあとの夜、白い小さな影が一度だけ すぐ近くに現れる。
+// サーバーは toyama_event で条件を確かめてから記録する（shared の toyamaEventBlock）。
+export const TOYAMA_EVENT_IDS = ['board', 'train', 'footprints', 'white_near'];
+export const TEV = {
+  BOARD_R: 40,                       // 光る板を調べられる距離
+  TRAIN_FROM: 4 + 44 / 60, TRAIN_TO: 4 + 50 / 60, TRAIN_SLACK: 8 / 60,   // 世界の時刻（時）。サーバーは少し遅れても受ける
+  FOOT_R: 26,                        // 足あとの途切れた所を調べられる距離
+  NEAR_D: 44, NEAR_LIFE: 4.5,        // 白い影：自分から 44px の所に 4.5 秒
+};
+const PHONE = { x: 60 * T + 8, y: 53 * T + 10 };   // 光る板（world.js の props と同じ所）
+/** 光る板の一行（世界の時刻の「時」で変わる） */
+export const BOARD_LINES = ['まだ そこに いる？', 'ゆきが とけたら また', 'きこえたら へんじして', 'こっちは よるだよ', 'みずの おとが する', '…４４４'];
+export const boardLine = hour => BOARD_LINES[((Math.floor(Number(hour) || 0) % BOARD_LINES.length) + BOARD_LINES.length) % BOARD_LINES.length];
+export function boardText(hour) {
+  return '草の中の 四角い板が、いつもより 明るく光っている。一行だけ、文字が うかんだ。<br>「' + boardLine(hour) + '」<br>…見ているうちに、文字が かわった。<br>「' + boardLine(Number(hour) + 1) + '」<br>そして、暗くなった。';
+}
+/** 冬の足あと（点の並び：はじまり → 途切れる所）。地図は変えない（描くだけ・ぶつからない） */
+export const FOOTPRINTS = (() => {
+  const a = { x: 4 * T + 8, y: 47 * T + 4 }, b = { x: 10 * T + 6, y: 43 * T + 10 };
+  const n = 11, out = [];
+  for (let i = 0; i < n; i++) { const k = i / (n - 1); out.push({ x: Math.round(a.x + (b.x - a.x) * k + (i % 2 ? 2 : -2)), y: Math.round(a.y + (b.y - a.y) * k + (i % 2 ? -2 : 2)), side: i % 2 }); }
+  return out;
+})();
+export const FOOT_END = FOOTPRINTS[FOOTPRINTS.length - 1];
+export const FOOT_TEXT = '雪の上に 小さな足あとが 点々と続いている。トビネズミより 少し小さい。<br>――ここで、ふっと 途切れている。';
+export const TRAIN_TEXT = '…遠くを、長い音が 通りすぎていった。';
+export const NEAR_TEXT = '…すぐ そこに、白い小さな影が いた。こちらを 見ていた気がする。';
+/** その世界の時刻（時・0〜24）が 4:44 の音の時刻か */
+export const trainTime = (hour, slack = 0) => hour >= TEV.TRAIN_FROM && hour <= TEV.TRAIN_TO + slack;
+const ownsAll = owned => { const has = id => (owned instanceof Set ? owned.has(id) : !!(owned && owned[id])); return CROSSOVER.every(has); };
+/** 不思議な品（crossover）を ぜんぶ持っているか */
+export const crossoverComplete = owned => ownsAll(owned);
+/**
+ * その出来事が いま起きてよいか。だめなら理由（null ＝ よい）。
+ * ctx = {region, season, period, hour（世界の時刻 0〜24）, x, y（自分の位置）, owned（図鑑：Set か {id:…}）, seen（{id:…}）, slack（サーバーの遅れの許し）}
+ */
+export function toyamaEventBlock(id, ctx = {}) {
+  if (!TOYAMA_EVENT_IDS.includes(id)) return 'そんな出来事は ない';
+  if (ctx.region !== 'toyama') return 'ここでは ない';
+  if (ctx.seen && ctx.seen[id]) return 'もう 見た';
+  const near = (p, r) => Math.hypot((Number(ctx.x) || 0) - p.x, (Number(ctx.y) || 0) - p.y) <= r;
+  switch (id) {
+    case 'board': return ctx.season !== 'summer' ? '夏ではない' : ctx.period !== 'night' ? '夜ではない' : !near(PHONE, TEV.BOARD_R) ? '遠い' : null;
+    case 'train': return trainTime(Number(ctx.hour) || 0, ctx.slack || 0) ? null : 'いまではない';
+    case 'footprints': return ctx.season !== 'winter' ? '冬ではない' : !near(FOOT_END, TEV.FOOT_R) ? '遠い' : null;
+    case 'white_near': return ctx.period !== 'night' ? '夜ではない' : !ownsAll(ctx.owned) ? 'まだ' : null;
+  }
+  return 'ない';
 }

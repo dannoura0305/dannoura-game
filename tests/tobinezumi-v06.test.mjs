@@ -383,12 +383,12 @@ await test('オフライン：セーブの移行 v5 → v6（NPC の住人の入
   s.house.members = [{ ...makeInd({ id: 9, name: 'ポポ', genes: founderGenes('sand', 1), role: 'pup', ageMs: DAY_MS }), species: 'jerboa' }];
   const ls = makeLS({ [SAVE_KEY]: JSON.stringify(s), dannoura_save: 'keep' });
   const n2 = new OfflineBackend({ storage: ls, now: () => G.clock.t, npc: true, map, wild: false });
-  assert.equal(SAVE_VERSION, 6); assert.equal(n2.save.v, 6);
+  assert.ok(SAVE_VERSION >= 6); assert.equal(n2.save.v, SAVE_VERSION);   // Ver.0.7 からは v7 まで続けて移す
   assert.deepEqual(n2.save.npcResidents, []); assert.equal(n2.save.rank, undefined, '順位の記録は持たない');
   assert.equal(n2.save.house.members[0].species, undefined, 'トビネズミは書かない');
   assert.equal(n2.house.members[0].name, 'ポポ');
   n2.flush();
-  assert.equal(JSON.parse(ls.getItem(SAVE_KEY)).v, 6); assert.equal(ls.getItem('dannoura_save'), 'keep');
+  assert.equal(JSON.parse(ls.getItem(SAVE_KEY)).v, SAVE_VERSION); assert.equal(ls.getItem('dannoura_save'), 'keep');
 });
 
 // ───────── 入口の守り（server/security.js）─────────

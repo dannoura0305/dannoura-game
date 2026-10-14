@@ -40,6 +40,12 @@ const SOUNDS = {
   hiss: t => tone(t, { f0: 5000, f1: 4000, dur: 0.45, noise: true, vol: 0.08 }),                                               // シャーッ
   caught: t => { tone(t, { f0: 300, f1: 90, dur: 0.3, type: 'square', vol: 0.08 }); tone(t + 0.05, { f0: 900, f1: 200, dur: 0.25, noise: true, vol: 0.1 }); },
   safe: t => { tone(t, { f0: 660, dur: 0.08, type: 'triangle' }); tone(t + 0.09, { f0: 880, dur: 0.12, type: 'triangle' }); },
+  // Ver.0.7：富山の 4:44 ごろ、遠くを通りすぎる長い音（低いうなり・レールの継ぎ目の音・かすかな汽笛のような音）
+  train: t => {
+    tone(t, { f0: 160, f1: 120, dur: 3.6, noise: true, vol: 0.03 });
+    for (let i = 0; i < 6; i++) { tone(t + 0.4 + i * 0.5, { f0: 900, f1: 700, dur: 0.05, noise: true, vol: 0.02 }); tone(t + 0.52 + i * 0.5, { f0: 900, f1: 700, dur: 0.05, noise: true, vol: 0.018 }); }
+    tone(t + 0.2, { f0: 520, f1: 500, dur: 0.9, type: 'sine', vol: 0.014 }); tone(t + 1.2, { f0: 440, f1: 420, dur: 1.2, type: 'sine', vol: 0.012 });
+  },
   plug: t => { tone(t, { f0: 220, f1: 180, dur: 0.06, type: 'triangle', vol: 0.1 }); tone(t + 0.08, { f0: 260, f1: 200, dur: 0.06, type: 'triangle', vol: 0.1 }); },
 };
 /** 鳴らす（同じ音は 0.25 秒あける） */

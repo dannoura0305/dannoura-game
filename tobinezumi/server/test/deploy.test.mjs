@@ -60,7 +60,7 @@ await test('/healthz（最小限・CORS）・/statsz（合言葉が要る）・/
   const h = await fetch(base + '/healthz', { headers: { origin: 'https://me.github.io' } });
   assert.equal(h.status, 200); assert.equal(h.headers.get('access-control-allow-origin'), 'https://me.github.io');
   const j = await h.json();
-  assert.equal(j.ok, true); assert.equal(j.v, '0.6'); assert.ok('players' in j && 'uptime' in j); assert.ok(!('rss' in j), 'メモリなどは出さない');
+  assert.equal(j.ok, true); assert.equal(j.v, '0.7'); assert.ok('players' in j && 'uptime' in j); assert.ok(!('rss' in j), 'メモリなどは出さない');
   const evil = await fetch(base + '/healthz', { headers: { origin: 'https://evil.example' } });
   assert.equal(evil.headers.get('access-control-allow-origin'), null);
   assert.equal((await fetch(base + '/statsz')).status, 404);

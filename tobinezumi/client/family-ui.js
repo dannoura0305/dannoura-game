@@ -8,7 +8,7 @@ import { NAME_MAX } from '../shared/protocol.js';
 import { layoutLineage, lineageExportLayout, lineageText, ROLE_NAME as ROLE_JA } from '../shared/lineage.js';
 export { layoutLineage };
 
-const ROLE_NAME = { player: 'いまの子', pup: '子ども', kin: 'きょうだい', mate: 'つれあい', ancestor: 'ご先祖', left: '巣立った' };
+const ROLE_NAME = { player: 'いまの子', pup: '子ども', kin: 'きょうだい', mate: 'つれあい', ancestor: 'ご先祖', left: '巣立った', friend: 'なかま' };
 const SEX = { f: '<span class="tb-sexf" title="女の子">♀</span>', m: '<span class="tb-sexm" title="男の子">♂</span>' };
 
 /** その子の見た目（子ども・若者は小さく） */
@@ -30,7 +30,7 @@ export function traitChips(traits) {
 }
 const hours = ms => { const h = ms / (60 * 1000); return h >= 1 ? Math.ceil(h) + ' 時間' : '1 時間'; };   // 世界の 1 時間 = 実時間 1 分
 
-/** 家族の一覧。h = {rename(m), succeed(m), follow(on), lineage(), farewell()} */
+/** 家族の一覧。h = {rename(m), succeed(m), follow(on), companion(m, on), lineage(), farewell()} */
 export function familyPanel(game, fam, h) {
   const ui = game.ui;
   const p = el('div', 'tb-panel tb-menu tb-family tb-ui-block');
@@ -44,6 +44,7 @@ export function familyPanel(game, fam, h) {
   };
   const kids = fam.members.filter(m => m.role === 'pup' || m.role === 'kin');
   const mate = fam.members.find(m => m.role === 'mate');
+  const friends = fam.members.filter(m => m.role === 'friend');   // Ver.0.7：なかま（ほかの種）。地上へ 1 匹 連れて行ける
   const pend = fam.pending ? (fam.pending.wait ? '<div class="tb-ok">冬のあいだは巣ごもり。春になったら赤ちゃんが生まれる</div>' : `<div class="tb-ok">もうすぐ赤ちゃんが生まれる（あと ${hours(fam.pending.dueIn)}・遊んだ時間で）</div>`) : '';
   const next = me.stage === 'adult' ? (fam.cooldown > 0 ? `<div class="tb-dim">次のお産まで あと ${hours(fam.cooldown)}</div>` : '') : me.stage === 'young' || me.stage === 'pup' ? `<div class="tb-dim">おとな（${STAGE.YOUNG_END} 日）になると、野生のトビネズミと なかよくなれる</div>` : '';
   p.innerHTML = `<div class="tb-ph">家族<button class="tb-x">×</button></div>
@@ -51,6 +52,7 @@ export function familyPanel(game, fam, h) {
       ${row(me, pend + next)}
       ${mate ? row(mate) : '<div class="tb-dim tb-famhint">つれあいはまだいない。地上の野生のトビネズミに<b>そっと近づいてじっとする</b>か<b>種子をあげる</b>と信頼が増え、なかよしになると ついてくる。そのまま自分の巣へ入ると つれあいに（寝床の部屋・倉庫の種子 ' + BREED.SEEDS + ' 以上・冬は×）。</div>'}
       ${kids.length ? '<div class="tb-sub">子ども・きょうだい（' + kids.length + '）</div>' + kids.map(m => row(m)).join('') : ''}
+      ${friends.length ? '<div class="tb-sub">なかま（' + friends.length + '）<span class="tb-dim">地上へ 1 匹 連れて行ける・捕食者が来ると巣へかくれる</span></div>' + friends.map(m => row(m, String(fam.companion) === String(m.id) ? '<div class="tb-ok tb-compnote">地上へ いっしょに行く</div>' : '')).join('') : ''}
     </div>
     <label class="tb-check"><input type="checkbox" class="tb-follow" ${fam.follow ? 'checked' : ''}> 若者を地上へ連れて行く（3 匹まで・捕食者が来ると巣へかくれる）</label>
     <div class="tb-menu-items"></div>`;
@@ -59,6 +61,7 @@ export function familyPanel(game, fam, h) {
     const bt = r.querySelector('.tb-fambtns');
     const b = (label, fn, cls = '') => { const x = el('button', 'tb-btn small ' + cls, esc(label)); x.type = 'button'; x.onclick = fn; bt.appendChild(x); };
     if (m.role === 'pup' || m.role === 'kin') b('名前', () => h.rename(m));
+    if (m.role === 'friend' && h.companion) { const on = String(fam.companion) === String(m.id); b(on ? '巣で待つ' : '地上へ連れて行く', () => h.companion(m, !on), on ? '' : 'primary tb-comp'); }
     if (fam.heirs && fam.heirs.some(x => String(x) === id)) b('次の世代に', () => h.succeed(m), 'primary');
     else if (m.role === 'pup' && heirBlock(me, m)) r.title = '若者（' + STAGE.PUP_END + ' 日）になると 次の世代に選べる';
   }

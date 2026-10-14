@@ -42,7 +42,8 @@ import { PredatorWorld, PRED_DT, PRED, playerView, stillTime, TUNING, INVULN_MS,
 import { envAt, fieldMods, ENV, WEATHERS, SEASONS } from '../shared/season.js';
 import { landAt, landOut, digCost, digTime, relocateCost, RELOCATE_COOLDOWN_MS, RELOCATE_MIN_DIST, buildLands, plotAt } from '../shared/lands.js';
 import { PLUG_COST, SEXES, MAX_RESIDENTS } from '../shared/protocol.js';
-import { Household } from '../shared/household.js';
+import { Household, walkerOut } from '../shared/household.js';
+import { toyamaEventBlock, TOYAMA_EVENT_IDS } from '../shared/toyama.js';
 import { founderInd, indOut, courtBlock, stageOf, ageDays, STAGE, FOUNDER_AGE_DAYS, friendBlock, makeInd } from '../shared/family.js';
 import { PET } from '../shared/family-life.js';
 import { devFamily } from '../shared/dev-family.js';
@@ -58,11 +59,12 @@ import { CURIOS, isCurio, CURIO_TICK_MS, CURIO_TTL_MS, pickCurioSpawn, curioElig
 export const SAVE_KEY = 'tobi_save_v1';
 export const SETTINGS_KEY = 'tobi_settings';
 export const TOKEN_KEY = 'tobi_token';
-export const SAVE_VERSION = 6;   // v2（Ver.0.2）：player.life・friends・visits・lastPlayed。v3（Ver.0.3）：nests[].plugged・land・relocatedAt・raidedAt、events（襲撃）。
+export const SAVE_VERSION = 7;   // v2（Ver.0.2）：player.life・friends・visits・lastPlayed。v3（Ver.0.3）：nests[].plugged・land・relocatedAt・raidedAt、events（襲撃）。
                                  // v4（Ver.0.4）：house（操作個体の年齢・遺伝子・巣の家族・お産の予定）・lineage（ご先祖・巣立った子）・nextInd。鍵の名前（tobi_save_v1）はそのまま
                                  // v5（Ver.0.5）：player.region（いる土地）・worlds（はじまりの原以外の土地の採集物。原は前からの world）・entrances[].region・
                                  //   collection（図鑑 {id: 時刻}）・achievements（実績 {id: 時刻}）・progress（季節・土地・訪ねた巣・砂嵐）・toyama（たどり着いた）
                                  // v6（Ver.0.6）：npcResidents（オフラインの共同巣：NPC の住人 [{id, since}]）・house.members[].species / pettedAt
+                                 // v7（Ver.0.7）：toyamaEvents（見た富山の小さな出来事 {id: 時刻}）・house.companion（地上へ連れて行く なかまの id）
 const NO_RESPAWN = new Set(['n', 'x', 'g', 'w', 'd', 'c']);
 const RARE_MIN = 8 * 60, RARE_MAX = 12 * 60;
 const PICK_RANGE = 28, ENTER_RANGE = 34;
@@ -288,6 +290,12 @@ export class OfflineBackend extends Emitter {
       if (s.house && Array.isArray(s.house.members)) for (const m of s.house.members) { if (m.species === 'jerboa') delete m.species; if (m.pettedAt && !Number.isFinite(m.pettedAt)) delete m.pettedAt; }
       s.v = 6;
     }
+    if (s.v < 7) {   // v6 → v7（Ver.0.7「小さなできごと」）：富山の小さな出来事の記録・地上へ連れて行く なかま（はじめは だれも）
+      s.toyamaEvents = s.toyamaEvents && typeof s.toyamaEvents === 'object' ? s.toyamaEvents : {};
+      if (s.house && s.house.companion === undefined) s.house.companion = null;
+      s.v = 7;
+    }
+    if (!s.toyamaEvents || typeof s.toyamaEvents !== 'object') s.toyamaEvents = {};
     if (!Array.isArray(s.npcResidents)) s.npcResidents = [];
     if (!s.collection) s.collection = {};
     if (!s.achievements) s.achievements = {};
@@ -326,7 +334,7 @@ export class OfflineBackend extends Emitter {
   }
   _newInd() { const id = this.save.nextInd || 2; this.save.nextInd = id + 1; return id; }
   _myLook() { const h = this.house; return h && h.me ? lookOf(h.me.traits) : null; }
-  _kidsLook() { const h = this.house; return h ? h.followers().map(m => ({ id: m.id, name: m.name, look: lookOf(m.traits, { young: 1, ps: m.id % 97 }) })) : []; }
+  _kidsLook() { const h = this.house; return h ? h.walkers().map(walkerOut) : []; }   // Ver.0.7：若者＋なかま 1 匹
   _traitMove() { const h = this.house; return h && h.me ? traitMoveMods(h.me.traits) : null; }
   _seedsInStore() { const p = this.save.player, rec = p && p.nestId && this.save.nests[p.nestId]; return rec ? countItem(rec.storage, 'seed') : 0; }
   _familyOut() { const h = this.house; return h ? h.out() : null; }
@@ -337,7 +345,7 @@ export class OfflineBackend extends Emitter {
   async login(username) { return this._local(username); }
   async _local(username) {
     if (!this.save) this.save = { v: SAVE_VERSION, account: { id: 'local', username: username || 'local', createdAt: this.now() }, character: null, player: null, nests: {}, entrances: [], world: null, friends: [], visits: [], events: [],
-      worlds: {}, collection: {}, achievements: {}, progress: { seasons: [], regions: [], visited: [], storm: 0 } };
+      worlds: {}, collection: {}, achievements: {}, progress: { seasons: [], regions: [], visited: [], storm: 0 }, toyamaEvents: {} };
     this.flush();
     return { ok: true, account: this.save.account, character: this.save.character };
   }
@@ -408,7 +416,7 @@ export class OfflineBackend extends Emitter {
     return { ok: true, world: {
       serverTime: this.now(),
       region: this.region, gate: this.gate,
-      collection: { owned: { ...this.save.collection }, achievements: { ...this.save.achievements }, found: !!this.save.toyama },
+      collection: { owned: { ...this.save.collection }, achievements: { ...this.save.achievements }, found: !!this.save.toyama, tev: { ...(this.save.toyamaEvents || {}) } },
       clock: { ...this.clock },
       life: lifeOut(p.life), friends: this._friendList(), visitors, raids,
       danger: { predators: this.tuning.enabled ? (this.tuning.easy ? 'easy' : 'normal') : 'off', env: this.envOn, relocateCooldownMs: this.relocateCooldownMs },
@@ -584,6 +592,7 @@ export class OfflineBackend extends Emitter {
     return { id: rec.id, owner: rec.owner, ownerName: rec.ownerName, rev: rec.rev, data: rec.data, storage: rec.storage.map(s => s && { ...s }), policy: rec.policy, canEdit: own, own, role: own ? 'owner' : 'visitor', home: own, region: rec.region || 'plains', residents: own ? this._npcResMembers().map(m => ({ id: m.id, name: m.name, npc: true })) : [], hostFur: rec.hostFur || null,
       plugged: !!rec.plugged, land: rec.land || null, ...(own ? { relocatedAt: rec.relocatedAt || 0, relocateCooldownMs: this.relocateCooldownMs } : {}),
       family: own && this.house ? this.house.publicOut() : [],
+      tales: own ? { toyama: !!this.save.toyama, companion: this.house ? this.house.companion ?? null : null } : null,
       ...(own && this.npcOn ? { npcResidents: this._npcResMembers() } : {}) };
   }
 
@@ -937,7 +946,13 @@ export class OfflineBackend extends Emitter {
   async dev(m = {}) {
     if (m.weather !== undefined) { if (m.weather && WEATHERS[m.weather]) this.clock.weather = m.weather; else delete this.clock.weather; this.moveEnv = null; this.lifeEnv = null; }
     if (m.season !== undefined) { if (m.season && SEASONS.some(x => x.id === m.season)) this.clock.season = m.season; else delete this.clock.season; this.moveEnv = null; this.lifeEnv = null; }
-    if (m.weather !== undefined || m.season !== undefined) this.emit('clock', { clock: { ...this.clock } });
+    if (m.hour != null && Number.isFinite(Number(m.hour))) {   // Ver.0.7：時計をその時刻へ（富山の 4:44 の音などの確認用）
+      const c = makeClock({ scale: this.clock.scale, startHour: Number(m.hour), now: this.now() });
+      this.clock.origin = c.origin; this.clock.base = c.base;   // 同じ入れ物を書きかえる（部屋も同じ時計を見ている）
+      this.moveEnv = null; this.lifeEnv = null;
+    }
+    if (m.weather !== undefined || m.season !== undefined || m.hour != null) this.emit('clock', { clock: { ...this.clock } });
+    if (m.tevReset) { this.save.toyamaEvents = {}; this.flush(); }   // Ver.0.7：富山の出来事の記録を消す（確認用）
     let spawned = null;
     if (m.spawn && PRED[m.spawn] && this.auth) { const q = this.preds.spawn(m.spawn, this.auth.x + (Number(m.dx) || 70), this.auth.y + (Number(m.dy) || 0)); spawned = q && q.id; }
     if (m.clear) this.preds.preds = [];
@@ -988,7 +1003,7 @@ export class OfflineBackend extends Emitter {
     const evs = r.events.slice();
     if (evs.some(e => e.type === 'born')) this.grant('first_pups');
     if (h.wantsPrompt()) evs.push({ type: 'lifespan' });
-    const kidsKey = h.followers().map(m => m.id).join(',');
+    const kidsKey = h.walkers().map(m => m.id).join(',');
     if (kidsKey !== this._kidsKey) { this._kidsKey = kidsKey; }
     this.famSendT -= dt;
     if (evs.length || r.used || this.famSendT <= 0) {
@@ -1079,6 +1094,28 @@ export class OfflineBackend extends Emitter {
     return { ok: true, family: h.out() };
   }
   async kidsFollow(on) { const h = this.house; if (!h) return { ok: false }; h.follow = !!on; this.flush(); return { ok: true, family: h.out(), kids: this._kidsLook() }; }
+  /** Ver.0.7：なかまを地上へ連れて行く（id）・巣で待つ（null）。1 匹だけ */
+  async setCompanion(id) {
+    const h = this.house;
+    if (!h) return { ok: false, reason: 'キャラクターがいない' };
+    const r = h.setCompanion(id == null ? null : id);
+    if (!r.ok) return r;
+    this.flush();
+    return { ok: true, family: h.out(), kids: this._kidsLook(), swapped: r.swapped };
+  }
+  /** Ver.0.7：富山の小さな出来事を見た（1 回だけ・条件はサーバーと同じ toyamaEventBlock） */
+  async toyamaEvent(id) {
+    if (!TOYAMA_EVENT_IDS.includes(id)) return { ok: false, reason: 'そんな出来事は ない' };
+    if (this.place !== 'field' || !this.auth) return { ok: false, reason: '地上で' };
+    const seen = this.save.toyamaEvents || (this.save.toyamaEvents = {});
+    if (seen[id]) return { ok: true, id, first: false, seen: { ...seen } };
+    const t = this.now(), env = this.env('field');
+    const why = toyamaEventBlock(id, { region: this.region, season: env.season, period: env.period, hour: dayPhase(this.clock, t) * 24, x: this.auth.x, y: this.auth.y, owned: this.save.collection, seen });
+    if (why) return { ok: false, reason: why };
+    seen[id] = t;
+    this.flush();
+    return { ok: true, id, first: true, seen: { ...seen } };
+  }
   /** Ver.0.6：巣の家族をなでる（自分の家の巣の中で・1 匹ごとに PET.COOLDOWN_MS）→ 体調 +PET.COND */
   async petFamily(id) {
     const h = this.house, p = this.save.player;
@@ -1636,6 +1673,8 @@ export class OnlineBackend extends Emitter {
   async feedPup(id) { return this._req(C2S.FEED_PUP, { id }); }
   async mateAgain() { return this._req(C2S.MATE_AGAIN); }
   async kidsFollow(on) { return this._req(C2S.KIDS_FOLLOW, { on: !!on }); }
+  async setCompanion(id) { return this._req(C2S.COMPANION, { id: id == null ? null : id }); }   // Ver.0.7
+  async toyamaEvent(id) { return this._req(C2S.TOYAMA_EVENT, { id }); }
   async petFamily(id) { const r = await this._req(C2S.FAMILY_PET, { id }); if (r.ok && r.life) this.life = r.life; return r; }
   async lineage() { return this._req(C2S.LINEAGE); }
   async succeed(id) { return this._req(C2S.SUCCEED, { id }); }

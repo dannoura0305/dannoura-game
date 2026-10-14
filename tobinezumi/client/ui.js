@@ -6,6 +6,7 @@ import { CLIMATES, RARES } from '../shared/lands.js';
 import { REST_NAME } from '../shared/season.js';
 import * as A from './art.js';
 import { Sprites } from './sprites.js';
+import { placeHelpLine } from './touch-logic.js';
 
 export function el(tag, cls, html) {
   const e = document.createElement(tag);
@@ -101,7 +102,34 @@ export class UI {
     const t = el('div', 'tb-toast ' + kind, esc(text));
     this.toastBox.appendChild(t);
     while (this.toastBox.children.length > 3) this.toastBox.firstChild.remove();
-    setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 400); }, 2600);
+    this.fitHelp();
+    setTimeout(() => { t.classList.add('out'); setTimeout(() => { t.remove(); this.fitHelp(); }, 400); }, 2600);
+  }
+  /** Ver.0.7：地上の上の案内（ヘルプの 1 行）。トーストと重ならないように fitHelp で動かす・隠す */
+  setHelpLine(h) { this.helpLine = h || null; this.fitHelp(); }
+  /**
+   * トーストと案内が重ならないように（touch-logic.js の placeHelpLine）：重なるなら案内をトーストの下へ、
+   * 下げすぎる（画面の 6 割より下）ならトーストが出ている間だけ隠す。トーストが出た・消えた・配置しなおしたときに呼ぶ。
+   */
+  fitHelp() {
+    const h = this.helpLine;
+    if (!h || !h.isConnected) return;
+    h.style.top = ''; h.style.bottom = '';
+    if (!h.offsetParent || h.classList.contains('dim')) { h.classList.remove('tb-help-hide'); this._helpFit = { top: null, hidden: false, moved: false, toasts: 0 }; return; }
+    const HR = this.hud.getBoundingClientRect(), r = h.getBoundingClientRect();
+    const kids = [...this.toastBox.children];
+    let box = null;
+    for (const c of kids) {
+      const q = c.getBoundingClientRect();
+      if (!q.height) continue;
+      box = box ? { left: Math.min(box.left, q.left), right: Math.max(box.right, q.right), top: Math.min(box.top, q.top), bottom: Math.max(box.bottom, q.bottom) } : { left: q.left, right: q.right, top: q.top, bottom: q.bottom };
+    }
+    if (box) box = { left: box.left - HR.left, right: box.right - HR.left, top: box.top - HR.top, bottom: box.bottom - HR.top };
+    const help = { left: r.left - HR.left, right: r.right - HR.left, top: r.top - HR.top, height: r.height };
+    const res = placeHelpLine(help, box, { limit: HR.height * 0.6, gap: 4 });
+    h.classList.toggle('tb-help-hide', res.hidden);
+    if (res.moved) { const base = parseFloat(getComputedStyle(h).top) || 0; h.style.top = Math.round(base + res.top - help.top) + 'px'; h.style.bottom = 'auto'; }
+    this._helpFit = { ...res, toasts: kids.length };
   }
   /** 入力をふさぐ部品が開いているか */
   busy() { return !!this.modal || this.chatOpen; }
@@ -180,7 +208,7 @@ export class UI {
     if (this.chatLog && !(on && horiz)) this.chatLog.style.top = '';
     const ck = this.clockEl, ckOn = on && horiz && ck && !ck.classList.contains('hidden');
     if (ck && !ckOn) { ck.style.top = ''; ck.style.left = ''; ck.style.right = ''; }
-    if (!on) { if (life) life.style.top = ''; if (tb) tb.style.top = ''; return; }
+    if (!on) { if (life) life.style.top = ''; if (tb) tb.style.top = ''; this.fitHelp(); return; }
     const H = this.hud.getBoundingClientRect();
     const title = this.hud.querySelector('.tb-scene .tb-region, .tb-scene .tb-wtop');
     const tr = title && title.offsetParent ? title.getBoundingClientRect() : null;
@@ -194,6 +222,7 @@ export class UI {
     const tt = Math.round(L.bottom - H.top + 4) + 'px';
     if (tb.style.top !== tt) tb.style.top = tt;
     if (horiz && this.chatLog && this.chatLog.style.top !== tt) this.chatLog.style.top = tt;   // 横向きのチャットログもバーの下
+    this.fitHelp();
   }
 
   // ── 暮らしの数値（体調・空腹・水分）。添付イメージのホットバー右の 3 本のバー ──

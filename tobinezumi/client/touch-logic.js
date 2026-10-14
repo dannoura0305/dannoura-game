@@ -160,3 +160,24 @@ export function touchLayout(vw, vh, safe = { t: 0, r: 0, b: 0, l: 0 }, { control
   const top = Math.round(safe.t + (portrait ? 0 : (ah - height) / 2));
   return { W, H, scale: s, left, top, width, height, portrait, controlsH, tablet };
 }
+
+/**
+ * Ver.0.7：上の案内（地上のヘルプの 1 行）とトーストが重ならない置き方（DOM なし。px・同じ基準の座標）。
+ * help = {left, right, top, height}（案内のふだんの位置）・toasts = {left, right, top, bottom}（トーストの箱。無ければ null）
+ * 重なるなら、案内をトーストのすぐ下（gap あけて）へ下げる。下げると limit（下げてよい案内の下端）をこえるなら、トーストが出ている間は隠す。
+ * 返り値 {top, hidden, moved}
+ */
+export function placeHelpLine(help, toasts, { limit = Infinity, gap = 4 } = {}) {
+  if (!help) return null;
+  const keep = { top: help.top, hidden: false, moved: false };
+  if (!toasts || !(toasts.bottom > toasts.top)) return keep;
+  const hb = help.top + help.height;
+  const x = help.left < toasts.right && toasts.left < help.right;
+  const y = help.top < toasts.bottom + gap && toasts.top < hb + gap;
+  if (!x || !y) return keep;
+  const top = Math.ceil(toasts.bottom + gap);
+  if (top + help.height > limit) return { top: help.top, hidden: true, moved: false };
+  return { top, hidden: false, moved: true };
+}
+/** 2 つの箱が重なるか（{left, right, top, bottom}） */
+export const boxesOverlap = (a, b) => !!(a && b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom);
