@@ -1,10 +1,10 @@
 /* ══════════════════════════════════════════════════════════
-   main/day31.js — 本編タイトルの隠し項目「DAY 31」（おまけ『境界事象』TRUE END 後）
+   main/day31.js — 本編タイトルの隠し項目「DAY 31」（『境界事象』TRUE END 後）
    ・表示条件：localStorage.kyokai_true_end === '1' かつ 本編エンディングを1つ以上見ている（dannoura_endings）
    ・選ぶと短いイベント（深夜の部屋 → PC → 身に覚えのない動画「月代町観測記録」00:00:44
      → 「聞こえますか？」→ だんのうら「……誰？」→ 切断 → 配信画面 視聴者1・コメント「また会ったね」→ 暗転 → タイトル）
    ・本編のセーブ・設定・エンディング記録には一切書き込まない（読むだけ）。
-   ・タイトルの「おまけ：境界事象」ボタン（kyokai.html へ）のラベルもここで整える。
+   ・タイトルの「境界事象」ボタン（kyokai.html へ）のラベルもここで整える。
    ══════════════════════════════════════════════════════════ */
 (function (root) {
   'use strict';
@@ -288,9 +288,9 @@
   }
   function initTitle() {
     var ky = document.getElementById('btn-kyokai');
-    if (ky) ky.innerHTML = lbl('radio', 'おまけ：境界事象', 'EXTRA');
+    if (ky) ky.innerHTML = lbl('radio', '境界事象', 'MYSTERY');
     var tb = document.getElementById('btn-tobinezumi');
-    if (tb) tb.innerHTML = lbl('paw', 'おまけ：トビネズミ', 'EXTRA');
+    if (tb) tb.innerHTML = lbl('paw', 'トビネズミ', 'LIFE');
     var d = document.getElementById('btn-day31');
     if (d) {
       var ok = false; try { ok = visible(root.localStorage); } catch (e) { ok = false; }
