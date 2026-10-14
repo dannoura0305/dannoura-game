@@ -1,11 +1,11 @@
 // 入力：キーボード＋マウス（ポインタロック）・ゲームパッド（Gamepad API 標準配置）・タッチ（横向き）・入力列の再生（自動テスト）。
 // ゲームは 60Hz の 1 ステップごとに sample() を呼び、「押した瞬間」と「押している間」を受け取る（COMBAT_SYSTEM_SPEC §6）。
-export const ACTIONS = ['attack', 'heavy', 'aim', 'dodge', 'parry', 'swap', 'reload', 'interact', 'lock', 'heal', 'pause', 'run'];
+export const ACTIONS = ['attack', 'heavy', 'aim', 'dodge', 'parry', 'swap', 'reload', 'interact', 'lock', 'heal', 'pause', 'run', 'light', 'lockPrev', 'lockNext'];
 
 const KEYMAP = {
   KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right', ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
   ShiftLeft: 'run', ShiftRight: 'run', Space: 'dodge', KeyF: 'parry', KeyQ: 'heavy', KeyR: 'reload', KeyE: 'interact',
-  KeyT: 'lock', KeyH: 'heal', Escape: 'pause', KeyP: 'pause', Tab: 'pause', Digit1: 'weapon1', Digit2: 'weapon2', KeyX: 'swap', KeyC: 'lock',
+  KeyT: 'lock', KeyH: 'heal', Escape: 'pause', KeyP: 'pause', Tab: 'pause', Digit1: 'weapon1', Digit2: 'weapon2', Digit3: 'weapon3', KeyX: 'swap', KeyZ: 'lockPrev', KeyC: 'lockNext', KeyL: 'light', Enter: 'interact',
 };
 
 export class Input {
@@ -76,9 +76,10 @@ export class Input {
     const h = this.held;
     o.moveX = (h.has('right') ? 1 : 0) - (h.has('left') ? 1 : 0);
     o.moveY = (h.has('up') ? 1 : 0) - (h.has('down') ? 1 : 0);
-    o.run = h.has('run'); o.aim = h.has('aim'); o.heavy = h.has('heavy');
+    o.run = h.has('run'); o.aim = h.has('aim'); o.heavy = h.has('heavy') || h.has('mouseL');   // 左クリック長押し＝強攻撃・居合（押した瞬間は「溜め」に入り、すぐ離すと 1 段目）
+    o.skipHeld = h.has('interact') || h.has('pause') || h.has('dodge');
     for (const a of this.pressQ) {
-      if (a === 'weapon1') o.wantWeapon = 'katana'; else if (a === 'weapon2') o.wantWeapon = 'handgun';
+      if (a === 'weapon1') o.wantWeapon = 'katana'; else if (a === 'weapon2') o.wantWeapon = 'handgun'; else if (a === 'weapon3') o.wantWeapon = 'pipe';
       else if (ACTIONS.includes(a) && a !== 'run' && a !== 'aim' && a !== 'heavy') o[a] = true;
       if (a === 'heavy') o.heavy = true;
     }
@@ -100,7 +101,8 @@ export class Input {
         if (pr(7)) o.attack = true;                                  // RT：撃つ（構え中）
         o.heavy = o.heavy || b(3);
         if (pr(0)) o.dodge = true; if (pr(1)) o.interact = true; if (pr(4)) o.parry = true; if (pr(5)) o.swap = true;
-        if (pr(9)) o.pause = true; if (pr(11)) o.lock = true; if (pr(12)) o.heal = true;
+        if (pr(9)) o.pause = true; if (pr(11)) o.lock = true; if (pr(12)) o.heal = true; if (pr(13)) o.light = true; if (pr(14)) o.lockPrev = true; if (pr(15)) o.lockNext = true;
+        if (b(1) || b(9)) o.skipHeld = true;
       }
       this.padPrev = g.buttons.map((x, i) => b(i));
     }
@@ -113,15 +115,17 @@ export class Input {
       if (T.held.has('aim')) o.aim = true;
       if (T.held.has('heavy')) o.heavy = true;
       if (T.fireRelease > 0) { o.aim = true; T.fireRelease--; }
+      if (T.held.has('interact') || T.held.has('pause')) o.skipHeld = true;
+      if (T.tap) { o.tap = T.tap; T.tap = null; }
     }
     // 入力列（自動テスト）
     while (this.script.length && this.script[0].at <= f) {
       const s = this.script.shift();
-      for (const a of s.press || []) { if (a === 'weapon1') o.wantWeapon = 'katana'; else if (a === 'weapon2') o.wantWeapon = 'handgun'; else o[a] = true; }
+      for (const a of s.press || []) { if (a === 'weapon1') o.wantWeapon = 'katana'; else if (a === 'weapon2') o.wantWeapon = 'handgun'; else if (a === 'weapon3') o.wantWeapon = 'pipe'; else o[a] = true; }
       for (const [a, n] of Object.entries(s.hold || {})) this.scriptHeld.set(a, f + n);
       if (s.move) this.scriptMove = { x: s.move[0], y: s.move[1], until: f + (s.move[2] || 1) };
     }
-    for (const [a, until] of this.scriptHeld) { if (f < until) o[a] = true; else this.scriptHeld.delete(a); }
+    for (const [a, until] of this.scriptHeld) { if (f < until) { o[a] = true; if (a === 'interact' || a === 'pause' || a === 'dodge') o.skipHeld = true; } else this.scriptHeld.delete(a); }
     if (this.scriptMove && f < this.scriptMove.until) { o.moveX = this.scriptMove.x; o.moveY = this.scriptMove.y; }
     const m = Math.hypot(o.moveX, o.moveY); if (m > 1) { o.moveX /= m; o.moveY /= m; }
     if (!this.enabled) { for (const a of ACTIONS) if (a !== 'pause') o[a] = false; o.moveX = o.moveY = 0; }

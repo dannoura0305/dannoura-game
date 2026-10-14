@@ -5,11 +5,27 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 
 export const CONTROLS = [
   ['移動', 'WASD', '左スティック', '左の円'], ['カメラ', 'マウス', '右スティック', '右側をなぞる'], ['走る', 'Shift', 'L3（切替）', '円を外まで倒す'],
-  ['刀（連撃）', '左クリック', 'X', '斬'], ['強攻撃／居合の構え', 'Q 長押し', 'Y 長押し', '斬 長押し'],
+  ['攻撃（刀・鉄パイプ）', '左クリック', 'X', '斬'], ['強攻撃／居合の構え', '左クリック長押し／Q 長押し', 'Y 長押し', '斬 長押し'],
   ['銃を構える', '右クリック（押す間）', 'LT', '銃（押す→構え・離す→撃つ）'], ['撃つ', '構え中に左クリック', 'RT', '同上'],
-  ['回避（ジャスト回避）', 'Space', 'A', '避'], ['弾く（パリィ）', 'F', 'LB', '弾'], ['持ち替え（刀⇄銃）', 'ホイール／1・2／X', 'RB', '替'],
-  ['装填', 'R', '構え中に X', '弾切れで自動'], ['ロックオン', '中クリック／T', 'R3', '自動'], ['調べる・話す', 'E', 'B', '調'],
-  ['回復', 'H', '十字キー上', '回'], ['一時停止', 'Esc／P', 'Start', '≡'],
+  ['回避（ジャスト回避）', 'Space', 'A', '避'], ['弾く（パリィ）', 'F', 'LB', '弾'], ['持ち替え（近接⇄銃）', 'ホイール／X', 'RB', '替'],
+  ['武器を選ぶ', '1 刀・2 銃・3 鉄パイプ', '—', '—'],
+  ['装填', 'R', '構え中に X', '弾切れで自動'], ['ロックオン／相手の切替', '中クリック・T ／ Z・C（ロック中にマウスを素早く振っても）', 'R3 ／ 十字キー左右', '自動／敵をタップ'],
+  ['懐中電灯', 'L', '十字キー下', '灯'], ['調べる・話す', 'E', 'B', '調'],
+  ['回復', 'H', '十字キー上', '回'], ['一時停止', 'Esc／P', 'Start', '≡'], ['場面を飛ばす', 'E・Esc・Space を 1 秒長押し', 'B／Start 長押し', '調／≡ 長押し'],
+];
+
+const svg = d => `<svg viewBox="0 0 48 48" aria-hidden="true">${d}</svg>`;
+const WEAPON_UI = {
+  handgun: { name: 'ハンドガン（仮）', svg: svg('<path d="M6 16h30l3 4h4v6H24l-2 4h-6l2 8H9l3-12H6z" fill="#e8e0f4"/><rect x="12" y="19" width="20" height="2" fill="#7a6a9a"/>') },
+  katana: { name: '日本刀', svg: svg('<path d="M4 40 L40 6 l3 2 L9 42z" fill="#e8ecf6"/><rect x="4" y="36" width="9" height="4" transform="rotate(-42 8 38)" fill="#8a5ab8"/><circle cx="12" cy="35" r="3" fill="#c8a040"/>') },
+  pipe: { name: '鉄パイプ', svg: svg('<rect x="6" y="21" width="36" height="6" rx="2" transform="rotate(-30 24 24)" fill="#a8a4a0"/><rect x="6" y="21" width="9" height="6" transform="rotate(-30 24 24)" fill="#5a3a2a"/>') },
+  none: { name: '素手', svg: svg('<circle cx="24" cy="24" r="9" fill="none" stroke="#9c92b0" stroke-width="3"/>') },
+};
+const ITEM_UI = [
+  ['medkit_l', '救急箱', svg('<rect x="7" y="14" width="34" height="24" rx="3" fill="#e8e4ec"/><rect x="18" y="9" width="12" height="6" fill="none" stroke="#e8e4ec" stroke-width="3"/><path d="M21 19h6v5h5v6h-5v5h-6v-5h-5v-6h5z" fill="#d0405a"/>')],
+  ['medkit_s', 'ばんそうこう', svg('<rect x="6" y="18" width="36" height="12" rx="6" transform="rotate(-25 24 24)" fill="#f0c8a8"/><rect x="18" y="19" width="12" height="10" transform="rotate(-25 24 24)" fill="#fff0e0"/>')],
+  ['coffee', '缶コーヒー', svg('<rect x="15" y="9" width="18" height="30" rx="3" fill="#8a5a3a"/><rect x="15" y="17" width="18" height="10" fill="#e8d8c0"/><rect x="17" y="6" width="14" height="4" rx="1" fill="#b8b0a8"/>')],
+  ['ammo', '弾', svg('<rect x="13" y="16" width="6" height="22" fill="#c8a040"/><path d="M13 16q3-9 6 0z" fill="#d8b860"/><rect x="21" y="16" width="6" height="22" fill="#c8a040"/><path d="M21 16q3-9 6 0z" fill="#d8b860"/><rect x="29" y="16" width="6" height="22" fill="#c8a040"/><path d="M29 16q3-9 6 0z" fill="#d8b860"/>')],
 ];
 
 export class UI {
@@ -17,8 +33,14 @@ export class UI {
     this.root = root; this.g = game; this.toastT = 0; this.barkT = 0;
     root.innerHTML = `
 <div id="sh-hud">
-  <div class="sh-vital"><div class="sh-face"><span>だ</span></div><div class="sh-hpwrap"><div class="sh-hpname">だんのうら</div><div class="sh-hp"><i class="sh-hpfill"></i><i class="sh-hplag"></i></div><div class="sh-items"></div></div></div>
-  <div class="sh-weapon"><div class="sh-wslot" data-w="katana"><b>刀</b></div><div class="sh-wslot" data-w="handgun"><b>銃</b><span class="sh-ammo"></span></div><div class="sh-swapbar"><i></i></div></div>
+  <div class="sh-vital"><div class="sh-face"><img alt=""><span>だ</span></div><div class="sh-hpwrap"><div class="sh-hpname">だんのうら <i class="sh-paw"></i></div><div class="sh-hp"><i class="sh-hpfill"></i><i class="sh-hplag"></i></div><div class="sh-hpnum"></div></div></div>
+  <div class="sh-weapon"><div class="sh-wmain"><div class="sh-wicon"></div><div class="sh-wtext"><b class="sh-ammo"></b><span class="sh-wname"></span></div></div><div class="sh-wsub"><div class="sh-wicon2"></div><span class="sh-wname2"></span><kbd class="sh-wkey"></kbd></div><div class="sh-swapbar"><i></i></div><div class="sh-items"></div></div>
+  <div class="sh-obj"><div class="sh-objc"></div><div class="sh-objh">メインミッション</div><div class="sh-objt"></div><div class="sh-objsh">サブミッション</div><div class="sh-objs"></div></div>
+  <div class="sh-comp"></div><div class="sh-lightic">灯</div>
+  <div class="sh-map"><canvas width="300" height="300"></canvas><div class="sh-mapdist"></div></div>
+  <div class="sh-slots4"></div>
+  <div class="sh-hints"></div>
+  <div class="sh-boss"><div class="sh-bossn"></div><div class="sh-bossbar"><i></i></div><div class="sh-bossp"></div></div>
   <div class="sh-cross"></div>
   <div class="sh-prompt"></div>
   <div class="sh-toast"></div>
@@ -29,6 +51,9 @@ export class UI {
   <div class="sh-slow"></div><div class="sh-flash"></div><div class="sh-lowhp"></div><div class="sh-vignette"></div>
   <div class="sh-hint"></div>
 </div>
+<div class="sh-lb sh-lbt"></div><div class="sh-lb sh-lbb"></div><div class="sh-sub"></div><div class="sh-skip">長押しで飛ばす</div>
+<div class="sh-card"><div class="sh-cardt"></div></div><div class="sh-fade"></div>
+<div id="sh-puz" hidden></div>
 <div id="sh-dialog" hidden><div class="sh-dname"></div><div class="sh-dtext"></div><div class="sh-dnext">▼</div></div>
 <div id="sh-menu" hidden></div>
 <div id="sh-safe" hidden></div>
@@ -36,9 +61,14 @@ export class UI {
 <div id="sh-perf" hidden></div>
 <div id="sh-rotate" hidden>横向きにしてください</div>`;
     this.el = {
-      hpfill: $('.sh-hpfill', root), hplag: $('.sh-hplag', root), items: $('.sh-items', root), weapon: $('.sh-weapon', root), ammo: $('.sh-ammo', root), swapbar: $('.sh-swapbar i', root),
+      hpfill: $('.sh-hpfill', root), hplag: $('.sh-hplag', root), hpnum: $('.sh-hpnum', root), items: $('.sh-items', root), weapon: $('.sh-weapon', root), ammo: $('.sh-ammo', root), swapbar: $('.sh-swapbar i', root),
+      wicon: $('.sh-wicon', root), wname: $('.sh-wname', root), wicon2: $('.sh-wicon2', root), wname2: $('.sh-wname2', root), wkey: $('.sh-wkey', root), wsub: $('.sh-wsub', root),
+      faceImg: $('.sh-face img', root), map: $('.sh-map canvas', root), mapWrap: $('.sh-map', root), mapDist: $('.sh-mapdist', root), slots4: $('.sh-slots4', root), hints: $('.sh-hints', root), objsh: $('.sh-objsh', root),
       cross: $('.sh-cross', root), prompt: $('.sh-prompt', root), toast: $('.sh-toast', root), bark: $('.sh-bark', root), log: $('.sh-log', root), lock: $('.sh-lock', root), marks: $('.sh-marks', root),
       slow: $('.sh-slow', root), flash: $('.sh-flash', root), lowhp: $('.sh-lowhp', root), hint: $('.sh-hint', root),
+      obj: $('.sh-obj', root), objc: $('.sh-objc', root), objt: $('.sh-objt', root), objs: $('.sh-objs', root), comp: $('.sh-comp', root), lightic: $('.sh-lightic', root),
+      boss: $('.sh-boss', root), bossn: $('.sh-bossn', root), bossbar: $('.sh-bossbar i', root), bossp: $('.sh-bossp', root),
+      lbt: $('.sh-lbt', root), lbb: $('.sh-lbb', root), sub: $('.sh-sub', root), skip: $('.sh-skip', root), card: $('.sh-card', root), cardt: $('.sh-cardt', root), fadeEl: $('.sh-fade', root), puz: $('#sh-puz', root),
       dialog: $('#sh-dialog', root), dname: $('.sh-dname', root), dtext: $('.sh-dtext', root), menu: $('#sh-menu', root), safe: $('#sh-safe', root), dead: $('#sh-dead', root), perf: $('#sh-perf', root), rotate: $('#sh-rotate', root),
     };
     this.lag = 1; this.markEls = new Map();
@@ -51,16 +81,61 @@ export class UI {
     this.el.hpfill.style.width = (r * 100).toFixed(1) + '%';
     this.lag = this.lag > r ? Math.max(r, this.lag - 0.006) : r; this.el.hplag.style.width = (this.lag * 100).toFixed(1) + '%';
     this.el.hpfill.classList.toggle('low', r < 0.3);
+    this.el.hpnum.textContent = `HP ${Math.ceil(F.hp)} / ${F.hpMax}`;
     this.el.lowhp.style.opacity = r < 0.3 ? (0.35 + Math.sin(performance.now() / 300) * 0.15).toFixed(2) : '0';
-    const it = this.g.items; const heal = (it.medkit_s || 0) + (it.medkit_l || 0) + (it.coffee || 0);
-    this.el.items.textContent = heal ? `回復 ×${heal}` : '';
-    for (const s of this.el.weapon.querySelectorAll('.sh-wslot')) s.classList.toggle('on', s.dataset.w === F.weapon);
-    this.el.ammo.textContent = `${F.mag}／${F.ammo}`;
+    // 武器の札（今の武器・持ち替え先）
+    const W = WEAPON_UI, cur = W[F.weapon] || W.none, alt = W[F.swapTarget() || 'none'] || W.none;
+    if (this.wKey !== F.weapon + '|' + F.swapTarget()) { this.wKey = F.weapon + '|' + F.swapTarget(); this.el.wicon.innerHTML = cur.svg; this.el.wname.textContent = cur.name; this.el.wicon2.innerHTML = alt.svg; this.el.wname2.textContent = alt.name; this.el.wsub.hidden = !F.swapTarget(); }
+    this.el.ammo.textContent = F.weapon === 'handgun' ? `${F.mag} / ${F.ammo}` : F.weapon === 'none' ? '' : F.owned.includes('handgun') ? `弾 ${F.mag}/${F.ammo}` : '';
     this.el.weapon.classList.toggle('gun', F.weapon === 'handgun');
-    const sw = F.st.name === 'swap' ? F.st.f / F.st.total : F.st.name === 'reload' ? F.st.f / 84 : 0;
+    const sw = F.st.name === 'swap' ? F.st.f / F.st.total : F.st.name === 'reload' ? F.st.f / F.C.handgun.reload : 0;
     this.el.swapbar.style.width = (sw * 100).toFixed(0) + '%';
     this.el.cross.classList.toggle('on', F.weapon === 'handgun' && !!F.aimHeld);
     this.el.cross.classList.toggle('weak', !!p.aimWeak);
+    // 道具の 4 枠
+    const it = this.g.items, key = ['medkit_s', 'medkit_l', 'coffee'].map(k => it[k] || 0).join(',') + ',' + F.ammo;
+    if (key !== this.slotKey) {
+      this.slotKey = key;
+      this.el.slots4.innerHTML = ITEM_UI.map(([id, name, svg]) => { const n = id === 'ammo' ? F.ammo : it[id] || 0; return `<div class="sh-slot ${n ? '' : 'empty'}" title="${name}">${svg}<b>${n}</b><small>${name}</small></div>`; }).join('');
+    }
+  }
+  /** 右側の操作のヒント（入力の種類で変える） */
+  hints(dev, ctx) {
+    const K = dev === 'pad' ? { aim: 'LT', fire: 'RT', atk: 'X', reload: 'X長', swap: 'RB', dodge: 'A', parry: 'LB', use: 'B', heal: '↑', light: '↓', lock: 'R3' } : { aim: '右クリ', fire: '左クリ', atk: '左クリ', reload: 'R', swap: 'ホイール', dodge: 'Space', parry: 'F', use: 'E', heal: 'H', light: 'L', lock: 'T' };
+    const rows = ctx.gun ? [[K.aim, '構える'], [K.fire, '発砲'], [K.reload, 'リロード'], [K.swap, '武器切替'], [K.dodge, '回避'], [K.heal, '回復']]
+      : [[K.atk, ctx.melee ? '攻撃（長押し：強）' : '—'], [K.parry, '弾く'], [K.dodge, '回避'], [K.swap, '武器切替'], [K.lock, 'ロックオン'], [K.light, '懐中電灯']];
+    const html = rows.map(([k, t]) => `<div><kbd>${k}</kbd>${t}</div>`).join('');
+    if (html !== this.hintHtml) { this.hintHtml = html; this.el.hints.innerHTML = html; }
+  }
+  setPortrait(url) { if (url) { this.el.faceImg.src = url; this.el.faceImg.parentElement.classList.add('img'); } }
+  /** ミニマップ（円・北を示す方位・目標までの距離）。m = { img, minX, minZ, ppm, px, pz, yaw, dots:[{x,z,c}], target:{x,z}|null, dist } */
+  minimap(m) {
+    const cv = this.el.map, g = cv.getContext('2d'), W = cv.width, R = W / 2, k = m.k || 7;
+    g.clearRect(0, 0, W, W); g.save(); g.beginPath(); g.arc(R, R, R - 6, 0, Math.PI * 2); g.clip();
+    g.fillStyle = 'rgba(16,10,30,.82)'; g.fillRect(0, 0, W, W);
+    g.translate(R, R); g.rotate(m.yaw);
+    if (m.img) { g.globalAlpha = 0.95; g.drawImage(m.img, (m.minX - m.px) * k, (m.minZ - m.pz) * k, m.img.width / m.ppm * k, m.img.height / m.ppm * k); g.globalAlpha = 1; }
+    for (const d of m.dots) { g.fillStyle = d.c; g.beginPath(); g.arc((d.x - m.px) * k, (d.z - m.pz) * k, d.r || 5, 0, Math.PI * 2); g.fill(); }
+    g.restore();
+    // 目標（円の外なら縁に）
+    if (m.target) {
+      const dx = m.target.x - m.px, dz = m.target.z - m.pz, c = Math.cos(m.yaw), s = Math.sin(m.yaw);
+      let x = (dx * c - dz * s) * k, y = (dx * s + dz * c) * k; const L = Math.hypot(x, y), lim = R - 16;
+      if (L > lim) { x = x / L * lim; y = y / L * lim; }
+      g.save(); g.translate(R + x, R + y); g.rotate(Math.PI / 4); g.fillStyle = '#ffd040'; g.strokeStyle = '#3a2a00'; g.lineWidth = 2; g.fillRect(-8, -8, 16, 16); g.strokeRect(-8, -8, 16, 16); g.restore();
+    }
+    // 自分（上向きの矢印）
+    g.fillStyle = '#fff'; g.beginPath(); g.moveTo(R, R - 13); g.lineTo(R + 9, R + 10); g.lineTo(R, R + 5); g.lineTo(R - 9, R + 10); g.closePath(); g.fill();
+    // 縁と方位
+    g.strokeStyle = 'rgba(220,200,255,.7)'; g.lineWidth = 3; g.beginPath(); g.arc(R, R, R - 6, 0, Math.PI * 2); g.stroke();
+    g.font = 'bold 22px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (const [lab, a] of [['N', Math.PI], ['E', Math.PI / 2], ['S', 0], ['W', -Math.PI / 2]]) {
+      // 世界の向き a（+z を 0）を画面へ：上＝カメラの前
+      const wx = Math.sin(a), wz = Math.cos(a), c = Math.cos(m.yaw), s = Math.sin(m.yaw);
+      const x = (wx * c - wz * s), y = (wx * s + wz * c);
+      g.fillStyle = lab === 'N' ? '#ff9ac8' : '#e8dcff'; g.fillText(lab, R + x * (R - 20), R + y * (R - 20));
+    }
+    this.el.mapDist.textContent = m.dist != null ? `${Math.round(m.dist)}m` : '';
   }
   prompt(text, key) { if (!text) { this.el.prompt.classList.remove('on'); return; } this.el.prompt.innerHTML = `<kbd>${esc(key)}</kbd>${esc(text)}`; this.el.prompt.classList.add('on'); }
   toast(text, kind = '', dur = 1.2) { const t = this.el.toast; t.textContent = text; t.className = 'sh-toast on ' + kind; this.toastT = dur; }
@@ -83,26 +158,93 @@ export class UI {
     e.style.transform = `translate(${sp.x}px,${sp.y}px)`;
   }
   // ── 会話 ──
-  showLine(sp, text) {
+  showLine(sp, text, who) {
+    const pid = { dan: 'dannoura', companion: 'companion' }[who], url = pid && this.g.portraits && this.g.portraits[pid];
+    if (!this.el.dport) { this.el.dport = document.createElement('img'); this.el.dport.className = 'sh-dport'; this.el.dialog.appendChild(this.el.dport); }
+    this.el.dport.hidden = !url; if (url) this.el.dport.src = url; this.el.dialog.classList.toggle('port', !!url);
     this.el.dialog.hidden = false; this.el.dname.textContent = sp.name || ''; this.el.dname.style.color = sp.color || '#fff';
     this.el.dname.hidden = !sp.name; this.el.dtext.textContent = text; this.el.dialog.classList.toggle('sys', !sp.name);
   }
   hideDialog() { this.el.dialog.hidden = true; }
+  // ── 目標・相棒・懐中電灯・ボス ──
+  objective(ch, text, sub) { this.el.objc.textContent = ch || ''; this.el.objt.textContent = text || ''; this.el.objs.textContent = sub || ''; this.el.objsh.hidden = !sub; this.el.obj.classList.toggle('on', !!text); if (text !== this.lastObj) { this.lastObj = text; this.el.obj.classList.remove('new'); void this.el.obj.offsetWidth; this.el.obj.classList.add('new'); } }
+  companion(state, name) { const e = this.el.comp; if (!state) { e.className = 'sh-comp'; return; } const T = { follow: 'ついてきている', hide: '隠れている', cower: 'おびえている', grabbed: 'つかまれた！', wait: '待っている', scripted: '' }; e.className = 'sh-comp on ' + state; e.textContent = `${name}：${T[state] ?? ''}`; }
+  light(on) { this.el.lightic.classList.toggle('on', !!on); }
+  boss(name, ratio, phase, extra) { const b = this.el.boss; if (name == null) { b.classList.remove('on'); return; } b.classList.add('on'); this.el.bossn.textContent = name; this.el.bossbar.style.width = (Math.max(0, ratio) * 100).toFixed(1) + '%'; this.el.bossp.textContent = phase || ''; b.classList.toggle('rc', !!extra); }
+  // ── 演出：上下の黒い帯・字幕・章の札・暗転 ──
+  letterbox(on) { this.el.lbt.classList.toggle('on', !!on); this.el.lbb.classList.toggle('on', !!on); this.el.skip.classList.toggle('on', !!on); this.root.classList.toggle('cine', !!on); }
+  subtitle(sp, text) { const e = this.el.sub; if (!text) { e.classList.remove('on'); return; } e.innerHTML = (sp && sp.name ? `<b style="color:${sp.color || '#fff'}">${esc(sp.name)}</b>` : '') + esc(text); e.classList.add('on'); }
+  skipProgress(k) { this.el.skip.style.setProperty('--k', String(Math.min(1, k))); }
+  chapterCard(title, dur = 3.2) { const c = this.el.card; this.el.cardt.textContent = title; c.classList.remove('on'); void c.offsetWidth; c.classList.add('on'); clearTimeout(this.cardTimer); this.cardTimer = setTimeout(() => c.classList.remove('on'), dur * 1000); }
+  fade(on) { this.el.fadeEl.classList.toggle('on', !!on); }
+  // ── 調べ物の画面 ──
+  closePuzzle() { this.el.puz.hidden = true; this.el.puz.innerHTML = ''; if (this.puzKey) { removeEventListener('keydown', this.puzKey); this.puzKey = null; } }
+  _puz(html, onClick, onKey) {
+    const p = this.el.puz; p.hidden = false; p.innerHTML = `<div class="sh-pbox">${html}</div>`;
+    p.onclick = e => { const b = e.target.closest('button'); if (b) { this.g.sfx.play('ui'); onClick(b.dataset, b); } };
+    if (this.puzKey) removeEventListener('keydown', this.puzKey);
+    this.puzKey = e => { if (e.code === 'Escape') { e.preventDefault(); onClick({ close: '1' }); } else if (onKey) onKey(e); };
+    addEventListener('keydown', this.puzKey);
+  }
+  /** 名簿の照合：班ごとに 7 人の名簿と 6 枚の受付票。受付票の無い人を選ぶ */
+  rosterUI(R, state, onPick, onClose, group) {
+    const gs = R.groups, g = group || gs.find(x => !(state.done || {})[x]) || gs[0];
+    const people = R.people.filter(p => p.group === g), cards = R.cards(g), done = (state.done || {})[g];
+    const html = `<div class="sh-ptitle">避難者名簿の照合 <small>名簿 42 人・受付票 36 枚（名前は仮）</small></div>
+      <nav class="sh-pnav">${gs.map(x => `<button data-g="${x}" class="${x === g ? 'on' : ''} ${(state.done || {})[x] ? 'ok' : ''}">${x}班${(state.done || {})[x] ? '✓' : ''}</button>`).join('')}</nav>
+      <div class="sh-pcols"><div><div class="sh-phead">名簿（${g}班）</div>${people.map(p => `<button class="sh-pname ${done === p.name ? 'hit' : ''}" data-pick="${esc(p.name)}" ${done ? 'disabled' : ''}>${p.no}．${esc(p.name)}</button>`).join('')}</div>
+      <div><div class="sh-phead">受付票（${g}班・${cards.length} 枚）</div>${cards.map(c => `<div class="sh-pcard">${esc(c)}</div>`).join('')}</div></div>
+      <p class="sh-note">受付票が無い人（来ていない人）を、名簿から 1 人選んでください。${state.miss ? `（ちがう選択 ${state.miss} 回）` : ''}</p>
+      <div class="sh-sbtn"><button data-close="1">閉じる</button></div>`;
+    this._puz(html, d => { if (d.close) return onClose(); if (d.g) return this.rosterUI(R, state, onPick, onClose, d.g); if (d.pick) { const ns = onPick(g, d.pick); if (ns) this.rosterUI(R, ns, onPick, onClose, ns.done[g] ? (gs.find(x => !ns.done[x]) || g) : g); } });
+  }
+  /** 番号の引き出し（1〜9） */
+  drawerUI(onTry, onClose, note) {
+    const html = `<div class="sh-ptitle">受付の机の引き出し <small>${esc(note || '')}</small></div><div class="sh-pgrid">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-n="${n}">${n}</button>`).join('')}</div><div class="sh-sbtn"><button data-close="1">やめる</button></div>`;
+    this._puz(html, d => { if (d.close) return onClose(); if (d.n) onTry(+d.n); }, e => { if (/^Digit[1-9]$/.test(e.code)) onTry(+e.code.slice(5)); });
+  }
+  /** 館内放送のマイク：名前を選んで呼ぶ */
+  micUI(options, onPick, onClose, note) {
+    const html = `<div class="sh-ptitle">館内放送のマイク <small>${esc(note || '')}</small></div><div class="sh-plist">${options.map(n => `<button data-name="${esc(n)}">${esc(n)}</button>`).join('')}</div><div class="sh-sbtn"><button data-close="1">やめる</button></div>`;
+    this._puz(html, d => { if (d.close) return onClose(); if (d.name) onPick(d.name); });
+  }
+  /** 防犯映像：4 台のカメラ。あり得ない記録を選ぶ */
+  cctvUI(cams, draw, onPick, onClose, note) {
+    const html = `<div class="sh-ptitle">防犯カメラの映像 <small>明かりが消えた瞬間の記録</small></div><div class="sh-pcams">${cams.map(c => `<button class="sh-pcam" data-cam="${c.id}"><canvas width="240" height="135" data-c="${c.id}"></canvas><span>${esc(c.place)}</span><code>${esc(c.stamp)}</code></button>`).join('')}</div><p class="sh-note">${esc(note || '')}</p><div class="sh-sbtn"><button data-close="1">閉じる</button></div>`;
+    this._puz(html, d => { if (d.close) return onClose(); if (d.cam) onPick(d.cam); });
+    for (const cv of this.el.puz.querySelectorAll('canvas')) draw(cv.dataset.c, cv.getContext('2d'), cv.width, cv.height);
+  }
+  /** 装備の欄 */
+  equipBody(g) {
+    const own = g.ownedEquip || [], on = g.equipped || [];
+    if (!own.length) return '<p class="sh-note">まだ装備を持っていません。（金庫・裏路地の祠・警備室の落とし物箱）</p>';
+    return `<div class="sh-equip">${own.map(id => { const e = g.EQUIP[id]; return `<button data-eq="${id}" class="${on.includes(id) ? 'on' : ''}"><b>${esc(e.name)}</b><small>${esc(e.desc)}</small>${on.includes(id) ? '<em>装備中</em>' : ''}</button>`; }).join('')}</div><p class="sh-note">装備の枠は 2 つ。持ち替え・居合・見切りの時間が変わります（名前・効果は仮）。</p>`;
+  }
+  endCard(stats, onClose) {
+    const html = `<div class="sh-ptitle">第2章（避難所）　試作はここまで</div><div class="sh-stats">${stats.map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(String(v))}</b></div>`).join('')}</div><p class="sh-note">続けて歩き回れます。第3章（ショッピングモール）は次の段階で作ります。</p><div class="sh-sbtn"><button data-close="1">続ける</button></div>`;
+    this._puz(html, d => { if (d.close) onClose(); });
+  }
   // ── 一時停止メニュー ──
   openMenu(tab = 'top') {
     const g = this.g, m = this.el.menu, S = g.settings;
     m.hidden = false;
-    const tabs = [['top', '再開'], ['controls', '操作'], ['settings', '設定'], ['load', 'ロード'], ['title', 'タイトルへ']];
+    const tabs = [['top', '再開'], ['equip', '装備'], ['controls', '操作'], ['settings', '設定'], ['load', 'ロード'], ['title', 'タイトルへ']];
     let body = '';
     if (tab === 'controls') {
       body = `<table class="sh-ctl"><tr><th>操作</th><th>キーボード＋マウス</th><th>ゲームパッド</th><th>タッチ</th></tr>${CONTROLS.map(r => `<tr>${r.map((c, i) => i ? `<td>${esc(c)}</td>` : `<th>${esc(c)}</th>`).join('')}</tr>`).join('')}</table>
       <p class="sh-note">一閃：<b>ジャスト回避</b>（敵の攻撃が当たる直前に回避）の直後に攻撃＝見切り一閃。<b>パリィ</b>（白い「！」の攻撃に合わせて弾く）の直後に攻撃＝弾き一閃。<b>居合</b>（Q 長押しで構え）中に攻撃を受けると抜刀一閃。弱点（光る所）を撃った直後に攻撃＝撃ち一閃。赤い「危」は弾けない：回避のみ。</p>`;
+    } else if (tab === 'equip') {
+      body = this.equipBody(g);
     } else if (tab === 'settings') {
       body = `<div class="sh-set">
+        <label>画質の段 <select data-s="preset">${[['auto', '自動（' + (g.autoPresetKey === 'low' ? '低' : g.autoPresetKey === 'mid' ? '中' : '高') + '）'], ['high', '高（PC）'], ['mid', '中'], ['low', '低（スマホ）'], ['custom', '個別']].map(([v, n]) => `<option value="${v}" ${(S.preset || 'auto') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
         <label>画質（解像度）<input type="range" min="0.4" max="1" step="0.05" data-s="resScale" value="${S.resScale}"><span>${Math.round(S.resScale * 100)}%</span></label>
         <label><input type="checkbox" data-s="shadows" ${S.shadows ? 'checked' : ''}>影</label>
         <label><input type="checkbox" data-s="outline" ${S.outline ? 'checked' : ''}>輪郭線</label>
         <label><input type="checkbox" data-s="rain" ${S.rain ? 'checked' : ''}>雨</label>
+        <label><input type="checkbox" data-s="halos" ${S.halos !== false ? 'checked' : ''}>光のにじみ（ブルームの代わり）</label>
+        <label><input type="checkbox" data-s="wet" ${S.wet !== false ? 'checked' : ''}>濡れた地面の映り込み</label>
+        <label>字幕の大きさ <select data-s="subSize">${[['s', '小'], ['m', '中'], ['l', '大']].map(([v, n]) => `<option value="${v}" ${(S.subSize || 'm') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
         <label>難しさ <select data-s="difficulty">${[['easy', 'やさしい'], ['normal', 'ふつう'], ['hard', 'むずかしい']].map(([v, n]) => `<option value="${v}" ${S.difficulty === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
         <label><input type="checkbox" data-s="assist" ${S.assist ? 'checked' : ''}>一閃の手助け（窓を広げる・スロー延長）</label>
         <label>視点の速さ<input type="range" min="0.3" max="2.5" step="0.1" data-s="sens" value="${S.sens}"><span>${S.sens}</span></label>
@@ -114,7 +256,7 @@ export class UI {
       const L = g.store.list();
       body = `<div class="sh-slots">${['auto', 'slot1', 'slot2', 'slot3'].map(k => { const s = L[k]; return `<button data-load="${k}" ${s ? '' : 'disabled'}>${k === 'auto' ? '自動' : '枠' + k.slice(-1)}　${s ? new Date(s.savedAt).toLocaleString('ja-JP') + '　' + fmtSec(s.playSec) : '（空き）'}</button>`; }).join('')}</div>`;
     } else {
-      body = `<div class="sh-mtitle">境界侵食<small>（仮題）フェーズ2 切片</small></div><p class="sh-note">救った帰路：${g.count('kiro', 'rescue')}　倒した帰路：${g.count('kiro', 'kill')}　閉店：${g.heitenStatus()}</p>`;
+      body = `<div class="sh-mtitle">境界侵食<small>（仮題）序章〜第2章 試作</small></div><p class="sh-note">${esc(g.chapterTitle())}　／　${esc(g.objectiveText())}</p><p class="sh-note">救った帰路：${g.count('kiro', 'rescue')}　倒した帰路：${g.count('kiro', 'kill')}　閉店：${g.heitenStatus()}　収容者：${g.bossStatus()}　（相棒）の信頼：${g.companionTrust()}</p>`;
     }
     m.innerHTML = `<div class="sh-mbox"><nav>${tabs.map(([k, n]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${n}</button>`).join('')}</nav><div class="sh-mbody">${body}</div></div>`;
     m.onclick = e => {
@@ -124,11 +266,13 @@ export class UI {
       if (b.dataset.tab === 'title') { location.href = 'index.html'; return; }
       if (b.dataset.tab) return this.openMenu(b.dataset.tab === 'top' ? 'top' : b.dataset.tab);
       if (b.dataset.load) { g.loadSlot(b.dataset.load); }
+      if (b.dataset.eq) { g.toggleEquip(b.dataset.eq); this.openMenu('equip'); }
     };
     m.oninput = e => {
       const k = e.target.dataset.s; if (!k) return;
       const v = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'range' ? parseFloat(e.target.value) : e.target.value;
       g.applySetting(k, v);
+      if (k === 'preset') return this.openMenu('settings');
       const sp = e.target.nextElementSibling; if (sp && sp.tagName === 'SPAN') sp.textContent = k === 'sens' ? v : Math.round(v * 100) + '%';
     };
     this.menuTab = tab;

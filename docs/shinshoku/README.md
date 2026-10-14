@@ -3,9 +3,9 @@
 『だんのうら30日間サバイバル』に組み込む新作 3D ホラーアクションの、調査・設計の資料と開発の記録です。
 
 ## いまの状態（2026-10-14）
-- **フェーズ1（3D の土台）＋フェーズ2（紫の姿の戦闘・遊べる切片）を実装**。入口は `shinshoku.html`（本編タイトルの「境界侵食」ボタンからも開ける）。
-- 中身・操作・受け入れ結果・VRM の差し替え方・制限は **[IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)**。
-- 確認：`node tests/run.mjs`（本作のテスト 3 本を含む）、`node tools/shinshoku_play.mjs <出力先>`（Playwright の通しプレイ・PC 1280×800／スマホ横 844×390）。
+- **フェーズ1（3D の土台）＋フェーズ2（紫の姿の戦闘）＋フェーズ3「序章〜避難所の試作」を実装**（序章 → 第1章 → 第2章の収容者の決着まで遊べる）。入口は `shinshoku.html`（本編タイトルの「境界侵食」ボタンからも開ける）。
+- 中身・操作・受け入れ結果・性能・制限は **[IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)**。外部で作ったキャラクター（VRM／GLB／glTF・顔絵）の入れ方は **[ASSET_IMPORT.md](ASSET_IMPORT.md)**。
+- 確認：`node tests/run.mjs`（本作のテスト 5 本を含む）、`node tools/shinshoku_play.mjs <出力先>`（Playwright の通しプレイ・PC 1280×800／スマホ横 844×390）。
 - 実機（利用者の PC・スマホ）での fps・手触りは**未検証**。`shinshoku.html?perf=1` で測ってください。
 
 作成：2026-10-14（ブランチ `claude/exciting-bardeen-oilbot`）

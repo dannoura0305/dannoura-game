@@ -18,6 +18,7 @@ export const ENEMIES = {
     stagger: { parried: 0.9, hit: 0.25 },
     resolve: { rescue: 'unlock_home_door', neutralize: 'barricade_path', escape: true, kill: true },
     weak: { part: 'head', mul: 2.5 },
+    poise: 30,
   },
   heiten: {
     name: '閉店', hp: 140,
@@ -46,5 +47,37 @@ export const ENEMIES = {
     calm: 4.0,
     resolve: { rescue: 'help_closing', neutralize: 'cut_shutter_power', escape: true, kill: true },
     weak: { part: 'register', mul: 2.5 },
+    poise: 60,
+  },
+  // 収容者（避難所の個体）【仮】：ENEMY_AI_SPEC §2.5 の収容者を第2章の避難所に置いた版（本来は第5章・旧研究棟）。
+  // 輪：点呼（番号を呼び、ベッドへ戻そうとする）。守る：収容の規則。救う：本人の名前を点呼で呼ぶ（名簿の照合で分かる）。
+  // 無力化：突進を器具庫へ誘い、シャッターを下ろす。倒す：体力 0。段階：照明が落ちる（6 割）・必死（2.5 割）。
+  shuuyou: {
+    name: '収容者', hp: 640, provisional: true,
+    speed: { walk: 1.1, angry: 2.1, charge: 8.5 },
+    cause: { body: 0.9, memory: 0.6, env: 0.7 },
+    senses: { fov: 140, sight: 22, sightDark: 14, hear: { gun: 30, run: 14, walk: 6 }, memory: 30 },
+    assess: [0.6, 0.9],
+    attacks: {
+      sweep: { windup: 0.8, active: 0.16, recover: 0.9, dmg: 18, range: 3.6, arc: 150, parryable: true },
+      slam: { windup: 1.15, active: 0.2, recover: 1.4, dmg: 30, range: 3.2, arc: 360, parryable: false, aoe: { r: 2.5, ahead: 1.5 } },
+      charge: { windup: 1.0, active: 1.15, recover: 1.7, dmg: 26, range: 9, arc: 40, parryable: false, dash: true },
+      blanket: { windup: 0.95, active: 0.2, recover: 0.8, dmg: 12, range: 11, arc: 60, parryable: false, ranged: true, aoe: { r: 1.9, delay: 0.9 } },
+      grab: { windup: 1.0, active: 0.2, recover: 1.1, dmg: 22, range: 2.4, arc: 70, parryable: false, grab: true },
+    },
+    phases: [
+      { at: 1.0, pattern: ['sweep', 'sweep', 'slam', 'charge'], cooldown: 1.25 },
+      { at: 0.6, pattern: ['sweep', 'blanket', 'charge', 'slam', 'sweep'], cooldown: 0.95 },
+      { at: 0.25, pattern: ['slam', 'sweep', 'charge', 'sweep', 'grab'], cooldown: 0.7 },
+    ],
+    pattern: ['sweep', 'sweep', 'slam', 'charge'],
+    cooldown: 1.25,
+    rollcall: { every: 20, dur: 6.5, first: 6 },
+    stagger: { parried: 1.0, hit: 0.15, broken: 3.0 },
+    downState: 'down',
+    poise: 200, poiseMul: 0.5,
+    stuck: 5.0,
+    resolve: { rescue: 'call_name_at_rollcall', neutralize: 'shut_in_storage', escape: false, kill: true },
+    weak: { part: 'speaker', mul: 2.5 },
   },
 };

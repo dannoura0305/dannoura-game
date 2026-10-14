@@ -1,10 +1,11 @@
 {
-  "_note": "キャラクターの差し替え表。file に .vrm（このフォルダに置く）を書くと、コードで組んだ仮のキャラクターの代わりに読み込みます。null のときは仮のキャラクター（provisional）。license・author・source は必ず記入。",
-  "ver": 1,
+  "_note": "キャラクターの差し替え表（コードの変更は不要）。file に .vrm / .glb / .gltf（このフォルダに置く）を書くと、コードで組んだ仮のキャラクターの代わりに読み込みます。null のときは仮のキャラクター（provisional）。portrait は会話・HUD の顔絵（.png / .webp / .jpg）。読み込みに失敗したら仮のキャラクターのまま続きます。手順は docs/shinshoku/ASSET_IMPORT.md。license・author・source は必ず記入。",
+  "ver": 2,
   "characters": {
-    "dannoura": { "file": null, "provisional": true, "height": 1.64, "scale": 1, "rotateY": 0, "source": "code-built placeholder (shinshoku/actor/models.js)", "license": "project", "author": "project" },
-    "companion": { "file": null, "provisional": true, "height": 1.58, "scale": 1, "rotateY": 0, "source": "code-built placeholder", "license": "project", "author": "project" },
-    "kiro": { "file": null, "provisional": true, "source": "code-built placeholder", "license": "project", "author": "project" },
-    "heiten": { "file": null, "provisional": true, "source": "code-built placeholder", "license": "project", "author": "project" }
+    "dannoura": { "file": null, "portrait": null, "provisional": true, "height": 1.64, "scale": 1, "rotateY": 0, "restPose": "auto", "bones": {}, "source": "code-built placeholder (shinshoku/actor/models.js)", "license": "project", "author": "project" },
+    "companion": { "file": null, "portrait": null, "provisional": true, "height": 1.58, "scale": 1, "rotateY": 0, "restPose": "auto", "bones": {}, "source": "code-built placeholder", "license": "project", "author": "project" },
+    "kiro": { "file": null, "provisional": true, "height": 1.78, "scale": 1, "rotateY": 0, "restPose": "auto", "bones": {}, "source": "code-built placeholder", "license": "project", "author": "project" },
+    "heiten": { "file": null, "provisional": true, "height": 2.15, "scale": 1, "rotateY": 0, "restPose": "auto", "bones": {}, "source": "code-built placeholder", "license": "project", "author": "project" },
+    "shuuyou": { "file": null, "provisional": true, "height": 2.6, "scale": 1, "rotateY": 0, "restPose": "auto", "bones": {}, "source": "code-built placeholder", "license": "project", "author": "project" }
   }
 }

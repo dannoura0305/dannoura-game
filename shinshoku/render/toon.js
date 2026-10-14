@@ -48,6 +48,62 @@ export function addOutlines(root, thick = 0.012, color) {
 }
 export function setOutlinesVisible(root, v) { root.traverse(o => { if (o.userData.isOutlineHull || o.userData.isEdgeLines) o.visible = v; }); }
 
+// ── キャラクター用（スキン網）：トゥーン＋縁の光（リムライト）＋当たった時の白い光＋黒い霧への崩れ（ディゾルブ） ──
+let _cgrad = null;
+/** キャラクター用の 3 段の陰影（影を明るめ＝アニメ調） */
+export function charGradient() {
+  if (_cgrad) return _cgrad;
+  const data = new Uint8Array([105, 100, 120, 255, 190, 186, 200, 255, 255, 255, 255, 255]);
+  _cgrad = new THREE.DataTexture(data, 3, 1, THREE.RGBAFormat);
+  _cgrad.minFilter = _cgrad.magFilter = THREE.NearestFilter; _cgrad.generateMipmaps = false; _cgrad.needsUpdate = true;
+  return _cgrad;
+}
+/**
+ * キャラクターの材質。1 体ごとに別の実体（当たった光・崩れの値を個別に持つ）。GL のプログラムは共有される。
+ * opt: { map, alphaTest, rim:0..1, rimColor, emissive }
+ * 戻り値の material.userData.u = { rim, rimColor, flash, dissolve, edge }（uniform）
+ */
+export function charMaterial(opt = {}) {
+  const m = new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: !opt.map, map: opt.map || null, gradientMap: charGradient(), alphaTest: opt.alphaTest || 0, transparent: false });
+  if (opt.emissive) { m.emissive = new THREE.Color(opt.emissive); m.emissiveIntensity = opt.emissiveIntensity || 1; }
+  const u = { uRim: { value: opt.rim ?? 0.55 }, uRimColor: { value: new THREE.Color(opt.rimColor ?? 0xb8a8ff) }, uFlash: { value: 0 }, uDissolve: { value: 0 }, uEdge: { value: new THREE.Color(0x6a3aa8) } };
+  m.userData.u = u;
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = 'varying vec3 vWP;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n vWP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = 'uniform float uRim; uniform vec3 uRimColor; uniform float uFlash; uniform float uDissolve; uniform vec3 uEdge; varying vec3 vWP;\n'
+      + 'float shHash(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }\n'
+      + 'float shNoise(vec3 x){ vec3 i = floor(x); vec3 f = fract(x); f = f*f*(3.0-2.0*f); return mix(mix(mix(shHash(i), shHash(i+vec3(1,0,0)), f.x), mix(shHash(i+vec3(0,1,0)), shHash(i+vec3(1,1,0)), f.x), f.y), mix(mix(shHash(i+vec3(0,0,1)), shHash(i+vec3(1,0,1)), f.x), mix(shHash(i+vec3(0,1,1)), shHash(i+vec3(1,1,1)), f.x), f.y), f.z); }\n'
+      + sh.fragmentShader
+        .replace('void main() {', 'void main() {\n float shN = shNoise(vWP * 9.0) * 0.6 + shNoise(vWP * 23.0) * 0.4 + (vWP.y - 0.0) * 0.0;\n if (uDissolve > 0.0 && shN < uDissolve * 1.15 - 0.05 + (1.0 - clamp(vWP.y * 0.5, 0.0, 1.0)) * uDissolve * 0.25) discard;')
+        .replace('#include <opaque_fragment>', ' { float rimK = 1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0); outgoingLight += uRimColor * smoothstep(0.6, 0.82, rimK) * uRim * 0.55; }\n'
+          + ' if (uDissolve > 0.0 && shN < uDissolve * 1.15 + 0.06) outgoingLight = mix(outgoingLight, uEdge * 1.6, 0.85);\n'
+          + ' outgoingLight = mix(outgoingLight, vec3(1.0, 0.97, 1.0), uFlash);\n#include <opaque_fragment>');
+  };
+  m.customProgramCacheKey = () => 'shchar' + (opt.map ? 'm' : 'v') + (opt.alphaTest ? 'a' : '');
+  return m;
+}
+/**
+ * スキン網の輪郭線（裏返しの殻）。頂点ごとの太さ（属性 oth）を掛ける。色・太さは 1 体ごと（ロックオン・見切りの青い縁に使う）。
+ * 崩れ（uDissolve）も本体と同じ雑音で消える。
+ */
+export function skinOutlineMaterial(thick = 0.009, color = 0x1a1022) {
+  const m = new THREE.MeshBasicMaterial({ color, side: THREE.BackSide, fog: true });
+  const u = { uOutline: { value: thick }, uDissolve: { value: 0 } };
+  m.userData.u = u; m.userData.isOutline = true;
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = 'uniform float uOutline; attribute float oth; varying vec3 vWP;\n' + sh.vertexShader
+      .replace('#include <begin_vertex>', 'vec3 transformed = position + normalize(normal) * uOutline * oth;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\n vWP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = 'uniform float uDissolve; varying vec3 vWP;\nfloat shHash(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }\n'
+      + 'float shNoise(vec3 x){ vec3 i = floor(x); vec3 f = fract(x); f = f*f*(3.0-2.0*f); return mix(mix(mix(shHash(i), shHash(i+vec3(1,0,0)), f.x), mix(shHash(i+vec3(0,1,0)), shHash(i+vec3(1,1,0)), f.x), f.y), mix(mix(shHash(i+vec3(0,0,1)), shHash(i+vec3(1,0,1)), f.x), mix(shHash(i+vec3(0,1,1)), shHash(i+vec3(1,1,1)), f.x), f.y), f.z); }\n'
+      + sh.fragmentShader.replace('void main() {', 'void main() {\n if (uDissolve > 0.0) { float shN = shNoise(vWP * 9.0) * 0.6 + shNoise(vWP * 23.0) * 0.4; if (shN < uDissolve * 1.15 + 0.02 + (1.0 - clamp(vWP.y * 0.5, 0.0, 1.0)) * uDissolve * 0.25) discard; }');
+  };
+  m.customProgramCacheKey = () => 'shskinoutline';
+  return m;
+}
+
 /** 文字の看板などのキャンバス */
 export function canvasTex(w, h, draw) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;

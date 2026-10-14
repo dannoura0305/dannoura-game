@@ -14,6 +14,7 @@ export function windows(diff = 'normal', opt = {}, C = COMBAT) {
     mikiri: C.issen.mikiri.window + t + a,
     hajiki: C.issen.hajiki.window + t + a,
     utsu: C.issen.utsu.window + t + a,
+    chain: C.issen.chain ? C.issen.chain.window + t + a : 0,
     iaiHold: C.issen.iai.hold,
     iStart: C.dodge.iStart, iEnd: C.dodge.iEnd,
     dmgMul: d.dmgMul, dropMul: d.dropMul,

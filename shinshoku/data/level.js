@@ -37,7 +37,7 @@ export const LEVEL = {
   ],
   // 帰路の家の戸（表札・灯りの色＝その帰路のマフラーの色）。front：戸の前（道の側）
   doors: {
-    k1: { name: '佐伯', x: -4.5, z: -13, face: 1, color: 0xd04848, front: [-3.8, -13] },
+    k1: { name: '笹木', x: -4.5, z: -13, face: 1, color: 0xd04848, front: [-3.8, -13] },
     k2: { name: '松尾', x: 4.5, z: -19, face: -1, color: 0xe0c040, front: [3.8, -19] },
     k3: { name: '川原', x: -16, z: -29.5, face: 1, color: 0x50b060, front: [-15.2, -29.5], alongX: true },
     k4: { name: '野中', x: -4.5, z: -58, face: 1, color: 0x4a7ae0, front: [-3.8, -58] },
@@ -75,7 +75,7 @@ export const LEVEL = {
     { pos: [-3.3, 1.6, -33.5], color: 0x9fd0ff, intensity: 4, dist: 6, vending: true },
     { pos: [0, 5.2, -56], color: 0xbfd8ff, intensity: 10, dist: 15, flicker: true },
   ],
-  homeLight: { pos: [0, 2.5, 12], color: 0xffd2a0, intensity: 9, dist: 11 },
+  homeLight: { pos: [0, 2.5, 12], color: 0xffd2a0, intensity: 5, dist: 11 },
   // 調べられる物（自宅）
   homeSpots: {
     safe: [4.9, 14.9], laptop: [-3.8, 13.4], calendar: [-1.6, 15.8], companion: [-1.4, 7.6],
