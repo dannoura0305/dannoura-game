@@ -192,9 +192,9 @@ await test('飾る：図鑑にある品だけ・同じ巣に 1 つ・ごほう�
   const rm = await a.req('nest_op', { nestId: e.nest.id, rev: sd.rev, op: { op: 'remove', id: p1.created } });
   assert.equal(rm.ok, true);
   assert.ok(H.store.hasCollectible(a.account.id, 'shell'));
-  // 豊かな巣
+  // 巣めぐり（Ver.0.6：前の 'ranking' は別名。自分の巣は出ない・順位や点数は無い）
   const rk = await a.req('ranking');
-  assert.equal(rk.ok, true); assert.equal(rk.list[0].me, true); assert.ok(rk.list[0].curios >= 2);
+  assert.equal(rk.ok, true); assert.equal(rk.tour, true); assert.ok(rk.list.every(x => !('rank' in x) && !('score' in x) && !('me' in x)));
   H.close(); rmDir(H.dir);
 });
 
@@ -379,7 +379,7 @@ await test('マイグレーション 005 → 006：巣と採集物は はじま�
   old.db.exec("INSERT INTO world_resources (id, region_id, kind, x, y) VALUES ('r1', 'steppe', 'seed', 10, 10)");
   old.close();
   const db = await openDb(file, { log: () => {} });
-  assert.equal(db.schemaVersion(), 6);
+  assert.equal(db.schemaVersion(), 7);
   assert.equal(db.db.prepare('SELECT field_id FROM lands').get().field_id, 'plains');
   assert.equal(db.resources('plains').length, 1); assert.equal(db.resources('dunes').length, 0);
   assert.equal(db.db.prepare('SELECT COUNT(*) n FROM collectibles').get().n, Object.keys(CURIOS).length);

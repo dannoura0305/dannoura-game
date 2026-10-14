@@ -6,7 +6,7 @@
 //   s.onMessage(text) / s.onClose()
 import { gateAt } from '../shared/regions.js';
 import { REGION, REGION_IDS, OPEN_REGIONS, regionMap, arrivalPoint, isRegion } from '../shared/world.js';
-import { CURIOS, isCurio, gateOpen, gateHint, GATE_R, ACH, collectAchievements, unlockedDecor, SANDSTORM_MS, VISIT_GOAL, nestRichness } from '../shared/collect.js';
+import { CURIOS, isCurio, gateOpen, gateHint, GATE_R, ACH, collectAchievements, unlockedDecor, SANDSTORM_MS, VISIT_GOAL } from '../shared/collect.js';
 import { MAX_RESIDENTS, TRAVEL_GAP_MS } from '../shared/protocol.js';
 import { boxFree } from '../shared/move.js';
 import { makeInventory, swapSlots, removeItem, countItem, addItem, START_INVENTORY, INV_SLOTS, ITEMS } from '../shared/items.js';
@@ -18,10 +18,13 @@ import { TUNING, PRED, INVULN_MS, dropItems, dropSpots, safePoint, raidLoss, RAI
 import { landAt, landOut } from '../shared/lands.js';
 import { makeFieldState } from '../shared/move.js';
 import { Household } from '../shared/household.js';
-import { founderInd, indOut, courtBlock, needsFood } from '../shared/family.js';
+import { founderInd, indOut, courtBlock, needsFood, friendBlock } from '../shared/family.js';
 import { traitMoveMods, traitMods, lookOf, seedOf } from '../shared/genetics.js';
 import { lifeEnvWithTraits, makeLife } from '../shared/life.js';
 import { WILD, devWildGenes } from '../shared/wild.js';
+import { PET } from '../shared/family-life.js';
+import { pickTour } from '../shared/tour.js';
+import { devFamily } from '../shared/dev-family.js';
 import { DAY_MS } from '../shared/daynight.js';
 import { SEXES } from '../shared/protocol.js';
 import { FieldRoom } from './rooms/field.js';
@@ -71,6 +74,7 @@ export class Game {
       room.raidInfo = (e, t) => this.raidInfo(e, t);
       room.onRelocate = (p, nest, ent, fromRegion) => this.relocated(p, nest, ent, fromRegion);
       room.courtOk = p => !this._courtBlock(p);
+      room.friendOk = p => !this._friendBlock(p);
       room.onWild = e => { const o = this.players.get(e.by); if (o && o.conn) o.conn.send({ t: S2C.WILD, type: e.type, id: e.id, name: e.name || (room.wild.get(e.id) || {}).name }); };
       room.onCollect = (p, cid, at) => this.collected(p, cid, at);
       room.ownedOf = p => p.owned || new Set();
@@ -86,7 +90,6 @@ export class Game {
     this.nests.onPlug = nest => this.refreshEntrance(nest.owner);
     this.nests.onPlace = (p, nest, op, data) => { if (op.type === 'curio' && data.objects.filter(o => o.type === 'curio').length >= 3) this.grant(p, 'display3'); };
     for (const room of this.fields.values()) room.load();
-    this._rankCache = null;
     this.sessions = new Set();
     this._timers = [];
   }
@@ -275,12 +278,14 @@ export class Game {
       case C2S.TRAVEL: return this.travel(p, m);
       case C2S.ENTER_GATE: return this.enterGate(p);
       case C2S.COLLECTION: return this.collectionOut(p);
-      case C2S.RANKING: return this.ranking(p);
+      case C2S.NEST_TOUR: case C2S.RANKING: return this.nestTour(p);   // Ver.0.6：巣めぐり（'ranking' は前の版のクライアントのための別名）
       case C2S.RESIDENTS: return { ok: true, ...this.residentsInfo(p.accountId) };
       case C2S.RESIDENT_INVITE: return this.residentInvite(p, m.name);
       case C2S.RESIDENT_ANSWER: return this.residentAnswer(p, m.nestId, !!m.ok);
       case C2S.RESIDENT_LEAVE: return this.residentLeave(p);
       case C2S.RESIDENT_REMOVE: return this.residentRemove(p, m.id);
+      // Ver.0.6
+      case C2S.FAMILY_PET: return this.petFamily(p, m);
     }
     return fail(ERR.BAD_REQUEST, '知らない要求: ' + String(m.t).slice(0, 20));
   }
@@ -647,9 +652,16 @@ export class Game {
       this.saveHouse(p);
     }
     let wild = null;
-    if (m.wild && p.place === 'field') { const n = room.wild.spawn(p.st.x + (Number(m.dx) || 40), p.st.y + (Number(m.dy) || 0), devWildGenes(room.wild, m)); wild = n.id; }
+    if (m.wild && p.place === 'field') { const n = room.wild.spawn(p.st.x + (Number(m.dx) || 40), p.st.y + (Number(m.dy) || 0), devWildGenes(room.wild, m), m.species === 'longear' ? 'longear' : 'jerboa'); wild = n.id; }
     if (m.trust && p.place === 'field') { const n = room.wild.get(String(m.trust)) || room.wild.npcs[0]; if (n) { n.trust[p.accountId] = 99.5; n.st = makeFieldState(p.st.x + 12, p.st.y); } }
     if (m.birth && h && h.pending) h.pending.dueAgeMs = h.me.ageMs;
+    if (m.family && typeof m.family === 'object' && h) {   // Ver.0.6：家族をすぐに作る（{mate, pups, young, friend}）
+      const nid = this._ownNestId(p);
+      const made = devFamily(h, m.family, () => this.store.allocIndividual(p.accountId, this.now()), this.now());
+      this.store.tx(() => { for (const x of made) this.store.saveInd(x, { accountId: p.accountId, nestId: nid }); });
+      this._updateKids(p, true); this._sendFamily(p);
+      if (nid != null) this.nests.forget(nid);
+    }
     // 持ち物・倉庫へ足す（{give:{seed:10}}・{store:{seed:40}}）
     let inv = null;
     if (m.give && typeof m.give === 'object') {
@@ -737,6 +749,12 @@ export class Game {
     if (!h || !h.me) return 'キャラクターが無い';
     return courtBlock({ ageMs: h.me.ageMs, life: p.life, season: this.envOf(p).season, pending: !!h.pending });
   }
+  /** Ver.0.6：ほかの種の子と なかよくなれるか */
+  _friendBlock(p) {
+    const h = p.house;
+    if (!h || !h.me) return 'キャラクターが無い';
+    return friendBlock({ ageMs: h.me.ageMs, friends: h.friends().length });
+  }
   /** 野生の子に種子をあげる */
   court(p, m) {
     if (p.place !== 'field') return fail(ERR.FORBIDDEN, '地上にいない');
@@ -744,11 +762,12 @@ export class Game {
     room.drain(p);
     const n = room.wild.get(String(m.wildId));
     if (!n) return fail(ERR.NOT_FOUND, 'もう どこかへ行ってしまった');
-    const why = this._courtBlock(p);
+    const other = n.species && n.species !== 'jerboa';
+    const why = other ? this._friendBlock(p) : this._courtBlock(p);
     if (why) return fail(ERR.RULE, why, { shy: true });
     const inv = p.inv.map(x => x && { ...x });
     if (!removeItem(inv, 'seed', 1)) return fail(ERR.RULE, '種子を持っていない');
-    const r = room.wild.offer(n.id, { id: p.accountId, x: p.st.x, y: p.st.y, eligible: true }, this.now());
+    const r = room.wild.offer(n.id, { id: p.accountId, x: p.st.x, y: p.st.y, eligible: true, friendOk: true }, this.now());
     if (!r.ok) return fail(ERR.RULE, r.reason);
     this.store.setCharInventory(p.charId, inv);
     p.inv = inv;
@@ -770,9 +789,14 @@ export class Game {
     const room = this.fieldOf(p);
     const n = room.wild.followerOf(p.accountId);
     if (!h || !n || !p.st || Math.hypot(n.st.x - p.st.x, n.st.y - p.st.y) > WILD.INVITE_R) return null;
-    const r = h.invite({ name: n.name, genes: n.genes }, this._breedCtx(p, nest));
+    const r = h.invite({ name: n.name, genes: n.genes, species: n.species }, this._breedCtx(p, nest));
     if (!r.ok) return { ok: false, name: n.name, reason: r.reason };
     room.wild.take(n.id);
+    if (r.friend) {   // Ver.0.6：ほかの種のなかま（つれあいにはならない・お産の予定は作らない）
+      this.store.tx(() => { this.store.saveInd(r.mate, { accountId: p.accountId, nestId: nest.id }); });
+      this._sendFamily(p, [{ type: 'friend', name: r.mate.name, species: r.mate.species }]);
+      return { ok: true, friend: true, name: n.name, species: r.mate.species, mate: indOut(r.mate), note: r.note };
+    }
     this.store.tx(() => {
       this.store.dropPendingLitters(p.accountId);
       this.store.saveInd(r.mate, { accountId: p.accountId, nestId: nest.id });
@@ -822,6 +846,22 @@ export class Game {
     this.store.tx(() => { this.store.setCharInventory(p.charId, inv); this.store.saveIndAge(r.member); });
     p.inv = inv;
     return { ok: true, inv: inv.map(x => x && { ...x }), member: indOut(r.member), family: h.out() };
+  }
+  /** Ver.0.6：巣の家族をなでる（自分の家の巣の中で・1 匹ごとに PET.COOLDOWN_MS）。体調 +PET.COND */
+  petFamily(p, m) {
+    const h = p.house;
+    if (!h) return fail(ERR.NOT_FOUND, 'キャラクターが無い');
+    const nestId = this._ownNestId(p);
+    if (p.place !== 'nest' || nestId == null || p.nestId !== nestId) return fail(ERR.FORBIDDEN, '自分の巣の中で');
+    if (p.sleeping) return fail(ERR.RULE, '眠っている');
+    const id = Number(m.id);
+    if (!Number.isInteger(id)) return fail(ERR.BAD_REQUEST, 'だれ？');
+    const r = h.pet(id, this.now());
+    if (!r.ok) return fail(r.cooldown ? ERR.RATE : ERR.RULE, r.reason);
+    p.life = { ...p.life, cond: Math.min(PET.MAX_COND, p.life.cond + r.cond) };
+    this.store.tx(() => { this.store.saveInd(r.member, { accountId: p.accountId, nestId }); this.store.setLife(p.indId, { ...lifeOut(p.life), sleep: false }); });
+    this.sendLife(p);
+    return { ok: true, member: indOut(r.member), life: lifeOut(p.life), family: h.out(), cond: r.cond };
   }
   kidsFollow(p, m) {
     const h = p.house;
@@ -944,7 +984,7 @@ export class Game {
     return { ok: true, list: this.friendList(p.accountId) };
   }
 
-  // ───────── 広がり（Ver.0.5）：土地の旅・不思議な穴・収集品・実績・共同巣・豊かな巣 ─────────
+  // ───────── 広がり（Ver.0.5）：土地の旅・不思議な穴・収集品・実績・共同巣（Ver.0.6：豊かな巣 → 巣めぐり）─────────
   /** 図鑑・実績・進み具合（印）を DB から */
   _loadProgress(p) {
     p.owned = new Set(Object.keys(this.store.collection(p.accountId)));
@@ -1079,18 +1119,22 @@ export class Game {
     return { ok: true, owned: this.store.collection(p.accountId), achievements: this.store.achievements(p.accountId),
       stats: { seasons: [...p.seasonsSeen], regions: [...p.regionsSeen], visited: p.visitedNests.size, found: !!p.toyamaFound } };
   }
-  /** 穏やかなランキング「豊かな巣」：巣の豊かさの上位 10（30 秒は同じ結果） */
-  ranking(p) {
+  /**
+   * Ver.0.6「巣めぐり」：その子が入れる巣（公開・フレンドだけ公開でフレンド・許可リスト）をいくつか紹介する。順位・点数はつけない
+   * （shared/tour.js：最近 手を入れた巣を少し＋その子と時間の枠で混ぜた巣。10 分ごとに入れかわる）。自分の巣・住んでいる共同巣は出さない。
+   */
+  nestTour(p) {
     const t = this.now();
-    if (!this._rankCache || t - this._rankCache.at > 30000) {
-      const rows = this.store.allNests().map(n => ({ nestId: n.id, owner: n.owner, name: n.ownerName, region: n.field || 'plains', ...nestRichness(n.data) }));
-      rows.sort((a, b) => b.score - a.score || a.nestId - b.nestId);
-      this._rankCache = { at: t, rows };
+    const home = this._homeNestId(p);
+    const friends = new Set(this.store.friendIds(p.accountId));
+    const cands = [];
+    for (const n of this.store.allNests()) {
+      if (n.owner === p.accountId || n.id === home || n.x == null) continue;
+      if (!this.nests.canVisit(n, p.accountId)) continue;
+      cands.push({ nestId: n.id, name: n.ownerName, region: n.field || 'plains', data: n.data, updatedAt: n.updatedAt, policy: n.policy, friend: friends.has(n.owner), x: n.x, y: n.y });
     }
-    const rows = this._rankCache.rows;
-    const mine = rows.findIndex(r => r.owner === p.accountId);
-    const list = rows.slice(0, 10).map((r, i) => ({ rank: i + 1, name: r.name, region: r.region, score: r.score, rooms: r.rooms, decor: r.decor, curios: r.curios, me: r.owner === p.accountId }));
-    return { ok: true, list, mine: mine >= 0 ? { rank: mine + 1, ...rows[mine], me: true } : null, total: rows.length };
+    const list = pickTour(cands, { viewer: p.accountId, now: t });
+    return { ok: true, tour: true, list, count: cands.length };
   }
 
   // ── 共同巣：所有者がフレンドを住人に誘う（nest_access の role 'invite' → 'resident'）──

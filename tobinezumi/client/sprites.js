@@ -208,6 +208,8 @@ function lookPalette(L) {
     return c;
   });
   if (L.tuft) out[8] = out[5];
+  // Ver.0.6：ミミナガトビネズミ（近縁種）：少し灰色がかった淡い毛・耳の内側が濃い桃色
+  if (L.sp === 'longear') for (let i = 0; i <= 5; i++) out[i] = mixc(out[i], i <= 3 ? [196, 186, 170] : [236, 230, 222], 0.32);
   return out;
 }
 /** 斑の模様（その子ごとに違う：ps の種）。セルの座標で */
@@ -233,7 +235,9 @@ function buildLook(e, col, row, L, side, pup) {
   palettes.base.forEach((h, i) => { const [r, g, b] = hexRGB(h); idx.set((r << 16) | (g << 8) | b, i); });
   // 形：耳（上の帯を伸ばす）・脚（足元の帯を伸ばして体を持ち上げる）・尾（横向きの左の帯を伸ばす）
   const k = pup ? 0.5 : 1;
-  const dE = Math.round((L.ear || 0) * k), dL = Math.round((L.leg || 0) * (pup ? 0.5 : 1));
+  const longear = L.sp === 'longear';
+  const dE = Math.round((L.ear || 0) * k) + (longear ? (pup ? 3 : 6) : 0), dL = Math.round((L.leg || 0) * (pup ? 0.5 : 1));
+  const SNOUT_X = pup ? 21 : 23, sf = longear && side ? 1.3 : 1;   // 鼻先（横向きの右の帯）を伸ばす
   const EAR_Y = pup ? 15 : 9, EAR_L = pup ? 5 : 7, LEG_T = pup ? 25 : 24, FOOT = 30;
   const TAIL_X = pup ? 12 : 10, tf = 1 + 0.2 * (L.tail || 0) * (pup ? 0.6 : 1);
   for (let Y = 0; Y < OUT_H; Y++) {
@@ -248,7 +252,7 @@ function buildLook(e, col, row, L, side, pup) {
     if (sy < 0 || sy >= ch) continue;
     for (let X = 0; X < OUT_W; X++) {
       const x = X - LM.x;
-      const x2 = side && x < TAIL_X ? TAIL_X - (TAIL_X - x) / tf : x;
+      const x2 = side && x < TAIL_X ? TAIL_X - (TAIL_X - x) / tf : sf !== 1 && x > SNOUT_X ? SNOUT_X + (x - SNOUT_X) / sf : x;
       const sx = Math.floor(x2);
       if (sx < 0 || sx >= cw) continue;
       const si = (sy * cw + sx) * 4;

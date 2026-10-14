@@ -13,7 +13,7 @@ import { restoreFrom } from '../backup.js';
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
-const dataDir = resolve(HERE, process.env.TOBI_DATA || 'data');
+const dataDir = resolve(HERE, process.env.TOBI_DATA_DIR || process.env.TOBI_DATA || 'data');
 const backups = resolve(HERE, process.env.TOBI_BACKUPS || 'backups');
 const db = resolve(HERE, opt('db', join(dataDir, 'game.db')));
 let file = args.find(a => !a.startsWith('--') && a !== opt('db', null));

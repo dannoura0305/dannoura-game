@@ -177,3 +177,16 @@ python3 tobinezumi/tools/normalize_sprites.py --help # 外部画像の規格化
 
 - 雪のまだら・砂嵐・蛍・桜の花びら・夜の灯りは `client/scene-field.js` がコードで描く。環境音は `client/ambient.js` が WebAudio で合成（音のファイルなし）。
 - 素材は `python3 tools/make_assets.py` で 139 個（決まった種から作るので、何度作っても同じ）。
+
+### Ver.0.6「くらしの深まり」（`tools/art_life.py` が描く。無ければ `client/art.js` のコード描画）
+| キー | セル | 中身 |
+|---|---|---|
+| `tile.paddy_cut` | 16×16・2 種 | 富山の秋：稲刈りのあとの田（刈り株）。西の 2 列の田だけ |
+| `tile.hasa` | 40×32 | はさ掛け（刈った稲を干す木の組み）。秋のあぜ道 |
+| `tile.snow_lantern` | 16×24・3 種（off / lit1 / lit2） | 雪の灯り。冬の祠のそば・夜は窓がゆれる |
+| `tile.busstop` | 24×32・2 種（normal / winter） | 古いバス停（時刻表の板・ベンチ。冬は雪） |
+| `item.curio.rice_ear.icon` / `item.curio.candle_stub.icon` | 16×16 | 季節の品：金色の稲穂・ちびたろうそく（図鑑 20） |
+
+- **ミミナガトビネズミ**（近縁種）は絵を足していない：`client/sprites.js` の形質の描き分けで、耳の帯を大きく伸ばし（おとな +6px・子ども +3px）、横向きの鼻先の帯を 1.3 倍に、毛色を灰色がかった淡い色へ寄せる（`look.sp = 'longear'`）。本番の絵に差し替えるときは `jerboa.side.*` と同じ形の `longear.*` を足せばよい（今は無い）。
+- 家族のしぐさ（毛づくろい＝`jerboa.side.eat`・くんくん＝`jerboa.side.gather`・眠る＝`sleep`）・ハート（`ui.heart`）・吹き出しは前からの素材とコード描画。家系図の書き出し（PNG）は `ui.lineage_frame` と立ち絵（`Sprites.lookPortrait`）で canvas に描く。
+- 素材は `python3 tools/make_assets.py` で 145 個（Ver.0.5 の 139 個はそのまま・同じ画素）。

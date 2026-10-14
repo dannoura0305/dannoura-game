@@ -1,4 +1,4 @@
-// tobinezumi/client/world-ui.js — Ver.0.5「広がり」の画面：世界地図・図鑑（収集品）・実績・豊かな巣（穏やかなランキング）・共同巣
+// tobinezumi/client/world-ui.js — Ver.0.5「広がり」の画面：世界地図・図鑑（収集品）・実績・巣めぐり（Ver.0.6：順位なし）・共同巣
 // どれも DOM のパネル（ui.js のモーダル 1 つ）。指で押せる大きさ（ボタン 40px 以上・枠 48px 以上）。文字は短く。
 import { el, esc, iconURL, fmtWhen } from './ui.js';
 import { Sprites } from './sprites.js';
@@ -8,7 +8,7 @@ import { FURNITURE } from '../shared/items.js';
 import * as A from './art.js';
 
 const DIR_JA = { n: '北', s: '南', e: '東', w: '西' };
-const KIND_JA = { nature: 'その土地のもの', sign: 'しるし', crossover: '不思議な品' };
+const KIND_JA = { nature: 'その土地のもの', sign: 'しるし', crossover: '不思議な品', season: '季節の品' };
 
 /** 収集品のアイコン（素材が無ければコード描画） */
 export function curioIconURL(cid) { return iconURL('curio.' + cid); }
@@ -133,20 +133,30 @@ export async function achievementsPanel(game) {
   return p;
 }
 
-// ───────── 豊かな巣（穏やかなランキング）─────────
-export async function rankingPanel(game) {
-  const ui = game.ui;
-  const r = await game.net.ranking();
+// ───────── 巣めぐり（Ver.0.6：順位・点数はつけない。たずねる先を見つけるだけ）─────────
+export async function nestTourPanel(game) {
+  const ui = game.ui, net = game.net;
+  const r = await (net.nestTour ? net.nestTour() : net.ranking());
   if (!r || !r.ok) { ui.toast((r && r.reason) || '見られない', 'bad'); return; }
-  const p = el('div', 'tb-panel tb-menu tb-rank tb-ui-block');
-  const row = x => `<div class="tb-rrow${x.me ? ' me' : ''}"><b>${x.rank}</b><span class="nm">${esc(x.name)}の巣</span><span class="tb-dim">${esc((REGION[x.region] || REGION.plains).name)}</span><span class="sc">${x.score}</span><small>部屋 ${x.rooms}・家具 ${x.decor}・飾った品 ${x.curios}</small></div>`;
-  p.innerHTML = `<div class="tb-ph">豊かな巣<button class="tb-x">×</button></div>
-    <div class="tb-dim tb-rnote">部屋・家具・飾った収集品から数えた「豊かさ」。競うためより、見せ合うための目安。</div>
-    <div class="tb-rlist tb-scroll">${r.list.length ? r.list.map(row).join('') : '<div class="tb-dim">まだ巣がない</div>'}${r.mine && r.mine.rank > 10 ? '<div class="tb-dim">…</div>' + row(r.mine) : ''}</div>`;
+  const p = el('div', 'tb-panel tb-menu tb-rank tb-tour tb-ui-block');
+  const here = net.region || 'plains';
+  const row = (x, i) => `<div class="tb-trow"><div><span class="nm">${esc(x.name)}の巣</span>${x.friend ? '<span class="tb-ok">（フレンド）</span>' : ''}<span class="tb-dim"> ${esc((REGION[x.region] || REGION.plains).name)}</span></div>
+      <small>${esc(x.desc)}</small><span class="bt"><button type="button" class="tb-btn small" data-i="${i}">${x.region === here ? '場所を見る' : 'どの土地？'}</button></span></div>`;
+  p.innerHTML = `<div class="tb-ph">巣めぐり<button class="tb-x">×</button></div>
+    <div class="tb-dim tb-rnote">たずねられる巣を いくつか紹介します（順番に意味はなく、ときどき入れかわります）。入口の前で「訪ねる」。</div>
+    <div class="tb-rlist tb-scroll">${r.list.length ? r.list.map(row).join('') : '<div class="tb-dim">いまは たずねられる巣が見つからない。' + (net.mode === 'offline' ? '（オフラインでは モカの巣・フレンドになった リコの巣を たずねられる）' : '（巣を「公開」や「フレンドだけ」にしている子の巣が ここに出る）') + '</div>'}</div>`;
+  for (const b of p.querySelectorAll('[data-i]')) b.onclick = () => {
+    const x = r.list[Number(b.dataset.i)];
+    if (x.region !== here) { ui.toast(x.name + 'の巣は「' + ((REGION[x.region] || {}).name || x.region) + '」にある（世界地図・N）'); return; }
+    ui.closeModal();
+    if (game.field && x.x != null) { game.field.pingAt(x.x, x.y, x.name + 'の巣'); ui.toast(x.name + 'の巣は ミニマップで光っている所'); }
+  };
+  game.debug.tour = { n: r.list.length, names: r.list.map(x => x.name), descs: r.list.map(x => x.desc) };
   p.querySelector('.tb-x').onclick = () => ui.closeModal();
   ui._openModal(p);
   return p;
 }
+export const rankingPanel = nestTourPanel;   // 前の名前
 
 // ───────── 共同巣 ─────────
 export async function residentsPanel(game) {
@@ -155,17 +165,23 @@ export async function residentsPanel(game) {
   const p = el('div', 'tb-panel tb-menu tb-resid tb-ui-block');
   p.innerHTML = `<div class="tb-ph">共同巣<button class="tb-x">×</button></div><div class="tb-rbody tb-scroll"></div>`;
   const body = p.querySelector('.tb-rbody');
-  const act = async (fn, okText) => { const x = await fn(); if (!x.ok) { ui.toast(x.reason || 'できなかった', 'bad'); return; } if (okText) ui.toast(okText); render(x); if (game.onResidents) game.onResidents(x); };
+  const act = async (fn, okText) => { const x = await fn(); if (!x.ok) { ui.toast(x.reason || 'できなかった', 'bad'); return; } if (okText) ui.toast(okText); else if (x.text) ui.toast(x.text); render(x); if (game.onResidents) game.onResidents(x); game.debug.residents = x.mine ? x.mine.residents.map(r => r.name) : []; };
   const render = info => {
-    if (info.offline) { body.innerHTML = '<div class="tb-dim">共同巣（フレンドといっしょに 1 つの巣に住む）は オンラインで使えます。</div>'; return; }
+    if (info.offline && !info.npc) { body.innerHTML = '<div class="tb-dim">共同巣（フレンドといっしょに 1 つの巣に住む）は オンラインで使えます。</div>'; return; }
     const h = [];
-    h.push('<div class="tb-sub">あなたの巣に いっしょに住む子 <span class="tb-dim">（フレンドから ' + info.max + ' 匹まで。住人は いつでも入れて・掘れて・倉庫を使えて・眠れて・子を育てられる。訪問設定を決めるのは あなただけ）</span></div>');
+    if (info.npc) h.push('<div class="tb-sub">あなたの巣に いっしょに住む子 <span class="tb-dim">（オフライン：なかよしの ナッツ・モカ・リコ から ' + info.max + ' 匹まで。住人は巣で暮らし、昼は寝床で眠り、夜は ときどき倉庫に種子を持ってくる）</span></div>');
+    else h.push('<div class="tb-sub">あなたの巣に いっしょに住む子 <span class="tb-dim">（フレンドから ' + info.max + ' 匹まで。住人は いつでも入れて・掘れて・倉庫を使えて・眠れて・子を育てられる。訪問設定を決めるのは あなただけ）</span></div>');
     if (!info.mine) h.push('<div class="tb-dim">まだ巣が無い（先に巣を掘ろう）</div>');
     else {
       h.push('<div class="tb-names res">' + info.mine.residents.map(x => `<span class="tb-chip">${esc(x.name)}<button type="button" data-rm="${x.id}" title="外す">×</button></span>`).join('') +
         info.mine.invites.map(x => `<span class="tb-chip dim">${esc(x.name)}（返事待ち）<button type="button" data-rm="${x.id}" title="取り消す">×</button></span>`).join('') +
-        (info.mine.residents.length + info.mine.invites.length < info.max ? '<span class="tb-chipadd"><input maxlength="10" placeholder="フレンドのなまえ"><button type="button" class="tb-btn small tb-inv">誘う</button></span>' : '') + '</div>');
+        (!info.npc && info.mine.residents.length + info.mine.invites.length < info.max ? '<span class="tb-chipadd"><input maxlength="10" placeholder="フレンドのなまえ"><button type="button" class="tb-btn small tb-inv">誘う</button></span>' : '') + '</div>');
+      if (info.npc && info.mine.residents.length < info.max) {
+        h.push((info.candidates || []).length ? '<div class="tb-names res">' + info.candidates.map(c => `<button type="button" class="tb-btn small" data-npc="${esc(c.name)}">${esc(c.name)} を誘う</button>`).join('') + '</div>'
+          : '<div class="tb-dim">誘えるフレンドがいない（メニュー → フレンドで ナッツ・モカ・リコ とフレンドになろう）</div>');
+      }
     }
+    if (info.npc) { body.innerHTML = h.join(''); wire(); return; }
     h.push('<div class="tb-sub">あなたが住んでいる巣</div>');
     h.push(info.home ? `<div class="tb-frow"><span class="nm">${esc(info.home.ownerName)}の巣</span><span class="tb-dim">${esc((REGION[info.home.region] || REGION.plains).name)}</span><span class="bt"><button type="button" class="tb-btn small tb-leave">出る</button></span></div>` : '<div class="tb-dim">どこにも住んでいない</div>');
     if (info.invites.length) {
@@ -173,10 +189,14 @@ export async function residentsPanel(game) {
       for (const v of info.invites) h.push(`<div class="tb-frow"><span class="nm">${esc(v.ownerName)}の巣</span><span class="tb-dim">${esc((REGION[v.region] || REGION.plains).name)}</span><span class="bt"><button type="button" class="tb-btn small primary" data-yes="${v.nestId}">住む</button><button type="button" class="tb-btn small" data-no="${v.nestId}">見送る</button></span></div>`);
     }
     body.innerHTML = h.join('');
+    wire();
+  };
+  const wire = () => {
+    for (const b of body.querySelectorAll('[data-npc]')) b.onclick = () => act(() => net.residentInvite(b.dataset.npc), null);
     const inp = body.querySelector('.tb-chipadd input');
     const go = () => { const v = inp.value.trim(); if (v) act(() => net.residentInvite(v), v + ' を誘った（返事を待とう）'); };
     if (inp) { body.querySelector('.tb-inv').onclick = go; inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.isComposing || e.keyCode === 229) return; if (e.key === 'Enter') go(); }); }
-    for (const b of body.querySelectorAll('[data-rm]')) b.onclick = () => act(() => net.residentRemove(Number(b.dataset.rm)), '外した');
+    for (const b of body.querySelectorAll('[data-rm]')) b.onclick = () => act(() => net.residentRemove(/^\d+$/.test(b.dataset.rm) ? Number(b.dataset.rm) : b.dataset.rm), '外した');
     for (const b of body.querySelectorAll('[data-yes]')) b.onclick = () => act(() => net.residentAnswer(Number(b.dataset.yes), true), 'いっしょに住むことになった！（その巣が あなたの家になる）');
     for (const b of body.querySelectorAll('[data-no]')) b.onclick = () => act(() => net.residentAnswer(Number(b.dataset.no), false), '見送った');
     const lv = body.querySelector('.tb-leave');

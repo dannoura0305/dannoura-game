@@ -3,7 +3,8 @@
 // 収集品（CURIOS）：土地・季節・時間帯・天気で、ときどき地上に 1 つ光る物が出る（サーバーの部屋／オフラインの世界が出す）。
 //   拾うとアカウントの図鑑に入る（1 種類 1 回。account_collectibles の主キーで二重に入らない）。持ち物の枠は使わない。
 //   巣の中に飾れる（家具 curio。同じ巣に同じ物は 1 つ）。図鑑の中身はアカウントにつくので、世代交代してもそのまま。
-//   kind：nature（その土地のもの）・sign（しるし：富山への手がかり 3 つ）・crossover（富山だけ：ほかの世界から来たような物）
+//   kind：nature（その土地のもの）・sign（しるし：富山への手がかり 3 つ）・crossover（富山だけ：ほかの世界から来たような物）・
+//         season（Ver.0.6：富山の季節の品。秋の稲穂・冬のろうそく）
 // 富山への穴（gateOpen）：みずおとの谷の奥・夜・初めては「冬・雪・しるし 3 つ」がそろったときだけ。一度たどり着いたら夜ならいつでも。
 // 実績（ACHIEVEMENTS）：やさしい目標。ごほうびは飾り（家具）が使えるようになるだけ。
 import { REGION } from './world.js';
@@ -40,6 +41,9 @@ export const CURIOS = {
   charm:         { id: 'charm', name: '不思議なお守り', region: 'toyama', kind: 'crossover', rate: 0.04, near: 'shrine', desc: '見たことのない紋章が刻まれている', hint: '？？？' },
   black_feather: { id: 'black_feather', name: '黒い羽', region: 'toyama', kind: 'crossover', rate: 0.04, near: 'any', when: { periods: ['night', 'dusk'] }, desc: '大きな鳥のものだろうか…', hint: '？？？' },
   odd_crystal:   { id: 'odd_crystal', name: '謎の結晶', region: 'toyama', kind: 'crossover', rate: 0.04, near: 'paddy', when: { periods: ['night'] }, desc: '別の世界から来たような気がする', hint: '？？？' },
+  // Ver.0.6：富山の季節の品（kind 'season'。説明はしない・決めない）
+  rice_ear:      { id: 'rice_ear', name: '金色の稲穂', region: 'toyama', kind: 'season', rate: 0.05, near: 'paddy', when: { seasons: ['autumn'] }, desc: '重たく実った ひとふさ。ここでは だれかが 毎年 育てているらしい。', hint: '？？？' },
+  candle_stub:   { id: 'candle_stub', name: 'ちびたろうそく', region: 'toyama', kind: 'season', rate: 0.04, near: 'shrine', when: { seasons: ['winter'], periods: ['night', 'dusk'] }, desc: '雪の灯りの そばに落ちていた。まだ少し あたたかい。', hint: '？？？' },
   unknown_card:  { id: 'unknown_card', name: '???の札', region: 'toyama', kind: 'crossover', rate: 0.012, near: 'any', when: { periods: ['night'] }, needs: 4, desc: 'よく分からない絵が描かれている。少し硬い。巣に飾れそうだ。とても貴重なもののようだ…', hint: '？？？', rarest: true },
 };
 export const CURIO_ORDER = Object.keys(CURIOS);
@@ -153,15 +157,25 @@ export function unlockedDecor(achIds) {
   return ACHIEVEMENTS.filter(a => a.reward && set.has(a.id)).map(a => a.reward);
 }
 
-// ───────── 穏やかなランキング「豊かな巣」─────────
-/** 巣の豊かさ：部屋 ×3・家具 ×2・飾った収集品 ×6・家具の種類 ×2（数字はゆるい目安。競うためより、見せ合うため） */
-export function nestRichness(data) {
-  if (!data) return { score: 0, rooms: 0, decor: 0, curios: 0 };
+// ───────── 巣めぐり（Ver.0.6：順位・点数はつけない）─────────
+/**
+ * 巣の様子（数えるだけ・比べない）：部屋・家具・飾った収集品・家具の種類。巣めぐりの短い紹介文に使う。
+ * Ver.0.5 の「豊かな巣」（点数と順位）は Ver.0.6 でやめた（このゲームは競い合わない）。
+ */
+export function nestFeatures(data) {
+  if (!data) return { rooms: 0, decor: 0, curios: 0, kinds: 0, bed: false, store: false };
   const objs = data.objects || [];
   const curios = objs.filter(o => o.type === 'curio').length;
-  const decor = objs.length - curios;
-  const kinds = new Set(objs.map(o => o.type)).size;
-  const rooms = (data.rooms || []).length;
-  return { score: rooms * 3 + decor * 2 + curios * 6 + kinds * 2, rooms, decor, curios };
+  const rooms = data.rooms || [];
+  return { rooms: rooms.length, decor: objs.length - curios, curios, kinds: new Set(objs.map(o => o.type)).size, bed: rooms.some(r => r.kind === 'bed'), store: rooms.some(r => r.kind === 'store') };
 }
-void REGION;
+/** 巣めぐりの紹介（やさしい短い文。数は「いくつ」だけ） */
+export function nestTourDesc(f, { recent = false } = {}) {
+  const parts = [];
+  if (f.rooms) parts.push('部屋 ' + f.rooms);
+  if (f.decor) parts.push('家具 ' + f.decor);
+  if (f.curios) parts.push('飾った品 ' + f.curios);
+  let mood = f.curios >= 2 ? '飾った品が ならぶ巣' : f.rooms >= 4 ? '通路の長い 広い巣' : f.decor >= 4 ? 'いろいろな家具のある巣' : f.store ? '倉庫のある 落ち着いた巣' : 'こぢんまりした巣';
+  if (recent) mood = '最近 手を入れた ' + mood;
+  return mood + (parts.length ? '（' + parts.join('・') + '）' : '');
+}

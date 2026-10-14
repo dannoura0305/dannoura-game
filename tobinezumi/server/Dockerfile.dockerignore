@@ -1,4 +1,7 @@
 tobinezumi/server/node_modules
 tobinezumi/server/data
 tobinezumi/server/backups
+tobinezumi/tools/__pycache__
+**/*.db
+**/*.pid
 .git

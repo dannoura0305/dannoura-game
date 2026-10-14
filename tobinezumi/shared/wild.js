@@ -26,6 +26,9 @@ export const WILD = {
   OFFER: 25, OFFER_GAP_MS: 1200, OFFER_RANGE: 30, FULL: 100, FOLLOW_GAP: 16, INVITE_R: 90,
 };
 export const WILD_DT = 1 / 20;
+// Ver.0.6：近縁種。すなの海（dunes）の夜に、出てくる子のうち LONGEAR.RATE がミミナガトビネズミ。なかよくなれる（信頼の増え方は少しゆっくり）が、
+// つれあいにはならない（種の壁：shared/family.js の speciesBlock）。巣へ迎えると「なかま」として住む。
+export const LONGEAR = { RATE: 0.3, REGION: 'dunes', GAIN: 0.75, NAMES: ['ミミ', 'ナガ', 'サバク', 'ルナ', 'シロ', 'ホシ', 'ソヨ'] };
 
 export class WildWorld {
   constructor({ map, seed = 1 }) {
@@ -45,6 +48,7 @@ export class WildWorld {
     this.wt += dt * 1000 * scale;
     const players = [...(ctx.players || [])].sort((a, b) => (a.id > b.id ? 1 : a.id < b.id ? -1 : 0));
     const byId = new Map(players.map(p => [p.id, p]));
+    this.period = ctx.period;
     // 出てくる
     this.spawnT -= dt * 1000 * scale;
     if (this.spawnT <= 0) {
@@ -84,14 +88,18 @@ export class WildWorld {
     }
     return null;
   }
-  /** 出す（開発用・テストからも） */
-  spawn(x, y, genes = null) {
+  /** 出す（開発用・テストからも）。species を決めなければ、すなの海の夜は LONGEAR.RATE でミミナガトビネズミ */
+  spawn(x, y, genes = null, species = null) {
     const region = regionAt(this.map, x, y).id;
-    const g = genes || wildGenes(this.rng, region);
+    let sp = species;
+    if (!sp) sp = this.map.region === LONGEAR.REGION && this.period === 'night' && this.rng() < LONGEAR.RATE ? 'longear' : 'jerboa';
+    const g = genes || wildGenes(this.rng, sp === 'longear' ? 'desert' : region);
+    if (sp === 'longear' && !genes) { g.col = [g.col[0] === 'rufous' ? 'cream' : g.col[0], 'cream']; g.ear = g.ear.map(v => Math.max(0, v)); g.fur = expressFur(g.col); }
     const traits = expressTraits(g);
     const id = 'j' + (++this.n);
+    const names = sp === 'longear' ? LONGEAR.NAMES : WILD_NAMES;
     const n = {
-      id, name: WILD_NAMES[Math.floor(this.rng() * WILD_NAMES.length) % WILD_NAMES.length], genes: g, traits, look: lookOf(traits, { ps: this.n % 97 }),
+      id, species: sp, name: names[Math.floor(this.rng() * names.length) % names.length], genes: g, traits, look: lookOf(traits, { ps: this.n % 97, sp }),
       st: makeFieldState(x, y), home: { x, y }, brain: { t: 0, mx: 0, my: 0 }, born: this.wt, farT: 0,
       trust: {}, seen: {}, follow: null, followUntil: 0, lastFollow: null, flee: 0, fleeFrom: null, mood: 'idle', offerT: {},
     };
@@ -127,12 +135,12 @@ export class WildWorld {
         let t = t0;
         if (p.jump && !seen.jump && d < WILD.JUMP_NEAR) { t -= WILD.JUMP_LOSS; n.flee = 1.4; n.fleeFrom = p; ev.push({ type: 'startle', id: n.id, by: p.id }); }
         else if (p.moving && !p.jump && d < WILD.HOP_NEAR) { t -= WILD.HOP_LOSS * dt; if (n.flee <= 0) { n.flee = 0.7; n.fleeFrom = p; } }
-        else if (d < WILD.NEAR && p.still >= WILD.STILL && p.eligible) t += WILD.STILL_GAIN * dt;
+        else if (d < WILD.NEAR && p.still >= WILD.STILL && this._elig(n, p)) t += WILD.STILL_GAIN * dt * (n.species === 'longear' ? LONGEAR.GAIN : 1);
         else if (d > WILD.DECAY_R) t -= WILD.DECAY * dt;
         seen.jump = !!p.jump;
         t = Math.max(0, Math.min(WILD.FULL, t));
         n.trust[p.id] = t;
-        if (t >= WILD.FULL && t0 < WILD.FULL && p.eligible) this._befriend(n, p.id, ev);
+        if (t >= WILD.FULL && t0 < WILD.FULL && this._elig(n, p)) this._befriend(n, p.id, ev);
         else if (t < WILD.FULL && t0 >= WILD.FULL) { /* 下がった */ }
       }
       if (n.follow != null) return;
@@ -171,6 +179,8 @@ export class WildWorld {
     n.st = s;
     void scale;
   }
+  /** なかよくなれる相手か：同じ種は eligible（courtBlock）、ほかの種は friendOk（なかまの条件。無ければ eligible） */
+  _elig(n, p) { return n.species === 'longear' ? (p.friendOk != null ? !!p.friendOk : !!p.eligible) : !!p.eligible; }
   _befriend(n, pid, ev) {
     if (this.npcs.some(o => o !== n && o.follow === pid && this.wt < o.followUntil)) return;   // 1 匹だけ
     n.follow = pid; n.lastFollow = pid; n.followUntil = this.wt + WILD.FOLLOW_WMS; n.flee = 0;
@@ -187,7 +197,7 @@ export class WildWorld {
     if (last != null && nowMs - last < WILD.OFFER_GAP_MS) return { ok: false, reason: 'もぐもぐ食べている…（少し待って）' };
     n.offerT[p.id] = nowMs;
     const t0 = n.trust[p.id] || 0;
-    const t = Math.min(WILD.FULL, t0 + (p.eligible ? WILD.OFFER : 0));
+    const t = Math.min(WILD.FULL, t0 + (this._elig(n, p) ? WILD.OFFER * (n.species === 'longear' ? LONGEAR.GAIN : 1) : 0));
     n.trust[p.id] = t;
     n.flee = 0;
     const ev = [];
@@ -197,7 +207,7 @@ export class WildWorld {
   /** スナップショット（見た目つき） */
   snapshot() {
     return this.npcs.map(n => ({ id: n.id, name: n.name, x: Math.round(n.st.x * 10) / 10, y: Math.round(n.st.y * 10) / 10, z: Math.round(n.st.z * 10) / 10, dir: n.st.dir, anim: n.st.anim,
-      jump: n.st.jump ? { t: n.st.jump.t, dur: n.st.jump.dur, x0: n.st.jump.x0, y0: n.st.jump.y0, x1: n.st.jump.x1, y1: n.st.jump.y1 } : null, look: n.look, fol: n.follow, mood: n.mood }));
+      jump: n.st.jump ? { t: n.st.jump.t, dur: n.st.jump.dur, x0: n.st.jump.x0, y0: n.st.jump.y0, x1: n.st.jump.x1, y1: n.st.jump.y1 } : null, look: n.look, fol: n.follow, mood: n.mood, ...(n.species && n.species !== 'jerboa' ? { sp: n.species } : {}) }));
   }
   /** その子から見た信頼（0 より大きいものだけ） */
   trustOf(pid) {

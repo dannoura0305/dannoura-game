@@ -1647,6 +1647,74 @@
    ]
   }
  },
+ "tile.paddy_cut": {
+  "file": "regions/paddy_cut.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 2,
+  "note": "autumn harvested paddy (toyama, west fields)"
+ },
+ "tile.hasa": {
+  "file": "regions/hasa.png",
+  "cell": [
+   40,
+   32
+  ],
+  "variants": 1,
+  "anchor": [
+   20,
+   31
+  ]
+ },
+ "tile.snow_lantern": {
+  "file": "regions/snow_lantern.png",
+  "cell": [
+   16,
+   24
+  ],
+  "variants": 3,
+  "anchor": [
+   8,
+   23
+  ],
+  "names": [
+   "off",
+   "lit1",
+   "lit2"
+  ]
+ },
+ "tile.busstop": {
+  "file": "regions/busstop.png",
+  "cell": [
+   24,
+   32
+  ],
+  "variants": 2,
+  "anchor": [
+   12,
+   31
+  ],
+  "names": [
+   "normal",
+   "winter"
+  ]
+ },
+ "item.curio.rice_ear.icon": {
+  "file": "items/curio_rice_ear.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.candle_stub.icon": {
+  "file": "items/curio_candle_stub.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
  "ui.frame": {
   "file": "ui/frame.png",
   "cell": [

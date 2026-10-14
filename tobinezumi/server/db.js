@@ -153,6 +153,8 @@ export class Store {
     if (st.retiredAt) o.retiredAt = st.retiredAt;
     if (st.wild) o.wild = true;
     if (st.kinOf) o.kinOf = st.kinOf;
+    if (st.pettedAt) o.pettedAt = st.pettedAt;
+    if (r.species && r.species !== 'jerboa') o.species = r.species;   // Ver.0.6：近縁種（なかま）
     return o;
   }
   individual(id) { return this._ind(this.q('SELECT * FROM individuals WHERE id = ?').get(id)); }
@@ -168,9 +170,10 @@ export class Store {
     if (m.retiredAt) st.retiredAt = m.retiredAt;
     if (m.wild) st.wild = true;
     if (m.kinOf) st.kinOf = m.kinOf;
-    const inNest = m.role === 'pup' || m.role === 'kin' || m.role === 'mate';
-    this.q('UPDATE individuals SET name = ?, sex = ?, generation = ?, father_id = ?, mother_id = ?, genes = ?, traits = ?, status = ?, role = ?, nest_id = ?, account_id = COALESCE(?, account_id) WHERE id = ?')
-      .run(m.name, m.sex, m.generation || 1, m.father_id ?? null, m.mother_id ?? null, J(m.genes), J(m.traits || expressTraits(m.genes)), J(st), m.role, inNest ? nestId : null, accountId, m.id);
+    if (m.pettedAt) st.pettedAt = m.pettedAt;
+    const inNest = m.role === 'pup' || m.role === 'kin' || m.role === 'mate' || m.role === 'friend';
+    this.q('UPDATE individuals SET name = ?, sex = ?, generation = ?, father_id = ?, mother_id = ?, genes = ?, traits = ?, status = ?, role = ?, nest_id = ?, account_id = COALESCE(?, account_id), species = ? WHERE id = ?')
+      .run(m.name, m.sex, m.generation || 1, m.father_id ?? null, m.mother_id ?? null, J(m.genes), J(m.traits || expressTraits(m.genes)), J(st), m.role, inNest ? nestId : null, accountId, m.species || 'jerboa', m.id);
   }
   /** 年齢・おなかだけ（30 秒ごと） */
   saveIndAge(m) {
@@ -187,7 +190,7 @@ export class Store {
     if (!me) return null;
     me.role = 'player';
     const flags = (c.individual.status && c.individual.status.house) || {};
-    const members = this.q("SELECT * FROM individuals WHERE account_id = ? AND role IN ('pup', 'kin', 'mate') ORDER BY id").all(accountId).map(r => this._ind(r));
+    const members = this.q("SELECT * FROM individuals WHERE account_id = ? AND role IN ('pup', 'kin', 'mate', 'friend') ORDER BY id").all(accountId).map(r => this._ind(r));
     const L = this.q('SELECT * FROM litters WHERE account_id = ? AND born_at IS NULL ORDER BY id DESC LIMIT 1').get(accountId);
     let pending = null;
     if (L) {
@@ -205,9 +208,9 @@ export class Store {
   dropPendingLitters(accountId) { this.q('DELETE FROM litters WHERE account_id = ? AND born_at IS NULL').run(accountId); }
   litterRows(accountId) { return this.q('SELECT * FROM litters WHERE account_id = ? ORDER BY id').all(accountId); }
   /** 巣にいる家族（所有者がオフラインのとき訪問者に見せる） */
-  nestFamily(nestId) { return this.q("SELECT * FROM individuals WHERE nest_id = ? AND role IN ('pup', 'kin', 'mate') ORDER BY id").all(nestId).map(r => this._ind(r)); }
+  nestFamily(nestId) { return this.q("SELECT * FROM individuals WHERE nest_id = ? AND role IN ('pup', 'kin', 'mate', 'friend') ORDER BY id").all(nestId).map(r => this._ind(r)); }
   /** 家系図：その家の個体すべて（'pending' を除く） */
-  lineage(accountId) { return this.q("SELECT * FROM individuals WHERE account_id = ? AND role != 'pending' ORDER BY generation, id").all(accountId).map(r => this._ind(r)); }
+  lineage(accountId) { return this.q("SELECT * FROM individuals WHERE account_id = ? AND role NOT IN ('pending', 'friend') ORDER BY generation, id").all(accountId).map(r => this._ind(r)); }
   /** 世代交代：古いキャラクターを休ませて、あとをつぐ子のキャラクターを作る（持ち物を写す）。位置は前の子の場所 */
   switchCharacter(accountId, heir, now = Date.now()) {
     return this.tx(() => {
@@ -265,7 +268,7 @@ export class Store {
   _nestRow(r) {
     if (!r) return null;
     return { id: r.id, owner: r.owner_account_id, landId: r.land_id, schemaVersion: r.schema_version, rev: r.rev, data: P(r.data, null), policy: r.visit_policy, x: r.x, y: r.y, ownerName: r.owner_name || '', ownerFur: r.owner_fur || null,
-      plugged: !!r.plugged, relocatedAt: r.relocated_at || 0, raidedAt: r.raided_at || 0, plot: r.plot || null, land: P(r.land_info, null), field: r.field_id || 'plains' };
+      plugged: !!r.plugged, relocatedAt: r.relocated_at || 0, raidedAt: r.raided_at || 0, plot: r.plot || null, land: P(r.land_info, null), field: r.field_id || 'plains', updatedAt: r.updated_at || 0 };
   }
   static NEST_SQL = 'SELECT n.*, l.x, l.y, l.plot, l.field_id, l.info land_info, (SELECT name FROM characters c WHERE c.account_id = n.owner_account_id AND c.active = 1 ORDER BY c.id DESC LIMIT 1) owner_name, (SELECT fur FROM characters c WHERE c.account_id = n.owner_account_id AND c.active = 1 ORDER BY c.id DESC LIMIT 1) owner_fur FROM nests n LEFT JOIN lands l ON l.id = n.land_id';
   nest(id) { return this._nestRow(this.q(Store.NEST_SQL + ' WHERE n.id = ?').get(id)); }

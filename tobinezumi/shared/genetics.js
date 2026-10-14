@@ -187,9 +187,10 @@ export function lookOf(traits, extra = {}) {
   return {
     fur: FUR_RANK[t.fur] != null ? t.fur : 'sand', tint: q(t.tint, 2), pied: t.pied ? 1 : 0, tuft: t.tuft === 'pale' ? 1 : 0,
     ear: q(t.ear, 2), leg: q(t.leg, 2), tail: q(t.tail, 2), size: q(t.size, 2), ...(extra.pup ? { pup: 1 } : {}), ...(extra.young ? { young: 1 } : {}), ps: extra.ps != null ? extra.ps : 0,
+    ...(extra.sp && extra.sp !== 'jerboa' ? { sp: extra.sp } : {}),   // Ver.0.6：近縁種（longear：とても大きな耳・長い鼻先・少し灰色がかった毛）
   };
 }
-export function lookKey(L) { return L ? [L.fur, L.tint, L.pied, L.tuft, L.ear, L.leg, L.tail, L.size, L.pup ? 1 : 0, L.young ? 1 : 0, L.ps || 0].join(',') : 'base'; }
+export function lookKey(L) { return L ? [L.fur, L.tint, L.pied, L.tuft, L.ear, L.leg, L.tail, L.size, L.pup ? 1 : 0, L.young ? 1 : 0, L.ps || 0, L.sp || ''].join(',') : 'base'; }
 
 /** 斑の模様の種（個体ごとに模様が違う） */
 export function piedSeed(id) { return Math.floor(hash2(Number(id) || seedOf(id), 17, 3) * 1000); }

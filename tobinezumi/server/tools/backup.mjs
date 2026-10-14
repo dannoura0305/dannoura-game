@@ -13,7 +13,7 @@ import { backupNow, listBackups, checkBackup } from '../backup.js';
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
-const db = resolve(HERE, opt('db', join(process.env.TOBI_DATA || 'data', 'game.db')));
+const db = resolve(HERE, opt('db', join(process.env.TOBI_DATA_DIR || process.env.TOBI_DATA || 'data', 'game.db')));
 const out = resolve(HERE, opt('out', process.env.TOBI_BACKUPS || 'backups'));
 const keep = parseInt(opt('keep', process.env.TOBI_BACKUP_KEEP || '48'), 10);
 

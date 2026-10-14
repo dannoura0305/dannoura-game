@@ -1,0 +1,33 @@
+# トビネズミMMO（仮称）— Render の Blueprint（Fly.io の代わり。手順は tobinezumi/docs/DEPLOY.md）。
+# Render の Blueprint はリポジトリのルートの render.yaml を読むので、使うときは このファイルをルートへ写す（または Render の画面で
+# 「Blueprint のパス」に tobinezumi/deploy/render.yaml を指定する）。
+# ※ SQLite を残すにはディスク（Starter 以上の有料プラン）が要る。無料プランはディスクが無く、止まるとデータが消える。
+services:
+  - type: web
+    name: tobinezumi
+    runtime: docker
+    dockerfilePath: ./tobinezumi/server/Dockerfile
+    dockerContext: .
+    plan: starter
+    region: singapore
+    healthCheckPath: /healthz
+    autoDeploy: false
+    disk:
+      name: tobi-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT          # Render はこの番号へつなぐ（Dockerfile の TOBI_PORT=8080 と同じに）
+        value: "8080"
+      - key: TOBI_DATA_DIR
+        value: /data
+      - key: TOBI_BACKUPS
+        value: /data/backups
+      - key: TOBI_TRUST_PROXY
+        value: "1"
+      - key: TOBI_ORIGIN
+        value: https://CHANGE-ME.github.io
+      - key: TOBI_STATS_TOKEN
+        generateValue: true
