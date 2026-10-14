@@ -28,6 +28,35 @@ function _mgRpgPeek(){
   };
 }
 function _mgRpgLocked(R){return R.cleared>0&&R.cleared<5&&R.lastDay===gs.day;}
+// ── 工場タブに置くミニゲーム（夜の🎮選択画面には出さない） ──
+// 下部ナビ「🔧 工場」と行動「🔧 工場で働く」から開く（minigames/core.js openMinigamePicker('factory')）。
+// 仕事・資格・通勤に関わるものだけ。1日1回・難しさ・報酬はほかのミニゲームと同じ。
+const MG_FACTORY_IDS=['rogue','puzzle','blocks','factory3d','quiz','escape','race'];
+function mgPlaceOf(id){return MG_FACTORY_IDS.includes(id)?'factory':'night';}
+
+// ── スキルがミニゲームで効くところ（スキル画面の「ミニゲームでの効果」と、遊び始めの表示に使う） ──
+// 数値は各ゲーム本体（minigames/<file>.js）の mgSkill() の使い方と同じにすること。
+// '_factory' は工場タブのミニゲーム全部に効くもの（minigames/core.js MG.finish）。
+const MG_SKILL_FX={
+  _factory:[['wiring','工場ミニゲームの収入 +5%/Lv'],['plc','工場ミニゲームの仕事評価 +1/Lv']],
+  rogue:    [['soundDiag','懐中電灯の届く距離 +0.35マス/Lv・闇から飛びかかられる確率 -20%/Lv']],
+  puzzle:   [['wiring','制限時間 +10秒/Lv・★2になる手数の余裕 +1/Lv']],
+  blocks:   [['plc','部品の落ちる速さ -7%/Lv・置くまでの猶予 +0.08秒/Lv・制限時間 +8秒/Lv']],
+  factory3d:[['emergencyFix','計器の点検に必要な長押し -8%/Lv・電池の減り -5%/Lv'],['soundDiag','「影」の動き -5%/Lv（足音で先に気づく）']],
+  quiz:     [['examTech','1問の制限時間 +3秒/Lv・ヒント（2択に絞る） +1回/Lv']],
+  escape:   [['focus','制限時間 +20秒/Lv・光の外でも調べられる場所が見えやすくなる'],['emergencyFix','ヒント +1回/Lv']],
+  race:     [['riding','車体ダメージ -10%/Lv・水たまりで滑りにくい・持ち時間 +3秒/Lv']],
+  shooter:  [['emoCtrl','こころ +1/Lv・被弾後の無敵 +0.15秒/Lv']],
+  cards:    [['chatSkill','雑談・コメント拾い・実況トークの威力↑'],['kaidanSkill','怪談の威力 +3/Lv'],['singSkill','歌の威力↑'],['radioVibe','本音トーク・深夜ラジオの威力↑'],['emoCtrl','ギフトのお礼のガード +2/Lv'],['stressRes','深呼吸の回復 +1/Lv'],['plc','工場トークの威力 +1/Lv']],
+  runner:   [['chores','子どもが起きるまでの時間 +6%/Lv・Lv2で傘の耐久 +1']],
+  defense:  [['chatSkill','開始資金 +¥20/Lv・ウェーブクリアのボーナス +¥5/Lv']],
+  rpg:      [['wiring','「直す」の威力↑（PLC解析・緊急復旧も）'],['stressRes','「祈る」の回復↑（寝かしつけも）'],['focus','だんのうらの素早さ↑'],['sleepEff','だんのうらのMP +2/Lv']],
+  stealth:  [['bedtime','物音への敏感さ -4%/Lv'],['chores','家事にかかる時間 -6%/Lv']],
+  horror:   [['kaidanSkill','配信開始時の盛り上がり Lv2で+1・Lv4で+2（神回に届きやすい）']],
+  cooking:  [['chores','金色ゾーンの幅 +8%/Lv']],
+  manager:  [['radioVibe','深夜ラジオ企画の評価 +6%/Lv'],['chatSkill','雑談・凸待ち企画の評価↑'],['kaidanSkill','怪談企画の評価↑'],['singSkill','歌枠企画の評価↑'],['emergencyFix','Lv3で配信中の回線落ちをすぐ復旧']],
+  fishing:  [['stressRes','引き寄せゾーンの幅 +6%/Lv・ゾーンを外れても糸が切れるまでの猶予 +0.15秒/Lv']],
+};
 const MG_META=[
   {id:'shooter', file:'shooter', icon:'🔥', name:'炎上コメント撃退', genre:'シューティング', bgm:'stream',
     desc:'降ってくる悪意のコメントを撃ち落とす。応援コメントは撃たずに受け止めよう。最後に「炎上の渦」が来る。',

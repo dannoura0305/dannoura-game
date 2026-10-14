@@ -260,7 +260,7 @@ await test('富山の季節：秋は刈り株の田とはさ掛け・冬は雪�
   assert.equal(glimpseSpot('winter', 'day', w.x + 200, w.y), null, '夜だけ');
   assert.match(shrineText('小さな祠。', 'winter'), /しめ縄に 雪/);
   assert.ok(boxFree(ty, TOYAMA_BUSSTOP.x, TOYAMA_BUSSTOP.y + 4));
-  assert.equal(CURIO_ORDER.length, 20);
+  assert.equal(CURIO_ORDER.length, 24);   // Ver.0.8：行事の品 4 つ
   assert.ok(curioEligible(CURIOS.rice_ear, 'toyama', { season: 'autumn', period: 'night', weather: 'clear' }));
   assert.ok(!curioEligible(CURIOS.rice_ear, 'toyama', { season: 'winter', period: 'night', weather: 'clear' }));
   assert.ok(curioEligible(CURIOS.candle_stub, 'toyama', { season: 'winter', period: 'night', weather: 'snow' }));

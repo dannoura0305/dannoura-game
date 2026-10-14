@@ -130,7 +130,7 @@ await test('土地ごとの天気：はじまりの原は前と同じ・砂丘�
 
 // ───────── 収集品・穴・実績 ─────────
 await test('収集品：土地・季節・時間帯・天気の条件・全員が持っている物は出ない・???の札は不思議な品 4 つから・出る場所のくせ', () => {
-  assert.equal(CURIO_ORDER.length, 20);   // Ver.0.6：富山の季節の品 2 つ（稲穂・ろうそく） assert.equal(SIGNS.length, 3); assert.equal(CROSSOVER.length, 6);
+  assert.equal(CURIO_ORDER.length, 24);   // Ver.0.8：季節の行事の品 4 つ   // Ver.0.6：富山の季節の品 2 つ（稲穂・ろうそく） assert.equal(SIGNS.length, 3); assert.equal(CROSSOVER.length, 6);
   assert.equal(CURIOS.dragons_card.desc, 'どこかで見た絵が描かれた札');
   assert.equal(CURIOS.machine_part.desc, '人間の世界のものらしい');
   assert.equal(CURIOS.charm.desc, '見たことのない紋章が刻まれている');
@@ -156,7 +156,7 @@ await test('収集品：土地・季節・時間帯・天気の条件・全員�
   assert.equal(toy(four.slice(0, 5)).id, 'unknown_card', 'ほかの品を集めた子がいると ???の札');
   assert.equal(pickCurioSpawn({ region: 'toyama', env: night, present: [new Set(four.slice(0, 2).concat(['odd_crystal', 'black_feather']).slice(0, 3))], rnd: () => 0.999 }), null);
   // ???の札はいちばん出にくい
-  assert.ok(Object.values(CURIOS).every(c => c.id === 'unknown_card' || c.rate > CURIOS.unknown_card.rate));
+  assert.ok(Object.values(CURIOS).every(c => c.id === 'unknown_card' || c.kind === 'fest' || c.rate > CURIOS.unknown_card.rate));
   // 出る場所：水べ・家のそば
   const pts = resourceSpawnPoints(regionMap('plains'));
   const water = curioSpots(regionMap('plains'), pts, 'water');

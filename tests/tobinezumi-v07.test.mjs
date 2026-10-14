@@ -264,11 +264,11 @@ await test('オフライン：セーブの移行 v6 → v7（富山の出来事�
   s.v = 6; delete s.toyamaEvents; delete s.house.companion;
   const ls = makeLS({ [SAVE_KEY]: JSON.stringify(s), dannoura_save: 'keep' });
   const n2 = new OfflineBackend({ storage: ls, now: () => G.clock.t, npc: false, map, wild: false });
-  assert.equal(SAVE_VERSION, 7); assert.equal(n2.save.v, 7);
+  assert.equal(SAVE_VERSION, 8); assert.equal(n2.save.v, 8);   // Ver.0.8：v7 も続けて v8 へ
   assert.deepEqual(n2.save.toyamaEvents, {}); assert.equal(n2.save.house.companion, null);
   assert.equal(n2.house.friends().length, 1); assert.equal(n2.house.walkers().length, 0);
   n2.flush();
-  assert.equal(JSON.parse(ls.getItem(SAVE_KEY)).v, 7); assert.equal(ls.getItem('dannoura_save'), 'keep');
+  assert.equal(JSON.parse(ls.getItem(SAVE_KEY)).v, 8); assert.equal(ls.getItem('dannoura_save'), 'keep');
 });
 
 console.log(`\ntobinezumi-v07: ${pass} passed, ${fail} failed`);
