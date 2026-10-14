@@ -96,7 +96,7 @@ export function worldSpan(ms) {
 export function festNote(clock, t) {
   const n = nextFestival(clock, t), f = n.fest, scale = (clock && clock.scale) || 1;
   const realMin = Math.max(1, Math.round(n.inW / scale / 60000));
-  if (n.now) return { text: 'いまの行事：' + f.name + '（' + f.where + '）', sub: '世界の時間で あと ' + worldSpan(n.inW) + '（約 ' + realMin + ' 分）', fest: f, now: true };
+  if (n.now) return { text: 'いまの行事：' + f.name + ' ― ' + f.where, sub: '世界の時間で あと ' + worldSpan(n.inW) + '（約 ' + realMin + ' 分）', fest: f, now: true };
   return { text: '次の行事：' + f.name, sub: f.soon + '・世界の時間で あと ' + worldSpan(n.inW) + '（約 ' + realMin + ' 分）', fest: f, now: false };
 }
 
@@ -144,6 +144,8 @@ export function makeMark({ fest, region, x, y, owner, name, at }) {
   const v = Math.floor(hash2(Number(String(owner).replace(/\D/g, '')) || String(owner).length * 31, fest.occ | 0, 4242) * 4);
   let mx = Math.round(x), my = Math.round(y);
   if (fest.act === 'offer') { mx = OFFER_SPOT.x; my = OFFER_SPOT.y; }
+  else if (fest.act === 'plant') my += 10;          // 足もとの少し手前（自分の体で隠れないように）
+  else if (fest.act === 'lantern') { mx += 12; my += 3; }   // すぐ横に立てる
   return { kind: fest.act, fest: fest.id, occ: fest.occ, region: region || 'plains', x: mx, y: my, owner, name: String(name || '').slice(0, 12), v, at };
 }
 /** いま見える印（その季節＝同じ回のものだけ。土地も同じ） */
@@ -197,7 +199,7 @@ export function npcMarks(fest, npcs, w = fest.w) {
     const at = fest.startW + (1 + i * 1.5) * HOUR_MS;
     if (fest.phase === 'during' && w >= fest.startW && w < at) return;   // まだ来ていない（開発用の 'on' で時刻の前なら みんな来ている）
     const ex = n.home.x, ey = n.home.y - 20;
-    const off = [[-18, 6], [16, 8], [-14, -10]][i % 3];
+    const off = fest.act === 'lantern' ? [[-30, 4], [4, 6], [-26, -12]][i % 3] : [[-18, -4], [16, -2], [-14, -20]][i % 3];   // makeMark が少しずらす（花は 10px 手前・灯りは 12px 横）
     out.push(makeMark({ fest, region: 'plains', x: ex + off[0], y: ey + off[1], owner: n.id, name: n.name, at }));
   });
   return out;

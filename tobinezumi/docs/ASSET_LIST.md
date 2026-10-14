@@ -190,3 +190,15 @@ python3 tobinezumi/tools/normalize_sprites.py --help # 外部画像の規格化
 - **ミミナガトビネズミ**（近縁種）は絵を足していない：`client/sprites.js` の形質の描き分けで、耳の帯を大きく伸ばし（おとな +6px・子ども +3px）、横向きの鼻先の帯を 1.3 倍に、毛色を灰色がかった淡い色へ寄せる（`look.sp = 'longear'`）。本番の絵に差し替えるときは `jerboa.side.*` と同じ形の `longear.*` を足せばよい（今は無い）。
 - 家族のしぐさ（毛づくろい＝`jerboa.side.eat`・くんくん＝`jerboa.side.gather`・眠る＝`sleep`）・ハート（`ui.heart`）・吹き出しは前からの素材とコード描画。家系図の書き出し（PNG）は `ui.lineage_frame` と立ち絵（`Sprites.lookPortrait`）で canvas に描く。
 - 素材は `python3 tools/make_assets.py` で 145 個（Ver.0.5 の 139 個はそのまま・同じ画素）。
+
+### Ver.0.8「季節のたのしみ」（`tools/art_fest.py` が描く。無ければ `client/art.js` のコード描画）
+| キー | セル | 中身 |
+|---|---|---|
+| `tile.fest_flower` | 16×16・4 種（pink / yellow / blue / white） | 花の種まきの花（3 輪の小さな株）。色はアカウントと行事の回から決まる。富山の行事の夜の「小さな花」は white |
+| `tile.fest_lantern` | 12×20・3 種（off / lit1 / lit2） | 灯りの夜の小さな灯り（草で編んだ笠）。暗いと ともる。富山の「小さな灯り」も同じ |
+| `tile.fest_offering` | 28×16・4 種（大きさ 1〜4） | 月見の種の山（平らな石の上）。供えた数で大きくなる（数そのものは出さない） |
+| `tile.fest_rice` | 16×10 | 富山：平らな石の上の米つぶ（月見の夜だけ） |
+| `item.curio.pressed_flower` / `star_sand` / `moon_seed` / `little_lantern` `.icon` | 16×16 | 行事の品：押し花・星の砂つぶ・月見の種・小さな灯り（図鑑 24・巣に飾れる） |
+
+- 流れ星・いっしょに すわった子の きらきら・月見の明るい夜（暗さを弱めて銀色に・池に大きな月）・灯りのまわりの明るさ・富山の「丸く ねた草」は `client/scene-field.js` / `client/art.js` がコードで描く。参加したときの音（`fest`）・流れ星（`star`）は `client/sfx.js` の合成音。
+- 素材は `python3 tools/make_assets.py` で 153 個（Ver.0.7 までの 145 個はそのまま・同じ画素）。外の画像は使っていない。

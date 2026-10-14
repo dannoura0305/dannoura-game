@@ -339,3 +339,27 @@ NestRecord  += {tales: {toyama: bool, companion: id|null}}
 - **家族どうしの短いやりとりは通信しない**：巣の id ＋ サーバーの時計 ＋ 個体の id ＋ 巣の部屋 ＋ 家族の一覧 ＋ 巣の倉庫 ＋ `tales` から、どの画面でも同じに決まる（`talkInSlot` / `familyTalk`。親の位置は使わない）。
 - オフライン版も同じ API：`setCompanion(id)`・`toyamaEvent(id)`。保存は版 7：`toyamaEvents`・`house.companion`。v6 は読み込み時に移行。
 - `/healthz` の `v` は `'0.7'`。
+
+## 14. Ver.0.8「季節のたのしみ」（追加分。PROTOCOL_VERSION は 1 のまま＝足しただけ）
+
+### 14.1 C2S
+| t | 中身 | 返事 | サーバーの検証 |
+|---|---|---|---|
+| `fest_act` | `{act}`（`plant` / `gaze` / `offer` / `lantern`） | `{ok, mark, inv, reward, fest:{id, occ}}` | 地上・0.8 秒に 1 回（`rate`）。入力を当ててから確定位置で `festActBlock`（shared/festival.js）：行事の夜（世界の時計）・いまの行事の act・富山でない・場所（巣のそば 10〜56px／広場 80px・オアシスの南 40px・丘で `stillT` 2 秒以上）・費用（種子 1／草 1）。1 回の行事に 1 回（`fest_marks` の UNIQUE）。印をその土地のみんなへ `fest`、はじめての行事なら図鑑の品（`account_collectibles`・`collect` の通知） |
+| `dev` | `+= {fest:'on'\|'off'\|null, festReset}` | | `TOBI_DEV=1` のときだけ。時計に `fest`（いつでも行事の夜／無し：全員へ `clock`）・自分の印と行事の品を消す |
+
+### 14.2 S2C・データの形
+| t | 中身 |
+|---|---|
+| `fest` | `{mark}`（その土地の子へ：だれかが参加した） |
+| `join_field` などの world | `+= {fest:{marks:[Mark]}}`（その土地の いまの回の印） |
+| `enter_nest` の `nest.tales` | `+= {fest: bool}`（所有者が この季節の行事に参加した：家族のやりとりの文脈・訪問者にも同じ） |
+| `clock` | `+= {fest?}`（開発用） |
+
+```
+Mark = {kind:'plant'|'gaze'|'offer'|'lantern', fest:'hana'|'hoshi'|'tsuki'|'akari', occ, region, x, y, owner, name, v(0..3), at}
+```
+- **行事の日程は送らない**：世界の時計（`clock`）から `festivalAt` で どの画面でも同じに決まる。印はその季節（同じ `occ`）のあいだだけ描く。流れ星・きらきら・月の明るさ・富山の小さな物も 時計と位置から決まる（通信なし）。
+- **順位・点数・数は送らない**（月見の山も印の数から大きさ 1〜4 で描くだけ）。
+- オフライン版も同じ API：`festAct(act)`・通知 `fest`（NPC の印も）。保存は版 8：`fest.marks`。v7 は読み込み時に移行。
+- DB：`migrations/008_festival.js`（`fest_marks`）。`/healthz` の `v` は `'0.8'`。

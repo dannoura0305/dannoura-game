@@ -515,7 +515,8 @@ export class FieldScene {
       const d = Math.hypot(e.x - s.x, e.y - s.y) - 4;   // 同じくらいの近さなら巣穴を優先
       if (d < ENT_R && d < bd) { bd = d; best = { kind: 'ent', ent: e, label: e.own ? '巣に入る（' + e.name + 'の巣）' : e.plugged ? e.name + 'の巣（入口がふさがれている）' : '訪ねる（' + e.name + 'の巣）' }; }
     }
-    if (!best) { const ft = this._festTarget(s); if (ft) return ft; }   // Ver.0.8：季節の行事
+    // Ver.0.8：季節の行事（行事の夜・その場所・まだなら、落ちている物や水より先に。巣の入口・野生の子・穴は そのまま）
+    if (!best || best.kind === 'res' || best.kind === 'dew' || best.kind === 'prop') { const ft = this._festTarget(s); if (ft && (ft.kind === 'fest' || !best)) return ft; }
     if (best) return best;
     if (nearWater(this.map, s.x, s.y)) return { kind: 'water', label: '水を飲む' };
     const gt = gateAt(this.map, s.x, s.y);

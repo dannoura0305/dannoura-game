@@ -31,10 +31,12 @@ await test('春の花：行事の夜だけ・巣のそば（確定位置）・�
   a.place(a.ent.x + 24, a.ent.y + 12);
   const r0 = await a.req('fest_act', { act: 'plant' });
   assert.equal(r0.ok, false); assert.match(r0.reason, /行事の夜ではない/);
+  assert.match((await a.req('fest_act', { act: 'plant' })).reason, /ちょっと待って/, '続けて送ると rate');
   H.clock.t = W(OCC, 21); ticks(H, 20);
   assert.equal((await a.req('fest_act', { act: 'dance' })).ok, false);
   assert.match((await a.req('fest_act', { act: 'lantern' })).reason, /花の種まき/);
-  a.place(a.ent.x + 200, a.ent.y);
+  ticks(H, 20);
+  a.place(a.ent.x + 200, a.ent.y); ticks(H, 20);
   assert.match((await a.req('fest_act', { act: 'plant' })).reason, /すぐそば/);
   a.place(a.ent.x + 24, a.ent.y + 12); ticks(H, 20);
   const s0 = seeds(a.player.inv);
@@ -73,7 +75,7 @@ await test('夏の星見（丘で じっと：サーバーの stillT）・秋の
   a.place(HILL_SPOT.x, HILL_SPOT.y);
   a.inputs([{ mx: 1 }]); ticks(H, 2);
   assert.match((await a.req('fest_act', { act: 'gaze' })).reason, /じっと/);
-  ticks(H, Math.ceil(FEST.SIT_SERVER * 20) + 4);
+  for (let i = 0; i < Math.ceil(FEST.SIT_SERVER * 20) + 6; i++) { a.inputs([{ mx: 0 }, { mx: 0 }, { mx: 0 }]); ticks(H, 1); }   // クライアントは じっとしていても 60Hz で入力を送る
   const g = await a.req('fest_act', { act: 'gaze' });
   assert.ok(g.ok, g.reason); assert.equal(g.reward, 'star_sand');
   // 秋
@@ -86,8 +88,8 @@ await test('夏の星見（丘で じっと：サーバーの stillT）・秋の
   a.place(H.game.map.spawn.x + 30, H.game.map.spawn.y + 10); ticks(H, 20);
   const grass = a.player.inv.reduce((s, x) => s + (x && x.id === 'grass' ? x.n : 0), 0);
   const l = await a.req('fest_act', { act: 'lantern' });
-  if (grass > 0) { assert.ok(l.ok, l.reason); assert.equal(l.reward, 'little_lantern'); }
-  else assert.match(l.reason, /草 が 要る/);
+  assert.ok(grass > 0); assert.ok(l.ok, l.reason); assert.equal(l.reward, 'little_lantern');
+  assert.equal(a.player.inv.reduce((s2, x) => s2 + (x && x.id === 'grass' ? x.n : 0), 0), grass - 1);
   // dev：いつでも行事の夜（全員の時計へ）・富山ではできない
   H.clock.t = W(OCC + 4, 10); ticks(H, 20);
   const dv = await a.req('dev', { fest: 'on' });
