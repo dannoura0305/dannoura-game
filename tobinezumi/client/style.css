@@ -232,6 +232,9 @@ html.tb-horiz .tc-sbtn { height: 32px; min-width: 70px; font-size: 12px; opacity
 html.tb-vert .tc-sbtn { min-width: 0; padding: 0 9px; flex: 0 1 auto; }
 html.tb-vert #tb-touch:not([data-layout="build"]) .tc-sys { flex-wrap: nowrap; }
 html.tb-vert .tc-sbtn.dim { min-width: 0; padding: 0 7px; }
+/* 縦向きの地上・巣の中：全体モードと同じく、同じ幅のボタンを 1 列にそろえる（文字が切れない・ずれない） */
+html.tb-vert #tb-touch:not([data-layout="build"]) .tc-sys { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 5px; }
+html.tb-vert #tb-touch:not([data-layout="build"]) .tc-sbtn { height: 40px; padding: 0 2px; font-size: 12px; letter-spacing: -.02em; text-align: center; overflow: hidden; }
 
 /* 全体モード：トーストは上の帯（巣の名前・訪問設定）の下に出す */
 #tb-hud.tb-hud-build .tb-toasts { top: calc(var(--u) * 17px); }
