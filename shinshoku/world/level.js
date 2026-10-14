@@ -37,20 +37,35 @@ export function signDraw(text, opt = {}) {
   };
 }
 
+// ── 焼いた頂点の陰（床との境目を暗く） ──
+const AO_KEYS = new Set(['wall', 'prop', 'shutter']);
+const sm01 = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+export function bakedAO(y) { return 0.58 + 0.42 * sm01(0.0, 1.1, y); }
+/** 下の方だけ細かく分けた箱（陰のグラデーション用。上は 1 枚） */
+function aoBox(w, h, d, hs) {
+  const g = new THREE.BoxGeometry(w, h, d, 1, hs, 1);
+  // 縦の分割を床の近く（下 2.4m）に寄せる
+  const P = g.attributes.position, top = h / 2, bot = -h / 2, span = Math.min(h, 2.4);
+  for (let i = 0; i < P.count; i++) { const y = P.getY(i); if (y > bot + 1e-4 && y < top - 1e-4) { const t = (y - bot) / h; P.setY(i, bot + span * Math.pow(t, 1.4)); } }
+  P.needsUpdate = true; g.computeVertexNormals(); return g;
+}
 /** 材質ごとに箱を集めて最後にまとめる */
 export class Builder {
   constructor() { this.groups = new Map(); this.edges = []; }
-  add(key, geo, color) {
+  add(key, geo, color, ao = AO_KEYS.has(key)) {
     const g = geo.index ? geo.toNonIndexed() : geo;
     const n = g.attributes.position.count, c = new THREE.Color(color == null ? 0xffffff : color);
-    const arr = new Float32Array(n * 3); for (let i = 0; i < n; i++) { arr[i * 3] = c.r; arr[i * 3 + 1] = c.g; arr[i * 3 + 2] = c.b; }
+    const P = g.attributes.position;
+    const arr = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const k = ao ? bakedAO(P.getY(i)) : 1; arr[i * 3] = c.r * k; arr[i * 3 + 1] = c.g * k; arr[i * 3 + 2] = c.b * k; }
     g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
     if (!this.groups.has(key)) this.groups.set(key, []);
     this.groups.get(key).push(g);
     return g;
   }
   box(key, cx, cy, cz, w, h, d, color, opt = {}) {
-    const geo = new THREE.BoxGeometry(w, h, d);
+    // 床に近い所を暗くする（焼いた頂点の陰＝安いアンビエントオクルージョン）ため、高い箱は縦に分ける
+    const y0 = cy - h / 2, hs = AO_KEYS.has(key) && y0 < 0.5 && h > 1.0 && !opt.uv ? Math.min(6, Math.ceil(Math.min(h, 2.4) / 0.4)) : 1;
+    const geo = hs > 1 ? aoBox(w, h, d, hs) : new THREE.BoxGeometry(w, h, d);
     if (opt.uv) {                                                  // 指定の面だけ地図帳の範囲へ。他の面は枠の端
       const uv = geo.attributes.uv; const face = opt.face;           // 面の順：+x,-x,+y,-y,+z,-z（各 4 頂点）
       for (let f = 0; f < 6; f++) for (let k = 0; k < 4; k++) {

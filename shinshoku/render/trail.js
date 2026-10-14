@@ -20,6 +20,8 @@ export class SwordTrail {
     this.mesh = new THREE.Mesh(g, m); this.mesh.frustumCulled = false; this.mesh.name = 'sword_trail'; this.mesh.renderOrder = 6;
     this.life = 0.16; this.time = 0;
   }
+  /** すべて消す（演出場面の始まりなど） */
+  reset() { this.pts.length = 0; this.mesh.geometry.setDrawRange(0, 0); }
   /** 振りの始まり（前の帯とつなげない） */
   cut() { if (this.pts.length) this.pts[this.pts.length - 1].brk = true; }
   push(a, b, color) { if (color != null) this.uColor.value.set(color); this.pts.push({ a: a.clone(), b: b.clone(), t: this.time, brk: false }); if (this.pts.length > this.max) this.pts.shift(); }

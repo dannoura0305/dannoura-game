@@ -1,5 +1,6 @@
 // 演出場面のデータ（CUTSCENE_SPEC §2）。座標は各区画の座標。台詞の「仮：」は SCENARIO_FLOW・CUTSCENE_SPEC の仮台詞・本作の仮台詞。
 // fixed:true（原文・確定）の台詞は、この試作の範囲（序章〜第2章）には出てこない（第3章以降）。
+import { CUTSCENES3 } from './cutscenes3.js';
 // 形：{ id, area, letterbox, skippable, cam:[{t,pos,look,fov,cut?}], lines:[{t,who,text,dur}], actors:[{t,id,pos?|to?,yaw?,run?,anim?}], events:[{t,do,arg}], sounds:[{t,s}] }
 export const CUTSCENES = {
   // CS-00「明かりが消える」（序章）
@@ -164,3 +165,5 @@ export const CUTSCENES = {
     events: [{ t: 8.2, do: 'endCard' }],
   },
 };
+// 第3章（病院・地下通路）
+Object.assign(CUTSCENES, CUTSCENES3);

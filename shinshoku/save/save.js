@@ -3,8 +3,8 @@
 export const SAVE_KEY = 'shinshoku_save_v1';
 export const SETTINGS_KEY = 'shinshoku_settings';
 export const SAVE_VER = 1;
-export const GAME_VER = '0.2.0';
-export const SLOT_NAMES = ['auto', 'slot1', 'slot2', 'slot3', 'branch'];
+export const GAME_VER = '0.3.0';
+export const SLOT_NAMES = ['auto', 'slot1', 'slot2', 'slot3', 'branch', 'tenki'];   // tenki：第3章の転機（構えの選択）の前（上書きできる）
 
 // 版の移行（1 つずつ上げる）。知らない項目は残す。
 export const STEPS = {
@@ -12,7 +12,7 @@ export const STEPS = {
 };
 
 export function emptySave() {
-  return { ver: SAVE_VER, gameVer: GAME_VER, slots: { auto: null, slot1: null, slot2: null, slot3: null, branch: null } };
+  return { ver: SAVE_VER, gameVer: GAME_VER, slots: { auto: null, slot1: null, slot2: null, slot3: null, branch: null, tenki: null } };
 }
 
 /**
@@ -43,8 +43,8 @@ export function makeSlot(st) {
     place: { area: st.area || 'shotengai', state: 'outbreak', spawn: st.spawn || null, pos: st.pos || [0, 0, 0], yaw: st.yaw || 0 },
     difficulty: st.difficulty || 'normal',
     story: Object.assign({
-      chapter: 'slice', step: 'free', route: null, routeLock: null,
-      reveal: { companionKnows: false, firstWhiteAt: null }, forms: { whiteFree: false, giantSeen: false },
+      chapter: 'slice', step: 'free', route: null, routeLock: null, stance: null,
+      reveal: { companionKnows: false, firstWhiteAt: null }, forms: { whiteFree: false, whiteUnlocked: false, giantSeen: false },
       flags: {}, trust: { companion: 50 }, resolutions: {}, docs: [], subquests: {}, bosses: {}, yokaiLog: [], branchLog: [],
     }, st.story || {}),
     player: Object.assign({

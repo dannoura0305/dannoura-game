@@ -1,11 +1,11 @@
 // 入力：キーボード＋マウス（ポインタロック）・ゲームパッド（Gamepad API 標準配置）・タッチ（横向き）・入力列の再生（自動テスト）。
 // ゲームは 60Hz の 1 ステップごとに sample() を呼び、「押した瞬間」と「押している間」を受け取る（COMBAT_SYSTEM_SPEC §6）。
-export const ACTIONS = ['attack', 'heavy', 'aim', 'dodge', 'parry', 'swap', 'reload', 'interact', 'lock', 'heal', 'pause', 'run', 'light', 'lockPrev', 'lockNext'];
+export const ACTIONS = ['attack', 'heavy', 'aim', 'dodge', 'parry', 'swap', 'reload', 'interact', 'lock', 'heal', 'pause', 'run', 'light', 'lockPrev', 'lockNext', 'transform'];
 
 const KEYMAP = {
   KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right', ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
   ShiftLeft: 'run', ShiftRight: 'run', Space: 'dodge', KeyF: 'parry', KeyQ: 'heavy', KeyR: 'reload', KeyE: 'interact',
-  KeyT: 'lock', KeyH: 'heal', Escape: 'pause', KeyP: 'pause', Tab: 'pause', Digit1: 'weapon1', Digit2: 'weapon2', Digit3: 'weapon3', KeyX: 'swap', KeyZ: 'lockPrev', KeyC: 'lockNext', KeyL: 'light', Enter: 'interact',
+  KeyT: 'lock', KeyH: 'heal', Escape: 'pause', KeyP: 'pause', Tab: 'pause', Digit1: 'weapon1', Digit2: 'weapon2', Digit3: 'weapon3', KeyX: 'swap', KeyZ: 'lockPrev', KeyC: 'lockNext', KeyL: 'light', Enter: 'interact', KeyV: 'transform',
 };
 
 export class Input {
@@ -76,11 +76,12 @@ export class Input {
     const h = this.held;
     o.moveX = (h.has('right') ? 1 : 0) - (h.has('left') ? 1 : 0);
     o.moveY = (h.has('up') ? 1 : 0) - (h.has('down') ? 1 : 0);
-    o.run = h.has('run'); o.aim = h.has('aim'); o.heavy = h.has('heavy') || h.has('mouseL');   // 左クリック長押し＝強攻撃・居合（押した瞬間は「溜め」に入り、すぐ離すと 1 段目）
+    o.run = h.has('run'); o.aim = h.has('aim'); o.heavy = h.has('heavy') || h.has('mouseL');
+    o.transform = h.has('transform');                                       // 化けを解く：押している間（長押しはゲーム側で数える）   // 左クリック長押し＝強攻撃・居合（押した瞬間は「溜め」に入り、すぐ離すと 1 段目）
     o.skipHeld = h.has('interact') || h.has('pause') || h.has('dodge');
     for (const a of this.pressQ) {
       if (a === 'weapon1') o.wantWeapon = 'katana'; else if (a === 'weapon2') o.wantWeapon = 'handgun'; else if (a === 'weapon3') o.wantWeapon = 'pipe';
-      else if (ACTIONS.includes(a) && a !== 'run' && a !== 'aim' && a !== 'heavy') o[a] = true;
+      else if (ACTIONS.includes(a) && a !== 'run' && a !== 'aim' && a !== 'heavy' && a !== 'transform') o[a] = true;
       if (a === 'heavy') o.heavy = true;
     }
     this.pressQ.clear();
@@ -103,6 +104,7 @@ export class Input {
         if (pr(0)) o.dodge = true; if (pr(1)) o.interact = true; if (pr(4)) o.parry = true; if (pr(5)) o.swap = true;
         if (pr(9)) o.pause = true; if (pr(11)) o.lock = true; if (pr(12)) o.heal = true; if (pr(13)) o.light = true; if (pr(14)) o.lockPrev = true; if (pr(15)) o.lockNext = true;
         if (b(1) || b(9)) o.skipHeld = true;
+        if (b(8)) o.transform = true;
       }
       this.padPrev = g.buttons.map((x, i) => b(i));
     }
@@ -114,6 +116,7 @@ export class Input {
       for (const a of T.pressQ || []) o[a] = true; T.pressQ = [];
       if (T.held.has('aim')) o.aim = true;
       if (T.held.has('heavy')) o.heavy = true;
+      if (T.held.has('transform')) o.transform = true;
       if (T.fireRelease > 0) { o.aim = true; T.fireRelease--; }
       if (T.held.has('interact') || T.held.has('pause')) o.skipHeld = true;
       if (T.tap) { o.tap = T.tap; T.tap = null; }

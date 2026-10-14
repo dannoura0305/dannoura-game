@@ -42,6 +42,7 @@ export const storyMethods = {
       if (!busy) this.playCutscene('cs01_reunion');
     }
     if (A === 'shelter' && s === 'ch2_gym' && this.area.dyn.gymDoor.open && P.z < 1.5) this.playCutscene('cs02_boss');
+    this.storyTick3();
   },
   /** 場所に入った時 */
   onAreaEnterStory(id) {
@@ -50,6 +51,7 @@ export const storyMethods = {
     if (id === 'alley' && !this.flags.alley_hint) { this.flags.alley_hint = true; this.later(0.6, () => this.bark('alley_hint', 4)); }
     if (id === 'plaza' && atLeast(s, 'ch1_alley') && !this.flags.plaza_broadcast) { this.setStep('ch1_plaza'); this.playCutscene('cs01_broadcast'); }
     if (id === 'shelter' && s === 'ch2_shelter') { this.setStep('ch2_roster'); this.later(0.3, () => this.playEvent('ev_shelter_arrive')); }
+    this.onAreaEnter3(id);
   },
   onEnemyResolvedStory(e, how) {
     if (e.id === 'kiro_t' && this.story.step === 'pro_fight') { this.later(0.4, () => this.bark(how === 'kill' ? 'pro_after_kill' : 'pro_after', 4)); this.setStep('pro_home'); }
@@ -73,6 +75,7 @@ export const storyMethods = {
   // ── 調べる・使う ──
   useSpot(s) {
     const T = this.events.texts || {}, st = this.story.step;
+    if (this.useSpot3(s)) return;
     switch (s.kind) {
       case 'door': {
         const d = this.area.dyn['door_' + s.door]; if (!d) break;
@@ -232,7 +235,7 @@ export const storyMethods = {
     if (this.cut.active) return;
     this.flags['cs_' + id] = true; this.metrics.cutscenes.push(id);
     this.mode = 'play'; this.input.exitLock();
-    this.lock = null; this.fx.clearDecals();
+    this.lock = null; this.fx.clearDecals(); this.trail.cut(); if (this.trail.reset) this.trail.reset();
     this.cutDone = done;
     this.cut.play(cs);
   },
@@ -240,7 +243,12 @@ export const storyMethods = {
     const g = this;
     return {
       setCam(pos, look, fov) { g.cineCam = { pos, look, fov }; },
-      subtitle(who, text, L) { g.ui.subtitle(who ? (g.events.speakers || {})[who] || { name: who === 'pa' ? '館内放送' : '' } : null, text); if (text && L && L.who === 'pa') g.sfx.play('notify'); },
+      subtitle(who, text, L) {
+        if (L && L.cond === 'white' && !g.player.fighter.white) { g.ui.subtitle(null, null); return; }
+        g.ui.subtitle(who ? (g.events.speakers || {})[who] || { name: who === 'pa' ? '館内放送' : '' } : null, text); if (text && L && L.who === 'pa') g.sfx.play('notify');
+        if (text && L && L.expr) { if (L.who === 'dan') g.player.setExpr(L.expr, 4); else if (L.who === 'companion' && g.companion.model.setExpr) g.companion.model.setExpr(L.expr); }
+        if (text && L && L.fixed) { g.metrics.fixedLines = (g.metrics.fixedLines || []).concat([{ who: L.who, text: L.text, step: g.story.step }]); }
+      },
       letterbox(on) { g.ui.letterbox(on); if (!on) g.cineCam = null; },
       sound(name) { g.sfx.play(name); },
       actor(a, instant) { g.cineActor(a, instant); },
@@ -250,6 +258,7 @@ export const storyMethods = {
   },
   cineActor(a, instant) {
     const id = a.id;
+    if (id === 'child') { const c = this.child; if (!c) return; if (a.show || a.pos) c.root.visible = true; if (a.pos) { c.pos.x = a.pos[0]; c.pos.z = a.pos[1]; c.y = 0; } if (a.to) c.y = 0; if (a.yaw != null) c.yaw = a.yaw; if (a.anim) c.mode = a.anim === 'follow' ? 'follow' : a.anim; c.cmode = null; if (a.to) { if (instant) { c.pos.x = a.to[0]; c.pos.z = a.to[1]; if (a.hideAtEnd) c.root.visible = false; } else c.cineTo = { to: a.to, speed: a.run ? 4.2 : 1.5, hideAtEnd: a.hideAtEnd }; } return; }
     const tgt = id === 'player' ? { kind: 'player' } : id === 'companion' ? { kind: 'companion' } : { kind: 'enemy', e: this.enemies.find(e => e.id === id) || (id === 'boss' ? this.boss : null) };
     if (tgt.kind === 'enemy' && !tgt.e) return;
     const setPos = (x, z) => { if (tgt.kind === 'player') this.player.pos.set(x, 0, z); else if (tgt.kind === 'companion') { this.companion.brain.pos.x = x; this.companion.brain.pos.z = z; } else { tgt.e.brain.pos.x = x; tgt.e.brain.pos.z = z; } };
@@ -276,9 +285,34 @@ export const storyMethods = {
       else { m.tgt.e.brain.yaw = yaw; m.tgt.e.speed = m.speed; m.tgt.e.phase += s * 3.4; }
     }
   },
+  stepChildCine(dt) {
+    const c = this.child, m = c.cineTo; const dx = m.to[0] - c.pos.x, dz = m.to[1] - c.pos.z, L = Math.hypot(dx, dz);
+    if (L < 0.08) { if (m.hideAtEnd) c.root.visible = false; c.cineTo = null; c.speed = 0; return; }
+    const s = Math.min(L, m.speed * dt); c.pos.x += dx / L * s; c.pos.z += dz / L * s; c.yaw = Math.atan2(dx, dz); c.speed = m.speed; c.phase += s * 4.4;
+  },
+  /** 白い髪がにじみかけて戻る（演出：網を数回だけ差し替える） */
+  whiteFlicker(skip) {
+    if (skip) return; const P = this.player; let k = 0; this.flickerTimer = true;
+    const seq = [0.0, 0.12, 0.3, 0.38, 0.9, 1.0];
+    for (const t of seq) this.later(t, () => { if (!this.flickerTimer || this.player.fighter.white) return; k++; P.setModel(k % 2 ? this.whiteModel : this.purpleModel); });
+    this.later(1.1, () => { if (!this.player.fighter.white) P.setModel(this.purpleModel); this.flickerTimer = null; });
+  },
   cineEvent(name, arg) {
     const skip = this.cut.skipping;
     switch (name) {
+      // 第3章
+      case 'expr': if (arg.who === 'player') this.player.setExpr(arg.name, 5); else if (arg.who === 'companion' && this.companion.model.setExpr) this.companion.model.setExpr(arg.name); break;
+      case 'spawnTwist': this.spawnTwist(); break;
+      case 'guardStart': this.guardStart(); break;
+      case 'childFollow': if (this.child) { this.child.mode = 'follow'; this.child.root.visible = this.companion.root.visible || true; } break;
+      case 'refugeShutter': { const R = this.area.dyn.refugeShutter; if (!R) break; R.target = arg === 'down' ? R.down : R.up; const i = this.area.boxes.indexOf(R.box); if (arg === 'down' && i < 0) this.area.boxes.push(R.box); if (arg !== 'down' && i >= 0) this.area.boxes.splice(i, 1); if (skip) R.mesh.position.y = R.target; if (arg === 'down') { this.companion.brain.setMode('scripted'); this.companion.brain.pos = { x: 11.2, z: -28.8 }; this.companion.root.visible = false; if (this.child) this.child.root.visible = false; } break; }
+      case 'bossRise3': this.bossRise3(); break;
+      case 'bossWake3': this.bossWake3(); break;
+      case 'whiteFlicker': this.whiteFlicker(skip); break;
+      case 'transform': this.setWhite(true, 'scripted'); break;
+      case 'revertWhite': if (this.player.fighter.white) this.setWhite(false, 'scripted'); break;
+      case 'formCard': this.ui.chapterCard(arg, 2.6); break;
+      case 'endCard3': this.later(skip ? 0 : 0.3, () => this.showEndCard3()); break;
       case 'setStep': this.setStep(arg); break;
       case 'flag': this.flags[arg] = true; break;
       case 'chapterCard': this.ui.chapterCard(CHAPTERS[arg].title); this.sfx.play('notify'); break;
@@ -304,6 +338,8 @@ export const storyMethods = {
   later(sec, fn) { if (sec <= 0) { fn(); return; } this.timers.push({ t: sec, fn }); },
   onCutsceneDone(cs) {
     this.cinePlayerAnim = null;
+    if (this.child && this.child.cineTo) { const m = this.child.cineTo; this.child.pos.x = m.to[0]; this.child.pos.z = m.to[1]; if (m.hideAtEnd) this.child.root.visible = false; this.child.cineTo = null; }
+    if (this.flickerTimer) { this.flickerTimer = null; if (!this.player.fighter.white && this.player.model !== this.purpleModel) this.player.setModel(this.purpleModel); }
     for (const m of this.cineMoves) { const p = m.tgt.kind === 'companion' ? this.companion.brain.pos : m.tgt.kind === 'player' ? this.player.pos : m.tgt.e.brain.pos; p.x = m.to[0]; p.z = m.to[1]; if (m.hideAtEnd && m.tgt.kind === 'companion') this.companion.root.visible = false; }
     this.cineMoves.length = 0;
     this.cam.yaw = this.player.yaw + Math.PI; this.cam.pitch = 0.16; this.cam.curDist = 2.2;
@@ -320,7 +356,7 @@ export const storyMethods = {
       ['名簿の照合', this.flags.roster_done ? '済' : '—'], ['防犯映像（任意）', this.flags.cctv_done ? '済' : '—'], ['金庫（任意）', this.flags.safe_opened ? '開けた' : '—']];
     this.metrics.endCard = true;
     this.mode = 'puzzle'; this.input.exitLock();
-    this.ui.endCard(stats, () => { this.ui.closePuzzle(); this.mode = 'play'; this.saveSlot('auto', true); });
+    this.ui.endCard(stats, () => { this.ui.closePuzzle(); this.mode = 'play'; this.saveSlot('auto', true); if (this.story.step === 'ch2_end') this.later(0.4, () => this.startCh3()); }, '第2章（避難所）　ここまで', '続けて第3章（病院・地下通路）へ進めます。');
   },
 };
 

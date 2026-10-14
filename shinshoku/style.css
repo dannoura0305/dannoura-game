@@ -275,3 +275,38 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0a16; col
 }
 .sh-dport { position: absolute; left: -10px; bottom: 100%; width: 150px; height: auto; max-height: 220px; object-fit: contain; filter: drop-shadow(0 4px 8px #000); pointer-events: none; }
 #sh-dialog.port { padding-left: 28px; }
+
+/* ── 第3章：妖力・連撃の数（concept_03 の「Combo」）・白髪形態・選択 ── */
+.sh-yoki { display: none; align-items: center; gap: 6px; margin-top: 4px; font-size: 11px; color: #e8d8ff; text-shadow: 0 1px 2px #000; }
+.sh-yoki.on { display: flex; }
+.sh-ykbar { position: relative; width: 170px; height: 7px; background: rgba(10, 6, 20, .75); transform: skewX(-24deg); border: 1px solid rgba(220, 190, 255, .5); }
+.sh-ykbar i { position: absolute; left: 0; top: 0; bottom: 0; background: repeating-linear-gradient(90deg, #a35cff 0 14px, #d07aff 14px 16px); box-shadow: 0 0 8px rgba(190, 120, 255, .8); }
+.sh-ykbar b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #fff; opacity: .7; }
+.sh-ykbar.ready i { animation: shYk 1s infinite alternate; }
+@keyframes shYk { from { filter: brightness(1); } to { filter: brightness(1.6); } }
+.sh-ykn { font-style: normal; min-width: 22px; }
+.sh-combo { position: absolute; left: 34px; top: 42%; transform: translateY(-50%) skewX(-10deg); opacity: 0; transition: opacity .3s; font-family: var(--jps); color: #f4eefc; text-shadow: 0 0 14px rgba(170, 110, 255, .9), 3px 3px 0 #1a0f2a; }
+.sh-combo.on { opacity: 1; }
+.sh-combo.pop .sh-cn { animation: shPop .22s ease-out; }
+@keyframes shPop { from { transform: scale(1.35); } to { transform: scale(1); } }
+.sh-cn { display: inline-block; font-size: 64px; font-weight: 900; line-height: 1; font-style: italic; letter-spacing: -.02em; }
+.sh-combo span { font-size: 26px; font-style: italic; margin-left: 6px; color: #e2c8ff; }
+.sh-cb { font-family: var(--jp); font-size: 13px; letter-spacing: .1em; color: #e8d8ff; border-top: 2px solid rgba(200, 150, 255, .8); margin-top: 2px; padding-top: 2px; }
+.sh-form { position: absolute; left: 372px; top: 44px; font-family: var(--jps); font-size: 13px; letter-spacing: .3em; color: #f8f4ff; padding: 2px 10px; background: linear-gradient(90deg, rgba(150, 90, 255, .55), rgba(150, 90, 255, 0)); opacity: 0; transition: opacity .3s; }
+.sh-form.on { opacity: 1; }
+#sh-ui.white .sh-hpfill { background: linear-gradient(90deg, #d8c8ff, #ffffff 60%, #ffd6f0); }
+#sh-ui.white .sh-face { background: radial-gradient(circle at 40% 35%, #ffffff, #b8a0e8); }
+.sh-mark.copy { width: auto; min-width: 28px; height: auto; padding: 2px 6px; flex-direction: column; margin-left: -30px; }
+.sh-mark small { display: block; font-size: 12px; font-weight: 700; letter-spacing: .05em; color: #e8d0ff; text-shadow: 0 0 6px #6a2ac0, 0 1px 2px #000; white-space: nowrap; font-family: var(--jp); }
+#sh-puz.choice { background: radial-gradient(ellipse at 50% 50%, rgba(40, 20, 70, .55), rgba(4, 2, 10, .9)); }
+#sh-puz.choice .sh-pbox { width: min(92vw, 620px); background: rgba(12, 8, 24, .9); border-color: rgba(220, 190, 255, .55); text-align: center; }
+.sh-choice-t { font-family: var(--jps); font-size: 22px; letter-spacing: .3em; margin: 6px 0 14px; }
+.sh-choice { display: flex; flex-direction: column; gap: 10px; }
+.sh-choice button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 18px !important; font-size: 18px !important; clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
+.sh-choice button b { font-family: var(--jps); font-size: 20px; letter-spacing: .2em; }
+.sh-choice button small { font-size: 12px; color: var(--dim); }
+.sh-choice kbd { font-size: 11px; opacity: .6; }
+.tc-form { left: 124px; top: 92px; width: 44px; height: 44px; font-size: 15px; display: none; background: rgba(170, 110, 255, .45); }
+.tc-form.vis { display: block; }
+.tc-form.white { background: rgba(240, 230, 255, .6); color: #2a1a40; }
+@media (max-height: 460px) { .sh-combo { left: 18px; top: 50%; } .sh-cn { font-size: 42px; } .sh-combo span { font-size: 18px; } .sh-yoki { position: absolute; left: 228px; top: 22px; margin: 0; } .sh-yoki span { display: none; } .sh-ykbar { width: 84px; } .sh-form { left: 228px; top: 4px; font-size: 11px; } }

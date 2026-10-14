@@ -47,6 +47,24 @@ export const COMBAT = {
     normal: { just: 8, parryBefore: 6, parryAfter: 2, dmgMul: 1.0, dropMul: 1.0 },
     hard: { just: 6, parryBefore: 4, parryAfter: 1, dmgMul: 1.4, dropMul: 0.7 },
   },
+  // 白髪形態（白い姿・化け猫の本来の姿。COMBAT_SYSTEM_SPEC §4）。「速く・軽く」。暴走ではない：妖力が 0 になると静かに紫へ戻る。
+  // 値はフェーズ4の初期案【仮】。妖爪 5 段・妖刀（強攻撃＝刃が伸びる刀）・猫火（構え＋撃つ）・瞬歩（回避）・幻術（弾く）。
+  white: {
+    claw: [
+      { startup: 4, active: 3, recovery: 9, dmg: 8, reach: 1.9, arc: 150, lunge: 0.7, stop: 'light', poise: 8, claw: 1 },
+      { startup: 4, active: 3, recovery: 9, dmg: 8, reach: 1.9, arc: 150, lunge: 0.7, stop: 'light', poise: 8, claw: 2 },
+      { startup: 5, active: 3, recovery: 10, dmg: 9, reach: 2.0, arc: 160, lunge: 0.8, stop: 'light', poise: 10, claw: 1 },
+      { startup: 6, active: 4, recovery: 11, dmg: 10, reach: 2.1, arc: 170, lunge: 0.9, stop: 'light', poise: 12, claw: 2 },
+      { startup: 8, active: 5, recovery: 18, dmg: 18, reach: 2.6, arc: 200, lunge: 1.6, stop: 'heavy', poise: 30, claw: 3 },
+    ],
+    blade: { startup: 12, active: 6, recovery: 20, dmg: 34, reach: 4.4, arc: 170, lunge: 1.2, stop: 'heavy', poise: 45, cost: 5 },   // 妖刀：刀の届く距離 ×1.6
+    dash: { total: 18, iStart: 2, iEnd: 12, dist: 5.2 },                                                                              // 瞬歩
+    foxfire: { cost: 10, n: 3, dmg: 11, speed: 9, turn: 5.5, life: 2.2, cd: 22, burn: 0.8 },                                          // 猫火：追尾する火の玉 3 つ
+    illusion: { cost: 15, dur: 3.0, cast: 12 },                                                                                       // 幻術：分身を置いて狙いをそらす
+    gauge: { max: 100, start: 60, hit: 2, issen: 15, regen: 1, drain: 2.2, min: 30, purpleHit: 3, purpleIssen: 12 },
+    transformHold: 30,                                                                                                                 // 化けを解く：長押し 30f
+    comboWindow: 150,                                                                                                                  // 連撃の数が続く間（f）
+  },
   touchBonus: 2,                                 // タッチは窓を +2f（指の遅れ）
   assist: { windowBonus: 4, slowBonus: 18 },     // 「一閃の手助け」
 };

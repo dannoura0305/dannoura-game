@@ -9,7 +9,7 @@ import { gradientMap, canvasTex } from '../render/toon.js';
 import { AREA_DATA } from '../data/areas.js';
 import { skyDome } from '../render/sky.js';
 
-function mats(atlas) {
+export function mats(atlas) {
   const tex = atlas.texture();
   return {
     wall: new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: gradientMap() }),
@@ -21,12 +21,12 @@ function mats(atlas) {
     floor: new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: gradientMap() }),
   };
 }
-function ground(w, d, cx, cz, opt) {
+export function ground(w, d, cx, cz, opt) {
   const t = groundTex(opt); const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshToonMaterial({ color: 0xffffff, map: t, gradientMap: gradientMap() }));
   m.rotation.x = -Math.PI / 2; m.position.set(cx, 0, cz); m.receiveShadow = true; m.name = 'ground'; return m;
 }
 /** 部品の箱をまとめた形（頂点色）をインスタンス網に。parts=[[cx,cy,cz,w,h,d,color],…]、xf=[{x,z,ry,color?}] */
-function instanced(parts, xf, opt = {}) {
+export function instanced(parts, xf, opt = {}) {
   const geos = parts.map(([cx, cy, cz, w, h, d, c]) => {
     const g = new THREE.BoxGeometry(w, h, d).toNonIndexed(); g.translate(cx, cy, cz);
     const col = new THREE.Color(c), n = g.attributes.position.count, arr = new Float32Array(n * 3);
@@ -45,7 +45,7 @@ function instanced(parts, xf, opt = {}) {
   m.castShadow = !!opt.shadow; m.receiveShadow = true; m.name = opt.name || 'inst';
   return m;
 }
-function finish(id, B, atlas, root, extra) {
+export function finish(id, B, atlas, root, extra) {
   const lv = B.build(mats(atlas)); lv.name = 'lv_' + id; root.add(lv);
   root.updateMatrixWorld(true);
   return Object.assign({ id, root }, extra);
@@ -296,6 +296,16 @@ export function buildShelter() {
   dyn.gymDoor = { leafs, box: doorBox, open: false };
   spots.push({ id: 'gym_door', kind: 'gymdoor', x: 0, z: 11.0, r: 1.3, label: '体育館の戸' });
   spots.push({ id: 'exit_plaza', kind: 'exit', to: 'plaza', spawn: 'from_shelter', x: 0, z: 19.9, r: 1.3, label: '外へ（商業施設の前）', auto: true });
+  // 第3章【仮】：ロビー西の連絡通路（病院へ）・ロビー東の階段（地下通路から上がってくる）
+  B.box('wall', -7.0, 1.2, 18.4, 0.06, 2.4, 1.3, 0x5a6a7a, { edges: false });
+  const hc = atlas.add(signDraw('連絡通路 →　病院', { bg: '#2a5a7a', fg: '#ffffff', size: 30 }));
+  B.box('sign', -6.95, 2.7, 18.4, 0.03, 0.3, 1.5, 0xffffff, { uv: hc, face: 0, edges: false });
+  halos.push({ p: [-6.8, 2.7, 18.4], size: 1.0, color: 0x80c0ff, k: 0.35 });
+  spots.push({ id: 'exit_hospital', kind: 'exit', to: 'hospital', spawn: 'from_shelter', x: -6.6, z: 18.4, r: 0.9, label: '連絡通路（病院へ）', auto: true, needFlag: 'ch3_started', lockedText: 'hosp_wait' });
+  B.box('wall', 6.95, 1.2, 18.6, 0.06, 2.4, 1.2, 0x4a4a52, { edges: false });
+  const ug = atlas.add(signDraw('地下通路（病院）', { bg: '#2a3a2a', fg: '#e8ffe8', size: 30 }));
+  B.box('sign', 6.95, 2.7, 18.6, 0.03, 0.3, 1.4, 0xffffff, { uv: ug, face: 1, edges: false });
+  spots.push({ id: 'exit_tunnel', kind: 'exit', to: 'tunnel', spawn: 'from_shelter', x: 6.6, z: 18.6, r: 0.9, label: '地下通路へ', auto: true, needFlag: 'tunnel_clear', lockedText: 'tunnel_from_shelter' });
   // 明かり：天井 4（第 2 段で消える）・非常灯 2・ロビー 1
   const lights = [
     { id: 'ceil1', pos: [-6, 8.2, -8], color: 0xe8f0ff, intensity: 16, dist: 18, gym: true },
@@ -310,7 +320,7 @@ export function buildShelter() {
   const wet = [{ p: [-6, 0, -8], size: 3.0, color: 0xe8f0ff, k: 0.22, light: 'ceil1' }, { p: [6, 0, -8], size: 3.0, color: 0xe8f0ff, k: 0.22, light: 'ceil2' }, { p: [-6, 0, 3], size: 3.0, color: 0xe8f0ff, k: 0.22, light: 'ceil3' }, { p: [6, 0, 3], size: 3.0, color: 0xe8f0ff, k: 0.22, light: 'ceil4' }];
   return finish('shelter', B, atlas, root, {
     boxes, spots, dyn, lights, halos, wet, hideSpots, surface: (x, z) => (z > 10.2 ? 'tile' : 'gym'), rainRoof: () => true, indoor: (x, z) => z > 10.3,
-    bounds: { minX: -14.3, maxX: 19.7, minZ: -20.5, maxZ: 20.3 }, spawns: { from_plaza: [0, 17.8, Math.PI], gym_in: [0, 8.8, Math.PI], boss_view: [0, 6.5, Math.PI] },
+    bounds: { minX: -14.3, maxX: 19.7, minZ: -20.5, maxZ: 20.3 }, spawns: { from_plaza: [0, 17.8, Math.PI], gym_in: [0, 8.8, Math.PI], boss_view: [0, 6.5, Math.PI], from_hospital: [-5.4, 18.4, Math.PI / 2], from_tunnel: [5.4, 18.6, -Math.PI / 2] },
     fog: { color: 0x0c0a14, density: 0.035 }, rain: false, amb: 'gym',
   });
 }
@@ -325,4 +335,6 @@ function gymTex() {
 }
 
 /** 区画を作る（作った物は使い回す） */
-export const BUILDERS = { shotengai: () => buildLevel(null), alley: buildAlley, plaza: buildPlaza, shelter: buildShelter };
+export const BUILDERS = { shotengai: () => buildLevel(null), alley: buildAlley, plaza: buildPlaza, shelter: buildShelter, hospital: (...a) => BUILDERS3.hospital(...a), tunnel: (...a) => BUILDERS3.tunnel(...a) };
+/** 第3章の区画（world/areas3.js が登録する：循環 import を避ける） */
+export const BUILDERS3 = {};
