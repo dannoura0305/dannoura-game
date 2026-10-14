@@ -1,51 +1,80 @@
 /* ══════════════════════════════════════════════════════════════════════
    境界事象  歩いて回る月代町（kyokai/overworld.js）の画面
-   ・探索中だけ .ky-stagewrap.ow：液晶が 10:9（ゲームボーイの 160×144）になり、地図のキャンバス .ow-cv を出す。
-   ・場面の一枚絵（.ky-stage）は「大写し」（.cut）のときだけ、額縁つきで地図の上に出す。
+   ・探索中だけ .ky-stagewrap.ow：液晶の枠が「上の帯と下のパネルの間ぜんぶ」になり、地図のキャンバス .ow-cv を出す。
+     キャンバスの大きさ・位置（1 ドット何 px か）は overworld.js の fitView が決める（整数倍を優先）。
+   ・場面の一枚絵（.ky-stage）は「大写し」（.cut）のときだけ、額縁つきで地図の上に出す（場所も fitView）。
+   ・下のパネルの高さは --owp（PC 196px／指で操作する画面 292px／横長のスマホは 64px＋左右に十字キーと A/B）。
    ・スマホ（指で操作する画面・幅 600px 以下）は十字キーと A/B を出す。4 色は --g0〜--g3 だけ。
    ══════════════════════════════════════════════════════════════════════ */
-:root { --owp: 226px; }
-@media (pointer: coarse), (max-width: 600px) { :root { --owp: 304px; } }
-.ky.ow-on .ky-panel { min-height: 0; }
-.ky-stagewrap.ow { aspect-ratio: 10 / 9; width: min(100vw, calc((100vh - var(--hud) - var(--owp)) * 10 / 9)); }
-@supports (height: 100dvh) { .ky-stagewrap.ow { width: min(100vw, calc((100dvh - var(--hud) - env(safe-area-inset-top) - var(--owp)) * 10 / 9)); } }
-.ow-cv { position: absolute; inset: 0; width: 100%; height: 100%; display: none; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; z-index: 0; cursor: pointer; }
+:root { --owp: 196px; }
+@media (pointer: coarse), (max-width: 600px) {
+  :root { --owp: 306px; }
+  .ky-ex[data-mode^="ow"] .ex-world { display: none; }
+  .ky-ex[data-mode^="ow"] .ex-top { gap: 4px; }
+  .ky-ex[data-mode^="ow"] .ex-danger, .ky-ex[data-mode^="ow"] .ex-sense { font-size: 12px; padding: 1px 5px; }
+  .ky-ex[data-mode^="ow"] .ex-tag { font-size: 14px; }
+  .ow-near { display: none; }   /* 正面の物の名前は地図の上の名札で見せる */
+}
+@media (pointer: coarse) and (orientation: portrait) and (max-height: 780px), (max-width: 600px) and (max-height: 780px) {
+  .ow-dpad { width: 126px; height: 126px; }
+  .ow-d, .ow-dc { width: 42px; height: 42px; }
+  .ow-d-u, .ow-d-d, .ow-dc { left: 42px; } .ow-d-l, .ow-d-r, .ow-dc { top: 42px; }
+  .ow-btn { width: 56px; height: 56px; font-size: 18px; }
+  .ky-ex[data-mode^="ow"] .ex-goal { font-size: 12px; line-height: 1.35; }
+}
+.ky.ow-on .ky-panel { min-height: 0; flex: none; height: var(--owp); }
+.ky-stagewrap.ow { aspect-ratio: auto; width: 100%; max-width: none; height: calc(100vh - var(--hud) - var(--owp)); box-shadow: none; border-radius: 0; background: var(--g0); }
+@supports (height: 100dvh) { .ky-stagewrap.ow { height: calc(100dvh - var(--hud) - env(safe-area-inset-top) - var(--owp)); } }
+.ky-stagewrap.ow::after { display: none; }
+.ow-cv { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: none; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; z-index: 0; cursor: pointer; }
 .ky-stagewrap.ow .ow-cv { display: block; }
-/* 一枚絵の大写し（16:9 を 94% 幅で縦の真ん中に） */
-.ky-stagewrap.ow .ky-stage { inset: auto; left: 3%; top: 20.625%; width: 94%; height: 58.75%; visibility: hidden; z-index: 1; }
+/* 一枚絵の大写し（16:9。場所は fitView） */
+.ky-stagewrap.ow .ky-stage { inset: auto; left: 3%; top: 20%; width: 94%; height: 58%; visibility: hidden; z-index: 1; }
 .ky-stagewrap.ow.cut .ky-stage { visibility: visible; }
-.ow-cutframe { display: none; position: absolute; left: 3%; top: 20.625%; width: 94%; height: 58.75%; pointer-events: none; z-index: 2;
+.ow-cutframe { display: none; position: absolute; left: 3%; top: 20%; width: 94%; height: 58%; pointer-events: none; z-index: 2;
   box-shadow: 0 0 0 3px var(--g0), 0 0 0 6px var(--g3), 0 0 0 9px var(--g0); border-radius: 2px; }
 .ky-stagewrap.ow.cut .ow-cutframe { display: block; }
 .ow-hl { position: absolute; border: 3px dashed var(--g0); box-shadow: 0 0 0 2px var(--g3), inset 0 0 0 2px var(--g3); border-radius: 3px; animation: owHl 1.2s steps(1) infinite; }
 @keyframes owHl { 60% { border-color: var(--g3); box-shadow: 0 0 0 2px var(--g0), inset 0 0 0 2px var(--g0); } }
 .ky-stagewrap.ow .ky-spots { z-index: 3; }
-/* 場所の名前（入ったときに左上へ一瞬） */
-.ow-name { position: absolute; left: 4%; top: 4%; z-index: 4; max-width: 80%; padding: 6px 12px; background: var(--g3); color: var(--g0); border: 3px solid var(--g0);
-  border-radius: 4px; box-shadow: 0 0 0 2px var(--g3); font-size: clamp(13px, 3.6vw, 17px); letter-spacing: .08em; opacity: 0; pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ow-name.on { animation: owName 1.8s steps(4) forwards; }
-@keyframes owName { 0% { opacity: 0; transform: translateY(-6px); } 12% { opacity: 1; transform: none; } 82% { opacity: 1; } 100% { opacity: 0; } }
+/* 場所の名前（入ったときに上の真ん中へ。GB の窓） */
+.ow-name { position: absolute; left: 50%; top: 10px; z-index: 4; max-width: 86%; padding: 7px 16px; background: var(--g3); color: var(--g0); border: 3px solid var(--g0);
+  border-radius: 5px; box-shadow: 0 0 0 2px var(--g3), 0 0 0 4px var(--g0), inset 0 0 0 2px var(--g3), inset 0 0 0 4px var(--g1); font-size: clamp(14px, 3.8vw, 18px); letter-spacing: .1em;
+  opacity: 0; pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transform: translateX(-50%); }
+.ow-name.on { animation: owName 2s steps(4) forwards; }
+@keyframes owName { 0% { opacity: 0; transform: translate(-50%, -8px); } 12% { opacity: 1; transform: translate(-50%, 0); } 84% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 0); } }
+/* 正面の物の名札（地図の上） */
+.ow-tag { position: absolute; z-index: 3; left: 0; top: 0; transform: translate(-50%, -100%); padding: 2px 8px 3px; background: var(--g3); color: var(--g0); border: 2px solid var(--g0);
+  border-radius: 3px; box-shadow: 0 0 0 1px var(--g3); font-size: 13px; line-height: 1.35; letter-spacing: .04em; white-space: nowrap; max-width: 70vw; overflow: hidden; text-overflow: ellipsis;
+  pointer-events: none; opacity: 0; }
+.ow-tag::after { content: ''; position: absolute; left: 50%; bottom: -6px; margin-left: -4px; border: 4px solid transparent; border-top-color: var(--g0); border-bottom: 0; }
+.ow-tag.below { transform: translate(-50%, 0); }
+.ow-tag.below::after { bottom: auto; top: -6px; border-top: 0; border-bottom: 4px solid var(--g0); }
+.ow-tag.on { opacity: 1; }
+@media (min-width: 900px) { .ow-tag { font-size: 14px; } }
 /* 下のパネル */
-.ky-ex[data-mode="owarea"], .ky-ex[data-mode="owmap"] { gap: 6px; overflow-y: auto; }
+.ky-ex[data-mode="owarea"], .ky-ex[data-mode="owmap"] { gap: 5px; overflow-y: auto; }
 .ky-ex[data-mode="owmap"] .ex-tag { color: var(--g3); letter-spacing: .14em; }
+.ky-ex[data-mode^="ow"] .ex-goal { font-size: 13px; line-height: 1.4; }
 .ow-near { flex: none; min-height: 22px; font-size: 14px; line-height: 22px; color: var(--g1); padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ow-near.on { color: var(--g3); }
-.ow-pad { display: none; flex: none; justify-content: space-between; align-items: center; padding: 2px 10px; }
+.ow-pad { display: none; flex: none; justify-content: space-between; align-items: center; padding: 0 8px; }
 .ow-keys { flex: none; font-size: 12px; color: var(--g2); text-align: center; line-height: 1.4; }
 @media (pointer: coarse), (max-width: 600px) { .ow-pad { display: flex; } .ow-keys { display: none; } }
-.ow-dpad { position: relative; width: 150px; height: 150px; touch-action: none; flex: none; }
-.ow-d { position: absolute; width: 50px; height: 50px; padding: 0; background: var(--g1); color: var(--g3); border: 3px solid var(--g0); font: inherit; font-size: 16px; cursor: pointer; touch-action: none; }
-.ow-d-u { left: 50px; top: 0; border-bottom: none; border-radius: 6px 6px 0 0; }
-.ow-d-d { left: 50px; bottom: 0; border-top: none; border-radius: 0 0 6px 6px; }
-.ow-d-l { left: 0; top: 50px; border-right: none; border-radius: 6px 0 0 6px; }
-.ow-d-r { right: 0; top: 50px; border-left: none; border-radius: 0 6px 6px 0; }
-.ow-dc { position: absolute; left: 50px; top: 50px; width: 50px; height: 50px; background: var(--g1); pointer-events: none; }
+.ow-dpad { position: relative; width: 138px; height: 138px; touch-action: none; flex: none; }
+.ow-d { position: absolute; width: 46px; height: 46px; padding: 0; background: var(--g1); color: var(--g3); border: 3px solid var(--g0); font: inherit; font-size: 15px; cursor: pointer; touch-action: none; }
+.ow-d-u { left: 46px; top: 0; border-bottom: none; border-radius: 6px 6px 0 0; }
+.ow-d-d { left: 46px; bottom: 0; border-top: none; border-radius: 0 0 6px 6px; }
+.ow-d-l { left: 0; top: 46px; border-right: none; border-radius: 6px 0 0 6px; }
+.ow-d-r { right: 0; top: 46px; border-left: none; border-radius: 0 6px 6px 0; }
+.ow-dc { position: absolute; left: 46px; top: 46px; width: 46px; height: 46px; background: var(--g1); pointer-events: none; }
 .ow-d.on { background: var(--g0); color: var(--g2); }
-.ow-ab { display: flex; gap: 16px; align-items: center; transform: rotate(-22deg); margin-right: 6px; }
-.ow-btn { width: 66px; height: 66px; border-radius: 50%; padding: 0; background: var(--g1); color: var(--g3); border: 3px solid var(--g0); font: inherit; font-size: 20px;
+.ow-ab { display: flex; gap: 14px; align-items: center; transform: rotate(-22deg); margin-right: 4px; }
+.ow-btn { width: 62px; height: 62px; border-radius: 50%; padding: 0; background: var(--g1); color: var(--g3); border: 3px solid var(--g0); font: inherit; font-size: 20px;
   box-shadow: 0 4px 0 var(--g0); cursor: pointer; touch-action: manipulation; }
 .ow-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--g0); background: var(--g0); }
-.ow-a { margin-top: -26px; }
+.ow-a { margin-top: -24px; }
+.ky.ow-on .ky-ex[data-mode^="ow"] .ex-nav .nav-btn { min-height: 42px; }
 /* 行動メニュー・GB のメニュー */
 .ow-actbox .choice-q { margin-top: 2px; }
 .ow-acts { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
@@ -53,4 +82,39 @@
 .ow-mhead { font-size: 13px; color: var(--g1); padding: 4px 6px; }
 .ow-menu .choice-btn.off { color: var(--g1); border-style: dashed; }
 .ow-close { margin-top: 4px; }
-@media (min-aspect-ratio: 1/1) and (max-height: 599px) { :root { --owp: 150px; } .ow-keys { display: none; } }
+/* 横に広い PC 画面：地図を左に大きく、パネルは右の列。会話の窓は地図の下に重ねる（--owdlg：大写しはその上の空きに出す） */
+@media (pointer: fine) and (min-width: 1000px) and (min-aspect-ratio: 5/4) {
+  .ky.ow-on .ky-main { position: relative; padding-right: 340px; }
+  .ky.ow-on .ky-stagewrap.ow { flex: 1 1 auto; width: 100%; height: auto; min-height: 0; --owdlg: 196px; }
+  .ky.ow-on .ky-panel { position: absolute; right: 0; top: 0; bottom: 0; width: 340px; height: auto; max-width: none; border-left: 3px solid var(--g1); padding: 12px 12px 14px; background: var(--g0); }
+  .ky.ow-on .ky-ex[data-mode^="ow"] .ex-goal { flex-basis: 100%; margin-left: 0; font-size: 14px; line-height: 1.5; }
+  .ky.ow-on .ky-ex[data-mode^="ow"] .ex-nav { flex-direction: column; }
+  .ky.ow-on .ky-ex[data-mode^="ow"] .ow-keys { text-align: left; line-height: 1.7; margin-top: 6px; }
+  .ky.ow-on .ow-near { white-space: normal; line-height: 1.5; }
+  .ky.ow-on .ky-panel.talking { position: fixed; left: 0; right: 0; top: auto; bottom: 0; width: auto; height: auto; border-left: 0; z-index: 7; align-items: center; padding: 0 16px 14px; pointer-events: none; }
+  .ky.ow-on .ky-panel.talking > * { pointer-events: auto; width: 100%; max-width: 980px; }
+  .ky.ow-on .ky-panel.talking .ky-hist { display: none; }
+}
+/* 横長で背の低い PC 画面 */
+@media (min-aspect-ratio: 1/1) and (max-height: 640px) and (pointer: fine) { :root { --owp: 176px; } .ow-keys { display: none; } }
+/* 横長のスマホ：地図の左右に十字キーと A/B。パネルは 1 段（目的と移動のボタン）。会話の窓は地図の下に重ねる */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 560px) {
+  :root { --owp: 62px; }
+  .ky-stagewrap.ow { padding: 0 168px; --owdlg: 120px; }
+  .ky.ow-on .ky-panel { padding: 4px max(168px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(168px, env(safe-area-inset-left)); gap: 4px; }
+  .ky-ex[data-mode^="ow"] { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 8px; overflow: visible; }
+  .ky-ex[data-mode^="ow"] .ex-top { flex: 1 1 100%; flex-wrap: nowrap; overflow: hidden; }
+  .ky-ex[data-mode^="ow"] .ex-goal { flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; margin-left: 0; }
+  .ky-ex[data-mode^="ow"] .ex-tag { font-size: 13px; white-space: nowrap; }
+  .ky-ex[data-mode^="ow"] .ex-danger, .ky-ex[data-mode^="ow"] .ex-sense, .ky-ex[data-mode^="ow"] .ex-world { display: none; }
+  .ow-near { display: none; }
+  .ky-ex[data-mode^="ow"] .ex-nav { flex: 1 1 100%; margin: 0; }
+  .ky.ow-on .ky-ex[data-mode^="ow"] .ex-nav .nav-btn { min-height: 34px; font-size: 13px; }
+  .ow-pad { position: fixed; left: 0; right: 0; bottom: calc(14px + env(safe-area-inset-bottom)); padding: 0 max(14px, env(safe-area-inset-right)) 0 max(14px, env(safe-area-inset-left)); pointer-events: none; z-index: 6; }
+  .ow-pad > * { pointer-events: auto; }
+  .ky.ow-on .ky-panel.talking { position: fixed; left: 0; right: 0; bottom: 0; height: auto; max-height: 64vh; z-index: 7; padding: 6px max(10px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
+  .ky.ow-on .ky-panel.talking .ky-hist { display: none; }
+  .ky.ow-on .ky-dlg { min-height: 0; padding: 10px 14px 12px; }
+  .ky.ow-on .dlg-face { width: 60px; height: 60px; }
+  .ky.ow-on .dlg-text { font-size: 16px; line-height: 1.6; min-height: 0; }
+}
