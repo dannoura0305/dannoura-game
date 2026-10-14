@@ -1024,7 +1024,6 @@
   API.noiseTiles = () => { const out = []; if (!OW.m) return out; OW.m.g.forEach((r, y) => r.forEach((c, x) => { if (c === 'n') out.push([x, y]); })); return out; };
   API.noiseOn = () => !!(OW.m && noiseOn());
   // 見た目の確認用（スクリーンショット）：探索の流れとは別に、その場所・世界の地図をそのまま出す
-  API._fit = () => { fitView(); return { CW, CH, VS, box: OW.box }; };
   API.preview = (id, world, at) => {
     world = String(world || 'A').toUpperCase(); const s = S(); s.world = world;
     OW.mode = id === 'town' ? 'field' : 'area'; OW.objs = [];
