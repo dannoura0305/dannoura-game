@@ -1,19 +1,25 @@
-// 『境界侵食』（仮題）フェーズ1〜2：3D 操作の土台＋紫の姿の戦闘の遊べる切片。
-// シミュレーションは 60Hz 固定（入力・判定・AI）。描画は可変。window.__sh は自動プレイ・検証用。
+// 『境界侵食』（仮題）フェーズ3：序章〜第2章（避難所）の試作。
+// シミュレーションは 60Hz 固定（入力・判定・AI・演出場面の時間）。描画は可変。window.__sh は自動プレイ・検証用。
+// 区画（商店街＋自宅・裏路地・商業施設の前・避難所）は 1 つずつ読み込む（描画の負担を区画ぶんに抑える）。
 import * as THREE from 'three';
 import { LEVEL } from './data/level.js';
+import { AREA_DATA } from './data/areas.js';
 import { ENEMIES } from './data/enemies.js';
-import { COMBAT, ITEMS, f2ms } from './data/combat.js';
-import { SAFE } from './data/safe.js';
-import { buildLevel } from './world/level.js';
-import { resolveCircle, rayBoxes, lineOfSight, insideAny, rayCylinder, raySphere } from './world/collide.js';
-import { buildDannoura, buildCompanion, buildKiro, buildHeiten } from './actor/models.js';
-import { Player, EnemyActor, Companion, turnTo } from './actor/actors.js';
-import { loadManifest, loadVRM } from './actor/vrm.js';
+import { COMBAT, ITEMS } from './data/combat.js';
+import { EQUIP } from './data/equip.js';
+import { BUILDERS } from './world/areas.js';
+import { buildDannoura, buildCompanion, buildKiro, buildHeiten, buildShuuyou, buildCivilian } from './actor/models.js';
+import { Player, EnemyActor, CompanionActor, CivilianActor } from './actor/actors.js';
+import { loadManifest, loadCharacter } from './actor/vrm.js';
 import { Kiro } from './ai/kiro.js';
 import { Heiten } from './ai/heiten.js';
+import { Shuuyou } from './ai/shuuyou.js';
+import { CompanionBrain } from './ai/companion.js';
 import { ThirdPersonCamera } from './render/camera.js';
 import { Fx, Rain } from './render/fx.js';
+import { Halos, WetStreaks } from './render/halo.js';
+import { SwordTrail } from './render/trail.js';
+import { PRESETS, autoPreset, applyPreset } from './render/quality.js';
 import { setOutlinesVisible, canvasTex, JP_FONT, toon } from './render/toon.js';
 import { Input } from './core/input.js';
 import { Sfx } from './core/audio.js';
@@ -22,26 +28,37 @@ import { setupTouch } from './ui/touch.js';
 import { SaveStore, makeSlot } from './save/save.js';
 import { createWP } from './link/progress.js';
 import { newRouteState } from './story/route.js';
+import { CutscenePlayer } from './story/cutscene.js';
+import { stepDef, streetState, atLeast, weaponsAt, STEPS } from './story/chapters.js';
+import { bossName } from './story/puzzles.js';
+import { combatWithEquip, toggleEquip } from './combat/equip.js';
+import { combatMethods } from './game/combat.js';
+import { storyMethods } from './game/story.js';
 
 const DT = 1 / 60;
 const Q = new URLSearchParams(location.search);
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || Q.get('touch') === '1';
+const AUTO_PRESET = autoPreset({ touch: isTouch, w: innerWidth, h: innerHeight, dpr: devicePixelRatio, cores: navigator.hardwareConcurrency, mem: navigator.deviceMemory });
 
-const DEFAULT_SETTINGS = () => ({
-  resScale: isTouch ? 0.7 : 1, shadows: !isTouch, outline: true, rain: !isTouch, difficulty: 'normal', assist: false,
-  sens: 1, invertY: false, volume: 0.7, touchUI: isTouch,
-});
+const DEFAULT_SETTINGS = () => Object.assign(applyPreset({ preset: 'auto' }, AUTO_PRESET), { preset: 'auto', difficulty: 'normal', assist: false, sens: 1, invertY: false, volume: 0.7, touchUI: isTouch, subSize: 'm' });
+
+/** 区画の明かり（定義）と使い回しの点光源 */
+const POOL_MAX = 8;
 
 class Game {
   async init() {
     const S0 = new SaveStore(localStorage);
     this.store = S0; this.WP = createWP(localStorage);
     this.settings = Object.assign(DEFAULT_SETTINGS(), S0.readSettings() || {});
+    this.autoPresetKey = AUTO_PRESET;
     if (Q.get('touch') === '1') this.settings.touchUI = true;
+    if (Q.get('quality')) Object.assign(this.settings, applyPreset(this.settings, Q.get('quality')));
     if (Q.get('res')) this.settings.resScale = +Q.get('res');
+    this.touch = isTouch; this.EQUIP = EQUIP;
+    const P0 = this.presetVals();
     // 描画
     const canvas = document.getElementById('sh-canvas');
-    const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !isTouch, powerPreference: 'high-performance' });
+    const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: P0.antialias, powerPreference: 'high-performance' });
     r.setClearColor(0x0c0a16);
     r.shadowMap.type = THREE.PCFShadowMap;
     this.scene = new THREE.Scene();
@@ -49,47 +66,54 @@ class Game {
     this.scene.background = new THREE.Color(0x0c0a16);
     this.camera = new THREE.PerspectiveCamera(62, 1, 0.08, 120);
     this.cam = new ThirdPersonCamera(this.camera);
-    const hemi = new THREE.HemisphereLight(0x5a5a9a, 0x1a1420, 1.1); this.scene.add(hemi);
-    this.scene.add(new THREE.AmbientLight(0x2a2440, 0.6));
+    this.hemi = new THREE.HemisphereLight(0x5a5a9a, 0x1a1420, 1.1); this.scene.add(this.hemi);
+    this.amb = new THREE.AmbientLight(0x2a2440, 0.6); this.scene.add(this.amb);
     const moon = this.moon = new THREE.DirectionalLight(0x9aa8e0, 0.9);
-    moon.shadow.mapSize.set(isTouch ? 512 : 1024, isTouch ? 512 : 1024);
+    moon.shadow.mapSize.set(P0.shadowSize, P0.shadowSize);
     Object.assign(moon.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 50 }); moon.shadow.bias = -0.0015;
     this.scene.add(moon); this.scene.add(moon.target);
-    // キャラクターを少し浮かせる補助の光（アニメ調の見やすさ）
-    this.keyLight = new THREE.PointLight(0xc8b8ff, 1.6, 4, 1.5); this.scene.add(this.keyLight);
-    this.level = buildLevel(this.scene);
-    this.boxes = this.level.boxes;
-    this.fx = new Fx(this.scene); this.rain = new Rain(this.scene, isTouch ? 400 : 900);
-    // 金庫の扉・閉店の立て看板（動く物）
-    this.heitenSign = this.makeSignStand();
+    this.keyLight = new THREE.PointLight(0xc8b8ff, 1.4, 4, 1.5); this.scene.add(this.keyLight);
+    // 懐中電灯
+    this.flash = new THREE.SpotLight(0xfff2d8, 0, 18, 0.42, 0.45, 1.4); this.flash.castShadow = false; this.scene.add(this.flash); this.scene.add(this.flash.target);
+    this.flashlightOn = false;
+    // 使い回しの点光源（区画の明かりのうち近い物に割り当てる。数を変えない＝シェーダーを作り直さない）
+    this.pool = []; this.poolN = Math.min(POOL_MAX, P0.lights);
+    for (let i = 0; i < this.poolN; i++) { const p = new THREE.PointLight(0xffffff, 0, 10, 1.6); this.scene.add(p); this.pool.push({ light: p, def: null }); }
+    this.fx = new Fx(this.scene); this.rain = new Rain(this.scene, Math.max(200, P0.rainN || 400));
+    this.halos = new Halos(200); this.scene.add(this.halos.mesh);
+    this.wet = new WetStreaks(48); this.scene.add(this.wet.mesh);
+    this.trail = new SwordTrail(36); this.scene.add(this.trail.mesh);
+    this.flashHalo = -1;
+    // 状態
+    this.items = {}; this.flags = {}; this.picked = new Set(); this.opened = new Set(); this.resol = {}; this.enemyRes = {}; this.route = newRouteState();
+    this.story = { step: 'pro_meet', boss: null }; this.puz = { roster: { done: {}, miss: 0 } };
+    this.ownedEquip = []; this.equipped = [];
+    this.metrics = { swaps: [], issen: { mikiri: 0, hajiki: 0, iai: 0, utsu: 0, chain: 0 }, just: 0, parry: 0, shots: 0, shotHits: 0, weakHits: 0, slashHits: 0, wallClips: 0, outOfBounds: 0, hurt: 0, enemyAttacks: {}, events: [], steps: [], cutscenes: [], puzzles: {}, areas: [] };
+    this.enemies = []; this.civilians = []; this.pickupsList = []; this.areas = {}; this.timers = []; this.cineMoves = [];
     // 役者
-    this.player = new Player(buildDannoura(), { difficulty: this.settings.difficulty, touch: isTouch, assist: this.settings.assist, ammo: 24 });
+    this.player = new Player(buildDannoura(), { difficulty: this.settings.difficulty, touch: isTouch, assist: this.settings.assist, ammo: 0, owned: [], weapon: 'none' });
     this.scene.add(this.player.root);
-    this.companion = new Companion(buildCompanion());
-    const cs = LEVEL.homeSpots.companion; this.companion.root.position.set(cs[0], 0, cs[1]); this.companion.root.rotation.y = Math.PI * 0.9;
+    this.companion = new CompanionActor(buildCompanion(), new CompanionBrain({ x: -2.5, z: -33.8, mode: 'wait' }));
     this.scene.add(this.companion.root);
-    this.level.spots.push({ id: 'companion', kind: 'talk', x: cs[0], z: cs[1] - 0.8, r: 1.5, label: '話す（相棒）' });
-    this.items = {};
-    this.flags = {}; this.picked = new Set(); this.opened = new Set(); this.resol = {}; this.route = newRouteState();
-    this.metrics = { swaps: [], issen: { mikiri: 0, hajiki: 0, iai: 0, utsu: 0 }, just: 0, parry: 0, shots: 0, shotHits: 0, weakHits: 0, slashHits: 0, wallClips: 0, outOfBounds: 0, hurt: 0, enemyAttacks: {}, events: [] };
-    this.spawnEnemies();
-    this.buildPickups();
+    this.heitenSign = this.makeSignStand();
     // 入力・画面
     this.sfx = new Sfx(); this.sfx.setVolume(this.settings.volume);
     this.input = new Input(canvas, { sens: this.settings.sens });
-    this.input.wantLock = () => this.mode === 'play';
-    this.input.onUnlock = () => { if (this.mode === 'play' && !this.noPauseOnUnlock) this.pause(); };
+    this.input.wantLock = () => this.mode === 'play' && !this.cut.active;
+    this.input.onUnlock = () => { if (this.mode === 'play' && !this.noPauseOnUnlock && !this.cut.active) this.pause(); };
     this.ui = new UI(document.getElementById('sh-ui'), this);
     this.touchUI = setupTouch(document.getElementById('sh-ui'), this.input, this);
     this.applySetting('touchUI', this.settings.touchUI, true);
+    this.applySetting('subSize', this.settings.subSize, true);
+    this.cut = new CutscenePlayer(this.cutHost());
     this.events = await fetch(new URL('./data/events.json', import.meta.url)).then(r => r.json()).catch(() => ({ events: {}, barks: {}, texts: {}, speakers: {} }));
-    // VRM（manifest に書かれていれば）
     this.manifest = await loadManifest();
     this.loadCharacterModels();
     // 状態
     this.frame = 0; this.playSec = 0; this.mode = 'title'; this.hitstop = 0; this.slowT = 0; this.slowScale = 1; this.worldScale = 1;
-    this.lock = null; this.dialog = null; this.pendingIn = null; this.autosaveReq = false; this.gunshot = null; this.gunshotT = 0;
-    this.placePlayer(LEVEL.start.pos, LEVEL.start.yaw);
+    this.lock = null; this.dialog = null; this.pendingIn = null; this.autosaveReq = false; this.gunshot = null; this.gunshotT = 0; this.darkness = 0;
+    this.applyEquip();
+    this.loadArea('shotengai', 'arcade');
     this.applyQuality();
     addEventListener('resize', () => this.resize()); this.resize();
     this.perfOn = Q.get('perf') === '1'; this.perfAcc = { t: 0, n: 0, steps: 0 };
@@ -99,10 +123,13 @@ class Game {
     this.exposeAPI();
     this.title();
   }
+  presetVals() { const k = this.settings.preset === 'auto' ? this.autoPresetKey : this.settings.preset; return PRESETS[k] || PRESETS[this.autoPresetKey] || PRESETS.high; }
   async loadCharacterModels() {
     const m = this.manifest && this.manifest.characters; if (!m) return;
-    if (m.dannoura && m.dannoura.file) { const v = await loadVRM(m.dannoura); if (v) { this.player.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('dannoura'); } }
-    if (m.companion && m.companion.file) { const v = await loadVRM(m.companion); if (v) { this.companion.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('companion'); } }
+    this.portraits = {};
+    for (const [k, v] of Object.entries(m)) if (v && v.portrait) this.portraits[k] = new URL('./assets/characters/' + v.portrait, import.meta.url).href;
+    if (m.dannoura && m.dannoura.file) { const v = await loadCharacter(m.dannoura); if (v) { this.player.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('dannoura'); } }
+    if (m.companion && m.companion.file) { const v = await loadCharacter(m.companion); if (v) { this.companion.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('companion'); } }
   }
   makeSignStand() {
     const hp = LEVEL.heiten.help.sign;
@@ -111,42 +138,154 @@ class Game {
     const g = new THREE.Group();
     const board = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.75, 0.6), [toon(0x2a2a2a), new THREE.MeshBasicMaterial({ map: tex }), toon(0x2a2a2a), toon(0x2a2a2a), toon(0x2a2a2a), toon(0x2a2a2a)]);
     board.position.y = 0.75; board.rotation.z = 0.12; g.add(board);
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.04, 0.04), toon(0x2a2a2a)); leg.position.y = 0.02; g.add(leg);
-    g.position.set(hp[0], 0, hp[1]); this.scene.add(g);
+    g.position.set(hp[0], 0, hp[1]);
     return { g, tex, set: text => { const c = tex.userData.canvas; draw(text)(c.getContext('2d'), c.width, c.height); tex.needsUpdate = true; } };
   }
-  spawnEnemies() {
-    if (this.enemies) for (const e of this.enemies) this.scene.remove(e.root);
-    this.enemies = [];
-    LEVEL.kiro.forEach((k, i) => {
-      const door = LEVEL.doors[k.door];
-      const brain = new Kiro({ id: k.id, path: k.path.map(([x, z]) => ({ x, z })), home: k.door, startIdx: k.start, seed: 11 + i * 7 });
-      const model = buildKiro(door.color);
-      const e = new EnemyActor(brain, model); this.enemies.push(e); this.scene.add(e.root);
-    });
-    const H = LEVEL.heiten;
-    const st = {}; for (const [k, v] of Object.entries(H.stations)) st[k] = { x: v[0], z: v[1] };
-    st.shutter.face = { x: -10, z: -40 }; st.bow.face = { x: -10, z: -40 }; st.register.face = { x: 9.6, z: -45 }; st.lights.face = { x: 12, z: -35.5 };
-    const hb = new Heiten({ id: H.id, stations: st, pos: { x: H.start[0], z: H.start[1] }, center: { x: H.center[0], z: H.center[1] }, leash: H.leash, seed: 5 });
-    const he = new EnemyActor(hb, buildHeiten()); this.enemies.push(he); this.scene.add(he.root); this.heiten = he;
-  }
-  buildPickups() {
-    if (this.pickMeshes) for (const m of this.pickMeshes.values()) this.scene.remove(m);
-    this.pickMeshes = new Map();
-    for (const p of LEVEL.pickups) {
-      const g = new THREE.Group();
-      const color = p.item === 'ammo_box' ? 0xc8a040 : 0xe05060;
-      const m = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.2), toon(color)); m.position.y = 0.12; g.add(m);
-      const glow = new THREE.Mesh(new THREE.RingGeometry(0.25, 0.32, 20), new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.5, side: THREE.DoubleSide })); glow.rotation.x = -Math.PI / 2; glow.position.y = 0.02; g.add(glow);
-      g.position.set(p.pos[0], 0, p.pos[1]); this.scene.add(g); this.pickMeshes.set(p.id, g);
+
+  // ── 区画 ──
+  loadArea(id, spawn) {
+    if (this.area) {
+      this.scene.remove(this.area.root);
+      for (const e of this.enemies) this.scene.remove(e.root);
+      for (const c of this.civilians) this.scene.remove(c.root);
+      if (this.pickMesh) { this.scene.remove(this.pickMesh); this.pickMesh = null; }
+      if (this.area.id === 'shotengai') this.scene.remove(this.heitenSign.g);
     }
+    const A = this.areas[id] || (this.areas[id] = BUILDERS[id]());
+    this.area = A; this.boxes = A.boxes; this.scene.add(A.root);
+    this.metrics.areas.push(id);
+    const fog = A.fog || { color: 0x100c1c, density: 0.045 };
+    this.scene.fog.color.setHex(fog.color); this.scene.fog.density = fog.density; this.scene.background.setHex(fog.color);
+    this.halos.uniforms.uFog.value = fog.density; this.wet.uniforms.uFog.value = fog.density;
+    this.halos.clear(); for (const h of A.halos) h.idx = this.halos.add(h.p, h.size, h.color, h.k);
+    this.flashHalo = this.halos.add([0, -50, 0], 0.8, 0xfff0d0, 0);
+    this.wet.clear(); for (const w of A.wet) w.idx = this.wet.add(w.p, w.size, w.color, w.k);
+    for (const p of this.pool) p.def = null;
+    this.heitenZone = id === 'shotengai' ? LEVEL.heiten.zone : null;
+    if (id === 'shotengai') this.scene.add(this.heitenSign.g);
+    this.fx.clearDecals(); this.lock = null; this.darkness = 0;
+    // 戸の状態
+    for (const [k, d] of Object.entries(A.dyn)) if (k.startsWith('door_') && d.pivot) { d.open = this.opened.has(k.slice(5)); d.pivot.rotation.y = d.open ? -1.45 * (d.face || 1) : 0; d.closeAt = null; if (d.open) this.halos.setColor(d.halo, 0xffe0a0); }
+    if (id === 'shelter') { if (this.flags.gym_key && atLeast(this.story.step, 'ch2_gym')) this.openGymDoor(); const sh = A.dyn.storageShutter; sh.target = this.enemyRes.shuuyou_1 === 'neutralize' ? sh.down : sh.up; sh.mesh.position.y = sh.target; for (const l of A.lights) { l.off = false; if (l.emergency) l.intensity = 0; } }
+    if (id === 'shotengai') { A.dyn.rackKatana.visible = !this.player.fighter.owned.includes('katana'); this.applyStreetState(false); }
+    this.spawnEnemies(id);
+    this.buildPickups(id);
+    // だんのうら・相棒の置き場所
+    const sp = (A.spawns[spawn] || A.spawns[Object.keys(A.spawns)[0]]);
+    if (spawn) this.placePlayer([sp[0], 0, sp[1]], sp[2]);
+    this.placeCompanion();
+    this.exitArmed = false; this.wasInHome = null;
+    this.sfx.setAmbience(A.amb || (id === 'shotengai' ? (streetState(this.story.step) === 'normal' && !this.flags.lights_out ? 'street_normal' : 'street') : 'street'));
+    this.rain.mesh.visible = !!A.rain && this.settings.rain;
+  }
+  changeArea(to, spawn) {
+    this.ui.fade(true); this.sfx.play('door');
+    const comp = this.companion.brain.mode === 'follow' || this.companion.brain.mode === 'hide';
+    this.loadArea(to, spawn);
+    if (comp) { this.companion.brain.setMode('follow'); this.companion.brain.teleportBehind(this.player.pos, this.player.yaw); this.companion.root.visible = true; }
+    this.autosaveReq = true;
+    setTimeout(() => this.ui.fade(false), this.isTest() ? 50 : 420);
+    this.onAreaEnterStory(to);
+  }
+  placeCompanion() {
+    const C = this.companion, b = C.brain, s = this.story.step, id = this.area.id;
+    C.root.visible = false; C.anim = null;
+    if (id === 'shotengai' && s === 'pro_meet') { C.root.visible = true; b.setMode('wait'); b.pos = { x: -2.5, z: -33.8 }; b.yaw = 0.6; return; }
+    if (this.flags.reunited) { C.root.visible = true; if (b.mode === 'wait' || b.mode === 'scripted') b.setMode('follow'); b.teleportBehind(this.player.pos, this.player.yaw); return; }
+    if (id === 'alley' && atLeast(s, 'ch1_street')) { C.root.visible = true; b.setMode('scripted'); b.pos = { x: 6.0, z: -19.7 }; b.yaw = Math.PI; C.anim = 'hide'; }
+  }
+  areaLight(fn) { return this.area.lights.find(fn); }
+  /** 商店街の明かり・人・敵の状態（序章のふだん／消灯後／発生後） */
+  applyStreetState(respawn) {
+    if (this.area.id !== 'shotengai') return;
+    const A = this.area, st = streetState(this.story.step), out = this.flags.lights_out;
+    for (const l of A.lights) {
+      if (st === 'normal' && !out) { l.off = false; l.flicker = false; }
+      else if (st === 'normal' && out) { l.off = !(l.home || l.pos[2] === -56 || l.vending && false); l.flicker = l.pos[2] === -56; }
+      else { l.off = false; l.flicker = !!LEVEL.lights.find(x => x.pos === l.pos && x.flicker); if (l.vending) l.off = false; }
+    }
+    for (const h of A.halos) {
+      if (h.strip) h.off = st === 'normal' ? !!out : !h.onOutbreak;
+      if (h.shopFront) h.off = !(st === 'normal' && !out);
+    }
+    if (A.dyn.lampMat) A.dyn.lampMat.color.setScalar(st === 'normal' && !out ? 1 : st === 'normal' ? 0.12 : 0.55);
+    this.sfx.setAmbience(st === 'normal' && !out ? 'street_normal' : 'street');
+    if (respawn) this.spawnEnemies('shotengai');
+  }
+
+  // ── 敵・人 ──
+  spawnEnemies(id) {
+    for (const e of this.enemies) this.scene.remove(e.root);
+    for (const c of this.civilians) this.scene.remove(c.root);
+    this.enemies = []; this.civilians = []; this.boss = null; this.heiten = null;
+    const add = (brain, model) => { const e = new EnemyActor(brain, model); this.enemies.push(e); this.scene.add(e.root); return e; };
+    const s = this.story.step;
+    const mkKiro = (k, i, doors) => {
+      const brain = new Kiro({ id: k.id, path: k.path.map(([x, z]) => ({ x, z })), home: k.door, startIdx: k.start, seed: 11 + i * 7, def: k.def });
+      const door = doors && doors[k.door];
+      return add(brain, buildKiro(k.color || (door && door.color) || 0xd04848));
+    };
+    if (id === 'shotengai') {
+      if (streetState(s) === 'normal') {
+        if (!this.enemyRes.kiro_t && atLeast(s, 'pro_meet')) {
+          const def = Object.assign({}, ENEMIES.kiro, { hp: 44, tutorial: true });
+          const e = mkKiro({ id: 'kiro_t', door: null, path: [[0.9, -45.5], [0.6, -50], [1.0, -55]], start: 0, color: 0x8a8aa0, def }, 0);
+          e.root.visible = !!this.flags.lights_out;
+          if (atLeast(s, 'pro_fight')) { e.brain.hostileBy = 'tutorial'; e.brain.go('hostile', []); e.brain.lastSeen = { x: this.player.pos.x, z: this.player.pos.z }; e.brain.lastSeenT = 0; }
+        }
+        if (!this.flags.lights_out) {
+          const C = [[2.5, -20, 0, [[2.5, -14], [2.5, -26]]], [-2.6, -44.5, 1.2, null], [3.1, -37.5, -1.6, null], [-2.4, -12, 0.2, [[-2.4, -6], [-2.4, -18]]]];
+          C.forEach(([x, z, yaw, path], i) => { const c = new CivilianActor(buildCivilian(i + 2), x, z, yaw, path); this.civilians.push(c); this.scene.add(c.root); });
+        }
+        return;
+      }
+      LEVEL.kiro.forEach((k, i) => { const r = this.enemyRes[k.id]; if (r) return; mkKiro(k, i, LEVEL.doors); });
+      const H = LEVEL.heiten, r = this.enemyRes[H.id];
+      if (r !== 'kill') {
+        const st = {}; for (const [k, v] of Object.entries(H.stations)) st[k] = { x: v[0], z: v[1] };
+        st.shutter.face = { x: -10, z: -40 }; st.bow.face = { x: -10, z: -40 }; st.register.face = { x: 9.6, z: -45 }; st.lights.face = { x: 12, z: -35.5 };
+        const hb = new Heiten({ id: H.id, stations: st, pos: { x: H.start[0], z: H.start[1] }, center: { x: H.center[0], z: H.center[1] }, leash: H.leash, seed: 5 });
+        this.heiten = add(hb, buildHeiten());
+        if (r === 'rescue') { hb.resolution = 'rescue'; hb.state = 'rest'; this.heitenSign.set('本日は\n閉店しました'); this.heitenStep('rest'); } else { this.heitenSign.set('営業中'); this.heitenStep('reset'); }
+      }
+      return;
+    }
+    if (id === 'alley' || id === 'plaza') {
+      AREA_DATA[id].kiro.forEach((k, i) => { if (this.enemyRes[k.id]) return; mkKiro(k, i + 20, AREA_DATA[id].doors); });
+      return;
+    }
+    if (id === 'shelter') {
+      const B = AREA_DATA.shelter.boss, r = this.enemyRes[B.id];
+      if (r === 'kill' || r === 'neutralize') return;
+      const b = new Shuuyou({ id: B.id, pos: { x: B.pos[0], z: B.pos[1] }, yaw: 0, trueName: bossName(), storage: B.storage, arena: B.arena, seed: 9 });
+      this.boss = add(b, buildShuuyou());
+      if (r === 'rescue') { b.resolution = 'rescue'; b.state = 'rest'; }
+    }
+  }
+  buildPickups(id) {
+    const list = (id === 'shotengai' ? LEVEL.pickups : (AREA_DATA[id] || {}).pickups || []).filter(p => !this.picked.has(p.id));
+    // 序章の鉄パイプ（自販機の横）
+    this.pipeSpot = null;
+    if (id === 'shotengai' && !this.player.fighter.owned.includes('pipe')) {
+      const sp = { id: 'pipe', kind: 'pickupSpot', give: 'weapon:pipe', x: -3.3, z: -30.6, r: 1.3, label: '鉄パイプを拾う' };
+      this.pipeSpot = sp;
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.92, 8), toon(0x8a8580)); m.rotation.z = Math.PI / 2; m.rotation.y = 0.4; m.position.set(-3.5, 0.03, -30.4); this.scene.add(m); sp.mesh = m;
+      this.pipeMesh = m; sp.halo = this.halos.add([-3.5, 0.15, -30.4], 0.7, 0xfff0c0, 0.35);
+    } else if (this.pipeMesh) { this.scene.remove(this.pipeMesh); this.pipeMesh = null; }
+    this.pickupsList = list;
+    if (!list.length) return;
+    const geo = new THREE.BoxGeometry(0.28, 0.16, 0.2); geo.translate(0, 0.1, 0);
+    const m = new THREE.InstancedMesh(geo, new THREE.MeshToonMaterial({ color: 0xffffff }), list.length);
+    const M = new THREE.Matrix4();
+    list.forEach((p, i) => { M.makeRotationY(i * 1.3); M.setPosition(p.pos[0], 0, p.pos[1]); m.setMatrixAt(i, M); m.setColorAt(i, new THREE.Color(ITEMS[p.item].ammo ? 0xc8a040 : p.item === 'coffee' ? 0x8a5a3a : 0xe05060)); p.halo = this.halos.add([p.pos[0], 0.2, p.pos[1]], 0.7, 0xfff0c0, 0.4); p.inst = i; });
+    m.name = 'pickups'; this.scene.add(m); this.pickMesh = m;
   }
   placePlayer(pos, yaw) {
     this.player.pos.set(pos[0], 0, pos[2] != null ? pos[2] : pos[1]); this.player.yaw = yaw;
-    this.cam.yaw = yaw + Math.PI; this.cam.curDist = 1.0;
+    this.cam.yaw = yaw + Math.PI; this.cam.curDist = 1.2;
   }
 
-  // ── タイトル（最初の操作で音とポインタロックを有効にする） ──
+  // ── タイトル ──
   title() {
     const el = document.getElementById('sh-title');
     const has = !!this.store.load('auto');
@@ -158,16 +297,35 @@ class Game {
       if (b.dataset.a === 'new') this.newGame(); else if (b.dataset.a === 'cont') this.loadSlot('auto');
       else if (b.dataset.a === 'back') { location.href = 'index.html'; }
     };
-    if (Q.get('autostart') === '1') this.newGame();
+    if (Q.get('autostart') === '1') this.newGame(Q.get('step'));
     if (Q.get('continue') === '1' && has) this.loadSlot('auto');
   }
-  newGame() {
+  /** はじめから。step（試験用）でその段から始められる */
+  newGame(step) {
     document.getElementById('sh-title').hidden = true;
     this.startedAt = performance.now();
     this.mode = 'play';
-    if (!this.isTest()) this.input.requestLock();
-    if (Q.get('skipintro') !== '1') this.playEvent('ev_intro', () => { this.flags.intro_done = true; });
+    if (step && STEPS.find(s => s.id === step)) this.jumpToStep(step);
+    else { this.refreshObjective(); if (!this.isTest()) this.input.requestLock(); }
+    if (!step && Q.get('skipintro') !== '1') this.playEvent('ev_intro', () => { this.flags.intro_done = true; });
     else this.flags.intro_done = true;
+  }
+  /** 試験・ショートカット：段の初期状態へ */
+  jumpToStep(step) {
+    const F = this.player.fighter;
+    this.story.step = step;
+    for (const w of weaponsAt(step)) F.give(w);
+    if (F.owned.length && !F.owned.includes(F.weapon)) { F.weapon = F.owned.includes('katana') ? 'katana' : F.owned[0]; F.lastMelee = F.weapon; }
+    if (atLeast(step, 'pro_pipe')) this.flags.lights_out = true;
+    if (atLeast(step, 'pro_home')) this.enemyRes.kiro_t = 'escape';
+    if (atLeast(step, 'ch1_alley')) { this.flags.reunited = true; this.companion.brain.setMode('follow'); }
+    if (atLeast(step, 'ch2_shelter')) this.flags.plaza_broadcast = true;
+    if (atLeast(step, 'ch2_key')) { this.flags.roster_done = true; this.flags.seen_roster = this.flags.seen_cards = true; }
+    if (atLeast(step, 'ch2_gym')) this.flags.gym_key = true;
+    const area = stepDef(step).area;
+    const spawn = { shotengai: atLeast(step, 'pro_tv') ? 'home_in' : 'arcade', alley: 'from_street', plaza: 'from_alley', shelter: atLeast(step, 'ch2_gym') ? 'gym_in' : 'from_plaza' }[area];
+    this.loadArea(area, spawn);
+    this.refreshObjective();
   }
   isTest() { return Q.get('autostart') === '1' || Q.get('test') === '1'; }
 
@@ -183,395 +341,90 @@ class Game {
   step() {
     const inp = this.input.sample();
     if (this.mode === 'title') return;
+    // 遅らせた出来事（演出の明かりの順番など）：シミュレーションの時間で
+    for (let i = this.timers.length - 1; i >= 0; i--) { const t = this.timers[i]; t.t -= DT; if (t.t <= 0) { this.timers.splice(i, 1); t.fn(); } }
+    if (this.cut.active) {
+      this.cut.update(DT, { skipHeld: inp.skipHeld, advance: inp.interact || inp.attack });
+      this.ui.skipProgress(this.cut.hold || 0);
+      this.stepCineMoves(DT);
+      for (const e of this.enemies) if (e.brain.state === 'rise' || e.brain.state === 'dormant') { /* 起き上がり：姿勢だけ */ }
+      this.frame++; return;
+    }
+    if (this.mode === 'puzzle') return;
     if (this.mode === 'dialog') { if (inp.interact || inp.attack || inp.dodge) this.dialogNext(); return; }
     if (this.mode !== 'play') { if (inp.pause && this.mode === 'pause') this.resume(); return; }
     if (inp.pause) { this.pause(); return; }
     this.frame++; this.playSec += DT;
-    if (this.hitstop > 0) {                                      // ヒットストップ：押した入力は次へ持ち越す
-      this.hitstop--;
-      this.pendingIn = mergeIn(this.pendingIn, inp);
-      return;
-    }
+    if (this.hitstop > 0) { this.hitstop--; this.pendingIn = mergeIn(this.pendingIn, inp); return; }
     const I = this.pendingIn ? mergeIn(this.pendingIn, inp) : inp; this.pendingIn = null;
+    if (this.pendingWant) { I.wantWeapon = this.pendingWant; this.pendingWant = null; }
     if (this.slowT > 0) { this.slowT--; this.worldScale = this.slowScale; if (this.slowT === 0) { this.ui.slow(false); this.sfx.setMuffle(0); } } else this.worldScale = 1;
     if (this.gunshotT > 0) this.gunshotT--; else this.gunshot = null;
     this.stepPlayer(I);
     const wdt = DT * this.worldScale;
-    for (const e of this.enemies) this.stepEnemy(e, wdt);
+    for (const e of this.enemies) { this.stepEnemy(e, wdt); if (e.justNoticed > 0) e.justNoticed -= DT; if (e.teleT > 0) { e.teleT -= DT; if (e.teleT <= 0) e.tele = null; } }
+    this.stepCompanion(wdt);
+    this.stepCompanionThreats();
     this.stepWorld(I);
+    this.storyTick();
+  }
+  stepCompanion(dt) {
+    const C = this.companion, b = C.brain, P = this.player;
+    if (!C.root.visible) return;
+    if (b.mode === 'follow' || b.mode === 'hide') b.crumb(P.pos);
+    const sense = {
+      player: { x: P.pos.x, z: P.pos.z, yaw: P.yaw, speed: P.speed, dead: P.fighter.dead },
+      enemies: this.enemies.filter(e => e.brain.alive && e.root.visible).map(e => ({ id: e.id, x: e.pos.x, z: e.pos.z, hostile: ['hostile', 'assess', 'stagger', 'down', 'rollcall'].includes(e.brain.state), attacking: !!e.brain.attacking, tele: e.tele || null, justNoticed: e.justNoticed > 0 })),
+      hideSpots: this.area.hideSpots,
+    };
+    const out = b.update(dt, sense);
+    C.step(dt, out, this.boxes);
+    for (const ev of out.events) {
+      if (ev.t === 'warn') { this.bark(ev.key, 2.2); this.sfx.play('notify'); this.metrics.warnings = (this.metrics.warnings || 0) + 1; }
+      if (ev.t === 'hide' && !this.flags.hide_bark) { this.flags.hide_bark = true; this.bark('companion_hide', 2.4); }
+      if (ev.t === 'escaped') { const e = this.enemies.find(x => x.held); if (e) { e.held = false; e.brain.cool = 0.5; } this.bark('companion_escaped', 2.6); }
+    }
   }
 
-  // ── プレイヤー ──
-  stepPlayer(I) {
-    const P = this.player, F = P.fighter;
-    if (I.wantWeapon) this.pendingWeapon = { w: I.wantWeapon, until: this.frame + 20 };   // 1・2 キーは少しの間おぼえておく
-    const pw = this.pendingWeapon;
-    if (pw) { if (pw.w === F.weapon || this.frame > pw.until) this.pendingWeapon = null; else if (F.st.name === 'free' || F.st.name === 'reload') { I.swap = true; this.pendingWeapon = null; } }
-    if (I.lock) this.toggleLock();
-    // 移動の向き（カメラ基準）
-    const fw = this.cam.forward(), rt = { x: -fw.z, z: fw.x };
-    let mx = fw.x * I.moveY + rt.x * I.moveX, mz = fw.z * I.moveY + rt.z * I.moveX;
-    const mag = Math.min(1, Math.hypot(mx, mz)); if (mag > 1e-3) { const L = Math.hypot(mx, mz); P.moveDir = { x: mx / L, z: mz / L }; }
-    this.curMoveMag = mag;
-    if (this.touchAimAssist || this.input.device !== 'kbm') this.autoAimLock(I);
-    const prevSt = F.st.name;
-    const evs = F.tick({ attack: I.attack, heavy: I.heavy, dodge: I.dodge, parry: I.parry, swap: I.swap, aim: I.aim, reload: I.reload });
-    this.handleFighter(evs);
-    // 回復
-    if (I.heal) this.useHeal();
-    if (I.interact && this.nearSpot) this.useSpot(this.nearSpot);
-    // 移動
-    const st = F.st; let vx = 0, vz = 0;
-    if (st.name === 'dodge') {
-      const t = st.f / 24, k = t < 0.7 ? Math.cos(t / 0.7 * Math.PI / 2) : 0;
-      const sp = COMBAT.dodge.dist / 0.28 * k * 0.9;
-      vx = P.dodgeDir.x * sp; vz = P.dodgeDir.z * sp;
-      P.yaw = turnTo(P.yaw, Math.atan2(P.dodgeDir.x, P.dodgeDir.z), 0.5);
-    } else if (st.name === 'attack' && st.f < st.atk.startup + st.atk.active + 2 && st.atk.lunge) {
-      const dur = st.atk.startup + st.atk.active + 2;
-      const sp = st.atk.lunge / (dur * DT) * (this.lockTargetClose() ? 0.35 : 1);
-      vx = Math.sin(P.yaw) * sp; vz = Math.cos(P.yaw) * sp;
-    } else {
-      const mul = F.moveMul();
-      const run = I.run && !(F.aimHeld && F.weapon === 'handgun');
-      const sp = (run ? COMBAT.move.run : COMBAT.move.walk) * mul * mag;
-      vx = P.moveDir.x * sp * (mag > 1e-3 ? 1 : 0); vz = P.moveDir.z * sp * (mag > 1e-3 ? 1 : 0);
-      if (F.aimHeld && F.weapon === 'handgun') P.yaw = turnTo(P.yaw, Math.atan2(fw.x, fw.z), 0.4);
-      else if (this.lock && this.lock.hittable() && (st.name === 'free' || st.name === 'charge' || st.name === 'parry') && mag < 0.1) P.yaw = turnTo(P.yaw, Math.atan2(this.lock.pos.x - P.pos.x, this.lock.pos.z - P.pos.z), 0.2);
-      else if (mag > 1e-3 && mul > 0) P.yaw = turnTo(P.yaw, Math.atan2(P.moveDir.x, P.moveDir.z), 0.25);
-    }
-    const before = { x: P.pos.x, z: P.pos.z };
-    P.pos.x += vx * DT; P.pos.z += vz * DT;
-    resolveCircle(P.pos, P.r, this.boxes);
-    for (const e of this.enemies) {
-      if (!e.brain.alive || !e.root.visible || e.brain.state === 'home') continue;
-      const dx = P.pos.x - e.pos.x, dz = P.pos.z - e.pos.z, d = Math.hypot(dx, dz), min = P.r + e.r * 0.85;
-      if (d < min && d > 1e-4 && st.name !== 'issen') { P.pos.x = e.pos.x + dx / d * min; P.pos.z = e.pos.z + dz / d * min; }
-    }
-    resolveCircle(P.pos, P.r, this.boxes);
-    if (insideAny(P.pos, this.boxes, 0)) this.metrics.wallClips++;
-    if (P.pos.x < -17.5 || P.pos.x > 17.5 || P.pos.z < -73 || P.pos.z > 16.5) this.metrics.outOfBounds++;
-    if (this.god) F.hp = F.hpMax;
-    const moved = Math.hypot(P.pos.x - before.x, P.pos.z - before.z);
-    P.speed = moved / DT; P.phase += moved * 3.1;
-    P.noise = P.speed > 3.5 ? 'run' : P.speed > 0.3 ? 'walk' : 'none';
-    if (prevSt !== 'dodge' && st.name === 'dodge') { /* 回避の向き：入力が無ければ後ろへ */ }
-  }
-  lockTargetClose() { const t = this.lock || this.softTarget; return t && Math.hypot(t.pos.x - this.player.pos.x, t.pos.z - this.player.pos.z) < 1.4; }
-  autoAimLock(I) {
-    // タッチ・パッド：攻撃・構えの時に一番近い敵へ自動で向く
-    if (!(I.attack || I.aim)) return;
-    const t = this.nearestEnemy(8, true);
-    if (t && this.input.device === 'touch') this.lock = t;
-  }
-  nearestEnemy(range = 4, needSight = false, cone = 360, from = this.player.pos, yaw = this.player.yaw) {
-    let best = null, bd = 1e9;
-    for (const e of this.enemies) {
-      if (!e.hittable()) continue;
-      const dx = e.pos.x - from.x, dz = e.pos.z - from.z, d = Math.hypot(dx, dz);
-      if (d > range) continue;
-      if (cone < 360) { let a = Math.atan2(dx, dz) - yaw; while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; if (Math.abs(a) * 180 / Math.PI > cone / 2) continue; }
-      if (needSight && !lineOfSight(from, e.pos, this.boxes)) continue;
-      const score = d; if (score < bd) { bd = score; best = e; }
-    }
-    return best;
-  }
-  toggleLock() {
-    if (this.lock) { this.lock = null; return; }
-    // 画面の中央に近い・近い敵
-    let best = null, bs = 1e9;
-    for (const e of this.enemies) {
-      if (!e.hittable()) continue;
-      const v = new THREE.Vector3(e.pos.x, 1.2, e.pos.z); const d = v.distanceTo(this.player.pos); if (d > 16) continue;
-      v.project(this.camera); if (v.z > 1 || Math.abs(v.x) > 1.1) continue;
-      const s = Math.abs(v.x) * 8 + d; if (s < bs) { bs = s; best = e; }
-    }
-    this.lock = best;
-  }
-
-  handleFighter(evs) {
-    const P = this.player, F = P.fighter;
-    for (const ev of evs) {
-      this.metrics.events.push({ t: ev.t, frame: this.frame, f: ev.frame, kind: ev.kind, step: ev.step }); if (this.metrics.events.length > 400) this.metrics.events.shift();
-      switch (ev.t) {
-        case 'attackStart': {
-          const t = (this.lock && this.lock.hittable() && Math.hypot(this.lock.pos.x - P.pos.x, this.lock.pos.z - P.pos.z) < 5) ? this.lock : this.nearestEnemy(3.6, true, 220);
-          this.softTarget = t;
-          if (t) P.yaw = Math.atan2(t.pos.x - P.pos.x, t.pos.z - P.pos.z);
-          else if (this.curMoveMag > 0.3) P.yaw = Math.atan2(P.moveDir.x, P.moveDir.z);
-          this.swingHits = new Set(); P.trailPts = [];
-          this.sfx.play(ev.heavy || ev.iai || ev.step === 2 ? 'swing_heavy' : 'swing');
-          break;
-        }
-        case 'active': this.meleeHits(ev.atk, ev); break;
-        case 'dodge': {
-          const d = P.moveDir;
-          P.dodgeDir = this.curMoveMag > 0.1 ? { x: d.x, z: d.z } : { x: -Math.sin(P.yaw), z: -Math.cos(P.yaw) };
-          this.sfx.play('dodge'); this.fx.dust(P.pos); break;
-        }
-        case 'just': {
-          this.metrics.just++; this.sfx.play('just'); this.ui.toast('見切り', 'just', 0.9);
-          if (!this.flags.first_just) { this.flags.first_just = true; this.bark('first_just'); }
-          break;
-        }
-        case 'slow': this.slowT = Math.round(ev.frames); this.slowScale = ev.scale; this.ui.slow(true); this.sfx.setMuffle(0.6); break;
-        case 'parry': {
-          this.metrics.parry++; const e = ev.src; if (e && e.brain) e.brain.parried(); this.sfx.play('parry'); this.ui.toast('弾き', 'parry', 0.8);
-          const bp = P.bladePoints(); this.fx.sparks(bp ? bp[1] : P.pos.clone().setY(1.3), 18, 0xfff4d0); this.hitstop = COMBAT.hitstop.heavy; this.cam.shake(0.08, 0.15);
-          break;
-        }
-        case 'parryFail': break;
-        case 'guard': this.sfx.play('guard'); this.cam.shake(0.06, 0.12); break;
-        case 'issen': this.startIssen(ev); break;
-        case 'issenStrike': this.issenStrike(ev); break;
-        case 'shot': this.fireShot(ev); break;
-        case 'dry': this.sfx.play('dry'); this.ui.log('弾が無い'); break;
-        case 'reloadStart': this.sfx.play('reload'); break;
-        case 'reloadDone': break;
-        case 'swapStart': this.sfx.play('swap'); this.swapStartFrame = ev.frame; break;
-        case 'swapDone': this.metrics.swaps.push({ to: ev.weapon, frames: ev.frames, ms: f2ms(ev.frames), measured: ev.frame - this.swapStartFrame }); break;
-        case 'hurt': {
-          this.metrics.hurt++; this.sfx.play('hurt'); this.cam.shake(ev.grab ? 0.22 : 0.14, 0.25); this.ui.flash('hurt');
-          if (F.hp < 30 && !this.flags.lowhp_bark) { this.flags.lowhp_bark = true; this.bark('low_hp'); }
-          break;
-        }
-        case 'dead': setTimeout(() => { this.mode = 'dead'; this.input.exitLock(); this.ui.showDead(true); }, 1400); break;
-        case 'iaiReady': this.sfx.play('issen_ready'); this.ui.toast('居合', 'iai', 0.6); break;
-      }
-    }
-  }
-  meleeHits(atk, ev) {
-    const P = this.player, F = P.fighter;
-    const bp = P.bladePoints(); if (bp) P.trailPts.push(bp);
-    if (P.trailPts.length >= 2) { this.fx.trail(P.trailPts.slice(-2), F.st.iai ? 0xffffff : 0xd8c8ff, 0.14); }
-    for (const e of this.enemies) {
-      if (!e.hittable() || this.swingHits.has(e)) continue;
-      const dx = e.pos.x - P.pos.x, dz = e.pos.z - P.pos.z, d = Math.hypot(dx, dz);
-      if (d > atk.reach + e.r) continue;
-      let a = Math.atan2(dx, dz) - P.yaw; while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI;
-      if (Math.abs(a) * 180 / Math.PI > atk.arc / 2 && d > e.r + 0.5) continue;
-      this.swingHits.add(e);
-      F.markSwingHit();
-      const heavy = atk.stop === 'heavy';
-      this.damageEnemy(e, atk.dmg, 'slash');
-      this.metrics.slashHits++;
-      this.hitstop = heavy ? COMBAT.hitstop.heavy : COMBAT.hitstop.light;
-      this.cam.shake(heavy ? 0.12 : 0.06, 0.15);
-      this.fx.sparks(new THREE.Vector3(e.pos.x - dx / d * e.r, 1.2, e.pos.z - dz / d * e.r), heavy ? 16 : 9);
-      this.sfx.play(heavy ? 'hit_heavy' : 'hit');
-    }
-  }
-  damageEnemy(e, dmg, kind) {
-    const evs = [];
-    const done = e.brain.hurt(dmg, kind, evs);
-    if (done) this.enemyEvents(e, evs);
-    return done;
-  }
-  startIssen(ev) {
-    const P = this.player, e = ev.target;
-    this.metrics.issen[ev.kind]++;
-    P.issenInfo = COMBAT.issen[ev.kind];
-    this.issenFrom = P.pos.clone();
-    if (e && e.brain) {
-      e.brain.interrupt();
-      const dx = e.pos.x - P.pos.x, dz = e.pos.z - P.pos.z, d = Math.hypot(dx, dz) || 1;
-      if (ev.kind === 'mikiri') {                                 // 背後へ抜ける
-        const tx = e.pos.x + dx / d * (e.r + 1.1), tz = e.pos.z + dz / d * (e.r + 1.1);
-        const p = { x: tx, z: tz }; resolveCircle(p, P.r, this.boxes); P.pos.x = p.x; P.pos.z = p.z;
-        P.yaw = Math.atan2(-dx, -dz);
-      } else if (ev.kind === 'utsu' || ev.kind === 'hajiki') {
-        const tx = e.pos.x - dx / d * (e.r + 0.9), tz = e.pos.z - dz / d * (e.r + 0.9);
-        const p = { x: tx, z: tz }; resolveCircle(p, P.r, this.boxes); P.pos.x = p.x; P.pos.z = p.z;
-        P.yaw = Math.atan2(dx, dz);
-      } else P.yaw = Math.atan2(dx, dz);
-    }
-    const names = { mikiri: '見切り一閃', hajiki: '弾き一閃', iai: '抜刀一閃', utsu: '撃ち一閃' };
-    this.ui.toast(names[ev.kind], 'issen', 1.4);
-    this.ui.flash('issen'); this.sfx.play('issen'); this.sfx.setMuffle(0.85);
-    this.slowT = Math.max(this.slowT, COMBAT.issen[ev.kind].total + 10); this.slowScale = 0.2; this.ui.slow(true);
-    this.cam.shake(0.05, 0.2);
-  }
-  issenStrike(ev) {
-    const P = this.player, e = ev.target;
-    const from = this.issenFrom || P.pos.clone();
-    const a = new THREE.Vector3(from.x, 1.15, from.z), b = new THREE.Vector3(P.pos.x, 1.15, P.pos.z);
-    if (e && e.pos) { const mid = new THREE.Vector3(e.pos.x, 1.2, e.pos.z); const dir = b.clone().sub(a); if (dir.length() < 0.5) { dir.set(Math.sin(P.yaw), 0, Math.cos(P.yaw)); a.copy(mid).addScaledVector(dir, -1.6); b.copy(mid).addScaledVector(dir, 1.6); } else { a.addScaledVector(dir.normalize(), -0.8); b.addScaledVector(dir, 0.8); } }
-    this.fx.streak(a, b, 0xffffff, 0.6, 0.045);
-    if (e && e.hittable && e.hittable()) { this.damageEnemy(e, ev.dmg, 'issen'); this.fx.sparks(new THREE.Vector3(e.pos.x, 1.3, e.pos.z), 24, 0xffffff); }
-    if (ev.kind === 'mikiri') for (const o of this.enemies) if (o !== e && o.hittable() && Math.hypot(o.pos.x - P.pos.x, o.pos.z - P.pos.z) < 2.2) this.damageEnemy(o, Math.round(ev.dmg / 2), 'issen');
-    this.hitstop = COMBAT.hitstop.issen; this.cam.shake(0.25, 0.3); this.ui.flash('strike'); this.sfx.play('hit_heavy');
-    if (this.WP.achieve('first_issen')) this.ui.log('実績：はじめての一閃');
-    this.flags.first_issen = true;
-  }
-  fireShot(ev) {
-    const P = this.player, F = P.fighter; this.metrics.shots++;
-    const muzzle = P.muzzleWorld();
-    let o, d;
-    if (ev.aimed && this.input.device === 'kbm') {
-      this.syncCamera();
-      o = this.camera.position.clone(); d = new THREE.Vector3(); this.camera.getWorldDirection(d);
-    } else {
-      // 構えずに撃つ・タッチ・パッド：近い敵へ自動で（弱点ではなく体）
-      const t = (this.lock && this.lock.hittable()) ? this.lock : this.nearestEnemy(COMBAT.handgun.range, true, ev.aimed ? 70 : COMBAT.handgun.hipCone * 2);
-      o = new THREE.Vector3(P.pos.x, 1.35, P.pos.z);
-      if (t) { P.yaw = Math.atan2(t.pos.x - P.pos.x, t.pos.z - P.pos.z); d = new THREE.Vector3(t.pos.x - o.x, (ev.aimed && this.touchAimAssist ? t.model.weakY || 1.2 : 1.1) - o.y, t.pos.z - o.z).normalize(); }
-      else d = new THREE.Vector3(Math.sin(P.yaw), 0, Math.cos(P.yaw));
-    }
-    const maxT = COMBAT.handgun.range;
-    const wallT = rayBoxes(o, d, maxT, this.boxes);
-    let hit = null, ht = wallT, weak = false;
-    for (const e of this.enemies) {
-      if (!e.hittable()) continue;
-      const c = { x: e.pos.x, y: 0, z: e.pos.z };
-      const tb = rayCylinder(o, d, c, e.r, e.h, ht);
-      const wp = this.weakPos(e);
-      const tw = wp ? raySphere(o, d, wp, e.kind === 'kiro' ? 0.17 : 0.2, ht) : Infinity;
-      if (tw < ht && tw <= tb + 0.3) { hit = e; ht = tw; weak = true; }
-      else if (tb < ht) { hit = e; ht = tb; weak = false; }
-    }
-    const end = o.clone().addScaledVector(d, Math.min(ht, maxT));
-    this.fx.flash(muzzle, 0xffd890, 0.12); this.fx.tracer(muzzle, end); this.sfx.play('shot'); this.cam.shake(0.05, 0.1);
-    this.gunshot = { x: P.pos.x, z: P.pos.z }; this.gunshotT = 3;
-    if (hit) {
-      this.metrics.shotHits++;
-      const dmg = Math.round(ev.dmg * (weak ? COMBAT.handgun.weakMul : 1));
-      this.damageEnemy(hit, dmg, 'shot'); this.fx.sparks(end, weak ? 14 : 6, weak ? 0xffd27a : 0xd0d0d0);
-      if (weak) { this.metrics.weakHits++; F.markWeakHit(hit); hit.brain.atk = null; if (hit.brain.alive && hit.brain.state !== 'stagger') { hit.brain.staggerFor = 0.6; hit.brain.go('stagger', [], 'weak'); } this.ui.toast('怯み', 'weak', 0.6); }
-    } else if (ht < maxT) this.fx.sparks(end, 4, 0xa0a0a0);
-  }
-  /** 描画を待たずにカメラの位置・向きを今の状態に合わせる（照準の判定用） */
-  syncCamera() {
-    const P = this.player, F = P.fighter;
-    const sh = this.cam.shakeT; this.cam.shakeT = 0;
-    this.cam.update(0, P.pos, { x: 0, y: 0 }, this.boxes, { aim: F.weapon === 'handgun' && F.aimHeld, lock: this.lock && this.lock.hittable() ? this.lock.pos : null, indoor: P.pos.z > LEVEL.home.minZ - 0.5 });
-    this.cam.shakeT = sh; this.camera.updateMatrixWorld(true);
-  }
-  weakPos(e) {
-    const w = e.model.weak; if (!w) return null; const v = new THREE.Vector3(); w.getWorldPosition(v); return v;
-  }
-
-  // ── 異形 ──
-  stepEnemy(e, dt) {
-    const b = e.brain, P = this.player;
-    if (!e.root.visible && b.state !== 'home') return;
-    if (b.state === 'dead') { this.dissolve(e, dt); return; }
-    if (b.state === 'home') { this.enterHome(e, dt); return; }
-    const dist = Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z);
-    const los = dist < 30 ? lineOfSight(b.pos, P.pos, this.boxes) : false;
-    const Z = LEVEL.heiten.zone;
-    const sense = { player: { x: P.pos.x, z: P.pos.z, noise: P.noise, dead: P.fighter.dead }, los, dark: false, gunshot: this.gunshot,
-      inShop: P.pos.x > Z.minX && P.pos.x < Z.maxX && P.pos.z > Z.minZ && P.pos.z < Z.maxZ };
-    const out = e.step(dt, sense, this.boxes, P);
-    this.enemyEvents(e, out.events);
-  }
-  enemyEvents(e, evs) {
-    const P = this.player, F = P.fighter, b = e.brain;
-    for (const ev of evs) {
-      switch (ev.t) {
-        case 'telegraph': {
-          e.mark = ev.parryable ? 'parry' : 'red'; e.markT = ev.def.windup + 0.2;
-          this.sfx.play(ev.parryable ? 'tel_parry' : 'tel_red');
-          if (e.kind === 'kiro') e.weakGlow = 0.85;
-          break;
-        }
-        case 'attack': {
-          const A = ev.def;
-          const dx = P.pos.x - b.pos.x, dz = P.pos.z - b.pos.z, d = Math.hypot(dx, dz);
-          let a = Math.atan2(dx, dz) - b.yaw; while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; a = Math.abs(a) * 180 / Math.PI;
-          const inRange = d <= A.range + P.r && a <= A.arc / 2 + 10;
-          const nearMiss = d <= A.range + 1.4 && a <= A.arc / 2 + 50;
-          const r = F.incoming({ src: e, dmg: A.dmg, parryable: A.parryable, grab: !!A.grab, inRange, nearMiss });
-          this.handleFighter(F.drain());
-          if (ev.name === 'shutter') { this.sfx.play('slam'); this.cam.shake(0.18, 0.3); this.fx.dust({ x: b.pos.x + Math.sin(b.yaw) * 2, z: b.pos.z + Math.cos(b.yaw) * 2 }, 14); }
-          e.lastAttackResult = r; this.metrics.enemyAttacks[e.id] = (this.metrics.enemyAttacks[e.id] || 0) + 1;
-          if (e.kind === 'kiro') e.weakGlow = 0;
-          break;
-        }
-        case 'state': if (ev.to !== 'hostile') e.mark = null; if (ev.to === 'stagger' || ev.to === 'dead') { e.mark = null; e.weakGlow = 0; } break;
-        case 'notice': this.sfx.play('notice'); if (e.kind === 'kiro' && Math.random() < 0.5) this.bark('kiro_notice', 2.2); break;
-        case 'hostile': break;
-        case 'knock': { const d = Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z); if (d < 16) this.sfx.play('knock'); break; }
-        case 'say': this.bark(ev.key, 3); this.sfx.play('heiten_voice'); break;
-        case 'step': this.heitenStep(ev.id); break;
-        case 'reset': this.heitenStep('reset'); break;
-        case 'helped': this.bark('heiten_helped', 2); this.sfx.play('ui_ok'); break;
-        case 'wrong': this.bark('heiten_wrong', 2); this.sfx.play('ui_ng'); break;
-        case 'misread': this.ui.log('……家族と思っているようだ'); break;
-        case 'rescued': {
-          this.sfx.play('rescue'); this.resolve(e, 'rescue');
-          if (e.kind === 'heiten') { this.bark('heiten_rescued', 3.5); this.heitenSign.set('本日は\n閉店しました'); this.heitenStep('rest'); }
-          else if (!this.flags.first_rescue) { this.flags.first_rescue = true; this.bark('first_rescue'); }
-          break;
-        }
-        case 'die': {
-          this.sfx.play('die'); this.fx.mist(new THREE.Vector3(b.pos.x, 0, b.pos.z), 60, e.h); this.resolve(e, 'kill'); e.fadeT = 0;
-          if (this.lock === e) this.lock = null;
-          if (e.kind === 'heiten') this.bark('heiten_killed', 3);
-          else if (!this.flags.first_kill) { this.flags.first_kill = true; this.bark('first_kill'); }
-          break;
-        }
-        case 'calm': e.mark = null; break;
-      }
-    }
-  }
-  heitenStep(id) {
-    const L = this.level.lights.find(l => l.shop), sh = this.level.dyn.heitenShutter;
-    if (id === 'lights' && L) L.off = true;
-    if (id === 'shutter' && sh) { sh.target = sh.down; this.sfx.play('shutter'); }
-    if (id === 'reset' && L) { L.off = false; if (sh) sh.target = sh.up; }
-    if (id === 'rest' && L) { L.off = true; if (sh) sh.target = sh.down; }
-  }
-  resolve(e, how) {
-    const k = e.kind; this.resol[k] = this.resol[k] || { rescue: 0, neutralize: 0, escape: 0, kill: 0 }; this.resol[k][how]++;
-    this.WP.bump(k, how === 'rescue' ? 'rescued' : 'killed');
-    if (this.allResolved() && !this.flags.all_resolved) { this.flags.all_resolved = true; setTimeout(() => this.bark('all_resolved', 4), 2500); }
-    this.autosaveReq = true;
-  }
-  allResolved() { return this.enemies.every(e => e.brain.resolution === 'rescue' || e.brain.resolution === 'kill'); }
-  count(kind, how) { return (this.resol[kind] || {})[how] || 0; }
-  heitenStatus() { const r = this.heiten.brain.resolution; return r === 'rescue' ? '救った' : r === 'kill' ? '倒した' : 'まだ'; }
-  dissolve(e, dt) {
-    if (e.fadeT == null) e.fadeT = 0;
-    e.fadeT += dt;
-    const k = Math.max(0, 1 - e.fadeT / 1.6);
-    e.y = -(1 - k) * 0.6; e.root.scale.set(1 + (1 - k) * 0.15, k * 0.9 + 0.1, 1 + (1 - k) * 0.15);
-    if (Math.random() < 0.4) this.fx.mist(new THREE.Vector3(e.pos.x, 0, e.pos.z), 2, e.h * k);
-    if (k <= 0) e.root.visible = false;
-  }
-  enterHome(e, dt) {
-    if (e.homeT == null) { e.homeT = 0; const d = this.level.dyn['door_' + e.brain.home]; if (d) d.closeAt = 2.0; }
-    e.homeT += dt;
-    if (e.homeT > 1.2) e.root.visible = false;
-  }
-
-  // ── 世界（調べる・拾う・自動セーブ） ──
+  // ── 世界（拾う・調べる・出入り・自動セーブ・緊張） ──
   stepWorld(I) {
     const P = this.player;
-    // 拾う
-    for (const p of LEVEL.pickups) {
+    for (const p of this.pickupsList) {
       if (this.picked.has(p.id)) continue;
       if (Math.hypot(P.pos.x - p.pos[0], P.pos.z - p.pos[1]) < 0.9) this.pickup(p);
     }
-    // 調べられる物
-    let best = null, bd = 1e9;
-    for (const s of this.level.spots) {
+    let best = null, bd = 1e9, nearExit = false;
+    const spots = this.pipeSpot && !this.picked.has('pipe') ? this.area.spots.concat([this.pipeSpot]) : this.area.spots;
+    for (const s of spots) {
       const d = Math.hypot(P.pos.x - s.x, P.pos.z - s.z);
+      if (s.kind === 'exit' && s.auto && d < s.r + 0.4) nearExit = true;
       if (d > s.r) continue;
       if (s.kind === 'door' && this.opened.has(s.door)) continue;
-      if (s.kind === 'help' && (this.heiten.brain.resolved || !this.heiten.brain.alive)) continue;
+      if (s.kind === 'help' && (!this.heiten || this.heiten.brain.resolved || !this.heiten.brain.alive || streetState(this.story.step) === 'normal')) continue;
+      if (s.kind === 'shutter' && !(this.boss && this.boss.brain.state === 'stuck')) continue;
+      if (s.kind === 'pickupSpot' && this.picked.has(s.id)) continue;
+      if (s.kind === 'rack' && this.player.fighter.owned.includes('katana')) continue;
       if (s.low && d > s.r * 0.6) continue;
       if (d < bd) { bd = d; best = s; }
     }
+    if (!nearExit) this.exitArmed = true;
     this.nearSpot = best;
-    // 家の出入り：自動セーブ
-    const inHome = P.pos.z > LEVEL.home.minZ;
-    if (this.wasInHome != null && inHome !== this.wasInHome) this.autosaveReq = true;
-    this.wasInHome = inHome;
+    if (best && best.kind === 'exit' && best.auto && this.exitArmed && !this.cut.active) { this.exitArmed = false; this.useExit(best); }
+    if (this.area.id === 'shotengai') {
+      const inHome = P.pos.z > LEVEL.home.minZ;
+      if (this.wasInHome != null && inHome !== this.wasInHome) this.autosaveReq = true;
+      this.wasInHome = inHome;
+    }
     if (this.autosaveReq && this.calm()) { this.autosaveReq = false; this.saveSlot('auto', true); }
+    // 緊張：近い敵対の敵ほど
+    let k = 0; for (const e of this.enemies) { if (!e.brain.alive || !e.root.visible) continue; const d = Math.hypot(e.pos.x - P.pos.x, e.pos.z - P.pos.z); const h = ['hostile', 'assess', 'rollcall', 'stuck'].includes(e.brain.state) ? 1 : 0.25; k = Math.max(k, h * Math.max(0, 1 - d / 14)); }
+    this.sfx.setTension(k);
   }
-  calm() { return !this.player.fighter.dead && !['attack', 'issen', 'dodge', 'hurt', 'parry'].includes(this.player.fighter.st.name) && !this.enemies.some(e => e.brain.alive && ['hostile', 'assess', 'stagger', 'search'].includes(e.brain.state)); }
+  calm() { return !this.cut.active && this.mode === 'play' && !this.player.fighter.dead && !['attack', 'issen', 'dodge', 'hurt', 'parry'].includes(this.player.fighter.st.name) && !this.enemies.some(e => e.brain.alive && ['hostile', 'assess', 'stagger', 'search', 'rollcall', 'down', 'stuck'].includes(e.brain.state)); }
   pickup(p) {
-    this.picked.add(p.id); const m = this.pickMeshes.get(p.id); if (m) m.visible = false;
+    this.picked.add(p.id);
+    if (this.pickMesh) { const M = new THREE.Matrix4().makeScale(0, 0, 0); this.pickMesh.setMatrixAt(p.inst, M); this.pickMesh.instanceMatrix.needsUpdate = true; }
+    this.halos.setK(p.halo, 0);
     const it = ITEMS[p.item];
     if (it.ammo) this.player.fighter.addAmmo(it.ammo); else this.items[p.item] = (this.items[p.item] || 0) + 1;
     this.ui.log(`${it.name} を拾った`); this.sfx.play('pickup');
@@ -581,71 +434,36 @@ class Game {
     for (const id of ['medkit_s', 'coffee', 'medkit_l']) if (this.items[id] > 0) { this.items[id]--; F.heal(ITEMS[id].heal); this.sfx.play('heal'); this.ui.log(`${ITEMS[id].name} を使った`); return; }
     this.ui.log('回復の道具が無い');
   }
-  useSpot(s) {
-    const T = this.events.texts || {};
-    switch (s.kind) {
-      case 'door': {
-        const d = this.level.dyn['door_' + s.door]; if (!d) break;
-        this.opened.add(s.door); d.open = true; d.openT = 0; this.sfx.play('door');
-        d.lamp.material.color.set(0xffe0a0); d.glow.material.color.set(0xffd090);
-        const k = this.enemies.find(e => e.kind === 'kiro' && e.brain.home === s.door);
-        if (k && k.brain.alive) { const ev = []; k.brain.openDoor(ev); this.enemyEvents(k, ev); }
-        this.bark('door_opened', 2.4);
-        break;
-      }
-      case 'vending': if (!this.picked.has('vending')) { this.picked.add('vending'); this.items.coffee = (this.items.coffee || 0) + 1; this.sayText(T.vending); this.sfx.play('pickup'); } else this.sayText(T.vending_empty); break;
-      case 'read': this.sayText((T[s.text] || '').replace('{code}', SAFE.code.split('').join(' ')) || s.sign || '……'); break;
-      case 'help': { const ev = []; const r = this.heiten.brain.help(s.help, ev); this.enemyEvents(this.heiten, ev); if (s.help === 'lights' && r !== 'wrong') this.heitenStep('lights'); if (s.help === 'sign' && r === 'done') this.heitenSign.set('本日は\n閉店しました'); if (r === 'ignored') this.ui.log('……今は手伝えない'); break; }
-      case 'safe': if (this.flags.safe_opened) this.sayText(T.safe_opened); else this.openSafe(); break;
-      case 'save': this.autosaveReq = true; this.mode = 'pause'; this.input.exitLock(); this.ui.openSave(); break;
-      case 'talk': {
-        const id = this.allResolved() ? 'ev_companion_after' : !this.flags.hint1 ? 'ev_companion_hint' : !this.flags.hint2 ? 'ev_companion_heiten' : 'ev_companion_idle';
-        if (id === 'ev_companion_hint') this.flags.hint1 = true; if (id === 'ev_companion_heiten') this.flags.hint2 = true;
-        this.companion.talking = true; this.playEvent(id, () => { this.companion.talking = false; });
-        break;
-      }
-    }
-  }
+  toggleFlashlight() { this.flashlightOn = !this.flashlightOn; this.sfx.play('light_on'); this.ui.light(this.flashlightOn); this.metrics.flashlight = (this.metrics.flashlight || 0) + 1; }
+  toggleEquip(id) { this.equipped = toggleEquip(this.equipped, id); this.applyEquip(); this.sfx.play('equip'); }
+  applyEquip() { this.player.fighter.setCombat(combatWithEquip(COMBAT, this.equipped)); }
   sayText(text) { this.playLines([{ who: 'sys', text }]); }
   bark(key, dur = 3) { const b = (this.events.barks || {})[key]; if (!b) return; const sp = this.events.speakers[b.who] || {}; this.ui.bark(sp.name, b.text, sp.color, dur); }
-  // ── 会話（データ駆動） ──
   playEvent(id, done) { const lines = (this.events.events || {})[id]; if (!lines) { if (done) done(); return; } this.playLines(lines, done, id); }
-  playLines(lines, done, id) {
-    this.dialog = { lines, i: 0, done, id, prevMode: this.mode }; this.mode = 'dialog';
-    this.showLine();
-  }
+  playLines(lines, done, id) { this.dialog = { lines, i: 0, done, id, prevMode: this.mode }; this.mode = 'dialog'; this.showLine(); }
   showLine() { const d = this.dialog, L = d.lines[d.i]; const sp = (this.events.speakers || {})[L.who] || {}; this.ui.showLine(sp, L.text); }
   dialogNext() {
     const d = this.dialog; if (!d) return; this.sfx.play('ui');
     d.i++;
-    if (d.i >= d.lines.length) { this.dialog = null; this.ui.hideDialog(); this.mode = 'play'; if (d.done) d.done(); return; }
+    if (d.i >= d.lines.length) { this.dialog = null; this.ui.hideDialog(); this.mode = 'play'; if (d.done) d.done(); if (this.afterDialog) { const f = this.afterDialog; this.afterDialog = null; f(); } return; }
     this.showLine();
   }
-  openSafe() {
-    this.mode = 'pause'; this.input.exitLock();
-    this.ui.openSafe(SAFE.digits, code => {
-      if (code !== SAFE.code) return false;
-      this.flags.safe_opened = true; this.ui.closeSafe(); this.sfx.play('ui_ok');
-      for (const c of SAFE.contents) { const it = ITEMS[c.id]; if (it.ammo) this.player.fighter.addAmmo(it.ammo * c.n); else this.items[c.id] = (this.items[c.id] || 0) + c.n; }
-      this.mode = 'play'; this.playEvent('ev_safe_open'); this.autosaveReq = true;
-      return true;
-    }, () => { this.ui.closeSafe(); this.resume(); });
-  }
-  pause() { if (this.mode !== 'play') return; this.mode = 'pause'; this.input.exitLock(); this.ui.openMenu('top'); }
+  pause() { if (this.mode !== 'play' || this.cut.active) return; this.mode = 'pause'; this.input.exitLock(); this.ui.openMenu('top'); }
   resume() { this.ui.closeMenu(); this.ui.closeSafe(); this.mode = 'play'; if (!this.isTest() && !isTouch) this.input.requestLock(); }
   retry() { this.ui.showDead(false); if (this.store.load('auto')) this.loadSlot('auto'); else location.reload(); }
 
   // ── セーブ ──
   snapshot() {
     const P = this.player, F = P.fighter;
-    const enemies = {}; for (const e of this.enemies) { const r = e.brain.resolution; if (r === 'rescue') enemies[e.id] = 'rescued'; else if (r === 'kill') enemies[e.id] = 'dead'; }
     const items = Object.entries(this.items).filter(([, n]) => n > 0).map(([id, n]) => ({ id, n }));
-    return makeSlot({
-      playSec: this.playSec, area: 'shotengai', pos: [+P.pos.x.toFixed(3), 0, +P.pos.z.toFixed(3)], yaw: +P.yaw.toFixed(3), difficulty: this.settings.difficulty,
-      story: Object.assign({}, this.route, { chapter: 'slice', step: this.allResolved() ? 'resolved' : 'free', flags: Object.assign({}, this.flags), resolutions: JSON.parse(JSON.stringify(this.resol)), trust: { companion: 50 } }),
-      player: { hp: F.hp, hpMax: F.hpMax, weapons: { pipe: null, katana: { lv: 1 }, handgun: { lv: 1, mag: F.mag }, matchlock: null }, ammo: { handgun: F.ammo }, equipped: F.weapon, items },
-      world: { areas: { shotengai: { visited: true, state: 'outbreak', opened: [...this.opened], picked: [...this.picked] } }, enemies: { shotengai: enemies } },
+    const slot = makeSlot({
+      playSec: this.playSec, area: this.area.id, pos: [+P.pos.x.toFixed(3), 0, +P.pos.z.toFixed(3)], yaw: +P.yaw.toFixed(3), difficulty: this.settings.difficulty,
+      story: Object.assign({}, this.route, { chapter: stepDef(this.story.step).ch, step: this.story.step, flags: Object.assign({}, this.flags), resolutions: JSON.parse(JSON.stringify(this.resol)), trust: { companion: this.companion.brain.trust }, boss: this.story.boss, puzzles: { roster: this.puz.roster }, companion: { mode: this.companion.brain.mode === 'grabbed' ? 'follow' : this.companion.brain.mode } }),
+      player: { hp: F.hp, hpMax: F.hpMax, weapons: { pipe: F.owned.includes('pipe') ? { lv: 1 } : null, katana: F.owned.includes('katana') ? { lv: 1 } : null, handgun: F.owned.includes('handgun') ? { lv: 1, mag: F.mag } : null, matchlock: null }, owned: F.owned.slice(), ammo: { handgun: F.ammo }, equipped: F.weapon, items, equip: { owned: this.ownedEquip.slice(), on: this.equipped.slice() } },
+      world: { areas: { [this.area.id]: { visited: true } }, enemies: Object.assign({}, this.enemyRes), picked: [...this.picked], opened: [...this.opened] },
     });
+    slot.place.state = this.area.id === 'shotengai' ? streetState(this.story.step) : 'outbreak';
+    return slot;
   }
   saveSlot(k, auto) {
     const ok = this.store.write(k, this.snapshot());
@@ -655,29 +473,39 @@ class Game {
   }
   loadSlot(k) {
     const s = this.store.load(k); if (!s) return false;
-    document.getElementById('sh-title').hidden = true; this.ui.closeMenu(); this.ui.showDead(false); this.ui.hideDialog(); this.dialog = null;
-    this.spawnEnemies(); this.buildPickups();
-    this.flags = Object.assign({}, s.story.flags || {}); this.resol = JSON.parse(JSON.stringify(s.story.resolutions || {}));
-    this.route = { route: s.story.route, routeLock: s.story.routeLock, reveal: s.story.reveal, forms: s.story.forms, branchLog: s.story.branchLog || [] };
-    const W = (s.world.areas || {}).shotengai || {}; this.picked = new Set(W.picked || []); this.opened = new Set(W.opened || []);
-    for (const id of this.picked) { const m = this.pickMeshes.get(id); if (m) m.visible = false; }
-    for (const [id, d] of Object.entries(this.level.dyn)) if (id.startsWith('door_') && d.pivot) { d.open = this.opened.has(id.slice(5)); d.pivot.rotation.y = d.open ? -1.45 * (LEVEL.doors[id.slice(5)].face) : 0; d.closeAt = null; }
-    const EN = (s.world.enemies || {}).shotengai || {};
-    for (const e of this.enemies) {
-      const r = EN[e.id];
-      if (r === 'rescued') { e.brain.resolution = 'rescue'; e.brain.state = e.kind === 'heiten' ? 'rest' : 'home'; if (e.kind === 'kiro') { e.root.visible = false; e.homeT = 9; } }
-      else if (r === 'dead') { e.brain.resolution = 'kill'; e.brain.state = 'dead'; e.brain.hp = 0; e.root.visible = false; e.fadeT = 9; }
-      else if (e.kind === 'kiro' && this.opened.has(e.brain.home)) { e.brain.openDoor([]); }
-    }
-    if (this.heiten.brain.resolution === 'rescue') { this.heitenSign.set('本日は\n閉店しました'); this.heitenStep('rest'); } else { this.heitenSign.set('営業中'); this.heitenStep('reset'); }
-    const P = this.player, F = P.fighter, pl = s.player;
-    F.hp = pl.hp; F.hpMax = pl.hpMax || 100; F.mag = (pl.weapons.handgun || {}).mag ?? 12; F.ammo = (pl.ammo || {}).handgun ?? 0; F.weapon = pl.equipped || 'katana';
-    F.st = { name: 'free', f: 0 }; F.invulnUntil = -1; F.mikiri = F.hajiki = F.utsu = null; F.pending = null;
+    document.getElementById('sh-title').hidden = true; this.ui.closeMenu(); this.ui.showDead(false); this.ui.hideDialog(); this.ui.closePuzzle(); this.dialog = null;
+    if (this.cut.active) this.cut.cs = null; this.ui.letterbox(false); this.cineCam = null; this.timers.length = 0;
+    const st = s.story || {};
+    this.flags = Object.assign({}, st.flags || {}); this.resol = JSON.parse(JSON.stringify(st.resolutions || {}));
+    this.route = { route: st.route, routeLock: st.routeLock, reveal: st.reveal, forms: st.forms, branchLog: st.branchLog || [] };
+    const W = s.world || {};
+    // フェーズ2 の古い形：world.areas.shotengai.{picked,opened}・world.enemies.shotengai
+    const oldA = (W.areas || {}).shotengai || {};
+    this.picked = new Set(W.picked || oldA.picked || []); this.opened = new Set(W.opened || oldA.opened || []);
+    this.enemyRes = {};
+    const EN = W.enemies || {};
+    if (EN.shotengai && typeof EN.shotengai === 'object') { for (const [id, r] of Object.entries(EN.shotengai)) this.enemyRes[id] = r === 'rescued' ? 'rescue' : r === 'dead' ? 'kill' : r; }
+    else Object.assign(this.enemyRes, EN);
+    this.story = { step: st.step || 'ch1_street', boss: st.boss || null };
+    if (!st.step) { this.flags.lights_out = true; }
+    this.puz = Object.assign({ roster: { done: {}, miss: 0 } }, st.puzzles || {});
+    const P = this.player, F = P.fighter, pl = s.player || {};
+    F.owned = pl.owned ? pl.owned.slice() : (st.step ? weaponsAt(this.story.step) : ['katana', 'handgun']);
+    F.hp = pl.hp ?? 100; F.hpMax = pl.hpMax || 100; F.mag = ((pl.weapons || {}).handgun || {}).mag ?? 12; F.ammo = (pl.ammo || {}).handgun ?? 0; F.weapon = F.owned.includes(pl.equipped) ? pl.equipped : (F.owned.find(w => w !== 'handgun') || F.owned[0] || 'none');
+    F.lastMelee = F.weapon === 'handgun' ? (F.owned.includes('katana') ? 'katana' : 'pipe') : F.weapon;
+    F.st = { name: 'free', f: 0 }; F.invulnUntil = -1; F.mikiri = F.hajiki = F.utsu = F.chain = null; F.pending = null;
     this.items = {}; for (const it of pl.items || []) this.items[it.id] = it.n;
-    this.placePlayer(s.place.pos, s.place.yaw);
+    this.ownedEquip = ((pl.equip || {}).owned || []).slice(); this.equipped = ((pl.equip || {}).on || []).slice(); this.applyEquip();
+    this.companion.brain.trust = (st.trust || {}).companion ?? 50;
+    this.companion.brain.setMode((st.companion || {}).mode || (this.flags.reunited ? 'follow' : 'wait'));
     this.playSec = s.playSec || 0; this.settings.difficulty = s.difficulty || this.settings.difficulty; F.setDifficulty(this.settings.difficulty, { touch: isTouch, assist: this.settings.assist });
+    const area = (s.place && s.place.area && BUILDERS[s.place.area]) ? s.place.area : 'shotengai';
+    this.loadArea(area, null);
+    this.placePlayer(s.place.pos, s.place.yaw);
+    this.placeCompanion();
     this.lock = null; this.slowT = 0; this.hitstop = 0; this.ui.slow(false); this.sfx.setMuffle(0);
-    this.mode = 'play'; this.loadedFrom = k;
+    this.mode = 'play'; this.loadedFrom = k; this.exitArmed = false;
+    this.refreshObjective();
     if (!this.isTest()) this.input.requestLock();
     this.ui.toast('ロードしました', '', 1);
     return true;
@@ -686,22 +514,26 @@ class Game {
   // ── 設定・画質 ──
   applySetting(k, v, silent) {
     this.settings[k] = v;
+    if (k === 'preset') { if (v !== 'custom') Object.assign(this.settings, applyPreset(this.settings, v === 'auto' ? this.autoPresetKey : v), { preset: v }); this.applyQuality(); }
+    if (['resScale', 'shadows', 'outline', 'rain', 'halos', 'wet', 'edges'].includes(k)) { this.settings.preset = 'custom'; this.applyQuality(); }
     if (k === 'difficulty' || k === 'assist') this.player.fighter.setDifficulty(this.settings.difficulty, { touch: isTouch, assist: this.settings.assist });
     if (k === 'sens') this.input.sens = v;
     if (k === 'invertY') this.cam.invertY = v;
     if (k === 'volume') this.sfx.setVolume(v);
     if (k === 'rain') this.sfx.setRain(v);
     if (k === 'touchUI' && this.touchUI) this.touchUI.show(v);
-    if (['resScale', 'shadows', 'outline', 'rain'].includes(k)) this.applyQuality();
+    if (k === 'subSize') { const r = document.getElementById('sh-ui'); r.classList.remove('sub-s', 'sub-m', 'sub-l'); r.classList.add('sub-' + v); }
     if (!silent) this.store.writeSettings(this.settings);
   }
   applyQuality() {
     const S = this.settings, r = this.renderer;
     r.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5) * S.resScale);
-    if (r.shadowMap.enabled !== S.shadows) { r.shadowMap.enabled = S.shadows; this.scene.traverse(o => { if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { m.needsUpdate = true; }); } }); }
+    if (r.shadowMap.enabled !== S.shadows) { r.shadowMap.enabled = S.shadows; this.scene.traverse(o => { if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { m.needsUpdate = true; }); } }); for (const A of Object.values(this.areas)) if (A.root.parent !== this.scene) A.root.traverse(o => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { m.needsUpdate = true; }); }); }
     this.moon.castShadow = S.shadows;
-    setOutlinesVisible(this.scene, S.outline); for (const e of this.enemies || []) e.hullOn = null;
-    this.rain.mesh.visible = S.rain;
+    this.scene.traverse(o => { if (o.userData.isEdgeLines) o.visible = S.outline && S.edges !== false; });
+    for (const A of Object.values(this.areas)) A.root.traverse(o => { if (o.userData.isEdgeLines) o.visible = S.outline && S.edges !== false; });
+    this.halos.mesh.visible = S.halos !== false; this.wet.mesh.visible = S.wet !== false;
+    if (this.rain && this.area) this.rain.mesh.visible = S.rain && !!this.area.rain;
     this.resize();
   }
   resize() {
@@ -711,98 +543,147 @@ class Game {
 
   // ── 描画 ──
   render(dt, steps) {
-    const P = this.player, F = P.fighter;
-    const wdt = dt * (this.mode === 'play' ? this.worldScale : 0) * (this.hitstop > 0 ? 0.05 : 1);
-    const pdt = this.mode === 'play' ? (this.hitstop > 0 ? dt * 0.05 : dt) : 0;
-    const look = this.mode === 'play' ? this.input.consumeLook() : (this.input.consumeLook(), { x: 0, y: 0 });
-    const indoor = P.pos.z > LEVEL.home.minZ - 0.5;
-    this.cam.update(dt, P.pos, look, this.boxes, { aim: F.weapon === 'handgun' && F.aimHeld && !['swap', 'reload'].includes(F.st.name), lock: this.lock && this.lock.hittable() ? this.lock.pos : null, indoor });
+    const P = this.player, F = P.fighter, A = this.area, S = this.settings, PV = this.presetVals();
+    const playing = this.mode === 'play' || this.cut.active;
+    const wdt = dt * (this.mode === 'play' && !this.cut.active ? this.worldScale : 1) * (this.hitstop > 0 ? 0.05 : 1) * (playing ? 1 : 0);
+    const pdt = playing ? (this.hitstop > 0 ? dt * 0.05 : dt) : (this.mode === 'title' ? dt : 0);
+    const look = this.input.consumeLook();
+    if (this.cineCam) {
+      const c = this.cineCam; this.camera.position.set(...c.pos); this.camera.lookAt(...c.look); if (Math.abs(this.camera.fov - c.fov) > 0.01) { this.camera.fov = c.fov; this.camera.updateProjectionMatrix(); }
+    } else {
+      const lk = this.mode === 'play' ? look : { x: 0, y: 0 };
+      // ロック中にマウス・右スティックを素早く振る＝相手を切り替える
+      if (this.lock && this.mode === 'play' && Math.abs(lk.x) > 0.11) { this.switchLock(lk.x < 0 ? 1 : -1); lk.x = 0; }
+      this.cam.update(dt, P.pos, lk, this.boxes, { aim: F.weapon === 'handgun' && F.aimHeld && !['swap', 'reload'].includes(F.st.name), lock: this.lock && this.lock.hittable() ? this.lock.pos : null, indoor: A.indoor(P.pos.x, P.pos.z) });
+    }
     if (this.lock && !this.lock.hittable()) this.lock = null;
-    P.animate(pdt || (this.mode === 'title' ? dt : 0), { aimPitch: this.cam.pitch * 0.8 });
+    const sitPose = this.cinePlayerAnim === 'sit' ? { pose: { hipsY: -0.42, leftUpperLeg: [-1.5, 0, 0.05], rightUpperLeg: [-1.5, 0, -0.05], leftLowerLeg: [1.5, 0, 0], rightLowerLeg: [1.5, 0, 0], spine: [-0.1, 0, 0], leftUpperArm: [0.1, 0, 0.2], rightUpperArm: [0.1, 0, -0.2], leftLowerArm: [-0.6, 0, 0], rightLowerArm: [-0.6, 0, 0], head: [0.05, 0, 0] }, rate: 0.2 } : null;
+    if (this.cut.active && !this.cineMoves.some(m => m.tgt.kind === 'player')) P.speed = 0;
+    P.animate(pdt, { aimPitch: this.cam.pitch * 0.8, override: sitPose });
     const cp = this.camera.position;
     for (const e of this.enemies) {
-      const dc = Math.hypot(e.pos.x - cp.x, e.pos.z - cp.z), far = dc > 34; e.model.root.visible = !far;
-      const hull = this.settings.outline && dc < (isTouch ? 9 : 14); if (e.hullOn !== hull) { e.hullOn = hull; setOutlinesVisible(e.model.root, hull); }
+      const dc = Math.hypot(e.pos.x - cp.x, e.pos.z - cp.z), far = dc > PV.enemyFar; e.model.root.visible = !far;
+      const hull = S.outline && (dc < PV.outlineDist || e.brain.chainable || e.kind === 'shuuyou'); if (e.hullOn !== hull) { e.hullOn = hull; e.model.outline.visible = hull; }
       if (e.root.visible && !far) e.animate(Math.max(wdt, 0));
+      if (e.markT > 0) e.markT -= wdt; if (e.markT <= 0) e.mark = null;
     }
-    this.companion.root.visible = Math.hypot(this.companion.root.position.x - cp.x, this.companion.root.position.z - cp.z) < 30;
-    this.companion.animate(dt);
-    // 戸の開閉・閉店のシャッター・灯りのちらつき
-    for (const [id, d] of Object.entries(this.level.dyn)) {
+    this.companion.animate(pdt);
+    if (this.companion.model.outline) this.companion.model.outline.visible = S.outline;
+    if (P.model.outline) P.model.outline.visible = S.outline;
+    for (const c of this.civilians) { c.animate(pdt); if (c.vanish) { c.vt = (c.vt || 0) + dt; const u = c.model.mats.body.userData.u; for (const m of [c.model.mats.body, c.model.mats.face, c.model.mats.outline]) if (m && m.userData.u) m.userData.u.uDissolve.value = Math.min(1, c.vt / 1.5); if (c.vt > 1.6) c.root.visible = false; void u; } }
+    // 戸・シャッター
+    for (const [id, d] of Object.entries(A.dyn)) {
       if (!id.startsWith('door_') || !d.pivot) continue;
-      const face = LEVEL.doors[id.slice(5)].face;
-      if (d.closeAt != null) { d.closeAt -= wdt; if (d.closeAt <= 0) { d.open = false; d.closeAt = null; d.lamp.material.color.set(0x88ff99); } }
-      const want = d.open ? -1.45 * face : 0; d.pivot.rotation.y += (want - d.pivot.rotation.y) * Math.min(1, dt * 4);
+      if (d.closeAt != null) { d.closeAt -= wdt; if (d.closeAt <= 0) { d.open = false; d.closeAt = null; this.halos.setColor(d.halo, 0x88ff99); } }
+      const want = d.open ? -1.45 * (d.face || 1) : 0; d.pivot.rotation.y += (want - d.pivot.rotation.y) * Math.min(1, dt * 4);
     }
-    const sh = this.level.dyn.heitenShutter; if (sh && sh.target != null) sh.mesh.position.y += (sh.target - sh.mesh.position.y) * Math.min(1, wdt * 0.8);
-    const t = performance.now() / 1000;
-    for (const l of this.level.lights) {
-      let k = l.off ? 0.05 : 1;
-      if (l.flicker && !l.off) { const n = Math.sin(t * 13.7 + l.pos[2]) * Math.sin(t * 7.3) ; if (n > 0.86) k = 0.15; }
-      l.light.intensity += (l.base * k - l.light.intensity) * Math.min(1, dt * 20);
-    }
-    // 影の光源はプレイヤーの近く
+    for (const sh of [A.dyn.heitenShutter, A.dyn.storageShutter]) if (sh && sh.target != null) sh.mesh.position.y += (sh.target - sh.mesh.position.y) * Math.min(1, (wdt + 0.0001) * 1.6);
+    if (A.dyn.tv && this.frame % 3 === 0 && A.dyn.tv.kind === 'static') A.dyn.tv.draw('static');
+    this.updateLights(dt);
+    // 光源とプレイヤーの近く
     this.keyLight.position.set(P.pos.x + Math.sin(this.cam.yaw) * 1.6, 1.9, P.pos.z + Math.cos(this.cam.yaw) * 1.6);
+    this.keyLight.intensity = this.darkness ? 0.6 : 1.4;
     this.moon.position.set(P.pos.x - 6, 14, P.pos.z + 8); this.moon.target.position.set(P.pos.x, 0, P.pos.z);
-    if (this.settings.rain) { this.rain.mesh.visible = !indoor; this.rain.update(dt, P.pos.x, P.pos.z, P.pos.z < -4); }
+    this.moon.intensity = A.id === 'shelter' ? (this.darkness ? 0.25 : 0.45) : 0.9;
+    // 懐中電灯：胸から、カメラの向きへ
+    const fwd = new THREE.Vector3(); this.camera.getWorldDirection(fwd);
+    this.flash.intensity = this.flashlightOn ? 26 : 0;
+    this.flash.position.set(P.pos.x + Math.sin(P.yaw) * 0.25, 1.3, P.pos.z + Math.cos(P.yaw) * 0.25);
+    this.flash.target.position.copy(this.flash.position).addScaledVector(fwd, 6);
+    if (this.flashHalo >= 0) { this.halos.setPos(this.flashHalo, this.flash.position.x, this.flash.position.y, this.flash.position.z); this.halos.setK(this.flashHalo, this.flashlightOn ? 0.5 : 0); }
+    if (S.rain && A.rain) { const roofed = A.rainRoof(P.pos.x, P.pos.z); this.rain.mesh.visible = !roofed; if (!roofed) this.rain.update(dt, P.pos.x, P.pos.z, false); } else this.rain.mesh.visible = false;
+    // 刀の軌跡：振りの判定中と一閃
+    const swinging = (F.st.name === 'attack' && F.st.f >= F.st.atk.startup - 2 && F.st.f <= F.st.atk.startup + F.st.atk.active + 3) || (F.st.name === 'issen' && F.st.f >= (P.issenInfo ? P.issenInfo.strike : 6) - 3 && F.st.f <= (P.issenInfo ? P.issenInfo.strike : 6) + 4);
+    if (swinging && pdt > 0) { const bp = P.bladePoints(); if (bp) this.trail.push(bp[0], bp[1], F.st.name === 'issen' || F.st.iai ? 0xffffff : F.weapon === 'pipe' ? 0xffd8a8 : 0xd8c8ff); }
+    this.trail.update(pdt);
     this.fx.update(Math.max(wdt, 0.0001) + (this.mode === 'play' && this.worldScale < 1 ? dt * 0.3 : 0));
-    // 拾える物の回転
-    for (const m of this.pickMeshes.values()) if (m.visible) m.children[0].rotation.y += dt * 1.5;
+    this.wet.update(this.camera); this.halos.flush(); this.wet.flush();
+    this.sfx.setListener(cp.x, cp.z, Math.atan2(-fwd.x, -fwd.z)); this.sfx.update(dt);
     // 画面の部品
     this.ui.tick(dt);
     if (this.mode === 'play' || this.mode === 'dialog') this.ui.hud(P);
     const proj = (x, y, z) => { const v = new THREE.Vector3(x, y, z).project(this.camera); if (v.z > 1) return null; return { x: (v.x * 0.5 + 0.5) * innerWidth, y: (-v.y * 0.5 + 0.5) * innerHeight }; };
-    this.ui.lockAt(this.lock ? proj(this.lock.pos.x, this.lock.h * 0.6, this.lock.pos.z) : null);
-    const issenOpen = F.mikiri && (F.frame - F.mikiri.at) <= F.w.mikiri || F.hajiki && (F.frame - F.hajiki.at) <= F.w.hajiki || F.utsu && (F.frame - F.utsu.at) <= F.w.utsu;
+    this.ui.lockAt(this.lock && !this.cut.active ? proj(this.lock.pos.x, this.lock.h * 0.6, this.lock.pos.z) : null);
+    const issenOpen = F.mikiri && (F.frame - F.mikiri.at) <= F.w.mikiri || F.hajiki && (F.frame - F.hajiki.at) <= F.w.hajiki || F.utsu && (F.frame - F.utsu.at) <= F.w.utsu || F.chain && (F.frame - F.chain.at) <= F.w.chain;
     for (const e of this.enemies) {
-      if (e.markT > 0) e.markT -= wdt; if (e.markT <= 0) e.mark = null;
-      const tgt = issenOpen && ((F.mikiri && F.mikiri.src === e) || (F.hajiki && F.hajiki.src === e) || (F.utsu && F.utsu.src === e));
-      const kind = tgt ? 'issen' : e.root.visible && e.brain.alive ? e.mark : null;
+      const tgt = issenOpen && ((F.mikiri && F.mikiri.src === e) || (F.hajiki && F.hajiki.src === e) || (F.utsu && F.utsu.src === e) || (F.chain && F.chain.src === e));
+      const kind = this.cut.active ? null : tgt ? 'issen' : e.root.visible && e.brain.alive ? e.mark : null;
       this.ui.mark(e.id, kind ? proj(e.pos.x, e.h + 0.35, e.pos.z) : null, kind);
+      // 弱点の光（帰路の頭・閉店のレジ・収容者のスピーカー）
+      if (e.weakHalo == null && e.model.weak) e.weakHalo = this.halos.add([0, -50, 0], e.kind === 'shuuyou' ? 1.2 : 0.55, e.model.weakColor || 0xffd27a, 0);
+      if (e.weakHalo != null && e.weakHalo >= 0) { const w = this.weakPos(e); this.halos.setPos(e.weakHalo, w.x, w.y, w.z); const k = !e.brain.alive || !e.root.visible ? 0 : e.kind === 'kiro' ? e.weakGlow || 0 : e.kind === 'shuuyou' ? (e.brain.state === 'dormant' ? 0 : 0.35 + (e.brain.state === 'rollcall' ? 0.5 + Math.sin(this.playSec * 9) * 0.3 : 0)) : 0.45; this.halos.setK(e.weakHalo, k); }
     }
     if (this.touchUI) { this.touchUI.setUse(!!this.nearSpot); this.touchUI.setIssen(issenOpen); }
     const dev = this.input.device;
-    this.ui.prompt(this.mode === 'play' && this.nearSpot ? this.nearSpot.label : null, dev === 'pad' ? 'B' : dev === 'touch' ? '調' : 'E');
-    // 照準：弱点に重なっているか
+    this.ui.prompt(this.mode === 'play' && !this.cut.active && this.nearSpot && !(this.nearSpot.kind === 'exit' && this.nearSpot.auto) ? this.nearSpot.label : null, dev === 'pad' ? 'B' : dev === 'touch' ? '調' : 'E');
+    const C = this.companion; this.ui.companion(C.root.visible && !this.cut.active && C.brain.mode !== 'scripted' ? C.brain.mode : null, '（相棒）');
+    if (this.boss && this.boss.brain.alive && !['dormant', 'rest', 'neutral', 'rise'].includes(this.boss.brain.state) && !this.cut.active) { const b = this.boss.brain; this.ui.boss('収容者（仮）', b.hp / b.hpMax, b.state === 'rollcall' ? '点呼中 ―― 今なら名前を呼べる' : b.state === 'stuck' ? '器具庫に挟まっている' : b.state === 'down' ? '崩れている（青い縁）' : ['', '照明が落ちた', '必死'][b.phase] || '', b.state === 'rollcall' || b.state === 'stuck'); }
     if (F.weapon === 'handgun' && F.aimHeld && dev === 'kbm') {
       const o = this.camera.position, d = new THREE.Vector3(); this.camera.getWorldDirection(d);
-      P.aimWeak = this.enemies.some(e => { const wp = e.hittable() && this.weakPos(e); return wp && raySphere(o, d, wp, 0.2, 40) < 40; });
+      P.aimWeak = this.enemies.some(e => { const wp = e.hittable() && this.weakPos(e); return wp && raySphereHit(o, d, wp, e.kind === 'shuuyou' ? 0.28 : 0.2); });
       for (const e of this.enemies) if (e.kind === 'kiro' && !e.mark) e.weakGlow = 0.35;
     } else { P.aimWeak = false; for (const e of this.enemies) if (e.kind === 'kiro' && !e.mark) e.weakGlow = 0; }
     this.renderer.render(this.scene, this.camera);
     if (this.perfOn) this.perfTick(dt, steps);
   }
+  /** 使い回しの点光源を近い明かりへ。ちらつき・消灯。光のにじみ・映り込みも明かりに合わせる */
+  updateLights(dt) {
+    const A = this.area, P = this.player.pos, t = performance.now() / 1000;
+    this.lightT = (this.lightT || 0) - dt;
+    if (this.lightT <= 0) {
+      this.lightT = 0.25;
+      const cand = A.lights.filter(l => !l.off || l.flicker).map(l => ({ l, d: Math.hypot(l.pos[0] - P.x, l.pos[2] - P.z) - (l.intensity || l.base) * 0.4 })).sort((a, b) => a.d - b.d).slice(0, this.pool.length).map(x => x.l);
+      for (const p of this.pool) if (p.def && !cand.includes(p.def)) p.def = null;
+      for (const l of cand) if (!this.pool.some(p => p.def === l)) { const p = this.pool.find(q => !q.def); if (p) { p.def = l; p.light.position.set(...l.pos); p.light.color.setHex(l.color); p.light.distance = l.dist; p.light.intensity = 0; } }
+    }
+    for (const l of A.lights) {
+      let k = l.off ? 0 : 1;
+      if (l.flicker && !l.off) { const n = Math.sin(t * 13.7 + l.pos[2]) * Math.sin(t * 7.3); if (n > 0.86) k = 0.15; }
+      if (l.flickerT > 0) { l.flickerT -= dt; k *= Math.random() < 0.5 ? 0.1 : 1; }
+      l.cur = (l.intensity ?? l.base) * k;
+    }
+    for (const p of this.pool) { const want = p.def ? p.def.cur : 0; p.light.intensity += (want - p.light.intensity) * Math.min(1, dt * 20); }
+    for (const h of A.halos) if (h.idx >= 0) {
+      let k = h.off ? 0 : h.k;
+      if (h.light) k = h.light.off ? 0 : h.k * Math.min(1.2, (h.light.cur || 0) / Math.max(0.01, h.light.base || 1));
+      if (h.flicker) k *= 0.75 + Math.sin(t * 9 + h.p[0]) * 0.25;
+      this.halos.setK(h.idx, k);
+    }
+    for (const w of A.wet) if (w.idx >= 0 && w.light) { const L = A.lights.find(l => l.id === w.light); this.wet.setK(w.idx, L && !L.off ? w.k : 0); }
+  }
   perfTick(dt, steps) {
     const a = this.perfAcc; a.t += dt; a.n++; a.steps += steps;
     if (a.t >= 0.5) {
       const i = this.renderer.info, pr = this.renderer.getPixelRatio();
-      this.ui.perf(`fps ${(a.n / a.t).toFixed(1)}  ${(a.t / a.n * 1000).toFixed(1)}ms  sim ${(a.steps / a.t).toFixed(0)}Hz\ndraw ${i.render.calls}  tri ${(i.render.triangles / 1000).toFixed(1)}k  geo ${i.memory.geometries}  tex ${i.memory.textures}\n${innerWidth}×${innerHeight} ×${pr.toFixed(2)}  影${this.settings.shadows ? 'あり' : 'なし'} 輪郭${this.settings.outline ? 'あり' : 'なし'}`);
-      this.lastPerf = { fps: a.n / a.t, ms: a.t / a.n * 1000, calls: i.render.calls, tris: i.render.triangles, pr };
+      this.ui.perf(`fps ${(a.n / a.t).toFixed(1)}  ${(a.t / a.n * 1000).toFixed(1)}ms  sim ${(a.steps / a.t).toFixed(0)}Hz\ndraw ${i.render.calls}  tri ${(i.render.triangles / 1000).toFixed(1)}k  geo ${i.memory.geometries}  tex ${i.memory.textures}\n${innerWidth}×${innerHeight} ×${pr.toFixed(2)}  ${this.settings.preset}(${this.autoPresetKey})  影${this.settings.shadows ? 'あり' : 'なし'} 光${this.poolN}  ${this.area.id}`);
+      this.lastPerf = { fps: a.n / a.t, ms: a.t / a.n * 1000, calls: i.render.calls, tris: i.render.triangles, pr, area: this.area.id };
       a.t = 0; a.n = 0; a.steps = 0;
     }
   }
   buildTune() {
     const d = document.createElement('div'); d.id = 'sh-tune';
     const W = COMBAT.difficulty.normal;
-    const rows = [['ジャスト回避', W, 'just'], ['パリィ（前）', W, 'parryBefore'], ['パリィ（後）', W, 'parryAfter'], ['見切り一閃の窓', COMBAT.issen.mikiri, 'window'], ['弾き一閃の窓', COMBAT.issen.hajiki, 'window'], ['居合の長押し', COMBAT.issen.iai, 'hold'], ['スロー（f）', COMBAT.justSlow, 'frames']];
+    const rows = [['ジャスト回避', W, 'just'], ['パリィ（前）', W, 'parryBefore'], ['パリィ（後）', W, 'parryAfter'], ['見切り一閃の窓', COMBAT.issen.mikiri, 'window'], ['弾き一閃の窓', COMBAT.issen.hajiki, 'window'], ['連鎖一閃の窓', COMBAT.issen.chain, 'window'], ['居合の長押し', COMBAT.issen.iai, 'hold'], ['スロー（f）', COMBAT.justSlow, 'frames']];
     d.innerHTML = '<b>?tune=1（ふつうの値・f）</b>' + rows.map(([n, o, k], i) => `<label>${n}<input type="number" data-i="${i}" value="${o[k]}" min="0" max="120"></label>`).join('');
-    d.oninput = e => { const i = +e.target.dataset.i; const [, o, k] = rows[i]; o[k] = +e.target.value; this.player.fighter.setDifficulty(this.settings.difficulty, { touch: isTouch, assist: this.settings.assist }); };
+    d.oninput = e => { const i = +e.target.dataset.i; const [, o, k] = rows[i]; o[k] = +e.target.value; this.applyEquip(); };
     document.body.appendChild(d);
   }
 
   // ── 自動プレイ・検証用 ──
   exposeAPI() {
     const g = this;
+    window.SHINSHOKU_HOOKS = window.SHINSHOKU_HOOKS || {};
     window.__sh = {
       game: g, THREE,
       state() {
         const P = g.player, F = P.fighter;
         return {
-          mode: g.mode, frame: g.frame, worldScale: g.worldScale, hitstop: g.hitstop,
-          player: { x: P.pos.x, z: P.pos.z, yaw: P.yaw, hp: F.hp, weapon: F.weapon, mag: F.mag, ammo: F.ammo, st: F.st.name, f: F.st.f, items: Object.assign({}, g.items) },
-          enemies: g.enemies.map(e => ({ id: e.id, kind: e.kind, state: e.brain.state, hp: e.brain.hp, resolution: e.brain.resolution, x: e.pos.x, z: e.pos.z, visible: e.root.visible, atk: e.brain.atk && e.brain.atk.name })),
+          mode: g.mode, frame: g.frame, worldScale: g.worldScale, hitstop: g.hitstop, area: g.area.id, step: g.story.step, cut: g.cut.active ? g.cut.cs.id : null,
+          player: { x: P.pos.x, z: P.pos.z, yaw: P.yaw, hp: F.hp, weapon: F.weapon, owned: F.owned.slice(), mag: F.mag, ammo: F.ammo, st: F.st.name, f: F.st.f, items: Object.assign({}, g.items), chainN: F.chainN },
+          enemies: g.enemies.map(e => ({ id: e.id, kind: e.kind, state: e.brain.state, hp: e.brain.hp, resolution: e.brain.resolution, x: e.pos.x, z: e.pos.z, visible: e.root.visible, atk: e.brain.atk && e.brain.atk.name, chainable: e.brain.chainable, poise: e.brain.poise })),
+          companion: { mode: g.companion.brain.mode, x: g.companion.brain.pos.x, z: g.companion.brain.pos.z, visible: g.companion.root.visible, trust: g.companion.brain.trust },
           metrics: JSON.parse(JSON.stringify(Object.assign({}, g.metrics, { events: g.metrics.events.slice(-40) }))),
-          nearSpot: g.nearSpot && g.nearSpot.id, flags: Object.assign({}, g.flags), opened: [...g.opened], vrm: g.vrmLoaded || [], lock: g.lock && g.lock.id,
+          nearSpot: g.nearSpot && g.nearSpot.id, flags: Object.assign({}, g.flags), opened: [...g.opened], vrm: g.vrmLoaded || [], lock: g.lock && g.lock.id, equip: g.equipped.slice(), enemyRes: Object.assign({}, g.enemyRes),
         };
       },
       input: { script: list => g.input.runScript(list), press: (a, f = 0) => g.input.runScript([{ f, press: [a] }]), hold: (a, n) => g.input.runScript([{ f: 0, hold: { [a]: n } }]), move: (x, y, n) => g.input.runScript([{ f: 0, move: [x, y, n] }]) },
@@ -810,44 +691,60 @@ class Game {
         teleport(x, z, yaw) { g.player.pos.set(x, 0, z); if (yaw != null) { g.player.yaw = yaw; g.cam.yaw = yaw + Math.PI; } },
         camYaw(y) { g.cam.yaw = y; }, camPitch(p) { g.cam.pitch = p; },
         faceTo(x, z) { const P = g.player; P.yaw = Math.atan2(x - P.pos.x, z - P.pos.z); g.cam.yaw = P.yaw + Math.PI; },
-        /** 敵に今すぐ攻撃の予兆を始めさせる（入力列の検証用）。予兆の長さ（ステップ数）を返す */
         forceAttack(id, name) {
           const e = g.enemies.find(x => x.id === id); if (!e) return -1; const b = e.brain;
-          if (b.state !== 'hostile') { b.go('hostile', []); b.lastSeen = { x: g.player.pos.x, z: g.player.pos.z }; b.lastSeenT = b.total; }
-          b.atk = { name, phase: 'windup', t: 0 }; b.yaw = Math.atan2(g.player.pos.x - b.pos.x, g.player.pos.z - b.pos.z);
-          const A = b.def.attacks[name]; g.enemyEvents(e, [{ t: 'telegraph', name, def: A, parryable: A.parryable }]);
-          let t = 0, n = 0; while (t < A.windup) { t += DT; n++; } return n;   // 攻撃判定が出るステップ（浮動小数の足し算もゲームと同じ）
+          if (b.state !== 'hostile') { b.state = 'hostile'; b.t = 0; b.lastSeen = { x: g.player.pos.x, z: g.player.pos.z }; b.lastSeenT = b.total; }
+          b.yaw = Math.atan2(g.player.pos.x - b.pos.x, g.player.pos.z - b.pos.z);
+          const A = b.def.attacks[name];
+          if (b.startAttack) { const ev = []; b.startAttack(name, ev, { x: g.player.pos.x, z: g.player.pos.z }); g.enemyEvents(e, ev); }
+          else { b.atk = { name, phase: 'windup', t: 0 }; g.enemyEvents(e, [{ t: 'telegraph', name, def: A, parryable: A.parryable }]); }
+          let t = 0, n = 0; while (t < A.windup) { t += DT; n++; } return n;
         },
         placeEnemy(id, x, z) { const e = g.enemies.find(q => q.id === id); e.brain.pos.x = x; e.brain.pos.z = z; },
         hold(on) { g.simHold = !!on; },
         god(on) { g.god = !!on; },
-        resetEnemy(id) { const e = g.enemies.find(q => q.id === id); const b = e.brain; b.hp = b.hpMax; b.resolution = null; b.atk = null; b.cool = 0; b.hostileBy = null; b.go('loop', []); b.sub = 'walk'; e.root.visible = true; e.root.scale.set(1, 1, 1); e.y = 0; e.fadeT = null; e.mark = null; return true; },
+        resetEnemy(id) { const e = g.enemies.find(q => q.id === id); const b = e.brain; b.hp = b.hpMax; b.resolution = null; b.atk = null; b.cool = 0; b.hostileBy = null; b.chainable = false; b.poise = b.poiseMax; b.go(e.kind === 'shuuyou' ? 'hostile' : 'loop', []); b.sub = 'walk'; e.root.visible = true; e.setDissolve(0); e.y = 0; e.fadeT = null; e.mark = null; e.fleeing = false; e.fleeT = 0; delete g.enemyRes[id]; return true; },
         freezeEnemies(on) { g.frozen = on; for (const e of g.enemies) e.brain.cool = on ? 999 : 0; },
         skipDialog() { while (g.dialog) g.dialogNext(); },
+        skipCutscene() { if (g.cut.active) g.cut.skip(); g.ui.letterbox(false); g.cineCam = null; while (g.timers.length) { const t = g.timers.shift(); t.fn(); } },
         heal() { g.player.fighter.hp = g.player.fighter.hpMax; },
         giveAmmo(n) { g.player.fighter.addAmmo(n); },
-        /** 描画せずにシミュレーションだけ n ステップ進める */
+        give(w) { g.player.fighter.give(w); },
         fastSim(n) { for (let i = 0; i < n; i++) g.step(); return g.frame; },
-        use(id) { const s = g.level.spots.find(x => x.id === id); if (s) g.useSpot(s); return !!s; },
+        use(id) { const s = g.area.spots.find(x => x.id === id) || (g.pipeSpot && g.pipeSpot.id === id ? g.pipeSpot : null); if (s) g.useSpot(s); return !!s; },
+        area(id, spawn) { g.changeArea(id, spawn); return g.area.id; },
+        step(id) { g.setStep(id); return g.story.step; },
+        jump(id) { g.jumpToStep(id); return g.story.step; },
         quality(o) { for (const [k, v] of Object.entries(o)) g.applySetting(k, v, true); },
         perf() { return g.lastPerf || null; },
         renderInfo() { const i = g.renderer.info; return { calls: i.render.calls, tris: i.render.triangles, geos: i.memory.geometries, tex: i.memory.textures }; },
-        view(name) { return g.viewMode(name); },
+        view(name, opt) { return g.viewMode(name, opt); },
+        closeMenu() { g.ui.closePuzzle(); g.ui.closeMenu(); g.mode = 'play'; },
+        roster(group, name) { const ns = (window.__shPZ || {}).pickRoster ? null : null; void ns; return g.puz.roster; },
       },
       save: k => g.saveSlot(k), load: k => g.loadSlot(k), store: g.store, wp: g.WP,
     };
   }
-  viewMode(name) {
-    // 撮影用：キャラクターの寄り
-    if (name === 'char') { this.mode = 'pause'; this.ui.closeMenu(); const P = this.player; this.cam.yaw = P.yaw; this.cam.pitch = 0.05; this.cam.dist = 1.6; return true; }
-    if (name === 'normal') { this.cam.dist = 4; this.mode = 'play'; return true; }
+  /** 撮影用：キャラクターの寄り（相手：player|companion|boss） */
+  viewMode(name, opt = {}) {
+    if (name === 'normal') { this.cineCam = null; this.ui.letterbox(false); this.mode = 'play'; return true; }
+    if (name === 'closeup') {
+      const who = opt.who || 'player';
+      const t = who === 'player' ? { x: this.player.pos.x, z: this.player.pos.z, yaw: this.player.yaw, h: 1.5 } : who === 'companion' ? { x: this.companion.brain.pos.x, z: this.companion.brain.pos.z, yaw: this.companion.brain.yaw, h: 1.45 } : { x: this.boss.pos.x, z: this.boss.pos.z, yaw: this.boss.brain.yaw, h: 1.8 };
+      const d = opt.dist || 1.2, side = opt.side || 0.35, hy = opt.y != null ? opt.y : t.h;
+      const a = t.yaw + side;
+      this.cineCam = { pos: [t.x + Math.sin(a) * d, hy + (opt.up || 0.02), t.z + Math.cos(a) * d], look: [t.x, hy - (opt.down || 0.05), t.z], fov: opt.fov || 38 };
+      this.mode = 'pause'; this.ui.closeMenu(); return true;
+    }
     return false;
   }
 }
+Object.assign(Game.prototype, combatMethods, storyMethods);
 
+function raySphereHit(o, d, c, r) { const ox = o.x - c.x, oy = o.y - c.y, oz = o.z - c.z; const B = ox * d.x + oy * d.y + oz * d.z, Cc = ox * ox + oy * oy + oz * oz - r * r; const disc = B * B - Cc; return disc >= 0 && -B - Math.sqrt(disc) > 0; }
 function mergeIn(a, b) {
   if (!a) return b; const o = Object.assign({}, b);
-  for (const k of ['attack', 'dodge', 'parry', 'swap', 'reload', 'interact', 'lock', 'heal']) o[k] = a[k] || b[k];
+  for (const k of ['attack', 'dodge', 'parry', 'swap', 'reload', 'interact', 'lock', 'heal', 'light', 'lockPrev', 'lockNext']) o[k] = a[k] || b[k];
   if (a.wantWeapon && !b.wantWeapon) o.wantWeapon = a.wantWeapon;
   return o;
 }

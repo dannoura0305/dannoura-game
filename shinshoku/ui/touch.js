@@ -7,10 +7,10 @@ export function setupTouch(root, input, game) {
   <button class="tc-b tc-atk" data-a="attack">斬</button><button class="tc-b tc-dodge" data-a="dodge">避</button>
   <button class="tc-b tc-parry" data-a="parry">弾</button><button class="tc-b tc-gun" data-a="gun">銃</button>
   <button class="tc-b tc-swap" data-a="swap">替</button><button class="tc-b tc-use" data-a="interact">調</button>
-  <button class="tc-b tc-heal" data-a="heal">回</button><button class="tc-b tc-menu" data-a="pause">≡</button>`;
+  <button class="tc-b tc-heal" data-a="heal">回</button><button class="tc-b tc-light" data-a="light">灯</button><button class="tc-b tc-menu" data-a="pause">≡</button>`;
   root.appendChild(wrap);
   const stick = wrap.querySelector('.tc-stick'), knob = wrap.querySelector('.tc-knob');
-  let stickId = null, sx = 0, sy = 0, lookId = null, lx = 0, ly = 0;
+  let stickId = null, sx = 0, sy = 0, lookId = null, lx = 0, ly = 0, tap0 = null;
   const R = 56;
   const btnTimers = new Map();
   wrap.addEventListener('touchstart', e => {
@@ -21,12 +21,12 @@ export function setupTouch(root, input, game) {
         const a = b.dataset.a; b.classList.add('on');
         if (a === 'gun') { T.held.add('aim'); game.touchAimAssist = true; }
         else if (a === 'attack') { T.pressQ.push('attack'); btnTimers.set(t.identifier, { a, t0: performance.now(), el: b, timer: setTimeout(() => T.held.add('heavy'), 260) }); continue; }
-        else T.pressQ.push(a);
+        else { T.pressQ.push(a); if (a === 'interact' || a === 'pause') T.held.add(a); }
         btnTimers.set(t.identifier, { a, el: b });
         continue;
       }
       if (t.clientX < innerWidth * 0.42 && stickId == null) { stickId = t.identifier; sx = t.clientX; sy = t.clientY; stick.style.left = (sx - 70) + 'px'; stick.style.top = (sy - 70) + 'px'; stick.classList.add('on'); }
-      else if (lookId == null) { lookId = t.identifier; lx = t.clientX; ly = t.clientY; }
+      else if (lookId == null) { lookId = t.identifier; lx = t.clientX; ly = t.clientY; tap0 = { x: t.clientX, y: t.clientY, t: performance.now(), moved: 0 }; }
     }
     e.preventDefault();
   }, { passive: false });
@@ -36,7 +36,7 @@ export function setupTouch(root, input, game) {
         let dx = t.clientX - sx, dy = t.clientY - sy; const L = Math.hypot(dx, dy); if (L > R) { dx = dx / L * R; dy = dy / L * R; }
         knob.style.transform = `translate(${dx}px,${dy}px)`; T.move.x = dx / R; T.move.y = -dy / R;
       } else if (t.identifier === lookId) {
-        T.lookX = (T.lookX || 0) + (t.clientX - lx) * 0.006 * input.sens; T.lookY = (T.lookY || 0) + (t.clientY - ly) * 0.005 * input.sens; lx = t.clientX; ly = t.clientY;
+        T.lookX = (T.lookX || 0) + (t.clientX - lx) * 0.006 * input.sens; T.lookY = (T.lookY || 0) + (t.clientY - ly) * 0.005 * input.sens; if (tap0) tap0.moved += Math.hypot(t.clientX - lx, t.clientY - ly); lx = t.clientX; ly = t.clientY;
       }
     }
     e.preventDefault();
@@ -44,12 +44,13 @@ export function setupTouch(root, input, game) {
   const end = e => {
     for (const t of e.changedTouches) {
       if (t.identifier === stickId) { stickId = null; T.move.x = T.move.y = 0; knob.style.transform = ''; stick.classList.remove('on'); }
-      if (t.identifier === lookId) lookId = null;
+      if (t.identifier === lookId) { lookId = null; if (tap0 && tap0.moved < 12 && performance.now() - tap0.t < 280) T.tap = { x: tap0.x, y: tap0.y }; tap0 = null; }
       const b = btnTimers.get(t.identifier);
       if (b) {
         b.el.classList.remove('on');
         if (b.a === 'gun') { T.held.delete('aim'); T.pressQ.push('attack'); T.fireRelease = 10; }
         if (b.a === 'attack') { clearTimeout(b.timer); T.held.delete('heavy'); }
+        if (b.a === 'interact' || b.a === 'pause') T.held.delete(b.a);
         btnTimers.delete(t.identifier);
       }
     }

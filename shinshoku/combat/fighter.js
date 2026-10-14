@@ -18,6 +18,9 @@ export class Fighter {
     this.hpMax = opt.hpMax || this.C.hp.max;
     this.hp = opt.hp != null ? opt.hp : this.hpMax;
     this.weapon = opt.weapon || 'katana';
+    this.owned = opt.owned ? opt.owned.slice() : ['katana', 'handgun'];          // 持っている武器（序章は鉄パイプだけ）
+    this.lastMelee = this.weapon === 'handgun' ? (this.owned.includes('katana') ? 'katana' : 'pipe') : this.weapon;
+    this.chain = null; this.chainN = 0;                                          // 連鎖一閃の窓 { src, at }
     this.mag = opt.mag != null ? opt.mag : this.C.handgun.mag;
     this.ammo = opt.ammo != null ? opt.ammo : 24;
     this.frame = 0;
@@ -34,6 +37,19 @@ export class Fighter {
     this.diff = diff; this.touch = !!opt.touch; this.assist = !!opt.assist;
     this.w = windows(diff, { touch: this.touch, assist: this.assist }, this.C);
   }
+  /** 装備などで戦闘の数値を差し替える（combat/equip.js の combatWithEquip の結果） */
+  setCombat(C) { this.C = C; this.setDifficulty(this.diff, { touch: this.touch, assist: this.assist }); }
+  get melee() { return this.weapon === 'pipe' || this.weapon === 'katana'; }
+  /** 近接の武器の値（刀・鉄パイプ） */
+  _mw() { return this.C[this.weapon === 'pipe' ? 'pipe' : 'katana']; }
+  /** 持ち替えの行き先：近接→銃、銃→最後に使った近接 */
+  swapTarget() {
+    if (this.weapon === 'handgun') return this.owned.includes(this.lastMelee) ? this.lastMelee : this.owned.find(w => w !== 'handgun') || null;
+    return this.owned.includes('handgun') ? 'handgun' : (this.owned.find(w => w !== this.weapon && w !== 'handgun') || null);
+  }
+  give(w) { if (!this.owned.includes(w)) this.owned.push(w); }
+  /** 連鎖一閃の窓を開く（一閃が当たった直後、次の相手が見つかった時にゲーム側が呼ぶ） */
+  openChain(src) { this.chain = { src, at: this.frame }; }
   get name() { return this.st.name; }
   get aiming() { return this.weapon === 'handgun' && this.st.name === 'free' && this.aimHeld && this.aimF >= this.C.handgun.aimIn; }
   get dead() { return this.st.name === 'dead'; }
@@ -75,7 +91,7 @@ export class Fighter {
     // パリィの「後 2f」：被弾の保留
     if (this.pending) {
       const late = this.frame - this.pending.at;
-      if (inp.parry && this.weapon === 'katana' && judgeParry(-late, this.w) === 'parry') {
+      if (inp.parry && this.melee && judgeParry(-late, this.w) === 'parry') {
         this._parrySuccess(evs, this.pending.atk.src); this.pending = null;
         this.frame++; return evs;
       }
@@ -86,9 +102,11 @@ export class Fighter {
     if (this._buffered('attack') && !['issen', 'hurt', 'dead'].includes(this.st.name)) {
       const kind = this.mikiri && issenOpen('mikiri', this.frame - this.mikiri.at, this.w) ? 'mikiri'
         : this.hajiki && issenOpen('hajiki', this.frame - this.hajiki.at, this.w) ? 'hajiki'
-        : this.utsu && issenOpen('utsu', this.frame - this.utsu.at, this.w) ? 'utsu' : null;
+        : this.utsu && issenOpen('utsu', this.frame - this.utsu.at, this.w) ? 'utsu'
+        : this.chain && issenOpen('chain', this.frame - this.chain.at, this.w) ? 'chain' : null;
       if (kind) {
-        const src = this[kind].src; this.mikiri = this.hajiki = this.utsu = null; this._consume('attack');
+        const src = this[kind].src; this.mikiri = this.hajiki = this.utsu = this.chain = null; this._consume('attack');
+        this.chainN = kind === 'chain' ? this.chainN + 1 : 0;
         this._startIssen(evs, kind, src);
         this.frame++; return evs;
       }
@@ -145,13 +163,15 @@ export class Fighter {
   _free(evs, inp, justEntered) {
     const C = this.C;
     if (this._buffered('dodge')) { this._consume('dodge'); return this._startDodge(evs, inp); }
-    if (inp.parry && this.weapon === 'katana') return this._startParry(evs);
-    if (inp.swap) return this._startSwap(evs, this.weapon === 'katana' ? 'handgun' : 'katana');
-    if (inp.aim && this.weapon === 'katana' && !justEntered) return this._startSwap(evs, 'handgun');
+    if (inp.parry && this.melee) return this._startParry(evs);
+    if (inp.swap) { const to = this.swapTarget(); if (to) return this._startSwap(evs, to); }
+    if (inp.wantWeapon && inp.wantWeapon !== this.weapon && this.owned.includes(inp.wantWeapon)) return this._startSwap(evs, inp.wantWeapon);
+    if (inp.aim && this.melee && !justEntered && this.owned.includes('handgun')) return this._startSwap(evs, 'handgun');
     if (inp.reload && this.weapon === 'handgun') return this._startReload(evs);
-    if (inp.heavy && this.weapon === 'katana') { this._go('charge'); this._ev(evs, { t: 'chargeStart' }); return; }
+    if (inp.heavy && this.melee) { this._go('charge'); this._ev(evs, { t: 'chargeStart' }); return; }
     if (this._buffered('attack')) {
-      if (this.weapon === 'katana') { this._consume('attack'); return this._startAttack(evs, 0); }
+      if (this.melee) { this._consume('attack'); return this._startAttack(evs, 0); }
+      if (this.weapon !== 'handgun') { this._consume('attack'); return; }        // 素手（序章の最初）：何もしない
       if (this.aimHeld) {
         if (this.aimF >= C.handgun.aimIn && this.fireCd <= 0) { this._consume('attack'); this._fire(evs, true, false); }
       } else if (this.fireCd <= 0) { this._consume('attack'); this._go('hipfire'); }
@@ -159,7 +179,7 @@ export class Fighter {
   }
 
   _startAttack(evs, step, atk) {
-    const a = atk || this.C.katana.light[step];
+    const a = atk || this._mw().light[step];
     this._go('attack', { step, atk: a, hit: false, next: false });
     this._ev(evs, { t: 'attackStart', step, atk: a });
   }
@@ -170,13 +190,13 @@ export class Fighter {
     if (s.f === actEnd && s.iai && !s.hit) s.extra = C.issen.iai.miss - a.recovery;   // 居合の空振り＝30f の硬直
     const rf = s.f - actEnd;                                                      // 戻りの何フレーム目か
     if (rf >= 0) {
-      if (this._buffered('attack') && s.step < 2 && !s.heavy && this.press.attack > this.frame - s.f + 2) {
+      if (this._buffered('attack') && s.step < this._mw().light.length - 1 && !s.heavy && this.press.attack > this.frame - s.f + 2) {
         this._consume('attack'); return this._startAttack(evs, s.step + 1);
       }
       if (this._buffered('dodge') && !s.iai) { this._consume('dodge'); return this._startDodge(evs, inp); }
-      if (inp.parry && this.weapon === 'katana' && !s.iai) return this._startParry(evs);
-      if ((inp.swap || (inp.aim && !s.aimWas)) && !s.iai) {
-        const fr = swapFrames('katana', 'handgun', { recoveryFrame: rf }, C);
+      if (inp.parry && this.melee && !s.iai) return this._startParry(evs);
+      if ((inp.swap || (inp.aim && !s.aimWas)) && !s.iai && this.owned.includes('handgun')) {
+        const fr = swapFrames(this.weapon, 'handgun', { recoveryFrame: rf }, C);
         return this._startSwap(evs, 'handgun', inp.aim ? 'fire' : null, fr);
       }
     }
@@ -186,20 +206,21 @@ export class Fighter {
   _charge(evs, inp) {
     const s = this.st, C = this.C;
     if (this._buffered('dodge')) { this._consume('dodge'); return this._startDodge(evs, inp); }
-    if (s.f === this.w.iaiHold) this._ev(evs, { t: 'iaiReady' });
+    const pipe = this.weapon === 'pipe';
+    if (s.f === this.w.iaiHold && !pipe) this._ev(evs, { t: 'iaiReady' });
     if (!inp.heavy) {
-      if (s.f >= this.w.iaiHold) {
+      if (s.f >= this.w.iaiHold && !pipe) {
         const a = Object.assign({ startup: 0 }, C.katana.iaiSwing);
         this._go('attack', { step: 9, atk: a, heavy: true, iai: true, hit: false });
         this._ev(evs, { t: 'attackStart', step: 9, atk: a, iai: true });
-      } else if (s.f >= C.katana.heavy.startup) {
-        const a = Object.assign({}, C.katana.heavy, { startup: 0 });
+      } else if (s.f >= this._mw().heavy.startup) {
+        const a = Object.assign({}, this._mw().heavy, { startup: 0 });
         this._go('attack', { step: 8, atk: a, heavy: true, hit: false });
         this._ev(evs, { t: 'attackStart', step: 8, atk: a, heavy: true });
       } else this._startAttack(evs, 0);
     }
   }
-  get iaiStance() { return this.st.name === 'charge' && this.st.f >= this.w.iaiHold; }
+  get iaiStance() { return this.st.name === 'charge' && this.weapon === 'katana' && this.st.f >= this.w.iaiHold; }
 
   _startDodge(evs, inp) {
     const C = this.C;
@@ -217,6 +238,7 @@ export class Fighter {
     this._ev(evs, { t: 'parry', src });
   }
   _startSwap(evs, to, then, frames) {
+    if (to !== 'handgun') this.lastMelee = to; else if (this.melee) this.lastMelee = this.weapon;
     const fr = frames != null ? frames : swapFrames(this.weapon, to, { sinceFire: this.frame - this.lastFire }, this.C);
     this._go('swap', { to, total: fr, then: then || null, from: this.weapon });
     this._ev(evs, { t: 'swapStart', to, frames: fr });
@@ -235,7 +257,7 @@ export class Fighter {
     this._ev(evs, { t: 'shot', aimed, quick: !!quick, dmg: this.C.handgun.dmg });
   }
   _startIssen(evs, kind, target) {
-    this.weapon = 'katana';
+    if (this.owned.includes('katana')) this.weapon = 'katana'; else if (this.weapon === 'handgun') this.weapon = this.lastMelee;
     this.pending = null;
     this._go('issen', { kind, target });
     this._ev(evs, { t: 'issen', kind, target });
@@ -267,7 +289,7 @@ export class Fighter {
       if (atk.parryable) { this._damage(evs, atk, this.C.parry.guardMul, true); return 'guard'; }
       this._damage(evs, atk, 1); return 'hit';
     }
-    if (atk.parryable && this.weapon === 'katana' && this.w.parryAfter > 0 && ['free', 'attack', 'charge'].includes(s.name)) {
+    if (atk.parryable && this.melee && this.w.parryAfter > 0 && ['free', 'attack', 'charge'].includes(s.name)) {
       this.pending = { atk, at: this.frame };
       return 'pending';
     }
