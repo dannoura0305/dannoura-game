@@ -102,6 +102,15 @@ export class SkinBody {
    * opt：{ sides, capStart, capEnd, weights, color, oth, group, ref, twist }
    */
   tube(rings, opt = {}) {
+    if (opt.sub > 1) {                                             // 輪を補間して細かくする（色の境目をくっきり）
+      const out = [];
+      for (let i = 0; i < rings.length - 1; i++) for (let k = 0; k < opt.sub; k++) {
+        const a = rings[i], b = rings[i + 1], t = k / opt.sub;
+        const L = (x, y) => x.map((v, j) => v + (y[j] - v) * t);
+        out.push(Object.assign({}, t < 0.5 ? a : b, { c: L(a.c, b.c), r: L(a.r, b.r), off: L(a.off || [0, 0], b.off || [0, 0]) }));
+      }
+      out.push(rings[rings.length - 1]); rings = out;
+    }
     const sides = opt.sides || 12, n = rings.length;
     const pos = [], tArr = [], idx = [];
     const C = rings.map(r => V(...r.c));
@@ -131,14 +140,14 @@ export class SkinBody {
     }
     for (let i = 0; i < n - 1; i++) for (let s = 0; s < sides; s++) {
       const a = i * sides + s, b = i * sides + (s + 1) % sides, c = (i + 1) * sides + s, d = (i + 1) * sides + (s + 1) % sides;
-      idx.push(a, c, b, b, c, d);
+      idx.push(a, b, c, b, d, c);
     }
     const capAt = (i, outward) => {
       const ci = pos.length / 3; const T = (i === 0 ? C[0].clone().sub(C[1]) : C[n - 1].clone().sub(C[n - 2])).normalize();
       const k = opt.capBulge != null ? opt.capBulge : 0.35;
       const rr = Math.min(rings[i].r[0], rings[i].r[1]);
       const p = C[i].clone().addScaledVector(T, rr * k); pos.push(p.x, p.y, p.z); tArr.push(tOf(i));
-      for (let s = 0; s < sides; s++) { const a = i * sides + s, b = i * sides + (s + 1) % sides; if (outward) idx.push(ci, a, b); else idx.push(ci, b, a); }
+      for (let s = 0; s < sides; s++) { const a = i * sides + s, b = i * sides + (s + 1) % sides; if (outward) idx.push(ci, b, a); else idx.push(ci, a, b); }
     };
     if (opt.capStart !== false) capAt(0, true);
     if (opt.capEnd !== false) capAt(n - 1, false);
@@ -276,7 +285,7 @@ export class SkinBody {
     this.root.add(mesh); mesh.bind(skeleton);
     let faceMesh = null;
     if (this.groups.face.pos.length && faceTex) {
-      mats.face = charMaterial({ map: faceTex, alphaTest: 0.45, rim: 0, emissive: opt.faceEmissive ?? 0x2a2230 });
+      mats.face = charMaterial({ map: faceTex, alphaTest: 0.45, rim: 0, emissive: opt.faceEmissive ?? 0x2a2230 }); mats.face.side = THREE.DoubleSide;
       faceMesh = new THREE.SkinnedMesh(mk(this.groups.face, false), mats.face); faceMesh.name = 'skin_face';
       faceMesh.castShadow = false; this.root.add(faceMesh); faceMesh.bind(skeleton);
     }
