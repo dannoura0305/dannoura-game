@@ -1,5 +1,5 @@
 // Ver.0.6「くらしの深まり＋公開準備」のサーバー：地上の若者の位置（スナップショットの k・kh）・家族をなでる・近縁種（なかま・種の壁）・
-// 豊かな巣の週（しめる・先週の呼び名・DB に残る）・dev の家族・マイグレーション 006 → 007・訪問者に家族の形（決定的なしぐさの入力）。
+// 巣めぐり（入れる巣だけ・順位なし）・dev の家族・マイグレーション 006 → 007・訪問者に家族の形（決定的なしぐさの入力）。
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { test, done, makeGame, FakeClient, findDigSpot, tempDir, rmDir } from './harness.mjs';
@@ -146,43 +146,31 @@ await test('近縁種（サーバー）：すなの海のミミナガトビネ�
   H.close(); rmDir(H.dir);
 });
 
-await test('豊かな巣の週：最初の週は今の豊かさから・ふえた分の順 → 週が変わるとしめて呼び名（DB）・先週の一覧', async () => {
-  const H = await makeGame({ clock: { t: Date.parse('2026-10-14T21:00:00+09:00') }, gameOpts: { devMode: true } });
-  const a = await withNest(H, 'rich0001'), b = await withNest(H, 'rich0002', 3);
-  const r1 = await a.req('ranking');
-  assert.equal(r1.ok, true); assert.equal(r1.week.key, '2026-W42'); assert.equal(r1.week.label, '10月12日〜18日');
-  assert.ok(r1.list.every(x => x.gain === 0)); assert.equal(r1.last.winners.length, 0);
-  // b が部屋を足す
-  b.player.inv = b.player.inv.map(x => x && { ...x }); addItem(b.player.inv, 'grass', 30); addItem(b.player.inv, 'pebble', 30); H.store.setCharInventory(b.player.charId, b.player.inv);
-  b.place(b.ent.x, b.ent.y + 10);
-  const e = await b.req('enter_nest', { owner: b.account.id });
-  const r0 = e.nest.data.rooms[0];
-  const lamp = await b.req('nest_op', { nestId: e.nest.id, rev: e.nest.rev, op: { op: 'place', type: 'lamp', x: r0.x + 1, y: r0.y } });
-  assert.equal(lamp.ok, true, lamp.reason);
-  H.clock.t += 31000;
-  const r2 = await b.req('ranking');
-  assert.equal(r2.list[0].name, b.player.name); assert.ok(r2.list[0].gain > 0); assert.equal(r2.list[0].me, true);
-  assert.equal(r2.mine.rank, 1);
-  // 週が変わる（月曜 0 時・日本時間）→ 1 分ごとの rankTick でしめる
-  H.clock.t = Date.parse('2026-10-19T00:00:30+09:00');
-  H.game.rankTick();
-  const rows = H.store.rankWeek('2026-W42');
-  assert.ok(rows.length === 2 && rows.every(x => x.final && x.place));
-  assert.equal(rows.find(x => x.owner === b.account.id).title, 'grew');
-  const r3 = await a.req('ranking');
-  assert.equal(r3.week.key, '2026-W43'); assert.equal(r3.last.key, '2026-W42'); assert.equal(r3.last.label, '10月12日〜18日');
-  assert.equal(r3.last.winners[0].name, b.player.name); assert.equal(r3.last.winners[0].titleName, '今週いちばん育った巣');
-  assert.ok(r3.list.every(x => x.gain === 0), '新しい週は 0 から');
-  // 再起動しても先週の記録は残る（同じ DB を開き直す）
-  const file = join(H.dir, 'game.db');
-  H.close();
-  const db = await openDb(file, { log: () => {} });
-  assert.equal(db.rankWeek('2026-W42').filter(x => x.title).length >= 1, true);
-  assert.equal(db.getMeta('rank_week'), '2026-W43');
-  db.close(); rmDir(H.dir);
+await test('巣めぐり：入れる巣だけ（公開・フレンドだけ公開でフレンド・許可リスト。非公開・自分の巣は出ない）・順位も点数も無い・前の名前 ranking も同じ', async () => {
+  const H = await makeGame({ clock: { t: NOON }, gameOpts: { devMode: true } });
+  const a = await withNest(H, 'tour0001'), b = await withNest(H, 'tour0002', 3), c = await withNest(H, 'tour0003', 6), d = await withNest(H, 'tour0004', 9);
+  await b.req('visit_policy', { policy: 'public' });
+  await c.req('visit_policy', { policy: 'friends' });
+  // d は非公開のまま
+  let r = await a.req('nest_tour');
+  assert.equal(r.ok, true); assert.deepEqual(r.list.map(x => x.name), [b.player.name]);
+  assert.match(r.list[0].desc, /巣/); assert.ok(!('rank' in r.list[0]) && !('score' in r.list[0]));
+  assert.equal(r.list[0].x, b.ent.x);
+  // フレンドになると「フレンドだけ」の巣も出る
+  await a.req('friend_req', { name: c.player.name });
+  const inc = (await c.req('friends')).list.find(f => f.state === 'incoming');
+  await c.req('friend_ok', { id: inc.id });
+  r = await a.req('nest_tour');
+  assert.deepEqual(r.list.map(x => x.name).sort(), [b.player.name, c.player.name].sort());
+  assert.ok(r.list.find(x => x.name === c.player.name).friend);
+  assert.ok(!r.list.some(x => x.name === a.player.name || x.name === d.player.name));
+  const old = await a.req('ranking');
+  assert.deepEqual(old.list.map(x => x.nestId).sort(), r.list.map(x => x.nestId).sort());
+  assert.equal(H.store.db.prepare("SELECT name FROM sqlite_master WHERE name LIKE 'rank%'").get(), undefined, '順位の表は無い');
+  H.close(); rmDir(H.dir);
 });
 
-await test('マイグレーション 006 → 007：rank_weeks・species の索引・空の species は jerboa', async () => {
+await test('マイグレーション 006 → 007：species の索引・空の species は jerboa・巣の更新時刻の索引（順位の表は作らない）', async () => {
   const dir = tempDir(), file = join(dir, 'game.db');
   const old = new Store(file);
   await old.migrate({ upTo: 6 });
@@ -191,12 +179,10 @@ await test('マイグレーション 006 → 007：rank_weeks・species の索�
   old.close();
   const db = await openDb(file, { log: () => {} });
   assert.equal(db.schemaVersion(), 7);
-  assert.ok(db.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = 'rank_weeks'").get());
+  assert.ok(!db.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = 'rank_weeks'").get());
+  assert.ok(db.db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name = 'nests_updated'").get());
   assert.ok(db.db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name = 'individuals_species'").get());
   assert.equal(db.db.prepare('SELECT species FROM individuals').get().species, 'jerboa');
-  db.upsertRankWeek('2026-W42', { nestId: 1, owner: 1, name: 'x', score: 5 }, 3);
-  db.upsertRankWeek('2026-W42', { nestId: 1, owner: 1, name: 'x', score: 9 }, 0);
-  assert.deepEqual([db.rankWeek('2026-W42')[0].base, db.rankWeek('2026-W42')[0].score], [3, 9], 'base は最初のまま');
   db.close(); rmDir(dir);
 });
 

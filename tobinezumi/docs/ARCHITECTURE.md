@@ -162,12 +162,14 @@ tobinezumi/
                nest-view.js（断面の描画：両モード共通）, nest-layout.js（配置：両モード共通・DOM なし）,
                sprites.js（manifest の読み込み・毛色の置き換え）, art.js（コード描画のプレースホルダ）, sfx.js（WebAudio の効果音）, style.css
   shared/      move.js, nest-rules.js, items.js, regions.js, protocol.js, rng.js, life.js（暮らしの数値）, daynight.js（昼夜の時計）,
-               predators.js（捕食者の AI・Ver.0.3）, season.js（季節・天気・影響）, lands.js（土地の区画と性能）（ブラウザと Node の両方で import する ES Modules・DOM なし）
-  server/      index.js（静的配信・/tobi-server.json・/healthz・WebSocket /ws）, game.js（接続・認証・振り分け。ws に依存しない）,
+               predators.js（捕食者の AI・Ver.0.3）, season.js（季節・天気・影響）, lands.js（土地の区画と性能）,
+               family-life.js（家族のしぐさ・ひとこと：Ver.0.6）, follow.js（地上の若者の足あと）, lineage.js（家系図の並べ方・書き出し）, tour.js（巣めぐり）, toyama.js（富山の季節）（ブラウザと Node の両方で import する ES Modules・DOM なし）
+  server/      index.js（静的配信・/tobi-server.json・/healthz・/statsz・WebSocket /ws）, security.js（Origin・IP ごとの上限：Ver.0.6）, docker-entry.mjs, game.js（接続・認証・振り分け。ws に依存しない）,
                rooms/field.js（地上 20Hz・スナップショット 10Hz・採集・巣穴）, rooms/nest.js（巣のインスタンス・建築・倉庫・訪問設定）,
                db.js, auth.js, backup.js, migrations/NNN_*.js, tools/（bots.mjs, backup.mjs, restore.mjs, proto-client.mjs）,
                test/（core：ws 不要 / e2e：本物の WebSocket）, package.json（依存は ws だけ）, Dockerfile（任意）
   assets/      manifest.json と画像（tools/make_assets.py が生成。ASSET_LIST.md §8）
+  deploy/      fly.toml, render.yaml, tobi-server.example.json（Ver.0.6：公開の設定。DEPLOY.md）
   tools/       make_assets.py, normalize_sprites.py, preview.py（素材づくり。サーバーの道具は server/tools/）
   docs/        本書・PROTOCOL.md ほか
 tests/tobinezumi-*.test.mjs   リポジトリ共通の `node tests/run.mjs` で回る（移動・建築ルール・移行・オフライン保存・予測・再接続、サーバーの core/e2e）
@@ -179,7 +181,7 @@ tests/tobinezumi-*.test.mjs   リポジトリ共通の `node tests/run.mjs` で�
 |---|---|---|---|
 | **いま（Ver.0.1・段階 1〜2）** | GitHub Pages（静的） | **オフライン 1 人プレイ**：サーバーが見つからなければ自動で localStorage 版（`OfflineBackend`）。採集・巣作り・閲覧モード・保存まで遊べる。NPC のトビネズミ 3 匹（うち 1 匹の巣は見学可） | 0 円 |
 | Ver.0.1 の完成（段階 3〜6・**完了**） | **ローカル**：`cd tobinezumi/server && npm install && npm start` → `http://localhost:8080/tobinezumi.html` | **オンライン**：サーバーがリポジトリのルートの必要な所（`tobinezumi.html`・`tobinezumi/client・shared・assets`・フォント・本編）を配り、`/tobi-server.json` に `{"ws":"/ws"}` を返すので自動で接続。Pages 版からでも `?server=ws://localhost:8080/ws` で同じサーバーへ | 0 円 |
-| 少人数公開（〜20 人・未定） | 小さな VPS／PaaS 1 台（クラウドへの公開は Ver.0.1 ではしない） | Pages のクライアント＋`?server=wss://…`、またはサーバーから配信 | 0〜800 円程度 |
+| 少人数公開（〜20 人・**Ver.0.6 で準備済み・未公開**） | Fly.io（おすすめ：shared-cpu-1x 256MB＋ボリューム 1GB・東京）か Render（Starter＋ディスク）。手順は **DEPLOY.md** | Pages のクライアント＋ルートの `tobi-server.json`（`{"ws":"wss://…/ws"}`）か `?server=wss://…`、またはサーバーから配信。WebSocket は `TOBI_ORIGIN` の許可リスト・接続元ごとの上限（`server/security.js`） | Fly.io 約 300〜500 円・Render 約 1,100 円 |
 | 拡大時 | DB を PostgreSQL へ、地域ごとに Field プロセスを分割 | | 規模次第 |
 
 - 接続先の決め方・メッセージの形は **PROTOCOL.md**。オフライン版とオンライン版は同じ API なので、画面側のコードは変えない。

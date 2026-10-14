@@ -20,7 +20,7 @@ import { WebSocketServer } from 'ws';
 import { openDb } from './db.js';
 import { Auth } from './auth.js';
 import { Game } from './game.js';
-import { backupNow } from './backup.js';
+import { backupNow, restoreFrom } from './backup.js';
 import { checkOrigin, clientIp, IpLimiter, LIMITS, securityFromEnv, productionCheck } from './security.js';
 import { timingSafeEqual } from 'node:crypto';
 
@@ -199,9 +199,20 @@ export async function main(env = process.env) {
   const dataDir = resolve(HERE, env.TOBI_DATA_DIR || env.TOBI_DATA || 'data');
   const sec = securityFromEnv(env);
   const dev = env.TOBI_DEV === '1' && !pc.prod;
+  const backupDir = resolve(HERE, env.TOBI_BACKUPS || (env.TOBI_DATA_DIR ? join(dataDir, 'backups') : 'backups'));
+  // 復元（公開サーバー向け：止めてから差し替える代わりに、起動の前に 1 回だけ）。TOBI_RESTORE_FROM=<バックアップのパス>。
+  // 同じファイルからは 2 回やらない（<データ>/restored-<名前> の印）。終わったら環境変数を消す
+  if (env.TOBI_RESTORE_FROM) {
+    const from = resolve(HERE, env.TOBI_RESTORE_FROM), mark = join(dataDir, 'restored-' + from.split(sep).pop());
+    if (!existsSync(mark)) {
+      const r = restoreFrom(from, join(dataDir, 'game.db'), backupDir);
+      writeFileSync(mark, new Date().toISOString());
+      console.log(`[tobinezumi] 復元した：${r.from}（アカウント ${r.accounts}・今までの DB は ${r.saved || 'なし'}）`);
+    } else console.log('[tobinezumi] TOBI_RESTORE_FROM はもう使った（' + mark + '）。消しておいてください');
+  }
   const srv = await startServer({
     port: +(env.TOBI_PORT || env.PORT || 8080), host: env.HOST || '0.0.0.0', dataDir,
-    backupDir: resolve(HERE, env.TOBI_BACKUPS || (env.TOBI_DATA_DIR ? join(dataDir, 'backups') : 'backups')), backupKeep: +(env.TOBI_BACKUP_KEEP || 48), backupHours: +(env.TOBI_BACKUP_HOURS ?? 1),
+    backupDir, backupKeep: +(env.TOBI_BACKUP_KEEP || 48), backupHours: +(env.TOBI_BACKUP_HOURS ?? 1),
     statsSec: +(env.TOBI_STATS_SEC ?? 60), pidFile: join(dataDir, 'server.pid'),
     authOpts: { registerMax: +(env.TOBI_REGISTER_MAX || 20) },
     ...sec, statsToken: env.TOBI_STATS_TOKEN || '', publicWs: env.TOBI_PUBLIC_WS || '/ws', backupOnExit: env.TOBI_BACKUP_ON_EXIT === '1' || pc.prod,

@@ -1,4 +1,4 @@
-# PROTOCOL — クライアント⇄サーバーの通信（Ver.0.1＋0.2「暮らし」＋0.3「危険と土地」）
+# PROTOCOL — クライアント⇄サーバーの通信（Ver.0.1〜0.6）
 
 > 状態：**実装済み（Ver.0.1）**。サーバー＝`tobinezumi/server`（Node.js 22＋`ws`＋`node:sqlite`）、クライアント＝`client/net.js` の `OnlineBackend`。2 ブラウザ＋ボット 10 体で受け入れ確認済み。
 > この文書と `tobinezumi/shared/protocol.js` が「約束」。サーバー担当はここに合わせ、ずれたら両方を直す。
@@ -241,7 +241,7 @@ look      = {fur, tint, pied, tuft, ear, leg, tail, size（−2〜2 の整数）
 | `travel` | `{to}` | `{ok, world}`（行き先の WorldInit） | 地上にいる・`to` が開いた土地（plains/rocks/dunes/canyon）で、**いる土地のその方向の出口の中**（足元が出口の帯に入っている）・前の旅から 1.5 秒。富山へは `travel` では行けない（`rule`） |
 | `enter_gate` | `{}` | `{ok, world}` | 谷にいて穴が開いている（`gateOpen`：夜。まだたどり着いていない子は さらに冬・雪・しるし 3 つ）・穴から 20px 以内。富山では「来た穴」から谷の奥へ |
 | `collection` | `{}` | `{ok, owned:{cid: at}, achievements:{id: at}, stats:{regions, seasons, visited}}` | |
-| `ranking` | `{}` | `{ok, list:[{name, score, rooms, decor, curios, me}], mine?}` | 豊かな巣の上位 10（30 秒キャッシュ） |
+| `ranking` | `{}` | Ver.0.6 からは `nest_tour` と同じ返事（§12） | Ver.0.5 では豊かな巣の上位 10。Ver.0.6 で順位・点数をやめた（前の版のクライアントのための別名） |
 | `residents` | `{}` | `{ok, ...ResidentsInfo}` | |
 | `resident_invite` | `{name}` | 同上 | 自分の巣がある・相手はフレンド・住人＋誘い中が 3 未満 |
 | `resident_answer` | `{nestId, ok}` | 同上 | 誘われている。住むならほかの巣に住んでいない |
@@ -272,4 +272,44 @@ ResidentsInfo = {mine:{nestId, residents:[{id,name}], invites:[{id,name}]}|null,
 ```
 - 部屋は土地ごと（`FieldRoom`）。スナップショット・チャット・入口・採集物・捕食者・野生の子はいる土地の部屋のものだけ。
 - DB：`migrations/006_regions_collect.js`＝`lands.field_id`・`world_resources.field_id`・`characters.region`・`achievements(account_id, key, got_at)`・`regions` の行・`collectibles` の行（`syncCollectibles`）。
-- オフライン版も同じ API（共同巣とランキングは「オンラインで使えます」）。保存は版 5：`region`・`collection`・`achievements`・`flags`。v4 は読み込み時に移行。
+- オフライン版も同じ API（共同巣は「オンラインで使えます」→ Ver.0.6 で NPC の住人。ランキングは Ver.0.6 で巣めぐりに）。保存は版 5：`region`・`collection`・`achievements`・`flags`。v4 は読み込み時に移行。
+
+## 12. Ver.0.6「くらしの深まり＋公開準備」（追加分。PROTOCOL_VERSION は 1 のまま＝足しただけ）
+
+### 12.1 C2S
+| t | 中身 | 返事 | サーバーの検証 |
+|---|---|---|---|
+| `family_pet` | `{id}` | `{ok, member, life, family, cond}` | 自分の家の巣（自分の巣・住んでいる共同巣）の中・眠っていない・id は整数・その家の巣にいる家族（つれあい・子・きょうだい・なかま）・1 匹ごとに 90 秒あける（`rate`）。体調 +4（100 まで）。なでた時刻は `individuals.status.pettedAt` |
+| `nest_tour` | `{}` | `{ok, tour:true, list:[{nestId, name, region, desc, rooms, decor, curios, recent, policy, friend, x, y}], count}` | **巣めぐり**：その子が入れる巣（`canVisit`：公開・フレンドだけ公開でフレンド・許可リスト。ふさいだ入口は出ない）から、最近 24 時間に手を入れた巣を 2 つまで＋残りを「その子 × 10 分の枠」の種で混ぜて 6 つまで。自分の巣・住んでいる共同巣は出ない。**順位・点数は返さない** |
+| `ranking` | `{}` | `nest_tour` と同じ | 前の版（0.5）のクライアントのための別名 |
+| `dev` | `+= {family:{mate, pups, young, friend}, species:'longear'}` | | `TOBI_DEV=1` のときだけ。家族をすぐに作る・`{wild:1, species:'longear'}` でミミナガトビネズミを出す |
+
+- `court`（種子をあげる）：相手がミミナガトビネズミ（`sp:'longear'`）なら、つれあいの条件（`courtBlock`）ではなく **なかまの条件**（`friendBlock`：子どもでない・なかまが 2 匹未満）で信頼が増える（0.75 倍）。
+- `enter_nest`（自分の巣へ）の `invite`：なかよしがほかの種なら `{ok, friend:true, species, mate:Ind, note}`（つれあい・お産の予定は作らない＝種の壁）。
+
+### 12.2 S2C
+| t | 中身 |
+|---|---|
+| `snapshot` | `players[]` の行に `k:[[x, y], …]`（その子についてくる若者の位置：サーバーが確定位置の足あとから決める・`shared/follow.js`）・`kh:1`（捕食者が 150px 以内で巣へかくれている）。若者がいない子の行には無い。本人の `you` には入れない（自分の画面は予測の位置で同じ計算） |
+| `family` | `events` に `{type:'friend', name, species}`（なかまが巣に住むことになった） |
+| `wild` | スナップショットの `wild[]` に `sp:'longear'`（近縁種のときだけ） |
+
+```
+Ind += {species?:'longear', pettedAt?, wild?}      // role に 'friend'（ほかの種のなかま：巣に住む・家系図には入らない）
+NestRecord.family[] は Ind + {acct}                // 巣の家族（所有者と住人の家族）。しぐさ（shared/family-life.js）の入力
+```
+
+- **家族のしぐさ・ひとことは通信しない**：巣の id ＋ サーバーの時計（`serverTime`）＋ 個体の id ＋ 巣データの部屋 ＋ 家族の一覧（`enter_nest` で届く）＋ 親の位置（`nest_peers`）から、どの画面でも同じに決まる（`familyScene` / `familyBubble`）。部屋を移るときだけ「ひょっこり」現れる。
+- **地上の若者**：オンラインでは、ほかの子の若者を `k` のとおりに（Interp で補間して）描く。オフライン・自分の若者は同じ `kidSpots` を手元で。
+- オフライン版も同じ API：`petFamily(id)`・`nestTour()`（NPC の巣：モカ・フレンドならリコ）。共同巣は **NPC の住人**（`residentInvite('ナッツ')` など：フレンド・自分の巣・3 匹まで。すぐに返事。`residentRemove('npc_nuts')`）。住人の NPC は夜に倉庫へ種子を持ってくる（通知 `npc_gift {id, name, n, storage, nestId}` と `toast`）。保存は版 6：`npcResidents`・家族の `species` / `pettedAt`。v5 は読み込み時に移行。
+
+### 12.3 HTTP・WebSocket の入口（公開準備）
+| 道 | 返事 |
+|---|---|
+| `GET /healthz` | `{ok, v:'0.6', uptime, players, sessions}`（止めている途中は 503・`ok:false`）。許可リストの Origin には CORS |
+| `GET /statsz` | `Authorization: Bearer <TOBI_STATS_TOKEN>` のときだけ：くわしい数字＋`limiter`・`rejected`。ほかは 404 |
+| `GET /tobi-server.json` | `{ws: TOBI_PUBLIC_WS || '/ws', name, v}`（許可リストの Origin には CORS） |
+| `GET /ws`（Upgrade） | Origin が許可リストの外・`null` → **403**／接続元の同時接続・接続の速さを超える → **429**／止めている途中 → 503。つないだあと接続元のメッセージの速さを超えると `kick` → 1008 |
+
+- 止めるとき（SIGTERM）：全員に `toast`「サーバーを再起動します」→ 保存 → 1012 で切る（クライアントは自動でつながりなおす）。
+- 環境変数と手順は DEPLOY.md。

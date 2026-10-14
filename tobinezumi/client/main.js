@@ -18,7 +18,7 @@ import { initSfx, setSfx, sfx } from './sfx.js';
 import { familyPanel, namingDialog, farewellScene, lineagePanel } from './family-ui.js';
 import { lookOf, traitMoveMods } from '../shared/genetics.js';
 import { STAGE_NAME, ageLabel, STAGE } from '../shared/family.js';
-import { worldMapPanel, collectionPanel, achievementsPanel, rankingPanel, residentsPanel, discoveryCard, regionCard } from './world-ui.js';
+import { worldMapPanel, collectionPanel, achievementsPanel, nestTourPanel, residentsPanel, discoveryCard, regionCard } from './world-ui.js';
 import { CURIOS, ACH, unlockedDecor, isCurio } from '../shared/collect.js';
 import { REGION } from '../shared/world.js';
 import { FURNITURE } from '../shared/items.js';
@@ -290,7 +290,8 @@ game.arrive = function (world, why = 'travel', first = false) {
 game.openWorldMap = () => worldMapPanel(game);
 game.openCollection = () => collectionPanel(game);
 game.openAchievements = () => achievementsPanel(game);
-game.openRanking = () => rankingPanel(game);
+game.openTour = () => nestTourPanel(game);
+game.openRanking = game.openTour;   // 前の名前
 game.openResidents = () => residentsPanel(game);
 game.onResidents = info => { if (game.field) game.field.home = info.home ? { nestId: info.home.nestId, x: info.home.x, y: info.home.y, region: info.home.region, ownerName: info.home.ownerName } : null; };
 
@@ -391,7 +392,7 @@ game.openMenu = function () {
     <label class="tb-field">環境音（風・雨・川・虫・鳴き声） <select class="ambient"><option value="0">鳴らさない</option><option value="0.25">小さく</option><option value="0.5">ふつう</option><option value="0.85">大きく</option></select></label>`, [
     { label: 'ゲームにもどる', act: () => game.ui.closeModal() },
     ...(game.field ? [{ label: '世界地図', act: () => { game.ui.closeModal(); game.openWorldMap(); } }, { label: '図鑑（収集品）', act: () => { game.ui.closeModal(); game.openCollection(); } },
-      { label: '実績', act: () => { game.ui.closeModal(); game.openAchievements(); } }, { label: '豊かな巣（みんなの巣）', act: () => { game.ui.closeModal(); game.openRanking(); } },
+      { label: '実績', act: () => { game.ui.closeModal(); game.openAchievements(); } }, { label: '巣めぐり（たずねられる巣）', act: () => { game.ui.closeModal(); game.openTour(); } },
       { label: 'フレンド', act: () => { game.ui.closeModal(); game.openFriends(); } }, { label: '共同巣', act: () => { game.ui.closeModal(); game.openResidents(); } }, { label: 'くらし（体調・空腹・水分・年齢）', act: () => { game.ui.closeModal(); game.openLife(); } },
       { label: '家族', act: () => { game.ui.closeModal(); game.openFamily(); } }, { label: '家系図', act: () => { game.ui.closeModal(); game.openLineage(); } }] : []),
     ...(game.scene && game.scene.helpHTML ? [{ label: 'ヘルプ（操作のしかた）', act: () => { const h = game.scene.helpHTML(); game.ui.closeModal(); game.ui.menu('ヘルプ', `<div class="tb-help-full">${h}</div>`, [{ label: 'とじる', act: () => game.ui.closeModal() }]); } }] : []),

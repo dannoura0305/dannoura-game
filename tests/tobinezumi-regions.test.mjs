@@ -1,5 +1,5 @@
 // トビネズミMMO Ver.0.5「広がり」：土地の地図（決まった種で同じ・出口と着く所・つながり）・土地ごとの天気のくせ・
-// 収集品（出る条件・全員が持っている物は出ない・???の札の条件・出る場所のくせ）・富山への穴の条件・実績とごほうびの飾り・巣に飾る規則・豊かな巣、
+// 収集品（出る条件・全員が持っている物は出ない・???の札の条件・出る場所のくせ）・富山への穴の条件・実績とごほうびの飾り・巣に飾る規則・巣の様子（Ver.0.6 で点数はやめた）、
 // オフライン版（OfflineBackend）の通し：出口から旅 → 土地ごとの採集物 → 収集品を拾う（二重に入らない）→ 実績 → 富山の穴（条件・?toyama=1）→ 来た穴で戻る、
 // 土地をまたいで引っ越す、セーブの移行 v4 → v5。DOM なし。
 import assert from 'node:assert/strict';
@@ -9,7 +9,7 @@ import { boxFree, makeFieldState, stepField, STEP_DT } from '../tobinezumi/share
 import { weatherAt, localWeather, pickWeather, envAt, WEATHER_SLOT_MS } from '../tobinezumi/shared/season.js';
 import { makeClock, DAY_MS, HOUR_MS } from '../tobinezumi/shared/daynight.js';
 import { buildLands, landAt, safeZones } from '../tobinezumi/shared/lands.js';
-import { CURIOS, CURIO_ORDER, SIGNS, CROSSOVER, curioEligible, pickCurioSpawn, curioSpots, gateOpen, gateHint, collectAchievements, unlockedDecor, nestRichness, ACHIEVEMENTS } from '../tobinezumi/shared/collect.js';
+import { CURIOS, CURIO_ORDER, SIGNS, CROSSOVER, curioEligible, pickCurioSpawn, curioSpots, gateOpen, gateHint, collectAchievements, unlockedDecor, nestFeatures, nestTourDesc, ACHIEVEMENTS } from '../tobinezumi/shared/collect.js';
 import { resourceSpawnPoints } from '../tobinezumi/shared/regions.js';
 import { createNest, tryOp, validateOp } from '../tobinezumi/shared/nest-rules.js';
 import { FURNITURE, countItem, addItem } from '../tobinezumi/shared/items.js';
@@ -182,7 +182,7 @@ await test('富山への穴：谷の夜・初めては冬と雪としるし 3 �
   assert.match(gateHint({ env: E(), owned: new Set(['sign_fur']) }), /しるし 1\/3/);
   assert.match(gateHint({ env: E({ weather: 'clear' }), owned }), /雪/);
 });
-await test('実績：収集品の数・不思議な品すべて・ごほうびの飾り（実績のあとで使える）・豊かな巣の数え方', () => {
+await test('実績：収集品の数・不思議な品すべて・ごほうびの飾り（実績のあとで使える）・巣の様子の数え方（点数なし）', () => {
   assert.deepEqual(collectAchievements(new Set(['a', 'b', 'c', 'd'])), []);
   assert.deepEqual(collectAchievements(new Set(['a', 'b', 'c', 'd', 'e'])), ['collector5']);
   assert.ok(collectAchievements(new Set(CROSSOVER)).includes('crossover6'));
@@ -192,8 +192,9 @@ await test('実績：収集品の数・不思議な品すべて・ごほうび�
   const r1 = tryOp(d0, { op: 'place', type: 'curio', x: d0.rooms[0].x, y: d0.rooms[0].y + 1, item: 'shell' }, null, { owned: new Set(['shell']), unlocks: new Set() });
   assert.equal(r1.ok, true, r1.reason);
   assert.equal(r1.data.objects.find(o => o.type === 'curio').item, 'shell');
-  assert.ok(nestRichness(r1.data).score > nestRichness(d0).score);
-  assert.equal(nestRichness(r1.data).curios, 1);
+  assert.equal(nestFeatures(r1.data).curios, 1); assert.equal(nestFeatures(d0).curios, 0);
+  assert.ok(!('score' in nestFeatures(r1.data)), 'Ver.0.6：点数はつけない');
+  assert.match(nestTourDesc(nestFeatures(r1.data)), /飾った品 1/);
 });
 await test('巣に飾る：図鑑にある品だけ・同じ巣に 1 つ・壁にも床にも（mount any）・きれいな石の飾りは石を使う・ごほうびは鍵つき', () => {
   const d = createNest({ seed: 3 }), room = d.rooms[0];
@@ -267,7 +268,8 @@ await test('オフライン：収集品が出る → 拾うと図鑑へ（持ち
   n.curioTick(G.clock.t);
   assert.ok(!n._w().resources.some(r => r.id === sb.id));
   // 自然に出る（その土地・季節に合う物・まだ持っていない物）
-  let got = null;
+  // （上の curioTick で もう出ていることがある：5% ほど。そのときは それを使う＝前の版のテストのまれな失敗を直した）
+  let got = n._w().resources.find(r => r.kind === 'curio' && r.cid === 'clover') || null;
   for (let i = 0; i < 300 && !got; i++) got = n.curioTick(G.clock.t);
   assert.ok(got && got.cid === 'clover', JSON.stringify(got));
   await n.dev({ collect: ['ammonite', 'crystal', 'desert_rose', 'clover'] });
@@ -335,8 +337,8 @@ await test('オフライン：土地をまたいで引っ越す（巣の中身�
   }
   assert.equal((await n.nestOp(e.nest.id, n.save.nests[e.nest.id].rev, { op: 'place', type: 'curio', x: room.x + 4, y: room.y + 1, item: 'starbit' })).ok, false);
   assert.ok(G.events.some(x => x.ev === 'achievement' && x.id === 'display3'));
-  const rk = await n.ranking();
-  assert.equal(rk.list[0].me, true); assert.equal(rk.list[0].curios, 3);
+  const rk = await n.nestTour();   // Ver.0.6：巣めぐり（自分の巣は出ない・順位なし）
+  assert.equal(rk.ok, true); assert.ok(rk.list.every(x => x.name !== 'たびびと' && !('rank' in x) && !('score' in x)));
 });
 await test('オフライン：セーブの移行 v4 → v5（いる土地・図鑑・実績の入れ物。持ち物・巣・採集物はそのまま）', async () => {
   const G = await offline();

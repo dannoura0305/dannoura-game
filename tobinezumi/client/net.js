@@ -25,7 +25,7 @@
 //   await net.lineage() / net.succeed(id) / net.farewell()
 //   Ver.0.5「広がり」：
 //   net.region（いる土地）・net.map（その土地の地図）。await net.travel(to)（地図の端の出口から）/ net.enterGate()（谷の奥の不思議な穴・富山の来た穴）
-//   await net.collection() / net.ranking() / net.residents() / net.residentInvite(name) / net.residentAnswer(nestId, ok) / net.residentLeave() / net.residentRemove(id)
+//   await net.collection() / net.nestTour()（Ver.0.6 巣めぐり。前の ranking() は別名）/ net.residents() / net.residentInvite(name) / net.residentAnswer(nestId, ok) / net.residentLeave() / net.residentRemove(id)
 //   net.on('collect'|'achievement'|'residents', fn)。snapshot に gate（その子に見える不思議な穴）
 //
 // オフラインの保存は localStorage の 'tobi_' で始まる鍵だけ（本編 dannoura_* ・境界事象 kyokai_* には触れない）。
@@ -46,14 +46,14 @@ import { Household } from '../shared/household.js';
 import { founderInd, indOut, courtBlock, stageOf, ageDays, STAGE, FOUNDER_AGE_DAYS, friendBlock, makeInd } from '../shared/family.js';
 import { PET } from '../shared/family-life.js';
 import { devFamily } from '../shared/dev-family.js';
-import { weekKey, weekRange, prevWeekKey, weekBoard, finalizeWeek, lastWeekWinners, weekLabel } from '../shared/ranking.js';
+import { pickTour } from '../shared/tour.js';
 import { traitMoveMods, traitMods, lookOf, seedOf } from '../shared/genetics.js';
 import { WildWorld, WILD, WILD_DT, devWildGenes } from '../shared/wild.js';
 import { lifeEnvWithTraits } from '../shared/life.js';
 import { DAY_MS, HOUR_MS } from '../shared/daynight.js';
 import { regionMap, arrivalPoint, isRegion, REGION, OPEN_REGIONS } from '../shared/world.js';
 import { gateAt } from '../shared/regions.js';
-import { CURIOS, isCurio, CURIO_TICK_MS, CURIO_TTL_MS, pickCurioSpawn, curioEligible, curioSpots, gateOpen, gateHint, GATE_R, ACH, collectAchievements, unlockedDecor, SANDSTORM_MS, VISIT_GOAL, nestRichness } from '../shared/collect.js';
+import { CURIOS, isCurio, CURIO_TICK_MS, CURIO_TTL_MS, pickCurioSpawn, curioEligible, curioSpots, gateOpen, gateHint, GATE_R, ACH, collectAchievements, unlockedDecor, SANDSTORM_MS, VISIT_GOAL } from '../shared/collect.js';
 
 export const SAVE_KEY = 'tobi_save_v1';
 export const SETTINGS_KEY = 'tobi_settings';
@@ -62,7 +62,7 @@ export const SAVE_VERSION = 6;   // v2（Ver.0.2）：player.life・friends・vi
                                  // v4（Ver.0.4）：house（操作個体の年齢・遺伝子・巣の家族・お産の予定）・lineage（ご先祖・巣立った子）・nextInd。鍵の名前（tobi_save_v1）はそのまま
                                  // v5（Ver.0.5）：player.region（いる土地）・worlds（はじまりの原以外の土地の採集物。原は前からの world）・entrances[].region・
                                  //   collection（図鑑 {id: 時刻}）・achievements（実績 {id: 時刻}）・progress（季節・土地・訪ねた巣・砂嵐）・toyama（たどり着いた）
-                                 // v6（Ver.0.6）：npcResidents（オフラインの共同巣：NPC の住人 [{id, since}]）・rank（豊かな巣の週 {week, bases, last}）・house.members[].species / pettedAt
+                                 // v6（Ver.0.6）：npcResidents（オフラインの共同巣：NPC の住人 [{id, since}]）・house.members[].species / pettedAt
 const NO_RESPAWN = new Set(['n', 'x', 'g', 'w', 'd', 'c']);
 const RARE_MIN = 8 * 60, RARE_MAX = 12 * 60;
 const PICK_RANGE = 28, ENTER_RANGE = 34;
@@ -283,9 +283,8 @@ export class OfflineBackend extends Emitter {
       s.collection = s.collection || {}; s.achievements = s.achievements || {}; s.progress = s.progress || { seasons: [], regions: [], visited: [], storm: 0 };
       s.v = 5;
     }
-    if (s.v < 6) {   // v5 → v6（Ver.0.6「くらしの深まり」）：オフラインの共同巣（NPC の住人）・豊かな巣の週・家族の種（なかま）となでた時刻
+    if (s.v < 6) {   // v5 → v6（Ver.0.6「くらしの深まり」）：オフラインの共同巣（NPC の住人）・家族の種（なかま）となでた時刻
       s.npcResidents = Array.isArray(s.npcResidents) ? s.npcResidents : [];
-      s.rank = s.rank || null;
       if (s.house && Array.isArray(s.house.members)) for (const m of s.house.members) { if (m.species === 'jerboa') delete m.species; if (m.pettedAt && !Number.isFinite(m.pettedAt)) delete m.pettedAt; }
       s.v = 6;
     }
@@ -959,7 +958,6 @@ export class OfflineBackend extends Emitter {
     if (m.wild && this.auth) { const n = this.wild.spawn(this.auth.x + (Number(m.dx) || 40), this.auth.y + (Number(m.dy) || 0), devWildGenes(this.wild, m), m.species === 'longear' ? 'longear' : 'jerboa'); wild = n.id; }
     if (m.trust && this.auth) { const n = this.wild.get(m.trust) || this.wild.npcs[0]; if (n) { n.trust[this.save.account.id] = 99.5; n.st = makeFieldState(this.auth.x + 12, this.auth.y); } }
     if (m.birth && h && h.pending) { h.pending.dueAgeMs = h.me.ageMs; }
-    if (m.rankRoll) { await this.ranking(); this.save.rank.week = prevWeekKey(this.now()); }   // Ver.0.6：いまの週を「先週」にして しめる（画面の確かめ）
     if (m.family && h) { for (const x of devFamily(h, m.family, () => this._newInd(), this.now())) void x; this.flush(); this.emit('family', { family: h.out(), events: [] }); }
     let inv = null;
     if (m.give && typeof m.give === 'object' && this.save.player) { inv = this.save.player.inv; for (const [k, v] of Object.entries(m.give)) if (ITEMS[k] && Number(v) > 0) addItem(inv, k, Math.min(99, Number(v) | 0)); }
@@ -1255,26 +1253,18 @@ export class OfflineBackend extends Emitter {
     const pr = this.save.progress;
     return { ok: true, owned: { ...this.save.collection }, achievements: { ...this.save.achievements }, stats: { seasons: [...pr.seasons], regions: [...pr.regions], visited: pr.visited.length, found: !!this.save.toyama } };
   }
-  /** 豊かな巣（オフライン：自分の巣と NPC の巣）。Ver.0.6：週ごと（shared/ranking.js・セーブの rank に週の base と先週の呼び名） */
-  async ranking() {
-    const t = this.now(), wk = weekKey(t);
-    const rows = [];
-    for (const id in this.save.nests) { const n = this.save.nests[id]; rows.push({ nestId: id, name: n.ownerName, region: n.region || 'plains', me: n.owner === this.save.account.id, ...nestRichness(n.data) }); }
-    if (this.npcOn) for (const n of NPCS) { const rec = this._nestRec('n_' + n.id); rows.push({ nestId: 'n_' + n.id, name: n.name, region: 'plains', me: false, ...nestRichness(rec.data) }); }
-    const R = this.save.rank || (this.save.rank = { week: null, bases: {}, last: null });
-    if (R.week !== wk) {
-      if (R.week) { const fin = finalizeWeek(weekBoard(rows, new Map(Object.entries(R.bases)))); R.last = { key: R.week, label: weekLabel(weekRange(t).start - 1), winners: lastWeekWinners(fin) }; }
-      R.week = wk; R.bases = Object.fromEntries(rows.map(r => [r.nestId, r.score]));
-      this.flush();
+  /** Ver.0.6「巣めぐり」（オフライン：たずねられる NPC の巣。順位・点数はつけない。shared/tour.js） */
+  async nestTour() {
+    const cands = [];
+    if (this.npcOn) for (const n of NPCS) {
+      const ok = n.policy === 'public' || (n.policy === 'friends' && this._isFriend(n.id));
+      if (!ok) continue;
+      const rec = this._nestRec('n_' + n.id);
+      cands.push({ nestId: rec.id, name: n.name, region: 'plains', data: rec.data, updatedAt: 0, policy: n.policy, friend: this._isFriend(n.id), x: n.home.x, y: n.home.y - 20 });
     }
-    for (const r of rows) if (!(r.nestId in R.bases)) R.bases[r.nestId] = 0;
-    const board = weekBoard(rows, new Map(Object.entries(R.bases)));
-    const out = r => ({ rank: r.rank, name: r.name, region: r.region, score: r.score, gain: r.gain, rooms: r.rooms, decor: r.decor, curios: r.curios, me: r.me });
-    const mine = board.find(r => r.me);
-    const lastOk = R.last && R.last.key === prevWeekKey(t);
-    return { ok: true, week: { key: wk, label: weekLabel(t) }, list: board.slice(0, 10).map(out), mine: mine ? out(mine) : null, total: board.length,
-      last: { key: prevWeekKey(t), label: weekLabel(weekRange(t).start - 1), winners: lastOk ? R.last.winners : [], count: lastOk ? R.last.winners.length : 0 } };
+    return { ok: true, tour: true, list: pickTour(cands, { viewer: 'local', now: this.now() }), count: cands.length };
   }
+  async ranking() { return this.nestTour(); }   // 前の名前（Ver.0.5）
 
   // ───────── フレンド（オフライン：NPC だけ）─────────
   _isFriend(id) { return !!(this.save && this.save.friends.some(f => f.id === id && f.state === 'friend')); }
@@ -1577,7 +1567,8 @@ export class OnlineBackend extends Emitter {
   async travel(to) { this._flushInputs(); this.joining = true; const r = await this._req(C2S.TRAVEL, { to }); this.joining = false; this.queue = []; if (r.ok) this._world(r.world); return r; }
   async enterGate() { this._flushInputs(); this.joining = true; const r = await this._req(C2S.ENTER_GATE); this.joining = false; this.queue = []; if (r.ok) this._world(r.world); return r; }
   async collection() { return this._req(C2S.COLLECTION); }
-  async ranking() { return this._req(C2S.RANKING); }
+  async nestTour() { return this._req(C2S.NEST_TOUR); }
+  async ranking() { return this.nestTour(); }
   async residents() { return this._req(C2S.RESIDENTS); }
   async residentInvite(name) { return this._req(C2S.RESIDENT_INVITE, { name }); }
   async residentAnswer(nestId, ok) { return this._req(C2S.RESIDENT_ANSWER, { nestId, ok: !!ok }); }

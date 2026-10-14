@@ -446,10 +446,6 @@ html.tb-touch.tb-horiz .tb-lineage { right: calc(100px + env(safe-area-inset-rig
 .tb-arow span, .tb-arow small { display: block; }
 .tb-medal { font-style: normal; color: #6a5040; flex: none; width: 1.4em; text-align: center; }
 .tb-arow.have .tb-medal { color: #ffd060; }
-.tb-rrow { display: grid; grid-template-columns: 1.6em 1fr auto 2.6em; gap: 0 calc(var(--u)*3px); padding: calc(var(--u)*1px) 0; border-bottom: 1px solid rgba(200,164,106,.15); }
-.tb-rrow small { grid-column: 2 / 5; color: var(--dim); font-size: .8em; }
-.tb-rrow.me { color: var(--ok); }
-.tb-rrow .sc { text-align: right; color: var(--edge2); }
 .tb-rnote { font-size: .85em; }
 .tb-chip.dim { opacity: .7; }
 .tb-furn-sec { width: 100%; color: var(--dim); font-size: .8em; padding: calc(var(--u)*1px) calc(var(--u)*2px); }
@@ -474,18 +470,10 @@ html.tb-touch .tb-furn { max-height: none; overflow-y: hidden; }
 html.tb-touch .tb-furn-sec { flex: none; width: 70px; align-self: center; white-space: normal; }
 
 /* ───────── Ver.0.6「くらしの深まり＋公開準備」───────── */
-/* 豊かな巣：今週／先週 */
-.tb-tabs { display: flex; gap: calc(var(--u)*2px); margin-bottom: calc(var(--u)*2px); }
-.tb-tab { flex: 1; font: inherit; color: var(--dim); background: #1e130c; border: calc(var(--u)*1px) solid #5a3c24; border-radius: calc(var(--u)*1.5px); padding: calc(var(--u)*1.5px) calc(var(--u)*2px); cursor: pointer; min-height: 32px; }
-.tb-tab small { display: block; font-size: .75em; }
-.tb-tab.on { color: var(--txt); border-color: var(--edge); background: #2a1a10; }
-.tb-rpane.hidden { display: none; }
-.tb-gain { font-style: normal; color: var(--ok); margin-right: .4em; font-size: .85em; }
-.tb-rrow { grid-template-columns: 1.6em 1fr auto auto; }
-.tb-rwin { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 calc(var(--u)*3px); padding: calc(var(--u)*1.5px) 0; border-bottom: 1px solid rgba(200,164,106,.15); }
-.tb-rwin .tb-dim { width: 100%; font-size: .8em; }
-.tb-rwin.me .nm { color: var(--ok); }
-.tb-rtitle { color: #ffe08a; border: 1px solid rgba(255,224,138,.5); border-radius: 999px; padding: 0 .6em; font-size: .85em; }
+/* 巣めぐり（順位なし） */
+.tb-trow { display: grid; grid-template-columns: 1fr auto; gap: 0 calc(var(--u)*3px); align-items: center; padding: calc(var(--u)*1.5px) 0; border-bottom: 1px solid rgba(200,164,106,.15); }
+.tb-trow small { grid-column: 1; color: var(--dim); font-size: .8em; }
+.tb-trow .bt { grid-column: 2; grid-row: 1 / 3; }
 /* 家系図の書き出し */
 .tb-linexp { display: inline-flex; gap: calc(var(--u)*2px); margin-left: auto; margin-right: calc(var(--u)*3px); flex-wrap: wrap; vertical-align: middle; }
 .tb-lineage .tb-ph { display: flex; align-items: center; gap: calc(var(--u)*2px); }

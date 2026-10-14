@@ -1,5 +1,5 @@
 // トビネズミMMO Ver.0.6「くらしの深まり＋公開準備」：家族のしぐさ・ひとこと（決定的）・なでる、地上の若者の足あと（follow）、
-// 家系図の書き出し（配置・文字。画素は見ない）、豊かな巣の週（ISO 週・しめる・呼び名）、オフラインの共同巣（NPC の住人）、
+// 家系図の書き出し（配置・文字。画素は見ない）、巣めぐり（順位・点数なし・入れかわる）、オフラインの共同巣（NPC の住人）、
 // 近縁種（ミミナガトビネズミ：なかよくなれる・赤ちゃんはできない）、富山の季節、入口の守り（Origin・IP ごとの上限）、セーブ v5 → v6。DOM なし。
 import assert from 'node:assert/strict';
 import { buildFieldMap, TILE, canDigBurrow } from '../tobinezumi/shared/regions.js';
@@ -14,7 +14,7 @@ import { WildWorld, LONGEAR } from '../tobinezumi/shared/wild.js';
 import { regionMap, TOYAMA } from '../tobinezumi/shared/world.js';
 import { trailPush, kidSpots, kidsHidden, FOLLOW, packSpots, unpackSpots } from '../tobinezumi/shared/follow.js';
 import { layoutLineage, lineageExportLayout, lineageText } from '../tobinezumi/shared/lineage.js';
-import { weekKey, weekRange, prevWeekKey, weekBoard, finalizeWeek, lastWeekWinners, weekLabel, TITLES } from '../tobinezumi/shared/ranking.js';
+import { pickTour, TOUR } from '../tobinezumi/shared/tour.js';
 import { toyamaSeasonProps, paddyHarvested, glimpseSpot, GLIMPSE_SPOTS, shrineText, TOYAMA_BUSSTOP } from '../tobinezumi/shared/toyama.js';
 import { CURIOS, curioEligible, CURIO_ORDER } from '../tobinezumi/shared/collect.js';
 import { addItem, countItem } from '../tobinezumi/shared/items.js';
@@ -222,29 +222,21 @@ await test('家系図の書き出し：配置（札が重ならない・画面�
   assert.ok(!/ルナ/.test(txt), 'なかまは入れない');
 });
 
-// ───────── 豊かな巣の週 ─────────
-await test('豊かな巣の週：ISO 週（日本時間）・週の区切り・今週ふえた豊かさの順・しめると呼び名（1 つの巣に 1 つ）', () => {
-  assert.equal(weekKey(Date.parse('2026-10-14T12:00:00+09:00')), '2026-W42');
-  assert.equal(weekKey(Date.parse('2026-10-18T23:59:59+09:00')), '2026-W42');
-  assert.equal(weekKey(Date.parse('2026-10-19T00:00:00+09:00')), '2026-W43', '月曜 0 時（日本時間）で区切る');
-  assert.equal(weekKey(Date.parse('2021-01-03T12:00:00+09:00')), '2020-W53');
-  assert.equal(weekKey(Date.parse('2026-01-01T00:30:00+09:00')), '2026-W01');
-  const r = weekRange(Date.parse('2026-10-14T12:00:00+09:00'));
-  assert.equal(new Date(r.start).toISOString(), '2026-10-11T15:00:00.000Z'); assert.equal(r.end - r.start, 7 * 86400000);
-  assert.equal(prevWeekKey(Date.parse('2026-10-14T12:00:00+09:00')), '2026-W41');
-  assert.equal(weekLabel(Date.parse('2026-10-14T12:00:00+09:00')), '10月12日〜18日');
-  const rows = [
-    { nestId: 1, name: 'A', score: 80, rooms: 6, decor: 10, curios: 1 }, { nestId: 2, name: 'B', score: 40, rooms: 2, decor: 2, curios: 3 },
-    { nestId: 3, name: 'C', score: 30, rooms: 5, decor: 1, curios: 0 }, { nestId: 4, name: 'D', score: 12, rooms: 1, decor: 0, curios: 0 },
-  ];
-  const board = weekBoard(rows, new Map([[1, 78], [2, 10], [3, 30]]));
-  assert.deepEqual(board.map(x => x.name), ['B', 'D', 'A', 'C'], 'ふえた分の順（D は今週掘った巣：base 0）');
-  assert.deepEqual(board.map(x => x.gain), [30, 12, 2, 0]);
-  const fin = finalizeWeek(board);
-  const t = Object.fromEntries(fin.map(x => [x.name, x.title]));
-  assert.equal(t.B, 'grew'); assert.equal(t.A, 'decor'); assert.equal(t.C, 'rooms'); assert.equal(new Set(fin.filter(x => x.title).map(x => x.nestId)).size, fin.filter(x => x.title).length, '1 つの巣に 1 つ');
-  const w = lastWeekWinners(fin);
-  assert.equal(w[0].titleName, TITLES[0].name); assert.ok(w.every(x => x.titleName));
+// ───────── 巣めぐり（順位なし）─────────
+await test('巣めぐり：順位・点数はつけない・最近手を入れた巣を少し＋混ぜて選ぶ・同じ子と同じ時間の枠なら同じ・枠が変わると入れかわる', () => {
+  const room = (n) => ({ rooms: Array.from({ length: n }, (_, i) => ({ id: 'r' + i, kind: i === 0 ? 'bed' : 'store' })), objects: [{ type: 'lamp' }, { type: 'curio', item: 'shell' }] });
+  const now = 1_760_000_000_000;
+  const cands = Array.from({ length: 20 }, (_, i) => ({ nestId: i + 1, name: 'N' + i, region: 'plains', data: room(1 + (i % 4)), updatedAt: i < 3 ? now - 1000 : 0, policy: 'public', x: i, y: i }));
+  const a = pickTour(cands, { viewer: 7, now }), b = pickTour([...cands].reverse(), { viewer: 7, now: now + 1000 });
+  assert.equal(a.length, TOUR.MAX); assert.deepEqual(a.map(x => x.nestId), b.map(x => x.nestId), '同じ枠なら同じ');
+  assert.ok(a.filter(x => x.recent).length >= 1 && a.filter(x => x.recent).length <= TOUR.RECENT);
+  for (const x of a) { assert.ok(!('rank' in x) && !('score' in x) && !('gain' in x)); assert.match(x.desc, /巣（部屋 \d/); }
+  assert.ok(a.some(x => /最近 手を入れた/.test(x.desc)));
+  const seen = new Set();
+  for (let k = 0; k < 8; k++) for (const x of pickTour(cands, { viewer: 7, now: now + k * TOUR.SLOT_MS })) seen.add(x.nestId);
+  assert.ok(seen.size >= 12, 'ときどき入れかわる（' + seen.size + '）');
+  assert.notDeepEqual(pickTour(cands, { viewer: 8, now }).map(x => x.nestId), a.map(x => x.nestId), '見る子によって ちがう');
+  assert.deepEqual(pickTour([], { viewer: 1, now }), []);
 });
 
 // ───────── 富山の季節 ─────────
@@ -371,34 +363,28 @@ await test('オフライン：家族をなでる（自分の巣の中で・体�
   const txt = lineageText(lin.nodes, lin.current, { owner: 'はじめ' });
   assert.match(txt, /はじめの家系図/);
 });
-await test('オフライン：豊かな巣の週 — 週が変わると先週をしめて呼び名・今週は ふえた分から', async () => {
-  const G = await offline({ t: Date.parse('2026-10-14T21:00:00+09:00') });
+await test('オフライン：巣めぐり — たずねられる NPC の巣だけ（モカ・フレンドならリコ）・自分の巣は出ない・順位なし', async () => {
+  const G = await offline();
   const { n } = G;
-  const rec = await readyNest(G);
-  const r1 = await n.ranking();
-  assert.equal(r1.week.key, '2026-W42'); assert.equal(r1.last.winners.length, 0);
-  assert.ok(r1.list.every(x => x.gain === 0), '週の最初は どれも 0 から');
-  rec.data = (await n.nestOp(rec.id, rec.rev, { op: 'place', type: 'lamp', x: rec.data.rooms[0].x + 1, y: rec.data.rooms[0].y })).data || rec.data;
-  const r2 = await n.ranking();
-  const mine = r2.list.find(x => x.me);
-  assert.ok(mine.gain > 0, '今週ふえた ' + mine.gain); assert.equal(r2.list[0].me, true);
-  G.clock.t = Date.parse('2026-10-19T09:00:00+09:00');
-  const r3 = await n.ranking();
-  assert.equal(r3.week.key, '2026-W43'); assert.equal(r3.last.key, '2026-W42');
-  assert.ok(r3.last.winners.length >= 1); assert.equal(r3.last.winners[0].name, 'はじめ'); assert.equal(r3.last.winners[0].title, 'grew');
-  assert.ok(r3.list.every(x => x.gain === 0));
-  G.clock.t = Date.parse('2026-11-05T09:00:00+09:00');
-  assert.equal((await n.ranking()).last.winners.length, 0, '先週の記録が無い（2 週あいた）');
+  await readyNest(G);
+  let r = await n.nestTour();
+  assert.deepEqual(r.list.map(x => x.name), ['モカ']);
+  n.save.friends.push({ id: 'npc_riko', state: 'friend', at: 0 });
+  r = await n.nestTour();
+  assert.deepEqual(r.list.map(x => x.name).sort(), ['モカ', 'リコ'].sort());
+  assert.ok(r.list.find(x => x.name === 'リコ').friend);
+  assert.ok(r.list.every(x => x.desc && !('rank' in x) && !('score' in x)));
+  assert.deepEqual((await n.ranking()).list.map(x => x.name).sort(), r.list.map(x => x.name).sort(), '前の名前（ranking）は別名');
 });
-await test('オフライン：セーブの移行 v5 → v6（NPC の住人・週の入れ物。家族・持ち物はそのまま）', async () => {
+await test('オフライン：セーブの移行 v5 → v6（NPC の住人の入れ物。家族・持ち物はそのまま）', async () => {
   const G = await offline();
   const s = JSON.parse(JSON.stringify(G.n.save));
-  s.v = 5; delete s.npcResidents; delete s.rank;
+  s.v = 5; delete s.npcResidents;
   s.house.members = [{ ...makeInd({ id: 9, name: 'ポポ', genes: founderGenes('sand', 1), role: 'pup', ageMs: DAY_MS }), species: 'jerboa' }];
   const ls = makeLS({ [SAVE_KEY]: JSON.stringify(s), dannoura_save: 'keep' });
   const n2 = new OfflineBackend({ storage: ls, now: () => G.clock.t, npc: true, map, wild: false });
   assert.equal(SAVE_VERSION, 6); assert.equal(n2.save.v, 6);
-  assert.deepEqual(n2.save.npcResidents, []); assert.equal(n2.save.rank, null);
+  assert.deepEqual(n2.save.npcResidents, []); assert.equal(n2.save.rank, undefined, '順位の記録は持たない');
   assert.equal(n2.save.house.members[0].species, undefined, 'トビネズミは書かない');
   assert.equal(n2.house.members[0].name, 'ポポ');
   n2.flush();

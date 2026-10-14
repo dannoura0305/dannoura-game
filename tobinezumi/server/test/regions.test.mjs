@@ -192,9 +192,9 @@ await test('飾る：図鑑にある品だけ・同じ巣に 1 つ・ごほう�
   const rm = await a.req('nest_op', { nestId: e.nest.id, rev: sd.rev, op: { op: 'remove', id: p1.created } });
   assert.equal(rm.ok, true);
   assert.ok(H.store.hasCollectible(a.account.id, 'shell'));
-  // 豊かな巣
+  // 巣めぐり（Ver.0.6：前の 'ranking' は別名。自分の巣は出ない・順位や点数は無い）
   const rk = await a.req('ranking');
-  assert.equal(rk.ok, true); assert.equal(rk.list[0].me, true); assert.ok(rk.list[0].curios >= 2);
+  assert.equal(rk.ok, true); assert.equal(rk.tour, true); assert.ok(rk.list.every(x => !('rank' in x) && !('score' in x) && !('me' in x)));
   H.close(); rmDir(H.dir);
 });
 

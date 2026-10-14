@@ -70,13 +70,14 @@ export const C2S = {
   TRAVEL: 'travel',           // {to}（地図の端の出口からとなりの土地へ）  → res {ok, world}（行き先の WorldInit）
   ENTER_GATE: 'enter_gate',   // {}（谷の奥の不思議な穴／富山の来た穴）  → res {ok, world}
   COLLECTION: 'collection',   // {}                                   → res {ok, owned:{id: at}, achievements:{id: at}, stats}
-  RANKING: 'ranking',         // {}（穏やかなランキング「豊かな巣」）    → res {ok, list:[{name, score, rooms, decor, curios, me}]}
+  RANKING: 'ranking',         // Ver.0.5 の「豊かな巣」。Ver.0.6 からは NEST_TOUR と同じ返事（前の版のクライアントのための別名）
   RESIDENTS: 'residents',     // {}（共同巣の様子）                     → res {ok, ...ResidentsInfo}
   RESIDENT_INVITE: 'resident_invite', // {name}（フレンドを自分の巣の住人に誘う） → res {ok, ...ResidentsInfo}
   RESIDENT_ANSWER: 'resident_answer', // {nestId, ok}（誘いに答える）     → res {ok, ...ResidentsInfo}
   RESIDENT_LEAVE: 'resident_leave',   // {}（住んでいる巣を出る）         → res {ok, ...ResidentsInfo}
   RESIDENT_REMOVE: 'resident_remove', // {id}（所有者が住人・誘いを外す） → res {ok, ...ResidentsInfo}
   // ── Ver.0.6「くらしの深まり＋公開準備」──（PROTOCOL.md §12）
+  NEST_TOUR: 'nest_tour',     // {}（巣めぐり：入れる巣の紹介。順位・点数なし）→ res {ok, list:[{nestId, name, region, desc, rooms, decor, curios, recent, x, y}], count}
   FAMILY_PET: 'family_pet',   // {id}（巣の家族をなでる）               → res {ok, member, life, family, cond}
 };
 

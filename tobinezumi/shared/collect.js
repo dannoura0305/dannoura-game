@@ -157,15 +157,25 @@ export function unlockedDecor(achIds) {
   return ACHIEVEMENTS.filter(a => a.reward && set.has(a.id)).map(a => a.reward);
 }
 
-// ───────── 穏やかなランキング「豊かな巣」─────────
-/** 巣の豊かさ：部屋 ×3・家具 ×2・飾った収集品 ×6・家具の種類 ×2（数字はゆるい目安。競うためより、見せ合うため） */
-export function nestRichness(data) {
-  if (!data) return { score: 0, rooms: 0, decor: 0, curios: 0 };
+// ───────── 巣めぐり（Ver.0.6：順位・点数はつけない）─────────
+/**
+ * 巣の様子（数えるだけ・比べない）：部屋・家具・飾った収集品・家具の種類。巣めぐりの短い紹介文に使う。
+ * Ver.0.5 の「豊かな巣」（点数と順位）は Ver.0.6 でやめた（このゲームは競い合わない）。
+ */
+export function nestFeatures(data) {
+  if (!data) return { rooms: 0, decor: 0, curios: 0, kinds: 0, bed: false, store: false };
   const objs = data.objects || [];
   const curios = objs.filter(o => o.type === 'curio').length;
-  const decor = objs.length - curios;
-  const kinds = new Set(objs.map(o => o.type)).size;
-  const rooms = (data.rooms || []).length;
-  return { score: rooms * 3 + decor * 2 + curios * 6 + kinds * 2, rooms, decor, curios };
+  const rooms = data.rooms || [];
+  return { rooms: rooms.length, decor: objs.length - curios, curios, kinds: new Set(objs.map(o => o.type)).size, bed: rooms.some(r => r.kind === 'bed'), store: rooms.some(r => r.kind === 'store') };
 }
-void REGION;
+/** 巣めぐりの紹介（やさしい短い文。数は「いくつ」だけ） */
+export function nestTourDesc(f, { recent = false } = {}) {
+  const parts = [];
+  if (f.rooms) parts.push('部屋 ' + f.rooms);
+  if (f.decor) parts.push('家具 ' + f.decor);
+  if (f.curios) parts.push('飾った品 ' + f.curios);
+  let mood = f.curios >= 2 ? '飾った品が ならぶ巣' : f.rooms >= 4 ? '通路の長い 広い巣' : f.decor >= 4 ? 'いろいろな家具のある巣' : f.store ? '倉庫のある 落ち着いた巣' : 'こぢんまりした巣';
+  if (recent) mood = '最近 手を入れた ' + mood;
+  return mood + (parts.length ? '（' + parts.join('・') + '）' : '');
+}

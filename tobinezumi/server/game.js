@@ -6,7 +6,7 @@
 //   s.onMessage(text) / s.onClose()
 import { gateAt } from '../shared/regions.js';
 import { REGION, REGION_IDS, OPEN_REGIONS, regionMap, arrivalPoint, isRegion } from '../shared/world.js';
-import { CURIOS, isCurio, gateOpen, gateHint, GATE_R, ACH, collectAchievements, unlockedDecor, SANDSTORM_MS, VISIT_GOAL, nestRichness } from '../shared/collect.js';
+import { CURIOS, isCurio, gateOpen, gateHint, GATE_R, ACH, collectAchievements, unlockedDecor, SANDSTORM_MS, VISIT_GOAL } from '../shared/collect.js';
 import { MAX_RESIDENTS, TRAVEL_GAP_MS } from '../shared/protocol.js';
 import { boxFree } from '../shared/move.js';
 import { makeInventory, swapSlots, removeItem, countItem, addItem, START_INVENTORY, INV_SLOTS, ITEMS } from '../shared/items.js';
@@ -23,7 +23,7 @@ import { traitMoveMods, traitMods, lookOf, seedOf } from '../shared/genetics.js'
 import { lifeEnvWithTraits, makeLife } from '../shared/life.js';
 import { WILD, devWildGenes } from '../shared/wild.js';
 import { PET } from '../shared/family-life.js';
-import { RANK, weekKey, weekRange, prevWeekKey, weekBoard, finalizeWeek, lastWeekWinners, weekLabel } from '../shared/ranking.js';
+import { pickTour } from '../shared/tour.js';
 import { devFamily } from '../shared/dev-family.js';
 import { DAY_MS } from '../shared/daynight.js';
 import { SEXES } from '../shared/protocol.js';
@@ -90,7 +90,6 @@ export class Game {
     this.nests.onPlug = nest => this.refreshEntrance(nest.owner);
     this.nests.onPlace = (p, nest, op, data) => { if (op.type === 'curio' && data.objects.filter(o => o.type === 'curio').length >= 3) this.grant(p, 'display3'); };
     for (const room of this.fields.values()) room.load();
-    this._rankCache = null;
     this.sessions = new Set();
     this._timers = [];
   }
@@ -99,7 +98,6 @@ export class Game {
     const tickMs = 1000 / SERVER_TICK_HZ;
     this._timers.push(setInterval(() => this.tick(), tickMs));
     this._timers.push(setInterval(() => this.saveAll('live'), this.saveMs));
-    this._timers.push(setInterval(() => { try { this.rankTick(); } catch (e) { this.stats.errors++; this.log('[rank] ' + (e && e.stack || e)); } }, 60 * 1000));
     this._timers.push(setInterval(() => { this.store.purgeSessions(this.now()); this.auth.loginFails.sweep(); this.auth.ipFails.sweep(); }, 3600 * 1000));
     return this;
   }
@@ -280,7 +278,7 @@ export class Game {
       case C2S.TRAVEL: return this.travel(p, m);
       case C2S.ENTER_GATE: return this.enterGate(p);
       case C2S.COLLECTION: return this.collectionOut(p);
-      case C2S.RANKING: return this.ranking(p);
+      case C2S.NEST_TOUR: case C2S.RANKING: return this.nestTour(p);   // Ver.0.6：巣めぐり（'ranking' は前の版のクライアントのための別名）
       case C2S.RESIDENTS: return { ok: true, ...this.residentsInfo(p.accountId) };
       case C2S.RESIDENT_INVITE: return this.residentInvite(p, m.name);
       case C2S.RESIDENT_ANSWER: return this.residentAnswer(p, m.nestId, !!m.ok);
@@ -690,15 +688,6 @@ export class Game {
     }
     if (Array.isArray(m.collect)) for (const cid of m.collect.slice(0, 30)) if (CURIOS[cid] && this.store.addCollectible(p.accountId, cid, this.now(), { dev: true }) === 1) this.collected(p, cid, this.now());
     if (m.achieve && ACH[m.achieve]) this.grant(p, m.achieve);
-    if (m.rankRoll) {   // Ver.0.6：いまの週を「先週」にして しめる（週の区切りの画面を確かめる）
-      const t = this.now(), wk = weekKey(t), prev = prevWeekKey(t);
-      this.store.tx(() => {
-        this.store.q('DELETE FROM rank_weeks WHERE week = ?').run(prev);
-        this.store.q("UPDATE rank_weeks SET week = ? WHERE week = ?").run(prev, wk);
-        this.store.setMeta('rank_week', prev);
-      });
-      this.rankTick(t);
-    }
     return { ok: true, clock: { ...this.clock }, spawned, wild, family: h ? h.out() : null, ...(inv ? { inv: inv.map(x => x && { ...x }) } : {}), ...(world ? { world } : {}), ...(curio ? { curio } : {}), gate: p.gate || null };
   }
 
@@ -995,7 +984,7 @@ export class Game {
     return { ok: true, list: this.friendList(p.accountId) };
   }
 
-  // ───────── 広がり（Ver.0.5）：土地の旅・不思議な穴・収集品・実績・共同巣・豊かな巣 ─────────
+  // ───────── 広がり（Ver.0.5）：土地の旅・不思議な穴・収集品・実績・共同巣（Ver.0.6：豊かな巣 → 巣めぐり）─────────
   /** 図鑑・実績・進み具合（印）を DB から */
   _loadProgress(p) {
     p.owned = new Set(Object.keys(this.store.collection(p.accountId)));
@@ -1130,41 +1119,22 @@ export class Game {
     return { ok: true, owned: this.store.collection(p.accountId), achievements: this.store.achievements(p.accountId),
       stats: { seasons: [...p.seasonsSeen], regions: [...p.regionsSeen], visited: p.visitedNests.size, found: !!p.toyamaFound } };
   }
-  /** いまの巣の豊かさ（全部の巣） */
-  _richRows() { return this.store.allNests().map(n => ({ nestId: n.id, owner: n.owner, name: n.ownerName, region: n.field || 'plains', ...nestRichness(n.data) })); }
   /**
-   * Ver.0.6：豊かな巣の週（shared/ranking.js）。週が変わっていたら前の週をしめて、新しい週の base を入れる。
-   * 1 分ごと（start のタイマー）と、ranking の要求のたびに呼ぶ。返り値 いまの週の鍵
+   * Ver.0.6「巣めぐり」：その子が入れる巣（公開・フレンドだけ公開でフレンド・許可リスト）をいくつか紹介する。順位・点数はつけない
+   * （shared/tour.js：最近 手を入れた巣を少し＋その子と時間の枠で混ぜた巣。10 分ごとに入れかわる）。自分の巣・住んでいる共同巣は出さない。
    */
-  rankTick(t = this.now()) {
-    const wk = weekKey(t), cur = this.store.getMeta('rank_week');
-    if (cur === wk) return wk;
-    const rows = this._richRows();
-    if (cur) {   // 前の週をしめる（いまの豊かさを、その週の最後の数として）
-      const final = finalizeWeek(weekBoard(rows, this.store.rankBases(cur)));
-      this.store.finalizeRankWeek(cur, final, t);
-      this.log(`[rank] ${cur} をしめた（${final.length} 巣・${final.filter(r => r.title).map(r => r.name + '=' + r.title).join(' ')}）`);
-    }
-    this.store.tx(() => { for (const r of rows) this.store.upsertRankWeek(wk, r, r.score, t); this.store.setMeta('rank_week', wk); });
-    this._rankCache = null;
-    return wk;
-  }
-  /** 穏やかなランキング「豊かな巣」：今週ふえた豊かさの上位 10・先週ほめられた巣（30 秒は同じ結果） */
-  ranking(p) {
+  nestTour(p) {
     const t = this.now();
-    const wk = this.rankTick(t);
-    if (!this._rankCache || this._rankCache.week !== wk || t - this._rankCache.at > RANK.REFRESH_MS) {
-      const rows = this._richRows(), bases = this.store.rankBases(wk);
-      this.store.tx(() => { for (const r of rows) this.store.upsertRankWeek(wk, r, bases.has(r.nestId) ? bases.get(r.nestId) : 0, t); });
-      const board = weekBoard(rows, this.store.rankBases(wk));
-      const lastKey = prevWeekKey(t), last = this.store.rankWeek(lastKey).filter(r => r.final);
-      this._rankCache = { at: t, week: wk, board, last, lastKey };
+    const home = this._homeNestId(p);
+    const friends = new Set(this.store.friendIds(p.accountId));
+    const cands = [];
+    for (const n of this.store.allNests()) {
+      if (n.owner === p.accountId || n.id === home || n.x == null) continue;
+      if (!this.nests.canVisit(n, p.accountId)) continue;
+      cands.push({ nestId: n.id, name: n.ownerName, region: n.field || 'plains', data: n.data, updatedAt: n.updatedAt, policy: n.policy, friend: friends.has(n.owner), x: n.x, y: n.y });
     }
-    const { board, last, lastKey } = this._rankCache;
-    const out = r => ({ rank: r.rank, name: r.name, region: r.region, score: r.score, gain: r.gain, rooms: r.rooms, decor: r.decor, curios: r.curios, me: r.owner === p.accountId });
-    const mine = board.find(r => r.owner === p.accountId);
-    return { ok: true, week: { key: wk, label: weekLabel(t) }, list: board.slice(0, RANK.TOP).map(out), mine: mine ? out(mine) : null, total: board.length,
-      last: { key: lastKey, label: weekLabel(weekRange(t).start - 1), winners: lastWeekWinners(last.map(r => ({ ...r, gain: Math.max(0, r.score - r.base), me: r.owner === p.accountId }))), count: last.length } };
+    const list = pickTour(cands, { viewer: p.accountId, now: t });
+    return { ok: true, tour: true, list, count: cands.length };
   }
 
   // ── 共同巣：所有者がフレンドを住人に誘う（nest_access の role 'invite' → 'resident'）──
