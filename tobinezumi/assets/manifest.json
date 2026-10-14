@@ -1197,6 +1197,456 @@
    6
   ]
  },
+ "tile.dune": {
+  "file": "regions/dune.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 3
+ },
+ "tile.cliff": {
+  "file": "regions/cliff.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 2,
+  "solid": true
+ },
+ "tile.ledge": {
+  "file": "regions/ledge.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 2,
+  "note": "one-way drop (south)"
+ },
+ "tile.river": {
+  "file": "regions/river.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 4,
+  "anim": true,
+  "fps": 4
+ },
+ "tile.paddy": {
+  "file": "regions/paddy.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 4,
+  "names": [
+   "spring",
+   "summer",
+   "autumn",
+   "winter"
+  ]
+ },
+ "tile.channel": {
+  "file": "regions/channel.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 2,
+  "anim": true,
+  "fps": 3
+ },
+ "tile.path": {
+  "file": "regions/path.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 2
+ },
+ "tile.mountains": {
+  "file": "regions/mountains.png",
+  "cell": [
+   256,
+   128
+  ],
+  "variants": 1,
+  "note": "horizontally tileable backdrop band (toyama north)"
+ },
+ "tile.house": {
+  "file": "regions/house.png",
+  "cell": [
+   96,
+   80
+  ],
+  "variants": 2,
+  "anchor": [
+   48,
+   79
+  ],
+  "footprint": [
+   6,
+   5
+  ],
+  "solid": true
+ },
+ "tile.sakura": {
+  "file": "regions/sakura.png",
+  "cell": [
+   48,
+   64
+  ],
+  "variants": 4,
+  "anchor": [
+   24,
+   61
+  ],
+  "names": [
+   "spring",
+   "summer",
+   "autumn",
+   "winter"
+  ]
+ },
+ "tile.shrine": {
+  "file": "regions/shrine.png",
+  "cell": [
+   32,
+   32
+  ],
+  "variants": 1,
+  "anchor": [
+   16,
+   30
+  ]
+ },
+ "tile.post": {
+  "file": "regions/post.png",
+  "cell": [
+   16,
+   32
+  ],
+  "variants": 1,
+  "anchor": [
+   8,
+   30
+  ]
+ },
+ "tile.machine": {
+  "file": "regions/machine.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 1,
+  "anchor": [
+   8,
+   15
+  ]
+ },
+ "tile.phone": {
+  "file": "regions/phone.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 2,
+  "anchor": [
+   8,
+   14
+  ],
+  "anim": true,
+  "fps": 1
+ },
+ "tile.stone_marker": {
+  "file": "regions/stone_marker.png",
+  "cell": [
+   16,
+   24
+  ],
+  "variants": 1,
+  "anchor": [
+   8,
+   22
+  ]
+ },
+ "tile.hole": {
+  "file": "regions/hole.png",
+  "cell": [
+   32,
+   24
+  ],
+  "variants": 4,
+  "anchor": [
+   16,
+   16
+  ],
+  "anim": true,
+  "fps": 4
+ },
+ "fx.white_shape": {
+  "file": "regions/white_shape.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 2,
+  "anchor": [
+   8,
+   15
+  ]
+ },
+ "item.curio.ground": {
+  "file": "items/curio_ground.png",
+  "cell": [
+   16,
+   16
+  ],
+  "frames": 3,
+  "fps": 4,
+  "anchor": [
+   8,
+   13
+  ]
+ },
+ "item.curio.clover.icon": {
+  "file": "items/curio_clover.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.shell.icon": {
+  "file": "items/curio_shell.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.starbit.icon": {
+  "file": "items/curio_starbit.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.ammonite.icon": {
+  "file": "items/curio_ammonite.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.crystal.icon": {
+  "file": "items/curio_crystal.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.sign_tablet.icon": {
+  "file": "items/curio_sign_tablet.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.desert_rose.icon": {
+  "file": "items/curio_desert_rose.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.moon_sand.icon": {
+  "file": "items/curio_moon_sand.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.sign_glass.icon": {
+  "file": "items/curio_sign_glass.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.kingfisher.icon": {
+  "file": "items/curio_kingfisher.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.acorn.icon": {
+  "file": "items/curio_acorn.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.sign_fur.icon": {
+  "file": "items/curio_sign_fur.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.dragons_card.icon": {
+  "file": "items/curio_dragons_card.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.machine_part.icon": {
+  "file": "items/curio_machine_part.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.charm.icon": {
+  "file": "items/curio_charm.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.black_feather.icon": {
+  "file": "items/curio_black_feather.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.odd_crystal.icon": {
+  "file": "items/curio_odd_crystal.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "item.curio.unknown_card.icon": {
+  "file": "items/curio_unknown_card.png",
+  "cell": [
+   16,
+   16
+  ]
+ },
+ "nest.stone_display": {
+  "file": "nest/stone_display.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 1,
+  "anchor": [
+   8,
+   15
+  ]
+ },
+ "nest.curio_stand": {
+  "file": "nest/curio_stand.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 1,
+  "anchor": [
+   8,
+   15
+  ]
+ },
+ "nest.wreath": {
+  "file": "nest/wreath.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 1,
+  "anchor": [
+   8,
+   15
+  ]
+ },
+ "nest.star_lamp": {
+  "file": "nest/star_lamp.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 2,
+  "anim": true,
+  "fps": 2
+ },
+ "nest.curio_shelf": {
+  "file": "nest/curio_shelf.png",
+  "cell": [
+   32,
+   32
+  ],
+  "variants": 1,
+  "anchor": [
+   16,
+   31
+  ]
+ },
+ "nest.family_tree": {
+  "file": "nest/family_tree.png",
+  "cell": [
+   16,
+   32
+  ],
+  "variants": 1,
+  "anchor": [
+   8,
+   31
+  ]
+ },
+ "nest.snowman": {
+  "file": "nest/snowman.png",
+  "cell": [
+   16,
+   16
+  ],
+  "variants": 1,
+  "anchor": [
+   8,
+   15
+  ]
+ },
+ "ui.worldmap": {
+  "file": "ui/worldmap.png",
+  "cell": [
+   192,
+   144
+  ],
+  "cells": {
+   "rocks": [
+    96,
+    30
+   ],
+   "canyon": [
+    40,
+    76
+   ],
+   "plains": [
+    96,
+    76
+   ],
+   "dunes": [
+    152,
+    76
+   ],
+   "toyama": [
+    34,
+    124
+   ]
+  }
+ },
  "ui.frame": {
   "file": "ui/frame.png",
   "cell": [

@@ -28,6 +28,7 @@ export const WEATHERS = {
   clear:     { id: 'clear', name: '晴れ' },
   sandstorm: { id: 'sandstorm', name: '砂嵐' },
   rain:      { id: 'rain', name: '雨' },
+  snow:      { id: 'snow', name: '雪' },     // Ver.0.5：冬の渓谷・岩場・富山だけ（はじまりの原には降らない）
 };
 // 季節ごとの出やすさ [晴れ, 砂嵐, 雨]
 export const WEATHER_TABLE = {
@@ -44,6 +45,7 @@ export const ENV = {
   SHELTER_R: 18,                    // 物かげ：この距離（px）以内に岩・木・低木・小石の山・巣穴の入口
   REST_MUL: 1.5, REST_DRAIN: 0.5,   // 休眠
   PUDDLE_MAX: 10, PUDDLE_SPAWN_MS: 8000, PUDDLE_DRINK: 20,
+  SNOW_VIS: 0.75, SNOW_COND_SEC: 30 * 60,   // 雪：見通し ×0.75・巣の外では体調がゆっくり減る（30 分で 0 の速さ）
 };
 
 const SEASON_IDS = SEASONS.map(s => s.id);
@@ -60,17 +62,19 @@ export function seasonFromWorld(w, forced = null) {
   return { ...SEASONS[idx], index: idx, day: Math.floor(into / DAY_MS) + 1, progress: into / SEASON_MS };
 }
 
-/** 天気：{id, name, k(0..1 の強さ：変わり目でゆっくり), slot, next(次に変わるまでの世界の ms)} */
-export function weatherAt(clock, t) {
+/** 天気：{id, name, k(0..1 の強さ：変わり目でゆっくり), slot, next(次に変わるまでの世界の ms)}。
+ *  region（Ver.0.5）：土地ごとの天気のくせ（localWeather）。はじまりの原（plains・null）は前からと同じ */
+export function weatherAt(clock, t, region = null) {
   const w = worldMs(clock, t);
   const slot = Math.floor(w / WEATHER_SLOT_MS);
   const into = w - slot * WEATHER_SLOT_MS;
   const k = Math.min(1, Math.min(into, WEATHER_SLOT_MS - into) / (WEATHER_SLOT_MS * 0.08));
   if (clock && clock.weather && WEATHERS[clock.weather]) return { ...WEATHERS[clock.weather], k: 1, slot, next: WEATHER_SLOT_MS - into, forced: true };
   const season = seasonFromWorld(slot * WEATHER_SLOT_MS, clock && clock.season);
-  const id = pickWeather(season.id, slot);
+  const pick = s => localWeather(pickWeather(season.id, s), region, season.id, s);
+  const id = pick(slot);
   // 前後と同じ天気なら変わり目でも弱めない
-  const prevSame = pickWeather(season.id, slot - 1) === id, nextSame = pickWeather(season.id, slot + 1) === id;
+  const prevSame = pick(slot - 1) === id, nextSame = pick(slot + 1) === id;
   let kk = k;
   if (into < WEATHER_SLOT_MS / 2 && prevSame) kk = 1;
   if (into >= WEATHER_SLOT_MS / 2 && nextSame) kk = 1;
@@ -83,12 +87,30 @@ export function pickWeather(seasonId, slot) {
   return h < p[0] ? 'clear' : h < p[0] + p[1] ? 'sandstorm' : 'rain';
 }
 
+/**
+ * 土地ごとの天気のくせ（Ver.0.5。決まった計算なので全員同じ・送らなくてよい）
+ *   すなの海：雨はめったに降らない（晴れか砂嵐）・晴れでもときどき砂嵐
+ *   みずおとの谷：谷なので砂嵐は来ない。冬は雨が雪に、晴れも 4 回に 1 回は雪
+ *   いわばの高台：冬の雨は雪
+ *   富山：砂嵐は無い（雨・冬は雪）。冬はよく雪が降る
+ */
+export function localWeather(id, region, seasonId, slot) {
+  if (!region || region === 'plains') return id;
+  const h = hash2(slot | 0, 7 + region.length * 13, WEATHER_SEED + 99);
+  const winter = seasonId === 'winter';
+  if (region === 'dunes') { if (id === 'rain') return h < 0.7 ? 'clear' : 'sandstorm'; if (id === 'clear' && h < 0.08) return 'sandstorm'; return id; }
+  if (region === 'canyon') { if (id === 'sandstorm') return winter ? 'snow' : 'clear'; if (winter && id === 'rain') return 'snow'; if (winter && id === 'clear' && h < 0.25) return 'snow'; return id; }
+  if (region === 'rocks') { if (winter && id === 'rain') return 'snow'; if (winter && id === 'clear' && h < 0.1) return 'snow'; return id; }
+  if (region === 'toyama') { if (id === 'sandstorm') return winter ? 'snow' : 'rain'; if (winter && id === 'rain') return 'snow'; if (winter && id === 'clear' && h < 0.45) return 'snow'; return id; }
+  return id;
+}
+
 /** 物かげか（砂嵐をしのげる）：岩・木・低木・小石の山のそば、または巣穴の入口のそば */
 export function isSheltered(map, x, y, entrances = [], r = ENV.SHELTER_R) {
   const t0x = Math.floor((x - r) / TILE), t1x = Math.floor((x + r) / TILE), t0y = Math.floor((y - r) / TILE), t1y = Math.floor((y + r) / TILE);
   for (let ty = t0y; ty <= t1y; ty++) for (let tx = t0x; tx <= t1x; tx++) {
     const t = tileAt(map, tx, ty);
-    if (t !== T.ROCK && t !== T.TREE && t !== T.SHRUB && t !== T.STONES) continue;
+    if (t !== T.ROCK && t !== T.TREE && t !== T.SHRUB && t !== T.STONES && t !== T.CLIFF && t !== T.SAKURA && t !== T.HOUSE && t !== T.SHRINE) continue;
     const cx = Math.max(tx * TILE, Math.min(x, tx * TILE + TILE)), cy = Math.max(ty * TILE, Math.min(y, ty * TILE + TILE));
     if (Math.hypot(cx - x, cy - y) <= r) return true;
   }
@@ -102,14 +124,17 @@ export function isSheltered(map, x, y, entrances = [], r = ENV.SHELTER_R) {
  *          vis, pred:{owl, fox, snake}, respawnMul, labels:[…]}
  */
 export function envAt(clock, t, { map = null, x = 0, y = 0, place = 'field', entrances = [], enabled = true } = {}) {
-  const season = seasonOf(clock, t), weather = weatherAt(clock, t), period = periodOf(dayPhase(clock, t));
+  const region = map && map.region && map.region !== 'plains' ? map.region : null;
+  const season = seasonOf(clock, t), weather = weatherAt(clock, t, region), period = periodOf(dayPhase(clock, t));
   const env = {
     season: season.id, seasonName: season.name, weather: weather.id, weatherName: weather.name, weatherK: weather.k, period,
     cold: false, heat: false, sheltered: false, rest: null,
     move: { speed: 1 }, life: { thirstMul: 1, hungerMul: 1, condPerSec: 0, restMul: 1, sleepDrainMul: 1 },
-    vis: 1, pred: { owl: 1, fox: 1, snake: 1 }, respawnMul: 1, labels: [],
+    vis: 1, pred: { owl: 1, fox: 1, snake: 1 }, respawnMul: 1, labels: [], region: map && map.region || 'plains',
   };
   if (!enabled) return env;
+  // 土地ごとの捕食者の出やすさ（Ver.0.5：岩場はヘビ・砂丘は夜のフクロウ・富山は出ない）
+  if (map && map.predMul) for (const k of ['owl', 'fox', 'snake']) env.pred[k] *= map.predMul[k] ?? 1;
   const onField = place === 'field';
   const land = map ? landAt(map, x, y) : null;
   const climate = land ? land.climate : 'dry';
@@ -118,21 +143,24 @@ export function envAt(clock, t, { map = null, x = 0, y = 0, place = 'field', ent
   if (season.id === 'winter') env.respawnMul *= 1.3;
   // 天気
   if (weather.id === 'sandstorm') {
-    env.vis = ENV.STORM_VIS; env.pred.owl = 0; env.pred.snake = 0; env.pred.fox = 0.5;
+    env.vis = ENV.STORM_VIS; env.pred.owl = 0; env.pred.snake = 0; env.pred.fox *= 0.5;
     if (onField) {
       env.move.speed = ENV.STORM_SPEED;
       env.sheltered = map ? isSheltered(map, x, y, entrances) : false;
       if (!env.sheltered) { env.life.condPerSec -= 100 / ENV.STORM_COND_SEC; env.labels.push('砂嵐で体調が減っている（岩や低木のかげ・巣へ）'); }
     }
   } else if (weather.id === 'rain') {
-    env.vis = ENV.RAIN_VIS; env.respawnMul *= 0.7; env.pred.owl = 0.5; env.pred.snake = 0.4;
+    env.vis = ENV.RAIN_VIS; env.respawnMul *= 0.7; env.pred.owl *= 0.5; env.pred.snake *= 0.4;
+  } else if (weather.id === 'snow') {
+    env.vis = ENV.SNOW_VIS; env.respawnMul *= 1.2; env.pred.owl *= 0.7; env.pred.fox *= 0.8; env.pred.snake = 0;
+    if (onField) { env.life.condPerSec -= 100 / ENV.SNOW_COND_SEC; env.labels.push('雪で冷える（巣の外では体調が少し減る）'); }
   }
   // 寒い夜（冬の夜）
   if (season.id === 'winter' && period === 'night') {
     env.cold = true;
     env.pred.snake = 0;
     if (onField) {
-      const m = climate === 'cool' ? 1.5 : climate === 'mild' ? 0.6 : 1;
+      const m = climate === 'cold' ? 1.8 : climate === 'cool' ? 1.5 : climate === 'mild' ? 0.6 : 1;
       env.life.condPerSec -= 100 / ENV.COLD_COND_SEC * m;
       env.labels.push('寒い夜：巣の外では体調が減る');
     }

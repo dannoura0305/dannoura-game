@@ -10,9 +10,11 @@ export const TILE = 16;
 export const FIELD_W = 96, FIELD_H = 64;
 export const FIELD_SEED = 20261010;
 
-// タイルの種類
-export const T = { SAND: 0, DIRT: 1, GRASS: 2, ROCK: 3, SHRUB: 4, STONES: 5, WATER: 6, TREE: 7, PEBBLE: 8, TUFT: 9 };
-// block：歩いて通れない　high：大ジャンプでも越えられない
+// タイルの種類（10 から先は Ver.0.5「広がり」：岩場・砂丘・渓谷・富山の地図で使う。はじまりの原（この地図）には出てこない）
+export const T = { SAND: 0, DIRT: 1, GRASS: 2, ROCK: 3, SHRUB: 4, STONES: 5, WATER: 6, TREE: 7, PEBBLE: 8, TUFT: 9,
+  DUNE: 10, CLIFF: 11, LEDGE: 12, RIVER: 13, PADDY: 14, CHANNEL: 15, HOUSE: 16, MOUNT: 17, PATH: 18, SAKURA: 19, SHRINE: 20 };
+// block：歩いて通れない　high：大ジャンプでも越えられない　ledge：下（南）へ向かうときだけ通れる段差（一方通行）
+// water：ふちで水が飲める　slow：跳ねる速さが落ちる（さらさらの砂）
 export const TILE_INFO = [
   { name: '砂地',     block: false, high: false },
   { name: '土',       block: false, high: false },
@@ -24,7 +26,20 @@ export const TILE_INFO = [
   { name: '木',       block: true,  high: true },
   { name: '小石',     block: false, high: false },  // 地面の飾り（採集物の小石とは別）
   { name: '草の房',   block: false, high: false },  // 地面の飾り
+  // ── Ver.0.5「広がり」──
+  { name: 'さらさら砂', block: false, high: false, slow: 0.85 },   // 砂丘：足が沈んで跳ねる速さ ×0.85
+  { name: '崖',       block: true,  high: true },
+  { name: '段差',     block: true,  high: false, ledge: true },    // 渓谷：下りるだけ（上がれない）
+  { name: '川',       block: true,  high: true,  water: true },
+  { name: '水田',     block: true,  high: true,  water: true },
+  { name: '水路',     block: true,  high: false, water: true },    // 大ジャンプで越えられる
+  { name: '家',       block: true,  high: true },                  // 人間の家（入れない）
+  { name: '山',       block: true,  high: true },
+  { name: 'あぜ道',   block: false, high: false },
+  { name: '桜',       block: true,  high: true },
+  { name: '祠',       block: true,  high: false },
 ];
+export const isWaterTile = t => t >= 0 && !!(TILE_INFO[t] && TILE_INFO[t].water) || t === T.WATER;
 // 飾りタイルの下地（描画用）
 export function groundOf(map, tx, ty) { return map.ground[ty * map.w + tx]; }
 
@@ -106,25 +121,51 @@ export function buildFieldMap(seed = FIELD_SEED) {
   for (const t of TREES) for (let y = t.y - 1; y <= t.y + 1; y++) for (let x = t.x - 1; x <= t.x + 1; x++) {
     if ((x !== t.x || y !== t.y) && tiles[y * w + x] !== T.WATER) tiles[y * w + x] = ground[y * w + x];
   }
-  return { w, h, tile: TILE, seed, ground, tiles, spawn, pxW: w * TILE, pxH: h * TILE };
+  const map = { w, h, tile: TILE, seed, ground, tiles, spawn, pxW: w * TILE, pxH: h * TILE, region: 'plains' };
+  // Ver.0.5：ほかの土地への出口（地図の端。タイルは変えない＝前からの地図と同じ）
+  map.gates = [makeGate(map, 'n', 36, 'rocks'), makeGate(map, 'e', 34, 'dunes'), makeGate(map, 'w', 38, 'canyon')];
+  return map;
+}
+
+// ───────── Ver.0.5：地図の端の出口（ほかの土地へ）─────────
+export const GATE_SPAN = 6;     // 出口の幅（タイル）
+/** 出口：dir = 'n'|'s'|'e'|'w'、c = 端に沿った真ん中のタイル、to = 行き先の土地 id。
+ *  {dir, to, x0, y0, x1, y1（ここに足元が入ると出口）, ax, ay（この土地に着いたときの場所）} */
+export function makeGate(map, dir, c, to) {
+  const W = map.w * TILE, H = map.h * TILE, half = GATE_SPAN / 2 * TILE;
+  if (dir === 'n') return { dir, to, x0: c * TILE + 8 - half, x1: c * TILE + 8 + half, y0: 0, y1: 14, ax: c * TILE + 8, ay: 40 };
+  if (dir === 's') return { dir, to, x0: c * TILE + 8 - half, x1: c * TILE + 8 + half, y0: H - 12, y1: H, ax: c * TILE + 8, ay: H - 36 };
+  if (dir === 'w') return { dir, to, x0: 0, x1: 13, y0: c * TILE + 8 - half, y1: c * TILE + 8 + half, ax: 40, ay: c * TILE + 8 };
+  return { dir, to, x0: W - 13, x1: W, y0: c * TILE + 8 - half, y1: c * TILE + 8 + half, ax: W - 40, ay: c * TILE + 8 };
+}
+/** 足元 (x, y) が出口の上か（無ければ null） */
+export function gateAt(map, x, y) {
+  for (const g of map.gates || []) if (x >= g.x0 && x <= g.x1 && y >= g.y0 && y <= g.y1) return g;
+  return null;
 }
 
 export function tileAt(map, tx, ty) {
   if (tx < 0 || ty < 0 || tx >= map.w || ty >= map.h) return -1;   // 地図の外
   return map.tiles[ty * map.w + tx];
 }
-/** 歩いて入れないか（地図の外も通れない） */
-export function isBlocking(map, tx, ty) {
+/** 歩いて入れないか（地図の外も通れない）。down=true：下（南）へ向かっているので段差は通れる */
+export function isBlocking(map, tx, ty, down = false) {
   const t = tileAt(map, tx, ty);
-  return t < 0 || TILE_INFO[t].block;
+  if (t < 0) return true;
+  const I = TILE_INFO[t];
+  return I.block && !(down && I.ledge);
 }
-/** 大ジャンプでも越えられないか */
-export function isHigh(map, tx, ty) {
+/** 大ジャンプでも越えられないか。段差は下へ跳ぶときだけ越えられる（down） */
+export function isHigh(map, tx, ty, down = false) {
   const t = tileAt(map, tx, ty);
-  return t < 0 || TILE_INFO[t].high;
+  if (t < 0) return true;
+  const I = TILE_INFO[t];
+  return I.high || (!!I.ledge && !down);
 }
 
+/** いる所の地域名（はじまりの原の中の「オアシスのほとり」など）。Ver.0.5 のほかの地図は map.areaAt を持つ */
 export function regionAt(map, px, py) {
+  if (map.areaAt) return map.areaAt(px, py);
   const tx = px / TILE, ty = py / TILE;
   if (Math.hypot((tx - POND.x) / (POND.rx + 6), (ty - POND.y) / (POND.ry + 5)) < 1) return REGIONS[0];
   if (Math.hypot(tx - HILL.x, ty - HILL.y) < HILL.r + 5) return REGIONS[1];
@@ -186,13 +227,15 @@ export const BURROW_MIN_DIST = 6 * TILE;
 /** ここに巣を掘れるか */
 export function canDigBurrow(map, px, py, entrances = []) {
   const tx = Math.floor(px / TILE), ty = Math.floor(py / TILE);
+  if (map.noBurrow) return { ok: false, reason: map.noBurrow };
   if (tx < 2 || ty < 2 || tx > map.w - 3 || ty > map.h - 3) return { ok: false, reason: '地図の端すぎる' };
   for (let y = ty - 1; y <= ty + 1; y++) for (let x = tx - 1; x <= tx + 1; x++) {
     const t = tileAt(map, x, y);
-    if (t === T.WATER) return { ok: false, reason: '水場に近すぎる' };
-    if (TILE_INFO[t].block) return { ok: false, reason: 'まわりが混みあっている' };
+    if (isWaterTile(t)) return { ok: false, reason: '水場に近すぎる' };
+    if (t < 0 || TILE_INFO[t].block) return { ok: false, reason: 'まわりが混みあっている' };
   }
-  for (let y = ty - 2; y <= ty + 2; y++) for (let x = tx - 2; x <= tx + 2; x++) if (tileAt(map, x, y) === T.WATER) return { ok: false, reason: '水場に近すぎる' };
+  for (let y = ty - 2; y <= ty + 2; y++) for (let x = tx - 2; x <= tx + 2; x++) if (isWaterTile(tileAt(map, x, y))) return { ok: false, reason: '水場に近すぎる' };
+  if (map.gates) for (const g of map.gates) if (Math.hypot(g.ax - px, g.ay - py) < 3 * TILE) return { ok: false, reason: 'ほかの土地への通り道だ' };
   if (Math.hypot(px - map.spawn.x, py - map.spawn.y) < 3 * TILE) return { ok: false, reason: 'みんなの通り道だ' };
   for (const e of entrances) if (Math.hypot(e.x - px, e.y - py) < BURROW_MIN_DIST) return { ok: false, reason: 'ほかの巣に近すぎる' };
   return { ok: true, x: tx * TILE + 8, y: ty * TILE + 8 };
@@ -215,7 +258,7 @@ export function nearWater(map, px, py, r = DRINK_RANGE) {
   const t0x = Math.floor((px - r) / TILE), t1x = Math.floor((px + r) / TILE);
   const t0y = Math.floor((py - r) / TILE), t1y = Math.floor((py + r) / TILE);
   for (let ty = t0y; ty <= t1y; ty++) for (let tx = t0x; tx <= t1x; tx++) {
-    if (tileAt(map, tx, ty) !== T.WATER) continue;
+    if (!isWaterTile(tileAt(map, tx, ty))) continue;
     const cx = Math.max(tx * TILE, Math.min(px, tx * TILE + TILE)), cy = Math.max(ty * TILE, Math.min(py, ty * TILE + TILE));
     if (Math.hypot(cx - px, cy - py) <= r) return true;
   }

@@ -66,6 +66,16 @@ export const C2S = {
   LINEAGE: 'lineage',         // {}                                   → res {ok, nodes:[Ind], current}
   SUCCEED: 'succeed',         // {id}（育った自分の子へ世代交代）       → res {ok, character, family, life, inv}
   FAREWELL: 'farewell',       // {}（子がいない年寄りの旅立ち）         → res {ok, character, family, life, inv}
+  // ── Ver.0.5「広がり」──（PROTOCOL.md §11）
+  TRAVEL: 'travel',           // {to}（地図の端の出口からとなりの土地へ）  → res {ok, world}（行き先の WorldInit）
+  ENTER_GATE: 'enter_gate',   // {}（谷の奥の不思議な穴／富山の来た穴）  → res {ok, world}
+  COLLECTION: 'collection',   // {}                                   → res {ok, owned:{id: at}, achievements:{id: at}, stats}
+  RANKING: 'ranking',         // {}（穏やかなランキング「豊かな巣」）    → res {ok, list:[{name, score, rooms, decor, curios, me}]}
+  RESIDENTS: 'residents',     // {}（共同巣の様子）                     → res {ok, ...ResidentsInfo}
+  RESIDENT_INVITE: 'resident_invite', // {name}（フレンドを自分の巣の住人に誘う） → res {ok, ...ResidentsInfo}
+  RESIDENT_ANSWER: 'resident_answer', // {nestId, ok}（誘いに答える）     → res {ok, ...ResidentsInfo}
+  RESIDENT_LEAVE: 'resident_leave',   // {}（住んでいる巣を出る）         → res {ok, ...ResidentsInfo}
+  RESIDENT_REMOVE: 'resident_remove', // {id}（所有者が住人・誘いを外す） → res {ok, ...ResidentsInfo}
 };
 
 // サーバー → クライアント
@@ -97,7 +107,13 @@ export const S2C = {
   FAMILY: 'family',           // {family, events?:[…]}                  家族が変わった（生まれた・育った・おなかがすいた・寿命の目安）
   PLAYER_UPDATE: 'player_update', // {player:{id, name, fur, look, kids}}  世代交代・連れている若者が変わった（地上のみんなへ）
   WILD: 'wild',               // {type:'befriend'|'lost'|'startle', id, name}  野生の子との出来事（本人へ）
+  // ── Ver.0.5 ──（snapshot には gate:{x,y}|null（その子に見える不思議な穴）が加わる）
+  COLLECT: 'collect',         // {cid, at, total}                       図鑑に加わった（本人へ）
+  ACHIEVEMENT: 'achievement', // {id, at, reward?}                      実績をとった（本人へ）
+  RESIDENTS: 'residents',     // {...ResidentsInfo, text?}             共同巣の誘い・住人が変わった（本人へ）
 };
+export const MAX_RESIDENTS = 3;      // 共同巣：所有者のほかに住める子（Ver.0.5）
+export const TRAVEL_GAP_MS = 1500;   // 旅の間隔
 export const PLUG_COST = { pebble: 2 };     // 入口をふさぐ（ひらくと小石 1 つ戻る）
 export const SEXES = ['f', 'm'];     // Ver.0.4：個体の性（家系図の父・母）
 export const SURVEY_GAP_MS = 1000, PLUG_GAP_MS = 1000;

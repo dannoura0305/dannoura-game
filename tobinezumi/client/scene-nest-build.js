@@ -6,6 +6,8 @@ import { el, esc, toolIconURL, furnitureIconURL } from './ui.js';
 import { NestView } from './nest-view.js';
 import { CELL, validateOp, structureAt, roomEdgeAt, resizeByEdge, tunnelFromDrag, tunnelCells, rectCells, roomAt, inverseOps, KIND_COST, KIND_NAME, ROOM_COST, cellAt, C } from '../shared/nest-rules.js';
 import { FURNITURE, FURNITURE_ORDER, countItem, costText, addCost, halfCost } from '../shared/items.js';
+import { CURIOS, CURIO_ORDER, ACHIEVEMENTS } from '../shared/collect.js';
+import { curioIconURL } from './world-ui.js';
 import { Gestures, snapZoom } from './touch-logic.js';
 
 export const TOOLS = [
@@ -110,7 +112,7 @@ export class NestBuildScene {
     this.dom = el('div', 'tb-scene tb-build');
     const edit = nest.canEdit;
     const top = el('div', 'tb-btop tb-ui-block');
-    const mode = !edit ? '見学中（編集できません）' : nest.own ? '全体モード（ビルド）' : '共同作業者として編集';
+    const mode = !edit ? '見学中（編集できません）' : nest.own ? '全体モード（ビルド）' : nest.role === 'resident' ? '共同巣の住人として編集' : '共同作業者として編集';
     top.innerHTML = `<span class="tb-bname">${esc(nest.ownerName)}の巣</span><span class="tb-bmode">${mode}</span>` +
       (nest.own ? `<button type="button" class="tb-btn tb-nestset-btn" title="訪問設定・共同作業者">巣の設定</button>` : '') +
       `<span class="tb-zoom"></span>`;
@@ -133,15 +135,10 @@ export class NestBuildScene {
     }
     this.dom.appendChild(menu);
     this.menuEl = menu;
-    // 家具の小メニュー
+    // 家具の小メニュー（Ver.0.5：実績のごほうびの飾りは取るまで鍵・図鑑の品を飾る）
     const fm = el('div', 'tb-furn tb-ui-block tb-scroll hidden');
-    for (const id of FURNITURE_ORDER) {
-      const f = FURNITURE[id];
-      const b = el('button', 'tb-furn-b', `<img src="${furnitureIconURL(id, f.w, f.h)}" alt=""><span>${f.name}</span><small>${costText(f.cost)}</small>`);
-      b.dataset.furn = id; b.onclick = () => { this.furn = id; this._syncMenu(); };
-      fm.appendChild(b);
-    }
     this.dom.appendChild(fm); this.furnEl = fm;
+    this._fillFurn();
     // 下：素材と状態
     const bot = el('div', 'tb-bbot');
     bot.innerHTML = `<div class="tb-mats"></div><div class="tb-status"></div>`;
@@ -153,14 +150,37 @@ export class NestBuildScene {
     g.hud.appendChild(this.dom);
     this._syncMenu(); this._mats();
   }
-  setTool(id) { this.tool = id; this.drag = null; this._syncMenu(); }
+  /** 家具の一覧（ふつうの家具 → ごほうびの飾り → 図鑑の品） */
+  _fillFurn() {
+    const g = this.game, fm = this.furnEl;
+    fm.innerHTML = '';
+    const unl = g.nestCtx ? g.nestCtx().unlocks : new Set();
+    for (const id of FURNITURE_ORDER) {
+      const f = FURNITURE[id];
+      const locked = f.unlock && !unl.has(id);
+      const ach = f.unlock ? ACHIEVEMENTS.find(a => a.id === f.unlock) : null;
+      const b = el('button', 'tb-furn-b' + (locked ? ' locked' : ''), `<img src="${furnitureIconURL(id, f.w, f.h)}" alt=""><span>${f.name}</span><small>${locked ? '実績「' + (ach && !ach.secret ? ach.name : '？？？') + '」で' : costText(f.cost)}</small>`);
+      b.dataset.furn = id; b.onclick = () => { if (locked) { g.ui.toast('実績のごほうび：' + (ach && !ach.secret ? '「' + ach.name + '」' : 'まだ ひみつ') + 'をとると使える', 'bad'); return; } this.furn = id; this.curioItem = null; this._syncMenu(); };
+      fm.appendChild(b);
+    }
+    const owned = Object.keys((g.collection && g.collection.owned) || {}).filter(id => CURIOS[id]).sort((a, b) => CURIO_ORDER.indexOf(a) - CURIO_ORDER.indexOf(b));
+    fm.appendChild(el('div', 'tb-furn-sec', '図鑑の品を飾る' + (owned.length ? '' : '<small>（地上で光る物を拾うと増える）</small>')));
+    const shown = new Set((this.nest.data.objects || []).filter(o => o.type === 'curio').map(o => o.item));
+    for (const cid of owned) {
+      const b = el('button', 'tb-furn-b curio' + (shown.has(cid) ? ' placed' : ''), `<img src="${curioIconURL(cid)}" alt=""><span>${CURIOS[cid].name}</span><small>${shown.has(cid) ? '飾ってある' : '素材なし・壁にも床にも'}</small>`);
+      b.dataset.furn = 'curio'; b.dataset.item = cid;
+      b.onclick = () => { this.furn = 'curio'; this.curioItem = cid; this._syncMenu(); };
+      fm.appendChild(b);
+    }
+  }
+  setTool(id) { this.tool = id; this.drag = null; if (id === 'furniture') this._fillFurn(); this._syncMenu(); }
   /** 共同作業者にされた・外された（nest_role）：画面を作りなおす */
   onRoleChange(nest) { this.game.go(this, { nest }); }
   _syncMenu() {
     if (!this.menuEl) return;
     for (const b of this.menuEl.children) if (b.dataset.tool) b.classList.toggle('on', b.dataset.tool === this.tool);
     this.furnEl.classList.toggle('hidden', this.tool !== 'furniture' || !this.nest.canEdit);
-    for (const b of this.furnEl.children) b.classList.toggle('on', b.dataset.furn === this.furn);
+    for (const b of this.furnEl.children) b.classList.toggle('on', b.dataset.furn === this.furn && (this.furn !== 'curio' || b.dataset.item === this.curioItem));
     const touch = this.game.isTouch;
     this.zoomEl.textContent = '×' + (Math.round(this.z * 100) / 100) + (touch ? '' : '（ホイール）');
     const t = TOOLS.find(t => t.id === this.tool);
@@ -280,7 +300,7 @@ export class NestBuildScene {
     const op = this.opAt(cx, cy, px, py);
     if (!op) { if (this.tool === 'remove') this.game.ui.toast('撤去できる物が無い'); return; }
     if (op._why) { this.game.ui.toast(op._why, 'bad'); return; }
-    const v = validateOp(this.nest.data, op, this.game.inv());
+    const v = validateOp(this.nest.data, op, this.game.inv(), this.game.nestCtx ? this.game.nestCtx() : null);
     if (!v.ok) { this.game.ui.toast(v.reason, 'bad'); return; }
     if (op.op === 'remove' || op.op === 'fill' || (op.op === 'set-kind' && this.tool === 'remove')) {
       const back = v.refund && Object.keys(v.refund).length ? '<br><span class="tb-dim">戻る素材：' + esc(costText(v.refund)) + '</span>' : '';
@@ -350,10 +370,11 @@ export class NestBuildScene {
     }
     if (this.tool === 'furniture') {
       const f = FURNITURE[this.furn];
+      if (this.furn === 'curio' && !this.curioItem) return { op: 'place', type: 'curio', x: cx, y: cy, _why: '飾る品を選ぼう（右の一覧の「図鑑の品」）' };
       const r = roomAt(d, cx, cy);
       let x = cx - Math.floor((f.w - 1) / 2), y = cy;
-      if (r) { y = f.mount === 'ceil' ? r.y : r.y + r.h - f.h; x = Math.max(r.x, Math.min(r.x + r.w - f.w, x)); }
-      return { op: 'place', type: this.furn, x, y, rot: this.rot };
+      if (r) { y = f.mount === 'ceil' ? r.y : f.mount === 'any' ? Math.max(r.y, Math.min(r.y + r.h - f.h, cy)) : r.y + r.h - f.h; x = Math.max(r.x, Math.min(r.x + r.w - f.w, x)); }
+      return { op: 'place', type: this.furn, x, y, rot: this.rot, ...(this.furn === 'curio' ? { item: this.curioItem } : {}) };
     }
     if (this.tool === 'remove') {
       const s = structureAt(d, cx, cy);
@@ -387,7 +408,7 @@ export class NestBuildScene {
     else if (this.tool === 'room') { edge = this._edgeAt(pt.x, pt.y, touch); op = null; }
     else op = this.opAt(cx, cy, px, py);
     let v = null;
-    if (op) v = op._why ? { ok: false, reason: op._why } : validateOp(d, op, inv);
+    if (op) v = op._why ? { ok: false, reason: op._why } : validateOp(d, op, inv, this.game.nestCtx ? this.game.nestCtx() : null);
     this.hover = { cx, cy, op, v, edge };
     let msg = this.baseHint;
     if (op && v) {
@@ -416,6 +437,7 @@ export class NestBuildScene {
       g.setInv(res.inv);
       this.view.setData(res.data, { fill: this._fill() });
       this._mats();
+      if ((op.op === 'place' && op.type === 'curio') || op.op === 'remove') { this._fillFurn(); this._syncMenu(); }
       if (!isUndo) {
         const inv = inverseOps(before, op, res);
         if (inv) { this.undo.push({ ops: inv, label: describe(op, before) }); if (this.undo.length > 30) this.undo.shift(); }
@@ -514,7 +536,7 @@ export class NestBuildScene {
       case 'place': {
         const f = FURNITURE[op.type];
         g.save(); g.globalAlpha = ok ? 0.8 : 0.45;
-        drawGhost(g, op.type, op.x, op.y, f.w, f.h, op.rot, this.t, this.view.lift);
+        drawGhost(g, op.type, op.x, op.y, f.w, f.h, op.rot, this.t, this.view.lift, op.item);
         g.restore();
         frame(op.x, op.y, f.w, f.h, ok);
         g.globalAlpha = 1;
@@ -533,8 +555,8 @@ export class NestBuildScene {
 }
 
 import { drawObject } from './nest-view.js';
-function drawGhost(g, type, x, y, w, h, rot, t, lift) {
-  drawObject(g, { type, px: x * CELL, py: y * CELL, pw: w * CELL, ph: h * CELL, w, h, rot }, t, 0, lift);
+function drawGhost(g, type, x, y, w, h, rot, t, lift, item = null) {
+  drawObject(g, { type, px: x * CELL, py: y * CELL, pw: w * CELL, ph: h * CELL, w, h, rot, item }, t, 0, lift);
 }
 
 /** 操作の短い説明（トースト用） */
@@ -546,11 +568,11 @@ export function describe(op, d) {
     case 'room': return '部屋を作った';
     case 'room-resize': return '部屋の大きさを変えた';
     case 'set-kind': return op.kind === 'plain' ? 'ふつうの部屋に戻した' : KIND_NAME[op.kind] + 'にした';
-    case 'place': return (FURNITURE[op.type] || {}).name + 'を置いた';
+    case 'place': return op.type === 'curio' ? ((CURIOS[op.item] || {}).name || '品') + 'を飾った' : (FURNITURE[op.type] || {}).name + 'を置いた';
     case 'remove': {
       const it = d && (d.rooms.find(r => r.id === op.id) || d.tunnels.find(r => r.id === op.id) || d.objects.find(r => r.id === op.id));
       if (!it) return '撤去した';
-      if (it.type) return (FURNITURE[it.type] || {}).name + 'を片づけた';
+      if (it.type) return (it.type === 'curio' ? (CURIOS[it.item] || {}).name || '品' : (FURNITURE[it.type] || {}).name) + 'を片づけた';
       if (it.dir) return '通路を埋めた';
       return KIND_NAME[it.kind] + 'を土に戻した';
     }

@@ -8,6 +8,7 @@
 // Ver.0.2：おなかがすいたら種子を食べる・のどがかわいたら夜露かオアシスへ行って飲む・巣のあるボットは寝床を作り、ときどき眠る。
 // Ver.0.3：捕食者に狙われたら（snapshot の preds で target が自分）逃げる：反対へ跳ね、大ジャンプ、近くに自分の巣があれば飛び込む。
 //          つかまったら（caught）安全な所から続ける。落とし物（id 'x…'）も拾いに行く。
+// Ver.0.5：4 体に 1 体は旅をする（地図の端の出口へ歩いて、となりの土地へ・しばらくしたら戻る）。収集品（kind 'curio'）が近くにあれば拾う。
 import { ProtoClient, fieldMap } from './proto-client.mjs';
 import { FUR_IDS } from '../../shared/protocol.js';
 import { CELL, objectsWithFixtures } from '../../shared/nest-rules.js';
@@ -41,7 +42,7 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 
 async function runBot(i, stats) {
   const c = new ProtoClient(URL_);
-  const s = { name: PREFIX + i, picks: 0, pickFail: 0, chats: 0, jumps: 0, nests: 0, errors: 0, snaps: 0, maxGapMs: 0, corrections: 0, resGone: 0, eats: 0, drinks: 0, sleeps: 0, flees: 0, caught: 0, hides: 0 };
+  const s = { name: PREFIX + i, travels: 0, curios: 0, picks: 0, pickFail: 0, chats: 0, jumps: 0, nests: 0, errors: 0, snaps: 0, maxGapMs: 0, corrections: 0, resGone: 0, eats: 0, drinks: 0, sleeps: 0, flees: 0, caught: 0, hides: 0 };
   stats.push(s);
   await c.connect();
   const world = await c.enter(`${PREFIX}${i}`, PASS, { name: `ボット${i}`, fur: FUR_IDS[i % FUR_IDS.length] });
@@ -66,6 +67,8 @@ async function runBot(i, stats) {
   let mx = 0, my = 0, until = 0, target = null, chatAt = Date.now() + rnd(3000, 15000), nestAt = Date.now() + rnd(12000, 30000), eatAt = 0;
   // 3 体に 1 体は自分の巣穴を掘って公開する（ほかのボットが訪ねてくる）
   let hasNest = !!world.you.nest, digAt = i % 3 === 1 ? Date.now() + rnd(2000, 6000) : Infinity;
+  let travelAt = i % 4 === 0 ? Date.now() + rnd(4000, 12000) : Infinity;
+  const resetWorld = w => { res.clear(); for (const r of w.resources) res.set(r.id, r); entrances.clear(); for (const e of w.entrances) entrances.set(e.owner, e); target = null; lastSnapAt = 0; };
   while (Date.now() < end && !c.closed) {
     const t = Date.now();
     // 捕食者に狙われている → 逃げる（自分の巣が近ければ飛び込む）
@@ -101,7 +104,7 @@ async function runBot(i, stats) {
           const r = await c.req('drink', {}); if (r.ok) s.drinks++;
         } else if (Math.hypot(dx, dy) < 26 && target.id && res.has(target.id)) {
           const r = target.kind === 'dew' ? await c.req('drink', { resId: target.id }) : await c.req('pickup', { resId: target.id });
-          if (r.ok) { if (target.kind === 'dew') s.drinks++; else s.picks++; } else s.pickFail++;
+          if (r.ok) { if (target.kind === 'dew') s.drinks++; else if (target.kind === 'curio') s.curios++; else s.picks++; } else if (target.kind !== 'curio') s.pickFail++;
         }
         target = null; until = t + rnd(500, 1500);
       }
@@ -115,7 +118,7 @@ async function runBot(i, stats) {
       if (L.thirst < 55) {                       // のどがかわいたら夜露（近ければ）かオアシスへ
         let best = null, bd = 220;
         for (const r of res.values()) if (r.kind === 'dew') { const d = Math.hypot(r.x - c.st.x, r.y - c.st.y); if (d < bd) { bd = d; best = r; } }
-        if (!best && WATER.length) best = WATER.reduce((a, b) => Math.hypot(a.x - c.st.x, a.y - c.st.y) < Math.hypot(b.x - c.st.x, b.y - c.st.y) ? a : b);
+        if (!best && WATER.length && c.region === 'plains') best = WATER.reduce((a, b) => Math.hypot(a.x - c.st.x, a.y - c.st.y) < Math.hypot(b.x - c.st.x, b.y - c.st.y) ? a : b);
         if (best) { target = best; until = t + 15000; }
       } else if (Math.random() < 0.35) {      // 近くの採集物へ
         let best = null, bd = 160;
@@ -136,6 +139,13 @@ async function runBot(i, stats) {
         const e = await c.req('enter_nest', { owner: c.account.id });
         if (e.ok) { await c.req('nest_op', { nestId: e.nest.id, rev: e.nest.rev, op: { op: 'set-kind', id: e.nest.data.rooms[0].id, kind: 'bed' } }); const l = await c.req('leave_nest'); if (l.ok) { c.st = { ...c.st, x: l.x, y: l.y, jump: null }; await c.join(); } }
       }
+    }
+    if (t > travelAt) {            // 旅：はじまりの原 → となりの土地 → また戻る
+      travelAt = t + rnd(25000, 45000);
+      const gates = c.map.gates || [];
+      const g = c.region === 'plains' ? gates[Math.floor(Math.random() * gates.length)] : gates.find(q => q.to === 'plains');
+      if (g) { const r = await c.travelTo(g.to, { sleep, maxMs: 25000 }); if (r.ok) { s.travels++; resetWorld(r.world); } }
+      continue;
     }
     if (t > chatAt) { chatAt = t + rnd(8000, 25000); c.send({ t: 'chat', text: LINES[Math.floor(Math.random() * LINES.length)] }); s.chats++; }
     if (t > nestAt) {
@@ -185,7 +195,7 @@ await Promise.all(all);
 const sec = (Date.now() - t0) / 1000;
 const sum = k => stats.reduce((a, s) => a + (s[k] || 0), 0);
 const out = { bots: N, secs: Math.round(sec), picks: sum('picks'), pickFail: sum('pickFail'), eats: sum('eats'), drinks: sum('drinks'), sleeps: sum('sleeps'), chats: sum('chats'), jumps: sum('jumps'), burrows: sum('dug'), nestVisits: sum('nests'), nestRefused: sum('nestFail'), flees: sum('flees'), caught: sum('caught'), hidInNest: sum('hides'),
-  errors: sum('errors'), corrections: sum('corrections'), snapshotsPerBotPerSec: +(sum('snaps') / N / sec).toFixed(2), maxSnapshotGapMs: Math.max(0, ...stats.map(s => s.maxGapMs)), kbInPerBotPerSec: +(sum('kbIn') / N / sec).toFixed(2) };
+  travels: sum('travels'), curios: sum('curios'), errors: sum('errors'), corrections: sum('corrections'), snapshotsPerBotPerSec: +(sum('snaps') / N / sec).toFixed(2), maxSnapshotGapMs: Math.max(0, ...stats.map(s => s.maxGapMs)), kbInPerBotPerSec: +(sum('kbIn') / N / sec).toFixed(2) };
 console.log(JSON.stringify(out));
 process.exit(out.errors ? 1 : 0);
 void fieldMap;

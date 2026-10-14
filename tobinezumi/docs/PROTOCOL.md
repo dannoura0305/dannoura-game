@@ -232,3 +232,44 @@ look      = {fur, tint, pied, tuft, ear, leg, tail, size（−2〜2 の整数）
 - `join_field` の world に `family`、`you`・`players[]` に `look`・`kids:[{id, name, look}]`。`enter_nest` の NestRecord に `family:[Ind]`（訪問者にも。所有者が留守なら DB から）。`nest_peers` に `look`。
 - DB：`migrations/005_family.js`＝`individuals.account_id / role / nest_id`、`litters(account_id, nest_id, mother_id, father_id, nth, seed, season, conceived_at, due_play, born_at, size)`、既存の個体は 1 代目のおとな（4 日）に。
 - オフライン版も同じ API（野生の子はブラウザの中の `WildWorld`）。保存 `tobi_save_v1` は版 4：`house`（Household）・`lineage`（ご先祖・巣立った子）・`nextInd`。v3 は読み込み時に移行。
+
+## 11. Ver.0.5「広がり」（追加分。PROTOCOL_VERSION は 1 のまま＝足しただけ）
+
+### 11.1 C2S
+| t | 中身 | 返事 | サーバーの検証 |
+|---|---|---|---|
+| `travel` | `{to}` | `{ok, world}`（行き先の WorldInit） | 地上にいる・`to` が開いた土地（plains/rocks/dunes/canyon）で、**いる土地のその方向の出口の中**（足元が出口の帯に入っている）・前の旅から 1.5 秒。富山へは `travel` では行けない（`rule`） |
+| `enter_gate` | `{}` | `{ok, world}` | 谷にいて穴が開いている（`gateOpen`：夜。まだたどり着いていない子は さらに冬・雪・しるし 3 つ）・穴から 20px 以内。富山では「来た穴」から谷の奥へ |
+| `collection` | `{}` | `{ok, owned:{cid: at}, achievements:{id: at}, stats:{regions, seasons, visited}}` | |
+| `ranking` | `{}` | `{ok, list:[{name, score, rooms, decor, curios, me}], mine?}` | 豊かな巣の上位 10（30 秒キャッシュ） |
+| `residents` | `{}` | `{ok, ...ResidentsInfo}` | |
+| `resident_invite` | `{name}` | 同上 | 自分の巣がある・相手はフレンド・住人＋誘い中が 3 未満 |
+| `resident_answer` | `{nestId, ok}` | 同上 | 誘われている。住むならほかの巣に住んでいない |
+| `resident_leave` | `{}` | 同上 | |
+| `resident_remove` | `{id}` | 同上 | 所有者だけ |
+| `dev` | `{gate?, region?, x?, y?, curio?, collect?, achieve?}` | | `TOBI_DEV=1` のときだけ |
+
+- `pick` は収集品（kind `curio`）にも使う。持ち物は使わず `account_collectibles` へ（先着 1 人。もう持っている子は `rule`）。
+- 巣の `op {op:'place', type:'curio', item}`：図鑑にある品だけ・同じ巣に 1 つ。ごほうびの家具は実績が要る（`ctx.unlocks`）。
+- 住人（role `resident`）は `enter_nest`（非公開・ふさいでいても）・`op`・`store`・`eat`・`sleep`・`plug` ができる。
+
+### 11.2 S2C
+| t | 中身 |
+|---|---|
+| `snapshot` | `gate:{x, y, back?}\|null`（その子に開いている穴。本人にだけ） |
+| `player_leave` | `why:'travel'`（ほかの土地へ旅立った） |
+| `collect` | `{cid, at, total}`（図鑑に加わった・本人へ） |
+| `achievement` | `{id, at, reward?}`（本人へ） |
+| `residents` | `{...ResidentsInfo, text?}`（誘われた・住人が変わった） |
+
+```
+WorldInit += {region, regions:[{id, name}], visited:[region]}   // 地図は region と種から両側で作る（送らない）
+Resource  += {kind:'curio', cid}                                 // 収集品
+NestRecord += {region, home, residents:[{id, name}]}
+ResidentsInfo = {mine:{nestId, residents:[{id,name}], invites:[{id,name}]}|null,
+                 home:{nestId, owner, ownerName, region, x, y, others:[{id,name}]}|null,
+                 invites:[{nestId, owner, ownerName, region}], max:3}
+```
+- 部屋は土地ごと（`FieldRoom`）。スナップショット・チャット・入口・採集物・捕食者・野生の子はいる土地の部屋のものだけ。
+- DB：`migrations/006_regions_collect.js`＝`lands.field_id`・`world_resources.field_id`・`characters.region`・`achievements(account_id, key, got_at)`・`regions` の行・`collectibles` の行（`syncCollectibles`）。
+- オフライン版も同じ API（共同巣とランキングは「オンラインで使えます」）。保存は版 5：`region`・`collection`・`achievements`・`flags`。v4 は読み込み時に移行。

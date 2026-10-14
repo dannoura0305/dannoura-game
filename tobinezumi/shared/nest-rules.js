@@ -200,7 +200,7 @@ export function objectsWithFixtures(data) {
   for (const o of data.objects) {
     const f = FURNITURE[o.type]; if (!f) continue;
     const r = roomAt(data, o.x, o.y);
-    out.push({ id: o.id, type: o.type, x: o.x, y: o.y, w: f.w, h: f.h, rot: o.rot | 0, roomId: r ? r.id : null, fixture: false });
+    out.push({ id: o.id, type: o.type, x: o.x, y: o.y, w: f.w, h: f.h, rot: o.rot | 0, roomId: r ? r.id : null, fixture: false, ...(o.item ? { item: o.item } : {}) });
   }
   return out;
 }
@@ -274,6 +274,7 @@ function objectFits(data, o, f, ignoreId) {
   const r = roomAt(data, o.x, o.y);
   if (!r || !inRect(r, o.x + f.w - 1, o.y + f.h - 1)) return '部屋の中に置こう';
   if (f.mount === 'floor' && o.y + f.h !== r.y + r.h) return '床に置こう';
+  // mount 'any'（Ver.0.5：収集品・リース）：部屋の中ならどこでも（壁に掛ける・床に置く）
   if (f.mount === 'ceil' && o.y !== r.y) return '天井に吊るそう';
   const box = { x: o.x, y: o.y, w: f.w, h: f.h };
   for (const p of objectsWithFixtures(data)) if (p.id !== ignoreId && overlap(p, box)) return '物が重なる';
@@ -283,16 +284,17 @@ function objectFits(data, o, f, ignoreId) {
 // ───────── 操作の検査 ─────────
 /**
  * @param data 巣データ（v1）　@param op 操作　@param inv 持ち物（素材の検査。null なら素材は見ない）
+ * @param ctx Ver.0.5：{owned:Set（図鑑にある収集品）, unlocks:Set（実績で使える飾り）}。null なら見ない（受け取った確定済みの操作など）
  * @returns {ok, reason?, cost, refund}
  */
-export function validateOp(data, op, inv = null) {
-  const res = check(data, op);
+export function validateOp(data, op, inv = null, ctx = null) {
+  const res = check(data, op, ctx);
   if (!res.ok) return res;
   if (inv && res.cost && !hasCost(inv, res.cost)) return { ok: false, reason: '素材が足りない', cost: res.cost, refund: res.refund };
   return res;
 }
 
-function check(d, op) {
+function check(d, op, ctx = null) {
   if (!op || typeof op.op !== 'string') return NG('操作が無い');
   const ok = (cost = {}, refund = {}) => ({ ok: true, cost, refund });
   switch (op.op) {
@@ -365,6 +367,13 @@ function check(d, op) {
       const f = FURNITURE[op.type];
       if (!f) return NG('知らない家具');
       if (!isInt(op.x) || !isInt(op.y)) return NG('位置が変');
+      if (f.curio) {
+        if (typeof op.item !== 'string' || !op.item) return NG('飾る物が無い');
+        if (ctx && ctx.isCurio && !ctx.isCurio(op.item)) return NG('知らない品');
+        if (ctx && ctx.owned && !ctx.owned.has(op.item)) return NG('図鑑に無い品は飾れない');
+        if (d.objects.some(o => o.type === 'curio' && o.item === op.item)) return NG('もう この巣に飾ってある');
+      }
+      if (f.unlock && ctx && ctx.unlocks && !ctx.unlocks.has(op.type)) return NG('実績のごほうび（まだ使えない）');
       const e = objectFits(d, op, f, null);
       if (e) return NG(e);
       return ok(f.cost);
@@ -467,6 +476,7 @@ function applyRaw(d, op) {
     case 'set-kind': { nd.rooms.find(q => q.id === op.id).kind = op.kind; break; }
     case 'place': {
       const o = { id: 'o' + nd.seq++, type: op.type, x: op.x, y: op.y, rot: op.rot ? 1 : 0 };
+      if (op.type === 'curio' && op.item) o.item = String(op.item).slice(0, 32);
       nd.objects.push(o); created = o.id; break;
     }
     case 'remove': {
@@ -492,8 +502,8 @@ function applyRaw(d, op) {
 export function applyOp(data, op) { return applyRaw(data, op); }
 
 /** 検査して当てる。{ok, reason, data, cost, refund, created} */
-export function tryOp(data, op, inv = null) {
-  const v = validateOp(data, op, inv);
+export function tryOp(data, op, inv = null, ctx = null) {
+  const v = validateOp(data, op, inv, ctx);
   if (!v.ok) return v;
   const r = applyRaw(data, op);
   return { ok: true, data: r.data, created: r.created, cost: v.cost || {}, refund: v.refund || {} };
@@ -511,7 +521,7 @@ export function inverseOps(before, op, result) {
       const it = findById(before, op.id);
       if (!it) return null;
       const k = kindOfId(op.id);
-      if (k === 'object') return [{ op: 'place', type: it.type, x: it.x, y: it.y, rot: it.rot | 0 }];
+      if (k === 'object') return [{ op: 'place', type: it.type, x: it.x, y: it.y, rot: it.rot | 0, ...(it.item ? { item: it.item } : {}) }];
       if (k === 'tunnel') { const t = { op: 'tunnel', x: it.x, y: it.y, len: it.len, dir: it.dir }; if (it.dir === 'slope') t.s = it.s; return [t]; }
       if (k === 'room') return [{ op: 'room', x: it.x, y: it.y, w: it.w, h: it.h, kind: it.kind }];
       return null;

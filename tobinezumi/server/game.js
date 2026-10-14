@@ -4,7 +4,10 @@
 //   const game = new Game({ store, auth });  game.start();      … 20Hz のティック・30 秒ごとの位置保存
 //   const s = game.connect({ ip, sendRaw(text), close(code, reason) });
 //   s.onMessage(text) / s.onClose()
-import { buildFieldMap } from '../shared/regions.js';
+import { gateAt } from '../shared/regions.js';
+import { REGION, REGION_IDS, OPEN_REGIONS, regionMap, arrivalPoint, isRegion } from '../shared/world.js';
+import { CURIOS, isCurio, gateOpen, gateHint, GATE_R, ACH, collectAchievements, unlockedDecor, SANDSTORM_MS, VISIT_GOAL, nestRichness } from '../shared/collect.js';
+import { MAX_RESIDENTS, TRAVEL_GAP_MS } from '../shared/protocol.js';
 import { boxFree } from '../shared/move.js';
 import { makeInventory, swapSlots, removeItem, countItem, addItem, START_INVENTORY, INV_SLOTS, ITEMS } from '../shared/items.js';
 import { C2S, S2C, ERR, decode, cleanChat, validName, validUsername, validPassword, FUR_IDS, PROTOCOL_VERSION, SERVER_TICK_HZ, POS_SAVE_MS, RECONNECT_GRACE_MS, MAX_FRIENDS, FRIEND_OPS_PER_MIN } from '../shared/protocol.js';
@@ -40,10 +43,9 @@ export class Game {
    *   weather / season（固定：開発用）・devMode（C2S dev を受ける：TOBI_DEV=1 のときだけ）・relocateCooldownMs・predSeed
    */
   constructor({ store, auth, now = () => Date.now(), random = Math.random, log = console.log, respawnScale = 1, graceMs = RECONNECT_GRACE_MS, saveMs = POS_SAVE_MS, timeScale = 1, startHour = null,
-    env = true, predators = 'normal', raids = true, weather = null, season = null, devMode = false, relocateCooldownMs = undefined, predSeed = null, wild = true, wildSeed = null } = {}) {
+    env = true, predators = 'normal', raids = true, weather = null, season = null, devMode = false, relocateCooldownMs = undefined, predSeed = null, wild = true, wildSeed = null, curios = null } = {}) {
     this.store = store; this.auth = auth; this.now = now; this.random = random; this.log = log;
     this.graceMs = graceMs; this.saveMs = saveMs;
-    this.map = buildFieldMap();
     this.clock = makeClock({ scale: timeScale, startHour, now: now() });
     if (weather && WEATHERS[weather]) this.clock.weather = weather;
     if (season && SEASONS.some(x => x.id === season)) this.clock.season = season;
@@ -51,24 +53,40 @@ export class Game {
     this.tuning = { ...(TUNING[predators] || TUNING.normal) };
     if (raids === false) this.tuning.raids = false;
     this.stats = { msgIn: 0, msgOut: 0, bytesIn: 0, bytesOut: 0, errors: 0, conns: 0, startedAt: now() };
-    this.field = new FieldRoom({ store, map: this.map, now, random, log, respawnScale, stats: this.stats, clock: this.clock, env: this.envOn, tuning: this.tuning, predSeed, wild, wildSeed,
-      ...(relocateCooldownMs != null ? { relocateCooldownMs } : {}) });
+    this.players = new Map();    // accountId → Player（いま接続中）
     this.nests = new NestHub({ store, now, log });
     this.nests.onWake = p => this.wake(p);
     this._lifeAt = now(); this._lifeSendAt = now();
-    this.field.nestInfo = id => this.nests.meta(id);
-    this.field.onCatch = (p, e) => this.caught(p, e);
-    this.field.onRaid = e => this.raid(e);
-    this.field.canShelter = (p, e) => this.canShelter(p, e);
-    this.field.raidInfo = (e, t) => this.raidInfo(e, t);
-    this.field.onRelocate = (p, nest, ent) => this.relocated(p, nest, ent);
+    // Ver.0.5：土地（地図）ごとに 1 部屋。はじまりの原（plains）が this.field（前からのテスト・道具と同じ）
+    this.fields = new Map();
+    this.curiosOn = curios != null ? !!curios : this.envOn;
+    REGION_IDS.forEach((id, k) => {
+      const room = new FieldRoom({ store, map: regionMap(id), region: id, now, random, log, respawnScale, stats: this.stats, clock: this.clock, env: this.envOn, tuning: this.tuning,
+        predSeed: predSeed != null ? predSeed + k : null, wild, wildSeed: wildSeed != null ? wildSeed + k : null, curios: this.curiosOn,
+        ...(relocateCooldownMs != null ? { relocateCooldownMs } : {}) });
+      room.nestInfo = nid => this.nests.meta(nid);
+      room.onCatch = (p, e) => this.caught(p, e);
+      room.onRaid = e => this.raid(e);
+      room.canShelter = (p, e) => this.canShelter(p, e);
+      room.raidInfo = (e, t) => this.raidInfo(e, t);
+      room.onRelocate = (p, nest, ent, fromRegion) => this.relocated(p, nest, ent, fromRegion);
+      room.courtOk = p => !this._courtBlock(p);
+      room.onWild = e => { const o = this.players.get(e.by); if (o && o.conn) o.conn.send({ t: S2C.WILD, type: e.type, id: e.id, name: e.name || (room.wild.get(e.id) || {}).name }); };
+      room.onCollect = (p, cid, at) => this.collected(p, cid, at);
+      room.ownedOf = p => p.owned || new Set();
+      room.onDig = p => this.grant(p, 'first_burrow');
+      room.homeOf = acct => { const o = this.players.get(acct); return o ? o.homeNest : this.store.residentNestOf(acct); };
+      this.fields.set(id, room);
+    });
+    this.field = this.fields.get('plains');
+    this.map = this.field.map;
     this.nests.relocateCooldownMs = this.field.relocateCooldownMs;
-    this.field.courtOk = p => !this._courtBlock(p);
-    this.field.onWild = e => { const o = this.players.get(e.by); if (o && o.conn) o.conn.send({ t: S2C.WILD, type: e.type, id: e.id, name: e.name || (this.field.wild.get(e.id) || {}).name }); };
-    this.nests.familyOf = nest => { const o = this.players.get(nest.owner); return o && o.house ? o.house.publicOut() : this.store.nestFamily(nest.id).map(m => indOut(m)); };
-    this.nests.onPlug = nest => { const e = this.field.entrances.get(nest.owner); if (e) for (const o of this.field.players.values()) if (o.conn) o.conn.send({ t: 'entrance', entrance: this.field.entranceOut(e, o.accountId) }); };
-    this.field.load();
-    this.players = new Map();    // accountId → Player（いま接続中）
+    this.nests.familyOf = nest => this.nestFamilyOf(nest);
+    this.nests.ctxOf = p => ({ owned: p.owned || new Set(), unlocks: new Set(unlockedDecor(p.ach || [])), isCurio });
+    this.nests.onPlug = nest => this.refreshEntrance(nest.owner);
+    this.nests.onPlace = (p, nest, op, data) => { if (op.type === 'curio' && data.objects.filter(o => o.type === 'curio').length >= 3) this.grant(p, 'display3'); };
+    for (const room of this.fields.values()) room.load();
+    this._rankCache = null;
     this.sessions = new Set();
     this._timers = [];
   }
@@ -82,7 +100,7 @@ export class Game {
   }
   stop() { for (const t of this._timers) clearInterval(t); this._timers = []; }
   tick() {
-    try { this.field.tick(); this.nests.tick(); this.lifeTick(); }
+    try { for (const room of this.fields.values()) room.tick(); this.nests.tick(); this.lifeTick(); this.gateTick(); }
     catch (e) { this.stats.errors++; this.log('[tick] ' + (e && e.stack || e)); }
   }
   /** 暮らしの数値を進める（地上・巣の中にいる人だけ。ログアウト中は減らない）。2 秒ごとに本人へ life を送る */
@@ -99,6 +117,7 @@ export class Game {
       const env = this.envOf(p, t);
       p.env = env;
       p.life = stepLife(p.life, dt, { sleeping: p.sleeping, env: lifeEnvWithTraits(env.life, p.traitLife) });
+      try { this.progressTick(p, env, dt * 1000, send); } catch (e) { this.stats.errors++; this.log('[progress] ' + (e && e.stack || e)); }
       if (was && !p.life.sleep) this.wake(p, false);        // 満タンで自然に起きる
       else if (send) this.sendLife(p);
       try { this.familyTick(p, dt * 1000, env); } catch (e) { this.stats.errors++; this.log('[family] ' + (e && e.stack || e)); }
@@ -107,19 +126,33 @@ export class Game {
   sendLife(p) { if (p.conn) p.conn.send({ t: S2C.LIFE, life: lifeOut(p.life), ...(p.env && p.env.labels.length ? { env: p.env.labels } : {}), ...(p.env && p.env.rest && p.sleeping ? { rest: p.env.rest } : {}) }); }
   /** その子のいる場所の天気・季節・気候の影響（shared/season.js） */
   envOf(p, t = this.now()) {
-    const pos = p.place === 'field' && p.st ? p.st : p.place === 'nest' ? (this._entranceOfNest(p.nestId) || { x: 0, y: 0 }) : { x: 0, y: 0 };
-    return envAt(this.clock, t, { map: this.map, x: pos.x, y: pos.y, place: p.place, entrances: [...this.field.entrances.values()], enabled: this.envOn });
+    const ent = p.place === 'nest' ? this._entranceOfNest(p.nestId) : null;
+    const pos = p.place === 'field' && p.st ? p.st : ent || { x: 0, y: 0 };
+    const room = p.place === 'nest' ? this.fields.get((ent && ent.region) || 'plains') : this.fieldOf(p);
+    return envAt(this.clock, t, { map: room.map, x: pos.x, y: pos.y, place: p.place, entrances: [...room.entrances.values()], enabled: this.envOn });
+  }
+  /** その子のいる土地の部屋（地上でなければ最後にいた土地） */
+  fieldOf(p) { return this.fields.get(p && p.region) || this.field; }
+  /** 巣穴の入口（どの土地でも） */
+  entranceOf(acct) { for (const room of this.fields.values()) { const e = room.entrances.get(acct); if (e) return e; } return null; }
+  roomOfEntrance(e) { return this.fields.get((e && e.region) || 'plains') || this.field; }
+  /** 入口の表示が変わった（ふさいだ・名前）：その土地の子へ */
+  refreshEntrance(owner) {
+    const e = this.entranceOf(owner);
+    if (!e) return;
+    const room = this.roomOfEntrance(e);
+    for (const o of room.players.values()) if (o.conn) o.conn.send({ t: S2C.ENTRANCE, entrance: room.entranceOut(e, o.accountId) });
   }
 
   /** 位置の保存（地上にいる人は確定位置、巣の中の人は巣の入口の下） */
   savePlayer(p, exit = 'live') {
     if (!p.charId) return;
     let pos;
-    if (p.place === 'field' && p.st) { this.field.drain(p); pos = { x: p.st.x, y: p.st.y, dir: p.st.dir, place: 'field' }; }
+    if (p.place === 'field' && p.st) { this.fieldOf(p).drain(p); pos = { x: p.st.x, y: p.st.y, dir: p.st.dir, place: 'field', region: p.region || 'plains' }; }
     else if (p.place === 'nest' && p.nestId != null) {
       const e = this._entranceOfNest(p.nestId);
-      pos = e ? { x: e.x, y: e.y + 12, dir: 'down', place: 'nest:' + p.nestId } : null;
-    } else if (p.lastField) pos = { ...p.lastField, place: 'field' };
+      pos = e ? { x: e.x, y: e.y + 12, dir: 'down', place: 'nest:' + p.nestId, region: e.region || 'plains' } : null;
+    } else if (p.lastField) pos = { region: p.region || 'plains', ...p.lastField, place: 'field' };
     if (p.indId && p.life) this.store.setLife(p.indId, { ...lifeOut(p.life), sleep: false });
     if (p.house) this.saveHouse(p);
     if (!pos) return;
@@ -135,7 +168,7 @@ export class Game {
     for (const p of [...this.players.values()]) this._detach(p, 'shutdown');   // 保存して外す（あとで届く close では上書きしない）
     for (const s of [...this.sessions]) { try { s.conn.close(1012, 'server restart'); } catch (e) {} }
   }
-  _entranceOfNest(nestId) { for (const e of this.field.entrances.values()) if (e.nestId === nestId) return e; return null; }
+  _entranceOfNest(nestId) { for (const room of this.fields.values()) for (const e of room.entrances.values()) if (e.nestId === nestId) return e; return null; }
 
   // ───────── 接続 ─────────
   connect(conn) {
@@ -163,7 +196,7 @@ export class Game {
   /** プレイヤーを接続から外す（位置を保存して、部屋から出す） */
   _detach(p, exit) {
     try { this.savePlayer(p, exit); } catch (e) { this.log('[save] ' + e.message); }
-    if (p.place === 'field') this.field.leave(p, exit === 'logout' ? 'logout' : 'leave');
+    if (p.place === 'field') this.fieldOf(p).leave(p, exit === 'logout' ? 'logout' : 'leave');
     else if (p.place === 'nest') this.nests.leave(p);
     p.place = 'none'; p.sleeping = false; if (p.life) p.life.sleep = false;
     const was = this.players.get(p.accountId) === p;
@@ -181,7 +214,7 @@ export class Game {
     const m = decode(text);
     if (!m) return;
     // 入力は返事なし・高頻度：その場でためるだけ
-    if (m.t === C2S.INPUT) { if (s.player) this.field.queueInput(s.player, m.inputs); return; }
+    if (m.t === C2S.INPUT) { if (s.player) this.fieldOf(s.player).queueInput(s.player, m.inputs); return; }
     if (m.t === C2S.PING) { s.conn.send({ t: S2C.PONG, ct: m.ct, st: this.now() }); return; }
     if (m.t === C2S.NEST_MOVE) { if (s.player) this.nests.move(s.player, m); return; }
     if (m.t === C2S.CHAT) { if (s.player) this.chat(s.player, m.text); return; }
@@ -207,8 +240,8 @@ export class Game {
     if (!p) return fail(ERR.AUTH, 'キャラクターが無い');
     switch (m.t) {
       case C2S.JOIN_FIELD: return this.joinField(p);
-      case C2S.PICKUP: return this.field.pickup(p, m.resId);
-      case C2S.DIG_BURROW: return this.field.dig(p);
+      case C2S.PICKUP: return this.fieldOf(p).pickup(p, m.resId);
+      case C2S.DIG_BURROW: return this.fieldOf(p).dig(p);
       case C2S.ENTER_NEST: return this.enterNest(p, m);
       case C2S.LEAVE_NEST: return this.leaveNest(p);
       case C2S.NEST_OP: return this.nests.op(p, m.nestId, m.rev, m.op);
@@ -225,8 +258,8 @@ export class Game {
       case C2S.FRIEND_DEL: return this.friendDel(p, m.id);
       case C2S.SET_BUILDERS: return this.nests.setBuilders(p, m.list, this.players);
       case C2S.VISITORS: { const n = this.store.nestByOwner(p.accountId); return { ok: true, list: n ? this.store.recentVisits(n.id) : [], events: n ? this.store.recentNestEvents(n.id) : [] }; }
-      case C2S.SURVEY: return this.field.survey(p);
-      case C2S.RELOCATE: return this.field.relocate(p);
+      case C2S.SURVEY: return this.fieldOf(p).survey(p);
+      case C2S.RELOCATE: return this.fieldOf(p).relocate(p);
       case C2S.PLUG: return this.nests.plug(p, !!m.on);
       case C2S.DEV: return this.dev(p, m);
       case C2S.COURT: return this.court(p, m);
@@ -238,6 +271,16 @@ export class Game {
       case C2S.LINEAGE: return this.lineage(p);
       case C2S.SUCCEED: return this.succeed(p, m);
       case C2S.FAREWELL: return this.succeed(p, m, true);
+      // Ver.0.5
+      case C2S.TRAVEL: return this.travel(p, m);
+      case C2S.ENTER_GATE: return this.enterGate(p);
+      case C2S.COLLECTION: return this.collectionOut(p);
+      case C2S.RANKING: return this.ranking(p);
+      case C2S.RESIDENTS: return { ok: true, ...this.residentsInfo(p.accountId) };
+      case C2S.RESIDENT_INVITE: return this.residentInvite(p, m.name);
+      case C2S.RESIDENT_ANSWER: return this.residentAnswer(p, m.nestId, !!m.ok);
+      case C2S.RESIDENT_LEAVE: return this.residentLeave(p);
+      case C2S.RESIDENT_REMOVE: return this.residentRemove(p, m.id);
     }
     return fail(ERR.BAD_REQUEST, '知らない要求: ' + String(m.t).slice(0, 20));
   }
@@ -263,7 +306,9 @@ export class Game {
     const life = normalizeLife(c.individual && c.individual.status && c.individual.status.life);
     life.sleep = false;
     const p = { accountId: account.id, username: account.username, charId: c.id, indId: c.individual && c.individual.id, name: c.name, fur: c.fur, inv: this.store.charInventory(c.id),
-      conn: s.conn, session: s, place: 'none', st: null, lastSeq: 0, inbox: [], budget: 0, nestId: null, chatT: [], life, sleeping: false, actT: 0, friendT: [] };
+      conn: s.conn, session: s, place: 'none', st: null, lastSeq: 0, inbox: [], budget: 0, nestId: null, chatT: [], life, sleeping: false, actT: 0, friendT: [],
+      region: (c.pos && c.pos.region) || 'plains' };
+    this._loadProgress(p);
     this._loadHouse(p);
     s.player = p;
     this.players.set(account.id, p);
@@ -334,24 +379,39 @@ export class Game {
   /** どこに出すか：同じ接続で地上・巣にいた → その場 / ログアウト・停止・保存済み → 保存位置 /
    *  切断から 60 秒以内 → 保存位置 / それより後 → 自分の巣の入口（無ければ出発点） */
   _joinPos(p) {
-    if (p.place === 'field' && p.st) return { x: p.st.x, y: p.st.y, dir: p.st.dir };
+    if (p.place === 'field' && p.st) return { x: p.st.x, y: p.st.y, dir: p.st.dir, region: p.region || 'plains' };
     const c = this.store.activeCharacter(p.accountId);
     const pos = c && c.pos;
-    const ent = this.field.entrances.get(p.accountId);
-    const home = ent ? { x: ent.x, y: ent.y + 12, dir: 'down' } : { x: this.map.spawn.x, y: this.map.spawn.y, dir: 'down' };
+    const ent = this._homeEntrance(p);
+    const home = ent ? { x: ent.x, y: ent.y + 12, dir: 'down', region: ent.region || 'plains' } : { x: this.map.spawn.x, y: this.map.spawn.y, dir: 'down', region: 'plains' };
     if (!pos || pos.x == null) return home;
     const fresh = pos.exit !== 'disconnect' || (this.now() - (pos.savedAt || 0)) <= this.graceMs;
     if (!fresh) return home;
+    const region = isRegion(pos.region) ? pos.region : 'plains';
     // 保存位置が壁の中・地図の外（地図が変わったなど）なら入口へ
-    if (!boxFree(this.map, pos.x, pos.y)) return home;
-    return { x: pos.x, y: pos.y, dir: pos.dir || 'down' };
+    if (!boxFree(regionMap(region), pos.x, pos.y)) return home;
+    return { x: pos.x, y: pos.y, dir: pos.dir || 'down', region };
+  }
+  /** 帰る家の入口：自分の巣、無ければ住人になっている共同巣（Ver.0.5） */
+  _homeEntrance(p) {
+    const own = this.entranceOf(p.accountId);
+    if (own) return own;
+    return p.homeNest != null ? this._entranceOfNest(p.homeNest) : null;
   }
   joinField(p) {
     if (p.place === 'nest') this.nests.leave(p);
     const pos = this._joinPos(p);
     p.sleeping = false; p.life.sleep = false;
-    const world = this.field.join(p, pos);
-    this.store.savePosition(p.charId, { x: pos.x, y: pos.y, dir: pos.dir, place: 'field', exit: 'live' }, this.now());
+    if (p.place === 'field' && p.region !== pos.region) this.fieldOf(p).leave(p, 'leave');
+    p.region = pos.region || 'plains';
+    const world = this.fieldOf(p).join(p, pos);
+    this.store.savePosition(p.charId, { x: pos.x, y: pos.y, dir: pos.dir, place: 'field', exit: 'live', region: p.region }, this.now());
+    this._decorateWorld(p, world);
+    this._visitRegion(p, p.region);
+    return { ok: true, world };
+  }
+  /** WorldInit に暮らし・フレンド・家族・収集品などを足す（join_field と旅で同じ） */
+  _decorateWorld(p, world, extra = true) {
     world.life = lifeOut(p.life);
     world.friends = this.friendList(p.accountId);
     world.family = p.house ? p.house.out() : null;
@@ -364,13 +424,21 @@ export class Game {
     if (own && world.raids.length) this.store.markNestEventsSeen(own.id);
     if (own && world.you.nest) { world.you.nest.land = own.land || landOut(landAt(this.map, own.x, own.y)); world.you.nest.plugged = own.plugged; world.you.nest.relocatedAt = own.relocatedAt; }
     world.danger = { predators: this.tuning.enabled ? (this.tuning.easy ? 'easy' : 'normal') : 'off', env: this.envOn, relocateCooldownMs: this.field.relocateCooldownMs };
-    return { ok: true, world };
+    // Ver.0.5：自分の巣がほかの土地にあっても場所を教える・共同巣の家・図鑑と実績・富山
+    const ownE = this.entranceOf(p.accountId);
+    if (ownE && !world.you.nest) world.you.nest = { id: ownE.nestId, x: ownE.x, y: ownE.y, region: ownE.region || 'plains' };
+    if (own && world.you.nest) { world.you.nest.land = own.land || landOut(landAt(this.map, own.x, own.y)); world.you.nest.plugged = own.plugged; world.you.nest.relocatedAt = own.relocatedAt; world.you.nest.region = own.field || 'plains'; }
+    const he = p.homeNest != null ? this._entranceOfNest(p.homeNest) : null;
+    world.you.home = he ? { nestId: he.nestId, x: he.x, y: he.y, region: he.region || 'plains', ownerName: (this.nests.meta(he.nestId) || {}).ownerName || '' } : null;
+    world.collection = { owned: Object.fromEntries([...p.owned].map(k => [k, 1])), achievements: Object.fromEntries([...p.ach].map(k => [k, 1])), found: !!p.toyamaFound };
+    world.gate = p.gate || null;
+    void extra;
   }
 
   // ───────── 巣 ─────────
   enterNest(p, m) {
     const owner = Number(m.owner);
-    const ent = this.field.entrances.get(owner);
+    const ent = m.resume ? this.entranceOf(owner) : this.fieldOf(p).entrances.get(owner);
     if (!ent) return fail(ERR.NOT_FOUND, '巣が無い');
     const nest = this.store.nest(ent.nestId);
     if (!nest) return fail(ERR.NOT_FOUND, '巣が無い');
@@ -382,17 +450,18 @@ export class Game {
       if (!ok) return fail(ERR.FORBIDDEN, '巣から出てしまった');
     } else {
       if (p.place !== 'field') return fail(ERR.FORBIDDEN, '地上にいない');
-      this.field.drain(p);
+      this.fieldOf(p).drain(p);
       if (Math.hypot(ent.x - p.st.x, ent.y - p.st.y) > ENTER_RANGE) return fail(ERR.TOO_FAR, '入口から遠い');
     }
     if (!this.nests.canVisit(nest, p.accountId)) return fail(ERR.FORBIDDEN, (nest.ownerName || '') + 'の巣は 今は入れないようだ' + (nest.plugged ? '（入口がふさがれている）' : ''));
-    const invite = !m.resume && nest.owner === p.accountId && p.place === 'field' ? this._tryInvite(p, nest) : null;
-    if (p.place === 'field') { p.lastField = { x: ent.x, y: ent.y + 12, dir: 'down' }; this.field.leave(p, 'nest'); }
+    const invite = !m.resume && nest.id === this._homeNestId(p) && p.place === 'field' ? this._tryInvite(p, nest) : null;
+    if (p.place === 'field') { p.lastField = { x: ent.x, y: ent.y + 12, dir: 'down' }; this.fieldOf(p).leave(p, 'nest'); }
+    p.region = ent.region || 'plains';
     p.sleeping = false; p.life.sleep = false;
     const r = this.nests.enter(p, nest);
     if (!r.ok) return r;
     this.savePlayer(p, 'live');
-    if (!m.resume && nest.owner !== p.accountId) this._recordVisit(nest, p);
+    if (!m.resume && nest.owner !== p.accountId) { this._recordVisit(nest, p); this._visitedFriend(p, nest); }
     if (invite) { r.invite = invite; if (invite.ok) r.nest.family = p.house.publicOut(); }
     return r;
   }
@@ -412,9 +481,10 @@ export class Game {
     p.sleeping = false; p.life.sleep = false;
     this.nests.leave(p);
     const pos = ent ? { x: ent.x, y: ent.y + 12, dir: 'down' } : { x: this.map.spawn.x, y: this.map.spawn.y, dir: 'down' };
-    this.field.join(p, pos, 'nest');
+    p.region = ent ? ent.region || 'plains' : 'plains';
+    this.fieldOf(p).join(p, pos, 'nest');
     this.savePlayer(p, 'live');
-    return { ok: true, x: pos.x, y: pos.y };
+    return { ok: true, x: pos.x, y: pos.y, region: p.region };
   }
 
   // ───────── 暮らし（Ver.0.2）─────────
@@ -448,7 +518,7 @@ export class Game {
   }
   drink(p, m) {
     if (this._actGap(p)) return fail(ERR.RATE, 'ごくごく…（ちょっと待って）');
-    const r = this.field.drink(p, m.resId);
+    const r = this.fieldOf(p).drink(p, m.resId);
     if (!r.ok) return r;
     this.sendLife(p);
     return { ok: true, life: lifeOut(p.life), src: r.src };
@@ -482,18 +552,20 @@ export class Game {
     p.life = caughtLife(p.life, easy);
     const inv = p.inv.map(x => x && { ...x });
     const drops = dropItems(inv, easy);
-    const spots = dropSpots(this.map, p.st.x, p.st.y, drops.length);
+    const room = this.fieldOf(p);
+    const spots = dropSpots(room.map, p.st.x, p.st.y, drops.length);
     this.store.setCharInventory(p.charId, inv);
     p.inv = inv;
-    const placed = this.field.placeDrops(drops, spots);
-    const sp = safePoint(this.map, this.field.entrances.get(p.accountId));
+    const placed = room.placeDrops(drops, spots);
+    const he = this._homeEntrance(p);
+    const sp = safePoint(room.map, he && (he.region || 'plains') === room.region ? he : null);
     const st = makeFieldState(sp.x, sp.y); st.seq = p.lastSeq;
     p.st = st; p.stillT = 0;
     p.invulnUntil = t + INVULN_MS;
     p.caughtN = (p.caughtN || 0) + 1;
     if (p.conn) p.conn.send({ t: S2C.CAUGHT, kind: e.kind, name: PRED[e.kind].name, at: { x: Math.round(e.x), y: Math.round(e.y) }, x: sp.x, y: sp.y, life: lifeOut(p.life), inv: inv.map(x => x && { ...x }),
       drops: placed.map(r => ({ id: r.id, kind: r.kind, n: r.n })), until: p.invulnUntil });
-    this.field.broadcast({ t: S2C.TOAST, text: p.name + ' が ' + PRED[e.kind].name + ' につかまった！' }, p);
+    room.broadcast({ t: S2C.TOAST, text: p.name + ' が ' + PRED[e.kind].name + ' につかまった！' }, p);
     this.sendLife(p);
     this.savePlayer(p, 'live');
   }
@@ -532,7 +604,7 @@ export class Game {
     if (ent.owner === p.accountId) return true;
     const m = this.nests.meta(ent.nestId);
     if (!m) return false;
-    const builder = this.store.hasNestAccess(ent.nestId, p.accountId, 'builder');
+    const builder = this.store.hasNestAccess(ent.nestId, p.accountId, 'builder') || p.homeNest === ent.nestId;
     if (builder) return true;
     if (m.plugged) return false;
     if (m.policy === 'public') return true;
@@ -541,9 +613,16 @@ export class Game {
     return false;
   }
   /** 引っ越した：フレンドに巣の場所の変化を知らせる */
-  relocated(p, nest, ent) {
+  relocated(p, nest, ent, fromRegion = null) {
     this.nests.forget(nest.id);
+    // ほかの土地から引っ越してきた：前の土地の入口を消す（そこにいる子へ entrance {gone}）
+    if (fromRegion && this.fields.get(fromRegion)) {
+      const old = this.fields.get(fromRegion);
+      const oe = old.entrances.get(p.accountId);
+      if (oe) { old.entrances.delete(p.accountId); old.broadcast({ t: S2C.ENTRANCE, entrance: { owner: p.accountId, nestId: nest.id, x: oe.x, y: oe.y, region: fromRegion, gone: true } }); }
+    }
     this.pushFriends(p.accountId, true);
+    for (const id of this.store.nestMembers(nest.id, 'resident')) this.pushResidents(id);
     void ent;
   }
   /** 開発用（devMode のときだけ）：天気・季節を変える（全員の時計へ）・捕食者を近くに出す */
@@ -553,12 +632,13 @@ export class Game {
     if (m.season !== undefined) { if (m.season && SEASONS.some(x => x.id === m.season)) this.clock.season = m.season; else delete this.clock.season; }
     if (m.weather !== undefined || m.season !== undefined) { const msg = { t: S2C.CLOCK, clock: { ...this.clock }, st: this.now() }; for (const s of this.sessions) if (s.player) s.conn.send(msg); }
     let spawned = null;
+    const room = this.fieldOf(p);
     if (m.spawn && PRED[m.spawn] && p.place === 'field') {
       const dx = Number(m.dx) || 70, dy = Number(m.dy) || 0;
-      const q = this.field.preds.spawn(m.spawn, p.st.x + dx, p.st.y + dy);
+      const q = room.preds.spawn(m.spawn, p.st.x + dx, p.st.y + dy);
       spawned = q && q.id;
     }
-    if (m.clear) this.field.preds.preds = [];
+    if (m.clear) room.preds.preds = [];
     // Ver.0.4：年齢を進める（日）・野生の子を近くに出す・信頼をほぼ満たす・お産を今に
     const h = p.house;
     if (h && Number(m.age) > 0) {
@@ -567,8 +647,8 @@ export class Game {
       this.saveHouse(p);
     }
     let wild = null;
-    if (m.wild && p.place === 'field') { const n = this.field.wild.spawn(p.st.x + (Number(m.dx) || 40), p.st.y + (Number(m.dy) || 0), devWildGenes(this.field.wild, m)); wild = n.id; }
-    if (m.trust && p.place === 'field') { const n = this.field.wild.get(String(m.trust)) || this.field.wild.npcs[0]; if (n) { n.trust[p.accountId] = 99.5; n.st = makeFieldState(p.st.x + 12, p.st.y); } }
+    if (m.wild && p.place === 'field') { const n = room.wild.spawn(p.st.x + (Number(m.dx) || 40), p.st.y + (Number(m.dy) || 0), devWildGenes(room.wild, m)); wild = n.id; }
+    if (m.trust && p.place === 'field') { const n = room.wild.get(String(m.trust)) || room.wild.npcs[0]; if (n) { n.trust[p.accountId] = 99.5; n.st = makeFieldState(p.st.x + 12, p.st.y); } }
     if (m.birth && h && h.pending) h.pending.dueAgeMs = h.me.ageMs;
     // 持ち物・倉庫へ足す（{give:{seed:10}}・{store:{seed:40}}）
     let inv = null;
@@ -581,13 +661,30 @@ export class Game {
       const nest = this.store.nestByOwner(p.accountId);
       if (nest) { const st = this.store.nestStorage(nest.id); for (const [k, v] of Object.entries(m.store)) if (ITEMS[k] && Number(v) > 0) addItem(st, k, Math.min(99, Number(v) | 0)); this.store.setNestStorage(nest.id, st); }
     }
-    return { ok: true, clock: { ...this.clock }, spawned, wild, family: h ? h.out() : null, ...(inv ? { inv: inv.map(x => x && { ...x }) } : {}) };
+    // Ver.0.5：土地へ飛ぶ（出口を通らずに）・不思議な穴を開ける・収集品を出す／図鑑へ入れる・実績
+    let world = null, curio = null;
+    if (m.gate !== undefined) { p.gateForce = !!m.gate; this.gateTick(true); }
+    if (m.region && isRegion(m.region) && (p.place === 'field' || p.place === 'nest')) {
+      if (p.place === 'nest') { this.nests.leave(p); p.place = 'none'; }
+      const map = regionMap(m.region);
+      const r = this._moveRegion(p, m.region, { x: Number(m.x) || map.spawn.x, y: Number(m.y) || map.spawn.y, dir: 'down' }, 'travel');
+      world = r.world;
+    }
+    if (m.curio && CURIOS[m.curio] && p.place === 'field') {
+      const rm = this.fieldOf(p);
+      curio = rm.placeCurio(m.curio, p.st.x + (Number(m.dx) || 20), p.st.y + (Number(m.dy) || 0)).spawned;
+    }
+    if (Array.isArray(m.collect)) for (const cid of m.collect.slice(0, 30)) if (CURIOS[cid] && this.store.addCollectible(p.accountId, cid, this.now(), { dev: true }) === 1) this.collected(p, cid, this.now());
+    if (m.achieve && ACH[m.achieve]) this.grant(p, m.achieve);
+    return { ok: true, clock: { ...this.clock }, spawned, wild, family: h ? h.out() : null, ...(inv ? { inv: inv.map(x => x && { ...x }) } : {}), ...(world ? { world } : {}), ...(curio ? { curio } : {}), gate: p.gate || null };
   }
 
 
   // ───────── いのちをつなぐ（Ver.0.4）─────────
   _houseFlags(h) { return { follow: h.follow, lastBirthMs: h.lastBirthMs, litters: h.litters, promptDay: h.promptDay }; }
-  _ownNestId(p) { const e = this.field.entrances.get(p.accountId); return e ? e.nestId : null; }
+  _ownNestId(p) { return this._homeNestId(p); }
+  /** 家族が暮らす巣：自分の巣、無ければ住人になっている共同巣（Ver.0.5） */
+  _homeNestId(p) { const e = this.entranceOf(p.accountId); if (e) return e.nestId; return p.homeNest != null ? p.homeNest : null; }
   /** 年齢・おなかを DB へ（30 秒ごと・切断・入退室のとき） */
   saveHouse(p) {
     const h = p.house;
@@ -604,7 +701,7 @@ export class Game {
     const kids = this._kidsOf(p), key = kids.map(k => k.id).join(',');
     if (!force && key === (p.kids || []).map(k => k.id).join(',')) return;
     p.kids = kids;
-    if (p.place === 'field' && p.st) this.field.broadcast({ t: S2C.PLAYER_UPDATE, player: this.field.playerInfo(p) });
+    if (p.place === 'field' && p.st) this.fieldOf(p).broadcast({ t: S2C.PLAYER_UPDATE, player: this.fieldOf(p).playerInfo(p) });
   }
   /** 家族の時間（親が地上か巣の中にいる間だけ）：年齢・おなか・自動で食べる・お産・育った */
   familyTick(p, dtMs, env) {
@@ -627,6 +724,7 @@ export class Game {
         });
         events.push({ ...e, pups: e.pups.map(m => indOut(m)) });
         this.log(`[family] ${p.name} に ${e.pups.length} 匹うまれた（${e.season}）`);
+        this.grant(p, 'first_pups');
       } else events.push(e);
     }
     if (h.wantsPrompt()) { events.push({ type: 'lifespan' }); this.store.setHouseFlags(h.me.id, this._houseFlags(h)); }
@@ -642,14 +740,15 @@ export class Game {
   /** 野生の子に種子をあげる */
   court(p, m) {
     if (p.place !== 'field') return fail(ERR.FORBIDDEN, '地上にいない');
-    this.field.drain(p);
-    const n = this.field.wild.get(String(m.wildId));
+    const room = this.fieldOf(p);
+    room.drain(p);
+    const n = room.wild.get(String(m.wildId));
     if (!n) return fail(ERR.NOT_FOUND, 'もう どこかへ行ってしまった');
     const why = this._courtBlock(p);
     if (why) return fail(ERR.RULE, why, { shy: true });
     const inv = p.inv.map(x => x && { ...x });
     if (!removeItem(inv, 'seed', 1)) return fail(ERR.RULE, '種子を持っていない');
-    const r = this.field.wild.offer(n.id, { id: p.accountId, x: p.st.x, y: p.st.y, eligible: true }, this.now());
+    const r = room.wild.offer(n.id, { id: p.accountId, x: p.st.x, y: p.st.y, eligible: true }, this.now());
     if (!r.ok) return fail(ERR.RULE, r.reason);
     this.store.setCharInventory(p.charId, inv);
     p.inv = inv;
@@ -668,11 +767,12 @@ export class Game {
   /** 自分の巣へ入るとき：ついてきた野生の子（90px 以内）をつれあいに迎える */
   _tryInvite(p, nest) {
     const h = p.house;
-    const n = this.field.wild.followerOf(p.accountId);
+    const room = this.fieldOf(p);
+    const n = room.wild.followerOf(p.accountId);
     if (!h || !n || !p.st || Math.hypot(n.st.x - p.st.x, n.st.y - p.st.y) > WILD.INVITE_R) return null;
     const r = h.invite({ name: n.name, genes: n.genes }, this._breedCtx(p, nest));
     if (!r.ok) return { ok: false, name: n.name, reason: r.reason };
-    this.field.wild.take(n.id);
+    room.wild.take(n.id);
     this.store.tx(() => {
       this.store.dropPendingLitters(p.accountId);
       this.store.saveInd(r.mate, { accountId: p.accountId, nestId: nest.id });
@@ -686,7 +786,7 @@ export class Game {
   mateAgain(p) {
     const h = p.house;
     if (!h) return fail(ERR.NOT_FOUND, 'キャラクターが無い');
-    const nest = this.store.nestByOwner(p.accountId);
+    const hid = this._homeNestId(p), nest = hid != null ? this.store.nest(hid) : null;
     if (!nest || p.place !== 'nest' || p.nestId !== nest.id) return fail(ERR.FORBIDDEN, '自分の巣の中で');
     const r = h.mateAgain(this._breedCtx(p, nest));
     if (!r.ok) return fail(ERR.RULE, r.reason);
@@ -764,13 +864,13 @@ export class Game {
     p.life = makeLife();
     this._applyTraits(p);
     // まわりへ：名札・見た目（地上）、巣の中の子、入口の名前、フレンドの一覧
-    if (p.place === 'field' && p.st) this.field.broadcast({ t: S2C.PLAYER_UPDATE, player: this.field.playerInfo(p) });
+    if (p.place === 'field' && p.st) this.fieldOf(p).broadcast({ t: S2C.PLAYER_UPDATE, player: this.fieldOf(p).playerInfo(p) });
     if (p.place === 'nest') this.nests.flushPeers(p.nestId);
     if (nestId != null) {
       this.nests.forget(nestId);
-      const e = this.field.entrances.get(p.accountId);
-      if (e) for (const o of this.field.players.values()) if (o.conn) o.conn.send({ t: S2C.ENTRANCE, entrance: this.field.entranceOut(e, o.accountId) });
+      this.refreshEntrance(p.accountId);
     }
+    if (h.me.generation >= 3) this.grant(p, 'gen3');
     this.pushFriends(p.accountId, true);
     this.sendLife(p);
     this.log(`[family] ${r.retired[0].name} → ${p.name}（${farewell ? '旅立ち' : '世代交代'}）`);
@@ -785,9 +885,9 @@ export class Game {
       const c = this.store.charBrief(f.other) || { name: '？', fur: 'sand' };
       const o = this.players.get(f.other);
       const isF = f.state === 'friend';
-      const ent = isF ? this.field.entrances.get(f.other) : null;
+      const ent = isF ? this.entranceOf(f.other) : null;
       return { id: f.other, name: c.name, fur: c.fur, state: f.state, online: isF && !!(o && o.conn), where: isF && o ? (o.place === 'field' || o.place === 'nest' ? o.place : null) : null,
-        nest: ent ? { x: ent.x, y: ent.y } : null, at: f.at };
+        region: isF && o && o.conn ? o.region || 'plains' : null, nest: ent ? { x: ent.x, y: ent.y, region: ent.region || 'plains' } : null, at: f.at };
     });
   }
   /** 一覧が変わった人（とそのフレンド）へ friends を送る */
@@ -844,6 +944,241 @@ export class Game {
     return { ok: true, list: this.friendList(p.accountId) };
   }
 
+  // ───────── 広がり（Ver.0.5）：土地の旅・不思議な穴・収集品・実績・共同巣・豊かな巣 ─────────
+  /** 図鑑・実績・進み具合（印）を DB から */
+  _loadProgress(p) {
+    p.owned = new Set(Object.keys(this.store.collection(p.accountId)));
+    p.ach = new Set(Object.keys(this.store.achievements(p.accountId)));
+    const csv = k => new Set(String(this.store.flag(p.accountId, k, '') || '').split(',').filter(Boolean));
+    p.seasonsSeen = csv('seasons'); p.regionsSeen = csv('regions'); p.visitedNests = csv('visited');
+    p.toyamaFound = this.store.flag(p.accountId, 'toyama') === '1';
+    p.homeNest = this.store.residentNestOf(p.accountId);
+    p.stormMs = 0; p.gate = null;
+  }
+  /** 実績をとる（1 回だけ）。本人へ achievement */
+  grant(p, id) {
+    if (!p || !ACH[id] || (p.ach && p.ach.has(id))) return false;
+    const at = this.now();
+    if (this.store.addAchievement(p.accountId, id, at) !== 1) { if (p.ach) p.ach.add(id); return false; }
+    if (p.ach) p.ach.add(id);
+    if (p.conn) p.conn.send({ t: S2C.ACHIEVEMENT, id, at, ...(ACH[id].reward ? { reward: ACH[id].reward } : {}) });
+    this.log(`[achieve] ${p.name}：${ACH[id].name}`);
+    return true;
+  }
+  /** 収集品が図鑑に入った（拾った・開発用）。本人へ collect、収集品の数の実績 */
+  collected(p, cid, at) {
+    p.owned.add(cid);
+    if (p.conn) p.conn.send({ t: S2C.COLLECT, cid, at, total: p.owned.size });
+    this.log(`[collect] ${p.name}：${(CURIOS[cid] || {}).name}`);
+    for (const a of collectAchievements(p.owned)) this.grant(p, a);
+  }
+  /** 季節・砂嵐の実績の進み具合（暮らしの刻みごと。dtMs は世界の時間） */
+  progressTick(p, env, dtMs, save) {
+    if (env && env.season && !p.seasonsSeen.has(env.season)) {
+      p.seasonsSeen.add(env.season);
+      this.store.setFlag(p.accountId, 'seasons', [...p.seasonsSeen].join(','));
+      if (p.seasonsSeen.size >= 4) this.grant(p, 'seasons4');
+    }
+    if (p.place === 'field' && env && env.weather === 'sandstorm') p.stormMs += dtMs;
+    else {
+      if (p.place === 'field' && p.stormMs >= SANDSTORM_MS) this.grant(p, 'sandstorm');
+      p.stormMs = 0;
+    }
+    void save;
+  }
+  _visitRegion(p, region) {
+    if (!region || p.regionsSeen.has(region)) return;
+    p.regionsSeen.add(region);
+    this.store.setFlag(p.accountId, 'regions', [...p.regionsSeen].join(','));
+    if (OPEN_REGIONS.every(r => p.regionsSeen.has(r))) this.grant(p, 'regions4');
+  }
+  _visitedFriend(p, nest) {
+    if (!this.store.isFriend(nest.owner, p.accountId)) return;
+    const k = String(nest.id);
+    if (p.visitedNests.has(k)) return;
+    p.visitedNests.add(k);
+    this.store.setFlag(p.accountId, 'visited', [...p.visitedNests].slice(-50).join(','));
+    if (p.visitedNests.size >= VISIT_GOAL) this.grant(p, 'visit5');
+  }
+  /** 不思議な穴：谷にいる子ごとに 1 秒ごと（条件は shared/collect.js の gateOpen。サーバーが確かめる）。富山では「来た穴」 */
+  gateTick(force = false) {
+    const t = this.now();
+    if (!force && t < (this._gateT || 0)) return;
+    this._gateT = t + 1000;
+    for (const p of this.players.values()) {
+      const was = p.gate;
+      if (p.place !== 'field') { p.gate = null; continue; }
+      const room = this.fieldOf(p);
+      if (room.region === 'toyama') p.gate = { x: room.map.back.x, y: room.map.back.y, back: true };
+      else if (room.region === 'canyon') {
+        const env = p.env || this.envOf(p, t);
+        p.gate = gateOpen({ region: 'canyon', env, owned: p.owned, found: p.toyamaFound, force: p.gateForce || this.gateForce }) ? { x: room.map.secret.x, y: room.map.secret.y } : null;
+      } else p.gate = null;
+      if (!was && p.gate && !p.gate.back && p.conn) p.conn.send({ t: S2C.TOAST, text: '谷の奥で、なにかが ぼんやり光った…' });
+    }
+  }
+  /** 地図の端の出口から、となりの土地へ */
+  travel(p, m) {
+    if (p.place !== 'field' || !p.st) return fail(ERR.FORBIDDEN, '地上にいない');
+    const room = this.fieldOf(p);
+    room.drain(p);
+    const to = String(m.to || '');
+    if (!isRegion(to) || REGION[to].hidden) return fail(ERR.BAD_REQUEST, '知らない土地');
+    const g = gateAt(room.map, p.st.x, p.st.y);
+    if (!g || g.to !== to) return fail(ERR.TOO_FAR, 'ここは その土地への出口ではない');
+    if (p.st.jump) return fail(ERR.RULE, '跳んでいる最中');
+    const t = this.now();
+    if (p.travelT && t - p.travelT < TRAVEL_GAP_MS) return fail(ERR.RATE, 'ちょっと待って');
+    p.travelT = t;
+    return this._moveRegion(p, to, arrivalPoint(regionMap(to), room.region), 'travel');
+  }
+  /** 部屋を移る（旅・不思議な穴・開発用）。返り値は join_field と同じ形の world */
+  _moveRegion(p, to, pos, why = 'travel') {
+    const from = this.fieldOf(p);
+    if (p.place === 'field') from.leave(p, why);
+    if (p.sleeping) this.wake(p, false);
+    p.region = to;
+    const world = this.fields.get(to).join(p, { x: pos.x, y: pos.y, dir: pos.dir || 'down' }, why);
+    this.store.savePosition(p.charId, { x: pos.x, y: pos.y, dir: pos.dir || 'down', place: 'field', exit: 'live', region: to }, this.now());
+    this._decorateWorld(p, world);
+    this._visitRegion(p, to);
+    this.gateTick(true);
+    world.gate = p.gate || null;
+    this.pushFriends(p.accountId, true);
+    this.log(`[travel] ${p.name}：${from.region} → ${to}`);
+    return { ok: true, world, from: from.region };
+  }
+  /** 不思議な穴に入る（谷の奥 → 富山）・来た穴（富山 → 谷の奥） */
+  enterGate(p) {
+    if (p.place !== 'field' || !p.st) return fail(ERR.FORBIDDEN, '地上にいない');
+    const room = this.fieldOf(p);
+    room.drain(p);
+    if (p.st.jump) return fail(ERR.RULE, '跳んでいる最中');
+    if (room.region === 'toyama') {
+      const b = room.map.back;
+      if (Math.hypot(b.x - p.st.x, b.y - p.st.y) > GATE_R) return fail(ERR.TOO_FAR, '穴から遠い');
+      const sec = regionMap('canyon').secret;
+      return this._moveRegion(p, 'canyon', { x: sec.x + 22, y: sec.y + 2, dir: 'right' }, 'gate');
+    }
+    if (room.region !== 'canyon') return fail(ERR.NOT_FOUND, 'ここには穴が無い');
+    const sec = room.map.secret;
+    if (Math.hypot(sec.x - p.st.x, sec.y - p.st.y) > GATE_R) return fail(ERR.TOO_FAR, '穴から遠い');
+    const env = this.envOf(p);
+    if (!gateOpen({ region: 'canyon', env, owned: p.owned, found: p.toyamaFound, force: p.gateForce || this.gateForce })) {
+      return fail(ERR.RULE, '古い石の標がある。' + gateHint({ env, owned: p.owned, found: p.toyamaFound }));
+    }
+    const first = !p.toyamaFound;
+    if (first) { p.toyamaFound = true; this.store.setFlag(p.accountId, 'toyama', '1'); }
+    const tm = regionMap('toyama');
+    const r = this._moveRegion(p, 'toyama', arrivalPoint(tm, 'canyon'), 'gate');
+    r.first = first;
+    this.grant(p, 'toyama');
+    return r;
+  }
+  collectionOut(p) {
+    return { ok: true, owned: this.store.collection(p.accountId), achievements: this.store.achievements(p.accountId),
+      stats: { seasons: [...p.seasonsSeen], regions: [...p.regionsSeen], visited: p.visitedNests.size, found: !!p.toyamaFound } };
+  }
+  /** 穏やかなランキング「豊かな巣」：巣の豊かさの上位 10（30 秒は同じ結果） */
+  ranking(p) {
+    const t = this.now();
+    if (!this._rankCache || t - this._rankCache.at > 30000) {
+      const rows = this.store.allNests().map(n => ({ nestId: n.id, owner: n.owner, name: n.ownerName, region: n.field || 'plains', ...nestRichness(n.data) }));
+      rows.sort((a, b) => b.score - a.score || a.nestId - b.nestId);
+      this._rankCache = { at: t, rows };
+    }
+    const rows = this._rankCache.rows;
+    const mine = rows.findIndex(r => r.owner === p.accountId);
+    const list = rows.slice(0, 10).map((r, i) => ({ rank: i + 1, name: r.name, region: r.region, score: r.score, rooms: r.rooms, decor: r.decor, curios: r.curios, me: r.owner === p.accountId }));
+    return { ok: true, list, mine: mine >= 0 ? { rank: mine + 1, ...rows[mine], me: true } : null, total: rows.length };
+  }
+
+  // ── 共同巣：所有者がフレンドを住人に誘う（nest_access の role 'invite' → 'resident'）──
+  residentsInfo(acct) {
+    const nm = id => (this.store.charBrief(id) || { name: '？' }).name;
+    const own = this.store.nestByOwner(acct);
+    const mine = own ? { nestId: own.id, residents: this.store.nestMembers(own.id, 'resident').map(id => ({ id, name: nm(id) })), invites: this.store.nestMembers(own.id, 'invite').map(id => ({ id, name: nm(id) })) } : null;
+    const hid = this.store.residentNestOf(acct), hn = hid != null ? this.store.nest(hid) : null;
+    const home = hn ? { nestId: hn.id, owner: hn.owner, ownerName: hn.ownerName, region: hn.field || 'plains', x: hn.x, y: hn.y, others: this.store.nestMembers(hn.id, 'resident').filter(id => id !== acct).map(id => ({ id, name: nm(id) })) } : null;
+    const invites = this.store.invitesFor(acct).map(id => { const n = this.store.nest(id); return n ? { nestId: n.id, owner: n.owner, ownerName: n.ownerName, region: n.field || 'plains' } : null; }).filter(Boolean);
+    return { mine, home, invites, max: MAX_RESIDENTS };
+  }
+  pushResidents(acct, text = null) { const o = this.players.get(acct); if (o && o.conn) o.conn.send({ t: S2C.RESIDENTS, ...this.residentsInfo(acct), ...(text ? { text } : {}) }); }
+  /** 住人が変わった：その巣にいる子の役割（nest_role）と、入口の「自分の家」を新しく */
+  _residentChanged(nest, acct) {
+    const o = this.players.get(acct);
+    if (o) {
+      o.homeNest = this.store.residentNestOf(acct);
+      if (o.place === 'nest' && o.nestId === nest.id && o.conn) { const role = this.nests.role(nest, acct); o.conn.send({ t: S2C.NEST_ROLE, nestId: nest.id, canEdit: role !== 'visitor', role }); }
+      const e = this._entranceOfNest(nest.id);
+      if (e && o.conn) o.conn.send({ t: S2C.ENTRANCE, entrance: this.roomOfEntrance(e).entranceOut(e, acct) });
+    }
+    this.nests.forget(nest.id);
+  }
+  residentInvite(p, name) {
+    if (this._friendRate(p)) return fail(ERR.RATE, '操作が多すぎる。少し待ってね');
+    const own = this.store.nestByOwner(p.accountId);
+    if (!own) return fail(ERR.NOT_FOUND, 'まだ巣が無い（先に巣を掘ろう）');
+    const nm = String(name || '').trim();
+    if (validName(nm)) return fail(ERR.BAD_REQUEST, validName(nm));
+    const ids = this.store.accountsByCharName(nm).filter(id => id !== p.accountId);
+    if (!ids.length) return fail(ERR.NOT_FOUND, '「' + nm + '」という子は見つからない');
+    if (ids.length > 1) return fail(ERR.RULE, '同じ名前の子が何匹もいる');
+    const other = ids[0];
+    if (!this.store.isFriend(p.accountId, other)) return fail(ERR.RULE, 'フレンドだけ誘える');
+    if (this.store.hasNestAccess(own.id, other, 'resident')) return fail(ERR.RULE, 'もう いっしょに住んでいる');
+    if (this.store.hasNestAccess(own.id, other, 'invite')) return fail(ERR.RULE, 'もう誘ってある（返事待ち）');
+    if (this.store.nestMembers(own.id, 'resident').length + this.store.nestMembers(own.id, 'invite').length >= MAX_RESIDENTS) return fail(ERR.FULL, `いっしょに住めるのは ${MAX_RESIDENTS} 匹まで`);
+    this.store.addNestAccess(own.id, other, 'invite', nm);
+    this.pushResidents(other, p.name + ' から「いっしょに住もう」と誘われた（メニュー → 共同巣）');
+    return { ok: true, ...this.residentsInfo(p.accountId) };
+  }
+  residentAnswer(p, nestId, yes) {
+    const nest = this.store.nest(Number(nestId));
+    if (!nest || !this.store.hasNestAccess(nest.id, p.accountId, 'invite')) return fail(ERR.NOT_FOUND, '誘いが見つからない');
+    if (yes && this.store.residentNestOf(p.accountId) != null) return fail(ERR.RULE, 'もう ほかの巣に住んでいる（先に出よう）');
+    this.store.tx(() => {
+      this.store.removeNestAccess(nest.id, p.accountId, 'invite');
+      if (yes) this.store.addNestAccess(nest.id, p.accountId, 'resident', p.name);
+    });
+    this._residentChanged(nest, p.accountId);
+    const owner = this.players.get(nest.owner);
+    this.pushResidents(nest.owner, yes ? p.name + ' が あなたの巣に住むことになった（共同巣）' : p.name + ' は 今回は見送った');
+    if (yes) { this.grant(p, 'together'); if (owner) this.grant(owner, 'together'); else this.store.addAchievement(nest.owner, 'together', this.now()); }
+    return { ok: true, ...this.residentsInfo(p.accountId) };
+  }
+  residentLeave(p) {
+    const hid = this.store.residentNestOf(p.accountId);
+    if (hid == null) return fail(ERR.NOT_FOUND, 'どこにも住んでいない');
+    const nest = this.store.nest(hid);
+    this.store.removeNestAccess(hid, p.accountId, 'resident');
+    // 子どもたちは住人の家族のまま（家族の数え方は家ごと）。いまの巣が無くなるので、家族の居場所は次に巣を持ったときに決まる
+    if (nest) { this._residentChanged(nest, p.accountId); this.pushResidents(nest.owner, p.name + ' が 共同巣を出た'); }
+    return { ok: true, ...this.residentsInfo(p.accountId) };
+  }
+  residentRemove(p, id) {
+    const own = this.store.nestByOwner(p.accountId);
+    if (!own) return fail(ERR.NOT_FOUND, '巣が無い');
+    const other = Number(id);
+    const n = this.store.removeNestAccess(own.id, other, 'resident') + this.store.removeNestAccess(own.id, other, 'invite');
+    if (!n) return fail(ERR.NOT_FOUND, '住人ではない');
+    this._residentChanged(own, other);
+    this.pushResidents(other, own.ownerName + 'の巣の 住人では なくなった');
+    return { ok: true, ...this.residentsInfo(p.accountId) };
+  }
+  /** 巣にいる家族（所有者と住人の家族。いまオンラインの子は手元の最新）。acct で「どの家の子か」 */
+  nestFamilyOf(nest) {
+    const out = [];
+    const accts = [nest.owner, ...this.store.nestMembers(nest.id, 'resident')];
+    for (const a of accts) {
+      const o = this.players.get(a);
+      const list = o && o.house && this._homeNestId(o) === nest.id ? o.house.publicOut() : this.store.nestFamily(nest.id).filter(m => this._indAcct(m.id) === a).map(m => indOut(m));
+      for (const m of list) out.push({ ...m, acct: a });
+    }
+    return out;
+  }
+  _indAcct(id) { const r = this.store.q('SELECT account_id FROM individuals WHERE id = ?').get(id); return r ? r.account_id : null; }
+
   // ───────── そのほか ─────────
   invMove(p, m) {
     const inv = p.inv.map(x => x && { ...x });
@@ -866,15 +1201,16 @@ export class Game {
     p.chatT.push(now);
     const msg = { t: S2C.CHAT, from: p.accountId, name: p.name, text: t, where: p.place === 'nest' ? 'nest' : 'field', at: now };
     if (p.place === 'nest') this.nests.broadcast(p.nestId, msg);
-    else if (p.place === 'field') this.field.broadcast(msg);
+    else if (p.place === 'field') this.fieldOf(p).broadcast(msg);
     else if (p.conn) p.conn.send(msg);
   }
 
   statsSnapshot() {
     const mem = process.memoryUsage();
     return {
-      players: this.players.size, field: this.field.players.size, nests: this.nests.inst.size, sessions: this.sessions.size,
-      resources: this.field.resources.size, respawnQueue: this.field.respawns.length,
+      players: this.players.size, field: [...this.fields.values()].reduce((a, r) => a + r.players.size, 0), nests: this.nests.inst.size, sessions: this.sessions.size,
+      regions: Object.fromEntries([...this.fields].map(([id, r]) => [id, r.players.size])),
+      resources: [...this.fields.values()].reduce((a, r) => a + r.resources.size, 0), respawnQueue: [...this.fields.values()].reduce((a, r) => a + r.respawns.length, 0),
       msgIn: this.stats.msgIn, msgOut: this.stats.msgOut, bytesIn: this.stats.bytesIn, bytesOut: this.stats.bytesOut, errors: this.stats.errors,
       rss: mem.rss, heapUsed: mem.heapUsed, uptime: Math.round((this.now() - this.stats.startedAt) / 1000),
     };

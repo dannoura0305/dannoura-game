@@ -304,7 +304,7 @@ await test('フレンド：名前で申請 → 相手に届く → 受ける →
   a.inbox = [];
   const ok = await b.req('friend_ok', { id: a.account.id });
   assert.equal(ok.ok, true); assert.equal(ok.list[0].state, 'friend'); assert.equal(ok.list[0].online, true);
-  assert.deepEqual(ok.list[0].nest, { x: a.ent.x, y: a.ent.y }, '巣の場所');
+  assert.deepEqual(ok.list[0].nest, { x: a.ent.x, y: a.ent.y, region: 'plains' }, '巣の場所（Ver.0.5：土地も）');
   assert.equal(a.last('friends').list[0].state, 'friend');
   // 「フレンドだけ」：b は入れる、c は入れない
   assert.equal((await a.req('visit_policy', { policy: 'friends' })).ok, true);

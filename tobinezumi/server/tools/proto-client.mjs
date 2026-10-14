@@ -2,12 +2,13 @@
 // Node 22 の組み込み WebSocket を使う（ws パッケージは要らない）。
 import { stepField, makeFieldState, STEP_DT } from '../../shared/move.js';
 import { buildFieldMap } from '../../shared/regions.js';
+import { regionMap } from '../../shared/world.js';
 import { moveMods } from '../../shared/life.js';
 import { envAt, fieldMods } from '../../shared/season.js';
 import { makeClock } from '../../shared/daynight.js';
 
 let MAP = null;
-export const fieldMap = () => MAP || (MAP = buildFieldMap());
+export const fieldMap = (region = null) => (region && region !== 'plains' ? regionMap(region) : MAP || (MAP = buildFieldMap()));
 
 export class ProtoClient {
   constructor(url, { WS = globalThis.WebSocket, log = () => {} } = {}) {
@@ -71,19 +72,43 @@ export class ProtoClient {
   async join() {
     const j = await this.req('join_field');
     if (!j.ok) throw new Error('join_field: ' + j.reason);
-    this.world = j.world;
-    if (j.world.life) this.life = j.world.life;
-    if (j.world.clock) this.clock = j.world.clock;
-    this.st = makeFieldState(j.world.you.x, j.world.you.y);
-    this.st.dir = j.world.you.dir;
-    return j.world;
+    return this._world(j.world);
+  }
+  _world(w) {
+    this.world = w;
+    this.region = w.region || 'plains';      // Ver.0.5：いる土地（地図が変わる）
+    if (w.life) this.life = w.life;
+    if (w.clock) this.clock = w.clock;
+    this.st = makeFieldState(w.you.x, w.you.y);
+    this.st.dir = w.you.dir;
+    return w;
+  }
+  get map() { return fieldMap(this.region); }
+  /** Ver.0.5：出口（地図の端）へ歩いて、となりの土地へ旅する。着いたら新しい world */
+  async travelTo(to, { sleep = ms => new Promise(r => setTimeout(r, ms)), maxMs = 30000 } = {}) {
+    const g = (this.map.gates || []).find(q => q.to === to);
+    if (!g) return { ok: false, reason: 'no gate' };
+    const tx = (g.x0 + g.x1) / 2, ty = (g.y0 + g.y1) / 2, end = Date.now() + maxMs;
+    let side = 0;
+    while (Date.now() < end && !(this.st.x >= g.x0 && this.st.x <= g.x1 && this.st.y >= g.y0 && this.st.y <= g.y1)) {
+      const dx = tx - this.st.x, dy = ty - this.st.y, x0 = this.st.x, y0 = this.st.y;
+      let mx = Math.abs(dx) > 3 ? Math.sign(dx) : 0, my = Math.abs(dy) > 3 ? Math.sign(dy) : 0;
+      if (side > 0) { side--; if (mx) { my = side % 2 ? 1 : -1; mx = 0; } else { mx = side % 2 ? 1 : -1; my = 0; } }
+      this.inputs([{ mx, my, jump: side === 0 && Math.random() < 0.05 }, { mx, my }, { mx, my }]);
+      await sleep(50);
+      if (Math.hypot(this.st.x - x0, this.st.y - y0) < 0.5 && !this.st.jump && side === 0) side = 12;   // つかえた：横へよける
+      if (this.closed) return { ok: false, reason: 'closed' };
+    }
+    const r = await this.req('travel', { to });
+    if (r.ok) this._world(r.world);
+    return r;
   }
   /** 入力を n 個まとめて送る（ローカルでも同じ規則で当てて、予測位置を持つ） */
   inputs(list) {
     const out = [];
     for (const i of list) {
       const inp = { seq: ++this.seq, mx: i.mx | 0, my: i.my | 0, jump: i.jump ? 1 : 0 };
-      if (this.st) this.st = stepField(this.st, inp, STEP_DT, fieldMap(), fieldMods(moveMods(this.life), this.moveEnv()));
+      if (this.st) this.st = stepField(this.st, inp, STEP_DT, this.map, fieldMods(moveMods(this.life), this.moveEnv()));
       out.push(inp);
     }
     for (let k = 0; k < out.length; k += 30) this.send({ t: 'input', inputs: out.slice(k, k + 30) });
@@ -92,7 +117,7 @@ export class ProtoClient {
   /** 移動に効く天気（砂嵐は遅い）。サーバーと同じ時計で（0.25 秒ごとに作りなおす） */
   moveEnv() {
     const t = Date.now() + (this.offset || 0);
-    if (!this._env || t > this._envT) { this._envT = t + 250; this._env = envAt(this.clock || makeClock(), t, { enabled: !this.world || !this.world.danger || this.world.danger.env !== false }); }
+    if (!this._env || t > this._envT) { this._envT = t + 250; this._env = envAt(this.clock || makeClock(), t, { map: this.map, enabled: !this.world || !this.world.danger || this.world.danger.env !== false }); }
     return this._env;
   }
   /** ack が seq に追いつくまで待つ */
