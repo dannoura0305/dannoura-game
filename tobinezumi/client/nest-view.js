@@ -187,9 +187,20 @@ export function renderBase(data, layout) {
 /** 家具・備え付け 1 つ（素材があれば素材、無ければコード描画）。全体モードの置く前の影もこれ */
 export function drawObject(g, o, t, fill = 0, lift = 0) {
   const fa = FURN_ASSET[o.type];
+  // Ver.0.5：収集品を飾る（台＋品のアイコン。壁に掛けるときは台なし）
+  if (o.type === 'curio') {
+    const onFloor = o.floorY != null ? o.py + o.ph >= o.floorY - 1 : true;
+    if (onFloor && Sprites.has('nest.curio_stand')) Sprites.drawEntry(g, 'nest.curio_stand', 0, o.px + o.pw / 2, o.py + o.ph - lift);
+    const key = 'item.curio.' + (o.item || '') + '.icon';
+    const y = o.py + (onFloor ? -4 : 0) - lift;
+    if (!Sprites.drawCell(g, key, 0, o.px, y)) A.drawItem(g, 'curio.' + (o.item || 'x'), o.px, y);
+    if (Math.floor(t * 2 + o.px) % 7 === 0) { g.fillStyle = 'rgba(255,250,220,.9)'; g.fillRect(Math.round(o.px + 11), Math.round(y + 3), 1, 1); }
+    return;
+  }
   if (fa && Sprites.has(fa.key)) {
     const flip = !!o.rot;
-    if (o.type === 'lamp') { Sprites.drawCell(g, fa.key, Math.floor(t * 4), o.px, o.py + 2, 0, flip); return; }
+    if (o.type === 'lamp' || o.type === 'star_lamp') { Sprites.drawCell(g, fa.key, Math.floor(t * (o.type === 'lamp' ? 4 : 2)), o.px, o.py + 2, 0, flip); return; }
+    if (o.type === 'wreath') { Sprites.drawCell(g, fa.key, 0, o.px, o.py - lift, 0, flip); return; }
     const floorY = o.py + o.ph - lift;
     if (o.type === 'storage') {
       Sprites.drawEntry(g, 'nest.shelf', 0, o.px + o.pw / 2, floorY, { flip });

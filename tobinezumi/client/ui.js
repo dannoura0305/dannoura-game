@@ -21,6 +21,9 @@ export const FURN_ASSET = {
   lamp: { key: 'nest.lantern' }, rug: { key: 'nest.rug' }, pebble_deco: { key: 'nest.pebble_deco' },
   seed_pile: { key: 'nest.seed_pile', col: 2 }, dried_flower: { key: 'nest.dried_flower' }, shelf: { key: 'nest.shelf' },
   nestbed: { key: 'nest.bed' }, storage: { key: 'nest.shelf' },
+  // Ver.0.5
+  stone_display: { key: 'nest.stone_display' }, curio: { key: 'nest.curio_stand' }, wreath: { key: 'nest.wreath' }, star_lamp: { key: 'nest.star_lamp' },
+  curio_shelf: { key: 'nest.curio_shelf' }, family_tree: { key: 'nest.family_tree' }, snowman: { key: 'nest.snowman' },
 };
 /** 持ち物アイコンの画像 URL（manifest の item.<id> があればそれ、無ければコード描画） */
 export function iconURL(id) {
@@ -83,6 +86,15 @@ export class UI {
     this.toastBox = el('div', 'tb-toasts'); hud.appendChild(this.toastBox);
     this.modal = null;
     this.chatOpen = false;
+  }
+  /** 調べた物の説明（少し長い文。押すか 7 秒で消える）。html 可 */
+  note(html) {
+    if (this._note) this._note.remove();
+    const n = el('div', 'tb-note tb-ui-block', html);
+    n.addEventListener('click', () => n.remove());
+    this.hud.appendChild(n);
+    this._note = n;
+    setTimeout(() => { if (n.isConnected) { n.classList.add('out'); setTimeout(() => n.remove(), 400); } }, 7000);
   }
   toast(text, kind = '') {
     this.layoutTop();
@@ -229,8 +241,8 @@ export class UI {
     let w = this.clockEl.querySelector('.wx');
     if (!w) { w = el('span', 'wx'); this.clockEl.appendChild(w); }
     if (env) {
-      const icon = env.weather !== 'clear' ? WX_SVG[env.weather] : env.cold ? WX_SVG.cold : '';
-      const word = env.weather === 'sandstorm' ? '砂嵐' : env.weather === 'rain' ? '雨' : env.cold ? '寒い' : '';
+      const icon = env.weather !== 'clear' ? (WX_SVG[env.weather] || WX_SVG.cold) : env.cold ? WX_SVG.cold : '';
+      const word = env.weather === 'sandstorm' ? '砂嵐' : env.weather === 'rain' ? '雨' : env.weather === 'snow' ? '雪' : env.cold ? '寒い' : '';
       w.innerHTML = `<b style="color:${SEASON_COLOR[env.season] || '#fff'}">${esc(env.seasonName || '')}</b>${icon ? '<span class="wi">' + icon + '</span>' : ''}${word ? '<span class="ww">' + word + '</span>' : ''}`;
       this.clockEl.dataset.weather = env.weather; this.clockEl.dataset.cold = env.cold ? '1' : '';
       this.clockEl.title = env.seasonName + '・' + (env.weatherName || '') + (env.cold ? '・寒い夜' : '');
@@ -342,6 +354,8 @@ export class UI {
       <div class="tb-listbox hidden"><div class="tb-sub">許可リスト（入ってよい子のなまえ）</div><div class="tb-names vis"></div></div>
       <div class="tb-sub">共同作業者 <span class="tb-dim">（巣をいっしょに掘ったり家具を置いたりできる。素材はその子の持ち物から）</span></div>
       ${online ? '<div class="tb-names bld"></div>' : '<div class="tb-dim">共同作業者はオンラインで使えます。</div>'}
+      <div class="tb-sub">共同巣 <span class="tb-dim">（フレンドと 1 つの巣に住む。住人は倉庫を分け合い、眠れて、子を育てられる）</span></div>
+      <div>${(nest.residents || []).length ? '<span class="tb-dim">住人：' + nest.residents.map(r => esc(r.name)).join('、') + '</span> ' : ''}<button type="button" class="tb-btn small tb-resbtn">共同巣の設定</button></div>
       <div class="tb-sub">最近たずねてきた子</div><div class="tb-visits tb-scroll tb-dim">…</div>`;
     const mark = () => { for (const b of p.querySelectorAll('.tb-pol')) b.classList.toggle('on', b.dataset.v === nest.policy); p.querySelector('.tb-listbox').classList.toggle('hidden', nest.policy !== 'list'); };
     for (const b of p.querySelectorAll('.tb-pol')) b.onclick = async () => {
@@ -374,6 +388,7 @@ export class UI {
     if (online) names(p.querySelector('.bld'), () => nest.builders || [], async l => { await h.builders(l); }, 10);
     mark();
     p.querySelector('.tb-x').onclick = () => this.closeModal();
+    const rb = p.querySelector('.tb-resbtn'); if (rb) rb.onclick = () => h.residents && h.residents();
     this._openModal(p);
     h.visitors().then(list => {
       const box = p.querySelector('.tb-visits');

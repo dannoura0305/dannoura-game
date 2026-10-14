@@ -343,6 +343,9 @@ export function drawItem(g, id, x, y, big = false) {
     ell(s, 8, 9, 4.5, 5.5, '#b8628a'); ell(s, 7, 8, 3, 3.6, '#e08eb0'); P(s, '#f6c4d6', 6, 6, 2, 1); line(s, '#7a6e62', 9, 3, 10, 1);
   } else if (id === 'pretty_stone') {
     ell(s, 8, 9, 5, 5, '#46a0b4'); ell(s, 7, 7, 3, 3, '#7ccede'); P(s, '#c8f2f4', 6, 6, 2, 1); ell(s, 10, 12, 3, 1, '#2c7088');
+  } else if (String(id).startsWith('curio.')) {   // Ver.0.5：収集品（素材が無いとき）
+    const h = hash2(String(id).length, String(id).charCodeAt(7) || 1, 5);
+    ell(s, 8, 9, 5, 5, `hsl(${Math.floor(h * 360)},55%,55%)`); P(s, '#ffffff', 6, 6, 2, 2);
   } else return;
   outline(c);
   g.drawImage(c, x, y);
@@ -407,6 +410,13 @@ export function drawFurniture(g, type, ox, oy, w, h, rot = 0, t = 0, extra = {})
       for (let k = 0; k < 22; k++) { const a = hash2(k, 1, 9) * Math.PI * 2; const r = 11 + hash2(1, k, 9) * 3; line(s, k % 2 ? S[0] : S[3], cx + Math.cos(a) * r, cy + Math.sin(a) * 3.5, cx + Math.cos(a + 0.3) * (r + 3), cy + Math.sin(a + 0.3) * 4.2); }
       break;
     }
+    case 'stone_display': ell(s, 8, 13, 5, 2, '#c8b07a'); ell(s, 8, 8, 3.5, 3, '#46a0b4'); P(s, '#ffffff', 7, 6); break;
+    case 'curio': P(s, W[2], 2, 14, 12, 2); break;
+    case 'wreath': for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; P(s, k % 2 ? '#4f8236' : '#e890aa', 8 + Math.round(Math.cos(a) * 5), 8 + Math.round(Math.sin(a) * 5), 2, 2); } break;
+    case 'star_lamp': line(s, '#5a4a3a', 8, 0, 8, 3); ell(s, 8, 8, 5, 5, '#f0cc5c'); P(s, '#fff0a0', 7, 6, 2, 2); break;
+    case 'curio_shelf': P(s, W[1], 2, 2, 2, 30); P(s, W[1], 28, 2, 2, 30); for (const yy of [2, 12, 22, 30]) P(s, W[2], 2, yy, 28, 2); break;
+    case 'family_tree': P(s, W[1], 7, 14, 2, 18); ell(s, 8, 9, 6, 6, '#699c42'); break;
+    case 'snowman': ell(s, 8, 11, 4, 4, '#eaf0f6'); ell(s, 8, 5, 3, 3, '#ffffff'); P(s, '#c03428', 5, 8, 7, 1); break;
     case 'storage': {
       const fill = Math.max(0, Math.min(1, extra.fill || 0));
       P(s, W[1], 1, 4, 2, 28); P(s, W[1], 29, 4, 2, 28); P(s, W[0], 1, 4, 30, 2); P(s, W[0], 1, 17, 30, 2);

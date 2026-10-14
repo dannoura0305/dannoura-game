@@ -13,6 +13,7 @@ import { migrateNest, NEST_SCHEMA } from '../shared/nest-rules.js';
 import { normalizeInventory, INV_SLOTS, STORAGE_SLOTS } from '../shared/items.js';
 import { makeLife } from '../shared/life.js';
 import { normalizeGenes, expressTraits } from '../shared/genetics.js';
+import { syncCollectibles } from './migrations/006_regions_collect.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const MIGRATIONS_DIR = join(HERE, 'migrations');
@@ -124,12 +125,13 @@ export class Store {
     return {
       id: c.id, accountId: c.account_id, name: c.name, fur: c.fur, createdAt: c.created_at,
       individual: { id: c.individual_id, species: c.species, sex: c.sex, generation: c.generation, father_id: c.father_id, mother_id: c.mother_id, genes: P(c.genes), traits: P(c.traits), status: P(c.status), born_at: c.born_at },
-      pos: { x: c.pos_x, y: c.pos_y, dir: c.dir, place: c.place, exit: c.exit_kind, savedAt: c.saved_at },
+      pos: { x: c.pos_x, y: c.pos_y, dir: c.dir, place: c.place, exit: c.exit_kind, savedAt: c.saved_at, region: c.region || 'plains' },
     };
   }
-  savePosition(charId, { x, y, dir, place, exit }, now = Date.now()) {
-    this.q('UPDATE characters SET pos_x = ?, pos_y = ?, dir = ?, place = ?, exit_kind = ?, saved_at = ? WHERE id = ?')
-      .run(Math.round(x * 10) / 10, Math.round(y * 10) / 10, dir || 'down', place || 'field', exit || 'live', now, charId);
+  /** region（Ver.0.5）：いた土地。渡さなければ変えない */
+  savePosition(charId, { x, y, dir, place, exit, region }, now = Date.now()) {
+    this.q('UPDATE characters SET pos_x = ?, pos_y = ?, dir = ?, place = ?, exit_kind = ?, saved_at = ?, region = COALESCE(?, region) WHERE id = ?')
+      .run(Math.round(x * 10) / 10, Math.round(y * 10) / 10, dir || 'down', place || 'field', exit || 'live', now, region || null, charId);
   }
   /** 暮らしの数値（individuals.status.life）だけを書き換える */
   setLife(individualId, life) {
@@ -211,8 +213,8 @@ export class Store {
     return this.tx(() => {
       const old = this.q('SELECT * FROM characters WHERE account_id = ? AND active = 1 ORDER BY id DESC LIMIT 1').get(accountId);
       this.q('UPDATE characters SET active = 0 WHERE account_id = ?').run(accountId);
-      const id = Number(this.q('INSERT INTO characters (account_id, individual_id, name, fur, active, created_at, pos_x, pos_y, dir, place, exit_kind, saved_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)')
-        .run(accountId, heir.id, heir.name, heir.traits.fur, now, old ? old.pos_x : null, old ? old.pos_y : null, old ? old.dir : 'down', old ? old.place : 'field', 'live', now).lastInsertRowid);
+      const id = Number(this.q('INSERT INTO characters (account_id, individual_id, name, fur, active, created_at, pos_x, pos_y, dir, place, exit_kind, saved_at, region) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(accountId, heir.id, heir.name, heir.traits.fur, now, old ? old.pos_x : null, old ? old.pos_y : null, old ? old.dir : 'down', old ? old.place : 'field', 'live', now, old && old.region ? old.region : 'plains').lastInsertRowid);
       if (old) this.setInventory('char', id, this.inventory('char', old.id, INV_SLOTS), INV_SLOTS);
       this.q("UPDATE individuals SET status = json_set(CASE WHEN json_valid(status) THEN status ELSE '{}' END, '$.life', json(?)) WHERE id = ?").run(JSON.stringify(makeLife()), heir.id);
       return id;
@@ -242,18 +244,18 @@ export class Store {
 
   // ───────── 巣・土地 ─────────
   /** 巣を作る：土地（入口の場所・区画・性能）を足して、巣がその土地を指す。land = {plot, info}（shared/lands.js の landOut） */
-  createNest(ownerId, { data, x, y, regionId = null, land = null }, now = Date.now()) {
+  createNest(ownerId, { data, x, y, regionId = null, land = null, field = 'plains' }, now = Date.now()) {
     return this.tx(() => {
-      const lid = Number(this.q('INSERT INTO lands (region_id, x, y, info, plot) VALUES (?, ?, ?, ?, ?)').run(regionId, x, y, J(land || {}), land ? land.id : null).lastInsertRowid);
+      const lid = Number(this.q('INSERT INTO lands (region_id, x, y, info, plot, field_id) VALUES (?, ?, ?, ?, ?, ?)').run(regionId, x, y, J(land || {}), land ? land.id : null, field || 'plains').lastInsertRowid);
       const id = Number(this.q('INSERT INTO nests (owner_account_id, land_id, schema_version, rev, data, visit_policy, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?, ?, ?)')
         .run(ownerId, lid, data.v, JSON.stringify(data), 'private', now, now).lastInsertRowid);
       return id;
     });
   }
   /** 引っ越し：新しい土地を足して巣をそちらへ付け替える（巣の中身・倉庫・訪問設定はそのまま）。入口のふさぎは外れる */
-  relocateNest(nestId, { x, y, regionId = null, land = null }, now = Date.now()) {
+  relocateNest(nestId, { x, y, regionId = null, land = null, field = 'plains' }, now = Date.now()) {
     return this.tx(() => {
-      const lid = Number(this.q('INSERT INTO lands (region_id, x, y, info, plot) VALUES (?, ?, ?, ?, ?)').run(regionId, x, y, J(land || {}), land ? land.id : null).lastInsertRowid);
+      const lid = Number(this.q('INSERT INTO lands (region_id, x, y, info, plot, field_id) VALUES (?, ?, ?, ?, ?, ?)').run(regionId, x, y, J(land || {}), land ? land.id : null, field || 'plains').lastInsertRowid);
       this.q('UPDATE nests SET land_id = ?, plugged = 0, relocated_at = ?, updated_at = ? WHERE id = ?').run(lid, now, now, nestId);
       return lid;
     });
@@ -263,14 +265,14 @@ export class Store {
   _nestRow(r) {
     if (!r) return null;
     return { id: r.id, owner: r.owner_account_id, landId: r.land_id, schemaVersion: r.schema_version, rev: r.rev, data: P(r.data, null), policy: r.visit_policy, x: r.x, y: r.y, ownerName: r.owner_name || '', ownerFur: r.owner_fur || null,
-      plugged: !!r.plugged, relocatedAt: r.relocated_at || 0, raidedAt: r.raided_at || 0, plot: r.plot || null, land: P(r.land_info, null) };
+      plugged: !!r.plugged, relocatedAt: r.relocated_at || 0, raidedAt: r.raided_at || 0, plot: r.plot || null, land: P(r.land_info, null), field: r.field_id || 'plains' };
   }
-  static NEST_SQL = 'SELECT n.*, l.x, l.y, l.plot, l.info land_info, (SELECT name FROM characters c WHERE c.account_id = n.owner_account_id AND c.active = 1 ORDER BY c.id DESC LIMIT 1) owner_name, (SELECT fur FROM characters c WHERE c.account_id = n.owner_account_id AND c.active = 1 ORDER BY c.id DESC LIMIT 1) owner_fur FROM nests n LEFT JOIN lands l ON l.id = n.land_id';
+  static NEST_SQL = 'SELECT n.*, l.x, l.y, l.plot, l.field_id, l.info land_info, (SELECT name FROM characters c WHERE c.account_id = n.owner_account_id AND c.active = 1 ORDER BY c.id DESC LIMIT 1) owner_name, (SELECT fur FROM characters c WHERE c.account_id = n.owner_account_id AND c.active = 1 ORDER BY c.id DESC LIMIT 1) owner_fur FROM nests n LEFT JOIN lands l ON l.id = n.land_id';
   nest(id) { return this._nestRow(this.q(Store.NEST_SQL + ' WHERE n.id = ?').get(id)); }
   nestByOwner(accountId) { return this._nestRow(this.q(Store.NEST_SQL + ' WHERE n.owner_account_id = ?').get(accountId)); }
   allNests() { return this.q(Store.NEST_SQL).all().map(r => this._nestRow(r)); }
   /** 区画にある巣の数（土地を調べたときの「近所の巣」） */
-  nestsInPlot(plot) { const r = this.q('SELECT COUNT(*) n FROM nests n JOIN lands l ON l.id = n.land_id WHERE l.plot = ?').get(plot); return r ? r.n : 0; }
+  nestsInPlot(plot, field = 'plains') { const r = this.q('SELECT COUNT(*) n FROM nests n JOIN lands l ON l.id = n.land_id WHERE l.plot = ? AND l.field_id = ?').get(plot, field); return r ? r.n : 0; }
   /** rev が一致したときだけ書く（変わった行の数を返す：0 なら古い rev） */
   updateNestData(id, oldRev, data, now = Date.now()) {
     return this.q('UPDATE nests SET data = ?, rev = rev + 1, schema_version = ?, updated_at = ? WHERE id = ? AND rev = ?').run(JSON.stringify(data), data.v, now, id, oldRev).changes;
@@ -290,6 +292,24 @@ export class Store {
   }
   nestAccess(nestId) { return this.q('SELECT account_id, role, name FROM nest_access WHERE nest_id = ?').all(nestId).map(r => ({ accountId: r.account_id, role: r.role, name: r.name })); }
   hasNestAccess(nestId, accountId, role = 'visitor') { return !!this.q('SELECT 1 FROM nest_access WHERE nest_id = ? AND account_id = ? AND role = ?').get(nestId, accountId, role); }
+  // ───────── 共同巣（Ver.0.5）：nest_access の role 'resident'（住人）・'invite'（誘い中）─────────
+  addNestAccess(nestId, accountId, role, name = null) { this.q('INSERT OR IGNORE INTO nest_access (nest_id, account_id, role, name) VALUES (?, ?, ?, ?)').run(nestId, accountId, role, name); }
+  removeNestAccess(nestId, accountId, role) { return this.q('DELETE FROM nest_access WHERE nest_id = ? AND account_id = ? AND role = ?').run(nestId, accountId, role).changes; }
+  /** その子が住人になっている巣（1 つだけ） */
+  residentNestOf(accountId) { const r = this.q("SELECT nest_id FROM nest_access WHERE account_id = ? AND role = 'resident' LIMIT 1").get(accountId); return r ? r.nest_id : null; }
+  invitesFor(accountId) { return this.q("SELECT nest_id FROM nest_access WHERE account_id = ? AND role = 'invite'").all(accountId).map(r => r.nest_id); }
+  nestMembers(nestId, role) { return this.q('SELECT account_id FROM nest_access WHERE nest_id = ? AND role = ?').all(nestId, role).map(r => r.account_id); }
+
+  // ───────── 収集品・実績・印（Ver.0.5）─────────
+  /** 図鑑：{収集品 id: 手に入れた時刻} */
+  collection(accountId) { const o = {}; for (const r of this.q('SELECT collectible_id, got_at FROM account_collectibles WHERE account_id = ?').all(accountId)) o[r.collectible_id] = r.got_at; return o; }
+  hasCollectible(accountId, cid) { return !!this.q('SELECT 1 FROM account_collectibles WHERE account_id = ? AND collectible_id = ?').get(accountId, cid); }
+  /** 図鑑に入れる。もう持っていれば 0（主キーで二重に入らない） */
+  addCollectible(accountId, cid, at, data = {}) { return this.q('INSERT OR IGNORE INTO account_collectibles (account_id, collectible_id, got_at, data) VALUES (?, ?, ?, ?)').run(accountId, cid, at, J(data)).changes; }
+  achievements(accountId) { const o = {}; for (const r of this.q('SELECT key, got_at FROM achievements WHERE account_id = ?').all(accountId)) o[r.key] = r.got_at; return o; }
+  addAchievement(accountId, key, at) { return this.q('INSERT OR IGNORE INTO achievements (account_id, key, got_at) VALUES (?, ?, ?)').run(accountId, key, at).changes; }
+  flag(accountId, key, d = null) { const r = this.q('SELECT value FROM account_flags WHERE account_id = ? AND key = ?').get(accountId, key); return r ? r.value : d; }
+  setFlag(accountId, key, value) { this.q('INSERT INTO account_flags (account_id, key, value) VALUES (?, ?, ?) ON CONFLICT(account_id, key) DO UPDATE SET value = excluded.value').run(accountId, key, value == null ? null : String(value)); }
 
   // ───────── フレンド（Ver.0.2）─────────
   /** a と b の行（向きは問わない）：{a, b, state} か null */
@@ -316,13 +336,14 @@ export class Store {
   trimVisits(nestId, keep = 200) { this.q('DELETE FROM nest_visits WHERE nest_id = ? AND id NOT IN (SELECT id FROM nest_visits WHERE nest_id = ? ORDER BY at DESC LIMIT ?)').run(nestId, nestId, keep); }
 
   // ───────── 採集物 ─────────
-  resources() { return this.q('SELECT id, kind, x, y, qty, expires_at FROM world_resources WHERE respawn_at IS NULL').all().map(r => ({ id: r.id, kind: r.kind, x: r.x, y: r.y, ...(r.qty > 1 ? { n: r.qty } : {}), ...(r.expires_at ? { exp: r.expires_at } : {}) })); }
-  respawnQueue() { return this.q('SELECT id, kind, respawn_at FROM world_resources WHERE respawn_at IS NOT NULL ORDER BY respawn_at').all().map(r => ({ id: r.id, kind: r.kind, at: r.respawn_at })); }
-  /** r = {id, kind, x, y, n?（落とし物の数）, exp?（消える時刻）} */
-  insertResource(r, regionId = null) { this.q('INSERT INTO world_resources (id, region_id, kind, x, y, respawn_at, qty, expires_at) VALUES (?, ?, ?, ?, ?, NULL, ?, ?)').run(r.id, regionId, r.kind, r.x, r.y, r.n > 1 ? r.n : 1, r.exp || null); }
+  /** field（Ver.0.5）：どの土地の採集物か。収集品（kind 'curio'）は region_id に収集品の id を入れておく */
+  resources(field = 'plains') { return this.q('SELECT id, kind, x, y, qty, expires_at, region_id FROM world_resources WHERE respawn_at IS NULL AND field_id = ?').all(field).map(r => ({ id: r.id, kind: r.kind, x: r.x, y: r.y, ...(r.qty > 1 ? { n: r.qty } : {}), ...(r.expires_at ? { exp: r.expires_at } : {}), ...(r.kind === 'curio' ? { cid: r.region_id } : {}) })); }
+  respawnQueue(field = 'plains') { return this.q('SELECT id, kind, respawn_at FROM world_resources WHERE respawn_at IS NOT NULL AND field_id = ? ORDER BY respawn_at').all(field).map(r => ({ id: r.id, kind: r.kind, at: r.respawn_at })); }
+  /** r = {id, kind, x, y, n?（落とし物の数）, exp?（消える時刻）, cid?（収集品）} */
+  insertResource(r, regionId = null, field = 'plains') { this.q('INSERT INTO world_resources (id, region_id, kind, x, y, respawn_at, qty, expires_at, field_id) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)').run(r.id, r.cid || regionId, r.kind, r.x, r.y, r.n > 1 ? r.n : 1, r.exp || null, field || 'plains'); }
   /** 地上から消す（あったときだけ 1） */
   takeResource(id) { return this.q('DELETE FROM world_resources WHERE id = ? AND respawn_at IS NULL').run(id).changes; }
-  queueRespawn(id, kind, at) { this.q('INSERT INTO world_resources (id, kind, x, y, respawn_at) VALUES (?, ?, NULL, NULL, ?)').run(id, kind, at); }
+  queueRespawn(id, kind, at, field = 'plains') { this.q('INSERT INTO world_resources (id, kind, x, y, respawn_at, field_id) VALUES (?, ?, NULL, NULL, ?, ?)').run(id, kind, at, field || 'plains'); }
   dropRespawn(id) { this.q('DELETE FROM world_resources WHERE id = ? AND respawn_at IS NOT NULL').run(id); }
   delayRespawn(id, at) { this.q('UPDATE world_resources SET respawn_at = ? WHERE id = ?').run(at, id); }
 
@@ -335,5 +356,6 @@ export async function openDb(file, opts = {}) {
   const s = new Store(file, opts);
   await s.migrate(opts);
   if (s.schemaVersion() >= 1) s.migrateNestData();
+  if (s.schemaVersion() >= 6) syncCollectibles(s.db);
   return s;
 }

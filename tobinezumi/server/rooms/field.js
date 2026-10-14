@@ -17,6 +17,9 @@
 //    天気（shared/season.js）：砂嵐は跳ねる速さ ×0.8（stepField の speed）。雨は水たまり（id 'w…'・飲める）を出し、やむと乾く。
 //    土地（shared/lands.js）：巣穴を掘る素材は土の硬さで決まる。区画ごとの希少資源（id 'g…'）がときどき 1 つ出る。
 //    落とし物（id 'x…'・qty 個・10 分で消える）はだれでも拾える（先着 1 人）。
+//  ・Ver.0.5「広がり」：土地（地図）ごとに 1 部屋（region）。採集物・巣穴の入口・捕食者・野生の子は部屋ごと（同じ土地の子どうしだけ見える）。
+//    収集品（kind 'curio'・id 'c…'・cid＝収集品の id）を CURIO_TICK_MS ごとに考えて出す（shared/collect.js）。拾うと図鑑へ（先着 1 人・
+//    もう持っている子は拾えない）。富山には捕食者も野生の子もいない。スナップショットに gate（その子に見える不思議な穴）。
 //  ・Ver.0.4「いのちをつなぐ」：野生のトビネズミ（shared/wild.js の WildWorld）を捕食者と同じ刻みで動かし、スナップショットに wild（全員同じ）と
 //    wt（その子から見た信頼）を入れる。なかよくなれる子か（courtOk）は Game が決める。形質（脚・尾）の移動の倍率は p.traitMove。
 import { stepField, makeFieldState, STEP_DT } from '../../shared/move.js';
@@ -31,6 +34,8 @@ import { landAt, landOut, digCost, digTime, relocateCost, RELOCATE_COOLDOWN_MS, 
 import { hash2 } from '../../shared/rng.js';
 import { SNAPSHOT_HZ, SERVER_TICK_HZ } from '../../shared/protocol.js';
 import { WildWorld, WILD_DT } from '../../shared/wild.js';
+import { mulberry32 } from '../../shared/rng.js';
+import { CURIOS, CURIO_TICK_MS, CURIO_TTL_MS, pickCurioSpawn, curioEligible, curioSpots } from '../../shared/collect.js';
 
 export const PICK_RANGE = 28;
 export const INPUT_RATE = 60;          // 1 秒あたりの入力（= クライアントの 60Hz）
@@ -44,13 +49,18 @@ const r1 = v => Math.round(v * 10) / 10;
 const clone = inv => inv.map(s => s && { ...s });
 
 export class FieldRoom {
-  constructor({ store, map, now = () => Date.now(), random = Math.random, log = () => {}, respawnScale = 1, stats = null, clock = null, env = true, tuning = TUNING.normal, predSeed = null, relocateCooldownMs = RELOCATE_COOLDOWN_MS, wild = true, wildSeed = null }) {
+  constructor({ store, map, now = () => Date.now(), random = Math.random, log = () => {}, respawnScale = 1, stats = null, clock = null, env = true, tuning = TUNING.normal, predSeed = null, relocateCooldownMs = RELOCATE_COOLDOWN_MS, wild = true, wildSeed = null,
+    region = null, curios = null }) {
     this.store = store; this.map = map; this.now = now; this.random = random; this.log = log;
+    this.region = region || map.region || 'plains';
+    this.curiosOn = curios != null ? !!curios : env !== false;
+    this.curioRng = mulberry32(((now() ^ 0x2c1b3c6d) + this.region.length * 7919) >>> 0);   // random() は使わない（前からのテストの乱数の並びを変えない）
+    this.curioT = 0; this.onCollect = null; this.ownedOf = () => new Set();
     this.respawnScale = respawnScale;
     this.envOn = env; this.tuning = tuning; this.relocateCooldownMs = relocateCooldownMs;
     this.preds = new PredatorWorld({ map, seed: predSeed != null ? predSeed : Math.floor(random() * 4294967296) });
     this.predEvents = [];      // 直近の出来事（テスト・ログ用）
-    this.wildOn = wild !== false;
+    this.wildOn = wild !== false && this.region !== 'toyama';   // 富山には野生のトビネズミはいない
     this.wild = new WildWorld({ map, seed: wildSeed != null ? wildSeed : ((now() ^ 0x5bd1e995) >>> 0) });   // random() は使わない（前からのテストの乱数の並びを変えない）
     this.courtOk = () => false; this.onWild = null;
     this.puddleT = 0; this.rareT = new Map(); this.expireT = 0; this.raidViewT = 0; this.raidViews = [];
@@ -71,16 +81,19 @@ export class FieldRoom {
   /** 起動時：DB から採集物・再出現待ち・巣穴を読む（初回は初期配置を作る） */
   load() {
     const st = this.store;
-    if (!st.getMeta('resources_init')) {
+    const key = this.region === 'plains' ? 'resources_init' : 'resources_init:' + this.region;
+    if (!st.getMeta(key)) {
       st.tx(() => {
-        for (const r of initialResources(this.map)) st.insertResource(r, regionAt(this.map, r.x, r.y).id);
-        st.setMeta('resources_init', '1');
-        st.setMeta('next_res', '1000');
+        const first = initialResources(this.map, this.map.resCount || 90);
+        // はじまりの原は前からの id（r1…）、ほかの土地は通し番号（ほかと重ならない）
+        for (const r of first) { if (this.region !== 'plains') r.id = this._nextId('r'); st.insertResource(r, regionAt(this.map, r.x, r.y).id, this.region); }
+        st.setMeta(key, '1');
+        if (!st.getMeta('next_res')) st.setMeta('next_res', '1000');
       });
     }
-    for (const r of st.resources()) this.resources.set(r.id, r);
-    this.respawns = st.respawnQueue();
-    for (const n of st.allNests()) if (n.x != null) this.entrances.set(n.owner, { owner: n.owner, nestId: n.id, x: n.x, y: n.y });
+    for (const r of st.resources(this.region)) this.resources.set(r.id, r);
+    this.respawns = st.respawnQueue(this.region);
+    for (const n of st.allNests()) if (n.x != null && (n.field || 'plains') === this.region) this.entrances.set(n.owner, { owner: n.owner, nestId: n.id, x: n.x, y: n.y, region: this.region });
   }
   _nextId(prefix) {
     const n = parseInt(this.store.getMeta('next_res', '1000'), 10) || 1000;
@@ -113,15 +126,17 @@ export class FieldRoom {
     return {
       serverTime: this.now(),
       clock: { ...this.clock },
-      you: { id: p.accountId, name: p.name, fur: p.fur, look: p.look || null, kids: p.kids || [], x: p.st.x, y: p.st.y, dir: p.st.dir, inv: clone(p.inv), nest: ent ? { id: ent.nestId, x: ent.x, y: ent.y } : null },
-      resources: [...this.resources.values()].map(r => ({ id: r.id, kind: r.kind, x: r.x, y: r.y })),
+      region: this.region,
+      you: { id: p.accountId, name: p.name, fur: p.fur, look: p.look || null, kids: p.kids || [], x: p.st.x, y: p.st.y, dir: p.st.dir, inv: clone(p.inv), nest: ent ? { id: ent.nestId, x: ent.x, y: ent.y, region: this.region } : null },
+      resources: [...this.resources.values()].map(r => ({ id: r.id, kind: r.kind, x: r.x, y: r.y, ...(r.cid ? { cid: r.cid } : {}), ...(r.n > 1 ? { n: r.n } : {}) })),
       players: [...this.players.values()].filter(o => o !== p).map(o => this.playerInfo(o)),
       entrances: this.entranceList(p.accountId),
     };
   }
   entranceOut(e, forAcct) {
     const nest = this.nestInfo ? this.nestInfo(e.nestId) : null;
-    return { owner: e.owner, name: nest ? nest.ownerName : '', nestId: e.nestId, x: e.x, y: e.y, own: e.owner === forAcct, policy: nest ? nest.policy : 'private', plugged: !!(nest && nest.plugged) };
+    const home = !!(this.homeOf && e.owner !== forAcct && this.homeOf(forAcct) === e.nestId);   // Ver.0.5：共同巣の住人には「自分の家」
+    return { owner: e.owner, name: nest ? nest.ownerName : '', nestId: e.nestId, x: e.x, y: e.y, own: e.owner === forAcct, ...(home ? { home: true } : {}), region: this.region, policy: nest ? nest.policy : 'private', plugged: !!(nest && nest.plugged) };
   }
   entranceList(forAcct) { return [...this.entrances.values()].map(e => this.entranceOut(e, forAcct)); }
 
@@ -176,6 +191,7 @@ export class FieldRoom {
     // 捕食者・野生のトビネズミ（1 刻み = 1/20 秒）
     this.predTick(t);
     if (this.wildOn) this.wildTick(t);
+    if (this.curiosOn && t >= this.curioT) this.curioTick(t);
     // スナップショット（10Hz）
     if (this.tickN % Math.max(1, Math.round(SERVER_TICK_HZ / SNAPSHOT_HZ)) === 0) this.snapshot(t);
   }
@@ -192,7 +208,7 @@ export class FieldRoom {
       const p = list[i];
       if (!p.conn) continue;
       const others = list.length > 1 ? snaps.filter((_, k) => k !== i) : [];
-      p.conn.send({ t: 'snapshot', st: t, ack: p.lastSeq, you: p.st, players: others, preds, wild, wt: this.wildOn ? this.wild.trustOf(p.accountId) : {} });
+      p.conn.send({ t: 'snapshot', st: t, ack: p.lastSeq, you: p.st, players: others, preds, wild, wt: this.wildOn ? this.wild.trustOf(p.accountId) : {}, gate: p.gate || null });
     }
   }
   _respawn(t) {
@@ -207,7 +223,7 @@ export class FieldRoom {
       this.store.tx(() => {
         res.id = this._nextId('r');
         this.store.dropRespawn(d.id);
-        this.store.insertResource(res, regionAt(this.map, res.x, res.y).id);
+        this.store.insertResource(res, regionAt(this.map, res.x, res.y).id, this.region);
       });
       this.resources.set(res.id, res);
       this.broadcast({ t: 'res_spawn', res });
@@ -229,7 +245,7 @@ export class FieldRoom {
         const pt = pickRespawnPoint(this.nightPts, kind, [...this.resources.values()], this.random);
         if (!pt) continue;
         const res = { id: '', kind, x: pt.x, y: pt.y };
-        this.store.tx(() => { res.id = this._nextId(prefix); this.store.insertResource(res, regionAt(this.map, res.x, res.y).id); });
+        this.store.tx(() => { res.id = this._nextId(prefix); this.store.insertResource(res, regionAt(this.map, res.x, res.y).id, this.region); });
         this.resources.set(res.id, res);
         this.broadcast({ t: 'res_spawn', res });
         out.spawned.push(res);
@@ -261,7 +277,7 @@ export class FieldRoom {
       p.life = drink(p.life, r.kind === 'puddle' ? ENV.PUDDLE_DRINK : LIFE.DEW_DRINK);
       return { ok: true, src: r.kind };
     }
-    if (!nearWater(this.map, p.st.x, p.st.y)) return { ok: false, code: 'too_far', reason: '近くに水が無い（オアシスのふちか、夜の夜露で）' };
+    if (!nearWater(this.map, p.st.x, p.st.y)) return { ok: false, code: 'too_far', reason: '近くに水が無い（水場・川のふちか、夜の夜露で）' };
     p.life = drink(p.life, LIFE.WATER_DRINK);
     return { ok: true, src: 'water' };
   }
@@ -275,6 +291,7 @@ export class FieldRoom {
     if (r.kind === 'dew' || r.kind === 'puddle') return { ok: false, code: 'rule', reason: (r.kind === 'dew' ? '夜露' : '水たまり') + 'は拾えない（E で飲む）' };
     if (p.st.jump) return { ok: false, code: 'too_far', reason: '跳んでいる最中' };
     if (Math.hypot(r.x - p.st.x, r.y - p.st.y) > PICK_RANGE) return { ok: false, code: 'too_far', reason: '遠すぎる' };
+    if (r.kind === 'curio') return this.pickCurio(p, r);
     if (!canAdd(p.inv, r.kind, r.n > 1 ? r.n : 1)) return { ok: false, code: 'full', reason: '持ち物がいっぱい' };
     const inv = clone(p.inv);
     addItem(inv, r.kind, r.n > 1 ? r.n : 1);
@@ -287,7 +304,7 @@ export class FieldRoom {
       this.store.tx(() => {
         if (this.store.takeResource(r.id) !== 1) throw new Error('gone');
         this.store.setCharInventory(p.charId, inv);
-        if (back) { qid = this._nextId('q'); this.store.queueRespawn(qid, r.kind, Math.round(at)); }
+        if (back) { qid = this._nextId('q'); this.store.queueRespawn(qid, r.kind, Math.round(at), this.region); }
       });
     } catch (e) {
       this.resources.delete(r.id);
@@ -316,13 +333,14 @@ export class FieldRoom {
     const seed = Math.floor(hash2(chk.x, chk.y, 7) * 1e9);
     let nestId;
     this.store.tx(() => {
-      nestId = this.store.createNest(p.accountId, { data: createNest({ seed }), x: chk.x, y: chk.y, regionId: regionAt(this.map, chk.x, chk.y).id, land: landOut(land) });
+      nestId = this.store.createNest(p.accountId, { data: createNest({ seed }), x: chk.x, y: chk.y, regionId: regionAt(this.map, chk.x, chk.y).id, land: landOut(land), field: this.region });
       if (Object.keys(cost).length) this.store.setCharInventory(p.charId, inv);
     });
     p.inv = inv;
-    const ent = { owner: p.accountId, nestId, x: chk.x, y: chk.y };
+    const ent = { owner: p.accountId, nestId, x: chk.x, y: chk.y, region: this.region };
     this.entrances.set(p.accountId, ent);
     for (const o of this.players.values()) if (o !== p && o.conn) o.conn.send({ t: 'entrance', entrance: this.entranceOut(ent, o.accountId) });
+    if (this.onDig) this.onDig(p, ent);
     return { ok: true, entrance: this.entranceOut(ent, p.accountId), inv: clone(inv), cost, land: landOut(land), digTime: digTime(land) };
   }
 
@@ -337,9 +355,9 @@ export class FieldRoom {
     const own = this.store.nestByOwner(p.accountId);
     const others = [...this.entrances.values()].filter(e => e.owner !== p.accountId);
     const chk = canDigBurrow(this.map, p.st.x, p.st.y, own ? others : [...this.entrances.values()]);
-    const here = { canDig: chk.ok, reason: chk.ok ? null : chk.reason, digCost: digCost(L), digTime: digTime(L), relocateCost: relocateCost(L), nests: this.store.nestsInPlot(L.id),
-      hasNest: !!own, cooldownMs: own ? Math.max(0, (own.relocatedAt || 0) + this.relocateCooldownMs - t) : 0, x: chk.x, y: chk.y };
-    if (own && chk.ok && Math.hypot(own.x - chk.x, own.y - chk.y) < RELOCATE_MIN_DIST) { here.canMove = false; here.moveReason = '今の巣に近すぎる（8 マス以上はなれて）'; }
+    const here = { canDig: chk.ok, reason: chk.ok ? null : chk.reason, digCost: digCost(L), digTime: digTime(L), relocateCost: relocateCost(L), nests: this.store.nestsInPlot(L.id, this.region),
+      hasNest: !!own, cooldownMs: own ? Math.max(0, (own.relocatedAt || 0) + this.relocateCooldownMs - t) : 0, x: chk.x, y: chk.y, region: this.region, nestRegion: own ? own.field || 'plains' : null };
+    if (own && chk.ok && (own.field || 'plains') === this.region && Math.hypot(own.x - chk.x, own.y - chk.y) < RELOCATE_MIN_DIST) { here.canMove = false; here.moveReason = '今の巣に近すぎる（8 マス以上はなれて）'; }
     else here.canMove = !!own && chk.ok;
     const env = this.env(t, p);
     return { ok: true, land: { ...landOut(L), here: { weather: env.weather, season: env.season, sheltered: env.sheltered } }, here };
@@ -356,21 +374,22 @@ export class FieldRoom {
     const others = [...this.entrances.values()].filter(e => e.owner !== p.accountId);
     const chk = canDigBurrow(this.map, p.st.x, p.st.y, others);
     if (!chk.ok) return { ok: false, code: 'rule', reason: chk.reason };
-    if (Math.hypot(nest.x - chk.x, nest.y - chk.y) < RELOCATE_MIN_DIST) return { ok: false, code: 'rule', reason: '今の巣に近すぎる（8 マス以上はなれて）' };
+    const same = (nest.field || 'plains') === this.region;    // Ver.0.5：ほかの土地へも引っ越せる
+    if (same && Math.hypot(nest.x - chk.x, nest.y - chk.y) < RELOCATE_MIN_DIST) return { ok: false, code: 'rule', reason: '今の巣に近すぎる（8 マス以上はなれて）' };
     const land = landAt(this.map, chk.x, chk.y), cost = relocateCost(land);
     const inv = clone(p.inv);
     if (!payCost(inv, cost)) return { ok: false, code: 'rule', reason: '素材が足りない（' + costLabel(cost) + '）', cost };
     this.store.tx(() => {
-      this.store.relocateNest(nest.id, { x: chk.x, y: chk.y, regionId: regionAt(this.map, chk.x, chk.y).id, land: landOut(land) }, t);
+      this.store.relocateNest(nest.id, { x: chk.x, y: chk.y, regionId: regionAt(this.map, chk.x, chk.y).id, land: landOut(land), field: this.region }, t);
       this.store.setCharInventory(p.charId, inv);
     });
     p.inv = inv;
-    const old = this.entrances.get(p.accountId);
-    const ent = { owner: p.accountId, nestId: nest.id, x: chk.x, y: chk.y };
+    const old = same ? this.entrances.get(p.accountId) : null;
+    const ent = { owner: p.accountId, nestId: nest.id, x: chk.x, y: chk.y, region: this.region };
     this.entrances.set(p.accountId, ent);
-    if (this.onRelocate) this.onRelocate(p, nest, ent);
+    if (this.onRelocate) this.onRelocate(p, nest, ent, same ? null : (nest.field || 'plains'));
     for (const o of this.players.values()) if (o !== p && o.conn) o.conn.send({ t: 'entrance', entrance: this.entranceOut(ent, o.accountId), moved: true, from: old ? { x: old.x, y: old.y } : null });
-    return { ok: true, entrance: this.entranceOut(ent, p.accountId), inv: clone(inv), cost, land: landOut(land), from: old ? { x: old.x, y: old.y } : null };
+    return { ok: true, entrance: this.entranceOut(ent, p.accountId), inv: clone(inv), cost, land: landOut(land), from: old ? { x: old.x, y: old.y } : null, fromRegion: same ? null : (nest.field || 'plains') };
   }
 
   // ───────── 天気・期限（Ver.0.3）─────────
@@ -389,7 +408,7 @@ export class FieldRoom {
         const pt = pickRespawnPoint(this.nightPts.filter(q => q.kind === 'dew'), 'dew', [...this.resources.values()], this.random);
         if (pt) {
           const res = { id: '', kind: 'puddle', x: pt.x, y: pt.y };
-          this.store.tx(() => { res.id = this._nextId('w'); this.store.insertResource(res, regionAt(this.map, res.x, res.y).id); });
+          this.store.tx(() => { res.id = this._nextId('w'); this.store.insertResource(res, regionAt(this.map, res.x, res.y).id, this.region); });
           this.resources.set(res.id, res); this.broadcast({ t: 'res_spawn', res }); out.spawned.push(res);
         }
       }
@@ -411,7 +430,7 @@ export class FieldRoom {
       const pt = pickRespawnPoint(pts.map(q => ({ ...q, kind: L.rare })), L.rare, [...this.resources.values()], this.random);
       if (!pt) { this.rareT.set(L.id, t + 60000); continue; }
       const res = { id: '', kind: L.rare, x: pt.x, y: pt.y };
-      this.store.tx(() => { res.id = this._nextId('g'); this.store.insertResource(res, regionAt(this.map, res.x, res.y).id); });
+      this.store.tx(() => { res.id = this._nextId('g'); this.store.insertResource(res, regionAt(this.map, res.x, res.y).id, this.region); });
       this.resources.set(res.id, res); this.broadcast({ t: 'res_spawn', res }); out.spawned.push(res);
       this.rareT.set(L.id, Infinity);    // 拾われたら次の待ちを決める
     }
@@ -433,7 +452,7 @@ export class FieldRoom {
     this.store.tx(() => {
       drops.forEach((d, i) => {
         const res = { id: this._nextId('x'), kind: d.id, x: spots[i].x, y: spots[i].y, n: d.n, exp: Math.round(exp) };
-        this.store.insertResource(res, regionAt(this.map, res.x, res.y).id);
+        this.store.insertResource(res, regionAt(this.map, res.x, res.y).id, this.region);
         out.push(res);
       });
     });
@@ -471,6 +490,56 @@ FieldRoom.prototype.wildTick = function (t = this.now()) {
   const ev = this.wild.step({ season: env.season, period: env.period, scale: this.clock.scale || 1, players }, WILD_DT);
   for (const e of ev) if (this.onWild && (e.type === 'befriend' || e.type === 'lost' || e.type === 'startle')) this.onWild(e);
   return ev;
+};
+
+// ───────── 収集品（Ver.0.5）─────────
+/** CURIO_TICK_MS（世界の時間）ごと：合わなくなった収集品（昼になった夜の品など）を消し、ときどき 1 つ出す */
+FieldRoom.prototype.curioTick = function (t = this.now(), force = null) {
+  this.curioT = t + CURIO_TICK_MS / (this.clock.scale || 1);
+  const env = this.env(t);
+  const out = { spawned: null, gone: [] };
+  const ground = [...this.resources.values()].filter(r => r.kind === 'curio');
+  const bad = ground.filter(r => !CURIOS[r.cid] || !curioEligible(CURIOS[r.cid], this.region, env));
+  if (bad.length) {
+    this.store.tx(() => { for (const r of bad) this.store.takeResource(r.id); });
+    for (const r of bad) { this.resources.delete(r.id); this.broadcast({ t: 'res_gone', id: r.id, by: 0 }); out.gone.push(r); }
+  }
+  const present = [...this.players.values()].map(p => this.ownedOf(p));
+  const def = force ? CURIOS[force] : pickCurioSpawn({ region: this.region, env, ground: ground.filter(r => !bad.includes(r)), present, rnd: this.curioRng });
+  if (!def) return out;
+  const occupied = [...this.resources.values()];
+  const cand = curioSpots(this.map, this.spawnPts, def.near).filter(q => !occupied.some(o => Math.abs(o.x - q.x) < 12 && Math.abs(o.y - q.y) < 12));
+  if (!cand.length) return out;
+  const pt = force && force.at ? force.at : cand[Math.floor(this.curioRng() * cand.length)];
+  return this.placeCurio(def.id, pt.x, pt.y, t, out);
+};
+FieldRoom.prototype.placeCurio = function (cid, x, y, t = this.now(), out = { spawned: null }) {
+  const res = { id: '', kind: 'curio', cid, x, y, exp: Math.round(t + CURIO_TTL_MS / (this.clock.scale || 1)) };
+  this.store.tx(() => { res.id = this._nextId('c'); this.store.insertResource(res, null, this.region); });
+  this.resources.set(res.id, res);
+  this.broadcast({ t: 'res_spawn', res });
+  out.spawned = res;
+  return out;
+};
+/** 収集品を拾う：もう図鑑にある子は拾えない（ほかの子のために残る）。資源を消す＋図鑑に入れるを 1 トランザクションで（先着 1 人・二重に入らない） */
+FieldRoom.prototype.pickCurio = function (p, r) {
+  if (!CURIOS[r.cid]) return { ok: false, code: 'not_found', reason: 'もう無い' };
+  if (this.store.hasCollectible(p.accountId, r.cid)) return { ok: false, code: 'rule', reason: 'もう図鑑にある（ほかの子のために置いておこう）', have: true };
+  const at = this.now();
+  try {
+    this.store.tx(() => {
+      if (this.store.takeResource(r.id) !== 1) throw new Error('gone');
+      if (this.store.addCollectible(p.accountId, r.cid, at, { region: this.region }) !== 1) throw new Error('dup');
+    });
+  } catch (e) {
+    if (e.message === 'dup') return { ok: false, code: 'rule', reason: 'もう図鑑にある' };
+    this.resources.delete(r.id);
+    return { ok: false, code: 'not_found', reason: 'もう無い（だれかが拾った）' };
+  }
+  this.resources.delete(r.id);
+  this.broadcast({ t: 'res_gone', id: r.id, by: p.accountId });
+  if (this.onCollect) this.onCollect(p, r.cid, at);
+  return { ok: true, item: 'curio', cid: r.cid, n: 1, inv: clone(p.inv), at };
 };
 
 function costLabel(c) { return Object.entries(c).map(([k, v]) => ({ pebble: '小石', grass: '草', seed: '種子' }[k] || k) + '×' + v).join('・'); }

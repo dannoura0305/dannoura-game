@@ -5,7 +5,10 @@ import { FURNITURE } from '../shared/items.js';
 
 /** 家具・備え付けのピクセル矩形 */
 export function objectRects(data) {
-  return objectsWithFixtures(data).map(o => ({ ...o, px: o.x * CELL, py: o.y * CELL, pw: o.w * CELL, ph: o.h * CELL }));
+  return objectsWithFixtures(data).map(o => {
+    const r = o.roomId ? data.rooms.find(q => q.id === o.roomId) : null;   // floorY：部屋の床（壁に掛けた飾りか、床に置いた飾りか）
+    return { ...o, px: o.x * CELL, py: o.y * CELL, pw: o.w * CELL, ph: o.h * CELL, ...(r ? { floorY: (r.y + r.h) * CELL } : {}) };
+  });
 }
 export function roomRects(data) {
   return data.rooms.map(r => ({ ...r, px: r.x * CELL, py: r.y * CELL, pw: r.w * CELL, ph: r.h * CELL }));
@@ -24,7 +27,7 @@ export function walkLayout(data) {
     x0: o.px - 4, x1: o.px + o.pw + 4, floorY: o.py + o.ph,
     action: o.type === 'nestbed' ? 'sleep' : o.type === 'storage' ? 'store' : 'look',
   }));
-  const lights = objects.filter(o => o.type === 'lamp').map(o => ({ x: o.px + o.pw / 2, y: o.py + 9, r: FURNITURE.lamp.light }));
+  const lights = objects.filter(o => FURNITURE[o.type] && FURNITURE[o.type].light).map(o => ({ x: o.px + o.pw / 2, y: o.py + 9, r: FURNITURE[o.type].light }));
   return {
     cell: CELL, width: data.w * CELL, height: data.h * CELL,
     rooms: roomRects(data), objects, interact, lights,

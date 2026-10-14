@@ -290,7 +290,7 @@ await test('マイグレーション 004 → 005：今いる子が 1 代目の�
   old.db.exec("INSERT INTO characters (account_id, individual_id, name, fur, active, created_at) VALUES (1, 1, 'むかし', 'rufous', 1, 5)");
   old.close();
   const db = await openDb(file, { log: () => {} });
-  assert.equal(db.schemaVersion(), 5);
+  assert.equal(db.schemaVersion(), 6);   // Ver.0.5 の 006 まで
   const h = db.household(1);
   assert.equal(h.me.name, 'むかし'); assert.equal(h.me.role, 'player'); assert.deepEqual(h.me.genes.col, ['rufous', 'rufous']);
   assert.equal(stageOf(h.me.ageMs), 'adult'); assert.ok(h.me.sex === 'f' || h.me.sex === 'm');

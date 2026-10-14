@@ -14,7 +14,7 @@ export const ITEMS = {
   pebble: { id: 'pebble', name: '小石', desc: '丸い小石。巣の補強や飾りに使う。入口をふさぐのにも使う。' },
   // Ver.0.3：土地の希少資源（区画によって、ときどき 1 つだけ見つかる）
   rare_seed:    { id: 'rare_seed',    name: '珍しい種',   desc: '甘い香りの大きな種。食べると空腹 +40・体調 +10。' },
-  pretty_stone: { id: 'pretty_stone', name: 'きれいな石', desc: '光に透ける小石。見ているだけで うれしい（いつか飾りに）。' },
+  pretty_stone: { id: 'pretty_stone', name: 'きれいな石', desc: '光に透ける小石。巣に「きれいな石の飾り」として飾れる。' },
 };
 export const RESOURCE_KINDS = ['seed', 'grass', 'pebble'];
 
@@ -26,8 +26,18 @@ export const FURNITURE = {
   seed_pile:    { id: 'seed_pile',    name: '種の山',     w: 1, h: 1, mount: 'floor', cost: { seed: 5 },             desc: '見ているだけで安心する。' },
   dried_flower: { id: 'dried_flower', name: '乾いた花',   w: 1, h: 1, mount: 'floor', cost: { grass: 2, seed: 1 },   desc: '砂漠の花を乾かしたもの。' },
   shelf:        { id: 'shelf',        name: '棚',         w: 2, h: 2, mount: 'floor', cost: { pebble: 2, grass: 2 }, desc: '小石と草の根で組んだ棚。' },
+  // ── Ver.0.5「広がり」──
+  stone_display: { id: 'stone_display', name: 'きれいな石の飾り', w: 1, h: 1, mount: 'floor', cost: { pretty_stone: 1 }, desc: '光に透ける石を、草の台にのせて飾った。' },
+  // 収集品を飾る（op に item：図鑑にある物だけ・同じ巣に同じ物は 1 つ。素材は使わず、撤去しても図鑑からは消えない）。壁にも床にも置ける
+  curio:         { id: 'curio', name: '収集品', w: 1, h: 1, mount: 'any', cost: {}, curio: true, desc: '図鑑の品を飾った。' },
+  // 実績のごほうび（unlock の実績を取ると使える）
+  wreath:        { id: 'wreath', name: '季節のリース', w: 1, h: 1, mount: 'any', cost: { grass: 2 }, unlock: 'seasons4', desc: '春の花・夏の草・秋の実・冬の枝を編んだ輪。' },
+  star_lamp:     { id: 'star_lamp', name: '星の灯り', w: 1, h: 1, mount: 'ceil', cost: { pebble: 1 }, unlock: 'regions4', light: 44, desc: '旅の土地の石を集めた、星のような灯り。' },
+  curio_shelf:   { id: 'curio_shelf', name: '飾り棚', w: 2, h: 2, mount: 'floor', cost: { pebble: 2, grass: 1 }, unlock: 'collector5', desc: '集めた品を並べたくなる棚。' },
+  family_tree:   { id: 'family_tree', name: '家族の木', w: 1, h: 2, mount: 'floor', cost: { grass: 2, seed: 1 }, unlock: 'gen3', desc: '代々の子の毛をむすんだ、小さな木。' },
+  snowman:       { id: 'snowman', name: '小さな雪だるま', w: 1, h: 1, mount: 'floor', cost: { pebble: 1 }, unlock: 'toyama', desc: 'なぜか とけない。どこで覚えた形だろう。' },
 };
-export const FURNITURE_ORDER = ['lamp', 'rug', 'pebble_deco', 'seed_pile', 'dried_flower', 'shelf'];
+export const FURNITURE_ORDER = ['lamp', 'rug', 'pebble_deco', 'seed_pile', 'dried_flower', 'shelf', 'stone_display', 'wreath', 'star_lamp', 'curio_shelf', 'family_tree', 'snowman'];
 
 // 部屋の種類が決める「備え付け」（データには保存せず、部屋の矩形から毎回同じ位置に導く）
 export const FIXTURES = {

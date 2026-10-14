@@ -154,3 +154,26 @@ python3 tobinezumi/tools/normalize_sprites.py --help # 外部画像の規格化
 | `ui.lineage_frame` | 24×24・2 種（normal, current）・9 スライス 6px | 家系図の額縁（いまの子は明るい金） |
 
 - 形質の描き分け（耳・脚・尾の長さ、体の大きさ、濃淡・斑・白い房）は素材を増やさず、`client/sprites.js` の `_drawLook` がコマごとに画素を伸び縮み・色を差し替えて作る（キャッシュ）。若者は大人の素材を 0.84 倍、子どもは `pup.*`。
+
+### Ver.0.5「広がり」（`tools/art_regions.py` が描く。無ければ `client/art.js` のコード描画）
+| キー | セル | 中身 |
+|---|---|---|
+| `tile.dune` | 16×16・3 種 | 砂丘の波・さらさら砂 |
+| `tile.cliff` / `tile.ledge` | 16×16・2 種 | 渓谷の崖の岩・段差の縁（下へだけ通れる） |
+| `tile.river` | 16×16・4 種（揺れ） | 谷の川 |
+| `tile.paddy` | 16×16・4 種（spring/summer/autumn/winter） | 富山の田んぼ（季節で水・苗・稲・雪） |
+| `tile.channel` / `tile.path` | 16×16・2 種 | 水路・あぜ道 |
+| `tile.mountains` | 256×128 | 富山の北の雪の山なみ（横に並べる） |
+| `tile.house` | 96×80・2 種 | 家（入れない） |
+| `tile.sakura` | 48×64・4 種（季節） | 桜 |
+| `tile.shrine` / `tile.post` | 32×32 / 16×32 | 祠・道しるべ |
+| `tile.machine` / `tile.phone` | 16×16・1/2 種 | 機械の部品・光る板（点く・消える） |
+| `tile.stone_marker` | 16×24 | 谷の奥の古い石の標 |
+| `tile.hole` | 32×24・4 種（脈うつ） | 不思議な穴 |
+| `fx.white_shape` | 16×16・2 種 | 遠くの白い小さな影 |
+| `ui.worldmap` | 192×144 | 世界地図の下地 |
+| `item.curio.ground` / `item.curio.<id>.icon` | 16×16・18 種 | 地面のきらめき・収集品のアイコン（図鑑・巣の飾り） |
+| `nest.stone_display`・`nest.curio_stand`・`nest.wreath`・`nest.curio_shelf`・`nest.family_tree`・`nest.snowman`・`nest.star_lamp` | 家具 | きれいな石の飾り・図鑑の台・季節のリース・飾り棚・家族の木・小さな雪だるま・星の灯り |
+
+- 雪のまだら・砂嵐・蛍・桜の花びら・夜の灯りは `client/scene-field.js` がコードで描く。環境音は `client/ambient.js` が WebAudio で合成（音のファイルなし）。
+- 素材は `python3 tools/make_assets.py` で 139 個（決まった種から作るので、何度作っても同じ）。

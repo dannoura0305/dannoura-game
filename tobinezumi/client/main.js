@@ -18,6 +18,12 @@ import { initSfx, setSfx, sfx } from './sfx.js';
 import { familyPanel, namingDialog, farewellScene, lineagePanel } from './family-ui.js';
 import { lookOf, traitMoveMods } from '../shared/genetics.js';
 import { STAGE_NAME, ageLabel, STAGE } from '../shared/family.js';
+import { worldMapPanel, collectionPanel, achievementsPanel, rankingPanel, residentsPanel, discoveryCard, regionCard } from './world-ui.js';
+import { CURIOS, ACH, unlockedDecor, isCurio } from '../shared/collect.js';
+import { REGION } from '../shared/world.js';
+import { FURNITURE } from '../shared/items.js';
+import { seasonOf } from '../shared/season.js';
+import { Ambient } from './ambient.js';
 
 const stage = document.getElementById('tb-stage');
 const game = {
@@ -53,6 +59,8 @@ game.setTouch = function (on) {
   if (game.scene && game.scene.onTouchChange) game.scene.onTouchChange(on);
 };
 game.setTouch(detectTouch(game.settings.touchUI || 'auto'));
+// Ver.0.5：環境音（風・雨・川・虫・フクロウ・キツネ。WebAudio で合成）
+game.ambient = new Ambient(game.settings.ambient != null ? game.settings.ambient : 0.5);
 // 自動のとき：タッチパネル付きの PC でも、指で触ったらタッチ用に切り替える
 game.input.onPointer = e => { if (e.pointerType === 'touch' && !game.isTouch && (game.settings.touchUI || 'auto') === 'auto') game.setTouch(true); };
 addEventListener('pointerdown', e => game.input.onPointer(e), { capture: true, passive: true });
@@ -108,6 +116,7 @@ game.updateEnv = function (force = false) {
   const st = f && f.pred ? f.pred.state : { x: 0, y: 0 };
   const on = !f || !f.danger || f.danger.env !== false;
   game.env = envAt(net.clock, net.serverTime(), { map: f && f.map, x: st.x, y: st.y, place, entrances: f ? f.entrances : [], enabled: on });
+  game.envSeasonProgress = seasonOf(net.clock, net.serverTime()).progress;
   return game.env;
 };
 /** 暮らしの数値が届いた：HUD を更新し、境目をまたいだら知らせる */
@@ -246,6 +255,44 @@ game.lifespanDialog = function () {
   ]);
 };
 
+// ── 広がり（Ver.0.5）：旅・図鑑・実績・共同巣 ──
+game.collection = { owned: {}, achievements: {}, found: false };
+game.setCollection = function (c) {
+  if (!c) return;
+  game.collection = { owned: { ...(c.owned || {}) }, achievements: { ...(c.achievements || {}) }, found: !!c.found };
+  game.debug.collection = Object.keys(game.collection.owned).length; game.debug.achievements = Object.keys(game.collection.achievements).length;
+};
+/** 巣の操作の見た目の判定（置けるか）：図鑑にある品・実績で使える飾り。正はサーバー／オフラインのバックエンド */
+game.nestCtx = () => ({ owned: new Set(Object.keys(game.collection.owned)), unlocks: new Set(unlockedDecor(Object.keys(game.collection.achievements))), isCurio });
+/** 画面を暗くする（旅のあいだ）。white：不思議な穴（白く） */
+game.fade = function (on, kind = null) {
+  if (!game._fadeEl) { game._fadeEl = el('div', 'tb-fade'); document.getElementById('tb-app').appendChild(game._fadeEl); }
+  game._fadeEl.classList.toggle('white', kind === 'white');
+  game._fadeEl.classList.toggle('on', !!on);
+};
+/** 別の土地に着いた（旅・不思議な穴・開発用）：地上の画面を作りなおす */
+game.arrive = function (world, why = 'travel', first = false) {
+  if (!world) return;
+  game.nest = null; game.nestPeers = [];
+  game.field.init(world);
+  game.setInv(world.you.inv);
+  if (world.life) game.setLife(world.life, true);
+  if (world.friends) game.setFriends(world.friends);
+  if (world.family) game.setFamily(world.family);
+  game.go(game.field, { pos: { x: world.you.x, y: world.you.y } });
+  game.field._arrivedT = game.field.t;
+  setTimeout(() => game.fade(false), 120);
+  regionCard(game, world.region);
+  if (why === 'gate' && world.region === 'toyama' && first) setTimeout(() => game.ui.note('穴をくぐると、冷たい空気と、水のにおい。<br>見たことのない白い山が、ずっと遠くまで続いている。<br><span class="tb-dim">（「来た穴」から いつでも谷へ戻れる）</span>'), 3000);
+  game.debug.region = world.region; game.debug.travels = (game.debug.travels || 0) + 1;
+};
+game.openWorldMap = () => worldMapPanel(game);
+game.openCollection = () => collectionPanel(game);
+game.openAchievements = () => achievementsPanel(game);
+game.openRanking = () => rankingPanel(game);
+game.openResidents = () => residentsPanel(game);
+game.onResidents = info => { if (game.field) game.field.home = info.home ? { nestId: info.home.nestId, x: info.home.x, y: info.home.y, region: info.home.region, ownerName: info.home.ownerName } : null; };
+
 // ── フレンド・巣の設定（Ver.0.2）──
 game.friends = [];
 game.setFriends = function (list) {
@@ -261,12 +308,18 @@ game.openFriends = async function () {
     request: async name => { const x = await net.friendRequest(name); if (!x.ok) { game.ui.toast(x.reason || 'できなかった', 'bad'); return; } game.setFriends(x.list); game.ui.toast(x.state === 'friend' ? name + ' と フレンドになった' : name + ' に フレンド申請を送った'); },
     accept: async id => { const x = await net.friendAccept(id); if (!x.ok) { game.ui.toast(x.reason || 'できなかった', 'bad'); return; } game.setFriends(x.list); game.ui.toast('フレンドになった'); },
     remove: async id => { const x = await net.friendRemove(id); if (!x.ok) { game.ui.toast(x.reason || 'できなかった', 'bad'); return; } game.setFriends(x.list); },
-    ping: f => { game.ui.closeModal(); if (game.field) game.field.pingAt(f.nest.x, f.nest.y, f.name + 'の巣'); game.ui.toast(f.name + 'の巣は ミニマップで光っている所'); },
+    ping: f => {
+      game.ui.closeModal();
+      const r = (f.nest && f.nest.region) || 'plains';
+      if (r !== (net.region || 'plains')) { game.ui.toast(f.name + 'の巣は「' + ((REGION[r] || {}).name || r) + '」にある（世界地図・N）'); return; }
+      if (game.field) game.field.pingAt(f.nest.x, f.nest.y, f.name + 'の巣'); game.ui.toast(f.name + 'の巣は ミニマップで光っている所');
+    },
   }, { offline: net.mode === 'offline' });
 };
 game.openNestSettings = function (nest) {
   const net = game.net;
   game.ui.nestSettings(nest, {
+    residents: () => { game.ui.closeModal(); game.openResidents(); },
     policy: async (v, list) => {
       const r = await net.setVisitPolicy(v, list);
       if (!r.ok) { game.ui.toast(r.reason || '変えられなかった', 'bad'); return false; }
@@ -298,6 +351,8 @@ game.startGame = async function () {
   game.ui.onHotbar = () => game.ui.toggleInventory((a, b) => game.moveSlot(a, b));
   game.ui.onEat = item => game.eat('inv', item || 'seed');
   game.relocateCooldownMs = (r.world.danger && r.world.danger.relocateCooldownMs) || 600000;
+  if (r.world.collection) game.setCollection(r.world.collection);
+  game.debug.region = r.world.region || 'plains';
   game.life = null;
   game.setLife(r.world.life);
   game.setFriends(r.world.friends || []);
@@ -330,9 +385,12 @@ game.openMenu = function () {
     <label class="tb-field">${game.isTouch ? '表示の大きさ' : '拡大率'} <select class="zoom">${zooms.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
     <label class="tb-field">タッチ操作のボタン <select class="touchui">${touchOpts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
     ${net.mode === 'offline' ? `<label class="tb-field">捕食者（フクロウ・キツネ・ヘビ） <select class="danger">${dangerOpts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>` : ''}
-    <label class="tb-field">効果音 <select class="sound"><option value="on">鳴らす</option><option value="off">鳴らさない</option></select></label>`, [
+    <label class="tb-field">効果音 <select class="sound"><option value="on">鳴らす</option><option value="off">鳴らさない</option></select></label>
+    <label class="tb-field">環境音（風・雨・川・虫・鳴き声） <select class="ambient"><option value="0">鳴らさない</option><option value="0.25">小さく</option><option value="0.5">ふつう</option><option value="0.85">大きく</option></select></label>`, [
     { label: 'ゲームにもどる', act: () => game.ui.closeModal() },
-    ...(game.field ? [{ label: 'フレンド', act: () => { game.ui.closeModal(); game.openFriends(); } }, { label: 'くらし（体調・空腹・水分・年齢）', act: () => { game.ui.closeModal(); game.openLife(); } },
+    ...(game.field ? [{ label: '世界地図', act: () => { game.ui.closeModal(); game.openWorldMap(); } }, { label: '図鑑（収集品）', act: () => { game.ui.closeModal(); game.openCollection(); } },
+      { label: '実績', act: () => { game.ui.closeModal(); game.openAchievements(); } }, { label: '豊かな巣（みんなの巣）', act: () => { game.ui.closeModal(); game.openRanking(); } },
+      { label: 'フレンド', act: () => { game.ui.closeModal(); game.openFriends(); } }, { label: '共同巣', act: () => { game.ui.closeModal(); game.openResidents(); } }, { label: 'くらし（体調・空腹・水分・年齢）', act: () => { game.ui.closeModal(); game.openLife(); } },
       { label: '家族', act: () => { game.ui.closeModal(); game.openFamily(); } }, { label: '家系図', act: () => { game.ui.closeModal(); game.openLineage(); } }] : []),
     ...(game.scene && game.scene.helpHTML ? [{ label: 'ヘルプ（操作のしかた）', act: () => { const h = game.scene.helpHTML(); game.ui.closeModal(); game.ui.menu('ヘルプ', `<div class="tb-help-full">${h}</div>`, [{ label: 'とじる', act: () => game.ui.closeModal() }]); } }] : []),
     ...(fsOK && game.isTouch ? [{ label: document.fullscreenElement ? '全画面をやめる' : '全画面にする', act: () => { game.ui.closeModal(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); } }] : []),
@@ -347,6 +405,9 @@ game.openMenu = function () {
   if (ds) { ds.value = net.dangerMode || s.danger || 'normal'; ds.onchange = () => { s.danger = ds.value; saveSettings(s); net.setDanger(ds.value); if (game.field && game.field.danger) game.field.danger.predators = ds.value; game.ui.toast('捕食者：' + dangerOpts.find(o => o[0] === ds.value)[1]); }; }
   const ss = p.querySelector('.sound'); ss.value = s.sound === false ? 'off' : 'on';
   ss.onchange = () => { s.sound = ss.value === 'on'; saveSettings(s); setSfx(s.sound); };
+  const as = p.querySelector('.ambient'); const av = s.ambient != null ? s.ambient : 0.5;
+  as.value = ['0', '0.25', '0.5', '0.85'].reduce((a, b) => Math.abs(b - av) < Math.abs(a - av) ? b : a, '0.5');
+  as.onchange = () => { s.ambient = Number(as.value); saveSettings(s); game.ambient.setVolume(s.ambient); };
 };
 
 // ── 通信の通知 ──
@@ -397,6 +458,21 @@ function wire(net) {
   net.on('player_update', m => { if (game.field && game.field.updatePlayer) game.field.updatePlayer(m.player); });
   net.on('wild', m => { if (game.field && game.field.onWild) game.field.onWild(m); });
   net.on('visit', m => game.ui.toast(m.name + ' が あなたの巣を たずねてきた'));
+  // Ver.0.5：図鑑・実績・共同巣
+  net.on('collect', m => {
+    game.collection.owned[m.cid] = m.at || Date.now();
+    game.debug.collection = Object.keys(game.collection.owned).length;
+    discoveryCard(game, m.cid);
+  });
+  net.on('achievement', m => {
+    game.collection.achievements[m.id] = m.at || Date.now();
+    game.debug.achievements = Object.keys(game.collection.achievements).length;
+    const a = ACH[m.id];
+    if (!a) return;
+    sfx('safe');
+    game.ui.toast('実績「' + a.name + '」' + (m.reward && FURNITURE[m.reward] ? '　ごほうび：' + FURNITURE[m.reward].name + '（巣の家具に）' : ''));
+  });
+  net.on('residents', m => { if (m.text) game.ui.toast(m.text); game.onResidents(m); });
   net.on('nest_role', m => {
     if (!game.nest || game.nest.id !== m.nestId) return;
     game.nest.canEdit = !!m.canEdit; game.nest.role = m.role;
@@ -408,6 +484,7 @@ function wire(net) {
   net.on('rejoin', w => {
     if (!game.field || game.scene instanceof TitleScene) return;
     game.field.init(w);
+    if (game.scene === game.field) game.field._snapCam();
     game.setInv(w.you.inv);
     if (w.life) game.setLife(w.life, true);
     if (w.friends) game.setFriends(w.friends);
@@ -442,6 +519,7 @@ function frame(now) {
   if (game.field) game.updateEnv();
   if (game.field && game.ui.clockEl && (sc === game.field || sc === game.walk)) game.ui.setClock(game.tod(), game.env);
   if (game.isTouch) game.touch.setBusy(game.ui.busy());
+  game.ambient.update(dt, game);
   game.input.endFrame();
   requestAnimationFrame(frame);
 }

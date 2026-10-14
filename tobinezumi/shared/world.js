@@ -29,17 +29,23 @@ export const isRegion = id => Object.prototype.hasOwnProperty.call(REGION, id);
 export const regionName = id => (REGION[id] || REGION.plains).name;
 
 const cache = new Map();
-/** 土地の地図（同じ id なら同じもの） */
+/** 土地の地図（同じ id なら同じもの・1 回だけ作って覚える） */
 export function regionMap(id = 'plains') {
   if (!isRegion(id)) id = 'plains';
   if (cache.has(id)) return cache.get(id);
+  const m = buildRegion(id);
+  cache.set(id, m);
+  return m;
+}
+/** 覚えずに作る（テスト：同じ種なら同じ地図か） */
+export function buildRegion(id) {
   const m = id === 'plains' ? buildFieldMap() : GEN[id](REGION[id]);
   m.region = id;
   m.climate = REGION[id].climate;
   if (REGION[id].rare != null) m.rareP = REGION[id].rare;
+  m.resCount = REGION[id].res;
   m.predMul = REGION[id].pred;
-  if (!m.safe) m.safe = [{ id: 'plaza', x: m.spawn.x, y: m.spawn.y, r: 5 * TILE }];
-  cache.set(id, m);
+  if (!m.safe && id !== 'plains') m.safe = [{ id: 'plaza', x: m.spawn.x, y: m.spawn.y, r: 5 * TILE }];   // はじまりの原はオアシスと広場（lands.js）
   return m;
 }
 /** 着いたときの場所：行き先の地図で「来た土地」へ向かう出口のそば */
@@ -110,7 +116,7 @@ function genRocks(def) {
     [T.GRASS]: [[T.TUFT, 0.08], [T.SHRUB, 0.04]],
   });
   m.areaAt = (px, py) => (py < 20 * TILE ? area('hill', 'いわばの高台・北の尾根') : area('hill', 'いわばの高台'));
-  return finish(m, def, 38, 57, [makeGate(m, 's', 38, 'plains')]);
+  return finish(m, def, 36, 57, [makeGate(m, 's', 36, 'plains')]);
 }
 
 // ───────── すなの海（砂丘）─────────

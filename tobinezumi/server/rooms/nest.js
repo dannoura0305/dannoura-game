@@ -5,6 +5,8 @@
 //    shared/nest-rules.js の tryOp で検査 → 素材を払う・返す → rev+1 → 1 トランザクションで保存 → 中にいる人へ nest_update。
 //  ・倉庫：自分の巣・倉庫の部屋がある。持ち物と倉庫を 1 トランザクションで同時に書く。
 //  ・nest_peers：中にいる人の位置（10Hz まで）。巣の中のチャットは中にいる人だけへ。
+//  ・Ver.0.5 共同巣：役割 'resident'（住人：nest_access の role）。住人は所有者と同じように入れて・編集でき・倉庫を使え・眠れて・子を育てられる。
+//    訪問設定・共同作業者・住人の出入りを決めるのは所有者だけ。収集品を飾る（place curio）は図鑑にある物だけ（ctxOf）。
 import { tryOp, CELL, objectsWithFixtures } from '../../shared/nest-rules.js';
 import { payCost, refund, countItem, removeItem, addItem, canAdd, ITEMS } from '../../shared/items.js';
 import { VISIT_POLICIES, validName, MAX_BUILDERS, PLUG_COST, PLUG_GAP_MS } from '../../shared/protocol.js';
@@ -13,7 +15,7 @@ import { RELOCATE_COOLDOWN_MS } from '../../shared/lands.js';
 const clone = inv => inv.map(s => s && { ...s });
 const OPS = new Set(['dig', 'fill', 'tunnel', 'room', 'room-resize', 'set-kind', 'place', 'remove']);
 const NUM_KEYS = ['x', 'y', 'w', 'h', 'len', 's', 'rot'];
-const STR_KEYS = ['id', 'dir', 'kind', 'type'];
+const STR_KEYS = ['id', 'dir', 'kind', 'type', 'item'];
 export const MAX_ALLOW = 30;
 
 /** 送られてきた op を、知っている形だけに切り詰める（余計なキー・変な値は落とす） */
@@ -43,12 +45,15 @@ export class NestHub {
   }
   forget(nestId) { this.metaCache.delete(nestId); }
 
-  /** 巣での役割：'owner' / 'builder'（共同作業者）/ 'visitor' */
+  /** 巣での役割：'owner' / 'resident'（共同巣の住人・Ver.0.5）/ 'builder'（共同作業者）/ 'visitor' */
   role(nest, accountId) {
     if (nest.owner === accountId) return 'owner';
+    if (this.store.hasNestAccess(nest.id, accountId, 'resident')) return 'resident';
     if (this.store.hasNestAccess(nest.id, accountId, 'builder')) return 'builder';
     return 'visitor';
   }
+  /** 家として使える（倉庫・種の山・子育て）：所有者と住人 */
+  isHome(nest, accountId) { const r = this.role(nest, accountId); return r === 'owner' || r === 'resident'; }
   canVisit(nest, accountId) {
     if (this.role(nest, accountId) !== 'visitor') return true;
     if (nest.plugged) return false;          // 入口がふさがれている（所有者と共同作業者だけ）
@@ -61,7 +66,8 @@ export class NestHub {
   record(nest, p) {
     const role = this.role(nest, p.accountId), own = role === 'owner';
     const out = { id: nest.id, owner: nest.owner, ownerName: nest.ownerName, rev: nest.rev, data: nest.data, storage: this.store.nestStorage(nest.id), policy: nest.policy,
-      canEdit: role !== 'visitor', own, role, hostFur: null, plugged: !!nest.plugged, land: nest.land || null,
+      canEdit: role !== 'visitor', own, role, home: own || role === 'resident', region: nest.field || 'plains', hostFur: null, plugged: !!nest.plugged, land: nest.land || null,
+      residents: this.store.nestMembers(nest.id, 'resident').map(id => ({ id, name: (this.store.charBrief(id) || { name: '？' }).name })),
       family: this.familyOf ? this.familyOf(nest) : [] };   // Ver.0.4：巣にいる家族（つれあい・子・きょうだい）。訪問者にも見える
     if (own) { out.relocatedAt = nest.relocatedAt || 0; out.relocateCooldownMs = this.relocateCooldownMs != null ? this.relocateCooldownMs : RELOCATE_COOLDOWN_MS; }
     if (own) { out.list = this._names(nest.id, 'visitor'); out.builders = this._names(nest.id, 'builder'); }
@@ -137,7 +143,7 @@ export class NestHub {
     if (!op) return { ok: false, code: 'bad_request', reason: '操作の形が変' };
     const inv = clone(p.inv);
     let r;
-    try { r = tryOp(nest.data, op, inv); } catch (e) { return { ok: false, code: 'bad_request', reason: '操作の形が変' }; }
+    try { r = tryOp(nest.data, op, inv, this.ctxOf ? this.ctxOf(p) : null); } catch (e) { return { ok: false, code: 'bad_request', reason: '操作の形が変' }; }
     if (!r.ok) return { ok: false, code: 'rule', reason: r.reason };
     if (!payCost(inv, r.cost)) return { ok: false, code: 'rule', reason: '素材が足りない' };
     const back = refund(inv, r.refund);
@@ -151,13 +157,14 @@ export class NestHub {
     p.inv = inv;
     const newRev = nest.rev + 1;
     this.broadcast(nest.id, { t: 'nest_update', nestId: nest.id, rev: newRev, op, data: r.data }, p);
+    if (op.op === 'place' && this.onPlace) this.onPlace(p, nest, op, r.data);
     return { ok: true, rev: newRev, data: r.data, inv: clone(inv), created: r.created, cost: r.cost, refund: back };
   }
 
   // ───────── 倉庫 ─────────
   storeItems(p, nestId, dir, item, n) {
     const nest = this.store.nest(Number(nestId));
-    if (!nest || nest.owner !== p.accountId) return { ok: false, code: 'forbidden', reason: '自分の巣の倉庫ではない' };
+    if (!nest || !this.isHome(nest, p.accountId)) return { ok: false, code: 'forbidden', reason: '自分の巣の倉庫ではない' };
     if (p.place !== 'nest' || p.nestId !== nest.id) return { ok: false, code: 'forbidden', reason: '巣の中にいない' };
     if (!nest.data.rooms.some(r => r.kind === 'store')) return { ok: false, code: 'rule', reason: '倉庫が無い' };
     n = Number(n);
@@ -199,7 +206,7 @@ export class NestHub {
   takeSeedFromPile(p) {
     if (p.place !== 'nest') return { ok: false, code: 'forbidden', reason: '巣の中にいない' };
     const nest = this.store.nest(p.nestId);
-    if (!nest || nest.owner !== p.accountId) return { ok: false, code: 'forbidden', reason: '自分の巣の種の山だけ' };
+    if (!nest || !this.isHome(nest, p.accountId)) return { ok: false, code: 'forbidden', reason: '自分の巣の種の山だけ' };
     if (!this.nearObject(nest, p, 'seed_pile')) return { ok: false, code: 'too_far', reason: '種の山から遠い' };
     const storage = this.store.nestStorage(nest.id);
     if (!removeItem(storage, 'seed', 1)) return { ok: false, code: 'rule', reason: '倉庫に種子が無い' };

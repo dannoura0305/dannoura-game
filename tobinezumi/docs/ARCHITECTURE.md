@@ -91,7 +91,7 @@
 
 ## 5. データ構造（将来拡張を見越して先に分ける）
 
-実装：`server/migrations/001_init.js`・`002_world_containers.js`・`003_life_social.js`（Ver.0.2：friends・nest_visits・nest_access の主キー）・`004_danger_land.js`（Ver.0.3：lands.plot・nests.plugged/relocated_at/raided_at・nest_events・world_resources.qty/expires_at）・`005_family.js`（Ver.0.4：individuals.account_id/role/nest_id・litters）（起動時に未適用分を番号順に当て、`schema_migrations` に記録）。
+実装：`server/migrations/001_init.js`・`002_world_containers.js`・`003_life_social.js`（Ver.0.2：friends・nest_visits・nest_access の主キー）・`004_danger_land.js`（Ver.0.3：lands.plot・nests.plugged/relocated_at/raided_at・nest_events・world_resources.qty/expires_at）・`005_family.js`（Ver.0.4：individuals.account_id/role/nest_id・litters）・`006_regions_collect.js`（Ver.0.5：lands.field_id・world_resources.field_id・characters.region・achievements）（起動時に未適用分を番号順に当て、`schema_migrations` に記録）。
 
 ```
 schema_migrations(version, name, applied_at)                         -- どこまで当てたか
@@ -126,6 +126,7 @@ events(id, key, data JSON) / account_flags(account_id, key, value)    -- 物語�
 - 書き込みは同期 API（`DatabaseSync`）＋`BEGIN IMMEDIATE` のトランザクション。採集は「資源を消す＋持ち物を書く＋再出現待ちを積む」、建築は「`rev` が一致したときだけ巣を書く＋持ち物」、倉庫は「持ち物＋倉庫」を 1 トランザクションで。
 - 「アカウント」と「操作個体」を分けておくことで、**世代交代＝操作個体の切り替え**になる（Ver.0.4 で実装：古い `characters` を active=0、あとをつぐ子の行を足して持ち物を写す。巣・倉庫・フレンド・収集品はアカウントにつくのでそのまま）。
 - 巣は土地 ID を参照するだけなので、**引っ越し＝land_id の付け替え**で済む（Ver.0.3 で実装。古い土地の行は履歴として残す）。
+- Ver.0.5：地上の部屋は土地ごと（`Game.fields`：plains・rocks・dunes・canyon・toyama の 5 部屋）。地図は `shared/world.js` が土地と種から決まった形で作り、サーバーとクライアントの予測が同じ地図で `stepField` を回す（段差・さらさら砂も共有ルール）。旅＝部屋を出て入るだけ（`Game.travel`/`enterGate`）。収集品は部屋ごとに `curioTick` が出し、拾うと `account_collectibles`（先着 1 人を 1 トランザクション）。実績は `achievements`、進み具合は `account_flags`。共同巣は `nest_access` の role `invite`/`resident`。
 - Ver.0.3：捕食者は `FieldRoom.predTick`（20Hz・`shared/predators.js` の `PredatorWorld`）がサーバーで動かし、スナップショットに `preds` を入れる。オフラインは `OfflineBackend` が同じクラスを 1/20 秒刻みで回す。天気・季節は時計から計算するので送らない。
 
 ## 6. 巣データ（全体モードと閲覧モードの共通データ）

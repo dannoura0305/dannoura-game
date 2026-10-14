@@ -10,6 +10,7 @@ import { Sprites } from './sprites.js';
 import { nestQuery, CELL, KIND_NAME } from '../shared/nest-rules.js';
 import { stepSide, makeSideState, STEP_DT } from '../shared/move.js';
 import { FURNITURE, FIXTURES } from '../shared/items.js';
+import { CURIOS } from '../shared/collect.js';
 import { hash2 } from '../shared/rng.js';
 import * as A from './art.js';
 import { PLUG_COST } from '../shared/protocol.js';
@@ -55,7 +56,7 @@ export class NestWalkScene {
   }
   _title() {
     const n = this.nest;
-    return `${esc(n.ownerName)}の巣${n.own ? '' : n.canEdit ? '　<span class="tb-dim">（共同作業者）</span>' : '　<span class="tb-dim">（見学中）</span>'}${n.plugged ? '　<span class="tb-plugtag">入口：ふさいである</span>' : ''}`;
+    return `${esc(n.ownerName)}の巣${n.own ? '' : n.role === 'resident' ? '　<span class="tb-dim">（共同巣の住人）</span>' : n.canEdit ? '　<span class="tb-dim">（共同作業者）</span>' : '　<span class="tb-dim">（見学中）</span>'}${n.plugged ? '　<span class="tb-plugtag">入口：ふさいである</span>' : ''}`;
   }
   _retitle() { const t = this.dom && this.dom.querySelector('.tb-wtop'); if (t) t.innerHTML = this._title(); this.game.ui.layoutTop(); }
   onRoleChange(nest) { this.nest = nest; const t = this.dom && this.dom.querySelector('.tb-wtop'); if (t) t.innerHTML = this._title(); }
@@ -167,8 +168,8 @@ export class NestWalkScene {
     for (const f of this.famViews || []) { const d = Math.abs(f.x - s.x); if (d < fd && Math.abs(f.y - s.y) < 8) { fd = d; fb = f; } }
     if (fb) {
       const m = fb.m, st = m.stage;
-      if (this.nest.own && (m.role === 'pup' || m.role === 'kin') && (st === 'pup' || st === 'young')) return { kind: 'feed', m, label: m.name + ' に種子をあげる（おなか ' + Math.round(m.fed) + '）' };
-      if (this.nest.own && m.role === 'mate') return { kind: 'mate', m, label: 'つれあいの' + m.name + 'と なかよくする（赤ちゃん）' };
+      if (this._mine(m) && (m.role === 'pup' || m.role === 'kin') && (st === 'pup' || st === 'young')) return { kind: 'feed', m, label: m.name + ' に種子をあげる（おなか ' + Math.round(m.fed) + '）' };
+      if (this._mine(m) && m.role === 'mate') return { kind: 'mate', m, label: 'つれあいの' + m.name + 'と なかよくする（赤ちゃん）' };
       return { kind: 'fam', m, label: m.name + '（' + (FAM_ROLE[m.role] || '') + '・' + STAGE_NAME[st] + '）' };
     }
     let best = null, bd = 1e9;
@@ -178,9 +179,10 @@ export class NestWalkScene {
       if (d < bd) { bd = d; best = it; }
     }
     if (!best) return null;
-    const name = (FURNITURE[best.type] || FIXTURES[best.type] || {}).name || best.type;
+    const bo = best.type === 'curio' ? this.view.layout.objects.find(x => x.id === best.id) : null;
+    const name = bo ? ((CURIOS[bo.item] || {}).name || '飾った品') : (FURNITURE[best.type] || FIXTURES[best.type] || {}).name || best.type;
     if (best.action === 'sleep') return { kind: 'sleep', it: best, label: '眠る（' + name + '・体調が戻る）' };
-    if (best.type === 'seed_pile' && this.nest.own) return { kind: 'pile', it: best, label: '種の山から食べる（倉庫の種子）' };
+    if (best.type === 'seed_pile' && (this.nest.own || this.nest.home)) return { kind: 'pile', it: best, label: '種の山から食べる（倉庫の種子）' };
     if (best.action === 'store') return { kind: 'store', it: best, label: this.nest.canEdit ? '預ける・引き出す（倉庫）' : '倉庫をのぞく' };
     return { kind: 'look', it: best, label: '調べる（' + name + '）' };
   }
@@ -204,6 +206,11 @@ export class NestWalkScene {
         this.view.setData(this.data, { fill: this._fill() });
         if (g.ui.updateStorage) g.ui.updateStorage(r.inv, r.storage);
       });
+      return;
+    }
+    if (tgt.it.type === 'curio') {   // Ver.0.5：飾った収集品
+      const o = this.view.layout.objects.find(x => x.id === tgt.it.id), c = o && CURIOS[o.item];
+      g.ui.note(c ? '<b>' + esc(c.name) + '</b><br>' + esc(c.desc) : '…');
       return;
     }
     const f = FURNITURE[tgt.it.type] || FIXTURES[tgt.it.type];
@@ -234,9 +241,12 @@ export class NestWalkScene {
   }
   /** 巣の家族（自分の巣は手元の最新、よその巣は入ったときの様子） */
   _family() {
-    if (this.nest.own && this.game.house) return this.game.house.members;
+    const me = this.game.account && this.game.account.id;
+    // 自分の家の巣（所有者・共同巣の住人）：自分の家族は手元の最新、ほかの住人の家族は入ったときの様子（Ver.0.5）
+    if ((this.nest.own || this.nest.home) && this.game.house) return [...this.game.house.members, ...(this.nest.family || []).filter(m => m.acct != null && m.acct !== me)];
     return this.nest.family || [];
   }
+  _mine(m) { return !!((this.nest.own || this.nest.home) && this.game.house && this.game.house.members.some(x => x.id === m.id)); }
   /** 家族の動き（見た目だけ）：寝床の部屋にいて、自分が同じ部屋にいるとついてくる。昼（トビネズミは夜行性）と、親が眠ると寝床で眠る */
   _famUpdate(dt) {
     const list = this._family(), d = this.data;
@@ -259,7 +269,7 @@ export class NestWalkScene {
       const st = m.stage;
       const sleepy = (this.sleeping || day) && st !== 'adult' && st !== 'elder' ? true : (this.sleeping && m.role === 'mate');
       // 自分の部屋へついてくる（子ども・若者。2 秒同じ部屋にいたら）
-      const follower = this.nest.own && (st === 'pup' || st === 'young') && !sleepy;
+      const follower = this._mine(m) && (st === 'pup' || st === 'young') && !sleepy;
       if (follower && myRoom && v.room !== myRoom && this._roomT > 2 && fi < 8) { v.room = myRoom; const R = roomOf(myRoom); v.x = Math.max(R.x0, Math.min(R.x1, s.x - s.facing * 18)); v.pop = this.t; }
       const R = roomOf(sleepy && bed ? home : v.room);
       if (sleepy && bed) { v.room = home; v.tx = Math.max(R.x0, Math.min(R.x1, (bed.x0 + bed.x1) / 2 + ((i % 5) - 2) * 6)); }
@@ -375,7 +385,7 @@ export class NestWalkScene {
       const tall = f.m.stage === 'pup' ? 17 : f.m.stage === 'young' ? 24 : 28;
       sc.text(f.x - cx, f.y - cy - lift - tall, (f.m.role === 'mate' ? '♥' : '') + f.m.name, { size: 5, color: f.m.role === 'mate' ? '#ffc0cc' : '#f2e2c2', alpha: 0.85 });
       if (f.anim === 'sleep') { const q = (this.t * 0.6 + f.x * 0.01) % 1; sc.text(f.x - cx + 6 + q * 8, f.y - cy - lift - 12 - q * 12, 'z', { size: 4 + q * 3, color: '#e8f0ff', alpha: 1 - q }); }
-      else if (this.nest.own && (f.m.stage === 'pup' || f.m.stage === 'young') && f.m.fed < PUP.AUTO_BELOW / 2) sc.text(f.x - cx, f.y - cy - lift - tall - 7, 'おなかすいた', { size: 5, color: '#ffb8a0', alpha: 0.9 });
+      else if (this._mine(f.m) && (f.m.stage === 'pup' || f.m.stage === 'young') && f.m.fed < PUP.AUTO_BELOW / 2) sc.text(f.x - cx, f.y - cy - lift - tall - 7, 'おなかすいた', { size: 5, color: '#ffb8a0', alpha: 0.9 });
     }
     const online = this.game.net.mode === 'online';
     for (const p of peers) {

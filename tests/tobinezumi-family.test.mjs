@@ -452,13 +452,13 @@ await test('オフライン：セーブの移行 v3 → v4（いまの子が 1 �
   s.character.individual = { species: 'jerboa', sex: null, generation: 1, father_id: null, mother_id: null, genes: { fur: 'cream' }, traits: {}, status: {} };
   const ls = makeLS({ [SAVE_KEY]: JSON.stringify(s), dannoura_save: 'keep' });
   const n2 = new OfflineBackend({ storage: ls, now: () => G.clock.t, npc: false, map });
-  assert.equal(n2.save.v, SAVE_VERSION); assert.equal(SAVE_VERSION, 4);
+  assert.equal(n2.save.v, SAVE_VERSION); assert.ok(SAVE_VERSION >= 4);   // Ver.0.5 で 5
   assert.equal(n2.house.me.name, 'はじめ'); assert.equal(stageOf(n2.house.me.ageMs), 'adult'); assert.deepEqual(n2.house.me.genes.col, ['cream', 'cream']);
   assert.deepEqual(n2.save.lineage, []); assert.equal(n2.save.nextInd, 2);
   assert.deepEqual(n2.save.player.inv, G.n.save.player.inv);
   assert.equal(JSON.stringify(Object.values(n2.save.nests)[0].data), JSON.stringify(Object.values(s.nests)[0].data));
   n2.flush();
-  assert.equal(JSON.parse(ls.getItem(SAVE_KEY)).v, 4); assert.equal(ls.getItem('dannoura_save'), 'keep');
+  assert.equal(JSON.parse(ls.getItem(SAVE_KEY)).v, SAVE_VERSION); assert.equal(ls.getItem('dannoura_save'), 'keep');
   const j = await n2.joinField();
   assert.ok(j.ok && j.world.family && j.world.family.me.name === 'はじめ');
 });

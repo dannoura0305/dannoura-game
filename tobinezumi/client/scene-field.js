@@ -7,11 +7,14 @@ import { el, esc } from './ui.js';
 import * as A from './art.js';
 import { Sprites } from './sprites.js';
 import { Predictor, Interp } from './net.js';
-import { buildFieldMap, T, TILE, regionAt, canDigBurrow, nearWater, POND } from '../shared/regions.js';
+import { buildFieldMap, T, TILE, regionAt, canDigBurrow, nearWater, POND, gateAt, isWaterTile } from '../shared/regions.js';
+import { regionMap, REGION, TOYAMA } from '../shared/world.js';
+import { CURIOS, GATE_R, gateHint } from '../shared/collect.js';
+import { discoveryCard, regionCard } from './world-ui.js';
 import { moveMods } from '../shared/life.js';
 import { stepField, makeFieldState, STEP_DT, FIELD } from '../shared/move.js';
 import { itemName } from '../shared/items.js';
-import { hash2 } from '../shared/rng.js';
+import { hash2, fbm } from '../shared/rng.js';
 import { pickTapTarget, steerToward } from './touch-logic.js';
 import { landAt, digTime, overlayColor, buildLands, PLOT_W, PLOT_H, CLIMATES, RARES } from '../shared/lands.js';
 import { fieldMods } from '../shared/season.js';
@@ -21,7 +24,7 @@ import { sfx } from './sfx.js';
 const WILD_R = 30;   // 野生の子に種子をあげられる距離
 
 const PICK_R = 22, ENT_R = 20;
-const HELP_KEYS = 'WASD/方向キー 跳ねる　Space 大ジャンプ　E 調べる・拾う・飲む　Q 食べる　L 土地　M 地図の重ね表示　I 持ち物　F フレンド　K 家族　Enter チャット　Esc メニュー';
+const HELP_KEYS = 'WASD/方向キー 跳ねる　Space 大ジャンプ　E 調べる・拾う・飲む　Q 食べる　L 土地　N 世界地図　C 図鑑　M 重ね表示　I 持ち物　F フレンド　K 家族　Enter チャット　Esc メニュー';
 const HELP_TOUCH = 'スティックで跳ねる・地面や採集物をタップでそこへ（メニュー→ヘルプ）';
 const HELP_LIFE = '<br><b>くらし</b>：右下（スマホは左上）のハート＝体調・稲妻＝空腹・しずく＝水分。種子を食べる（Q・「食べる」）、オアシスのふちや夜の夜露で E（調べる）で水を飲む、巣の寝床で眠ると体調が戻る。へとへと（体調 25 未満）だと遅く、大ジャンプできない。<br><b>昼と夜</b>：24 分で 1 日。トビネズミは夜行性で、夜は採集物が早く戻り、夜だけの種子と夜露が出る。';
 const HELP_DANGER = '<br><b>危険（捕食者）</b>：夜と夕方は<b>フクロウ</b>（空から。地面の影が大きくなったら急降下）と<b>キツネ</b>（地上を追ってくる。低木や岩は越えられない）、昼は<b>ヘビ</b>（岩や草のかげで待ち伏せ・短く飛びかかる）。見つかると頭の上に<b>！</b>。<br>' +
@@ -33,9 +36,15 @@ const HELP_FAMILY = '<br><b>いのちをつなぐ</b>：遊んでいる間だけ
   'おとなになったら、ときどき現れる<b>野生のトビネズミ</b>（春に多い）に<b>そっと近づいてじっとする</b>か<b>種子をあげる</b>と、頭の上のハート（信頼）が満ちて なかよしになり ついてくる。跳ね回ったり大ジャンプすると逃げる。<br>' +
   'なかよしの子と自分の巣へ入ると つれあいに（寝床の部屋・倉庫の種子 10 以上・冬はだめ）。遊んだ時間で世界の半日たつと 2〜6 匹の赤ちゃんが生まれる。子は倉庫の種子を食べて育ち、若者になると外へついてくる（捕食者が来ると巣へかくれる）。<br>' +
   '<b>家族</b>（K・メニュー）から 育った子に<b>あとをつがせる</b>（巣・倉庫・持ち物・フレンドはそのまま）。家系図で毛色や耳・脚・尾・体の違いが見られる。';
-const HELP_FULL_KEYS = '<b>WASD・方向キー</b> 跳ねる／<b>Space</b> 大ジャンプ（小石の山や草むらを越える）<br><b>E</b> 拾う・調べる・巣に入る・巣を掘る・水を飲む・野生の子に種子をあげる<br><b>Q</b> 種子を 1 つ食べる／<b>L</b> 土地を調べる・引っ越す／<b>M</b> ミニマップの重ね表示／<b>I</b> 持ち物／<b>F</b> フレンド／<b>K</b> 家族・家系図／<b>Enter</b> チャット／<b>Esc</b> メニュー／<b>H</b> 下の案内を出す・隠す' + HELP_LIFE + HELP_DANGER + HELP_FAMILY;
-const HELP_FULL_TOUCH = '<b>左のスティック</b> 跳ねる（左側のどこを触ってもよい）<br><b>ジャンプ</b> 大ジャンプ（小石の山や草むらを越える）<br><b>地面をタップ</b> そこへ跳ねていく<br><b>採集物・巣穴をタップ</b> 歩いて行って拾う・入る<br><b>自分をタップ・調べる</b> 拾う・巣を掘る・巣に入る・水を飲む<br><b>食べる</b> 種子を 1 つ食べる／<b>土地</b> いる場所の土地を調べる・引っ越す／<b>ミニマップをタップ</b> 危険・食料の重ね表示／<b>フレンド</b> メニューから<br><b>持ち物・チャット・メニュー</b> 上の帯のボタン（ホットバーを押しても持ち物）／<b>家族</b> 体調のバーを押す・メニューから' + HELP_LIFE + HELP_DANGER + HELP_FAMILY; 
+const HELP_WORLD = '<br><b>広がり</b>：地図の端の<b>出口</b>（矢印）まで跳ねていくと、となりの土地へ旅する。北は<b>いわばの高台</b>（岩場：ヘビが多い・きれいな石）、東は<b>すなの海</b>（砂丘：さらさら砂で遅い・食べ物が少ない・夜はフクロウ）、西は<b>みずおとの谷</b>（渓谷：川・草木・涼しい。段差は下りるだけで、上がるのは坂から）。巣はどの土地にも掘れて、土地をまたいで引っ越せる。<br>' +
+  'ときどき地上に<b>光る物</b>が出る（土地・季節・時間・天気で違う）。拾うと<b>図鑑</b>へ。図鑑の品は巣に飾れる。<b>実績</b>をとると飾りが増える。<b>共同巣</b>（オンライン）でフレンドといっしょに暮らせる。';
+const HELP_FULL_KEYS = '<b>WASD・方向キー</b> 跳ねる／<b>Space</b> 大ジャンプ（小石の山や草むらを越える）<br><b>E</b> 拾う・調べる・巣に入る・巣を掘る・水を飲む・野生の子に種子をあげる<br><b>Q</b> 種子を 1 つ食べる／<b>L</b> 土地を調べる・引っ越す／<b>N</b> 世界地図／<b>C</b> 図鑑／<b>V</b> 実績／<b>M</b> ミニマップの重ね表示／<b>I</b> 持ち物／<b>F</b> フレンド／<b>K</b> 家族・家系図／<b>Enter</b> チャット／<b>Esc</b> メニュー／<b>H</b> 下の案内を出す・隠す' + HELP_LIFE + HELP_DANGER + HELP_FAMILY + HELP_WORLD;
+const HELP_FULL_TOUCH = '<b>左のスティック</b> 跳ねる（左側のどこを触ってもよい）<br><b>ジャンプ</b> 大ジャンプ（小石の山や草むらを越える）<br><b>地面をタップ</b> そこへ跳ねていく<br><b>採集物・巣穴をタップ</b> 歩いて行って拾う・入る<br><b>自分をタップ・調べる</b> 拾う・巣を掘る・巣に入る・水を飲む<br><b>食べる</b> 種子を 1 つ食べる／<b>土地</b> いる場所の土地を調べる・引っ越す／<b>地図</b> 世界地図／<b>ミニマップをタップ</b> 危険・食料の重ね表示／<b>図鑑・実績・フレンド・共同巣</b> メニューから<br><b>持ち物・チャット・メニュー</b> 上の帯のボタン（ホットバーを押しても持ち物）／<b>家族</b> 体調のバーを押す・メニューから' + HELP_LIFE + HELP_DANGER + HELP_FAMILY + HELP_WORLD;
 const PRIO = { [T.SAND]: 0, [T.DIRT]: 1, [T.GRASS]: 2 };
+// Ver.0.5：土地ごとの地面の色味（素材の砂・土・草の上に重ねる）
+const REGION_TINT = { rocks: 'rgba(110,112,120,0.22)', dunes: 'rgba(255,226,170,0.16)', canyon: 'rgba(60,120,60,0.12)', toyama: 'rgba(70,130,70,0.18)' };
+const PROP_NAME = { shrine: '祠', post: '道しるべ', machine: '金属のかたまり', phone: '光る板', stone: '古い石の標', lights: '遠くの灯り' };
+const SEASON_IX = { spring: 0, summer: 1, autumn: 2, winter: 3 };
 
 export class FieldScene {
   get touchLayout() { return 'field'; }
@@ -45,6 +54,14 @@ export class FieldScene {
     this.cam = { x: 0, y: 0 };
     this.t = 0;
     this.fx = [];        // 砂ぼこりなど
+    this.flies = [];     // 蛍（富山・渓谷の夏の夜）
+    this._prerender();
+  }
+  /** 土地が変わった（旅・不思議な穴・再接続）：地図を描きなおす */
+  setMap(map) {
+    if (!map || map === this.map) return;
+    this.map = map;
+    this._snow = null; this._mm = null; this._ct = null;
     this._prerender();
   }
 
@@ -120,7 +137,28 @@ export class FieldScene {
       }
       else if (t === T.STONES) this.tall.push({ kind: 'stones', x, y: y + 5, v });
       else if (t === T.TREE) this.tall.push({ kind: 'tree', x, y: y + 6, v });
+      // Ver.0.5：新しい土地の地形
+      else if (t === T.DUNE) { g.globalAlpha = 0.5; if (!Sprites.drawCell(g, 'tile.dune', v % 3, x - 8, y - 8)) { g.fillStyle = 'rgba(250,220,160,.6)'; g.fillRect(x - 8, y - 8, 16, 16); } g.globalAlpha = 1; }
+      else if (t === T.PATH) { if (!Sprites.drawCell(g, 'tile.path', v % 2, x - 8, y - 8)) { g.fillStyle = '#9a7a52'; g.fillRect(x - 8, y - 8, 16, 16); } }
+      else if (t === T.CLIFF) { if (!Sprites.drawCell(g, 'tile.cliff', v % 2, x - 8, y - 8)) { g.fillStyle = '#5f666c'; g.fillRect(x - 8, y - 8, 16, 16); } }
+      else if (t === T.LEDGE) { if (!Sprites.drawCell(g, 'tile.ledge', v % 2, x - 8, y - 8)) { g.fillStyle = '#74503a'; g.fillRect(x - 8, y - 2, 16, 10); } }
+      else if (t === T.SAKURA) this.tall.push({ kind: 'sakura', x, y: y + 6, v });
+      else if (t === T.RIVER || t === T.PADDY || t === T.CHANNEL) (this.wet || (this.wet = [])).push({ tx, ty, t });
     }
+    if (!this.wet) this.wet = [];
+    // 富山：北の雪の山なみ（地図の上 8 行）・家（入れない）・調べられる物
+    if (m.region === 'toyama') {
+      const bandH = TOYAMA.MOUNT_ROWS * 16;
+      const sky = g.createLinearGradient(0, 0, 0, bandH);
+      sky.addColorStop(0, '#9cc4e4'); sky.addColorStop(1, '#d8e8f0');
+      g.fillStyle = sky; g.fillRect(0, 0, m.pxW, bandH);
+      const mt = Sprites.get('tile.mountains');
+      if (mt) for (let x = 0; x < m.pxW; x += mt.cell[0]) g.drawImage(mt.img, 0, 0, mt.cell[0], mt.cell[1], x, bandH - mt.cell[1], mt.cell[0], mt.cell[1]);
+      else { g.fillStyle = '#eaf0f6'; for (let x = 0; x < m.pxW; x += 40) { g.beginPath(); g.moveTo(x, bandH); g.lineTo(x + 20, 30 + (x % 3) * 10); g.lineTo(x + 40, bandH); g.fill(); } }
+      for (const h of m.houses || []) this.tall.push({ kind: 'house', x: (h.x + h.w / 2) * 16, y: (h.y + h.h) * 16 - 1, v: (h.x + h.y) % 2 });
+    }
+    for (const pr of m.props || []) if (pr.kind !== 'lights') this.tall.push({ kind: 'prop', pk: pr.kind, x: pr.x, y: pr.y, v: 0, prop: pr });
+    if (REGION_TINT[m.region]) { g.fillStyle = REGION_TINT[m.region]; g.globalCompositeOperation = 'source-atop'; g.fillRect(0, m.region === 'toyama' ? TOYAMA.MOUNT_ROWS * 16 : 0, m.pxW, m.pxH); g.globalCompositeOperation = 'source-over'; }
     this.water = [];
     for (let ty = 0; ty < m.h; ty++) for (let tx = 0; tx < m.w; tx++) if (m.tiles[ty * m.w + tx] === T.WATER) {
       const isW = (x, y) => x < 0 || y < 0 || x >= m.w || y >= m.h || m.tiles[y * m.w + x] === T.WATER;
@@ -140,13 +178,21 @@ export class FieldScene {
     this.ground = cv;
     // ミニマップ（1 タイル 1 ピクセル）
     const mm = A.mk(m.w, m.h), mg = mm.getContext('2d');
-    const mcol = ['#e0b87c', '#b07c4a', '#94984a', '#6e6056', '#5a6a2c', '#8a7a6a', '#3e7fb4', '#4e5a26', '#d0aa70', '#a0a24e'];
+    const mcol = ['#e0b87c', '#b07c4a', '#94984a', '#6e6056', '#5a6a2c', '#8a7a6a', '#3e7fb4', '#4e5a26', '#d0aa70', '#a0a24e',
+      '#f0cc90', '#6a7076', '#5a3c26', '#3f8ab5', '#5fa9c9', '#4a9ac0', '#3c4858', '#dfe6ee', '#b49468', '#e890aa', '#8c6744'];   // Ver.0.5
     for (let ty = 0; ty < m.h; ty++) for (let tx = 0; tx < m.w; tx++) { mg.fillStyle = mcol[m.tiles[ty * m.w + tx]]; mg.fillRect(tx, ty, 1, 1); }
     this.minimap = mm;
   }
 
   // ───────── 世界の受け取り（joinField の結果）─────────
   init(world) {
+    // Ver.0.5：土地が変わったら地図を差し替える
+    const want = world.region || 'plains';
+    if ((this.map.region || 'plains') !== want) this.setMap(want === 'plains' && this.game.net && this.game.net.map && this.game.net.map.region === 'plains' ? this.game.net.map : regionMap(want));
+    this.region = want;
+    this.gate = world.gate || null;
+    this.home = world.you.home || null;
+    if (world.collection && this.game.setCollection) this.game.setCollection(world.collection);
     const y = world.you;
     this.me = { id: y.id, name: y.name, fur: y.fur, look: y.look || this.game.look || null };
     this.inv = y.inv;
@@ -166,6 +212,7 @@ export class FieldScene {
     this.danger = world.danger || { predators: 'off', env: false };
     // Ver.0.4：野生のトビネズミ（補間）・信頼・連れている若者の足あと
     this.wild = new Map(); this.trust = {}; this.trails = new Map(); this.kidVis = new Map(); this.kidSt = new Map();
+    this.glimpse = null; this._glimpseT = 20; this.flies = [];
     this.ready = true;
   }
   /** 世代交代・連れている若者が変わった（ほかの子） */
@@ -237,6 +284,9 @@ export class FieldScene {
     }
     for (const [id, v] of this.wild) if (!ws.has(id)) { if (!v.goneAt) v.goneAt = m.st; else if (m.st - v.goneAt > 400) this.wild.delete(id); }
     this.trust = m.wt || {};
+    const was = this.gate;
+    this.gate = m.gate || null;
+    if (!was && this.gate && !this.gate.back) this.puff(this.gate.x, this.gate.y, '#e8f0ff', 10);
   }
   /** つかまった（サーバー／オフラインから）：安全な所へ戻る・画面がゆれる・落とした物 */
   onCaught(m) {
@@ -253,8 +303,13 @@ export class FieldScene {
   onResSpawn(m) { this.resources.set(m.res.id, { ...m.res }); }
   onEntrance(m) {
     const e = m.entrance;
-    this.entrances = this.entrances.filter(x => x.owner !== e.owner); this.entrances.push(e);
-    if (e.own) this.myNest = { ...(this.myNest || {}), id: e.nestId, x: e.x, y: e.y, plugged: !!e.plugged };
+    this.entrances = this.entrances.filter(x => x.owner !== e.owner);
+    if (e.gone || (e.region && e.region !== (this.map.region || 'plains'))) {   // Ver.0.5：ほかの土地へ引っ越していった
+      if (e.own && this.myNest) this.myNest = { ...this.myNest, region: e.region };
+      return;
+    }
+    this.entrances.push(e);
+    if (e.own) this.myNest = { ...(this.myNest || {}), id: e.nestId, x: e.x, y: e.y, plugged: !!e.plugged, region: e.region || this.map.region || 'plains' };
     if (m.moved && !e.own) { this.puff(e.x, e.y, '#b98552', 8); if (this.isFriend(e.owner)) { this.game.ui.toast(e.name + ' が 巣を引っ越した（ミニマップで光っている所）'); this.pingAt(e.x, e.y, e.name + 'の巣'); } }
   }
   onChat(m) {
@@ -324,7 +379,13 @@ export class FieldScene {
     this.hidden = this.stillT >= HIDE_AFTER && inGrass(this.map, st.x, st.y);
     // 地域名
     const reg = regionAt(this.map, st.x, st.y);
-    if (reg !== this.lastRegion) { this.lastRegion = reg; this.regionEl.textContent = reg.name; this.regionEl.classList.remove('flash'); void this.regionEl.offsetWidth; this.regionEl.classList.add('flash'); }
+    if (!this.lastRegion || reg.name !== this.lastRegion.name) { this.lastRegion = reg; this.regionEl.textContent = reg.name; this.regionEl.classList.remove('flash'); void this.regionEl.offsetWidth; this.regionEl.classList.add('flash'); }
+    // Ver.0.5：出口に足を入れて、外へ向かっていたら旅をする
+    const gt = gateAt(this.map, st.x, st.y);
+    const outward = gt && ({ n: 'up', s: 'down', e: 'right', w: 'left' }[gt.dir] === st.dir) && (st.anim === 'hop' || this.autoGo);
+    if (gt && outward && !this._traveling && !g.ui.busy() && this.t - (this._arrivedT || 0) > 0.8) this.travel(gt);
+    this._glimpseTick(dt);
+    this._fliesTick(dt);
     if (this.t > (g.isTouch ? 6 : 25) && !this._helpPinned) this.helpEl.classList.add('dim');   // 最初の数秒だけ（メニュー→ヘルプでいつでも）
     // 画面のタップ（タッチ）。マウスのクリックは従来どおり何もしない
     for (const ev of inp.takeMouse()) {
@@ -342,6 +403,9 @@ export class FieldScene {
       if (inp.take('KeyF')) g.openFriends();
       if (inp.take('KeyK')) g.openFamily();
       if (inp.take('KeyL')) this.openSurvey();
+      if (inp.take('KeyN')) g.openWorldMap();
+      if (inp.take('KeyC')) g.openCollection();
+      if (inp.take('KeyV')) g.openAchievements();
       if (inp.take('KeyM')) this.cycleOverlay();
       if (inp.take('KeyI')) g.ui.toggleInventory((a, b) => g.moveSlot(a, b));
       if (inp.take('Enter') && !(g.ui._chatClosedAt && performance.now() - g.ui._chatClosedAt < 200)) g.ui.openChat();
@@ -367,6 +431,11 @@ export class FieldScene {
     if (Math.hypot(wx - s.x, wy - (s.y - 10)) < 12) { this.autoGo = null; this.interact(); return; }
     const wv = (this.wildViews || []).find(w => Math.hypot(w.x - wx, w.y - 8 - wy) < 14);
     if (wv) { this.autoGo = { x: wv.x, y: wv.y, kind: 'wild', ref: wv, arrive: WILD_R - 6, best: 1e9, stuck: 0, t0: this.t }; return; }
+    // 出口の近く（地図の端の 4 マス以内）をタップ：出口まで行って旅をする（横向きのタッチでは端がボタンの下になるので）
+    for (const gt of this.map.gates || []) {
+      const dx = Math.max(gt.x0 - wx, 0, wx - gt.x1), dy = Math.max(gt.y0 - wy, 0, wy - gt.y1);
+      if (Math.hypot(dx, dy) < 64) { this.autoGo = { x: (gt.x0 + gt.x1) / 2, y: (gt.y0 + gt.y1) / 2, kind: 'gate', gate: gt, arrive: 2, best: 1e9, stuck: 0, t0: this.t }; return; }
+    }
     const hit = pickTapTarget(wx, wy, { resources: [...this.resources.values()], entrances: this.entrances, players: this.remoteViews || [] });
     if (hit && hit.kind === 'res') this.autoGo = { x: hit.ref.x, y: hit.ref.y, kind: 'res', ref: hit.ref, arrive: PICK_R - 8 };
     else if (hit && hit.kind === 'ent') this.autoGo = { x: hit.ref.x, y: hit.ref.y + 2, kind: 'ent', ref: hit.ref, arrive: ENT_R - 8 };
@@ -380,6 +449,7 @@ export class FieldScene {
     if (a.kind === 'player' && a.ref) { const p = (this.remoteViews || []).find(v => v.id === a.ref.id); if (p) { a.x = p.x; a.y = p.y; } }
     if (a.kind === 'wild' && a.ref) { const w = (this.wildViews || []).find(v => v.id === a.ref.id); if (w) { a.x = w.x; a.y = w.y; } }
     const st = steerToward(s.x, s.y, a.x, a.y, a.arrive);
+    if (a.kind === 'gate' && gateAt(this.map, s.x, s.y) === a.gate) { this.autoGo = null; this.travel(a.gate); return { mx: 0, my: 0 }; }
     if (st.done) {
       this.autoGo = null;
       if (a.kind === 'res' || a.kind === 'ent') { const tgt = this.target(); if (tgt && (tgt.res === a.ref || tgt.ent === a.ref)) this.interact(tgt); }
@@ -408,7 +478,16 @@ export class FieldScene {
     for (const r of this.resources.values()) {
       if (r.pending) continue;
       const d = Math.hypot(r.x - s.x, r.y - s.y);
-      if (d < PICK_R && d < bd) { bd = d; best = r.kind === 'dew' ? { kind: 'dew', res: r, label: '夜露を飲む' } : r.kind === 'puddle' ? { kind: 'dew', res: r, label: '水たまりの水を飲む' } : { kind: 'res', res: r, label: itemName(r.kind) + (r.n > 1 ? ' ×' + r.n : '') + ' を拾う' + (r.id[0] === 'x' ? '（落とし物）' : '') }; }
+      if (d < PICK_R && d < bd) { bd = d; best = r.kind === 'dew' ? { kind: 'dew', res: r, label: '夜露を飲む' } : r.kind === 'puddle' ? { kind: 'dew', res: r, label: '水たまりの水を飲む' }
+        : r.kind === 'curio' ? { kind: 'res', res: r, label: (this.game.collection && this.game.collection.owned && this.game.collection.owned[r.cid] ? '光る物（' + ((CURIOS[r.cid] || {}).name || '？') + '・もう図鑑にある）' : '何か光るものを拾う') }
+        : { kind: 'res', res: r, label: itemName(r.kind) + (r.n > 1 ? ' ×' + r.n : '') + ' を拾う' + (r.id[0] === 'x' ? '（落とし物）' : '') }; }
+    }
+    // Ver.0.5：不思議な穴・来た穴・調べられる物
+    if (this.gate) { const d = Math.hypot(this.gate.x - s.x, this.gate.y - s.y); if (d < GATE_R && d < bd) { bd = d; best = { kind: 'gate', label: this.gate.back ? '来た穴に入る（谷へ戻る）' : '不思議な穴に入る' }; } }
+    for (const pr of this.map.props || []) {
+      if (pr.kind === 'lights') continue;
+      const d = Math.hypot(pr.x - s.x, pr.y - 6 - s.y);
+      if (d < 26 && d < bd + 6) { bd = d; best = { kind: 'prop', prop: pr, label: '調べる（' + (PROP_NAME[pr.kind] || '…') + '）' }; }
     }
     for (const e of this.entrances) {
       const d = Math.hypot(e.x - s.x, e.y - s.y) - 4;   // 同じくらいの近さなら巣穴を優先
@@ -416,7 +495,9 @@ export class FieldScene {
     }
     if (best) return best;
     if (nearWater(this.map, s.x, s.y)) return { kind: 'water', label: '水を飲む' };
-    if (!this.myNest) {
+    const gt = gateAt(this.map, s.x, s.y);
+    if (gt) return { kind: 'travel', gate: gt, label: (REGION[gt.to] || {}).name + ' へ旅する' };
+    if (!this.myNest && !this.map.noBurrow) {   // 富山では案内を出さない（掘れない理由は「土地」で）
       const chk = canDigBurrow(this.map, s.x, s.y, this.entrances);
       return chk.ok ? { kind: 'dig', label: 'ここに巣を掘る' } : { kind: 'nodig', label: '巣を掘れない：' + chk.reason };
     }
@@ -434,7 +515,8 @@ export class FieldScene {
       if (res.ok) {
         this.resources.delete(r.id);
         this.inv = res.inv; g.ui.setInventory(this.inv);
-        g.ui.toast(itemName(res.item) + (res.n > 1 ? ' ×' + res.n : '') + ' を 手に入れた' + (r.id[0] === 'g' ? '（めずらしい！）' : ''));
+        if (res.item === 'curio') { this.puff(r.x, r.y, '#fff8d8', 10); sfx('safe'); }   // 図鑑へ（collect の通知で札を出す）
+        else g.ui.toast(itemName(res.item) + (res.n > 1 ? ' ×' + res.n : '') + ' を 手に入れた' + (r.id[0] === 'g' ? '（めずらしい！）' : ''));
         this.puff(r.x, r.y, '#fff0c0', 5);
       } else { r.pending = false; g.ui.toast(res.reason || '拾えなかった', 'bad'); }
     } else if (tgt.kind === 'ent') {
@@ -469,6 +551,15 @@ export class FieldScene {
       g.ui.toast((res.src === 'dew' ? '夜露を飲んだ' : '水を飲んだ') + '（水分 ' + Math.round(res.life.thirst) + '）');
     } else if (tgt.kind === 'nodig') {
       g.ui.toast(tgt.label, 'bad');
+    } else if (tgt.kind === 'travel') {
+      this.travel(tgt.gate);
+    } else if (tgt.kind === 'gate') {
+      this.enterGate();
+    } else if (tgt.kind === 'prop') {
+      const pr = tgt.prop;
+      let text = pr.text;
+      if (pr.kind === 'stone' && !this.gate) { const col = g.collection || {}; text += '<br><span class="tb-dim">' + esc(gateHint({ env: g.env, owned: col.owned || {}, found: !!col.found })) + '</span>'; }
+      g.ui.note(text);
     } else if (tgt.kind === 'wild') {
       const w = tgt.w;
       if (w.fol === this.me.id) { g.ui.toast(w.name + ' は ついてくる。自分の巣の入口へ行って、いっしょに入ろう'); return; }
@@ -484,6 +575,68 @@ export class FieldScene {
     }
   }
 
+  // ───────── 旅（Ver.0.5）─────────
+  /** 出口から、となりの土地へ（画面を暗くして、着いたら地図を差し替える） */
+  async travel(gt) {
+    const g = this.game;
+    if (this._traveling) return;
+    this._traveling = true; this.autoGo = null;
+    g.fade(true);
+    const r = await g.net.travel(gt.to);
+    if (!r.ok) { g.fade(false); this._traveling = false; this._arrivedT = this.t; g.ui.toast(r.reason || '行けなかった', 'bad'); return; }
+    g.arrive(r.world, 'travel');
+    this._traveling = false;
+  }
+  async enterGate() {
+    const g = this.game;
+    if (this._traveling) return;
+    this._traveling = true; this.autoGo = null;
+    g.fade(true, this.gate && !this.gate.back ? 'white' : null);
+    const r = await g.net.enterGate();
+    if (!r.ok) { g.fade(false); this._traveling = false; g.ui.toast(r.reason || '入れなかった', 'bad'); return; }
+    g.arrive(r.world, 'gate', r.first);
+    this._traveling = false;
+  }
+  /** 富山の夜：遠くに白い小さな影が見えることがある（近づくと消える。名前はない） */
+  _glimpseTick(dt) {
+    if (this.map.region !== 'toyama') { this.glimpse = null; return; }
+    const tod = this.tod, s = this.pred.state;
+    if (this.glimpse) {
+      const gl = this.glimpse;
+      gl.t += dt;
+      const d = Math.hypot(gl.x - s.x, gl.y - s.y);
+      if (d < 90 && !gl.going) { gl.going = true; gl.t = Math.max(gl.t, gl.life - 0.6); }
+      if (gl.t > gl.life) this.glimpse = null;
+      return;
+    }
+    if (!tod || tod.period !== 'night') return;
+    this._glimpseT -= dt;
+    if (this._glimpseT > 0) return;
+    this._glimpseT = 35 + Math.random() * 30;
+    for (let k = 0; k < 10; k++) {
+      const a = Math.random() * Math.PI * 2, r = 170 + Math.random() * 60;
+      const x = s.x + Math.cos(a) * r, y = s.y + Math.sin(a) * r * 0.6;
+      if (x < 40 || y < TOYAMA.MOUNT_ROWS * 16 + 30 || x > this.map.pxW - 40 || y > this.map.pxH - 40) continue;
+      this.glimpse = { x, y, t: 0, life: 5 };
+      if (!this._glimpsed) { this._glimpsed = true; setTimeout(() => this.game.ui.toast('…いま、なにか白いものが いた気がする'), 1600); }
+      break;
+    }
+  }
+  /** 蛍（夏の夜の富山・谷の水べ）・富山と谷の冬の雪のつもり */
+  _fliesTick(dt) {
+    const env = this.game.env, tod = this.tod;
+    const on = env && env.season === 'summer' && tod && tod.period === 'night' && (this.map.region === 'toyama' || this.map.region === 'canyon');
+    let n = 0;
+    for (const f of this.flies) { f.t += dt; f.x += Math.cos(f.a) * 6 * dt; f.y += Math.sin(f.a * 1.3) * 4 * dt; f.a += (Math.random() - 0.5) * dt * 3; if (f.t < f.life) this.flies[n++] = f; }
+    this.flies.length = n;
+    if (!on || this.flies.length > 70 || !this.wet.length) return;
+    if (Math.random() < dt * 16) {
+      const w = this.wet[Math.floor(Math.random() * this.wet.length)];
+      const x = w.tx * 16 + 8, y = w.ty * 16 - 4;
+      if (Math.abs(x - this.view.x) < W && Math.abs(y - this.view.y) < H) this.flies.push({ x, y, a: Math.random() * 6, t: 0, life: 4 + Math.random() * 4, ph: Math.random() * 6 });
+    }
+  }
+
   puff(x, y, color, n = 4) {
     for (let i = 0; i < n; i++) this.fx.push({ x: x + (Math.random() - 0.5) * 8, y: y + (Math.random() - 0.5) * 3, vx: (Math.random() - 0.5) * 20, vy: -Math.random() * 10, t: 0, life: 0.4 + Math.random() * 0.3, color });
   }
@@ -495,6 +648,18 @@ export class FieldScene {
     const cx = Math.max(0, Math.round(this.cam.x) + sh), cy = Math.round(this.cam.y);
     g.drawImage(this.ground, cx, cy, W, H, 0, 0, W, H);
     g.save(); g.translate(-cx, -cy);
+    // Ver.0.5：川・水田（季節で稲の色）・水路
+    if (this.wet.length) {
+      const sIx = SEASON_IX[(this.game.env && this.game.env.season) || 'spring'] || 0, fr = Math.floor(this.t * 4);
+      for (const w of this.wet) {
+        const x = w.tx * 16, y = w.ty * 16;
+        if (x < cx - 16 || y < cy - 16 || x > cx + W || y > cy + H) continue;
+        const ok = w.t === T.RIVER ? Sprites.drawCell(g, 'tile.river', (fr + w.tx) % 4, x, y) : w.t === T.PADDY ? Sprites.drawCell(g, 'tile.paddy', sIx, x, y) : Sprites.drawCell(g, 'tile.channel', (fr >> 1) % 2, x, y);
+        if (!ok) { g.fillStyle = w.t === T.PADDY ? (sIx === 3 ? '#dfe6ee' : '#5fa9c9') : '#3f8ab5'; g.fillRect(x, y, 16, 16); }
+      }
+    }
+    this.drawSnow(g, cx, cy);
+    this.drawGates(g);
     // 水
     for (const w of this.water) {
       const x = w.tx * 16, y = w.ty * 16;
@@ -521,7 +686,8 @@ export class FieldScene {
       if (r.kind !== 'dew' && !Sprites.has('item.' + r.kind + '.ground')) { g.fillStyle = 'rgba(40,24,10,.25)'; g.fillRect(r.x - 4, r.y + 2, 8, 2); }
       if (hi) { g.fillStyle = 'rgba(255,240,180,' + (0.35 + 0.25 * Math.sin(this.t * 8)) + ')'; g.beginPath(); g.ellipse(r.x, r.y + 1, 8, 4, 0, 0, Math.PI * 2); g.fill(); }
       const bob = hi ? Math.round(Math.sin(this.t * 6) * 1) - 1 : 0;
-      if (r.kind === 'dew') A.drawDew(g, r.x, r.y + bob, this.t + r.x * 0.13);
+      if (r.kind === 'curio') { if (!Sprites.drawEntry(g, 'item.curio.ground', Math.floor(this.t * 4 + r.x) % 3, r.x, r.y + 3 + bob)) { g.fillStyle = '#fff8d8'; g.fillRect(Math.round(r.x) - 2, Math.round(r.y) - 4 + bob, 4, 4); } }
+      else if (r.kind === 'dew') A.drawDew(g, r.x, r.y + bob, this.t + r.x * 0.13);
       else if (r.kind === 'puddle') { if (!Sprites.drawEntry(g, 'tile.puddle', (r.x >> 3) & 1, r.x, r.y + 3)) A.drawPuddle(g, r.x, r.y + 1, this.t); const tw = 0.5 + 0.5 * Math.sin(this.t * 3 + r.y); g.fillStyle = `rgba(240,252,255,${0.4 + 0.5 * tw})`; g.fillRect(Math.round(r.x + 2), Math.round(r.y - 1), 1, 1); }
       else if (!Sprites.drawEntry(g, 'item.' + r.kind + '.ground', 0, r.x, r.y + 3 + bob)) A.drawItem(g, r.kind, r.x - 8, r.y - 12 + bob);
       if (r.id && r.id[0] === 'x') { g.fillStyle = 'rgba(255,230,150,' + (0.5 + 0.3 * Math.sin(this.t * 5 + r.x)) + ')'; g.fillRect(Math.round(r.x) - 6, Math.round(r.y) - 11, 1, 1); g.fillRect(Math.round(r.x) + 5, Math.round(r.y) - 9, 1, 1); }
@@ -538,6 +704,12 @@ export class FieldScene {
       this.predViews.push(pv);
       if (pv.kind === 'owl') this.drawOwlShadow(g, pv);
     }
+    // 不思議な穴・来た穴
+    if (this.gate) {
+      const gx = this.gate.x, gy = this.gate.y + 2;
+      if (!Sprites.drawEntry(g, 'tile.hole', Math.floor(this.t * 4) % 4, gx, gy)) { g.fillStyle = '#1a2040'; g.beginPath(); g.ellipse(gx, gy - 2, 9, 5, 0, 0, Math.PI * 2); g.fill(); g.strokeStyle = '#e8f0ff'; g.stroke(); }
+      if (Math.random() < 0.15) this.fx.push({ x: gx + (Math.random() - 0.5) * 16, y: gy - 2, vx: (Math.random() - 0.5) * 6, vy: -10 - Math.random() * 10, t: 0, life: 1.2, color: '#e8f0ff' });
+    }
     // 背の高いもの＋トビネズミを y でならべる
     const list = [];
     for (const o of this.tall) if (o.x > cx - 40 && o.x < cx + W + 40 && o.y > cy - 10 && o.y < cy + H + 70) list.push(o);
@@ -551,6 +723,7 @@ export class FieldScene {
       list.push(v); this.remoteViews.push(v);
     }
     for (const pv of this.predViews) if (pv.kind !== 'owl') list.push({ ...pv, kind: 'pred', pkind: pv.kind });
+    if (this.glimpse) list.push({ kind: 'glimpse', x: this.glimpse.x, y: this.glimpse.y, gl: this.glimpse });
     // 野生のトビネズミ
     this.wildViews = [];
     for (const v of this.wild.values()) {
@@ -584,6 +757,10 @@ export class FieldScene {
         else A.drawStones(g, o.x, o.y, o.v);
       }
       else if (o.kind === 'tree') { if (!Sprites.drawEntry(g, 'tile.tree', 0, o.x, o.y)) A.drawTree(g, o.x, o.y); }
+      else if (o.kind === 'sakura') { const si = SEASON_IX[(this.game.env && this.game.env.season) || 'spring'] || 0; if (!Sprites.drawEntry(g, 'tile.sakura', si, o.x, o.y)) { g.fillStyle = ['#f0a8c0', '#4f8236', '#d0702c', '#8c6744'][si]; g.beginPath(); g.ellipse(o.x, o.y - 26, 16, 12, 0, 0, Math.PI * 2); g.fill(); } }
+      else if (o.kind === 'house') { if (!Sprites.drawEntry(g, 'tile.house', o.v, o.x, o.y)) { g.fillStyle = '#ebe2cf'; g.fillRect(o.x - 42, o.y - 40, 84, 38); g.fillStyle = '#2c3644'; g.fillRect(o.x - 46, o.y - 74, 92, 36); } }
+      else if (o.kind === 'prop') this.drawProp(g, o);
+      else if (o.kind === 'glimpse') this.drawGlimpse(g, o);
     }
     // タップで向かっている所
     if (this.autoGo) {
@@ -624,6 +801,15 @@ export class FieldScene {
       const fr = !e.own && this.isFriend(e.owner);
       sc.text(x, y + 14, e.name + 'の巣' + (fr ? '（フレンド）' : ''), { size: 6, color: e.own ? '#ffe9a8' : fr ? '#bff0c8' : '#f2dcc0', alpha: 0.9 });
     }
+    // 出口の行き先（近くに来たら）
+    for (const gt of this.map.gates || []) {
+      const d = Math.hypot(gt.ax - this.view.x, gt.ay - this.view.y);
+      if (d > 160) continue;
+      const lx = (gt.x0 + gt.x1) / 2 - cx, ly = (gt.dir === 'n' ? 22 : gt.dir === 's' ? this.map.pxH - 26 : (gt.y0 + gt.y1) / 2) - cy;
+      const arrow = { n: '↑', s: '↓', e: '→', w: '←' }[gt.dir];
+      sc.text(Math.max(40, Math.min(W - 40, lx + (gt.dir === 'e' ? -30 : gt.dir === 'w' ? 30 : 0))), ly, arrow + ' ' + (REGION[gt.to] || {}).name, { size: 7, color: '#fff4c8', alpha: Math.min(1, (160 - d) / 60) });
+    }
+    if (this.gate && Math.hypot(this.gate.x - this.view.x, this.gate.y - this.view.y) < 120) sc.text(this.gate.x - cx, this.gate.y - cy + 14, this.gate.back ? '来た穴' : '不思議な穴', { size: 6, color: '#e8f0ff', alpha: 0.9 });
     for (const o of list) if (o.kind === 'wild') {
       const x = o.x - cx, y = o.y - cy - (o.z || 0);
       if (x < -30 || x > W + 30 || y < -30 || y > H + 30) continue;
@@ -636,6 +822,64 @@ export class FieldScene {
       const b = this.bubbles.get(o.id);
       if (b && b.until > nowMs) sc.bubble(x, y - 38, b.text, { alpha: Math.min(1, (b.until - nowMs) / 400) });
     }
+  }
+
+  // ───────── 広がり（Ver.0.5）の描画 ─────────
+  /** 出口：地面に矢印の石と、土地の境目の道しるべ */
+  drawGates(g) {
+    for (const gt of this.map.gates || []) {
+      const x = gt.ax, y = gt.ay;
+      const ang = { n: -Math.PI / 2, s: Math.PI / 2, e: 0, w: Math.PI }[gt.dir];
+      const pulse = 0.55 + 0.35 * Math.sin(this.t * 3);
+      g.save(); g.translate(Math.round(x), Math.round(y)); g.rotate(ang);
+      g.fillStyle = `rgba(255,236,170,${pulse})`;
+      for (let k = 0; k < 3; k++) { g.fillRect(6 + k * 7, -1, 4, 2); g.fillRect(8 + k * 7, -2, 2, 4); }
+      g.restore();
+    }
+  }
+  /** 富山の調べられる物・谷の石の標 */
+  drawProp(g, o) {
+    const key = { shrine: 'tile.shrine', post: 'tile.post', machine: 'tile.machine', phone: 'tile.phone', stone: 'tile.stone_marker' }[o.pk];
+    const col = o.pk === 'phone' ? Math.floor(this.t * 0.7) % 2 : 0;
+    if (!key || !Sprites.drawEntry(g, key, col, o.x, o.y)) { g.fillStyle = '#8a7a6a'; g.fillRect(Math.round(o.x) - 4, Math.round(o.y) - 10, 8, 10); }
+    if (o.pk === 'phone' && col && Math.random() < 0.05) this.fx.push({ x: o.x, y: o.y - 8, vx: 0, vy: -6, t: 0, life: 0.6, color: '#bfe0ff' });
+  }
+  drawGlimpse(g, o) {
+    const gl = o.gl, a = Math.max(0, Math.min(1, gl.t / 1.2, (gl.life - gl.t) / 0.8)) * 0.85;
+    if (a <= 0) return;
+    g.globalAlpha = a;
+    if (!Sprites.drawEntry(g, 'fx.white_shape', Math.floor(this.t * 2) % 2, o.x, o.y)) { g.fillStyle = '#f4f8ff'; g.beginPath(); g.ellipse(o.x, o.y - 5, 4, 4, 0, 0, Math.PI * 2); g.fill(); }
+    g.globalAlpha = 1;
+  }
+  /** 冬の雪のつもり（季節が冬のあいだ。雪の日はもっと白く。砂丘は積もらない） */
+  drawSnow(g, cx, cy) {
+    const env = this.game.env;
+    if (!env || env.season !== 'winter' || this.map.region === 'dunes') return;
+    if (!this._snow) this._snow = this._makeSnow();
+    const base = { toyama: 0.62, canyon: 0.42, rocks: 0.4 }[this.map.region] ?? 0.24;
+    const prog = Math.min(1, 0.35 + (this.game.envSeasonProgress || 0.5));
+    const a = Math.min(0.9, base * prog + (env.weather === 'snow' ? 0.2 * (env.weatherK ?? 1) : 0));
+    g.save(); g.globalAlpha = a;
+    g.drawImage(this._snow, cx, cy, W, H, cx, cy, W, H);
+    g.restore();
+  }
+  _makeSnow() {
+    const m = this.map, cv = A.mk(m.pxW, m.pxH), sg = cv.getContext('2d');
+    const img = sg.createImageData(m.pxW, m.pxH), d = img.data;
+    for (let ty = 0; ty < m.h; ty++) for (let tx = 0; tx < m.w; tx++) {
+      const t = m.tiles[ty * m.w + tx];
+      if (isWaterTile(t) || t === T.HOUSE || t === T.MOUNT) continue;
+      for (let py = 0; py < 16; py += 2) for (let px = 0; px < 16; px += 2) {
+        const x = tx * 16 + px, y = ty * 16 + py;
+        // 吹きだまり（大きなまだら）＋ふちの粒
+        const v = fbm(x / 70, y / 70, 4441) * 0.75 + fbm(x / 14, y / 14, 77) * 0.25 + (hash2(x >> 1, y >> 1, 9) - 0.5) * 0.12;
+        if (v < 0.46) continue;
+        const c = v < 0.5 ? 232 : v > 0.62 ? 252 : 244;
+        for (let k = 0; k < 4; k++) { const i = ((y + (k >> 1)) * m.pxW + x + (k & 1)) * 4; d[i] = c; d[i + 1] = c + 2; d[i + 2] = 255; d[i + 3] = 255; }
+      }
+    }
+    sg.putImageData(img, 0, 0);
+    return cv;
   }
 
   drawJerboa(g, o) {
@@ -745,11 +989,26 @@ export class FieldScene {
     };
     for (const o of list) if (o.kind === 'player') hole(o.x - cx, o.y - cy - 6, o.me ? 74 : 30, o.me ? 0.92 : 0.6);
     for (const e of this.entrances) if (e.own) hole(e.x - cx, e.y - cy, 26 + Math.sin(this.t * 6) * 1.5, 0.7);
-    for (const rs of this.resources.values()) if (rs.kind === 'dew') hole(rs.x - cx, rs.y - cy, 9, 0.5);
+    for (const rs of this.resources.values()) if (rs.kind === 'dew') hole(rs.x - cx, rs.y - cy, 9, 0.5); else if (rs.kind === 'curio') hole(rs.x - cx, rs.y - cy - 3, 12, 0.6);
+    if (this.gate) hole(this.gate.x - cx, this.gate.y - cy, 30 + Math.sin(this.t * 3) * 3, 0.85);
+    for (const f of this.flies) hole(f.x - cx, f.y - cy, 7, 0.7 * (0.5 + 0.5 * Math.sin(this.t * 5 + f.ph)));
+    if (this.glimpse) hole(this.glimpse.x - cx, this.glimpse.y - cy - 6, 16, 0.5);
     g.drawImage(lc, 0, 0);
+    // 蛍（暗い中で光る）・富山の遠くの灯り
+    for (const f of this.flies) {
+      const a = Math.min(1, f.t, f.life - f.t) * (0.45 + 0.55 * Math.sin(this.t * 4 + f.ph));
+      if (a <= 0.05) continue;
+      const x = Math.round(f.x - cx), y = Math.round(f.y - cy);
+      g.fillStyle = `rgba(200,255,120,${a * 0.35})`; g.fillRect(x - 1, y - 1, 4, 4);
+      g.fillStyle = `rgba(236,255,170,${a})`; g.fillRect(x, y, 2, 2);
+    }
+    if (this.map.region === 'toyama' && tod.dark > 0.2) {
+      const bandY = TOYAMA.MOUNT_ROWS * 16 - 14 - cy;
+      for (let i = 0; i < 14; i++) { const x = this.map.pxW - 200 + i * 13 - cx, on = (Math.floor(this.t * 0.5 + i * 7) % 9) !== 0; if (on && x > -4 && x < W + 4) { g.fillStyle = `rgba(255,236,170,${0.55 * tod.dark / 0.66})`; g.fillRect(Math.round(x), Math.round(bandY - (i % 3) * 3), 2, 1); } }
+    }
     // 水面に映る星と月（夜）
     const k = tod.dark / 0.66;
-    if (k > 0.3 && this.water.length) {
+    if (k > 0.3 && this.water.length && (this.map.region || 'plains') === 'plains') {
       g.save();
       const wx0 = (POND.x - POND.rx) * 16 - cx, wy0 = (POND.y - POND.ry) * 16 - cy;
       if (wx0 < W && wy0 < H && wx0 + POND.rx * 32 > 0 && wy0 + POND.ry * 32 > 0) {
@@ -843,7 +1102,9 @@ export class FieldScene {
     const k = env.weatherK ?? 1;
     if (env.weather === 'sandstorm') { for (let i = 0; i < Math.round(26 * k * dt * 60 / 4); i++) wx.push({ kind: 'sand', x: -10 + Math.random() * 30, y: Math.random() * H, vx: 260 + Math.random() * 160, vy: 20 + Math.random() * 30, t: 0, life: 2.2, len: 3 + Math.random() * 5 }); }
     else if (env.weather === 'rain') { for (let i = 0; i < Math.round(18 * k * dt * 60 / 4); i++) wx.push({ kind: 'rain', x: Math.random() * (W + 60) - 30, y: -8, vx: -40, vy: 300 + Math.random() * 80, t: 0, life: 1 + Math.random() * 0.2, len: 5 }); }
-    if (env.season === 'winter' && (env.period === 'night' || env.period === 'dusk') && Math.random() < dt * 8) wx.push({ kind: 'snow', x: Math.random() * W, y: -4, vx: -8 + Math.random() * 16, vy: 16 + Math.random() * 14, t: 0, life: 12 });
+    if (env.weather === 'snow') { for (let i = 0; i < Math.round(10 * k * dt * 60 / 4); i++) wx.push({ kind: 'snow', x: Math.random() * W, y: -4, vx: -10 + Math.random() * 20, vy: 20 + Math.random() * 18, t: 0, life: 12 }); }
+    else if (env.season === 'winter' && (env.period === 'night' || env.period === 'dusk') && Math.random() < dt * 8) wx.push({ kind: 'snow', x: Math.random() * W, y: -4, vx: -8 + Math.random() * 16, vy: 16 + Math.random() * 14, t: 0, life: 12 });
+    if (env.season === 'spring' && this.map.region === 'toyama' && Math.random() < dt * 3) wx.push({ kind: 'petal', x: Math.random() * (W + 40), y: -4, vx: -14 + Math.random() * 8, vy: 14 + Math.random() * 8, t: 0, life: 14 });
     if (wx.length > 600) wx.splice(0, wx.length - 600);
   }
   drawWeather(g, cx, cy, layer = 'tint') {
@@ -861,6 +1122,8 @@ export class FieldScene {
       g.fillStyle = gr; g.fillRect(0, 0, W, H);
     } else if (env.weather === 'rain') {
       g.fillStyle = `rgba(60,80,110,${0.22 * k})`; g.fillRect(0, 0, W, H);
+    } else if (env.weather === 'snow') {
+      g.fillStyle = `rgba(200,215,235,${0.16 * k})`; g.fillRect(0, 0, W, H);
     }
     void cx; void cy;
   }
@@ -876,6 +1139,7 @@ export class FieldScene {
       if (p.kind === 'sand') { g.fillStyle = `rgba(250,220,160,${0.55 * a})`; g.fillRect(Math.round(p.x), Math.round(p.y), Math.round(p.len), 1); }
       else if (p.kind === 'rain') { g.strokeStyle = `rgba(200,220,255,${0.55 * a})`; g.lineWidth = 1; g.beginPath(); g.moveTo(Math.round(p.x) + 0.5, Math.round(p.y)); g.lineTo(Math.round(p.x - 1.5) + 0.5, Math.round(p.y + p.len)); g.stroke(); if (p.y > H * 0.2 && p.t > p.life - 0.03) { g.fillStyle = 'rgba(220,235,255,.6)'; g.fillRect(Math.round(p.x) - 1, Math.round(p.y + p.len), 3, 1); } }
       else if (p.kind === 'snow') { g.fillStyle = `rgba(250,252,255,${0.85 * Math.min(1, (p.life - p.t) * 2)})`; g.fillRect(Math.round(p.x + Math.sin(p.t * 2 + p.vx) * 3), Math.round(p.y), 1, 1); }
+      else if (p.kind === 'petal') { g.fillStyle = `rgba(250,190,210,${0.9 * Math.min(1, (p.life - p.t) * 2)})`; g.fillRect(Math.round(p.x + Math.sin(p.t * 2 + p.vx) * 4), Math.round(p.y), 2, 1); }
     }
     void env;
   }
@@ -953,6 +1217,8 @@ export class FieldScene {
       g.beginPath(); g.arc(Math.round(px) + 0.5, Math.round(py) + 0.5, 2 + k * 7, 0, Math.PI * 2); g.stroke();
     }
     for (const v of this.remoteViews || []) P(v.x, v.y, '#f4f0e8', 0);
+    for (const gt of this.map.gates || []) P(gt.ax, gt.ay, Math.floor(this.t * 2) % 2 ? '#fff4c8' : '#c8a46a', 1);
+    if (this.gate) P(this.gate.x, this.gate.y, '#e8f0ff', 1);
     // 捕食者（自分を狙っているものだけ赤く点滅）
     for (const pv of this.predViews || []) if (pv.target === this.me.id && ALERT_STATES.has(pv.state) && Math.floor(this.t * 6) % 2) P(pv.x, pv.y, '#ff3020', 0);
     // 土地を調べた所（旗）

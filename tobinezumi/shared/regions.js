@@ -123,7 +123,7 @@ export function buildFieldMap(seed = FIELD_SEED) {
   }
   const map = { w, h, tile: TILE, seed, ground, tiles, spawn, pxW: w * TILE, pxH: h * TILE, region: 'plains' };
   // Ver.0.5：ほかの土地への出口（地図の端。タイルは変えない＝前からの地図と同じ）
-  map.gates = [makeGate(map, 'n', 38, 'rocks'), makeGate(map, 'e', 34, 'dunes'), makeGate(map, 'w', 38, 'canyon')];
+  map.gates = [makeGate(map, 'n', 36, 'rocks'), makeGate(map, 'e', 34, 'dunes'), makeGate(map, 'w', 38, 'canyon')];
   return map;
 }
 
