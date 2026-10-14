@@ -198,7 +198,7 @@ export class Store {
       const mate = members.find(m => m.id === mateId) || this.individual(mateId);
       pending = { litterId: L.id, mateId, mateName: mate ? mate.name : '？', mateGenes: mate ? mate.genes : null, nth: L.nth, dueAgeMs: L.due_play, conceivedAt: L.conceived_at };
     }
-    return { me, members, pending, litters: flags.litters | 0, lastBirthMs: flags.lastBirthMs ?? null, follow: flags.follow !== false, promptDay: flags.promptDay ?? null, nestKey: 'acct' + accountId };
+    return { me, members, pending, litters: flags.litters | 0, lastBirthMs: flags.lastBirthMs ?? null, follow: flags.follow !== false, promptDay: flags.promptDay ?? null, nestKey: 'acct' + accountId, companion: flags.companion ?? null };
   }
   /** お産の予定を書く（つれあいを迎えた・もう一度） */
   addLitter({ accountId, nestId, motherId, fatherId, nth, conceivedAt, duePlay }) {
@@ -312,6 +312,10 @@ export class Store {
   achievements(accountId) { const o = {}; for (const r of this.q('SELECT key, got_at FROM achievements WHERE account_id = ?').all(accountId)) o[r.key] = r.got_at; return o; }
   addAchievement(accountId, key, at) { return this.q('INSERT OR IGNORE INTO achievements (account_id, key, got_at) VALUES (?, ?, ?)').run(accountId, key, at).changes; }
   flag(accountId, key, d = null) { const r = this.q('SELECT value FROM account_flags WHERE account_id = ? AND key = ?').get(accountId, key); return r ? r.value : d; }
+  /** Ver.0.7：鍵が prefix で始まる印 {key: value} */
+  flagsLike(accountId, prefix) { const o = {}; for (const r of this.q('SELECT key, value FROM account_flags WHERE account_id = ? AND substr(key, 1, ?) = ?').all(accountId, prefix.length, prefix)) o[r.key] = r.value; return o; }
+  /** Ver.0.7：まだ無ければ印を書く（書けたら 1・もうあれば 0：二重にならない） */
+  setFlagOnce(accountId, key, value) { return this.q('INSERT OR IGNORE INTO account_flags (account_id, key, value) VALUES (?, ?, ?)').run(accountId, key, value == null ? null : String(value)).changes; }
   setFlag(accountId, key, value) { this.q('INSERT INTO account_flags (account_id, key, value) VALUES (?, ?, ?) ON CONFLICT(account_id, key) DO UPDATE SET value = excluded.value').run(accountId, key, value == null ? null : String(value)); }
 
   // ───────── フレンド（Ver.0.2）─────────

@@ -484,3 +484,8 @@ html.tb-touch .tb-linexp .tb-btn { min-height: 36px; }
 .tb-lincopy { width: min(80vw, 420px); font: inherit; font-size: 12px; background: #1e130c; color: var(--txt); border: 1px solid #5a3c24; }
 /* 共同巣（オフライン：NPC の住人） */
 .tb-npcres .tb-frow .nm small { color: var(--dim); margin-left: .4em; }
+
+/* ───────── Ver.0.7「小さなできごと」 ───────── */
+/* 上の案内（ヘルプの 1 行）はトーストと重ならない：ui.js の fitHelp がトーストの下へずらす。下げすぎるときはトーストの間だけ隠す */
+.tb-help.tb-help-hide { opacity: 0 !important; visibility: hidden; transition: none; }
+.tb-compnote { font-size: .85em; margin-top: 2px; }

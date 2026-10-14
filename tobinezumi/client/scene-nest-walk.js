@@ -18,6 +18,7 @@ import { sfx } from './sfx.js';
 import { lookOfInd } from './family-ui.js';
 import { STAGE_NAME, ageLabel, PUP, stageOf } from '../shared/family.js';
 import { familyScene, familyBubble, famRooms, petReply, familyLine, PET } from '../shared/family-life.js';
+import { talkInSlot, talkLineAt, nextTalk, TALK } from '../shared/family-talk.js';
 
 const FAM_ROLE = { pup: '子ども', kin: 'きょうだい', mate: 'つれあい', friend: 'なかま', resident: '共同巣の住人' };
 
@@ -286,17 +287,30 @@ export class NestWalkScene {
     const scene = familyScene({ key: this.nest.id, members: list, rooms: this._famRooms, bed: this._famBed, t, period: tod.period, parents: this._parents() });
     const seeds = (this.nest.storage || []).reduce((a, it) => a + (it && it.id === 'seed' ? it.n : 0), 0);
     const ctx = { season: env.season || 'spring', period: tod.period, weather: env.weather || 'clear', seeds };
+    // Ver.0.7：家族どうしの短いやりとり（shared/family-talk.js：巣の id ＋ 時計 ＋ 個体の id で決まる。親の位置は使わない＝訪問者の画面でも同じ）
+    const tales = this.nest.tales || null;
+    const tin = { key: this.nest.id, members: list, ctx: { ...ctx, tales, companion: tales ? tales.companion : null },
+      sceneAt: tt => familyScene({ key: this.nest.id, members: list, rooms: this._famRooms, bed: this._famBed, t: tt, period: tod.period, parents: {} }) };
+    const tslot = Math.floor(t / TALK.SLOT_MS), tkey = tslot + '|' + list.map(m => m.id + ':' + m.stage + ':' + Math.round(m.fed ?? 100)).join(',') + '|' + JSON.stringify(tin.ctx);
+    if (this._talkKey !== tkey) { this._talkKey = tkey; this._talk = talkInSlot({ ...tin, slot: tslot }); }
+    const talk = this._talk && t >= this._talk.t0 - 200 && t <= this._talk.t1 ? this._talk : null;
+    const tline = talkLineAt(talk, t);
     const out = [];
     for (const m of list) {
       const q = scene.get(m.id);
       if (!q) continue;
+      const inTalk = talk && (String(talk.a) === String(m.id) || String(talk.b) === String(m.id));
+      if (inTalk) {   // 話している 2 匹は 向き合う（同じ部屋にいるとき）
+        const other = scene.get(String(talk.a) === String(m.id) ? talk.b : talk.a);
+        if (other && other.roomId === q.roomId && Math.abs(other.x - q.x) > 2 && q.anim !== 'walk') q.facing = other.x > q.x ? 1 : -1;
+      }
       let v = this.fam.get(m.id);
       if (!v || q.pop || v.room !== q.roomId || Math.abs(v.x - q.x) > 60) { if (v && v.room !== q.roomId) v.popT = this.t; v = { ...(v || {}), x: q.x, room: q.roomId, hop: 0 }; this.fam.set(m.id, v); }
       const dx = q.x - v.x;
       v.x += dx * Math.min(1, dt * 10);
       const walking = q.anim === 'walk' || Math.abs(dx) > 1.5;
       v.hop = walking ? v.hop + dt / 0.24 : 0;
-      const bub = familyBubble({ key: this.nest.id, m, t, view: q, ctx });
+      const bub = inTalk ? (tline && String(tline.id) === String(m.id) ? { text: tline.text, talk: true } : null) : talk ? null : familyBubble({ key: this.nest.id, m, t, view: q, ctx });   // やりとりの間は ほかの子は だまって聞く
       const say = v.say && v.say.until > this.t ? v.say.text : bub ? bub.text : null;
       out.push({ m, x: v.x, y: q.y, facing: q.facing, anim: walking ? 'walk' : q.anim, act: q.act, hop: v.hop, eat: v.eatT != null && this.t - v.eatT < 0.8, pop: v.popT != null && this.t - v.popT < 0.4, say, heart: v.heartT != null && this.t - v.heartT < 1.4 ? this.t - v.heartT : null });
     }
@@ -305,6 +319,10 @@ export class NestWalkScene {
     const inputs = { key: this.nest.id, members: list, rooms: this._famRooms, bed: this._famBed, period: tod.period, parents: this._parents() };
     g.debug.famAt = tt => [...familyScene({ ...inputs, t: tt }).entries()].map(([id, v]) => ({ id, act: v.act, x: v.x, roomId: v.roomId }));
     g.debug.famScene = out.map(f => ({ id: f.m.id, name: f.m.name, act: f.act, anim: f.anim, x: Math.round(f.x), say: f.say || null }));
+    const tOut = k => (k ? { a: k.a, b: k.b, type: k.type, topic: k.topic, t0: k.t0, t1: k.t1, lines: k.lines.map(l => ({ id: l.id, name: l.name, text: l.text, t0: l.t0 })) } : null);
+    g.debug.famTalk = tOut(talk);
+    g.debug.famTalkAt = tt => tOut(talkInSlot({ ...tin, slot: Math.floor(tt / TALK.SLOT_MS) }));   // 同じ時刻のやりとり（2 つの画面で同じか）
+    g.debug.famNextTalk = () => tOut(nextTalk({ ...tin, t: g.net.serverTime ? g.net.serverTime() : Date.now() }));
   }
   /** Ver.0.6：なでる（毛づくろいしてあげる）。体調が少し戻り、その子は うれしそうに ひとこと */
   async petFam(m) {

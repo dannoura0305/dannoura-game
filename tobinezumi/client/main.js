@@ -17,6 +17,7 @@ import { envAt, REST_NAME } from '../shared/season.js';
 import { initSfx, setSfx, sfx } from './sfx.js';
 import { familyPanel, namingDialog, farewellScene, lineagePanel } from './family-ui.js';
 import { lookOf, traitMoveMods } from '../shared/genetics.js';
+import { walkersOfFamily } from '../shared/household.js';
 import { STAGE_NAME, ageLabel, STAGE } from '../shared/family.js';
 import { worldMapPanel, collectionPanel, achievementsPanel, nestTourPanel, residentsPanel, discoveryCard, regionCard } from './world-ui.js';
 import { CURIOS, ACH, unlockedDecor, isCurio } from '../shared/collect.js';
@@ -163,7 +164,7 @@ game.setFamily = function (fam, events = []) {
   game.house = fam;
   game.look = lookOf(fam.me.traits);
   game.traitMove = traitMoveMods(fam.me.traits);
-  game.myKids = fam.follow ? fam.members.filter(m => (m.role === 'pup' || m.role === 'kin') && m.stage === 'young').slice(0, 3).map(m => ({ id: m.id, name: m.name, look: lookOf(m.traits, { young: 1, ps: m.id % 97 }) })) : [];
+  game.myKids = walkersOfFamily(fam);   // 若者 3 匹まで＋なかま 1 匹（Ver.0.7）
   if (game.field && game.field.me) game.field.me.look = game.look;
   for (const e of events) game._familyEvent(e);
   game.debug.family = { me: fam.me.name, stage: fam.me.stage, age: Math.round(fam.me.ageMs / 1000), kids: fam.members.filter(m => m.role === 'pup' || m.role === 'kin').length, mate: !!fam.members.find(m => m.role === 'mate'), pending: !!fam.pending };
@@ -214,6 +215,16 @@ game.openFamily = async function () {
     },
     succeed: m => game.succeed(m),
     follow: async on => { const x = await net.kidsFollow(on); if (x.ok) { game.setFamily(x.family); game.ui.toast(on ? '若者を連れて行く（地上でついてくる）' : '若者は巣で待つ'); } },
+    companion: async (m, on) => {   // Ver.0.7：なかまを地上へ（1 匹だけ）
+      const x = await net.setCompanion(on ? m.id : null);
+      if (!x.ok) { game.ui.toast(x.reason || 'できなかった', 'bad'); return; }
+      game.setFamily(x.family);
+      const sw = x.swapped != null ? (x.family.members.find(q => String(q.id) === String(x.swapped)) || {}).name : null;
+      game.ui.toast(on ? m.name + ' を 地上へ連れて行く（後ろについてくる）' + (sw ? '。' + sw + ' は 巣で待つ' : '') : m.name + ' は 巣で待つ');
+      game.debug.companion = on ? m.id : null;
+      if (game.nest && game.nest.own && game.nest.tales) game.nest.tales.companion = on ? m.id : null;
+      game.openFamily();
+    },
     lineage: () => game.openLineage(),
     farewell: () => game.farewell(),
   });
@@ -260,7 +271,7 @@ game.lifespanDialog = function () {
 game.collection = { owned: {}, achievements: {}, found: false };
 game.setCollection = function (c) {
   if (!c) return;
-  game.collection = { owned: { ...(c.owned || {}) }, achievements: { ...(c.achievements || {}) }, found: !!c.found };
+  game.collection = { owned: { ...(c.owned || {}) }, achievements: { ...(c.achievements || {}) }, found: !!c.found, tev: { ...(c.tev || (game.collection && game.collection.tev) || {}) } };
   game.debug.collection = Object.keys(game.collection.owned).length; game.debug.achievements = Object.keys(game.collection.achievements).length;
 };
 /** 巣の操作の見た目の判定（置けるか）：図鑑にある品・実績で使える飾り。正はサーバー／オフラインのバックエンド */

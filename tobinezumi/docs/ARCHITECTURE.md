@@ -163,7 +163,7 @@ tobinezumi/
                sprites.js（manifest の読み込み・毛色の置き換え）, art.js（コード描画のプレースホルダ）, sfx.js（WebAudio の効果音）, style.css
   shared/      move.js, nest-rules.js, items.js, regions.js, protocol.js, rng.js, life.js（暮らしの数値）, daynight.js（昼夜の時計）,
                predators.js（捕食者の AI・Ver.0.3）, season.js（季節・天気・影響）, lands.js（土地の区画と性能）,
-               family-life.js（家族のしぐさ・ひとこと：Ver.0.6）, follow.js（地上の若者の足あと）, lineage.js（家系図の並べ方・書き出し）, tour.js（巣めぐり）, toyama.js（富山の季節）（ブラウザと Node の両方で import する ES Modules・DOM なし）
+               family-life.js（家族のしぐさ・ひとこと：Ver.0.6）, family-talk.js（家族どうしの短いやりとり：Ver.0.7）, follow.js（地上の若者の足あと）, lineage.js（家系図の並べ方・書き出し）, tour.js（巣めぐり）, toyama.js（富山の季節・小さな出来事）（ブラウザと Node の両方で import する ES Modules・DOM なし）
   server/      index.js（静的配信・/tobi-server.json・/healthz・/statsz・WebSocket /ws）, security.js（Origin・IP ごとの上限：Ver.0.6）, docker-entry.mjs, game.js（接続・認証・振り分け。ws に依存しない）,
                rooms/field.js（地上 20Hz・スナップショット 10Hz・採集・巣穴）, rooms/nest.js（巣のインスタンス・建築・倉庫・訪問設定）,
                db.js, auth.js, backup.js, migrations/NNN_*.js, tools/（bots.mjs, backup.mjs, restore.mjs, proto-client.mjs）,

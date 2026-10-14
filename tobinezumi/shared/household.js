@@ -12,8 +12,22 @@ import {
   relativeInd, litterSeed, indOut, isGrown, heirsOf, STAGE, ageDays, speciesBlock, speciesOf, FRIEND_MAX, FAMILY_MAX, SPECIES,
 } from './family.js';
 import { petBlock, PET } from './family-life.js';
-import { seedOf } from './genetics.js';
+import { seedOf, lookOf } from './genetics.js';
 void PET;
+
+export const COMPANION_MAX = 1;   // Ver.0.7：地上へ連れて行ける なかま（同時に 1 匹）
+/** 地上についてくる子の送る形（若者は小さく・なかまは comp:1 と種の見た目） */
+export function walkerOut(m) {
+  if (m.role === 'friend') return { id: m.id, name: m.name, comp: 1, sp: m.species || 'longear', look: lookOf(m.traits, { ps: m.id % 97, sp: m.species || 'longear' }) };
+  return { id: m.id, name: m.name, look: lookOf(m.traits, { young: 1, ps: m.id % 97 }) };
+}
+/** 家族の送る形（out()）から、地上についてくる子（クライアントで同じ計算）。若者 3 匹まで → なかま 1 匹 */
+export function walkersOfFamily(fam) {
+  if (!fam || !Array.isArray(fam.members)) return [];
+  const young = fam.follow ? fam.members.filter(m => (m.role === 'pup' || m.role === 'kin') && (m.stage || stageOf(m.ageMs)) === 'young').slice(0, FOLLOW_MAX) : [];
+  const comp = fam.companion != null ? fam.members.find(m => m.role === 'friend' && String(m.id) === String(fam.companion)) : null;
+  return [...young, ...(comp ? [comp] : [])].map(walkerOut);
+}
 
 export class Household {
   constructor(raw = {}) {
@@ -25,8 +39,9 @@ export class Household {
     this.follow = raw.follow !== false;
     this.promptDay = raw.promptDay ?? null;
     this.nestKey = raw.nestKey ?? 'nest';
+    this.companion = raw.companion ?? null;   // Ver.0.7：地上へ連れて行く なかま（role friend の id・1 匹まで）
   }
-  toJSON() { return { me: this.me, members: this.members, pending: this.pending, litters: this.litters, lastBirthMs: this.lastBirthMs, follow: this.follow, promptDay: this.promptDay, nestKey: this.nestKey }; }
+  toJSON() { return { me: this.me, members: this.members, pending: this.pending, litters: this.litters, lastBirthMs: this.lastBirthMs, follow: this.follow, promptDay: this.promptDay, nestKey: this.nestKey, companion: this.companion }; }
 
   get mate() { return this.members.find(m => m.role === 'mate') || null; }
   /** ほかの種のなかま（Ver.0.6） */
@@ -36,6 +51,19 @@ export class Household {
   heirs() { return this.me ? heirsOf(this.me, this.members) : []; }
   /** 地上へ連れて行く若者（若者の子・きょうだい、3 匹まで） */
   followers() { return this.follow ? this.kids().filter(m => stageOf(m.ageMs) === 'young').slice(0, FOLLOW_MAX) : []; }
+  /** Ver.0.7：地上へ連れて行く なかま（いなければ null） */
+  companionMember() { if (this.companion == null) return null; const m = this.find(this.companion); return m && m.role === 'friend' ? m : null; }
+  /** 地上で後ろについてくる子（若者 3 匹まで → なかま 1 匹の順。足あとをこの順にたどる） */
+  walkers() { const c = this.companionMember(); return c ? [...this.followers(), c] : this.followers(); }
+  /** Ver.0.7：なかまを地上へ連れて行く（id）・巣で待つ（null）。連れて行けるのは 1 匹だけ（別の子を選ぶと入れかわる） */
+  setCompanion(id) {
+    if (id == null || id === false) { this.companion = null; return { ok: true, companion: null }; }
+    const m = this.find(id);
+    if (!m || m.role !== 'friend') return { ok: false, reason: 'なかま（ほかの種の子）だけ 連れて行ける' };
+    const swapped = this.companion != null && String(this.companion) !== String(m.id) ? this.companionMember() : null;
+    this.companion = m.id;
+    return { ok: true, companion: m.id, swapped: swapped ? swapped.id : null };
+  }
   find(id) { return this.members.find(m => String(m.id) === String(id)) || null; }
 
   /** 時間を進める（親が地上か巣の中にいる間だけ） */
@@ -200,7 +228,7 @@ export class Household {
       me: this.me ? indOut(this.me) : null,
       members: this.members.map(m => indOut(m)),
       pending: this.pending ? { mateId: this.pending.mateId, dueIn: this.dueIn(), wait: !!this.pending.waitNote } : null,
-      litters: this.litters, follow: this.follow, heirs: this.heirs().map(m => m.id),
+      litters: this.litters, follow: this.follow, companion: this.companionMember() ? this.companion : null, heirs: this.heirs().map(m => m.id),
       cooldown: this.lastBirthMs != null ? Math.max(0, BREED.COOLDOWN_DAYS * DAY_MS - (this.me.ageMs - this.lastBirthMs)) : 0,
     };
   }

@@ -313,3 +313,29 @@ NestRecord.family[] は Ind + {acct}                // 巣の家族（所有者�
 
 - 止めるとき（SIGTERM）：全員に `toast`「サーバーを再起動します」→ 保存 → 1012 で切る（クライアントは自動でつながりなおす）。
 - 環境変数と手順は DEPLOY.md。
+
+## 13. Ver.0.7「小さなできごと」（追加分。PROTOCOL_VERSION は 1 のまま＝足しただけ）
+
+### 13.1 C2S
+| t | 中身 | 返事 | サーバーの検証 |
+|---|---|---|---|
+| `companion` | `{id}`（`null` で巣で待つ） | `{ok, family, kids, swapped}` | id は整数か null・その家の role `friend`（なかま）だけ。**1 匹だけ**（別の子なら入れかわり、前の子の id を `swapped`）。家の印 `individuals.status.house.companion` に保存し、地上のみんなへ `player_update`（`kids` に入る） |
+| `toyama_event` | `{id}`（`board` / `train` / `footprints` / `white_near`） | `{ok, id, first, seen:{id: 時刻}}` | 地上・富山の部屋・`toyamaEventBlock`（shared/toyama.js）：`board` 夏・夜・光る板から 40px／`train` 世界の時刻 4:44〜4:58／`footprints` 冬・途切れた所から 26px／`white_near` 夜・図鑑に crossover 6 つ。見たことがあれば `{ok:true, first:false}`（二度は起きない）。記録は `account_flags` の `tev:<id>`（`INSERT OR IGNORE`） |
+| `dev` | `+= {hour, tevReset}` | | `TOBI_DEV=1` のときだけ。時計をその時刻へ（全員）・富山の出来事の記録を消す |
+
+### 13.2 S2C・データの形
+| t | 中身 |
+|---|---|
+| `snapshot` | 行の `k`・`kh` は「若者（3 匹まで）→ なかま（1 匹）」の順の位置（Ver.0.6 と同じ計算・同じ形） |
+| `player_join` / `player_update` / `you` | `kids[]` に なかまの行 `{id, name, comp:1, sp:'longear', look}`（若者は `{id, name, look}`） |
+| `join_field` などの `world.collection` | `+= {tev:{id: 時刻}}`（見た富山の出来事） |
+| `enter_nest` の `nest` | `+= {tales:{toyama, companion}}`：所有者が富山へ行ったことがあるか・地上へ連れて行く なかまの id。**家族のやりとりの文脈**（訪問者にも同じものを送る） |
+
+```
+Family（out）+= {companion: id|null}
+NestRecord  += {tales: {toyama: bool, companion: id|null}}
+```
+
+- **家族どうしの短いやりとりは通信しない**：巣の id ＋ サーバーの時計 ＋ 個体の id ＋ 巣の部屋 ＋ 家族の一覧 ＋ 巣の倉庫 ＋ `tales` から、どの画面でも同じに決まる（`talkInSlot` / `familyTalk`。親の位置は使わない）。
+- オフライン版も同じ API：`setCompanion(id)`・`toyamaEvent(id)`。保存は版 7：`toyamaEvents`・`house.companion`。v6 は読み込み時に移行。
+- `/healthz` の `v` は `'0.7'`。
