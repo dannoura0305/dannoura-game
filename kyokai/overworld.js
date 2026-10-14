@@ -1092,4 +1092,18 @@
   API.startBattle = (id, ctx) => startBattle(id, Object.assign({ area: OW.mapId, world: OW.world, danger: dangerHere() }, ctx || {}));
   API.noiseTiles = () => { const out = []; if (!OW.m) return out; OW.m.g.forEach((r, y) => r.forEach((c, x) => { if (c === 'n') out.push([x, y]); })); return out; };
   API.noiseOn = () => !!(OW.m && noiseOn());
+  // 見た目の確認用（スクリーンショット）：探索の流れとは別に、その場所・世界の地図をそのまま出す
+  API.preview = (id, world, at) => {
+    world = String(world || 'A').toUpperCase(); const s = S(); s.world = world;
+    OW.mode = id === 'town' ? 'field' : 'area'; OW.objs = [];
+    try { KY.scene(sceneOf(id, world), world); } catch (e) {}
+    setMap(id, world, null);
+    const m = OW.m;
+    let pos = at || (id === 'town' ? MP.entryFor(m, { x: MP.ENTRANCES['@center'][0], y: MP.ENTRANCES['@center'][1] }) : MP.arrival(m, 'town'));
+    OW.p.x = pos[0]; OW.p.y = pos[1]; OW.p.dir = pos[2] || 'u';
+    if (id !== 'town') buildObjects();
+    activate();
+    showName((id === 'town' ? '月代町' : KY.areaName(id)) + (world !== 'A' ? '（' + KY.WORLD_LABEL[world] + '）' : ''));
+    return true;
+  };
 })(typeof window !== 'undefined' ? window : globalThis);
