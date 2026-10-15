@@ -12,7 +12,7 @@ const rngOf = s => () => ((s = (s * 16807) % 2147483647) / 2147483647);
 export const TOWN = {
   provisional: true,
   giantStart: [0, 6, Math.PI],
-  companion: [7.5, 26.0],          // 負傷して座り込む場所（アーケードの入口の前）
+  companion: [3.4, 24.0],          // 負傷して座り込む場所（アーケードの入口の前・東の歩道）
   safe: [0, 44],                   // 避難の先（バスが行く所）
   // 逃げる人の群れ（小さな人影）：from → to を往復しない（一度逃げきる）
   crowds: [{ from: [-14, -6], to: [-4, 46], n: 6 }, { from: [14, 4], to: [4, 46], n: 5 }, { from: [-6, -22], to: [-2, 46], n: 5 }, { from: [18, -16], to: [6, 46], n: 4 }],
@@ -65,7 +65,7 @@ export function buildTown() {
   const P = []; let n = 0; const add = (kind, x, z, ry = 0, color) => P.push({ id: kind + '_' + (n++), kind, x, z, ry, color });
   for (let z = -50; z < 54; z += 12) { add('sign', -4.2, z + 3, Math.PI / 2, [0xd84a3a, 0x3a8ad8, 0xd8b03a, 0x5ac87a][Math.abs(z) % 4]); add('sign', 4.2, z - 3, -Math.PI / 2, [0x3a8ad8, 0xd84a3a, 0x5ac87a, 0xd8b03a][Math.abs(z) % 4]); }
   for (let x = -54; x < 56; x += 11) if (Math.abs(x) > 9) { add('pole', x, -5.0); add('pole', x + 5, 5.0); }
-  for (let z = -48; z < 50; z += 9) if (Math.abs(z) > 8) add('roof', 0, z);
+  for (let z = -48; z < 50; z += 9) if (Math.abs(z) > 8 && !(z > 8 && z < 38)) add('roof', 0, z);   // 巨大猫又と相棒の間・演出のカメラ（z 8〜38）はアーケードの屋根を外す（カメラを遮らない）
   for (const [x, z] of [[-4.6, 12], [4.6, -14], [-4.6, -30], [4.6, 34], [-12, -4.6], [16, 4.6]]) add('vend', x, z, x < 0 ? Math.PI / 2 : -Math.PI / 2, [0xd83a3a, 0x3a6ad8, 0xe8e8e8][Math.abs(x + z) % 3]);
   for (let z = -40; z < 44; z += 16) { add('awning', -5.0, z, Math.PI / 2, 0xc84a5a); add('awning', 5.0, z + 8, Math.PI / 2, 0x4a8ac8); }
   dyn.props = [];
@@ -84,17 +84,19 @@ export function buildTown() {
   const pm = instanced([[0, 0.55, 0, 0.42, 1.1, 0.3, 0xffffff], [0, 1.32, 0, 0.3, 0.3, 0.3, 0xe8d0c0], [0.12, 0.2, 0, 0.14, 0.4, 0.14, 0x2a2a30], [-0.12, 0.2, 0, 0.14, 0.4, 0.14, 0x2a2a30]], people.map(p => ({ x: p.x, z: p.z, color: p.color })), { name: 'people' });
   root.add(pm); dyn.people = { mesh: pm, list: people };
   // 避難バス（守る：前足でつかんで安全な所へ）
-  const bus = instanced([[0, 1.6, 0, 2.6, 2.6, 9.0, 0xe8e0c8], [0, 2.2, 0, 2.7, 0.9, 8.6, 0x2a3a5a], [0, 0.4, 3.2, 2.7, 0.8, 0.9, 0x2a2a30], [0, 0.4, -3.2, 2.7, 0.8, 0.9, 0x2a2a30], [0, 3.0, 0, 2.4, 0.1, 8.6, 0xd84a3a]], [{ x: -6, z: -16, ry: 0.3 }], { name: 'bus', shadow: true });
-  root.add(bus); dyn.bus = { mesh: bus, x: -6, z: -16, ry: 0.3, lifted: false };
+  const bus = instanced([[0, 1.6, 0, 2.6, 2.6, 9.0, 0xe8e0c8], [0, 2.2, 0, 2.7, 0.9, 8.6, 0x2a3a5a], [0, 0.4, 3.2, 2.7, 0.8, 0.9, 0x2a2a30], [0, 0.4, -3.2, 2.7, 0.8, 0.9, 0x2a2a30], [0, 3.0, 0, 2.4, 0.1, 8.6, 0xd84a3a]], [{ x: -1.5, z: -22, ry: 0.1 }], { name: 'bus', shadow: true });
+  root.add(bus); dyn.bus = { mesh: bus, x: -1.5, z: -22, ry: 0.1, lifted: false };
   // 明かり（巨体の縮尺）
   const lights = [
     { id: 'moonfill', pos: [0, 40, 20], color: 0x9a6ad8, intensity: 55, dist: 160 },
     { id: 'pillar', pos: [0, 20, -70], color: 0xc040ff, intensity: 110, dist: 90 },
     { id: 'shop1', pos: [-4, 6, 20], color: 0xffc890, intensity: 26, dist: 26 },
     { id: 'shop2', pos: [4, 6, -20], color: 0xffc890, intensity: 26, dist: 26 },
-    { id: 'comp', pos: [8, 5, 26], color: 0xffd8b0, intensity: 22, dist: 18 },
+    { id: 'comp', pos: [3.4, 5, 26], color: 0xffd8b0, intensity: 22, dist: 18 },
   ].map(l => Object.assign({ base: l.intensity }, l));
   halos.push({ p: [TOWN.companion[0], 2.0, TOWN.companion[1]], size: 3, color: 0xffd8a0, k: 0.4 });
+  // 崩れかけた足場（バスの下：守る場面で光る）
+  B.box('glow', -1.5, 0.03, -22, 4.2, 0.03, 10, 0x3a1a4a, { ry: 0.1, edges: false });
   return finish('town', B, atlas, root, {
     boxes, spots, dyn, lights, halos, wet: [], hideSpots: [], surface: () => 'asphalt', rainRoof: () => false, indoor: () => false,
     bounds: { minX: -54, maxX: 54, minZ: -54, maxZ: 54 }, spawns: { giant: [TOWN.giantStart[0], TOWN.giantStart[1], TOWN.giantStart[2]] },

@@ -44,6 +44,7 @@ export const storyMethods = {
     if (A === 'shelter' && s === 'ch2_gym' && this.area.dyn.gymDoor.open && P.z < 1.5) this.playCutscene('cs02_boss');
     this.storyTick3();
     this.storyTick4();
+    this.storyTick5();
   },
   /** 場所に入った時 */
   onAreaEnterStory(id) {
@@ -54,6 +55,7 @@ export const storyMethods = {
     if (id === 'shelter' && s === 'ch2_shelter') { this.setStep('ch2_roster'); this.later(0.3, () => this.playEvent('ev_shelter_arrive')); }
     this.onAreaEnter3(id);
     this.onAreaEnter4(id);
+    this.onAreaEnter5(id);
   },
   onEnemyResolvedStory(e, how) {
     if (e.id === 'kiro_t' && this.story.step === 'pro_fight') { this.later(0.4, () => this.bark(how === 'kill' ? 'pro_after_kill' : 'pro_after', 4)); this.setStep('pro_home'); }
@@ -77,6 +79,7 @@ export const storyMethods = {
   // ── 調べる・使う ──
   useSpot(s) {
     const T = this.events.texts || {}, st = this.story.step;
+    if (this.useSpot5(s)) return;
     if (this.useSpot4(s)) return;
     if (this.useSpot3(s)) return;
     switch (s.kind) {
@@ -302,6 +305,7 @@ export const storyMethods = {
   },
   cineEvent(name, arg) {
     const skip = this.cut.skipping;
+    if (this.cineEvent5(name, arg)) return;
     if (this.cineEvent4(name, arg)) return;
     switch (name) {
       // 第3章

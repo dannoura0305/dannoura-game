@@ -330,3 +330,10 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0a16; col
 #sh-ui.giant .sh-hpname::after { content: '（巨大猫又）'; font-size: 12px; color: #e8d8ff; }
 #sh-ui.giant .sh-yoki span { font-size: 0; } #sh-ui.giant .sh-yoki span::after { content: '巨大化'; font-size: 11px; }
 @media (max-height: 460px) { .sh-gskills { right: auto; left: 50%; transform: translateX(-50%); bottom: 6px; grid-template-columns: repeat(4, auto); } .sh-gskills div { font-size: 12px; padding: 4px 8px; } .sh-brk { grid-template-columns: repeat(5, 1fr); } .sh-logrow { font-size: 12px; padding: 3px 8px; } }
+/* 第6章A：巨大猫又の暴走（力があふれて抑えきれない）の画面のゆがみ。（相棒）が呼ぶたびに薄くなる */
+#sh-ui .sh-rampage { position: fixed; inset: 0; pointer-events: none; z-index: 3; opacity: 0.9;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0) 38%, rgba(120,10,90,.38) 70%, rgba(40,0,40,.75) 100%);
+  animation: sh-ramp 1.6s ease-in-out infinite alternate; mix-blend-mode: normal; }
+#sh-ui .sh-rampage::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(255,60,180,.05) 0 2px, rgba(0,0,0,0) 2px 5px); animation: sh-ramp2 0.4s steps(3) infinite; }
+@keyframes sh-ramp { from { transform: scale(1.0); filter: blur(0px); } to { transform: scale(1.03); filter: blur(1.2px); } }
+@keyframes sh-ramp2 { from { transform: translateY(0); } to { transform: translateY(5px); } }

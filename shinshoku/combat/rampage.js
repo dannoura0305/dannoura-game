@@ -1,7 +1,7 @@
 // 第6章A の冒頭：巨大猫又の「暴走」と「守る」の状態機械【仮】。DOM・three.js なし（node でテスト）。data/ch5.js の RAMPAGE・PROTECT。
 // 暴走＝巨大な姿の力があふれて、体が言うことを聞かない状態（性格が変わるのではない。だんのうらは自分のまま、抑えようとしている）。
 // ・使える入力は表（RAMPAGE.inputs）の「移動・抑える・カメラ」だけ。市民を攻撃する入力は無い（攻撃の入力は読まない）。
-// ・抑える：長押し（hold）か連打（mash）。抑えるほど勝手に踏み出す間が空き、被害の演出が減る。
+// ・抑える：長押し（hold）でも連打（mash）でも（両方を受け付ける）。抑えるほど勝手に踏み出す間が空き、被害の演出が減る。
 // ・失敗の状態は無い：（相棒）が名前を呼び続け（決め台詞は言わない）、回数がそろうか時間が来れば必ず我に返る（calm）。
 // 守る＝我に返った後：倒れてくる物（電柱・看板・瓦礫・バス）を、決まった動き（尾で払う・体で受ける・前足で運ぶ）で守る。守れなくても先へ進む。
 import { RAMPAGE, PROTECT } from '../data/ch5.js';
@@ -25,8 +25,9 @@ export class Rampage {
     const evs = [], C = this.C; if (this.calm) return evs;
     for (const k of Object.keys(inp)) if (inp[k]) this.used.add(k);
     this.t += dt;
-    if (this.mode === 'hold' && inp.suppressHeld) this.suppress += C.suppress.holdGain * dt;
-    if (this.mode === 'mash' && inp.suppressPress) this.suppress += C.suppress.mashGain;
+    // 長押しと連打のどちらでも抑えられる（両方を受け付ける。mode は記録だけ）
+    if (inp.suppressHeld) this.suppress += C.suppress.holdGain * dt;
+    if (inp.suppressPress) this.suppress += C.suppress.mashGain;
     if (!inp.suppressHeld && !inp.suppressPress) this.suppress -= C.suppress.decay * dt;
     this.suppress = Math.max(0, Math.min(1, this.suppress));
     if (!this.injured && this.t >= C.injuryAt) { this.injured = true; this.nextCall = this.t + (C.calls.first - C.injuryAt); evs.push({ t: 'injury' }); }

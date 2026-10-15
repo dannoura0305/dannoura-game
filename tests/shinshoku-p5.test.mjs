@@ -234,7 +234,7 @@ function test5() {
   t('だんのうらは男性：台詞の一人称は「アタシ」・オネェ言葉。巨大な姿の作りも男性（スカート・ドレスの部品なし）。娘は危ない所へ連れてこない', () => {
     const dl = Object.values(CUTSCENES4).flatMap(c => c.lines).filter(l => l.who === 'dan').map(l => l.text).join('');
     assert.ok(/アタシ/.test(dl)); assert.ok(/わよ|かしら|ましょ|なさい/.test(dl)); assert.ok(/千代さん/.test(dl), '娘は千代さんに預けている');
-    const m = src('actor/models4.js'); assert.ok(!/skirt|dress|スカート|ドレス/i.test(m)); assert.ok(/male: true/.test(m));
+    const m = src('actor/models4.js') + src('actor/models5.js'); assert.ok(!/skirt|dress|スカート|ドレス/i.test(m)); assert.ok(/male: true/.test(m));   // 巨大猫又はフェーズ6 で models5.js へ
   });
   t('セーブ：版 0.4.0・分岐前の枠（branch）・火縄銃の所持を保存', () => {
     assert.equal(GAME_VER, '0.4.0'); assert.ok(SLOT_NAMES.includes('branch') && SLOT_NAMES.includes('tenki'));

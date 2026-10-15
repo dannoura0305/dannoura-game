@@ -39,7 +39,8 @@ export class Tsugihagi extends Brain {
     else if (opt.side === 'right' && P.right.alive) part = 'right';
     else if (opt.side === 'left' && P.left.alive) part = 'left';
     else if (opt.side === 'back' && P.legs.alive) part = 'legs';
-    if (part) { const p = P[part]; p.hp = Math.max(0, p.hp - dmg); evs.push({ t: 'partHit', part, hp: p.hp, max: p.max }); if (p.hp <= 0 && p.alive) this.breakPart(part, evs); }
+    // 脚は太い：受ける傷は 0.6 倍。体力が半分を切るまでは崩れきらない（先に鞄が落ちて、返す時間がある）
+    if (part) { const p = P[part], d = part === 'legs' ? dmg * 0.6 : dmg; p.hp = Math.max(part === 'legs' && this.hp / this.hpMax > 0.5 ? 1 : 0, p.hp - d); evs.push({ t: 'partHit', part, hp: p.hp, max: p.max }); if (p.hp <= 0 && p.alive) this.breakPart(part, evs); }
     if (!this.alive || this.state === 'fallen') return dmg;
     const wasDown = this.state === 'down';
     const r = super.hurt(dmg, kind === 'issen' ? 'slash' : kind, evs, opt);

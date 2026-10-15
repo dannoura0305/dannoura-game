@@ -133,14 +133,14 @@ export function buildDannouraWhite() {
   sb.blob([0, 0, R * 0.04], [R * 0.06, R * 0.06, R * 0.04], { xf: flXf, weights: hw, color: 0xffe070, w: 6, h: 4, oth: 0 });
   const weapons = buildWeaponBones(sb);
   const tex = faceAtlasExpr((g, E) => {
-    drawEye(g, 0, 0, { iris: '#b48cff', dark: '#3a1458', light: '#fbefff', lash: '#2a1838', lashW: 9, rw: 40, rh: 46, flick: true, lid: E.lid, happy: E.happy, slit: true, glow: 'rgba(220,170,255,.35)' });
+    drawEye(g, 0, 0, { iris: '#b48cff', dark: '#3a1458', light: '#fbefff', lash: '#2a1838', lashW: 9, rw: 42, rh: 48, flick: true, lid: E.lid, happy: E.happy, slit: true, glow: 'rgba(230,180,255,.5)', ringColor: 'rgba(255,220,255,.5)' });
     drawBrow(g, Object.assign({ color: '#cfc4e4', w: 8, arch: 0 }, E.brow, { tilt: 2 + (E.brow.tilt || 0) }));
     drawMouth(g, Object.assign({ color: '#9a4058', smile: 3, w: 4.5 }, E.mouth));
     drawNose(g, { color: 'rgba(190,120,120,.6)' });
     drawBlush(g, { color: 'rgba(255,150,190,.22)', lines: false });
     g.save(); g.translate(128, 128); g.fillStyle = '#141018'; g.fillRect(0, 0, 64, 64); g.restore();
   }, 'calm');
-  const m = sb.build(tex, { rim: 0.85, rimColor: 0xe8d8ff, outline: 0.0085, outlineColor: 0x1a1024 });
+  const m = sb.build(tex, { rim: 0.85, rimColor: 0xe8d8ff, outline: 0.0085, outlineColor: 0x1a1024, faceEmissive: 0x3a3048 });
   const sway = tailNames.map((n, i) => ({ b: sb.B[n], k: 34 - i * 2.5, d: 5.5, gain: -(0.12 + i * 0.03), baseX: 0, amp: 0.08 + i * 0.03, freq: 1.6, ph: i * 0.55, tail: true }));
   return Object.assign(m, { tail: [], coat: [], sway, earBones: ears.map(n => sb.B[n]), weapons, height: 1.66, provisional: true, kind: 'dannoura_white', white: true, eyes: [sb.B.eyeL, sb.B.eyeR], mouth: sb.B.mouth, faceTex: tex, setExpr: n => tex.userData.setExpr(n) });
 }
@@ -256,7 +256,7 @@ export function buildMimicShadow(opt = {}) {
   } else hairCap(sb, R, { base: 0x1c1226, dark: 0x120a18, faceZ: 0.3, hairline: 0.5, nape: -0.5, bottom: -0.7 });
   // 仮面の顔（写した顔）
   const tex = faceAtlas(g => {
-    drawEye(g, 0, 0, { iris: '#2a1440', dark: '#0a0410', light: '#6a3a9a', lash: '#120818', lashW: 6, rw: 34, rh: 30, lid: 0.35, flick: false, pupil: '#000' });
+    drawEye(g, 0, 0, { iris: '#2a1440', dark: '#0a0410', light: '#6a3a9a', lash: '#120818', lashW: 6, rw: 34, rh: 30, lid: 0.35, flick: false, pupil: '#000', sparkle: false, ring: false });
     drawBrow(g, { color: '#5a4a6a', w: 4, tilt: -6, arch: 6 });
     g.save(); g.translate(128, 48); g.strokeStyle = '#2a1830'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.moveTo(26, 16); g.quadraticCurveTo(64, 42, 102, 16); g.stroke(); g.restore();
     if (opt.boss) { g.save(); g.strokeStyle = 'rgba(240,236,250,.9)'; g.lineWidth = 3; g.strokeRect(20, 44, 88, 52); g.restore(); }

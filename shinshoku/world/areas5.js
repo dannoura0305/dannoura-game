@@ -212,7 +212,7 @@ export function buildAtrium() {
   // 明かり
   const lights = [
     { id: 'moon', pos: [0, 8.5, -5], color: 0x8a9ae0, intensity: 14, dist: 22 },
-    { id: 'core', pos: [0, 1.5, -6], color: 0xa050ff, intensity: 8, dist: 12 },
+    { id: 'core', pos: [0, 0.6, -6], color: 0xa050ff, intensity: 3.5, dist: 9 },
     { id: 'desk', pos: [0, 2.5, -15.5], color: 0xc8b0ff, intensity: 5, dist: 10 },
     { id: 'watch', pos: [wx, 2.4, wz], color: 0xffd8a0, intensity: 3, dist: 6 },
     { id: 'sw', pos: [-10, 3, 5], color: 0xdfe8f8, intensity: 3.5, dist: 9, flicker: true },

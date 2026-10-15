@@ -1,5 +1,5 @@
 {
-  "_note": "『境界侵食』序章〜第3章（試作）の台詞・調べた時の文（データ駆動）。相棒は仮 ID companion・表示名は未決定（Q8）。台詞はすべて【仮】（SCENARIO_FLOW の「仮：」を含む）。fixed:true の原文台詞はこの範囲（序章〜第2章）には無い。演出場面の台詞は story/cutscenes.js。",
+  "_note": "『境界侵食』序章〜第5章・第6章A の冒頭（試作）の台詞・調べた時の文（データ駆動）。相棒は仮 ID companion・表示名は未決定（Q8）。台詞はすべて【仮】（SCENARIO_FLOW の「仮：」を含む）。fixed:true の原文台詞はこの範囲（序章〜第2章）には無い。演出場面の台詞は story/cutscenes.js。",
   "speakers": {
     "dan": { "name": "だんのうら", "color": "#c9a8ff" },
     "companion": { "name": "（相棒・名前未定）", "color": "#ffd7a8", "provisional": true },
@@ -16,7 +16,9 @@
     "mother": { "name": "（留守電の声）", "color": "#ffd0e0" },
     "researcher": { "name": "放送の声", "color": "#9ad8e8", "provisional": true },
     "radio": { "name": "無線の声（分室・仮）", "color": "#b8e0c0", "provisional": true },
-    "outou": { "name": "応答体", "color": "#e0d0ff" }
+    "outou": { "name": "応答体", "color": "#e0d0ff" },
+    "shuusha": { "name": "収容者", "color": "#d8dcd0" },
+    "tsugihagi": { "name": "継接", "color": "#c8a0ff" }
   },
   "events": {
     "ev_intro": [
@@ -112,6 +114,31 @@
     "ev_ch4_secret_hint": [
       { "who": "dan", "text": "通路の応答体……鎮静が切れかけてる。走らないで、灯りは消して" },
       { "who": "dan", "text": "弁を開ければ蒸気で姿が隠れるわ" }
+    ],
+    "ev_ch5r_start": [
+      { "who": "companion", "text": "……だんのうらさん。搬入口の奥、壁が崩れてます。古い建物が続いてる" },
+      { "who": "dan", "text": "旧研究棟ね。あの声の主も、記録も、たぶんこの奥よ" },
+      { "who": "companion", "text": "わたしも行きます。……もう、隠さなくていいんですよね" },
+      { "who": "dan", "text": "アンタの前ではね。……アタシから離れないこと。いい？" }
+    ],
+    "ev_ch5s_start": [
+      { "who": "companion", "text": "炉の部屋の奥に、古い連絡通路があります。「旧研究棟」って" },
+      { "who": "dan", "text": "電気が落ちたままね。……炉を止めたぶん、向こうは真っ暗のはずよ" },
+      { "who": "companion", "text": "それでも、行くんですよね" },
+      { "who": "dan", "text": "ええ。暗いところの点検は、本業だもの" }
+    ],
+    "ev_rollcall_done": [
+      { "who": "sys", "text": "（点呼の鐘が三度。収容者たちは、それぞれの部屋へ戻って腰を下ろした）" },
+      { "who": "companion", "text": "……静かになりましたね" },
+      { "who": "dan", "text": "決まりを守らせてあげただけよ。……隔離扉の錠が外れたわ" }
+    ],
+    "ev_breaker5_done": [
+      { "who": "dan", "text": "点呼卓・隔離扉の錠・排水ポンプで、ちょうど 4。照明は我慢ね" },
+      { "who": "companion", "text": "焼却炉は……入れないんですね" },
+      { "who": "dan", "text": "保全記録に「非常時は投入しない」。こういう但し書きは、だいたい誰かが痛い目を見て書いたものよ" }
+    ],
+    "ev_bag_returned": [
+      { "who": "sys", "text": "（鞄を机 B に置く。継ぎ目が、ひとつずつほどけていく）" }
     ]
   },
   "barks": {
@@ -181,7 +208,24 @@
     "giant_block": { "who": "dan", "text": "通さないわよ……！" },
     "giant_weak": { "who": "dan", "text": "……っ、大きさを保つのも楽じゃないわね" },
     "giant_core": { "who": "dan", "text": "胸の輪が開いた……今よ！" },
-    "steam_on": { "who": "dan", "text": "蒸気で見えないはずよ。今のうち" }
+    "steam_on": { "who": "dan", "text": "蒸気で見えないはずよ。今のうち" },
+    "shuusha_idle": { "who": "shuusha", "text": "……点呼まで、部屋の前で……待機……" },
+    "tsugi_knock": { "who": "tsugihagi", "text": "……あけて……かえして……あけて……" },
+    "ow_bell_hint": { "who": "dan", "text": "鐘が鳴るたびに、戸口に立つ順番がある……覚えておきましょ" },
+    "ow_rollcall_wrong": { "who": "dan", "text": "……違ったみたいね。落ち着いて、もう一度" },
+    "tsugi_part_right": { "who": "dan", "text": "叩く腕が崩れた……代わりに暴れ出したわ！" },
+    "tsugi_part_left": { "who": "dan", "text": "腕がほどけて、鞄が落ちた" },
+    "tsugi_bag": { "who": "dan", "text": "鞄……返しに行きたかったのかしら" },
+    "tsugi_bag_lost": { "who": "dan", "text": "っ、鞄を取り返された……！" },
+    "white_free5": { "who": "dan", "text": "もう隠さない。……行くわよ" },
+    "rampage_call_1": { "who": "companion", "text": "だんのうらさん！" },
+    "rampage_call_2": { "who": "companion", "text": "だんのうらさん……聞こえますか！" },
+    "rampage_call_3": { "who": "companion", "text": "こっちです！　だんのうらさん！" },
+    "rampage_call_4": { "who": "companion", "text": "戻ってきて……だんのうらさん！" },
+    "rampage_anchor": { "who": "dan", "text": "（……小さな手。「おかえり」の声。——帰るって、約束したのよ）" },
+    "rampage_strain": { "who": "dan", "text": "……っ、止まりなさい……アタシの体でしょ……！" },
+    "protect_saved": { "who": "dan", "text": "大丈夫、通さないわ" },
+    "protect_missed": { "who": "dan", "text": "っ……ごめんなさい、間に合わなかった。……でも、みんな逃げられてる" }
   },
   "texts": {
     "board": "回覧板。「夜間の外出はひかえてください。停電の復旧は未定です。商店会」……日付の欄に「10/14 23:41 停電」と手書き。",
@@ -245,6 +289,30 @@
     "terminal_idle": "試験端末。呼び出しの音と、終了の合図の音がある。",
     "terminal_need": "試験端末。終了の合図……どの音が、何の合図なのか分からない。（手順書が近くにありそう）",
     "valve_done": "弁は開いている。蒸気が通路に満ちている。",
-    "bulk_closed": "制御室の隔壁。電気が来ていない。"
+    "bulk_closed": "制御室の隔壁。電気が来ていない。",
+    "ow_gate_locked": "隔離扉。点呼が終わるまで開かない（点呼卓は廊下の北）。",
+    "ow_gate_delay": "……その前に、確かめたい記録がある。（延期の記録：reveal は主任研究室、secret は記録保管庫）",
+    "ow_console_dark": "点呼卓。電気が来ていない。（電気室の配電盤）",
+    "ow_east_locked": "東の廊下の戸。内側から鍵がかかっている。……主任研究室の鍵は、持ち主が持って行ったのだろう。",
+    "ow_east_open": "東の廊下。奥の床が大きく崩れている（搬入ヤードの戦いの揺れで）。",
+    "ow_seal_reveal": "札で封じられた戸。……今は、主任研究室の方が先。",
+    "ow_seal_cut": "封印は切った。戸の向こうは記録保管庫。",
+    "ow_seal_water": "封印を切った。……階段の下は水につかっている。（排水の弁と、排水ポンプの電気）",
+    "ow_valve_reveal": "排水の弁。ポンプは動いている（電気が来ている）。",
+    "ow_valve_open": "弁を開けた。……でも、排水ポンプが止まっている。（配電盤で電気を回す）",
+    "ow_valve_drain": "弁を開けた。排水ポンプがうなり、記録保管庫の水が引いていく。",
+    "ow_valve_done": "弁は開いている。",
+    "ow_leap_need": "崩れた床。……向こうまで、人の脚じゃ届かない。白い姿なら跳べる（化を長押し）。",
+    "ow_delay_done": "延期の記録は読んだ。",
+    "roster_text": "被験者名簿（収容棟）：",
+    "notes_text": "研究ノート：「応答は記憶に寄る。繰り返しの手順（輪）が強いほど、こちら側の形が保たれる」……何枚かは破り取られている。",
+    "letter_text": "手紙：「点呼の鐘が鳴ったら、戸の前に立つ。それだけ守れば、ここは静かです。家の猫は元気でしょうか」",
+    "duty_text": "当番表：観測室の机 A＝当直・B＝主任研究員（第三次試験の担当）・C＝記録係。B の欄の名前だけ、上から紙が貼られている。",
+    "maint5_text": "保全記録（旧研究棟の非常電源）：容量 4。点呼卓 1・隔離扉の錠 1・排水ポンプ 2・照明 1。焼却炉（3）は非常時に投入しないこと。",
+    "bag_tag": "鞄の札：「観測室　机 B」。……中に、書類の束と、小さな付箋。",
+    "desk_wrong": "……ここじゃない。鞄の札は「机 B」。",
+    "desk_idle": "観測室の机。",
+    "stairs_wait": "北東の階段。……今は、目の前の異形が先。",
+    "town_wait": "……町の灯りが、紫に塗り替わっていく。"
   }
 }

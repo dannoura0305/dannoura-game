@@ -408,6 +408,9 @@ export function drawEye(g, ox, oy, o = {}) {
   g.fillStyle = '#ffffff'; g.beginPath(); g.ellipse(ix - rw * 0.3, iy - irh * 0.4, rw * 0.21, rh * 0.17, -0.4, 0, Math.PI * 2); g.fill();
   g.beginPath(); g.arc(ix + rw * 0.28, iy - irh * 0.12, rw * 0.08, 0, Math.PI * 2); g.fill();
   g.globalAlpha = 0.55; g.beginPath(); g.ellipse(ix + rw * 0.18, iy + irh * 0.55, rw * 0.22, rh * 0.07, 0, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
+  // 寄りの絵のための細部（フェーズ6）：虹彩の内側の明るい輪・小さなきらめき（4 方向の星）
+  if (o.ring !== false) { g.strokeStyle = o.ringColor || 'rgba(255,240,255,.35)'; g.lineWidth = 2; g.beginPath(); g.ellipse(ix, iy, irw * 0.78, irh * 0.8, 0, Math.PI * 0.15, Math.PI * 0.85); g.stroke(); }
+  if (o.sparkle !== false) { const sx = ix - rw * 0.3, sy = iy - irh * 0.4, s = rw * 0.34; g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.moveTo(sx, sy - s); g.lineTo(sx + s * 0.16, sy); g.lineTo(sx, sy + s); g.lineTo(sx - s * 0.16, sy); g.closePath(); g.fill(); g.beginPath(); g.moveTo(sx - s, sy); g.lineTo(sx, sy + s * 0.16); g.lineTo(sx + s, sy); g.lineTo(sx, sy - s * 0.16); g.closePath(); g.fill(); }
   // 白目の上の影・まぶたの下がり
   g.fillStyle = 'rgba(80,60,120,.26)'; g.fillRect(0, cy - rh, 128, rh * 0.38 + lid * rh * 1.6);
   g.globalCompositeOperation = 'destination-out';                       // まぶたで隠れた所は透明（頭の肌が見える）

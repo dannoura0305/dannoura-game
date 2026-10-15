@@ -556,7 +556,7 @@ export const ch4Methods = {
     const G = this.giant; if (!G || !this.giantMode) return;
     if (G.growT != null) { G.growT += dt; const k = Math.min(1, G.growT / 2.6), e = k * k * (3 - 2 * k); G.scale = 0.25 + (COMBAT.giant.scale - 0.25) * e; if (k >= 1) G.growT = null; if (Math.random() < 0.8) this.fx.puff(G.pos.x + (Math.random() - 0.5) * 4 * G.scale / 8, Math.random() * 6 * G.scale / 8, G.pos.z + (Math.random() - 0.5) * 4 * G.scale / 8, 0, 1.5, 0, Math.random() < 0.5 ? 0x9a5aff : 0xf0e0ff, 1.2, 0.45); }
     G.root.position.set(G.pos.x, G.y || 0, G.pos.z); G.root.rotation.y = G.yaw; G.root.scale.setScalar(G.scale);
-    G.anim.update(dt, { speed: G.speed, phase: G.phase, st: G.fighter.st, turn: 0 });
+    G.anim.update(dt, { speed: G.speed, phase: G.phase, st: G.pst || G.fighter.st, turn: 0, rampK: G.rampK || 0 });
     if (G.model.outline) G.model.outline.visible = this.settings.outline;
     G.root.updateMatrixWorld(true);
     const H = this.halos, v = new THREE.Vector3(), t = this.playSec, k = G.scale / 8;
@@ -584,6 +584,7 @@ export const ch4Methods = {
   },
   /** 巨大猫又の HUD（体力・巨大化の妖力・技の案内） */
   hudGiant() {
+    if (this.hudGiant5 && this.hudGiant5()) return;
     const G = this.giant, F = G.fighter, el = this.ui.el;
     el.hpfill.style.width = (F.hp / F.hpMax * 100).toFixed(1) + '%'; el.hplag.style.width = el.hpfill.style.width; el.hpnum.textContent = `HP ${Math.ceil(F.hp)} / ${F.hpMax}`;
     if (!el.yoki.classList.contains('on')) el.yoki.classList.add('on');
@@ -633,7 +634,7 @@ export const ch4Methods = {
     stats.push(['（相棒）の信頼', this.companion.brain.trust]);
     this.metrics.endCard4 = route;
     this.mode = 'puzzle'; this.input.exitLock();
-    this.ui.endCard(stats, () => { this.ui.closePuzzle(); this.mode = 'play'; this.saveSlot('auto', true); }, `第4章（境界の夜）　${route === 'reveal' ? '妖力解放' : '正体秘匿'}　ここまで`, '第5章（旧研究棟）は次の段階で作ります。「分岐の前」のセーブ（ロード）から、もう一方のルートも遊べます。');
+    this.ui.endCard(stats, () => { this.ui.closePuzzle(); this.mode = 'play'; this.saveSlot('auto', true); if (['ch4_r_end', 'ch4_s_end'].includes(this.story.step)) this.later(0.4, () => this.startCh5()); }, `第4章（境界の夜）　${route === 'reveal' ? '妖力解放' : '正体秘匿'}　ここまで`, `続けて第5章${route === 'reveal' ? 'A（侵食）' : 'B（秘匿）'}（旧研究棟）へ進めます。「分岐の前」のセーブ（ロード）から、もう一方のルートも遊べます。`);
   },
 
   // ── 試験・ショートカット（?ch=4&route=reveal|secret）の初期状態 ──
@@ -660,7 +661,7 @@ export const ch4Methods = {
   /** 読み込み・飛び先のあとの区画ごとの整え（巨大戦・罠・守り・非常停止・隔壁） */
   afterLoad4() {
     const s = this.story.step, A = this.area.id;
-    if (this.giantMode && A !== 'yard') this.exitGiant();
+    if (this.giantMode && A !== 'yard' && A !== 'town') this.exitGiant();
     if (A === 'yard' && ['ch4_r_giant'].includes(s)) { this.enterGiant(false); const e = this.giantBoss(); if (e) { e.root.visible = true; e.brain.wake([]); this.lock = e; } this.giant.pos = { x: YARD.giantStart[0], z: YARD.giantStart[1] }; this.giant.yaw = Math.PI; }
     if (A === 'yard' && s === 'ch4_r_end') { /* 終わり：人の姿のまま歩ける */ }
     if (A === 'lab') {

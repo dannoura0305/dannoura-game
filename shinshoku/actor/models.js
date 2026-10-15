@@ -222,7 +222,7 @@ export function buildDannoura() {
   // ── 武器（専用の骨。大きさ 0 で隠す） ──
   const weapons = buildWeaponBones(sb);
   const tex = faceAtlasExpr((g, E) => {
-    drawEye(g, 0, 0, { iris: '#8a5cd6', dark: '#2a0f45', light: '#f2dcff', lash: '#21122e', lashW: 9, rw: 40, rh: 46, flick: true, lid: E.lid, happy: E.happy });
+    drawEye(g, 0, 0, { iris: '#8a5cd6', dark: '#2a0f45', light: '#f2dcff', lash: '#21122e', lashW: 9, rw: 41, rh: 47, flick: true, lid: E.lid, happy: E.happy });
     drawBrow(g, Object.assign({ color: '#4b2a78', w: 8, arch: 0 }, E.brow, { tilt: 2 + (E.brow.tilt || 0) }));
     drawMouth(g, Object.assign({ color: '#9a4058', smile: 3, w: 4.5 }, E.mouth));
     drawNose(g, { color: 'rgba(190,120,120,.7)' });

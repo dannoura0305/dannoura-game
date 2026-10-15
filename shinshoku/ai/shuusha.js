@@ -29,8 +29,8 @@ export class Shuusha extends Brain {
       case 'home': if (!this.room || go(this.room, 1.4)) { this.go('rest', evs, 'home'); } break;
       case 'bell': {
         if (this.t < this.bellAt) break;
-        if (this.door && !this.atDoor) { if (go(this.door, 1.3)) { this.atDoor = true; this.doorT = 0; evs.push({ t: 'atDoor', room: this.subject && this.subject.room }); } }
-        else { this.doorT = (this.doorT || 0) + dt; if (this.room) out.face = { x: this.room.x, z: this.room.z }; if (this.doorT > 6) { this.atDoor = false; this.go('loop', evs, 'bellEnd'); evs.push({ t: 'bellEnd' }); } }
+        if (this.door && !this.atDoor) { if (go(this.door, 1.6)) { this.atDoor = true; this.doorT = 0; evs.push({ t: 'atDoor', room: this.subject && this.subject.room }); } }
+        else { this.doorT = (this.doorT || 0) + dt; if (this.room) out.face = { x: this.room.x, z: this.room.z }; if (this.doorT > 8) { this.atDoor = false; this.go('loop', evs, 'bellEnd'); evs.push({ t: 'bellEnd' }); } }
         this.notice(sense, evs);
         break;
       }

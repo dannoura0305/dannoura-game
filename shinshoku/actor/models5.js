@@ -278,8 +278,8 @@ export function buildShuusha(seed = 1, no = 'S-00') {
     skin: SK, shoe: 0xd0d0c8, sole: 0x7a7a80, neckR: 0.03, hand: 1.15, legFold: 0.3,
   });
   const hy = sb.W('hips').y;
-  const skirtW = p => { const k = Math.max(0, Math.min(1, (hy - p.y) / 0.4)) * 0.6; const wl = Math.max(0, Math.min(1, (p.x + 0.03) / 0.09)) * k, wr = Math.max(0, Math.min(1, (0.03 - p.x) / 0.09)) * k; return [[sb.bi('hips'), 1 - wl - wr], [sb.bi('leftUpperLeg'), wl], [sb.bi('rightUpperLeg'), wr]]; };
-  sb.tube([[hy + 0.02, 0.12, 0.09], [hy - 0.15, 0.15, 0.11], [hy - 0.3, 0.165, 0.12], [hy - 0.38, 0.17, 0.122]].map(([y, rx, rz]) => ({ c: [0, y, -0.004], r: [rx, rz] })), { sides: 18, sub: 2, weights: skirtW, color: (p, t) => (t > 0.9 ? GOWN2 : GOWN), capStart: false, capEnd: false, oth: 0.85, fold: 1.2 });
+  const hemW = p => { const k = Math.max(0, Math.min(1, (hy - p.y) / 0.4)) * 0.6; const wl = Math.max(0, Math.min(1, (p.x + 0.03) / 0.09)) * k, wr = Math.max(0, Math.min(1, (0.03 - p.x) / 0.09)) * k; return [[sb.bi('hips'), 1 - wl - wr], [sb.bi('leftUpperLeg'), wl], [sb.bi('rightUpperLeg'), wr]]; };
+  sb.tube([[hy + 0.02, 0.12, 0.09], [hy - 0.15, 0.15, 0.11], [hy - 0.3, 0.165, 0.12], [hy - 0.38, 0.17, 0.122]].map(([y, rx, rz]) => ({ c: [0, y, -0.004], r: [rx, rz] })), { sides: 18, sub: 2, weights: hemW, color: (p, t) => (t > 0.9 ? GOWN2 : GOWN), capStart: false, capEnd: false, oth: 0.85, fold: 1.2 });
   humanHead(sb, { R, skin: 0xd8d4cc, faceless: true, ears: false, jaw: 0.25 });
   // 顔を覆う布（巻いた帯）と、目のすき間
   const hc = sb.hc, hw = sb.rigid('head');
@@ -305,64 +305,82 @@ export function buildShuusha(seed = 1, no = 'S-00') {
 const UVR = (x0, y0, x1, y1) => [x0 / 256, 1 - y1 / 256, x1 / 256, 1 - y0 / 256];
 
 // ───────────────────────── 継接（第5章のボス） ─────────────────────────
-/** 足もとを原点・高さ約 3.3m。部分（右腕 tR0・左腕 tL0・脚 tLegs・鞄 tBag）は骨の大きさを 0 にすると消える */
+/** 足もとを原点・高さ約 3.6m（背を丸めて）。部分（右腕 tR0・左腕 tL0・脚 tLegs・鞄 tBag）は骨の大きさを 0 にすると消える */
 export function buildTsugihagi() {
   const sb = new SkinBody(DIM), r = rng(4242);
-  const SK = [0xb8bcc8, 0x9aa4b4, 0xc8b8b0, 0x8e8ca4, 0xa8b4a8], ST = 0x8a3ad8, D = 0x1a1420, EYE = 0xff7ad8;
+  const SK = [0x7e7a88, 0x5e6474, 0x8a7468, 0x4e4a5e, 0x6a7464, 0x938a9a], MASK = 0xe6e0d4, ST = 0x6a2ab8, D = 0x120e18, EYE = 0xff6ad0, BONE = 0xb8b0a0;
   const B = (n, p, x, y, z) => sb.addBone(n, p, x, y, z);
-  B('tRoot', null, 0, 0, 0); B('tHip', 'tRoot', 0, 1.3, 0); B('tBody', 'tHip', 0, 0.45, -0.05); B('tChest', 'tBody', 0, 0.55, 0.06);
-  B('tHeadA', 'tChest', 0.02, 0.48, 0.16); B('tHeadB', 'tChest', 0.36, 0.3, 0.05); B('tHeadC', 'tChest', -0.32, 0.4, -0.02);
-  const names = { R: chain(sb, 'tR', 'tChest', [-0.42, 0.18, 0.04], [[0, 0, 0], [-0.08, -0.62, 0.06], [0.0, -0.7, 0.12], [0.02, -0.46, 0.12]]), L: chain(sb, 'tL', 'tChest', [0.4, 0.1, 0.06], [[0, 0, 0], [0.06, -0.38, 0.22], [-0.2, -0.12, 0.26]]) };
-  B('tBag', 'tL2', -0.1, -0.06, 0.1);
+  B('tRoot', null, 0, 0, 0); B('tHip', 'tRoot', 0, 1.3, 0); B('tBody', 'tHip', 0, 0.45, -0.05); B('tChest', 'tBody', 0, 0.55, 0.12);
+  B('tHeadA', 'tChest', 0.02, 0.42, 0.34); B('tHeadB', 'tChest', 0.42, 0.24, 0.12); B('tHeadC', 'tChest', -0.4, 0.1, 0.2);
+  const names = { R: chain(sb, 'tR', 'tChest', [-0.5, 0.22, 0.06], [[0, 0, 0], [-0.1, -0.64, 0.08], [0.02, -0.72, 0.16], [0.04, -0.5, 0.14]]), L: chain(sb, 'tL', 'tChest', [0.46, 0.1, 0.1], [[0, 0, 0], [0.06, -0.4, 0.24], [-0.22, -0.12, 0.28]]) };
+  B('tBag', 'tL2', -0.12, -0.08, 0.1);
   B('tLegs', 'tHip', 0, 0, 0);
-  const legs = [['A', 0.26, 0.12, 1], ['B', -0.26, 0.1, 1], ['C', 0.18, -0.26, 0.78], ['D', -0.2, -0.3, 0.72]].map(([k, x, z, s]) => { const n = chain(sb, 'tLeg' + k, 'tLegs', [x, -0.02, z], [[0, 0, 0], [x * 0.3, -0.64 * s, 0.06], [0, -0.62 * s, -0.04]]); return { k, n, s, x, z }; });
+  const legs = [['A', 0.28, 0.14, 1, 0], ['B', -0.28, 0.12, 1, 0], ['C', 0.22, -0.3, 0.86, 1], ['D', -0.24, -0.34, 0.8, 1]].map(([k, x, z, s, insect]) => { const n = chain(sb, 'tLeg' + k, 'tLegs', [x, -0.02, z], insect ? [[0, 0, 0], [x * 1.2, 0.1, -0.25], [x * 0.3, -0.75 * s, -0.12], [0, -0.55 * s, 0.1]] : [[0, 0, 0], [x * 0.3, -0.64 * s, 0.06], [0, -0.62 * s, -0.04]]); return { k, n, s, x, z, insect }; });
   const W = n => sb.W(n), rw = n => sb.rigid(n);
-  // 継ぎ接ぎの肌：部分ごとに違う色の継ぎ当て・紫の縫い目
-  const patch = p => { const s = Math.sin(p.x * 9 + p.y * 5) + Math.sin(p.y * 7 - p.z * 11) + Math.sin(p.z * 6 + p.x * 4); const k = Math.floor((s + 3) * 0.83) % SK.length; const edge = Math.abs(((s + 3) * 0.83) % 1 - 0.5) > 0.46; return edge ? ST : SK[k]; };
-  // 胴：腰の塊 → 胸（左右に歪んだ二つの胴が寄り合う）
-  sb.tube([[0.9, 0.34, 0.3], [1.3, 0.42, 0.34], [1.6, 0.36, 0.3], [1.9, 0.4, 0.3], [2.2, 0.5, 0.34], [2.45, 0.46, 0.3], [2.62, 0.3, 0.22]].map(([y, rx, rz], i) => ({ c: [Math.sin(i * 1.3) * 0.05, y, Math.cos(i) * 0.03], r: [rx, rz], shape: a => { const k = 1 + Math.sin(a * 3 + i) * 0.12 + Math.sin(a * 7 - i) * 0.05; return [k, k]; } })), { sides: 20, sub: 2, weights: sb.along([[0, 'tHip'], [0.3, 'tHip'], [0.45, 'tBody'], [0.7, 'tChest'], [1, 'tChest']]), color: patch, capStart: true, capEnd: true, oth: 1 });
-  for (let i = 0; i < 8; i++) { const y = 1.1 + i * 0.2, a = r() * 6; sb.tube([-1, -0.5, 0, 0.5, 1].map(k => ({ c: [Math.sin(a + k * 0.4) * 0.46, y + k * 0.03, Math.cos(a + k * 0.4) * 0.38], r: [0.012, 0.012] })), { sides: 4, weights: y > 1.9 ? rw('tChest') : y > 1.5 ? rw('tBody') : rw('tHip'), color: ST, capStart: false, capEnd: false, oth: 0 }); }   // 縫い目の糸
-  // 頭（3 つ）：のっぺりした仮面のような顔・目の群れ・縫い合わされた口
-  const eyes = [];
-  [['tHeadA', 0.2, 6], ['tHeadB', 0.15, 4], ['tHeadC', 0.13, 3]].forEach(([hn, R, ne], hi) => {
-    const h = W(hn), hw = rw(hn);
-    sb.tube([{ c: [h.x * 0.6, h.y - 0.28, h.z * 0.6], r: [R * 0.45, R * 0.45] }, { c: [h.x, h.y - 0.1, h.z], r: [R * 0.4, R * 0.4] }], { sides: 10, weights: sb.along([[0, 'tChest'], [1, hn]]), color: SK[hi], capStart: false, capEnd: false, oth: 0.8 });
-    sb.blob([h.x, h.y + R * 0.2, h.z], [R, R * 1.15, R * 0.95], { weights: hw, color: 0xd8d4cc, w: 16, h: 12, deform: v => { if (v.z > 0.5) v.z = 0.5 + (v.z - 0.5) * 0.4; return v; } });
-    for (let k = 0; k < ne; k++) { const ex = h.x + (k % 2 ? 1 : -1) * R * (0.25 + 0.12 * Math.floor(k / 2)), ey = h.y + R * (0.45 - Math.floor(k / 2) * 0.32); sb.blob([ex, ey, h.z + R * 0.62], [R * 0.13, R * 0.09, R * 0.06], { weights: hw, color: EYE, w: 8, h: 6, oth: 0 }); sb.blob([ex, ey, h.z + R * 0.68], [R * 0.03, R * 0.08, R * 0.02], { weights: hw, color: 0x14040e, w: 6, h: 4, oth: 0 }); if (k < 2) { const e = new THREE.Object3D(); e.position.set(ex - h.x, ey - h.y, R * 0.7); sb.B[hn].add(e); eyes.push(e); } }
-    sb.box([h.x, h.y - R * 0.35, h.z + R * 0.6], [R * 0.7, R * 0.05, R * 0.05], { weights: hw, color: D, oth: 0 });
-    for (let k = -2; k <= 2; k++) sb.box([h.x + k * R * 0.14, h.y - R * 0.35, h.z + R * 0.62], [R * 0.025, R * 0.22, R * 0.03], { weights: hw, color: ST, oth: 0 });
-  });
-  // 右腕（長い・戸を叩く拳）
-  const RP = names.R.map(n => W(n)); RP.push(RP[RP.length - 1].clone().add(V(0, -0.2, 0.06)));
-  sb.tube(RP.map((c, i) => ({ c: [c.x, c.y, c.z], r: [0.13 - i * 0.012, 0.12 - i * 0.012] })), { sides: 12, sub: 2, weights: chainW(sb, names.R), color: patch, capStart: true, capEnd: false, oth: 0.9 });
-  const fist = RP[RP.length - 1]; sb.blob([fist.x, fist.y - 0.05, fist.z], [0.17, 0.15, 0.17], { weights: rw(names.R[3]), color: SK[3], w: 12, h: 10, oth: 0.9 });
-  for (let k = 0; k < 4; k++) sb.blob([fist.x - 0.1 + k * 0.065, fist.y - 0.02, fist.z + 0.14], [0.035, 0.045, 0.035], { weights: rw(names.R[3]), color: SK[0], w: 8, h: 6, oth: 0.5 });
-  // 左腕（鞄を抱く）と鞄（古い通勤鞄・名札）
-  const LP = names.L.map(n => W(n)); LP.push(LP[LP.length - 1].clone().add(V(-0.12, 0.0, 0.0)));
-  sb.tube(LP.map((c, i) => ({ c: [c.x, c.y, c.z], r: [0.11 - i * 0.012, 0.1 - i * 0.012] })), { sides: 12, sub: 2, weights: chainW(sb, names.L), color: patch, capStart: true, capEnd: true, oth: 0.9 });
-  const bg = W('tBag');
-  sb.box([bg.x, bg.y, bg.z], [0.42, 0.3, 0.12], { weights: rw('tBag'), color: 0x4a3226, oth: 0.6 });
-  sb.box([bg.x, bg.y + 0.17, bg.z], [0.16, 0.05, 0.03], { weights: rw('tBag'), color: 0x2a1c14, oth: 0.3 });
-  sb.box([bg.x + 0.12, bg.y - 0.02, bg.z + 0.065], [0.08, 0.05, 0.005], { weights: rw('tBag'), color: 0xf0e8d8, oth: 0 });
-  // 脚（4 本・大きさが不ぞろい）
-  for (const L of legs) {
-    const P = L.n.map(n => W(n)); P.push(P[P.length - 1].clone().add(V(0, -0.02, 0.12)));
-    sb.tube(P.map((c, i) => ({ c: [c.x, c.y, c.z], r: [(0.14 - i * 0.025) * L.s, (0.13 - i * 0.025) * L.s] })), { sides: 10, sub: 2, weights: chainW(sb, L.n), color: patch, capStart: false, capEnd: true, oth: 0.9 });
-    const ft = P[P.length - 2]; sb.blob([ft.x, 0.06, ft.z + 0.08], [0.1 * L.s, 0.06, 0.16 * L.s], { weights: rw(L.n[L.n.length - 1]), color: 0xd0d0c8, w: 10, h: 6, oth: 0.6 });
-  }
-  // 背の触腕（4 本・揺れる）
+  // 継ぎ接ぎの肌：部分ごとに違う色の継ぎ当て。縫い目は暗い溝（光る糸は glow の組）
+  const patch = p => { const s = Math.sin(p.x * 9 + p.y * 5) + Math.sin(p.y * 7 - p.z * 11) + Math.sin(p.z * 6 + p.x * 4); const v = (s + 3) * 0.9; const k = Math.floor(v) % SK.length; return Math.abs(v % 1 - 0.5) > 0.45 ? D : SK[k]; };
+  const seam = (pts, wgt, w = 0.012) => { sb.tube(pts.map(c => ({ c, r: [w, w] })), { sides: 4, weights: wgt, color: ST, capStart: false, capEnd: false, oth: 0 }); sb.tube(pts.map(c => ({ c, r: [w * 2.4, w * 2.4] })), { sides: 4, weights: wgt, color: (q, t) => lerpC(0x7a30ff, 0x3a1080, t), group: 'glow', capStart: false, capEnd: false, oth: 0.2 }); };
+  // 胴：前へ丸めた背・二つの胴が寄り合った胸（左右に歪む）
+  sb.tube([[0.9, 0.34, 0.3, 0], [1.3, 0.44, 0.36, 0], [1.6, 0.4, 0.32, 0.04], [1.9, 0.46, 0.34, 0.1], [2.2, 0.56, 0.4, 0.2], [2.42, 0.52, 0.36, 0.28], [2.6, 0.32, 0.24, 0.34]].map(([y, rx, rz, z], i) => ({ c: [Math.sin(i * 1.3) * 0.05, y, z], r: [rx, rz], shape: a => { const k = 1 + Math.sin(a * 3 + i) * 0.14 + Math.sin(a * 7 - i) * 0.06; return [k, k]; } })), { sides: 20, sub: 2, weights: sb.along([[0, 'tHip'], [0.3, 'tHip'], [0.45, 'tBody'], [0.7, 'tChest'], [1, 'tChest']]), color: patch, capStart: true, capEnd: true, oth: 1 });
+  sb.blob([0.26, 2.3, 0.16], [0.36, 0.34, 0.3], { weights: rw('tChest'), color: SK[2], w: 14, h: 10 });                // 寄り合ったもう一つの胴
+  sb.blob([-0.18, 1.6, -0.12], [0.3, 0.3, 0.26], { weights: rw('tBody'), color: SK[4], w: 12, h: 10 });
+  for (let i = 0; i < 7; i++) { const y = 1.2 + i * 0.2, a = r() * 6; seam([-1, -0.5, 0, 0.5, 1].map(k => [Math.sin(a + k * 0.45) * 0.48, y + k * 0.04, Math.cos(a + k * 0.45) * 0.4 + 0.08]), y > 1.9 ? rw('tChest') : y > 1.5 ? rw('tBody') : rw('tHip')); }
+  // 背骨の突起・肋のような骨
+  for (let i = 0; i < 8; i++) { const y = 1.5 + i * 0.14, z = -0.34 - Math.sin(i / 7 * Math.PI) * 0.06; sb.tube([{ c: [0, y, z], r: [0.05, 0.04] }, { c: [0, y + 0.1, z - 0.24], r: [0.003, 0.003] }], { sides: 5, weights: y > 1.9 ? rw('tChest') : rw('tBody'), color: BONE, capEnd: true, oth: 0.6 }); }
+  // 腹から伸びる小さな手（4 本・ゆっくり動く＝揺れの骨）
   const sway = [];
-  for (let i = 0; i < 4; i++) {
-    const sx = i % 2 ? -1 : 1, nm = chain(sb, 'tTen' + i + '_', 'tChest', [sx * (0.15 + i * 0.06), 0.1 + i * 0.05, -0.28], [[0, 0, 0], [sx * 0.15, 0.25, -0.2], [sx * 0.2, 0.15, -0.22], [sx * 0.15, -0.05, -0.2], [sx * 0.08, -0.2, -0.12]]);
-    const P = nm.map(n => W(n)); P.push(P[P.length - 1].clone().add(V(sx * 0.05, -0.15, -0.05)));
-    sb.tube(P.map((c, k) => ({ c: [c.x, c.y, c.z], r: [0.06 * (1 - k / P.length) + 0.01, 0.05 * (1 - k / P.length) + 0.01] })), { sides: 7, weights: chainW(sb, nm), color: (p, t) => (t > 0.8 ? ST : D), capStart: true, capEnd: true, oth: 0.6 });
-    for (let k = 1; k < P.length - 1; k += 2) sb.blob([P[k].x, P[k].y + 0.04, P[k].z], [0.03, 0.02, 0.02], { weights: rw(nm[Math.min(nm.length - 1, k)]), color: EYE, w: 6, h: 4, oth: 0 });
+  for (let i = 0; i < 4; i++) { const sx = i % 2 ? -1 : 1, y = 1.45 + Math.floor(i / 2) * 0.28; const nm = chain(sb, 'tHand' + i + '_', 'tBody', [sx * 0.34, y - 1.75, 0.18], [[0, 0, 0], [sx * 0.12, -0.08, 0.16], [sx * 0.06, -0.12, 0.1]]); const P = nm.map(n => W(n)); sb.tube(P.map(c => ({ c: [c.x, c.y, c.z], r: [0.035, 0.035] })), { sides: 6, weights: chainW(sb, nm), color: SK[(i + 1) % SK.length], capStart: false, capEnd: true, oth: 0.6 }); for (let k = 0; k < 3; k++) sb.tube([{ c: [P[2].x, P[2].y, P[2].z], r: [0.012, 0.012] }, { c: [P[2].x + sx * 0.02 + (k - 1) * 0.03, P[2].y - 0.08, P[2].z + 0.05], r: [0.004, 0.004] }], { sides: 4, weights: rw(nm[2]), color: SK[0], oth: 0.3 }); sway.push(...nm.map((n, k) => ({ b: sb.B[n], k: 16, d: 3, gain: 0.3, baseX: 0, amp: 0.25, freq: 1.2 + i * 0.3, ph: i + k }))); }
+  // 頭（3 つ）：のっぺりした白い仮面に目の群れ・縫い合わされた口。B は横倒し、C は逆さに垂れる
+  const eyes = [];
+  [['tHeadA', 0.25, 8, 0], ['tHeadB', 0.17, 5, Math.PI / 2], ['tHeadC', 0.16, 4, Math.PI]].forEach(([hn, R, ne, roll], hi) => {
+    const h = W(hn), hw = rw(hn), xf = new THREE.Matrix4().makeTranslation(h.x, h.y, h.z).multiply(new THREE.Matrix4().makeRotationZ(roll));
+    const L = (x, y, z) => new THREE.Vector3(x, y, z).applyMatrix4(xf);
+    sb.tube([{ c: [h.x * 0.6, h.y - 0.3, h.z * 0.5], r: [R * 0.45, R * 0.45] }, { c: [h.x, h.y - 0.08, h.z], r: [R * 0.4, R * 0.4] }], { sides: 10, weights: sb.along([[0, 'tChest'], [1, hn]]), color: SK[hi + 1], capStart: false, capEnd: false, oth: 0.8 });
+    sb.blob([0, R * 0.15, 0], [R, R * 1.18, R * 0.95], { xf, weights: hw, color: MASK, w: 16, h: 12, deform: v => { if (v.z > 0.5) v.z = 0.5 + (v.z - 0.5) * 0.35; return v; } });
+    sb.blob([0, R * 0.3, -R * 0.15], [R * 1.05, R * 1.0, R * 0.9], { xf, weights: hw, color: D, w: 12, h: 10, keep: q => q.z < h.z - R * 0.1 || (roll ? false : false) });     // 仮面の後ろの黒い頭
+    for (let k = 0; k < ne; k++) {
+      const col = Math.floor(k / 2), ex = (k % 2 ? 1 : -1) * R * (0.22 + 0.1 * col), ey = R * (0.5 - col * 0.3);
+      const c = L(ex, ey, R * 0.6), c2 = L(ex, ey, R * 0.68);
+      sb.blob([c.x, c.y, c.z], [R * 0.16, R * 0.1, R * 0.06], { rot: [0, 0, roll], weights: hw, color: EYE, w: 8, h: 6, oth: 0 });
+      sb.blob([c2.x, c2.y, c2.z], [R * 0.035, R * 0.09, R * 0.02], { rot: [0, 0, roll], weights: hw, color: 0x14040e, w: 6, h: 4, oth: 0 });
+      if (k < 2) { const e = new THREE.Object3D(); e.position.set(c.x - h.x, c.y - h.y, c.z - h.z + 0.02); sb.B[hn].add(e); eyes.push(e); }
+    }
+    const m0 = L(0, -R * 0.38, R * 0.62); sb.box([m0.x, m0.y, m0.z], [R * 0.8, R * 0.06, R * 0.05], { rot: [0, 0, roll], weights: hw, color: D, oth: 0 });
+    for (let k = -3; k <= 3; k++) { const q = L(k * R * 0.12, -R * 0.38, R * 0.64); sb.box([q.x, q.y, q.z], [R * 0.025, R * 0.24, R * 0.03], { rot: [0, 0, roll], weights: hw, color: ST, oth: 0 }); }
+  });
+  // 右腕（長い・関節が多い・地を引きずる拳）
+  const RP = names.R.map(n => W(n)); RP.push(RP[RP.length - 1].clone().add(V(0, -0.2, 0.06)));
+  sb.tube(RP.map((c, i) => ({ c: [c.x, c.y, c.z], r: [0.15 - i * 0.015, 0.14 - i * 0.015], shape: a => { const k = 1 + Math.sin(a * 4 + i * 2) * 0.12; return [k, k]; } })), { sides: 12, sub: 2, weights: chainW(sb, names.R), color: patch, capStart: true, capEnd: false, oth: 0.9 });
+  for (let i = 1; i < 4; i++) sb.blob([RP[i].x, RP[i].y, RP[i].z], [0.13, 0.11, 0.13], { weights: rw(names.R[Math.min(3, i)]), color: SK[i % SK.length], w: 10, h: 8, oth: 0.8 });
+  const fist = RP[RP.length - 1]; sb.blob([fist.x, fist.y - 0.05, fist.z], [0.2, 0.17, 0.2], { weights: rw(names.R[3]), color: SK[3], w: 12, h: 10, oth: 0.9 });
+  for (let k = 0; k < 4; k++) sb.tube([{ c: [fist.x - 0.12 + k * 0.08, fist.y + 0.02, fist.z + 0.14], r: [0.035, 0.035] }, { c: [fist.x - 0.13 + k * 0.08, fist.y + 0.12, fist.z + 0.22], r: [0.004, 0.004] }], { sides: 5, weights: rw(names.R[3]), color: BONE, capEnd: true, oth: 0.5 });
+  seam([[RP[1].x - 0.15, RP[1].y + 0.2, RP[1].z], [RP[1].x, RP[1].y + 0.24, RP[1].z + 0.14], [RP[1].x + 0.14, RP[1].y + 0.2, RP[1].z]], rw(names.R[1]), 0.014);
+  // 左腕（鞄を抱く）と鞄（古い通勤鞄・名札）
+  const LP = names.L.map(n => W(n)); LP.push(LP[LP.length - 1].clone().add(V(-0.14, 0.0, 0.0)));
+  sb.tube(LP.map((c, i) => ({ c: [c.x, c.y, c.z], r: [0.12 - i * 0.014, 0.11 - i * 0.014] })), { sides: 12, sub: 2, weights: chainW(sb, names.L), color: patch, capStart: true, capEnd: true, oth: 0.9 });
+  const bg = W('tBag');
+  sb.box([bg.x, bg.y, bg.z], [0.44, 0.32, 0.13], { weights: rw('tBag'), color: 0x5a3a2a, oth: 0.6 });
+  sb.box([bg.x, bg.y + 0.18, bg.z], [0.17, 0.05, 0.03], { weights: rw('tBag'), color: 0x2a1c14, oth: 0.3 });
+  sb.box([bg.x + 0.13, bg.y - 0.02, bg.z + 0.07], [0.09, 0.055, 0.005], { weights: rw('tBag'), color: 0xf0e8d8, oth: 0 });
+  // 脚（4 本：前の 2 本は人の脚・後ろの 2 本は虫のように細く節の多い脚）
+  for (const Lg of legs) {
+    const P = Lg.n.map(n => W(n)); P.push(P[P.length - 1].clone().add(V(0, -0.02, Lg.insect ? 0.04 : 0.12)));
+    const rr0 = Lg.insect ? 0.07 : 0.15;
+    sb.tube(P.map((c, i) => ({ c: [c.x, c.y, c.z], r: [(rr0 - i * (Lg.insect ? 0.012 : 0.03)) * Lg.s, (rr0 - i * (Lg.insect ? 0.012 : 0.03)) * Lg.s] })), { sides: 10, sub: 2, weights: chainW(sb, Lg.n), color: Lg.insect ? (q, t) => (t > 0.8 ? BONE : D) : patch, capStart: false, capEnd: true, oth: 0.9 });
+    if (!Lg.insect) { const ft = P[P.length - 2]; sb.blob([ft.x, 0.06, ft.z + 0.08], [0.11 * Lg.s, 0.06, 0.17 * Lg.s], { weights: rw(Lg.n[Lg.n.length - 1]), color: 0xb8b4a8, w: 10, h: 6, oth: 0.6 }); }
+  }
+  // 背の触腕（6 本・揺れる・目が並ぶ）
+  for (let i = 0; i < 6; i++) {
+    const sx = i % 2 ? -1 : 1, nm = chain(sb, 'tTen' + i + '_', 'tChest', [sx * (0.14 + Math.floor(i / 2) * 0.1), 0.18 + Math.floor(i / 2) * 0.06, -0.32], [[0, 0, 0], [sx * 0.2, 0.32, -0.2], [sx * 0.26, 0.18, -0.24], [sx * 0.2, -0.04, -0.22], [sx * 0.12, -0.24, -0.14]]);
+    const P = nm.map(n => W(n)); P.push(P[P.length - 1].clone().add(V(sx * 0.06, -0.18, -0.06)));
+    sb.tube(P.map((c, k) => ({ c: [c.x, c.y, c.z], r: [0.075 * (1 - k / P.length) + 0.012, 0.065 * (1 - k / P.length) + 0.012] })), { sides: 7, weights: chainW(sb, nm), color: (p, t) => (t > 0.8 ? ST : D), capStart: true, capEnd: true, oth: 0.6 });
+    for (let k = 1; k < P.length - 1; k++) { sb.blob([P[k].x, P[k].y + 0.05, P[k].z + 0.02], [0.045, 0.028, 0.025], { weights: rw(nm[Math.min(nm.length - 1, k)]), color: EYE, w: 6, h: 4, oth: 0 }); sb.blob([P[k].x, P[k].y + 0.05, P[k].z + 0.045], [0.008, 0.024, 0.006], { weights: rw(nm[Math.min(nm.length - 1, k)]), color: 0x14040e, w: 6, h: 4, oth: 0 }); }
     sway.push(...nm.map((n, k) => ({ b: sb.B[n], k: 12 + k * 2, d: 3.0, gain: 0.25, baseX: 0, amp: 0.16 + k * 0.03, freq: 0.6 + i * 0.13, ph: i * 1.7 + k * 0.4 })));
   }
   // 縫い目からもれる紫の気（glow の組）
-  for (let i = 0; i < 8; i++) flame(sb, [Math.sin(i * 2.3) * 0.38, 1.3 + i * 0.16, Math.cos(i * 2.3) * 0.3], [Math.sin(i * 2.3) * 0.3, 1, -0.2], 0.22, { w: 0.05, col: 0x9a50ff, col1: 0x1a0638, weights: i > 4 ? rw('tChest') : rw('tBody') });
-  const m = sb.build(null, { rim: 0.55, rimColor: 0xc890ff, outline: 0.012, outlineColor: 0x08060c, flameAmp: 0.03 });
+  for (let i = 0; i < 8; i++) flame(sb, [Math.sin(i * 2.3) * 0.4, 1.4 + i * 0.15, Math.cos(i * 2.3) * 0.32 + 0.06], [Math.sin(i * 2.3) * 0.3, 1, -0.2], 0.26, { w: 0.06, col: 0x9a50ff, col1: 0x1a0638, weights: i > 4 ? rw('tChest') : rw('tBody') });
+  const m = sb.build(null, { rim: 0.45, rimColor: 0xb070ff, outline: 0.013, outlineColor: 0x060408, flameAmp: 0.03, flameK: 1.2 });
   m.update = dt => { if (m.mats.glow) m.mats.glow.userData.u.uTime.value += dt; if (m.anim && m.actorRef) m.anim.update(dt, m.actorRef); };
-  const weak = new THREE.Object3D(); weak.position.set(0, 0.1, 0.4); sb.B.tChest.add(weak);
-  return Object.assign(m, { provisional: true, kind: 'tsugihagi', height: 3.3, bodyR: 0.85, sway, eyes, eyeGlow: eyes, names, legs, G: sb.B, weak, weakColor: 0xc890ff });
+  const weak = new THREE.Object3D(); weak.position.set(0, 0.1, 0.5); sb.B.tChest.add(weak);
+  return Object.assign(m, { provisional: true, kind: 'tsugihagi', height: 3.4, bodyR: 0.9, sway, eyes, eyeGlow: eyes, names, legs, G: sb.B, weak, weakColor: 0xc890ff });
 }

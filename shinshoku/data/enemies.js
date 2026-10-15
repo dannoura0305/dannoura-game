@@ -238,10 +238,11 @@ export const ENEMIES = {
   // 右腕：戸を叩く（白・弾ける）→ 壊すと暴れる（赤・周り）。左腕：鞄を抱く・抱き寄せる（赤・つかむ）→ 崩れる／壊すと鞄を落とす。
   // 脚：帰り道を歩く・踏みつけ（赤・円）→ 壊すと動けない（無力化）。救う＝落とした鞄を持ち主の机へ返す。逃げるは不可。
   tsugihagi: {
-    name: '継接', hp: 420, provisional: true, boss: true,
+    name: '継接', hp: 900, provisional: true, boss: true,
     speed: { walk: 0.8, angry: 1.9 },
     senses: { fov: 360, sight: 30, sightDark: 30, hear: { gun: 40, run: 30, walk: 30 }, memory: 99 },
     parts: { right: 110, left: 90, legs: 120 },
+    whiteResist: 0.55,                                        // 白い姿の傷は浅い（縫い目が妖力を吸う・仮）。紫の刀はそのまま
     attacks: {
       knock: { windup: 0.85, active: 0.16, recover: 0.75, dmg: 18, range: 3.6, arc: 100, parryable: true, part: 'right' },
       embrace: { windup: 1.05, active: 0.2, recover: 1.0, dmg: 16, range: 3.3, arc: 80, parryable: false, grab: true, part: 'left' },
@@ -252,9 +253,9 @@ export const ENEMIES = {
     phases: [{ at: 1.0, cooldown: 1.15 }, { at: 0.6, cooldown: 0.95 }, { at: 0.3, cooldown: 0.75 }],
     pattern: ['knock', 'stomp', 'knock', 'embrace'],
     cooldown: 1.15,
-    stagger: { parried: 1.4, hit: 0.0, broken: 2.6 },
+    stagger: { parried: 1.4, hit: 0.0, broken: 2.0 },
     downState: 'down',
-    poise: 120, poiseMul: 0.8,
+    poise: 200, poiseMul: 0.8,
     resolve: { rescue: 'return_the_bag', neutralize: 'break_the_legs', escape: false, kill: true },
   },
 };

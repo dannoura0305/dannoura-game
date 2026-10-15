@@ -5,6 +5,7 @@ import { COMBAT, ITEMS, f2ms } from '../data/combat.js';
 import { resolveCircle, rayBoxes, lineOfSight, insideAny, rayCylinder, raySphere } from '../world/collide.js';
 import { turnTo } from '../actor/actors.js';
 import { pickChainTarget, canChain } from '../combat/chain.js';
+import { sideOf } from '../ai/tsugihagi.js';
 
 const DT = 1 / 60;
 const wrap = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
@@ -179,7 +180,7 @@ export const combatMethods = {
       }
     }
   },
-  onPlayerDead() { if (this.deadPending) return; if (this.onDead4 && this.onDead4()) return; if (this.boss && this.boss.kind === 'utsushimi' && this.boss.brain.alive) { this.ch3Losses = (this.ch3Losses || 0) + 1; this.metrics.ch3Losses = this.ch3Losses; } this.deadPending = true; setTimeout(() => { this.mode = 'dead'; this.input.exitLock(); this.ui.showDead(true); this.deadPending = false; }, this.isTest() ? 10 : 1400); },
+  onPlayerDead() { if (this.deadPending) return; if (this.onDead4 && this.onDead4()) return; if (this.onDead5) this.onDead5(); if (this.boss && this.boss.kind === 'utsushimi' && this.boss.brain.alive) { this.ch3Losses = (this.ch3Losses || 0) + 1; this.metrics.ch3Losses = this.ch3Losses; } this.deadPending = true; setTimeout(() => { this.mode = 'dead'; this.input.exitLock(); this.ui.showDead(true); this.deadPending = false; }, this.isTest() ? 10 : 1400); },
   meleeHits(atk, ev) {
     const P = this.player, F = P.fighter;
     const pipe = F.weapon === 'pipe' || F.weapon === 'matchlock';
@@ -215,6 +216,8 @@ export const combatMethods = {
     if (e.targetCompanion) e.targetCompanion = false;                    // 叩かれたら、だんのうらの方を向く（守り）
     // 序章の帰路：一撃で倒しきらない（弱ると帰っていく＝追い払う）
     if (e.brain.def.tutorial && !e.fleeing && e.brain.hp > e.brain.hpMax * 0.5 && e.brain.hp - dmg <= 0) dmg = e.brain.hp - 1;
+    if (e.brain.def.whiteResist && this.player.fighter.white && !opt.side) dmg *= e.brain.def.whiteResist;   // 継接：縫い目が妖力を吸う（白い姿の傷は浅い・仮）
+    if (e.kind === 'tsugihagi' && !opt.side) opt = Object.assign({ side: sideOf(e.pos, e.brain.yaw, this.player.pos) }, opt);   // 継接：叩いた側の部分へ
     const done = e.brain.hurt(dmg, kind, evs, opt);
     if (done) this.enemyEvents(e, evs);
     return done;
@@ -364,6 +367,7 @@ export const combatMethods = {
   enemyEvents(e, evs) {
     const P = this.player, b = e.brain;
     for (const ev of evs) {
+      if (this.enemyEvents5 && this.enemyEvents5(e, ev)) continue;
       switch (ev.t) {
         case 'telegraph': {
           e.mark = ev.parryable ? 'parry' : 'red'; e.markT = ev.def.windup + 0.2;

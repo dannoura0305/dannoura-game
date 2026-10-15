@@ -36,7 +36,7 @@ export function rollcallRooms(list = SUBJECTS) { const ans = rollcallAnswer(list
 /** secret の配電盤（旧研究棟の非常電源）：容量 4 のうちに点呼卓・隔離扉の錠・排水ポンプ。焼却炉は入れない */
 export const BREAKERS5 = {
   provisional: true,
-  capacity: 4,
+  capacity: 4, hint: '保全記録：焼却炉は非常時に入れないこと（収容者が騒ぐ）。',
   list: [
     { id: 'C', name: '点呼卓（収容棟）', load: 1, need: true },
     { id: 'G', name: '隔離扉の錠', load: 1, need: true },
@@ -124,11 +124,11 @@ export const RAMPAGE = {
 export const PROTECT = {
   provisional: true,
   hazards: [
-    { id: 'h1', kind: 'pole', at: [-18, 6], t: 1.5, warn: 4.5, r: 10 },
-    { id: 'h2', kind: 'debris', at: [6, 14], t: 6.5, warn: 4.5, r: 9 },
-    { id: 'h3', kind: 'sign', at: [16, -4], t: 12.0, warn: 4.5, r: 10 },
-    { id: 'h4', kind: 'bus', at: [-6, -16], t: 17.0, warn: 6.0, r: 11 },
-    { id: 'h5', kind: 'debris', at: [-20, -10], t: 24.0, warn: 4.5, r: 9 },
+    { id: 'h1', kind: 'pole', at: [-18, 2], t: 1.5, warn: 5.0, r: 10 },
+    { id: 'h2', kind: 'debris', at: [1.5, 18], t: 7.0, warn: 5.0, r: 9 },
+    { id: 'h3', kind: 'sign', at: [16, -2], t: 13.0, warn: 5.0, r: 10 },
+    { id: 'h4', kind: 'bus', at: [-1.5, -22], t: 19.0, warn: 6.5, r: 11 },
+    { id: 'h5', kind: 'debris', at: [-22, -1], t: 26.0, warn: 5.0, r: 9 },
   ],
   act: { pole: 'tailSweep', sign: 'tailSweep', debris: 'shield', bus: 'lift' },
 };

@@ -15,7 +15,7 @@ let n = 0; const t = (name, fn) => { fn(); n++; console.log('  ✓ ' + name); };
 const events = JSON.parse(readFileSync(new URL('../shinshoku/data/events.json', import.meta.url)));
 
 t('段：序章→第1章→第2章→第3章の順。章の名前・目標の文がある', () => {
-  assert.deepEqual([...new Set(STEPS.map(s => s.ch))], ['prologue', 'ch1', 'ch2', 'ch3', 'ch4']);
+  assert.deepEqual([...new Set(STEPS.map(s => s.ch))], ['prologue', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5a', 'ch6a', 'ch5b']);   // フェーズ6：分岐の後の章（第5章A・第6章A の冒頭・第5章B）
   for (const s of STEPS) { assert.ok(CHAPTERS[s.ch]); assert.ok(s.obj.length > 3); assert.ok(AREA_GRAPH[s.area], s.id); }
   assert.equal(atLeast('ch1_street', 'ch1_katana'), true); assert.equal(atLeast('pro_meet', 'ch1_katana'), false);
   assert.equal(streetState('pro_tv'), 'normal'); assert.equal(streetState('ch1_katana'), 'outbreak');
