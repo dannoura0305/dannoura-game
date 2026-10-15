@@ -258,4 +258,69 @@ export const ENEMIES = {
     poise: 200, poiseMul: 0.8,
     resolve: { rescue: 'return_the_bag', neutralize: 'break_the_legs', escape: false, kill: true },
   },
+  // ── フェーズ7（第6章）【仮】 ──
+  // 塗替（ぬりかえ・第6章A のボス・仮名）：町の夜の物（巻き上げたシャッター・街灯・電線・変圧器）が寄り集まった巨体。灯りを紫に「塗り替える」。
+  // 薙ぎ（電線の鞭・白＝咆哮で止める）／灯の光線（赤・線）／塗料の雨（赤・円）／塗り替え（白・人の残る棟への線：間に立つか咆哮で守る）。
+  nurikae: {
+    name: '塗替', hp: 3200, provisional: true, giant: true,
+    speed: { walk: 1.8, angry: 2.4 },
+    senses: { fov: 360, sight: 200, sightDark: 200, hear: { gun: 200, run: 200, walk: 200 }, memory: 999 },
+    attacks: {
+      sweep: { windup: 1.05, active: 0.3, recover: 1.0, dmg: 14, range: 30, arc: 140, parryable: true },
+      beam: { windup: 1.4, active: 0.6, recover: 1.0, dmg: 18, range: 80, arc: 14, parryable: false, line: { w: 6 } },
+      rain: { windup: 1.6, active: 0.3, recover: 1.1, dmg: 12, range: 70, parryable: false, aoe: { r: 6.5, n: 5 } },
+      feed: { windup: 2.3, active: 0.8, recover: 1.3, dmg: 16, range: 110, parryable: true, line: { w: 9 }, target: 'block' },
+    },
+    phases: [
+      { at: 1.0, pattern: ['sweep', 'feed', 'beam', 'sweep'], cooldown: 1.5 },
+      { at: 0.6, pattern: ['sweep', 'rain', 'feed', 'beam', 'sweep'], cooldown: 1.2 },
+      { at: 0.3, pattern: ['feed', 'sweep', 'rain', 'beam', 'feed', 'sweep'], cooldown: 0.95 },
+    ],
+    pattern: ['sweep'], cooldown: 1.5,
+    stagger: { parried: 2.4, hit: 0.0, broken: 4.0, roar: 2.6 },
+    downState: 'down',
+    poise: 280, poiseMul: 0.6, coreMul: 2.0,
+    resolve: { rescue: false, neutralize: false, escape: false, kill: true },
+  },
+  // 待人（まちびと・ENEMY_AI_SPEC §2.8）【仮】：待ち合わせの場所（バス停・受付）で時計を見続ける。近づく者を「待っていた人」と取り違えてついてくる。
+  // 違うと分かると悲しげに戻る（攻撃しない）。何度も近づく・攻撃すると怒る：時計の針を止める（遅くなる場・赤い円）／押しのけ（白）。
+  // 救う＝待っていた人の物（忘れ物）を届ける／無力化＝場所の時計を止める（眠る）／倒す。
+  machibito: {
+    name: '待人', hp: 70, provisional: true,
+    speed: { walk: 1.0, angry: 2.6 },
+    cause: { body: 0.3, memory: 0.9, env: 0.8 },
+    senses: { fov: 120, sight: 8, sightDark: 5, hear: { gun: 20, run: 6, walk: 2 }, memory: 8 },
+    attacks: {
+      push: { windup: 0.6, active: 0.14, recover: 0.6, dmg: 10, range: 2.0, arc: 100, parryable: true },
+      stopclock: { windup: 1.1, active: 0.3, recover: 1.2, dmg: 8, range: 8, arc: 360, parryable: false, ranged: true, aoe: { r: 2.6, slow: 3.0 } },
+    },
+    pattern: ['push', 'stopclock', 'push'],
+    cooldown: 1.0,
+    stagger: { parried: 1.0, hit: 0.3, broken: 1.8 },
+    poise: 50,
+    misreadMax: 3,                                            // 取り違えでついてくる回数（越えると怒る）
+    resolve: { rescue: 'deliver_the_item', neutralize: 'stop_the_clock', escape: true, kill: true },
+  },
+  // 当直（とうちょく・第6章B のボス・仮名）：中央管理棟の夜勤の保全員が、巡回の手順ごと置き換わった姿。レンチと一体の右腕・点検表と一体の左手・
+  // 計器の顔・頭の作業灯（一つ目）・背の配管（蒸気）。止めた P-2 を「巡回」で入れ直そうとする（弁へ歩く・間に合うと少し回復＋蒸気）。
+  // 攻め：レンチ（白）／蒸気の噴き（赤・扇）／配管の叩きつけ（赤・円）。蒸気弁の線の中で崩れる。救う＝崩れた時に点検表（引き継ぎ）を渡す／
+  // 無力化＝崩れた時にレンチを配管に施錠（ロックアウト）／倒す。逃げるは不可（中ボス戦）。
+  touchoku: {
+    name: '当直', hp: 1100, provisional: true, boss: true,
+    speed: { walk: 1.2, angry: 2.5 },
+    senses: { fov: 360, sight: 30, sightDark: 30, hear: { gun: 40, run: 30, walk: 30 }, memory: 99 },
+    attacks: {
+      wrench: { windup: 0.75, active: 0.16, recover: 0.7, dmg: 16, range: 2.8, arc: 110, parryable: true },
+      steam: { windup: 1.0, active: 0.5, recover: 0.9, dmg: 14, range: 5.0, arc: 70, parryable: false },
+      slam: { windup: 1.15, active: 0.2, recover: 1.0, dmg: 18, range: 9, arc: 360, parryable: false, aoe: { r: 2.8, ahead: 0 }, ranged: true },
+    },
+    phases: [{ at: 1.0, cooldown: 1.1 }, { at: 0.6, cooldown: 0.9 }, { at: 0.3, cooldown: 0.75 }],
+    pattern: ['wrench', 'steam', 'wrench', 'slam'],
+    cooldown: 1.1,
+    roundEvery: 14, roundTime: 4.0, roundHeal: 0.08,         // 巡回：14 秒ごとに弁へ。4 秒いじると回復（8%）
+    stagger: { parried: 1.4, hit: 0.0, broken: 3.2, steam: 3.6 },
+    downState: 'down',
+    poise: 170, poiseMul: 0.85, coreMul: 1.5,
+    resolve: { rescue: 'hand_over_the_checklist', neutralize: 'lock_out_the_wrench', escape: false, kill: true },
+  },
 };

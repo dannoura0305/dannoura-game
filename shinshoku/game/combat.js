@@ -48,10 +48,11 @@ export const combatMethods = {
       else if (mag > 1e-3 && mul > 0) P.yaw = turnTo(P.yaw, Math.atan2(P.moveDir.x, P.moveDir.z), 0.25);
     }
     const before = { x: P.pos.x, z: P.pos.z };
-    P.pos.x += vx * DT; P.pos.z += vz * DT;
+    const zk = this.slowZoneK ? this.slowZoneK(P.pos) : 1;
+    P.pos.x += vx * DT * zk; P.pos.z += vz * DT * zk;
     resolveCircle(P.pos, P.r, this.boxes);
     for (const e of this.enemies) {
-      if (!e.brain.alive || !e.root.visible || ['home', 'rest', 'neutral', 'dormant'].includes(e.brain.state)) continue;
+      if (!e.brain.alive || !e.root.visible || ['home', 'rest', 'neutral', 'dormant', 'sleep', 'locked'].includes(e.brain.state)) continue;
       const dx = P.pos.x - e.pos.x, dz = P.pos.z - e.pos.z, d = Math.hypot(dx, dz), min = P.r + e.r * 0.85;
       if (d < min && d > 1e-4 && st.name !== 'issen') { P.pos.x = e.pos.x + dx / d * min; P.pos.z = e.pos.z + dz / d * min; }
     }
@@ -180,7 +181,7 @@ export const combatMethods = {
       }
     }
   },
-  onPlayerDead() { if (this.deadPending) return; if (this.onDead4 && this.onDead4()) return; if (this.onDead5) this.onDead5(); if (this.boss && this.boss.kind === 'utsushimi' && this.boss.brain.alive) { this.ch3Losses = (this.ch3Losses || 0) + 1; this.metrics.ch3Losses = this.ch3Losses; } this.deadPending = true; setTimeout(() => { this.mode = 'dead'; this.input.exitLock(); this.ui.showDead(true); this.deadPending = false; }, this.isTest() ? 10 : 1400); },
+  onPlayerDead() { if (this.deadPending) return; if (this.onDead4 && this.onDead4()) return; if (this.onDead5) this.onDead5(); if (this.onDead6) this.onDead6(); if (this.boss && this.boss.kind === 'utsushimi' && this.boss.brain.alive) { this.ch3Losses = (this.ch3Losses || 0) + 1; this.metrics.ch3Losses = this.ch3Losses; } this.deadPending = true; setTimeout(() => { this.mode = 'dead'; this.input.exitLock(); this.ui.showDead(true); this.deadPending = false; }, this.isTest() ? 10 : 1400); },
   meleeHits(atk, ev) {
     const P = this.player, F = P.fighter;
     const pipe = F.weapon === 'pipe' || F.weapon === 'matchlock';
@@ -325,14 +326,14 @@ export const combatMethods = {
     const los = dist < 30 ? lineOfSight(b.pos, tp, this.boxes) : false;
     const Z = this.heitenZone;
     const sense = { player: { x: tp.x, z: tp.z, noise: dec ? 'run' : P.noise, dead: this.giantMode ? this.giant.fighter.dead : P.fighter.dead }, los, dark: this.isDark(b.pos), gunshot: this.gunshot,
-      steam: this.inSteam ? this.inSteam(b.pos) : false, protect: !!e.targetCompanion, chime: this.chimeNow > 0, shelter: this.area.giant ? { x: -36, z: 30 } : null,
+      steam: this.inSteam ? this.inSteam(b.pos) : false, protect: !!e.targetCompanion, chime: this.chimeNow > 0, shelter: this.area.giant ? (e.kind === 'nurikae' ? (e.feedTgt || (e.feedTgt = this.feedTarget6(e))) : { x: -36, z: 30 }) : null, isolated: !!this.flags.isolate6,
       inShop: !!Z && P.pos.x > Z.minX && P.pos.x < Z.maxX && P.pos.z > Z.minZ && P.pos.z < Z.maxZ, light: this.flashlightOn,
       hist: this.actHist, nurse: !!this.flags.nurse_badge, lit: this.flashlightOn && this.inFlashCone(b.pos) };
     if (e.kind === 'mamori') sense.threats = this.enemies.filter(o => o.kind === 'mimic' && o.brain.alive && o.brain.revealed && o.root.visible).map(o => ({ id: o.id, x: o.pos.x, z: o.pos.z }));
     e.targetDecoy = !!dec;
     if (this.flashlightOn && b.def.senses) sense.dark = false;    // 懐中電灯：暗くても遠くから見える
     const out = e.step(dt, sense, this.boxes, this.giantMode ? null : P);
-    if (e.kind === 'sakibure') { this.bossEvents4(e, out.events); return; }
+    if (e.kind === 'sakibure' || e.kind === 'nurikae') { this.bossEvents4(e, out.events); return; }
     this.enemyEvents(e, out.events);
     // 突進の当たり（ボス）
     if (b.atk && b.atk.phase === 'active' && b.def.attacks[b.atk.name].dash && !b.atk.hitDone) {
@@ -368,6 +369,7 @@ export const combatMethods = {
     const P = this.player, b = e.brain;
     for (const ev of evs) {
       if (this.enemyEvents5 && this.enemyEvents5(e, ev)) continue;
+      if (this.enemyEvents6 && this.enemyEvents6(e, ev)) continue;
       switch (ev.t) {
         case 'telegraph': {
           e.mark = ev.parryable ? 'parry' : 'red'; e.markT = ev.def.windup + 0.2;

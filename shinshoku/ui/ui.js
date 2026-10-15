@@ -2,6 +2,8 @@
 const $ = (s, r = document) => r.querySelector(s);
 const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+/** キーの表示名（KeyW → W・Space → Space・ShiftLeft → 左Shift） */
+export const keyName = c => c.startsWith('Key') ? c.slice(3) : c.startsWith('Digit') ? c.slice(5) : ({ ShiftLeft: '左Shift', ShiftRight: '右Shift', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', ControlLeft: '左Ctrl', ControlRight: '右Ctrl', AltLeft: '左Alt', AltRight: '右Alt' })[c] || c;
 
 export const CONTROLS = [
   ['移動', 'WASD', '左スティック', '左の円'], ['カメラ', 'マウス', '右スティック', '右側をなぞる'], ['走る', 'Shift', 'L3（切替）', '円を外まで倒す'],
@@ -14,6 +16,7 @@ export const CONTROLS = [
   ['回復', 'H', '十字キー上', '回'], ['化けを解く／戻す（白髪形態・第3章の転機のあと）', 'V 長押し', 'View（Back）長押し', '化 長押し'],
   ['火縄銃（第4章から）', '4 キー（紫：銃床で打つ）／白で 替＝妖爪⇄火縄銃・攻撃で妖弾（溜め 0.5 秒）', 'RB（白）', '替 長押しで近接を順に／白で 替'],
   ['巨大猫又：妖爪連撃／紫の咆哮／跳躍／妖気放出', '左クリック／F／Space／右クリック（押し続ける）', 'X／LB／A／LT', '斬／弾／避／銃（押し続ける）'],
+  ['第6章：糸の中継を切る（白）／振動計を当てる／蒸気弁を開ける／点検表を渡す', '調べる（E）', 'B', '調'],
   ['白髪形態：妖爪／妖刀／猫火／瞬歩／幻術', '左クリック／長押し／構え＋左クリック／Space／F', 'X／Y 長押し／LT＋RT／A／LB', '斬／斬 長押し／銃／避／弾'], ['一時停止', 'Esc／P', 'Start', '≡'], ['場面を飛ばす', 'E・Esc・Space を 1 秒長押し', 'B／Start 長押し', '調／≡ 長押し'],
 ];
 
@@ -268,6 +271,34 @@ export class UI {
       <div class="sh-sbtn"><button data-call="1" ${seq.length ? '' : 'disabled'}>呼ぶ（鐘を鳴らす）</button><button data-undo="1">やり直す</button><button data-close="1">閉じる</button></div>`;
     this._puz(html, d => { if (d.close) return onClose(); if (d.undo) return onUndo(); if (d.call) return onCall(); if (d.name) onPick(d.name); });
   }
+  /** 監視カメラ（第6章B）：4 台の記録の時刻と画面の奥の壁時計（見るだけ） */
+  clockUI(cams, draw, onClose, note) {
+    const html = `<div class="sh-ptitle">監視卓（中央管理棟） <small>時刻・名前はすべて仮</small></div><div class="sh-pcams">${cams.map(c => `<div class="sh-pcam"><canvas width="240" height="135" data-c="${c.id}"></canvas><span>CAM-${c.id.slice(1)}　${esc(c.place)}</span><code>記録 ${esc(c.stamp)}</code></div>`).join('')}</div><p class="sh-note">${esc(note || '')}</p><div class="sh-sbtn"><button data-close="1">閉じる</button></div>`;
+    this._puz(html, d => { if (d.close) return onClose(); });
+    for (const cv of this.el.puz.querySelectorAll('canvas')) draw(cv.dataset.c, cv.getContext('2d'), cv.width, cv.height);
+  }
+  /** 保守扉の時刻の入力（第6章B の必須）：候補の時刻から選ぶ。onPick は失敗の文（null で成功） */
+  timeUI(options, onPick, onClose, note, msg) {
+    const html = `<div class="sh-ptitle">機械室の保守扉 <small>最後の正常な巡回の時刻を入れる</small></div><div class="sh-plist sh-times">${options.map(t => `<button data-t="${esc(t)}"><code>${esc(t)}</code></button>`).join('')}</div><p class="sh-note">${esc(note || '').replace(/\n/g, '<br>')}${msg ? '<br>→ ' + esc(msg) : ''}</p><div class="sh-sbtn"><button data-close="1">やめる</button></div>`;
+    this._puz(html, d => { if (d.close) return onClose(); if (d.t) { const m = onPick(d.t); if (m) this.timeUI(options, onPick, onClose, note, m); } });
+  }
+  /** 点検表（第6章B の必須）：前回値・今回値（測った物だけ）・温度・音。止めるべき機械を選ぶ。onPick は失敗の文（null で成功） */
+  roundsUI(rows, onPick, onClose, note, msg) {
+    const Z = { good: '良', warn: '注意', danger: '危険' };
+    const html = `<div class="sh-ptitle">点検表（機械室・巡回） <small>値はすべて仮・作中の保全基準</small></div>
+      <table class="sh-ctl sh-rounds"><tr><th>機械</th><th>前回</th><th>今回（振動）</th><th>軸受</th><th>音</th><th></th></tr>${rows.map(r => `<tr><th>${esc(r.name)}</th><td>${r.prev.toFixed(1)}</td><td>${r.now == null ? '<i>未測定</i>' : `<b class="z-${r.zone}">${r.now.toFixed(1)}</b>（${Z[r.zone]}）`}</td><td>${r.temp == null ? '—' : r.temp + '℃'}</td><td>${r.sound == null ? '—' : esc(r.sound)}</td><td><button data-pick="${r.id}">止める</button></td></tr>${r.note && r.now != null ? `<tr><td colspan="6"><small>${esc(r.note)}</small></td></tr>` : ''}`).join('')}</table>
+      <p class="sh-note">${esc(note || '').replace(/\n/g, '<br>')}${msg ? '<br>→ ' + esc(msg) : ''}</p><div class="sh-sbtn"><button data-close="1">閉じる</button></div>`;
+    this._puz(html, d => { if (d.close) return onClose(); if (d.pick) { const m = onPick(d.pick); if (m) this.roundsUI(rows, onPick, onClose, note, m); } });
+  }
+  /** 隔離（止める手順）：手順を順に選んで「実行」 */
+  lotoUI(steps, seq, onPick, onUndo, onRun, onClose, note, msg, miss) {
+    const name = id => (steps.find(s => s.id === id) || {}).name || id;
+    const html = `<div class="sh-ptitle">P-2 を止める手順 <small>現場盤・遮断器・弁（仮）</small></div>
+      <div class="sh-plist sh-loto">${steps.map(s => `<button data-step="${s.id}" ${seq.includes(s.id) ? 'disabled' : ''}>${esc(s.name)}</button>`).join('')}</div>
+      <p class="sh-note">順番：${seq.length ? seq.map((id, i) => `${i + 1}．${esc(name(id))}`).join('　') : '（まだ）'}<br>${esc(note || '')}${miss ? `（やり直し ${miss} 回）` : ''}${msg ? '<br>→ ' + esc(msg) : ''}</p>
+      <div class="sh-sbtn"><button data-run="1" ${seq.length ? '' : 'disabled'}>実行する</button><button data-undo="1">やり直す</button><button data-close="1">閉じる</button></div>`;
+    this._puz(html, d => { if (d.close) return onClose(); if (d.undo) return onUndo(); if (d.run) return onRun(); if (d.step) onPick(d.step); });
+  }
   /** 巨大猫又の暴走・守る場面の技の案内（items：[[名前, キー, 動いている, 薄く]]） */
   giantSkillsList(items) {
     const key = 'L' + items.map(i => i.join()).join('|');
@@ -295,6 +326,21 @@ export class UI {
     if (!own.length) return '<p class="sh-note">まだ装備を持っていません。（金庫・裏路地の祠・警備室の落とし物箱）</p>';
     return `<div class="sh-equip">${own.map(id => { const e = g.EQUIP[id]; return `<button data-eq="${id}" class="${on.includes(id) ? 'on' : ''}"><b>${esc(e.name)}</b><small>${esc(e.desc)}</small>${on.includes(id) ? '<em>装備中</em>' : ''}</button>`; }).join('')}</div><p class="sh-note">装備の枠は 2 つ。持ち替え・居合・見切りの時間が変わります（名前・効果は仮）。</p>`;
   }
+  /** キーの割り当て（キーボード）：操作ごとに今のキーと「変える」。変える＝次に押したキー（Esc でやめる） */
+  keysBody(g) {
+    const L = g.input.rebindable(), wait = this.keyWait;
+    return `<table class="sh-ctl sh-keys">${L.map(([a, label]) => `<tr><th>${esc(label)}</th><td>${g.input.codesOf(a).map(c => `<kbd>${esc(keyName(c))}</kbd>`).join(' ') || '—'}</td><td><button data-rebind="${a}" class="${wait === a ? 'on' : ''}">${wait === a ? '次に押すキー…（Esc でやめる）' : '変える'}</button></td></tr>`).join('')}</table>
+      <p class="sh-note">マウス（攻撃・構え・ロック）とゲームパッド・タッチの割り当ては変わりません。同じキーを別の操作に使っていた時は、入れ替えます。</p><div class="sh-sbtn"><button data-keyreset="1">既定に戻す</button></div>`;
+  }
+  waitKey(action) {
+    const g = this.g; this.keyWait = action; this.openMenu('keys');
+    const fn = e => {
+      e.preventDefault(); e.stopPropagation(); removeEventListener('keydown', fn, true); this.keyWait = null;
+      if (e.code !== 'Escape') g.rebindKey(action, e.code);
+      this.openMenu('keys');
+    };
+    addEventListener('keydown', fn, true);
+  }
   endCard(stats, onClose, title = '第2章（避難所）　ここまで', note = '') {
     const html = `<div class="sh-ptitle">${esc(title)}</div><div class="sh-stats">${stats.map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(String(v))}</b></div>`).join('')}</div><p class="sh-note">${esc(note)}</p><div class="sh-sbtn"><button data-close="1">続ける</button></div>`;
     this._puz(html, d => { if (d.close) onClose(); });
@@ -303,11 +349,13 @@ export class UI {
   openMenu(tab = 'top') {
     const g = this.g, m = this.el.menu, S = g.settings;
     m.hidden = false;
-    const tabs = [['top', '再開'], ['equip', '装備'], ['controls', '操作'], ['settings', '設定'], ['load', 'ロード'], ['title', 'タイトルへ']];
+    const tabs = [['top', '再開'], ['equip', '装備'], ['controls', '操作'], ['keys', 'キー'], ['settings', '設定'], ['load', 'ロード'], ['title', 'タイトルへ']];
     let body = '';
     if (tab === 'controls') {
       body = `<table class="sh-ctl"><tr><th>操作</th><th>キーボード＋マウス</th><th>ゲームパッド</th><th>タッチ</th></tr>${CONTROLS.map(r => `<tr>${r.map((c, i) => i ? `<td>${esc(c)}</td>` : `<th>${esc(c)}</th>`).join('')}</tr>`).join('')}</table>
       <p class="sh-note">一閃：<b>ジャスト回避</b>（敵の攻撃が当たる直前に回避）の直後に攻撃＝見切り一閃。<b>パリィ</b>（白い「！」の攻撃に合わせて弾く）の直後に攻撃＝弾き一閃。<b>居合</b>（Q 長押しで構え）中に攻撃を受けると抜刀一閃。弱点（光る所）を撃った直後に攻撃＝撃ち一閃。赤い「危」は弾けない：回避のみ。</p>`;
+    } else if (tab === 'keys') {
+      body = this.keysBody(g);
     } else if (tab === 'equip') {
       body = this.equipBody(g);
     } else if (tab === 'settings') {
@@ -322,6 +370,8 @@ export class UI {
         <label>字幕の大きさ <select data-s="subSize">${[['s', '小'], ['m', '中'], ['l', '大']].map(([v, n]) => `<option value="${v}" ${(S.subSize || 'm') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
         <label>難しさ <select data-s="difficulty">${[['easy', 'やさしい'], ['normal', 'ふつう'], ['hard', 'むずかしい']].map(([v, n]) => `<option value="${v}" ${S.difficulty === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
         <label><input type="checkbox" data-s="assist" ${S.assist ? 'checked' : ''}>一閃の手助け（窓を広げる・スロー延長）</label>
+        <label>暴走の「抑える」 <select data-s="rampageInput">${[['both', '長押しと連打の両方'], ['hold', '長押しだけ'], ['mash', '連打だけ']].map(([v, n]) => `<option value="${v}" ${(S.rampageInput || 'both') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+        <label>画面の揺れ <select data-s="shake">${[['1', 'ふつう'], ['0.4', '弱い'], ['0', 'なし']].map(([v, n]) => `<option value="${v}" ${String(S.shake ?? 1) === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
         <label>視点の速さ<input type="range" min="0.3" max="2.5" step="0.1" data-s="sens" value="${S.sens}"><span>${S.sens}</span></label>
         <label><input type="checkbox" data-s="invertY" ${S.invertY ? 'checked' : ''}>上下を反転</label>
         <label>音量<input type="range" min="0" max="1" step="0.05" data-s="volume" value="${S.volume}"><span>${Math.round(S.volume * 100)}%</span></label>
@@ -331,7 +381,7 @@ export class UI {
       const L = g.store.list();
       body = `<div class="sh-slots">${['auto', 'slot1', 'slot2', 'slot3', 'tenki', 'branch'].filter(k => k !== 'tenki' && k !== 'branch' || L[k]).map(k => { const s = L[k]; return `<button data-load="${k}" ${s ? '' : 'disabled'}>${k === 'auto' ? '自動' : k === 'tenki' ? '転機の前' : k === 'branch' ? '◆ 分岐の前' : '枠' + k.slice(-1)}　${s ? new Date(s.savedAt).toLocaleString('ja-JP') + '　' + fmtSec(s.playSec) : '（空き）'}</button>`; }).join('')}</div>`;
     } else {
-      body = `<div class="sh-mtitle">境界侵食<small>（仮題）序章〜第2章 試作</small></div><p class="sh-note">${esc(g.chapterTitle())}　／　${esc(g.objectiveText())}</p><p class="sh-note">救った帰路：${g.count('kiro', 'rescue')}　倒した帰路：${g.count('kiro', 'kill')}　閉店：${g.heitenStatus()}　収容者：${g.bossStatus()}　（相棒）の信頼：${g.companionTrust()}</p>`;
+      body = `<div class="sh-mtitle">境界侵食<small>（仮題）序章〜第6章 試作</small></div><p class="sh-note">${esc(g.chapterTitle())}　／　${esc(g.objectiveText())}</p><p class="sh-note">救った帰路：${g.count('kiro', 'rescue')}　倒した帰路：${g.count('kiro', 'kill')}　閉店：${g.heitenStatus()}　収容者：${g.bossStatus()}　（相棒）の信頼：${g.companionTrust()}</p>`;
     }
     m.innerHTML = `<div class="sh-mbox"><nav>${tabs.map(([k, n]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${n}</button>`).join('')}</nav><div class="sh-mbody">${body}</div></div>`;
     m.onclick = e => {
@@ -342,6 +392,8 @@ export class UI {
       if (b.dataset.tab) return this.openMenu(b.dataset.tab === 'top' ? 'top' : b.dataset.tab);
       if (b.dataset.load) { g.loadSlot(b.dataset.load); }
       if (b.dataset.eq) { g.toggleEquip(b.dataset.eq); this.openMenu('equip'); }
+      if (b.dataset.rebind) { this.waitKey(b.dataset.rebind); }
+      if (b.dataset.keyreset) { g.resetKeys(); this.openMenu('keys'); }
     };
     m.oninput = e => {
       const k = e.target.dataset.s; if (!k) return;

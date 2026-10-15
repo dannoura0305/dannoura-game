@@ -76,7 +76,7 @@ t('暴走の入力の表に「市民を攻撃する」入力は無い（移動�
   assert.deepEqual(eb.map(e => e.t), ea.map(e => e.t)); assert.equal(a.suppress, b.suppress); assert.equal(a.damage, b.damage);
   // ゲーム側：暴走の 1 ステップは攻撃を読まない（数えるだけ）・敵への当たりを出さない
   const g = src('game/ch5.js'), body = g.slice(g.indexOf('stepRampage5(I) {'), g.indexOf('protectStart5() {'));
-  assert.ok(/R\.tick\(DT, \{ moveX: I\.moveX, moveY: I\.moveY, suppressHeld: !!I\.transform, suppressPress: !!I\.parry \}\)/.test(body));
+  assert.ok(/R\.tick\(DT, \{ moveX: I\.moveX, moveY: I\.moveY, suppressHeld: sm !== 'mash' && !!I\.transform, suppressPress: sm !== 'hold' && !!I\.parry \}\)/.test(body), '読むのは移動と「抑える」（設定で長押し／連打／両方）だけ');
   assert.ok(!/damageEnemy|giantHitBoss|resolveEnemyHit|people/.test(body), '暴走中に人や敵へ当たる処理は無い（被害は小物の演出だけ）');
   assert.ok(/if \(this\.rampage && !this\.rampage\.calm\) this\.stepRampage5\(I\)/.test(src('main.js')), '暴走の間は巨大猫又の技（stepGiant）を通らない');
 });
@@ -179,7 +179,7 @@ t('延期の記録（必須）は両ルートの通り道の上に 1 つずつ�
 
 // ── 演出のデータ ──
 t('演出：第5章・第6章A の場面は区画・段・話し手が正しく、出来事はゲーム側で扱う名前だけ。研究者・配偶者の名前は出さない', () => {
-  const stepIds = new Set(STEPS.map(s => s.id)), g = src('game/ch5.js') + src('game/ch4.js') + src('game/story.js');
+  const stepIds = new Set(STEPS.map(s => s.id)), g = src('game/ch5.js') + src('game/ch4.js') + src('game/story.js') + src('game/ch6.js');
   for (const cs of Object.values(CUTSCENES5)) {
     assert.ok(AREA_GRAPH[cs.area], cs.id); assert.ok(duration(cs) > 3, cs.id);
     for (const e of cs.events || []) { if (e.do === 'setStep') assert.ok(stepIds.has(e.arg), e.arg); assert.ok(g.includes(`case '${e.do}'`), cs.id + ':' + e.do); }

@@ -14,9 +14,14 @@ export const AREA_GRAPH = {
   yard: { name: '研究施設の搬入ヤード（巨大猫又の戦場）', exits: ['lab', 'oldwing'], routeOnly: 'reveal' },
   // 第5章【仮】：旧研究棟（収容棟）。reveal は搬入ヤードの崩れた壁から、secret は地下研究区画の連絡通路から入る → 観測棟の吹き抜け（継接）
   oldwing: { name: '旧研究棟（収容棟）', exits: ['lab', 'yard', 'atrium'] },
-  atrium: { name: '観測棟の吹き抜け', exits: ['oldwing', 'town'] },
+  atrium: { name: '観測棟の吹き抜け', exits: ['oldwing', 'town', 'admin'] },
   // 第6章A の冒頭：巨大用の町（reveal だけ。secret は町を壊さない）
-  town: { name: '置き換えの始まった町（巨大用の区画）', exits: ['atrium'], routeOnly: 'reveal' },
+  town: { name: '置き換えの始まった町（巨大用の区画）', exits: ['atrium', 'ruins'], routeOnly: 'reveal' },
+  // フェーズ7【仮】第6章A の続き：暴走の後の商店街（人の大きさ・商店街の「暴走後」の状態にあたる）→ 中央通り（巨大用：塗替）
+  ruins: { name: 'あけぼの通り商店街（暴走の後）', exits: ['town', 'avenue'], routeOnly: 'reveal' },
+  avenue: { name: '中央通り（光の柱の下・巨大用の区画）', exits: ['ruins'], routeOnly: 'reveal' },
+  // 第6章B：中央管理棟（観測棟から連絡橋で。secret だけ。町は壊れない）
+  admin: { name: '中央管理棟（監視室・機械室・制御室）', exits: ['atrium'], routeOnly: 'secret' },
 };
 
 export const AREA_DATA = {
