@@ -167,6 +167,13 @@ export class Sfx {
       case 'boss_roar': this.voice(70, 2.2, 0.1, [[300, 700], [250, 600], [350, 900]], 0, 3); this.noise(2.0, 0.18, 'bandpass', 220, 0.8, 0, 0.5); break;
       case 'beam': this.tone(220, 0.5, 'sawtooth', 0.05, 1.2); this.noise(0.5, 0.1, 'bandpass', 1400, 0.9, 0, 0.6); break;
       case 'land': this.noise(0.6, 0.5, 'lowpass', 220, 1, 0, 0.4); this.tone(38, 0.6, 'sine', 0.35, 0.6); break;
+      // 第5章・第6章A：収容者・継接・封印・排水・暴走
+      case 'shuusha_voice': this.voice(150 + Math.random() * 20, 1.0, 0.04, [[380, 820], [420, 1900], [360, 780]], 0, 2); break;
+      case 'tsugi_voice': this.voice(110, 1.6, 0.06, [[300, 800], [500, 1400], [260, 700]], 0, 4); this.voice(170, 1.4, 0.03, [[420, 900], [380, 2100], [450, 1000]], 0.15, 2); break;
+      case 'seal_cut': this.tone(2600, 0.7, 'sine', 0.1, 1.02); this.noise(0.25, 0.25, 'highpass', 4200, 0.8, 0, 0.5); this.noise(0.6, 0.08, 'bandpass', 900, 1, 0.1, 0.4); break;
+      case 'water': this.noise(3.2, 0.14, 'lowpass', 700, 0.8, 0, 0.6); this.tone(70, 2.6, 'sine', 0.06, 0.9); break;
+      case 'rampage_pulse': this.tone(46, 0.5, 'sine', 0.3, 0.8); this.noise(0.4, 0.12, 'lowpass', 300, 1, 0, 0.5); break;
+      case 'suppress': this.tone(220, 0.3, 'sine', 0.04, 0.9); break;
       case 'prop_break': this.noise(0.5, 0.3, 'lowpass', 900, 1, 0, 0.3); for (let i = 0; i < 4; i++) this.tone(300 + Math.random() * 500, 0.12, 'triangle', 0.04, 0.6, 0.05 + i * 0.07); break;
     }
     this.out = null;
@@ -216,6 +223,9 @@ export class Sfx {
       office: { hum: 0.8, rain: 0.3, wind: 0.2, vent: 0.8, buzz: 1.0, shop: 0 },
       lab: { hum: 1.4, rain: 0, wind: 0.2, vent: 1.8, buzz: 0.6, shop: 0 },
       yard: { hum: 0.3, rain: 0, wind: 1.6, vent: 0.2, buzz: 0, shop: 0 },
+      oldwing: { hum: 0.7, rain: 0.2, wind: 0.5, vent: 1.0, buzz: 0.8, shop: 0 },
+      oldwing_dark: { hum: 0.2, rain: 0.2, wind: 0.6, vent: 0.2, buzz: 0, shop: 0 },
+      atrium: { hum: 0.5, rain: 0, wind: 1.0, vent: 0.6, buzz: 0.2, shop: 0 },
     }[kind] || {};
     const t = this.ctx.currentTime;
     for (const [k, b] of Object.entries(this.beds)) b.g.gain.setTargetAtTime((P[k] || 0) * b.vol * (k === 'rain' && this.rainOff ? 0 : 1), t, 0.8);

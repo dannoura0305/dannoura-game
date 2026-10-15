@@ -37,6 +37,9 @@ import { combatMethods } from './game/combat.js';
 import { storyMethods } from './game/story.js';
 import { ch3Methods } from './game/ch3.js';
 import { ch4Methods } from './game/ch4.js';
+import { ch5Methods } from './game/ch5.js';
+import './world/areas5.js';
+import './world/areas6.js';
 import './world/areas4.js';
 import { carryBranchLog } from './story/route.js';
 import './world/areas3.js';
@@ -223,6 +226,7 @@ class Game {
   placeCompanion() {
     const C = this.companion, b = C.brain, s = this.story.step, id = this.area.id;
     C.root.visible = false; C.anim = null;
+    if (this.placeCompanion5(id)) return;
     if (this.placeCompanion4(id)) return;
     if (id === 'shotengai' && s === 'pro_meet') { C.root.visible = true; b.setMode('wait'); b.pos = { x: -2.5, z: -33.8 }; b.yaw = 0.6; return; }
     if (id === 'tunnel' && ['ch3_boss', 'ch3_boss2'].includes(s)) { b.setMode('scripted'); b.pos = { x: 11.2, z: -28.8 }; return; }   // 詰所に隠れている
@@ -293,6 +297,7 @@ class Game {
       return;
     }
     if (this.spawnCh3(id, add)) return;
+    if (this.spawnCh5(id, add)) return;
     if (this.spawnCh4(id, add)) return;
     if (id === 'shelter') {
       const B = AREA_DATA.shelter.boss, r = this.enemyRes[B.id];
@@ -346,6 +351,8 @@ class Game {
     const ch = Q.get('ch'), rt = Q.get('route');
     if (ch === '3') return 'ch3_lobby';
     if (ch === '4') return rt === 'reveal' ? 'ch4_r_fight' : rt === 'secret' ? 'ch4_s_trial' : 'ch4_office';
+    if (ch === '5') return rt === 'secret' ? 'ch5_s_enter' : 'ch5_r_enter';
+    if (ch === '6') return 'ch6a_rampage';
     return null;
   }
   /** はじめから。step（試験用）でその段から始められる */
@@ -378,6 +385,8 @@ class Game {
     if (atLeast(step, 'ch3_down')) { this.flags.child_saved = this.flags.truth_seen = true; this.enemyRes.mamori = this.enemyRes.mamori || 'rescue'; }
     if (atLeast(step, 'ch3_boss2')) { const st = Q.get('stance') === 'secret' ? 'secret' : 'reveal'; this.route = Object.assign(normalizeRoute(this.route), {}); if (!this.route.stance) { this.route.stance = st; if (st === 'reveal') this.route.forms.whiteUnlocked = true; this.route.branchLog.push({ seq: this.route.branchLog.length + 1, kind: 'stance', decision: st, chapter: 'ch03', step: 'ch3_tenki', via: 'debug', locksRoute: false }); } this.player.fighter.yokiOn = st === 'reveal'; this.player.fighter.yoki = 60; }
     if (atLeast(step, 'ch3_end')) this.flags.tunnel_clear = true;
+    const j5 = this.jump5(step);
+    if (j5) { this.loadArea(j5.area, j5.spawn); this.afterLoad4(); this.afterLoad5(true); this.refreshObjective(); return; }
     const j4 = this.jump4(step);
     if (j4) { this.loadArea(j4.area, j4.spawn); this.afterLoad4(); if (step === 'ch4_r_fight' && !this.player.fighter.white) this.setWhite(true, 'scripted'); this.refreshObjective(); return; }
     const area = stepDef(step).area;
@@ -420,7 +429,7 @@ class Game {
     if (this.pendingWant) { I.wantWeapon = this.pendingWant; this.pendingWant = null; }
     if (this.slowT > 0) { this.slowT--; this.worldScale = this.slowScale; if (this.slowT === 0) { this.ui.slow(false); this.sfx.setMuffle(0); } } else this.worldScale = 1;
     if (this.gunshotT > 0) this.gunshotT--; else this.gunshot = null;
-    if (this.giantMode) this.stepGiant(I);
+    if (this.giantMode) { if (this.rampage && !this.rampage.calm) this.stepRampage5(I); else if (this.protect) this.stepProtect5(I); else this.stepGiant(I); }
     else { this.stepPlayer(I); this.stepWhite(I); }
     const wdt = DT * this.worldScale;
     for (const e of this.enemies) { this.stepEnemy(e, wdt); if (e.justNoticed > 0) e.justNoticed -= DT; if (e.teleT > 0) { e.teleT -= DT; if (e.teleT <= 0) e.tele = null; } }
@@ -463,6 +472,7 @@ class Game {
       if (e.kind === 'kanja' && e.brain.state === 'nurse') extra.push({ id: 'callout_' + e.id, kind: 'callout', ref: e, x: e.pos.x, z: e.pos.z, r: 2.6, label: '声をかける（巡回の時間ですよ）' });
       if (e.kind === 'utsushimi' && e.brain.state === 'voice' && this.flags.memo) extra.push({ id: 'memo', kind: 'memo', ref: e, x: P.pos.x, z: P.pos.z, r: 99, label: '本物の声を聞かせる（子ども用の携帯の留守電）' });
     }
+    if (this.extraSpots5) extra.push(...this.extraSpots5());
     if (extra.length) spots = spots.concat(extra);
     for (const s of spots) {
       const d = Math.hypot(P.pos.x - s.x, P.pos.z - s.z);
@@ -532,7 +542,7 @@ class Game {
     const items = Object.entries(this.items).filter(([, n]) => n > 0).map(([id, n]) => ({ id, n }));
     const slot = makeSlot({
       playSec: this.playSec, area: this.area.id, pos: [+P.pos.x.toFixed(3), 0, +P.pos.z.toFixed(3)], yaw: +P.yaw.toFixed(3), difficulty: this.settings.difficulty,
-      story: Object.assign({}, JSON.parse(JSON.stringify(this.route)), { chapter: stepDef(this.story.step).ch, step: this.story.step, flags: Object.assign({}, this.flags), resolutions: JSON.parse(JSON.stringify(this.resol)), trust: { companion: this.companion.brain.trust }, boss: this.story.boss, boss3: this.story.boss3 || null, puzzles: { roster: this.puz.roster, records: this.puz.records || null }, companion: { mode: this.companion.brain.mode === 'grabbed' ? 'follow' : this.companion.brain.mode } }),
+      story: Object.assign({}, JSON.parse(JSON.stringify(this.route)), { chapter: stepDef(this.story.step).ch, step: this.story.step, flags: Object.assign({}, this.flags), resolutions: JSON.parse(JSON.stringify(this.resol)), trust: { companion: this.companion.brain.trust }, boss: this.story.boss, boss3: this.story.boss3 || null, boss5: this.story.boss5 || null, puzzles: { roster: this.puz.roster, records: this.puz.records || null }, companion: { mode: this.companion.brain.mode === 'grabbed' ? 'follow' : this.companion.brain.mode } }),
       player: { hp: F.hp, hpMax: F.hpMax, yoki: Math.round(F.yoki), form: 'purple', weapons: { pipe: F.owned.includes('pipe') ? { lv: 1 } : null, katana: F.owned.includes('katana') ? { lv: 1 } : null, handgun: F.owned.includes('handgun') ? { lv: 1, mag: F.mag } : null, matchlock: F.owned.includes('matchlock') ? { lv: 1 } : null }, owned: F.owned.slice(), ammo: { handgun: F.ammo }, equipped: F.weapon, items, equip: { owned: this.ownedEquip.slice(), on: this.equipped.slice() } },
       world: { areas: { [this.area.id]: { visited: true } }, enemies: Object.assign({}, this.enemyRes), picked: [...this.picked], opened: [...this.opened] },
     });
@@ -565,7 +575,7 @@ class Game {
     const EN = W.enemies || {};
     if (EN.shotengai && typeof EN.shotengai === 'object') { for (const [id, r] of Object.entries(EN.shotengai)) this.enemyRes[id] = r === 'rescued' ? 'rescue' : r === 'dead' ? 'kill' : r; }
     else Object.assign(this.enemyRes, EN);
-    this.story = { step: st.step || 'ch1_street', boss: st.boss || null, boss3: st.boss3 || null };
+    this.story = { step: st.step || 'ch1_street', boss: st.boss || null, boss3: st.boss3 || null, boss5: st.boss5 || null };
     if (!st.step) { this.flags.lights_out = true; }
     this.puz = Object.assign({ roster: { done: {}, miss: 0 } }, st.puzzles || {});
     const P = this.player, F = P.fighter, pl = s.player || {};
@@ -588,7 +598,7 @@ class Game {
     this.mode = 'play'; this.loadedFrom = k; this.exitArmed = false;
     this.refreshObjective();
     if (this.tenkiOpen) this.later(0.3, () => this.openTenkiChoice());
-    this.afterLoad4();
+    this.afterLoad4(); this.afterLoad5(false);
     if (!this.isTest()) this.input.requestLock();
     this.ui.toast('ロードしました', '', 1);
     return true;
@@ -656,7 +666,7 @@ class Game {
     this.companion.animate(pdt);
     this.animateChild(pdt);
     this.renderWhite(pdt);
-    this.renderGiant(pdt); this.renderBoss4(pdt);
+    this.renderGiant(pdt); this.renderBoss4(pdt); this.renderBoss5(pdt); this.renderTown5(pdt);
     if (this.companion.model.outline) this.companion.model.outline.visible = S.outline;
     if (P.model.outline) P.model.outline.visible = S.outline;
     for (const c of this.civilians) { c.animate(pdt); if (c.vanish) { c.vt = (c.vt || 0) + dt; const u = c.model.mats.body.userData.u; for (const m of [c.model.mats.body, c.model.mats.face, c.model.mats.outline]) if (m && m.userData.u) m.userData.u.uDissolve.value = Math.min(1, c.vt / 1.5); if (c.vt > 1.6) c.root.visible = false; void u; } }
@@ -666,7 +676,7 @@ class Game {
       if (d.closeAt != null) { d.closeAt -= wdt; if (d.closeAt <= 0) { d.open = false; d.closeAt = null; this.halos.setColor(d.halo, 0x88ff99); } }
       const want = d.open ? -1.45 * (d.face || 1) : 0; d.pivot.rotation.y += (want - d.pivot.rotation.y) * Math.min(1, dt * 4);
     }
-    for (const sh of [A.dyn.heitenShutter, A.dyn.storageShutter, A.dyn.refugeShutter, A.dyn.bulkhead]) if (sh && sh.target != null) sh.mesh.position.y += (sh.target - sh.mesh.position.y) * Math.min(1, (wdt + 0.0001) * 1.6);
+    for (const sh of [A.dyn.heitenShutter, A.dyn.storageShutter, A.dyn.refugeShutter, A.dyn.bulkhead, A.dyn.gate]) if (sh && sh.target != null) sh.mesh.position.y += (sh.target - sh.mesh.position.y) * Math.min(1, (wdt + 0.0001) * 1.6);
     if (A.dyn.tv && this.frame % 3 === 0 && A.dyn.tv.kind === 'static') A.dyn.tv.draw('static');
     this.updateLights(dt);
     // 光源とプレイヤーの近く
@@ -706,7 +716,7 @@ class Game {
       if (e.weakHalo == null && e.model.weak) e.weakHalo = this.halos.add([0, -50, 0], e.kind === 'shuuyou' ? 1.2 : 0.55, e.model.weakColor || 0xffd27a, 0);
       if (e.weakHalo != null && e.weakHalo >= 0 && e.model.weak) { const w = this.weakPos(e); this.halos.setPos(e.weakHalo, w.x, w.y, w.z); const k = !e.brain.alive || !e.root.visible ? 0 : e.kind === 'kiro' ? e.weakGlow || 0 : e.kind === 'shuuyou' ? (e.brain.state === 'dormant' ? 0 : 0.35 + (e.brain.state === 'rollcall' ? 0.5 + Math.sin(this.playSec * 9) * 0.3 : 0)) : 0.45; this.halos.setK(e.weakHalo, k); }
     }
-    if (this.touchUI) { this.touchUI.setUse(!!this.nearSpot || this.cut.active); this.touchUI.setIssen(issenOpen); this.touchUI.setForm(F.yokiOn || F.white, F.white); }
+    if (this.touchUI) { this.touchUI.setUse(!!this.nearSpot || this.cut.active || !!this.protect); this.touchUI.setIssen(issenOpen); this.touchUI.setForm(F.yokiOn || F.white, F.white); }
     const dev = this.input.device;
     if ((this.mapTick = (this.mapTick || 0) + 1) % 2 === 0 && (this.mode === 'play' || this.mode === 'dialog')) this.drawMinimap();
     if (!this.giantMode) this.ui.hints(dev, { gun: F.weapon === 'handgun', melee: F.melee, match: F.weapon === 'matchlock', white: F.white });
@@ -877,7 +887,7 @@ class Game {
         stance(id, assist) { g.chooseStance(id, assist); return g.route.stance; },
         tryWhite() { g.toggleWhite(); return g.player.fighter.form; },
         closeMenu() { g.ui.closePuzzle(); g.ui.closeMenu(); g.mode = 'play'; },
-        ch4: g.debug4(),
+        ch4: g.debug4(), ch5: g.debug5(),
         roster(group, name) { const ns = (window.__shPZ || {}).pickRoster ? null : null; void ns; return g.puz.roster; },
       },
       save: k => g.saveSlot(k), load: k => g.loadSlot(k), store: g.store, wp: g.WP,
@@ -888,7 +898,8 @@ class Game {
     if (name === 'normal') { this.closeup = false; this.cineCam = null; this.ui.letterbox(false); this.mode = 'play'; return true; }
     if (name === 'closeup') {
       const who = opt.who || 'player';
-      const t = who === 'giant' && this.giant ? { x: this.giant.pos.x, z: this.giant.pos.z, yaw: this.giant.yaw, h: 8.2 } : who === 'player' ? { x: this.player.pos.x, z: this.player.pos.z, yaw: this.player.yaw, h: 1.5 } : who === 'companion' ? { x: this.companion.brain.pos.x, z: this.companion.brain.pos.z, yaw: this.companion.brain.yaw, h: 1.45 } : { x: this.boss.pos.x, z: this.boss.pos.z, yaw: this.boss.brain.yaw, h: 1.8 };
+      const gh = who === 'giantHead' && this.giant ? (() => { const v = new THREE.Vector3(); this.giant.root.updateMatrixWorld(true); this.giant.model.G.gHead.getWorldPosition(v); return v; })() : null;
+      const t = gh ? { x: gh.x, z: gh.z, yaw: this.giant.yaw, h: gh.y } : who === 'giant' && this.giant ? { x: this.giant.pos.x, z: this.giant.pos.z, yaw: this.giant.yaw, h: 8.2 } : who === 'player' ? { x: this.player.pos.x, z: this.player.pos.z, yaw: this.player.yaw, h: 1.5 } : who === 'companion' ? { x: this.companion.brain.pos.x, z: this.companion.brain.pos.z, yaw: this.companion.brain.yaw, h: 1.45 } : { x: this.boss.pos.x, z: this.boss.pos.z, yaw: this.boss.brain.yaw, h: 1.8 };
       const d = opt.dist || 1.2, side = opt.side || 0.35, hy = opt.y != null ? opt.y : t.h;
       const a = t.yaw + side;
       this.cineCam = { pos: [t.x + Math.sin(a) * d, hy + (opt.up || 0.02), t.z + Math.cos(a) * d], look: [t.x, hy - (opt.down || 0.05), t.z], fov: opt.fov || 38 };
@@ -897,7 +908,7 @@ class Game {
     return false;
   }
 }
-Object.assign(Game.prototype, combatMethods, storyMethods, ch3Methods, ch4Methods);
+Object.assign(Game.prototype, combatMethods, storyMethods, ch3Methods, ch4Methods, ch5Methods);
 
 function raySphereHit(o, d, c, r) { const ox = o.x - c.x, oy = o.y - c.y, oz = o.z - c.z; const B = ox * d.x + oy * d.y + oz * d.z, Cc = ox * ox + oy * oy + oz * oz - r * r; const disc = B * B - Cc; return disc >= 0 && -B - Math.sqrt(disc) > 0; }
 function mergeIn(a, b) {

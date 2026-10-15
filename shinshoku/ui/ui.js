@@ -247,18 +247,32 @@ export class UI {
       <p class="sh-note">${esc(note || '')}${state.miss ? `（ちがう選択 ${state.miss} 回）` : ''}</p><div class="sh-sbtn"><button data-close="1">閉じる</button></div>`;
     this._puz(html, d => { if (d.close) return onClose(); if (d.log) { const ns = onPick(d.log); if (ns) this.logsUI(logs, ns, onPick, onClose, note); } });
   }
-  /** 配電盤（第4章 secret の必須）：遮断器を入れ切りして「投入」 */
+  /** 配電盤（第4章・第5章 secret の必須。B.hint：保全記録の一行）：遮断器を入れ切りして「投入」 */
   breakerUI(B, on, hint, onApply, onClose, msg) {
     const load = B.list.filter(b => on.has(b.id)).reduce((s, b) => s + b.load, 0);
     const html = `<div class="sh-ptitle">配電盤（非常電源） <small>容量 ${B.capacity}・名前と値は仮</small></div>
       <div class="sh-brk">${B.list.map(b => `<button data-brk="${b.id}" class="${on.has(b.id) ? 'on' : ''}"><i></i><b>${esc(b.name)}</b><small>${hint ? '負荷 ' + b.load : '負荷 ？'}</small></button>`).join('')}</div>
-      <p class="sh-note">いまの負荷 ${hint ? load : '？'} ／ ${B.capacity}。${hint ? '保全記録：応答炉は非常時に入れないこと。' : '（盤の横に保全記録がある）'}${msg ? '<br>→ ' + esc(msg) : ''}</p>
+      <p class="sh-note">いまの負荷 ${hint ? load : '？'} ／ ${B.capacity}。${hint ? (B.hint || '保全記録：応答炉は非常時に入れないこと。') : '（盤の横に保全記録がある）'}${msg ? '<br>→ ' + esc(msg) : ''}</p>
       <div class="sh-sbtn"><button data-apply="1">投入する</button><button data-close="1">閉じる</button></div>`;
     this._puz(html, d => {
       if (d.close) return onClose();
       if (d.brk) { if (on.has(d.brk)) on.delete(d.brk); else on.add(d.brk); this.g.sfx.play('breaker'); return this.breakerUI(B, on, hint, onApply, onClose, msg); }
       if (d.apply) { const r = onApply([...on]); if (r && !r.ok) this.breakerUI(B, on, hint, onApply, onClose, r.msg); else if (r && r.ok) this.breakerUI(B, on, hint, onApply, onClose, r.msg); }
     });
+  }
+  /** 点呼卓（第5章の必須）：名前を順に選んで「呼ぶ」。names：部屋の札の名前（部屋の順）、seq：今の並び */
+  rollcallUI(names, seq, onPick, onUndo, onCall, onClose, note, miss) {
+    const html = `<div class="sh-ptitle">点呼卓（収容棟） <small>名前・番号はすべて仮</small></div>
+      <div class="sh-plist">${names.map(n => `<button data-name="${esc(n.name)}" ${seq.includes(n.name) ? 'disabled' : ''}><code>${esc(n.room)}</code> ${esc(n.name)}</button>`).join('')}</div>
+      <p class="sh-note">呼ぶ順：${seq.length ? seq.map((n, i) => `${i + 1}．${esc(n)}`).join('　') : '（まだ）'}<br>${esc(note || '')}${miss ? `（ちがう点呼 ${miss} 回）` : ''}</p>
+      <div class="sh-sbtn"><button data-call="1" ${seq.length ? '' : 'disabled'}>呼ぶ（鐘を鳴らす）</button><button data-undo="1">やり直す</button><button data-close="1">閉じる</button></div>`;
+    this._puz(html, d => { if (d.close) return onClose(); if (d.undo) return onUndo(); if (d.call) return onCall(); if (d.name) onPick(d.name); });
+  }
+  /** 巨大猫又の暴走・守る場面の技の案内（items：[[名前, キー, 動いている, 薄く]]） */
+  giantSkillsList(items) {
+    const key = 'L' + items.map(i => i.join()).join('|');
+    if (key === this.gsKey) return; this.gsKey = key;
+    this.el.gskills.innerHTML = items.map(([n, k, act, dim]) => `<div class="${act ? 'act' : ''} ${dim ? 'dim' : ''}"><kbd>${k}</kbd><b>${n}</b></div>`).join('');
   }
   /** 巨大猫又の技の案内（concept_04 の配置を参考に独自に：右下に 4 つ） */
   giantSkills(dev, F) {
