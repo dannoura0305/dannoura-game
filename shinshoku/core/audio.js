@@ -174,6 +174,11 @@ export class Sfx {
       case 'water': this.noise(3.2, 0.14, 'lowpass', 700, 0.8, 0, 0.6); this.tone(70, 2.6, 'sine', 0.06, 0.9); break;
       case 'rampage_pulse': this.tone(46, 0.5, 'sine', 0.3, 0.8); this.noise(0.4, 0.12, 'lowpass', 300, 1, 0, 0.5); break;
       case 'suppress': this.tone(220, 0.3, 'sine', 0.04, 0.9); break;
+      // フェーズ7
+      case 'phone_ring': for (let i = 0; i < 4; i++) { this.tone(1320, 0.07, 'square', 0.025, 1, i * 0.12); this.tone(1100, 0.07, 'square', 0.02, 1, i * 0.12 + 0.06); } break;
+      case 'gauge': this.tone(2400 + Math.random() * 200, 0.03, 'square', 0.015); break;
+      case 'relay_regrow': this.tone(180, 0.6, 'sawtooth', 0.04, 1.8); this.noise(0.5, 0.08, 'bandpass', 1400, 2, 0.1); break;
+      case 'water_hammer': this.noise(0.15, 0.6, 'lowpass', 500); this.tone(60, 0.35, 'square', 0.25, 0.6); this.tone(900, 0.3, 'triangle', 0.06, 0.8, 0.05); break;
       case 'prop_break': this.noise(0.5, 0.3, 'lowpass', 900, 1, 0, 0.3); for (let i = 0; i < 4; i++) this.tone(300 + Math.random() * 500, 0.12, 'triangle', 0.04, 0.6, 0.05 + i * 0.07); break;
     }
     this.out = null;
@@ -226,6 +231,9 @@ export class Sfx {
       oldwing: { hum: 0.7, rain: 0.2, wind: 0.5, vent: 1.0, buzz: 0.8, shop: 0 },
       oldwing_dark: { hum: 0.2, rain: 0.2, wind: 0.6, vent: 0.2, buzz: 0, shop: 0 },
       atrium: { hum: 0.5, rain: 0, wind: 1.0, vent: 0.6, buzz: 0.2, shop: 0 },
+      ruins: { hum: 0.4, rain: 0, wind: 1.3, vent: 0, buzz: 0.5, shop: 0 },
+      admin: { hum: 0.9, rain: 0, wind: 0.1, vent: 1.0, buzz: 1.0, shop: 0 },
+      admin_machine: { hum: 1.6, rain: 0, wind: 0.1, vent: 1.8, buzz: 0.8, shop: 0 },
     }[kind] || {};
     const t = this.ctx.currentTime;
     for (const [k, b] of Object.entries(this.beds)) b.g.gain.setTargetAtTime((P[k] || 0) * b.vol * (k === 'rain' && this.rainOff ? 0 : 1), t, 0.8);
@@ -241,7 +249,7 @@ export class Sfx {
     if (T.siren <= 0) { T.siren = 35 + Math.random() * 45; if (outdoor) this.siren(); }
     if (T.drip <= 0) { T.drip = 0.6 + Math.random() * 2.2; if (this.amb === 'alley' || this.amb === 'tunnel') { this.out = this._spatial({ x: this.L.x + (Math.random() - 0.5) * 10, z: this.L.z + (Math.random() - 0.5) * 10 }); if (this.out) this.tone(1800 + Math.random() * 1400, 0.09, 'sine', 0.025, 0.6); this.out = null; } }
     if (T.muzak <= 0) { T.muzak = 14 + Math.random() * 20; if (this.amb === 'plaza') { const notes = [523, 659, 587, 494]; notes.forEach((f, i) => { this.out = this._spatial({ x: 0, z: -14 }, 2, 60); if (this.out) this.tone(f * (1 + (Math.random() - 0.5) * 0.02), 0.5, 'triangle', 0.012, 0.98, i * 0.55); this.out = null; }); } }
-    if (T.creak <= 0) { T.creak = 10 + Math.random() * 16; if (this.amb === 'gym' || this.amb === 'hospital' || this.amb === 'lab' || this.amb === 'office') this.noise(0.6, 0.02, 'bandpass', 180, 6, 0, 1.4); if (this.amb === 'hospital' && Math.random() < 0.5) { this.tone(1046, 0.25, 'sine', 0.012); this.tone(1046, 0.25, 'sine', 0.012, 1, 0.5); } }
+    if (T.creak <= 0) { T.creak = 10 + Math.random() * 16; if (this.amb === 'gym' || this.amb === 'hospital' || this.amb === 'lab' || this.amb === 'office' || this.amb === 'admin' || this.amb === 'admin_machine') this.noise(0.6, 0.02, 'bandpass', 180, 6, 0, 1.4); if (this.amb === 'hospital' && Math.random() < 0.5) { this.tone(1046, 0.25, 'sine', 0.012); this.tone(1046, 0.25, 'sine', 0.012, 1, 0.5); } }
   }
   /** 遠いサイレン（ゆっくり上下・遠くでこもる） */
   siren() {

@@ -410,7 +410,7 @@ export const ch5Methods = {
     if (!this.giantMode) { this.enterGiant(false); const G = this.giant; G.pos = { x: TOWN.giantStart[0], z: TOWN.giantStart[1] }; G.yaw = TOWN.giantStart[2]; }
     const G = this.giant; G.growT = null; G.scale = COMBAT.giant.scale; G.fighter.hp = G.fighter.hpMax; G.rampK = 1; G.model.setRampage(1); G.pst = { name: 'rampage', f: 0 }; G.lurch = null;
     this.cam.yaw = G.yaw + Math.PI; this.cam.pitch = 0.22;                       // 背中の後ろから（町と相棒が前に見える）
-    this.rampage = new Rampage({ mode: this.settings.rampageInput || 'hold', seed: 77 }); this.protect = null; this.lock = null;
+    this.rampage = new Rampage({ mode: this.settings.rampageInput === 'mash' ? 'mash' : 'hold', seed: 77 }); this.protect = null; this.lock = null;
     this.ui.root.classList.add('rampage'); this.rampOverlay(true);
     const C = this.companion; C.root.visible = true; C.brain.setMode('scripted'); C.brain.pos = { x: TOWN.companion[0], z: TOWN.companion[1] }; C.brain.yaw = -Math.PI * 0.9; C.anim = this.flags.companion_injured ? 'injured' : null;
     this.metrics.rampageStart6 = this.playSec; this.metrics.rampageAttackIgnored = 0;
@@ -425,7 +425,8 @@ export const ch5Methods = {
   stepRampage5(I) {
     const R = this.rampage, G = this.giant;
     if (I.attack || I.heavy) this.metrics.rampageAttackIgnored = (this.metrics.rampageAttackIgnored || 0) + 1;
-    const evs = R.tick(DT, { moveX: I.moveX, moveY: I.moveY, suppressHeld: !!I.transform, suppressPress: !!I.parry });
+    const sm = this.settings.rampageInput || 'both';                                   // 設定：長押しと連打の両方／長押しだけ／連打だけ（Q45）
+    const evs = R.tick(DT, { moveX: I.moveX, moveY: I.moveY, suppressHeld: sm !== 'mash' && !!I.transform, suppressPress: sm !== 'hold' && !!I.parry });
     if (I.transform && this.frame % 20 === 0) this.sfx.play('suppress');
     // 移動：体が重い（抑えるほど言うことを聞く）・勝手に踏み出す
     const fw = this.cam.forward(), rt = { x: -fw.z, z: fw.x }, mx = fw.x * I.moveY + rt.x * I.moveX, mz = fw.z * I.moveY + rt.z * I.moveX, mag = Math.min(1, Math.hypot(mx, mz));
@@ -560,7 +561,7 @@ export const ch5Methods = {
     const stats = this.stats5();
     this.metrics.endCard5 = route;
     this.mode = 'puzzle'; this.input.exitLock();
-    this.ui.endCard(stats, () => { this.ui.closePuzzle(); this.mode = 'play'; this.saveSlot('auto', true); }, '第5章B（秘匿）　ここまで', '第6章B（中央管理棟：制御装置の停止）は次の段階で作ります。「分岐の前」のセーブ（ロード）から、もう一方のルートも遊べます。');
+    this.ui.endCard(stats, () => { this.ui.closePuzzle(); this.mode = 'play'; this.saveSlot('auto', true); if (this.story.step === 'ch5_s_end') this.later(0.4, () => this.startCh6s()); }, '第5章B（秘匿）　ここまで', '続けて第6章B（中央管理棟：制御装置の停止）へ進めます。「分岐の前」のセーブ（ロード）から、もう一方のルートも遊べます。');
   },
   showEndCard6() {
     if (this.WP.write) this.WP.write('shinshoku', { chaptersCleared: ['prologue', 'ch1', 'ch2_slice', 'ch3_slice', 'ch4_slice', 'ch5a_slice', 'ch6a_open'] });

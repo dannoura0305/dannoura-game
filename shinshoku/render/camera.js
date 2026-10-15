@@ -8,7 +8,7 @@ export class ThirdPersonCamera {
     this.aimT = 0; this.shakeT = 0; this.shakeA = 0; this.cur = new THREE.Vector3(); this.first = true;
     this.pivot = new THREE.Vector3(); this.fovBase = 62; this.curDist = 4;
   }
-  shake(a, t = 0.25) { if (a > this.shakeA * (this.shakeT > 0 ? 1 : 0)) { this.shakeA = a; this.shakeT = t; this.shakeD = t; } }
+  shake(a, t = 0.25) { a *= this.shakeMul ?? 1; if (a <= 0) return; if (a > this.shakeA * (this.shakeT > 0 ? 1 : 0)) { this.shakeA = a; this.shakeT = t; this.shakeD = t; } }
   /** dt：実時間。target：プレイヤーの位置。aim：構え中。lock：ロックオンの相手の位置 */
   update(dt, target, look, boxes, opt = {}) {
     this.yaw -= look.x; this.pitch = Math.max(-0.55, Math.min(0.85, this.pitch + look.y * (this.invertY ? -1 : 1)));

@@ -1,5 +1,5 @@
 {
-  "_note": "『境界侵食』序章〜第5章・第6章A の冒頭（試作）の台詞・調べた時の文（データ駆動）。相棒は仮 ID companion・表示名は未決定（Q8）。台詞はすべて【仮】（SCENARIO_FLOW の「仮：」を含む）。fixed:true の原文台詞はこの範囲（序章〜第2章）には無い。演出場面の台詞は story/cutscenes.js。",
+  "_note": "『境界侵食』序章〜第5章・第6章（試作）の台詞・調べた時の文（データ駆動）。相棒は仮 ID companion・表示名は未決定（Q8）。台詞はすべて【仮】（SCENARIO_FLOW の「仮：」を含む）。fixed:true の原文台詞はこの範囲（序章〜第2章）には無い。演出場面の台詞は story/cutscenes.js。",
   "speakers": {
     "dan": { "name": "だんのうら", "color": "#c9a8ff" },
     "companion": { "name": "（相棒・名前未定）", "color": "#ffd7a8", "provisional": true },
@@ -18,7 +18,10 @@
     "radio": { "name": "無線の声（分室・仮）", "color": "#b8e0c0", "provisional": true },
     "outou": { "name": "応答体", "color": "#e0d0ff" },
     "shuusha": { "name": "収容者", "color": "#d8dcd0" },
-    "tsugihagi": { "name": "継接", "color": "#c8a0ff" }
+    "tsugihagi": { "name": "継接", "color": "#c8a0ff" },
+    "daughter": { "name": "娘（電話の声）", "color": "#ffe0ec" },
+    "machibito": { "name": "待人", "color": "#e8d8b8" },
+    "touchoku": { "name": "当直", "color": "#b8c8e8" }
   },
   "events": {
     "ev_intro": [
@@ -139,6 +142,11 @@
     ],
     "ev_bag_returned": [
       { "who": "sys", "text": "（鞄を机 B に置く。継ぎ目が、ひとつずつほどけていく）" }
+    ],
+    "ev_diag6_done": [
+      { "who": "companion", "text": "前の値と比べるんですね" },
+      { "who": "dan", "text": "数字は一回測っただけじゃ何も言わないの。変わり方を見るのよ。……P-2、軸受がもう限界" },
+      { "who": "dan", "text": "止めるわよ。手順どおりにね" }
     ]
   },
   "barks": {
@@ -225,7 +233,25 @@
     "rampage_anchor": { "who": "dan", "text": "（……小さな手。「おかえり」の声。——帰るって、約束したのよ）" },
     "rampage_strain": { "who": "dan", "text": "……っ、止まりなさい……アタシの体でしょ……！" },
     "protect_saved": { "who": "dan", "text": "大丈夫、通さないわ" },
-    "protect_missed": { "who": "dan", "text": "っ……ごめんなさい、間に合わなかった。……でも、みんな逃げられてる" }
+    "protect_missed": { "who": "dan", "text": "っ……ごめんなさい、間に合わなかった。……でも、みんな逃げられてる" },
+    "machibito_wait": { "who": "machibito", "text": "……もうすぐ、来るはずなんです" },
+    "machibito_misread": { "who": "machibito", "text": "あ……！　遅かったじゃない……" },
+    "machibito_sad": { "who": "machibito", "text": "……ちがう。あの人じゃ、ない" },
+    "machibito_angry": { "who": "machibito", "text": "どうして、来ないの……！" },
+    "machibito_thanks": { "who": "machibito", "text": "……これ、あの人の。……そう。来られなかったのね。ありがとう" },
+    "machibito_misread_d": { "who": "dan", "text": "……誰かと待ち合わせてるのね。アタシじゃなくて、ごめんなさいね" },
+    "machibito_misread_c": { "who": "companion", "text": "……誰かを、待ってるんですね" },
+    "relay_shadow": { "who": "dan", "text": "切り口から、影が……！　順番が違ったみたいね" },
+    "p2_sound": { "who": "dan", "text": "……ゴロゴロ言ってる。軸受ね、これ。前の値と比べてみましょ" },
+    "steam_use": { "who": "dan", "text": "蒸気の通り道に誘えば……体勢を崩せるわ" },
+    "touchoku_round": { "who": "touchoku", "text": "……巡回。異常、なし。異常、なし" },
+    "touchoku_restart": { "who": "touchoku", "text": "P-2、運転再開……引き継ぎ、まだだ……" },
+    "touchoku_round_hint": { "who": "dan", "text": "また P-2 の弁よ。……背中ががら空き。今のうち" },
+    "touchoku_handover": { "who": "dan", "text": "はい、引き継ぎ。P-2 は止めて施錠済み。……お疲れさま" },
+    "touchoku_locked": { "who": "dan", "text": "レンチは配管に施錠したわ。……もう、回さなくていいの" },
+    "touchoku_rest": { "who": "touchoku", "text": "……引き継ぎ、確認……しました。……少し、休みます" },
+    "giant_repaint": { "who": "dan", "text": "人のいる棟を塗るつもり……！　させないわよ" },
+    "giant_block6": { "who": "dan", "text": "……っ、痛いじゃないの。でも、中の人は無事よ" }
   },
   "texts": {
     "board": "回覧板。「夜間の外出はひかえてください。停電の復旧は未定です。商店会」……日付の欄に「10/14 23:41 停電」と手書き。",
@@ -313,6 +339,9 @@
     "desk_wrong": "……ここじゃない。鞄の札は「机 B」。",
     "desk_idle": "観測室の机。",
     "stairs_wait": "北東の階段。……今は、目の前の異形が先。",
-    "town_wait": "……町の灯りが、紫に塗り替わっていく。"
+    "town_wait": "……町の灯りが、紫に塗り替わっていく。",
+    "ru_north_wait": "光の柱の方へ行く前に……町へ伸びる糸の中継を、元から順に切らないと。",
+    "relay_purple": "紫の糸が、かすかに見える。……人の姿の目では流れが分からない。爪でないと切れそうにない（白い姿：化を長押し）。",
+    "ad_loto_wait": "P-2 の現場盤。……止める前に、どれが本当に悪いのか確かめないと（点検表）。"
   }
 }

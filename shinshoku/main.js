@@ -38,6 +38,8 @@ import { storyMethods } from './game/story.js';
 import { ch3Methods } from './game/ch3.js';
 import { ch4Methods } from './game/ch4.js';
 import { ch5Methods } from './game/ch5.js';
+import { ch6Methods } from './game/ch6.js';
+import './world/areas7.js';
 import './world/areas5.js';
 import './world/areas6.js';
 import './world/areas4.js';
@@ -52,7 +54,7 @@ const Q = new URLSearchParams(location.search);
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || Q.get('touch') === '1';
 const AUTO_PRESET = autoPreset({ touch: isTouch, w: innerWidth, h: innerHeight, dpr: devicePixelRatio, cores: navigator.hardwareConcurrency, mem: navigator.deviceMemory });
 
-const DEFAULT_SETTINGS = () => Object.assign(applyPreset({ preset: 'auto' }, AUTO_PRESET), { preset: 'auto', difficulty: 'normal', assist: false, sens: 1, invertY: false, volume: 0.7, touchUI: isTouch, subSize: 'm' });
+const DEFAULT_SETTINGS = () => Object.assign(applyPreset({ preset: 'auto' }, AUTO_PRESET), { preset: 'auto', difficulty: 'normal', assist: false, sens: 1, invertY: false, volume: 0.7, touchUI: isTouch, subSize: 'm', rampageInput: 'both', shake: 1, keys: {} });
 
 /** 区画の明かり（定義）と使い回しの点光源 */
 const POOL_MAX = 8;
@@ -114,13 +116,14 @@ class Game {
     this.heitenSign = this.makeSignStand();
     // 入力・画面
     this.sfx = new Sfx(); this.sfx.setVolume(this.settings.volume);
-    this.input = new Input(canvas, { sens: this.settings.sens });
+    this.input = new Input(canvas, { sens: this.settings.sens, keys: this.settings.keys });
     this.input.wantLock = () => this.mode === 'play' && !this.cut.active;
     this.input.onUnlock = () => { if (this.mode === 'play' && !this.noPauseOnUnlock && !this.cut.active) this.pause(); };
     this.ui = new UI(document.getElementById('sh-ui'), this);
     this.touchUI = setupTouch(document.getElementById('sh-ui'), this.input, this);
     this.applySetting('touchUI', this.settings.touchUI, true);
     this.applySetting('subSize', this.settings.subSize, true);
+    this.cam.shakeMul = this.settings.shake ?? 1;
     this.cut = new CutscenePlayer(this.cutHost());
     this.events = await fetch(new URL('./data/events.json', import.meta.url)).then(r => r.json()).catch(() => ({ events: {}, barks: {}, texts: {}, speakers: {} }));
     this.manifest = await loadManifest();
@@ -226,6 +229,7 @@ class Game {
   placeCompanion() {
     const C = this.companion, b = C.brain, s = this.story.step, id = this.area.id;
     C.root.visible = false; C.anim = null;
+    if (this.placeCompanion6(id)) return;
     if (this.placeCompanion5(id)) return;
     if (this.placeCompanion4(id)) return;
     if (id === 'shotengai' && s === 'pro_meet') { C.root.visible = true; b.setMode('wait'); b.pos = { x: -2.5, z: -33.8 }; b.yaw = 0.6; return; }
@@ -297,6 +301,7 @@ class Game {
       return;
     }
     if (this.spawnCh3(id, add)) return;
+    if (this.spawnCh6(id, add)) return;
     if (this.spawnCh5(id, add)) return;
     if (this.spawnCh4(id, add)) return;
     if (id === 'shelter') {
@@ -352,7 +357,7 @@ class Game {
     if (ch === '3') return 'ch3_lobby';
     if (ch === '4') return rt === 'reveal' ? 'ch4_r_fight' : rt === 'secret' ? 'ch4_s_trial' : 'ch4_office';
     if (ch === '5') return rt === 'secret' ? 'ch5_s_enter' : 'ch5_r_enter';
-    if (ch === '6') return 'ch6a_rampage';
+    if (ch === '6') { const at = Q.get('at'); if (rt === 'secret') return { rounds: 'ch6_s_rounds', boss: 'ch6_s_boss', control: 'ch6_s_control' }[at] || 'ch6_s_enter'; return { ruins: 'ch6a_threads', avenue: 'ch6a_avenue', boss: 'ch6a_boss' }[at] || 'ch6a_rampage'; }
     return null;
   }
   /** はじめから。step（試験用）でその段から始められる */
@@ -385,6 +390,8 @@ class Game {
     if (atLeast(step, 'ch3_down')) { this.flags.child_saved = this.flags.truth_seen = true; this.enemyRes.mamori = this.enemyRes.mamori || 'rescue'; }
     if (atLeast(step, 'ch3_boss2')) { const st = Q.get('stance') === 'secret' ? 'secret' : 'reveal'; this.route = Object.assign(normalizeRoute(this.route), {}); if (!this.route.stance) { this.route.stance = st; if (st === 'reveal') this.route.forms.whiteUnlocked = true; this.route.branchLog.push({ seq: this.route.branchLog.length + 1, kind: 'stance', decision: st, chapter: 'ch03', step: 'ch3_tenki', via: 'debug', locksRoute: false }); } this.player.fighter.yokiOn = st === 'reveal'; this.player.fighter.yoki = 60; }
     if (atLeast(step, 'ch3_end')) this.flags.tunnel_clear = true;
+    const j6 = this.jump6(step);
+    if (j6) { this.loadArea(j6.area, j6.spawn); this.afterLoad4(); this.afterLoad5(true); this.afterLoad6(true); this.refreshObjective(); return; }
     const j5 = this.jump5(step);
     if (j5) { this.loadArea(j5.area, j5.spawn); this.afterLoad4(); this.afterLoad5(true); this.refreshObjective(); return; }
     const j4 = this.jump4(step);
@@ -473,6 +480,7 @@ class Game {
       if (e.kind === 'utsushimi' && e.brain.state === 'voice' && this.flags.memo) extra.push({ id: 'memo', kind: 'memo', ref: e, x: P.pos.x, z: P.pos.z, r: 99, label: '本物の声を聞かせる（子ども用の携帯の留守電）' });
     }
     if (this.extraSpots5) extra.push(...this.extraSpots5());
+    if (this.extraSpots6) extra.push(...this.extraSpots6());
     if (extra.length) spots = spots.concat(extra);
     for (const s of spots) {
       const d = Math.hypot(P.pos.x - s.x, P.pos.z - s.z);
@@ -598,7 +606,7 @@ class Game {
     this.mode = 'play'; this.loadedFrom = k; this.exitArmed = false;
     this.refreshObjective();
     if (this.tenkiOpen) this.later(0.3, () => this.openTenkiChoice());
-    this.afterLoad4(); this.afterLoad5(false);
+    this.afterLoad4(); this.afterLoad5(false); this.afterLoad6(false);
     if (!this.isTest()) this.input.requestLock();
     this.ui.toast('ロードしました', '', 1);
     return true;
@@ -615,9 +623,19 @@ class Game {
     if (k === 'volume') this.sfx.setVolume(v);
     if (k === 'rain') this.sfx.setRain(v);
     if (k === 'touchUI' && this.touchUI) { this.touchUI.show(v); document.getElementById('sh-ui').classList.toggle('touch', !!v); }
+    if (k === 'shake') { this.settings.shake = +v; this.cam.shakeMul = +v; }
     if (k === 'subSize') { const r = document.getElementById('sh-ui'); r.classList.remove('sub-s', 'sub-m', 'sub-l'); r.classList.add('sub-' + v); }
     if (!silent) this.store.writeSettings(this.settings);
   }
+  /** キーの割り当てを変える：action に code を。code を使っていた別の操作には、action の前のキーを渡す（入れ替え） */
+  rebindKey(action, code) {
+    const cur = Object.assign({}, this.settings.keys || {}), map = this.input.keymap, other = map[code], prev = this.input.codesOf(action);
+    cur[action] = [code];
+    if (other && other !== action) { const rest = this.input.codesOf(other).filter(c => c !== code); cur[other] = rest.length ? rest : prev.slice(0, 1); }
+    this.settings.keys = cur; this.input.setKeys(cur); this.store.writeSettings(this.settings);
+    this.metrics.rebinds = (this.metrics.rebinds || 0) + 1;
+  }
+  resetKeys() { this.settings.keys = {}; this.input.setKeys({}); this.store.writeSettings(this.settings); }
   applyQuality() {
     const S = this.settings, r = this.renderer;
     r.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5) * S.resScale);
@@ -666,7 +684,7 @@ class Game {
     this.companion.animate(pdt);
     this.animateChild(pdt);
     this.renderWhite(pdt);
-    this.renderGiant(pdt); this.renderBoss4(pdt); this.renderBoss5(pdt); this.renderTown5(pdt);
+    this.renderGiant(pdt); this.renderBoss4(pdt); this.renderBoss5(pdt); this.renderTown5(pdt); this.renderBoss6(pdt);
     if (this.companion.model.outline) this.companion.model.outline.visible = S.outline;
     if (P.model.outline) P.model.outline.visible = S.outline;
     for (const c of this.civilians) { c.animate(pdt); if (c.vanish) { c.vt = (c.vt || 0) + dt; const u = c.model.mats.body.userData.u; for (const m of [c.model.mats.body, c.model.mats.face, c.model.mats.outline]) if (m && m.userData.u) m.userData.u.uDissolve.value = Math.min(1, c.vt / 1.5); if (c.vt > 1.6) c.root.visible = false; void u; } }
@@ -887,7 +905,7 @@ class Game {
         stance(id, assist) { g.chooseStance(id, assist); return g.route.stance; },
         tryWhite() { g.toggleWhite(); return g.player.fighter.form; },
         closeMenu() { g.ui.closePuzzle(); g.ui.closeMenu(); g.mode = 'play'; },
-        ch4: g.debug4(), ch5: g.debug5(),
+        ch4: g.debug4(), ch5: g.debug5(), ch6: g.debug6(),
         roster(group, name) { const ns = (window.__shPZ || {}).pickRoster ? null : null; void ns; return g.puz.roster; },
       },
       save: k => g.saveSlot(k), load: k => g.loadSlot(k), store: g.store, wp: g.WP,
@@ -908,7 +926,7 @@ class Game {
     return false;
   }
 }
-Object.assign(Game.prototype, combatMethods, storyMethods, ch3Methods, ch4Methods, ch5Methods);
+Object.assign(Game.prototype, combatMethods, storyMethods, ch3Methods, ch4Methods, ch5Methods, ch6Methods);
 
 function raySphereHit(o, d, c, r) { const ox = o.x - c.x, oy = o.y - c.y, oz = o.z - c.z; const B = ox * d.x + oy * d.y + oz * d.z, Cc = ox * ox + oy * oy + oz * oz - r * r; const disc = B * B - Cc; return disc >= 0 && -B - Math.sqrt(disc) > 0; }
 function mergeIn(a, b) {

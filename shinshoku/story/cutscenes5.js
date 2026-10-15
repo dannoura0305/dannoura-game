@@ -220,7 +220,7 @@ export const CUTSCENES5 = {
     events: [{ t: 0.0, do: 'giantPose6', arg: { x: 0, z: 6, yaw: 0 } }, { t: 0.1, do: 'giantRampK', arg: 0.35 }, { t: 3.8, do: 'giantRampK', arg: 0 }, { t: 7.2, do: 'poleCatch' }, { t: 13.8, do: 'setStep', arg: 'ch6a_protect' }, { t: 13.8, do: 'protectStart' }],
     sounds: [{ t: 0.4, s: 'heartbeat' }, { t: 7.4, s: 'giant_step' }],
   },
-  // 守りきった（第6章A の冒頭の終わり）
+  // 守りきった（第6章A の前半の終わり）→ 人の大きさに戻って崩れた商店街へ（フェーズ7：第6章A の続き）
   cs06_end: {
     id: 'cs06_end', area: 'town', letterbox: true, skippable: true,
     cam: [{ t: 0, pos: [-4, 12, 40], look: [0, 4, 12], fov: 54 }, { t: 5.0, pos: [-3, 11, 38], look: [0, 4, 12], fov: 52 }, { t: 5.4, pos: [1.4, 1.4, 27.2], look: [3.4, 1.0, 24.0], fov: 38, cut: true }, { t: 12.4, pos: [1.5, 1.4, 27.0], look: [3.4, 1.0, 24.0], fov: 36 }],
@@ -231,7 +231,7 @@ export const CUTSCENES5 = {
       { t: 8.0, who: 'dan', text: 'ええ。……光の柱は、まだ。でもその前に、アンタは病院よ', dur: 3.0, expr: 'calm' },
       { t: 11.2, who: 'companion', text: '……はい', dur: 1.4, expr: 'smile' },
     ],
-    events: [{ t: 12.6, do: 'setStep', arg: 'ch6a_end' }, { t: 12.8, do: 'endCard6' }],
+    events: [{ t: 12.6, do: 'setStep', arg: 'ch6a_end' }, { t: 12.8, do: 'toRuins6' }],
     sounds: [{ t: 0.2, s: 'notify' }],
   },
 };

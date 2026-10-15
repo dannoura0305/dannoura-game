@@ -337,3 +337,14 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0a16; col
 #sh-ui .sh-rampage::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(255,60,180,.05) 0 2px, rgba(0,0,0,0) 2px 5px); animation: sh-ramp2 0.4s steps(3) infinite; }
 @keyframes sh-ramp { from { transform: scale(1.0); filter: blur(0px); } to { transform: scale(1.03); filter: blur(1.2px); } }
 @keyframes sh-ramp2 { from { transform: translateY(0); } to { transform: translateY(5px); } }
+
+/* フェーズ7：保守扉の時刻・点検表・止める手順・キーの割り当て */
+.sh-times button code { font-size: 20px; color: #bfffd0; letter-spacing: .06em; }
+.sh-rounds td, .sh-rounds th { font-size: 13px; }
+.sh-rounds b.z-good { color: #8af0a8; } .sh-rounds b.z-warn { color: #ffd870; } .sh-rounds b.z-danger { color: #ff6a7a; }
+.sh-rounds i { color: var(--dim); font-style: normal; }
+.sh-rounds button, .sh-keys button { pointer-events: auto; padding: 4px 10px; border: 1px solid rgba(200, 170, 255, .35); background: rgba(40, 30, 60, .8); color: var(--ink); cursor: pointer; }
+.sh-keys kbd { display: inline-block; min-width: 1.6em; padding: 1px 6px; border: 1px solid rgba(220, 200, 255, .5); border-radius: 4px; font-size: 12px; text-align: center; }
+.sh-keys button.on { background: rgba(140, 90, 220, .8); }
+.sh-loto button { text-align: left; }
+@media (max-height: 460px) { .sh-rounds td, .sh-rounds th { font-size: 11px; padding: 2px 4px; } .sh-times button code { font-size: 16px; } }

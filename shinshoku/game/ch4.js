@@ -394,7 +394,7 @@ export const ch4Methods = {
     for (let i = 0; i < 40; i++) { const a = Math.random() * Math.PI * 2, r = Math.random() * 6; this.fx.puff(G.pos.x + Math.sin(a) * r, Math.random() * 8, G.pos.z + Math.cos(a) * r, 0, 1, 0, i % 2 ? 0x9a5aff : 0xf0e0ff, 1.8, 0.4); }
     this.metrics.giantDone = true;
   },
-  giantBoss() { return this.enemies.find(e => e.kind === 'sakibure') || null; },
+  giantBoss() { return this.enemies.find(e => e.kind === 'sakibure' || e.kind === 'nurikae') || null; },
   stepGiant(I) {
     const G = this.giant, F = G.fighter, C = COMBAT.giant;
     if (I.lock) this.lock = this.lock ? null : this.giantBoss();
@@ -505,7 +505,7 @@ export const ch4Methods = {
           if (ev.name === 'sweep') this.fx.decal('arc', b.pos.x, b.pos.z, { r: A.range, arc: A.arc, yaw: b.yaw, dur: A.windup, hold: 0.3, color: col });
           if (ev.line) { const dx = ev.line.to.x - ev.line.from.x, dz = ev.line.to.z - ev.line.from.z, L = Math.max(10, Math.hypot(dx, dz) + (ev.name === 'beam' ? 20 : 4)); this.fx.decal('line', ev.line.from.x, ev.line.from.z, { r: L, w: ev.line.w, yaw: Math.atan2(dx, dz), dur: A.windup, hold: A.active, color: col }); }
           if (ev.circles) for (const c of ev.circles) this.fx.decal('circle', c.x, c.z, { r: c.r, dur: A.windup, hold: 0.3, color: col });
-          if (ev.name === 'feed') { this.bark('giant_feed', 2.4); this.ui.toast('「喰らう」── ポンプ室を狙っている', 'weak', 1.6); }
+          if (ev.name === 'feed') { if (e.kind === 'nurikae') { this.bark('giant_repaint', 2.4); this.ui.toast('「塗り替え」── 人の残る棟を狙っている', 'weak', 1.6); } else { this.bark('giant_feed', 2.4); this.ui.toast('「喰らう」── ポンプ室を狙っている', 'weak', 1.6); } }
           this.bossTele = { name: ev.name, parryable: A.parryable, t: this.playSec };
           break;
         }
@@ -514,7 +514,7 @@ export const ch4Methods = {
         case 'roared': this.ui.toast(ev.interrupted ? '止めた ── 胸の輪が開く' : 'ひるんだ', 'parry', 1.2); this.metrics.bossRoared = (this.metrics.bossRoared || 0) + 1; if (!this.flags.core_bark) { this.flags.core_bark = true; this.later(0.3, () => this.bark('giant_core', 2.2)); } break;
         case 'broken': this.ui.toast('崩し ── 胸の輪が開く', 'parry', 1.2); this.sfx.play('broken'); break;
         case 'phase': this.ui.toast(ev.n === 1 ? '先触れが速くなる' : '先触れが暴れる', 'weak', 1.4); this.sfx.play('boss_roar'); this.cam.shake(0.2, 0.4); break;
-        case 'die': this.resolve(e, 'kill'); this.ui.boss(null); this.lock = null; this.metrics.bossTime4 = Math.round(this.playSec - (this.metrics.bossStart4 || this.playSec)); this.later(0.8, () => this.playCutscene('cs04_giant_end')); break;
+        case 'die': if (e.kind === 'nurikae') { this.resolve(e, 'kill'); this.onNurikaeDown6(); break; } this.resolve(e, 'kill'); this.ui.boss(null); this.lock = null; this.metrics.bossTime4 = Math.round(this.playSec - (this.metrics.bossStart4 || this.playSec)); this.later(0.8, () => this.playCutscene('cs04_giant_end')); break;
       }
     }
     void G;
@@ -529,10 +529,12 @@ export const ch4Methods = {
     if (ev.name === 'feed') {
       const L = ev.line, block = blocksLine(gp, C.r, L);
       inRange = block; near = block;
+      if (e.kind === 'nurikae') { e.feedTgt = null; this.fx.streak(new THREE.Vector3(L.from.x, 9, L.from.z), new THREE.Vector3(block ? gp.x : L.to.x, 2, block ? gp.z : L.to.z), 0xd060ff, 0.6, 2.6); this.feedHit6(L, block); if (!block) return; }
       const S = YARD.shelter, sh = this.shelter4 || (this.shelter4 = { hp: S.hp, hits: 0, blocks: 0 });
-      this.fx.streak(new THREE.Vector3(L.from.x, 9, L.from.z), new THREE.Vector3(block ? gp.x : L.to.x, 2, block ? gp.z : L.to.z), 0xff6ad8, 0.6, 2.6);
+      if (e.kind !== 'nurikae') { this.fx.streak(new THREE.Vector3(L.from.x, 9, L.from.z), new THREE.Vector3(block ? gp.x : L.to.x, 2, block ? gp.z : L.to.z), 0xff6ad8, 0.6, 2.6);
       if (block) { sh.blocks++; this.metrics.shelterBlocks = sh.blocks; this.bark('giant_block', 2); this.ui.toast('体で受けた ── ポンプ室は無事', 'parry', 1.4); }
       else { sh.hp = Math.max(10, sh.hp - 30); sh.hits++; this.metrics.shelterHits = sh.hits; this.sfx.play('crash', S); for (let i = 0; i < 20; i++) this.fx.puff(S.x + (Math.random() - 0.5) * 6, 2 + Math.random() * 3, S.z + (Math.random() - 0.5) * 5, 0, 2, 0, 0x6a6470, 1.2, 0.5); this.companion.brain.trust = Math.max(0, this.companion.brain.trust - 2); this.ui.toast('ポンプ室が揺れた！', 'weak', 1.2); }
+      }
       if (!block) return;
     }
     const r = F.incoming({ src: e, dmg: A.dmg, parryable: A.parryable, inRange, nearMiss: near });
@@ -661,7 +663,7 @@ export const ch4Methods = {
   /** 読み込み・飛び先のあとの区画ごとの整え（巨大戦・罠・守り・非常停止・隔壁） */
   afterLoad4() {
     const s = this.story.step, A = this.area.id;
-    if (this.giantMode && A !== 'yard' && A !== 'town') this.exitGiant();
+    if (this.giantMode && A !== 'yard' && A !== 'town' && A !== 'avenue') this.exitGiant();
     if (A === 'yard' && ['ch4_r_giant'].includes(s)) { this.enterGiant(false); const e = this.giantBoss(); if (e) { e.root.visible = true; e.brain.wake([]); this.lock = e; } this.giant.pos = { x: YARD.giantStart[0], z: YARD.giantStart[1] }; this.giant.yaw = Math.PI; }
     if (A === 'yard' && s === 'ch4_r_end') { /* 終わり：人の姿のまま歩ける */ }
     if (A === 'lab') {
