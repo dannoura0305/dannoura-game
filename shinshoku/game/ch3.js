@@ -256,7 +256,7 @@ export const ch3Methods = {
       ['模倣する影', `倒した ${this.count('mimic', 'kill')}`], ['最大の連撃', this.metrics.comboMax || 0], ['白髪形態の時間', fmtSec(this.metrics.whiteSec || 0)], ['カルテの照合', this.flags.records_done ? '済' : '—'], ['看護記録（任意）', this.flags.memo ? '読んだ' : '—'], ['（相棒）の信頼', this.companion.brain.trust]];
     this.metrics.endCard3 = true;
     this.mode = 'puzzle'; this.input.exitLock();
-    this.ui.endCard(stats, () => { this.ui.closePuzzle(); this.mode = 'play'; this.saveSlot('auto', true); }, '第3章（病院・地下通路）　試作はここまで', '続けて歩き回れます。第4章（境界の夜・分岐）は次の段階で作ります。');
+    this.ui.endCard(stats, () => { this.ui.closePuzzle(); this.mode = 'play'; this.saveSlot('auto', true); if (this.story.step === 'ch3_end') this.later(0.4, () => this.startCh4()); }, '第3章（病院・地下通路）　ここまで', '続けて第4章（境界の夜：観測分室と地下の研究区画）へ進めます。');
   },
 
   // ── 白髪形態 ──
@@ -265,7 +265,7 @@ export const ch3Methods = {
     const d = d2(C.brain.pos, this.player.pos); if (d > 16) return false;
     return lineOfSight(C.brain.pos, this.player.pos, this.boxes);
   },
-  whiteCheck() { return whiteAllowed(this.route, { chapterNo: chapterNo(this.story.step), companionWatching: this.companionWatching() }); },
+  whiteCheck() { if (this.ch4Secret && this.ch4Secret()) return { ok: false, why: 'route' }; return whiteAllowed(this.route, { chapterNo: chapterNo(this.story.step), companionWatching: this.companionWatching() }); },
   /** 化けを解く／戻す（長押しの入力から） */
   toggleWhite() {
     const F = this.F();
@@ -373,7 +373,7 @@ export const ch3Methods = {
     }
   },
   /** 分身に向かう敵：sense の相手を分身にする */
-  senseTarget(e) { if (this.decoy && e.confusedT > 0) return { x: this.decoy.x, z: this.decoy.z, decoy: true }; return null; },
+  senseTarget(e) { if (this.decoy && e.confusedT > 0) return { x: this.decoy.x, z: this.decoy.z, decoy: true }; if (e.targetCompanion && this.companion.root.visible && this.companion.brain.mode !== 'grabbed') return { x: this.companion.brain.pos.x, z: this.companion.brain.pos.z, companion: true }; return null; },
   /** 分身が攻撃された：自動で見切りの窓（幻・見切り） */
   decoyStruck(e) {
     if (!this.decoy) return;

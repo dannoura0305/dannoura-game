@@ -168,4 +168,53 @@ export const ENEMIES = {
     poise: 400, poiseMul: 0.3,
     resolve: { rescue: 'protect_child_then_rest', neutralize: false, escape: false, kill: true },
   },
+  // ── 第4章【仮】────────────────────────────────────────────
+  // 応答体（研究施設の異形・境界応答の産物）：試験槽から出てきた被験者の「応答」だけが残った姿。白い体に配線と槽のガラスが食い込み、
+  // 頭の上に応答灯（輪）が浮かぶ。習慣の輪：試験端末の呼び出しの音が鳴ると端末まで歩いて「応答」し、槽へ戻る（手順のくり返し）。
+  // 共鳴：1 体が傷つくと近くの個体が同時に目を覚まし、予兆をそろえて攻めてくる（＝見切り→連鎖一閃の機会）。
+  // 解決：救う＝試験端末で「試験終了の合図」を流す（手順書の手掛かり）／無力化＝鎮静の蒸気（弁）・鎮静の電源（配電盤）／倒す。
+  outou: {
+    name: '応答体', hp: 72, provisional: true,
+    speed: { walk: 1.0, angry: 3.2 },
+    cause: { body: 0.8, memory: 0.5, env: 0.9 },
+    senses: { fov: 120, sight: 12, sightDark: 6, hear: { gun: 25, run: 9, walk: 3 }, memory: 9 },
+    assess: [0.4, 0.9],
+    attacks: {
+      strike: { windup: 0.6, active: 0.14, recover: 0.6, dmg: 13, range: 2.3, arc: 110, parryable: true },
+      cry: { windup: 1.1, active: 0.2, recover: 0.9, dmg: 16, range: 3.4, arc: 360, parryable: false, aoe: { r: 3.0, ahead: 0 } },
+      pull: { windup: 0.95, active: 0.16, recover: 1.0, dmg: 18, range: 2.0, arc: 70, parryable: false, grab: true },
+    },
+    pattern: ['strike', 'strike', 'cry', 'strike', 'pull'],
+    cooldown: 0.95,
+    stagger: { parried: 1.0, hit: 0.25, broken: 1.8 },
+    poise: 40,
+    resonance: { r: 7.5 },
+    sedate: { dur: 999 },
+    resolve: { rescue: 'end_of_test_signal', neutralize: 'sedation_steam_or_power', escape: true, kill: true },
+    weak: { part: 'ring', mul: 2.5 },
+  },
+  // 境界の先触れ（第4章 reveal のボス・仮名）：「境界を喰らうもの」の先に来るもの（本体＝ラスボス級は後の章）。研究施設の地下から
+  // 町の縁を喰らいながら伸びてくる黒い膜と触腕の塊。胸に桃色の「縁の輪」（核）。巨大猫又で戦う（人の大きさでは戦わない）。
+  // 守る：「喰らう」（feed）は避難した（相棒）の詰所を狙う。間に立つ（体で受ける）か、咆哮で止めると守れる。
+  sakibure: {
+    name: '境界の先触れ', hp: 2400, provisional: true, giant: true,
+    speed: { walk: 1.6, angry: 2.2 },
+    senses: { fov: 360, sight: 200, sightDark: 200, hear: { gun: 200, run: 200, walk: 200 }, memory: 999 },
+    attacks: {
+      sweep: { windup: 1.1, active: 0.3, recover: 1.0, dmg: 14, range: 32, arc: 150, parryable: true },
+      beam: { windup: 1.5, active: 0.6, recover: 1.1, dmg: 20, range: 80, arc: 14, parryable: false, line: { w: 7 } },
+      rain: { windup: 1.7, active: 0.3, recover: 1.2, dmg: 12, range: 70, parryable: false, aoe: { r: 7, n: 5 } },
+      feed: { windup: 2.4, active: 0.8, recover: 1.4, dmg: 18, range: 110, parryable: true, line: { w: 9 }, target: 'shelter' },
+    },
+    phases: [
+      { at: 1.0, pattern: ['sweep', 'beam', 'sweep', 'rain'], cooldown: 1.6 },
+      { at: 0.6, pattern: ['sweep', 'feed', 'beam', 'rain', 'sweep'], cooldown: 1.25 },
+      { at: 0.3, pattern: ['rain', 'sweep', 'feed', 'beam', 'sweep', 'beam'], cooldown: 0.95 },
+    ],
+    pattern: ['sweep'], cooldown: 1.6,
+    stagger: { parried: 2.4, hit: 0.0, broken: 4.0, roar: 2.4 },
+    downState: 'down',
+    poise: 260, poiseMul: 0.6, coreMul: 2.0,
+    resolve: { rescue: false, neutralize: false, escape: false, kill: true },
+  },
 };

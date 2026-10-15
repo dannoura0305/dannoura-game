@@ -3,7 +3,7 @@
 export const SAVE_KEY = 'shinshoku_save_v1';
 export const SETTINGS_KEY = 'shinshoku_settings';
 export const SAVE_VER = 1;
-export const GAME_VER = '0.3.0';
+export const GAME_VER = '0.4.0';
 export const SLOT_NAMES = ['auto', 'slot1', 'slot2', 'slot3', 'branch', 'tenki'];   // tenki：第3章の転機（構えの選択）の前（上書きできる）
 
 // 版の移行（1 つずつ上げる）。知らない項目は残す。

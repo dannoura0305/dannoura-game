@@ -148,6 +148,26 @@ export class Sfx {
       case 'drip_stand': this.tone(2400, 0.05, 'triangle', 0.02); this.tone(2900, 0.05, 'triangle', 0.015, 1, 0.12); break;
       case 'memo': this.tone(880, 0.1, 'square', 0.03); this.voice(300, 1.6, 0.05, [[700, 1200], [450, 2200], [600, 1100]], 0.15, 4); break;
       case 'heartbeat': this.tone(52, 0.18, 'sine', 0.25, 0.7); this.tone(48, 0.16, 'sine', 0.18, 0.7, 0.28); break;
+      // 第4章：研究区画・応答体・火縄銃・巨大猫又・先触れ
+      case 'outou_voice': this.voice(180 + Math.random() * 30, 1.2, 0.045, [[420, 900], [380, 2300], [460, 950]], 0, 2); this.tone(2200, 0.6, 'sine', 0.008, 1.1, 0.3); break;
+      case 'glass_break': this.noise(0.5, 0.35, 'highpass', 3200, 1, 0, 0.3); for (let i = 0; i < 6; i++) this.tone(2400 + Math.random() * 2400, 0.12, 'triangle', 0.04, 0.8, i * 0.05); break;
+      case 'rumble': this.noise(2.4, 0.3, 'lowpass', 160, 1, 0, 0.5); this.tone(36, 2.2, 'sine', 0.3, 0.8); break;
+      case 'alarm': for (let i = 0; i < 4; i++) this.tone(i % 2 ? 640 : 820, 0.32, 'square', 0.035, 1, i * 0.36); break;
+      case 'end_signal': for (let i = 0; i < 3; i++) this.tone(1320, 0.12, 'sine', 0.06, 1, i * 0.22); break;
+      case 'chime': this.tone(988, 0.3, 'sine', 0.05); this.tone(740, 0.4, 'sine', 0.04, 1, 0.25); break;
+      case 'breaker': this.noise(0.06, 0.4, 'highpass', 2000); this.tone(120, 0.12, 'square', 0.06, 0.7); break;
+      case 'steam': this.noise(2.6, 0.22, 'highpass', 1800, 0.7, 0, 0.6); break;
+      case 'stock': this.noise(0.12, 0.45, 'lowpass', 700); this.tone(150, 0.2, 'triangle', 0.14, 0.6); break;
+      case 'yodan_charge': this.tone(330, 0.5, 'sine', 0.05, 2.4); this.noise(0.5, 0.05, 'bandpass', 1200, 0.8, 0, 0.5); break;
+      case 'yodan': this.noise(0.3, 0.6, 'lowpass', 2400, 0.7, 0, 0.3); this.tone(60, 0.4, 'sine', 0.4, 0.5); this.tone(880, 0.6, 'sine', 0.08, 0.4); this.noise(1.2, 0.08, 'lowpass', 500, 1, 0.1, 0.4); break;
+      case 'mreload': for (let i = 0; i < 3; i++) this.noise(0.05, 0.15, 'bandpass', 1500, 2, i * 0.4); this.tone(700, 0.05, 'square', 0.04, 1, 1.4); break;
+      case 'giant_step': this.noise(0.3, 0.35, 'lowpass', 140, 1, 0, 0.4); this.tone(42, 0.3, 'sine', 0.25, 0.7); break;
+      case 'giant_claw': this.noise(0.25, 0.3, 'bandpass', 900, 0.9, 0, 0.4); this.tone(110, 0.25, 'sawtooth', 0.06, 0.6); break;
+      case 'giant_roar': this.voice(95, 1.6, 0.12, [[500, 900], [700, 1100], [400, 800]], 0, 7); this.noise(1.4, 0.2, 'lowpass', 600, 0.8, 0, 0.5); this.tone(48, 1.5, 'sawtooth', 0.08, 0.7); break;
+      case 'boss_roar': this.voice(70, 2.2, 0.1, [[300, 700], [250, 600], [350, 900]], 0, 3); this.noise(2.0, 0.18, 'bandpass', 220, 0.8, 0, 0.5); break;
+      case 'beam': this.tone(220, 0.5, 'sawtooth', 0.05, 1.2); this.noise(0.5, 0.1, 'bandpass', 1400, 0.9, 0, 0.6); break;
+      case 'land': this.noise(0.6, 0.5, 'lowpass', 220, 1, 0, 0.4); this.tone(38, 0.6, 'sine', 0.35, 0.6); break;
+      case 'prop_break': this.noise(0.5, 0.3, 'lowpass', 900, 1, 0, 0.3); for (let i = 0; i < 4; i++) this.tone(300 + Math.random() * 500, 0.12, 'triangle', 0.04, 0.6, 0.05 + i * 0.07); break;
     }
     this.out = null;
   }
@@ -193,6 +213,9 @@ export class Sfx {
       gym: { hum: 0.5, rain: 0.25, wind: 0.2, vent: 1, buzz: 1, shop: 0 },
       hospital: { hum: 0.9, rain: 0.15, wind: 0.1, vent: 1.2, buzz: 1.4, shop: 0 },
       tunnel: { hum: 0.6, rain: 0, wind: 0.5, vent: 1.6, buzz: 0.3, shop: 0 },
+      office: { hum: 0.8, rain: 0.3, wind: 0.2, vent: 0.8, buzz: 1.0, shop: 0 },
+      lab: { hum: 1.4, rain: 0, wind: 0.2, vent: 1.8, buzz: 0.6, shop: 0 },
+      yard: { hum: 0.3, rain: 0, wind: 1.6, vent: 0.2, buzz: 0, shop: 0 },
     }[kind] || {};
     const t = this.ctx.currentTime;
     for (const [k, b] of Object.entries(this.beds)) b.g.gain.setTargetAtTime((P[k] || 0) * b.vol * (k === 'rain' && this.rainOff ? 0 : 1), t, 0.8);
@@ -208,7 +231,7 @@ export class Sfx {
     if (T.siren <= 0) { T.siren = 35 + Math.random() * 45; if (outdoor) this.siren(); }
     if (T.drip <= 0) { T.drip = 0.6 + Math.random() * 2.2; if (this.amb === 'alley' || this.amb === 'tunnel') { this.out = this._spatial({ x: this.L.x + (Math.random() - 0.5) * 10, z: this.L.z + (Math.random() - 0.5) * 10 }); if (this.out) this.tone(1800 + Math.random() * 1400, 0.09, 'sine', 0.025, 0.6); this.out = null; } }
     if (T.muzak <= 0) { T.muzak = 14 + Math.random() * 20; if (this.amb === 'plaza') { const notes = [523, 659, 587, 494]; notes.forEach((f, i) => { this.out = this._spatial({ x: 0, z: -14 }, 2, 60); if (this.out) this.tone(f * (1 + (Math.random() - 0.5) * 0.02), 0.5, 'triangle', 0.012, 0.98, i * 0.55); this.out = null; }); } }
-    if (T.creak <= 0) { T.creak = 10 + Math.random() * 16; if (this.amb === 'gym' || this.amb === 'hospital') this.noise(0.6, 0.02, 'bandpass', 180, 6, 0, 1.4); if (this.amb === 'hospital' && Math.random() < 0.5) { this.tone(1046, 0.25, 'sine', 0.012); this.tone(1046, 0.25, 'sine', 0.012, 1, 0.5); } }
+    if (T.creak <= 0) { T.creak = 10 + Math.random() * 16; if (this.amb === 'gym' || this.amb === 'hospital' || this.amb === 'lab' || this.amb === 'office') this.noise(0.6, 0.02, 'bandpass', 180, 6, 0, 1.4); if (this.amb === 'hospital' && Math.random() < 0.5) { this.tone(1046, 0.25, 'sine', 0.012); this.tone(1046, 0.25, 'sine', 0.012, 1, 0.5); } }
   }
   /** 遠いサイレン（ゆっくり上下・遠くでこもる） */
   siren() {

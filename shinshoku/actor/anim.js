@@ -94,9 +94,10 @@ export function dannouraPose(ctx) {
   const { st, f, w } = ctx;
   let b = base(ctx);
   let rate = ctx.speed > 0.1 ? 0.55 : 0.2;
-  const pipe = w === 'pipe';
+  const pipe = w === 'pipe' || w === 'matchlock';
   if (w === 'katana' && !['attack', 'issen', 'parry', 'charge'].includes(st.name)) b = Object.assign(b, KATANA_READY);
-  if (pipe && !['attack', 'parry', 'charge'].includes(st.name)) b = Object.assign(b, PIPE_READY);
+  if (w === 'pipe' && !['attack', 'parry', 'charge'].includes(st.name)) b = Object.assign(b, PIPE_READY);
+  if (w === 'matchlock' && !['attack', 'parry', 'charge'].includes(st.name)) b = Object.assign(b, MATCH_READY);
   if (st.name === 'attack') {
     const a = st.atk; const P = pipe ? (st.step >= 8 ? PIPE_HEAVY : PIPE_ATK[st.step] || PIPE_ATK[0]) : st.step >= 8 ? HEAVY : ATK[st.step] || ATK[0];
     let t;
@@ -104,7 +105,7 @@ export function dannouraPose(ctx) {
     let pose;
     if (f < a.startup) pose = mix(b, P.a, easeOut(f / Math.max(1, a.startup)));
     else if (t <= 1) pose = mix(P.a, P.b, easeOut(t));
-    else pose = mix(P.b, Object.assign({}, b, pipe ? PIPE_READY : KATANA_READY), ease((t - 1 - 0.35) / 0.65));   // 戻り：残心から構えへ
+    else pose = mix(P.b, Object.assign({}, b, w === 'matchlock' ? MATCH_READY : pipe ? PIPE_READY : KATANA_READY), ease((t - 1 - 0.35) / 0.65));   // 戻り：残心から構えへ
     return { pose: st.iai ? mix(IAI_STANCE, ISSEN_END, ease(Math.min(1, t))) : pose, rate: f < a.startup ? 0.5 : 0.9 };
   }
   if (st.name === 'charge') return { pose: pipe ? mix(PIPE_READY, PIPE_HEAVY.a, ease(f / 18)) : mix(HEAVY.a, IAI_STANCE, ease((f - 10) / 26)), rate: 0.25 };
@@ -227,6 +228,10 @@ const CLAW = [
 ];
 const BLADE = { a: { spine: [0.1, 1.1, 0], chest: [0, 0.4, 0], rightUpperArm: [-1.4, -0.6, -1.5], rightLowerArm: [-0.6, 0, 0], rightHand: [0, 0, 0.9], leftUpperArm: [-0.4, 0, 0.6], hipsY: -0.14, leftUpperLeg: [-0.5, 0, 0.2], leftLowerLeg: [0.6, 0, 0], rightUpperLeg: [0.4, 0, -0.1] },
   b: { spine: [0.3, -1.2, 0], chest: [0, -0.5, 0], rightUpperArm: [-1.5, 0.5, 1.3], rightLowerArm: [-0.05, 0, 0], rightHand: [0, 0, -0.8], leftUpperArm: [0.2, 0, 0.9], hipsY: -0.22, leftUpperLeg: [-0.9, 0, 0.2], leftLowerLeg: [1.0, 0, 0], rightUpperLeg: [0.6, 0, -0.1], rightLowerLeg: [0.3, 0, 0] } };
+// 火縄銃：紫は両手で斜めに持つ（銃床で打つ）。白は肩づけで構える（妖弾）・込め直し（槊杖を上下）
+const MATCH_READY = { rightUpperArm: [-0.55, 0.2, -0.3], rightLowerArm: [-1.35, 0, 0], rightHand: [0.1, 0, 0.5], leftUpperArm: [-0.85, -0.35, 0.25], leftLowerArm: [-1.25, 0, 0], leftHand: [0, 0, -0.3] };
+const MATCH_AIM = { spine: [0.05, 0.25, 0], chest: [0, 0.15, 0], head: [0.1, -0.35, 0.05], rightUpperArm: [-1.42, 0.25, 0.05], rightLowerArm: [-0.12, 0, 0], rightHand: [1.14, 0, 0], leftUpperArm: [-1.45, -0.42, 0.05], leftLowerArm: [-0.1, 0, 0], leftHand: [0.6, 0, -0.3], leftUpperLeg: [-0.25, 0, 0.1], rightUpperLeg: [0.15, 0, -0.1], hipsY: -0.04 };
+const MATCH_RELOAD = { spine: [0.15, 0, 0], head: [0.35, 0, 0], rightUpperArm: [-0.3, 0, -0.25], rightLowerArm: [-1.5, 0, 0], rightHand: [-0.6, 0, 0], leftUpperArm: [-1.1, 0, 0.35], leftLowerArm: [-1.0, 0, 0] };
 const W_READY = { spine: [0.12, 0, 0], leftUpperArm: [-0.5, 0, 0.45], leftLowerArm: [-1.1, 0, 0], rightUpperArm: [-0.5, 0, -0.45], rightLowerArm: [-1.1, 0, 0], leftHand: [0.3, 0, 0], rightHand: [0.3, 0, 0], hipsY: -0.04 };
 const DASH = { spine: [0.7, 0, 0], chest: [0.2, 0, 0], head: [-0.5, 0, 0], leftUpperArm: [0.9, 0, 0.3], rightUpperArm: [0.9, 0, -0.3], leftLowerArm: [-0.3, 0, 0], rightLowerArm: [-0.3, 0, 0], leftUpperLeg: [-0.9, 0, 0], leftLowerLeg: [0.9, 0, 0], rightUpperLeg: [0.5, 0, 0], rightLowerLeg: [0.6, 0, 0], hipsY: -0.22 };
 const CAST_ILL = { spine: [0, 0, 0], leftUpperArm: [-1.3, 0.4, -0.5], leftLowerArm: [-1.5, 0, 0], rightUpperArm: [-1.3, -0.4, 0.5], rightLowerArm: [-1.5, 0, 0], head: [0.15, 0, 0], hipsY: -0.04 };
@@ -249,6 +254,10 @@ export function whitePose(ctx) {
   if (st.name === 'charge') return { pose: mix(W_READY, BLADE.a, ease(f / 12)), rate: 0.4 };
   if (st.name === 'dodge') return { pose: mix(b, DASH, Math.min(1, Math.sin(Math.min(1, f / 14) * Math.PI) * 1.8)), rate: 0.8 };
   if (st.name === 'cast') return { pose: st.what === 'foxfire' ? CAST_FIRE : CAST_ILL, rate: 0.5 };
+  if (st.name === 'mcharge') return { pose: Object.assign({}, b, MATCH_AIM), rate: 0.4 };
+  if (st.name === 'mrecoil') return { pose: Object.assign({}, b, MATCH_AIM, { spine: [-0.22, 0.25, 0], head: [-0.15, -0.35, 0.05], rightUpperArm: [-1.75, 0.25, 0.05], leftUpperArm: [-1.8, -0.42, 0.05] }), rate: 0.8 };
+  if (st.name === 'mreload') return { pose: Object.assign({}, b, MATCH_RELOAD, { leftUpperArm: [-1.1 - Math.max(0, Math.sin(f * 0.25)) * 0.6, 0, 0.35] }), rate: 0.35 };
+  if (ctx.w === 'matchlock' && !['attack', 'dodge', 'issen', 'hurt', 'dead'].includes(st.name)) return { pose: Object.assign({}, b, MATCH_READY), rate: ctx.speed > 0.1 ? 0.55 : 0.2 };
   if (st.name === 'issen') { const k = ctx.issen || {}; const strike = k.strike || 8; return { pose: f < strike ? mix(W_READY, CLAW[4].a, ease(f / strike)) : CLAW[4].b, rate: 0.8 }; }
   if (st.name === 'hurt') return { pose: ctx.hurtDir === 'back' ? HURT_B : HURT_F, rate: 0.5 };
   if (st.name === 'dead') return { pose: DEAD, rate: 0.12 };

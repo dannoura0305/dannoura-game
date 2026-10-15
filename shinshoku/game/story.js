@@ -43,6 +43,7 @@ export const storyMethods = {
     }
     if (A === 'shelter' && s === 'ch2_gym' && this.area.dyn.gymDoor.open && P.z < 1.5) this.playCutscene('cs02_boss');
     this.storyTick3();
+    this.storyTick4();
   },
   /** 場所に入った時 */
   onAreaEnterStory(id) {
@@ -52,6 +53,7 @@ export const storyMethods = {
     if (id === 'plaza' && atLeast(s, 'ch1_alley') && !this.flags.plaza_broadcast) { this.setStep('ch1_plaza'); this.playCutscene('cs01_broadcast'); }
     if (id === 'shelter' && s === 'ch2_shelter') { this.setStep('ch2_roster'); this.later(0.3, () => this.playEvent('ev_shelter_arrive')); }
     this.onAreaEnter3(id);
+    this.onAreaEnter4(id);
   },
   onEnemyResolvedStory(e, how) {
     if (e.id === 'kiro_t' && this.story.step === 'pro_fight') { this.later(0.4, () => this.bark(how === 'kill' ? 'pro_after_kill' : 'pro_after', 4)); this.setStep('pro_home'); }
@@ -75,6 +77,7 @@ export const storyMethods = {
   // ── 調べる・使う ──
   useSpot(s) {
     const T = this.events.texts || {}, st = this.story.step;
+    if (this.useSpot4(s)) return;
     if (this.useSpot3(s)) return;
     switch (s.kind) {
       case 'door': {
@@ -299,6 +302,7 @@ export const storyMethods = {
   },
   cineEvent(name, arg) {
     const skip = this.cut.skipping;
+    if (this.cineEvent4(name, arg)) return;
     switch (name) {
       // 第3章
       case 'expr': if (arg.who === 'player') this.player.setExpr(arg.name, 5); else if (arg.who === 'companion' && this.companion.model.setExpr) this.companion.model.setExpr(arg.name); break;
@@ -342,7 +346,7 @@ export const storyMethods = {
     if (this.flickerTimer) { this.flickerTimer = null; if (!this.player.fighter.white && this.player.model !== this.purpleModel) this.player.setModel(this.purpleModel); }
     for (const m of this.cineMoves) { const p = m.tgt.kind === 'companion' ? this.companion.brain.pos : m.tgt.kind === 'player' ? this.player.pos : m.tgt.e.brain.pos; p.x = m.to[0]; p.z = m.to[1]; if (m.hideAtEnd && m.tgt.kind === 'companion') this.companion.root.visible = false; }
     this.cineMoves.length = 0;
-    this.cam.yaw = this.player.yaw + Math.PI; this.cam.pitch = 0.16; this.cam.curDist = 2.2;
+    this.cam.yaw = (this.giantMode ? this.giant.yaw : this.player.yaw) + Math.PI; this.cam.pitch = this.giantMode ? 0.22 : 0.16; this.cam.curDist = this.giantMode ? 18 : 2.2;
     if (!this.isTest() && !this.touch) this.input.requestLock();
     this.autosaveReq = true;
     const d = this.cutDone; this.cutDone = null; if (d) d(cs);

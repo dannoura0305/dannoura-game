@@ -28,7 +28,8 @@ export function choose(state, route, ctx = {}) {
   if (s.routeLock) { s.branchLog.push({ seq: s.branchLog.length + 1, id: ctx.id || 'branch', kind: 'route_lock', pick: route, ignored: true, at: ctx.at || null }); return s; }
   s.route = route; s.routeLock = { chapter: ctx.chapter || 'ch04', step: ctx.step || 'branch', at: ctx.at || null, rulesVer: RULES_VER };
   if (route === 'reveal') { s.reveal.companionKnows = true; s.reveal.firstWhiteAt = s.reveal.firstWhiteAt || { chapter: ctx.chapter || 'ch04', step: ctx.step || 'branch' }; }
-  s.branchLog.push({ seq: s.branchLog.length + 1, id: ctx.id || 'branch', kind: 'route_lock', pick: route, decision: route, chapter: ctx.chapter || 'ch04', tries: ctx.tries || 1, assisted: !!ctx.assisted, via: ctx.via || 'choice', rulesVer: RULES_VER, at: ctx.at || null });
+  s.branchLog.push({ seq: s.branchLog.length + 1, id: ctx.id || 'branch', kind: 'route_lock', pick: route, decision: route, chapter: ctx.chapter || 'ch04', step: ctx.step || 'branch', tries: ctx.tries || 1, assisted: !!ctx.assisted, via: ctx.via || 'choice',
+    trial: ctx.trial || null, rulesVer: RULES_VER, saveVer: ctx.saveVer ?? null, gameVer: ctx.gameVer ?? null, seed: ctx.seed ?? null, snapshot: ctx.snapshot || null, at: ctx.at || null });
   return s;
 }
 
@@ -73,6 +74,20 @@ export function logYokai(state, e) {
   if (s.yokaiLog.length > 200) s.yokaiLog.splice(0, s.yokaiLog.length - 200);
   return s;
 }
+
+/**
+ * 分岐前のセーブ（slot 'branch'）を読み込んだ時：読み込む前の記録（そのあとに決めたルート）を消さずに残す（ROUTE_BRANCH_SPEC §4「再選択しても古い記録は消さず追記」）。
+ * prev：読み込む前の状態、loaded：読み込んだ状態。読み込んだ側に無い route_lock を superseded:true で足し、seq を振り直す。ルートは読み込んだ側（未確定）のまま。
+ */
+export function carryBranchLog(prev, loaded) {
+  const s = normalizeRoute(loaded), key = e => JSON.stringify([e.kind, e.decision, e.chapter, e.at, e.via]);
+  const have = new Set(s.branchLog.map(key));
+  for (const e of (prev && prev.branchLog) || []) if (e.kind === 'route_lock' && !e.ignored && !have.has(key(e))) { s.branchLog.push(Object.assign({}, e, { superseded: true })); have.add(key(e)); }
+  s.branchLog.forEach((e, i) => { e.seq = i + 1; });
+  return s;
+}
+/** 今のルート（最後の、取り消されていない route_lock） */
+export function lastLock(state) { const L = ((state && state.branchLog) || []).filter(e => e.kind === 'route_lock' && !e.ignored && !e.superseded); return L.length ? L[L.length - 1] : null; }
 
 /** 記録の比較用（at を除く） */
 export function logKey(state) { return JSON.stringify(state.branchLog.map(e => { const o = Object.assign({}, e); delete o.at; return o; })); }

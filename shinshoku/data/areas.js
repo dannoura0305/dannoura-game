@@ -5,9 +5,13 @@ export const AREA_GRAPH = {
   shotengai: { name: 'あけぼの通り商店街（仮）', exits: ['alley'] },
   alley: { name: '裏路地', exits: ['shotengai', 'plaza'] },
   plaza: { name: '商業施設の前（仮：ことぶきショッピングセンター）', exits: ['alley', 'shelter'] },
-  shelter: { name: '避難所（市民体育館）', exits: ['plaza', 'hospital', 'tunnel'] },
+  shelter: { name: '避難所（市民体育館）', exits: ['plaza', 'hospital', 'tunnel', 'office'] },
   hospital: { name: '病院（仮：あけぼの台中央病院）', exits: ['shelter', 'tunnel'] },
   tunnel: { name: '地下通路（病院の地下 → 避難所）', exits: ['hospital', 'shelter'] },
+  // 第4章【仮】：観測分室（境界事象と同じ組織の別の分室・地上）→ 地下研究区画 → 搬入ヤード（reveal の巨大戦だけ）
+  office: { name: '観測分室（仮：第二分室）', exits: ['shelter', 'lab'] },
+  lab: { name: '地下研究区画（仮：第二研究区画）', exits: ['office', 'yard'] },
+  yard: { name: '研究施設の搬入ヤード（巨大猫又の戦場）', exits: ['lab'], routeOnly: 'reveal' },
 };
 
 export const AREA_DATA = {

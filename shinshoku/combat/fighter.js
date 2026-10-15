@@ -35,6 +35,7 @@ export class Fighter {
     // 白髪形態（COMBAT_SYSTEM_SPEC §4）：form と妖力（yoki）。紫の姿では妖力は溜まるだけ（yokiOn のとき）
     this.form = 'purple'; this.yoki = opt.yoki != null ? opt.yoki : 0; this.yokiOn = !!opt.yokiOn; this.prevWeapon = null;
     this.combo = { n: 0, last: -9999, max: 0 };                    // 連撃の数（画面の「Combo」）
+    this.mLoaded = true;                                           // 火縄銃（白の妖弾）：込めてあるか（1 発ごとに込め直し）
   }
   setDifficulty(diff, opt = {}) {
     this.diff = diff; this.touch = !!opt.touch; this.assist = !!opt.assist;
@@ -42,10 +43,12 @@ export class Fighter {
   }
   /** 装備などで戦闘の数値を差し替える（combat/equip.js の combatWithEquip の結果） */
   setCombat(C) { this.C = C; this.setDifficulty(this.diff, { touch: this.touch, assist: this.assist }); }
-  get melee() { return this.weapon === 'pipe' || this.weapon === 'katana' || this.weapon === 'claw'; }
+  get melee() { return this.weapon === 'pipe' || this.weapon === 'katana' || this.weapon === 'claw' || this.weapon === 'matchlock'; }
+  /** 弾ける（パリィの）武器か：火縄銃は弾けない（重い銃床） */
+  get canParry() { return this.melee && this.weapon !== 'matchlock'; }
   get white() { return this.form === 'white'; }
   /** 近接の武器の値（刀・鉄パイプ・妖爪） */
-  _mw() { if (this.weapon === 'claw') return { light: this.C.white.claw, heavy: this.C.white.blade }; return this.C[this.weapon === 'pipe' ? 'pipe' : 'katana']; }
+  _mw() { if (this.weapon === 'claw') return { light: this.C.white.claw, heavy: this.C.white.blade }; if (this.weapon === 'matchlock') return this.C.matchlock; return this.C[this.weapon === 'pipe' ? 'pipe' : 'katana']; }
   // ── 白髪形態・妖力・連撃 ──
   /** 姿を変える（'white'|'purple'）。妖力が足りない・状態が悪いと false。許可（ルート・相棒の目）はゲーム側で見る */
   setForm(form, force) {
@@ -94,6 +97,8 @@ export class Fighter {
     if (n === 'swap') return 0.8;
     if (n === 'reload') return this.C.move.reload / this.C.move.run;
     if (n === 'hipfire') return 0.5;
+    if (n === 'mcharge') return 0.35;
+    if (n === 'mreload') return 0.5;
     return 0;
   }
 
@@ -129,7 +134,7 @@ export class Fighter {
     // パリィの「後 2f」：被弾の保留
     if (this.pending) {
       const late = this.frame - this.pending.at;
-      if (inp.parry && this.melee && judgeParry(-late, this.w) === 'parry') {
+      if (inp.parry && this.canParry && judgeParry(-late, this.w) === 'parry') {
         this._parrySuccess(evs, this.pending.atk.src); this.pending = null;
         this.frame++; return evs;
       }
@@ -194,6 +199,23 @@ export class Fighter {
         break;
       }
       case 'hurt': if (s.f >= C.hurt.stun) this._go('free'); break;
+      // 火縄銃（白：妖弾）：溜め → 撃つ → 反動 → 込め直し（遅い）。溜め・込め直しは回避で取り消せる（込め直しはやり直し）
+      case 'mcharge': {
+        const Y = C.matchlock.yodan;
+        if (this._buffered('dodge')) { this._consume('dodge'); this._ev(evs, { t: 'mcancel' }); return this._startDodge(evs, inp), this.frame++, evs; }
+        if (s.f >= Y.charge) {
+          if (!this.spendYoki(Y.cost)) { this._ev(evs, { t: 'noYoki', need: Y.cost }); this._go('free'); break; }
+          this.mLoaded = false; this._ev(evs, { t: 'yodan', dmg: Y.dmg, range: Y.range, pierce: Y.pierce, width: Y.width, poise: Y.poise });
+          this._go('mrecoil');
+        }
+        break;
+      }
+      case 'mrecoil': if (s.f >= C.matchlock.yodan.recoil) { this._go('mreload'); this._ev(evs, { t: 'mreloadStart' }); } break;
+      case 'mreload': {
+        if (this._buffered('dodge')) { this._consume('dodge'); this._ev(evs, { t: 'mreloadCancel' }); return this._startDodge(evs, inp), this.frame++, evs; }
+        if (s.f >= C.matchlock.yodan.reload) { this.mLoaded = true; this._ev(evs, { t: 'mreloadDone' }); this._go('free'); }
+        break;
+      }
     }
     this.frame++;
     return evs;
@@ -203,7 +225,7 @@ export class Fighter {
     const C = this.C;
     if (this._buffered('dodge')) { this._consume('dodge'); return this._startDodge(evs, inp); }
     if (this.white) return this._freeWhite(evs, inp);
-    if (inp.parry && this.melee) return this._startParry(evs);
+    if (inp.parry && this.canParry) return this._startParry(evs);
     if (inp.swap) { const to = this.swapTarget(); if (to) return this._startSwap(evs, to); }
     if (inp.wantWeapon && inp.wantWeapon !== this.weapon && this.owned.includes(inp.wantWeapon)) return this._startSwap(evs, inp.wantWeapon);
     if (inp.aim && this.melee && !justEntered && this.owned.includes('handgun')) return this._startSwap(evs, 'handgun');
@@ -222,10 +244,22 @@ export class Fighter {
   _freeWhite(evs, inp) {
     const W = this.C.white;
     if (inp.parry) return this._illusion(evs);
+    // 持ち替え：妖爪 ⇄ 火縄銃（妖弾）。火縄銃を持っている時だけ
+    if ((inp.swap || inp.wantWeapon === 'matchlock' || (inp.wantWeapon && this.weapon === 'matchlock')) && this.owned.includes('matchlock')) { const to = this.weapon === 'matchlock' ? 'claw' : 'matchlock'; if (inp.swap || inp.wantWeapon === to || (to === 'claw' && inp.wantWeapon)) return this._startSwap(evs, to, null, 12); }
+    if (this.weapon === 'matchlock') {
+      if (this._buffered('attack') || inp.heavy) { this._consume('attack'); return this._startYodan(evs); }
+      return;
+    }
     if (this.aimHeld && this._buffered('attack')) { this._consume('attack'); return this._foxfire(evs); }
     if (inp.heavy && !this.aimHeld) { this._go('charge'); this._ev(evs, { t: 'chargeStart' }); return; }
     if (this._buffered('attack') && !this.aimHeld) { this._consume('attack'); return this._startAttack(evs, 0); }
     void W;
+  }
+  /** 妖弾：込めてあれば溜めへ、込めていなければ込め直し */
+  _startYodan(evs) {
+    if (!this.mLoaded) { this._go('mreload'); this._ev(evs, { t: 'mreloadStart' }); return; }
+    if (this.yoki < this.C.matchlock.yodan.cost) { this._ev(evs, { t: 'noYoki', need: this.C.matchlock.yodan.cost }); return; }
+    this._go('mcharge'); this._ev(evs, { t: 'mchargeStart' });
   }
   _illusion(evs) {
     const I = this.C.white.illusion;
@@ -255,7 +289,7 @@ export class Fighter {
       }
       if (this._buffered('dodge') && !s.iai) { this._consume('dodge'); return this._startDodge(evs, inp); }
       if (inp.parry && this.white) return this._illusion(evs);
-      if (inp.parry && this.melee && !s.iai) return this._startParry(evs);
+      if (inp.parry && this.canParry && !s.iai) return this._startParry(evs);
       if (!this.white && (inp.swap || (inp.aim && !s.aimWas)) && !s.iai && this.owned.includes('handgun')) {
         const fr = swapFrames(this.weapon, 'handgun', { recoveryFrame: rf }, C);
         return this._startSwap(evs, 'handgun', inp.aim ? 'fire' : null, fr);
@@ -267,7 +301,7 @@ export class Fighter {
   _charge(evs, inp) {
     const s = this.st, C = this.C;
     if (this._buffered('dodge')) { this._consume('dodge'); return this._startDodge(evs, inp); }
-    const pipe = this.weapon === 'pipe';
+    const pipe = this.weapon !== 'katana';                                 // 居合は刀だけ（鉄パイプ・火縄銃は強攻撃）
     if (this.white) {                                                       // 妖刀：溜めて離すと刃の伸びる刀（妖力 5）
       if (!inp.heavy) {
         const B = C.white.blade;
@@ -359,7 +393,7 @@ export class Fighter {
       if (atk.parryable) { this._damage(evs, atk, this.C.parry.guardMul, true); return 'guard'; }
       this._damage(evs, atk, 1); return 'hit';
     }
-    if (atk.parryable && this.melee && this.w.parryAfter > 0 && ['free', 'attack', 'charge'].includes(s.name)) {
+    if (atk.parryable && this.canParry && this.w.parryAfter > 0 && ['free', 'attack', 'charge'].includes(s.name)) {
       this.pending = { atk, at: this.frame };
       return 'pending';
     }

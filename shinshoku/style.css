@@ -310,3 +310,23 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0a16; col
 .tc-form.vis { display: block; }
 .tc-form.white { background: rgba(240, 230, 255, .6); color: #2a1a40; }
 @media (max-height: 460px) { .sh-combo { left: 18px; top: 50%; } .sh-cn { font-size: 42px; } .sh-combo span { font-size: 18px; } .sh-yoki { position: absolute; left: 228px; top: 22px; margin: 0; } .sh-yoki span { display: none; } .sh-ykbar { width: 84px; } .sh-form { left: 228px; top: 4px; font-size: 11px; } }
+/* 第4章：入退室の記録・配電盤・巨大猫又の技の案内（concept_04 の配置を参考に独自に） */
+.sh-logs { display: grid; gap: 4px; margin: 8px 0; }
+.sh-logrow { display: grid; grid-template-columns: 70px 64px 1fr; gap: 10px; align-items: center; text-align: left; padding: 6px 10px; border: 1px solid rgba(180, 140, 255, .25); background: rgba(30, 22, 48, .7); color: var(--ink); font-size: 14px; cursor: pointer; }
+.sh-logrow code { font-size: 15px; color: #c8f0ff; } .sh-logrow b { color: #ffd8a0; }
+.sh-logrow:hover { border-color: var(--p); } .sh-logrow.hit { border-color: #60ff90; background: rgba(40, 90, 60, .55); }
+.sh-brk { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 10px 0; }
+.sh-brk button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border: 1px solid rgba(200, 180, 120, .4); background: rgba(40, 36, 30, .8); color: var(--ink); cursor: pointer; }
+.sh-brk button i { width: 18px; height: 34px; border-radius: 3px; background: linear-gradient(#3a3a40 50%, #c03030 50%); box-shadow: inset 0 0 0 2px #1a1a1e; }
+.sh-brk button.on i { background: linear-gradient(#40d070 50%, #3a3a40 50%); }
+.sh-brk button b { font-size: 12px; } .sh-brk button small { font-size: 11px; color: var(--dim); }
+.sh-gskills { position: absolute; right: 24px; bottom: 24px; display: none; grid-template-columns: repeat(2, 128px); gap: 8px; }
+#sh-ui.giant .sh-gskills { display: grid; }
+#sh-ui.giant .sh-weapon, #sh-ui.giant .sh-slots4, #sh-ui.giant .sh-hints, #sh-ui.giant .sh-form { display: none; }
+.sh-gskills div { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 22px; background: radial-gradient(circle at 20% 50%, rgba(170, 100, 255, .55), rgba(30, 14, 52, .78)); border: 1px solid rgba(210, 170, 255, .55); box-shadow: 0 0 12px rgba(160, 90, 255, .45); color: #f4eefc; font-family: var(--jps); font-size: 15px; }
+.sh-gskills div.act { box-shadow: 0 0 22px rgba(220, 160, 255, .95); border-color: #fff; }
+.sh-gskills div.dim { opacity: .45; }
+.sh-gskills kbd { font: 11px sans-serif; padding: 1px 5px; border-radius: 4px; background: rgba(255, 255, 255, .16); }
+#sh-ui.giant .sh-hpname::after { content: '（巨大猫又）'; font-size: 12px; color: #e8d8ff; }
+#sh-ui.giant .sh-yoki span { font-size: 0; } #sh-ui.giant .sh-yoki span::after { content: '巨大化'; font-size: 11px; }
+@media (max-height: 460px) { .sh-gskills { right: auto; left: 50%; transform: translateX(-50%); bottom: 6px; grid-template-columns: repeat(4, auto); } .sh-gskills div { font-size: 12px; padding: 4px 8px; } .sh-brk { grid-template-columns: repeat(5, 1fr); } .sh-logrow { font-size: 12px; padding: 3px 8px; } }

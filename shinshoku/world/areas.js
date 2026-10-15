@@ -296,6 +296,7 @@ export function buildShelter() {
   dyn.gymDoor = { leafs, box: doorBox, open: false };
   spots.push({ id: 'gym_door', kind: 'gymdoor', x: 0, z: 11.0, r: 1.3, label: '体育館の戸' });
   spots.push({ id: 'exit_plaza', kind: 'exit', to: 'plaza', spawn: 'from_shelter', x: 0, z: 19.9, r: 1.3, label: '外へ（商業施設の前）', auto: true });
+  spots.push({ id: 'exit_office', kind: 'exit', to: 'office', spawn: 'entrance', x: 2.6, z: 18.9, r: 1.0, label: '観測分室へ（迎えの車・第4章）', needFlag: 'ch4_started', lockedText: 'office_wait' });
   // 第3章【仮】：ロビー西の連絡通路（病院へ）・ロビー東の階段（地下通路から上がってくる）
   B.box('wall', -7.0, 1.2, 18.4, 0.06, 2.4, 1.3, 0x5a6a7a, { edges: false });
   const hc = atlas.add(signDraw('連絡通路 →　病院', { bg: '#2a5a7a', fg: '#ffffff', size: 30 }));
@@ -335,6 +336,7 @@ function gymTex() {
 }
 
 /** 区画を作る（作った物は使い回す） */
-export const BUILDERS = { shotengai: () => buildLevel(null), alley: buildAlley, plaza: buildPlaza, shelter: buildShelter, hospital: (...a) => BUILDERS3.hospital(...a), tunnel: (...a) => BUILDERS3.tunnel(...a) };
+export const BUILDERS = { shotengai: () => buildLevel(null), alley: buildAlley, plaza: buildPlaza, shelter: buildShelter, hospital: (...a) => BUILDERS3.hospital(...a), tunnel: (...a) => BUILDERS3.tunnel(...a),
+  office: (...a) => BUILDERS3.office(...a), lab: (...a) => BUILDERS3.lab(...a), yard: (...a) => BUILDERS3.yard(...a) };
 /** 第3章の区画（world/areas3.js が登録する：循環 import を避ける） */
 export const BUILDERS3 = {};

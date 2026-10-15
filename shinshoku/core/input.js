@@ -5,7 +5,7 @@ export const ACTIONS = ['attack', 'heavy', 'aim', 'dodge', 'parry', 'swap', 'rel
 const KEYMAP = {
   KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right', ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
   ShiftLeft: 'run', ShiftRight: 'run', Space: 'dodge', KeyF: 'parry', KeyQ: 'heavy', KeyR: 'reload', KeyE: 'interact',
-  KeyT: 'lock', KeyH: 'heal', Escape: 'pause', KeyP: 'pause', Tab: 'pause', Digit1: 'weapon1', Digit2: 'weapon2', Digit3: 'weapon3', KeyX: 'swap', KeyZ: 'lockPrev', KeyC: 'lockNext', KeyL: 'light', Enter: 'interact', KeyV: 'transform',
+  KeyT: 'lock', KeyH: 'heal', Escape: 'pause', KeyP: 'pause', Tab: 'pause', Digit1: 'weapon1', Digit2: 'weapon2', Digit3: 'weapon3', Digit4: 'weapon4', KeyX: 'swap', KeyZ: 'lockPrev', KeyC: 'lockNext', KeyL: 'light', Enter: 'interact', KeyV: 'transform',
 };
 
 export class Input {
@@ -80,7 +80,8 @@ export class Input {
     o.transform = h.has('transform');                                       // 化けを解く：押している間（長押しはゲーム側で数える）   // 左クリック長押し＝強攻撃・居合（押した瞬間は「溜め」に入り、すぐ離すと 1 段目）
     o.skipHeld = h.has('interact') || h.has('pause') || h.has('dodge');
     for (const a of this.pressQ) {
-      if (a === 'weapon1') o.wantWeapon = 'katana'; else if (a === 'weapon2') o.wantWeapon = 'handgun'; else if (a === 'weapon3') o.wantWeapon = 'pipe';
+      if (a === 'weapon1') o.wantWeapon = 'katana'; else if (a === 'weapon2') o.wantWeapon = 'handgun'; else if (a === 'weapon3') o.wantWeapon = 'pipe'; else if (a === 'weapon4') o.wantWeapon = 'matchlock';
+      else if (a === 'cycleMelee') o.cycleMelee = true;
       else if (ACTIONS.includes(a) && a !== 'run' && a !== 'aim' && a !== 'heavy' && a !== 'transform') o[a] = true;
       if (a === 'heavy') o.heavy = true;
     }
@@ -114,6 +115,7 @@ export class Input {
       o.moveX += T.move.x; o.moveY += T.move.y;
       if (Math.hypot(T.move.x, T.move.y) > 0.92) o.run = true;
       for (const a of T.pressQ || []) o[a] = true; T.pressQ = [];
+      if (o.cycleMelee) { o.swap = false; }
       if (T.held.has('aim')) o.aim = true;
       if (T.held.has('heavy')) o.heavy = true;
       if (T.held.has('transform')) o.transform = true;
@@ -124,7 +126,7 @@ export class Input {
     // 入力列（自動テスト）
     while (this.script.length && this.script[0].at <= f) {
       const s = this.script.shift();
-      for (const a of s.press || []) { if (a === 'weapon1') o.wantWeapon = 'katana'; else if (a === 'weapon2') o.wantWeapon = 'handgun'; else if (a === 'weapon3') o.wantWeapon = 'pipe'; else o[a] = true; }
+      for (const a of s.press || []) { if (a === 'weapon1') o.wantWeapon = 'katana'; else if (a === 'weapon2') o.wantWeapon = 'handgun'; else if (a === 'weapon3') o.wantWeapon = 'pipe'; else if (a === 'weapon4') o.wantWeapon = 'matchlock'; else o[a] = true; }
       for (const [a, n] of Object.entries(s.hold || {})) this.scriptHeld.set(a, f + n);
       if (s.move) this.scriptMove = { x: s.move[0], y: s.move[1], until: f + (s.move[2] || 1) };
     }
