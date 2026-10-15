@@ -104,6 +104,26 @@ export function skinOutlineMaterial(thick = 0.009, color = 0x1a1022) {
   return m;
 }
 
+/**
+ * 炎の毛（妖気の揺らぎ）：スキン網の「glow」の組に使う加算の材質。頂点色＝炎の色（先ほど黒＝見えない）。
+ * 属性 oth＝揺れの重み（根もと 0・先 1）。uTime で法線の向きに揺らぐ。uK：明るさ（暴走で上げる）、uTint：色を寄せる。
+ */
+export function flameMaterial(opt = {}) {
+  const m = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: true });
+  const u = { uTime: { value: 0 }, uK: { value: opt.k ?? 1 }, uAmp: { value: opt.amp ?? 0.02 }, uTint: { value: new THREE.Color(opt.tint ?? 0xffffff) }, uTintK: { value: 0 } };
+  m.userData.u = u;
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = 'uniform float uTime; uniform float uAmp; attribute float oth; varying float vOth; varying float vFres;\n' + sh.vertexShader
+      .replace('#include <begin_vertex>', 'vec3 transformed = position + normalize(normal) * uAmp * oth * (0.55 + 0.45 * sin(uTime * 7.0 + position.y * 31.0 + position.x * 17.0 + position.z * 13.0));\n transformed.y += uAmp * oth * 1.4 * (0.5 + 0.5 * sin(uTime * 5.3 + position.z * 23.0));\n vOth = oth;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\n#ifdef USE_SKINNING\n vFres = abs(dot(normalize(transformedNormal), normalize(-mvPosition.xyz)));\n#else\n vFres = 1.0;\n#endif');
+    sh.fragmentShader = 'uniform float uK; uniform vec3 uTint; uniform float uTintK; uniform float uTime; varying float vOth; varying float vFres;\n' + sh.fragmentShader
+      .replace('#include <opaque_fragment>', ' outgoingLight = mix(outgoingLight, uTint * dot(outgoingLight, vec3(0.4)), uTintK) * uK * (0.82 + 0.18 * sin(uTime * 11.0 + vOth * 9.0)) * smoothstep(0.05, 0.75, vFres);\n#include <opaque_fragment>');
+  };
+  m.customProgramCacheKey = () => 'shflame';
+  return m;
+}
+
 /** 文字の看板などのキャンバス */
 export function canvasTex(w, h, draw) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;

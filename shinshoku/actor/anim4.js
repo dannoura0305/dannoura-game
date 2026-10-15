@@ -1,4 +1,4 @@
-// 第4章の手続きアニメ：応答体（人型の姿勢）・巨大猫又（四つ足：骨を直接回す）・境界の先触れ（触腕の塊：骨を直接回す）。
+// 第4章の手続きアニメ：応答体（人型の姿勢）・境界の先触れ（触腕の塊：骨を直接回す）。巨大猫又は anim5.js。
 import { locomotion, idle, ease, mix } from './anim.js';
 import { Sway } from './actors.js';
 const S = Math.sin, C = Math.cos;
@@ -22,44 +22,7 @@ export function outouPose(ctx) {
   return { pose: Object.assign(sp > 0.05 ? locomotion(ctx.phase, sp, { k: sp > 2 ? 0.95 : 0.5, legLen: 0.95 }) : idle(t, 0.5), stoop, sp > 2 ? { spine: [0.45, 0, 0], leftUpperArm: [0.6, 0, 0.2], rightUpperArm: [0.6, 0, -0.2] } : {}), rate: 0.3 };
 }
 
-/**
- * 巨大猫又の姿勢（骨を直接）。g：{ model, phase, speed, st:{name,f}, time, turn }。四つ足の歩き（対角の脚が組）・尾のばね・耳・咆哮であごが開く
- */
-export class GiantAnimator {
-  constructor(model) { this.m = model; this.sway = new Sway(model.sway || []); this.t = 0; }
-  update(dt, g) {
-    const B = this.m.G, t = (this.t += dt), sp = g.speed || 0, st = g.st || { name: 'free', f: 0 };
-    const walk = Math.min(1, sp / 4), ph = g.phase || 0;
-    const legs = [['FL', 'L', 0], ['FR', 'R', Math.PI], ['HL', 'L', Math.PI], ['HR', 'R', 0]];
-    for (const [k, s, off] of legs) {
-      const q = ph + off, front = k[0] === 'F', A = 0.5 * walk, sw = S(q) * A, lift = Math.max(0, C(q)) * A;
-      if (front) { B['gFLu' + s].rotation.x = -sw * 0.9; B['gFLl' + s].rotation.x = lift * 0.9; B['gFLp' + s].rotation.x = -lift * 0.6 + sw * 0.3; }
-      else { B['gHLu' + s].rotation.x = -sw * 0.8 - 0.05; B['gHLl' + s].rotation.x = lift * 0.6; B['gHLh' + s].rotation.x = -lift * 0.7; B['gHLp' + s].rotation.x = lift * 0.5; }
-    }
-    // 胴：歩くと上下・呼吸
-    const breathe = S(t * 1.6) * 0.012;
-    B.gBody.position.y = 0.62 + Math.abs(S(ph)) * 0.02 * walk + breathe;
-    B.gBody.rotation.z = S(ph) * 0.03 * walk; B.gChest.rotation.x = breathe * 2;
-    // 頭：見回し・攻めの向き
-    let head = [0.05 + S(t * 0.7) * 0.03, S(t * 0.4) * 0.12, 0], neck = [0, 0, 0], jaw = 0.02, chest = [breathe * 2, 0, 0], body = [0, 0, B.gBody.rotation.z];
-    const n = st.name, f = st.f || 0;
-    if (n === 'claw') {
-      const step = st.step || 0, a = st.atk || { startup: 10, active: 5 }, side = step % 2 ? 'R' : 'L', k = f < a.startup ? ease(f / a.startup) : Math.max(0, 1 - (f - a.startup) / (a.active + 8));
-      const strike = f >= a.startup && f < a.startup + a.active + 4;
-      B['gFLu' + side].rotation.x = strike ? 0.9 : -1.5 * k; B['gFLl' + side].rotation.x = strike ? -0.2 : 1.2 * k; B['gFLu' + side].rotation.z = (side === 'L' ? -1 : 1) * (strike ? 0.35 : -0.25 * k);
-      if (step === 2) { chest = [-0.4 * k, 0, 0]; B.gFLuL.rotation.x = B.gFLuR.rotation.x = strike ? 0.8 : -1.4 * k; }
-      head = [0.15, (side === 'L' ? 0.2 : -0.2) * k, 0]; jaw = 0.25 * k;
-    } else if (n === 'roar') { const k = Math.min(1, f / 8); head = [-0.45 * k, 0, 0]; neck = [-0.25 * k, 0, 0]; jaw = 0.75 * k; chest = [-0.15 * k, 0, 0]; }
-    else if (n === 'leap') { const L = 42, u = f / L; chest = [-0.5 * S(u * Math.PI), 0, 0]; for (const s of ['L', 'R']) { B['gFLu' + s].rotation.x = -1.0 * S(u * Math.PI); B['gHLu' + s].rotation.x = 0.9 * S(u * Math.PI); } }
-    else if (n === 'beam' || n === 'beamEnd') { const k = n === 'beam' ? Math.min(1, f / 18) : Math.max(0, 1 - f / 18); head = [0.1 * k, 0, 0]; jaw = 0.6 * k; chest = [0.15 * k, 0, 0]; body = [-0.08 * k, 0, 0]; }
-    else if (n === 'hurt') { head = [-0.3, 0.3, 0.2]; chest = [-0.2, 0, 0.1]; }
-    else if (n === 'dead') { chest = [0.3, 0, 0.6]; head = [0.4, 0, 0.5]; }
-    B.gHead.rotation.set(head[0], head[1], head[2]); B.gNeck.rotation.set(neck[0], neck[1], 0); B.gJaw.rotation.x = jaw; B.gChest.rotation.set(chest[0], chest[1], chest[2]); B.gBody.rotation.x = body[0];
-    // 耳
-    const tw = S(t * 3.1) > 0.97 ? 0.3 : 0; B.gEarL.rotation.z = -0.1 - tw; B.gEarR.rotation.z = 0.1 + tw * 0.5; B.gEarL.rotation.x = B.gEarR.rotation.x = n === 'roar' ? 0.5 : -walk * 0.2;
-    this.sway.step(dt, t, sp, g.turn || 0, n === 'leap' ? 1.2 : n === 'claw' ? 0.4 : 0);
-  }
-}
+// 巨大猫又の姿勢はフェーズ6 で作り直した（actor/anim5.js の GiantAnimator）。
 
 /** 境界の先触れ：触腕のばね・呼吸・攻めの姿勢（薙ぎ：腕を払う／光線：反って核を向ける／雨：翼を上げる／喰らう：前へかがむ）・ひるみ・崩れ */
 export class SakibureAnimator {

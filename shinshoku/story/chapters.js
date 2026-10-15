@@ -8,6 +8,10 @@ export const CHAPTERS = {
   ch2: { no: 2, title: '第2章　静養（避難所）' },
   ch3: { no: 3, title: '第3章　見た目' },
   ch4: { no: 4, title: '第4章　境界の夜' },
+  // フェーズ6：分岐の後の章（ルートで章題が違う）。第6章A は冒頭（暴走 → 我に返る → 守る）だけ
+  ch5a: { no: 5, title: '第5章A　侵食' },
+  ch6a: { no: 6, title: '第6章A　巨躯' },
+  ch5b: { no: 5, title: '第5章B　秘匿' },
 };
 
 export const STEPS = [
@@ -54,12 +58,36 @@ export const STEPS = [
   { id: 'ch4_s_sneak', ch: 'ch4', area: 'lab', obj: '（相棒）と制御室へ（東の通路）', sub: '弁を開けると蒸気で姿を隠せる' },
   { id: 'ch4_s_hold', ch: 'ch4', area: 'lab', obj: '（相棒）が応答炉を止めるまで守る', sub: '戸口から来る応答体を近づけない' },
   { id: 'ch4_s_end', ch: 'ch4', area: 'lab', obj: '（第4章はここまで）' },
+  // 第5章A「侵食」（reveal）【仮】旧研究棟：搬入ヤードの崩れた壁から入る。白い姿の自由操作。点呼（必須）・主任研究室の延期の記録（必須・崩れた床を白い姿で跳ぶ）→ 観測棟の継接
+  { id: 'ch5_r_enter', ch: 'ch5a', area: 'oldwing', obj: '旧研究棟の収容棟へ（崩れた西の壁から）', sub: '白い姿：化を長押し（いつでも戻れる）' },
+  { id: 'ch5_r_ward', ch: 'ch5a', area: 'oldwing', obj: '点呼卓で、在棟の被験者の点呼を終える', sub: '被験者名簿（資料室）か、鐘の時に戸口に立つ順を見る／東の廊下の奥に主任研究室' },
+  { id: 'ch5_r_chief', ch: 'ch5a', area: 'oldwing', obj: '主任研究室で「延期の記録」を探す（東の廊下の奥）', sub: '崩れた床：白い姿なら跳べる' },
+  { id: 'ch5_r_gate', ch: 'ch5a', area: 'oldwing', obj: '隔離扉から観測棟へ（廊下の北）' },
+  { id: 'ch5_r_boss', ch: 'ch5a', area: 'atrium', obj: '継接を止める', sub: '部分ごとに壊れる：右腕（叩く）・左腕（鞄）・脚。鞄を持ち主の机へ返すこともできる' },
+  { id: 'ch5_r_end', ch: 'ch5a', area: 'atrium', obj: '屋上へ（北東の階段）' },
+  // 第6章A「巨躯」の冒頭（reveal）【仮】広域計画で町が置き換えられ始める → 止めるために力を使い、巨大猫又の力があふれて抑えきれなくなる（暴走）→ （相棒）の声で我に返る → 町を守る
+  { id: 'ch6a_rampage', ch: 'ch6a', area: 'town', obj: '……抑える（化を長押し／弾の連打）', sub: '体が言うことを聞かない。町を壊したくない' },
+  { id: 'ch6a_protect', ch: 'ch6a', area: 'town', obj: '町の人と（相棒）を守る', sub: '電柱・看板は尾で払う（攻撃）／瓦礫は体で受ける（弾く）／バスは前足で運ぶ（調べる）' },
+  { id: 'ch6a_end', ch: 'ch6a', area: 'town', obj: '（第6章Aの冒頭はここまで）' },
+  // 第5章B「秘匿」（secret）【仮】同じ旧研究棟を別の順路で：地下研究区画の連絡通路から入る。応答炉を止めたので停電 → 配電盤（保全の知識）→ 点呼（必須）→ 封印の札を刀で切る・弁で水を抜く → 記録保管庫の延期の記録（控え・必須）→ 観測棟の継接（紫だけ）
+  { id: 'ch5_s_enter', ch: 'ch5b', area: 'oldwing', obj: '旧研究棟の収容棟へ（地下の連絡通路から）', sub: '（相棒）と一緒：白い姿にはならない' },
+  { id: 'ch5_s_power', ch: 'ch5b', area: 'oldwing', obj: '電気室の配電盤で、非常電源を回す（廊下の北東）', sub: '盤の横の保全記録：容量と焼却炉' },
+  { id: 'ch5_s_ward', ch: 'ch5b', area: 'oldwing', obj: '点呼卓で、在棟の被験者の点呼を終える', sub: '被験者名簿（資料室）か、鐘の時に戸口に立つ順を見る／記録保管庫（西）も' },
+  { id: 'ch5_s_archive', ch: 'ch5b', area: 'oldwing', obj: '記録保管庫で「延期の記録」の控えを探す（広間の西）', sub: '封印の札は刀で切れる・水は弁と排水ポンプで抜ける' },
+  { id: 'ch5_s_gate', ch: 'ch5b', area: 'oldwing', obj: '隔離扉から観測棟へ（廊下の北）' },
+  { id: 'ch5_s_boss', ch: 'ch5b', area: 'atrium', obj: '継接を止める（人の姿のまま）', sub: '部分ごとに壊れる：右腕（叩く）・左腕（鞄）・脚。鞄を持ち主の机へ返すこともできる' },
+  { id: 'ch5_s_end', ch: 'ch5b', area: 'atrium', obj: '（第5章Bはここまで）' },
 ];
+/** フェーズ6 の段の組（第5章A＋第6章A の冒頭／第5章B） */
+export const R5_STEPS = ['ch5_r_enter', 'ch5_r_ward', 'ch5_r_chief', 'ch5_r_gate', 'ch5_r_boss', 'ch5_r_end', 'ch6a_rampage', 'ch6a_protect', 'ch6a_end'];
+export const S5_STEPS = ['ch5_s_enter', 'ch5_s_power', 'ch5_s_ward', 'ch5_s_archive', 'ch5_s_gate', 'ch5_s_boss', 'ch5_s_end'];
 /** 分岐（第4章）の後の段の組 */
 export const R_STEPS = ['ch4_r_fight', 'ch4_r_rise', 'ch4_r_giant', 'ch4_r_end'];
 export const S_STEPS = ['ch4_s_trial', 'ch4_s_power', 'ch4_s_sneak', 'ch4_s_hold', 'ch4_s_end'];
 /** 段がどちらのルートの物か（'reveal'|'secret'|null） */
-export function stepRoute(id) { return R_STEPS.includes(id) ? 'reveal' : S_STEPS.includes(id) ? 'secret' : null; }
+export function stepRoute(id) { return R_STEPS.includes(id) || R5_STEPS.includes(id) ? 'reveal' : S_STEPS.includes(id) || S5_STEPS.includes(id) ? 'secret' : null; }
+/** 同じルートの中で比べる（分岐の後の段どうしは atLeast で比べない：並びが 1 本なので）。ルートが違えば false */
+export function atLeastIn(cur, id) { const L = [R_STEPS, S_STEPS, R5_STEPS, S5_STEPS]; const a = L.find(x => x.includes(cur)), b = L.find(x => x.includes(id)); if (!a || !b) return atLeast(cur, id); const ra = stepRoute(cur), rb = stepRoute(id); if (ra !== rb) return false; const seq = ra === 'reveal' ? R_STEPS.concat(R5_STEPS) : S_STEPS.concat(S5_STEPS); return seq.indexOf(cur) >= seq.indexOf(id); }
 // 目標の場所（ミニマップの印・距離）。[区画, x, z]。'enemy:<id>' は敵の位置
 export const TARGETS = {
   pro_meet: ['shotengai', -2.5, -33.8], pro_pipe: ['shotengai', -2.6, -30.2], pro_fight: 'enemy:kiro_t', pro_home: ['shotengai', 0, 8.6], pro_tv: ['shotengai', -3.5, 14.0],
@@ -70,6 +98,9 @@ export const TARGETS = {
   ch4_office: ['office', -7.4, 3.2], ch4_logs: ['office', -7.4, 3.2], ch4_vault: ['office', 9.6, 4.2], ch4_down: ['office', 7.6, -11.6],
   ch4_lab: ['lab', 0, -9], ch4_branch: null, ch4_r_fight: null, ch4_r_rise: ['lab', 0, -23], ch4_r_giant: 'enemy:sakibure', ch4_r_end: null,
   ch4_s_trial: null, ch4_s_power: ['lab', -13.8, -18.0], ch4_s_sneak: ['lab', 15.0, -18.2], ch4_s_hold: ['lab', 18.6, -18.2], ch4_s_end: null,
+  ch5_r_enter: ['oldwing', 0, 9.0], ch5_r_ward: ['oldwing', 0, -19.4], ch5_r_chief: ['oldwing', 12.0, -20.0], ch5_r_gate: ['oldwing', 0, -21.6], ch5_r_boss: 'enemy:tsugihagi', ch5_r_end: ['atrium', 9.0, -13.0],
+  ch6a_rampage: null, ch6a_protect: null, ch6a_end: null,
+  ch5_s_enter: ['oldwing', 0, 9.0], ch5_s_power: ['oldwing', 8.5, -19.0], ch5_s_ward: ['oldwing', 0, -19.4], ch5_s_archive: ['oldwing', -12.0, -19.4], ch5_s_gate: ['oldwing', 0, -21.6], ch5_s_boss: 'enemy:tsugihagi', ch5_s_end: null,
 };
 export const STEP_INDEX = Object.fromEntries(STEPS.map((s, i) => [s.id, i]));
 export function stepDef(id) { return STEPS[STEP_INDEX[id]] || STEPS[0]; }

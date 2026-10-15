@@ -4,7 +4,7 @@
 // 武器・帽子などの付属物も同じ網に入れ、出し入れは「専用の骨の大きさを 0 にする」で行う（描画呼び出しを増やさない）。
 // 向き：キャラクターは +z を向く。左＝+x。y が上。単位 m。関節の名前は VRM の humanoid と同じ（actor/rig.js の JOINTS）。
 import * as THREE from 'three';
-import { charMaterial, skinOutlineMaterial } from '../render/toon.js';
+import { charMaterial, skinOutlineMaterial, flameMaterial } from '../render/toon.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -45,7 +45,7 @@ export class SkinBody {
       bone(s + 'LowerLeg', s + 'UpperLeg', 0, -d.thigh, 0);
       bone(s + 'Foot', s + 'LowerLeg', 0, -d.shin, 0);
     }
-    this.groups = { body: this.acc(), face: this.acc(), plain: this.acc() };
+    this.groups = { body: this.acc(), face: this.acc(), plain: this.acc(), glow: this.acc() };
     // 頭の中心（モデル空間）
     this.hc = this.W('head').clone().add(V(0, d.headR * 0.9, 0));
   }
@@ -307,9 +307,16 @@ export class SkinBody {
     const outline = new THREE.SkinnedMesh(bodyGeo, mats.outline); outline.name = 'skin_outline';
     outline.castShadow = false; outline.userData.isOutlineHull = true;
     this.root.add(outline); outline.bind(skeleton);
+    // 炎の毛（glow の組）：加算の網（描画呼び出し +1）。輪郭線は出さない
+    let glowMesh = null;
+    if (this.groups.glow.pos.length) {
+      mats.glow = flameMaterial({ amp: opt.flameAmp, k: opt.flameK });
+      glowMesh = new THREE.SkinnedMesh(mk(this.groups.glow, true), mats.glow); glowMesh.name = 'skin_flame';
+      glowMesh.castShadow = false; glowMesh.renderOrder = 5; this.root.add(glowMesh); glowMesh.bind(skeleton);
+    }
     const J = {}; for (const n of ['hips', 'spine', 'chest', 'neck', 'head', 'leftUpperArm', 'leftLowerArm', 'leftHand', 'rightUpperArm', 'rightLowerArm', 'rightHand', 'leftUpperLeg', 'leftLowerLeg', 'leftFoot', 'rightUpperLeg', 'rightLowerLeg', 'rightFoot']) J[n] = this.B[n];
     const X = {}; for (const [n, b] of Object.entries(this.B)) if (!J[n]) X[n] = b;
-    return { root: this.root, J, X, mesh, faceMesh, outline, mats, skeleton, tris: (bodyGeo.index.count + (faceMesh ? faceMesh.geometry.index.count : 0)) / 3 };
+    return { root: this.root, J, X, mesh, faceMesh, outline, glowMesh, mats, skeleton, tris: (bodyGeo.index.count + (faceMesh ? faceMesh.geometry.index.count : 0)) / 3 };
   }
 }
 

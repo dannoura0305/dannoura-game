@@ -217,4 +217,44 @@ export const ENEMIES = {
     poise: 260, poiseMul: 0.6, coreMul: 2.0,
     resolve: { rescue: false, neutralize: false, escape: false, kill: true },
   },
+  // 収容者（旧研究棟の被験者・第5章）【仮】：自分の部屋の前を往復する。点呼の鐘で戸口に立つ（収容の古い順）。
+  // 救う＝点呼卓で在棟の人を正しい順に呼ぶ（部屋へ戻って休む）／倒す。白い予兆＝押しのけ、赤＝つかむ。
+  shuusha: {
+    name: '収容者', hp: 96, provisional: true,
+    speed: { walk: 0.9, angry: 2.9 },
+    senses: { fov: 110, sight: 9, sightDark: 4, hear: { gun: 20, run: 7, walk: 2.5 }, memory: 8 },
+    assess: [0.6, 1.2],
+    attacks: {
+      shove: { windup: 0.62, active: 0.14, recover: 0.6, dmg: 14, range: 2.2, arc: 100, parryable: true },
+      grab: { windup: 1.0, active: 0.18, recover: 1.0, dmg: 18, range: 1.9, arc: 70, parryable: false, grab: true },
+    },
+    pattern: ['shove', 'shove', 'grab'],
+    cooldown: 1.0,
+    stagger: { parried: 1.0, hit: 0.3, broken: 1.8 },
+    poise: 46,
+    resolve: { rescue: 'rollcall_in_order', neutralize: false, escape: true, kill: true },
+  },
+  // 継接（つぎはぎ・第5章のボス）【仮】：いくつもの可能性の体がつながった中ボス。部分ごとに輪と攻めが違い、壊すと行動が変わる。
+  // 右腕：戸を叩く（白・弾ける）→ 壊すと暴れる（赤・周り）。左腕：鞄を抱く・抱き寄せる（赤・つかむ）→ 崩れる／壊すと鞄を落とす。
+  // 脚：帰り道を歩く・踏みつけ（赤・円）→ 壊すと動けない（無力化）。救う＝落とした鞄を持ち主の机へ返す。逃げるは不可。
+  tsugihagi: {
+    name: '継接', hp: 420, provisional: true, boss: true,
+    speed: { walk: 0.8, angry: 1.9 },
+    senses: { fov: 360, sight: 30, sightDark: 30, hear: { gun: 40, run: 30, walk: 30 }, memory: 99 },
+    parts: { right: 110, left: 90, legs: 120 },
+    attacks: {
+      knock: { windup: 0.85, active: 0.16, recover: 0.75, dmg: 18, range: 3.6, arc: 100, parryable: true, part: 'right' },
+      embrace: { windup: 1.05, active: 0.2, recover: 1.0, dmg: 16, range: 3.3, arc: 80, parryable: false, grab: true, part: 'left' },
+      stomp: { windup: 1.15, active: 0.2, recover: 0.9, dmg: 20, range: 9, arc: 360, parryable: false, aoe: { r: 2.4, ahead: 0 }, ranged: true, part: 'legs' },
+      thrash: { windup: 0.9, active: 0.25, recover: 1.0, dmg: 17, range: 3.6, arc: 360, parryable: false, aoe: { r: 3.8, ahead: 0 } },
+      cry: { windup: 1.3, active: 0.25, recover: 1.1, dmg: 12, range: 4.6, arc: 360, parryable: false, aoe: { r: 4.5, ahead: 0 } },
+    },
+    phases: [{ at: 1.0, cooldown: 1.15 }, { at: 0.6, cooldown: 0.95 }, { at: 0.3, cooldown: 0.75 }],
+    pattern: ['knock', 'stomp', 'knock', 'embrace'],
+    cooldown: 1.15,
+    stagger: { parried: 1.4, hit: 0.0, broken: 2.6 },
+    downState: 'down',
+    poise: 120, poiseMul: 0.8,
+    resolve: { rescue: 'return_the_bag', neutralize: 'break_the_legs', escape: false, kill: true },
+  },
 };

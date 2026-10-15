@@ -15,7 +15,8 @@ import { EnemyActor } from '../actor/actors.js';
 import { buildOutou, buildGiantNekomata, buildSakibure } from '../actor/models4.js';
 import { buildMimicShadow } from '../actor/models3.js';
 import { mimicPose } from '../actor/anim.js';
-import { outouPose, GiantAnimator, SakibureAnimator } from '../actor/anim4.js';
+import { outouPose, SakibureAnimator } from '../actor/anim4.js';
+import { GiantAnimator } from '../actor/anim5.js';
 import { GiantFighter } from '../combat/giant.js';
 import { choose, lastLock, carryBranchLog, logYokai } from '../story/route.js';
 import { atLeast, stepDef, stepRoute, R_STEPS, S_STEPS } from '../story/chapters.js';
@@ -72,7 +73,7 @@ export const ch4Methods = {
   },
   bossModel4() {
     const m = buildSakibure(); m.root.scale.setScalar(13); m.root.traverse(o => { if (o.isMesh) o.frustumCulled = false; });
-    m.update = dt => { if (m.anim && m.brainRef) m.anim.update(dt, m.brainRef); };
+    const base = m.update; m.update = dt => { if (base) base(dt); if (m.anim && m.brainRef) m.anim.update(dt, m.brainRef); };
     m.anim = new SakibureAnimator(m); return m;
   },
   addOutou(add, o, opt = {}) {
@@ -380,7 +381,7 @@ export const ch4Methods = {
     this.route.forms.giantSeen = true;
     this.route = logYokai(this.route, { chapter: 'ch04', step: this.story.step, form: 'giant', src: 'scripted', sec: Math.round(this.playSec) });
     this.ui.root.classList.add('giant'); this.ui.form(true);
-    if (!this.giantHalos) { const H = this.halos; this.giantHalos = { eyes: [H.add([0, -50, 0], 1.6, 0xc890ff, 0), H.add([0, -50, 0], 1.6, 0xc890ff, 0)], paws: [0, 1, 2, 3].map(() => H.add([0, -50, 0], 3.2, 0xa060ff, 0)), tails: [H.add([0, -50, 0], 4.5, 0xb070ff, 0), H.add([0, -50, 0], 4.5, 0xb070ff, 0)], beam: H.add([0, -50, 0], 6, 0xd090ff, 0) }; }
+    if (!this.giantHalos) { const H = this.halos; this.giantHalos = { eyes: [H.add([0, -50, 0], 0.7, 0xd8a0ff, 0), H.add([0, -50, 0], 0.7, 0xd8a0ff, 0)], paws: [0, 1, 2, 3].map(() => H.add([0, -50, 0], 3.2, 0xa060ff, 0)), tails: [H.add([0, -50, 0], 4.5, 0xb070ff, 0), H.add([0, -50, 0], 4.5, 0xb070ff, 0)], beam: H.add([0, -50, 0], 6, 0xd090ff, 0) }; }
     this.sfx.play('giant_roar'); this.cam.shake(0.3, 0.5);
     for (let i = 0; i < 40; i++) { const a = Math.random() * Math.PI * 2, r = 1 + Math.random() * 4; this.fx.puff(P.pos.x + Math.sin(a) * r, Math.random() * 6, P.pos.z + Math.cos(a) * r, Math.sin(a) * 2, 2 + Math.random() * 2, Math.cos(a) * 2, i % 3 ? 0x9a5aff : 0xf0e0ff, 1.6 + Math.random(), 0.45); }
   },
@@ -559,7 +560,7 @@ export const ch4Methods = {
     if (G.model.outline) G.model.outline.visible = this.settings.outline;
     G.root.updateMatrixWorld(true);
     const H = this.halos, v = new THREE.Vector3(), t = this.playSec, k = G.scale / 8;
-    G.model.eyes.forEach((o, i) => { o.getWorldPosition(v); H.setPos(this.giantHalos.eyes[i], v.x, v.y, v.z); H.setK(this.giantHalos.eyes[i], 0.9 * k); });
+    G.model.eyes.forEach((o, i) => { o.getWorldPosition(v); H.setPos(this.giantHalos.eyes[i], v.x, v.y, v.z); H.setK(this.giantHalos.eyes[i], (0.55 + (G.rampK || 0) * 0.8) * k); });
     G.model.paws.forEach((o, i) => { o.getWorldPosition(v); H.setPos(this.giantHalos.paws[i], v.x, v.y + 0.8 * k, v.z); H.setK(this.giantHalos.paws[i], (0.5 + Math.sin(t * 6 + i) * 0.15) * k); if (Math.random() < 0.25) this.fx.particle(v.x + (Math.random() - 0.5) * 2 * k, v.y + 0.5 * k, v.z + (Math.random() - 0.5) * 2 * k, 0, 2.4 * k, 0, Math.random() < 0.5 ? 0xb070ff : 0xe0c0ff, 0.6); });
     G.model.tailTips.forEach((o, i) => { o.getWorldPosition(v); H.setPos(this.giantHalos.tails[i], v.x, v.y, v.z); H.setK(this.giantHalos.tails[i], (0.7 + Math.sin(t * 5 + i * 2) * 0.2) * k); if (Math.random() < 0.4) this.fx.particle(v.x, v.y, v.z, (Math.random() - 0.5) * 1.5, 2.5 * k, (Math.random() - 0.5) * 1.5, Math.random() < 0.5 ? 0xa050ff : 0xffb0f0, 0.7); });
     const st = G.fighter.st.name;

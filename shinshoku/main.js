@@ -888,7 +888,8 @@ class Game {
     if (name === 'normal') { this.closeup = false; this.cineCam = null; this.ui.letterbox(false); this.mode = 'play'; return true; }
     if (name === 'closeup') {
       const who = opt.who || 'player';
-      const t = who === 'giant' && this.giant ? { x: this.giant.pos.x, z: this.giant.pos.z, yaw: this.giant.yaw, h: 8.2 } : who === 'player' ? { x: this.player.pos.x, z: this.player.pos.z, yaw: this.player.yaw, h: 1.5 } : who === 'companion' ? { x: this.companion.brain.pos.x, z: this.companion.brain.pos.z, yaw: this.companion.brain.yaw, h: 1.45 } : { x: this.boss.pos.x, z: this.boss.pos.z, yaw: this.boss.brain.yaw, h: 1.8 };
+      const gh = who === 'giantHead' && this.giant ? (() => { const v = new THREE.Vector3(); this.giant.root.updateMatrixWorld(true); this.giant.model.G.gHead.getWorldPosition(v); return v; })() : null;
+      const t = gh ? { x: gh.x, z: gh.z, yaw: this.giant.yaw, h: gh.y } : who === 'giant' && this.giant ? { x: this.giant.pos.x, z: this.giant.pos.z, yaw: this.giant.yaw, h: 8.2 } : who === 'player' ? { x: this.player.pos.x, z: this.player.pos.z, yaw: this.player.yaw, h: 1.5 } : who === 'companion' ? { x: this.companion.brain.pos.x, z: this.companion.brain.pos.z, yaw: this.companion.brain.yaw, h: 1.45 } : { x: this.boss.pos.x, z: this.boss.pos.z, yaw: this.boss.brain.yaw, h: 1.8 };
       const d = opt.dist || 1.2, side = opt.side || 0.35, hy = opt.y != null ? opt.y : t.h;
       const a = t.yaw + side;
       this.cineCam = { pos: [t.x + Math.sin(a) * d, hy + (opt.up || 0.02), t.z + Math.cos(a) * d], look: [t.x, hy - (opt.down || 0.05), t.z], fov: opt.fov || 38 };

@@ -10,8 +10,13 @@ export const AREA_GRAPH = {
   tunnel: { name: '地下通路（病院の地下 → 避難所）', exits: ['hospital', 'shelter'] },
   // 第4章【仮】：観測分室（境界事象と同じ組織の別の分室・地上）→ 地下研究区画 → 搬入ヤード（reveal の巨大戦だけ）
   office: { name: '観測分室（仮：第二分室）', exits: ['shelter', 'lab'] },
-  lab: { name: '地下研究区画（仮：第二研究区画）', exits: ['office', 'yard'] },
-  yard: { name: '研究施設の搬入ヤード（巨大猫又の戦場）', exits: ['lab'], routeOnly: 'reveal' },
+  lab: { name: '地下研究区画（仮：第二研究区画）', exits: ['office', 'yard', 'oldwing'] },
+  yard: { name: '研究施設の搬入ヤード（巨大猫又の戦場）', exits: ['lab', 'oldwing'], routeOnly: 'reveal' },
+  // 第5章【仮】：旧研究棟（収容棟）。reveal は搬入ヤードの崩れた壁から、secret は地下研究区画の連絡通路から入る → 観測棟の吹き抜け（継接）
+  oldwing: { name: '旧研究棟（収容棟）', exits: ['lab', 'yard', 'atrium'] },
+  atrium: { name: '観測棟の吹き抜け', exits: ['oldwing', 'town'] },
+  // 第6章A の冒頭：巨大用の町（reveal だけ。secret は町を壊さない）
+  town: { name: '置き換えの始まった町（巨大用の区画）', exits: ['atrium'], routeOnly: 'reveal' },
 };
 
 export const AREA_DATA = {
