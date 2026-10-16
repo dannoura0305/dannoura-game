@@ -4,7 +4,7 @@
 // 武器・帽子などの付属物も同じ網に入れ、出し入れは「専用の骨の大きさを 0 にする」で行う（描画呼び出しを増やさない）。
 // 向き：キャラクターは +z を向く。左＝+x。y が上。単位 m。関節の名前は VRM の humanoid と同じ（actor/rig.js の JOINTS）。
 import * as THREE from 'three';
-import { charMaterial, skinOutlineMaterial, flameMaterial } from '../render/toon.js';
+import { charMaterial, skinOutlineMaterial, flameMaterial, ctx2d } from '../render/toon.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -352,7 +352,7 @@ export function headDeform(v, opt = {}) {
 /** キャンバスの地図帳（顔の部品）。256×256。区画：目 [0,0]-[128,128]、眉 [128,0]-[256,48]、口 [128,48]-[256,96]、鼻 [128,96]-[192,128]、頬 [192,96]-[256,128]、自由 [0,128]-[256,256] */
 export function faceAtlas(draw) {
   const c = document.createElement('canvas'); c.width = 256; c.height = 256;
-  const g = c.getContext('2d'); g.clearRect(0, 0, 256, 256); draw(g);
+  const g = ctx2d(c); g.clearRect(0, 0, 256, 256); draw(g);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.flipY = true;
   t.userData.canvas = c;
   return t;

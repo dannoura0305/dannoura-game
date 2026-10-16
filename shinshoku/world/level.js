@@ -5,30 +5,33 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { LEVEL } from '../data/level.js';
 import { skyDome } from '../render/sky.js';
 import { box as cbox } from './collide.js';
-import { toon, gradientMap, canvasTex, JP_FONT, JP_SERIF } from '../render/toon.js';
+import { toon, gradientMap, canvasTex, JP_FONT, JP_SERIF, ctx2d } from '../render/toon.js';
 import { applyTile, townMats, TILE_KEYS } from '../render/townmat.js';
 import { buildTown } from './town.js';
 import { HOME_O, homeW, inHome, TOWN } from '../data/town.js';
 
-const ATLAS_W = 1024, SLOT_W = 512, SLOT_H = 64;
+const SLOT_W = 512, SLOT_H = 64;
 
 export class Atlas {
-  /** rows：枠の行の数（1 行に 2 枠）。既定 32 行＝64 枠（1024×2048） */
-  constructor(rows = 32) {
-    this.H = rows * SLOT_H; this.max = rows * 2;
-    this.c = document.createElement('canvas'); this.c.width = ATLAS_W; this.c.height = this.H;
-    this.g = this.c.getContext('2d'); this.n = 0;
-    this.g.fillStyle = '#222'; this.g.fillRect(0, 0, ATLAS_W, this.H);
+  /** rows：枠の行の数・cols：1 行の枠の数。既定 32 行×2＝64 枠（1024×2048）。同じ絵（key）は 1 枠を使い回す */
+  constructor(rows = 32, cols = 2) {
+    this.H = rows * SLOT_H; this.cols = cols; this.W = cols * SLOT_W; this.max = rows * cols; this.memo = new Map();
+    this.c = document.createElement('canvas'); this.c.width = this.W; this.c.height = this.H;
+    this.g = ctx2d(this.c); this.n = 0;
+    this.g.fillStyle = '#222'; this.g.fillRect(0, 0, this.W, this.H);
   }
+  /** 同じ鍵なら同じ枠（看板の文字と色が同じ時） */
+  addKey(key, draw) { if (this.memo.has(key)) return this.memo.get(key); const uv = this.add(draw); this.memo.set(key, uv); return uv; }
   /** 1 枠に描いて UV の範囲を返す（枠が足りない時は最後の枠を使い回す＝落ちない） */
   add(draw) {
     if (this.n >= this.max) { console.warn('atlas full'); this.n = this.max - 1; }
-    const col = this.n % 2, row = Math.floor(this.n / 2); this.n++;
-    const x = col * SLOT_W, y = row * SLOT_H, H = this.H;
+    const col = this.n % this.cols, row = Math.floor(this.n / this.cols); this.n++;
+    const x = col * SLOT_W, y = row * SLOT_H, H = this.H, W = this.W;
     this.g.save(); this.g.translate(x, y); this.g.beginPath(); this.g.rect(0, 0, SLOT_W, SLOT_H); this.g.clip(); draw(this.g, SLOT_W, SLOT_H); this.g.restore();
-    return { u0: (x + 1) / ATLAS_W, u1: (x + SLOT_W - 1) / ATLAS_W, v0: 1 - (y + SLOT_H - 1) / H, v1: 1 - (y + 1) / H };
+    if (this.tex) this.tex.needsUpdate = true;
+    return { u0: (x + 1) / W, u1: (x + SLOT_W - 1) / W, v0: 1 - (y + SLOT_H - 1) / H, v1: 1 - (y + 1) / H };
   }
-  texture() { const t = new THREE.CanvasTexture(this.c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; }
+  texture() { const t = new THREE.CanvasTexture(this.c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; this.tex = t; return t; }
 }
 export function signDraw(text, opt = {}) {
   return (g, w, h) => {
@@ -55,11 +58,13 @@ function aoBox(w, h, d, hs) {
   for (let i = 0; i < P.count; i++) { const y = P.getY(i); if (y > bot + 1e-4 && y < top - 1e-4) { const t = (y - bot) / h; P.setY(i, bot + span * Math.pow(t, 1.4)); } }
   P.needsUpdate = true; g.computeVertexNormals(); return g;
 }
+/** まとめる材質（merge の時）：頂点色のトゥーン → tex、頂点色の光・暗いガラス（ほぼ不透明） → texglow、シャッター → tex（地図帳のシャッターの枠） */
+const MERGE = { prop: 'tex', glow: 'texglow', shutter: 'tex', glass: 'texglow' };
 /** 材質ごとに箱を集めて最後にまとめる */
 /** Builder.edgesOff：辺の線を作らない（画質の段で線を使わない時：読み込みを速く） */
 export class Builder {
   /** opt.cell：升目の大きさ（m）。升目ごとに網を分ける＝画面の外の升目は描かない（広い区画用）。無ければ材質ごとに 1 つ */
-  constructor(opt = {}) { this.groups = new Map(); this.edges = new Map(); this.cell = opt.cell || 0; this.noEdges = Builder.edgesOff; }
+  constructor(opt = {}) { this.groups = new Map(); this.edges = new Map(); this.cell = opt.cell || 0; this.noEdges = Builder.edgesOff; this.merge = opt.merge ? MERGE : null; }
   cellOf(geo) {
     if (!this.cell) return '';
     geo.computeBoundingBox(); const b = geo.boundingBox;
@@ -67,6 +72,10 @@ export class Builder {
   }
   add(key, geo, color, ao = AO_KEYS.has(key)) {
     if (this.cell && (key === 'wall' || key === 'floor')) key = 'prop';      // 広い区画：同じ材質（頂点色のトゥーン）はまとめる＝描画呼び出しを減らす
+    if (this.merge && this.merge[key]) {                                    // フェーズ10：頂点色だけの材質も町の地図帳の白い枠で描く＝tex／texglow にまとめる（升目ごとの描画呼び出しを減らす）
+      if (!geo.attributes.tileR) applyTile(geo, key === 'shutter' ? 'shutter' : 'white', key === 'shutter' ? { ts: 2.4, tsy: 2.6 } : { fit: true });
+      key = this.merge[key];
+    }
     if (TILE_KEYS.has(key) && !geo.attributes.tileR) applyTile(geo, 'concrete', { ts: 3 });
     if (!TILE_KEYS.has(key) && geo.attributes.tileR) geo.deleteAttribute('tileR');
     const g = geo.index ? geo.toNonIndexed() : geo;
@@ -81,6 +90,21 @@ export class Builder {
     return g;
   }
   box(key, cx, cy, cz, w, h, d, color, opt = {}) {
+    // フェーズ10：升目より長い箱（道・歩道・屋根）は升目の半分ずつに分ける＝遠くの升目の網の範囲が広がらない（画面の外で描かない）。
+    // 絵は世界の座標で貼るので継ぎ目は出ない。回転は「分ける向きの軸のまわり」だけなら分けられる（アーケードの屋根）
+    if (this.cell && !opt.uv && !opt.fit && !opt.uvScale && !opt.ry && !opt.noSplit) {
+      const lim = this.cell * 0.6, sx = w > lim && !opt.rz && !opt.rx ? Math.ceil(w / (this.cell * 0.5)) : (w > lim && opt.rx && !opt.rz ? Math.ceil(w / (this.cell * 0.5)) : 1), sz = d > lim && !opt.rx && !opt.rz ? Math.ceil(d / (this.cell * 0.5)) : (d > lim && opt.rz && !opt.rx ? Math.ceil(d / (this.cell * 0.5)) : 1);
+      if (sx > 1 || sz > 1) {
+        if (!this.noEdges && opt.edges !== false && !['glow', 'glass', 'glass2', 'lamp', 'texglow'].includes(key)) { const g = new THREE.BoxGeometry(w, h, d); if (opt.rz) g.rotateZ(opt.rz); if (opt.rx) g.rotateX(opt.rx); g.translate(cx, cy, cz); const eg = new THREE.EdgesGeometry(g, 30), ek = this.cellOf(g); if (!this.edges.has(ek)) this.edges.set(ek, []); this.edges.get(ek).push(eg); }
+        const o2 = Object.assign({}, opt, { edges: false, noSplit: true }), pw = w / sx, pd = d / sz;
+        for (let i = 0; i < sx; i++) for (let j = 0; j < sz; j++) {
+          // 回転した箱は、回転の軸の向き（z か x）にだけ分ける：中心は軸に沿ってずらす
+          const ox = -w / 2 + (i + 0.5) * pw, oz = -d / 2 + (j + 0.5) * pd;
+          this.box(key, cx + ox, cy, cz + oz, pw, h, pd, color, o2);
+        }
+        return null;
+      }
+    }
     // 床に近い所を暗くする（焼いた頂点の陰＝安いアンビエントオクルージョン）ため、高い箱は縦に分ける
     const aoOn = opt.ao ?? AO_KEYS.has(key);
     const y0 = cy - h / 2, hs = aoOn && y0 < 0.5 && h > 1.0 && !opt.uv && !opt.fit ? Math.min(6, Math.ceil(Math.min(h, 2.4) / 0.4)) : 1;
@@ -146,8 +170,8 @@ export function groundTex(opt = {}) {
 
 /** 商店街＋自宅（area 'shotengai'）。戻り値は区画の組（world/areas.js の形）。opt.state：'normal'（序章）|'outbreak' */
 export function buildLevel(_unused, opt = {}) {
-  const scene = new THREE.Group(); scene.name = 'area_shotengai'; scene.add(skyDome({ mountains: true, clouds: 0.7 }));
-  const L = LEVEL, B = new Builder({ cell: 40 }), atlas = new Atlas(56);
+  const scene = new THREE.Group(); scene.name = 'area_shotengai'; scene.add(skyDome({ mountains: true, clouds: 0.7, range: true }));
+  const L = LEVEL, B = new Builder({ cell: 40, merge: true }), atlas = new Atlas(48, 4);
   const boxes = [], spots = [], dyn = {}, halos = [], hideSpots = [];
   const solid = (cx, cz, w, d, h = 7, y0 = 0) => { boxes.push(cbox(cx, cz, w, d, h, y0)); };
   const WALL = 0x8a8494, WALL2 = 0x6e6878, DARK = 0x2a2630, PILLAR = 0x5a5560;
@@ -163,16 +187,26 @@ export function buildLevel(_unused, opt = {}) {
     const zc = (s.z0 + s.z1) / 2, len = Math.abs(s.z1 - s.z0), sx = s.side;
     const face = sx * 4.5;                                           // 通りに面した x
     if (s.open) { buildShopInterior(B, atlas, s, boxes, spots, dyn); continue; }
+    if (s.passage) { buildPassage(B, atlas, s, halos, spots); continue; }   // フェーズ10：ガラスの屋根の広場への通り抜け（店の跡）
     const depth = 6, bx = face + sx * depth / 2;
-    { // フェーズ9：外壁の材質（モルタル・タイル・波板）と高さを店ごとに変える（当たり判定は 7m のまま）
-      const k = Math.abs(Math.round(zc * 3 + sx * 5)) % 4, tileW = ['mortar', 'tilewall', 'siding2', 'mortar'][k], hgt = [7.4, 8.6, 7.0, 9.2][k];
-      const tint = new THREE.Color(s.awn).lerp(new THREE.Color(0xd8d0c8), 0.72).getHex();
+    { // フェーズ9／10：外壁の材質と高さを店ごとに変える（高い屋根の下に 3〜4 階の表が見える。古い商家と新しいビルが混ざる）。当たり判定は 7m のまま
+      const k = Math.abs(Math.round(zc * 3 + sx * 5)) % 4, tileW = ['mortar', 'tilewall', 'wood', 'panel'][k], hgt = [9.6, 11.6, 7.4, 12.4][k];
+      const tint = k === 2 ? 0xb89070 : new THREE.Color(s.awn).lerp(new THREE.Color(0xd8d0c8), 0.72).getHex();
       B.box('tex', bx, hgt / 2, zc, depth, hgt, len - 0.02, tint, { tile: tileW, ts: 2, ao: true });
       B.box('prop', bx, hgt + 0.1, zc, depth + 0.1, 0.2, len + 0.06, 0x3a3640, { edges: false });
       if (k === 1) { const g = new THREE.CylinderGeometry(0.6, 0.6, 1.2, 10); g.translate(bx + sx * 1.2, hgt + 0.8, zc); B.add('prop', g, 0x8a9096); }
+      if (k === 2) {   // 古い商家（漆喰の 2 階・虫籠の格子・小さな瓦のひさし）
+        B.box('tex', face - sx * 0.03, 5.6, zc, 0.05, 2.6, len - 0.8, 0xe8e0d0, { tile: 'mortar', ts: 2, edges: false });
+        for (const dz of [-len / 4, len / 4]) B.box('tex', face - sx * 0.07, 5.5, zc + dz, 0.06, 0.9, Math.min(1.6, len / 3), 0xffffff, { tile: 'koshi', fit: true, edges: false });
+        B.box('tex', face - sx * 0.45, 4.15, zc, 1.0, 0.1, len - 0.2, 0xb8b8c0, { tile: 'kawara', ts: 1.4, rz: sx * 0.38, edges: false });
+        B.box('tex', face - sx * 0.3, 7.25, zc, 0.8, 0.12, len, 0xb8b8c0, { tile: 'kawara', ts: 1.4, rz: sx * 0.42, edges: false });
+      }
+      if (k === 3) { B.box('tex', face - sx * 0.04, 9.2, zc, 0.06, 4.6, len - 0.6, 0xffffff, { tile: 'louver', ts: 2, tsy: 2, edges: false }); }
+      // 3 階・4 階の窓（高い屋根の下で見える）
+      for (const [y, need] of [[7.7, 8.5], [10.3, 11]]) if (hgt > need && k !== 2) for (const dz of [-len / 4, len / 4]) { const on = (Math.abs(zc * 3 + y + dz) % 5) < 1.3; B.box(on ? 'texglow' : 'tex', face - sx * 0.03, y, zc + dz, 0.06, 1.15, len / 3, on ? 0xc8b8a0 : 0xffffff, { tile: on ? (k === 3 ? 'win_office_lit' : 'win_lit') : k === 3 ? 'win_office' : 'win_dark', fit: true, edges: false }); }
       // 2 階の室外機・雨どい
       if (k !== 2) B.box('tex', face - sx * 0.2, 4.1, zc - len / 2 + 0.9, 0.3, 0.55, 0.75, 0xffffff, { tile: 'acunit', fit: true, edges: false });
-      B.box('prop', face - sx * 0.06, 3.3, s.z0 + 0.25 * Math.sign(s.z1 - s.z0), 0.07, 6.6, 0.07, 0x4a4a4c, { edges: false });
+      B.box('prop', face - sx * 0.06, hgt / 2, s.z0 + 0.25 * Math.sign(s.z1 - s.z0), 0.07, hgt, 0.07, 0x4a4a4c, { edges: false });
     }
     solid(bx, zc, depth, len, 7);
     // 柱
@@ -248,21 +282,41 @@ export function buildLevel(_unused, opt = {}) {
   }
 
   // ── アーケードの屋根と入口のアーチ ──
-  // 屋根：両側から上がる半透明の板（ポリカーボネート）と鉄骨のアーチ（フェーズ9）
-  for (const s2 of [-1, 1]) B.box('glass', s2 * 2.4, 7.0, -38, 4.95, 0.06, 68, 0x262a3a, { edges: false, rz: -s2 * 0.2 });
-  for (let z = -4.5; z >= -71; z -= 3) for (const s2 of [-1, 1]) B.box('prop', s2 * 2.4, 6.92, z, 4.95, 0.1, 0.1, 0x2e2c36, { edges: false, rz: -s2 * 0.2 });
-  for (const s2 of [-1, 1]) B.box('prop', s2 * 4.7, 6.45, -38, 0.2, 0.3, 68, 0x2e2c36, { edges: false });
-  B.box('prop', 0, 7.48, -38, 0.18, 0.12, 68, 0x2e2c36, { edges: false });
+  // フェーズ10：総曲輪のアーケードの雰囲気を参考に、高い屋根（軒 11m・棟 13.4m）にした。細い鉄骨の柱・トラスのアーチ・半透明のガラスの切妻屋根（独自の意匠）
+  const EAVE = 11.0, RIDGE = 13.4, rth = Math.atan2(RIDGE - EAVE, 4.7), rsl = Math.hypot(4.7, RIDGE - EAVE);
+  for (const s2 of [-1, 1]) B.box('glass2', s2 * 2.35, (EAVE + RIDGE) / 2, -38, rsl + 0.3, 0.05, 68.6, 0x7088b0, { edges: false, rz: -s2 * rth });
+  for (let z = -4.2; z >= -72; z -= 2.6) for (const s2 of [-1, 1]) B.box('prop', s2 * 2.35, (EAVE + RIDGE) / 2 - 0.1, z, rsl, 0.12, 0.08, 0x2e2c36, { edges: false, rz: -s2 * rth });
+  for (const f of [0.33, 0.66]) for (const s2 of [-1, 1]) B.box('prop', s2 * 4.7 * (1 - f), EAVE + (RIDGE - EAVE) * f - 0.1, -38, 0.1, 0.1, 68, 0x2e2c36, { edges: false });
+  for (const s2 of [-1, 1]) { B.box('prop', s2 * 4.7, 6.45, -38, 0.2, 0.3, 68, 0x2e2c36, { edges: false }); B.box('prop', s2 * 4.62, EAVE, -38, 0.3, 0.36, 68, 0x2e2c36, { edges: false }); }
+  B.box('prop', 0, RIDGE + 0.05, -38, 0.22, 0.2, 68.6, 0x2e2c36, { edges: false });
+  // 柱（店の境目・戸の前は避ける）とトラスのアーチ（6m ごと）
+  for (let z = -4; z >= -70; z -= 6) {
+    for (const s2 of [-1, 1]) {
+      if (Object.values(L.doors).some(d => !d.alongX && Math.sign(d.x) === s2 && Math.abs(d.z - z) < 1.2)) continue;
+      B.box('prop', s2 * 4.55, (EAVE + 0.3) / 2 + 3.0, z, 0.2, EAVE - 3.3, 0.2, 0x34323c, { edges: false });
+      B.box('prop', s2 * 4.3, EAVE - 0.6, z, 0.5, 0.12, 0.12, 0x34323c, { edges: false, rz: s2 * 0.7 });
+    }
+    B.box('prop', 0, EAVE, z, 9.3, 0.14, 0.14, 0x34323c, { edges: false });
+    for (let k = 0; k < 4; k++) { const xa = -4.6 + k * 2.3, xb = xa + 2.3, ya = EAVE + (RIDGE - EAVE) * (1 - Math.abs(xa) / 4.7), yb = EAVE + (RIDGE - EAVE) * (1 - Math.abs(xb) / 4.7); B.box('prop', (xa + xb) / 2, (EAVE + (ya + yb) / 2) / 2, z, 0.08, ((ya + yb) / 2 - EAVE), 0.08, 0x34323c, { edges: false }); }
+    B.box('prop', 0, (EAVE + RIDGE) / 2, z, 0.1, RIDGE - EAVE, 0.1, 0x34323c, { edges: false });
+    B.box('prop', 0, (6.3 + EAVE) / 2, z + 3, 0.03, EAVE - 6.3, 0.03, 0x2a2830, { edges: false });   // 灯りの吊り
+  }
   for (let z = -6; z >= -70; z -= 6) {
     B.box('wall', 0, 6.45, z, 9.4, 0.25, 0.25, DARK);
     const on = Math.abs(z) % 18 !== 0;
     B.box(on ? 'lamp' : 'prop', 0, 6.2, z + 3, 0.18, 0.06, 1.6, on ? 0xd8ecff : 0x3a3a44, { edges: false });
     halos.push({ p: [0, 6.05, z + 3], size: 1.7, color: 0xd8ecff, k: on ? 0.45 : 0.0, strip: true, z: z + 3, onOutbreak: on && Math.abs(z) % 24 === 0 });
   }
-  for (const x of [-4.75, 4.75]) { B.box('wall', x, 3.4, -4, 0.45, 6.8, 0.45, DARK); solid(x, -4, 0.45, 0.45, 6.8); }
+  for (const x of [-4.75, 4.75]) { B.box('wall', x, 3.4, -4, 0.45, 6.8, 0.45, DARK); solid(x, -4, 0.45, 0.45, 6.8); B.box('prop', x, (6.8 + EAVE) / 2, -4, 0.35, EAVE - 6.8, 0.35, DARK, { edges: false }); }
   const archUV = atlas.add(signDraw(L.streetName, { bg: '#2a1f3a', fg: '#ffd9a8', size: 44, frameColor: '#ffb070' }));
   B.box('sign', 0, 5.7, -4, 9.4, 1.0, 0.35, 0xffffff, { uv: archUV, face: 4 });
   B.box('sign', 0, 5.7, -4.001, 9.4, 1.0, 0.35, 0xffffff, { uv: archUV, face: 5, edges: false });
+  // 入口の上の妻（ガラスの三角と鉄骨の枠・灯りの列）
+  { const tri = new THREE.BufferGeometry(); tri.setAttribute('position', new THREE.Float32BufferAttribute([-4.7, EAVE, -3.9, 4.7, EAVE, -3.9, 0, RIDGE, -3.9], 3)); tri.setAttribute('normal', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1], 3)); tri.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0.5, 1], 2)); B.add('glass2', tri, 0x7a90b8, false);
+    B.box('glass2', 0, (6.4 + EAVE) / 2, -3.9, 9.4, EAVE - 6.4, 0.04, 0x6a80a8, { edges: false });
+    B.box('prop', 0, EAVE, -3.9, 9.6, 0.4, 0.3, DARK, { edges: false });
+    for (let x = -4; x <= 4.01; x += 1) { B.box('glow', x, EAVE - 0.3, -3.75, 0.2, 0.12, 0.06, 0xffe0b0, { edges: false }); }
+    halos.push({ p: [0, EAVE - 0.4, -3.4], size: 5, color: 0xffd8a0, k: 0.25 }); }
 
   // ── 雰囲気（イメージ資料 concept_01）：赤い提灯・縦の看板（ネオン）・工事中の柵とコーン・事故の車 ──
   for (let z = -8; z >= -68; z -= 8) for (const sx of [-1, 1]) {
@@ -302,7 +356,8 @@ export function buildLevel(_unused, opt = {}) {
   // ── 自宅（住宅地の中：data/town.js の HOME_O へ置く）──
   buildHome(B, atlas, scene, boxes, spots, dyn);
   // ── 町（アーケード前の広場・駅前通り・交差点・用水路沿いの道・自宅の前の道・公園・祠・コンビニ）：data/town.js ──
-  const town = buildTown({ B, atlas, signDraw, scene });
+  // フェーズ10：近い所（アーケードのまわり・住宅地・広場）は今、遠い所（中央通り・駅前）は最初のこまの後で（起動を速く）。当たり判定は今、全部
+  const town = buildTown({ B, atlas, signDraw, scene, part: 'near' });
   boxes.push(...town.boxes); spots.push(...town.spots); hideSpots.push(...town.hideSpots);
   const tH0 = halos.length; halos.push(...town.halos);
   for (const sg of town.signals) sg.heads = sg.heads.map(i => i + tH0);
@@ -328,6 +383,7 @@ export function buildLevel(_unused, opt = {}) {
     glow: new THREE.MeshBasicMaterial({ vertexColors: true }),
     lamp: new THREE.MeshBasicMaterial({ vertexColors: true }),
     glass: new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.85 }),
+    glass2: new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.3, depthWrite: false, side: THREE.DoubleSide }),   // 高い屋根のガラス（透ける）
     floor: new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: gradientMap() }),
   };
   const root = B.build(mats); root.name = 'level';
@@ -350,25 +406,63 @@ export function buildLevel(_unused, opt = {}) {
   B.box('glass', -4.47, 0.6, -66.5, 0.06, 1.2, 2.2, 0x050408, { edges: false });
   for (const [x, z] of [[-3.6, -9.8], [3.6, -21.8], [-3.6, -36.6], [3.6, -45.4], [-3.6, -55.2], [-1.6, 14.6], [3.8, -27.8], homeW(-1.6, 14.6)]) hideSpots.push({ x, z });
   const sidewalk = (x, z) => (z > 1 && z < 4.5) || (z > 11.5 && z < 14) || (z > -4 && z <= 1 && Math.abs(x) < 6);
-  const surface = (x, z) => (inHome(x, z) ? (homeL0(z) > 9 ? 'wood' : 'tile') : x > 4.6 && z < -35 && z > -45 ? 'tile' : z < -4 ? 'asphalt' : sidewalk(x, z) ? 'tile' : 'wet');
+  const surface = (x, z) => (inHome(x, z) ? (homeL0(z) > 9 ? 'wood' : 'tile') : x > 4.6 && x < 11.2 && z < -35 && z > -45 ? 'tile' : z < -4 && Math.abs(x) < 4.6 ? 'asphalt' : x > 4.4 && x < 36 && z < -6.4 && z > -34 ? 'tile' : sidewalk(x, z) ? 'tile' : 'wet');
   // 信号の移り変わり（車：青 9 秒・黄 2.5 秒・赤 11 秒／歩行者は逆）。区画の毎フレームの仕事（main.render から）
+  // phase 1：中央通りの信号（駅前通りと半周ずれる）
   const tick = (dt, game) => {
-    dyn.sigT = ((dyn.sigT || 0) + dt) % 22.5; const t = dyn.sigT, car = t < 9 ? 0 : t < 11.5 ? 1 : 2, pedGo = t >= 12 && t < 20, pedBlink = t >= 18 && t < 20 && Math.floor(t * 4) % 2 === 0;
-    for (const sg of town.signals) sg.heads.forEach((hi, k) => { const h = halos[hi]; if (!h || h.idx == null || h.idx < 0) return; const on = sg.kind === 'car' ? k === car : (k === 0 ? !pedGo : pedGo && !pedBlink); game.halos.setK(h.idx, on ? 1.1 : 0); });
+    dyn.sigT = ((dyn.sigT || 0) + dt) % 22.5;
+    for (const sg of dyn.signals) {
+      const t = (dyn.sigT + (sg.phase ? 11.25 : 0)) % 22.5, car = t < 9 ? 0 : t < 11.5 ? 1 : 2, pedGo = t >= 12 && t < 20, pedBlink = t >= 18 && t < 20 && Math.floor(t * 4) % 2 === 0;
+      sg.heads.forEach((hi, k) => { const h = halos[hi]; if (!h || h.idx == null || h.idx < 0) return; const on = sg.kind === 'car' ? k === car : (k === 0 ? !pedGo : pedGo && !pedBlink); game.halos.setK(h.idx, on ? 1.1 : 0); });
+    }
   };
-  dyn.signals = town.signals;
-  const MAPC = { main: 'rgba(118,104,150,1)', sidewalk: 'rgba(150,134,180,1)', lane: 'rgba(132,116,166,1)', forecourt: 'rgba(170,150,200,1)', yard: 'rgba(150,130,120,1)', park: 'rgba(96,130,110,1)', nook: 'rgba(140,120,110,1)', parking: 'rgba(120,110,140,1)', bridge: 'rgba(150,134,180,1)' };
+  dyn.signals = town.signals.slice();
+  const MAPC = { main: 'rgba(118,104,150,1)', sidewalk: 'rgba(150,134,180,1)', lane: 'rgba(132,116,166,1)', forecourt: 'rgba(170,150,200,1)', yard: 'rgba(150,130,120,1)', park: 'rgba(96,130,110,1)', nook: 'rgba(140,120,110,1)', parking: 'rgba(120,110,140,1)', bridge: 'rgba(150,134,180,1)', avenue: 'rgba(110,98,146,1)', plaza: 'rgba(176,156,206,1)', passage: 'rgba(170,150,200,1)' };
   const mapWalk = [{ rect: [-4.5, -72, 4.5, -4], c: 'rgba(160,140,190,1)' }].concat(L.alleys.map(a => ({ rect: a.side > 0 ? [4.5, Math.min(a.z0, a.z1), 4.5 + a.len, Math.max(a.z0, a.z1)] : [-4.5 - a.len, Math.min(a.z0, a.z1), -4.5, Math.max(a.z0, a.z1)], c: 'rgba(140,124,170,1)' })))
     .concat([{ rect: [TOWN.channel.x0, TOWN.channel.z0, TOWN.channel.x1, TOWN.channel.z1], c: 'rgba(50,80,120,1)' }])
     .concat(TOWN.walk.map(w => ({ rect: w.rect, c: MAPC[w.kind] || 'rgba(140,124,170,1)' }))).concat([{ rect: [...homeW(-6, 6), ...homeW(6, 16)], c: 'rgba(170,140,110,1)' }]);
-  return { id: 'shotengai', root: scene, boxes, spots, dyn, lights, halos, wet, hideSpots, surface, atlas, ground, tick, rain: true, far: 95, layout: TOWN.version, mapWalk,
-    // 霧：アーケードの中は濃く、外（住宅地）は少し遠くまで見える
-    fogAt: (x, z) => (z < -4 ? 0.045 : 0.034),
-    rainRoof: (x, z) => (z < -4 && z > -72 && Math.abs(x) < 4.8) || inHome(x, z, 0.3) || (x > 30.5 && x < 36 && z > 43 && z < 52) || (x > 13 && x < 32 && z > 19.2 && z < 20.2),
+  // 雨の降らない屋根の下（アーケード・家の中・カーポート・コンビニのひさし・フェーズ10 のガラスの広場・通り抜け・駅の大屋根・電停とバス停の屋根・屋根つきの歩道）
+  const roofs = TOWN.walk.filter(w => w.roof).map(w => w.rect).concat([TOWN.station.canopy.slice(0, 4), [TOWN.station.walkway.x0 - 0.3, TOWN.station.walkway.z0, TOWN.station.walkway.x1 + 0.3, TOWN.station.walkway.z1]],
+    TOWN.avenue.stops.filter(s => s.shelter).map(s => [s.rect[0] - 0.2, s.shelter[0] - 0.3, s.rect[2] + 0.2, s.shelter[1] + 0.3]), TOWN.station.bus.islands.map(r => [r[0] - 0.4, r[1] + 0.5, r[2] + 0.4, r[3] - 0.5]), [[50.9, -102.6, 55.1, -100.8], TOWN.station.bikes.rect]);
+  const inR = (r, x, z) => x > r[0] && x < r[2] && z > r[1] && z < r[3];
+  const A = { id: 'shotengai', root: scene, boxes, spots, dyn, lights, halos, wet, hideSpots, surface, atlas, ground, tick, rain: true, far: 105, fogFar: 2.5, layout: TOWN.version, mapWalk,
+    // 霧：アーケードの中は濃く、外（住宅地）は少し遠くまで。中央通り・駅前は広いので、もう少し遠くまで見える
+    fogAt: (x, z) => (z < -4 && Math.abs(x) < 4.8 ? 0.042 : z < -78 ? 0.024 : x > 62 ? 0.028 : x > 10.5 && z < -6 ? 0.03 : 0.034),
+    rainRoof: (x, z) => (z < -4 && z > -72 && Math.abs(x) < 4.8) || inHome(x, z, 0.3) || (x > 30.5 && x < 36 && z > 43 && z < 52) || (x > 13 && x < 32 && z > 19.2 && z < 20.2) || roofs.some(r => inR(r, x, z)),
     indoor: (x, z) => inHome(x, z, 0.5),
-    bounds: Object.assign({}, TOWN.bounds), spawns: { start: [...homeW(0, 11.5), Math.PI], from_alley: [-3.0, -66.5, Math.PI / 2], arcade: [0, -2, Math.PI], home_in: [...homeW(0, 8.6), 0], home_gate: [42, 41.6, 0] } };
+    bounds: Object.assign({}, TOWN.bounds), spawns: { start: [...homeW(0, 11.5), Math.PI], from_alley: [-3.0, -66.5, Math.PI / 2], arcade: [0, -2, Math.PI], home_in: [...homeW(0, 8.6), 0], home_gate: [42, 41.6, 0], station: [84, -96, Math.PI], avenue: [68, -10, Math.PI], plaza: [23, -12, Math.PI] } };
+  // 遠い所（中央通り・駅前）：最初のこまの後で組み立てる（main の buildPending）。看板の地図帳は同じ物へ足す
+  A.pending = [() => {
+    const B2 = new Builder({ cell: 64, merge: true }), far = buildTown({ B: B2, atlas, signDraw, scene, part: 'far' });
+    const r = B2.build(mats); r.name = 'level_far';
+    if (far.wires) r.add(far.wires); if (far.pools) r.add(far.pools);
+    atlasTex.needsUpdate = true; r.updateMatrixWorld(true);
+    return { root: r, halos: far.halos, wet: far.wet, lights: far.lights, signals: far.signals, spots: far.spots, hideSpots: far.hideSpots };
+  }];
+  return A;
 }
 const homeL0 = z => z - HOME_O[1];
+
+/** フェーズ10：アーケードの東の通り抜け（店の跡）→ ガラスの屋根の広場。低いガラスの屋根・案内の看板・花屋の名残（花のバケツ） */
+function buildPassage(B, atlas, s, halos, spots) {
+  const z0 = Math.min(s.z0, s.z1), z1 = Math.max(s.z0, s.z1), zc = (z0 + z1) / 2, len = z1 - z0, x0 = 4.5, x1 = 10.6, xc = (x0 + x1) / 2;
+  const uv = atlas.add(signDraw('ひかり広場（仮）　→', { bg: '#1a1420', fg: '#ffe8c8', size: 36, frameColor: '#c8a070' }));
+  B.box('sign', x0 + 0.1, 3.7, zc, 0.12, 0.6, len - 1.2, 0xffffff, { uv, face: 1, edges: false });
+  halos.push({ p: [x0 - 0.4, 3.7, zc], size: 3.2, color: 0xffd8a0, k: 0.35, neon: true });
+  // 通り抜けの上は建物（2・3 階：アーケード側に窓・広場側に看板）
+  B.box('tex', xc, 7.6, zc, x1 - x0 - 0.1, 5.4, len, 0xc8b8a8, { tile: 'mortar', ts: 2, edges: false });
+  for (const dz of [-1.5, 1.5]) for (const y of [6.4, 8.9]) B.box((dz > 0) === (y > 7) ? 'texglow' : 'tex', x0 - 0.03, y, zc + dz, 0.06, 1.15, 2.0, 0xc8b8a0, { tile: (dz > 0) === (y > 7) ? 'win_lit' : 'win_dark', fit: true, edges: false });
+  B.box('prop', xc, 4.95, zc, x1 - x0, 0.3, len, 0x3a3640, { edges: false });
+  const uv2 = atlas.add(signDraw('あけぼの通り商店街　←', { bg: '#2a1f3a', fg: '#ffd9a8', size: 34, frameColor: '#ffb070' }));
+  B.box('sign', x1 + 0.02, 5.6, zc, 0.06, 0.7, len - 1.2, 0xffffff, { uv: uv2, face: 0, edges: false });
+  halos.push({ p: [x1 + 0.5, 5.6, zc], size: 3.0, color: 0xffb070, k: 0.3, neon: true });
+  B.box('glow', xc, 4.62, zc, 3.2, 0.04, 0.3, 0xfff0d8, { edges: false }); halos.push({ p: [xc, 4.4, zc], size: 1.8, color: 0xfff0d8, k: 0.5 });
+  // 花屋の名残（休業の札・花のバケツ）
+  const fl = atlas.add(signDraw(s.sign + '（休業中）', { bg: '#f4f1e8', fg: '#7a3a5a', size: 30, weight: 'normal' }));
+  B.box('sign', 7.5, 2.0, z0 + 0.05, 1.6, 0.36, 0.03, 0xffffff, { uv: fl, face: 4, edges: false });
+  for (let i = 0; i < 5; i++) { const x = 5.6 + i * 0.7, g = new THREE.CylinderGeometry(0.17, 0.14, 0.42, 10); g.translate(x, 0.21, z0 + 0.3); B.add('prop', g, 0x6a7a8a); const f = new THREE.IcosahedronGeometry(0.2, 0); f.translate(x, 0.55, z0 + 0.3); B.add('prop', f, [0xd84a6a, 0xf0d040, 0xe8e8f0, 0xb06ad0, 0xf08a40][i]); }
+  spots.push({ id: 'passage_flowers', kind: 'read', x: 7.2, z: z0 + 1.1, r: 1.2, label: '花のバケツ', text: 'town_flowers', low: true });
+}
 
 function buildShopInterior(B, atlas, s, boxes, spots, dyn) {
   const H = LEVEL.heiten, z0 = s.z0, z1 = s.z1, zc = (z0 + z1) / 2, len = Math.abs(z1 - z0);
@@ -434,7 +528,7 @@ function buildHome(B0, atlas, scene0, boxes0, spots0, dyn) {
   // テレビの画面（砂嵐・一瞬の顔）
   const tvC = document.createElement('canvas'); tvC.width = 128; tvC.height = 72; const tvT = new THREE.CanvasTexture(tvC); tvT.colorSpace = THREE.SRGBColorSpace;
   const tv = new THREE.Mesh(new THREE.PlaneGeometry(1.28, 0.66), new THREE.MeshBasicMaterial({ map: tvT, color: 0x9a9aa8 })); tv.position.set(3.5, 0.95, 9.65); scene.add(tv);
-  const tvDraw = kind => { const g = tvC.getContext('2d'); const im = g.createImageData(128, 72); for (let i = 0; i < im.data.length; i += 4) { const v = Math.random() * 200; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } g.putImageData(im, 0, 0);
+  const tvG = ctx2d(tvC); const tvDraw = kind => { const g = tvG; const im = g.createImageData(128, 72); for (let i = 0; i < im.data.length; i += 4) { const v = Math.random() * 200; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } g.putImageData(im, 0, 0);
     if (kind === 'face') { g.fillStyle = 'rgba(230,230,240,.92)'; g.fillRect(0, 0, 128, 72); g.fillStyle = '#3a3a44'; g.beginPath(); g.ellipse(64, 30, 15, 19, 0, 0, Math.PI * 2); g.fill(); g.fillRect(40, 48, 48, 30); g.fillStyle = '#f4f4f8'; g.beginPath(); g.moveTo(52, 50); g.lineTo(64, 66); g.lineTo(76, 50); g.lineTo(88, 72); g.lineTo(40, 72); g.fill(); g.fillStyle = 'rgba(0,0,0,.35)'; for (let y = 0; y < 72; y += 3) g.fillRect(0, y, 128, 1); }
     tvT.needsUpdate = true; };
   tvDraw('static'); dyn.tv = { mesh: tv, draw: tvDraw, kind: 'static' };

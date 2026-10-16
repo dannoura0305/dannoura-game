@@ -3,9 +3,13 @@
 // 座標：x＝東（＋）、z＝南（＋）。北（−z）がアーケードの奥（駅の方）。単位 m。アーケード（x −4.5〜4.5・z −72〜−4）は data/level.js のまま。
 // 歩いて：自宅の玄関 → 門 → 自宅の前の道（西へ）→ 用水路沿いの道（北へ）→ 駅前通りの交差点（信号・横断歩道）→ 北の歩道（西へ）→ アーケード前の広場 → アーケード。
 // 曲がり角 4 つ・約 95m（ゲームの都合で縮めた約 2〜3 分の道のり）。名前・表札・店名はすべて【仮】。
+// フェーズ10（利用者の回答：「北陸らしさは総曲輪を参考」「駅やバス通りも歩ける場所に」）：駅前通りの東の端を、路面電車とバスの走る
+// 中央通り（電車通り・バス通り）へつなぎ、北の端に駅前（駅舎・駅前広場・電停・バスターミナル・タクシーのりば・駐輪場・時計）を置いた。
+// アーケードの東には、ガラスの屋根の広場（総曲輪の雰囲気を参考にした独自の意匠・名前は仮）と、広場から中央通りへ抜ける横丁。
+// 自宅の前の道の東の端も中央通りへつながる。町の名前・実在の地名・店名・意匠は使わない（雰囲気だけ）。
 import { box } from '../world/collide.js';
 
-export const TOWN_LAYOUT = 'town2';                 // セーブの place.layout（古いセーブは town1 扱い→位置を移す）
+export const TOWN_LAYOUT = 'town3';                 // セーブの place.layout（layout 無し＝town1・town2 は読む時に位置を確かめて移す）
 export const HOME_O = [42, 40];                     // 自宅（data/level.js の home：x −6〜6・z 6〜16）を置く所＝ローカル座標に足す
 export const homeW = (x, z) => [x + HOME_O[0], z + HOME_O[1]];
 export const homeL = (x, z) => [x - HOME_O[0], z - HOME_O[1]];
@@ -14,21 +18,31 @@ export const inHome = (x, z, pad = 0) => { const [lx, lz] = homeL(x, z); return 
 
 export const TOWN = {
   version: TOWN_LAYOUT, provisional: true,
-  bounds: { minX: -46, maxX: 64, minZ: -73, maxZ: 66 },
+  bounds: { minX: -46, maxX: 118, minZ: -128, maxZ: 66 },
   // 歩ける所（地面の材質）。kind：forecourt（アーケード前の広場）・sidewalk（歩道）・main（2 車線の道）・lane（4〜6m の生活道路・歩道なし）など
   walk: [
     { id: 'forecourt', kind: 'forecourt', rect: [-6, -4, 6, 1], surf: 'paving', name: 'アーケード前の広場' },
-    { id: 'walkN', kind: 'sidewalk', rect: [-44, 1, 60, 4.5], surf: 'interlock', name: '駅前通りの歩道（北）' },
-    { id: 'main', kind: 'main', rect: [-44, 4.5, 60, 11.5], surf: 'asphalt', name: '駅前通り（仮）' },
-    { id: 'walkS', kind: 'sidewalk', rect: [-44, 11.5, 60, 14], surf: 'interlock', name: '駅前通りの歩道（南）' },
+    { id: 'walkN', kind: 'sidewalk', rect: [-44, 1, 66, 4.5], surf: 'interlock', name: '駅前通りの歩道（北）' },
+    { id: 'main', kind: 'main', rect: [-44, 4.5, 70, 11.5], surf: 'asphalt', name: '駅前通り（仮）' },
+    { id: 'walkS', kind: 'sidewalk', rect: [-44, 11.5, 66, 14], surf: 'interlock', name: '駅前通りの歩道（南）' },
     { id: 'laneB', kind: 'lane', rect: [7.6, 14, 13, 38], surf: 'lane', name: '用水路沿いの道' },
-    { id: 'laneA', kind: 'lane', rect: [0, 38, 62, 43], surf: 'lane', name: '自宅の前の道' },
+    { id: 'laneA', kind: 'lane', rect: [0, 38, 66, 43], surf: 'lane', name: '自宅の前の道' },
     { id: 'shrine', kind: 'nook', rect: [-6, 38, 0, 45], surf: 'gravel', name: '祠のある角' },
     { id: 'konbiniLot', kind: 'parking', rect: [13, 14, 32, 20], surf: 'asphalt2', name: 'コンビニの駐車場' },
     { id: 'park', kind: 'park', rect: [-12, 14, 6.2, 30], surf: 'gravel', name: '児童公園' },
     { id: 'bridge', kind: 'bridge', rect: [6.2, 22, 7.6, 24.5], surf: 'concrete', name: '公園への小さな橋' },
     { id: 'homeYard', kind: 'yard', rect: [36, 43, 48, 46], surf: 'concrete', name: '自宅の前庭' },
     { id: 'carport', kind: 'yard', rect: [30.5, 43, 36, 52], surf: 'concrete', name: '自宅のカーポート' },
+    // フェーズ10：ガラスの屋根の広場・通り抜け・横丁・中央通り（電車通り・バス通り）・駅前広場
+    { id: 'passage', kind: 'passage', rect: [4.5, -28, 10.6, -22], surf: 'arcade_floor', name: 'アーケードから広場への通り抜け', roof: true },
+    { id: 'gplaza', kind: 'plaza', rect: [10.6, -34, 36, -6.5], surf: 'granite', name: 'ガラス屋根の広場（仮）', roof: true },
+    { id: 'gpass', kind: 'passage', rect: [20, -6.5, 26, 1], surf: 'granite', name: '広場への入口（駅前通りから）', roof: true },
+    { id: 'yokocho', kind: 'lane', rect: [36, -24, 66, -19.5], surf: 'paving', name: '横丁（広場 → 中央通り）' },
+    { id: 'aveW', kind: 'sidewalk', rect: [66, -78, 70, 4.5], surf: 'interlock', name: '中央通りの歩道（西）' },
+    { id: 'aveWs', kind: 'sidewalk', rect: [66, 11.5, 70, 46], surf: 'interlock', name: '中央通りの歩道（西・南）' },
+    { id: 'avenue', kind: 'avenue', rect: [70, -78, 88, 46], surf: 'asphalt', name: '中央通り（電車通り・バス通り）' },
+    { id: 'aveE', kind: 'sidewalk', rect: [88, -78, 92, 46], surf: 'interlock', name: '中央通りの歩道（東）' },
+    { id: 'station', kind: 'plaza', rect: [40, -112, 116, -78], surf: 'paving', name: '駅前広場' },
   ],
   // 用水路（低い柵＝当たり判定。橋・暗渠の所は渡れる）
   channel: { x0: 6.2, x1: 7.6, z0: 14, z1: 66, gaps: [[22, 24.5], [38, 43]], depth: 0.9 },
@@ -40,16 +54,36 @@ export const TOWN = {
     { id: 'n3', kind: 'shop', rect: [-22, -16, -10.6, 1], face: 'S', floors: 2, wall: 'siding2', tint: 0xb8c0c8, sign: 'クリーニング取次', shutter: true },
     { id: 'cw', kind: 'shop', rect: [-10.6, -4, -6, 1], face: 'S', floors: 2, wall: 'mortar', tint: 0xc8b8a8, sign: 'たばこ', side: 'E', shutter: true },
     { id: 'ce', kind: 'shop', rect: [6, -4, 10.6, 1], face: 'S', floors: 2, wall: 'tilewall', tint: 0xc0a090, sign: 'たい焼き', side: 'W', shutter: true },
-    { id: 'n4', kind: 'bldg', rect: [10.6, -16, 20, 1], face: 'S', floors: 3, wall: 'tilewall', tint: 0x9a8a88, sign: '居酒屋 まねき', sign2: '英会話・2F', litSign: true },
-    { id: 'n5', kind: 'parking', rect: [20, -10, 31, 1], face: 'S', sign: 'P　24時間' },
-    { id: 'n6', kind: 'bldg', rect: [31, -16, 44, 1], face: 'S', floors: 2, wall: 'mortar', tint: 0xd0d4d8, sign: '信用金庫（仮）', shutter: true, office: true },
-    { id: 'n7', kind: 'shop', rect: [44, -16, 60, 1], face: 'S', floors: 2, wall: 'wood', tint: 0xb09080, sign: '金物 いしだ', shutter: true },
+    { id: 'n4', kind: 'bldg', rect: [10.6, -6.5, 20, 1], face: 'S', floors: 3, wall: 'tilewall', tint: 0x9a8a88, sign: '居酒屋 まねき', sign2: '英会話・2F', litSign: true },
+    { id: 'n5', kind: 'shop', rect: [26, -6.5, 31, 1], face: 'S', floors: 2, wall: 'mortar', tint: 0xc8b8a0, sign: '喫茶 ふたば（仮）', litSign: true },
+    { id: 'n6', kind: 'bldg', rect: [31, -6.5, 44, 1], face: 'S', floors: 2, wall: 'mortar', tint: 0xd0d4d8, sign: '信用金庫（仮）', shutter: true, office: true },
+    { id: 'n6b', kind: 'shop', rect: [36, -19.5, 44, -6.5], face: 'N', floors: 3, wall: 'tilewall', tint: 0xb0a8a0, sign: '画廊 しらゆき（仮）', shutter: true },
+    { id: 'n7', kind: 'shop', rect: [44, -19.5, 60, 1], face: 'S', floors: 2, wall: 'wood', tint: 0xb09080, sign: '金物 いしだ', shutter: true },
+    { id: 'n8', kind: 'machiya', rect: [60, -19.5, 66, 1], face: 'E', sign: 'そば処 ゆきみ（仮）', noren: 0x2a3a6a, lit: true },
+    // フェーズ10：ガラスの屋根の広場のまわり・横丁・中央通りの西側（表は東）
+    { id: 'd1', kind: 'dept', rect: [11.4, -45, 36, -34], face: 'S', floors: 5, sign: 'まちなかビル（仮）', tint: 0xa8b0b8 },
+    { id: 'w4', kind: 'shop', rect: [36, -34, 50, -24], face: 'S', floors: 2, wall: 'wood', tint: 0xa88a70, sign: '居酒屋 ゆきあかり（仮）', litSign: true, lanterns: true },
+    { id: 'w5', kind: 'fillB', rect: [36, -78, 50, -34] }, { id: 'f_dt', kind: 'fillB', rect: [17, -78, 36, -45] },
+    { id: 'w1', kind: 'machiya', rect: [50, -40, 66, -24], face: 'E', sign: '和菓子 つきしろ（仮）', noren: 0x6a2a3a, lit: false },
+    { id: 'w2', kind: 'tower', rect: [50, -60, 66, -40], face: 'E', floors: 6, sign: 'ホテル　北の灯（仮）', tint: 0xb8b4ac, litTop: true },
+    { id: 'w3', kind: 'tower', rect: [50, -78, 66, -60], face: 'E', floors: 4, sign: '眼鏡・時計 ときわ（仮）', tint: 0xc8c0b0, oldStyle: true },
+    // 中央通りの東側（表は西）
+    { id: 'e1', kind: 'apartment', rect: [92, 22, 118, 46], face: 'W', floors: 5, wall: 'tilewall', tint: 0xb0a49a, sign: 'サンハイツ中央（仮）' },
+    { id: 'e2', kind: 'tower', rect: [92, 4, 118, 22], face: 'W', floors: 7, sign: 'ビジネスホテル（仮）', tint: 0xa8acb4, litTop: true },
+    { id: 'e3', kind: 'machiya', rect: [92, -14, 118, 4], face: 'W', sign: '呉服 あさぎ（仮）', noren: 0x3a2a5a, lit: true },
+    { id: 'e4', kind: 'tower', rect: [92, -30, 118, -14], face: 'W', floors: 5, sign: '銀行（仮）', tint: 0xc0c4c8, office: true },
+    { id: 'e5', kind: 'machiya', rect: [92, -50, 118, -30], face: 'W', sign: '茶舗 みどり（仮）', noren: 0x2a5a3a, lit: false },
+    { id: 'e6', kind: 'dept', rect: [92, -78, 118, -50], face: 'W', floors: 7, sign: '百貨店 はなぶさ（仮）', tint: 0xb4aca4 },
+    // 駅前（駅舎・広場の端）
+    { id: 'stationB', kind: 'station', rect: [44, -128, 116, -112], face: 'S' },
+    { id: 'f_sw', kind: 'fillB', rect: [36, -128, 44, -78] }, { id: 'f_se', kind: 'fillB', rect: [116, -128, 118, -78] },
     // 駅前通りの南側（表は北）
     { id: 's1', kind: 'house', rect: [-44, 14, -28, 30], face: 'N', wall: 'siding', tint: 0xd8cfc0, roof: 'kawara', name: '大島', fenceKind: 'block' },
     { id: 's2', kind: 'shop', rect: [-28, 14, -12, 30], face: 'N', floors: 2, wall: 'mortar', tint: 0xc8c0b0, sign: '理容 ひかり', shutter: true, barber: true },
     { id: 'konbini', kind: 'konbini', rect: [13, 20, 32, 27], face: 'N', sign: 'コンビニ（仮）　24h' },
     { id: 's3', kind: 'apartment', rect: [32, 14, 46, 27], face: 'N', floors: 2, wall: 'siding2', tint: 0xd8dcd0, sign: 'コーポ みずほ（仮）', open: true },
     { id: 's4', kind: 'house', rect: [46, 14, 60, 27], face: 'N', wall: 'siding', tint: 0xc8d0d8, roof: 'kawara2', name: '杉本', fenceKind: 'hedge' },
+    { id: 's5', kind: 'shop', rect: [60, 14, 66, 27], face: 'E', floors: 2, wall: 'siding2', tint: 0xd0d4c8, sign: '整骨院（仮）', shutter: true },
     // 自宅の前の道の北側（表は南）
     { id: 'a1', kind: 'house', rect: [13, 27, 24, 38], face: 'S', wall: 'siding', tint: 0xe0d8c8, roof: 'kawara', name: '上田', fenceKind: 'block', side: 'W' },
     { id: 'a2', kind: 'house', rect: [24, 27, 36, 38], face: 'S', wall: 'wood', tint: 0xc0a080, roof: 'kawara2', name: '森川', fenceKind: 'hedge' },
@@ -65,8 +99,9 @@ export const TOWN = {
     { id: 'w3', kind: 'house', rect: [-6, 45, 6.2, 66], face: 'N', wall: 'wood', tint: 0xb89a7a, roof: 'kawara', name: '西村', fenceKind: 'block' },
     // 見えるだけの奥（当たり判定の埋め）
     { id: 'f_w1', kind: 'fill', rect: [-44, 30, -12, 38] }, { id: 'f_w2', kind: 'fill', rect: [-44, 38, -6, 45] }, { id: 'f_w4', kind: 'fill', rect: [-44, 45, -6, 66] },
-    { id: 'f_c2', kind: 'fill', rect: [0, 43, 6.2, 45] }, { id: 'f_e', kind: 'field', rect: [60, 14, 64, 27] }, { id: 'f_e2', kind: 'field', rect: [62, 27, 64, 66] },
-    { id: 'f_endW', kind: 'barrier', rect: [-46, 1, -44, 14] }, { id: 'f_endE', kind: 'barrier', rect: [60, 1, 64, 14] },
+    { id: 'f_c2', kind: 'fill', rect: [0, 43, 6.2, 45] }, { id: 'f_e2', kind: 'fill', rect: [62, 27, 66, 38] }, { id: 'f_e3', kind: 'fill', rect: [62, 43, 66, 66] },
+    { id: 'f_endW', kind: 'barrier', rect: [-46, 1, -44, 14] },
+    { id: 'f_aveS', kind: 'barrier2', rect: [66, 46, 92, 48] }, { id: 'f_aveS2', kind: 'field', rect: [66, 48, 118, 66] }, { id: 'f_aveS3', kind: 'fill', rect: [92, 46, 118, 48] },
   ],
   // 自宅の区画の中の当たり判定（家の壁は level.js の buildHome。ここは塀・物置・裏庭）
   homeLot: {
@@ -77,17 +112,29 @@ export const TOWN = {
   crossings: [
     { id: 'x_main', x0: 8.6, x1: 12.4, z0: 4.5, z1: 11.5, signal: true },        // 用水路沿いの道の正面（信号つき）
     { id: 'x_fore', x0: -2.2, x1: 2.2, z0: 4.5, z1: 11.5, signal: false },       // アーケード前（信号なし・押しボタン無し）
+    // フェーズ10：中央通りの交差点（駅前通りが突き当たる）・電停の前の横断歩道。along：歩く向き（z＝南北に渡る・x＝東西に渡る）
+    { id: 'x_aveW', x0: 66.2, x1: 69.8, z0: 4.5, z1: 11.5, signal: true, phase: 0 },
+    { id: 'x_aveN', x0: 70, x1: 88, z0: -2.8, z1: 0.6, signal: true, along: 'x', phase: 1 },
+    { id: 'x_aveS', x0: 70, x1: 88, z0: 14.4, z1: 17.8, signal: true, along: 'x', phase: 1 },
+    { id: 'x_tram', x0: 70, x1: 88, z0: -29.8, z1: -26.6, signal: true, along: 'x', phase: 1 },
   ],
   // 電柱（l：街灯つき）。電線は順につなぐ（line ごと）
   poleLines: [
-    { id: 'pl_main', pts: [[-40, 4.15], [-28, 4.15], [-17.5, 4.15], [16, 4.15], [28, 4.15], [40, 4.15], [54, 4.15]], lamp: 'tall' },
-    { id: 'pl_mainS', pts: [[-36, 11.85], [-20, 11.85], [-8, 11.85], [24, 11.85], [38, 11.85], [52, 11.85]], lamp: 'tall' },
+    { id: 'pl_main', pts: [[-40, 4.15], [-28, 4.15], [-17.5, 4.15], [16, 4.15], [28, 4.15], [40, 4.15], [54, 4.15], [64.2, 4.15]], lamp: 'tall' },
+    { id: 'pl_mainS', pts: [[-36, 11.85], [-20, 11.85], [-8, 11.85], [24, 11.85], [38, 11.85], [52, 11.85], [64.2, 11.85]], lamp: 'tall' },
+    { id: 'pl_yoko', pts: [[40, -19.85], [52, -19.85], [63, -19.85]], lamp: 'small' },
     { id: 'pl_laneB', pts: [[13.3, 16.5], [13.3, 26.5], [13.3, 36.5]], lamp: 'small' },
-    { id: 'pl_laneA', pts: [[14.5, 37.75], [26, 37.75], [37.5, 37.75], [49, 37.75], [60.5, 37.75]], lamp: 'small' },
+    { id: 'pl_laneA', pts: [[14.5, 37.75], [26, 37.75], [37.5, 37.75], [49, 37.75], [60.5, 37.75], [65.6, 37.75]], lamp: 'small' },
     { id: 'pl_west', pts: [[2, 37.7], [-5, 45.3]], lamp: 'small' },
   ],
-  deadLamps: ['pl_laneA:3'],        // 切れた街灯（ちらつかずに消えている）
-  flickerLamps: ['pl_laneB:1', 'pl_main:4'],
+  deadLamps: ['pl_laneA:3', 'ave_W:3'],        // 切れた街灯（ちらつかずに消えている）
+  flickerLamps: ['pl_laneB:1', 'pl_main:4', 'ave_E:2', 'st:3'],
+  // フェーズ10：中央通り・駅前の街灯（電線のない高い灯：l＝腕の向き）
+  streetLights: [
+    { id: 'ave_W', pts: [[66.5, 32], [66.5, 8.0], [66.5, -10], [66.5, -34], [66.5, -52], [66.5, -72]], dir: [1, 0] },
+    { id: 'ave_E', pts: [[91.5, 34], [91.5, 10], [91.5, -10], [91.5, -34], [91.5, -56], [91.5, -74]], dir: [-1, 0] },
+    { id: 'st', pts: [[46, -82], [58, -106], [90, -82], [102, -108], [112, -82], [46, -100]], dir: [0, 0] },
+  ],
   // 小物（kind ごとに world/town.js が形を作る）
   props: [
     { kind: 'mirror', x: 7.9, z: 37.6, ry: Math.PI * 0.25 }, { kind: 'mirror', x: 13.2, z: 14.4, ry: -Math.PI * 0.75 }, { kind: 'mirror', x: 0.3, z: 37.7, ry: Math.PI * 0.75 },
@@ -102,12 +149,21 @@ export const TOWN = {
     { kind: 'car', x: 25.5, z: -4.5, ry: 0, color: 0x6a6a72 },                   // コインパーキング
     { kind: 'car', x: -30, z: 9.6, ry: -Math.PI / 2, color: 0xc8c8c8, abandoned: true },   // 乗り捨てられた車（道の上）
     { kind: 'bike', x: 47.2, z: 44.2, ry: 0.3 }, { kind: 'bike', x: 21.5, z: 42.7, ry: 1.4 },
-    { kind: 'cone', x: -42, z: 6 }, { kind: 'cone', x: -42, z: 9 }, { kind: 'cone', x: 58, z: 6 }, { kind: 'cone', x: 58, z: 9 },
+    { kind: 'cone', x: -42, z: 6 }, { kind: 'cone', x: -42, z: 9 },
     { kind: 'sign', x: 13.4, z: 15.2, text: '通学路', color: 0x2a6ad0 }, { kind: 'sign', x: 13.15, z: 36.6, text: '止まれ', color: 0xc02a2a, tri: true },
     { kind: 'sign', x: 7.8, z: 15.0, text: '止まれ', color: 0xc02a2a, tri: true },
     { kind: 'planter', x: 36.6, z: 43.6 }, { kind: 'planter', x: 47.3, z: 43.6 },
     { kind: 'board', x: 19.4, z: 37.95, text: '回覧：ゴミは朝 8 時までに' },
     { kind: 'snowpole', x: 12.8, z: 30 }, { kind: 'snowpole', x: 12.8, z: 22 },          // 雪国の町らしさ（矢羽根）：場所は決めない
+    // フェーズ10：中央通り（バス停・矢羽根・雪囲いの植え込み）
+    { kind: 'busstop2', x: 66.9, z: -58, ry: Math.PI / 2, name: 'バス停　中央通り（仮）', solid: [66.25, -59.6, 67.45, -56.4] },
+    { kind: 'busstop2', x: 91.1, z: 28, ry: -Math.PI / 2, name: 'バス停　中央通り南（仮）', solid: [90.55, 26.4, 91.75, 29.6] },
+    ...[38, 22, -4, -16, -40, -46, -66].map(z => ({ kind: 'snowpole', x: 69.8, z })), ...[38, 20, -6, -20, -44, -64].map(z => ({ kind: 'snowpole', x: 88.2, z })),
+    ...[30, 20, -14, -40, -64].map(z => ({ kind: 'yukigakoi', x: 69.25, z })), ...[16, -4, -22, -44, -62].map(z => ({ kind: 'yukigakoi', x: 88.75, z })),
+    { kind: 'sign', x: 69.7, z: 18.6, text: '電車通り', color: 0x2a6ad0 }, { kind: 'sign', x: 69.7, z: -76.5, text: '駅前', color: 0x2a6ad0 },
+    { kind: 'vending', x: 65.55, z: -15.0, ry: Math.PI / 2, color: 0x2a6ad0 },
+    { kind: 'car', x: 72.2, z: 24, ry: Math.PI, color: 0x8a8a92, hazard: true },
+    { kind: 'car', x: 86.0, z: -12, ry: 0, color: 0x3a3a48 },
   ],
   // 公園の中
   park: { swing: [-8, 20], slide: [-2, 24.5], sand: [-7.5, 26.5], bench: [[0.5, 17.5], [-10.5, 18]], toilet: [-10, 27.5], trees: [[-11, 15.5], [4.8, 15.6], [4.8, 28.6], [-11, 28.8], [-4.5, 29]], lamp: [-3, 21], entry: [-5, -2] },
@@ -125,12 +181,76 @@ export const TOWN = {
     nodes: {
       arcade: [0, -6], gate: [0, -3], fore: [0, 2.6], xN: [10.5, 2.8], xS: [10.5, 12.8], j2: [10.5, 16], j1: [10.5, 40.5],
       homeGate: [42, 40.5], homeYard: [42, 44.6], homeDoor: [42, 46.6], lb: [10.5, 23.2], park: [3.0, 23.2], shrine: [-3, 40.5], konbini: [22.6, 15.2], east: [58, 2.8], west: [-42, 2.8],
+      // フェーズ10：通り抜け・広場・横丁・中央通り・駅前
+      arcMid: [0, -25], passage: [7.5, -25], gpW: [12.5, -23], gpC: [23, -21.75], gpS: [23, -4], n23: [23, 2.8], ysW: [37, -21.75],
+      aveXN: [68, 2.8], aveXS: [68, 12.8], aveS1: [68, 40.5], laneE: [62, 40.5], aveSide: [68, -21.75], aveTram: [68, -28.2], aveBus: [68, -50], aveN: [68, -80],
+      xtW: [75.5, -28.2], xtE: [82.5, -28.2], tpW: [75.5, -38], tpE: [82.5, -38], aveETram: [90, -28.2], aveEN: [90, -80], aveEXN: [90, -1.2],
+      stSW: [85, -80], stFront: [85, -106], stDoor: [79, -108], stIsl: [76.8, -81], stIslN: [76.8, -98.6], stTram: [68, -98.6], stBus: [97, -97], stTaxi: [51.5, -90], stClock: [60, -82.5],
     },
     edges: [['arcade', 'gate'], ['gate', 'fore'], ['fore', 'xN'], ['xN', 'xS'], ['xS', 'j2'], ['j2', 'lb'], ['lb', 'j1'], ['j1', 'homeGate'], ['homeGate', 'homeYard'], ['homeYard', 'homeDoor'],
-      ['lb', 'park'], ['j1', 'shrine'], ['xS', 'konbini'], ['xN', 'east'], ['fore', 'west']],
+      ['lb', 'park'], ['j1', 'shrine'], ['xS', 'konbini'], ['xN', 'n23'], ['n23', 'east'], ['fore', 'west'],
+      ['arcade', 'arcMid'], ['arcMid', 'passage'], ['passage', 'gpW'], ['gpW', 'gpC'], ['gpC', 'gpS'], ['gpS', 'n23'], ['gpC', 'ysW'], ['ysW', 'aveSide'],
+      ['east', 'aveXN'], ['aveXN', 'aveXS'], ['aveXS', 'aveS1'], ['aveS1', 'laneE'], ['laneE', 'homeGate'], ['aveXN', 'aveSide'], ['aveSide', 'aveTram'], ['aveTram', 'aveBus'], ['aveBus', 'aveN'],
+      ['aveTram', 'xtW'], ['xtW', 'tpW'], ['xtW', 'xtE'], ['xtE', 'tpE'], ['xtE', 'aveETram'], ['aveETram', 'aveEXN'], ['aveXN', 'aveEXN'], ['aveETram', 'aveEN'],
+      ['aveN', 'stClock'], ['aveN', 'stIsl'], ['stIsl', 'stSW'], ['aveEN', 'stSW'], ['stSW', 'stFront'], ['stFront', 'stDoor'], ['stIsl', 'stIslN'], ['stIslN', 'stTram'], ['stFront', 'stBus'], ['stClock', 'stTaxi']],
   },
   // 自宅 → アーケードの道のり（通しプレイで実際に歩く。角ごとの点）
   route: [[42, 47.2], [42, 44.6], [42, 40.5], [10.5, 40.5], [10.5, 12.8], [10.5, 2.8], [0, 2.8], [0, -6]],
+  // フェーズ10：歩いて行ける道のり（通しプレイ・試験）。自宅 → 駅（家の前の道を東 → 中央通りを北 → 駅前広場 → 駅舎の前）／駅 → 商店街（中央通り → 横丁 → 広場 → 通り抜け → アーケード）
+  routes: {
+    home_station: [[42, 47.2], [42, 44.6], [42, 40.5], [68, 40.5], [68, 12.8], [68, 2.8], [68, -80], [85, -80], [85, -106], [79, -108]],
+    station_arcade: [[79, -108], [85, -106], [85, -80], [68, -80], [68, -21.75], [37, -21.75], [23, -21.75], [12.5, -23.5], [7.5, -25], [0, -25], [0, -30]],
+  },
+  // ── フェーズ10：中央通り（電車通り・バス通り）・駅前の細かい配置 ──
+  avenue: {
+    x0: 70, x1: 88, z0: -78, z1: 46, lanes: [73.5, 84.5],     // 車線の境（破線）
+    // 路面電車の線路（2 本の線路の中心。軌間 1.067m）。南の端（z 46）から北へ、駅前広場で輪になる（反時計回り：T2 で入り T1 で出る）
+    tracks: [
+      { id: 'T2', pts: [[80.25, 46], [80.25, -96], [56, -96], [56, -84], [77.75, -84], [77.75, 46]], r: 4.5 },
+    ],
+    gauge: 1.067,
+    // 電停（中央通りの真ん中・線路の両側の島）：高さ 0.24m（歩いて上がれる）。rail：車道側の手すり
+    stops: [
+      { id: 'tsW', rect: [74.6, -46, 76.5, -30], name: '電停　商店街前（仮）', rail: 'W', shelter: [-42, -34] },
+      { id: 'tsE', rect: [81.5, -46, 83.4, -30], name: '電停　商店街前（仮）', rail: 'E', shelter: [-42, -34] },
+      { id: 'tsSt', rect: [58, -100.2, 78, -97.6], name: '電停　駅前（仮）', rail: null, station: true },
+    ],
+    // 架線の柱（線路の間・輪のまわり）。電線は柱の順に張る
+    catenary: [
+      { pts: [[79, 40], [79, 16], [79, -8], [79, -32], [79, -56], [79, -76]], arms: [77.75, 80.25] },
+      { pts: [[82.6, -88], [82.6, -98.8], [66, -98.8]], loop: true },
+    ],
+    // 消雪の水の出口（道の中央・さびの跡）：x の列 × z の範囲
+    nozzles: [{ x: 75.0, z0: -76, z1: 44, step: 3 }, { x: 83.0, z0: -76, z1: 44, step: 3 }, { z: 8, x0: -40, x1: 68, step: 3.2 }],
+    // 停まった路面電車（独自の意匠：2 両つなぎ・白に青緑の帯）と バス・タクシー
+    trams: [
+      { id: 'tram1', x: 77.75, z: -38, ry: 0, len: 14.4, dest: '回送', hazard: true },
+      { id: 'tram2', x: 67, z: -96, ry: Math.PI / 2, len: 14.4, dest: '駅前', lit: true },
+    ],
+    buses: [
+      { id: 'bus1', x: 101, z: -96, ry: 0, dest: '回送', lit: true },
+      { id: 'bus2', x: 72.0, z: -64, ry: Math.PI, dest: '中央通り経由　駅前', lit: false },
+    ],
+  },
+  station: {
+    rect: [44, -128, 116, -112], front: -112, atrium: [70, 88],
+    canopy: [50, -112, 110, -98.4, 9.2],                     // 大屋根（x0, z0, x1, z1, 高さ）
+    clock: [62, -80],
+    bikes: { rect: [40.6, -86, 54, -80.6] },                // 駐輪場（屋根つき）
+    taxi: { lane: [42.5, -110, 54, -86], stand: [53, -102], cars: [[45, -108, 0], [45, -102.5, 0], [45, -97, 0], [45, -91.5, 0]] },
+    bus: { islands: [[96, -106, 98, -84], [104, -106, 106, -84]], bays: ['1', '2', '3', '4'], shelter: true },
+    walkway: { x0: 92.4, x1: 94.6, z0: -98.4, z1: -80 },      // 屋根つきの歩道（大屋根 → 中央通りの歩道）
+    island: [58.5, -94, 75.5, -86],                           // 線路の輪の中の植え込み
+    benches: [[57, -79.0], [47, -79.0], [110, -86], [113, -96]],
+  },
+  // ガラスの屋根の広場（総曲輪の広場の雰囲気を参考にした独自の意匠）。屋根の高さ・柱・舞台・段の席・大きな画面・机と椅子・植え込み
+  gplaza: {
+    rect: [10.6, -34, 36, -6.5], roofY: 15.5, ridgeY: 18.5, cols: [[10.9, -33.7], [23.3, -33.7], [35.7, -33.7], [35.7, -6.8], [26.2, -6.8], [19.8, -6.8], [10.9, -6.8], [10.9, -20.2]],
+    stage: [16, -33.6, 30, -30.4], steps: [[13, -16.2, 19, -14.2], [27, -16.2, 33, -14.2]], screen: [23, -33.9, 10, 4.2],
+    tables: [[15, -10.6], [20.5, -11.4], [30.5, -10.6]], planters: [[13.2, -27.4], [33.6, -27.4], [33.6, -12.2]], name: 'ひかり広場（仮）',
+  },
+  // 細い隙間をふさぐ当たり判定（見た目は建物のかげ）
+  closers: [[10.5, -35.3, 11.4, -34], [36, -78, 40, -76], [116, -78, 118, -76]],
 };
 
 /** 当たり判定の箱（world/town.js と同じ物）。アーケードの中は data/level.js（level.js が作る） */
@@ -144,7 +264,8 @@ export function townSolids(T = TOWN) {
     if (L.kind === 'barrier') { R(x0, z0, x1, z1, 1.4); continue; }
     if (L.kind === 'field') { R(x0, z0, x1, z1, 1.4); continue; }
     if (L.kind === 'house') { R(x0, z0, x1, z1, 1.8); const f = houseFoot(L); R(f[0], f[1], f[2], f[3], 7.5); continue; }
-    R(x0, z0, x1, z1, L.kind === 'fill' ? 3 : 7.5);
+    if (L.kind === 'barrier2') { R(x0, z0, x1, z1, 1.4); continue; }
+    R(x0, z0, x1, z1, L.kind === 'fill' ? 3 : ['tower', 'dept', 'station', 'fillB'].includes(L.kind) ? 14 : 7.5);
   }
   // 自宅の区画：前の塀（門・カーポートの口を空ける）・横と裏
   const H = T.homeLot;
@@ -174,8 +295,73 @@ export function townSolids(T = TOWN) {
   }
   // ガードレール（南の歩道の縁：横断歩道・角を空ける）
   for (const [a, b] of guardSpans(T)) R(a, 11.4, b, 11.6, 0.9);
+  // ── フェーズ10：中央通り・駅前・ガラスの屋根の広場 ──
+  if (T.streetLights) for (const sl of T.streetLights) for (const [x, zz] of sl.pts) R(x - 0.15, zz - 0.15, x + 0.15, zz + 0.15, 9);
+  for (const p of T.props) {
+    if (p.kind === 'busstop2') R(...p.solid, 2.6);
+    if (p.kind === 'yukigakoi') R(p.x - 0.45, p.z - 0.45, p.x + 0.45, p.z + 0.45, 1.8);
+  }
+  for (const [x, zz] of signalPoles(T)) R(x - 0.1, zz - 0.1, x + 0.1, zz + 0.1, 5);
+  const A = T.avenue;
+  if (A) {
+    for (const st of A.stops) {                                       // 電停：島（歩いて上がれる 0.24m）・車道側の手すり・屋根の柱
+      const [x0, z0, x1, z1] = st.rect; R(x0, z0, x1, z1, 0.24);
+      if (st.rail === 'W') R(x0, z0, x0 + 0.12, z1 - 1.2, 1.1); if (st.rail === 'E') R(x1 - 0.12, z0, x1, z1 - 1.2, 1.1);
+      if (st.rail) R(x0, z0, x1, z0 + 0.12, 1.1);                     // 南の端も手すり（北の端が横断歩道への口）
+      for (const [x, zz] of stopPosts(st)) R(x - 0.06, zz - 0.06, x + 0.06, zz + 0.06, 2.6);
+    }
+    for (const [x, zz] of catenaryPoles(T)) R(x - 0.16, zz - 0.16, x + 0.16, zz + 0.16, 8);
+    for (const t of A.trams) { const [x0, z0, x1, z1] = vehicleRect(t.x, t.z, t.ry, t.len, 2.4); R(x0, z0, x1, z1, 3.6); }
+    for (const b of A.buses) { const [x0, z0, x1, z1] = vehicleRect(b.x, b.z, b.ry, 10.5, 2.5); R(x0, z0, x1, z1, 3.2); }
+  }
+  const ST = T.station;
+  if (ST) {
+    { const [x, zz] = ST.clock; R(x - 0.5, zz - 0.5, x + 0.5, zz + 0.5, 6); }
+    { const [x0, z0, x1, z1] = ST.bikes.rect; R(x0, z0 + 1.2, x1, z0 + 2.0, 1.1); R(x0, z1 - 2.0, x1, z1 - 1.2, 1.1); for (const [x, zz] of [[x0 + 0.2, z0 + 0.3], [x1 - 0.2, z0 + 0.3], [x0 + 0.2, z1 - 0.3], [x1 - 0.2, z1 - 0.3]]) R(x - 0.08, zz - 0.08, x + 0.08, zz + 0.08, 2.4); }
+    for (const [x, zz] of ST.taxi.cars) R(x - 0.85, zz - 2.2, x + 0.85, zz + 2.2, 1.5);
+    { const [x, zz] = ST.taxi.stand; R(x - 1.6, zz - 0.3, x + 1.6, zz + 0.3, 2.4); }
+    for (const [x0, z0, x1, z1] of ST.bus.islands) { R(x0, z0, x1, z1, 0.24); for (let zz = z0 + 2; zz < z1 - 1; zz += 5.5) R(x0 + 0.1, zz - 0.08, x0 + 0.26, zz + 0.08, 2.6); }
+    for (const [x, zz] of walkwayPosts(T)) R(x - 0.07, zz - 0.07, x + 0.07, zz + 0.07, 3);
+    for (const [x, zz] of canopyColumns(T)) R(x - 0.25, zz - 0.25, x + 0.25, zz + 0.25, 9);
+    { const [x0, z0, x1, z1] = ST.island; R(x0, z0, x1, z1, 0.6); }
+    for (const [x, zz] of ST.benches) R(x - 0.9, zz - 0.3, x + 0.9, zz + 0.3, 0.8);
+  }
+  const G = T.gplaza;
+  if (G) {
+    for (const [x, zz] of G.cols) R(x - 0.25, zz - 0.25, x + 0.25, zz + 0.25, 16);
+    R(...G.stage, 0.6);
+    for (const r of G.steps) R(...r, 0.8);
+    for (const [x, zz] of G.tables) R(x - 0.9, zz - 0.9, x + 0.9, zz + 0.9, 0.9);
+    for (const [x, zz] of G.planters) R(x - 0.8, zz - 0.8, x + 0.8, zz + 0.8, 1.0);
+  }
+  for (const c of T.closers || []) R(c[0], c[1], c[2], c[3], 7);
   return out;
 }
+/** 乗り物の足もと（中心・向き・長さ・幅）→ [x0, z0, x1, z1]。ry＝0 は南北（z）に長い */
+export function vehicleRect(x, z, ry, len, w) { const along = Math.abs(Math.sin(ry)) > 0.5; const a = along ? len : w, b = along ? w : len; return [x - a / 2, z - b / 2, x + a / 2, z + b / 2]; }
+/** 信号の柱（横断歩道の両端）。along：歩く向き */
+export function signalPoles(T = TOWN) {
+  const out = [];
+  for (const c of T.crossings) {
+    if (!c.signal || c.id === 'x_main') continue;                     // x_main（用水路沿いの道の正面）は前からの形（world/town.js）
+    if (c.along === 'x') out.push([c.x0 - 0.45, c.z1 + 0.3], [c.x1 + 0.45, c.z0 - 0.3]);
+    else out.push([c.x0 + 0.25, c.z1 + 0.45], [c.x1 - 0.25, c.z0 - 0.45]);
+  }
+  return out;
+}
+/** 電停の屋根の柱 */
+export function stopPosts(st) {
+  if (!st.shelter) return [];
+  const [x0, , x1] = st.rect, [za, zb] = st.shelter, x = st.rail === 'W' ? x0 + 0.25 : x1 - 0.25, out = [];
+  for (let z = za + 0.4; z <= zb; z += 3.8) out.push([x, z]);
+  return out;
+}
+/** 架線の柱 */
+export function catenaryPoles(T = TOWN) { const out = []; if (T.avenue) for (const c of T.avenue.catenary) for (const p of c.pts) out.push(p); return out; }
+/** 屋根つき歩道の柱 */
+export function walkwayPosts(T = TOWN) { const w = T.station && T.station.walkway, out = []; if (!w) return out; for (let z = w.z0 + 0.4; z <= w.z1 - 0.2; z += 4) out.push([w.x0 + 0.1, z], [w.x1 - 0.1, z]); return out; }
+/** 駅の大屋根の柱（駅舎の前・電停より奥） */
+export function canopyColumns(T = TOWN) { const c = T.station && T.station.canopy, out = []; if (!c) return out; for (let x = c[0]; x <= c[2] + 0.1; x += 12) out.push([x, -101.4]); return out; }
 /** 家の建物の足もと（区画の中・表から下がる） */
 export function houseFoot(L) {
   const [x0, z0, x1, z1] = L.rect, f = L.face, set = 3.2, side = 1.2, back = L.shallow ? 0.8 : 2.4;
@@ -187,10 +373,10 @@ export function houseFoot(L) {
 }
 /** ガードレールの区間（南の歩道の縁・x の範囲）。横断歩道・角・コンビニの出入り口・公園の入口を空ける */
 export function guardSpans(T = TOWN) {
-  const gaps = [[7, 14.5], [-2.8, 2.8], [14.5, 32], [-6.5, -0.5]]; void T;
+  const gaps = [[7, 14.5], [-2.8, 2.8], [14.5, 32], [-6.5, -0.5], [61.6, 67]]; void T;
   const out = []; let x = -43;
   for (const [a, b] of gaps.slice().sort((p, q) => p[0] - q[0])) { if (a > x) out.push([x, a]); x = Math.max(x, b); }
-  if (x < 59) out.push([x, 59]);
+  if (x < 65.5) out.push([x, 65.5]);
   return out;
 }
 /** 街灯の一覧（電柱から）：{ id, x, z, h, kind, dead, flicker } */
@@ -199,6 +385,10 @@ export function townLamps(T = TOWN) {
   for (const pl of T.poleLines) pl.pts.forEach(([x, z], i) => {
     const id = pl.id + ':' + i;
     out.push({ id, x, z, kind: pl.lamp, h: pl.lamp === 'tall' ? 6.2 : 4.6, dead: T.deadLamps.includes(id), flicker: T.flickerLamps.includes(id) });
+  });
+  if (T.streetLights) for (const sl of T.streetLights) sl.pts.forEach(([x, z], i) => {
+    const id = sl.id + ':' + i;
+    out.push({ id, x, z, kind: 'modern', h: 7.6, dir: sl.dir, dead: T.deadLamps.includes(id), flicker: T.flickerLamps.includes(id) });
   });
   return out;
 }
@@ -241,43 +431,55 @@ export function navNext(x, z, tx, tz, T = TOWN) {
 }
 
 /**
- * 古いセーブ（town1：自宅がアーケードの南の正面・z 6〜16）の位置を今の町へ移す。
- * 家の中 → 同じ家具の前（ローカル座標のまま自宅へ）／家の前の路地（z −4〜6）→ アーケード前の広場／アーケードの中 → そのまま。
+ * 古いセーブの位置を今の町（town3）へ移す。from：セーブの place.layout（無し＝town1）。
+ * town1（自宅がアーケードの南の正面・z 6〜16）：家の中 → 同じ家具の前（ローカル座標のまま自宅へ）／家の前の路地（z −4〜6）→ アーケード前の広場／アーケードの中 → そのまま。
+ * town2（フェーズ9）：歩ける所は同じ（増えただけ）。新しい物（信号の柱・街灯など）に重なった時だけ、いちばん近い道案内の点へ。
  */
-export function migrateTownPos(pos) {
-  const x = pos[0], z = pos[2] != null ? pos[2] : pos[1];
-  if (z > 6 - 0.4 && Math.abs(x) < 6.4 && z < 16.6) { const [wx, wz] = homeW(Math.max(-5.5, Math.min(5.5, x)), Math.max(6.6, Math.min(15.6, z))); return { pos: [wx, 0, wz], moved: 'home' }; }
-  if (z > -4.2) return { pos: [0, 0, -2], moved: 'forecourt' };
-  return { pos: [x, 0, z], moved: null };
+export function migrateTownPos(pos, from) {
+  let x = pos[0], z = pos[2] != null ? pos[2] : pos[1], moved = null;
+  if (from !== 'town2' && from !== TOWN_LAYOUT) {
+    if (z > 6 - 0.4 && Math.abs(x) < 6.4 && z < 16.6) { const [wx, wz] = homeW(Math.max(-5.5, Math.min(5.5, x)), Math.max(6.6, Math.min(15.6, z))); return { pos: [wx, 0, wz], moved: 'home' }; }
+    if (z > -4.2) return { pos: [0, 0, -2], moved: 'forecourt' };
+    return { pos: [x, 0, z], moved: null };
+  }
+  if (!inHome(x, z) && z > -4.2) {
+    const R = 0.4, hit = townSolids().some(b => b.maxY > 0.25 && x > b.minX - R && x < b.maxX + R && z > b.minZ - R && z < b.maxZ + R);
+    if (hit) { const k = nearestNode(x, z); [x, z] = TOWN.nav.nodes[k]; moved = 'nudge'; }
+  }
+  return { pos: [x, 0, z], moved };
 }
 
 // 町全体の見取り図（区画の配置・地図の画面と docs/shinshoku/TOWN_MAP.md）。単位 m・おおよそ。ゲームの区画は 1 つずつ別に読み込む（つなぎは出入り口）。
 export const MACRO = {
-  note: '町の名前は未定（境界事象の町とは別）。北陸の地方都市くらいの広さ（駅から歩いて 15〜20 分の範囲）。名前・店名はすべて仮。',
+  note: '町の名前は未定（境界事象の町とは別）。雪国の地方都市くらいの広さ（駅から歩いて 15〜20 分の範囲）。名前・店名はすべて仮。フェーズ10：駅と中央通り（電車通り・バス通り）は商店街と同じ区画で歩ける。',
   // rect：おおよその範囲（m）。label：地図の文字の位置（重ならないように手で置く）
   districts: [
-    { id: 'station', name: '駅（私鉄・仮）', rect: [-90, -420, 90, -398], kind: 'rail', label: [-80, -432] },
+    { id: 'station', name: '駅・駅前広場（仮）', rect: [40, -128, 116, -78], kind: 'rail', area: 'shotengai', label: [-40, -150] },
+    { id: 'avenue', name: '中央通り（電車通り・バス通り）', rect: [66, -78, 92, 46], kind: 'ave', area: 'shotengai', label: [110, 110] },
+    { id: 'gplaza', name: 'ガラス屋根の広場（仮）', rect: [10.6, -34, 36, -6.5], kind: 'plaza2', area: 'shotengai', label: [-170, 0] },
     { id: 'shotengai', name: 'あけぼの通り商店街', rect: [-11, -72, 11, -4], kind: 'arcade', area: 'shotengai', label: [-150, -40] },
-    { id: 'alley', name: '裏路地', rect: [-40, -110, 0, -72], kind: 'alley', area: 'alley', label: [-120, -100] },
-    { id: 'plaza', name: '商業施設の前（ことぶきSC・仮）', rect: [20, -175, 110, -110], kind: 'mall', area: 'plaza', label: [-110, -165] },
+    { id: 'alley', name: '裏路地', rect: [-40, -110, 0, -72], kind: 'alley', area: 'alley', label: [-130, -160] },
+    { id: 'plaza', name: '商業施設の前（ことぶきSC・仮）', rect: [-130, -112, -50, -76], kind: 'mall', area: 'plaza', label: [-250, -60] },
     { id: 'shelter', name: '市民体育館（避難所）', rect: [150, -175, 230, -105], kind: 'gym', area: 'shelter', label: [150, -186] },
     { id: 'tunnel', name: '地下通路', rect: [228, -110, 262, -66], kind: 'under', area: 'tunnel', label: [270, -100] },
     { id: 'hospital', name: '中央病院（仮）', rect: [250, -60, 340, 20], kind: 'hospital', area: 'hospital', label: [250, 36] },
     { id: 'office', name: '観測分室（仮）', rect: [250, -215, 300, -175], kind: 'office', area: 'office', label: [310, -200] },
     { id: 'lab', name: '研究施設（地下研究区画・旧研究棟・観測棟）', rect: [270, -370, 400, -255], kind: 'lab', area: 'lab', label: [150, -380] },
     { id: 'admin', name: '中央管理棟', rect: [410, -350, 450, -300], kind: 'admin', area: 'admin', label: [380, -290] },
-    { id: 'residential', name: '住宅地', rect: [-44, 14, 62, 66], kind: 'res', area: 'shotengai', label: [70, 50] },
-    { id: 'konbini', name: 'コンビニ', rect: [13, 14, 32, 27], kind: 'shop', area: 'shotengai', label: [70, 24] },
-    { id: 'home', name: 'だんのうらの家', rect: [30, 43, 50, 66], kind: 'home', area: 'shotengai', label: [70, 76] },
+    { id: 'residential', name: '住宅地', rect: [-44, 14, 62, 66], kind: 'res', area: 'shotengai', label: [-150, 60] },
+    { id: 'konbini', name: 'コンビニ', rect: [13, 14, 32, 27], kind: 'shop', area: 'shotengai', label: [-150, 32] },
+    { id: 'home', name: 'だんのうらの家', rect: [30, 43, 50, 66], kind: 'home', area: 'shotengai', label: [-150, 90] },
   ],
   roads: [
-    { name: '駅前通り', pts: [[-250, 8], [460, 8]], w: 7 },
-    { name: '中央通り（バス通り）', pts: [[130, 8], [130, -420]], w: 9 },
-    { name: '病院通り', pts: [[130, -40], [340, -40]], w: 6 },
-    { name: '研究施設への道', pts: [[130, -195], [330, -195], [330, -255]], w: 6 },
-    { name: '線路', pts: [[-250, -405], [460, -405]], w: 3, rail: true },
+    { name: '駅前通り', pts: [[-250, 8], [70, 8]], w: 7 },
+    { name: '中央通り（電車通り・バス通り）', pts: [[79, 60], [79, -112]], w: 18, noLabel: true },
+    { name: '病院通り', pts: [[92, -20], [340, -20]], w: 6 },
+    { name: '研究施設への道', pts: [[160, -20], [160, -195], [330, -195], [330, -255]], w: 6 },
+    { name: '線路', pts: [[-250, -136], [460, -136]], w: 3, rail: true },
+    { name: '路面電車（輪の線）', pts: [[80.25, 46], [80.25, -96], [56, -96], [56, -84], [77.75, -84], [77.75, 46]], w: 2, tram: true, noLabel: true },
     { name: '用水路', pts: [[6.9, 14], [6.9, 160]], w: 2, water: true },
     { name: '川', pts: [[-250, 175], [460, 135]], w: 18, water: true },
   ],
-  bus: [[-60, 8], [130, 8], [130, -40], [130, -140], [130, -195], [130, -400]],
+  bus: [[-60, 8], [79, 8], [79, -20], [160, -20], [250, -20]],
+  busTerminal: [[79, 8], [79, -95], [101, -95]],
 };

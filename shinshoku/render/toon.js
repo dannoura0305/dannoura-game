@@ -124,10 +124,14 @@ export function flameMaterial(opt = {}) {
   return m;
 }
 
+/** 手続きで描くキャンバスの 2D 文脈：CPU で描く（willReadFrequently）。GPU の 2D 描画に積むと、最初の WebGL の同期（起動時）で
+ *  その分を待たされる（ソフト描画の環境では 2 秒近く）。描き終わった絵は 1 回だけ WebGL へ上げる。 */
+export function ctx2d(c) { return c.getContext('2d', { willReadFrequently: true }); }
+
 /** 文字の看板などのキャンバス */
 export function canvasTex(w, h, draw) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
-  const g = c.getContext('2d'); draw(g, w, h);
+  const g = ctx2d(c); draw(g, w, h);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   t.userData.canvas = c; t.userData.draw = draw;
   return t;

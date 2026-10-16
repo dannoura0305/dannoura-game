@@ -1,9 +1,11 @@
 // 『境界侵食』フェーズ9：町の配置（data/town.js）。自宅からアーケードまで歩いて行ける（曲がり角 3 つ以上・まっすぐではない）・
 // 物語の目標の場所に全部歩いて届く・歩ける所が閉じている（町の外へ出られない）・道案内の点と道のり・古いセーブの位置の移し替え・
 // 町の名前は月代町ではない（名前は出さない）・九条の名前を出さない。
+// フェーズ10：中央通り（電車通り・バス通り）・駅前・ガラスの屋根の広場・横丁。自宅・アーケードから駅とバス通りへ歩いて行ける（曲がり角あり）・
+// 線路は歩くのを塞がない（止まった電車・架線の柱だけ）・古いセーブ（town1・town2）の位置の移し替え・実在の地名を出さない。
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { TOWN, TOWN_LAYOUT, HOME_O, homeW, homeL, inHome, townSolids, houseFoot, guardSpans, townLamps, navPath, navNext, countTurns, migrateTownPos, MACRO } from '../shinshoku/data/town.js';
+import { TOWN, TOWN_LAYOUT, HOME_O, homeW, homeL, inHome, townSolids, houseFoot, guardSpans, townLamps, navPath, navNext, countTurns, migrateTownPos, MACRO, vehicleRect, catenaryPoles } from '../shinshoku/data/town.js';
 import { LEVEL } from '../shinshoku/data/level.js';
 import { TARGETS, STEPS } from '../shinshoku/story/chapters.js';
 import { AREA_GRAPH } from '../shinshoku/data/areas.js';
@@ -16,10 +18,12 @@ const src = p => readFileSync(new URL('../shinshoku/' + p, import.meta.url), 'ut
 const R = 0.35, CELL = 0.25, B = TOWN.bounds;
 const solids = townSolids().filter(b => b.maxY > 0.25);
 const box = (x0, z0, x1, z1) => ({ minX: x0, maxX: x1, minZ: z0, maxZ: z1, minY: 0, maxY: 3 });
-// アーケード：通り（x ±4.5・z −72〜−4）の外は塞ぐ。ただし脇道と閉店の店（中に入れる）は空ける
-const open = [box(-4.5, -72, 4.5, -4)].concat(LEVEL.alleys.map(a => a.side > 0 ? box(4.5, Math.min(a.z0, a.z1) + 0.4, 4.5 + a.len, Math.max(a.z0, a.z1) - 0.4) : box(-4.5 - a.len, Math.min(a.z0, a.z1) + 0.4, -4.5, Math.max(a.z0, a.z1) - 0.4)), [box(4.5, -45, 11, -35)]);
+// アーケード：通り（x ±4.5・z −72〜−4）の外（店・脇道の壁は data/level.js から world/level.js が作る）は塞ぐ。
+// ただし脇道と閉店の店（中に入れる）と、フェーズ10 の通り抜け（店の跡 → ガラスの屋根の広場）は空ける。x 10.6 より東の広場・町は町の当たり判定で調べる
+const open = [box(-4.5, -72, 4.5, -4)].concat(LEVEL.alleys.map(a => a.side > 0 ? box(4.5, Math.min(a.z0, a.z1) + 0.4, 4.5 + a.len, Math.max(a.z0, a.z1) - 0.4) : box(-4.5 - a.len, Math.min(a.z0, a.z1) + 0.4, -4.5, Math.max(a.z0, a.z1) - 0.4)), [box(4.5, -45, 11, -35)],
+  LEVEL.shops.filter(s => s.passage).map(s => box(4.5, Math.min(s.z0, s.z1), 10.6, Math.max(s.z0, s.z1))));
 const inside = (b, x, z, r = 0) => x > b.minX - r && x < b.maxX + r && z > b.minZ - r && z < b.maxZ + r;
-const arcadeBlocked = (x, z) => z < -4 && !open.some(b => inside(b, x, z));
+const arcadeBlocked = (x, z) => z < -4 && x < 17 && !(x >= 10.6 && z >= -34) && !open.some(b => inside(b, x, z));
 // 自宅の壁（前の壁は戸口を空ける・横・裏）
 const H = LEVEL.home, [hx0, hz0] = homeW(H.minX, H.minZ), [hx1, hz1] = homeW(H.maxX, H.maxZ), half = H.door.w / 2;
 const homeWalls = [box(hx0, hz0 - 0.15, HOME_O[0] - half, hz0 + 0.15), box(HOME_O[0] + half, hz0 - 0.15, hx1, hz0 + 0.15), box(hx0 - 0.15, hz0, hx0 + 0.15, hz1), box(hx1 - 0.15, hz0, hx1 + 0.15, hz1), box(hx0, hz1 - 0.15, hx1, hz1 + 0.15)];
@@ -43,12 +47,15 @@ const door = homeW(0, 8.6);                                                 // �
 const W = bfs(door[0], door[1]);
 const freeAt = (x, z) => { const [i, j] = cellOf(x, z); return !grid[j * NX + i]; };
 
-t('町の配置：版・自宅の位置（住宅地の中）・月代町の名前を出さない・九条の名前を出さない', () => {
-  assert.equal(TOWN.version, TOWN_LAYOUT); assert.equal(TOWN_LAYOUT, 'town2');
+t('町の配置：版・自宅の位置（住宅地の中）・月代町の名前を出さない・九条の名前を出さない・実在の地名を出さない', () => {
+  assert.equal(TOWN.version, TOWN_LAYOUT); assert.equal(TOWN_LAYOUT, 'town3');
   assert.ok(HOME_O[1] > 30, '自宅はアーケードから離れた住宅地');
-  const all = src('data/town.js') + src('world/town.js');
+  // 調べるのは画面に出る文字（文字列）だけ（注釈は「参考にした」ことを書いてよい）
+  const strs = f => (f.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\s\/\/ .*$/gm, '').match(/'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`/g) || []).join('\n');
+  const all = ['data/town.js', 'world/town.js', 'world/town2.js', 'world/level.js', 'ui/townmap.js', 'world/areas3.js'].map(f => strs(src(f))).join('\n') + JSON.stringify(JSON.parse(src('data/events.json')).texts);
   assert.ok(!all.includes('月代'), '町は月代町ではない（名前も出さない）');
   assert.ok(!all.includes('九条'));
+  for (const w of ['富山', '総曲輪', '立山', 'グランドプラザ', '呉羽', '神通', '大和', '北陸', 'セントラム', 'ポートラム', '地鉄', 'JR']) assert.ok(!all.includes(w), '実在の地名・名前を出さない：' + w);
   assert.deepEqual(homeL(...homeW(1.5, 9)), [1.5, 9]); assert.ok(inHome(...homeW(0, 12))); assert.ok(!inHome(0, -20));
 });
 t('自宅 → アーケード：歩いて届く・まっすぐの線は塞がれている（家から出たら直線上に商店街…ではない）', () => {
@@ -88,6 +95,61 @@ t('物語の目標（商店街＋自宅の段）・拾う物・出入り口・�
   for (const k of LEVEL.kiro) pts.push([k.id + '_home', ...k.path[k.path.length - 1]]);
   for (const [id, x, z] of pts) assert.ok(W.at(x, z) >= 0 || W.at(x + 0.3, z) >= 0 || W.at(x - 0.3, z) >= 0 || W.at(x, z + 0.3) >= 0 || W.at(x, z - 0.3) >= 0, `${id}（${x.toFixed(1)},${z.toFixed(1)}）に届かない`);
 });
+// ── フェーズ10：駅・中央通り（バス通り）・広場 ──
+const ARC = bfs(0, -20);
+const N = TOWN.nav.nodes;
+t('駅と中央通り（電車通り・バス通り）・ガラスの屋根の広場に、自宅からも商店街からも歩いて届く', () => {
+  for (const k of ['stDoor', 'stTram', 'stBus', 'stTaxi', 'stClock', 'aveTram', 'aveBus', 'tpW', 'tpE', 'aveETram', 'aveSide', 'gpC', 'ysW', 'aveS1', 'aveXS']) {
+    assert.ok(W.at(...N[k]) > 0, '自宅から ' + k); assert.ok(ARC.at(...N[k]) > 0, 'アーケードから ' + k);
+  }
+  const dHome = W.at(...N.stDoor) * CELL, dArc = ARC.at(...N.stDoor) * CELL;
+  assert.ok(dHome > 120 && dHome < 260, `自宅 → 駅 ${dHome.toFixed(0)}m`); assert.ok(dArc > 100 && dArc < 260, `アーケード → 駅 ${dArc.toFixed(0)}m`);
+  // まっすぐの線は塞がれている（家・ビルが間にある）
+  for (const [a, b] of [[homeW(0, 5.6), N.stDoor], [[0, -20], N.stDoor]]) { let blocked = 0; for (let k = 0; k <= 200; k++) { const x = a[0] + (b[0] - a[0]) * k / 200, z = a[1] + (b[1] - a[1]) * k / 200; if (!freeAt(x, z)) blocked++; } assert.ok(blocked > 20, 'まっすぐには行けない'); }
+});
+t('道のり（自宅 → 駅・駅 → 商店街）：曲がり角 3 つ以上・どの区間も塞がれていない・届く所で終わる', () => {
+  for (const [id, r] of Object.entries(TOWN.routes)) {
+    assert.ok(countTurns(r) >= 3, `${id}：曲がり角 ${countTurns(r)}`);
+    for (let i = 0; i < r.length - 1; i++) for (let k = 0; k <= 60; k++) { const x = r[i][0] + (r[i + 1][0] - r[i][0]) * k / 60, z = r[i][1] + (r[i + 1][1] - r[i][1]) * k / 60; assert.ok(freeAt(x, z) || inHome(x, z), `${id} 区間 ${i} の ${x.toFixed(1)},${z.toFixed(1)} が塞がれている`); }
+    let len = 0; for (let i = 0; i < r.length - 1; i++) len += Math.hypot(r[i + 1][0] - r[i][0], r[i + 1][1] - r[i][1]);
+    assert.ok(len > 120 && len < 320, `${id}：約 ${len.toFixed(0)}m`);
+  }
+  const hs = TOWN.routes.home_station, sa = TOWN.routes.station_arcade;
+  assert.ok(inHome(...hs[0]) && hs[hs.length - 1][1] < -100, '自宅の中 → 駅舎の前'); assert.ok(sa[0][1] < -100 && sa[sa.length - 1][1] < -4 && Math.abs(sa[sa.length - 1][0]) < 4.5, '駅舎の前 → アーケードの中');
+  assert.ok(sa.some(([x, z]) => x > 10.6 && x < 36 && z < -6.5 && z > -34), '駅 → 商店街は広場を通る（横丁 → 広場 → 通り抜け）');
+  const p = navPath('homeDoor', 'stDoor'); assert.ok(p && countTurns(p.map(k => N[k])) >= 3, JSON.stringify(p));
+  const q = navPath('stDoor', 'arcade'); assert.ok(q && q.includes('gpC') && countTurns(q.map(k => N[k])) >= 3, JSON.stringify(q));
+});
+t('路面電車の線路は歩くのを塞がない（塞ぐのは止まった電車・架線の柱・電停の手すりと柱だけ）・電停の島は上がれる高さ', () => {
+  const A = TOWN.avenue, blockers = [];
+  for (const tr of A.trams) { const [x0, z0, x1, z1] = vehicleRect(tr.x, tr.z, tr.ry, tr.len, 2.4); blockers.push(box(x0, z0, x1, z1)); }
+  for (const [x, z] of catenaryPoles()) blockers.push(box(x - 0.2, z - 0.2, x + 0.2, z + 0.2));
+  for (const s of A.stops) { const [x0, z0, x1, z1] = s.rect; if (s.rail) blockers.push(box(s.rail === 'W' ? x0 - 0.1 : x1 - 0.2, z0 - 0.1, s.rail === 'W' ? x0 + 0.5 : x1 + 0.1, z1)); }
+  let checked = 0;
+  for (const tr of A.tracks) for (let i = 0; i < tr.pts.length - 1; i++) {
+    const [ax, az] = tr.pts[i], [bx, bz] = tr.pts[i + 1], L = Math.hypot(bx - ax, bz - az);
+    for (let d = 3; d < L - 3; d += 0.5) for (const off of [-0.6, 0, 0.6]) {
+      const ux = (bx - ax) / L, uz = (bz - az) / L, x = ax + ux * d - uz * off, z = az + uz * d + ux * off;
+      if (z > 46 || blockers.some(b => inside(b, x, z, R + 0.3))) continue;
+      assert.ok(freeAt(x, z), `線路の上 ${x.toFixed(1)},${z.toFixed(1)} が塞がれている`); checked++;
+    }
+  }
+  assert.ok(checked > 600, '線路の上を調べた点 ' + checked);
+  for (const s of A.stops) assert.ok((() => { const m = townSolids().filter(b => Math.abs(b.minX - s.rect[0]) < 1e-6 && Math.abs(b.maxX - s.rect[2]) < 1e-6 && Math.abs(b.minZ - s.rect[1]) < 1e-6 && Math.abs(b.maxZ - s.rect[3]) < 1e-6); return m.length === 1 && m[0].maxY <= 0.25; })(), '電停の島は歩いて上がれる ' + s.id);
+  // 線路を横切って渡れる（電停の前の横断歩道・駅前広場の輪）
+  assert.ok(W.at(...N.tpE) > 0 && W.at(...N.stTram) > 0);
+});
+t('中央通り・駅前の部品：路面電車・架線・電停・バス停・バスターミナル・タクシー・駐輪場・時計・屋根つきの歩道・消雪の水の出口・雪囲い・矢羽根・信号', () => {
+  const A = TOWN.avenue, S = TOWN.station;
+  assert.ok(A.tracks.length && A.trams.length >= 2 && A.buses.length >= 2 && A.stops.length >= 3 && catenaryPoles().length >= 8 && A.nozzles.length >= 3);
+  assert.ok(S.taxi.cars.length >= 3 && S.bus.islands.length >= 2 && S.bikes && S.clock && S.walkway && S.canopy);
+  assert.ok(TOWN.props.filter(p => p.kind === 'busstop2').length >= 2 && TOWN.props.filter(p => p.kind === 'yukigakoi').length >= 6 && TOWN.props.filter(p => p.kind === 'snowpole').length >= 8);
+  assert.ok(TOWN.crossings.filter(c => c.signal).length >= 5, '信号つきの横断歩道');
+  assert.ok(TOWN.gplaza && TOWN.gplaza.ridgeY > 15, 'ガラスの屋根の広場（高い屋根）');
+  assert.ok(TOWN.lots.some(l => l.kind === 'machiya') && TOWN.lots.some(l => l.kind === 'tower') && TOWN.lots.some(l => l.kind === 'station'), '町家・ビル・駅舎');
+  assert.ok(townLamps().filter(l => l.kind === 'modern').length >= 12, '中央通り・駅前の街灯');
+  assert.ok(src('world/level.js').includes('RIDGE = 13.4'), 'アーケードの高い屋根');
+});
 t('歩ける所は閉じている（町の外・区画の境へ出られない）', () => {
   assert.equal(W.touchedEdge, false, '升目の端（区画の外）に届いてはいけない');
 });
@@ -99,6 +161,12 @@ t('町の部品：家の建物は区画の中・ガードレールは横断歩�
   assert.ok(TOWN.crossings.some(c => c.signal), '信号つきの交差点');
   assert.ok(TOWN.channel && TOWN.park && TOWN.shrine, '用水路・公園・祠');
 });
+t('古いセーブ（town2・フェーズ9）：歩ける所はそのまま・新しい物に重なった時だけ近い道案内の点へ', () => {
+  for (const p of [[42, 0, 40.5], [10.5, 0, 26], [0, 0, 2.8], [-20, 0, 8], [0, 0, -30], [22.6, 0, 15.2]]) { const m = migrateTownPos(p, 'town2'); assert.equal(m.moved, null, JSON.stringify(p)); assert.deepEqual(m.pos, p); }
+  const pole = TOWN.streetLights[0].pts[1]; const m = migrateTownPos([pole[0], 0, pole[1]], 'town2'); assert.equal(m.moved, 'nudge'); assert.ok(freeAt(m.pos[0], m.pos[2]), JSON.stringify(m));
+  const cur = migrateTownPos([68, 0, -40], TOWN_LAYOUT); assert.equal(cur.moved, null);
+  assert.ok(src('main.js').includes('migrateTownPos(pos, s.place.layout)'));
+});
 t('古いセーブ（town1）の位置を移す：家の中は同じ家具の前・家の前の路地は広場・アーケードはそのまま', () => {
   const a = migrateTownPos([-3.4, 0, 13.6]); assert.equal(a.moved, 'home'); assert.deepEqual(a.pos, [...((p) => [p[0], 0, p[1]])(homeW(-3.4, 13.6))]); assert.ok(inHome(a.pos[0], a.pos[2]));
   const b = migrateTownPos([0, 0, 2.5]); assert.equal(b.moved, 'forecourt'); assert.deepEqual(b.pos, [0, 0, -2]);
@@ -109,7 +177,7 @@ t('古いセーブ（town1）の位置を移す：家の中は同じ家具の前
   const S = new SaveStore(ls); const old = makeSlot({ area: 'shotengai', pos: [0, 0, 11.5], story: { step: 'ch1_katana' } });
   assert.equal(old.place.layout, undefined); assert.equal(S.write('auto', old), true);
   const back = S.load('auto'); assert.equal(back.place.area, 'shotengai'); assert.notEqual(back.place.layout, TOWN_LAYOUT, '古いセーブは layout が無い＝読む時に移す');
-  assert.ok(src('main.js').includes('migrateTownPos(pos)') && src('main.js').includes('slot.place.layout = TOWN_LAYOUT'));
+  assert.ok(src('main.js').includes('migrateTownPos(pos, s.place.layout)') && src('main.js').includes('slot.place.layout = TOWN_LAYOUT'));
 });
 t('町全体の見取り図：区画グラフの場所がすべて載っている（区画の id と一致）', () => {
   const areas = new Set(MACRO.districts.map(d => d.area).filter(Boolean));

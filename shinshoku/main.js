@@ -92,7 +92,7 @@ class Game {
     const canvas = document.getElementById('sh-canvas');
     const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: P0.antialias, powerPreference: 'high-performance' });
     r.setClearColor(0x0c0a16);
-    r.shadowMap.type = THREE.PCFShadowMap;
+    r.shadowMap.type = THREE.PCFShadowMap; r.shadowMap.enabled = !!this.settings.shadows;     // 影の有無はシェーダーの種類を変えるので先に決める（先に作るシェーダーを無駄にしない）
     this.scene = new THREE.Scene();
     this.scene.fog = new THREE.FogExp2(0x100c1c, 0.045);
     this.scene.background = new THREE.Color(0x0c0a16);
@@ -112,8 +112,8 @@ class Game {
     this.pool = []; this.poolN = Math.min(POOL_MAX, P0.lights);
     for (let i = 0; i < this.poolN; i++) { const p = new THREE.PointLight(0xffffff, 0, 10, 1.6); this.scene.add(p); this.pool.push({ light: p, def: null }); }
     this.fx = new Fx(this.scene); this.rain = new Rain(this.scene, Math.max(200, P0.rainN || 400));
-    this.halos = new Halos(360); this.scene.add(this.halos.mesh);
-    this.wet = new WetStreaks(96); this.scene.add(this.wet.mesh);
+    this.halos = new Halos(720); this.scene.add(this.halos.mesh);
+    this.wet = new WetStreaks(160); this.scene.add(this.wet.mesh);
     this.trail = new SwordTrail(36); this.scene.add(this.trail.mesh);
     this.flashHalo = -1;
     // 状態
@@ -143,6 +143,8 @@ class Game {
     this.applySetting('teleCB', !!this.settings.teleCB, true);
     this.cam.shakeMul = this.settings.shake ?? 1;
     this.cut = new CutscenePlayer(this.cutHost());
+    this.moon.castShadow = !!this.settings.shadows;
+    this.precompile();                 // 役者・光の輪などのシェーダーを GPU で先に作り始める（待たない：区画の組み立てと重ねる）
     this.events = await fetch(new URL('./data/events.json', import.meta.url)).then(r => r.json()).catch(() => ({ events: {}, barks: {}, texts: {}, speakers: {} }));
     this.manifest = await loadManifest();
     this.loadCharacterModels();
@@ -151,6 +153,7 @@ class Game {
     this.lock = null; this.dialog = null; this.pendingIn = null; this.autosaveReq = false; this.gunshot = null; this.gunshotT = 0; this.darkness = 0;
     this.applyEquip();
     { const t0 = performance.now(); this.loadArea('shotengai', 'arcade'); this.bootMs = { area: Math.round(performance.now() - t0) }; }
+    this.precompile();                 // 区画のシェーダー
     this.applyQuality();
     addEventListener('resize', () => this.resize()); this.resize();
     this.perfOn = Q.get('perf') === '1'; this.perfAcc = { t: 0, n: 0, steps: 0 };
@@ -160,6 +163,12 @@ class Game {
     this.exposeAPI();
     this.title();
     this.bootMs.init = Math.round(performance.now());
+  }
+  /** シェーダーを先に作る（KHR_parallel_shader_compile：GPU の側で並べて作る。終わりを待たない） */
+  precompile() {
+    const r = this.renderer; if (!r.compile || Q.get('precompile') === '0') return;
+    // 並べて作れる時は compileAsync（待たない）。無い時も compile は GPU へ頼むだけ（確かめるのは最初に描く時）＝区画の組み立てと重なる
+    try { const t0 = performance.now(); if (r.extensions.has('KHR_parallel_shader_compile')) r.compileAsync(this.scene, this.camera).catch(() => {}); else r.compile(this.scene, this.camera); (this.bootMsPre || (this.bootMsPre = [])).push(Math.round(performance.now() - t0)); } catch (e) { console.warn('precompile', e); }
   }
   makeWhiteModel() { const m = buildDannouraWhite(); return m; }
   presetVals() { const k = this.settings.preset === 'auto' ? this.autoPresetKey : this.settings.preset; return PRESETS[k] || PRESETS[this.autoPresetKey] || PRESETS.high; }
@@ -185,6 +194,25 @@ class Game {
     return { g, tex, set: text => { const c = tex.userData.canvas; draw(text)(c.getContext('2d'), c.width, c.height); tex.needsUpdate = true; } };
   }
 
+  /** 区画の後回しの部分（町の遠い所：駅前・中央通りなど）を組み立てて足す。見た目・光・光の筋だけ（当たり判定は最初から全部ある） */
+  buildPending(A, n = 1) {
+    while (A.pending && A.pending.length && n-- > 0) {
+      const t0 = performance.now(), job = A.pending.shift(), r = job();
+      if (!r) continue;
+      if (r.root) A.root.add(r.root);
+      const live = this.area === A, base = A.halos.length;
+      for (const sg of r.signals || []) { sg.heads = sg.heads.map(i => i + base); A.dyn.signals && A.dyn.signals.push(sg); }
+      if (r.spots) A.spots.push(...r.spots); if (r.hideSpots) A.hideSpots.push(...r.hideSpots);
+      for (const h of r.halos || []) { A.halos.push(h); if (live) h.idx = this.halos.add(h.p, h.size, h.color, h.k); }
+      for (const w of r.wet || []) { A.wet.push(w); if (live) w.idx = this.wet.add(w.p, w.size, w.color, w.k); }
+      for (const l of r.lights || []) A.lights.push(Object.assign({ base: l.intensity }, l));
+      if (r.after) r.after(this);
+      if (r.root) r.root.traverse(o => { if (o.userData.isEdgeLines) o.visible = this.settings.outline && this.settings.edges !== false; });
+      A.mapImg = null;                                              // ミニマップの下絵は作り直す
+      (this.bootMs || (this.bootMs = {})).pending = (this.bootMs.pending || 0) + Math.round(performance.now() - t0);
+    }
+  }
+
   // ── 区画 ──
   loadArea(id, spawn) {
     if (this.area) {
@@ -204,6 +232,7 @@ class Game {
     const fog = A.fog || { color: 0x100c1c, density: 0.045 };
     this.scene.fog.color.setHex(fog.color); this.scene.fog.density = fog.density; this.scene.background.setHex(fog.color);
     this.halos.uniforms.uFog.value = fog.density; this.wet.uniforms.uFog.value = fog.density;
+    { const LT = A.light || { hemi: 1.1, amb: 0.6 }; this.hemi.intensity = LT.hemi; this.amb.intensity = LT.amb; }   // 区画ごとの空と周りの明かり（病院は弱く：白く飛ばない）
     this.halos.clear(); for (const h of A.halos) h.idx = this.halos.add(h.p, h.size, h.color, h.k);
     this.flashHalo = this.halos.add([0, -50, 0], 0.4, 0xfff0d0, 0);
     this.wet.clear(); for (const w of A.wet) w.idx = this.wet.add(w.p, w.size, w.color, w.k);
@@ -359,7 +388,7 @@ class Game {
 
   // ── タイトル ──
   title() {
-    try { this.makePortrait(); } catch (e) { console.warn('portrait', e); }
+    if (!this.portraitMade) this.portraitDue = 3;      // 顔の絵（HUD）は最初のこまを描いた後に作る（起動を速く：シェーダーの準備と GPU の読み戻しを起動の後ろへ）
     const el = document.getElementById('sh-title');
     const has = !!this.store.load('auto');
     const own = (this.WP.read().games || {}).shinshoku || {}, clear = this.store.load('clear');
@@ -477,7 +506,7 @@ class Game {
     const j4 = this.jump4(step);
     if (j4) { this.loadArea(j4.area, j4.spawn); this.afterLoad4(); if (step === 'ch4_r_fight' && !this.player.fighter.white) this.setWhite(true, 'scripted'); this.refreshObjective(); return; }
     const area = stepDef(step).area;
-    const spawn = { shotengai: atLeast(step, 'pro_tv') ? 'home_in' : 'arcade', alley: 'from_street', plaza: 'from_alley', shelter: atLeast(step, 'ch2_gym') ? 'gym_in' : 'from_plaza', hospital: step === 'ch3_ward' ? 'ward' : atLeast(step, 'ch3_guard') ? 'room306' : 'from_shelter', tunnel: atLeast(step, 'ch3_boss') ? 'arena' : 'from_hospital' }[area];
+    const spawn = { shotengai: atLeast(step, 'pro_tv') ? 'home_in' : 'arcade', alley: 'from_street', plaza: 'from_alley', shelter: atLeast(step, 'ch2_gym') ? 'gym_in' : 'from_plaza', hospital: step === 'ch3_ward' ? 'ward' : atLeast(step, 'ch3_guard') ? 'room306' : 'lobby', tunnel: atLeast(step, 'ch3_boss') ? 'arena' : 'from_hospital' }[area];
     if (step === 'ch3_hosp') { this.loadArea('shelter', 'from_tunnel'); this.placePlayer([-4.6, 0, 17.6], Math.PI / 2); this.refreshObjective(); return; }
     this.loadArea(area, spawn);
     this.refreshObjective();
@@ -493,6 +522,10 @@ class Game {
     if (n >= 6) this.acc = 0;
     this.render(dt, n);
     if (this.bootMs && !this.bootMs.frame1) this.bootMs.frame1 = Math.round(performance.now());
+    else if (this.bootMs && (this.bootMs.frames || (this.bootMs.frames = [])).length < 6) this.bootMs.frames.push(Math.round(performance.now()));
+    if (this.portraitDue != null && --this.portraitDue <= 0) { this.portraitDue = null; setTimeout(() => { const t0 = performance.now(); try { this.makePortrait(); this.bootMs.portrait = [Math.round(t0), Math.round(performance.now() - t0)]; } catch (e) { console.warn('portrait', e); } }, 3500); }
+    // 遠い所の組み立て：起動の直後（GPU がシェーダーを作っている間）は待ち、少し後か、近づいた時に
+    if (this.area && this.area.pending && this.area.pending.length && this.bootMs && this.bootMs.frame1 && !this.cut.active) { const P = this.player.pos, near = P.x > 48 || P.z < -60; if (near || performance.now() - this.bootMs.frame1 > 2500) this.buildPending(this.area, 1); }
   }
   step() {
     const inp = this.input.sample();
@@ -686,7 +719,7 @@ class Game {
     this.tenkiOpen = !!(this.flags.tenki_pending && this.story.step === 'ch3_boss');    // 転機の前の枠：選択だけを開く（演出は繰り返さない）
     { // 町の配置が変わる前（town1）のセーブ：自宅の中→同じ家具の前、家の前の路地→アーケード前の広場
       let pos = s.place.pos;
-      if (area === 'shotengai' && s.place.layout !== TOWN_LAYOUT) { const m = migrateTownPos(pos); pos = m.pos; this.metrics.migrated = m.moved || 'none'; }
+      if (area === 'shotengai' && s.place.layout !== TOWN_LAYOUT) { const m = migrateTownPos(pos, s.place.layout); pos = m.pos; this.metrics.migrated = m.moved || 'none'; }
       this.placePlayer(pos, s.place.yaw);
     }
     this.placeCompanion();
@@ -787,7 +820,10 @@ class Game {
     if (A.dyn.tv && this.frame % 3 === 0 && A.dyn.tv.kind === 'static') A.dyn.tv.draw('static');
     this.updateLights(dt);
     if (A.tick) A.tick(dt, this);
-    if (A.fogAt) { const want = A.fogAt(P.pos.x, P.pos.z), f = this.scene.fog; if (Math.abs(f.density - want) > 1e-5) { f.density += (want - f.density) * Math.min(1, dt * 1.5); this.halos.uniforms.uFog.value = f.density; this.wet.uniforms.uFog.value = f.density; } }
+    if (A.fogAt) { const want = A.fogAt(P.pos.x, P.pos.z), f = this.scene.fog; if (Math.abs(f.density - want) > 1e-5) { f.density += (want - f.density) * Math.min(1, dt * 1.5); this.halos.uniforms.uFog.value = f.density; this.wet.uniforms.uFog.value = f.density; }
+      // 霧で見えない所は描かない：見える距離（霧が 99% を越える所）までカメラの奥を縮める（升目の網が減る＝描画呼び出しが減る）
+      if (A.fogFar && !this.cineCam) { const far = Math.min(A.far || 120, A.fogFar / Math.max(f.density, 1e-4)) * (this.presetVals().farMul || 1); if (Math.abs(this.camera.far - far) > 1.5) { this.camera.far = far; this.camera.updateProjectionMatrix(); } }
+      else if (A.fogFar && this.camera.far !== (A.far || 120)) { this.camera.far = A.far || 120; this.camera.updateProjectionMatrix(); } }
     // 光源とプレイヤーの近く
     this.keyLight.position.set(P.pos.x + Math.sin(this.cam.yaw) * 1.6, 1.9, P.pos.z + Math.cos(this.cam.yaw) * 1.6);
     this.keyLight.intensity = this.darkness ? 0.6 : 1.4;
@@ -887,6 +923,7 @@ class Game {
 
   /** HUD の顔：manifest の portrait があればそれ、無ければ今のモデルの顔を小さく描いて使う */
   makePortrait() {
+    this.portraitMade = true;
     if (this.portraits && this.portraits.dannoura) { this.ui.setPortrait(this.portraits.dannoura); return; }
     const P = this.player, N = 128;
     P.animate(0.016); P.root.updateMatrixWorld(true);
@@ -900,16 +937,19 @@ class Game {
     const rt = new THREE.WebGLRenderTarget(N, N); this.renderer.setRenderTarget(rt); this.renderer.render(this.scene, cam); this.renderer.setRenderTarget(null);
     M.position.copy(mp); M.target.position.copy(mt); M.intensity = mi; M.color.setHex(mc);
     for (const o of hidden) o.visible = true; this.scene.background.setHex(bg); this.scene.fog.density = fd;
-    const px = new Uint8Array(N * N * 4); this.renderer.readRenderTargetPixels(rt, 0, 0, N, N, px); rt.dispose();
-    const c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d'); const im = g.createImageData(N, N);
-    for (let y = 0; y < N; y++) im.data.set(px.subarray((N - 1 - y) * N * 4, (N - y) * N * 4), y * N * 4);
-    g.putImageData(im, 0, 0); this.ui.setPortrait(c.toDataURL());
+    const px = new Uint8Array(N * N * 4);
+    const done = () => { rt.dispose(); const c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d', { willReadFrequently: true }); const im = g.createImageData(N, N);
+      for (let y = 0; y < N; y++) im.data.set(px.subarray((N - 1 - y) * N * 4, (N - y) * N * 4), y * N * 4);
+      g.putImageData(im, 0, 0); if (!(this.portraits && this.portraits.dannoura)) this.ui.setPortrait(c.toDataURL()); };
+    // 読み戻しは待たない（GPU の仕事が終わってから受け取る）。古い環境は同期の読み戻し
+    if (this.renderer.readRenderTargetPixelsAsync) this.renderer.readRenderTargetPixelsAsync(rt, 0, 0, N, N, px).then(done, () => { this.renderer.readRenderTargetPixels(rt, 0, 0, N, N, px); done(); });
+    else { this.renderer.readRenderTargetPixels(rt, 0, 0, N, N, px); done(); }
   }
   /** ミニマップの下絵（区画ごとに 1 回）：歩ける所を明るく、壁・建物を暗く */
   mapImage(A) {
     if (A.mapImg) return A.mapImg;
     const ppm = 6, b = A.bounds, pad = 6, minX = b.minX - pad, minZ = b.minZ - pad, W = Math.ceil((b.maxX - b.minX + pad * 2) * ppm), H = Math.ceil((b.maxZ - b.minZ + pad * 2) * ppm);
-    const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d', { willReadFrequently: true });
     g.fillStyle = 'rgba(10,6,18,1)'; g.fillRect(0, 0, W, H);
     if (A.mapWalk) {   // 町：歩ける所（道・歩道・広場）だけを明るく。道の種類で色を変える（家の区画は暗いまま）
       g.fillStyle = 'rgba(40,30,58,1)'; g.fillRect((b.minX - minX) * ppm, (b.minZ - minZ) * ppm, (b.maxX - b.minX) * ppm, (b.maxZ - b.minZ) * ppm);
@@ -965,7 +1005,7 @@ class Game {
       input: { script: list => g.input.runScript(list), press: (a, f = 0) => g.input.runScript([{ f, press: [a] }]), hold: (a, n) => g.input.runScript([{ f: 0, hold: { [a]: n } }]), move: (x, y, n) => g.input.runScript([{ f: 0, move: [x, y, n] }]) },
       debug: {
         teleport(x, z, yaw) { g.player.pos.set(x, 0, z); if (yaw != null) { g.player.yaw = yaw; g.cam.yaw = yaw + Math.PI; } },
-        home(x, z) { return [x + TOWN_HOME[0], z + TOWN_HOME[1]]; }, town() { return { route: TOWN.route.map(p => p.slice()), nodes: TOWN.nav.nodes, version: TOWN.version }; },
+        home(x, z) { return [x + TOWN_HOME[0], z + TOWN_HOME[1]]; }, town() { return { route: TOWN.route.map(p => p.slice()), routes: JSON.parse(JSON.stringify(TOWN.routes)), nodes: TOWN.nav.nodes, version: TOWN.version, pending: !!(g.areas.shotengai && g.areas.shotengai.pending && g.areas.shotengai.pending.length) }; }, buildPending() { const A = g.areas.shotengai; if (A) g.buildPending(A, 9); return !(A && A.pending && A.pending.length); },
         camYaw(y) { g.cam.yaw = y; }, camPitch(p) { g.cam.pitch = p; },
         faceTo(x, z) { const P = g.player; P.yaw = Math.atan2(x - P.pos.x, z - P.pos.z); g.cam.yaw = P.yaw + Math.PI; },
         forceAttack(id, name) {

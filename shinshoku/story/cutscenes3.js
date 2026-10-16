@@ -5,28 +5,32 @@ export const LINE_CH3 = '見た目だけで決めつけちゃ駄目ってこと�
 
 export const CUTSCENES3 = {
   // 病院に着く
+  // フェーズ10：最初の 3 秒は外（正面玄関と車寄せ・病院の外観）→ 自動ドアを入ってロビーへ（台詞と出来事は同じ。時刻だけ 3 秒うしろへ）
   cs03_hospital: {
     id: 'cs03_hospital', area: 'hospital', letterbox: true, skippable: true,
     cam: [
-      { t: 0, pos: [8.6, 2.6, 18.4], look: [-1.5, 1.0, 9.5], fov: 50 },
-      { t: 6.5, pos: [6.6, 2.0, 17.2], look: [-1.0, 1.2, 8.0], fov: 44 },
-      { t: 7.0, pos: [-1.2, 1.55, 15.2], look: [0.4, 1.45, 17.4], fov: 42, cut: true },
-      { t: 11.5, pos: [-1.0, 1.6, 15.0], look: [0.3, 1.45, 17.3], fov: 40 },
+      { t: 0, pos: [9.5, 2.8, 33.0], look: [0, 6.5, 19.8], fov: 54 },
+      { t: 2.9, pos: [5.2, 2.1, 28.2], look: [0, 2.4, 19.8], fov: 46 },
+      { t: 3.0, pos: [8.6, 2.6, 18.4], look: [-1.5, 1.0, 9.5], fov: 50, cut: true },
+      { t: 9.5, pos: [6.6, 2.0, 17.2], look: [-1.0, 1.2, 8.0], fov: 44 },
+      { t: 10.0, pos: [-1.2, 1.55, 15.2], look: [0.4, 1.45, 17.4], fov: 42, cut: true },
+      { t: 14.5, pos: [-1.0, 1.6, 15.0], look: [0.3, 1.45, 17.3], fov: 40 },
     ],
     actors: [
-      { t: 0, id: 'player', pos: [0.3, 17.4], yaw: Math.PI },
-      { t: 0, id: 'companion', pos: [1.2, 18.5], yaw: Math.PI, mode: 'scripted', show: true },
-      { t: 1.0, id: 'player', to: [0.2, 16.6] }, { t: 1.4, id: 'companion', to: [1.1, 17.6] },
-      { t: 7.2, id: 'player', yaw: -2.36 },
+      { t: 0, id: 'player', pos: [0.4, 24.6], yaw: Math.PI },
+      { t: 0, id: 'companion', pos: [1.5, 25.8], yaw: Math.PI, mode: 'scripted', show: true },
+      { t: 0.6, id: 'player', to: [0.3, 17.4], run: true }, { t: 0.9, id: 'companion', to: [1.2, 18.5], run: true },
+      { t: 4.0, id: 'player', to: [0.2, 16.6] }, { t: 4.4, id: 'companion', to: [1.1, 17.6] },
+      { t: 10.2, id: 'player', yaw: -2.36 },
     ],
     lines: [
-      { t: 1.0, who: 'sys', text: '（病院のロビー。誰もいない。車いすだけが、ばらばらの向きで止まっている）', dur: 3.4 },
-      { t: 4.6, who: 'companion', text: '……静かすぎますね', dur: 2.0 },
-      { t: 7.4, who: 'dan', text: '受付に入院の記録があるはずよ。……アタシから離れないでね', dur: 2.8, expr: 'serious' },
-      { t: 10.4, who: 'companion', text: 'はい', dur: 1.2 },
+      { t: 4.0, who: 'sys', text: '（病院のロビー。誰もいない。車いすだけが、ばらばらの向きで止まっている）', dur: 3.4 },
+      { t: 7.6, who: 'companion', text: '……静かすぎますね', dur: 2.0 },
+      { t: 10.4, who: 'dan', text: '受付に入院の記録があるはずよ。……アタシから離れないでね', dur: 2.8, expr: 'serious' },
+      { t: 13.4, who: 'companion', text: 'はい', dur: 1.2 },
     ],
-    events: [{ t: 0.1, do: 'expr', arg: { who: 'player', name: 'serious' } }, { t: 11.5, do: 'companionFollow' }, { t: 11.5, do: 'setStep', arg: 'ch3_lobby' }],
-    sounds: [{ t: 0.4, s: 'drip_stand' }],
+    events: [{ t: 0.1, do: 'expr', arg: { who: 'player', name: 'serious' } }, { t: 14.5, do: 'companionFollow' }, { t: 14.5, do: 'setStep', arg: 'ch3_lobby' }],
+    sounds: [{ t: 3.4, s: 'drip_stand' }],
   },
   // 306 号室：子どものベッドの前に、大きな異形
   cs03_guard: {

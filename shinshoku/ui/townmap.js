@@ -2,7 +2,7 @@
 // 今いる区画を光らせ、商店街（住宅地を含む）にいる時は自分の位置と向きを描く。名前はすべて【仮】。
 import { TOWN, MACRO, homeW } from '../data/town.js';
 
-const COL = { rail: '#5a5068', arcade: '#c89ad8', alley: '#8a7aa8', mall: '#7ab0d0', gym: '#d0b070', hospital: '#e88a9a', under: '#5a6a7a', office: '#9ab0a0', lab: '#a070d0', admin: '#b080e0', home: '#ffc890', res: '#4a4060', shop: '#80c8a0' };
+const COL = { rail: '#8a90c8', arcade: '#c89ad8', alley: '#8a7aa8', mall: '#7ab0d0', gym: '#d0b070', hospital: '#e88a9a', under: '#5a6a7a', office: '#9ab0a0', lab: '#a070d0', admin: '#b080e0', home: '#ffc890', res: '#4a4060', shop: '#80c8a0', ave: '#6a7ab0', plaza2: '#e0c8f0' };
 
 /** 町全体（左）＋自宅〜商店街（右）を canvas に描く。here：今の区画 id、pos：{x,z,yaw}（商店街の時だけ） */
 export function drawTownMap(cv, here, pos) {
@@ -15,7 +15,7 @@ export function drawTownMap(cv, here, pos) {
     const P = (x, z) => [16 + (x - x0) * sc, 40 + (z - z0) * sc];
     g.font = `bold ${Math.round(W / 46)}px sans-serif`; g.fillStyle = '#e8dcff'; g.fillText('町の見取り図（名前は仮）', 16, 26);
     for (const r of MACRO.roads) {
-      g.strokeStyle = r.water ? '#2a4a7a' : r.rail ? '#8a809a' : '#5a5070'; g.lineWidth = Math.max(2, r.w * sc * (r.water ? 1 : 1.4)); g.setLineDash(r.rail ? [6, 4] : []);
+      g.strokeStyle = r.water ? '#2a4a7a' : r.rail ? '#8a809a' : r.tram ? '#40c8b0' : '#5a5070'; g.lineWidth = Math.max(r.tram ? 1.5 : 2, r.w * sc * (r.water ? 1 : 1.4)); g.setLineDash(r.rail ? [6, 4] : []);
       g.beginPath(); r.pts.forEach(([x, z], i) => { const [px, pz] = P(x, z); if (i) g.lineTo(px, pz); else g.moveTo(px, pz); }); g.stroke();
     }
     g.setLineDash([]);
@@ -32,22 +32,27 @@ export function drawTownMap(cv, here, pos) {
     }
     g.fillStyle = '#a89cc0'; g.fillText('北 ↑', half - 60, H - 14); g.fillText('━ バス通り（黄の点線）', 16, H - 14);
   }
-  // ── 自宅〜商店街 ──
+  // ── 自宅〜商店街〜駅（フェーズ10：中央通り・駅前も歩ける） ──
   {
-    const B = TOWN.bounds, x0 = B.minX - 2, x1 = B.maxX + 2, z0 = -40, z1 = B.maxZ + 2, sc = Math.min((half - 30) / (x1 - x0), (H - 60) / (z1 - z0));
+    const B = TOWN.bounds, x0 = B.minX - 2, x1 = B.maxX + 2, z0 = B.minZ - 2, z1 = B.maxZ + 2, sc = Math.min((half - 30) / (x1 - x0), (H - 60) / (z1 - z0));
     const ox = half + 14, P = (x, z) => [ox + (x - x0) * sc, 40 + (z - z0) * sc];
-    g.font = `bold ${Math.round(W / 46)}px sans-serif`; g.fillStyle = '#e8dcff'; g.fillText('自宅〜あけぼの通り商店街', ox, 26);
+    g.font = `bold ${Math.round(W / 46)}px sans-serif`; g.fillStyle = '#e8dcff'; g.fillText('自宅・商店街・駅（歩ける所）', ox, 26);
     const R = (r, c) => { const [ax, az] = P(r[0], Math.max(z0, r[1])), [bx, bz] = P(r[2], r[3]); if (bz > az) { g.fillStyle = c; g.fillRect(ax, az, bx - ax, bz - az); } };
     for (const L of TOWN.lots) R(L.rect, L.kind === 'home' ? '#6a4a3a' : L.kind === 'konbini' ? '#3a6a5a' : L.kind === 'parking' ? '#3a3448' : '#2a2238');
     R([-10.5, -72, 10.5, -4], '#3a2a48'); R([-4.5, -72, 4.5, -4], '#c8a8e0');
     R([TOWN.channel.x0, TOWN.channel.z0, TOWN.channel.x1, TOWN.channel.z1], '#2a5a9a');
-    for (const w of TOWN.walk) R(w.rect, { main: '#6a5a88', sidewalk: '#8a7aa8', lane: '#7a6a98', forecourt: '#a890c8', park: '#4a7a5a', nook: '#7a6a5a', yard: '#9a7a6a', parking: '#5a5070', bridge: '#8a7aa8' }[w.kind] || '#7a6a98');
+    for (const w of TOWN.walk) R(w.rect, { main: '#6a5a88', sidewalk: '#8a7aa8', lane: '#7a6a98', forecourt: '#a890c8', park: '#4a7a5a', nook: '#7a6a5a', yard: '#9a7a6a', parking: '#5a5070', bridge: '#8a7aa8', avenue: '#5a5a90', plaza: '#a890c8', passage: '#b8a0d8' }[w.kind] || '#7a6a98');
+    R(TOWN.station.rect, '#4a5a8a');
     const hh = [...homeW(-6, 6), ...homeW(6, 16)]; R(hh, '#ffc890');
-    // 道のり（自宅 → アーケード）
-    g.strokeStyle = '#ffd040'; g.lineWidth = 2; g.setLineDash([5, 4]); g.beginPath(); TOWN.route.forEach(([x, z], i) => { const [px, pz] = P(x, z); if (i) g.lineTo(px, pz); else g.moveTo(px, pz); }); g.stroke(); g.setLineDash([]);
-    g.font = `${Math.round(W / 70)}px sans-serif`; g.fillStyle = '#ffffff';
+    // 路面電車の線路（輪の線）
+    const line = (pts, c, w, dash) => { g.strokeStyle = c; g.lineWidth = w; g.setLineDash(dash || []); g.beginPath(); pts.forEach(([x, z], i) => { const [px, pz] = P(x, z); if (i) g.lineTo(px, pz); else g.moveTo(px, pz); }); g.stroke(); g.setLineDash([]); };
+    for (const tr of TOWN.avenue.tracks) line(tr.pts, '#40c8b0', 1.5);
+    // 道のり（自宅 → アーケード：黄色／自宅 → 駅：水色）
+    line(TOWN.route, '#ffd040', 2, [5, 4]); line(TOWN.routes.home_station, '#7ad8ff', 2, [3, 4]);
+    g.font = `${Math.round(W / 74)}px sans-serif`; g.fillStyle = '#ffffff';
     const lab = (t, x, z) => { const [px, pz] = P(x, z); g.fillText(t, px, pz); };
-    lab('商店街（アーケード）', 6, -30); lab('広場', -4, 0); lab('駅前通り', -40, 9); lab('信号', 13, 10); lab('コンビニ', 16, 24); lab('児童公園', -11, 22); lab('用水路', -2, 34); lab('祠', -6, 47); lab('自宅', 37, 53); lab('自宅の前の道', 20, 42);
+    lab('商店街', -9, -40); lab('広場', 14, -20); lab('駅前通り', -40, 9); lab('児童公園', -11, 22); lab('自宅', 34, 56); lab('中央通り（電車・バス）', 94, -12); lab('駅', 70, -118); lab('駅前広場', 44, -92); lab('バス', 98, -100); lab('電停', 72, -40);
+    g.fillStyle = '#ffd040'; g.fillText('┅ 自宅 → 商店街', ox, H - 30); g.fillStyle = '#7ad8ff'; g.fillText('┅ 自宅 → 駅', ox + W * 0.14, H - 30); g.fillStyle = '#40c8b0'; g.fillText('━ 路面電車', ox + W * 0.25, H - 30);
     if (pos) {
       const [px, pz] = P(pos.x, pos.z); g.save(); g.translate(px, pz); g.rotate(Math.PI - pos.yaw); g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(0, -9); g.lineTo(6, 7); g.lineTo(0, 3); g.lineTo(-6, 7); g.closePath(); g.fill(); g.restore();
       g.strokeStyle = '#ff9ac8'; g.lineWidth = 2; g.beginPath(); g.arc(px, pz, 12, 0, Math.PI * 2); g.stroke();

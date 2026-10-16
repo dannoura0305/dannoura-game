@@ -4,56 +4,66 @@
 import * as THREE from 'three';
 import { TOWN, townSolids, houseFoot, guardSpans, townLamps, homeW } from '../data/town.js';
 import { applyTile } from '../render/townmat.js';
+import { makeTown2, isFar } from './town2.js';
 
 // 決まった乱数（区画の id から）
 function seeded(str) { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 10000) / 10000; }; }
 
 /**
- * ctx = { B (Builder), atlas (看板の地図帳), signDraw, scene, state }
- * 戻り値：{ boxes, lights, halos, wet, spots, hideSpots, wires (LineSegments), pools (Mesh), signals }
+ * ctx = { B (Builder), atlas (看板の地図帳), signDraw, scene, state, part }
+ * part：'near'（アーケード・住宅地・駅前通り・ガラスの屋根の広場・横丁）／'far'（中央通り・駅前：起動の後で組み立てる）／'all'
+ * 戻り値：{ boxes, lights, halos, wet, spots, hideSpots, wires (LineSegments), pools (Mesh), signals }。当たり判定（boxes）は part に関係なく全部
  */
 export function buildTown(ctx) {
-  const { B, atlas, signDraw } = ctx;
-  const T = TOWN, boxes = townSolids(T), lights = [], halos = [], wet = [], spots = [], hideSpots = [];
+  const { B, atlas, signDraw } = ctx, part = ctx.part || 'all';
+  const inPart = (x, z) => part === 'all' || (part === 'far') === isFar(x, z);
+  const inRect = r => inPart((r[0] + r[2]) / 2, (r[1] + r[3]) / 2);
+  const T = TOWN, boxes = part === 'far' ? [] : townSolids(T), lights = [], halos = [], wet = [], spots = [], hideSpots = [];
+  const wirePts = [];
   const tb = (key, cx, cy, cz, w, h, d, color, tile, opt = {}) => B.box(key, cx, cy, cz, w, h, d, color, Object.assign({ tile, edges: false }, opt));
   const prop = (cx, cy, cz, w, h, d, color, opt = {}) => B.box('prop', cx, cy, cz, w, h, d, color, Object.assign({ edges: false }, opt));
   const addTile = (key, geo, tile, color = 0xffffff, opt = {}) => { applyTile(geo, tile, opt); return B.add(key, geo, color, opt.ao || false); };
-  const signUV = (text, opt) => atlas.add(signDraw(text, opt));
+  const signUV = (text, opt) => atlas.addKey ? atlas.addKey(text + '|' + JSON.stringify(opt || {}), signDraw(text, opt)) : atlas.add(signDraw(text, opt));
   const poolGeos = [];
   const pool = (x, z, r, color, k = 1) => { const g = new THREE.PlaneGeometry(r * 2, r * 2); g.rotateX(-Math.PI / 2); g.translate(x, 0.035, z); const c = new THREE.Color(color).multiplyScalar(k); const n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); poolGeos.push(g); };
 
+  // フェーズ10 の部品（中央通り・駅前・広場・町家・ビル）：同じ道具を渡す
+  const X = makeTown2({ B, T, tb, prop, addTile, signUV, pool, halos, lights, wet, spots, hideSpots, frame, win, roofGable, tree, lampAt, car, bike, catenaryPts, wirePts, inPart, inRect, seeded, fenceFront, signDraw, atlas });
   // ── 地面：下敷き（用水路の底より下）・歩ける所・区画の庭 ──
-  { const b = T.bounds; tb('tex', (b.minX + b.maxX) / 2, -1.3, (b.minZ + 66) / 2 + 30, b.maxX - b.minX + 40, 0.2, 66 - b.minZ + 80, 0x2a2826, 'gravel', { ts: 4 }); }
-  const SURF_TS = { asphalt: 6, asphalt2: 6, lane: 5, interlock: 1.6, paving: 2.2, gravel: 3, concrete: 3 };
+  if (part !== 'far') { const b = T.bounds; tb('tex', (b.minX + b.maxX) / 2, -1.3, (b.minZ + 66) / 2 + 30, b.maxX - b.minX + 40, 0.2, 66 - b.minZ + 80, 0x2a2826, 'gravel', { ts: 4 }); }
+  const SURF_TS = { asphalt: 6, asphalt2: 6, lane: 5, interlock: 1.6, paving: 2.2, gravel: 3, concrete: 3, granite: 4, arcade_floor: 2.6 };
   for (const w of T.walk) {
     const [x0, z0, x1, z1] = w.rect;
-    if (w.id === 'park') continue;                                       // 公園は下で（砂利と芝）
+    if (w.id === 'park' || !inRect(w.rect)) continue;                   // 公園は下で（砂利と芝）
     tb('tex', (x0 + x1) / 2, -0.06, (z0 + z1) / 2, x1 - x0, 0.12, z1 - z0, w.kind === 'sidewalk' ? 0xb0a8a8 : w.kind === 'forecourt' ? 0xc0b8b4 : 0xffffff, w.surf, { ts: SURF_TS[w.surf] || 3 });
   }
   // 区画の地面（家の庭・店の前）
   for (const L of T.lots) {
-    if (['fill', 'barrier', 'home'].includes(L.kind)) continue;
+    if (['fill', 'barrier', 'home', 'barrier2', 'station', 'fillB', 'tower', 'dept', 'machiya'].includes(L.kind) || !inRect(L.rect)) continue;
     const [x0, z0, x1, z1] = L.rect, r = seeded(L.id);
     const surf = L.kind === 'field' ? 'field' : L.kind === 'house' ? (r() < 0.5 ? 'gravel' : 'grass') : L.kind === 'parking' ? 'asphalt2' : 'concrete';
     tb('tex', (x0 + x1) / 2, -0.07, (z0 + z1) / 2, x1 - x0, 0.12, z1 - z0, L.kind === 'house' ? 0xc8c8c0 : 0xffffff, surf, { ts: surf === 'field' ? 4 : 3 });
   }
+  if (part !== 'far') nearStreet();
+  function nearStreet() {
   // 歩道の縁石（車道との境）・駅前通りの白線・中央線
   const curbGaps = [[8.2, 12.8], [-2.6, 2.6]];
   const spanX = (a, b, gaps, fn) => { let x = a; for (const [p, q] of gaps.slice().sort((m, n) => m[0] - n[0])) { if (p > x) fn(x, p); x = Math.max(x, q); } if (x < b) fn(x, b); };
-  for (const z of [4.5, 11.5]) spanX(-44, 60, z === 4.5 ? curbGaps : curbGaps.concat([[13, 32.2]]), (a, b) => tb('tex', (a + b) / 2, 0.08, z, b - a, 0.18, 0.22, 0xd0ccc4, 'curb', { ts: 2 }));
-  spanX(-44, 60, [[8.2, 12.8], [-2.6, 2.6]], (a, b) => { for (let x = a + 1; x < b - 1.5; x += 6) prop(x + 1.5, 0.012, 8.0, 3.0, 0.02, 0.14, 0xe8e6de); });   // 中央の破線
-  for (const z of [4.95, 11.05]) spanX(-44, 60, [[8.2, 12.8]], (a, b) => prop((a + b) / 2, 0.012, z, b - a, 0.02, 0.12, 0xe8e6de));               // 外側線
+  for (const z of [4.5, 11.5]) spanX(-44, 66, z === 4.5 ? curbGaps : curbGaps.concat([[13, 32.2]]), (a, b) => tb('tex', (a + b) / 2, 0.08, z, b - a, 0.18, 0.22, 0xd0ccc4, 'curb', { ts: 2 }));
+  spanX(-44, 64, [[8.2, 12.8], [-2.6, 2.6]], (a, b) => { for (let x = a + 1; x < b - 1.5; x += 6) prop(x + 1.5, 0.012, 7.25, 3.0, 0.02, 0.14, 0xe8e6de); });   // 中央の破線（消雪の水の出口の列の横）
+  for (const z of [4.95, 11.05]) spanX(-44, 64, [[8.2, 12.8]], (a, b) => prop((a + b) / 2, 0.012, z, b - a, 0.02, 0.12, 0xe8e6de));               // 外側線
   // 生活道路：両端の側溝（グレーチングのふた）・外側線
   const laneEdge = (x0, z0, x1, z1, alongX) => {
     if (alongX) { for (const z of [z0 + 0.25, z1 - 0.25]) tb('tex', (x0 + x1) / 2, 0.006, z, x1 - x0, 0.02, 0.45, 0xb0b0ac, 'drain', { ts: 0.9 }); for (const z of [z0 + 0.75, z1 - 0.75]) prop((x0 + x1) / 2, 0.012, z, x1 - x0, 0.02, 0.1, 0xd8d6ce); }
     else { for (const x of [x0 + 0.25, x1 - 0.25]) tb('tex', x, 0.006, (z0 + z1) / 2, 0.45, 0.02, z1 - z0, 0xb0b0ac, 'drain', { ts: 0.9 }); for (const x of [x0 + 0.75, x1 - 0.75]) prop(x, 0.012, (z0 + z1) / 2, 0.1, 0.02, z1 - z0, 0xd8d6ce); }
   };
-  laneEdge(8, 15, 13, 37.8, false); laneEdge(1, 38, 61.5, 43, true);
-  // 横断歩道・停止線
-  for (const c of T.crossings) { for (let z = c.z0 + 0.5; z < c.z1 - 0.3; z += 0.9) prop((c.x0 + c.x1) / 2, 0.014, z + 0.22, c.x1 - c.x0, 0.02, 0.45, 0xeceae2); }
+  laneEdge(8, 15, 13, 37.8, false); laneEdge(1, 38, 65.5, 43, true);
+  // 横断歩道・停止線（中央通りの横断歩道は town2）
+  for (const c of T.crossings) { if (c.along === 'x' || c.id === 'x_aveW') continue; for (let z = c.z0 + 0.5; z < c.z1 - 0.3; z += 0.9) prop((c.x0 + c.x1) / 2, 0.014, z + 0.22, c.x1 - c.x0, 0.02, 0.45, 0xeceae2); }
   for (const [x, z] of [[7.1, 6.25], [13.9, 9.75]]) prop(x, 0.014, z, 0.35, 0.02, 3.4, 0xeceae2);                                 // 車道の停止線
   // 道の上の印（止まれ・停止線・マンホール・水たまり・落ち葉）
   for (const m of T.marks) {
+    if (!inPart(m.x, m.z)) continue;
     if (m.kind === 'tomare') { const g = new THREE.PlaneGeometry(2.6, 3.2); g.rotateX(-Math.PI / 2); g.rotateY(m.ry || 0); g.translate(m.x, 0.02, m.z); addTile('tex', g, 'tomare', 0xffffff, { fit: true }); }
     if (m.kind === 'stopline') prop(m.x, 0.014, m.z, m.w, 0.02, 0.35, 0xeceae2, { ry: m.ry || 0 });
     if (m.kind === 'manhole') { const g = new THREE.CylinderGeometry(0.42, 0.42, 0.03, 18); g.translate(m.x, 0.012, m.z); addTile('tex', g, 'manhole', 0xc8c8c8, { fit: true }); }
@@ -80,9 +90,11 @@ export function buildTown(ctx) {
     // 公園への橋の手すり
     for (const zz of [22.05, 24.45]) prop(cx, 0.6, zz, C.x1 - C.x0, 0.06, 0.06, 0xc8b070);
   }
+  }
 
   // ── 区画（家・店・ビル・コンビニ・駐車場・奥の家並み） ──
   for (const L of T.lots) {
+    if (!inRect(L.rect)) continue;
     if (L.kind === 'house') house(L);
     else if (L.kind === 'shop' || L.kind === 'bldg') shop(L);
     else if (L.kind === 'apartment') apartment(L);
@@ -91,21 +103,20 @@ export function buildTown(ctx) {
     else if (L.kind === 'fill') backHouses(L);
     else if (L.kind === 'field') field(L);
     else if (L.kind === 'barrier') barrier(L);
+    else X.lot(L);
   }
-  homeExterior();
-  park(); shrine();
+  if (part !== 'far') { homeExterior(); park(); shrine(); }
   // ── 電柱・電線・街灯 ──
-  const wirePts = [];
   for (const pl of T.poleLines) {
-    pl.pts.forEach(([x, z], i) => pole(x, z, pl, i));
-    for (let i = 0; i < pl.pts.length - 1; i++) { const [ax, az] = pl.pts[i], [bx, bz] = pl.pts[i + 1]; for (const [h, o] of [[8.4, -0.5], [8.4, 0.5], [7.6, 0]]) catenary(wirePts, ax, az, bx, bz, h, o); }
+    pl.pts.forEach(([x, z], i) => { if (inPart(x, z)) pole(x, z, pl, i); });
+    for (let i = 0; i < pl.pts.length - 1; i++) { const [ax, az] = pl.pts[i], [bx, bz] = pl.pts[i + 1]; if (!inPart((ax + bx) / 2, (az + bz) / 2)) continue; for (const [h, o] of [[8.4, -0.5], [8.4, 0.5], [7.6, 0]]) catenary(wirePts, ax, az, bx, bz, h, o); }
   }
   // 電線を家へ（引き込み線）：家の 2 階の角へ近い電柱から
-  for (const L of T.lots) if (L.kind === 'house') { const f = houseFoot(L), cx = (f[0] + f[2]) / 2, cz = (f[1] + f[3]) / 2; let best = null, bd = 1e9; for (const pl of T.poleLines) for (const p of pl.pts) { const d = Math.hypot(p[0] - cx, p[1] - cz); if (d < bd) { bd = d; best = p; } } if (best && bd < 22) { const hx = Math.max(f[0], Math.min(f[2], best[0])), hz = Math.max(f[1], Math.min(f[3], best[1])); catenaryPts(wirePts, [best[0], 7.0, best[1]], [hx, 5.4, hz], 0.35); } }
-  for (const lamp of townLamps(T)) lampAt(lamp);
+  for (const L of T.lots) if (L.kind === 'house' && inRect(L.rect)) { const f = houseFoot(L), cx = (f[0] + f[2]) / 2, cz = (f[1] + f[3]) / 2; let best = null, bd = 1e9; for (const pl of T.poleLines) for (const p of pl.pts) { const d = Math.hypot(p[0] - cx, p[1] - cz); if (d < bd) { bd = d; best = p; } } if (best && bd < 22) { const hx = Math.max(f[0], Math.min(f[2], best[0])), hz = Math.max(f[1], Math.min(f[3], best[1])); catenaryPts(wirePts, [best[0], 7.0, best[1]], [hx, 5.4, hz], 0.35); } }
+  for (const lamp of townLamps(T)) if (inPart(lamp.x, lamp.z)) lampAt(lamp);
   // ── 信号（用水路沿いの道の正面）：車の信号 2 つ・歩行者の信号 2 つ ──
   const signals = [];
-  { const X = T.crossings.find(c => c.signal);
+  if (part !== 'far') { const X = T.crossings.find(c => c.id === 'x_main');
     const car = (x, z, ry, idx) => { prop(x, 2.9, z, 0.18, 5.8, 0.18, 0x6a6e70); const ax = Math.sin(ry), az = Math.cos(ry); prop(x + ax * 1.6, 5.6, z + az * 1.6, Math.abs(ax) > 0.5 ? 3.2 : 0.12, 0.12, Math.abs(ax) > 0.5 ? 0.12 : 3.2, 0x6a6e70);
       const hx = x + ax * 3.0, hz = z + az * 3.0; const along = Math.abs(ax) > 0.5; prop(hx, 5.35, hz, along ? 1.3 : 0.32, 0.42, along ? 0.32 : 1.3, 0x3a3c40);
       const heads = []; [-0.42, 0, 0.42].forEach((o, k) => { const px = hx + (along ? o : 0), pz = hz + (along ? 0 : o); const f = along ? [0, 0.17] : [0.17, 0]; const s = idx === 0 ? 1 : -1; B.box('glow', px + f[0] * s, 5.35, pz + f[1] * s, along ? 0.24 : 0.04, 0.24, along ? 0.04 : 0.24, [0x1a3a2a, 0x3a3010, 0x3a1010][k], { edges: false }); heads.push(halos.push({ p: [px + f[0] * s * 2, 5.35, pz + f[1] * s * 2], size: 1.1, color: [0x40ffb0, 0xffc030, 0xff3030][k], k: 0, signal: true }) - 1); });
@@ -118,21 +129,23 @@ export function buildTown(ctx) {
     prop(X.x0 - 0.4, 1.1, 12.05, 0.18, 0.28, 0.1, 0xe8d040);
   }
   // ── 小物 ──
-  for (const p of T.props) propAt(p);
+  for (const p of T.props) if (inPart(p.x, p.z)) propAt(p);
   // 隠れ場所（相棒）：電柱の陰・自販機の横・塀の角
-  for (const [x, z] of [[13.8, 26.5], [24.2, 38.8], [8.3, 31], [-1.2, 3.6], [31.8, 19.0], [36.6, 42.2]]) hideSpots.push({ x, z });
+  if (part !== 'far') for (const [x, z] of [[13.8, 26.5], [24.2, 38.8], [8.3, 31], [-1.2, 3.6], [31.8, 19.0], [36.6, 42.2]]) hideSpots.push({ x, z });
+  // ── フェーズ10：中央通り・駅前・ガラスの屋根の広場・横丁 ──
+  X.build(signals);
 
   // ── 光のたまり（街灯の下の地面：足し合わせの円・描画 1 回） ──
   let pools = null;
   if (poolGeos.length) {
-    const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); const gr = g.createRadialGradient(64, 64, 2, 64, 64, 64); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d', { willReadFrequently: true }); const gr = g.createRadialGradient(64, 64, 2, 64, 64, 64); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
     const tex = new THREE.CanvasTexture(c);
     const merged = mergeLite(poolGeos);
     pools = new THREE.Mesh(merged, new THREE.MeshBasicMaterial({ map: tex, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: true }));
     pools.name = 'town_pools'; pools.renderOrder = 2;
   }
   // ── 電線（線 1 本＝描画 1 回） ──
-  const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute(wirePts, 3));
+  const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute(wirePts, 3)); wg.computeBoundingSphere();
   const wires = new THREE.LineSegments(wg, new THREE.LineBasicMaterial({ color: 0x0a0810, transparent: true, opacity: 0.85, fog: true })); wires.name = 'town_wires';
 
   return { boxes, lights, halos, wet, spots, hideSpots, wires, pools, signals };
@@ -440,10 +453,11 @@ export function buildTown(ctx) {
     prop(x, 7.6, z, along ? 0.1 : 0.9, 0.08, along ? 0.9 : 0.1, 0x5a5a58);
     if ((i + pl.id.length) % 3 === 0) { const g2 = new THREE.CylinderGeometry(0.3, 0.3, 0.9, 10); g2.translate(x + (along ? 0 : 0.38), 6.8, z + (along ? 0.38 : 0)); B.add('prop', g2, 0x7a7e80); }   // 変圧器
     for (let y = 2.6; y < 5.6; y += 0.45) prop(x + (along ? 0 : 0.2), y, z + (along ? 0.2 : 0), 0.04, 0.04, 0.18, 0x3a3a3a);   // 足場ボルト
-    const uv = signUV(({ pl_main: '駅前', pl_mainS: '駅前南', pl_laneB: '用水', pl_laneA: '東町', pl_west: '西町' }[pl.id] || '町内') + ' ' + (i + 3), { bg: '#f0f0e8', fg: '#2a2a3a', size: 30 });
+    const uv = signUV(({ pl_main: '駅前', pl_mainS: '駅前南', pl_laneB: '用水', pl_laneA: '東町', pl_west: '西町', pl_yoko: '横丁' }[pl.id] || '町内') + ' ' + (i + 3), { bg: '#f0f0e8', fg: '#2a2a3a', size: 30 });
     B.box('sign', x + (along ? 0 : 0.2), 2.0, z + (along ? 0.2 : 0), along ? 0.3 : 0.02, 0.5, along ? 0.02 : 0.3, 0xffffff, { uv, face: along ? 4 : 0, edges: false });
   }
   function lampAt(L) {
+    if (L.kind === 'modern') return modernLamp(L);
     // 腕の向き：近い歩ける所の中心へ
     let best = null, bd = 1e9; for (const w of T.walk) { const [a, b, c, d] = w.rect; const px = Math.max(a, Math.min(c, L.x)), pz = Math.max(b, Math.min(d, L.z)); const dd = Math.hypot(px - L.x, pz - L.z) + (w.kind === 'sidewalk' ? 2 : 0); if (dd < bd && w.kind !== 'yard') { bd = dd; best = w; } }
     let ax = 0, az = 0; if (best) { const [a, b, c, d] = best.rect; const tx = Math.max(a + 1, Math.min(c - 1, L.x)), tz = Math.max(b + 1, Math.min(d - 1, L.z)); const dx = (a + c) / 2 - L.x, dz = (b + d) / 2 - L.z; if (Math.abs(tx - L.x) + Math.abs(tz - L.z) < 0.2) { ax = Math.sign(dx); az = 0; } else { const l = Math.hypot(tx - L.x, tz - L.z); ax = (tx - L.x) / l; az = (tz - L.z) / l; } if (Math.abs(ax) > Math.abs(az)) { ax = Math.sign(ax); az = 0; } else { az = Math.sign(az); ax = 0; } }
@@ -460,6 +474,23 @@ export function buildTown(ctx) {
     halos.push({ p: [lx, h - 0.15, lz], size: warm ? 2.4 : 1.8, color, k: 0.85, light });
     pool(lx, lz, warm ? 5.5 : 4.2, color, warm ? 0.32 : 0.26);
     wet.push({ p: [lx, 0, lz], size: warm ? 2.2 : 1.6, color, k: 0.85, light: light.id });
+  }
+  /** フェーズ10：中央通り・駅前の高い街灯（電線なし・細い柱と弓なりの腕・LED の灯具）。dir＝[0,0] は柱の上に灯（駅前） */
+  function modernLamp(L) {
+    const h = L.h, [dx, dz] = L.dir || [0, 0], reach = dx || dz ? 2.4 : 0;
+    const g = new THREE.CylinderGeometry(0.09, 0.15, h, 10); g.translate(L.x, h / 2, L.z); B.add('prop', g, 0x5a5e66);
+    prop(L.x, 0.2, L.z, 0.4, 0.4, 0.4, 0x4a4e56);
+    let lx = L.x, lz = L.z;
+    if (reach) { for (let k = 0; k < 4; k++) { const t0 = k / 4, t1 = (k + 1) / 4, y0 = h - 0.1 + Math.sin(t0 * 1.6) * 0.5, y1 = h - 0.1 + Math.sin(t1 * 1.6) * 0.5; const mx = L.x + dx * reach * (t0 + t1) / 2, mz = L.z + dz * reach * (t0 + t1) / 2; prop(mx, (y0 + y1) / 2, mz, Math.abs(dx) * reach / 4 + 0.08, Math.abs(y1 - y0) + 0.07, Math.abs(dz) * reach / 4 + 0.08, 0x5a5e66); } lx = L.x + dx * reach; lz = L.z + dz * reach; }
+    const ly = reach ? h + 0.3 : h + 0.25, color = 0xffe2b8;
+    prop(lx, ly + 0.08, lz, 0.9, 0.1, 0.42, 0x3a3e46);
+    B.box(L.dead ? 'prop' : 'glow', lx, ly, lz, 0.8, 0.06, 0.34, L.dead ? 0x3a3a3c : color, { edges: false });
+    if (L.dead) return;
+    const light = { id: 'lamp_' + L.id, pos: [lx, ly - 0.3, lz], color, intensity: 13, dist: 17, town: true, flicker: !!L.flicker, base: 13 };
+    lights.push(light);
+    halos.push({ p: [lx, ly - 0.1, lz], size: 2.6, color, k: 0.85, light });
+    pool(lx, lz, 6.5, color, 0.3);
+    wet.push({ p: [lx, 0, lz], size: 2.6, color, k: 0.9, light: light.id });
   }
   function catenary(out, ax, az, bx, bz, h, off) {
     const dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz), nx = -dz / L, nz = dx / L;
@@ -505,7 +536,7 @@ export function buildTown(ctx) {
     part(Wd - 0.18, p.kei ? 0.55 : 0.45, 0.04, 0, p.kei ? 1.2 : 1.12, L * (p.kei ? 0.31 : 0.25) - 0.1, 0x10141c, 'glass'); part(0.04, 0.42, L * 0.45, (Wd - 0.1) / 2, 1.13, -0.1, 0x10141c, 'glass'); part(0.04, 0.42, L * 0.45, -(Wd - 0.1) / 2, 1.13, -0.1, 0x10141c, 'glass');
     for (const [wx, wz] of [[-Wd / 2 + 0.1, L * 0.32], [Wd / 2 - 0.1, L * 0.32], [-Wd / 2 + 0.1, -L * 0.32], [Wd / 2 - 0.1, -L * 0.32]]) { const g = new THREE.CylinderGeometry(0.31, 0.31, 0.22, 12); g.rotateZ(Math.PI / 2); g.translate(wx, 0.31, wz); g.rotateY(ry); g.translate(p.x, 0, p.z); B.add('prop', g, 0x1a1a1e); }
     for (const sx of [-1, 1]) { part(0.3, 0.12, 0.04, sx * (Wd / 2 - 0.25), 0.72, L / 2, p.abandoned ? 0xffe0a0 : 0xd8d8c8, 'glow'); part(0.3, 0.12, 0.04, sx * (Wd / 2 - 0.25), 0.72, -L / 2, 0x8a1a1a, 'glow'); }
-    if (p.abandoned) { for (const sx of [-1, 1]) { const hx = p.x + (sx * (Wd / 2 - 0.25)) * c + (L / 2 + 0.3) * s, hz = p.z - (sx * (Wd / 2 - 0.25)) * s + (L / 2 + 0.3) * c; halos.push({ p: [hx, 0.72, hz], size: 0.9, color: 0xffa020, k: 0.8, hazard: true }); } spots.push({ id: 'town_car', kind: 'read', x: p.x + 2.2 * s, z: p.z + 2.2 * c + 1.4, r: 1.6, label: '乗り捨てられた車', text: 'town_car' }); }
+    if (p.abandoned || p.hazard) { for (const sx of [-1, 1]) { const hx = p.x + (sx * (Wd / 2 - 0.25)) * c + (L / 2 + 0.3) * s, hz = p.z - (sx * (Wd / 2 - 0.25)) * s + (L / 2 + 0.3) * c; halos.push({ p: [hx, 0.72, hz], size: 0.9, color: 0xffa020, k: 0.8, hazard: true }); } if (p.abandoned) spots.push({ id: 'town_car', kind: 'read', x: p.x + 2.2 * s, z: p.z + 2.2 * c + 1.4, r: 1.6, label: '乗り捨てられた車', text: 'town_car' }); }
   }
 }
 

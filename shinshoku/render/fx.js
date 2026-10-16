@@ -14,7 +14,7 @@ export class Fx {
     // 黒い霧（柔らかい大きな粒・通常の合成）
     this.M = 260; this.mPos = new Float32Array(this.M * 3); this.mCol = new Float32Array(this.M * 4); this.mVel = new Float32Array(this.M * 3); this.mLife = new Float32Array(this.M); this.mMax = new Float32Array(this.M); this.mi = 0;
     const mg = new THREE.BufferGeometry(); mg.setAttribute('position', new THREE.BufferAttribute(this.mPos, 3)); mg.setAttribute('color', new THREE.BufferAttribute(this.mCol, 4));
-    const tex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.5, 'rgba(255,255,255,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); const t = new THREE.CanvasTexture(c); return t; })();
+    const tex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d', { willReadFrequently: true }); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.5, 'rgba(255,255,255,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); const t = new THREE.CanvasTexture(c); return t; })();
     this.mistPts = new THREE.Points(mg, new THREE.PointsMaterial({ size: 0.55, map: tex, vertexColors: true, transparent: true, depthWrite: false, fog: true, sizeAttenuation: true }));
     this.mistPts.frustumCulled = false; scene.add(this.mistPts);
     for (let i = 0; i < this.M; i++) this.mPos[i * 3 + 1] = -99;

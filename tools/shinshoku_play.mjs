@@ -410,6 +410,21 @@ async function runPC(browser) {
     await page.evaluate(() => __sh.debug.god(false));
     ok('第1章：家から商店街へ歩いて行ける（門を出て西 → 用水路沿いを北 → 信号の横断歩道 → 北の歩道を西 → 広場 → アーケード）', good && p.z < -4 && Math.abs(p.x) < 4.5, `歩いて ${sec.toFixed(0)} 秒・${JSON.stringify(turnsAt)}・始め ${m0}`);
   }
+  { // フェーズ10：家 → 駅（家の前の道を東 → 中央通りの歩道を北 → 横断歩道 → 駅前広場 → 駅舎の前）→ 商店街（中央通り → 横丁 → ガラスの屋根の広場 → 通り抜け → アーケード）。実際に歩く
+    const T = await page.evaluate(() => { __sh.debug.buildPending(); return __sh.debug.town(); });
+    const walkRoute = async (r, label) => { let good = true; const turns = []; const f0 = await page.evaluate(() => __sh.game.frame);
+      for (const [x, z] of r.slice(1)) { const res = await walkTo(page, x, z, 2400, true); turns.push(res === true ? 1 : res); if (res !== true) { good = false; console.log('  [' + label + ']', x, z, res, JSON.stringify((await S(page)).player)); break; } }
+      return { good, sec: ((await page.evaluate(() => __sh.game.frame)) - f0) / 60, turns }; };
+    await page.evaluate(r => { const D = __sh.debug, g = __sh.game; if (g.mode === 'pause') D.closeMenu(); D.skipDialog(); D.god(true); D.freezeEnemies(true); D.teleport(r[0][0], r[0][1], Math.PI); D.fastSim(2); }, T.routes.home_station);
+    const a = await walkRoute(T.routes.home_station, 'home→station');
+    const atSt = await page.evaluate(() => { const P = __sh.game.player.pos, A = __sh.game.area; return { x: +P.x.toFixed(1), z: +P.z.toFixed(1), area: A.id, built: !A.pending.length, roof: A.rainRoof(P.x, P.z) }; });
+    await page.evaluate(() => { __sh.game.cam.yaw = 0; __sh.game.cam.pitch = 0.14; }); await clearUI(page); await shot(page, 'pc_04b_station_front.png', 1800);
+    ok('フェーズ10：家から駅まで歩いて行ける（門 → 家の前の道を東 → 中央通りの歩道を北 → 横断歩道 → 駅前広場 → 駅舎の大屋根の下）', a.good && atSt.z < -104 && atSt.area === 'shotengai' && atSt.built && atSt.roof, `走って ${a.sec.toFixed(0)} 秒・${JSON.stringify(atSt)}`);
+    const b2 = await walkRoute(T.routes.station_arcade, 'station→arcade');
+    const p2 = (await S(page)).player;
+    ok('フェーズ10：駅から商店街へ歩いて戻れる（中央通り → 横丁 → ガラスの屋根の広場 → 通り抜け → アーケード）', b2.good && p2.z < -24 && Math.abs(p2.x) < 4.5, `走って ${b2.sec.toFixed(0)} 秒・${JSON.stringify(b2.turns)}`);
+    await page.evaluate(() => { __sh.debug.god(false); __sh.debug.freezeEnemies(false); });
+  }
   // キャラクターの寄り
   await page.evaluate(() => { const D = __sh.debug, g = __sh.game; g.flashlightOn = false; D.jump('ch1_katana'); D.freezeEnemies(true); D.god(true); D.heal(); g.player.fighter.hp = g.player.fighter.maxHp || g.player.fighter.hp; g.player.fighter._go('free'); g.hitstop = 0; g.slowT = 0; D.teleport(...D.home(-1.0, 12.5), 0.4); D.fastSim(40); g.player.fighter._go('free'); D.fastSim(20); D.view('closeup', { who: 'player', dist: 1.05, side: 0.3, y: 1.47, fov: 34 }); });
   await clearUI(page); await shot(page, 'pc_14_dannoura_face.png', 2200);
@@ -532,6 +547,21 @@ async function runPhone(browser) {
   await clearUI(page); await shot(page, 'phone_04_street_hud.png', 2000);
   const perf = { street: await page.evaluate(() => Object.assign(__sh.debug.renderInfo(), { fps: __sh.debug.perf() && +__sh.debug.perf().fps.toFixed(1) })), boss: perfBoss };
   ok('スマホ：描画呼び出し 120 以下（商店街・体育館の戦い）', perf.street.calls <= 120 && perfBoss.calls <= 120, JSON.stringify(perf));
+  { // フェーズ10：スマホでも駅・中央通り・広場を歩ける（一部を歩く）・描画呼び出し 120 以下（場所ごとに 4 方向の最大）
+    const T = await page.evaluate(() => { const D = __sh.debug, g = __sh.game; D.buildPending(); D.god(true); D.freezeEnemies(true); if (g.mode === 'pause') D.closeMenu(); return D.town(); });
+    const r = T.routes.station_arcade; await page.evaluate(p => { __sh.debug.teleport(p[0], p[1], Math.PI); __sh.debug.fastSim(2); }, r[0]);
+    let good = true; for (const [x, z] of r.slice(1, 6)) { const res = await walkTo(page, x, z, 2400, true); if (res !== true) { good = false; break; } }
+    const pp = (await S(page)).player;
+    ok('スマホ：駅 → 中央通り → 横丁まで歩く', good && pp.x < 40 && pp.z < -19, JSON.stringify({ x: pp.x, z: pp.z }));
+    const pf = {};
+    for (const [name, [x, z]] of Object.entries({ station: [79, -100], plaza: [60, -84], avenue: [68, -30], gplaza: [23, -20], yokocho: [50, -21.75] })) {
+      let mx = 0; for (let k = 0; k < 4; k++) { await page.evaluate(({ x, z, k }) => { const g = __sh.game; __sh.debug.teleport(x, z, k * Math.PI / 2); g.cam.pitch = 0.16; __sh.debug.fastSim(40); }, { x, z, k }); await page.waitForTimeout(350); mx = Math.max(mx, (await page.evaluate(() => __sh.debug.renderInfo())).calls); }
+      pf[name] = mx;
+    }
+    await page.evaluate(() => { const D = __sh.debug; D.teleport(84, -86, Math.PI); __sh.game.cam.yaw = 0; __sh.game.cam.pitch = 0.12; D.fastSim(30); }); await clearUI(page); await shot(page, 'phone_05_station.png', 1600);
+    ok('スマホ：描画呼び出し 120 以下（駅舎の前・駅前広場・中央通り・ガラスの屋根の広場・横丁）', Object.values(pf).every(v => v <= 120), JSON.stringify(pf));
+    await page.evaluate(() => { __sh.debug.god(false); __sh.debug.freezeEnemies(false); });
+  }
   ok('スマホ ページエラー 0', errs.length === 0, errs.slice(0, 5).join(' | '));
   await ctx.close();
   return { perf, errs };
@@ -590,7 +620,9 @@ async function runCh3PC(browser) {
   await page.evaluate(() => __sh.debug.teleport(-4.6, 18.4, Math.PI / 2));
   const w1 = await walkTo(page, ex.x - 0.1, ex.z, 300, false);
   st = await S(page); ok('避難所のロビー西の連絡通路を歩いて病院へ（区画の読み込み）→ 着いた演出', st.area === 'hospital' && st.cut === 'cs03_hospital', JSON.stringify({ w1, area: st.area, cut: st.cut }));
-  await sim(page, 60 * 7.6); await page.evaluate(() => __sh.debug.hold(true)); await shot(page, 'pc_30_hospital_arrive.png', 1800); await page.evaluate(() => __sh.debug.hold(false));
+  // フェーズ10：最初は外（正面玄関・車寄せ・外観）→ 3 秒でロビーへ
+  await sim(page, 60 * 1.8); await page.evaluate(() => __sh.debug.hold(true)); await shot(page, 'pc_30b_hospital_front.png', 1800); await page.evaluate(() => __sh.debug.hold(false));
+  await sim(page, 60 * 8.8); await page.evaluate(() => __sh.debug.hold(true)); await shot(page, 'pc_30_hospital_arrive.png', 1800); await page.evaluate(() => __sh.debug.hold(false));
   await skipCut(page); await sim(page, 4);
   st = await S(page); ok('病院：記録のない患者（4）・化けた影（見舞い客）がいる', st.step === 'ch3_lobby' && st.enemies.filter(e => e.kind === 'kanja').length === 4 && st.enemies.some(e => e.id === 'mimic_h1' && e.state === 'disguise'), st.enemies.map(e => e.id + ':' + e.state).join(','));
   // 化けた見舞い客：懐中電灯で目が光る（見分け方）→ 近づくと崩れる（予兆）→ 影
