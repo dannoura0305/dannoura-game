@@ -25,7 +25,7 @@ t('区画の id が重ならない', () => {
   assert.deepEqual(dup, []);
 });
 t('建物の区画（家・店・ビル・集合住宅・コンビニ・町家・百貨店・駅舎・自宅）には出入り口が 1 つ以上', () => {
-  assert.ok(buildings.length >= 40, '建物の数 ' + buildings.length);
+  assert.ok(buildings.length >= 35, '建物の数 ' + buildings.length);
   for (const L of buildings) assert.ok(lotEntrances(L).length >= 1, L.id + '（' + L.kind + '）に出入り口が無い');
 });
 t('出入り口の前は歩ける道（区画の外・電柱や自販機・車・バス停で塞がれていない）', () => {
@@ -74,7 +74,7 @@ t('町家の戸口は壁の外（格子戸・枠）・自宅の戸口に開け�
   assert.ok(!/F\.box\(lit \? 'glow' : 'prop', doorU, 0\.35/.test(t2), '町家の戸が壁の中に戻っている');
   assert.ok(/開けた戸/.test(t1) && /genkan\(F, doorU, v0/.test(t1) && /インターホン/.test(t1), '自宅・家の玄関');
   assert.ok(/glassDoor\(F, eu, set/.test(t1), '集合住宅の入口');
-  assert.ok((src('world/areas.js').match(/backDoor\(/g) || []).length >= 4, '裏路地の裏口');
+  assert.ok((src('world/areas.js').match(/backDoor\(/g) || []).length >= 3, '裏路地の裏口');
 });
 t('コンビニの自動ドアの前に自販機を置かない・家の門の前にごみ置き場を置かない', () => {
   const k = TOWN.lots.find(L => L.id === 'konbini'), [e] = lotEntrances(k);

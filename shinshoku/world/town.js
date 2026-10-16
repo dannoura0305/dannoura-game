@@ -201,8 +201,8 @@ export function buildTown(ctx) {
     F.box('prop', u, v - 0.06, y0 + 0.02, w, 0.12, 0.04, 0x8a8a88);
   }
   /** フェーズ11：ガラスの戸（店・ビル・集合住宅の入口）。n：枚数。lit：中の灯り */
-  function glassDoor(F, u, v, w, h, n = 2, lit = false, frameColor = 0x2e3036) {
-    F.box(lit ? 'texglow' : 'tex', u, v - 0.07, h / 2 + 0.02, w, 0.04, h, lit ? 0xb8c0c8 : 0xffffff, lit ? 'win_office_lit' : 'shopglass', { fit: true });
+  function glassDoor(F, u, v, w, h, n = 2, lit = false, frameColor = 0x2e3036, litTile = 'win_office_lit') {
+    F.box(lit ? 'texglow' : 'tex', u, v - 0.07, h / 2 + 0.02, w, 0.04, h, lit ? 0xb8c0c8 : 0xffffff, lit ? litTile : 'shopglass', { fit: true });
     doorFrame(F, u, v - 0.04, 0, w, h, frameColor, 0.08);
     for (let i = 1; i < n; i++) F.box('prop', u - w / 2 + i * w / n, v - 0.1, h / 2, 0.06, 0.06, h, frameColor);
     for (let i = 0; i < n; i++) F.box('prop', u - w / 2 + (i + 0.5) * w / n + (i % 2 ? -1 : 1) * (w / n / 2 - 0.16), v - 0.14, h * 0.48, 0.03, 0.05, 0.5, 0xc8ccd0);   // 取っ手
@@ -286,7 +286,7 @@ export function buildTown(ctx) {
     else F.box(L.litSign ? 'texglow' : 'tex', F.W / 2, -0.06, 1.35, frontW, 0.08, 2.7, L.litSign ? 0xd8c8a8 : 0xffffff, L.litSign ? 'win_lit' : 'shopglass', { ts: frontW / Math.max(1, Math.round(frontW / 3)), tsy: 2.7 });
     if (L.office) F.box('tex', F.W / 2, -0.07, 1.2, frontW * 0.5, 0.08, 2.4, 0xffffff, 'shutter', { ts: 2, tsy: 2.4 });
     // フェーズ11：ガラスの店・事務所は戸（枠・取っ手）。シャッターの店はシャッターが出入り口（data/town.js の lotEntrances）
-    for (const e of lotEntrances(L)) if (e.kind === 'door') { glassDoor(F, e.u, -0.08, 1.0, 2.15, 1, !!L.litSign); F.box('prop', e.u, -0.5, 0.012, 1.2, 0.7, 0.02, 0x3a3634); }
+    for (const e of lotEntrances(L)) if (e.kind === 'door') { glassDoor(F, e.u, -0.08, 1.0, 2.15, 1, !!L.litSign, 0x2e3036, 'win_lit'); F.box('prop', e.u, -0.5, 0.012, 1.2, 0.7, 0.02, 0x3a3634); }
     const uv = signUV(L.sign, { bg: L.litSign ? '#2a1a20' : '#efe6d2', fg: L.litSign ? '#ffd890' : '#2a1a14', dirt: !L.litSign });
     { const [sx, sz] = F.at(F.W / 2, -0.18); B.box('sign', sx, 3.15, sz, F.alongX ? frontW : 0.12, 0.62, F.alongX ? 0.12 : frontW, 0xffffff, { uv, face: F.f === 'N' ? 5 : F.f === 'S' ? 4 : F.f === 'E' ? 0 : 1 }); if (L.litSign) halos.push({ p: [sx + F.out[0] * 0.3, 3.15, sz + F.out[1] * 0.3], size: 3.2, color: 0xffb070, k: 0.35, neon: true }); }
     F.box('prop', F.W / 2, -0.55, 2.75, F.W - 0.2, 1.0, 0.1, [0x7a3030, 0x304a7a, 0x3a6a30, 0x5a4a30][Math.floor(r() * 4)], { rx: F.alongX ? 0.18 * (F.f === 'N' ? 1 : -1) : 0, rz: F.alongX ? 0 : 0.18 * (F.f === 'E' ? -1 : 1) });
@@ -294,7 +294,7 @@ export function buildTown(ctx) {
     for (let k = 1; k < floors; k++) {
       const y = k * fh + 1.5, n = Math.max(1, Math.floor(F.W / 3.2));
       for (let i = 0; i < n; i++) { const u = (i + 0.5) * F.W / n; const kind = L.office ? (r() < 0.25 ? 'office_lit' : 'office') : ['dark', 'dark', 'curtain', 'lit', 'dark'][Math.floor(r() * 5)]; win(F, u, 0, y, Math.min(2.2, F.W / n - 0.6), 1.3, kind); }
-      if (r() < 0.7) F.box('tex', F.W * (0.2 + r() * 0.6), -0.32, k * fh + 0.45, 0.8, 0.3, 0.6, 0xffffff, 'acunit', { fit: true });
+      if (r() < 0.7) { const au = F.W * (0.2 + r() * 0.6); if (k > 1) F.box('tex', au, -0.32, k * fh + 0.45, 0.8, 0.3, 0.6, 0xffffff, 'acunit', { fit: true }); }   // フェーズ11：2 階の室外機は 1 階の看板に重なるので置かない（裏へ）
     }
     if (L.sign2) { const uv2 = signUV(L.sign2, { bg: '#1a2a3a', fg: '#a8e0ff', size: 34 }); const [sx, sz] = F.at(F.W * 0.5, -0.1); const sw2 = F.W * 0.6; B.box('sign', sx, fh * 2 - 0.15, sz, F.alongX ? sw2 : 0.08, 0.5, F.alongX ? 0.08 : sw2, 0xffffff, { uv: uv2, face: F.f === 'N' ? 5 : F.f === 'S' ? 4 : F.f === 'E' ? 0 : 1, edges: false }); halos.push({ p: [sx + F.out[0] * 0.4, fh * 2 - 0.15, sz + F.out[1] * 0.4], size: 2.6, color: 0x80c8ff, k: 0.35, neon: true, flicker: true }); }
     if (L.barber) { const [bx, bz] = F.at(0.8, -0.3); const g = new THREE.CylinderGeometry(0.14, 0.14, 0.9, 10); g.translate(bx, 1.6, bz); B.add('glow', g, 0xf0e0e8); halos.push({ p: [bx + F.out[0] * 0.2, 1.6, bz + F.out[1] * 0.2], size: 1.0, color: 0xff6a6a, k: 0.3, flicker: true }); }

@@ -63,8 +63,9 @@ export function makeTown2(K) {
     for (const { u: doorU, w: dw, lit, u0, uw } of doors) {
       for (const [a, b] of [[u0 + 0.35, doorU - dw / 2 - 0.12], [doorU + dw / 2 + 0.12, u0 + uw - 0.35]]) if (b - a > 0.3) F.box(lit ? 'texglow' : 'tex', (a + b) / 2, -0.06, 1.5, b - a, 0.08, 2.6, lit ? 0xc8a888 : 0xffffff, lit ? 'koshi_lit' : 'koshi', { ts: 1.0, tsy: 2.6 });
       // フェーズ11：戸口（表の面の前に出す＝以前は壁の中に埋まって見えなかった）：格子戸 2 枚・太い枠・敷居・沓脱石
-      F.box(lit ? 'texglow' : 'tex', doorU, -0.06, 1.12, dw, 0.05, 2.2, lit ? 0xd8b088 : 0xc8b8a8, lit ? 'koshi_lit' : 'koshi', { ts: dw / 2, tsy: 2.2 });
-      F.box('prop', doorU, -0.1, 1.12, 0.07, 0.05, 2.2, 0x2a1c12);
+      F.box(lit ? 'texglow' : 'tex', doorU, -0.06, 1.42, dw, 0.05, 1.6, lit ? 0xe0c8a0 : 0x7a6c60, 'win_shoji', { fit: true });     // 上：障子の入ったガラス戸（灯り）
+      F.box('tex', doorU, -0.07, 0.31, dw, 0.06, 0.62, 0x6a4a34, 'wood', { ts: 0.5 });                                                  // 下：腰板
+      F.box('prop', doorU, -0.11, 1.12, 0.07, 0.05, 2.2, 0x2a1c12);
       doorFrame(F, doorU, -0.02, 0, dw, 2.24, 0x2a1c12, 0.12);
       F.box('tex', doorU, -0.42, 0.06, Math.min(1.2, dw), 0.5, 0.12, 0xb8b4ac, 'stone', { ts: 0.6 });
       const nuv = signUV(L.sign.replace('（仮）', ''), { bg: hex(L.noren || 0x2a3a5a), fg: '#f2ead8', size: 40, serif: true, frame: false });
