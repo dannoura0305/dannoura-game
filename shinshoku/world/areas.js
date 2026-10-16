@@ -57,8 +57,10 @@ export function buildAlley() {
   const B = new Builder(), atlas = new Atlas(), boxes = [], spots = [], dyn = {}, halos = [], hideSpots = [];
   const solid = (cx, cz, w, d, h = 7, y0 = 0) => boxes.push(cbox(cx, cz, w, d, h, y0));
   const W1 = 0x6a6470, W2 = 0x5a5562, W3 = 0x726a66;
-  root.add(ground(40, 40, 6, -11, { base: '#2c2a32', repeat: [14, 14] }));
-  const wall = (cx, cz, w, d, h, c) => { B.box('wall', cx, h / 2, cz, w, h, d, c); solid(cx, cz, w, d, h); };
+  // フェーズ9：床はコンクリートの板・壁は建物の裏（モルタル・波板・タイル）を町の地図帳の材質で
+  B.box('tex', 6, -0.06, -11, 40, 0.12, 40, 0xa8a0a4, { tile: 'concrete', ts: 2.2, edges: false });
+  const ALLEY_T = { [W1]: 'mortar', [W2]: 'siding2', [W3]: 'tilewall' };
+  const wall = (cx, cz, w, d, h, c) => { const t = ALLEY_T[c]; if (t) B.box('tex', cx, h / 2, cz, w, h, d, new THREE.Color(c).lerp(new THREE.Color(0xc8c0c0), 0.55).getHex(), { tile: t, ts: 2, ao: true }); else B.box('wall', cx, h / 2, cz, w, h, d, c); solid(cx, cz, w, d, h); };
   // 通路 A（南北）：x −1.3〜1.3、z 1.5〜−23.3
   wall(-1.55, -4.5, 0.5, 12, 7.5, W1);            // 左の壁（祠のくぼみの手前）
   wall(-1.55, -17.5, 0.5, 13, 7.5, W2);           // 左の壁（くぼみの先）
@@ -78,9 +80,12 @@ export function buildAlley() {
   // 壁の飾り：窓・配管・室外機・ごみ箱・自転車
   for (const [x, z, face] of [[1.3, -3, -1], [1.3, -9, -1], [1.3, -15, -1], [-1.3, -2, 1], [-1.3, -15, 1], [-1.3, -20, 1]]) {
     const lit = (Math.abs(z) % 3) < 1;
-    B.box(lit ? 'glow' : 'glass', x + face * 0.03, 4.6, z, 0.06, 1.0, 1.2, lit ? 0x6a5a3a : 0x101218, { edges: false });
+    B.box(lit ? 'texglow' : 'tex', x + face * 0.03, 4.6, z, 0.06, 1.0, 1.2, lit ? 0xc0b0a0 : 0xffffff, { tile: lit ? 'win_curtain' : 'win_dark', fit: true, edges: false }); B.box('prop', x + face * 0.08, 4.05, z, 0.1, 0.06, 1.3, 0x9a9ca0, { edges: false });
   }
-  for (const z of [-4, -13, -19]) { B.box('prop', 1.05, 1.1, z, 0.5, 0.6, 0.8, 0x9a9a9a); solid(1.05, z, 0.5, 0.8, 1.4); B.box('prop', 0.78, 1.1, z, 0.04, 0.5, 0.6, 0x3a3a3a, { edges: false }); }
+  for (const z of [-4, -13, -19]) { B.box('tex', 1.05, 1.1, z, 0.5, 0.6, 0.8, 0xffffff, { tile: 'acunit', fit: true, edges: false }); solid(1.05, z, 0.5, 0.8, 1.4); B.box('prop', 1.05, 0.4, z, 0.4, 0.8, 0.1, 0x6a6a6a, { edges: false }); }
+  // 頭の上の電線・配管・ガス管（裏路地らしさ）
+  for (const [z, y] of [[-2.5, 5.8], [-8, 6.3], [-14.5, 5.6], [-19, 6.1]]) B.box('prop', 0, y, z, 3.0, 0.03, 0.03, 0x1a1a20, { edges: false });
+  for (const [x, z] of [[1.25, -7.5], [-1.25, -12.5], [1.25, -16.5]]) B.box('prop', x, 3.2, z, 0.08, 6.4, 0.08, 0xb8a040, { edges: false });
   B.box('prop', 1.3, 3.5, -10, 0.12, 7, 0.12, 0x6a6a72, { edges: false }); B.box('prop', -1.3, 3.5, -6, 0.12, 7, 0.12, 0x6a6a72, { edges: false });
   B.box('prop', 8, 6.2, -23.25, 16, 0.1, 0.1, 0x5a5a62, { edges: false });
   for (const [x, z] of [[-0.9, -6.5], [9.5, -23]]) { B.box('prop', x, 0.45, z, 0.6, 0.9, 0.6, 0x3a5a3a); solid(x, z, 0.6, 0.6, 0.9); }
@@ -127,11 +132,13 @@ export function buildAlley() {
 
 // ───────────────────────── 商業施設の前 ─────────────────────────
 export function buildPlaza() {
-  const root = new THREE.Group(); root.name = 'area_plaza'; root.add(skyDome({ moon: [0.4, 0.3, -0.85] }));
+  const root = new THREE.Group(); root.name = 'area_plaza'; root.add(skyDome({ moon: [0.4, 0.3, -0.85], mountains: true }));
   const B = new Builder(), atlas = new Atlas(), boxes = [], spots = [], dyn = {}, halos = [], hideSpots = [];
   const solid = (cx, cz, w, d, h = 7, y0 = 0) => boxes.push(cbox(cx, cz, w, d, h, y0));
-  root.add(ground(44, 40, 0, -1, { base: '#34323c', repeat: [16, 14] }));
-  const wall = (cx, cz, w, d, h, c) => { B.box('wall', cx, h / 2, cz, w, h, d, c); solid(cx, cz, w, d, h); };
+  // フェーズ9：床は広場の舗装・建物は町の地図帳の材質
+  B.box('tex', 0, -0.06, -1, 44, 0.12, 40, 0xb8b0b8, { tile: 'paving', ts: 2.4, edges: false });
+  const PLAZA_T = { [0x7a7484]: ['tilewall', 0xc8b8b0], [0x5a5562]: ['block', 0xd0ccc8], [0x3a3640]: ['concrete', 0x8a8690], [0x4a6a4a]: ['hedge', 0xa0b890], [0x9a94a4]: ['mortar', 0xd8d0d0] };
+  const wall = (cx, cz, w, d, h, c) => { const t = PLAZA_T[c]; if (t) B.box('tex', cx, h / 2, cz, w, h, d, t[1], { tile: t[0], ts: t[0] === 'block' ? 1.2 : 2, ao: true }); else B.box('wall', cx, h / 2, cz, w, h, d, c); solid(cx, cz, w, d, h); };
   // 外周（見えない壁ではなく、植え込み・建物・柵で囲む）
   wall(0, -14.6, 38, 1.2, 11, 0x7a7484);                        // 商業施設の正面
   wall(-18.6, 7.5, 1, 13, 4, 0x5a5562); wall(-18.6, -9, 1, 10, 4, 0x5a5562);   // 西（x −18.6、z −2.5〜2.5 が裏路地からの道）
@@ -147,6 +154,8 @@ export function buildPlaza() {
   const big = atlas.add(signDraw('ことぶきショッピングセンター', { bg: '#1a2a3a', fg: '#ffe8b0', size: 40, frameColor: '#ffb070' }));
   B.box('sign', 0, 7.6, -13.95, 14, 1.4, 0.2, 0xffffff, { uv: big, face: 4 });
   halos.push({ p: [-5, 7.6, -13.4], size: 4, color: 0xffd090, k: 0.35 }, { p: [5, 7.6, -13.4], size: 4, color: 0xffd090, k: 0.35 }, { p: [0, 7.6, -13.4], size: 5, color: 0xffd090, k: 0.3 });
+  for (let x = -16; x <= 16; x += 4) if (Math.abs(x) > 5) { B.box(Math.abs(x) % 8 === 4 ? 'texglow' : 'tex', x, 5.0, -13.97, 3.0, 1.6, 0.06, Math.abs(x) % 8 === 4 ? 0x9aa8c0 : 0xffffff, { tile: Math.abs(x) % 8 === 4 ? 'win_office_lit' : 'win_office', fit: true, edges: false }); }
+  for (let x = -14; x <= 14; x += 7) B.box('tex', x, 9.6, -14.0, 0.8, 0.6, 0.4, 0xffffff, { tile: 'acunit', fit: true, edges: false });
   const cl = atlas.add(signDraw('本日は閉店しました', { bg: '#f4f0e6', fg: '#8a1a1a', size: 32 }));
   B.box('sign', 0, 1.4, -13.85, 1.6, 0.3, 0.02, 0xffffff, { uv: cl, face: 4, edges: false });
   spots.push({ id: 'mall_door', kind: 'read', x: 0, z: -12.6, r: 1.8, label: '入口（閉まっている）', text: 'mall_door' });
@@ -223,7 +232,13 @@ export function buildShelter() {
   wall(-7.85, 10.2, 12.9, 0.4, 9, GW); wall(7.85, 10.2, 12.9, 0.4, 9, GW);     // 南：x −1.4〜1.4 が戸
   B.box('wall', 0, 8.5, 10.2, 2.8, 1.0, 0.4, GW); B.box('wall', 0, 9.1, -5.2, 29.2, 0.2, 31, 0x8a8478);         // 天井
   // 高い窓（月明かり）
-  for (let z = -18; z <= 8; z += 4) for (const x of [-14.18, 14.18]) if (!(x > 0 && z > -10 && z < 2)) B.box('glass', x, 7.2, z, 0.06, 1.4, 2.4, 0x1a2a4a, { edges: false });
+  for (let z = -18; z <= 8; z += 4) for (const x of [-14.18, 14.18]) if (!(x > 0 && z > -10 && z < 2)) B.box('texglow', x, 7.2, z, 0.06, 1.4, 2.4, 0x5a6a98, { tile: 'win_dark', fit: true, edges: false });
+  // フェーズ9：腰板（木）・防球ネットの柱・壁の時計・ロビーの床タイル
+  for (const [x, z0b, z1b] of [[-14.17, -20.2, 9.9], [14.17, -20.2, -9.1], [14.17, 0.9, 9.9]]) B.box('tex', x, 1.1, (z0b + z1b) / 2, 0.05, 2.2, z1b - z0b, 0xd8c8b0, { tile: 'wood', ts: 1.4, edges: false });
+  for (const sx of [-1, 1]) B.box('tex', sx * 7.85, 1.1, 9.97, 12.8, 2.2, 0.05, 0xd8c8b0, { tile: 'wood', ts: 1.4, edges: false });
+  B.box('prop', 0, 2.2, 9.95, 29, 0.08, 0.06, 0x5a4a3a, { edges: false });
+  { const g = new THREE.CylinderGeometry(0.35, 0.35, 0.08, 18); g.rotateX(Math.PI / 2); g.translate(-8, 6.5, -20.3); B.add('prop', g, 0xf0f0ea); B.box('prop', -8, 6.6, -20.24, 0.03, 0.26, 0.02, 0x1a1a1a, { edges: false }); B.box('prop', -7.92, 6.5, -20.24, 0.18, 0.03, 0.02, 0x1a1a1a, { edges: false }); }
+  B.box('tex', 0, -0.042, 15.2, 14.4, 0.1, 10.4, 0xc8c0c8, { tile: 'arcade_floor', ts: 1.8, edges: false });
   // 舞台（北・高さ 1.1）・幕・横断幕
   B.box('wall', 0, 0.55, -17.8, 20, 1.1, 5.2, 0x7a5a3a); solid(0, -17.8, 20, 5.2, 1.1);
   B.box('wall', 0, 4.6, -20.2, 20, 7, 0.2, 0x7a2a3a);

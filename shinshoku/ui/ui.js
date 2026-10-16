@@ -1,4 +1,5 @@
 // 画面の部品（DOM）：HUD・調べるの印・トースト・会話・一時停止メニュー・設定・金庫・倒れた時・性能表示。
+import { drawTownMap } from './townmap.js';
 const $ = (s, r = document) => r.querySelector(s);
 const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -17,7 +18,7 @@ export const CONTROLS = [
   ['火縄銃（第4章から）', '4 キー（紫：銃床で打つ）／白で 替＝妖爪⇄火縄銃・攻撃で妖弾（溜め 0.5 秒）', 'RB（白）', '替 長押しで近接を順に／白で 替'],
   ['巨大猫又：妖爪連撃／紫の咆哮／跳躍／妖気放出', '左クリック／F／Space／右クリック（押し続ける）', 'X／LB／A／LT', '斬／弾／避／銃（押し続ける）'],
   ['第6章：糸の中継を切る（白）／振動計を当てる／蒸気弁を開ける／点検表を渡す', '調べる（E）', 'B', '調'],
-  ['白髪形態：妖爪／妖刀／猫火／瞬歩／幻術', '左クリック／長押し／構え＋左クリック／Space／F', 'X／Y 長押し／LT＋RT／A／LB', '斬／斬 長押し／銃／避／弾'], ['一時停止', 'Esc／P', 'Start', '≡'], ['場面を飛ばす', 'E・Esc・Space を 1 秒長押し', 'B／Start 長押し', '調／≡ 長押し'],
+  ['白髪形態：妖爪／妖刀／猫火／瞬歩／幻術', '左クリック／長押し／構え＋左クリック／Space／F', 'X／Y 長押し／LT＋RT／A／LB', '斬／斬 長押し／銃／避／弾'], ['一時停止', 'Esc／P', 'Start', '≡'], ['地図（町の見取り図）', 'M', 'Start →「地図」', '≡ →「地図」'], ['場面を飛ばす', 'E・Esc・Space を 1 秒長押し', 'B／Start 長押し', '調／≡ 長押し'],
 ];
 
 const svg = d => `<svg viewBox="0 0 48 48" aria-hidden="true">${d}</svg>`;
@@ -198,7 +199,13 @@ export class UI {
   subtitle(sp, text) { const e = this.el.sub; if (!text) { e.classList.remove('on'); return; } e.innerHTML = (sp && sp.name ? `<b style="color:${sp.color || '#fff'}">${esc(sp.name)}</b>` : '') + esc(text); e.classList.add('on'); }
   skipProgress(k) { this.el.skip.style.setProperty('--k', String(Math.min(1, k))); }
   chapterCard(title, dur = 3.2) { const c = this.el.card; this.el.cardt.textContent = title; c.classList.remove('on'); void c.offsetWidth; c.classList.add('on'); clearTimeout(this.cardTimer); this.cardTimer = setTimeout(() => c.classList.remove('on'), dur * 1000); }
-  fade(on) { this.el.fadeEl.classList.toggle('on', !!on); }
+  /** 暗転（場所の移動）。info = { title, tip } があれば場所の名前と小さな助言を出す */
+  fade(on, info) {
+    const f = this.el.fadeEl;
+    if (on && info) f.innerHTML = `<div class="sh-fadein"><b>${esc(info.title || '')}</b>${info.tip ? `<small>${esc(info.tip)}</small>` : ''}</div>`;
+    if (!on) setTimeout(() => { if (!f.classList.contains('on')) f.innerHTML = ''; }, 400);
+    f.classList.toggle('on', !!on);
+  }
   // ── 調べ物の画面 ──
   closePuzzle() { this.el.puz.hidden = true; this.el.puz.innerHTML = ''; this.el.puz.classList.remove('choice'); if (this.puzKey) { removeEventListener('keydown', this.puzKey); this.puzKey = null; } }
   _puz(html, onClick, onKey) {
@@ -351,11 +358,13 @@ export class UI {
     const g = this.g, m = this.el.menu, S = g.settings;
     m.hidden = false;
     const inTitle = g.mode === 'title';                                   // タイトルの「設定」：設定・操作・キーだけ
-    const tabs = inTitle ? [['settings', '設定'], ['controls', '操作'], ['keys', 'キー'], ['close', '閉じる']] : [['top', '再開'], ['equip', '装備'], ['controls', '操作'], ['keys', 'キー'], ['settings', '設定'], ['load', 'ロード'], ['title', 'タイトルへ']];
+    const tabs = inTitle ? [['settings', '設定'], ['controls', '操作'], ['keys', 'キー'], ['close', '閉じる']] : [['top', '再開'], ['map', '地図'], ['equip', '装備'], ['controls', '操作'], ['keys', 'キー'], ['settings', '設定'], ['load', 'ロード'], ['title', 'タイトルへ']];
     let body = '';
     if (tab === 'controls') {
       body = `<table class="sh-ctl"><tr><th>操作</th><th>キーボード＋マウス</th><th>ゲームパッド</th><th>タッチ</th></tr>${CONTROLS.map(r => `<tr>${r.map((c, i) => i ? `<td>${esc(c)}</td>` : `<th>${esc(c)}</th>`).join('')}</tr>`).join('')}</table>
       <p class="sh-note">一閃：<b>ジャスト回避</b>（敵の攻撃が当たる直前に回避）の直後に攻撃＝見切り一閃。<b>パリィ</b>（白い「！」の攻撃に合わせて弾く）の直後に攻撃＝弾き一閃。<b>居合</b>（Q 長押しで構え）中に攻撃を受けると抜刀一閃。弱点（光る所）を撃った直後に攻撃＝撃ち一閃。赤い「危」は弾けない：回避のみ。</p>`;
+    } else if (tab === 'map') {
+      body = `<canvas class="sh-townmap" width="1280" height="680"></canvas><p class="sh-note">黄色の点線：自宅から商店街までの道のり（約 95m・角 4 つ）。区画どうしは出入り口でつながる（商店街の奥の空き店舗 → 裏路地 → 商業施設の前 → 市民体育館 → 病院・観測分室 → 研究施設）。名前はすべて仮。</p>`;
     } else if (tab === 'keys') {
       body = this.keysBody(g);
     } else if (tab === 'equip') {
@@ -369,6 +378,7 @@ export class UI {
         <label><input type="checkbox" data-s="rain" ${S.rain ? 'checked' : ''}>雨</label>
         <label><input type="checkbox" data-s="halos" ${S.halos !== false ? 'checked' : ''}>光のにじみ（ブルームの代わり）</label>
         <label><input type="checkbox" data-s="wet" ${S.wet !== false ? 'checked' : ''}>濡れた地面の映り込み</label>
+        <label><input type="checkbox" data-s="teleCB" ${S.teleCB ? 'checked' : ''}>予兆の色を見分けやすく（橙の四角＝避ける／青の丸＝弾ける）</label>
         <label>字幕の大きさ <select data-s="subSize">${[['s', '小'], ['m', '中'], ['l', '大']].map(([v, n]) => `<option value="${v}" ${(S.subSize || 'm') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
         <label>難しさ <select data-s="difficulty">${[['easy', 'やさしい'], ['normal', 'ふつう'], ['hard', 'むずかしい']].map(([v, n]) => `<option value="${v}" ${S.difficulty === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
         <label><input type="checkbox" data-s="assist" ${S.assist ? 'checked' : ''}>一閃の手助け（窓を広げる・スロー延長）</label>
@@ -386,6 +396,7 @@ export class UI {
       body = `<div class="sh-mtitle">境界侵食<small>（仮題）序章〜終章 試作</small></div><p class="sh-note">${esc(g.chapterTitle())}　／　${esc(g.objectiveText())}</p><p class="sh-note">救った帰路：${g.count('kiro', 'rescue')}　倒した帰路：${g.count('kiro', 'kill')}　閉店：${g.heitenStatus()}　収容者：${g.bossStatus()}　（相棒）の信頼：${g.companionTrust()}</p>`;
     }
     m.innerHTML = `<div class="sh-mbox"><nav>${tabs.map(([k, n]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${n}</button>`).join('')}</nav><div class="sh-mbody">${body}</div></div>`;
+    if (tab === 'map') { const cv = m.querySelector('.sh-townmap'), P = g.player; if (cv) drawTownMap(cv, g.area.id, g.area.id === 'shotengai' ? { x: P.pos.x, z: P.pos.z, yaw: P.yaw } : null); }
     m.onclick = e => {
       const b = e.target.closest('button'); if (!b) return;
       g.sfx.play('ui');

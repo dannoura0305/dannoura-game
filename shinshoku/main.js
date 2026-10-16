@@ -8,6 +8,7 @@ import { ENEMIES } from './data/enemies.js';
 import { COMBAT, ITEMS } from './data/combat.js';
 import { EQUIP } from './data/equip.js';
 import { BUILDERS } from './world/areas.js';
+import { Builder } from './world/level.js';
 import { buildDannoura, buildCompanion, buildKiro, buildHeiten, buildShuuyou, buildCivilian } from './actor/models.js';
 import { Player, EnemyActor, CompanionActor, CivilianActor } from './actor/actors.js';
 import { loadManifest, loadCharacter, prepareClone, cloneCharacter } from './actor/vrm.js';
@@ -51,13 +52,25 @@ import './world/areas3.js';
 import { buildDannouraWhite } from './actor/models3.js';
 import { setDetail } from './actor/skin.js';
 import { normalizeRoute } from './story/route.js';
+import { TOWN, TOWN_LAYOUT, HOME_O as TOWN_HOME, inHome, migrateTownPos, navNext } from './data/town.js';
 
 const DT = 1 / 60;
+/** 場所の移動の暗転で出す小さな助言（操作・遊び方。物語の内容は書かない） */
+const LOAD_TIPS = [
+  '赤い「危」は弾けない。避ける（ジャスト回避）と見切り一閃につながる',
+  '白い「！」は弾ける。弾いた直後の攻撃が弾き一閃',
+  '帰路は倒さなくてもよい。戸の鍵を開けると家に帰っていく',
+  '地図は一時停止メニューの「地図」。黄色の点線が自宅から商店街までの道',
+  '暗い所では懐中電灯（L／十字キー下／灯）',
+  '自動セーブは場所の移動と決着のあと。手動のセーブは自宅のノートPC',
+  '（相棒）は近くの物陰に隠れる。離れすぎないように',
+  '回復は H／十字キー上／回。缶コーヒーでも少し戻る',
+];
 const Q = new URLSearchParams(location.search);
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || Q.get('touch') === '1';
 const AUTO_PRESET = autoPreset({ touch: isTouch, w: innerWidth, h: innerHeight, dpr: devicePixelRatio, cores: navigator.hardwareConcurrency, mem: navigator.deviceMemory });
 
-const DEFAULT_SETTINGS = () => Object.assign(applyPreset({ preset: 'auto' }, AUTO_PRESET), { preset: 'auto', difficulty: 'normal', assist: false, sens: 1, invertY: false, volume: 0.7, touchUI: isTouch, subSize: 'm', rampageInput: 'both', shake: 1, keys: {} });
+const DEFAULT_SETTINGS = () => Object.assign(applyPreset({ preset: 'auto' }, AUTO_PRESET), { preset: 'auto', difficulty: 'normal', assist: false, sens: 1, invertY: false, volume: 0.7, touchUI: isTouch, subSize: 'm', teleCB: false, rampageInput: 'both', shake: 1, keys: {} });
 
 /** 区画の明かり（定義）と使い回しの点光源 */
 const POOL_MAX = 8;
@@ -73,7 +86,8 @@ class Game {
     if (Q.get('res')) this.settings.resScale = +Q.get('res');
     this.touch = isTouch; this.EQUIP = EQUIP;
     const P0 = this.presetVals();
-    setDetail(P0 === PRESETS.low ? 0.72 : 1);                       // スマホ（低）はキャラクターの分割を減らす
+    setDetail(P0 === PRESETS.low ? 0.72 : 1);
+    Builder.edgesOff = !(this.settings.outline && this.settings.edges !== false);   // 辺の線を使わない段では作らない（区画の読み込みを速く）                       // スマホ（低）はキャラクターの分割を減らす
     // 描画
     const canvas = document.getElementById('sh-canvas');
     const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: P0.antialias, powerPreference: 'high-performance' });
@@ -98,8 +112,8 @@ class Game {
     this.pool = []; this.poolN = Math.min(POOL_MAX, P0.lights);
     for (let i = 0; i < this.poolN; i++) { const p = new THREE.PointLight(0xffffff, 0, 10, 1.6); this.scene.add(p); this.pool.push({ light: p, def: null }); }
     this.fx = new Fx(this.scene); this.rain = new Rain(this.scene, Math.max(200, P0.rainN || 400));
-    this.halos = new Halos(200); this.scene.add(this.halos.mesh);
-    this.wet = new WetStreaks(48); this.scene.add(this.wet.mesh);
+    this.halos = new Halos(360); this.scene.add(this.halos.mesh);
+    this.wet = new WetStreaks(96); this.scene.add(this.wet.mesh);
     this.trail = new SwordTrail(36); this.scene.add(this.trail.mesh);
     this.flashHalo = -1;
     // 状態
@@ -126,6 +140,7 @@ class Game {
     this.touchUI = setupTouch(document.getElementById('sh-ui'), this.input, this);
     this.applySetting('touchUI', this.settings.touchUI, true);
     this.applySetting('subSize', this.settings.subSize, true);
+    this.applySetting('teleCB', !!this.settings.teleCB, true);
     this.cam.shakeMul = this.settings.shake ?? 1;
     this.cut = new CutscenePlayer(this.cutHost());
     this.events = await fetch(new URL('./data/events.json', import.meta.url)).then(r => r.json()).catch(() => ({ events: {}, barks: {}, texts: {}, speakers: {} }));
@@ -135,7 +150,7 @@ class Game {
     this.frame = 0; this.playSec = 0; this.mode = 'title'; this.hitstop = 0; this.slowT = 0; this.slowScale = 1; this.worldScale = 1;
     this.lock = null; this.dialog = null; this.pendingIn = null; this.autosaveReq = false; this.gunshot = null; this.gunshotT = 0; this.darkness = 0;
     this.applyEquip();
-    this.loadArea('shotengai', 'arcade');
+    { const t0 = performance.now(); this.loadArea('shotengai', 'arcade'); this.bootMs = { area: Math.round(performance.now() - t0) }; }
     this.applyQuality();
     addEventListener('resize', () => this.resize()); this.resize();
     this.perfOn = Q.get('perf') === '1'; this.perfAcc = { t: 0, n: 0, steps: 0 };
@@ -144,6 +159,7 @@ class Game {
     this.renderer.setAnimationLoop(() => this.frameLoop());
     this.exposeAPI();
     this.title();
+    this.bootMs.init = Math.round(performance.now());
   }
   makeWhiteModel() { const m = buildDannouraWhite(); return m; }
   presetVals() { const k = this.settings.preset === 'auto' ? this.autoPresetKey : this.settings.preset; return PRESETS[k] || PRESETS[this.autoPresetKey] || PRESETS.high; }
@@ -221,7 +237,7 @@ class Game {
     this.rain.mesh.visible = !!A.rain && this.settings.rain;
   }
   changeArea(to, spawn) {
-    this.ui.fade(true); this.sfx.play('door');
+    this.ui.fade(true, { title: (AREA_GRAPH[to] || {}).name || '', tip: LOAD_TIPS[(this.tipN = ((this.tipN ?? Math.floor(Math.random() * LOAD_TIPS.length)) + 1)) % LOAD_TIPS.length] }); this.sfx.play('door');
     const comp = this.companion.brain.mode === 'follow' || this.companion.brain.mode === 'hide';
     this.loadArea(to, spawn);
     if (comp && this.companion.root.visible) { this.companion.brain.setMode('follow'); this.companion.brain.teleportBehind(this.player.pos, this.player.yaw); this.companion.root.visible = true; this.placeChildForArea(to); }
@@ -247,6 +263,7 @@ class Game {
     if (this.area.id !== 'shotengai') return;
     const A = this.area, st = streetState(this.story.step), out = this.flags.lights_out;
     for (const l of A.lights) {
+      if (l.town) { l.off = false; continue; }                  // 町（住宅地・駅前通り）の街灯は消えない（停電はアーケードだけ）
       if (st === 'normal' && !out) { l.off = false; l.flicker = false; }
       else if (st === 'normal' && out) { l.off = !(l.home || l.pos[2] === -56 || l.vending && false); l.flicker = l.pos[2] === -56; }
       else { l.off = false; l.flicker = !!LEVEL.lights.find(x => x.pos === l.pos && x.flicker); if (l.vending) l.off = false; }
@@ -475,6 +492,7 @@ class Game {
     while (this.acc >= DT && n < 6) { if (!this.simHold) this.step(); this.acc -= DT; n++; }
     if (n >= 6) this.acc = 0;
     this.render(dt, n);
+    if (this.bootMs && !this.bootMs.frame1) this.bootMs.frame1 = Math.round(performance.now());
   }
   step() {
     const inp = this.input.sample();
@@ -493,6 +511,7 @@ class Game {
     if (this.mode === 'dialog') { if (inp.interact || inp.attack || inp.dodge) this.dialogNext(); return; }
     if (this.mode !== 'play') { if (inp.pause && this.mode === 'pause') this.resume(); return; }
     if (inp.pause) { this.pause(); return; }
+    if (inp.map && !this.giantMode) { this.pause(); this.ui.openMenu('map'); return; }
     this.frame++; this.playSec += DT;
     if (this.hitstop > 0) { this.hitstop--; this.pendingIn = mergeIn(this.pendingIn, inp); return; }
     const I = this.pendingIn ? mergeIn(this.pendingIn, inp) : inp; this.pendingIn = null;
@@ -561,9 +580,9 @@ class Game {
     this.nearSpot = best;
     if (best && best.kind === 'exit' && best.auto && this.exitArmed && !this.cut.active) { this.exitArmed = false; this.useExit(best); }
     if (this.area.id === 'shotengai') {
-      const inHome = P.pos.z > LEVEL.home.minZ;
-      if (this.wasInHome != null && inHome !== this.wasInHome) this.autosaveReq = true;
-      this.wasInHome = inHome;
+      const inH = inHome(P.pos.x, P.pos.z);
+      if (this.wasInHome != null && inH !== this.wasInHome) this.autosaveReq = true;
+      this.wasInHome = inH;
     }
     if (this.autosaveReq && this.calm()) { this.autosaveReq = false; this.saveSlot('auto', true); }
     // 緊張：近い敵対の敵ほど
@@ -618,6 +637,7 @@ class Game {
       world: { areas: { [this.area.id]: { visited: true } }, enemies: Object.assign({}, this.enemyRes), picked: [...this.picked], opened: [...this.opened] },
     });
     slot.place.state = this.area.id === 'shotengai' ? streetState(this.story.step) : 'outbreak';
+    if (this.area.id === 'shotengai') slot.place.layout = TOWN_LAYOUT;     // 町の配置の版（古いセーブの位置を移す目印）
     return slot;
   }
   saveSlot(k, auto) {
@@ -664,7 +684,11 @@ class Game {
     const area = (s.place && s.place.area && BUILDERS[s.place.area]) ? s.place.area : 'shotengai';
     this.loadArea(area, null);
     this.tenkiOpen = !!(this.flags.tenki_pending && this.story.step === 'ch3_boss');    // 転機の前の枠：選択だけを開く（演出は繰り返さない）
-    this.placePlayer(s.place.pos, s.place.yaw);
+    { // 町の配置が変わる前（town1）のセーブ：自宅の中→同じ家具の前、家の前の路地→アーケード前の広場
+      let pos = s.place.pos;
+      if (area === 'shotengai' && s.place.layout !== TOWN_LAYOUT) { const m = migrateTownPos(pos); pos = m.pos; this.metrics.migrated = m.moved || 'none'; }
+      this.placePlayer(pos, s.place.yaw);
+    }
     this.placeCompanion();
     this.lock = null; this.slowT = 0; this.hitstop = 0; this.ui.slow(false); this.sfx.setMuffle(0);
     this.mode = 'play'; this.loadedFrom = k; this.exitArmed = false;
@@ -688,6 +712,7 @@ class Game {
     if (k === 'rain') this.sfx.setRain(v);
     if (k === 'touchUI' && this.touchUI) { this.touchUI.show(v); document.getElementById('sh-ui').classList.toggle('touch', !!v); }
     if (k === 'shake') { this.settings.shake = +v; this.cam.shakeMul = +v; }
+    if (k === 'teleCB') document.getElementById('sh-ui').classList.toggle('cb', !!v);
     if (k === 'subSize') { const r = document.getElementById('sh-ui'); r.classList.remove('sub-s', 'sub-m', 'sub-l'); r.classList.add('sub-' + v); }
     if (!silent) this.store.writeSettings(this.settings);
   }
@@ -761,6 +786,8 @@ class Game {
     for (const sh of [A.dyn.heitenShutter, A.dyn.storageShutter, A.dyn.refugeShutter, A.dyn.bulkhead, A.dyn.gate]) if (sh && sh.target != null) sh.mesh.position.y += (sh.target - sh.mesh.position.y) * Math.min(1, (wdt + 0.0001) * 1.6);
     if (A.dyn.tv && this.frame % 3 === 0 && A.dyn.tv.kind === 'static') A.dyn.tv.draw('static');
     this.updateLights(dt);
+    if (A.tick) A.tick(dt, this);
+    if (A.fogAt) { const want = A.fogAt(P.pos.x, P.pos.z), f = this.scene.fog; if (Math.abs(f.density - want) > 1e-5) { f.density += (want - f.density) * Math.min(1, dt * 1.5); this.halos.uniforms.uFog.value = f.density; this.wet.uniforms.uFog.value = f.density; } }
     // 光源とプレイヤーの近く
     this.keyLight.position.set(P.pos.x + Math.sin(this.cam.yaw) * 1.6, 1.9, P.pos.z + Math.cos(this.cam.yaw) * 1.6);
     this.keyLight.intensity = this.darkness ? 0.6 : 1.4;
@@ -884,7 +911,10 @@ class Game {
     const ppm = 6, b = A.bounds, pad = 6, minX = b.minX - pad, minZ = b.minZ - pad, W = Math.ceil((b.maxX - b.minX + pad * 2) * ppm), H = Math.ceil((b.maxZ - b.minZ + pad * 2) * ppm);
     const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
     g.fillStyle = 'rgba(10,6,18,1)'; g.fillRect(0, 0, W, H);
-    g.fillStyle = 'rgba(120,100,160,.55)'; g.fillRect((b.minX - minX) * ppm, (b.minZ - minZ) * ppm, (b.maxX - b.minX) * ppm, (b.maxZ - b.minZ) * ppm);
+    if (A.mapWalk) {   // 町：歩ける所（道・歩道・広場）だけを明るく。道の種類で色を変える（家の区画は暗いまま）
+      g.fillStyle = 'rgba(40,30,58,1)'; g.fillRect((b.minX - minX) * ppm, (b.minZ - minZ) * ppm, (b.maxX - b.minX) * ppm, (b.maxZ - b.minZ) * ppm);
+      for (const w of A.mapWalk) { const [x0, z0, x1, z1] = w.rect; g.fillStyle = w.c; g.fillRect((x0 - minX) * ppm, (z0 - minZ) * ppm, (x1 - x0) * ppm, (z1 - z0) * ppm); }
+    } else { g.fillStyle = 'rgba(120,100,160,.55)'; g.fillRect((b.minX - minX) * ppm, (b.minZ - minZ) * ppm, (b.maxX - b.minX) * ppm, (b.maxZ - b.minZ) * ppm); }
     for (const x of A.boxes) { if (x.maxY < 0.9 || x.minY > 2) continue; g.fillStyle = x.maxY < 1.6 ? 'rgba(60,46,86,1)' : 'rgba(24,16,38,1)'; g.fillRect((x.minX - minX) * ppm, (x.minZ - minZ) * ppm, (x.maxX - x.minX) * ppm, (x.maxZ - x.minZ) * ppm); }
     for (const s of A.spots) if (s.kind === 'exit') { g.fillStyle = '#60e0a0'; g.fillRect((s.x - minX) * ppm - 5, (s.z - minZ) * ppm - 5, 10, 10); }
     A.mapImg = { img: c, minX, minZ, ppm };
@@ -895,7 +925,7 @@ class Game {
     const t = TARGETS[this.story.step]; if (!t) return null;
     if (typeof t === 'string') { const e = this.enemies.find(x => x.id === t.slice(6)); return e && e.brain.alive && e.root.visible ? { x: e.pos.x, z: e.pos.z } : null; }
     const [area, x, z] = t;
-    if (area === this.area.id) return { x, z };
+    if (area === this.area.id) { if (area === 'shotengai') { const P = this.player.pos, n = navNext(P.x, P.z, x, z); return { x: n[0], z: n[1], final: { x, z } }; } return { x, z }; }
     const prev = { [this.area.id]: null }, q = [this.area.id];
     while (q.length) { const a = q.shift(); if (a === area) break; for (const n of AREA_GRAPH[a].exits) if (!(n in prev)) { prev[n] = a; q.push(n); } }
     if (!(area in prev)) return null;
@@ -909,7 +939,8 @@ class Game {
     for (const e of this.enemies) if (e.brain.alive && e.root.visible && !['home', 'rest', 'neutral', 'gone'].includes(e.brain.state) && Math.hypot(e.pos.x - P.x, e.pos.z - P.z) < 30) dots.push({ x: e.pos.x, z: e.pos.z, c: ['hostile', 'assess', 'rollcall', 'stuck', 'stagger', 'down'].includes(e.brain.state) ? '#ff4060' : '#a070ff', r: e.kind === 'shuuyou' ? 9 : 5 });
     if (this.companion.root.visible) dots.push({ x: this.companion.brain.pos.x, z: this.companion.brain.pos.z, c: '#ffd7a8', r: 5 });
     for (const p of this.pickupsList) if (!this.picked.has(p.id)) dots.push({ x: p.pos[0], z: p.pos[1], c: '#e8c060', r: 3 });
-    this.ui.minimap({ img: M.img, minX: M.minX, minZ: M.minZ, ppm: M.ppm, px: P.x, pz: P.z, yaw: this.cam.yaw, dots, target: tgt, dist: tgt ? Math.hypot(tgt.x - P.x, tgt.z - P.z) : null, k: this.touch ? 6 : 6.5 });
+    const fin = tgt && tgt.final ? tgt.final : tgt;
+    this.ui.minimap({ img: M.img, minX: M.minX, minZ: M.minZ, ppm: M.ppm, px: P.x, pz: P.z, yaw: this.cam.yaw, dots, target: tgt, dist: fin ? Math.hypot(fin.x - P.x, fin.z - P.z) : null, k: this.touch ? 6 : 6.5 });
   }
 
   // ── 自動プレイ・検証用 ──
@@ -934,6 +965,7 @@ class Game {
       input: { script: list => g.input.runScript(list), press: (a, f = 0) => g.input.runScript([{ f, press: [a] }]), hold: (a, n) => g.input.runScript([{ f: 0, hold: { [a]: n } }]), move: (x, y, n) => g.input.runScript([{ f: 0, move: [x, y, n] }]) },
       debug: {
         teleport(x, z, yaw) { g.player.pos.set(x, 0, z); if (yaw != null) { g.player.yaw = yaw; g.cam.yaw = yaw + Math.PI; } },
+        home(x, z) { return [x + TOWN_HOME[0], z + TOWN_HOME[1]]; }, town() { return { route: TOWN.route.map(p => p.slice()), nodes: TOWN.nav.nodes, version: TOWN.version }; },
         camYaw(y) { g.cam.yaw = y; }, camPitch(p) { g.cam.pitch = p; },
         faceTo(x, z) { const P = g.player; P.yaw = Math.atan2(x - P.pos.x, z - P.pos.z); g.cam.yaw = P.yaw + Math.PI; },
         forceAttack(id, name) {

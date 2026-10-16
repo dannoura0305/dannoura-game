@@ -376,3 +376,12 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0a16; col
 .sh-keys button.on { background: rgba(140, 90, 220, .8); }
 .sh-loto button { text-align: left; }
 @media (max-height: 460px) { .sh-rounds td, .sh-rounds th { font-size: 11px; padding: 2px 4px; } .sh-times button code { font-size: 16px; } }
+/* フェーズ9：町の地図（一時停止メニュー） */
+.sh-townmap { width: 100%; height: auto; display: block; border: 1px solid rgba(200, 170, 255, .3); border-radius: 4px; background: #100a1c; }
+/* フェーズ9：暗転の場所の名前・助言／予兆の色を見分けやすく */
+.sh-fade { display: grid; place-items: center; }
+.sh-fadein { text-align: center; color: #e8dcff; font-family: var(--jp); opacity: .92; }
+.sh-fadein b { display: block; font-size: 20px; letter-spacing: .12em; margin-bottom: 10px; text-shadow: 0 0 12px #6a3ab0; }
+.sh-fadein small { display: block; font-size: 13px; color: #b8a8d8; max-width: 70vw; }
+#sh-ui.cb .sh-mark.red { color: #1a1000; background: radial-gradient(circle, rgba(255, 176, 0, .98), rgba(255, 176, 0, .2) 72%); border: 3px solid #fff; border-radius: 2px; text-shadow: none; }
+#sh-ui.cb .sh-mark.parry { color: #7ad8ff; border: 3px solid #7ad8ff; border-radius: 50%; text-shadow: 0 0 6px #0a3a6a, 0 0 2px #000; }

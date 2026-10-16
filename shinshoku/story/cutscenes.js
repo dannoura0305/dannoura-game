@@ -5,6 +5,8 @@ import { CUTSCENES4 } from './cutscenes4.js';
 import { CUTSCENES5 } from './cutscenes5.js';
 import { CUTSCENES6 } from './cutscenes6.js';
 import { CUTSCENES7 } from './cutscenes7.js';
+import { homeW } from '../data/town.js';
+const HP = (x, y, z) => { const [wx, wz] = homeW(x, z); return [wx, y, wz]; };   // 家の中（ローカル）→ 住宅地の自宅
 // 形：{ id, area, letterbox, skippable, cam:[{t,pos,look,fov,cut?}], lines:[{t,who,text,dur}], actors:[{t,id,pos?|to?,yaw?,run?,anim?}], events:[{t,do,arg}], sounds:[{t,s}] }
 export const CUTSCENES = {
   // CS-00「明かりが消える」（序章）
@@ -49,12 +51,12 @@ export const CUTSCENES = {
   cs00_tv: {
     id: 'cs00_tv', area: 'shotengai', letterbox: true, skippable: true,
     cam: [
-      { t: 0, pos: [-2.6, 1.25, 14.2], look: [3.5, 0.95, 9.6], fov: 48 },
-      { t: 5.0, pos: [-1.4, 1.15, 13.0], look: [3.5, 0.95, 9.6], fov: 34 },
-      { t: 7.2, pos: [-1.0, 1.4, 12.6], look: [-3.2, 1.0, 15.0], fov: 46, cut: true },
-      { t: 10.0, pos: [-0.8, 1.5, 12.4], look: [-3.4, 1.1, 15.0], fov: 42 },
+      { t: 0, pos: HP(-2.6, 1.25, 14.2), look: HP(3.5, 0.95, 9.6), fov: 48 },
+      { t: 5.0, pos: HP(-1.4, 1.15, 13.0), look: HP(3.5, 0.95, 9.6), fov: 34 },
+      { t: 7.2, pos: HP(-1.0, 1.4, 12.6), look: HP(-3.2, 1.0, 15.0), fov: 46, cut: true },
+      { t: 10.0, pos: HP(-0.8, 1.5, 12.4), look: HP(-3.4, 1.1, 15.0), fov: 42 },
     ],
-    actors: [{ t: 0, id: 'player', pos: [-3.4, 14.4], yaw: Math.PI * 0.82, anim: 'sit' }],
+    actors: [{ t: 0, id: 'player', pos: homeW(-3.4, 14.4), yaw: Math.PI * 0.82, anim: 'sit' }],
     lines: [
       { t: 0.6, who: 'sys', text: '（テレビは砂嵐。音を消しても、ざらざらした音が続く）', dur: 3.0 },
       { t: 4.4, who: 'sys', text: '（一瞬、知らない人の顔が映る。白衣。声はない）', dur: 2.6 },

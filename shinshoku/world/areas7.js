@@ -35,20 +35,22 @@ export function buildRuins() {
   const rr = rngOf(919);
   const gt = groundTex({ base: '#2a2630', repeat: [8, 36] });
   const fl = new THREE.Mesh(new THREE.PlaneGeometry(22, 84), new THREE.MeshToonMaterial({ map: gt, gradientMap: gradientMap() })); fl.rotation.x = -Math.PI / 2; fl.position.set(0, 0, -3); fl.receiveShadow = true; fl.name = 'ground'; root.add(fl);
+  B.box('tex', 0, -0.045, -3, 15.2, 0.1, 84, 0xa8a0b0, { tile: 'arcade_floor', ts: 2.6, edges: false });   // フェーズ9：アーケードの床（割れたタイル）
+  { const pr = rngOf(4242); for (let i = 0; i < 8; i++) B.box('tex', (pr() - 0.5) * 12, 0.012, -36 + pr() * 64, 2.2, 0.01, 1.6, 0xffffff, { tile: 'puddle', fit: true, edges: false, ry: pr() * 3 }); }   // 別の乱数（他の配置を変えない）
   // 店の並び（両側）：シャッター（曲がった・破れた）・看板・2 階の窓
   const SHOPS = ['喫茶 灯', '八百屋', 'クリーニング', '書店', '薬局', '時計店', '金物屋', 'たい焼き', '写真館', '銭湯 松の湯', '和菓子', '精肉店'];
   const cols = [0x6a5e58, 0x5e6470, 0x6e6268, 0x5a6a5e, 0x746a5a, 0x5e5a6a];
   let si = 0;
   for (const sx of [-1, 1]) for (let z = -40; z < 34; z += 7.4) {
     const h = 5.2 + rr() * 2.2, x = sx * 10.5, i = si++;
-    B.box('wall', x, h / 2, z + 3.7, 5, h, 7.2, cols[i % cols.length]); solid(x, z + 3.7, 5, 7.2, h);
+    B.box('tex', x, h / 2, z + 3.7, 5, h, 7.2, new THREE.Color(cols[i % cols.length]).lerp(new THREE.Color(0xb8b0b0), 0.5).getHex(), { tile: ['mortar', 'tilewall', 'siding2'][i % 3], ts: 2, ao: true }); solid(x, z + 3.7, 5, 7.2, h);   // フェーズ9：外壁の材質
     const fx = sx * 7.96, bent = rr() < 0.4;
     B.box('shutter', fx, bent ? 1.2 : 1.5, z + 3.7, 0.08, bent ? 2.4 : 3.0, 5.6, 0x8a8e94, { rz: bent ? sx * 0.12 : 0 });
     if (rr() < 0.5) B.box('glow', fx - sx * 0.02, 0.6, z + 3.7 + (rr() - 0.5) * 3, 0.03, 1.2, 0.8, 0x1a0c22, { edges: false });           // 破れ目の暗がり
     const u = atlas.add(signDraw(SHOPS[i % SHOPS.length] + '（仮）', { bg: ['#f0e8d0', '#2a1a14', '#e8f0f0'][i % 3], fg: ['#6a1a1a', '#ffd8a0', '#1a3a6a'][i % 3], size: 40, dirt: true }));
     if (rr() < 0.7) B.box('sign', fx - sx * 0.08, 3.6, z + 3.7, 0.06, 0.8, 4.4, 0xffffff, { uv: u, face: sx > 0 ? 1 : 0, edges: false, rz: rr() < 0.3 ? sx * 0.18 : 0 });
     else B.box('sign', fx - sx * 1.2, 0.3, z + 3.2, 0.8, 0.06, 4.0, 0xffffff, { uv: u, face: 2, edges: false, ry: 0.2 });          // 落ちた看板
-    for (let k = 0; k < 3; k++) B.box('glow', fx - sx * 0.02, 4.6 + (k % 2) * 0.1, z + 1.8 + k * 1.9, 0.03, 0.7, 1.0, rr() < 0.3 ? 0xffc890 : 0x1a1426, { edges: false });
+    for (let k = 0; k < 3; k++) { const lit = rr() < 0.3; B.box(lit ? 'texglow' : 'tex', fx - sx * 0.02, 4.6 + (k % 2) * 0.1, z + 1.8 + k * 1.9, 0.03, 0.7, 1.0, lit ? 0xd8b890 : 0x8a8098, { tile: lit ? 'win_lit' : 'win_dark', fit: true, edges: false }); }
   }
   // アーケードの骨（y 6）・崩れた梁（地面に斜め）・屋根板の破片
   for (let z = -38; z < 32; z += 8) { B.box('prop', -7.6, 3.1, z, 0.25, 6.2, 0.25, 0x4a4e58); B.box('prop', 7.6, 3.1, z, 0.25, 6.2, 0.25, 0x4a4e58); solid(-7.6, z, 0.3, 0.3, 6); solid(7.6, z, 0.3, 0.3, 6); if (rr() < 0.6) B.box('prop', 0, 6.2, z, 15.4, 0.22, 0.22, 0x4a4e58); }

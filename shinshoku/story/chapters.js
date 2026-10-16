@@ -2,6 +2,7 @@
 // 第3章【仮】：SCENARIO_FLOW では「ショッピングモール」だが、イメージ資料（concept_05）の舞台の順（避難所→病院→地下通路）に合わせて
 // 病院（記録のない患者）と地下通路（白髪形態の転機）にした（OPEN_QUESTIONS Q27）。山場（恐ろしい姿の異形が子どもを守っていた）と原文の台詞はそのまま。
 // 1 つの「段」= 目標の文・どの区画か・次の段へ進む条件（director が出来事を見て進める）。表示の名前・目標の文は【仮】。
+import { homeW } from '../data/town.js';
 export const CHAPTERS = {
   prologue: { no: 0, title: '序章　閉店時間' },
   ch1: { no: 1, title: '第1章　帰路' },
@@ -25,7 +26,7 @@ export const STEPS = [
   { id: 'pro_meet', ch: 'prologue', area: 'shotengai', state: 'normal', obj: '商店街で（相棒）と会う（喫茶「灯」の前）' },
   { id: 'pro_pipe', ch: 'prologue', area: 'shotengai', state: 'normal', obj: '何か武器になる物を（自販機の横）' },
   { id: 'pro_fight', ch: 'prologue', area: 'shotengai', state: 'normal', obj: '帰路を追い払う' },
-  { id: 'pro_home', ch: 'prologue', area: 'shotengai', state: 'normal', obj: '家へ戻る（アーケードの外・南）' },
+  { id: 'pro_home', ch: 'prologue', area: 'shotengai', state: 'normal', obj: '家へ戻る（アーケードを出て駅前通りの信号を渡り、用水路沿いの道の先）' },
   { id: 'pro_tv', ch: 'prologue', area: 'shotengai', state: 'normal', obj: '居間で一息つく（ソファ）' },
   { id: 'ch1_katana', ch: 'ch1', area: 'shotengai', state: 'outbreak', obj: '刀を取る（居間の刀掛け）', sub: '金庫は任意（番号の手掛かりを探す）' },
   { id: 'ch1_street', ch: 'ch1', area: 'shotengai', state: 'outbreak', obj: '（相棒）を探す：商店街の奥、空き店舗から裏路地へ', sub: '帰路は救っても倒しても、避けてもよい' },
@@ -126,8 +127,8 @@ export function stepRoute(id) { return R_STEPS.includes(id) || R5_STEPS.includes
 export function atLeastIn(cur, id) { const L = [R_STEPS, S_STEPS, R5_STEPS, S5_STEPS, R6_STEPS, S6_STEPS, R7_STEPS, S7_STEPS]; const a = L.find(x => x.includes(cur)), b = L.find(x => x.includes(id)); if (!a || !b) return atLeast(cur, id); const ra = stepRoute(cur), rb = stepRoute(id); if (ra !== rb) return false; const seq = ra === 'reveal' ? R_STEPS.concat(R5_STEPS, R6_STEPS, R7_STEPS) : S_STEPS.concat(S5_STEPS, S6_STEPS, S7_STEPS); return seq.indexOf(cur) >= seq.indexOf(id); }
 // 目標の場所（ミニマップの印・距離）。[区画, x, z]。'enemy:<id>' は敵の位置
 export const TARGETS = {
-  pro_meet: ['shotengai', -2.5, -33.8], pro_pipe: ['shotengai', -2.6, -30.2], pro_fight: 'enemy:kiro_t', pro_home: ['shotengai', 0, 8.6], pro_tv: ['shotengai', -3.5, 14.0],
-  ch1_katana: ['shotengai', 5.0, 14.0], ch1_street: ['shotengai', -3.7, -66.5], ch1_alley: ['alley', 12, -23.0], ch1_plaza: ['plaza', -14, 0],
+  pro_meet: ['shotengai', -2.5, -33.8], pro_pipe: ['shotengai', -2.6, -30.2], pro_fight: 'enemy:kiro_t', pro_home: ['shotengai', ...homeW(0, 8.6)], pro_tv: ['shotengai', ...homeW(-3.5, 14.0)],
+  ch1_katana: ['shotengai', ...homeW(5.0, 14.0)], ch1_street: ['shotengai', -3.7, -66.5], ch1_alley: ['alley', 12, -23.0], ch1_plaza: ['plaza', -14, 0],
   ch2_shelter: ['plaza', 17.8, 5], ch2_roster: ['shelter', -6.0, 15.4], ch2_key: ['shelter', 1.4, 13.6], ch2_gym: ['shelter', 0, 1.0], ch2_boss: 'enemy:shuuyou_1', ch2_end: null,
   ch3_hosp: ['shelter', -6.6, 18.4], ch3_lobby: ['hospital', 0, 13.2], ch3_records: ['hospital', -6.2, 2.0], ch3_ward: ['hospital', 9.0, -17.5], ch3_guard: 'enemy:mamori', ch3_down: ['hospital', -9.6, -19.2],
   ch3_tunnel: ['tunnel', 0, -30], ch3_boss: 'enemy:utsushimi', ch3_boss2: 'enemy:utsushimi', ch3_end: null,
