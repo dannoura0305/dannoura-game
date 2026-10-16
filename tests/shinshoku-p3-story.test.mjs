@@ -15,7 +15,7 @@ let n = 0; const t = (name, fn) => { fn(); n++; console.log('  ✓ ' + name); };
 const events = JSON.parse(readFileSync(new URL('../shinshoku/data/events.json', import.meta.url)));
 
 t('段：序章→第1章→第2章→第3章の順。章の名前・目標の文がある', () => {
-  assert.deepEqual([...new Set(STEPS.map(s => s.ch))], ['prologue', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5a', 'ch6a', 'ch5b', 'ch6b']);   // フェーズ6・7：分岐の後の章（第5章A・第6章A・第5章B・第6章B）
+  assert.deepEqual([...new Set(STEPS.map(s => s.ch))], ['prologue', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5a', 'ch6a', 'ch5b', 'ch6b', 'ch7a', 'enda', 'ch7b', 'endb']);   // フェーズ6〜8：分岐の後の章（第5章A・第6章A・第5章B・第6章B・終章A・結末A・終章B・結末B）
   for (const s of STEPS) { assert.ok(CHAPTERS[s.ch]); assert.ok(s.obj.length > 3); assert.ok(AREA_GRAPH[s.area], s.id); }
   assert.equal(atLeast('ch1_street', 'ch1_katana'), true); assert.equal(atLeast('pro_meet', 'ch1_katana'), false);
   assert.equal(streetState('pro_tv'), 'normal'); assert.equal(streetState('ch1_katana'), 'outbreak');
@@ -70,7 +70,7 @@ t('演出場面のデータ：区画・段・話し手が正しい。原文（fi
     for (const e of cs.events || []) if (e.do === 'setStep') assert.ok(stepIds.has(e.arg), e.arg);
     for (const l of cs.lines || []) assert.ok(events.speakers[l.who], l.who);
   }
-  const F = fixedLines(CUTSCENES); assert.equal(F.length, 2); assert.equal(F[0].who, 'dan'); assert.equal(F[0].id, 'cs03_line'); assert.equal(F[1].who, 'companion'); assert.equal(F[1].id, 'cs04_line');
+  const F = fixedLines(CUTSCENES).filter(f => f.id !== 'cs_end_a'); assert.equal(F.length, 2); assert.equal(F[0].who, 'dan');   // フェーズ8：結末A の原文（cs_end_a）は別に数える（p8） assert.equal(F[0].id, 'cs03_line'); assert.equal(F[1].who, 'companion'); assert.equal(F[1].id, 'cs04_line');
   const texts = JSON.stringify(CUTSCENES) + JSON.stringify(events);
   assert.equal(texts.split('見た目だけで決めつけちゃ駄目').length - 1, 2, '原文は第3章のだんのうら 1 回と、第4章で相棒が返す 1 回だけ（3 回目は無い）');
 });

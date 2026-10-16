@@ -35,8 +35,8 @@ t('章と段：第6章A の続き（崩れた商店街 → 中央通り）と第
   // 同じルートの中だけ先後を比べる（第5章 → 第6章）
   assert.equal(atLeastIn('ch6a_boss', 'ch6a_end'), true); assert.equal(atLeastIn('ch6a_threads', 'ch5_r_ward'), true); assert.equal(atLeastIn('ch6_s_rounds', 'ch5_s_end'), true);
   assert.equal(atLeastIn('ch6_s_rounds', 'ch6a_threads'), false); assert.equal(atLeastIn('ch6a_threads', 'ch5_s_end'), false);
-  // 最終章（終章）の段は作らない（入口で止める）
-  assert.ok(!STEPS.some(s => /^end|final|ch7/.test(s.id)));
+  // 終章・結末の段はフェーズ8 で足した（第6章の段の後ろ。第6章の段の並びは変えない）
+  assert.ok(STEPS.findIndex(s => /^ch7|^end_/.test(s.id)) > STEPS.findIndex(s => s.id === 'ch6_s_end'));
 });
 t('ルートの続き（reveal）：守りきった後は終わりの表を出さず、人の大きさで崩れた商店街へ。第6章でもルートの記録を書き換えない', () => {
   const c5 = CUTSCENES.cs06_end, g6 = src('game/ch6.js');
@@ -61,12 +61,13 @@ t('区画のつながり：崩れた商店街・中央通りは reveal だけ、
 });
 
 // ── 原文の台詞・結末の原文・九条 ──
-t('原文の台詞は全編で 2 回のまま（第3章のだんのうら・第4章の相棒）。第6章の台詞・資料・コードには無い。結末A の原文も無い', () => {
+t('原文の台詞は全編で 2 回のまま（第3章のだんのうら・第4章の相棒）。第6章の台詞・資料・コードには無い。結末A の原文は第6章に無い（フェーズ8 で結末A に 1 回だけ）', () => {
   const all = JSON.stringify(CUTSCENES) + JSON.stringify(events);
   assert.equal(all.split(LINE).length - 1, 2); assert.equal(all.split('見た目だけで').length - 1, 2);
-  assert.deepEqual(fixedLines(CUTSCENES).map(f => f.id), ['cs03_line', 'cs04_line']);
+  assert.deepEqual(fixedLines(CUTSCENES).map(f => f.id).filter(id => id !== 'cs_end_a'), ['cs03_line', 'cs04_line']);
   const files = walk(ROOT).filter(p => /\.(js|json|html|css)$/.test(p));
-  let total = 0; for (const p of files) { const s = readFileSync(p, 'utf8'); total += s.split(LINE).length - 1; assert.equal(s.indexOf(ENDING), -1, p); }
+  let total = 0, endTotal = 0; for (const p of files) { const s = readFileSync(p, 'utf8'); total += s.split(LINE).length - 1; endTotal += s.split(ENDING).length - 1; if (!/cutscenes7\.js$/.test(p)) assert.equal(s.indexOf(ENDING), -1, p); }
+  assert.equal(endTotal, 1, '結末A の原文は cutscenes7.js の 1 回だけ');
   assert.equal(total, 2, 'shinshoku/ 全体で 2 回');
   assert.equal(JSON.stringify(CUTSCENES6).indexOf('見た目'), -1); assert.equal(fixedLines(CUTSCENES6).length, 0);
   for (const f of ['game/ch6.js', 'data/ch6.js', 'world/areas7.js', 'actor/models6.js']) assert.ok(!src(f).includes('見た目だけで'), f);
@@ -133,7 +134,7 @@ t('塗替：先触れと同じ骨組み（段階・咆哮で止まる・崩れ�
   const h0 = b.hp; b.hurt(100, 'slash', [], {}); assert.equal(h0 - b.hp, 200, '核が開いている間は 2 倍');
   assert.ok(AVENUE.blocks.some(x => /相棒/.test(x.name)), '守る棟の一つは（相棒）のいる病院の別棟');
   const g4 = src('game/ch4.js');
-  assert.ok(/giantBoss\(\) \{ return this\.enemies\.find\(e => e\.kind === 'sakibure' \|\| e\.kind === 'nurikae'\)/.test(g4) && /if \(e\.kind === 'nurikae'\) \{ this\.resolve\(e, 'kill'\); this\.onNurikaeDown6\(\)/.test(g4));
+  assert.ok(/giantBoss\(\) \{ return this\.enemies\.find\(e => e\.kind === 'sakibure' \|\| e\.kind === 'nurikae'/.test(g4) && /if \(e\.kind === 'nurikae'\) \{ this\.resolve\(e, 'kill'\); this\.onNurikaeDown6\(\)/.test(g4));
   assert.ok(/feedHit6\(L, block\)/.test(g4));
 });
 

@@ -323,4 +323,53 @@ export const ENEMIES = {
     poise: 170, poiseMul: 0.85, coreMul: 1.5,
     resolve: { rescue: 'hand_over_the_checklist', neutralize: 'lock_out_the_wrench', escape: false, kill: true },
   },
+  // ── フェーズ8（終章）【仮】 ──
+  // 境界を喰らうもの（終章A のボス・巨大な最終形態）：研究者が境界応答を集めすぎて膨れた姿。記録の帯が重なった翼（6 枚・目が並ぶ）と、
+  // 胸の「淵の目」（黒い瞳と時計の目盛りの輪＝核）。薙ぎ（翼・白＝咆哮で止める）／淵の光線（赤・線）／欠片の雨（赤・円）／
+  // 喰らう（白・避難の灯への線：間に立つか咆哮で守る）。体力 66%・33% で演出（町の人と（相棒）の支え／配偶者に似た異形）。
+  kuramono: {
+    name: '境界を喰らうもの', hp: 4200, provisional: true, giant: true,
+    speed: { walk: 1.2, angry: 1.6 },
+    senses: { fov: 360, sight: 240, sightDark: 240, hear: { gun: 240, run: 240, walk: 240 }, memory: 999 },
+    attacks: {
+      sweep: { windup: 1.1, active: 0.3, recover: 1.0, dmg: 15, range: 34, arc: 150, parryable: true },
+      beam: { windup: 1.5, active: 0.7, recover: 1.0, dmg: 20, range: 90, arc: 14, parryable: false, line: { w: 7 } },
+      rain: { windup: 1.6, active: 0.3, recover: 1.1, dmg: 13, range: 80, parryable: false, aoe: { r: 7, n: 6 } },
+      feed: { windup: 2.4, active: 0.8, recover: 1.3, dmg: 16, range: 120, parryable: true, line: { w: 10 }, target: 'refuge' },
+    },
+    phases: [
+      { at: 1.0, pattern: ['sweep', 'feed', 'beam', 'sweep'], cooldown: 1.5 },
+      { at: 0.66, pattern: ['sweep', 'rain', 'feed', 'beam', 'sweep'], cooldown: 1.25 },
+      { at: 0.33, pattern: ['feed', 'sweep', 'rain', 'beam', 'feed', 'sweep'], cooldown: 1.0 },
+    ],
+    pattern: ['sweep'], cooldown: 1.5,
+    stagger: { parried: 2.4, hit: 0.0, broken: 4.0, roar: 2.6 },
+    downState: 'down',
+    poise: 320, poiseMul: 0.6, coreMul: 2.0,
+    resolve: { rescue: 'pull_out_the_researcher', neutralize: false, escape: false, kill: false },
+  },
+  // 研究者（終章B のボス・人間大の特別な最終戦）：境界応答の紫の光をまとった姿。記録の中の「事故の瞬間」を武器にする。
+  // 打つ（白）／巻き戻し（赤・円：数秒前にいた所）／残像（赤・線：過去の自分が同じ道を走る）／事故の瞬間（白・（相棒）への線：間に立って受ける）。
+  // 記録装置が動いている間は傷が浅く、体力が 25% より減らない（巻き戻される）。待機の時に止める。体力 0 で膝をつく（無力化。倒さない）。
+  kenkyusha: {
+    name: '研究者', hp: 1400, provisional: true, boss: true,
+    speed: { walk: 1.3, angry: 2.6 },
+    senses: { fov: 360, sight: 40, sightDark: 40, hear: { gun: 40, run: 40, walk: 40 }, memory: 99 },
+    attacks: {
+      strike: { windup: 0.7, active: 0.16, recover: 0.7, dmg: 15, range: 2.8, arc: 110, parryable: true },
+      rewind: { windup: 1.25, active: 0.3, recover: 0.9, dmg: 18, range: 30, arc: 360, parryable: false, aoe: { r: 2.3, ahead: 0 }, ranged: true, past: 2.0 },
+      echo: { windup: 1.0, active: 0.4, recover: 1.0, dmg: 16, range: 14, arc: 20, parryable: false, line: { w: 1.8 }, ranged: true },
+      accident: { windup: 1.6, active: 0.4, recover: 1.1, dmg: 14, range: 30, arc: 20, parryable: true, line: { w: 2.2 }, ranged: true, target: 'companion' },
+    },
+    phases: [
+      { at: 1.0, pattern: ['strike', 'rewind', 'strike', 'echo'], cooldown: 1.1 },
+      { at: 0.66, pattern: ['strike', 'accident', 'rewind', 'echo', 'strike'], cooldown: 0.95 },
+      { at: 0.33, pattern: ['accident', 'strike', 'rewind', 'echo', 'strike', 'rewind'], cooldown: 0.8 },
+    ],
+    pattern: ['strike'], cooldown: 1.1,
+    stagger: { parried: 1.4, hit: 0.0, broken: 2.6, deck: 2.4 },
+    downState: 'down',
+    poise: 180, poiseMul: 0.85, coreMul: 1.5,
+    resolve: { rescue: false, neutralize: 'kneel', escape: false, kill: false },
+  },
 };

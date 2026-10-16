@@ -14,6 +14,11 @@ export const CHAPTERS = {
   ch5b: { no: 5, title: '第5章B　秘匿' },
   // フェーズ7：第6章B（中央管理棟）。第6章A は冒頭の後（崩れた商店街・中央通りの巨大戦）まで
   ch6b: { no: 6, title: '第6章B　制御' },
+  // フェーズ8：終章と結末（ルートで別）【仮】
+  ch7a: { no: 7, title: '終章A　崩れた町' },
+  ch7b: { no: 7, title: '終章B　記録の間' },
+  enda: { no: 8, title: '結末A　見舞い' },
+  endb: { no: 8, title: '結末B　信頼' },
 };
 
 export const STEPS = [
@@ -92,6 +97,16 @@ export const STEPS = [
   { id: 'ch6_s_boss', ch: 'ch6b', area: 'admin', obj: '当直を止める（人の姿のまま）', sub: '蒸気弁で崩す・崩れたら点検表を渡す（救う）／レンチを配管に施錠（無力化）／倒す' },
   { id: 'ch6_s_control', ch: 'ch6b', area: 'admin', obj: '制御室で、制御装置の拡大を止める（北）' },
   { id: 'ch6_s_end', ch: 'ch6b', area: 'admin', obj: '（第6章Bはここまで。記録の間：最終章へ）' },
+  // 終章A「崩れた町」（reveal）【仮】崩れた町と境界の淵：公衆電話（セーブ）→ 淵の縁で巨大猫又に → 境界を喰らうもの（避難の灯を守る）→ 研究者を引き上げる → 結末A
+  { id: 'ch7a_edge', ch: 'ch7a', area: 'abyss', obj: '境界の淵の縁へ（北）', sub: '公衆電話でセーブできる（最終戦の前）' },
+  { id: 'ch7a_boss', ch: 'ch7a', area: 'abyss', obj: '境界を喰らうものを止める', sub: '「喰らう」は避難の灯を狙う：線の間に立つか、咆哮で止める' },
+  { id: 'ch7a_end', ch: 'ch7a', area: 'abyss', obj: '（終章A　ここまで）' },
+  { id: 'end_a', ch: 'enda', area: 'epilogue', obj: '（結末A　見舞い）' },
+  // 終章B「記録の間」（secret）【仮】境界制御室の奥：内線電話（セーブ）→ 研究者（人間大の特別な最終戦・紫の姿だけ）→ 結末B
+  { id: 'ch7b_enter', ch: 'ch7b', area: 'kiroku', obj: '記録の間へ（通路の奥）', sub: '内線電話でセーブできる（最終戦の前）' },
+  { id: 'ch7b_boss', ch: 'ch7b', area: 'kiroku', obj: '研究者を止める（人の姿のまま）', sub: '記録装置は待機（緑）の時に止める／（相棒）への線の間に立つ' },
+  { id: 'ch7b_end', ch: 'ch7b', area: 'kiroku', obj: '（終章B　ここまで）' },
+  { id: 'end_b', ch: 'endb', area: 'epilogue', obj: '（結末B　信頼）' },
 ];
 /** フェーズ6 の段の組（第5章A＋第6章A の冒頭／第5章B） */
 export const R5_STEPS = ['ch5_r_enter', 'ch5_r_ward', 'ch5_r_chief', 'ch5_r_gate', 'ch5_r_boss', 'ch5_r_end', 'ch6a_rampage', 'ch6a_protect', 'ch6a_end'];
@@ -99,13 +114,16 @@ export const S5_STEPS = ['ch5_s_enter', 'ch5_s_power', 'ch5_s_ward', 'ch5_s_arch
 /** フェーズ7 の段の組（第6章A の続き／第6章B） */
 export const R6_STEPS = ['ch6a_threads', 'ch6a_avenue', 'ch6a_boss', 'ch6a_fin'];
 export const S6_STEPS = ['ch6_s_enter', 'ch6_s_monitor', 'ch6_s_rounds', 'ch6_s_isolate', 'ch6_s_boss', 'ch6_s_control', 'ch6_s_end'];
+/** フェーズ8 の段の組（終章A＋結末A／終章B＋結末B） */
+export const R7_STEPS = ['ch7a_edge', 'ch7a_boss', 'ch7a_end', 'end_a'];
+export const S7_STEPS = ['ch7b_enter', 'ch7b_boss', 'ch7b_end', 'end_b'];
 /** 分岐（第4章）の後の段の組 */
 export const R_STEPS = ['ch4_r_fight', 'ch4_r_rise', 'ch4_r_giant', 'ch4_r_end'];
 export const S_STEPS = ['ch4_s_trial', 'ch4_s_power', 'ch4_s_sneak', 'ch4_s_hold', 'ch4_s_end'];
 /** 段がどちらのルートの物か（'reveal'|'secret'|null） */
-export function stepRoute(id) { return R_STEPS.includes(id) || R5_STEPS.includes(id) || R6_STEPS.includes(id) ? 'reveal' : S_STEPS.includes(id) || S5_STEPS.includes(id) || S6_STEPS.includes(id) ? 'secret' : null; }
+export function stepRoute(id) { return R_STEPS.includes(id) || R5_STEPS.includes(id) || R6_STEPS.includes(id) || R7_STEPS.includes(id) ? 'reveal' : S_STEPS.includes(id) || S5_STEPS.includes(id) || S6_STEPS.includes(id) || S7_STEPS.includes(id) ? 'secret' : null; }
 /** 同じルートの中で比べる（分岐の後の段どうしは atLeast で比べない：並びが 1 本なので）。ルートが違えば false */
-export function atLeastIn(cur, id) { const L = [R_STEPS, S_STEPS, R5_STEPS, S5_STEPS, R6_STEPS, S6_STEPS]; const a = L.find(x => x.includes(cur)), b = L.find(x => x.includes(id)); if (!a || !b) return atLeast(cur, id); const ra = stepRoute(cur), rb = stepRoute(id); if (ra !== rb) return false; const seq = ra === 'reveal' ? R_STEPS.concat(R5_STEPS, R6_STEPS) : S_STEPS.concat(S5_STEPS, S6_STEPS); return seq.indexOf(cur) >= seq.indexOf(id); }
+export function atLeastIn(cur, id) { const L = [R_STEPS, S_STEPS, R5_STEPS, S5_STEPS, R6_STEPS, S6_STEPS, R7_STEPS, S7_STEPS]; const a = L.find(x => x.includes(cur)), b = L.find(x => x.includes(id)); if (!a || !b) return atLeast(cur, id); const ra = stepRoute(cur), rb = stepRoute(id); if (ra !== rb) return false; const seq = ra === 'reveal' ? R_STEPS.concat(R5_STEPS, R6_STEPS, R7_STEPS) : S_STEPS.concat(S5_STEPS, S6_STEPS, S7_STEPS); return seq.indexOf(cur) >= seq.indexOf(id); }
 // 目標の場所（ミニマップの印・距離）。[区画, x, z]。'enemy:<id>' は敵の位置
 export const TARGETS = {
   pro_meet: ['shotengai', -2.5, -33.8], pro_pipe: ['shotengai', -2.6, -30.2], pro_fight: 'enemy:kiro_t', pro_home: ['shotengai', 0, 8.6], pro_tv: ['shotengai', -3.5, 14.0],
@@ -121,6 +139,8 @@ export const TARGETS = {
   ch5_s_enter: ['oldwing', 0, 9.0], ch5_s_power: ['oldwing', 8.5, -19.0], ch5_s_ward: ['oldwing', 0, -19.4], ch5_s_archive: ['oldwing', -12.0, -19.4], ch5_s_gate: ['oldwing', 0, -21.6], ch5_s_boss: 'enemy:tsugihagi', ch5_s_end: ['atrium', 9.0, -13.0],
   ch6a_threads: ['ruins', 5.2, -24.0], ch6a_avenue: ['ruins', 0, -38.5], ch6a_boss: 'enemy:nurikae', ch6a_fin: null,
   ch6_s_enter: ['admin', 0, 14.0], ch6_s_monitor: ['admin', -11.0, 6.0], ch6_s_rounds: ['admin', -3.0, -19.0], ch6_s_isolate: ['admin', -3.0, -18.6], ch6_s_boss: 'enemy:touchoku', ch6_s_control: ['admin', 0, -29.0], ch6_s_end: null,
+  ch7a_edge: ['abyss', 0, 16.0], ch7a_boss: 'enemy:kuramono', ch7a_end: null, end_a: null,
+  ch7b_enter: ['kiroku', 0, 2.0], ch7b_boss: 'enemy:kenkyusha', ch7b_end: null, end_b: null,
 };
 export const STEP_INDEX = Object.fromEntries(STEPS.map((s, i) => [s.id, i]));
 export function stepDef(id) { return STEPS[STEP_INDEX[id]] || STEPS[0]; }

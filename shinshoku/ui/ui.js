@@ -165,6 +165,7 @@ export class UI {
   tick(dt) {
     if (this.toastT > 0) { this.toastT -= dt; if (this.toastT <= 0) this.el.toast.classList.remove('on'); }
     if (this.barkT > 0) { this.barkT -= dt; if (this.barkT <= 0) this.el.bark.classList.remove('on'); }
+    if (this.cr) this.creditsTick(dt);
   }
   /** 画面上の印（ロックオン・敵の予兆） */
   lockAt(sp) { const l = this.el.lock; if (!sp) { l.classList.remove('on'); return; } l.style.transform = `translate(${sp.x}px,${sp.y}px)`; l.classList.add('on'); }
@@ -341,15 +342,16 @@ export class UI {
     };
     addEventListener('keydown', fn, true);
   }
-  endCard(stats, onClose, title = '第2章（避難所）　ここまで', note = '') {
-    const html = `<div class="sh-ptitle">${esc(title)}</div><div class="sh-stats">${stats.map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(String(v))}</b></div>`).join('')}</div><p class="sh-note">${esc(note)}</p><div class="sh-sbtn"><button data-close="1">続ける</button></div>`;
+  endCard(stats, onClose, title = '第2章（避難所）　ここまで', note = '', btn = '続ける') {
+    const html = `<div class="sh-ptitle">${esc(title)}</div><div class="sh-stats">${stats.map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(String(v))}</b></div>`).join('')}</div><p class="sh-note">${esc(note)}</p><div class="sh-sbtn"><button data-close="1">${esc(btn)}</button></div>`;
     this._puz(html, d => { if (d.close) onClose(); });
   }
   // ── 一時停止メニュー ──
   openMenu(tab = 'top') {
     const g = this.g, m = this.el.menu, S = g.settings;
     m.hidden = false;
-    const tabs = [['top', '再開'], ['equip', '装備'], ['controls', '操作'], ['keys', 'キー'], ['settings', '設定'], ['load', 'ロード'], ['title', 'タイトルへ']];
+    const inTitle = g.mode === 'title';                                   // タイトルの「設定」：設定・操作・キーだけ
+    const tabs = inTitle ? [['settings', '設定'], ['controls', '操作'], ['keys', 'キー'], ['close', '閉じる']] : [['top', '再開'], ['equip', '装備'], ['controls', '操作'], ['keys', 'キー'], ['settings', '設定'], ['load', 'ロード'], ['title', 'タイトルへ']];
     let body = '';
     if (tab === 'controls') {
       body = `<table class="sh-ctl"><tr><th>操作</th><th>キーボード＋マウス</th><th>ゲームパッド</th><th>タッチ</th></tr>${CONTROLS.map(r => `<tr>${r.map((c, i) => i ? `<td>${esc(c)}</td>` : `<th>${esc(c)}</th>`).join('')}</tr>`).join('')}</table>
@@ -381,14 +383,15 @@ export class UI {
       const L = g.store.list();
       body = `<div class="sh-slots">${['auto', 'slot1', 'slot2', 'slot3', 'tenki', 'branch'].filter(k => k !== 'tenki' && k !== 'branch' || L[k]).map(k => { const s = L[k]; return `<button data-load="${k}" ${s ? '' : 'disabled'}>${k === 'auto' ? '自動' : k === 'tenki' ? '転機の前' : k === 'branch' ? '◆ 分岐の前' : '枠' + k.slice(-1)}　${s ? new Date(s.savedAt).toLocaleString('ja-JP') + '　' + fmtSec(s.playSec) : '（空き）'}</button>`; }).join('')}</div>`;
     } else {
-      body = `<div class="sh-mtitle">境界侵食<small>（仮題）序章〜第6章 試作</small></div><p class="sh-note">${esc(g.chapterTitle())}　／　${esc(g.objectiveText())}</p><p class="sh-note">救った帰路：${g.count('kiro', 'rescue')}　倒した帰路：${g.count('kiro', 'kill')}　閉店：${g.heitenStatus()}　収容者：${g.bossStatus()}　（相棒）の信頼：${g.companionTrust()}</p>`;
+      body = `<div class="sh-mtitle">境界侵食<small>（仮題）序章〜終章 試作</small></div><p class="sh-note">${esc(g.chapterTitle())}　／　${esc(g.objectiveText())}</p><p class="sh-note">救った帰路：${g.count('kiro', 'rescue')}　倒した帰路：${g.count('kiro', 'kill')}　閉店：${g.heitenStatus()}　収容者：${g.bossStatus()}　（相棒）の信頼：${g.companionTrust()}</p>`;
     }
     m.innerHTML = `<div class="sh-mbox"><nav>${tabs.map(([k, n]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${n}</button>`).join('')}</nav><div class="sh-mbody">${body}</div></div>`;
     m.onclick = e => {
       const b = e.target.closest('button'); if (!b) return;
       g.sfx.play('ui');
       if (b.dataset.tab === 'top' && tab === 'top') return g.resume();
-      if (b.dataset.tab === 'title') { location.href = 'index.html'; return; }
+      if (b.dataset.tab === 'title') { location.href = 'shinshoku.html'; return; }
+      if (b.dataset.tab === 'close') { this.closeMenu(); return; }
       if (b.dataset.tab) return this.openMenu(b.dataset.tab === 'top' ? 'top' : b.dataset.tab);
       if (b.dataset.load) { g.loadSlot(b.dataset.load); }
       if (b.dataset.eq) { g.toggleEquip(b.dataset.eq); this.openMenu('equip'); }
@@ -405,6 +408,15 @@ export class UI {
     this.menuTab = tab;
   }
   closeMenu() { this.el.menu.hidden = true; }
+  // ── スタッフロール（結末の後）：下から上へ流れる。とばせる ──
+  credits(lines, sec, onDone) {
+    const d = document.createElement('div'); d.id = 'sh-credits';
+    d.innerHTML = `<div class="cr-roll">${lines.map(([k, t]) => `<div class="cr-${k}">${esc(t)}</div>`).join('')}</div><button class="cr-skip">とばす</button>`;
+    document.body.appendChild(d); this.cr = { el: d, roll: d.querySelector('.cr-roll'), t: 0, sec, onDone, done: false };
+    d.querySelector('.cr-skip').onclick = () => this.creditsEnd();
+  }
+  creditsTick(dt) { const c = this.cr; if (!c || c.done) return; c.t += Math.min(dt, 0.1); const H = c.roll.offsetHeight + innerHeight * 0.42; const k = Math.min(1, c.t / c.sec); c.roll.style.transform = `translateY(${-k * H}px)`; if (c.t >= c.sec + 2.2) this.creditsEnd(); }   // 最後の「おしまい」は画面の中ほどで少し止まる
+  creditsEnd() { const c = this.cr; if (!c || c.done) return; c.done = true; c.el.remove(); this.cr = null; if (c.onDone) c.onDone(); }
   // ── セーブ（ノートPC） ──
   openSave() {
     const g = this.g, m = this.el.menu, L = g.store.list();

@@ -46,6 +46,7 @@ export const storyMethods = {
     this.storyTick4();
     this.storyTick5();
     this.storyTick6();
+    this.storyTick7();
   },
   /** 場所に入った時 */
   onAreaEnterStory(id) {
@@ -58,6 +59,7 @@ export const storyMethods = {
     this.onAreaEnter4(id);
     this.onAreaEnter5(id);
     this.onAreaEnter6(id);
+    this.onAreaEnter7(id);
   },
   onEnemyResolvedStory(e, how) {
     if (e.id === 'kiro_t' && this.story.step === 'pro_fight') { this.later(0.4, () => this.bark(how === 'kill' ? 'pro_after_kill' : 'pro_after', 4)); this.setStep('pro_home'); }
@@ -81,6 +83,7 @@ export const storyMethods = {
   // ── 調べる・使う ──
   useSpot(s) {
     const T = this.events.texts || {}, st = this.story.step;
+    if (this.useSpot7(s)) return;
     if (this.useSpot6(s)) return;
     if (this.useSpot5(s)) return;
     if (this.useSpot4(s)) return;
@@ -308,6 +311,7 @@ export const storyMethods = {
   },
   cineEvent(name, arg) {
     const skip = this.cut.skipping;
+    if (this.cineEvent7(name, arg)) return;
     if (this.cineEvent6(name, arg)) return;
     if (this.cineEvent5(name, arg)) return;
     if (this.cineEvent4(name, arg)) return;

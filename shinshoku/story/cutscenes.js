@@ -4,6 +4,7 @@ import { CUTSCENES3 } from './cutscenes3.js';
 import { CUTSCENES4 } from './cutscenes4.js';
 import { CUTSCENES5 } from './cutscenes5.js';
 import { CUTSCENES6 } from './cutscenes6.js';
+import { CUTSCENES7 } from './cutscenes7.js';
 // 形：{ id, area, letterbox, skippable, cam:[{t,pos,look,fov,cut?}], lines:[{t,who,text,dur}], actors:[{t,id,pos?|to?,yaw?,run?,anim?}], events:[{t,do,arg}], sounds:[{t,s}] }
 export const CUTSCENES = {
   // CS-00「明かりが消える」（序章）
@@ -169,4 +170,4 @@ export const CUTSCENES = {
   },
 };
 // 第3章（病院・地下通路）
-Object.assign(CUTSCENES, CUTSCENES3, CUTSCENES4, CUTSCENES5, CUTSCENES6);
+Object.assign(CUTSCENES, CUTSCENES3, CUTSCENES4, CUTSCENES5, CUTSCENES6, CUTSCENES7);

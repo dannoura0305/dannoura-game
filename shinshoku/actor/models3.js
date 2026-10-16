@@ -20,7 +20,9 @@ function boneChain(sb, prefix, parent, start, offs) {
 const chainW = (sb, names) => { const n = names.length; return sb.along(names.map((nm, i) => [i / (n - 1), nm])); };
 
 // ───────────────────────── だんのうら（白髪形態） ─────────────────────────
-export function buildDannouraWhite() {
+/** opt.mixed：結末A の見舞いの姿（白と紫が混ざった髪。化けが不安定なだけ＝けがではない。耳・尾・爪は隠れている）【仮】 */
+export function buildDannouraWhite(opt = {}) {
+  const MIX = !!opt.mixed, PU = 0x9a7ad8, PUD = 0x6a4aa8;
   const d = Object.assign({}, DIM);
   const sb = new SkinBody(d), R = d.headR, W = n => sb.W(n);
   const SKIN = 0xfbe7de, BK = 0x17131d, BK2 = 0x2a2232, BKS = 0x0e0b12, ST = 0xf3eefb, FUR = 0xf7f3fc, PINK = 0xff9ccc, PANTS = 0x16121b;
@@ -72,7 +74,7 @@ export function buildDannouraWhite() {
   // 背中の猫の足あと（小さな刺しゅう）
   for (const [x, y, r] of [[0, 1.12, 0.022], [-0.026, 1.155, 0.009], [-0.009, 1.168, 0.009], [0.009, 1.168, 0.009], [0.026, 1.155, 0.009]]) sb.blob([x, y, -0.094], [r, r, 0.004], { weights: sb.rigid('chest'), color: ST, w: 8, h: 4, oth: 0 });
   // 爪（指先から伸びる紫がかった黒の鉤爪）
-  for (const [HA, sx] of [['leftHand', 1], ['rightHand', -1]]) {
+  for (const [HA, sx] of (MIX ? [] : [['leftHand', 1], ['rightHand', -1]])) {
     const wr = W(HA), w = sb.rigid(HA);
     for (const z of [0.022, 0.0075, -0.0075, -0.021]) {
       const bx = wr.x - sx * 0.031, by = wr.y - 0.012 - 0.068 - 0.044, zz = z + 0.003;
@@ -87,20 +89,20 @@ export function buildDannouraWhite() {
   // 前髪（乱れて重なる・毛先が跳ねる）
   for (let i = 0; i < 9; i++) {
     const x = -0.72 + i / 8 * 1.44 + (r() - 0.5) * 0.08, len = (Math.abs(x) < 0.3 ? 0.04 : Math.abs(x) < 0.55 ? 0.1 : 0.2) + r() * 0.08, lean = (r() - 0.5) * 0.4 + x * 0.25;
-    sb.strand([onHead(sb, R, [x * 0.8, 0.86, 0.5], 1.06), onHead(sb, R, [x * 0.92 + lean * 0.3, 0.56, 0.92], 1.18), onHead(sb, R, [x * 1.0 + lean, 0.52 - len, 0.98], 1.2)], R * (0.17 + r() * 0.06), { base: i % 2 ? H : HT, root: HD, tip: HL, weights: hw, out: [x, 0.3, 1], segs: 6, flat: 0.36 });
+    sb.strand([onHead(sb, R, [x * 0.8, 0.86, 0.5], 1.06), onHead(sb, R, [x * 0.92 + lean * 0.3, 0.56, 0.92], 1.18), onHead(sb, R, [x * 1.0 + lean, 0.52 - len, 0.98], 1.2)], R * (0.17 + r() * 0.06), { base: MIX && i % 3 === 1 ? PU : i % 2 ? H : HT, root: MIX && i % 3 === 1 ? PUD : HD, tip: MIX && i % 3 === 1 ? 0xc8b0f0 : HL, weights: hw, out: [x, 0.3, 1], segs: 6, flat: 0.36 });
   }
   // 横と後ろ：外へ跳ねる房（量感）
   for (let i = 0; i < 20; i++) {
     const a = -Math.PI * 0.85 + i / 19 * Math.PI * 1.7, dx = Math.sin(a), dz = -Math.cos(a), up = 0.75 - r() * 0.3, len = 0.35 + r() * 0.5;
     const flick = 0.15 + r() * 0.25;
-    sb.strand([onHead(sb, R, [dx * 0.7, up, dz * 0.7], 1.1), onHead(sb, R, [dx * 1.05, 0.1, dz * 1.05], 1.3 + r() * 0.08), onHead(sb, R, [dx * (1.2 + flick), -0.2 - len * 0.55, dz * (1.15 + flick)], 1.36 + r() * 0.1)], R * (0.3 + r() * 0.1), { base: i % 3 ? H : HT, root: HD, tip: HL, weights: hw, out: [dx, 0.1, dz], segs: 6, flat: 0.28, taper: 0.65 });
+    sb.strand([onHead(sb, R, [dx * 0.7, up, dz * 0.7], 1.1), onHead(sb, R, [dx * 1.05, 0.1, dz * 1.05], 1.3 + r() * 0.08), onHead(sb, R, [dx * (1.2 + flick), -0.2 - len * 0.55, dz * (1.15 + flick)], 1.36 + r() * 0.1)], R * (0.3 + r() * 0.1), { base: MIX && i % 2 ? PU : i % 3 ? H : HT, root: MIX && i % 2 ? PUD : HD, tip: MIX && i % 2 ? 0xc8b0f0 : HL, weights: hw, out: [dx, 0.1, dz], segs: 6, flat: 0.28, taper: 0.65 });
   }
   // 頭頂のはね毛（数本）
   for (let i = 0; i < 5; i++) { const a = r() * Math.PI * 2, x = Math.sin(a) * 0.35, z = Math.cos(a) * 0.35; sb.strand([onHead(sb, R, [x, 1, z], 1.03), onHead(sb, R, [x * 1.4, 1.2, z * 1.4 + 0.1], 1.14), onHead(sb, R, [x * 2.2, 1.0, z * 2.0 + 0.2], 1.2)], R * 0.13, { base: H, tip: HL, weights: hw, out: [x, 1, z], segs: 4, flat: 0.45 }); }
   // ── 猫耳（外は白・内はピンク）。耳の骨（ぴくっと動く） ──
   const earDeform = v => { const k = (v.y + 1) / 2; v.x *= 1 - k * 0.88; v.z *= 1 - k * 0.7; return v; };
   const ears = [];
-  for (const sx of [1, -1]) {
+  for (const sx of (MIX ? [] : [1, -1])) {
     const base = onHead(sb, R, [sx * 0.52, 0.86, -0.08], 0.98), nm = sx > 0 ? 'earL' : 'earR';
     sb.addBone(nm, 'head', base[0] - sb.W('head').x, base[1] - sb.W('head').y, base[2] - sb.W('head').z); ears.push(nm);
     const xf = xfm([0, R * 0.32, 0], [-0.2, sx * 0.25, -sx * 0.32]), B = sb.W(nm);
@@ -115,7 +117,7 @@ export function buildDannouraWhite() {
   const pts = tp.concat([tipP]);
   const tr = rng(5);
   const rad = pts.map((_, i) => { const t = i / (pts.length - 1); return 0.028 + Math.sin(Math.min(1, t * 1.2) * Math.PI * 0.85) * 0.03 + (t > 0.9 ? -0.012 : 0); });
-  sb.tube(pts.map((c, i) => ({ c: [c.x, c.y, c.z], r: [rad[i], rad[i]], shape: a => { const k = 1 + Math.sin(a * 5 + i * 1.7) * 0.12 + (tr() - 0.5) * 0.06; return [k, k]; } })), { sides: 14, sub: 3, weights: chainW(sb, tailNames), color: (p, t) => (t > 0.86 ? 0xd8ccf0 : t < 0.08 ? HD : FUR), capStart: true, capEnd: true, capBulge: 0.9, oth: 0.9 });
+  if (!MIX) sb.tube(pts.map((c, i) => ({ c: [c.x, c.y, c.z], r: [rad[i], rad[i]], shape: a => { const k = 1 + Math.sin(a * 5 + i * 1.7) * 0.12 + (tr() - 0.5) * 0.06; return [k, k]; } })), { sides: 14, sub: 3, weights: chainW(sb, tailNames), color: (p, t) => (t > 0.86 ? 0xd8ccf0 : t < 0.08 ? HD : FUR), capStart: true, capEnd: true, capBulge: 0.9, oth: 0.9 });
   // ── めがね（黒・四角）・ピンクの花 ──
   const FR = 0x16101c;
   for (const sx of [1, -1]) {
@@ -142,7 +144,7 @@ export function buildDannouraWhite() {
   }, 'calm');
   const m = sb.build(tex, { rim: 0.85, rimColor: 0xe8d8ff, outline: 0.0085, outlineColor: 0x1a1024, faceEmissive: 0x3a3048 });
   const sway = tailNames.map((n, i) => ({ b: sb.B[n], k: 34 - i * 2.5, d: 5.5, gain: -(0.12 + i * 0.03), baseX: 0, amp: 0.08 + i * 0.03, freq: 1.6, ph: i * 0.55, tail: true }));
-  return Object.assign(m, { tail: [], coat: [], sway, earBones: ears.map(n => sb.B[n]), weapons, height: 1.66, provisional: true, kind: 'dannoura_white', white: true, eyes: [sb.B.eyeL, sb.B.eyeR], mouth: sb.B.mouth, faceTex: tex, setExpr: n => tex.userData.setExpr(n) });
+  return Object.assign(m, { tail: [], coat: [], sway, earBones: ears.map(n => sb.B[n]), weapons, height: 1.66, provisional: true, kind: MIX ? 'dannoura_mixed' : 'dannoura_white', white: true, mixed: MIX, eyes: [sb.B.eyeL, sb.B.eyeR], mouth: sb.B.mouth, faceTex: tex, setExpr: n => tex.userData.setExpr(n) });
 }
 
 // ───────────────────────── 子ども（日向 ユウ・仮・7 歳） ─────────────────────────
