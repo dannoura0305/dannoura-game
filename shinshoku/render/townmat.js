@@ -72,7 +72,15 @@ const DRAW = {
   win_lit2(g, w, h, r) { windowTile(g, w, h, r, 'lit2'); },
   win_curtain(g, w, h, r) { windowTile(g, w, h, r, 'curtain'); },
   win_shoji(g, w, h, r) { windowTile(g, w, h, r, 'shoji'); },
-  door_house(g, w, h, r) { g.fillStyle = '#3a2a22'; g.fillRect(0, 0, w, h); g.fillStyle = '#6a4a36'; g.fillRect(20, 12, w - 40, h - 12); for (let y = 30; y < h; y += 26) { g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(24, y, w - 48, 3); } g.fillStyle = '#c8b070'; g.fillRect(w - 52, h / 2, 10, 34); g.fillStyle = 'rgba(200,220,255,.35)'; g.fillRect(40, 24, 30, 90); void r; },
+  door_house(g, w, h, r) { // フェーズ11：玄関の戸（アルミの枠・木目の板・縦の型板ガラス（中の灯り）・銀の取っ手・鍵）
+    g.fillStyle = '#4a4440'; g.fillRect(0, 0, w, h);
+    const gr = g.createLinearGradient(14, 0, w - 14, 0); gr.addColorStop(0, '#8a6448'); gr.addColorStop(0.5, '#a07a58'); gr.addColorStop(1, '#7a5640'); g.fillStyle = gr; g.fillRect(14, 10, w - 28, h - 14);
+    for (let x = 16; x < w - 14; x += 6) { g.fillStyle = `rgba(40,24,14,${(0.08 + r() * 0.14).toFixed(2)})`; g.fillRect(x, 10, 2, h - 14); }
+    g.strokeStyle = 'rgba(30,20,12,.45)'; g.lineWidth = 2; g.strokeRect(30, 24, w - 60, h - 44);
+    const gl = g.createLinearGradient(0, 30, 0, h - 30); gl.addColorStop(0, '#f2e2c0'); gl.addColorStop(1, '#c8a878'); g.fillStyle = gl; g.fillRect(44, 30, 26, h - 60);
+    g.fillStyle = 'rgba(255,255,255,.25)'; for (let y = 34; y < h - 34; y += 8) g.fillRect(46, y, 22, 2);
+    g.fillStyle = '#d8dce0'; g.fillRect(w - 58, h * 0.36, 12, h * 0.22); g.fillStyle = '#8a8e92'; g.fillRect(w - 56, h * 0.36, 3, h * 0.22);
+    g.fillStyle = '#c8ccd0'; g.beginPath(); g.arc(w - 52, h * 0.31, 4, 0, 7); g.fill(); },
   garage(g, w, h, r) { g.fillStyle = '#8a9098'; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 10) { g.fillStyle = y % 20 ? '#a0a6ae' : '#747a82'; g.fillRect(0, y, w, 4); } noise(g, w, h, r, 300, 0.1); },
   shopglass(g, w, h, r) { g.fillStyle = '#0e1018'; g.fillRect(0, 0, w, h); g.fillStyle = '#5a5e66'; g.fillRect(0, 0, w, 8); g.fillRect(0, h - 8, w, 8); g.fillRect(w / 2 - 3, 0, 6, h); g.fillStyle = 'rgba(150,170,210,.15)'; g.beginPath(); g.moveTo(30, 8); g.lineTo(90, 8); g.lineTo(40, h - 8); g.lineTo(-20, h - 8); g.fill(); g.fillStyle = 'rgba(255,255,255,.08)'; for (let i = 0; i < 5; i++) g.fillRect(20 + r() * 200, 120 + r() * 100, 20, 30); },
   konbini(g, w, h, r) { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#f8fbff'); gr.addColorStop(1, '#c8d8ec'); g.fillStyle = gr; g.fillRect(0, 0, w, h); for (let x = 10; x < w; x += 40) { g.fillStyle = ['#d84a4a', '#4a8ad8', '#e8c040', '#4ab070', '#c86ad8'][Math.floor(r() * 5)]; g.fillRect(x, h * 0.45, 30, h * 0.22); g.fillStyle = '#7a8090'; g.fillRect(x - 4, h * 0.42, 38, 4); g.fillRect(x - 4, h * 0.68, 38, 4); } g.fillStyle = '#6a7080'; g.fillRect(0, 0, w, 6); g.fillRect(w / 2 - 3, 0, 6, h); },

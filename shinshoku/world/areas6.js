@@ -41,6 +41,9 @@ export function buildTown() {
     const fx = s.alongX ? 0 : -s.side, fz = s.alongX ? -s.side : 0;                     // 通りに面した向き
     const fxp = s.x + fx * (s.w / 2 + 0.06), fzp = s.z + fz * (s.d / 2 + 0.06);
     B.box('shutter', fxp, 1.6, fzp, s.alongX ? 5.6 : 0.1, 3.2, s.alongX ? 0.1 : 5.6, 0x8a8e94);
+    { const o = 3.15, dx = s.alongX ? o : 0, dz = s.alongX ? 0 : o;   // フェーズ11：シャッターの横の通用口（戸・枠）
+      B.box('wall', fxp + dx + fx * 0.02, 1.05, fzp + dz + fz * 0.02, s.alongX ? 0.64 : 0.06, 2.1, s.alongX ? 0.06 : 0.64, 0x4a4248);
+      B.box('prop', fxp + dx + fx * 0.04, 2.16, fzp + dz + fz * 0.04, s.alongX ? 0.76 : 0.08, 0.1, s.alongX ? 0.08 : 0.76, 0x2a2628, { edges: false }); }
     if (i % 2 === 0) { const u = atlas.add(signDraw(SHOPS[i % SHOPS.length] + '（仮）', { bg: ['#f0e8d0', '#2a1a14', '#e8f0f0'][i % 3], fg: ['#6a1a1a', '#ffd8a0', '#1a3a6a'][i % 3], size: 40 })); B.box('sign', fxp + fx * 0.05, 4.0, fzp + fz * 0.05, s.alongX ? 5.0 : 0.05, 1.0, s.alongX ? 0.05 : 5.0, 0xffffff, { uv: u, face: s.alongX ? (fz > 0 ? 4 : 5) : (fx > 0 ? 0 : 1), edges: false }); }
     for (let k = 0; k < 3; k++) if (rr() < 0.6) B.box('glow', fxp + fx * 0.02, 5.0 + (k % 2) * 1.2, fzp + fz * 0.02 + (s.alongX ? 0 : (k - 1) * 2), s.alongX ? 1.4 : 0.04, 0.9, s.alongX ? 0.04 : 1.4, rr() < 0.5 ? 0xffc890 : 0x6a4a8a, { edges: false });
   });
