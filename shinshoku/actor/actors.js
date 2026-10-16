@@ -95,6 +95,7 @@ export class Player {
     if (n === 'swap') hand = F.st.f < F.st.total / 2 ? F.st.from : F.st.to;
     if (n === 'issen' && F.weapon !== 'claw') hand = own.includes('katana') ? 'katana' : F.weapon;
     const set = (o, on) => { if (!o) return; if (W.bones) o.scale.setScalar(on ? 1 : HIDE); else o.visible = on; };
+    if (this.noWeapons) { for (const k of ['katana', 'gun', 'pipe', 'saya', 'sayaHilt', 'holster', 'holsterGun', 'pipeBack', 'match', 'matchBack']) set(W[k], false); return; }   // 結末の場面（病室・家）では持たない
     set(W.katana, hand === 'katana'); set(W.gun, hand === 'handgun'); set(W.pipe, hand === 'pipe');
     set(W.saya, own.includes('katana')); set(W.sayaHilt, own.includes('katana') && hand !== 'katana');
     set(W.holster, own.includes('handgun')); set(W.holsterGun, own.includes('handgun') && hand !== 'handgun');
@@ -253,7 +254,7 @@ export class CompanionActor {
     const mode = this.anim || (this.pose === 'hide' ? 'hide' : this.pose === 'grabbed' ? 'grabbed' : this.pose === 'cower' ? 'cower' : null);
     const { pose, rate } = companionPose({ time: this.time, talking: this.talking, speed: this.speed, phase: this.phase, mode });
     this.poser.apply(pose, 1 - Math.pow(1 - rate, dt * 60));
-    this.root.position.set(this.brain.pos.x, 0, this.brain.pos.z); this.root.rotation.y = this.brain.yaw;
+    this.root.position.set(this.brain.pos.x, this.rootY || 0, this.brain.pos.z); this.root.rotation.y = this.brain.yaw;
     this.looks.tickFace(dt); this.looks.tickFlinch(dt, this.model.J);
     if (this.model.update) this.model.update(dt);
   }

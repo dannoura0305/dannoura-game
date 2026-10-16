@@ -56,14 +56,14 @@ t('区画のつながり：旧研究棟・観測棟は両ルート、巨大用�
 t('原文の台詞は全編で 2 回のまま（第3章のだんのうら・第4章の相棒）。第5章・第6章A には無い（相棒は名前を呼ぶ）', () => {
   const all = JSON.stringify(CUTSCENES) + JSON.stringify(events);
   assert.equal(all.split(LINE).length - 1, 2); assert.equal(all.split('見た目だけで').length - 1, 2);
-  assert.deepEqual(fixedLines(CUTSCENES).map(f => f.id), ['cs03_line', 'cs04_line']);
+  assert.deepEqual(fixedLines(CUTSCENES).map(f => f.id).filter(id => id !== 'cs_end_a'), ['cs03_line', 'cs04_line']);   // 結末A の原文はフェーズ8
   assert.equal(JSON.stringify(CUTSCENES5).indexOf('見た目'), -1); assert.equal(fixedLines(CUTSCENES5).length, 0);
   for (const k of ['rampage_call_1', 'rampage_call_2', 'rampage_call_3', 'rampage_call_4']) { assert.equal(events.barks[k].who, 'companion'); assert.ok(/だんのうらさん/.test(events.barks[k].text)); }
   assert.ok(CUTSCENES5.cs06_calm.lines.some(l => l.who === 'companion' && /だんのうらさん/.test(l.text)), '我に返る場面：相棒は名前を呼ぶ');
   assert.ok(!src('game/ch5.js').includes(LINE) && !src('game/ch5.js').includes('見た目だけで'));
 });
-t('結末A の原文（「でも、あの後……みんなを助けてくれたんですよね」）は結末A を作るまで入れない', () => {
-  const all = JSON.stringify(CUTSCENES) + JSON.stringify(events) + src('game/ch5.js');
+t('結末A の原文（「でも、あの後……みんなを助けてくれたんですよね」）は第5章・第6章A には無い（結末A だけ：p8）', () => {
+  const all = JSON.stringify(CUTSCENES5) + JSON.stringify(events) + src('game/ch5.js');
   assert.equal(all.indexOf('みんなを助けてくれたんですよね'), -1);
 });
 

@@ -39,6 +39,9 @@ import { ch3Methods } from './game/ch3.js';
 import { ch4Methods } from './game/ch4.js';
 import { ch5Methods } from './game/ch5.js';
 import { ch6Methods } from './game/ch6.js';
+import { ch7Methods } from './game/ch7.js';
+import { CHAPTER_SELECT, GALLERY, selectableChapters, galleryUnlocked } from './data/ch7.js';
+import './world/areas8.js';
 import './world/areas7.js';
 import './world/areas5.js';
 import './world/areas6.js';
@@ -229,6 +232,7 @@ class Game {
   placeCompanion() {
     const C = this.companion, b = C.brain, s = this.story.step, id = this.area.id;
     C.root.visible = false; C.anim = null;
+    if (this.placeCompanion7(id)) return;
     if (this.placeCompanion6(id)) return;
     if (this.placeCompanion5(id)) return;
     if (this.placeCompanion4(id)) return;
@@ -301,6 +305,7 @@ class Game {
       return;
     }
     if (this.spawnCh3(id, add)) return;
+    if (this.spawnCh7(id, add)) return;
     if (this.spawnCh6(id, add)) return;
     if (this.spawnCh5(id, add)) return;
     if (this.spawnCh4(id, add)) return;
@@ -340,16 +345,69 @@ class Game {
     try { this.makePortrait(); } catch (e) { console.warn('portrait', e); }
     const el = document.getElementById('sh-title');
     const has = !!this.store.load('auto');
+    const own = (this.WP.read().games || {}).shinshoku || {}, clear = this.store.load('clear');
+    const ends = Object.assign({}, own.endings || {}); if (clear && clear.endings) for (const k of Object.keys(clear.endings)) ends[k] = ends[k] || clear.endings[k];
+    const cleared = Object.keys(ends).some(k => ends[k]);
+    this.titleInfo = { has, cleared, own: Object.assign({}, own, { endings: ends }), clear };
     el.querySelector('[data-a="cont"]').hidden = !has;
+    el.querySelector('[data-a="gallery"]').hidden = !cleared;
+    el.querySelector('.tt-panel').hidden = true;
     el.hidden = false; document.getElementById('sh-boot').hidden = true;
     el.onclick = e => {
       const b = e.target.closest('button'); if (!b) return;
-      this.sfx.init();
-      if (b.dataset.a === 'new') this.newGame(this.jumpStepFromQuery()); else if (b.dataset.a === 'cont') this.loadSlot('auto');
-      else if (b.dataset.a === 'back') { location.href = 'index.html'; }
+      this.sfx.init(); this.sfx.play('ui');
+      const a = b.dataset.a;
+      if (a === 'new') { if (cleared && clear && clear.carry) { this.titlePanel('new'); return; } this.newGame(this.jumpStepFromQuery()); }
+      else if (a === 'cont') this.loadSlot('auto');
+      else if (a === 'chapters' || a === 'gallery') this.titlePanel(a);
+      else if (a === 'settings') this.ui.openMenu('settings');
+      else if (a === 'back') { location.href = 'index.html'; }
+      else if (a === 'close') { el.querySelector('.tt-panel').hidden = true; el.classList.remove('tt-open'); }
+      else if (a === 'fresh') this.newGame(null);
+      else if (a === 'ngplus') this.newGamePlus();
+      else if (b.dataset.ch) this.chapterSelect(b.dataset.ch);
+      else if (b.dataset.g) this.galleryPlay(b.dataset.g);
     };
     if (Q.get('autostart') === '1') this.newGame(Q.get('step') || this.jumpStepFromQuery());
     if (Q.get('continue') === '1' && has) this.loadSlot('auto');
+  }
+  /** タイトルの小さな表：章選択・記録（ギャラリー）・はじめから（引き継ぎの選択） */
+  titlePanel(kind) {
+    const el = document.getElementById('sh-title'), P = el.querySelector('.tt-panel'), T = this.titleInfo || {};
+    const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    let html = '';
+    if (kind === 'chapters') {
+      const ok = selectableChapters(T.own);
+      html = `<h3>章選択</h3>${T.cleared ? '' : '<div class="tt-lock">結末を見ると、すべての章を選べます（今は記録のある章だけ）。</div>'}`
+        + CHAPTER_SELECT.map(c => `<div class="tt-row"><button data-ch="${c.id}" ${ok.includes(c.id) ? '' : 'disabled'}>${esc(c.title)}</button>${c.route ? `<span class="tt-lock">${c.route === 'reveal' ? '妖力解放' : '正体秘匿'}</span>` : ''}</div>`).join('')
+        + '<div class="tt-sec">分岐の後の章は、そのルートで始まります（記録に「章選択」と残る）。</div>';
+    }
+    if (kind === 'gallery') {
+      const got = galleryUnlocked(T.own.endings || {});
+      html = '<h3>記録（ギャラリー）</h3>' + GALLERY.map(g => `<div class="tt-row"><button data-g="${g.id}" ${got.includes(g.id) ? '' : 'disabled'}>${esc(g.title)}</button>${got.includes(g.id) ? '' : '<span class="tt-lock">まだ見ていない</span>'}</div>`).join('')
+        + `<div class="tt-sec">見た結末：${Object.keys(T.own.endings || {}).filter(k => T.own.endings[k]).length} / 2（本作の記録だけ。本編の結末とは別）</div>`;
+    }
+    if (kind === 'new') html = '<h3>はじめから</h3><div class="tt-row"><button data-a="fresh">はじめから</button></div><div class="tt-row"><button data-a="ngplus">引き継いで はじめから（仮）</button></div><div class="tt-sec">引き継ぎ：装備・回復の道具・弾。武器と姿は物語で手に入れ直します。</div>';
+    P.innerHTML = html + '<div class="tt-row"><button data-a="close">閉じる</button></div>'; P.hidden = false; el.classList.add('tt-open');
+    this.metrics.titlePanel = kind;
+  }
+  /** 章選択（クリア後）：その章の初めから。分岐の後の章はそのルートで（branchLog の via は chapter_select） */
+  chapterSelect(id) {
+    const c = CHAPTER_SELECT.find(q => q.id === id); if (!c) return;
+    this.jumpVia = 'chapter_select'; this.flags.chapterSelect = id; this.metrics.chapterSelect = id;
+    this.newGame(c.step);
+  }
+  galleryPlay(id) {
+    this.galleryMode = true; this.metrics.gallery = id;
+    if (id === 'g_end_reveal') this.newGame('end_a');
+    else if (id === 'g_end_secret') this.newGame('end_b');
+    else if (id === 'g_both_routes') this.playBoth7();
+  }
+  newGamePlus() {
+    const clear = this.store.load('clear'); if (!clear) { this.newGame(null); return; }
+    const n = (clear.ngPlus || 0) + 1; this.store.write('clear', Object.assign({}, clear, { ngPlus: n }));
+    this.carryPending = { carry: clear.carry, n };
+    this.newGame(null);
   }
   /** 章の飛び先（?ch=3｜?ch=4、?ch=4&route=reveal|secret は分岐の後から） */
   jumpStepFromQuery() {
@@ -357,6 +415,8 @@ class Game {
     if (ch === '3') return 'ch3_lobby';
     if (ch === '4') return rt === 'reveal' ? 'ch4_r_fight' : rt === 'secret' ? 'ch4_s_trial' : 'ch4_office';
     if (ch === '5') return rt === 'secret' ? 'ch5_s_enter' : 'ch5_r_enter';
+    if (ch === '7') { const at = Q.get('at'); return rt === 'secret' ? (at === 'boss' ? 'ch7b_boss' : 'ch7b_enter') : (at === 'boss' ? 'ch7a_boss' : 'ch7a_edge'); }
+    if (Q.get('ending') === 'A' || Q.get('ending') === 'B') return Q.get('ending') === 'A' ? 'end_a' : 'end_b';
     if (ch === '6') { const at = Q.get('at'); if (rt === 'secret') return { rounds: 'ch6_s_rounds', boss: 'ch6_s_boss', control: 'ch6_s_control' }[at] || 'ch6_s_enter'; return { ruins: 'ch6a_threads', avenue: 'ch6a_avenue', boss: 'ch6a_boss' }[at] || 'ch6a_rampage'; }
     return null;
   }
@@ -367,6 +427,7 @@ class Game {
     this.mode = 'play';
     if (step && STEPS.find(s => s.id === step)) this.jumpToStep(step);
     else { this.refreshObjective(); if (!this.isTest()) this.input.requestLock(); }
+    if (this.carryPending) { const c = this.carryPending; this.carryPending = null; this.applyCarry7(c.carry, c.n); }
     if (!step && Q.get('skipintro') !== '1') this.playEvent('ev_intro', () => { this.flags.intro_done = true; });
     else this.flags.intro_done = true;
   }
@@ -390,6 +451,8 @@ class Game {
     if (atLeast(step, 'ch3_down')) { this.flags.child_saved = this.flags.truth_seen = true; this.enemyRes.mamori = this.enemyRes.mamori || 'rescue'; }
     if (atLeast(step, 'ch3_boss2')) { const st = Q.get('stance') === 'secret' ? 'secret' : 'reveal'; this.route = Object.assign(normalizeRoute(this.route), {}); if (!this.route.stance) { this.route.stance = st; if (st === 'reveal') this.route.forms.whiteUnlocked = true; this.route.branchLog.push({ seq: this.route.branchLog.length + 1, kind: 'stance', decision: st, chapter: 'ch03', step: 'ch3_tenki', via: 'debug', locksRoute: false }); } this.player.fighter.yokiOn = st === 'reveal'; this.player.fighter.yoki = 60; }
     if (atLeast(step, 'ch3_end')) this.flags.tunnel_clear = true;
+    const j7 = this.jump7(step);
+    if (j7) { this.loadArea(j7.area, j7.spawn); this.afterLoad4(); this.afterLoad5(true); this.afterLoad6(true); this.afterLoad7(true); this.refreshObjective(); return; }
     const j6 = this.jump6(step);
     if (j6) { this.loadArea(j6.area, j6.spawn); this.afterLoad4(); this.afterLoad5(true); this.afterLoad6(true); this.refreshObjective(); return; }
     const j5 = this.jump5(step);
@@ -558,6 +621,7 @@ class Game {
     return slot;
   }
   saveSlot(k, auto) {
+    if (this.galleryMode) return true;                                   // ギャラリーの見直しではセーブしない（今の続きを上書きしない）
     const ok = this.store.write(k, this.snapshot());
     if (ok) { if (auto) this.ui.log('自動セーブしました'); else this.ui.toast('セーブしました', '', 1); } else this.ui.log('セーブできませんでした（' + this.store.lastError + '）');
     if (k !== 'auto') this.WP.write('shinshoku', { chaptersCleared: [] });
@@ -606,7 +670,7 @@ class Game {
     this.mode = 'play'; this.loadedFrom = k; this.exitArmed = false;
     this.refreshObjective();
     if (this.tenkiOpen) this.later(0.3, () => this.openTenkiChoice());
-    this.afterLoad4(); this.afterLoad5(false); this.afterLoad6(false);
+    this.afterLoad4(); this.afterLoad5(false); this.afterLoad6(false); this.afterLoad7(false);
     if (!this.isTest()) this.input.requestLock();
     this.ui.toast('ロードしました', '', 1);
     return true;
@@ -670,7 +734,7 @@ class Game {
     }
     if (this.lock && !this.lock.hittable()) this.lock = null;
     const glassesPose = this.cinePlayerAnim === 'glasses' ? { pose: { spine: [0.05, 0, 0], head: [0.12, 0, 0], rightUpperArm: [-1.6, 0.3, -0.35], rightLowerArm: [-2.35, 0, 0], rightHand: [0.2, 0, 0.6], leftUpperArm: [0.05, 0, 0.12], leftLowerArm: [-0.2, 0, 0] }, rate: 0.25 } : null;
-    const sitPose = glassesPose || (this.cinePlayerAnim === 'sit' ? { pose: { hipsY: -0.42, leftUpperLeg: [-1.5, 0, 0.05], rightUpperLeg: [-1.5, 0, -0.05], leftLowerLeg: [1.5, 0, 0], rightLowerLeg: [1.5, 0, 0], spine: [-0.1, 0, 0], leftUpperArm: [0.1, 0, 0.2], rightUpperArm: [0.1, 0, -0.2], leftLowerArm: [-0.6, 0, 0], rightLowerArm: [-0.6, 0, 0], head: [0.05, 0, 0] }, rate: 0.2 } : null);
+    const sitPose = glassesPose || this.cinePose7() || (this.cinePlayerAnim === 'sit' ? { pose: { hipsY: -0.42, leftUpperLeg: [-1.5, 0, 0.05], rightUpperLeg: [-1.5, 0, -0.05], leftLowerLeg: [1.5, 0, 0], rightLowerLeg: [1.5, 0, 0], spine: [-0.1, 0, 0], leftUpperArm: [0.1, 0, 0.2], rightUpperArm: [0.1, 0, -0.2], leftLowerArm: [-0.6, 0, 0], rightLowerArm: [-0.6, 0, 0], head: [0.05, 0, 0] }, rate: 0.2 } : null);
     if (this.cut.active && !this.cineMoves.some(m => m.tgt.kind === 'player')) P.speed = 0;
     P.animate(pdt, { aimPitch: this.cam.pitch * 0.8, override: sitPose });
     const cp = this.camera.position;
@@ -684,7 +748,7 @@ class Game {
     this.companion.animate(pdt);
     this.animateChild(pdt);
     this.renderWhite(pdt);
-    this.renderGiant(pdt); this.renderBoss4(pdt); this.renderBoss5(pdt); this.renderTown5(pdt); this.renderBoss6(pdt);
+    this.renderGiant(pdt); this.renderBoss4(pdt); this.renderBoss5(pdt); this.renderTown5(pdt); this.renderBoss6(pdt); this.renderBoss7(pdt);
     if (this.companion.model.outline) this.companion.model.outline.visible = S.outline;
     if (P.model.outline) P.model.outline.visible = S.outline;
     for (const c of this.civilians) { c.animate(pdt); if (c.vanish) { c.vt = (c.vt || 0) + dt; const u = c.model.mats.body.userData.u; for (const m of [c.model.mats.body, c.model.mats.face, c.model.mats.outline]) if (m && m.userData.u) m.userData.u.uDissolve.value = Math.min(1, c.vt / 1.5); if (c.vt > 1.6) c.root.visible = false; void u; } }
@@ -747,7 +811,7 @@ class Game {
       P.aimWeak = this.enemies.some(e => { const wp = e.hittable() && this.weakPos(e); return wp && raySphereHit(o, d, wp, e.kind === 'shuuyou' ? 0.28 : 0.2); });
       for (const e of this.enemies) if (e.kind === 'kiro' && !e.mark) e.weakGlow = 0.35;
     } else { P.aimWeak = false; for (const e of this.enemies) if (e.kind === 'kiro' && !e.mark) e.weakGlow = 0; }
-    this.renderer.render(this.scene, this.camera);
+    if (this.split7) this.renderSplit7(); else this.renderer.render(this.scene, this.camera);
     if (this.perfOn) this.perfTick(dt, steps);
   }
   /** 使い回しの点光源を近い明かりへ。ちらつき・消灯。光のにじみ・映り込みも明かりに合わせる */
@@ -905,7 +969,7 @@ class Game {
         stance(id, assist) { g.chooseStance(id, assist); return g.route.stance; },
         tryWhite() { g.toggleWhite(); return g.player.fighter.form; },
         closeMenu() { g.ui.closePuzzle(); g.ui.closeMenu(); g.mode = 'play'; },
-        ch4: g.debug4(), ch5: g.debug5(), ch6: g.debug6(),
+        ch4: g.debug4(), ch5: g.debug5(), ch6: g.debug6(), ch7: g.debug7(),
         roster(group, name) { const ns = (window.__shPZ || {}).pickRoster ? null : null; void ns; return g.puz.roster; },
       },
       save: k => g.saveSlot(k), load: k => g.loadSlot(k), store: g.store, wp: g.WP,
@@ -926,7 +990,7 @@ class Game {
     return false;
   }
 }
-Object.assign(Game.prototype, combatMethods, storyMethods, ch3Methods, ch4Methods, ch5Methods, ch6Methods);
+Object.assign(Game.prototype, combatMethods, storyMethods, ch3Methods, ch4Methods, ch5Methods, ch6Methods, ch7Methods);
 
 function raySphereHit(o, d, c, r) { const ox = o.x - c.x, oy = o.y - c.y, oz = o.z - c.z; const B = ox * d.x + oy * d.y + oz * d.z, Cc = ox * ox + oy * oy + oz * oz - r * r; const disc = B * B - Cc; return disc >= 0 && -B - Math.sqrt(disc) > 0; }
 function mergeIn(a, b) {

@@ -75,6 +75,8 @@ export class Sfx {
     this.out = pos ? this._spatial(pos) : null;
     if (pos && !this.out) return;
     switch (name) {
+      case 'rewind7': this.tone(900, 0.5, 'sine', 0.06, 0.4); this.tone(1400, 0.4, 'triangle', 0.04, 0.5, 0.05); this.noise(0.4, 0.12, 'bandpass', 2600, 3, 0, 0.5); break;
+      case 'ending7': [523, 659, 784, 1047, 784, 880, 698, 784].forEach((f, i) => this.tone(f, 0.9, 'sine', 0.05, 1, i * 0.42)); break;
       case 'swing': this.noise(0.12, 0.18, 'bandpass', 2400, 0.8, 0, 0.4); break;
       case 'swing_heavy': this.noise(0.22, 0.25, 'bandpass', 1400, 0.7, 0, 0.35); break;
       case 'swing_pipe': this.noise(0.26, 0.22, 'bandpass', 900, 0.8, 0, 0.5); this.tone(220, 0.1, 'triangle', 0.03, 0.8); break;
@@ -234,6 +236,11 @@ export class Sfx {
       ruins: { hum: 0.4, rain: 0, wind: 1.3, vent: 0, buzz: 0.5, shop: 0 },
       admin: { hum: 0.9, rain: 0, wind: 0.1, vent: 1.0, buzz: 1.0, shop: 0 },
       admin_machine: { hum: 1.6, rain: 0, wind: 0.1, vent: 1.8, buzz: 0.8, shop: 0 },
+      abyss: { hum: 0.6, rain: 0, wind: 1.8, vent: 0, buzz: 0.2, shop: 0 },
+      kiroku: { hum: 1.1, rain: 0, wind: 0.1, vent: 0.6, buzz: 1.2, shop: 0 },
+      epi_day: { hum: 0.4, rain: 0, wind: 0.3, vent: 0.6, buzz: 0.2, shop: 0 },
+      epi_dusk: { hum: 0.6, rain: 0, wind: 0.6, vent: 0, buzz: 0.3, shop: 0.4 },
+      epi_home: { hum: 0.5, rain: 0.15, wind: 0.2, vent: 0, buzz: 0, shop: 0 },
     }[kind] || {};
     const t = this.ctx.currentTime;
     for (const [k, b] of Object.entries(this.beds)) b.g.gain.setTargetAtTime((P[k] || 0) * b.vol * (k === 'rain' && this.rainOff ? 0 : 1), t, 0.8);

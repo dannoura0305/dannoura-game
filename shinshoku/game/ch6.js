@@ -489,7 +489,7 @@ export const ch6Methods = {
       ['塗替', this.enemyRes.nurikae === 'kill' ? '止めた' : '—'], ['人の残る棟', AVENUE.blocks.map(b => `${b.id} ${bl[b.id] ?? 100}%`).join('・') + `（体で受けた ${this.metrics.blockBlocks6 || 0}）`], ['任意の資料', ['damage', 'voice6a'].filter(k => this.flags['seen_' + k]).length + ' / 2']];
     this.metrics.endCard6a = true;
     this.mode = 'puzzle'; this.input.exitLock();
-    this.ui.endCard(stats, () => { this.ui.closePuzzle(); this.mode = 'play'; this.saveSlot('auto', true); }, '第6章A（巨躯）　ここまで', '最終章A（崩れた町・研究者の巨大な姿）は次の段階で作ります。「分岐の前」のセーブ（ロード）から、もう一方のルートも遊べます。');
+    this.ui.endCard(stats, () => { this.ui.closePuzzle(); this.mode = 'play'; this.flags.endcard6a = true; this.saveSlot('auto', true); this.later(0.4, () => this.startCh7a()); }, '第6章A（巨躯）　ここまで', '続けて終章A（崩れた町）へ進めます。「分岐の前」のセーブ（ロード）から、もう一方のルートも遊べます。');
   },
   showEndCard6s() {
     if (this.WP.write) this.WP.write('shinshoku', { chaptersCleared: ['prologue', 'ch1', 'ch2_slice', 'ch3_slice', 'ch4_slice', 'ch5b_slice', 'ch6b_slice'] });
@@ -499,7 +499,7 @@ export const ch6Methods = {
       ['任意の資料', ['duty6', 'cover', 'rec6', 'log6'].filter(k => this.flags['seen_' + k]).length + ' / 4'], ['（相棒）の信頼', this.companion.brain.trust]];
     this.metrics.endCard6s = true;
     this.mode = 'puzzle'; this.input.exitLock();
-    this.ui.endCard(stats, () => { this.ui.closePuzzle(); this.mode = 'play'; this.saveSlot('auto', true); }, '第6章B（制御）　ここまで', '最終章B（記録の間・人間大の最終戦）は次の段階で作ります。「分岐の前」のセーブ（ロード）から、もう一方のルートも遊べます。');
+    this.ui.endCard(stats, () => { this.ui.closePuzzle(); this.mode = 'play'; this.flags.endcard6s = true; this.saveSlot('auto', true); this.later(0.4, () => this.startCh7b()); }, '第6章B（制御）　ここまで', '続けて終章B（記録の間）へ進めます。「分岐の前」のセーブ（ロード）から、もう一方のルートも遊べます。');
   },
 
   // ── 試験・ショートカット（?ch=6&route=reveal|secret&at=…）の初期状態 ──

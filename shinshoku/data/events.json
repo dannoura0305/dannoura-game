@@ -21,7 +21,11 @@
     "tsugihagi": { "name": "継接", "color": "#c8a0ff" },
     "daughter": { "name": "娘（電話の声）", "color": "#ffe0ec" },
     "machibito": { "name": "待人", "color": "#e8d8b8" },
-    "touchoku": { "name": "当直", "color": "#b8c8e8" }
+    "touchoku": { "name": "当直", "color": "#b8c8e8" },
+    "researcher2": { "name": "研究者（名前未定）", "color": "#c8b0f0", "provisional": true },
+    "townsfolk": { "name": "町の人", "color": "#f0d8a8" },
+    "chiyo": { "name": "千代さん", "color": "#e8d0b8" },
+    "daughter_home": { "name": "娘", "color": "#ffe0ec" }
   },
   "events": {
     "ev_intro": [
@@ -251,6 +255,15 @@
     "touchoku_locked": { "who": "dan", "text": "レンチは配管に施錠したわ。……もう、回さなくていいの" },
     "touchoku_rest": { "who": "touchoku", "text": "……引き継ぎ、確認……しました。……少し、休みます" },
     "giant_repaint": { "who": "dan", "text": "人のいる棟を塗るつもり……！　させないわよ" },
+    "giant_devour7": { "who": "dan", "text": "灯りのある所を、喰わせはしないわよ……！" },
+    "giant_block7": { "who": "dan", "text": "後ろには、みんながいるのよ" },
+    "kiroku_enter7": { "who": "companion", "text": "……奥から、同じ警報がずっと聞こえます" },
+    "deck_first7": { "who": "dan", "text": "書き込みが終わったところで止める。記録は壊さない。……保全の基本よ" },
+    "deck_all7": { "who": "dan", "text": "これで、もう巻き戻せないわ" },
+    "accident7": { "who": "researcher2", "text": "あの日の扉だ。……閉じる" },
+    "accident_miss7": { "who": "companion", "text": "だ、大丈夫です！ ……当たってません！" },
+    "rewound7": { "who": "researcher2", "text": "その傷は、もう過ぎた一秒だ。巻き戻せば、無かったことになる" },
+    "ken_phase7": { "who": "researcher2", "text": "見ていてくれ。今度こそ、間違えない" },
     "giant_block6": { "who": "dan", "text": "……っ、痛いじゃないの。でも、中の人は無事よ" }
   },
   "texts": {

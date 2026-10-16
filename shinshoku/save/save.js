@@ -4,7 +4,7 @@ export const SAVE_KEY = 'shinshoku_save_v1';
 export const SETTINGS_KEY = 'shinshoku_settings';
 export const SAVE_VER = 1;
 export const GAME_VER = '0.4.0';
-export const SLOT_NAMES = ['auto', 'slot1', 'slot2', 'slot3', 'branch', 'tenki'];   // tenki：第3章の転機（構えの選択）の前（上書きできる）
+export const SLOT_NAMES = ['auto', 'slot1', 'slot2', 'slot3', 'branch', 'tenki', 'clear'];   // tenki：第3章の転機（構えの選択）の前（上書きできる）／clear：結末の記録と引き継ぎ（フェーズ8）
 
 // 版の移行（1 つずつ上げる）。知らない項目は残す。
 export const STEPS = {
@@ -12,7 +12,7 @@ export const STEPS = {
 };
 
 export function emptySave() {
-  return { ver: SAVE_VER, gameVer: GAME_VER, slots: { auto: null, slot1: null, slot2: null, slot3: null, branch: null, tenki: null } };
+  return { ver: SAVE_VER, gameVer: GAME_VER, slots: { auto: null, slot1: null, slot2: null, slot3: null, branch: null, tenki: null, clear: null } };
 }
 
 /**

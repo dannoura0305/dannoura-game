@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>境界侵食（仮題）</title>
 <meta name="theme-color" content="#0c0a16">
-<meta name="description" content="『だんのうら』の新作 3D ホラーアクション（開発中の試作：序章〜第6章）。夜の商店街で、帰り道をくり返す異形と向き合う。">
+<meta name="description" content="『だんのうら』の新作 3D ホラーアクション（開発中の試作：序章〜終章・結末A／B）。夜の商店街で、帰り道をくり返す異形と向き合う。">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="icon" href="data:,">
@@ -26,13 +26,28 @@
 <div id="sh-ui"></div>
 <div id="sh-boot">読み込み中……</div>
 <div id="sh-title" hidden>
-  <div class="tt-sub">だんのうら ― 新作（開発中）</div>
-  <h1>境界侵食<small>（仮題）</small></h1>
-  <div class="tt-tag">試作：序章〜第6章（両ルート・最終章の手前まで）</div>
-  <button data-a="new">はじめから</button>
-  <button data-a="cont" hidden>つづきから</button>
-  <button data-a="back" class="tt-back">本編のタイトルへ</button>
-  <p class="tt-note">PC：キーボード＋マウス（クリックで視点を固定）／ゲームパッド。スマホ：横向き・タッチ。<br>素材はすべて仮（provisional）。音が出ます。</p>
+  <div class="tt-logo">
+    <svg class="tt-emblem" viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="ttg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8d8ff"/><stop offset=".55" stop-color="#b48cff"/><stop offset="1" stop-color="#ff8cc8"/></linearGradient></defs>
+      <circle cx="60" cy="64" r="40" fill="none" stroke="url(#ttg)" stroke-width="3" stroke-dasharray="200 12 40 10"/>
+      <g stroke="#b48cff" stroke-width="3" stroke-linecap="round"><path d="M60 18v8M60 102v8M14 64h8M98 64h8M27 31l5 5M88 92l5 5M27 97l5-5M88 36l5-5"/></g>
+      <path d="M38 50 L44 26 L56 44 M82 50 L76 26 L64 44" fill="none" stroke="#f2e8ff" stroke-width="3.5" stroke-linejoin="round"/>
+      <circle cx="60" cy="66" r="11" fill="#0c0a16" stroke="#ff8cc8" stroke-width="2.5"/><path d="M60 58v8l5 4" stroke="#ffd8f0" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+    <div class="tt-sub">だんのうら ― 新作（開発中）</div>
+    <h1>境界侵食<small>（仮題）</small></h1>
+    <div class="tt-tag">試作：序章〜終章・結末A／B（両ルート）</div>
+  </div>
+  <div class="tt-side">
+    <nav class="tt-menu">
+      <button data-a="cont" hidden>続きから</button>
+      <button data-a="new">はじめから</button>
+      <button data-a="chapters">章選択</button>
+      <button data-a="gallery" hidden>記録（ギャラリー）</button>
+      <button data-a="settings">設定</button>
+      <button data-a="back" class="tt-back">本編のタイトルへ</button>
+    </nav>
+    <div class="tt-panel" hidden></div>
+    <p class="tt-note">PC：キーボード＋マウス（クリックで視点を固定）／ゲームパッド。スマホ：横向き・タッチ。<br>素材はすべて仮（provisional）。音が出ます。</p>
+  </div>
 </div>
 <noscript><p style="color:#fff;padding:2em">このゲームを遊ぶには JavaScript を有効にしてください。<a href="index.html" style="color:#c9a8ff">本編に戻る</a></p></noscript>
 <script type="module" src="shinshoku/main.js"></script>

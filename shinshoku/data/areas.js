@@ -19,9 +19,13 @@ export const AREA_GRAPH = {
   town: { name: '置き換えの始まった町（巨大用の区画）', exits: ['atrium', 'ruins'], routeOnly: 'reveal' },
   // フェーズ7【仮】第6章A の続き：暴走の後の商店街（人の大きさ・商店街の「暴走後」の状態にあたる）→ 中央通り（巨大用：塗替）
   ruins: { name: 'あけぼの通り商店街（暴走の後）', exits: ['town', 'avenue'], routeOnly: 'reveal' },
-  avenue: { name: '中央通り（光の柱の下・巨大用の区画）', exits: ['ruins'], routeOnly: 'reveal' },
+  avenue: { name: '中央通り（光の柱の下・巨大用の区画）', exits: ['ruins', 'abyss'], routeOnly: 'reveal' },
   // 第6章B：中央管理棟（観測棟から連絡橋で。secret だけ。町は壊れない）
-  admin: { name: '中央管理棟（監視室・機械室・制御室）', exits: ['atrium'], routeOnly: 'secret' },
+  admin: { name: '中央管理棟（監視室・機械室・制御室）', exits: ['atrium', 'kiroku'], routeOnly: 'secret' },
+  // フェーズ8【仮】終章：A＝崩れた町と境界の淵（巨大用）／B＝記録の間（制御室の奥・人の大きさ）。結末の場面（病院の個室・自宅・商店街）
+  abyss: { name: '崩れた町と境界の淵（巨大用の区画）', exits: ['avenue', 'epilogue'], routeOnly: 'reveal' },
+  kiroku: { name: '記録の間（境界制御室の奥）', exits: ['admin', 'epilogue'], routeOnly: 'secret' },
+  epilogue: { name: '結末の場面（病院の個室・自宅・商店街）', exits: ['shotengai'] },
 };
 
 export const AREA_DATA = {

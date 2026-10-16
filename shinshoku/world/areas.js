@@ -339,6 +339,7 @@ function gymTex() {
 export const BUILDERS = { shotengai: () => buildLevel(null), alley: buildAlley, plaza: buildPlaza, shelter: buildShelter, hospital: (...a) => BUILDERS3.hospital(...a), tunnel: (...a) => BUILDERS3.tunnel(...a),
   office: (...a) => BUILDERS3.office(...a), lab: (...a) => BUILDERS3.lab(...a), yard: (...a) => BUILDERS3.yard(...a),
   oldwing: (...a) => BUILDERS3.oldwing(...a), atrium: (...a) => BUILDERS3.atrium(...a), town: (...a) => BUILDERS3.town(...a),
-  ruins: (...a) => BUILDERS3.ruins(...a), avenue: (...a) => BUILDERS3.avenue(...a), admin: (...a) => BUILDERS3.admin(...a) };
+  ruins: (...a) => BUILDERS3.ruins(...a), avenue: (...a) => BUILDERS3.avenue(...a), admin: (...a) => BUILDERS3.admin(...a),
+  abyss: (...a) => BUILDERS3.abyss(...a), kiroku: (...a) => BUILDERS3.kiroku(...a), epilogue: (...a) => BUILDERS3.epilogue(...a) };
 /** 第3章の区画（world/areas3.js が登録する：循環 import を避ける） */
 export const BUILDERS3 = {};

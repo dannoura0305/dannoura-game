@@ -82,7 +82,7 @@ function test5() {
   t('原文の台詞：第3章はだんのうら 1 回、第4章は相棒が同じ言葉を 1 回。合計 2 回（3 回目は無い）', () => {
     const LINE = '見た目だけで決めつけちゃ駄目ってことかしらね';
     assert.equal(LINE_CH3, LINE); assert.equal(LINE_CH4, LINE);
-    const F = fixedLines(CUTSCENES);
+    const F = fixedLines(CUTSCENES).filter(f => f.id !== 'cs_end_a');   // 結末A の原文はフェーズ8（p8 で数える）
     assert.deepEqual(F, [{ id: 'cs03_line', who: 'dan', text: LINE }, { id: 'cs04_line', who: 'companion', text: LINE }]);
     const all = JSON.stringify(CUTSCENES) + JSON.stringify(events);
     assert.equal(all.split(LINE).length - 1, 2, '演出・台詞のデータ全体で 2 回');
@@ -98,7 +98,7 @@ function test5() {
     assert.ok(CUTSCENES4.cs04_giant_end.lines.some(l => l.who === 'companion' && /だんのうらさん/.test(l.text)));
   });
   t('結末の原文（「でも、あの後……」）は第4章に入れない（結末A で白い髪にカメラ）', () => {
-    const all = JSON.stringify(CUTSCENES) + JSON.stringify(events);
+    const all = JSON.stringify(CUTSCENES4) + JSON.stringify(events);
     assert.equal(all.indexOf('みんなを助けてくれたんですよね'), -1);
   });
 
