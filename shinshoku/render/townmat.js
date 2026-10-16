@@ -4,7 +4,7 @@
 // 仕組み：頂点の属性 tileR（枠の u0,v0,幅,高さ）と uv（枠の単位＝1 で 1 回）から、シェーダーで fract して枠の中を繰り返す。
 // 境目の線が出ないよう textureGrad（元の uv の微分）で読む。すべて独自の柄（実在の自治体・会社の意匠を使わない）。
 import * as THREE from 'three';
-import { gradientMap, JP_FONT } from './toon.js';
+import { gradientMap, JP_FONT, ctx2d } from './toon.js';
 
 const N = 8, S = 256, W = N * S;                      // 横 8 枠（2048px）
 export const TILES = [
@@ -14,6 +14,9 @@ export const TILES = [
   'grass', 'gravel', 'water', 'tomare', 'manhole', 'fence', 'hedge', 'field',
   'arcade_floor', 'shutter', 'balcony', 'acunit', 'win_lit2', 'stone', 'lane', 'crosswalk',
   'pole', 'roof_flat', 'win_office', 'win_office_lit', 'paving', 'drain', 'leaves', 'puddle',
+  // フェーズ10：町家の格子（暗い・灯り）・ガラスの壁（暗い・灯り）・広場の石・さびの跡（消雪の水）・点字ブロック・雪囲いのわら・路面電車の軌道・バスの路面の字
+  'koshi', 'koshi_lit', 'curtainwall', 'curtainwall_lit', 'granite', 'rust', 'tactile', 'straw',
+  'trackbed', 'busmark', 'panel', 'louver', 'white',
 ];
 const IDX = Object.fromEntries(TILES.map((k, i) => [k, i]));
 const ROWS = Math.ceil(TILES.length / N), HH = ROWS * S;   // 縦は使う行だけ（2048×1536）
@@ -100,6 +103,36 @@ const DRAW = {
   paving(g, w, h, r) { g.fillStyle = '#3c383c'; g.fillRect(0, 0, w, h); rectsGrid(g, w, h, 42, 42, 3, '#7c7476', 0.18, r, 0); noise(g, w, h, r, 500, 0.12); },
   drain(g, w, h) { g.fillStyle = '#5a5a58'; g.fillRect(0, 0, w, h); g.fillStyle = '#16161a'; for (let x = 10; x < w; x += 18) g.fillRect(x, 20, 8, h - 40); },
   leaves(g, w, h, r) { g.clearRect(0, 0, w, h); for (let i = 0; i < 70; i++) { g.fillStyle = ['#8a4a20', '#a86a28', '#6a3a1a', '#b88a30'][Math.floor(r() * 4)]; g.save(); g.translate(r() * w, r() * h); g.rotate(r() * 6); g.beginPath(); g.ellipse(0, 0, 7, 3.5, 0, 0, 7); g.fill(); g.restore(); } },
+  koshi(g, w, h, r, lit) { // 町家の格子（細い縦の桟・上下の貫）：奥が暗い（lit＝障子越しの灯り）
+    const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, lit ? '#f0c888' : '#1a1410'); gr.addColorStop(1, lit ? '#c8884a' : '#0c0a08'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    if (lit) { g.fillStyle = 'rgba(255,240,200,.35)'; for (let y = 0; y < h; y += 64) g.fillRect(0, y + 30, w, 2); }
+    for (let x = 0; x < w; x += 16) { g.fillStyle = shade('#5a3a22', (r() - 0.5) * 0.2); g.fillRect(x, 0, 9, h); g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(x + 9, 0, 1, h); }
+    g.fillStyle = '#4a3020'; g.fillRect(0, 0, w, 10); g.fillRect(0, h - 10, w, 10); g.fillRect(0, h / 2 - 4, w, 8);
+    noise(g, w, h, r, 300, 0.12); },
+  koshi_lit(g, w, h, r) { DRAW.koshi(g, w, h, r, true); },
+  curtainwall(g, w, h, r, lit) { // ガラスの壁（縦横の方立て・空の映り込み・ところどころ灯り）
+    g.fillStyle = '#3a4048'; g.fillRect(0, 0, w, h);
+    const cw = 64, ch = 128;
+    for (let y = 0; y < h; y += ch) for (let x = 0; x < w; x += cw) {
+      const on = lit ? r() < 0.55 : r() < 0.08; const gr = g.createLinearGradient(x, y, x + cw, y + ch);
+      if (on) { gr.addColorStop(0, '#f4ead0'); gr.addColorStop(1, '#c8a878'); } else { gr.addColorStop(0, '#1c2a3c'); gr.addColorStop(0.5, '#2a3c52'); gr.addColorStop(1, '#101824'); }
+      g.fillStyle = gr; g.fillRect(x + 4, y + 4, cw - 8, ch - 8);
+      if (on) { g.fillStyle = 'rgba(60,40,30,.3)'; g.fillRect(x + 8, y + ch * 0.6, cw * 0.4, ch * 0.35); } else { g.fillStyle = 'rgba(160,190,230,.12)'; g.fillRect(x + 8, y + 6, 8, ch - 12); }
+    }
+    g.fillStyle = '#7a828c'; for (let y = 0; y < h; y += ch) g.fillRect(0, y, w, 4); for (let x = 0; x < w; x += cw) g.fillRect(x, 0, 4, h); },
+  curtainwall_lit(g, w, h, r) { DRAW.curtainwall(g, w, h, r, true); },
+  granite(g, w, h, r) { g.fillStyle = '#2c2a2e'; g.fillRect(0, 0, w, h); rectsGrid(g, w, h, 128, 64, 3, '#8a8488', 0.12, r, 0.5); noise(g, w, h, r, 1600, 0.10, '255,255,255', [1, 2]); noise(g, w, h, r, 1200, 0.12); },
+  rust(g, w, h, r) { g.clearRect(0, 0, w, h); // 消雪の水の出口から伸びるさびの跡（橙〜茶色）
+    for (let i = 0; i < 26; i++) { const y = h * 0.5 + (r() - 0.5) * h * 0.9, x = w / 2 + (r() - 0.5) * w * 0.25 * (1 - Math.abs(y - h / 2) / h); g.fillStyle = `rgba(${150 + r() * 50 | 0},${60 + r() * 30 | 0},${20 + r() * 10 | 0},${(0.55 + r() * 0.4).toFixed(2)})`; g.beginPath(); g.ellipse(x, y, 10 + r() * 28, 20 + r() * 60, 0, 0, 7); g.fill(); }
+    g.fillStyle = 'rgba(200,90,30,.85)'; g.beginPath(); g.ellipse(w / 2, h / 2, 26, 40, 0, 0, 7); g.fill(); },
+  tactile(g, w, h, r) { g.fillStyle = '#d8b020'; g.fillRect(0, 0, w, h); for (let y = 16; y < h; y += 32) for (let x = 16; x < w; x += 32) { g.fillStyle = '#f0c830'; g.beginPath(); g.arc(x, y, 9, 0, 7); g.fill(); g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.arc(x + 2, y + 2, 9, 0, 7); g.fill(); } noise(g, w, h, r, 400, 0.15); },
+  straw(g, w, h, r) { g.fillStyle = '#8a6a3a'; g.fillRect(0, 0, w, h); for (let i = 0; i < 900; i++) { g.strokeStyle = `rgba(${170 + r() * 50 | 0},${130 + r() * 40 | 0},${70 + r() * 30 | 0},.7)`; g.lineWidth = 1 + r(); const x = r() * w, y = r() * h; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 8, y + 20 + r() * 30); g.stroke(); }
+    g.fillStyle = '#3a2a1a'; for (let y = 40; y < h; y += 80) g.fillRect(0, y, w, 6); },
+  trackbed(g, w, h, r) { g.fillStyle = '#5a5856'; g.fillRect(0, 0, w, h); noise(g, w, h, r, 2400, 0.16, '0,0,0', [1, 3]); rectsGrid(g, w, h, 256, 64, 2, '#6a6866', 0.1, r, 0); g.fillStyle = 'rgba(30,24,20,.35)'; g.fillRect(w * 0.3, 0, w * 0.4, h); },
+  busmark(g, w, h) { g.clearRect(0, 0, w, h); g.save(); g.translate(w / 2, h / 2); g.scale(1, 1.6); g.fillStyle = '#e8d070'; g.strokeStyle = '#e8d070'; g.lineWidth = 9; g.lineJoin = 'round'; g.font = `900 104px ${JP_FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.strokeText('バス', 0, 0); g.fillText('バス', 0, 0); g.restore(); },
+  panel(g, w, h, r) { g.fillStyle = '#9aa0a4'; g.fillRect(0, 0, w, h); rectsGrid(g, w, h, 128, 128, 4, '#b8bcc0', 0.06, r, 0); noise(g, w, h, r, 500, 0.06); g.fillStyle = 'rgba(40,40,40,.18)'; for (let i = 0; i < 5; i++) g.fillRect(r() * w, 0, 2, h); },
+  white(g, w, h) { g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h); },
+  louver(g, w, h, r) { g.fillStyle = '#1a1c20'; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 20) { g.fillStyle = '#8a9096'; g.fillRect(0, y, w, 8); g.fillStyle = '#c8ccd0'; g.fillRect(0, y, w, 2); } noise(g, w, h, r, 200, 0.08); },
   puddle(g, w, h, r) { g.clearRect(0, 0, w, h); const gr = g.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, w / 2); gr.addColorStop(0, 'rgba(14,20,40,.85)'); gr.addColorStop(0.7, 'rgba(18,26,48,.6)'); gr.addColorStop(1, 'rgba(18,26,48,0)'); g.fillStyle = gr; g.beginPath(); g.ellipse(w / 2, h / 2, w / 2 - 2, h / 2.6, 0, 0, 7); g.fill(); g.strokeStyle = 'rgba(150,170,220,.25)'; g.lineWidth = 2; for (let i = 0; i < 4; i++) { g.beginPath(); g.ellipse(w / 2 + (r() - 0.5) * 60, h / 2 + (r() - 0.5) * 30, 10 + r() * 20, 5 + r() * 8, 0, 0, 7); g.stroke(); } },
 };
 
@@ -108,7 +141,7 @@ let _atlas = null;
 export function townAtlas() {
   if (_atlas) return _atlas;
   const t0 = performance.now();
-  const c = document.createElement('canvas'); c.width = W; c.height = HH; const g = c.getContext('2d');
+  const c = document.createElement('canvas'); c.width = W; c.height = HH; const g = ctx2d(c);
   TILES.forEach((name, i) => {
     const x = (i % N) * S, y = Math.floor(i / N) * S;
     g.save(); g.translate(x, y); g.beginPath(); g.rect(0, 0, S, S); g.clip();

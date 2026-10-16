@@ -1,11 +1,12 @@
 // 夜空（紫と赤の遠い空：イメージ資料 concept_01）。球の内側に色の段差・雲・月を描くだけ（描画 1 回・霧なし）。
 // opt.mountains：遠い山なみ（雪の残る稜線。北陸の町らしさ：場所は決めない）。opt.clouds：雲の濃さ（0〜1）。
+// opt.range：東の空に、高く連なる雪の山脈（フェーズ10。北陸の町の遠景の雰囲気：特定の山ではない）。
 import * as THREE from 'three';
 export function skyDome(opt = {}) {
   const m = new THREE.ShaderMaterial({
-    uniforms: { uTop: { value: new THREE.Color(opt.top ?? 0x07050e) }, uMid: { value: new THREE.Color(opt.mid ?? 0x1c0c2a) }, uHor: { value: new THREE.Color(opt.horizon ?? 0x4a1424) }, uMoon: { value: new THREE.Vector3(...(opt.moon || [0.5, 0.32, -0.8])).normalize() }, uMount: { value: opt.mountains ? 1 : 0 }, uCloud: { value: opt.clouds ?? 0.6 }, uTime: { value: 0 } },
+    uniforms: { uTop: { value: new THREE.Color(opt.top ?? 0x07050e) }, uMid: { value: new THREE.Color(opt.mid ?? 0x1c0c2a) }, uHor: { value: new THREE.Color(opt.horizon ?? 0x4a1424) }, uMoon: { value: new THREE.Vector3(...(opt.moon || [0.5, 0.32, -0.8])).normalize() }, uMount: { value: opt.mountains ? 1 : 0 }, uRange: { value: opt.range ? 1 : 0 }, uCloud: { value: opt.clouds ?? 0.6 }, uTime: { value: 0 } },
     vertexShader: 'varying vec3 vD; void main(){ vD = normalize(position); vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position = p.xyww; }',
-    fragmentShader: `uniform vec3 uTop, uMid, uHor, uMoon; uniform float uMount, uCloud, uTime; varying vec3 vD;
+    fragmentShader: `uniform vec3 uTop, uMid, uHor, uMoon; uniform float uMount, uRange, uCloud, uTime; varying vec3 vD;
       float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
       float n2(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
       float fbm(vec2 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * n2(p); p *= 2.03; a *= 0.5; } return s; }
@@ -22,6 +23,18 @@ export function skyDome(opt = {}) {
         // 星（雲の無い所に少し）
         float st = step(0.9985, h(floor(vD.xz / (vD.y + 0.3) * 160.0))) * smoothstep(0.25, 0.6, y) * (1.0 - cl);
         c += vec3(0.6, 0.55, 0.75) * st * 0.6;
+        // 東の高い山脈（月明かりの雪・ぎざぎざの稜線）：近い山なみより先に描く
+        if (uRange > 0.5) {
+          float a = atan(vD.z, vD.x), env = exp(-a * a * 1.1);
+          float rid = 0.034 * sin(a * 7.3 + 0.6) + 0.021 * sin(a * 17.1 + 1.1) + 0.012 * abs(sin(a * 41.0)) + 0.006 * sin(a * 97.0);
+          float mh2 = env * (0.095 + rid);
+          if (vD.y < mh2) {
+            vec3 rc = mix(uHor * 0.5, vec3(0.13, 0.12, 0.2), 0.7);
+            float sn = smoothstep(mh2 - 0.045, mh2 - 0.008, vD.y) * smoothstep(0.05, 0.09, mh2) * (0.6 + 0.4 * n2(vec2(a * 60.0, vD.y * 90.0)));
+            rc = mix(rc, vec3(0.56, 0.54, 0.7), sn * 0.75);
+            c = mix(c, rc, smoothstep(mh2, mh2 - 0.003, vD.y));
+          }
+        }
         // 遠い山なみ
         if (uMount > 0.5) {
           float a = atan(vD.z, vD.x);

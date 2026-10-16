@@ -23,7 +23,7 @@ export const LEVEL = {
     { side: 1, z0: -4, z1: -10, sign: '薬局', awn: 0x2a6a4a },
     { side: 1, z0: -10, z1: -16, sign: '文具 ふでや', awn: 0x6a5a2a, board: true },
     { side: 1, z0: -16, z1: -22, sign: '時計・めがね', awn: 0x4a4a6a, door: 'k2', clock: true },
-    { side: 1, z0: -22, z1: -28, sign: '花屋', awn: 0x7a4a6a },
+    { side: 1, z0: -22, z1: -28, sign: '花屋', awn: 0x7a4a6a, passage: 'plaza' },   // フェーズ10：店の跡は、ガラスの屋根の広場への通り抜け
     { side: 1, z0: -28, z1: -35, sign: '電器', awn: 0x3a4a5a },
     { side: 1, z0: -35, z1: -45, sign: '食品スーパー ことぶき', awn: 0x2f8f5a, open: true },
     { side: 1, z0: -45, z1: -52, sign: '酒店', awn: 0x5a3a2a },

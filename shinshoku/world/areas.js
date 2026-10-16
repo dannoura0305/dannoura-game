@@ -18,6 +18,7 @@ export function mats(atlas) {
     sign: new THREE.MeshBasicMaterial({ map: tex, color: 0xb8b0c0 }),
     glow: new THREE.MeshBasicMaterial({ vertexColors: true }),
     glass: new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.85 }),
+    glass2: new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.3, depthWrite: false, side: THREE.DoubleSide }),
     floor: new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: gradientMap() }),
   };
 }

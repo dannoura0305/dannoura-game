@@ -61,7 +61,7 @@ let _stainTex = null;
 /** しみの地図帳（4×2 の区画）。0 水のしみ 1 黒ずみ 2 カビ 3 こすれ跡 4 足あと 5 水たまり 6 ひび 7 貼り紙の跡 */
 export function stainTex() {
   if (_stainTex) return _stainTex;
-  const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d');
+  const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d', { willReadFrequently: true });
   let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
   const cell = (i, f) => { g.save(); g.translate((i % 4) * 128, Math.floor(i / 4) * 128); g.beginPath(); g.rect(0, 0, 128, 128); g.clip(); f(); g.restore(); };
   const blot = (x, y, r, a, col = '40,30,20') => { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${col},${a})`); gr.addColorStop(1, `rgba(${col},0)`); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
