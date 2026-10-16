@@ -8,6 +8,7 @@ import { ROSTER } from '../data/areas.js';
 import { CHAPTERS, stepDef, atLeast, streetState } from '../story/chapters.js';
 import { CUTSCENES } from '../story/cutscenes.js';
 import * as PZ from '../story/puzzles.js';
+import { inHome, homeL } from '../data/town.js';
 
 export const storyMethods = {
   chapterTitle() { const d = stepDef(this.story.step); return CHAPTERS[d.ch].title; },
@@ -34,7 +35,7 @@ export const storyMethods = {
         this.companion.talking = true;
         this.playEvent('ev_pro_meet', () => { this.companion.talking = false; this.playCutscene('cs00_lightsout'); });
       }
-      if (s === 'pro_home' && P.z > 9.2) this.setStep('pro_tv');
+      if (s === 'pro_home' && inHome(P.x, P.z) && homeL(P.x, P.z)[1] > 9.2) this.setStep('pro_tv');
     }
     if (A === 'alley' && s === 'ch1_alley' && !this.flags.reunited && P.x > 2.4 && P.z < -19.6) {
       const k = this.enemies.find(e => e.id === 'kiro_a1');

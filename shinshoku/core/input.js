@@ -1,15 +1,15 @@
 // 入力：キーボード＋マウス（ポインタロック）・ゲームパッド（Gamepad API 標準配置）・タッチ（横向き）・入力列の再生（自動テスト）。
 // ゲームは 60Hz の 1 ステップごとに sample() を呼び、「押した瞬間」と「押している間」を受け取る（COMBAT_SYSTEM_SPEC §6）。
-export const ACTIONS = ['attack', 'heavy', 'aim', 'dodge', 'parry', 'swap', 'reload', 'interact', 'lock', 'heal', 'pause', 'run', 'light', 'lockPrev', 'lockNext', 'transform'];
+export const ACTIONS = ['attack', 'heavy', 'aim', 'dodge', 'parry', 'swap', 'reload', 'interact', 'lock', 'heal', 'pause', 'run', 'light', 'lockPrev', 'lockNext', 'transform', 'map'];
 
 export const KEYMAP = {
   KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right', ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
   ShiftLeft: 'run', ShiftRight: 'run', Space: 'dodge', KeyF: 'parry', KeyQ: 'heavy', KeyR: 'reload', KeyE: 'interact',
-  KeyT: 'lock', KeyH: 'heal', Escape: 'pause', KeyP: 'pause', Tab: 'pause', Digit1: 'weapon1', Digit2: 'weapon2', Digit3: 'weapon3', Digit4: 'weapon4', KeyX: 'swap', KeyZ: 'lockPrev', KeyC: 'lockNext', KeyL: 'light', Enter: 'interact', KeyV: 'transform',
+  KeyT: 'lock', KeyH: 'heal', Escape: 'pause', KeyP: 'pause', Tab: 'pause', Digit1: 'weapon1', Digit2: 'weapon2', Digit3: 'weapon3', Digit4: 'weapon4', KeyX: 'swap', KeyZ: 'lockPrev', KeyC: 'lockNext', KeyL: 'light', Enter: 'interact', KeyV: 'transform', KeyM: 'map',
 };
 
 /** キーの割り当てを変えられる操作（キーボード）。[操作, 表示名] */
-export const REBINDABLE = [['up', '前へ'], ['down', '後ろへ'], ['left', '左へ'], ['right', '右へ'], ['run', '走る'], ['dodge', '回避'], ['parry', '弾く'], ['heavy', '強攻撃・居合（長押し）'], ['interact', '調べる'], ['reload', '装填'], ['swap', '持ち替え'], ['lock', 'ロックオン'], ['lockPrev', '相手の切替（前）'], ['lockNext', '相手の切替（次）'], ['heal', '回復'], ['light', '懐中電灯'], ['transform', '化けを解く（長押し）'], ['pause', '一時停止']];
+export const REBINDABLE = [['up', '前へ'], ['down', '後ろへ'], ['left', '左へ'], ['right', '右へ'], ['run', '走る'], ['dodge', '回避'], ['parry', '弾く'], ['heavy', '強攻撃・居合（長押し）'], ['interact', '調べる'], ['reload', '装填'], ['swap', '持ち替え'], ['lock', 'ロックオン'], ['lockPrev', '相手の切替（前）'], ['lockNext', '相手の切替（次）'], ['heal', '回復'], ['light', '懐中電灯'], ['transform', '化けを解く（長押し）'], ['pause', '一時停止'], ['map', '地図']];
 /** 割り当ての上書き（{ 操作: [コード…] }）を既定に重ねた表を作る。上書きのキーは、ほかの操作から外す */
 export function buildKeymap(over = {}) {
   const m = Object.assign({}, KEYMAP);

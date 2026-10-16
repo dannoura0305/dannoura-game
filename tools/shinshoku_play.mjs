@@ -135,18 +135,25 @@ async function runPC(browser) {
     return { fleeing: k.fleeing, res: g.enemyRes.kiro_t, pipeHits: (g.metrics.pipeHits || 0) - hits0, parries, step: g.story.step };
   });
   ok('序章の戦い（鉄パイプ）：弱らせると帰路は暗がりへ帰っていく（逃げる）', tut.res === 'escape' && tut.step === 'pro_home' && (tut.pipeHits > 0 || tut.parries > 0), JSON.stringify(tut));
-  // 3. 家へ → テレビ（CS-00 終わり）
-  await page.evaluate(() => { __sh.debug.teleport(0, 4, 0); });
-  await walkTo(page, 0, 9.6, 400, false); await walkTo(page, -3.4, 13.6, 400, false);
+  // 3. 家へ（フェーズ9：アーケード → 広場 → 駅前通りの横断歩道 → 用水路沿いの道 → 自宅の前の道 → 門 → 玄関。実際に歩く）→ テレビ（CS-00 終わり）
+  const HO = await page.evaluate(() => __sh.debug.home(0, 0)), H = (x, z) => [x + HO[0], z + HO[1]];
+  const route = (await page.evaluate(() => __sh.debug.town().route)).slice().reverse();
+  await page.evaluate(r => { __sh.debug.teleport(r[0][0], r[0][1], 0); }, route);
+  const tWalk0 = await page.evaluate(() => __sh.game.frame); let walked = true;
+  for (const [x, z] of route.slice(1)) { const r = await walkTo(page, x, z, 1600, true); if (r !== true) { walked = false; console.log('  [route]', x, z, r, JSON.stringify((await S(page)).player)); break; } }
+  const tWalk = (await page.evaluate(() => __sh.game.frame)) - tWalk0;
+  await walkTo(page, ...H(0, 9.6), 400, false);
+  st = await S(page); ok('アーケードから家まで歩いて帰れる（広場 → 横断歩道 → 用水路沿い → 家の前の道 → 門 → 玄関・角 4 つ）→ 居間に入ると次の段', walked && st.step === 'pro_tv', `${(tWalk / 60).toFixed(1)} 秒（走って）・${st.step}`);
+  await walkTo(page, ...H(-3.4, 13.6), 400, false);
   await page.evaluate(() => { __sh.input.press('interact'); __sh.debug.fastSim(3); });
   st = await S(page); ok('家に戻ってソファ → テレビに研究者の顔が一瞬（音声なし）', st.cut === 'cs00_tv', st.cut);
   await sim(page, 60 * 4.6); await page.evaluate(() => __sh.debug.hold(true)); await shot(page, 'pc_03_cutscene_tv.png', 1800); await page.evaluate(() => __sh.debug.hold(false));
   await skipCut(page); await sim(page, 3);
   st = await S(page); ok('第1章「帰路」へ（商店街は発生後の状態に）', st.step === 'ch1_katana' && st.enemies.filter(e => e.kind === 'kiro').length === 5, `${st.step} kiro=${st.enemies.filter(e => e.kind === 'kiro').length}`);
   // 4. 刀・金庫（任意）
-  await walkTo(page, 5.0, 13.9, 400, false); await page.evaluate(() => { __sh.input.press('interact'); __sh.debug.fastSim(3); __sh.debug.skipDialog(); __sh.debug.fastSim(30); });
+  await walkTo(page, ...H(5.0, 13.9), 400, false); await page.evaluate(() => { __sh.input.press('interact'); __sh.debug.fastSim(3); __sh.debug.skipDialog(); __sh.debug.fastSim(30); });
   st = await S(page); ok('居間の刀掛けで刀を取る（登録証つきの古い持ち物）', st.player.owned.includes('katana') && st.step === 'ch1_street', JSON.stringify(st.player.owned));
-  await page.evaluate(() => { const D = __sh.debug; D.teleport(-1.6, 15.0, 0); D.fastSim(3); D.use('calendar'); });
+  await page.evaluate(() => { const D = __sh.debug; D.teleport(...D.home(-1.6, 15.0), 0); D.fastSim(3); D.use('calendar'); });
   const clue = await page.evaluate(() => document.querySelector('.sh-dtext').textContent);
   await page.evaluate(() => { __sh.debug.skipDialog(); __sh.debug.use('safe'); });
   const code = clue.match(/「([\d ]+)」/)[1].replace(/ /g, '');
@@ -394,8 +401,17 @@ async function runPC(browser) {
     return { moved: z0 - z1, dodge: st, light };
   });
   ok('ゲームパッド（左スティック移動・A 回避・十字キー下で懐中電灯）', pad.moved > 1 && pad.dodge === 'dodge' && pad.light, JSON.stringify(pad));
+  { // フェーズ9：家から商店街へ（実際に歩く：門 → 自宅の前の道 → 用水路沿いの道 → 交差点の横断歩道 → 北の歩道 → 広場 → アーケード）
+    const fwd = await page.evaluate(() => __sh.debug.town().route);
+    const m0 = await page.evaluate(r => { const D = __sh.debug, g = __sh.game; D.view('normal'); D.jump('ch1_street'); D.skipDialog(); D.skipCutscene(); if (g.mode === 'pause') D.closeMenu(); D.god(true); D.teleport(r[0][0], r[0][1], Math.PI); D.fastSim(2); D.skipDialog(); return g.mode + (g.cut.active ? ':cut' : ''); }, fwd);
+    const f0 = await page.evaluate(() => __sh.game.frame); let good = true, turnsAt = [];
+    for (const [x, z] of fwd.slice(1)) { const r = await walkTo(page, x, z, 1600, false); turnsAt.push(r); if (r !== true) { good = false; break; } }
+    const sec = ((await page.evaluate(() => __sh.game.frame)) - f0) / 60, p = (await S(page)).player;
+    await page.evaluate(() => __sh.debug.god(false));
+    ok('第1章：家から商店街へ歩いて行ける（門を出て西 → 用水路沿いを北 → 信号の横断歩道 → 北の歩道を西 → 広場 → アーケード）', good && p.z < -4 && Math.abs(p.x) < 4.5, `歩いて ${sec.toFixed(0)} 秒・${JSON.stringify(turnsAt)}・始め ${m0}`);
+  }
   // キャラクターの寄り
-  await page.evaluate(() => { const D = __sh.debug, g = __sh.game; g.flashlightOn = false; D.jump('ch1_katana'); D.freezeEnemies(true); D.god(true); D.heal(); g.player.fighter.hp = g.player.fighter.maxHp || g.player.fighter.hp; g.player.fighter._go('free'); g.hitstop = 0; g.slowT = 0; D.teleport(-1.0, 12.5, 0.4); D.fastSim(40); g.player.fighter._go('free'); D.fastSim(20); D.view('closeup', { who: 'player', dist: 1.05, side: 0.3, y: 1.47, fov: 34 }); });
+  await page.evaluate(() => { const D = __sh.debug, g = __sh.game; g.flashlightOn = false; D.jump('ch1_katana'); D.freezeEnemies(true); D.god(true); D.heal(); g.player.fighter.hp = g.player.fighter.maxHp || g.player.fighter.hp; g.player.fighter._go('free'); g.hitstop = 0; g.slowT = 0; D.teleport(...D.home(-1.0, 12.5), 0.4); D.fastSim(40); g.player.fighter._go('free'); D.fastSim(20); D.view('closeup', { who: 'player', dist: 1.05, side: 0.3, y: 1.47, fov: 34 }); });
   await clearUI(page); await shot(page, 'pc_14_dannoura_face.png', 2200);
   await page.evaluate(() => { __sh.debug.view('closeup', { who: 'player', dist: 3.1, side: 0.5, y: 0.95, fov: 40 }); }); await shot(page, 'pc_15_dannoura_full.png', 1500);
   await page.evaluate(() => { __sh.debug.view('closeup', { who: 'player', dist: 2.6, side: 2.7, y: 1.0, fov: 40 }); }); await shot(page, 'pc_16_dannoura_back.png', 1500);
@@ -465,7 +481,7 @@ async function runPhone(browser) {
   // 物語を進める（序章の残り〜第1章〜第2章）
   await page.evaluate(() => { const D = __sh.debug, g = __sh.game; const k = g.enemies.find(e => e.id === 'kiro_t'); k.brain.hp = 10; D.fastSim(400); });
   st = await S(page); ok('スマホ：序章の帰路が帰っていく', st.step === 'pro_home', st.step);
-  await page.evaluate(() => { const D = __sh.debug; D.teleport(-3.4, 13.6, 0); D.fastSim(3); D.use('sofa'); D.skipCutscene(); D.fastSim(3); D.teleport(5.0, 13.9, 0); D.fastSim(2); D.use('katana_rack'); D.skipDialog(); D.fastSim(10); });
+  await page.evaluate(() => { const D = __sh.debug; D.teleport(...D.home(-3.4, 13.6), 0); D.fastSim(3); D.use('sofa'); D.skipCutscene(); D.fastSim(3); D.teleport(...D.home(5.0, 13.9), 0); D.fastSim(2); D.use('katana_rack'); D.skipDialog(); D.fastSim(10); });
   await page.evaluate(() => { __sh.debug.resetEnemy('kiro_1'); __sh.debug.heal(); });
   await isolate(page, 'kiro_1'); await justDodgeIssen(page, 'kiro_1', [0, -24], 5);   // ほかの帰路は隠す・慣らしの 1 回（数えない）
   let n = 0; for (let i = 0; i < 10; i++) if (await justDodgeIssen(page, 'kiro_1', [0, -24], 5)) n++;
