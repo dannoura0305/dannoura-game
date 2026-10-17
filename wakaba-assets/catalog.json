@@ -1,0 +1,5 @@
+{
+  "catalog": "wakaba-assets/1",
+  "_note": "わかばの素材の目録（docs/wakaba-mapkit/07 §2）。正本は entries/<category>/<id>/meta.json で、この catalog.json はそこから作る生成物（フェーズ 2 以降の道具）。今は 0 件。置き場所は wakaba.config.json の assetLibrary（未定・Q-B2）。原本・購入物はここに置かない。",
+  "entries": []
+}

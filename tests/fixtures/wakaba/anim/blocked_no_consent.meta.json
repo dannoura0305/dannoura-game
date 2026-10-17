@@ -1,0 +1,26 @@
+{
+ "id": "msrc.test_no_consent",
+ "version": 1,
+ "name": {
+  "ja": "撮影（同意の記録なし・試験用）"
+ },
+ "category": "motion_source",
+ "source": {
+  "type": "self_capture",
+  "author": "user",
+  "acquiredAt": "2026-10-16"
+ },
+ "license": {
+  "id": "project",
+  "commercial": "yes",
+  "redistributeRaw": "no",
+  "attribution": "",
+  "verifiedBy": "user"
+ },
+ "tech": {
+  "formats": [
+   "mp4"
+  ]
+ },
+ "status": "review"
+}

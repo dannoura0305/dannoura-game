@@ -1,0 +1,42 @@
+{
+  "id": "anim.cmb_katana_light_1",
+  "version": 1,
+  "name": { "ja": "刀・弱 1 段目" },
+  "category": "animation",
+  "tags": ["戦闘", "刀"],
+  "source": { "type": "hand_keyed", "author": "user" },
+  "license": {
+    "id": "project",
+    "commercial": "yes",
+    "redistributeRaw": "yes",
+    "engines": ["any"],
+    "attribution": "",
+    "deps": [],
+    "verifiedBy": "",
+    "verifiedAt": ""
+  },
+  "tech": { "formats": ["glb"] },
+  "status": "draft",
+  "anim": {
+    "skeleton": "wakaba-humanoid/1",
+    "fps": 60,
+    "frames": 24,
+    "durationS": 0.4,
+    "loop": false,
+    "rootMotion": "xz",
+    "retargetable": true,
+    "mirrorable": false,
+    "additive": false,
+    "mask": "full",
+    "use": ["戦闘"],
+    "events": [
+      { "t": "hitStart", "frame": 6 },
+      { "t": "hitEnd", "frame": 10 },
+      { "t": "cancelOpen", "frame": 14 },
+      { "t": "sfx", "frame": 5, "arg": "swing_light" }
+    ],
+    "combatRef": { "file": "shinshoku/data/combat.js", "path": "COMBAT.katana.light[0]", "segments": ["startup", "active", "recovery"] },
+    "quality": { "auto": 0, "human": null, "score": 0, "metrics": {  } },
+    "pack": "shinshoku_combat_katana"
+  }
+}

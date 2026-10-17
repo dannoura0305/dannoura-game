@@ -40,9 +40,38 @@
 ## 次の一歩
 `09` の★に答えてもらった後、フェーズ 1（スキーマ・ライセンス門・地図仕様の例を、試験つきで置く）に進みます。それまでコード・ソフトには手を付けません。
 
+## フェーズ 1 の使い方（2026-10-17 実装・コマンドはリポジトリの根で）
+フェーズ 1（共通の「型」）を置きました。インストール不要（node 22 だけ）。charkit（キャラクター）の道具は [`../wakaba-charkit/00_README.md`](../wakaba-charkit/00_README.md) の同じ節。
+
+| したいこと | コマンド | 結果 |
+|---|---|---|
+| 素材のメタデータ（`meta.json`）を検査して**ライセンス門**に通す | `node mapkit/assets/license-gate.mjs <ファイル or フォルダ>...` | 素材ごとに pass／block と理由（`[LICENSE_UNKNOWN]` など）。block が 1 件でもあれば終了コード 1 |
+| 素材ライブラリ全部＋作品が使う物を門に通す | `node mapkit/assets/license-gate.mjs`（引数なし） | `wakaba.config.json` の `assetLibrary.entries` を全部（今は 0 件） |
+| 作品が使うと書いた物だけ（CI と同じ） | `node mapkit/assets/license-gate.mjs --uses` | `projects.shinshoku.uses` が全部 pass でなければ 1 |
+| 結果を JSON に・クレジット表を作る | `… --out license-gate.json --credits credits.json` | `07` §3.1 の出力（`wakaba-license-gate/1`） |
+| 配信先・段を変える | `--target web`（既定）／`--target pc`（`wakaba.config.json` に足した時）／`--stage dev`（人の点数が無いのを注意だけに）／`--project <id>` | – |
+| **地図仕様**（`map.spec.json`）を検査 | `node tools/mapkit/validate_spec.mjs maps/haison/map.spec.json` | 形（スキーマ）＋中身（範囲・id の重複・目的地の解決・入れない家の扉・坂の範囲・高さマップの有無） |
+| 検証レポート（`report.json`）を検査・md にする | `node tools/mapkit/validate_spec.mjs <report.json> --md report.md` | 形＋「人が見る項目（`check: human`）に AI が pass を書いていない」約束 |
+| 試験 | `node tests/run.mjs`（`tests/wakaba-mapkit-schema.test.mjs`・`tests/wakaba-mapkit-gate.test.mjs`） | – |
+
+置いた物（共通＝`mapkit/`、作品専用の物は作品側）：
+- `mapkit/core/schema.js`：小さな JSON スキーマの検査（**mapkit・charkit 共通の 1 つだけの実装**。依存なし・node とブラウザ両方）
+- `mapkit/core/schemas.js`（スキーマの一覧と登録簿）・`mapkit/core/spec.js`（地図仕様の中身の検査）・`mapkit/core/node.mjs`（node 専用の助け）
+- `mapkit/schema/asset-meta.schema.json`（**v1.1**＝charkit の追加入り）・`map-spec.schema.json`（`anchors` 入り）・`map-report.schema.json`
+- `mapkit/assets/gate.js`（門の規則・純粋関数。**charkit の権利の規則もここ＝門は 1 つ**）・`mapkit/assets/license-gate.mjs`（CLI）
+- `mapkit/report/report.js`（レポートの形・検査・md。ファイルへの書き出しはフェーズ 2 の `build_map.mjs`）
+- `maps/haison/map.spec.json`（山の廃村の地図仕様・`07` §5.2 の例＋charkit `05` §2 の `anchors`）
+- `wakaba.config.json`（素材ライブラリの場所の指し先と作品の条件）・`wakaba-assets/catalog.json`（空の目録）
+
+**未回答の質問に関わる既定（利用者の答えで変える所）**
+- Q-L1（収益化）：答えが無いので `wakaba.config.json` の `projects.shinshoku.commercial` を **`true`（厳しい側）**にしてある。「ない」なら `false`。
+- Q-B2（素材の原本の置き場所）：決まるまで**このリポジトリの `wakaba-assets/` に目録（meta.json）だけ**。移す時は `wakaba.config.json` の `assetLibrary` を書き換えるだけ（スキーマはコードと一緒の `mapkit/schema/` に残る）。公開リポジトリなので購入物・Fab の原本・書き出しは置かない。
+- Q-A1・Q-A2（画風・方式）：フェーズ 1 の物はデータとスキーマだけで、方式 A／B／C のどれでも使える。
+
 ## このフェーズで決めたこと（記録）
 | 日付 | 決定 |
 |---|---|
 | 2026-10-16 | フェーズ0 ではソフトをインストールしない（リード Claude） |
 | 2026-10-16 | 資料は `docs/wakaba-mapkit/` に置き、既存のファイルは変えない |
 | 2026-10-16 | 名前 `wakaba-mapkit` は仮。既存の `wakaba_progress_v1`（作品間の保存）とは無関係 |
+| 2026-10-17 | フェーズ 1 を実装（利用者の承認「両方を最初の一歩まで並行して進める」）。素材ライブラリは決まるまでリポジトリの中（`wakaba.config.json` で指す）。作品の商用は未回答のため厳しい側（true） |

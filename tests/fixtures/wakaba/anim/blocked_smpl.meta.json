@@ -1,0 +1,65 @@
+{
+ "id": "anim.loco_run_fwd",
+ "version": 1,
+ "name": {
+  "ja": "走り（SMPL 経由・試験用）"
+ },
+ "category": "animation",
+ "tags": [
+  "試験"
+ ],
+ "source": {
+  "type": "self_capture",
+  "author": "user",
+  "aiModel": "自作の変換（SMPL-X の体の模型を通す）",
+  "aiCommercial": "unknown"
+ },
+ "license": {
+  "id": "project",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "deps": [
+   "smpl-x"
+  ],
+  "verifiedBy": "user",
+  "verifiedAt": "2026-10-16",
+  "performerConsent": "rights/test.json"
+ },
+ "tech": {
+  "formats": [
+   "glb"
+  ]
+ },
+ "status": "approved",
+ "anim": {
+  "skeleton": "wakaba-humanoid/1",
+  "fps": 30,
+  "frames": 30,
+  "durationS": 1.0,
+  "loop": true,
+  "rootMotion": "none",
+  "retargetable": true,
+  "mirrorable": false,
+  "additive": false,
+  "mask": "full",
+  "use": [
+   "待機"
+  ],
+  "quality": {
+   "auto": 90,
+   "human": 4,
+   "score": 84,
+   "metrics": {
+    "formulaVer": 1
+   },
+   "reviewedBy": "user",
+   "reviewVideo": ""
+  },
+  "pack": "core_loco"
+ },
+ "_note": "試験用の作り物（tests/fixtures/charkit_test.gltf の idle_stand）"
+}

@@ -1,0 +1,134 @@
+{
+  "spec": "wakaba-char/1",
+  "id": "dannoura",
+  "name": { "ja": "だんのうら", "en": "Dannoura" },
+  "project": "shinshoku",
+  "canon": {
+    "sources": ["docs/shinshoku/STORY_BIBLE.md#2", "docs/kyokai/README.md", "docs/shinshoku/DECISIONS.md"],
+    "mustKeep": ["男性", "164cm・細身", "紫の髪のポニーテール", "小さなピンクのシルクハット", "黒い四角いめがね", "ピンクの花の髪飾り", "紫の目", "オネェ言葉（一人称アタシ）", "4歳の娘のシングルファーザー", "化け猫（本人は自覚している）"],
+    "mustNot": ["女性の体つきにしない（胸のふくらみ・くびれ・腰の張り）", "白い姿を別人格・暴走・女性として描かない", "他作品のキャラクターの意匠を写さない", "娘を危険な場面に出さない"]
+  },
+  "skeleton": "wakaba-humanoid/1",
+  "body": {
+    "heightM": 1.64,
+    "sex": "male",
+    "headsTall": 6.6,
+    "shoulderWidthM": 0.37,
+    "hipWidthM": 0.3,
+    "footLengthM": 0.25,
+    "handLengthM": 0.18,
+    "legLengthM": 0.76
+  },
+  "forms": {
+    "purple": { "file": "dannoura.vrm" },
+    "white": {
+      "file": "dannoura_white.vrm",
+      "extraBones": [
+        "ext_ear_L_01",
+        "ext_ear_L_02",
+        "ext_ear_R_01",
+        "ext_ear_R_02",
+        "ext_tail_01",
+        "ext_tail_02",
+        "ext_tail_03",
+        "ext_tail_04",
+        "ext_tail_05",
+        "ext_tail_06"
+      ],
+      "shaderOverride": { "rim": { "color": "#c9a6ff", "width": 0.3, "lightDependent": false } },
+      "personalityOverride": { "locomotion": { "runSpeed": 6.2, "dashSpeed": 9.0, "comHeightOffsetM": -0.04 }, "reaction": { "latencyMs": 80 } }
+    }
+  },
+  "shader": {
+    "model": "wakaba-toon/1",
+    "materials": {
+      "skin": {
+        "base": "#ffe1d2",
+        "shade": "#eab4a6",
+        "shade2": "#c98e8e",
+        "threshold": 0.5,
+        "softness": 0.05,
+        "shade2Threshold": 0.2,
+        "rimK": 0.35,
+        "specular": 0
+      },
+      "hair": {
+        "base": "#6a3fa0",
+        "shade": "#43266e",
+        "shade2": "#2c1748",
+        "threshold": 0.48,
+        "softness": 0.03,
+        "rimK": 0.5,
+        "highlight": { "tex": "dannoura_hair_hl.png", "strength": 0.55, "viewShift": 0.06 }
+      },
+      "cloth_jacket": { "base": "#e6def6", "shade": "#b9a6e6", "threshold": 0.5, "softness": 0.06, "rimK": 0.3 },
+      "cloth_shirt": { "base": "#f2a0c6", "shade": "#c9779e", "threshold": 0.5, "softness": 0.06 },
+      "cloth_pants": { "base": "#2a2236", "shade": "#1a1424", "threshold": 0.45, "softness": 0.08 },
+      "metal_glasses_frame": { "base": "#1e1a24", "shade": "#0e0c12", "threshold": 0.5, "softness": 0.02, "specular": 0.6 },
+      "eye_iris": { "base": "#8a4fd0", "shade": "#5a2a96", "threshold": 0.5, "softness": 0.1, "irisDepthM": 0.002, "outline": false },
+      "acc_hat": { "base": "#f08cb8", "shade": "#c0628e", "threshold": 0.5, "softness": 0.04 }
+    },
+    "face": { "shadowMode": "sdf", "sdfMap": "dannoura_face_sdf.png", "normalSource": "ellipsoid", "shadowColor": "#e3aaa0" },
+    "outline": { "widthPx": 1.6, "color": "#2a1830", "distanceFade": [6, 18], "vertexWidthChannel": "r", "innerLines": false },
+    "rim": { "color": "#b8a8ff", "width": 0.22, "lightDependent": true },
+    "env": { "ambientInfluence": 0.35, "minLuma": 0.18, "backlightRimBoost": 0.6, "gradeInfluence": 0.5, "fogInfluence": 0.6 }
+  },
+  "expressions": {
+    "custom": ["x_smug", "x_wince", "x_determined", "x_tired", "x_scared", "x_catEyes"],
+    "lipsync": { "mode": "text_vowel", "gain": 0.9, "offsetMs": 0 }
+  },
+  "correctives": [
+    { "shape": "cor_leftLowerArm_x+140", "bone": "leftLowerArm", "axis": "x", "fromDeg": 60, "toDeg": 140 },
+    { "shape": "cor_leftUpperLeg_x-90", "bone": "leftUpperLeg", "axis": "x", "fromDeg": -30, "toDeg": -90 },
+    { "shape": "cor_leftUpperArm_z+90", "bone": "leftUpperArm", "axis": "z", "fromDeg": 40, "toDeg": 90 }
+  ],
+  "colliders": [
+    { "bone": "head", "radius": 0.11 },
+    { "bone": "chest", "radius": 0.12, "tail": [0, 0.18, 0] },
+    { "bone": "hips", "radius": 0.13 },
+    { "bone": "leftUpperArm", "radius": 0.045, "tail": [0, -0.27, 0] },
+    { "bone": "rightUpperArm", "radius": 0.045, "tail": [0, -0.27, 0] }
+  ],
+  "secondary": { "maxAngleDeg": 70, "maxSpeedDegS": 900, "settleS": 0.8 },
+  "personality": {
+    "basis": [
+      "工場の設備保全の仕事：動きに無駄が少なく、しゃがむ・手を伸ばす動きは慣れている（力仕事に慣れた落ち着いた足取り）",
+      "深夜配信をしている：話す時の表情と手の動きは大きめ",
+      "オネェ言葉：会話の手首のしなりを少しだけ（誇張・からかいの表現にしない）",
+      "娘を守る父親：戦う時は迷いが少なく、反応は速め。ただしホラーなので恐れは素直に出る",
+      "164cm・細身：歩幅は平均よりやや小さく、足の運びはやや速い"
+    ],
+    "locomotion": {
+      "walkSpeed": 1.35,
+      "runSpeed": 4.8,
+      "dashSpeed": 6.5,
+      "strideScale": 0.95,
+      "cadenceScale": 1.05,
+      "comHeightOffsetM": 0.0,
+      "comBob": 0.9,
+      "armSwing": 0.85,
+      "hipSway": 0.2,
+      "accelS": 0.2,
+      "decelS": 0.25,
+      "turnInPlaceDeg": 100,
+      "footForce": 0.5
+    },
+    "posture": { "spinePitchDeg": -1.0, "shoulderRollDeg": 0.0, "headTiltDeg": 2.0, "stanceWidth": 0.95 },
+    "gesture": { "amount": 0.7, "wristFlex": 0.45, "handHeight": 0.1, "fidget": 0.3 },
+    "reaction": { "latencyMs": 110, "startle": 0.6, "recoverS": 0.6 },
+    "face": { "expressiveness": 0.9, "blinkPerMin": 16, "gazeShiftPerMin": 10, "headEyeRatio": 0.4 },
+    "states": {
+      "tension": { "walkSpeed": 0.9, "comHeightOffsetM": -0.03, "armSwing": 0.6, "gesture.amount": 0.4, "face.blinkPerMin": 1.2 },
+      "fatigue": { "walkSpeed": 0.8, "strideScale": 0.9, "spinePitchDeg": 6.0, "comBob": 1.2, "face.expressiveness": 0.7 },
+      "fear": {
+        "walkSpeed": 0.85,
+        "comHeightOffsetM": -0.05,
+        "armSwing": 0.5,
+        "reaction.latencyMs": 0.7,
+        "face.blinkPerMin": 1.6,
+        "face.gazeShiftPerMin": 2.0
+      }
+    }
+  },
+  "license": { "id": "project", "commercial": "unknown", "redistributeRaw": "yes", "attribution": "", "verifiedBy": "", "verifiedAt": "" }
+}

@@ -1,0 +1,44 @@
+{
+  "spec": "wakaba-chains/1",
+  "skeleton": "wakaba-humanoid/1",
+  "_note": "骨の列（IK・リターゲット・揺れ物）。Blender・UE（IK Retargeter のチェーン）・Three.js で同じ物を使う（docs/wakaba-charkit/04 §3）。骨の名前は VRM 1.0 の humanoid の名前。列は根から先へ。ik は 2 本の骨の解析解（charkit/ik/twobone.js・フェーズ 6）の root・mid・end。",
+  "chains": {
+    "spine": { "bones": ["hips", "spine", "chest", "upperChest"], "retarget": true },
+    "neck": { "bones": ["neck", "head"], "retarget": true },
+    "armL": { "bones": ["leftShoulder", "leftUpperArm", "leftLowerArm", "leftHand"], "retarget": true, "ik": { "root": "leftUpperArm", "mid": "leftLowerArm", "end": "leftHand", "pole": [0, 0, -1] } },
+    "armR": { "bones": ["rightShoulder", "rightUpperArm", "rightLowerArm", "rightHand"], "retarget": true, "ik": { "root": "rightUpperArm", "mid": "rightLowerArm", "end": "rightHand", "pole": [0, 0, -1] } },
+    "legL": { "bones": ["leftUpperLeg", "leftLowerLeg", "leftFoot", "leftToes"], "retarget": true, "ik": { "root": "leftUpperLeg", "mid": "leftLowerLeg", "end": "leftFoot", "pole": [0, 0, 1] } },
+    "legR": { "bones": ["rightUpperLeg", "rightLowerLeg", "rightFoot", "rightToes"], "retarget": true, "ik": { "root": "rightUpperLeg", "mid": "rightLowerLeg", "end": "rightFoot", "pole": [0, 0, 1] } },
+    "eyes": { "bones": ["leftEye", "rightEye"], "retarget": false },
+    "jaw": { "bones": ["jaw"], "retarget": false },
+    "thumbL": { "bones": ["leftThumbMetacarpal", "leftThumbProximal", "leftThumbDistal"], "retarget": true },
+    "indexL": { "bones": ["leftIndexProximal", "leftIndexIntermediate", "leftIndexDistal"], "retarget": true },
+    "middleL": { "bones": ["leftMiddleProximal", "leftMiddleIntermediate", "leftMiddleDistal"], "retarget": true },
+    "ringL": { "bones": ["leftRingProximal", "leftRingIntermediate", "leftRingDistal"], "retarget": true },
+    "littleL": { "bones": ["leftLittleProximal", "leftLittleIntermediate", "leftLittleDistal"], "retarget": true },
+    "thumbR": { "bones": ["rightThumbMetacarpal", "rightThumbProximal", "rightThumbDistal"], "retarget": true },
+    "indexR": { "bones": ["rightIndexProximal", "rightIndexIntermediate", "rightIndexDistal"], "retarget": true },
+    "middleR": { "bones": ["rightMiddleProximal", "rightMiddleIntermediate", "rightMiddleDistal"], "retarget": true },
+    "ringR": { "bones": ["rightRingProximal", "rightRingIntermediate", "rightRingDistal"], "retarget": true },
+    "littleR": { "bones": ["rightLittleProximal", "rightLittleIntermediate", "rightLittleDistal"], "retarget": true }
+  },
+  "extChains": {
+    "_note": "ext_ の揺れ物の鎖。pattern の ## は 2 桁の番号（01 から続く限り）。parent は VRM の骨の名前。spring＝SpringBone で動かす",
+    "hairPonytail": { "pattern": "ext_hair_ponytail_##", "parent": "head", "spring": true },
+    "hairSideL": { "pattern": "ext_hair_side_L_##", "parent": "head", "spring": true },
+    "hairSideR": { "pattern": "ext_hair_side_R_##", "parent": "head", "spring": true },
+    "hairBang": { "pattern": "ext_hair_bang_##", "parent": "head", "spring": true },
+    "clothHood": { "pattern": "ext_cloth_hood_##", "parent": "upperChest", "spring": true },
+    "jacketTailL": { "pattern": "ext_cloth_jacketTail_L_##", "parent": "hips", "spring": true },
+    "jacketTailR": { "pattern": "ext_cloth_jacketTail_R_##", "parent": "hips", "spring": true },
+    "tail": { "pattern": "ext_tail_##", "parent": "hips", "spring": true },
+    "earL": { "pattern": "ext_ear_L_##", "parent": "head", "spring": true },
+    "earR": { "pattern": "ext_ear_R_##", "parent": "head", "spring": true }
+  },
+  "sockets": {
+    "socket_hand_R": "rightHand",
+    "socket_hand_L": "leftHand",
+    "socket_back": "upperChest",
+    "socket_hip_L": "hips"
+  }
+}

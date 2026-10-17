@@ -1,0 +1,25 @@
+{
+ "id": "msrc.test_foreign_video",
+ "version": 1,
+ "name": {
+  "ja": "他人の動画（試験用）"
+ },
+ "category": "motion_source",
+ "source": {
+  "type": "unknown",
+  "url": "https://www.youtube.com/watch?v=xxxx"
+ },
+ "license": {
+  "id": "project",
+  "commercial": "yes",
+  "redistributeRaw": "no",
+  "attribution": "",
+  "verifiedBy": "user"
+ },
+ "tech": {
+  "formats": [
+   "mp4"
+  ]
+ },
+ "status": "review"
+}

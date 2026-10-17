@@ -1,0 +1,20 @@
+{
+  "id": "msrc.shoot_20261101_01",
+  "version": 1,
+  "name": { "ja": "撮影 2026-11-01 歩き・走り" },
+  "category": "motion_source",
+  "source": { "type": "self_capture", "author": "user", "acquiredAt": "2026-11-01" },
+  "license": {
+    "id": "project",
+    "commercial": "yes",
+    "redistributeRaw": "no",
+    "attribution": "",
+    "performerConsent": "rights/shoot_20261101_01.json",
+    "verifiedBy": "",
+    "verifiedAt": ""
+  },
+  "tech": { "formats": [] },
+  "status": "review",
+  "storage": { "original": "NAS:/wakaba/chars-src/_motion/shoot_20261101_01/" },
+  "history": [{ "at": "2026-11-01", "by": "user", "change": "撮影（固定カメラ 1 台・60fps・全身）" }]
+}

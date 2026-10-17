@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mapkit/schema/map-report.schema.json",
+  "title": "わかば 地図の検証レポート v1（wakaba-map-report/1）",
+  "description": "docs/wakaba-mapkit/07 §7。auto.character は docs/wakaba-charkit/05 §4 の追加。check が human の条件は pass を null のまま（AI は通ったと書かない。mapkit/report/report.js が検査）。",
+  "type": "object",
+  "required": ["report", "map", "seed", "builtAt", "builder", "auto", "conditions"],
+  "properties": {
+    "report": { "const": "wakaba-map-report/1" },
+    "map": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "seed": { "type": "string" },
+    "specHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "builtAt": { "type": "string" },
+    "builder": { "type": "string", "description": "claude-code / user-pc など" },
+    "auto": {
+      "type": "object",
+      "properties": {
+        "deterministic": { "$ref": "#/$defs/check" },
+        "keepOut": { "allOf": [{ "$ref": "#/$defs/check" }, { "properties": { "violations": { "type": "array" } } }] },
+        "float": { "allOf": [{ "$ref": "#/$defs/check" }, { "properties": { "items": { "type": "array", "items": { "$ref": "#/$defs/item" } } } }] },
+        "overlap": { "allOf": [{ "$ref": "#/$defs/check" }, { "properties": { "items": { "type": "array", "items": { "$ref": "#/$defs/item" } } } }] },
+        "reach": {
+          "allOf": [{ "$ref": "#/$defs/check" }, {
+            "properties": {
+              "goals": { "type": "object", "additionalProperties": { "type": ["number", "null"] } },
+              "unreachable": { "type": "array", "items": { "type": "string" } }
+            }
+          }]
+        },
+        "interiors": { "$ref": "#/$defs/check" },
+        "license": { "allOf": [{ "$ref": "#/$defs/check" }, { "properties": { "blocked": { "type": "array" } } }] },
+        "budget": {
+          "allOf": [{ "$ref": "#/$defs/check" }, {
+            "properties": { "preset": { "enum": ["ultra", "high", "mid", "low"] }, "drawCalls": { "type": "integer" }, "tris": { "type": "integer" }, "texMB": { "type": "number" } }
+          }]
+        },
+        "perf": {
+          "type": "object",
+          "properties": { "device": { "type": "string" }, "fps": { "type": ["number", "null"] }, "note": { "type": "string" } }
+        },
+        "character": { "type": "object", "description": "charkit の数値（docs/wakaba-charkit/05 §4）" }
+      }
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["text", "check", "pass"],
+        "properties": {
+          "text": { "type": "string" },
+          "check": { "enum": ["auto", "human"] },
+          "pass": { "type": ["boolean", "null"] },
+          "evidence": { "type": "string" }
+        }
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["need", "plan", "status"],
+        "properties": { "need": { "type": "string" }, "plan": { "type": "string" }, "status": { "enum": ["proposed", "approved", "in_progress", "done", "rejected"] } }
+      }
+    },
+    "fixes": {
+      "type": "array",
+      "items": { "type": "object", "required": ["issue", "proposal"], "properties": { "issue": { "type": "string" }, "proposal": { "type": "string" }, "auto": { "type": "boolean" } } }
+    }
+  },
+  "$defs": {
+    "check": { "type": "object", "required": ["pass"], "properties": { "pass": { "type": ["boolean", "null"] } } },
+    "item": {
+      "type": "object", "required": ["id"],
+      "properties": { "id": { "type": "string" }, "gap": { "type": "number" }, "at": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 }, "fix": { "type": "string" }, "reason": { "type": "string" } }
+    }
+  }
+}

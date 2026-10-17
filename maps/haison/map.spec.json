@@ -1,0 +1,89 @@
+{
+  "spec": "wakaba-map/1",
+  "id": "haison",
+  "title": { "ja": "山の廃村（検証マップ）" },
+  "prompt": "森と山道、崖、廃屋が数軒、小さな祠。中に入れる家。霧と夕暮れ。歩けて、当たりがあって、敵が追ってこられる。",
+  "seed": "haison-001",
+  "size": { "w": 256, "d": 256, "unit": "m" },
+  "terrain": {
+    "source": { "type": "heightmap", "file": "heightmap.png", "bits": 16, "minY": 0, "maxY": 60 },
+    "fallback": { "type": "noise", "octaves": 5, "scale": 90, "amp": 40 },
+    "features": [
+      { "type": "cliff", "path": [[40, 180], [120, 200]], "height": 12, "side": "north" },
+      { "type": "valley_flat", "center": [128, 120], "radius": 45, "maxSlope": 8 }
+    ],
+    "materials": [
+      { "id": "mat.ground.forest_floor", "where": { "slope": [0, 25] } },
+      { "id": "mat.ground.rock_moss", "where": { "slope": [25, 90] } },
+      { "id": "mat.ground.dirt_path", "where": { "on": "paths" } }
+    ]
+  },
+  "paths": [
+    { "id": "yamamichi", "kind": "mountain_path", "width": 2.0, "points": [[20, 20], [70, 60], [110, 100], [128, 120]], "maxSlope": 20 },
+    { "id": "sando", "kind": "shrine_approach", "width": 1.6, "points": [[128, 120], [150, 150], [160, 170]] }
+  ],
+  "buildings": [
+    {
+      "id": "h1",
+      "kind": "jp_house_abandoned",
+      "at": [118, 112],
+      "rot": 15,
+      "footprint": [10, 8],
+      "enterable": true,
+      "rooms": ["doma", "washitsu_6", "daidokoro"],
+      "decay": 0.7
+    },
+    { "id": "h2", "kind": "jp_house_abandoned", "at": [140, 108], "rot": -20, "footprint": [8, 7], "enterable": true, "decay": 0.5 },
+    { "id": "h3", "kind": "jp_house_collapsed", "at": [110, 135], "rot": 40, "footprint": [9, 7], "enterable": false, "decay": 0.95 },
+    { "id": "shrine", "kind": "hokora_small", "at": [160, 172], "rot": 180, "footprint": [2, 2] }
+  ],
+  "scatter": [
+    {
+      "layer": "trees",
+      "asset": { "tags": ["杉", "広葉樹"] },
+      "density": 0.012,
+      "minDist": 4,
+      "avoid": ["paths", "buildings", "cliffEdge"],
+      "slope": [0, 35]
+    },
+    { "layer": "rocks", "asset": { "category": "rock" }, "density": 0.004, "minDist": 3, "slope": [10, 60] },
+    { "layer": "grass", "asset": { "tags": ["下草"] }, "density": 0.3, "minDist": 0.6, "allowSmallOnPaths": true }
+  ],
+  "anchors": [
+    {
+      "id": "h1.door",
+      "type": "door",
+      "at": [118.4, 0, 108.2],
+      "rotY": 15,
+      "width": 1.8,
+      "height": 1.8,
+      "kind": "sliding",
+      "handle": { "side": "right", "height": 0.95 },
+      "approach": 0.6,
+      "auto": true
+    },
+    { "id": "h1.engawa", "type": "seat", "at": [121.0, 0, 110.5], "rotY": 195, "seatHeight": 0.45, "depth": 0.9, "kind": "edge", "auto": true },
+    {
+      "id": "shrine.steps",
+      "type": "stairs",
+      "from": [158.0, 0, 166.0],
+      "to": [160.0, 0.9, 170.0],
+      "steps": 5,
+      "stepHeight": 0.18,
+      "width": 1.6,
+      "rail": false
+    },
+    { "id": "h3.wall_low", "type": "vault", "at": [109.0, 0, 133.0], "rotY": 40, "height": 0.8, "depth": 0.3 },
+    { "id": "h1.shelf_item", "type": "grab", "at": [119.2, 1.1, 111.0], "hand": "right", "kind": "pickup_small" }
+  ],
+  "atmosphere": { "time": "dusk", "sunElevDeg": 4, "fog": { "density": 0.035, "heightFalloff": 0.08, "color": "#6a6f7a" }, "rain": false },
+  "gameplay": {
+    "start": [24, 24],
+    "goals": ["h1.door", "h2.door", "shrine.front"],
+    "enemies": [{ "ai": "shinshoku:kiro", "spawn": [150, 110], "chase": true }],
+    "boundary": "invisible_wall_on_cliff"
+  },
+  "budget": { "preset": "ultra", "drawCalls": 400, "tris": 1500000, "texMB": 1200 },
+  "assumptions": ["家の時代は昭和中期（瓦・土壁・トタンの差し掛け）と仮定"],
+  "questions": ["敵を出すか（検証マップは探索だけか）"]
+}

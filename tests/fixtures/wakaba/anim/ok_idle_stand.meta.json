@@ -1,0 +1,60 @@
+{
+ "id": "anim.idle_stand",
+ "version": 1,
+ "name": {
+  "ja": "立ち（試験用）"
+ },
+ "category": "animation",
+ "tags": [
+  "試験"
+ ],
+ "source": {
+  "type": "hand_keyed",
+  "author": "user"
+ },
+ "license": {
+  "id": "project",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "deps": [],
+  "verifiedBy": "user",
+  "verifiedAt": "2026-10-16"
+ },
+ "tech": {
+  "formats": [
+   "glb"
+  ]
+ },
+ "status": "approved",
+ "anim": {
+  "skeleton": "wakaba-humanoid/1",
+  "fps": 30,
+  "frames": 30,
+  "durationS": 1.0,
+  "loop": true,
+  "rootMotion": "none",
+  "retargetable": true,
+  "mirrorable": false,
+  "additive": false,
+  "mask": "full",
+  "use": [
+   "待機"
+  ],
+  "quality": {
+   "auto": 90,
+   "human": 4,
+   "score": 84,
+   "metrics": {
+    "formulaVer": 1
+   },
+   "reviewedBy": "user",
+   "reviewVideo": ""
+  },
+  "pack": "core_loco"
+ },
+ "_note": "試験用の作り物（tests/fixtures/charkit_test.gltf の idle_stand）"
+}

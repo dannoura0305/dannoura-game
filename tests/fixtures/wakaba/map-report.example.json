@@ -1,0 +1,99 @@
+{
+ "report": "wakaba-map-report/1",
+ "map": "haison",
+ "seed": "haison-001",
+ "specHash": "sha256:7bbe41911863ca0e6423ffa0a2d0afe21ea68c4bc3f9a7675a90e1f2b17fd784",
+ "builtAt": "2026-10-16T00:00:00Z",
+ "builder": "claude-code",
+ "auto": {
+  "deterministic": {
+   "pass": true
+  },
+  "keepOut": {
+   "pass": true,
+   "violations": []
+  },
+  "float": {
+   "pass": false,
+   "items": [
+    {
+     "id": "rocks#132",
+     "gap": 0.21,
+     "at": [
+      88.2,
+      14.1,
+      140.5
+     ],
+     "fix": "y を -0.21"
+    }
+   ]
+  },
+  "overlap": {
+   "pass": true,
+   "items": []
+  },
+  "reach": {
+   "pass": true,
+   "goals": {
+    "h1.door": 142.5,
+    "h2.door": 151.0,
+    "shrine.front": 210.3
+   },
+   "unreachable": []
+  },
+  "interiors": {
+   "pass": true
+  },
+  "license": {
+   "pass": true,
+   "blocked": []
+  },
+  "budget": {
+   "preset": "ultra",
+   "drawCalls": 312,
+   "tris": 1180000,
+   "texMB": 940,
+   "pass": true
+  },
+  "perf": {
+   "device": "swiftshader",
+   "fps": null,
+   "note": "実機で測る"
+  }
+ },
+ "conditions": [
+  {
+   "text": "霧がある",
+   "check": "auto",
+   "pass": true,
+   "evidence": "atmosphere.fog.density=0.035"
+  },
+  {
+   "text": "入れる家が 2 軒以上",
+   "check": "auto",
+   "pass": true,
+   "evidence": "h1,h2 enterable & reachable"
+  },
+  {
+   "text": "夕暮れの雰囲気が出ている",
+   "check": "human",
+   "pass": null,
+   "evidence": "shots/dusk_01.png"
+  }
+ ],
+ "gaps": [
+  {
+   "need": "bld.jp_house.roof_kawara_broken",
+   "plan": "Blender で作る（bpy 雛形 tools/mapkit/blender/…）",
+   "status": "proposed"
+  }
+ ],
+ "fixes": [
+  {
+   "issue": "float rocks#132",
+   "proposal": "地面に合わせて下げる",
+   "auto": true
+  }
+ ],
+ "_note": "docs/wakaba-mapkit/07 §7 の形の見本（数値は説明用の作り物。本物のレポートはフェーズ 2 の build_map.mjs が書く）"
+}

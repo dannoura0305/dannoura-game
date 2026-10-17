@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "charkit/schema/anim-meta.schema.json",
+  "title": "わかば モーションのメタデータ v1（mapkit asset-meta v1.1 の拡張）",
+  "allOf": [
+    {
+      "$ref": "wakaba-assets/asset-meta.schema.json"
+    },
+    {
+      "type": "object",
+      "required": [
+        "category",
+        "anim"
+      ],
+      "properties": {
+        "category": {
+          "const": "animation"
+        },
+        "anim": {
+          "type": "object",
+          "required": [
+            "skeleton",
+            "fps",
+            "frames",
+            "loop",
+            "rootMotion",
+            "retargetable",
+            "use",
+            "quality"
+          ],
+          "properties": {
+            "skeleton": {
+              "enum": [
+                "wakaba-humanoid/1"
+              ]
+            },
+            "fps": {
+              "enum": [
+                30,
+                60
+              ]
+            },
+            "frames": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "durationS": {
+              "type": "number",
+              "description": "frames / fps（自動で計算して入れる）"
+            },
+            "loop": {
+              "type": "boolean"
+            },
+            "rootMotion": {
+              "enum": [
+                "none",
+                "xz",
+                "xyz",
+                "xz_yaw"
+              ],
+              "description": "hips の水平移動を体の移動として使うか"
+            },
+            "speedMS": {
+              "type": "number",
+              "description": "ループの移動の平均の速さ（移動系）"
+            },
+            "strideM": {
+              "type": "number",
+              "description": "1 歩の長さ（移動系）"
+            },
+            "retargetable": {
+              "type": "boolean"
+            },
+            "mirrorable": {
+              "type": "boolean"
+            },
+            "additive": {
+              "type": "boolean"
+            },
+            "mask": {
+              "enum": [
+                "full",
+                "upper",
+                "lower",
+                "arms",
+                "head",
+                "face",
+                "fingers"
+              ]
+            },
+            "use": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "例 歩き, 探索, ホラー, 会話"
+            },
+            "fitsPersonality": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "合う性格の型（例 calm, energetic）。空＝誰でも"
+            },
+            "events": {
+              "type": "array",
+              "description": "こまの印（足の着地・当たり・取り消しの窓など）",
+              "items": {
+                "type": "object",
+                "required": [
+                  "t",
+                  "frame"
+                ],
+                "properties": {
+                  "t": {
+                    "enum": [
+                      "footL",
+                      "footR",
+                      "hitStart",
+                      "hitEnd",
+                      "cancelOpen",
+                      "cancelClose",
+                      "iframeStart",
+                      "iframeEnd",
+                      "grab",
+                      "release",
+                      "sfx",
+                      "fx",
+                      "blinkOk"
+                    ]
+                  },
+                  "frame": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "arg": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "contacts": {
+              "type": "object",
+              "description": "足・手が着いている区間 [開始, 終了] のこま",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              }
+            },
+            "combatRef": {
+              "type": "object",
+              "description": "戦闘のこまの数字（作品の data）への参照。検査でずれを見つける",
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "segments": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "startup",
+                      "active",
+                      "recovery"
+                    ]
+                  }
+                }
+              }
+            },
+            "quality": {
+              "type": "object",
+              "properties": {
+                "auto": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "human": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "maximum": 5
+                },
+                "score": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "metrics": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "number"
+                  }
+                },
+                "reviewedBy": {
+                  "type": "string"
+                },
+                "reviewVideo": {
+                  "type": "string"
+                }
+              }
+            },
+            "pack": {
+              "type": "string",
+              "description": "まとめて配る時の束（例 shinshoku_core）"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "description": "docs/wakaba-charkit/07 §3。素材メタデータ v1.1（mapkit/schema/asset-meta.schema.json）を allOf で参照し、anim の欄だけを足す。"
+}

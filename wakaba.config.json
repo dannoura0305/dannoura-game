@@ -1,0 +1,29 @@
+{
+  "config": "wakaba-config/1",
+  "_note": "わかばの共通基盤（mapkit・charkit）の設定。素材ライブラリの場所と、作品ごとの条件（商用か・配信先）を書く。検査の道具（mapkit/assets/license-gate.mjs ほか）はここを読む。",
+  "assetLibrary": {
+    "root": "wakaba-assets",
+    "catalog": "wakaba-assets/catalog.json",
+    "entries": "wakaba-assets/entries",
+    "quarantine": "wakaba-assets/quarantine",
+    "_note": "置き場所は未定（Q-B2：NAS／外付け SSD／別の private リポジトリ）。決まるまではこのリポジトリの中の wakaba-assets/ に目録（meta.json）だけを置く。移す時は root と下の 3 つを書き換えるだけでよい（相対パスはリポジトリの根から、絶対パスも可）。公開リポジトリなので、購入物・Fab の原本や書き出しは置かない。"
+  },
+  "projects": {
+    "shinshoku": {
+      "name": "境界侵食",
+      "commercial": true,
+      "commercialSource": "default-conservative",
+      "_commercialNote": "Q-L1（収益化の予定）が未回答のため、厳しい側（商用＝true）で門を掛ける。答えが「ない」なら false、「未定」なら \"unknown\"（true と同じ扱い）にする。",
+      "ownDomains": [],
+      "targets": [
+        { "id": "web", "engine": "threejs", "public": true, "_note": "GitHub Pages で公開するブラウザ版。素のファイルを誰でも取れる形" }
+      ],
+      "uses": {
+        "_note": "作品が実際に使う素材・モーション・キャラクター設定（目録の id か、リポジトリの根からのファイルの場所）。ここに書いた物が全部 pass でないと tests が失敗する。今は 0 件（キャラクターはコード製の仮の物・manifest に config なし）。",
+        "assets": [],
+        "animations": [],
+        "characters": []
+      }
+    }
+  }
+}

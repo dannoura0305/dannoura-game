@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wakaba-assets/asset-meta.schema.json",
+  "title": "わかば素材メタデータ v1.1",
+  "description": "docs/wakaba-mapkit/07 §3 の v1 に、docs/wakaba-charkit/07 §1 の追加（animation・motion_source・shader_preset／self_capture・hand_keyed／performerConsent・deps）を入れた v1.1。v1 の書き方はそのまま通る。",
+  "type": "object",
+  "required": ["id", "version", "name", "category", "source", "license", "tech", "status"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9_]+(\\.[A-Za-z0-9_]+)+$", "description": "例 bld.jp_house.wall_plaster_1x1／anim.loco_walk_strafe_L（v1.1：2 段目からは左右の L/R などの大文字を許す）" },
+    "version": { "type": "integer", "minimum": 1 },
+    "name": { "type": "object", "properties": { "ja": { "type": "string" }, "en": { "type": "string" } }, "required": ["ja"] },
+    "category": { "enum": ["terrain", "rock", "vegetation", "building_module", "building", "prop", "decal", "material", "hdri", "character", "fx", "audio", "animation", "motion_source", "shader_preset"] },
+    "tags": { "type": "array", "items": { "type": "string" }, "description": "例 廃屋, 和風, 木造, 夕暮れ" },
+    "source": {
+      "type": "object", "required": ["type"],
+      "properties": {
+        "type": { "enum": ["self_made", "cc0_site", "fab", "purchased_other", "ai_generated", "wakaba_system", "commissioned", "unknown", "self_capture", "hand_keyed"] },
+        "author": { "type": "string" },
+        "url": { "type": "string" },
+        "acquiredAt": { "type": "string", "format": "date" },
+        "aiModel": { "type": "string", "description": "生成 AI・変換 AI を通した時：モデル名と版・利用規約の URL" },
+        "aiCommercial": { "enum": ["yes", "no", "unknown"], "description": "v1.1：通した AI の規約が商用に使えるか（研究用・非商用なら no）" },
+        "orderId": { "type": "string", "description": "購入の注文番号など（証明）" }
+      }
+    },
+    "license": { "$ref": "#/$defs/license" },
+    "tech": {
+      "type": "object",
+      "properties": {
+        "formats": { "type": "array", "items": { "enum": ["glb", "gltf", "fbx", "usd", "blend", "obj", "png16", "raw16", "exr", "ktx2", "png", "jpg", "webp", "hdr", "vrm", "vrma", "bvh", "mp4", "mov"] } },
+        "tris": { "type": "integer", "description": "LOD0 の三角形数" },
+        "lods": { "type": "array", "items": { "type": "integer" } },
+        "texRes": { "type": "integer", "description": "最大のテクスチャの辺（px）" },
+        "texMaps": { "type": "array", "items": { "enum": ["baseColor", "normal", "roughness", "metallic", "ao", "orm", "height", "emissive", "opacity", "lightmap"] } },
+        "sizeM": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3, "description": "幅・高さ・奥行（m）" },
+        "pivot": { "enum": ["bottom_center", "grid_corner", "center"] },
+        "grid": { "type": "number", "description": "モジュールの格子（m）。部品だけ" },
+        "collision": { "enum": ["none", "box", "convex", "mesh_simplified"] },
+        "fileBytes": { "type": "integer" }
+      }
+    },
+    "use": { "type": "array", "items": { "type": "string" }, "description": "例 外壁, 室内, 遠景。研究用 AI を通した物は「比較のみ」" },
+    "usedBy": { "type": "array", "items": { "type": "object", "properties": { "project": { "type": "string" }, "map": { "type": "string" }, "since": { "type": "string" } } } },
+    "status": { "enum": ["requested", "draft", "review", "approved", "quarantine", "retired"] },
+    "storage": { "type": "object", "properties": { "original": { "type": "string" }, "export": { "type": "string" }, "runtime": { "type": "string" }, "sha256": { "type": "string" } } },
+    "history": { "type": "array", "items": { "type": "object", "properties": { "at": { "type": "string" }, "by": { "type": "string" }, "change": { "type": "string" } } } }
+  },
+  "$defs": {
+    "license": {
+      "type": "object", "required": ["id", "commercial", "redistributeRaw", "attribution", "verifiedBy"],
+      "properties": {
+        "id": { "type": "string", "description": "CC0-1.0 / Fab-Standard / project / custom:<名前> / unknown" },
+        "commercial": { "enum": ["yes", "no", "unknown"] },
+        "redistributeRaw": { "enum": ["yes", "no", "unknown"], "description": "素材ファイルをそのまま公開（Web 配信・公開リポジトリ）してよいか" },
+        "engines": { "type": "array", "items": { "enum": ["any", "unreal", "threejs", "godot", "unity", "blender"] } },
+        "attribution": { "type": "string", "description": "必要な表記。不要なら空文字" },
+        "regionLimit": { "type": "string" },
+        "textUrl": { "type": "string" },
+        "verifiedBy": { "type": "string", "description": "確認した人（利用者の名前 or 'user'）。AI は記入しない" },
+        "verifiedAt": { "type": "string", "format": "date" },
+        "performerConsent": { "type": "string", "description": "v1.1：演者の同意の記録の参照（例 rights/shoot_20261101_01.json。原本は NAS）" },
+        "deps": {
+          "type": "array",
+          "description": "v1.1：通した模型・道具の制限（例 smpl-x）。文字列か { id, licensed, terms }",
+          "items": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "object", "required": ["id"], "properties": { "id": { "type": "string" }, "licensed": { "type": "boolean", "description": "商用の許可を得ている（証明あり）" }, "terms": { "type": "string" } } }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

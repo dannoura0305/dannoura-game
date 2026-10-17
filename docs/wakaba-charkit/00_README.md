@@ -54,6 +54,26 @@
 ## 次の一歩
 `15` の★に答えてもらった後、フェーズ 1（スキーマ・骨の対応・検査・権利の門を試験つきで置く）に進みます。mapkit のフェーズ 1 と**同じ時期に、目録のスキーマを共通にして**進めるのが効率的です。それまでコード・ソフトには手を付けません。
 
+## フェーズ 1 の使い方（2026-10-17 実装・コマンドはリポジトリの根で）
+フェーズ 1（データの土台）を置きました。インストール不要（node 22 だけ）。素材・地図仕様・ライセンス門の道具は [`../wakaba-mapkit/00_README.md`](../wakaba-mapkit/00_README.md) の同じ節（門は mapkit と**共通の 1 つ**）。
+
+| したいこと | コマンド | 結果 |
+|---|---|---|
+| **キャラクターの設定**（`<id>.character.json`）を検査 | `node tools/charkit/validate_char.mjs shinshoku/assets/characters/dannoura.character.json` | 形（陰影・性格の値を含む）＋中身（正本と体の作り：男性なら肩幅 > 腰幅などの寸法の欄・states のキー・補正の形の名前・材質の名前・ext_ の名前）＋ライセンス門の結果（表示だけ） |
+| モデルの骨も照らす | `… --model tests/fixtures/charkit_test.gltf [--form purple] [--require-recommended]` | 必須 17 本・推奨（指 30 本・目・あご・肩・つま先・上胸）・ext_／socket_ の名前・姿の `extraBones` |
+| 門で止まったら失敗にする | `… --strict-gate` | だんのうらの設定は今 **block**（`commercial: unknown`・`verifiedBy` が空＝人の確認待ち）なので 1 |
+| **モーションのメタデータ**を検査 | `node tools/charkit/validate_anim.mjs <meta.json か フォルダ>...` | 形（素材メタデータ v1.1＋`anim`）・こまの印・`durationS`・点数の式・**戦闘のこまの照合**（`combatRef` → `shinshoku/data/combat.js`）・門の結果 |
+| 試験用の人型 glTF を作り直す | `node tools/charkit/make_test_char.mjs` | `tests/fixtures/charkit_test.gltf`（61 本の骨・クリップ 4 本・同じ入力から同じバイト列） |
+| 試験 | `node tests/run.mjs`（`tests/wakaba-charkit-schema・bonemap・gate.test.mjs`） | – |
+
+置いた物（共通＝`charkit/`、作品専用の物は作品側）：
+- `charkit/schema/character.schema.json`（`06` §5）・`anim-meta.schema.json`（`07` §3＝mapkit の素材メタデータ v1.1 を `allOf` で拡張）
+- `charkit/rig/bonemap.js`（`shinshoku/actor/bones.js` から移して広げた：`VRM_REQUIRED`・`VRM_RECOMMENDED`・`PROFILES`（vrm・ue5・mixamo・rigify・shinshoku17）・`matchBones`・`detectProfile`・`extBones`・`checkSkeleton`）。`bones.js` は**再輸出だけ**。2 引数の `matchBones` は移す前と同じ結果（試験で突き合わせ）
+- `charkit/rig/chains.json`（骨の列・IK の 3 本・ext の鎖・socket）
+- `charkit/core/validate.js`（キャラクター・モーションの中身の検査。スキーマの検査は mapkit の共通の物を使う）・`charkit/core/gltf.js`（glTF／GLB／VRM の JSON だけを読む）・`charkit/anim/combatfit.js`（戦闘のこまの照合と区間ごとの伸縮の計算）
+- `shinshoku/assets/characters/dannoura.character.json`（`06` §7 の例・**値は仮**。manifest には**まだ入れていない**＝境界侵食の動きは今と同じ）
+- `tools/charkit/validate_char.mjs`・`validate_anim.mjs`・`make_test_char.mjs`、`tests/fixtures/charkit_test.gltf`（gltf-validator 2.0.0-dev.3.10 でエラー・警告 0 を確認。試験は gltf-validator が入っている時だけ使い、無ければ飛ばす）
+
 ## このフェーズで決めたこと（記録）
 | 日付 | 決定 |
 |---|---|
@@ -61,3 +81,4 @@
 | 2026-10-16 | 資料は `docs/wakaba-charkit/` に置く。名前は仮 |
 | 2026-10-16 | 目録・ライセンス門・仕事のファイルは mapkit の物を**拡張**して使う（別に作らない） |
 | 2026-10-16 | `shinshoku/`・`tests/`・`tools/`・`sw.js` は別の作業（扉の修正）が触っているので、本フェーズでは読むだけ |
+| 2026-10-17 | フェーズ 1 を実装（mapkit のフェーズ 1 と一緒）。`bones.js` の本体を `charkit/rig/bonemap.js` へ移した。`sw.js` に `charkit/`・`mapkit/` の ES モジュールの振り分けを足し、版を 2026-10-24.1 へ |

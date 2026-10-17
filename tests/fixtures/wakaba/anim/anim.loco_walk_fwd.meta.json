@@ -1,0 +1,60 @@
+{
+  "id": "anim.loco_walk_fwd",
+  "version": 2,
+  "name": { "ja": "歩き（前）", "en": "Walk forward" },
+  "category": "animation",
+  "tags": ["歩き", "基本", "ループ"],
+  "source": {
+    "type": "self_capture",
+    "author": "user",
+    "acquiredAt": "2026-11-01",
+    "aiModel": "mediapipe-pose（tasks-vision 1.1.1・Apache-2.0）→ 自作の変換 → Blender で掃除"
+  },
+  "license": {
+    "id": "project",
+    "commercial": "yes",
+    "redistributeRaw": "yes",
+    "engines": ["any"],
+    "attribution": "",
+    "performerConsent": "rights/shoot_20261101_01.json",
+    "deps": [],
+    "verifiedBy": "",
+    "verifiedAt": ""
+  },
+  "tech": { "formats": ["glb"], "fileBytes": 41000 },
+  "use": ["歩き", "探索"],
+  "status": "review",
+  "storage": {
+    "original": "NAS:/wakaba/chars-src/_motion/shoot_20261101_01/",
+    "export": "NAS:/wakaba/assets-out/anim.loco_walk_fwd/2/",
+    "runtime": "shinshoku/assets/anim/loco_walk_fwd.vrma"
+  },
+  "history": [{ "at": "2026-11-01", "by": "user", "change": "撮影・変換" }, { "at": "2026-11-02", "by": "claude-code", "change": "足の接地の印を自動で付けた（検査 v1）" }],
+  "anim": {
+    "skeleton": "wakaba-humanoid/1",
+    "fps": 30,
+    "frames": 32,
+    "durationS": 1.067,
+    "loop": true,
+    "rootMotion": "xz",
+    "speedMS": 1.35,
+    "strideM": 0.72,
+    "retargetable": true,
+    "mirrorable": false,
+    "additive": false,
+    "mask": "full",
+    "use": ["歩き", "探索"],
+    "fitsPersonality": [],
+    "events": [{ "t": "footL", "frame": 0 }, { "t": "footR", "frame": 16 }],
+    "contacts": { "leftFoot": [[0, 9]], "rightFoot": [[16, 25]] },
+    "quality": {
+      "auto": 88,
+      "human": null,
+      "score": 88,
+      "metrics": { "footSlideMeanCmS": 1.1, "loopSeamDeg": 1.8, "formulaVer": 1 },
+      "reviewedBy": "",
+      "reviewVideo": ""
+    },
+    "pack": "core_loco"
+  }
+}
