@@ -5,6 +5,7 @@
 // 境目の線が出ないよう textureGrad（元の uv の微分）で読む。すべて独自の柄（実在の自治体・会社の意匠を使わない）。
 import * as THREE from 'three';
 import { gradientMap, JP_FONT, ctx2d } from './toon.js';
+import { xorshift as rng } from '../../mapkit/core/rng.js';
 
 const N = 8, S = 256, W = N * S;                      // 横 8 枠（2048px）
 export const TILES = [
@@ -27,7 +28,7 @@ export function tileRect(name) {
 }
 
 // 決まった乱数（毎回同じ絵）
-function rng(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return (s % 100000) / 100000; }; }
+// 本体は共通の mapkit/core/rng.js の xorshift（移す前と同じ数）。下の import を参照
 function noise(g, w, h, r, n, a, col = '0,0,0', sz = [1, 3]) { for (let i = 0; i < n; i++) { g.fillStyle = `rgba(${col},${(a * (0.4 + r() * 0.6)).toFixed(3)})`; const s = sz[0] + r() * (sz[1] - sz[0]); g.fillRect(r() * w, r() * h, s, s); } }
 function cracks(g, r, n, w, h) { g.strokeStyle = 'rgba(10,10,14,.55)'; g.lineWidth = 1.2; for (let i = 0; i < n; i++) { let x = r() * w, y = r() * h; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 7; k++) { x += (r() - 0.5) * 40; y += (r() - 0.5) * 40; g.lineTo(x, y); } g.stroke(); } }
 function rectsGrid(g, w, h, cw, ch, gap, base, vary, r, stagger = 0) {

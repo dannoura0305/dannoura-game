@@ -8,6 +8,7 @@
 // アーケードの東には、ガラスの屋根の広場（総曲輪の雰囲気を参考にした独自の意匠・名前は仮）と、広場から中央通りへ抜ける横丁。
 // 自宅の前の道の東の端も中央通りへつながる。町の名前・実在の地名・店名・意匠は使わない（雰囲気だけ）。
 import { box } from '../world/collide.js';
+import { seeded } from '../../mapkit/core/rng.js';
 
 export const TOWN_LAYOUT = 'town3';                 // セーブの place.layout（layout 無し＝town1・town2 は読む時に位置を確かめて移す）
 export const HOME_O = [42, 40];                     // 自宅（data/level.js の home：x −6〜6・z 6〜16）を置く所＝ローカル座標に足す
@@ -374,7 +375,8 @@ export function houseFoot(L) {
 }
 // ───────────── フェーズ11：建物の出入り口（玄関・店の戸・シャッター・自動ドア）。world/town.js・town2.js もここから位置を取る ─────────────
 /** 決まった乱数（区画の id から。world/town.js と同じ） */
-export function seeded(str) { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 10000) / 10000; }; }
+// 本体は共通の mapkit/core/rng.js へ移した（出る数は同じ）。ここは再輸出するだけ
+export { seeded };
 /** 建物の区画の種類（出入り口が要る物） */
 export const BUILDING_KINDS = ['house', 'shop', 'bldg', 'apartment', 'konbini', 'machiya', 'tower', 'dept', 'station', 'home'];
 /** 区画の枠（world/town.js の frame と同じ）：u＝表に沿って・v＝表から奥へ */
