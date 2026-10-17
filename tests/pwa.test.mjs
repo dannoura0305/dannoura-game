@@ -121,7 +121,7 @@ test('トビネズミ：専用の manifest（全画面・向き自由・アイ�
 test('わかば mapkit（検証マップ・開発用）：ページ・ES モジュール・地図のデータはネット優先、レポート・道具は素通し', () => {
   const { sw } = loadSW();
   const k = p => sw.kindOf(new URL(p, sw.BASE));
-  assert.equal(sw.VERSION, '2026-10-28.1');
+  assert.equal(sw.VERSION, '2026-10-28.2');   // P12c（キャラクター）で上げた
   assert.equal(k('mapkit.html'), 'shell');
   assert.equal(k('mapkit/runtime/main.js'), 'shell');
   assert.equal(k('mapkit/runtime/style.css'), 'shell');

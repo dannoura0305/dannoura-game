@@ -482,7 +482,8 @@ async function runPhone(browser) {
   let st = await S(page); ok('タッチのスティックで移動（→ 相棒の近くで会話が始まる）', st.player.z < z0 - 0.5 || st.mode === 'dialog', `${z0.toFixed(1)}→${st.player.z.toFixed(1)} ${st.mode}`);
   await page.evaluate(() => { const D = __sh.debug; D.teleport(-1.6, -31.6, Math.PI); D.fastSim(3); D.skipDialog(); D.fastSim(3); });
   await page.waitForTimeout(400);
-  { const [x, y] = await box('.tc-use'); await touch('touchStart', [[x, y, 5]]);
+  { await page.waitForSelector('.tc-use.vis', { timeout: 15000 }).catch(() => {});   // 演出場面が始まった後の最初のこまで「調」が出る（遅い時に出る前を押さない）
+    const [x, y] = await box('.tc-use'); await touch('touchStart', [[x, y, 5]]);
     for (let i = 0; i < 40; i++) { await page.waitForTimeout(150); if (!(await page.evaluate(() => __sh.game.cut.active))) break; }
     await touch('touchEnd', []); }
   await page.waitForTimeout(300);

@@ -245,7 +245,7 @@ class Game {
     const fog = A.fog || { color: 0x100c1c, density: 0.045 };
     this.scene.fog.color.setHex(fog.color); this.scene.fog.density = fog.density; this.scene.background.setHex(fog.color);
     this.halos.uniforms.uFog.value = fog.density; this.wet.uniforms.uFog.value = fog.density;
-    { const LT = A.light || { hemi: 1.1, amb: 0.6 }, k = ENV.pbr ? ENV.ambK : 1; this.hemi.intensity = LT.hemi * k; this.amb.intensity = LT.amb * k; }   // P12：PBR の段は環境の光（IBL）があるので空と周りの明かりを弱く   // 区画ごとの空と周りの明かり（病院は弱く：白く飛ばない）
+    { const LT = A.light || { hemi: 1.1, amb: 0.6 }; this.hemi.intensity = LT.hemi; this.amb.intensity = LT.amb; }   // 区画ごとの空と周りの明かり（P12：背景の材質の側だけ envmat の uAmbK で弱める＝人物の明るさは前のまま）   // 区画ごとの空と周りの明かり（病院は弱く：白く飛ばない）
     this.halos.clear(); for (const h of A.halos) h.idx = this.halos.add(h.p, h.size, h.color, h.k);
     this.flashHalo = this.halos.add([0, -50, 0], 0.4, 0xfff0d0, 0);
     this.wet.clear(); for (const w of A.wet) w.idx = this.wet.add(w.p, w.size, w.color, w.k);

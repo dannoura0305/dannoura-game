@@ -17,7 +17,7 @@ export const U = {
   uNrm: { value: null }, uOrh: { value: null }, uPar: { value: null }, uAtlasN: { value: new THREE.Vector2(ATLAS_N, ATLAS_ROWS) },
   uWet: { value: 0.0 }, uTime: { value: 0 }, uNrmScale: { value: 1.0 },
   uExpo: { value: 1.0 }, uLift: { value: new THREE.Vector3(0, 0, 0) }, uGain: { value: new THREE.Vector3(1, 1, 1) }, uSat: { value: 1.0 }, uContrast: { value: 1.0 },
-  uGlow: { value: 1.0 }, uAlb: { value: null }, uIblD: { value: 0.4 },
+  uGlow: { value: 1.0 }, uAlb: { value: null }, uIblD: { value: 0.4 }, uAmbK: { value: 0.5 },
   uRefl: { value: null }, uReflMat: { value: new THREE.Matrix4() }, uReflOn: { value: 0 }, uGradeOn: { value: 1 },
 };
 export const ENV = { pbr: false, tile: 0, ready: false, loading: null, mats: new Set(), toonMats: new Set(), glowMats: new Set(), envMaps: {}, envMap: null, envI: 0.5, ambK: 0.5, stats: { bytes: 0, ms: 0, tile: 0 }, manifest: null };
@@ -32,7 +32,7 @@ U.uPar.value = dataTex(1, 1, [0, 0, 128, 0], THREE.NearestFilter);
 // ───────────── シェーダーの部品 ─────────────
 const GLSL_COMMON = /* glsl */`
 uniform sampler2D uNrm; uniform sampler2D uOrh; uniform sampler2D uAlb; uniform sampler2D uPar; uniform vec2 uAtlasN;
-uniform float uWet; uniform float uTime; uniform float uNrmScale; uniform float uIblD;
+uniform float uWet; uniform float uTime; uniform float uNrmScale; uniform float uIblD; uniform float uAmbK;
 uniform sampler2D uRefl; uniform mat4 uReflMat; uniform float uReflOn; uniform float uGradeOn;
 uniform float uExpo; uniform vec3 uLift; uniform vec3 uGain; uniform float uSat; uniform float uContrast;
 varying vec4 vTileR; varying vec2 vEnvUv; varying vec3 vEnvW;
@@ -117,7 +117,8 @@ ${GLSL_TILEUV}
       float rr = length(f + (vec2(envHash(ci + 3.1), envHash(ci + 7.7)) - 0.5) * 0.5); float ring = sin((rr - ph * 0.45) * 60.0) * smoothstep(0.08, 0.0, abs(rr - ph * 0.45)) * (1.0 - ph);
       mapN.xy += normalize(f + 1e-4) * ring * 0.35 * envPud; }
     normal = normalize(T * (mapN.x * sc) + Bt * (mapN.y * sc) + N * mapN.z); }`);
-    fs = fs.replace('#include <lights_fragment_maps>', '#include <lights_fragment_maps>\n  iblIrradiance *= uIblD;');
+    // 空と周りの明かり（hemi・ambient）は人物と共有なので、背景の材質の側だけ弱める（uAmbK）＝人物の明るさは変えない
+    fs = fs.replace('#include <lights_fragment_maps>', '#include <lights_fragment_maps>\n  iblIrradiance *= uIblD;\n  #if defined( RE_IndirectDiffuse )\n    irradiance *= uAmbK;\n  #endif');
     fs = fs.replace('#include <aomap_fragment>', `
   { float ambientOcclusion = envO.r; reflectedLight.indirectDiffuse *= ambientOcclusion;
     #if defined( USE_ENVMAP ) && defined( STANDARD )
