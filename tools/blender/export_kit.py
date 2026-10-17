@@ -51,7 +51,8 @@ def web_allowed(meta):
     L, S = meta.get("license", {}), meta.get("source", {})
     if (L.get("id") or "unknown").lower() == "unknown" or L.get("commercial") in (None, "", "unknown", "no"):
         return False, "license が不明か商用不可"
-    if not L.get("verifiedBy"):
+    generated = S.get("type") == "self_made" and str(S.get("generator") or "").startswith("tools/") and (L.get("id") or "").lower() in ("own", "project") and L.get("redistributeRaw") == "yes"
+    if not L.get("verifiedBy") and not generated:
         return False, "verifiedBy が空（人の確認待ち）"
     if L.get("redistributeRaw") != "yes":
         return False, "redistributeRaw が yes でない"

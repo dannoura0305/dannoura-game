@@ -28,6 +28,8 @@ export const LIB_RULES = {
   WEB_TOO_BIG: 'web/ のファイルが大きすぎる（targets[web].settings.maxFileMB）',
   WEB_TEX_SIZE: 'web/ のテクスチャの辺が上限（targets[web].settings.textures.maxSize）を超える',
   WEB_BAD_FILE: 'web/ のファイルの中身が形式と合わない（glb の印・PNG の印など）',
+  GENERATOR_MISSING: 'source.generator（作った道具）がリポジトリに無い：手続きの素材は作り直せる道具が要る',
+  WEB_MISSING: 'meta.json の material.maps／kit に書いた web/ のファイルが無い',
 };
 
 const EXT = f => (f.match(/\.([a-z0-9]+)$/i) || [, ''])[1].toLowerCase();
@@ -108,11 +110,18 @@ export function checkPackage(pkg, { config, projectId = 'shinshoku', registry })
     }
   }
 
+  if (m.source && m.source.generator && pkg.generatorExists === false) E('GENERATOR_MISSING', 'meta.json', m.source.generator);
+  const webNames = new Set((pkg.web || []).map(f => f.name));
+  if (m.material && m.material.maps) for (const [k, bySize] of Object.entries(m.material.maps)) for (const f of Object.values(bySize)) if (!webNames.has(f)) E('WEB_MISSING', `web/${f}`, k);
+  if (m.kit && !webNames.has(`${m.id}.glb`)) E('WEB_MISSING', `web/${m.id}.glb`, 'kit');
+  for (const t of Object.values(gate)) for (const w of t.warnings || []) if (!warnings.some(x => x.code === w.code)) warnings.push({ code: w.code, file: 'meta.json', msg: w.msg });
   const entry = {
     id: m.id, version: m.version, category: m.category, name: m.name, status: m.status, tags: m.tags || [],
     dir: pkg.dir, license: { id: (m.license || {}).id || null, attribution: (m.license || {}).attribution || '' },
     tech: { pivot: (m.tech || {}).pivot || null, sizeM: (m.tech || {}).sizeM || null, tris: (m.tech || {}).tris ?? null },
     targets, sources, web: webFiles, ue5,
+    ...(m.material ? { material: m.material } : {}),            // ブラウザ版の描画が使う（材質の tileM・大きさ・ファイル）
+    ...(m.kit ? { kit: { nodes: m.kit.nodes, variants: m.kit.variants, lodDist: m.kit.lodDist, impostor: m.kit.impostor, materials: m.kit.materials } } : {}),
   };
   return { entry, errors, warnings };
 }

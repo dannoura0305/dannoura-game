@@ -71,7 +71,7 @@
   "impostor": false,
   "materials": [
    "mat.fabric.futon",
-   "mat.metal.tin_rust"
+   "mat.metal.iron_rust"
   ],
   "vertexColor": "COLOR_0＝AO（焼き込み）",
   "note": "節の名前 LOD<n>（種類が複数なら v<k>_LOD<n>）・IMP＝遠景の十字の板（画像は glb の中）。材質は id の名前で共有の PBR 材質に差し替える"

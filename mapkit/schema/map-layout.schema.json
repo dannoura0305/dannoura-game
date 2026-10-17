@@ -57,7 +57,7 @@
       "properties": {
         "id": { "type": "string" }, "layer": { "type": "string" }, "kind": { "$ref": "#/$defs/kind" }, "at": { "$ref": "#/$defs/v3", "description": "底の中心（m）" },
         "rotY": { "type": "number" }, "scale": { "type": "number", "exclusiveMinimum": 0 }, "size": { "$ref": "#/$defs/v3" },
-        "col": { "type": "object", "required": ["shape"], "properties": { "shape": { "enum": ["box", "cyl", "none"] } } },
+        "col": { "anyOf": [{ "type": "object", "required": ["shape"], "properties": { "shape": { "enum": ["box", "cyl", "none"] } } }, { "type": "null" }], "description": "当たり。null＝当たりなし（フェーズ 3 の飾り：中の布団・倒れた障子・倒れた自転車など。歩きを止めない低い物）" },
         "embed": { "type": "number", "minimum": 0 }, "cls": { "type": "string" }, "building": { "type": "string" }, "inside": { "type": "boolean" }
       }
     }

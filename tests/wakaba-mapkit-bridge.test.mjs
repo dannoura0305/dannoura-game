@@ -116,7 +116,7 @@ await t('Fab の素材：UE5 版の目録には載るが、web/ に書き出し�
   assert.deepEqual(ng.errors.map(e => e.code), ['WEB_BLOCKED']); assert.equal(ng.entry.targets.web.result, 'block');
 });
 
-await t('catalog.mjs：フォルダを読んで目録を書く・同じ中身なら同じバイト列・--check（古い・誤りで 1）・本物の目録は今 0 件で最新', () => {
+await t('catalog.mjs：フォルダを読んで目録を書く・同じ中身なら同じバイト列・--check（古い・誤りで 1）・本物の目録（フェーズ 3 の自作の材質・部品）が最新', () => {
   const d = mkdtempSync(join(tmpdir(), 'wk-lib-'));
   try {
     const put = (rel, data) => { const p = join(d, 'entries', rel); mkdirSync(join(p, '..'), { recursive: true }); writeFileSync(p, typeof data === 'string' || data instanceof Uint8Array ? data : JSON.stringify(data)); };
@@ -143,7 +143,8 @@ await t('配置のスキーマと中身：山の廃村の layout.json が通る�
   const ex = p => existsSync(join(ROOT, 'maps/haison/build', p));
   const r = validateLayoutFile(L, reg, { terrainExists: ex });
   assert.equal(r.valid, true, JSON.stringify(r.errors.slice(0, 3))); assert.deepEqual(r.warnings, []);
-  assert.equal(r.counts.objects, 687); assert.equal(r.counts.instances, L.stats.instances.grass);
+  assert.equal(r.counts.objects, L.objects.length); assert.ok(L.objects.length > 900, '木・岩・小物・飾り'); assert.equal(r.counts.instances, L.stats.instances.grass);
+  assert.ok(L.objects.some(o => o.layer === 'dressing' && o.col === null), 'フェーズ 3 の飾り（当たりなし＝null）も形に合う');
   const cases = {
     '指紋': o => { o.objects[0].at[0] += 1; },
     'id の重複': o => { o.objects[1].id = o.objects[0].id; },

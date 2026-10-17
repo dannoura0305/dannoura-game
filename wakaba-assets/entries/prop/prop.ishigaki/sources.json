@@ -6,8 +6,8 @@
    "role": "fbx",
    "path": "source/prop.ishigaki.fbx",
    "storage": "local-ignored",
-   "sha256": "0185c126109bc21bf72e3b9b02b4c026772ed46875e2c39d567400e5cc2b6371",
-   "bytes": 102780,
+   "sha256": "0b9241e1bf65a223ad0444c8a7076576ab567e8f55558bc15e5832b798f04dab",
+   "bytes": 39484,
    "tool": "bpy 4.2.0",
    "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only prop.ishigaki"
   }

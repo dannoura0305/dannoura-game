@@ -608,6 +608,20 @@ def futon_fabric(n, seed):
     return dict(albedo=np.clip(alb, 0, 1), height=norm01(h), rough=rough, nstr=3.0, ao_radii=(2, 6, 16), ao_power=1.2)
 
 
+def iron_rust(n, seed):
+    """錆びた鋳物の鉄（鉄瓶・釜・たが・金具）：黒い鉄に赤茶の錆の斑・細かい肌"""
+    big = spectral(n, seed + ':big', beta=2.4, fmin=2)
+    fine = spectral(n, seed + ':fine', beta=0.9, fmin=30)
+    rust = smooth(0.45, 0.75, 0.6 * big + 0.4 * spectral(n, seed + ':r', 1.8, 6))
+    iron = ramp(fine, [(0, '#1c1b1a'), (1, '#3a3836')])
+    rc = ramp(0.5 * fine + 0.5 * big, [(0, '#3e1e10'), (0.6, '#6a3418'), (1, '#8a4a24')])
+    alb = lerp(iron, rc, rust)
+    pit = smooth(0.7, 0.9, fine) * rust
+    h = 0.5 + 0.2 * rust * fine - 0.15 * pit + 0.1 * big
+    rough = 0.55 + 0.35 * rust + 0.08 * fine
+    return dict(albedo=np.clip(alb, 0, 1), height=norm01(h), rough=np.clip(rough, 0, 1), nstr=4.0, ao_radii=(1, 3, 8), ao_power=1.2)
+
+
 # ───────────────────────── 葉のカード（透過） ─────────────────────────
 def _card(n):
     S = Stamper(n)
@@ -746,9 +760,9 @@ def fern_frond(n, seed):
     S = _card(n)
     greens = [col('#2c4a1e'), col('#355a22'), col('#3f6626'), col('#4a6e2a')]
     for f in range(3):
-        x0 = n * (0.35 + 0.3 * r.random())
+        x0 = n * (0.4 + 0.2 * r.random())
         y0 = n * 0.99
-        ang = -np.pi / 2 + (f - 1) * 0.45 + r.normal(0, 0.08)
+        ang = -np.pi / 2 + (f - 1) * 0.3 + r.normal(0, 0.05)
         L = n * r.uniform(0.75, 0.92)
         steps = int(L / 4)
         x, y = x0, y0
@@ -759,14 +773,14 @@ def fern_frond(n, seed):
             y += np.sin(ang) * 4
             S.stamp(x, y, 3.0, blob_fn(0.7, 0.2), 0.3, col('#3a4a22'))
             if i % 4 == 0 and t > 0.12:
-                pl = (1 - t) ** 0.8 * n * 0.22 * (0.8 + 0.3 * np.sin(t * np.pi))
+                pl = (1 - t) ** 0.8 * n * 0.26 * (0.8 + 0.3 * np.sin(t * np.pi))
                 for side in (-1, 1):
                     pa = ang + side * (1.2 - 0.3 * t)
-                    for j in range(int(pl / 5)):
-                        tt = j / max(1, pl / 5)
-                        px = x + np.cos(pa) * j * 5 + np.cos(ang) * tt * 6
-                        py = y + np.sin(pa) * j * 5 + np.sin(ang) * tt * 6
-                        half = max(2.5, 6.5 * (1 - tt) * (1 - 0.5 * t))
+                    for j in range(int(pl / 6)):
+                        tt = j / max(1, pl / 6)
+                        px = x + np.cos(pa) * j * 6 + np.cos(ang) * tt * 8
+                        py = y + np.sin(pa) * j * 6 + np.sin(ang) * tt * 8
+                        half = max(4.0, 12.0 * (1 - tt) * (1 - 0.45 * t))
                         if not (half < px < n - half and half < py < n - half):
                             continue
                         c0 = jitter_color(greens[r.integers(4)], r, 0.18)
@@ -790,9 +804,9 @@ def grass_blades(n, seed):
         L = n * r.uniform(0.35, 0.95)
         bend = r.normal(0, 0.0025)
         w0 = r.uniform(4.5, 8.0)
-        dry = r.random() < 0.25
-        g = jitter_color(col('#3e5222') if not dry else col('#7a7040'), r, 0.25)
-        tipc = col('#8a7c48') if r.random() < 0.6 else g
+        dry = r.random() < 0.1
+        g = jitter_color(col('#4a6426') if not dry else col('#7a7040'), r, 0.25)
+        tipc = col('#8a8a48') if r.random() < 0.3 else g
         steps = int(L / 2.5)
         x, y = x0, y0
         z = r.random()
@@ -825,6 +839,7 @@ MATERIALS = {
     'mat.roof.kawara': (kawara, 'kw1', 1.2, ('いぶし瓦', 'Kawara roof tiles'), ['屋根', '瓦'], ['屋根']),
     'mat.roof.kawara_moss': (lambda n, s: kawara(n, s, mossy=True), 'kw2', 1.2, ('苔むした瓦', 'Mossy kawara'), ['屋根', '瓦', '苔'], ['屋根']),
     'mat.metal.tin_rust': (tin_rust, 'tn1', 1.5, ('錆びたトタン（波板）', 'Rusted corrugated iron'), ['金属', 'トタン', '錆'], ['屋根', '差し掛け', '外壁']),
+    'mat.metal.iron_rust': (iron_rust, 'ir1', 0.6, ('錆びた鋳物の鉄', 'Rusted cast iron'), ['金属', '鉄', '錆'], ['鉄瓶', '釜', 'たが', '金具', '自転車']),
     'mat.floor.tatami': (tatami, 'tt1', 1.8, ('朽ちた畳', 'Decayed tatami'), ['床', '畳'], ['和室の床']),
     'mat.paper.shoji': (shoji, 'sj1', 0.9, ('破れた障子', 'Torn shoji'), ['紙', '障子', '建具'], ['建具', '窓']),
     'mat.paint.shu': (shu_paint, 'sh1', 1.0, ('はがれた朱塗り', 'Peeling vermilion'), ['塗装', '朱', '鳥居'], ['鳥居', '祠']),

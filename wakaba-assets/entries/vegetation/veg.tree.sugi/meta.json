@@ -53,7 +53,7 @@
    "ao",
    "roughness"
   ],
-  "fileBytes": 218400
+  "fileBytes": 229040
  },
  "use": [
   "山の廃村（写実の試験マップ）"
@@ -64,7 +64,7 @@
   "nodes": {
    "LOD0": 1528,
    "LOD1": 158,
-   "IMP": 4
+   "IMP": 6
   },
   "variants": 1,
   "lodDist": [

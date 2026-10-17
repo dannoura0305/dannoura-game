@@ -86,7 +86,7 @@ def plan(layout, asset_map=None, with_objects=True):
                 mesh = real["path"]
             else:
                 t = object_to_ue(o)
-                mesh = BASIC["cyl" if o["col"]["shape"] == "cyl" else "box"]
+                mesh = BASIC["cyl" if (o.get("col") or {}).get("shape") == "cyl" else "box"]   # col が null（飾り・当たりなし）も箱で置く
             out.append({"label": o["id"].replace("#", "_"), "mesh": mesh, "location": t["location"], "rotation": t["rotation"], "scale": t["scale"],
                         "folder": "objects/" + o["layer"], "tags": ["wakaba:" + m, "wakaba_kind:" + o["kind"]]})
     return out

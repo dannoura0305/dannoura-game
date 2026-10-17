@@ -34,15 +34,15 @@
    "glb",
    "fbx"
   ],
-  "tris": 1026,
+  "tris": 1318,
   "lods": [
-   1026,
-   274
+   1318,
+   304
   ],
   "sizeM": [
-   7.933,
-   9.824,
-   8.061
+   7.521,
+   9.633,
+   7.599
   ],
   "pivot": "bottom_center",
   "collision": "none",
@@ -52,7 +52,7 @@
    "ao",
    "roughness"
   ],
-  "fileBytes": 205976
+  "fileBytes": 276832
  },
  "use": [
   "山の廃村（写実の試験マップ）"
@@ -61,9 +61,9 @@
  "kit": {
   "kit": "wakaba-kit/1",
   "nodes": {
-   "LOD0": 1026,
-   "LOD1": 274,
-   "IMP": 4
+   "LOD0": 1318,
+   "LOD1": 304,
+   "IMP": 6
   },
   "variants": 1,
   "lodDist": [

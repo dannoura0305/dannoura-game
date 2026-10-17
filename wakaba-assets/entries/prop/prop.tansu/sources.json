@@ -6,7 +6,7 @@
    "role": "fbx",
    "path": "source/prop.tansu.fbx",
    "storage": "local-ignored",
-   "sha256": "81539394996373c9cca99fcc1a5cc811a59c87355eb099fa028d7e2ce77c745d",
+   "sha256": "8a2121883573c6429c7196392afb97b6901d8e8902739fd8e7d9f7ceeb9508c6",
    "bytes": 25020,
    "tool": "bpy 4.2.0",
    "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only prop.tansu"

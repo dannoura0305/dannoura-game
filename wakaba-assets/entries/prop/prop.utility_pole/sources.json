@@ -6,8 +6,8 @@
    "role": "fbx",
    "path": "source/prop.utility_pole.fbx",
    "storage": "local-ignored",
-   "sha256": "41d9557cbd20bcc72eb481a7ac3987bfbac992f5c3aa02a21483c374ca1f40d8",
-   "bytes": 23452,
+   "sha256": "e696d650016b9365cdb083c1107b83cd4c8267122c9df72bf50adfdf8f53ea7b",
+   "bytes": 24540,
    "tool": "bpy 4.2.0",
    "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only prop.utility_pole"
   }

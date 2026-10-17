@@ -115,7 +115,7 @@ def tree_broadleaf(seed=23, lod=0):
         p3 = Vector((0, 0, cz + 0.6)) + out * crx * 0.7
         B.tube([Vector((0.1, 0.05, trunk_top - 0.3)), p1, p2, p3], [0.17, 0.14, 0.09, 0.04], segs=max(4, segs - 3), mid='mat.bark.broadleaf')
         limbs.append((p2, p3))
-    N = 230 if lod == 0 else 80
+    N = 320 if lod == 0 else 95
     for i in range(N):
         while True:
             v = Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-1, 1)))
@@ -128,7 +128,7 @@ def tree_broadleaf(seed=23, lod=0):
         out = (p - Vector((0, 0, cz))).normalized()
         up = (out + Vector((0, 0, 0.8))).normalized()
         side = up.cross(Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-1, 1)))).normalized()
-        s = r.uniform(1.3, 1.9) * (1.0 if lod == 0 else 1.45)
+        s = r.uniform(1.1, 1.6) * (1.0 if lod == 0 else 1.5)
         B.card(p - up * s * 0.35, up, side, s, s, 'mat.foliage.broadleaf', bend=0.15 * s, segs=1)
         if lod == 0 and i % 3 == 0:
             q = p - up * s * 0.3
@@ -250,7 +250,7 @@ def barrel():
         B.mesh_from(verts, faces, 'mat.wood.cedar', uv_given=uvs)
     for zc in (0.15, 0.7):
         rad = 0.27 + 0.03 * math.sin(zc / H * math.pi) + 0.006
-        B.cyl((0, 0, zc - 0.025), (0, 0, zc + 0.025), rad, rad, segs=18, mid='mat.metal.tin_rust', caps=False)
+        B.cyl((0, 0, zc - 0.025), (0, 0, zc + 0.025), rad, rad, segs=18, mid='mat.metal.iron_rust', caps=False)
     B.cyl((0, 0, 0.02), (0, 0, 0.05), 0.265, 0.265, segs=18, mid='mat.wood.planks_silver')
     B.cyl((0, 0, H - 0.06), (0, 0, H - 0.04), 0.262, 0.262, segs=18, mid='mat.wood.planks_silver')
     return {'variants': [B.finish(25)], 'lods_ratio': [1.0, 0.3]}
@@ -332,8 +332,8 @@ def kamado():
     B.box((0, 0, 0.33), (0.9, 0.6, 0.66), 'mat.wall.tsuchikabe', bevel=0.05)
     B.box((0, 0, 0.69), (0.94, 0.64, 0.06), 'mat.stone.granite', bevel=0.01)
     for x in (-0.22, 0.22):
-        B.cyl((x, 0, 0.72), (x, 0, 0.8), 0.17, 0.2, segs=14, mid='mat.metal.tin_rust')
-        B.cyl((x, 0, 0.8), (x, 0, 0.86), 0.2, 0.15, segs=14, mid='mat.metal.tin_rust')
+        B.cyl((x, 0, 0.72), (x, 0, 0.8), 0.17, 0.2, segs=14, mid='mat.metal.iron_rust')
+        B.cyl((x, 0, 0.8), (x, 0, 0.86), 0.2, 0.15, segs=14, mid='mat.metal.iron_rust')
     for x in (-0.22, 0.22):
         B.box((x, -0.29, 0.2), (0.2, 0.06, 0.2), 'mat.rock.andesite', bevel=0.02)
     return {'variants': [B.finish(30)], 'lods_ratio': [1.0, 0.35]}
@@ -349,7 +349,7 @@ def tansu():
         for j, (x, w) in enumerate(((-0.25, 0.46), (0.25, 0.46)) if i == 3 else ((0, 0.94),)):
             B.box((x, -D / 2 - 0.005 - out / 2, z0 + h / 2), (w - 0.02, 0.03 + out, h - 0.02), 'mat.wood.planks_silver', grain='x', bevel=0.004)
             for hx in ((x - w * 0.25, x + w * 0.25) if w > 0.6 else (x,)):
-                B.box((hx, -D / 2 - 0.03 - out, z0 + h / 2), (0.09, 0.015, 0.025), 'mat.metal.tin_rust')
+                B.box((hx, -D / 2 - 0.03 - out, z0 + h / 2), (0.09, 0.015, 0.025), 'mat.metal.iron_rust')
     return {'variants': [B.finish(30)], 'lods_ratio': [1.0, 0.35]}
 
 
@@ -363,9 +363,9 @@ def irori():
     B.box((0, 0, 0.02), (S - 2 * t, S - 2 * t, 0.04), 'mat.ground.dirt_path')
     for k in range(3):
         a = k * TAU / 3
-        B.cyl((0.18 * math.cos(a), 0.18 * math.sin(a), 0.04), (0.14 * math.cos(a), 0.14 * math.sin(a), 0.2), 0.012, 0.012, segs=4, mid='mat.metal.tin_rust', caps=False)
-    B.cyl((0, 0, 0.2), (0, 0, 0.32), 0.14, 0.16, segs=14, mid='mat.metal.tin_rust')
-    B.cyl((0, 0, 0.32), (0, 0, 0.36), 0.16, 0.06, segs=14, mid='mat.metal.tin_rust')
+        B.cyl((0.18 * math.cos(a), 0.18 * math.sin(a), 0.04), (0.14 * math.cos(a), 0.14 * math.sin(a), 0.2), 0.012, 0.012, segs=4, mid='mat.metal.iron_rust', caps=False)
+    B.cyl((0, 0, 0.2), (0, 0, 0.32), 0.14, 0.16, segs=14, mid='mat.metal.iron_rust')
+    B.cyl((0, 0, 0.32), (0, 0, 0.36), 0.16, 0.06, segs=14, mid='mat.metal.iron_rust')
     return {'variants': [B.finish(30)], 'lods_ratio': [1.0, 0.4]}
 
 
@@ -460,13 +460,17 @@ def wall_panel(v):
     holes = {0: [], 1: [(r.uniform(-0.2, 0.2), r.uniform(0.35, 0.7), 0.16)], 2: [(r.uniform(-0.15, 0.15), r.uniform(0.3, 0.6), 0.3), (r.uniform(-0.3, 0.3), 0.85, 0.1)],
              3: [(0.0, 0.45, 0.42), (-0.25, 0.85, 0.2), (0.3, 0.15, 0.18)]}[v]
     # 壁の面：格子に割って、穴の中の面を消す（縁はぎざぎざ）
-    N = 16
+    N = 12
     for side, y in ((-1, -T / 2), (1, T / 2)):
         verts, faces, uvs = [], [], []
         idx = {}
         for j in range(N + 1):
             for i in range(N + 1):
                 x, z = -0.5 + i / N, j / N
+                if 0 < i < N and 0 < j < N:          # 中の点をずらす＝穴の縁が升目に沿わない（両面で同じずらし）
+                    jr = random.Random(1000 * v + 37 * i + j)
+                    x += (jr.random() - 0.5) * 0.75 / N
+                    z += (jr.random() - 0.5) * 0.75 / N
                 idx[(i, j)] = len(verts)
                 verts.append((x, y, z)); uvs.append((x, z))
         for j in range(N):
@@ -481,12 +485,12 @@ def wall_panel(v):
                 if cut:
                     continue
                 f = (idx[(i, j)], idx[(i + 1, j)], idx[(i + 1, j + 1)], idx[(i, j + 1)])
-                faces.append(f if side > 0 else tuple(reversed(f)))
+                faces.append(tuple(reversed(f)) if side > 0 else f)
         B.mesh_from(verts, faces, 'mat.wall.tsuchikabe', uv_given=uvs)
     # 穴の縁の厚み（荒壁の断面）：穴の縁の升目に小さな箱
     for (hx, hz, hr) in holes:
-        for k in range(int(hr * 60)):
-            a = k / max(1, int(hr * 60)) * TAU
+        for k in range(int(hr * 34)):
+            a = k / max(1, int(hr * 34)) * TAU
             rr = hr * (1 + 0.35 * math.sin(a * 3 + hx * 10) + 0.2 * math.sin(a * 7 + hz * 5))
             x, z = hx + math.cos(a) * rr, hz + math.sin(a) * rr
             if -0.48 < x < 0.48 and 0.02 < z < 0.98:
@@ -666,7 +670,7 @@ def komainu():
     B.box((0, 0, 0.36), (0.42, 0.56, 0.04), g, bevel=0.01)
     ob0 = B.finish(40)
     parts = [ob0]
-    def blob(c, s, name, sub=3):
+    def blob(c, s, name, sub=2):
         bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=sub, radius=1.0, location=c)
         o = bpy.context.active_object
         o.name = name
@@ -718,7 +722,7 @@ def well():
         B.box((s * 0.62, 0, 0.9), (0.09, 0.09, 1.8), 'mat.wood.cedar', grain='z', bevel=0.006)
     B.box((0, 0, 1.76), (1.4, 0.1, 0.1), 'mat.wood.cedar', grain='x', bevel=0.006)
     B.cyl((0, -0.06, 1.62), (0, 0.06, 1.62), 0.09, 0.09, segs=12, mid='mat.wood.cedar')
-    B.cyl((0, 0, 1.62), (0.02, 0, 0.75), 0.006, 0.006, segs=3, mid='mat.metal.tin_rust', caps=False)
+    B.cyl((0, 0, 1.62), (0.02, 0, 0.75), 0.006, 0.006, segs=3, mid='mat.metal.iron_rust', caps=False)
     ob = B.finish(35)
     return {'variants': [ob], 'lods_ratio': [1.0, 0.35]}
 
@@ -734,7 +738,7 @@ def utility_pole():
     for k in range(10):
         z = 1.8 + k * 0.42
         a = (k % 2) * math.pi
-        B.cyl((math.cos(a) * 0.1, math.sin(a) * 0.1, z), (math.cos(a) * 0.32, math.sin(a) * 0.32, z), 0.012, 0.012, segs=4, mid='mat.metal.tin_rust', caps=False)
+        B.cyl((math.cos(a) * 0.1, math.sin(a) * 0.1, z), (math.cos(a) * 0.32, math.sin(a) * 0.32, z), 0.012, 0.012, segs=4, mid='mat.metal.iron_rust', caps=False)
     B.box((0, -0.125, 2.4), (0.18, 0.012, 0.5), 'mat.metal.tin_rust')
     return {'variants': [B.finish(40)], 'lods_ratio': [1.0, 0.3]}
 
@@ -751,7 +755,7 @@ def sign():
 def bicycle():
     """錆びた自転車（横倒し）"""
     B = Builder('bicycle', 131)
-    m = 'mat.metal.tin_rust'
+    m = 'mat.metal.iron_rust'
     for wx in (-0.52, 0.52):
         n = 24
         pts = [(wx + 0.33 * math.cos(k / n * TAU), 0.33 * math.sin(k / n * TAU) + 0.36, 0) for k in range(n + 1)]
@@ -802,9 +806,9 @@ def ishigaki():
                 break
             bpy.ops.mesh.primitive_cube_add(size=1.0, location=(x + w / 2, r.uniform(-0.02, 0.02), z + h / 2))
             o = bpy.context.active_object
-            o.scale = (w * 0.48, 0.25, h * 0.48)
+            o.scale = (w * 0.98, 0.5, h * 0.98)
             bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-            sub = o.modifiers.new('s', 'SUBSURF'); sub.levels = 2
+            sub = o.modifiers.new('s', 'SUBSURF'); sub.levels = 1
             bpy.ops.object.modifier_apply(modifier='s')
             displace(o, strength=0.05, scale=0.12, seed=139 + k, keep_bottom=False)
             o.data.materials.append(__import__('kitlib').get_material('mat.rock.andesite'))

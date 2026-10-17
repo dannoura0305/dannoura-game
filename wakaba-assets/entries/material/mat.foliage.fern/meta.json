@@ -44,7 +44,7 @@
    "roughness",
    "height"
   ],
-  "fileBytes": 155880
+  "fileBytes": 190346
  },
  "use": [
   "下草"
@@ -83,9 +83,9 @@
    "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
   },
   "albedoMean": [
-   0.149,
-   0.233,
-   0.091
+   0.157,
+   0.247,
+   0.096
   ],
   "roughMean": 0.7
  },

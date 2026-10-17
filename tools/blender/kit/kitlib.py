@@ -25,7 +25,7 @@ MAT_COLORS = {
     'mat.paper.shoji': (0.71, 0.66, 0.56), 'mat.paint.shu': (0.6, 0.26, 0.16), 'mat.stone.granite': (0.37, 0.36, 0.35),
     'mat.bark.sugi': (0.27, 0.18, 0.12), 'mat.bark.broadleaf': (0.3, 0.29, 0.26), 'mat.foliage.sugi': (0.23, 0.3, 0.14),
     'mat.foliage.broadleaf': (0.24, 0.31, 0.13), 'mat.foliage.fern': (0.19, 0.29, 0.12), 'mat.foliage.grass': (0.33, 0.35, 0.18),
-    'mat.fabric.futon': (0.32, 0.33, 0.38),
+    'mat.fabric.futon': (0.32, 0.33, 0.38), 'mat.metal.iron_rust': (0.3, 0.22, 0.17),
 }
 
 

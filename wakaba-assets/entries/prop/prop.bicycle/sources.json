@@ -6,7 +6,7 @@
    "role": "fbx",
    "path": "source/prop.bicycle.fbx",
    "storage": "local-ignored",
-   "sha256": "35af084f5d0d3c8f5213884e61f81471dde2571f52bc0657454b3e58b7c3a9c1",
+   "sha256": "d34039a8e978acc7a40332f35232d2f055d5f65639ac03810659bbee4ec82f1d",
    "bytes": 41820,
    "tool": "bpy 4.2.0",
    "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only prop.bicycle"

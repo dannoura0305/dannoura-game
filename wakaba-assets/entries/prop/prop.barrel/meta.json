@@ -52,7 +52,7 @@
    "ao",
    "roughness"
   ],
-  "fileBytes": 47160
+  "fileBytes": 47164
  },
  "use": [
   "山の廃村（写実の試験マップ）"
@@ -70,7 +70,7 @@
   ],
   "impostor": false,
   "materials": [
-   "mat.metal.tin_rust",
+   "mat.metal.iron_rust",
    "mat.wood.cedar",
    "mat.wood.planks_silver"
   ],

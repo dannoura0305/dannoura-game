@@ -6,8 +6,8 @@
    "role": "texture",
    "path": "source/mat.foliage.grass_albedo.png",
    "storage": "local-ignored",
-   "sha256": "e017c469f582b29658cf79ca46a3fdfed378ff3fef4acd7272c286ace797eb34",
-   "bytes": 429867,
+   "sha256": "4bf51fbbbb61245762aa808e56eaeffc67f5ebf5558e61aa2a2e286a66d1855d",
+   "bytes": 400573,
    "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
    "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.foliage.grass"
   },

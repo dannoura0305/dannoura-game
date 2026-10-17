@@ -6,7 +6,7 @@
    "role": "fbx",
    "path": "source/veg.tree.sugi.fbx",
    "storage": "local-ignored",
-   "sha256": "32ff5d4ce1b1106e21a5f78e0bb9c8ae924350f903a8eb9eb627e9063187bca8",
+   "sha256": "96ad1b77755ac485546b339995ce2a7ba352008120100077f51cd0800a36b9df",
    "bytes": 95996,
    "tool": "bpy 4.2.0",
    "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only veg.tree.sugi"

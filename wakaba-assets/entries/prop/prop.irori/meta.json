@@ -70,7 +70,7 @@
   "impostor": false,
   "materials": [
    "mat.ground.dirt_path",
-   "mat.metal.tin_rust",
+   "mat.metal.iron_rust",
    "mat.wood.cedar"
   ],
   "vertexColor": "COLOR_0＝AO（焼き込み）",

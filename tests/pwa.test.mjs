@@ -121,7 +121,7 @@ test('トビネズミ：専用の manifest（全画面・向き自由・アイ�
 test('わかば mapkit（検証マップ・開発用）：ページ・ES モジュール・地図のデータはネット優先、レポート・道具は素通し', () => {
   const { sw } = loadSW();
   const k = p => sw.kindOf(new URL(p, sw.BASE));
-  assert.equal(sw.VERSION, '2026-10-25.1');
+  assert.equal(sw.VERSION, '2026-10-26.1');
   assert.equal(k('mapkit.html'), 'shell');
   assert.equal(k('mapkit/runtime/main.js'), 'shell');
   assert.equal(k('mapkit/runtime/style.css'), 'shell');
@@ -132,6 +132,13 @@ test('わかば mapkit（検証マップ・開発用）：ページ・ES モジ�
   assert.equal(k('maps/haison/report/report.json'), null);
   assert.equal(k('mapkit/schema/map-spec.schema.json'), null);
   assert.equal(k('tools/mapkit/play_map.mjs'), null);
+  // フェーズ 3：共有素材ライブラリ（目録はネット優先・Web の書き出しは画像と同じ・原本と meta は素通し）
+  assert.equal(k('wakaba-assets/catalog.json'), 'shell');
+  assert.equal(k('wakaba-assets/entries/material/mat.ground.moss/web/albedo_1024.webp'), 'media');
+  assert.equal(k('wakaba-assets/entries/vegetation/veg.tree.sugi/web/veg.tree.sugi.glb'), 'media');
+  assert.equal(k('wakaba-assets/entries/vegetation/veg.tree.sugi/meta.json'), null);
+  assert.equal(k('wakaba-assets/entries/vegetation/veg.tree.sugi/source/veg.tree.sugi.fbx'), null);
+  assert.equal(k('vendor/three-esm/three-0.185.1/addons/loaders/GLTFLoader.js'), 'code');
   assert.ok(!read('index.html').includes('mapkit.html'), '本編のタイトルからはつながない');
 });
 

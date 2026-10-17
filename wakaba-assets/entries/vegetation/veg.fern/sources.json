@@ -6,7 +6,7 @@
    "role": "fbx",
    "path": "source/veg.fern.fbx",
    "storage": "local-ignored",
-   "sha256": "12ed23d87d718fdd3447a243cde85d8681d6ca8272ab1f7a0b4d7813acece0c5",
+   "sha256": "9d44fe5870b7d0a644e85d08cde7a7387855b8916f60e6c878439b828c0db587",
    "bytes": 18076,
    "tool": "bpy 4.2.0",
    "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only veg.fern"

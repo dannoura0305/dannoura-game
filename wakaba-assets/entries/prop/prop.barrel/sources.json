@@ -6,7 +6,7 @@
    "role": "fbx",
    "path": "source/prop.barrel.fbx",
    "storage": "local-ignored",
-   "sha256": "bece02a7873a91d4cb6d8204e2374f4bd0de4182a71e39679bb261f69c6338a3",
+   "sha256": "2965fbacea9d4fc2c1c99c888a5fadd9a9b151705bebf2f048d96ea66ff9f30a",
    "bytes": 29068,
    "tool": "bpy 4.2.0",
    "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only prop.barrel"

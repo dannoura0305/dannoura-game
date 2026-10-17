@@ -144,9 +144,10 @@ def render_to(path):
 
 
 def impostor(lod0, library, out_dir, aid):
-    """木の遠景の板：Cycles で正面（−y）と横（+x）から撮った絵（白い空の光＝色×隠れ具合）を 1 枚に並べ、十字の 2 枚の板に貼る"""
+    """木の遠景の板：Cycles で正面（−y）・横（+x）・真上から撮った絵（白い空の光＝色×隠れ具合）を 1 枚に並べ、
+    十字の 2 枚の縦の板＋樹冠の高さの横の板 1 枚に貼る（上から見ても木に見える）"""
     import numpy as np
-    from PIL import Image
+    from PIL import Image, ImageFilter
     (x0, y0, z0), (x1, y1, z1) = bounds([lod0])
     W = max(x1 - x0, y1 - y0) * 1.04
     H = (z1 - z0) * 1.02
@@ -157,20 +158,25 @@ def impostor(lod0, library, out_dir, aid):
     W = H * vw / vh
     textured(library, True)
     world((1, 1, 1), 1.0)
-    cycles((vw, vh), samples=24)
     imgs = []
-    for k, (loc, look) in enumerate((((0, -60, zc), (0, 0, zc)), ((60, 0, zc), (0, 0, zc)))):
-        camera(loc, look, ortho=H)
+    for k, (loc, look, res, ortho) in enumerate((((0, -60, zc), (0, 0, zc), (vw, vh), H), ((60, 0, zc), (0, 0, zc), (vw, vh), H), ((0, 0, z1 + 60), (0, 0.001, zc), (vw, vw), W))):
+        cycles(res, samples=24)
+        co = camera(loc, look, ortho=ortho)
+        if k == 2:
+            co.rotation_euler = (0, 0, 0)        # 真上から・絵の上＝+y
         p = os.path.join(out_dir, '_imp%d.png' % k)
         render_to(p)
-        imgs.append(np.asarray(Image.open(p).convert('RGBA')))
+        im = np.asarray(Image.open(p).convert('RGBA'))
+        if k == 2:   # 真上の絵は縦の絵と同じ高さの枠に入れる（下を空ける）
+            pad = np.zeros((vh, vw, 4), np.uint8)
+            pad[:vw] = im
+            im = pad
+        imgs.append(im)
         os.remove(p)
     textured(library, False)
     atlas = np.concatenate(imgs, 1)
-    # 透過の縁のにじみ（mip で白い縁が出ないよう）
     a = atlas[..., 3:4].astype(np.float32) / 255
     rgb = atlas[..., :3].astype(np.float32)
-    from PIL import ImageFilter
     filled = rgb.copy()
     m = (a[..., 0] > 0.05)
     for r in (2, 6, 16):
@@ -197,20 +203,24 @@ def impostor(lod0, library, out_dir, aid):
     mat.blend_method = 'CLIP'
     me = bpy.data.meshes.new('IMP')
     hw = W / 2
-    verts = [(-hw, 0, z0), (hw, 0, z0), (hw, 0, z0 + H), (-hw, 0, z0 + H), (0, -hw, z0), (0, hw, z0), (0, hw, z0 + H), (0, -hw, z0 + H)]
-    verts = [(v[0], v[1], v[2] - (H * 0.01)) for v in verts]
-    me.from_pydata(verts, [], [(0, 1, 2, 3), (4, 5, 6, 7)])
+    zb = z0 - H * 0.01
+    zt = zb + H * 0.62          # 横の板の高さ（樹冠の中ほど）
+    verts = [(-hw, 0, zb), (hw, 0, zb), (hw, 0, zb + H), (-hw, 0, zb + H), (0, -hw, zb), (0, hw, zb), (0, hw, zb + H), (0, -hw, zb + H),
+             (-hw, -hw, zt), (hw, -hw, zt), (hw, hw, zt), (-hw, hw, zt)]
+    me.from_pydata(verts, [], [(0, 1, 2, 3), (4, 5, 6, 7), (8, 9, 10, 11)])
     me.materials.append(mat)
     uv = me.uv_layers.new(name='UVMap')
-    uvs = [(0, 0), (0.5, 0), (0.5, 1), (0, 1), (0.5, 0), (1, 0), (1, 1), (0.5, 1)]
+    t = vw / vh   # 真上の絵の縦の割合（枠の上から）
+    uvs = [(0, 0), (1 / 3, 0), (1 / 3, 1), (0, 1), (1 / 3, 0), (2 / 3, 0), (2 / 3, 1), (1 / 3, 1),
+           (2 / 3, 1 - t), (1, 1 - t), (1, 1), (2 / 3, 1)]
     for p in me.polygons:
         for li in p.loop_indices:
             uv.data[li].uv = uvs[me.loops[li].vertex_index]
     ob = bpy.data.objects.new('IMP', me)
     bpy.context.scene.collection.objects.link(ob)
-    me.normals_split_custom_set_from_vertices([(Vector((v[0], v[1], 0)) * 0.5 / max(hw, 1e-3) + Vector((0, 0, 0.85))).normalized() for v in verts])
+    # 法線は描画の側で外向き＋上向きにする（mapkit/render/assets.js）。ここで独自の法線を付けると glTF の接線が単位にならない（gltf-validator）
     os.remove(ip)
-    return ob, (vw * 2, vh)
+    return ob, (vw * 3, vh)
 
 
 def preview(objs, library, path):
@@ -302,6 +312,10 @@ def build_one(aid, library, prev_dir, fbx=True):
         hide = [o for o in objs if o not in (res.get('lods', [None])[0:1] + res.get('variants', []))]
         for o in hide:
             o.hide_render = True
+        shown = [o for o in objs if not o.hide_render]
+        if len(shown) > 1 and 'variants' in res:
+            for k, o in enumerate(shown):
+                o.location.x = (k - (len(shown) - 1) / 2) * (x1 - x0) * 1.25     # 種類を横に並べて撮る（重なると Cycles で黒くなる）
         preview([o for o in objs if not o.hide_render], library, os.path.join(prev_dir, aid + '.png'))
         for o in hide:
             o.hide_render = False

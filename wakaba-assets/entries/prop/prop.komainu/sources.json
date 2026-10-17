@@ -6,8 +6,8 @@
    "role": "fbx",
    "path": "source/prop.komainu.fbx",
    "storage": "local-ignored",
-   "sha256": "e177cf3e8c2bf1b20768cf50764aecd1f564bf23b857fe0f623395604a354e9d",
-   "bytes": 163180,
+   "sha256": "e33cc260876aea509b7f7633234ecc165952035671cbe2340e19faf9550ac799",
+   "bytes": 61820,
    "tool": "bpy 4.2.0",
    "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only prop.komainu"
   }
