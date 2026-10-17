@@ -110,6 +110,13 @@ export const TOWN = {
     gate: [40.6, 43.4],                   // 門（ブロック塀の切れ目）x の範囲（z=43）
     solids: [[48, 43, 50, 66, 1.8], [30.5, 52, 36, 66, 2.4], [36, 56, 48, 66, 1.8], [30.5, 43, 30.8, 52, 1.8]],
   },
+  // P14：横丁の飲み屋の長屋（南の側・表は北＝横丁）。front：店の前の物（bench＝縁台・taru＝樽の机：当たり判定は townSolids）
+  yokochoUnits: [
+    { name: '焼き鳥（仮）', kind: 'yakitori', x0: 44, front: [] },
+    { name: 'おでん（仮）', kind: 'oden', x0: 48, front: ['bench'] },
+    { name: '立ち飲み（仮）', kind: 'tachinomi', x0: 52, front: ['taru'] },
+    { name: 'スナック 雪（仮）', kind: 'snack', x0: 56, front: [] },
+  ],
   // 交差点・信号・横断歩道
   crossings: [
     { id: 'x_main', x0: 8.6, x1: 12.4, z0: 4.5, z1: 11.5, signal: true },        // 用水路沿いの道の正面（信号つき）
@@ -304,6 +311,8 @@ export function townSolids(T = TOWN) {
     if (p.kind === 'yukigakoi') R(p.x - 0.45, p.z - 0.45, p.x + 0.45, p.z + 0.45, 1.8);
   }
   for (const [x, zz] of signalPoles(T)) R(x - 0.1, zz - 0.1, x + 0.1, zz + 0.1, 5);
+  if (T.yokochoUnits) { const zf = T.walk.find(w => w.id === 'yokocho').rect[3];      // P14：横丁の店の前の縁台・樽の机
+    for (const u of T.yokochoUnits) { if (u.front.includes('bench')) R(u.x0 + 0.28, zf - 0.53, u.x0 + 1.42, zf, 0.45); if (u.front.includes('taru')) R(u.x0 + 0.2, zf - 0.92, u.x0 + 1.04, zf, 1.0); } }
   const A = T.avenue;
   if (A) {
     for (const st of A.stops) {                                       // 電停：島（歩いて上がれる 0.24m）・車道側の手すり・屋根の柱

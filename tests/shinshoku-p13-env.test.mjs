@@ -36,7 +36,7 @@ await t('横丁：おでん・焼き鳥・立ち飲み・スナックの看板�
   for (const name of ['おでん', '焼き鳥', '立ち飲み', 'スナック 雪']) {
     const signs = P.filter(p => p.text === name && p.fn === 'sign');
     assert.ok(signs.length >= 2, name + ' ののれん・看板 ' + signs.length);
-    for (const s of signs) assert.ok(s.min[2] >= Y[3] - 0.2 && s.max[2] <= Y[3] + 0.2, name + ' の看板が長屋の表に無い');
+    for (const s of signs) assert.ok(s.min[2] >= Y[3] - 0.8 && s.max[2] <= Y[3] + 0.2, name + ' の看板が長屋の表に無い');   // P14：提灯の字（表から 0.7m）も含む
     const x = (signs[0].min[0] + signs[0].max[0]) / 2;
     const inside = P.filter(p => p.fn === 'unit' && p.min[2] > Y[3] + 0.3 && Math.abs((p.min[0] + p.max[0]) / 2 - x) < 2.5 && p.max[1] < 2.7);
     assert.ok(inside.length >= 12, name + ' の店の中の形が少ない ' + inside.length);

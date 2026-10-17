@@ -315,4 +315,9 @@ KINDS = ['sedan', 'kei', 'minivan', 'truck', 'taxi', 'hatch']
 
 
 def cars():
-    return {'variant_lods': [[car(k, l) for l in range(3)] for k in KINDS]}
+    return {'variant_lods': [[car(k, l) for l in range(3)] for k in KINDS], 'no_tangents': True}
+
+
+def cars_lite():
+    """スマホの低い段の車（LOD2 だけ・小さい glb）。id：prop.town.car_lite（種類の番号は prop.town.car と同じ）"""
+    return {'variant_lods': [[car(k, 2)] for k in KINDS], 'no_tangents': True}

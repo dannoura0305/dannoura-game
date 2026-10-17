@@ -2,11 +2,13 @@
 //   shinshoku/assets/characters/manifest.json の file に「.vrm」「.glb」「.gltf」を書く（docs/shinshoku/ASSET_IMPORT.md）。
 // 読めなかったら null を返し、ゲームはコードで組んだ仮のキャラクターのまま続ける（コンソールに警告）。
 // 骨の名前：VRM は humanoid の骨を使う。glTF は manifest の bones（対応表）→ よくある名前（Mixamo・Blender の Rigify 風・VRM 風）の順で探す。
-// 動き：本作の手続きアニメ（actor/anim.js）を骨に当てる。glTF に入っているアニメーションは使わない（animations:"clips" で将来対応）。
+// 動き：VRM は本物の動き（VRMA のクリップの組 entry.anim）＋手続きの予備（charkit/anim/clipanim.js・2026-10-17 の方針：外部のモデル＋モーキャプが本番）。
+//       glTF は本作の手続きアニメ（actor/anim.js）を骨に当てる（glTF に入っているアニメーションは animations:"clips" で将来対応）。
 import * as THREE from 'three';
 
 const BASE = new URL('../assets/characters/', import.meta.url);
 import { JOINT_NAMES, matchBones } from './bones.js';
+import { attachRigidWeapons } from './models.js';
 export { JOINT_NAMES, matchBones };
 
 export async function loadManifest() {
@@ -16,10 +18,10 @@ export async function loadManifest() {
 export function portraitURL(entry) { return entry && entry.portrait ? new URL(entry.portrait, BASE).href : null; }
 
 /** 種類で振り分け（.vrm／.glb／.gltf）。戻り値は { root, J, rest, isExternal, height, portrait } か null */
-export async function loadCharacter(entry) {
+export async function loadCharacter(entry, opt = {}) {
   if (!entry || !entry.file) return null;
   const f = String(entry.file).toLowerCase();
-  if (f.endsWith('.vrm')) return loadVRM(entry);
+  if (f.endsWith('.vrm')) return loadVRM(entry, opt);
   if (f.endsWith('.glb') || f.endsWith('.gltf')) return loadGLTF(entry);
   console.warn('[shinshoku] 対応していない形式：', entry.file, '（.vrm／.glb／.gltf）');
   return null;
@@ -36,28 +38,80 @@ function fitHeight(obj, entry, defH) {
   const b2 = new THREE.Box3().setFromObject(obj); obj.position.y -= b2.min.y;   // 足を地面へ
 }
 
-export async function loadVRM(entry) {
+/**
+ * VRM（0.x／1.0）：本番の道（charkit/runtime/vrmrt.js）。normalized の人型の骨に、
+ *  ・手続きの姿勢（予備）：腕を下ろした休みの値を T ポーズの骨へ付け替えて当てる（Poser の tpose）。脚は歩きの係（足の IK）
+ *  ・本物の動き：entry.anim（クリップの組 clips.json）があれば VRMA を読み、ClipAnimator（charkit/anim/clipanim.js）で動かす（actors.js の Player）
+ *  ・武器・背中の物：手の骨・胸の骨に「差し込み口」（sockets）を作り、そこへ持たせる（entry.sockets で位置を直せる）
+ * opt：{ quality:'low'|'mid'|'high'（スマホの低は輪郭線なし・テクスチャ 1024・揺れ物 30Hz） }
+ */
+export async function loadVRM(entry, opt = {}) {
   if (!entry || !entry.file) return null;
   try {
-    const [{ GLTFLoader }, VRMmod] = await Promise.all([import('three/addons/loaders/GLTFLoader.js'), import('@pixiv/three-vrm')]);
-    const loader = new GLTFLoader();
-    loader.register(parser => new VRMmod.VRMLoaderPlugin(parser));
-    const gltf = await loader.loadAsync(new URL(entry.file, BASE).href);
-    const vrm = gltf.userData.vrm; if (!vrm) return null;
-    try { VRMmod.VRMUtils.removeUnnecessaryVertices(gltf.scene); if (VRMmod.VRMUtils.combineSkeletons) VRMmod.VRMUtils.combineSkeletons(gltf.scene); } catch (e) { /* 古い版 */ }
-    if (vrm.meta && vrm.meta.metaVersion === '0') VRMmod.VRMUtils.rotateVRM0(vrm);   // VRM0 は -z 向き。本作は +z 向き
-    const root = new THREE.Group(); root.add(vrm.scene);
-    if (entry.rotateY) vrm.scene.rotation.y = entry.rotateY;
-    if (entry.scale && entry.scale !== 1) vrm.scene.scale.setScalar(entry.scale);
-    vrm.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
-    const J = {};
-    for (const n of JOINT_NAMES) { const b = vrm.humanoid.getNormalizedBoneNode(n) || (n === 'chest' ? vrm.humanoid.getNormalizedBoneNode('spine') : null); if (b) J[n] = b; }
-    const rest = { leftUpperArm: [0, 0, -1.25], rightUpperArm: [0, 0, 1.25] };   // T ポーズの腕を下ろす
-    return { root, J, vrm, rest, isVRM: true, isExternal: true, height: entry.height || 1.64, provisional: !!entry.provisional, portrait: portraitURL(entry), update: dt => vrm.update(dt) };
+    const { loadVRMModel } = await import('../../charkit/runtime/vrmrt.js');
+    const low = opt.quality === 'low';
+    const file = low && entry.fileLow ? entry.fileLow : entry.file;
+    const m = await loadVRMModel(new URL(file, BASE).href, {
+      height: entry.height || 1.64, fit: entry.fit || 'bbox', scale: entry.scale, rotateY: entry.rotateY,
+      shader: entry.shader || 'mtoon', outline: low ? false : entry.outline !== false, maxTex: low ? (entry.maxTexLow || 1024) : (entry.maxTex || 0), shadows: true,
+      springs: entry.springs || null, lowSpec: low, toon2: entry.shader === 'toon2' ? { materials: entry.toonMaterials || {}, rim: 0.4 } : null,
+    });
+    if (!m) return null;
+    const vrm = m.vrm, J17 = {}, Jx = {};
+    for (const [k, b] of Object.entries(m.J)) (JOINT_NAMES.includes(k) ? J17 : Jx)[k] = b;
+    const sockets = makeSockets(m.J, entry.sockets || {}, vrm, m.stats.metaVersion === '0');
+    const model = {
+      root: m.root, J: J17, Jx, vrm, rest: {}, tpose: true, vrm0: m.stats.metaVersion === '0', hipScale: 1 / (m.sceneScale || 1), isVRM: true, isExternal: true,
+      height: entry.height || 1.64, provisional: !!entry.provisional, test: !!entry.test, portrait: portraitURL(entry),
+      legDims: m.legDims ? scaleDims(m.legDims, m.sceneScale || 1) : null, legScale: m.legScale, sockets, springs: m.springs, stats: m.stats,
+      kind: entry.kind || 'vrm', update: dt => m.update(dt),
+    };
+    // 武器は差し込み口へ（コードの武器の形：腕を下ろした手の向きに合わせた口）
+    model.weapons = attachRigidWeapons(Object.assign({}, J17, { rightHand: sockets.rightHand || J17.rightHand, hips: sockets.hips || J17.hips }));
+    if (entry.anim) {
+      try {
+        const { loadClipSet } = await import('../../charkit/runtime/vrma.js');
+        const set = await loadClipSet(new URL(entry.anim, BASE).href, vrm);
+        if (set.errors.length) console.warn('[shinshoku] VRMA の一部が読めません', set.errors);
+        if (Object.keys(set.clips).length) {
+          const { ClipAnimator } = await import('../../charkit/anim/clipanim.js');
+          const scene = vrm.scene, inv = new THREE.Matrix4(), v = new THREE.Vector3();
+          model.clips = set;
+          model.clipAnim = new ClipAnimator(scene, m.J, set, { legDims: m.legDims, sceneScale: m.sceneScale || 1, vrm0: m.stats.metaVersion === '0', blendS: entry.blendS || 0.2, footIK: entry.footIK !== false,
+            ground: () => { m.root.updateWorldMatrix(true, false); inv.copy(scene.matrixWorld).invert(); return v.setFromMatrixPosition(m.root.matrixWorld).applyMatrix4(inv).y; } });
+          m.stats.clips = Object.keys(set.clips).length; m.stats.clipMs = set.ms;
+        }
+      } catch (e) { console.warn('[shinshoku] 動きのクリップを読めません。手続きの動きで続けます', e); }
+    }
+    return model;
   } catch (e) {
     console.warn('[shinshoku] VRM の読み込みに失敗。仮のキャラクターで続けます', e);
     return null;
   }
+}
+const scaleDims = (L, k) => { if (k === 1) return L; const o = {}; for (const [n, x] of Object.entries(L)) o[n] = typeof x === 'number' ? x * k : x; return o; };
+
+/**
+ * 差し込み口：骨の名前（人型の名前か、モデルの中の節の名前）に子の Group を作る。
+ * 既定：rightHand・leftHand（腕を下ろした休みの手の向き＝コードの武器の形がそのまま合う）・back（胸）・hips。
+ * def：{ 名前: { bone, pos:[x,y,z], rot:[x,y,z] } }（manifest の sockets）
+ */
+export function makeSockets(J, def = {}, vrm = null, vrm0 = false) {
+  const find = n => J[n] || (vrm && vrm.humanoid && vrm.humanoid.getNormalizedBoneNode && vrm.humanoid.getNormalizedBoneNode(n)) || (vrm && vrm.scene.getObjectByName(n)) || null;
+  const D = Object.assign({
+    rightHand: { bone: 'rightHand', pos: [0, 0, 0], rot: [0, 0, -Math.PI / 2] },
+    leftHand: { bone: 'leftHand', pos: [0, 0, 0], rot: [0, 0, Math.PI / 2] },
+    back: { bone: J.upperChest ? 'upperChest' : 'chest', pos: [0, 0, -0.14], rot: [0, 0, 0] },
+    hips: { bone: 'hips', pos: [0, 0, 0], rot: [0, 0, 0] },
+  }, def);
+  const out = {};
+  for (const [k, d] of Object.entries(D)) {
+    const b = find(d.bone); if (!b) continue;
+    const g = new THREE.Group(); g.name = 'socket_' + k; g.position.set(...(d.pos || [0, 0, 0])); g.rotation.set(...(d.rot || [0, 0, 0]));
+    if (vrm0 && !def[k]) { g.quaternion.x = -g.quaternion.x; g.quaternion.z = -g.quaternion.z; g.position.x = -g.position.x; g.position.z = -g.position.z; }   // VRM 0.x の normalized は 180° 回っている（実物では未確認）
+    b.add(g); out[k] = g;
+  }
+  return out;
 }
 
 /**

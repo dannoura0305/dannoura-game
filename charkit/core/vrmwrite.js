@@ -126,6 +126,7 @@ export function buildVRM1(o) {
     if (m.alphaMode) mat.alphaMode = m.alphaMode;
     if (m.alphaMode === 'MASK') mat.alphaCutoff = m.alphaCutoff ?? 0.5;
     if (m.doubleSided) mat.doubleSided = true;
+    if (m.extras) mat.extras = m.extras;
     if (m.mtoon) {
       B.useExt('VRMC_materials_mtoon'); B.useExt('KHR_materials_unlit');
       const mt = Object.assign({ specVersion: '1.0', transparentWithZWrite: false, renderQueueOffsetNumber: 0, shadeColorFactor: [0.8, 0.8, 0.8], shadingShiftFactor: 0, shadingToonyFactor: 0.9, giEqualizationFactor: 0.9,

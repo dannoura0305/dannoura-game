@@ -68,11 +68,11 @@ t('奥の家並み・ビル：見えない壁が無い（どの区画も升目�
   }
   for (const id of ['f_e2', 'f_e3', 'w5', 'f_sw']) assert.ok(fillEntrances(TOWN.lots.find(L => L.id === id)).length >= 1, id + ' の道に面した建物に戸が無い');
 });
-t('町家の戸口は壁の外（格子戸・枠）・自宅の戸口に開けた引き戸・裏路地に裏口・集合住宅の入口', () => {
+t('町家の戸口は壁の外（格子戸・枠）・自宅の玄関は開き戸（閉じていて近づくと開く：P14）・裏路地に裏口・集合住宅の入口', () => {
   const t2 = src('world/town2.js'), t1 = src('world/town.js');
   assert.ok(/machiyaDoors\(L\)/.test(t2) && /doorFrame\(F, doorU, -0\.02/.test(t2), '町家の戸口');
   assert.ok(!/F\.box\(lit \? 'glow' : 'prop', doorU, 0\.35/.test(t2), '町家の戸が壁の中に戻っている');
-  assert.ok(/開けた戸/.test(t1) && /genkan\(F, doorU, v0/.test(t1) && /インターホン/.test(t1), '自宅・家の玄関');
+  assert.ok(/玄関の戸（開き戸/.test(t1) && /homeDoorTick/.test(src('world/level.js')) && /genkan\(F, doorU, v0/.test(t1) && /インターホン/.test(t1), '自宅・家の玄関');
   assert.ok(/glassDoor\(F, eu, set/.test(t1), '集合住宅の入口');
   assert.ok((src('world/areas.js').match(/backDoor\(/g) || []).length >= 3, '裏路地の裏口');
 });

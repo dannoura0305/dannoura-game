@@ -7,7 +7,8 @@
 //   スマホは ?ch=5&route=reveal から第6章A 冒頭の終わりまで（--only ch5｜ch5pc｜ch5r｜ch5s｜ch5phone｜ch5models）。
 // 使い方：python3 -m http.server 8797 --directory <repo> を起動してから
 //   node tools/shinshoku_play.mjs [出力フォルダ] [--base http://localhost:8797] [--only pc|phone]
-// 環境変数：PW_MODULE（playwright の index.mjs）、PW_CHROMIUM（chromium の実行ファイル）、SH_TIMEOUT（撮影などの時間切れ ms・既定 30000）
+// 環境変数：PW_MODULE（playwright の index.mjs）、PW_CHROMIUM（chromium の実行ファイル）、SH_TIMEOUT（撮影などの時間切れ ms・既定 30000）、
+//   SH_QUERY（全部の場面の URL に足す引数。例 SH_QUERY=vrm=test：試験用の VRM＋VRMA のクリップで通す）
 // 進め方：移動・攻撃・回避・弾く・調べる・持ち替えは入力列（__sh.input.script）で入れる。場所の移動の一部（長い道のり）だけ teleport を使う。
 // 演出場面は一部を実際の時間で再生して撮り、残りは長押しと同じ「飛ばす」で進める。
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
@@ -39,7 +40,7 @@ async function openGame(ctx, query, errs) {
   page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
   await page.addInitScript(keys => { if (!sessionStorage.getItem('__seeded')) { for (const [k, v] of Object.entries(keys)) localStorage.setItem(k, v); sessionStorage.setItem('__seeded', '1'); } }, OTHER_KEYS);
   const t0 = Date.now();
-  await page.goto(`${BASE}/shinshoku.html?${query}`);
+  await page.goto(`${BASE}/shinshoku.html?${query}${process.env.SH_QUERY ? '&' + process.env.SH_QUERY : ''}`);   // SH_QUERY：全部の場面に足す（例 vrm=test：試験用の VRM＋VRMA）
   await page.waitForFunction(() => window.__sh && ['play', 'dialog'].includes(window.__sh.state().mode), null, { timeout: 90000, polling: 50 });
   return { page, loadMs: Date.now() - t0 };
 }

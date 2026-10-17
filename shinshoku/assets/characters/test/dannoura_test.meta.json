@@ -32,48 +32,48 @@
  "files": [
   {
    "file": "characters/test/dannoura_test.vrm",
-   "bytes": 1479632,
-   "sha256": "05e94955a9d11e7dfb28e8cc475ba9809140ce507b6ad82734ce06da411d8b34"
+   "bytes": 1479824,
+   "sha256": "228e4c79b79d897b0d44d5f34ab579073dd21c660ae0606410d7cc090ab4417a"
   },
   {
    "file": "anim/test/loco_walk.vrma",
    "bytes": 15344,
-   "sha256": "2af3b578164a16eaeaa745d6a631b0955f90eee1215b744fc6ee1cc1f1a8a62c"
+   "sha256": "93251f1e761fdb284849199b76dd9abd7d67dfdc846d2326c18ae554ee58d3a9"
   },
   {
    "file": "anim/test/loco_jog.vrma",
    "bytes": 15344,
-   "sha256": "a754b1fdd26d3597522baf662a7a7555f0989651fd898aa6661eaca8f839af96"
+   "sha256": "93753c8d5c9fc182d76d2992e3f916ab34495e0ac4f4384480ed299c77da15d6"
   },
   {
    "file": "anim/test/loco_run.vrma",
    "bytes": 15344,
-   "sha256": "4afa2a236f99cd295c7d0e281a6f780b3026ced1ae53e0fd1b94f7174803f977"
+   "sha256": "bbb485f5f05b33a5c34703d7fef8365d0a1f4cfc228fbe2032c3a40ae74b64e0"
   },
   {
    "file": "anim/test/loco_sprint.vrma",
    "bytes": 15348,
-   "sha256": "560df7f632dd6de8771e40949fa0c63d720986db125c5c4a667331a7da753cf6"
+   "sha256": "b7e76b8cbb043749ab9b8d1cb0b175de2f66f95359c451007e2751aad80f25b8"
   },
   {
    "file": "anim/test/idle.vrma",
    "bytes": 40712,
-   "sha256": "9c7673f0b811a2bfcdc2c6af91b1b097ed4bac1a19878b8a9076ba500a0bbe82"
+   "sha256": "cc35e27a419c21f37f80591f359a8c50fdfe940c05c84d9c1db06184bf4a2097"
   },
   {
    "file": "anim/test/cmb_katana_light_1.vrma",
    "bytes": 12832,
-   "sha256": "cdcb792cde9c0fb64e21cecd8ddcba4051487f116d9974f7145904a21ae4088e"
+   "sha256": "7097a53567be58d862ad0965ff83fe322ea7f447b4831531417b4049581da0be"
   },
   {
    "file": "anim/test/cmb_katana_heavy.vrma",
    "bytes": 16000,
-   "sha256": "513fd90fc2a4906f585a4d3725a60f238ca5d241d7542ff73dd3fafcea016a83"
+   "sha256": "d4fe58b75b94692bcef8a0433aa580187cbe49cb69eb437f067e4ed894223048"
   },
   {
    "file": "anim/test/react_hit_front.vrma",
    "bytes": 10180,
-   "sha256": "cfe318f7f94a29f11d5c6b7c093731b07c6ca1cc8f176c538fe6fbc7cacc95ae"
+   "sha256": "e82a2516dad2e4079cfa31e973044805bf3fc9add580862da924d4daf1cf1ef4"
   }
  ]
 }

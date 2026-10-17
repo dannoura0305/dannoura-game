@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-10-29.2';
+const VERSION = '2026-10-30.2';
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）
@@ -95,7 +95,7 @@ function kindOf(url) {
   // 新作『境界侵食』（開発中）：ページ・ES モジュール・データはネット優先（オフラインなら保存分）、素材は保存分。three.js（vendor/three-esm）は下の code
   if (/^shinshoku\.html$/.test(p)) return 'shell';
   if (/^shinshoku\/.+\.(js|css|json)$/.test(p) && !/^shinshoku\/assets\//.test(p)) return 'shell';
-  if (/^shinshoku\/assets\/(.+\/)?manifest\.json$/.test(p)) return 'shell';
+  if (/^shinshoku\/assets\/(.+\/)?(manifest|clips)\.json$/.test(p)) return 'shell';   // P14：動きの組（anim/<だれ>/clips.json）も表と同じくネット優先。.vrm・.vrma は素材（media）
   if (/^shinshoku\/assets\//.test(p)) return 'media';   // P12：shinshoku/assets/env/（PBR の地図帳 town_*_<枠>.webp・townpbr.json）も素材（media）
   // わかばの共通基盤（charkit・mapkit）：境界侵食が import する ES モジュール（今は charkit/rig/bonemap.js）。ネット優先（オフラインなら保存分）。
   // スキーマ・設定の JSON・node 専用の .mjs はゲームが読まないので扱わない（素通し）

@@ -55,6 +55,15 @@ export function classOfMaterialName(name = '') {
   return 'cloth';
 }
 
+/** three r185 では vColor が vec4。three-vrm 3.5.5 の MToon は vec3 として掛けるのでシェーダーが作れない → .rgb に直す（頂点色を使う時だけ） */
+function patchVColor(m) {
+  const prev = m.onBeforeCompile;
+  m.onBeforeCompile = (sh, r) => { if (prev) prev.call(m, sh, r); sh.fragmentShader = sh.fragmentShader.replace(/\*= vColor;/g, '*= vColor.rgb;'); };
+  const key = m.customProgramCacheKey ? m.customProgramCacheKey.bind(m) : () => '';
+  m.customProgramCacheKey = () => key() + '|vcol3';
+  m.needsUpdate = true;
+}
+
 /** テクスチャを縮める（canvas がある時だけ・ブラウザ） */
 function downscaleTexture(tex, maxPx, stats) {
   const img = tex && tex.image; if (!img || !maxPx || typeof document === 'undefined') return;
@@ -81,8 +90,6 @@ export async function loadVRMModel(src, opt = {}) {
   const stats = { metaVersion: vrm.meta && vrm.meta.metaVersion, tris: 0, meshes: 0, materials: 0, textures: 0, texDownscaled: 0, springJoints: 0, expressions: 0, shader: opt.shader || 'mtoon', loadMs: 0 };
   try { V.VRMUtils.removeUnnecessaryVertices(gltf.scene); if (V.VRMUtils.combineSkeletons) V.VRMUtils.combineSkeletons(gltf.scene); } catch (e) { /* 古い版 */ }
   if (vrm.meta && vrm.meta.metaVersion === '0') V.VRMUtils.rotateVRM0(vrm);   // VRM0 は -z 向き → 本作の +z 向き
-  // VRMA の視線（lookAt のクリップ）のための代わりの節
-  try { if (vrm.lookAt && V.VRMLookAtQuaternionProxy) { const px = new V.VRMLookAtQuaternionProxy(vrm.lookAt); px.name = 'lookAtQuaternionProxy'; vrm.scene.add(px); } } catch (e) { /* 古い版 */ }
   // 三人称：初めの人称だけの網は隠す
   try { for (const a of (vrm.firstPerson && vrm.firstPerson.meshAnnotations) || []) if (a.type === 'firstPersonOnly') for (const m of a.meshes || [a.mesh]) if (m) m.visible = false; } catch (e) { /* 無し */ }
   const root = new THREE.Group(); root.name = 'vrm_root'; root.add(vrm.scene);
@@ -99,6 +106,9 @@ export async function loadVRMModel(src, opt = {}) {
     }
   });
   if (opt.outline === false) vrm.scene.traverse(o => { if (o.isMesh && Array.isArray(o.material)) { const keep = o.material.filter(m => !m.isOutline); if (keep.length !== o.material.length && keep.length) { o.material = keep.length === 1 ? keep[0] : keep; if (o.geometry.groups) o.geometry.clearGroups(); } } });
+  // 頂点色：VRM の MToon は頂点色を既定で無視する。材質の extras.useVertexColor（本作の書き出し）か opt.vertexColors の時だけ使う
+  { const pj = gltf.parser && gltf.parser.json, ex = new Set(); ((pj && pj.materials) || []).forEach(m => { if (m.extras && m.extras.useVertexColor) ex.add(m.name); });
+    for (const m of mats) if (m.isMToonMaterial && 'ignoreVertexColor' in m && (opt.vertexColors || ex.has(String(m.name).replace(/ \(Outline\)$/, '')))) { m.ignoreVertexColor = false; patchVColor(m); stats.vertexColorMats = (stats.vertexColorMats || 0) + 1; } }
   stats.materials = mats.size; stats.textures = texs.size;
   for (const t of texs) downscaleTexture(t, opt.maxTex, stats);
   if (opt.shader === 'toon2' && opt.toon2) await toToon2(vrm, opt.toon2, stats);

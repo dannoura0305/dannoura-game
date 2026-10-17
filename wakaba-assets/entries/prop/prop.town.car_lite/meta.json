@@ -1,0 +1,96 @@
+{
+ "id": "prop.town.car_lite",
+ "version": 1,
+ "name": {
+  "ja": "乗用車の軽い版（スマホの低い段：prop.town.car の LOD2 だけ・6 種）",
+  "en": "Cars, lite (phone low preset: LOD2 only, 6 kinds)"
+ },
+ "category": "prop",
+ "tags": [
+  "車",
+  "町",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/kit/build_kit_town.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/shinshoku/IMPLEMENTATION_STATUS.md"
+ },
+ "tech": {
+  "formats": [
+   "glb",
+   "fbx"
+  ],
+  "tris": 908,
+  "lods": [
+   908
+  ],
+  "sizeM": [
+   1.75,
+   1.449,
+   4.38
+  ],
+  "pivot": "bottom_center",
+  "collision": "box",
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness"
+  ],
+  "fileBytes": 337616
+ },
+ "use": [
+  "境界侵食（shinshoku）の町と屋内"
+ ],
+ "status": "draft",
+ "kit": {
+  "kit": "wakaba-kit/1",
+  "nodes": {
+   "v0_LOD0": 908,
+   "v1_LOD0": 840,
+   "v2_LOD0": 900,
+   "v3_LOD0": 692,
+   "v4_LOD0": 932,
+   "v5_LOD0": 888
+  },
+  "variants": 6,
+  "lodDist": [
+   60
+  ],
+  "impostor": false,
+  "materials": [
+   "emit.andon",
+   "emit.head",
+   "emit.tail",
+   "glass.dark",
+   "mat.town.paint#bed",
+   "mat.town.paint#black",
+   "mat.town.paint#carpaint",
+   "mat.town.paint#rim",
+   "mat.town.paint#tire"
+  ],
+  "vertexColor": "COLOR_0＝AO（焼き込み）",
+  "note": "節の名前 LOD<n>（種類が複数なら v<k>_LOD<n>）・IMP＝遠景の十字の板（画像は glb の中）。材質は id の名前で共有の PBR 材質に差し替える"
+ },
+ "history": [
+  {
+   "at": "2026-10-17",
+   "by": "claude-code",
+   "change": "tools/blender/kit/build_kit_town.py（pieces_town.py）で生成（境界侵食 P12：環境の写実化）"
+  }
+ ]
+}

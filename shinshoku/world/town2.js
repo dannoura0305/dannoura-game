@@ -538,9 +538,8 @@ export function makeTown2(K) {
    *  居酒屋のひさしの縁から吊る。空き地は塀で閉じ、町家の横の面には勝手口・窓・室外機。入口の看板は門の梁に吊る。 */
   function yokocho() {
     const Y = T.walk.find(w => w.id === 'yokocho').rect, [x0, z0, x1, z1] = Y;
-    const SK = shopKit({ B, signUV, halos, wet, pool, lights });
-    const units = [['焼き鳥（仮）', 'yakitori'], ['おでん（仮）', 'oden'], ['立ち飲み（仮）', 'tachinomi'], ['スナック 雪（仮）', 'snack']];
-    units.forEach(([name, kind], i) => SK.unit([44 + i * 4, z1, 48 + i * 4, z1 + 4.4], 'N', kind, name, { seed: 31 + i * 17, lanternRight: i === 2 }));
+    const SK = shopKit({ B, signUV, halos, wet, pool, lights, steam: K.steam });
+    T.yokochoUnits.forEach((u, i) => SK.unit([u.x0, z1, u.x0 + 4, z1 + 4.4], 'N', u.kind, u.name, { seed: 31 + i * 17, front: u.front }));   // P14：開いた表・明るい店の中・店の前の物
     // 北の側：居酒屋（w4）のひさしの縁から吊った提灯（赤・白）
     let k = 0;
     for (let x = x0 + 1.5; x < 49.5; x += 2.5) {

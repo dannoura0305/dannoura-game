@@ -80,7 +80,8 @@ export function vrmFaceAdapter(vrm) {
   return {
     setBlink(k) { if (em) em.setValue('blink', k); },
     setVisemes(w) { if (em) for (const [n, x] of Object.entries(w)) em.setValue(n, x); },
-    setGaze(x, y) { if (vrm && vrm.lookAt && vrm.lookAt.applier && vrm.lookAt.applier.applyYawPitch) vrm.lookAt.applier.applyYawPitch(x * 20, y * 12); },
+    // VRM の lookAt：yaw・pitch（度）を入れると vrm.update で骨（bone 型）か表情（expression 型）に当たる
+    setGaze(x, y) { const L = vrm && vrm.lookAt; if (!L) return; if ('yaw' in L) { L.yaw = x * 20; L.pitch = y * 12; } else if (L.applier && L.applier.applyYawPitch) L.applier.applyYawPitch(x * 20, y * 12); },
     setExpr(name) { if (!em) return; if (last) em.setValue(last, 0); const v = EXPR_TO_VRM[name] || 'neutral'; if (v !== 'neutral') em.setValue(v, 1); last = v !== 'neutral' ? v : null; },
   };
 }

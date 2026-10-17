@@ -38,6 +38,7 @@
 - **画風**：写実は mapkit の試験マップだけ。**境界侵食のキャラクターはアニメ調のまま**（DECISIONS 2026-10-14）。UE5 版のキャラクターの見た目（トゥーンを UE で作り直すか）は B 線で決める。
 - **商用あり**：非商用の道具（DeepMotion・Cascadeur の無料枠・研究用の動画 → モーション AI・商用の許可の無い SMPL）は門で止まる＝作品に使わない（比較だけ）。
 - **素材の置き場所＝このリポジトリ**（`wakaba-assets/`・mapkit `10` §2）。キャラクターも `entries/character/<id>/`（原本の `.blend`・`.vroid` は Git に入れず sha256 だけ）。
+- **キャラクターの本番＝外部のモデル＋本物の動き（2026-10-17・P14）**：利用者の声「歩くのも走るのもロボットのよう。今の方法で限界なら違う方法で」により、コードで組むキャラクター・手続きの動きは**予備**へ。VRoid Studio 等 → VRM 1.0、動き＝VRMA／モーションキャプチャ。受け入れ口（`charkit/runtime/vrmrt.js`・`vrma.js`・`charkit/anim/clipanim.js`）と試験用の VRM・VRMA は入れた（`12`「方針の切り替え」）。利用者の手順：`docs/shinshoku/VROID_GUIDE.md`。
 - **PC**＝i7-9700・RTX 3060 Ti 8GB・16GB・SSD 512GB（確認済み）。Blender あり（版は未確認）。VRoid Studio・VRM アドオン・UE5 は未確認（`15`）。
 
 ## 以前の推奨（記録・2026-10-16）

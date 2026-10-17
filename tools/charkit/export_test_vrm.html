@@ -232,9 +232,10 @@ async function exportVRM() {
     if (!tris[ci].length) return;
     const avg = [0, 0, 0]; let k = 0; for (const t of tris[ci]) for (const vi of t) { avg[0] += body.col[vi * 3]; avg[1] += body.col[vi * 3 + 1]; avg[2] += body.col[vi * 3 + 2]; k++; }
     const def = m.table.defs[nm] || {}; const B = m.table.B[ci];
-    const shade = avg.map((x, i) => Math.min(1, x / k * [B.x, B.y, B.z][i] * 0.95));
+    // 頂点色を使う（VRM の MToon は頂点色を既定で無視：読み込みで ignoreVertexColor を外す＝材質の extras.useVertexColor）。影の色は頂点色 × この比
+    const shade = [B.x, B.y, B.z].map(x => Math.min(1, x * 0.95)); void avg;
     const outline = /glasses|metal/.test(nm) ? 0 : nm === 'face' ? 0.0012 : 0.0022;
-    materials.push({ name: 'mt_' + nm, color: [1, 1, 1, 1], mtoon: { shadeColorFactor: shade, shadingShiftFactor: -0.05, shadingToonyFactor: 0.92, giEqualizationFactor: 0.8, parametricRimColorFactor: def.kind === 'hair' ? [0.35, 0.3, 0.55] : [0.2, 0.18, 0.3], parametricRimFresnelPowerFactor: 4, outlineWidthMode: outline ? 'worldCoordinates' : 'none', outlineWidthFactor: outline, outlineColorFactor: [0.16, 0.09, 0.19], outlineLightingMixFactor: 0.6 } });
+    materials.push({ name: 'mt_' + nm, color: [1, 1, 1, 1], extras: { useVertexColor: true }, mtoon: { shadeColorFactor: shade, shadingShiftFactor: -0.05, shadingToonyFactor: 0.92, giEqualizationFactor: 0.8, parametricRimColorFactor: def.kind === 'hair' ? [0.35, 0.3, 0.55] : [0.2, 0.18, 0.3], parametricRimFresnelPowerFactor: 4, outlineWidthMode: outline ? 'worldCoordinates' : 'none', outlineWidthFactor: outline, outlineColorFactor: [0.16, 0.09, 0.19], outlineLightingMixFactor: 0.6 } });
     prims.push(subPrim(body, tris[ci], materials.length - 1));
   });
   // 顔
@@ -251,7 +252,7 @@ async function exportVRM() {
     if (c.tail) { const tl = c.tail.clone().applyQuaternion(q); return { bone: index.get(c.bone.name), capsule: { offset: off.toArray(), radius: c.radius, tail: tl.toArray() } }; }
     return { bone: index.get(c.bone.name), sphere: { offset: off.toArray(), radius: c.radius } };
   });
-  const SP = { ponytail: [0.9, 0.45], sidelock: [1.6, 0.25], ribbon: [1.0, 0.35], charm: [0.5, 0.7] };
+  const SP = { ponytail: [0.35, 1.1], sidelock: [1.0, 0.4], ribbon: [0.8, 0.5], charm: [0.4, 0.9] };
   const springs = m.springs.chains.map(ch => {
     const [stiff, grav] = SP[ch.name] || [1, 0.3];
     const js = ch.joints.map(j => ({ bone: index.get(j.b.name), hitRadius: ch.radius || 0.02, stiffness: stiff, gravityPower: grav, gravityDir: [0, -1, 0], dragForce: Math.min(1, ch.drag ?? 0.4) }));
@@ -317,25 +318,19 @@ const lerpArr = (a, b, t) => a.map((x, i) => x + (b[i] - x) * t);
 function recordCycle(T, v, K = 32) {
   const { m, P, F } = makePlayer('none');
   for (let i = 0; i < 240; i++) step(P, F, v);
-  const fr = []; let prevU = null, started = false;
-  for (let i = 0; i < 2000; i++) {
-    step(P, F, v);
-    const u = ((P.phase / (2 * Math.PI)) % 1 + 1) % 1;
-    if (prevU != null && u < prevU) { if (started) { fr.push({ u: u + 1, g: grab(m.J, T) }); break; } started = true; }
-    if (started) fr.push({ u: fr.length && u < fr[0].u ? u + 1 : u, g: grab(m.J, T) });
-    prevU = u;
-  }
-  const u0 = fr[0].u;
-  const sample = uu => {
-    const target = u0 + uu; let i = 0; while (i < fr.length - 2 && fr[i + 1].u < target) i++;
+  // 位相をほどいた値（u：周期の数）で録り、u＝整数（左のかかとの着地）から 1 周を等間隔の K こまに並べ直す（どの速さのクリップも u＝0 がそろう）
+  const fr = []; const ph0 = P.phase;
+  while (fr.length < 2000) { step(P, F, v); const u = (P.phase - ph0) / (2 * Math.PI) + ph0 / (2 * Math.PI); fr.push({ u, g: grab(m.J, T) }); if (u > Math.floor(fr[0].u) + 2.05) break; }
+  const base = Math.floor(fr[0].u) + 1;
+  const sample = target => {
+    let i = 0; while (i < fr.length - 2 && fr[i + 1].u < target) i++;
     const a = fr[i], b = fr[i + 1], t = Math.max(0, Math.min(1, (target - a.u) / Math.max(1e-6, b.u - a.u)));
     const o = {}; for (const n of HUMAN17) o[n] = slerpArr(a.g[n], b.g[n], t); o._hips = lerpArr(a.g._hips, b.g._hips, t); return o;
   };
-  // 録り始めの位相（u0）から 1 周。u0 は 0 の直後なので、u＝0 のこまは 1 周の終わり（u0＋1）付近と同じ
-  const keys = []; for (let k = 0; k <= K; k++) keys.push(sample(k / K * (1 - 1e-4)));
-  keys[K] = keys[0];
+  const keys = []; for (let k = 0; k < K; k++) keys.push(sample(base + k / K));
+  keys.push(keys[0]);
   const cycleM = 2 * Math.PI / P.phaseRate(v), dur = cycleM / v;
-  return { keys, dur, cycleM, uStart: u0 % 1 };
+  return { keys, dur, cycleM };
 }
 function recordIdle(T, secs = 4, fps = 30) {
   const { m, P, F } = makePlayer('none');

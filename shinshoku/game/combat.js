@@ -50,14 +50,16 @@ export const combatMethods = {
     const before = { x: P.pos.x, z: P.pos.z };
     const zk = this.slowZoneK ? this.slowZoneK(P.pos) : 1;
     P.pos.x += vx * DT * zk; P.pos.z += vz * DT * zk;
-    resolveCircle(P.pos, P.r, this.boxes);
+    const BX = this.area.boxesUp && P.pos.y > this.area.upY ? this.area.boxesUp : this.boxes;   // P14：自宅の 2 階では 2 階の当たり
+    resolveCircle(P.pos, P.r, BX);
     for (const e of this.enemies) {
       if (!e.brain.alive || !e.root.visible || ['home', 'rest', 'neutral', 'dormant', 'sleep', 'locked'].includes(e.brain.state)) continue;
       const dx = P.pos.x - e.pos.x, dz = P.pos.z - e.pos.z, d = Math.hypot(dx, dz), min = P.r + e.r * 0.85;
       if (d < min && d > 1e-4 && st.name !== 'issen') { P.pos.x = e.pos.x + dx / d * min; P.pos.z = e.pos.z + dz / d * min; }
     }
-    resolveCircle(P.pos, P.r, this.boxes);
-    if (insideAny(P.pos, this.boxes, 0)) this.metrics.wallClips++;
+    resolveCircle(P.pos, P.r, BX);
+    if (insideAny(P.pos, BX, 0)) this.metrics.wallClips++;
+    if (this.area.floorAt) { const fy = this.area.floorAt(P.pos.x, P.pos.z, P.pos.y); if (fy != null) P.pos.y = fy; }   // P14：階段・2 階の床の高さ
     const B = this.area.bounds; if (P.pos.x < B.minX || P.pos.x > B.maxX || P.pos.z < B.minZ || P.pos.z > B.maxZ) this.metrics.outOfBounds++;
     if (this.god) F.hp = F.hpMax;
     const moved = Math.hypot(P.pos.x - before.x, P.pos.z - before.z);

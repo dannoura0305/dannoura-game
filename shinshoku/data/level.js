@@ -76,6 +76,9 @@ export const LEVEL = {
     { pos: [0, 5.2, -56], color: 0xbfd8ff, intensity: 10, dist: 15, flicker: true },
   ],
   homeLight: { pos: [0, 2.5, 12], color: 0xffd2a0, intensity: 5, dist: 11 },
+  homeLight2: { pos: [1.5, 5.5, 10.5], color: 0xffe8d0, intensity: 4.5, dist: 10 },              // P14：2 階の灯り
+  // P14：2 階（床の高さ y2）と階段（x0,z0,x1,z1：z0 が下・z1 が上）
+  homeFloor: { y2: 3.3, stair: [5.0, 9.6, 6.0, 13.8], steps: 17 },
   // 調べられる物（自宅）
   homeSpots: {
     safe: [4.9, 14.9], laptop: [-3.8, 13.4], calendar: [-1.6, 15.8], companion: [-1.4, 7.6],
