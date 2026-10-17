@@ -275,7 +275,14 @@ export function whitePose(ctx) {
   let b = ctx.basePose ? Object.assign({}, ctx.basePose) : ctx.speed > 0.1 ? (ctx.loco && ctx.loco.ik ? locomotionIK(ctx.phase, ctx.speed, ctx.loco) : locomotion(ctx.phase, ctx.speed, { k: 1.05 })) : idle(ctx.time, 0.8);
   if (!ctx.basePose && ctx.speed <= 0.1 && ctx.turnStep) b = Object.assign(b, turnStep(ctx.turnStep.ph, ctx.turnStep.turn, ctx.loco || {}));
   const hy0 = b.hipsY, exact = b._exactLegs;
-  if (!['attack', 'issen', 'cast', 'dodge', 'charge'].includes(st.name)) { if (ctx.speed > 3.2) b = Object.assign(b, { spine: [0.38, 0, 0], leftUpperArm: [0.7, 0, 0.3], rightUpperArm: [0.7, 0, -0.3], leftLowerArm: [-0.4, 0, 0], rightLowerArm: [-0.4, 0, 0] }); else b = Object.assign(b, W_READY); if (exact) b.hipsY = hy0; }
+  if (!['attack', 'issen', 'cast', 'dodge', 'charge'].includes(st.name)) {
+    if (ctx.speed > 3.2) {
+      // 白い姿の走り（腕を後ろへ流す・前へ傾ける）。P13：歩きの係の背骨の回り（肩の逆回り）と腕の振りを少し残す
+      const g = b._gait, sp = b.spine || [0, 0, 0], la = b.leftUpperArm || [0, 0, 0], ra = b.rightUpperArm || [0, 0, 0];
+      b = Object.assign(b, { spine: [0.38, g ? sp[1] : 0, g ? sp[2] : 0], leftUpperArm: [0.7 + (g ? la[0] * 0.25 : 0), 0, 0.3], rightUpperArm: [0.7 + (g ? ra[0] * 0.25 : 0), 0, -0.3], leftLowerArm: [-0.4, 0, 0], rightLowerArm: [-0.4, 0, 0] });
+    } else { const sp = b.spine || [0, 0, 0], g = b._gait; b = Object.assign(b, W_READY); if (g) b.spine = [W_READY.spine[0] + sp[0] * 0.5, sp[1], sp[2]]; }
+    if (exact) b.hipsY = hy0;
+  }
   if (st.name === 'attack') {
     const a = st.atk, P = st.blade ? BLADE : CLAW[st.step] || CLAW[0];
     let t; if (f < a.startup) t = 0; else if (f < a.startup + a.active) t = (f - a.startup + 1) / a.active; else t = 1 + Math.min(1, (f - a.startup - a.active) / Math.max(1, a.recovery));

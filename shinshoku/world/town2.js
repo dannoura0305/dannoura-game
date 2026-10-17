@@ -388,6 +388,10 @@ export function makeTown2(K) {
     const [dx, dz] = at(0, L / 2 + 0.04); B.box('sign', dx, 2.85, dz, 1.9, 0.32, 0.04, 0xffffff, { uv: dUV, face: 4, ry: b.ry, edges: false });
     for (const s of [-0.95, 0.95]) { bx('glow', s, 0.75, L / 2 + 0.06, 0.3, 0.16, 0.04, 0xfff4d8); bx('glow', s, 0.85, -L / 2 - 0.04, 0.2, 0.3, 0.04, 0xa02018); const [hx, hz] = at(s, L / 2 + 0.3); halos.push({ p: [hx, 0.75, hz], size: 1.0, color: 0xfff0d0, k: 0.55 }); }
     for (const [wx, wz] of [[-1.15, 3.3], [1.15, 3.3], [-1.15, -3.0], [1.15, -3.0]]) { const g = new THREE.CylinderGeometry(0.48, 0.48, 0.3, 14); g.rotateZ(Math.PI / 2); g.translate(wx, 0.48, wz); g.rotateY(b.ry); g.translate(b.x, 0, b.z); B.add('prop', g, 0x18181c); }
+    // P13：前の扉（左＝歩道の側・ガラスと枠）・中の扉・鏡（腕つき）・車輪の上の縁・後ろの非常口
+    for (const dz of [L / 2 - 1.15, -0.6]) { bx('glass', -1.265, 1.45, dz, 0.03, 2.1, 1.0, 0x0e1218); bx('prop', -1.27, 1.45, dz, 0.035, 2.16, 0.06, 0x4a4e58); bx('prop', -1.27, 2.52, dz, 0.035, 0.05, 1.06, 0x4a4e58); }
+    for (const s of [-1, 1]) { bx('prop', s * 1.36, 2.65, L / 2 - 0.35, 0.24, 0.04, 0.04, 0x2a2a2e); bx('prop', s * 1.5, 2.42, L / 2 - 0.35, 0.06, 0.42, 0.16, 0x2a2a2e); }
+    for (const [wx, wz] of [[-1.15, 3.3], [1.15, 3.3], [-1.15, -3.0], [1.15, -3.0]]) bx('prop', Math.sign(wx) * 1.255, 0.98, wz, 0.02, 0.08, 1.15, 0x2a2c30);
     if (b.lit) { const [lx, lz] = at(0, 0); halos.push({ p: [lx, 2.0, lz], size: 2.6, color: 0xd8e8ff, k: 0.22 }); }
   }
 
@@ -534,7 +538,7 @@ export function makeTown2(K) {
    *  居酒屋のひさしの縁から吊る。空き地は塀で閉じ、町家の横の面には勝手口・窓・室外機。入口の看板は門の梁に吊る。 */
   function yokocho() {
     const Y = T.walk.find(w => w.id === 'yokocho').rect, [x0, z0, x1, z1] = Y;
-    const SK = shopKit({ B, signUV, halos, wet, pool });
+    const SK = shopKit({ B, signUV, halos, wet, pool, lights });
     const units = [['焼き鳥（仮）', 'yakitori'], ['おでん（仮）', 'oden'], ['立ち飲み（仮）', 'tachinomi'], ['スナック 雪（仮）', 'snack']];
     units.forEach(([name, kind], i) => SK.unit([44 + i * 4, z1, 48 + i * 4, z1 + 4.4], 'N', kind, name, { seed: 31 + i * 17, lanternRight: i === 2 }));
     // 北の側：居酒屋（w4）のひさしの縁から吊った提灯（赤・白）
@@ -584,9 +588,9 @@ export function makeTown2(K) {
         if (c.along === 'x') {   // 車の信号：歩道の柱から車道の上へ腕
           const dir = e === 0 ? 1 : -1, ax = x + dir * 3.2;
           prop(x + dir * 1.6, 5.2, z, 3.4, 0.1, 0.1, 0x6a6e70); prop(x, 4.0, z, 0.14, 2.6, 0.14, 0x6a6e70);
-          prop(ax, 5.0, z, 1.3, 0.42, 0.32, 0x3a3c40);
+          prop(ax, 5.0, z, 1.3, 0.42, 0.32, 0x3a3c40); prop(ax, 5.0, z - Math.sign(e === 0 ? 0.17 : -0.17) * 0.17, 1.6, 0.66, 0.02, 0x1a1a1e, { edges: false });   // P13：背面板
           const fz = e === 0 ? 0.17 : -0.17, ch = [];
-          [-0.42, 0, 0.42].forEach((o, k) => { B.box('glow', ax + o, 5.0, z + fz, 0.24, 0.24, 0.04, [0x1a3a2a, 0x3a3010, 0x3a1010][k], { edges: false }); ch.push(halos.push({ p: [ax + o, 5.0, z + fz * 2], size: 1.1, color: [0x40ffb0, 0xffc030, 0xff3030][k], k: 0, signal: true }) - 1); });
+          [-0.42, 0, 0.42].forEach((o, k) => { B.box('glow', ax + o, 5.0, z + fz, 0.24, 0.24, 0.04, [0x1a3a2a, 0x3a3010, 0x3a1010][k], { edges: false }); prop(ax + o, 5.13, z + fz * 1.35, 0.28, 0.03, 0.14, 0x24262a, { edges: false }); ch.push(halos.push({ p: [ax + o, 5.0, z + fz * 2], size: 1.1, color: [0x40ffb0, 0xffc030, 0xff3030][k], k: 0, signal: true }) - 1); });
           signals.push({ kind: 'car', heads: ch, phase: c.phase || 0 });
         }
       });

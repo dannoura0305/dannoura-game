@@ -81,6 +81,8 @@ function walkRoot(root, area, part) {
   root.traverse(o => {
     if (o.userData && o.userData.isEdgeLines) return;
     if (/^lv_/.test(o.name) && (o.isMesh || o.isLineSegments)) return;            // Builder の網（記録済み）
+    if (o.visible === false) return;
+    if (o.userData && (o.userData.stains || o.userData.decal) || /^(stains|shafts|debris)$/.test(o.name)) return;   // 貼り絵（しみ）・光の筋・壊れた破片（最初は大きさ 0）
     if (o.isInstancedMesh) {
       const g = o.geometry, P = g.attributes.position, n = P.count, per = 36, parts = n % per === 0 ? n / per : 1;
       for (let k = 0; k < o.count; k++) {

@@ -21,7 +21,7 @@ const MENU = {
  * 間口 W・奥行き D の小さな 2 階建ての店を作る。表の面は区画の表の縁（v＝0）。opt.seed：色の変化・opt.lit：灯り（既定 true）
  */
 export function shopKit(K) {
-  const { B, signUV, halos, wet, pool } = K;
+  const { B, signUV, halos, wet, pool, lights } = K;
   const FK = furnKit(B);
   function frame(rect, f) {
     const [x0, z0, x1, z1] = rect;
@@ -60,7 +60,8 @@ export function shopKit(K) {
     F.box(lit ? 'texglow' : 'tex', dU + dw / 4, t + 0.03, 1.02, dw / 2, 0.04, 2.0, lit ? 0xd8c0a0 : 0x8a7a68, lit ? 'koshi_lit' : 'koshi', { fit: true });   // 寄せた戸（店の中の側）
     F.box('prop', dU, -0.06, 2.02, dw + 0.3, 0.04, 0.04, 0x3a2a1a);                                      // のれんの竿（表の面に付く）
     for (const s of [-1, 1]) F.box('prop', dU + s * (dw / 2 + 0.12), -0.02, 2.02, 0.04, 0.08, 0.06, 0x3a2a1a);
-    { const pieces = 3, pw = (dw + 0.2) / pieces; for (let i = 0; i < pieces; i++) sign(F, i === 1 ? name.replace(/（仮）/, '') : i === 0 ? '　' : '　', dU - (dw + 0.2) / 2 + (i + 0.5) * pw, -0.07, 1.74, pw - 0.03, 0.52, 0.02, { bg: NOREN[kind] || '#2a2a3a', fg: '#f4ecdc', size: 30, serif: true, frame: false }); }
+    { const nw = dw + 0.2; sign(F, name.replace(/（仮）/, ''), dU, -0.07, 1.74, nw, 0.52, 0.02, { bg: NOREN[kind] || '#2a2a3a', fg: '#f4ecdc', size: 44, serif: true, frame: false });
+      for (const k of [-1, 1]) F.box('prop', dU + k * nw / 6, -0.085, 1.66, 0.025, 0.012, 0.36, 0x101014); }   // のれん（切れ目の線）
     // ── 窓（灯りの障子）と窓台・2 階の窓・下屋（ひさし）・名前の看板 ──
     F.box(lit ? 'texglow' : 'tex', winU, -0.02, 1.35, winW, 0.04, 0.9, lit ? 0xd0b898 : 0xffffff, lit ? 'win_shoji' : 'win_dark', { fit: true });
     F.box('prop', winU, -0.04, 1.35, winW + 0.1, 0.04, 1.0, 0x2a1c12); F.box('prop', winU, -0.07, 0.86, winW + 0.16, 0.14, 0.05, 0x4a3a2a);
@@ -87,6 +88,7 @@ export function shopKit(K) {
     if (lit) { const [px, pz] = F.at(dU, -1.2); pool(px, pz, 2.2, kind === 'snack' ? 0xff9ad8 : 0xffc890, 0.3); wet.push({ p: [px, 0, pz], size: 1.6, color: 0xffb070, k: 0.7 }); halos.push({ p: [...vec(F.at(dU, -0.3), 1.6)], size: 1.4, color: 0xffd0a0, k: 0.35 }); }
     // ── 店の中（戸口から見える）：天井の灯り・カウンター・腰掛け・品書き・棚 ──
     const inner = { u0: t, u1: W - t, v0: t, v1: D - t };
+    if (lit && lights) { const [lx, lz] = F.at(W / 2, D * 0.45); lights.push({ id: 'shop_' + kind + '_' + Math.round(lx), pos: [lx, 2.2, lz], color: kind === 'snack' ? 0xff9ad0 : 0xffc890, intensity: 3.2, dist: 6, town: true }); }   // 店の中の灯り（戸口から見える）
     F.box(lit ? 'glow' : 'prop', W / 2, D / 2, H1 - 0.22, Math.min(1.2, W - 1), Math.min(0.5, D - 1), 0.04, lit ? 0xfff0d8 : 0x6a6a6a);  // 天井の灯り（天井に付く）
     const cv = D * 0.58;                                                                                   // カウンターの位置（奥から）
     if (kind === 'oden' || kind === 'yakitori' || kind === 'snack' || kind === 'izakaya' || kind === 'kissa') {

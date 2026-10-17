@@ -411,7 +411,7 @@ export function locoPose(ph, v, o = {}) {
   }
   p._exactLegs = true;
   p._feet = legs.map(l => ({ side: l.side, x: l.z, y: l.y, z: l.x, f: l.f, st: l.st, u: l.u, toeOut: l.toeOut }));
-  p._gait = { u, S, stance: g.stance, runK: r, h }; p._legsDbg = legs;
+  p._gait = { u, S, stance: g.stance, runK: r, h };
   return withTargets(p, L);
 }
 
@@ -460,14 +460,14 @@ export function idlePose(t, o = {}) {
  * 足の目標で 2 つの姿勢をつなぐ（止まる時の「止まりの一歩」・動き出し）：from／to は locoPose／idlePose の結果（_feetT を持つ）、k：0..1。
  * 動く量の大きい足から先に（持ち上げて）運び、もう一方は後で小さく直す。腰は高さ・左右をなめらかに。上体は角度の補間。
  */
-export function bridgePose(from, to, k, L = DEF_DIMS) {
+export function bridgePose(from, to, k, L = DEF_DIMS, firstEnd = 0.55, firstIdx = null) {
   const F0 = from._feetT, F1 = to._feetT;
   if (!F0 || !F1) return k < 0.5 ? from : to;
   const d = F0.map((f, i) => Math.hypot(f.x - F1[i].x, f.z - F1[i].z));
   // 先に運ぶ足：地面から離れている（高い）足。両方着いていれば動く量の大きい足。着いている足は後で（持ち上げて）直す
-  const first = Math.abs(F0[0].y - F0[1].y) > 0.01 ? (F0[0].y > F0[1].y ? 0 : 1) : (d[0] >= d[1] ? 0 : 1);
+  const first = firstIdx != null ? firstIdx : Math.abs(F0[0].y - F0[1].y) > 0.01 ? (F0[0].y > F0[1].y ? 0 : 1) : Math.abs(F1[0].y - F1[1].y) > 0.01 ? (F1[0].y > F1[1].y ? 0 : 1) : (d[0] >= d[1] ? 0 : 1);   // 呼ぶ側が最初の値を覚えて渡す（途中で入れ替わらない）
   const feet = F0.map((f, i) => {
-    const kk = i === first ? sm(0, 0.55, k) : sm(0.5, 1, k);
+    const kk = i === first ? sm(0, firstEnd, k) : sm(Math.min(0.5, firstEnd - 0.05), 1, k);
     const lift = d[i] > 0.015 ? Math.sin(Math.PI * kk) * Math.min(0.06, 0.02 + d[i] * 0.25) : 0;
     const g = F1[i];
     return { side: f.side, x: lerp(f.x, g.x, kk), y: lerp(f.y, g.y, kk) + lift, z: lerp(f.z, g.z, kk), f: lerp(f.f, g.f, kk) - lift * 1.5, toeOut: lerp(f.toeOut || 0, g.toeOut || 0, kk) };
@@ -480,7 +480,7 @@ export function bridgePose(from, to, k, L = DEF_DIMS) {
   poseLegs(p, pel, feet, L);
   p.hips = [lerp(from.hips[0], to.hips[0], e), lerp(from.hips[1], to.hips[1], e), lerp(from.hips[2], to.hips[2], e)];
   p.hipsY = pel.y - L.pelvisY; p.hipsT = [pel.x, 0, pel.z];
-  p._exactLegs = true; p._planted = true; p._feetT = feet; p._pelvis = pel;
+  p._exactLegs = true; p._planted = true; p._feetT = feet; p._pelvis = pel; p._bridgeFirst = first;
   return p;
 }
 /** 姿勢に「足の目標と骨盤」を付ける（bridgePose のため）。locoPose／idlePose が呼ぶ */
@@ -488,5 +488,33 @@ export function withTargets(p, L = DEF_DIMS) {
   if (!p._feet) return p;
   p._feetT = p._feet.map(f => ({ side: f.side, x: f.z, y: f.y, z: f.x, f: f.f || 0, toeOut: f.toeOut || 0 }));
   p._pelvis = { x: p.hipsT ? p.hipsT[0] : 0, y: L.pelvisY + (p.hipsY || 0), z: p.hipsT ? p.hipsT[2] : 0 };
+  return p;
+}
+
+/**
+ * 床より下へ入った足を床の上へ戻す（攻撃・構え・ひるみの姿勢など、キーで描いた姿勢の脚が腰を下げた分だけ床にめり込むのを直す）。
+ * 姿勢 p の脚を FK で解き、かかと・つま先の付け根が床（y=0）より下なら、足首を上げて脚を解き直す（ひざの向きは今の向き）。p を書き換えて返す
+ */
+export function groundClamp(p, L = DEF_DIMS, minY = -0.008) {
+  const hp = p.hips || [0, 0, 0], qh = qEuler(hp[0], hp[1], hp[2]);
+  const t = p.hipsT || [0, 0, 0], pel = [t[0], L.pelvisY + (p.hipsY || 0), t[2]];
+  for (const side of ['left', 'right']) {
+    const sx = side === 'left' ? 1 : -1;
+    const ul = p[side + 'UpperLeg'] || [0, 0, 0], ll = p[side + 'LowerLeg'] || [0, 0, 0], ft = p[side + 'Foot'] || [0, 0, 0];
+    const hj = v3.add(pel, qRot(qh, [sx * L.hipX, -0.02, 0]));
+    const qT = qMul(qh, qEuler(ul[0], ul[1], ul[2])), qS = qMul(qT, qEuler(ll[0], ll[1], ll[2])), qF = qMul(qS, qEuler(ft[0], ft[1], ft[2]));
+    const knee = v3.add(hj, qRot(qT, [0, -L.thigh, 0])), ankle = v3.add(knee, qRot(qS, [0, -L.shin, 0]));
+    const heel = v3.add(ankle, qRot(qF, [0, -L.ankleY, -L.heel])), ball = v3.add(ankle, qRot(qF, [0, -L.ankleY, L.ball]));
+    const low = Math.min(heel[1], ball[1]);
+    if (low >= minY) continue;
+    // 足は床に平らに（向きの水平の回りだけ残す）・足首は床の上の休みの高さ（足の裏が床に着く）
+    const fwd = qRot(qF, [0, 0, 1]); const yaw = Math.atan2(fwd[0], fwd[2]);
+    const target = [ankle[0], Math.max(ankle[1], L.ankleY), ankle[2]];
+    const kdir = v3.sub(knee, v3.mul(v3.add(hj, ankle), 0.5));
+    const r = solveLeg(hj, target, L.thigh, L.shin, v3.len(kdir) > 1e-4 ? norm(kdir) : [0, 0, 1]);
+    const qTl = qMul(qInv(qh), r.thighQ), shinW = qMul(r.thighQ, qEuler(r.knee, 0, 0));
+    p[side + 'UpperLeg'] = qToEuler(qTl); p[side + 'LowerLeg'] = [r.knee, 0, 0];
+    p[side + 'Foot'] = qToEuler(qMul(qInv(shinW), qEuler(0, yaw, 0)));
+  }
   return p;
 }

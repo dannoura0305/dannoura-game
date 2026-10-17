@@ -5,8 +5,9 @@ import * as THREE from 'three';
 import { Poser } from './rig.js';
 import { dannouraPose, kiroPose, heitenPose, shuuyouPose, companionPose, civilianPose, rollAt, phaseRate, footfall } from './anim.js';
 import { attachRigidWeapons } from './models.js';
-import { heroPhaseRate, plantFeet } from './anim8.js';
+import { heroPhaseRate, plantFeet, legDims } from './anim8.js';
 import { LocoDriver } from '../../charkit/anim/locodriver.js';
+import { groundClamp } from '../../charkit/anim/loco.js';
 import { FaceDriver, codeFaceAdapter, vrmFaceAdapter } from '../../charkit/face/driver.js';
 import { Fighter } from '../combat/fighter.js';
 import { COMBAT } from '../data/combat.js';
@@ -200,6 +201,8 @@ export class Player {
       this.exactK = pose._exactLegs ? Math.min(1, this.exactK + dt * 5) : 0;
       if (pose._exactLegs) pose._legRate = this.driver ? 0.18 + 0.82 * this.exactK * this.exactK : Math.min(1, 0.3 + this.moveT * 7);
       else if (!pose._planted && this.speed <= 0.1 && ['free', 'reload', 'hipfire', 'swap', 'parry', 'cast', 'mcharge', 'mreload', 'hurt'].includes(F.st.name)) pose = plantFeet(Object.assign({}, pose), m.legDims);
+      // P13：攻撃・構え・ひるみの姿勢で腰を下げた分、足が床にめり込まないように（姿勢と時間は同じ。足だけ床の上へ）
+      if (this.driver && !pose._exactLegs && ['attack', 'charge', 'issen', 'parry', 'hurt', 'cast', 'swap', 'reload', 'hipfire'].includes(F.st.name)) pose = groundClamp(Object.assign({}, pose), m.legDims);
       if (!this.driver) { const lean = clampN(this.accS * 0.012, -0.12, 0.1); if (Math.abs(lean) > 1e-3 && F.st.name === 'free') { const sp = pose.spine || [0, 0, 0]; pose = Object.assign({}, pose, { spine: [sp[0] + lean, sp[1], sp[2]] }); } }
       // 曲がる先を先に見る（首・頭）：進みたい向きと体の向きの差
       if (this.driver && F.st.name === 'free' && this.speed > 0.3 && this.moveDir) {
@@ -364,14 +367,22 @@ export class CompanionActor {
 }
 
 export class CivilianActor {
-  constructor(model, x, z, yaw, path) { this.model = model; this.root = new THREE.Group(); this.root.add(model.root); this.poser = new Poser(model.J, model.rest || {}); this.pos = { x, z }; this.yaw = yaw; this.path = path || null; this.pi = 0; this.speed = 0; this.phase = 0; this.time = Math.random() * 5; this.looks = new Looks(model); this.fade = 1; }
+  constructor(model, x, z, yaw, path) {
+    this.model = model; this.root = new THREE.Group(); this.root.add(model.root); this.poser = new Poser(model.J, model.rest || {}); this.pos = { x, z }; this.yaw = yaw; this.path = path || null; this.pi = 0; this.speed = 0; this.phase = 0; this.time = Math.random() * 5; this.looks = new Looks(model); this.fade = 1;
+    // P13：コードで組んだ町の人（骨の休みの回転なし）も歩きの係（足の IK の歩き・待機）。寸法は骨の位置から
+    const J = model.J;
+    if (!model.isVRM && J && J.hips && J.leftUpperLeg && J.leftLowerLeg && J.leftFoot && !Object.keys(model.rest || {}).length) {
+      this.driver = new LocoDriver({ dims: legDims({ leg: J.hips.position.y, thigh: J.leftLowerLeg.position.length(), shin: J.leftFoot.position.length(), hipX: Math.abs(J.leftUpperLeg.position.x) }), scale: J.leftLowerLeg.position.length() / 0.4, pers: 'civilian' });
+    }
+  }
   animate(dt) {
     this.time += dt;
     if (this.path) {
       const t = this.path[this.pi]; const dx = t[0] - this.pos.x, dz = t[1] - this.pos.z, L = Math.hypot(dx, dz);
-      if (L < 0.3) this.pi = (this.pi + 1) % this.path.length; else { const m = Math.min(L, 1.2 * dt); this.pos.x += dx / L * m; this.pos.z += dz / L * m; this.yaw = turnTo(this.yaw, Math.atan2(dx, dz), 0.1); this.speed = 1.2; this.phase += m * phaseRate(1.2); }
+      if (L < 0.3) this.pi = (this.pi + 1) % this.path.length; else { const m = Math.min(L, 1.2 * dt); this.pos.x += dx / L * m; this.pos.z += dz / L * m; this.yaw = turnTo(this.yaw, Math.atan2(dx, dz), 0.1); this.speed = 1.2; this.phase += m * (this.driver ? this.driver.rate() : phaseRate(1.2)); }
     }
-    const { pose, rate } = civilianPose({ time: this.time, speed: this.path ? this.speed : 0, phase: this.phase });
+    let { pose, rate } = civilianPose({ time: this.time, speed: this.path ? this.speed : 0, phase: this.phase });
+    if (this.driver) { pose = this.driver.update(dt, { speed: this.path ? this.speed : 0, phase: this.phase, time: this.time, k: 0.8 }); rate = 0.4; }
     this.poser.apply(pose, 1 - Math.pow(1 - rate, dt * 60));
     this.root.position.set(this.pos.x, 0, this.pos.z); this.root.rotation.y = this.yaw; this.looks.tickFace(dt);
   }

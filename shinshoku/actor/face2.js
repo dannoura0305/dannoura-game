@@ -73,10 +73,10 @@ export function drawEyeLayers(g, o = {}) {
   if (o.shape !== 'male') { g.lineWidth = 3; for (const [x, y, dx, dy] of [[P.ox + 18, E.top + 8, -6, -9], [P.ox + 30, E.top + 2, -4, -10]]) { g.beginPath(); g.moveTo(x, y); g.lineTo(x + dx, y + dy); g.stroke(); } }
   // 目がしらの切れ込み
   g.lineWidth = 3; g.beginPath(); g.moveTo(P.ix - 2, P.iy - 2); g.lineTo(P.ix + 6, P.iy + 4); g.stroke();
-  // 二重の線
-  g.lineWidth = 2; g.globalAlpha = 0.55; g.beginPath(); g.moveTo(P.ox + 16, P.oy - 18 + (o.lid || 0) * 40); g.bezierCurveTo(P.ox + 34, E.top - 14, P.ix - 40, E.top - 18, P.ix - 10, P.iy - 30 + (o.lid || 0) * 40); g.stroke(); g.globalAlpha = 1;
-  // 下まぶた（細い・途中で切れる）
-  g.lineWidth = 2.4; g.globalAlpha = 0.75; g.beginPath(); g.moveTo(P.ox + 10, P.oy + 14); g.bezierCurveTo(P.ox + 30, P.bot + 4, P.ix - 30, P.bot + 2, P.ix - 12, P.iy + 22); g.stroke(); g.globalAlpha = 1;
+  // 二重の線（子どもは描かない：P13 大人びた線で不気味に見えない）
+  if (o.shape !== 'child') { g.lineWidth = 2; g.globalAlpha = 0.55; g.beginPath(); g.moveTo(P.ox + 16, P.oy - 18 + (o.lid || 0) * 40); g.bezierCurveTo(P.ox + 34, E.top - 14, P.ix - 40, E.top - 18, P.ix - 10, P.iy - 30 + (o.lid || 0) * 40); g.stroke(); g.globalAlpha = 1; }
+  // 下まぶた（細い・途中で切れる。子どもは薄く）
+  g.lineWidth = 2.4; g.globalAlpha = o.shape === 'child' ? 0.4 : 0.75; g.beginPath(); g.moveTo(P.ox + 10, P.oy + 14); g.bezierCurveTo(P.ox + 30, P.bot + 4, P.ix - 30, P.bot + 2, P.ix - 12, P.iy + 22); g.stroke(); g.globalAlpha = 1;
   if (o.happy) { g.lineWidth = o.lashW || 8; g.beginPath(); g.moveTo(P.ox + 6, P.bot - 18); g.quadraticCurveTo(64, P.bot - 46, P.ix - 4, P.bot - 22); g.stroke(); }
   g.restore();
 }

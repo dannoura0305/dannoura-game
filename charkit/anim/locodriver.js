@@ -43,7 +43,7 @@ export class LocoDriver {
     if (moving) {
       const v = this.vPose;
       pose = locoPose(s.phase, v, { dims: this.dims, scale: this.scale, pers: this.pers, persKey: this.persId, rate: this.rate(v), lean: lean * 0.8 });
-      if (this.mode !== 'loco') { this.bridge = { from: this.last, t: 0, dur: 0.2 }; this.mode = 'loco'; }
+      if (this.mode !== 'loco') { this.bridge = { from: this.last, t: 0, dur: 0.3, start: true }; this.mode = 'loco'; }
     } else {
       this.idleT += dt;
       pose = idlePose(this.idleT, { dims: this.dims, scale: this.scale, pers: this.pers, k: s.k ?? 1, turn: s.turn ? { ph: s.turn.ph, k: clamp(Math.abs(s.turn.turn) / 3, 0, 1) } : null });
@@ -53,7 +53,7 @@ export class LocoDriver {
     if (this.bridge && this.bridge.from) {
       const B = this.bridge; B.t += dt;
       const k = clamp(B.t / B.dur, 0, 1);
-      if (k < 1) pose = Object.assign(bridgePose(B.from, pose, sm(0, 1, k), this.dims), { _exactLegs: true });
+      if (k < 1) { pose = Object.assign(bridgePose(B.from, pose, B.start ? k : sm(0, 1, k), this.dims, B.start ? 0.8 : 0.55, B.first), { _exactLegs: true }); B.first = pose._bridgeFirst; }
       else this.bridge = null;
     } else this.bridge = null;
     pose._bodyRate = 0.85;

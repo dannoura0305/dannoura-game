@@ -52,7 +52,7 @@ export function buildAbyss() {
     const lx = x + sx * 6 - sx * (w / 2 - 1), top = h + 0.1;
     dyn['ref' + R.id] = { halo: halos.push({ p: [lx, top + 1.5, z], size: 10, color: 0xffd8a0, k: 0.35 }) - 1, lamps: [] };
     for (let k = 0; k < 8; k++) { const hz = z - d / 2 + 1 + k * (d - 2) / 7; dyn['ref' + R.id].lamps.push(halos.push({ p: [lx, top + 1.0, hz], size: 0.9, color: 0xfff0c0, k: 0.0 }) - 1); }
-    B.box('prop', lx, top + 0.25, z, 0.15, 0.5, d - 1, 0x3a3640);                                  // 屋上の手すり（低い）
+    B.box('prop', lx, h + 0.25, z, 0.15, 0.5, d - 1, 0x3a3640);                                  // 屋上の手すり（低い）
   }
   const rows = [];
   for (let i = 0; i < 26; i++) { const a = (i / 26) * Math.PI * 1.6 - Math.PI * 0.8 + Math.PI, d = 58 + rr() * 30; const x = Math.sin(a) * d, z = Math.cos(a) * d + 10; if (z < -10) continue; rows.push({ x, z, h: 8 + rr() * 18, ry: a, tilt: (rr() - 0.5) * 0.16 }); }
@@ -78,7 +78,7 @@ export function buildAbyss() {
   const K = {
     lamp: [[0, 3.5, 0, 0.25, 7.0, 0.25, 0x4a4e58], [0.8, 7.0, 0, 1.8, 0.2, 0.3, 0x4a4e58], [1.6, 6.8, 0, 0.6, 0.25, 0.5, 0xffe8c0]],
     pole: [[0, 4.5, 0, 0.36, 9.0, 0.36, 0x6a6460], [0, 8.4, 0, 2.6, 0.2, 0.2, 0x4a4440]],
-    car: [[0, 0.7, 0, 1.8, 0.9, 4.2, 0xffffff], [0, 1.4, -0.3, 1.6, 0.6, 2.2, 0x2a3040]],
+    car: [[0, 0.7, 0, 1.8, 0.9, 4.2, 0xffffff], [0, 1.4, -0.3, 1.6, 0.6, 2.2, 0x2a3040], [0.78, 0.3, 1.35, 0.26, 0.6, 0.62, 0x18181c], [-0.78, 0.3, 1.35, 0.26, 0.6, 0.62, 0x18181c], [0.78, 0.3, -1.35, 0.26, 0.6, 0.62, 0x18181c], [-0.78, 0.3, -1.35, 0.26, 0.6, 0.62, 0x18181c]],   // P13：車輪（前は車体が浮いていた）
   };
   const PL = []; let n = 0; const add = (kind, x, z, ry = 0, color) => PL.push({ id: kind + '_' + (n++), kind, x, z, ry, color });
   for (let z = -2; z < 56; z += 12) { add('lamp', -14, z, 0); add('lamp', 14, z + 6, Math.PI); }
@@ -250,11 +250,11 @@ export function buildEpilogue() {
       const z = -14 + k * 7, i = k * 2 + (sx > 0 ? 1 : 0), h = 5 + (i % 3) * 0.8;
       B.box('wall', x + sx * 6, h / 2, z, 2.4, h, 6.4, [0x8a7a6a, 0x7a8a9a, 0x9a8a7a][i % 3]);
       const open = i % 3 !== 2;
-      B.box(open ? 'glow' : 'shutter', x + sx * 4.75, 1.4, z, 0.06, 2.6, 5.2, open ? 0xffd8a0 : 0x9aa0a8, { edges: false });
-      const u = atlas.add(signDraw(SH[i % SH.length] + '（仮）', { bg: '#f0e8d0', fg: '#6a1a1a', size: 36 })); B.box('sign', x + sx * 4.7, 3.2, z, 0.05, 0.7, 4.0, 0xffffff, { uv: u, face: sx > 0 ? 1 : 0, edges: false });
-      if (!open) { for (let j = 0; j < 4; j++) B.box('prop', x + sx * 4.6, 0.6 + j * 1.0, z, 0.08, 0.08, 6.0, 0x9a9aa0, { edges: false }); B.box('prop', x + sx * 4.65, 2.2, z - 1, 0.04, 2.6, 3.0, 0x3a6ad8, { edges: false }); }   // 足場・青いシート
+      B.box(open ? 'texglow' : 'shutter', x + sx * 4.77, 1.4, z, 0.06, 2.6, 5.2, open ? 0xffe8c8 : 0x9aa0a8, open ? { tile: ['konbini', 'win_lit', 'koshi_lit'][i % 3], ts: 2.6, tsy: 2.6, edges: false } : { edges: false });   // P13：開いた店は店の中の絵（ガラス越しの棚・灯り）
+      const u = atlas.add(signDraw(SH[i % SH.length] + '（仮）', { bg: '#f0e8d0', fg: '#6a1a1a', size: 36 })); B.box('sign', x + sx * 4.775, 3.2, z, 0.05, 0.7, 4.0, 0xffffff, { uv: u, face: sx > 0 ? 1 : 0, edges: false });
+      if (!open) { for (let j = 0; j < 4; j++) B.box('prop', x + sx * 4.6, 0.6 + j * 1.0, z, 0.08, 0.08, 6.0, 0x9a9aa0, { edges: false }); for (const dz of [-2.96, 0, 2.96]) B.box('prop', x + sx * 4.6, 2.0, z + dz, 0.08, 4.0, 0.08, 0x8a8a90, { edges: false }); B.box('prop', x + sx * 4.65, 2.2, z - 1, 0.04, 2.6, 3.0, 0x3a6ad8, { edges: false }); }   // 足場・青いシート
     }
-    for (let z = -14; z <= 14; z += 7) { B.box('glow', x - 3, 4.2, z, 0.3, 0.4, 0.3, 0xffb070, { edges: false }); B.box('glow', x + 3, 4.2, z + 3.5, 0.3, 0.4, 0.3, 0xffb070, { edges: false }); halos.push({ p: [x - 3, 4.2, z], size: 1.6, color: 0xffb070, k: 0.5 }); halos.push({ p: [x + 3, 4.2, z + 3.5], size: 1.6, color: 0xffb070, k: 0.5 }); }
+    for (let z = -14; z <= 14; z += 7) { B.box('glow', x - 3, 4.2, z, 0.3, 0.4, 0.3, 0xffb070, { edges: false }); B.box('glow', x + 3, 4.2, z + 3.5, 0.3, 0.4, 0.3, 0xffb070, { edges: false }); for (const [px, pz] of [[x - 3, z], [x + 3, z + 3.5]]) B.box('prop', px, 4.77, pz, 0.02, 0.74, 0.02, 0x2a2a30, { edges: false }); halos.push({ p: [x - 3, 4.2, z], size: 1.6, color: 0xffb070, k: 0.5 }); halos.push({ p: [x + 3, 4.2, z + 3.5], size: 1.6, color: 0xffb070, k: 0.5 }); }
     B.box('prop', x, 5.2, 0, 10, 0.15, 40, 0x6a6e78, { edges: false });                                  // アーケードの屋根（直した）
     for (let z = -18; z < 20; z += 6) B.box('glow', x, 5.1, z, 9.4, 0.03, 0.4, 0xffe8c0, { edges: false });
     const sky = new THREE.Mesh(new THREE.PlaneGeometry(40, 16), new THREE.MeshBasicMaterial({ map: canvasTex(64, 128, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#3a2a6a'); gr.addColorStop(0.5, '#e87a5a'); gr.addColorStop(1, '#ffd0a0'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }), fog: false }));
@@ -262,8 +262,8 @@ export function buildEpilogue() {
   }
   // ── 病院の廊下（対比の場面） ──
   { const x = E.corridor.x;
-    B.box('floor', x, 0, 0, 4, 0.02, 30, 0xd0d4cc, { edges: false }); B.box('wall', x - 2, 1.5, 0, 0.2, 3, 30, 0xe8ece8); B.box('wall', x + 2, 1.5, 0, 0.2, 3, 30, 0xe8ece8);
-    for (let z = -12; z <= 12; z += 4) { B.box('glow', x, 2.95, z, 0.5, 0.04, 1.6, 0xf4f8ff, { edges: false }); B.box('glow', x + 1.92, 1.6, z + 2, 0.02, 1.4, 1.0, 0xfff4e0, { edges: false }); }
+    B.box('floor', x, 0, 0, 4, 0.02, 30, 0xd0d4cc, { edges: false }); B.box('wall', x - 2, 1.5, 0, 0.2, 3, 30, 0xe8ece8); B.box('wall', x + 2, 1.5, 0, 0.2, 3, 30, 0xe8ece8); B.box('wall', x, 3.05, 0, 4.2, 0.1, 30, 0xd8dcd8);   // P13：天井（灯りを付ける）
+    for (let z = -12; z <= 12; z += 4) { B.box('glow', x, 2.98, z, 0.5, 0.04, 1.6, 0xf4f8ff, { edges: false }); B.box('glow', x + 1.92, 1.6, z + 2, 0.02, 1.4, 1.0, 0xfff4e0, { edges: false }); }
   }
   const lights = [
     { id: 'hosp', pos: [E.hospital.x + 0.6, 2.4, -2.0], color: 0xfff6e8, intensity: 8, dist: 9 },

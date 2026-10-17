@@ -148,7 +148,7 @@ export function auditArea(area, pieces, A, opt = {}) {
 
   // ── signage：看板の後ろ／下に建物の表と店の表があるか ──
   {
-    const SKIP = /→|←|↑|入口|出口|のりば|乗り場|停留|バス|電停|駅|STATION|ごみ|回覧|注意|禁止|立入|止まれ|時刻|本日|運転|休業|募集|閉店|セール|案内|お知らせ|知らせ|掲示|号|番|丁目|^\d|方面|行き|toilet|トイレ|非常|避難|消火|AED|受付|外来|救急|病院|管理|出入|関係者|EXIT|自動ドア|押|引|開|閉|満|空|P$|駐|自転車|タクシー|案内図|地図|通り|広場|横丁|商店街|アーケード|町内|市|区|ようこそ|祭|ひかり広場|中止|ありがとう|表札|様$/;
+    const SKIP = /屋上|連絡|入館|点検|職員|立入|→|←|↑|入口|出口|のりば|乗り場|停留|バス|電停|駅|STATION|ごみ|回覧|注意|禁止|立入|止まれ|時刻|本日|運転|休業|募集|閉店|セール|案内|お知らせ|知らせ|掲示|号|番|丁目|^\d|方面|行き|toilet|トイレ|非常|避難|消火|AED|受付|外来|救急|病院|管理|出入|関係者|EXIT|自動ドア|押|引|開|閉|満|空|P$|駐|自転車|タクシー|案内図|地図|通り|広場|横丁|商店街|アーケード|町内|市|区|ようこそ|祭|ひかり広場|中止|ありがとう|表札|様$/;
     const BIZ = /屋|店|処|館|喫茶|カフェ|理容|美容|薬局|書店|精肉|青果|鮮魚|酒|食堂|居酒屋|焼き鳥|おでん|スナック|立ち飲み|そば|うどん|ラーメン|寿司|和菓子|菓子|茶舗|呉服|金物|時計|めがね|眼鏡|写真|電器|靴|花|クリーニング|銭湯|湯$|たばこ|たい焼き|不動産|整骨|医院|歯科|銀行|信用金庫|ホテル|旅館|画廊|コンビニ|スーパー|百貨店|ビル|英会話|塾|雑貨|文具|本と|八百屋/;
     const supported = s => { for (const o of G.near(s.min.map(v => v - TOL), s.max.map(v => v + TOL))) if (o !== s && ov(s, o, TOL)) return true; return false; };
     for (const s of solid.filter(isSign)) {
@@ -169,7 +169,7 @@ export function auditArea(area, pieces, A, opt = {}) {
       if (!low[0] && !low[1] && !pole) { push('signage', 'error', `店の看板の下が空の場所（「${t}」：店の表が無い）`, s); continue; }
       if (pole) continue;
       // 看板の下の 0.1〜2.6m・左右 ±（看板の幅の半分＋1.5m）に、店の表（戸・窓・シャッター・のれん・ガラス・店の中の物）があるか
-      const side = low[0] ? 1 : -1, f = low[0] || low[1], o1 = ax === 0 ? 2 : 0, half = Math.max(ds[o1] / 2 + 1.5, 1.6);
+      const side = back[0] && low[0] ? 1 : back[1] && low[1] ? -1 : low[0] ? 1 : -1, f = side > 0 ? low[0] : low[1], o1 = ax === 0 ? 2 : 0, half = Math.max(ds[o1] / 2 + 1.5, 1.6);
       const facadeAt = c[ax] + side * (ds[ax] / 2 + f.dd);
       const mn = [0, 0.1, 0], mx = [0, 2.6, 0]; mn[o1] = c[o1] - half; mx[o1] = c[o1] + half; mn[ax] = Math.min(facadeAt - side * 0.6, facadeAt + side * 4); mx[ax] = Math.max(facadeAt - side * 0.6, facadeAt + side * 4);
       let front = 0;

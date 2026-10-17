@@ -3,6 +3,7 @@
 // ルートによる違い（data/ch5.js）：reveal は東の廊下の床が崩れている（白い姿で跳ぶ）・電気がある。secret は停電（非常灯）・地下の記録保管庫が水につかっている。
 // 区画は一度作ると使い回すので、ルートで変わる物（崩れた床・水・封印・灯り）は dyn に持ち、ゲーム側（game/ch5.js の applyRoute5）で切り替える。
 import * as THREE from 'three';
+import { furnKit } from './furn.js';
 import { Builder, Atlas, signDraw } from './level.js';
 import { box as cbox } from './collide.js';
 import { gradientMap, canvasTex, JP_FONT } from '../render/toon.js';
@@ -19,6 +20,7 @@ const sealTex = () => canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#efe4c8';
 export function buildOldwing() {
   const root = new THREE.Group(); root.name = 'area_oldwing';
   const B = new Builder(), atlas = new Atlas(), boxes = [], spots = [], dyn = {}, halos = [], hideSpots = [];
+  const FK = furnKit(B);
   const solid = (cx, cz, w, d, h = 3.4, y0 = 0) => { const b = cbox(cx, cz, w, d, h, y0); boxes.push(b); return b; };
   const H = 3.4, W1 = 0x8e9488, W2 = 0x7a8078, TILE = 0x6a6e66;
   const wall = (cx, cz, w, d, c = W1, h = H) => { B.box('wall', cx, h / 2, cz, w, h, d, c); return solid(cx, cz, w, d, h); };
@@ -34,7 +36,7 @@ export function buildOldwing() {
   wall(-14.2, -18.8, 0.4, 7.6);
   // 崩れた西の壁（reveal の入口）：瓦礫・外の夜
   for (const [x, z, s] of [[-13.2, 7.0, 0.8], [-12.8, 10.6, 1.0], [-13.6, 8.6, 0.6], [-12.2, 6.6, 0.5]]) { B.box('prop', x, s * 0.4, z, s * 1.6, s * 0.8, s * 1.4, 0x6a6a62, { ry: x + z }); }
-  B.box('glow', -14.25, 1.6, 8.8, 0.05, 3.0, 5.0, 0x1a1030, { edges: false }); halos.push({ p: [-14.0, 2.0, 8.8], size: 4.0, color: 0x6a3aa8, k: 0.35 });
+  B.box('glow', -14.25, 1.7, 8.8, 0.05, 3.4, 5.0, 0x1a1030, { edges: false }); halos.push({ p: [-14.0, 2.0, 8.8], size: 4.0, color: 0x6a3aa8, k: 0.35 });
   // 入口の広間（z 6〜14）と、北の収容棟を分ける壁（廊下の口・西の帯・東の帯の口）
   wall(-6.2, 6.0, 7.2, 0.3); wall(6.2, 6.0, 7.2, 0.3); B.box('wall', 0, H - 0.35, 6.0, 5.2, 0.7, 0.3, W1); B.box('wall', -11.9, H - 0.35, 6.0, 4.2, 0.7, 0.3, W1); B.box('wall', 11.9, H - 0.35, 6.0, 4.2, 0.7, 0.3, W1);
   // 西の帯（記録保管庫：封印の戸）・東の帯（主任研究室への廊下：戸）
@@ -54,7 +56,7 @@ export function buildOldwing() {
   const benches = [{ x: 6.4, z: 11.6, ry: Math.PI }, { x: 6.4, z: 9.0, ry: 0 }]; root.add(instanced(bench, benches, { name: 'benches', shadow: true })); for (const b of benches) solid(b.x, b.z, 2.2, 0.6, 0.6);
   const nm = atlas.add(signDraw('旧研究棟　収容棟', { bg: '#20241e', fg: '#d8e0c8', size: 40, frameColor: '#6a7a5a' }));
   B.box('sign', 0, 2.8, 6.17, 3.4, 0.5, 0.04, 0xffffff, { uv: nm, face: 4, edges: false });
-  B.box('prop', 0, 1.3, 13.9, 0.4, 0.5, 0.14, 0xc8b040); B.box('prop', 0, 1.35, 13.82, 0.14, 0.22, 0.04, 0x2a2a2a, { edges: false });
+  B.box('prop', 0, 1.3, 13.93, 0.4, 0.5, 0.14, 0xc8b040); B.box('prop', 0, 1.35, 13.85, 0.14, 0.22, 0.04, 0x2a2a2a, { edges: false });
   spots.push({ id: 'ow_save', kind: 'save', x: 0, z: 13.0, r: 1.0, label: '内線電話（セーブ）' });
   // 排水の弁（secret：記録保管庫の水を抜く。配電盤で排水ポンプに電気が要る）
   { const r = new THREE.TorusGeometry(0.24, 0.045, 6, 14); r.translate(-9.4, 1.3, 13.8); B.add('prop', r, 0x3070c0); B.box('prop', -9.4, 1.3, 13.92, 0.1, 0.1, 0.2, 0x6a6a6a, { edges: false }); }
@@ -76,7 +78,7 @@ export function buildOldwing() {
     // 部屋の中：ベッド・いす・小さな窓・拘束の帯
     B.box('prop', cx + sx * 1.8, 0.3, cz - 1.6, 1.0, 0.6, 2.0, 0xd8d4c8); B.box('prop', cx + sx * 1.8, 0.62, cz - 1.6, 0.9, 0.06, 1.9, 0xb8c0b8, { edges: false }); solid(cx + sx * 1.8, cz - 1.6, 1.0, 2.0, 0.7);
     B.box('prop', cx + sx * 1.8, 0.66, cz - 1.0, 1.04, 0.03, 0.08, 0x3a3634, { edges: false }); B.box('prop', cx + sx * 1.8, 0.66, cz - 2.2, 1.04, 0.03, 0.08, 0x3a3634, { edges: false });
-    B.box('prop', cx - sx * 0.6, 0.45, cz + 2.0, 0.5, 0.06, 0.5, 0x6a5a4a); B.box('prop', cx - sx * 0.6, 0.75, cz + 2.22, 0.5, 0.6, 0.06, 0x6a5a4a);
+    FK.chair(cx - sx * 0.6, cz + 2.0, Math.PI, 0x6a5a4a, { w: 0.5 });   // P13：脚のある椅子
     B.box('glass', x0 - sx * 0.17, 2.2, cz, 0.04, 0.6, 1.2, 0x2a3040, { edges: false });
   }
   // 北の部屋：資料室（西）・電気室（東）
@@ -95,14 +97,14 @@ export function buildOldwing() {
   solid(9.5, -19.0, 0.5, 2.0, 2.2); dyn.breakerHalo = halos.push({ p: [9.0, 1.6, -19.0], size: 1.2, color: 0xffb040, k: 0.0 }) - 1;
   spots.push({ id: 'ow_breaker', kind: 'breaker5', x: 8.5, z: -19.0, r: 1.2, label: '配電盤（旧研究棟の非常電源）' });
   spots.push({ id: 'ow_maint', kind: 'clue5', clue: 'maint5', x: 8.5, z: -16.8, r: 1.0, label: '盤の横の保全記録' });
-  B.box('prop', 9.6, 1.5, -16.8, 0.04, 0.5, 0.36, 0xf0eee0, { edges: false });
+  B.box('prop', 9.63, 1.5, -16.8, 0.04, 0.5, 0.36, 0xf0eee0, { edges: false });
   const den = atlas.add(signDraw('電気室', { bg: '#e8e8e0', fg: '#203020', size: 34 })); B.box('sign', 2.76, 2.6, -19.0, 0.03, 0.34, 1.2, 0xffffff, { uv: den, face: 0, edges: false });
   // 103 号室の手紙（任意）
   spots.push({ id: 'ow_letter', kind: 'clue5', clue: 'letter', x: R['103'][0] + 1.0, z: R['103'][1] + 1.6, r: 1.0, label: '103 号室の机の手紙' });
   B.box('prop', R['103'][0] + 0.6, 0.78, R['103'][1] + 2.2, 0.22, 0.01, 0.3, 0xf4f0e4, { edges: false });
   // 点呼卓（廊下の北）・隔離扉（観測棟へ）
   B.box('prop', 0, 0.55, -20.4, 2.4, 1.1, 0.8, 0x4a5048); B.box('prop', 0, 1.2, -20.6, 1.6, 0.5, 0.06, 0x101410, { rx: -0.4, edges: false }); B.box('glow', 0, 1.21, -20.57, 1.4, 0.4, 0.01, 0x70e0a0, { rx: -0.4, edges: false });
-  { const g = new THREE.CylinderGeometry(0.16, 0.2, 0.22, 12); g.translate(1.6, 1.25, -20.4); B.add('prop', g, 0xc8a040); }
+  { const g = new THREE.CylinderGeometry(0.16, 0.2, 0.22, 12); g.translate(0.9, 1.21, -20.3); B.add('prop', g, 0xc8a040); }
   solid(0, -20.4, 2.4, 0.8, 1.2); dyn.consoleHalo = halos.push({ p: [0, 1.3, -20.1], size: 1.2, color: 0x70e0a0, k: 0.5 }) - 1;
   spots.push({ id: 'ow_console', kind: 'rollcall5', x: 0, z: -19.4, r: 1.3, label: '点呼卓' });
   const gate = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.0, 0.3), new THREE.MeshToonMaterial({ color: 0x5a5a40, gradientMap: gradientMap() })); gate.position.set(0, 1.5, -22.3); root.add(gate);
@@ -148,9 +150,9 @@ export function buildOldwing() {
     { id: 'chief', pos: [11.6, 2.8, -19.0], color: 0xffd8a0, intensity: 3.5, dist: 7, main: true },
     { id: 'docs', pos: [-6.0, 2.9, -19.0], color: 0xffe0b0, intensity: 3, dist: 7, main: true },
     { id: 'elec', pos: [6.0, 2.9, -19.0], color: 0xc8e0ff, intensity: 2.5, dist: 7, main: true },
-    { id: 'em1', pos: [0, 2.8, 13.6], color: 0xff3020, intensity: 1.5, dist: 8, emergency: true },
-    { id: 'em2', pos: [0, 2.8, -12.0], color: 0xff3020, intensity: 1.2, dist: 9, emergency: true },
-    { id: 'em3', pos: [-11.9, 2.6, 4.0], color: 0xff3020, intensity: 1.2, dist: 7, emergency: true },
+    { id: 'em1', pos: [0, 2.8, 13.94], color: 0xff3020, intensity: 1.5, dist: 8, emergency: true },
+    { id: 'em2', pos: [0, 3.34, -12.0], color: 0xff3020, intensity: 1.2, dist: 9, emergency: true },
+    { id: 'em3', pos: [-11.9, 3.34, 4.0], color: 0xff3020, intensity: 1.2, dist: 7, emergency: true },
     { id: 'con', pos: [0, 1.6, -19.6], color: 0x70e0a0, intensity: 2.0, dist: 5 },
   ].map(l => Object.assign({ base: l.intensity }, l));
   for (const l of lights) if (l.main && l.id[0] !== 'a' && l.id !== 'east') { B.box('glow', l.pos[0], H - 0.03, l.pos[2], 0.3, 0.04, 1.6, 0xf4f8ff, { edges: false }); halos.push({ p: [l.pos[0], H - 0.15, l.pos[2]], size: 1.2, color: l.color, k: 0.4, light: l }); }
@@ -195,7 +197,7 @@ export function buildAtrium() {
     spots.push({ id: 'at_desk_' + k, kind: 'desk5', desk: k, x, z: z + 1.0, r: 1.3, label: '観測室の机 ' + k });
   }
   spots.push({ id: 'at_duty', kind: 'clue5', clue: 'duty', x: -12.6, z: -14.0, r: 1.1, label: '壁の当番表' });
-  B.box('prop', -13.95, 1.6, -14.0, 0.04, 0.8, 0.6, 0xf0eee0, { edges: false });
+  B.box('prop', -13.98, 1.6, -14.0, 0.04, 0.8, 0.6, 0xf0eee0, { edges: false });
   // 相棒が見守る観測室（南東・ガラス張りの小部屋）
   const [wx, wz] = ATRIUM.watch;
   wall(wx - 3.0, wz, 0.2, 2.6, W2, 2.8); wall(wx, wz - 1.3, 6.0, 0.2, W2, 1.0); B.box('glass', wx, 1.9, wz - 1.3, 6.0, 1.8, 0.04, 0x2a3a50, { edges: false });
@@ -207,6 +209,7 @@ export function buildAtrium() {
   // 入口（南：旧研究棟の隔離扉）・出口（北東の階段：屋上 reveal ／ 連絡橋 secret）
   spots.push({ id: 'exit_oldwing', kind: 'exit', to: 'oldwing', spawn: 'gatein', x: 0, z: 8.6, r: 1.0, label: '旧研究棟へ戻る' });
   for (let k = 0; k < 10; k++) B.box('prop', 9.0 + 0.0, 0.2 + k * 0.4, -14.0 - k * 0.45, 3.0, 0.1, 0.45, 0x4a4e58, { edges: false });
+  for (const x of [7.46, 10.54]) B.box('prop', x, 1.9, -15.91, 0.08, 0.22, 5.72, 0x3a3e48, { rx: 0.7266, edges: false });   // P13：段を支える側桁（前は段の板だけ浮いていた。下の机は残す）
   const kaidan = atlas.add(signDraw('屋上・連絡橋', { bg: '#1a2a1a', fg: '#a0ffb0', size: 30 })); B.box('sign', 9.0, 3.6, -18.98, 2.2, 0.3, 0.02, 0xffffff, { uv: kaidan, face: 4, edges: false });
   spots.push({ id: 'at_stairs', kind: 'stairs5', x: 9.0, z: -13.0, r: 1.4, label: '北東の階段' });
   // 明かり

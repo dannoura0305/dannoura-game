@@ -188,6 +188,12 @@ await t('動き出し・止まり：止まると足の目標を運ぶ「止ま�
   assert.ok(Math.max(...leanAfter) > 0.01, '止まると前へ行き過ぎる ' + Math.max(...leanAfter).toFixed(3));
   assert.ok(Math.abs(hist[259].lean) < 0.01, '落ち着く');
   for (const h of hist) for (const j of JN) assert.ok(h.p[j].every(Number.isFinite), j);
+  // 動き出し・止まりの間もひざが「ぽん」と折れない（1 こま ≤30°）
+  for (const v of [1.2, 2.2, 5]) {
+    const dd = new LocoDriver({ dims: L, pers: 'dannoura' }); let ph2 = 0, prev = null, mx = 0;
+    for (let i = 0; i < 170; i++) { const sp = i < 20 || i > 100 ? 0 : v; if (i === 20) ph2 = dd.startPhase(sp); ph2 += sp / 60 * dd.rate(); const p = dd.update(1 / 60, { speed: sp, phase: ph2, time: i / 60 }); const k = [p.leftLowerLeg[0], p.rightLowerLeg[0]]; if (prev) mx = Math.max(mx, Math.abs(k[0] - prev[0]) * 57.3, Math.abs(k[1] - prev[1]) * 57.3); prev = k; }
+    assert.ok(mx <= 30, `${v}m/s 動き出し・止まりのひざ ${mx.toFixed(1)}°/こま`);
+  }
   // 動き出しの位相：左が立脚の真ん中
   const u = ((d.startPhase(2.2) - Math.PI / 2) / (2 * Math.PI)) % 1;
   assert.ok(u > 0.1 && u < 0.4, '動き出しの位相 ' + u.toFixed(2));

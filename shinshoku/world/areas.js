@@ -194,7 +194,7 @@ export function buildPlaza() {
   for (const x of [8.98, 10.42]) B.box('prop', x, 1.1, -7.95, 0.06, 2.2, 0.34, 0x5a5e66, { edges: false }); B.box('prop', 9.7, 2.24, -7.95, 1.5, 0.08, 0.34, 0x5a5e66, { edges: false });
   B.box('wall', 10.5, 3.1, -10.1, 5.4, 0.2, 4.6, 0x6a6474); boxes.push(cbox(10.5, -10.1, 5.4, 4.6, 0.3, 3.0));
   B.box('prop', 11.6, 0.4, -11.6, 2.4, 0.8, 0.7, 0x5a5a62); solid(11.6, -11.6, 2.4, 0.7, 0.8);
-  for (const [x, y] of [[10.9, 1.15], [11.6, 1.15], [12.3, 1.15], [11.25, 1.6], [11.95, 1.6]]) B.box('glow', x, y, -11.75, 0.6, 0.4, 0.04, 0x7ab0d8, { edges: false });
+  for (const [x, y] of [[10.9, 1.15], [11.6, 1.15], [12.3, 1.15], [11.25, 1.6], [11.95, 1.6]]) B.box('glow', x, y, -12.03, 0.6, 0.4, 0.04, 0x7ab0d8, { edges: false });
   halos.push({ p: [11.6, 1.35, -11.5], size: 1.6, color: 0x8ac8ff, k: 0.5 });
   const sec = atlas.add(signDraw('警備室', { bg: '#e8e8f0', fg: '#203050', size: 36 }));
   B.box('wall', 9.7, 2.64, -7.95, 1.42, 0.72, 0.3, 0x9a94a4);   // P13：戸口の上の壁（看板を付ける）
@@ -206,7 +206,7 @@ export function buildPlaza() {
   hideSpots.push({ x: 2, z: 2.5 }, { x: 2, z: -2.5 }, { x: -0.5, z: 0 }, { x: 4.5, z: 0 }, { x: 9.6, z: -9.0 }, { x: -6.5, z: 12.2 }, { x: -12.5, z: -8.8 });
   // バス停（市民体育館前 行き）・ベンチ
   B.box('wall', -6, 2.4, 12.6, 4, 0.12, 1.8, 0x3a4a5a); for (const x of [-7.8, -4.2]) B.box('prop', x, 1.2, 13.3, 0.1, 2.4, 0.1, 0x6a6a72);
-  B.box('glass', -6, 1.4, 13.4, 3.6, 1.6, 0.04, 0x1a2a3a, { edges: false });
+  B.box('glass', -6, 1.4, 13.33, 3.6, 1.6, 0.04, 0x1a2a3a, { edges: false });
   const bus = atlas.add(signDraw('市民体育館前　（終バス 済）', { bg: '#f0f0e8', fg: '#1a3a6a', size: 28 }));
   B.box('prop', -3.6, 1.2, 12.4, 0.08, 2.4, 0.08, 0x6a6a72); B.box('sign', -3.6, 2.3, 12.4, 0.04, 0.4, 0.9, 0xffffff, { uv: bus, face: 0, edges: false });
   spots.push({ id: 'busstop', kind: 'read', x: -4.2, z: 11.2, r: 1.4, label: 'バス停の時刻表', text: 'busstop' });
@@ -235,7 +235,7 @@ export function buildPlaza() {
   ].map(l => Object.assign({ base: l.intensity }, l));
   for (const l of lights) if (!l.booth) {
     B.box('prop', l.pos[0], l.pos[1] / 2, l.pos[2], 0.18, l.pos[1], 0.18, 0x5a5a62); solid(l.pos[0], l.pos[2], 0.25, 0.25, 6);
-    B.box('glow', l.pos[0], l.pos[1] + 0.1, l.pos[2], 0.5, 0.12, 0.3, l.color, { edges: false });
+    B.box('glow', l.pos[0], l.pos[1] + 0.06, l.pos[2], 0.5, 0.12, 0.3, l.color, { edges: false });
     halos.push({ p: [l.pos[0], l.pos[1], l.pos[2]], size: 3.0, color: l.color, k: 0.85, light: l });
   }
   const wet = lights.filter(l => !l.booth).map(l => ({ p: [l.pos[0], 0, l.pos[2]], size: 2.6, color: l.color, k: 0.9 })).concat([{ p: [0, 0, -12], size: 3, color: 0xffd090, k: 0.5 }]);
@@ -276,9 +276,9 @@ export function buildShelter() {
   B.box('wall', 0, 4.6, -20.2, 20, 7, 0.2, 0x7a2a3a);
   for (const x of [-10.3, 10.3]) wall(x, -17.8, 0.6, 5.2, 9, GW2);
   const ban = atlas.add(signDraw('市民体育館　避難所', { bg: '#f4f0e6', fg: '#1a3a6a', size: 40 }));
-  B.box('sign', 0, 6.4, -20.05, 9, 0.9, 0.04, 0xffffff, { uv: ban, face: 4, edges: false });
+  B.box('sign', 0, 6.4, -20.08, 9, 0.9, 0.04, 0xffffff, { uv: ban, face: 4, edges: false });
   // 館内放送のマイク（舞台の前）
-  B.box('prop', 5.6, 0.7, -14.6, 0.05, 1.4, 0.05, 0x2a2a30); B.box('prop', 5.6, 1.42, -14.5, 0.08, 0.14, 0.08, 0x1a1a1a);
+  B.box('prop', 5.6, 0.7, -14.6, 0.05, 1.4, 0.05, 0x2a2a30); B.box('prop', 5.6, 1.42, -14.57, 0.08, 0.14, 0.08, 0x1a1a1a);
   B.box('prop', 5.6, 0.45, -14.9, 0.6, 0.9, 0.4, 0x4a4a52); B.box('glow', 5.6, 0.75, -14.69, 0.1, 0.06, 0.02, 0xff5040, { edges: false });
   solid(5.6, -14.8, 0.7, 0.6, 1.2);
   halos.push({ p: [5.6, 0.8, -14.6], size: 0.5, color: 0xff5040, k: 0.6, mic: true });
@@ -347,12 +347,12 @@ export function buildShelter() {
   // 第3章【仮】：ロビー西の連絡通路（病院へ）・ロビー東の階段（地下通路から上がってくる）
   B.box('wall', -7.0, 1.2, 18.4, 0.06, 2.4, 1.3, 0x5a6a7a, { edges: false });
   const hc = atlas.add(signDraw('連絡通路 →　病院', { bg: '#2a5a7a', fg: '#ffffff', size: 30 }));
-  B.box('sign', -6.95, 2.7, 18.4, 0.03, 0.3, 1.5, 0xffffff, { uv: hc, face: 0, edges: false });
+  B.box('sign', -6.985, 2.7, 18.4, 0.03, 0.3, 1.5, 0xffffff, { uv: hc, face: 0, edges: false });
   halos.push({ p: [-6.8, 2.7, 18.4], size: 1.0, color: 0x80c0ff, k: 0.35 });
   spots.push({ id: 'exit_hospital', kind: 'exit', to: 'hospital', spawn: 'from_shelter', x: -6.6, z: 18.4, r: 0.9, label: '連絡通路（病院へ）', auto: true, needFlag: 'ch3_started', lockedText: 'hosp_wait' });
   B.box('wall', 6.95, 1.2, 18.6, 0.06, 2.4, 1.2, 0x4a4a52, { edges: false });
   const ug = atlas.add(signDraw('地下通路（病院）', { bg: '#2a3a2a', fg: '#e8ffe8', size: 30 }));
-  B.box('sign', 6.95, 2.7, 18.6, 0.03, 0.3, 1.4, 0xffffff, { uv: ug, face: 1, edges: false });
+  B.box('sign', 6.985, 2.7, 18.6, 0.03, 0.3, 1.4, 0xffffff, { uv: ug, face: 1, edges: false });
   spots.push({ id: 'exit_tunnel', kind: 'exit', to: 'tunnel', spawn: 'from_shelter', x: 6.6, z: 18.6, r: 0.9, label: '地下通路へ', auto: true, needFlag: 'tunnel_clear', lockedText: 'tunnel_from_shelter' });
   // 明かり：天井 4（第 2 段で消える）・非常灯 2・ロビー 1
   const lights = [
