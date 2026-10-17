@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mapkit/schema/map-layout.schema.json",
+  "title": "わかば 配置（layout.json）wakaba-map-layout/1",
+  "description": "tools/mapkit/build_map.mjs が書く maps/<id>/build/layout.json の形。エンジンに依らない（Three.js・Blender・UE5 が同じ物を読む）。座標は x＝東・y＝上・z＝北・m（docs/wakaba-mapkit/07 §11・10）。中身の検査（id の重複・範囲・指紋）は mapkit/core/layoutfile.js。",
+  "type": "object",
+  "required": ["layout", "map", "seed", "coords", "size", "terrain", "start", "goals", "paths", "buildings", "anchors", "objects", "instances", "keepOut", "stats", "hash"],
+  "properties": {
+    "builtFrom": { "type": "object", "required": ["spec", "specHash"], "properties": { "spec": { "type": "string" }, "specHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }, "heightmap": { "type": ["string", "null"] } } },
+    "layout": { "const": "wakaba-map-layout/1" },
+    "map": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "seed": { "type": "string", "minLength": 1 },
+    "coords": { "type": "object", "required": ["x", "y", "z", "unit"], "properties": { "x": { "const": "east" }, "y": { "const": "up" }, "z": { "const": "north" }, "unit": { "const": "m" } } },
+    "size": { "$ref": "#/$defs/v2" },
+    "terrain": {
+      "type": "object", "required": ["file", "format", "nx", "nz", "cell", "minY", "maxY", "source", "fingerprint"],
+      "properties": {
+        "file": { "type": "string" }, "format": { "enum": ["png16-gray", "raw16"] },
+        "nx": { "type": "integer", "minimum": 2 }, "nz": { "type": "integer", "minimum": 2 }, "cell": { "type": "number", "exclusiveMinimum": 0 },
+        "minY": { "type": "number" }, "maxY": { "type": "number" }, "source": { "enum": ["heightmap", "fallback"] }, "fingerprint": { "type": "string", "pattern": "^[0-9a-f]{8}$" }
+      }
+    },
+    "start": { "$ref": "#/$defs/v3" },
+    "goals": { "type": "array", "items": { "type": "object", "required": ["id", "kind", "at"], "properties": { "id": { "type": "string" }, "kind": { "type": "string" }, "building": { "type": "string" }, "at": { "$ref": "#/$defs/v3" } } } },
+    "paths": { "type": "array", "items": { "type": "object", "required": ["id", "kind", "width", "points"], "properties": { "id": { "type": "string" }, "kind": { "type": "string" }, "width": { "type": "number", "exclusiveMinimum": 0 }, "maxSlope": { "type": "number" }, "points": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/v3" } } } } },
+    "buildings": { "type": "array", "items": { "$ref": "#/$defs/building" } },
+    "anchors": { "type": "array", "items": { "type": "object", "required": ["id", "type"], "anyOf": [{ "required": ["at"] }, { "required": ["from", "to"] }], "properties": { "id": { "type": "string" }, "type": { "enum": ["door", "seat", "stairs", "vault", "grab", "ladder", "lean", "look"] }, "at": { "$ref": "#/$defs/v3" }, "rotY": { "type": "number" }, "from": { "$ref": "#/$defs/v3" }, "to": { "$ref": "#/$defs/v3" } } } },
+    "objects": { "type": "array", "items": { "$ref": "#/$defs/object" } },
+    "instances": { "type": "array", "items": { "type": "object", "required": ["layer", "kind", "count", "encoding", "data"], "properties": { "layer": { "type": "string" }, "kind": { "$ref": "#/$defs/kind" }, "count": { "type": "integer", "minimum": 0 }, "encoding": { "const": "u16le:x_cm,z_cm" }, "data": { "type": "string" } } } },
+    "keepOut": { "type": "array", "items": { "type": "object", "required": ["id", "kind", "shape"], "properties": { "id": { "type": "string" }, "kind": { "type": "string" }, "shape": { "enum": ["capsule", "obb", "circle"] } } } },
+    "stats": { "type": "object", "required": ["counts"] },
+    "hash": { "type": "string", "pattern": "^fp:[0-9a-f]+$" }
+  },
+  "$defs": {
+    "v2": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+    "v3": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+    "kind": { "type": "string", "pattern": "^[a-z0-9_]+(\\.[A-Za-z0-9_]+)+$", "description": "素材の id と同じ形（例 veg.tree.sugi・prop.crate）。今は仮の形の id。目録（wakaba-assets/catalog.json）に同じ id があれば、Blender・UE の取り込みはその素材に差し替える" },
+    "building": {
+      "type": "object", "required": ["id", "kind", "at", "rot", "footprint", "parts"],
+      "properties": {
+        "id": { "type": "string" }, "kind": { "type": "string" }, "enterable": { "type": "boolean" }, "at": { "$ref": "#/$defs/v3" }, "rot": { "type": "number" }, "footprint": { "$ref": "#/$defs/v2" },
+        "rooms": { "type": "array", "items": { "type": "object", "required": ["id", "center", "size", "floorY", "ceilY"] } },
+        "doors": { "type": "array", "items": { "type": "object", "required": ["id", "at", "rotY", "width", "height"] } },
+        "parts": { "type": "array", "items": { "$ref": "#/$defs/part" } }
+      }
+    },
+    "part": {
+      "type": "object", "required": ["id", "type", "mat", "shape", "c", "size", "rotY", "collide", "walk"],
+      "properties": {
+        "id": { "type": "string" }, "type": { "type": "string" }, "mat": { "type": "string" }, "shape": { "enum": ["box", "cyl", "gable"] },
+        "c": { "$ref": "#/$defs/v3", "description": "中心（m）" }, "size": { "$ref": "#/$defs/v3", "description": "幅・高さ・奥行（m）" },
+        "rotY": { "type": "number" }, "tilt": { "type": "number" }, "collide": { "type": "boolean" }, "walk": { "type": "boolean" }, "visible": { "type": "boolean" }
+      }
+    },
+    "object": {
+      "type": "object", "required": ["id", "layer", "kind", "at", "rotY", "scale", "size", "col"],
+      "properties": {
+        "id": { "type": "string" }, "layer": { "type": "string" }, "kind": { "$ref": "#/$defs/kind" }, "at": { "$ref": "#/$defs/v3", "description": "底の中心（m）" },
+        "rotY": { "type": "number" }, "scale": { "type": "number", "exclusiveMinimum": 0 }, "size": { "$ref": "#/$defs/v3" },
+        "col": { "type": "object", "required": ["shape"], "properties": { "shape": { "enum": ["box", "cyl", "none"] } } },
+        "embed": { "type": "number", "minimum": 0 }, "cls": { "type": "string" }, "building": { "type": "string" }, "inside": { "type": "boolean" }
+      }
+    }
+  }
+}

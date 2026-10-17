@@ -3,10 +3,11 @@
 //   node mapkit/assets/license-gate.mjs                         … 素材ライブラリ（wakaba.config.json の assetLibrary.entries）全部＋作品が使う物
 //   node mapkit/assets/license-gate.mjs <file|dir>...           … 指定したファイル・フォルダだけ
 //   node mapkit/assets/license-gate.mjs --uses                  … 作品が使うと書いた物（projects.<id>.uses）だけ。1 つでも block なら終了コード 1（CI 用）
-// 選択：--project shinshoku（既定）／--target web|<id>（既定は作品の最初の配信先）／--stage production|dev（既定 production）
+// 選択：--project shinshoku（既定）／--target web|ue5|all（既定は作品の最初の配信先。all＝全部の配信先を順に：どれかで block なら 1）／--stage production|dev（既定 production）
 //       --out license-gate.json（結果の JSON を書く）／--credits credits.json（表記が要る物の表）／--report-only（block があっても 0 で終わる）
 import { writeFileSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import { validate } from '../core/schema.js';
 import { IDS, detectKind } from '../core/schemas.js';
 import { ROOT, rootPath, rel, registry, loadConfig, listJson, parseArgs } from '../core/node.mjs';
@@ -26,7 +27,7 @@ export function gateUses(config, projectId, ctx, reg) {
   const uses = ((config.projects || {})[projectId] || {}).uses || {};
   const lib = config.assetLibrary || {};
   const index = new Map();
-  for (const f of listJson(lib.entries || 'wakaba-assets/entries')) { try { const d = JSON.parse(readFileSync(f, 'utf8')); if (d && d.id) index.set(d.id, f); } catch (e) { /* 壊れた JSON は全体の走査で出る */ } }
+  for (const f of listJson(lib.entries || 'wakaba-assets/entries')) { try { const d = JSON.parse(readFileSync(f, 'utf8')); if (d && d.id && ['asset', 'anim', 'character'].includes(detectKind(d)) && !index.has(d.id)) index.set(d.id, f); } catch (e) { /* 壊れた JSON は全体の走査で出る */ } }
   const out = [];
   for (const key of ['assets', 'animations', 'characters']) {
     for (const ref of uses[key] || []) {
@@ -43,6 +44,16 @@ async function main() {
   const { opt, pos } = parseArgs(process.argv.slice(2), ['uses', 'report-only']);
   const config = loadConfig();
   const projectId = opt.project || 'shinshoku';
+  if (opt.target === 'all') {
+    const ids = (((config.projects || {})[projectId] || {}).targets || [{ id: 'web' }]).map(t => t.id);
+    let bad = 0;
+    for (const id of ids) {
+      const args = process.argv.slice(2).map(a => a === 'all' ? id : a);   // --out・--credits は配信先ごとに上書きされるので、使う時は --target を 1 つずつ
+      const r = spawnSync(process.execPath, [process.argv[1], ...args], { stdio: 'inherit' });
+      if (r.status) bad++;
+    }
+    process.exit(bad && !opt['report-only'] ? 1 : 0);
+  }
   const ctx = makeContext(config, projectId, { target: opt.target, stage: opt.stage || 'production' });
   const reg = await registry();
   let results = []; const skipped = [];
@@ -52,7 +63,7 @@ async function main() {
     for (const p of inputs) for (const f of listJson(p)) {
       let data; try { data = JSON.parse(readFileSync(f, 'utf8')); } catch (e) { results.push({ id: null, file: rel(f), result: 'block', reasons: [{ code: 'SCHEMA', msg: 'JSON として読めない：' + e.message }], warnings: [], credits: null }); continue; }
       const kind = detectKind(data);
-      if (kind === 'mapSpec' || kind === 'mapReport' || kind === null && !(data && data.license)) { skipped.push(rel(f)); continue; }   // 素材でない JSON（地図仕様・レポートなど）は門の対象外
+      if (['mapSpec', 'mapReport', 'mapLayout', 'assetSources', 'ue5Import'].includes(kind) || kind === null && !(data && data.license)) { skipped.push(rel(f)); continue; }   // 素材でない JSON（地図仕様・レポートなど）は門の対象外
       results.push(gateOne(data, ctx, reg, rel(f)));
     }
     if (!pos.length) results.push(...gateUses(config, projectId, ctx, reg));

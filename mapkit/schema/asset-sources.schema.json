@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wakaba-assets/asset-sources.schema.json",
+  "title": "わかば素材の原本の指し先（sources.json）wakaba-asset-sources/1",
+  "description": "1 素材＝1 フォルダ（wakaba-assets/entries/<category>/<id>/）の原本（.blend・.fbx・.usd・原寸テクスチャ・Gaea の .terrain など）の場所と sha256。重い原本は Git に入れない（source/ は .gitignore・または Git LFS・NAS）。docs/wakaba-mapkit/10 §2。",
+  "type": "object",
+  "required": ["sources", "id", "files"],
+  "properties": {
+    "sources": { "const": "wakaba-asset-sources/1" },
+    "id": { "type": "string", "pattern": "^[a-z0-9_]+(\\.[A-Za-z0-9_]+)+$" },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["role", "path", "storage", "sha256"],
+        "properties": {
+          "role": { "enum": ["master", "fbx", "usd", "gltf", "texture", "heightmap", "vrm", "motion", "license_proof", "other"], "description": "master＝正本（.blend など）・fbx/usd＝UE5 へ・gltf＝Web の書き出しの元" },
+          "path": { "type": "string", "minLength": 1, "description": "source/<名前>（このフォルダの中・Git に入れない）／lfs:<リポジトリの中の場所>／nas:/wakaba/...／ssd:/...／store:<Fab などのアカウント＋商品>" },
+          "storage": { "enum": ["local-ignored", "git-lfs", "nas", "external-ssd", "cloud", "store-account"] },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "bytes": { "type": "integer", "minimum": 0 },
+          "tool": { "type": "string", "description": "例 blender 5.2・gaea 2.2（版まで）" },
+          "note": { "type": "string" }
+        }
+      }
+    }
+  }
+}

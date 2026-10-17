@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wakaba-assets/ue5-import.schema.json",
+  "title": "わかば素材の UE5 取り込みの設定（ue5/import.json）wakaba-ue5-import/1",
+  "description": "方式 C の高性能 PC 版（UE5）へ素材を入れる時の設定。tools/ue5/import_layout.py が gamePath を使って地図の物を差し替える。docs/wakaba-mapkit/10 §2・tools/ue5/README.md。",
+  "type": "object",
+  "required": ["ue5import", "id", "assetType", "gamePath", "source"],
+  "properties": {
+    "ue5import": { "const": "wakaba-ue5-import/1" },
+    "id": { "type": "string", "pattern": "^[a-z0-9_]+(\\.[A-Za-z0-9_]+)+$" },
+    "assetType": { "enum": ["StaticMesh", "SkeletalMesh", "Texture", "Material", "Animation", "LandscapeHeightmap"] },
+    "gamePath": { "type": "string", "pattern": "^/Game/[A-Za-z0-9_/]+$", "description": "UE のプロジェクトの中の場所（例 /Game/Wakaba/Rock/SM_rock_test_boulder_small）" },
+    "pivot": { "enum": ["bottom_center", "grid_corner", "center"], "description": "layout.json の物（at＝底の中心）へ置く時の原点" },
+    "source": {
+      "type": "object", "required": ["file", "format"],
+      "properties": {
+        "file": { "type": "string", "description": "sources.json の path と同じ書き方（例 source/rock.test.boulder_small.fbx）" },
+        "format": { "enum": ["fbx", "usd", "glb", "png16", "raw16", "exr", "vrm"] }
+      }
+    },
+    "import": {
+      "type": "object",
+      "properties": {
+        "convertScene": { "type": "boolean" }, "importUniformScale": { "type": "number", "exclusiveMinimum": 0 },
+        "nanite": { "type": "boolean" }, "collision": { "enum": ["none", "simple_box", "convex", "complex_as_simple"] },
+        "generateLightmapUVs": { "type": "boolean" }, "lods": { "type": "integer", "minimum": 0 },
+        "materials": { "enum": ["create", "use_existing", "none"] }, "skeleton": { "type": "string" }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

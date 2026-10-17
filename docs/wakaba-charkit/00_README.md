@@ -33,7 +33,14 @@
 5. 権利の要注意：**研究用の動画→モーション AI（GVHMR など）は非商用＋SMPL の商用は有料**／DeepMotion・Cascadeur の無料枠は非商用／**Mixamo・Fab は素のファイルの再配布不可＝Web で配るのは要確認**／VRoid Studio の規約の原文は未確認。
 6. このクラウドは GPU なし・Blender/VRoid/UE を動かせない → **モデル制作・撮影・見た目と実機の fps は利用者の PC**。クラウドはコード・スクリプト・自動の数値・こま送りの動画（ソフト描画）・文書。
 
-## 推奨（決定は利用者）
+## 決定（2026-10-17・利用者の回答。mapkit と共通）
+- **方式＝A・B・C 全部採用**：ブラウザ版（three-vrm・アニメ調）を続け、UE5 の高性能 PC 版も作り、素材置き場は共有。キャラクターは**正本 `.blend` から VRM（Web）と FBX／VRM4U（UE5）の両方へ**（`04` §6・[`tools/blender/vrm_to_fbx.md`](../../tools/blender/vrm_to_fbx.md)）。
+- **画風**：写実は mapkit の試験マップだけ。**境界侵食のキャラクターはアニメ調のまま**（DECISIONS 2026-10-14）。UE5 版のキャラクターの見た目（トゥーンを UE で作り直すか）は B 線で決める。
+- **商用あり**：非商用の道具（DeepMotion・Cascadeur の無料枠・研究用の動画 → モーション AI・商用の許可の無い SMPL）は門で止まる＝作品に使わない（比較だけ）。
+- **素材の置き場所＝このリポジトリ**（`wakaba-assets/`・mapkit `10` §2）。キャラクターも `entries/character/<id>/`（原本の `.blend`・`.vroid` は Git に入れず sha256 だけ）。
+- **PC**＝i7-9700・RTX 3060 Ti 8GB・16GB・SSD 512GB（確認済み）。Blender あり（版は未確認）。VRoid Studio・VRM アドオン・UE5 は未確認（`15`）。
+
+## 以前の推奨（記録・2026-10-16）
 - **作り方**：**VRoid Studio で素体 → Blender で仕上げ（標準骨格＝VRM 1.0 の humanoid＋`ext_` の骨）→ VRM で Three.js へ**。画像→3D の AI は下書き・比較だけ（主人公の本番の網には使わない）。
 - **方式**：mapkit と同じく**まず A（Three.js が本番）**。UE 5.8 は「Motion Matching・Chaos Cloth の品質を見る短い試し」に使い、C へ進むかはその結果と mapkit の Q-A2 の答えで決める。**UE の採用は決めていません**。
 - **動き**：ブレンドスペース＋状態機械＋歩幅の伸縮＋足・腰・手の IK＋性格の値。戦闘は**今の `data/combat.js` のこまが正**で、クリップを区間ごとに伸縮して合わせる（手触りを悪くしない）。
@@ -43,9 +50,8 @@
 
 ## 利用者に確認してほしいこと（★＝先に必要。詳しくは `15`）
 - ★ **マップ基盤とキャラクター基盤、どちらを先に**（Q-P1。推奨は並行で両方の「最初の 1 歩」まで）
-- ★ **方式 A/B/C**（mapkit の Q-A2・まだ未回答）
+- ~~方式 A/B/C（Q-A2）~~ → 回答済み（A・B・C 全部）／~~収益化（Q-L1）~~ → 回答済み（商用あり）
 - ★ 最初のキャラクターは**だんのうら（紫）**でよいか（Q-C1）
-- ★ **収益化の予定**（mapkit の Q-L1・ツールの規約の判断に関係）
 - ★ だんのうらの**三面図・設定画**の有無（Q-C3）／**作りかけの VRM・.vroid・Live2D・Blender のファイル**の有無（Q-C4）
 - ★ **VRoid Studio・Blender・VRM アドオン**の有無と版（S11・S2・S12。`tools/survey_local_char.ps1` で一括）
 - ★ **カメラの台数**（Q-C6）・**誰が演じるか**（Q-C8）
@@ -64,7 +70,8 @@
 | 門で止まったら失敗にする | `… --strict-gate` | だんのうらの設定は今 **block**（`commercial: unknown`・`verifiedBy` が空＝人の確認待ち）なので 1 |
 | **モーションのメタデータ**を検査 | `node tools/charkit/validate_anim.mjs <meta.json か フォルダ>...` | 形（素材メタデータ v1.1＋`anim`）・こまの印・`durationS`・点数の式・**戦闘のこまの照合**（`combatRef` → `shinshoku/data/combat.js`）・門の結果 |
 | 試験用の人型 glTF を作り直す | `node tools/charkit/make_test_char.mjs` | `tests/fixtures/charkit_test.gltf`（61 本の骨・クリップ 4 本・同じ入力から同じバイト列） |
-| 試験 | `node tests/run.mjs`（`tests/wakaba-charkit-schema・bonemap・gate.test.mjs`） | – |
+| 試験 | `node tests/run.mjs`（`tests/wakaba-charkit-schema・bonemap・gate・rename.test.mjs`） | – |
+| VRM の骨の名前 → UE5 の名前の表（方式 C） | `node tools/charkit/export_bonemap.mjs`（`--check`） | `tools/blender/bonemap_vrm_to_ue5.json`（52 本・UE5 に無い目・あごは残す）。手順は [`tools/blender/vrm_to_fbx.md`](../../tools/blender/vrm_to_fbx.md) |
 
 置いた物（共通＝`charkit/`、作品専用の物は作品側）：
 - `charkit/schema/character.schema.json`（`06` §5）・`anim-meta.schema.json`（`07` §3＝mapkit の素材メタデータ v1.1 を `allOf` で拡張）
@@ -81,4 +88,5 @@
 | 2026-10-16 | 資料は `docs/wakaba-charkit/` に置く。名前は仮 |
 | 2026-10-16 | 目録・ライセンス門・仕事のファイルは mapkit の物を**拡張**して使う（別に作らない） |
 | 2026-10-16 | `shinshoku/`・`tests/`・`tools/`・`sw.js` は別の作業（扉の修正）が触っているので、本フェーズでは読むだけ |
+| 2026-10-17 | **利用者の決定（mapkit と共通）**：方式 A・B・C 全部採用・写実は試験マップだけ（キャラクターはアニメ調のまま）・商用あり・素材の置き場所はリポジトリ。VRM → UE5 の骨の名前の付け替え（`charkit/rig/rename.js`・試験つき）と手順（`tools/blender/vrm_to_fbx.md`）を足した |
 | 2026-10-17 | フェーズ 1 を実装（mapkit のフェーズ 1 と一緒）。`bones.js` の本体を `charkit/rig/bonemap.js` へ移した。`sw.js` に `charkit/`・`mapkit/` の ES モジュールの振り分けを足し、版を 2026-10-24.1 へ |

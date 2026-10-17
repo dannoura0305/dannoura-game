@@ -16,6 +16,7 @@
 | 07 | [07_詳細設計仕様書.md](07_詳細設計仕様書.md) | Claude Code 向けの設計（構成・メタデータのスキーマ・ライセンス門・PCG の規則・地図仕様・画質の段・レポート・試験・バックアップ） |
 | 08 | [08_回答_12項目.md](08_回答_12項目.md) | 依頼書 §12 の質問への回答と、方式 A／B／C の比較・推奨 |
 | 09 | [09_ユーザー確認チェックリスト.md](09_ユーザー確認チェックリスト.md) | 利用者に確認してほしいこと（コマンド・画面の場所つき） |
+| 10 | [10_方式C_共有素材ライブラリとUE5連携.md](10_方式C_共有素材ライブラリとUE5連携.md) | **方式 C の決定（2026-10-17）**：ブラウザ版を続け・UE5 の PC 版を足し・素材置き場は 1 つ。素材ライブラリの形・Blender／UE5／Gaea の橋・確かめた事と未検証・PC で次にすること |
 | – | [tools/survey_local.ps1](tools/survey_local.ps1) | 利用者の Windows で動かす、読むだけの環境調査スクリプト（JSON を出す・未実行） |
 
 ## 調査でわかったこと（要約）
@@ -26,15 +27,21 @@
 5. ライセンスの要注意：**Gaea Community は非商用のみ**／**Megascans は 2025 年から大半が有料**／**Fab の素材をブラウザで配ることの扱いは未確認**／Hunyuan3D は地域制限つき。不明な素材は自動で使わない設計にした（`07` §3.1）。
 6. リードが落とした `bpy-4.2.0`（cp311）は **Blender 4.2＝サポート終了の版**。使うなら利用者の Blender と同じ系列（4.5 LTS か 5.2 LTS）に合わせる（インストールはしていない）。
 
-## 推奨（決定は利用者）
+## 決定（2026-10-17・利用者の回答）
+- **方式（Q-A2）＝A・B・C を全部採用**：今のブラウザ版（スマホでも遊べる・Three.js）を続け、UE5・Blender・Gaea は素材作りの道具に使う（A）＋高性能 PC 向けに UE5 の別の版を作る（B）＋両方で素材置き場を共有する（C）。詳しくは [`10`](10_方式C_共有素材ライブラリとUE5連携.md)。
+- **画風（Q-A1）＝「A 案で写実の試験マップ」**：写実はブラウザ版の試験マップ（`mapkit.html` の山の廃村）だけ。**境界侵食はアニメ調のまま**（DECISIONS 2026-10-14 は変えない）。
+- **収益化（Q-L1）＝商用あり**（`wakaba.config.json` の `commercial: true` は仮の既定でなく決定）。→ Gaea Community（非商用）で作った地形は本番に使えない（Indie 以上か手続きの地形）・無料枠が非商用の道具や研究用のモーション AI は門で止まる・UE5 版には UE の規約（収入 100 万ドル超で 5%）。
+- **素材の置き場所（Q-B2）＝このリポジトリ**（`wakaba-assets/`）。重い原本は Git に入れず、場所と sha256 を `sources.json` に書く（50MB 超を Git で持つなら Git LFS）。
+- **PC**＝i7-9700・RTX 3060 Ti 8GB・メモリ 16GB・SSD 512GB（利用者が確認）。**Blender は入っている**（版は未確認）。UE5・Gaea は未確認（`09` §0）。
+
+## 以前の推奨（記録・2026-10-16）
 - **まず方式 A**：ブラウザの Three.js を本番のまま、UE5・Blender・Gaea は「素材を作る道具」として使い、glTF＋焼いた光で書き出す。UE5 は利用者の PC で**短期の試し**だけ行い、その結果で方式 C（UE で高品質の PC 版＋Web 版）に進むかを決める。方式 B（UE だけに移る）は今は勧めない。理由は `08` §11。
 - 最初の検証マップ「山の廃村」は、境界侵食の本編とは別の入口で、**まず仮の形で「歩ける・塞がない・届く」を固めてから**写実の素材を入れる（`06` フェーズ 2〜4）。
 
 ## 利用者に確認してほしいこと（★＝先に必要。詳しくは `09`）
-- ★ **画風**：境界侵食はアニメ調で決定済み。写実の廃村は (i) 別の試験マップ／(ii) 一部の区画だけ／(iii) 全体を写実へ、のどれか（Q-A1）
-- ★ **方式** A／B／C（Q-A2）
-- ★ **収益化の予定**（Gaea・Fab の区分に関係）（Q-L1）／Fab 素材をブラウザ版で使いたいか（Q-L2）／リポジトリが public か（Q-L3）
-- ★ PC のメモリ・GPU・空き容量、UE・Blender・Gaea の有無と版（`tools/survey_local.ps1` で一括）
+- ~~画風（Q-A1）~~ → **回答済み**（写実は試験マップだけ）／~~方式（Q-A2）~~ → **回答済み**（A・B・C 全部）／~~収益化（Q-L1）~~ → **回答済み**（商用あり）／~~素材の置き場所（Q-B2）~~ → **回答済み**（このリポジトリ）
+- ★ **UE5・Gaea が入っているか**と版、**Blender の版**（`09` §0 の 3 手順：スクリプトか、画面で見るだけ）
+- ★ リポジトリが public か（Q-L3）／Fab 素材は UE5 版だけで使う形でよいか（Q-L2：ブラウザ版には門が入れない）
 - 「わかばシステム」の中身（Q-W1）、NAS・サブ PC・外付け SSD、n8n・ComfyUI・Codex・Grok の状況、予算
 
 ## 次の一歩
@@ -49,7 +56,7 @@
 | 素材ライブラリ全部＋作品が使う物を門に通す | `node mapkit/assets/license-gate.mjs`（引数なし） | `wakaba.config.json` の `assetLibrary.entries` を全部（今は 0 件） |
 | 作品が使うと書いた物だけ（CI と同じ） | `node mapkit/assets/license-gate.mjs --uses` | `projects.shinshoku.uses` が全部 pass でなければ 1 |
 | 結果を JSON に・クレジット表を作る | `… --out license-gate.json --credits credits.json` | `07` §3.1 の出力（`wakaba-license-gate/1`） |
-| 配信先・段を変える | `--target web`（既定）／`--target pc`（`wakaba.config.json` に足した時）／`--stage dev`（人の点数が無いのを注意だけに）／`--project <id>` | – |
+| 配信先・段を変える | `--target web`（既定）／`--target ue5`（高性能 PC 版）／`--target all`（両方を順に）／`--stage dev`（人の点数が無いのを注意だけに）／`--project <id>` | – |
 | **地図仕様**（`map.spec.json`）を検査 | `node tools/mapkit/validate_spec.mjs maps/haison/map.spec.json` | 形（スキーマ）＋中身（範囲・id の重複・目的地の解決・入れない家の扉・坂の範囲・高さマップの有無） |
 | 検証レポート（`report.json`）を検査・md にする | `node tools/mapkit/validate_spec.mjs <report.json> --md report.md` | 形＋「人が見る項目（`check: human`）に AI が pass を書いていない」約束 |
 | 試験 | `node tests/run.mjs`（`tests/wakaba-mapkit-schema.test.mjs`・`tests/wakaba-mapkit-gate.test.mjs`） | – |
@@ -64,9 +71,9 @@
 - `wakaba.config.json`（素材ライブラリの場所の指し先と作品の条件）・`wakaba-assets/catalog.json`（空の目録）
 
 **未回答の質問に関わる既定（利用者の答えで変える所）**
-- Q-L1（収益化）：答えが無いので `wakaba.config.json` の `projects.shinshoku.commercial` を **`true`（厳しい側）**にしてある。「ない」なら `false`。
-- Q-B2（素材の原本の置き場所）：決まるまで**このリポジトリの `wakaba-assets/` に目録（meta.json）だけ**。移す時は `wakaba.config.json` の `assetLibrary` を書き換えるだけ（スキーマはコードと一緒の `mapkit/schema/` に残る）。公開リポジトリなので購入物・Fab の原本・書き出しは置かない。
-- Q-A1・Q-A2（画風・方式）：フェーズ 1 の物はデータとスキーマだけで、方式 A／B／C のどれでも使える。
+- Q-L1（収益化）：フェーズ 1 の時は答えが無く `commercial: true`（厳しい側）にしていた。**2026-10-17 に「商用あり」と回答**＝値はそのまま、`commercialSource: "user-2026-10-17"` に。
+- Q-B2（素材の原本の置き場所）：**2026-10-17 に「リポジトリ」と回答**＝`wakaba-assets/`（1 素材＝1 フォルダ・`10` §2）。元の記録：決まるまで**このリポジトリの `wakaba-assets/` に目録（meta.json）だけ**。移す時は `wakaba.config.json` の `assetLibrary` を書き換えるだけ（スキーマはコードと一緒の `mapkit/schema/` に残る）。公開リポジトリなので購入物・Fab の原本・書き出しは置かない。
+- Q-A1・Q-A2（画風・方式）：フェーズ 1 の物はデータとスキーマだけで、方式 A／B／C のどれでも使える。（2026-10-17：回答済み＝写実は試験マップだけ・方式は A＋B＋C）
 
 ## フェーズ 2 の使い方（2026-10-17 実装・地形と配置の土台・コマンドはリポジトリの根で）
 インストール不要（node 22・Playwright は画面の試験だけ）。素材は全部**仮の形**（灰色の箱・コードで作る木）。方式 A／B／C は未回答なので、配置と検査の結果は**エンジンに依らない JSON**（`layout.json`）と 16bit の高さ PNG で出す。
@@ -90,6 +97,21 @@
 
 フェーズ 3（写実の見た目）に進む前に決めてほしいこと：方式 A／B／C（Q-A2）と画風（Q-A1）、素材の置き場所（Q-B2）と収益化（Q-L1）。レポートの `gaps` に「仮の形 → 実素材」の計画（杉・広葉樹・岩・下草・小物・和風の家の部品）を承認待ちで出してある。
 
+## 方式 C の準備の使い方（2026-10-17 実装・コマンドはリポジトリの根で）
+ブラウザ版はそのまま。UE5 の PC 版と共有の素材置き場のための道具を足した（インストール不要：node 22。Blender・UE のスクリプトは利用者の PC で動かす＝**未検証**）。中身と確かめた範囲は [`10`](10_方式C_共有素材ライブラリとUE5連携.md) §6。
+
+| したいこと | コマンド | 結果 |
+|---|---|---|
+| 素材ライブラリの目録を作る | `node tools/mapkit/catalog.mjs`（`--check`・`--verify-sources`・`--ue5-map 表.json`） | `wakaba-assets/catalog.json`（素材ごとに web・ue5 の門の結果。今は 0 件）。`web/` に Web に出せない物があると `WEB_BLOCKED` で 1 |
+| 門を配信先ごとに | `node mapkit/assets/license-gate.mjs <ファイル or フォルダ> --target all` | web（公開）と ue5（非公開）を順に |
+| 配置（layout.json）を検査 | `node tools/mapkit/validate_spec.mjs maps/haison/build/layout.json` | 形（`mapkit/schema/map-layout.schema.json`）＋指紋・id の重複・範囲・下草の数 |
+| UE5 の Landscape 用の高さ | `node tools/mapkit/export_ue_heightmap.mjs maps/haison`（`--size 1009`・`--points`） | `maps/haison/build/ue/heightmap_505.png`・`landscape.json`（区画 4×4・Scale・Location）。`--points` で `pcg_points.csv` |
+| Blender で場面を組む（利用者の PC） | `blender --background --python tools/blender/import_layout.py -- maps/haison/build/layout.json --save haison.blend` | 地形・家・木・岩・印。クラウドの bpy 4.2 で 0.4 秒 |
+| Blender の部品をライブラリへ | `blender kit.blend --background --python tools/blender/export_kit.py -- --library wakaba-assets/entries` | glb（Web に出せる物だけ `web/`）・FBX（`source/`）・`sources.json`・`ue5/import.json` |
+| UE5 に置く（利用者の PC） | UE の出力ログ（Python）で `py ".../tools/ue5/import_layout.py" --layout ".../layout.json"` | 手順は [`tools/ue5/README.md`](../../tools/ue5/README.md)（**未検証**） |
+| キャラクター（VRM → UE5） | [`tools/blender/vrm_to_fbx.md`](../../tools/blender/vrm_to_fbx.md)・`node tools/charkit/export_bonemap.mjs` | 骨の名前の表 `tools/blender/bonemap_vrm_to_ue5.json` |
+| 試験 | `node tests/run.mjs`（`tests/wakaba-mapkit-bridge.test.mjs`・`tests/wakaba-charkit-rename.test.mjs`） | – |
+
 ## このフェーズで決めたこと（記録）
 | 日付 | 決定 |
 |---|---|
@@ -98,3 +120,4 @@
 | 2026-10-16 | 名前 `wakaba-mapkit` は仮。既存の `wakaba_progress_v1`（作品間の保存）とは無関係 |
 | 2026-10-17 | フェーズ 1 を実装（利用者の承認「両方を最初の一歩まで並行して進める」）。素材ライブラリは決まるまでリポジトリの中（`wakaba.config.json` で指す）。作品の商用は未回答のため厳しい側（true） |
 | 2026-10-17 | フェーズ 2 を実装（利用者の指示「両方の最初の一歩の後はマップ基盤に集中」）。方式は未回答のため、配置と検査はエンジンに依らない JSON・画面は Three.js の灰色の箱 |
+| 2026-10-17 | **利用者の決定**：方式 A・B・C を全部採用（ブラウザ版を続け・UE5 の PC 版を作り・素材置き場は共有）／画風は「A 案で写実の試験マップ」（境界侵食はアニメ調のまま）／商用あり／素材の置き場所はこのリポジトリ／PC は資料の通り・Blender あり。`wakaba.config.json` に配信先 `web`・`ue5` を足し、門・目録を配信先ごとにした（`10`） |
