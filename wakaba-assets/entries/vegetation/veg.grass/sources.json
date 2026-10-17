@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "veg.grass",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/veg.grass.fbx",
+   "storage": "local-ignored",
+   "sha256": "f5356081a028bc92ba9aab74e09a28f2736b3e3bd623ea06cad8a792f67c2022",
+   "bytes": 16028,
+   "tool": "bpy 4.2.0",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only veg.grass"
+  }
+ ]
+}

@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.wood.cedar",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.wood.cedar_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "32ef45aa89a36faf573288c0ed61285d1bba5b37c45afae548d6c87aec7c9064",
+   "bytes": 1230449,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.wood.cedar"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.wood.cedar_normal.png",
+   "storage": "local-ignored",
+   "sha256": "9442edbbdeac14b7b4658ce59042ff06af4a7532def1420e451d668338ca5a6d",
+   "bytes": 2335813,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.wood.cedar"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.wood.cedar_orh.png",
+   "storage": "local-ignored",
+   "sha256": "67c562b1aa4f521697a382d1f14db5b3a97eee1a819a44e53b5bf70785ae74b8",
+   "bytes": 2238920,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.wood.cedar"
+  }
+ ]
+}

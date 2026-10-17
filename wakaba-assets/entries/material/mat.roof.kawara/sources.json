@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.roof.kawara",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.roof.kawara_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "f771d564f3f72dc7e06da391d6009c558b1a678770239886b23176a29716b235",
+   "bytes": 988284,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.roof.kawara"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.roof.kawara_normal.png",
+   "storage": "local-ignored",
+   "sha256": "42610c54288b10ff1430603753f6f1a6f64324fb65e6afa42ee1c9e537e4a424",
+   "bytes": 10654,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.roof.kawara"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.roof.kawara_orh.png",
+   "storage": "local-ignored",
+   "sha256": "76ff2ba179abeeadcba96754dceb94d3fe8d60ebc27bfbcd846f4a3b83ce82ae",
+   "bytes": 915629,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.roof.kawara"
+  }
+ ]
+}

@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "bld.jp_house.window_koshi",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/bld.jp_house.window_koshi.fbx",
+   "storage": "local-ignored",
+   "sha256": "24ef5f64dff93907193f7359e3d85dd1889edfa372cdce7bb38e8e78939cd1be",
+   "bytes": 19004,
+   "tool": "bpy 4.2.0",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only bld.jp_house.window_koshi"
+  }
+ ]
+}

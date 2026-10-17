@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "bld.shrine.honden",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/bld.shrine.honden.fbx",
+   "storage": "local-ignored",
+   "sha256": "1d7671f8fc8d97328f28ad4715c5f9017621048fa756087bfed3c3859f010d51",
+   "bytes": 38844,
+   "tool": "bpy 4.2.0",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only bld.shrine.honden"
+  }
+ ]
+}

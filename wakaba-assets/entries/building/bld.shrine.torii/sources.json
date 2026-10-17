@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "bld.shrine.torii",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/bld.shrine.torii.fbx",
+   "storage": "local-ignored",
+   "sha256": "db39f922e9076eaabb5ee3a4a63c9f5c18be22425b0c50d7aaad21c9d4bbecc8",
+   "bytes": 33404,
+   "tool": "bpy 4.2.0",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only bld.shrine.torii"
+  }
+ ]
+}

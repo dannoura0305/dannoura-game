@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.ground.grass",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.ground.grass_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "3f5231685446f0f4a00d6487b908aac7c58c342a888a0bb902e37084e222e0ad",
+   "bytes": 1647934,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.ground.grass"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.ground.grass_normal.png",
+   "storage": "local-ignored",
+   "sha256": "d5651a0e33a6c02b1ea70eb34146ad1627738041fdd6f701d6d7a518c2f31681",
+   "bytes": 2206232,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.ground.grass"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.ground.grass_orh.png",
+   "storage": "local-ignored",
+   "sha256": "b2c81fc562a7ea1c89db37818a36ce6fa19ad5d917e1d8e343024cd4daa7b2f3",
+   "bytes": 1611322,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.ground.grass"
+  }
+ ]
+}

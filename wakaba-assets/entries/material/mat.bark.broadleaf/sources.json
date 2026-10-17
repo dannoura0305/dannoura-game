@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.bark.broadleaf",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.bark.broadleaf_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "16f612a03545fd360e6fde8dcc21e199b76362db37c49b94c993fe9b9eea2a91",
+   "bytes": 1346943,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.bark.broadleaf"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.bark.broadleaf_normal.png",
+   "storage": "local-ignored",
+   "sha256": "64214b8e729bdc1ece034619ca169d96cc356d6af4943fef3257dc198913209a",
+   "bytes": 2464366,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.bark.broadleaf"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.bark.broadleaf_orh.png",
+   "storage": "local-ignored",
+   "sha256": "ab6f60a06063117681d473992596e83ebe46e40d08adee0fb823155e9c1952f4",
+   "bytes": 2267745,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.bark.broadleaf"
+  }
+ ]
+}

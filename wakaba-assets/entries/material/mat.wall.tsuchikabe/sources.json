@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.wall.tsuchikabe",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.wall.tsuchikabe_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "8aed0f5c789eafb560fc07575c9c23004870312930017df80feb90f25e883c3b",
+   "bytes": 1724751,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.wall.tsuchikabe"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.wall.tsuchikabe_normal.png",
+   "storage": "local-ignored",
+   "sha256": "34426fbf71f561d00833c7e142e3893537d68a7a1870e60e1fe8ff95d2137565",
+   "bytes": 2270464,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.wall.tsuchikabe"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.wall.tsuchikabe_orh.png",
+   "storage": "local-ignored",
+   "sha256": "c541d344c8f45488df7f3235931494d71bae2c017ce752da3ab364077c752158",
+   "bytes": 1820736,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.wall.tsuchikabe"
+  }
+ ]
+}

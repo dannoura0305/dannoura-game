@@ -1,0 +1,90 @@
+{
+ "id": "veg.tree.sugi",
+ "version": 1,
+ "name": {
+  "ja": "杉（カードの葉・LOD・遠景の板）",
+  "en": "Japanese cedar (sugi)"
+ },
+ "category": "vegetation",
+ "tags": [
+  "杉",
+  "針葉樹",
+  "木",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/kit/build_kit.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/wakaba-mapkit/11_写実化パイプライン.md"
+ },
+ "tech": {
+  "formats": [
+   "glb",
+   "fbx"
+  ],
+  "tris": 1528,
+  "lods": [
+   1528,
+   158
+  ],
+  "sizeM": [
+   5.698,
+   14.898,
+   5.955
+  ],
+  "pivot": "bottom_center",
+  "collision": "none",
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness"
+  ],
+  "fileBytes": 218400
+ },
+ "use": [
+  "山の廃村（写実の試験マップ）"
+ ],
+ "status": "draft",
+ "kit": {
+  "kit": "wakaba-kit/1",
+  "nodes": {
+   "LOD0": 1528,
+   "LOD1": 158,
+   "IMP": 4
+  },
+  "variants": 1,
+  "lodDist": [
+   28,
+   70
+  ],
+  "impostor": true,
+  "materials": [
+   "imp.veg.tree.sugi",
+   "mat.bark.sugi",
+   "mat.foliage.sugi"
+  ],
+  "vertexColor": "COLOR_0＝AO（焼き込み）",
+  "note": "節の名前 LOD<n>（種類が複数なら v<k>_LOD<n>）・IMP＝遠景の十字の板（画像は glb の中）。材質は id の名前で共有の PBR 材質に差し替える"
+ },
+ "history": [
+  {
+   "at": "2026-10-17",
+   "by": "claude-code",
+   "change": "tools/blender/kit/build_kit.py で生成（フェーズ 3）"
+  }
+ ]
+}

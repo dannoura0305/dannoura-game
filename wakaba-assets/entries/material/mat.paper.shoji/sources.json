@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.paper.shoji",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.paper.shoji_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "e0229bba46d3804b05d65c927ff7585876fa334ababa218300f3cbb5f1a2234e",
+   "bytes": 1543867,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.paper.shoji"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.paper.shoji_normal.png",
+   "storage": "local-ignored",
+   "sha256": "36ad19796aa87f94e937ef39098912f4dedd3ca660a2d6e817c5675fc15c65e9",
+   "bytes": 1270469,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.paper.shoji"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.paper.shoji_orh.png",
+   "storage": "local-ignored",
+   "sha256": "b2c36905102dff2a18c240ea866bcd4cbd7be39fb6092dc07925bab8012095f0",
+   "bytes": 1368400,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.paper.shoji"
+  }
+ ]
+}

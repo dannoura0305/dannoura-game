@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.foliage.sugi",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.sugi_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "96726782ab067b30700072eea3ca4ee666417a18418e0525f23d456089b4f726",
+   "bytes": 1053003,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.foliage.sugi"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.sugi_normal.png",
+   "storage": "local-ignored",
+   "sha256": "d9d4b9caae63e9616a52660e58a9711dafc38883a7e3813f7bd8f1cadc24365b",
+   "bytes": 920377,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.foliage.sugi"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.sugi_orh.png",
+   "storage": "local-ignored",
+   "sha256": "37607affc8ac485f6bb1e927c69e3fa653c65c2c5744ff81bd6fa6679ef38840",
+   "bytes": 665071,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.foliage.sugi"
+  }
+ ]
+}

@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.ground.dirt_path",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.ground.dirt_path_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "c7a0d8b27032ef020812cc6558e96972ceb1182a4faf794d4493dc0d79f0a375",
+   "bytes": 1123776,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.ground.dirt_path"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.ground.dirt_path_normal.png",
+   "storage": "local-ignored",
+   "sha256": "97aa0a513165526f9e4fcaeb2bb8bc6de0193b62c25a305fd8b9065ac4147c8e",
+   "bytes": 1896346,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.ground.dirt_path"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.ground.dirt_path_orh.png",
+   "storage": "local-ignored",
+   "sha256": "4533292d929f958b57dbfd2622a9c62bb0af9721ac181b2debf759dcc07f0b8b",
+   "bytes": 1978886,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.ground.dirt_path"
+  }
+ ]
+}

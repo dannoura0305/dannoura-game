@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.ground.moss",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.ground.moss_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "c8cf96750c885c939b38ef5b66102ccfa224114459b5f5310095a469e224f06e",
+   "bytes": 1104798,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.ground.moss"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.ground.moss_normal.png",
+   "storage": "local-ignored",
+   "sha256": "a3e2ea6f3c5563a18ed64ef3123de005b958aa585d748cd4997771e76c362014",
+   "bytes": 2036262,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.ground.moss"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.ground.moss_orh.png",
+   "storage": "local-ignored",
+   "sha256": "930273a6c3d4306bcbda42d341d4abee6e348a42f7c13050964c5f97a1576e22",
+   "bytes": 2242575,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.ground.moss"
+  }
+ ]
+}

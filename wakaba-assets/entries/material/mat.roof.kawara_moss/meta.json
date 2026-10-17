@@ -1,0 +1,98 @@
+{
+ "id": "mat.roof.kawara_moss",
+ "version": 1,
+ "name": {
+  "ja": "苔むした瓦",
+  "en": "Mossy kawara"
+ },
+ "category": "material",
+ "tags": [
+  "屋根",
+  "瓦",
+  "苔",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/mapkit/matgen/matgen.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/wakaba-mapkit/11_写実化パイプライン.md"
+ },
+ "tech": {
+  "formats": [
+   "webp",
+   "png"
+  ],
+  "texRes": 512,
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness",
+   "height"
+  ],
+  "fileBytes": 61090
+ },
+ "use": [
+  "屋根"
+ ],
+ "status": "draft",
+ "material": {
+  "material": "wakaba-material/1",
+  "tileM": 1.2,
+  "sizes": [
+   512,
+   256,
+   128
+  ],
+  "maps": {
+   "albedo": {
+    "512": "albedo_512.webp",
+    "256": "albedo_256.webp",
+    "128": "albedo_128.webp"
+   },
+   "normal": {
+    "512": "normal_512.webp",
+    "256": "normal_256.webp",
+    "128": "normal_128.webp"
+   },
+   "orh": {
+    "512": "orh_512.webp",
+    "256": "orh_256.webp",
+    "128": "orh_128.webp"
+   }
+  },
+  "alpha": false,
+  "card": false,
+  "channels": {
+   "albedo": "sRGB",
+   "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+   "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+  },
+  "albedoMean": [
+   0.253,
+   0.278,
+   0.226
+  ],
+  "roughMean": 0.849
+ },
+ "history": [
+  {
+   "at": "2026-10-17",
+   "by": "claude-code",
+   "change": "tools/mapkit/matgen/matgen.py で生成（フェーズ 3）"
+  }
+ ]
+}
