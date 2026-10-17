@@ -76,7 +76,7 @@ export function buildHospital() {
   for (const x of [-6, 6]) { B.box('wall', x, H / 2, 9.0, 0.5, H, 0.5, 0xb8c4c0); solid(x, 9.0, 0.5, 0.5, H); }
   const bench = [[0, 0.44, 0, 1.8, 0.07, 0.5, 0x4a7a9a], [0, 0.22, -0.18, 0.06, 0.44, 0.06, 0x5a5a62], [0.8, 0.22, 0, 0.05, 0.44, 0.45, 0x5a5a62], [-0.8, 0.22, 0, 0.05, 0.44, 0.45, 0x5a5a62], [0, 0.75, 0.24, 1.8, 0.5, 0.06, 0x4a7a9a]];
   const benches = []; for (const z of [14.2, 16.4]) for (const x of [-8.2, -5.4, 5.4, 8.2]) benches.push({ x, z, ry: Math.PI });
-  root.add(instanced(bench, benches, { name: 'benches' })); for (const b of benches) solid(b.x, b.z, 1.8, 0.55, 0.8);
+  root.add(instanced(bench, benches, { name: 'benches', kit: 'prop.int.bench_row', kitRy: Math.PI, kitS: [0.82, 1, 1], kitColor: 0x4a7a9a })); for (const b of benches) solid(b.x, b.z, 1.8, 0.55, 0.8);
   // 車いす（インスタンス：座面・背・大きな車輪・小さな車輪・握り）
   const wc = [[0, 0.48, 0, 0.46, 0.05, 0.44, 0x2a3a4a], [0, 0.78, -0.22, 0.46, 0.5, 0.04, 0x2a3a4a], [0.26, 0.32, -0.04, 0.03, 0.62, 0.62, 0x9aa0a8], [-0.26, 0.32, -0.04, 0.03, 0.62, 0.62, 0x9aa0a8], [0.2, 0.08, 0.24, 0.03, 0.14, 0.14, 0x30343a], [-0.2, 0.08, 0.24, 0.03, 0.14, 0.14, 0x30343a], [0, 1.02, -0.3, 0.5, 0.03, 0.03, 0xb0b4bc], [0.22, 0.6, 0.0, 0.03, 0.03, 0.5, 0xb0b4bc], [-0.22, 0.6, 0.0, 0.03, 0.03, 0.5, 0xb0b4bc]];
   const wcs = [{ x: -10.8, z: 9.6, ry: 1.4 }, { x: -10.8, z: 10.6, ry: 1.5 }, { x: 10.6, z: 18.2, ry: -0.4 }, { x: 4.6, z: 9.4, ry: 2.6 }, { x: 1.2, z: -11.6, ry: 0.3 }, { x: -0.8, z: -17.8, ry: 3.6 }];
@@ -125,7 +125,7 @@ export function buildHospital() {
     B.box('glass', sx * 12.0, 2.0, cz, 0.05, 1.5, 3.2, 0x182436, { edges: false });
   }
   const bed = [[0, 0.5, 0, 0.95, 0.16, 2.0, 0xe8ecec], [0, 0.32, 0, 0.9, 0.08, 1.9, 0x9aa0a8], [0, 0.85, -0.95, 0.95, 0.6, 0.06, 0xb0b8c0], [0, 0.6, 0.98, 0.95, 0.3, 0.05, 0xb0b8c0], [0, 0.62, -0.7, 0.6, 0.12, 0.35, 0xf8f8f4], [0, 0.6, 0.25, 0.92, 0.1, 1.2, 0xa8c8d0]];
-  root.add(instanced(bed, beds, { name: 'beds', shadow: true }));
+  root.add(instanced(bed, beds, { name: 'beds', shadow: true, kit: 'prop.int.hospital_bed', kitRy: Math.PI }));
   for (const b of beds) solid(b.x, b.z, 2.0, 1.0, 0.7);
   root.add(instanced([[0, 1.25, 0, 0.03, 2.1, 1.3, 0xffffff], [0, 2.35, 0, 0.04, 0.04, 1.4, 0xb0b4b8]], curtains, { name: 'curtains' }));
   root.add(instanced([[0, 1.0, 0, 0.03, 2.0, 0.03, 0xb8bcc4], [0, 1.85, 0, 0.14, 0.22, 0.06, 0xd8f0f0], [0, 0.04, 0, 0.5, 0.04, 0.04, 0x6a6e76], [0, 0.04, 0, 0.04, 0.04, 0.5, 0x6a6e76]], drips, { name: 'drips' }));

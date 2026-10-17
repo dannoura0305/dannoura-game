@@ -10,7 +10,7 @@ export class World {
     this.step = opt.step ?? RULES.walk.step; this.height = opt.height ?? RULES.walk.height;
     this.colliders = []; this.floors = []; this.cellSize = 4;
     this.nx = Math.ceil(this.W / this.cellSize) + 1; this.nz = Math.ceil(this.D / this.cellSize) + 1;
-    this.cBins = new Map(); this.fBins = new Map();
+    this.cBins = new Map(); this.fBins = new Map(); this.dyn = new Map();   // dyn：動く当たり（戸・門の扉。mapkit/game/doors.js が出し入れする）
     for (const b of layout.buildings || []) for (const p of b.parts || []) {
       if (p.walk) this.addFloor({ id: p.id, building: b.id, obb: partObb(p), top: p.c[1] + p.size[1] / 2 });
       else if (p.collide && !p.tilt) {
@@ -43,7 +43,27 @@ export class World {
   /** 歩く面の高さ：地形と床の高い方 */
   surfaceY(x, z) { const g = this.hf.at(x, z), f = this.floorAt(x, z); return f && f.top > g ? f.top : g; }
   /** 足元が y の時に、半径 r の体を止める当たり（段差 step より上・頭 height より下） */
-  blockersNear(x, z, y, r) { return this._near(this.cBins, this.colliders, x, z, r + 0.5).filter(c => c.maxY > y + this.step && c.minY < y + this.height); }
+  blockersNear(x, z, y, r) {
+    const out = this._near(this.cBins, this.colliders, x, z, r + 0.5).filter(c => c.maxY > y + this.step && c.minY < y + this.height);
+    if (this.dyn.size) for (const c of this.dyn.values()) { const b = c.bounds; if (x + r + 0.5 >= b[0] && x - r - 0.5 <= b[2] && z + r + 0.5 >= b[1] && z - r - 0.5 <= b[3] && c.maxY > y + this.step && c.minY < y + this.height) out.push(c); }
+    return out;
+  }
+  /** 動く当たりを置く／外す（c＝{ kind:'obb', obb, minY, maxY } か null）。地形の格子（nav/grid.js）は作った時の当たりのまま */
+  setDynamic(id, c) {
+    if (!c) { this.dyn.delete(id); return; }
+    c.id = id; c.dynamic = true; c.bounds = c.kind === 'cyl' ? [c.x - c.r, c.z - c.r, c.x + c.r, c.z + c.r] : obbBounds(c.obb); this.dyn.set(id, c);
+  }
+  /** 目の高さ y の見通し（a→b）：地形・当たり（動く物も）で遮られるか。step m ごとに調べる。戻り値：遮った物の id／'terrain'／null */
+  sightBlocked(a, b, step = 0.35) {
+    const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], L = Math.hypot(dx, dz), n = Math.max(1, Math.ceil(L / step));
+    for (let i = 1; i < n; i++) {
+      const t = i / n, x = a[0] + dx * t, y = a[1] + dy * t, z = a[2] + dz * t;
+      if (this.hf.at(x, z) > y) return 'terrain';
+      for (const c of this._near(this.cBins, this.colliders, x, z, 0)) if (y > c.minY && y < c.maxY && (c.kind === 'cyl' ? (x - c.x) ** 2 + (z - c.z) ** 2 < c.r * c.r : pointInObb(x, z, c.obb))) return c.id;
+      for (const c of this.dyn.values()) if (y > c.minY && y < c.maxY && c.kind !== 'cyl' && pointInObb(x, z, c.obb)) return c.id;
+    }
+    return null;
+  }
   blocked(x, z, y, r) {
     for (const c of this.blockersNear(x, z, y, r)) {
       if (c.kind === 'cyl') { if ((x - c.x) ** 2 + (z - c.z) ** 2 < (r + c.r) ** 2) return c; }

@@ -15,6 +15,7 @@ import { makeTown2, isFar } from './town2.js';
  */
 export function buildTown(ctx) {
   const { B, atlas, signDraw } = ctx, part = ctx.part || 'all';
+  const K = ctx.kit || { on: false, put: () => false };          // P12：Blender の部品を置く所の記録（world/envkit.js）。手続きの形は代わりの網（B.fb）
   const inPart = (x, z) => part === 'all' || (part === 'far') === isFar(x, z);
   const inRect = r => inPart((r[0] + r[2]) / 2, (r[1] + r[3]) / 2);
   const T = TOWN, boxes = part === 'far' ? [] : townSolids(T), lights = [], halos = [], wet = [], spots = [], hideSpots = [];
@@ -70,8 +71,10 @@ export function buildTown(ctx) {
   }
   // ガードレール（白い板と支柱）
   for (const [a, b] of guardSpans(T)) {
-    tb('tex', (a + b) / 2, 0.7, 11.5, b - a, 0.32, 0.06, 0xe8eae8, 'concrete', { ts: 4 });
-    for (let x = a + 0.2; x < b; x += 2) prop(x, 0.4, 11.55, 0.08, 0.8, 0.08, 0xd8dad8);
+    const n = Math.max(1, Math.round((b - a) / 2)), sl = (b - a) / n;
+    let k = false; for (let i = 0; i < n; i++) k = K.put('prop.town.guardrail', 0, a + (i + 0.5) * sl, 0, 11.5, Math.PI, [sl / 2, 1, 1]);
+    B.fb(k, () => { tb('tex', (a + b) / 2, 0.7, 11.5, b - a, 0.32, 0.06, 0xe8eae8, 'concrete', { ts: 4 });
+      for (let x = a + 0.2; x < b; x += 2) prop(x, 0.4, 11.55, 0.08, 0.8, 0.08, 0xd8dad8); });
   }
 
   // ── 用水路：内側のコンクリート壁・水面・手すり・橋 ──
@@ -222,6 +225,11 @@ export function buildTown(ctx) {
     B.box('glow', lx, 2.05, lz, 0.14, 0.22, 0.14, lampOn ? 0xffd8a0 : 0x3a3428, { edges: false });
     if (lampOn) { halos.push({ p: [lx + F.out[0] * 0.15, 2.05, lz + F.out[1] * 0.15], size: 0.9, color: 0xffd8a0, k: 0.7 }); const [px, pz] = F.at(u, v0 - 1.0); pool(px, pz, 1.8, 0xffd8a0, 0.35); }
   }
+  /** エアコンの室外機（P12：部品があれば Blender の部品・手続きの箱は代わりの網） */
+  function acAt(F, u, v, y, a = 0.8, b = 0.3, h = 0.6) {
+    const [x, z] = F.at(u, v), k = K.put('prop.town.ac_unit', 0, x, y - h / 2, z, F.ry, [a / 0.8, h / 0.6, b / 0.3]);
+    B.fb(k, () => F.box('tex', u, v, y, a, b, h, 0xffffff, 'acunit', { fit: true }));
+  }
   function fenceFront(F, kind, gapU, gapW, h = 1.3) {
     const segs = gapU == null ? [[0, F.W]] : [[0, gapU - gapW / 2], [gapU + gapW / 2, F.W]];
     for (const [a, b] of segs) {
@@ -261,7 +269,7 @@ export function buildTown(ctx) {
       F.box('prop', bu, v0 - 0.7, h1 + 1.85, 2.2, 0.03, 0.03, 0xb0b4b8);   // 物干し竿
     }
     // 室外機・雨どい・電気メーター
-    F.box('tex', side + (doorU < side + a / 2 ? a - 0.6 : 0.6), v0 - 0.35, 0.32, 0.8, 0.3, 0.6, 0xffffff, 'acunit', { fit: true });
+    acAt(F, side + (doorU < side + a / 2 ? a - 0.6 : 0.6), v0 - 0.35, 0.32);
     for (const u of [side + 0.1, side + a - 0.1]) F.box('prop', u, v0 - 0.08, H / 2, 0.08, 0.08, H, 0x5a5a58);
     F.box('prop', side + 0.05, v0 + 0.8, 1.4, 0.04, 0.3, 0.4, 0xd8d8d0);
     // 塀・門（表札）
@@ -294,7 +302,7 @@ export function buildTown(ctx) {
     for (let k = 1; k < floors; k++) {
       const y = k * fh + 1.5, n = Math.max(1, Math.floor(F.W / 3.2));
       for (let i = 0; i < n; i++) { const u = (i + 0.5) * F.W / n; const kind = L.office ? (r() < 0.25 ? 'office_lit' : 'office') : ['dark', 'dark', 'curtain', 'lit', 'dark'][Math.floor(r() * 5)]; win(F, u, 0, y, Math.min(2.2, F.W / n - 0.6), 1.3, kind); }
-      if (r() < 0.7) { const au = F.W * (0.2 + r() * 0.6); if (k > 1) F.box('tex', au, -0.32, k * fh + 0.45, 0.8, 0.3, 0.6, 0xffffff, 'acunit', { fit: true }); }   // フェーズ11：2 階の室外機は 1 階の看板に重なるので置かない（裏へ）
+      if (r() < 0.7) { const au = F.W * (0.2 + r() * 0.6); if (k > 1) acAt(F, au, -0.32, k * fh + 0.45); }   // フェーズ11：2 階の室外機は 1 階の看板に重なるので置かない（裏へ）
     }
     if (L.sign2) { const uv2 = signUV(L.sign2, { bg: '#1a2a3a', fg: '#a8e0ff', size: 34 }); const [sx, sz] = F.at(F.W * 0.5, -0.1); const sw2 = F.W * 0.6; B.box('sign', sx, fh * 2 - 0.15, sz, F.alongX ? sw2 : 0.08, 0.5, F.alongX ? 0.08 : sw2, 0xffffff, { uv: uv2, face: F.f === 'N' ? 5 : F.f === 'S' ? 4 : F.f === 'E' ? 0 : 1, edges: false }); halos.push({ p: [sx + F.out[0] * 0.4, fh * 2 - 0.15, sz + F.out[1] * 0.4], size: 2.6, color: 0x80c8ff, k: 0.35, neon: true, flicker: true }); }
     if (L.barber) { const [bx, bz] = F.at(0.8, -0.3); const g = new THREE.CylinderGeometry(0.14, 0.14, 0.9, 10); g.translate(bx, 1.6, bz); B.add('glow', g, 0xf0e0e8); halos.push({ p: [bx + F.out[0] * 0.2, 1.6, bz + F.out[1] * 0.2], size: 1.0, color: 0xff6a6a, k: 0.3, flicker: true }); }
@@ -323,7 +331,7 @@ export function buildTown(ctx) {
         if (k === 0 && !L.open && Math.abs(u - F.W / 2) < 1.9) { r(); r(); continue; }
         if (L.open) { F.box('tex', u - 0.7, set - 0.05, y0 + 1.0, 0.85, 0.08, 2.0, 0x9aa8b8, 'door_house', { fit: true }); win(F, u + 0.6, set, y0 + 1.55, 1.0, 0.7, r() < 0.3 ? 'lit' : 'dark'); }
         else { const kind = ['dark', 'curtain', 'lit', 'dark', 'lit2'][Math.floor(r() * 5)]; win(F, u, set, y0 + 1.25, 2.0, 1.8, kind); }
-        if (r() < 0.6 && !(k === 0 && !L.open && Math.abs(u + 1.0 - F.W / 2) < 1.8)) F.box('tex', u + 1.0, set - 0.6, y0 + 0.5, 0.75, 0.28, 0.55, 0xffffff, 'acunit', { fit: true });
+        if (r() < 0.6 && !(k === 0 && !L.open && Math.abs(u + 1.0 - F.W / 2) < 1.8)) acAt(F, u + 1.0, set - 0.6, y0 + 0.5, 0.75, 0.28, 0.55);
       }
       if (L.open && k > 0) { const [lx, lz] = F.at(F.W / 2, set - 0.8); B.box('glow', lx, y0 + 2.5, lz, 0.4, 0.06, 0.12, 0xe8f0ff, { edges: false }); halos.push({ p: [lx, y0 + 2.4, lz], size: 1.2, color: 0xd8e8ff, k: 0.4 }); }
     }
@@ -454,7 +462,7 @@ export function buildTown(ctx) {
     win(F, 2.6, 0, 4.7, 1.6, 1.2, 'dark'); win(F, F.W - 2.8, 0, 4.7, 1.6, 1.2, 'curtain');
     F.box('prop', F.W - 2.8, -0.5, 3.3, 2.8, 1.0, 0.12, 0x8a8a88); F.box('tex', F.W - 2.8, -0.98, 3.8, 2.8, 0.04, 0.9, 0xffffff, 'balcony', { fit: true });
     // 室外機・雨どい・外の水道
-    F.box('tex', F.W - 0.8, -0.35, 0.32, 0.8, 0.3, 0.6, 0xffffff, 'acunit', { fit: true });
+    acAt(F, F.W - 0.8, -0.35, 0.32);
     for (const u of [0.1, F.W - 0.1]) F.box('prop', u, -0.06, 3.0, 0.08, 0.08, 6.0, 0x5a5a58);
     // 前の塀（門）・門柱の表札・郵便受け・玄関灯の光
     const H = TOWN.homeLot;
@@ -513,12 +521,14 @@ export function buildTown(ctx) {
     spots.push({ id: 'town_shrine', kind: 'read', x: hx + 1.2, z: hz, r: 1.3, label: '祠に手を合わせる', text: 'town_shrine' });
   }
   function pole(x, z, pl, i) {
-    const g = new THREE.CylinderGeometry(0.15, 0.19, 9.0, 10); g.translate(x, 4.5, z); applyTile(g, 'pole', { ts: 1.0, tsy: 9.0 }); B.add('tex', g, 0xffffff, true);
     const along = pl.pts.length > 1 ? (() => { const j = i < pl.pts.length - 1 ? i + 1 : i - 1; return Math.abs(pl.pts[j][0] - x) > Math.abs(pl.pts[j][1] - z); })() : true;
+    const tr = (i + pl.id.length) % 3 === 0;
+    B.fb(K.put('prop.town.utility_pole', tr ? 1 : 0, x, 0, z, along ? Math.PI / 2 : 0), () => {
+    const g = new THREE.CylinderGeometry(0.15, 0.19, 9.0, 10); g.translate(x, 4.5, z); applyTile(g, 'pole', { ts: 1.0, tsy: 9.0 }); B.add('tex', g, 0xffffff, true);
     prop(x, 8.4, z, along ? 0.12 : 1.4, 0.1, along ? 1.4 : 0.12, 0x5a5a58);
     prop(x, 7.6, z, along ? 0.1 : 0.9, 0.08, along ? 0.9 : 0.1, 0x5a5a58);
-    if ((i + pl.id.length) % 3 === 0) { const g2 = new THREE.CylinderGeometry(0.3, 0.3, 0.9, 10); g2.translate(x + (along ? 0 : 0.38), 6.8, z + (along ? 0.38 : 0)); B.add('prop', g2, 0x7a7e80); }   // 変圧器
-    for (let y = 2.6; y < 5.6; y += 0.45) prop(x + (along ? 0 : 0.2), y, z + (along ? 0.2 : 0), 0.04, 0.04, 0.18, 0x3a3a3a);   // 足場ボルト
+    if (tr) { const g2 = new THREE.CylinderGeometry(0.3, 0.3, 0.9, 10); g2.translate(x + (along ? 0 : 0.38), 6.8, z + (along ? 0.38 : 0)); B.add('prop', g2, 0x7a7e80); }   // 変圧器
+    for (let y = 2.6; y < 5.6; y += 0.45) prop(x + (along ? 0 : 0.2), y, z + (along ? 0.2 : 0), 0.04, 0.04, 0.18, 0x3a3a3a); });   // 足場ボルト
     const uv = signUV(({ pl_main: '駅前', pl_mainS: '駅前南', pl_laneB: '用水', pl_laneA: '東町', pl_west: '西町', pl_yoko: '横丁' }[pl.id] || '町内') + ' ' + (i + 3), { bg: '#f0f0e8', fg: '#2a2a3a', size: 30 });
     B.box('sign', x + (along ? 0 : 0.2), 2.0, z + (along ? 0.2 : 0), along ? 0.3 : 0.02, 0.5, along ? 0.02 : 0.3, 0xffffff, { uv, face: along ? 4 : 0, edges: false });
   }
@@ -528,12 +538,16 @@ export function buildTown(ctx) {
     let best = null, bd = 1e9; for (const w of T.walk) { const [a, b, c, d] = w.rect; const px = Math.max(a, Math.min(c, L.x)), pz = Math.max(b, Math.min(d, L.z)); const dd = Math.hypot(px - L.x, pz - L.z) + (w.kind === 'sidewalk' ? 2 : 0); if (dd < bd && w.kind !== 'yard') { bd = dd; best = w; } }
     let ax = 0, az = 0; if (best) { const [a, b, c, d] = best.rect; const tx = Math.max(a + 1, Math.min(c - 1, L.x)), tz = Math.max(b + 1, Math.min(d - 1, L.z)); const dx = (a + c) / 2 - L.x, dz = (b + d) / 2 - L.z; if (Math.abs(tx - L.x) + Math.abs(tz - L.z) < 0.2) { ax = Math.sign(dx); az = 0; } else { const l = Math.hypot(tx - L.x, tz - L.z); ax = (tx - L.x) / l; az = (tz - L.z) / l; } if (Math.abs(ax) > Math.abs(az)) { ax = Math.sign(ax); az = 0; } else { az = Math.sign(az); ax = 0; } }
     const reach = L.kind === 'tall' ? 1.8 : L.kind === 'park' ? 0 : 1.0, h = L.h;
-    if (L.kind === 'park') { prop(L.x, h / 2, L.z, 0.1, h, 0.1, 0x3a4a3a); }
-    else prop(L.x + ax * reach / 2, h + 0.1, L.z + az * reach / 2, Math.abs(ax) * reach + 0.08, 0.08, Math.abs(az) * reach + 0.08, 0x6a6a68);
     const lx = L.x + ax * reach, lz = L.z + az * reach;
     const warm = L.kind === 'tall', color = warm ? 0xffc890 : 0xdfeaff;
-    B.box(L.dead ? 'prop' : 'glow', lx, h, lz, L.kind === 'tall' ? 0.6 : 0.42, 0.1, 0.24, L.dead ? 0x3a3a3c : color, { edges: false });
-    prop(lx, h + 0.08, lz, L.kind === 'tall' ? 0.7 : 0.5, 0.06, 0.3, 0x4a4a4c);
+    const kit = L.kind !== 'park' && K.put('prop.town.lamp_head', L.kind === 'tall' ? 1 : 0, L.x, h + 0.1, L.z, Math.atan2(-az, ax || (az ? 0 : 1)));
+    B.fb(kit, () => {
+      if (L.kind === 'park') { prop(L.x, h / 2, L.z, 0.1, h, 0.1, 0x3a4a3a); }
+      else prop(L.x + ax * reach / 2, h + 0.1, L.z + az * reach / 2, Math.abs(ax) * reach + 0.08, 0.08, Math.abs(az) * reach + 0.08, 0x6a6a68);
+      B.box(L.dead ? 'prop' : 'glow', lx, h, lz, L.kind === 'tall' ? 0.6 : 0.42, 0.1, 0.24, L.dead ? 0x3a3a3c : color, { edges: false });
+      prop(lx, h + 0.08, lz, L.kind === 'tall' ? 0.7 : 0.5, 0.06, 0.3, 0x4a4a4c);
+    });
+    if (kit && !L.dead) B.box('glow', lx, h + 0.103, lz, (L.kind === 'tall' ? 0.7 : 0.5) * 0.86, 0.012, 0.22, color, { edges: false, ry: Math.atan2(-az, ax || (az ? 0 : 1)) });   // 灯具の下の光る面（部品の灯具の向き）
     if (L.dead) return;
     const light = { id: 'lamp_' + L.id, pos: [lx, h - 0.25, lz], color, intensity: warm ? 10 : 7, dist: warm ? 15 : 11, town: true, flicker: !!L.flicker, base: warm ? 10 : 7 };
     lights.push(light);
@@ -544,13 +558,19 @@ export function buildTown(ctx) {
   /** フェーズ10：中央通り・駅前の高い街灯（電線なし・細い柱と弓なりの腕・LED の灯具）。dir＝[0,0] は柱の上に灯（駅前） */
   function modernLamp(L) {
     const h = L.h, [dx, dz] = L.dir || [0, 0], reach = dx || dz ? 2.4 : 0;
-    const g = new THREE.CylinderGeometry(0.09, 0.15, h, 10); g.translate(L.x, h / 2, L.z); B.add('prop', g, 0x5a5e66);
+    const mry = reach ? Math.atan2(-dz, dx) : 0;
+    const kit = K.put('prop.town.pole_steel', 0, L.x, 0, L.z, 0, [1.6, h, 1.6]) && K.put('prop.town.lamp_modern', reach ? 0 : 1, L.x, h, L.z, mry);
     prop(L.x, 0.2, L.z, 0.4, 0.4, 0.4, 0x4a4e56);
     let lx = L.x, lz = L.z;
-    if (reach) { for (let k = 0; k < 4; k++) { const t0 = k / 4, t1 = (k + 1) / 4, y0 = h - 0.1 + Math.sin(t0 * 1.6) * 0.5, y1 = h - 0.1 + Math.sin(t1 * 1.6) * 0.5; const mx = L.x + dx * reach * (t0 + t1) / 2, mz = L.z + dz * reach * (t0 + t1) / 2; prop(mx, (y0 + y1) / 2, mz, Math.abs(dx) * reach / 4 + 0.08, Math.abs(y1 - y0) + 0.07, Math.abs(dz) * reach / 4 + 0.08, 0x5a5e66); } lx = L.x + dx * reach; lz = L.z + dz * reach; }
+    if (reach) { lx = L.x + dx * reach; lz = L.z + dz * reach; }
     const ly = reach ? h + 0.3 : h + 0.25, color = 0xffe2b8;
-    prop(lx, ly + 0.08, lz, 0.9, 0.1, 0.42, 0x3a3e46);
-    B.box(L.dead ? 'prop' : 'glow', lx, ly, lz, 0.8, 0.06, 0.34, L.dead ? 0x3a3a3c : color, { edges: false });
+    B.fb(kit, () => {
+      const g = new THREE.CylinderGeometry(0.09, 0.15, h, 10); g.translate(L.x, h / 2, L.z); B.add('prop', g, 0x5a5e66);
+      if (reach) for (let k = 0; k < 4; k++) { const t0 = k / 4, t1 = (k + 1) / 4, y0 = h - 0.1 + Math.sin(t0 * 1.6) * 0.5, y1 = h - 0.1 + Math.sin(t1 * 1.6) * 0.5; const mx = L.x + dx * reach * (t0 + t1) / 2, mz = L.z + dz * reach * (t0 + t1) / 2; prop(mx, (y0 + y1) / 2, mz, Math.abs(dx) * reach / 4 + 0.08, Math.abs(y1 - y0) + 0.07, Math.abs(dz) * reach / 4 + 0.08, 0x5a5e66); }
+      prop(lx, ly + 0.08, lz, 0.9, 0.1, 0.42, 0x3a3e46);
+      B.box(L.dead ? 'prop' : 'glow', lx, ly, lz, 0.8, 0.06, 0.34, L.dead ? 0x3a3a3c : color, { edges: false });
+    });
+    if (kit && !L.dead) B.box('glow', lx, h + (reach ? 0.2 : 0.25) + 0.003, lz, 0.78, 0.012, 0.32, color, { edges: false, ry: mry });   // 部品の灯具の下の光る面
     if (L.dead) return;
     const light = { id: 'lamp_' + L.id, pos: [lx, ly - 0.3, lz], color, intensity: 13, dist: 17, town: true, flicker: !!L.flicker, base: 13 };
     lights.push(light);
@@ -572,7 +592,7 @@ export function buildTown(ctx) {
     const pb = (key, lx, y, lz, w, h, d, color, opt = {}) => { const [x, z] = at(lx, lz); return B.box(key, x, y, z, w, h, d, color, Object.assign({ ry, edges: false }, opt)); };
     switch (p.kind) {
       case 'mirror': { prop(p.x, 1.6, p.z, 0.08, 3.2, 0.08, 0xd8d8d8); const g = new THREE.CylinderGeometry(0.42, 0.42, 0.08, 18); g.rotateX(Math.PI / 2); g.rotateY(ry); g.translate(p.x, 3.0, p.z); B.add('prop', g, 0xe86a20); const g2 = new THREE.CylinderGeometry(0.36, 0.36, 0.09, 18); g2.rotateX(Math.PI / 2); g2.rotateY(ry); g2.translate(p.x, 3.0, p.z); B.add('glow', g2, 0x4a5a78); break; }
-      case 'vending': { pb('prop', 0, 0.95, 0, 0.9, 1.9, 0.8, p.color); pb('glow', 0, 1.25, 0.41, 0.74, 0.8, 0.02, 0xd8ecff); pb('glow', 0, 0.55, 0.41, 0.6, 0.16, 0.02, 0x2a2a30); pb('prop', 0, 0.3, 0.42, 0.4, 0.14, 0.04, 0x1a1a1a);
+      case 'vending': { B.fb(K.put('prop.town.vending', 0, p.x, 0, p.z, ry, 1, p.color), () => { pb('prop', 0, 0.95, 0, 0.9, 1.9, 0.8, p.color); pb('prop', 0, 0.3, 0.42, 0.4, 0.14, 0.04, 0x1a1a1a); pb('glow', 0, 0.55, 0.41, 0.6, 0.16, 0.02, 0x2a2a30); }); pb('glow', 0, 1.25, 0.41, 0.74, 0.8, 0.02, 0xd8ecff);
         const [hx, hz] = at(0, 0.9); halos.push({ p: [hx, 1.2, hz], size: 1.6, color: 0xbfe4ff, k: 0.55 }); lights.push({ id: 'vend_' + p.x, pos: [hx, 1.4, hz], color: 0x9fd0ff, intensity: 3, dist: 5, town: true, vending: true }); pool(hx, hz, 1.6, 0xbfe4ff, 0.4); break; }
       case 'garbage': { pb('prop', 0, 0.02, 0, 2.2, 0.04, 1.2, 0x6a6a6a); for (const [lx, lz, w, d] of [[-1.08, 0, 0.04, 1.2], [1.08, 0, 0.04, 1.2], [0, -0.58, 2.2, 0.04]]) pb('tex', lx, 0.55, lz, w, 1.1, d, 0x60b070, { tile: 'fence', ts: 0.6 }); pb('prop', 0, 1.1, 0, 2.2, 0.05, 1.2, 0x3a7a4a);
         for (let k = 0; k < 4; k++) { const g = new THREE.IcosahedronGeometry(0.28, 0); const [x, z] = at(-0.7 + k * 0.45, 0.1 - (k % 2) * 0.2); g.translate(x, 0.26, z); B.add('prop', g, [0xe8e8e0, 0x40a0e0, 0xe8e8e0, 0xe0d040][k]); }
@@ -590,6 +610,9 @@ export function buildTown(ctx) {
     }
   }
   function bike(x, z, ry, color) {
+    B.fb(K.put('prop.town.bicycle', 0, x, 0, z, ry, 1, color), () => bike0(x, z, ry, color));
+  }
+  function bike0(x, z, ry, color) {
     const c = Math.cos(ry), s = Math.sin(ry), at = (l) => [x + l * c, z - l * s];
     for (const l of [-0.48, 0.48]) { const g = new THREE.TorusGeometry(0.3, 0.03, 6, 16); g.rotateY(ry); const [px, pz] = at(l); g.translate(px, 0.32, pz); B.add('prop', g, 0x1a1a1a); }
     B.box('prop', x, 0.55, z, 0.9, 0.05, 0.05, color, { ry, edges: false }); B.box('prop', ...[at(-0.3)[0], 0.75, at(-0.3)[1]], 0.25, 0.06, 0.14, 0x1a1a1a, { ry, edges: false });
@@ -597,12 +620,16 @@ export function buildTown(ctx) {
   }
   function car(p) {
     const ry = p.ry || 0, c = Math.cos(ry), s = Math.sin(ry), L = p.kei ? 3.4 : 4.3, Wd = p.kei ? 1.48 : 1.75;
+    const kitCar = K.put('prop.town.car', p.kei ? 1 : 0, p.x, 0, p.z, ry, 1, p.color);
+    B.fb(kitCar, () => car0(p, ry, c, s, L, Wd));
+    if (p.abandoned || p.hazard) { for (const sx of [-1, 1]) { const hx = p.x + (sx * (Wd / 2 - 0.25)) * c + (L / 2 + 0.3) * s, hz = p.z - (sx * (Wd / 2 - 0.25)) * s + (L / 2 + 0.3) * c; halos.push({ p: [hx, 0.72, hz], size: 0.9, color: 0xffa020, k: 0.8, hazard: true }); } if (p.abandoned) spots.push({ id: 'town_car', kind: 'read', x: p.x + 2.2 * s, z: p.z + 2.2 * c + 1.4, r: 1.6, label: '乗り捨てられた車', text: 'town_car' }); }
+  }
+  function car0(p, ry, c, s, L, Wd) {
     const part = (w, h, d, ox, oy, oz, col, key = 'prop') => { const g = new THREE.BoxGeometry(w, h, d); g.translate(ox, oy, oz); g.rotateY(ry); g.translate(p.x, 0, p.z); return B.add(key, g, col); };
     part(Wd, 0.62, L, 0, 0.58, 0, p.color); part(Wd - 0.12, p.kei ? 0.7 : 0.55, L * (p.kei ? 0.62 : 0.5), 0, p.kei ? 1.2 : 1.13, p.kei ? -0.15 : -0.1, p.color);
     part(Wd - 0.18, p.kei ? 0.55 : 0.45, 0.04, 0, p.kei ? 1.2 : 1.12, L * (p.kei ? 0.31 : 0.25) - 0.1, 0x10141c, 'glass'); part(0.04, 0.42, L * 0.45, (Wd - 0.1) / 2, 1.13, -0.1, 0x10141c, 'glass'); part(0.04, 0.42, L * 0.45, -(Wd - 0.1) / 2, 1.13, -0.1, 0x10141c, 'glass');
     for (const [wx, wz] of [[-Wd / 2 + 0.1, L * 0.32], [Wd / 2 - 0.1, L * 0.32], [-Wd / 2 + 0.1, -L * 0.32], [Wd / 2 - 0.1, -L * 0.32]]) { const g = new THREE.CylinderGeometry(0.31, 0.31, 0.22, 12); g.rotateZ(Math.PI / 2); g.translate(wx, 0.31, wz); g.rotateY(ry); g.translate(p.x, 0, p.z); B.add('prop', g, 0x1a1a1e); }
     for (const sx of [-1, 1]) { part(0.3, 0.12, 0.04, sx * (Wd / 2 - 0.25), 0.72, L / 2, p.abandoned ? 0xffe0a0 : 0xd8d8c8, 'glow'); part(0.3, 0.12, 0.04, sx * (Wd / 2 - 0.25), 0.72, -L / 2, 0x8a1a1a, 'glow'); }
-    if (p.abandoned || p.hazard) { for (const sx of [-1, 1]) { const hx = p.x + (sx * (Wd / 2 - 0.25)) * c + (L / 2 + 0.3) * s, hz = p.z - (sx * (Wd / 2 - 0.25)) * s + (L / 2 + 0.3) * c; halos.push({ p: [hx, 0.72, hz], size: 0.9, color: 0xffa020, k: 0.8, hazard: true }); } if (p.abandoned) spots.push({ id: 'town_car', kind: 'read', x: p.x + 2.2 * s, z: p.z + 2.2 * c + 1.4, r: 1.6, label: '乗り捨てられた車', text: 'town_car' }); }
   }
 }
 

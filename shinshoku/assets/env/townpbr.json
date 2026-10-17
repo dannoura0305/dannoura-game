@@ -1,0 +1,613 @@
+{
+ "townpbr": 1,
+ "tiles": [
+  "asphalt",
+  "asphalt2",
+  "interlock",
+  "concrete",
+  "curb",
+  "block",
+  "siding",
+  "siding2",
+  "mortar",
+  "tilewall",
+  "wood",
+  "kawara",
+  "kawara2",
+  "galv",
+  "win_dark",
+  "win_lit",
+  "win_curtain",
+  "win_shoji",
+  "door_house",
+  "garage",
+  "shopglass",
+  "konbini",
+  "rail",
+  "brick",
+  "grass",
+  "gravel",
+  "water",
+  "tomare",
+  "manhole",
+  "fence",
+  "hedge",
+  "field",
+  "arcade_floor",
+  "shutter",
+  "balcony",
+  "acunit",
+  "win_lit2",
+  "stone",
+  "lane",
+  "crosswalk",
+  "pole",
+  "roof_flat",
+  "win_office",
+  "win_office_lit",
+  "paving",
+  "drain",
+  "leaves",
+  "puddle",
+  "koshi",
+  "koshi_lit",
+  "curtainwall",
+  "curtainwall_lit",
+  "granite",
+  "rust",
+  "tactile",
+  "straw",
+  "trackbed",
+  "busmark",
+  "panel",
+  "louver",
+  "white",
+  "vinyl",
+  "plaster",
+  "gymfloor",
+  "ceiling",
+  "epoxy",
+  "metalpanel",
+  "carpet",
+  "woodfloor",
+  "tilewhite"
+ ],
+ "n": 10,
+ "rows": 7,
+ "sizes": {
+  "512": {
+   "w": 5120,
+   "h": 3584,
+   "files": {
+    "albedo": {
+     "file": "town_albedo_512.webp",
+     "bytes": 880896,
+     "sha256": "a93c3791dcde8ccc"
+    },
+    "normal": {
+     "file": "town_normal_512.webp",
+     "bytes": 1333826,
+     "sha256": "3d7e325ff73a0878"
+    },
+    "orh": {
+     "file": "town_orh_512.webp",
+     "bytes": 1488776,
+     "sha256": "618f7669508ba600"
+    }
+   }
+  },
+  "256": {
+   "w": 2560,
+   "h": 1792,
+   "files": {
+    "albedo": {
+     "file": "town_albedo_256.webp",
+     "bytes": 302556,
+     "sha256": "0565221d4a183f3b"
+    },
+    "normal": {
+     "file": "town_normal_256.webp",
+     "bytes": 198318,
+     "sha256": "9205396dfa0fe6e4"
+    },
+    "orh": {
+     "file": "town_orh_256.webp",
+     "bytes": 330626,
+     "sha256": "52aa24a9ac81d404"
+    }
+   }
+  },
+  "128": {
+   "w": 1280,
+   "h": 896,
+   "files": {
+    "albedo": {
+     "file": "town_albedo_128.webp",
+     "bytes": 103724,
+     "sha256": "da0d487f6ce1600a"
+    },
+    "normal": {
+     "file": "town_normal_128.webp",
+     "bytes": 43716,
+     "sha256": "7216a2b6a94019a3"
+    },
+    "orh": {
+     "file": "town_orh_128.webp",
+     "bytes": 97798,
+     "sha256": "5203360d9001442c"
+    }
+   }
+  }
+ },
+ "params": {
+  "asphalt": [
+   0,
+   1.0,
+   1.0,
+   0
+  ],
+  "asphalt2": [
+   0,
+   1.0,
+   1.0,
+   0
+  ],
+  "interlock": [
+   0,
+   0.85,
+   1.0,
+   0
+  ],
+  "concrete": [
+   0,
+   0.75,
+   1.0,
+   0
+  ],
+  "curb": [
+   0,
+   0.7,
+   1.0,
+   0
+  ],
+  "block": [
+   0,
+   0.6,
+   1.0,
+   0
+  ],
+  "siding": [
+   0,
+   0.3,
+   1.0,
+   0
+  ],
+  "siding2": [
+   0.55,
+   0.3,
+   1.0,
+   0
+  ],
+  "mortar": [
+   0,
+   0.4,
+   1.0,
+   0
+  ],
+  "tilewall": [
+   0,
+   0.3,
+   1.0,
+   0
+  ],
+  "wood": [
+   0,
+   0.5,
+   1.0,
+   0
+  ],
+  "kawara": [
+   0.1,
+   0.7,
+   1.0,
+   0
+  ],
+  "kawara2": [
+   0.05,
+   0.7,
+   1.0,
+   0
+  ],
+  "galv": [
+   0.5,
+   0.6,
+   1.0,
+   0
+  ],
+  "win_dark": [
+   0,
+   0,
+   0.4,
+   0
+  ],
+  "win_lit": [
+   0,
+   0,
+   0.4,
+   1
+  ],
+  "win_curtain": [
+   0,
+   0,
+   0.4,
+   0
+  ],
+  "win_shoji": [
+   0,
+   0,
+   0.5,
+   0
+  ],
+  "door_house": [
+   0,
+   0,
+   0.8,
+   0
+  ],
+  "garage": [
+   0.5,
+   0.2,
+   1.0,
+   0
+  ],
+  "shopglass": [
+   0.1,
+   0,
+   0.3,
+   0
+  ],
+  "konbini": [
+   0,
+   0,
+   0.3,
+   0
+  ],
+  "rail": [
+   0.6,
+   0.2,
+   0.5,
+   2
+  ],
+  "brick": [
+   0,
+   0.55,
+   1.0,
+   0
+  ],
+  "grass": [
+   0,
+   0.5,
+   1.0,
+   0
+  ],
+  "gravel": [
+   0,
+   0.7,
+   1.0,
+   0
+  ],
+  "water": [
+   0,
+   0,
+   0.6,
+   0
+  ],
+  "tomare": [
+   0,
+   0.8,
+   0.6,
+   2
+  ],
+  "manhole": [
+   0.65,
+   0.8,
+   1.6,
+   2
+  ],
+  "fence": [
+   0.6,
+   0.2,
+   0.5,
+   2
+  ],
+  "hedge": [
+   0,
+   0.3,
+   1.0,
+   0
+  ],
+  "field": [
+   0,
+   0.7,
+   0.8,
+   0
+  ],
+  "arcade_floor": [
+   0,
+   0.08,
+   1.0,
+   0
+  ],
+  "shutter": [
+   0.55,
+   0.1,
+   1.0,
+   0
+  ],
+  "balcony": [
+   0.5,
+   0.1,
+   0.5,
+   2
+  ],
+  "acunit": [
+   0.2,
+   0.1,
+   0.9,
+   0
+  ],
+  "win_lit2": [
+   0,
+   0,
+   0.4,
+   1
+  ],
+  "stone": [
+   0,
+   0.7,
+   1.0,
+   0
+  ],
+  "lane": [
+   0,
+   1.0,
+   1.0,
+   0
+  ],
+  "crosswalk": [
+   0,
+   0.8,
+   0.5,
+   2
+  ],
+  "pole": [
+   0,
+   0.3,
+   0.7,
+   0
+  ],
+  "roof_flat": [
+   0,
+   0.7,
+   1.0,
+   0
+  ],
+  "win_office": [
+   0.1,
+   0,
+   0.3,
+   0
+  ],
+  "win_office_lit": [
+   0,
+   0,
+   0.3,
+   1
+  ],
+  "paving": [
+   0,
+   0.8,
+   1.0,
+   0
+  ],
+  "drain": [
+   0.6,
+   0.5,
+   1.0,
+   0
+  ],
+  "leaves": [
+   0,
+   0.8,
+   0.8,
+   2
+  ],
+  "puddle": [
+   0,
+   1.0,
+   0.3,
+   2
+  ],
+  "koshi": [
+   0,
+   0.2,
+   1.0,
+   0
+  ],
+  "koshi_lit": [
+   0,
+   0,
+   1.0,
+   0
+  ],
+  "curtainwall": [
+   0.3,
+   0,
+   0.4,
+   0
+  ],
+  "curtainwall_lit": [
+   0.2,
+   0,
+   0.4,
+   1
+  ],
+  "granite": [
+   0,
+   0.75,
+   1.0,
+   0
+  ],
+  "rust": [
+   0,
+   0.6,
+   0.6,
+   2
+  ],
+  "tactile": [
+   0,
+   0.6,
+   1.0,
+   0
+  ],
+  "straw": [
+   0,
+   0.3,
+   1.2,
+   0
+  ],
+  "trackbed": [
+   0,
+   0.85,
+   1.0,
+   0
+  ],
+  "busmark": [
+   0,
+   0.8,
+   0.5,
+   2
+  ],
+  "panel": [
+   0.1,
+   0.25,
+   1.0,
+   0
+  ],
+  "louver": [
+   0.6,
+   0.1,
+   0.9,
+   0
+  ],
+  "white": [
+   0,
+   0.25,
+   0.7,
+   0
+  ],
+  "vinyl": [
+   0,
+   0,
+   1.0,
+   0
+  ],
+  "plaster": [
+   0,
+   0,
+   1.0,
+   0
+  ],
+  "gymfloor": [
+   0,
+   0,
+   1.0,
+   0
+  ],
+  "ceiling": [
+   0,
+   0,
+   1.0,
+   0
+  ],
+  "epoxy": [
+   0,
+   0,
+   1.0,
+   0
+  ],
+  "metalpanel": [
+   0.35,
+   0,
+   1.0,
+   0
+  ],
+  "carpet": [
+   0,
+   0,
+   1.0,
+   0
+  ],
+  "woodfloor": [
+   0,
+   0,
+   1.0,
+   0
+  ],
+  "tilewhite": [
+   0,
+   0,
+   1.0,
+   0
+  ]
+ },
+ "sources": {
+  "asphalt": "mat.town.asphalt",
+  "asphalt2": "mat.town.asphalt_patch",
+  "interlock": "mat.town.interlock",
+  "concrete": "mat.town.concrete",
+  "curb": "mat.town.curb",
+  "block": "mat.town.block_wall",
+  "siding": "mat.town.siding",
+  "siding2": "mat.town.siding_metal",
+  "mortar": "mat.town.mortar",
+  "tilewall": "mat.town.tile_facade",
+  "wood": "mat.town.wood_board",
+  "kawara": "mat.town.kawara",
+  "kawara2": "mat.town.kawara_glazed",
+  "galv": "mat.town.galv_roof",
+  "garage": "mat.town.garage_door",
+  "brick": "mat.town.brick",
+  "grass": "mat.ground.grass",
+  "gravel": "mat.ground.gravel_path",
+  "water": "mat.town.water",
+  "hedge": "mat.town.hedge",
+  "arcade_floor": "mat.town.arcade_tile",
+  "shutter": "mat.town.shutter",
+  "stone": "mat.town.stone_tile",
+  "lane": "mat.town.asphalt_old",
+  "roof_flat": "mat.town.roof_flat",
+  "paving": "mat.town.paving",
+  "drain": "mat.town.grating",
+  "granite": "mat.town.granite_slab",
+  "tactile": "mat.town.tactile",
+  "trackbed": "mat.town.trackbed",
+  "panel": "mat.town.panel",
+  "white": "mat.town.paint",
+  "vinyl": "mat.int.vinyl",
+  "plaster": "mat.int.plaster",
+  "gymfloor": "mat.int.gym_floor",
+  "ceiling": "mat.int.ceiling",
+  "epoxy": "mat.int.epoxy",
+  "metalpanel": "mat.int.metal_panel",
+  "carpet": "mat.int.carpet",
+  "woodfloor": "mat.int.wood_floor",
+  "tilewhite": "mat.int.tile_white"
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "note": "全部この リポジトリの手続きの生成（matgen_town.py の材質＋townmat.js の絵）。素材は wakaba-assets の目録で web の門を通った物だけ"
+ },
+ "generator": "tools/shinshoku/bake_town_pbr.py"
+}

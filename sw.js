@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-10-26.1';
+const VERSION = '2026-10-27.1';
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）
@@ -109,6 +109,8 @@ function kindOf(url) {
   if (/^wakaba-assets\/catalog\.json$/.test(p)) return 'shell';
   if (/^wakaba-assets\/entries\/[a-z0-9_]+\/[A-Za-z0-9_.]+\/web\/[^/]+\.(webp|glb|png|jpg|jpeg|ktx2)$/.test(p)) return 'media';
   if (/^(minigames|vendor)\/.+\.js$/.test(p)) return 'code';
+  // mapkit フェーズ 4：圧縮の復号器（KTX2 の basis transcoder の wasm）も版ごとの保存分（.mo.glb・.ktx2 は上の素材ライブラリの web/ で media）
+  if (/^vendor\/three-esm\/.+\.wasm$/.test(p)) return 'code';
   if (/^assets\/.+\.(mp3|m4a|ogg|wav)$/i.test(p)) return 'audio';
   if (/^assets\//.test(p)) return 'media';
   return null;                                                  // それ以外（tools/ など）は素通し

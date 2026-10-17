@@ -1,0 +1,98 @@
+{
+ "id": "mat.town.shutter",
+ "version": 1,
+ "name": {
+  "ja": "シャッター",
+  "en": "Rolling shutter"
+ },
+ "category": "material",
+ "tags": [
+  "シャッター",
+  "金属",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/mapkit/matgen/matgen_town.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/shinshoku/IMPLEMENTATION_STATUS.md"
+ },
+ "tech": {
+  "formats": [
+   "webp",
+   "png"
+  ],
+  "texRes": 512,
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness",
+   "height"
+  ],
+  "fileBytes": 14276
+ },
+ "use": [
+  "境界侵食（shinshoku）の町と屋内",
+  "店"
+ ],
+ "status": "draft",
+ "material": {
+  "material": "wakaba-material/1",
+  "tileM": 2.4,
+  "sizes": [
+   512,
+   256,
+   128
+  ],
+  "maps": {
+   "albedo": {
+    "512": "albedo_512.webp",
+    "256": "albedo_256.webp",
+    "128": "albedo_128.webp"
+   },
+   "normal": {
+    "512": "normal_512.webp",
+    "256": "normal_256.webp",
+    "128": "normal_128.webp"
+   },
+   "orh": {
+    "512": "orh_512.webp",
+    "256": "orh_256.webp",
+    "128": "orh_128.webp"
+   }
+  },
+  "alpha": false,
+  "card": false,
+  "channels": {
+   "albedo": "sRGB",
+   "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+   "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+  },
+  "albedoMean": [
+   0.511,
+   0.529,
+   0.548
+  ],
+  "roughMean": 0.538
+ },
+ "history": [
+  {
+   "at": "2026-10-17",
+   "by": "claude-code",
+   "change": "tools/mapkit/matgen/matgen_town.py（defs_town.py）で生成（境界侵食 P12：環境の写実化）"
+  }
+ ]
+}

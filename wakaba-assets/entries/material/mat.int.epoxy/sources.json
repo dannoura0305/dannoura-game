@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.int.epoxy",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.int.epoxy_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "ab90cebe47dadf2d6806f5221de564c8f05c6d04af0439895eb2717cca950f06",
+   "bytes": 482644,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.int.epoxy"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.int.epoxy_normal.png",
+   "storage": "local-ignored",
+   "sha256": "93632a322da9222b1eb33fe8b3260bec5d52421f6fb1367187403b0a46c075a9",
+   "bytes": 1489043,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.int.epoxy"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.int.epoxy_orh.png",
+   "storage": "local-ignored",
+   "sha256": "dc0b47983daec552d12931164b6f9cfaa76a9fbe3810c816cbaf82aa99a10d4f",
+   "bytes": 2263077,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.int.epoxy"
+  }
+ ]
+}

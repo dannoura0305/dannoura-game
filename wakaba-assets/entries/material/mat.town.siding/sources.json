@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.siding",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.siding_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "05b50000f05d95457d2e0b9a404aa57152b7bcb91d7eb302227855905051eb14",
+   "bytes": 530624,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.siding"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.siding_normal.png",
+   "storage": "local-ignored",
+   "sha256": "3406c4ab39c00156b71f1c21f83e4e5e80e6013ce29527136107659449a364e9",
+   "bytes": 1295129,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.siding"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.siding_orh.png",
+   "storage": "local-ignored",
+   "sha256": "04b59b595a04a69b6b46cbaade0f007f77bcfe1a3f37c39a1904545e52b457fa",
+   "bytes": 1566199,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.siding"
+  }
+ ]
+}

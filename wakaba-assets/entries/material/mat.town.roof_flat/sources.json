@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.roof_flat",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.roof_flat_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "728362edd73e8034f0f6555d82673066f2e7977302321f8b28fe24b78bd267a0",
+   "bytes": 929847,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.roof_flat"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.roof_flat_normal.png",
+   "storage": "local-ignored",
+   "sha256": "93cd215b27ca6f15f672121ce0acd9d7db6811f131a95e98dfa6b220ebeab989",
+   "bytes": 2233245,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.roof_flat"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.roof_flat_orh.png",
+   "storage": "local-ignored",
+   "sha256": "52fb6a5f7b08b1fc291fff165e71fb7348b77da5664deb30fe9c5761c288effc",
+   "bytes": 2144688,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.roof_flat"
+  }
+ ]
+}

@@ -4,7 +4,10 @@
 // ・子ども（日向 ユウ・仮）・記録のない患者・模倣する影・写し身（ボス）・守り手
 import * as THREE from 'three';
 import { SkinBody, DIM, faceAtlas, faceAtlasExpr, UVR, drawEye, drawBrow, drawMouth, drawNose, drawBlush } from './skin.js';
-import { humanBody, humanHead, hairCap, onHead, buildWeaponBones, glowEyes, xfm } from './models.js';
+import { humanBody, humanHead, hairCap, onHead, buildWeaponBones, glowEyes, xfm, CHAR_MODEL } from './models.js';
+import { buildDannouraWhiteV2 } from './heroes.js';
+/** だんのうら（白髪形態）：v2（既定）／?charModel=1 で前のモデル */
+export function buildDannouraWhite(opt = {}) { return CHAR_MODEL === 1 ? buildDannouraWhiteV1(opt) : buildDannouraWhiteV2(opt); }
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const JP = '"IPAGothic","Noto Sans CJK JP","Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif';
@@ -21,7 +24,7 @@ const chainW = (sb, names) => { const n = names.length; return sb.along(names.ma
 
 // ───────────────────────── だんのうら（白髪形態） ─────────────────────────
 /** opt.mixed：結末A の見舞いの姿（白と紫が混ざった髪。化けが不安定なだけ＝けがではない。耳・尾・爪は隠れている）【仮】 */
-export function buildDannouraWhite(opt = {}) {
+export function buildDannouraWhiteV1(opt = {}) {
   const MIX = !!opt.mixed, PU = 0x9a7ad8, PUD = 0x6a4aa8;
   const d = Object.assign({}, DIM);
   const sb = new SkinBody(d), R = d.headR, W = n => sb.W(n);

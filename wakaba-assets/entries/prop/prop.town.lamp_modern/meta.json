@@ -1,0 +1,88 @@
+{
+ "id": "prop.town.lamp_modern",
+ "version": 1,
+ "name": {
+  "ja": "中央通りの LED の街灯の腕と灯具（2 種）",
+  "en": "Avenue LED lamp head (2 variants)"
+ },
+ "category": "prop",
+ "tags": [
+  "街灯",
+  "町",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/kit/build_kit_town.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/shinshoku/IMPLEMENTATION_STATUS.md"
+ },
+ "tech": {
+  "formats": [
+   "glb",
+   "fbx"
+  ],
+  "tris": 288,
+  "lods": [
+   288,
+   114
+  ],
+  "sizeM": [
+   2.933,
+   0.88,
+   0.443
+  ],
+  "pivot": "bottom_center",
+  "collision": "none",
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness"
+  ],
+  "fileBytes": 75540
+ },
+ "use": [
+  "境界侵食（shinshoku）の町と屋内"
+ ],
+ "status": "draft",
+ "kit": {
+  "kit": "wakaba-kit/1",
+  "nodes": {
+   "v0_LOD0": 288,
+   "v0_LOD1": 114,
+   "v1_LOD0": 136,
+   "v1_LOD1": 54
+  },
+  "variants": 2,
+  "lodDist": [
+   35
+  ],
+  "impostor": false,
+  "materials": [
+   "mat.town.paint#dark",
+   "mat.town.paint#steel_dark"
+  ],
+  "vertexColor": "COLOR_0＝AO（焼き込み）",
+  "note": "節の名前 LOD<n>（種類が複数なら v<k>_LOD<n>）・IMP＝遠景の十字の板（画像は glb の中）。材質は id の名前で共有の PBR 材質に差し替える"
+ },
+ "history": [
+  {
+   "at": "2026-10-17",
+   "by": "claude-code",
+   "change": "tools/blender/kit/build_kit_town.py（pieces_town.py）で生成（境界侵食 P12：環境の写実化）"
+  }
+ ]
+}

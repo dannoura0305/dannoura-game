@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.int.gym_floor",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.int.gym_floor_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "184a67632bb900f6c211485413b3dc66a98a7e44c0ad3b6b6aadf4975394625a",
+   "bytes": 792661,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.int.gym_floor"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.int.gym_floor_normal.png",
+   "storage": "local-ignored",
+   "sha256": "2b0fa4fa0f64ac9f52758ef6bff2d958bfe0fa742767a5b351eab5af1e5b1978",
+   "bytes": 1233407,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.int.gym_floor"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.int.gym_floor_orh.png",
+   "storage": "local-ignored",
+   "sha256": "8bcee2562c378fdc2c559f9df048473a02b4f1f3c7625b1af6d53ad38bd34711",
+   "bytes": 1596026,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.int.gym_floor"
+  }
+ ]
+}

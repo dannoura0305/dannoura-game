@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.garage_door",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.garage_door_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "ec757d68d1896fe8238e67f877eb4a30b36b50bdf67c5ccbe67d6be9d1351dfb",
+   "bytes": 460670,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.garage_door"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.garage_door_normal.png",
+   "storage": "local-ignored",
+   "sha256": "acd1f8ee938b276579fd5b4352850df5deeae148c2e7f25abe02796de2d9347b",
+   "bytes": 1091323,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.garage_door"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.garage_door_orh.png",
+   "storage": "local-ignored",
+   "sha256": "b80cfe952219c8d8fd916f8dd9b7b88672e02e097d36c9884c7335991c15dd84",
+   "bytes": 1331435,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.garage_door"
+  }
+ ]
+}

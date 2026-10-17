@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { gradientMap, JP_FONT, ctx2d } from './toon.js';
 import { xorshift as rng } from '../../mapkit/core/rng.js';
 
-const N = 8, S = 256, W = N * S;                      // 横 8 枠（2048px）
+const N = 10, S = 256, W = N * S;                     // 横 10 枠（2560px）。P12：屋内の材質の枠を足して 8 → 10 列に（PBR の地図帳も同じ並び）
 export const TILES = [
   'asphalt', 'asphalt2', 'interlock', 'concrete', 'curb', 'block', 'siding', 'siding2',
   'mortar', 'tilewall', 'wood', 'kawara', 'kawara2', 'galv', 'win_dark', 'win_lit',
@@ -18,9 +18,13 @@ export const TILES = [
   // フェーズ10：町家の格子（暗い・灯り）・ガラスの壁（暗い・灯り）・広場の石・さびの跡（消雪の水）・点字ブロック・雪囲いのわら・路面電車の軌道・バスの路面の字
   'koshi', 'koshi_lit', 'curtainwall', 'curtainwall_lit', 'granite', 'rust', 'tactile', 'straw',
   'trackbed', 'busmark', 'panel', 'louver', 'white',
+  // P12（環境の写実化）：屋内の床・壁（病院・体育館・研究施設・管理棟・自宅）
+  'vinyl', 'plaster', 'gymfloor', 'ceiling', 'epoxy', 'metalpanel', 'carpet', 'woodfloor', 'tilewhite',
 ];
+export const ATLAS_N = N;
 const IDX = Object.fromEntries(TILES.map((k, i) => [k, i]));
-const ROWS = Math.ceil(TILES.length / N), HH = ROWS * S;   // 縦は使う行だけ（2048×1536）
+const ROWS = Math.ceil(TILES.length / N), HH = ROWS * S;   // 縦は使う行だけ（2560×1792）
+export const ATLAS_ROWS = ROWS;
 /** 枠の範囲（UV）：[u0, v0, du, dv]（内側へ少し寄せる＝隣の枠がにじまない） */
 export function tileRect(name) {
   const i = IDX[name] ?? 0, col = i % N, row = Math.floor(i / N), pu = 3 / W, pv = 3 / HH;
@@ -142,21 +146,36 @@ const DRAW = {
   panel(g, w, h, r) { g.fillStyle = '#9aa0a4'; g.fillRect(0, 0, w, h); rectsGrid(g, w, h, 128, 128, 4, '#b8bcc0', 0.06, r, 0); noise(g, w, h, r, 500, 0.06); g.fillStyle = 'rgba(40,40,40,.18)'; for (let i = 0; i < 5; i++) g.fillRect(r() * w, 0, 2, h); },
   white(g, w, h) { g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h); },
   louver(g, w, h, r) { g.fillStyle = '#1a1c20'; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 20) { g.fillStyle = '#8a9096'; g.fillRect(0, y, w, 8); g.fillStyle = '#c8ccd0'; g.fillRect(0, y, w, 2); } noise(g, w, h, r, 200, 0.08); },
+  // P12：屋内（スマホの「低」と、PBR の地図帳を読み込む前に使う簡単な絵）
+  vinyl(g, w, h, r) { g.fillStyle = '#9aa49e'; g.fillRect(0, 0, w, h); noise(g, w, h, r, 1600, 0.12, '60,70,64', [1, 2]); noise(g, w, h, r, 500, 0.12, '230,236,230', [1, 2]); g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(w / 2 - 1, 0, 2, h); },
+  plaster(g, w, h, r) { g.fillStyle = '#d4d0c8'; g.fillRect(0, 0, w, h); noise(g, w, h, r, 900, 0.05, '0,0,0', [1, 3]); },
+  gymfloor(g, w, h, r) { g.fillStyle = '#b8884e'; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 18) { const o = r() * w; for (let x = -w; x < w; x += 110) { g.fillStyle = shade('#c4935c', (r() - 0.5) * 0.18); g.fillRect(x + o, y, 108, 16); } } },
+  ceiling(g, w, h, r) { g.fillStyle = '#cfcfcb'; g.fillRect(0, 0, w, h); noise(g, w, h, r, 1200, 0.2, '0,0,0', [1, 2]); g.strokeStyle = '#e8e8e4'; g.lineWidth = 4; g.strokeRect(2, 2, w - 4, h - 4); },
+  epoxy(g, w, h, r) { g.fillStyle = '#66746c'; g.fillRect(0, 0, w, h); noise(g, w, h, r, 300, 0.08, '0,0,0', [2, 8]); },
+  metalpanel(g, w, h, r) { g.fillStyle = '#b4bab8'; g.fillRect(0, 0, w, h); g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(w / 2 - 1, 0, 2, h); g.fillRect(0, h / 2 - 1, w, 2); noise(g, w, h, r, 300, 0.06); },
+  carpet(g, w, h, r) { g.fillStyle = '#38404a'; g.fillRect(0, 0, w, h); noise(g, w, h, r, 3000, 0.15, '0,0,0', [1, 2]); g.fillStyle = 'rgba(0,0,0,.25)'; for (let i = 0; i < w; i += 64) { g.fillRect(i, 0, 1, h); g.fillRect(0, i, w, 1); } },
+  woodfloor(g, w, h, r) { for (let x = 0; x < w; x += 21) { g.fillStyle = shade('#8a6440', (r() - 0.5) * 0.2); g.fillRect(x, 0, 20, h); g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(x + 20, 0, 1, h); g.fillRect(x, r() * h, 20, 1); } },
+  tilewhite(g, w, h) { g.fillStyle = '#9a9890'; g.fillRect(0, 0, w, h); g.fillStyle = '#dedcd6'; for (let y = 0; y < h; y += 32) for (let x = 0; x < w; x += 32) g.fillRect(x + 1.5, y + 1.5, 29, 29); },
   puddle(g, w, h, r) { g.clearRect(0, 0, w, h); const gr = g.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, w / 2); gr.addColorStop(0, 'rgba(14,20,40,.85)'); gr.addColorStop(0.7, 'rgba(18,26,48,.6)'); gr.addColorStop(1, 'rgba(18,26,48,0)'); g.fillStyle = gr; g.beginPath(); g.ellipse(w / 2, h / 2, w / 2 - 2, h / 2.6, 0, 0, 7); g.fill(); g.strokeStyle = 'rgba(150,170,220,.25)'; g.lineWidth = 2; for (let i = 0; i < 4; i++) { g.beginPath(); g.ellipse(w / 2 + (r() - 0.5) * 60, h / 2 + (r() - 0.5) * 30, 10 + r() * 20, 5 + r() * 8, 0, 0, 7); g.stroke(); } },
 };
 
 let _atlas = null;
+/** 町の地図帳の絵（キャンバス）。ts＝1 枠の辺（既定 256。PBR の地図帳を焼く道具は 512 で呼ぶ：同じ絵を拡大して描く＝線がぼけない） */
+export function townAtlasCanvas(ts = S) {
+  const k = ts / S, c = document.createElement('canvas'); c.width = N * ts; c.height = ROWS * ts; const g = ctx2d(c);
+  TILES.forEach((name, i) => {
+    const x = (i % N) * ts, y = Math.floor(i / N) * ts;
+    g.save(); g.translate(x, y); g.beginPath(); g.rect(0, 0, ts, ts); g.clip(); g.scale(k, k);
+    (DRAW[name] || DRAW.concrete)(g, S, S, rng(1000 + i * 97));
+    g.restore();
+  });
+  return c;
+}
 /** 町の地図帳（1 回だけ描く） */
 export function townAtlas() {
   if (_atlas) return _atlas;
   const t0 = performance.now();
-  const c = document.createElement('canvas'); c.width = W; c.height = HH; const g = ctx2d(c);
-  TILES.forEach((name, i) => {
-    const x = (i % N) * S, y = Math.floor(i / N) * S;
-    g.save(); g.translate(x, y); g.beginPath(); g.rect(0, 0, S, S); g.clip();
-    (DRAW[name] || DRAW.concrete)(g, S, S, rng(1000 + i * 97));
-    g.restore();
-  });
+  const c = townAtlasCanvas(S);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
   t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter;
   _atlas = t; townAtlas.ms = Math.round(performance.now() - t0); return t;
@@ -178,7 +197,11 @@ function patch(m, alpha) {
   return m;
 }
 /** 町の材質の組：tex（陰影つき。透ける枠＝手すり・金網・止まれは捨てる）・texglow（自ら光る：点いた窓・店の中）。texa は tex と同じ（古い呼び名） */
-export function townMats() {
+let _override = null;
+/** P12：画質の段で町の材質の作り方を差し替える（shinshoku/render/envmat.js の envInit が入れる：PBR の段＝PBR の材質・低＝toon のまま登録だけ） */
+export function setTownMatsOverride(fn) { _override = fn; }
+export function townMats() { return _override ? _override() : townMatsToon(); }
+export function townMatsToon() {
   const map = townAtlas();
   return {
     tex: patch(new THREE.MeshToonMaterial({ vertexColors: true, map, gradientMap: gradientMap() }), true),

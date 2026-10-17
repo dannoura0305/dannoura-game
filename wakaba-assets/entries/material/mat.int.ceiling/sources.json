@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.int.ceiling",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.int.ceiling_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "53958dc6f9e058d3a6577e2e0801a6ff5e838d53c22899d398cf947c45405f39",
+   "bytes": 154037,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.int.ceiling"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.int.ceiling_normal.png",
+   "storage": "local-ignored",
+   "sha256": "bf7341d487d381c5b3f926544b6f70b7eda104ed71e76f253ac7259c15dd97ea",
+   "bytes": 517111,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.int.ceiling"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.int.ceiling_orh.png",
+   "storage": "local-ignored",
+   "sha256": "107b2f49f126765b09e71b9323114f342cb40d05f2e6dbcb04dbd9fdda8675f2",
+   "bytes": 185761,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.int.ceiling"
+  }
+ ]
+}

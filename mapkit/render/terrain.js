@@ -117,7 +117,27 @@ function arrayTexture(images, size, srgb) {
 }
 
 /** 地形の材質（MeshStandardMaterial に塗り分けの影を足す）。bank＝AssetBank */
-export async function buildTerrainMaterial(bank, P) {
+/**
+ * 広い範囲の色のゆらぎ（フェーズ 4：遠くの地面が一様に見えない）：地図全体を 1m＝1 画素の RGBA（純粋関数＝node で試験）。
+ * R＝明るさの大きなむら・G＝湿り（低い所・木の下・道ばた＝暗い）・B＝乾き（日の当たる斜面・高い所＝黄ばむ）。戻り値：{ data: Uint8Array, n }
+ */
+export function macroVariation(hf, layout, n = 256) {
+  const W = layout.size[0], D = layout.size[1], data = new Uint8Array(n * n * 4), trees = treeDensity(layout), [lo, hi] = hf.extent();
+  const field = pathField(layout, 1, 6);
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+    const x = (i + 0.5) / n * W, z = (j + 0.5) / n * D, y = hf.at(x, z), t = (y - lo) / (hi - lo + 1e-6), s = hf.slopeDeg(x, z);
+    const big = fbm(x / 46 + 3.1, z / 46 + 8.7), mid = fbm(x / 14 + 1.3, z / 14 + 4.2);
+    // 日の側（西＝−x）の斜面：高さの差で近似
+    const sunSide = Math.max(0, (hf.at(x + 1.5, z) - hf.at(x - 1.5, z)) / 3);
+    const wet = Math.min(1, 0.55 * smooth(0.45, 0.05, t) + 0.35 * Math.min(1, trees.at(x, z) / 2.2) + 0.3 * smooth(3, 0.5, Math.min(field.dirt(x, z), field.gravel(x, z))) + (mid - 0.5) * 0.4);
+    const dry = Math.min(1, 0.6 * Math.min(1, sunSide * 2.5) * smooth(8, 25, s) + 0.35 * smooth(0.5, 0.95, t) + (big - 0.5) * 0.5);
+    const k = (j * n + i) * 4;
+    data[k] = Math.round(255 * Math.max(0, Math.min(1, big * 0.7 + mid * 0.3))); data[k + 1] = Math.round(255 * Math.max(0, wet)); data[k + 2] = Math.round(255 * Math.max(0, dry)); data[k + 3] = 255;
+  }
+  return { data, n };
+}
+
+export async function buildTerrainMaterial(bank, P, ctx = null) {
   const size = Math.min(P.texMax, 1024), ids = TERRAIN_LAYERS;
   const load = kind => Promise.all(ids.map(id => bank.image(id, kind, size)));
   const [A, N, O] = await Promise.all([load('albedo'), load('normal'), load('orh')]);
@@ -129,16 +149,23 @@ export async function buildTerrainMaterial(bank, P) {
   const tiles = ids.map(id => bank.tile(id));
   const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, envMapIntensity: 0.55 });
   m.name = 'terrain';
-  const layers = P.terrainLayers || 6, tri = !!P.triplanar;
+  const layers = P.terrainLayers || 6, tri = !!P.triplanar, macro = !!(ctx && P.macro !== false);
+  let tM = null;
+  if (macro) {
+    const mv = macroVariation(ctx.hf, ctx.layout, 256); tM = new THREE.DataTexture(mv.data, mv.n, mv.n, THREE.RGBAFormat);
+    tM.wrapS = tM.wrapT = THREE.ClampToEdgeWrapping; tM.magFilter = THREE.LinearFilter; tM.minFilter = THREE.LinearMipmapLinearFilter; tM.generateMipmaps = true; tM.needsUpdate = true;
+    bank.stats.texBytes += 256 * 256 * 4 * 4 / 3; bank.stats.textures += 1;
+  }
+  const mapSize = ctx ? ctx.layout.size : [256, 256];
   m.onBeforeCompile = sh => {
-    Object.assign(sh.uniforms, { tAlb: { value: tA }, tNrm: { value: tN }, tOrh: { value: tO }, uTile: { value: tiles.map(t => 1 / t) } });
+    Object.assign(sh.uniforms, { tAlb: { value: tA }, tNrm: { value: tN }, tOrh: { value: tO }, uTile: { value: tiles.map(t => 1 / t) }, tMacro: { value: tM }, uMapSize: { value: new THREE.Vector2(mapSize[0], mapSize[1]) } });
     sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
       attribute vec4 splatA; attribute vec2 splatB; attribute float aoT;
       varying vec4 vSplatA; varying vec2 vSplatB; varying float vAoT; varying vec3 vTWorld; varying vec3 vTNormal;`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
       vSplatA = splatA; vSplatB = splatB; vAoT = aoT; vTWorld = (modelMatrix * vec4(transformed, 1.0)).xyz; vTNormal = normalize(mat3(modelMatrix) * objectNormal);`);
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-      uniform sampler2DArray tAlb; uniform sampler2DArray tNrm; uniform sampler2DArray tOrh; uniform float uTile[6];
+      uniform sampler2DArray tAlb; uniform sampler2DArray tNrm; uniform sampler2DArray tOrh; uniform float uTile[6]; uniform sampler2D tMacro; uniform vec2 uMapSize; vec3 mkMean;
       varying vec4 vSplatA; varying vec2 vSplatB; varying float vAoT; varying vec3 vTWorld; varying vec3 vTNormal;
       vec3 mkAlb; float mkRough; float mkAO; vec3 mkN;
       float mkH(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -148,11 +175,12 @@ export async function buildTerrainMaterial(bank, P) {
         vec3 tn = texture(tNrm, vec3(uv, float(k))).xyz * 2.0 - 1.0;
         float hw = w * (0.2 + o.b); hw = hw * hw * hw;
         acc += vec4(a * hw, hw); nacc += (T * tn.x + B * tn.y + N * tn.z) * hw; ro += vec2(o.g, o.r) * hw;
+        ${macro ? 'mkMean += textureLod(tAlb, vec3(uv, float(k)), 9.0).rgb * hw;' : ''}
       }
       void mkSplat() {
         vec3 N = normalize(vTNormal);
         vec3 T = normalize(vec3(1.0, 0.0, 0.0) - N * N.x); vec3 B = cross(N, T);
-        vec4 acc = vec4(0.0); vec3 nacc = vec3(0.0); vec2 ro = vec2(0.0); float hm = 0.0;
+        vec4 acc = vec4(0.0); vec3 nacc = vec3(0.0); vec2 ro = vec2(0.0); float hm = 0.0; mkMean = vec3(0.0);
         float W[6]; W[0] = vSplatA.x; W[1] = vSplatA.y; W[2] = vSplatA.z; W[3] = vSplatA.w; W[4] = vSplatB.x; W[5] = vSplatB.y;
         ${layers === 4 ? 'W[0] += W[2]; W[2] = 0.0; W[3] += W[4]; W[4] = 0.0;' : ''}
         vec2 g = vTWorld.xz;
@@ -170,11 +198,21 @@ export async function buildTerrainMaterial(bank, P) {
           vec2 uvY = vTWorld.xz * uTile[5]; vec3 ca = texture(tAlb, vec3(uvY, 5.0)).rgb; vec4 co = texture(tOrh, vec3(uvY, 5.0)); vec3 cn = N;`}
           float hw = W[5] * (0.2 + co.b); hw = hw * hw * hw;
           acc += vec4(ca * hw, hw); nacc += cn * hw; ro += vec2(co.g, co.r) * hw;
+          ${macro ? 'mkMean += textureLod(tAlb, vec3(vTWorld.xz * uTile[5], 5.0), 9.0).rgb * hw;' : ''}
         }
         mkAlb = acc.rgb / max(acc.a, 1e-5); mkN = normalize(nacc / max(acc.a, 1e-5) + N * 0.05); ro /= max(acc.a, 1e-5);
         // 広い範囲のゆらぎ（繰り返しを目立たせない）
         float mv = mkVN(g * 0.045) * 0.6 + mkVN(g * 0.13) * 0.4;
         mkAlb *= mix(0.78, 1.18, mv); mkAlb = mix(mkAlb, mkAlb * vec3(1.06, 1.0, 0.86), smoothstep(0.55, 0.8, mkVN(g * 0.03 + 7.0)));
+        ${macro ? `
+        // 広い範囲のむら（地図の形から作った 1m の絵）と、遠くの繰り返しを消す（遠い所は層の平均の色＋むらへ寄せる）
+        vec3 mac = texture2D(tMacro, g / uMapSize).rgb;
+        float far = smoothstep(28.0, 120.0, length(vTWorld - cameraPosition));
+        vec3 meanA = mkMean / max(acc.a, 1e-5) * mix(0.82, 1.16, mkVN(g * 0.16 + 3.0) * 0.6 + mac.r * 0.4);
+        mkAlb = mix(mkAlb, meanA * mix(0.85, 1.12, mv), far * 0.6);
+        mkAlb *= mix(0.86, 1.1, mac.r);
+        mkAlb = mix(mkAlb, mkAlb * vec3(0.78, 0.84, 0.84), mac.g * 0.45);
+        mkAlb = mix(mkAlb, mkAlb * vec3(1.12, 1.04, 0.8), mac.b * 0.5);` : ''}
         mkRough = ro.x; mkAO = ro.y * vAoT;
         mkAlb *= mix(0.55, 1.0, vAoT);
       }`)
@@ -188,7 +226,7 @@ export async function buildTerrainMaterial(bank, P) {
         #endif
       }`);
   };
-  m.customProgramCacheKey = () => `terrain-${layers}-${tri}`;
+  m.customProgramCacheKey = () => `terrain-${layers}-${tri}-${macro}`;
   m.userData.ok = ok;
   return m;
 }

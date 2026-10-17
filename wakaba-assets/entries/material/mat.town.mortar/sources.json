@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.mortar",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.mortar_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "a7032e45e417c3b5c8815524daf436649e26f24e166cbba1c5d8825b0d75f76e",
+   "bytes": 1473213,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.mortar"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.mortar_normal.png",
+   "storage": "local-ignored",
+   "sha256": "81e37e552e516ebb4573d6c9c11e2c1719cc68d2068c5e1990bf261b2651c819",
+   "bytes": 2693752,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.mortar"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.mortar_orh.png",
+   "storage": "local-ignored",
+   "sha256": "903edd02c90c4899c8f8cae617566223d2e4dad7d51dde6667e2aa69bf2ec435",
+   "bytes": 2566699,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.mortar"
+  }
+ ]
+}

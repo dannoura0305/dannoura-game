@@ -371,7 +371,7 @@ export class UI {
       body = this.equipBody(g);
     } else if (tab === 'settings') {
       body = `<div class="sh-set">
-        <label>画質の段 <select data-s="preset">${[['auto', '自動（' + (g.autoPresetKey === 'low' ? '低' : g.autoPresetKey === 'mid' ? '中' : '高') + '）'], ['high', '高（PC）'], ['mid', '中'], ['low', '低（スマホ）'], ['custom', '個別']].map(([v, n]) => `<option value="${v}" ${(S.preset || 'auto') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+        <label>画質の段 <select data-s="preset">${[['auto', '自動（' + (g.autoPresetKey === 'low' ? '低' : g.autoPresetKey === 'mid' ? '中' : '高') + '）'], ['ultra', '最高（PC）'], ['high', '高（PC）'], ['mid', '中'], ['low', '低（スマホ）'], ['custom', '個別']].map(([v, n]) => `<option value="${v}" ${(S.preset || 'auto') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
         <label>画質（解像度）<input type="range" min="0.4" max="1" step="0.05" data-s="resScale" value="${S.resScale}"><span>${Math.round(S.resScale * 100)}%</span></label>
         <label><input type="checkbox" data-s="shadows" ${S.shadows ? 'checked' : ''}>影</label>
         <label><input type="checkbox" data-s="outline" ${S.outline ? 'checked' : ''}>輪郭線</label>

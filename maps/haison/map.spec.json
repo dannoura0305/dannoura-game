@@ -19,13 +19,7 @@
     ]
   },
   "paths": [
-    {
-      "id": "yamamichi",
-      "kind": "mountain_path",
-      "width": 2,
-      "points": [[20, 20], [70, 60], [106, 90], [127, 103], [128, 120]],
-      "maxSlope": 20
-    },
+    {"id": "yamamichi", "kind": "mountain_path", "width": 2, "points": [[20, 20], [70, 60], [106, 90], [127, 103], [128, 120]], "maxSlope": 20},
     {"id": "sando", "kind": "shrine_approach", "width": 1.6, "points": [[128, 120], [150, 150], [160, 158], [160, 166]]}
   ],
   "buildings": [
@@ -45,14 +39,7 @@
     {"id": "shrine", "kind": "hokora_small", "at": [160, 172], "rot": 180, "footprint": [2, 2]}
   ],
   "scatter": [
-    {
-      "layer": "trees",
-      "asset": {"tags": ["杉", "広葉樹"]},
-      "density": 0.02,
-      "minDist": 3.6,
-      "avoid": ["paths", "buildings", "cliffEdge"],
-      "slope": [0, 35]
-    },
+    {"layer": "trees", "asset": {"tags": ["杉", "広葉樹"]}, "density": 0.02, "minDist": 3.6, "avoid": ["paths", "buildings", "cliffEdge"], "slope": [0, 35]},
     {"layer": "rocks", "asset": {"category": "rock"}, "density": 0.004, "minDist": 3, "slope": [10, 60]},
     {"layer": "grass", "asset": {"tags": ["下草"]}, "density": 0.3, "minDist": 0.6, "allowSmallOnPaths": true}
   ],
@@ -69,16 +56,7 @@
       "approach": 0.6,
       "auto": true
     },
-    {
-      "id": "h1.engawa",
-      "type": "seat",
-      "at": [120.862, 0, 116.306],
-      "rotY": 15,
-      "seatHeight": 0.4,
-      "depth": 0.9,
-      "kind": "edge",
-      "auto": true
-    },
+    {"id": "h1.engawa", "type": "seat", "at": [120.862, 0, 116.306], "rotY": 15, "seatHeight": 0.4, "depth": 0.9, "kind": "edge", "auto": true},
     {
       "id": "shrine.steps",
       "type": "stairs",
@@ -104,16 +82,7 @@
       "approach": 0.6,
       "auto": true
     },
-    {
-      "id": "h2.engawa",
-      "type": "seat",
-      "at": [140.046, 0, 112.699],
-      "rotY": -20,
-      "seatHeight": 0.4,
-      "depth": 0.9,
-      "kind": "edge",
-      "auto": true
-    },
+    {"id": "h2.engawa", "type": "seat", "at": [140.046, 0, 112.699], "rotY": -20, "seatHeight": 0.4, "depth": 0.9, "kind": "edge", "auto": true},
     {
       "id": "h4.door",
       "type": "door",
@@ -126,23 +95,36 @@
       "approach": 0.6,
       "auto": true
     },
-    {
-      "id": "h4.engawa",
-      "type": "seat",
-      "at": [108.194, 0, 120.416],
-      "rotY": 75,
-      "seatHeight": 0.4,
-      "depth": 0.9,
-      "kind": "edge",
-      "auto": true
-    }
+    {"id": "h4.engawa", "type": "seat", "at": [108.194, 0, 120.416], "rotY": 75, "seatHeight": 0.4, "depth": 0.9, "kind": "edge", "auto": true}
   ],
   "atmosphere": {"time": "dusk", "sunElevDeg": 4, "fog": {"density": 0.035, "heightFalloff": 0.08, "color": "#6a6f7a"}, "rain": false},
   "gameplay": {
     "start": [24, 24],
     "goals": ["h1.door", "h2.door", "h4.door", "h1.center", "shrine.front"],
-    "enemies": [{"ai": "shinshoku:kiro", "spawn": [150, 110], "chase": true}],
-    "boundary": "invisible_wall_on_cliff"
+    "enemies": [
+      {
+        "id": "ikei",
+        "ai": "mapkit:ikei",
+        "spawn": [150, 118],
+        "chase": true,
+        "route": [[150, 118], [131, 113], [117.8, 112.1], [108, 128], [123, 127], [140, 124]],
+        "speed": {"patrol": 1.25, "chase": 4.1},
+        "sight": {"range": 17, "fov": 110, "lightRange": 26},
+        "hear": {"walk": 4.5, "run": 13, "door": 10}
+      }
+    ],
+    "boundary": "invisible_wall_on_cliff",
+    "doors": [
+      {"id": "h1.door", "kind": "sliding", "initial": "closed"},
+      {"id": "h2.door", "kind": "sliding", "initial": "open"},
+      {"id": "h4.door", "kind": "sliding", "initial": "closed"},
+      {"id": "h1.part0", "kind": "shoji", "initial": "closed"},
+      {"id": "h1.part1", "kind": "fusuma", "initial": "open"},
+      {"id": "h2.part0", "kind": "fusuma", "initial": "closed"},
+      {"id": "h4.part0", "kind": "shoji", "initial": "open"},
+      {"id": "sando.gate", "kind": "hinged", "at": [150, 150], "onPath": "sando", "width": 1.8, "height": 1.5, "fence": 3, "initial": "closed"}
+    ],
+    "checkpoints": [{"id": "cp.village", "ja": "村の入口", "at": [126, 102], "r": 3}, {"id": "cp.sando", "ja": "参道の下", "at": [136, 130], "r": 3}]
   },
   "budget": {"preset": "ultra", "drawCalls": 400, "tris": 1500000, "texMB": 1200},
   "assumptions": [
@@ -151,7 +133,8 @@
     "フェーズ 2：受け入れ条件「家の入口 3 つ以上」のため、入れる家 h4 を足した（村の西・扉は広場の向き）",
     "フェーズ 2：扉は家の前（ローカル +z）の土間の側。自動の印（auto: true）は組み立て（mapkit/pcg/buildings.js）の結果に合わせた",
     "フェーズ 2：参道は石段の下（鳥居の下を通る真っすぐ）で終わる。石段・基壇・鳥居は祠の型（hokora_small）が作る",
-    "フェーズ 3：写実の森に見えるよう、木の密度を 0.012 → 0.02・最小の間隔を 4 → 3.6m にした（坂の上限 35° はそのまま）。飾り（層 7：mapkit/pcg/dressing.js）は散布の後ろに足した"
+    "フェーズ 3：写実の森に見えるよう、木の密度を 0.012 → 0.02・最小の間隔を 4 → 3.6m にした（坂の上限 35° はそのまま）。飾り（層 7：mapkit/pcg/dressing.js）は散布の後ろに足した",
+    "フェーズ 4：戸（玄関の引き戸 3・仕切りの襖／障子 4・参道の木戸 1）・チェックポイント 2・敵 1 体を足した。敵は試験マップ専用の名前のない『異形』（ai: mapkit:ikei。境界侵食の人物・敵は使わない）。?enemy=0 で出さない。巡回は村の中（h1 の和室を通る）"
   ],
-  "questions": ["敵を出すか（検証マップは探索だけか）"]
+  "questions": ["敵を出すか（検証マップは探索だけか）：フェーズ 4 は試作として出す（?enemy=0 で消せる）。本編に入れるかは人が決める"]
 }

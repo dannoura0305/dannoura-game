@@ -9,6 +9,7 @@ import { toon, gradientMap, canvasTex, JP_FONT, JP_SERIF, ctx2d } from '../rende
 import { applyTile, townMats, TILE_KEYS } from '../render/townmat.js';
 import { buildTown } from './town.js';
 import { HOME_O, homeW, inHome, TOWN } from '../data/town.js';
+import { kitCollector } from './envkit.js';
 
 const SLOT_W = 512, SLOT_H = 64;
 
@@ -84,18 +85,20 @@ export class Builder {
     const P = g.attributes.position;
     const arr = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const k = ao ? bakedAO(P.getY(i)) : 1; arr[i * 3] = c.r * k; arr[i * 3 + 1] = c.g * k; arr[i * 3 + 2] = c.b * k; }
     g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
-    const gk = key + '@' + this.cellOf(g);
+    const gk = key + (this.fbOn ? '~fb' : '') + '@' + this.cellOf(g);
     if (!this.groups.has(gk)) this.groups.set(gk, []);
     this.groups.get(gk).push(g);
     return g;
   }
+  /** P12：fn の中で作る形を「部品の代わりの網」にする（Blender の部品が読めたら隠す：world/envkit.js）。on＝false なら普通に作る */
+  fb(on, fn) { if (!on) return fn(); const p = this.fbOn; this.fbOn = true; try { return fn(); } finally { this.fbOn = p; } }
   box(key, cx, cy, cz, w, h, d, color, opt = {}) {
     // フェーズ10：升目より長い箱（道・歩道・屋根）は升目の半分ずつに分ける＝遠くの升目の網の範囲が広がらない（画面の外で描かない）。
     // 絵は世界の座標で貼るので継ぎ目は出ない。回転は「分ける向きの軸のまわり」だけなら分けられる（アーケードの屋根）
     if (this.cell && !opt.uv && !opt.fit && !opt.uvScale && !opt.ry && !opt.noSplit) {
       const lim = this.cell * 0.6, sx = w > lim && !opt.rz && !opt.rx ? Math.ceil(w / (this.cell * 0.5)) : (w > lim && opt.rx && !opt.rz ? Math.ceil(w / (this.cell * 0.5)) : 1), sz = d > lim && !opt.rx && !opt.rz ? Math.ceil(d / (this.cell * 0.5)) : (d > lim && opt.rz && !opt.rx ? Math.ceil(d / (this.cell * 0.5)) : 1);
       if (sx > 1 || sz > 1) {
-        if (!this.noEdges && opt.edges !== false && !['glow', 'glass', 'glass2', 'lamp', 'texglow'].includes(key)) { const g = new THREE.BoxGeometry(w, h, d); if (opt.rz) g.rotateZ(opt.rz); if (opt.rx) g.rotateX(opt.rx); g.translate(cx, cy, cz); const eg = new THREE.EdgesGeometry(g, 30), ek = this.cellOf(g); if (!this.edges.has(ek)) this.edges.set(ek, []); this.edges.get(ek).push(eg); }
+        if (!this.noEdges && !this.fbOn && opt.edges !== false && !['glow', 'glass', 'glass2', 'lamp', 'texglow'].includes(key)) { const g = new THREE.BoxGeometry(w, h, d); if (opt.rz) g.rotateZ(opt.rz); if (opt.rx) g.rotateX(opt.rx); g.translate(cx, cy, cz); const eg = new THREE.EdgesGeometry(g, 30), ek = this.cellOf(g); if (!this.edges.has(ek)) this.edges.set(ek, []); this.edges.get(ek).push(eg); }
         const o2 = Object.assign({}, opt, { edges: false, noSplit: true }), pw = w / sx, pd = d / sz;
         for (let i = 0; i < sx; i++) for (let j = 0; j < sz; j++) {
           // 回転した箱は、回転の軸の向き（z か x）にだけ分ける：中心は軸に沿ってずらす
@@ -124,17 +127,18 @@ export class Builder {
     if (opt.rx) geo.rotateX(opt.rx);
     geo.translate(cx, cy, cz);
     if (opt.tile) applyTile(geo, opt.tile, opt);
-    if (!this.noEdges && opt.edges !== false && key !== 'glow' && key !== 'glass' && key !== 'lamp' && key !== 'texglow') { const eg = new THREE.EdgesGeometry(geo, 30); const ek = this.cellOf(geo); if (!this.edges.has(ek)) this.edges.set(ek, []); this.edges.get(ek).push(eg); }
+    if (!this.noEdges && !this.fbOn && opt.edges !== false && key !== 'glow' && key !== 'glass' && key !== 'lamp' && key !== 'texglow') { const eg = new THREE.EdgesGeometry(geo, 30); const ek = this.cellOf(geo); if (!this.edges.has(ek)) this.edges.set(ek, []); this.edges.get(ek).push(eg); }
     return this.add(key, geo, color, aoOn);
   }
   build(mats) {
     const root = new THREE.Group();
     const all = Object.assign(this.groups.size && [...this.groups.keys()].some(k => TILE_KEYS.has(k.split('@')[0])) ? townMats() : {}, mats);
     for (const [gk, list] of this.groups) {
-      const key = gk.split('@')[0];
+      const fb = gk.includes('~fb@'), key = gk.split('@')[0].replace('~fb', '');
       const merged = mergeGeometries(list, false);
       if (!merged) { console.warn('merge failed', gk); continue; }
-      const m = new THREE.Mesh(merged, all[key] || all.prop); m.name = 'lv_' + key + (this.cell ? '_' + gk.split('@')[1] : '');
+      const m = new THREE.Mesh(merged, all[key] || all.prop); m.name = 'lv_' + key + (fb ? '_fb' : '') + (this.cell ? '_' + gk.split('@')[1] : '');
+      if (fb) m.userData.kitFallback = true;
       m.receiveShadow = key !== 'glow' && key !== 'glass' && key !== 'sign' && key !== 'lamp' && key !== 'texglow';
       m.castShadow = key === 'wall' || key === 'prop' || key === 'tex';
       root.add(m);
@@ -171,7 +175,7 @@ export function groundTex(opt = {}) {
 /** 商店街＋自宅（area 'shotengai'）。戻り値は区画の組（world/areas.js の形）。opt.state：'normal'（序章）|'outbreak' */
 export function buildLevel(_unused, opt = {}) {
   const scene = new THREE.Group(); scene.name = 'area_shotengai'; scene.add(skyDome({ mountains: true, clouds: 0.7, range: true }));
-  const L = LEVEL, B = new Builder({ cell: 40, merge: true }), atlas = new Atlas(48, 4);
+  const L = LEVEL, B = new Builder({ cell: 40, merge: true }), atlas = new Atlas(48, 4), KC = kitCollector();   // P12：Blender の部品を置く所
   const boxes = [], spots = [], dyn = {}, halos = [], hideSpots = [];
   const solid = (cx, cz, w, d, h = 7, y0 = 0) => { boxes.push(cbox(cx, cz, w, d, h, y0)); };
   const WALL = 0x8a8494, WALL2 = 0x6e6878, DARK = 0x2a2630, PILLAR = 0x5a5560;
@@ -294,11 +298,13 @@ export function buildLevel(_unused, opt = {}) {
     for (const s2 of [-1, 1]) {
       if (Object.values(L.doors).some(d => !d.alongX && Math.sign(d.x) === s2 && Math.abs(d.z - z) < 1.2)) continue;
       B.box('prop', s2 * 4.55, (EAVE + 0.3) / 2 + 3.0, z, 0.2, EAVE - 3.3, 0.2, 0x34323c, { edges: false });
-      B.box('prop', s2 * 4.3, EAVE - 0.6, z, 0.5, 0.12, 0.12, 0x34323c, { edges: false, rz: s2 * 0.7 });
+      B.fb(KC.on, () => B.box('prop', s2 * 4.3, EAVE - 0.6, z, 0.5, 0.12, 0.12, 0x34323c, { edges: false, rz: s2 * 0.7 }));
     }
-    B.box('prop', 0, EAVE, z, 9.3, 0.14, 0.14, 0x34323c, { edges: false });
-    for (let k = 0; k < 4; k++) { const xa = -4.6 + k * 2.3, xb = xa + 2.3, ya = EAVE + (RIDGE - EAVE) * (1 - Math.abs(xa) / 4.7), yb = EAVE + (RIDGE - EAVE) * (1 - Math.abs(xb) / 4.7); B.box('prop', (xa + xb) / 2, (EAVE + (ya + yb) / 2) / 2, z, 0.08, ((ya + yb) / 2 - EAVE), 0.08, 0x34323c, { edges: false }); }
-    B.box('prop', 0, (EAVE + RIDGE) / 2, z, 0.1, RIDGE - EAVE, 0.1, 0x34323c, { edges: false });
+    B.fb(KC.put('bld.town.arcade_arch', 0, 0, 0, z, 0), () => {   // P12：トラスの骨組みは Blender の部品（読めるまでは手続きの箱）
+      B.box('prop', 0, EAVE, z, 9.3, 0.14, 0.14, 0x34323c, { edges: false });
+      for (let k = 0; k < 4; k++) { const xa = -4.6 + k * 2.3, xb = xa + 2.3, ya = EAVE + (RIDGE - EAVE) * (1 - Math.abs(xa) / 4.7), yb = EAVE + (RIDGE - EAVE) * (1 - Math.abs(xb) / 4.7); B.box('prop', (xa + xb) / 2, (EAVE + (ya + yb) / 2) / 2, z, 0.08, ((ya + yb) / 2 - EAVE), 0.08, 0x34323c, { edges: false }); }
+      B.box('prop', 0, (EAVE + RIDGE) / 2, z, 0.1, RIDGE - EAVE, 0.1, 0x34323c, { edges: false });
+    });
     B.box('prop', 0, (6.3 + EAVE) / 2, z + 3, 0.03, EAVE - 6.3, 0.03, 0x2a2830, { edges: false });   // 灯りの吊り
   }
   for (let z = -6; z >= -70; z -= 6) {
@@ -357,7 +363,7 @@ export function buildLevel(_unused, opt = {}) {
   buildHome(B, atlas, scene, boxes, spots, dyn);
   // ── 町（アーケード前の広場・駅前通り・交差点・用水路沿いの道・自宅の前の道・公園・祠・コンビニ）：data/town.js ──
   // フェーズ10：近い所（アーケードのまわり・住宅地・広場）は今、遠い所（中央通り・駅前）は最初のこまの後で（起動を速く）。当たり判定は今、全部
-  const town = buildTown({ B, atlas, signDraw, scene, part: 'near' });
+  const town = buildTown({ B, atlas, signDraw, scene, part: 'near', kit: KC });
   boxes.push(...town.boxes); spots.push(...town.spots); hideSpots.push(...town.hideSpots);
   const tH0 = halos.length; halos.push(...town.halos);
   for (const sg of town.signals) sg.heads = sg.heads.map(i => i + tH0);
@@ -425,7 +431,7 @@ export function buildLevel(_unused, opt = {}) {
   const roofs = TOWN.walk.filter(w => w.roof).map(w => w.rect).concat([TOWN.station.canopy.slice(0, 4), [TOWN.station.walkway.x0 - 0.3, TOWN.station.walkway.z0, TOWN.station.walkway.x1 + 0.3, TOWN.station.walkway.z1]],
     TOWN.avenue.stops.filter(s => s.shelter).map(s => [s.rect[0] - 0.2, s.shelter[0] - 0.3, s.rect[2] + 0.2, s.shelter[1] + 0.3]), TOWN.station.bus.islands.map(r => [r[0] - 0.4, r[1] + 0.5, r[2] + 0.4, r[3] - 0.5]), [[50.9, -102.6, 55.1, -100.8], TOWN.station.bikes.rect]);
   const inR = (r, x, z) => x > r[0] && x < r[2] && z > r[1] && z < r[3];
-  const A = { id: 'shotengai', root: scene, boxes, spots, dyn, lights, halos, wet, hideSpots, surface, atlas, ground, tick, rain: true, far: 105, fogFar: 2.5, layout: TOWN.version, mapWalk,
+  const A = { id: 'shotengai', root: scene, boxes, spots, dyn, lights, halos, wet, hideSpots, surface, atlas, ground, tick, rain: true, far: 105, fogFar: 2.5, layout: TOWN.version, mapWalk, kitItems: KC.items,
     // 霧：アーケードの中は濃く、外（住宅地）は少し遠くまで。中央通り・駅前は広いので、もう少し遠くまで見える
     fogAt: (x, z) => (z < -4 && Math.abs(x) < 4.8 ? 0.042 : z < -78 ? 0.024 : x > 62 ? 0.028 : x > 10.5 && z < -6 ? 0.03 : 0.034),
     rainRoof: (x, z) => (z < -4 && z > -72 && Math.abs(x) < 4.8) || inHome(x, z, 0.3) || (x > 30.5 && x < 36 && z > 43 && z < 52) || (x > 13 && x < 32 && z > 19.2 && z < 20.2) || roofs.some(r => inR(r, x, z)),
@@ -433,11 +439,11 @@ export function buildLevel(_unused, opt = {}) {
     bounds: Object.assign({}, TOWN.bounds), spawns: { start: [...homeW(0, 11.5), Math.PI], from_alley: [-3.0, -66.5, Math.PI / 2], arcade: [0, -2, Math.PI], home_in: [...homeW(0, 8.6), 0], home_gate: [42, 41.6, 0], station: [84, -96, Math.PI], avenue: [68, -10, Math.PI], plaza: [23, -12, Math.PI] } };
   // 遠い所（中央通り・駅前）：最初のこまの後で組み立てる（main の buildPending）。看板の地図帳は同じ物へ足す
   A.pending = [() => {
-    const B2 = new Builder({ cell: 64, merge: true }), far = buildTown({ B: B2, atlas, signDraw, scene, part: 'far' });
+    const B2 = new Builder({ cell: 64, merge: true }), KC2 = kitCollector(), far = buildTown({ B: B2, atlas, signDraw, scene, part: 'far', kit: KC2 });
     const r = B2.build(mats); r.name = 'level_far';
     if (far.wires) r.add(far.wires); if (far.pools) r.add(far.pools);
     atlasTex.needsUpdate = true; r.updateMatrixWorld(true);
-    return { root: r, halos: far.halos, wet: far.wet, lights: far.lights, signals: far.signals, spots: far.spots, hideSpots: far.hideSpots };
+    return { root: r, halos: far.halos, wet: far.wet, lights: far.lights, signals: far.signals, spots: far.spots, hideSpots: far.hideSpots, kitItems: KC2.items };
   }];
   return A;
 }

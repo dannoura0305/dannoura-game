@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.grating",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.grating_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "ac81c6c252a8392246f6e8c1f5e7414530695721734c4c0b1fd422ba677a9a33",
+   "bytes": 802128,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.grating"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.grating_normal.png",
+   "storage": "local-ignored",
+   "sha256": "81fedb9e4b0043c8660e5d472f737de80712a353b70a6f409bf1e70954035758",
+   "bytes": 1232669,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.grating"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.grating_orh.png",
+   "storage": "local-ignored",
+   "sha256": "60b46fc0a87738ee04b2a0ae06beb16ac70bd248644c27a8715957777feab091",
+   "bytes": 1200274,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.grating"
+  }
+ ]
+}

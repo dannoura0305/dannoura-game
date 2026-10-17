@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.trackbed",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.trackbed_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "dc30d8b6cf8d57724f5d2d3ed54b1ab216e46c9b5f5115fd2ebcee2d24dbc58b",
+   "bytes": 1022831,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.trackbed"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.trackbed_normal.png",
+   "storage": "local-ignored",
+   "sha256": "faa5b61a331ba44fda1748a6834bdd5f801121eb716706b6862826b9e4cfb298",
+   "bytes": 2112804,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.trackbed"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.trackbed_orh.png",
+   "storage": "local-ignored",
+   "sha256": "4a336b53305625ce933090a581ad438472ac54b7c11e708483d2aa19a2f2990f",
+   "bytes": 1534631,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.trackbed"
+  }
+ ]
+}

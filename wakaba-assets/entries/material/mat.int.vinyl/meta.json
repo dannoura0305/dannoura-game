@@ -1,0 +1,99 @@
+{
+ "id": "mat.int.vinyl",
+ "version": 1,
+ "name": {
+  "ja": "長尺シートの床（病院）",
+  "en": "Sheet vinyl floor"
+ },
+ "category": "material",
+ "tags": [
+  "床",
+  "屋内",
+  "病院",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/mapkit/matgen/matgen_town.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/shinshoku/IMPLEMENTATION_STATUS.md"
+ },
+ "tech": {
+  "formats": [
+   "webp",
+   "png"
+  ],
+  "texRes": 1024,
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness",
+   "height"
+  ],
+  "fileBytes": 114668
+ },
+ "use": [
+  "境界侵食（shinshoku）の町と屋内",
+  "病院",
+  "避難所の廊下"
+ ],
+ "status": "draft",
+ "material": {
+  "material": "wakaba-material/1",
+  "tileM": 2.0,
+  "sizes": [
+   1024,
+   512,
+   256
+  ],
+  "maps": {
+   "albedo": {
+    "1024": "albedo_1024.webp",
+    "512": "albedo_512.webp",
+    "256": "albedo_256.webp"
+   },
+   "normal": {
+    "1024": "normal_1024.webp",
+    "512": "normal_512.webp",
+    "256": "normal_256.webp"
+   },
+   "orh": {
+    "512": "orh_512.webp",
+    "256": "orh_256.webp"
+   }
+  },
+  "alpha": false,
+  "card": false,
+  "channels": {
+   "albedo": "sRGB",
+   "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+   "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+  },
+  "albedoMean": [
+   0.602,
+   0.642,
+   0.614
+  ],
+  "roughMean": 0.311
+ },
+ "history": [
+  {
+   "at": "2026-10-17",
+   "by": "claude-code",
+   "change": "tools/mapkit/matgen/matgen_town.py（defs_town.py）で生成（境界侵食 P12：環境の写実化）"
+  }
+ ]
+}

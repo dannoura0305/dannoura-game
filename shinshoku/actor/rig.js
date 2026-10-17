@@ -30,6 +30,7 @@ export function makeRig(d) {
   return { root, J };
 }
 
+const LEGS = new Set(['hips', 'leftUpperLeg', 'leftLowerLeg', 'leftFoot', 'rightUpperLeg', 'rightLowerLeg', 'rightFoot']);
 /** 姿勢（関節名 → [x,y,z] ラジアン）を目標にして、毎フレーム補間で近づける */
 export class Poser {
   constructor(J, rest = {}) {
@@ -37,15 +38,16 @@ export class Poser {
     this.hipsBase = J.hips ? J.hips.position.y : 0;
     for (const k of Object.keys(J)) this.q[k] = J[k].quaternion.clone();
   }
+  /** pose._exactLegs：脚（股関節〜足首・腰の高さ）は rate ではなく pose._legRate（既定 1＝そのまま）で当てる（足の IK：補間の遅れで足が滑らない） */
   apply(pose, rate) {
     const J = this.J;
+    const legRate = pose._exactLegs ? Math.max(rate, pose._legRate ?? 1) : rate;
     for (const k of Object.keys(J)) {
-      if (k === 'hips' && pose.hipsY != null) { /* 高さは下で */ }
       const r = pose[k] || [0, 0, 0], b = this.rest[k] || [0, 0, 0];
       this.tmpE.set(r[0] + b[0], r[1] + b[1], r[2] + b[2], 'YXZ');
       this.tmpQ.setFromEuler(this.tmpE);
-      J[k].quaternion.slerp(this.tmpQ, Math.min(1, rate));
+      J[k].quaternion.slerp(this.tmpQ, Math.min(1, LEGS.has(k) ? legRate : rate));
     }
-    if (J.hips) J.hips.position.y += ((this.hipsBase + (pose.hipsY || 0)) - J.hips.position.y) * Math.min(1, rate);
+    if (J.hips) J.hips.position.y += ((this.hipsBase + (pose.hipsY || 0)) - J.hips.position.y) * Math.min(1, legRate);
   }
 }

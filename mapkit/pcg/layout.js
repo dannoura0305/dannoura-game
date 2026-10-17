@@ -10,6 +10,7 @@ import { obbOverlap, pointInObb, toWorld, deg } from '../core/geom.js';
 import { childRng, range, pick, fingerprint } from '../core/rng.js';
 import { resolveGoal } from '../core/spec.js';
 import { planDressing } from './dressing.js';
+import { planGameplay } from './gameplay.js';
 
 const r3 = v => Math.round(v * 1000) / 1000;
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -146,6 +147,9 @@ export function buildLayout(spec, raw = null, opt = {}) {
     }
     stats.push(dStats);
   }
+  // 8. 遊びの定義（フェーズ 4：戸・門・チェックポイント・敵の巡回。物は置かない＝前の層は変わらない。mapkit/pcg/gameplay.js）
+  const gameplay = planGameplay(spec, { plans, paths, hf, objects, start });
+  for (const n of gameplay.notes) notes.push({ issue: `遊びの定義 ${n.id}：${n.issue}`, proposal: '地図仕様の gameplay を直す', auto: false });
   // 実素材の不足（仮の形で置いた物）＝ gaps（計画のみ・承認待ち）。目録（opt.catalog：id → 名前）に Web で使える素材があれば done
   const usedKinds = [...new Set([...objects.map(o => o.kind), ...instances.map(i => i.kind)])].sort();
   const cat = opt.catalog || null;
@@ -165,8 +169,9 @@ export function buildLayout(spec, raw = null, opt = {}) {
     coords: { x: 'east', y: 'up', z: 'north', unit: 'm', origin: '地図の左下（0,0）', rotY: 'deg：ローカル +z（前）→ 世界 (sin, cos)（Three.js の rotation.y と同じ・UE へは軸の入れ替えが要る）' },
     size: [W, D],
     terrain: { file: 'terrain.png', format: 'png16-gray', nx: hf.nx, nz: hf.nz, cell: hf.cell, minY: hf.minY, maxY: hf.maxY, rows: '行 j ＝ z = j×cell（行 0 が z = 0）', source: raw ? 'heightmap' : 'fallback', fingerprint: hf.fingerprint() },
-    start, goals, paths, buildings: plans.map(p => ({ id: p.id, kind: p.kind, enterable: p.enterable, at: p.at, rot: p.rot, footprint: p.footprint, decay: p.decay, padY: p.padY, obb: roundObb(p.obb), rooms: p.rooms, doors: p.doors, parts: p.parts })),
+    start, goals, paths, buildings: plans.map(p => ({ id: p.id, kind: p.kind, enterable: p.enterable, at: p.at, rot: p.rot, footprint: p.footprint, decay: p.decay, padY: p.padY, obb: roundObb(p.obb), rooms: p.rooms, doors: p.doors, ...(p.openings && p.openings.length ? { openings: p.openings } : {}), parts: p.parts })),
     anchors, objects, instances,
+    gameplay: { doors: gameplay.doors, checkpoints: gameplay.checkpoints, enemies: gameplay.enemies },
     keepOut: keepOut.map(s => { const o = Object.assign({}, s); delete o.bounds; if (o.obb) o.obb = roundObb(o.obb); if (o.a) { o.a = o.a.map(r3); o.b = o.b.map(r3); } if (o.c) o.c = o.c.map(r3); return o; }),
     stats: { counts: countBy(objects, 'layer'), instances: Object.fromEntries(instances.map(i => [i.layer, i.count])), layers: stats, cliffCells: cliff.steepCells },
   };

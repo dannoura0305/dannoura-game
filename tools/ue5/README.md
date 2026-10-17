@@ -9,6 +9,28 @@ PC：Core i7-9700（8 コア 8 スレッド）・RTX 3060 Ti 8GB・メモリ 16G
 ## 導入状況（2026-10-17 更新）
 - **利用者の PC に UE 5.8.3 が入りました**（利用者の報告）。下の「1. プロジェクトを作る」から進めます。スクリプトは 5.8.3 でもまだ一度も動かしていません（未検証）。
 
+## UE 5.8.3 で気をつけること（2026-10-17 フェーズ 4 で直した・**まだ UE の中では動かしていない＝未検証**）
+UE の Python の API を Epic の公開の文書（5.1〜5.5 の Python API・Interchange の説明・不具合の報告）で調べて、スクリプトを 5.x の書き方にそろえました。5.8 の画面で一度も動かしていないので、赤い行が出たらそのまま貼ってください。
+| 所 | 5.8 での扱い | スクリプト |
+|---|---|---|
+| 物を置く・消す | `unreal.EditorActorSubsystem`（5.0 から）。`EditorLevelLibrary` の同じ関数は 5.x で非推奨 | `import_layout.py` は Subsystem を使う（無い古い版だけ旧い方） |
+| FBX の取り込み | **UE 5.5 以降は FBX も Interchange（新しい取り込みの仕組み）で読む設定が多い**。Interchange では取り込みの設定が `AssetImportTask.options` に入れる **`InterchangeGenericAssetsPipeline`**（`mesh_pipeline.build_nanite`・`common_meshes_properties.force_all_mesh_as_type` など）になり、古い `FbxImportUI` の値は効かない。`destination_name`（名前）も効かない | `--import-kit` は Interchange が使えれば Interchange、だめなら `FbxImportUI`（`--legacy-fbx` で古い方を強制）。取り込んだ後に `SM_<id>` へ名前を変える。版で名前が違う属性は止まらずに「設定できなかった名前」を Output Log に出す |
+| Interchange のオン・オフ | 出力ログ（Cmd）で `Interchange.FeatureFlags.Import.FBX 1`（オン）／`0`（古い取り込み）。プロジェクト設定 → Interchange でも見られる | スクリプトはこの値を読んで選ぶ |
+| Landscape | Python で高さマップを取り込む公開の関数は版で違う＝**手作業**（§2）。5.8 の画面は「ランドスケープ」モード →「管理」→「新規」→「ファイルからインポート」 | 値を表示するだけ |
+| Nanite | 岩・建物はオン。木・草の Nanite（Nanite Foliage）は版で扱いが変わるので最初はオフ（`ue5/import.json` の `nanite`） | `import.json` の値を使う |
+| 不具合（参考） | 5.5 で「PIE（▶）の最中に取り込んだ静的メッシュが Nanite にならない」報告がある（UE-255448）。**取り込みは ▶ を止めてから** | – |
+
+### 素材（FBX）をまとめて取り込む（新しい・未検証）
+```
+py "C:/Users/<名前>/dannoura-game/tools/ue5/import_layout.py" --import-kit --dry-run        ← 何を取り込むかだけ表示（UE なしでも動く）
+py "C:/Users/<名前>/dannoura-game/tools/ue5/import_layout.py" --import-kit --only rock.boulder   ← まず 1 つで試す
+py "C:/Users/<名前>/dannoura-game/tools/ue5/import_layout.py" --import-kit                  ← 全部（31 個・FBX は wakaba-assets/entries/*/*/source/。Git の外なので Blender の build_kit.py で作る）
+```
+- うまくいかない時：`--legacy-fbx`（古い取り込み）で試す。Output Log の `わかば：設定できなかった名前` の行を貼ってください。
+- 取り込んだら `node tools/mapkit/catalog.mjs --ue5-map ue5_asset_map.json` → §3 を `--asset-map` つきで流すと本物の部品に替わります。
+- 遊びの印（フェーズ 4）：§3 を流すと、戸・門（タグ `wakaba_door:sliding` など）・チェックポイント（`wakaba_checkpoint`）・敵の出る所と巡回の点（`wakaba_enemy_route:ikei`・`wakaba_route_index:0`…）も TargetPoint で置かれます。UE の敵の AI（Behavior Tree）・戸のブループリントは**まだ作っていません**（次の段）。
+- UE なしの自己試験：`python3 tools/ue5/import_layout.py --selftest`（座標の式・偽の `unreal` で置く・消す・取り込みの呼び順。UE の本当の挙動は確かめられない）。
+
 ## （参考）UE 未導入だった時のメモ（2026-10-17 の時点：Epic Games Launcher のライブラリに UE の表示なし）
 - **今は何もしなくて大丈夫です。** ブラウザ版（A 線）と素材置き場（C）は UE なしで進みます。この README の手順（B 線＝UE5 の PC 版）は **UE を入れるまで待ち**です。
 - 入れるかどうかは利用者が決めます（任意）。入れる時の手順（はじめての人向け）は **`docs/wakaba-mapkit/10_方式C_共有素材ライブラリとUE5連携.md` §7.1**：
@@ -70,7 +92,7 @@ PC：Core i7-9700（8 コア 8 スレッド）・RTX 3060 Ti 8GB・メモリ 16G
 ```
 py "C:/Users/<名前>/dannoura-game/tools/ue5/import_layout.py" --layout "C:/Users/<名前>/dannoura-game/maps/haison/build/layout.json"
 ```
-- 置く物：建物の部品 124（灰色の箱・円柱）・木と岩と小物 687・目的地と印 14・スタート（PlayerStart）。アウトライナーのフォルダ `Wakaba/haison/…` にまとまります。
+- 置く物：建物の部品 125（灰色の箱・円柱）・木と岩と小物 958・目的地と印・遊びの印（戸 8・チェックポイント 3・敵の巡回 7）・スタート（PlayerStart）。アウトライナーのフォルダ `Wakaba/haison/…` にまとまります。
 - 何度流しても同じ（前に置いた物＝タグ `wakaba:haison` を消してから置く）。1 回分は Ctrl+Z で戻せます。
 - `--dry-run`：置かずに数だけ・`--no-objects`：家だけ・`--asset-map <file>`：本物の素材に差し替え（§4）。
 - 下草（約 1.8 万点）は 1 つずつ置きません。`node tools/mapkit/export_ue_heightmap.mjs maps/haison --points` の `pcg_points.csv` を、コンテンツブラウザにドラッグして**データテーブル**（行の型：Name・Kind・Layer・X・Y・Z・Yaw・Scale の構造体）として読み込み、PCG のグラフや Foliage で散らす（手作業・未検証）。

@@ -1,0 +1,94 @@
+{
+ "id": "prop.town.car",
+ "version": 1,
+ "name": {
+  "ja": "乗用車（普通・軽の 2 種・塗装は置く時の色）",
+  "en": "Car (sedan / kei, tintable)"
+ },
+ "category": "prop",
+ "tags": [
+  "車",
+  "町",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/kit/build_kit_town.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/shinshoku/IMPLEMENTATION_STATUS.md"
+ },
+ "tech": {
+  "formats": [
+   "glb",
+   "fbx"
+  ],
+  "tris": 1156,
+  "lods": [
+   1156,
+   404
+  ],
+  "sizeM": [
+   1.97,
+   1.4,
+   4.38
+  ],
+  "pivot": "bottom_center",
+  "collision": "box",
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness"
+  ],
+  "fileBytes": 331360
+ },
+ "use": [
+  "境界侵食（shinshoku）の町と屋内"
+ ],
+ "status": "draft",
+ "kit": {
+  "kit": "wakaba-kit/1",
+  "nodes": {
+   "v0_LOD0": 1156,
+   "v0_LOD1": 404,
+   "v1_LOD0": 1156,
+   "v1_LOD1": 404
+  },
+  "variants": 2,
+  "lodDist": [
+   30
+  ],
+  "impostor": false,
+  "materials": [
+   "emit.head",
+   "emit.tail",
+   "glass.dark",
+   "mat.town.paint#chrome",
+   "mat.town.paint#dark",
+   "mat.town.paint#tint",
+   "mat.town.paint#tire",
+   "mat.town.paint#white"
+  ],
+  "vertexColor": "COLOR_0＝AO（焼き込み）",
+  "note": "節の名前 LOD<n>（種類が複数なら v<k>_LOD<n>）・IMP＝遠景の十字の板（画像は glb の中）。材質は id の名前で共有の PBR 材質に差し替える"
+ },
+ "history": [
+  {
+   "at": "2026-10-17",
+   "by": "claude-code",
+   "change": "tools/blender/kit/build_kit_town.py（pieces_town.py）で生成（境界侵食 P12：環境の写実化）"
+  }
+ ]
+}

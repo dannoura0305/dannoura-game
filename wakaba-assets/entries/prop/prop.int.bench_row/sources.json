@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.int.bench_row",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.int.bench_row.fbx",
+   "storage": "local-ignored",
+   "sha256": "4d191ce7aadbf25688c10573b0588d83f7279adc74dc77609873a3ad22323843",
+   "bytes": 27020,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_town.py --only prop.int.bench_row"
+  }
+ ]
+}

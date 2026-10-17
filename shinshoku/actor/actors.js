@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import { Poser } from './rig.js';
 import { dannouraPose, kiroPose, heitenPose, shuuyouPose, companionPose, civilianPose, rollAt, phaseRate, footfall } from './anim.js';
 import { attachRigidWeapons } from './models.js';
+import { heroPhaseRate, plantFeet } from './anim8.js';
+import { FaceDriver, codeFaceAdapter, vrmFaceAdapter } from '../../charkit/face/driver.js';
 import { Fighter } from '../combat/fighter.js';
 import { COMBAT } from '../data/combat.js';
 import { resolveCircle } from '../world/collide.js';
@@ -14,10 +16,50 @@ const angWrap = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI
 export const turnTo = (cur, want, rate) => cur + angWrap(want - cur) * Math.min(1, rate);
 const HIDE = 1e-4;
 
-/** 共通：まばたき・ひるみ・当たった光 */
+const _lv1 = new THREE.Vector3(), _lv2 = new THREE.Vector3(), _lq = new THREE.Quaternion(), _lq2 = new THREE.Quaternion(), _le = new THREE.Euler();
+const clampN = (x, a, b) => Math.max(a, Math.min(b, x));
+/** 見る先（Vector3 か 役者：頭の骨の位置） */
+function lookPoint(t, out) {
+  if (!t) return null;
+  if (t.isVector3) return out.copy(t);
+  const m = t.model, J = m && m.J;
+  if (J && J.head) { J.head.getWorldPosition(out); out.y += (m.height || 1.6) * 0.05; return out; }
+  if (t.root) { t.root.getWorldPosition(out); out.y += 1.5; return out; }
+  return null;
+}
+/** 共通：まばたき・ひるみ・当たった光（v2 のモデル・VRM は charkit の顔の係：瞬き・文字の口・視線） */
 class Looks {
-  constructor(model) { this.model = model; this.blinkT = 2 + Math.random() * 3; this.blink = 0; this.flinch = { x: 0, y: 0, vx: 0, vy: 0 }; this.flashT = 0; }
+  constructor(model) {
+    this.model = model; this.blinkT = 2 + Math.random() * 3; this.blink = 0; this.flinch = { x: 0, y: 0, vx: 0, vy: 0 }; this.flashT = 0;
+    this.face = model.v2 && model.mats && model.mats.face ? new FaceDriver(codeFaceAdapter(model), { seed: (Math.random() * 1e6) | 0, blinkPerMin: model.kind === 'dannoura' || model.white ? 14 : 18 })
+      : model.isVRM && model.vrm ? new FaceDriver(vrmFaceAdapter(model.vrm), { seed: 5 }) : null;
+    this.lk = { yaw: 0, pitch: 0, qn: new THREE.Quaternion(), qh: new THREE.Quaternion(), on: false };
+  }
+  /** 字幕の文字を話す（口） */
+  say(text, dur) { if (this.face) { this.face.say(text, dur); this.model.talkingMouth = true; } }
+  /** 視線の分を戻す（姿勢を当てる前に呼ぶ：毎フレーム足し重ねない） */
+  unapplyLook(J) { const L = this.lk; if (!L.on || !J.neck || !J.head) return; J.neck.quaternion.multiply(_lq.copy(L.qn).invert()); J.head.quaternion.multiply(_lq.copy(L.qh).invert()); L.on = false; }
+  /** 見る先へ首・頭・目を向ける（胸の向きに対して。首 35%・頭 45%・残りは目） */
+  applyLook(J, target, dt, weight = 1) {
+    const L = this.lk; if (!J.neck || !J.head || !J.chest) return;
+    let wy = 0, wp = 0;
+    const tp = lookPoint(target, _lv2);
+    if (tp && weight > 0) {
+      J.head.getWorldPosition(_lv1);
+      const d = tp.sub(_lv1); J.chest.getWorldQuaternion(_lq2); d.applyQuaternion(_lq2.invert());
+      const yaw = Math.atan2(d.x, d.z), pitch = Math.atan2(d.y, Math.hypot(d.x, d.z));
+      if (Math.abs(yaw) < 2.1 && d.length() < 14) { wy = clampN(yaw, -1.1, 1.1) * weight; wp = clampN(pitch, -0.45, 0.35) * weight; }
+    }
+    const k = 1 - Math.exp(-Math.min(dt, 0.1) * 6);
+    L.yaw += (wy - L.yaw) * k; L.pitch += (wp - L.pitch) * k;
+    if (Math.abs(L.yaw) + Math.abs(L.pitch) < 1e-4) { if (this.face) this.face.lookAt(0, 0); return; }
+    L.qn.setFromEuler(_le.set(-L.pitch * 0.3, L.yaw * 0.35, 0, 'YXZ'));
+    L.qh.setFromEuler(_le.set(-L.pitch * 0.45, L.yaw * 0.45, 0, 'YXZ'));
+    J.neck.quaternion.multiply(L.qn); J.head.quaternion.multiply(L.qh); L.on = true;
+    if (this.face) this.face.lookAt(clampN(L.yaw * 0.2 / 0.3, -1, 1), clampN(L.pitch * 0.25 / 0.25, -1, 1));
+  }
   tickFace(dt) {
+    if (this.face) { this.face.update(dt); if (!this.face.talking) this.model.talkingMouth = false; return; }
     const E = this.model.eyes; if (!E) return;
     this.blinkT -= dt;
     if (this.blinkT <= 0) { this.blink = 0.13; this.blinkT = 2.2 + Math.random() * 3.5; }
@@ -72,9 +114,15 @@ export class Player {
     this.springs = [];
     this.setModel(model);
   }
+  /** 1m あたりの歩きの位相（v2 のモデルは足の IK の歩幅：anim8.js） */
+  phaseRate(v) { return this.model && this.model.legDims ? heroPhaseRate(v, this.model.legScale || 1) : phaseRate(v); }
+  /** 字幕の文字を話す */
+  say(text, dur) { this.looks.say(text, dur); }
   setModel(model) {
     if (this.model) this.pivot.remove(this.model.root);
     this.model = model; model.root.position.y = -0.55; this.pivot.add(model.root);
+    if (model.springs) model.springs.reset();
+    this.idleT = 0; this.nextIdle = 7; this.idleVar = null; this.moveT = 0; this.accS = 0; this.prevSpeed = 0; this.turnPh = 0;
     this.poser = new Poser(model.J, model.rest || {});
     if (!model.weapons) model.weapons = attachRigidWeapons(model.J);
     this.looks = new Looks(model);
@@ -114,7 +162,7 @@ export class Player {
   muzzleWorld(match) { const W = this.model.weapons; const v = new THREE.Vector3(); const mz = match && W && W.mMuzzle ? W.mMuzzle : W && W.muzzle; if (mz) mz.getWorldPosition(v); else v.copy(this.pos).add(new THREE.Vector3(0, 1.3, 0)); return v; }
   /** 進んだ距離で歩きの位相を進める。足が着いたら 'L'|'R' を返す（足音） */
   advance(moved, speed) {
-    const prev = this.phase; this.phase += moved * phaseRate(speed);
+    const prev = this.phase; this.phase += moved * this.phaseRate(speed);
     return speed > 0.3 ? footfall(prev, this.phase) : null;
   }
   /** 見た目の更新（描画フレーム） */
@@ -122,7 +170,32 @@ export class Player {
     this.time += dt;
     const F = this.fighter, m = this.model;
     const ctx = { st: F.st, f: F.st.f, w: F.weapon, speed: this.speed, phase: this.phase, time: this.time, aiming: F.aimHeld && F.weapon === 'handgun', issen: this.issenInfo, hurtDir: this.hurtDir, white: F.white };
+    // v2 のモデル：足の IK・その場の向き替え・立ち止まりの小さな動き・動き出し／止まりの傾き
+    const turn0 = this.prevYaw != null ? angWrap(this.yaw - this.prevYaw) / Math.max(dt, 1 / 60) : 0;
+    if (m.legDims) {
+      ctx.loco = { ik: true, dims: m.legDims, rate: this.phaseRate(this.speed), scale: m.legScale || 1 };
+      const moving = this.speed > 0.1;
+      this.moveT = moving ? this.moveT + dt : 0;
+      const quiet = F.st.name === 'free' && !moving && !extra.override && !ctx.aiming;
+      if (quiet && Math.abs(turn0) > 1.2) { this.turnPh += Math.min(Math.abs(turn0), 8) * dt * 1.6; ctx.turnStep = { ph: this.turnPh, turn: turn0 }; }
+      this.idleT = quiet && Math.abs(turn0) < 0.3 ? this.idleT + dt : 0;
+      if (this.idleVar) { this.idleVar.t += dt; if (this.idleVar.t >= this.idleVar.dur || !quiet) this.idleVar = null; }
+      if (!this.idleVar && this.idleT > this.nextIdle) {
+        const kinds = F.weapon === 'none' || F.weapon === 'handgun' ? ['glasses', 'look', 'lookR', 'stretch'] : ['look', 'lookR', 'stretch'];
+        this.idleVar = { kind: kinds[Math.floor(Math.random() * kinds.length)], t: 0, dur: 2.4 }; this.idleT = 0; this.nextIdle = 6 + Math.random() * 6;
+      }
+      ctx.idleVar = this.idleVar;
+      const acc = (this.speed - this.prevSpeed) / Math.max(dt, 1 / 120); this.prevSpeed = this.speed;
+      this.accS += (clampN(acc, -40, 40) - this.accS) * Math.min(1, dt * 6);
+    }
     let { pose, rate } = extra.override || dannouraPose(ctx);
+    if (m.legDims && !extra.override) {
+      if (pose._exactLegs) pose._legRate = Math.min(1, 0.3 + this.moveT * 7);
+      else if (this.speed <= 0.1 && ['free', 'reload', 'hipfire', 'swap', 'parry', 'cast', 'mcharge', 'mreload', 'hurt'].includes(F.st.name)) pose = plantFeet(Object.assign({}, pose), m.legDims);
+      const lean = clampN(this.accS * 0.012, -0.12, 0.1);
+      if (Math.abs(lean) > 1e-3 && F.st.name === 'free') { const sp = pose.spine || [0, 0, 0]; pose = Object.assign({}, pose, { spine: [sp[0] + lean, sp[1], sp[2]] }); }
+    }
+    this.looks.unapplyLook(m.J);
     if (extra.aimPitch != null && ctx.aiming) { pose.rightUpperArm = [(pose.rightUpperArm || [0, 0, 0])[0] - extra.aimPitch, pose.rightUpperArm[1], pose.rightUpperArm[2]]; pose.leftUpperArm = [(pose.leftUpperArm || [0, 0, 0])[0] - extra.aimPitch, pose.leftUpperArm[1], pose.leftUpperArm[2]]; pose.chest = [(pose.chest || [0, 0, 0])[0] - extra.aimPitch * 0.3, (pose.chest || [0, 0, 0])[1], 0]; }
     this.poser.apply(pose, 1 - Math.pow(1 - rate, dt * 60));
     // 回避の転がり（体ごと前へ回る）
@@ -131,6 +204,8 @@ export class Player {
     this.root.position.copy(this.pos); this.root.rotation.y = this.yaw;
     this.setWeaponVisual();
     this.looks.tickFace(dt); this.looks.tickFlinch(dt, m.J);
+    // 視線：演出の相手（lookTarget）・ロックオンの相手（extra.look）。攻撃などの動きの間は弱める
+    { const busy = ['attack', 'issen', 'dodge', 'charge', 'dead'].includes(F.st.name); this.looks.applyLook(m.J, this.lookTarget || extra.look || null, dt, busy ? 0.25 : 1); }
     // 髪・燕尾のばね：速さ・回転・回避で揺れる
     const turn = this.prevYaw != null ? Math.max(-12, Math.min(12, angWrap(this.yaw - this.prevYaw) / Math.max(dt, 1 / 60))) : 0; this.prevYaw = this.yaw;
     const T = Math.min(dt, 0.1), n = Math.max(1, Math.ceil(T * 120)), h = T / n;
@@ -236,8 +311,10 @@ export class CompanionActor {
     this.speed = 0; this.phase = 0; this.time = 0; this.talking = false; this.anim = null; this.r = 0.3;
     this.setModel(model);
   }
-  setModel(model) { if (this.model) this.root.remove(this.model.root); this.model = model; this.root.add(model.root); this.poser = new Poser(model.J, model.rest || {}); this.looks = new Looks(model); }
+  setModel(model) { if (this.model) this.root.remove(this.model.root); this.model = model; this.root.add(model.root); this.poser = new Poser(model.J, model.rest || {}); this.looks = new Looks(model); if (model.springs) model.springs.reset(); }
   get pos() { return this.brain.pos; }
+  phaseRate(v) { return this.model && this.model.legDims ? heroPhaseRate(v, this.model.legScale || 1) : phaseRate(v, 0.75); }
+  say(text, dur) { this.looks.say(text, dur); }
   /** 60Hz：AI の結果で動かす */
   step(dt, out, boxes) {
     const b = this.brain; let moved = 0;
@@ -246,16 +323,22 @@ export class CompanionActor {
       if (L > 1e-4) { const m = Math.min(L, out.move.speed * dt), bx = b.pos.x, bz = b.pos.z; b.pos.x += dx / L * m; b.pos.z += dz / L * m; resolveCircle(b.pos, this.r, boxes); moved = Math.hypot(b.pos.x - bx, b.pos.z - bz); }
     }
     if (out && out.face) b.yaw = turnTo(b.yaw, Math.atan2(out.face.x - b.pos.x, out.face.z - b.pos.z), 0.18);
-    this.speed = moved / dt; this.phase += moved * phaseRate(this.speed, 0.75);
+    this.speed = moved / dt; this.phase += moved * this.phaseRate(this.speed);
     this.pose = out ? out.pose : this.pose;
   }
   animate(dt) {
     this.time += dt;
     const mode = this.anim || (this.pose === 'hide' ? 'hide' : this.pose === 'grabbed' ? 'grabbed' : this.pose === 'cower' ? 'cower' : null);
-    const { pose, rate } = companionPose({ time: this.time, talking: this.talking, speed: this.speed, phase: this.phase, mode });
+    const m = this.model;
+    const loco = m.legDims ? { ik: true, dims: m.legDims, rate: this.phaseRate(this.speed), scale: m.legScale || 1 } : undefined;
+    let { pose, rate } = companionPose({ time: this.time, talking: this.talking, speed: this.speed, phase: this.phase, mode, loco });
+    if (m.legDims && !pose._exactLegs && this.speed <= 0.1 && !mode) pose = plantFeet(Object.assign({}, pose), m.legDims);
+    this.looks.unapplyLook(m.J);
     this.poser.apply(pose, 1 - Math.pow(1 - rate, dt * 60));
     this.root.position.set(this.brain.pos.x, this.rootY || 0, this.brain.pos.z); this.root.rotation.y = this.brain.yaw;
+    this.root.updateMatrixWorld(true);
     this.looks.tickFace(dt); this.looks.tickFlinch(dt, this.model.J);
+    this.looks.applyLook(m.J, this.lookTarget || null, dt, mode === 'hide' || mode === 'grabbed' ? 0 : 1);
     if (this.model.update) this.model.update(dt);
   }
 }

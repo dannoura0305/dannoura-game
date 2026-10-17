@@ -1,6 +1,7 @@
 // 手続きのアニメーション（骨の回転を状態から作る）。モーション素材が来たら AnimationMixer に置き換えられる。
 // 角度はラジアン [x, y, z]。前へ振る＝x マイナス／ひざを曲げる＝x プラス／前かがみ＝背骨 x プラス。
 // 歩き・走りは「足を地面に置く」ように、進んだ距離で位相を進める（phaseRate）。脚の振れ幅と歩幅を合わせて足が滑らない。
+import { locomotionIK, turnStep } from './anim8.js';
 const S = Math.sin, C = Math.cos, lerp = (a, b, t) => a + (b - a) * t;
 export const mix = (A, B, t) => { const o = {}; for (const k of new Set([...Object.keys(A), ...Object.keys(B)])) { if (k === 'hipsY') { o.hipsY = lerp(A.hipsY || 0, B.hipsY || 0, t); continue; } const a = A[k] || [0, 0, 0], b = B[k] || [0, 0, 0]; o[k] = [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)]; } return o; };
 export const add = (A, B) => { const o = Object.assign({}, A); for (const k of Object.keys(B)) { if (k === 'hipsY') { o.hipsY = (A.hipsY || 0) + B.hipsY; continue; } const a = A[k] || [0, 0, 0], b = B[k]; o[k] = [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; } return o; };
@@ -52,7 +53,26 @@ export function idle(t, k = 1) {
     leftUpperLeg: [0, 0, 0.03 - sw], rightUpperLeg: [0, 0, -0.03 - sw], leftLowerLeg: [0.03, 0, 0], rightLowerLeg: [0.03, 0, 0], hipsY: -Math.abs(sw) * 0.2,
   };
 }
-const base = ctx => (ctx.speed > 0.1 ? locomotion(ctx.phase, ctx.speed, ctx.loco) : idle(ctx.time));
+/** 立ち止まっている時の小さな動き（v2 のモデル：Player が ctx.idleVar = { kind, t, dur } を渡す）。めがねを押し上げる・見回す・肩を回す */
+const IDLE_VAR = {
+  glasses: { rightUpperArm: [-1.32, 0.3, 0.42], rightLowerArm: [-2.25, 0, 0], rightHand: [0.3, 0, 0.5], head: [0.1, -0.08, 0], neck: [0.04, 0, 0] },
+  look: { neck: [0, 0.32, 0], head: [-0.05, 0.36, 0.04], chest: [0, 0.1, 0] },
+  lookR: { neck: [0, -0.32, 0], head: [-0.05, -0.36, -0.04], chest: [0, -0.1, 0] },
+  stretch: { chest: [-0.12, 0, 0], leftUpperArm: [0.08, 0, 0.32], rightUpperArm: [0.08, 0, -0.32], neck: [-0.15, 0, 0.1], head: [-0.12, 0, 0.12] },
+};
+function idleOverlay(p, iv) {
+  if (!iv || !IDLE_VAR[iv.kind]) return p;
+  const x = iv.t / iv.dur, w = ease(x / 0.25) * (1 - ease((x - 0.7) / 0.3));
+  const o = Object.assign({}, p);
+  for (const [k, v] of Object.entries(IDLE_VAR[iv.kind])) { const a = o[k] || [0, 0, 0]; o[k] = iv.kind === 'glasses' && k.startsWith('right') ? [lerp(a[0], v[0], w), lerp(a[1], v[1], w), lerp(a[2], v[2], w)] : [a[0] + v[0] * w, a[1] + v[1] * w, a[2] + v[2] * w]; }
+  return o;
+}
+const base = ctx => {
+  if (ctx.speed > 0.1) return ctx.loco && ctx.loco.ik ? locomotionIK(ctx.phase, ctx.speed, ctx.loco) : locomotion(ctx.phase, ctx.speed, ctx.loco);
+  let p = idle(ctx.time);
+  if (ctx.turnStep) p = Object.assign(p, turnStep(ctx.turnStep.ph, ctx.turnStep.turn, ctx.loco || {}));
+  return idleOverlay(p, ctx.idleVar);
+};
 
 // ── だんのうら ──
 const KATANA_READY = { rightUpperArm: [-0.3, 0, -0.22], rightLowerArm: [-0.85, 0, 0], rightHand: [-0.15, 0, 0.25] };
@@ -244,8 +264,10 @@ const W_TRANSFORM = { spine: [-0.1, 0, 0], head: [-0.3, 0, 0], leftUpperArm: [-0
 export { W_TRANSFORM };
 export function whitePose(ctx) {
   const { st, f } = ctx;
-  let b = ctx.speed > 0.1 ? locomotion(ctx.phase, ctx.speed, { k: 1.05 }) : idle(ctx.time, 0.8);
-  if (!['attack', 'issen', 'cast', 'dodge', 'charge'].includes(st.name)) { if (ctx.speed > 3.2) b = Object.assign(b, { spine: [0.38, 0, 0], leftUpperArm: [0.7, 0, 0.3], rightUpperArm: [0.7, 0, -0.3], leftLowerArm: [-0.4, 0, 0], rightLowerArm: [-0.4, 0, 0] }); else b = Object.assign(b, W_READY); }
+  let b = ctx.speed > 0.1 ? (ctx.loco && ctx.loco.ik ? locomotionIK(ctx.phase, ctx.speed, ctx.loco) : locomotion(ctx.phase, ctx.speed, { k: 1.05 })) : idle(ctx.time, 0.8);
+  if (ctx.speed <= 0.1 && ctx.turnStep) b = Object.assign(b, turnStep(ctx.turnStep.ph, ctx.turnStep.turn, ctx.loco || {}));
+  const hy0 = b.hipsY, exact = b._exactLegs;
+  if (!['attack', 'issen', 'cast', 'dodge', 'charge'].includes(st.name)) { if (ctx.speed > 3.2) b = Object.assign(b, { spine: [0.38, 0, 0], leftUpperArm: [0.7, 0, 0.3], rightUpperArm: [0.7, 0, -0.3], leftLowerArm: [-0.4, 0, 0], rightLowerArm: [-0.4, 0, 0] }); else b = Object.assign(b, W_READY); if (exact) b.hipsY = hy0; }
   if (st.name === 'attack') {
     const a = st.atk, P = st.blade ? BLADE : CLAW[st.step] || CLAW[0];
     let t; if (f < a.startup) t = 0; else if (f < a.startup + a.active) t = (f - a.startup + 1) / a.active; else t = 1 + Math.min(1, (f - a.startup - a.active) / Math.max(1, a.recovery));

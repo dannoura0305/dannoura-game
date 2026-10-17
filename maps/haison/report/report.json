@@ -2,10 +2,10 @@
   "report": "wakaba-map-report/1",
   "map": "haison",
   "seed": "haison-001",
-  "builtAt": "2026-10-17T07:17:53.799Z",
+  "builtAt": "2026-10-17T12:25:36.955Z",
   "builder": "claude-code",
   "auto": {
-    "deterministic": {"pass": true, "hash": "fp:1f763c2eed098e", "terrain": "950cb13f"},
+    "deterministic": {"pass": true, "hash": "fp:0f052e74a447ff", "terrain": "950cb13f"},
     "keepOut": {"pass": true, "violations": [], "checked": {"objects": 958, "small": 18073, "buildings": 5, "shapes": 225}},
     "float": {"pass": true, "items": [], "counts": {"float": 0, "penetrate": 0}},
     "overlap": {"pass": true, "items": [], "count": 0},
@@ -14,7 +14,7 @@
       "goals": {"h1.door": 135.62, "h2.door": 148.74, "h4.door": 136.29, "h1.center": 142.24, "shrine.front": 205.88},
       "unreachable": [],
       "ratio": {"h1.door": 1.03, "h2.door": 1.05, "h4.door": 1.05, "h1.center": 1.11, "shrine.front": 1.03},
-      "grid": {"cell": 0.5, "maxSlope": 35, "step": 0.4, "walkable": 145175, "reached": 104544}
+      "grid": {"cell": 0.5, "maxSlope": 35, "step": 0.4, "walkable": 145148, "reached": 104517}
     },
     "interiors": {
       "pass": true,
@@ -33,19 +33,8 @@
       "blocked": [],
       "note": "物の種類 23 のうち 23 が目録の素材（web の門 pass・自作＝license own・verifiedBy は人の確認待ち）・仮の形 0。材質と建物の部品も目録（node tools/mapkit/catalog.mjs）"
     },
-    "budget": {
-      "pass": true,
-      "preset": "low",
-      "drawCalls": 90,
-      "tris": 48034,
-      "texMB": 30.9,
-      "source": "measured（play_map.mjs・スマホ 844×390・テクスチャは辺×4B×4/3 の見積もり）"
-    },
-    "perf": {
-      "device": "swiftshader",
-      "fps": null,
-      "note": "fps は実機で測る（mapkit.html?perf=1）。起動（操作できるまで）PC high 4879ms・スマホ low 3420ms（ソフト描画）。PC high：描画 216・三角形 490930。段ごと（村の視点）：ultra 描画 201・三角形 693k・テクスチャ 196.9MB／high 描画 182・三角形 423k・テクスチャ 196.9MB／mid 描画 99・三角形 146k・テクスチャ 108.9MB／low 描画 72・三角形 95k・テクスチャ 30.9MB"
-    },
+    "budget": {"pass": true, "preset": "low", "drawCalls": 43, "tris": 133598, "texMB": 7.75, "source": "estimate", "over": []},
+    "perf": {"device": "node（ヘッドレス）", "fps": null, "note": "実機で測る（mapkit.html?perf=1）。play_map.mjs が swiftshader の描画呼び出しを測る"},
     "entrances": {"pass": true, "violations": []},
     "slope": {
       "pass": true,
@@ -62,6 +51,30 @@
       "pass": true,
       "edgeCells": 10,
       "guard": "坂 40° を超える所・段差 0.4m を超える所は操作（mapkit/runtime/controller.js）が壁として止める＝落ちない（boundary: invisible_wall_on_cliff）"
+    },
+    "gameplay": {
+      "pass": true,
+      "doors": [
+        {"id": "h1.door", "kind": "sliding", "initial": "closed", "sides": [135.83, 137.12]},
+        {"id": "h2.door", "kind": "sliding", "initial": "open", "sides": [148.74, 149.74]},
+        {"id": "h4.door", "kind": "sliding", "initial": "closed", "sides": [136.29, 137.29]},
+        {"id": "h1.part0", "kind": "shoji", "initial": "closed", "sides": [139.62, 141.54]},
+        {"id": "h1.part1", "kind": "fusuma", "initial": "open", "sides": [143.66, 145.16]},
+        {"id": "h2.part0", "kind": "fusuma", "initial": "closed", "sides": [152.37, 153.16]},
+        {"id": "h4.part0", "kind": "shoji", "initial": "open", "sides": [139.21, 140.21]},
+        {"id": "sando.gate", "kind": "hinged", "initial": "closed", "sides": [184.08, 182.67]}
+      ],
+      "enemies": [
+        {
+          "id": "ikei",
+          "ai": "mapkit:ikei",
+          "spawnReach": 165.14,
+          "fromStart": 157.2,
+          "route": [165.14, 144.07, 142.24, 139.88, 146.56, 158.42]
+        }
+      ],
+      "checkpoints": [{"id": "cp.start", "reach": 0}, {"id": "cp.village", "reach": 134.52}, {"id": "cp.sando", "reach": 161.09}],
+      "problems": []
     }
   },
   "conditions": [
@@ -79,7 +92,9 @@
     {"text": "森（木 300 本以上）", "check": "auto", "pass": true, "evidence": "木 865・岩 39・下草 18073"},
     {"text": "入口の前・道・目的地に物が 0 個", "check": "auto", "pass": true, "evidence": "違反 0＋0"},
     {"text": "浮き・めり込み・重なりが 0 件", "check": "auto", "pass": true, "evidence": "浮き 0・めり込み 0・重なり 0"},
-    {"text": "同じ種で同じ配置", "check": "auto", "pass": true, "evidence": "fp:1f763c2eed098e"},
+    {"text": "同じ種で同じ配置", "check": "auto", "pass": true, "evidence": "fp:0f052e74a447ff"},
+    {"text": "戸・門が開け閉めでき、開いた形で両側に届く（フェーズ 4）", "check": "auto", "pass": true, "evidence": "戸 8（sliding・shoji・fusuma・hinged）"},
+    {"text": "敵の出る所・巡回の点が立入禁止の外で届く・チェックポイントに届く（フェーズ 4）", "check": "auto", "pass": true, "evidence": "敵 1（巡回の点 6）・チェックポイント 3"},
     {"text": "夕暮れと霧の雰囲気が出ている", "check": "human", "pass": null, "evidence": "play_map の画面撮影（village・shrine）"},
     {
       "text": "山の廃村に見える（フェーズ 3：写実寄りの材質・部品・光）",
@@ -95,7 +110,12 @@
     },
     {"text": "森の密度・木の並びが自然", "check": "human", "pass": null, "evidence": "forest の撮影・report/map.svg"},
     {"text": "歩いて探索できる（迷わない・引っかからない）", "check": "human", "pass": null, "evidence": "利用者が mapkit.html?map=haison を歩く"},
-    {"text": "Playwright で実際に歩いて全ての目的地に着く（PC・スマホ）", "check": "auto", "pass": true, "evidence": "report/play.json：27/27"}
+    {
+      "text": "ゲームとして探索できる（戸・敵・チェックポイント・音。10 分遊んで判断）",
+      "check": "human",
+      "pass": null,
+      "evidence": "利用者が mapkit.html?map=haison&perf=1 を実機で"
+    }
   ],
   "gaps": [
     {"need": "prop.barrel", "plan": "目録の素材 prop.barrel（樽）で描く（ブラウザ版）。当たり・置き場所は仮の形（樽）の大きさのまま", "status": "done"},
@@ -203,5 +223,5 @@
     }
   ],
   "fixes": [],
-  "specHash": "sha256:fe5f74925c5923fac3f7d99b6b57416a846c6b44d7fd95d74ac2f25032570ba5"
+  "specHash": "sha256:60dfd3eedfd91c828a123591932864ca28617bfb2f03242fb353d696ac0c11f5"
 }

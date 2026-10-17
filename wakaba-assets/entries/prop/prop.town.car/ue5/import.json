@@ -1,0 +1,20 @@
+{
+ "ue5import": "wakaba-ue5-import/1",
+ "id": "prop.town.car",
+ "assetType": "StaticMesh",
+ "gamePath": "/Game/Wakaba/Prop/SM_prop_town_car",
+ "pivot": "bottom_center",
+ "source": {
+  "file": "source/prop.town.car.fbx",
+  "format": "fbx"
+ },
+ "import": {
+  "convertScene": true,
+  "importUniformScale": 1.0,
+  "nanite": true,
+  "collision": "simple_box",
+  "generateLightmapUVs": false,
+  "materials": "create"
+ },
+ "notes": "export_kit.py が作った雛形。UE の画面で取り込んだら値を確かめて直す（未検証）"
+}

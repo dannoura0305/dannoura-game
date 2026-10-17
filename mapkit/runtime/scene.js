@@ -10,12 +10,13 @@ import { buildTerrainGeometry, buildTerrainMaterial, treeDensity } from '../rend
 import { GroundCover, fallingLeaves } from '../render/foliage.js';
 import { sunDirs, installHeightFog, makeSky, makeEnvironment, makeLights } from '../render/atmosphere.js';
 import { windUniforms } from '../render/wind.js';
+import { DoorMeshes, EnemyMesh, lightShafts } from '../render/gameplay.js';
 import { Post } from '../render/post.js';
 
 const MAT_COL = { plaster: 0xb7b1a5, wood: 0x6e5641, roof: 0x3b3f47, stone: 0x8d8b86, tatami: 0xa3a172, earth: 0x6b5947, torii: 0xa8402e };
 const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return h >>> 0; };
 
-export async function buildScene({ layout, hf, spec, P, canvas, onProgress = () => {} }) {
+export async function buildScene({ layout, hf, spec, P, canvas, doors = null, enemy = false, onProgress = () => {} }) {
   const t0 = performance.now(), timing = {};
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: P.antialias && !P.post, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2) * P.resScale);
@@ -23,7 +24,7 @@ export async function buildScene({ layout, hf, spec, P, canvas, onProgress = () 
   renderer.shadowMap.enabled = !!P.shadows; renderer.shadowMap.type = THREE.PCFShadowMap;
   const scene = new THREE.Scene(), atm = spec.atmosphere || {}, fogCol = new THREE.Color(atm.fog?.color || '#6a6f7a').multiplyScalar(0.9);
   const fogD = (atm.fog?.density ?? 0.02) * 0.5;
-  const sun = sunDirs(atm);
+  const sun = sunDirs(atm, 9, P.sunDeg ?? atm.sunLightDeg ?? null);
   const [lo] = hf.extent(), village = (layout.buildings.find(b => /jp_house/.test(b.kind)) || { padY: lo + 8 }).padY;
   installHeightFog({ k: atm.fog?.heightFalloff ?? 0.08, base: village, sunDir: sun.sky });
   scene.fog = new THREE.FogExp2(fogCol, fogD);
@@ -38,7 +39,7 @@ export async function buildScene({ layout, hf, spec, P, canvas, onProgress = () 
   await bank.loadCatalog();
   const real = bank.has('mat.ground.forest_floor');
   // 先に読み始める（画像の展開・glb の読み込みと、下の CPU の計算を重ねる）
-  const terrainMatP = real ? buildTerrainMaterial(bank, P) : Promise.resolve(new THREE.MeshLambertMaterial({ color: 0x55603a }));
+  const terrainMatP = real ? buildTerrainMaterial(bank, P, { hf, layout }) : Promise.resolve(new THREE.MeshLambertMaterial({ color: 0x55603a }));
   for (const k of new Set(layout.objects.map(o => o.kind))) bank.kit(k);
   for (const k of ['bld.jp_house.wall_panel', 'bld.jp_house.post', 'bld.jp_house.roof_ridge', 'veg.grass', 'veg.fern']) bank.kit(k);
   // ── 地形
@@ -66,6 +67,9 @@ export async function buildScene({ layout, hf, spec, P, canvas, onProgress = () 
   }
   // 遠景の木（見た目だけ）：坂 41° を超える所（操作が入れない＝当たりが要らない）に、木の素材を足す。layout には入れない（UE5 版は Landscape の草木で）
   if (P.bgTrees !== false) for (const [kind, items] of Object.entries(backgroundTrees(hf, layout))) kits.add(kind, items, { cull: P.treeFar });
+  // 戸・門（フェーズ 4）：門の両側の柵は部品の柵（prop.fence）を伸ばして置く
+  const doorMeshes = doors ? new DoorMeshes(scene, doors, real ? bank : null, P) : null;
+  if (doorMeshes) { const f = doorMeshes.fenceItems(); if (f.length) kits.add('prop.fence', f, { cull: 110 }); }
   await kits.build(s => grayObjects(scene, s, P));
   timing.kits = Math.round(performance.now() - t0);
   // 下草・落ち葉・電線
@@ -93,6 +97,13 @@ export async function buildScene({ layout, hf, spec, P, canvas, onProgress = () 
   const route = new THREE.Line(routeGeo, new THREE.LineBasicMaterial({ color: 0x9fe6ff, transparent: true, opacity: 0.7, fog: false })); route.frustumCulled = false; scene.add(route);
   const beams = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.16, 0.16, 30, 8, 1, true).translate(0, 15, 0), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.1, depthWrite: false, fog: false }), layout.goals.length);
   scene.add(beams);
+  // フェーズ 4：敵・窓の光の筋・家の中の明かり（照り返しの代わり：家の中にいる時だけ強くする点の光。光の数を変えるとシェーダーを作り直すので、いつも置いて強さだけ変える）
+  const enemyMesh = enemy ? new EnemyMesh(scene, P) : null;
+  const shafts = P.shafts === false ? null : lightShafts(scene, layout, sun.light, P);
+  const fill = P.interiorFill === false ? null : new THREE.PointLight(new THREE.Color(1.0, 0.86, 0.7), 0, 9, 1.4);
+  if (fill) { fill.castShadow = false; scene.add(fill); }
+  const hemiBase = hemi.intensity, hemiSky = hemi.color.clone(), hemiGround = hemi.groundColor.clone();
+  if (doorMeshes) doorMeshes.update();
   // 後処理
   const post = P.post ? new Post(renderer, P) : null;
   onProgress(bank.done, bank.pending, '材質の読み込みを待っています');
@@ -112,7 +123,14 @@ export async function buildScene({ layout, hf, spec, P, canvas, onProgress = () 
   timing.compile = Math.round(performance.now() - t0);
   const far = camera.far, clock = { t: 0 };
   const S = {
-    renderer, scene, camera, terrain, player, hand, flash, route, beams, sunL, hemi, fogD, bank, kits, cover, leaves, post, timing, sunDir: sun.light,
+    renderer, scene, camera, terrain, player, hand, flash, route, beams, sunL, hemi, fogD, bank, kits, cover, leaves, post, timing, sunDir: sun.light, doorMeshes, enemyMesh, shafts, fill, inside: 0,
+    /** 家の中の明かり：room＝今いる部屋（{ center, ceilY }）か null。なめらかに入れ替える（照り返しの代わり） */
+    setInterior(room, dt) {
+      const k = Math.min(1, dt * 2.5), want = room ? 1 : 0; this.inside += (want - this.inside) * (dt > 0 ? k : 1);
+      const a = this.inside;
+      hemi.intensity = hemiBase * (1 + 0.6 * a); hemi.groundColor.copy(hemiGround).lerp(new THREE.Color(0.42, 0.33, 0.24), a); hemi.color.copy(hemiSky).lerp(new THREE.Color(0.62, 0.6, 0.66), a * 0.6);
+      if (fill) { if (room) fill.position.set(room.center[0], room.ceilY - 0.45, room.center[2]); fill.intensity = 3.2 * a; }
+    },
     setFog(on) { scene.fog.density = on ? fogD : 0; camera.far = on ? far : 1600; camera.updateProjectionMatrix(); },
     /** 影の箱を人に合わせる（日の向きは変えない） */
     sunFollow(x, y, z) { const R = (P.shadowRange || 40) * 0.5; const s = 150; sunL.target.position.set(x + R * 0, y, z); sunL.position.copy(sunL.target.position).addScaledVector(sun.light, s); },
@@ -120,6 +138,9 @@ export async function buildScene({ layout, hf, spec, P, canvas, onProgress = () 
     /** 1 フレーム描く → { calls, triangles } */
     draw(dt = 0) {
       clock.t += dt; windUniforms.uWindTime.value = clock.t; sky.material.uniforms.uTime.value = clock.t;
+      camera.updateMatrixWorld(); const sv = sun.light.clone().transformDirection(camera.matrixWorldInverse); windUniforms.uSunView.value[0] = sv.x; windUniforms.uSunView.value[1] = sv.y; windUniforms.uSunView.value[2] = sv.z;
+      if (shafts) shafts.material.uniforms.uTime.value = clock.t;
+      if (doorMeshes) doorMeshes.update();
       sky.position.copy(camera.position); sky.scale.setScalar(camera.far * 0.9);
       kits.update(camera); cover.update(camera);
       if (post) { const r = post.render(scene, camera); return { calls: r.calls, triangles: r.tris, sceneCalls: r.sceneCalls }; }

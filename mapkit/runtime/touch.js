@@ -1,11 +1,12 @@
-// タッチ操作（横向き）：左の円で移動・右をなぞって視点・ボタン（走・視・灯・次）。
+// タッチ操作（横向き）：左の円で移動・右をなぞって視点・ボタン（走・視・灯・次）。フェーズ 4：戸の近くで「開」・右上の「‖」で一時停止。
 // 境界侵食の shinshoku/ui/touch.js は戦いのボタン（斬・銃・化…）と作品の game に結びついているので使わず、
 // 同じ入力の器（shinshoku/core/input.js の Input の touch 欄：active・move・lookX/lookY・held・pressQ）に書く小さな物をここに置いた。
 export function setupTouch(root, input, on = {}) {
   const T = input.touch; T.pressQ = T.pressQ || []; T.held = T.held || new Set();
   const wrap = document.createElement('div'); wrap.id = 'mk-touch';
   wrap.innerHTML = `<div class="mk-stick"><div class="mk-knob"></div></div>
-    <div class="mk-tbtns"><button data-a="run">走</button><button data-a="view">視</button><button data-a="light">灯</button><button data-a="next">次</button></div>`;
+    <div class="mk-tbtns"><button data-a="run">走</button><button data-a="view">視</button><button data-a="light">灯</button><button data-a="next">次</button></div>
+    <button class="mk-use" data-a="use" hidden>開</button><button class="mk-pausebtn" data-a="pause" aria-label="一時停止">‖</button>`;
   root.appendChild(wrap);
   const stick = wrap.querySelector('.mk-stick'), knob = wrap.querySelector('.mk-knob'), R = 56;
   let sid = null, sx = 0, sy = 0, lid = null, lx = 0, ly = 0;
@@ -28,5 +29,6 @@ export function setupTouch(root, input, on = {}) {
   }, { passive: false });
   const end = e => { for (const t of e.changedTouches) { if (t.identifier === sid) { sid = null; T.move.x = T.move.y = 0; knob.style.transform = ''; stick.classList.remove('on'); } if (t.identifier === lid) lid = null; } e.preventDefault(); };
   wrap.addEventListener('touchend', end, { passive: false }); wrap.addEventListener('touchcancel', end, { passive: false });
-  return { el: wrap, runOn: () => wrap.querySelector('[data-a="run"]').classList.contains('on') };
+  const use = wrap.querySelector('[data-a="use"]');
+  return { el: wrap, runOn: () => wrap.querySelector('[data-a="run"]').classList.contains('on'), setUse(on) { if (use.hidden === on) use.hidden = !on; } };
 }

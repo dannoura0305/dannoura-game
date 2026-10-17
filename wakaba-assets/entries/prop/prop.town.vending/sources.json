@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.town.vending",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.town.vending.fbx",
+   "storage": "local-ignored",
+   "sha256": "9ca0159fff8c5b6b6c586e1011f16d9d6e15598ff4ecad8194b1ed90b9d0978c",
+   "bytes": 29516,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_town.py --only prop.town.vending"
+  }
+ ]
+}

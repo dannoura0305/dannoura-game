@@ -137,6 +137,7 @@
       "properties": {
         "time": { "enum": ["dawn", "day", "dusk", "night"] },
         "sunElevDeg": { "type": "number", "minimum": -90, "maximum": 90 },
+        "sunLightDeg": { "type": "number", "minimum": 2, "maximum": 60, "description": "フェーズ 4：光（影）の高さ（度）。無ければ max(sunElevDeg, 9)。?sun=<度> で試せる" },
         "fog": { "type": "object", "properties": { "density": { "type": "number", "minimum": 0 }, "heightFalloff": { "type": "number", "minimum": 0 }, "color": { "$ref": "#/$defs/color" } } },
         "rain": { "type": "boolean" }
       }
@@ -147,11 +148,38 @@
         "start": { "$ref": "#/$defs/xz" },
         "goals": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "<建物 id>.door|front|center、または anchors の id" },
         "enemies": {
-          "type": "array",
+          "type": "array", "description": "敵（フェーズ 4）。出る所・巡回の点は立入禁止（スタート・扉の前・目的地）の外で、歩いて届く所（validate.js の auto.gameplay が確かめる）",
           "items": {
-            "type": "object", "required": ["ai", "spawn"],
-            "properties": { "ai": { "type": "string", "pattern": "^[a-z0-9_]+:[a-z0-9_]+$", "description": "<作品>:<AI の名前>（作品専用の物は作品側）" }, "spawn": { "$ref": "#/$defs/xz" }, "chase": { "type": "boolean" } }
+            "type": "object", "required": ["ai", "spawn"], "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9_.]+$" },
+              "ai": { "type": "string", "pattern": "^[a-z0-9_]+:[a-z0-9_]+$", "description": "<作品>:<AI の名前>（作品専用の物は作品側）。試験マップの異形＝mapkit:ikei" },
+              "spawn": { "$ref": "#/$defs/xz" }, "chase": { "type": "boolean" },
+              "route": { "type": "array", "items": { "$ref": "#/$defs/xz" }, "description": "巡回の点（順にまわり、最後から最初へ戻る）" },
+              "speed": { "type": "object", "additionalProperties": false, "properties": { "patrol": { "type": "number", "minimum": 0, "maximum": 8 }, "investigate": { "type": "number", "minimum": 0, "maximum": 8 }, "chase": { "type": "number", "minimum": 0, "maximum": 8 }, "search": { "type": "number", "minimum": 0, "maximum": 8 } } },
+              "sight": { "type": "object", "additionalProperties": false, "properties": { "range": { "type": "number", "minimum": 0, "maximum": 80 }, "fov": { "type": "number", "minimum": 10, "maximum": 360 }, "lightRange": { "type": "number", "minimum": 0, "maximum": 120 }, "near": { "type": "number", "minimum": 0, "maximum": 10 } } },
+              "hear": { "type": "object", "additionalProperties": false, "properties": { "walk": { "type": "number", "minimum": 0, "maximum": 60 }, "run": { "type": "number", "minimum": 0, "maximum": 60 }, "door": { "type": "number", "minimum": 0, "maximum": 60 } } },
+              "catchR": { "type": "number", "minimum": 0.3, "maximum": 3 }, "loseT": { "type": "number", "minimum": 0 }, "searchT": { "type": "number", "minimum": 0 }
+            }
           }
+        },
+        "doors": {
+          "type": "array", "description": "開け閉めできる戸（フェーズ 4）。id＝建物の扉（<建物>.door）・仕切りの開口（<建物>.part<n>）・外の門（at が要る）。開いた形で目的地に届くこと（validate.js）",
+          "items": {
+            "type": "object", "required": ["id"], "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9_]+\\.[a-z0-9_]+$" },
+              "kind": { "enum": ["sliding", "fusuma", "shoji", "hinged"], "description": "引き戸・襖・障子・開き戸（木戸）" },
+              "initial": { "enum": ["open", "closed"] }, "locked": { "type": "boolean" },
+              "at": { "$ref": "#/$defs/xz" }, "rotY": { "type": "number" }, "onPath": { "type": "string", "description": "道の id：道の向きに合わせ、道の上に置く" }, "snap": { "type": "boolean" },
+              "width": { "type": "number", "minimum": 0.6, "maximum": 4 }, "height": { "type": "number", "minimum": 0.8, "maximum": 3 }, "fence": { "type": "number", "minimum": 0, "maximum": 4 },
+              "hinge": { "enum": ["left", "right"] }, "slide": { "enum": [-1, 1] }, "face": { "enum": [-1, 1] }
+            }
+          }
+        },
+        "checkpoints": {
+          "type": "array", "description": "チェックポイント（フェーズ 4）。スタートは自動で最初に入る",
+          "items": { "type": "object", "required": ["id", "at"], "additionalProperties": false, "properties": { "id": { "type": "string", "pattern": "^[a-z0-9_.]+$" }, "ja": { "type": "string" }, "at": { "$ref": "#/$defs/xz" }, "r": { "type": "number", "minimum": 0.5, "maximum": 20 } } }
         },
         "boundary": { "enum": ["invisible_wall", "invisible_wall_on_cliff", "fall_respawn", "none"] }
       }

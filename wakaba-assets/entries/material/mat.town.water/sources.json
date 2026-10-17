@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.water",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.water_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "1051c247d59d31848a75c443e4568b2a0650dab5d1c6c8dbce4688430f9f3aab",
+   "bytes": 372193,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.water"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.water_normal.png",
+   "storage": "local-ignored",
+   "sha256": "5f9a5dd48f1c189bf6c4ae1955bf85782cffe2563b71406bf81cd64f3583989d",
+   "bytes": 2039268,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.water"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.water_orh.png",
+   "storage": "local-ignored",
+   "sha256": "0f60307d1401abc9c36d41f0e9db30b4228f4781f0d0ac47f3f4967649ae7439",
+   "bytes": 2177785,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.water"
+  }
+ ]
+}

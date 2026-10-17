@@ -54,7 +54,22 @@ export function checkSpec(spec, { fileExists } = {}) {
   const g = spec.gameplay || {};
   if (g.start && !inside(g.start, size)) E('/gameplay/start', 'スタートがマップの外');
   (g.goals || []).forEach((goal, i) => { const r = resolveGoal(spec, goal); if (r.error) E(`/gameplay/goals/${i}`, r.error); });
-  (g.enemies || []).forEach((e, i) => { if (!inside(e.spawn, size)) E(`/gameplay/enemies/${i}/spawn`, '出る位置がマップの外'); });
+  (g.enemies || []).forEach((e, i) => {
+    if (!inside(e.spawn, size)) E(`/gameplay/enemies/${i}/spawn`, '出る位置がマップの外');
+    (e.route || []).forEach((q, j) => { if (!inside(q, size)) E(`/gameplay/enemies/${i}/route/${j}`, `巡回の点 ${JSON.stringify(q)} がマップの外`); });
+    if (e.id) reg(e.id, `/gameplay/enemies/${i}/id`);
+    if (e.speed && e.speed.chase != null && e.speed.chase >= 5.2) W(`/gameplay/enemies/${i}/speed/chase`, `追う速さ ${e.speed.chase}m/s がプレイヤーの走り（5.2m/s）以上：逃げられない`);
+  });
+  // 戸（フェーズ 4）：建物の扉は入れる家か・仕切りの開口は建物の型にあるか・外の門は at が要る
+  const doorIds = new Set();
+  (g.doors || []).forEach((d, i) => {
+    if (doorIds.has(d.id)) E(`/gameplay/doors/${i}/id`, `戸の id「${d.id}」が重複`); doorIds.add(d.id);
+    const m = /^([a-z0-9_]+)\.([a-z0-9_]+)$/.exec(d.id), b = m && (spec.buildings || []).find(x => x.id === m[1]);
+    if (b && m[2] === 'door' && b.enterable !== true) E(`/gameplay/doors/${i}`, `建物 ${b.id} は入れない家なので扉がない`);
+    else if (b && /^part\d+$/.test(m[2]) && b.kind !== 'jp_house_abandoned') E(`/gameplay/doors/${i}`, `建物 ${b.id}（${b.kind}）には仕切りの開口がない`);
+    else if (!b) { if (!d.at) E(`/gameplay/doors/${i}`, `戸「${d.id}」は建物の扉・開口でないので at が要る`); else if (!inside(d.at, size)) E(`/gameplay/doors/${i}/at`, '門がマップの外'); if (d.kind && d.kind !== 'hinged') W(`/gameplay/doors/${i}/kind`, '外の門は開き戸（hinged）の想定'); }
+  });
+  (g.checkpoints || []).forEach((c, i) => { if (!inside(c.at, size)) E(`/gameplay/checkpoints/${i}/at`, 'チェックポイントがマップの外'); });
   // 範囲の並び（[下, 上]）
   const ranges = [];
   ((spec.terrain || {}).materials || []).forEach((m, i) => { for (const k of ['slope', 'height']) if (m.where && m.where[k]) ranges.push([`/terrain/materials/${i}/where/${k}`, m.where[k]]); });

@@ -1,0 +1,91 @@
+{
+ "id": "prop.int.hospital_bed",
+ "version": 1,
+ "name": {
+  "ja": "病院のベッド",
+  "en": "Hospital bed"
+ },
+ "category": "prop",
+ "tags": [
+  "ベッド",
+  "屋内",
+  "病院",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/kit/build_kit_town.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/shinshoku/IMPLEMENTATION_STATUS.md"
+ },
+ "tech": {
+  "formats": [
+   "glb",
+   "fbx"
+  ],
+  "tris": 584,
+  "lods": [
+   584,
+   232
+  ],
+  "sizeM": [
+   0.96,
+   1.199,
+   2.02
+  ],
+  "pivot": "bottom_center",
+  "collision": "box",
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness"
+  ],
+  "fileBytes": 106144
+ },
+ "use": [
+  "境界侵食（shinshoku）の町と屋内"
+ ],
+ "status": "draft",
+ "kit": {
+  "kit": "wakaba-kit/1",
+  "nodes": {
+   "LOD0": 584,
+   "LOD1": 232
+  },
+  "variants": 1,
+  "lodDist": [
+   18
+  ],
+  "impostor": false,
+  "materials": [
+   "mat.int.wood_floor",
+   "mat.town.paint#beige",
+   "mat.town.paint#chrome",
+   "mat.town.paint#dark",
+   "mat.town.paint#steel",
+   "mat.town.paint#white"
+  ],
+  "vertexColor": "COLOR_0＝AO（焼き込み）",
+  "note": "節の名前 LOD<n>（種類が複数なら v<k>_LOD<n>）・IMP＝遠景の十字の板（画像は glb の中）。材質は id の名前で共有の PBR 材質に差し替える"
+ },
+ "history": [
+  {
+   "at": "2026-10-17",
+   "by": "claude-code",
+   "change": "tools/blender/kit/build_kit_town.py（pieces_town.py）で生成（境界侵食 P12：環境の写実化）"
+  }
+ ]
+}

@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.shutter",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.shutter_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "996c46dbbdf5fe8da33750e09f1c69f870ab695ab665c347ec5fb1fa8499672c",
+   "bytes": 694848,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.shutter"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.shutter_normal.png",
+   "storage": "local-ignored",
+   "sha256": "4b54b6cbd70eca536cb5b4dcbaaecdf2cb331d550354981485bb2271592da284",
+   "bytes": 934591,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.shutter"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.shutter_orh.png",
+   "storage": "local-ignored",
+   "sha256": "75f92a71af9fd93208ab1becb3d90f4224f785cc2d682c784c9f1141d8d059ec",
+   "bytes": 1162109,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.shutter"
+  }
+ ]
+}

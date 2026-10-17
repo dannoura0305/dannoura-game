@@ -1,0 +1,89 @@
+{
+ "id": "prop.town.bicycle",
+ "version": 1,
+ "name": {
+  "ja": "ママチャリ（前かご・荷台）",
+  "en": "City bicycle"
+ },
+ "category": "prop",
+ "tags": [
+  "自転車",
+  "町",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/kit/build_kit_town.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/shinshoku/IMPLEMENTATION_STATUS.md"
+ },
+ "tech": {
+  "formats": [
+   "glb",
+   "fbx"
+  ],
+  "tris": 1604,
+  "lods": [
+   1604,
+   480
+  ],
+  "sizeM": [
+   1.604,
+   1.028,
+   0.62
+  ],
+  "pivot": "bottom_center",
+  "collision": "none",
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness"
+  ],
+  "fileBytes": 176940
+ },
+ "use": [
+  "境界侵食（shinshoku）の町と屋内"
+ ],
+ "status": "draft",
+ "kit": {
+  "kit": "wakaba-kit/1",
+  "nodes": {
+   "LOD0": 1604,
+   "LOD1": 480
+  },
+  "variants": 1,
+  "lodDist": [
+   18
+  ],
+  "impostor": false,
+  "materials": [
+   "mat.town.paint#black",
+   "mat.town.paint#chrome",
+   "mat.town.paint#steel",
+   "mat.town.paint#tint",
+   "mat.town.paint#tire"
+  ],
+  "vertexColor": "COLOR_0＝AO（焼き込み）",
+  "note": "節の名前 LOD<n>（種類が複数なら v<k>_LOD<n>）・IMP＝遠景の十字の板（画像は glb の中）。材質は id の名前で共有の PBR 材質に差し替える"
+ },
+ "history": [
+  {
+   "at": "2026-10-17",
+   "by": "claude-code",
+   "change": "tools/blender/kit/build_kit_town.py（pieces_town.py）で生成（境界侵食 P12：環境の写実化）"
+  }
+ ]
+}

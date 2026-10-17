@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.arcade_tile",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.arcade_tile_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "b12853a12022773a7ebc4781c9dd0b6107ef0d7cb3767c161fc119299bf96dfe",
+   "bytes": 777850,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.arcade_tile"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.arcade_tile_normal.png",
+   "storage": "local-ignored",
+   "sha256": "a81dc073d6de6ab5bd8a952793dc419ced9c1631fe44c511ac414d4ed0ded346",
+   "bytes": 900820,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.arcade_tile"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.arcade_tile_orh.png",
+   "storage": "local-ignored",
+   "sha256": "af1ac122f7fb2009d7db92a80a6889c8d4cf8ef7ac7974d13f213601c1d71ccc",
+   "bytes": 1394409,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.arcade_tile"
+  }
+ ]
+}

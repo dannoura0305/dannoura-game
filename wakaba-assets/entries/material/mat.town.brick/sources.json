@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.brick",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.brick_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "804418b595aa69ddc408a776b00353b57115918b0a006db79c7f9c88f2ab75b3",
+   "bytes": 724964,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.brick"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.brick_normal.png",
+   "storage": "local-ignored",
+   "sha256": "b760a3e5c0b785d51f8ba272a87fc0c6f566acfd0b66ba1cb9bc778ac10ae639",
+   "bytes": 1602857,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.brick"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.brick_orh.png",
+   "storage": "local-ignored",
+   "sha256": "396c8c6aa825858cae3a30fe7d7cc2eb18df1aa91bac4e0e7bcb68ac32cacb77",
+   "bytes": 1551096,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.brick"
+  }
+ ]
+}

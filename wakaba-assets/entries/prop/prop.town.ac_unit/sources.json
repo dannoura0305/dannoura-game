@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.town.ac_unit",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.town.ac_unit.fbx",
+   "storage": "local-ignored",
+   "sha256": "0efe9db1a4fba0af8dc512c5492e0394c7156a2aee1d965f33b32c3335350727",
+   "bytes": 30156,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_town.py --only prop.town.ac_unit"
+  }
+ ]
+}

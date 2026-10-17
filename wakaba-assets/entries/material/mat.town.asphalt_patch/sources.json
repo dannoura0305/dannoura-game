@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.asphalt_patch",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.asphalt_patch_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "37932a9b6c0d72f1ff7cb49b275dd454fc09113d4e48c6d83c1272344985e986",
+   "bytes": 1672199,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.asphalt_patch"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.asphalt_patch_normal.png",
+   "storage": "local-ignored",
+   "sha256": "355fa3b45431a32581636e06e6c11405a94e7b61c83f83788b3202eab7d69287",
+   "bytes": 2027521,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.asphalt_patch"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.asphalt_patch_orh.png",
+   "storage": "local-ignored",
+   "sha256": "7d9aff4180cedac5c5dfcbb56873b760a1e735804714a364dc3bbe1d71b4aab6",
+   "bytes": 2186418,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.asphalt_patch"
+  }
+ ]
+}

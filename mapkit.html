@@ -25,9 +25,23 @@
   </div>
   <div id="mk-arrow" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M20 3 L33 30 L20 23 L7 30 Z" fill="#9fe6ff" stroke="#08202a" stroke-width="2"/></svg></div>
   <div id="mk-msg"></div>
-  <div id="mk-help">WASD：移動／Shift：走る／マウス：視点（クリックで固定）／V：一人称・三人称／L：灯り／N：次の目的地。光の線と柱が道案内です。</div>
+  <div id="mk-help">WASD：移動／Shift：走る／マウス：視点（クリックで固定）／E：戸を開け閉め／L：灯り／V：一人称・三人称／N：次の目的地／Esc・P：一時停止。光の線と柱が道案内です。</div>
+  <div id="mk-prompt" hidden></div>
+  <div id="mk-threat"></div>
   <pre id="mk-perf"></pre>
 </div>
+<div id="mk-fade"></div>
+<div id="mk-pause" hidden><div class="box">
+  <h2>一時停止</h2>
+  <button id="mk-resume">再開する</button>
+  <button id="mk-respawn">最後のチェックポイントから</button>
+  <button id="mk-restart">最初からやり直す</button>
+  <label>画質 <select id="mk-pause-preset"></select></label>
+  <label>日の高さ <select id="mk-pause-sun"><option value="">地図の値（9°）</option><option value="6">6°（とても低い）</option><option value="12">12°</option><option value="18">18°</option><option value="28">28°（昼に近い）</option></select></label>
+  <label>敵を出す <input type="checkbox" id="mk-pause-enemy"></label>
+  <label>音 <input type="checkbox" id="mk-pause-audio"></label>
+  <small style="opacity:.6">画質・日の高さ・敵は読み直します</small>
+</div></div>
 <noscript><p style="color:#fff;padding:2em">JavaScript を有効にしてください。</p></noscript>
 <script type="module" src="mapkit/runtime/main.js"></script>
 </body>

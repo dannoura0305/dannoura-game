@@ -53,6 +53,13 @@ import { buildDannouraWhite } from './actor/models3.js';
 import { setDetail } from './actor/skin.js';
 import { normalizeRoute } from './story/route.js';
 import { TOWN, TOWN_LAYOUT, HOME_O as TOWN_HOME, inHome, migrateTownPos, navNext } from './data/town.js';
+// P12（環境の写実化）：町と屋内の PBR の材質・色の調整・雨の跳ね・ブルーム（PC の高い段）・Blender の部品
+import { envInit, envLoad, envApplyGrade, envTick, ENV, U as ENV_U } from './render/envmat.js';
+import { gradeAt } from './data/envgrade.js';
+import { RainSplash } from './render/envfx.js';
+import { GroundReflection } from './render/envrefl.js';
+import { Post } from '../mapkit/render/post.js';
+import { envKitInit, envKitLoad, envKitApply, envKitUpdate, KIT } from './world/envkit.js';
 
 const DT = 1 / 60;
 /** 場所の移動の暗転で出す小さな助言（操作・遊び方。物語の内容は書かない） */
@@ -93,6 +100,7 @@ class Game {
     const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: P0.antialias, powerPreference: 'high-performance' });
     r.setClearColor(0x0c0a16);
     r.shadowMap.type = THREE.PCFShadowMap; r.shadowMap.enabled = !!this.settings.shadows;     // 影の有無はシェーダーの種類を変えるので先に決める（先に作るシェーダーを無駄にしない）
+    { const t0 = performance.now(); envInit(r, P0); envKitInit(P0); this.envMs = Math.round(performance.now() - t0); }        // P12：PBR の材質（段で決める・区画を組み立てる前に）
     this.scene = new THREE.Scene();
     this.scene.fog = new THREE.FogExp2(0x100c1c, 0.045);
     this.scene.background = new THREE.Color(0x0c0a16);
@@ -114,6 +122,9 @@ class Game {
     this.fx = new Fx(this.scene); this.rain = new Rain(this.scene, Math.max(200, P0.rainN || 400));
     this.halos = new Halos(720); this.scene.add(this.halos.mesh);
     this.wet = new WetStreaks(160); this.scene.add(this.wet.mesh);
+    if (P0.splash) { this.splash = new RainSplash(P0.rainN > 1000 ? 260 : 180); this.scene.add(this.splash.mesh); }
+    if (P0.refl) this.refl = new GroundReflection(P0.refl);
+    if (P0.post) { this.post = new Post(r, { post: P0.post }); this.post.mBright.uniforms.uThresh.value = 0.72; this.post.mComp.uniforms.uBloom.value = 0.5; this.post.mComp.uniforms.uVig.value = 0.3; }
     this.trail = new SwordTrail(36); this.scene.add(this.trail.mesh);
     this.flashHalo = -1;
     // 状態
@@ -207,6 +218,7 @@ class Game {
       for (const w of r.wet || []) { A.wet.push(w); if (live) w.idx = this.wet.add(w.p, w.size, w.color, w.k); }
       for (const l of r.lights || []) A.lights.push(Object.assign({ base: l.intensity }, l));
       if (r.after) r.after(this);
+      if (r.kitItems && r.kitItems.length) { (A.kitItems || (A.kitItems = [])).push(...r.kitItems); envKitApply(A); }
       if (r.root) r.root.traverse(o => { if (o.userData.isEdgeLines) o.visible = this.settings.outline && this.settings.edges !== false; });
       A.mapImg = null;                                              // ミニマップの下絵は作り直す
       (this.bootMs || (this.bootMs = {})).pending = (this.bootMs.pending || 0) + Math.round(performance.now() - t0);
@@ -232,7 +244,7 @@ class Game {
     const fog = A.fog || { color: 0x100c1c, density: 0.045 };
     this.scene.fog.color.setHex(fog.color); this.scene.fog.density = fog.density; this.scene.background.setHex(fog.color);
     this.halos.uniforms.uFog.value = fog.density; this.wet.uniforms.uFog.value = fog.density;
-    { const LT = A.light || { hemi: 1.1, amb: 0.6 }; this.hemi.intensity = LT.hemi; this.amb.intensity = LT.amb; }   // 区画ごとの空と周りの明かり（病院は弱く：白く飛ばない）
+    { const LT = A.light || { hemi: 1.1, amb: 0.6 }, k = ENV.pbr ? ENV.ambK : 1; this.hemi.intensity = LT.hemi * k; this.amb.intensity = LT.amb * k; }   // P12：PBR の段は環境の光（IBL）があるので空と周りの明かりを弱く   // 区画ごとの空と周りの明かり（病院は弱く：白く飛ばない）
     this.halos.clear(); for (const h of A.halos) h.idx = this.halos.add(h.p, h.size, h.color, h.k);
     this.flashHalo = this.halos.add([0, -50, 0], 0.4, 0xfff0d0, 0);
     this.wet.clear(); for (const w of A.wet) w.idx = this.wet.add(w.p, w.size, w.color, w.k);
@@ -264,6 +276,7 @@ class Game {
     this.exitArmed = false; this.wasInHome = null;
     this.sfx.setAmbience(A.amb || (id === 'shotengai' ? (streetState(this.story.step) === 'normal' && !this.flags.lights_out ? 'street_normal' : 'street') : 'street'));
     this.rain.mesh.visible = !!A.rain && this.settings.rain;
+    envKitApply(A);                                                   // P12：Blender の部品（読めていれば）
   }
   changeArea(to, spawn) {
     this.ui.fade(true, { title: (AREA_GRAPH[to] || {}).name || '', tip: LOAD_TIPS[(this.tipN = ((this.tipN ?? Math.floor(Math.random() * LOAD_TIPS.length)) + 1)) % LOAD_TIPS.length] }); this.sfx.play('door');
@@ -525,6 +538,8 @@ class Game {
     else if (this.bootMs && (this.bootMs.frames || (this.bootMs.frames = [])).length < 6) this.bootMs.frames.push(Math.round(performance.now()));
     if (this.portraitDue != null && --this.portraitDue <= 0) { this.portraitDue = null; setTimeout(() => { const t0 = performance.now(); try { this.makePortrait(); this.bootMs.portrait = [Math.round(t0), Math.round(performance.now() - t0)]; } catch (e) { console.warn('portrait', e); } }, 3500); }
     // 遠い所の組み立て：起動の直後（GPU がシェーダーを作っている間）は待ち、少し後か、近づいた時に
+    // P12：PBR の地図帳と部品は起動の後（最初のこまの 1.2 秒後）に読む＝起動を遅くしない
+    if (this.bootMs && this.bootMs.frame1 && !this.envLoadAsked && performance.now() - this.bootMs.frame1 > 1200) { this.envLoadAsked = true; const t0 = performance.now(); envLoad().then(ok => { this.bootMs.envAtlas = ok ? [Math.round(t0), Math.round(performance.now() - t0)] : 'none'; }); envKitLoad(this).then(n => { this.bootMs.kit = n; }); }
     if (this.area && this.area.pending && this.area.pending.length && this.bootMs && this.bootMs.frame1 && !this.cut.active) { const P = this.player.pos, near = P.x > 48 || P.z < -60; if (near || performance.now() - this.bootMs.frame1 > 2500) this.buildPending(this.area, 1); }
   }
   step() {
@@ -643,7 +658,7 @@ class Game {
   bark(key, dur = 3) { const b = (this.events.barks || {})[key]; if (!b) return; const sp = this.events.speakers[b.who] || {}; this.ui.bark(sp.name, b.text, sp.color, dur); }
   playEvent(id, done) { const lines = (this.events.events || {})[id]; if (!lines) { if (done) done(); return; } this.playLines(lines, done, id); }
   playLines(lines, done, id) { this.dialog = { lines, i: 0, done, id, prevMode: this.mode }; this.mode = 'dialog'; this.showLine(); }
-  showLine() { const d = this.dialog, L = d.lines[d.i]; const sp = (this.events.speakers || {})[L.who] || {}; this.ui.showLine(sp, L.text, L.who); }
+  showLine() { const d = this.dialog, L = d.lines[d.i]; const sp = (this.events.speakers || {})[L.who] || {}; this.ui.showLine(sp, L.text, L.who); if (this.cineSpeak) this.cineSpeak(L.who, L.text, Math.min(6, 0.4 + [...String(L.text || '')].length * 0.12)); }
   dialogNext() {
     const d = this.dialog; if (!d) return; this.sfx.play('ui');
     d.i++;
@@ -771,6 +786,8 @@ class Game {
   }
   resize() {
     const w = innerWidth, h = innerHeight; this.renderer.setSize(w, h, false); this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
+    if (this.post) this.post.setSize(w, h);
+    if (this.refl) this.refl.setSize(w, h, this.renderer.getPixelRatio());
     const rot = document.getElementById('sh-rotate'); if (rot) rot.hidden = !(this.settings.touchUI && h > w);
   }
 
@@ -794,7 +811,7 @@ class Game {
     const glassesPose = this.cinePlayerAnim === 'glasses' ? { pose: { spine: [0.05, 0, 0], head: [0.12, 0, 0], rightUpperArm: [-1.6, 0.3, -0.35], rightLowerArm: [-2.35, 0, 0], rightHand: [0.2, 0, 0.6], leftUpperArm: [0.05, 0, 0.12], leftLowerArm: [-0.2, 0, 0] }, rate: 0.25 } : null;
     const sitPose = glassesPose || this.cinePose7() || (this.cinePlayerAnim === 'sit' ? { pose: { hipsY: -0.42, leftUpperLeg: [-1.5, 0, 0.05], rightUpperLeg: [-1.5, 0, -0.05], leftLowerLeg: [1.5, 0, 0], rightLowerLeg: [1.5, 0, 0], spine: [-0.1, 0, 0], leftUpperArm: [0.1, 0, 0.2], rightUpperArm: [0.1, 0, -0.2], leftLowerArm: [-0.6, 0, 0], rightLowerArm: [-0.6, 0, 0], head: [0.05, 0, 0] }, rate: 0.2 } : null);
     if (this.cut.active && !this.cineMoves.some(m => m.tgt.kind === 'player')) P.speed = 0;
-    P.animate(pdt, { aimPitch: this.cam.pitch * 0.8, override: sitPose });
+    P.animate(pdt, { aimPitch: this.cam.pitch * 0.8, override: sitPose, look: this.lock && this.lock.hittable && this.lock.hittable() ? this.lock : null });
     const cp = this.camera.position;
     for (const e of this.enemies) {
       const dc = Math.hypot(e.pos.x - cp.x, e.pos.z - cp.z), far = !e.big && dc > PV.enemyFar; e.model.root.visible = !far;
@@ -874,7 +891,12 @@ class Game {
       P.aimWeak = this.enemies.some(e => { const wp = e.hittable() && this.weakPos(e); return wp && raySphereHit(o, d, wp, e.kind === 'shuuyou' ? 0.28 : 0.2); });
       for (const e of this.enemies) if (e.kind === 'kiro' && !e.mark) e.weakGlow = 0.35;
     } else { P.aimWeak = false; for (const e of this.enemies) if (e.kind === 'kiro' && !e.mark) e.weakGlow = 0; }
-    if (this.split7) this.renderSplit7(); else this.renderer.render(this.scene, this.camera);
+    // P12：色の調整（区画・場所）・水たまりの波紋の時間・雨の跳ね
+    envTick(dt); envApplyGrade(gradeAt(A.id, P.pos.x, P.pos.z, inHome), dt); envKitUpdate(A, this.camera);
+    if (this.splash) { const on = S.rain && A.rain && !this.cut.active; this.splash.mesh.visible = !!on; if (on) this.splash.update(dt, P.pos.x, P.pos.z, A.rainRoof, this.scene.fog.density); }
+    if (this.refl && this.presetVals().refl && !this.split7) { const pk = A.pending ? A.pending.length : 0; if (!A.poolsMesh || A.poolsPk !== pk) { A.poolsPk = pk; A.poolsMesh = []; A.root.traverse(o => { if (o.name === 'town_pools') A.poolsMesh.push(o); }); } this.refl.render(this.renderer, this.scene, this.camera, [this.rain.mesh, this.splash && this.splash.mesh, this.wet.mesh, this.trail.mesh, ...A.poolsMesh]); }
+    else if (this.refl) ENV_U.uReflOn.value = 0;
+    if (this.split7) this.renderSplit7(); else if (this.post && this.presetVals().post) this.post.render(this.scene, this.camera); else this.renderer.render(this.scene, this.camera);
     if (this.perfOn) this.perfTick(dt, steps);
   }
   /** 使い回しの点光源を近い明かりへ。ちらつき・消灯。光のにじみ・映り込みも明かりに合わせる */
