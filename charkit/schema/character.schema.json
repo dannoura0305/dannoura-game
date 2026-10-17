@@ -1,0 +1,612 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "charkit/schema/character.schema.json",
+  "title": "わかば キャラクター設定 v1",
+  "type": "object",
+  "required": [
+    "spec",
+    "id",
+    "name",
+    "skeleton",
+    "body",
+    "forms",
+    "shader",
+    "personality"
+  ],
+  "properties": {
+    "spec": {
+      "const": "wakaba-char/1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "name": {
+      "type": "object",
+      "required": [
+        "ja"
+      ],
+      "properties": {
+        "ja": {
+          "type": "string"
+        },
+        "en": {
+          "type": "string"
+        }
+      }
+    },
+    "project": {
+      "type": "string",
+      "description": "使う作品（例 shinshoku）。共通の素体は空"
+    },
+    "canon": {
+      "type": "object",
+      "description": "設定の正本への参照と、デザインで守ること（AI が勝手に変えない）",
+      "properties": {
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mustKeep": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mustNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "skeleton": {
+      "type": "string",
+      "enum": [
+        "wakaba-humanoid/1"
+      ]
+    },
+    "body": {
+      "type": "object",
+      "required": [
+        "heightM",
+        "sex"
+      ],
+      "properties": {
+        "heightM": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 3.0
+        },
+        "sex": {
+          "enum": [
+            "male",
+            "female",
+            "other",
+            "none"
+          ],
+          "description": "体の作りの基準（デザインの検査に使う）"
+        },
+        "headsTall": {
+          "type": "number",
+          "description": "頭身"
+        },
+        "shoulderWidthM": {
+          "type": "number"
+        },
+        "hipWidthM": {
+          "type": "number"
+        },
+        "footLengthM": {
+          "type": "number"
+        },
+        "handLengthM": {
+          "type": "number"
+        },
+        "legLengthM": {
+          "type": "number",
+          "description": "床から股まで"
+        }
+      }
+    },
+    "forms": {
+      "type": "object",
+      "description": "姿（紫・白など）ごとのモデルと差分。キーは姿の id",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "properties": {
+          "file": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "extraBones": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "shaderOverride": {
+            "type": "object"
+          },
+          "personalityOverride": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "shader": {
+      "$ref": "#/$defs/shader"
+    },
+    "expressions": {
+      "type": "object",
+      "properties": {
+        "custom": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^x_[a-zA-Z0-9]+$"
+          }
+        },
+        "lipsync": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "enum": [
+                "text_vowel",
+                "mfcc",
+                "amplitude",
+                "baked"
+              ]
+            },
+            "gain": {
+              "type": "number"
+            },
+            "offsetMs": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "correctives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "shape",
+          "bone",
+          "axis",
+          "fromDeg",
+          "toDeg"
+        ],
+        "properties": {
+          "shape": {
+            "type": "string"
+          },
+          "bone": {
+            "type": "string"
+          },
+          "axis": {
+            "enum": [
+              "x",
+              "y",
+              "z"
+            ]
+          },
+          "fromDeg": {
+            "type": "number"
+          },
+          "toDeg": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "colliders": {
+      "type": "array",
+      "description": "揺れ物が体に入らないための球・カプセル（骨に付ける）",
+      "items": {
+        "type": "object",
+        "required": [
+          "bone",
+          "radius"
+        ],
+        "properties": {
+          "bone": {
+            "type": "string"
+          },
+          "radius": {
+            "type": "number"
+          },
+          "tail": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 3,
+            "maxItems": 3
+          }
+        }
+      }
+    },
+    "secondary": {
+      "type": "object",
+      "properties": {
+        "maxAngleDeg": {
+          "type": "number",
+          "description": "揺れ物の行き過ぎの上限"
+        },
+        "maxSpeedDegS": {
+          "type": "number"
+        },
+        "settleS": {
+          "type": "number",
+          "description": "止まってから落ち着くまでの目安"
+        }
+      }
+    },
+    "personality": {
+      "$ref": "#/$defs/personality"
+    },
+    "license": {
+      "$ref": "wakaba-assets/asset-meta.schema.json#/$defs/license",
+      "description": "mapkit asset-meta の license と同じ形（verifiedBy は人だけ）"
+    }
+  },
+  "$defs": {
+    "color": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+    },
+    "material": {
+      "type": "object",
+      "properties": {
+        "base": {
+          "$ref": "#/$defs/color"
+        },
+        "shade": {
+          "$ref": "#/$defs/color"
+        },
+        "shade2": {
+          "$ref": "#/$defs/color"
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "softness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5
+        },
+        "shade2Threshold": {
+          "type": "number"
+        },
+        "rimK": {
+          "type": "number"
+        },
+        "specular": {
+          "type": "number"
+        },
+        "highlight": {
+          "type": "object",
+          "properties": {
+            "tex": {
+              "type": "string"
+            },
+            "strength": {
+              "type": "number"
+            },
+            "viewShift": {
+              "type": "number"
+            }
+          }
+        },
+        "irisDepthM": {
+          "type": "number"
+        },
+        "outline": {
+          "type": "boolean"
+        }
+      }
+    },
+    "shader": {
+      "type": "object",
+      "required": [
+        "model",
+        "materials",
+        "face",
+        "outline",
+        "env"
+      ],
+      "properties": {
+        "model": {
+          "const": "wakaba-toon/1"
+        },
+        "materials": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/material"
+          }
+        },
+        "face": {
+          "type": "object",
+          "properties": {
+            "shadowMode": {
+              "enum": [
+                "sdf",
+                "normal_transfer",
+                "flat",
+                "none"
+              ]
+            },
+            "sdfMap": {
+              "type": "string"
+            },
+            "normalSource": {
+              "enum": [
+                "ellipsoid",
+                "sphere",
+                "custom"
+              ]
+            },
+            "shadowColor": {
+              "$ref": "#/$defs/color"
+            }
+          }
+        },
+        "outline": {
+          "type": "object",
+          "properties": {
+            "widthPx": {
+              "type": "number"
+            },
+            "color": {
+              "$ref": "#/$defs/color"
+            },
+            "distanceFade": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "vertexWidthChannel": {
+              "enum": [
+                "r",
+                "g",
+                "b",
+                "a",
+                "none"
+              ]
+            },
+            "innerLines": {
+              "type": "boolean"
+            }
+          }
+        },
+        "rim": {
+          "type": "object",
+          "properties": {
+            "color": {
+              "$ref": "#/$defs/color"
+            },
+            "width": {
+              "type": "number"
+            },
+            "lightDependent": {
+              "type": "boolean"
+            }
+          }
+        },
+        "env": {
+          "type": "object",
+          "description": "場面に合わせる量（0=合わせない 1=場面の光のまま）",
+          "properties": {
+            "ambientInfluence": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "minLuma": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "夜でも顔が読める明るさの下限"
+            },
+            "backlightRimBoost": {
+              "type": "number"
+            },
+            "gradeInfluence": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "fogInfluence": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        }
+      }
+    },
+    "stateMod": {
+      "type": "object",
+      "description": "状態（緊張・疲れ・恐れ）が最大の時に掛ける倍率・足す量。0〜1 の状態の値で補間",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "personality": {
+      "type": "object",
+      "required": [
+        "locomotion",
+        "posture",
+        "gesture",
+        "reaction",
+        "face"
+      ],
+      "properties": {
+        "basis": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "どの設定からこの値にしたか（説明）"
+        },
+        "locomotion": {
+          "type": "object",
+          "properties": {
+            "walkSpeed": {
+              "type": "number",
+              "description": "m/s"
+            },
+            "runSpeed": {
+              "type": "number"
+            },
+            "dashSpeed": {
+              "type": "number"
+            },
+            "strideScale": {
+              "type": "number"
+            },
+            "cadenceScale": {
+              "type": "number"
+            },
+            "comHeightOffsetM": {
+              "type": "number",
+              "description": "重心（腰）の高さのずらし"
+            },
+            "comBob": {
+              "type": "number",
+              "description": "上下の揺れの倍率"
+            },
+            "armSwing": {
+              "type": "number"
+            },
+            "hipSway": {
+              "type": "number"
+            },
+            "accelS": {
+              "type": "number",
+              "description": "止まった所から歩きの速さまで"
+            },
+            "decelS": {
+              "type": "number"
+            },
+            "turnInPlaceDeg": {
+              "type": "number",
+              "description": "この角度より大きい向き替えはその場で回る動き"
+            },
+            "footForce": {
+              "type": "number",
+              "description": "着地の重さ（腰の沈み・音）"
+            }
+          }
+        },
+        "posture": {
+          "type": "object",
+          "properties": {
+            "spinePitchDeg": {
+              "type": "number"
+            },
+            "shoulderRollDeg": {
+              "type": "number"
+            },
+            "headTiltDeg": {
+              "type": "number"
+            },
+            "stanceWidth": {
+              "type": "number"
+            }
+          }
+        },
+        "gesture": {
+          "type": "object",
+          "properties": {
+            "amount": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "wristFlex": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "handHeight": {
+              "type": "number"
+            },
+            "fidget": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "reaction": {
+          "type": "object",
+          "properties": {
+            "latencyMs": {
+              "type": "number"
+            },
+            "startle": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "recoverS": {
+              "type": "number"
+            }
+          }
+        },
+        "face": {
+          "type": "object",
+          "properties": {
+            "expressiveness": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1.5
+            },
+            "blinkPerMin": {
+              "type": "number"
+            },
+            "gazeShiftPerMin": {
+              "type": "number"
+            },
+            "headEyeRatio": {
+              "type": "number",
+              "description": "視線を目と首でどう分けるか（0=目だけ 1=首だけ）"
+            }
+          }
+        },
+        "states": {
+          "type": "object",
+          "properties": {
+            "tension": {
+              "$ref": "#/$defs/stateMod"
+            },
+            "fatigue": {
+              "$ref": "#/$defs/stateMod"
+            },
+            "fear": {
+              "$ref": "#/$defs/stateMod"
+            }
+          }
+        }
+      }
+    }
+  },
+  "description": "docs/wakaba-charkit/06 §5。license は素材メタデータ（wakaba-assets/asset-meta.schema.json）の license と同じ形を参照する。中身のつながり（性別と体の寸法・states のキー・補正の形の名前・骨の名前）は charkit/core/validate.js が見る。"
+}

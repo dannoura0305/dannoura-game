@@ -1,0 +1,42 @@
+{
+ "id": "rock.test.unknown_license",
+ "version": 1,
+ "name": {
+  "ja": "試験用の小岩（作り物）"
+ },
+ "category": "rock",
+ "tags": [
+  "岩",
+  "試験"
+ ],
+ "source": {
+  "type": "unknown",
+  "url": "https://example.com/free-models"
+ },
+ "license": {
+  "id": "unknown",
+  "commercial": "unknown",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "user",
+  "verifiedAt": "2026-10-16"
+ },
+ "tech": {
+  "formats": [
+   "glb"
+  ],
+  "tris": 800,
+  "sizeM": [
+   1.2,
+   0.8,
+   1.0
+  ],
+  "pivot": "bottom_center",
+  "collision": "box"
+ },
+ "status": "quarantine",
+ "_note": "試験用の作り物（tests/wakaba-mapkit-gate.test.mjs）。実在の素材ではない"
+}

@@ -7,15 +7,8 @@ export const PRESETS = {
 };
 export const PRESET_KEYS = ['high', 'mid', 'low'];
 
-/** 端末の様子から段を選ぶ。env = { touch, w, h, dpr, cores, mem } */
-export function autoPreset(env = {}) {
-  const small = Math.min(env.w || 1280, env.h || 800) < 560;
-  if (env.touch && small) return 'low';
-  if (env.touch) return 'mid';
-  if ((env.cores && env.cores <= 2) || (env.mem && env.mem <= 2)) return 'low';
-  if ((env.cores && env.cores <= 4) || (env.dpr && env.dpr >= 2.5 && (env.w || 0) * (env.h || 0) > 2e6)) return 'mid';
-  return 'high';
-}
+/** 端末の様子から段を選ぶ（本体は共通の mapkit/render/quality.js へ移した・挙動は同じ。ここは再輸出） */
+export { autoPreset } from '../../mapkit/render/quality.js';
 /** 設定（settings）に段の値を流し込む。個別に変えた値は preset:'custom' として残す */
 export function applyPreset(settings, key) {
   const p = PRESETS[key] || PRESETS.high;

@@ -3,6 +3,7 @@
 // world/town.js の buildTown から道具（K）を受け取って同じ Builder へ入れる。配置は data/town.js（当たり判定も同じデータ：townSolids）。
 // 名前・看板・意匠はすべて独自（実在の地名・会社・建物の名前やロゴは使わない）。
 import * as THREE from 'three';
+import { machiyaDoors, lotEntrances, fillEntrances } from '../data/town.js';
 import { applyTile } from '../render/townmat.js';
 import { stopPosts, catenaryPoles, walkwayPosts, canopyColumns, signalPoles } from '../data/town.js';
 import { JP_FONT } from '../render/toon.js';
@@ -35,7 +36,7 @@ export function resample(P, max) {
 }
 
 export function makeTown2(K) {
-  const { B, T, tb, prop, signUV, pool, halos, lights, wet, spots, hideSpots, frame, win, roofGable, tree, car, bike, catenaryPts, wirePts, inPart, inRect, seeded } = K;
+  const { B, T, tb, prop, signUV, pool, halos, lights, wet, spots, hideSpots, frame, win, roofGable, tree, car, bike, catenaryPts, wirePts, inPart, inRect, seeded, doorFrame, glassDoor } = K;
   const glowB = (x, y, z, w, h, d, color, opt = {}) => B.box('glow', x, y, z, w, h, d, color, Object.assign({ edges: false }, opt));
   const glass = (x, y, z, w, h, d, color = 0x8aa0c0, opt = {}) => B.box('glass2', x, y, z, w, h, d, color, Object.assign({ edges: false }, opt));
   const signBox = (uv, x, y, z, w, h, d, face, opt = {}) => B.box('sign', x, y, z, w, h, d, 0xffffff, Object.assign({ uv, face, edges: false }, opt));
@@ -57,14 +58,16 @@ export function makeTown2(K) {
   }
   /** 町家（古い商家）：板壁・1 階の格子と暖簾・下屋の瓦・低い 2 階の虫籠窓と漆喰・袖壁・平入りの瓦屋根・屋根看板・行灯 */
   function machiya(L) {
-    const F = frame(L), r = seeded(L.id), W = F.W, D = Math.min(F.D, 12), h1 = 3.3, h2 = 2.6, H = h1 + h2;
-    const units = Math.max(1, Math.round(W / 9));
+    const F = frame(L), { doors, r } = machiyaDoors(L), W = F.W, D = Math.min(F.D, 12), h1 = 3.3, h2 = 2.6, H = h1 + h2;
     F.box('tex', W / 2, D / 2, H / 2, W - 0.1, D, H, 0xb08a6a, 'wood', { ts: 2, ao: true, edges: true });
-    for (let k = 0; k < units; k++) {
-      const u0 = k * W / units, uw = W / units, doorU = u0 + uw * (0.35 + r() * 0.3), dw = Math.min(2.0, uw * 0.3);
-      const lit = L.lit && (k === 0 || r() < 0.5);
-      for (const [a, b] of [[u0 + 0.35, doorU - dw / 2], [doorU + dw / 2, u0 + uw - 0.35]]) if (b - a > 0.3) F.box(lit ? 'texglow' : 'tex', (a + b) / 2, -0.06, 1.5, b - a, 0.08, 2.6, lit ? 0xc8a888 : 0xffffff, lit ? 'koshi_lit' : 'koshi', { ts: 1.0, tsy: 2.6 });
-      F.box(lit ? 'glow' : 'prop', doorU, 0.35, 1.2, dw, 0.06, 2.4, lit ? 0xd8a060 : 0x221a14);
+    for (const { u: doorU, w: dw, lit, u0, uw } of doors) {
+      for (const [a, b] of [[u0 + 0.35, doorU - dw / 2 - 0.12], [doorU + dw / 2 + 0.12, u0 + uw - 0.35]]) if (b - a > 0.3) F.box(lit ? 'texglow' : 'tex', (a + b) / 2, -0.06, 1.5, b - a, 0.08, 2.6, lit ? 0xc8a888 : 0xffffff, lit ? 'koshi_lit' : 'koshi', { ts: 1.0, tsy: 2.6 });
+      // フェーズ11：戸口（表の面の前に出す＝以前は壁の中に埋まって見えなかった）：格子戸 2 枚・太い枠・敷居・沓脱石
+      F.box(lit ? 'texglow' : 'tex', doorU, -0.06, 1.42, dw, 0.05, 1.6, lit ? 0xe0c8a0 : 0x7a6c60, 'win_shoji', { fit: true });     // 上：障子の入ったガラス戸（灯り）
+      F.box('tex', doorU, -0.07, 0.31, dw, 0.06, 0.62, 0x6a4a34, 'wood', { ts: 0.5 });                                                  // 下：腰板
+      F.box('prop', doorU, -0.11, 1.12, 0.07, 0.05, 2.2, 0x2a1c12);
+      doorFrame(F, doorU, -0.02, 0, dw, 2.24, 0x2a1c12, 0.12);
+      F.box('tex', doorU, -0.42, 0.06, Math.min(1.2, dw), 0.5, 0.12, 0xb8b4ac, 'stone', { ts: 0.6 });
       const nuv = signUV(L.sign.replace('（仮）', ''), { bg: hex(L.noren || 0x2a3a5a), fg: '#f2ead8', size: 40, serif: true, frame: false });
       frontSign(F, nuv, doorU, -0.14, 2.15, dw + 0.2, 0.85, 0.03);
       // 行灯
@@ -96,6 +99,7 @@ export function makeTown2(K) {
     // 1 階：玄関・ガラス（灯り）・ひさし
     F.box('texglow', W / 2, -0.06, 1.55, W - 2, 0.08, 2.9, L.office ? 0x8890a0 : 0xd0c8b8, L.office ? 'win_office' : 'win_office_lit', { ts: 2.6, tsy: 2.9 });
     F.box('prop', W / 2, -1.1, 3.25, Math.min(W * 0.6, 8), 2.2, 0.16, 0x34383e);
+    for (const e of lotEntrances(L)) { glassDoor(F, e.u, -0.08, e.w, 2.5, 2, true, 0x26282c); F.box('prop', e.u, -0.75, 0.012, e.w + 0.6, 1.3, 0.02, 0x2a2826); }   // フェーズ11：玄関（ガラスの両開き・枠・マット）
     { const [x, z] = F.at(W / 2, -1.6); glowB(x, 3.12, z, 1.4, 0.04, 0.3, 0xfff0d8); halos.push({ p: [x, 2.9, z], size: 1.6, color: 0xffe0b0, k: 0.5 }); pool(x, z, 3.2, 0xffe0b0, 0.25); }
     const uv = signUV(L.sign, { bg: L.office ? '#1a2a4a' : '#2a1a2a', fg: L.office ? '#d8e8ff' : '#ffe0a0', size: 40 });
     frontSign(F, uv, W / 2, -0.1, 3.9, Math.min(W - 2, 9), 0.7);
@@ -118,6 +122,11 @@ export function makeTown2(K) {
     for (let u = 1.0; u < W; u += 3.2) F.box('tex', u, -0.3, H / 2 + fh / 2, 0.3, 0.5, H - fh, 0xffffff, 'louver', { ts: 1, tsy: 2 });
     F.box('texglow', W / 2, -0.06, 1.6, W - 2, 0.08, 3.0, 0xd8d0c0, 'konbini', { ts: 3, tsy: 3 });
     F.box('prop', W / 2, -1.4, 3.4, W - 1, 2.8, 0.18, 0x2e3036);
+    for (const e of lotEntrances(L)) {   // フェーズ11：自動ドア（2 枚の引き戸・枠・上の「自動ドア」の灯り・マット）
+      glassDoor(F, e.u, -0.06, e.w, 2.6, 2, true, 0x2a2c30);
+      const auv = signUV('自動ドア', { bg: '#1a2a3a', fg: '#e8f4ff', size: 30, frame: false }); frontSign(F, auv, e.u, -0.14, 2.86, 1.2, 0.18, 0.02);
+      F.box('prop', e.u, -0.8, 0.012, e.w + 0.8, 1.4, 0.02, 0x2a2826);
+    }
     for (let u = 3; u < W - 2; u += 6) { const [x, z] = F.at(u, -1.8); glowB(x, 3.28, z, 1.0, 0.04, 0.6, 0xfff4e0); halos.push({ p: [x, 3.0, z], size: 1.4, color: 0xfff0d8, k: 0.45 }); }
     { const [x, z] = F.at(W / 2, -2.2); pool(x, z, 6, 0xfff0d8, 0.28); wet.push({ p: [x, 0, z - F.out[1] * 0.5], size: 2.4, color: 0xfff0d8, k: 0.6 }); lights.push({ id: 'dept_' + L.id, pos: [x, 3.0, z], color: 0xfff0d8, intensity: 8, dist: 12, town: true }); }
     const uv = signUV(L.sign, { bg: '#1a1420', fg: '#ffffff', size: 44, frameColor: '#c8a0ff' });
@@ -138,6 +147,17 @@ export function makeTown2(K) {
         B.box(lit ? 'texglow' : 'tex', side ? cx : x + 0.26, y, side ? z + 0.26 : cz, side ? w * 0.7 : 0.06, 1.2, side ? 0.06 : d * 0.7, lit ? 0xb8b0a0 : 0xffffff, { tile: lit ? 'win_office_lit' : 'win_office', ts: 2.4, tsy: 1.2, edges: false });
       }
       if (r() < 0.5) B.box('prop', cx + (r() - 0.5) * w * 0.4, h + 0.6, cz + (r() - 0.5) * d * 0.4, 2.4, 1.2, 1.6, 0x7a7e84, { edges: false });
+    }
+    // フェーズ11：道・広場に面した面の出入り口（鉄の戸・枠・ひさし・灯り）：data/town.js の fillEntrances
+    for (const e of fillEntrances(L, T)) {
+      const [ox, oz] = e.out, along = Math.abs(ox) < 0.5;
+      const DF = { alongX: along, out: e.out, at: (u, v) => [e.door[0] + (along ? u : 0) - v * ox, e.door[1] + (along ? 0 : u) - v * oz] };
+      DF.box = (key, u, v, y, a2, b2, hh, color, tile, opt = {}) => { const [x, z] = DF.at(u, v); return B.box(key, x, y, z, along ? a2 : b2, hh, along ? b2 : a2, color, Object.assign({ tile, edges: false }, opt)); };
+      DF.box('tex', 0, -0.05, 1.05, 1.0, 0.06, 2.1, 0xa0a8b0, 'panel', { fit: true });
+      DF.box('prop', 0.36, -0.1, 1.0, 0.04, 0.05, 0.2, 0xc8ccd0);
+      doorFrame(DF, 0, 0, 0, 1.0, 2.1, 0x4a4e54, 0.08);
+      DF.box('prop', 0, -0.5, 2.45, 1.6, 1.0, 0.08, 0x3a3c42);
+      const [lx, lz] = DF.at(0, -0.9); B.box('glow', lx, 2.38, lz, 0.4, 0.04, 0.12, 0xe8f0ff, { edges: false }); halos.push({ p: [lx, 2.3, lz], size: 1.0, color: 0xe8f0ff, k: 0.5 });
     }
   }
   /** 通行止め（中央通りの南の端） */

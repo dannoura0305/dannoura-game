@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mapkit/schema/map-spec.schema.json",
+  "title": "わかば 地図仕様 v1（wakaba-map/1）",
+  "description": "docs/wakaba-mapkit/07 §5 の地図仕様。anchors は docs/wakaba-charkit/05 §2 の追加。座標は [x, z]（m・マップの左下が 0,0）。中身のつながり（目的地・範囲・id の重複）は mapkit/core/spec.js が見る。",
+  "type": "object",
+  "required": ["spec", "id", "title", "seed", "size", "terrain", "gameplay"],
+  "properties": {
+    "spec": { "const": "wakaba-map/1" },
+    "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "title": { "type": "object", "required": ["ja"], "properties": { "ja": { "type": "string" }, "en": { "type": "string" } } },
+    "prompt": { "type": "string", "description": "利用者の日本語の指示（そのまま）" },
+    "seed": { "type": "string", "minLength": 1 },
+    "size": {
+      "type": "object", "required": ["w", "d"],
+      "properties": { "w": { "type": "number", "exclusiveMinimum": 0 }, "d": { "type": "number", "exclusiveMinimum": 0 }, "unit": { "const": "m" } }
+    },
+    "terrain": {
+      "type": "object", "required": ["source"],
+      "properties": {
+        "source": { "$ref": "#/$defs/terrainSource" },
+        "fallback": { "$ref": "#/$defs/terrainSource" },
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["type"],
+            "properties": {
+              "type": { "enum": ["cliff", "valley_flat", "river", "ridge", "plateau", "pond"] },
+              "path": { "type": "array", "items": { "$ref": "#/$defs/xz" }, "minItems": 2 },
+              "center": { "$ref": "#/$defs/xz" },
+              "radius": { "type": "number", "exclusiveMinimum": 0 },
+              "height": { "type": "number" },
+              "width": { "type": "number", "exclusiveMinimum": 0 },
+              "side": { "enum": ["north", "south", "east", "west"] },
+              "maxSlope": { "$ref": "#/$defs/slopeDeg" }
+            }
+          }
+        },
+        "materials": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["id", "where"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9_]+(\\.[A-Za-z0-9_]+)+$" },
+              "where": {
+                "type": "object",
+                "properties": {
+                  "slope": { "$ref": "#/$defs/range" },
+                  "height": { "$ref": "#/$defs/range" },
+                  "on": { "enum": ["paths", "buildings", "water", "cliffs"] },
+                  "mask": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["id", "kind", "width", "points"],
+        "properties": {
+          "id": { "$ref": "#/$defs/localId" },
+          "kind": { "enum": ["mountain_path", "shrine_approach", "road", "trail", "alley", "stairs_path"] },
+          "width": { "type": "number", "minimum": 0.5 },
+          "points": { "type": "array", "items": { "$ref": "#/$defs/xz" }, "minItems": 2 },
+          "maxSlope": { "$ref": "#/$defs/slopeDeg" }
+        }
+      }
+    },
+    "buildings": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["id", "kind", "at", "footprint"],
+        "properties": {
+          "id": { "$ref": "#/$defs/localId" },
+          "kind": { "type": "string", "pattern": "^[a-z0-9_]+$", "description": "部品の組み合わせの型（mapkit/pcg/buildings.js）。型が無い物はレポートの gaps に出る" },
+          "at": { "$ref": "#/$defs/xz" },
+          "rot": { "type": "number", "description": "度（Y 軸）" },
+          "footprint": { "type": "array", "items": { "type": "number", "exclusiveMinimum": 0 }, "minItems": 2, "maxItems": 2 },
+          "enterable": { "type": "boolean" },
+          "rooms": { "type": "array", "items": { "type": "string" } },
+          "floors": { "type": "integer", "minimum": 1 },
+          "decay": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    "scatter": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["layer", "asset", "density"],
+        "properties": {
+          "layer": { "$ref": "#/$defs/localId" },
+          "asset": {
+            "type": "object",
+            "properties": { "tags": { "type": "array", "items": { "type": "string" } }, "category": { "type": "string" }, "ids": { "type": "array", "items": { "type": "string" } } }
+          },
+          "density": { "type": "number", "minimum": 0, "description": "1 平方メートルあたりの数" },
+          "minDist": { "type": "number", "minimum": 0 },
+          "avoid": { "type": "array", "items": { "enum": ["paths", "buildings", "cliffEdge", "water", "goals", "start", "anchors"] } },
+          "slope": { "$ref": "#/$defs/range" },
+          "height": { "$ref": "#/$defs/range" },
+          "allowSmallOnPaths": { "type": "boolean" }
+        }
+      }
+    },
+    "anchors": {
+      "type": "array",
+      "description": "扉・座る所・階段・乗り越え・つかむ所（docs/wakaba-charkit/05 §2）。座標は [x, y, z]",
+      "items": {
+        "type": "object", "required": ["id", "type"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$" },
+          "type": { "enum": ["door", "seat", "stairs", "vault", "grab"] },
+          "at": { "$ref": "#/$defs/xyz" },
+          "from": { "$ref": "#/$defs/xyz" },
+          "to": { "$ref": "#/$defs/xyz" },
+          "rotY": { "type": "number" },
+          "width": { "type": "number", "exclusiveMinimum": 0 },
+          "height": { "type": "number", "exclusiveMinimum": 0 },
+          "depth": { "type": "number", "exclusiveMinimum": 0 },
+          "kind": { "type": "string" },
+          "handle": { "type": "object", "properties": { "side": { "enum": ["left", "right"] }, "height": { "type": "number" } } },
+          "approach": { "type": "number", "minimum": 0 },
+          "seatHeight": { "type": "number", "minimum": 0 },
+          "steps": { "type": "integer", "minimum": 1 },
+          "stepHeight": { "type": "number", "exclusiveMinimum": 0 },
+          "rail": { "type": "boolean" },
+          "hand": { "enum": ["left", "right", "both"] },
+          "auto": { "type": "boolean", "description": "建物の部品の印（ANC_ の空ノード）から自動で作った物" }
+        }
+      }
+    },
+    "atmosphere": {
+      "type": "object",
+      "properties": {
+        "time": { "enum": ["dawn", "day", "dusk", "night"] },
+        "sunElevDeg": { "type": "number", "minimum": -90, "maximum": 90 },
+        "fog": { "type": "object", "properties": { "density": { "type": "number", "minimum": 0 }, "heightFalloff": { "type": "number", "minimum": 0 }, "color": { "$ref": "#/$defs/color" } } },
+        "rain": { "type": "boolean" }
+      }
+    },
+    "gameplay": {
+      "type": "object", "required": ["start", "goals"],
+      "properties": {
+        "start": { "$ref": "#/$defs/xz" },
+        "goals": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "<建物 id>.door|front|center、または anchors の id" },
+        "enemies": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["ai", "spawn"],
+            "properties": { "ai": { "type": "string", "pattern": "^[a-z0-9_]+:[a-z0-9_]+$", "description": "<作品>:<AI の名前>（作品専用の物は作品側）" }, "spawn": { "$ref": "#/$defs/xz" }, "chase": { "type": "boolean" } }
+          }
+        },
+        "boundary": { "enum": ["invisible_wall", "invisible_wall_on_cliff", "fall_respawn", "none"] }
+      }
+    },
+    "budget": {
+      "type": "object", "required": ["preset"],
+      "properties": {
+        "preset": { "enum": ["ultra", "high", "mid", "low"] },
+        "drawCalls": { "type": "integer", "minimum": 1 },
+        "tris": { "type": "integer", "minimum": 1 },
+        "texMB": { "type": "number", "minimum": 0 }
+      }
+    },
+    "assumptions": { "type": "array", "items": { "type": "string" }, "description": "AI が勝手に決めた所（人が後で見る）" },
+    "questions": { "type": "array", "items": { "type": "string" }, "description": "あいまいで利用者に聞く所" }
+  },
+  "$defs": {
+    "xz": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+    "xyz": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+    "range": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+    "slopeDeg": { "type": "number", "minimum": 0, "maximum": 90 },
+    "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+    "localId": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "terrainSource": {
+      "type": "object", "required": ["type"],
+      "properties": {
+        "type": { "enum": ["heightmap", "noise", "flat"] },
+        "file": { "type": "string" },
+        "bits": { "enum": [8, 16] },
+        "minY": { "type": "number" },
+        "maxY": { "type": "number" },
+        "octaves": { "type": "integer", "minimum": 1, "maximum": 12 },
+        "scale": { "type": "number", "exclusiveMinimum": 0 },
+        "amp": { "type": "number", "minimum": 0 },
+        "y": { "type": "number" }
+      }
+    }
+  }
+}

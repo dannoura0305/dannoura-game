@@ -2,12 +2,11 @@
 // 家（外壁・窓・瓦・ひさし・ベランダ・室外機・塀・表札）・店・コンビニ・駐車場・公園・祠・用水路・車・自転車・自販機などを作る。
 // 形は level.js の Builder（材質ごとにまとめる・区画を升目に分けて見えない升目は描かない）へ入れる。当たり判定は data/town.js の townSolids。
 import * as THREE from 'three';
-import { TOWN, townSolids, houseFoot, guardSpans, townLamps, homeW } from '../data/town.js';
+import { TOWN, townSolids, houseFoot, guardSpans, townLamps, homeW, houseDoor, lotEntrances, fillCells, fillEntrances, seeded } from '../data/town.js';
 import { applyTile } from '../render/townmat.js';
 import { makeTown2, isFar } from './town2.js';
 
-// 決まった乱数（区画の id から）
-function seeded(str) { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 10000) / 10000; }; }
+// 決まった乱数（区画の id から）：data/town.js の seeded（出入り口の位置と同じ乱数）
 
 /**
  * ctx = { B (Builder), atlas (看板の地図帳), signDraw, scene, state, part }
@@ -28,7 +27,7 @@ export function buildTown(ctx) {
   const pool = (x, z, r, color, k = 1) => { const g = new THREE.PlaneGeometry(r * 2, r * 2); g.rotateX(-Math.PI / 2); g.translate(x, 0.035, z); const c = new THREE.Color(color).multiplyScalar(k); const n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); poolGeos.push(g); };
 
   // フェーズ10 の部品（中央通り・駅前・広場・町家・ビル）：同じ道具を渡す
-  const X = makeTown2({ B, T, tb, prop, addTile, signUV, pool, halos, lights, wet, spots, hideSpots, frame, win, roofGable, tree, lampAt, car, bike, catenaryPts, wirePts, inPart, inRect, seeded, fenceFront, signDraw, atlas });
+  const X = makeTown2({ B, T, tb, prop, addTile, signUV, pool, halos, lights, wet, spots, hideSpots, frame, win, roofGable, tree, lampAt, car, bike, catenaryPts, wirePts, inPart, inRect, seeded, fenceFront, signDraw, atlas, doorFrame, glassDoor });
   // ── 地面：下敷き（用水路の底より下）・歩ける所・区画の庭 ──
   if (part !== 'far') { const b = T.bounds; tb('tex', (b.minX + b.maxX) / 2, -1.3, (b.minZ + 66) / 2 + 30, b.maxX - b.minX + 40, 0.2, 66 - b.minZ + 80, 0x2a2826, 'gravel', { ts: 4 }); }
   const SURF_TS = { asphalt: 6, asphalt2: 6, lane: 5, interlock: 1.6, paving: 2.2, gravel: 3, concrete: 3, granite: 4, arcade_floor: 2.6 };
@@ -131,7 +130,7 @@ export function buildTown(ctx) {
   // ── 小物 ──
   for (const p of T.props) if (inPart(p.x, p.z)) propAt(p);
   // 隠れ場所（相棒）：電柱の陰・自販機の横・塀の角
-  if (part !== 'far') for (const [x, z] of [[13.8, 26.5], [24.2, 38.8], [8.3, 31], [-1.2, 3.6], [31.8, 19.0], [36.6, 42.2]]) hideSpots.push({ x, z });
+  if (part !== 'far') for (const [x, z] of [[13.8, 26.5], [24.2, 38.8], [8.3, 31], [-1.2, 3.6], [18.3, 19.7], [36.6, 42.2]]) hideSpots.push({ x, z });
   // ── フェーズ10：中央通り・駅前・ガラスの屋根の広場・横丁 ──
   X.build(signals);
 
@@ -167,6 +166,7 @@ export function buildTown(ctx) {
     const tile = { dark: 'win_dark', lit: 'win_lit', curtain: 'win_curtain', shoji: 'win_shoji', lit2: 'win_lit2', office: 'win_office', office_lit: 'win_office_lit' }[kind];
     const glow = ['lit', 'curtain', 'shoji', 'lit2', 'office_lit'].includes(kind);
     F.box(glow ? 'texglow' : 'tex', u, v - 0.04, y, w, 0.06, h, glow ? 0xd0c8b8 : 0xffffff, tile, { fit: true });
+    F.box('prop', u, v - 0.02, y, w + 0.12, 0.04, h + 0.12, 0x5e6268);                         // フェーズ11：窓の枠（アルミ・壁から少し出る）
     F.box('prop', u, v - 0.1, y - h / 2 - 0.05, w + 0.16, 0.14, 0.06, 0xb8bcc0);               // 窓台
     if (glow && Math.abs(w) > 0.8) { const [x, z] = F.at(u, v - 0.3); halos.push({ p: [x, y, z], size: w * 1.5, color: kind.startsWith('office') || kind === 'lit2' ? 0xc8d8ff : 0xffc888, k: 0.22, window: true }); }
   }
@@ -194,6 +194,34 @@ export function buildTown(ctx) {
       applyTile(tri, wallTile, { ts: 2 }); B.add('tex', tri, wallTint, false);
     }
   }
+  /** フェーズ11：戸の枠（表の面 v の前）：左右の縦枠・上枠・下の沓摺り。w・h＝開口 */
+  function doorFrame(F, u, v, y0, w, h, color = 0x3a3430, t = 0.09) {
+    for (const s of [-1, 1]) F.box('prop', u + s * (w / 2 + t / 2), v - 0.05, y0 + h / 2, t, 0.1, h + t, color);
+    F.box('prop', u, v - 0.05, y0 + h + t / 2, w + t * 2, 0.1, t, color);
+    F.box('prop', u, v - 0.06, y0 + 0.02, w, 0.12, 0.04, 0x8a8a88);
+  }
+  /** フェーズ11：ガラスの戸（店・ビル・集合住宅の入口）。n：枚数。lit：中の灯り */
+  function glassDoor(F, u, v, w, h, n = 2, lit = false, frameColor = 0x2e3036, litTile = 'win_office_lit') {
+    F.box(lit ? 'texglow' : 'tex', u, v - 0.07, h / 2 + 0.02, w, 0.04, h, lit ? 0xb8c0c8 : 0xffffff, lit ? litTile : 'shopglass', { fit: true });
+    doorFrame(F, u, v - 0.04, 0, w, h, frameColor, 0.08);
+    for (let i = 1; i < n; i++) F.box('prop', u - w / 2 + i * w / n, v - 0.1, h / 2, 0.06, 0.06, h, frameColor);
+    for (let i = 0; i < n; i++) F.box('prop', u - w / 2 + (i + 0.5) * w / n + (i % 2 ? -1 : 1) * (w / n / 2 - 0.16), v - 0.14, h * 0.48, 0.03, 0.05, 0.5, 0xc8ccd0);   // 取っ手
+  }
+  /** フェーズ11：家の玄関：ポーチ（高さ 0.3）と段・枠つきの戸・袖のガラス・ひさし（裏に灯り）・門からの敷石 */
+  function genkan(F, u, v0, lampOn, tint) {
+    const py = 0.3, dw = 0.95, dh = 2.05;
+    F.box('tex', u, v0 - 0.55, py / 2, 1.9, 1.1, py, 0xd8d4cc, 'stone', { ts: 0.6 });                      // ポーチ（タイル）
+    F.box('tex', u, v0 - 1.28, 0.08, 1.6, 0.36, 0.16, 0xc8c4bc, 'stone', { ts: 0.6 });                     // 段
+    F.box('tex', u, Math.max(0.2, (v0 - 1.46) / 2), 0.025, 1.0, Math.max(0.3, v0 - 1.46), 0.05, 0xb8b4ac, 'stone', { ts: 0.8 });   // 門から玄関への敷石
+    F.box('tex', u, v0 - 0.08, py + dh / 2, dw, 0.06, dh, 0xffffff, 'door_house', { fit: true });          // 戸
+    doorFrame(F, u, v0, py, dw, dh, 0x3a3430);
+    F.box(lampOn ? 'texglow' : 'tex', u + dw / 2 + 0.28, v0 - 0.05, py + 1.1, 0.3, 0.04, 1.8, lampOn ? 0xb0a080 : 0xffffff, lampOn ? 'win_shoji' : 'win_dark', { fit: true });   // 袖のガラス
+    F.box('prop', u + 0.15, v0 - 0.6, py + dh + 0.32, 1.9, 1.2, 0.12, 0x4a4642);                          // ひさし
+    F.box('prop', u + 0.15, v0 - 1.18, py + dh + 0.32, 1.9, 0.04, 0.18, new THREE.Color(tint).multiplyScalar(0.7).getHex());
+    const [lx, lz] = F.at(u - dw / 2 - 0.32, v0 - 0.1);
+    B.box('glow', lx, 2.05, lz, 0.14, 0.22, 0.14, lampOn ? 0xffd8a0 : 0x3a3428, { edges: false });
+    if (lampOn) { halos.push({ p: [lx + F.out[0] * 0.15, 2.05, lz + F.out[1] * 0.15], size: 0.9, color: 0xffd8a0, k: 0.7 }); const [px, pz] = F.at(u, v0 - 1.0); pool(px, pz, 1.8, 0xffd8a0, 0.35); }
+  }
   function fenceFront(F, kind, gapU, gapW, h = 1.3) {
     const segs = gapU == null ? [[0, F.W]] : [[0, gapU - gapW / 2], [gapU + gapW / 2, F.W]];
     for (const [a, b] of segs) {
@@ -214,13 +242,10 @@ export function buildTown(ctx) {
     F.box('prop', side + a / 2, v0 + maxD / 2, h1, a + 0.08, maxD + 0.08, 0.14, 0x8a8478);                // 1 階と 2 階の間の帯
     F.box('prop', side + a / 2, v0 + maxD / 2, 0.12, a + 0.06, maxD + 0.06, 0.24, 0x6a6660);                // 基礎
     roofGable(F, side, v0, a, maxD, H, L.roof || 'kawara', L.roof === 'galv' ? 0xa0b0b8 : 0xc8c8d0, 0.5, L.wall || 'siding', tint);
-    // 玄関（表の左寄り or 右寄り）・ひさし・灯り
-    const doorU = side + (r() < 0.5 ? 1.3 : a - 1.3);
-    F.box('tex', doorU, v0 - 0.05, 1.0, 0.95, 0.1, 2.0, 0xffffff, 'door_house', { fit: true });
-    F.box('prop', doorU, v0 - 0.45, 2.35, 1.6, 0.9, 0.08, 0x3a3236);
-    const lampOn = r() < 0.6; const [lx, lz] = F.at(doorU + 0.75, v0 - 0.12);
-    B.box('glow', lx, 1.95, lz, 0.14, 0.2, 0.14, lampOn ? 0xffd8a0 : 0x3a3428, { edges: false });
-    if (lampOn) halos.push({ p: [lx + F.out[0] * 0.1, 1.95, lz + F.out[1] * 0.1], size: 0.9, color: 0xffd8a0, k: 0.7 });
+    // 玄関（data/town.js の houseDoor：門の切れ目と同じ位置）：ポーチ・段・枠つきの戸・ひさし・灯り・門から玄関への敷石
+    r(); const doorU = houseDoor(L).u;
+    const lampOn = r() < 0.6;
+    genkan(F, doorU, v0, lampOn, tint);
     // 窓：1 階（玄関の反対側に大きな窓）・2 階（2 つ）＋ベランダ
     const kinds = ['dark', 'dark', 'curtain', 'lit', 'shoji', 'dark', 'lit2'];
     const pick = () => kinds[Math.floor(r() * kinds.length)];
@@ -240,10 +265,13 @@ export function buildTown(ctx) {
     for (const u of [side + 0.1, side + a - 0.1]) F.box('prop', u, v0 - 0.08, H / 2, 0.08, 0.08, H, 0x5a5a58);
     F.box('prop', side + 0.05, v0 + 0.8, 1.4, 0.04, 0.3, 0.4, 0xd8d8d0);
     // 塀・門（表札）
-    const gw = 1.3; fenceFront(F, L.fenceKind || 'block', doorU, gw);
+    const gw = houseDoor(L).gate; fenceFront(F, L.fenceKind || 'block', doorU, gw);
     const puv = signUV(L.name, { bg: '#f1e9d6', fg: '#1d1712', size: 46, serif: true });
     { const [px, pz] = F.at(doorU - gw / 2 - 0.2, -0.03); B.box('sign', px, 1.25, pz, F.alongX ? 0.34 : 0.02, 0.1, F.alongX ? 0.02 : 0.34, 0xffffff, { uv: puv, face: F.f === 'N' ? 5 : F.f === 'S' ? 4 : F.f === 'E' ? 0 : 1, edges: false }); }
+    F.box('prop', doorU - gw / 2 - 0.2, -0.03, 0.95, 0.13, 0.05, 0.19, 0x2a2c30);    // インターホン（門柱・表札の下）
+    { const [ix, iz] = F.at(doorU - gw / 2 - 0.2, -0.06); B.box('glow', ix, 0.92, iz, 0.04, 0.04, 0.04, 0x90c8ff, { edges: false }); }
     F.box('prop', doorU + gw / 2 + 0.2, -0.05, 1.12, 0.3, 0.12, 0.22, 0xa83a2a);    // 郵便受け
+    F.box('tex', doorU, 0.2, 0.62, gw - 0.04, 0.03, 1.0, 0x8a7a64, 'balcony', { fit: true });   // 門扉（閉じた格子・低い）
     // 横の塀（表からの奥行き）
     for (const u of [0.08, F.W - 0.08]) F.box('tex', u, F.D / 2, 0.7, 0.16, F.D, 1.4, 0xffffff, 'block', { ts: 1.2 });
     // 庭：植木（丸い木）・自転車
@@ -257,6 +285,8 @@ export function buildTown(ctx) {
     if (L.shutter && !L.office) F.box('tex', F.W / 2, -0.06, 1.35, frontW, 0.08, 2.7, 0xffffff, 'shutter', { ts: 2.2, tsy: 2.7 });
     else F.box(L.litSign ? 'texglow' : 'tex', F.W / 2, -0.06, 1.35, frontW, 0.08, 2.7, L.litSign ? 0xd8c8a8 : 0xffffff, L.litSign ? 'win_lit' : 'shopglass', { ts: frontW / Math.max(1, Math.round(frontW / 3)), tsy: 2.7 });
     if (L.office) F.box('tex', F.W / 2, -0.07, 1.2, frontW * 0.5, 0.08, 2.4, 0xffffff, 'shutter', { ts: 2, tsy: 2.4 });
+    // フェーズ11：ガラスの店・事務所は戸（枠・取っ手）。シャッターの店はシャッターが出入り口（data/town.js の lotEntrances）
+    for (const e of lotEntrances(L)) if (e.kind === 'door') { glassDoor(F, e.u, -0.08, 1.0, 2.15, 1, !!L.litSign, 0x2e3036, 'win_lit'); F.box('prop', e.u, -0.5, 0.012, 1.2, 0.7, 0.02, 0x3a3634); }
     const uv = signUV(L.sign, { bg: L.litSign ? '#2a1a20' : '#efe6d2', fg: L.litSign ? '#ffd890' : '#2a1a14', dirt: !L.litSign });
     { const [sx, sz] = F.at(F.W / 2, -0.18); B.box('sign', sx, 3.15, sz, F.alongX ? frontW : 0.12, 0.62, F.alongX ? 0.12 : frontW, 0xffffff, { uv, face: F.f === 'N' ? 5 : F.f === 'S' ? 4 : F.f === 'E' ? 0 : 1 }); if (L.litSign) halos.push({ p: [sx + F.out[0] * 0.3, 3.15, sz + F.out[1] * 0.3], size: 3.2, color: 0xffb070, k: 0.35, neon: true }); }
     F.box('prop', F.W / 2, -0.55, 2.75, F.W - 0.2, 1.0, 0.1, [0x7a3030, 0x304a7a, 0x3a6a30, 0x5a4a30][Math.floor(r() * 4)], { rx: F.alongX ? 0.18 * (F.f === 'N' ? 1 : -1) : 0, rz: F.alongX ? 0 : 0.18 * (F.f === 'E' ? -1 : 1) });
@@ -264,7 +294,7 @@ export function buildTown(ctx) {
     for (let k = 1; k < floors; k++) {
       const y = k * fh + 1.5, n = Math.max(1, Math.floor(F.W / 3.2));
       for (let i = 0; i < n; i++) { const u = (i + 0.5) * F.W / n; const kind = L.office ? (r() < 0.25 ? 'office_lit' : 'office') : ['dark', 'dark', 'curtain', 'lit', 'dark'][Math.floor(r() * 5)]; win(F, u, 0, y, Math.min(2.2, F.W / n - 0.6), 1.3, kind); }
-      if (r() < 0.7) F.box('tex', F.W * (0.2 + r() * 0.6), -0.32, k * fh + 0.45, 0.8, 0.3, 0.6, 0xffffff, 'acunit', { fit: true });
+      if (r() < 0.7) { const au = F.W * (0.2 + r() * 0.6); if (k > 1) F.box('tex', au, -0.32, k * fh + 0.45, 0.8, 0.3, 0.6, 0xffffff, 'acunit', { fit: true }); }   // フェーズ11：2 階の室外機は 1 階の看板に重なるので置かない（裏へ）
     }
     if (L.sign2) { const uv2 = signUV(L.sign2, { bg: '#1a2a3a', fg: '#a8e0ff', size: 34 }); const [sx, sz] = F.at(F.W * 0.5, -0.1); const sw2 = F.W * 0.6; B.box('sign', sx, fh * 2 - 0.15, sz, F.alongX ? sw2 : 0.08, 0.5, F.alongX ? 0.08 : sw2, 0xffffff, { uv: uv2, face: F.f === 'N' ? 5 : F.f === 'S' ? 4 : F.f === 'E' ? 0 : 1, edges: false }); halos.push({ p: [sx + F.out[0] * 0.4, fh * 2 - 0.15, sz + F.out[1] * 0.4], size: 2.6, color: 0x80c8ff, k: 0.35, neon: true, flicker: true }); }
     if (L.barber) { const [bx, bz] = F.at(0.8, -0.3); const g = new THREE.CylinderGeometry(0.14, 0.14, 0.9, 10); g.translate(bx, 1.6, bz); B.add('glow', g, 0xf0e0e8); halos.push({ p: [bx + F.out[0] * 0.2, 1.6, bz + F.out[1] * 0.2], size: 1.0, color: 0xff6a6a, k: 0.3, flicker: true }); }
@@ -285,14 +315,24 @@ export function buildTown(ctx) {
     const units = Math.max(2, Math.floor((F.W - 2) / 3.4));
     for (let k = 0; k < floors; k++) {
       const y0 = k * fh;
-      if (k > 0 || !L.open) { F.box('prop', F.W / 2, set - 0.6, y0 + 0.08, F.W - 1.6, 1.2, 0.14, 0x9a9a98); F.box('tex', F.W / 2, set - 1.18, y0 + 0.62, F.W - 1.6, 0.04, 1.0, 0xffffff, 'balcony', { ts: 1.6, tsy: 1 }); }
+      // フェーズ11：閉じた形の集合住宅は 1 階の真ん中が入口（ベランダの手すりを空ける）
+      const spans = k === 0 && !L.open ? [[0.8, F.W / 2 - 1.3], [F.W / 2 + 1.3, F.W - 0.8]] : [[0.8, F.W - 0.8]];
+      if (k > 0 || !L.open) for (const [p, q] of spans) { F.box('prop', (p + q) / 2, set - 0.6, y0 + 0.08, q - p, 1.2, 0.14, 0x9a9a98); F.box('tex', (p + q) / 2, set - 1.18, y0 + 0.62, q - p, 0.04, 1.0, 0xffffff, 'balcony', { ts: 1.6, tsy: 1 }); }
       for (let i = 0; i < units; i++) {
         const u = 0.8 + (i + 0.5) * (F.W - 1.6) / units;
+        if (k === 0 && !L.open && Math.abs(u - F.W / 2) < 1.9) { r(); r(); continue; }
         if (L.open) { F.box('tex', u - 0.7, set - 0.05, y0 + 1.0, 0.85, 0.08, 2.0, 0x9aa8b8, 'door_house', { fit: true }); win(F, u + 0.6, set, y0 + 1.55, 1.0, 0.7, r() < 0.3 ? 'lit' : 'dark'); }
         else { const kind = ['dark', 'curtain', 'lit', 'dark', 'lit2'][Math.floor(r() * 5)]; win(F, u, set, y0 + 1.25, 2.0, 1.8, kind); }
-        if (r() < 0.6) F.box('tex', u + 1.0, set - 0.6, y0 + 0.5, 0.75, 0.28, 0.55, 0xffffff, 'acunit', { fit: true });
+        if (r() < 0.6 && !(k === 0 && !L.open && Math.abs(u + 1.0 - F.W / 2) < 1.8)) F.box('tex', u + 1.0, set - 0.6, y0 + 0.5, 0.75, 0.28, 0.55, 0xffffff, 'acunit', { fit: true });
       }
       if (L.open && k > 0) { const [lx, lz] = F.at(F.W / 2, set - 0.8); B.box('glow', lx, y0 + 2.5, lz, 0.4, 0.06, 0.12, 0xe8f0ff, { edges: false }); halos.push({ p: [lx, y0 + 2.4, lz], size: 1.2, color: 0xd8e8ff, k: 0.4 }); }
+    }
+    if (!L.open) { // フェーズ11：入口（ガラスの両開き・ひさし・灯り・集合ポスト・入口から門への床）
+      const eu = F.W / 2; glassDoor(F, eu, set, 1.6, 2.3, 2, true);
+      F.box('prop', eu, set - 0.75, 2.62, 2.6, 1.5, 0.14, 0x4a4c50);
+      { const [x, z] = F.at(eu, set - 0.9); B.box('glow', x, 2.53, z, 0.6, 0.04, 0.2, 0xf0f4ff, { edges: false }); halos.push({ p: [x, 2.4, z], size: 1.4, color: 0xe8f0ff, k: 0.5 }); pool(x, z, 2.6, 0xe8f0ff, 0.3); }
+      F.box('prop', eu + 1.35, set - 0.12, 1.15, 0.6, 0.22, 0.9, 0x8a8e94);                          // 集合ポスト
+      F.box('tex', eu, set / 2, 0.02, 1.8, set, 0.04, 0xc0bcb4, 'stone', { ts: 0.8 });
     }
     if (L.open) { // 外階段
       const [sx, sz] = F.at(F.W - 0.5, set + 1.0);
@@ -335,16 +375,31 @@ export function buildTown(ctx) {
     prop(px, 1.6, pz, 0.1, 3.2, 0.1, 0x6a6a6a); B.box('sign', px, 3.2, pz + 0.05, 1.2, 0.6, 0.06, 0xffffff, { uv, face: 4 }); halos.push({ p: [px, 3.2, pz + 0.3], size: 1.8, color: 0x80a0ff, k: 0.4, neon: true });
   }
   function backHouses(L) {
-    const [x0, z0, x1, z1] = L.rect, r = seeded(L.id), cw = 10, cd = 10;
-    for (let x = x0; x < x1 - 4; x += cw) for (let z = z0; z < z1 - 4; z += cd) {
-      const w = Math.min(cw, x1 - x) - 2, d = Math.min(cd, z1 - z) - 2, cx = x + 1 + w / 2, cz = z + 1 + d / 2, h = r() < 0.3 ? 2.9 : 5.6;
+    // フェーズ11：data/town.js の fillCells（細い区画も狭い家・物置に）。道に面した升目は戸（fillEntrances）・2.5m 未満は塀だけ
+    const r = seeded(L.id), ents = fillEntrances(L);
+    fillCells(L).forEach((c, ci) => {
+      const [bx0, bz0, bx1, bz1] = c.rect, w = bx1 - bx0, d = bz1 - bz0, cx = (bx0 + bx1) / 2, cz = (bz0 + bz1) / 2;
+      if (c.small) { const alongX = w >= d; B.box('tex', cx, 0.7, cz, alongX ? w : 0.16, 1.4, alongX ? 0.16 : d, 0xffffff, { tile: 'block', ts: 1.2, edges: false }); return; }
+      const h = c.narrow ? 5.6 : r() < 0.3 ? 2.9 : 5.6;
       B.box('tex', cx, h / 2, cz, w, h, d, [0xb0a898, 0x9aa0a8, 0xa89080, 0xc0b8a8][Math.floor(r() * 4)], { tile: r() < 0.5 ? 'siding' : 'mortar', ts: 2, edges: false });
-      const F = { alongX: true, W: w, at: (u, v) => [x + 1 + u, z + 1 + v] }; void F;
-      const roofT = r() < 0.6 ? 'kawara' : r() < 0.5 ? 'kawara2' : 'galv';
-      const th = 0.42, rise = (d / 2) * Math.tan(th), len = (d / 2 + 0.4) / Math.cos(th);
-      for (const s of [-1, 1]) B.box('tex', cx, h + rise / 2 + 0.05, cz + s * (d / 4 + 0.2), w + 0.8, 0.14, len, 0xb8b8c0, { tile: roofT, ts: 1.4, rx: -s * th, edges: false });
-      if (r() < 0.35) B.box('texglow', cx + (r() - 0.5) * w * 0.6, h > 3 ? 4.3 : 1.5, z + 0.96, 1.4, 1.1, 0.06, 0xd0c0a8, { tile: r() < 0.5 ? 'win_lit' : 'win_curtain', fit: true, edges: false });
-    }
+      const roofT = r() < 0.6 ? 'kawara' : r() < 0.5 ? 'kawara2' : 'galv', th = 0.42;
+      if (w >= d) { const rise = (d / 2) * Math.tan(th), len = (d / 2 + 0.4) / Math.cos(th); for (const s of [-1, 1]) B.box('tex', cx, h + rise / 2 + 0.05, cz + s * (d / 4 + 0.2), w + 0.8, 0.14, len, 0xb8b8c0, { tile: roofT, ts: 1.4, rx: -s * th, edges: false }); }
+      else { const rise = (w / 2) * Math.tan(th), len = (w / 2 + 0.4) / Math.cos(th); for (const s of [-1, 1]) B.box('tex', cx + s * (w / 4 + 0.2), h + rise / 2 + 0.05, cz, len, 0.14, d + 0.8, 0xb8b8c0, { tile: roofT, ts: 1.4, rz: s * th, edges: false }); }
+      if (r() < 0.35) B.box('texglow', cx + (r() - 0.5) * w * 0.6, h > 3 ? 4.3 : 1.5, bz0 - 0.04, Math.min(1.4, w - 0.6), 1.1, 0.06, 0xd0c0a8, { tile: r() < 0.5 ? 'win_lit' : 'win_curtain', fit: true, edges: false });
+      const e = ents.find(q => q.cell === ci);
+      if (e) {   // 戸（枠・ひさし・灯り）と横の窓
+        const [ox, oz] = e.out, along = Math.abs(ox) < 0.5;
+        const DF = { alongX: along, f: oz < 0 ? 'N' : oz > 0 ? 'S' : ox > 0 ? 'E' : 'W', out: e.out, at: (u, v) => [e.door[0] + (along ? u : 0) - v * ox, e.door[1] + (along ? 0 : u) - v * oz] };
+        DF.box = (key, u, v, y, a2, b2, hh, color, tile, opt = {}) => { const [x, z] = DF.at(u, v); return B.box(key, x, y, z, along ? a2 : b2, hh, along ? b2 : a2, color, Object.assign({ tile, edges: false }, opt)); };
+        DF.box('tex', 0, -0.05, 1.0, 0.9, 0.06, 2.0, 0xffffff, 'door_house', { fit: true });
+        doorFrame(DF, 0, 0, 0, 0.9, 2.0, 0x3a3430, 0.08);
+        DF.box('prop', 0, -0.45, 2.3, 1.3, 0.9, 0.08, 0x4a4642);
+        const lit = r() < 0.5, [lx, lz] = DF.at(0.7, -0.1);
+        B.box('glow', lx, 1.9, lz, 0.12, 0.18, 0.12, lit ? 0xffd8a0 : 0x3a3428, { edges: false });
+        if (lit) halos.push({ p: [lx + ox * 0.12, 1.9, lz + oz * 0.12], size: 0.8, color: 0xffd8a0, k: 0.6 });
+        if ((along ? w : d) > 3.6) win(DF, 1.9 * (r() < 0.5 ? 1 : -1), 0, 1.5, 1.0, 0.9, r() < 0.4 ? 'lit' : 'dark');
+      }
+    });
   }
   function field(L) {
     const [x0, z0, x1, z1] = L.rect;
@@ -375,6 +430,17 @@ export function buildTown(ctx) {
     // 1 階の外側（玄関の口を空ける）
     for (const [a, b] of [[x0 - 0.2, cx - door / 2], [cx + door / 2, x1 + 0.2]]) B.box('tex', (a + b) / 2, 1.6, z0 - 0.19, b - a, 3.2, 0.06, tint, { tile: 'siding', ts: 2, ao: true, edges: true });
     B.box('tex', cx, 2.75, z0 - 0.19, door, 0.9, 0.06, tint, { tile: 'siding', ts: 2, edges: false });
+    // フェーズ11：玄関の戸（引き戸を右へ開けたまま＝出入りできる）・枠・上のレール・ポーチ（低いタイル）・表札・インターホン・灯り
+    { const zf = z0 - 0.24, hh = 2.3;
+      for (const s of [-1, 1]) B.box('prop', cx + s * (door / 2 + 0.05), hh / 2, zf + 0.02, 0.1, hh + 0.1, 0.1, 0x3a3430, { edges: false });
+      B.box('prop', cx + 0.7, hh + 0.06, zf + 0.02, door + 1.6, 0.1, 0.12, 0x3a3430, { edges: false });              // 上のレール（戸袋の上まで）
+      B.box('prop', cx + 0.7, 0.025, zf + 0.02, door + 1.6, 0.05, 0.12, 0x8a8a88, { edges: false });                // 下のレール
+      B.box('tex', cx + door / 2 + 0.74, hh / 2, zf - 0.04, door + 0.04, hh - 0.04, 0.05, 0xffffff, { tile: 'door_house', fit: true, edges: false });   // 開けた戸（右の壁の前）
+      B.box('tex', cx, 0.03, z0 - 0.75, 2.2, 0.06, 1.0, 0xd8d4cc, { tile: 'stone', ts: 0.6, edges: false });            // ポーチ
+      const puv2 = signUV('だんのうら', { bg: '#f1e9d6', fg: '#1d1712', size: 46, serif: true });
+      B.box('sign', cx - door / 2 - 0.45, 1.65, zf - 0.01, 0.36, 0.11, 0.02, 0xffffff, { uv: puv2, face: 5, edges: false });
+      B.box('prop', cx - door / 2 - 0.45, 1.3, zf - 0.01, 0.13, 0.19, 0.05, 0x2a2c30, { edges: false });           // インターホン
+      B.box('glow', cx - door / 2 - 0.45, 2.15, zf - 0.04, 0.16, 0.22, 0.12, 0xffd8a0, { edges: false }); }
     for (const x of [x0 - 0.19, x1 + 0.19]) B.box('tex', x, 1.6, cz, 0.06, 3.2, d + 0.4, tint, { tile: 'siding', ts: 2, ao: true, edges: true });
     B.box('tex', cx, 1.6, z1 + 0.19, w + 0.4, 3.2, 0.06, tint, { tile: 'siding', ts: 2, edges: false });
     // 2 階

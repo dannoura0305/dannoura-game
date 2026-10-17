@@ -104,6 +104,18 @@ export function buildAlley() {
   B.box('sign', 16.33, 2.6, -22, 0.04, 0.3, 1.2, 0xffffff, { uv: s1, face: 1, edges: false });
   const s2 = atlas.add(signDraw('関係者以外立入禁止', { bg: '#f0f0e8', fg: '#a02020', size: 30 }));
   B.box('sign', 1.27, 1.8, -12, 0.03, 0.22, 0.9, 0xffffff, { uv: s2, face: 1, edges: false });
+  // フェーズ11：建物の裏口（鉄の戸・枠・段・小さな灯り）。飾り（開かない）：x＝壁の内側の面・n＝通路の向き（x か z の ±1）
+  const backDoor = (x, z, nx, nz, lit) => {
+    const ax = Math.abs(nx) > 0.5, w = 0.85, h = 2.0;
+    B.box('tex', x + nx * 0.02, h / 2, z + nz * 0.02, ax ? 0.04 : w, h, ax ? w : 0.04, 0x9aa0a8, { tile: 'panel', fit: true, edges: false });
+    for (const s of [-1, 1]) B.box('prop', x + nx * 0.03 + (ax ? 0 : s * (w / 2 + 0.04)), (h + 0.08) / 2, z + nz * 0.03 + (ax ? s * (w / 2 + 0.04) : 0), ax ? 0.06 : 0.08, h + 0.08, ax ? 0.08 : 0.06, 0x4a4e54, { edges: false });
+    B.box('prop', x + nx * 0.03, h + 0.04, z + nz * 0.03, ax ? 0.06 : w + 0.16, 0.08, ax ? w + 0.16 : 0.06, 0x4a4e54, { edges: false });
+    B.box('prop', x + nx * 0.06 + (ax ? 0 : 0.3), 1.0, z + nz * 0.06 + (ax ? 0.3 : 0), 0.05, 0.05, 0.05, 0xc8ccd0, { edges: false });
+    B.box('tex', x + nx * 0.2, 0.07, z + nz * 0.2, ax ? 0.4 : 1.0, 0.14, ax ? 1.0 : 0.4, 0xb0aca8, { tile: 'concrete', ts: 1, edges: false });
+    B.box('glow', x + nx * 0.08, h + 0.35, z + nz * 0.08, 0.14, 0.1, 0.14, lit ? 0xffd8a0 : 0x3a3428, { edges: false });
+    if (lit) halos.push({ p: [x + nx * 0.2, h + 0.3, z + nz * 0.2], size: 0.8, color: 0xffd8a0, k: 0.6 });
+  };
+  backDoor(1.3, -11.0, -1, 0, true); backDoor(-1.3, -17.5, 1, 0, false); backDoor(10.0, -20.2, 0, -1, true);
   // 戸（帰路 a1 の家）
   const D = AREA_DATA.alley.doors.a1;
   const g = new THREE.Group(); const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.05, 1.2), new THREE.MeshToonMaterial({ color: 0x4a3a30, gradientMap: gradientMap() })); leaf.position.set(0, 1.03, 0.6); leaf.castShadow = true;
@@ -163,6 +175,9 @@ export function buildPlaza() {
   // 警備室（防犯映像）：x 8〜13、z −12〜−8。南に戸口（x 9〜10.4）
   wall(10.5, -12.2, 5.2, 0.3, 3, 0x9a94a4); wall(7.95, -10.1, 0.3, 4.2, 3, 0x9a94a4); wall(13.05, -10.1, 0.3, 4.2, 3, 0x9a94a4);
   wall(8.45, -7.95, 1.0, 0.3, 3, 0x9a94a4); wall(11.75, -7.95, 2.6, 0.3, 3, 0x9a94a4);
+  // フェーズ11：警備室の戸（内へ開けたまま・枠）
+  B.box('prop', 9.0, 1.05, -8.65, 0.05, 2.05, 1.3, 0x7a8088, { edges: false }); B.box('prop', 9.05, 1.0, -9.15, 0.06, 0.05, 0.05, 0xc8ccd0, { edges: false });
+  for (const x of [8.98, 10.42]) B.box('prop', x, 1.1, -7.95, 0.06, 2.2, 0.34, 0x5a5e66, { edges: false }); B.box('prop', 9.7, 2.24, -7.95, 1.5, 0.08, 0.34, 0x5a5e66, { edges: false });
   B.box('wall', 10.5, 3.1, -10.1, 5.4, 0.2, 4.6, 0x6a6474); boxes.push(cbox(10.5, -10.1, 5.4, 4.6, 0.3, 3.0));
   B.box('prop', 11.6, 0.4, -11.6, 2.4, 0.8, 0.7, 0x5a5a62); solid(11.6, -11.6, 2.4, 0.7, 0.8);
   for (const [x, y] of [[10.9, 1.15], [11.6, 1.15], [12.3, 1.15], [11.25, 1.6], [11.95, 1.6]]) B.box('glow', x, y, -11.75, 0.6, 0.4, 0.04, 0x7ab0d8, { edges: false });

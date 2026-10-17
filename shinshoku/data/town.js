@@ -8,6 +8,7 @@
 // アーケードの東には、ガラスの屋根の広場（総曲輪の雰囲気を参考にした独自の意匠・名前は仮）と、広場から中央通りへ抜ける横丁。
 // 自宅の前の道の東の端も中央通りへつながる。町の名前・実在の地名・店名・意匠は使わない（雰囲気だけ）。
 import { box } from '../world/collide.js';
+import { seeded } from '../../mapkit/core/rng.js';
 
 export const TOWN_LAYOUT = 'town3';                 // セーブの place.layout（layout 無し＝town1・town2 は読む時に位置を確かめて移す）
 export const HOME_O = [42, 40];                     // 自宅（data/level.js の home：x −6〜6・z 6〜16）を置く所＝ローカル座標に足す
@@ -31,6 +32,7 @@ export const TOWN = {
     { id: 'konbiniLot', kind: 'parking', rect: [13, 14, 32, 20], surf: 'asphalt2', name: 'コンビニの駐車場' },
     { id: 'park', kind: 'park', rect: [-12, 14, 6.2, 30], surf: 'gravel', name: '児童公園' },
     { id: 'bridge', kind: 'bridge', rect: [6.2, 22, 7.6, 24.5], surf: 'concrete', name: '公園への小さな橋' },
+    { id: 'bridge2', kind: 'bridge', rect: [6.2, 34.7, 7.6, 36.3], surf: 'concrete', name: '石井さんの家の前の小さな橋' },
     { id: 'homeYard', kind: 'yard', rect: [36, 43, 48, 46], surf: 'concrete', name: '自宅の前庭' },
     { id: 'carport', kind: 'yard', rect: [30.5, 43, 36, 52], surf: 'concrete', name: '自宅のカーポート' },
     // フェーズ10：ガラスの屋根の広場・通り抜け・横丁・中央通り（電車通り・バス通り）・駅前広場
@@ -45,7 +47,7 @@ export const TOWN = {
     { id: 'station', kind: 'plaza', rect: [40, -112, 116, -78], surf: 'paving', name: '駅前広場' },
   ],
   // 用水路（低い柵＝当たり判定。橋・暗渠の所は渡れる）
-  channel: { x0: 6.2, x1: 7.6, z0: 14, z1: 66, gaps: [[22, 24.5], [38, 43]], depth: 0.9 },
+  channel: { x0: 6.2, x1: 7.6, z0: 14, z1: 66, gaps: [[22, 24.5], [34.7, 36.3], [38, 43]], depth: 0.9 },   // フェーズ11：[34.7, 36.3]＝石井さんの家の前の小さな橋
   // 区画（家・店）。face：表の向き（N/S/E/W）。kind：house・shop・bldg・apartment・konbini・parking・fill など。
   lots: [
     // 駅前通りの北側（表は南）
@@ -61,7 +63,7 @@ export const TOWN = {
     { id: 'n7', kind: 'shop', rect: [44, -19.5, 60, 1], face: 'S', floors: 2, wall: 'wood', tint: 0xb09080, sign: '金物 いしだ', shutter: true },
     { id: 'n8', kind: 'machiya', rect: [60, -19.5, 66, 1], face: 'E', sign: 'そば処 ゆきみ（仮）', noren: 0x2a3a6a, lit: true },
     // フェーズ10：ガラスの屋根の広場のまわり・横丁・中央通りの西側（表は東）
-    { id: 'd1', kind: 'dept', rect: [11.4, -45, 36, -34], face: 'S', floors: 5, sign: 'まちなかビル（仮）', tint: 0xa8b0b8 },
+    { id: 'd1', kind: 'dept', rect: [11.4, -45, 36, -34], face: 'S', floors: 5, sign: 'まちなかビル（仮）', tint: 0xa8b0b8, doorsU: [2.4, 22.0] },   // フェーズ11：自動ドアは舞台の両脇
     { id: 'w4', kind: 'shop', rect: [36, -34, 50, -24], face: 'S', floors: 2, wall: 'wood', tint: 0xa88a70, sign: '居酒屋 ゆきあかり（仮）', litSign: true, lanterns: true },
     { id: 'w5', kind: 'fillB', rect: [36, -78, 50, -34] }, { id: 'f_dt', kind: 'fillB', rect: [17, -78, 36, -45] },
     { id: 'w1', kind: 'machiya', rect: [50, -40, 66, -24], face: 'E', sign: '和菓子 つきしろ（仮）', noren: 0x6a2a3a, lit: false },
@@ -85,7 +87,7 @@ export const TOWN = {
     { id: 's4', kind: 'house', rect: [46, 14, 60, 27], face: 'N', wall: 'siding', tint: 0xc8d0d8, roof: 'kawara2', name: '杉本', fenceKind: 'hedge' },
     { id: 's5', kind: 'shop', rect: [60, 14, 66, 27], face: 'E', floors: 2, wall: 'siding2', tint: 0xd0d4c8, sign: '整骨院（仮）', shutter: true },
     // 自宅の前の道の北側（表は南）
-    { id: 'a1', kind: 'house', rect: [13, 27, 24, 38], face: 'S', wall: 'siding', tint: 0xe0d8c8, roof: 'kawara', name: '上田', fenceKind: 'block', side: 'W' },
+    { id: 'a1', kind: 'house', rect: [13, 27, 24, 38], face: 'S', wall: 'siding', tint: 0xe0d8c8, roof: 'kawara', name: '上田', fenceKind: 'block', side: 'W', door: 'R' },   // フェーズ11：門の前はごみ置き場を避ける
     { id: 'a2', kind: 'house', rect: [24, 27, 36, 38], face: 'S', wall: 'wood', tint: 0xc0a080, roof: 'kawara2', name: '森川', fenceKind: 'hedge' },
     { id: 'a3', kind: 'house', rect: [36, 27, 48, 38], face: 'S', wall: 'siding2', tint: 0xd0d8e0, roof: 'galv', name: '高橋', fenceKind: 'fence' },
     { id: 'a4', kind: 'house', rect: [48, 27, 62, 38], face: 'S', wall: 'mortar', tint: 0xd8ccb8, roof: 'kawara', name: '中村', fenceKind: 'block' },
@@ -95,8 +97,8 @@ export const TOWN = {
     { id: 'home', kind: 'home', rect: [30.5, 43, 50, 66], face: 'N' },
     { id: 'b3', kind: 'house', rect: [50, 43, 62, 66], face: 'N', wall: 'mortar', tint: 0xe0d0c0, roof: 'kawara2', name: '岡本', fenceKind: 'hedge' },
     // 用水路の西（表は東か北）
-    { id: 'w1', kind: 'house', rect: [-12, 30, 6.2, 38], face: 'E', wall: 'siding', tint: 0xd0c8d8, roof: 'kawara', name: '石井', fenceKind: 'fence', shallow: true },
-    { id: 'w3', kind: 'house', rect: [-6, 45, 6.2, 66], face: 'N', wall: 'wood', tint: 0xb89a7a, roof: 'kawara', name: '西村', fenceKind: 'block' },
+    { id: 'cw1', kind: 'house', rect: [-12, 30, 6.2, 38], face: 'E', wall: 'siding', tint: 0xd0c8d8, roof: 'kawara', name: '石井', fenceKind: 'fence', shallow: true, door: 'R' },   // フェーズ11：玄関は用水路の小さな橋（自宅の橋）から
+    { id: 'cw3', kind: 'house', rect: [-6, 45, 6.2, 66], face: 'N', wall: 'wood', tint: 0xb89a7a, roof: 'kawara', name: '西村', fenceKind: 'block', door: 'L' },   // フェーズ11：玄関は祠のある角の側（東は物置の塀）
     // 見えるだけの奥（当たり判定の埋め）
     { id: 'f_w1', kind: 'fill', rect: [-44, 30, -12, 38] }, { id: 'f_w2', kind: 'fill', rect: [-44, 38, -6, 45] }, { id: 'f_w4', kind: 'fill', rect: [-44, 45, -6, 66] },
     { id: 'f_c2', kind: 'fill', rect: [0, 43, 6.2, 45] }, { id: 'f_e2', kind: 'fill', rect: [62, 27, 66, 38] }, { id: 'f_e3', kind: 'fill', rect: [62, 43, 66, 66] },
@@ -132,13 +134,13 @@ export const TOWN = {
   // フェーズ10：中央通り・駅前の街灯（電線のない高い灯：l＝腕の向き）
   streetLights: [
     { id: 'ave_W', pts: [[66.5, 32], [66.5, 8.0], [66.5, -10], [66.5, -34], [66.5, -52], [66.5, -72]], dir: [1, 0] },
-    { id: 'ave_E', pts: [[91.5, 34], [91.5, 10], [91.5, -10], [91.5, -34], [91.5, -56], [91.5, -74]], dir: [-1, 0] },
+    { id: 'ave_E', pts: [[91.5, 38.4], [91.5, 10], [91.5, -10], [91.5, -34], [91.5, -56], [91.5, -74]], dir: [-1, 0] },
     { id: 'st', pts: [[46, -82], [58, -106], [90, -82], [102, -108], [112, -82], [46, -100]], dir: [0, 0] },
   ],
   // 小物（kind ごとに world/town.js が形を作る）
   props: [
     { kind: 'mirror', x: 7.9, z: 37.6, ry: Math.PI * 0.25 }, { kind: 'mirror', x: 13.2, z: 14.4, ry: -Math.PI * 0.75 }, { kind: 'mirror', x: 0.3, z: 37.7, ry: Math.PI * 0.75 },
-    { kind: 'vending', x: 29.4, z: 19.4, ry: Math.PI, color: 0xd03a3a }, { kind: 'vending', x: 30.5, z: 19.4, ry: Math.PI, color: 0x2a6ad0 },
+    { kind: 'vending', x: 16.4, z: 19.4, ry: Math.PI, color: 0xd03a3a }, { kind: 'vending', x: 17.5, z: 19.4, ry: Math.PI, color: 0x2a6ad0 },   // フェーズ11：自動ドアの前から西へ
     { kind: 'vending', x: 23.2, z: 38.5, ry: 0, color: 0xe8e8e8 },
     { kind: 'garbage', x: 16.8, z: 38.65, ry: 0 },
     { kind: 'busstop', x: -15, z: 2.0, name: '駅前通り　バス停（仮）' },
@@ -370,6 +372,95 @@ export function houseFoot(L) {
   if (f === 'S') return [x0 + side, z1 - set - maxD, x1 - side, z1 - set];
   if (f === 'E') return [x1 - set - maxD, z0 + side, x1 - set, z1 - side];
   return [x0 + set, z0 + side, x0 + set + maxD, z1 - side];
+}
+// ───────────── フェーズ11：建物の出入り口（玄関・店の戸・シャッター・自動ドア）。world/town.js・town2.js もここから位置を取る ─────────────
+/** 決まった乱数（区画の id から。world/town.js と同じ） */
+// 本体は共通の mapkit/core/rng.js へ移した（出る数は同じ）。ここは再輸出するだけ
+export { seeded };
+/** 建物の区画の種類（出入り口が要る物） */
+export const BUILDING_KINDS = ['house', 'shop', 'bldg', 'apartment', 'konbini', 'machiya', 'tower', 'dept', 'station', 'home'];
+/** 区画の枠（world/town.js の frame と同じ）：u＝表に沿って・v＝表から奥へ */
+export function lotFrame(L) {
+  const [x0, z0, x1, z1] = L.rect, f = L.face || 'N', alongX = f === 'N' || f === 'S';
+  const W = alongX ? x1 - x0 : z1 - z0, D = alongX ? z1 - z0 : x1 - x0;
+  const at = (u, v) => f === 'N' ? [x0 + u, z0 + v] : f === 'S' ? [x0 + u, z1 - v] : f === 'E' ? [x1 - v, z0 + u] : [x0 + v, z0 + u];
+  const out = f === 'N' ? [0, -1] : f === 'S' ? [0, 1] : f === 'E' ? [1, 0] : [-1, 0];
+  return { W, D, at, out, alongX, f };
+}
+/** 家の玄関：u（表に沿った位置）。門の切れ目（幅 gate）も同じ u。L.door（'L'｜'R'）で決められる・無ければ id の乱数（最初の 1 回） */
+export function houseDoor(L) {
+  const F = lotFrame(L), side = 1.2, a = F.W - side * 2, first = seeded(L.id)();
+  const left = L.door ? L.door === 'L' : first < 0.5;
+  return { u: side + (left ? 1.3 : a - 1.3), gate: 1.3, set: 3.2 };
+}
+/** 町家の戸口（間口 9m ごとに 1 つ）。r：続きの乱数（屋根の瓦などに使う） */
+export function machiyaDoors(L) {
+  const F = lotFrame(L), r = seeded(L.id), W = F.W, units = Math.max(1, Math.round(W / 9)), doors = [];
+  for (let k = 0; k < units; k++) { const u0 = k * W / units, uw = W / units, u = u0 + uw * (0.35 + r() * 0.3), w = Math.min(2.0, uw * 0.3), lit = !!(L.lit && (k === 0 || r() < 0.5)); doors.push({ u, w, lit, u0, uw }); }
+  return { doors, r };
+}
+/**
+ * 区画の出入り口の一覧：{ lot, kind（door｜shutter｜auto｜glass｜gate）, u, w, door:[x,z]（建物の面の上）, gate:[x,z]（区画の表の縁＝道に出る所）, out:[ox,oz] }
+ * 家は門（塀の切れ目）と玄関が同じ u。店・ビルは表の面＝区画の縁。
+ */
+export function lotEntrances(L, T = TOWN) {
+  if (!BUILDING_KINDS.includes(L.kind)) return [];
+  if (L.kind === 'home') { const g = T.homeLot.gate, x = (g[0] + g[1]) / 2; const [dx, dz] = homeW(0, 6); return [{ lot: L.id, kind: 'door', u: x - L.rect[0], w: g[1] - g[0], door: [dx, dz - 0.2], gate: [x, L.rect[1]], out: [0, -1] }]; }
+  const F = lotFrame(L), E = (kind, u, w, v) => ({ lot: L.id, kind, u, w, door: F.at(u, v), gate: F.at(u, 0), out: F.out });
+  if (L.kind === 'house') { const d = houseDoor(L); return [E('door', d.u, 0.95, d.set)]; }
+  if (L.kind === 'shop' || L.kind === 'bldg') return [E(L.shutter && !L.office ? 'shutter' : 'door', L.shutter && !L.office ? F.W / 2 : shopDoorU(L), L.shutter && !L.office ? F.W - 0.8 : 1.6, 0)];
+  if (L.kind === 'apartment') return [E(L.open ? 'gate' : 'door', F.W / 2, L.open ? 2.4 : 1.8, L.open ? 0 : 2.0)];
+  if (L.kind === 'konbini') return [E('auto', F.W - 2.4, 1.8, 0)];
+  if (L.kind === 'machiya') return machiyaDoors(L).doors.map(d => E('door', d.u, d.w, 0));
+  if (L.kind === 'tower') return [E('glass', F.W / 2, 2.4, 0)];
+  if (L.kind === 'dept') return deptDoorsU(L).map(u => E('auto', u, 3.0, 0));
+  if (L.kind === 'station') { const S = T.station, ac = (S.atrium[0] + S.atrium[1]) / 2 - L.rect[0]; return [-3.5, 0, 3.5].map(o => E('glass', ac + o, 3.0, 0)); }
+  return [];
+}
+/** 店の戸（ガラスの店・事務所）：表の中ほど（看板の下・左寄り） */
+export function shopDoorU(L) { const W = lotFrame(L).W; if (L.office) return 1.6; return Math.max(1.3, Math.min(W - 1.3, W * 0.3)); }
+/** 百貨店・まちなかのビルの自動ドア（間口 12m ごとに 1 つ・両端は避ける） */
+export function deptDoorsU(L) { if (L.doorsU) return L.doorsU.slice(); const W = lotFrame(L).W, n = Math.max(1, Math.round(W / 12)), out = []; for (let i = 0; i < n; i++) out.push((i + 0.5) * W / n); return out; }
+/** 奥の家並み（fill）・奥のビル（fillB）の升目（world/town.js の backHouses・town2.js の fillB と同じ割り方） */
+export function fillCells(L) {
+  const [x0, z0, x1, z1] = L.rect, out = [];
+  if (L.kind === 'fill') {
+    // 細い区画（幅 6m 未満）：長い向きに 8〜10m ごと・縁から 0.3m（狭い家・物置）。2.5m 未満は塀だけ（small）
+    if (x1 - x0 < 6 || z1 - z0 < 6) { const alongX = x1 - x0 >= z1 - z0, len = alongX ? x1 - x0 : z1 - z0, n = Math.max(1, Math.round(len / 9)), step = len / n;
+      for (let i = 0; i < n; i++) { const a = (alongX ? x0 : z0) + i * step; const r = alongX ? [a + 0.3, z0 + 0.3, a + step - 0.3, z1 - 0.3] : [x0 + 0.3, a + 0.3, x1 - 0.3, a + step - 0.3]; out.push({ rect: r, narrow: true, small: r[2] - r[0] < 2.5 || r[3] - r[1] < 2.5 }); }
+      return out; }
+    for (let x = x0; x < x1 - 4; x += 10) for (let z = z0; z < z1 - 4; z += 10) { const w = Math.min(10, x1 - x) - 2, d = Math.min(10, z1 - z) - 2; out.push({ rect: [x + 1, z + 1, x + 1 + w, z + 1 + d], x, z, small: w < 3 || d < 3 }); } }
+  else if (L.kind === 'fillB') {
+    if (x1 - x0 < 4 || z1 - z0 < 4) return [{ rect: [x0, z0, x1, z1], small: true }];
+    for (let x = x0; x < x1 - 2; x += 12) for (let z = z0; z < z1 - 2; z += 12) { const w = Math.min(12, x1 - x) - 0.6, d = Math.min(12, z1 - z) - 0.6; out.push({ rect: [x + 0.3, z + 0.3, x + 0.3 + w, z + 0.3 + d], x, z, small: w < 3 || d < 3 }); }
+  }
+  return out;
+}
+/** 歩ける所か（T.walk の範囲・どの区画の中でもない） */
+export function isWalkable(x, z, T = TOWN) {
+  if (!T.walk.some(w => x > w.rect[0] && x < w.rect[2] && z > w.rect[1] && z < w.rect[3])) return false;
+  return !T.lots.some(L => L.kind !== 'home' && L.kind !== 'parking' && x > L.rect[0] && x < L.rect[2] && z > L.rect[1] && z < L.rect[3]);
+}
+let _solids = null;
+/** 出入り口の前を塞ぐ物（電柱・自販機・車など。0.3m の余裕）があるか */
+export function blockedAt(x, z, T = TOWN, r = 0.3) { if (!_solids || _solids.T !== T) { _solids = townSolids(T).filter(b => b.maxY > 0.3); _solids.T = T; } return _solids.some(b => x > b.minX - r && x < b.maxX + r && z > b.minZ - r && z < b.maxZ + r); }
+/** 奥の家並み・ビルの、道に面した升目の出入り口（面の真ん中）：{ lot, cell, side, door:[x,z], gate:[x,z], out } */
+export function fillEntrances(L, T = TOWN) {
+  const out = [], [lx0, lz0, lx1, lz1] = L.rect;
+  fillCells(L).forEach((c, i) => {
+    if (c.small) return;
+    const [x0, z0, x1, z1] = c.rect, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    for (const [side, near, gx, gz, dx, dz, o] of [['N', z0 - lz0, cx, lz0 - 0.8, cx, z0, [0, -1]], ['S', lz1 - z1, cx, lz1 + 0.8, cx, z1, [0, 1]], ['W', x0 - lx0, lx0 - 0.8, cz, x0, cz, [-1, 0]], ['E', lx1 - x1, lx1 + 0.8, cz, x1, cz, [1, 0]]]) {
+      if (near > 1.2) continue;
+      const alongX = side === 'N' || side === 'S', half = (alongX ? x1 - x0 : z1 - z0) / 2 - 0.8;
+      for (const k of [0, -0.5, 0.5, -0.9, 0.9]) {             // 面の真ん中から順に、道へ出られる所（塞ぐ物が無い所）
+        const sx = alongX ? gx + k * half : gx, sz = alongX ? gz : gz + k * half;
+        if (!isWalkable(sx, sz, T) || blockedAt(sx, sz, T)) continue;
+        out.push({ lot: L.id, cell: i, side, door: alongX ? [dx + k * half, dz] : [dx, dz + k * half], gate: [sx - o[0] * 0.8, sz - o[1] * 0.8], out: o }); break;
+      }
+    }
+  });
+  return out;
 }
 /** ガードレールの区間（南の歩道の縁・x の範囲）。横断歩道・角・コンビニの出入り口・公園の入口を空ける */
 export function guardSpans(T = TOWN) {

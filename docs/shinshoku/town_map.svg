@@ -150,6 +150,7 @@
 <rect x="959.6" y="615.7" width="74.7" height="23.6" fill="#5a5070" />
 <rect x="861.4" y="615.7" width="71.5" height="62.9" fill="#4a7a5a" />
 <rect x="932.9" y="647.1" width="5.5" height="9.9" fill="#8a7aa8" />
+<rect x="932.9" y="697" width="5.5" height="6.3" fill="#8a7aa8" />
 <rect x="1050" y="729.6" width="47.1" height="11.8" fill="#9a7a6a" />
 <rect x="1028.4" y="729.6" width="21.6" height="35.4" fill="#9a7a6a" />
 <rect x="926.3" y="450.7" width="23.9" height="23.6" fill="#b8a0d8" />
@@ -203,7 +204,7 @@
 <circle cx="1169.8" cy="427.1" r="2.4" fill="#555"/>
 <circle cx="1169.8" cy="356.4" r="2.4" fill="#dfeaff"/>
 <circle cx="1169.8" cy="277.9" r="2.4" fill="#dfeaff"/>
-<circle cx="1268" cy="694.3" r="2.4" fill="#dfeaff"/>
+<circle cx="1268" cy="711.6" r="2.4" fill="#dfeaff"/>
 <circle cx="1268" cy="600" r="2.4" fill="#dfeaff"/>
 <circle cx="1268" cy="521.4" r="2.4" fill="#dfeaff"/>
 <circle cx="1268" cy="427.1" r="2.4" fill="#dfeaff"/>

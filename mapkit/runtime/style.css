@@ -1,0 +1,24 @@
+/* mapkit.html（検証マップ・開発用）の画面 */
+html, body { margin: 0; height: 100%; overflow: hidden; background: #1a1c24; color: #eef; font-family: system-ui, "Hiragino Sans", "Noto Sans JP", sans-serif; touch-action: none; user-select: none; -webkit-user-select: none; }
+#mk-canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+#mk-boot { position: fixed; inset: 0; display: grid; place-items: center; font-size: 18px; background: #1a1c24; }
+#mk-boot[hidden], #mk-hud[hidden] { display: none; }
+#mk-panel { position: fixed; left: max(10px, env(safe-area-inset-left)); top: 10px; max-width: min(340px, 44vw); background: rgba(12, 14, 22, .62); border: 1px solid rgba(255, 255, 255, .12); border-radius: 10px; padding: 8px 12px; font-size: 13px; line-height: 1.5; }
+.mk-title { font-weight: 700; font-size: 14px; } .mk-title small { font-weight: 400; opacity: .6; margin-left: .5em; }
+#mk-goal { color: #9fe6ff; font-weight: 600; } #mk-dist, #mk-where { opacity: .85; }
+#mk-list { margin: 4px 0; padding-left: 0; list-style: none; } #mk-list li.done { opacity: .5; } #mk-list li.cur { color: #9fe6ff; }
+.mk-sel select { background: #222634; color: #eef; border: 1px solid #445; border-radius: 4px; font-size: 12px; }
+#mk-arrow { position: fixed; left: 50%; top: 14px; width: 46px; height: 46px; margin-left: -23px; transition: opacity .3s; filter: drop-shadow(0 1px 3px #000); }
+#mk-msg { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); background: rgba(10, 12, 20, .75); padding: 8px 18px; border-radius: 20px; font-size: 16px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+#mk-msg.on { opacity: 1; }
+#mk-help { position: fixed; left: 50%; bottom: 8px; transform: translateX(-50%); font-size: 12px; opacity: .7; background: rgba(0, 0, 0, .35); padding: 3px 10px; border-radius: 6px; white-space: nowrap; }
+#mk-perf { position: fixed; right: 8px; top: 6px; margin: 0; font-size: 11px; color: #cfe; text-shadow: 0 1px 2px #000; }
+#mk-touch { position: fixed; inset: 0; z-index: 5; }
+#mk-touch ~ #mk-hud #mk-help, body:has(#mk-touch) #mk-help { display: none; }
+.mk-stick { position: fixed; left: 40px; bottom: 40px; width: 140px; height: 140px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .25); background: rgba(255, 255, 255, .06); }
+.mk-stick.on { border-color: rgba(159, 230, 255, .6); }
+.mk-knob { position: absolute; left: 45px; top: 45px; width: 50px; height: 50px; border-radius: 50%; background: rgba(255, 255, 255, .35); }
+.mk-tbtns { position: fixed; right: max(14px, env(safe-area-inset-right)); bottom: 18px; display: grid; grid-template-columns: repeat(2, 58px); gap: 10px; }
+.mk-tbtns button { width: 58px; height: 58px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .3); background: rgba(20, 24, 36, .55); color: #eef; font-size: 20px; }
+.mk-tbtns button.on { background: rgba(80, 160, 200, .6); }
+@media (max-height: 460px) { #mk-panel { font-size: 11px; padding: 5px 8px; } #mk-list { display: none; } }

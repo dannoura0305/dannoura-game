@@ -2,10 +2,9 @@
 // 位置は {x, z}（m）、時間は秒（世界の時間。ジャスト回避のスロー中は dt が小さくなる）。
 // update(dt, sense) → { move:{x,z,speed}|null, face:{x,z}|null, events:[] }
 // sense = { player:{x,z,noise:'run'|'walk'|'none',dead}, los:bool, dark:bool, gunshot:{x,z}|null, ... }
-export function rng(seed) {
-  let a = seed >>> 0;
-  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-}
+// 種つきの乱数は共通の mapkit/core/rng.js へ移した（出る数は同じ）。作品側の入口として再輸出する。
+import { rng } from '../../mapkit/core/rng.js';
+export { rng };
 export const dist2 = (a, b) => { const dx = a.x - b.x, dz = a.z - b.z; return Math.sqrt(dx * dx + dz * dz); };
 export function angleTo(from, yaw, to) {
   // yaw：+z を 0、+x を π/2 とする向き。from から to への向きとの差（度）
