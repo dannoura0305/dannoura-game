@@ -139,7 +139,7 @@ export function auditArea(area, pieces, A, opt = {}) {
       let under = false, side = false;
       for (const o of G.near(p.min.map(v => v - TOL), p.max.map(v => v + TOL))) {
         if (o === p || !ov(p, o, TOL)) continue;
-        if (o.max[1] <= p.max[1] + 0.01 && o.max[1] >= p.min[1] - TOL - 0.02 && o.min[1] < p.min[1] - 0.15 && Math.max(...dims(o).filter((v, q) => q !== 1)) < Math.max(w, d) * 1.5) under = true;
+        if (o.max[1] <= p.max[1] + 0.01 && o.max[1] >= p.min[1] - TOL - 0.02 && o.min[1] < p.min[1] - 0.02) under = true;   // 下から触れる物（脚・台・ベッドの枠）
         else if (o.min[1] < p.min[1] - 0.15 && o.max[1] >= p.max[1] - 0.01 && dims(o)[1] > 1.2) side = true;   // 壁に付いた棚・カウンター
       }
       if (!under && !side) push('furniture', 'error', `脚・支えの無い座面／天板（${p.fn}・高さ ${r2(p.min[1])}m）`, p);

@@ -197,7 +197,8 @@ export function buildPlaza() {
   for (const [x, y] of [[10.9, 1.15], [11.6, 1.15], [12.3, 1.15], [11.25, 1.6], [11.95, 1.6]]) B.box('glow', x, y, -11.75, 0.6, 0.4, 0.04, 0x7ab0d8, { edges: false });
   halos.push({ p: [11.6, 1.35, -11.5], size: 1.6, color: 0x8ac8ff, k: 0.5 });
   const sec = atlas.add(signDraw('警備室', { bg: '#e8e8f0', fg: '#203050', size: 36 }));
-  B.box('sign', 9.7, 2.7, -7.78, 0.9, 0.28, 0.03, 0xffffff, { uv: sec, face: 4, edges: false });
+  B.box('wall', 9.7, 2.64, -7.95, 1.42, 0.72, 0.3, 0x9a94a4);   // P13：戸口の上の壁（看板を付ける）
+  B.box('sign', 9.7, 2.64, -7.785, 0.9, 0.28, 0.03, 0xffffff, { uv: sec, face: 4, edges: false });
   spots.push({ id: 'cctv', kind: 'cctv', x: 11.4, z: -10.5, r: 1.2, label: '防犯カメラの映像' });
   // 枯れた噴水（真ん中・隠れ場所）
   B.box('prop', 2, 0.3, 0, 3.8, 0.6, 3.8, 0x8a8a92); solid(2, 0, 3.8, 3.8, 0.7);
@@ -209,7 +210,7 @@ export function buildPlaza() {
   const bus = atlas.add(signDraw('市民体育館前　（終バス 済）', { bg: '#f0f0e8', fg: '#1a3a6a', size: 28 }));
   B.box('prop', -3.6, 1.2, 12.4, 0.08, 2.4, 0.08, 0x6a6a72); B.box('sign', -3.6, 2.3, 12.4, 0.04, 0.4, 0.9, 0xffffff, { uv: bus, face: 0, edges: false });
   spots.push({ id: 'busstop', kind: 'read', x: -4.2, z: 11.2, r: 1.4, label: 'バス停の時刻表', text: 'busstop' });
-  const bench = [[0, 0.42, 0, 1.6, 0.06, 0.45, 0x8a6a4a], [0, 0.2, -0.15, 0.08, 0.4, 0.08, 0x3a3a3a], [0.7, 0.2, 0, 0.06, 0.4, 0.4, 0x3a3a3a], [-0.7, 0.2, 0, 0.06, 0.4, 0.4, 0x3a3a3a], [0, 0.7, -0.2, 1.6, 0.35, 0.05, 0x8a6a4a]];
+  const bench = [[0, 0.42, 0, 1.6, 0.06, 0.45, 0x8a6a4a], [0, 0.2, -0.15, 0.08, 0.4, 0.08, 0x3a3a3a], [0.7, 0.2, 0, 0.06, 0.4, 0.4, 0x3a3a3a], [-0.7, 0.2, 0, 0.06, 0.4, 0.4, 0x3a3a3a], [0, 0.7, -0.2, 1.6, 0.35, 0.05, 0x8a6a4a], [0.7, 0.5, -0.2, 0.05, 0.3, 0.05, 0x3a3a3a], [-0.7, 0.5, -0.2, 0.05, 0.3, 0.05, 0x3a3a3a]];   // P13：背もたれの柱
   const benches = [{ x: -6, z: 12.9, ry: Math.PI }, { x: -10, z: -2, ry: Math.PI / 2 }, { x: 8, z: 4.5, ry: 0 }, { x: -2, z: -9, ry: 0 }];
   root.add(instanced(bench, benches, { name: 'benches' }));
   for (const b of benches) solid(b.x, b.z, Math.abs(Math.sin(b.ry)) > 0.5 ? 0.5 : 1.6, Math.abs(Math.sin(b.ry)) > 0.5 ? 1.6 : 0.5, 0.8);
@@ -219,8 +220,8 @@ export function buildPlaza() {
   // 渡り廊下（避難所へ）・放送のスピーカーの柱
   B.box('wall', 18.6, 3.2, 5, 1.2, 0.2, 6, 0x5a5a62);
   const sh = atlas.add(signDraw('→ 避難所（市民体育館）', { bg: '#1a6a3a', fg: '#ffffff', size: 32 }));
-  B.box('sign', 17.9, 2.6, 5, 0.04, 0.4, 2.2, 0xffffff, { uv: sh, face: 1, edges: false });
-  halos.push({ p: [17.7, 2.6, 5], size: 1.5, color: 0x60ff90, k: 0.4 });
+  B.box('sign', 18.05, 2.9, 5, 0.04, 0.4, 2.2, 0xffffff, { uv: sh, face: 1, edges: false });   // P13：渡り廊下の屋根の下に吊る
+  halos.push({ p: [17.8, 2.9, 5], size: 1.5, color: 0x60ff90, k: 0.4 });
   B.box('prop', 14.5, 2.5, 8.5, 0.16, 5, 0.16, 0x6a6a72); B.box('prop', 14.5, 4.9, 8.2, 0.5, 0.4, 0.5, 0xd8d8d0);
   spots.push({ id: 'exit_shelter', kind: 'exit', to: 'shelter', spawn: 'from_plaza', x: 17.8, z: 5, r: 1.6, label: '避難所へ（渡り廊下）', auto: true, needFlag: 'plaza_broadcast', lockedText: 'shelter_wait' });
   spots.push({ id: 'exit_alley', kind: 'exit', to: 'alley', spawn: 'from_plaza', x: -18.4, z: 0, r: 1.3, label: '裏路地へ戻る', auto: true });
@@ -258,9 +259,10 @@ export function buildShelter() {
   root.add(ground(14.4, 10.4, 0, 15.2, { base: '#5a5862', repeat: [5, 4] }));
   // 体育館の壁（x ±14.2、z −20.4〜10）
   wall(-14.4, -5.2, 0.4, 30.8, 9, GW); wall(14.4, -14.8, 0.4, 11.6, 9, GW); wall(14.4, 5.4, 0.4, 9.2, 9, GW);   // 東：z −9〜0.8 が器具庫
-  wall(0, -20.6, 29.2, 0.4, 9, GW2);
+  wall(0, -20.6, 29.24, 0.4, 9, GW2);
+  // P13：戸の上の壁は 2.6〜9m（前は 2.6〜8m が抜けてロビーが見えていた）
   wall(-7.85, 10.2, 12.9, 0.4, 9, GW); wall(7.85, 10.2, 12.9, 0.4, 9, GW);     // 南：x −1.4〜1.4 が戸
-  B.box('wall', 0, 8.5, 10.2, 2.8, 1.0, 0.4, GW); B.box('wall', 0, 9.1, -5.2, 29.2, 0.2, 31, 0x8a8478);         // 天井
+  B.box('wall', 0, 5.8, 10.2, 2.8, 6.4, 0.4, GW); B.box('wall', 0, 9.1, -5.2, 29.2, 0.2, 31, 0x8a8478);         // 天井
   // 高い窓（月明かり）
   for (let z = -18; z <= 8; z += 4) for (const x of [-14.18, 14.18]) if (!(x > 0 && z > -10 && z < 2)) B.box('texglow', x, 7.2, z, 0.06, 1.4, 2.4, 0x5a6a98, { tile: 'win_dark', fit: true, edges: false });
   // フェーズ9：腰板（木）・防球ネットの柱・壁の時計・ロビーの床タイル
@@ -282,10 +284,10 @@ export function buildShelter() {
   halos.push({ p: [5.6, 0.8, -14.6], size: 0.5, color: 0xff5040, k: 0.6, mic: true });
   spots.push({ id: 'pa_mic', kind: 'mic', x: 5.6, z: -13.8, r: 1.3, label: '館内放送のマイク' });
   // 体育の道具：バスケットのゴール
-  for (const x of [-13.6, 13.6]) { B.box('prop', x, 3.4, 4.5, 0.2, 6.8, 0.2, 0x6a6a72); B.box('prop', x - Math.sign(x) * 0.6, 3.6, 4.5, 0.06, 1.0, 1.6, 0xf0f0f0); }
+  for (const x of [-13.6, 13.6]) { B.box('prop', x, 3.4, 4.5, 0.2, 6.8, 0.2, 0x6a6a72); B.box('prop', x - Math.sign(x) * 0.6, 3.6, 4.5, 0.06, 1.0, 1.6, 0xf0f0f0); B.box('prop', x - Math.sign(x) * 0.33, 3.6, 4.5, 0.5, 0.1, 0.1, 0x6a6a72); const hg = new THREE.TorusGeometry(0.23, 0.02, 6, 16); hg.rotateX(Math.PI / 2); hg.translate(x - Math.sign(x) * 0.88, 3.1, 4.5); B.add('prop', hg, 0xd85a2a); }   // P13：板を柱へ付ける腕・輪
   // 器具庫（東：x 14.4〜19.6、z −9〜0.8）
   wall(19.8, -4.1, 0.4, 10.2, 5, 0x9a9488); wall(17.1, -9.2, 5.6, 0.4, 5, 0x9a9488); wall(17.1, 1.0, 5.6, 0.4, 5, 0x9a9488);
-  B.box('wall', 17.1, 5.1, -4.1, 5.8, 0.2, 10.6, 0x6a645a);
+  B.box('wall', 17.2, 5.1, -4.1, 5.6, 0.2, 10.6, 0x6a645a);
   wall(14.4, -7.6, 0.4, 2.8, 9, GW); wall(14.4, -0.6, 0.4, 2.8, 9, GW);           // 開口：z −6.2〜−2.0
   B.box('wall', 14.4, 6.0, -4.1, 0.4, 6.0, 4.2, GW);
   for (const [x, z, w, h, d, c] of [[18.8, -7.5, 1.4, 0.5, 2.0, 0x3a6ab0], [18.8, -7.5, 1.4, 0.5, 2.0, 0x3a6ab0], [18.9, -1.2, 1.2, 1.1, 1.6, 0xb08a5a], [16.0, 0.0, 1.2, 0.8, 0.8, 0x8a8a8a]]) { B.box('prop', x, h / 2, z, w, h, d, c); solid(x, z, w, d, h); }
@@ -333,7 +335,7 @@ export function buildShelter() {
   const lk = [[0, 0.9, 0, 0.4, 1.8, 1.8, 0x8a8a7a], [0.21, 0.9, 0, 0.02, 1.7, 1.7, 0x5a5a52]];
   root.add(instanced(lk, [{ x: 6.75, z: 13.2 }, { x: 6.75, z: 17.2 }], { name: 'lockers', kit: 'prop.int.locker', kitRy: -Math.PI / 2, kitS: [2, 1, 0.8], kitColor: 0x8a8a7a })); solid(6.75, 15.2, 0.5, 6, 1.8);
   const lb = atlas.add(signDraw('受付　（避難者の方は名前を記入）', { bg: '#f4f0e6', fg: '#203050', size: 26 }));
-  B.box('sign', 0.4, 1.6, 12.24, 2.4, 0.3, 0.03, 0xffffff, { uv: lb, face: 4, edges: false });
+  B.box('sign', 0.4, 0.75, 12.235, 2.4, 0.3, 0.03, 0xffffff, { uv: lb, face: 4, edges: false });   // P13：受付の机の前の面に貼る（前は机の上に浮いていた）
   // 体育館の戸（鍵）：閉まっている間は当たり判定あり
   const doorMat = new THREE.MeshToonMaterial({ color: 0x6a7a8a, gradientMap: gradientMap() });
   const leafs = [-0.7, 0.7].map(x => { const m = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.6, 0.08), doorMat); m.position.set(x, 1.3, 10.2); m.castShadow = true; root.add(m); return m; });
@@ -362,7 +364,7 @@ export function buildShelter() {
     { id: 'emg2', pos: [13.8, 3.0, -4.1], color: 0xff4030, intensity: 0, dist: 10, emergency: true },
     { id: 'lobby', pos: [0, 3.6, 15.5], color: 0xffe0b0, intensity: 7, dist: 11 },
   ].map(l => Object.assign({ base: l.intensity }, l));
-  for (const l of lights) { if (l.gym) { B.box('glow', l.pos[0], 8.9, l.pos[2], 3.0, 0.1, 0.5, 0xf0f4ff, { edges: false }); halos.push({ p: [l.pos[0], 8.7, l.pos[2]], size: 3.2, color: l.color, k: 0.6, light: l }); } if (l.emergency) { B.box('glow', l.pos[0], l.pos[1] + 0.1, l.pos[2], 0.5, 0.18, 0.06, 0x30ff60, { edges: false }); halos.push({ p: [l.pos[0], l.pos[1] + 0.1, l.pos[2] - 0.15], size: 1.0, color: 0x30ff60, k: 0.6 }); } }
+  for (const l of lights) { if (l.gym) { B.box('glow', l.pos[0], 8.95, l.pos[2], 3.0, 0.1, 0.5, 0xf0f4ff, { edges: false }); halos.push({ p: [l.pos[0], 8.7, l.pos[2]], size: 3.2, color: l.color, k: 0.6, light: l }); } if (l.emergency) { { const ax = l.id === 'emg2'; B.box('glow', ax ? 14.17 : l.pos[0], l.pos[1] + 0.1, ax ? l.pos[2] : 9.97, ax ? 0.06 : 0.5, 0.18, ax ? 0.5 : 0.06, 0x30ff60, { edges: false }); } halos.push({ p: [l.pos[0], l.pos[1] + 0.1, l.pos[2] - 0.15], size: 1.0, color: 0x30ff60, k: 0.6 }); } }
   const wet = [{ p: [-6, 0, -8], size: 3.0, color: 0xe8f0ff, k: 0.22, light: 'ceil1' }, { p: [6, 0, -8], size: 3.0, color: 0xe8f0ff, k: 0.22, light: 'ceil2' }, { p: [-6, 0, 3], size: 3.0, color: 0xe8f0ff, k: 0.22, light: 'ceil3' }, { p: [6, 0, 3], size: 3.0, color: 0xe8f0ff, k: 0.22, light: 'ceil4' }];
   return finish('shelter', B, atlas, root, {
     boxes, spots, dyn, lights, halos, wet, hideSpots, surface: (x, z) => (z > 10.2 ? 'tile' : 'gym'), rainRoof: () => true, indoor: (x, z) => z > 10.3,

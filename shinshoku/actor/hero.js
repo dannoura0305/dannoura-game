@@ -83,7 +83,8 @@ export function heroHead(sb, o) {
   // 鼻（小さなくさび：横から見て鼻の線が出る）
   if (o.nose !== false) {
     const np = surf(V(0, -0.36, 1).normalize());
-    sb.blob([np.x, np.y + R * 0.02, np.z - R * 0.03], [R * 0.06, R * 0.13, R * 0.08], { rot: [-0.35, 0, 0], deform: v => { if (v.z < 0) v.z *= 0.3; v.x *= 1 - 0.5 * Math.max(0, v.y); return v; }, weights: hw, color: o.skin, w: 10, h: 8, oth: 0.25, mat: 'face' });
+    // P13：鼻は横から見た時の小さな高まりだけ（輪郭線なし：正面で丸い「できもの」の線にしない。鼻の形は顔の絵の線）
+    sb.blob([np.x, np.y + R * 0.02, np.z - R * 0.035], [R * 0.05, R * 0.12, R * 0.07], { rot: [-0.35, 0, 0], deform: v => { if (v.z < 0) v.z *= 0.3; v.x *= 1 - 0.5 * Math.max(0, v.y); return v; }, weights: hw, color: o.skin, w: 10, h: 8, oth: 0, mat: 'face' });
   }
   // 耳：C の形（外の縁・内側の影）
   if (o.ears !== false) for (const sx of [1, -1]) {

@@ -118,7 +118,12 @@ export function dannouraPose(ctx) {
   let b = base(ctx);
   let rate = ctx.speed > 0.1 ? 0.55 : 0.2;
   const pipe = w === 'pipe' || w === 'matchlock';
-  if (w === 'katana' && !['attack', 'issen', 'parry', 'charge'].includes(st.name)) b = Object.assign(b, KATANA_READY);
+  if (w === 'katana' && !['attack', 'issen', 'parry', 'charge'].includes(st.name)) {
+    // P13：歩き・走りでは構えた右腕にも振りを少し残す（片腕だけ固まって見えない）
+    const sw = b._gait && b.rightUpperArm ? b.rightUpperArm[0] : null;
+    b = Object.assign(b, KATANA_READY);
+    if (sw != null) b.rightUpperArm = [KATANA_READY.rightUpperArm[0] + sw * 0.3, KATANA_READY.rightUpperArm[1], KATANA_READY.rightUpperArm[2]];
+  }
   if (w === 'pipe' && !['attack', 'parry', 'charge'].includes(st.name)) b = Object.assign(b, PIPE_READY);
   if (w === 'matchlock' && !['attack', 'parry', 'charge'].includes(st.name)) b = Object.assign(b, MATCH_READY);
   if (st.name === 'attack') {

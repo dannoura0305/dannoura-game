@@ -22,6 +22,7 @@ import { FaceDriver, codeFaceAdapter } from '../charkit/face/driver.js';
 import { Poser } from '../shinshoku/actor/rig.js';
 import * as A from '../shinshoku/actor/anim.js';
 import { loadManifest, loadCharacter } from '../shinshoku/actor/vrm.js';
+import { LocoDriver } from '../charkit/anim/locodriver.js';
 const Q = new URLSearchParams(location.search);
 const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(innerWidth, innerHeight); r.setPixelRatio(Math.min(2, devicePixelRatio)); document.body.appendChild(r.domElement);
 r.shadowMap.enabled = true;
@@ -55,7 +56,9 @@ for (const n of list) {
   if (face && Q.get('expr')) face.setExpr(Q.get('expr'));
   if (face && Q.get('say')) { face.say(Q.get('say'), +(Q.get('sayDur') || 3)); m.talkingMouth = true; }
   if (face && Q.get('gaze')) { const [gx, gy] = Q.get('gaze').split(',').map(Number); face.lookAt(gx, gy); }
-  actors.push({ n, m, g, face, poser: new Poser(m.J, m.rest || {}), t: Q.get('t0') ? +Q.get('t0') : Math.random() * 3 });
+  // P13：v2 のモデルは歩きの係（待機の足の IK・歩き・走り）。&loco=0 で前の手続きの姿勢
+  const driver = m.legDims && Q.get('loco') !== '0' ? new LocoDriver({ dims: m.legDims, scale: m.legScale || 1, pers: n === 'white' || n === 'mixed' ? 'white' : m.kind }) : null;
+  actors.push({ n, m, g, face, driver, ph: 0, poser: new Poser(m.J, m.rest || {}), t: Q.get('t0') ? +Q.get('t0') : Math.random() * 3 });
 }
 const tris = actors.map(a => `${a.n}: ${a.m.tris ? Math.round(a.m.tris) : '?'} 三角形`).join('\n');
 const rot = +(Q.get('rot') || 0), dist = +(Q.get('dist') || (list.length * 1.2 + 1.5)), cy = +(Q.get('y') || 1.0), cx = +(Q.get('x') || 0);
@@ -69,11 +72,12 @@ function frame() {
     a.t += 1 / 60;
     let p;
     const ctx = { st: { name: pose === 'walk' || pose === 'run' || pose === 'idle' ? 'free' : pose, f: 10, atk: { startup: 6, active: 4, recovery: 14 }, step: 0 }, f: 10, w: Q.get('w') || 'none', speed: pose === 'walk' ? 2.2 : pose === 'run' ? 5 : 0, phase: a.t * (pose === 'run' ? 13 : 7.5), time: a.t, aiming: false, state: 'loop', sub: 'walk', t: a.t };
+    if (a.driver) { a.ph += ctx.speed / 60 * a.driver.rate(); ctx.phase = a.ph; ctx.basePose = a.driver.update(1 / 60, { speed: ctx.speed, phase: a.ph, time: a.t }); }
     if (a.n === 'dannoura' || a.n === 'white') p = A.dannouraPose(ctx).pose;
     else if (a.n === 'kiro') p = A.kiroPose(ctx).pose;
     else if (a.n === 'heiten') p = A.heitenPose(ctx).pose;
     else if (a.n === 'shuuyou' && A.shuuyouPose) p = A.shuuyouPose(Object.assign(ctx, { state: 'idle' })).pose;
-    else p = A.companionPose({ time: a.t, speed: ctx.speed, phase: ctx.phase }).pose;
+    else p = A.companionPose({ time: a.t, speed: ctx.speed, phase: ctx.phase, basePose: ctx.basePose }).pose;
     a.poser.apply(p, 0.2);
     if (a.m.weapons && a.m.weapons.bones) { const W = a.m.weapons, hold = Q.get('w') || 'none', on = (o, v) => o && o.scale.setScalar(v ? 1 : 1e-4); on(W.katana, hold === 'katana'); on(W.sayaHilt, hold !== 'katana'); on(W.saya, true); on(W.gun, hold === 'handgun'); on(W.holster, true); on(W.holsterGun, hold !== 'handgun'); on(W.pipe, hold === 'pipe'); on(W.pipeBack, !!Q.get('pipe')); on(W.match, hold === 'matchlock'); on(W.matchBack, false); }
     if (a.face && !Q.get('freeze')) { if (Q.get('say') && !a.face.talking && a.t > 1) a.face.say(Q.get('say'), +(Q.get('sayDur') || 3)); a.face.update(1 / 60); }
