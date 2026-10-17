@@ -12,6 +12,7 @@
 import { TOWN, BUILDING_KINDS, lotEntrances, isWalkable, blockedAt } from '../../../shinshoku/data/town.js';
 
 const TOL = 0.025;
+export const STOREFRONT = /win|door|shutter|glass|noren|shoji|lattice|koshi|menu|shop|curtain|office|garage|konbini|counter|interior/;
 export const CATS = ['float', 'pierce', 'furniture', 'signage', 'facade', 'vehicle', 'zfight', 'block'];
 
 // ── 分類（組み立ての関数の名前から） ──
@@ -149,17 +150,21 @@ export function auditArea(area, pieces, A, opt = {}) {
   {
     const SKIP = /→|←|↑|入口|出口|のりば|乗り場|停留|バス|電停|駅|STATION|ごみ|回覧|注意|禁止|立入|止まれ|時刻|本日|運転|休業|募集|閉店|セール|案内|お知らせ|知らせ|掲示|号|番|丁目|^\d|方面|行き|toilet|トイレ|非常|避難|消火|AED|受付|外来|救急|病院|管理|出入|関係者|EXIT|自動ドア|押|引|開|閉|満|空|P$|駐|自転車|タクシー|案内図|地図|通り|広場|横丁|商店街|アーケード|町内|市|区|ようこそ|祭|ひかり広場|中止|ありがとう|表札|様$/;
     const BIZ = /屋|店|処|館|喫茶|カフェ|理容|美容|薬局|書店|精肉|青果|鮮魚|酒|食堂|居酒屋|焼き鳥|おでん|スナック|立ち飲み|そば|うどん|ラーメン|寿司|和菓子|菓子|茶舗|呉服|金物|時計|めがね|眼鏡|写真|電器|靴|花|クリーニング|銭湯|湯$|たばこ|たい焼き|不動産|整骨|医院|歯科|銀行|信用金庫|ホテル|旅館|画廊|コンビニ|スーパー|百貨店|ビル|英会話|塾|雑貨|文具|本と|八百屋/;
+    const supported = s => { for (const o of G.near(s.min.map(v => v - TOL), s.max.map(v => v + TOL))) if (o !== s && ov(s, o, TOL)) return true; return false; };
     for (const s of solid.filter(isSign)) {
       const t = s.text; if (!BIZ.test(t) || SKIP.test(t)) continue;
       const ds = dims(s); const ax = ds[0] < ds[2] ? 0 : 2;            // 看板の板の厚みの向き
       if (ds[1] < 0.15 && Math.min(ds[0], ds[2]) > 0.3) continue;      // 平らに置いた札（地面の上）
       const c = ctr(s);
       const probe = (sign, y, dmax) => { for (let dd = 0.06; dd <= dmax; dd += 0.15) { const P = c.slice(); P[ax] += sign * (ds[ax] / 2 + dd); P[1] = y; const o = pointIn(G, P[0], P[1], P[2], q => q === s || q.max[1] < 0.2 || isSign(q)); if (o) return { o, dd }; } return null; };
+      if (pointIn(G, c[0], s.max[1] + 0.4, c[2], q => q === s || isSign(q))) continue;          // 店の中の品書き（上に天井）＝表の看板ではない
+      const o1a = ax === 0 ? 2 : 0;
+      const probe2 = (sign, ys, dmax) => { for (const y of ys) for (const off of [0, -0.8, 0.8]) { const c0 = c.slice(); c[o1a] = c0[o1a] + off; const r = probe(sign, y, dmax); c[o1a] = c0[o1a]; if (r) return r; } return null; };
       const back = [probe(1, c[1], 1.6), probe(-1, c[1], 1.6)];
-      const low = [probe(1, 1.3, 2.5), probe(-1, 1.3, 2.5)];
+      const low = [probe2(1, [1.3, 0.8], 2.5), probe2(-1, [1.3, 0.8], 2.5)];
       // 看板の厚みの向きの両側どちらにも、看板の高さで何も無い＝宙の看板（柱に付いた看板は横の柱を見る）
       const pole = (() => { for (const o of G.near(s.min.map(v => v - 0.15), s.max.map(v => v + 0.15))) { if (o === s) continue; const od = dims(o); if (od[1] > 1.5 && Math.max(od[0], od[2]) < 0.4 && ov(s, o, 0.12)) return o; } return null; })();
-      if (!back[0] && !back[1] && !pole) { push('signage', 'error', `店の看板の後ろが空（「${t}」）`, s); continue; }
+      if (!back[0] && !back[1] && !pole) { if ((s.min[1] > 6 || (low[0] || low[1])) && supported(s)) continue; push('signage', 'error', `店の看板の後ろが空（「${t}」）`, s); continue; }   // 屋上の看板（屋根に立つ）は後ろが空でよい
       // 看板の下（地面の近く 1.3m）に建物の表（戸・窓・シャッター・店の中）があるか
       if (!low[0] && !low[1] && !pole) { push('signage', 'error', `店の看板の下が空の場所（「${t}」：店の表が無い）`, s); continue; }
       if (pole) continue;
@@ -168,9 +173,11 @@ export function auditArea(area, pieces, A, opt = {}) {
       const facadeAt = c[ax] + side * (ds[ax] / 2 + f.dd);
       const mn = [0, 0.1, 0], mx = [0, 2.6, 0]; mn[o1] = c[o1] - half; mx[o1] = c[o1] + half; mn[ax] = Math.min(facadeAt - side * 0.6, facadeAt + side * 4); mx[ax] = Math.max(facadeAt - side * 0.6, facadeAt + side * 4);
       let front = 0;
+      const isFront = o => (o.tile && STOREFRONT.test(o.tile)) || ['glass', 'glass2', 'shutter'].includes(o.key) || o.store || /door|Door|genkan|shutter|unit|storefront/.test(o.fn || '');
+      if (isFront(f.o)) front++;
       for (const o of G.near(mn, mx)) {
         if (o === f.o || o === s || !ov({ min: mn, max: mx }, o)) continue;
-        if ((o.tile && /win|door|shutter|glass|noren|shoji|lattice|koshi|menu|shop|curtain|office|garage/.test(o.tile)) || ['glass', 'glass2', 'shutter'].includes(o.key) || o.store) front++;
+        if (isFront(o)) front++;
       }
       if (!front) push('signage', 'error', `店の看板の下がただの壁（「${t}」：戸・窓・シャッター・店の中が無い）`, s);
     }
@@ -236,7 +243,9 @@ function townRules(solid, G, push) {
         if (isWalkable(x + n[0] * 1.0, z + n[1] * 1.0)) continue;
         for (const y of [1.6, 4.5]) {
           const h = rayHit(G, [x, y, z], [n[0], 0, n[1]], 60, skip);
-          if (!h) push('facade', y < 2 ? 'error' : 'warn', `歩ける所（${w.name}）から外が空に抜ける（高さ ${y}m・向き ${n.join(',')}）`, { min: [x - 0.1, y - 0.1, z - 0.1], max: [x + 0.1, y + 0.1, z + 0.1], fn: 'walk:' + w.id, at: 'data/town.js' }, { dir: n });
+          // 町の外（bounds）まで 60m より近い＝町の縁の何も無い所が見える（error）。町の中を 60m 以上見通す（アーケードの奥など）は霧で見えない（warn）
+          const exit = Math.min(n[0] > 0 ? (T.bounds.maxX - x) : n[0] < 0 ? (x - T.bounds.minX) : 1e9, n[1] > 0 ? (T.bounds.maxZ - z) : n[1] < 0 ? (z - T.bounds.minZ) : 1e9);
+          if (!h) push('facade', y < 2 && exit < 60 ? 'error' : 'warn', `歩ける所（${w.name}）から外が空に抜ける（高さ ${y}m・向き ${n.join(',')}${exit < 60 ? '・町の縁まで ' + r2(exit) + 'm' : '・霧の奥'}）`, { min: [x - 0.1, y - 0.1, z - 0.1], max: [x + 0.1, y + 0.1, z + 0.1], fn: 'walk:' + w.id, at: 'data/town.js' }, { dir: n });
         }
       }
     }

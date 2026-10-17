@@ -136,6 +136,8 @@ export function gaitAt(v, pers = PERS_DEF, clips = CLIPS) {
   const AK = new Set(); for (const id of ids) for (const k of Object.keys(clips[id].amp)) AK.add(k);
   for (const k of AK) g.amp[k] = num(c => amp(c.amp[k], v, c.speed.ref));
   g.kneeAt = s => num(c => sampleCurve(c.knee, s));
+  g.swingY = s => num(c => (c.swing ? sampleCurve(c.swing.y, s) : Math.sin(Math.PI * s)));
+  g.swingZ = s => num(c => (c.swing ? sampleCurve(c.swing.z, s) : 0));
   g.track = (name, u) => num(c => (c.tracks[name] ? samplePeriodic(c.tracks[name], u) : 0));
   // 性格
   const P = pers;
@@ -172,10 +174,9 @@ export function swingFoot(sg, D, g, L, toeOff) {
   const F = g.foot;
   const [z0, y0, f0] = toeOff || stanceFoot(1, D, g, L), [z1, y1, f1] = stanceFoot(0, D, g, L);
   const e = minJerk(sg);
-  const kick = F.kickM * Math.sin(Math.PI * clamp(sg / 0.62, 0, 1)) * (1 - e);
-  const z = lerp(z0, z1, e) - kick;
-  const lift = F.liftM * Math.pow(Math.sin(Math.PI * clamp(sg / 0.92, 0, 1)), 1.15) + kick * 0.55;
-  let y = lerp(y0, y1, sm(0.1, 1, sg)) + lift;
+  // 遊脚の形（クリップの swing.y・swing.z：持ち上げの高さ・かかとを後ろへ蹴る量の曲線）
+  const z = lerp(z0, z1, e) - F.kickM * g.swingZ(sg);
+  let y = lerp(y0, y1, sm(0.1, 1, sg)) + F.liftM * g.swingY(sg);
   const fm = F.swingPitchDeg * D2R;
   const f = sg < 0.5 ? lerp(f0, fm, sm(0, 0.5, sg)) : lerp(fm, f1, sm(0.5, 1, sg));
   // つま先・かかとが床にめり込まない
@@ -262,7 +263,11 @@ function footTargets(g, u, S, L) {
   for (const [side, off, sx] of [['left', 0, 1], ['right', 0.5, -1]]) {
     const uu = wrap01(u + off);
     if (uu < beta) { const s = uu / beta; const [z, y, f, piv] = stanceFoot(s, D, g, L); res.push(Object.assign({ side, y, f, toeOut: to, st: true, s, u: uu, piv }, toeOutXZ(sx * W, z, g.foot.aheadK * D - D * s, sx * to))); }
-    else { const sg = (uu - beta) / (1 - beta); const [z, y, f] = swingFoot(sg, D, g, L); res.push({ side, x: sx * (W + 0.006 * Math.sin(Math.PI * sg)), y, z, f, toeOut: to, st: false, s: sg, u: uu }); }
+    else {
+      const sg = (uu - beta) / (1 - beta); const [z, y, f] = swingFoot(sg, D, g, L);
+      const xz = toeOutXZ(sx * (W + 0.006 * Math.sin(Math.PI * sg)), z, g.foot.aheadK * D - D, sx * to * (1 - sm(0, 0.5, sg)));   // つま先の外向きのずれを遊脚の前半で戻す
+      res.push({ side, x: xz.x, y, z: xz.z, f, toeOut: to, st: false, s: sg, u: uu });
+    }
   }
   return res;
 }
@@ -341,17 +346,34 @@ export function locoPose(ph, v, o = {}) {
   const hk = heightCurve(vv, g, S, L, key);
   let h = samplePeriodic(hk, u);
   const feet = footTargets(g, u, S, L);
-  // 届かない立脚の足：かかとを上げる（前足の揺りかご）・かかとの着きを強める（足首を上げる）
-  for (const ft of feet) {
-    if (!ft.st) continue;
-    const sx = ft.side === 'left' ? 1 : -1, hj = v3.add([P.x, h, P.z], qRot(P.q, [sx * L.hipX, -0.02, 0]));
+  // 届かない立脚の足：かかとを上げる（前足の揺りかご）を自動で増やす（足の傾きの合計は toeOffMaxDeg まで）。
+  // 遊脚の始めは「つま先が離れた時の形（自動の分を含む）」から始める（足が飛ばない）
+  const D = g.stance * S;
+  const autoRock = (side, s, uu) => {
+    const sx = side === 'left' ? 1 : -1, hh = uu == null ? h : samplePeriodic(hk, wrap01(uu - (side === 'left' ? 0 : 0.5)));
+    const PP = uu == null ? P : pelvisFrame(g, wrap01(uu - (side === 'left' ? 0 : 0.5)), vv);
+    const hj = v3.add([PP.x, hh, PP.z], qRot(PP.q, [sx * L.hipX, -0.02, 0]));
     const Lr = (L.thigh + L.shin) * 0.992;
-    const D = g.stance * S, Zf = g.foot.aheadK * D - D * ft.s, W0 = sx * g.amp.stepWidthM / 2, psi = sx * ft.toeOut;
-    const at = f => { const [z, y, ff] = stanceFoot(ft.s, D, g, L, f); return Object.assign({ y, f: ff }, toeOutXZ(W0, z, Zf, psi)); };
+    const Zf = g.foot.aheadK * D - D * s, W0 = sx * g.amp.stepWidthM / 2, psi = sx * g.amp.toeOutDeg * D2R;
+    const at = f => { const [z, y, ff] = stanceFoot(s, D, g, L, f); return Object.assign({ y, f: ff, z0: z }, toeOutXZ(W0, z, Zf, psi)); };
     const far = f => { const q = at(f); return Math.hypot(q.x - hj[0], q.y - hj[1], q.z - hj[2]) - Lr; };
-    if (far(0) > 0 && ft.s > g.foot.flatAt) {
-      let lo = 0, hi = (g.foot.toeOffMaxDeg || 55) * D2R; if (far(hi) > 0) lo = hi; else for (let it = 0; it < 18; it++) { const m = (lo + hi) / 2; if (far(m) > 0) lo = m; else hi = m; }
-      Object.assign(ft, at(hi), { auto: hi });
+    if (s <= g.foot.flatAt || far(0) <= 0) return null;
+    const base = stanceFoot(s, D, g, L)[2];
+    let lo = 0, hi = Math.max(0, (g.foot.toeOffMaxDeg || 55) * D2R - Math.max(0, base));
+    if (far(hi) <= 0) for (let it = 0; it < 18; it++) { const m = (lo + hi) / 2; if (far(m) > 0) lo = m; else hi = m; }
+    return Object.assign(at(hi), { auto: hi });
+  };
+  for (const ft of feet) {
+    if (ft.st) { const r = autoRock(ft.side, ft.s); if (r) Object.assign(ft, { x: r.x, y: r.y, z: r.z, f: r.f, auto: r.auto }); }
+    else if (ft.s < 0.5) {
+      const r = autoRock(ft.side, 1, g.stance);                              // つま先が離れた瞬間（立脚の終わり）の形
+      if (r) {
+        const sx = ft.side === 'left' ? 1 : -1, Zf = g.foot.aheadK * D - D, psi = sx * g.amp.toeOutDeg * D2R;
+        const [z, y, f] = swingFoot(ft.s, D, g, L, [r.z0, r.y, r.f]);
+        const W0 = sx * (g.amp.stepWidthM / 2 + 0.006 * Math.sin(Math.PI * ft.s)), e = sm(0, 0.5, ft.s);
+        const xz = toeOutXZ(W0, z, Zf, psi * (1 - e));
+        Object.assign(ft, { x: xz.x, y, z: xz.z, f });
+      }
     }
   }
   const p = {};
@@ -406,7 +428,8 @@ export function idlePose(t, o = {}) {
   const shift = ws * 0.016 * k;
   const roll = ws * 0.045 * k;                                 // 重心の側の腰が上がる
   const br = Math.sin(t * 1.65);                               // 呼吸（約 16 回/分）
-  const P = { x: shift, y: L.pelvisY - 0.012 - Math.abs(ws) * 0.006 * k, z: -0.004, q: qEuler(0.03, ws * 0.03 * k, roll) };
+  // 腰はほとんど下げない（ひざは伸び切りの近くでとても敏感：1cm で約 20° 曲がる）。休む脚は骨盤の傾きで少し曲がる
+  const P = { x: shift, y: L.pelvisY - 0.0035 - Math.abs(ws) * 0.002 * k, z: -0.004, q: qEuler(0.03, ws * 0.03 * k, roll) };
   const to = (8 + pers.toeOut * 57.3) * D2R;
   const feet = [
     { side: 'left', x: W, y: L.ankleY, z: 0.03, f: 0, toeOut: to },
@@ -441,9 +464,10 @@ export function bridgePose(from, to, k, L = DEF_DIMS) {
   const F0 = from._feetT, F1 = to._feetT;
   if (!F0 || !F1) return k < 0.5 ? from : to;
   const d = F0.map((f, i) => Math.hypot(f.x - F1[i].x, f.z - F1[i].z));
-  const first = d[0] >= d[1] ? 0 : 1;
+  // 先に運ぶ足：地面から離れている（高い）足。両方着いていれば動く量の大きい足。着いている足は後で（持ち上げて）直す
+  const first = Math.abs(F0[0].y - F0[1].y) > 0.01 ? (F0[0].y > F0[1].y ? 0 : 1) : (d[0] >= d[1] ? 0 : 1);
   const feet = F0.map((f, i) => {
-    const kk = i === first ? sm(0, 0.62, k) : sm(0.45, 1, k);
+    const kk = i === first ? sm(0, 0.55, k) : sm(0.5, 1, k);
     const lift = d[i] > 0.015 ? Math.sin(Math.PI * kk) * Math.min(0.06, 0.02 + d[i] * 0.25) : 0;
     const g = F1[i];
     return { side: f.side, x: lerp(f.x, g.x, kk), y: lerp(f.y, g.y, kk) + lift, z: lerp(f.z, g.z, kk), f: lerp(f.f, g.f, kk) - lift * 1.5, toeOut: lerp(f.toeOut || 0, g.toeOut || 0, kk) };

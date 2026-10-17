@@ -102,7 +102,7 @@ export function buildAlley() {
   // 祠（小さな地蔵・賽銭箱）：見切り補助
   B.box('prop', -2.9, 0.35, -10, 0.6, 0.7, 0.8, 0x6a6a6a); B.box('prop', -2.95, 0.95, -10, 0.36, 0.5, 0.36, 0x8a8a84); B.box('prop', -2.95, 1.3, -10, 0.24, 0.24, 0.24, 0x8a8a84);
   B.box('prop', -2.55, 0.25, -10, 0.25, 0.3, 0.4, 0x6a4a2a); solid(-2.9, -10, 0.7, 0.9, 1.2);
-  B.box('glow', -2.6, 1.15, -9.6, 0.08, 0.12, 0.08, 0xffa060, { edges: false }); halos.push({ p: [-2.5, 1.15, -9.6], size: 0.7, color: 0xffa060, k: 0.7, flicker: true });
+  B.box('glow', -2.66, 0.76, -9.72, 0.08, 0.12, 0.08, 0xffa060, { edges: false }); halos.push({ p: [-2.5, 0.8, -9.6], size: 0.7, color: 0xffa060, k: 0.7, flicker: true });   // P13：ろうそくは祠の台の上（前は宙に浮いていた）
   spots.push({ id: 'shrine', kind: 'pickupSpot', give: 'equip:mikiri', x: -2.0, z: -10, r: 1.3, label: '祠（賽銭箱）' });
   // 自販機（くぼみ）
   B.box('wall', 6.0, 0.9, -18.95, 1.0, 1.8, 0.7, 0x2a7ad0); B.box('glow', 6.0, 1.15, -19.31, 0.8, 0.9, 0.02, 0xbfe4ff, { edges: false }); solid(6.0, -18.95, 1.0, 0.7, 1.8);
@@ -123,12 +123,13 @@ export function buildAlley() {
     B.box('glow', x + nx * 0.08, h + 0.35, z + nz * 0.08, 0.14, 0.1, 0.14, lit ? 0xffd8a0 : 0x3a3428, { edges: false });
     if (lit) halos.push({ p: [x + nx * 0.2, h + 0.3, z + nz * 0.2], size: 0.8, color: 0xffd8a0, k: 0.6 });
   };
-  backDoor(1.3, -11.0, -1, 0, true); backDoor(-1.3, -17.5, 1, 0, false); backDoor(10.0, -20.2, 0, -1, true);
+  backDoor(1.3, -11.0, -1, 0, true); backDoor(-1.3, -17.5, 1, 0, false); backDoor(10.0, -20.7, 0, -1, true);   // P13：通路の側の壁の面（前は壁の向こうの面で、壁に埋まって見えなかった）
   // 戸（帰路 a1 の家）
   const D = AREA_DATA.alley.doors.a1;
-  const g = new THREE.Group(); const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.05, 1.2), new THREE.MeshToonMaterial({ color: 0x4a3a30, gradientMap: gradientMap() })); leaf.position.set(0, 1.03, 0.6); leaf.castShadow = true;
+  const g = new THREE.Group(); const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.05, 1.2), new THREE.MeshToonMaterial({ color: 0x4a3a30, gradientMap: gradientMap() })); leaf.position.set(0, 1.03, 0.6); leaf.castShadow = true; leaf.name = 'door_a1_leaf';
   const pivot = new THREE.Group(); pivot.position.set(0, 0, -0.6); pivot.add(leaf); g.add(pivot); g.position.set(16.32, 0, -22); root.add(g);
-  B.box('glow', 16.2, 2.4, -22.75, 0.12, 0.12, 0.12, D.color, { edges: false });
+  B.box('glow', 16.29, 2.4, -22.75, 0.12, 0.12, 0.12, D.color, { edges: false });
+  for (const s of [-1, 1]) B.box('prop', 16.3, 1.08, -22 + s * 0.65, 0.1, 2.16, 0.1, 0x2a2026, { edges: false }); B.box('prop', 16.3, 2.18, -22, 0.1, 0.1, 1.4, 0x2a2026, { edges: false });   // P13：戸の枠
   const dh = halos.push({ p: [16.05, 2.4, -22.75], size: 0.9, color: D.color, k: 0.9, door: 'a1' }) - 1;
   dyn.door_a1 = { group: g, pivot, halo: dh, open: false, color: D.color, face: -1 };
   spots.push({ id: 'door_a1', kind: 'door', door: 'a1', x: 15.3, z: -22, r: 1.4, label: '裏口の鍵を開ける（表札「坂口」）' });
@@ -142,7 +143,12 @@ export function buildAlley() {
     { pos: [8, 3.2, -22.9], color: 0xffd8a0, intensity: 5, dist: 9 },
     { pos: [6.0, 1.4, -19.7], color: 0x9fd0ff, intensity: 2.5, dist: 4, vending: true },
   ].map(l => Object.assign({ base: l.intensity }, l));
-  for (const l of lights) if (!l.vending) { halos.push({ p: [l.pos[0], l.pos[1], l.pos[2]], size: 1.4, color: l.color, k: 0.85, light: l }); B.box('glow', l.pos[0], l.pos[1] + 0.12, l.pos[2], 0.12, 0.16, 0.12, l.color, { edges: false }); }
+  for (const l of lights) if (!l.vending) {
+    halos.push({ p: [l.pos[0], l.pos[1], l.pos[2]], size: 1.4, color: l.color, k: 0.85, light: l }); B.box('glow', l.pos[0], l.pos[1] + 0.12, l.pos[2], 0.12, 0.16, 0.12, l.color, { edges: false });
+    // P13：壁から出した腕（前は灯具だけ宙に浮いていた）：通路 A は横の壁（x ±1.3）・通路 B は北の壁（z −23.3）
+    if (Math.abs(Math.abs(l.pos[0]) - 1) < 0.3) { const wx = Math.sign(l.pos[0]) * 1.3; B.box('prop', (l.pos[0] + wx) / 2, l.pos[1] + 0.22, l.pos[2], Math.abs(wx - l.pos[0]) + 0.04, 0.04, 0.04, 0x2a2a30, { edges: false }); }
+    else B.box('prop', l.pos[0], l.pos[1] + 0.22, (l.pos[2] - 23.3) / 2, 0.04, 0.04, Math.abs(-23.3 - l.pos[2]) + 0.04, 0x2a2a30, { edges: false });
+  }
   const wet = lights.filter(l => !l.vending).map(l => ({ p: [l.pos[0] * 0.6, 0, l.pos[2]], size: 1.4, color: l.color, k: 0.9 }));
   return finish('alley', B, atlas, root, {
     boxes, spots, dyn, lights, halos, wet, hideSpots, surface: () => 'wet', rainRoof: () => false, indoor: () => true,

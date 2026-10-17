@@ -15,8 +15,8 @@ export class LocoDriver {
     this.dims = o.dims; this.scale = o.scale || 1; this.persId = o.pers || ''; this.pers = personality(this.persId);
     this.visV = 0; this.mode = 'idle'; this.bridge = null; this.last = null; this.lean = { x: 0, v: 0 }; this.prevV = 0; this.idleT = Math.random() * 10;
   }
-  /** 1m あたりの位相（今の見た目の速さの歩幅） */
-  rate(v = this.visV) { return phaseRate(Math.max(0.05, v), this.scale, this.pers); }
+  /** 1m あたりの位相（今の見た目の速さの歩幅：姿勢と同じ値。v を渡すとその速さ） */
+  rate(v) { return phaseRate(Math.max(0.12, v ?? this.vPose ?? 0.12), this.scale, this.pers); }
   /** 動き出しの位相：左が立脚の真ん中（右は遊脚の真ん中＝待機の足に近い） */
   startPhase(v) { const g = gaitAt(Math.max(0.3, v), this.pers); return Math.PI / 2 + 2 * Math.PI * g.stance * 0.42; }
   /**
@@ -33,21 +33,22 @@ export class LocoDriver {
     const acc = (this.visV - this.prevV) / Math.max(dt, 1 / 240); this.prevV = this.visV;
     const L = this.lean, f = clamp(Math.abs(acc), 0, 30) * (acc > 0 ? 0.011 : 0.016);
     const w = 11, z = 0.42;
-    L.v += (-(w * w) * L.x - 2 * z * w * L.v + f * w * w * 0.01) * dt; L.x += L.v * dt;
+    L.v += (-(w * w) * L.x - 2 * z * w * L.v + f * w * w * 0.3) * dt; L.x += L.v * dt;
     L.x = clamp(L.x, -0.12, 0.2);
     // 状態：歩く／待機（つなぎ）
     const moving = sp > 0.08;
     const lean = L.x;
     let pose;
+    this.vPose = Math.max(0.12, this.visV, 0.6 * sp);
     if (moving) {
-      const v = Math.max(0.12, this.visV);
+      const v = this.vPose;
       pose = locoPose(s.phase, v, { dims: this.dims, scale: this.scale, pers: this.pers, persKey: this.persId, rate: this.rate(v), lean: lean * 0.8 });
       if (this.mode !== 'loco') { this.bridge = { from: this.last, t: 0, dur: 0.2 }; this.mode = 'loco'; }
     } else {
       this.idleT += dt;
       pose = idlePose(this.idleT, { dims: this.dims, scale: this.scale, pers: this.pers, k: s.k ?? 1, turn: s.turn ? { ph: s.turn.ph, k: clamp(Math.abs(s.turn.turn) / 3, 0, 1) } : null });
       const sp0 = pose.spine; pose.spine = [sp0[0] + lean * 0.9, sp0[1], sp0[2]]; pose.chest = [pose.chest[0] + lean * 0.4, pose.chest[1], pose.chest[2]];
-      if (this.mode !== 'idle') { this.bridge = { from: this.last, t: 0, dur: 0.32 }; this.mode = 'idle'; }
+      if (this.mode !== 'idle') { this.bridge = { from: this.last, t: 0, dur: 0.42 }; this.mode = 'idle'; }
     }
     if (this.bridge && this.bridge.from) {
       const B = this.bridge; B.t += dt;

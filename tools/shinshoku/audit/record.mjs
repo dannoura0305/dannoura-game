@@ -14,7 +14,7 @@ import '../../../shinshoku/world/areas7.js';
 import '../../../shinshoku/world/areas8.js';
 
 export const AREA_IDS = Object.keys(BUILDERS);
-const HELPERS = new Set(['tb', 'prop', 'addTile', 'pb', 'part', 'bx', 'glowB', 'glass', 'signBox', 'frontSign', 'box', 'add', 'fb', 'R', 'B', 'P', 'G', 'solidBox', 'wb', 'sb', 'gb', 'put', 'dbox', 'pbox']);
+const HELPERS = new Set(['tb', 'prop', 'addTile', 'pb', 'part', 'bx', 'glowB', 'glass', 'signBox', 'frontSign', 'box', 'add', 'fb', 'R', 'B', 'P', 'G', 'solidBox', 'wb', 'sb', 'gb', 'put', 'dbox', 'pbox', 'wheel', 'tiltB', 'cyl', 'b', 'bx2', 'part2']);
 let REC = null;           // 記録中の { pieces, sign: Map(uv→text), area, part }
 let curOpt = null;
 

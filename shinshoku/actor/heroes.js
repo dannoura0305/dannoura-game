@@ -14,6 +14,11 @@ const lerp = (a, b, t) => a + (b - a) * t;
 
 /** 仕上げ：網を作り、補助の骨・揺れ物を毎フレーム動かす update を付ける */
 function finish(sb, tex, buildOpt, extra, springDef) {
+  // P13：髪・顔・毛皮の襟の法線を形の中心からの向きへ寄せる（房・部品ごとの面で段の陰影がぎざぎざにならない）
+  const R = sb.d.headR, hc = sb.hc, nk = sb.W('neck');
+  sb.smoothNormals({ mats: /^hair/, bone: n => n === 'head' || /^side/.test(n), center: [hc.x, hc.y + R * 0.02, hc.z - R * 0.03], radii: [R * 1.02, R * 1.1, R * 1.06], k: 0.72 });
+  sb.smoothNormals({ mats: /^face$/, bone: n => n === 'head', center: [hc.x, hc.y, hc.z], radii: [R * 0.97, R * 1.04, R], k: 0.4 });
+  sb.smoothNormals({ mats: /^fur/, bone: n => n === 'chest' || n === 'neck', center: [nk.x, nk.y - 0.01, nk.z - 0.012], radii: [0.13, 0.07, 0.11], k: 0.65 });
   const m = sb.build(tex, buildOpt);
   const helpers = sb.helpers || [];
   const low = detail() < 0.9;
@@ -299,12 +304,15 @@ export function buildDannouraWhiteV2(opt = {}) {
   const fr = rng(31);
   // 毛皮の襟：とがった房を外へ・下へ（3 段）
   const furW = p => [[sb.bi('chest'), 0.85], [sb.bi('neck'), 0.15]];
-  for (let row = 0; row < 3; row++) for (let i = 0; i < 24; i++) {
-    const a = -Math.PI * 0.88 + i / 23 * Math.PI * 1.76 + row * 0.06 + (fr() - 0.5) * 0.05, back = Math.max(0, Math.cos(a)), s0 = Math.sin(a), c0 = -Math.cos(a);
-    const rx = 0.088 + row * 0.022, rz = 0.07 + row * 0.018, y0 = 1.392 - row * 0.022 - (1 - back) * 0.012;
-    const L = 0.035 + back * 0.02 + fr() * 0.015, out = 0.6 + row * 0.15;
-    const p0 = [s0 * rx, y0, c0 * rz - 0.016], p1 = [s0 * (rx + L * out * 0.6), y0 - L * 0.35 + 0.01, c0 * (rz + L * out * 0.6) - 0.016], p2 = [s0 * (rx + L * out), y0 - L * (0.6 + row * 0.15), c0 * (rz + L * out) - 0.016];
-    lock(sb, [p0, p1, p2], 0.02 + back * 0.008 + fr() * 0.005, { base: fr() < 0.3 ? 0xe4ddf0 : FUR, root: 0xe0d8ee, tip: 0xffffff, weights: furW, out: [s0, 0.6, c0], flat: 0.75, taper: 0.7, bulge: 0.7, segs: 5, sides: 7, mat: 'fur', oth: 0.3 });
+  // P13：とがった破片に見えないように、ふくらんだ丸い房（先は少し細く）を 2 段＋下地のふくらんだ輪
+  sb.tube(Array.from({ length: 19 }, (_, i) => { const a = -Math.PI * 0.86 + i / 18 * Math.PI * 1.72, back = Math.max(0, Math.cos(a)); return { c: [Math.sin(a) * 0.1, 1.372 - (1 - back) * 0.01, -Math.cos(a) * 0.082 - 0.016], r: [0.03 + back * 0.006, 0.024] }; }),
+    { sides: 10, weights: furW, color: FUR, mat: 'fur', capStart: true, capEnd: true, capBulge: 0.9, oth: 0.55, ref: [0, 1, 0] });
+  for (let row = 0; row < 2; row++) for (let i = 0; i < 17; i++) {
+    const a = -Math.PI * 0.86 + (i + row * 0.5) / 16.5 * Math.PI * 1.72 + (fr() - 0.5) * 0.04, back = Math.max(0, Math.cos(a)), s0 = Math.sin(a), c0 = -Math.cos(a);
+    const rx = 0.098 + row * 0.02, rz = 0.08 + row * 0.016, y0 = 1.392 - row * 0.024 - (1 - back) * 0.012;
+    const L = 0.028 + back * 0.014 + fr() * 0.01, out = 0.55 + row * 0.12;
+    const p0 = [s0 * rx, y0, c0 * rz - 0.016], p1 = [s0 * (rx + L * out * 0.6), y0 - L * 0.42 + 0.008, c0 * (rz + L * out * 0.6) - 0.016], p2 = [s0 * (rx + L * out), y0 - L * (0.8 + row * 0.15), c0 * (rz + L * out) - 0.016];
+    lock(sb, [p0, p1, p2], 0.024 + back * 0.006 + fr() * 0.004, { base: fr() < 0.3 ? 0xe9e3f4 : FUR, root: 0xe4dcf0, tip: 0xfcfaff, weights: furW, out: [s0, 0.6, c0], flat: 0.62, taper: 0.42, bulge: 1.0, segs: 6, sides: 8, mat: 'fur', oth: 0.32 });
   }
   // 背中の猫の足あと
   for (const [x, y, r] of [[0, 1.12, 0.022], [-0.026, 1.155, 0.009], [-0.009, 1.168, 0.009], [0.009, 1.168, 0.009], [0.026, 1.155, 0.009]]) sb.blob([x, y, -0.099], [r, r, 0.004], { weights: sb.rigid('chest'), color: ST, mat: 'cloth_strap', w: 8, h: 4, oth: 0 });

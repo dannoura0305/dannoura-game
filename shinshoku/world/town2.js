@@ -3,6 +3,7 @@
 // world/town.js の buildTown から道具（K）を受け取って同じ Builder へ入れる。配置は data/town.js（当たり判定も同じデータ：townSolids）。
 // 名前・看板・意匠はすべて独自（実在の地名・会社・建物の名前やロゴは使わない）。
 import * as THREE from 'three';
+import { shopKit } from './shopkit.js';
 import { machiyaDoors, lotEntrances, fillEntrances } from '../data/town.js';
 import { applyTile } from '../render/townmat.js';
 import { stopPosts, catenaryPoles, walkwayPosts, canopyColumns, signalPoles } from '../data/town.js';
@@ -36,7 +37,7 @@ export function resample(P, max) {
 }
 
 export function makeTown2(K) {
-  const { B, T, tb, prop, signUV, pool, halos, lights, wet, spots, hideSpots, frame, win, roofGable, tree, car, bike, catenaryPts, wirePts, inPart, inRect, seeded, doorFrame, glassDoor } = K;
+  const { B, T, tb, prop, signUV, pool, halos, lights, wet, spots, hideSpots, frame, win, roofGable, tree, car, bike, catenaryPts, wirePts, inPart, inRect, seeded, doorFrame, glassDoor, FK } = K;
   const glowB = (x, y, z, w, h, d, color, opt = {}) => B.box('glow', x, y, z, w, h, d, color, Object.assign({ edges: false }, opt));
   const glass = (x, y, z, w, h, d, color = 0x8aa0c0, opt = {}) => B.box('glass2', x, y, z, w, h, d, color, Object.assign({ edges: false }, opt));
   const signBox = (uv, x, y, z, w, h, d, face, opt = {}) => B.box('sign', x, y, z, w, h, d, 0xffffff, Object.assign({ uv, face, edges: false }, opt));
@@ -100,9 +101,9 @@ export function makeTown2(K) {
     F.box('texglow', W / 2, -0.06, 1.55, W - 2, 0.08, 2.9, L.office ? 0x8890a0 : 0xd0c8b8, L.office ? 'win_office' : 'win_office_lit', { ts: 2.6, tsy: 2.9 });
     F.box('prop', W / 2, -1.1, 3.25, Math.min(W * 0.6, 8), 2.2, 0.16, 0x34383e);
     for (const e of lotEntrances(L)) { glassDoor(F, e.u, -0.08, e.w, 2.5, 2, true, 0x26282c); F.box('prop', e.u, -0.75, 0.012, e.w + 0.6, 1.3, 0.02, 0x2a2826); }   // フェーズ11：玄関（ガラスの両開き・枠・マット）
-    { const [x, z] = F.at(W / 2, -1.6); glowB(x, 3.12, z, 1.4, 0.04, 0.3, 0xfff0d8); halos.push({ p: [x, 2.9, z], size: 1.6, color: 0xffe0b0, k: 0.5 }); pool(x, z, 3.2, 0xffe0b0, 0.25); }
+    { const [x, z] = F.at(W / 2, -1.6); glowB(x, 3.15, z, 1.4, 0.04, 0.3, 0xfff0d8); halos.push({ p: [x, 2.9, z], size: 1.6, color: 0xffe0b0, k: 0.5 }); pool(x, z, 3.2, 0xffe0b0, 0.25); }
     const uv = signUV(L.sign, { bg: L.office ? '#1a2a4a' : '#2a1a2a', fg: L.office ? '#d8e8ff' : '#ffe0a0', size: 40 });
-    frontSign(F, uv, W / 2, -0.1, 3.9, Math.min(W - 2, 9), 0.7);
+    frontSign(F, uv, W / 2, -0.05, 3.9, Math.min(W - 2, 9), 0.7);
     if (L.litTop) {   // 屋上の看板（光る文字）
       const [x, z] = frontSign(F, uv, W / 2, 0.6, H + 1.1, Math.min(W - 2, 10), 1.5, 0.2);
       F.box('prop', W / 2, 0.75, H + 0.4, Math.min(W - 2, 10), 0.2, 0.8, 0x3a3a40);
@@ -124,7 +125,7 @@ export function makeTown2(K) {
     F.box('prop', W / 2, -1.4, 3.4, W - 1, 2.8, 0.18, 0x2e3036);
     for (const e of lotEntrances(L)) {   // フェーズ11：自動ドア（2 枚の引き戸・枠・上の「自動ドア」の灯り・マット）
       glassDoor(F, e.u, -0.06, e.w, 2.6, 2, true, 0x2a2c30);
-      const auv = signUV('自動ドア', { bg: '#1a2a3a', fg: '#e8f4ff', size: 30, frame: false }); frontSign(F, auv, e.u, -0.14, 2.86, 1.2, 0.18, 0.02);
+      const auv = signUV('自動ドア', { bg: '#1a2a3a', fg: '#e8f4ff', size: 30, frame: false }); frontSign(F, auv, e.u, -0.11, 2.86, 1.2, 0.18, 0.02);
       F.box('prop', e.u, -0.8, 0.012, e.w + 0.8, 1.4, 0.02, 0x2a2826);
     }
     for (let u = 3; u < W - 2; u += 6) { const [x, z] = F.at(u, -1.8); glowB(x, 3.28, z, 1.0, 0.04, 0.6, 0xfff4e0); halos.push({ p: [x, 3.0, z], size: 1.4, color: 0xfff0d8, k: 0.45 }); }
@@ -132,7 +133,7 @@ export function makeTown2(K) {
     const uv = signUV(L.sign, { bg: '#1a1420', fg: '#ffffff', size: 44, frameColor: '#c8a0ff' });
     const [sx, sz] = frontSign(F, uv, W / 2, -0.15, H - 1.6, Math.min(W - 3, 12), 1.5, 0.15);
     halos.push({ p: [sx + F.out[0] * 0.6, H - 1.6, sz + F.out[1] * 0.6], size: 5.5, color: 0xd8c8ff, k: 0.3, neon: true });
-    F.box('prop', W / 2, 0.1, H + 0.2, W, 0.2, 0.5, 0x3a3c42);
+    F.box('prop', W / 2, 0.09, H + 0.2, W, 0.2, 0.5, 0x3a3c42);
   }
   /** 奥のビルの並び（見えるだけ）：高さの違う箱・窓の帯・屋上の機械 */
   function fillB(L) {
@@ -185,7 +186,7 @@ export function makeTown2(K) {
         if (litShop) { const [x, z] = F.at(u, -1.2); halos.push({ p: [x, 2.2, z], size: 2.4, color: 0xe8f0ff, k: 0.4 }); }
       }
       const names = a === 0 ? ['みやげ・観光案内（仮）', 'コーヒー（仮）'] : ['のりば案内　バス・タクシー', '駅のパン屋（仮）'];
-      names.forEach((t, i) => { const uv = signUV(t, { bg: '#1e2430', fg: '#e8f0ff', size: 32 }); frontSign(F, uv, a + (i + 0.5) * w / 2, -0.1, 3.6, Math.min(8, w / 2 - 1), 0.5); });
+      names.forEach((t, i) => { const uv = signUV(t, { bg: '#1e2430', fg: '#e8f0ff', size: 32 }); frontSign(F, uv, a + (i + 0.5) * w / 2, -0.05, 3.6, Math.min(8, w / 2 - 1), 0.5); });
     }
     // 吹き抜け（ガラスの壁・方立て）・中央口
     const AW = A1 - A0, AC = (A0 + A1) / 2, AH = 17.5;
@@ -193,7 +194,7 @@ export function makeTown2(K) {
     for (let u = A0 + 0.1; u <= A1; u += 3) F.box('prop', u, -0.05, AH / 2, 0.22, 0.4, AH, 0x5a6068);
     for (let y = 4.2; y < AH; y += 3.5) F.box('prop', AC, -0.05, y, AW, 0.4, 0.16, 0x5a6068);
     F.box('prop', AC, D / 2, AH + 0.3, AW + 1, D, 0.6, 0x3a3c42);
-    { const [x, z] = F.at(AC, 1.5); glowB(x, 6, z, AW - 2, 10, 0.2, 0x8090a8); lights.push({ id: 'station_hall', pos: [x, 4, z + 3.0 * F.out[1]], color: 0xe0ecff, intensity: 10, dist: 16, town: true }); }
+    { const [x, z] = F.at(AC, 1.5); glowB(x, 5.5, z, AW - 2, 11, 0.2, 0x8090a8); lights.push({ id: 'station_hall', pos: [x, 4, z + 3.0 * F.out[1]], color: 0xe0ecff, intensity: 10, dist: 16, town: true }); }
     // 名前（独自）と時計・電光の案内（運転終了）
     const nameUV = signUV('駅　STATION', { bg: '#141820', fg: '#ffffff', size: 46, frameColor: '#6a7a9a' });
     const [nx, nz] = frontSign(F, nameUV, AC, -0.2, AH - 1.7, 13, 2.0, 0.2);
@@ -217,7 +218,7 @@ export function makeTown2(K) {
       const g = new THREE.CylinderGeometry(0.2, 0.26, cy - 1.2, 12); g.translate(x, (cy - 1.2) / 2, z); B.add('prop', g, 0x5a5e68);
       for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) prop(x + dx * 0.7, cy - 0.7, z + dz * 0.7, dx ? 1.6 : 0.12, 0.12, dz ? 1.6 : 0.12, 0x5a5e68, { edges: false, rz: dx * 0.6, rx: -dz * 0.6 });
     }
-    for (let x = cx0 + 4; x < cx1; x += 8) for (const z of [cz0 + 4, cz1 - 2]) { glowB(x, cy - 0.5, z, 1.2, 0.05, 0.4, 0xf0f4ff); halos.push({ p: [x, cy - 0.7, z], size: 1.8, color: 0xe8f0ff, k: 0.45 }); pool(x, z, 4.2, 0xe8f0ff, 0.22); }
+    for (let x = cx0 + 4; x < cx1; x += 8) for (const z of [cz0 + 4, cz1 - 2]) { glowB(x, cy - 0.5, z, 1.2, 0.05, 0.4, 0xf0f4ff); for (const dx of [-0.5, 0.5]) prop(x + dx, cy - 0.25, z, 0.025, 0.46, 0.025, 0x3a3e46, { edges: false }); halos.push({ p: [x, cy - 0.7, z], size: 1.8, color: 0xe8f0ff, k: 0.45 }); pool(x, z, 4.2, 0xe8f0ff, 0.22); }
     lights.push({ id: 'canopy_w', pos: [64, cy - 1, -104], color: 0xe8f0ff, intensity: 9, dist: 15, town: true }, { id: 'canopy_e', pos: [96, cy - 1, -104], color: 0xe8f0ff, intensity: 9, dist: 15, town: true });
   }
 
@@ -284,13 +285,13 @@ export function makeTown2(K) {
         prop(cx, 1.05, z0 + 0.06, w, 0.06, 0.06, 0xd8dcd8);
         const [za, zb] = st.shelter, sx = st.rail === 'W' ? x0 + 0.25 : x1 - 0.25;
         for (const [px, pz] of stopPosts(st)) prop(px, 1.4, pz, 0.1, 2.8, 0.1, 0x5a6068);
-        glass((x0 + x1) / 2, 2.85, (za + zb) / 2, w + 0.3, 0.05, zb - za + 0.6, 0x6a88a8);
+        glass((x0 + x1) / 2, 2.85, (za + zb) / 2, w + 0.06, 0.05, zb - za + 0.6, 0x6a88a8);   // P13：屋根は島の幅（前は電車の側へ出て車体に重なった）
         prop(sx, 2.8, (za + zb) / 2, 0.16, 0.14, zb - za + 0.6, 0x4a4e58);
         glass(sx, 1.5, (za + zb) / 2, 0.04, 1.6, zb - za - 0.6, 0x5a7090);
         glowB(cx, 2.76, (za + zb) / 2, 0.2, 0.04, zb - za - 1, 0xe8f0ff);
         halos.push({ p: [cx, 2.6, (za + zb) / 2 - 2], size: 1.8, color: 0xe8f0ff, k: 0.5 }, { p: [cx, 2.6, (za + zb) / 2 + 2], size: 1.8, color: 0xe8f0ff, k: 0.5 });
         pool(cx, (za + zb) / 2, 4, 0xe8f0ff, 0.2);
-        tb('tex', sx + (st.rail === 'W' ? 0.45 : -0.45), 0.7, (za + zb) / 2, 0.42, 0.08, 2.4, 0xffffff, 'wood', { ts: 1 });
+        FK.bench(sx + (st.rail === 'W' ? 0.3 : -0.3), (za + zb) / 2, st.rail === 'W' ? Math.PI / 2 : -Math.PI / 2, 2.4, { y0: 0.24, d: 0.42 });   // P13：脚のあるベンチ（前は板だけ浮いていた）
       }
       // 名前の札（柱）・電光の案内
       const [px, pz] = alongX ? [x0 + 1.2, cz] : [cx, z1 - 0.6];
@@ -298,8 +299,10 @@ export function makeTown2(K) {
       const nuv = signUV(st.name, { bg: '#f4f4ee', fg: '#1a3a6a', size: 30, frameColor: '#2a6ad0' });
       signBox(nuv, px, 2.85, pz, alongX ? 0.04 : 1.6, 0.42, alongX ? 1.6 : 0.04, alongX ? 0 : 4);
       const led = signUV('次の電車：回送　運転見合わせ中', { bg: '#080604', fg: '#ffb040', size: 26, frame: false });
-      const [lx, lz] = alongX ? [cx, z0 + 0.2] : [cx, z0 + 3];
+      const [lx, lz] = alongX ? [cx, z0 + 0.2] : [cx, st.shelter[0] + 1.6];   // P13：屋根の下に吊る（屋根の無い駅前は 2 本の柱）
       prop(lx, 2.5, lz, alongX ? 2.4 : 0.1, 0.5, alongX ? 0.1 : 2.4, 0x2a2c30);
+      if (st.rail) for (const o of [-0.9, 0.9]) prop(lx, 2.79, lz + o, 0.03, 0.08, 0.03, 0x3a3e46, { edges: false });
+      else for (const o of [-1.0, 1.0]) prop(lx + o, 1.245, lz, 0.07, 2.01, 0.07, 0x5a6068);
       signBox(led, lx + (alongX ? 0 : (st.rail === 'W' ? 0.06 : -0.06)), 2.5, lz + (alongX ? 0.06 : 0), alongX ? 2.2 : 0.02, 0.36, alongX ? 0.02 : 2.2, alongX ? 4 : (st.rail === 'W' ? 0 : 1));
       halos.push({ p: [lx, 2.5, lz + (alongX ? 0.4 : 0)], size: 1.2, color: 0xffa030, k: 0.3 });
       if (st.id === 'tsW') spots.push({ id: 'tram_stop', kind: 'read', x: cx, z: z1 - 1.2, r: 1.3, label: '電停の時刻表', text: 'town_tram' });
@@ -327,41 +330,56 @@ export function makeTown2(K) {
       }
     }
   }
-  /** 路面電車（独自の意匠：2 両つなぎの低床車。白い車体・青緑の裾・こはく色の帯・一本腕のパンタグラフ） */
+  /** 路面電車（独自の意匠：2 両つなぎの低床車。白い車体・青緑の裾・こはく色の帯・一本腕のパンタグラフ）
+   *  P13：台車（車輪 4・裾の覆い）でレールの上に載せる（前は車体が 0.3m 浮いていた）。幅 2.3m（電停の島・架線の柱に当たらない）。
+   *  行き先の電光は車体の前の面の外（前は車体の中に埋まって見えなかった）。扉の枠・屋根の冷房・つなぎの幌・連結器。 */
   function tram(t) {
-    const L = t.len, cars = [-1, 1], bx = boxLocal(t.x, t.z, t.ry), at = at2(t.x, t.z, t.ry), half = L / 2, cl = (L - 0.5) / 2;
-    const WHITE = 0xe6eaee, TEAL = 0x1c5a62, AMBER = 0xe0a030;
+    const L = t.len, cars = [-1, 1], bx = boxLocal(t.x, t.z, t.ry), at = at2(t.x, t.z, t.ry), half = L / 2, cl = (L - 0.5) / 2, W = 2.3;
+    const WHITE = 0xe6eaee, TEAL = 0x1c5a62, AMBER = 0xe0a030, DARK = 0x26282c, g2 = T.avenue.gauge / 2;
+    // 傾けた部品（前のガラス・パンタグラフの腕）：車体の向き（ry）の前に、車体の座標で傾ける（Builder の rx は世界の軸なので、横向きの電車でずれていた）
+    const tiltB = (key, lx, y, lz, w, h, d, color, rx) => { const g = new THREE.BoxGeometry(w, h, d); g.rotateX(rx); g.translate(lx, y, lz); g.rotateY(t.ry); g.translate(t.x, 0, t.z); B.add(key, g, color); };
+    const wheel = (lx, lz) => { const g = new THREE.CylinderGeometry(0.3, 0.3, 0.1, 14); g.rotateZ(Math.PI / 2); g.translate(lx, 0.3, lz); g.rotateY(t.ry); g.translate(t.x, 0, t.z); B.add('prop', g, 0x1a1a1e); };
     for (const c of cars) {
       const lz = c * (cl / 2 + 0.25);
-      bx('prop', 0, 0.75, lz, 2.4, 0.9, cl, TEAL);
-      bx(t.lit ? 'glow' : 'glass', 0, 1.85, lz, 2.38, 1.25, cl - 0.6, t.lit ? 0xb8c8d4 : 0x10141c);
-      for (let k = -cl / 2 + 0.6; k <= cl / 2 - 0.5; k += 1.35) bx('prop', 0, 1.85, lz + k, 2.44, 1.27, 0.14, WHITE);
-      bx('prop', 0, 2.85, lz, 2.4, 0.75, cl, WHITE);
-      bx('prop', 0, 1.18, lz, 2.44, 0.1, cl, AMBER);
-      bx('prop', 0, 3.33, lz, 2.1, 0.24, cl - 0.4, 0x9aa0a6);
-      bx('prop', 0, 3.6, lz + c * 0.8, 1.4, 0.32, 2.2, 0xb8bcc0);
-      for (const s of [-1, 1]) bx('glass', s * 1.215, 1.5, lz - c * 1.6, 0.04, 2.0, 1.3, 0x0c1016);
+      bx('prop', 0, 0.75, lz, W, 0.9, cl, TEAL);
+      bx(t.lit ? 'glow' : 'glass', 0, 1.85, lz, W - 0.04, 1.25, cl - 0.6, t.lit ? 0xb8c8d4 : 0x10141c);
+      for (let k = -cl / 2 + 0.6; k <= cl / 2 - 0.5; k += 1.35) bx('prop', 0, 1.85, lz + k, W + 0.04, 1.27, 0.14, WHITE);
+      bx('prop', 0, 2.85, lz, W, 0.75, cl, WHITE);
+      bx('prop', 0, 1.18, lz, W + 0.04, 0.1, cl, AMBER);
+      bx('prop', 0, 3.33, lz, W - 0.3, 0.24, cl - 0.4, 0x9aa0a6);
+      bx('prop', 0, 3.6, lz + c * 0.8, 1.4, 0.32, 2.2, 0xb8bcc0);                                     // 屋根の冷房
+      for (const s of [-1, 1]) {                                                                      // 扉（2 枚のガラス・枠）
+        bx('glass', s * (W / 2 + 0.015), 1.5, lz - c * 1.6, 0.04, 2.0, 1.3, 0x0c1016);
+        bx('prop', s * (W / 2 + 0.02), 1.5, lz - c * 1.6, 0.04, 2.06, 0.06, 0x4a4e54); bx('prop', s * (W / 2 + 0.02), 2.52, lz - c * 1.6, 0.03, 0.05, 1.36, 0x4a4e54);
+      }
+      // 台車：裾の覆い（黒）と車輪（レールの上）
+      const bz = lz - c * 0.2;
+      bx('prop', 0, 0.2, bz, W - 0.2, 0.22, 2.3, DARK);
+      for (const s of [-1, 1]) for (const wz of [-0.75, 0.75]) wheel(s * g2, bz + wz);
     }
-    bx('prop', 0, 1.6, 0, 2.2, 2.6, 0.5, 0x2a2a30);
+    bx('prop', 0, 1.6, 0, 2.1, 2.6, 0.5, 0x2a2a30);                                                   // つなぎの幌
+    bx('prop', 0, 0.2, 0, 2.0, 0.22, 0.6, DARK);
+    for (const s of [-1, 1]) for (const wz of [-0.2, 0.2]) wheel(s * g2, wz);
     // 前と後ろ（運転台）
     for (const e of [-1, 1]) {
       const lz = e * (half - 0.15);
-      bx('glass', 0, 2.05, lz, 2.2, 1.35, 0.08, 0x0c1218, { rx: e * 0.22 });
-      bx('prop', 0, 0.9, lz + e * 0.05, 2.36, 1.3, 0.3, TEAL); bx('prop', 0, 1.18, lz + e * 0.1, 2.38, 0.1, 0.3, AMBER);
-      bx('prop', 0, 2.95, lz - e * 0.1, 2.3, 0.5, 0.3, WHITE);
+      tiltB('glass', 0, 2.05, lz, W - 0.1, 1.35, 0.08, 0x0c1218, e * 0.22);
+      bx('prop', 0, 0.9, lz + e * 0.05, W - 0.04, 1.3, 0.3, TEAL); bx('prop', 0, 1.18, lz + e * 0.1, W - 0.02, 0.1, 0.3, AMBER);
+      bx('prop', 0, 2.95, lz - e * 0.1, W - 0.1, 0.5, 0.3, WHITE);
+      bx('prop', 0, 0.42, lz + e * 0.25, 0.3, 0.14, 0.2, 0x3a3c40);                                  // 連結器のふた
       const dUV = signUV(t.dest, { bg: '#080604', fg: '#ffb040', size: 40, frame: false });
-      const [dx, dz] = at(0, lz + e * 0.06); B.box('sign', dx, 2.95, dz, 1.5, 0.32, 0.04, 0xffffff, { uv: dUV, face: e > 0 ? 4 : 5, ry: t.ry, edges: false });
-      for (const s of [-0.8, 0.8]) { bx('glow', s, 0.95, lz + e * 0.16, 0.26, 0.14, 0.04, e > 0 ? 0xfff4d8 : 0xff3020); const [hx, hz] = at(s, lz + e * 0.4); halos.push({ p: [hx, 0.95, hz], size: e > 0 ? 1.2 : 0.8, color: e > 0 ? 0xfff0d0 : 0xff3020, k: e > 0 ? 0.7 : 0.5, hazard: !!t.hazard && e < 0 }); }
+      const [dx, dz] = at(0, e * (half + 0.02)); B.box('sign', dx, 2.95, dz, 1.5, 0.32, 0.04, 0xffffff, { uv: dUV, face: e > 0 ? 4 : 5, ry: t.ry, edges: false });
+      for (const s of [-0.8, 0.8]) { bx('glow', s, 0.95, lz + e * 0.22, 0.26, 0.14, 0.04, e > 0 ? 0xfff4d8 : 0xff3020); const [hx, hz] = at(s, lz + e * 0.4); halos.push({ p: [hx, 0.95, hz], size: e > 0 ? 1.2 : 0.8, color: e > 0 ? 0xfff0d0 : 0xff3020, k: e > 0 ? 0.7 : 0.5, hazard: !!t.hazard && e < 0 }); }
     }
-    // パンタグラフ（電線 5.9m に届く）
-    { const lz = -(cl / 2 + 0.25); bx('prop', 0, 3.55, lz, 1.0, 0.12, 1.0, 0x3a3c40); bx('prop', 0, 4.35, lz - 0.35, 0.08, 1.7, 0.08, 0x2a2c30, { rx: 0.62 }); bx('prop', 0, 5.3, lz - 0.2, 0.08, 1.3, 0.08, 0x2a2c30, { rx: -0.5 }); bx('prop', 0, 5.86, lz, 1.5, 0.06, 0.12, 0x2a2c30); }
+    // パンタグラフ（電線 5.9m に届く）：台・下の腕・上の腕・すり板
+    { const lz = -(cl / 2 + 0.25); bx('prop', 0, 3.55, lz, 1.0, 0.12, 1.0, 0x3a3c40); tiltB('prop', 0, 4.28, lz - 0.35, 0.08, 1.7, 0.08, 0x2a2c30, 0.62); tiltB('prop', 0, 5.3, lz - 0.2, 0.08, 1.3, 0.08, 0x2a2c30, -0.5); bx('prop', 0, 5.86, lz, 1.5, 0.06, 0.12, 0x2a2c30); }
     if (t.lit) { const [lx, lz] = at(0, 0); lights.push({ id: 'tram_' + t.id, pos: [lx, 2.6, lz], color: 0xd8e8ff, intensity: 6, dist: 10, town: true }); halos.push({ p: [lx, 2.0, lz], size: 3, color: 0xd8e8ff, k: 0.25 }); }
     if (t.hazard) { const [hx, hz] = at(0, half); spots.push({ id: 'tram_stopped', kind: 'read', x: hx + 2.4, z: hz + 1.0, r: 1.6, label: '止まった路面電車', text: 'town_tramcar' }); }
   }
   /** バス（独自の意匠：白に青い帯・行き先の電光） */
   function bus(b) {
     const bx = boxLocal(b.x, b.z, b.ry), at = at2(b.x, b.z, b.ry), L = 10.5, BLUE = 0x2a5aa8, WHITE = 0xe8e8e4;
-    bx('prop', 0, 0.85, 0, 2.5, 1.1, L, WHITE); bx('prop', 0, 1.32, 0, 2.52, 0.14, L, BLUE);
+    bx('prop', 0, 0.85, 0, 2.5, 1.1, L, WHITE); bx('prop', 0, 1.32, 0, 2.52, 0.14, L + 0.04, BLUE);
     bx(b.lit ? 'glow' : 'glass', 0, 2.05, -0.3, 2.48, 1.1, L - 1.4, b.lit ? 0xbcccd8 : 0x0e1218);
     for (let k = -L / 2 + 1.2; k < L / 2 - 1; k += 1.6) bx('prop', 0, 2.05, k, 2.54, 1.12, 0.12, WHITE);
     bx('prop', 0, 2.85, 0, 2.5, 0.5, L, WHITE); bx('prop', 0, 3.15, 0.5, 2.2, 0.25, 4, 0xc8ccd0);
@@ -388,18 +406,18 @@ export function makeTown2(K) {
       for (const [x, z] of [[x0 + 0.2, z0 + 0.3], [x1 - 0.2, z0 + 0.3], [x0 + 0.2, z1 - 0.3], [x1 - 0.2, z1 - 0.3]]) prop(x, 1.2, z, 0.12, 2.4, 0.12, 0x6a6e74);
       prop(cx, 2.4, cz, x1 - x0 + 0.4, 0.08, z1 - z0 + 0.3, 0x7a8a98); glowB(cx, 2.34, cz, x1 - x0 - 1, 0.03, 0.2, 0xe8f0ff); halos.push({ p: [cx, 2.2, cz], size: 2.2, color: 0xe8f0ff, k: 0.35 });
       for (const z of [z0 + 1.6, z1 - 1.6]) { prop(cx, 0.35, z, x1 - x0 - 0.4, 0.06, 0.06, 0x9aa0a8); for (let x = x0 + 0.8, k = 0; x < x1 - 0.4; x += 0.85, k++) if (k % 5 !== 3) bike(x, z, Math.PI / 2, [0x2a2a30, 0xb03a3a, 0x3a6ab0, 0xe8e8e0, 0x3a7a4a, 0xd8c040][k % 6]); }
-      const uv = signUV('駐輪場（仮）　自転車', { bg: '#2a6ad0', fg: '#ffffff', size: 30 }); signBox(uv, cx, 2.0, z1 + 0.05, 2.4, 0.4, 0.04, 4); }
+      const uv = signUV('駐輪場（仮）　自転車', { bg: '#2a6ad0', fg: '#ffffff', size: 30 }); signBox(uv, cx, 2.15, z1 + 0.05, 2.4, 0.4, 0.04, 4); }
     // タクシーのりば（車の列・屋根・札）
     { const [lx0, lz0, lx1, lz1] = S.taxi.lane;
       B.box('tex', (lx0 + lx1) / 2, 0.003, (lz0 + lz1) / 2, lx1 - lx0, 0.01, lz1 - lz0, 0xffffff, { tile: 'asphalt', ts: 6, edges: false });
       for (const x of [lx0 + 0.15, lx1 - 0.15]) prop(x, 0.012, (lz0 + lz1) / 2, 0.12, 0.02, lz1 - lz0, 0xe8e6de);
       prop(47.4, 0.012, (lz0 + lz1) / 2, 0.12, 0.02, lz1 - lz0 - 4, 0xe8d070);
-      for (const [x, z, ry] of S.taxi.cars) { car({ x, z, ry, color: [0x2a2a2e, 0xe8c830, 0x2a4a7a, 0xe8e8e8][Math.round(-z) % 4] }); prop(x, 1.6, z, 0.5, 0.18, 0.2, 0xf0f0e8); glowB(x, 1.6, z + 0.11, 0.42, 0.12, 0.02, 0xffe080); }
+      for (const [x, z, ry] of S.taxi.cars) { car({ x, z, ry, color: [0x2a2a2e, 0xe8c830, 0x2a4a7a, 0xe8e8e8][Math.round(-z) % 4] }); prop(x, 1.49, z, 0.5, 0.18, 0.2, 0xf0f0e8); glowB(x, 1.49, z + 0.11, 0.42, 0.12, 0.02, 0xffe080); }
       const [sx, sz] = S.taxi.stand;
       for (const dx of [-1.5, 1.5]) prop(sx + dx, 1.2, sz, 0.1, 2.4, 0.1, 0x5a6068);
-      glass(sx, 2.45, sz + 0.4, 3.6, 0.05, 1.8, 0x6a88a8); prop(sx, 2.42, sz, 3.6, 0.1, 0.12, 0x4a4e58); glass(sx, 1.3, sz - 0.25, 3.0, 1.6, 0.04, 0x5a7090);
-      const uv = signUV('タクシーのりば', { bg: '#1a2a4a', fg: '#ffffff', size: 36 }); signBox(uv, sx, 2.75, sz + 0.06, 2.2, 0.4, 0.04, 4);
-      glowB(sx, 2.36, sz + 0.4, 2.4, 0.03, 0.2, 0xe8f0ff); halos.push({ p: [sx, 2.2, sz + 0.6], size: 1.8, color: 0xe8f0ff, k: 0.45 }); }
+      glass(sx, 2.45, sz + 0.4, 3.6, 0.05, 1.8, 0x6a88a8); prop(sx, 2.42, sz, 3.6, 0.1, 0.12, 0x4a4e58); glass(sx, 1.3, sz, 2.92, 1.6, 0.04, 0x5a7090); prop(sx, 0.48, sz, 2.92, 0.06, 0.06, 0x4a4e58);
+      const uv = signUV('タクシーのりば', { bg: '#1a2a4a', fg: '#ffffff', size: 36 }); signBox(uv, sx, 2.67, sz + 0.04, 2.2, 0.4, 0.04, 4);
+      glowB(sx, 2.41, sz + 0.4, 2.4, 0.03, 0.2, 0xe8f0ff); halos.push({ p: [sx, 2.2, sz + 0.6], size: 1.8, color: 0xe8f0ff, k: 0.45 }); }
     // バスターミナル（島・屋根・のりばの札・時刻表）
     { const isl = S.bus.islands;
       B.box('tex', 101, 0.003, -95, 6, 0.01, 22, 0xffffff, { tile: 'asphalt', ts: 6, edges: false });
@@ -414,10 +432,10 @@ export function makeTown2(K) {
           const z = z0 + 5 + k * 11, bay = S.bus.bays[i * 2 + k];
           const uv = signUV(bay + '番のりば　' + ['駅前循環', '中央通り経由', '病院方面', '体育館方面'][i * 2 + k] + '（仮）', { bg: '#f4f4ee', fg: '#1a3a6a', size: 28, frameColor: '#2a5aa8' });
           prop(cx, 1.5, z, 0.08, 3.0, 0.08, 0x8a8e94); signBox(uv, cx, 2.45, z, 0.04, 0.42, 1.9, 0);
-          glowB(cx + 0.05, 1.3, z + 1.2, 0.04, 0.9, 0.7, 0xd8e8f0); halos.push({ p: [cx + 0.3, 1.3, z + 1.2], size: 1.0, color: 0xd8e8ff, k: 0.3 });
+          glowB(cx + 0.05, 1.3, z + 1.2, 0.04, 0.9, 0.7, 0xd8e8f0); prop(cx, 0.785, z + 1.2, 0.06, 1.09, 0.06, 0x8a8e94); halos.push({ p: [cx + 0.3, 1.3, z + 1.2], size: 1.0, color: 0xd8e8ff, k: 0.3 });
           halos.push({ p: [cx, 2.6, z], size: 1.8, color: 0xe8f0ff, k: 0.45 });
         }
-        tb('tex', cx, 0.7, cz + 3, 0.42, 0.08, 2.4, 0xffffff, 'wood', { ts: 1 });
+        FK.bench(cx, cz + 3, i === 0 ? Math.PI / 2 : -Math.PI / 2, 2.4, { y0: 0.24, d: 0.42 });
       });
       for (const z of [-101, -90]) { const g = new THREE.PlaneGeometry(2.4, 3.4); g.rotateX(-Math.PI / 2); g.translate(101, 0.02, z); K.addTile('tex', g, 'busmark', 0xffffff, { fit: true }); }
       spots.push({ id: 'bus_board', kind: 'read', x: 97, z: -98.5, r: 1.4, label: 'バスの時刻表', text: 'town_bus' }); }
@@ -425,14 +443,14 @@ export function makeTown2(K) {
     { const w = S.walkway, cx = (w.x0 + w.x1) / 2, cz = (w.z0 + w.z1) / 2;
       for (const [x, z] of walkwayPosts(T)) prop(x, 1.4, z, 0.1, 2.8, 0.1, 0x5a6068);
       glass(cx, 2.9, cz, w.x1 - w.x0 + 0.6, 0.05, w.z1 - w.z0, 0x7088a8); for (const x of [w.x0 + 0.1, w.x1 - 0.1]) prop(x, 2.85, cz, 0.12, 0.14, w.z1 - w.z0, 0x4a4e58);
-      for (let z = w.z0 + 2; z < w.z1; z += 4) { glowB(cx, 2.8, z, 0.6, 0.03, 0.3, 0xf0f4ff); halos.push({ p: [cx, 2.65, z], size: 1.2, color: 0xe8f0ff, k: 0.45 }); }
+      for (let z = w.z0 + 2; z < w.z1; z += 4) { glowB(cx, 2.86, z, 0.6, 0.03, 0.3, 0xf0f4ff); halos.push({ p: [cx, 2.65, z], size: 1.2, color: 0xe8f0ff, k: 0.45 }); }
       tb('tex', cx, 0.003, cz, w.x1 - w.x0, 0.01, w.z1 - w.z0, 0xffffff, 'granite', { ts: 3 }); }
     // 線路の輪の中の植え込み（雪囲いの木・石の縁）
     { const [x0, z0, x1, z1] = S.island, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
       tb('tex', cx, 0.3, cz, x1 - x0, 0.6, z1 - z0, 0xffffff, 'stone', { ts: 1 }); tb('tex', cx, 0.62, cz, x1 - x0 - 0.4, 0.04, z1 - z0 - 0.4, 0xffffff, 'grass', { ts: 2 });
       for (let x = x0 + 2.5; x < x1 - 1; x += 4) yukigakoi(x, cz + (x % 8 < 4 ? -1.5 : 1.5), 0.6);
       tree(cx, cz, 6.5); }
-    for (const [x, z] of S.benches) { tb('tex', x, 0.45, z, 1.8, 0.07, 0.5, 0xffffff, 'wood', { ts: 1 }); for (const s of [-0.75, 0.75]) prop(x + s, 0.22, z, 0.08, 0.45, 0.45, 0x3a3a3a); }
+    for (const [x, z] of S.benches) FK.bench(x, z, 0, 1.8, { d: 0.5 });
     // 広場の車の道（タクシー・バスの出入り）・横断歩道
     for (let x = 57; x < 64; x += 0.9) prop(x + 0.22, 0.014, -80.2, 0.45, 0.02, 2.6, 0xeceae2);
     hideSpots.push({ x: 64.5, z: -82.6 }, { x: 55.5, z: -84.2 }, { x: 99.2, z: -86 });
@@ -489,9 +507,8 @@ export function makeTown2(K) {
     // 段の席（ひな壇）・机と椅子・植え込み（木）
     for (const [a, b, c, d] of G.steps) { const sx = (a + c) / 2; for (let k = 0; k < 3; k++) tb('tex', sx, 0.135 + k * 0.27, b + k * 0.65 + (d - b - k * 0.65) / 2, c - a, 0.27, d - b - k * 0.65, 0xffffff, k % 2 ? 'wood' : 'concrete', { ts: 1.2 }); }
     for (const [x, z] of G.tables) {
-      const g = new THREE.CylinderGeometry(0.55, 0.55, 0.05, 16); g.translate(x, 0.74, z); B.add('prop', g, 0xd8d4cc);
-      prop(x, 0.37, z, 0.08, 0.74, 0.08, 0x3a3a3e);
-      for (const [dx, dz] of [[0.9, 0], [-0.9, 0], [0, 0.9], [0, -0.9]]) { prop(x + dx, 0.45, z + dz, 0.42, 0.05, 0.42, 0x6a5a4a); prop(x + dx * 1.2, 0.7, z + dz * 1.2, dz ? 0.42 : 0.05, 0.5, dz ? 0.05 : 0.42, 0x6a5a4a); }
+      FK.roundTable(x, z, 0.55, 0.74);                                                     // P13：脚のある机と椅子（前は座面と背もたれが浮いていた）
+      for (const [dx, dz] of [[0.9, 0], [-0.9, 0], [0, 0.9], [0, -0.9]]) FK.chair(x + dx, z + dz, Math.atan2(-dx, -dz), 0x6a5a4a);
     }
     for (const [x, z] of G.planters) { tb('tex', x, 0.5, z, 1.6, 1.0, 1.6, 0xffffff, 'concrete', { ts: 1 }); tree(x, z, 5.2); }
     // 入口（駅前通りから）の屋根と看板・通り抜けの名前
@@ -499,7 +516,7 @@ export function makeTown2(K) {
       glass(gx, 4.3, (b + d) / 2, c - a, 0.05, d - b, 0x7088a8); prop(gx, 4.25, d, c - a + 0.4, 0.4, 0.3, 0x3a3e46);
       const uv = signUV(G.name + '　入口', { bg: '#1a1420', fg: '#ffe8c8', size: 34, frameColor: '#c8a070' });
       signBox(uv, gx, 4.75, d + 0.05, 5.4, 0.6, 0.08, 4); halos.push({ p: [gx, 4.75, d + 0.6], size: 3.2, color: 0xffd8a0, k: 0.4, neon: true });
-      glowB(gx, 4.22, (b + d) / 2, 2.4, 0.03, 0.3, 0xfff0d8); halos.push({ p: [gx, 4.0, (b + d) / 2], size: 1.6, color: 0xfff0d8, k: 0.5 });
+      glowB(gx, 4.26, (b + d) / 2, 2.4, 0.03, 0.3, 0xfff0d8); halos.push({ p: [gx, 4.0, (b + d) / 2], size: 1.6, color: 0xfff0d8, k: 0.5 });
       wet.push({ p: [gx, 0, d + 1.5], size: 1.8, color: 0xffd8a0, k: 0.7 }); }
     // まわりの建物の壁（広場から見える窓）
     const kinds = ['win_dark', 'win_lit', 'win_curtain', 'win_dark', 'win_office_lit', 'win_office'];
@@ -507,23 +524,46 @@ export function makeTown2(K) {
     const wall = (xa, za, xb, zb, nx, nz, ys) => { const len = Math.hypot(xb - xa, zb - za), m = Math.max(1, Math.floor(len / 3.2)); for (const y of ys) for (let i = 0; i < m; i++) { const t = (i + 0.5) / m, x = xa + (xb - xa) * t + nx * 0.04, z = za + (zb - za) * t + nz * 0.04, k = kinds[(n++ * 7 + i) % kinds.length], lit = k === 'win_lit' || k === 'win_office_lit'; B.box(lit ? 'texglow' : 'tex', x, y, z, nx ? 0.06 : 1.6, 1.2, nz ? 0.06 : 1.6, lit ? 0xc8b8a0 : 0xffffff, { tile: k, fit: true, edges: false }); } };
     wall(10.5, -34, 10.5, -28, 1, 0, [4.9, 7.6]); wall(10.5, -22, 10.5, -7, 1, 0, [4.9, 7.6]);
     wall(10.6, -6.5, 20, -6.5, 0, -1, [4.4, 7.3]); wall(26, -6.5, 36, -6.5, 0, -1, [4.4]);
-    wall(36, -19.5, 36, -6.5, -1, 0, [4.4, 7.3]); wall(36, -34, 36, -24, -1, 0, [4.4]);
+    wall(36.06, -19.5, 36.06, -9.6, -1, 0, [4.4, 7.3]); wall(36.06, -34, 36.06, -24, -1, 0, [4.4]);
     hideSpots.push({ x: 13.5, z: -29.8 }, { x: 32.8, z: -16.8 }, { x: 34.4, z: -9.4 });
     spots.push({ id: 'plaza_board', kind: 'read', x: 24, z: -29.4, r: 1.6, label: '広場の掲示（催しの知らせ）', text: 'town_plaza' });
   }
-  /** 横丁（広場 → 中央通り）：提灯の列・小さな看板 */
+  /** 横丁（広場 → 中央通り）：飲み屋の長屋（南の側）・提灯・入口の門
+   *  P13：前は看板（「おでん」など）が何も無い所に浮き、提灯の列も宙に浮いていた。→ 南の側（n7 の裏の空き地）に 2 階建ての
+   *  飲み屋の長屋 4 軒（world/shopkit.js：戸口・のれん・赤ちょうちん・窓・店の中のカウンターと品書き）。北の側の提灯は
+   *  居酒屋のひさしの縁から吊る。空き地は塀で閉じ、町家の横の面には勝手口・窓・室外機。入口の看板は門の梁に吊る。 */
   function yokocho() {
     const Y = T.walk.find(w => w.id === 'yokocho').rect, [x0, z0, x1, z1] = Y;
+    const SK = shopKit({ B, signUV, halos, wet, pool });
+    const units = [['焼き鳥（仮）', 'yakitori'], ['おでん（仮）', 'oden'], ['立ち飲み（仮）', 'tachinomi'], ['スナック 雪（仮）', 'snack']];
+    units.forEach(([name, kind], i) => SK.unit([44 + i * 4, z1, 48 + i * 4, z1 + 4.4], 'N', kind, name, { seed: 31 + i * 17, lanternRight: i === 2 }));
+    // 北の側：居酒屋（w4）のひさしの縁から吊った提灯（赤・白）
     let k = 0;
-    for (let x = x0 + 1.5; x < x1 - 1; x += 3) for (const z of [z0 + 0.25, z1 - 0.25]) {
-      const red = (k++ % 3) !== 2, g = new THREE.CylinderGeometry(0.2, 0.2, 0.46, 10); g.translate(x, 2.7, z); B.add('glow', g, red ? 0xe0402a : 0xf0e0c0);
-      for (const dy of [-0.25, 0.25]) prop(x, 2.7 + dy, z, 0.3, 0.04, 0.3, 0x1a1414, { edges: false });
-      halos.push({ p: [x, 2.7, z + (z < z1 - 1 ? 0.3 : -0.3)], size: 1.2, color: red ? 0xff6040 : 0xffe0b0, k: 0.7, lantern: false, flicker: k % 7 === 0 });
+    for (let x = x0 + 1.5; x < 49.5; x += 2.5) {
+      const red = (k++ % 3) !== 2, z = z0 + 1.0, g = new THREE.CylinderGeometry(0.17, 0.17, 0.42, 10); g.translate(x, 2.25, z); B.add('glow', g, red ? 0xe0402a : 0xf0e0c0);
+      for (const dy of [-0.23, 0.23]) prop(x, 2.25 + dy, z, 0.26, 0.04, 0.26, 0x1a1414, { edges: false });
+      prop(x, 2.56, z, 0.02, 0.2, 0.02, 0x1a1414, { edges: false });
+      halos.push({ p: [x, 2.25, z + 0.3], size: 1.2, color: red ? 0xff6040 : 0xffe0b0, k: 0.7, lantern: false, flicker: k % 7 === 0 });
     }
+    // 北の側の空き地（x 50〜54）：ブロック塀・植木鉢。町家（w1）の横の面：勝手口・窓・室外機・配管
+    tb('tex', 52.05, 0.9, z0 - 0.08, 3.9, 1.8, 0.16, 0xffffff, 'block', { ts: 1.2 }); prop(52.05, 1.84, z0 - 0.08, 3.9, 0.08, 0.2, 0x8a8884);
+    for (const x of [51, 52.6]) { const g = new THREE.CylinderGeometry(0.2, 0.16, 0.36, 10); g.translate(x, 0.18, z0 + 0.25); B.add('prop', g, 0x8a5a3a); const f = new THREE.IcosahedronGeometry(0.26, 0); f.translate(x, 0.5, z0 + 0.25); B.add('prop', f, 0x3a6a3a); }
+    const side = (xc, zf, nz, items) => {   // 町家の横の面（zf：面の z・nz：外の向き）
+      const DF = { alongX: true, f: nz < 0 ? 'N' : 'S', out: [0, nz], at: (u, v) => [xc + u, zf - v * nz] };
+      DF.box = (key, u, v, y, a2, b2, hh, color, tile, opt = {}) => { const [x, z] = DF.at(u, v); return B.box(key, x, y, z, a2, hh, b2, color, Object.assign({ tile, edges: false }, opt)); };
+      if (items.door != null) { DF.box('tex', items.door, -0.03, 1.0, 0.85, 0.06, 2.0, 0x8a9098, 'door_house', { fit: true }); doorFrame(DF, items.door, 0, 0, 0.85, 2.0, 0x3a3430, 0.08); DF.box('prop', items.door, -0.35, 2.25, 1.1, 0.7, 0.06, 0x4a4642); const [lx, lz] = DF.at(items.door + 0.65, -0.07); B.box('glow', lx, 1.95, lz, 0.12, 0.16, 0.12, 0xffd8a0, { edges: false }); halos.push({ p: [lx, 1.95, lz + nz * 0.15], size: 0.8, color: 0xffd8a0, k: 0.6 }); }
+      if (items.win != null) { DF.box('texglow', items.win, -0.02, 1.7, 0.9, 0.04, 0.7, 0xc8b090, 'win_shoji', { fit: true }); DF.box('prop', items.win, -0.04, 1.7, 1.0, 0.04, 0.8, 0x2a1c12); }
+      if (items.ac != null) { DF.box('tex', items.ac, -0.18, 0.32, 0.8, 0.3, 0.6, 0xffffff, 'acunit', { fit: true }); DF.box('prop', items.ac, -0.03, 1.5, 0.06, 0.06, 2.2, 0x6a6a6a); }
+      if (items.crates != null) for (let q = 0; q < 3; q++) DF.box('prop', items.crates + (q % 2) * 0.48, -0.25, 0.15 + Math.floor(q / 2) * 0.3, 0.45, 0.32, 0.3, q % 2 ? 0x2a6a3a : 0xc8a020);
+    };
+    side(54, z0 - 0.05, 1, { door: 3.2, win: 7.4, ac: 9.6 });
+    side(60, z1 + 0.05, -1, { win: 1.8, crates: 3.6 });
+    // 入口（広場の側）：門の柱・梁・梁から吊った看板
+    for (const z of [z0 + 0.12, z1 - 0.12]) prop(x0 + 0.7, 2.0, z, 0.14, 4.0, 0.14, 0x2a1c14);
+    prop(x0 + 0.7, 4.02, (z0 + z1) / 2, 0.16, 0.16, z1 - z0 - 0.1, 0x2a1c14);
+    const uv = signUV('横丁（仮）　→ 中央通り', { bg: '#2a1a14', fg: '#ffe0b0', size: 30 }); signBox(uv, x0 + 0.7, 3.69, (z0 + z1) / 2, 0.06, 0.5, 2.4, 1);
+    for (const dz of [-1.0, 1.0]) prop(x0 + 0.7, 3.97, (z0 + z1) / 2 + dz, 0.02, 0.06, 0.02, 0x1a1414, { edges: false });
     for (let x = x0 + 3; x < x1; x += 9) wet.push({ p: [x, 0, (z0 + z1) / 2], size: 1.4, color: 0xff7050, k: 0.6 });
-    const names = ['焼き鳥（仮）', 'おでん（仮）', 'スナック 雪（仮）', '立ち飲み（仮）'];
-    names.forEach((t, i) => { const x = x0 + 5 + i * 7, z = i % 2 ? z1 - 0.12 : z0 + 0.12; const uv = signUV(t, { bg: '#1a1010', fg: '#ffd890', size: 34 }); signBox(uv, x, 3.4, z, 1.8, 0.4, 0.04, i % 2 ? 5 : 4); halos.push({ p: [x, 3.4, z + (i % 2 ? -0.4 : 0.4)], size: 1.6, color: 0xffb070, k: 0.35, neon: true }); });
-    const uv = signUV('横丁（仮）　→ 中央通り', { bg: '#2a1a14', fg: '#ffe0b0', size: 30 }); signBox(uv, x0 + 0.7, 3.6, (z0 + z1) / 2, 0.06, 0.5, 2.4, 1);
     hideSpots.push({ x: x0 + 9, z: z0 + 0.7 }, { x: x1 - 6, z: z1 - 0.7 });
   }
   /** 信号（中央通りの交差点・駅前通りの東の端・電停の前）：歩行者の信号（柱）・車の信号（腕） */
@@ -553,7 +593,39 @@ export function makeTown2(K) {
     }
   }
 
+  /** P13：町の縁の外の家並み（遠景の建物）と、深い区画の奥の建物。歩ける所から町の縁の何も無い所（空・地面の果て）が見えないように。
+   *  形は窓の帯つきの箱（材質ごとにまとめる網・升目ごとに見えない所は描かない）。駅前通りの西の突き当たりは店の表（シャッター・窓・灯り）。 */
+  function backdrop() {
+    const bd = T.bounds, r = seeded('backdrop');
+    const block = (x0, z0, x1, z1, face, front = false) => {
+      const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, w = x1 - x0, d = z1 - z0; if (!inPart(cx, cz)) { r(); r(); r(); return; }
+      const h = front ? 9.6 : 8 + Math.floor(r() * 4) * 2.6, tile = ['mortar', 'tilewall', 'panel', 'siding2'][Math.floor(r() * 4)], tint = [0xa8a090, 0x9a9ca0, 0x8a8478, 0xb0aca4][Math.floor(r() * 4)];
+      B.box('tex', cx, h / 2, cz, w, h, d, tint, { tile, ts: 3, edges: false });
+      B.box('prop', cx, h + 0.2, cz, w + 0.1, 0.4, d + 0.1, 0x3a3c40, { edges: false });
+      const n = face, along = n[0] === 0, fw = along ? w : d, fx = n[0] > 0 ? x1 : n[0] < 0 ? x0 : cx, fz = n[1] > 0 ? z1 : n[1] < 0 ? z0 : cz;
+      for (let y = front ? 4.4 : 3.6; y < h - 1; y += 2.8) for (let k = 0; k < Math.max(1, Math.floor(fw / 3.4)); k++) {
+        const t = (k + 0.5) / Math.max(1, Math.floor(fw / 3.4)) - 0.5, lit = r() < 0.35, px = along ? cx + t * fw : fx + n[0] * 0.03, pz = along ? fz + n[1] * 0.03 : cz + t * fw;
+        B.box(lit ? 'texglow' : 'tex', px, y, pz, along ? 1.6 : 0.06, 1.2, along ? 0.06 : 1.6, lit ? 0xc8b8a0 : 0xffffff, { tile: lit ? 'win_lit' : r() < 0.5 ? 'win_dark' : 'win_curtain', fit: true, edges: false });
+      }
+      if (front) {   // 1 階：閉じたシャッターの店 2・ひさし・小さな灯り（駅前通りの突き当たり）
+        for (const t of [-0.25, 0.25]) { const px = along ? cx + t * fw : fx + n[0] * 0.05, pz = along ? fz + n[1] * 0.05 : cz + t * fw;
+          B.box('tex', px, 1.35, pz, along ? fw * 0.42 : 0.08, 2.7, along ? 0.08 : fw * 0.42, 0xffffff, { tile: 'shutter', ts: 2.2, tsy: 2.7, edges: false });
+          B.box('glow', along ? px : fx + n[0] * 0.07, 2.95, along ? fz + n[1] * 0.07 : pz, along ? 0.3 : 0.12, 0.12, along ? 0.12 : 0.3, 0xffd8a0, { edges: false });
+          halos.push({ p: [px + n[0] * 0.3, 2.9, pz + n[1] * 0.3], size: 1.0, color: 0xffd8a0, k: 0.5 }); }
+        B.box('prop', along ? cx : fx + n[0] * 0.5, 3.2, along ? fz + n[1] * 0.5 : cz, along ? fw : 1.0, 0.1, along ? 1.0 : fw, 0x3a3c42, { edges: false });
+      }
+    };
+    // 西（x < −46）：駅前通りの突き当たり（z 1〜14）は店の表のある建物
+    for (const [za, zb] of [[-18, -7.6], [-7.4, 0.4], [0.6, 14.4], [14.6, 25], [25.2, 35.6], [35.8, 46], [46.2, 56], [56.2, 65.8]]) block(bd.minX - 8, za, bd.minX, zb, [1, 0], za === 0.6);
+    // 南（z > 66）・東（x > 118）・駅の裏（z < −128）
+    for (let x = bd.minX - 8; x < bd.maxX + 8; x += 12.5) block(x, bd.maxZ, x + 12, bd.maxZ + 8, [0, -1]);
+    for (let z = bd.minZ - 8; z < bd.maxZ; z += 12.5) block(bd.maxX, z, bd.maxX + 8, z + 12, [-1, 0]);
+    for (let x = 36; x + 12 <= bd.maxX; x += 12.5) block(x, bd.minZ - 8, x + 12, bd.minZ, [0, 1]);
+    // 中央通りの東の区画の奥（建物の裏の空き地：x 108.5〜118）
+    for (let z = -78; z < 46; z += 12.4) block(108.6, z + 0.2, 117.8, z + 12, [-1, 0]);
+  }
   function build(signals) {
+    backdrop();
     if (inPart(23, -20)) { gplaza(); yokocho(); }
     if (inPart(79, -20)) { avenue(); tracks(); stops(); catenary(); for (const t of T.avenue.trams) tram(t); for (const b of T.avenue.buses) bus(b); stationPlaza(); }
     newSignals(signals);
@@ -566,8 +638,8 @@ export function makeTown2(K) {
     for (const s of [-1.5, 1.5]) bx('prop', s, 1.25, -0.25, 0.08, 2.5, 0.08, 0x5a6068);
     bx('glass2', 0, 2.5, 0.1, 3.4, 0.05, 1.3, 0x7088a8); bx('prop', 0, 2.48, -0.3, 3.4, 0.12, 0.12, 0x4a4e58);
     bx('glass', 0, 1.3, -0.3, 3.0, 1.7, 0.04, 0x506070);
-    bx('tex', 0, 0.45, -0.05, 2.4, 0.06, 0.38, 0xffffff, { tile: 'wood', ts: 1 });
-    bx('glow', 0, 2.42, 0.1, 1.8, 0.03, 0.2, 0xe8f0ff); const [hx, hz] = at(0, 0.3); halos.push({ p: [hx, 2.3, hz], size: 1.6, color: 0xd8e8ff, k: 0.5 });
+    { const [bx0, bz0] = at(0, -0.06); FK.bench(bx0, bz0, p.ry || 0, 2.4, { d: 0.4 }); }
+    bx('glow', 0, 2.46, 0.1, 1.8, 0.03, 0.2, 0xe8f0ff); const [hx, hz] = at(0, 0.3); halos.push({ p: [hx, 2.3, hz], size: 1.6, color: 0xd8e8ff, k: 0.5 });
     const [sx, sz] = at(1.9, 0.4); prop(sx, 1.4, sz, 0.07, 2.8, 0.07, 0x8a8a8a);
     const uv = signUV(p.name, { bg: '#2a5aa8', fg: '#ffffff', size: 26 }); B.box('sign', sx, 2.6, sz, 0.9, 0.5, 0.04, 0xffffff, { uv, face: 4, ry: (p.ry || 0), edges: false });
     bx('glow', 1.9, 1.4, 0.44, 0.5, 0.7, 0.03, 0xe8f0f8); pool(hx, hz, 3, 0xd8e8ff, 0.25);

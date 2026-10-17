@@ -120,6 +120,9 @@ void RE_Direct_Toon( const in IncidentLight directLight, const in vec3 geometryP
   vec3 L = directLight.direction; vec3 N = geometryNormal;
   float ndl = dot(N, L);
   float hl = ndl * 0.5 + 0.5;
+  // P13：段の境目のやわらかさ ＝ 種類の値（下限 0.04）＋画面の上の変わり方（fwidth）。低い網の三角形のぎざぎざの影・ちらつきを消す
+  float dw = min(fwidth(hl) * 1.25, 0.12);
+  gSoft = max(gSoft, 0.04) + dw;
   float k1, k2;
   if (gKind > 1.5 && gKind < 2.5 && uFaceMode > 0.5) {           // 顔：SDF 風
     float f = uFaceMode > 1.5 ? faceShadowLit(L) : 1.0;
@@ -277,13 +280,14 @@ export function charMaterialV2(opt = {}) {
     if (gKind > 2.5 && gKind < 3.5 && gSpec > 0.0) {
       vec3 T = normalize(gHU - N * dot(N, gHU) + 1e-4);
       float ang = atan(gFace.x, gFace.z);
-      float jit = sin(ang * 23.0) * 0.5 + sin(ang * 41.0 + 1.3) * 0.3 + sin(ang * 9.0) * 0.3;
-      vec3 Ts = normalize(T + N * (cE.y * 6.0 + jit * 0.12 - 0.05));
+      // P13：ずらしを小さく・境目をやわらかく（ぎざぎざの白い縞にしない）。輪は頭の上の帯だけ
+      float jit = sin(ang * 23.0) * 0.5 + sin(ang * 9.0) * 0.5;
+      vec3 Ts = normalize(T + N * (cE.y * 6.0 + jit * 0.045 - 0.05));
       vec3 Lr = normalize(gViewDir + gHU * 0.55);
       vec3 H = normalize(Lr + gViewDir);
       float th = dot(Ts, H);
-      float kk = pow(max(0.0, 1.0 - th * th), 90.0);
-      float band = smoothstep(0.62, 0.7, kk) * smoothstep(0.05, 0.4, gFace.y) * smoothstep(0.25, 0.6, ndv);
+      float kk = pow(max(0.0, 1.0 - th * th), 56.0);
+      float band = smoothstep(0.5, 0.78, kk) * smoothstep(0.12, 0.42, gFace.y) * (1.0 - smoothstep(0.82, 1.05, gFace.y)) * smoothstep(0.3, 0.7, ndv) * 0.8;
       float lit = gLitN > 1e-4 ? gLitAcc / gLitN : 0.5;
       vec3 env = gIndirect + vec3(gLitN);
       float lum = clamp(dot(env, vec3(0.333)), 0.25, 1.6);
