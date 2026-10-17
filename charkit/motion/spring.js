@@ -18,7 +18,7 @@ export class SpringBones {
     this.hz = opt.hz || 60; this.time = 0; this.acc = 0; this.enabled = true; this.mainOnly = !!opt.mainOnly;
     this.colliders = colliders.map(c => ({ bone: c.bone, offset: new THREE.Vector3(...(c.offset || [0, 0, 0])), tail: c.tail ? new THREE.Vector3(...c.tail) : null, radius: c.radius || 0.05, a: new THREE.Vector3(), b: new THREE.Vector3() }));
     this.chains = chains.map(c => this.makeChain(c));
-    this.stats = { maxAngleDeg: 0, penetrationM: 0, steps: 0, resets: 0 };
+    this.stats = { maxAngleDeg: 0, penetrationM: 0, steps: 0, resets: 0, jointSteps: 0, deepSteps: 0 };
     this.lastRoot = null;
   }
   makeChain(c) {
@@ -122,11 +122,13 @@ export class SpringBones {
       }
       if (!Number.isFinite(next.x + next.y + next.z)) { j.init = false; b.quaternion.copy(j.q0); continue; }
       // 当たりの深さ（直した後に残るもの：計測）
+      let deep = false;
       for (const c of this.colliders) {
         let cx = c.a.x, cy = c.a.y, cz = c.a.z;
         if (c.tail) { const sx = c.b.x - c.a.x, sy = c.b.y - c.a.y, sz = c.b.z - c.a.z, ss = sx * sx + sy * sy + sz * sz; const t = ss > 1e-9 ? Math.max(0, Math.min(1, ((next.x - c.a.x) * sx + (next.y - c.a.y) * sy + (next.z - c.a.z) * sz) / ss)) : 0; cx += sx * t; cy += sy * t; cz += sz * t; }
-        const pen = c.radius - Math.hypot(next.x - cx, next.y - cy, next.z - cz); if (pen > this.stats.penetrationM) this.stats.penetrationM = pen;
+        const pen = c.radius - Math.hypot(next.x - cx, next.y - cy, next.z - cz); if (pen > this.stats.penetrationM) this.stats.penetrationM = pen; if (pen > 0.005) deep = true;
       }
+      this.stats.jointSteps++; if (deep) this.stats.deepSteps++;
       this.stats.maxAngleDeg = Math.max(this.stats.maxAngleDeg, ang * 180 / Math.PI);
       j.prev.copy(j.tail); j.tail.copy(next);
       this.aim(j, par, restW);

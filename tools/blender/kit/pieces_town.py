@@ -18,7 +18,7 @@ TAU = math.tau
 PAINT = 'mat.town.paint'
 COLORS = {
     PAINT + '#tint': (0.86, 0.86, 0.86), PAINT + '#steel': (0.52, 0.55, 0.58), PAINT + '#steel_dark': (0.22, 0.22, 0.25), PAINT + '#dark': (0.1, 0.1, 0.11),
-    PAINT + '#yellow': (0.86, 0.68, 0.08), PAINT + '#black': (0.05, 0.05, 0.055), PAINT + '#white': (0.9, 0.9, 0.88), PAINT + '#ivory': (0.84, 0.82, 0.76),
+    PAINT + '#yellow': (0.72, 0.56, 0.1), PAINT + '#black': (0.05, 0.05, 0.055), PAINT + '#white': (0.9, 0.9, 0.88), PAINT + '#ivory': (0.84, 0.82, 0.76),
     PAINT + '#tire': (0.05, 0.05, 0.05), PAINT + '#chrome': (0.72, 0.74, 0.76), PAINT + '#gray': (0.48, 0.5, 0.52), PAINT + '#blue': (0.12, 0.28, 0.6),
     PAINT + '#green': (0.16, 0.42, 0.3), PAINT + '#red': (0.62, 0.1, 0.08), PAINT + '#wood': (0.42, 0.28, 0.18), PAINT + '#beige': (0.74, 0.68, 0.58),
     'glass.dark': (0.03, 0.04, 0.06), 'emit.head': (1.0, 0.95, 0.82), 'emit.tail': (0.85, 0.06, 0.04), 'emit.white': (0.9, 0.95, 1.0), 'emit.green': (0.3, 1.0, 0.6),
@@ -60,9 +60,9 @@ def utility_pole(transformer=False):
     B = Builder('upole', 401 + transformer)
     B.cyl((0, 0, 0), (0, 0, 9.0), 0.19, 0.14, segs=16, mid='mat.town.concrete')
     B.cyl((0, 0, 8.98), (0, 0, 9.05), 0.142, 0.1, segs=16, mid='mat.town.concrete')
-    for k in range(8):
-        z0 = 0.35 + k * 0.22
-        B.cyl((0, 0, z0), (0, 0, z0 + 0.22), 0.198, 0.197, segs=16, mid=P('yellow') if k % 2 == 0 else P('black'), caps=False)
+    for k in range(11):          # 根元の黄と黒の巻き（反射の巻き：細い縞）
+        z0 = 0.3 + k * 0.14
+        B.cyl((0, 0, z0), (0, 0, z0 + 0.14), 0.197, 0.196, segs=16, mid=P('yellow') if k % 2 == 0 else P('black'), caps=False)
     for z, L, t in ((8.4, 1.6, 0.1), (7.6, 1.0, 0.08)):
         B.box((0, 0, z), (L, t, t), P('steel'), bevel=0.008)
         for s in (-1, 1):

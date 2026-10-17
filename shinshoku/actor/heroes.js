@@ -167,7 +167,7 @@ export function buildDannouraV2() {
   });
   const springDef = {
     chains: B => [
-      { name: 'ponytail', bones: ptNames.map(n => B[n]), tail: [0, -0.065, -0.002], stiffness: 3.2, drag: 0.32, gravity: 5, radius: 0.03, maxAngleDeg: 70, main: true },
+      { name: 'ponytail', bones: ptNames.map(n => B[n]), tail: [0, -0.065, -0.002], stiffness: 3.6, drag: 0.4, gravity: 5, radius: 0.03, maxAngleDeg: 70, main: true },
       ...Object.values(side).map(s => ({ name: 'sidelock', bones: s.names.map(n => B[n]), tail: s.tail, stiffness: 7, drag: 0.45, gravity: 2.5, radius: 0.012, maxAngleDeg: 30 })),
       ...ribbons.map(r => ({ name: 'ribbon', bones: r.names.map(n => B[n]), tail: r.tail, stiffness: 4, drag: 0.28, gravity: 4, radius: 0.004, maxAngleDeg: 60 })),
       ...pack.charms.map(c => ({ name: 'charm', bones: c.names.map(n => B[n]), tail: c.tail, stiffness: 1.6, drag: 0.22, gravity: 8, radius: 0.012, maxAngleDeg: 65 })),

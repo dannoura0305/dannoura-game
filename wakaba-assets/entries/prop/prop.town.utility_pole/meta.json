@@ -34,10 +34,10 @@
    "glb",
    "fbx"
   ],
-  "tris": 1404,
+  "tris": 1500,
   "lods": [
-   1404,
-   490
+   1500,
+   525
   ],
   "sizeM": [
    1.6,
@@ -52,7 +52,7 @@
    "ao",
    "roughness"
   ],
-  "fileBytes": 423492
+  "fileBytes": 441544
  },
  "use": [
   "境界侵食（shinshoku）の町と屋内"
@@ -61,10 +61,10 @@
  "kit": {
   "kit": "wakaba-kit/1",
   "nodes": {
-   "v0_LOD0": 1404,
-   "v0_LOD1": 490,
-   "v1_LOD0": 1766,
-   "v1_LOD1": 618
+   "v0_LOD0": 1500,
+   "v0_LOD1": 525,
+   "v1_LOD0": 1862,
+   "v1_LOD1": 650
   },
   "variants": 2,
   "lodDist": [

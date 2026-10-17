@@ -100,7 +100,7 @@ class Game {
     const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: P0.antialias, powerPreference: 'high-performance' });
     r.setClearColor(0x0c0a16);
     r.shadowMap.type = THREE.PCFShadowMap; r.shadowMap.enabled = !!this.settings.shadows;     // 影の有無はシェーダーの種類を変えるので先に決める（先に作るシェーダーを無駄にしない）
-    { const t0 = performance.now(); envInit(r, P0); envKitInit(P0); this.envMs = Math.round(performance.now() - t0); }        // P12：PBR の材質（段で決める・区画を組み立てる前に）
+    { const t0 = performance.now(); envInit(r, Object.assign({}, P0, Q.get('pbr') === '0' ? { pbr: false } : {}, Q.get('ibl') ? { ibl: Q.get('ibl') === '1' } : {})); envKitInit(P0); if (Q.get('kit') === '0') KIT.on = false; this.envMs = Math.round(performance.now() - t0); }        // P12：PBR の材質（段で決める・区画を組み立てる前に）
     this.scene = new THREE.Scene();
     this.scene.fog = new THREE.FogExp2(0x100c1c, 0.045);
     this.scene.background = new THREE.Color(0x0c0a16);
@@ -218,6 +218,7 @@ class Game {
       for (const w of r.wet || []) { A.wet.push(w); if (live) w.idx = this.wet.add(w.p, w.size, w.color, w.k); }
       for (const l of r.lights || []) A.lights.push(Object.assign({ base: l.intensity }, l));
       if (r.after) r.after(this);
+      if (ENV.pbr && r.root) r.root.traverse(o => { if (o.name === 'town_pools') o.material.color.setScalar(0.5); });
       if (r.kitItems && r.kitItems.length) { (A.kitItems || (A.kitItems = [])).push(...r.kitItems); envKitApply(A); }
       if (r.root) r.root.traverse(o => { if (o.userData.isEdgeLines) o.visible = this.settings.outline && this.settings.edges !== false; });
       A.mapImg = null;                                              // ミニマップの下絵は作り直す
@@ -277,6 +278,7 @@ class Game {
     this.sfx.setAmbience(A.amb || (id === 'shotengai' ? (streetState(this.story.step) === 'normal' && !this.flags.lights_out ? 'street_normal' : 'street') : 'street'));
     this.rain.mesh.visible = !!A.rain && this.settings.rain;
     envKitApply(A);                                                   // P12：Blender の部品（読めていれば）
+    if (ENV.pbr && !A.poolsDim) { A.poolsDim = true; A.root.traverse(o => { if (o.name === 'town_pools') o.material.color.setScalar(0.5); }); }   // PBR の段は点光源が地面を照らすので、足し合わせの光のたまりは弱く
   }
   changeArea(to, spawn) {
     this.ui.fade(true, { title: (AREA_GRAPH[to] || {}).name || '', tip: LOAD_TIPS[(this.tipN = ((this.tipN ?? Math.floor(Math.random() * LOAD_TIPS.length)) + 1)) % LOAD_TIPS.length] }); this.sfx.play('door');

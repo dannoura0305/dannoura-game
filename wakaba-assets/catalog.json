@@ -11764,7 +11764,7 @@
      9.05,
      0.72
     ],
-    "tris": 1404
+    "tris": 1500
    },
    "targets": {
     "web": {
@@ -11781,14 +11781,14 @@
      "role": "fbx",
      "path": "source/prop.town.utility_pole.fbx",
      "storage": "local-ignored",
-     "sha256": "f1100be08c0e0bc815c4e83db090085993521dfc6bcbd426c3b28b3365a0b6c6",
-     "bytes": 100780
+     "sha256": "7d1029822b6f316aff0fa08df4b4bd1d18792c6fda73790fbaeffbefce19a745",
+     "bytes": 102908
     }
    ],
    "web": [
     {
      "file": "web/prop.town.utility_pole.glb",
-     "bytes": 423492
+     "bytes": 441544
     }
    ],
    "ue5": {
@@ -11802,10 +11802,10 @@
    },
    "kit": {
     "nodes": {
-     "v0_LOD0": 1404,
-     "v0_LOD1": 490,
-     "v1_LOD0": 1766,
-     "v1_LOD1": 618
+     "v0_LOD0": 1500,
+     "v0_LOD1": 525,
+     "v1_LOD0": 1862,
+     "v1_LOD1": 650
     },
     "variants": 2,
     "lodDist": [

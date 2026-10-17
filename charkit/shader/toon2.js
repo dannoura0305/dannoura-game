@@ -59,7 +59,12 @@ export function kindOfName(name) {
  */
 export function classTable(materials = {}, used = null) {
   const all = {};
-  const resolve = n => { const m = (materials || {})[n]; const kind = (m && m.kind) || kindOfName(n); const base = DEFAULT_CLASSES[n] || DEFAULT_CLASSES[kind] || DEFAULT_CLASSES.cloth; return Object.assign({}, base, { kind }, m || {}); };
+  const resolve = n => {
+    const m = (materials || {})[n]; const kind = (m && m.kind) || kindOfName(n); const base = Object.assign({}, DEFAULT_CLASSES[n] || DEFAULT_CLASSES[kind] || DEFAULT_CLASSES.cloth);
+    if (m && m.base && m.shade) delete base.shadeTint;       // 設定の base・shade があればそちらの比で
+    if (m && m.base && m.shade2) delete base.shade2Tint;
+    return Object.assign(base, { kind }, m || {});
+  };
   // 使う名前だけ（網が使う材質の名前）。無ければ既定＋設定の全部
   const list = used ? [...new Set(['cloth'].concat(used))] : [...new Set(Object.keys(DEFAULT_CLASSES).concat(Object.keys(materials || {})))];
   if (list.length > MAX_CLASSES) console.warn('[charkit] 材質の種類が ' + MAX_CLASSES + ' を超えています。後ろを切ります', list);

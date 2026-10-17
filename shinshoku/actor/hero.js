@@ -7,7 +7,7 @@
 //  ・柄（しま・格子）はシェーダーで休みの姿勢の位置から描く
 // 向き：+z が前、+x がキャラクターの左。単位 m。デザインは本作独自（イメージ資料 concept_01・03・05 の設定に合わせ、他作品の意匠は写さない）。
 import * as THREE from 'three';
-import { SkinBody, DIM, faceAtlasExpr, UVR, filterTris, EXPR } from './skin.js';
+import { SkinBody, DIM, faceAtlasExpr, UVR, filterTris, EXPR, detail } from './skin.js';
 import { handShape, buildWeaponBones, xfm, torus } from './models.js';
 import { drawEyeLayers, drawBrow2, drawMouth2, drawVisemes, drawNose2, drawBlush2, MOUTH_SLOTS } from './face2.js';
 
@@ -128,7 +128,7 @@ export function hairCap2(sb, R, o) {
  */
 export function lock(sb, pts, w, opt = {}) {
   const curve = new THREE.CatmullRomCurve3(pts.map(p => V(...p)), false, 'centripetal');
-  const N = Math.max(4, Math.round((opt.segs || 9))), rings = [];
+  const N = Math.max(4, Math.round((opt.segs || 9) * Math.min(1, detail() * 1.1))), rings = [];
   const flat = opt.flat ?? 0.32, pow = opt.taper ?? 1.15, bulge = opt.bulge ?? 0.3;
   for (let i = 0; i <= N; i++) {
     const t = i / N, c = curve.getPoint(t);

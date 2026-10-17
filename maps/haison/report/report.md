@@ -13,8 +13,8 @@
 | reach | ✅ 合格 | {"goals":{"h1.door":135.62,"h2.door":148.74,"h4.door":136.29,"h1.center":142.24,"shrine.front":205.88},"unreachable":[],"ratio":{"h1.door":1.03,"h2.door":1.05," |
 | interiors | ✅ 合格 | {"rooms":[{"id":"h1.doma","reach":140.33,"ceiling":2.52,"pass":true},{"id":"h1.washitsu_6","reach":142.24,"ceiling":2.17,"pass":true},{"id":"h1.daidokoro","reac |
 | license | ✅ 合格 | {"blocked":[],"note":"物の種類 23 のうち 23 が目録の素材（web の門 pass・自作＝license own・verifiedBy は人の確認待ち）・仮の形 0。材質と建物の部品も目録（node tools/mapkit/catalog.mjs）"} |
-| budget | ✅ 合格 | {"preset":"low","drawCalls":43,"tris":133598,"texMB":7.75,"source":"estimate","over":[]} |
-| perf | （参考） | {"device":"node（ヘッドレス）","fps":null,"note":"実機で測る（mapkit.html?perf=1）。play_map.mjs が swiftshader の描画呼び出しを測る"} |
+| budget | ✅ 合格 | {"preset":"low","drawCalls":102,"tris":55994,"texMB":31.2,"source":"measured（play_map.mjs・スマホ 844×390・テクスチャは辺×4B×4/3 の見積もり）"} |
+| perf | （参考） | {"device":"swiftshader","fps":null,"note":"fps は実機で測る（mapkit.html?perf=1）。起動（操作できるまで）PC high 9809ms・スマホ low 17292ms（ソフト描画）。PC high：描画 236・三角形 524452。段ごと（村の視点）：u |
 | entrances | ✅ 合格 | {"violations":[]} |
 | slope | ✅ 合格 | {"items":[],"buildings":[{"id":"h1","slope":0.25},{"id":"h2","slope":0.08},{"id":"h3","slope":0.02},{"id":"h4","slope":0.02},{"id":"shrine","slope":0.71}]} |
 | fall | ✅ 合格 | {"edgeCells":10,"guard":"坂 40° を超える所・段差 0.4m を超える所は操作（mapkit/runtime/controller.js）が壁として止める＝落ちない（boundary: invisible_wall_on_cliff）"} |
@@ -42,6 +42,7 @@
 | 森の密度・木の並びが自然 | 人が見る | ⏳ 未判定 | forest の撮影・report/map.svg |
 | 歩いて探索できる（迷わない・引っかからない） | 人が見る | ⏳ 未判定 | 利用者が mapkit.html?map=haison を歩く |
 | ゲームとして探索できる（戸・敵・チェックポイント・音。10 分遊んで判断） | 人が見る | ⏳ 未判定 | 利用者が mapkit.html?map=haison&perf=1 を実機で |
+| Playwright で実際に歩いて全ての目的地に着く（PC・スマホ） | 自動 | ✅ 合格 | report/play.json：49/49 |
 
 ## 足りない素材（計画のみ・承認待ち）
 

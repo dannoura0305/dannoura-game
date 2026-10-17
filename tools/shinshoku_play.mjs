@@ -7,7 +7,7 @@
 //   スマホは ?ch=5&route=reveal から第6章A 冒頭の終わりまで（--only ch5｜ch5pc｜ch5r｜ch5s｜ch5phone｜ch5models）。
 // 使い方：python3 -m http.server 8797 --directory <repo> を起動してから
 //   node tools/shinshoku_play.mjs [出力フォルダ] [--base http://localhost:8797] [--only pc|phone]
-// 環境変数：PW_MODULE（playwright の index.mjs）、PW_CHROMIUM（chromium の実行ファイル）
+// 環境変数：PW_MODULE（playwright の index.mjs）、PW_CHROMIUM（chromium の実行ファイル）、SH_TIMEOUT（撮影などの時間切れ ms・既定 30000）
 // 進め方：移動・攻撃・回避・弾く・調べる・持ち替えは入力列（__sh.input.script）で入れる。場所の移動の一部（長い道のり）だけ teleport を使う。
 // 演出場面は一部を実際の時間で再生して撮り、残りは長押しと同じ「飛ばす」で進める。
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
@@ -26,7 +26,13 @@ const OTHER_KEYS = {
   kyokai_endings: JSON.stringify(['A']), kyokai_true_end: '1', kyokai_save_v1: JSON.stringify({ flags: { b30_read: true } }), tobi_save_v1: JSON.stringify({ toyama: false }),
 };
 const shots = [];
-async function launch() { return chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] }); }
+async function launch() {
+  const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
+  // 環境変数 SH_TIMEOUT（ms）：画面の撮影・待ちの既定の時間切れ（既定 30 秒のまま）。ソフト描画が混んでいる時に延ばす
+  const T = +process.env.SH_TIMEOUT || 0;
+  if (T) { const nc = b.newContext.bind(b), np = b.newPage.bind(b); b.newContext = async o => { const c = await nc(o); c.setDefaultTimeout(T); return c; }; b.newPage = async o => { const pg = await np(o); pg.setDefaultTimeout(T); return pg; }; }
+  return b;
+}
 async function openGame(ctx, query, errs) {
   const page = await ctx.newPage();
   page.on('pageerror', e => errs.push('pageerror: ' + e.message));

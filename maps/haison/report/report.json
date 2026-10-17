@@ -33,8 +33,19 @@
       "blocked": [],
       "note": "物の種類 23 のうち 23 が目録の素材（web の門 pass・自作＝license own・verifiedBy は人の確認待ち）・仮の形 0。材質と建物の部品も目録（node tools/mapkit/catalog.mjs）"
     },
-    "budget": {"pass": true, "preset": "low", "drawCalls": 43, "tris": 133598, "texMB": 7.75, "source": "estimate", "over": []},
-    "perf": {"device": "node（ヘッドレス）", "fps": null, "note": "実機で測る（mapkit.html?perf=1）。play_map.mjs が swiftshader の描画呼び出しを測る"},
+    "budget": {
+      "pass": true,
+      "preset": "low",
+      "drawCalls": 102,
+      "tris": 55994,
+      "texMB": 31.2,
+      "source": "measured（play_map.mjs・スマホ 844×390・テクスチャは辺×4B×4/3 の見積もり）"
+    },
+    "perf": {
+      "device": "swiftshader",
+      "fps": null,
+      "note": "fps は実機で測る（mapkit.html?perf=1）。起動（操作できるまで）PC high 9809ms・スマホ low 17292ms（ソフト描画）。PC high：描画 236・三角形 524452。段ごと（村の視点）：ultra 描画 212・三角形 734k・テクスチャ 197.2MB／high 描画 192・三角形 447k・テクスチャ 197.2MB／mid 描画 109・三角形 161k・テクスチャ 109.2MB／low 描画 78・三角形 99k・テクスチャ 31.2MB"
+    },
     "entrances": {"pass": true, "violations": []},
     "slope": {
       "pass": true,
@@ -115,7 +126,8 @@
       "check": "human",
       "pass": null,
       "evidence": "利用者が mapkit.html?map=haison&perf=1 を実機で"
-    }
+    },
+    {"text": "Playwright で実際に歩いて全ての目的地に着く（PC・スマホ）", "check": "auto", "pass": true, "evidence": "report/play.json：49/49"}
   ],
   "gaps": [
     {"need": "prop.barrel", "plan": "目録の素材 prop.barrel（樽）で描く（ブラウザ版）。当たり・置き場所は仮の形（樽）の大きさのまま", "status": "done"},

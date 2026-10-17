@@ -510,16 +510,17 @@ function buildHome(B0, atlas, scene0, boxes0, spots0, dyn) {
   const W = 0xd8cbb8, IN = 0xe8dcc6, half = H.door.w / 2;
   // 前の壁（戸口あり）
   const fl = (H.minX + -half) / 2, fr = (half + H.maxX) / 2, fw = -half - H.minX;
-  B.box('wall', fl, 1.6, H.minZ, fw, 3.2, 0.3, W); solid(fl, H.minZ, fw, 0.3);
-  B.box('wall', fr, 1.6, H.minZ, fw, 3.2, 0.3, W); solid(fr, H.minZ, fw, 0.3);
+  const PL = { tile: 'plaster', ts: 2 };                                              // P12：内壁は塗装の壁・床はフローリング・玄関は石（町の地図帳の枠）
+  B.box('wall', fl, 1.6, H.minZ, fw, 3.2, 0.3, W, PL); solid(fl, H.minZ, fw, 0.3);
+  B.box('wall', fr, 1.6, H.minZ, fw, 3.2, 0.3, W, PL); solid(fr, H.minZ, fw, 0.3);
   B.box('wall', 0, 2.75, H.minZ, H.door.w, 0.9, 0.3, W); boxes.push(cbox(0, H.minZ, H.door.w, 0.3, 0.9, 2.3));
   boxes.push(cbox(0, (H.minZ + H.maxZ) / 2, 12.6, 10.6, 2, 3.2));
-  B.box('wall', 0, 3.25, (H.minZ + H.maxZ) / 2, 12, 0.1, 10, 0xf2e8d8);              // 天井
-  for (const x of [H.minX, H.maxX]) { B.box('wall', x, 1.6, 11, 0.3, 3.2, 10, IN); solid(x, 11, 0.3, 10); }
-  B.box('wall', 0, 1.6, H.maxZ, 12, 3.2, 0.3, IN); solid(0, H.maxZ, 12, 0.3);
+  B.box('wall', 0, 3.25, (H.minZ + H.maxZ) / 2, 12, 0.1, 10, 0xf2e8d8, PL);          // 天井
+  for (const x of [H.minX, H.maxX]) { B.box('wall', x, 1.6, 11, 0.3, 3.2, 10, IN, PL); solid(x, 11, 0.3, 10); }
+  B.box('wall', 0, 1.6, H.maxZ, 12, 3.2, 0.3, IN, PL); solid(0, H.maxZ, 12, 0.3);
   // 玄関の段・靴箱・ひさし・表札・玄関灯
-  B.box('floor', 0, 0.06, 7.5, 4, 0.12, 3, 0x8a7a6a, { edges: false });
-  B.box('floor', 0, 0.02, 12.5, 11.6, 0.04, 6.6, 0xc8a878, { edges: false });
+  B.box('floor', 0, 0.06, 7.5, 4, 0.12, 3, 0xb8b0a8, { edges: false, tile: 'stone', ts: 0.7 });
+  B.box('floor', 0, 0.02, 12.5, 11.6, 0.04, 6.6, 0xf0e6dc, { edges: false, tile: 'woodfloor', ts: 1.8 });
   B.box('prop', 2.4, 0.5, 7.0, 1.2, 1.0, 0.4, 0x7a5a3a); solid(2.4, 7.0, 1.2, 0.4, 1.0);
   B.box('wall', 0, 2.6, 5.4, 2.6, 0.08, 1.2, 0x3a2a30, { rx: 0.2 });
   const puv = atlas.add(signDraw('だんのうら', { bg: '#f1e9d6', fg: '#2a1a14', size: 40, serif: true }));

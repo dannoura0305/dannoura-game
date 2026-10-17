@@ -212,7 +212,7 @@ await t('sw.js：版 2026-10-27.1・復号器（Meshopt・KTX2 の transcoder �
   const listeners = {}, ctx = { self: { location: new URL('https://example.github.io/dannoura-game/sw.js'), addEventListener: (k, f) => (listeners[k] = f) }, URL, Set, Map, Promise, console, Response: class {}, Headers: class {} };
   vm.createContext(ctx); vm.runInContext(readFileSync(join(ROOT, 'sw.js'), 'utf8') + '\n;globalThis.__sw={VERSION,kindOf};', ctx);
   const sw = ctx.__sw, u = p => new URL('https://example.github.io/dannoura-game/' + p);
-  assert.equal(sw.VERSION, '2026-10-27.1');
+  assert.ok(sw.VERSION >= '2026-10-27.1', 'sw.js の版 ' + sw.VERSION);   // P12（境界侵食の環境）で 2026-10-28.1 に上げた（版は上がるだけ）
   assert.equal(sw.kindOf(u('vendor/three-esm/three-0.185.1/addons/libs/basis/basis_transcoder.wasm')), 'code');
   assert.equal(sw.kindOf(u('vendor/three-esm/three-0.185.1/addons/libs/meshopt_decoder.module.js')), 'code');
   assert.equal(sw.kindOf(u('wakaba-assets/entries/rock/rock.boulder/web/rock.boulder.mo.glb')), 'media');

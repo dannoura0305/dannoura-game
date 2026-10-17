@@ -229,15 +229,21 @@ export function envInit(renderer, P) {
   ENV.pbr = !!P.pbr; ENV.tile = P.envTile || 0; ENV.renderer = renderer; ENV.P = P;
   setTownMatsOverride(ENV.pbr ? envTownMats : toonTownMats);
   if (!ENV.pbr) return ENV;
+  U.uAlb.value = townAtlas();
+  return ENV;
+}
+/** 環境の光（PMREM）を焼く：起動の後（envLoad の初め）。材質に入れるとシェーダーを 1 回作り直す（起動を遅くしない） */
+function envBakeIBL() {
+  if (!ENV.pbr || ENV.P.ibl === false || ENV.envMaps.town) return;
   const t0 = performance.now();
   try {
-    const pm = new THREE.PMREMGenerator(renderer);
+    const pm = new THREE.PMREMGenerator(ENV.renderer);
     for (const k of ['town', 'indoor']) { const sc = envScene(k); ENV.envMaps[k] = pm.fromScene(sc, 0.02, 0.1, 50).texture; sc.children[0].geometry.dispose(); sc.children[0].material.dispose(); }
     pm.dispose();
-  } catch (e) { console.warn('env pmrem', e); }
-  ENV.envMap = ENV.envMaps.town || null; U.uAlb.value = townAtlas();
+  } catch (e) { console.warn('env pmrem', e); return; }
+  ENV.envMap = ENV.envMaps[ENV.envKind || 'town'] || ENV.envMaps.town;
+  for (const m of ENV.mats) { m.envMap = ENV.envMap; m.envMapIntensity = ENV.envI; m.needsUpdate = true; }
   ENV.stats.pmremMs = Math.round(performance.now() - t0);
-  return ENV;
 }
 function stdMat(extra = {}) {
   const m = new THREE.MeshStandardMaterial(Object.assign({ vertexColors: true, roughness: 1.0, metalness: 1.0, envMap: ENV.envMap, envMapIntensity: ENV.envI }, extra));
@@ -347,16 +353,19 @@ export function envLoad() {
   const tile = ENV.tile || (ENV.P && ENV.P.envTile) || 0;
   if (!tile) return (ENV.loading = Promise.resolve(false));
   const t0 = performance.now();
+  envBakeIBL();
   ENV.loading = fetch(BASE + 'townpbr.json').then(r => r.json()).then(async man => {
     if (!man || JSON.stringify(man.tiles) !== JSON.stringify(TILES) || man.n !== ATLAS_N) { console.warn('townpbr: 枠の並びが違う（焼き直す）'); return false; }
     ENV.manifest = man; const S = man.sizes[String(tile)]; if (!S) return false;
     const want = ENV.pbr ? ['albedo', 'normal', 'orh'] : ['albedo'];
     const tex = await Promise.all(want.map(k => loadTex(BASE + S.files[k].file, k === 'albedo')));
     ENV.albedo = tex[0];
+    const old = townAtlas();
     for (const m of [...ENV.mats, ...ENV.glowMats, ...ENV.toonMats]) { m.map = ENV.albedo; m.needsUpdate = false; }
     if (ENV.pbr) { U.uNrm.value = tex[1]; U.uOrh.value = tex[2]; U.uPar.value = paramTex(man); U.uAlb.value = ENV.albedo; }
     ENV.stats.bytes = want.reduce((s, k) => s + S.files[k].bytes, 0); ENV.stats.ms = Math.round(performance.now() - t0); ENV.stats.tile = tile;
     ENV.stats.gpuMB = Math.round(want.length * S.w * S.h * 4 * 4 / 3 / 1048576);
+    try { old.dispose(); } catch (e) { void e; }                     // 手続きのキャンバスの地図帳は GPU から外す（使う材質は全部 PBR の色へ差し替えた）
     ENV.ready = true; return true;
   }).catch(e => { console.warn('townpbr', e); return false; });
   return ENV.loading;
@@ -373,7 +382,8 @@ export function envApplyGrade(g, dt = 1) {
   U.uWet.value += (g.wet - U.uWet.value) * k; U.uIblD.value += ((g.iblD ?? 0.45) - U.uIblD.value) * k; U.uGlow.value += ((g.glow ?? 1) - U.uGlow.value) * k;
   const envI = g.envI ?? 0.5;
   if (Math.abs(envI - ENV.envI) > 1e-3) { ENV.envI += (envI - ENV.envI) * k; for (const m of ENV.mats) m.envMapIntensity = ENV.envI; }
-  const want = ENV.envMaps[g.env || 'town'];
+  ENV.envKind = g.env || 'town';
+  const want = ENV.P && ENV.P.ibl === false ? null : ENV.envMaps[ENV.envKind];
   if (want && ENV.envMap !== want) { ENV.envMap = want; for (const m of ENV.mats) m.envMap = want; }
 }
 export function envTick(dt) { U.uTime.value += dt; }

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>境界侵食 キャラクター確認</title>
 <!-- 開発用：コードで組んだキャラクター／manifest で差し替えたモデルを並べて見る。?c=dannoura&pose=idle&rot=0.4&dist=1.6&y=1.45
-     追加（charkit P12）：&light=day|night|back|indoor（陰影の 4 場面）・&expr=smile・&say=こんにちは（文字の口）・&gaze=0.8,0・&w=katana（持つ武器）・&t=秒（時間を進める）・&charModel=1／&charShader=1（前の版） -->
+     追加（charkit P12）：&light=day|night|back|indoor（陰影の 4 場面）・&expr=smile・&say=こんにちは（文字の口）・&gaze=0.8,0・&w=katana（持つ武器）・&t=秒（時間を進める）・&freeze=1（顔を止める：撮影用）・&charModel=1／&charShader=1（前の版） -->
 <style>html,body{margin:0;height:100%;background:#1a1626;color:#eee;font:13px sans-serif;overflow:hidden}#info{position:fixed;left:8px;top:6px;white-space:pre}</style>
 <script type="importmap">
 { "imports": { "three": "../vendor/three-esm/three-0.185.1/three.module.min.js", "three/addons/": "../vendor/three-esm/three-0.185.1/addons/", "@pixiv/three-vrm": "../vendor/three-esm/three-vrm-3.5.5/three-vrm.module.min.js" } }
@@ -76,7 +76,7 @@ function frame() {
     else p = A.companionPose({ time: a.t, speed: ctx.speed, phase: ctx.phase }).pose;
     a.poser.apply(p, 0.2);
     if (a.m.weapons && a.m.weapons.bones) { const W = a.m.weapons, hold = Q.get('w') || 'none', on = (o, v) => o && o.scale.setScalar(v ? 1 : 1e-4); on(W.katana, hold === 'katana'); on(W.sayaHilt, hold !== 'katana'); on(W.saya, true); on(W.gun, hold === 'handgun'); on(W.holster, true); on(W.holsterGun, hold !== 'handgun'); on(W.pipe, hold === 'pipe'); on(W.pipeBack, !!Q.get('pipe')); on(W.match, hold === 'matchlock'); on(W.matchBack, false); }
-    if (a.face) { if (Q.get('say') && !a.face.talking && a.t > 1) a.face.say(Q.get('say'), +(Q.get('sayDur') || 3)); a.face.update(1 / 60); }
+    if (a.face && !Q.get('freeze')) { if (Q.get('say') && !a.face.talking && a.t > 1) a.face.say(Q.get('say'), +(Q.get('sayDur') || 3)); a.face.update(1 / 60); }
     if (a.m.update) a.m.update(1 / 60);
     a.g.rotation.y = rot + (Q.get('spin') ? t * 0.6 : 0);
   }

@@ -129,7 +129,7 @@ export function macroVariation(hf, layout, n = 256) {
     const big = fbm(x / 46 + 3.1, z / 46 + 8.7), mid = fbm(x / 14 + 1.3, z / 14 + 4.2);
     // 日の側（西＝−x）の斜面：高さの差で近似
     const sunSide = Math.max(0, (hf.at(x + 1.5, z) - hf.at(x - 1.5, z)) / 3);
-    const wet = Math.min(1, 0.55 * smooth(0.45, 0.05, t) + 0.35 * Math.min(1, trees.at(x, z) / 2.2) + 0.3 * smooth(3, 0.5, Math.min(field.dirt(x, z), field.gravel(x, z))) + (mid - 0.5) * 0.4);
+    const wet = Math.min(1, 0.55 * smooth(0.45, 0.05, t) + 0.15 * Math.min(1, trees.at(x, z) / 3) + 0.3 * smooth(3, 0.5, Math.min(field.dirt(x, z), field.gravel(x, z))) + (mid - 0.5) * 0.4);
     const dry = Math.min(1, 0.6 * Math.min(1, sunSide * 2.5) * smooth(8, 25, s) + 0.35 * smooth(0.5, 0.95, t) + (big - 0.5) * 0.5);
     const k = (j * n + i) * 4;
     data[k] = Math.round(255 * Math.max(0, Math.min(1, big * 0.7 + mid * 0.3))); data[k + 1] = Math.round(255 * Math.max(0, wet)); data[k + 2] = Math.round(255 * Math.max(0, dry)); data[k + 3] = 255;

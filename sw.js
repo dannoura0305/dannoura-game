@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-10-27.1';
+const VERSION = '2026-10-28.1';
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）
@@ -96,7 +96,7 @@ function kindOf(url) {
   if (/^shinshoku\.html$/.test(p)) return 'shell';
   if (/^shinshoku\/.+\.(js|css|json)$/.test(p) && !/^shinshoku\/assets\//.test(p)) return 'shell';
   if (/^shinshoku\/assets\/(.+\/)?manifest\.json$/.test(p)) return 'shell';
-  if (/^shinshoku\/assets\//.test(p)) return 'media';
+  if (/^shinshoku\/assets\//.test(p)) return 'media';   // P12：shinshoku/assets/env/（PBR の地図帳 town_*_<枠>.webp・townpbr.json）も素材（media）
   // わかばの共通基盤（charkit・mapkit）：境界侵食が import する ES モジュール（今は charkit/rig/bonemap.js）。ネット優先（オフラインなら保存分）。
   // スキーマ・設定の JSON・node 専用の .mjs はゲームが読まないので扱わない（素通し）
   if (/^(charkit|mapkit)\/.+\.js$/.test(p)) return 'shell';

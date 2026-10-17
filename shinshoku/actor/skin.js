@@ -12,7 +12,7 @@ const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a
 const col = c => (c instanceof THREE.Color ? c : new THREE.Color(c));
 /** 細かさ（画質の段で変える：高・中 1、低 0.7）。管・球の分割数に掛ける */
 let DETAIL = 1;
-export function setDetail(k) { DETAIL = Math.max(0.5, Math.min(1.5, k)); }
+export function setDetail(k) { DETAIL = Math.max(0.5, Math.min(1.5, k)); FACE_MODE = DETAIL < 0.9 ? 'flat' : 'sdf'; }   // 低（スマホ）：顔影は平ら（10 §2）
 export const detail = () => DETAIL;
 /** キャラクターのシェーダーの版（2＝charkit アニメ調 v2・既定／1＝前の見た目。?charShader=1 で前に戻せる） */
 let SHADER = 2;
@@ -133,10 +133,11 @@ export class SkinBody {
    * opt：{ sides, capStart, capEnd, weights, color, oth, group, ref, twist }
    */
   tube(rings, opt = {}) {
-    if (opt.sub > 1) {                                             // 輪を補間して細かくする（色の境目をくっきり）
+    const SUB = opt.sub > 1 ? Math.max(1, Math.floor(opt.sub * DETAIL + 0.3)) : 1;   // 画質の段（低）では輪の補間を減らす
+    if (SUB > 1) {                                                 // 輪を補間して細かくする（色の境目をくっきり）
       const out = [];
-      for (let i = 0; i < rings.length - 1; i++) for (let k = 0; k < opt.sub; k++) {
-        const a = rings[i], b = rings[i + 1], t = k / opt.sub;
+      for (let i = 0; i < rings.length - 1; i++) for (let k = 0; k < SUB; k++) {
+        const a = rings[i], b = rings[i + 1], t = k / SUB;
         const L = (x, y) => x.map((v, j) => v + (y[j] - v) * t);
         out.push(Object.assign({}, t < 0.5 ? a : b, { c: L(a.c, b.c), r: L(a.r, b.r), off: L(a.off || [0, 0], b.off || [0, 0]) }));
       }
