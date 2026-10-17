@@ -40,3 +40,17 @@ export function parseArgs(argv, flags = []) {
   }
   return { opt, pos };
 }
+
+/** 読みやすくて小さい JSON：数・短い値の並びと短い物は 1 行に（地図仕様・配置・レポートの書き出し用） */
+export function compactJSON(v, indent = '  ', width = 120) {
+  const one = x => JSON.stringify(x);
+  const go = (x, pad) => {
+    if (x === null || typeof x !== 'object') return one(x);
+    const s = one(x);
+    if (s.length + pad.length <= width && (Array.isArray(x) ? x.every(e => e === null || typeof e !== 'object' || one(e).length < 60) : true)) return s.replace(/,"/g, ', "').replace(/":/g, '": ').replace(/,(?=[-\d\[{])/g, ', ');
+    const p2 = pad + indent;
+    if (Array.isArray(x)) return '[\n' + x.map(e => p2 + go(e, p2)).join(',\n') + '\n' + pad + ']';
+    return '{\n' + Object.entries(x).filter(([, e]) => e !== undefined).map(([k, e]) => p2 + one(k) + ': ' + go(e, p2)).join(',\n') + '\n' + pad + '}';
+  };
+  return go(v, '') + '\n';
+}

@@ -68,6 +68,28 @@
 - Q-B2（素材の原本の置き場所）：決まるまで**このリポジトリの `wakaba-assets/` に目録（meta.json）だけ**。移す時は `wakaba.config.json` の `assetLibrary` を書き換えるだけ（スキーマはコードと一緒の `mapkit/schema/` に残る）。公開リポジトリなので購入物・Fab の原本・書き出しは置かない。
 - Q-A1・Q-A2（画風・方式）：フェーズ 1 の物はデータとスキーマだけで、方式 A／B／C のどれでも使える。
 
+## フェーズ 2 の使い方（2026-10-17 実装・地形と配置の土台・コマンドはリポジトリの根で）
+インストール不要（node 22・Playwright は画面の試験だけ）。素材は全部**仮の形**（灰色の箱・コードで作る木）。方式 A／B／C は未回答なので、配置と検査の結果は**エンジンに依らない JSON**（`layout.json`）と 16bit の高さ PNG で出す。
+
+| したいこと | コマンド | 結果 |
+|---|---|---|
+| 高さマップを手続きで作る（Gaea の代わり） | `node tools/mapkit/gen_heightmap.mjs maps/haison`（`--seed` `--raw`） | `maps/haison/heightmap.png`（257×257・16bit・約 100KB。同じ仕様＋種 → 同じ PNG）。`--raw` で UE 用の `.raw16` も |
+| 仕様 → 地形 → 配置 → 検証 → レポート | `node tools/mapkit/build_map.mjs maps/haison`（`--seed 別の種`・`--dry`） | `maps/haison/build/layout.json`・`build/terrain.png`・`report/report.json`・`report.md`・`map.svg`（上から見た図）。全部の自動検査が通れば終了コード 0 |
+| 歩いて確かめる（画面） | `python3 -m http.server 8797` を起こして `http://localhost:8797/mapkit.html?map=haison` | 夕暮れと霧の山の廃村を三人称で歩く。光の線と柱・上の矢印が道案内。`?preset=ultra|high|mid|low`・`?perf=1`（fps・描画呼び出し）・`?view=first` |
+| Playwright で全部の目的地へ歩く | `node tools/mapkit/play_map.mjs <出力フォルダ>`（`--only pc|phone`） | PC 1280×800 とスマホ 844×390 で道案内に沿って歩き、着いたか・誤り 0・描画呼び出しを確かめ、画面撮影と `overview.png`。`maps/haison/report/play.json` を書き、`report.json` の予算を測った値に |
+| 試験 | `node tests/run.mjs`（`tests/wakaba-mapkit-terrain.test.mjs`・`tests/wakaba-mapkit-pcg.test.mjs`） | – |
+
+操作：PC＝WASD／Shift で走る／マウス（クリックで視点を固定）／V＝一人称・三人称／L＝懐中電灯／N＝次の目的地。スマホ＝左の円で移動・右をなぞって視点・ボタン「走・視・灯・次」。`mapkit.html` は**開発・試験用の入口**で、本編のタイトルからはつながない。
+
+置いた物：
+- `mapkit/terrain/`：`png.js`（16bit PNG の読み書き・依存なし）・`heightmap.js`（高さ・法線・傾き・双線形・RAW16）・`generate.js`（ノイズ＋侵食＋崖・平らな谷・川・池）
+- `mapkit/pcg/`：`rules.js`（立入禁止・しきい値）・`paths.js`（道）・`buildings.js`（廃屋・崩れた家・祠の型）・`scatter.js`（ポアソン円盤・仮の形の一覧）・`layout.js`（層の順）・`validate.js`（検査）
+- `mapkit/core/world.js`（地形＋当たり＋床）・`mapkit/nav/grid.js`（歩ける格子・道のり）・`mapkit/render/quality.js`（画質の段）・`mapkit/report/topview.js`（上から見た図）・`mapkit/runtime/`（画面）
+- 境界侵食の乱数・当たり・画質の自動の段は `mapkit/core/rng.js`・`geom.js`・`render/quality.js` へ**移して再輸出**（挙動は同じ）
+- 仕様との違いの記録は `07` §11
+
+フェーズ 3（写実の見た目）に進む前に決めてほしいこと：方式 A／B／C（Q-A2）と画風（Q-A1）、素材の置き場所（Q-B2）と収益化（Q-L1）。レポートの `gaps` に「仮の形 → 実素材」の計画（杉・広葉樹・岩・下草・小物・和風の家の部品）を承認待ちで出してある。
+
 ## このフェーズで決めたこと（記録）
 | 日付 | 決定 |
 |---|---|
@@ -75,3 +97,4 @@
 | 2026-10-16 | 資料は `docs/wakaba-mapkit/` に置き、既存のファイルは変えない |
 | 2026-10-16 | 名前 `wakaba-mapkit` は仮。既存の `wakaba_progress_v1`（作品間の保存）とは無関係 |
 | 2026-10-17 | フェーズ 1 を実装（利用者の承認「両方を最初の一歩まで並行して進める」）。素材ライブラリは決まるまでリポジトリの中（`wakaba.config.json` で指す）。作品の商用は未回答のため厳しい側（true） |
+| 2026-10-17 | フェーズ 2 を実装（利用者の指示「両方の最初の一歩の後はマップ基盤に集中」）。方式は未回答のため、配置と検査はエンジンに依らない JSON・画面は Three.js の灰色の箱 |

@@ -15,7 +15,7 @@ const r3 = v => Math.round(v * 1000) / 1000;
 export const STANDINS = {
   'veg.tree.sugi': { ja: '杉（仮の形）', cls: 'tree', tags: ['杉', '針葉樹', '木'], size: [4.4, 14, 4.4], col: { shape: 'cyl', r: 0.28 }, occ: 1.2, scale: [0.7, 1.3], sink: 0.05, embed: 0.6 },
   'veg.tree.broadleaf': { ja: '広葉樹（仮の形）', cls: 'tree', tags: ['広葉樹', '木'], size: [6, 9, 6], col: { shape: 'cyl', r: 0.24 }, occ: 1.4, scale: [0.7, 1.25], sink: 0.05, embed: 0.6 },
-  'rock.boulder': { ja: '岩（仮の形）', cls: 'rock', category: 'rock', tags: ['岩'], size: [1.4, 0.9, 1.1], col: { shape: 'box' }, occ: 0.4, scale: [0.5, 2.2], sinkFrac: 0.15, embedFrac: 0.4 },
+  'rock.boulder': { ja: '岩（仮の形）', cls: 'rock', category: 'rock', tags: ['岩'], size: [1.4, 0.9, 1.1], col: { shape: 'box' }, occ: 0.4, scale: [0.5, 2.2], sinkFrac: 0.2, embedFrac: 0.6 },
   'veg.grass': { ja: '下草（仮の形）', cls: 'grass', tags: ['下草', '草'], size: [0.5, 0.35, 0.5], small: true },
   'prop.barrel': { ja: '樽', cls: 'prop', size: [0.6, 0.85, 0.6], col: { shape: 'cyl', r: 0.3 }, occ: 0.4 },
   'prop.crate': { ja: '木箱', cls: 'prop', size: [0.7, 0.6, 0.7], col: { shape: 'box' }, occ: 0.4 },
@@ -104,13 +104,14 @@ export function scatterLayer(layer, ctx) {
     let kind = defs[0][0];
     if (defs.length > 1) { if (cls === 'tree') { const pS = 0.3 + 0.45 * smooth(18, 40, h) + 0.2 * smooth(12, 30, sl); kind = (kR < pS ? defs.find(d => /sugi/.test(d[0])) || defs[0] : defs.find(d => !/sugi/.test(d[0])) || defs[0])[0]; } else kind = pick(() => kR, defs)[0]; }
     const def = STANDINS[kind], s = range(() => sR, ...(def.scale || [0.8, 1.2]));
-    const obb = objectObb(def, x, z, rot, small ? 1 : s);
+    const obb = objectObb(def, x, z, small ? 0 : rot, small ? 1 : s);
+    if (!small && footSlope(hf, obb) > maxSlope) { rej('slope'); continue; }
     if (hitsKeepOut(obb, ctx.keepOut, small)) { rej('keepOut'); continue; }
     if (avoid.has('cliffEdge') && ctx.cliff.test(x, z)) { rej('cliffEdge'); continue; }
     const bm = cls === 'tree' && avoid.has('buildings') ? 2.5 : small ? 0.2 : 1.0;
     if (ctx.buildingAreas.some(a => obbOverlap(obb, { ...a.obb, hx: a.obb.hx + bm, hz: a.obb.hz + bm }))) { rej('buildings'); continue; }
     if (small) { own.add(x, z, 0); packed.push(Math.round(x * 100), Math.round(z * 100)); stats.placed++; continue; }
-    const occR = (def.occ || 0.5) * s;
+    const occR = Math.max((def.occ || 0.5) * s, def.col && def.col.shape === 'box' ? Math.hypot(def.size[0], def.size[2]) * s / 2 : 0);
     if (ctx.occ.near(x, z, occR + 3, p => p.r + occR)) { rej('overlap'); continue; }
     const seat = seatObject(hf, def, obb, s);
     if (seat.range + seat.sink > -RULES.penetrate + seat.embed - 0.02) { rej('uneven'); continue; }

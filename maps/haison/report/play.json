@@ -1,0 +1,49 @@
+{
+  "map": "haison",
+  "at": "2026-10-17T00:55:03.153Z",
+  "device": "swiftshader（ソフト描画・fps は参考にならない）",
+  "pc": {
+    "preset": "high",
+    "loadMs": 1287,
+    "drawCalls": {"max": 41, "start": 36},
+    "tris": 297646,
+    "info": {"calls": 42, "triangles": 297646, "geometries": 23, "textures": 2},
+    "errors": []
+  },
+  "phone": {"preset": "low", "loadMs": 674, "drawCalls": {"max": 21}, "tris": 87628, "errors": []},
+  "results": [
+    {"name": "PC：読み込み → 操作できる", "pass": true, "detail": "1287ms"},
+    {"name": "PC：歩いて「h1.door」に着く", "pass": true, "detail": "25.4s（ゲームの時間）・歩いた 132m"},
+    {"name": "PC：歩いて「h2.door」に着く", "pass": true, "detail": "4.3s（ゲームの時間）・歩いた 154m"},
+    {"name": "PC：歩いて「h4.door」に着く", "pass": true, "detail": "6.0s（ゲームの時間）・歩いた 185m"},
+    {"name": "PC：歩いて「h1.center」に着く", "pass": true, "detail": "2.7s（ゲームの時間）・歩いた 199m・h1 の中"},
+    {"name": "PC：歩いて「shrine.front」に着く", "pass": true, "detail": "14.3s（ゲームの時間）・歩いた 273m"},
+    {"name": "PC：全ての目的地に着いた", "pass": true, "detail": "h1.door・h2.door・h4.door・h1.center・shrine.front"},
+    {"name": "PC：描画呼び出し ≤ 250（high）", "pass": true, "detail": "最大 41・三角形 298k"},
+    {"name": "PC：ページの誤り 0", "pass": true, "detail": ""},
+    {"name": "スマホ：自動の段が「低」", "pass": true, "detail": "low・読み込み 674ms"},
+    {"name": "スマホ：タッチの操作（円・ボタン）が出る", "pass": true, "detail": ""},
+    {"name": "スマホ：タッチの円で前へ歩ける", "pass": true, "detail": "9.6m"},
+    {"name": "スマホ：歩いて「h1.door」に着く", "pass": true, "detail": "23.3s（ゲームの時間）・歩いた 131m"},
+    {"name": "スマホ：歩いて「h2.door」に着く", "pass": true, "detail": "4.3s（ゲームの時間）・歩いた 153m"},
+    {"name": "スマホ：歩いて「h4.door」に着く", "pass": true, "detail": "6.0s（ゲームの時間）・歩いた 184m"},
+    {"name": "スマホ：歩いて「h1.center」に着く", "pass": true, "detail": "2.7s（ゲームの時間）・歩いた 198m・h1 の中"},
+    {"name": "スマホ：歩いて「shrine.front」に着く", "pass": true, "detail": "14.3s（ゲームの時間）・歩いた 272m"},
+    {"name": "スマホ：全ての目的地に着いた", "pass": true, "detail": ""},
+    {"name": "スマホ：描画呼び出し ≤ 120（low）", "pass": true, "detail": "最大 21・三角形 88k"},
+    {"name": "スマホ：ページの誤り 0", "pass": true, "detail": ""}
+  ],
+  "shots": [
+    "pc_start.png",
+    "pc_interior.png",
+    "pc_shrine_back.png",
+    "pc_shrine.png",
+    "pc_village.png",
+    "pc_cliff.png",
+    "pc_path.png",
+    "pc_forest.png",
+    "pc_aerial.png",
+    "phone_village.png",
+    "phone_shrine.png"
+  ]
+}

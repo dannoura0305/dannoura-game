@@ -30,3 +30,21 @@ export function checkBudget(preset, m) {
   if (m.texMB != null && m.texMB > p.texMB) over.push('texMB');
   return { pass: over.length === 0, over };
 }
+
+/**
+ * 描画の量の見積もり（mapkit/runtime/scene.js の作り方と同じ数え方）。実際の数は play_map.mjs が renderer.info で測る。
+ * 建物は材質ごとに 1 つへまとめる・木/岩/小物/草は種類ごとにインスタンス 1 つ・地形 1 つ・空 1・人 2・道案内 2。影がある段は影を落とす物をもう 1 回。
+ */
+export function estimateBudget(layout, preset = 'high') {
+  const P = MAP_PRESETS[preset] || MAP_PRESETS.high;
+  const mats = new Set(); let partTris = 0;
+  for (const b of layout.buildings || []) for (const p of b.parts || []) if (p.visible !== false) { mats.add(p.mat); partTris += p.shape === 'cyl' ? 32 : p.shape === 'gable' ? 8 : 12; }
+  const kinds = new Set((layout.objects || []).map(o => o.kind)), trees = (layout.objects || []).filter(o => o.cls === 'tree').length;
+  const grass = (layout.instances || []).reduce((s, i) => s + i.count, 0) * P.grass;
+  const nTerr = (layout.terrain.nx - 1) / P.terrainStep, terrTris = nTerr * nTerr * 2;
+  const objTris = (layout.objects || []).reduce((s, o) => s + (o.cls === 'tree' ? 76 : o.cls === 'rock' ? 40 : 28), 0);
+  const casters = mats.size + kinds.size + (trees ? 1 : 0);
+  const drawCalls = 1 + mats.size + kinds.size + (trees ? 1 : 0) + (grass ? 1 : 0) + 1 + 2 + 2 + (P.shadows ? casters + 2 : 0);
+  const tris = Math.round(terrTris + partTris + objTris + grass * 4 + 2000);
+  return { drawCalls, tris, texMB: 1 };
+}

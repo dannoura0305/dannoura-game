@@ -43,7 +43,10 @@ export function buildLayout(spec, raw = null, opt = {}) {
     flattenObb(hf, { ...o, hx: o.hx + 0.8, hz: o.hz + 0.8 }, y, 3.5);
     pads.push({ b, obb: o, core: { ...o, hx: o.hx + 0.8, hz: o.hz + 0.8 }, y });
   }
-  const inPad = (x, z) => pads.some(p => pointInObb(x, z, p.core));
+  // スタートの広場も土台と同じ扱い（先に平らにし、道はここを削らない）
+  const st = spec.gameplay.start, sy = hf.quantizeValue(hf.at(st[0], st[1]));
+  flattenCircle(hf, st[0], st[1], RULES.keepOut.startR + 0.5, sy, 4);
+  const inPad = (x, z) => pads.some(p => pointInObb(x, z, p.core)) || Math.hypot(x - st[0], z - st[1]) < RULES.keepOut.startR + 0.5;
   // 2. 道
   const paths = [];
   for (const p of spec.paths || []) {
@@ -54,9 +57,6 @@ export function buildLayout(spec, raw = null, opt = {}) {
     carvePath(hf, p3, p.width, 3, inPad);
     paths.push({ id: p.id, kind: p.kind, width: p.width, maxSlope: p.maxSlope ?? 20, points: p3 });
   }
-  // スタートの広場
-  const st = spec.gameplay.start, sy = paths.length ? nearestOnPath(paths[0].points, st[0], st[1]).y : hf.at(st[0], st[1]);
-  flattenCircle(hf, st[0], st[1], RULES.keepOut.startR, sy, 3, inPad);
   hf.quantize();
   for (const p of paths) for (const q of p.points) q[1] = r3(hf.at(q[0], q[2])), q[0] = r3(q[0]), q[2] = r3(q[2]);
   // 建物の部品
@@ -97,15 +97,15 @@ export function buildLayout(spec, raw = null, opt = {}) {
   // 小物（建物の中・まわり）
   const pr = childRng(seed, 'props'); let pn = 0; const propStats = { layer: 'props', placed: 0, dropped: [] };
   const addProp = (kind, x, z, rot, y = null, building = null, inside = false) => {
-    const def = STANDINS[kind], s = 1, obb = objectObb(def, x, z, rot, s);
+    const def = STANDINS[kind], s = 1, obb = objectObb(def, x, z, rot, s), occR = Math.max(def.occ, Math.hypot(def.size[0], def.size[2]) / 2);
     const ko = hitsKeepOut(obb, keepOut, false);
     if (ko) return `keepOut:${ko.id}`;
     if (!inside && buildingAreas.some(a => obbOverlap(obb, { ...a.obb, hx: a.obb.hx + 0.3, hz: a.obb.hz + 0.3 }))) return 'building';
     if (!inside && hf.slopeDeg(x, z) > RULES.slopeMax.prop) return 'slope';
-    if (occ.near(x, z, 4, p => p.r + def.occ)) return 'overlap';
+    if (occ.near(x, z, 4, p => p.r + occR)) return 'overlap';
     const seat = y == null ? seatObject(hf, def, obb, s) : { y, range: 0, sink: 0, embed: 0.1 };
     if (seat.range > -RULES.penetrate + seat.embed - 0.02) return 'uneven';
-    occ.add(x, z, def.occ);
+    occ.add(x, z, occR);
     objects.push(makeObject(`props#${pn++}`, 'props', kind, def, x, seat.y, z, rot, s, building ? { building, inside } : {}));
     propStats.placed++; return null;
   };

@@ -14,6 +14,7 @@ const clone = o => JSON.parse(JSON.stringify(o));
 const reg = await registry();
 const spec = readJson('maps/haison/map.spec.json');
 const specOpt = { fileExists: f => existsSync(join(ROOT, 'maps/haison', f)) };
+const noFile = { fileExists: () => false };   // フェーズ 2 で heightmap.png を置いたので、無い時の扱いはこちらで見る
 
 await t('検査の部品：type・required・enum・const・pattern・範囲・items・additionalProperties・$ref・allOf・anyOf', () => {
   const s = { $id: 'x', type: 'object', required: ['a'], properties: { a: { type: 'integer', minimum: 1 }, b: { enum: ['p', 'q'] }, c: { const: 1 }, d: { type: 'string', pattern: '^z' }, e: { type: 'array', items: { $ref: '#/$defs/n' }, minItems: 1, maxItems: 2 }, f: { type: ['string', 'null'] }, g: { anyOf: [{ type: 'string' }, { type: 'number' }] } }, additionalProperties: false, $defs: { n: { type: 'number' } } };
@@ -48,8 +49,9 @@ await t('素材メタデータ v1.1：正しい例が通る・v1 の書き方も
   assert.equal(validate(IDS.asset, a, { registry: reg }).valid, true, formatErrors(validate(IDS.asset, a, { registry: reg }).errors).join(' | '));
 });
 
-await t('地図仕様：「山の廃村」の例がスキーマと中身の検査を通る（高さマップはまだ無い＝注意だけ）', () => {
-  const r = validateSpec(spec, reg, specOpt);
+await t('地図仕様：「山の廃村」の例がスキーマと中身の検査を通る（高さマップが無い時は注意だけ）', () => {
+  assert.equal(validateSpec(spec, reg, specOpt).warnings.some(w => /高さマップ/.test(w.msg)), false, 'heightmap.png がある（フェーズ 2）');
+  const r = validateSpec(spec, reg, noFile);
   assert.equal(r.valid, true, formatErrors(r.errors).join(' | '));
   assert.ok(r.warnings.some(w => /高さマップ/.test(w.msg)), '高さマップが無い注意');
   assert.equal(spec.id, 'haison'); assert.equal(detectKind(spec), 'mapSpec');
@@ -73,7 +75,7 @@ await t('地図仕様：壊した例が落ちる（目的地・範囲・重複�
     '敵の AI の書き方': s => { s.gameplay.enemies[0].ai = 'kiro'; },
     '高さマップも fallback も無い': s => { delete s.terrain.fallback; },
   };
-  for (const [k, mut] of Object.entries(cases)) { const s = clone(spec); mut(s); assert.equal(validateSpec(s, reg, specOpt).valid, false, k); }
+  for (const [k, mut] of Object.entries(cases)) { const s = clone(spec); mut(s); assert.equal(validateSpec(s, reg, noFile).valid, false, k); }
 });
 
 await t('検証レポート：§7 の形の見本が通る・人が見る項目に pass を書くと落ちる・md に変換できる', () => {

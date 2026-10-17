@@ -1,0 +1,158 @@
+{
+  "report": "wakaba-map-report/1",
+  "map": "haison",
+  "seed": "haison-001",
+  "builtAt": "2026-10-17T00:48:33.329Z",
+  "builder": "claude-code",
+  "auto": {
+    "deterministic": {"pass": true, "hash": "fp:0b78e3719c3b08", "terrain": "950cb13f"},
+    "keepOut": {"pass": true, "violations": [], "checked": {"objects": 687, "small": 18073, "buildings": 5, "shapes": 225}},
+    "float": {"pass": true, "items": [], "counts": {"float": 0, "penetrate": 0}},
+    "overlap": {"pass": true, "items": [], "count": 0},
+    "reach": {
+      "pass": true,
+      "goals": {"h1.door": 134.45, "h2.door": 148.74, "h4.door": 136.29, "h1.center": 141.07, "shrine.front": 204.71},
+      "unreachable": [],
+      "ratio": {"h1.door": 1.03, "h2.door": 1.05, "h4.door": 1.05, "h1.center": 1.1, "shrine.front": 1.02},
+      "grid": {"cell": 0.5, "maxSlope": 35, "step": 0.4, "walkable": 146065, "reached": 105220}
+    },
+    "interiors": {
+      "pass": true,
+      "rooms": [
+        {"id": "h1.doma", "reach": 139.16, "ceiling": 2.52, "pass": true},
+        {"id": "h1.washitsu_6", "reach": 141.07, "ceiling": 2.17, "pass": true},
+        {"id": "h1.daidokoro", "reach": 144.99, "ceiling": 2.17, "pass": true},
+        {"id": "h2.doma", "reach": 152.66, "ceiling": 2.52, "pass": true},
+        {"id": "h2.washitsu_6", "reach": 154.66, "ceiling": 2.17, "pass": true},
+        {"id": "h4.doma", "reach": 140, "ceiling": 2.52, "pass": true},
+        {"id": "h4.washitsu_6", "reach": 141.42, "ceiling": 2.17, "pass": true}
+      ]
+    },
+    "license": {"pass": true, "blocked": [], "note": "目録の素材は使っていない（全部が仮の形＝コードで作る灰色の箱）。実素材はフェーズ 3 で門に通す"},
+    "budget": {"pass": true, "preset": "low", "drawCalls": 21, "tris": 87628, "texMB": 1, "source": "measured（play_map.mjs・スマホ 844×390）"},
+    "perf": {"device": "swiftshader", "fps": null, "note": "fps は実機で測る（mapkit.html?perf=1）。PC high：描画 41・三角形 297646"},
+    "entrances": {"pass": true, "violations": []},
+    "slope": {
+      "pass": true,
+      "items": [],
+      "buildings": [
+        {"id": "h1", "slope": 0.25},
+        {"id": "h2", "slope": 0.08},
+        {"id": "h3", "slope": 0.02},
+        {"id": "h4", "slope": 0.02},
+        {"id": "shrine", "slope": 0.71}
+      ]
+    },
+    "fall": {
+      "pass": true,
+      "edgeCells": 10,
+      "guard": "坂 40° を超える所・段差 0.4m を超える所は操作（mapkit/runtime/controller.js）が壁として止める＝落ちない（boundary: invisible_wall_on_cliff）"
+    }
+  },
+  "conditions": [
+    {"text": "霧がある", "check": "auto", "pass": true, "evidence": "atmosphere.fog.density=0.035"},
+    {"text": "夕暮れ（仕様の値）", "check": "auto", "pass": true, "evidence": "atmosphere.time=dusk・sunElevDeg=4"},
+    {"text": "入れる家が 2 軒以上（中の全部屋に届く）", "check": "auto", "pass": true, "evidence": "h1,h2,h4・部屋 7"},
+    {
+      "text": "家の入口 3 つ以上へ歩いて届く（坂 35° 以下・段差 0.4m 以下）",
+      "check": "auto",
+      "pass": true,
+      "evidence": "h1.door 134.45m・h2.door 148.74m・h4.door 136.29m"
+    },
+    {"text": "祠へ歩いて届く", "check": "auto", "pass": true, "evidence": "shrine.front 204.71m（石段 5 段）"},
+    {"text": "崖がある（傾き 45° 超の升目）", "check": "auto", "pass": true, "evidence": "17813 升目"},
+    {"text": "森（木 300 本以上）", "check": "auto", "pass": true, "evidence": "木 605・岩 50・下草 18073"},
+    {"text": "入口の前・道・目的地に物が 0 個", "check": "auto", "pass": true, "evidence": "違反 0＋0"},
+    {"text": "浮き・めり込み・重なりが 0 件", "check": "auto", "pass": true, "evidence": "浮き 0・めり込み 0・重なり 0"},
+    {"text": "同じ種で同じ配置", "check": "auto", "pass": true, "evidence": "fp:0b78e3719c3b08"},
+    {"text": "夕暮れと霧の雰囲気が出ている", "check": "human", "pass": null, "evidence": "play_map の画面撮影（village・shrine）"},
+    {"text": "山の廃村に見える（灰色の箱の段階として）", "check": "human", "pass": null, "evidence": "aerial・village・interior の撮影"},
+    {"text": "森の密度・木の並びが自然", "check": "human", "pass": null, "evidence": "forest の撮影・report/map.svg"},
+    {"text": "歩いて探索できる（迷わない・引っかからない）", "check": "human", "pass": null, "evidence": "利用者が mapkit.html?map=haison を歩く"},
+    {"text": "Playwright で実際に歩いて全ての目的地に着く（PC・スマホ）", "check": "auto", "pass": true, "evidence": "report/play.json：20/20"}
+  ],
+  "gaps": [
+    {
+      "need": "prop.barrel",
+      "plan": "仮の形（樽）で置いた。実素材（glTF・ライセンス門を通った物）を目録に足す：Blender で作る／CC0 を探す（フェーズ 3）",
+      "status": "proposed"
+    },
+    {
+      "need": "prop.beam",
+      "plan": "仮の形（落ちた梁）で置いた。実素材（glTF・ライセンス門を通った物）を目録に足す：Blender で作る／CC0 を探す（フェーズ 3）",
+      "status": "proposed"
+    },
+    {
+      "need": "prop.crate",
+      "plan": "仮の形（木箱）で置いた。実素材（glTF・ライセンス門を通った物）を目録に足す：Blender で作る／CC0 を探す（フェーズ 3）",
+      "status": "proposed"
+    },
+    {
+      "need": "prop.debris",
+      "plan": "仮の形（瓦礫）で置いた。実素材（glTF・ライセンス門を通った物）を目録に足す：Blender で作る／CC0 を探す（フェーズ 3）",
+      "status": "proposed"
+    },
+    {
+      "need": "prop.kamado",
+      "plan": "仮の形（かまど）で置いた。実素材（glTF・ライセンス門を通った物）を目録に足す：Blender で作る／CC0 を探す（フェーズ 3）",
+      "status": "proposed"
+    },
+    {
+      "need": "prop.planks",
+      "plan": "仮の形（板の山）で置いた。実素材（glTF・ライセンス門を通った物）を目録に足す：Blender で作る／CC0 を探す（フェーズ 3）",
+      "status": "proposed"
+    },
+    {
+      "need": "prop.tansu",
+      "plan": "仮の形（箪笥）で置いた。実素材（glTF・ライセンス門を通った物）を目録に足す：Blender で作る／CC0 を探す（フェーズ 3）",
+      "status": "proposed"
+    },
+    {
+      "need": "rock.boulder",
+      "plan": "仮の形（岩（仮の形））で置いた。実素材（glTF・ライセンス門を通った物）を目録に足す：Blender で作る／CC0 を探す（フェーズ 3）",
+      "status": "proposed"
+    },
+    {
+      "need": "veg.grass",
+      "plan": "仮の形（下草（仮の形））で置いた。実素材（glTF・ライセンス門を通った物）を目録に足す：Blender で作る／CC0 を探す（フェーズ 3）",
+      "status": "proposed"
+    },
+    {
+      "need": "veg.tree.broadleaf",
+      "plan": "仮の形（広葉樹（仮の形））で置いた。実素材（glTF・ライセンス門を通った物）を目録に足す：Blender で作る／CC0 を探す（フェーズ 3）",
+      "status": "proposed"
+    },
+    {
+      "need": "veg.tree.sugi",
+      "plan": "仮の形（杉（仮の形））で置いた。実素材（glTF・ライセンス門を通った物）を目録に足す：Blender で作る／CC0 を探す（フェーズ 3）",
+      "status": "proposed"
+    },
+    {
+      "need": "bld.jp_house_abandoned",
+      "plan": "建物「h1」は灰色の箱の部品で組んだ。07 §4.4 の規格の部品（bld.jp_house.*）を Blender で作る（フェーズ 3）",
+      "status": "proposed"
+    },
+    {
+      "need": "bld.jp_house_abandoned",
+      "plan": "建物「h2」は灰色の箱の部品で組んだ。07 §4.4 の規格の部品（bld.jp_house.*）を Blender で作る（フェーズ 3）",
+      "status": "proposed"
+    },
+    {
+      "need": "bld.jp_house_collapsed",
+      "plan": "建物「h3」は灰色の箱の部品で組んだ。07 §4.4 の規格の部品（bld.jp_house.*）を Blender で作る（フェーズ 3）",
+      "status": "proposed"
+    },
+    {
+      "need": "bld.jp_house_abandoned",
+      "plan": "建物「h4」は灰色の箱の部品で組んだ。07 §4.4 の規格の部品（bld.jp_house.*）を Blender で作る（フェーズ 3）",
+      "status": "proposed"
+    },
+    {
+      "need": "bld.hokora_small",
+      "plan": "建物「shrine」は灰色の箱の部品で組んだ。07 §4.4 の規格の部品（bld.jp_house.*）を Blender で作る（フェーズ 3）",
+      "status": "proposed"
+    }
+  ],
+  "fixes": [],
+  "specHash": "sha256:f2e1365e4629cf347f7b06d031e9d97a4c8117721442b483fd5ae82ec1766023"
+}

@@ -65,7 +65,7 @@ function houseAbandoned(b, padY, ctx) {
   const S = SPEC, F = frame(b, padY), [Wd, Dd] = b.footprint, T = S.wallT, r = childRng(ctx.seed, `building.${b.id}`);
   const rooms = (b.rooms && b.rooms.length ? b.rooms : (Wd >= 9 ? ['doma', 'washitsu_6', 'daidokoro'] : ['doma', 'washitsu_6'])).slice(0, 4);
   // 部屋は u の向きの帯。左端が土間（扉がある）
-  const domaW = Math.max(2.6, Math.min(3.4, Wd * 0.3)), restW = (Wd - domaW) / Math.max(1, rooms.length - 1);
+  const domaW = Math.max(3.0, Math.min(3.4, Wd * 0.3)), restW = (Wd - domaW) / Math.max(1, rooms.length - 1);
   const strips = []; let u0 = -Wd / 2;
   rooms.forEach((name, i) => { const w = i === 0 ? domaW : restW; strips.push({ name, u0, u1: u0 + w }); u0 += w; });
   const door = { u: (strips[0].u0 + strips[0].u1) / 2, w: S.doorW, h: S.doorH };
@@ -99,7 +99,7 @@ function houseAbandoned(b, padY, ctx) {
   out.props.push({ kind: 'prop.kamado', u: strips[0].u0 + 0.75, v: -Dd / 2 + 0.65, rot: b.rot || 0, y: padY + S.domaH, room: strips[0].name });
   out.props.push({ kind: 'prop.tansu', u: second.u1 - 0.75, v: -Dd / 2 + 0.5, rot: b.rot || 0, y: padY + S.floorH, room: second.name });
   if (last !== second) out.props.push({ kind: 'prop.tansu', u: last.u1 - 0.75, v: -Dd / 2 + 0.5, rot: b.rot || 0, y: padY + S.floorH, room: last.name });
-  const [dx, dz] = F.W(door.u, Dd / 2);
+  const [dx, dz] = F.W(door.u, Dd / 2 - T / 2);                  // 扉の位置＝壁の厚さの中心
   const doorRec = { id: `${b.id}.door`, building: b.id, at: [r3(dx), r3(padY), r3(dz)], rotY: b.rot || 0, width: door.w, height: door.h, wallT: T, kind: 'sliding', enterable: true };
   const [ax, az] = F.W(door.u, Dd / 2 + 0.8), [fx, fz] = F.W(0, Dd / 2 + 2.5);
   const main = out.rooms.find(x => /washitsu/.test(x.name)) || out.rooms[1] || out.rooms[0];

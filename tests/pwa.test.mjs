@@ -118,5 +118,22 @@ test('トビネズミ：専用の manifest（全画面・向き自由・アイ�
   assert.equal(k('tobi-server.json'), null, 'サーバーの有無はいつもネットで確かめる');
 });
 
+test('わかば mapkit（検証マップ・開発用）：ページ・ES モジュール・地図のデータはネット優先、レポート・道具は素通し', () => {
+  const { sw } = loadSW();
+  const k = p => sw.kindOf(new URL(p, sw.BASE));
+  assert.equal(sw.VERSION, '2026-10-25.1');
+  assert.equal(k('mapkit.html'), 'shell');
+  assert.equal(k('mapkit/runtime/main.js'), 'shell');
+  assert.equal(k('mapkit/runtime/style.css'), 'shell');
+  assert.equal(k('mapkit/core/rng.js'), 'shell', '境界侵食も import する共通の部品');
+  assert.equal(k('maps/haison/map.spec.json'), 'shell');
+  assert.equal(k('maps/haison/build/layout.json'), 'shell');
+  assert.equal(k('maps/haison/build/terrain.png'), 'shell');
+  assert.equal(k('maps/haison/report/report.json'), null);
+  assert.equal(k('mapkit/schema/map-spec.schema.json'), null);
+  assert.equal(k('tools/mapkit/play_map.mjs'), null);
+  assert.ok(!read('index.html').includes('mapkit.html'), '本編のタイトルからはつながない');
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
