@@ -105,8 +105,10 @@ ${GLSL_TILEUV}
   roughnessFactor = mix(roughnessFactor, roughnessFactor * 0.32, envWet); roughnessFactor = mix(roughnessFactor, 0.035, envPud);
   #ifdef USE_COLOR_ALPHA
     if (vColor.a > 0.25 && vColor.a < 0.75) roughnessFactor = 0.06;   // 部品のガラス（envkit.js：頂点の色の A＝0.5）
+    if (vColor.a > 0.85 && vColor.a < 0.95) roughnessFactor = mix(0.24, 0.12, envWet);   // P14：車の塗装（A＝0.9：クリアの艶）
+    if (vColor.a > 0.1 && vColor.a < 0.3) roughnessFactor = 0.22;                       // P14：金属（めっき・A＝0.2）
   #endif`);
-    fs = fs.replace('#include <metalnessmap_fragment>', 'float metalnessFactor = metalness * envP.r;');
+    fs = fs.replace('#include <metalnessmap_fragment>', 'float metalnessFactor = metalness * envP.r;\n  #ifdef USE_COLOR_ALPHA\n    if (vColor.a > 0.1 && vColor.a < 0.3) metalnessFactor = 0.85;\n  #endif');
     fs = fs.replace('#include <normal_fragment_maps>', `
   { vec3 q0 = dFdx(-vViewPosition), q1 = dFdy(-vViewPosition); vec2 st0 = dFdx(vEnvUv), st1 = dFdy(vEnvUv);
     vec3 N = normal; vec3 q1p = cross(q1, N), q0p = cross(N, q0);

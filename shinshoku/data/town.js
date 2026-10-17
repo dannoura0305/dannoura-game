@@ -153,9 +153,9 @@ export const TOWN = {
     { kind: 'busstop', x: -15, z: 2.0, name: '駅前通り　バス停（仮）' },
     { kind: 'bikes', x: -5.4, z: -1.5, n: 5, ry: Math.PI / 2 }, { kind: 'bikes', x: 5.4, z: -1.5, n: 4, ry: -Math.PI / 2 },
     { kind: 'car', x: 33.2, z: 47.6, ry: 0, color: 0x9a3a4a, kei: true },        // 自宅のカーポート
-    { kind: 'car', x: 19.55, z: 17.4, ry: Math.PI, color: 0xe8e8ec },          // コンビニ（前向きに止めた車）
+    { kind: 'car', x: 19.55, z: 17.4, ry: Math.PI, color: 0xe8e8ec, type: 'minivan' },          // コンビニ（前向きに止めた車）
     { kind: 'car', x: 27.65, z: 17.4, ry: 0, color: 0x2a3a5a },
-    { kind: 'car', x: 24.95, z: 17.4, ry: 0, color: 0x6a6a72 },                  // コンビニの駐車場（P13：前は広場の入口の通路で店の壁にめり込んでいた）
+    { kind: 'car', x: 24.95, z: 17.4, ry: 0, color: 0x8a2a2a, type: 'hatch' },                  // コンビニの駐車場（P13：前は広場の入口の通路で店の壁にめり込んでいた）
     { kind: 'car', x: -30, z: 9.6, ry: -Math.PI / 2, color: 0xc8c8c8, abandoned: true },   // 乗り捨てられた車（道の上）
     { kind: 'bike', x: 47.2, z: 44.2, ry: 0.3 }, { kind: 'bike', x: 21.5, z: 42.7, ry: 1.4 },
     { kind: 'cone', x: -42, z: 6 }, { kind: 'cone', x: -42, z: 9 },
@@ -171,8 +171,8 @@ export const TOWN = {
     ...[30, 20, -14, -40, -64].map(z => ({ kind: 'yukigakoi', x: 69.25, z })), ...[16, -4, -22, -44, -62].map(z => ({ kind: 'yukigakoi', x: 88.75, z })),
     { kind: 'sign', x: 69.7, z: 18.6, text: '電車通り', color: 0x2a6ad0 }, { kind: 'sign', x: 69.7, z: -76.5, text: '駅前', color: 0x2a6ad0 },
     { kind: 'vending', x: 65.55, z: -15.0, ry: Math.PI / 2, color: 0x2a6ad0 },
-    { kind: 'car', x: 72.2, z: 24, ry: Math.PI, color: 0x8a8a92, hazard: true },
-    { kind: 'car', x: 86.0, z: -12, ry: 0, color: 0x3a3a48 },
+    { kind: 'car', x: 72.2, z: 24, ry: Math.PI, color: 0xe8e8e4, hazard: true, type: 'truck' },
+    { kind: 'car', x: 86.0, z: -12, ry: 0, color: 0x3a3a48, type: 'hatch' },
   ],
   // 公園の中
   park: { swing: [-8, 20], slide: [-2, 24.5], sand: [-7.5, 26.5], bench: [[0.5, 17.5], [-10.5, 18]], toilet: [-10, 27.5], trees: [[-11, 15.5], [4.8, 15.6], [4.8, 28.6], [-11, 28.8], [-4.5, 29]], lamp: [-3, 21], entry: [-5, -2] },

@@ -6,6 +6,7 @@ import { TOWN, townSolids, houseFoot, guardSpans, townLamps, homeW, houseDoor, l
 import { applyTile } from '../render/townmat.js';
 import { makeTown2, isFar } from './town2.js';
 import { steamMesh } from '../render/steam.js';
+import { CAR_KINDS } from './envkit.js';
 import { furnKit } from './furn.js';
 
 // 決まった乱数（区画の id から）：data/town.js の seeded（出入り口の位置と同じ乱数）
@@ -635,7 +636,7 @@ export function buildTown(ctx) {
   }
   function car(p) {
     const ry = p.ry || 0, c = Math.cos(ry), s = Math.sin(ry), L = p.kei ? 3.4 : 4.3, Wd = p.kei ? 1.48 : 1.75;
-    const kitCar = K.put('prop.town.car', p.kei ? 1 : 0, p.x, 0, p.z, ry, 1, p.color);
+    const kitCar = K.put('prop.town.car', Math.max(0, CAR_KINDS.indexOf(p.type || (p.kei ? 'kei' : 'sedan'))), p.x, 0, p.z, ry, 1, p.color);   // P14：種類（セダン・軽・ミニバン・軽トラ・タクシー・ハッチバック）
     B.fb(kitCar, () => car0(p, ry, c, s, L, Wd));
     if (p.abandoned || p.hazard) { for (const sx of [-1, 1]) { const hx = p.x + (sx * (Wd / 2 - 0.25)) * c + (L / 2 + 0.3) * s, hz = p.z - (sx * (Wd / 2 - 0.25)) * s + (L / 2 + 0.3) * c; halos.push({ p: [hx, 0.72, hz], size: 0.9, color: 0xffa020, k: 0.8, hazard: true }); } if (p.abandoned) spots.push({ id: 'town_car', kind: 'read', x: p.x + 2.2 * s, z: p.z + 2.2 * c + 1.4, r: 1.6, label: '乗り捨てられた車', text: 'town_car' }); }
   }
