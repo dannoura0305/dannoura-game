@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "veg.tree.broadleaf",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/veg.tree.broadleaf.fbx",
+   "storage": "local-ignored",
+   "sha256": "e35ec56358dbaf149a374dc90a0c4eebb7301204d2b9347293e22756665e2817",
+   "bytes": 94332,
+   "tool": "bpy 4.2.0",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only veg.tree.broadleaf"
+  }
+ ]
+}

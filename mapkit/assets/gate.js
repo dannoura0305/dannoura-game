@@ -24,6 +24,14 @@ export const RULES = {
   NO_HUMAN_SCORE: 'quality.human（人の点数）が空：作品の本番の束に入れない',
 };
 
+/** リポジトリの中の道具（tools/…）で手続きで作った自作の素材か（docs/wakaba-mapkit/11 §4）。
+ * 外の権利者がいない（原本＝リポジトリのスクリプト）ので、verifiedBy が空でも止めず「注意（UNVERIFIED_GENERATED）」にする。
+ * 条件：source.type self_made・source.generator が tools/ の下・license.id が own か project・商用 yes・再配布 yes。人が確かめたら verifiedBy を書く（AI は書かない） */
+export function isRepoGenerated(meta) {
+  const m = meta || {}, L = m.license || {}, S = m.source || {};
+  return S.type === 'self_made' && /^tools\/[A-Za-z0-9_./-]+$/.test(String(S.generator || '')) && !/\.\./.test(String(S.generator)) && ['own', 'project'].includes(low(L.id)) && L.commercial === 'yes' && L.redistributeRaw === 'yes';
+}
+
 /** 商用の許可が別に要る体の模型（小文字で比べる） */
 export const RESTRICTED_DEPS = ['smpl', 'smpl-x', 'smplx', 'smpl-h', 'smplh', 'smplify', 'smplify-x', 'mano', 'flame', 'star'];
 /** 研究用（非商用）とされる動画 → 動きの AI（docs/wakaba-charkit/02・09）。規約は変わるので source.aiCommercial を人が書くのが正 */
@@ -71,7 +79,7 @@ export function evaluate(meta, ctx, opt = {}) {
   // ── mapkit 07 §3.1
   if (blank(L.id) || low(L.id) === 'unknown') block('LICENSE_UNKNOWN');
   if (blank(L.commercial) || L.commercial === 'unknown') block('COMMERCIAL_UNKNOWN');
-  if (blank(L.verifiedBy)) block('UNVERIFIED');
+  if (blank(L.verifiedBy)) { if (isRepoGenerated(m)) warn('UNVERIFIED_GENERATED', `リポジトリの道具（${S.generator}）で作った自作：外の権利者はいない。人が確かめたら license.verifiedBy を書く`); else block('UNVERIFIED'); }
   if (L.commercial === 'no' && ctx.commercial) block('NON_COMMERCIAL');
   if (shipped && ctx.target.public && L.redistributeRaw !== 'yes') block('NO_WEB_REDIST', `redistributeRaw: ${L.redistributeRaw || '空'}`);
   const mixamo = [L.id, S.url, S.author].some(x => /mixamo/i.test(String(x || '')));

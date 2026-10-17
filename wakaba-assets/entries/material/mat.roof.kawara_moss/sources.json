@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.roof.kawara_moss",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.roof.kawara_moss_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "f4f0cba58eab63e33140a237635da139d033f597a69420264b8345825a28c868",
+   "bytes": 1328725,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.roof.kawara_moss"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.roof.kawara_moss_normal.png",
+   "storage": "local-ignored",
+   "sha256": "6d01c4127d8bfdf4667064920c1b56b6a43b7fa2a6f67d048c1af861c4156697",
+   "bytes": 1291806,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.roof.kawara_moss"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.roof.kawara_moss_orh.png",
+   "storage": "local-ignored",
+   "sha256": "871f9cfae886e5f5990693b224c5a1f8850711c10f3ee881329bceb28650b4e1",
+   "bytes": 1536112,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.roof.kawara_moss"
+  }
+ ]
+}

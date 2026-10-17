@@ -20,7 +20,8 @@
         "acquiredAt": { "type": "string", "format": "date" },
         "aiModel": { "type": "string", "description": "生成 AI・変換 AI を通した時：モデル名と版・利用規約の URL" },
         "aiCommercial": { "enum": ["yes", "no", "unknown"], "description": "v1.1：通した AI の規約が商用に使えるか（研究用・非商用なら no）" },
-        "orderId": { "type": "string", "description": "購入の注文番号など（証明）" }
+        "orderId": { "type": "string", "description": "購入の注文番号など（証明）" },
+        "generator": { "type": "string", "description": "v1.1 追記（フェーズ 3）：リポジトリの中で手続きで作った時の道具の場所（例 tools/mapkit/matgen/matgen.py）。self_made＋license own＋これがあれば verifiedBy が空でも門は注意（UNVERIFIED_GENERATED）だけ" }
       }
     },
     "license": { "$ref": "#/$defs/license" },
@@ -49,7 +50,7 @@
     "license": {
       "type": "object", "required": ["id", "commercial", "redistributeRaw", "attribution", "verifiedBy"],
       "properties": {
-        "id": { "type": "string", "description": "CC0-1.0 / Fab-Standard / project / custom:<名前> / unknown" },
+        "id": { "type": "string", "description": "CC0-1.0 / Fab-Standard / project / own（自作・リポジトリの道具で生成）/ custom:<名前> / unknown" },
         "commercial": { "enum": ["yes", "no", "unknown"] },
         "redistributeRaw": { "enum": ["yes", "no", "unknown"], "description": "素材ファイルをそのまま公開（Web 配信・公開リポジトリ）してよいか" },
         "engines": { "type": "array", "items": { "enum": ["any", "unreal", "threejs", "godot", "unity", "blender"] } },

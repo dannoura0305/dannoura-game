@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.wood.planks_silver",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.wood.planks_silver_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "3e27312c2573ab2ff65c24ddc60e49cf67488c60046d8667acbc8ca72be60de8",
+   "bytes": 1470272,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.wood.planks_silver"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.wood.planks_silver_normal.png",
+   "storage": "local-ignored",
+   "sha256": "90750c9567dfe6b93b7ecf99f9579bca0f811e173d757a6fdf2ad99c403d5dcd",
+   "bytes": 1928589,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.wood.planks_silver"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.wood.planks_silver_orh.png",
+   "storage": "local-ignored",
+   "sha256": "f5fb45639193a53d2909d4d6613395a6e4aed63f83257022dcd16aee224eb6df",
+   "bytes": 1877092,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.wood.planks_silver"
+  }
+ ]
+}

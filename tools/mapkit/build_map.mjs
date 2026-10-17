@@ -32,19 +32,27 @@ let raw = null;
 if (src.type === 'heightmap' && hmFile && existsSync(hmFile)) raw = await heightfieldFromPNG(readFileSync(hmFile), { size: [spec.size.w, spec.size.d], minY: src.minY ?? 0, maxY: src.maxY ?? 60 });
 else console.log(`  · 高さマップ ${src.file || '(なし)'} が無い：手続きの地形（fallback）で作る（node tools/mapkit/gen_heightmap.mjs ${rel(dir)} で PNG にできる）`);
 // 2〜8. 配置 → 検証（届かない時は種を変えてやり直す：最大 RULES.retries 回）
+// 目録（web の門が pass の素材）：使う素材の id → 名前。無ければ全部が仮の形
+const catFile = rootPath('wakaba-assets/catalog.json'), catalog = existsSync(catFile) ? JSON.parse(readFileSync(catFile, 'utf8')) : { entries: [] };
+const webOk = Object.fromEntries((catalog.entries || []).filter(e => e.targets && e.targets.web && e.targets.web.result === 'pass').map(e => [e.id, e.name && e.name.ja || e.id]));
 let seed = opt.seed || spec.seed, built, val, tries = [];
 for (let n = 0; n <= RULES.retries; n++) {
   const s = n ? `${opt.seed || spec.seed}#retry${n}` : seed;
-  built = buildLayout(spec, raw, { seed: s });
+  built = buildLayout(spec, raw, { seed: s, catalog: webOk });
   val = validateLayout(built.layout, built.hf, { spec, preset: opt.preset || 'low' });
   tries.push({ seed: s, reach: val.auto.reach.pass, keepOut: val.auto.keepOut.pass });
   seed = s; if (val.auto.reach.pass && val.auto.keepOut.pass) break;
 }
 // 決まった結果か（同じ種でもう一度作って指紋を比べる）
-const again = buildLayout(spec, raw, { seed });
+const again = buildLayout(spec, raw, { seed, catalog: webOk });
 const L = built.layout, A = val.auto;
 A.deterministic = { pass: again.layout.hash === L.hash, hash: L.hash, terrain: L.terrain.fingerprint };
-A.license = { pass: true, blocked: [], note: '目録の素材は使っていない（全部が仮の形＝コードで作る灰色の箱）。実素材はフェーズ 3 で門に通す' };
+// 使う素材（物の kind・下草・建物の部品・材質）が目録にあれば web の門の結果を見る。目録に無い物は仮の形（灰色の箱）で描く＝門の対象外
+const used = [...new Set([...L.objects.map(o => o.kind), ...L.instances.map(i => i.kind)])];
+const inCat = new Map((catalog.entries || []).map(e => [e.id, e]));
+const blocked = used.filter(k => inCat.has(k) && !webOk[k]).map(k => ({ id: k, reasons: inCat.get(k).targets.web.reasons }));
+const realKinds = used.filter(k => webOk[k]), standins = used.filter(k => !inCat.has(k));
+A.license = { pass: blocked.length === 0, blocked, note: `物の種類 ${used.length} のうち ${realKinds.length} が目録の素材（web の門 pass・自作＝license own・verifiedBy は人の確認待ち）・仮の形 ${standins.length}${standins.length ? '（' + standins.join('・') + '）' : ''}。材質と建物の部品も目録（node tools/mapkit/catalog.mjs）` };
 A.perf = { device: 'node（ヘッドレス）', fps: null, note: '実機で測る（mapkit.html?perf=1）。play_map.mjs が swiftshader の描画呼び出しを測る' };
 // レポート
 const specHash = 'sha256:' + createHash('sha256').update(specText).digest('hex');
@@ -64,10 +72,15 @@ C('浮き・めり込み・重なりが 0 件', A.float.pass && A.overlap.pass, 
 C('同じ種で同じ配置', A.deterministic.pass, L.hash);
 const H = (text, evidence) => rep.conditions.push({ text, check: 'human', pass: null, evidence });
 H('夕暮れと霧の雰囲気が出ている', 'play_map の画面撮影（village・shrine）');
-H('山の廃村に見える（灰色の箱の段階として）', 'aerial・village・interior の撮影');
+H('山の廃村に見える（フェーズ 3：写実寄りの材質・部品・光）', 'play_map の撮影（village・house・interior・forest）と before_after.png');
+H('自作の素材（目録の license own）の中身を人が確かめた（meta.json の verifiedBy を書く）', 'wakaba-assets/entries/*/*/meta.json・docs/wakaba-mapkit/11');
 H('森の密度・木の並びが自然', 'forest の撮影・report/map.svg');
 H('歩いて探索できる（迷わない・引っかからない）', '利用者が mapkit.html?map=haison を歩く');
-rep.gaps = built.gaps; rep.fixes = [...built.notes, ...(val.auto ? [] : [])];
+rep.gaps = built.gaps;
+if (realKindsCount(L, webOk)) rep.gaps.push(
+  { need: 'web.compression', plan: 'テクスチャは WebP・glb は圧縮なし（KTX2・Meshopt の符号器がクラウドで使えないため）。利用者の PC か CI で KTX2（toktx/basisu）・gltfpack（Meshopt）にすると、読み込み ≈40% 減の見込み（docs/wakaba-mapkit/11 §6）', status: 'proposed' },
+  { need: 'license.verifiedBy', plan: '自作の素材（tools/mapkit/matgen・tools/blender/kit で生成）は門で注意（UNVERIFIED_GENERATED）。人が中身を見て meta.json の verifiedBy を書く（AI は書かない）', status: 'proposed' },
+  { need: 'ue5.kit', plan: '同じ部品の FBX（source/・Git の外）と ue5/import.json の雛形は作った。UE5 の画面での取り込み・Nanite・材質の組み直しは未検証（利用者の PC）', status: 'proposed' }); rep.fixes = [...built.notes, ...(val.auto ? [] : [])];
 for (const f of (val.fixes || [])) rep.fixes.push(f);
 if (tries.length > 1) rep.fixes.push({ issue: `配置をやり直した（${tries.length - 1} 回）`, proposal: tries.map(t => `${t.seed}: reach=${t.reach}`).join('・'), auto: true });
 const rv = validateReport(rep, reg);
@@ -86,3 +99,4 @@ if (!opt.dry) {
   console.log(`  書いた：${rel(join(bdir, 'layout.json'))}・${rel(join(bdir, 'terrain.png'))}・${rel(join(rdir, 'report.json'))}・report.md・map.svg`);
 }
 process.exit(allPass && rv.valid ? 0 : 1);
+function realKindsCount(L, ok) { return L.objects.filter(o => ok[o.kind]).length; }

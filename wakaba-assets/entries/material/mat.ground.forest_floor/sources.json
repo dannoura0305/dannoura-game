@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.ground.forest_floor",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.ground.forest_floor_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "46794859d782a77de806692445fb5c5420b02feb5e495002530a5097276f28e3",
+   "bytes": 1296609,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.ground.forest_floor"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.ground.forest_floor_normal.png",
+   "storage": "local-ignored",
+   "sha256": "ea9f0843082598f0bffc9a3f8d4ef543d6c8fa81eae4432e08817d5e888c57ee",
+   "bytes": 1939427,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.ground.forest_floor"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.ground.forest_floor_orh.png",
+   "storage": "local-ignored",
+   "sha256": "029ae54af5b6ed0bc9b915c7b11340d612cce1366f13c9a17eb795fa2577ad15",
+   "bytes": 1574696,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.ground.forest_floor"
+  }
+ ]
+}

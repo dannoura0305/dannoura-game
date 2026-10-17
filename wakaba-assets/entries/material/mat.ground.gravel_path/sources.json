@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.ground.gravel_path",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.ground.gravel_path_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "5b192f2a5ac0bdde4e6a274395cd17007c42a89e15fac247f0e26f9b504b0d6f",
+   "bytes": 1033815,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.ground.gravel_path"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.ground.gravel_path_normal.png",
+   "storage": "local-ignored",
+   "sha256": "e71d38ffb622f58e0e68a11a192547430d3449c745c44df137232da0454ce5a4",
+   "bytes": 909586,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.ground.gravel_path"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.ground.gravel_path_orh.png",
+   "storage": "local-ignored",
+   "sha256": "a772cb79c4f82fd2d86214cce26213dcae0fbb8a05fb16995ce620706a00726f",
+   "bytes": 988031,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.ground.gravel_path"
+  }
+ ]
+}

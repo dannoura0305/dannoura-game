@@ -22,7 +22,7 @@ const spec = readJson('maps/haison/map.spec.json'), S = spec.terrain.source;
 const raw = await heightfieldFromPNG(readFileSync(rootPath('maps/haison/heightmap.png')), { size: [spec.size.w, spec.size.d], minY: S.minY, maxY: S.maxY });
 const A = buildLayout(spec, raw), L = A.layout;
 const V = validateLayout(L, A.hf, { spec });
-const objObb = o => o.col && o.col.shape === 'box' ? { cx: o.at[0], cz: o.at[2], hx: o.col.hx, hz: o.col.hz, rot: deg(o.rotY) } : { cx: o.at[0], cz: o.at[2], hx: o.col.r, hz: o.col.r, rot: 0 };
+const objObb = o => o.col && o.col.shape === 'box' ? { cx: o.at[0], cz: o.at[2], hx: o.col.hx, hz: o.col.hz, rot: deg(o.rotY) } : { cx: o.at[0], cz: o.at[2], hx: o.col ? o.col.r : 0.25, hz: o.col ? o.col.r : 0.25, rot: 0 };   // 当たりなし（飾り）は 0.25m
 
 await t('同じ種で 2 回作った配置が完全に一致（指紋と JSON）・違う種なら違う・層を足しても他の層は変わらない', () => {
   const B = buildLayout(spec, raw);
@@ -117,7 +117,10 @@ await t('検証レポート：作った物が wakaba-map-report/1 に合う・�
   assert.equal(v.valid, true, JSON.stringify(v.errors));
   assert.ok(f.conditions.some(c => c.check === 'human') && f.conditions.filter(c => c.check === 'human').every(c => c.pass === null));
   for (const k of ['deterministic', 'keepOut', 'float', 'overlap', 'reach', 'interiors']) assert.equal(f.auto[k].pass, true, k);
-  assert.ok(f.gaps.length > 0 && f.gaps.every(g => g.status === 'proposed'), '不足の素材は計画だけ（承認待ち）');
+  assert.ok(f.gaps.length > 0 && f.gaps.every(g => ['proposed', 'done'].includes(g.status)), '不足は計画（承認待ち）か、目録の素材で済んだ（done）');
+  const cat = new Set(readJson('wakaba-assets/catalog.json').entries.map(e => e.id));
+  for (const g of f.gaps.filter(g => g.status === 'done' && !g.need.startsWith('bld.'))) assert.ok(cat.has(g.need), '済んだ素材は目録にある ' + g.need);
+  assert.ok(f.gaps.some(g => g.status === 'proposed'), '残り（圧縮・人の確認・UE5）は計画のまま');
 });
 
 await t('部品：道のなめらかな線と坂の上限・仮の形の検索・点のハッシュ・地図の外の物が無い', () => {

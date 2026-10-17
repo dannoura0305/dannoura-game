@@ -6,5 +6,5867 @@
   "web",
   "ue5"
  ],
- "entries": []
+ "entries": [
+  {
+   "id": "bld.jp_house.door_shoji",
+   "version": 1,
+   "category": "building_module",
+   "name": {
+    "ja": "障子（立っている）",
+    "en": "Shoji door"
+   },
+   "status": "draft",
+   "tags": [
+    "障子",
+    "建具",
+    "手続き",
+    "自作"
+   ],
+   "dir": "building_module/bld.jp_house.door_shoji",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.9,
+     1.8,
+     0.035
+    ],
+    "tris": 190
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/bld.jp_house.door_shoji.fbx",
+     "storage": "local-ignored",
+     "sha256": "7c2d50338d27276f740e3dc86ecd92d6fee3aa5f5bfd2a6aa4fa284156687f58",
+     "bytes": 21564
+    }
+   ],
+   "web": [
+    {
+     "file": "web/bld.jp_house.door_shoji.glb",
+     "bytes": 42164
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/BuildingModule/SM_bld_jp_house_door_shoji",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/bld.jp_house.door_shoji.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 190,
+     "LOD1": 94
+    },
+    "variants": 1,
+    "lodDist": [
+     18
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.paper.shoji",
+     "mat.wood.cedar",
+     "mat.wood.planks_silver"
+    ]
+   }
+  },
+  {
+   "id": "bld.jp_house.post",
+   "version": 1,
+   "category": "building_module",
+   "name": {
+    "ja": "柱（1m・伸ばして使う）",
+    "en": "Timber post (scalable)"
+   },
+   "status": "draft",
+   "tags": [
+    "柱",
+    "木",
+    "手続き",
+    "自作"
+   ],
+   "dir": "building_module/bld.jp_house.post",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.12,
+     1,
+     0.12
+    ],
+    "tris": 44
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/bld.jp_house.post.fbx",
+     "storage": "local-ignored",
+     "sha256": "03bc456be5ffd32e76a0ec19281acc2689e3aa6bdec2c67b06aa0fae570acf4d",
+     "bytes": 16572
+    }
+   ],
+   "web": [
+    {
+     "file": "web/bld.jp_house.post.glb",
+     "bytes": 7136
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/BuildingModule/SM_bld_jp_house_post",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/bld.jp_house.post.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 44
+    },
+    "variants": 1,
+    "lodDist": [
+     40
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.wood.cedar"
+    ]
+   }
+  },
+  {
+   "id": "bld.jp_house.roof_ridge",
+   "version": 1,
+   "category": "building_module",
+   "name": {
+    "ja": "瓦の棟（1m）",
+    "en": "Kawara ridge (1m)"
+   },
+   "status": "draft",
+   "tags": [
+    "瓦",
+    "屋根",
+    "手続き",
+    "自作"
+   ],
+   "dir": "building_module/bld.jp_house.roof_ridge",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1,
+     0.255,
+     0.32
+    ],
+    "tris": 152
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/bld.jp_house.roof_ridge.fbx",
+     "storage": "local-ignored",
+     "sha256": "6be529357f44c4f69f973b05309e547aeef052efa78829ec915c384344a56d0f",
+     "bytes": 18956
+    }
+   ],
+   "web": [
+    {
+     "file": "web/bld.jp_house.roof_ridge.glb",
+     "bytes": 18632
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/BuildingModule/SM_bld_jp_house_roof_ridge",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/bld.jp_house.roof_ridge.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 152,
+     "LOD1": 60
+    },
+    "variants": 1,
+    "lodDist": [
+     30
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.roof.kawara"
+    ]
+   }
+  },
+  {
+   "id": "bld.jp_house.wall_panel",
+   "version": 1,
+   "category": "building_module",
+   "name": {
+    "ja": "土壁の区画（4 種：ひび・穴・大穴・小舞）",
+    "en": "Earthen wall bay (4 variants)"
+   },
+   "status": "draft",
+   "tags": [
+    "土壁",
+    "壁",
+    "手続き",
+    "自作"
+   ],
+   "dir": "building_module/bld.jp_house.wall_panel",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1,
+     1,
+     0.12
+    ],
+    "tris": 576
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/bld.jp_house.wall_panel.fbx",
+     "storage": "local-ignored",
+     "sha256": "6778a187159cb81ad121825bf92fe402c337ff14e5bfad5a60fbaa832a74ce42",
+     "bytes": 93244
+    }
+   ],
+   "web": [
+    {
+     "file": "web/bld.jp_house.wall_panel.glb",
+     "bytes": 411776
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/BuildingModule/SM_bld_jp_house_wall_panel",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/bld.jp_house.wall_panel.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "v0_LOD0": 576,
+     "v0_LOD1": 230,
+     "v1_LOD0": 754,
+     "v1_LOD1": 301,
+     "v2_LOD0": 968,
+     "v2_LOD1": 386,
+     "v3_LOD0": 1048,
+     "v3_LOD1": 418
+    },
+    "variants": 4,
+    "lodDist": [
+     20
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.wall.tsuchikabe",
+     "mat.wood.cedar"
+    ]
+   }
+  },
+  {
+   "id": "bld.jp_house.window_koshi",
+   "version": 1,
+   "category": "building_module",
+   "name": {
+    "ja": "格子窓",
+    "en": "Koshi lattice window"
+   },
+   "status": "draft",
+   "tags": [
+    "格子",
+    "窓",
+    "手続き",
+    "自作"
+   ],
+   "dir": "building_module/bld.jp_house.window_koshi",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1.2,
+     0.8,
+     0.05
+    ],
+    "tris": 228
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/bld.jp_house.window_koshi.fbx",
+     "storage": "local-ignored",
+     "sha256": "24ef5f64dff93907193f7359e3d85dd1889edfa372cdce7bb38e8e78939cd1be",
+     "bytes": 19004
+    }
+   ],
+   "web": [
+    {
+     "file": "web/bld.jp_house.window_koshi.glb",
+     "bytes": 37308
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/BuildingModule/SM_bld_jp_house_window_koshi",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/bld.jp_house.window_koshi.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 228,
+     "LOD1": 68
+    },
+    "variants": 1,
+    "lodDist": [
+     18
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.wood.cedar"
+    ]
+   }
+  },
+  {
+   "id": "bld.shrine.honden",
+   "version": 1,
+   "category": "building",
+   "name": {
+    "ja": "小さな本殿（流造り風）",
+    "en": "Small shrine (nagare style)"
+   },
+   "status": "draft",
+   "tags": [
+    "祠",
+    "本殿",
+    "手続き",
+    "自作"
+   ],
+   "dir": "building/bld.shrine.honden",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1.9,
+     1.93,
+     1.982
+    ],
+    "tris": 980
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/bld.shrine.honden.fbx",
+     "storage": "local-ignored",
+     "sha256": "1d7671f8fc8d97328f28ad4715c5f9017621048fa756087bfed3c3859f010d51",
+     "bytes": 38844
+    }
+   ],
+   "web": [
+    {
+     "file": "web/bld.shrine.honden.glb",
+     "bytes": 169076
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Building/SM_bld_shrine_honden",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/bld.shrine.honden.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 980,
+     "LOD1": 342
+    },
+    "variants": 1,
+    "lodDist": [
+     30
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.roof.kawara",
+     "mat.roof.kawara_moss",
+     "mat.wood.cedar",
+     "mat.wood.planks_silver"
+    ]
+   }
+  },
+  {
+   "id": "bld.shrine.torii",
+   "version": 1,
+   "category": "building",
+   "name": {
+    "ja": "鳥居（明神・はがれた朱）",
+    "en": "Torii gate (myojin)"
+   },
+   "status": "draft",
+   "tags": [
+    "鳥居",
+    "朱",
+    "手続き",
+    "自作"
+   ],
+   "dir": "building/bld.shrine.torii",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     4.5,
+     3.83,
+     0.34
+    ],
+    "tris": 636
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/bld.shrine.torii.fbx",
+     "storage": "local-ignored",
+     "sha256": "db39f922e9076eaabb5ee3a4a63c9f5c18be22425b0c50d7aaad21c9d4bbecc8",
+     "bytes": 33404
+    }
+   ],
+   "web": [
+    {
+     "file": "web/bld.shrine.torii.glb",
+     "bytes": 76204
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Building/SM_bld_shrine_torii",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/bld.shrine.torii.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 636,
+     "LOD1": 254
+    },
+    "variants": 1,
+    "lodDist": [
+     40
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.paint.shu",
+     "mat.roof.kawara",
+     "mat.wood.planks_silver"
+    ]
+   }
+  },
+  {
+   "id": "mat.bark.broadleaf",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "広葉樹の樹皮",
+    "en": "Broadleaf bark"
+   },
+   "status": "draft",
+   "tags": [
+    "樹皮",
+    "広葉樹",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.bark.broadleaf",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.bark.broadleaf_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "16f612a03545fd360e6fde8dcc21e199b76362db37c49b94c993fe9b9eea2a91",
+     "bytes": 1346943
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.bark.broadleaf_normal.png",
+     "storage": "local-ignored",
+     "sha256": "64214b8e729bdc1ece034619ca169d96cc356d6af4943fef3257dc198913209a",
+     "bytes": 2464366
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.bark.broadleaf_orh.png",
+     "storage": "local-ignored",
+     "sha256": "ab6f60a06063117681d473992596e83ebe46e40d08adee0fb823155e9c1952f4",
+     "bytes": 2267745
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 3422
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 9748
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 26418
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 3066
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 14562
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 77490
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 4816
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 15720
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 59458
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.293,
+     0.273,
+     0.236
+    ],
+    "roughMean": 0.902
+   }
+  },
+  {
+   "id": "mat.bark.sugi",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "杉の樹皮",
+    "en": "Sugi bark"
+   },
+   "status": "draft",
+   "tags": [
+    "樹皮",
+    "杉",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.bark.sugi",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.bark.sugi_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "c6b570c82523aadfd67eb28bd15d578610de245e3c8454fcfacaf2272c451af4",
+     "bytes": 1875234
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.bark.sugi_normal.png",
+     "storage": "local-ignored",
+     "sha256": "494473872fb21b48073fecc335cd982d43fdadbdb7eb70e7fb506bc45017282e",
+     "bytes": 2890056
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.bark.sugi_orh.png",
+     "storage": "local-ignored",
+     "sha256": "5289bc5177616efb644c082a0fce6ac90b9731bc6bc867af5eb58bd00bebd864",
+     "bytes": 1932775
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 1076
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 7612
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 43334
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 2294
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 23414
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 135718
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 3586
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 19870
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 100252
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.275,
+     0.178,
+     0.123
+    ],
+    "roughMean": 0.909
+   }
+  },
+  {
+   "id": "mat.fabric.futon",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "古い布団の布（藍の絣）",
+    "en": "Old futon fabric"
+   },
+   "status": "draft",
+   "tags": [
+    "布",
+    "布団",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.fabric.futon",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.fabric.futon_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "911d416015044de71a2d02fd9583a841a0503e0bbf2a9ebe9cda78741907fc69",
+     "bytes": 1350153
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.fabric.futon_normal.png",
+     "storage": "local-ignored",
+     "sha256": "60629fbcc8ae3b02d91bec56615c8baca6fd80e32b92756a6da0abae5f43d1e1",
+     "bytes": 2608665
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.fabric.futon_orh.png",
+     "storage": "local-ignored",
+     "sha256": "9109b50183923ddd354d5be80042c727d28b226acc8459edb610fa216126fa32",
+     "bytes": 2498963
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 1716
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 3480
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 7186
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 134
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 1018
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 25274
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 2070
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 11476
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 56354
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.249,
+     0.279,
+     0.345
+    ],
+    "roughMean": 0.945
+   }
+  },
+  {
+   "id": "mat.floor.tatami",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "朽ちた畳",
+    "en": "Decayed tatami"
+   },
+   "status": "draft",
+   "tags": [
+    "床",
+    "畳",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.floor.tatami",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.floor.tatami_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "7cdf0c120ec075ce46bba8b9150f6e4518d6a48172855f42a93d250be02cc3b7",
+     "bytes": 1387135
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.floor.tatami_normal.png",
+     "storage": "local-ignored",
+     "sha256": "92bc7da7615c7858d232f0153217da96e008f2e427be2906dded2addc2ce8f44",
+     "bytes": 1609283
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.floor.tatami_orh.png",
+     "storage": "local-ignored",
+     "sha256": "d964d4c0077ffc8c9cc51943d1f92e3a19dfe9929d009cc8094d2b268c6db904",
+     "bytes": 1585813
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 814
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 2494
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 8810
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 158
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 700
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 6718
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 270
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 890
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 6932
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.8,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.482,
+     0.43,
+     0.276
+    ],
+    "roughMean": 0.89
+   }
+  },
+  {
+   "id": "mat.foliage.broadleaf",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "広葉樹の葉（カード）",
+    "en": "Broadleaf foliage card"
+   },
+   "status": "draft",
+   "tags": [
+    "葉",
+    "広葉樹",
+    "カード",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.foliage.broadleaf",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.foliage.broadleaf_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "9ff1b0543b9be83515beac646a0ea431c9fcc344f455693ff6a79a3d236326da",
+     "bytes": 600493
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.foliage.broadleaf_normal.png",
+     "storage": "local-ignored",
+     "sha256": "faf74846eb52c37c449f2d9ede5084ed4d774ffc8aa1d418c6edf5dff07edc90",
+     "bytes": 322737
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.foliage.broadleaf_orh.png",
+     "storage": "local-ignored",
+     "sha256": "49de305845a85e46fc833f0a5628a852e0fe8195dc2bfab1acf437fbe96a5fbd",
+     "bytes": 348501
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 4876
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 11330
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 25934
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 316
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 1444
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 6324
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 1158
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 3216
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 8700
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": true,
+    "card": true,
+    "channels": {
+     "albedo": "sRGB・A＝透過（alphaTest 0.5）",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.186,
+     0.267,
+     0.106
+    ],
+    "roughMean": 0.62
+   }
+  },
+  {
+   "id": "mat.foliage.fern",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "シダ（カード）",
+    "en": "Fern card"
+   },
+   "status": "draft",
+   "tags": [
+    "葉",
+    "シダ",
+    "下草",
+    "カード",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.foliage.fern",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.foliage.fern_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "715e594a489f2aaf044afc8959a7de135ede1380ce26413546b461345f5c7cf3",
+     "bytes": 520715
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.foliage.fern_normal.png",
+     "storage": "local-ignored",
+     "sha256": "997c1f1057863e2c31e5682c1c122cd901c98506474108c4272d4631ff157356",
+     "bytes": 577888
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.foliage.fern_orh.png",
+     "storage": "local-ignored",
+     "sha256": "1b2592d3164923d2a4b7181bdd0a1c4ac44815a3400355488a33807534402265",
+     "bytes": 315880
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 8746
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 30750
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 100216
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 148
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 2430
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 28816
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 522
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 3028
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 15690
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": true,
+    "card": true,
+    "channels": {
+     "albedo": "sRGB・A＝透過（alphaTest 0.5）",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.157,
+     0.247,
+     0.096
+    ],
+    "roughMean": 0.7
+   }
+  },
+  {
+   "id": "mat.foliage.grass",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "草（カード）",
+    "en": "Grass card"
+   },
+   "status": "draft",
+   "tags": [
+    "葉",
+    "草",
+    "下草",
+    "カード",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.foliage.grass",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.foliage.grass_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "4bf51fbbbb61245762aa808e56eaeffc67f5ebf5558e61aa2a2e286a66d1855d",
+     "bytes": 400573
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.foliage.grass_normal.png",
+     "storage": "local-ignored",
+     "sha256": "0a9b689888e07e2c1771a2a50497a5c16a9025ca41e4ca917a0fdb3fa87365e6",
+     "bytes": 344138
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.foliage.grass_orh.png",
+     "storage": "local-ignored",
+     "sha256": "94cfa52743da096093c6e26783db9ff99d49c95ad248dd1c8748f838949025c1",
+     "bytes": 252575
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 12020
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 36020
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 90314
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 238
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 2318
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 12126
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 1624
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 5730
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 17392
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": true,
+    "card": true,
+    "channels": {
+     "albedo": "sRGB・A＝透過（alphaTest 0.5）",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.278,
+     0.332,
+     0.142
+    ],
+    "roughMean": 0.7
+   }
+  },
+  {
+   "id": "mat.foliage.sugi",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "杉の葉（カード）",
+    "en": "Sugi foliage card"
+   },
+   "status": "draft",
+   "tags": [
+    "葉",
+    "杉",
+    "カード",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.foliage.sugi",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.foliage.sugi_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "96726782ab067b30700072eea3ca4ee666417a18418e0525f23d456089b4f726",
+     "bytes": 1053003
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.foliage.sugi_normal.png",
+     "storage": "local-ignored",
+     "sha256": "d9d4b9caae63e9616a52660e58a9711dafc38883a7e3813f7bd8f1cadc24365b",
+     "bytes": 920377
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.foliage.sugi_orh.png",
+     "storage": "local-ignored",
+     "sha256": "37607affc8ac485f6bb1e927c69e3fa653c65c2c5744ff81bd6fa6679ef38840",
+     "bytes": 665071
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 8218
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 24754
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 73662
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 482
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 4508
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 27270
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 1512
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 6566
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 25522
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": true,
+    "card": true,
+    "channels": {
+     "albedo": "sRGB・A＝透過（alphaTest 0.5）",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.174,
+     0.23,
+     0.1
+    ],
+    "roughMean": 0.72
+   }
+  },
+  {
+   "id": "mat.ground.dirt_path",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "踏み固めた土の道",
+    "en": "Packed dirt path"
+   },
+   "status": "draft",
+   "tags": [
+    "地面",
+    "道",
+    "土",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.ground.dirt_path",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.ground.dirt_path_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "c7a0d8b27032ef020812cc6558e96972ceb1182a4faf794d4493dc0d79f0a375",
+     "bytes": 1123776
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.ground.dirt_path_normal.png",
+     "storage": "local-ignored",
+     "sha256": "97aa0a513165526f9e4fcaeb2bb8bc6de0193b62c25a305fd8b9065ac4147c8e",
+     "bytes": 1896346
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.ground.dirt_path_orh.png",
+     "storage": "local-ignored",
+     "sha256": "4533292d929f958b57dbfd2622a9c62bb0af9721ac181b2debf759dcc07f0b8b",
+     "bytes": 1978886
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 47800
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 6736
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 17284
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 164808
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 5334
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 32508
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 9748
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 44958
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2.5,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.332,
+     0.263,
+     0.186
+    ],
+    "roughMean": 0.9
+   }
+  },
+  {
+   "id": "mat.ground.forest_floor",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "森の床（落ち葉・杉の葉・土）",
+    "en": "Forest floor"
+   },
+   "status": "draft",
+   "tags": [
+    "地面",
+    "森",
+    "落ち葉",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.ground.forest_floor",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.ground.forest_floor_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "46794859d782a77de806692445fb5c5420b02feb5e495002530a5097276f28e3",
+     "bytes": 1296609
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.ground.forest_floor_normal.png",
+     "storage": "local-ignored",
+     "sha256": "ea9f0843082598f0bffc9a3f8d4ef543d6c8fa81eae4432e08817d5e888c57ee",
+     "bytes": 1939427
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.ground.forest_floor_orh.png",
+     "storage": "local-ignored",
+     "sha256": "029ae54af5b6ed0bc9b915c7b11340d612cce1366f13c9a17eb795fa2577ad15",
+     "bytes": 1574696
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 118142
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 11826
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 36300
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 278348
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 17246
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 74696
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 22392
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 74312
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.265,
+     0.202,
+     0.133
+    ],
+    "roughMean": 0.871
+   }
+  },
+  {
+   "id": "mat.ground.grass",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "草地",
+    "en": "Grass ground"
+   },
+   "status": "draft",
+   "tags": [
+    "地面",
+    "草",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.ground.grass",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.ground.grass_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "3f5231685446f0f4a00d6487b908aac7c58c342a888a0bb902e37084e222e0ad",
+     "bytes": 1647934
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.ground.grass_normal.png",
+     "storage": "local-ignored",
+     "sha256": "d5651a0e33a6c02b1ea70eb34146ad1627738041fdd6f701d6d7a518c2f31681",
+     "bytes": 2206232
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.ground.grass_orh.png",
+     "storage": "local-ignored",
+     "sha256": "b2c81fc562a7ea1c89db37818a36ce6fa19ad5d917e1d8e343024cd4daa7b2f3",
+     "bytes": 1611322
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 212288
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 13238
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 54564
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 454406
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 18806
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 107478
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 21076
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 96820
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.219,
+     0.195,
+     0.118
+    ],
+    "roughMean": 0.896
+   }
+  },
+  {
+   "id": "mat.ground.gravel_path",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "砂利の道",
+    "en": "Gravel path"
+   },
+   "status": "draft",
+   "tags": [
+    "地面",
+    "道",
+    "砂利",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.ground.gravel_path",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.ground.gravel_path_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "5b192f2a5ac0bdde4e6a274395cd17007c42a89e15fac247f0e26f9b504b0d6f",
+     "bytes": 1033815
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.ground.gravel_path_normal.png",
+     "storage": "local-ignored",
+     "sha256": "e71d38ffb622f58e0e68a11a192547430d3449c745c44df137232da0454ce5a4",
+     "bytes": 909586
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.ground.gravel_path_orh.png",
+     "storage": "local-ignored",
+     "sha256": "a772cb79c4f82fd2d86214cce26213dcae0fbb8a05fb16995ce620706a00726f",
+     "bytes": 988031
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 55098
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 7766
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 19988
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 117278
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 11392
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 40336
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 16506
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 46272
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.5,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.456,
+     0.429,
+     0.389
+    ],
+    "roughMean": 0.838
+   }
+  },
+  {
+   "id": "mat.ground.moss",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "苔",
+    "en": "Moss"
+   },
+   "status": "draft",
+   "tags": [
+    "地面",
+    "苔",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.ground.moss",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.ground.moss_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "c8cf96750c885c939b38ef5b66102ccfa224114459b5f5310095a469e224f06e",
+     "bytes": 1104798
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.ground.moss_normal.png",
+     "storage": "local-ignored",
+     "sha256": "a3e2ea6f3c5563a18ed64ef3123de005b958aa585d748cd4997771e76c362014",
+     "bytes": 2036262
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.ground.moss_orh.png",
+     "storage": "local-ignored",
+     "sha256": "930273a6c3d4306bcbda42d341d4abee6e348a42f7c13050964c5f97a1576e22",
+     "bytes": 2242575
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 38936
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 5772
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 14732
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 222806
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 10650
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 43778
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 19486
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 61578
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.5,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.276,
+     0.337,
+     0.121
+    ],
+    "roughMean": 0.919
+   }
+  },
+  {
+   "id": "mat.metal.iron_rust",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "錆びた鋳物の鉄",
+    "en": "Rusted cast iron"
+   },
+   "status": "draft",
+   "tags": [
+    "金属",
+    "鉄",
+    "錆",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.metal.iron_rust",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.metal.iron_rust_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "b89a535376852bf6fc8713291ee274c2628a1159c99d365c6cf1c30aed877a1a",
+     "bytes": 1690395
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.metal.iron_rust_normal.png",
+     "storage": "local-ignored",
+     "sha256": "4a9912b974e3d2a7de02df9e33114fa75e4125f99b2877eb443b258c1993d190",
+     "bytes": 2317287
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.metal.iron_rust_orh.png",
+     "storage": "local-ignored",
+     "sha256": "c97b82dffdc6353f024344cbd142f08aa228d4b0d95ad0449ebe18d080b9441b",
+     "bytes": 2524159
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 910
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 2960
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 10948
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 580
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 8426
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 64158
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 3360
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 15140
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 69278
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 0.6,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.214,
+     0.169,
+     0.143
+    ],
+    "roughMean": 0.658
+   }
+  },
+  {
+   "id": "mat.metal.tin_rust",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "錆びたトタン（波板）",
+    "en": "Rusted corrugated iron"
+   },
+   "status": "draft",
+   "tags": [
+    "金属",
+    "トタン",
+    "錆",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.metal.tin_rust",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.metal.tin_rust_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "d70b1de49f1aae6db336898b78256e1898e71dac19e5f67590c8dbeca7b182c9",
+     "bytes": 1875241
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.metal.tin_rust_normal.png",
+     "storage": "local-ignored",
+     "sha256": "4bf70889dce20a57cf265fa1aa8dd07322d9c16f0a2e187d6605e9109cd72777",
+     "bytes": 1760733
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.metal.tin_rust_orh.png",
+     "storage": "local-ignored",
+     "sha256": "f6a581257f1864a8e48f1650998a95771d7b9cf774726398f9aaf4eadaac1d15",
+     "bytes": 1828706
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 1404
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 5458
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 22806
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 564
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 1356
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 5808
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 2222
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 8070
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 34470
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.5,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.402,
+     0.311,
+     0.256
+    ],
+    "roughMean": 0.763
+   }
+  },
+  {
+   "id": "mat.paint.shu",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "はがれた朱塗り",
+    "en": "Peeling vermilion"
+   },
+   "status": "draft",
+   "tags": [
+    "塗装",
+    "朱",
+    "鳥居",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.paint.shu",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.paint.shu_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "42c0d0f85ee0831b0c195baa8f0af75d2ac8d9c3e143ea9788f9b10c1e6c1cc4",
+     "bytes": 2073663
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.paint.shu_normal.png",
+     "storage": "local-ignored",
+     "sha256": "d457049974879e9b93ecf941e102c8fe1df845c68c8cbf397d2f391e523515eb",
+     "bytes": 2581511
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.paint.shu_orh.png",
+     "storage": "local-ignored",
+     "sha256": "11c37f9af78ba7744327328ca3e3d7cceb865301eb08f0bf0971f2dd62ed3c1f",
+     "bytes": 2344594
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 1122
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 4924
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 24860
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 426
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 6978
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 66994
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 2768
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 11290
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 54336
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.544,
+     0.252,
+     0.172
+    ],
+    "roughMean": 0.739
+   }
+  },
+  {
+   "id": "mat.paper.shoji",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "破れた障子",
+    "en": "Torn shoji"
+   },
+   "status": "draft",
+   "tags": [
+    "紙",
+    "障子",
+    "建具",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.paper.shoji",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.paper.shoji_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "e0229bba46d3804b05d65c927ff7585876fa334ababa218300f3cbb5f1a2234e",
+     "bytes": 1543867
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.paper.shoji_normal.png",
+     "storage": "local-ignored",
+     "sha256": "36ad19796aa87f94e937ef39098912f4dedd3ca660a2d6e817c5675fc15c65e9",
+     "bytes": 1270469
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.paper.shoji_orh.png",
+     "storage": "local-ignored",
+     "sha256": "b2c36905102dff2a18c240ea866bcd4cbd7be39fb6092dc07925bab8012095f0",
+     "bytes": 1368400
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 6488
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 19684
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 67932
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 516
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 1240
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 4424
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 1178
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 2634
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 6496
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 0.9,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": true,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB・A＝透過（alphaTest 0.5）",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.744,
+     0.699,
+     0.595
+    ],
+    "roughMean": 0.893
+   }
+  },
+  {
+   "id": "mat.rock.andesite",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "安山岩（地衣類）",
+    "en": "Andesite with lichen"
+   },
+   "status": "draft",
+   "tags": [
+    "岩",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.rock.andesite",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.rock.andesite_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "e799c5659fa8fa2d1720b289450d7bc556a20e530d9c3605d4d90571b3f7f4b2",
+     "bytes": 1565640
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.rock.andesite_normal.png",
+     "storage": "local-ignored",
+     "sha256": "586c82697daf41207814741e16fff6b0e7420792afa60ee6c9812adcc2182da6",
+     "bytes": 2426800
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.rock.andesite_orh.png",
+     "storage": "local-ignored",
+     "sha256": "627a58f02a7e9bc282b29d25e2eeaa5fe7ed88de5ced2583d6dba2bc080bef7e",
+     "bytes": 2159384
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 97282
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 7974
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 26536
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 355004
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 8894
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 70216
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 12812
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 55528
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2.5,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.283,
+     0.283,
+     0.271
+    ],
+    "roughMean": 0.875
+   }
+  },
+  {
+   "id": "mat.rock.cliff",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "崖の面",
+    "en": "Cliff face"
+   },
+   "status": "draft",
+   "tags": [
+    "岩",
+    "崖",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.rock.cliff",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.rock.cliff_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "c14d2950a58f8429e9d089979efa225e752abc2642a3ffbb958a1090135a42d6",
+     "bytes": 1660846
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.rock.cliff_normal.png",
+     "storage": "local-ignored",
+     "sha256": "8df8acf20b9f9f330391aaf7f7422275b07acb3f9e4ce5d2a8c58577f6b4b53a",
+     "bytes": 2602784
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.rock.cliff_orh.png",
+     "storage": "local-ignored",
+     "sha256": "26cec4be275f50c6bee5825b228814a9bebd274813c4eb906c630acc944b0de0",
+     "bytes": 2244279
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 92478
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 4628
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 18974
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 450266
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 15540
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 93936
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 16782
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 73272
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 6,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.302,
+     0.271,
+     0.227
+    ],
+    "roughMean": 0.903
+   }
+  },
+  {
+   "id": "mat.roof.kawara",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "いぶし瓦",
+    "en": "Kawara roof tiles"
+   },
+   "status": "draft",
+   "tags": [
+    "屋根",
+    "瓦",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.roof.kawara",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.roof.kawara_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "f771d564f3f72dc7e06da391d6009c558b1a678770239886b23176a29716b235",
+     "bytes": 988284
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.roof.kawara_normal.png",
+     "storage": "local-ignored",
+     "sha256": "42610c54288b10ff1430603753f6f1a6f64324fb65e6afa42ee1c9e537e4a424",
+     "bytes": 10654
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.roof.kawara_orh.png",
+     "storage": "local-ignored",
+     "sha256": "76ff2ba179abeeadcba96754dceb94d3fe8d60ebc27bfbcd846f4a3b83ce82ae",
+     "bytes": 915629
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 9604
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 1032
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 2800
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 7104
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 1024
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 2488
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 2784
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 6494
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.2,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.241,
+     0.249,
+     0.264
+    ],
+    "roughMean": 0.848
+   }
+  },
+  {
+   "id": "mat.roof.kawara_moss",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "苔むした瓦",
+    "en": "Mossy kawara"
+   },
+   "status": "draft",
+   "tags": [
+    "屋根",
+    "瓦",
+    "苔",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.roof.kawara_moss",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.roof.kawara_moss_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "f4f0cba58eab63e33140a237635da139d033f597a69420264b8345825a28c868",
+     "bytes": 1328725
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.roof.kawara_moss_normal.png",
+     "storage": "local-ignored",
+     "sha256": "6d01c4127d8bfdf4667064920c1b56b6a43b7fa2a6f67d048c1af861c4156697",
+     "bytes": 1291806
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.roof.kawara_moss_orh.png",
+     "storage": "local-ignored",
+     "sha256": "871f9cfae886e5f5990693b224c5a1f8850711c10f3ee881329bceb28650b4e1",
+     "bytes": 1536112
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 1280
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 3584
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 9992
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 606
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 3236
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 19840
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 1794
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 4956
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 15802
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.2,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.253,
+     0.278,
+     0.226
+    ],
+    "roughMean": 0.849
+   }
+  },
+  {
+   "id": "mat.stone.granite",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "御影石",
+    "en": "Granite"
+   },
+   "status": "draft",
+   "tags": [
+    "石",
+    "御影石",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.stone.granite",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.stone.granite_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "a3d2630adfbd38c762632f87d39f829a43dad250812a072b42231e8bb52ea94d",
+     "bytes": 1642311
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.stone.granite_normal.png",
+     "storage": "local-ignored",
+     "sha256": "ab73b43356253ad8822e79257f102d4b21c330a163f172c9d5aea6ca0a5b199c",
+     "bytes": 2424862
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.stone.granite_orh.png",
+     "storage": "local-ignored",
+     "sha256": "89f9fd7a2bd600fed0e69ad188f315344a31cfb7feb0e09d0f42669f385015f9",
+     "bytes": 2444422
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 4352
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 17008
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 46284
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 364
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 9464
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 72472
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 2496
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 14910
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 66844
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.5,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.376,
+     0.368,
+     0.351
+    ],
+    "roughMean": 0.85
+   }
+  },
+  {
+   "id": "mat.wall.tsuchikabe",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "古い土壁（ひび・はがれ）",
+    "en": "Cracked earthen plaster"
+   },
+   "status": "draft",
+   "tags": [
+    "壁",
+    "土壁",
+    "漆喰",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.wall.tsuchikabe",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.wall.tsuchikabe_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "8aed0f5c789eafb560fc07575c9c23004870312930017df80feb90f25e883c3b",
+     "bytes": 1724751
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.wall.tsuchikabe_normal.png",
+     "storage": "local-ignored",
+     "sha256": "34426fbf71f561d00833c7e142e3893537d68a7a1870e60e1fe8ff95d2137565",
+     "bytes": 2270464
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.wall.tsuchikabe_orh.png",
+     "storage": "local-ignored",
+     "sha256": "c541d344c8f45488df7f3235931494d71bae2c017ce752da3ab364077c752158",
+     "bytes": 1820736
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 167190
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 6174
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 30460
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 283728
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 3900
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 47346
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 7260
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 39834
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.557,
+     0.486,
+     0.384
+    ],
+    "roughMean": 0.93
+   }
+  },
+  {
+   "id": "mat.wood.cedar",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "風化した杉材",
+    "en": "Weathered cedar"
+   },
+   "status": "draft",
+   "tags": [
+    "木",
+    "杉",
+    "風化",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.wood.cedar",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.wood.cedar_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "32ef45aa89a36faf573288c0ed61285d1bba5b37c45afae548d6c87aec7c9064",
+     "bytes": 1230449
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.wood.cedar_normal.png",
+     "storage": "local-ignored",
+     "sha256": "9442edbbdeac14b7b4658ce59042ff06af4a7532def1420e451d668338ca5a6d",
+     "bytes": 2335813
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.wood.cedar_orh.png",
+     "storage": "local-ignored",
+     "sha256": "67c562b1aa4f521697a382d1f14db5b3a97eee1a819a44e53b5bf70785ae74b8",
+     "bytes": 2238920
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 1124
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 3526
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 12344
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 932
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 7054
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 58738
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 2240
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 10050
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 52800
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.2,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.429,
+     0.365,
+     0.307
+    ],
+    "roughMean": 0.87
+   }
+  },
+  {
+   "id": "mat.wood.planks_silver",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "銀灰の板張り",
+    "en": "Silvered planks"
+   },
+   "status": "draft",
+   "tags": [
+    "木",
+    "板",
+    "風化",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.wood.planks_silver",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.wood.planks_silver_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "3e27312c2573ab2ff65c24ddc60e49cf67488c60046d8667acbc8ca72be60de8",
+     "bytes": 1470272
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.wood.planks_silver_normal.png",
+     "storage": "local-ignored",
+     "sha256": "90750c9567dfe6b93b7ecf99f9579bca0f811e173d757a6fdf2ad99c403d5dcd",
+     "bytes": 1928589
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.wood.planks_silver_orh.png",
+     "storage": "local-ignored",
+     "sha256": "f5fb45639193a53d2909d4d6613395a6e4aed63f83257022dcd16aee224eb6df",
+     "bytes": 1877092
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 92594
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 5426
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 20564
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 171046
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 4670
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 27222
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 5892
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 26428
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.477,
+     0.439,
+     0.389
+    ],
+    "roughMean": 0.88
+   }
+  },
+  {
+   "id": "prop.barrel",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "樽",
+    "en": "Wooden barrel"
+   },
+   "status": "draft",
+   "tags": [
+    "樽",
+    "木",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.barrel",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.599,
+     0.85,
+     0.587
+    ],
+    "tris": 424
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.barrel.fbx",
+     "storage": "local-ignored",
+     "sha256": "2965fbacea9d4fc2c1c99c888a5fadd9a9b151705bebf2f048d96ea66ff9f30a",
+     "bytes": 29068
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.barrel.glb",
+     "bytes": 47164
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_barrel",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.barrel.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 424,
+     "LOD1": 127
+    },
+    "variants": 1,
+    "lodDist": [
+     14
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.metal.iron_rust",
+     "mat.wood.cedar",
+     "mat.wood.planks_silver"
+    ]
+   }
+  },
+  {
+   "id": "prop.beam",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "落ちた梁",
+    "en": "Fallen beam"
+   },
+   "status": "draft",
+   "tags": [
+    "梁",
+    "木",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.beam",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     2.426,
+     0.248,
+     0.228
+    ],
+    "tris": 56
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.beam.fbx",
+     "storage": "local-ignored",
+     "sha256": "1f7bb827c30d27e0b0df98012b11dce3325c0ea1741e4f81f224c6dd0c47d85b",
+     "bytes": 17740
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.beam.glb",
+     "bytes": 12388
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_beam",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.beam.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 56,
+     "LOD1": 22
+    },
+    "variants": 1,
+    "lodDist": [
+     16
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.wood.cedar"
+    ]
+   }
+  },
+  {
+   "id": "prop.bicycle",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "錆びた自転車（横倒し）",
+    "en": "Rusted bicycle (fallen)"
+   },
+   "status": "draft",
+   "tags": [
+    "自転車",
+    "錆",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.bicycle",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1.744,
+     0.14,
+     0.453
+    ],
+    "tris": 824
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.bicycle.fbx",
+     "storage": "local-ignored",
+     "sha256": "d34039a8e978acc7a40332f35232d2f055d5f65639ac03810659bbee4ec82f1d",
+     "bytes": 41820
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.bicycle.glb",
+     "bytes": 95896
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_bicycle",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.bicycle.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 824,
+     "LOD1": 246
+    },
+    "variants": 1,
+    "lodDist": [
+     14
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.fabric.futon",
+     "mat.metal.iron_rust"
+    ]
+   }
+  },
+  {
+   "id": "prop.crate",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "木箱",
+    "en": "Wooden crate"
+   },
+   "status": "draft",
+   "tags": [
+    "木箱",
+    "木",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.crate",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.7,
+     0.6,
+     0.7
+    ],
+    "tris": 764
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.crate.fbx",
+     "storage": "local-ignored",
+     "sha256": "807c9b8c6acd57954d043bc1ada4eb7b7b5139a4a300ce1705caca875768de09",
+     "bytes": 31596
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.crate.glb",
+     "bytes": 123772
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_crate",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.crate.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 764,
+     "LOD1": 190
+    },
+    "variants": 1,
+    "lodDist": [
+     14
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.wood.cedar",
+     "mat.wood.planks_silver"
+    ]
+   }
+  },
+  {
+   "id": "prop.debris",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "瓦礫（土壁・瓦・小舞）",
+    "en": "Rubble pile"
+   },
+   "status": "draft",
+   "tags": [
+    "瓦礫",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.debris",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1.281,
+     0.536,
+     1.021
+    ],
+    "tris": 1052
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.debris.fbx",
+     "storage": "local-ignored",
+     "sha256": "65635061d3c0708bf66381a6cf8ef7b8206ba0680a26bb766f6d407c7669ee85",
+     "bytes": 58108
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.debris.glb",
+     "bytes": 181636
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_debris",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.debris.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 1052,
+     "LOD1": 314
+    },
+    "variants": 1,
+    "lodDist": [
+     14
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.roof.kawara",
+     "mat.wall.tsuchikabe",
+     "mat.wood.cedar",
+     "mat.wood.planks_silver"
+    ]
+   }
+  },
+  {
+   "id": "prop.door_fallen",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "倒れた障子",
+    "en": "Fallen shoji door"
+   },
+   "status": "draft",
+   "tags": [
+    "障子",
+    "建具",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.door_fallen",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.9,
+     0.142,
+     1.798
+    ],
+    "tris": 190
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.door_fallen.fbx",
+     "storage": "local-ignored",
+     "sha256": "0905f378510858b1daab099c9879a7f43f8223b50e8055ff2d29c3b6dba5c968",
+     "bytes": 22140
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.door_fallen.glb",
+     "bytes": 42456
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_door_fallen",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.door_fallen.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 190,
+     "LOD1": 94
+    },
+    "variants": 1,
+    "lodDist": [
+     14
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.paper.shoji",
+     "mat.wood.cedar",
+     "mat.wood.planks_silver"
+    ]
+   }
+  },
+  {
+   "id": "prop.fence",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "壊れかけの木の柵（2m）",
+    "en": "Broken wooden fence (2m)"
+   },
+   "status": "draft",
+   "tags": [
+    "柵",
+    "木",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.fence",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     2.044,
+     1.103,
+     0.124
+    ],
+    "tris": 168
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.fence.fbx",
+     "storage": "local-ignored",
+     "sha256": "22cc2024e1217904748dca72050b64ece7f8c0de93af2a7b4a0a5587199d41e5",
+     "bytes": 22300
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.fence.glb",
+     "bytes": 34152
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_fence",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.fence.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 168,
+     "LOD1": 66
+    },
+    "variants": 1,
+    "lodDist": [
+     20
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.wood.cedar",
+     "mat.wood.planks_silver"
+    ]
+   }
+  },
+  {
+   "id": "prop.futon",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "朽ちた布団",
+    "en": "Rotten futon"
+   },
+   "status": "draft",
+   "tags": [
+    "布団",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.futon",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1.032,
+     0.352,
+     1.912
+    ],
+    "tris": 88
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.futon.fbx",
+     "storage": "local-ignored",
+     "sha256": "9331ace13278cfc4a8f07b3a0f317e5abb2d35412833ae60cb6ff9ffc3cd8c72",
+     "bytes": 18780
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.futon.glb",
+     "bytes": 12480
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_futon",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.futon.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 88,
+     "LOD1": 34
+    },
+    "variants": 1,
+    "lodDist": [
+     12
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.fabric.futon"
+    ]
+   }
+  },
+  {
+   "id": "prop.irori",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "囲炉裏（鉄瓶と五徳）",
+    "en": "Irori hearth"
+   },
+   "status": "draft",
+   "tags": [
+    "囲炉裏",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.irori",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.9,
+     0.36,
+     0.9
+    ],
+    "tris": 316
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.irori.fbx",
+     "storage": "local-ignored",
+     "sha256": "da4e1eda62599a96536b6d19a253ebd4642dd027adfefa5e80ac9a44e27cb3e9",
+     "bytes": 25884
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.irori.glb",
+     "bytes": 53944
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_irori",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.irori.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 316,
+     "LOD1": 126
+    },
+    "variants": 1,
+    "lodDist": [
+     12
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.ground.dirt_path",
+     "mat.metal.iron_rust",
+     "mat.wood.cedar"
+    ]
+   }
+  },
+  {
+   "id": "prop.ishigaki",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "石垣（2m）",
+    "en": "Stone wall section (2m)"
+   },
+   "status": "draft",
+   "tags": [
+    "石垣",
+    "石",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.ishigaki",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1.963,
+     0.791,
+     0.498
+    ],
+    "tris": 720
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.ishigaki.fbx",
+     "storage": "local-ignored",
+     "sha256": "0b9241e1bf65a223ad0444c8a7076576ab567e8f55558bc15e5832b798f04dab",
+     "bytes": 39484
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.ishigaki.glb",
+     "bytes": 75408
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_ishigaki",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.ishigaki.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 720,
+     "LOD1": 216
+    },
+    "variants": 1,
+    "lodDist": [
+     25
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.rock.andesite"
+    ]
+   }
+  },
+  {
+   "id": "prop.kamado",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "かまど",
+    "en": "Kamado stove"
+   },
+   "status": "draft",
+   "tags": [
+    "かまど",
+    "土",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.kamado",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.94,
+     0.86,
+     0.64
+    ],
+    "tris": 384
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.kamado.fbx",
+     "storage": "local-ignored",
+     "sha256": "77ad3f3de7650e5a163b6114e2c45740ebf39a7d56a4a0ecb9dd77594ce70022",
+     "bytes": 28716
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.kamado.glb",
+     "bytes": 58712
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_kamado",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.kamado.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 384,
+     "LOD1": 134
+    },
+    "variants": 1,
+    "lodDist": [
+     12
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.metal.iron_rust",
+     "mat.rock.andesite",
+     "mat.stone.granite",
+     "mat.wall.tsuchikabe"
+    ]
+   }
+  },
+  {
+   "id": "prop.komainu",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "狛犬（オリジナルの簡単な石像）",
+    "en": "Komainu guardian (original, simple)"
+   },
+   "status": "draft",
+   "tags": [
+    "狛犬",
+    "石",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.komainu",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.486,
+     0.965,
+     0.633
+    ],
+    "tris": 1208
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.komainu.fbx",
+     "storage": "local-ignored",
+     "sha256": "e33cc260876aea509b7f7633234ecc165952035671cbe2340e19faf9550ac799",
+     "bytes": 61820
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.komainu.glb",
+     "bytes": 107768
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_komainu",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.komainu.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 1208,
+     "LOD1": 302
+    },
+    "variants": 1,
+    "lodDist": [
+     20
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.stone.granite"
+    ]
+   }
+  },
+  {
+   "id": "prop.planks",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "板の山",
+    "en": "Plank pile"
+   },
+   "status": "draft",
+   "tags": [
+    "板",
+    "木",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.planks",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1.724,
+     0.238,
+     0.66
+    ],
+    "tris": 376
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.planks.fbx",
+     "storage": "local-ignored",
+     "sha256": "0b809db9c062cf20280d082f09ed61f191f607a216189bca961542336e7b639e",
+     "bytes": 29676
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.planks.glb",
+     "bytes": 66520
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_planks",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.planks.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 376,
+     "LOD1": 112
+    },
+    "variants": 1,
+    "lodDist": [
+     14
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.wood.cedar",
+     "mat.wood.planks_silver"
+    ]
+   }
+  },
+  {
+   "id": "prop.shelf_fallen",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "倒れた棚",
+    "en": "Fallen shelf"
+   },
+   "status": "draft",
+   "tags": [
+    "棚",
+    "木",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.shelf_fallen",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.8,
+     0.368,
+     1.6
+    ],
+    "tris": 320
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.shelf_fallen.fbx",
+     "storage": "local-ignored",
+     "sha256": "75f18a39afed6d1fabda59924580cee58d04aeea0ad41a8448f792e2f13fcc9f",
+     "bytes": 22700
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.shelf_fallen.glb",
+     "bytes": 59044
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_shelf_fallen",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.shelf_fallen.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 320,
+     "LOD1": 112
+    },
+    "variants": 1,
+    "lodDist": [
+     12
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.wood.cedar",
+     "mat.wood.planks_silver"
+    ]
+   }
+  },
+  {
+   "id": "prop.sign",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "色あせた立て札",
+    "en": "Weathered sign"
+   },
+   "status": "draft",
+   "tags": [
+    "札",
+    "木",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.sign",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.72,
+     1.619,
+     0.179
+    ],
+    "tris": 100
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.sign.fbx",
+     "storage": "local-ignored",
+     "sha256": "889fed641e305bad9e609d392041800b0dd2362f5ce6abf13783483e5a9263a0",
+     "bytes": 19388
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.sign.glb",
+     "bytes": 22312
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_sign",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.sign.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 100,
+     "LOD1": 40
+    },
+    "variants": 1,
+    "lodDist": [
+     16
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.wood.cedar",
+     "mat.wood.planks_silver"
+    ]
+   }
+  },
+  {
+   "id": "prop.stone_lantern",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "石灯籠（春日型）",
+    "en": "Stone lantern (kasuga)"
+   },
+   "status": "draft",
+   "tags": [
+    "灯籠",
+    "石",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.stone_lantern",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.618,
+     1.216,
+     0.538
+    ],
+    "tris": 452
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.stone_lantern.fbx",
+     "storage": "local-ignored",
+     "sha256": "63eb082b2c87366f2fe23ba79da00865ea01641dc8e2f4365fcaf44cdbf143af",
+     "bytes": 33180
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.stone_lantern.glb",
+     "bytes": 57916
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_stone_lantern",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.stone_lantern.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 452,
+     "LOD1": 157
+    },
+    "variants": 1,
+    "lodDist": [
+     20
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.stone.granite"
+    ]
+   }
+  },
+  {
+   "id": "prop.tansu",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "箪笥（引き出しが出ている）",
+    "en": "Tansu chest"
+   },
+   "status": "draft",
+   "tags": [
+    "箪笥",
+    "木",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.tansu",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1,
+     1.1,
+     0.667
+    ],
+    "tris": 360
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.tansu.fbx",
+     "storage": "local-ignored",
+     "sha256": "8a2121883573c6429c7196392afb97b6901d8e8902739fd8e7d9f7ceeb9508c6",
+     "bytes": 25020
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.tansu.glb",
+     "bytes": 67988
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_tansu",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.tansu.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 360,
+     "LOD1": 126
+    },
+    "variants": 1,
+    "lodDist": [
+     12
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.metal.iron_rust",
+     "mat.wood.cedar",
+     "mat.wood.planks_silver"
+    ]
+   }
+  },
+  {
+   "id": "prop.utility_pole",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "古い木の電柱",
+    "en": "Old wooden utility pole"
+   },
+   "status": "draft",
+   "tags": [
+    "電柱",
+    "木",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.utility_pole",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1.3,
+     8.3,
+     0.257
+    ],
+    "tris": 276
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.utility_pole.fbx",
+     "storage": "local-ignored",
+     "sha256": "e696d650016b9365cdb083c1107b83cd4c8267122c9df72bf50adfdf8f53ea7b",
+     "bytes": 24540
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.utility_pole.glb",
+     "bytes": 45780
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_utility_pole",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.utility_pole.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 276,
+     "LOD1": 82
+    },
+    "variants": 1,
+    "lodDist": [
+     60
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.metal.iron_rust",
+     "mat.metal.tin_rust",
+     "mat.stone.granite",
+     "mat.wood.cedar"
+    ]
+   }
+  },
+  {
+   "id": "prop.well",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "井戸",
+    "en": "Well"
+   },
+   "status": "draft",
+   "tags": [
+    "井戸",
+    "石",
+    "木",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.well",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1.4,
+     1.81,
+     1.151
+    ],
+    "tris": 1382
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.well.fbx",
+     "storage": "local-ignored",
+     "sha256": "23307d6590bee134de6cc9c4e4a767ed75c7195568496ccd5c45e5e64201acd9",
+     "bytes": 53516
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.well.glb",
+     "bytes": 241816
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_well",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.well.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 1382,
+     "LOD1": 482
+    },
+    "variants": 1,
+    "lodDist": [
+     20
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.ground.dirt_path",
+     "mat.metal.iron_rust",
+     "mat.rock.andesite",
+     "mat.wood.cedar",
+     "mat.wood.planks_silver"
+    ]
+   }
+  },
+  {
+   "id": "rock.boulder",
+   "version": 1,
+   "category": "rock",
+   "name": {
+    "ja": "岩（安山岩・3 種）",
+    "en": "Boulder (andesite, 3 variants)"
+   },
+   "status": "draft",
+   "tags": [
+    "岩",
+    "手続き",
+    "自作"
+   ],
+   "dir": "rock/rock.boulder",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1.4,
+     0.9,
+     1.1
+    ],
+    "tris": 1280
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/rock.boulder.fbx",
+     "storage": "local-ignored",
+     "sha256": "bcf53e65712efe87e8b8c65d1f33fb7963e9c1eba03ad491f0ccee85ab87c7bc",
+     "bytes": 171372
+    }
+   ],
+   "web": [
+    {
+     "file": "web/rock.boulder.glb",
+     "bytes": 356204
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Rock/SM_rock_boulder",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/rock.boulder.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "v0_LOD0": 1280,
+     "v0_LOD1": 320,
+     "v0_LOD2": 76,
+     "v1_LOD0": 1280,
+     "v1_LOD1": 320,
+     "v1_LOD2": 76,
+     "v2_LOD0": 1280,
+     "v2_LOD1": 320,
+     "v2_LOD2": 76
+    },
+    "variants": 3,
+    "lodDist": [
+     18,
+     50
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.rock.andesite"
+    ]
+   }
+  },
+  {
+   "id": "veg.fern",
+   "version": 1,
+   "category": "vegetation",
+   "name": {
+    "ja": "シダの株",
+    "en": "Fern"
+   },
+   "status": "draft",
+   "tags": [
+    "下草",
+    "シダ",
+    "手続き",
+    "自作"
+   ],
+   "dir": "vegetation/veg.fern",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.877,
+     0.466,
+     0.794
+    ],
+    "tris": 48
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/veg.fern.fbx",
+     "storage": "local-ignored",
+     "sha256": "9d44fe5870b7d0a644e85d08cde7a7387855b8916f60e6c878439b828c0db587",
+     "bytes": 18076
+    }
+   ],
+   "web": [
+    {
+     "file": "web/veg.fern.glb",
+     "bytes": 5400
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Vegetation/SM_veg_fern",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/veg.fern.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 48
+    },
+    "variants": 1,
+    "lodDist": [
+     30
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.foliage.fern"
+    ]
+   }
+  },
+  {
+   "id": "veg.grass",
+   "version": 1,
+   "category": "vegetation",
+   "name": {
+    "ja": "草の株（3 枚のカード）",
+    "en": "Grass clump"
+   },
+   "status": "draft",
+   "tags": [
+    "下草",
+    "草",
+    "手続き",
+    "自作"
+   ],
+   "dir": "vegetation/veg.grass",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.64,
+     0.443,
+     0.477
+    ],
+    "tris": 6
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/veg.grass.fbx",
+     "storage": "local-ignored",
+     "sha256": "f5356081a028bc92ba9aab74e09a28f2736b3e3bd623ea06cad8a792f67c2022",
+     "bytes": 16028
+    }
+   ],
+   "web": [
+    {
+     "file": "web/veg.grass.glb",
+     "bytes": 2232
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Vegetation/SM_veg_grass",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/veg.grass.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 6
+    },
+    "variants": 1,
+    "lodDist": [
+     40
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.foliage.grass"
+    ]
+   }
+  },
+  {
+   "id": "veg.tree.broadleaf",
+   "version": 1,
+   "category": "vegetation",
+   "name": {
+    "ja": "広葉樹（カードの葉・LOD・遠景の板）",
+    "en": "Broadleaf tree"
+   },
+   "status": "draft",
+   "tags": [
+    "広葉樹",
+    "木",
+    "手続き",
+    "自作"
+   ],
+   "dir": "vegetation/veg.tree.broadleaf",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     7.521,
+     9.633,
+     7.599
+    ],
+    "tris": 1318
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/veg.tree.broadleaf.fbx",
+     "storage": "local-ignored",
+     "sha256": "e35ec56358dbaf149a374dc90a0c4eebb7301204d2b9347293e22756665e2817",
+     "bytes": 94332
+    }
+   ],
+   "web": [
+    {
+     "file": "web/veg.tree.broadleaf.glb",
+     "bytes": 276832
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Vegetation/SM_veg_tree_broadleaf",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/veg.tree.broadleaf.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 1318,
+     "LOD1": 304,
+     "IMP": 6
+    },
+    "variants": 1,
+    "lodDist": [
+     26,
+     65
+    ],
+    "impostor": true,
+    "materials": [
+     "imp.veg.tree.broadleaf",
+     "mat.bark.broadleaf",
+     "mat.foliage.broadleaf"
+    ]
+   }
+  },
+  {
+   "id": "veg.tree.sugi",
+   "version": 1,
+   "category": "vegetation",
+   "name": {
+    "ja": "杉（カードの葉・LOD・遠景の板）",
+    "en": "Japanese cedar (sugi)"
+   },
+   "status": "draft",
+   "tags": [
+    "杉",
+    "針葉樹",
+    "木",
+    "手続き",
+    "自作"
+   ],
+   "dir": "vegetation/veg.tree.sugi",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     5.698,
+     14.898,
+     5.955
+    ],
+    "tris": 1528
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/veg.tree.sugi.fbx",
+     "storage": "local-ignored",
+     "sha256": "96ad1b77755ac485546b339995ce2a7ba352008120100077f51cd0800a36b9df",
+     "bytes": 95996
+    }
+   ],
+   "web": [
+    {
+     "file": "web/veg.tree.sugi.glb",
+     "bytes": 229040
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Vegetation/SM_veg_tree_sugi",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/veg.tree.sugi.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 1528,
+     "LOD1": 158,
+     "IMP": 6
+    },
+    "variants": 1,
+    "lodDist": [
+     28,
+     70
+    ],
+    "impostor": true,
+    "materials": [
+     "imp.veg.tree.sugi",
+     "mat.bark.sugi",
+     "mat.foliage.sugi"
+    ]
+   }
+  }
+ ]
 }

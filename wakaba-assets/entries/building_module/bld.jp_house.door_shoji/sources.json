@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "bld.jp_house.door_shoji",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/bld.jp_house.door_shoji.fbx",
+   "storage": "local-ignored",
+   "sha256": "7c2d50338d27276f740e3dc86ecd92d6fee3aa5f5bfd2a6aa4fa284156687f58",
+   "bytes": 21564,
+   "tool": "bpy 4.2.0",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only bld.jp_house.door_shoji"
+  }
+ ]
+}

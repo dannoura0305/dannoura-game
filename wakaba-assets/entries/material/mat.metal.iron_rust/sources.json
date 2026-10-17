@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.metal.iron_rust",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.metal.iron_rust_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "b89a535376852bf6fc8713291ee274c2628a1159c99d365c6cf1c30aed877a1a",
+   "bytes": 1690395,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.metal.iron_rust"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.metal.iron_rust_normal.png",
+   "storage": "local-ignored",
+   "sha256": "4a9912b974e3d2a7de02df9e33114fa75e4125f99b2877eb443b258c1993d190",
+   "bytes": 2317287,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.metal.iron_rust"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.metal.iron_rust_orh.png",
+   "storage": "local-ignored",
+   "sha256": "c97b82dffdc6353f024344cbd142f08aa228d4b0d95ad0449ebe18d080b9441b",
+   "bytes": 2524159,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.metal.iron_rust"
+  }
+ ]
+}

@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.fabric.futon",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.fabric.futon_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "911d416015044de71a2d02fd9583a841a0503e0bbf2a9ebe9cda78741907fc69",
+   "bytes": 1350153,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.fabric.futon"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.fabric.futon_normal.png",
+   "storage": "local-ignored",
+   "sha256": "60629fbcc8ae3b02d91bec56615c8baca6fd80e32b92756a6da0abae5f43d1e1",
+   "bytes": 2608665,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.fabric.futon"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.fabric.futon_orh.png",
+   "storage": "local-ignored",
+   "sha256": "9109b50183923ddd354d5be80042c727d28b226acc8459edb610fa216126fa32",
+   "bytes": 2498963,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.fabric.futon"
+  }
+ ]
+}

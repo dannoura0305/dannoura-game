@@ -5,6 +5,7 @@
 // PC（1280×800・段 high）とスマホ（844×390・タッチ・段 low）で：道案内（距離の場）に沿って、操作（当たり・坂・段差）で全ての目的地へ歩き、
 // 着いたかを確かめる。ページの誤り 0・描画呼び出し（スマホ ≤ 120）・画面撮影（上空・村・家の中・祠・山道と崖・森・スマホ）と一覧（overview.png）。
 // 結果は maps/<id>/report/play.json に書き、report.json の budget・perf を測った値で更新する（--no-report で書かない）。
+// フェーズ 3：起動の時間（操作できるまで）・GPU のテクスチャの量（見積もり）・段ごと（ultra／high／mid／low）の描画呼び出し・三角形を同じ視点（村）で測る（--no-presets で省く）。
 // 環境変数：PW_MODULE（playwright の index.mjs）、PW_CHROMIUM（chromium の実行ファイル）
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -13,7 +14,7 @@ import { rootPath, registry, compactJSON, parseArgs } from '../../mapkit/core/no
 import { validateReport, reportToMarkdown } from '../../mapkit/report/report.js';
 import { MAP_PRESETS } from '../../mapkit/render/quality.js';
 
-const { opt, pos } = parseArgs(process.argv.slice(2), ['no-report']);
+const { opt, pos } = parseArgs(process.argv.slice(2), ['no-report', 'no-presets']);
 const OUT = resolve(pos[0] || 'mapkit_shots'), MAP = opt.map || 'haison', BASE = (opt.base || 'http://localhost:8797').replace(/\/$/, ''), ONLY = opt.only || null;
 const { chromium } = await import(process.env.PW_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 mkdirSync(OUT, { recursive: true });
@@ -27,7 +28,8 @@ async function open(ctxOpt, query) {
   await page.waitForFunction(() => window.__mk && __mk.ready, null, { timeout: 120000, polling: 100 });
   return { ctx, page, errs, loadMs: Date.now() - t0 };
 }
-async function shot(page, name, label) { await page.evaluate(() => __mk.render()); await page.waitForTimeout(700); await page.screenshot({ path: join(OUT, name) }); shots.push({ name, label }); }
+// ソフト描画（swiftshader）では写実の段の 1 フレームが数秒かかるので、撮影の待ちを長くする（実機では 16ms 前後の見込み・未計測）
+async function shot(page, name, label) { await page.evaluate(() => __mk.render()); await page.waitForTimeout(700); await page.screenshot({ path: join(OUT, name), timeout: 180000 }); shots.push({ name, label }); }
 const pose = (page, p) => page.evaluate(p => __mk.pose(p), p);
 const ground = (page, x, z) => page.evaluate(([x, z]) => __mk.ground(x, z), [x, z]);
 
@@ -76,7 +78,9 @@ if (!ONLY || ONLY === 'pc') {
   await page.evaluate(() => __mk.fog(false)); await pose(page, { pos: [40, 150, 20], look: [128, 10, 128] }); await shot(page, 'pc_aerial.png', '上空（霧なし：全体の配置）'); await page.evaluate(() => __mk.fog(true));
   await page.evaluate(() => { __mk.pose(null); __mk.hud(true); });
   const info = await page.evaluate(() => __mk.info());
-  report.pc = { preset: 'high', loadMs, drawCalls: { max: Math.max(...calls), start }, tris: st.tris, info, errors: errs };
+  report.pc = { preset: 'high', loadMs, bootMs: info.bootMs, texMB: info.texMB, drawCalls: { max: Math.max(...calls), start }, tris: st.tris, info, errors: errs };
+  ok('PC：読み込みの失敗 0（素材・目録）', !info.assets || info.assets.failed.length === 0, info.assets ? `テクスチャ ${info.assets.textures}・部品 ${info.assets.kits}・GPU のテクスチャ ${info.texMB}MB` : '');
+  ok('PC：テクスチャの量 ≤ 800MB（high）', info.texMB <= MAP_PRESETS.high.texMB, `${info.texMB}MB`);
   ok('PC：描画呼び出し ≤ 250（high）', Math.max(...calls) <= MAP_PRESETS.high.drawCalls, `最大 ${Math.max(...calls)}・三角形 ${(st.tris / 1000).toFixed(0)}k`);
   ok('PC：ページの誤り 0', errs.length === 0, errs.slice(0, 3).join(' / '));
   await ctx.close();
@@ -104,8 +108,23 @@ if (!ONLY || ONLY === 'phone') {
   const mx = Math.max(...calls);
   ok('スマホ：描画呼び出し ≤ 120（low）', mx <= MAP_PRESETS.low.drawCalls, `最大 ${mx}・三角形 ${(st.tris / 1000).toFixed(0)}k`);
   ok('スマホ：ページの誤り 0', errs.length === 0, errs.slice(0, 3).join(' / '));
-  report.phone = { preset, loadMs, drawCalls: { max: mx }, tris: st.tris, errors: errs };
+  const pinfo = await page.evaluate(() => __mk.info());
+  ok('スマホ：テクスチャの量 ≤ 150MB（low）', pinfo.texMB <= MAP_PRESETS.low.texMB, `${pinfo.texMB}MB・起動 ${pinfo.bootMs}ms`);
+  report.phone = { preset, loadMs, bootMs: pinfo.bootMs, texMB: pinfo.texMB, drawCalls: { max: mx }, tris: st.tris, errors: errs };
   await ctx.close();
+}
+// ── 段ごとの量（同じ視点：村を上から）
+if (!ONLY && !opt['no-presets']) {
+  report.presets = {};
+  for (const pk of ['ultra', 'high', 'mid', 'low']) {
+    const { ctx, page, loadMs } = await open({ viewport: { width: 1280, height: 800 } }, `preset=${pk}`);
+    const vy = await ground(page, 122, 100); await pose(page, { pos: [132, vy + 7, 98], look: [114, vy + 1, 120] });
+    const r = await page.evaluate(() => __mk.render()), inf = await page.evaluate(() => __mk.info());
+    report.presets[pk] = { drawCalls: r.drawCalls, sceneCalls: r.sceneCalls, tris: r.tris, texMB: inf.texMB, bootMs: inf.bootMs, loadMs, programs: inf.programs };
+    console.log(`  · ${pk}：描画 ${r.drawCalls}（場面 ${r.sceneCalls}）・三角形 ${(r.tris / 1000).toFixed(0)}k・テクスチャ ${inf.texMB}MB・起動 ${inf.bootMs}ms`);
+    await ctx.close();
+  }
+  for (const pk of ['ultra', 'high', 'mid', 'low']) { const m = report.presets[pk], P = MAP_PRESETS[pk]; ok(`段 ${pk}：描画・三角形・テクスチャが上限の中（村の視点）`, m.drawCalls <= P.drawCalls && m.tris <= P.tris && m.texMB <= P.texMB, `${m.drawCalls}/${P.drawCalls}・${(m.tris / 1000).toFixed(0)}k/${P.tris / 1000}k・${m.texMB}/${P.texMB}MB`); }
 }
 // ── 一覧の画像
 if (shots.length) {
@@ -123,8 +142,9 @@ if (!opt['no-report'] && !ONLY) {
   const rf = join(rd, 'report.json');
   if (existsSync(rf)) {
     const rep = JSON.parse(readFileSync(rf, 'utf8'));
-    if (report.phone) rep.auto.budget = { pass: report.phone.drawCalls.max <= MAP_PRESETS.low.drawCalls && report.phone.tris <= MAP_PRESETS.low.tris, preset: 'low', drawCalls: report.phone.drawCalls.max, tris: report.phone.tris, texMB: 1, source: 'measured（play_map.mjs・スマホ 844×390）' };
-    rep.auto.perf = { device: 'swiftshader', fps: null, note: `fps は実機で測る（mapkit.html?perf=1）。PC high：描画 ${report.pc ? report.pc.drawCalls.max : '-'}・三角形 ${report.pc ? report.pc.tris : '-'}` };
+    if (report.phone) rep.auto.budget = { pass: report.phone.drawCalls.max <= MAP_PRESETS.low.drawCalls && report.phone.tris <= MAP_PRESETS.low.tris && report.phone.texMB <= MAP_PRESETS.low.texMB, preset: 'low', drawCalls: report.phone.drawCalls.max, tris: report.phone.tris, texMB: report.phone.texMB, source: 'measured（play_map.mjs・スマホ 844×390・テクスチャは辺×4B×4/3 の見積もり）' };
+    const ps = report.presets ? Object.entries(report.presets).map(([k, m]) => `${k} 描画 ${m.drawCalls}・三角形 ${Math.round(m.tris / 1000)}k・テクスチャ ${m.texMB}MB`).join('／') : '';
+    rep.auto.perf = { device: 'swiftshader', fps: null, note: `fps は実機で測る（mapkit.html?perf=1）。起動（操作できるまで）PC high ${report.pc ? report.pc.bootMs : '-'}ms・スマホ low ${report.phone ? report.phone.bootMs : '-'}ms（ソフト描画）。PC high：描画 ${report.pc ? report.pc.drawCalls.max : '-'}・三角形 ${report.pc ? report.pc.tris : '-'}。段ごと（村の視点）：${ps}` };
     rep.conditions = rep.conditions.filter(c => !/Playwright/.test(c.text));
     rep.conditions.push({ text: 'Playwright で実際に歩いて全ての目的地に着く（PC・スマホ）', check: 'auto', pass: fail === 0, evidence: `report/play.json：${results.length - fail}/${results.length}` });
     const v = validateReport(rep, await registry());

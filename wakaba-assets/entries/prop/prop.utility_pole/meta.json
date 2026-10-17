@@ -1,0 +1,88 @@
+{
+ "id": "prop.utility_pole",
+ "version": 1,
+ "name": {
+  "ja": "古い木の電柱",
+  "en": "Old wooden utility pole"
+ },
+ "category": "prop",
+ "tags": [
+  "電柱",
+  "木",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/kit/build_kit.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/wakaba-mapkit/11_写実化パイプライン.md"
+ },
+ "tech": {
+  "formats": [
+   "glb",
+   "fbx"
+  ],
+  "tris": 276,
+  "lods": [
+   276,
+   82
+  ],
+  "sizeM": [
+   1.3,
+   8.3,
+   0.257
+  ],
+  "pivot": "bottom_center",
+  "collision": "convex",
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness"
+  ],
+  "fileBytes": 45780
+ },
+ "use": [
+  "山の廃村（写実の試験マップ）"
+ ],
+ "status": "draft",
+ "kit": {
+  "kit": "wakaba-kit/1",
+  "nodes": {
+   "LOD0": 276,
+   "LOD1": 82
+  },
+  "variants": 1,
+  "lodDist": [
+   60
+  ],
+  "impostor": false,
+  "materials": [
+   "mat.metal.iron_rust",
+   "mat.metal.tin_rust",
+   "mat.stone.granite",
+   "mat.wood.cedar"
+  ],
+  "vertexColor": "COLOR_0＝AO（焼き込み）",
+  "note": "節の名前 LOD<n>（種類が複数なら v<k>_LOD<n>）・IMP＝遠景の十字の板（画像は glb の中）。材質は id の名前で共有の PBR 材質に差し替える"
+ },
+ "history": [
+  {
+   "at": "2026-10-17",
+   "by": "claude-code",
+   "change": "tools/blender/kit/build_kit.py で生成（フェーズ 3）"
+  }
+ ]
+}

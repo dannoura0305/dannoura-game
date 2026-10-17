@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.rock.cliff",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.rock.cliff_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "c14d2950a58f8429e9d089979efa225e752abc2642a3ffbb958a1090135a42d6",
+   "bytes": 1660846,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.rock.cliff"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.rock.cliff_normal.png",
+   "storage": "local-ignored",
+   "sha256": "8df8acf20b9f9f330391aaf7f7422275b07acb3f9e4ce5d2a8c58577f6b4b53a",
+   "bytes": 2602784,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.rock.cliff"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.rock.cliff_orh.png",
+   "storage": "local-ignored",
+   "sha256": "26cec4be275f50c6bee5825b228814a9bebd274813c4eb906c630acc944b0de0",
+   "bytes": 2244279,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.rock.cliff"
+  }
+ ]
+}

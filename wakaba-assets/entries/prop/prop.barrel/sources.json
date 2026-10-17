@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.barrel",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.barrel.fbx",
+   "storage": "local-ignored",
+   "sha256": "2965fbacea9d4fc2c1c99c888a5fadd9a9b151705bebf2f048d96ea66ff9f30a",
+   "bytes": 29068,
+   "tool": "bpy 4.2.0",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only prop.barrel"
+  }
+ ]
+}

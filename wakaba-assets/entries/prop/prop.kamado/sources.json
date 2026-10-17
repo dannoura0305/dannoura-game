@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.kamado",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.kamado.fbx",
+   "storage": "local-ignored",
+   "sha256": "77ad3f3de7650e5a163b6114e2c45740ebf39a7d56a4a0ecb9dd77594ce70022",
+   "bytes": 28716,
+   "tool": "bpy 4.2.0",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only prop.kamado"
+  }
+ ]
+}

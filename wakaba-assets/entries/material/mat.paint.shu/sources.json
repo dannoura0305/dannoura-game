@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.paint.shu",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.paint.shu_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "42c0d0f85ee0831b0c195baa8f0af75d2ac8d9c3e143ea9788f9b10c1e6c1cc4",
+   "bytes": 2073663,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.paint.shu"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.paint.shu_normal.png",
+   "storage": "local-ignored",
+   "sha256": "d457049974879e9b93ecf941e102c8fe1df845c68c8cbf397d2f391e523515eb",
+   "bytes": 2581511,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.paint.shu"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.paint.shu_orh.png",
+   "storage": "local-ignored",
+   "sha256": "11c37f9af78ba7744327328ca3e3d7cceb865301eb08f0bf0971f2dd62ed3c1f",
+   "bytes": 2344594,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.paint.shu"
+  }
+ ]
+}

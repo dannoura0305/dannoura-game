@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.foliage.fern",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.fern_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "715e594a489f2aaf044afc8959a7de135ede1380ce26413546b461345f5c7cf3",
+   "bytes": 520715,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.foliage.fern"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.fern_normal.png",
+   "storage": "local-ignored",
+   "sha256": "997c1f1057863e2c31e5682c1c122cd901c98506474108c4272d4631ff157356",
+   "bytes": 577888,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.foliage.fern"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.fern_orh.png",
+   "storage": "local-ignored",
+   "sha256": "1b2592d3164923d2a4b7181bdd0a1c4ac44815a3400355488a33807534402265",
+   "bytes": 315880,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.foliage.fern"
+  }
+ ]
+}

@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.futon",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.futon.fbx",
+   "storage": "local-ignored",
+   "sha256": "9331ace13278cfc4a8f07b3a0f317e5abb2d35412833ae60cb6ff9ffc3cd8c72",
+   "bytes": 18780,
+   "tool": "bpy 4.2.0",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only prop.futon"
+  }
+ ]
+}

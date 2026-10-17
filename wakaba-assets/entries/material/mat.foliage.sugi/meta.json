@@ -1,0 +1,98 @@
+{
+ "id": "mat.foliage.sugi",
+ "version": 1,
+ "name": {
+  "ja": "杉の葉（カード）",
+  "en": "Sugi foliage card"
+ },
+ "category": "material",
+ "tags": [
+  "葉",
+  "杉",
+  "カード",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/mapkit/matgen/matgen.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/wakaba-mapkit/11_写実化パイプライン.md"
+ },
+ "tech": {
+  "formats": [
+   "webp",
+   "png"
+  ],
+  "texRes": 512,
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness",
+   "height"
+  ],
+  "fileBytes": 172494
+ },
+ "use": [
+  "杉の葉"
+ ],
+ "status": "draft",
+ "material": {
+  "material": "wakaba-material/1",
+  "tileM": 1.0,
+  "sizes": [
+   512,
+   256,
+   128
+  ],
+  "maps": {
+   "albedo": {
+    "512": "albedo_512.webp",
+    "256": "albedo_256.webp",
+    "128": "albedo_128.webp"
+   },
+   "normal": {
+    "512": "normal_512.webp",
+    "256": "normal_256.webp",
+    "128": "normal_128.webp"
+   },
+   "orh": {
+    "512": "orh_512.webp",
+    "256": "orh_256.webp",
+    "128": "orh_128.webp"
+   }
+  },
+  "alpha": true,
+  "card": true,
+  "channels": {
+   "albedo": "sRGB・A＝透過（alphaTest 0.5）",
+   "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+   "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+  },
+  "albedoMean": [
+   0.174,
+   0.23,
+   0.1
+  ],
+  "roughMean": 0.72
+ },
+ "history": [
+  {
+   "at": "2026-10-17",
+   "by": "claude-code",
+   "change": "tools/mapkit/matgen/matgen.py で生成（フェーズ 3）"
+  }
+ ]
+}

@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.rock.andesite",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.rock.andesite_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "e799c5659fa8fa2d1720b289450d7bc556a20e530d9c3605d4d90571b3f7f4b2",
+   "bytes": 1565640,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.rock.andesite"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.rock.andesite_normal.png",
+   "storage": "local-ignored",
+   "sha256": "586c82697daf41207814741e16fff6b0e7420792afa60ee6c9812adcc2182da6",
+   "bytes": 2426800,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.rock.andesite"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.rock.andesite_orh.png",
+   "storage": "local-ignored",
+   "sha256": "627a58f02a7e9bc282b29d25e2eeaa5fe7ed88de5ced2583d6dba2bc080bef7e",
+   "bytes": 2159384,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.rock.andesite"
+  }
+ ]
+}

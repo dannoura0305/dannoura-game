@@ -16,6 +16,7 @@
 | 07 | [07_詳細設計仕様書.md](07_詳細設計仕様書.md) | Claude Code 向けの設計（構成・メタデータのスキーマ・ライセンス門・PCG の規則・地図仕様・画質の段・レポート・試験・バックアップ） |
 | 08 | [08_回答_12項目.md](08_回答_12項目.md) | 依頼書 §12 の質問への回答と、方式 A／B／C の比較・推奨 |
 | 09 | [09_ユーザー確認チェックリスト.md](09_ユーザー確認チェックリスト.md) | 利用者に確認してほしいこと（コマンド・画面の場所つき） |
+| 11 | [11_写実化パイプライン.md](11_写実化パイプライン.md) | **フェーズ 3（2026-10-17）**：写実の試験マップの作り方（手続きの材質・Blender の部品・描画）・予算と実測・利用者の素材への差し替え・限界 |
 | 10 | [10_方式C_共有素材ライブラリとUE5連携.md](10_方式C_共有素材ライブラリとUE5連携.md) | **方式 C の決定（2026-10-17）**：ブラウザ版を続け・UE5 の PC 版を足し・素材置き場は 1 つ。素材ライブラリの形・Blender／UE5／Gaea の橋・確かめた事と未検証・PC で次にすること |
 | – | [tools/survey_local.ps1](tools/survey_local.ps1) | 利用者の Windows で動かす、読むだけの環境調査スクリプト（JSON を出す・未実行） |
 
@@ -111,6 +112,20 @@
 | UE5 に置く（利用者の PC） | UE の出力ログ（Python）で `py ".../tools/ue5/import_layout.py" --layout ".../layout.json"` | 手順は [`tools/ue5/README.md`](../../tools/ue5/README.md)（**未検証**） |
 | キャラクター（VRM → UE5） | [`tools/blender/vrm_to_fbx.md`](../../tools/blender/vrm_to_fbx.md)・`node tools/charkit/export_bonemap.mjs` | 骨の名前の表 `tools/blender/bonemap_vrm_to_ue5.json` |
 | 試験 | `node tests/run.mjs`（`tests/wakaba-mapkit-bridge.test.mjs`・`tests/wakaba-charkit-rename.test.mjs`） | – |
+
+## フェーズ 3 の使い方（2026-10-17 実装・写実の試験マップ・コマンドはリポジトリの根で）
+`mapkit.html?map=haison` が写実寄りになった（境界侵食は変えていない）。素材は全部このリポジトリの道具で作った自作（license `own`）。詳しくは [`11`](11_写実化パイプライン.md)。
+
+| したいこと | コマンド | 結果 |
+|---|---|---|
+| 写実の試験マップを見る | `python3 -m http.server 8797` → `http://localhost:8797/mapkit.html?map=haison`（`&preset=ultra|high|mid|low`・`&perf=1`） | 夕暮れ・高さの霧・PBR の材質・部品・影・下草・揺れ。画面の右上に描画呼び出し・三角形・テクスチャの量 |
+| 材質（PBR）を作り直す | `<venv>/bin/python tools/mapkit/matgen/matgen.py`（`--only <id>`・`--preview <フォルダ>`） | `wakaba-assets/entries/material/<id>/web/*.webp`（原寸は `source/`＝Git の外）。numpy・Pillow が要る（作業用の venv に入れる） |
+| 部品（Blender）を作り直す | `<venv>/bin/python tools/blender/kit/build_kit.py`（bpy 4.2）／`blender --background --python tools/blender/kit/build_kit.py -- --only veg.tree.sugi` | `wakaba-assets/entries/<分類>/<id>/web/<id>.glb`・`source/<id>.fbx`・`ue5/import.json` |
+| 目録・配置・検査 | `node tools/mapkit/catalog.mjs` → `node tools/mapkit/build_map.mjs maps/haison` → `node tools/mapkit/export_ue_heightmap.mjs maps/haison` | 目録 56 件（web・ue5 とも pass・注意 `UNVERIFIED_GENERATED`＝人の確認待ち）・配置に層 7「飾り」 |
+| 歩いて測る・撮る | `node tools/mapkit/play_map.mjs <フォルダ>`（`--no-presets` で段ごとの計測を省く） | 目的地 5 つ（PC・スマホ）・段ごとの描画呼び出し・三角形・テクスチャ・起動の時間 → `maps/haison/report/play.json` |
+| 試験 | `node tests/run.mjs`（`tests/wakaba-mapkit-phase3.test.mjs`） | 材質の組・目録と門・部品の形・LOD・予算・飾り・地面・建物 |
+
+**人が確かめること**：自作の素材の `meta.json` の `license.verifiedBy`（AI は書かない）／見た目の承認（`report.json` の `check: human`）／実機（RTX 3060 Ti）の fps（`?perf=1`）。
 
 ## このフェーズで決めたこと（記録）
 | 日付 | 決定 |

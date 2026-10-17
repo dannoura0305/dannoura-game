@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-10-25.1';
+const VERSION = '2026-10-26.1';
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）
@@ -104,6 +104,10 @@ function kindOf(url) {
   // build_map.mjs で作り直すとすぐ変わるのでネット優先（オフラインなら保存分）。レポート（maps/<id>/report/）は扱わない（素通し）
   if (/^mapkit\.html$/.test(p) || /^mapkit\/.+\.css$/.test(p)) return 'shell';
   if (/^maps\/[a-z0-9_]+\/(map\.spec\.json|heightmap\.png|build\/.+\.(json|png))$/.test(p)) return 'shell';
+  // 共有素材ライブラリ（フェーズ 3：写実の試験マップが読む）：目録は作り直すとすぐ変わるのでネット優先。
+  // 書き出し（entries/<分類>/<id>/web/ の WebP・glb など）は重いので画像と同じ扱い（保存分をすぐ返し、裏で新しくする）。meta.json・source/ は扱わない
+  if (/^wakaba-assets\/catalog\.json$/.test(p)) return 'shell';
+  if (/^wakaba-assets\/entries\/[a-z0-9_]+\/[A-Za-z0-9_.]+\/web\/[^/]+\.(webp|glb|png|jpg|jpeg|ktx2)$/.test(p)) return 'media';
   if (/^(minigames|vendor)\/.+\.js$/.test(p)) return 'code';
   if (/^assets\/.+\.(mp3|m4a|ogg|wav)$/i.test(p)) return 'audio';
   if (/^assets\//.test(p)) return 'media';

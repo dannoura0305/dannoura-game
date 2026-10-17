@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.stone.granite",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.stone.granite_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "a3d2630adfbd38c762632f87d39f829a43dad250812a072b42231e8bb52ea94d",
+   "bytes": 1642311,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.stone.granite"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.stone.granite_normal.png",
+   "storage": "local-ignored",
+   "sha256": "ab73b43356253ad8822e79257f102d4b21c330a163f172c9d5aea6ca0a5b199c",
+   "bytes": 2424862,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.stone.granite"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.stone.granite_orh.png",
+   "storage": "local-ignored",
+   "sha256": "89f9fd7a2bd600fed0e69ad188f315344a31cfb7feb0e09d0f42669f385015f9",
+   "bytes": 2444422,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.stone.granite"
+  }
+ ]
+}

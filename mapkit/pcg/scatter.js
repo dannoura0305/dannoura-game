@@ -4,6 +4,7 @@ import { childRng, range, pick } from '../core/rng.js';
 import { RULES, hitsKeepOut, footGround, footSlope } from './rules.js';
 import { obbOverlap, deg } from '../core/geom.js';
 import { makeNoise, fbm } from '../terrain/generate.js';
+import { DRESSING_STANDINS } from './dressing.js';
 
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const r3 = v => Math.round(v * 1000) / 1000;
@@ -24,6 +25,7 @@ export const STANDINS = {
   'prop.beam': { ja: '落ちた梁', cls: 'prop', size: [2.4, 0.25, 0.25], col: { shape: 'box' }, occ: 0.2 },
   'prop.kamado': { ja: 'かまど', cls: 'prop', size: [0.9, 0.75, 0.6], col: { shape: 'box' }, occ: 0.2 },
   'prop.tansu': { ja: '箪笥', cls: 'prop', size: [1.0, 1.1, 0.45], col: { shape: 'box' }, occ: 0.2 },
+  ...DRESSING_STANDINS,                       // 層 7「飾り」の物（mapkit/pcg/dressing.js）
 };
 
 /** 地図仕様の asset の問い合わせ → 仮の形の id の一覧（無ければ []） */

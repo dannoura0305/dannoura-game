@@ -1,0 +1,85 @@
+{
+ "id": "prop.ishigaki",
+ "version": 1,
+ "name": {
+  "ja": "石垣（2m）",
+  "en": "Stone wall section (2m)"
+ },
+ "category": "prop",
+ "tags": [
+  "石垣",
+  "石",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/kit/build_kit.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/wakaba-mapkit/11_写実化パイプライン.md"
+ },
+ "tech": {
+  "formats": [
+   "glb",
+   "fbx"
+  ],
+  "tris": 720,
+  "lods": [
+   720,
+   216
+  ],
+  "sizeM": [
+   1.963,
+   0.791,
+   0.498
+  ],
+  "pivot": "bottom_center",
+  "collision": "box",
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness"
+  ],
+  "fileBytes": 75408
+ },
+ "use": [
+  "山の廃村（写実の試験マップ）"
+ ],
+ "status": "draft",
+ "kit": {
+  "kit": "wakaba-kit/1",
+  "nodes": {
+   "LOD0": 720,
+   "LOD1": 216
+  },
+  "variants": 1,
+  "lodDist": [
+   25
+  ],
+  "impostor": false,
+  "materials": [
+   "mat.rock.andesite"
+  ],
+  "vertexColor": "COLOR_0＝AO（焼き込み）",
+  "note": "節の名前 LOD<n>（種類が複数なら v<k>_LOD<n>）・IMP＝遠景の十字の板（画像は glb の中）。材質は id の名前で共有の PBR 材質に差し替える"
+ },
+ "history": [
+  {
+   "at": "2026-10-17",
+   "by": "claude-code",
+   "change": "tools/blender/kit/build_kit.py で生成（フェーズ 3）"
+  }
+ ]
+}

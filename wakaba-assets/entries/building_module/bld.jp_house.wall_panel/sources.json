@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "bld.jp_house.wall_panel",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/bld.jp_house.wall_panel.fbx",
+   "storage": "local-ignored",
+   "sha256": "6778a187159cb81ad121825bf92fe402c337ff14e5bfad5a60fbaa832a74ce42",
+   "bytes": 93244,
+   "tool": "bpy 4.2.0",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only bld.jp_house.wall_panel"
+  }
+ ]
+}

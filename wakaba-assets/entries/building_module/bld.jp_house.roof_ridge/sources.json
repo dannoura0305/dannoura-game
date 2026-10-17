@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "bld.jp_house.roof_ridge",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/bld.jp_house.roof_ridge.fbx",
+   "storage": "local-ignored",
+   "sha256": "6be529357f44c4f69f973b05309e547aeef052efa78829ec915c384344a56d0f",
+   "bytes": 18956,
+   "tool": "bpy 4.2.0",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only bld.jp_house.roof_ridge"
+  }
+ ]
+}

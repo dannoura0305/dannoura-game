@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.sign",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.sign.fbx",
+   "storage": "local-ignored",
+   "sha256": "889fed641e305bad9e609d392041800b0dd2362f5ce6abf13783483e5a9263a0",
+   "bytes": 19388,
+   "tool": "bpy 4.2.0",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only prop.sign"
+  }
+ ]
+}

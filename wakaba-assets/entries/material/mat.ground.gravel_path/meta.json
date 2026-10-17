@@ -1,0 +1,97 @@
+{
+ "id": "mat.ground.gravel_path",
+ "version": 1,
+ "name": {
+  "ja": "砂利の道",
+  "en": "Gravel path"
+ },
+ "category": "material",
+ "tags": [
+  "地面",
+  "道",
+  "砂利",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/mapkit/matgen/matgen.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/wakaba-mapkit/11_写実化パイプライン.md"
+ },
+ "tech": {
+  "formats": [
+   "webp",
+   "png"
+  ],
+  "texRes": 1024,
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness",
+   "height"
+  ],
+  "fileBytes": 314636
+ },
+ "use": [
+  "参道"
+ ],
+ "status": "draft",
+ "material": {
+  "material": "wakaba-material/1",
+  "tileM": 1.5,
+  "sizes": [
+   1024,
+   512,
+   256
+  ],
+  "maps": {
+   "albedo": {
+    "1024": "albedo_1024.webp",
+    "512": "albedo_512.webp",
+    "256": "albedo_256.webp"
+   },
+   "normal": {
+    "1024": "normal_1024.webp",
+    "512": "normal_512.webp",
+    "256": "normal_256.webp"
+   },
+   "orh": {
+    "512": "orh_512.webp",
+    "256": "orh_256.webp"
+   }
+  },
+  "alpha": false,
+  "card": false,
+  "channels": {
+   "albedo": "sRGB",
+   "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+   "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+  },
+  "albedoMean": [
+   0.456,
+   0.429,
+   0.389
+  ],
+  "roughMean": 0.838
+ },
+ "history": [
+  {
+   "at": "2026-10-17",
+   "by": "claude-code",
+   "change": "tools/mapkit/matgen/matgen.py で生成（フェーズ 3）"
+  }
+ ]
+}

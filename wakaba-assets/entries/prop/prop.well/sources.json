@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.well",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.well.fbx",
+   "storage": "local-ignored",
+   "sha256": "23307d6590bee134de6cc9c4e4a767ed75c7195568496ccd5c45e5e64201acd9",
+   "bytes": 53516,
+   "tool": "bpy 4.2.0",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only prop.well"
+  }
+ ]
+}

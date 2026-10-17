@@ -339,7 +339,7 @@ def build_scene(opt):
             s = o.get("scale", 1)
             place(ob, to_blender(o["at"]), to_blender_rot(o["rotY"]), (s, s, s))
         else:
-            ob = bpy.data.objects.new(o["id"], shapes["cyl" if o["col"]["shape"] == "cyl" else "box"]())
+            ob = bpy.data.objects.new(o["id"], shapes["cyl" if (o.get("col") or {}).get("shape") == "cyl" else "box"]())
             place(ob, to_blender(object_center(o)), to_blender_rot(o["rotY"]), to_blender_size(o["size"]))
             ob.color = KIND_COLORS.get(o["kind"].split(".")[0], (0.5, 0.5, 0.5)) + (1.0,)
         ob["wakaba_id"], ob["wakaba_kind"] = o["id"], o["kind"]

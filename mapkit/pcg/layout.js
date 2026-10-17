@@ -9,6 +9,7 @@ import { scatterLayer, STANDINS, PointHash, objectObb, seatObject, makeObject, m
 import { obbOverlap, pointInObb, toWorld, deg } from '../core/geom.js';
 import { childRng, range, pick, fingerprint } from '../core/rng.js';
 import { resolveGoal } from '../core/spec.js';
+import { planDressing } from './dressing.js';
 
 const r3 = v => Math.round(v * 1000) / 1000;
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -95,8 +96,8 @@ export function buildLayout(spec, raw = null, opt = {}) {
   const occ = new PointHash(W, D, 2);
   const objects = [], instances = [], stats = [];
   // 小物（建物の中・まわり）
-  const pr = childRng(seed, 'props'); let pn = 0; const propStats = { layer: 'props', placed: 0, dropped: [] };
-  const addProp = (kind, x, z, rot, y = null, building = null, inside = false) => {
+  const pr = childRng(seed, 'props'); let pn = 0, dn = 0; const propStats = { layer: 'props', placed: 0, dropped: [] };
+  const addProp = (kind, x, z, rot, y = null, building = null, inside = false, layer = 'props') => {
     const def = STANDINS[kind], s = 1, obb = objectObb(def, x, z, rot, s), occR = Math.max(def.occ, Math.hypot(def.size[0], def.size[2]) / 2);
     const ko = hitsKeepOut(obb, keepOut, false);
     if (ko) return `keepOut:${ko.id}`;
@@ -105,9 +106,10 @@ export function buildLayout(spec, raw = null, opt = {}) {
     if (occ.near(x, z, 4, p => p.r + occR)) return 'overlap';
     const seat = y == null ? seatObject(hf, def, obb, s) : { y, range: 0, sink: 0, embed: 0.1 };
     if (seat.range > -RULES.penetrate + seat.embed - 0.02) return 'uneven';
+    if (x < 1 || z < 1 || x > W - 1 || z > D - 1) return 'edge';
     occ.add(x, z, occR);
-    objects.push(makeObject(`props#${pn++}`, 'props', kind, def, x, seat.y, z, rot, s, building ? { building, inside } : {}));
-    propStats.placed++; return null;
+    objects.push(makeObject(layer === 'props' ? `props#${pn++}` : `${layer}#${dn++}`, layer, kind, def, x, seat.y, z, rot, s, building ? { building, inside } : {}));
+    if (layer === 'props') propStats.placed++; return null;
   };
   for (const pl of plans) {
     for (const p of pl.props || []) {
@@ -134,10 +136,28 @@ export function buildLayout(spec, raw = null, opt = {}) {
     stats.push(r.stats); objects.push(...r.objects); if (r.instances) instances.push(r.instances);
     if (r.gap) gaps.push({ need: `asset:${JSON.stringify(r.gap)}`, plan: `層「${L.layer}」の素材が目録にも仮の形にも無い`, status: 'proposed' });
   }
-  // 実素材の不足（仮の形で置いた物）＝ gaps（計画のみ・承認待ち）
+  // 7. 飾り（フェーズ 3：散布の後ろ＝前の層は変わらない。mapkit/pcg/dressing.js）
+  if (spec.dressing !== false) {
+    const dStats = { layer: 'dressing', placed: 0, dropped: [] };
+    for (const q of planDressing({ seed, plans, paths, W, D, village: villages[0] })) {
+      let why = null;
+      for (const [x, z, rot] of [[q.x, q.z, q.rot], ...(q.tries || [])]) { why = addProp(q.kind, x, z, rot, q.inside ? q.y : null, q.building || null, !!q.inside, 'dressing'); if (!why) break; }
+      if (why) dStats.dropped.push({ id: (q.building ? q.building + ':' : '') + q.kind, why }); else dStats.placed++;
+    }
+    stats.push(dStats);
+  }
+  // 実素材の不足（仮の形で置いた物）＝ gaps（計画のみ・承認待ち）。目録（opt.catalog：id → 名前）に Web で使える素材があれば done
   const usedKinds = [...new Set([...objects.map(o => o.kind), ...instances.map(i => i.kind)])].sort();
-  for (const k of usedKinds) gaps.push({ need: k, plan: `仮の形（${STANDINS[k].ja}）で置いた。実素材（glTF・ライセンス門を通った物）を目録に足す：Blender で作る／CC0 を探す（フェーズ 3）`, status: 'proposed' });
-  for (const pl of plans) gaps.push({ need: `bld.${pl.kind}`, plan: `建物「${pl.id}」は灰色の箱の部品で組んだ。07 §4.4 の規格の部品（bld.jp_house.*）を Blender で作る（フェーズ 3）`, status: 'proposed' });
+  const cat = opt.catalog || null;
+  for (const k of usedKinds) {
+    if (cat && cat[k]) gaps.push({ need: k, plan: `目録の素材 ${k}（${cat[k]}）で描く（ブラウザ版）。当たり・置き場所は仮の形（${STANDINS[k].ja}）の大きさのまま`, status: 'done' });
+    else gaps.push({ need: k, plan: `仮の形（${STANDINS[k].ja}）で置いた。実素材（glTF・ライセンス門を通った物）を目録に足す：Blender で作る／CC0 を探す（フェーズ 3）`, status: 'proposed' });
+  }
+  for (const pl of plans) {
+    const mods = pl.kind === 'hokora_small' ? ['bld.shrine.honden', 'bld.shrine.torii'] : ['bld.jp_house.wall_panel', 'bld.jp_house.post', 'bld.jp_house.roof_ridge'];
+    if (cat && mods.every(m => cat[m])) gaps.push({ need: `bld.${pl.kind}`, plan: `建物「${pl.id}」は部品の箱（当たり・床）のまま、見た目を目録の部品（${mods.join('・')}）と材質で組む（mapkit/render/buildings.js）。UE5 版で 1 つの網にまとめるのは未着手`, status: 'done' });
+    else gaps.push({ need: `bld.${pl.kind}`, plan: `建物「${pl.id}」は灰色の箱の部品で組んだ。07 §4.4 の規格の部品（bld.jp_house.*）を Blender で作る（フェーズ 3）`, status: 'proposed' });
+  }
   if (anchorDiff.length) notes.push({ issue: `地図仕様の自動の印（auto: true）と組み立ての結果がずれている：${anchorDiff.map(a => `${a.id} ${a.moved}m`).join('、')}`, proposal: '地図仕様の anchors を組み立ての結果（layout.json の anchors）に合わせる', auto: true });
 
   const layout = {

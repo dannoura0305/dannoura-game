@@ -30,6 +30,7 @@ for (const cat of dirs(root)) for (const id of dirs(join(root, cat))) {
     pkg.sourceFiles = {};
     for (const f of pkg.sources.files) if (/^source\//.test(f.path || '') && existsSync(join(d, f.path))) pkg.sourceFiles[f.path] = sha(readFileSync(join(d, f.path)));
   }
+  if (pkg.meta && pkg.meta.source && pkg.meta.source.generator) pkg.generatorExists = existsSync(rootPath(pkg.meta.source.generator));
   const r = checkPackage(pkg, { config, projectId, registry: reg });
   if (r.entry && seen.has(r.entry.id)) r.errors.push({ code: 'DUP_ID', file: pkg.dir, msg: `同じ id の素材が 2 つある（${seen.get(r.entry.id)}）` });
   if (r.entry) seen.set(r.entry.id, pkg.dir);
@@ -40,14 +41,16 @@ for (const cat of dirs(root)) for (const id of dirs(join(root, cat))) {
 const catalog = makeCatalog(entries, { config, projectId });
 const text = JSON.stringify(catalog, null, 1) + '\n';
 const nErr = problems.reduce((s, p) => s + p.errors.length, 0);
+const warnCount = {};
 for (const p of problems) {
+  for (const w of p.warnings) warnCount[w.code] = (warnCount[w.code] || 0) + 1;
   if (opt.quiet && !p.errors.length) continue;
   const e = entries.find(x => x.dir === p.dir);
   console.log(`${p.errors.length ? '✗' : '✓'} ${p.dir}${e ? '  ' + Object.entries(e.targets).map(([t, r]) => `${t}:${r.result}`).join('・') : ''}`);
   for (const x of p.errors) console.log(`    - [${x.code}] ${x.file || ''}：${x.msg}`);
   for (const x of p.warnings) console.log(`    · 注意 [${x.code}] ${x.msg}`);
 }
-console.log(`目録：${rel(root)} の ${problems.length} 件 → 載せた ${entries.length} 件・誤り ${nErr} 件（配信先 ${catalog.targets.join('・')}）`);
+console.log(`目録：${rel(root)} の ${problems.length} 件 → 載せた ${entries.length} 件・誤り ${nErr} 件（配信先 ${catalog.targets.join('・')}）${Object.keys(warnCount).length ? '・注意 ' + Object.entries(warnCount).map(([k, n]) => `${k} ${n}`).join('・') : ''}`);
 let stale = false;
 if (opt.check) {
   const cur = existsSync(out) ? readFileSync(out, 'utf8') : '';

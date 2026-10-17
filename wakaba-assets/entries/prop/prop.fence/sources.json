@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.fence",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.fence.fbx",
+   "storage": "local-ignored",
+   "sha256": "22cc2024e1217904748dca72050b64ece7f8c0de93af2a7b4a0a5587199d41e5",
+   "bytes": 22300,
+   "tool": "bpy 4.2.0",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only prop.fence"
+  }
+ ]
+}

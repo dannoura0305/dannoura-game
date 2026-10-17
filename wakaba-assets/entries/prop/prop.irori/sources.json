@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.irori",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.irori.fbx",
+   "storage": "local-ignored",
+   "sha256": "da4e1eda62599a96536b6d19a253ebd4642dd027adfefa5e80ac9a44e27cb3e9",
+   "bytes": 25884,
+   "tool": "bpy 4.2.0",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only prop.irori"
+  }
+ ]
+}

@@ -1,0 +1,86 @@
+{
+ "id": "prop.bicycle",
+ "version": 1,
+ "name": {
+  "ja": "錆びた自転車（横倒し）",
+  "en": "Rusted bicycle (fallen)"
+ },
+ "category": "prop",
+ "tags": [
+  "自転車",
+  "錆",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/kit/build_kit.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/wakaba-mapkit/11_写実化パイプライン.md"
+ },
+ "tech": {
+  "formats": [
+   "glb",
+   "fbx"
+  ],
+  "tris": 824,
+  "lods": [
+   824,
+   246
+  ],
+  "sizeM": [
+   1.744,
+   0.14,
+   0.453
+  ],
+  "pivot": "bottom_center",
+  "collision": "none",
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness"
+  ],
+  "fileBytes": 95896
+ },
+ "use": [
+  "山の廃村（写実の試験マップ）"
+ ],
+ "status": "draft",
+ "kit": {
+  "kit": "wakaba-kit/1",
+  "nodes": {
+   "LOD0": 824,
+   "LOD1": 246
+  },
+  "variants": 1,
+  "lodDist": [
+   14
+  ],
+  "impostor": false,
+  "materials": [
+   "mat.fabric.futon",
+   "mat.metal.iron_rust"
+  ],
+  "vertexColor": "COLOR_0＝AO（焼き込み）",
+  "note": "節の名前 LOD<n>（種類が複数なら v<k>_LOD<n>）・IMP＝遠景の十字の板（画像は glb の中）。材質は id の名前で共有の PBR 材質に差し替える"
+ },
+ "history": [
+  {
+   "at": "2026-10-17",
+   "by": "claude-code",
+   "change": "tools/blender/kit/build_kit.py で生成（フェーズ 3）"
+  }
+ ]
+}

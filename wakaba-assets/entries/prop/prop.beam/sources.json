@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.beam",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.beam.fbx",
+   "storage": "local-ignored",
+   "sha256": "1f7bb827c30d27e0b0df98012b11dce3325c0ea1741e4f81f224c6dd0c47d85b",
+   "bytes": 17740,
+   "tool": "bpy 4.2.0",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit.py --only prop.beam"
+  }
+ ]
+}

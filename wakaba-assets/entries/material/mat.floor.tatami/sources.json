@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.floor.tatami",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.floor.tatami_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "7cdf0c120ec075ce46bba8b9150f6e4518d6a48172855f42a93d250be02cc3b7",
+   "bytes": 1387135,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.floor.tatami"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.floor.tatami_normal.png",
+   "storage": "local-ignored",
+   "sha256": "92bc7da7615c7858d232f0153217da96e008f2e427be2906dded2addc2ce8f44",
+   "bytes": 1609283,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.floor.tatami"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.floor.tatami_orh.png",
+   "storage": "local-ignored",
+   "sha256": "d964d4c0077ffc8c9cc51943d1f92e3a19dfe9929d009cc8094d2b268c6db904",
+   "bytes": 1585813,
+   "tool": "tools/mapkit/matgen/matgen.py v1・numpy 2.4.6",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen.py --only mat.floor.tatami"
+  }
+ ]
+}
