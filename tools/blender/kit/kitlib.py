@@ -10,6 +10,7 @@
 """
 import math
 import random
+import sys
 
 import bmesh
 import bpy
@@ -29,6 +30,63 @@ MAT_COLORS = {
 }
 
 
+# ───────── Blender の版の違いの吸収（試した範囲：bpy 4.2.0・5.2.2。docs/wakaba-mapkit/10 §6）
+TESTED_MIN, TESTED_MAX = (4, 2), (5, 2)
+GLTF_OPTS = ('use_selection', 'export_format', 'export_yup', 'export_apply', 'export_tangents', 'export_normals', 'export_materials',
+             'export_animations', 'export_skins', 'export_morph', 'export_cameras', 'export_lights', 'export_extras', 'export_image_format')
+FBX_OPTS = ('use_selection', 'object_types', 'apply_unit_scale', 'apply_scale_options', 'axis_forward', 'axis_up', 'mesh_smooth_type',
+            'add_leaf_bones', 'use_mesh_modifiers', 'path_mode')
+
+
+def blender_version_check(out=None):
+    """版の判定（ok／too_old／untested_newer）。注意は標準エラーへ"""
+    v = tuple(bpy.app.version[:2])
+    st = 'too_old' if v < TESTED_MIN else 'untested_newer' if v > TESTED_MAX else 'ok'
+    msg = {'ok': '試した範囲の版です', 'too_old': '4.2 より古い版は動きません（5.2 LTS を勧める）',
+           'untested_newer': '5.3 以上は未検証です（動かない所があれば、エラーの文をそのまま貼ってください）'}[st]
+    print('Blender %s：%s' % (bpy.app.version_string, msg), file=out or sys.stderr)
+    return {'version': bpy.app.version_string, 'status': st, 'tested': '4.2〜5.2.x'}
+
+
+def use_nodes(idb):
+    """材質・世界のノードを使う。5.0 からは常にノード（use_nodes は 6.0 で消える予定）なので 4.x の時だけ立てる"""
+    if bpy.app.version < (5, 0, 0) and not idb.use_nodes:
+        idb.use_nodes = True
+
+
+def op_props(op):
+    return set(op.get_rna_type().properties.keys())
+
+
+def fit_kwargs(op, kw, label):
+    """書き出しの設定のうち、この版に無い名前は外して注意を出す（版が上がって名前が変わった時に止まらないように）"""
+    have = op_props(op)
+    gone = sorted(k for k in kw if k not in have)
+    if gone:
+        print('注意：%s にこの設定がありません（外して続ける）：%s' % (label, ', '.join(gone)), file=sys.stderr)
+    return {k: v for k, v in kw.items() if k in have}
+
+
+def api_probe():
+    """build_kit.py が使う Blender の機能がこの版にあるか（--selftest）"""
+    me = bpy.data.meshes.new('_probe')
+    try:
+        g, f = op_props(bpy.ops.export_scene.gltf), op_props(bpy.ops.export_scene.fbx)
+        res = {
+            'gltf_missing': [k for k in GLTF_OPTS if k not in g],
+            'gltf_vertex_color': 'export_vertex_color' if 'export_vertex_color' in g else 'export_colors' if 'export_colors' in g else None,
+            'fbx_missing': [k for k in FBX_OPTS if k not in f],
+            'set_sharp_from_angle': hasattr(me, 'set_sharp_from_angle'),
+            'color_attributes': hasattr(me, 'color_attributes'),
+            'cycles': 'CYCLES' in bpy.types.RenderSettings.bl_rna.properties['engine'].enum_items.keys() or hasattr(bpy.context.scene, 'cycles'),
+            'decimate': 'DECIMATE' in bpy.types.Modifier.bl_rna.properties['type'].enum_items.keys(),
+        }
+    finally:
+        bpy.data.meshes.remove(me)
+    res['ok'] = not res['gltf_missing'] and not res['fbx_missing'] and bool(res['gltf_vertex_color']) and all(res[k] for k in ('set_sharp_from_angle', 'color_attributes', 'cycles', 'decimate'))
+    return res
+
+
 def srgb_to_lin(c):
     return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
 
@@ -38,7 +96,7 @@ def get_material(mid):
     if m:
         return m
     m = bpy.data.materials.new(mid)
-    m.use_nodes = True
+    use_nodes(m)
     bsdf = m.node_tree.nodes.get('Principled BSDF')
     c = MAT_COLORS.get(mid, (0.5, 0.5, 0.5))
     bsdf.inputs['Base Color'].default_value = (srgb_to_lin(c[0]), srgb_to_lin(c[1]), srgb_to_lin(c[2]), 1)

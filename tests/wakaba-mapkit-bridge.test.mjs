@@ -241,6 +241,7 @@ await t('Blender・UE の Python の座標の式・PNG の読みが mapkit/core/
   assert.equal(B.grass, L.stats.instances.grass);
   assert.equal(K.name, 'SM_rock_test_boulder_small'); assert.equal(K.path, '/Game/Wakaba/BuildingModule/SM_bld_jp_house_wall_plaster_1x1');
   assert.equal(K.web_ok, true); assert.equal(K.web_fab, false);
+  for (const R of [B, K]) assert.ok(['no_bpy', 'ok', 'untested_newer'].includes(R.blender?.status), 'Blender の版の判定（試した範囲 4.2〜5.2.x）が JSON に入る');
   assert.equal(validate(IDS.ue5Import, K.template, { registry: reg }).valid, true, 'export_kit の雛形は ue5-import のスキーマに合う');
 });
 

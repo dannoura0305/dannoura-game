@@ -33,7 +33,9 @@
 - **画風（Q-A1）＝「A 案で写実の試験マップ」**：写実はブラウザ版の試験マップ（`mapkit.html` の山の廃村）だけ。**境界侵食はアニメ調のまま**（DECISIONS 2026-10-14 は変えない）。
 - **収益化（Q-L1）＝商用あり**（`wakaba.config.json` の `commercial: true` は仮の既定でなく決定）。→ Gaea Community（非商用）で作った地形は本番に使えない（Indie 以上か手続きの地形）・無料枠が非商用の道具や研究用のモーション AI は門で止まる・UE5 版には UE の規約（収入 100 万ドル超で 5%）。
 - **素材の置き場所（Q-B2）＝このリポジトリ**（`wakaba-assets/`）。重い原本は Git に入れず、場所と sha256 を `sources.json` に書く（50MB 超を Git で持つなら Git LFS）。
-- **PC**＝i7-9700・RTX 3060 Ti 8GB・メモリ 16GB・SSD 512GB（利用者が確認）。**Blender は入っている**（版は未確認）。UE5・Gaea は未確認（`09` §0）。
+- **PC**＝i7-9700・RTX 3060 Ti 8GB・メモリ 16GB・SSD 512GB（利用者が確認）。
+- **PC のソフト（利用者が確認・2026-10-17、`09` §0）**：**Blender 5.2.0 LTS あり＝標準（ターゲット）にする**／**Gaea なし**＝地形はリポジトリの手続きの地形のまま（`11` §1）／**UE はライブラリに表示なし＝未導入の可能性が高い**＝B 線（UE5 の PC 版）は UE を入れるまで待ち（入れるかは利用者の任意・入れ方は `10` §7）。
+- **Blender 5.2 対応（2026-10-17）**：`tools/blender/` のスクリプト（`import_layout.py`・`export_kit.py`・`kit/`）を bpy **5.2.2** と 4.2.0 の両方で動かし、部品 31 個の glb が登録済みの物と同じ構造（節・位置・材質・頂点数）になることを確かめた。直した所と結果は `10` §6。
 
 ## 以前の推奨（記録・2026-10-16）
 - **まず方式 A**：ブラウザの Three.js を本番のまま、UE5・Blender・Gaea は「素材を作る道具」として使い、glTF＋焼いた光で書き出す。UE5 は利用者の PC で**短期の試し**だけ行い、その結果で方式 C（UE で高品質の PC 版＋Web 版）に進むかを決める。方式 B（UE だけに移る）は今は勧めない。理由は `08` §11。
@@ -41,7 +43,7 @@
 
 ## 利用者に確認してほしいこと（★＝先に必要。詳しくは `09`）
 - ~~画風（Q-A1）~~ → **回答済み**（写実は試験マップだけ）／~~方式（Q-A2）~~ → **回答済み**（A・B・C 全部）／~~収益化（Q-L1）~~ → **回答済み**（商用あり）／~~素材の置き場所（Q-B2）~~ → **回答済み**（このリポジトリ）
-- ★ **UE5・Gaea が入っているか**と版、**Blender の版**（`09` §0 の 3 手順：スクリプトか、画面で見るだけ）
+- ~~UE5・Gaea・Blender の有無と版~~ → **回答済み**（Blender 5.2.0 LTS／Gaea なし／UE なしの可能性：`09` §0）
 - ★ リポジトリが public か（Q-L3）／Fab 素材は UE5 版だけで使う形でよいか（Q-L2：ブラウザ版には門が入れない）
 - 「わかばシステム」の中身（Q-W1）、NAS・サブ PC・外付け SSD、n8n・ComfyUI・Codex・Grok の状況、予算
 
@@ -107,7 +109,8 @@
 | 門を配信先ごとに | `node mapkit/assets/license-gate.mjs <ファイル or フォルダ> --target all` | web（公開）と ue5（非公開）を順に |
 | 配置（layout.json）を検査 | `node tools/mapkit/validate_spec.mjs maps/haison/build/layout.json` | 形（`mapkit/schema/map-layout.schema.json`）＋指紋・id の重複・範囲・下草の数 |
 | UE5 の Landscape 用の高さ | `node tools/mapkit/export_ue_heightmap.mjs maps/haison`（`--size 1009`・`--points`） | `maps/haison/build/ue/heightmap_505.png`・`landscape.json`（区画 4×4・Scale・Location）。`--points` で `pcg_points.csv` |
-| Blender で場面を組む（利用者の PC） | `blender --background --python tools/blender/import_layout.py -- maps/haison/build/layout.json --save haison.blend` | 地形・家・木・岩・印。クラウドの bpy 4.2 で 0.4 秒 |
+| Blender の版の確かめ（利用者の PC） | `blender --background --python tools/blender/kit/build_kit.py -- --selftest` | 版と、使う機能があるか（JSON の `"status": "ok"`・`"ok": true`）。試した範囲は 4.2〜5.2.x（5.3 以上は注意を出す） |
+| Blender で場面を組む（利用者の PC） | `blender --background --python tools/blender/import_layout.py -- maps/haison/build/layout.json --save haison.blend` | 地形・家・木・岩・印。クラウドの bpy 5.2.2 で 0.3 秒（4.2.0 で 0.2 秒） |
 | Blender の部品をライブラリへ | `blender kit.blend --background --python tools/blender/export_kit.py -- --library wakaba-assets/entries` | glb（Web に出せる物だけ `web/`）・FBX（`source/`）・`sources.json`・`ue5/import.json` |
 | UE5 に置く（利用者の PC） | UE の出力ログ（Python）で `py ".../tools/ue5/import_layout.py" --layout ".../layout.json"` | 手順は [`tools/ue5/README.md`](../../tools/ue5/README.md)（**未検証**） |
 | キャラクター（VRM → UE5） | [`tools/blender/vrm_to_fbx.md`](../../tools/blender/vrm_to_fbx.md)・`node tools/charkit/export_bonemap.mjs` | 骨の名前の表 `tools/blender/bonemap_vrm_to_ue5.json` |
@@ -120,7 +123,7 @@
 |---|---|---|
 | 写実の試験マップを見る | `python3 -m http.server 8797` → `http://localhost:8797/mapkit.html?map=haison`（`&preset=ultra|high|mid|low`・`&perf=1`） | 夕暮れ・高さの霧・PBR の材質・部品・影・下草・揺れ。画面の右上に描画呼び出し・三角形・テクスチャの量 |
 | 材質（PBR）を作り直す | `<venv>/bin/python tools/mapkit/matgen/matgen.py`（`--only <id>`・`--preview <フォルダ>`） | `wakaba-assets/entries/material/<id>/web/*.webp`（原寸は `source/`＝Git の外）。numpy・Pillow が要る（作業用の venv に入れる） |
-| 部品（Blender）を作り直す | `<venv>/bin/python tools/blender/kit/build_kit.py`（bpy 4.2）／`blender --background --python tools/blender/kit/build_kit.py -- --only veg.tree.sugi` | `wakaba-assets/entries/<分類>/<id>/web/<id>.glb`・`source/<id>.fbx`・`ue5/import.json` |
+| 部品（Blender）を作り直す | `<venv>/bin/python tools/blender/kit/build_kit.py`（bpy 5.2.x・Python 3.13。4.2 でも同じ物ができる）／`blender --background --python tools/blender/kit/build_kit.py -- --only veg.tree.sugi` | `wakaba-assets/entries/<分類>/<id>/web/<id>.glb`・`source/<id>.fbx`・`ue5/import.json` |
 | 目録・配置・検査 | `node tools/mapkit/catalog.mjs` → `node tools/mapkit/build_map.mjs maps/haison` → `node tools/mapkit/export_ue_heightmap.mjs maps/haison` | 目録 56 件（web・ue5 とも pass・注意 `UNVERIFIED_GENERATED`＝人の確認待ち）・配置に層 7「飾り」 |
 | 歩いて測る・撮る | `node tools/mapkit/play_map.mjs <フォルダ>`（`--no-presets` で段ごとの計測を省く） | 目的地 5 つ（PC・スマホ）・段ごとの描画呼び出し・三角形・テクスチャ・起動の時間 → `maps/haison/report/play.json` |
 | 試験 | `node tests/run.mjs`（`tests/wakaba-mapkit-phase3.test.mjs`） | 材質の組・目録と門・部品の形・LOD・予算・飾り・地面・建物 |
@@ -136,3 +139,4 @@
 | 2026-10-17 | フェーズ 1 を実装（利用者の承認「両方を最初の一歩まで並行して進める」）。素材ライブラリは決まるまでリポジトリの中（`wakaba.config.json` で指す）。作品の商用は未回答のため厳しい側（true） |
 | 2026-10-17 | フェーズ 2 を実装（利用者の指示「両方の最初の一歩の後はマップ基盤に集中」）。方式は未回答のため、配置と検査はエンジンに依らない JSON・画面は Three.js の灰色の箱 |
 | 2026-10-17 | **利用者の決定**：方式 A・B・C を全部採用（ブラウザ版を続け・UE5 の PC 版を作り・素材置き場は共有）／画風は「A 案で写実の試験マップ」（境界侵食はアニメ調のまま）／商用あり／素材の置き場所はこのリポジトリ／PC は資料の通り・Blender あり。`wakaba.config.json` に配信先 `web`・`ue5` を足し、門・目録を配信先ごとにした（`10`） |
+| 2026-10-17 | **利用者の PC の確認**：Blender 5.2.0 LTS あり・Gaea なし・UE なしの可能性。→ Blender は 5.2 を標準にし、スクリプトを bpy 5.2.2 で確かめた（4.2 も動くまま）。地形は手続きのまま。UE5 の B 線は UE を入れるまで待ち（`09` §0・`10` §7） |

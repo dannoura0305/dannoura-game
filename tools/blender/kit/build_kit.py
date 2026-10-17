@@ -3,7 +3,9 @@
 わかば kit：山の廃村（写実の試験マップ）の部品を、手続きで作って素材ライブラリに置く（フェーズ 3・docs/wakaba-mapkit/11）。
   python tools/blender/kit/build_kit.py [--only <id>]... [--library wakaba-assets/entries] [--preview <フォルダ>] [--no-fbx]
   （Blender の中なら：blender --background --python tools/blender/kit/build_kit.py -- --only veg.tree.sugi）
-要る物：bpy（Blender 4.2 以上の Python モジュール、または Blender 本体）。材質のテクスチャ（tools/mapkit/matgen/matgen.py の出力）があれば、
+  --selftest  Blender の版と、使う機能（glTF・FBX の書き出しの設定・Cycles など）があるかだけ確かめる（JSON・何も書かない）
+要る物：bpy（Blender 4.2〜5.2.x で試した：bpy 4.2.0／5.2.2 で同じ glb になる。利用者の PC は 5.2 LTS）。
+  Blender 5.2 の中で動かす時は numpy・Pillow が要る（numpy は同梱。Pillow は木の遠景の板だけで使う：docs/wakaba-mapkit/11 §2）。材質のテクスチャ（tools/mapkit/matgen/matgen.py の出力）があれば、
   木の遠景の板（impostor）と確かめの絵に使う（無ければ色だけ）。
 1 部品＝1 フォルダ（wakaba-assets/entries/<category>/<id>/）：
   web/<id>.glb     ブラウザ版。節（node）の名前：LOD0・LOD1…（種類が複数なら v0_LOD0・v1_LOD0…）・IMP（木の遠景の 2 枚の板・画像を中に持つ）
@@ -25,7 +27,7 @@ import bpy  # noqa: E402
 from mathutils import Vector  # noqa: E402
 
 import kitlib  # noqa: E402
-from kitlib import bake_ao, decimate, tris, bounds, get_material  # noqa: E402
+from kitlib import bake_ao, decimate, tris, bounds, get_material, use_nodes, fit_kwargs  # noqa: E402
 from pieces import PIECES  # noqa: E402
 from export_kit import ue5_import_template  # noqa: E402
 
@@ -114,7 +116,7 @@ def cycles(res, samples=16, transparent=True):
 
 def world(color=(1, 1, 1), strength=1.0):
     w = bpy.data.worlds.get('W') or bpy.data.worlds.new('W')
-    w.use_nodes = True
+    use_nodes(w)
     bg = w.node_tree.nodes.get('Background')
     bg.inputs['Color'].default_value = (*color, 1)
     bg.inputs['Strength'].default_value = strength
@@ -143,11 +145,69 @@ def render_to(path):
     bpy.ops.render.render(write_still=True)
 
 
+# ───────── 絵の読み書きとぼかし：Pillow があれば Pillow（今の glb はこれで作った）。Blender 本体の Python には Pillow が無いので、
+#           無ければ numpy（Blender に同梱）と Blender の画像で同じことをする（ぼかしの式が少し違うだけ・見た目は同じ）
+try:
+    if os.environ.get('WAKABA_NO_PIL'):
+        raise ImportError
+    from PIL import Image, ImageFilter
+    HAVE_PIL = True
+except ImportError:
+    HAVE_PIL = False
+
+
+def img_read(p):
+    """PNG → (h, w, 4) の uint8（上の行から）"""
+    import numpy as np
+    if HAVE_PIL:
+        return np.asarray(Image.open(p).convert('RGBA'))
+    img = bpy.data.images.load(p)
+    w, h = img.size
+    px = np.empty(w * h * 4, np.float32)
+    img.pixels.foreach_get(px)
+    bpy.data.images.remove(img)
+    return np.round(px.reshape(h, w, 4)[::-1] * 255).astype(np.uint8)
+
+
+def img_write(arr, p):
+    """(h, w, 4) の uint8 → PNG"""
+    import numpy as np
+    if HAVE_PIL:
+        Image.fromarray(arr).save(p)
+        return
+    h, w = arr.shape[:2]
+    img = bpy.data.images.new('_tmp_write', w, h, alpha=True)
+    img.pixels.foreach_set((arr[::-1].astype(np.float32) / 255).ravel())
+    img.filepath_raw = p
+    img.file_format = 'PNG'
+    img.save()
+    bpy.data.images.remove(img)
+
+
+def blur(arr, r):
+    """ガウスぼかし（半径 r＝標準偏差）。arr は (h, w) か (h, w, c) の uint8 → float32"""
+    import numpy as np
+    if HAVE_PIL:
+        return np.asarray(Image.fromarray(arr).filter(ImageFilter.GaussianBlur(r))).astype(np.float32)
+    x = arr.astype(np.float32)
+    n = int(math.ceil(r * 3))
+    k = np.exp(-0.5 * (np.arange(-n, n + 1) / r) ** 2)
+    k /= k.sum()
+    for ax in (0, 1):
+        pad = [(0, 0)] * x.ndim
+        pad[ax] = (n, n)
+        xp = np.pad(x, pad, mode='edge')
+        acc = np.zeros_like(x)
+        for i, kv in enumerate(k):
+            acc += kv * np.take(xp, range(i, i + x.shape[ax]), axis=ax)
+        x = acc
+    return np.round(x)
+
+
 def impostor(lod0, library, out_dir, aid):
     """木の遠景の板：Cycles で正面（−y）・横（+x）・真上から撮った絵（白い空の光＝色×隠れ具合）を 1 枚に並べ、
     十字の 2 枚の縦の板＋樹冠の高さの横の板 1 枚に貼る（上から見ても木に見える）"""
     import numpy as np
-    from PIL import Image, ImageFilter
     (x0, y0, z0), (x1, y1, z1) = bounds([lod0])
     W = max(x1 - x0, y1 - y0) * 1.04
     H = (z1 - z0) * 1.02
@@ -166,7 +226,7 @@ def impostor(lod0, library, out_dir, aid):
             co.rotation_euler = (0, 0, 0)        # 真上から・絵の上＝+y
         p = os.path.join(out_dir, '_imp%d.png' % k)
         render_to(p)
-        im = np.asarray(Image.open(p).convert('RGBA'))
+        im = img_read(p)
         if k == 2:   # 真上の絵は縦の絵と同じ高さの枠に入れる（下を空ける）
             pad = np.zeros((vh, vw, 4), np.uint8)
             pad[:vw] = im
@@ -180,19 +240,19 @@ def impostor(lod0, library, out_dir, aid):
     filled = rgb.copy()
     m = (a[..., 0] > 0.05)
     for r in (2, 6, 16):
-        bl = np.asarray(Image.fromarray((rgb * a).astype(np.uint8)).filter(ImageFilter.GaussianBlur(r))).astype(np.float32)
-        bw = np.asarray(Image.fromarray((a[..., 0] * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(r))).astype(np.float32) / 255
+        bl = blur((rgb * a).astype(np.uint8), r)
+        bw = blur((a[..., 0] * 255).astype(np.uint8), r) / 255
         est = bl / np.maximum(bw[..., None], 1e-3)
         fill = (~m) & (bw > 0.01)
         filled[fill] = est[fill]
         m = m | fill
     atlas = np.concatenate([np.clip(filled, 0, 255).astype(np.uint8), atlas[..., 3:4]], -1)
     ip = os.path.join(out_dir, 'imp_%s.png' % aid)
-    Image.fromarray(atlas).save(ip)
+    img_write(atlas, ip)
     img = bpy.data.images.load(ip)
     img.pack()
     mat = bpy.data.materials.new('imp.' + aid)
-    mat.use_nodes = True
+    use_nodes(mat)
     nt = mat.node_tree
     bsdf = nt.nodes.get('Principled BSDF')
     bsdf.inputs['Roughness'].default_value = 0.9
@@ -254,10 +314,12 @@ def export_glb(objs, path):
     kw = dict(filepath=path, use_selection=True, export_format='GLB', export_yup=True, export_apply=True, export_tangents=True, export_normals=True,
               export_materials='EXPORT', export_animations=False, export_skins=False, export_morph=False, export_cameras=False, export_lights=False,
               export_extras=False, export_image_format='WEBP')
-    try:
-        bpy.ops.export_scene.gltf(export_vertex_color='ACTIVE', **kw)
-    except TypeError:
-        bpy.ops.export_scene.gltf(export_colors=True, **kw)
+    # 頂点の色（AO）：4.2 以上は export_vertex_color（5.2 も同じ）。古い名前 export_colors は 4.2 で廃止
+    if 'export_vertex_color' in kitlib.op_props(bpy.ops.export_scene.gltf):
+        kw['export_vertex_color'] = 'ACTIVE'
+    else:
+        kw['export_colors'] = True
+    bpy.ops.export_scene.gltf(**fit_kwargs(bpy.ops.export_scene.gltf, kw, 'glTF の書き出し'))
 
 
 def export_fbx(objs, path):
@@ -265,8 +327,9 @@ def export_fbx(objs, path):
         o.select_set(False)
     for o in objs:
         o.select_set(True)
-    bpy.ops.export_scene.fbx(filepath=path, use_selection=True, object_types={'MESH'}, apply_unit_scale=True, apply_scale_options='FBX_SCALE_UNITS',
-                             axis_forward='-Z', axis_up='Y', mesh_smooth_type='FACE', add_leaf_bones=False, use_mesh_modifiers=True, path_mode='STRIP')
+    kw = dict(filepath=path, use_selection=True, object_types={'MESH'}, apply_unit_scale=True, apply_scale_options='FBX_SCALE_UNITS',
+              axis_forward='-Z', axis_up='Y', mesh_smooth_type='FACE', add_leaf_bones=False, use_mesh_modifiers=True, path_mode='STRIP')
+    bpy.ops.export_scene.fbx(**fit_kwargs(bpy.ops.export_scene.fbx, kw, 'FBX の書き出し'))
 
 
 def build_one(aid, library, prev_dir, fbx=True):
@@ -374,7 +437,13 @@ def main():
             prev = os.path.abspath(argv[i + 1]); i += 1
         elif a == '--no-fbx':
             fbx = False
+        elif a == '--selftest':
+            r = {'blender': kitlib.blender_version_check(), 'api': kitlib.api_probe(), 'pieces': len(PIECES)}
+            print(json.dumps(r, ensure_ascii=False))
+            sys.exit(0 if r['api']['ok'] and r['blender']['status'] != 'too_old' else 1)
         i += 1
+    if kitlib.blender_version_check()['status'] == 'too_old':
+        sys.exit(2)
     ids = only or list(PIECES)
     total = 0
     for aid in ids:
