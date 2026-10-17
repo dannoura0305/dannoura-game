@@ -1,0 +1,295 @@
+{
+ "formatVer": 1,
+ "kind": "locomotionCycle",
+ "humanoid": "vrm1",
+ "phase": "u（0..1）＝1 周期（2 歩）。u=0 左のかかとが着く・u=0.5 右。arm.* は自分の側の脚の u（左腕は左脚の u）。値は -1..1 の形で、大きさは amp（度・cm・m）",
+ "events": [
+  {
+   "t": "LeftFootDown",
+   "u": 0
+  },
+  {
+   "t": "RightFootDown",
+   "u": 0.5
+  }
+ ],
+ "id": "loco.jog",
+ "note": "小走り（2.9〜3.6m/s）。宙に浮く間が短く、ひざは立脚の真ん中で沈む・ひじは 70° ほど",
+ "speed": {
+  "ref": 3.2
+ },
+ "blend": [
+  2.9,
+  3.6
+ ],
+ "cadence": {
+  "base": 2.5,
+  "perMS": 0.09
+ },
+ "stance": [
+  0.38,
+  -0.02
+ ],
+ "foot": {
+  "heelStrikeDeg": -8,
+  "toeOffDeg": 50,
+  "liftM": 0.08,
+  "kickM": 0.12,
+  "aheadK": 0.4,
+  "flatAt": 0.2,
+  "heelRiseAt": 0.45,
+  "toeOffMaxDeg": 62,
+  "swingPitchDeg": 0,
+  "flightG": 9.8
+ },
+ "knee": [
+  [
+   0,
+   14
+  ],
+  [
+   0.4,
+   34
+  ],
+  [
+   0.75,
+   20
+  ],
+  [
+   1,
+   14
+  ]
+ ],
+ "amp": {
+  "swayCm": 1,
+  "surgeCm": 0.6,
+  "pelvisYawDeg": 6,
+  "pelvisRollDeg": 3,
+  "pelvisPitchDeg": 1.5,
+  "pelvisTiltDeg": 4,
+  "leanDeg": 5,
+  "chestCounter": 0.8,
+  "spineBobDeg": 1.5,
+  "shoulderRollDeg": 1.8,
+  "headStab": 0.9,
+  "headNodDeg": 1.4,
+  "armFwdDeg": 26,
+  "armBackDeg": 18,
+  "armBaseDeg": 4,
+  "armOutDeg": 7,
+  "armCrossDeg": 10,
+  "elbowBaseDeg": 72,
+  "elbowSwingDeg": 14,
+  "forearmTwistDeg": 25,
+  "wristDeg": 10,
+  "stepWidthM": 0.06,
+  "toeOutDeg": 5,
+  "crouchCm": 0
+ },
+ "tracks": {
+  "hips.sway": [
+   [
+    0,
+    0
+   ],
+   [
+    0.18,
+    1
+   ],
+   [
+    0.5,
+    0
+   ],
+   [
+    0.68,
+    -1
+   ]
+  ],
+  "hips.yaw": [
+   [
+    0.03,
+    -1
+   ],
+   [
+    0.53,
+    1
+   ]
+  ],
+  "hips.roll": [
+   [
+    0,
+    0.1
+   ],
+   [
+    0.12,
+    1
+   ],
+   [
+    0.32,
+    0
+   ],
+   [
+    0.5,
+    -0.1
+   ],
+   [
+    0.62,
+    -1
+   ],
+   [
+    0.82,
+    0
+   ]
+  ],
+  "hips.pitch": [
+   [
+    0,
+    0.2
+   ],
+   [
+    0.14,
+    1
+   ],
+   [
+    0.32,
+    -0.6
+   ],
+   [
+    0.5,
+    0.2
+   ],
+   [
+    0.64,
+    1
+   ],
+   [
+    0.82,
+    -0.6
+   ]
+  ],
+  "hips.surge": [
+   [
+    0,
+    0.2
+   ],
+   [
+    0.12,
+    -1
+   ],
+   [
+    0.32,
+    0.7
+   ],
+   [
+    0.5,
+    0.2
+   ],
+   [
+    0.62,
+    -1
+   ],
+   [
+    0.82,
+    0.7
+   ]
+  ],
+  "spine.pitch": [
+   [
+    0,
+    0
+   ],
+   [
+    0.12,
+    1
+   ],
+   [
+    0.32,
+    -0.6
+   ],
+   [
+    0.5,
+    0
+   ],
+   [
+    0.62,
+    1
+   ],
+   [
+    0.82,
+    -0.6
+   ]
+  ],
+  "chest.roll": [
+   [
+    0.2,
+    1
+   ],
+   [
+    0.7,
+    -1
+   ]
+  ],
+  "head.nod": [
+   [
+    0.04,
+    -1
+   ],
+   [
+    0.18,
+    0.5
+   ],
+   [
+    0.34,
+    0
+   ],
+   [
+    0.54,
+    -1
+   ],
+   [
+    0.68,
+    0.5
+   ],
+   [
+    0.84,
+    0
+   ]
+  ],
+  "arm.swing": [
+   [
+    0.05,
+    -1
+   ],
+   [
+    0.29,
+    0
+   ],
+   [
+    0.55,
+    1
+   ],
+   [
+    0.79,
+    0
+   ]
+  ],
+  "arm.elbow": [
+   [
+    0.1,
+    0
+   ],
+   [
+    0.36,
+    0.45
+   ],
+   [
+    0.62,
+    1
+   ],
+   [
+    0.86,
+    0.4
+   ]
+  ]
+ }
+}

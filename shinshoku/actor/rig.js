@@ -31,23 +31,34 @@ export function makeRig(d) {
 }
 
 const LEGS = new Set(['hips', 'leftUpperLeg', 'leftLowerLeg', 'leftFoot', 'rightUpperLeg', 'rightLowerLeg', 'rightFoot']);
+const SPINE = new Set(['spine', 'chest', 'neck', 'head']);
 /** 姿勢（関節名 → [x,y,z] ラジアン）を目標にして、毎フレーム補間で近づける */
 export class Poser {
   constructor(J, rest = {}) {
     this.J = J; this.rest = rest; this.q = {}; this.tmpE = new THREE.Euler(); this.tmpQ = new THREE.Quaternion();
     this.hipsBase = J.hips ? J.hips.position.y : 0;
+    this.hipsBaseX = J.hips ? J.hips.position.x : 0; this.hipsBaseZ = J.hips ? J.hips.position.z : 0;
     for (const k of Object.keys(J)) this.q[k] = J[k].quaternion.clone();
   }
-  /** pose._exactLegs：脚（股関節〜足首・腰の高さ）は rate ではなく pose._legRate（既定 1＝そのまま）で当てる（足の IK：補間の遅れで足が滑らない） */
+  /**
+   * pose._exactLegs：脚（股関節〜足首・腰の高さ）は rate ではなく pose._legRate（既定 1＝そのまま）で当てる（足の IK：補間の遅れで足が滑らない）。
+   * pose._bodyRate：背骨・首・頭の補間（P13：歩きの骨盤と肩の逆回りがずれないように速く当てる）。pose.hipsT：腰の左右・前後のずれ [x,0,z]（m）
+   */
   apply(pose, rate) {
     const J = this.J;
     const legRate = pose._exactLegs ? Math.max(rate, pose._legRate ?? 1) : rate;
+    const bodyRate = pose._bodyRate != null ? Math.max(rate, pose._bodyRate) : rate;
     for (const k of Object.keys(J)) {
       const r = pose[k] || [0, 0, 0], b = this.rest[k] || [0, 0, 0];
       this.tmpE.set(r[0] + b[0], r[1] + b[1], r[2] + b[2], 'YXZ');
       this.tmpQ.setFromEuler(this.tmpE);
-      J[k].quaternion.slerp(this.tmpQ, Math.min(1, LEGS.has(k) ? legRate : rate));
+      J[k].quaternion.slerp(this.tmpQ, Math.min(1, LEGS.has(k) ? legRate : SPINE.has(k) ? bodyRate : rate));
     }
-    if (J.hips) J.hips.position.y += ((this.hipsBase + (pose.hipsY || 0)) - J.hips.position.y) * Math.min(1, legRate);
+    if (J.hips) {
+      const lr = Math.min(1, legRate), t = pose.hipsT;
+      J.hips.position.y += ((this.hipsBase + (pose.hipsY || 0)) - J.hips.position.y) * lr;
+      J.hips.position.x += ((this.hipsBaseX + (t ? t[0] : 0)) - J.hips.position.x) * lr;
+      J.hips.position.z += ((this.hipsBaseZ + (t ? t[2] : 0)) - J.hips.position.z) * lr;
+    }
   }
 }

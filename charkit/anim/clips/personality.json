@@ -1,0 +1,48 @@
+{
+ "formatVer": 1,
+ "kind": "locomotionPersonality",
+ "note": "性格の値（クリップの値に掛ける・足す）。cadence・stride・armSwing・sway・yaw・roll・bounce・chestCounter・stepWidth・kick・lift は倍率、elbow・lean・armOut は度を足す、headDown・slouch はラジアンを足す、toeOut はラジアン",
+ "characters": {
+  "dannoura": {
+   "armSwing": 0.92,
+   "elbow": 4,
+   "sway": 0.75,
+   "yaw": 0.9,
+   "roll": 0.75,
+   "bounce": 0.85,
+   "headDown": 0.03,
+   "slouch": 0.02,
+   "toeOut": 0.03
+  },
+  "white": {
+   "armSwing": 0.8,
+   "sway": 0.6,
+   "roll": 0.7,
+   "bounce": 0.8,
+   "lean": 4,
+   "headDown": 0.06,
+   "slouch": 0.05,
+   "stepWidth": 1.15,
+   "toeOut": 0.05,
+   "kick": 1.15
+  },
+  "companion": {
+   "cadence": 1.04,
+   "sway": 1.35,
+   "roll": 1.25,
+   "yaw": 1.1,
+   "stepWidth": 0.8,
+   "toeOut": -0.02,
+   "elbow": 6,
+   "armOut": -1
+  },
+  "daughter": {
+   "cadence": 1.12,
+   "armSwing": 1.15,
+   "bounce": 1.2,
+   "sway": 1.1,
+   "stepWidth": 0.9,
+   "lift": 1.1
+  }
+ }
+}

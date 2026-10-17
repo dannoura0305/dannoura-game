@@ -100,7 +100,7 @@ export function auditArea(area, pieces, A, opt = {}) {
       const box = { min: mn, max: mx, fn: [...new Set(comp.map(c => c.fn))].join(','), at: [...new Set(comp.map(c => c.at))].slice(0, 4).join(','), text: comp.map(c => c.text).filter(Boolean).join(' / ') };
       // 一番近い物（どれだけ離れているか）
       let gap = 1e9; for (const o of G.near(mn.map(v => v - 1), mx.map(v => v + 1))) { if (comp.includes(o)) continue; const dx = Math.max(o.min[0] - mx[0], 0, mn[0] - o.max[0]), dy = Math.max(o.min[1] - mx[1], 0, mn[1] - o.max[1]), dz = Math.max(o.min[2] - mx[2], 0, mn[2] - o.max[2]); gap = Math.min(gap, Math.hypot(dx, dy, dz)); }
-      push('float', 'error', `浮いている（${comp.length} 個の形・地面から ${r2(mn[1])}m・近い物まで ${gap > 9 ? '1m 以上' : r2(gap) + 'm'}）`, box, { n: comp.length, gap: r2(gap), keys: [...new Set(comp.map(c => c.key))].join(',') });
+      push('float', gap <= 0.05 ? 'warn' : 'error', `浮いている（${comp.length} 個の形・地面から ${r2(mn[1])}m・近い物まで ${gap > 9 ? '1m 以上' : r2(gap) + 'm'}）`, box, { n: comp.length, gap: r2(gap), keys: [...new Set(comp.map(c => c.key))].join(',') });
     });
   }
 
@@ -138,7 +138,7 @@ export function auditArea(area, pieces, A, opt = {}) {
       let under = false, side = false;
       for (const o of G.near(p.min.map(v => v - TOL), p.max.map(v => v + TOL))) {
         if (o === p || !ov(p, o, TOL)) continue;
-        if (o.max[1] <= p.min[1] + TOL && o.max[1] >= p.min[1] - TOL - 0.02 && o.min[1] < p.min[1] - 0.15) under = true;
+        if (o.max[1] <= p.max[1] + 0.01 && o.max[1] >= p.min[1] - TOL - 0.02 && o.min[1] < p.min[1] - 0.15 && Math.max(...dims(o).filter((v, q) => q !== 1)) < Math.max(w, d) * 1.5) under = true;
         else if (o.min[1] < p.min[1] - 0.15 && o.max[1] >= p.max[1] - 0.01 && dims(o)[1] > 1.2) side = true;   // 壁に付いた棚・カウンター
       }
       if (!under && !side) push('furniture', 'error', `脚・支えの無い座面／天板（${p.fn}・高さ ${r2(p.min[1])}m）`, p);
@@ -170,7 +170,7 @@ export function auditArea(area, pieces, A, opt = {}) {
       let front = 0;
       for (const o of G.near(mn, mx)) {
         if (o === f.o || o === s || !ov({ min: mn, max: mx }, o)) continue;
-        if ((o.tile && /win|door|shutter|glass|noren|shoji|lattice|koshi|menu|shop|curtain|office|garage/.test(o.tile)) || ['glass', 'glass2', 'texglow', 'shutter', 'glow'].includes(o.key) || o.store) front++;
+        if ((o.tile && /win|door|shutter|glass|noren|shoji|lattice|koshi|menu|shop|curtain|office|garage/.test(o.tile)) || ['glass', 'glass2', 'shutter'].includes(o.key) || o.store) front++;
       }
       if (!front) push('signage', 'error', `店の看板の下がただの壁（「${t}」：戸・窓・シャッター・店の中が無い）`, s);
     }
@@ -210,7 +210,7 @@ export function auditArea(area, pieces, A, opt = {}) {
         const off = m.slice(); off[ax0] += s0 ? 0.01 : -0.01;
         if (pointIn(G, off[0], off[1], off[2], q => q === a || q === b)) continue;
         const area = w1 * w2;
-        push('zfight', area > 0.3 ? 'error' : 'warn', `同じ面が重なる（${a.fn}/${a.tile || a.key} × ${b.fn}/${b.tile || b.key}・${r2(area)}㎡）`, { min: a.min.map((v, q) => q === ax0 ? va : Math.max(v, b.min[q])), max: a.max.map((v, q) => q === ax0 ? va : Math.min(v, b.max[q])), fn: a.fn + '×' + b.fn, at: a.at + '×' + b.at }, { area: r2(area) });
+        push('zfight', area > 0.3 ? 'error' : 'warn', `同じ面が重なる（${a.fn}/${a.tile || a.key} × ${b.fn}/${b.tile || b.key}・${r2(area)}㎡）`, { min: a.min.map((v, q) => q === ax0 ? va : Math.max(v, b.min[q])), max: a.max.map((v, q) => q === ax0 ? va : Math.min(v, b.max[q])), fn: a.fn + '×' + b.fn, at: a.at + '×' + b.at }, { sqm: r2(area) });
       }
     }
   }
