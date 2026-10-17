@@ -1,0 +1,61 @@
+{
+ "ue": "wakaba-ue-landscape/1",
+ "map": "haison",
+ "layoutHash": "fp:0b78e3719c3b08",
+ "source": {
+  "file": "maps/haison/build/terrain.png",
+  "nx": 257,
+  "cellM": 1,
+  "minY": 0,
+  "maxY": 60,
+  "fingerprint": "950cb13f"
+ },
+ "heightmap": {
+  "file": "heightmap_505.png",
+  "size": 505,
+  "bits": 16,
+  "minM": 10.7569,
+  "maxM": 59.5001,
+  "cellM": 0.507937,
+  "sha256": "da9859ae8f9d3ba873ff92b9e08c3c7706a5fedcae217bca934356988ba95afd"
+ },
+ "landscape": {
+  "_note": "UE の Landscape モード → Manage → New → Import from File で heightmap を選び、下の値を入れる（画面の項目名は版で違うことがある・未検証）",
+  "quadsPerSection": 63,
+  "sectionsPerComponent": "2x2",
+  "components": "4x4",
+  "totalComponents": 16,
+  "overallResolution": "505x505",
+  "location": {
+   "x": 0,
+   "y": 0,
+   "z": 3512.88857
+  },
+  "rotation": {
+   "roll": 0,
+   "pitch": 0,
+   "yaw": 0
+  },
+  "scale": {
+   "x": 50.793651,
+   "y": 50.793651,
+   "z": 9.520302
+  },
+  "worldSizeM": [
+   256,
+   256
+  ],
+  "rangeM": 48.743201
+ },
+ "conversion": {
+  "position": "UE (X, Y, Z) cm ＝ layout (x, z, y) × 100（x＝東→X・z＝北→Y・y＝上→Z）",
+  "rotation": "UE Yaw ＝ −rotY・Roll ＝ tilt・Pitch ＝ 0（度）",
+  "size": "layout の size [幅, 高さ, 奥行] → UE の scale (幅, 奥行, 高さ)（/Engine/BasicShapes の 100cm の形の時）",
+  "heightmap": "画像の列＝X・行＝Y（行 0 が Y＝0）。反転しない",
+  "start": [
+   2400,
+   2400,
+   1770.7
+  ]
+ }
+}

@@ -1,1 +1,4 @@
 __pycache__/
+
+# わかばの素材ライブラリ：重い原本（.blend・.fbx・.usd・原寸テクスチャ）は Git に入れない（sources.json に場所と sha256 だけ）
+wakaba-assets/entries/*/*/source/

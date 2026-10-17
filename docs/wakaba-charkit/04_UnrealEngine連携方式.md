@@ -1,6 +1,7 @@
 # 04 Unreal Engine 連携方式（と Web の実行の道）
 
-**UE の採用は決めていません。** mapkit の方式 A／B／C（`docs/wakaba-mapkit/08` §11）と同じ枠で、キャラクターではどうなるかを書きます。**mapkit の方式の質問（Q-A2）にはまだ答えをもらっていない**ので、本書も「どれを選んでも共通の部分」を先に作る前提です。
+**2026-10-17 の利用者の決定：方式 A・B・C を全部採用**（ブラウザ版を続け・UE5 の高性能 PC 版も作り・素材置き場は共有。`docs/wakaba-mapkit/10`）。キャラクターでの進め方は §6。
+（以下 §1〜§5 は決定の前に書いた比較。記録として残す。元の書き出し：「UE の採用は決めていません。mapkit の方式の質問（Q-A2）にはまだ答えをもらっていない」）
 
 ---
 
@@ -101,3 +102,18 @@ flowchart LR
 | 揺れ物 | three-vrm の SpringBone＋行き過ぎの上限 | three-vrm＋自作 |
 | 口 | 文字 → 母音（今）／wLipSync（声がある時） | 自作／npm `wlipsync` 1.3.1・MIT【確認済】 |
 | 根の動き | クリップの hips の水平移動を取り出し、実際の移動速度と比べて再生の速さ・歩幅を合わせる | 自作 |
+
+---
+
+## 6. 方式 C（決定 2026-10-17）でのキャラクターの道
+- **正本は 1 つ**：`.blend`（VRoid の素体を Blender で仕上げた物・骨は VRM 1.0 の humanoid の名前＋`ext_`）。Web 用の VRM と UE5 用の FBX は**どちらも書き出し**（UE の中で骨・重みを直したら、Blender の正本に戻して直す）。
+- **Web（A 線・境界侵食・アニメ調のまま）**：VRM 1.0 → three-vrm（`12` のフェーズ 2〜7 はそのまま）。
+- **UE5（B 線・利用者の PC）**：
+  1. **FBX（推奨）**：正本の写しで骨の名前を UE5 のマネキンに揃え（任意）、FBX で書き出し、IK Retargeter でマネキンの動きを写す。手順：[`tools/blender/vrm_to_fbx.md`](../../tools/blender/vrm_to_fbx.md)。
+  2. **VRM4U**：VRM のまま入れる（利用者の UE の版への対応は未確認）。
+- **骨の名前の付け替え**：`charkit/rig/rename.js`（`renamePlan`・`applyRename`・`profileTable`）。表は §3 と同じ `bonemap.js` の `PROFILES`。Blender で使う JSON は `tools/blender/bonemap_vrm_to_ue5.json`（生成物：`node tools/charkit/export_bonemap.mjs`）。試験 `tests/wakaba-charkit-rename.test.mjs`：VRM の名前（指 30 本・肩・つま先・`ext_`・`socket_` つき）→ UE5 の名前が表のとおり・付け替えた後に名前が重ならない・同じ形へは何もしない・UE5 → VRM で元に戻る・Mixamo → UE5 は VRM 経由と同じ。UE5 に無い骨（目・あご）は変えずに残す。
+  - 名前を揃えても骨の**数**は UE5 と同じにならない（spine_01〜05・neck_01〜02・手の平）。足りない骨は作らず、IK Retargeter の**チェーン**（`charkit/rig/chains.json`）で合わせる。
+  - UE5 の名前は Epic の資料の表のまま。**UE の画面では未確認**。
+- **陰影**：UE5 版のトゥーンは UE の材質で作り直す（値の JSON は共通）。写実にするかは UE5 版の画風として別に決める（Q-A1 の回答は「写実は mapkit の試験マップだけ」＝境界侵食のキャラクターはアニメ調）。
+- **権利**：作品は商用（Q-L1 の回答）。Mixamo・Fab の動き・GASP のマネキンの動きは**UE5 版の中だけ**（Web に出さない＝門の `KNOWN_NO_WEB`）。GASP の動きを UE5 版の製品に入れてよいかは Epic の規約を確認してから。
+

@@ -12,7 +12,7 @@ export const RULES = {
   UNVERIFIED: 'license.verifiedBy が空：人がライセンスを確かめるまで使わない（AI は記入しない）',
   NON_COMMERCIAL: '商用不可（commercial: no）だが、作品は商用（または未定＝商用として扱う）',
   NO_WEB_REDIST: '配信先が公開の Web だが、素のファイルの再配布が yes ではない：Web の書き出しに入れない（PC 版だけ可・要確認）',
-  KNOWN_NO_WEB: 'Mixamo・Fab など、素のファイルを Web で配れない（または未確認の）出どころ：Web の書き出しに入れない',
+  KNOWN_NO_WEB: 'Mixamo・Fab・Megascans など、素のファイルを Web で配れない（または未確認の）出どころ：Web の書き出しに入れない（UE5 の PC 版＝非公開の配信先なら license 次第で可）',
   ENGINE: 'license.engines に配信先のエンジンも any も無い',
   AI_MODEL_MISSING: 'source.type が ai_generated だが source.aiModel（モデル名・版・規約）が空',
   REGION_LIMIT: 'license.regionLimit がある：人に確認するまで止める',
@@ -42,6 +42,7 @@ export function makeContext(config, projectId, { target, stage = 'production' } 
     commercial: p.commercial !== false,          // true・"unknown"・未記入は「商用」として扱う（厳しい側）
     ownDomains: (p.ownDomains || []).map(low),
     target: { id: t.id, engine: t.engine || 'threejs', public: t.public !== false },
+    settings: t.settings || {},                     // 配信先ごとの書き出しの設定（形式・テクスチャの上限など。catalog.mjs が使う）
     stage,                                          // production（本番の束）／dev（開発中の試し）
   };
 }
@@ -75,7 +76,8 @@ export function evaluate(meta, ctx, opt = {}) {
   if (shipped && ctx.target.public && L.redistributeRaw !== 'yes') block('NO_WEB_REDIST', `redistributeRaw: ${L.redistributeRaw || '空'}`);
   const mixamo = [L.id, S.url, S.author].some(x => /mixamo/i.test(String(x || '')));
   const fab = S.type === 'fab' || /^fab/i.test(String(L.id || '')) || /(^|\.)fab\.com/i.test(String(S.url || ''));
-  if (shipped && ctx.target.public && (mixamo || fab)) block('KNOWN_NO_WEB', mixamo ? 'Mixamo' : 'Fab');
+  const megascans = [L.id, S.url, S.author].some(x => /megascans|quixel/i.test(String(x || '')));
+  if (shipped && ctx.target.public && (mixamo || fab || megascans)) block('KNOWN_NO_WEB', mixamo ? 'Mixamo' : fab ? 'Fab' : 'Megascans');
   const engines = L.engines || [];
   if (shipped && !engines.includes('any') && !engines.includes(ctx.target.engine)) block('ENGINE', `配信先 ${ctx.target.engine}`);
   if (S.type === 'ai_generated' && blank(S.aiModel)) block('AI_MODEL_MISSING');
@@ -103,6 +105,18 @@ export function evaluateCharacter(config, ctx, opt = {}) {
   const c = config || {};
   const meta = { id: 'char.' + (c.id || 'unknown'), category: 'character', source: c.source || { type: 'self_made' }, license: c.license || {}, status: 'draft' };
   return evaluate(meta, ctx, opt);
+}
+
+/** 作品の全部の配信先（web・ue5 など）で門に通す：{ <target id>: evaluate の結果 }。方式 C（同じ素材を両方の版で使う）の目録用 */
+export function evaluateTargets(meta, config, projectId, opt = {}) {
+  const p = (config && config.projects && config.projects[projectId]) || {};
+  const targets = p.targets && p.targets.length ? p.targets : [{ id: 'web', engine: 'threejs', public: true }];
+  const out = {};
+  for (const t of targets) {
+    const ctx = makeContext(config, projectId, { target: t.id, stage: opt.stage || 'production' });
+    out[t.id] = meta && meta.spec === 'wakaba-char/1' ? evaluateCharacter(meta, ctx, opt) : evaluate(meta, ctx, opt);
+  }
+  return out;
 }
 
 /** 結果の束 → license-gate.json の形 */
