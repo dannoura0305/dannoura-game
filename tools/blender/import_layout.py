@@ -4,7 +4,7 @@
 方式 C（ブラウザ版＝Three.js と 高性能 PC 版＝UE5 が同じ地図データ・同じ素材ライブラリを使う）の「Blender の入口」。
 docs/wakaba-mapkit/10 §4。座標の式は mapkit/core/ue.js と同じ（tests/wakaba-mapkit-bridge.test.mjs が --selftest で突き合わせる）。
 
-使い方（利用者の PC・Blender 4.5 LTS／5.x を想定。※利用者の PC では未検証）：
+使い方（利用者の PC＝Blender 5.2 LTS。クラウドでは bpy 4.2.0 と 5.2.2 の両方で試した：docs/wakaba-mapkit/10 §6。利用者の PC では未検証）：
   blender --background --python tools/blender/import_layout.py -- maps/haison/build/layout.json --save haison_layout.blend
   画面で：Blender の Scripting タブ → このファイルを開く → 下の ARGS に layout.json の場所を書いて ▶（Run Script）
   --terrain-step 2   地形の網を 2 升ごとに（軽くする）
@@ -12,6 +12,8 @@ docs/wakaba-mapkit/10 §4。座標の式は mapkit/core/ue.js と同じ（tests/
   --kit <file.blend> 素材の .blend から「名前＝素材の id（例 veg.tree.sugi）」の物を読み込み、仮の形の代わりに使う
   --save <file.blend>
 Blender が無くても（素の python3 で）：python3 tools/blender/import_layout.py --selftest  … 座標の式と PNG の読みの自己試験（JSON を出す）
+Blender の版の確かめ：blender --background --python tools/blender/import_layout.py -- --selftest  … JSON の "blender" に版と判定
+  （試した範囲は 4.2〜5.2.x。4.2 より古いと止める、5.3 以上は「未検証」の注意を出して続ける）
 
 座標：layout は x＝東・y＝上・z＝北・m（Three.js・glTF と同じ右手系）。Blender は Z が上・m・右手系。
   Blender (X, Y, Z) ＝ (x, −z, y)（glTF の取り込みと同じ写し方）。回転：Euler XYZ ＝ (tilt, 0, rotY)（度）。
@@ -35,6 +37,27 @@ except ImportError:  # 素の python3（自己試験）
 
 # Blender の画面から ▶ で動かす時はここに書く（コマンドの -- の後ろと同じ）
 ARGS = []
+
+# ───────────────────────── Blender の版（試した範囲：bpy 4.2.0・5.2.2。export_kit.py・kit/kitlib.py にも同じ写し）
+TESTED_MIN, TESTED_MAX = (4, 2), (5, 2)
+
+
+def blender_version_check(out=None):
+    """Blender の版を見て判定する（ok／too_old／untested_newer／no_bpy）。注意は標準エラーへ（標準出力の JSON を汚さない）"""
+    if not HAVE_BPY:
+        return {"version": None, "status": "no_bpy", "tested": "4.2〜5.2.x"}
+    v = tuple(bpy.app.version[:2])
+    st = "too_old" if v < TESTED_MIN else "untested_newer" if v > TESTED_MAX else "ok"
+    msg = {"ok": "試した範囲の版です", "too_old": "4.2 より古い版は動きません（5.2 LTS を勧める）",
+           "untested_newer": "5.3 以上は未検証です（動かない所があれば、エラーの文をそのまま貼ってください）"}[st]
+    print("Blender %s：%s" % (bpy.app.version_string, msg), file=out or sys.stderr)
+    return {"version": bpy.app.version_string, "status": st, "tested": "4.2〜5.2.x"}
+
+
+def use_nodes(idb):
+    """材質・世界のノードを使う。5.0 からは常にノード（use_nodes は 6.0 で消える予定・触ると注意が出る）ので 4.x の時だけ立てる"""
+    if bpy.app.version < (5, 0, 0) and not idb.use_nodes:
+        idb.use_nodes = True
 
 
 # ───────────────────────── 純粋な部分（bpy なし）
@@ -160,6 +183,7 @@ def selftest(layout_path):
         "object": {"id": obj["id"], "center": to_blender(object_center(obj))},
         "heights": [[i, j, round(hs[j * nx + i], 4)] for i, j in samples],
         "grass": len(grass_points(L["instances"][0])) if L["instances"] else 0,
+        "blender": blender_version_check(),
     }
 
 
@@ -206,7 +230,7 @@ def build_scene(opt):
     def material(name, rgb):
         m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
         m.diffuse_color = (rgb[0], rgb[1], rgb[2], 1.0)
-        m.use_nodes = True
+        use_nodes(m)
         bsdf = m.node_tree.nodes.get("Principled BSDF")
         if bsdf:
             bsdf.inputs["Base Color"].default_value = (rgb[0], rgb[1], rgb[2], 1.0)
@@ -421,6 +445,8 @@ def main():
         return
     if not HAVE_BPY:
         print("bpy がありません（Blender の中で動かす）。座標の式だけなら --selftest")
+        sys.exit(2)
+    if blender_version_check()["status"] == "too_old":
         sys.exit(2)
     build_scene(opt)
 

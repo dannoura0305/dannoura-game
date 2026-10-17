@@ -7,13 +7,14 @@
       ＋ sources.json に sha256 を書き足し、ue5/import.json が無ければ雛形を作る
 最後の判断（Web に置いてよいか・形式・大きさ）は tools/mapkit/catalog.mjs（node）が行う。docs/wakaba-mapkit/10 §3。
 
-使い方（利用者の PC・※未検証。クラウドでは bpy 4.2 で試した：結果は docs/wakaba-mapkit/10 §6）：
+使い方（利用者の PC＝Blender 5.2 LTS・※未検証。クラウドでは bpy 4.2.0 と 5.2.2 で試した：結果は docs/wakaba-mapkit/10 §6）：
   1. 書き出す物を「KIT」という名前のコレクションに入れる。物の名前＝素材の id（例 rock.test.boulder_small）
      （名前を変えたくない時は、物のカスタムプロパティ wakaba_id に id を書く）
   2. その id の meta.json を先に作る：wakaba-assets/entries/<category>/<id>/meta.json（docs/wakaba-mapkit/07 §3）
   3. blender my_kit.blend --background --python tools/blender/export_kit.py -- --library wakaba-assets/entries
      画面から：Scripting タブで開いて ARGS を書いて ▶
   --collection KIT（既定）／--selected（選んだ物だけ）／--dry（書かずに確かめるだけ）
+  --selftest（名前の規則と Blender の版の確かめ：JSON の "blender"。試した範囲 4.2〜5.2.x・4.2 未満は止める・5.3 以上は注意）
 決まり（docs/wakaba-mapkit/07 §4.4・charkit 06）：
   ・原点＝底の中心（pivot bottom_center）。外れていたら注意を出す（直さない）
   ・回転・大きさは適用済み（scale 1）。外れていたら注意（書き出しは apply される）
@@ -33,6 +34,7 @@ except ImportError:
     HAVE_BPY = False
 
 ARGS = []
+TESTED_MIN, TESTED_MAX = (4, 2), (5, 2)   # 試した範囲（bpy 4.2.0・5.2.2）。import_layout.py と同じ写し
 ID_RE = re.compile(r"^[a-z0-9_]+(\.[A-Za-z0-9_]+)+$")
 
 
@@ -105,12 +107,25 @@ def find_meta(library, asset_id):
     return None, None
 
 
+def blender_version_check(out=None):
+    """Blender の版の判定（ok／too_old／untested_newer／no_bpy）。注意は標準エラーへ"""
+    if not HAVE_BPY:
+        return {"version": None, "status": "no_bpy", "tested": "4.2〜5.2.x"}
+    v = tuple(bpy.app.version[:2])
+    st = "too_old" if v < TESTED_MIN else "untested_newer" if v > TESTED_MAX else "ok"
+    msg = {"ok": "試した範囲の版です", "too_old": "4.2 より古い版は動きません（5.2 LTS を勧める）",
+           "untested_newer": "5.3 以上は未検証です（動かない所があれば、エラーの文をそのまま貼ってください）"}[st]
+    print("Blender %s：%s" % (bpy.app.version_string, msg), file=out or sys.stderr)
+    return {"version": bpy.app.version_string, "status": st, "tested": "4.2〜5.2.x"}
+
+
 def selftest():
     ok_meta = {"id": "rock.test.boulder_small", "category": "rock", "status": "approved", "source": {"type": "self_made"},
                "license": {"id": "CC0-1.0", "commercial": "yes", "redistributeRaw": "yes", "engines": ["any"], "verifiedBy": "user"}, "tech": {"pivot": "bottom_center", "collision": "box"}}
     fab = json.loads(json.dumps(ok_meta)); fab["source"] = {"type": "fab", "url": "https://www.fab.com/listings/x"}; fab["license"]["id"] = "Fab-Standard"
     return {"name": ue_asset_name("rock.test.boulder_small"), "path": ue_game_path("building_module", "bld.jp_house.wall_plaster_1x1"),
-            "web_ok": web_allowed(ok_meta)[0], "web_fab": web_allowed(fab)[0], "template": ue5_import_template(ok_meta, "source/rock.test.boulder_small.fbx")}
+            "web_ok": web_allowed(ok_meta)[0], "web_fab": web_allowed(fab)[0], "template": ue5_import_template(ok_meta, "source/rock.test.boulder_small.fbx"),
+            "blender": blender_version_check()}
 
 
 # ───────────────────────── Blender の部分
@@ -180,6 +195,8 @@ def main():
         return
     if not HAVE_BPY:
         print("bpy がありません（Blender の中で動かす）。名前の規則だけなら --selftest")
+        sys.exit(2)
+    if blender_version_check()["status"] == "too_old":
         sys.exit(2)
     opt = {"library": "wakaba-assets/entries", "collection": "KIT", "selected": "--selected" in argv, "dry": "--dry" in argv}
     for k in ("library", "collection"):
