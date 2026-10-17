@@ -2,8 +2,8 @@
  "id": "prop.town.car",
  "version": 1,
  "name": {
-  "ja": "乗用車（セダン・軽ワゴン・ミニバン・軽トラ・タクシー・ハッチバックの 6 種・LOD 3・塗装は置く時の色）",
-  "en": "Cars (sedan / kei wagon / minivan / kei truck / taxi / hatchback, 3 LODs, tintable)"
+  "ja": "乗用車（セダン・軽ワゴン・ミニバン・軽トラ・タクシー・ハッチバックの 6 種・塗装は置く時の色・スマホは car_lite）",
+  "en": "Cars (sedan / kei wagon / minivan / kei truck / taxi / hatchback, tintable; phone uses car_lite)"
  },
  "category": "prop",
  "tags": [
@@ -34,15 +34,13 @@
    "glb",
    "fbx"
   ],
-  "tris": 5340,
+  "tris": 2284,
   "lods": [
-   5340,
-   2916,
-   908
+   2284
   ],
   "sizeM": [
    2.02,
-   1.447,
+   1.438,
    4.405
   ],
   "pivot": "bottom_center",
@@ -53,7 +51,7 @@
    "ao",
    "roughness"
   ],
-  "fileBytes": 2914956
+  "fileBytes": 872436
  },
  "use": [
   "境界侵食（shinshoku）の町と屋内"
@@ -62,29 +60,16 @@
  "kit": {
   "kit": "wakaba-kit/1",
   "nodes": {
-   "v0_LOD0": 5340,
-   "v0_LOD1": 2916,
-   "v0_LOD2": 908,
-   "v1_LOD0": 4908,
-   "v1_LOD1": 2740,
-   "v1_LOD2": 840,
-   "v2_LOD0": 5532,
-   "v2_LOD1": 2996,
-   "v2_LOD2": 900,
-   "v3_LOD0": 3640,
-   "v3_LOD1": 2192,
-   "v3_LOD2": 692,
-   "v4_LOD0": 5396,
-   "v4_LOD1": 2972,
-   "v4_LOD2": 932,
-   "v5_LOD0": 5180,
-   "v5_LOD1": 2852,
-   "v5_LOD2": 888
+   "v0_LOD0": 2284,
+   "v1_LOD0": 2204,
+   "v2_LOD0": 2356,
+   "v3_LOD0": 1896,
+   "v4_LOD0": 2340,
+   "v5_LOD0": 2252
   },
   "variants": 6,
   "lodDist": [
-   14,
-   34
+   60
   ],
   "impostor": false,
   "materials": [

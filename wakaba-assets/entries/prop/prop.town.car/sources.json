@@ -6,8 +6,8 @@
    "role": "fbx",
    "path": "source/prop.town.car.fbx",
    "storage": "local-ignored",
-   "sha256": "12de2ef4aabf55abeee388137fa69932812a289ddf5c7dbddecb5487183f0589",
-   "bytes": 697308,
+   "sha256": "f84d3a09bf9c584d45a3158ff3e3efec7adf97c682604f1d4aa3442d82e58b78",
+   "bytes": 285436,
    "tool": "bpy 5.2.2 LTS",
    "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_town.py --only prop.town.car"
   }

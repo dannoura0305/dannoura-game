@@ -106,8 +106,9 @@ await t('Blender の部品（町・屋内 15）：目録にあり web の門を�
   for (const id of ids) assert.ok(src.includes(`'${id}'`), id);
 });
 
-await t('部品の置き方：段で kit が off の時は何も記録しない（スマホは手続きの形だけ）・on の時は記録する', () => {
-  envKitInit(PRESETS.low); const a = kitCollector(); assert.equal(a.on, false); assert.equal(a.put('prop.town.car', 0, 1, 0, 2), false); assert.equal(a.items.length, 0);
+await t('部品の置き方：段で kit が off の時は車だけ記録する（P14：スマホも車は箱でなく軽い版の glb）・on の時は全部記録する', () => {
+  envKitInit(PRESETS.low); const a = kitCollector(); assert.equal(a.put('prop.town.vending', 0, 1, 0, 2), false); assert.equal(a.put('prop.town.utility_pole', 0, 1, 0, 2), false);
+  assert.equal(a.put('prop.town.car', 0, 1, 0, 2), true); assert.equal(a.items.length, 1);
   envKitInit(PRESETS.high); const b = kitCollector(); assert.equal(b.on, true); assert.equal(b.put('prop.town.car', 1, 1, 0, 2, 0.5, 1, 0xff0000), true); assert.deepEqual(b.items[0].s, [1, 1, 1]);
   envKitInit(PRESETS.low);
 });

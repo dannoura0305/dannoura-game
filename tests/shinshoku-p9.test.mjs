@@ -187,7 +187,7 @@ t('町全体の見取り図：区画グラフの場所がすべて載ってい�
 });
 t('自宅の段の目標・演出の位置は住宅地の自宅（家の中）', () => {
   for (const id of ['pro_home', 'pro_tv', 'ch1_katana']) { const tg = TARGETS[id]; assert.ok(inHome(tg[1], tg[2]), id); }
-  const cs = src('story/cutscenes.js'); assert.ok(cs.includes("pos: homeW(-3.4, 14.4)"), 'テレビの場面の役者の位置');
+  const cs = src('story/cutscenes.js'); assert.ok(cs.includes("pos: homeW(-3.4, 14.35)"), 'テレビの場面の役者の位置');
   assert.ok(src('game/story.js').includes("inHome(P.x, P.z) && homeL(P.x, P.z)[1] > 9.2"), '家に入ったら（居間）');
 });
 

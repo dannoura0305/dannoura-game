@@ -60,6 +60,7 @@ export const combatMethods = {
     resolveCircle(P.pos, P.r, BX);
     if (insideAny(P.pos, BX, 0)) this.metrics.wallClips++;
     if (this.area.floorAt) { const fy = this.area.floorAt(P.pos.x, P.pos.z, P.pos.y); if (fy != null) P.pos.y = fy; }   // P14：階段・2 階の床の高さ
+    if (this.area.stepTick) this.area.stepTick(DT, this);                                             // P14：自宅の玄関の戸（近づくと開く）
     const B = this.area.bounds; if (P.pos.x < B.minX || P.pos.x > B.maxX || P.pos.z < B.minZ || P.pos.z > B.maxZ) this.metrics.outOfBounds++;
     if (this.god) F.hp = F.hpMax;
     const moved = Math.hypot(P.pos.x - before.x, P.pos.z - before.z);

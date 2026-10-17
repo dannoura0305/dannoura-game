@@ -32,7 +32,7 @@ const MAT2TILE = {
 };
 /** 部品ごとの LOD の距離（m）と影 */
 const OPT = { 'prop.town.utility_pole': { d: [40], shadow: true }, 'prop.town.pole_steel': { d: [60] }, 'prop.town.lamp_head': { d: [28] }, 'prop.town.lamp_modern': { d: [35] },
-  'prop.town.vending': { d: [22], shadow: true }, 'prop.town.car': { d: [14, 34], shadow: true }, 'prop.town.bicycle': { d: [16] }, 'prop.town.ac_unit': { d: [18] },
+  'prop.town.vending': { d: [22], shadow: true }, 'prop.town.car': { d: [], shadow: true }, 'prop.town.bicycle': { d: [16] }, 'prop.town.ac_unit': { d: [18] },
   'prop.town.guardrail': { d: [26] }, 'bld.town.arcade_arch': { d: [40] } };
 
 export const KIT = { on: false, ready: false, loading: null, pieces: new Map(), stats: { glbBytes: 0, ms: 0, pieces: 0, failed: [] } };

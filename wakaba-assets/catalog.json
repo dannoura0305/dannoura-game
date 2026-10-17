@@ -11336,8 +11336,8 @@
    "version": 1,
    "category": "prop",
    "name": {
-    "ja": "乗用車（セダン・軽ワゴン・ミニバン・軽トラ・タクシー・ハッチバックの 6 種・LOD 3・塗装は置く時の色）",
-    "en": "Cars (sedan / kei wagon / minivan / kei truck / taxi / hatchback, 3 LODs, tintable)"
+    "ja": "乗用車（セダン・軽ワゴン・ミニバン・軽トラ・タクシー・ハッチバックの 6 種・塗装は置く時の色・スマホは car_lite）",
+    "en": "Cars (sedan / kei wagon / minivan / kei truck / taxi / hatchback, tintable; phone uses car_lite)"
    },
    "status": "draft",
    "tags": [
@@ -11355,10 +11355,10 @@
     "pivot": "bottom_center",
     "sizeM": [
      2.02,
-     1.447,
+     1.438,
      4.405
     ],
-    "tris": 5340
+    "tris": 2284
    },
    "targets": {
     "web": {
@@ -11375,14 +11375,14 @@
      "role": "fbx",
      "path": "source/prop.town.car.fbx",
      "storage": "local-ignored",
-     "sha256": "12de2ef4aabf55abeee388137fa69932812a289ddf5c7dbddecb5487183f0589",
-     "bytes": 697308
+     "sha256": "f84d3a09bf9c584d45a3158ff3e3efec7adf97c682604f1d4aa3442d82e58b78",
+     "bytes": 285436
     }
    ],
    "web": [
     {
      "file": "web/prop.town.car.glb",
-     "bytes": 2914956
+     "bytes": 872436
     }
    ],
    "ue5": {
@@ -11396,29 +11396,16 @@
    },
    "kit": {
     "nodes": {
-     "v0_LOD0": 5340,
-     "v0_LOD1": 2916,
-     "v0_LOD2": 908,
-     "v1_LOD0": 4908,
-     "v1_LOD1": 2740,
-     "v1_LOD2": 840,
-     "v2_LOD0": 5532,
-     "v2_LOD1": 2996,
-     "v2_LOD2": 900,
-     "v3_LOD0": 3640,
-     "v3_LOD1": 2192,
-     "v3_LOD2": 692,
-     "v4_LOD0": 5396,
-     "v4_LOD1": 2972,
-     "v4_LOD2": 932,
-     "v5_LOD0": 5180,
-     "v5_LOD1": 2852,
-     "v5_LOD2": 888
+     "v0_LOD0": 2284,
+     "v1_LOD0": 2204,
+     "v2_LOD0": 2356,
+     "v3_LOD0": 1896,
+     "v4_LOD0": 2340,
+     "v5_LOD0": 2252
     },
     "variants": 6,
     "lodDist": [
-     14,
-     34
+     60
     ],
     "impostor": false,
     "materials": [
@@ -11482,14 +11469,14 @@
      "role": "fbx",
      "path": "source/prop.town.car_lite.fbx",
      "storage": "local-ignored",
-     "sha256": "af5a8f4719c771f06c0e819b6b2c1838b71b753eac0d2f75e4397b35bae406ab",
-     "bytes": 158908
+     "sha256": "90e62f64c4c16300ac07f95183c922bb717ceef2a6f785d8820b35728e53c643",
+     "bytes": 141196
     }
    ],
    "web": [
     {
      "file": "web/prop.town.car_lite.glb",
-     "bytes": 337616
+     "bytes": 333968
     }
    ],
    "ue5": {

@@ -405,7 +405,7 @@ TOWN_PIECES = {
     'prop.town.lamp_head': (lamp_heads, 'prop', '街灯の腕と灯具（2 種）', 'Street lamp arm and head (2 variants)', ['街灯', '町'], 'none', [30]),
     'prop.town.lamp_modern': (lamp_moderns, 'prop', '中央通りの LED の街灯の腕と灯具（2 種）', 'Avenue LED lamp head (2 variants)', ['街灯', '町'], 'none', [35]),
     'prop.town.vending': (vending, 'prop', '自販機（塗装は置く時の色）', 'Vending machine (tintable)', ['自販機', '町'], 'box', [22]),
-    'prop.town.car': (cars, 'prop', '乗用車（セダン・軽ワゴン・ミニバン・軽トラ・タクシー・ハッチバックの 6 種・LOD 3・塗装は置く時の色）', 'Cars (sedan / kei wagon / minivan / kei truck / taxi / hatchback, 3 LODs, tintable)', ['車', '町'], 'box', [14, 34]),
+    'prop.town.car': (cars, 'prop', '乗用車（セダン・軽ワゴン・ミニバン・軽トラ・タクシー・ハッチバックの 6 種・塗装は置く時の色・スマホは car_lite）', 'Cars (sedan / kei wagon / minivan / kei truck / taxi / hatchback, tintable; phone uses car_lite)', ['車', '町'], 'box', [60]),
     'prop.town.car_lite': (cars_lite, 'prop', '乗用車の軽い版（スマホの低い段：prop.town.car の LOD2 だけ・6 種）', 'Cars, lite (phone low preset: LOD2 only, 6 kinds)', ['車', '町'], 'box', [60]),
     'prop.town.bicycle': (bicycle_town, 'prop', 'ママチャリ（前かご・荷台）', 'City bicycle', ['自転車', '町'], 'none', [18]),
     'prop.town.ac_unit': (ac_unit, 'prop', 'エアコンの室外機', 'Air conditioner outdoor unit', ['室外機', '町'], 'box', [20]),

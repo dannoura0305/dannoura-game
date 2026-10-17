@@ -9,7 +9,7 @@
   ・別の部品：タイヤ（ゴム）・ホイール（金属・5 本の穴）・前照灯・尾灯・方向指示器（光る）・鏡・取っ手・ドアの継ぎ目・
     ワイパー・ナンバー（数字は無い：白い板と枠だけ）・バンパー・下の黒い縁・グリル
 種類（v<k>）：0 セダン・1 軽のトールワゴン・2 ミニバン・3 軽トラック・4 タクシー（セダン＋屋根の行灯）・5 ハッチバック。
-LOD：0（細かい・約 4〜6 千三角形）・1（輪を粗く・小物を省く）・2（スマホの低い段でも車の形：約 4〜7 百）。
+細かさ（lod）：1＝PC の版（prop.town.car：約 1.9〜2.4 千三角形・glb 1MB 以内）・2＝スマホの低い段の版（prop.town.car_lite：約 7〜9 百）。0 は試しの細かい版（今は置かない）。
 材質：mat.town.paint#carpaint（塗装：置く時の色・艶）・#black（窓の枠・柱・下の縁）・#tire・#chrome（金属の艶）・#rim・#plate・#dark・
 glass.dark（ガラス）・emit.head／emit.tail／emit.amber／emit.andon（光る）。向き：x＝幅・y＝長さ（前＝−y）・z＝上・原点＝底の中心。
 """
@@ -76,14 +76,14 @@ def body(B, S, lod):
     """車体（ロフト）。lod：0／1／2（輪の点と駅の細かさ）"""
     L, W, r = S['L'], S['W'], S['r']
     y0, y1 = -L / 2, (S.get('cab') if S.get('cab') is not None else L / 2)
-    step = (0.07, 0.15, 0.34)[lod]
+    step = (0.11, 0.3, 0.34)[lod]
     ys = set()
     n = max(4, int((y1 - y0) / step))
     for i in range(n + 1):
         ys.add(round(y0 + (y1 - y0) * i / n, 4))
     R = r + 0.055
     for yw in S['yw']:                                               # 車輪の切り欠き：円の上の点を駅に
-        k = (9, 5, 3)[lod]
+        k = (7, 4, 3)[lod]
         for i in range(k + 1):
             a = math.pi * i / k
             yy = yw - R * math.cos(a)
@@ -97,7 +97,7 @@ def body(B, S, lod):
     if S.get('bpil') is not None and lod < 2:
         for d in (-0.05, 0.05):
             ys.add(round(S['bpil'] + d, 4))
-    nose = (0.025, 0.07, 0.14, 0.24, 0.36) if lod == 0 else (0.05, 0.16, 0.32) if lod == 1 else (0.1, 0.3)
+    nose = (0.03, 0.1, 0.22, 0.36) if lod == 0 else (0.06, 0.2) if lod == 1 else (0.1, 0.3)
     for d in nose:
         ys.add(round(y0 + d, 4))
         if not S.get('cab'):
@@ -183,11 +183,11 @@ def body(B, S, lod):
 
 
 def wheel(B, x, y, r, w, lod, outward):
-    segs = (22, 14, 8)[lod]
+    segs = (16, 12, 8)[lod]
     c = Vector((x, y, r))
     d = Vector((1, 0, 0))
     B.cyl(c - d * w / 2, c + d * w / 2, r, r, segs=segs, mid=P('tire'))
-    if lod < 2:
+    if lod == 0:
         B.cyl(c - d * (w / 2 + 0.004), c + d * (w / 2 + 0.004), r * 0.86, r * 0.86, segs=segs, mid=P('tire'))     # 側面のふくらみ
     o = Vector((outward * (w / 2 + 0.006), 0, 0))
     B.cyl(c + o - d * 0.004, c + o + d * 0.004, r * 0.62, r * 0.62, segs=segs, mid=P('rim'))
@@ -231,7 +231,7 @@ def car(kind, lod):
     if lod < 2:
         B.box((0, y0 - 0.045, zbum + 0.01), (0.34, 0.012, 0.17), P('plate'))                                      # ナンバー（数字は無い）
         B.box((0, y0 - 0.052, zbum + 0.01), (0.36, 0.004, 0.19), P('black'))
-        if lod == 0:
+        if lod < 2:
             for dx in (-0.09, -0.03, 0.03, 0.09):                                                                # 読めない印（実在の番号ではない）
                 B.box((dx, y0 - 0.0525, zbum - 0.01), (0.035, 0.002, 0.07), P('dark'))
     # 後ろ：尾灯・ナンバー・バンパー（軽トラは荷台の後ろ）
@@ -259,7 +259,7 @@ def car(kind, lod):
             B.box((s * (wb + 0.11), ym, zm), (0.06, 0.1, 0.11), P('carpaint'), bevel=0.015)
             B.box((s * (wb + 0.115), ym - 0.051, zm), (0.05, 0.004, 0.09), P('chrome'))
             B.box((s * (wb - 0.01), (y0 + yb) / 2, S['zb'] + 0.07), (0.05, (yb - y0) * 0.55, 0.07), P('black'))   # 下の縁
-    if lod == 0:
+    if lod < 2:
         doors = []
         if kind == 'truck':
             doors = [S['ws'][1] + 0.02, S['cab'] - 0.04]
@@ -308,14 +308,14 @@ def car(kind, lod):
     if S.get('slide') and lod == 0:
         for s in (-1, 1):
             B.box((s * (wb + 0.012), (S['bpil'] + S['roof'][1] - 0.35) / 2 + 0.2, belt(1.0) - 0.04), (0.01, 1.1, 0.012), P('dark'))   # スライドドアの溝
-    return B.finish(32)
+    return B.finish(32, uv=False)   # 塗装・ゴム・ガラスは無地＝UV で頂点を分けない（glb を小さく）
 
 
 KINDS = ['sedan', 'kei', 'minivan', 'truck', 'taxi', 'hatch']
 
 
 def cars():
-    return {'variant_lods': [[car(k, l) for l in range(3)] for k in KINDS], 'no_tangents': True}
+    return {'variant_lods': [[car(k, 1)] for k in KINDS], 'no_tangents': True}   # PC：細かい版（lod 1）だけ（約 2.3 千三角形・glb 1MB 以内）。スマホは cars_lite
 
 
 def cars_lite():
