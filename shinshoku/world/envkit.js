@@ -18,6 +18,8 @@ export const KIT_PIECES = {
   'prop.town.car': 'prop', 'prop.town.bicycle': 'prop', 'prop.town.ac_unit': 'prop', 'prop.town.guardrail': 'prop', 'bld.town.arcade_arch': 'building_module',
   'prop.int.bench_row': 'prop', 'prop.int.hospital_bed': 'prop', 'prop.int.locker': 'prop', 'prop.int.server_rack': 'prop', 'prop.int.desk_pc': 'prop',
 };
+/** 作ったが今は置いていない部品（読まない：UE5 の版・後の屋内の作り直しで使う） */
+export const KIT_SPARE = new Set(['prop.int.desk_pc', 'prop.int.server_rack']);
 /** 材質の id → 町の地図帳の枠と 1 回の繰り返し（m） */
 const MAT2TILE = {
   'mat.town.paint': ['white', 1.0], 'mat.town.concrete': ['concrete', 3], 'mat.town.grating': ['drain', 0.9], 'mat.int.wood_floor': ['woodfloor', 1.8],
@@ -83,7 +85,7 @@ export function envKitLoad(game) {
   if (!KIT.on) return (KIT.loading = Promise.resolve(0));
   const t0 = performance.now(), loader = new GLTFLoader();
   KIT.loading = fetch(LIB + 'catalog.json').then(r => r.json()).then(cat => {
-    const ok = new Map(); for (const e of cat.entries || []) if (KIT_PIECES[e.id] && e.targets && e.targets.web && e.targets.web.result === 'pass' && e.kit) ok.set(e.id, e);
+    const ok = new Map(); for (const e of cat.entries || []) if (KIT_PIECES[e.id] && !KIT_SPARE.has(e.id) && e.targets && e.targets.web && e.targets.web.result === 'pass' && e.kit) ok.set(e.id, e);
     return Promise.all([...ok.values()].map(e => new Promise(res => {
       const url = `${LIB}entries/${e.dir}/web/${e.id}.glb`;
       loader.load(url, gl => { try { KIT.pieces.set(e.id, convert(gl)); KIT.stats.glbBytes += (e.tech && e.tech.fileBytes) || 0; } catch (err) { KIT.stats.failed.push(e.id + ': ' + err.message); } res(); }, undefined, () => { KIT.stats.failed.push(url); res(); });

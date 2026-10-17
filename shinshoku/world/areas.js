@@ -325,7 +325,7 @@ export function buildShelter() {
   B.box('prop', -6.95, 1.7, 15.4, 0.1, 1.6, 2.6, 0xf2eee0); B.box('prop', -6.9, 2.55, 15.4, 0.06, 0.1, 2.7, 0x3a6a3a);
   spots.push({ id: 'roster', kind: 'clue', clue: 'roster', x: -6.0, z: 15.4, r: 1.3, label: '避難者名簿（掲示）' });
   const lk = [[0, 0.9, 0, 0.4, 1.8, 1.8, 0x8a8a7a], [0.21, 0.9, 0, 0.02, 1.7, 1.7, 0x5a5a52]];
-  root.add(instanced(lk, [{ x: 6.75, z: 13.2 }, { x: 6.75, z: 17.2 }], { name: 'lockers' })); solid(6.75, 15.2, 0.5, 6, 1.8);
+  root.add(instanced(lk, [{ x: 6.75, z: 13.2 }, { x: 6.75, z: 17.2 }], { name: 'lockers', kit: 'prop.int.locker', kitRy: -Math.PI / 2, kitS: [2, 1, 0.8], kitColor: 0x8a8a7a })); solid(6.75, 15.2, 0.5, 6, 1.8);
   const lb = atlas.add(signDraw('受付　（避難者の方は名前を記入）', { bg: '#f4f0e6', fg: '#203050', size: 26 }));
   B.box('sign', 0.4, 1.6, 12.24, 2.4, 0.3, 0.03, 0xffffff, { uv: lb, face: 4, edges: false });
   // 体育館の戸（鍵）：閉まっている間は当たり判定あり
