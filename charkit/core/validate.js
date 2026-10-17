@@ -8,7 +8,7 @@ import { checkCombatRef, resolvePath } from '../anim/combatfit.js';
 export { validate };
 
 /** 材質の名前の規則（docs/wakaba-charkit/06 §4） */
-export const MATERIAL_RE = /^(skin|face|eye_iris|eye_white|eye_hl|brow|mouth|hair|(cloth|metal|acc|glass)_[a-z0-9_]+)$/;
+export const MATERIAL_RE = /^(skin|face|eye_iris|eye_white|eye_hl|brow|mouth|hair|fur|(cloth|metal|acc|glass)_[a-z0-9_]+)$/;   // fur：毛（白髪形態の襟・尾）
 /** 補正の形の名前：cor_<骨>_<軸><符号><角度> */
 export const CORRECTIVE_RE = /^cor_([A-Za-z]+)_([xyz])([+-])(\d+)$/;
 /** 男性の体の基準で要る寸法（デザインの検査で女性の体つきに寄らないかを見るため） */

@@ -63,6 +63,40 @@ export function descend(G, dist, k, max = 4000) {
   }
   return out;
 }
+/**
+ * A*（升目 s → t・8 方向・octile の見積もり）。距離の場（distanceField）を全部作るより速い：敵の追跡で 0.3 秒ごとに使う。
+ * maxExpand 個を開いても着かない時は、t に一番近づいた升目までの道を返す（partial: true）。
+ * 戻り値：{ cells: [k…]（s から t の順）, cost（m）, partial, expanded }。同じ入力なら同じ答え（同じ重みの時の順は升目の番号で決まる）
+ */
+export function findPath(G, s, t, { maxExpand = 30000 } = {}) {
+  if (s < 0 || t < 0) return { cells: [], cost: Infinity, partial: true, expanded: 0 };
+  const n = G.nx * G.nz;
+  let A = G._astar; if (!A) A = G._astar = { g: new Float64Array(n).fill(Infinity), from: new Int32Array(n).fill(-1), closed: new Uint8Array(n), touched: [] };
+  for (const k of A.touched) { A.g[k] = Infinity; A.from[k] = -1; A.closed[k] = 0; } A.touched.length = 0;
+  const ti = t % G.nx, tj = (t - ti) / G.nx, D = G.cell, D2 = G.cell * Math.SQRT2;
+  const hEst = k => { const i = k % G.nx, j = (k - i) / G.nx, dx = Math.abs(i - ti), dz = Math.abs(j - tj); return D * (dx + dz) + (D2 - 2 * D) * Math.min(dx, dz); };
+  const heap = new Heap(); A.g[s] = 0; A.touched.push(s); heap.push(s, hEst(s));
+  let best = s, bestH = hEst(s), expanded = 0;
+  while (heap.size) {
+    const [k] = heap.pop(); if (A.closed[k]) continue; A.closed[k] = 1; expanded++;
+    if (k === t) { best = k; bestH = 0; break; }
+    const hk = hEst(k); if (hk < bestH) { bestH = hk; best = k; }
+    if (expanded >= maxExpand) break;
+    const i = k % G.nx, j = (k - i) / G.nx;
+    for (const [di, dj, w] of N8) {
+      if (!canStep(G, i, j, di, dj)) continue;
+      const k2 = (j + dj) * G.nx + i + di; if (A.closed[k2]) continue;
+      const ng = A.g[k] + w * G.cell;
+      if (ng < A.g[k2]) { if (A.g[k2] === Infinity) A.touched.push(k2); A.g[k2] = ng; A.from[k2] = k; heap.push(k2, ng + hEst(k2)); }
+    }
+  }
+  const cells = []; for (let k = best; k >= 0; k = A.from[k]) { cells.push(k); if (k === s) break; }
+  cells.reverse();
+  return { cells, cost: A.g[best], partial: best !== t, expanded };
+}
+/** 升目の番号 → [x, y, z]（升目の中心・歩く面の高さ） */
+export function cellPos(G, k) { const i = k % G.nx, j = (k - i) / G.nx; return [(i + 0.5) * G.cell, G.y[k], (j + 0.5) * G.cell]; }
+
 class Heap {
   constructor() { this.k = []; this.v = []; }
   get size() { return this.k.length; }

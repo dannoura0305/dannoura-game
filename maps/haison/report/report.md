@@ -1,23 +1,24 @@
 # 検証レポート：haison
 
-- 種：`haison-001`／作成：2026-10-17T07:17:53.799Z（claude-code）／仕様：`sha256:fe5f74925c59…`
+- 種：`haison-001`／作成：2026-10-17T12:25:36.955Z（claude-code）／仕様：`sha256:60dfd3eedfd9…`
 
 ## 自動の検査
 
 | 項目 | 結果 | 中身 |
 |---|---|---|
-| deterministic | ✅ 合格 | {"hash":"fp:1f763c2eed098e","terrain":"950cb13f"} |
+| deterministic | ✅ 合格 | {"hash":"fp:0f052e74a447ff","terrain":"950cb13f"} |
 | keepOut | ✅ 合格 | {"violations":[],"checked":{"objects":958,"small":18073,"buildings":5,"shapes":225}} |
 | float | ✅ 合格 | {"items":[],"counts":{"float":0,"penetrate":0}} |
 | overlap | ✅ 合格 | {"items":[],"count":0} |
 | reach | ✅ 合格 | {"goals":{"h1.door":135.62,"h2.door":148.74,"h4.door":136.29,"h1.center":142.24,"shrine.front":205.88},"unreachable":[],"ratio":{"h1.door":1.03,"h2.door":1.05," |
 | interiors | ✅ 合格 | {"rooms":[{"id":"h1.doma","reach":140.33,"ceiling":2.52,"pass":true},{"id":"h1.washitsu_6","reach":142.24,"ceiling":2.17,"pass":true},{"id":"h1.daidokoro","reac |
 | license | ✅ 合格 | {"blocked":[],"note":"物の種類 23 のうち 23 が目録の素材（web の門 pass・自作＝license own・verifiedBy は人の確認待ち）・仮の形 0。材質と建物の部品も目録（node tools/mapkit/catalog.mjs）"} |
-| budget | ✅ 合格 | {"preset":"low","drawCalls":90,"tris":48034,"texMB":30.9,"source":"measured（play_map.mjs・スマホ 844×390・テクスチャは辺×4B×4/3 の見積もり）"} |
-| perf | （参考） | {"device":"swiftshader","fps":null,"note":"fps は実機で測る（mapkit.html?perf=1）。起動（操作できるまで）PC high 4879ms・スマホ low 3420ms（ソフト描画）。PC high：描画 216・三角形 490930。段ごと（村の視点）：ul |
+| budget | ✅ 合格 | {"preset":"low","drawCalls":102,"tris":55994,"texMB":31.2,"source":"measured（play_map.mjs・スマホ 844×390・テクスチャは辺×4B×4/3 の見積もり）"} |
+| perf | （参考） | {"device":"swiftshader","fps":null,"note":"fps は実機で測る（mapkit.html?perf=1）。起動（操作できるまで）PC high 9809ms・スマホ low 17292ms（ソフト描画）。PC high：描画 236・三角形 524452。段ごと（村の視点）：u |
 | entrances | ✅ 合格 | {"violations":[]} |
 | slope | ✅ 合格 | {"items":[],"buildings":[{"id":"h1","slope":0.25},{"id":"h2","slope":0.08},{"id":"h3","slope":0.02},{"id":"h4","slope":0.02},{"id":"shrine","slope":0.71}]} |
 | fall | ✅ 合格 | {"edgeCells":10,"guard":"坂 40° を超える所・段差 0.4m を超える所は操作（mapkit/runtime/controller.js）が壁として止める＝落ちない（boundary: invisible_wall_on_cliff）"} |
+| gameplay | ✅ 合格 | {"doors":[{"id":"h1.door","kind":"sliding","initial":"closed","sides":[135.83,137.12]},{"id":"h2.door","kind":"sliding","initial":"open","sides":[148.74,149.74] |
 
 ## 条件
 
@@ -32,13 +33,16 @@
 | 森（木 300 本以上） | 自動 | ✅ 合格 | 木 865・岩 39・下草 18073 |
 | 入口の前・道・目的地に物が 0 個 | 自動 | ✅ 合格 | 違反 0＋0 |
 | 浮き・めり込み・重なりが 0 件 | 自動 | ✅ 合格 | 浮き 0・めり込み 0・重なり 0 |
-| 同じ種で同じ配置 | 自動 | ✅ 合格 | fp:1f763c2eed098e |
+| 同じ種で同じ配置 | 自動 | ✅ 合格 | fp:0f052e74a447ff |
+| 戸・門が開け閉めでき、開いた形で両側に届く（フェーズ 4） | 自動 | ✅ 合格 | 戸 8（sliding・shoji・fusuma・hinged） |
+| 敵の出る所・巡回の点が立入禁止の外で届く・チェックポイントに届く（フェーズ 4） | 自動 | ✅ 合格 | 敵 1（巡回の点 6）・チェックポイント 3 |
 | 夕暮れと霧の雰囲気が出ている | 人が見る | ⏳ 未判定 | play_map の画面撮影（village・shrine） |
 | 山の廃村に見える（フェーズ 3：写実寄りの材質・部品・光） | 人が見る | ⏳ 未判定 | play_map の撮影（village・house・interior・forest）と before_after.png |
 | 自作の素材（目録の license own）の中身を人が確かめた（meta.json の verifiedBy を書く） | 人が見る | ⏳ 未判定 | wakaba-assets/entries/*/*/meta.json・docs/wakaba-mapkit/11 |
 | 森の密度・木の並びが自然 | 人が見る | ⏳ 未判定 | forest の撮影・report/map.svg |
 | 歩いて探索できる（迷わない・引っかからない） | 人が見る | ⏳ 未判定 | 利用者が mapkit.html?map=haison を歩く |
-| Playwright で実際に歩いて全ての目的地に着く（PC・スマホ） | 自動 | ✅ 合格 | report/play.json：27/27 |
+| ゲームとして探索できる（戸・敵・チェックポイント・音。10 分遊んで判断） | 人が見る | ⏳ 未判定 | 利用者が mapkit.html?map=haison&perf=1 を実機で |
+| Playwright で実際に歩いて全ての目的地に着く（PC・スマホ） | 自動 | ✅ 合格 | report/play.json：49/49 |
 
 ## 足りない素材（計画のみ・承認待ち）
 

@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.int.server_rack",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.int.server_rack.fbx",
+   "storage": "local-ignored",
+   "sha256": "cd3a84e439075b3bc61d86e14c2cf1a0277c6c6fb947214594cc734834ed0575",
+   "bytes": 35068,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_town.py --only prop.int.server_rack"
+  }
+ ]
+}

@@ -316,6 +316,57 @@
         },
         "outline": {
           "type": "boolean"
+        },
+        "kind": {
+          "enum": [
+            "cloth",
+            "skin",
+            "face",
+            "hair",
+            "metal",
+            "glow",
+            "fur",
+            "acc",
+            "eye"
+          ],
+          "description": "陰影の型（省くと名前から：charkit/shader/toon2.js）"
+        },
+        "pattern": {
+          "type": "object",
+          "description": "柄（シェーダーで休みの姿勢の位置から描く）",
+          "properties": {
+            "type": {
+              "enum": [
+                "stripes",
+                "plaid",
+                "check"
+              ]
+            },
+            "scale": {
+              "type": "number",
+              "description": "1m あたりの繰り返し"
+            },
+            "color": {
+              "$ref": "#/$defs/color"
+            }
+          }
+        },
+        "minLuma": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "この材質だけの明るさの下限（env.minLuma より優先）"
+        },
+        "lineW": {
+          "type": "number",
+          "minimum": 0,
+          "description": "輪郭線の太さの倍率"
+        },
+        "lineTint": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "輪郭線を頂点色の暗い色に寄せる量"
         }
       }
     },

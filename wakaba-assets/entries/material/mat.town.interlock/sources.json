@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.interlock",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.interlock_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "8c84b562206383c67f497eedcad3ec7e2bd4ba9bf10796ebf26359c97e972f5c",
+   "bytes": 1120363,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.interlock"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.interlock_normal.png",
+   "storage": "local-ignored",
+   "sha256": "80887368749e48f00e77809031720988e8ec9b3b40889d746c3858875702bed3",
+   "bytes": 1322983,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.interlock"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.interlock_orh.png",
+   "storage": "local-ignored",
+   "sha256": "18e3b27c1a154ee8738b32a5e4fbd7e78341b8550ef896f92ce00f0dcfcf1b92",
+   "bytes": 1485445,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.interlock"
+  }
+ ]
+}

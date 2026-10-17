@@ -7,7 +7,7 @@
 //   スマホは ?ch=5&route=reveal から第6章A 冒頭の終わりまで（--only ch5｜ch5pc｜ch5r｜ch5s｜ch5phone｜ch5models）。
 // 使い方：python3 -m http.server 8797 --directory <repo> を起動してから
 //   node tools/shinshoku_play.mjs [出力フォルダ] [--base http://localhost:8797] [--only pc|phone]
-// 環境変数：PW_MODULE（playwright の index.mjs）、PW_CHROMIUM（chromium の実行ファイル）
+// 環境変数：PW_MODULE（playwright の index.mjs）、PW_CHROMIUM（chromium の実行ファイル）、SH_TIMEOUT（撮影などの時間切れ ms・既定 30000）
 // 進め方：移動・攻撃・回避・弾く・調べる・持ち替えは入力列（__sh.input.script）で入れる。場所の移動の一部（長い道のり）だけ teleport を使う。
 // 演出場面は一部を実際の時間で再生して撮り、残りは長押しと同じ「飛ばす」で進める。
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
@@ -26,7 +26,13 @@ const OTHER_KEYS = {
   kyokai_endings: JSON.stringify(['A']), kyokai_true_end: '1', kyokai_save_v1: JSON.stringify({ flags: { b30_read: true } }), tobi_save_v1: JSON.stringify({ toyama: false }),
 };
 const shots = [];
-async function launch() { return chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] }); }
+async function launch() {
+  const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
+  // 環境変数 SH_TIMEOUT（ms）：画面の撮影・待ちの既定の時間切れ（既定 30 秒のまま）。ソフト描画が混んでいる時に延ばす
+  const T = +process.env.SH_TIMEOUT || 0;
+  if (T) { const nc = b.newContext.bind(b), np = b.newPage.bind(b); b.newContext = async o => { const c = await nc(o); c.setDefaultTimeout(T); return c; }; b.newPage = async o => { const pg = await np(o); pg.setDefaultTimeout(T); return pg; }; }
+  return b;
+}
 async function openGame(ctx, query, errs) {
   const page = await ctx.newPage();
   page.on('pageerror', e => errs.push('pageerror: ' + e.message));
@@ -476,7 +482,8 @@ async function runPhone(browser) {
   let st = await S(page); ok('タッチのスティックで移動（→ 相棒の近くで会話が始まる）', st.player.z < z0 - 0.5 || st.mode === 'dialog', `${z0.toFixed(1)}→${st.player.z.toFixed(1)} ${st.mode}`);
   await page.evaluate(() => { const D = __sh.debug; D.teleport(-1.6, -31.6, Math.PI); D.fastSim(3); D.skipDialog(); D.fastSim(3); });
   await page.waitForTimeout(400);
-  { const [x, y] = await box('.tc-use'); await touch('touchStart', [[x, y, 5]]);
+  { await page.waitForSelector('.tc-use.vis', { timeout: 15000 }).catch(() => {});   // 演出場面が始まった後の最初のこまで「調」が出る（遅い時に出る前を押さない）
+    const [x, y] = await box('.tc-use'); await touch('touchStart', [[x, y, 5]]);
     for (let i = 0; i < 40; i++) { await page.waitForTimeout(150); if (!(await page.evaluate(() => __sh.game.cut.active))) break; }
     await touch('touchEnd', []); }
   await page.waitForTimeout(300);
@@ -627,7 +634,8 @@ async function runCh3PC(browser) {
   st = await S(page); ok('病院：記録のない患者（4）・化けた影（見舞い客）がいる', st.step === 'ch3_lobby' && st.enemies.filter(e => e.kind === 'kanja').length === 4 && st.enemies.some(e => e.id === 'mimic_h1' && e.state === 'disguise'), st.enemies.map(e => e.id + ':' + e.state).join(','));
   // 化けた見舞い客：懐中電灯で目が光る（見分け方）→ 近づくと崩れる（予兆）→ 影
   await page.evaluate(() => { const D = __sh.debug, g = __sh.game; D.teleport(-6.2, 10.2, 0); D.faceTo(-6.2, 13.9); g.cam.pitch = 0.12; if (!g.flashlightOn) g.toggleFlashlight(); D.fastSim(10); });
-  await page.waitForTimeout(700); st = await S(page); ok('化けた影の見分け方：懐中電灯を当てると目が紫に光る・足元に影が無い', st.metrics.tellSeen === true && await page.evaluate(() => { const e = __sh.game.enemies.find(x => x.id === 'mimic_h1'); return e.alt && e.alt.mesh.castShadow === false || e.model.mesh.castShadow === false; }), JSON.stringify(st.metrics.tellSeen));
+  await page.waitForTimeout(700); await page.waitForFunction(() => __sh.game.metrics.tellSeen === true, null, { timeout: 15000 }).catch(() => {});   // 目の光は描画のこまで見る（ソフト描画が遅い時に待つ）
+  st = await S(page); ok('化けた影の見分け方：懐中電灯を当てると目が紫に光る・足元に影が無い', st.metrics.tellSeen === true && await page.evaluate(() => { const e = __sh.game.enemies.find(x => x.id === 'mimic_h1'); return e.alt && e.alt.mesh.castShadow === false || e.model.mesh.castShadow === false; }), JSON.stringify(st.metrics.tellSeen));
   await clearUI(page); await shot(page, 'pc_31_mimic_disguise.png', 1200);
   await page.evaluate(() => { const D = __sh.debug, g = __sh.game; D.teleport(-6.2, 11.3, 0); D.faceTo(-6.2, 13.9); __sh.input.script([{ f: 0, move: [0, 1, 20] }]); D.fastSim(28); g.cam.yaw = g.player.yaw + Math.PI + 0.8; g.cam.pitch = 0.08; D.hold(true); });
   await shot(page, 'pc_32_mimic_reveal.png', 1500); await page.evaluate(() => __sh.debug.hold(false));
@@ -1270,6 +1278,7 @@ async function runCh5RevealPC(browser) {
   const strain = await untilSub(page, /言うことを/, 30, 10);
   ok('だんのうらは自分のまま抑えようとしている（いつもの口調：「アタシの体よ……言うことを、聞きなさい」）', /アタシの体よ/.test(strain), strain);
   await skipCut(page); await sim(page, 10); await page.waitForTimeout(1500);
+  await page.waitForFunction(() => document.querySelectorAll('.sh-gskills b').length && document.querySelector('.sh-gskills b').textContent.startsWith('抑える'), null, { timeout: 20000 }).catch(() => {});   // HUD は描画のこまで変わる（ソフト描画が遅い時に待つ）
   st = await S(page); const g0 = await page.evaluate(() => ({ r: __sh.debug.ch5.rampage(), cls: __sh.game.ui.root.classList.contains('rampage'), ov: !!document.querySelector('.sh-rampage'), skills: [...document.querySelectorAll('.sh-gskills b')].map(b => b.textContent), giant: __sh.game.giantMode }));
   ok('暴走（第6章A）：操作は「抑える」と移動だけ（HUD にも攻撃の技は出ない）・画面のゆがみ', st.step === 'ch6a_rampage' && g0.giant && g0.r && !g0.r.calm && g0.cls && g0.ov && JSON.stringify(g0.skills) === '["抑える（長押し）","抑える（連打）"]', JSON.stringify(g0));
   // 攻撃を連打しても何も起きない（市民を攻撃する入力は無い）

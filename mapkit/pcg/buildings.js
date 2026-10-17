@@ -77,7 +77,14 @@ function houseAbandoned(b, padY, ctx) {
   wall(F, 'wallL', -Wd / 2 + T / 2, 0, Dd - 2 * T, 'v', S.wallH, []);
   wall(F, 'wallR', Wd / 2 - T / 2, 0, Dd - 2 * T, 'v', S.wallH, [win(0)]);
   // 仕切り（開口つき）
-  strips.slice(1).forEach((s, i) => wall(F, `part${i}`, s.u0, 0, Dd - 2 * T, 'v', S.wallH, [{ c: i === 0 ? 0.6 : -0.4, w: i === 0 ? 1.8 : S.innerOpen, y0: 0, y1: S.innerOpenH }], 'wood'));
+  const openings = [];
+  strips.slice(1).forEach((s, i) => {
+    const c = i === 0 ? 0.6 : -0.4, w = i === 0 ? 1.8 : S.innerOpen, L = Dd - 2 * T;
+    wall(F, `part${i}`, s.u0, 0, L, 'v', S.wallH, [{ c, w, y0: 0, y1: S.innerOpenH }], 'wood');
+    // 仕切りの開口（フェーズ 4：襖・障子を入れられる所）。戸のローカル u＝建物の v の向き（rotY＝rot−90）・床は上がった床の高さ
+    const [ox, oz] = F.W(s.u0, c), plus = L / 2 - (c + w / 2), minus = c - w / 2 + L / 2;
+    openings.push({ id: `${b.id}.part${i}`, building: b.id, at: [r3(ox), r3(padY + S.floorH), r3(oz)], rotY: r3((b.rot || 0) - 90), width: w, height: r3(S.innerOpenH - S.floorH), wallT: T, slide: plus >= minus ? 1 : -1, rooms: [strips[i].name, s.name] });
+  });
   // 床・天井
   const out = { rooms: [], props: [] };
   strips.forEach((s, i) => {
@@ -104,7 +111,7 @@ function houseAbandoned(b, padY, ctx) {
   const [ax, az] = F.W(door.u, Dd / 2 + 0.8), [fx, fz] = F.W(0, Dd / 2 + 2.5);
   const main = out.rooms.find(x => /washitsu/.test(x.name)) || out.rooms[1] || out.rooms[0];
   return Object.assign(out, {
-    parts: F.parts, doors: [doorRec],
+    parts: F.parts, doors: [doorRec], openings,
     foot: { u0: -Wd / 2, u1: Wd / 2, v0: -Dd / 2, v1: Dd / 2 + (engawa ? 0.9 : 0) },
     goals: { door: [ax, padY, az], front: [fx, padY, fz], center: main.center },
     anchors: [
@@ -171,5 +178,5 @@ export function plannedFoot(b) {
 export function planBuilding(b, padY, ctx = {}) {
   const K = KINDS[b.kind]; if (!K) return null;
   const o = K.make(b, padY, ctx);
-  return Object.assign({ id: b.id, kind: b.kind, ja: K.ja, enterable: !!b.enterable && o.doors.length > 0, at: [r3(b.at[0]), r3(padY), r3(b.at[1])], rot: b.rot || 0, footprint: b.footprint, decay: b.decay ?? 0, padY: r3(padY), stairs: [] }, o, { obb: footObb(b, o.foot) });
+  return Object.assign({ id: b.id, kind: b.kind, ja: K.ja, enterable: !!b.enterable && o.doors.length > 0, at: [r3(b.at[0]), r3(padY), r3(b.at[1])], rot: b.rot || 0, footprint: b.footprint, decay: b.decay ?? 0, padY: r3(padY), stairs: [], openings: [] }, o, { obb: footObb(b, o.foot) });
 }

@@ -1,0 +1,88 @@
+{
+ "id": "prop.int.locker",
+ "version": 1,
+ "name": {
+  "ja": "鉄のロッカー（3 列）",
+  "en": "Steel locker"
+ },
+ "category": "prop",
+ "tags": [
+  "ロッカー",
+  "屋内",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/kit/build_kit_town.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/shinshoku/IMPLEMENTATION_STATUS.md"
+ },
+ "tech": {
+  "formats": [
+   "glb",
+   "fbx"
+  ],
+  "tris": 428,
+  "lods": [
+   428,
+   170
+  ],
+  "sizeM": [
+   0.9,
+   1.8,
+   0.525
+  ],
+  "pivot": "bottom_center",
+  "collision": "box",
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness"
+  ],
+  "fileBytes": 82016
+ },
+ "use": [
+  "境界侵食（shinshoku）の町と屋内"
+ ],
+ "status": "draft",
+ "kit": {
+  "kit": "wakaba-kit/1",
+  "nodes": {
+   "LOD0": 428,
+   "LOD1": 170
+  },
+  "variants": 1,
+  "lodDist": [
+   18
+  ],
+  "impostor": false,
+  "materials": [
+   "mat.town.paint#chrome",
+   "mat.town.paint#dark",
+   "mat.town.paint#tint",
+   "mat.town.paint#white"
+  ],
+  "vertexColor": "COLOR_0＝AO（焼き込み）",
+  "note": "節の名前 LOD<n>（種類が複数なら v<k>_LOD<n>）・IMP＝遠景の十字の板（画像は glb の中）。材質は id の名前で共有の PBR 材質に差し替える"
+ },
+ "history": [
+  {
+   "at": "2026-10-17",
+   "by": "claude-code",
+   "change": "tools/blender/kit/build_kit_town.py（pieces_town.py）で生成（境界侵食 P12：環境の写実化）"
+  }
+ ]
+}

@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.curb",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.curb_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "8946ba54eb7c72abc11b0dd5c0ae09438141ded16ce429aff49a26da9e06cf5e",
+   "bytes": 1168751,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.curb"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.curb_normal.png",
+   "storage": "local-ignored",
+   "sha256": "e88920da8dbd65cb7bd88b73f0d1f06fd121f5d51ab533d8a06edcca82f5e536",
+   "bytes": 1423066,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.curb"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.curb_orh.png",
+   "storage": "local-ignored",
+   "sha256": "cda587e52da7b2bcbd33413fc4502e366e582a6bb95c102b7197d4ab75bf5e48",
+   "bytes": 1615766,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.curb"
+  }
+ ]
+}

@@ -249,7 +249,7 @@ export function buildAdmin() {
   B.box('prop', 9.6, 0.55, 12.0, 0.8, 1.1, 5.0, 0x5a4e46); B.box('prop', 9.6, 1.12, 12.0, 1.0, 0.06, 5.2, 0xd0c8b8, { edges: false }); solid(9.6, 12.0, 0.8, 5.0, 1.2);
   B.box('prop', 11.8, 0.4, 12.0, 0.6, 0.8, 3.0, 0x4a4e58); B.box('glow', 9.95, 1.2, 11.0, 0.02, 0.32, 0.45, 0x6a9ad8, { edges: false });
   const bench = [[0, 0.22, 0, 2.4, 0.08, 0.5, 0x4a4e66], [0, 0.11, -0.2, 0.08, 0.22, 0.08, 0x2a2a2a], [0, 0.11, 0.2, 0.08, 0.22, 0.08, 0x2a2a2a], [0, 0.55, -0.24, 2.4, 0.5, 0.06, 0x4a4e66]];
-  const benches = [{ x: 4.0, z: 16.4, ry: Math.PI }, { x: 4.0, z: 13.0, ry: Math.PI }, { x: -3.6, z: 16.4, ry: Math.PI }, { x: -3.6, z: 13.0, ry: Math.PI }]; root.add(instanced(bench, benches, { name: 'benches6', shadow: true })); for (const b of benches) solid(b.x, b.z, 2.4, 0.6, 0.6);
+  const benches = [{ x: 4.0, z: 16.4, ry: Math.PI }, { x: 4.0, z: 13.0, ry: Math.PI }, { x: -3.6, z: 16.4, ry: Math.PI }, { x: -3.6, z: 13.0, ry: Math.PI }]; root.add(instanced(bench, benches, { name: 'benches6', shadow: true , kit: 'prop.int.bench_row', kitS: [1.09, 1, 1], kitColor: 0x4a4e66 })); for (const b of benches) solid(b.x, b.z, 2.4, 0.6, 0.6);
   const [ckx, ckz] = ADMIN.machibito.clock;
   { const g = new THREE.CylinderGeometry(0.9, 0.9, 0.12, 28); g.rotateX(Math.PI / 2); g.translate(ckx, 3.0, ckz + 4.45); B.add('prop', g, 0xe8e0c8); const r = new THREE.TorusGeometry(0.92, 0.06, 6, 28); r.translate(ckx, 3.0, ckz + 4.38); B.add('prop', r, 0x8a6a3a); B.box('prop', ckx, 3.0, ckz + 4.36, 0.06, 0.7, 0.02, 0x1a1a1a, { rz: -0.4, edges: false }); B.box('prop', ckx, 3.0, ckz + 4.36, 0.05, 0.5, 0.02, 0x1a1a1a, { rz: 1.8, edges: false }); }
   spots.push({ id: 'ad_clock', kind: 'clock6', x: ckx, z: ckz + 3.2, r: 1.4, label: '待合の壁時計（止められる）' });

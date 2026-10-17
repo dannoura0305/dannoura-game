@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.granite_slab",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.granite_slab_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "2c8cb884791b618334e82d52c000c8595c0800207b2db14c36aa635e1ebb71ec",
+   "bytes": 825214,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.granite_slab"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.granite_slab_normal.png",
+   "storage": "local-ignored",
+   "sha256": "df2b634a1d671f9cb9015c105800a7cd352628612c4e3ccbc9e4dd7ab673113a",
+   "bytes": 1624471,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.granite_slab"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.granite_slab_orh.png",
+   "storage": "local-ignored",
+   "sha256": "30e9b03e32e1f84e6ae7d0bd5eac46f0676f6ddcb67b4a5f91c6859bfa781cd6",
+   "bytes": 1695658,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.granite_slab"
+  }
+ ]
+}

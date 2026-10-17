@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "bld.town.arcade_arch",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/bld.town.arcade_arch.fbx",
+   "storage": "local-ignored",
+   "sha256": "053762c43c102123f132c42fe35dc92761868461a1cfac00ae0f0222d418915b",
+   "bytes": 34044,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_town.py --only bld.town.arcade_arch"
+  }
+ ]
+}

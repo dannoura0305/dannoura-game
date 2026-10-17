@@ -240,7 +240,7 @@ export const storyMethods = {
       } else { this.sfx.play('ui_ng'); this.ui.log('……この記録は、おかしくない'); }
     }, () => { this.ui.closePuzzle(); this.resume(); }, '停電は 10/14 の 23:41（回覧板）。この時刻と合わない記録はどれ？');
   },
-  sayBark(who, text, dur) { const sp = (this.events.speakers || {})[who] || {}; this.ui.bark(sp.name, text, sp.color, dur); },
+  sayBark(who, text, dur) { const sp = (this.events.speakers || {})[who] || {}; this.ui.bark(sp.name, text, sp.color, dur); this.cineSpeak(who, text, Math.min(dur || 2, 0.4 + [...String(text || '')].length * 0.12)); },
 
   // ── 演出場面の再生先（story/cutscene.js の host） ──
   playCutscene(id, done) {
@@ -260,14 +260,21 @@ export const storyMethods = {
         if (L && L.cond === 'white' && !g.player.fighter.white) { g.ui.subtitle(null, null); return; }
         g.ui.subtitle(who ? (g.events.speakers || {})[who] || { name: who === 'pa' ? '館内放送' : '' } : null, text); if (text && L && L.who === 'pa') g.sfx.play('notify');
         if (text && L && L.expr) { if (L.who === 'dan') g.player.setExpr(L.expr, 4); else if (L.who === 'companion' && g.companion.model.setExpr) g.companion.model.setExpr(L.expr); }
+        if (text && L) g.cineSpeak(L.who, text, L.dur || 2);   // 文字の口・聞く側の視線（charkit の顔の係）
         if (text && L && L.fixed) { g.metrics.fixedLines = (g.metrics.fixedLines || []).concat([{ who: L.who, text: L.text, step: g.story.step }]); }
       },
-      letterbox(on) { g.ui.letterbox(on); if (!on) g.cineCam = null; },
+      letterbox(on) { g.ui.letterbox(on); if (!on) { g.cineCam = null; g.player.lookTarget = null; g.companion.lookTarget = null; } },
       sound(name) { g.sfx.play(name); },
       actor(a, instant) { g.cineActor(a, instant); },
       event(name, arg) { g.cineEvent(name, arg); },
       done(cs) { g.ui.skipProgress(0); g.onCutsceneDone(cs); },
     };
+  },
+  /** 話す人の口を動かし、近くの人をその人へ向かせる */
+  cineSpeak(who, text, dur) {
+    const P = this.player, C = this.companion, near = (a, b) => a && b && a.root.visible && b.root.visible && Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z) < 7;
+    if (who === 'dan') { if (P.say) P.say(text, dur); if (near(C, P)) C.lookTarget = P; }
+    else if (who === 'companion') { if (C.say) C.say(text, dur); if (near(P, C)) P.lookTarget = C; }
   },
   cineActor(a, instant) {
     const id = a.id;
@@ -293,8 +300,8 @@ export const storyMethods = {
       if (L < 0.08) { if (m.hideAtEnd && m.tgt.kind === 'companion') this.companion.root.visible = false; this.cineMoves.splice(i, 1); continue; }
       const s = Math.min(L, m.speed * dt); p.x += dx / L * s; p.z += dz / L * s;
       const yaw = Math.atan2(dx, dz);
-      if (m.tgt.kind === 'companion') { this.companion.brain.yaw = yaw; this.companion.speed = m.speed; this.companion.phase += s * 3.6; }
-      else if (m.tgt.kind === 'player') { this.player.yaw = yaw; this.player.speed = m.speed; this.player.phase += s * 3.4; }
+      if (m.tgt.kind === 'companion') { this.companion.brain.yaw = yaw; this.companion.speed = m.speed; this.companion.phase += s * (this.companion.phaseRate ? this.companion.phaseRate(m.speed) : 3.6); }
+      else if (m.tgt.kind === 'player') { this.player.yaw = yaw; this.player.speed = m.speed; this.player.phase += s * (this.player.phaseRate ? this.player.phaseRate(m.speed) : 3.4); }
       else { m.tgt.e.brain.yaw = yaw; m.tgt.e.speed = m.speed; m.tgt.e.phase += s * 3.4; }
     }
   },

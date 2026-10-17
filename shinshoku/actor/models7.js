@@ -5,6 +5,8 @@
 // ・配偶者に似た異形：記録の光でできた人影（半透明の淡い光）。顔は描かない。戦わない・本人かは決めない（STORY_BIBLE §9）。
 // ・娘（4 歳）：結末の家の場面だけ。・だんのうら（結末A）：白と紫が混ざった髪（化けが不安定なだけ。けがではない）＝ models3 の mixed。
 import * as THREE from 'three';
+import { buildDaughterV2 } from './heroes.js';
+import { CHAR_MODEL } from './models.js';
 import { SkinBody, DIM, faceAtlasExpr, drawEye, drawBrow, drawMouth, drawNose, drawBlush } from './skin.js';
 import { humanBody, humanHead, hairCap, onHead, torus, xfm, glowEyes } from './models.js';
 
@@ -131,7 +133,7 @@ export function buildSpouseLike() {
 }
 
 // ───────────────────────── 娘（4 歳・結末の家の場面だけ） ─────────────────────────
-export function buildDaughter() {
+export function buildDaughterV1() {
   const k = 0.6, d = {}; for (const [n, v] of Object.entries(DIM)) d[n] = v * k;
   Object.assign(d, { headR: 0.098, neck: d.neck * 0.85 });
   const sb = new SkinBody(d), R = d.headR;
@@ -163,3 +165,5 @@ export function buildDaughter() {
   return Object.assign(m, { height: 1.0, provisional: true, kind: 'daughter', eyes: [sb.B.eyeL, sb.B.eyeR], faceTex: tex, setExpr: n => tex.userData.setExpr(n) });
 }
 export { glowEyes };
+/** 娘：v2（既定）／?charModel=1 で前のモデル */
+export function buildDaughter() { return CHAR_MODEL === 1 ? buildDaughterV1() : buildDaughterV2(); }

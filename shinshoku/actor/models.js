@@ -4,6 +4,14 @@
 import * as THREE from 'three';
 import { SkinBody, DIM, headDeform, faceAtlas, faceAtlasExpr, UVR, drawEye, drawBrow, drawMouth, drawNose, drawBlush } from './skin.js';
 import { toon, addOutlines } from '../render/toon.js';
+import { buildDannouraV2, buildCompanionV2 } from './heroes.js';
+
+/** モデルの版（2＝v2・既定。?charModel=1 で前のモデル：前後の比べ用） */
+export const CHAR_MODEL = (() => { try { return typeof location !== 'undefined' && /[?&]charModel=1\b/.test(location.search) ? 1 : 2; } catch (e) { return 2; } })();
+/** だんのうら（紫の姿） */
+export function buildDannoura() { return CHAR_MODEL === 1 ? buildDannouraV1() : buildDannouraV2(); }
+/** 相棒 */
+export function buildCompanion() { return CHAR_MODEL === 1 ? buildCompanionV1() : buildCompanionV2(); }
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -12,7 +20,7 @@ const JP = '"IPAGothic","Noto Sans CJK JP","Noto Sans JP","Hiragino Kaku Gothic 
 
 export function torus(sb, R, r, xf, opt = {}) {
   const g = new THREE.TorusGeometry(R, r, opt.rs || 6, opt.ts || 14); g.applyMatrix4(xf);
-  sb.push(opt.group || 'body', g, { weights: opt.weights, color: opt.color, oth: opt.oth ?? 0.6 });
+  sb.push(opt.group || 'body', g, { weights: opt.weights, color: opt.color, oth: opt.oth ?? 0.6, mat: opt.mat || 'acc' });
 }
 /** 骨の休みの姿勢の行列（回転つきの骨の子に付ける物用） */
 export function boneXf(sb, name) { sb.root.updateMatrixWorld(true); return sb.B[name].matrixWorld.clone(); }
@@ -25,6 +33,9 @@ export function boneXf(sb, name) { sb.root.updateMatrixWorld(true); return sb.B[
 /** 手：手のひら・指 4 本（少し曲げる）・親指。腕を下ろした休みの姿勢で、手のひらは体の内側（-sx）を向く */
 export function handShape(sb, HA, wr, sx, hk = 1, color = 0xffe1d2, glove = null) {
   const w = sb.rigid(HA), c = glove || color;
+  return sb.withMat(glove ? sb.mat : 'skin', () => handShape0(sb, HA, wr, sx, hk, w, c));
+}
+function handShape0(sb, HA, wr, sx, hk, w, c) {
   const y0 = wr.y - 0.012 * hk;
   sb.blob([wr.x - sx * 0.002, y0 - 0.034 * hk, 0.004], [0.017 * hk, 0.038 * hk, 0.031 * hk], { weights: w, color: c, w: 14, h: 10, oth: 0.6 });
   const fingers = [[0.022, 1.0], [0.0075, 1.1], [-0.0075, 1.02], [-0.021, 0.84]];
@@ -47,7 +58,7 @@ export function humanBody(sb, s) {
   // 首
   const nk = W('neck'), hd = W('head');
   sb.tube([{ c: [0, nk.y - 0.03, 0.005], r: [s.neckR, s.neckR * 0.95] }, { c: [0, (nk.y + hd.y) / 2, 0.008], r: [s.neckR * 0.92, s.neckR * 0.9] }, { c: [0, hd.y + 0.035, 0.012], r: [s.neckR * 0.9, s.neckR * 0.9] }],
-    { sides: 10, weights: sb.along([[0, 'neck'], [0.5, 'neck'], [1, 'head']]), color: s.skin, capStart: false, capEnd: false, oth: 0.7 });
+    { sides: 10, weights: sb.along([[0, 'neck'], [0.5, 'neck'], [1, 'head']]), color: s.skin, capStart: false, capEnd: false, oth: 0.7, mat: 'skin' });
   // 腕
   for (const [side, sx] of [['left', 1], ['right', -1]]) {
     const UA = side + 'UpperArm', LA = side + 'LowerArm', HA = side + 'Hand';
@@ -87,8 +98,8 @@ export function humanBody(sb, s) {
 export function humanHead(sb, o) {
   const R = o.R, hc = sb.hc;
   const surf = dir => { const v = headDeform(dir.clone(), o); return V(hc.x + v.x * R * 0.98, hc.y + v.y * R * 1.04, hc.z + v.z * R); };
-  sb.blob([hc.x, hc.y, hc.z], [R * 0.98, R * 1.04, R], { deform: v => headDeform(v, o), weights: sb.rigid('head'), color: o.skin, w: 36, h: 26, oth: 1 });
-  if (o.ears !== false) for (const sx of [1, -1]) sb.blob([hc.x + sx * R * 0.93, hc.y - R * 0.12, hc.z - R * 0.04], [R * 0.13, R * 0.25, R * 0.1], { rot: [0, sx * 0.3, sx * 0.15], weights: sb.rigid('head'), color: o.skin, w: 12, h: 8, oth: 0.5 });
+  sb.blob([hc.x, hc.y, hc.z], [R * 0.98, R * 1.04, R], { deform: v => headDeform(v, o), weights: sb.rigid('head'), color: o.skin, w: 36, h: 26, oth: 1, mat: 'face' });
+  if (o.ears !== false) for (const sx of [1, -1]) sb.blob([hc.x + sx * R * 0.93, hc.y - R * 0.12, hc.z - R * 0.04], [R * 0.13, R * 0.25, R * 0.1], { rot: [0, sx * 0.3, sx * 0.15], weights: sb.rigid('head'), color: o.skin, w: 12, h: 8, oth: 0.5, mat: 'skin' });
   // 目の骨（まばたき：大きさの y を縮める）・口の骨
   const eyeY = -0.1, eyeX = o.eyeX ?? 0.36;
   const eL = surf(V(eyeX, eyeY, 0.92).normalize()), eR = surf(V(-eyeX, eyeY, 0.92).normalize()), mo = surf(V(0, -0.56, 0.83).normalize());
@@ -114,7 +125,7 @@ export function hairCap(sb, R, o) {
     deform: v => headDeform(v, o), w: 22, h: 16, weights: sb.rigid('head'),
     color: p => { const y = (p.y - hc.y) / R, z = (p.z - hc.z) / R; if (o.band && y > 0.42 && y < 0.62 && z > -0.5) return o.band; return y < -0.2 ? o.dark : o.base; },
     keep: c => { const y = (c.y - hc.y) / R, z = (c.z - hc.z) / R, x = (c.x - hc.x) / R; if (z > (o.faceZ ?? 0.2) && y < (o.hairline ?? 0.42)) return false; if (y < (o.nape ?? -0.55) && z > -0.25) return false; if (y < (o.bottom ?? -0.95)) return false; if (Math.abs(x) > 0.75 && y < -0.1 && z > 0.05) return false; return true; },
-    oth: 0.9,
+    oth: 0.9, mat: 'hair',
   });
 }
 /** 頭の中心からの向き（単位）と距離 k（R の倍）で頭の外側の点 */
@@ -122,7 +133,7 @@ export const onHead = (sb, R, dir, k = 1.1) => { const d = V(...dir).normalize()
 
 // ───────────────────────── だんのうら ─────────────────────────
 /** だんのうら（紫の姿）。男性・164cm・細身の若い男性。紫の長い髪のポニーテール・小さなピンクのシルクハット・黒い四角いめがね・ピンクの花の髪飾り・ラベンダーの上着 */
-export function buildDannoura() {
+export function buildDannouraV1() {
   const d = Object.assign({}, DIM);
   const sb = new SkinBody(d);
   // 紫の姿の服（イメージ資料 concept_01・05 に合わせる：ラベンダーと白のフードつき上着・ピンクと白のボーダーのシャツ・暗い格子のズボン・猫の顔のリュック）
@@ -253,15 +264,15 @@ export function buildWeaponBones(sb) {
   bone('wMatchBack', 'chest', [0.12, 0.0, -0.19], [0, 0, -0.42]);
   const steel = 0xdde2ee, dark = 0x1c1822, tsuba = 0xb08a3a, saya = 0x2a1630, wrap = 0x5a2a6a;
   const K = boneXf(sb, 'wKatana'), w = sb.rigid('wKatana');
-  sb.box([0, -0.02, 0], [0.03, 0.2, 0.034], { xf: K, weights: w, color: wrap, oth: 0.4 });
+  sb.box([0, -0.02, 0], [0.03, 0.2, 0.034], { xf: K, weights: w, color: wrap, oth: 0.4, mat: 'cloth' });
   sb.cyl([0, 0.085, 0], 0.045, 0.045, 0.012, { xf: K, weights: w, color: tsuba, seg: 10, oth: 0.3 });
   sb.box([0, 0.46, 0.004], [0.011, 0.74, 0.03], { xf: K, weights: w, color: steel, oth: 0.35 });
   sb.box([0, 0.46, 0.017], [0.012, 0.74, 0.004], { xf: K, weights: w, color: 0xffffff, oth: 0 });
   sb.blob([0, 0.85, 0.004], [0.006, 0.035, 0.015], { xf: K, weights: w, color: steel, w: 6, h: 4, oth: 0.3 });
   const SA = boneXf(sb, 'wSaya');
-  sb.box([0, 0.3, 0], [0.036, 0.78, 0.044], { xf: SA, weights: sb.rigid('wSaya'), color: saya, oth: 0.5 });
+  sb.box([0, 0.3, 0], [0.036, 0.78, 0.044], { xf: SA, weights: sb.rigid('wSaya'), color: saya, oth: 0.5, mat: 'acc' });
   const SH = boneXf(sb, 'wSayaHilt'), sw = sb.rigid('wSayaHilt');
-  sb.box([0, -0.18, 0], [0.03, 0.2, 0.034], { xf: SH, weights: sw, color: wrap, oth: 0.4 }); sb.cyl([0, -0.08, 0], 0.045, 0.045, 0.012, { xf: SH, weights: sw, color: tsuba, seg: 10, oth: 0.3 });
+  sb.box([0, -0.18, 0], [0.03, 0.2, 0.034], { xf: SH, weights: sw, color: wrap, oth: 0.4, mat: 'cloth' }); sb.cyl([0, -0.08, 0], 0.045, 0.045, 0.012, { xf: SH, weights: sw, color: tsuba, seg: 10, oth: 0.3 });
   const G = boneXf(sb, 'wGun'), gw = sb.rigid('wGun');
   sb.box([0, 0.02, 0.06], [0.03, 0.045, 0.17], { xf: G, weights: gw, color: dark, oth: 0.4 });
   sb.box([0, -0.03, -0.005], [0.028, 0.1, 0.045], { rot: [-0.25, 0, 0], xf: G, weights: gw, color: dark, oth: 0.4 });
@@ -311,7 +322,7 @@ export function attachRigidWeapons(J) {
 
 // ───────────────────────── 相棒 ─────────────────────────
 /** 相棒（仮 ID companion・名前未定 Q8）。ふつうの人：実用的な普段着（オリーブのパーカー・ボーダーのシャツ・ジーンズ・白いスニーカー・斜めがけの鞄）、あご丈のボブ。158cm */
-export function buildCompanion() {
+export function buildCompanionV1() {
   const k = 0.963, d = {};
   for (const [n, v] of Object.entries(DIM)) d[n] = v * k;
   Object.assign(d, { shoulderX: 0.15, hipX: 0.088, headR: 0.118 });

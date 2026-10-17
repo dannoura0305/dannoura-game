@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.galv_roof",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.galv_roof_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "bc51511b31f9054e981a6b8e4b6f82dfbe67b237e5bca8f1d62b6108eaaec8e8",
+   "bytes": 497399,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.galv_roof"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.galv_roof_normal.png",
+   "storage": "local-ignored",
+   "sha256": "d0b2af958f78288c4ae11d7b2a02c2ac224c36e6ed745e1906288377da2aa78d",
+   "bytes": 1587682,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.galv_roof"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.galv_roof_orh.png",
+   "storage": "local-ignored",
+   "sha256": "7b11e7991786f85a244856196dbe06437f9e1128fc5f93bb2b16bfc9a206d87e",
+   "bytes": 1353396,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.galv_roof"
+  }
+ ]
+}

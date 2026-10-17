@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.town.utility_pole",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.town.utility_pole.fbx",
+   "storage": "local-ignored",
+   "sha256": "7d1029822b6f316aff0fa08df4b4bd1d18792c6fda73790fbaeffbefce19a745",
+   "bytes": 102908,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_town.py --only prop.town.utility_pole"
+  }
+ ]
+}

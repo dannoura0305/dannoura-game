@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.int.hospital_bed",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.int.hospital_bed.fbx",
+   "storage": "local-ignored",
+   "sha256": "4aa93d8bc67d0553c4854a8bea76574f3b152df1bdb2b30d20eab1871933f8bc",
+   "bytes": 32844,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_town.py --only prop.int.hospital_bed"
+  }
+ ]
+}

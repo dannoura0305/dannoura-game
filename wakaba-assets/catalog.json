@@ -59,6 +59,10 @@
     {
      "file": "web/bld.jp_house.door_shoji.glb",
      "bytes": 42164
+    },
+    {
+     "file": "web/bld.jp_house.door_shoji.mo.glb",
+     "bytes": 15368
     }
    ],
    "ue5": {
@@ -139,6 +143,10 @@
     {
      "file": "web/bld.jp_house.post.glb",
      "bytes": 7136
+    },
+    {
+     "file": "web/bld.jp_house.post.mo.glb",
+     "bytes": 4244
     }
    ],
    "ue5": {
@@ -216,6 +224,10 @@
     {
      "file": "web/bld.jp_house.roof_ridge.glb",
      "bytes": 18632
+    },
+    {
+     "file": "web/bld.jp_house.roof_ridge.mo.glb",
+     "bytes": 8328
     }
    ],
    "ue5": {
@@ -294,6 +306,10 @@
     {
      "file": "web/bld.jp_house.wall_panel.glb",
      "bytes": 411776
+    },
+    {
+     "file": "web/bld.jp_house.wall_panel.mo.glb",
+     "bytes": 94524
     }
    ],
    "ue5": {
@@ -379,6 +395,10 @@
     {
      "file": "web/bld.jp_house.window_koshi.glb",
      "bytes": 37308
+    },
+    {
+     "file": "web/bld.jp_house.window_koshi.mo.glb",
+     "bytes": 10208
     }
    ],
    "ue5": {
@@ -457,6 +477,10 @@
     {
      "file": "web/bld.shrine.honden.glb",
      "bytes": 169076
+    },
+    {
+     "file": "web/bld.shrine.honden.mo.glb",
+     "bytes": 46824
     }
    ],
    "ue5": {
@@ -538,6 +562,10 @@
     {
      "file": "web/bld.shrine.torii.glb",
      "bytes": 76204
+    },
+    {
+     "file": "web/bld.shrine.torii.mo.glb",
+     "bytes": 23652
     }
    ],
    "ue5": {
@@ -563,6 +591,84 @@
      "mat.paint.shu",
      "mat.roof.kawara",
      "mat.wood.planks_silver"
+    ]
+   }
+  },
+  {
+   "id": "bld.town.arcade_arch",
+   "version": 1,
+   "category": "building_module",
+   "name": {
+    "ja": "アーケードの屋根の骨組み（トラス）",
+    "en": "Arcade roof truss"
+   },
+   "status": "draft",
+   "tags": [
+    "アーケード",
+    "鉄骨",
+    "手続き",
+    "自作"
+   ],
+   "dir": "building_module/bld.town.arcade_arch",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     9.6,
+     3.635,
+     0.3
+    ],
+    "tris": 678
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/bld.town.arcade_arch.fbx",
+     "storage": "local-ignored",
+     "sha256": "053762c43c102123f132c42fe35dc92761868461a1cfac00ae0f0222d418915b",
+     "bytes": 34044
+    }
+   ],
+   "web": [
+    {
+     "file": "web/bld.town.arcade_arch.glb",
+     "bytes": 94260
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/BuildingModule/SM_bld_town_arcade_arch",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/bld.town.arcade_arch.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 678,
+     "LOD1": 271
+    },
+    "variants": 1,
+    "lodDist": [
+     45
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.town.paint#steel_dark"
     ]
    }
   },
@@ -2332,6 +2438,1230 @@
    }
   },
   {
+   "id": "mat.int.carpet",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "タイルカーペット",
+    "en": "Carpet tiles"
+   },
+   "status": "draft",
+   "tags": [
+    "床",
+    "屋内",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.int.carpet",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.int.carpet_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "aa31aebc830124751f34abc2dbdcb4c7a7060550dae10a17cc81039b6f47fb86",
+     "bytes": 941268
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.carpet_normal.png",
+     "storage": "local-ignored",
+     "sha256": "44b12638fa5b7ca96873bd1dfd0f3889c30c58bcc04a72efae46f044f2f2e5ab",
+     "bytes": 2654569
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.carpet_orh.png",
+     "storage": "local-ignored",
+     "sha256": "3f8036213c1fbcca4753c71d9641e4ca445e4f48c39c05d948bfb240213afde4",
+     "bytes": 2254420
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 132
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 368
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 858
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 208
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 1450
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 68570
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 376
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 1676
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 59342
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.221,
+     0.253,
+     0.288
+    ],
+    "roughMean": 0.95
+   }
+  },
+  {
+   "id": "mat.int.ceiling",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "吸音の天井板",
+    "en": "Acoustic ceiling tile"
+   },
+   "status": "draft",
+   "tags": [
+    "天井",
+    "屋内",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.int.ceiling",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.int.ceiling_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "53958dc6f9e058d3a6577e2e0801a6ff5e838d53c22899d398cf947c45405f39",
+     "bytes": 154037
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.ceiling_normal.png",
+     "storage": "local-ignored",
+     "sha256": "bf7341d487d381c5b3f926544b6f70b7eda104ed71e76f253ac7259c15dd97ea",
+     "bytes": 517111
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.ceiling_orh.png",
+     "storage": "local-ignored",
+     "sha256": "107b2f49f126765b09e71b9323114f342cb40d05f2e6dbcb04dbd9fdda8675f2",
+     "bytes": 185761
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 104
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 2726
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 49574
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 144
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 422
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 59708
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 238
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 7556
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 72936
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.2,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.798,
+     0.798,
+     0.782
+    ],
+    "roughMean": 0.89
+   }
+  },
+  {
+   "id": "mat.int.epoxy",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "塗り床（エポキシ）",
+    "en": "Epoxy floor"
+   },
+   "status": "draft",
+   "tags": [
+    "床",
+    "屋内",
+    "研究施設",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.int.epoxy",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.int.epoxy_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "ab90cebe47dadf2d6806f5221de564c8f05c6d04af0439895eb2717cca950f06",
+     "bytes": 482644
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.epoxy_normal.png",
+     "storage": "local-ignored",
+     "sha256": "93632a322da9222b1eb33fe8b3260bec5d52421f6fb1367187403b0a46c075a9",
+     "bytes": 1489043
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.epoxy_orh.png",
+     "storage": "local-ignored",
+     "sha256": "dc0b47983daec552d12931164b6f9cfaa76a9fbe3810c816cbaf82aa99a10d4f",
+     "bytes": 2263077
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 120
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 352
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 2094
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 110
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 214
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 756
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 108
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 340
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 15230
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 3,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.4,
+     0.451,
+     0.424
+    ],
+    "roughMean": 0.204
+   }
+  },
+  {
+   "id": "mat.int.gym_floor",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "体育館の床（楓）",
+    "en": "Gym maple floor"
+   },
+   "status": "draft",
+   "tags": [
+    "床",
+    "屋内",
+    "体育館",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.int.gym_floor",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.int.gym_floor_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "184a67632bb900f6c211485413b3dc66a98a7e44c0ad3b6b6aadf4975394625a",
+     "bytes": 792661
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.gym_floor_normal.png",
+     "storage": "local-ignored",
+     "sha256": "2b0fa4fa0f64ac9f52758ef6bff2d958bfe0fa742767a5b351eab5af1e5b1978",
+     "bytes": 1233407
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.gym_floor_orh.png",
+     "storage": "local-ignored",
+     "sha256": "8bcee2562c378fdc2c559f9df048473a02b4f1f3c7625b1af6d53ad38bd34711",
+     "bytes": 1596026
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 8418
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 1450
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 3292
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 11044
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 1614
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 4068
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 2832
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 7898
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.746,
+     0.56,
+     0.351
+    ],
+    "roughMean": 0.226
+   }
+  },
+  {
+   "id": "mat.int.metal_panel",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "金属パネルの内壁",
+    "en": "Metal wall panels"
+   },
+   "status": "draft",
+   "tags": [
+    "壁",
+    "屋内",
+    "研究施設",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.int.metal_panel",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.int.metal_panel_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "ef441f9773ab805fc369cc7ef4040d91bae0cc56b52f20d8120b689ab144005e",
+     "bytes": 281624
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.metal_panel_normal.png",
+     "storage": "local-ignored",
+     "sha256": "072f2e7b92c473939721d0976d1f25d3aa9d94ba8024dca85244f218cc4bb04e",
+     "bytes": 971169
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.metal_panel_orh.png",
+     "storage": "local-ignored",
+     "sha256": "3b5a9193e54b3cf4c818f1f21d1ff16e1e620add830c9416df1f00be6a1f6ac0",
+     "bytes": 1432472
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 190
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 666
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 1574
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 298
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 1040
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 2964
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 368
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 804
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 2986
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2.4,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.698,
+     0.717,
+     0.71
+    ],
+    "roughMean": 0.525
+   }
+  },
+  {
+   "id": "mat.int.plaster",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "塗装の内壁",
+    "en": "Painted interior wall"
+   },
+   "status": "draft",
+   "tags": [
+    "壁",
+    "屋内",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.int.plaster",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.int.plaster_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "db60aa53e5fe219724a252e46916ac4369a724e52764442d24fb132f3ecb16e5",
+     "bytes": 883398
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.plaster_normal.png",
+     "storage": "local-ignored",
+     "sha256": "0181583abf941ffe645674a8a48d36f2f9e5151394973a7a948b47eaa25c450e",
+     "bytes": 2190591
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.plaster_orh.png",
+     "storage": "local-ignored",
+     "sha256": "2a18c68cbb75af8f709285a8baef67574b592e86b65b0b4d1a8206bfa74fce56",
+     "bytes": 2239958
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 160
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 434
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 1720
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 110
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 244
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 22694
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 126
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 4484
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 71780
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.83,
+     0.818,
+     0.797
+    ],
+    "roughMean": 0.799
+   }
+  },
+  {
+   "id": "mat.int.tile_white",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "白い磁器タイル",
+    "en": "White ceramic tiles"
+   },
+   "status": "draft",
+   "tags": [
+    "壁",
+    "床",
+    "屋内",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.int.tile_white",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.int.tile_white_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "3be9c228e8f71089f45ff50e57e7710bc04fbd094af549ebffad7525d561ef0f",
+     "bytes": 6891
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.tile_white_normal.png",
+     "storage": "local-ignored",
+     "sha256": "6b54f6417ac87802691baaf24c838eec7b1d0d20d4acb84d0abd6c6854b4bc81",
+     "bytes": 8130
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.tile_white_orh.png",
+     "storage": "local-ignored",
+     "sha256": "ab653344477d4be37075b90df04b2c8b02bc96b5c077e84001bcc1475ffb0391",
+     "bytes": 19625
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 632
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 2646
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 3044
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 1598
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 4088
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 7498
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 2306
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 8028
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 9918
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.2,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.831,
+     0.83,
+     0.811
+    ],
+    "roughMean": 0.189
+   }
+  },
+  {
+   "id": "mat.int.vinyl",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "長尺シートの床（病院）",
+    "en": "Sheet vinyl floor"
+   },
+   "status": "draft",
+   "tags": [
+    "床",
+    "屋内",
+    "病院",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.int.vinyl",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.int.vinyl_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "1d36f9c81c906d95d0e86e482d8b3b108f540798fc57332365caf163cb1d7bbc",
+     "bytes": 1190557
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.vinyl_normal.png",
+     "storage": "local-ignored",
+     "sha256": "b3d283c12bdbedda3832228c644d563cf2714e8803c222853652573d425a4993",
+     "bytes": 1117561
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.vinyl_orh.png",
+     "storage": "local-ignored",
+     "sha256": "9ea00a349d233efc17bf1b598f5a257f821a7db6420d83dc05ee58d85f53ca21",
+     "bytes": 1976091
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 99416
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 386
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 8702
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 3000
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 290
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 840
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 328
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 1706
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.602,
+     0.642,
+     0.614
+    ],
+    "roughMean": 0.311
+   }
+  },
+  {
+   "id": "mat.int.wood_floor",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "フローリング",
+    "en": "Oak flooring"
+   },
+   "status": "draft",
+   "tags": [
+    "床",
+    "屋内",
+    "家",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.int.wood_floor",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.int.wood_floor_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "e7cf709fb316e7b36d88482b7744e6f1369fb1aec3d4eaec1a9f3962cc22ef1a",
+     "bytes": 1078512
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.wood_floor_normal.png",
+     "storage": "local-ignored",
+     "sha256": "91b869321c24015f9da4a8452fb8d05cd85671465d1d61beeb8f918b13517765",
+     "bytes": 1912520
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.int.wood_floor_orh.png",
+     "storage": "local-ignored",
+     "sha256": "d954f1bc437dd193dfcdc98e842e17ce2d68ff7c71670f8ca5710200fcc217c0",
+     "bytes": 2323976
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 6416
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 1056
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 2382
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 117392
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 1428
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 4304
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 2308
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 16320
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.8,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.523,
+     0.379,
+     0.243
+    ],
+    "roughMean": 0.5
+   }
+  },
+  {
    "id": "mat.metal.iron_rust",
    "version": 1,
    "category": "material",
@@ -3554,6 +4884,4067 @@
    }
   },
   {
+   "id": "mat.town.arcade_tile",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "アーケードの床（磁器タイル）",
+    "en": "Arcade floor tiles"
+   },
+   "status": "draft",
+   "tags": [
+    "床",
+    "タイル",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.arcade_tile",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.arcade_tile_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "b12853a12022773a7ebc4781c9dd0b6107ef0d7cb3767c161fc119299bf96dfe",
+     "bytes": 777850
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.arcade_tile_normal.png",
+     "storage": "local-ignored",
+     "sha256": "a81dc073d6de6ab5bd8a952793dc419ced9c1631fe44c511ac414d4ed0ded346",
+     "bytes": 900820
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.arcade_tile_orh.png",
+     "storage": "local-ignored",
+     "sha256": "af1ac122f7fb2009d7db92a80a6889c8d4cf8ef7ac7974d13f213601c1d71ccc",
+     "bytes": 1394409
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 9238
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 2900
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 4590
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 12738
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 4248
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 7336
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 5998
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 10096
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2.6,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.44,
+     0.4,
+     0.4
+    ],
+    "roughMean": 0.286
+   }
+  },
+  {
+   "id": "mat.town.asphalt",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "アスファルト（骨材・ひび・油のしみ）",
+    "en": "Asphalt"
+   },
+   "status": "draft",
+   "tags": [
+    "道",
+    "アスファルト",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.asphalt",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.asphalt_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "7f223ad0968767ce8e38e2279be36ddd5e8cee53ea5a4aace0b32eb98a59ecb4",
+     "bytes": 1650426
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.asphalt_normal.png",
+     "storage": "local-ignored",
+     "sha256": "ff2493430f7d3c4f2eb3eafe59e8d8c62ea8fe9bd7ad1d8feedf4af7b0d09763",
+     "bytes": 2166792
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.asphalt_orh.png",
+     "storage": "local-ignored",
+     "sha256": "a4681d14296fd08b98ec20fb31f2f5a15e388b4e28324992c0de76b766d6ab62",
+     "bytes": 2242316
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 251248
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 17194
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 68608
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 287764
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 5140
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 60504
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 7894
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 52444
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 6,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.241,
+     0.238,
+     0.236
+    ],
+    "roughMean": 0.87
+   }
+  },
+  {
+   "id": "mat.town.asphalt_old",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "古い生活道路（亀甲のひび）",
+    "en": "Old lane asphalt"
+   },
+   "status": "draft",
+   "tags": [
+    "道",
+    "アスファルト",
+    "ひび",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.asphalt_old",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.asphalt_old_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "af9751985e7eae352620655faec9d7984304ca7f1c417a252764673d7d8e660c",
+     "bytes": 1795402
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.asphalt_old_normal.png",
+     "storage": "local-ignored",
+     "sha256": "5eba1d1c78d06b4cb924253cc217de826afc1b978a44216d3d48d9a2e873f669",
+     "bytes": 2168396
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.asphalt_old_orh.png",
+     "storage": "local-ignored",
+     "sha256": "ea7eaa133bd7ca4625d5810490c1cceef43077063250fc76288b35cf59765fa4",
+     "bytes": 2167239
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 252892
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 17378
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 68852
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 279408
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 3556
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 50916
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 7970
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 48850
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 5,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.314,
+     0.31,
+     0.309
+    ],
+    "roughMean": 0.869
+   }
+  },
+  {
+   "id": "mat.town.asphalt_patch",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "補修したアスファルト",
+    "en": "Patched asphalt"
+   },
+   "status": "draft",
+   "tags": [
+    "道",
+    "アスファルト",
+    "補修",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.asphalt_patch",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.asphalt_patch_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "37932a9b6c0d72f1ff7cb49b275dd454fc09113d4e48c6d83c1272344985e986",
+     "bytes": 1672199
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.asphalt_patch_normal.png",
+     "storage": "local-ignored",
+     "sha256": "355fa3b45431a32581636e06e6c11405a94e7b61c83f83788b3202eab7d69287",
+     "bytes": 2027521
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.asphalt_patch_orh.png",
+     "storage": "local-ignored",
+     "sha256": "7d9aff4180cedac5c5dfcbb56873b760a1e735804714a364dc3bbe1d71b4aab6",
+     "bytes": 2186418
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 245414
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 16530
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 66560
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 237144
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 2732
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 47682
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 6222
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 43202
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 6,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.212,
+     0.209,
+     0.208
+    ],
+    "roughMean": 0.841
+   }
+  },
+  {
+   "id": "mat.town.block_wall",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "ブロック塀（カビ・苔）",
+    "en": "Concrete block wall"
+   },
+   "status": "draft",
+   "tags": [
+    "塀",
+    "ブロック",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.block_wall",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.block_wall_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "fecc3d536c2cd46b1d882d193fb8623219812f74a00d84a9165be51f8ea77643",
+     "bytes": 1384572
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.block_wall_normal.png",
+     "storage": "local-ignored",
+     "sha256": "6ecda69efcb12bcf81e822d04b74f4e1339b9863c54fbaf5224e4ba5bbf1e9ec",
+     "bytes": 2006178
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.block_wall_orh.png",
+     "storage": "local-ignored",
+     "sha256": "95472a8126e236b25d9fb92348f3d9a8aed6c11aaac780875a4b390bc3bad385",
+     "bytes": 1485821
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 198768
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 4928
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 45310
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 305612
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 2046
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 52782
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 9362
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 65196
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.2,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.509,
+     0.501,
+     0.474
+    ],
+    "roughMean": 0.899
+   }
+  },
+  {
+   "id": "mat.town.brick",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "れんが",
+    "en": "Brick"
+   },
+   "status": "draft",
+   "tags": [
+    "外壁",
+    "れんが",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.brick",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.brick_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "804418b595aa69ddc408a776b00353b57115918b0a006db79c7f9c88f2ab75b3",
+     "bytes": 724964
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.brick_normal.png",
+     "storage": "local-ignored",
+     "sha256": "b760a3e5c0b785d51f8ba272a87fc0c6f566acfd0b66ba1cb9bc778ac10ae639",
+     "bytes": 1602857
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.brick_orh.png",
+     "storage": "local-ignored",
+     "sha256": "396c8c6aa825858cae3a30fe7d7cc2eb18df1aa91bac4e0e7bcb68ac32cacb77",
+     "bytes": 1551096
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 1816
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 4004
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 7580
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 1980
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 5842
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 13842
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 3874
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 7406
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 13622
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.5,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.471,
+     0.286,
+     0.217
+    ],
+    "roughMean": 0.906
+   }
+  },
+  {
+   "id": "mat.town.concrete",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "コンクリート",
+    "en": "Concrete"
+   },
+   "status": "draft",
+   "tags": [
+    "コンクリート",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.concrete",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.concrete_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "77d488849a0bb35543f4cf8a6cc5aff8cd82ae4d00bc6f18eae238c9d7f0bdc6",
+     "bytes": 1082977
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.concrete_normal.png",
+     "storage": "local-ignored",
+     "sha256": "781da648e607fcfa8a8445d6e0e8a3510d4816379deebe38ce26a2182d45dbc3",
+     "bytes": 2064298
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.concrete_orh.png",
+     "storage": "local-ignored",
+     "sha256": "d7ba03c621444640c35a7a0284b4fadf48cc4d88d9845e026af3ee549b4c12aa",
+     "bytes": 1500161
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 326
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 1098
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 21728
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 172
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 466
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 52542
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 366
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 5086
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 68924
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 3,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.533,
+     0.525,
+     0.51
+    ],
+    "roughMean": 0.906
+   }
+  },
+  {
+   "id": "mat.town.curb",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "縁石",
+    "en": "Curb stone"
+   },
+   "status": "draft",
+   "tags": [
+    "縁石",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.curb",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.curb_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "8946ba54eb7c72abc11b0dd5c0ae09438141ded16ce429aff49a26da9e06cf5e",
+     "bytes": 1168751
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.curb_normal.png",
+     "storage": "local-ignored",
+     "sha256": "e88920da8dbd65cb7bd88b73f0d1f06fd121f5d51ab533d8a06edcca82f5e536",
+     "bytes": 1423066
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.curb_orh.png",
+     "storage": "local-ignored",
+     "sha256": "cda587e52da7b2bcbd33413fc4502e366e582a6bb95c102b7197d4ab75bf5e48",
+     "bytes": 1615766
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 232
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 484
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 4744
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 232
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 414
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 1106
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 270
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 534
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 1324
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.58,
+     0.571,
+     0.543
+    ],
+    "roughMean": 0.821
+   }
+  },
+  {
+   "id": "mat.town.galv_roof",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "トタンの屋根（青灰）",
+    "en": "Painted corrugated roof"
+   },
+   "status": "draft",
+   "tags": [
+    "屋根",
+    "トタン",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.galv_roof",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.galv_roof_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "bc51511b31f9054e981a6b8e4b6f82dfbe67b237e5bca8f1d62b6108eaaec8e8",
+     "bytes": 497399
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.galv_roof_normal.png",
+     "storage": "local-ignored",
+     "sha256": "d0b2af958f78288c4ae11d7b2a02c2ac224c36e6ed745e1906288377da2aa78d",
+     "bytes": 1587682
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.galv_roof_orh.png",
+     "storage": "local-ignored",
+     "sha256": "7b11e7991786f85a244856196dbe06437f9e1128fc5f93bb2b16bfc9a206d87e",
+     "bytes": 1353396
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 216
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 838
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 2538
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 352
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 978
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 2918
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 484
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 1304
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 4100
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.6,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.253,
+     0.336,
+     0.382
+    ],
+    "roughMean": 0.497
+   }
+  },
+  {
+   "id": "mat.town.garage_door",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "車庫のシャッター",
+    "en": "Garage door"
+   },
+   "status": "draft",
+   "tags": [
+    "シャッター",
+    "金属",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.garage_door",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.garage_door_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "ec757d68d1896fe8238e67f877eb4a30b36b50bdf67c5ccbe67d6be9d1351dfb",
+     "bytes": 460670
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.garage_door_normal.png",
+     "storage": "local-ignored",
+     "sha256": "acd1f8ee938b276579fd5b4352850df5deeae148c2e7f25abe02796de2d9347b",
+     "bytes": 1091323
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.garage_door_orh.png",
+     "storage": "local-ignored",
+     "sha256": "b80cfe952219c8d8fd916f8dd9b7b88672e02e097d36c9884c7335991c15dd84",
+     "bytes": 1331435
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 188
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 416
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 1000
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 402
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 932
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 1964
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 498
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 1002
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 2536
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2.4,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.633,
+     0.655,
+     0.678
+    ],
+    "roughMean": 0.526
+   }
+  },
+  {
+   "id": "mat.town.granite_slab",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "御影石の敷石（広場）",
+    "en": "Granite slabs"
+   },
+   "status": "draft",
+   "tags": [
+    "石",
+    "舗装",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.granite_slab",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.granite_slab_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "2c8cb884791b618334e82d52c000c8595c0800207b2db14c36aa635e1ebb71ec",
+     "bytes": 825214
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.granite_slab_normal.png",
+     "storage": "local-ignored",
+     "sha256": "df2b634a1d671f9cb9015c105800a7cd352628612c4e3ccbc9e4dd7ab673113a",
+     "bytes": 1624471
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.granite_slab_orh.png",
+     "storage": "local-ignored",
+     "sha256": "30e9b03e32e1f84e6ae7d0bd5eac46f0676f6ddcb67b4a5f91c6859bfa781cd6",
+     "bytes": 1695658
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 2256
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 9532
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 34766
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 1586
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 5930
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 17688
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 3304
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 6682
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 16936
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 4,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.455,
+     0.44,
+     0.455
+    ],
+    "roughMean": 0.784
+   }
+  },
+  {
+   "id": "mat.town.grating",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "側溝のふた（グレーチング）",
+    "en": "Gutter grating"
+   },
+   "status": "draft",
+   "tags": [
+    "金属",
+    "側溝",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.grating",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.grating_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "ac81c6c252a8392246f6e8c1f5e7414530695721734c4c0b1fd422ba677a9a33",
+     "bytes": 802128
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.grating_normal.png",
+     "storage": "local-ignored",
+     "sha256": "81fedb9e4b0043c8660e5d472f737de80712a353b70a6f409bf1e70954035758",
+     "bytes": 1232669
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.grating_orh.png",
+     "storage": "local-ignored",
+     "sha256": "60b46fc0a87738ee04b2a0ae06beb16ac70bd248644c27a8715957777feab091",
+     "bytes": 1200274
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 1604
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 2592
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 5800
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 1364
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 4504
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 10558
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 2668
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 7556
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 20618
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 0.9,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.199,
+     0.196,
+     0.198
+    ],
+    "roughMean": 0.763
+   }
+  },
+  {
+   "id": "mat.town.hedge",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "生垣",
+    "en": "Hedge"
+   },
+   "status": "draft",
+   "tags": [
+    "植物",
+    "生垣",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.hedge",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.hedge_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "08a5a0f2135584e08d3934f347dc4787fa07b86b40521e3afd2d3b46a44005f4",
+     "bytes": 1037495
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.hedge_normal.png",
+     "storage": "local-ignored",
+     "sha256": "5ca3c1306e20022f90b8cb2629eb54ca714f7e691c0631b3098fb2e0a52afd56",
+     "bytes": 1711838
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.hedge_orh.png",
+     "storage": "local-ignored",
+     "sha256": "37a76ab40c60cb045247bf256f5e867ecf18e6246f4bc15e0deabd7e748a559e",
+     "bytes": 1249105
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 5668
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 17346
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 42916
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 4648
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 21412
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 80424
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 7488
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 27142
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 78884
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.4,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.108,
+     0.165,
+     0.074
+    ],
+    "roughMean": 0.752
+   }
+  },
+  {
+   "id": "mat.town.interlock",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "インターロッキング",
+    "en": "Interlocking pavers"
+   },
+   "status": "draft",
+   "tags": [
+    "歩道",
+    "舗装",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.interlock",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.interlock_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "8c84b562206383c67f497eedcad3ec7e2bd4ba9bf10796ebf26359c97e972f5c",
+     "bytes": 1120363
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.interlock_normal.png",
+     "storage": "local-ignored",
+     "sha256": "80887368749e48f00e77809031720988e8ec9b3b40889d746c3858875702bed3",
+     "bytes": 1322983
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.interlock_orh.png",
+     "storage": "local-ignored",
+     "sha256": "18e3b27c1a154ee8738b32a5e4fbd7e78341b8550ef896f92ce00f0dcfcf1b92",
+     "bytes": 1485445
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 21944
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 3804
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 8874
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 22100
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 7372
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 14074
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 9892
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 17988
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.6,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.434,
+     0.388,
+     0.364
+    ],
+    "roughMean": 0.882
+   }
+  },
+  {
+   "id": "mat.town.kawara",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "いぶし瓦（町）",
+    "en": "Silver kawara (town)"
+   },
+   "status": "draft",
+   "tags": [
+    "屋根",
+    "瓦",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.kawara",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.kawara_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "d11f9d9e7abc9c95b2587b36a48f4aa2ac5217bf6ed01844bae407176498db85",
+     "bytes": 942394
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.kawara_normal.png",
+     "storage": "local-ignored",
+     "sha256": "a8069c7a732b8476f53c5627c3aca80271029a22ca6bdad2766d83b3fe67e2a5",
+     "bytes": 10322
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.kawara_orh.png",
+     "storage": "local-ignored",
+     "sha256": "833660f71297944ff57ae26b79835ccf7bf3af02d794225d4853cdd5cbe53a2b",
+     "bytes": 1062507
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 12650
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 1398
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 3980
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 7072
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 1024
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 2452
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 3924
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 11054
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.4,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.269,
+     0.283,
+     0.308
+    ],
+    "roughMean": 0.74
+   }
+  },
+  {
+   "id": "mat.town.kawara_glazed",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "陶器瓦（茶）",
+    "en": "Glazed kawara (brown)"
+   },
+   "status": "draft",
+   "tags": [
+    "屋根",
+    "瓦",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.kawara_glazed",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.kawara_glazed_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "2d1962298e87edf7dbc733be70c9332a65dd0356eba04930daa1331313c743f2",
+     "bytes": 858945
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.kawara_glazed_normal.png",
+     "storage": "local-ignored",
+     "sha256": "a8069c7a732b8476f53c5627c3aca80271029a22ca6bdad2766d83b3fe67e2a5",
+     "bytes": 10322
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.kawara_glazed_orh.png",
+     "storage": "local-ignored",
+     "sha256": "d5d0dd6004fe040c9efdafe93c4df98bc3c3f88f142fd3f0b29533c0ea93d03d",
+     "bytes": 1037452
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 498
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 1338
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 3444
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 462
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 1024
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 2452
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 1698
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 3760
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 10502
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.4,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.358,
+     0.233,
+     0.178
+    ],
+    "roughMean": 0.538
+   }
+  },
+  {
+   "id": "mat.town.mortar",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "モルタルの外壁（リシン）",
+    "en": "Mortar stucco wall"
+   },
+   "status": "draft",
+   "tags": [
+    "外壁",
+    "モルタル",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.mortar",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.mortar_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "a7032e45e417c3b5c8815524daf436649e26f24e166cbba1c5d8825b0d75f76e",
+     "bytes": 1473213
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.mortar_normal.png",
+     "storage": "local-ignored",
+     "sha256": "81e37e552e516ebb4573d6c9c11e2c1719cc68d2068c5e1990bf261b2651c819",
+     "bytes": 2693752
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.mortar_orh.png",
+     "storage": "local-ignored",
+     "sha256": "903edd02c90c4899c8f8cae617566223d2e4dad7d51dde6667e2aa69bf2ec435",
+     "bytes": 2566699
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 70612
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 1178
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 8662
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 457564
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 996
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 75056
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 1876
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 45282
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.73,
+     0.694,
+     0.629
+    ],
+    "roughMean": 0.926
+   }
+  },
+  {
+   "id": "mat.town.paint",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "塗装の面（白・頂点の色で色付け）",
+    "en": "Painted surface (tintable)"
+   },
+   "status": "draft",
+   "tags": [
+    "塗装",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.paint",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.paint_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "ef9ea8740f83b0ece4625790c6e52f06047670e9113b8f5fcb702c46647ffbcd",
+     "bytes": 749184
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.paint_normal.png",
+     "storage": "local-ignored",
+     "sha256": "f1696f5e53520f76d3980fbb207e353ee1ad1af872576b53466a93a13ed0f00c",
+     "bytes": 1224705
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.paint_orh.png",
+     "storage": "local-ignored",
+     "sha256": "e311ba4a7318fe8512fcf50a53fbe0c9c002f1585120ca393d1a875d8bc69dbc",
+     "bytes": 2010269
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 236
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 712
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 2518
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 110
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 200
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 746
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 346
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 1310
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 7462
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.855,
+     0.855,
+     0.846
+    ],
+    "roughMean": 0.57
+   }
+  },
+  {
+   "id": "mat.town.panel",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "ALC・金属パネルの外壁",
+    "en": "Panel facade"
+   },
+   "status": "draft",
+   "tags": [
+    "外壁",
+    "パネル",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.panel",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.panel_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "8cc377c7660fc20df9e93811e47ae237ea6144722cbb416b041a3191742bc8a1",
+     "bytes": 457336
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.panel_normal.png",
+     "storage": "local-ignored",
+     "sha256": "94f061d5ea33d28be75c69fa424bb4150403a103b204d2fea3d587806a897c45",
+     "bytes": 1415599
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.panel_orh.png",
+     "storage": "local-ignored",
+     "sha256": "d1e200f608dee8fb646e0052cdccd387e5a358d792d5d0b94faa75d7c45d144f",
+     "bytes": 1657428
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 256
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 684
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 1544
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 364
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 890
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 2122
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 472
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 1032
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 2190
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.674,
+     0.686,
+     0.682
+    ],
+    "roughMean": 0.742
+   }
+  },
+  {
+   "id": "mat.town.paving",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "コンクリートの平板",
+    "en": "Concrete pavers"
+   },
+   "status": "draft",
+   "tags": [
+    "舗装",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.paving",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.paving_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "123293fe089f61cf015bb2a04fe3b74017ee77825d2e98b95eaf96e5058863a8",
+     "bytes": 749119
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.paving_normal.png",
+     "storage": "local-ignored",
+     "sha256": "4c923baba8397e12f3289d2b003a9d20ac7282cd07df60ace58383628f823536",
+     "bytes": 1300469
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.paving_orh.png",
+     "storage": "local-ignored",
+     "sha256": "1ec2bdb13f45e9c6073a3f28845840931a721c9350fdf5572a841280ff3fdcca",
+     "bytes": 1440368
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 572
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 1306
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 3072
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 1008
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 3114
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 6464
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 2006
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 3812
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 7738
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2.2,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.456,
+     0.43,
+     0.43
+    ],
+    "roughMean": 0.863
+   }
+  },
+  {
+   "id": "mat.town.roof_flat",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "陸屋根（防水・砂利）",
+    "en": "Flat roof"
+   },
+   "status": "draft",
+   "tags": [
+    "屋根",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.roof_flat",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.roof_flat_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "728362edd73e8034f0f6555d82673066f2e7977302321f8b28fe24b78bd267a0",
+     "bytes": 929847
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.roof_flat_normal.png",
+     "storage": "local-ignored",
+     "sha256": "93cd215b27ca6f15f672121ce0acd9d7db6811f131a95e98dfa6b220ebeab989",
+     "bytes": 2233245
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.roof_flat_orh.png",
+     "storage": "local-ignored",
+     "sha256": "52fb6a5f7b08b1fc291fff165e71fb7348b77da5664deb30fe9c5761c288effc",
+     "bytes": 2144688
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 290
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 4804
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 43698
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 228
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 3182
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 78168
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 960
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 3992
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 46146
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 3,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.303,
+     0.301,
+     0.305
+    ],
+    "roughMean": 0.869
+   }
+  },
+  {
+   "id": "mat.town.shutter",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "シャッター",
+    "en": "Rolling shutter"
+   },
+   "status": "draft",
+   "tags": [
+    "シャッター",
+    "金属",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.shutter",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.shutter_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "996c46dbbdf5fe8da33750e09f1c69f870ab695ab665c347ec5fb1fa8499672c",
+     "bytes": 694848
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.shutter_normal.png",
+     "storage": "local-ignored",
+     "sha256": "4b54b6cbd70eca536cb5b4dcbaaecdf2cb331d550354981485bb2271592da284",
+     "bytes": 934591
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.shutter_orh.png",
+     "storage": "local-ignored",
+     "sha256": "75f92a71af9fd93208ab1becb3d90f4224f785cc2d682c784c9f1141d8d059ec",
+     "bytes": 1162109
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 302
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 800
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 2252
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 564
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 1032
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 2956
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 346
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 1252
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 4772
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2.4,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.511,
+     0.529,
+     0.548
+    ],
+    "roughMean": 0.538
+   }
+  },
+  {
+   "id": "mat.town.siding",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "窯業系サイディング",
+    "en": "Fiber-cement lap siding"
+   },
+   "status": "draft",
+   "tags": [
+    "外壁",
+    "サイディング",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.siding",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.siding_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "05b50000f05d95457d2e0b9a404aa57152b7bcb91d7eb302227855905051eb14",
+     "bytes": 530624
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.siding_normal.png",
+     "storage": "local-ignored",
+     "sha256": "3406c4ab39c00156b71f1c21f83e4e5e80e6013ce29527136107659449a364e9",
+     "bytes": 1295129
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.siding_orh.png",
+     "storage": "local-ignored",
+     "sha256": "04b59b595a04a69b6b46cbaade0f007f77bcfe1a3f37c39a1904545e52b457fa",
+     "bytes": 1566199
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_1024.webp",
+     "bytes": 6660
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 686
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 1856
+    },
+    {
+     "file": "web/normal_1024.webp",
+     "bytes": 11020
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 1054
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 2768
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 1312
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 3538
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2,
+    "sizes": [
+     1024,
+     512,
+     256
+    ],
+    "maps": {
+     "albedo": {
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp",
+      "1024": "albedo_1024.webp"
+     },
+     "normal": {
+      "256": "normal_256.webp",
+      "512": "normal_512.webp",
+      "1024": "normal_1024.webp"
+     },
+     "orh": {
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.775,
+     0.739,
+     0.675
+    ],
+    "roughMean": 0.76
+   }
+  },
+  {
+   "id": "mat.town.siding_metal",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "金属サイディング（縦のリブ）",
+    "en": "Ribbed metal siding"
+   },
+   "status": "draft",
+   "tags": [
+    "外壁",
+    "金属",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.siding_metal",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.siding_metal_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "d9e0c134548f8a0fe3f9d7354775f291b6cc27f1fb48c17d48fa23ddc48fcbed",
+     "bytes": 494947
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.siding_metal_normal.png",
+     "storage": "local-ignored",
+     "sha256": "ca3cf5564abc23329b42aae70aba95b0e9e23eff2e4cb683a3f180a5c6f7ee5b",
+     "bytes": 1076915
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.siding_metal_orh.png",
+     "storage": "local-ignored",
+     "sha256": "cb8694e6097e8ff10d0cf4a34208cc8bad9a16060792fe560efb90cf23291d08",
+     "bytes": 1336724
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 230
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 580
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 1626
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 360
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 814
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 2682
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 450
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 1170
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 3946
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.62,
+     0.639,
+     0.653
+    ],
+    "roughMean": 0.528
+   }
+  },
+  {
+   "id": "mat.town.stone_tile",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "玄関の石（割肌）",
+    "en": "Porch stone"
+   },
+   "status": "draft",
+   "tags": [
+    "石",
+    "床",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.stone_tile",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.stone_tile_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "062e3aaae9d5bf0f3a769ec334897bfb479cce397c61e81cd25608d9e2cac7e5",
+     "bytes": 683542
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.stone_tile_normal.png",
+     "storage": "local-ignored",
+     "sha256": "d2bf419f372190c5118577aed6ad3336e9883226677c9d8e43b79072c5bc46a9",
+     "bytes": 1996426
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.stone_tile_orh.png",
+     "storage": "local-ignored",
+     "sha256": "2e14a42ffc1ec98ff16dbe673c6ffa532885fffaa1dbc6a041aac3f79f04a79d",
+     "bytes": 1990008
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 350
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 652
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 1462
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 638
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 2314
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 31884
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 1512
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 6458
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 28952
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 0.7,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.444,
+     0.445,
+     0.457
+    ],
+    "roughMean": 0.772
+   }
+  },
+  {
+   "id": "mat.town.tactile",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "点字ブロック",
+    "en": "Tactile paving"
+   },
+   "status": "draft",
+   "tags": [
+    "舗装",
+    "点字ブロック",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.tactile",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.tactile_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "82c249e13af3645ec2d8d141ac5b44602c8f4608da6adcdea40349ec106d393e",
+     "bytes": 1181909
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.tactile_normal.png",
+     "storage": "local-ignored",
+     "sha256": "73b4bbf3b59846d7545241832e467715244ba4b046b142027bb04bd8203fb1be",
+     "bytes": 1064629
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.tactile_orh.png",
+     "storage": "local-ignored",
+     "sha256": "da1bc0d4a52e5f21c67a3e5e67fa130aae128bd0ae4242eabdbc13b5c4fdd2a2",
+     "bytes": 1318867
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 1030
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 2998
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 10348
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 896
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 2600
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 6450
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 1704
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 4656
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 13370
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 0.3,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.683,
+     0.526,
+     0.098
+    ],
+    "roughMean": 0.635
+   }
+  },
+  {
+   "id": "mat.town.tile_facade",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "二丁掛けタイルの外壁",
+    "en": "Brown facade tiles"
+   },
+   "status": "draft",
+   "tags": [
+    "外壁",
+    "タイル",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.tile_facade",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.tile_facade_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "f36a5d8dc09f259592a7a87e154e393c92ced261e813deb7ddf81ab139591258",
+     "bytes": 986159
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.tile_facade_normal.png",
+     "storage": "local-ignored",
+     "sha256": "16773d1d4a4823cb63d17f0e42c853cbc04ac23b58802ed8fbf985e221f4d70a",
+     "bytes": 1255832
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.tile_facade_orh.png",
+     "storage": "local-ignored",
+     "sha256": "0633a87d3366651b4b596b2a6df88374e7681343b2649b425f88dea3c8ee7639",
+     "bytes": 1292151
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 2036
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 5286
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 12030
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 2328
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 10080
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 21906
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 3934
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 12132
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 22068
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.488,
+     0.355,
+     0.284
+    ],
+    "roughMean": 0.519
+   }
+  },
+  {
+   "id": "mat.town.trackbed",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "路面電車の軌道（コンクリート）",
+    "en": "Tram track slab"
+   },
+   "status": "draft",
+   "tags": [
+    "軌道",
+    "コンクリート",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.trackbed",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.trackbed_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "dc30d8b6cf8d57724f5d2d3ed54b1ab216e46c9b5f5115fd2ebcee2d24dbc58b",
+     "bytes": 1022831
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.trackbed_normal.png",
+     "storage": "local-ignored",
+     "sha256": "faa5b61a331ba44fda1748a6834bdd5f801121eb716706b6862826b9e4cfb298",
+     "bytes": 2112804
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.trackbed_orh.png",
+     "storage": "local-ignored",
+     "sha256": "4a336b53305625ce933090a581ad438472ac54b7c11e708483d2aa19a2f2990f",
+     "bytes": 1534631
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 388
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 850
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 7666
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 118
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 448
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 54738
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 442
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 6032
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 69214
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.372,
+     0.361,
+     0.346
+    ],
+    "roughMean": 0.82
+   }
+  },
+  {
+   "id": "mat.town.water",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "用水路の水",
+    "en": "Channel water"
+   },
+   "status": "draft",
+   "tags": [
+    "水",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.water",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.water_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "1051c247d59d31848a75c443e4568b2a0650dab5d1c6c8dbce4688430f9f3aab",
+     "bytes": 372193
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.water_normal.png",
+     "storage": "local-ignored",
+     "sha256": "5f9a5dd48f1c189bf6c4ae1955bf85782cffe2563b71406bf81cd64f3583989d",
+     "bytes": 2039268
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.water_orh.png",
+     "storage": "local-ignored",
+     "sha256": "0f60307d1401abc9c36d41f0e9db30b4228f4781f0d0ac47f3f4967649ae7439",
+     "bytes": 2177785
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 100
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 188
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 538
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 136
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 1850
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 34242
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 2772
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 15738
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 74726
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 1.6,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.063,
+     0.11,
+     0.145
+    ],
+    "roughMean": 0.06
+   }
+  },
+  {
+   "id": "mat.town.wood_board",
+   "version": 1,
+   "category": "material",
+   "name": {
+    "ja": "縦の板張り（焦げ茶）",
+    "en": "Dark vertical boards"
+   },
+   "status": "draft",
+   "tags": [
+    "外壁",
+    "木",
+    "手続き",
+    "自作"
+   ],
+   "dir": "material/mat.town.wood_board",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": null,
+    "tris": null
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "texture",
+     "path": "source/mat.town.wood_board_albedo.png",
+     "storage": "local-ignored",
+     "sha256": "4f63afc0cfb4a75ea5b34eaf40d05f8a1d704869e12698008b605de957166515",
+     "bytes": 1117418
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.wood_board_normal.png",
+     "storage": "local-ignored",
+     "sha256": "0fbd67663497467ef16b60633a946142f8ea7540eccce6f710e8d84a4832f91e",
+     "bytes": 2707414
+    },
+    {
+     "role": "texture",
+     "path": "source/mat.town.wood_board_orh.png",
+     "storage": "local-ignored",
+     "sha256": "06e061a51f1004151fd8c90e9633e650a1572b592700126ec793e5ebcda3f603",
+     "bytes": 2527850
+    }
+   ],
+   "web": [
+    {
+     "file": "web/albedo_128.webp",
+     "bytes": 244
+    },
+    {
+     "file": "web/albedo_256.webp",
+     "bytes": 554
+    },
+    {
+     "file": "web/albedo_512.webp",
+     "bytes": 1718
+    },
+    {
+     "file": "web/normal_128.webp",
+     "bytes": 290
+    },
+    {
+     "file": "web/normal_256.webp",
+     "bytes": 1730
+    },
+    {
+     "file": "web/normal_512.webp",
+     "bytes": 70266
+    },
+    {
+     "file": "web/orh_128.webp",
+     "bytes": 414
+    },
+    {
+     "file": "web/orh_256.webp",
+     "bytes": 3476
+    },
+    {
+     "file": "web/orh_512.webp",
+     "bytes": 51538
+    }
+   ],
+   "ue5": null,
+   "material": {
+    "material": "wakaba-material/1",
+    "tileM": 2,
+    "sizes": [
+     512,
+     256,
+     128
+    ],
+    "maps": {
+     "albedo": {
+      "128": "albedo_128.webp",
+      "256": "albedo_256.webp",
+      "512": "albedo_512.webp"
+     },
+     "normal": {
+      "128": "normal_128.webp",
+      "256": "normal_256.webp",
+      "512": "normal_512.webp"
+     },
+     "orh": {
+      "128": "orh_128.webp",
+      "256": "orh_256.webp",
+      "512": "orh_512.webp"
+     }
+    },
+    "alpha": false,
+    "card": false,
+    "channels": {
+     "albedo": "sRGB",
+     "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+     "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+    },
+    "albedoMean": [
+     0.273,
+     0.191,
+     0.133
+    ],
+    "roughMean": 0.799
+   }
+  },
+  {
    "id": "mat.wall.tsuchikabe",
    "version": 1,
    "category": "material",
@@ -4009,6 +9400,10 @@
     {
      "file": "web/prop.barrel.glb",
      "bytes": 47164
+    },
+    {
+     "file": "web/prop.barrel.mo.glb",
+     "bytes": 16344
     }
    ],
    "ue5": {
@@ -4089,6 +9484,10 @@
     {
      "file": "web/prop.beam.glb",
      "bytes": 12388
+    },
+    {
+     "file": "web/prop.beam.mo.glb",
+     "bytes": 6540
     }
    ],
    "ue5": {
@@ -4167,6 +9566,10 @@
     {
      "file": "web/prop.bicycle.glb",
      "bytes": 95896
+    },
+    {
+     "file": "web/prop.bicycle.mo.glb",
+     "bytes": 27016
     }
    ],
    "ue5": {
@@ -4246,6 +9649,10 @@
     {
      "file": "web/prop.crate.glb",
      "bytes": 123772
+    },
+    {
+     "file": "web/prop.crate.mo.glb",
+     "bytes": 30152
     }
    ],
    "ue5": {
@@ -4324,6 +9731,10 @@
     {
      "file": "web/prop.debris.glb",
      "bytes": 181636
+    },
+    {
+     "file": "web/prop.debris.mo.glb",
+     "bytes": 54124
     }
    ],
    "ue5": {
@@ -4405,6 +9816,10 @@
     {
      "file": "web/prop.door_fallen.glb",
      "bytes": 42456
+    },
+    {
+     "file": "web/prop.door_fallen.mo.glb",
+     "bytes": 16132
     }
    ],
    "ue5": {
@@ -4485,6 +9900,10 @@
     {
      "file": "web/prop.fence.glb",
      "bytes": 34152
+    },
+    {
+     "file": "web/prop.fence.mo.glb",
+     "bytes": 12928
     }
    ],
    "ue5": {
@@ -4563,6 +9982,10 @@
     {
      "file": "web/prop.futon.glb",
      "bytes": 12480
+    },
+    {
+     "file": "web/prop.futon.mo.glb",
+     "bytes": 6892
     }
    ],
    "ue5": {
@@ -4586,6 +10009,416 @@
     "impostor": false,
     "materials": [
      "mat.fabric.futon"
+    ]
+   }
+  },
+  {
+   "id": "prop.int.bench_row",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "待合の長椅子（4 席）",
+    "en": "Waiting bench row (4 seats)"
+   },
+   "status": "draft",
+   "tags": [
+    "長椅子",
+    "屋内",
+    "病院",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.int.bench_row",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     2.2,
+     0.969,
+     0.515
+    ],
+    "tris": 516
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.int.bench_row.fbx",
+     "storage": "local-ignored",
+     "sha256": "4d191ce7aadbf25688c10573b0588d83f7279adc74dc77609873a3ad22323843",
+     "bytes": 27020
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.int.bench_row.glb",
+     "bytes": 93484
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_int_bench_row",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.int.bench_row.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 516,
+     "LOD1": 206
+    },
+    "variants": 1,
+    "lodDist": [
+     18
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.town.paint#steel",
+     "mat.town.paint#tint"
+    ]
+   }
+  },
+  {
+   "id": "prop.int.desk_pc",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "事務机と画面と椅子",
+    "en": "Office desk with monitor and chair"
+   },
+   "status": "draft",
+   "tags": [
+    "机",
+    "屋内",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.int.desk_pc",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1.2,
+     1.14,
+     1.26
+    ],
+    "tris": 380
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.int.desk_pc.fbx",
+     "storage": "local-ignored",
+     "sha256": "804d4ff70667f7715fc689903ee6398a154e86b7089eeb4c37ab8b2dd68e8ca0",
+     "bytes": 29964
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.int.desk_pc.glb",
+     "bytes": 78948
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_int_desk_pc",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.int.desk_pc.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 380,
+     "LOD1": 152
+    },
+    "variants": 1,
+    "lodDist": [
+     18
+    ],
+    "impostor": false,
+    "materials": [
+     "glass.dark",
+     "mat.town.paint#beige",
+     "mat.town.paint#black",
+     "mat.town.paint#chrome",
+     "mat.town.paint#dark",
+     "mat.town.paint#gray"
+    ]
+   }
+  },
+  {
+   "id": "prop.int.hospital_bed",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "病院のベッド",
+    "en": "Hospital bed"
+   },
+   "status": "draft",
+   "tags": [
+    "ベッド",
+    "屋内",
+    "病院",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.int.hospital_bed",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.96,
+     1.199,
+     2.02
+    ],
+    "tris": 584
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.int.hospital_bed.fbx",
+     "storage": "local-ignored",
+     "sha256": "4aa93d8bc67d0553c4854a8bea76574f3b152df1bdb2b30d20eab1871933f8bc",
+     "bytes": 32844
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.int.hospital_bed.glb",
+     "bytes": 106144
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_int_hospital_bed",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.int.hospital_bed.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 584,
+     "LOD1": 232
+    },
+    "variants": 1,
+    "lodDist": [
+     18
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.int.wood_floor",
+     "mat.town.paint#beige",
+     "mat.town.paint#chrome",
+     "mat.town.paint#dark",
+     "mat.town.paint#steel",
+     "mat.town.paint#white"
+    ]
+   }
+  },
+  {
+   "id": "prop.int.locker",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "鉄のロッカー（3 列）",
+    "en": "Steel locker"
+   },
+   "status": "draft",
+   "tags": [
+    "ロッカー",
+    "屋内",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.int.locker",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.9,
+     1.8,
+     0.525
+    ],
+    "tris": 428
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.int.locker.fbx",
+     "storage": "local-ignored",
+     "sha256": "79e4a9170e87cfac01c48d3cf924ee433fda97fa5cc25d930a7fd3c8f280e25c",
+     "bytes": 26396
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.int.locker.glb",
+     "bytes": 82016
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_int_locker",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.int.locker.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 428,
+     "LOD1": 170
+    },
+    "variants": 1,
+    "lodDist": [
+     18
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.town.paint#chrome",
+     "mat.town.paint#dark",
+     "mat.town.paint#tint",
+     "mat.town.paint#white"
+    ]
+   }
+  },
+  {
+   "id": "prop.int.server_rack",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "機械の棚（研究施設）",
+    "en": "Equipment rack"
+   },
+   "status": "draft",
+   "tags": [
+    "機械",
+    "屋内",
+    "研究施設",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.int.server_rack",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.6,
+     2,
+     1.01
+    ],
+    "tris": 1016
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.int.server_rack.fbx",
+     "storage": "local-ignored",
+     "sha256": "cd3a84e439075b3bc61d86e14c2cf1a0277c6c6fb947214594cc734834ed0575",
+     "bytes": 35068
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.int.server_rack.glb",
+     "bytes": 185084
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_int_server_rack",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.int.server_rack.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 1016,
+     "LOD1": 406
+    },
+    "variants": 1,
+    "lodDist": [
+     18
+    ],
+    "impostor": false,
+    "materials": [
+     "emit.green",
+     "mat.town.grating",
+     "mat.town.paint#black",
+     "mat.town.paint#steel_dark"
     ]
    }
   },
@@ -4640,6 +10473,10 @@
     {
      "file": "web/prop.irori.glb",
      "bytes": 53944
+    },
+    {
+     "file": "web/prop.irori.mo.glb",
+     "bytes": 18608
     }
    ],
    "ue5": {
@@ -4720,6 +10557,10 @@
     {
      "file": "web/prop.ishigaki.glb",
      "bytes": 75408
+    },
+    {
+     "file": "web/prop.ishigaki.mo.glb",
+     "bytes": 24972
     }
    ],
    "ue5": {
@@ -4798,6 +10639,10 @@
     {
      "file": "web/prop.kamado.glb",
      "bytes": 58712
+    },
+    {
+     "file": "web/prop.kamado.mo.glb",
+     "bytes": 20944
     }
    ],
    "ue5": {
@@ -4879,6 +10724,10 @@
     {
      "file": "web/prop.komainu.glb",
      "bytes": 107768
+    },
+    {
+     "file": "web/prop.komainu.mo.glb",
+     "bytes": 32904
     }
    ],
    "ue5": {
@@ -4957,6 +10806,10 @@
     {
      "file": "web/prop.planks.glb",
      "bytes": 66520
+    },
+    {
+     "file": "web/prop.planks.mo.glb",
+     "bytes": 21176
     }
    ],
    "ue5": {
@@ -5036,6 +10889,10 @@
     {
      "file": "web/prop.shelf_fallen.glb",
      "bytes": 59044
+    },
+    {
+     "file": "web/prop.shelf_fallen.mo.glb",
+     "bytes": 17868
     }
    ],
    "ue5": {
@@ -5115,6 +10972,10 @@
     {
      "file": "web/prop.sign.glb",
      "bytes": 22312
+    },
+    {
+     "file": "web/prop.sign.mo.glb",
+     "bytes": 9892
     }
    ],
    "ue5": {
@@ -5194,6 +11055,10 @@
     {
      "file": "web/prop.stone_lantern.glb",
      "bytes": 57916
+    },
+    {
+     "file": "web/prop.stone_lantern.mo.glb",
+     "bytes": 18336
     }
    ],
    "ue5": {
@@ -5272,6 +11137,10 @@
     {
      "file": "web/prop.tansu.glb",
      "bytes": 67988
+    },
+    {
+     "file": "web/prop.tansu.mo.glb",
+     "bytes": 21696
     }
    ],
    "ue5": {
@@ -5297,6 +11166,740 @@
      "mat.metal.iron_rust",
      "mat.wood.cedar",
      "mat.wood.planks_silver"
+    ]
+   }
+  },
+  {
+   "id": "prop.town.ac_unit",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "エアコンの室外機",
+    "en": "Air conditioner outdoor unit"
+   },
+   "status": "draft",
+   "tags": [
+    "室外機",
+    "町",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.town.ac_unit",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.894,
+     1.2,
+     0.32
+    ],
+    "tris": 598
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.town.ac_unit.fbx",
+     "storage": "local-ignored",
+     "sha256": "0efe9db1a4fba0af8dc512c5492e0394c7156a2aee1d965f33b32c3335350727",
+     "bytes": 30156
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.town.ac_unit.glb",
+     "bytes": 93560
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_town_ac_unit",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.town.ac_unit.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 598,
+     "LOD1": 209
+    },
+    "variants": 1,
+    "lodDist": [
+     20
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.town.paint#dark",
+     "mat.town.paint#gray",
+     "mat.town.paint#ivory"
+    ]
+   }
+  },
+  {
+   "id": "prop.town.bicycle",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "ママチャリ（前かご・荷台）",
+    "en": "City bicycle"
+   },
+   "status": "draft",
+   "tags": [
+    "自転車",
+    "町",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.town.bicycle",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1.604,
+     1.028,
+     0.62
+    ],
+    "tris": 1604
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.town.bicycle.fbx",
+     "storage": "local-ignored",
+     "sha256": "20e0170be0cb6c97fda6f4c996cb3af9059fd6976b19a0e0ebf89720abb7f650",
+     "bytes": 67708
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.town.bicycle.glb",
+     "bytes": 176940
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_town_bicycle",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.town.bicycle.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 1604,
+     "LOD1": 480
+    },
+    "variants": 1,
+    "lodDist": [
+     18
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.town.paint#black",
+     "mat.town.paint#chrome",
+     "mat.town.paint#steel",
+     "mat.town.paint#tint",
+     "mat.town.paint#tire"
+    ]
+   }
+  },
+  {
+   "id": "prop.town.car",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "乗用車（普通・軽の 2 種・塗装は置く時の色）",
+    "en": "Car (sedan / kei, tintable)"
+   },
+   "status": "draft",
+   "tags": [
+    "車",
+    "町",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.town.car",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1.97,
+     1.4,
+     4.38
+    ],
+    "tris": 1156
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.town.car.fbx",
+     "storage": "local-ignored",
+     "sha256": "589df94df60de6c812693ca2cb94bf2da4f6ed026fcf45c08c0da80eb07070f0",
+     "bytes": 73052
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.town.car.glb",
+     "bytes": 331360
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_town_car",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.town.car.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "v0_LOD0": 1156,
+     "v0_LOD1": 404,
+     "v1_LOD0": 1156,
+     "v1_LOD1": 404
+    },
+    "variants": 2,
+    "lodDist": [
+     30
+    ],
+    "impostor": false,
+    "materials": [
+     "emit.head",
+     "emit.tail",
+     "glass.dark",
+     "mat.town.paint#chrome",
+     "mat.town.paint#dark",
+     "mat.town.paint#tint",
+     "mat.town.paint#tire",
+     "mat.town.paint#white"
+    ]
+   }
+  },
+  {
+   "id": "prop.town.guardrail",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "ガードレール（2m）",
+    "en": "Guardrail (2m)"
+   },
+   "status": "draft",
+   "tags": [
+    "ガードレール",
+    "町",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.town.guardrail",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     2,
+     0.86,
+     0.199
+    ],
+    "tris": 112
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.town.guardrail.fbx",
+     "storage": "local-ignored",
+     "sha256": "c7aa832d762f6119cf489d42eb8ee7d7614f3fbf8ece7ff5bcec309b84298fc4",
+     "bytes": 19708
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.town.guardrail.glb",
+     "bytes": 20700
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_town_guardrail",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.town.guardrail.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 112,
+     "LOD1": 56
+    },
+    "variants": 1,
+    "lodDist": [
+     30
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.town.paint#steel",
+     "mat.town.paint#white"
+    ]
+   }
+  },
+  {
+   "id": "prop.town.lamp_head",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "街灯の腕と灯具（2 種）",
+    "en": "Street lamp arm and head (2 variants)"
+   },
+   "status": "draft",
+   "tags": [
+    "街灯",
+    "町",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.town.lamp_head",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1.306,
+     0.568,
+     0.274
+    ],
+    "tris": 206
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.town.lamp_head.fbx",
+     "storage": "local-ignored",
+     "sha256": "7c3bd840da01aac7ce937bf0a2d1665b14eca68bea96372f3a7858158ab62da4",
+     "bytes": 33804
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.town.lamp_head.glb",
+     "bytes": 75760
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_town_lamp_head",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.town.lamp_head.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "v0_LOD0": 206,
+     "v0_LOD1": 81,
+     "v1_LOD0": 206,
+     "v1_LOD1": 81
+    },
+    "variants": 2,
+    "lodDist": [
+     30
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.town.paint#dark",
+     "mat.town.paint#steel",
+     "mat.town.paint#steel_dark"
+    ]
+   }
+  },
+  {
+   "id": "prop.town.lamp_modern",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "中央通りの LED の街灯の腕と灯具（2 種）",
+    "en": "Avenue LED lamp head (2 variants)"
+   },
+   "status": "draft",
+   "tags": [
+    "街灯",
+    "町",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.town.lamp_modern",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     2.933,
+     0.88,
+     0.443
+    ],
+    "tris": 288
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.town.lamp_modern.fbx",
+     "storage": "local-ignored",
+     "sha256": "e980e8a353eeedf0804722eb260b8d5244adab52f35b5c145a0f46a285e8d217",
+     "bytes": 33420
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.town.lamp_modern.glb",
+     "bytes": 75540
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_town_lamp_modern",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.town.lamp_modern.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "v0_LOD0": 288,
+     "v0_LOD1": 114,
+     "v1_LOD0": 136,
+     "v1_LOD1": 54
+    },
+    "variants": 2,
+    "lodDist": [
+     35
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.town.paint#dark",
+     "mat.town.paint#steel_dark"
+    ]
+   }
+  },
+  {
+   "id": "prop.town.pole_steel",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "鉄の柱（1m・伸ばして使う）",
+    "en": "Steel pole (1m, scalable)"
+   },
+   "status": "draft",
+   "tags": [
+    "柱",
+    "町",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.town.pole_steel",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.145,
+     1,
+     0.145
+    ],
+    "tris": 24
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.town.pole_steel.fbx",
+     "storage": "local-ignored",
+     "sha256": "e50e80c48bf696eddf9a8ae609857adbbb0e2522769ca5addc392e261efce6c5",
+     "bytes": 16332
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.town.pole_steel.glb",
+     "bytes": 3096
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_town_pole_steel",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.town.pole_steel.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 24
+    },
+    "variants": 1,
+    "lodDist": [
+     60
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.town.paint#steel"
+    ]
+   }
+  },
+  {
+   "id": "prop.town.utility_pole",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "コンクリートの電柱（腕木・碍子・変圧器つきの 2 種）",
+    "en": "Concrete utility pole (2 variants)"
+   },
+   "status": "draft",
+   "tags": [
+    "電柱",
+    "町",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.town.utility_pole",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1.6,
+     9.05,
+     0.72
+    ],
+    "tris": 1500
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.town.utility_pole.fbx",
+     "storage": "local-ignored",
+     "sha256": "7d1029822b6f316aff0fa08df4b4bd1d18792c6fda73790fbaeffbefce19a745",
+     "bytes": 102908
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.town.utility_pole.glb",
+     "bytes": 441544
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_town_utility_pole",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.town.utility_pole.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "v0_LOD0": 1500,
+     "v0_LOD1": 525,
+     "v1_LOD0": 1862,
+     "v1_LOD1": 650
+    },
+    "variants": 2,
+    "lodDist": [
+     45
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.town.concrete",
+     "mat.town.paint#black",
+     "mat.town.paint#gray",
+     "mat.town.paint#steel",
+     "mat.town.paint#white",
+     "mat.town.paint#yellow"
+    ]
+   }
+  },
+  {
+   "id": "prop.town.vending",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "自販機（塗装は置く時の色）",
+    "en": "Vending machine (tintable)"
+   },
+   "status": "draft",
+   "tags": [
+    "自販機",
+    "町",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.town.vending",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.92,
+     1.96,
+     0.808
+    ],
+    "tris": 640
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.town.vending.fbx",
+     "storage": "local-ignored",
+     "sha256": "9ca0159fff8c5b6b6c586e1011f16d9d6e15598ff4ecad8194b1ed90b9d0978c",
+     "bytes": 29516
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.town.vending.glb",
+     "bytes": 116088
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_town_vending",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.town.vending.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 640,
+     "LOD1": 256
+    },
+    "variants": 1,
+    "lodDist": [
+     22
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.town.paint#chrome",
+     "mat.town.paint#dark",
+     "mat.town.paint#tint",
+     "mat.town.paint#white"
     ]
    }
   },
@@ -5352,6 +11955,10 @@
     {
      "file": "web/prop.utility_pole.glb",
      "bytes": 45780
+    },
+    {
+     "file": "web/prop.utility_pole.mo.glb",
+     "bytes": 16500
     }
    ],
    "ue5": {
@@ -5434,6 +12041,10 @@
     {
      "file": "web/prop.well.glb",
      "bytes": 241816
+    },
+    {
+     "file": "web/prop.well.mo.glb",
+     "bytes": 68152
     }
    ],
    "ue5": {
@@ -5515,6 +12126,10 @@
     {
      "file": "web/rock.boulder.glb",
      "bytes": 356204
+    },
+    {
+     "file": "web/rock.boulder.mo.glb",
+     "bytes": 106348
     }
    ],
    "ue5": {
@@ -5601,6 +12216,10 @@
     {
      "file": "web/veg.fern.glb",
      "bytes": 5400
+    },
+    {
+     "file": "web/veg.fern.mo.glb",
+     "bytes": 4044
     }
    ],
    "ue5": {
@@ -5755,6 +12374,10 @@
     {
      "file": "web/veg.tree.broadleaf.glb",
      "bytes": 276832
+    },
+    {
+     "file": "web/veg.tree.broadleaf.mo.glb",
+     "bytes": 146112
     }
    ],
    "ue5": {
@@ -5838,6 +12461,10 @@
     {
      "file": "web/veg.tree.sugi.glb",
      "bytes": 229040
+    },
+    {
+     "file": "web/veg.tree.sugi.mo.glb",
+     "bytes": 108504
     }
    ],
    "ue5": {

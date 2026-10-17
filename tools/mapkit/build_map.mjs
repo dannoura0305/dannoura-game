@@ -70,12 +70,16 @@ C('森（木 300 本以上）', (L.stats.counts.trees || 0) >= 300, `木 ${L.sta
 C('入口の前・道・目的地に物が 0 個', A.keepOut.pass && A.entrances.pass, `違反 ${A.keepOut.violations.length}＋${A.entrances.violations.length}`);
 C('浮き・めり込み・重なりが 0 件', A.float.pass && A.overlap.pass, `浮き ${A.float.counts.float}・めり込み ${A.float.counts.penetrate}・重なり ${A.overlap.count}`);
 C('同じ種で同じ配置', A.deterministic.pass, L.hash);
+const GPl = L.gameplay || { doors: [], enemies: [], checkpoints: [] };
+C('戸・門が開け閉めでき、開いた形で両側に届く（フェーズ 4）', A.gameplay && A.gameplay.pass && GPl.doors.length > 0, `戸 ${GPl.doors.length}（${[...new Set(GPl.doors.map(d => d.kind))].join('・')}）`);
+C('敵の出る所・巡回の点が立入禁止の外で届く・チェックポイントに届く（フェーズ 4）', A.gameplay && A.gameplay.pass, `敵 ${GPl.enemies.length}（巡回の点 ${GPl.enemies.reduce((a, e) => a + e.route.length, 0)}）・チェックポイント ${GPl.checkpoints.length}`);
 const H = (text, evidence) => rep.conditions.push({ text, check: 'human', pass: null, evidence });
 H('夕暮れと霧の雰囲気が出ている', 'play_map の画面撮影（village・shrine）');
 H('山の廃村に見える（フェーズ 3：写実寄りの材質・部品・光）', 'play_map の撮影（village・house・interior・forest）と before_after.png');
 H('自作の素材（目録の license own）の中身を人が確かめた（meta.json の verifiedBy を書く）', 'wakaba-assets/entries/*/*/meta.json・docs/wakaba-mapkit/11');
 H('森の密度・木の並びが自然', 'forest の撮影・report/map.svg');
 H('歩いて探索できる（迷わない・引っかからない）', '利用者が mapkit.html?map=haison を歩く');
+H('ゲームとして探索できる（戸・敵・チェックポイント・音。10 分遊んで判断）', '利用者が mapkit.html?map=haison&perf=1 を実機で');
 rep.gaps = built.gaps;
 if (realKindsCount(L, webOk)) rep.gaps.push(
   { need: 'web.compression', plan: 'テクスチャは WebP・glb は圧縮なし（KTX2・Meshopt の符号器がクラウドで使えないため）。利用者の PC か CI で KTX2（toktx/basisu）・gltfpack（Meshopt）にすると、読み込み ≈40% 減の見込み（docs/wakaba-mapkit/11 §6）', status: 'proposed' },

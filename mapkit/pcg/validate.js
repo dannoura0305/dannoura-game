@@ -6,6 +6,8 @@ import { World } from '../core/world.js';
 import { buildWalkGrid, distanceField, nearestCell, descend } from '../nav/grid.js';
 import { unb64, STANDINS } from './scatter.js';
 import { estimateBudget, checkBudget } from '../render/quality.js';
+import { applyOpenPose, fixtureColliders } from '../game/doors.js';
+import { toWorld } from '../core/geom.js';
 
 const r2 = v => Math.round(v * 100) / 100;
 const shapeBounds = s => s.shape === 'capsule' ? [Math.min(s.a[0], s.b[0]) - s.r, Math.min(s.a[1], s.b[1]) - s.r, Math.max(s.a[0], s.b[0]) + s.r, Math.max(s.a[1], s.b[1]) + s.r]
@@ -18,6 +20,9 @@ const objObb = o => o.col && o.col.shape === 'box' ? { cx: o.at[0], cz: o.at[2],
  */
 export function validateLayout(layout, hf, opt = {}) {
   const spec = opt.spec || {}, world = opt.world || new World(layout, hf), auto = {}, fixes = [];
+  // 戸・門（フェーズ 4）：歩ける格子と到達は「全部の戸が開いた形」で調べる（遊ぶ時の格子 main.js と同じ）。柱・柵は当たりに入れる
+  const GP = layout.gameplay || { doors: [], checkpoints: [], enemies: [] };
+  applyOpenPose(world, GP.doors);
   const keepOut = layout.keepOut.map(s => Object.assign({}, s, { bounds: shapeBounds(s) }));
   // ── 立入禁止（物 × 形）
   const kv = [];
@@ -98,6 +103,8 @@ export function validateLayout(layout, hf, opt = {}) {
   let edges = 0;
   for (let j = 1; j < grid.nz - 1; j++) for (let i = 1; i < grid.nx - 1; i++) { const k = j * grid.nx + i; if (!grid.ok[k] || !isFinite(dist[k])) continue; for (const k2 of [k + 1, k - 1, k + grid.nx, k - grid.nx]) if (!grid.ok[k2] && grid.y[k] - grid.y[k2] > 0.6) { edges++; break; } }
   auto.fall = { pass: true, edgeCells: edges, guard: '坂 40° を超える所・段差 0.4m を超える所は操作（mapkit/runtime/controller.js）が壁として止める＝落ちない（boundary: invisible_wall_on_cliff）' };
+  // ── 遊びの定義（フェーズ 4）：戸の両側に届く・門の柱と柵が物に重ならない・敵の出る所と巡回の点が立入禁止の外で届く・チェックポイントに届く
+  auto.gameplay = checkGameplay(GP, { world, grid, dist, keepOut, start: layout.start });
   // ── 予算（見積もり。実際の数は play_map.mjs が測って上書き）
   const preset = opt.preset || 'low', est = estimateBudget(layout, preset), bc = checkBudget(preset, est);
   auto.budget = { pass: bc.pass, preset, drawCalls: est.drawCalls, tris: est.tris, texMB: est.texMB, source: 'estimate', over: bc.over };
@@ -105,8 +112,39 @@ export function validateLayout(layout, hf, opt = {}) {
   for (const f of auto.float.items) fixes.push({ issue: `浮き/めり込み ${f.id}`, proposal: f.fix || '土台を直す', auto: !!f.fix });
   for (const v of kv.slice(0, 20)) fixes.push({ issue: `立入禁止 ${v.id}（${v.shape}）`, proposal: '外す（または位置をずらす）', auto: true });
   for (const o of ov.slice(0, 20)) fixes.push({ issue: `重なり ${o.id}`, proposal: '小さい方を外す', auto: true });
+  for (const p of auto.gameplay.problems.slice(0, 20)) fixes.push({ issue: `遊びの定義 ${p.id}：${p.reason}`, proposal: '地図仕様の gameplay（戸・敵の巡回・チェックポイント）の位置を直す', auto: false });
   for (const u of unreachable) fixes.push({ issue: `届かない ${u}`, proposal: '道の坂・扉の前の物を確かめる。配置を種を変えてやり直す（#retry）', auto: false });
   return { auto, fixes, world, grid, dist, startCell: sk };
+}
+
+/** フェーズ 4 の検査（validateLayout の中・試験からも呼ぶ） */
+export function checkGameplay(GP, { world, grid, dist, keepOut, start }) {
+  const problems = [], reachAt = (x, z, y, R = 1.2) => { const k = nearestCell(grid, x, z, R, y); return k >= 0 && isFinite(dist[k]) ? r2(dist[k]) : null; };
+  const ids = new Set();
+  const doors = (GP.doors || []).map(d => {
+    if (ids.has(d.id)) problems.push({ id: d.id, reason: 'id が重複' }); ids.add(d.id);
+    const rot = deg(d.rotY), side = s => { const [x, z] = toWorld(d.at[0], d.at[2], rot, 0, s * ((d.wallT || 0.15) / 2 + 0.75)); return reachAt(x, z, d.at[1], 0.9); };
+    const sides = [side(1), side(-1)];
+    if (sides.some(v => v == null)) problems.push({ id: d.id, reason: `開いた形で戸の両側に届かない（前 ${sides[0]}・後 ${sides[1]}）` });
+    // 門の柱・柵：置いた物（木・岩）や建物に重ならない
+    for (const f of fixtureColliders(d)) for (const c of world._near(world.cBins, world.colliders, f.c.obb.cx, f.c.obb.cz, f.c.obb.hx + 0.5)) {
+      const o = c.kind === 'cyl' ? { cx: c.x, cz: c.z, hx: c.r, hz: c.r, rot: 0 } : c.obb;
+      if (obbOverlapArea(o, f.c.obb) > 1e-3) problems.push({ id: f.id, reason: `門の柱・柵が ${c.id} に重なる` });
+    }
+    return { id: d.id, kind: d.kind, initial: d.initial, sides };
+  });
+  const banned = (keepOut || []).filter(s => s.kind === 'start' || s.kind === 'door' || s.kind === 'goal' || s.kind === 'stairs');
+  const inKO = (x, z, kinds) => { for (const s of banned) if (kinds.includes(s.kind) && hitsKeepOut({ cx: x, cz: z, hx: 0.35, hz: 0.35, rot: 0 }, [s], false)) return s.id; return null; };
+  const enemies = (GP.enemies || []).map(e => {
+    const sp = e.spawn, ko = inKO(sp[0], sp[2], ['start', 'door', 'goal', 'stairs']), d0 = reachAt(sp[0], sp[2], sp[1]), far = r2(Math.hypot(sp[0] - start[0], sp[2] - start[2]));
+    if (ko) problems.push({ id: e.id, reason: `出る所が立入禁止（${ko}）の中` });
+    if (d0 == null) problems.push({ id: e.id, reason: '出る所に歩いて届かない（格子）' });
+    if (far < 40) problems.push({ id: e.id, reason: `出る所がスタートに近い（${far}m < 40m）` });
+    const route = e.route.map((w, i) => { const k = inKO(w[0], w[2], ['start', 'door']), d = reachAt(w[0], w[2], w[1], 1.5); if (k) problems.push({ id: `${e.id}#${i}`, reason: `巡回の点が立入禁止（${k}）の中` }); if (d == null) problems.push({ id: `${e.id}#${i}`, reason: '巡回の点に届かない' }); return d; });
+    return { id: e.id, ai: e.ai, spawnReach: d0, fromStart: far, route };
+  });
+  const checkpoints = (GP.checkpoints || []).map(c => { const d = reachAt(c.at[0], c.at[2], c.at[1], 2); if (d == null) problems.push({ id: c.id, reason: 'チェックポイントに届かない' }); return { id: c.id, reach: d }; });
+  return { pass: problems.length === 0, doors, enemies, checkpoints, problems };
 }
 
 /** 道案内のための道（スタート → 目的地の順）：[{ id, pts:[[x,y,z]…] }] */

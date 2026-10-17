@@ -62,8 +62,8 @@
         "highlight": { "tex": "dannoura_hair_hl.png", "strength": 0.55, "viewShift": 0.06 }
       },
       "cloth_jacket": { "base": "#e6def6", "shade": "#b9a6e6", "threshold": 0.5, "softness": 0.06, "rimK": 0.3 },
-      "cloth_shirt": { "base": "#f2a0c6", "shade": "#c9779e", "threshold": 0.5, "softness": 0.06 },
-      "cloth_pants": { "base": "#2a2236", "shade": "#1a1424", "threshold": 0.45, "softness": 0.08 },
+      "cloth_shirt": { "base": "#f2a0c6", "shade": "#c9779e", "threshold": 0.5, "softness": 0.06, "pattern": { "type": "stripes", "scale": 23, "color": "#f08ab8" } },
+      "cloth_pants": { "base": "#2a2236", "shade": "#1a1424", "threshold": 0.45, "softness": 0.08, "pattern": { "type": "plaid", "scale": 13, "color": "#6e5c96" } },
       "metal_glasses_frame": { "base": "#1e1a24", "shade": "#0e0c12", "threshold": 0.5, "softness": 0.02, "specular": 0.6 },
       "eye_iris": { "base": "#8a4fd0", "shade": "#5a2a96", "threshold": 0.5, "softness": 0.1, "irisDepthM": 0.002, "outline": false },
       "acc_hat": { "base": "#f08cb8", "shade": "#c0628e", "threshold": 0.5, "softness": 0.04 }

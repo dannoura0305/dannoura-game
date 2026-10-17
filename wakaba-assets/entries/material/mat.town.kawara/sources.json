@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.kawara",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.kawara_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "d11f9d9e7abc9c95b2587b36a48f4aa2ac5217bf6ed01844bae407176498db85",
+   "bytes": 942394,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.kawara"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.kawara_normal.png",
+   "storage": "local-ignored",
+   "sha256": "a8069c7a732b8476f53c5627c3aca80271029a22ca6bdad2766d83b3fe67e2a5",
+   "bytes": 10322,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.kawara"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.kawara_orh.png",
+   "storage": "local-ignored",
+   "sha256": "833660f71297944ff57ae26b79835ccf7bf3af02d794225d4853cdd5cbe53a2b",
+   "bytes": 1062507,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.kawara"
+  }
+ ]
+}

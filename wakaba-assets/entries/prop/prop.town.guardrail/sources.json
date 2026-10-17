@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.town.guardrail",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.town.guardrail.fbx",
+   "storage": "local-ignored",
+   "sha256": "c7aa832d762f6119cf489d42eb8ee7d7614f3fbf8ece7ff5bcec309b84298fc4",
+   "bytes": 19708,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_town.py --only prop.town.guardrail"
+  }
+ ]
+}

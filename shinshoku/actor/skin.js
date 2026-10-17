@@ -5,14 +5,25 @@
 // 向き：キャラクターは +z を向く。左＝+x。y が上。単位 m。関節の名前は VRM の humanoid と同じ（actor/rig.js の JOINTS）。
 import * as THREE from 'three';
 import { charMaterial, skinOutlineMaterial, flameMaterial, ctx2d } from '../render/toon.js';
+import { charMaterialV2, outlineMaterialV2, classTable, bindHead } from '../../charkit/shader/toon2.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const col = c => (c instanceof THREE.Color ? c : new THREE.Color(c));
 /** 細かさ（画質の段で変える：高・中 1、低 0.7）。管・球の分割数に掛ける */
 let DETAIL = 1;
-export function setDetail(k) { DETAIL = Math.max(0.5, Math.min(1.5, k)); }
+export function setDetail(k) { DETAIL = Math.max(0.5, Math.min(1.5, k)); FACE_MODE = DETAIL < 0.9 ? 'flat' : 'sdf'; }   // 低（スマホ）：顔影は平ら（10 §2）
 export const detail = () => DETAIL;
+/** キャラクターのシェーダーの版（2＝charkit アニメ調 v2・既定／1＝前の見た目。?charShader=1 で前に戻せる） */
+let SHADER = 2;
+try { if (typeof location !== 'undefined' && /[?&]charShader=1\b/.test(location.search)) SHADER = 1; } catch (e) { /* node */ }
+export function setShaderVersion(v) { SHADER = v === 1 ? 1 : 2; }
+export const shaderVersion = () => SHADER;
+/** 顔影の方式（'sdf'＝既定、'flat'＝スマホ低の段：影なし） */
+let FACE_MODE = 'sdf';
+export function setFaceShadow(m) { FACE_MODE = m === 'flat' ? 'flat' : 'sdf'; }
+/** 顔の地図帳の大きさ（左半分＝今の配置 256×256、右半分＝目の層・口の欄） */
+export const ATLAS_W = 512, ATLAS_H = 256;
 const segs = (n, min = 3) => Math.max(min, Math.round(n * DETAIL));
 
 /** 標準の寸法（だんのうら：男性 164cm・細身） */
@@ -46,10 +57,14 @@ export class SkinBody {
       bone(s + 'Foot', s + 'LowerLeg', 0, -d.shin, 0);
     }
     this.groups = { body: this.acc(), face: this.acc(), plain: this.acc(), glow: this.acc() };
+    /** 今の材質の種類の名前（push の既定）。charkit/shader/toon2.js の種類の表で番号にする */
+    this.mat = 'cloth';
     // 頭の中心（モデル空間）
     this.hc = this.W('head').clone().add(V(0, d.headR * 0.9, 0));
   }
-  acc() { return { pos: [], nrm: [], col: [], uv: [], si: [], sw: [], oth: [], idx: [] }; }
+  acc() { return { pos: [], nrm: [], col: [], uv: [], si: [], sw: [], oth: [], idx: [], mat: [] }; }
+  /** fn の間だけ材質の種類を name にする */
+  withMat(name, fn) { const k = this.mat; this.mat = name; try { return fn(); } finally { this.mat = k; } }
   addBone(name, parent, x, y, z) {
     const b = new THREE.Bone(); b.name = name; b.position.set(x, y, z);
     (parent ? this.B[parent] : this.root).add(b);
@@ -78,7 +93,8 @@ export class SkinBody {
   }
 
   /** 頂点を 1 つの部品ぶんまとめて足す（geo は index つき・法線つき）。weights(p, t, i)・color(p, t, i) */
-  push(groupName, geo, { weights, color, t = null, oth = 1, uvKeep = false, fold = 0 } = {}) {
+  push(groupName, geo, { weights, color, t = null, oth = 1, uvKeep = false, fold = 0, mat = null } = {}) {
+    const matName = mat || this.mat;
     const g = this.groups[groupName];
     const base = g.pos.length / 3;
     const P = geo.attributes.position, N = geo.attributes.normal, U = geo.attributes.uv, T = geo.userData.t;
@@ -104,6 +120,7 @@ export class SkinBody {
       const sum = w.reduce((s, x) => s + x[1], 0) || 1;
       for (let k = 0; k < 4; k++) { g.si.push(w[k] ? w[k][0] : 0); g.sw.push(w[k] ? w[k][1] / sum : 0); }
       g.oth.push(typeof oth === 'function' ? oth(p, tt) : oth);
+      g.mat.push(typeof matName === 'function' ? matName(p, tt) : matName);
     }
     const I = geo.index;
     if (I) for (let i = 0; i < I.count; i++) g.idx.push(base + I.getX(i));
@@ -116,10 +133,11 @@ export class SkinBody {
    * opt：{ sides, capStart, capEnd, weights, color, oth, group, ref, twist }
    */
   tube(rings, opt = {}) {
-    if (opt.sub > 1) {                                             // 輪を補間して細かくする（色の境目をくっきり）
+    const SUB = opt.sub > 1 ? Math.max(1, Math.floor(opt.sub * DETAIL + 0.3)) : 1;   // 画質の段（低）では輪の補間を減らす
+    if (SUB > 1) {                                                 // 輪を補間して細かくする（色の境目をくっきり）
       const out = [];
-      for (let i = 0; i < rings.length - 1; i++) for (let k = 0; k < opt.sub; k++) {
-        const a = rings[i], b = rings[i + 1], t = k / opt.sub;
+      for (let i = 0; i < rings.length - 1; i++) for (let k = 0; k < SUB; k++) {
+        const a = rings[i], b = rings[i + 1], t = k / SUB;
         const L = (x, y) => x.map((v, j) => v + (y[j] - v) * t);
         out.push(Object.assign({}, t < 0.5 ? a : b, { c: L(a.c, b.c), r: L(a.r, b.r), off: L(a.off || [0, 0], b.off || [0, 0]) }));
       }
@@ -169,7 +187,8 @@ export class SkinBody {
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
     g.userData.t = tArr;
     const colorFn = opt.color != null ? opt.color : (p, t) => { const i = Math.min(n - 1, Math.round(t * (n - 1))); return rings[i].col != null ? rings[i].col : 0xffffff; };
-    this.push(opt.group || 'body', g, { weights: opt.weights, color: colorFn, oth: opt.oth ?? 1, fold: opt.fold || 0 });
+    if (opt.keep) filterTris(g, opt.keep);
+    this.push(opt.group || 'body', g, { weights: opt.weights, color: colorFn, oth: opt.oth ?? 1, fold: opt.fold || 0, mat: opt.mat });
     return g;
   }
 
@@ -187,8 +206,8 @@ export class SkinBody {
     g.translate(...c);
     if (opt.xf) g.applyMatrix4(opt.xf);
     g.computeVertexNormals();
-    if (opt.keep) { this.push(opt.group || 'body', filterTris(g, opt.keep), { weights: opt.weights, color: opt.color, oth: opt.oth ?? 1, fold: opt.fold || 0 }); return g; }
-    this.push(opt.group || 'body', g, { weights: opt.weights, color: opt.color, oth: opt.oth ?? 1, fold: opt.fold || 0 });
+    if (opt.keep) { this.push(opt.group || 'body', filterTris(g, opt.keep), { weights: opt.weights, color: opt.color, oth: opt.oth ?? 1, fold: opt.fold || 0, mat: opt.mat }); return g; }
+    this.push(opt.group || 'body', g, { weights: opt.weights, color: opt.color, oth: opt.oth ?? 1, fold: opt.fold || 0, mat: opt.mat });
     return g;
   }
   /** 箱（角を少し丸める代わりに分割なし）。size:[w,h,d]、rot、xf */
@@ -197,7 +216,7 @@ export class SkinBody {
     if (opt.rot) g.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...opt.rot, 'YXZ')));
     g.translate(...c);
     if (opt.xf) g.applyMatrix4(opt.xf);
-    this.push(opt.group || 'body', g, { weights: opt.weights, color: opt.color, oth: opt.oth ?? 1 });
+    this.push(opt.group || 'body', g, { weights: opt.weights, color: opt.color, oth: opt.oth ?? 1, mat: opt.mat });
     return g;
   }
   /** 円柱（帽子・刀の鍔など）。axis は既定で y */
@@ -206,7 +225,7 @@ export class SkinBody {
     if (opt.rot) g.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...opt.rot, 'YXZ')));
     g.translate(...c);
     if (opt.xf) g.applyMatrix4(opt.xf);
-    this.push(opt.group || 'body', g, { weights: opt.weights, color: opt.color, oth: opt.oth ?? 1 });
+    this.push(opt.group || 'body', g, { weights: opt.weights, color: opt.color, oth: opt.oth ?? 1, mat: opt.mat });
     return g;
   }
   /**
@@ -223,7 +242,7 @@ export class SkinBody {
       rings.push({ c: [c.x, c.y, c.z], r: [w * k, w * k * flat] });
     }
     const cfn = opt.color || ((p, t) => (t < 0.2 ? opt.root || opt.base : t > 0.75 ? opt.tip || opt.base : opt.base));
-    return this.tube(rings, { sides: opt.sides || 6, sub: opt.sub, capStart: false, capEnd: true, capBulge: 0.2, weights: opt.weights, color: cfn, oth: opt.oth ?? ((p, t) => 0.55 * (1 - t) + 0.15), ref: opt.out, group: opt.group });
+    return this.tube(rings, { sides: opt.sides || 6, sub: opt.sub, capStart: false, capEnd: true, capBulge: 0.2, weights: opt.weights, color: cfn, oth: opt.oth ?? ((p, t) => 0.55 * (1 - t) + 0.15), ref: opt.out, group: opt.group, mat: opt.mat || 'hair' });
   }
   /**
    * 顔の絵（地図帳の uv の範囲を貼る、頭の面に沿って少し曲げた小さな網）。
@@ -271,8 +290,16 @@ export class SkinBody {
   build(faceTex, opt = {}) {
     this.root.updateMatrixWorld(true);
     const skeleton = new THREE.Skeleton(this.bones);
+    const V2 = SHADER === 2;
+    const used = [...new Set(this.groups.body.mat.concat(this.groups.plain.mat, ['face']).filter(x => typeof x === 'string'))];
+    const table = classTable(opt.shader && opt.shader.materials, used);
     const mk = (a, withOth) => {
       const g = new THREE.BufferGeometry();
+      if (withOth) {                                     // 材質の種類の番号・休みの姿勢の位置（柄）
+        const cls = new Float32Array(a.mat.length); for (let i = 0; i < a.mat.length; i++) cls[i] = table.index(a.mat[i]);
+        g.setAttribute('mcls', new THREE.BufferAttribute(cls, 1));
+        g.setAttribute('rp', new THREE.Float32BufferAttribute(a.pos.slice(), 3));
+      }
       g.setAttribute('position', new THREE.Float32BufferAttribute(a.pos, 3));
       g.setAttribute('normal', new THREE.Float32BufferAttribute(a.nrm, 3));
       g.setAttribute('color', new THREE.Float32BufferAttribute(a.col, 3));
@@ -288,22 +315,28 @@ export class SkinBody {
     const body = this.groups.body, plain = this.groups.plain;
     if (plain.pos.length) {
       const base = body.pos.length / 3;
-      for (const k of ['pos', 'nrm', 'col', 'uv', 'si', 'sw']) body[k].push(...plain[k]);
+      for (const k of ['pos', 'nrm', 'col', 'uv', 'si', 'sw', 'mat']) body[k].push(...plain[k]);
       for (let i = 0; i < plain.oth.length; i++) body.oth.push(0);
       for (const i of plain.idx) body.idx.push(base + i);
     }
     const bodyGeo = mk(body, true);
-    const mats = { body: charMaterial({ rim: opt.rim, rimColor: opt.rimColor }) };
+    const sc = opt.shader || {};
+    const v2opt = { table, rim: opt.rim, rimColor: sc.rim && sc.rim.color ? sc.rim.color : opt.rimColor, env: sc.env, face: { mode: sc.face && sc.face.shadowMode === 'flat' ? 'flat' : sc.face && sc.face.shadowMode === 'none' ? 'none' : FACE_MODE }, rimCfg: sc.rim, shadeFill: sc.shadeFill };
+    const mats = { body: V2 ? charMaterialV2(v2opt) : charMaterial({ rim: opt.rim, rimColor: opt.rimColor }) };
     const mesh = new THREE.SkinnedMesh(bodyGeo, mats.body); mesh.name = 'skin_body';
     mesh.castShadow = true; mesh.frustumCulled = true;
     this.root.add(mesh); mesh.bind(skeleton);
     let faceMesh = null;
     if (this.groups.face.pos.length && faceTex) {
-      mats.face = charMaterial({ map: faceTex, alphaTest: 0.45, rim: 0, emissive: opt.faceEmissive ?? 0x2a2230 }); mats.face.side = THREE.DoubleSide;
+      mats.face = V2 ? charMaterialV2(Object.assign({}, v2opt, { map: faceTex, alphaTest: 0.45, rim: 0, emissive: opt.faceEmissive ?? 0x2a2230, eyeLayers: !!faceTex.userData.eyeLayers, faceClass: table.index('face'), irisDepth: sc.irisDepth }))
+        : charMaterial({ map: faceTex, alphaTest: 0.45, rim: 0, emissive: opt.faceEmissive ?? 0x2a2230 });
+      mats.face.side = THREE.DoubleSide;
       faceMesh = new THREE.SkinnedMesh(mk(this.groups.face, false), mats.face); faceMesh.name = 'skin_face';
       faceMesh.castShadow = false; this.root.add(faceMesh); faceMesh.bind(skeleton);
     }
-    mats.outline = skinOutlineMaterial(opt.outline ?? 0.0085, opt.outlineColor ?? 0x1a1022);
+    mats.outline = V2 ? outlineMaterialV2({ table, thick: opt.outline ?? 0.0085, color: opt.outlineColor ?? (sc.outline && sc.outline.color) ?? 0x1a1022, lineTint: opt.lineTint ?? 0 })
+      : skinOutlineMaterial(opt.outline ?? 0.0085, opt.outlineColor ?? 0x1a1022);
+    if (V2 && this.B.head) bindHead(mesh, [mats.body, mats.face], this.B.head, this.hc.clone().sub(this.W('head')), this.d.headR);
     const outline = new THREE.SkinnedMesh(bodyGeo, mats.outline); outline.name = 'skin_outline';
     outline.castShadow = false; outline.userData.isOutlineHull = true;
     this.root.add(outline); outline.bind(skeleton);
@@ -316,7 +349,7 @@ export class SkinBody {
     }
     const J = {}; for (const n of ['hips', 'spine', 'chest', 'neck', 'head', 'leftUpperArm', 'leftLowerArm', 'leftHand', 'rightUpperArm', 'rightLowerArm', 'rightHand', 'leftUpperLeg', 'leftLowerLeg', 'leftFoot', 'rightUpperLeg', 'rightLowerLeg', 'rightFoot']) J[n] = this.B[n];
     const X = {}; for (const [n, b] of Object.entries(this.B)) if (!J[n]) X[n] = b;
-    return { root: this.root, J, X, mesh, faceMesh, outline, glowMesh, mats, skeleton, tris: (bodyGeo.index.count + (faceMesh ? faceMesh.geometry.index.count : 0)) / 3 };
+    return { root: this.root, J, X, mesh, faceMesh, outline, glowMesh, mats, skeleton, table, shaderV: SHADER, tris: (bodyGeo.index.count + (faceMesh ? faceMesh.geometry.index.count : 0)) / 3 };
   }
 }
 
@@ -351,14 +384,14 @@ export function headDeform(v, opt = {}) {
 
 /** キャンバスの地図帳（顔の部品）。256×256。区画：目 [0,0]-[128,128]、眉 [128,0]-[256,48]、口 [128,48]-[256,96]、鼻 [128,96]-[192,128]、頬 [192,96]-[256,128]、自由 [0,128]-[256,256] */
 export function faceAtlas(draw) {
-  const c = document.createElement('canvas'); c.width = 256; c.height = 256;
-  const g = ctx2d(c); g.clearRect(0, 0, 256, 256); draw(g);
+  const c = document.createElement('canvas'); c.width = ATLAS_W; c.height = ATLAS_H;
+  const g = ctx2d(c); g.clearRect(0, 0, ATLAS_W, ATLAS_H); draw(g);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.flipY = true;
   t.userData.canvas = c;
   return t;
 }
 /** 地図帳の画素の範囲 → uv（flipY のキャンバス：上が v=1） */
-export const UVR = (x0, y0, x1, y1) => [x0 / 256, 1 - y1 / 256, x1 / 256, 1 - y0 / 256];
+export const UVR = (x0, y0, x1, y1) => [x0 / ATLAS_W, 1 - y1 / ATLAS_H, x1 / ATLAS_W, 1 - y0 / ATLAS_H];
 
 /**
  * 表情つきの顔の地図帳。draw(g, expr) を表情ごとに描き直す（キャンバス 256² の再アップロード：表情が変わる時だけ）。
@@ -369,7 +402,7 @@ export function faceAtlasExpr(draw, first = 'neutral') {
   t.userData.expr = first;
   t.userData.setExpr = name => {
     if (!EXPR[name] || t.userData.expr === name) return false;
-    t.userData.expr = name; const g = t.userData.canvas.getContext('2d'); g.clearRect(0, 0, 256, 256); draw(g, EXPR[name]); t.needsUpdate = true; return true;
+    t.userData.expr = name; const g = t.userData.canvas.getContext('2d'); g.clearRect(0, 0, ATLAS_W, ATLAS_H); draw(g, EXPR[name]); t.needsUpdate = true; return true;
   };
   return t;
 }

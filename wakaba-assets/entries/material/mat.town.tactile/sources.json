@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.town.tactile",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.town.tactile_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "82c249e13af3645ec2d8d141ac5b44602c8f4608da6adcdea40349ec106d393e",
+   "bytes": 1181909,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.tactile"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.tactile_normal.png",
+   "storage": "local-ignored",
+   "sha256": "73b4bbf3b59846d7545241832e467715244ba4b046b142027bb04bd8203fb1be",
+   "bytes": 1064629,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.tactile"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.town.tactile_orh.png",
+   "storage": "local-ignored",
+   "sha256": "da1bc0d4a52e5f21c67a3e5e67fa130aae128bd0ae4242eabdbc13b5c4fdd2a2",
+   "bytes": 1318867,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.town.tactile"
+  }
+ ]
+}

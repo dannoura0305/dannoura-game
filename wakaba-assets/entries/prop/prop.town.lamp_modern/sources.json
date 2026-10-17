@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.town.lamp_modern",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.town.lamp_modern.fbx",
+   "storage": "local-ignored",
+   "sha256": "e980e8a353eeedf0804722eb260b8d5244adab52f35b5c145a0f46a285e8d217",
+   "bytes": 33420,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_town.py --only prop.town.lamp_modern"
+  }
+ ]
+}

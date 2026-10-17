@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.int.wood_floor",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.int.wood_floor_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "e7cf709fb316e7b36d88482b7744e6f1369fb1aec3d4eaec1a9f3962cc22ef1a",
+   "bytes": 1078512,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.int.wood_floor"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.int.wood_floor_normal.png",
+   "storage": "local-ignored",
+   "sha256": "91b869321c24015f9da4a8452fb8d05cd85671465d1d61beeb8f918b13517765",
+   "bytes": 1912520,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.int.wood_floor"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.int.wood_floor_orh.png",
+   "storage": "local-ignored",
+   "sha256": "d954f1bc437dd193dfcdc98e842e17ce2d68ff7c71670f8ca5710200fcc217c0",
+   "bytes": 2323976,
+   "tool": "tools/mapkit/matgen/matgen_town.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_town.py --only mat.int.wood_floor"
+  }
+ ]
+}

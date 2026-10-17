@@ -6,6 +6,8 @@
 // 着いたかを確かめる。ページの誤り 0・描画呼び出し（スマホ ≤ 120）・画面撮影（上空・村・家の中・祠・山道と崖・森・スマホ）と一覧（overview.png）。
 // 結果は maps/<id>/report/play.json に書き、report.json の budget・perf を測った値で更新する（--no-report で書かない）。
 // フェーズ 3：起動の時間（操作できるまで）・GPU のテクスチャの量（見積もり）・段ごと（ultra／high／mid／low）の描画呼び出し・三角形を同じ視点（村）で測る（--no-presets で省く）。
+// フェーズ 4：戸（閉じた戸で止まる → E で開ける → 家に入る）・一時停止の画面・音（WebAudio）・敵（?enemy=1：見つかる → 走って逃げる／捕まる → 暗転してチェックポイントへ）・
+//   敵ありで全ての目的地（捕まったらチェックポイントから続ける）。PC の通しは敵なし（enemy=0）と敵あり（enemy=1）の両方。スマホは敵あり（既定）で「開」のボタンも押す。
 // 環境変数：PW_MODULE（playwright の index.mjs）、PW_CHROMIUM（chromium の実行ファイル）
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -19,7 +21,7 @@ const OUT = resolve(pos[0] || 'mapkit_shots'), MAP = opt.map || 'haison', BASE =
 const { chromium } = await import(process.env.PW_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 mkdirSync(OUT, { recursive: true });
 const results = [], shots = [], ok = (name, pass, detail = '') => { results.push({ name, pass: !!pass, detail }); console.log(`${pass ? '✓' : '✗'} ${name}${detail ? '  ' + detail : ''}`); };
-const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
 
 async function open(ctxOpt, query) {
   const ctx = await browser.newContext(ctxOpt), page = await ctx.newPage(), errs = [];
@@ -37,10 +39,11 @@ async function walkAll(page, tag, onArrive) {
   const goals = await page.evaluate(() => __mk.layout.goals.map(g => g.id)), enter = await page.evaluate(() => __mk.layout.buildings.filter(b => b.enterable).map(b => b.id));
   let total = 0;
   for (const g of goals) {
-    const r = await page.evaluate(id => __mk.walkTo(id), g);
+    // 敵ありの時は捕まってもチェックポイントから続ける（最大 4 回やり直す）
+    let r = null; for (let k = 0; k < 4; k++) { r = await page.evaluate(id => __mk.walkTo(id), g); if (r.ok) break; }
     const st = await page.evaluate(() => __mk.state());
     total = st.moved;
-    ok(`${tag}：歩いて「${g}」に着く`, r.ok && st.reached.includes(g), `${(r.steps / 60).toFixed(1)}s（ゲームの時間）・歩いた ${st.moved.toFixed(0)}m${r.stuck ? '・引っかかり ' + r.stuck.toFixed(1) + 's' : ''}${enter.includes(st.building) ? '・' + st.building + ' の中' : ''}`);
+    ok(`${tag}：歩いて「${g}」に着く`, r.ok && st.reached.includes(g), `${(r.steps / 60).toFixed(1)}s（ゲームの時間）・歩いた ${st.moved.toFixed(0)}m${r.stuck ? '・引っかかり ' + r.stuck.toFixed(1) + 's' : ''}${enter.includes(st.building) ? '・' + st.building + ' の中' : ''}${r.opened && r.opened.length ? '・開けた戸 ' + r.opened.join(',') : ''}${st.caught ? '・捕まった累計 ' + st.caught : ''}`);
     if (onArrive) await onArrive(g, st);
   }
   return total;
@@ -49,11 +52,48 @@ async function walkAll(page, tag, onArrive) {
 const report = { map: MAP, at: new Date().toISOString(), device: 'swiftshader（ソフト描画・fps は参考にならない）' };
 // ── PC
 if (!ONLY || ONLY === 'pc') {
-  const { ctx, page, errs, loadMs } = await open({ viewport: { width: 1280, height: 800 } }, 'preset=high');
-  ok('PC：読み込み → 操作できる', true, `${loadMs}ms`);
+  const { ctx, page, errs, loadMs } = await open({ viewport: { width: 1280, height: 800 } }, 'preset=high&enemy=0');
+  ok('PC：読み込み → 操作できる（敵なし enemy=0）', await page.evaluate(() => !__mk.enemyOn), `${loadMs}ms`);
   await page.evaluate(() => __mk.render()); await page.waitForTimeout(500);
   let st = await page.evaluate(() => __mk.state()); const start = st.drawCalls;
   await shot(page, 'pc_start.png', 'スタート（三人称・夕暮れと霧・道案内の線と柱）');
+  // 戸：h4 の玄関（閉じている）の前 → 押しても入れない → E で開ける → 中へ → 中から閉める
+  {
+    const d = await page.evaluate(() => __mk.layout.gameplay.doors.find(x => x.id === 'h4.door'));
+    const r = d.rotY * Math.PI / 180, fx = Math.sin(r), fz = Math.cos(r);
+    await page.evaluate(([x, z]) => __mk.teleport(x, z), [d.at[0] + fx * 1.4, d.at[2] + fz * 1.4]);
+    await page.evaluate(([x, z]) => __mk.look(Math.atan2(-x, -z), 0.15), [fx, fz]);
+    const pr = await page.evaluate(() => { __mk.render(); return __mk.state().prompt; });
+    ok('PC：戸の近くで案内が出る（E：引き戸を開ける）', /E：引き戸を開ける/.test(pr || ''), String(pr));
+    await page.evaluate(() => __mk.hud(true)); await shot(page, 'pc_door_closed.png', '閉じた玄関の引き戸（h4）と案内「E：引き戸を開ける」');
+    const push = await page.evaluate(([x, z]) => __mk.move(-x, -z, 120), [fx, fz]);
+    ok('PC：閉じた戸は通れない（当たり）', push.moved < 1.4 && push.building !== 'h4', `押して ${push.moved.toFixed(2)}m`);
+    await page.keyboard.press('KeyE'); await page.waitForFunction(() => __mk.state().doors.find(d => d.id === 'h4.door').target === 1, null, { timeout: 120000 });
+    await page.evaluate(() => __mk.fastSim(60));
+    const open1 = await page.evaluate(() => __mk.state().doors.find(d => d.id === 'h4.door'));
+    ok('PC：E キーで戸が開く', open1.open === 1, JSON.stringify(open1));
+    await shot(page, 'pc_door_open.png', '開いた引き戸（戸袋の側へ寄る）');
+    const inn = await page.evaluate(([x, z]) => __mk.move(-x, -z, 150), [fx, fz]);
+    ok('PC：開けた戸から家に入れる', inn.building === 'h4', `${inn.moved.toFixed(1)}m・${inn.building}`);
+    const cl = await page.evaluate(([x, z]) => { __mk.move(-x, -z, 30); const r = __mk.door('h4.door', false); return { r, d: __mk.state().doors.find(d => d.id === 'h4.door') }; }, [fx, fz]);
+    ok('PC：中から戸を閉められる（挟まる時は閉まらない）', cl.d.open === 0, JSON.stringify(cl));
+    const out = await page.evaluate(([x, z]) => { const a = __mk.move(x, z, 200); const nd = __mk.nearDoor(); __mk.interact(); const b = __mk.move(x, z, 120); return { a: +a.moved.toFixed(2), inA: a.building, nd: nd && nd.id, b: +b.moved.toFixed(2), building: b.building }; }, [fx, fz]);
+    ok('PC：閉めた戸は中からも止まり、開ければ出られる', out.inA === 'h4' && out.a < 7.5 && out.nd === 'h4.door' && out.building !== 'h4', `${JSON.stringify(out)}（200 ステップ＝止まらなければ 8m）`);
+    // 一時停止（Esc）・再開
+    await page.keyboard.press('Escape'); await page.waitForTimeout(150);
+    const pz = await page.evaluate(() => [__mk.state().paused, __mk.pausedUI()]);
+    await page.evaluate(() => document.querySelector('#mk-resume').click()); const pz2 = await page.evaluate(() => [__mk.state().paused, __mk.pausedUI()]);
+    ok('PC：Esc で一時停止の画面 → 再開', pz[0] && pz[1] && !pz2[0] && !pz2[1], JSON.stringify([pz, pz2]));
+    const au = await page.evaluate(() => __mk.startAudio());
+    ok('PC：音（WebAudio・ファイルなし）が動く', au && au.state === 'running', JSON.stringify(au));
+    await page.evaluate(() => __mk.restart());
+    // 参道の木戸（閉じている）
+    const g = await page.evaluate(() => __mk.layout.gameplay.doors.find(x => x.kind === 'hinged')), gr = g.rotY * Math.PI / 180;
+    await page.evaluate(() => __mk.hud(false));
+    await pose(page, { pos: [g.at[0] - Math.sin(gr) * 4.5 + Math.cos(gr) * 1.2, g.at[1] + 1.7, g.at[2] - Math.cos(gr) * 4.5 - Math.sin(gr) * 1.2], look: [g.at[0], g.at[1] + 0.8, g.at[2]] });
+    await shot(page, 'pc_gate.png', '参道の木戸（開き戸・閉じている）と柵');
+    await page.evaluate(() => { __mk.pose(null); __mk.hud(true); });
+  }
   const calls = [start];
   await walkAll(page, 'PC', async (g, s) => {
     calls.push((await page.evaluate(() => __mk.render())).drawCalls);
@@ -85,6 +125,52 @@ if (!ONLY || ONLY === 'pc') {
   ok('PC：ページの誤り 0', errs.length === 0, errs.slice(0, 3).join(' / '));
   await ctx.close();
 }
+// ── PC・敵あり（enemy=1）：巡回 → 見つかる → 走って逃げる（灯りを消す）／捕まる → 暗転してチェックポイント → 敵ありで全ての目的地
+if (!ONLY || ONLY === 'pc' || ONLY === 'enemy') {
+  const { ctx, page, errs, loadMs } = await open({ viewport: { width: 1280, height: 800 } }, 'preset=high&enemy=1');
+  ok('PC 敵：読み込み（enemy=1）・敵がいる', await page.evaluate(() => __mk.enemyOn), `${loadMs}ms`);
+  const e0 = await page.evaluate(() => __mk.state().enemy);
+  await page.evaluate(() => __mk.fastSim(60 * 20));
+  const e1 = await page.evaluate(() => __mk.state().enemy);
+  ok('PC 敵：巡回で動く（20 秒）', e1.state === 'patrol' && Math.hypot(e1.pos[0] - e0.pos[0], e1.pos[2] - e0.pos[2]) > 8, `${e0.pos.map(Math.round)} → ${e1.pos.map(Math.round)}`);
+  // 見つかる → 逃げる（山道を下る・灯りを消す）
+  const ch = await page.evaluate(() => {
+    __mk.teleport(105, 89); __mk.light(true); __mk.look(Math.atan2(114 - 105, 95 - 89), 0.1); __mk.enemyAt(114, 95);
+    __mk.fastSim(45); const seen = __mk.enemyState(); __mk.light(false);
+    const f = __mk.fleeTo(52, 46, 60 * 22); __mk.fastSim(60 * 8); return { seen, f, after: __mk.enemyState(), st: __mk.state() };
+  });
+  ok('PC 敵：見つかると追ってくる（格子の A*）', ch.seen.state === 'chase', `${ch.seen.state}・${ch.seen.dist.toFixed(1)}m`);
+  // 追われている所の撮影（三人称・敵の方を見る）
+  await page.evaluate(() => { __mk.restart(); __mk.teleport(105, 89); __mk.light(true); __mk.enemyAt(113, 94); __mk.look(Math.atan2(113 - 105, 94 - 89), 0.05); __mk.fastSim(70); });
+  await shot(page, 'pc_chase.png', `追われる（赤い縁・心臓の音）：敵 ${(await page.evaluate(() => __mk.enemyState().state))}`);
+  await page.evaluate(() => __mk.restart());
+  ok('PC 敵：走って逃げ切れる（灯りを消すと見失う）', ch.f.caught === 0 && ch.after.state !== 'chase' && ch.st.caught === 0, `距離の変化 ${ch.f.log.map(l => l[1]).filter((_, i) => i % 4 === 0).join('→')}m・その後 ${ch.after.state}`);
+  // 捕まる → 暗転 → チェックポイント（村の入口）へ戻る
+  const cg = await page.evaluate(() => {
+    __mk.teleport(126, 102); __mk.fastSim(10); const cp = __mk.checkpoints().last;
+    __mk.teleport(124, 104); __mk.light(true); __mk.enemyAt(127, 106);
+    const c0 = __mk.state().caught; let k = 0, mid = null; while (k < 60 * 8 && __mk.state().caught === c0) { __mk.fastSim(1); k++; }
+    for (let i = 0; i < 40; i++) __mk.fastSim(1); mid = getComputedStyle(document.querySelector('#mk-fade')).opacity;
+    __mk.fastSim(90); const s = __mk.state(); const at = __mk.layout.gameplay.checkpoints.find(c => c.id === cp).at;
+    return { cp, caught: s.caught - c0, t: k / 60, mid, fade: getComputedStyle(document.querySelector('#mk-fade')).opacity, d: Math.hypot(s.pos[0] - at[0], s.pos[2] - at[2]), e: __mk.enemyState() };
+  });
+  ok('PC 敵：捕まる → 暗転 → チェックポイントから', cg.caught === 1 && +cg.mid > 0.5 && +cg.fade === 0 && cg.d < 1.5 && cg.e.dist > 10, `${cg.t.toFixed(1)}s で捕まる・暗転 ${(+cg.mid).toFixed(2)}・戻り先 ${cg.cp}（${cg.d.toFixed(2)}m）・敵は ${cg.e.dist.toFixed(0)}m 先へ`);
+  // 敵の撮影（近く・夕暮れ）
+  await page.evaluate(() => { __mk.restart(); __mk.enemyAt(131, 113, false); });
+  const ep = await page.evaluate(() => __mk.state().enemy.pos);
+  await page.evaluate(() => __mk.hud(false));
+  await pose(page, { pos: [ep[0] + 2.2, ep[1] + 1.5, ep[2] + 3.4], look: [ep[0], ep[1] + 1.6, ep[2]] }); await shot(page, 'pc_enemy.png', '敵（自作の「異形」・試作）：村の道で');
+  await page.evaluate(() => { __mk.pose(null); __mk.hud(true); __mk.restart(); });
+  // 敵ありで全ての目的地へ
+  const calls = [];
+  await walkAll(page, 'PC 敵あり', async () => { calls.push((await page.evaluate(() => __mk.render())).drawCalls); });
+  const st = await page.evaluate(() => __mk.state());
+  ok('PC 敵あり：全ての目的地に着いた（捕まったらチェックポイントから）', st.done, `捕まった ${st.caught} 回・見つかった ${st.spotted} 回`);
+  ok('PC 敵あり：描画呼び出し ≤ 250（high）', Math.max(...calls) <= MAP_PRESETS.high.drawCalls, `最大 ${Math.max(...calls)}`);
+  ok('PC 敵あり：ページの誤り 0', errs.length === 0, errs.slice(0, 3).join(' / '));
+  report.pcEnemy = { caught: st.caught, spotted: st.spotted, drawCalls: Math.max(...calls), chase: ch.f.log, errors: errs };
+  await ctx.close();
+}
 // ── スマホ（横向き・タッチ）
 if (!ONLY || ONLY === 'phone') {
   const { ctx, page, errs, loadMs } = await open({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, '');
@@ -100,6 +186,20 @@ if (!ONLY || ONLY === 'phone') {
   await page.waitForTimeout(1500); await tp('touchEnd');
   const s1 = await page.evaluate(() => __mk.state());
   ok('スマホ：タッチの円で前へ歩ける', s1.moved - s0.moved > 1, `${(s1.moved - s0.moved).toFixed(1)}m`);
+  // 戸の近くで「開」のボタン → 押すと開く（h1 の玄関）
+  {
+    const d = await page.evaluate(() => __mk.layout.gameplay.doors.find(x => x.id === 'h1.door')), r = d.rotY * Math.PI / 180;
+    await page.evaluate(([x, z]) => { __mk.teleport(x, z); __mk.fastSim(2); __mk.render(); }, [d.at[0] + Math.sin(r) * 1.2, d.at[2] + Math.cos(r) * 1.2]);
+    await page.waitForFunction(() => !document.querySelector('.mk-use').hidden, null, { timeout: 120000 }).catch(() => {});
+    const vis = await page.evaluate(() => !document.querySelector('.mk-use').hidden);
+    await page.evaluate(([x, z]) => __mk.look(Math.atan2(-x, -z), 0.2), [Math.sin(r), Math.cos(r)]); await shot(page, 'phone_door.png', 'スマホ（低）：戸の前の「開」のボタン');
+    const bb = await page.evaluate(() => { const r = document.querySelector('.mk-use').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
+    await tp('touchStart', bb[0], bb[1]); await tp('touchEnd');
+    await page.waitForFunction(() => __mk.state().doors.find(x => x.id === 'h1.door').target === 1, null, { timeout: 120000 }).catch(() => {});
+    const o = await page.evaluate(() => __mk.state().doors.find(x => x.id === 'h1.door'));
+    ok('スマホ：戸の近くで「開」のボタンが出て、押すと開く', vis && o.target === 1, JSON.stringify({ vis, o }));
+    await page.evaluate(() => __mk.restart());
+  }
   const calls = [];
   await walkAll(page, 'スマホ', async g => { calls.push((await page.evaluate(() => __mk.render())).drawCalls); if (g === 'h2.door') await shot(page, 'phone_village.png', 'スマホ（低）：村'); });
   const st = await page.evaluate(() => __mk.state());

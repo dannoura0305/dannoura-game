@@ -8,6 +8,10 @@ import { box as cbox } from './collide.js';
 import { gradientMap, canvasTex } from '../render/toon.js';
 import { AREA_DATA } from '../data/areas.js';
 import { skyDome } from '../render/sky.js';
+import { envAreaMats, envUpgradeRoot } from '../render/envmat.js';
+import { KIT } from './envkit.js';
+/** P12：区画の組み立ての間に、インスタンスの家具を Blender の部品へ置き換える所（finish で区画の kitItems へ） */
+let _kitQ = [];
 
 export function mats(atlas) {
   const tex = atlas.texture();
@@ -44,12 +48,16 @@ export function instanced(parts, xf, opt = {}) {
   const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(1, 1, 1), P = new THREE.Vector3();
   xf.forEach((t, i) => { Q.setFromEuler(new THREE.Euler(0, t.ry || 0, 0)); P.set(t.x, t.y || 0, t.z); M.compose(P, Q, S); m.setMatrixAt(i, M); if (t.color != null) m.setColorAt(i, new THREE.Color(t.color)); });
   m.castShadow = !!opt.shadow; m.receiveShadow = true; m.name = opt.name || 'inst';
+  // P12：opt.kit＝Blender の部品の id（同じ所・向き＋opt.kitRy）。部品が読めたら、このインスタンス網は隠す（代わりの網）
+  if (opt.kit && KIT.on) { for (const t of xf) _kitQ.push({ id: opt.kit, v: 0, x: t.x, y: t.y || 0, z: t.z, ry: (t.ry || 0) + (opt.kitRy || 0), s: opt.kitS || [1, 1, 1], color: opt.kitColor ?? t.color ?? null }); m.userData.kitFallback = true; }
   return m;
 }
 export function finish(id, B, atlas, root, extra) {
-  const lv = B.build(mats(atlas)); lv.name = 'lv_' + id; root.add(lv);
+  const lv = B.build(envAreaMats(id, mats(atlas))); lv.name = 'lv_' + id; root.add(lv);   // P12：PBR の段は屋内の床・壁・天井を世界の座標で貼る材質に
+  envUpgradeRoot(root, id);
   root.updateMatrixWorld(true);
-  return Object.assign({ id, root }, extra);
+  const kitItems = _kitQ; _kitQ = [];
+  return Object.assign({ id, root, kitItems }, extra);
 }
 
 // ───────────────────────── 裏路地 ─────────────────────────
@@ -317,7 +325,7 @@ export function buildShelter() {
   B.box('prop', -6.95, 1.7, 15.4, 0.1, 1.6, 2.6, 0xf2eee0); B.box('prop', -6.9, 2.55, 15.4, 0.06, 0.1, 2.7, 0x3a6a3a);
   spots.push({ id: 'roster', kind: 'clue', clue: 'roster', x: -6.0, z: 15.4, r: 1.3, label: '避難者名簿（掲示）' });
   const lk = [[0, 0.9, 0, 0.4, 1.8, 1.8, 0x8a8a7a], [0.21, 0.9, 0, 0.02, 1.7, 1.7, 0x5a5a52]];
-  root.add(instanced(lk, [{ x: 6.75, z: 13.2 }, { x: 6.75, z: 17.2 }], { name: 'lockers' })); solid(6.75, 15.2, 0.5, 6, 1.8);
+  root.add(instanced(lk, [{ x: 6.75, z: 13.2 }, { x: 6.75, z: 17.2 }], { name: 'lockers', kit: 'prop.int.locker', kitRy: -Math.PI / 2, kitS: [2, 1, 0.8], kitColor: 0x8a8a7a })); solid(6.75, 15.2, 0.5, 6, 1.8);
   const lb = atlas.add(signDraw('受付　（避難者の方は名前を記入）', { bg: '#f4f0e6', fg: '#203050', size: 26 }));
   B.box('sign', 0.4, 1.6, 12.24, 2.4, 0.3, 0.03, 0xffffff, { uv: lb, face: 4, edges: false });
   // 体育館の戸（鍵）：閉まっている間は当たり判定あり

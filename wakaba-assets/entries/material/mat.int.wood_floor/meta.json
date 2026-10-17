@@ -1,0 +1,98 @@
+{
+ "id": "mat.int.wood_floor",
+ "version": 1,
+ "name": {
+  "ja": "フローリング",
+  "en": "Oak flooring"
+ },
+ "category": "material",
+ "tags": [
+  "床",
+  "屋内",
+  "家",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/mapkit/matgen/matgen_town.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/shinshoku/IMPLEMENTATION_STATUS.md"
+ },
+ "tech": {
+  "formats": [
+   "webp",
+   "png"
+  ],
+  "texRes": 1024,
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness",
+   "height"
+  ],
+  "fileBytes": 151606
+ },
+ "use": [
+  "境界侵食（shinshoku）の町と屋内",
+  "自宅"
+ ],
+ "status": "draft",
+ "material": {
+  "material": "wakaba-material/1",
+  "tileM": 1.8,
+  "sizes": [
+   1024,
+   512,
+   256
+  ],
+  "maps": {
+   "albedo": {
+    "1024": "albedo_1024.webp",
+    "512": "albedo_512.webp",
+    "256": "albedo_256.webp"
+   },
+   "normal": {
+    "1024": "normal_1024.webp",
+    "512": "normal_512.webp",
+    "256": "normal_256.webp"
+   },
+   "orh": {
+    "512": "orh_512.webp",
+    "256": "orh_256.webp"
+   }
+  },
+  "alpha": false,
+  "card": false,
+  "channels": {
+   "albedo": "sRGB",
+   "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+   "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+  },
+  "albedoMean": [
+   0.523,
+   0.379,
+   0.243
+  ],
+  "roughMean": 0.5
+ },
+ "history": [
+  {
+   "at": "2026-10-17",
+   "by": "claude-code",
+   "change": "tools/mapkit/matgen/matgen_town.py（defs_town.py）で生成（境界侵食 P12：環境の写実化）"
+  }
+ ]
+}

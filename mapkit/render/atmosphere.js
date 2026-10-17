@@ -8,8 +8,9 @@ import * as THREE from 'three';
 const v3 = a => `vec3(${a.map(x => x.toFixed(5)).join(', ')})`;
 
 /** 日の向き（世界）：spec.atmosphere.sunElevDeg（地平からの角度）・西（−x）寄り。light＝光の向きは最低 minLightDeg（低すぎると全部が影になる） */
-export function sunDirs(atm = {}, minLightDeg = 9) {
-  const e = (atm.sunElevDeg ?? 4) * Math.PI / 180, el = Math.max(e, minLightDeg * Math.PI / 180), az = -0.28;
+export function sunDirs(atm = {}, minLightDeg = 9, lightDeg = null) {
+  // lightDeg（フェーズ 4：?sun=<度>・地図仕様 atmosphere.sunLightDeg）：光の高さを決める。空の輝きは光より 5° 低く（地平の近く）
+  const e = (lightDeg != null ? Math.max(atm.sunElevDeg ?? 4, lightDeg - 5) : (atm.sunElevDeg ?? 4)) * Math.PI / 180, el = (lightDeg != null ? lightDeg : Math.max((atm.sunElevDeg ?? 4), minLightDeg)) * Math.PI / 180, az = -0.28;
   const d = (a) => new THREE.Vector3(-Math.cos(a) * Math.cos(az), Math.sin(a), -Math.cos(a) * Math.sin(-az)).normalize();
   return { sky: d(e), light: d(el) };
 }
