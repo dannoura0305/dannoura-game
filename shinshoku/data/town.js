@@ -125,7 +125,7 @@ export const TOWN = {
     { id: 'pl_main', pts: [[-40, 4.15], [-28, 4.15], [-17.5, 4.15], [16, 4.15], [28, 4.15], [40, 4.15], [54, 4.15], [64.2, 4.15]], lamp: 'tall' },
     { id: 'pl_mainS', pts: [[-36, 11.85], [-20, 11.85], [-8, 11.85], [24, 11.85], [38, 11.85], [52, 11.85], [64.2, 11.85]], lamp: 'tall' },
     { id: 'pl_yoko', pts: [[40, -19.85], [52, -19.85], [63, -19.85]], lamp: 'small' },
-    { id: 'pl_laneB', pts: [[13.3, 16.5], [13.3, 26.5], [13.3, 36.5]], lamp: 'small' },
+    { id: 'pl_laneB', pts: [[12.8, 16.5], [12.8, 26.5], [12.8, 36.5]], lamp: 'small' },   // P13：道の端（前は x 13.3＝コンビニの壁にめり込んでいた）
     { id: 'pl_laneA', pts: [[14.5, 37.75], [26, 37.75], [37.5, 37.75], [49, 37.75], [60.5, 37.75], [65.6, 37.75]], lamp: 'small' },
     { id: 'pl_west', pts: [[2, 37.7], [-5, 45.3]], lamp: 'small' },
   ],
@@ -148,7 +148,7 @@ export const TOWN = {
     { kind: 'car', x: 33.2, z: 47.6, ry: 0, color: 0x9a3a4a, kei: true },        // 自宅のカーポート
     { kind: 'car', x: 19.55, z: 17.4, ry: Math.PI, color: 0xe8e8ec },          // コンビニ（前向きに止めた車）
     { kind: 'car', x: 27.65, z: 17.4, ry: 0, color: 0x2a3a5a },
-    { kind: 'car', x: 25.5, z: -4.5, ry: 0, color: 0x6a6a72 },                   // コインパーキング
+    { kind: 'car', x: 24.95, z: 17.4, ry: 0, color: 0x6a6a72 },                  // コンビニの駐車場（P13：前は広場の入口の通路で店の壁にめり込んでいた）
     { kind: 'car', x: -30, z: 9.6, ry: -Math.PI / 2, color: 0xc8c8c8, abandoned: true },   // 乗り捨てられた車（道の上）
     { kind: 'bike', x: 47.2, z: 44.2, ry: 0.3 }, { kind: 'bike', x: 21.5, z: 42.7, ry: 1.4 },
     { kind: 'cone', x: -42, z: 6 }, { kind: 'cone', x: -42, z: 9 },
@@ -226,7 +226,7 @@ export const TOWN = {
     nozzles: [{ x: 75.0, z0: -76, z1: 44, step: 3 }, { x: 83.0, z0: -76, z1: 44, step: 3 }, { z: 8, x0: -40, x1: 68, step: 3.2 }],
     // 停まった路面電車（独自の意匠：2 両つなぎ・白に青緑の帯）と バス・タクシー
     trams: [
-      { id: 'tram1', x: 77.75, z: -38, ry: 0, len: 14.4, dest: '回送', hazard: true },
+      { id: 'tram1', x: 77.75, z: -40, ry: 0, len: 14.4, dest: '回送', hazard: true },   // P13：架線の柱（z −32）に重ならない所へ（前は −38）
       { id: 'tram2', x: 67, z: -96, ry: Math.PI / 2, len: 14.4, dest: '駅前', lit: true },
     ],
     buses: [

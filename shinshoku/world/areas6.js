@@ -31,7 +31,9 @@ export function buildTown() {
   for (let x = -56; x < 56; x += 6) if (Math.abs(x) > 8) B.box('glow', x, 0.02, 0, 3.0, 0.02, 0.25, 0x8a8890, { edges: false });
   // 店の並び（中央の通りの両側・横の通りの両側）：2〜3 階の店・シャッター・看板
   const shops = [];
-  const addRow = (x0, z0, z1, side, alongX) => { for (let z = z0; z < z1; z += 7.4) { const h = 6 + rr() * 4, d = 8 + rr() * 2; shops.push({ x: alongX ? z : x0 + side * d / 2, z: alongX ? x0 + side * d / 2 : z + 3.5, w: alongX ? 7.0 : d, d: alongX ? d : 7.0, h, side, alongX }); } };
+  const addRow = (x0, z0, z1, side, alongX) => { for (let z = z0; z < z1; z += 7.4) { const h = 6 + rr() * 4, d = 8 + rr() * 2; const s = { x: alongX ? z : x0 + side * d / 2, z: alongX ? x0 + side * d / 2 : z + 3.5, w: alongX ? 7.0 : d, d: alongX ? d : 7.0, h, side, alongX };
+    if (shops.some(o => Math.abs(o.x - s.x) < (o.w + s.w) / 2 && Math.abs(o.z - s.z) < (o.d + s.d) / 2)) continue;   // P13：角で建物どうしが重ならない（前は面が重なってちらついた）
+    shops.push(s); } };
   addRow(6, -58, -6, 1, false); addRow(6, 6, 58, 1, false); addRow(-6, -58, -6, -1, false); addRow(-6, 6, 58, -1, false);
   addRow(6, 10, 58, 1, true); addRow(-6, 10, 58, -1, true); addRow(6, -58, -10, 1, true); addRow(-6, -58, -10, -1, true);
   const colors = [0x6a5a50, 0x5a6070, 0x70606a, 0x58665a, 0x7a6a58, 0x5e5a68];
@@ -39,16 +41,16 @@ export function buildTown() {
     B.box('wall', s.x, s.h / 2, s.z, s.w, s.h, s.d, colors[i % colors.length]);
     B.box('wall', s.x, s.h + 0.3, s.z, s.w + 0.4, 0.6, s.d + 0.4, 0x3a3238);
     const fx = s.alongX ? 0 : -s.side, fz = s.alongX ? -s.side : 0;                     // 通りに面した向き
-    const fxp = s.x + fx * (s.w / 2 + 0.06), fzp = s.z + fz * (s.d / 2 + 0.06);
+    const fxp = s.x + fx * (s.w / 2 + 0.05), fzp = s.z + fz * (s.d / 2 + 0.05);   // P13：表の面の上（シャッター・看板・窓を壁に付ける。前は 6〜9cm 浮いていた）
     B.box('shutter', fxp, 1.6, fzp, s.alongX ? 5.6 : 0.1, 3.2, s.alongX ? 0.1 : 5.6, 0x8a8e94);
     { const o = 3.15, dx = s.alongX ? o : 0, dz = s.alongX ? 0 : o;   // フェーズ11：シャッターの横の通用口（戸・枠）
-      B.box('wall', fxp + dx + fx * 0.02, 1.05, fzp + dz + fz * 0.02, s.alongX ? 0.64 : 0.06, 2.1, s.alongX ? 0.06 : 0.64, 0x4a4248);
-      B.box('prop', fxp + dx + fx * 0.04, 2.16, fzp + dz + fz * 0.04, s.alongX ? 0.76 : 0.08, 0.1, s.alongX ? 0.08 : 0.76, 0x2a2628, { edges: false }); }
-    if (i % 2 === 0) { const u = atlas.add(signDraw(SHOPS[i % SHOPS.length] + '（仮）', { bg: ['#f0e8d0', '#2a1a14', '#e8f0f0'][i % 3], fg: ['#6a1a1a', '#ffd8a0', '#1a3a6a'][i % 3], size: 40 })); B.box('sign', fxp + fx * 0.05, 4.0, fzp + fz * 0.05, s.alongX ? 5.0 : 0.05, 1.0, s.alongX ? 0.05 : 5.0, 0xffffff, { uv: u, face: s.alongX ? (fz > 0 ? 4 : 5) : (fx > 0 ? 0 : 1), edges: false }); }
-    for (let k = 0; k < 3; k++) if (rr() < 0.6) B.box('glow', fxp + fx * 0.02, 5.0 + (k % 2) * 1.2, fzp + fz * 0.02 + (s.alongX ? 0 : (k - 1) * 2), s.alongX ? 1.4 : 0.04, 0.9, s.alongX ? 0.04 : 1.4, rr() < 0.5 ? 0xffc890 : 0x6a4a8a, { edges: false });
+      B.box('wall', fxp + dx - fx * 0.02, 1.05, fzp + dz - fz * 0.02, s.alongX ? 0.64 : 0.06, 2.1, s.alongX ? 0.06 : 0.64, 0x4a4248);
+      B.box('prop', fxp + dx - fx * 0.01, 2.16, fzp + dz - fz * 0.01, s.alongX ? 0.76 : 0.08, 0.1, s.alongX ? 0.08 : 0.76, 0x2a2628, { edges: false }); }
+    if (i % 2 === 0) { const u = atlas.add(signDraw(SHOPS[i % SHOPS.length] + '（仮）', { bg: ['#f0e8d0', '#2a1a14', '#e8f0f0'][i % 3], fg: ['#6a1a1a', '#ffd8a0', '#1a3a6a'][i % 3], size: 40 })); B.box('sign', fxp - fx * 0.025, 4.0, fzp - fz * 0.025, s.alongX ? 5.0 : 0.05, 1.0, s.alongX ? 0.05 : 5.0, 0xffffff, { uv: u, face: s.alongX ? (fz > 0 ? 4 : 5) : (fx > 0 ? 0 : 1), edges: false }); }
+    for (let k = 0; k < 3; k++) if (rr() < 0.6) B.box('glow', fxp - fx * 0.03, 5.0 + (k % 2) * 1.2, fzp - fz * 0.03 + (s.alongX ? 0 : (k - 1) * 2), s.alongX ? 1.4 : 0.04, 0.9, s.alongX ? 0.04 : 1.4, rr() < 0.5 ? 0xffc890 : 0x6a4a8a, { edges: false });
   });
   // 遠くの町並み（影）・研究施設と広域計画の光の柱（北）
-  for (let i = 0; i < 46; i++) { const a = i / 46 * Math.PI * 2, r = 85 + rr() * 20, h = 8 + rr() * 22; const x = Math.sin(a) * r, z = Math.cos(a) * r; B.box('wall', x, h / 2, z, 10 + rr() * 10, h, 8 + rr() * 6, 0x1a1422, { ry: a, edges: false }); if (rr() < 0.6) B.box('glow', x - Math.sin(a) * 5.5, h * 0.6, z - Math.cos(a) * 5.5, 2, 1.2, 0.2, rr() < 0.5 ? 0x8a3aff : 0xffb880, { ry: a, edges: false }); }
+  for (let i = 0; i < 46; i++) { const a = i / 46 * Math.PI * 2, r = 85 + rr() * 20, h = 8 + rr() * 22; const x = Math.sin(a) * r, z = Math.cos(a) * r, bw = 10 + rr() * 10, bd = 8 + rr() * 6; B.box('wall', x, h / 2, z, bw, h, bd, 0x1a1422, { ry: a, edges: false }); if (rr() < 0.6) B.box('glow', x - Math.sin(a) * (bd / 2 + 0.1), h * 0.6, z - Math.cos(a) * (bd / 2 + 0.1), 2, 1.2, 0.2, rr() < 0.5 ? 0x8a3aff : 0xffb880, { ry: a, edges: false }); }
   for (const [x, h] of [[-20, 56], [16, 44], [0, 64]]) { B.box('wall', x, h / 2, -100, 16, h, 14, 0x1e1626, { edges: false }); }
   const pillar = new THREE.Mesh(new THREE.CylinderGeometry(4, 9, 220, 18, 1, true), new THREE.MeshBasicMaterial({ color: 0xa040ff, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
   pillar.position.set(0, 110, -100); root.add(pillar); dyn.pillar = pillar;
@@ -84,10 +86,10 @@ export function buildTown() {
   dyn.debris = { mesh: debris, n: 0 };
   // 逃げる人（小さな人影のインスタンス：体＋頭。攻撃の対象にならない）
   const people = []; TOWN.crowds.forEach((c, ci) => { for (let i = 0; i < c.n; i++) people.push({ ci, i, x: c.from[0] + (rr() - 0.5) * 3, z: c.from[1] + (rr() - 0.5) * 3, to: [c.to[0] + (rr() - 0.5) * 4, c.to[1] + rr() * 4], sp: 2.4 + rr() * 1.2, ph: rr() * 6, color: [0x4a5a8a, 0x8a4a4a, 0x5a7a5a, 0x7a6a4a, 0x6a4a7a][Math.floor(rr() * 5)] }); });
-  const pm = instanced([[0, 0.55, 0, 0.42, 1.1, 0.3, 0xffffff], [0, 1.32, 0, 0.3, 0.3, 0.3, 0xe8d0c0], [0.12, 0.2, 0, 0.14, 0.4, 0.14, 0x2a2a30], [-0.12, 0.2, 0, 0.14, 0.4, 0.14, 0x2a2a30]], people.map(p => ({ x: p.x, z: p.z, color: p.color })), { name: 'people' });
+  const pm = instanced([[0, 0.55, 0, 0.42, 1.1, 0.3, 0xffffff], [0, 1.25, 0, 0.3, 0.3, 0.3, 0xe8d0c0], [0.12, 0.2, 0, 0.14, 0.4, 0.14, 0x2a2a30], [-0.12, 0.2, 0, 0.14, 0.4, 0.14, 0x2a2a30]], people.map(p => ({ x: p.x, z: p.z, color: p.color })), { name: 'people' });
   root.add(pm); dyn.people = { mesh: pm, list: people };
   // 避難バス（守る：前足でつかんで安全な所へ）
-  const bus = instanced([[0, 1.6, 0, 2.6, 2.6, 9.0, 0xe8e0c8], [0, 2.2, 0, 2.7, 0.9, 8.6, 0x2a3a5a], [0, 0.4, 3.2, 2.7, 0.8, 0.9, 0x2a2a30], [0, 0.4, -3.2, 2.7, 0.8, 0.9, 0x2a2a30], [0, 3.0, 0, 2.4, 0.1, 8.6, 0xd84a3a]], [{ x: -1.5, z: -22, ry: 0.1 }], { name: 'bus', shadow: true });
+  const bus = instanced([[0, 1.6, 0, 2.6, 2.6, 9.0, 0xe8e0c8], [0, 2.2, 0, 2.7, 0.9, 8.6, 0x2a3a5a], [0, 0.4, 3.2, 2.7, 0.8, 0.9, 0x2a2a30], [0, 0.4, -3.2, 2.7, 0.8, 0.9, 0x2a2a30], [0, 2.95, 0, 2.4, 0.1, 8.6, 0xd84a3a]], [{ x: -1.5, z: -22, ry: 0.1 }], { name: 'bus', shadow: true });
   root.add(bus); dyn.bus = { mesh: bus, x: -1.5, z: -22, ry: 0.1, lifted: false };
   // 明かり（巨体の縮尺）
   const lights = [

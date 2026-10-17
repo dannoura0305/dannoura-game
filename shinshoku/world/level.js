@@ -10,6 +10,7 @@ import { applyTile, townMats, TILE_KEYS } from '../render/townmat.js';
 import { buildTown } from './town.js';
 import { HOME_O, homeW, inHome, TOWN } from '../data/town.js';
 import { kitCollector } from './envkit.js';
+import { furnKit } from './furn.js';
 
 const SLOT_W = 512, SLOT_H = 64;
 
@@ -182,7 +183,7 @@ export function buildLevel(_unused, opt = {}) {
 
   // 地面：アーケードの床（タイル）。アーケードの外（広場・駅前通り・住宅地）は world/town.js
   const ground = null;
-  B.box('tex', 0, -0.06, -38, 9.3, 0.12, 68.4, 0xffffff, { tile: 'arcade_floor', ts: 2.6, edges: false });
+  B.box('tex', 0, -0.06, -38.1, 9.3, 0.12, 68.2, 0xffffff, { tile: 'arcade_floor', ts: 2.6, edges: false });   // P13：前の広場の床と重ねない（ちらつき）
   // 道の中央の溝（排水）
   B.box('prop', 0, 0.01, -38, 0.25, 0.02, 68, 0x24222a, { edges: false });
 
@@ -214,7 +215,7 @@ export function buildLevel(_unused, opt = {}) {
     }
     solid(bx, zc, depth, len, 7);
     // 柱
-    for (const z of [s.z0 - 0.15 * Math.sign(s.z1 - s.z0), s.z1 + 0.15 * Math.sign(s.z1 - s.z0)]) B.box('wall', face - sx * 0.12, 1.5, z, 0.3, 3.0, 0.3, PILLAR);
+    for (const z of [s.z0 - 0.15 * Math.sign(s.z1 - s.z0), s.z1 + 0.15 * Math.sign(s.z1 - s.z0)]) B.box('wall', face - sx * 0.12, 1.5, z, 0.3, 3.0, 0.32, PILLAR);
     // シャッター（戸がある店は戸の分を空ける）
     const door = s.door ? L.doors[s.door] : null;
     const shW = len - 0.7;
@@ -259,10 +260,11 @@ export function buildLevel(_unused, opt = {}) {
     const g = new THREE.Group(); g.name = 'door_' + id;
     const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.05, 1.2), toon(0x5a3a2a)); leaf.position.y = 1.03; leaf.castShadow = true;
     const pivot = new THREE.Group(); pivot.position.set(0, 0, -0.6); leaf.position.z = 0.6; pivot.add(leaf); g.add(pivot);
-    B.box('wall', d.x - d.face * 0.05, 1.1, d.z, 0.12, 2.2, 1.45, 0x2a2026);
+    if (d.alongX) B.box('wall', d.x - d.face * 0.3, 1.3, d.z, 0.62, 2.6, 1.45, 0x2a2026);   // P13：路地の奥の戸は奥の壁（0.5m 奥）まで枠を伸ばす（前は壁の前に枠だけ立っていた）
+    else B.box('wall', d.x - d.face * 0.05, 1.3, d.z, 0.12, 2.6, 1.45, 0x2a2026);           // 枠は表札と灯りの高さまで
     const puv = atlas.add(signDraw(d.name, { bg: '#f1e9d6', fg: '#1d1712', size: 46, serif: true }));
-    B.box('sign', d.x + d.face * 0.07, 2.35, d.z + 0.45, 0.02, 0.13, 0.42, 0xffffff, { uv: puv, face: d.face > 0 ? 0 : 1, edges: false });
-    B.box('glow', d.x + d.face * 0.18, 2.4, d.z - 0.45, 0.14, 0.14, 0.14, d.color, { edges: false });
+    B.box('sign', d.x + d.face * 0.02, 2.35, d.z + 0.45, 0.02, 0.13, 0.42, 0xffffff, { uv: puv, face: d.face > 0 ? 0 : 1, edges: false });   // P13：表札は枠の面に付ける（前は 5cm 浮いていた）
+    B.box('glow', d.x + d.face * 0.1, 2.4, d.z - 0.45, 0.14, 0.14, 0.14, d.color, { edges: false }); B.box('prop', d.x + d.face * 0.025, 2.4, d.z - 0.45, 0.05, 0.2, 0.1, 0x2a2628, { edges: false });   // P13：灯りの台座（枠に付ける）
     const halo = halos.push({ p: [d.x + d.face * 0.26, 2.4, d.z - 0.45], size: 0.9, color: d.color, k: 0.9, door: id }) - 1;
     g.position.set(d.x, 0, d.z);
     scene.add(g);
@@ -276,7 +278,7 @@ export function buildLevel(_unused, opt = {}) {
     const sx = a.side, z0 = Math.max(a.z0, a.z1), z1 = Math.min(a.z0, a.z1), zc = (z0 + z1) / 2;
     const xA = sx * 4.5 + sx * 6, xEnd = sx * (4.5 + a.len);           // 店の奥（x=±10.5）からの区間
     const midX = (xA + xEnd) / 2, w = Math.abs(xEnd - xA);
-    B.box('tex', sx * (4.5 + a.len / 2), -0.06, zc, a.len + 0.2, 0.12, Math.abs(z0 - z1), 0xb8b0b0, { tile: 'concrete', ts: 2.5, edges: false });
+    B.box('tex', sx * (4.65 + (a.len - 0.15) / 2), -0.06, zc, a.len - 0.15, 0.12, Math.abs(z0 - z1), 0xb8b0b0, { tile: 'concrete', ts: 2.5, edges: false });
     for (const z of [z0 + 0.2, z1 - 0.2]) { B.box('wall', midX, 2.5, z, w, 5, 0.4, WALL); solid(midX, z, w, 0.4, 5); }
     B.box('wall', xEnd + sx * 0.3, 2.5, zc, 0.6, 5, Math.abs(z0 - z1) + 0.8, WALL); solid(xEnd + sx * 0.3, zc, 0.6, Math.abs(z0 - z1) + 0.8, 5);
     // ごみ箱・室外機・配管
@@ -305,11 +307,12 @@ export function buildLevel(_unused, opt = {}) {
       for (let k = 0; k < 4; k++) { const xa = -4.6 + k * 2.3, xb = xa + 2.3, ya = EAVE + (RIDGE - EAVE) * (1 - Math.abs(xa) / 4.7), yb = EAVE + (RIDGE - EAVE) * (1 - Math.abs(xb) / 4.7); B.box('prop', (xa + xb) / 2, (EAVE + (ya + yb) / 2) / 2, z, 0.08, ((ya + yb) / 2 - EAVE), 0.08, 0x34323c, { edges: false }); }
       B.box('prop', 0, (EAVE + RIDGE) / 2, z, 0.1, RIDGE - EAVE, 0.1, 0x34323c, { edges: false });
     });
-    B.box('prop', 0, (6.3 + EAVE) / 2, z + 3, 0.03, EAVE - 6.3, 0.03, 0x2a2830, { edges: false });   // 灯りの吊り
   }
   for (let z = -6; z >= -70; z -= 6) {
     B.box('wall', 0, 6.45, z, 9.4, 0.25, 0.25, DARK);
     const on = Math.abs(z) % 18 !== 0;
+    if (z + 3 > -4.3) continue;                                         // P13：アーケードの屋根の外（入口の手前）に吊る所が無い灯りは置かない
+    B.box('prop', 0, (6.22 + RIDGE - 0.05) / 2, z + 3, 0.03, RIDGE - 0.05 - 6.22, 0.03, 0x2a2830, { edges: false });   // 灯りの吊り（P13：灯具から棟の梁まで。前は灯具とずれた所にあり、灯具も吊りも浮いていた）
     B.box(on ? 'lamp' : 'prop', 0, 6.2, z + 3, 0.18, 0.06, 1.6, on ? 0xd8ecff : 0x3a3a44, { edges: false });
     halos.push({ p: [0, 6.05, z + 3], size: 1.7, color: 0xd8ecff, k: on ? 0.45 : 0.0, strip: true, z: z + 3, onOutbreak: on && Math.abs(z) % 24 === 0 });
   }
@@ -321,15 +324,17 @@ export function buildLevel(_unused, opt = {}) {
   { const tri = new THREE.BufferGeometry(); tri.setAttribute('position', new THREE.Float32BufferAttribute([-4.7, EAVE, -3.9, 4.7, EAVE, -3.9, 0, RIDGE, -3.9], 3)); tri.setAttribute('normal', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1], 3)); tri.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0.5, 1], 2)); B.add('glass2', tri, 0x7a90b8, false);
     B.box('glass2', 0, (6.4 + EAVE) / 2, -3.9, 9.4, EAVE - 6.4, 0.04, 0x6a80a8, { edges: false });
     B.box('prop', 0, EAVE, -3.9, 9.6, 0.4, 0.3, DARK, { edges: false });
-    for (let x = -4; x <= 4.01; x += 1) { B.box('glow', x, EAVE - 0.3, -3.75, 0.2, 0.12, 0.06, 0xffe0b0, { edges: false }); }
+    for (let x = -4; x <= 4.01; x += 1) { B.box('glow', x, EAVE - 0.26, -3.75, 0.2, 0.12, 0.06, 0xffe0b0, { edges: false }); }
     halos.push({ p: [0, EAVE - 0.4, -3.4], size: 5, color: 0xffd8a0, k: 0.25 }); }
 
   // ── 雰囲気（イメージ資料 concept_01）：赤い提灯・縦の看板（ネオン）・工事中の柵とコーン・事故の車 ──
   for (let z = -8; z >= -68; z -= 8) for (const sx of [-1, 1]) {
     const x = sx * 4.18, cz = z + (sx > 0 ? 2.5 : 0);
+    if (L.alleys.some(a => a.side === sx && cz < Math.max(a.z0, a.z1) + 0.3 && cz > Math.min(a.z0, a.z1) - 0.3)) continue;   // P13：脇道の口（店の表が無い所）には吊らない
     const lg = new THREE.CylinderGeometry(0.15, 0.15, 0.34, 10); lg.translate(x, 2.95, cz); B.add('lamp', lg, 0xd8342a);
     for (const dy of [-0.19, 0.19]) B.box('prop', x, 2.95 + dy, cz, 0.22, 0.04, 0.22, 0x1a1414, { edges: false });
-    B.box('prop', x, 3.25, cz, 0.02, 0.4, 0.02, 0x1a1414, { edges: false });
+    B.box('prop', x, 3.4, cz, 0.02, 0.5, 0.02, 0x1a1414, { edges: false });                          // P13：吊りひもを看板の上まで・店の表から出した腕に掛ける（前は宙に浮いていた）
+    B.box('prop', sx * 4.36, 3.65, cz, 0.36, 0.03, 0.03, 0x1a1414, { edges: false });
     halos.push({ p: [x, 2.95, cz], size: 1.1, color: 0xff5a3a, k: 0.75, lantern: true, z: cz, alt: ((z / 8) + (sx > 0 ? 1 : 0)) % 2 === 0 });
   }
   const neon = [[-1, -19.5, '喫茶', '#ff7ab8', 0xff6ab0], [1, -29.5, '電器', '#7ad8ff', 0x6ad0ff], [-1, -46.5, '精肉', '#ffb070', 0xffa060], [1, -58, '写真', '#c08aff', 0xb070ff], [-1, -52, 'ゆ', '#7affd0', 0x60ffc0]];
@@ -454,18 +459,19 @@ function buildPassage(B, atlas, s, halos, spots) {
   const z0 = Math.min(s.z0, s.z1), z1 = Math.max(s.z0, s.z1), zc = (z0 + z1) / 2, len = z1 - z0, x0 = 4.5, x1 = 10.6, xc = (x0 + x1) / 2;
   const uv = atlas.add(signDraw('ひかり広場（仮）　→', { bg: '#1a1420', fg: '#ffe8c8', size: 36, frameColor: '#c8a070' }));
   B.box('sign', x0 + 0.1, 3.7, zc, 0.12, 0.6, len - 1.2, 0xffffff, { uv, face: 1, edges: false });
+  for (const dz of [-(len - 1.2) * 0.4, (len - 1.2) * 0.4]) B.box('prop', x0 + 0.1, 4.4, zc + dz, 0.03, 0.82, 0.03, 0x2a2830, { edges: false });   // P13：上の梁から吊る（前は宙に浮いていた）
   halos.push({ p: [x0 - 0.4, 3.7, zc], size: 3.2, color: 0xffd8a0, k: 0.35, neon: true });
   // 通り抜けの上は建物（2・3 階：アーケード側に窓・広場側に看板）
   B.box('tex', xc, 7.6, zc, x1 - x0 - 0.1, 5.4, len, 0xc8b8a8, { tile: 'mortar', ts: 2, edges: false });
-  for (const dz of [-1.5, 1.5]) for (const y of [6.4, 8.9]) B.box((dz > 0) === (y > 7) ? 'texglow' : 'tex', x0 - 0.03, y, zc + dz, 0.06, 1.15, 2.0, 0xc8b8a0, { tile: (dz > 0) === (y > 7) ? 'win_lit' : 'win_dark', fit: true, edges: false });
-  B.box('prop', xc, 4.95, zc, x1 - x0, 0.3, len, 0x3a3640, { edges: false });
+  for (const dz of [-1.5, 1.5]) for (const y of [6.4, 8.9]) B.box((dz > 0) === (y > 7) ? 'texglow' : 'tex', x0 + 0.02, y, zc + dz, 0.06, 1.15, 2.0, 0xc8b8a0, { tile: (dz > 0) === (y > 7) ? 'win_lit' : 'win_dark', fit: true, edges: false });
+  B.box('prop', xc, 4.95, zc, x1 - x0, 0.3, len + 0.04, 0x3a3640, { edges: false });
   const uv2 = atlas.add(signDraw('あけぼの通り商店街　←', { bg: '#2a1f3a', fg: '#ffd9a8', size: 34, frameColor: '#ffb070' }));
-  B.box('sign', x1 + 0.02, 5.6, zc, 0.06, 0.7, len - 1.2, 0xffffff, { uv: uv2, face: 0, edges: false });
+  B.box('sign', x1 - 0.02, 5.6, zc, 0.06, 0.7, len - 1.2, 0xffffff, { uv: uv2, face: 0, edges: false });
   halos.push({ p: [x1 + 0.5, 5.6, zc], size: 3.0, color: 0xffb070, k: 0.3, neon: true });
-  B.box('glow', xc, 4.62, zc, 3.2, 0.04, 0.3, 0xfff0d8, { edges: false }); halos.push({ p: [xc, 4.4, zc], size: 1.8, color: 0xfff0d8, k: 0.5 });
+  B.box('glow', xc, 4.78, zc, 3.2, 0.04, 0.3, 0xfff0d8, { edges: false }); halos.push({ p: [xc, 4.4, zc], size: 1.8, color: 0xfff0d8, k: 0.5 });
   // 花屋の名残（休業の札・花のバケツ）
   const fl = atlas.add(signDraw(s.sign + '（休業中）', { bg: '#f4f1e8', fg: '#7a3a5a', size: 30, weight: 'normal' }));
-  B.box('sign', 7.5, 2.0, z0 + 0.05, 1.6, 0.36, 0.03, 0xffffff, { uv: fl, face: 4, edges: false });
+  B.box('sign', 7.5, 2.0, z0 + 0.005, 1.6, 0.36, 0.03, 0xffffff, { uv: fl, face: 4, edges: false });
   for (let i = 0; i < 5; i++) { const x = 5.6 + i * 0.7, g = new THREE.CylinderGeometry(0.17, 0.14, 0.42, 10); g.translate(x, 0.21, z0 + 0.3); B.add('prop', g, 0x6a7a8a); const f = new THREE.IcosahedronGeometry(0.2, 0); f.translate(x, 0.55, z0 + 0.3); B.add('prop', f, [0xd84a6a, 0xf0d040, 0xe8e8f0, 0xb06ad0, 0xf08a40][i]); }
   spots.push({ id: 'passage_flowers', kind: 'read', x: 7.2, z: z0 + 1.1, r: 1.2, label: '花のバケツ', text: 'town_flowers', low: true });
 }
@@ -495,7 +501,7 @@ function buildShopInterior(B, atlas, s, boxes, spots, dyn) {
   spots.push({ id: 'help_lights', kind: 'help', help: 'lights', x: hp.lights[0] - 0.5, z: hp.lights[1] - 0.6, r: 1.3, label: '照明のスイッチ' });
   spots.push({ id: 'help_register', kind: 'help', help: 'register', x: hp.register[0], z: hp.register[1] + 0.9, r: 1.3, label: 'レジ' });
   spots.push({ id: 'help_sign', kind: 'help', help: 'sign', x: hp.sign[0] - 0.4, z: hp.sign[1], r: 1.4, label: '立て看板' });
-  B.box('prop', hp.lights[0], 1.4, hp.lights[1], 0.1, 0.4, 0.3, 0xe8e8e0);
+  B.box('prop', 10.95, 1.4, hp.lights[1], 0.1, 0.4, 0.3, 0xe8e8e0);   // P13：壁（x 11.0）に付ける
   dyn.heitenSignPos = hp.sign;
 }
 
@@ -545,7 +551,7 @@ function buildHome(B0, atlas, scene0, boxes0, spots0, dyn) {
   for (const y of [1.33, 1.63]) { const k = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.95), rkM); k.position.set(5.82, y, 14.0); rk.add(k); }
   scene.add(rk); dyn.rackKatana = rk;
   B.box('prop', 5.5, 0.9, 12.0, 0.6, 1.8, 2.2, 0x6a4a3a); solid(5.5, 12.0, 0.6, 2.2, 1.8);
-  for (let k = 0; k < 3; k++) B.box('prop', 5.25, 0.45 + k * 0.5, 12, 0.1, 0.32, 1.9, [0xc06070, 0x6080c0, 0xd0b050][k], { edges: false });
+  for (let k = 0; k < 3; k++) B.box('prop', 5.24, 0.45 + k * 0.5, 12, 0.1, 0.32, 1.9, [0xc06070, 0x6080c0, 0xd0b050][k], { edges: false });
   const safe = H.maxX - 1.1;
   B.box('prop', safe, 0.4, 15.2, 0.75, 0.8, 0.7, 0x3a3e46); solid(safe, 15.2, 0.75, 0.7, 0.8);
   B.box('prop', safe, 0.45, 14.84, 0.18, 0.18, 0.04, 0xb0b0b8, { edges: false });
@@ -555,7 +561,7 @@ function buildHome(B0, atlas, scene0, boxes0, spots0, dyn) {
   // フェーズ9：居間の小物（ラグ・食卓と椅子・子どもの椅子・台所・冷蔵庫・観葉植物・娘の絵・天井の灯り）
   B.box('floor', -3.8, 0.025, 13.3, 2.6, 0.02, 2.0, 0x6a4a7a, { edges: false });
   B.box('prop', 1.3, 0.72, 12.8, 1.3, 0.06, 0.8, 0x9a6a44); for (const [x, z] of [[0.75, 12.45], [1.85, 12.45], [0.75, 13.15], [1.85, 13.15]]) B.box('prop', x, 0.35, z, 0.06, 0.7, 0.06, 0x6a4a34, { edges: false }); solid(1.3, 12.8, 1.3, 0.8, 0.8);
-  for (const [x, z, c] of [[1.3, 12.0, 0x8a5a3a], [1.3, 13.6, 0xf0a0c0]]) { B.box('prop', x, 0.45, z, 0.42, 0.06, 0.42, c); B.box('prop', x, 0.7, z + (z < 12.8 ? -0.2 : 0.2), 0.42, 0.5, 0.05, c); }
+  { const FK = furnKit(B); FK.chair(1.3, 12.0, 0, 0x8a5a3a); FK.chair(1.3, 13.6, Math.PI, 0xf0a0c0, { h: 0.5, w: 0.38 }); }   // P13：脚のある椅子（前は座面と背もたれだけで浮いていた）
   B.box('prop', 1.6, 0.45, 15.55, 3.0, 0.9, 0.55, 0xd8d4cc); B.box('prop', 1.6, 0.92, 15.55, 3.05, 0.04, 0.6, 0x6a6460); solid(1.6, 15.55, 3.0, 0.55, 0.95);
   B.box('prop', 1.6, 2.2, 15.68, 3.0, 0.7, 0.32, 0xc8bca8); B.box('prop', 3.6, 0.9, 15.45, 0.7, 1.8, 0.65, 0xe8e8ec); solid(3.6, 15.45, 0.7, 0.65, 1.8);
   { const g = new THREE.CylinderGeometry(0.18, 0.14, 0.4, 8); g.translate(-5.3, 0.2, 9.6); B.add('prop', g, 0xb8805a); const f = new THREE.IcosahedronGeometry(0.42, 1); f.scale(1, 1.3, 1); f.translate(-5.3, 0.85, 9.6); B.add('prop', f, 0x4a7a4a); solid(-5.3, 9.6, 0.5, 0.5, 1.2); }

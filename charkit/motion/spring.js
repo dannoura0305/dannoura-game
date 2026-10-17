@@ -16,6 +16,9 @@ import * as THREE from 'three';
 export class SpringBones {
   constructor(chains = [], colliders = [], opt = {}) {
     this.hz = opt.hz || 60; this.time = 0; this.acc = 0; this.enabled = true; this.mainOnly = !!opt.mainOnly;
+    // P13：根（体）の動きのうち follow の割合は「空気の抵抗（drag）」を受けない（体と一緒に運ばれる）。VRM の式のままだと
+    // 歩くだけで髪が横に流れ切る（drag が世界の速さを毎刻み 40% 消すため）。1 刻みの根の動き rootStep は update で測る
+    this.follow = opt.follow ?? 0.8; this.rootStep = new THREE.Vector3();
     this.colliders = colliders.map(c => ({ bone: c.bone, offset: new THREE.Vector3(...(c.offset || [0, 0, 0])), tail: c.tail ? new THREE.Vector3(...c.tail) : null, radius: c.radius || 0.05, a: new THREE.Vector3(), b: new THREE.Vector3() }));
     this.chains = chains.map(c => this.makeChain(c));
     this.stats = { maxAngleDeg: 0, penetrationM: 0, steps: 0, resets: 0, jointSteps: 0, deepSteps: 0 };
@@ -32,7 +35,7 @@ export class SpringBones {
       const len = Math.max(1e-4, axis.length());
       joints.push({ b, q0: b.quaternion.clone(), axis: axis.clone().normalize(), len, tail: new THREE.Vector3(), prev: new THREE.Vector3(), init: false });
     });
-    return Object.assign({ stiffness: 1.2, drag: 0.4, gravity: 0, gravityDir: [0, -1, 0], radius: 0.02, maxAngleDeg: 70, inertia: 1 }, c, { joints, gdir: new THREE.Vector3(...(c.gravityDir || [0, -1, 0])).normalize() });
+    return Object.assign({ stiffness: 1.2, drag: 0.4, gravity: 0, gravityDir: [0, -1, 0], radius: 0.02, maxAngleDeg: 70, inertia: 1, follow: this.follow }, c, { joints, gdir: new THREE.Vector3(...(c.gravityDir || [0, -1, 0])).normalize() });
   }
   /** 揺れを休みの形へ戻す（網の差し替え・瞬間移動のあと） */
   reset() {
@@ -44,6 +47,8 @@ export class SpringBones {
     if (!this.enabled || !this.chains.length) return;
     if (rootPos) {
       if (this.lastRoot && this.lastRoot.distanceToSquared(rootPos) > 1.0) this.reset();
+      (this.rootStepPrev || (this.rootStepPrev = new THREE.Vector3())).copy(this.rootStep);
+      if (this.lastRoot && dt > 0) this.rootStep.copy(rootPos).sub(this.lastRoot).multiplyScalar(Math.min(1, (1 / this.hz) / dt)); else this.rootStep.set(0, 0, 0);
       (this.lastRoot || (this.lastRoot = new THREE.Vector3())).copy(rootPos);
     }
     if (rootQuat) {
@@ -91,10 +96,12 @@ export class SpringBones {
       const L = j.len * sc;
       if (!j.init) { j.tail.copy(head).addScaledVector(rd, L); j.prev.copy(j.tail); j.init = true; }
       const k = Math.min(1, ch.stiffness * h), dr = 1 - ch.drag, gi = ch.gravity * h * h;
+      // 運ばれる分：前の刻みの根の動き（速さに入っている分）を抜いて、今の刻みの根の動きを足す（体が止まると運ばれる分も止まる）
+      const fo = (ch.follow || 0) * ch.inertia, R = this.rootStep, Rp = this.rootStepPrev || R;
       const next = T.next.set(
-        j.tail.x + (j.tail.x - j.prev.x) * dr * ch.inertia + (head.x + rd.x * L - j.tail.x) * k + ch.gdir.x * gi,
-        j.tail.y + (j.tail.y - j.prev.y) * dr * ch.inertia + (head.y + rd.y * L - j.tail.y) * k + ch.gdir.y * gi,
-        j.tail.z + (j.tail.z - j.prev.z) * dr * ch.inertia + (head.z + rd.z * L - j.tail.z) * k + ch.gdir.z * gi);
+        j.tail.x + ((j.tail.x - j.prev.x) - Rp.x * fo) * dr * ch.inertia + R.x * fo + (head.x + rd.x * L - j.tail.x) * k + ch.gdir.x * gi,
+        j.tail.y + ((j.tail.y - j.prev.y) - Rp.y * fo) * dr * ch.inertia + R.y * fo + (head.y + rd.y * L - j.tail.y) * k + ch.gdir.y * gi,
+        j.tail.z + ((j.tail.z - j.prev.z) - Rp.z * fo) * dr * ch.inertia + R.z * fo + (head.z + rd.z * L - j.tail.z) * k + ch.gdir.z * gi);
       const fix = () => { T.dir.copy(next).sub(head); const l = T.dir.length(); if (l < 1e-6) T.dir.copy(rd); else T.dir.divideScalar(l); next.copy(head).addScaledVector(T.dir, L); };
       fix();
       const clamp = () => {

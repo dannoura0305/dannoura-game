@@ -111,9 +111,8 @@ export class SkinBody {
       if (fold) {
         let k = 1;
         if (w.length > 1) { const s2 = w[0][1] + w[1][1]; const a = w[0][1] / s2, b = w[1][1] / s2; k -= 0.16 * Math.min(1, 4 * a * b) * fold; }
-        const n = N ? Math.atan2(N.getX(i), N.getZ(i)) : 0;
-        const st = Math.sin(p.y * 46 + n * 2.2 + p.x * 9) * 0.5 + Math.sin(p.y * 23 - n * 1.3) * 0.5;
-        k -= Math.max(0, st - 0.35) * 0.11 * fold;
+        // 斜めのしわの縞（頂点色）は v1 だけ：疎らな網では三角形のぎざぎざの影になる（P13）
+        if (SHADER !== 2) { const n = N ? Math.atan2(N.getX(i), N.getZ(i)) : 0; const st = Math.sin(p.y * 46 + n * 2.2 + p.x * 9) * 0.5 + Math.sin(p.y * 23 - n * 1.3) * 0.5; k -= Math.max(0, st - 0.35) * 0.11 * fold; }
         if (k < 1) c = c.clone().multiplyScalar(k);
       }
       g.col.push(c.r, c.g, c.b);
@@ -179,7 +178,14 @@ export class SkinBody {
       const k = opt.capBulge != null ? opt.capBulge : 0.35;
       const rr = Math.min(rings[i].r[0], rings[i].r[1]);
       const p = C[i].clone().addScaledVector(T, rr * k); pos.push(p.x, p.y, p.z); tArr.push(tOf(i));
-      for (let s = 0; s < sides; s++) { const a = i * sides + s, b = i * sides + (s + 1) % sides; if (outward) idx.push(ci, b, a); else idx.push(ci, a, b); }
+      // P13：ふたの縁は輪の頂点を写して別にする（ふたと側面の法線を混ぜない＝縁にぎざぎざの影が出ない）。とがった先（毛先）は今まで通り共有
+      const sep = k < 0.5 && !opt.sharedCap;
+      const ring0 = pos.length / 3;
+      if (sep) for (let s = 0; s < sides; s++) { const q = (i * sides + s) * 3; pos.push(pos[q], pos[q + 1], pos[q + 2]); tArr.push(tOf(i)); }
+      for (let s = 0; s < sides; s++) {
+        const a = sep ? ring0 + s : i * sides + s, b = sep ? ring0 + (s + 1) % sides : i * sides + (s + 1) % sides;
+        if (outward) idx.push(ci, b, a); else idx.push(ci, a, b);
+      }
     };
     if (opt.capStart !== false) capAt(0, true);
     if (opt.capEnd !== false) capAt(n - 1, false);
@@ -286,6 +292,45 @@ export class SkinBody {
     return g;
   }
 
+  /**
+   * P13：法線を形の中心からの向きへ寄せる規則（髪・顔・毛皮）。部品ごとの細かい凸凹・房ごとの面で段の陰影がぎざぎざになるのを消す
+   * （アニメの「球に写した法線」）。rule：{ mats:RegExp（材質の名前）, bone:(骨の名前)=>bool, center:[x,y,z], radii:[rx,ry,rz], k（0..1 寄せる量）}
+   */
+  smoothNormals(rule) { (this.nrmRules || (this.nrmRules = [])).push(rule); return this; }
+  /** 法線の後処理（build から）：規則で中心へ寄せる → 同じ位置・同じ材質の頂点の法線をつなぐ（部品の継ぎ目・輪郭線の割れ） */
+  finishNormals(a) {
+    const n = a.pos.length / 3, P = a.pos, N = a.nrm;
+    for (const r of this.nrmRules || []) {
+      const okBone = this.bones.map(b => !r.bone || r.bone(b.name));
+      const [cx, cy, cz] = r.center, [rx, ry, rz] = r.radii;
+      for (let i = 0; i < n; i++) {
+        const m = a.mat[i]; if (typeof m !== 'string' || !r.mats.test(m) || !okBone[a.si[i * 4]]) continue;
+        let dx = (P[i * 3] - cx) / (rx * rx), dy = (P[i * 3 + 1] - cy) / (ry * ry), dz = (P[i * 3 + 2] - cz) / (rz * rz);
+        const dl = Math.hypot(dx, dy, dz) || 1; dx /= dl; dy /= dl; dz /= dl;
+        let x = N[i * 3], y = N[i * 3 + 1], z = N[i * 3 + 2];
+        const k = typeof r.k === 'function' ? r.k(P[i * 3], P[i * 3 + 1], P[i * 3 + 2]) : r.k;
+        x += (dx - x) * k; y += (dy - y) * k; z += (dz - z) * k;
+        const l = Math.hypot(x, y, z) || 1; N[i * 3] = x / l; N[i * 3 + 1] = y / l; N[i * 3 + 2] = z / l;
+      }
+    }
+    // 継ぎ目：位置（0.6mm）と材質が同じ頂点の法線を、向きの近い物（75° 以内）どうしで平均する
+    const key = i => Math.round(P[i * 3] / 6e-4) + ',' + Math.round(P[i * 3 + 1] / 6e-4) + ',' + Math.round(P[i * 3 + 2] / 6e-4) + ',' + a.mat[i];
+    const buckets = new Map();
+    for (let i = 0; i < n; i++) { const k = key(i); const b = buckets.get(k); if (b) b.push(i); else buckets.set(k, [i]); }
+    for (let pass = 0; pass < 3; pass++) {                       // 3 回（3 つ以上の頂点が集まる所も同じ向きにそろう）
+      const out = N.slice();
+      for (const b of buckets.values()) {
+        if (b.length < 2) continue;
+        for (const i of b) {
+          let x = 0, y = 0, z = 0;
+          for (const j of b) { const d = N[i * 3] * N[j * 3] + N[i * 3 + 1] * N[j * 3 + 1] + N[i * 3 + 2] * N[j * 3 + 2]; if (d > 0.26) { x += N[j * 3]; y += N[j * 3 + 1]; z += N[j * 3 + 2]; } }
+          const l = Math.hypot(x, y, z) || 1; out[i * 3] = x / l; out[i * 3 + 1] = y / l; out[i * 3 + 2] = z / l;
+        }
+      }
+      for (let i = 0; i < out.length; i++) N[i] = out[i];
+    }
+  }
+
   /** 網を作る。faceTex：顔の地図帳（CanvasTexture）。戻り値 { root, J, X, mesh, faceMesh, outline, mats } */
   build(faceTex, opt = {}) {
     this.root.updateMatrixWorld(true);
@@ -319,6 +364,7 @@ export class SkinBody {
       for (let i = 0; i < plain.oth.length; i++) body.oth.push(0);
       for (const i of plain.idx) body.idx.push(base + i);
     }
+    if (SHADER === 2) this.finishNormals(body);
     const bodyGeo = mk(body, true);
     const sc = opt.shader || {};
     const v2opt = { table, rim: opt.rim, rimColor: sc.rim && sc.rim.color ? sc.rim.color : opt.rimColor, env: sc.env, face: { mode: sc.face && sc.face.shadowMode === 'flat' ? 'flat' : sc.face && sc.face.shadowMode === 'none' ? 'none' : FACE_MODE }, rimCfg: sc.rim, shadeFill: sc.shadeFill };

@@ -3,8 +3,9 @@
 // 歩き・走りは「足を地面に置く」ように、進んだ距離で位相を進める（phaseRate）。脚の振れ幅と歩幅を合わせて足が滑らない。
 import { locomotionIK, turnStep } from './anim8.js';
 const S = Math.sin, C = Math.cos, lerp = (a, b, t) => a + (b - a) * t;
-export const mix = (A, B, t) => { const o = {}; for (const k of new Set([...Object.keys(A), ...Object.keys(B)])) { if (k === 'hipsY') { o.hipsY = lerp(A.hipsY || 0, B.hipsY || 0, t); continue; } const a = A[k] || [0, 0, 0], b = B[k] || [0, 0, 0]; o[k] = [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)]; } return o; };
-export const add = (A, B) => { const o = Object.assign({}, A); for (const k of Object.keys(B)) { if (k === 'hipsY') { o.hipsY = (A.hipsY || 0) + B.hipsY; continue; } const a = A[k] || [0, 0, 0], b = B[k]; o[k] = [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; } return o; };
+// 姿勢の混ぜ・足し：骨の角度 [x,y,z]・hipsY（数）・hipsT（[x,0,z]）。「_」で始まる印（_exactLegs・_feet など）は混ぜない（混ぜた姿勢には付けない）
+export const mix = (A, B, t) => { const o = {}; for (const k of new Set([...Object.keys(A), ...Object.keys(B)])) { if (k[0] === '_') continue; if (k === 'hipsY') { o.hipsY = lerp(A.hipsY || 0, B.hipsY || 0, t); continue; } const a = A[k] || [0, 0, 0], b = B[k] || [0, 0, 0]; o[k] = [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)]; } return o; };
+export const add = (A, B) => { const o = Object.assign({}, A); for (const k of Object.keys(B)) { if (k[0] === '_') continue; if (k === 'hipsY') { o.hipsY = (A.hipsY || 0) + B.hipsY; continue; } const a = A[k] || [0, 0, 0], b = B[k]; o[k] = [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; } return o; };
 export const ease = t => t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t);
 const easeOut = t => t < 0 ? 0 : t > 1 ? 1 : 1 - (1 - t) * (1 - t) * (1 - t);
 
@@ -68,6 +69,8 @@ function idleOverlay(p, iv) {
   return o;
 }
 const base = ctx => {
+  // P13：歩きの係（charkit/anim/locodriver.js）の姿勢があればそれ（歩き・待機・つなぎ）。写しを返す（呼ぶ側が書き換える）
+  if (ctx.basePose) { const p = Object.assign({}, ctx.basePose); return ctx.basePose._gait ? p : idleOverlay(p, ctx.idleVar); }
   if (ctx.speed > 0.1) return ctx.loco && ctx.loco.ik ? locomotionIK(ctx.phase, ctx.speed, ctx.loco) : locomotion(ctx.phase, ctx.speed, ctx.loco);
   let p = idle(ctx.time);
   if (ctx.turnStep) p = Object.assign(p, turnStep(ctx.turnStep.ph, ctx.turnStep.turn, ctx.loco || {}));
@@ -115,7 +118,12 @@ export function dannouraPose(ctx) {
   let b = base(ctx);
   let rate = ctx.speed > 0.1 ? 0.55 : 0.2;
   const pipe = w === 'pipe' || w === 'matchlock';
-  if (w === 'katana' && !['attack', 'issen', 'parry', 'charge'].includes(st.name)) b = Object.assign(b, KATANA_READY);
+  if (w === 'katana' && !['attack', 'issen', 'parry', 'charge'].includes(st.name)) {
+    // P13：歩き・走りでは構えた右腕にも振りを少し残す（片腕だけ固まって見えない）
+    const sw = b._gait && b.rightUpperArm ? b.rightUpperArm[0] : null;
+    b = Object.assign(b, KATANA_READY);
+    if (sw != null) b.rightUpperArm = [KATANA_READY.rightUpperArm[0] + sw * 0.3, KATANA_READY.rightUpperArm[1], KATANA_READY.rightUpperArm[2]];
+  }
   if (w === 'pipe' && !['attack', 'parry', 'charge'].includes(st.name)) b = Object.assign(b, PIPE_READY);
   if (w === 'matchlock' && !['attack', 'parry', 'charge'].includes(st.name)) b = Object.assign(b, MATCH_READY);
   if (st.name === 'attack') {
@@ -264,10 +272,17 @@ const W_TRANSFORM = { spine: [-0.1, 0, 0], head: [-0.3, 0, 0], leftUpperArm: [-0
 export { W_TRANSFORM };
 export function whitePose(ctx) {
   const { st, f } = ctx;
-  let b = ctx.speed > 0.1 ? (ctx.loco && ctx.loco.ik ? locomotionIK(ctx.phase, ctx.speed, ctx.loco) : locomotion(ctx.phase, ctx.speed, { k: 1.05 })) : idle(ctx.time, 0.8);
-  if (ctx.speed <= 0.1 && ctx.turnStep) b = Object.assign(b, turnStep(ctx.turnStep.ph, ctx.turnStep.turn, ctx.loco || {}));
+  let b = ctx.basePose ? Object.assign({}, ctx.basePose) : ctx.speed > 0.1 ? (ctx.loco && ctx.loco.ik ? locomotionIK(ctx.phase, ctx.speed, ctx.loco) : locomotion(ctx.phase, ctx.speed, { k: 1.05 })) : idle(ctx.time, 0.8);
+  if (!ctx.basePose && ctx.speed <= 0.1 && ctx.turnStep) b = Object.assign(b, turnStep(ctx.turnStep.ph, ctx.turnStep.turn, ctx.loco || {}));
   const hy0 = b.hipsY, exact = b._exactLegs;
-  if (!['attack', 'issen', 'cast', 'dodge', 'charge'].includes(st.name)) { if (ctx.speed > 3.2) b = Object.assign(b, { spine: [0.38, 0, 0], leftUpperArm: [0.7, 0, 0.3], rightUpperArm: [0.7, 0, -0.3], leftLowerArm: [-0.4, 0, 0], rightLowerArm: [-0.4, 0, 0] }); else b = Object.assign(b, W_READY); if (exact) b.hipsY = hy0; }
+  if (!['attack', 'issen', 'cast', 'dodge', 'charge'].includes(st.name)) {
+    if (ctx.speed > 3.2) {
+      // 白い姿の走り（腕を後ろへ流す・前へ傾ける）。P13：歩きの係の背骨の回り（肩の逆回り）と腕の振りを少し残す
+      const g = b._gait, sp = b.spine || [0, 0, 0], la = b.leftUpperArm || [0, 0, 0], ra = b.rightUpperArm || [0, 0, 0];
+      b = Object.assign(b, { spine: [0.38, g ? sp[1] : 0, g ? sp[2] : 0], leftUpperArm: [0.7 + (g ? la[0] * 0.25 : 0), 0, 0.3], rightUpperArm: [0.7 + (g ? ra[0] * 0.25 : 0), 0, -0.3], leftLowerArm: [-0.4, 0, 0], rightLowerArm: [-0.4, 0, 0] });
+    } else { const sp = b.spine || [0, 0, 0], g = b._gait; b = Object.assign(b, W_READY); if (g) b.spine = [W_READY.spine[0] + sp[0] * 0.5, sp[1], sp[2]]; }
+    if (exact) b.hipsY = hy0;
+  }
   if (st.name === 'attack') {
     const a = st.atk, P = st.blade ? BLADE : CLAW[st.step] || CLAW[0];
     let t; if (f < a.startup) t = 0; else if (f < a.startup + a.active) t = (f - a.startup + 1) / a.active; else t = 1 + Math.min(1, (f - a.startup - a.active) / Math.max(1, a.recovery));

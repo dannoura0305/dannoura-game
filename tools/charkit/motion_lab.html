@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motion Lab</title>
+<!-- 開発用（charkit P13）：主要キャラクターの動きを決まった時間の刻み（60Hz）で進めて撮る・数値を取る。tools/charkit/capture.mjs が使う。
+     ?c=dannoura|white|companion  &scn=idle|walk|run|jog|sprint|startstop|turn180|circle|combo|dodge  &v=2.2（walk の速さ）&cam=side|front|fixed|face
+     &w=katana|none|pipe|handgun  &auto=1（ブラウザで見る：実時間で回す）
+     window.lab：step(n) で n こま進めて描く・frames（記録）・info。数値の計算は capture.mjs（charkit/anim/metrics.js） -->
+<style>html,body{margin:0;height:100%;background:#1a1626;color:#eee;font:13px sans-serif;overflow:hidden}#info{position:fixed;left:8px;top:6px;white-space:pre;text-shadow:0 1px 2px #000}</style>
+<script type="importmap">
+{ "imports": { "three": "../../vendor/three-esm/three-0.185.1/three.module.min.js", "three/addons/": "../../vendor/three-esm/three-0.185.1/addons/", "@pixiv/three-vrm": "../../vendor/three-esm/three-vrm-3.5.5/three-vrm.module.min.js" } }
+</script>
+</head>
+<body>
+<div id="info"></div>
+<script type="module">
+import * as THREE from 'three';
+import { buildDannoura, buildCompanion } from '../../shinshoku/actor/models.js';
+import { buildDannouraWhite } from '../../shinshoku/actor/models3.js';
+import { Player, CompanionActor, turnTo } from '../../shinshoku/actor/actors.js';
+import { COMBAT } from '../../shinshoku/data/combat.js';
+
+const Q = new URLSearchParams(location.search);
+const W = +(Q.get('W') || innerWidth), H = +(Q.get('H') || innerHeight);
+const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); r.setPixelRatio(1); document.body.appendChild(r.domElement);
+r.shadowMap.enabled = true;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x2a2438);
+scene.add(new THREE.HemisphereLight(0x9a9ad0, 0x302838, 1.5));
+const key = new THREE.DirectionalLight(0xfff0e8, 1.7); key.position.set(3, 5, 2); key.castShadow = true; key.shadow.mapSize.set(1024, 1024);
+Object.assign(key.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4 }); scene.add(key); scene.add(key.target);
+const rim = new THREE.DirectionalLight(0x9a8aff, 0.9); rim.position.set(-3, 2, -3); scene.add(rim);
+// 床：1m の格子＋10cm の目盛り（足の滑りが見える）
+{ const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); g.fillStyle = '#3c3650'; g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = '#4a4462'; g.lineWidth = 1; for (let i = 0; i < 10; i++) { g.beginPath(); g.moveTo(i * 25.6, 0); g.lineTo(i * 25.6, 256); g.moveTo(0, i * 25.6); g.lineTo(256, i * 25.6); g.stroke(); }
+  g.strokeStyle = '#8a80b0'; g.lineWidth = 3; g.strokeRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(60, 60); t.anisotropy = 4; t.colorSpace = THREE.SRGBColorSpace;
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshLambertMaterial({ map: t })); fl.rotation.x = -Math.PI / 2; fl.receiveShadow = true; scene.add(fl); }
+const cam = new THREE.PerspectiveCamera(+(Q.get('fov') || 30), W / H, 0.05, 80);
+
+const kind = Q.get('c') || 'dannoura';
+const model = kind === 'white' ? buildDannouraWhite() : kind === 'companion' ? buildCompanion() : buildDannoura();
+model.root.traverse(o => { if (o.isMesh && !o.userData.isOutlineHull) o.castShadow = true; });
+const DT = 1 / 60;
+let actor, P, F;
+if (kind === 'companion') {
+  const brain = { pos: { x: 0, z: 0 }, yaw: 0 };
+  actor = new CompanionActor(model, brain); scene.add(actor.root);
+} else {
+  P = new Player(model, { owned: ['katana', 'handgun', 'pipe'], weapon: Q.get('w') || 'katana' }); F = P.fighter; scene.add(P.root);
+  if (kind === 'white') { F.setForm('white', true); P.setModel(model); }
+  P.yaw = 0; P.pos.set(0, 0, 0); actor = P;
+}
+const J = model.J, L = model.legDims;
+
+// ── 場面（入力の時間割）：t（秒）→ { v（目標の速さ）, dir（進む向き rad）, press（押した入力）} ──
+const vW = +(Q.get('v') || 0);
+const SCN = {
+  idle: { dur: 4, f: t => ({ v: 0, dir: 0 }) },
+  walk: { dur: 5, f: t => ({ v: vW || 1.6, dir: 0 }) },
+  jog: { dur: 4, f: t => ({ v: 3.2, dir: 0 }) },
+  run: { dur: 4, f: t => ({ v: COMBAT.move.run, dir: 0 }) },
+  sprint: { dur: 4, f: t => ({ v: 6.5, dir: 0 }) },
+  startstop: { dur: 6.2, f: t => ({ v: t < 0.6 ? 0 : t < 2.4 ? COMBAT.move.walk : t < 4.4 ? COMBAT.move.run : 0, dir: 0 }) },
+  turn180: { dur: 4.4, f: t => ({ v: t < 0.4 ? 0 : t < 3.4 ? COMBAT.move.run : 0, dir: t < 1.8 ? 0 : Math.PI }) },
+  turnwalk: { dur: 4.4, f: t => ({ v: t < 0.4 ? 0 : t < 3.4 ? COMBAT.move.walk : 0, dir: t < 1.9 ? 0 : Math.PI }) },
+  circle: { dur: 5, f: t => ({ v: COMBAT.move.run, dir: t * 1.6 }) },
+  combo: { dur: 3.6, f: t => ({ v: 0, dir: 0, press: (t > 0.3 && t < 0.32) || (t > 0.62 && t < 0.64) || (t > 0.98 && t < 1.0) ? 'attack' : t > 2.0 && t < 2.6 ? 'heavy' : null }) },
+  dodge: { dur: 2.4, f: t => ({ v: t < 1.2 ? COMBAT.move.run : 0, dir: 0, press: t > 0.6 && t < 0.62 ? 'dodge' : null }) },
+};
+const scn = SCN[Q.get('scn') || 'walk'] || SCN.walk;
+let time = 0, nFrame = 0, curDir = 0;
+const frames = [];
+const v3 = () => new THREE.Vector3();
+const tmp = v3(), tq = new THREE.Quaternion(), te = new THREE.Euler();
+const JN = ['hips', 'spine', 'chest', 'neck', 'head', 'leftUpperArm', 'leftLowerArm', 'rightUpperArm', 'rightLowerArm', 'leftUpperLeg', 'leftLowerLeg', 'leftFoot', 'rightUpperLeg', 'rightLowerLeg', 'rightFoot'];
+function record(inp) {
+  const root = actor.root; root.updateMatrixWorld(true);
+  const pt = (b, x, y, z) => { const p = new THREE.Vector3(x, y, z).applyMatrix4(b.matrixWorld); return [+p.x.toFixed(5), +p.y.toFixed(5), +p.z.toFixed(5)]; };
+  const fr = { t: +time.toFixed(4), st: F ? F.st.name : 'free', f: F ? F.st.f : 0, v: +(actor.speed || 0).toFixed(4), yaw: +(P ? P.yaw : actor.brain.yaw).toFixed(4), want: inp.v };
+  for (const s of ['left', 'right']) { const b = J[s + 'Foot']; fr[s[0] + 'h'] = pt(b, 0, -L.ankleY, -L.heel); fr[s[0] + 't'] = pt(b, 0, -L.ankleY, L.ball); fr[s[0] + 'a'] = pt(b, 0, 0, 0); }
+  fr.hip = pt(J.hips, 0, 0, 0); fr.head = pt(J.head, 0, 0.1, 0); fr.chest = pt(J.chest, 0, 0, 0);
+  fr.hl = pt(J.leftHand, 0, 0, 0); fr.hr = pt(J.rightHand, 0, 0, 0);
+  fr.q = {}; for (const n of JN) { const q = J[n].quaternion; fr.q[n] = [+q.x.toFixed(5), +q.y.toFixed(5), +q.z.toFixed(5), +q.w.toFixed(5)]; }
+  // 骨盤・胸・頭の世界の向き（YXZ）
+  for (const n of ['hips', 'chest', 'head']) { J[n].getWorldQuaternion(tq); te.setFromQuaternion(tq, 'YXZ'); fr['e_' + n] = [+te.x.toFixed(4), +te.y.toFixed(4), +te.z.toFixed(4)]; }
+  frames.push(fr);
+}
+function sim() {
+  const inp = scn.f(time);
+  if (P) {
+    const I = { attack: inp.press === 'attack', heavy: inp.press === 'heavy', dodge: inp.press === 'dodge' };
+    if (I.dodge) P.dodgeDir = { x: Math.sin(P.yaw), z: Math.cos(P.yaw) };
+    F.tick(I);
+    const st = F.st; let vx = 0, vz = 0;
+    if (st.name === 'dodge') { const tot = st.white ? COMBAT.white.dash.total : 24, tt = st.f / tot, k = tt < 0.72 ? Math.cos(tt / 0.72 * Math.PI / 2) : 0; const sp = (st.white ? COMBAT.white.dash.dist / (tot / 60 * 0.6) : COMBAT.dodge.dist / 0.28) * k * 0.9; vx = P.dodgeDir.x * sp; vz = P.dodgeDir.z * sp; }
+    else if (st.name === 'attack' && st.f < st.atk.startup + st.atk.active + 2 && st.atk.lunge) { const dur = st.atk.startup + st.atk.active + 2, sp = st.atk.lunge / (dur * DT); vx = Math.sin(P.yaw) * sp; vz = Math.cos(P.yaw) * sp; }
+    else { const mul = F.moveMul(); if (inp.v > 0 && mul > 0) { P.moveDir = { x: Math.sin(inp.dir), z: Math.cos(inp.dir) }; vx = P.moveDir.x * inp.v * mul; vz = P.moveDir.z * inp.v * mul; P.yaw = turnTo(P.yaw, inp.dir, 0.25); } }
+    const bx = P.pos.x, bz = P.pos.z; P.pos.x += vx * DT; P.pos.z += vz * DT;
+    const moved = Math.hypot(P.pos.x - bx, P.pos.z - bz); P.speed = moved / DT; P.advance(moved, P.speed);
+    P.animate(DT);
+  } else {
+    const b = actor.brain, out = inp.v > 0 ? { move: { x: b.pos.x + Math.sin(inp.dir) * 5, z: b.pos.z + Math.cos(inp.dir) * 5, speed: inp.v }, face: { x: b.pos.x + Math.sin(inp.dir) * 5, z: b.pos.z + Math.cos(inp.dir) * 5 } } : null;
+    actor.step(DT, out, []); actor.animate(DT);
+  }
+  record(inp);
+  time += DT; nFrame++;
+}
+const camMode = Q.get('cam') || 'side';
+const dist = +(Q.get('dist') || 4.2), cy = +(Q.get('y') || 0.88);
+let camZ = 0;
+function placeCam() {
+  const p = P ? P.pos : actor.brain.pos;
+  if (camMode === 'side') { camZ += (p.z - camZ) * (Q.get('lock') ? 1 : 1); cam.position.set(p.x + dist, cy + 0.1, camZ); cam.lookAt(p.x, cy, camZ); }
+  else if (camMode === 'front') { cam.position.set(p.x + dist * 0.45, cy + 0.15, p.z + dist); cam.lookAt(p.x, cy, p.z); }
+  else if (camMode === 'face') { cam.position.set(p.x + Math.sin(+(Q.get('rot') || 0)) * dist, 1.45, p.z + Math.cos(+(Q.get('rot') || 0)) * dist); cam.lookAt(p.x, 1.43, p.z); }
+  else { cam.position.set(+(Q.get('cx') || 6), cy + 1.2, +(Q.get('cz') || 3)); cam.lookAt(0, cy, +(Q.get('tz') || 3)); }
+  key.position.set(p.x + 3, 5, p.z + 2); key.target.position.set(p.x, 0, p.z);
+}
+function render() { placeCam(); r.render(scene, cam); document.getElementById('info').textContent = Q.get('hud') === '0' ? '' : `${kind} ${Q.get('scn') || 'walk'}  t=${time.toFixed(2)}s  v=${(actor.speed || 0).toFixed(2)}m/s  ${F ? F.st.name : ''}`; }
+window.lab = {
+  step(n = 1, draw = true) { for (let i = 0; i < n; i++) sim(); if (draw) render(); return time; },
+  frames, dur: scn.dur, tris: model.tris,
+  strideLen: P ? (v => 2 * Math.PI / P.phaseRate(v)) : null,
+};
+// 最初に 0.5 秒（休み・揺れ物を落ち着かせる）は記録から外す
+for (let i = 0; i < 30; i++) { const s0 = scn.f; scn.f = () => ({ v: 0, dir: 0 }); sim(); scn.f = s0; }
+frames.length = 0; time = 0;
+render();
+if (Q.get('auto')) { const loop = () => { lab.step(1); if (time > scn.dur) { time = 0; } requestAnimationFrame(loop); }; loop(); }
+window.__ready = true;
+</script>
+</body>
+</html>

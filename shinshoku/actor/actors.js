@@ -5,7 +5,9 @@ import * as THREE from 'three';
 import { Poser } from './rig.js';
 import { dannouraPose, kiroPose, heitenPose, shuuyouPose, companionPose, civilianPose, rollAt, phaseRate, footfall } from './anim.js';
 import { attachRigidWeapons } from './models.js';
-import { heroPhaseRate, plantFeet } from './anim8.js';
+import { heroPhaseRate, plantFeet, legDims } from './anim8.js';
+import { LocoDriver } from '../../charkit/anim/locodriver.js';
+import { groundClamp } from '../../charkit/anim/loco.js';
 import { FaceDriver, codeFaceAdapter, vrmFaceAdapter } from '../../charkit/face/driver.js';
 import { Fighter } from '../combat/fighter.js';
 import { COMBAT } from '../data/combat.js';
@@ -114,8 +116,8 @@ export class Player {
     this.springs = [];
     this.setModel(model);
   }
-  /** 1m あたりの歩きの位相（v2 のモデルは足の IK の歩幅：anim8.js） */
-  phaseRate(v) { return this.model && this.model.legDims ? heroPhaseRate(v, this.model.legScale || 1) : phaseRate(v); }
+  /** 1m あたりの歩きの位相（v2 のモデルは歩きの係の見た目の速さの歩幅：charkit/anim/locodriver.js） */
+  phaseRate(v) { return this.driver ? this.driver.rate(this.driver.visV > 0.1 ? undefined : Math.max(0.6 * v, 0.12)) : this.model && this.model.legDims ? heroPhaseRate(v, this.model.legScale || 1) : phaseRate(v); }
   /** 字幕の文字を話す */
   say(text, dur) { this.looks.say(text, dur); }
   setModel(model) {
@@ -124,6 +126,8 @@ export class Player {
     if (model.springs) model.springs.reset();
     this.idleT = 0; this.nextIdle = 7; this.idleVar = null; this.moveT = 0; this.accS = 0; this.prevSpeed = 0; this.turnPh = 0;
     this.poser = new Poser(model.J, model.rest || {});
+    this.driver = model.legDims ? new LocoDriver({ dims: model.legDims, scale: model.legScale || 1, pers: model.white ? 'white' : model.kind || '' }) : null;
+    this.exactK = 0; this.turnS = 0;
     if (!model.weapons) model.weapons = attachRigidWeapons(model.J);
     this.looks = new Looks(model);
     this.springs = [];
@@ -162,6 +166,8 @@ export class Player {
   muzzleWorld(match) { const W = this.model.weapons; const v = new THREE.Vector3(); const mz = match && W && W.mMuzzle ? W.mMuzzle : W && W.muzzle; if (mz) mz.getWorldPosition(v); else v.copy(this.pos).add(new THREE.Vector3(0, 1.3, 0)); return v; }
   /** 進んだ距離で歩きの位相を進める。足が着いたら 'L'|'R' を返す（足音） */
   advance(moved, speed) {
+    if (this.driver && speed > 0.08 && !this.wasMoving && this.driver.mode === 'idle') this.phase = this.driver.startPhase(speed);   // 動き出し：左が立脚の真ん中から
+    this.wasMoving = speed > 0.08;
     const prev = this.phase; this.phase += moved * this.phaseRate(speed);
     return speed > 0.3 ? footfall(prev, this.phase) : null;
   }
@@ -187,20 +193,32 @@ export class Player {
       ctx.idleVar = this.idleVar;
       const acc = (this.speed - this.prevSpeed) / Math.max(dt, 1 / 120); this.prevSpeed = this.speed;
       this.accS += (clampN(acc, -40, 40) - this.accS) * Math.min(1, dt * 6);
+      if (this.driver) ctx.basePose = this.driver.update(dt, { speed: this.speed, phase: this.phase, time: this.time, turn: ctx.turnStep || null });
     }
     let { pose, rate } = extra.override || dannouraPose(ctx);
     if (m.legDims && !extra.override) {
-      if (pose._exactLegs) pose._legRate = Math.min(1, 0.3 + this.moveT * 7);
-      else if (this.speed <= 0.1 && ['free', 'reload', 'hipfire', 'swap', 'parry', 'cast', 'mcharge', 'mreload', 'hurt'].includes(F.st.name)) pose = plantFeet(Object.assign({}, pose), m.legDims);
-      const lean = clampN(this.accS * 0.012, -0.12, 0.1);
-      if (Math.abs(lean) > 1e-3 && F.st.name === 'free') { const sp = pose.spine || [0, 0, 0]; pose = Object.assign({}, pose, { spine: [sp[0] + lean, sp[1], sp[2]] }); }
+      // 足の IK の姿勢（歩きの係）へ戻る時は脚を少しずつ（攻撃・回避の後に脚が飛ばない）
+      this.exactK = pose._exactLegs ? Math.min(1, this.exactK + dt * 5) : 0;
+      if (pose._exactLegs) pose._legRate = this.driver ? 0.18 + 0.82 * this.exactK * this.exactK : Math.min(1, 0.3 + this.moveT * 7);
+      else if (!pose._planted && this.speed <= 0.1 && ['free', 'reload', 'hipfire', 'swap', 'parry', 'cast', 'mcharge', 'mreload', 'hurt'].includes(F.st.name)) pose = plantFeet(Object.assign({}, pose), m.legDims);
+      // P13：攻撃・構え・ひるみの姿勢で腰を下げた分、足が床にめり込まないように（姿勢と時間は同じ。足だけ床の上へ）
+      if (this.driver && !pose._exactLegs && ['attack', 'charge', 'issen', 'parry', 'hurt', 'cast', 'swap', 'reload', 'hipfire'].includes(F.st.name)) pose = groundClamp(Object.assign({}, pose), m.legDims);
+      if (!this.driver) { const lean = clampN(this.accS * 0.012, -0.12, 0.1); if (Math.abs(lean) > 1e-3 && F.st.name === 'free') { const sp = pose.spine || [0, 0, 0]; pose = Object.assign({}, pose, { spine: [sp[0] + lean, sp[1], sp[2]] }); } }
+      // 曲がる先を先に見る（首・頭）：進みたい向きと体の向きの差
+      if (this.driver && F.st.name === 'free' && this.speed > 0.3 && this.moveDir) {
+        const d = clampN(angWrap(Math.atan2(this.moveDir.x, this.moveDir.z) - this.yaw), -0.9, 0.9) * 0.32;
+        if (Math.abs(d) > 1e-3) { const nk = pose.neck || [0, 0, 0], hd = pose.head || [0, 0, 0]; pose = Object.assign({}, pose, { neck: [nk[0], nk[1] + d, nk[2]], head: [hd[0], hd[1] + d, hd[2]] }); }
+      }
     }
     this.looks.unapplyLook(m.J);
     if (extra.aimPitch != null && ctx.aiming) { pose.rightUpperArm = [(pose.rightUpperArm || [0, 0, 0])[0] - extra.aimPitch, pose.rightUpperArm[1], pose.rightUpperArm[2]]; pose.leftUpperArm = [(pose.leftUpperArm || [0, 0, 0])[0] - extra.aimPitch, pose.leftUpperArm[1], pose.leftUpperArm[2]]; pose.chest = [(pose.chest || [0, 0, 0])[0] - extra.aimPitch * 0.3, (pose.chest || [0, 0, 0])[1], 0]; }
     this.poser.apply(pose, 1 - Math.pow(1 - rate, dt * 60));
     // 回避の転がり（体ごと前へ回る）
-    if (F.st.name === 'dodge' && !extra.override && !F.st.white) { const r = rollAt(F.st.f); this.pivot.rotation.x = r.angle; this.pivot.position.y = 0.55 - r.drop; }
-    else { this.pivot.rotation.x = 0; this.pivot.position.y = 0.55; }
+    // 曲がる時は体を内へ傾ける（向きの変わる速さ × 速さ：足の下を軸に）
+    { const tr = this.prevYaw != null ? angWrap(this.yaw - this.prevYaw) / Math.max(dt, 1 / 120) : 0; this.turnS += (clampN(tr, -10, 10) - this.turnS) * Math.min(1, dt * 10); }
+    const bank = this.driver && F.st.name === 'free' && !extra.override ? clampN(-this.turnS * (this.driver.visV || 0) * 0.022, -0.16, 0.16) : 0;
+    if (F.st.name === 'dodge' && !extra.override && !F.st.white) { const r = rollAt(F.st.f); this.pivot.rotation.x = r.angle; this.pivot.position.y = 0.55 - r.drop; this.pivot.rotation.z = 0; this.pivot.position.x = 0; }
+    else { this.pivot.rotation.x = 0; this.pivot.rotation.z += (bank - this.pivot.rotation.z) * Math.min(1, dt * 8); this.pivot.position.x = -0.55 * Math.sin(this.pivot.rotation.z); this.pivot.position.y = 0.55 * Math.cos(this.pivot.rotation.z); }
     this.root.position.copy(this.pos); this.root.rotation.y = this.yaw;
     this.setWeaponVisual();
     this.looks.tickFace(dt); this.looks.tickFlinch(dt, m.J);
@@ -311,9 +329,9 @@ export class CompanionActor {
     this.speed = 0; this.phase = 0; this.time = 0; this.talking = false; this.anim = null; this.r = 0.3;
     this.setModel(model);
   }
-  setModel(model) { if (this.model) this.root.remove(this.model.root); this.model = model; this.root.add(model.root); this.poser = new Poser(model.J, model.rest || {}); this.looks = new Looks(model); if (model.springs) model.springs.reset(); }
+  setModel(model) { if (this.model) this.root.remove(this.model.root); this.model = model; this.root.add(model.root); this.poser = new Poser(model.J, model.rest || {}); this.looks = new Looks(model); if (model.springs) model.springs.reset(); this.driver = model.legDims ? new LocoDriver({ dims: model.legDims, scale: model.legScale || 1, pers: model.kind || 'companion' }) : null; this.exactK = 0; }
   get pos() { return this.brain.pos; }
-  phaseRate(v) { return this.model && this.model.legDims ? heroPhaseRate(v, this.model.legScale || 1) : phaseRate(v, 0.75); }
+  phaseRate(v) { return this.driver ? this.driver.rate(this.driver.visV > 0.1 ? undefined : Math.max(0.6 * v, 0.12)) : this.model && this.model.legDims ? heroPhaseRate(v, this.model.legScale || 1) : phaseRate(v, 0.75); }
   say(text, dur) { this.looks.say(text, dur); }
   /** 60Hz：AI の結果で動かす */
   step(dt, out, boxes) {
@@ -323,7 +341,10 @@ export class CompanionActor {
       if (L > 1e-4) { const m = Math.min(L, out.move.speed * dt), bx = b.pos.x, bz = b.pos.z; b.pos.x += dx / L * m; b.pos.z += dz / L * m; resolveCircle(b.pos, this.r, boxes); moved = Math.hypot(b.pos.x - bx, b.pos.z - bz); }
     }
     if (out && out.face) b.yaw = turnTo(b.yaw, Math.atan2(out.face.x - b.pos.x, out.face.z - b.pos.z), 0.18);
-    this.speed = moved / dt; this.phase += moved * this.phaseRate(this.speed);
+    this.speed = moved / dt;
+    if (this.driver && this.speed > 0.08 && !this.wasMoving && this.driver.mode === 'idle') this.phase = this.driver.startPhase(this.speed);
+    this.wasMoving = this.speed > 0.08;
+    this.phase += moved * this.phaseRate(this.speed);
     this.pose = out ? out.pose : this.pose;
   }
   animate(dt) {
@@ -331,8 +352,10 @@ export class CompanionActor {
     const mode = this.anim || (this.pose === 'hide' ? 'hide' : this.pose === 'grabbed' ? 'grabbed' : this.pose === 'cower' ? 'cower' : null);
     const m = this.model;
     const loco = m.legDims ? { ik: true, dims: m.legDims, rate: this.phaseRate(this.speed), scale: m.legScale || 1 } : undefined;
-    let { pose, rate } = companionPose({ time: this.time, talking: this.talking, speed: this.speed, phase: this.phase, mode, loco });
-    if (m.legDims && !pose._exactLegs && this.speed <= 0.1 && !mode) pose = plantFeet(Object.assign({}, pose), m.legDims);
+    const basePose = this.driver ? this.driver.update(dt, { speed: this.speed, phase: this.phase, time: this.time, k: this.talking ? 0.6 : 1 }) : null;
+    let { pose, rate } = companionPose({ time: this.time, talking: this.talking, speed: this.speed, phase: this.phase, mode, loco, basePose });
+    if (this.driver) { this.exactK = pose._exactLegs ? Math.min(1, this.exactK + dt * 5) : 0; if (pose._exactLegs) pose._legRate = 0.18 + 0.82 * this.exactK * this.exactK; }
+    if (m.legDims && !pose._exactLegs && !pose._planted && this.speed <= 0.1 && !mode) pose = plantFeet(Object.assign({}, pose), m.legDims);
     this.looks.unapplyLook(m.J);
     this.poser.apply(pose, 1 - Math.pow(1 - rate, dt * 60));
     this.root.position.set(this.brain.pos.x, this.rootY || 0, this.brain.pos.z); this.root.rotation.y = this.brain.yaw;
@@ -344,14 +367,22 @@ export class CompanionActor {
 }
 
 export class CivilianActor {
-  constructor(model, x, z, yaw, path) { this.model = model; this.root = new THREE.Group(); this.root.add(model.root); this.poser = new Poser(model.J, model.rest || {}); this.pos = { x, z }; this.yaw = yaw; this.path = path || null; this.pi = 0; this.speed = 0; this.phase = 0; this.time = Math.random() * 5; this.looks = new Looks(model); this.fade = 1; }
+  constructor(model, x, z, yaw, path) {
+    this.model = model; this.root = new THREE.Group(); this.root.add(model.root); this.poser = new Poser(model.J, model.rest || {}); this.pos = { x, z }; this.yaw = yaw; this.path = path || null; this.pi = 0; this.speed = 0; this.phase = 0; this.time = Math.random() * 5; this.looks = new Looks(model); this.fade = 1;
+    // P13：コードで組んだ町の人（骨の休みの回転なし）も歩きの係（足の IK の歩き・待機）。寸法は骨の位置から
+    const J = model.J;
+    if (!model.isVRM && J && J.hips && J.leftUpperLeg && J.leftLowerLeg && J.leftFoot && !Object.keys(model.rest || {}).length) {
+      this.driver = new LocoDriver({ dims: legDims({ leg: J.hips.position.y, thigh: J.leftLowerLeg.position.length(), shin: J.leftFoot.position.length(), hipX: Math.abs(J.leftUpperLeg.position.x) }), scale: J.leftLowerLeg.position.length() / 0.4, pers: 'civilian' });
+    }
+  }
   animate(dt) {
     this.time += dt;
     if (this.path) {
       const t = this.path[this.pi]; const dx = t[0] - this.pos.x, dz = t[1] - this.pos.z, L = Math.hypot(dx, dz);
-      if (L < 0.3) this.pi = (this.pi + 1) % this.path.length; else { const m = Math.min(L, 1.2 * dt); this.pos.x += dx / L * m; this.pos.z += dz / L * m; this.yaw = turnTo(this.yaw, Math.atan2(dx, dz), 0.1); this.speed = 1.2; this.phase += m * phaseRate(1.2); }
+      if (L < 0.3) this.pi = (this.pi + 1) % this.path.length; else { const m = Math.min(L, 1.2 * dt); this.pos.x += dx / L * m; this.pos.z += dz / L * m; this.yaw = turnTo(this.yaw, Math.atan2(dx, dz), 0.1); this.speed = 1.2; this.phase += m * (this.driver ? this.driver.rate() : phaseRate(1.2)); }
     }
-    const { pose, rate } = civilianPose({ time: this.time, speed: this.path ? this.speed : 0, phase: this.phase });
+    let { pose, rate } = civilianPose({ time: this.time, speed: this.path ? this.speed : 0, phase: this.phase });
+    if (this.driver) { pose = this.driver.update(dt, { speed: this.path ? this.speed : 0, phase: this.phase, time: this.time, k: 0.8 }); rate = 0.4; }
     this.poser.apply(pose, 1 - Math.pow(1 - rate, dt * 60));
     this.root.position.set(this.pos.x, 0, this.pos.z); this.root.rotation.y = this.yaw; this.looks.tickFace(dt);
   }
