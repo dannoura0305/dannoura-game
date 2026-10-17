@@ -2,8 +2,8 @@
  "id": "prop.town.car",
  "version": 1,
  "name": {
-  "ja": "乗用車（普通・軽の 2 種・塗装は置く時の色）",
-  "en": "Car (sedan / kei, tintable)"
+  "ja": "乗用車（セダン・軽ワゴン・ミニバン・軽トラ・タクシー・ハッチバックの 6 種・LOD 3・塗装は置く時の色）",
+  "en": "Cars (sedan / kei wagon / minivan / kei truck / taxi / hatchback, 3 LODs, tintable)"
  },
  "category": "prop",
  "tags": [
@@ -34,15 +34,16 @@
    "glb",
    "fbx"
   ],
-  "tris": 1156,
+  "tris": 5148,
   "lods": [
-   1156,
-   404
+   5148,
+   2852,
+   868
   ],
   "sizeM": [
-   1.97,
-   1.4,
-   4.38
+   2.02,
+   1.447,
+   4.405
   ],
   "pivot": "bottom_center",
   "collision": "box",
@@ -52,7 +53,7 @@
    "ao",
    "roughness"
   ],
-  "fileBytes": 331360
+  "fileBytes": 3861472
  },
  "use": [
   "境界侵食（shinshoku）の町と屋内"
@@ -61,25 +62,45 @@
  "kit": {
   "kit": "wakaba-kit/1",
   "nodes": {
-   "v0_LOD0": 1156,
-   "v0_LOD1": 404,
-   "v1_LOD0": 1156,
-   "v1_LOD1": 404
+   "v0_LOD0": 5148,
+   "v0_LOD1": 2852,
+   "v0_LOD2": 868,
+   "v1_LOD0": 4748,
+   "v1_LOD1": 2676,
+   "v1_LOD2": 800,
+   "v2_LOD0": 5340,
+   "v2_LOD1": 2932,
+   "v2_LOD2": 880,
+   "v3_LOD0": 3544,
+   "v3_LOD1": 2160,
+   "v3_LOD2": 672,
+   "v4_LOD0": 5204,
+   "v4_LOD1": 2908,
+   "v4_LOD2": 892,
+   "v5_LOD0": 4988,
+   "v5_LOD1": 2788,
+   "v5_LOD2": 848
   },
-  "variants": 2,
+  "variants": 6,
   "lodDist": [
-   30
+   14,
+   34
   ],
   "impostor": false,
   "materials": [
+   "emit.amber",
+   "emit.andon",
    "emit.head",
    "emit.tail",
    "glass.dark",
+   "mat.town.paint#bed",
+   "mat.town.paint#black",
+   "mat.town.paint#carpaint",
    "mat.town.paint#chrome",
    "mat.town.paint#dark",
-   "mat.town.paint#tint",
-   "mat.town.paint#tire",
-   "mat.town.paint#white"
+   "mat.town.paint#plate",
+   "mat.town.paint#rim",
+   "mat.town.paint#tire"
   ],
   "vertexColor": "COLOR_0＝AO（焼き込み）",
   "note": "節の名前 LOD<n>（種類が複数なら v<k>_LOD<n>）・IMP＝遠景の十字の板（画像は glb の中）。材質は id の名前で共有の PBR 材質に差し替える"

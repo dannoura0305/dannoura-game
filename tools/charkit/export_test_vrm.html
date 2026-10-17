@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>charkit：試験用 VRM・VRMA の書き出し</title>
+<!-- tools/charkit/export_test_vrm.mjs が Playwright で開く（手で開いてもよい：window.exportAll() の結果がコンソールに出る）。
+     コードで組んだだんのうら（紫の姿）を VRM 1.0 に、手続きの動き（待機・歩き・小走り・走り・全力・刀の攻撃・ひるみ）を VRMA 1.0 に書き出す。
+     **配管の試験用**（three-vrm の読み込み・表情・視線・揺れ物・VRMA の再生の確認）。本番の絵ではない：本番は VRoid Studio などで作る（docs/shinshoku/VROID_GUIDE.md）。 -->
+<script type="importmap">
+{ "imports": { "three": "../../vendor/three-esm/three-0.185.1/three.module.min.js", "three/addons/": "../../vendor/three-esm/three-0.185.1/addons/", "@pixiv/three-vrm": "../../vendor/three-esm/three-vrm-3.5.5/three-vrm.module.min.js", "@pixiv/three-vrm-animation": "../../vendor/three-esm/three-vrm-animation-3.5.5/three-vrm-animation.module.min.js" } }
+</script>
+</head>
+<body>
+<pre id="log">…</pre>
+<script type="module">
+import * as THREE from 'three';
+import { buildDannoura } from '../../shinshoku/actor/models.js';
+import { Player } from '../../shinshoku/actor/actors.js';
+import { updateHelpers } from '../../shinshoku/actor/hero.js';
+import { SHADER_CFG } from '../../shinshoku/actor/charcfg.js';
+import { COMBAT } from '../../shinshoku/data/combat.js';
+import { buildVRM1, buildVRMA } from '../../charkit/core/vrmwrite.js';
+import { tpConv, HUMAN17 } from '../../charkit/runtime/tpose.js';
+
+const DT = 1 / 60;
+const log = s => { document.getElementById('log').textContent += '\n' + s; };
+const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
+
+// ───────── 共通：T ポーズ（腕を横へ）にした時の骨の世界の位置・回転 ─────────
+/** 手続きの骨（腕を下ろした休みの姿勢）を T ポーズにする。戻り値：{ Wq: 名前 → 世界の回転（T）, Wp: 名前 → 世界の位置（T） } */
+function poseT(m) {
+  const bones = m.skeleton.bones;
+  for (const b of bones) if (!/^w[A-Z]/.test(b.name)) b.quaternion.identity();
+  m.J.leftUpperArm.quaternion.copy(tpConv.left);
+  m.J.rightUpperArm.quaternion.copy(tpConv.right);
+  const B = {}; for (const b of bones) B[b.name] = b;
+  updateHelpers(B, m.helpers || []);
+  m.root.position.set(0, 0, 0); m.root.quaternion.identity(); m.root.scale.set(1, 1, 1);
+  m.root.updateMatrixWorld(true);
+  const Wq = {}, Wp = {};
+  for (const b of bones) { Wq[b.name] = b.getWorldQuaternion(new THREE.Quaternion()); Wp[b.name] = b.getWorldPosition(V()); }
+  return { Wq, Wp, B };
+}
+
+const isHelper = (m, n) => (m.helpers || []).some(h => h[0] === n);
+const isWeapon = n => /^w[A-Z]/.test(n);
+
+/** 書き出す骨の表（助けの骨・武器の骨を除く。揺れ物の鎖の先に _end を足す） */
+function boneTable(m, T) {
+  const keep = m.skeleton.bones.filter(b => !isHelper(m, b.name) && !isWeapon(b.name));
+  const index = new Map(keep.map((b, i) => [b.name, i]));
+  const out = keep.map(b => {
+    const p = b.parent && index.has(b.parent.name) ? b.parent.name : null;
+    const w = T.Wp[b.name], pw = p ? T.Wp[p] : V();
+    return { name: b.name, parent: p ? index.get(p) : -1, pos: [w.x - pw.x, w.y - pw.y, w.z - pw.z] };
+  });
+  // 揺れ物の鎖の先（VRM の SpringBone は最後の関節の子を先として使う）
+  for (const ch of m.springs.chains) {
+    const last = ch.joints[ch.joints.length - 1].b;
+    const tail = ch.tail ? V(...ch.tail) : last.position.clone();
+    tail.applyQuaternion(T.Wq[last.name]);
+    out.push({ name: last.name + '_end', parent: index.get(last.name), pos: [tail.x, tail.y, tail.z] });
+    index.set(last.name + '_end', out.length - 1);
+  }
+  return { bones: out, index };
+}
+
+/** 皮の重みの付け替え：助けの骨 → 親の骨と元の関節に半分ずつ。武器の骨 → 捨てる（-1） */
+function weightMapper(m, idx) {
+  const bones = m.skeleton.bones;
+  const H = new Map((m.helpers || []).map(h => [h[0], h]));
+  return (bi, w, acc) => {
+    const b = bones[bi]; if (!b || w <= 0) return true;
+    if (isWeapon(b.name)) return false;
+    if (H.has(b.name)) { const [, src, k] = H.get(b.name); const par = b.parent.name; acc[idx.get(par)] = (acc[idx.get(par)] || 0) + w * (1 - k); acc[idx.get(src)] = (acc[idx.get(src)] || 0) + w * k; return true; }
+    acc[idx.get(b.name)] = (acc[idx.get(b.name)] || 0) + w; return true;
+  };
+}
+
+/** 網の頂点を T ポーズへ焼き、重みを付け替える。戻り値：{ pos, nrm, col, uv, joints, weights, drop:Uint8Array, mcls } */
+function bakeMesh(m, mesh, idx) {
+  const g = mesh.geometry, n = g.attributes.position.count;
+  const P = g.attributes.position, N = g.attributes.normal, C = g.attributes.color, UV = g.attributes.uv, SI = g.attributes.skinIndex, SW = g.attributes.skinWeight, MC = g.attributes.mcls;
+  mesh.skeleton.update();
+  const mapW = weightMapper(m, idx);
+  const pos = new Float32Array(n * 3), nrm = new Float32Array(n * 3), col = C ? new Float32Array(n * 3) : null, uv = UV ? new Float32Array(n * 2) : null;
+  const joints = new Uint16Array(n * 4), weights = new Float32Array(n * 4), drop = new Uint8Array(n);
+  const v = V(), nv = V(), mat = new THREE.Matrix4(), m3 = new THREE.Matrix3(), acc3 = V(), tmp = V();
+  const bm = mesh.skeleton.boneMatrices;
+  for (let i = 0; i < n; i++) {
+    v.fromBufferAttribute(P, i); mesh.applyBoneTransform(i, v); pos.set([v.x, v.y, v.z], i * 3);
+    // 法線：重みつきの回転の和
+    nv.fromBufferAttribute(N, i); acc3.set(0, 0, 0);
+    for (let k = 0; k < 4; k++) { const w = SW.getComponent(i, k); if (w <= 0) continue; const bi = SI.getComponent(i, k); mat.fromArray(bm, bi * 16); m3.setFromMatrix4(mat); tmp.copy(nv).applyMatrix3(m3).multiplyScalar(w); acc3.add(tmp); }
+    acc3.normalize(); nrm.set([acc3.x, acc3.y, acc3.z], i * 3);
+    if (col) col.set([C.getX(i), C.getY(i), C.getZ(i)], i * 3);
+    if (uv) uv.set([UV.getX(i), UV.getY(i)], i * 2);
+    const acc = {};
+    for (let k = 0; k < 4; k++) { if (!mapW(SI.getComponent(i, k), SW.getComponent(i, k), acc)) drop[i] = 1; }
+    const top = Object.entries(acc).sort((a, b) => b[1] - a[1]).slice(0, 4); const s = top.reduce((x, e) => x + e[1], 0) || 1;
+    top.forEach(([bi, w], k) => { joints[i * 4 + k] = +bi; weights[i * 4 + k] = w / s; });
+    if (!top.length) { joints[i * 4] = idx.get('hips'); weights[i * 4] = 1; }
+  }
+  return { pos, nrm, col, uv, joints, weights, drop, mcls: MC ? MC.array : null, index: g.index.array, n };
+}
+
+/** 三角形の組（材質の種類ごと）を 1 つの primitive にする（使う頂点だけ・番号を振り直す） */
+function subPrim(bk, tris, material, extra = {}) {
+  const remap = new Map(); const order = [];
+  const idx = [];
+  for (const t of tris) for (const vi of t) { if (!remap.has(vi)) { remap.set(vi, order.length); order.push(vi); } idx.push(remap.get(vi)); }
+  const k = order.length;
+  const take = (src, w) => { if (!src) return null; const o = new Float32Array(k * w); order.forEach((vi, j) => { for (let c = 0; c < w; c++) o[j * w + c] = src[vi * w + c]; }); return o; };
+  const jo = new Uint8Array(k * 4); order.forEach((vi, j) => { for (let c = 0; c < 4; c++) jo[j * 4 + c] = bk.joints[vi * 4 + c]; });
+  return Object.assign({ position: take(bk.pos, 3), normal: take(bk.nrm, 3), color: take(bk.col, 3), joints: jo, weights: take(bk.weights, 4), index: k > 65535 ? new Uint32Array(idx) : new Uint16Array(idx), material }, extra);
+}
+
+// ───────── 顔：表情ごとの絵（1024²）と、部品を写した網＋モーフ ─────────
+const FACE_BLOCKS = { neutral: [0, 0], happy: [512, 0], angry: [0, 256], sad: [512, 256], surprised: [0, 512], relaxed: [512, 512], closed: [0, 768] };
+const EXPR_SRC = { happy: 'smile', angry: 'angry', sad: 'sad', surprised: 'surprised', relaxed: 'calm' };
+/** 目の 3 層（白目の形・虹彩・まぶた）を 1 枚に重ねる（シェーダーでしていた事を絵で） */
+function composeEye(src) {
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  g.drawImage(src, 384, 0, 128, 128, 0, 0, 128, 128);
+  g.globalCompositeOperation = 'source-atop'; g.drawImage(src, 256, 0, 128, 128, 0, 0, 128, 128);
+  g.globalCompositeOperation = 'source-over'; g.drawImage(src, 0, 0, 128, 128, 0, 0, 128, 128);
+  return c;
+}
+function faceAtlasBig(m) {
+  const tex = m.faceTex, src = tex.userData.canvas;
+  const big = document.createElement('canvas'); big.width = big.height = 1024; const G = big.getContext('2d');
+  const put = (name, exprName) => {
+    tex.userData.setExpr(exprName);
+    const [bx, by] = FACE_BLOCKS[name];
+    G.drawImage(src, 0, 0, 512, 256, bx, by, 512, 256);
+    G.clearRect(bx, by, 128, 128); G.drawImage(composeEye(src), bx, by);
+  };
+  put('neutral', 'neutral'); for (const [k, e] of Object.entries(EXPR_SRC)) put(k, e);
+  tex.userData.setExpr('neutral');
+  // 閉じた目（まつ毛の線）：自前で描く
+  { const [bx, by] = FACE_BLOCKS.closed; G.save(); G.translate(bx, by); G.strokeStyle = '#22122e'; G.lineWidth = 7; G.lineCap = 'round';
+    G.beginPath(); G.moveTo(16, 66); G.quadraticCurveTo(64, 84, 110, 70); G.stroke(); G.lineWidth = 3; G.beginPath(); G.moveTo(18, 66); G.lineTo(8, 60); G.stroke(); G.restore(); }
+  return big;
+}
+const atlasPx = (u, v) => [u * 512, (1 - v) * 256];          // 元の地図帳（flipY：v＝1 が上）→ 画素
+const toBig = (px, py, block) => [(block[0] + px) / 1024, (block[1] + py) / 1024];   // glTF の uv（左上が 0）
+
+function faceParts(bk) {
+  // 部品（デカール）＝つながった三角形の組
+  const n = bk.n, par = new Int32Array(n).map((_, i) => i);
+  const f = i => { while (par[i] !== i) { par[i] = par[par[i]]; i = par[i]; } return i; };
+  for (let t = 0; t < bk.index.length; t += 3) { const a = f(bk.index[t]), b = f(bk.index[t + 1]), c = f(bk.index[t + 2]); par[b] = a; par[c] = a; par[f(b)] = a; }
+  const groups = new Map();
+  for (let i = 0; i < n; i++) { const r = f(i); if (!groups.has(r)) groups.set(r, { verts: [], tris: [] }); groups.get(r).verts.push(i); }
+  for (let t = 0; t < bk.index.length; t += 3) groups.get(f(bk.index[t])).tris.push([bk.index[t], bk.index[t + 1], bk.index[t + 2]]);
+  const parts = [];
+  for (const g of groups.values()) {
+    let u = 0, v = 0, x = 0; const c = V();
+    for (const i of g.verts) { u += bk.uv[i * 2]; v += bk.uv[i * 2 + 1]; x += bk.pos[i * 3]; c.add(V(bk.pos[i * 3], bk.pos[i * 3 + 1], bk.pos[i * 3 + 2])); }
+    u /= g.verts.length; v /= g.verts.length; x /= g.verts.length; c.multiplyScalar(1 / g.verts.length);
+    const kind = u < 0.25 && v > 0.5 ? 'eye' : u > 0.25 && u < 0.5 && v > 0.8125 ? 'brow' : u > 0.25 && u < 0.5 && v > 0.625 ? 'mouth' : 'other';
+    parts.push(Object.assign(g, { kind, side: x >= 0 ? 'L' : 'R', center: c }));
+  }
+  return parts;
+}
+
+function buildFace(bk, faceMaterial) {
+  const parts = faceParts(bk);
+  const P = [], N = [], UVo = [], J = [], W = [], I = [];
+  const TG = {};                          // モーフの名前 → Map(頂点番号 → 差分)
+  const targetNames = ['blinkL', 'blinkR', 'aa', 'ih', 'ou', 'ee', 'oh', 'happy', 'angry', 'sad', 'surprised', 'relaxed'];
+  for (const t of targetNames) TG[t] = new Map();
+  const addPart = (part, uvOf, collapsed) => {
+    const map = new Map();
+    for (const i of part.verts) {
+      const j = P.length / 3; map.set(i, j);
+      const p = collapsed ? part.center : V(bk.pos[i * 3], bk.pos[i * 3 + 1], bk.pos[i * 3 + 2]);
+      P.push(p.x, p.y, p.z); N.push(bk.nrm[i * 3], bk.nrm[i * 3 + 1], bk.nrm[i * 3 + 2]);
+      const [px, py] = atlasPx(bk.uv[i * 2], bk.uv[i * 2 + 1]); const [u, v] = uvOf(px, py); UVo.push(u, v);
+      for (let k = 0; k < 4; k++) { J.push(bk.joints[i * 4 + k]); W.push(bk.weights[i * 4 + k]); }
+    }
+    for (const t of part.tris) I.push(map.get(t[0]), map.get(t[1]), map.get(t[2]));
+    return map;
+  };
+  const delta = (part, map, name, sign) => { for (const i of part.verts) { const j = map.get(i); const d = V(bk.pos[i * 3], bk.pos[i * 3 + 1], bk.pos[i * 3 + 2]).sub(part.center).multiplyScalar(sign); TG[name].set(j, [d.x, d.y, d.z]); } };
+  const base = new Map();
+  for (const part of parts) base.set(part, addPart(part, (px, py) => toBig(px, py, FACE_BLOCKS.neutral), false));
+  // 瞬き：開いた目を閉じ、閉じた目の絵を開く
+  for (const part of parts.filter(p => p.kind === 'eye')) {
+    const nm = 'blink' + part.side;
+    delta(part, base.get(part), nm, -1);
+    const mp = addPart(part, (px, py) => toBig(px, py, FACE_BLOCKS.closed), true); delta(part, mp, nm, 1);
+  }
+  // 口の形（母音）：口の欄（元の地図帳の 256..512 × 128..256・1 欄 64×24）
+  const SLOT = { aa: 1, ih: 2, ou: 3, ee: 4, oh: 5 };
+  for (const part of parts.filter(p => p.kind === 'mouth')) for (const [vis, s] of Object.entries(SLOT)) {
+    delta(part, base.get(part), vis, -1);
+    const sx = 256 + (s % 4) * 64, sy = 128 + Math.floor(s / 4) * 24;
+    const mp = addPart(part, (px, py) => toBig(sx + (px - 128) / 128 * 64, sy + (py - 48) / 48 * 24, [0, 0]), true); delta(part, mp, vis, 1);
+  }
+  // 感情：目・眉・口を、その表情の絵の部品に替える
+  for (const ex of Object.keys(EXPR_SRC)) for (const part of parts.filter(p => p.kind !== 'other')) {
+    delta(part, base.get(part), ex, -1);
+    const mp = addPart(part, (px, py) => toBig(px, py, FACE_BLOCKS[ex]), true); delta(part, mp, ex, 1);
+  }
+  const nv = P.length / 3;
+  const targets = targetNames.map(name => { const a = new Float32Array(nv * 3); for (const [j, d] of TG[name]) a.set(d, j * 3); return { name, position: a }; });
+  const prim = { position: new Float32Array(P), normal: new Float32Array(N), uv: new Float32Array(UVo), joints: new Uint8Array(J), weights: new Float32Array(W), index: new Uint16Array(I), material: faceMaterial, targets };
+  return { prim, targetNames, counts: { parts: parts.length, eyes: parts.filter(p => p.kind === 'eye').length, mouth: parts.filter(p => p.kind === 'mouth').length, brows: parts.filter(p => p.kind === 'brow').length, verts: nv } };
+}
+
+async function canvasPNG(c) { const b = await new Promise(r => c.toBlob(r, 'image/png')); return new Uint8Array(await b.arrayBuffer()); }
+
+// ───────── VRM 1.0 ─────────
+async function exportVRM() {
+  const m = buildDannoura();
+  const T = poseT(m);
+  const { bones, index } = boneTable(m, T);
+  const body = bakeMesh(m, m.mesh, index);
+  const face = bakeMesh(m, m.faceMesh, index);
+  // 材質：種類ごとに MToon（色は頂点色。影の色は種類の平均の色 × 設定の影の比）
+  const cfg = SHADER_CFG.dannoura.materials, names = m.table.names;
+  const tris = names.map(() => []);
+  let dropped = 0;
+  for (let t = 0; t < body.index.length; t += 3) {
+    const a = body.index[t], b = body.index[t + 1], c = body.index[t + 2];
+    if (body.drop[a] || body.drop[b] || body.drop[c]) { dropped++; continue; }
+    tris[Math.round(body.mcls[a])].push([a, b, c]);
+  }
+  const materials = [], prims = [];
+  names.forEach((nm, ci) => {
+    if (!tris[ci].length) return;
+    const avg = [0, 0, 0]; let k = 0; for (const t of tris[ci]) for (const vi of t) { avg[0] += body.col[vi * 3]; avg[1] += body.col[vi * 3 + 1]; avg[2] += body.col[vi * 3 + 2]; k++; }
+    const def = m.table.defs[nm] || {}; const B = m.table.B[ci];
+    const shade = avg.map((x, i) => Math.min(1, x / k * [B.x, B.y, B.z][i] * 0.95));
+    const outline = /glasses|metal/.test(nm) ? 0 : nm === 'face' ? 0.0012 : 0.0022;
+    materials.push({ name: 'mt_' + nm, color: [1, 1, 1, 1], mtoon: { shadeColorFactor: shade, shadingShiftFactor: -0.05, shadingToonyFactor: 0.92, giEqualizationFactor: 0.8, parametricRimColorFactor: def.kind === 'hair' ? [0.35, 0.3, 0.55] : [0.2, 0.18, 0.3], parametricRimFresnelPowerFactor: 4, outlineWidthMode: outline ? 'worldCoordinates' : 'none', outlineWidthFactor: outline, outlineColorFactor: [0.16, 0.09, 0.19], outlineLightingMixFactor: 0.6 } });
+    prims.push(subPrim(body, tris[ci], materials.length - 1));
+  });
+  // 顔
+  const big = faceAtlasBig(m);
+  materials.push({ name: 'mt_face_decal', color: [1, 1, 1, 1], texture: 0, alphaMode: 'MASK', alphaCutoff: 0.45, doubleSided: true, mtoon: { shadeColorFactor: [0.93, 0.8, 0.8], shadingShiftFactor: -0.3, shadingToonyFactor: 0.9 } });
+  const F = buildFace(face, materials.length - 1);
+  const png = await canvasPNG(big);
+  // 人型の骨
+  const HB = {}; for (const n of HUMAN17) HB[n] = index.get(n);
+  HB.leftEye = index.get('eyeL'); HB.rightEye = index.get('eyeR');
+  // 揺れ物
+  const colliders = m.springs.colliders.map(c => {
+    const q = T.Wq[c.bone.name], off = c.offset.clone().applyQuaternion(q);
+    if (c.tail) { const tl = c.tail.clone().applyQuaternion(q); return { bone: index.get(c.bone.name), capsule: { offset: off.toArray(), radius: c.radius, tail: tl.toArray() } }; }
+    return { bone: index.get(c.bone.name), sphere: { offset: off.toArray(), radius: c.radius } };
+  });
+  const SP = { ponytail: [0.9, 0.45], sidelock: [1.6, 0.25], ribbon: [1.0, 0.35], charm: [0.5, 0.7] };
+  const springs = m.springs.chains.map(ch => {
+    const [stiff, grav] = SP[ch.name] || [1, 0.3];
+    const js = ch.joints.map(j => ({ bone: index.get(j.b.name), hitRadius: ch.radius || 0.02, stiffness: stiff, gravityPower: grav, gravityDir: [0, -1, 0], dragForce: Math.min(1, ch.drag ?? 0.4) }));
+    js.push({ bone: index.get(ch.joints[ch.joints.length - 1].b.name + '_end'), hitRadius: ch.radius || 0.02 });
+    return { name: ch.name, joints: js, colliderGroups: [0] };
+  });
+  // 表情（VRM の名前 → モーフ）
+  const tI = n => F.targetNames.indexOf(n);
+  const bind = (...ns) => ns.map(n => ({ mesh: 1, target: tI(n), weight: 1 }));
+  const emo = { overrideBlink: 'block', overrideMouth: 'block', overrideLookAt: 'none' };
+  const expressions = { preset: {
+    blink: { binds: bind('blinkL', 'blinkR') }, blinkLeft: { binds: bind('blinkL') }, blinkRight: { binds: bind('blinkR') },
+    aa: { binds: bind('aa') }, ih: { binds: bind('ih') }, ou: { binds: bind('ou') }, ee: { binds: bind('ee') }, oh: { binds: bind('oh') },
+    happy: Object.assign({ binds: bind('happy') }, emo), angry: Object.assign({ binds: bind('angry') }, emo), sad: Object.assign({ binds: bind('sad') }, emo),
+    relaxed: Object.assign({ binds: bind('relaxed') }, emo), surprised: Object.assign({ binds: bind('surprised') }, emo), neutral: {},
+  } };
+  const eyeL = T.Wp.eyeL, head = T.Wp.head;
+  const range = (x, s) => ({ inputMaxValue: x, outputScale: s });
+  const glb = buildVRM1({
+    meta: { name: 'dannoura_test（配管の試験用・本番の絵ではない）', version: 'pipeline-test-1', authors: ['wakaba project（コードで組んだ仮のモデルの自動書き出し）'],
+      copyrightInformation: 'project（試験用）', references: ['shinshoku/actor/heroes.js', 'tools/charkit/export_test_vrm.mjs'], commercialUsage: 'personalNonProfit', allowRedistribution: false, modification: 'prohibited' },
+    bones, humanBones: HB, materials, images: [png],
+    meshes: [{ name: 'body', primitives: prims }, { name: 'face', primitives: [F.prim] }],
+    expressions, firstPerson: [{ mesh: 0, type: 'auto' }, { mesh: 1, type: 'thirdPersonOnly' }],
+    lookAt: { offsetFromHeadBone: [0, eyeL.y - head.y, eyeL.z - head.z], type: 'bone', rangeMapHorizontalInner: range(90, 9), rangeMapHorizontalOuter: range(90, 9), rangeMapVerticalDown: range(90, 7), rangeMapVerticalUp: range(90, 7) },
+    springs, colliders, colliderGroups: [{ name: 'body', colliders: colliders.map((_, i) => i) }],
+  });
+  return { glb, info: { bones: bones.length, prims: prims.length + 1, droppedTris: dropped, face: F.counts, tris: prims.reduce((s, p) => s + p.index.length / 3, 0) + F.prim.index.length / 3, png: png.byteLength, hipsY: T.Wp.hips.y, T, bonesTable: bones } };
+}
+
+// ───────── VRMA：手続きの動きを録る ─────────
+/** 録る時の人型の 17 本（T ポーズの骨）。VRM と同じ位置 */
+function vrmaSkeleton(T) {
+  const bones = HUMAN17.map(n => ({ name: n }));
+  const ix = new Map(HUMAN17.map((n, i) => [n, i]));
+  const PAR = { hips: null, spine: 'hips', chest: 'spine', neck: 'chest', head: 'neck', leftUpperArm: 'chest', leftLowerArm: 'leftUpperArm', leftHand: 'leftLowerArm', rightUpperArm: 'chest', rightLowerArm: 'rightUpperArm', rightHand: 'rightLowerArm', leftUpperLeg: 'hips', leftLowerLeg: 'leftUpperLeg', leftFoot: 'leftLowerLeg', rightUpperLeg: 'hips', rightLowerLeg: 'rightUpperLeg', rightFoot: 'rightLowerLeg' };
+  bones.forEach(b => { const p = PAR[b.name]; const w = T.Wp[b.name], pw = p ? T.Wp[p] : V(); b.parent = p ? ix.get(p) : -1; b.pos = [w.x - pw.x, w.y - pw.y, w.z - pw.z]; });
+  const HB = {}; HUMAN17.forEach((n, i) => { HB[n] = i; });
+  return { bones, HB, ix };
+}
+/** 手続きの骨の今の姿勢 → T ポーズの骨の回転（tpose.js の toTPose）と腰の位置 */
+function grab(J, T) {
+  const out = {};
+  for (const n of HUMAN17) out[n] = tpConv.toT(n, J[n].quaternion, T.Wq).toArray();
+  out._hips = J.hips.position.toArray();
+  return out;
+}
+function makePlayer(weapon = 'none') {
+  const m = buildDannoura();
+  const P = new Player(m, { owned: weapon === 'none' ? [] : [weapon], weapon });
+  P.yaw = 0; P.pos.set(0, 0, 0);
+  return { m, P, F: P.fighter };
+}
+function step(P, F, v, I = {}) {
+  F.tick(I);
+  const moved = v * DT; P.pos.z += moved; P.speed = v; P.moveDir = { x: 0, z: 1 };
+  P.advance(moved, v); P.animate(DT);
+}
+const slerpArr = (a, b, t) => new THREE.Quaternion().fromArray(a).slerp(new THREE.Quaternion().fromArray(b), t).toArray();
+const lerpArr = (a, b, t) => a.map((x, i) => x + (b[i] - x) * t);
+
+/** 歩きの周期を 1 つ録り、位相で等間隔の K こまに並べ直す（u＝0 が左のかかとの着地） */
+function recordCycle(T, v, K = 32) {
+  const { m, P, F } = makePlayer('none');
+  for (let i = 0; i < 240; i++) step(P, F, v);
+  const fr = []; let prevU = null, started = false;
+  for (let i = 0; i < 2000; i++) {
+    step(P, F, v);
+    const u = ((P.phase / (2 * Math.PI)) % 1 + 1) % 1;
+    if (prevU != null && u < prevU) { if (started) { fr.push({ u: u + 1, g: grab(m.J, T) }); break; } started = true; }
+    if (started) fr.push({ u: fr.length && u < fr[0].u ? u + 1 : u, g: grab(m.J, T) });
+    prevU = u;
+  }
+  const u0 = fr[0].u;
+  const sample = uu => {
+    const target = u0 + uu; let i = 0; while (i < fr.length - 2 && fr[i + 1].u < target) i++;
+    const a = fr[i], b = fr[i + 1], t = Math.max(0, Math.min(1, (target - a.u) / Math.max(1e-6, b.u - a.u)));
+    const o = {}; for (const n of HUMAN17) o[n] = slerpArr(a.g[n], b.g[n], t); o._hips = lerpArr(a.g._hips, b.g._hips, t); return o;
+  };
+  // 録り始めの位相（u0）から 1 周。u0 は 0 の直後なので、u＝0 のこまは 1 周の終わり（u0＋1）付近と同じ
+  const keys = []; for (let k = 0; k <= K; k++) keys.push(sample(k / K * (1 - 1e-4)));
+  keys[K] = keys[0];
+  const cycleM = 2 * Math.PI / P.phaseRate(v), dur = cycleM / v;
+  return { keys, dur, cycleM, uStart: u0 % 1 };
+}
+function recordIdle(T, secs = 4, fps = 30) {
+  const { m, P, F } = makePlayer('none');
+  for (let i = 0; i < 90; i++) step(P, F, 0);
+  const fr = []; const per = Math.round(60 / fps);
+  for (let i = 0; i < secs * 60; i++) { step(P, F, 0); if (i % per === 0) fr.push(grab(m.J, T)); }
+  // 継ぎ目：最後の 0.6 秒を最初のこまへ寄せる（ループ）
+  const nB = Math.round(0.6 * fps);
+  for (let k = 0; k < nB; k++) { const i = fr.length - nB + k, t = (k + 1) / nB; for (const n of HUMAN17) fr[i][n] = slerpArr(fr[i][n], fr[0][n], t * t * (3 - 2 * t)); fr[i]._hips = lerpArr(fr[i]._hips, fr[0]._hips, t); }
+  fr.push(fr[0]);
+  return { keys: fr, dur: secs, fps };
+}
+/** 戦闘の動き：入力を入れて、その状態の間を 60Hz で録る */
+function recordAction(T, weapon, kind) {
+  const { m, P, F } = makePlayer(weapon);
+  for (let i = 0; i < 90; i++) step(P, F, 0);
+  const fr = []; let st = null, meta = null;
+  if (kind === 'hurt') { F._go('hurt'); st = 'hurt'; }
+  for (let i = 0; i < 300; i++) {
+    const I = kind === 'light' && i === 0 ? { attack: true } : kind === 'heavy' && i < 40 ? { heavy: true } : {};
+    step(P, F, 0, I);
+    const s = F.st;
+    if (kind === 'hurt') { if (s.name !== 'hurt') break; fr.push(grab(m.J, T)); meta = meta || { total: COMBAT.hurt.stun }; continue; }
+    if (s.name === 'attack') {
+      if (!meta) meta = { startup: s.atk.startup, active: s.atk.active, recovery: s.atk.recovery, step: s.step, heavy: !!s.heavy };
+      fr.push(grab(m.J, T));
+    } else if (meta) break;
+  }
+  return { keys: fr, fps: 60, meta };
+}
+function toVRMA(name, sk, keys, times, extras) {
+  const rot = {}; HUMAN17.forEach((n, i) => { const a = new Float32Array(keys.length * 4); keys.forEach((k, j) => a.set(k[n], j * 4)); rot[i] = a; });
+  const hips = new Float32Array(keys.length * 3); keys.forEach((k, j) => hips.set(k._hips, j * 3));
+  return buildVRMA({ name, bones: sk.bones, humanBones: sk.HB, times: new Float32Array(times), rotations: rot, hipsTranslation: hips, extras });
+}
+
+async function exportClips(T) {
+  const sk = vrmaSkeleton(T);
+  const files = {}, set = { spec: 'wakaba-clipset/1', test: true, skeleton: 'vrm1-humanoid', note: '配管の試験用（コードで組んだ手続きの動きを録った物）。本番の動きは VRoid／モーションキャプチャ（docs/shinshoku/VROID_GUIDE.md）', clips: {} };
+  const LOCO = [['loco.walk', COMBAT.move.walk], ['loco.jog', 3.4], ['loco.run', COMBAT.move.run], ['loco.sprint', 6.5]];
+  for (const [id, v] of LOCO) {
+    const c = recordCycle(T, v);
+    const times = c.keys.map((_, k) => k / (c.keys.length - 1) * c.dur);
+    const file = id.replace('.', '_') + '.vrma';
+    files[file] = toVRMA(id, sk, c.keys, times, { wakaba: { id, test: true } });
+    set.clips[id] = { file, role: 'loco', loop: true, speedMS: +v.toFixed(3), durationS: +c.dur.toFixed(4), strideM: +(c.cycleM / 2).toFixed(4), rootMotion: 'none', events: [{ t: 'footL', u: 0 }, { t: 'footR', u: 0.5 }], source: { type: 'procedural_capture', from: 'shinshoku/actor/actors.js Player（LocoDriver）' } };
+  }
+  {
+    const c = recordIdle(T);
+    const times = c.keys.map((_, k) => k / c.fps);
+    files['idle.vrma'] = toVRMA('idle', sk, c.keys, times, { wakaba: { id: 'idle', test: true } });
+    set.clips.idle = { file: 'idle.vrma', role: 'idle', loop: true, durationS: +(times[times.length - 1]).toFixed(4), rootMotion: 'none', source: { type: 'procedural_capture' } };
+  }
+  for (const [id, w, kind, ref] of [['cmb_katana_light_1', 'katana', 'light', 'katana.light[0]'], ['cmb_katana_heavy', 'katana', 'heavy', 'katana.heavy'], ['react_hit_front', 'none', 'hurt', null]]) {
+    const c = recordAction(T, w, kind);
+    if (!c.keys.length) { log('録れなかった：' + id); continue; }
+    const times = c.keys.map((_, k) => k / c.fps);
+    const file = id + '.vrma';
+    const mt = c.meta || {};
+    const events = mt.startup != null ? [{ t: 'hitStart', frame: mt.startup }, { t: 'hitEnd', frame: mt.startup + mt.active }] : [];
+    files[file] = toVRMA(id, sk, c.keys, times, { wakaba: { id, test: true, events } });
+    set.clips[id] = Object.assign({ file, role: kind === 'hurt' ? 'hit' : 'attack', loop: false, fps: 60, frames: c.keys.length, events, rootMotion: 'none', source: { type: 'procedural_capture' } },
+      kind === 'hurt' ? {} : { match: { weapon: w, heavy: kind === 'heavy', step: kind === 'heavy' ? null : 0 }, combatRef: { file: 'shinshoku/data/combat.js', path: 'COMBAT.' + ref } });
+  }
+  return { files, set };
+}
+
+window.exportAll = async () => {
+  const t0 = performance.now();
+  const v = await exportVRM();
+  const c = await exportClips(v.info.T);
+  delete v.info.T; delete v.info.bonesTable;
+  const b64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+  const out = { vrm: b64(v.glb), info: v.info, clips: Object.fromEntries(Object.entries(c.files).map(([k, u]) => [k, b64(u)])), set: c.set, ms: Math.round(performance.now() - t0) };
+  log(JSON.stringify(out.info) + '\nclips ' + Object.keys(out.clips).join(' '));
+  return out;
+};
+window.__ready = true;
+</script>
+</body>
+</html>

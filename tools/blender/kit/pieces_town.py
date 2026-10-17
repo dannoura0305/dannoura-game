@@ -205,7 +205,9 @@ def car(kei=False, seed=451):
 
 
 def cars():
-    return {'variants': [car(False, 451), car(True, 452)], 'lods_ratio': [1.0, 0.35]}
+    """P14：車はロフトの車体（pieces_cars.py）に作り直した。種類 6・LOD 3（下の car() は P12 の箱の版：残すだけ）"""
+    import pieces_cars
+    return pieces_cars.cars()
 
 
 def bicycle_town():
@@ -398,7 +400,7 @@ TOWN_PIECES = {
     'prop.town.lamp_head': (lamp_heads, 'prop', '街灯の腕と灯具（2 種）', 'Street lamp arm and head (2 variants)', ['街灯', '町'], 'none', [30]),
     'prop.town.lamp_modern': (lamp_moderns, 'prop', '中央通りの LED の街灯の腕と灯具（2 種）', 'Avenue LED lamp head (2 variants)', ['街灯', '町'], 'none', [35]),
     'prop.town.vending': (vending, 'prop', '自販機（塗装は置く時の色）', 'Vending machine (tintable)', ['自販機', '町'], 'box', [22]),
-    'prop.town.car': (cars, 'prop', '乗用車（普通・軽の 2 種・塗装は置く時の色）', 'Car (sedan / kei, tintable)', ['車', '町'], 'box', [30]),
+    'prop.town.car': (cars, 'prop', '乗用車（セダン・軽ワゴン・ミニバン・軽トラ・タクシー・ハッチバックの 6 種・LOD 3・塗装は置く時の色）', 'Cars (sedan / kei wagon / minivan / kei truck / taxi / hatchback, 3 LODs, tintable)', ['車', '町'], 'box', [14, 34]),
     'prop.town.bicycle': (bicycle_town, 'prop', 'ママチャリ（前かご・荷台）', 'City bicycle', ['自転車', '町'], 'none', [18]),
     'prop.town.ac_unit': (ac_unit, 'prop', 'エアコンの室外機', 'Air conditioner outdoor unit', ['室外機', '町'], 'box', [20]),
     'prop.town.guardrail': (guardrail, 'prop', 'ガードレール（2m）', 'Guardrail (2m)', ['ガードレール', '町'], 'box', [30]),

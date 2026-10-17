@@ -1,0 +1,79 @@
+{
+ "id": "test.dannoura_test",
+ "test": true,
+ "provisional": true,
+ "notFinalArt": true,
+ "note": "配管の試験用（tools/charkit/export_test_vrm.mjs でコードで組んだだんのうらを書き出した物）。本番の絵ではない。ゲームでは ?vrm=test の時だけ使う。",
+ "license": {
+  "id": "project",
+  "commercial": "n/a（試験用・配らない）",
+  "redistributeRaw": "no"
+ },
+ "author": "project",
+ "source": {
+  "type": "procedural_export",
+  "tool": "tools/charkit/export_test_vrm.mjs"
+ },
+ "info": {
+  "bones": 44,
+  "prims": 12,
+  "droppedTris": 804,
+  "face": {
+   "parts": 9,
+   "eyes": 2,
+   "mouth": 1,
+   "brows": 2,
+   "verts": 754
+  },
+  "tris": 28591,
+  "png": 153692,
+  "hipsY": 0.86
+ },
+ "files": [
+  {
+   "file": "characters/test/dannoura_test.vrm",
+   "bytes": 1479632,
+   "sha256": "05e94955a9d11e7dfb28e8cc475ba9809140ce507b6ad82734ce06da411d8b34"
+  },
+  {
+   "file": "anim/test/loco_walk.vrma",
+   "bytes": 15344,
+   "sha256": "2af3b578164a16eaeaa745d6a631b0955f90eee1215b744fc6ee1cc1f1a8a62c"
+  },
+  {
+   "file": "anim/test/loco_jog.vrma",
+   "bytes": 15344,
+   "sha256": "a754b1fdd26d3597522baf662a7a7555f0989651fd898aa6661eaca8f839af96"
+  },
+  {
+   "file": "anim/test/loco_run.vrma",
+   "bytes": 15344,
+   "sha256": "4afa2a236f99cd295c7d0e281a6f780b3026ced1ae53e0fd1b94f7174803f977"
+  },
+  {
+   "file": "anim/test/loco_sprint.vrma",
+   "bytes": 15348,
+   "sha256": "560df7f632dd6de8771e40949fa0c63d720986db125c5c4a667331a7da753cf6"
+  },
+  {
+   "file": "anim/test/idle.vrma",
+   "bytes": 40712,
+   "sha256": "9c7673f0b811a2bfcdc2c6af91b1b097ed4bac1a19878b8a9076ba500a0bbe82"
+  },
+  {
+   "file": "anim/test/cmb_katana_light_1.vrma",
+   "bytes": 12832,
+   "sha256": "cdcb792cde9c0fb64e21cecd8ddcba4051487f116d9974f7145904a21ae4088e"
+  },
+  {
+   "file": "anim/test/cmb_katana_heavy.vrma",
+   "bytes": 16000,
+   "sha256": "513fd90fc2a4906f585a4d3725a60f238ca5d241d7542ff73dd3fafcea016a83"
+  },
+  {
+   "file": "anim/test/react_hit_front.vrma",
+   "bytes": 10180,
+   "sha256": "cfe318f7f94a29f11d5c6b7c093731b07c6ca1cc8f176c538fe6fbc7cacc95ae"
+  }
+ ]
+}
