@@ -203,7 +203,7 @@ registerMinigame({
 
     // ── 定数 ──
     const MAX_SHIELD=DF.shield, HUD_H=56;
-    const BOSS_HP=Math.round((remix?250:220)*DF.bossHp), MID_HP=Math.round((remix?80:70)*DF.bossHp);
+    const BOSS_HP=Math.round((remix?400:360)*DF.bossHp), MID_HP=Math.round((remix?145:130)*DF.bossHp);
     const BOSS_LIMIT=60, MID_LIMIT=24;   // ボス・中ボスの持ち時間（過ぎると去る＝夜明けまで耐えた扱い）
     const SPD=(remix?1.12:1)*DF.spd, IVM=(remix?.88:1)*DF.iv;
     const SEED=((gs.day|0)*7919+(SD.plays|0)*104729+(DIFF==='hard'?3:DIFF==='normal'?2:1))>>>0;
@@ -326,7 +326,7 @@ registerMinigame({
     const skipBtn=document.createElement('button');skipBtn.className='shooter-skip off';skipBtn.textContent='SKIP ▶▶';body.appendChild(skipBtn);
 
     // ── 画面サイズ・事前描画 ──
-    let W=0,H=0,dpr=1;
+    let W=0,H=0,dpr=1,vScale=1;   // vScale：背の低い画面（スマホ横持ち）では落ちる速さを落とす
     let lySky=null,lyFar=null,lyNear=null,lyChat=null,lyVig=null,dith=null;
     const glow={};
     const mkCanvas=(w,h)=>{const c=document.createElement('canvas');c.width=Math.max(1,Math.ceil(w*dpr));c.height=Math.max(1,Math.ceil(h*dpr));const g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);return [c,g];};
@@ -435,10 +435,10 @@ registerMinigame({
     }
     function resize(){
       const w=Math.max(240,body.clientWidth),h=Math.max(320,body.clientHeight);
-      const nd=Math.min(2.5,window.devicePixelRatio||1);
+      const nd=Math.min(2,window.devicePixelRatio||1);   // 3倍密度の端末でも2倍で描く（重さ対策）
       if(w===W&&h===H&&nd===dpr)return;
       const first=!W;
-      W=w;H=h;dpr=nd;
+      W=w;H=h;dpr=nd;vScale=Math.max(.6,Math.min(1,(H-HUD_H)/560));
       cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv.style.width=W+'px';cv.style.height=H+'px';
       if(!glow.cy){
         glow.cy=makeGlow('rgba(0,232,200,.9)',40);glow.rd=makeGlow('rgba(232,48,85,.85)',40);
@@ -688,6 +688,7 @@ registerMinigame({
       else if(type==='split'){e.vy=rnd(56,70)*SPD;e.hp=e.maxHp=2;}
       else if(type==='shooter'){e.vy=110;e.hp=e.maxHp=3;e.stay=HUD_H+H*rnd(.05,.2);e.bx=e.x;}
       else if(type==='small'){e.vy=rnd(85,110)*SPD;}
+      if(type==='basic'||type==='zig'||type==='armor'||type==='split'||type==='small')e.vy*=vScale;
       else if(type==='bot'){e.vy=120;e.hp=e.maxHp=4;e.stay=HUD_H+H*rnd(.08,.24);e.bx=e.x;e.fireCd=rnd(.9,1.3);}
       else if(type==='elite'){e.vy=90;e.hp=e.maxHp=Math.round((remix?16:13)*(.75+.25*DF.bossHp));e.stay=HUD_H+H*rnd(.1,.18);e.bx=e.x;e.fireCd=1.4;e.shots=0;e.h=32;e.w+=14;}
       e.uid=++uid;
@@ -702,7 +703,7 @@ registerMinigame({
       else kind=r<.22?'spread':r<.4?'barrier':r<.52?'slow':r<.7?'laser':r<.82&&bombs<3?'bomb':'heal';
       const text=pick(TXT.good);
       const tw=measure(text,13),w=tw+42;
-      const g={good:true,dead:false,hp:DF.goodHp,flash:0,warned:false,pow:kind,text,tw,w,h:28,x:rnd(w/2+8,W-w/2-8),y:HUD_H-14,vy:rnd(52,64),age:0,hint:firstGood,shim:0};
+      const g={good:true,dead:false,hp:DF.goodHp,flash:0,warned:false,pow:kind,text,tw,w,h:28,x:rnd(w/2+8,W-w/2-8),y:HUD_H-14,vy:rnd(52,64)*vScale,age:0,hint:firstGood,shim:0};
       if(firstGood){g.x=Math.max(w/2+8,Math.min(W-w/2-8,player.x+(player.x<W/2?90:-90)));firstGood=false;}
       goods.push(g);
     }
@@ -913,7 +914,7 @@ registerMinigame({
         }else if(midActive){
           if(goodCd<=0){spawnGood();goodCd=rnd(4.5,6)*DF.good;}
         }else if(!boss){
-          if(goodCd<=0){spawnGood();goodCd=rnd(3.2,5)*DF.good;}
+          if(goodCd<=0){spawnGood();goodCd=rnd(4,6)*DF.good;}
         }
       }
 
@@ -1410,8 +1411,8 @@ registerMinigame({
       gl(glow.gd,x,y,w*.75,.4*fade);cx.globalAlpha=fade;
       // まとめサイトの記事パネル
       cx.fillStyle='rgba(0,0,0,.4)';rr(x-w/2+3,y-h/2+4,w,h,6);cx.fill();
-      cx.fillStyle=m.flash>0?'#fff':'#1c1406';rr(x-w/2,y-h/2,w,h,6);cx.fill();
-      if(m.flash<=0){
+      cx.fillStyle=m.flash>0?'#4a3a18':'#1c1406';rr(x-w/2,y-h/2,w,h,6);cx.fill();
+      {
         cx.fillStyle='#4a3204';cx.fillRect(x-w/2+2,y-h/2+2,w-4,16);
         cx.fillStyle='#ffcc55';cx.font=`11px ${FONT}`;cx.textAlign='left';cx.fillText('【悲報】配信者さん、また',x-w/2+8,y-h/2+10);
         cx.fillStyle='rgba(255,220,140,.25)';for(let i=0;i<3;i++)cx.fillRect(x-w/2+44,y-h/2+26+i*10,w-56-i*18,4);
@@ -1859,7 +1860,7 @@ registerMinigame({
       if(!hint)return;
       const a=Math.min(1,hint.t*4,(3.4-hint.t)*3);if(a<=0)return;
       cx.globalAlpha=a;cx.font=`12px ${FONT}`;cx.textAlign='center';cx.textBaseline='middle';
-      const tw=Math.min(W-24,cx.measureText(hint.text).width+28),y=H-118;
+      const tw=Math.min(W-24,cx.measureText(hint.text).width+28),y=HUD_H+52;
       cx.fillStyle='rgba(10,7,22,.88)';rr(W/2-tw/2,y-14,tw,28,8);cx.fill();
       cx.strokeStyle='#00e8c8';cx.lineWidth=1;rr(W/2-tw/2,y-14,tw,28,8);cx.stroke();
       cx.fillStyle='#deccf8';cx.fillText(hint.text,W/2,y+1,W-36);
