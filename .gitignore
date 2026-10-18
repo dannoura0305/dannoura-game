@@ -2,3 +2,6 @@ __pycache__/
 
 # わかばの素材ライブラリ：重い原本（.blend・.fbx・.usd・原寸テクスチャ）は Git に入れない（sources.json に場所と sha256 だけ）
 wakaba-assets/entries/*/*/source/
+
+# リポジトリの中で作るキャラクターの途中の物（tools/charkit/build_chars.mjs の --build：包み・PNG）
+/build/

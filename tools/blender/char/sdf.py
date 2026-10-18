@@ -106,6 +106,20 @@ def box(c, half, r=0.0, rot=None):
     return f
 
 
+def cylinder(c, r, h, rr=0.0, axis_rot=None):
+    """y 軸の円柱（中心 c・半径 r・高さの半分 h・角の丸み rr）。axis_rot：3x3（局所 → 世界）"""
+    c = _a(c)
+    R = None if axis_rot is None else _a(axis_rot)
+
+    def f(P):
+        q = P - c
+        if R is not None:
+            q = q @ R
+        d = np.stack([_len(q[:, [0, 2]]) - (r - rr), np.abs(q[:, 1]) - (h - rr)], -1)
+        return np.minimum(d.max(-1), 0) + _len(np.maximum(d, 0)) - rr
+    return f
+
+
 def plane(n, d0):
     """n・p = d0 の平面（n の向きが外）"""
     n = _a(n) / np.linalg.norm(n)

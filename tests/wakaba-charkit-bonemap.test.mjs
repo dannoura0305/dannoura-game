@@ -135,8 +135,12 @@ await t('試験用の glTF が境界侵食の読み込み（shinshoku/actor/vrm.
     assert.equal(old.bonesFound, 17); assert.equal(old.mixer, null);
     // manifest の file が null（今の境界侵食）なら今と同じく null（コード製の仮のキャラクター）
     const manifest = readJson('shinshoku/assets/characters/manifest.json');
-    assert.equal(manifest.ver, 2);
-    for (const [id, e] of Object.entries(manifest.characters)) { assert.equal(e.file, null, id); assert.equal(e.config, undefined, id + '：manifest に config はまだ入れない'); assert.equal(await loadCharacter(e), null, id); }
+    assert.ok(manifest.ver >= 3);
+    for (const [id, e] of Object.entries(manifest.characters)) {
+      assert.equal(e.config, undefined, id + '：manifest に config はまだ入れない');
+      if (e.file) { assert.ok(/\.vrm$/.test(e.file) && existsSync(join(ROOT, 'shinshoku/assets/characters', e.file)), id + '：P15 の Blender で作った VRM（tests/shinshoku-p15-vrmchar.test.mjs）'); continue; }
+      assert.equal(await loadCharacter(e), null, id);
+    }
   } finally { console.warn = warn; globalThis.fetch = realFetch; }
 });
 

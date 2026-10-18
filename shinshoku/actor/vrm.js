@@ -64,7 +64,7 @@ export async function loadVRM(entry, opt = {}) {
       root: m.root, J: J17, Jx, vrm, rest: {}, tpose: true, vrm0: m.stats.metaVersion === '0', hipScale: 1 / (m.sceneScale || 1), isVRM: true, isExternal: true,
       height: entry.height || 1.64, provisional: !!entry.provisional, test: !!entry.test, portrait: portraitURL(entry),
       legDims: m.legDims ? scaleDims(m.legDims, m.sceneScale || 1) : null, legScale: m.legScale, sockets, springs: m.springs, stats: m.stats,
-      kind: entry.kind || 'vrm', update: dt => m.update(dt),
+      kind: entry.kind === 'white' ? 'dannoura' : entry.kind || 'vrm', white: entry.kind === 'white', update: dt => m.update(dt),
     };
     // 武器は差し込み口へ（コードの武器の形：腕を下ろした手の向きに合わせた口）
     model.weapons = attachRigidWeapons(Object.assign({}, J17, { rightHand: sockets.rightHand || J17.rightHand, hips: sockets.hips || J17.hips }));

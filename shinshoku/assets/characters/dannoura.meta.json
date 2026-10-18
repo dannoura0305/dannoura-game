@@ -1,0 +1,91 @@
+{
+ "id": "char.dannoura",
+ "name": "だんのうら（Dannoura）",
+ "provisional": false,
+ "test": false,
+ "note": "リポジトリの中で Blender（bpy）で作った VRM 1.0（tools/blender/char/build_char.py → tools/charkit/build_chars.mjs）。VRoid Studio などで作った本番のモデルに差し替えられる（docs/shinshoku/VROID_GUIDE.md）",
+ "license": {
+  "id": "project",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "attribution": "",
+  "verifiedBy": ""
+ },
+ "author": "project",
+ "source": {
+  "type": "self_made",
+  "tool": "blender 5.2（bpy）",
+  "generator": "tools/blender/char/build_char.py",
+  "vrmMeta": {
+   "commercialUsage": "corporation",
+   "avatarPermission": "onlyAuthor"
+  }
+ },
+ "body": {
+  "height": 1.64,
+  "sex": "male",
+  "shoulderW": 0.37,
+  "hipW": 0.3
+ },
+ "info": {
+  "bones": 72,
+  "humanBones": 54,
+  "expressions": 14,
+  "springs": 5,
+  "springJoints": 18,
+  "colliders": 13,
+  "parts": {
+   "head_skin": 4000,
+   "left_eyeball": 588,
+   "right_eyeball": 588,
+   "left_lidU": 204,
+   "left_lidL": 136,
+   "right_lidU": 204,
+   "right_lidL": 136,
+   "left_brow": 52,
+   "right_brow": 52,
+   "mouth": 80,
+   "left_hand": 1499,
+   "right_hand": 1500,
+   "hair_locks": 8832,
+   "hair_cap": 1500,
+   "shirt": 1873,
+   "jacket": 6726,
+   "trousers": 4180,
+   "left_shoe": 1150,
+   "right_shoe": 1149,
+   "hat": 1100,
+   "hat_bow": 300,
+   "glasses": 986,
+   "flower": 520,
+   "hair_tie": 384,
+   "backpack": 1500,
+   "strap_L": 576,
+   "strap_R": 576,
+   "cord_L": 192,
+   "cord_R": 192
+  }
+ },
+ "files": [
+  {
+   "file": "dannoura.vrm",
+   "lod": "pc",
+   "bytes": 3411492,
+   "sha256": "752fb4382ee49c28371e1f0c7863570a5b9e815e8f38fb8a5534f659704fdeef",
+   "tris": 40775,
+   "materials": 5,
+   "images": 7,
+   "imageBytes": 1435613
+  },
+  {
+   "file": "dannoura_low.vrm",
+   "lod": "low",
+   "bytes": 1653528,
+   "sha256": "647cf9e53906ed01b0cb65ccfec49cdf45910fbafff8f3ca9baf1b531a4dc8dd",
+   "tris": 18223,
+   "materials": 5,
+   "images": 7,
+   "imageBytes": 639172
+  }
+ ]
+}

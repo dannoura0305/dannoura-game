@@ -673,6 +673,138 @@
    }
   },
   {
+   "id": "char.companion",
+   "version": 1,
+   "category": "character",
+   "name": {
+    "ja": "相棒",
+    "en": "Companion・仮"
+   },
+   "status": "draft",
+   "tags": [
+    "キャラクター",
+    "VRM",
+    "手続き",
+    "自作",
+    "Blender"
+   ],
+   "dir": "character/char.companion",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": [
+     0.9,
+     1.58,
+     0.6
+    ],
+    "tris": 33474
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [],
+   "web": [],
+   "ue5": null
+  },
+  {
+   "id": "char.dannoura",
+   "version": 1,
+   "category": "character",
+   "name": {
+    "ja": "だんのうら",
+    "en": "Dannoura"
+   },
+   "status": "draft",
+   "tags": [
+    "キャラクター",
+    "VRM",
+    "手続き",
+    "自作",
+    "Blender"
+   ],
+   "dir": "character/char.dannoura",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": [
+     0.9,
+     1.64,
+     0.6
+    ],
+    "tris": 40775
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [],
+   "web": [],
+   "ue5": null
+  },
+  {
+   "id": "char.dannoura_white",
+   "version": 1,
+   "category": "character",
+   "name": {
+    "ja": "だんのうら・白い姿",
+    "en": "Dannoura, true form"
+   },
+   "status": "draft",
+   "tags": [
+    "キャラクター",
+    "VRM",
+    "手続き",
+    "自作",
+    "Blender"
+   ],
+   "dir": "character/char.dannoura_white",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": [
+     0.9,
+     1.64,
+     0.6
+    ],
+    "tris": 42357
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [],
+   "web": [],
+   "ue5": null
+  },
+  {
    "id": "mat.bark.broadleaf",
    "version": 1,
    "category": "material",

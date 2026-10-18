@@ -1,0 +1,64 @@
+{
+ "id": "char.dannoura",
+ "version": 1,
+ "name": {
+  "ja": "だんのうら",
+  "en": "Dannoura"
+ },
+ "category": "character",
+ "tags": [
+  "キャラクター",
+  "VRM",
+  "手続き",
+  "自作",
+  "Blender"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/char/build_char.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/shinshoku/VROID_GUIDE.md"
+ },
+ "tech": {
+  "formats": [
+   "vrm"
+  ],
+  "tris": 40775,
+  "lods": [
+   40775,
+   18223
+  ],
+  "texRes": 2048,
+  "sizeM": [
+   0.9,
+   1.64,
+   0.6
+  ]
+ },
+ "use": [
+  "キャラクター（境界侵食）"
+ ],
+ "usedBy": [
+  {
+   "project": "shinshoku",
+   "since": "2026-10-18"
+  }
+ ],
+ "status": "draft",
+ "storage": {
+  "original": "tools/blender/char（スクリプトが原本）",
+  "runtime": "shinshoku/assets/characters/dannoura.vrm",
+  "sha256": "752fb4382ee49c28371e1f0c7863570a5b9e815e8f38fb8a5534f659704fdeef"
+ }
+}

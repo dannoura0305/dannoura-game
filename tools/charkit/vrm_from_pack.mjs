@@ -26,6 +26,7 @@ export function packToVRM(pack, readImage) {
       if (m.shadeTexture) o.mtoon.shadeMultiplyTexture = { image: img(m.shadeTexture) };
     }
     if (m.extras) o.extras = m.extras;
+    if (m.emissive) o.emissive = m.emissive;
     return o;
   });
   const meshIdx = {}, morphIdx = {};
