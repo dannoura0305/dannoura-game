@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-11-01.2';   // シューティング改良（炎上コメント撃退）／P16：境界侵食の植物（試験マップと同じ部品：wakaba-assets の veg.*・rock.rubble・mat.foliage.* は上の media・world/vegkit.js は shell）
+const VERSION = '2026-11-02.1';   // ミニゲームの速さを直した（MG.loop の経過時間が 0.05 秒に張り付き、60Hz で3倍速になっていた）／シューティング改良（炎上コメント撃退）／P16：境界侵食の植物（試験マップと同じ部品：wakaba-assets の veg.*・rock.rubble・mat.foliage.* は上の media・world/vegkit.js は shell）
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）

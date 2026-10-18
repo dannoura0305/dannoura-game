@@ -3313,7 +3313,7 @@ registerMinigame({
       V.floats=V.floats.filter(f=>(f.t+=dt)<4.5);
       V.fx=V.fx.filter(f=>(f.t+=dt)<f.dur);
       V.emos=V.emos.filter(e=>(e.t+=dt)<1.3);
-      V.parts=V.parts.filter(p=>{p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.92;p.vy=p.vy*.92+30*dt;return p.t<p.life;});
+      V.parts=V.parts.filter(p=>{p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;const dmp=Math.pow(.92,dt*60);p.vx*=dmp;p.vy=p.vy*dmp+30*dt;return p.t<p.life;});
       if(BT&&BT.en)BT.en.forEach(e=>{if(e.hit>0)e.hit=Math.max(0,e.hit-dt*5);if(e.sh>0)e.sh=Math.max(0,e.sh-dt*30);});
       if(V.light)V.light.t+=dt;
       typeStep(dt);

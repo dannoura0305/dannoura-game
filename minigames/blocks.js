@@ -881,7 +881,7 @@ registerMinigame({
     }
     function updateFx(dt){
       shake=Math.max(0,shake-dt*22);flash=Math.max(0,flash-dt*2.2);pulse=Math.max(0,pulse-dt*1.8);
-      for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.life-=dt;if(p.life<=0){parts.splice(i,1);continue;}p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=380*dt;p.vx*=.985;}
+      for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.life-=dt;if(p.life<=0){parts.splice(i,1);continue;}p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=380*dt;p.vx*=Math.pow(.985,dt*60);}
       for(let i=pops.length-1;i>=0;i--){pops[i].t+=dt;if(pops[i].t>1.15)pops.splice(i,1);}
       for(let i=lifts.length-1;i>=0;i--){const L=lifts[i];const pt=L.t;L.t+=dt;if(pt<.05&&L.t>=.05)sfx('beep');if(L.t>L.dur)lifts.splice(i,1);}
       for(let i=trails.length-1;i>=0;i--){trails[i].t+=dt;if(trails[i].t>.28)trails.splice(i,1);}
