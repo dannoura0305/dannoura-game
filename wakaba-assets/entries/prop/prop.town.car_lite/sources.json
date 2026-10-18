@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.town.car_lite",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.town.car_lite.fbx",
+   "storage": "local-ignored",
+   "sha256": "90e62f64c4c16300ac07f95183c922bb717ceef2a6f785d8820b35728e53c643",
+   "bytes": 141196,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_town.py --only prop.town.car_lite"
+  }
+ ]
+}

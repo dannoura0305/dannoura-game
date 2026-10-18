@@ -22,6 +22,18 @@ export const RULES = {
   SMPL_DEP: 'SMPL／SMPL-X などの模型を通しているが、商用の許可（deps[].licensed: true）が無い（作品が商用か未定）',
   COMPARISON_ONLY: '研究用（非商用）の AI を通した、または use が「比較のみ」：作品に入れない（比較用だけ）',
   NO_HUMAN_SCORE: 'quality.human（人の点数）が空：作品の本番の束に入れない',
+  // 2026-10-17：キャラクターを外部の道具で作る方針（docs/shinshoku/VROID_GUIDE.md）。道具の規約・プラン・VRM の利用条件の欄
+  TOOL_PLAN: '作った道具の無料プランなどで商用不可（source.plan が free／商用の許可なし）：作品（商用）に入れない（例：Tripo は商用に有料プランが要る・要確認）',
+  VRM_META_NONCOMMERCIAL: 'VRM の利用条件（source.vrmMeta.commercialUsage）が personalNonProfit：作品（商用）に入れない（自作なら VRoid の書き出しで直す）',
+  TEST_ONLY: '試験用（test: true・本番の絵ではない）：作品の本番の束に入れない',
+};
+/** 外部の道具（source.tool）の規約の注意（止めない・人が確かめる）。値は 2026-10 の調べ：変わるので license.verifiedBy で人が確かめる */
+export const TOOL_NOTES = {
+  vroid: 'VRoid Studio：作ったモデルは商用でも使える（プリセットの素材を含む）と案内されている・要確認（公式の利用規約）。VRM の書き出しの「利用条件」を作品に合わせる',
+  tripo: 'Tripo：商用には有料プラン（Pro 以上）が要るとされる・要確認。無料プランの出力は作品に入れない',
+  mixamo: 'Mixamo：素のファイルの再配布は不可。Web の書き出し（.vrma／.glb）に入れない（UE5 の PC 版は cook されるので license 次第・要確認）',
+  vrma_sample: 'VRoid／pixiv の VRMA の見本：利用条件は配布ページで要確認（作品に入れる前に license.verifiedBy）',
+  webcam_mocap: '自分で撮ったモーキャプ：演者の同意（license.performerConsent）を必ず残す。使ったアプリの規約（商用可否）も source.aiModel・aiCommercial に',
 };
 
 /** リポジトリの中の道具（tools/…）で手続きで作った自作の素材か（docs/wakaba-mapkit/11 §4）。
@@ -103,6 +115,13 @@ export function evaluate(meta, ctx, opt = {}) {
     if (human == null) { if (ctx.stage === 'production') block('NO_HUMAN_SCORE'); else warn('NO_HUMAN_SCORE', RULES.NO_HUMAN_SCORE); }
   }
   if (S.aiCommercial === 'unknown' && !blank(S.aiModel)) warn('AI_TERMS', '通した AI の規約（商用可否）が未確認');
+  // ── 外部の道具（VRoid・Tripo など）とVRM の利用条件・試験用の素材
+  const tool = low(S.tool);
+  if (tool && ctx.commercial && (low(S.plan) === 'free' || S.toolCommercial === 'no')) block('TOOL_PLAN', S.tool + (S.plan ? '・' + S.plan : ''));
+  const vm = S.vrmMeta || {};
+  if (ctx.commercial && vm.commercialUsage === 'personalNonProfit') block('VRM_META_NONCOMMERCIAL');
+  if ((m.test === true || (m.tags || []).includes('test')) && ctx.stage === 'production') block('TEST_ONLY');
+  for (const [k, msg] of Object.entries(TOOL_NOTES)) if (tool.includes(k)) warn('TOOL_TERMS', msg);
 
   const credits = blank(L.attribution) ? null : { id: m.id, text: L.attribution };
   return { id: m.id || null, category: cat || null, result: reasons.length ? 'block' : 'pass', reasons, warnings, credits };
@@ -111,7 +130,7 @@ export function evaluate(meta, ctx, opt = {}) {
 /** キャラクターの設定（<id>.character.json）の license を同じ門に通す。人の点数の規則は当てない */
 export function evaluateCharacter(config, ctx, opt = {}) {
   const c = config || {};
-  const meta = { id: 'char.' + (c.id || 'unknown'), category: 'character', source: c.source || { type: 'self_made' }, license: c.license || {}, status: 'draft' };
+  const meta = { id: 'char.' + (c.id || 'unknown'), category: 'character', source: c.source || { type: 'self_made' }, license: c.license || {}, status: 'draft', test: c.test === true };
   return evaluate(meta, ctx, opt);
 }
 

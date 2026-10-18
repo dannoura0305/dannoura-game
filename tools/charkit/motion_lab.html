@@ -10,7 +10,7 @@
      window.lab：step(n) で n こま進めて描く・frames（記録）・info。数値の計算は capture.mjs（charkit/anim/metrics.js） -->
 <style>html,body{margin:0;height:100%;background:#1a1626;color:#eee;font:13px sans-serif;overflow:hidden}#info{position:fixed;left:8px;top:6px;white-space:pre;text-shadow:0 1px 2px #000}</style>
 <script type="importmap">
-{ "imports": { "three": "../../vendor/three-esm/three-0.185.1/three.module.min.js", "three/addons/": "../../vendor/three-esm/three-0.185.1/addons/", "@pixiv/three-vrm": "../../vendor/three-esm/three-vrm-3.5.5/three-vrm.module.min.js" } }
+{ "imports": { "three": "../../vendor/three-esm/three-0.185.1/three.module.min.js", "three/addons/": "../../vendor/three-esm/three-0.185.1/addons/", "@pixiv/three-vrm": "../../vendor/three-esm/three-vrm-3.5.5/three-vrm.module.min.js", "@pixiv/three-vrm-animation": "../../vendor/three-esm/three-vrm-animation-3.5.5/three-vrm-animation.module.min.js" } }
 </script>
 </head>
 <body>
@@ -40,7 +40,16 @@ const rim = new THREE.DirectionalLight(0x9a8aff, 0.9); rim.position.set(-3, 2, -
 const cam = new THREE.PerspectiveCamera(+(Q.get('fov') || 30), W / H, 0.05, 80);
 
 const kind = Q.get('c') || 'dannoura';
-const model = kind === 'white' ? buildDannouraWhite() : kind === 'companion' ? buildCompanion() : buildDannoura();
+// ?vrm=test：manifest の testEntries の VRM（＋VRMA のクリップ）で同じ場面を動かす（配管の試験・外部モデルの動きの確認）
+let model = null;
+if (Q.get('vrm')) {
+  const { loadCharacter } = await import('../../shinshoku/actor/vrm.js');
+  const man = await fetch('../../shinshoku/assets/characters/manifest.json').then(r => r.json());
+  const ent = ((man.testEntries || {})[Q.get('vrm')] || man.characters)[kind === 'companion' ? 'companion' : 'dannoura'];
+  model = await loadCharacter(ent, { quality: Q.get('low') ? 'low' : 'high' });
+  if (!model) throw new Error('VRM を読めません');
+}
+model = model || (kind === 'white' ? buildDannouraWhite() : kind === 'companion' ? buildCompanion() : buildDannoura());
 model.root.traverse(o => { if (o.isMesh && !o.userData.isOutlineHull) o.castShadow = true; });
 const DT = 1 / 60;
 let actor, P, F;
@@ -49,6 +58,7 @@ if (kind === 'companion') {
   actor = new CompanionActor(model, brain); scene.add(actor.root);
 } else {
   P = new Player(model, { owned: ['katana', 'handgun', 'pipe'], weapon: Q.get('w') || 'katana' }); F = P.fighter; scene.add(P.root);
+  if (Q.get('say')) P.say(Q.get('say'), 3);
   if (kind === 'white') { F.setForm('white', true); P.setModel(model); }
   P.yaw = 0; P.pos.set(0, 0, 0); actor = P;
 }
@@ -78,7 +88,7 @@ const JN = ['hips', 'spine', 'chest', 'neck', 'head', 'leftUpperArm', 'leftLower
 function record(inp) {
   const root = actor.root; root.updateMatrixWorld(true);
   const pt = (b, x, y, z) => { const p = new THREE.Vector3(x, y, z).applyMatrix4(b.matrixWorld); return [+p.x.toFixed(5), +p.y.toFixed(5), +p.z.toFixed(5)]; };
-  const fr = { t: +time.toFixed(4), st: F ? F.st.name : 'free', f: F ? F.st.f : 0, v: +(actor.speed || 0).toFixed(4), yaw: +(P ? P.yaw : actor.brain.yaw).toFixed(4), want: inp.v };
+  const fr = { t: +time.toFixed(4), st: F ? F.st.name : 'free', f: F ? F.st.f : 0, anim: P && P.clipRes ? P.clipRes.key : null, v: +(actor.speed || 0).toFixed(4), yaw: +(P ? P.yaw : actor.brain.yaw).toFixed(4), want: inp.v };
   for (const s of ['left', 'right']) { const b = J[s + 'Foot']; fr[s[0] + 'h'] = pt(b, 0, -L.ankleY, -L.heel); fr[s[0] + 't'] = pt(b, 0, -L.ankleY, L.ball); fr[s[0] + 'a'] = pt(b, 0, 0, 0); }
   fr.hip = pt(J.hips, 0, 0, 0); fr.head = pt(J.head, 0, 0.1, 0); fr.chest = pt(J.chest, 0, 0, 0);
   fr.hl = pt(J.leftHand, 0, 0, 0); fr.hr = pt(J.rightHand, 0, 0, 0);
@@ -119,9 +129,10 @@ function placeCam() {
   key.position.set(p.x + 3, 5, p.z + 2); key.target.position.set(p.x, 0, p.z);
 }
 function render() { placeCam(); r.render(scene, cam); document.getElementById('info').textContent = Q.get('hud') === '0' ? '' : `${kind} ${Q.get('scn') || 'walk'}  t=${time.toFixed(2)}s  v=${(actor.speed || 0).toFixed(2)}m/s  ${F ? F.st.name : ''}`; }
+window.labModel = model;
 window.lab = {
   step(n = 1, draw = true) { for (let i = 0; i < n; i++) sim(); if (draw) render(); return time; },
-  frames, dur: scn.dur, tris: model.tris,
+  frames, dur: scn.dur, tris: model.tris, stats: model.stats || null, anim: () => (P && P.clipRes ? P.clipRes.key : null), clipStats: () => (P && P.clipAnim ? P.clipAnim.stats : null),
   strideLen: P ? (v => 2 * Math.PI / P.phaseRate(v)) : null,
 };
 // 最初に 0.5 秒（休み・揺れ物を落ち着かせる）は記録から外す

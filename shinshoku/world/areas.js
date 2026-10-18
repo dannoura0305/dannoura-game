@@ -9,7 +9,7 @@ import { gradientMap, canvasTex } from '../render/toon.js';
 import { AREA_DATA } from '../data/areas.js';
 import { skyDome } from '../render/sky.js';
 import { envAreaMats, envUpgradeRoot } from '../render/envmat.js';
-import { KIT } from './envkit.js';
+import { KIT, kitWants } from './envkit.js';
 /** P12：区画の組み立ての間に、インスタンスの家具を Blender の部品へ置き換える所（finish で区画の kitItems へ） */
 let _kitQ = [];
 
@@ -49,7 +49,7 @@ export function instanced(parts, xf, opt = {}) {
   xf.forEach((t, i) => { Q.setFromEuler(new THREE.Euler(0, t.ry || 0, 0)); P.set(t.x, t.y || 0, t.z); M.compose(P, Q, S); m.setMatrixAt(i, M); if (t.color != null) m.setColorAt(i, new THREE.Color(t.color)); });
   m.castShadow = !!opt.shadow; m.receiveShadow = true; m.name = opt.name || 'inst';
   // P12：opt.kit＝Blender の部品の id（同じ所・向き＋opt.kitRy）。部品が読めたら、このインスタンス網は隠す（代わりの網）
-  if (opt.kit && KIT.on) { for (const t of xf) _kitQ.push({ id: opt.kit, v: 0, x: t.x, y: t.y || 0, z: t.z, ry: (t.ry || 0) + (opt.kitRy || 0), s: opt.kitS || [1, 1, 1], color: opt.kitColor ?? t.color ?? null }); m.userData.kitFallback = true; }
+  if (opt.kit && kitWants(opt.kit)) { for (const t of xf) _kitQ.push({ id: opt.kit, v: 0, x: t.x, y: t.y || 0, z: t.z, ry: (t.ry || 0) + (opt.kitRy || 0), s: opt.kitS || [1, 1, 1], color: opt.kitColor ?? t.color ?? null }); m.userData.kitFallback = true; }
   return m;
 }
 export function finish(id, B, atlas, root, extra) {

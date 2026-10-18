@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VRM 確認</title>
+<!-- 開発用：VRM（charkit/runtime/vrmrt.js：ゲームと同じ読み込み）を 1 枚に何方向も並べて見る。
+     ?f=shinshoku/assets/characters/dannoura.vrm（リポジトリの根からの道・, で複数）&layout=turn|faces|single|hands&pose=T|A&light=studio|night|day
+     &proc=dannoura（コードで組んだ予備のキャラクターを並べる：比べる用）&rot=0.6&dist=1.2&y=1.45（single の時）&expr=happy&w=1280&h=800 -->
+<style>html,body{margin:0;height:100%;background:#1a1626;color:#eee;font:12px sans-serif;overflow:hidden}#info{position:fixed;left:6px;top:4px;white-space:pre;text-shadow:0 0 3px #000}</style>
+<script type="importmap">
+{ "imports": { "three": "../../vendor/three-esm/three-0.185.1/three.module.min.js", "three/addons/": "../../vendor/three-esm/three-0.185.1/addons/", "@pixiv/three-vrm": "../../vendor/three-esm/three-vrm-3.5.5/three-vrm.module.min.js", "@pixiv/three-vrm-animation": "../../vendor/three-esm/three-vrm-animation-3.5.5/three-vrm-animation.module.min.js" } }
+</script>
+</head>
+<body>
+<div id="info"></div>
+<script type="module">
+import * as THREE from 'three';
+import { loadVRMModel } from '../../charkit/runtime/vrmrt.js';
+const Q = new URLSearchParams(location.search);
+const W = +(Q.get('w') || innerWidth), H = +(Q.get('h') || innerHeight);
+const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); r.setPixelRatio(1); document.body.appendChild(r.domElement);
+r.shadowMap.enabled = true; r.autoClear = false;
+const scene = new THREE.Scene();
+const LIGHT = Q.get('light') || 'studio';
+const LP = { studio: { hemi: [0xb8b8e0, 0x403848, 1.3], key: [0xfff2ea, 2.0, [1.5, 3, 3]], rim: [0xa898ff, 1.2, [-3, 2, -3]], bg: 0x2a2438 },
+  day: { hemi: [0xbcd0ff, 0x6a6050, 1.5], key: [0xfff4e0, 2.4, [3, 5, 2]], rim: [0xffffff, 0.4, [-3, 2, -3]], bg: 0x8aa8d0 },
+  night: { hemi: [0x5a5a9a, 0x1a1420, 1.0], key: [0x9aa8e0, 0.9, [-2, 6, 2]], rim: [0xc8b8ff, 0.3, [0, 2, -3]], bg: 0x0c0a16, point: [0xffc890, 2.0, [1.2, 1.9, 1.6]] } }[LIGHT];
+scene.add(new THREE.HemisphereLight(LP.hemi[0], LP.hemi[1], LP.hemi[2]));
+const key = new THREE.DirectionalLight(LP.key[0], LP.key[1]); key.position.set(...LP.key[2]); key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -2, right: 2, top: 2.5, bottom: -0.5 }); scene.add(key);
+const rim = new THREE.DirectionalLight(LP.rim[0], LP.rim[1]); rim.position.set(...LP.rim[2]); scene.add(rim);
+if (LP.point) { const p = new THREE.PointLight(LP.point[0], LP.point[1], 6, 1.5); p.position.set(...LP.point[2]); scene.add(p); }
+scene.background = new THREE.Color(LP.bg);
+const floor = new THREE.Mesh(new THREE.CircleGeometry(3, 48), new THREE.MeshToonMaterial({ color: 0x3a3446 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+const cam = new THREE.PerspectiveCamera(30, 1, 0.02, 30);
+const files = (Q.get('f') || 'shinshoku/assets/characters/dannoura.vrm').split(',').filter(Boolean);
+const models = [];
+for (const f of files) {
+  const m = await loadVRMModel('../../' + f, { height: 1.64, fit: 'none', shader: Q.get('shader') || 'mtoon', outline: Q.get('outline') !== '0', maxTex: +(Q.get('maxTex') || 0) });
+  if (!m) { document.getElementById('info').textContent = '読めない：' + f; continue; }
+  scene.add(m.root); models.push({ f, m, kind: 'vrm' });
+}
+if (Q.get('proc')) {
+  const MM = await import('../../shinshoku/actor/models.js'); const M3 = await import('../../shinshoku/actor/models3.js');
+  for (const n of Q.get('proc').split(',')) {
+    const pm = n === 'white' ? M3.buildDannouraWhite() : n === 'companion' ? MM.buildCompanion() : MM.buildDannoura();
+    scene.add(pm.root); models.push({ f: 'proc:' + n, m: pm, kind: 'proc' });
+  }
+}
+// 姿勢：A＝腕を下ろす（normalized の骨）
+const POSE = Q.get('pose') || 'A';
+for (const it of models) {
+  if (it.kind !== 'vrm') continue;
+  const H = it.m.vrm.humanoid, nb = n => H.getNormalizedBoneNode(n);
+  if (POSE === 'A') {
+    nb('leftUpperArm') && nb('leftUpperArm').rotation.set(0, 0, -1.2); nb('rightUpperArm') && nb('rightUpperArm').rotation.set(0, 0, 1.2);
+    nb('leftLowerArm') && nb('leftLowerArm').rotation.set(0, -0.25, 0); nb('rightLowerArm') && nb('rightLowerArm').rotation.set(0, 0.25, 0);
+    for (const s of ['left', 'right']) for (const f of ['Index', 'Middle', 'Ring', 'Little']) for (const p of ['Proximal', 'Intermediate', 'Distal']) { const b = nb(s + f + p); if (b) b.rotation.set(0, 0, (s === 'left' ? -1 : 1) * 0.25); }
+  }
+  if (POSE === 'walk') {
+    nb('leftUpperArm').rotation.set(0.0, 0, -1.25); nb('rightUpperArm').rotation.set(0, 0, 1.25);
+    nb('leftUpperArm').rotateX(0.35); nb('rightUpperArm').rotateX(-0.35);
+    nb('leftLowerArm').rotation.set(0, -0.5, 0); nb('rightLowerArm').rotation.set(0, 0.5, 0);
+    nb('leftUpperLeg').rotation.set(-0.45, 0, 0); nb('rightUpperLeg').rotation.set(0.35, 0, 0); nb('leftLowerLeg').rotation.set(0.2, 0, 0); nb('rightLowerLeg').rotation.set(0.7, 0, 0);
+  }
+  if (POSE === 'squat') { nb('leftUpperLeg').rotation.set(-1.3, 0, 0); nb('rightUpperLeg').rotation.set(-1.3, 0, 0); nb('leftLowerLeg').rotation.set(2.2, 0, 0); nb('rightLowerLeg').rotation.set(2.2, 0, 0); nb('leftUpperArm').rotation.set(0, 0.0, -0.3); nb('leftUpperArm').rotateY(-1.2); nb('rightUpperArm').rotation.set(0, 0, 0.3); nb('rightUpperArm').rotateY(1.2); nb('leftLowerArm').rotation.set(0, -1.6, 0); nb('rightLowerArm').rotation.set(0, 1.6, 0); }
+}
+// 揺れ物を落ち着かせる
+for (let i = 0; i < 90; i++) for (const it of models) if (it.m.update) it.m.update(1 / 60);
+const EXPR = ['neutral', 'blink', 'happy', 'angry', 'sad', 'relaxed', 'surprised', 'aa', 'ih', 'ou', 'ee', 'oh', 'blinkLeft', 'lookLeft', 'lookUp', 'lookDown'];
+function setExpr(m, name) {
+  const em = m.vrm && m.vrm.expressionManager; if (!em) return;
+  for (const e of em.expressions) em.setValue(e.expressionName, 0);
+  if (name && name !== 'neutral') { if (name.startsWith('look') && m.vrm.lookAt) { m.vrm.lookAt.autoUpdate = false; const yaw = name === 'lookLeft' ? 25 : name === 'lookRight' ? -25 : 0, pitch = name === 'lookUp' ? 15 : name === 'lookDown' ? -15 : 0; m.vrm.lookAt.yaw = yaw; m.vrm.lookAt.pitch = pitch; } else em.setValue(name, 1); }
+  else if (m.vrm.lookAt) { m.vrm.lookAt.yaw = 0; m.vrm.lookAt.pitch = 0; }
+  m.vrm.update(0);
+}
+const layout = Q.get('layout') || 'turn';
+const views = [];
+const N = models.length;
+const headY = it => { const h = it.m.J && it.m.J.head; if (!h) return 1.48; const v = new THREE.Vector3(); h.getWorldPosition(v); return v.y + 0.07; };
+if (layout === 'turn') {
+  const angs = [['正面', 0], ['3/4', 0.7], ['横', Math.PI / 2], ['背中', Math.PI], ['3/4 後ろ', 2.4]];
+  models.forEach((it, i) => angs.forEach(([l, a], j) => views.push({ it, x: j / angs.length, y: i / N, w: 1 / angs.length, h: 1 / N, a, dist: 4.4, cy: 0.86, label: l, fov: 30 })));
+} else if (layout === 'heads') {
+  const angs = [['正面', 0], ['3/4', 0.6], ['横', Math.PI / 2], ['背中', Math.PI], ['上', 0]];
+  models.forEach((it, i) => angs.forEach(([l, a], j) => views.push({ it, x: j / angs.length, y: i / N, w: 1 / angs.length, h: 1 / N, a, dist: 0.95, cy: headY(it) - 0.03, label: l, fov: 30, el: l === '上' ? 0.6 : 0.03 })));
+} else if (layout === 'faces') {
+  const list = (Q.get('exprs') || EXPR.join(',')).split(',');
+  const cols = Math.ceil(Math.sqrt(list.length * 1.4)), rows = Math.ceil(list.length / cols);
+  const it = models[0];
+  list.forEach((e, k) => views.push({ it, x: (k % cols) / cols, y: Math.floor(k / cols) / rows, w: 1 / cols, h: 1 / rows, a: +(Q.get('rot') || 0.25), dist: 0.62, cy: headY(it) - 0.04, label: e, expr: e, fov: 30 }));
+} else if (layout === 'hands') {
+  models.forEach((it, i) => [['手の甲', 0], ['手のひら', 1]].forEach(([l, a], j) => views.push({ it, x: j / 2, y: i / N, w: 0.5, h: 1 / N, hand: a, label: l, fov: 30 })));
+} else {
+  models.forEach((it, i) => views.push({ it, x: i / N, y: 0, w: 1 / N, h: 1, a: +(Q.get('rot') || 0), dist: +(Q.get('dist') || 4.2), cy: +(Q.get('y') || 0.86), label: it.f, expr: Q.get('expr'), fov: 30 }));
+}
+function render() {
+  r.setScissorTest(true); r.clear();
+  for (const v of views) {
+    for (const it of models) it.m.root.visible = it === v.it;
+    if (v.it.kind === 'vrm') setExpr(v.it.m, v.expr || null);
+    const px = Math.round(v.x * W), py = Math.round((1 - v.y - v.h) * H), pw = Math.round(v.w * W), ph = Math.round(v.h * H);
+    r.setViewport(px, py, pw, ph); r.setScissor(px, py, pw, ph);
+    cam.aspect = pw / ph; cam.fov = v.fov; cam.updateProjectionMatrix();
+    if (v.hand != null) {
+      const hb = v.it.m.J.leftHand; const p = new THREE.Vector3(); hb.getWorldPosition(p);
+      const d = v.hand ? -1 : 1; cam.position.set(p.x + 0.06, p.y + 0.45 * d, p.z + 0.12); cam.up.set(0, 0, -1); cam.lookAt(p.x + 0.07, p.y, p.z); cam.up.set(0, 1, 0);
+    } else {
+      const el = v.el || 0.05;
+      cam.position.set(Math.sin(v.a) * v.dist * Math.cos(el), v.cy + v.dist * Math.sin(el), Math.cos(v.a) * v.dist * Math.cos(el)); cam.lookAt(0, v.cy, 0);
+    }
+    r.render(scene, cam);
+  }
+  r.setScissorTest(false);
+}
+render();
+const info = models.map(it => `${it.f}: ${it.m.stats ? `tri ${Math.round(it.m.stats.tris)} mat ${it.m.stats.materials} tex ${it.m.stats.textures} expr ${it.m.stats.expressions} spring ${it.m.stats.springJoints} h ${it.m.stats.heightM}` : 'proc'}`).join('\n');
+document.getElementById('info').textContent = Q.get('noinfo') ? '' : info + '\n' + views.map(v => v.label).filter((x, i, a) => a.indexOf(x) === i).join(' / ');
+window.__info = { models: models.map(it => ({ f: it.f, stats: it.m.stats || null })), calls: r.info.render.calls };
+window.__ready = true;
+</script>
+</body>
+</html>

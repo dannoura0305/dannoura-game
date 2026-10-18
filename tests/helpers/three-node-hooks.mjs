@@ -4,6 +4,7 @@ const VENDOR = new URL('../../vendor/three-esm/', import.meta.url);
 export async function resolve(spec, ctx, next) {
   if (spec === 'three') return { url: new URL('three-0.185.1/three.module.min.js', VENDOR).href, shortCircuit: true };
   if (spec.startsWith('three/addons/')) return { url: new URL('three-0.185.1/addons/' + spec.slice('three/addons/'.length), VENDOR).href, shortCircuit: true };
+  if (spec === '@pixiv/three-vrm-animation') return { url: new URL('three-vrm-animation-3.5.5/three-vrm-animation.module.min.js', VENDOR).href, shortCircuit: true };
   if (spec === '@pixiv/three-vrm') return { url: new URL('three-vrm-3.5.5/three-vrm.module.min.js', VENDOR).href, shortCircuit: true };
   return next(spec, ctx);
 }

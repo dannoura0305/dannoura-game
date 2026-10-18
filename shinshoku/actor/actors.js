@@ -117,7 +117,7 @@ export class Player {
     this.setModel(model);
   }
   /** 1m あたりの歩きの位相（v2 のモデルは歩きの係の見た目の速さの歩幅：charkit/anim/locodriver.js） */
-  phaseRate(v) { return this.driver ? this.driver.rate(this.driver.visV > 0.1 ? undefined : Math.max(0.6 * v, 0.12)) : this.model && this.model.legDims ? heroPhaseRate(v, this.model.legScale || 1) : phaseRate(v); }
+  phaseRate(v) { if (this.clipAnim && this.clipAnim.hasLoco) return this.clipAnim.phaseRate(v); return this.driver ? this.driver.rate(this.driver.visV > 0.1 ? undefined : Math.max(0.6 * v, 0.12)) : this.model && this.model.legDims ? heroPhaseRate(v, this.model.legScale || 1) : phaseRate(v); }
   /** 字幕の文字を話す */
   say(text, dur) { this.looks.say(text, dur); }
   setModel(model) {
@@ -125,8 +125,10 @@ export class Player {
     this.model = model; model.root.position.y = -0.55; this.pivot.add(model.root);
     if (model.springs) model.springs.reset();
     this.idleT = 0; this.nextIdle = 7; this.idleVar = null; this.moveT = 0; this.accS = 0; this.prevSpeed = 0; this.turnPh = 0;
-    this.poser = new Poser(model.J, model.rest || {});
+    this.poser = new Poser(model.J, model.rest || {}, { tpose: !!model.tpose, hipScale: model.hipScale, vrm0: !!model.vrm0 });
     this.driver = model.legDims ? new LocoDriver({ dims: model.legDims, scale: model.legScale || 1, pers: model.white ? 'white' : model.kind || '' }) : null;
+    // 外部のモデル（VRM）＋本物の動き（VRMA のクリップ）：charkit/anim/clipanim.js。無い時・無い動きは手続きの姿勢（予備）
+    this.clipAnim = model.clipAnim || null; this.clipRes = null;
     this.exactK = 0; this.turnS = 0;
     if (!model.weapons) model.weapons = attachRigidWeapons(model.J);
     this.looks = new Looks(model);
@@ -213,11 +215,16 @@ export class Player {
     this.looks.unapplyLook(m.J);
     if (extra.aimPitch != null && ctx.aiming) { pose.rightUpperArm = [(pose.rightUpperArm || [0, 0, 0])[0] - extra.aimPitch, pose.rightUpperArm[1], pose.rightUpperArm[2]]; pose.leftUpperArm = [(pose.leftUpperArm || [0, 0, 0])[0] - extra.aimPitch, pose.leftUpperArm[1], pose.leftUpperArm[2]]; pose.chest = [(pose.chest || [0, 0, 0])[0] - extra.aimPitch * 0.3, (pose.chest || [0, 0, 0])[1], 0]; }
     this.poser.apply(pose, 1 - Math.pow(1 - rate, dt * 60));
+    if (this.clipAnim) {
+      const sn = F.st.name;
+      this.clipRes = this.clipAnim.update(dt, { st: sn, f: F.st.f, total: sn === 'dodge' ? COMBAT.dodge.total : sn === 'hurt' ? COMBAT.hurt.stun : 0, atk: F.st.atk, step: F.st.step, heavy: !!F.st.heavy, weapon: F.weapon,
+        speed: this.speed, phase: this.phase, turn: turn0, talking: !!(this.looks.face && this.looks.face.talking), override: !!extra.override, armsFromProc: sn === 'free' && F.weapon !== 'none' });
+    }
     // 回避の転がり（体ごと前へ回る）
     // 曲がる時は体を内へ傾ける（向きの変わる速さ × 速さ：足の下を軸に）
     { const tr = this.prevYaw != null ? angWrap(this.yaw - this.prevYaw) / Math.max(dt, 1 / 120) : 0; this.turnS += (clampN(tr, -10, 10) - this.turnS) * Math.min(1, dt * 10); }
     const bank = this.driver && F.st.name === 'free' && !extra.override ? clampN(-this.turnS * (this.driver.visV || 0) * 0.022, -0.16, 0.16) : 0;
-    if (F.st.name === 'dodge' && !extra.override && !F.st.white) { const r = rollAt(F.st.f); this.pivot.rotation.x = r.angle; this.pivot.position.y = 0.55 - r.drop; this.pivot.rotation.z = 0; this.pivot.position.x = 0; }
+    if (F.st.name === 'dodge' && !extra.override && !F.st.white && !(this.clipRes && this.clipRes.roll)) { const r = rollAt(F.st.f); this.pivot.rotation.x = r.angle; this.pivot.position.y = 0.55 - r.drop; this.pivot.rotation.z = 0; this.pivot.position.x = 0; }
     else { this.pivot.rotation.x = 0; this.pivot.rotation.z += (bank - this.pivot.rotation.z) * Math.min(1, dt * 8); this.pivot.position.x = -0.55 * Math.sin(this.pivot.rotation.z); this.pivot.position.y = 0.55 * Math.cos(this.pivot.rotation.z); }
     this.root.position.copy(this.pos); this.root.rotation.y = this.yaw;
     this.setWeaponVisual();
@@ -329,9 +336,9 @@ export class CompanionActor {
     this.speed = 0; this.phase = 0; this.time = 0; this.talking = false; this.anim = null; this.r = 0.3;
     this.setModel(model);
   }
-  setModel(model) { if (this.model) this.root.remove(this.model.root); this.model = model; this.root.add(model.root); this.poser = new Poser(model.J, model.rest || {}); this.looks = new Looks(model); if (model.springs) model.springs.reset(); this.driver = model.legDims ? new LocoDriver({ dims: model.legDims, scale: model.legScale || 1, pers: model.kind || 'companion' }) : null; this.exactK = 0; }
+  setModel(model) { if (this.model) this.root.remove(this.model.root); this.model = model; this.root.add(model.root); this.poser = new Poser(model.J, model.rest || {}, { tpose: !!model.tpose, hipScale: model.hipScale, vrm0: !!model.vrm0 }); this.looks = new Looks(model); if (model.springs) model.springs.reset(); this.driver = model.legDims ? new LocoDriver({ dims: model.legDims, scale: model.legScale || 1, pers: model.kind || 'companion' }) : null; this.exactK = 0; }
   get pos() { return this.brain.pos; }
-  phaseRate(v) { return this.driver ? this.driver.rate(this.driver.visV > 0.1 ? undefined : Math.max(0.6 * v, 0.12)) : this.model && this.model.legDims ? heroPhaseRate(v, this.model.legScale || 1) : phaseRate(v, 0.75); }
+  phaseRate(v) { if (this.clipAnim && this.clipAnim.hasLoco) return this.clipAnim.phaseRate(v); return this.driver ? this.driver.rate(this.driver.visV > 0.1 ? undefined : Math.max(0.6 * v, 0.12)) : this.model && this.model.legDims ? heroPhaseRate(v, this.model.legScale || 1) : phaseRate(v, 0.75); }
   say(text, dur) { this.looks.say(text, dur); }
   /** 60Hz：AI の結果で動かす */
   step(dt, out, boxes) {

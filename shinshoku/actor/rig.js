@@ -4,6 +4,7 @@
 // 向き：キャラクターは +z を向く。左＝+x。腕・脚は下（-y）に垂れた状態が 0。
 //   前へ振る＝ x 回転がマイナス。左腕を外へ＝ z 回転がプラス（右腕はマイナス）。
 import * as THREE from 'three';
+import { convOf, armSide, PARENT17 } from '../../charkit/runtime/tpose.js';
 
 export const JOINTS = ['hips', 'spine', 'chest', 'neck', 'head',
   'leftUpperArm', 'leftLowerArm', 'leftHand', 'rightUpperArm', 'rightLowerArm', 'rightHand',
@@ -34,8 +35,12 @@ const LEGS = new Set(['hips', 'leftUpperLeg', 'leftLowerLeg', 'leftFoot', 'right
 const SPINE = new Set(['spine', 'chest', 'neck', 'head']);
 /** 姿勢（関節名 → [x,y,z] ラジアン）を目標にして、毎フレーム補間で近づける */
 export class Poser {
-  constructor(J, rest = {}) {
+  /** opt.tpose：骨が T ポーズの休み（VRM の normalized）の時、腕を下ろした休みの姿勢の値を T の骨の回転へ付け替える（charkit/runtime/tpose.js）。
+   *  opt.hipScale：腰の位置のずれ（m）に掛ける倍率（モデルを縮めた時：1 / 縮尺） */
+  constructor(J, rest = {}, opt = {}) {
     this.J = J; this.rest = rest; this.q = {}; this.tmpE = new THREE.Euler(); this.tmpQ = new THREE.Quaternion();
+    this.tp = !!opt.tpose; this.hipScale = opt.hipScale ?? 1; this.tmpC = new THREE.Quaternion();
+    this.flip = !!opt.vrm0;   // VRM 0.x の normalized は向きが 180° 違う（three-vrm-animation と同じく x・z を反転）
     this.hipsBase = J.hips ? J.hips.position.y : 0;
     this.hipsBaseX = J.hips ? J.hips.position.x : 0; this.hipsBaseZ = J.hips ? J.hips.position.z : 0;
     for (const k of Object.keys(J)) this.q[k] = J[k].quaternion.clone();
@@ -52,13 +57,16 @@ export class Poser {
       const r = pose[k] || [0, 0, 0], b = this.rest[k] || [0, 0, 0];
       this.tmpE.set(r[0] + b[0], r[1] + b[1], r[2] + b[2], 'YXZ');
       this.tmpQ.setFromEuler(this.tmpE);
+      if (this.tp && (armSide(k) || armSide(PARENT17[k] || ''))) { this.tmpC.copy(convOf(k)).invert(); this.tmpQ.premultiply(convOf(PARENT17[k] || '')).multiply(this.tmpC); }
+      if (this.flip) { this.tmpQ.x = -this.tmpQ.x; this.tmpQ.z = -this.tmpQ.z; }
       J[k].quaternion.slerp(this.tmpQ, Math.min(1, LEGS.has(k) ? legRate : SPINE.has(k) ? bodyRate : rate));
     }
     if (J.hips) {
       const lr = Math.min(1, legRate), t = pose.hipsT;
-      J.hips.position.y += ((this.hipsBase + (pose.hipsY || 0)) - J.hips.position.y) * lr;
-      J.hips.position.x += ((this.hipsBaseX + (t ? t[0] : 0)) - J.hips.position.x) * lr;
-      J.hips.position.z += ((this.hipsBaseZ + (t ? t[2] : 0)) - J.hips.position.z) * lr;
+      const hs = this.hipScale, fs = this.flip ? -hs : hs;
+      J.hips.position.y += ((this.hipsBase + (pose.hipsY || 0) * hs) - J.hips.position.y) * lr;
+      J.hips.position.x += ((this.hipsBaseX + (t ? t[0] : 0) * fs) - J.hips.position.x) * lr;
+      J.hips.position.z += ((this.hipsBaseZ + (t ? t[2] : 0) * fs) - J.hips.position.z) * lr;
     }
   }
 }

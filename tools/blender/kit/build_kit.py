@@ -303,7 +303,7 @@ def preview(objs, library, path):
     textured(library, False)
 
 
-def export_glb(objs, path):
+def export_glb(objs, path, tangents=True):
     for o in objs:
         kitlib.triangulate_ngons(o)
     for o in bpy.context.selected_objects:
@@ -311,7 +311,7 @@ def export_glb(objs, path):
     for o in objs:
         o.select_set(True)
     bpy.context.view_layer.objects.active = objs[0]
-    kw = dict(filepath=path, use_selection=True, export_format='GLB', export_yup=True, export_apply=True, export_tangents=True, export_normals=True,
+    kw = dict(filepath=path, use_selection=True, export_format='GLB', export_yup=True, export_apply=True, export_tangents=tangents, export_normals=True,
               export_materials='EXPORT', export_animations=False, export_skins=False, export_morph=False, export_cameras=False, export_lights=False,
               export_extras=False, export_image_format='WEBP')
     # 頂点の色（AO）：4.2 以上は export_vertex_color（5.2 も同じ）。古い名前 export_colors は 4.2 で廃止
@@ -351,6 +351,18 @@ def build_one(aid, library, prev_dir, fbx=True):
             nodes[ob.name] = tris(ob)
         variants = 1
         base = lods[0]
+    elif 'variant_lods' in res:                                  # 種類ごとに手で作った LOD（境界侵食 P14：車。減らす LOD では形が崩れるため）
+        vl = res['variant_lods']
+        variants = len(vl)
+        for vi, lods in enumerate(vl):
+            for li, ob in enumerate(lods):
+                bake_ao(ob, rays=rays, dist=dist, strength=strength * (1 if li == 0 else 0.85))
+                ob.name = (('v%d_' % vi) if variants > 1 else '') + 'LOD%d' % li
+                objs.append(ob)
+                nodes[ob.name] = tris(ob)
+        res['variants'] = [lods[0] for lods in vl]
+        res['lods_ratio'] = [1.0] * len(vl[0])
+        base = vl[0][0]
     else:
         vs = res['variants']
         variants = len(vs)
@@ -387,7 +399,7 @@ def build_one(aid, library, prev_dir, fbx=True):
     glb = os.path.join(d, 'web', aid + '.glb')
     for old in os.listdir(os.path.join(d, 'web')):
         os.remove(os.path.join(d, 'web', old))
-    export_glb(objs, glb)
+    export_glb(objs, glb, tangents=not res.get('no_tangents'))
     files = []
     if fbx:
         fp = os.path.join(d, 'source', aid + '.fbx')

@@ -10,8 +10,10 @@
 | `three-0.185.1/addons/libs/meshopt_decoder.module.js` | 同 `examples/jsm/libs/`（meshoptimizer の復号器・MIT） | 同 | MIT |
 | `three-0.185.1/addons/loaders/KTX2Loader.js`・`utils/WorkerPool.js`・`math/ColorSpaces.js`・`libs/ktx-parse.module.js`・`libs/zstddec.module.js`・`libs/basis/basis_transcoder.{js,wasm}`（＋その README） | 同 `examples/jsm/`（Basis Universal の transcoder は Apache-2.0） | 同 | MIT・Apache-2.0 |
 | `three-vrm-3.5.5/three-vrm.module.min.js` | npm `@pixiv/three-vrm@3.5.5`（`lib/`） | 3.5.5（2026-07-09 公開・peer three>=0.137） | MIT（`three-vrm-3.5.5/LICENSE`） |
+| `three-vrm-animation-3.5.5/three-vrm-animation.module.min.js` | npm `@pixiv/three-vrm-animation@3.5.5`（`lib/`・three-vrm-core を中に含む 1 ファイル・外から読むのは `three` だけ） | 3.5.5（2026-07-09 公開・three-vrm と同じ版・peer three>=0.137） | MIT（`three-vrm-animation-3.5.5/LICENSE`・(c) 2019-2026 pixiv Inc.） |
 
 取得：`npm pack three@0.185.1 @pixiv/three-vrm@3.5.5` を展開して必要なファイルだけ写した（変更なし）。
+2026-10-17：`npm pack @pixiv/three-vrm-animation@3.5.5`（npm の shasum `7e65c3572673ac9c0fd9bc561194f9413494be99`・SLSA の来歴つき）を同じやり方で追加（VRMA＝VRM Animation の再生。`charkit/runtime/vrma.js`）。
 SHA-256：
 ```
 86bcee248b64f44bcfc23c331ae74619061957d59cab040171dcb6fb5900beb6  three.module.min.js
@@ -28,7 +30,10 @@ f40c491f6c44dde511268121f778a0050e73b1a15fd844c1ae2c78c73213eafc  addons/libs/kt
 5cbf818e842628a4464e748594a6deae18ceddda3c2f541e7b3a0ff5fc7611e2  addons/libs/zstddec.module.js
 5ac7095fd566bc9ae48376055fd66edf27cb9ebbf9e1269dc206bfd4933ae9eb  addons/utils/WorkerPool.js
 cc35c01c793cd17ccded7bc8142abffd3ce0d60dd6de8d5d216983bd05aee262  addons/math/ColorSpaces.js
+31de9586a36a8ad806303b84358f11d74ce70ac1d2656b04e8a5da7a913aa907  three-vrm-animation-3.5.5/three-vrm-animation.module.min.js
+279ec82987aec7e72ecb9850bb704a87e352d577bc7581454c30f3551a88ea92  three-vrm-animation-3.5.5/LICENSE
 ```
+既知の食い違い（three r185 × three-vrm 3.5.5）：r185 では頂点色の `vColor` が vec4 なのに、MToon のシェーダーは vec3 として掛けるため、**頂点色を使う MToon**（VRM の既定は頂点色を無視するので普通の VRoid のモデルは当たらない）はシェーダーが作れない。`charkit/runtime/vrmrt.js` の `patchVColor` が `.rgb` に直す（頂点色を使う時だけ）。
 mapkit（`mapkit.html` の検証マップ・2026-10-17 フェーズ 4）だけが、圧縮した素材（`.mo.glb`・`.ktx2`）がある時に Meshopt・KTX2 の復号器を読む（無ければ読まない）。境界侵食は使わない。
-three-vrm と GLTFLoader は VRM が manifest にある時だけ動的に読み込む（起動時は読まない）。
+three-vrm・three-vrm-animation と GLTFLoader は VRM が manifest にある時（または `?vrm=test`）だけ動的に読み込む（起動時は読まない）。
 版を上げるときは本作だけで確かめる（`node tools/shinshoku_play.mjs`）。

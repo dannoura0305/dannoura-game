@@ -89,8 +89,9 @@ const norm = a => { const l = v3.len(a) || 1; return [a[0] / l, a[1] / l, a[2] /
 // ───────── 体の寸法 ─────────
 /** 脚の寸法（skin.js の DIM から）：{ thigh, shin, hipY（股関節の休みの高さ）, ankleY（足首の休みの高さ）, heel, ball, hipX, pelvisY（腰の骨の休みの高さ）} */
 export function legDims(d) {
-  const hipY = d.leg - 0.02;
-  return { thigh: d.thigh, shin: d.shin, hipY, ankleY: hipY - d.thigh - d.shin, heel: 0.05 * (d.thigh / 0.4), ball: 0.15 * (d.thigh / 0.4), hipX: d.hipX, pelvisY: d.leg };
+  const hipDY = d.hipDY ?? -0.02;            // 腰の骨 → 股関節の高さの差（コードの骨は -0.02。VRM は骨の位置から：charkit/runtime/vrmrt.js）
+  const hipY = d.leg + hipDY;
+  return { thigh: d.thigh, shin: d.shin, hipY, ankleY: hipY - d.thigh - d.shin, heel: 0.05 * (d.thigh / 0.4), ball: 0.15 * (d.thigh / 0.4), hipX: d.hipX, pelvisY: d.leg, hipDY };
 }
 const DEF_DIMS = legDims({ leg: 0.86, thigh: 0.4, shin: 0.385, hipX: 0.085 });
 
@@ -231,7 +232,7 @@ export function poseLegs(p, pelvis, feet, L, o = {}) {
   const out = [];
   for (const ft of feet) {
     const sx = ft.side === 'left' ? 1 : -1;
-    const hj = v3.add([pelvis.x, pelvis.y, pelvis.z], qRot(pelvis.q, [sx * L.hipX, -0.02, 0]));
+    const hj = v3.add([pelvis.x, pelvis.y, pelvis.z], qRot(pelvis.q, [sx * L.hipX, L.hipDY ?? -0.02, 0]));
     const toeOut = ft.toeOut || 0;
     const pole = [Math.sin(sx * toeOut * 0.8 + sx * (o.knock || 0)), 0, Math.cos(sx * toeOut * 0.8)];
     const r = solveLeg(hj, [ft.x, ft.y, ft.z], L.thigh, L.shin, pole);
@@ -292,7 +293,7 @@ function heightCurve(v, g, S, L, key) {
         const [z, y] = stanceFoot(f0.s, g.stance * S, g, L, Math.max(0, fmax)); ft = Object.assign({}, f0, { z, y });
       }
       const sx = ft.side === 'left' ? 1 : -1;
-      const off = qRot(P.q, [sx * L.hipX, -0.02, 0]);
+      const off = qRot(P.q, [sx * L.hipX, L.hipDY ?? -0.02, 0]);
       const kn = g.kneeAt(ft.s) * D2R;
       const Lk = Math.sqrt(L.thigh * L.thigh + L.shin * L.shin + 2 * L.thigh * L.shin * Math.cos(kn));
       const dx = ft.x - (P.x + off[0]), dz = ft.z - (P.z + off[2]);
@@ -352,7 +353,7 @@ export function locoPose(ph, v, o = {}) {
   const autoRock = (side, s, uu) => {
     const sx = side === 'left' ? 1 : -1, hh = uu == null ? h : samplePeriodic(hk, wrap01(uu - (side === 'left' ? 0 : 0.5)));
     const PP = uu == null ? P : pelvisFrame(g, wrap01(uu - (side === 'left' ? 0 : 0.5)), vv);
-    const hj = v3.add([PP.x, hh, PP.z], qRot(PP.q, [sx * L.hipX, -0.02, 0]));
+    const hj = v3.add([PP.x, hh, PP.z], qRot(PP.q, [sx * L.hipX, L.hipDY ?? -0.02, 0]));
     const Lr = (L.thigh + L.shin) * 0.992;
     const Zf = g.foot.aheadK * D - D * s, W0 = sx * g.amp.stepWidthM / 2, psi = sx * g.amp.toeOutDeg * D2R;
     const at = f => { const [z, y, ff] = stanceFoot(s, D, g, L, f); return Object.assign({ y, f: ff, z0: z }, toeOutXZ(W0, z, Zf, psi)); };
@@ -501,7 +502,7 @@ export function groundClamp(p, L = DEF_DIMS, minY = -0.008) {
   for (const side of ['left', 'right']) {
     const sx = side === 'left' ? 1 : -1;
     const ul = p[side + 'UpperLeg'] || [0, 0, 0], ll = p[side + 'LowerLeg'] || [0, 0, 0], ft = p[side + 'Foot'] || [0, 0, 0];
-    const hj = v3.add(pel, qRot(qh, [sx * L.hipX, -0.02, 0]));
+    const hj = v3.add(pel, qRot(qh, [sx * L.hipX, L.hipDY ?? -0.02, 0]));
     const qT = qMul(qh, qEuler(ul[0], ul[1], ul[2])), qS = qMul(qT, qEuler(ll[0], ll[1], ll[2])), qF = qMul(qS, qEuler(ft[0], ft[1], ft[2]));
     const knee = v3.add(hj, qRot(qT, [0, -L.thigh, 0])), ankle = v3.add(knee, qRot(qS, [0, -L.shin, 0]));
     const heel = v3.add(ankle, qRot(qF, [0, -L.ankleY, -L.heel])), ball = v3.add(ankle, qRot(qF, [0, -L.ankleY, L.ball]));

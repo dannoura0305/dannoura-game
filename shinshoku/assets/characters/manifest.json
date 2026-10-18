@@ -7,5 +7,18 @@
     "kiro": { "file": null, "provisional": true, "height": 1.78, "scale": 1, "rotateY": 0, "restPose": "auto", "bones": {}, "source": "code-built placeholder", "license": "project", "author": "project" },
     "heiten": { "file": null, "provisional": true, "height": 2.15, "scale": 1, "rotateY": 0, "restPose": "auto", "bones": {}, "source": "code-built placeholder", "license": "project", "author": "project" },
     "shuuyou": { "file": null, "provisional": true, "height": 2.6, "scale": 1, "rotateY": 0, "restPose": "auto", "bones": {}, "source": "code-built placeholder", "license": "project", "author": "project" }
+  },
+  "_noteTest": "testEntries は URL に ?vrm=<名前> を付けた時だけ characters に重ねて使う（配管の試験用・本番の絵ではない）。test は tools/charkit/export_test_vrm.mjs が作った試験用の VRM 1.0 と VRMA。",
+  "testEntries": {
+    "test": {
+      "dannoura": { "file": "test/dannoura_test.vrm", "anim": "../anim/test/clips.json", "portrait": null, "provisional": true, "test": true, "height": 1.64, "fit": "none", "shader": "mtoon", "kind": "dannoura",
+                    "source": "tools/charkit/export_test_vrm.mjs（コードで組んだだんのうらの書き出し・配管の試験用）", "license": "project（試験用・配らない）", "author": "project", "meta": "test/dannoura_test.meta.json" }
+    },
+    "test_noanim": {
+      "dannoura": { "file": "test/dannoura_test.vrm", "anim": null, "provisional": true, "test": true, "height": 1.64, "fit": "none", "kind": "dannoura", "source": "同上（クリップなし：手続きの予備の動きの確認）", "license": "project（試験用）", "author": "project" }
+    },
+    "test_toon2": {
+      "dannoura": { "file": "test/dannoura_test.vrm", "anim": "../anim/test/clips.json", "provisional": true, "test": true, "height": 1.64, "fit": "none", "shader": "toon2", "kind": "dannoura", "source": "同上（材質を本作の toon2 へ変換）", "license": "project（試験用）", "author": "project" }
+    }
   }
 }

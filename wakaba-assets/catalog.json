@@ -11336,8 +11336,8 @@
    "version": 1,
    "category": "prop",
    "name": {
-    "ja": "乗用車（普通・軽の 2 種・塗装は置く時の色）",
-    "en": "Car (sedan / kei, tintable)"
+    "ja": "乗用車（セダン・軽ワゴン・ミニバン・軽トラ・タクシー・ハッチバックの 6 種・塗装は置く時の色・スマホは car_lite）",
+    "en": "Cars (sedan / kei wagon / minivan / kei truck / taxi / hatchback, tintable; phone uses car_lite)"
    },
    "status": "draft",
    "tags": [
@@ -11354,11 +11354,11 @@
    "tech": {
     "pivot": "bottom_center",
     "sizeM": [
-     1.97,
-     1.4,
-     4.38
+     2.02,
+     1.438,
+     4.405
     ],
-    "tris": 1156
+    "tris": 2284
    },
    "targets": {
     "web": {
@@ -11375,14 +11375,14 @@
      "role": "fbx",
      "path": "source/prop.town.car.fbx",
      "storage": "local-ignored",
-     "sha256": "589df94df60de6c812693ca2cb94bf2da4f6ed026fcf45c08c0da80eb07070f0",
-     "bytes": 73052
+     "sha256": "f84d3a09bf9c584d45a3158ff3e3efec7adf97c682604f1d4aa3442d82e58b78",
+     "bytes": 285436
     }
    ],
    "web": [
     {
      "file": "web/prop.town.car.glb",
-     "bytes": 331360
+     "bytes": 872436
     }
    ],
    "ue5": {
@@ -11396,25 +11396,122 @@
    },
    "kit": {
     "nodes": {
-     "v0_LOD0": 1156,
-     "v0_LOD1": 404,
-     "v1_LOD0": 1156,
-     "v1_LOD1": 404
+     "v0_LOD0": 2284,
+     "v1_LOD0": 2204,
+     "v2_LOD0": 2356,
+     "v3_LOD0": 1896,
+     "v4_LOD0": 2340,
+     "v5_LOD0": 2252
     },
-    "variants": 2,
+    "variants": 6,
     "lodDist": [
-     30
+     60
     ],
     "impostor": false,
     "materials": [
+     "emit.amber",
+     "emit.andon",
      "emit.head",
      "emit.tail",
      "glass.dark",
+     "mat.town.paint#bed",
+     "mat.town.paint#black",
+     "mat.town.paint#carpaint",
      "mat.town.paint#chrome",
      "mat.town.paint#dark",
-     "mat.town.paint#tint",
-     "mat.town.paint#tire",
-     "mat.town.paint#white"
+     "mat.town.paint#plate",
+     "mat.town.paint#rim",
+     "mat.town.paint#tire"
+    ]
+   }
+  },
+  {
+   "id": "prop.town.car_lite",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "乗用車の軽い版（スマホの低い段：prop.town.car の LOD2 だけ・6 種）",
+    "en": "Cars, lite (phone low preset: LOD2 only, 6 kinds)"
+   },
+   "status": "draft",
+   "tags": [
+    "車",
+    "町",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.town.car_lite",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     1.75,
+     1.449,
+     4.38
+    ],
+    "tris": 908
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.town.car_lite.fbx",
+     "storage": "local-ignored",
+     "sha256": "90e62f64c4c16300ac07f95183c922bb717ceef2a6f785d8820b35728e53c643",
+     "bytes": 141196
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.town.car_lite.glb",
+     "bytes": 333968
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_town_car_lite",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.town.car_lite.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "v0_LOD0": 908,
+     "v1_LOD0": 840,
+     "v2_LOD0": 900,
+     "v3_LOD0": 692,
+     "v4_LOD0": 932,
+     "v5_LOD0": 888
+    },
+    "variants": 6,
+    "lodDist": [
+     60
+    ],
+    "impostor": false,
+    "materials": [
+     "emit.andon",
+     "emit.head",
+     "emit.tail",
+     "glass.dark",
+     "mat.town.paint#bed",
+     "mat.town.paint#black",
+     "mat.town.paint#carpaint",
+     "mat.town.paint#rim",
+     "mat.town.paint#tire"
     ]
    }
   },

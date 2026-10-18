@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import { TOWN, townSolids, houseFoot, guardSpans, townLamps, homeW, houseDoor, lotEntrances, fillCells, fillEntrances, seeded, isWalkable } from '../data/town.js';
 import { applyTile } from '../render/townmat.js';
 import { makeTown2, isFar } from './town2.js';
+import { steamMesh } from '../render/steam.js';
+import { CAR_KINDS } from './envkit.js';
 import { furnKit } from './furn.js';
 
 // 決まった乱数（区画の id から）：data/town.js の seeded（出入り口の位置と同じ乱数）
@@ -26,11 +28,11 @@ export function buildTown(ctx) {
   const prop = (cx, cy, cz, w, h, d, color, opt = {}) => B.box('prop', cx, cy, cz, w, h, d, color, Object.assign({ edges: false }, opt));
   const addTile = (key, geo, tile, color = 0xffffff, opt = {}) => { applyTile(geo, tile, opt); return B.add(key, geo, color, opt.ao || false); };
   const signUV = (text, opt) => atlas.addKey ? atlas.addKey(text + '|' + JSON.stringify(opt || {}), signDraw(text, opt)) : atlas.add(signDraw(text, opt));
-  const poolGeos = [];
+  const poolGeos = [], steam = [];                                // P14：湯気の出る所（render/steam.js）
   const pool = (x, z, r, color, k = 1) => { const g = new THREE.PlaneGeometry(r * 2, r * 2); g.rotateX(-Math.PI / 2); g.translate(x, 0.035, z); const c = new THREE.Color(color).multiplyScalar(k); const n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); poolGeos.push(g); };
 
   // フェーズ10 の部品（中央通り・駅前・広場・町家・ビル）：同じ道具を渡す
-  const X = makeTown2({ B, T, tb, prop, addTile, signUV, pool, halos, lights, wet, spots, hideSpots, frame, win, roofGable, tree, lampAt, car, bike, catenaryPts, wirePts, inPart, inRect, seeded, fenceFront, signDraw, atlas, doorFrame, glassDoor, FK, acAt });
+  const X = makeTown2({ B, T, tb, prop, addTile, signUV, pool, halos, lights, wet, spots, hideSpots, frame, win, roofGable, tree, lampAt, car, bike, catenaryPts, wirePts, inPart, inRect, seeded, fenceFront, signDraw, atlas, doorFrame, glassDoor, FK, acAt, steam });
   // ── 地面：下敷き（用水路の底より下）・歩ける所・区画の庭 ──
   if (part !== 'far') { const b = T.bounds; tb('tex', (b.minX + b.maxX) / 2, -1.3, (b.minZ + 66) / 2 + 30, b.maxX - b.minX + 40, 0.2, 66 - b.minZ + 80, 0x2a2826, 'gravel', { ts: 4 }); }
   const SURF_TS = { asphalt: 6, asphalt2: 6, lane: 5, interlock: 1.6, paving: 2.2, gravel: 3, concrete: 3, granite: 4, arcade_floor: 2.6 };
@@ -152,7 +154,7 @@ export function buildTown(ctx) {
   const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute(wirePts, 3)); wg.computeBoundingSphere();
   const wires = new THREE.LineSegments(wg, new THREE.LineBasicMaterial({ color: 0x0a0810, transparent: true, opacity: 0.85, fog: true })); wires.name = 'town_wires';
 
-  return { boxes, lights, halos, wet, spots, hideSpots, wires, pools, signals };
+  return { boxes, lights, halos, wet, spots, hideSpots, wires, pools, signals, steam: steamMesh(steam) };
 
   // ───────────── 区画ごとの形 ─────────────
   /** 区画の枠：u＝表に沿って、v＝表から奥へ */
@@ -445,12 +447,12 @@ export function buildTown(ctx) {
     // 1 階の外側（玄関の口を空ける）
     for (const [a, b] of [[x0 - 0.2, cx - door / 2], [cx + door / 2, x1 + 0.2]]) B.box('tex', (a + b) / 2, 1.6, z0 - 0.19, b - a, 3.2, 0.06, tint, { tile: 'siding', ts: 2, ao: true, edges: true });
     B.box('tex', cx, 2.75, z0 - 0.19, door, 0.9, 0.06, tint, { tile: 'siding', ts: 2, edges: false });
-    // フェーズ11：玄関の戸（引き戸を右へ開けたまま＝出入りできる）・枠・上のレール・ポーチ（低いタイル）・表札・インターホン・灯り
+    // P14：玄関の戸（開き戸：level.js の dyn.homeDoor＝閉じていて、近づくと外へ開き、離れると閉じる）・枠・袖の明かり取り・ポーチ・表札・インターホン・灯り
     { const zf = z0 - 0.24, hh = 2.3;
       for (const s of [-1, 1]) B.box('prop', cx + s * (door / 2 + 0.045), hh / 2, zf + 0.02, 0.1, hh + 0.1, 0.1, 0x3a3430, { edges: false });
-      B.box('prop', cx + 0.7, hh + 0.06, zf + 0.02, door + 1.6, 0.1, 0.12, 0x3a3430, { edges: false });              // 上のレール（戸袋の上まで）
-      B.box('prop', cx + 0.7, 0.025, zf + 0.02, door + 1.6, 0.05, 0.12, 0x8a8a88, { edges: false });                // 下のレール
-      B.box('tex', cx + door / 2 + 0.74, hh / 2, zf - 0.04, door + 0.04, hh - 0.04, 0.05, 0xffffff, { tile: 'door_house', fit: true, edges: false });   // 開けた戸（右の壁の前）
+      B.box('prop', cx, hh + 0.06, zf + 0.02, door + 0.2, 0.1, 0.12, 0x3a3430, { edges: false });                    // 上の枠
+      B.box('prop', cx, 0.025, zf + 0.06, door, 0.05, 0.2, 0x8a8a88, { edges: false });                                // 沓摺り
+      B.box('prop', cx + door / 2 - 0.4, hh / 2, zf + 0.1, 0.04, hh - 0.05, 0.08, 0x3a3430, { edges: false });          // 戸と明かり取りの間の方立て
       B.box('tex', cx, 0.03, z0 - 0.75, 2.2, 0.06, 1.0, 0xd8d4cc, { tile: 'stone', ts: 0.6, edges: false });            // ポーチ
       const puv2 = signUV('だんのうら', { bg: '#f1e9d6', fg: '#1d1712', size: 46, serif: true });
       B.box('sign', cx - door / 2 - 0.45, 1.65, zf - 0.01, 0.36, 0.11, 0.02, 0xffffff, { uv: puv2, face: 5, edges: false });
@@ -458,15 +460,20 @@ export function buildTown(ctx) {
       B.box('glow', cx - door / 2 - 0.45, 2.15, zf - 0.04, 0.16, 0.22, 0.12, 0xffd8a0, { edges: false }); }
     for (const x of [x0 - 0.19, x1 + 0.19]) B.box('tex', x, 1.6, cz, 0.06, 3.2, d + 0.4, tint, { tile: 'siding', ts: 2, ao: true, edges: true });
     B.box('tex', cx, 1.6, z1 + 0.19, w + 0.4, 3.2, 0.06, tint, { tile: 'siding', ts: 2, edges: false });
-    // 2 階
-    B.box('tex', cx, 3.2 + 1.45, cz, w + 0.4, 2.9, d + 0.4, tint, { tile: 'siding', ts: 2, edges: true });
+    // 2 階（P14：中に部屋がある＝外の皮だけ。前は中の詰まった箱だった）
+    B.box('tex', cx, 3.2 + 1.45, z0 - 0.19, w + 0.4, 2.9, 0.06, tint, { tile: 'siding', ts: 2, edges: true });
+    B.box('tex', cx, 3.2 + 1.45, z1 + 0.19, w + 0.4, 2.9, 0.06, tint, { tile: 'siding', ts: 2, edges: false });
+    for (const x of [x0 - 0.19, x1 + 0.19]) B.box('tex', x, 3.2 + 1.45, cz, 0.06, 2.9, d + 0.4, tint, { tile: 'siding', ts: 2, edges: true });
     B.box('prop', cx, 3.25, cz, w + 0.5, 0.14, d + 0.5, 0x8a7a6a);
     const F = { W: w + 0.4, D: d + 0.4, alongX: true, f: 'N', out: [0, -1], at: (u, v) => [x0 - 0.2 + u, z0 - 0.2 + v] };
     F.box = (key, u, v, y, a, b, h, color, tile, opt = {}) => { const [x, z] = F.at(u, v); return B.box(key, x, y, z, a, h, b, color, Object.assign({ tile, edges: false }, opt)); };
     roofGable(F, 0, 0, F.W, F.D, 6.1, 'kawara', 0xc8c8d0, 0.6, 'siding', tint);
     // 窓：1 階の居間（点いている：家の中の灯り）・2 階（子ども部屋＝暗い・カーテン）
     win(F, 2.2, 0, 1.4, 2.0, 1.3, 'curtain'); win(F, F.W - 2.2, 0, 1.5, 1.6, 1.1, 'lit');
-    win(F, 2.6, 0, 4.7, 1.6, 1.2, 'dark'); win(F, F.W - 2.8, 0, 4.7, 1.6, 1.2, 'curtain');
+    win(F, 2.6, 0, 4.7, 1.6, 1.2, 'curtain'); win(F, F.W - 2.0, 0, 4.5, 1.3, 2.2, 'curtain');   // 2 階：娘の部屋・寝室（ベランダの戸）
+    { const SW = { W: F.D, D: F.W, alongX: false, f: 'W', out: [-1, 0], at: (u, v) => [x0 - 0.2 + v, z1 + 0.2 - u] };       // 西の横の面（居間の窓・娘の部屋の窓）
+      SW.box = (key, u, v, y, a, b, h, color, tile, opt = {}) => { const [x, z] = SW.at(u, v); return B.box(key, x, y, z, b, h, a, color, Object.assign({ tile, edges: false }, opt)); };
+      win(SW, (z1 + 0.2) - homeW(0, 13.4)[1], 0, 1.5, 1.5, 1.3, 'lit'); win(SW, (z1 + 0.2) - homeW(0, 9.7)[1], 0, 5.0, 1.0, 0.8, 'curtain'); }
     F.box('prop', F.W - 2.8, -0.5, 3.3, 2.8, 1.0, 0.12, 0x8a8a88); F.box('tex', F.W - 2.8, -0.98, 3.8, 2.8, 0.04, 0.9, 0xffffff, 'balcony', { fit: true });
     // 室外機・雨どい・外の水道
     acAt(F, F.W - 0.8, -0.35, 0.32);
@@ -629,7 +636,7 @@ export function buildTown(ctx) {
   }
   function car(p) {
     const ry = p.ry || 0, c = Math.cos(ry), s = Math.sin(ry), L = p.kei ? 3.4 : 4.3, Wd = p.kei ? 1.48 : 1.75;
-    const kitCar = K.put('prop.town.car', p.kei ? 1 : 0, p.x, 0, p.z, ry, 1, p.color);
+    const kitCar = K.put('prop.town.car', Math.max(0, CAR_KINDS.indexOf(p.type || (p.kei ? 'kei' : 'sedan'))), p.x, 0, p.z, ry, 1, p.color);   // P14：種類（セダン・軽・ミニバン・軽トラ・タクシー・ハッチバック）
     B.fb(kitCar, () => car0(p, ry, c, s, L, Wd));
     if (p.abandoned || p.hazard) { for (const sx of [-1, 1]) { const hx = p.x + (sx * (Wd / 2 - 0.25)) * c + (L / 2 + 0.3) * s, hz = p.z - (sx * (Wd / 2 - 0.25)) * s + (L / 2 + 0.3) * c; halos.push({ p: [hx, 0.72, hz], size: 0.9, color: 0xffa020, k: 0.8, hazard: true }); } if (p.abandoned) spots.push({ id: 'town_car', kind: 'read', x: p.x + 2.2 * s, z: p.z + 2.2 * c + 1.4, r: 1.6, label: '乗り捨てられた車', text: 'town_car' }); }
   }

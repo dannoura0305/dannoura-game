@@ -416,7 +416,7 @@ export function makeTown2(K) {
       B.box('tex', (lx0 + lx1) / 2, 0.003, (lz0 + lz1) / 2, lx1 - lx0, 0.01, lz1 - lz0, 0xffffff, { tile: 'asphalt', ts: 6, edges: false });
       for (const x of [lx0 + 0.15, lx1 - 0.15]) prop(x, 0.012, (lz0 + lz1) / 2, 0.12, 0.02, lz1 - lz0, 0xe8e6de);
       prop(47.4, 0.012, (lz0 + lz1) / 2, 0.12, 0.02, lz1 - lz0 - 4, 0xe8d070);
-      for (const [x, z, ry] of S.taxi.cars) { car({ x, z, ry, color: [0x2a2a2e, 0xe8c830, 0x2a4a7a, 0xe8e8e8][Math.round(-z) % 4] }); prop(x, 1.49, z, 0.5, 0.18, 0.2, 0xf0f0e8); glowB(x, 1.49, z + 0.11, 0.42, 0.12, 0.02, 0xffe080); }
+      for (const [x, z, ry] of S.taxi.cars) { car({ x, z, ry, type: 'taxi', color: [0x2a2a2e, 0xe8c830, 0x2a5a3a, 0xe8e8e8][Math.round(-z) % 4] }); prop(x, 1.49, z, 0.5, 0.18, 0.2, 0xf0f0e8); glowB(x, 1.49, z + 0.11, 0.42, 0.12, 0.02, 0xffe080); }
       const [sx, sz] = S.taxi.stand;
       for (const dx of [-1.5, 1.5]) prop(sx + dx, 1.2, sz, 0.1, 2.4, 0.1, 0x5a6068);
       glass(sx, 2.45, sz + 0.4, 3.6, 0.05, 1.8, 0x6a88a8); prop(sx, 2.42, sz, 3.6, 0.1, 0.12, 0x4a4e58); glass(sx, 1.3, sz, 2.92, 1.6, 0.04, 0x5a7090); prop(sx, 0.48, sz, 2.92, 0.06, 0.06, 0x4a4e58);
@@ -538,9 +538,8 @@ export function makeTown2(K) {
    *  居酒屋のひさしの縁から吊る。空き地は塀で閉じ、町家の横の面には勝手口・窓・室外機。入口の看板は門の梁に吊る。 */
   function yokocho() {
     const Y = T.walk.find(w => w.id === 'yokocho').rect, [x0, z0, x1, z1] = Y;
-    const SK = shopKit({ B, signUV, halos, wet, pool, lights });
-    const units = [['焼き鳥（仮）', 'yakitori'], ['おでん（仮）', 'oden'], ['立ち飲み（仮）', 'tachinomi'], ['スナック 雪（仮）', 'snack']];
-    units.forEach(([name, kind], i) => SK.unit([44 + i * 4, z1, 48 + i * 4, z1 + 4.4], 'N', kind, name, { seed: 31 + i * 17, lanternRight: i === 2 }));
+    const SK = shopKit({ B, signUV, halos, wet, pool, lights, steam: K.steam });
+    T.yokochoUnits.forEach((u, i) => SK.unit([u.x0, z1, u.x0 + 4, z1 + 4.4], 'N', u.kind, u.name, { seed: 31 + i * 17, front: u.front }));   // P14：開いた表・明るい店の中・店の前の物
     // 北の側：居酒屋（w4）のひさしの縁から吊った提灯（赤・白）
     let k = 0;
     for (let x = x0 + 1.5; x < 49.5; x += 2.5) {

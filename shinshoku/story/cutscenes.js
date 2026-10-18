@@ -51,12 +51,12 @@ export const CUTSCENES = {
   cs00_tv: {
     id: 'cs00_tv', area: 'shotengai', letterbox: true, skippable: true,
     cam: [
-      { t: 0, pos: HP(-2.6, 1.25, 14.2), look: HP(3.5, 0.95, 9.6), fov: 48 },
-      { t: 5.0, pos: HP(-1.4, 1.15, 13.0), look: HP(3.5, 0.95, 9.6), fov: 34 },
-      { t: 7.2, pos: HP(-1.0, 1.4, 12.6), look: HP(-3.2, 1.0, 15.0), fov: 46, cut: true },
-      { t: 10.0, pos: HP(-0.8, 1.5, 12.4), look: HP(-3.4, 1.1, 15.0), fov: 42 },
+      { t: 0, pos: HP(-2.4, 1.3, 14.6), look: HP(-3.5, 0.98, 9.3), fov: 48 },
+      { t: 5.0, pos: HP(-2.9, 1.15, 13.2), look: HP(-3.5, 0.98, 9.3), fov: 34 },
+      { t: 7.2, pos: HP(-2.6, 1.4, 11.2), look: HP(-3.4, 0.95, 14.4), fov: 46, cut: true },   // P14：テレビ（奥の壁）とソファが向き合う
+      { t: 10.0, pos: HP(-2.2, 1.5, 11.6), look: HP(-3.4, 1.05, 14.4), fov: 42 },
     ],
-    actors: [{ t: 0, id: 'player', pos: homeW(-3.4, 14.4), yaw: Math.PI * 0.82, anim: 'sit' }],
+    actors: [{ t: 0, id: 'player', pos: homeW(-3.4, 14.35), yaw: Math.PI, anim: 'sit' }],
     lines: [
       { t: 0.6, who: 'sys', text: '（テレビは砂嵐。音を消しても、ざらざらした音が続く）', dur: 3.0 },
       { t: 4.4, who: 'sys', text: '（一瞬、知らない人の顔が映る。白衣。声はない）', dur: 2.6 },

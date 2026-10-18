@@ -1,0 +1,79 @@
+{
+ "id": "test.dannoura_test",
+ "test": true,
+ "provisional": true,
+ "notFinalArt": true,
+ "note": "配管の試験用（tools/charkit/export_test_vrm.mjs でコードで組んだだんのうらを書き出した物）。本番の絵ではない。ゲームでは ?vrm=test の時だけ使う。",
+ "license": {
+  "id": "project",
+  "commercial": "n/a（試験用・配らない）",
+  "redistributeRaw": "no"
+ },
+ "author": "project",
+ "source": {
+  "type": "procedural_export",
+  "tool": "tools/charkit/export_test_vrm.mjs"
+ },
+ "info": {
+  "bones": 44,
+  "prims": 12,
+  "droppedTris": 804,
+  "face": {
+   "parts": 9,
+   "eyes": 2,
+   "mouth": 1,
+   "brows": 2,
+   "verts": 754
+  },
+  "tris": 28591,
+  "png": 153692,
+  "hipsY": 0.86
+ },
+ "files": [
+  {
+   "file": "characters/test/dannoura_test.vrm",
+   "bytes": 1479824,
+   "sha256": "228e4c79b79d897b0d44d5f34ab579073dd21c660ae0606410d7cc090ab4417a"
+  },
+  {
+   "file": "anim/test/loco_walk.vrma",
+   "bytes": 15344,
+   "sha256": "93251f1e761fdb284849199b76dd9abd7d67dfdc846d2326c18ae554ee58d3a9"
+  },
+  {
+   "file": "anim/test/loco_jog.vrma",
+   "bytes": 15344,
+   "sha256": "93753c8d5c9fc182d76d2992e3f916ab34495e0ac4f4384480ed299c77da15d6"
+  },
+  {
+   "file": "anim/test/loco_run.vrma",
+   "bytes": 15344,
+   "sha256": "bbb485f5f05b33a5c34703d7fef8365d0a1f4cfc228fbe2032c3a40ae74b64e0"
+  },
+  {
+   "file": "anim/test/loco_sprint.vrma",
+   "bytes": 15348,
+   "sha256": "b7e76b8cbb043749ab9b8d1cb0b175de2f66f95359c451007e2751aad80f25b8"
+  },
+  {
+   "file": "anim/test/idle.vrma",
+   "bytes": 40712,
+   "sha256": "cc35e27a419c21f37f80591f359a8c50fdfe940c05c84d9c1db06184bf4a2097"
+  },
+  {
+   "file": "anim/test/cmb_katana_light_1.vrma",
+   "bytes": 12832,
+   "sha256": "7097a53567be58d862ad0965ff83fe322ea7f447b4831531417b4049581da0be"
+  },
+  {
+   "file": "anim/test/cmb_katana_heavy.vrma",
+   "bytes": 16000,
+   "sha256": "d4fe58b75b94692bcef8a0433aa580187cbe49cb69eb437f067e4ed894223048"
+  },
+  {
+   "file": "anim/test/react_hit_front.vrma",
+   "bytes": 10180,
+   "sha256": "e82a2516dad2e4079cfa31e973044805bf3fc9add580862da924d4daf1cf1ef4"
+  }
+ ]
+}

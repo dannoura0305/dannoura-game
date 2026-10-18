@@ -184,10 +184,13 @@ class Game {
   makeWhiteModel() { const m = buildDannouraWhite(); return m; }
   presetVals() { const k = this.settings.preset === 'auto' ? this.autoPresetKey : this.settings.preset; return PRESETS[k] || PRESETS[this.autoPresetKey] || PRESETS.high; }
   async loadCharacterModels() {
-    const m = this.manifest && this.manifest.characters; this.portraits = {}; if (!m) return;
+    const man = this.manifest; this.portraits = {}; if (!man || !man.characters) return;
+    // ?vrm=test：配管の試験用の VRM（コードで組んだだんのうらを書き出した物）と VRMA のクリップを使う（manifest の testEntries。本番の絵ではない）
+    const m = Object.assign({}, man.characters, Q.get('vrm') && man.testEntries && man.testEntries[Q.get('vrm')] ? man.testEntries[Q.get('vrm')] : {});
+    const lopt = { quality: this.presetVals() === PRESETS.low ? 'low' : 'high' };
     for (const [k, v] of Object.entries(m)) if (v && v.portrait) this.portraits[k] = new URL('./assets/characters/' + v.portrait, import.meta.url).href;
-    if (m.dannoura && m.dannoura.file) { const v = await loadCharacter(m.dannoura); if (v) { this.player.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('dannoura'); } }
-    if (m.companion && m.companion.file) { const v = await loadCharacter(m.companion); if (v) { this.companion.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('companion'); } }
+    if (m.dannoura && m.dannoura.file) { const v = await loadCharacter(m.dannoura, lopt); if (v) { const wasPurple = this.player.model === this.purpleModel; this.purpleModel = v; if (wasPurple) this.player.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('dannoura'); this.vrmStats = Object.assign({ who: 'dannoura', test: !!v.test }, v.stats || {}); } }
+    if (m.companion && m.companion.file) { const v = await loadCharacter(m.companion, lopt); if (v) { this.companion.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('companion'); } }
     // 異形（glTF 推奨）：読めたら次に区画を読み込む時から差し替え
     this.extModels = {};
     for (const k of ['kiro', 'heiten', 'shuuyou']) if (m[k] && m[k].file) { const v = await loadCharacter(m[k]); if (v) { await prepareClone(); this.extModels[k] = v; this.vrmLoaded = (this.vrmLoaded || []).concat(k); } }
@@ -618,6 +621,7 @@ class Game {
       const d = Math.hypot(P.pos.x - s.x, P.pos.z - s.z);
       if (s.kind === 'exit' && s.auto && d < s.r + 0.4) nearExit = true;
       if (d > s.r) continue;
+      if (s.floor != null && (s.floor === 1) !== (P.pos.y > 1.65)) continue;                       // P14：自宅の 1 階・2 階の調べる所
       if (s.kind === 'door' && this.opened.has(s.door)) continue;
       if (s.kind === 'help' && (!this.heiten || this.heiten.brain.resolved || !this.heiten.brain.alive || streetState(this.story.step) === 'normal')) continue;
       if (s.kind === 'shutter' && !(this.boss && this.boss.brain.state === 'stuck')) continue;
@@ -844,14 +848,14 @@ class Game {
       if (A.fogFar && !this.cineCam) { const far = Math.min(A.far || 120, A.fogFar / Math.max(f.density, 1e-4)) * (this.presetVals().farMul || 1); if (Math.abs(this.camera.far - far) > 1.5) { this.camera.far = far; this.camera.updateProjectionMatrix(); } }
       else if (A.fogFar && this.camera.far !== (A.far || 120)) { this.camera.far = A.far || 120; this.camera.updateProjectionMatrix(); } }
     // 光源とプレイヤーの近く
-    this.keyLight.position.set(P.pos.x + Math.sin(this.cam.yaw) * 1.6, 1.9, P.pos.z + Math.cos(this.cam.yaw) * 1.6);
+    this.keyLight.position.set(P.pos.x + Math.sin(this.cam.yaw) * 1.6, (P.pos.y || 0) + 1.9, P.pos.z + Math.cos(this.cam.yaw) * 1.6);
     this.keyLight.intensity = this.darkness ? 0.6 : 1.4;
     this.moon.position.set(P.pos.x - 6, 14, P.pos.z + 8); this.moon.target.position.set(P.pos.x, 0, P.pos.z);
     this.moon.intensity = A.id === 'shelter' ? (this.darkness ? 0.25 : 0.45) : 0.9;
     // 懐中電灯：胸から、カメラの向きへ
     const fwd = new THREE.Vector3(); this.camera.getWorldDirection(fwd);
     this.flash.intensity = this.flashlightOn ? 26 : 0;
-    this.flash.position.set(P.pos.x + Math.sin(P.yaw) * 0.25, 1.3, P.pos.z + Math.cos(P.yaw) * 0.25);
+    this.flash.position.set(P.pos.x + Math.sin(P.yaw) * 0.25, (P.pos.y || 0) + 1.3, P.pos.z + Math.cos(P.yaw) * 0.25);
     this.flash.target.position.copy(this.flash.position).addScaledVector(fwd, 6);
     if (this.flashHalo >= 0) { this.halos.setPos(this.flashHalo, this.flash.position.x, this.flash.position.y, this.flash.position.z); this.halos.setK(this.flashHalo, this.flashlightOn ? 0.35 : 0); }
     if (S.rain && A.rain) { const roofed = A.rainRoof(P.pos.x, P.pos.z); this.rain.mesh.visible = !roofed; if (!roofed) this.rain.update(dt, P.pos.x, P.pos.z, false); } else this.rain.mesh.visible = false;
@@ -1021,14 +1025,14 @@ class Game {
           enemies: g.enemies.map(e => ({ id: e.id, kind: e.kind, state: e.brain.state, hp: e.brain.hp, resolution: e.brain.resolution, x: e.pos.x, z: e.pos.z, visible: e.root.visible, atk: e.brain.atk && e.brain.atk.name, chainable: e.brain.chainable, poise: e.brain.poise })),
           companion: { mode: g.companion.brain.mode, x: g.companion.brain.pos.x, z: g.companion.brain.pos.z, visible: g.companion.root.visible, trust: g.companion.brain.trust },
           metrics: JSON.parse(JSON.stringify(Object.assign({}, g.metrics, { events: g.metrics.events.slice(-40) }))),
-          nearSpot: g.nearSpot && g.nearSpot.id, flags: Object.assign({}, g.flags), opened: [...g.opened], vrm: g.vrmLoaded || [], lock: g.lock && g.lock.id, equip: g.equipped.slice(), enemyRes: Object.assign({}, g.enemyRes),
+          nearSpot: g.nearSpot && g.nearSpot.id, flags: Object.assign({}, g.flags), opened: [...g.opened], vrm: g.vrmLoaded || [], vrmStats: g.vrmStats || null, charAnim: g.player.clipRes ? g.player.clipRes.key : null, lock: g.lock && g.lock.id, equip: g.equipped.slice(), enemyRes: Object.assign({}, g.enemyRes),
           form: F.form, yoki: Math.round(F.yoki), combo: F.comboN, comboMax: F.combo.max, stance: g.route.stance, route: g.route.route, branchLog: g.route.branchLog.slice(-6), companionKnows: !!(g.route.reveal && g.route.reveal.companionKnows), whiteUnlocked: !!(g.route.forms && g.route.forms.whiteUnlocked),
           child: g.child ? { visible: g.child.root.visible, mode: g.child.mode, x: g.child.pos.x, z: g.child.pos.z } : null, routeLock: g.route.routeLock, giantMode: !!g.giantMode, mLoaded: F.mLoaded, fstate: F.st.name, fires: g.fires.length, decoy: !!g.decoy, actHist: (g.actHist || []).slice(-6), boss: g.boss ? { id: g.boss.id, state: g.boss.brain.state, hp: g.boss.brain.hp, hpMax: g.boss.brain.hpMax, phase: g.boss.brain.phase } : null,
         };
       },
       input: { script: list => g.input.runScript(list), press: (a, f = 0) => g.input.runScript([{ f, press: [a] }]), hold: (a, n) => g.input.runScript([{ f: 0, hold: { [a]: n } }]), move: (x, y, n) => g.input.runScript([{ f: 0, move: [x, y, n] }]) },
       debug: {
-        teleport(x, z, yaw) { g.player.pos.set(x, 0, z); if (yaw != null) { g.player.yaw = yaw; g.cam.yaw = yaw + Math.PI; } },
+        teleport(x, z, yaw, y = 0) { g.player.pos.set(x, y, z); if (yaw != null) { g.player.yaw = yaw; g.cam.yaw = yaw + Math.PI; } },
         home(x, z) { return [x + TOWN_HOME[0], z + TOWN_HOME[1]]; }, town() { return { route: TOWN.route.map(p => p.slice()), routes: JSON.parse(JSON.stringify(TOWN.routes)), nodes: TOWN.nav.nodes, version: TOWN.version, pending: !!(g.areas.shotengai && g.areas.shotengai.pending && g.areas.shotengai.pending.length) }; }, buildPending() { const A = g.areas.shotengai; if (A) g.buildPending(A, 9); return !(A && A.pending && A.pending.length); },
         camYaw(y) { g.cam.yaw = y; }, camPitch(p) { g.cam.pitch = p; },
         faceTo(x, z) { const P = g.player; P.yaw = Math.atan2(x - P.pos.x, z - P.pos.z); g.cam.yaw = P.yaw + Math.PI; },

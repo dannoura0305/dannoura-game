@@ -50,7 +50,7 @@ export const ch3Methods = {
     const c = this.child; if (!c || !c.root.visible) return;
     const { pose, rate } = childPose({ time: c.time, speed: c.speed, phase: c.phase, mode: c.cmode || c.mode });
     c.poser.apply(pose, 1 - Math.pow(1 - rate, dt * 60));
-    if (c.mode === 'follow') c.y = 0; c.root.position.set(c.pos.x, c.y || 0, c.pos.z); c.root.rotation.y = c.yaw;
+    if (c.mode === 'follow') { const fy = this.area.floorAt ? this.area.floorAt(c.pos.x, c.pos.z, c.y) : null; c.y = fy ?? 0; }   // P14：自宅の階段・2 階 c.root.position.set(c.pos.x, c.y || 0, c.pos.z); c.root.rotation.y = c.yaw;
     const E = c.model.eyes; c.blinkT -= dt; const k = c.blinkT < 0.13 ? Math.max(0.08, Math.abs(c.blinkT - 0.065) / 0.065) : 1; if (c.blinkT <= 0) c.blinkT = 2.4 + Math.random() * 3; for (const e of E) e.scale.y = k;
     if (c.model.outline) c.model.outline.visible = this.settings.outline;
   },

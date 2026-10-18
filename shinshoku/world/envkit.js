@@ -15,11 +15,15 @@ const LIB = new URL('../../wakaba-assets/', import.meta.url).href;
 /** 使う部品（id → 分類のフォルダ） */
 export const KIT_PIECES = {
   'prop.town.utility_pole': 'prop', 'prop.town.pole_steel': 'prop', 'prop.town.lamp_head': 'prop', 'prop.town.lamp_modern': 'prop', 'prop.town.vending': 'prop',
-  'prop.town.car': 'prop', 'prop.town.bicycle': 'prop', 'prop.town.ac_unit': 'prop', 'prop.town.guardrail': 'prop', 'bld.town.arcade_arch': 'building_module',
+  'prop.town.car': 'prop', 'prop.town.car_lite': 'prop', 'prop.town.bicycle': 'prop', 'prop.town.ac_unit': 'prop', 'prop.town.guardrail': 'prop', 'bld.town.arcade_arch': 'building_module',
   'prop.int.bench_row': 'prop', 'prop.int.hospital_bed': 'prop', 'prop.int.locker': 'prop', 'prop.int.server_rack': 'prop', 'prop.int.desk_pc': 'prop',
 };
 /** 作ったが今は置いていない部品（読まない：UE5 の版・後の屋内の作り直しで使う） */
 export const KIT_SPARE = new Set(['prop.int.desk_pc', 'prop.int.server_rack']);
+/** P14：車の種類（prop.town.car の v<k>）。town.js の car(p) は p.type（無ければ kei → 'kei'・他 → 'sedan'） */
+export const CAR_KINDS = ['sedan', 'kei', 'minivan', 'truck', 'taxi', 'hatch'];
+/** P14：段に関係なく読む部品（スマホの低い段でも車は箱の積み木にしない）。低い段は軽い版（LOD2 だけの glb）を同じ id で使う */
+const ALWAYS = { 'prop.town.car': 'prop.town.car_lite' };
 /** 材質の id → 町の地図帳の枠と 1 回の繰り返し（m） */
 const MAT2TILE = {
   'mat.town.paint': ['white', 1.0], 'mat.town.concrete': ['concrete', 3], 'mat.town.grating': ['drain', 0.9], 'mat.int.wood_floor': ['woodfloor', 1.8],
@@ -28,11 +32,13 @@ const MAT2TILE = {
 };
 /** 部品ごとの LOD の距離（m）と影 */
 const OPT = { 'prop.town.utility_pole': { d: [40], shadow: true }, 'prop.town.pole_steel': { d: [60] }, 'prop.town.lamp_head': { d: [28] }, 'prop.town.lamp_modern': { d: [35] },
-  'prop.town.vending': { d: [22], shadow: true }, 'prop.town.car': { d: [28], shadow: true }, 'prop.town.bicycle': { d: [16] }, 'prop.town.ac_unit': { d: [18] },
+  'prop.town.vending': { d: [22], shadow: true }, 'prop.town.car': { d: [], shadow: true }, 'prop.town.bicycle': { d: [16] }, 'prop.town.ac_unit': { d: [18] },
   'prop.town.guardrail': { d: [26] }, 'bld.town.arcade_arch': { d: [40] } };
 
 export const KIT = { on: false, ready: false, loading: null, pieces: new Map(), stats: { glbBytes: 0, ms: 0, pieces: 0, failed: [] } };
-export function envKitInit(P) { KIT.on = !!P.kit; KIT.P = P; }
+export function envKitInit(P) { KIT.P = P; KIT.on = true; KIT.lite = !P.kit; KIT.only = P.kit ? null : new Set(Object.keys(ALWAYS)); }
+/** この部品を置くか（低い段は ALWAYS の部品だけ） */
+export const kitWants = id => KIT.on && (!KIT.only || KIT.only.has(id));
 
 /** 区画の組み立ての間に置く所を記録する道具 */
 export function kitCollector() {
@@ -40,7 +46,7 @@ export function kitCollector() {
   return {
     on: KIT.on, items,
     /** id・種類 v・位置・Y の回転・大きさ（数か [x,y,z]）・色（#tint の所） */
-    put(id, v, x, y, z, ry = 0, s = 1, color = null) { if (!KIT.on) return false; items.push({ id, v: v || 0, x, y, z, ry, s: Array.isArray(s) ? s : [s, s, s], color }); return true; },
+    put(id, v, x, y, z, ry = 0, s = 1, color = null) { if (!kitWants(id)) return false; items.push({ id, v: v || 0, x, y, z, ry, s: Array.isArray(s) ? s : [s, s, s], color }); return true; },
   };
 }
 
@@ -64,6 +70,8 @@ function convert(gltf) {
     else {
       const [base, tag] = mname.split('#'); const t = MAT2TILE[base] || MAT2TILE['mat.town.paint']; tile = t[0]; ts = t[1];
       if (tag) col.copy(mat.color); if (tag === 'tint') alpha = 1;
+      if (tag === 'carpaint') { col.setRGB(1, 1, 1); alpha = 0.9; }                 // P14：車の塗装（置く時の色・艶）
+      if (tag === 'chrome' || tag === 'rim') alpha = 0.2;                          // P14：金属
     }
     const c = new Float32Array(n0 * 4);
     for (let i = 0; i < n0; i++) { const a = ao ? (ao.getX(i) + ao.getY(i) + ao.getZ(i)) / 3 : 1; c[i * 4] = col.r * a; c[i * 4 + 1] = col.g * a; c[i * 4 + 2] = col.b * a; c[i * 4 + 3] = alpha; }
@@ -85,10 +93,11 @@ export function envKitLoad(game) {
   if (!KIT.on) return (KIT.loading = Promise.resolve(0));
   const t0 = performance.now(), loader = new GLTFLoader();
   KIT.loading = fetch(LIB + 'catalog.json').then(r => r.json()).then(cat => {
-    const ok = new Map(); for (const e of cat.entries || []) if (KIT_PIECES[e.id] && !KIT_SPARE.has(e.id) && e.targets && e.targets.web && e.targets.web.result === 'pass' && e.kit) ok.set(e.id, e);
-    return Promise.all([...ok.values()].map(e => new Promise(res => {
+    const want = KIT.only ? new Map([...KIT.only].map(id => [KIT.lite ? ALWAYS[id] : id, id])) : null;   // 読む glb の id → 置く時の id
+    const ok = new Map(); for (const e of cat.entries || []) if (KIT_PIECES[e.id] && !KIT_SPARE.has(e.id) && e.targets && e.targets.web && e.targets.web.result === 'pass' && e.kit && (want ? want.has(e.id) : !Object.values(ALWAYS).includes(e.id))) ok.set(want ? want.get(e.id) : e.id, e);
+    return Promise.all([...ok.entries()].map(([pid, e]) => new Promise(res => {
       const url = `${LIB}entries/${e.dir}/web/${e.id}.glb`;
-      loader.load(url, gl => { try { KIT.pieces.set(e.id, convert(gl)); KIT.stats.glbBytes += (e.tech && e.tech.fileBytes) || 0; } catch (err) { KIT.stats.failed.push(e.id + ': ' + err.message); } res(); }, undefined, () => { KIT.stats.failed.push(url); res(); });
+      loader.load(url, gl => { try { KIT.pieces.set(pid, convert(gl)); KIT.stats.glbBytes += (e.tech && e.tech.fileBytes) || 0; } catch (err) { KIT.stats.failed.push(e.id + ': ' + err.message); } res(); }, undefined, () => { KIT.stats.failed.push(url); res(); });
     })));
   }).then(() => {
     KIT.ready = true; KIT.stats.ms = Math.round(performance.now() - t0); KIT.stats.pieces = KIT.pieces.size;
@@ -104,7 +113,7 @@ export function envKitApply(A) {
   if (!KIT.on || !KIT.ready || !A || !A.kitItems || !A.kitItems.length) return;
   if (A.kitGroup && A.kitBuiltN === A.kitItems.length) return;
   if (A.kitGroup) { A.root.remove(A.kitGroup); A.kitGroup.traverse(o => { if (o.isInstancedMesh) o.dispose(); }); }
-  const mats = envKitMats(), G = new THREE.Group(); G.name = 'envkit';
+  const mats = KIT.lite ? kitLiteMats() : envKitMats(), G = new THREE.Group(); G.name = 'envkit';
   const sets = [];
   const byKey = new Map();
   for (const it of A.kitItems) { const k = it.id + '|' + it.v; if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(it); }
@@ -156,3 +165,21 @@ export function envKitUpdate(A, camera, force = false) {
   }
 }
 const _c = new THREE.Color();
+/** P14：低い段（PBR なし）の部品の材質：頂点の色の Lambert（置く時の色は頂点の色の A が 0.75 以上の所だけ）＋光る所 */
+let _liteMats = null;
+function kitLiteMats() {
+  if (_liteMats) return _liteMats;
+  const lit = new THREE.MeshLambertMaterial({ vertexColors: true });
+  lit.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <color_vertex>', `
+  #if defined( USE_COLOR_ALPHA )
+    vColor = vec4(1.0); vColor *= color;
+    #ifdef USE_INSTANCING_COLOR
+      vColor.xyz *= mix(vec3(1.0), instanceColor.xyz, step(0.75, color.a));
+    #endif
+  #else
+    #include <color_vertex>
+  #endif`); sh.fragmentShader = sh.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n  diffuseColor.a = 1.0;'); };
+  lit.customProgramCacheKey = () => 'kit_lite';
+  _liteMats = { lit, glow: new THREE.MeshBasicMaterial({ vertexColors: true }) };
+  return _liteMats;
+}

@@ -1,0 +1,182 @@
+{
+ "spec": "wakaba-clipset/1",
+ "test": true,
+ "skeleton": "vrm1-humanoid",
+ "note": "配管の試験用（コードで組んだ手続きの動きを録った物）。本番の動きは VRoid／モーションキャプチャ（docs/shinshoku/VROID_GUIDE.md）",
+ "clips": {
+  "loco.walk": {
+   "file": "loco_walk.vrma",
+   "role": "loco",
+   "loop": true,
+   "speedMS": 2.2,
+   "durationS": 0.7205,
+   "strideM": 0.7925,
+   "rootMotion": "none",
+   "events": [
+    {
+     "t": "footL",
+     "u": 0
+    },
+    {
+     "t": "footR",
+     "u": 0.5
+    }
+   ],
+   "source": {
+    "type": "procedural_capture",
+    "from": "shinshoku/actor/actors.js Player（LocoDriver）"
+   }
+  },
+  "loco.jog": {
+   "file": "loco_jog.vrma",
+   "role": "loco",
+   "loop": true,
+   "speedMS": 3.4,
+   "durationS": 0.7128,
+   "strideM": 1.2117,
+   "rootMotion": "none",
+   "events": [
+    {
+     "t": "footL",
+     "u": 0
+    },
+    {
+     "t": "footR",
+     "u": 0.5
+    }
+   ],
+   "source": {
+    "type": "procedural_capture",
+    "from": "shinshoku/actor/actors.js Player（LocoDriver）"
+   }
+  },
+  "loco.run": {
+   "file": "loco_run.vrma",
+   "role": "loco",
+   "loop": true,
+   "speedMS": 5,
+   "durationS": 0.678,
+   "strideM": 1.6949,
+   "rootMotion": "none",
+   "events": [
+    {
+     "t": "footL",
+     "u": 0
+    },
+    {
+     "t": "footR",
+     "u": 0.5
+    }
+   ],
+   "source": {
+    "type": "procedural_capture",
+    "from": "shinshoku/actor/actors.js Player（LocoDriver）"
+   }
+  },
+  "loco.sprint": {
+   "file": "loco_sprint.vrma",
+   "role": "loco",
+   "loop": true,
+   "speedMS": 6.5,
+   "durationS": 0.6154,
+   "strideM": 2,
+   "rootMotion": "none",
+   "events": [
+    {
+     "t": "footL",
+     "u": 0
+    },
+    {
+     "t": "footR",
+     "u": 0.5
+    }
+   ],
+   "source": {
+    "type": "procedural_capture",
+    "from": "shinshoku/actor/actors.js Player（LocoDriver）"
+   }
+  },
+  "idle": {
+   "file": "idle.vrma",
+   "role": "idle",
+   "loop": true,
+   "durationS": 4,
+   "rootMotion": "none",
+   "source": {
+    "type": "procedural_capture"
+   }
+  },
+  "cmb_katana_light_1": {
+   "file": "cmb_katana_light_1.vrma",
+   "role": "attack",
+   "loop": false,
+   "fps": 60,
+   "frames": 24,
+   "events": [
+    {
+     "t": "hitStart",
+     "frame": 6
+    },
+    {
+     "t": "hitEnd",
+     "frame": 10
+    }
+   ],
+   "rootMotion": "none",
+   "source": {
+    "type": "procedural_capture"
+   },
+   "match": {
+    "weapon": "katana",
+    "heavy": false,
+    "step": 0
+   },
+   "combatRef": {
+    "file": "shinshoku/data/combat.js",
+    "path": "COMBAT.katana.light[0]"
+   }
+  },
+  "cmb_katana_heavy": {
+   "file": "cmb_katana_heavy.vrma",
+   "role": "attack",
+   "loop": false,
+   "fps": 60,
+   "frames": 35,
+   "events": [
+    {
+     "t": "hitStart",
+     "frame": 0
+    },
+    {
+     "t": "hitEnd",
+     "frame": 5
+    }
+   ],
+   "rootMotion": "none",
+   "source": {
+    "type": "procedural_capture"
+   },
+   "match": {
+    "weapon": "katana",
+    "heavy": true,
+    "step": null
+   },
+   "combatRef": {
+    "file": "shinshoku/data/combat.js",
+    "path": "COMBAT.katana.heavy"
+   }
+  },
+  "react_hit_front": {
+   "file": "react_hit_front.vrma",
+   "role": "hit",
+   "loop": false,
+   "fps": 60,
+   "frames": 15,
+   "events": [],
+   "rootMotion": "none",
+   "source": {
+    "type": "procedural_capture"
+   }
+  }
+ }
+}
