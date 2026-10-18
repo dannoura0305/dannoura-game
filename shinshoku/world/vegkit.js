@@ -153,7 +153,7 @@ export async function vegApply(A, game) {
   if (!dead) A.root.traverse(o => { if (o.userData.vegFallback) o.visible = false; });
   A.vegDead = (A.vegDead || 0) + dead;
   // シェーダーを先に作る（並べて作れる時だけ・待たない）＝最初に見えた時に止まりにくく
-  try { const r = game.renderer; if (r.compileAsync && r.extensions.has('KHR_parallel_shader_compile')) r.compileAsync(A.root, game.camera).catch(() => {}); } catch (e) { void e; }
+  try { const r = game.renderer; if (r.compileAsync && r.extensions.has('KHR_parallel_shader_compile')) r.compileAsync(A.root, game.camera).catch(() => {}); else if (game.area === A) r.compile(A.root, game.camera); } catch (e) { void e; }   // 並べて作れない時は今まとめて作る（見えた時に止まらない）
   A.vegBusy = false;
   if (A.vegAgain) { A.vegAgain = false; return vegApply(A, game); }
 }
@@ -166,7 +166,7 @@ async function swapDebris(D) {
   const pre = new THREE.Matrix4().makeScale(1.7, 1.7, 1.7).multiply(new THREE.Matrix4().makeTranslation(0, -0.31, 0));
   const meshes = prims.map(({ geometry, material }) => {
     const g = geometry.clone().applyMatrix4(pre), m = new THREE.InstancedMesh(g, material, n);
-    m.instanceMatrix.array.set(orig.instanceMatrix.array); m.count = n; m.castShadow = orig.castShadow; m.receiveShadow = true; m.frustumCulled = false; m.name = 'debris_kit';
+    m.instanceMatrix.array.set(orig.instanceMatrix.array); m.count = n; m.castShadow = false;   // 影の描画の網（新しい影のシェーダー）を戦いの最中に作らない m.receiveShadow = true; m.frustumCulled = false; m.name = 'debris_kit';
     orig.parent.add(m); return m;
   });
   orig.visible = false;
