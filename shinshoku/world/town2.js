@@ -517,7 +517,7 @@ export function makeTown2(K) {
       FK.roundTable(x, z, 0.55, 0.74);                                                     // P13：脚のある机と椅子（前は座面と背もたれが浮いていた）
       for (const [dx, dz] of [[0.9, 0], [-0.9, 0], [0, 0.9], [0, -0.9]]) FK.chair(x + dx, z + dz, Math.atan2(-dx, -dz), 0x6a5a4a);
     }
-    for (const [x, z] of G.planters) { tb('tex', x, 0.5, z, 1.6, 1.0, 1.6, 0xffffff, 'concrete', { ts: 1 }); tree(x, z, 5.2, 6.4, 'keyaki', 1.0); for (const [dx, dz] of [[-0.42, 0.42], [0.42, -0.42]]) vegPut('veg.shrub.tsutsuji', x + dx, 1.0, z + dz, dx * 3, 0.85, 2); }   // P16：屋根の下の植え込み（ケヤキと小さなツツジ）
+    for (const [x, z] of G.planters) { tb('tex', x, 0.5, z, 1.6, 1.0, 1.6, 0xffffff, 'concrete', { ts: 1 }); tree(x, z, 5.2, 6.4, 'keyaki', 1.0); for (const [dx, dz] of [[-0.42, 0.42], [0.42, -0.42]]) vegPut('veg.shrub.tsutsuji', x + dx, 1.0, z + dz, dx * 3, 0.55, 0); }   // P16：屋根の下の植え込み（ケヤキと小さなツツジ）
     // 入口（駅前通りから）の屋根と看板・通り抜けの名前
     { const [a, b, c, d] = T.walk.find(w => w.id === 'gpass').rect, gx = (a + c) / 2;
       glass(gx, 4.3, (b + d) / 2, c - a, 0.05, d - b, 0x7088a8); prop(gx, 4.25, d, c - a + 0.4, 0.4, 0.3, 0x3a3e46);

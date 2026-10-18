@@ -30,7 +30,8 @@
     "dannoura_white": {
       "file": "dannoura_white.vrm",
       "fileLow": "dannoura_white_low.vrm",
-      "portrait": null,
+      "portrait": "portraits/dan_white.png",
+      "portraitNote": "白い姿の顔絵：利用者提供のイメージ画像 docs/shinshoku/reference/concept_04.webp の会話の顔の部分を切り抜いた物（2026-10-18 利用者の承認：ゲームで使ってよい）",
       "provisional": false,
       "height": 1.64,
       "fit": "none",

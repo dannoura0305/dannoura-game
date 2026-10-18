@@ -183,11 +183,13 @@ export class UI {
     this.el.form.classList.toggle('on', !!on); this.root.classList.toggle('white', !!on);
     // HUD の顔：紫の姿は本編の原画、白い姿は原画が無いので白い姿のモデルから描いた顔
     const P = this.g && this.g.portraits;
-    if (P && P.dannoura) { if (on) { if (this.g.makePortrait) this.g.makePortrait(true); } else this.setPortrait(P.dannoura); }
+    if (P && P.dannoura) { if (on) { if (P.dannoura_white) this.setPortrait(P.dannoura_white); else if (this.g.makePortrait) this.g.makePortrait(true); } else this.setPortrait(P.dannoura); }
   }
   // ── 会話 ──
   showLine(sp, text, who) {
-    const pid = { dan: 'dannoura', companion: 'companion', daughter: 'daughter', daughter_home: 'daughter' }[who], url = pid && this.g.portraits && this.g.portraits[pid];
+    let pid = { dan: 'dannoura', companion: 'companion', daughter: 'daughter', daughter_home: 'daughter' }[who];
+    if (pid === 'dannoura' && this.root.classList.contains('white') && this.g.portraits && this.g.portraits.dannoura_white) pid = 'dannoura_white';
+    const url = pid && this.g.portraits && this.g.portraits[pid];
     if (!this.el.dport) { this.el.dport = document.createElement('img'); this.el.dport.className = 'sh-dport'; this.el.dialog.appendChild(this.el.dport); }
     this.el.dport.hidden = !url; if (url) this.el.dport.src = url; this.el.dialog.classList.toggle('port', !!url);
     this.el.dialog.hidden = false; this.el.dname.textContent = sp.name || ''; this.el.dname.style.color = sp.color || '#fff';
