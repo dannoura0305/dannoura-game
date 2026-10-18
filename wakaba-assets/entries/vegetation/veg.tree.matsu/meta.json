@@ -1,0 +1,92 @@
+{
+ "id": "veg.tree.matsu",
+ "version": 1,
+ "name": {
+  "ja": "松（庭木の仕立て・LOD・遠景の板）",
+  "en": "Garden pine (niwaki)"
+ },
+ "category": "vegetation",
+ "tags": [
+  "松",
+  "針葉樹",
+  "庭木",
+  "木",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/kit/build_kit_veg.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/wakaba-mapkit/11_写実化パイプライン.md"
+ },
+ "tech": {
+  "formats": [
+   "glb",
+   "fbx"
+  ],
+  "tris": 664,
+  "lods": [
+   664,
+   283
+  ],
+  "sizeM": [
+   4.631,
+   4.829,
+   3.432
+  ],
+  "pivot": "bottom_center",
+  "collision": "none",
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness"
+  ],
+  "fileBytes": 186432
+ },
+ "use": [
+  "境界侵食（shinshoku）の町の植物（P16）"
+ ],
+ "status": "draft",
+ "kit": {
+  "kit": "wakaba-kit/1",
+  "nodes": {
+   "LOD0": 664,
+   "LOD1": 283,
+   "IMP": 6
+  },
+  "variants": 1,
+  "lodDist": [
+   20,
+   50
+  ],
+  "impostor": true,
+  "materials": [
+   "imp.veg.tree.matsu",
+   "mat.bark.matsu",
+   "mat.foliage.matsu"
+  ],
+  "vertexColor": "COLOR_0＝AO（焼き込み）",
+  "note": "節の名前 LOD<n>（種類が複数なら v<k>_LOD<n>）・IMP＝遠景の十字の板（画像は glb の中）。材質は id の名前で共有の PBR 材質に差し替える",
+  "cardDup": 0
+ },
+ "history": [
+  {
+   "at": "2026-10-18",
+   "by": "claude-code",
+   "change": "tools/blender/kit/build_kit_veg.py（pieces_veg.py）で生成（境界侵食 P16：植物を試験マップと同じ作り方に）"
+  }
+ ]
+}

@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.foliage.sakura",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.sakura_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "1e858244b82fd83c7a2e35a09ccc01e8382279e1b159636d99ab16c0d91331f2",
+   "bytes": 597807,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.foliage.sakura"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.sakura_normal.png",
+   "storage": "local-ignored",
+   "sha256": "b617ff2392501aa478065cf6e6bd5a826d2e6a487f8fa2e3660f7dcc676bbc95",
+   "bytes": 388766,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.foliage.sakura"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.sakura_orh.png",
+   "storage": "local-ignored",
+   "sha256": "37463fb456675ab5101e6e60ea8e7f9c21735d9ca59d6ecfb23d39b6219be793",
+   "bytes": 379608,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.foliage.sakura"
+  }
+ ]
+}

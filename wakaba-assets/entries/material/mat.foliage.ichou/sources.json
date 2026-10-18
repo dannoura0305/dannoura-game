@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.foliage.ichou",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.ichou_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "c8d1122b808918879dd6d0012128c3f8ce8c8d53f8166acb8d05899391bb2b2f",
+   "bytes": 652905,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.foliage.ichou"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.ichou_normal.png",
+   "storage": "local-ignored",
+   "sha256": "5f706c9182775f55656e6ef8d016e508d17cf0bf3a9090523485979fabe1f888",
+   "bytes": 425774,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.foliage.ichou"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.ichou_orh.png",
+   "storage": "local-ignored",
+   "sha256": "fba85cd0ec2603992764febab47013e573db0886b1df5733ec374c7b6e470f71",
+   "bytes": 458771,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.foliage.ichou"
+  }
+ ]
+}

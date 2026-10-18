@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "veg.hedge",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/veg.hedge.fbx",
+   "storage": "local-ignored",
+   "sha256": "b96f8dd643be14182d28c8026edcee562ad37466902e34e5f07ab8a69ac1cc15",
+   "bytes": 29420,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_veg.py --only veg.hedge"
+  }
+ ]
+}

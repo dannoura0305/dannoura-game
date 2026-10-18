@@ -123,8 +123,9 @@ export async function recordAreas(ids = AREA_IDS) {
     REC = { pieces: [], sign: new Map(), slots: [], area: id, part: 'main' };
     const A = BUILDERS[id]();
     walkRoot(A.root, id, 'main');
-    if (A.pending) for (const p of A.pending) { REC.part = 'far'; const r = p(); walkRoot(r.root, id, 'far'); }
-    out[id] = { pieces: REC.pieces, A };
+    const far = [];                                                                       // P16：後回しの部分の結果（植物の置き場所 vegItems など）も返す
+    if (A.pending) for (const p of A.pending) { REC.part = 'far'; const r = p(); walkRoot(r.root, id, 'far'); far.push(r); }
+    out[id] = { pieces: REC.pieces, A, far };
     REC = null;
   }
   return out;

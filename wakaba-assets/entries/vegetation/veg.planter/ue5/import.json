@@ -1,0 +1,20 @@
+{
+ "ue5import": "wakaba-ue5-import/1",
+ "id": "veg.planter",
+ "assetType": "StaticMesh",
+ "gamePath": "/Game/Wakaba/Vegetation/SM_veg_planter",
+ "pivot": "bottom_center",
+ "source": {
+  "file": "source/veg.planter.fbx",
+  "format": "fbx"
+ },
+ "import": {
+  "convertScene": true,
+  "importUniformScale": 1.0,
+  "nanite": false,
+  "collision": "simple_box",
+  "generateLightmapUVs": false,
+  "materials": "create"
+ },
+ "notes": "export_kit.py が作った雛形。UE の画面で取り込んだら値を確かめて直す（未検証）"
+}

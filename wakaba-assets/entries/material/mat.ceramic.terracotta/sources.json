@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.ceramic.terracotta",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.ceramic.terracotta_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "20283e200ebe37d484a0cc681d51b7d5a0bac7c0c22d6b29ae19c20ffafd052a",
+   "bytes": 1397046,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.ceramic.terracotta"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.ceramic.terracotta_normal.png",
+   "storage": "local-ignored",
+   "sha256": "1c54c66f3b6e20010deb2844169c1932c7ccea790c7076d2c1475a56129bba9b",
+   "bytes": 2555859,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.ceramic.terracotta"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.ceramic.terracotta_orh.png",
+   "storage": "local-ignored",
+   "sha256": "d7ebf733e1262fbb88372f52f4968ee86c4a1aa3f384690684b44803ed049dad",
+   "bytes": 2594169,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.ceramic.terracotta"
+  }
+ ]
+}

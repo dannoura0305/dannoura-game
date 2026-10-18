@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.foliage.houseplant",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.houseplant_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "b745786095b4d067250e160d072ad5f8b78eb48756c7d72f8dd572a613ec8c02",
+   "bytes": 310076,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.foliage.houseplant"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.houseplant_normal.png",
+   "storage": "local-ignored",
+   "sha256": "d10adad2978b04813a849a5b200826e4ee59a43903024558c39a7df086503fd0",
+   "bytes": 112636,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.foliage.houseplant"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.houseplant_orh.png",
+   "storage": "local-ignored",
+   "sha256": "ccbd3069176ac1929aed740bc1c619f29264d143811befded7fb8e4e99f5d52a",
+   "bytes": 148266,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.foliage.houseplant"
+  }
+ ]
+}

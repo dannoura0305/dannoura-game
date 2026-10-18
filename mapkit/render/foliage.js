@@ -26,9 +26,17 @@ export class GroundCover {
       }
     }
   }
-  async build(bank) {
+  /**
+   * 境界侵食 P16：地図（layout）の下草の点の代わりに、作品の側で決めた点の列から作る。pts＝[{ x, y, z, fern（2 つ目の部品）, rot, s }]・
+   * ids＝[1 つ目, 2 つ目] の部品の id（build に渡す）。描き方（カメラの近くだけ・遠い所は小さくして消す・揺れ）は同じ
+   */
+  static fromPoints(scene, pts, P) {
+    const g = new GroundCover(scene, { instances: [] }, null, Object.assign({}, P, { grass: 0 }), null);
+    g.P = P; g.pts = pts; return g;
+  }
+  async build(bank, ids = ['veg.grass', 'veg.fern']) {
     if (!this.pts.length) return this;
-    const [grass, fern] = await Promise.all([bank.kit('veg.grass'), bank.kit('veg.fern')]);
+    const [grass, fern] = await Promise.all(ids.map(id => bank.kit(id)));
     const mk = (kit, n) => {
       if (!kit) return [];
       const prims = kit.nodes.LOD0 || Object.values(kit.nodes)[0];

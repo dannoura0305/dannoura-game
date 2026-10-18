@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "veg.weed",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/veg.weed.fbx",
+   "storage": "local-ignored",
+   "sha256": "1b7c3f3289789122fd331ccaaf2f909abb256e502d2bd40f899f5fc8019c2cfd",
+   "bytes": 16204,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_veg.py --only veg.weed"
+  }
+ ]
+}

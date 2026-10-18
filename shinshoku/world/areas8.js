@@ -12,6 +12,7 @@ import { gradientMap, canvasTex, JP_FONT } from '../render/toon.js';
 import { instanced, finish, BUILDERS3 } from './areas.js';
 import { lightShafts } from '../render/shafts.js';
 import { skyDome } from '../render/sky.js';
+import { vegPut, vegCoverLine } from './vegkit.js';   // P16：瓦礫・雑草は試験マップと同じ部品
 import { ABYSS, KIROKU, EPILOGUE } from '../data/ch7.js';
 
 const rngOf = s => () => ((s = (s * 16807) % 2147483647) / 2147483647);
@@ -36,6 +37,9 @@ export function buildAbyss() {
   const glowUp = new THREE.Mesh(gGeo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
   glowUp.position.set(P.x, 23, P.z); glowUp.visible = false; root.add(glowUp); dyn.pitGlow = glowUp;
   halos.push({ p: [P.x, 4, P.z], size: 46, color: 0x9a30ff, k: 0.45 });
+  // P16：淵のまわりの瓦礫（rock.rubble：試験マップと同じ道具の部品・見た目だけ）と、淵へ下る道の両わきの雑草
+  for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2 + 0.11, d = P.r + 1.5 + ((i * 7) % 5) * 1.3, s = 1.2 + ((i * 3) % 4) * 0.45; vegPut('rock.rubble', P.x + Math.sin(a) * d, -0.05, P.z + Math.cos(a) * d, a * 3, s, i % 3); }
+  for (const x of [-5.6, 5.6]) vegCoverLine('weed', x, 46, x, 18, 1.2, 0.4, 0.6);
   // 縁の崩れた地面（傾いた板）
   for (let i = 0; i < 22; i++) { const a = (i / 22) * Math.PI * 2 + rr() * 0.2, d = P.r + 2 + rr() * 5, s = 2 + rr() * 4; B.box('prop', P.x + Math.sin(a) * d, 0.3, P.z + Math.cos(a) * d, s, 0.6, s * 0.7, [0x3a343e, 0x4a4250, 0x2e2a34][i % 3], { ry: a, rx: (rr() - 0.5) * 0.5, rz: (rr() - 0.3) * 0.6 }); }
   boxes.push(cbox(P.x, P.z - 4, P.r * 1.4, P.r * 1.2, 40));                                             // 淵には入れない（巨大猫又も）

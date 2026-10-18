@@ -10,6 +10,7 @@ import { gradientMap, canvasTex, JP_FONT } from '../render/toon.js';
 import { instanced, finish, BUILDERS3 } from './areas.js';
 import { lightShafts, stainDecals } from '../render/shafts.js';
 import { skyDome } from '../render/sky.js';
+import { vegPut } from './vegkit.js';   // P16：岩は試験マップと同じ部品
 import { OLDWING, ATRIUM, SUBJECTS } from '../data/ch5.js';
 
 const rngOf = s => () => ((s = (s * 16807) % 2147483647) / 2147483647);
@@ -117,7 +118,9 @@ export function buildOldwing() {
   // ── 東の帯：主任研究室への廊下（reveal は床が崩れている）・主任研究室 ──
   const G = OLDWING.gap;
   const pit = new THREE.Mesh(new THREE.PlaneGeometry(G.maxX - G.minX, G.maxZ - G.minZ), new THREE.MeshBasicMaterial({ color: 0x050308 })); pit.rotation.x = -Math.PI / 2; pit.position.set((G.minX + G.maxX) / 2, 0.015, (G.minZ + G.maxZ) / 2); root.add(pit);
-  const pitEdge = new THREE.Group(); for (let i = 0; i < 9; i++) { const m = new THREE.Mesh(new THREE.DodecahedronGeometry(0.3 + (i % 3) * 0.12, 0), new THREE.MeshToonMaterial({ color: 0x6a6a62, gradientMap: gradientMap() })); m.position.set(G.minX + (i / 8) * (G.maxX - G.minX), 0.15, i % 2 ? G.maxZ + 0.3 : G.minZ - 0.3); m.rotation.set(i, i * 2, 0); pitEdge.add(m); } root.add(pitEdge);
+  // P16：穴の縁の石は岩の部品（rock.boulder：試験マップと同じ）を穴の縁の Group の下に（見える／見えないが一緒に変わる）。手続きの 12 面体は代わりの網
+  const pitEdge = new THREE.Group(); pitEdge.name = 'pitEdge'; for (let i = 0; i < 9; i++) { const r0 = 0.3 + (i % 3) * 0.12, m = new THREE.Mesh(new THREE.DodecahedronGeometry(r0, 0), new THREE.MeshToonMaterial({ color: 0x6a6a62, gradientMap: gradientMap() })); m.position.set(G.minX + (i / 8) * (G.maxX - G.minX), 0.15, i % 2 ? G.maxZ + 0.3 : G.minZ - 0.3); m.rotation.set(i, i * 2, 0); m.userData.vegFallback = true; pitEdge.add(m);
+    vegPut('rock.boulder', m.position.x, -0.05, m.position.z, i * 2, [r0 * 1.5, r0 * 1.4, r0 * 1.5], i % 3, { g: 'pitEdge' }); } root.add(pitEdge);
   const pitBox = cbox((G.minX + G.maxX) / 2, (G.minZ + G.maxZ) / 2, G.maxX - G.minX, G.maxZ - G.minZ, 3.0);
   dyn.gap = { pit, edge: pitEdge, box: pitBox, on: false, halo: halos.push({ p: [(G.minX + G.maxX) / 2, 0.4, (G.minZ + G.maxZ) / 2], size: 4.0, color: 0x8a3ad8, k: 0.0 }) - 1 };
   // 東の帯（x 9.8〜14）：広間の戸 → 北へ。床の崩れ（z −10〜−13.6）の向こうが主任研究室（z −14〜−22.4）

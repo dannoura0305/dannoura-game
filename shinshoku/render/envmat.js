@@ -20,7 +20,7 @@ export const U = {
   uGlow: { value: 1.0 }, uAlb: { value: null }, uIblD: { value: 0.4 }, uAmbK: { value: 0.5 },
   uRefl: { value: null }, uReflMat: { value: new THREE.Matrix4() }, uReflOn: { value: 0 }, uGradeOn: { value: 1 },
 };
-export const ENV = { pbr: false, tile: 0, ready: false, loading: null, mats: new Set(), toonMats: new Set(), glowMats: new Set(), envMaps: {}, envMap: null, envI: 0.5, ambK: 0.5, stats: { bytes: 0, ms: 0, tile: 0 }, manifest: null };
+export const ENV = { pbr: false, tile: 0, ready: false, loading: null, mats: new Set(), toonMats: new Set(), glowMats: new Set(), vegMats: new Set(), envMaps: {}, envMap: null, envI: 0.5, ambK: 0.5, stats: { bytes: 0, ms: 0, tile: 0 }, manifest: null };
 
 function dataTex(w, h, rgba, filter = THREE.LinearFilter) {
   const t = new THREE.DataTexture(new Uint8Array(rgba), w, h, THREE.RGBAFormat); t.needsUpdate = true; t.minFilter = t.magFilter = filter; t.generateMipmaps = false; return t;
@@ -246,6 +246,7 @@ function envBakeIBL() {
   } catch (e) { console.warn('env pmrem', e); return; }
   ENV.envMap = ENV.envMaps[ENV.envKind || 'town'] || ENV.envMaps.town;
   for (const m of ENV.mats) { m.envMap = ENV.envMap; m.envMapIntensity = ENV.envI; m.needsUpdate = true; }
+  for (const m of ENV.vegMats) { m.envMap = ENV.envMap; m.envMapIntensity = m.userData.envBase * ENV.envI * 2; m.needsUpdate = true; }
   ENV.stats.pmremMs = Math.round(performance.now() - t0);
 }
 function stdMat(extra = {}) {
@@ -384,12 +385,52 @@ export function envApplyGrade(g, dt = 1) {
   U.uLift.value.lerp(_v.set(...g.lift), k); U.uGain.value.lerp(_v.set(...g.gain), k);
   U.uWet.value += (g.wet - U.uWet.value) * k; U.uIblD.value += ((g.iblD ?? 0.45) - U.uIblD.value) * k; U.uGlow.value += ((g.glow ?? 1) - U.uGlow.value) * k;
   const envI = g.envI ?? 0.5;
-  if (Math.abs(envI - ENV.envI) > 1e-3) { ENV.envI += (envI - ENV.envI) * k; for (const m of ENV.mats) m.envMapIntensity = ENV.envI; }
+  if (Math.abs(envI - ENV.envI) > 1e-3) { ENV.envI += (envI - ENV.envI) * k; for (const m of ENV.mats) m.envMapIntensity = ENV.envI; for (const m of ENV.vegMats) m.envMapIntensity = m.userData.envBase * ENV.envI * 2; }
   ENV.envKind = g.env || 'town';
   const want = ENV.P && ENV.P.ibl === false ? null : ENV.envMaps[ENV.envKind];
-  if (want && ENV.envMap !== want) { ENV.envMap = want; for (const m of ENV.mats) m.envMap = want; }
+  if (want && ENV.envMap !== want) { ENV.envMap = want; for (const m of ENV.mats) m.envMap = want; for (const m of ENV.vegMats) if (m.envMap) m.envMap = want; }
 }
 export function envTick(dt) { U.uTime.value += dt; }
+
+// ───────────── P16：植物（mapkit の AssetBank の PBR の材質）を町の色の調整に乗せる ─────────────
+const GLSL_GRADE = /* glsl */`
+uniform float uExpo; uniform vec3 uLift; uniform vec3 uGain; uniform float uSat; uniform float uContrast; uniform float uGradeOn; uniform float uIblD; uniform float uAmbK;
+vec3 envGrade(vec3 c){
+  if (uGradeOn < 0.5) return c;
+  c *= uExpo;
+  vec3 k = vec3(0.72); vec3 x = max(c - k, 0.0); c = min(c, k) + x / (1.0 + x / (1.0 - k) * 0.9);
+  c = c * uGain + uLift * (1.0 - c);
+  float l = dot(c, vec3(0.2126, 0.7152, 0.0722)); c = mix(vec3(l), c, uSat);
+  c = 0.18 * pow(max(c, 0.0) / 0.18, vec3(uContrast));
+  return c;
+}`;
+/**
+ * 植物の材質（mapkit/render/assets.js の AssetBank の adapt）：PBR の段＝町の材質と同じ色の調整（露出・肩・影と光の色・彩度）・空と周りの明かりを背景の側だけ弱める（uAmbK）・
+ * 環境の光（夜の町／屋内の PMREM）。揺れ・透け（mapkit/render/wind.js の onBeforeCompile）は先に付いているので、その後ろに足す。
+ * toon の段（スマホの低）は軽い Lambert（色の地図と頂点の AO・透過の切り抜き）へ置き換える＝人物の toon と同じ明るさの感じ。
+ */
+export function envVegMat(m, info = {}) {
+  // 夜の町の光（月・街灯・灯りの窓）では、試験マップ（夕方の日）の葉の明るさ（カードの色 0.66 倍）だと黒い塊に見える＝葉と下草だけ明るく（読める夜の緑）
+  const id = info.id || '', k = /hedge|tsutsuji/.test(id) ? 1.7 : /weed|grass|fern/.test(id) ? 1.75 : info.impostor ? 1.2 : info.card ? 1.4 : 1.0;
+  if (k !== 1) m.color.multiplyScalar(k);
+  if (!ENV.pbr) {
+    const l = new THREE.MeshLambertMaterial({ map: m.map, color: m.color, vertexColors: m.vertexColors, alphaTest: m.alphaTest, side: m.side });
+    l.name = m.name; if (m.userData.wind) l.userData.wind = m.userData.wind;
+    return l;
+  }
+  const ob = m.onBeforeCompile, key = m.customProgramCacheKey;
+  m.onBeforeCompile = (sh, r) => {
+    if (ob) ob.call(m, sh, r);
+    for (const k of ['uExpo', 'uLift', 'uGain', 'uSat', 'uContrast', 'uGradeOn', 'uIblD', 'uAmbK']) sh.uniforms[k] = U[k];
+    sh.fragmentShader = GLSL_GRADE + '\n' + sh.fragmentShader
+      .replace('#include <lights_fragment_maps>', '#include <lights_fragment_maps>\n  iblIrradiance *= uIblD;\n  #if defined( RE_IndirectDiffuse )\n    irradiance *= uAmbK;\n  #endif')
+      .replace('#include <tonemapping_fragment>', 'gl_FragColor.rgb = envGrade(gl_FragColor.rgb);\n#include <tonemapping_fragment>');
+  };
+  m.customProgramCacheKey = () => (key ? key.call(m) : '') + '|envveg';
+  m.userData.envBase = m.envMapIntensity ?? 0.5; m.envMap = ENV.envMap; m.envMapIntensity = m.userData.envBase * ENV.envI * 2;
+  ENV.vegMats.add(m); m.needsUpdate = true;
+  return m;
+}
 /** 画質の段で toon の町の材質を作る時（townmat.js から）：登録して後で色の地図帳を差し替える */
 export function toonTownMats() { const r = townMatsToon(); envRegisterToon(r.tex); envRegisterToon(r.texglow); return r; }
 export { gradientMap };

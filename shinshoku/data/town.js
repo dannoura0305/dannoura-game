@@ -169,6 +169,8 @@ export const TOWN = {
     { kind: 'busstop2', x: 91.1, z: 28, ry: -Math.PI / 2, name: 'バス停　中央通り南（仮）', solid: [90.55, 26.4, 91.75, 29.6] },
     ...[38, 22, -4, -16, -40, -46, -66].map(z => ({ kind: 'snowpole', x: 69.8, z })), ...[38, 20, -6, -20, -44, -64].map(z => ({ kind: 'snowpole', x: 88.2, z })),
     ...[30, 20, -14, -40, -64].map(z => ({ kind: 'yukigakoi', x: 69.25, z })), ...[16, -4, -22, -44, -62].map(z => ({ kind: 'yukigakoi', x: 88.75, z })),
+    // P16：中央通りの街路樹（イチョウ並木：雪囲い・街灯・電柱・矢羽根・横断歩道の間。幹の当たりは townSolids）
+    ...[41, -32, -52, -71].map(z => ({ kind: 'streettree', sp: 'ichou', h: 9.5, x: 69.25, z })), ...[40, -13, -53, -71].map(z => ({ kind: 'streettree', sp: 'ichou', h: 9.5, x: 88.75, z })),
     { kind: 'sign', x: 69.7, z: 18.6, text: '電車通り', color: 0x2a6ad0 }, { kind: 'sign', x: 69.7, z: -76.5, text: '駅前', color: 0x2a6ad0 },
     { kind: 'vending', x: 65.55, z: -15.0, ry: Math.PI / 2, color: 0x2a6ad0 },
     { kind: 'car', x: 72.2, z: 24, ry: Math.PI, color: 0xe8e8e4, hazard: true, type: 'truck' },
@@ -309,6 +311,7 @@ export function townSolids(T = TOWN) {
   for (const p of T.props) {
     if (p.kind === 'busstop2') R(...p.solid, 2.6);
     if (p.kind === 'yukigakoi') R(p.x - 0.45, p.z - 0.45, p.x + 0.45, p.z + 0.45, 1.8);
+    if (p.kind === 'streettree') R(p.x - 0.3, p.z - 0.3, p.x + 0.3, p.z + 0.3, 4);      // P16：街路樹の幹（公園の木と同じ）
   }
   for (const [x, zz] of signalPoles(T)) R(x - 0.1, zz - 0.1, x + 0.1, zz + 0.1, 5);
   if (T.yokochoUnits) { const zf = T.walk.find(w => w.id === 'yokocho').rect[3];      // P14：横丁の店の前の縁台・樽の机

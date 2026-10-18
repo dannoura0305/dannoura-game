@@ -7,6 +7,7 @@ import { box as cbox } from './collide.js';
 import { gradientMap, canvasTex, JP_FONT } from '../render/toon.js';
 import { mats, ground, instanced, finish, BUILDERS3 } from './areas.js';
 import { lightShafts, stainDecals } from '../render/shafts.js';
+import { vegPut, vegTree, vegCoverLine } from './vegkit.js';   // P16：植物は試験マップと同じ部品
 
 const rngOf = s => () => ((s = (s * 16807) % 2147483647) / 2147483647);
 
@@ -82,7 +83,7 @@ export function buildHospital() {
   const wcs = [{ x: -10.8, z: 9.6, ry: 1.4 }, { x: -10.8, z: 10.6, ry: 1.5 }, { x: 10.6, z: 18.2, ry: -0.4 }, { x: 4.6, z: 9.4, ry: 2.6 }, { x: 1.2, z: -11.6, ry: 0.3 }, { x: -0.8, z: -17.8, ry: 3.6 }];
   root.add(instanced(wc, wcs, { name: 'wheelchairs', shadow: true })); for (const w of wcs) solid(w.x, w.z, 0.7, 0.7, 1.0);
   // 観葉植物（鉢と葉）
-  for (const [x, z] of [[-11.2, 18.6], [11.2, 9.0], [-3.0, 8.6]]) { B.box('prop', x, 0.3, z, 0.5, 0.6, 0.5, 0x8a6a4a); B.box('prop', x, 0.95, z, 0.75, 0.7, 0.75, 0x3a6a3a, { edges: false }); B.box('prop', x, 1.4, z, 0.5, 0.5, 0.5, 0x4a7a4a, { edges: false }); solid(x, z, 0.6, 0.6, 1.2); }
+  for (const [x, z] of [[-11.2, 18.6], [11.2, 9.0], [-3.0, 8.6]]) { vegPut('veg.houseplant', x, 0, z, x, 1.15, 0); B.fb(true, () => { B.box('prop', x, 0.3, z, 0.5, 0.6, 0.5, 0x8a6a4a); B.box('prop', x, 0.95, z, 0.75, 0.7, 0.75, 0x3a6a3a, { edges: false }); B.box('prop', x, 1.4, z, 0.5, 0.5, 0.5, 0x4a7a4a, { edges: false }); }, 'veg'); solid(x, z, 0.6, 0.6, 1.2); }   // P16：観葉植物の部品
   // 掲示（ロビー）
   const posters = [['面会時間　13:00〜20:00', '#f4f0e0', '#1a3a6a'], ['院内では静かに', '#f0f4f4', '#2a5a5a'], ['手洗い・うがいを', '#f4f4ea', '#2a6a3a'], ['お薬の受け取りは 2 番窓口', '#eef0f6', '#3a3a6a']];
   posters.forEach(([t, bg, fg], i) => { const u = atlas.add(signDraw(t, { bg, fg, size: 30, dirt: true })); B.box('sign', -12.0 + 0.02, 1.7, 17.6 - i * 2.1, 0.03, 0.5, 1.6, 0xffffff, { uv: u, face: 0, edges: false }); });
@@ -240,7 +241,10 @@ function buildHospitalFront(B, atlas, boxes, spots, halos, hideSpots) {
   { const x = -6, z = 33.2; for (const dx of [-1.4, 1.4]) prop(B, x + dx, 1.2, z, 0.08, 2.4, 0.08, 0x5a6068); B.box('glass2', x, 2.4, z - 0.3, 3.2, 0.05, 1.2, 0x7088a8, { edges: false }); B.box('glow', x, 2.34, z - 0.3, 1.6, 0.03, 0.2, 0xe8f0ff, { edges: false }); halos.push({ p: [x, 2.2, z - 0.4], size: 1.6, color: 0xd8e8ff, k: 0.45 });
     const bu = atlas.add(signDraw('バス停　病院前（仮）', { bg: '#2a5aa8', fg: '#ffffff', size: 30 })); B.box('sign', x + 1.9, 2.5, z - 0.1, 0.9, 0.5, 0.04, 0xffffff, { uv: bu, face: 4, edges: false }); prop(B, x + 1.9, 1.3, z - 0.1, 0.07, 2.6, 0.07, 0x8a8a8a);
     solid(x, z + 0.05, 3.2, 0.3, 2.4); }
-  for (const [x, z] of [[-10.5, 22.2], [-4.2, 21.6]]) { B.box('tex', x, 0.4, z, 2.4, 0.8, 1.2, 0xffffff, { tile: 'stone', ts: 0.8, edges: false }); const c = new THREE.IcosahedronGeometry(0.7, 1); c.scale(1.4, 0.7, 0.7); c.translate(x, 1.1, z); B.add('prop', c, 0x3a6a4a); solid(x, z, 2.4, 1.2, 1.0); }
+  // P16：植え込み（コンクリートの箱と刈り込んだ低木の部品）・柵の向こうの木（入れない所・ケヤキ）・柵と壁の足もとの雑草
+  for (const [x, z] of [[-10.5, 22.2], [-4.2, 21.6]]) { vegPut('veg.planter', x, 0, z, 0, [2.4, 1.14, 1.2]); B.fb(true, () => { B.box('tex', x, 0.4, z, 2.4, 0.8, 1.2, 0xffffff, { tile: 'stone', ts: 0.8, edges: false }); const c = new THREE.IcosahedronGeometry(0.7, 1); c.scale(1.4, 0.7, 0.7); c.translate(x, 1.1, z); B.add('prop', c, 0x3a6a4a); }, 'veg'); solid(x, z, 2.4, 1.2, 1.0); }
+  for (const [x, h] of [[-13.5, 8.5], [-5.5, 9.5], [6.5, 8.0], [14.0, 9.0]]) vegTree('keyaki', x, 36.6 + (x % 2), h);
+  vegCoverLine('weed', -16.6, 33.9, 16.6, 33.9, 1.0, 0.05, 0.55); for (const x of [-16.7, 16.7]) vegCoverLine('weed', x, 20.5, x, 33.6, 1.1, 0.05, 0.45);
   for (const [x, z] of [[-11.5, 32.6], [3.5, 32.6]]) { B.box('prop', x, 0.45, z, 1.6, 0.07, 0.45, 0x8a6a4a); for (const dx of [-0.65, 0.65]) prop(B, x + dx, 0.22, z, 0.06, 0.45, 0.4, 0x3a3a3a); solid(x, z, 1.6, 0.5, 0.8); }
   B.box('tex', 0, 0.6, 34.15, 34, 1.2, 0.1, 0xffffff, { tile: 'fence', ts: 1.1, edges: false }); solid(0, 34.15, 34, 0.3, 1.4);
   for (const x of [-17.05, 17.05]) { B.box('tex', x, 4.5, 27, 0.2, 9, 14.6, 0x8a8c90, { tile: 'mortar', ts: 2, edges: false }); solid(x, 27, 0.3, 14.6, 6); }

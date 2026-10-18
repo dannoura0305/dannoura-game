@@ -12,6 +12,7 @@ import { gradientMap, canvasTex, JP_FONT } from '../render/toon.js';
 import { instanced, finish, BUILDERS3 } from './areas.js';
 import { lightShafts, stainDecals } from '../render/shafts.js';
 import { skyDome } from '../render/sky.js';
+import { vegCoverLine, vegCoverRect } from './vegkit.js';   // P16：雑草は試験マップと同じ部品
 import { RELAYS, RUINS, AVENUE, ROUNDS, ADMIN } from '../data/ch6.js';
 
 const rngOf = s => () => ((s = (s * 16807) % 2147483647) / 2147483647);
@@ -37,6 +38,8 @@ export function buildRuins() {
   const gt = groundTex({ base: '#2a2630', repeat: [8, 36] });
   const fl = new THREE.Mesh(new THREE.PlaneGeometry(22, 84), new THREE.MeshToonMaterial({ map: gt, gradientMap: gradientMap() })); fl.rotation.x = -Math.PI / 2; fl.position.set(0, 0, -3); fl.receiveShadow = true; fl.name = 'ground'; root.add(fl);
   B.box('tex', 0, -0.045, -3, 15.2, 0.1, 84, 0xa8a0b0, { tile: 'arcade_floor', ts: 2.6, edges: false });   // フェーズ9：アーケードの床（割れたタイル）
+  // P16：崩れた商店街：店の前の足もとと割れた床から伸びた雑草（部品の株）
+  for (const x of [-7.25, 7.25]) vegCoverLine('weed', x, 37, x, -43, 0.9, 0.12, 0.55); vegCoverRect('weed', [-6.5, -42, 6.5, 36], 0.05);
   { const pr = rngOf(4242); for (let i = 0; i < 8; i++) B.box('tex', (pr() - 0.5) * 12, 0.012, -36 + pr() * 64, 2.2, 0.01, 1.6, 0xffffff, { tile: 'puddle', fit: true, edges: false, ry: pr() * 3 }); }   // 別の乱数（他の配置を変えない）
   // 店の並び（両側）：シャッター（曲がった・破れた）・看板・2 階の窓
   const SHOPS = ['喫茶 灯', '八百屋', 'クリーニング', '書店', '薬局', '時計店', '金物屋', 'たい焼き', '写真館', '銭湯 松の湯', '和菓子', '精肉店'];

@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "veg.tree.sakura",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/veg.tree.sakura.fbx",
+   "storage": "local-ignored",
+   "sha256": "f7318b88c920777299dbe722c86233f6917513a979dccf7b868f122a320c34f4",
+   "bytes": 97404,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_veg.py --only veg.tree.sakura"
+  }
+ ]
+}
