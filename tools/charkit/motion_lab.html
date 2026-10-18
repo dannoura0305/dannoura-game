@@ -45,7 +45,8 @@ let model = null;
 if (Q.get('vrm')) {
   const { loadCharacter } = await import('../../shinshoku/actor/vrm.js');
   const man = await fetch('../../shinshoku/assets/characters/manifest.json').then(r => r.json());
-  const ent = ((man.testEntries || {})[Q.get('vrm')] || man.characters)[kind === 'companion' ? 'companion' : 'dannoura'];
+  const tbl = (man.testEntries || {})[Q.get('vrm')] || man.characters;
+  const ent = tbl[kind === 'companion' ? 'companion' : kind === 'white' && tbl.dannoura_white ? 'dannoura_white' : 'dannoura'];
   model = await loadCharacter(ent, { quality: Q.get('low') ? 'low' : 'high' });
   if (!model) throw new Error('VRM を読めません');
 }

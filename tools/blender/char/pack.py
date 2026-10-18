@@ -41,6 +41,8 @@ def _expand(p):
         uv = p.UV if p.UV is not None else np.zeros((len(p.V), 2))
         return np.arange(len(p.V)), np.asarray(uv, float), p.T
     UVc = np.asarray(p.UVc, float).reshape(-1, 2)
+    if len(UVc) != p.T.size:
+        raise ValueError('UV の角の数が三角形と合わない：%s（%d / %d）' % (p.name, len(UVc), p.T.size))
     vid = p.T.reshape(-1)
     q = np.round(UVc * 65536).astype(np.int64)
     key = vid * (1 << 40) + q[:, 0] * (1 << 20) + q[:, 1]
@@ -88,6 +90,7 @@ def write_pack(path, parts, bones, human, materials, extra, groups_order=('face'
             P, N, UV, J, W, I = [np.concatenate(x) for x in (P, N, UV, J, W, I)]
             N = N / np.maximum(np.linalg.norm(N, axis=1), 1e-9)[:, None]
             W = W / np.maximum(W.sum(1), 1e-9)[:, None]
+            J = np.where(W > 0, J, 0)      # 重み 0 の骨の番号は 0 に（glTF の検査の注意 ACCESSOR_JOINTS_USED_ZERO_WEIGHT）
             tri_total += len(I)
             prim = {
                 'material': mat_index[mname],

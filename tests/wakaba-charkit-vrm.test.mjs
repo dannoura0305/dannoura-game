@@ -35,9 +35,12 @@ const loadTest = (opt = {}) => loadVRMModel(buf(VRM_FILE), Object.assign({ heigh
 const loadSet = vrm => loadClipSet(JSON.parse(readFileSync(P(SET_FILE), 'utf8')), vrm, { fetchBinary: async (u, f) => buf('shinshoku/assets/anim/test/' + f) });
 
 // ───────── 試験用の素材・manifest ─────────
-await t('manifest：characters の file は null のまま（コードで組んだ予備）・testEntries は ?vrm= の時だけ・試験用の印と出典', () => {
+await t('manifest：異形は null（コード製の予備）・人の 3 体は Blender で作った VRM（P15）・testEntries は ?vrm= の時だけ・試験用の印と出典', () => {
   const man = JSON.parse(readFileSync(P('shinshoku/assets/characters/manifest.json'), 'utf8'));
-  for (const [k, e] of Object.entries(man.characters)) assert.equal(e.file, null, k + ' は null（本番のモデルが来るまで）');
+  for (const [k, e] of Object.entries(man.characters)) {
+    if (['dannoura', 'dannoura_white', 'companion'].includes(k)) { assert.ok(/\.vrm$/.test(e.file) && !e.test, k + '：リポジトリの中で作った VRM（tests/shinshoku-p15-vrmchar.test.mjs）'); continue; }
+    assert.equal(e.file, null, k + ' は null（本番のモデルが来るまで）');
+  }
   const te = man.testEntries.test.dannoura;
   assert.equal(te.test, true); assert.equal(te.provisional, true); assert.ok(te.license && te.source && te.author);
   assert.ok(existsSync(new URL('shinshoku/assets/characters/' + te.file, ROOT)));
@@ -61,7 +64,7 @@ await t('sw.js：版を上げた・試験用の VRM／VRMA は素材（保存分
   const ctx = { self: { location: new URL('https://example.github.io/dannoura-game/sw.js'), addEventListener() {} }, URL, Set, Map, Promise, console, Response: class {}, Headers: class {} };
   vm.createContext(ctx); vm.runInContext(readFileSync(P('sw.js'), 'utf8') + '\n;globalThis.__sw={VERSION,kindOf};', ctx);
   const sw = ctx.__sw; const k = p => sw.kindOf(new URL(p, 'https://example.github.io/dannoura-game/'));
-  assert.ok(sw.VERSION >= '2026-10-30.2', sw.VERSION);
+  assert.ok(sw.VERSION >= '2026-10-31.2', sw.VERSION);
   assert.equal(k('shinshoku/assets/characters/test/dannoura_test.vrm'), 'media');
   assert.equal(k('shinshoku/assets/anim/test/loco_walk.vrma'), 'media');
   assert.equal(k('shinshoku/assets/anim/test/clips.json'), 'shell');

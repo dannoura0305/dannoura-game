@@ -185,12 +185,20 @@ class Game {
   presetVals() { const k = this.settings.preset === 'auto' ? this.autoPresetKey : this.settings.preset; return PRESETS[k] || PRESETS[this.autoPresetKey] || PRESETS.high; }
   async loadCharacterModels() {
     const man = this.manifest; this.portraits = {}; if (!man || !man.characters) return;
+    // ?vrm=0：VRM を読まず、コードで組んだ予備のキャラクターで動かす（比べる用）
+    if (Q.get('vrm') === '0') { this.vrmLoaded = []; this.vrmSkipped = true; return; }
     // ?vrm=test：配管の試験用の VRM（コードで組んだだんのうらを書き出した物）と VRMA のクリップを使う（manifest の testEntries。本番の絵ではない）
     const m = Object.assign({}, man.characters, Q.get('vrm') && man.testEntries && man.testEntries[Q.get('vrm')] ? man.testEntries[Q.get('vrm')] : {});
     const lopt = { quality: this.presetVals() === PRESETS.low ? 'low' : 'high' };
     for (const [k, v] of Object.entries(m)) if (v && v.portrait) this.portraits[k] = new URL('./assets/characters/' + v.portrait, import.meta.url).href;
     if (m.dannoura && m.dannoura.file) { const v = await loadCharacter(m.dannoura, lopt); if (v) { const wasPurple = this.player.model === this.purpleModel; this.purpleModel = v; if (wasPurple) this.player.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('dannoura'); this.vrmStats = Object.assign({ who: 'dannoura', test: !!v.test }, v.stats || {}); } }
     if (m.companion && m.companion.file) { const v = await loadCharacter(m.companion, lopt); if (v) { this.companion.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('companion'); } }
+    // 白い姿（化けを解いた姿）：起動を軽くするため少し後で読む（白い姿は第3章から）。読めたら網の差し替え先を VRM に（今が白い姿ならすぐ差し替え）。
+    // 読み終わる前に化けを解いた時は、コードで組んだ白い姿のまま（後で差し替わる）。予備の分身（ch3 の幻術）はコードの白い姿のまま
+    if (m.dannoura_white && m.dannoura_white.file) {
+      const loadWhite = async () => { const v = await loadCharacter(m.dannoura_white, lopt); if (v) { const wasWhite = this.player.model === this.whiteModel; this.whiteModel = v; if (wasWhite) this.player.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('dannoura_white'); } };
+      this.whiteVrmReady = new Promise(res => setTimeout(() => loadWhite().then(res, res), this.player.fighter.white ? 0 : 2500));
+    }
     // 異形（glTF 推奨）：読めたら次に区画を読み込む時から差し替え
     this.extModels = {};
     for (const k of ['kiro', 'heiten', 'shuuyou']) if (m[k] && m[k].file) { const v = await loadCharacter(m[k]); if (v) { await prepareClone(); this.extModels[k] = v; this.vrmLoaded = (this.vrmLoaded || []).concat(k); } }

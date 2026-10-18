@@ -1,0 +1,101 @@
+{
+ "id": "char.dannoura_white",
+ "name": "だんのうら・白い姿（Dannoura, true form）",
+ "provisional": false,
+ "test": false,
+ "note": "リポジトリの中で Blender（bpy）で作った VRM 1.0（tools/blender/char/build_char.py → tools/charkit/build_chars.mjs）。VRoid Studio などで作った本番のモデルに差し替えられる（docs/shinshoku/VROID_GUIDE.md）",
+ "license": {
+  "id": "project",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "attribution": "",
+  "verifiedBy": ""
+ },
+ "author": "project",
+ "source": {
+  "type": "self_made",
+  "tool": "blender 5.2（bpy）",
+  "generator": "tools/blender/char/build_char.py",
+  "vrmMeta": {
+   "commercialUsage": "corporation",
+   "avatarPermission": "onlyAuthor"
+  }
+ },
+ "body": {
+  "height": 1.64,
+  "sex": "male",
+  "shoulderW": 0.37,
+  "hipW": 0.3
+ },
+ "info": {
+  "bones": 73,
+  "humanBones": 54,
+  "expressions": 14,
+  "springs": 5,
+  "springJoints": 19,
+  "colliders": 11,
+  "parts": {
+   "head_skin": 4000,
+   "left_eyeball": 588,
+   "right_eyeball": 588,
+   "left_lidU": 204,
+   "left_lidL": 136,
+   "right_lidU": 204,
+   "right_lidL": 136,
+   "left_brow": 52,
+   "right_brow": 52,
+   "mouth": 80,
+   "left_hand": 1499,
+   "right_hand": 1500,
+   "hair_locks": 11316,
+   "hair_cap": 1397,
+   "jacket": 6554,
+   "trousers": 3722,
+   "left_shoe": 1150,
+   "right_shoe": 1149,
+   "glasses": 986,
+   "flower": 520,
+   "ear_L": 650,
+   "ear_R": 650,
+   "claw_leftThumb": 48,
+   "claw_leftIndex": 48,
+   "claw_leftMiddle": 48,
+   "claw_leftRing": 48,
+   "claw_leftLittle": 48,
+   "claw_rightThumb": 48,
+   "claw_rightIndex": 48,
+   "claw_rightMiddle": 48,
+   "claw_rightRing": 48,
+   "claw_rightLittle": 48,
+   "fur_collar": 1800,
+   "strapFL": 576,
+   "strapBL": 576,
+   "strapFR": 576,
+   "strapBR": 576,
+   "belt": 480,
+   "buckle": 160
+  }
+ },
+ "files": [
+  {
+   "file": "dannoura_white.vrm",
+   "lod": "pc",
+   "bytes": 2485388,
+   "sha256": "4f41c14420e59f70947f2295eae3de418fa1a4ad95214be72276d94c6dd1cb34",
+   "tris": 42357,
+   "materials": 5,
+   "images": 7,
+   "imageBytes": 474345
+  },
+  {
+   "file": "dannoura_white_low.vrm",
+   "lod": "low",
+   "bytes": 1226336,
+   "sha256": "9d699d6c83261aaf291fe572b1cb1f1d26d9a150b9d53f619c5ab4375a266fd2",
+   "tris": 17889,
+   "materials": 5,
+   "images": 7,
+   "imageBytes": 239029
+  }
+ ]
+}

@@ -83,15 +83,21 @@ def remove(ob):
 
 
 def _activate(ob):
-    for o in bpy.context.view_layer.objects:
-        o.select_set(False)
+    for o in list(bpy.context.scene.objects):
+        if o is not None:
+            o.select_set(False)
     bpy.context.view_layer.objects.active = ob
     ob.select_set(True)
 
 
-def quadriflow(m, faces, name="qf", smooth_normals=False, seed=0):
-    """QuadriFlow で四角形の網へ（閉じた網が必要。失敗したら元のまま）"""
-    ob = to_object(m, name)
+def quadriflow(m, faces, name="qf", smooth_normals=False, seed=0, voxel=None):
+    """QuadriFlow で四角形の網へ（閉じた・多様体の網が必要：voxel を渡すと先にボクセルで作り直す。失敗したら元のまま）"""
+    if voxel:
+        m = voxel_remesh(m, voxel, name + "_vx")
+    # QuadriFlow は小さい（m 単位の人の大きさ）網で精度の判定に落ちる → 10 倍にして作り、戻す
+    c = m.V.mean(0)
+    big = Mesh((m.V - c) * 10.0, m.F)
+    ob = to_object(big, name)
     _activate(ob)
     try:
         r = bpy.ops.object.quadriflow_remesh(target_faces=int(faces), use_mesh_symmetry=False, use_preserve_sharp=False,
@@ -101,6 +107,7 @@ def quadriflow(m, faces, name="qf", smooth_normals=False, seed=0):
         print('quadriflow failed', e)
         ok = False
     out = from_object(ob, False)
+    out.V = out.V / 10.0 + c
     remove(ob)
     if not ok or len(out.F) < faces * 0.3:
         print('quadriflow: 失敗・元の網を使う', name, len(out.F))

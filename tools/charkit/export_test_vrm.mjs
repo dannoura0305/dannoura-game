@@ -1,5 +1,6 @@
 // 試験用の VRM 1.0・VRMA 1.0 を作る（配管の試験用・本番の絵ではない）。docs/shinshoku/ASSET_IMPORT.md「試験用の VRM」。
 //   node tools/charkit/export_test_vrm.mjs [--out shinshoku/assets]
+//   node tools/charkit/export_test_vrm.mjs --clips dannoura   … 本番の動きの組（test の印なし）だけを shinshoku/assets/anim/dannoura/ へ（試験用の VRM は書かない）
 // 中で小さな HTTP の配り手を一時的に立て（終わったら閉じる）、Playwright の Chromium で tools/charkit/export_test_vrm.html を開いて書き出す。
 // 出る物：shinshoku/assets/characters/test/dannoura_test.vrm・shinshoku/assets/anim/test/*.vrma・clips.json・README（sha256 の表）。
 import { createServer } from 'node:http';
@@ -28,9 +29,20 @@ try {
   const errs = []; page.on('pageerror', e => errs.push(String(e))); page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
   await page.goto(`http://127.0.0.1:${port}/tools/charkit/export_test_vrm.html`);
   await page.waitForFunction(() => window.__ready, null, { timeout: 60000 });
-  const res = await page.evaluate(() => window.exportAll());
+  const clipsOnly = arg('clips', null);
+  const res = await page.evaluate(o => window.exportAll(o), { test: !clipsOnly });
   if (errs.length) { console.error('ページのエラー：', errs); process.exitCode = 1; }
   const sha = b => createHash('sha256').update(b).digest('hex');
+  if (clipsOnly) {
+    const adir = join(OUT, 'anim', clipsOnly);
+    mkdirSync(adir, { recursive: true });
+    const files = [];
+    for (const [name, b64] of Object.entries(res.clips)) { const b = Buffer.from(b64, 'base64'); writeFileSync(join(adir, name), b); files.push({ file: name, bytes: b.length, sha256: sha(b) }); }
+    res.set.files = files;
+    writeFileSync(join(adir, 'clips.json'), JSON.stringify(res.set, null, 1) + '\n');
+    for (const f of files) console.log(`${(f.bytes / 1024).toFixed(1).padStart(8)} KB  ${f.sha256.slice(0, 16)}  anim/${clipsOnly}/${f.file}`);
+    process.exit(errs.length ? 1 : 0);
+  }
   const cdir = join(OUT, 'characters/test'), adir = join(OUT, 'anim/test');
   mkdirSync(cdir, { recursive: true }); mkdirSync(adir, { recursive: true });
   const rows = [];

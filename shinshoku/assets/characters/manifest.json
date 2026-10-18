@@ -1,24 +1,145 @@
 {
-  "_note": "キャラクターの差し替え表（コードの変更は不要）。file に .vrm / .glb / .gltf（このフォルダに置く）を書くと、コードで組んだ仮のキャラクターの代わりに読み込みます。null のときは仮のキャラクター（provisional）。portrait は会話・HUD の顔絵（.png / .webp / .jpg）。読み込みに失敗したら仮のキャラクターのまま続きます。手順は docs/shinshoku/ASSET_IMPORT.md。license・author・source は必ず記入。",
-  "ver": 2,
+  "_note": "キャラクターの差し替え表（コードの変更は不要）。file に .vrm / .glb / .gltf（このフォルダに置く）を書くと、コードで組んだ仮のキャラクターの代わりに読み込みます。2026-10-18 から だんのうら・白い姿・相棒 は**リポジトリの中で Blender で作った VRM 1.0（tools/blender/char → tools/charkit/build_chars.mjs）が既定**。読み込みに失敗したら・URL に ?vrm=0 を付けた時はコードで組んだ予備のキャラクター。VRoid Studio などで作ったモデルに差し替える時は file を書き換える（docs/shinshoku/VROID_GUIDE.md）。portrait は会話・HUD の顔絵。手順は docs/shinshoku/ASSET_IMPORT.md。license・author・source は必ず記入。",
+  "ver": 3,
   "characters": {
-    "dannoura": { "file": null, "portrait": null, "provisional": true, "height": 1.64, "scale": 1, "rotateY": 0, "restPose": "auto", "bones": {}, "source": "code-built placeholder (shinshoku/actor/models.js)", "license": "project", "author": "project" },
-    "companion": { "file": null, "portrait": null, "provisional": true, "height": 1.58, "scale": 1, "rotateY": 0, "restPose": "auto", "bones": {}, "source": "code-built placeholder", "license": "project", "author": "project" },
-    "kiro": { "file": null, "provisional": true, "height": 1.78, "scale": 1, "rotateY": 0, "restPose": "auto", "bones": {}, "source": "code-built placeholder", "license": "project", "author": "project" },
-    "heiten": { "file": null, "provisional": true, "height": 2.15, "scale": 1, "rotateY": 0, "restPose": "auto", "bones": {}, "source": "code-built placeholder", "license": "project", "author": "project" },
-    "shuuyou": { "file": null, "provisional": true, "height": 2.6, "scale": 1, "rotateY": 0, "restPose": "auto", "bones": {}, "source": "code-built placeholder", "license": "project", "author": "project" }
+    "dannoura": {
+      "file": "dannoura.vrm",
+      "fileLow": "dannoura_low.vrm",
+      "portrait": null,
+      "provisional": false,
+      "height": 1.64,
+      "fit": "none",
+      "scale": 1,
+      "rotateY": 0,
+      "shader": "mtoon",
+      "anim": "../anim/dannoura/clips.json",
+      "kind": "dannoura",
+      "meta": "dannoura.meta.json",
+      "source": "tools/blender/char/build_char.py（リポジトリの中で Blender（bpy）で作った VRM 1.0・tools/charkit/build_chars.mjs で書き出し）",
+      "license": "project（自作・商用可：VRM の利用条件 commercialUsage corporation）",
+      "author": "project",
+      "fallback": "code-built placeholder (shinshoku/actor/models.js)"
+    },
+    "dannoura_white": {
+      "file": "dannoura_white.vrm",
+      "fileLow": "dannoura_white_low.vrm",
+      "portrait": null,
+      "provisional": false,
+      "height": 1.64,
+      "fit": "none",
+      "scale": 1,
+      "rotateY": 0,
+      "shader": "mtoon",
+      "anim": "../anim/dannoura/clips.json",
+      "kind": "white",
+      "meta": "dannoura_white.meta.json",
+      "source": "tools/blender/char/build_char.py（リポジトリの中で Blender（bpy）で作った VRM 1.0・tools/charkit/build_chars.mjs で書き出し）",
+      "license": "project（自作・商用可：VRM の利用条件 commercialUsage corporation）",
+      "author": "project",
+      "fallback": "code-built placeholder (shinshoku/actor/models3.js buildDannouraWhite)"
+    },
+    "companion": {
+      "file": "companion.vrm",
+      "fileLow": "companion_low.vrm",
+      "portrait": null,
+      "provisional": false,
+      "height": 1.58,
+      "fit": "none",
+      "scale": 1,
+      "rotateY": 0,
+      "shader": "mtoon",
+      "anim": null,
+      "kind": "companion",
+      "meta": "companion.meta.json",
+      "source": "tools/blender/char/build_char.py（リポジトリの中で Blender（bpy）で作った VRM 1.0・tools/charkit/build_chars.mjs で書き出し）",
+      "license": "project（自作・商用可：VRM の利用条件 commercialUsage corporation）",
+      "author": "project",
+      "fallback": "code-built placeholder"
+    },
+    "kiro": {
+      "file": null,
+      "provisional": true,
+      "height": 1.78,
+      "scale": 1,
+      "rotateY": 0,
+      "restPose": "auto",
+      "bones": {},
+      "source": "code-built placeholder",
+      "license": "project",
+      "author": "project"
+    },
+    "heiten": {
+      "file": null,
+      "provisional": true,
+      "height": 2.15,
+      "scale": 1,
+      "rotateY": 0,
+      "restPose": "auto",
+      "bones": {},
+      "source": "code-built placeholder",
+      "license": "project",
+      "author": "project"
+    },
+    "shuuyou": {
+      "file": null,
+      "provisional": true,
+      "height": 2.6,
+      "scale": 1,
+      "rotateY": 0,
+      "restPose": "auto",
+      "bones": {},
+      "source": "code-built placeholder",
+      "license": "project",
+      "author": "project"
+    }
   },
   "_noteTest": "testEntries は URL に ?vrm=<名前> を付けた時だけ characters に重ねて使う（配管の試験用・本番の絵ではない）。test は tools/charkit/export_test_vrm.mjs が作った試験用の VRM 1.0 と VRMA。",
   "testEntries": {
     "test": {
-      "dannoura": { "file": "test/dannoura_test.vrm", "anim": "../anim/test/clips.json", "portrait": null, "provisional": true, "test": true, "height": 1.64, "fit": "none", "shader": "mtoon", "kind": "dannoura",
-                    "source": "tools/charkit/export_test_vrm.mjs（コードで組んだだんのうらの書き出し・配管の試験用）", "license": "project（試験用・配らない）", "author": "project", "meta": "test/dannoura_test.meta.json" }
+      "dannoura": {
+        "file": "test/dannoura_test.vrm",
+        "anim": "../anim/test/clips.json",
+        "portrait": null,
+        "provisional": true,
+        "test": true,
+        "height": 1.64,
+        "fit": "none",
+        "shader": "mtoon",
+        "kind": "dannoura",
+        "source": "tools/charkit/export_test_vrm.mjs（コードで組んだだんのうらの書き出し・配管の試験用）",
+        "license": "project（試験用・配らない）",
+        "author": "project",
+        "meta": "test/dannoura_test.meta.json"
+      }
     },
     "test_noanim": {
-      "dannoura": { "file": "test/dannoura_test.vrm", "anim": null, "provisional": true, "test": true, "height": 1.64, "fit": "none", "kind": "dannoura", "source": "同上（クリップなし：手続きの予備の動きの確認）", "license": "project（試験用）", "author": "project" }
+      "dannoura": {
+        "file": "test/dannoura_test.vrm",
+        "anim": null,
+        "provisional": true,
+        "test": true,
+        "height": 1.64,
+        "fit": "none",
+        "kind": "dannoura",
+        "source": "同上（クリップなし：手続きの予備の動きの確認）",
+        "license": "project（試験用）",
+        "author": "project"
+      }
     },
     "test_toon2": {
-      "dannoura": { "file": "test/dannoura_test.vrm", "anim": "../anim/test/clips.json", "provisional": true, "test": true, "height": 1.64, "fit": "none", "shader": "toon2", "kind": "dannoura", "source": "同上（材質を本作の toon2 へ変換）", "license": "project（試験用）", "author": "project" }
+      "dannoura": {
+        "file": "test/dannoura_test.vrm",
+        "anim": "../anim/test/clips.json",
+        "provisional": true,
+        "test": true,
+        "height": 1.64,
+        "fit": "none",
+        "shader": "toon2",
+        "kind": "dannoura",
+        "source": "同上（材質を本作の toon2 へ変換）",
+        "license": "project（試験用）",
+        "author": "project"
+      }
     }
   }
 }

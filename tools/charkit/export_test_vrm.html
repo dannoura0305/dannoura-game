@@ -367,21 +367,23 @@ function toVRMA(name, sk, keys, times, extras) {
   return buildVRMA({ name, bones: sk.bones, humanBones: sk.HB, times: new Float32Array(times), rotations: rot, hipsTranslation: hips, extras });
 }
 
-async function exportClips(T) {
+async function exportClips(T, opt = {}) {
   const sk = vrmaSkeleton(T);
-  const files = {}, set = { spec: 'wakaba-clipset/1', test: true, skeleton: 'vrm1-humanoid', note: '配管の試験用（コードで組んだ手続きの動きを録った物）。本番の動きは VRoid／モーションキャプチャ（docs/shinshoku/VROID_GUIDE.md）', clips: {} };
+  const test = opt.test !== false;
+  const files = {}, set = test ? { spec: 'wakaba-clipset/1', test: true, skeleton: 'vrm1-humanoid', note: '配管の試験用（コードで組んだ手続きの動きを録った物）。本番の動きは VRoid／モーションキャプチャ（docs/shinshoku/VROID_GUIDE.md）', clips: {} }
+    : { spec: 'wakaba-clipset/1', skeleton: 'vrm1-humanoid', note: '手続きの動き（charkit/anim/clips の歩きの鍵の姿勢＋足の IK・戦闘のこまは shinshoku/data/combat.js）を録った VRMA。リポジトリの中で作った自作（tools/charkit/export_test_vrm.mjs --clips <名前>）。モーションキャプチャの動きが来たら差し替える（docs/shinshoku/VROID_GUIDE.md §4）', source: { type: 'self_made', generator: 'tools/charkit/export_test_vrm.mjs' }, clips: {} };
   const LOCO = [['loco.walk', COMBAT.move.walk], ['loco.jog', 3.4], ['loco.run', COMBAT.move.run], ['loco.sprint', 6.5]];
   for (const [id, v] of LOCO) {
     const c = recordCycle(T, v);
     const times = c.keys.map((_, k) => k / (c.keys.length - 1) * c.dur);
     const file = id.replace('.', '_') + '.vrma';
-    files[file] = toVRMA(id, sk, c.keys, times, { wakaba: { id, test: true } });
+    files[file] = toVRMA(id, sk, c.keys, times, { wakaba: { id, test } });
     set.clips[id] = { file, role: 'loco', loop: true, speedMS: +v.toFixed(3), durationS: +c.dur.toFixed(4), strideM: +(c.cycleM / 2).toFixed(4), rootMotion: 'none', events: [{ t: 'footL', u: 0 }, { t: 'footR', u: 0.5 }], source: { type: 'procedural_capture', from: 'shinshoku/actor/actors.js Player（LocoDriver）' } };
   }
   {
     const c = recordIdle(T);
     const times = c.keys.map((_, k) => k / c.fps);
-    files['idle.vrma'] = toVRMA('idle', sk, c.keys, times, { wakaba: { id: 'idle', test: true } });
+    files['idle.vrma'] = toVRMA('idle', sk, c.keys, times, { wakaba: { id: 'idle', test } });
     set.clips.idle = { file: 'idle.vrma', role: 'idle', loop: true, durationS: +(times[times.length - 1]).toFixed(4), rootMotion: 'none', source: { type: 'procedural_capture' } };
   }
   for (const [id, w, kind, ref] of [['cmb_katana_light_1', 'katana', 'light', 'katana.light[0]'], ['cmb_katana_heavy', 'katana', 'heavy', 'katana.heavy'], ['react_hit_front', 'none', 'hurt', null]]) {
@@ -391,17 +393,17 @@ async function exportClips(T) {
     const file = id + '.vrma';
     const mt = c.meta || {};
     const events = mt.startup != null ? [{ t: 'hitStart', frame: mt.startup }, { t: 'hitEnd', frame: mt.startup + mt.active }] : [];
-    files[file] = toVRMA(id, sk, c.keys, times, { wakaba: { id, test: true, events } });
+    files[file] = toVRMA(id, sk, c.keys, times, { wakaba: { id, test, events } });
     set.clips[id] = Object.assign({ file, role: kind === 'hurt' ? 'hit' : 'attack', loop: false, fps: 60, frames: c.keys.length, events, rootMotion: 'none', source: { type: 'procedural_capture' } },
       kind === 'hurt' ? {} : { match: { weapon: w, heavy: kind === 'heavy', step: kind === 'heavy' ? null : 0 }, combatRef: { file: 'shinshoku/data/combat.js', path: 'COMBAT.' + ref } });
   }
   return { files, set };
 }
 
-window.exportAll = async () => {
+window.exportAll = async (opt = {}) => {
   const t0 = performance.now();
   const v = await exportVRM();
-  const c = await exportClips(v.info.T);
+  const c = await exportClips(v.info.T, opt);
   delete v.info.T; delete v.info.bonesTable;
   const b64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
   const out = { vrm: b64(v.glb), info: v.info, clips: Object.fromEntries(Object.entries(c.files).map(([k, u]) => [k, b64(u)])), set: c.set, ms: Math.round(performance.now() - t0) };
