@@ -817,13 +817,10 @@ registerMinigame({
     // ── 更新 ──
     function compact(a,free){let j=0;for(let i=0;i<a.length;i++){const o=a[i];if(!o.dead)a[j++]=o;else if(free)free.push(o);}a.length=j;}
     let resizeChk=0;
-    // 経過時間は自分で測る（core.js の MG.loop が渡す dt は、前回時刻の更新がコメントに埋もれていて
-    // 毎フレーム 0.05 秒に張り付く＝60Hz で3倍速・120Hz で6倍速になるため）。上限 0.05 秒は同じ
-    let lastNow=0;
-    mg.loop(()=>{
-      const now=performance.now();
-      let dt=lastNow?(now-lastNow)/1000:0;lastNow=now;
-      if(!(dt>0))dt=0;else if(dt>.05)dt=.05;
+    // 経過時間は core.js の MG.loop の dt（実時間・上限 0.05 秒・タブ復帰直後は 0）をそのまま使う。
+    // 以前は MG.loop の dt が 0.05 秒に張り付く不具合があったため自前で測っていたが、core 側で直した
+    mg.loop(dt=>{
+      if(!(dt>0))dt=0;
       clock+=dt;seCd-=dt;grzCd-=dt;
       resizeChk-=dt;if(resizeChk<=0){resizeChk=.5;resize();}
       if(paused&&scene==='play'){draw();hud();return;}

@@ -768,7 +768,7 @@ registerMinigame({
       }
       for(const z of zzz){if(z.on){z.t+=dt;if(z.t>2.6)z.on=false;}}
       // 粒子
-      for(const p of parts){if(p.life>0){p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.g*dt;p.vx*=.97;p.vy*=.97;}}
+      for(const p of parts){if(p.life>0){p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.g*dt;const dmp=Math.pow(.97,dt*60);p.vx*=dmp;p.vy*=dmp;}}
       for(const r of rings)if(r.t>0)r.t-=dt;
       for(const o of pops)if(o.t>0){o.t-=dt;o.y-=dt*10;}
       for(const ty of toys)ty.tw+=dt;

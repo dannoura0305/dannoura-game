@@ -1538,7 +1538,7 @@ registerMinigame({
       nextBolt-=dt;
       if(nextBolt<=0){flash=1;nextBolt=7+Math.random()*12;flashEl.style.transition='none';flashEl.style.opacity='.18';requestAnimationFrame(()=>{flashEl.style.transition='opacity .6s';flashEl.style.opacity='0';});setTimeout(()=>{if(!mg._ended)AU.se('noise');},300+Math.random()*700);}
       dust.forEach(d=>{d.x=(d.x+d.vx*dt+1)%1;d.y=(d.y+d.vy*dt+1)%1;});
-      for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.l-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=.35*dt;p.vx*=.97;if(p.l<=0)parts.splice(i,1);}
+      for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.l-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=.35*dt;p.vx*=Math.pow(.97,dt*60);if(p.l<=0)parts.splice(i,1);}
       if(drip.y<0){drip.t+=dt;if(drip.t>2.2+Math.random()*.02){drip.y=.04;drip.sp=0;}}
       else{drip.sp+=1.6*dt;drip.y+=drip.sp*dt;if(drip.y>=.9){drip.y=-1;drip.t=0;splash={t:0};if(S.started&&!S.over&&Math.random()<.5)sfx('drip');}}
       if(splash){splash.t+=dt*1.8;if(splash.t>=1)splash=null;}

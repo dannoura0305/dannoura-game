@@ -984,7 +984,7 @@ registerMinigame({
       ctx.globalAlpha=1;
       // 粒子
       ctx.globalCompositeOperation='lighter';
-      for(const p of parts){if(p.l<=0)continue;p.l-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.94;p.vy=p.vy*.94-dt*.4;
+      for(const p of parts){if(p.l<=0)continue;p.l-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;const dmp=Math.pow(.94,dt*60);p.vx*=dmp;p.vy=p.vy*dmp-dt*.4;
         ctx.globalAlpha=clamp01(p.l/p.m);ctx.fillStyle=p.c;const z=p.s*s;ctx.fillRect(p.x*s-z/2,p.y*s-z/2,z,z);}
       ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
       ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=`${Math.round(s*.34)}px "DotGothic16", monospace`;

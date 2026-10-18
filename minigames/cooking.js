@@ -404,10 +404,10 @@ registerMinigame({
       for(const p of P){if(!p.on)continue;p.life-=dt;if(p.life<=0){p.on=false;continue;}
         p.x+=p.vx*dt;p.y+=p.vy*dt;
         if(p.k==='oil'){p.vy+=520*S*dt;}
-        else if(p.k==='steam'||p.k==='smoke'){p.vx+=Math.sin(T*2+p.rot)*10*dt;p.vy*=.995;p.sz+=dt*16*S;}
-        else if(p.k==='spark'){p.vy+=90*S*dt;p.vx*=.97;p.rot+=dt*5;}
+        else if(p.k==='steam'||p.k==='smoke'){p.vx+=Math.sin(T*2+p.rot)*10*dt;p.vy*=Math.pow(.995,dt*60);p.sz+=dt*16*S;}
+        else if(p.k==='spark'){p.vy+=90*S*dt;p.vx*=Math.pow(.97,dt*60);p.rot+=dt*5;}
         else if(p.k==='drop'){p.vy+=420*S*dt;}
-        else if(p.k==='heart'){p.vy*=.98;p.vx+=Math.sin(T*3+p.rot)*12*dt;}
+        else if(p.k==='heart'){p.vy*=Math.pow(.98,dt*60);p.vx+=Math.sin(T*3+p.rot)*12*dt;}
       }
       for(let i=pops.length-1;i>=0;i--){pops[i].t+=dt;if(pops[i].t>=pops[i].dur)pops.splice(i,1);}
     }

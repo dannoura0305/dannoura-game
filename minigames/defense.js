@@ -923,7 +923,7 @@ registerMinigame({
       updateFx(dt);
     }
     function updateFx(dt){
-      for(let i=0;i<PN;i++){const p=parts[i];if(p.life<=0)continue;p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.g*dt;p.vx*=.96;p.vy*=.96;}
+      for(let i=0;i<PN;i++){const p=parts[i];if(p.life<=0)continue;p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.g*dt;const dmp=Math.pow(.96,dt*60);p.vx*=dmp;p.vy*=dmp;}
       let n=0;for(let i=0;i<rings.length;i++){const r=rings[i];r.life-=dt;if(r.life>0)rings[n++]=r;}rings.length=n;
       n=0;for(let i=0;i<floats.length;i++){const f=floats[i];f.life-=dt;f.y-=28*dt;if(f.life>0)floats[n++]=f;}floats.length=n;
       n=0;for(let i=0;i<corpses.length;i++){const c=corpses[i];c.t+=dt;if(c.t<c.max)corpses[n++]=c;}corpses.length=n;

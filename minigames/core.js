@@ -310,6 +310,28 @@ function mgShowSkillFx(id){
 }
 
 // ── 実行管理 ──
+// ── MG.loop の1フレームの経過時間（秒） ──
+// rAF が渡す時刻（ミリ秒）の差を秒にする。以前は「前回時刻の更新」がコメントの中に入ってしまい、
+// dt が毎フレーム上限の 0.05 秒に張り付いていた（60Hz で3倍速・120Hz で6倍速）。
+// ・初回フレーム・時刻が戻った・数え直し（reset）の直後は 0。
+// ・1フレームの上限は MG_DT_MAX（0.05秒＝20fps）。各ゲームはこの上限を前提に当たり判定などを作っているので、
+//   20fps を下回る重い端末ではゲームの時間が少しゆっくり進む（一度に大きく飛ばない）。
+// ・タブが裏に回ったら reset して、戻った時に止まっていた時間を一気に進めない。
+// tests/minigame-core-loop.test.mjs で確かめている。
+const MG_DT_MAX=.05;
+function mgFrameClock(){
+  let last=null;
+  return {
+    tick(now){
+      if(typeof now!=='number'||!isFinite(now))return 0;
+      if(last===null||now<last){last=now;return 0;}
+      const dt=(now-last)/1000;
+      last=now;
+      return dt>MG_DT_MAX?MG_DT_MAX:dt;
+    },
+    reset(){last=null;},
+  };
+}
 const MG={
   def:null,game:null,_iv:[],_raf:null,_keys:null,_ended:true,_onEnd:[],
   el(id){return document.getElementById(id);},
@@ -390,12 +412,14 @@ const MG={
   setScore(html){this.el('mg-score').innerHTML=html;},
   setTimer(t){this.el('mg-timer').textContent=t;},
   every(fn,ms){const id=setInterval(fn,ms);this._iv.push(id);return id;},
-  // dt（秒）付きの毎フレーム処理
+  // dt（秒）付きの毎フレーム処理。dt は rAF の時刻の差＝実際に過ぎた時間（mgFrameClock）なので、
+  // 60Hz・120Hz・144Hz のどの画面でも同じ速さで進む。タブが裏に回って戻った直後は 0 から数え直す
   loop(fn){
-    let last=performance.now();
+    const clock=mgFrameClock();
+    this._clock=clock;
     const step=now=>{
       if(this._ended)return;
-      const dt=Math.max(0,Math.min(.05,(now-last)/1000)); // 初回フレームでマイナスになることがあるlast=now;
+      const dt=clock.tick(now);
       // 1フレームの例外でゲーム全体が止まらないようにする（同じエラーは何度も出さない）
       try{fn(dt);}catch(e){if(!this._loopErr){this._loopErr=true;console.error(e);}}
       if(!this._ended)this._raf=requestAnimationFrame(step);
@@ -423,7 +447,7 @@ const MG={
     this._ended=true;
     this._iv.forEach(clearInterval);this._iv=[];
     if(this._raf)cancelAnimationFrame(this._raf);
-    this._raf=null;this._keys=null;
+    this._raf=null;this._keys=null;this._clock=null;
     this._onEnd.forEach(fn=>{try{fn();}catch(e){console.warn(e);}});this._onEnd=[];
     this.el('mg-screen').classList.remove('active');
     document.body.classList.remove('mg-active');
@@ -489,6 +513,8 @@ if(typeof closeResult==='function'){
 }
 // タブが裏に回ったら、ミニゲームの効果音（Web Audio）を止めて戻ったら再開する
 document.addEventListener('visibilitychange',()=>{
+  // 戻った時に裏にいた時間ぶん進めない（MG.loop の時計を数え直す）
+  if(MG._clock)MG._clock.reset();
   if(MG._ended||typeof AU==='undefined'||!AU.ctx)return;
   try{document.hidden?AU.ctx.suspend():AU.ctx.resume();}catch(e){}
 });
