@@ -12,15 +12,19 @@ import { patchWind } from './wind.js';
 const LIB = 'wakaba-assets/';
 
 export class AssetBank {
-  constructor(renderer, P, { onProgress } = {}) {
-    this.renderer = renderer; this.P = P; this.catalog = null; this.byId = new Map();
+  /**
+   * opt：onProgress(done, pending)・adapt(material, info)＝作った材質を作品の側で手直しする所（境界侵食 P16：色の調整・軽い材質。無ければそのまま＝山の廃村は今まで通り）・
+   * lib＝素材ライブラリの URL（無ければページからの相対 'wakaba-assets/'）
+   */
+  constructor(renderer, P, { onProgress, adapt, lib } = {}) {
+    this.renderer = renderer; this.P = P; this.catalog = null; this.byId = new Map(); this.adapt = adapt || (m => m); this.lib = lib || LIB;
     this.tex = new Map(); this.mats = new Map(); this.kits = new Map(); this.stats = { texBytes: 0, textures: 0, glbBytes: 0, kits: 0, failed: [] };
     this.loader = new THREE.TextureLoader(); this.gltf = new GLTFLoader(); this.onProgress = onProgress || (() => {});
     this.pending = 0; this.done = 0; this.maxAniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
   }
   async loadCatalog() {
     try {
-      const r = await fetch(LIB + 'catalog.json'); if (!r.ok) throw new Error(r.status);
+      const r = await fetch(this.lib + 'catalog.json'); if (!r.ok) throw new Error(r.status);
       this.catalog = await r.json();
       for (const e of this.catalog.entries || []) if (e.targets && e.targets.web && e.targets.web.result === 'pass') this.byId.set(e.id, e);
     } catch (e) { this.catalog = { entries: [] }; this.stats.failed.push('catalog: ' + e.message); }
@@ -34,7 +38,7 @@ export class AssetBank {
     const bySize = e.material.maps[kind]; if (!bySize) return null;
     const s = size || pickTexSize(Object.keys(bySize).map(Number), this.P.texMax);
     const key = `${id}/${kind}/${s}`; if (this.tex.has(key)) return this.tex.get(key);
-    const url = `${LIB}entries/${e.dir}/web/${bySize[s]}`;
+    const url = `${this.lib}entries/${e.dir}/web/${bySize[s]}`;
     const t = new THREE.Texture(); t.flipY = false; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = kind === 'albedo' || kind === 'normal' ? this.maxAniso : 1;
     t.colorSpace = kind === 'albedo' ? THREE.SRGBColorSpace : THREE.NoColorSpace; t.name = key;
     // KTX2（フェーズ 4・?tex=ktx2）：同じ名前の .ktx2 が目録の web にあれば、GPU の中で圧縮のまま使う。読めなければ WebP
@@ -44,7 +48,7 @@ export class AssetBank {
       if (!hasK) return loadWebp(res);
       this._ktx2().then(L => {
         if (!L) return loadWebp(res);
-        L.load(`${LIB}entries/${e.dir}/web/${kf}`, ct => {
+        L.load(`${this.lib}entries/${e.dir}/web/${kf}`, ct => {
           ct.wrapS = ct.wrapT = THREE.RepeatWrapping; ct.anisotropy = t.anisotropy; ct.colorSpace = t.colorSpace; ct.flipY = false; ct.name = key + '.ktx2'; ct.repeat.copy(t.repeat);
           t.userData.replacement = ct; this.stats.ktx2 = (this.stats.ktx2 || 0) + 1; this.stats.textures++;
           this.stats.texBytes += (ct.mipmaps || []).reduce((a, m) => a + (m.data ? m.data.byteLength : 0), 0) || texBytes(s) / 4;
@@ -60,7 +64,7 @@ export class AssetBank {
     const e = this.byId.get(id); if (!e || !e.material) return null;
     const bySize = e.material.maps[kind]; if (!bySize) return null;
     const s = pickTexSize(Object.keys(bySize).map(Number), size);
-    const url = `${LIB}entries/${e.dir}/web/${bySize[s]}`;
+    const url = `${this.lib}entries/${e.dir}/web/${bySize[s]}`;
     return this._track(fetch(url).then(r => r.blob()).then(b => createImageBitmap(b, { imageOrientation: 'none', premultiplyAlpha: 'none', colorSpaceConversion: 'none' })).then(img => ({ img, size: s })).catch(() => { this.stats.failed.push(url); return null; }));
   }
   tile(id) { const e = this.byId.get(id); return e && e.material ? e.material.tileM : 1; }
@@ -77,7 +81,7 @@ export class AssetBank {
     m.name = id;
     if (M) {
       const rep = new THREE.Vector2(1 / tile, 1 / tile);
-      const a = this.texture(id, 'albedo'), n = this.texture(id, 'normal'), o = this.texture(id, 'orh');
+      const a = this.texture(id, 'albedo'), n = this.P.albedoOnly ? null : this.texture(id, 'normal'), o = this.P.albedoOnly ? null : this.texture(id, 'orh');   // albedoOnly：色だけ（境界侵食のスマホの段）
       for (const t of [a, n, o]) if (t) t.repeat.copy(rep);
       m.map = a; if (n) { m.normalMap = n; m.normalScale = new THREE.Vector2(1, opt.tangents ? 1 : -1).multiplyScalar(M.card ? 0.6 : 1); }
       if (o) { m.roughnessMap = o; m.aoMap = o; m.aoMapIntensity = 0.85; }
@@ -85,7 +89,8 @@ export class AssetBank {
     } else { m.color.setRGB(0.5, 0.5, 0.5); m.roughness = 0.9; }
     if (opt.color) m.color.set(opt.color);
     if ((opt.wind && this.P.wind) || opt.translucent) patchWind(m, this.P.wind ? opt.wind : null, { translucent: !!opt.translucent });
-    this.mats.set(key, m); return m;
+    const out = this.adapt(m, { id, card: !!(M && M.card) });
+    this.mats.set(key, out); return out;
   }
   /** 部品（glb）を読む → { id, nodes: { LOD0: [{geometry, material}], ... }, variants, lodDist, impostor } */
   kit(id) {
@@ -94,7 +99,7 @@ export class AssetBank {
     const mo = this.P.meshopt !== false ? e && e.kit && e.web.find(w => w.file.endsWith('.mo.glb')) : null;
     const p = !e || !e.kit ? Promise.resolve(null) : this._track((mo ? this._meshopt() : Promise.resolve(false)).then(okMo => new Promise(res => {
       const f = okMo && mo ? mo : e.web.find(w => w.file.endsWith('.glb') && !w.file.endsWith('.mo.glb'));
-      this.gltf.load(`${LIB}entries/${e.dir}/${f.file}`, g => {
+      this.gltf.load(`${this.lib}entries/${e.dir}/${f.file}`, g => {
         this.stats.glbBytes += f.bytes; this.stats.kits++; if (f === mo) this.stats.meshopt = (this.stats.meshopt || 0) + 1;
         const nodes = {};
         g.scene.updateMatrixWorld(true);
@@ -116,10 +121,11 @@ export class AssetBank {
             if (mat.map) { mat.map.anisotropy = this.maxAniso; this.stats.texBytes += texBytes(mat.map.image ? mat.map.image.width : 256, mat.map.image ? mat.map.image.height : 256); this.stats.textures++; }
             mat.vertexColors = !!geo.attributes.color; mat.roughness = 0.95; mat.metalness = 0; mat.envMapIntensity = 0.3; if (name === 'IMP') mat.color.setScalar(0.72);
             if (wind && this.P.wind) patchWind(mat, wind);
-          } else mat = this.material(mid, { tangents: !!geo.attributes.tangent, vc: !!geo.attributes.color, wind, translucent: this.P.foliageTrans !== false && /^mat\.foliage\.(sugi|broadleaf)$/.test(mid) });
+            mat = this.adapt(mat, { id: name === 'IMP' ? 'imp.' + id : mid, card: name === 'IMP', impostor: name === 'IMP' });
+          } else mat = this.material(mid, { tangents: !!geo.attributes.tangent, vc: !!geo.attributes.color, wind, translucent: this.P.foliageTrans !== false && /^mat\.foliage\.(?!grass$|fern$|weed$)/.test(mid) });   // 透け：木と低木の葉（下草は透けなし）
           if (!geo.attributes.color) { const c = new Float32Array(geo.attributes.position.count * 3).fill(1); geo.setAttribute('color', new THREE.BufferAttribute(c, 3)); mat.vertexColors = true; }
           // 木の葉のカードを増やす（フェーズ 4：近くで板に見えにくく）：同じカードを幹のまわりに回して少し縮めた写しを同じ網に足す（描画の呼び出しは増えない）
-          const dup = id.startsWith('veg.tree') && /^mat\.foliage\./.test(mid) && /LOD[01]$/.test(name) ? (this.P.cardDup ?? 1) : 0;
+          const dup = id.startsWith('veg.tree') && /^mat\.foliage\./.test(mid) && /LOD[01]$/.test(name) ? (e.kit.cardDup ?? this.P.cardDup ?? 1) : 0;   // 目録の kit.cardDup（松＝0）が先
           (nodes[name] = nodes[name] || []).push({ geometry: dup ? moreCards(geo, dup, id) : geo, material: mat });
         });
         res({ id, nodes, variants: e.kit.variants || 1, lodDist: e.kit.lodDist || [30], impostor: !!e.kit.impostor, size: e.tech && e.tech.sizeM });

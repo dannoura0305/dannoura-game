@@ -10,6 +10,7 @@ import { AREA_DATA } from '../data/areas.js';
 import { skyDome } from '../render/sky.js';
 import { envAreaMats, envUpgradeRoot } from '../render/envmat.js';
 import { KIT, kitWants } from './envkit.js';
+import { vegTake, vegPut, vegHedge, vegCoverLine } from './vegkit.js';   // P16：植物は試験マップと同じ部品（world/vegkit.js）
 /** P12：区画の組み立ての間に、インスタンスの家具を Blender の部品へ置き換える所（finish で区画の kitItems へ） */
 let _kitQ = [];
 
@@ -57,7 +58,8 @@ export function finish(id, B, atlas, root, extra) {
   envUpgradeRoot(root, id);
   root.updateMatrixWorld(true);
   const kitItems = _kitQ; _kitQ = [];
-  return Object.assign({ id, root, kitItems }, extra);
+  const veg = vegTake();                                           // P16：植物（試験マップと同じ部品）の置き場所
+  return Object.assign({ id, root, kitItems, vegItems: veg.items, vegCover: veg.cover }, extra);
 }
 
 // ───────────────────────── 裏路地 ─────────────────────────
@@ -97,13 +99,19 @@ export function buildAlley() {
   for (const [x, z] of [[1.25, -7.5], [-1.25, -12.5], [1.25, -16.5]]) B.box('prop', x, 3.2, z, 0.08, 6.4, 0.08, 0xb8a040, { edges: false });
   B.box('prop', 1.3, 3.5, -10, 0.12, 7, 0.12, 0x6a6a72, { edges: false }); B.box('prop', -1.3, 3.5, -6, 0.12, 7, 0.12, 0x6a6a72, { edges: false });
   B.box('prop', 8, 6.2, -23.25, 16, 0.1, 0.1, 0x5a5a62, { edges: false });
-  for (const [x, z] of [[-0.9, -6.5], [9.5, -23]]) { B.box('prop', x, 0.45, z, 0.6, 0.9, 0.6, 0x3a5a3a); solid(x, z, 0.6, 0.6, 0.9); }
+  // P16：裏口の鉢植え（部品：素焼きの鉢と大きな葉）・壁ぎわの雑草。手続きの緑の箱は代わりの網（当たり判定は今まで通り）
+  for (const [x, z] of [[-0.9, -6.5], [9.5, -23]]) { vegPut('veg.pot', x, 0, z, x * 2, 0.85, 1); B.fb(true, () => B.box('prop', x, 0.45, z, 0.6, 0.9, 0.6, 0x3a5a3a), 'veg'); solid(x, z, 0.6, 0.6, 0.9); }
+  vegCoverLine('weed', -1.18, 0.6, -1.18, -8.4, 1.0, 0.04, 0.4); vegCoverLine('weed', 1.18, 0.6, 1.18, -22.6, 1.0, 0.04, 0.35); vegCoverLine('weed', -1.18, -11.6, -1.18, -22.6, 1.0, 0.04, 0.4);
+  vegCoverLine('weed', 2.0, -20.85, 15.8, -20.85, 1.1, 0.04, 0.35); vegCoverLine('weed', 2.0, -23.15, 15.8, -23.15, 1.1, 0.04, 0.35);
   B.box('prop', 3.5, 0.5, -23.0, 1.4, 1.0, 0.4, 0x2a2a30); solid(3.5, -23.0, 1.4, 0.4, 1.0);
   // 祠（小さな地蔵・賽銭箱）：見切り補助
   B.box('prop', -2.9, 0.35, -10, 0.6, 0.7, 0.8, 0x6a6a6a); B.box('prop', -2.95, 0.95, -10, 0.36, 0.5, 0.36, 0x8a8a84); B.box('prop', -2.95, 1.3, -10, 0.24, 0.24, 0.24, 0x8a8a84);
   B.box('prop', -2.55, 0.25, -10, 0.25, 0.3, 0.4, 0x6a4a2a); solid(-2.9, -10, 0.7, 0.9, 1.2);
   B.box('glow', -2.66, 0.76, -9.72, 0.08, 0.12, 0.08, 0xffa060, { edges: false }); halos.push({ p: [-2.5, 0.8, -9.6], size: 0.7, color: 0xffa060, k: 0.7, flicker: true });   // P13：ろうそくは祠の台の上（前は宙に浮いていた）
   spots.push({ id: 'shrine', kind: 'pickupSpot', give: 'equip:mikiri', x: -2.0, z: -10, r: 1.3, label: '祠（賽銭箱）' });
+  // P16：祠のくぼみ：小さな鉢（供えた植木）・隅の石・苔の代わりの下草（部品）
+  vegPut('veg.pot', -3.3, 0, -9.08, 0.3, 0.62, 0); vegPut('rock.boulder', -3.25, 0, -10.9, 1.2, 0.22, 1); vegPut('rock.boulder', -2.0, 0, -11.0, 2.6, 0.16, 2);
+  vegCoverLine('grass', -3.4, -9.0, -3.4, -11.0, 0.5, 0.03, 0.8); vegCoverLine('weed', -2.0, -8.95, -1.6, -8.95, 0.4, 0.02, 1.0); vegCoverLine('weed', -2.0, -11.05, -1.6, -11.05, 0.4, 0.02, 1.0);
   // 自販機（くぼみ）
   B.box('wall', 6.0, 0.9, -18.95, 1.0, 1.8, 0.7, 0x2a7ad0); B.box('glow', 6.0, 1.15, -19.31, 0.8, 0.9, 0.02, 0xbfe4ff, { edges: false }); solid(6.0, -18.95, 1.0, 0.7, 1.8);
   halos.push({ p: [6.0, 1.2, -19.5], size: 1.6, color: 0x9fd0ff, k: 0.55 });
@@ -165,7 +173,9 @@ export function buildPlaza() {
   // フェーズ9：床は広場の舗装・建物は町の地図帳の材質
   B.box('tex', 0, -0.06, -1, 44, 0.12, 40, 0xb8b0b8, { tile: 'paving', ts: 2.4, edges: false });
   const PLAZA_T = { [0x7a7484]: ['tilewall', 0xc8b8b0], [0x5a5562]: ['block', 0xd0ccc8], [0x3a3640]: ['concrete', 0x8a8690], [0x4a6a4a]: ['hedge', 0xa0b890], [0x9a94a4]: ['mortar', 0xd8d0d0] };
-  const wall = (cx, cz, w, d, h, c) => { const t = PLAZA_T[c]; if (t) B.box('tex', cx, h / 2, cz, w, h, d, t[1], { tile: t[0], ts: t[0] === 'block' ? 1.2 : 2, ao: true }); else B.box('wall', cx, h / 2, cz, w, h, d, c); solid(cx, cz, w, d, h); };
+  const wall = (cx, cz, w, d, h, c) => { const t = PLAZA_T[c];
+    if (c === 0x4a6a4a) { vegHedge(cx - w / 2 + 0.05, cz, cx + w / 2 - 0.05, cz, d, h); B.fb(true, () => B.box('tex', cx, h / 2, cz, w, h, d, t[1], { tile: t[0], ts: 2, ao: true }), 'veg'); }   // P16：植え込み＝生垣の部品
+    else if (t) B.box('tex', cx, h / 2, cz, w, h, d, t[1], { tile: t[0], ts: t[0] === 'block' ? 1.2 : 2, ao: true }); else B.box('wall', cx, h / 2, cz, w, h, d, c); solid(cx, cz, w, d, h); };
   // 外周（見えない壁ではなく、植え込み・建物・柵で囲む）
   wall(0, -14.6, 38, 1.2, 11, 0x7a7484);                        // 商業施設の正面
   wall(-18.6, 7.5, 1, 13, 4, 0x5a5562); wall(-18.6, -9, 1, 10, 4, 0x5a5562);   // 西（x −18.6、z −2.5〜2.5 が裏路地からの道）
@@ -173,7 +183,8 @@ export function buildPlaza() {
   wall(18.6, -6, 1, 16, 4, 0x5a5562); wall(18.6, 11, 1, 6, 4, 0x5a5562);        // 東（z 2〜8 が避難所への渡り廊下）
   wall(19.6, 5, 1, 6, 4, 0x3a3640);
   wall(0, 14.6, 38, 1, 2.2, 0x4a6a4a);                           // 南の植え込み
-  for (let x = -16; x <= 16; x += 4) B.box('prop', x, 2.4, 14.4, 0.8, 1.2, 0.8, 0x2a4a2a, { edges: false });
+  for (let x = -16; x <= 16; x += 4) { vegPut('veg.shrub.tsutsuji', x, 2.15, 14.4, x, [0.85, 1.3, 0.85], 0); B.fb(true, () => B.box('prop', x, 2.4, 14.4, 0.8, 1.2, 0.8, 0x2a4a2a, { edges: false }), 'veg'); }   // P16：植え込みの上の刈り込んだ低木
+  vegCoverLine('weed', -17.8, 13.95, 17.8, 13.95, 1.2, 0.05, 0.45); vegCoverLine('weed', -17.9, -13.9, -17.9, 13.6, 1.3, 0.05, 0.3);
   // 正面：ガラスの入口（閉まっている）・大きな看板・「本日は閉店しました」
   B.box('glass', 0, 1.6, -13.95, 7, 3.2, 0.1, 0x101824, { edges: false });
   B.box('glow', 0, 3.3, -13.95, 7.2, 0.12, 0.12, 0x6a8aaa, { edges: false });

@@ -1,0 +1,99 @@
+{
+ "id": "mat.ceramic.terracotta",
+ "version": 1,
+ "name": {
+  "ja": "素焼きの鉢",
+  "en": "Terracotta"
+ },
+ "category": "material",
+ "tags": [
+  "鉢",
+  "素焼き",
+  "陶器",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/mapkit/matgen/matgen_veg.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/wakaba-mapkit/11_写実化パイプライン.md"
+ },
+ "tech": {
+  "formats": [
+   "webp",
+   "png"
+  ],
+  "texRes": 512,
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness",
+   "height"
+  ],
+  "fileBytes": 179788
+ },
+ "use": [
+  "境界侵食（shinshoku）の町の植物（P16）",
+  "鉢植え"
+ ],
+ "status": "draft",
+ "material": {
+  "material": "wakaba-material/1",
+  "tileM": 0.8,
+  "sizes": [
+   512,
+   256,
+   128
+  ],
+  "maps": {
+   "albedo": {
+    "512": "albedo_512.webp",
+    "256": "albedo_256.webp",
+    "128": "albedo_128.webp"
+   },
+   "normal": {
+    "512": "normal_512.webp",
+    "256": "normal_256.webp",
+    "128": "normal_128.webp"
+   },
+   "orh": {
+    "512": "orh_512.webp",
+    "256": "orh_256.webp",
+    "128": "orh_128.webp"
+   }
+  },
+  "alpha": false,
+  "card": false,
+  "channels": {
+   "albedo": "sRGB",
+   "normal": "接空間・OpenGL（G＝上・three.js の既定）",
+   "orh": "R＝AO・G＝粗さ・B＝高さ（金属は 0）"
+  },
+  "albedoMean": [
+   0.554,
+   0.295,
+   0.172
+  ],
+  "roughMean": 0.867
+ },
+ "history": [
+  {
+   "at": "2026-10-18",
+   "by": "claude-code",
+   "change": "tools/mapkit/matgen/matgen_veg.py（defs_veg.py）で生成（境界侵食 P16：植物を試験マップと同じ作り方に）"
+  }
+ ]
+}

@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.bark.matsu",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.bark.matsu_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "f41cf3b59cdcac8c921f611fbe731219562d49021ec93ed349815c7d0d3a30c0",
+   "bytes": 1094236,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.bark.matsu"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.bark.matsu_normal.png",
+   "storage": "local-ignored",
+   "sha256": "d93774fed0c888887097b141b4f5938ad61968a6d65062a53781e4932a61cf65",
+   "bytes": 2601229,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.bark.matsu"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.bark.matsu_orh.png",
+   "storage": "local-ignored",
+   "sha256": "f39d2aa8c9e6d3d573f5a91030b381e795a897a80365a1f2bdf9f75c24b1ab65",
+   "bytes": 2302628,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.bark.matsu"
+  }
+ ]
+}

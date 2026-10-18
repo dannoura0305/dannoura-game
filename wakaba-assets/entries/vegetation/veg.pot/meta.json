@@ -1,0 +1,89 @@
+{
+ "id": "veg.pot",
+ "version": 1,
+ "name": {
+  "ja": "鉢植え（素焼きの鉢：丸いツツジ／葉の大きな植物）",
+  "en": "Potted plants (2 variants)"
+ },
+ "category": "vegetation",
+ "tags": [
+  "鉢植え",
+  "植木鉢",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/kit/build_kit_veg.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/wakaba-mapkit/11_写実化パイプライン.md"
+ },
+ "tech": {
+  "formats": [
+   "glb",
+   "fbx"
+  ],
+  "tris": 176,
+  "lods": [
+   176,
+   88
+  ],
+  "sizeM": [
+   0.624,
+   0.605,
+   0.654
+  ],
+  "pivot": "bottom_center",
+  "collision": "convex",
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness"
+  ],
+  "fileBytes": 51716
+ },
+ "use": [
+  "境界侵食（shinshoku）の町の植物（P16）"
+ ],
+ "status": "draft",
+ "kit": {
+  "kit": "wakaba-kit/1",
+  "nodes": {
+   "v0_LOD0": 176,
+   "v0_LOD1": 88,
+   "v1_LOD0": 188,
+   "v1_LOD1": 92
+  },
+  "variants": 2,
+  "lodDist": [
+   12
+  ],
+  "impostor": false,
+  "materials": [
+   "mat.ceramic.terracotta",
+   "mat.foliage.houseplant",
+   "mat.foliage.tsutsuji"
+  ],
+  "vertexColor": "COLOR_0＝AO（焼き込み）",
+  "note": "節の名前 LOD<n>（種類が複数なら v<k>_LOD<n>）・IMP＝遠景の十字の板（画像は glb の中）。材質は id の名前で共有の PBR 材質に差し替える"
+ },
+ "history": [
+  {
+   "at": "2026-10-18",
+   "by": "claude-code",
+   "change": "tools/blender/kit/build_kit_veg.py（pieces_veg.py）で生成（境界侵食 P16：植物を試験マップと同じ作り方に）"
+  }
+ ]
+}

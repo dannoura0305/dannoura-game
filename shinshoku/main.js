@@ -60,6 +60,8 @@ import { RainSplash } from './render/envfx.js';
 import { GroundReflection } from './render/envrefl.js';
 import { Post } from '../mapkit/render/post.js';
 import { envKitInit, envKitLoad, envKitApply, envKitUpdate, KIT } from './world/envkit.js';
+// P16：植物（木・低木・生垣・鉢・雑草・岩・瓦礫）は試験マップと同じ部品と描き方（mapkit の AssetBank・KitSet・GroundCover・wind を読み込んで使う）
+import { vegInit, vegLoad, vegApply, vegUpdate, vegNight, vegStats, VEG } from './world/vegkit.js';
 
 const DT = 1 / 60;
 /** 場所の移動の暗転で出す小さな助言（操作・遊び方。物語の内容は書かない） */
@@ -100,7 +102,7 @@ class Game {
     const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: P0.antialias, powerPreference: 'high-performance' });
     r.setClearColor(0x0c0a16);
     r.shadowMap.type = THREE.PCFShadowMap; r.shadowMap.enabled = !!this.settings.shadows;     // 影の有無はシェーダーの種類を変えるので先に決める（先に作るシェーダーを無駄にしない）
-    { const t0 = performance.now(); envInit(r, Object.assign({}, P0, Q.get('pbr') === '0' ? { pbr: false } : {}, Q.get('ibl') ? { ibl: Q.get('ibl') === '1' } : {})); envKitInit(P0); if (Q.get('kit') === '0') KIT.on = false; this.envMs = Math.round(performance.now() - t0); }        // P12：PBR の材質（段で決める・区画を組み立てる前に）
+    { const t0 = performance.now(); envInit(r, Object.assign({}, P0, Q.get('pbr') === '0' ? { pbr: false } : {}, Q.get('ibl') ? { ibl: Q.get('ibl') === '1' } : {})); envKitInit(P0); if (Q.get('kit') === '0') KIT.on = false; vegInit(this.presetKey(), P0, { shadows: !!this.settings.shadows, on: Q.get('veg') !== '0' }); vegNight(); this.envMs = Math.round(performance.now() - t0); }        // P12：PBR の材質（段で決める・区画を組み立てる前に）
     this.scene = new THREE.Scene();
     this.scene.fog = new THREE.FogExp2(0x100c1c, 0.045);
     this.scene.background = new THREE.Color(0x0c0a16);
@@ -183,6 +185,7 @@ class Game {
   }
   makeWhiteModel() { const m = buildDannouraWhite(); return m; }
   presetVals() { const k = this.settings.preset === 'auto' ? this.autoPresetKey : this.settings.preset; return PRESETS[k] || PRESETS[this.autoPresetKey] || PRESETS.high; }
+  presetKey() { const P = this.presetVals(); return Object.keys(PRESETS).find(k => PRESETS[k] === P) || 'high'; }
   async loadCharacterModels() {
     const man = this.manifest; this.portraits = {}; if (!man || !man.characters) return;
     // ?vrm=0：VRM を読まず、コードで組んだ予備のキャラクターで動かす（比べる用）
@@ -231,6 +234,7 @@ class Game {
       if (r.after) r.after(this);
       if (ENV.pbr && r.root) r.root.traverse(o => { if (o.name === 'town_pools') o.material.color.setScalar(0.5); });
       if (r.kitItems && r.kitItems.length) { (A.kitItems || (A.kitItems = [])).push(...r.kitItems); envKitApply(A); }
+      if ((r.vegItems && r.vegItems.length) || (r.vegCover && r.vegCover.length)) { (A.vegItems || (A.vegItems = [])).push(...(r.vegItems || [])); (A.vegCover || (A.vegCover = [])).push(...(r.vegCover || [])); if (live) vegApply(A, this); }   // P16
       if (r.root) r.root.traverse(o => { if (o.userData.isEdgeLines) o.visible = this.settings.outline && this.settings.edges !== false; });
       A.mapImg = null;                                              // ミニマップの下絵は作り直す
       (this.bootMs || (this.bootMs = {})).pending = (this.bootMs.pending || 0) + Math.round(performance.now() - t0);
@@ -289,6 +293,7 @@ class Game {
     this.sfx.setAmbience(A.amb || (id === 'shotengai' ? (streetState(this.story.step) === 'normal' && !this.flags.lights_out ? 'street_normal' : 'street') : 'street'));
     this.rain.mesh.visible = !!A.rain && this.settings.rain;
     envKitApply(A);                                                   // P12：Blender の部品（読めていれば）
+    vegApply(A, this);                                                // P16：植物の部品（読めていれば・まだの物だけ）
     if (ENV.pbr && !A.poolsDim) { A.poolsDim = true; A.root.traverse(o => { if (o.name === 'town_pools') o.material.color.setScalar(0.5); }); }   // PBR の段は点光源が地面を照らすので、足し合わせの光のたまりは弱く
   }
   changeArea(to, spawn) {
@@ -552,7 +557,7 @@ class Game {
     if (this.portraitDue != null && --this.portraitDue <= 0) { this.portraitDue = null; setTimeout(() => { const t0 = performance.now(); try { this.makePortrait(); this.bootMs.portrait = [Math.round(t0), Math.round(performance.now() - t0)]; } catch (e) { console.warn('portrait', e); } }, 3500); }
     // 遠い所の組み立て：起動の直後（GPU がシェーダーを作っている間）は待ち、少し後か、近づいた時に
     // P12：PBR の地図帳と部品は起動の後（最初のこまの 1.2 秒後）に読む＝起動を遅くしない
-    if (this.bootMs && this.bootMs.frame1 && !this.envLoadAsked && performance.now() - this.bootMs.frame1 > 1200) { this.envLoadAsked = true; const t0 = performance.now(); envLoad().then(ok => { this.bootMs.envAtlas = ok ? [Math.round(t0), Math.round(performance.now() - t0)] : 'none'; }); envKitLoad(this).then(n => { this.bootMs.kit = n; }); }
+    if (this.bootMs && this.bootMs.frame1 && !this.envLoadAsked && performance.now() - this.bootMs.frame1 > 1200) { this.envLoadAsked = true; const t0 = performance.now(); envLoad().then(ok => { this.bootMs.envAtlas = ok ? [Math.round(t0), Math.round(performance.now() - t0)] : 'none'; }); envKitLoad(this).then(n => { this.bootMs.kit = n; }); const t1 = performance.now(); vegLoad(this).then(n => { this.bootMs.veg = [Math.round(t1), Math.round(performance.now() - t1), n]; }); }
     if (this.area && this.area.pending && this.area.pending.length && this.bootMs && this.bootMs.frame1 && !this.cut.active) { const P = this.player.pos, near = P.x > 48 || P.z < -60; if (near || performance.now() - this.bootMs.frame1 > 2500) this.buildPending(this.area, 1); }
   }
   step() {
@@ -906,7 +911,7 @@ class Game {
       for (const e of this.enemies) if (e.kind === 'kiro' && !e.mark) e.weakGlow = 0.35;
     } else { P.aimWeak = false; for (const e of this.enemies) if (e.kind === 'kiro' && !e.mark) e.weakGlow = 0; }
     // P12：色の調整（区画・場所）・水たまりの波紋の時間・雨の跳ね
-    envTick(dt); envApplyGrade(gradeAt(A.id, P.pos.x, P.pos.z, inHome), dt); envKitUpdate(A, this.camera);
+    envTick(dt); envApplyGrade(gradeAt(A.id, P.pos.x, P.pos.z, inHome), dt); envKitUpdate(A, this.camera); vegUpdate(A, this.camera, dt, this.moon);
     if (this.splash) { const on = S.rain && A.rain && !this.cut.active; this.splash.mesh.visible = !!on; if (on) this.splash.update(dt, P.pos.x, P.pos.z, A.rainRoof, this.scene.fog.density); }
     if (this.refl && this.presetVals().refl && !this.split7) { const pk = A.pending ? A.pending.length : 0; if (!A.poolsMesh || A.poolsPk !== pk) { A.poolsPk = pk; A.poolsMesh = []; A.root.traverse(o => { if (o.name === 'town_pools') A.poolsMesh.push(o); }); } this.refl.render(this.renderer, this.scene, this.camera, [this.rain.mesh, this.splash && this.splash.mesh, this.wet.mesh, this.trail.mesh, ...A.poolsMesh]); }
     else if (this.refl) ENV_U.uReflOn.value = 0;
@@ -958,9 +963,9 @@ class Game {
   }
 
   /** HUD の顔：manifest の portrait があればそれ、無ければ今のモデルの顔を小さく描いて使う */
-  makePortrait() {
+  makePortrait(force) {
     this.portraitMade = true;
-    if (this.portraits && this.portraits.dannoura) { this.ui.setPortrait(this.portraits.dannoura); return; }
+    if (!force && this.portraits && this.portraits.dannoura) { this.ui.setPortrait(this.portraits.dannoura); return; }
     const P = this.player, N = 128;
     P.animate(0.016); P.root.updateMatrixWorld(true);
     const head = new THREE.Vector3(); P.model.J.head.getWorldPosition(head); head.y += 0.1;
@@ -976,7 +981,7 @@ class Game {
     const px = new Uint8Array(N * N * 4);
     const done = () => { rt.dispose(); const c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d', { willReadFrequently: true }); const im = g.createImageData(N, N);
       for (let y = 0; y < N; y++) im.data.set(px.subarray((N - 1 - y) * N * 4, (N - y) * N * 4), y * N * 4);
-      g.putImageData(im, 0, 0); if (!(this.portraits && this.portraits.dannoura)) this.ui.setPortrait(c.toDataURL()); };
+      g.putImageData(im, 0, 0); if (force || !(this.portraits && this.portraits.dannoura)) this.ui.setPortrait(c.toDataURL()); };
     // 読み戻しは待たない（GPU の仕事が終わってから受け取る）。古い環境は同期の読み戻し
     if (this.renderer.readRenderTargetPixelsAsync) this.renderer.readRenderTargetPixelsAsync(rt, 0, 0, N, N, px).then(done, () => { this.renderer.readRenderTargetPixels(rt, 0, 0, N, N, px); done(); });
     else { this.renderer.readRenderTargetPixels(rt, 0, 0, N, N, px); done(); }
@@ -1040,6 +1045,7 @@ class Game {
       },
       input: { script: list => g.input.runScript(list), press: (a, f = 0) => g.input.runScript([{ f, press: [a] }]), hold: (a, n) => g.input.runScript([{ f: 0, hold: { [a]: n } }]), move: (x, y, n) => g.input.runScript([{ f: 0, move: [x, y, n] }]) },
       debug: {
+        veg() { return vegStats(g.area); },                         // P16：区画の植物の部品の数・読めたか
         teleport(x, z, yaw, y = 0) { g.player.pos.set(x, y, z); if (yaw != null) { g.player.yaw = yaw; g.cam.yaw = yaw + Math.PI; } },
         home(x, z) { return [x + TOWN_HOME[0], z + TOWN_HOME[1]]; }, town() { return { route: TOWN.route.map(p => p.slice()), routes: JSON.parse(JSON.stringify(TOWN.routes)), nodes: TOWN.nav.nodes, version: TOWN.version, pending: !!(g.areas.shotengai && g.areas.shotengai.pending && g.areas.shotengai.pending.length) }; }, buildPending() { const A = g.areas.shotengai; if (A) g.buildPending(A, 9); return !(A && A.pending && A.pending.length); },
         camYaw(y) { g.cam.yaw = y; }, camPitch(p) { g.cam.pitch = p; },

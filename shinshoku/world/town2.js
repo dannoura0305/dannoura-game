@@ -8,6 +8,7 @@ import { machiyaDoors, lotEntrances, fillEntrances } from '../data/town.js';
 import { applyTile } from '../render/townmat.js';
 import { stopPosts, catenaryPoles, walkwayPosts, canopyColumns, signalPoles } from '../data/town.js';
 import { JP_FONT } from '../render/toon.js';
+import { vegPut, vegCoverRect } from './vegkit.js';   // P16：植物は試験マップと同じ部品
 
 /** 起動の後で組み立てる遠い所（中央通り・駅前・中央通りに面した建物） */
 export const isFar = (x, z) => x > 62 || z < -78 || (x > 49 && z < -24);
@@ -453,7 +454,7 @@ export function makeTown2(K) {
     { const [x0, z0, x1, z1] = S.island, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
       tb('tex', cx, 0.3, cz, x1 - x0, 0.6, z1 - z0, 0xffffff, 'stone', { ts: 1 }); tb('tex', cx, 0.62, cz, x1 - x0 - 0.4, 0.04, z1 - z0 - 0.4, 0xffffff, 'grass', { ts: 2 });
       for (let x = x0 + 2.5; x < x1 - 1; x += 4) yukigakoi(x, cz + (x % 8 < 4 ? -1.5 : 1.5), 0.6);
-      tree(cx, cz, 6.5); }
+      tree(cx, cz, 6.5, 8.5, 'keyaki', 0.62); vegCoverRect('grass', [x0 + 0.4, z0 + 0.4, x1 - 0.4, z1 - 0.4], 0.5, 0.64); }   // P16：植え込みの木（ケヤキ）と芝の株
     for (const [x, z] of S.benches) FK.bench(x, z, 0, 1.8, { d: 0.5 });
     // 広場の車の道（タクシー・バスの出入り）・横断歩道
     for (let x = 57; x < 64; x += 0.9) prop(x + 0.22, 0.014, -80.2, 0.45, 0.02, 2.6, 0xeceae2);
@@ -461,7 +462,9 @@ export function makeTown2(K) {
   }
   /** 雪囲い（低い木に竹の骨組みと縄・わら） */
   function yukigakoi(x, z, y0 = 0) {
-    const c = new THREE.IcosahedronGeometry(0.6, 1); c.scale(1, 0.9, 1); c.translate(x, y0 + 0.55, z); applyTile(c, 'hedge', { ts: 1 }); B.add('tex', c, 0x8aa080, false);
+    // P16：中の低い木は刈り込んだツツジの部品（veg.shrub.tsutsuji・わらの囲いの中）。手続きの丸い形は代わりの網
+    vegPut('veg.shrub.tsutsuji', x, y0, z, x * 1.3, [0.85, 1.15, 0.85], 0);
+    B.fb(true, () => { const c = new THREE.IcosahedronGeometry(0.6, 1); c.scale(1, 0.9, 1); c.translate(x, y0 + 0.55, z); applyTile(c, 'hedge', { ts: 1 }); B.add('tex', c, 0x8aa080, false); }, 'veg');
     const cone = new THREE.ConeGeometry(0.75, 2.0, 8, 1, true); cone.translate(x, y0 + 1.0, z); applyTile(cone, 'straw', { ts: 0.8 }); B.add('tex', cone, 0xd8c8a0, false);
     for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2, g = new THREE.CylinderGeometry(0.025, 0.025, 2.4, 4); g.translate(0, 1.2, 0); g.rotateX(-0.36); g.rotateY(a); g.translate(x + Math.sin(a) * 0.78, y0, z + Math.cos(a) * 0.78); B.add('prop', g, 0xb8a060); }
     for (const [ry, rr] of [[0.55, 0.6], [1.25, 0.33]]) { const t = new THREE.TorusGeometry(rr, 0.03, 4, 14); t.rotateX(Math.PI / 2); t.translate(x, y0 + ry, z); B.add('prop', t, 0x4a3018); }
@@ -514,7 +517,7 @@ export function makeTown2(K) {
       FK.roundTable(x, z, 0.55, 0.74);                                                     // P13：脚のある机と椅子（前は座面と背もたれが浮いていた）
       for (const [dx, dz] of [[0.9, 0], [-0.9, 0], [0, 0.9], [0, -0.9]]) FK.chair(x + dx, z + dz, Math.atan2(-dx, -dz), 0x6a5a4a);
     }
-    for (const [x, z] of G.planters) { tb('tex', x, 0.5, z, 1.6, 1.0, 1.6, 0xffffff, 'concrete', { ts: 1 }); tree(x, z, 5.2); }
+    for (const [x, z] of G.planters) { tb('tex', x, 0.5, z, 1.6, 1.0, 1.6, 0xffffff, 'concrete', { ts: 1 }); tree(x, z, 5.2, 6.4, 'keyaki', 1.0); for (const [dx, dz] of [[-0.42, 0.42], [0.42, -0.42]]) vegPut('veg.shrub.tsutsuji', x + dx, 1.0, z + dz, dx * 3, 0.85, 2); }   // P16：屋根の下の植え込み（ケヤキと小さなツツジ）
     // 入口（駅前通りから）の屋根と看板・通り抜けの名前
     { const [a, b, c, d] = T.walk.find(w => w.id === 'gpass').rect, gx = (a + c) / 2;
       glass(gx, 4.3, (b + d) / 2, c - a, 0.05, d - b, 0x7088a8); prop(gx, 4.25, d, c - a + 0.4, 0.4, 0.3, 0x3a3e46);
@@ -550,7 +553,7 @@ export function makeTown2(K) {
     }
     // 北の側の空き地（x 50〜54）：ブロック塀・植木鉢。町家（w1）の横の面：勝手口・窓・室外機・配管
     tb('tex', 52.05, 0.9, z0 - 0.08, 3.9, 1.8, 0.16, 0xffffff, 'block', { ts: 1.2 }); prop(52.05, 1.84, z0 - 0.08, 3.9, 0.08, 0.2, 0x8a8884);
-    for (const x of [51, 52.6]) { const g = new THREE.CylinderGeometry(0.2, 0.16, 0.36, 10); g.translate(x, 0.18, z0 + 0.25); B.add('prop', g, 0x8a5a3a); const f = new THREE.IcosahedronGeometry(0.26, 0); f.translate(x, 0.5, z0 + 0.25); B.add('prop', f, 0x3a6a3a); }
+    for (const [i, x] of [51, 52.6].entries()) { vegPut('veg.pot', x, 0, z0 + 0.25, x * 2.1, i ? 1.0 : 1.1, i); B.fb(true, () => { const g = new THREE.CylinderGeometry(0.2, 0.16, 0.36, 10); g.translate(x, 0.18, z0 + 0.25); B.add('prop', g, 0x8a5a3a); const f = new THREE.IcosahedronGeometry(0.26, 0); f.translate(x, 0.5, z0 + 0.25); B.add('prop', f, 0x3a6a3a); }, 'veg'); }   // P16：植木鉢の部品
     const side = (xc, zf, nz, items) => {   // 町家の横の面（zf：面の z・nz：外の向き）
       const DF = { alongX: true, f: nz < 0 ? 'N' : 'S', out: [0, nz], at: (u, v) => [xc + u, zf - v * nz] };
       DF.box = (key, u, v, y, a2, b2, hh, color, tile, opt = {}) => { const [x, z] = DF.at(u, v); return B.box(key, x, y, z, a2, hh, b2, color, Object.assign({ tile, edges: false }, opt)); };

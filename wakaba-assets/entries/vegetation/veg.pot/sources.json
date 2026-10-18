@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "veg.pot",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/veg.pot.fbx",
+   "storage": "local-ignored",
+   "sha256": "84f966fcd508236884bd38f45c0ebd1ab7534b312255f0775a48560d870e8164",
+   "bytes": 34140,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_veg.py --only veg.pot"
+  }
+ ]
+}

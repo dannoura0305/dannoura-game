@@ -8,6 +8,7 @@ import { makeTown2, isFar } from './town2.js';
 import { steamMesh } from '../render/steam.js';
 import { CAR_KINDS } from './envkit.js';
 import { furnKit } from './furn.js';
+import { vegTree, vegPut, vegHedge, vegCoverLine, vegCoverRect } from './vegkit.js';   // P16：植物は試験マップと同じ部品（world/vegkit.js）
 
 // 決まった乱数（区画の id から）：data/town.js の seeded（出入り口の位置と同じ乱数）
 
@@ -32,7 +33,7 @@ export function buildTown(ctx) {
   const pool = (x, z, r, color, k = 1) => { const g = new THREE.PlaneGeometry(r * 2, r * 2); g.rotateX(-Math.PI / 2); g.translate(x, 0.035, z); const c = new THREE.Color(color).multiplyScalar(k); const n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); poolGeos.push(g); };
 
   // フェーズ10 の部品（中央通り・駅前・広場・町家・ビル）：同じ道具を渡す
-  const X = makeTown2({ B, T, tb, prop, addTile, signUV, pool, halos, lights, wet, spots, hideSpots, frame, win, roofGable, tree, lampAt, car, bike, catenaryPts, wirePts, inPart, inRect, seeded, fenceFront, signDraw, atlas, doorFrame, glassDoor, FK, acAt, steam });
+  const X = makeTown2({ B, T, tb, prop, addTile, signUV, pool, halos, lights, wet, spots, hideSpots, frame, win, roofGable, tree, lampAt, car, bike, catenaryPts, wirePts, inPart, inRect, seeded, fenceFront, signDraw, atlas, doorFrame, glassDoor, FK, acAt, steam, shrubAt });
   // ── 地面：下敷き（用水路の底より下）・歩ける所・区画の庭 ──
   if (part !== 'far') { const b = T.bounds; tb('tex', (b.minX + b.maxX) / 2, -1.3, (b.minZ + 66) / 2 + 30, b.maxX - b.minX + 40, 0.2, 66 - b.minZ + 80, 0x2a2826, 'gravel', { ts: 4 }); }
   const SURF_TS = { asphalt: 6, asphalt2: 6, lane: 5, interlock: 1.6, paving: 2.2, gravel: 3, concrete: 3, granite: 4, arcade_floor: 2.6 };
@@ -93,6 +94,8 @@ export function buildTown(ctx) {
       if (a > z) for (const x of [C.x0 + 0.05, C.x1 - 0.05]) { prop(x, 0.95, (z + a) / 2, 0.06, 0.06, a - z, 0x8a9aa0); prop(x, 0.55, (z + a) / 2, 0.05, 0.05, a - z, 0x8a9aa0); for (let p = z + 0.1; p < a; p += 2) prop(x, 0.5, p, 0.07, 1.0, 0.07, 0x7a8a90); }
       z = b;
     }
+    // P16：用水路の柵の足もと（道の側）の雑草・草
+    { let z2 = C.z0; for (const [a, b] of C.gaps.concat([[C.z1, C.z1]])) { if (a > z2 + 1) { vegCoverLine('weed', C.x0 - 0.18, z2 + 0.4, C.x0 - 0.18, a - 0.4, 0.9, 0.06, 0.55); vegCoverLine('weed', C.x1 + 0.18, z2 + 0.4, C.x1 + 0.18, a - 0.4, 0.9, 0.06, 0.55); } z2 = b; } }
     // 公園への橋の手すり
     for (const zz of [22.05, 24.45]) prop(cx, 0.6, zz, C.x1 - C.x0, 0.06, 0.06, 0xc8b070);
   }
@@ -241,9 +244,14 @@ export function buildTown(ctx) {
     for (const [a, b] of segs) {
       if (b - a < 0.1) continue;
       if (kind === 'block') { F.box('tex', (a + b) / 2, 0.15, h / 2, b - a, 0.16, h, 0xffffff, 'block', { ts: 1.2, ao: true }); F.box('prop', (a + b) / 2, 0.15, h + 0.04, b - a, 0.2, 0.08, 0x8a8884); }
-      else if (kind === 'hedge') { F.box('tex', (a + b) / 2, 0.4, 0.6, b - a - 0.01, 0.7, 1.2, 0x9ab08a, 'hedge', { ts: 1.4 }); F.box('tex', (a + b) / 2, 0.4, 0.2, b - a, 0.74, 0.4, 0xffffff, 'block', { ts: 1.2 }); }
+      else if (kind === 'hedge') {   // P16：生垣は部品（veg.hedge を 1m ごとに）。手続きの緑の箱は代わりの網
+        B.fb(true, () => F.box('tex', (a + b) / 2, 0.4, 0.6, b - a - 0.01, 0.7, 1.2, 0x9ab08a, 'hedge', { ts: 1.4 }), 'veg');
+        { const [x0, z0] = F.at(a + 0.03, 0.42), [x1, z1] = F.at(b - 0.03, 0.42); vegHedge(x0, z0, x1, z1, 0.62, 1.32); }
+        F.box('tex', (a + b) / 2, 0.4, 0.2, b - a, 0.74, 0.4, 0xffffff, 'block', { ts: 1.2 }); }
       else { F.box('tex', (a + b) / 2, 0.12, 0.65, b - a, 0.04, 1.1, 0xffffff, 'fence', { ts: 1.1 }); for (let u = a; u <= b; u += 2) F.box('prop', u, 0.12, 0.6, 0.06, 0.06, 1.2, 0x5a6058); F.box('tex', (a + b) / 2, 0.12, 0.1, b - a, 0.2, 0.2, 0xffffff, 'block', { ts: 1.2 }); }
     }
+    // P16：塀の足もと（道の側）の雑草
+    for (const [a, b] of segs) if (b - a > 1.2) { const [x0, z0] = F.at(a + 0.3, -0.14), [x1, z1] = F.at(b - 0.3, -0.14); vegCoverLine('weed', x0, z0, x1, z1, 1.1, 0.06, 0.45); }
     if (gapU != null) {   // 門柱（表札・郵便受け）
       for (const s of [-1, 1]) F.box('tex', gapU + s * (gapW / 2 + 0.2), 0.2, 0.75, 0.42, 0.42, 1.5, 0xd8d0c4, 'stone', { ts: 0.8 });   // P13：塀の端の面と重ねない（ちらつき）
     }
@@ -289,8 +297,10 @@ export function buildTown(ctx) {
     F.box('tex', doorU, 0.2, 0.62, gw - 0.04, 0.03, 1.0, 0x8a7a64, 'balcony', { fit: true });   // 門扉（閉じた格子・低い）
     // 横の塀（表からの奥行き）
     for (const u of [0.08, F.W - 0.08]) F.box('tex', u, F.D / 2, 0.7, 0.17, F.D, 1.4, 0xffffff, 'block', { ts: 1.2 });
-    // 庭：植木（丸い木）・自転車
-    if (r() < 0.7) tree(...F.at(r() < 0.5 ? 0.9 : F.W - 0.9, 1.4), 2.4 + r());
+    // 庭：植木・自転車。P16：庭木の種（松の仕立て・桜・常緑の広葉樹）と、塀の内側の刈り込んだ植え込み（ツツジ）
+    if (r() < 0.7) { const q = r(), sp = q < 0.45 ? 'matsu' : q < 0.7 ? 'sakura' : 'broadleaf', hh = 2.4 + r(); tree(...F.at(r() < 0.5 ? 0.9 : F.W - 0.9, 1.4), hh, sp === 'matsu' ? hh * 1.05 : hh * 1.45, sp); }
+    { const inner = L.fenceKind === 'hedge' ? 1.25 : 0.75, gw2 = gw / 2 + 0.7;
+      for (let u = 1.9; u < F.W - 1.5; u += 1.7 + r() * 0.8) { if (Math.abs(u - doorU) < gw2 || r() < 0.35) continue; shrubAt(F, u, inner, r() < 0.3 ? 1 : 0, 0.75 + r() * 0.35); } }
   }
   function shop(L) {
     const F = frame(L), r = seeded(L.id), floors = L.floors || 2, fh = 2.9, H = floors * fh + 0.3, D = Math.min(F.D, 10), tint = L.tint || 0xd0c8bc;
@@ -422,6 +432,10 @@ export function buildTown(ctx) {
     const [x0, z0, x1, z1] = L.rect;
     for (let z = z0; z <= z1; z += 2) prop(x0 + 0.1, 0.5, z, 0.08, 1.0, 0.08, 0x6a6a5a);
     prop(x0 + 0.1, 0.85, (z0 + z1) / 2, 0.04, 0.04, z1 - z0, 0x8a8a7a); prop(x0 + 0.1, 0.45, (z0 + z1) / 2, 0.04, 0.04, z1 - z0, 0x8a8a7a);
+    // P16：あぜの雑草と草（柵の内と外）・田の向こうの屋敷林（杉：遠景・当たりなし＝入れない所）
+    vegCoverLine('weed', x0 + 0.35, z0 + 0.3, x0 + 0.35, z1 - 0.3, 0.7, 0.15, 0.8); vegCoverLine('grass', x0 + 1.0, z0 + 0.5, x0 + 1.0, z1 - 0.5, 0.8, 0.3, 0.7);
+    vegCoverLine('weed', x0 - 0.2, z0 + 0.3, x0 - 0.2, z1 - 0.3, 1.0, 0.06, 0.5);
+    for (let k = 0; k < 6; k++) tree(x1 - 2 - (k % 2) * 3, z0 + 2 + k * (z1 - z0 - 4) / 5, 5, 12 + (k % 3) * 1.5, k % 3 === 2 ? 'keyaki' : 'sugi');
     // 田んぼの向こうに遠い家の灯り（霧の中）
     halos.push({ p: [x1 + 18, 2.0, (z0 + z1) / 2], size: 1.6, color: 0xffc888, k: 0.25 });
   }
@@ -436,10 +450,20 @@ export function buildTown(ctx) {
     for (const z of [5.5, 10.5]) B.box('glow', cx, 1.05, z, 0.1, 0.1, 0.1, 0xffa020, { edges: false });   // P13：警告灯は柵の上（前は道の真ん中に浮いていた）
     void z0; void z1;
   }
-  function tree(x, z, h = 3) {
-    const g = new THREE.CylinderGeometry(0.1, 0.16, h * 0.5, 7); g.translate(x, h * 0.25, z); B.add('prop', g, 0x4a3628);
-    const c = new THREE.IcosahedronGeometry(h * 0.36, 1); c.scale(1, 1.15, 1); c.translate(x, h * 0.66, z); applyTile(c, 'hedge', { ts: 1.2 }); B.add('tex', c, 0x8aa080, false);
+  /**
+   * 木（P16）：試験マップと同じ部品（world/vegkit.js の vegTree：veg.tree.<種>・LOD・遠景の板）を記録する。h＝前の手続きの形の高さ（代わりの網）、
+   * kh＝部品の高さ（m・無ければ h）、sp＝種（keyaki・ichou・sakura・matsu・sugi・broadleaf）、y＝根元の高さ（植え込みの箱の上など）。
+   * 手続きの丸い木（幹の円柱と葉の 20 面体）は代わりの網（部品が読めない時・?veg=0 の時だけ見える）
+   */
+  function tree(x, z, h = 3, kh = null, sp = 'broadleaf', y = 0) {
+    vegTree(sp, x, z, kh || h, y);
+    B.fb(true, () => {
+      const g = new THREE.CylinderGeometry(0.1, 0.16, h * 0.5, 7); g.translate(x, y + h * 0.25, z); B.add('prop', g, 0x4a3628);
+      const c = new THREE.IcosahedronGeometry(h * 0.36, 1); c.scale(1, 1.15, 1); c.translate(x, y + h * 0.66, z); applyTile(c, 'hedge', { ts: 1.2 }); B.add('tex', c, 0x8aa080, false);
+    }, 'veg');
   }
+  /** 刈り込んだ植え込み（P16：veg.shrub.tsutsuji の種類 v・大きさ s）。F の座標（u, v）・向きは区画の向き */
+  function shrubAt(F, u, v, kind = 0, s = 1, y = 0) { const [x, z] = F.at(u, v); vegPut('veg.shrub.tsutsuji', x, y, z, (F.ry || 0) + (kind ? 0 : u * 1.7), s, kind); }
   function homeExterior() {
     // 自宅（2 階建て）：1 階の壁は level.js（家の中）。ここは外側の皮・2 階・瓦屋根・カーポート・前庭・小物
     const [x0, z0] = homeW(-6, 6), [x1, z1] = homeW(6, 16), cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, w = x1 - x0, d = z1 - z0;
@@ -498,6 +522,10 @@ export function buildTown(ctx) {
     prop(33.25, 2.4, 47.5, 5.2, 0.08, 0.1, 0xb8bcc0);
     // 物置
     B.box('tex', 33.2, 1.1, 54.5, 4.4, 2.2, 3.4, 0xc8ccd0, { tile: 'galv', ts: 2, edges: true });
+    // P16：裏の庭（入れない所）：松の仕立て・桜・刈り込んだツツジ。前の塀の足もと（道の側）の雑草
+    tree(46.4, 58.8, 3.0, 3.6, 'matsu'); tree(38.4, 61.6, 3.4, 5.2, 'sakura');
+    vegPut('veg.shrub.tsutsuji', 43.4, 0, 57.4, 0, 0.9, 1); vegPut('veg.shrub.tsutsuji', 40.0, 0, 57.3, 0.4, 0.8, 0); vegPut('veg.shrub.tsutsuji', 47.0, 0, 62.4, 1.1, 0.9, 0);
+    vegCoverLine('weed', 36.4, 42.72, H.gate[0] - 0.5, 42.72, 1.0, 0.05, 0.5); vegCoverLine('weed', H.gate[1] + 0.5, 42.72, 47.7, 42.72, 1.0, 0.05, 0.5);
     spots.push({ id: 'home_gate', kind: 'read', x: 42, z: 42.3, r: 1.2, label: '表札を見る', text: 'town_nameplate', low: true });
   }
   function park() {
@@ -516,7 +544,10 @@ export function buildTown(ctx) {
     { const [x, z] = P.sand; tb('tex', x, 0.02, z, 2.6, 0.04, 2.0, 0xe8d8b0, 'gravel', { ts: 1 }); for (const [dx, dz, w, d] of [[0, -1.05, 2.8, 0.12], [0, 1.05, 2.8, 0.12], [-1.35, 0, 0.12, 2.0], [1.35, 0, 0.12, 2.0]]) tb('tex', x + dx, 0.1, z + dz, w, 0.2, d, 0xffffff, 'wood', { ts: 1 }); }
     for (const [x, z] of P.bench) FK.bench(x, z, Math.PI, 1.6, { back: true, d: 0.45 });   // P13：脚と背もたれの柱のあるベンチ（前は背もたれが浮いていた）
     { const [x, z] = P.toilet; tb('tex', x, 1.4, z, 3.2, 2.8, 2.8, 0xd8d4c8, 'tilewall', { ts: 1.5, ao: true, edges: true }); prop(x, 2.9, z, 3.6, 0.2, 3.2, 0x5a5a60); B.box('texglow', x + 1.62, 2.1, z, 0.06, 0.5, 1.2, 0xc8d8e8, { tile: 'win_lit2', fit: true, edges: false }); halos.push({ p: [x + 1.9, 2.1, z], size: 1.2, color: 0xd8e8ff, k: 0.35, flicker: true }); }
-    for (const [x, z] of P.trees) tree(x, z, 4 + ((x * 3 + z) % 1.5));
+    // P16：公園の木＝桜 3・ケヤキ 2（当たり判定は今まで通りの幹の箱）。芝の帯に草の株・柵の足もとに雑草
+    P.trees.forEach(([x, z], i) => { const h = 4 + ((x * 3 + z) % 1.5), sp = i % 2 ? 'keyaki' : 'sakura'; tree(x, z, h, sp === 'sakura' ? 6.2 + (i % 3) * 0.6 : 8.5, sp); });
+    for (const [a, b, c, d] of [[x0, z0, x0 + 3, z1], [x1 - 3, z0, x1, z1]]) vegCoverRect('grass', [a + 0.2, b + 0.4, c - 0.2, d - 0.4], 0.9, 0.06);
+    vegCoverLine('weed', x0 + 0.25, z0 + 0.5, x0 + 0.25, z1 - 0.5, 0.9, 0.08, 0.6); vegCoverLine('weed', x0 + 0.5, z1 - 0.25, x1 - 0.5, z1 - 0.25, 0.9, 0.08, 0.6);
     lampAt({ id: 'park', x: P.lamp[0], z: P.lamp[1], kind: 'park', h: 3.6, dead: false, flicker: false });
     hideSpots.push({ x: P.toilet[0] + 1.9, z: P.toilet[1] + 1.4 }, { x: P.slide[0] - 0.8, z: P.slide[1] - 2.2 });
     spots.push({ id: 'park_bench', kind: 'read', x: P.bench[0][0], z: P.bench[0][1] - 0.7, r: 1.2, label: 'ベンチ', text: 'town_park' });
@@ -531,7 +562,10 @@ export function buildTown(ctx) {
     prop(hx + 0.1, 1.42, hz, 1.1, 0.12, 1.0, 0x2a2a30, { rz: 0.0 });
     prop(hx + 0.42, 1.0, hz, 0.02, 0.5, 0.4, 0xe8e0c8);   // 紙垂の代わりの白い札
     for (const [x, z] of S.lanterns) { tb('tex', x, 0.5, z, 0.3, 1.0, 0.3, 0xffffff, 'stone', { ts: 0.6 }); tb('tex', x, 1.1, z, 0.46, 0.3, 0.46, 0xffffff, 'stone', { ts: 0.6 }); B.box('glow', x, 1.1, z, 0.2, 0.16, 0.48, 0xffb060, { edges: false }); halos.push({ p: [x + 0.3, 1.1, z], size: 0.8, color: 0xffa050, k: 0.55, flicker: true }); }
-    tree(-5.5, 39.6, 5.5); tree(-5.6, 44.4, 4.6);
+    // P16：社の木（杉の古木とケヤキ）・祠の足もとの石と下草
+    tree(-5.5, 39.6, 5.5, 11.5, 'sugi'); tree(-5.6, 44.4, 4.6, 8.2, 'keyaki');
+    vegPut('rock.boulder', hx - 0.62, 0, hz - 0.55, 0.7, 0.32, 0); vegPut('rock.boulder', hx + 0.5, 0, hz + 0.66, 2.1, 0.26, 2); vegPut('rock.boulder', hx - 0.7, 0, hz + 0.5, 4.0, 0.22, 1);
+    vegCoverRect('grass', [-5.95, 38.2, -5.3, 44.8], 2.2); vegCoverLine('weed', -5.6, 38.2, -0.8, 38.2, 0.9, 0.05, 0.6); vegCoverLine('weed', -5.6, 44.8, -0.8, 44.8, 0.9, 0.05, 0.6);
     spots.push({ id: 'town_shrine', kind: 'read', x: hx + 1.2, z: hz, r: 1.3, label: '祠に手を合わせる', text: 'town_shrine' });
   }
   function pole(x, z, pl, i) {
@@ -619,7 +653,9 @@ export function buildTown(ctx) {
       case 'car': car(p); break;
       case 'cone': { const g = new THREE.ConeGeometry(0.18, 0.7, 10); g.translate(p.x, 0.35, p.z); B.add('prop', g, 0xe85a1a); prop(p.x, 0.03, p.z, 0.4, 0.06, 0.4, 0x2a2a2a); prop(p.x, 0.45, p.z, 0.2, 0.08, 0.2, 0xf0f0f0); break; }
       case 'sign': { prop(p.x, 1.2, p.z, 0.07, 2.4, 0.07, 0xb8b8b8); if (p.tri) { const g = new THREE.CylinderGeometry(0.42, 0.42, 0.03, 3); g.rotateX(Math.PI / 2); g.translate(p.x, 2.25, p.z - 0.06); B.add('prop', g, 0xeeeeee); const g2 = new THREE.CylinderGeometry(0.34, 0.34, 0.035, 3); g2.rotateX(Math.PI / 2); g2.translate(p.x, 2.235, p.z - 0.035); B.add('prop', g2, p.color); } else { const uv = signUV(p.text, { bg: '#2a6ad0', fg: '#ffffff', size: 36 }); B.box('sign', p.x, 2.25, p.z - 0.05, 0.6, 0.5, 0.03, 0xffffff, { uv, face: 5, edges: false }); } break; }
-      case 'planter': tb('tex', p.x, 0.35, p.z, 0.6, 0.7, 0.6, 0xffffff, 'concrete', { ts: 1 }); { const g = new THREE.IcosahedronGeometry(0.4, 1); g.translate(p.x, 0.95, p.z); applyTile(g, 'hedge', { ts: 1 }); B.add('tex', g, 0xa0c090, false); } break;
+      case 'planter': vegPut('veg.planter', p.x, 0, p.z, ry, [0.6, 1.0, 0.6]); B.fb(true, () => { tb('tex', p.x, 0.35, p.z, 0.6, 0.7, 0.6, 0xffffff, 'concrete', { ts: 1 }); const g = new THREE.IcosahedronGeometry(0.4, 1); g.translate(p.x, 0.95, p.z); applyTile(g, 'hedge', { ts: 1 }); B.add('tex', g, 0xa0c090, false); }, 'veg'); break;   // P16：植え込みの箱の部品
+      case 'streettree': { vegTree(p.sp || 'ichou', p.x, p.z, p.h || 9); tb('tex', p.x, 0.012, p.z, 1.1, 0.02, 1.1, 0x8a8a8a, 'drain', { ts: 0.9 });   // P16：街路樹（イチョウ）と根元の格子
+        B.fb(true, () => { const g = new THREE.CylinderGeometry(0.14, 0.2, 3.6, 7); g.translate(p.x, 1.8, p.z); B.add('prop', g, 0x4a3628); const c = new THREE.IcosahedronGeometry(1.8, 1); c.scale(0.8, 1.5, 0.8); c.translate(p.x, 5.6, p.z); applyTile(c, 'hedge', { ts: 1.2 }); B.add('tex', c, 0xc8b060, false); }, 'veg'); break; }
       case 'board': { const uv = signUV(p.text, { bg: '#f7f3e6', fg: '#203050', size: 24, weight: 'normal' }); B.box('sign', p.x, 1.2, p.z, 1.0, 0.4, 0.03, 0xffffff, { uv, face: 4, edges: false }); break; }
       case 'snowpole': { prop(p.x, 2.5, p.z, 0.06, 5.0, 0.06, 0xe8e8e8); for (let y = 0.4; y < 4.6; y += 0.6) prop(p.x, y, p.z, 0.07, 0.3, 0.07, 0xc8302a); const g = new THREE.CylinderGeometry(0.3, 0.3, 0.02, 3); g.rotateZ(Math.PI / 2); g.translate(p.x - 0.04, 4.9, p.z); B.add('prop', g, 0xe8e8e8); break; }
     }

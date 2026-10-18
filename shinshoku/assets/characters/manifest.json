@@ -2,10 +2,17 @@
   "_note": "キャラクターの差し替え表（コードの変更は不要）。file に .vrm / .glb / .gltf（このフォルダに置く）を書くと、コードで組んだ仮のキャラクターの代わりに読み込みます。2026-10-18 から だんのうら・白い姿・相棒 は**リポジトリの中で Blender で作った VRM 1.0（tools/blender/char → tools/charkit/build_chars.mjs）が既定**。読み込みに失敗したら・URL に ?vrm=0 を付けた時はコードで組んだ予備のキャラクター。VRoid Studio などで作ったモデルに差し替える時は file を書き換える（docs/shinshoku/VROID_GUIDE.md）。portrait は会話・HUD の顔絵。手順は docs/shinshoku/ASSET_IMPORT.md。license・author・source は必ず記入。",
   "ver": 3,
   "characters": {
+    "daughter": {
+      "file": null,
+      "portrait": "../../../assets/gen/portrait/kid_normal.png",
+      "portraitNote": "会話の顔絵だけ（本編の原画）。モデルは無い（娘は危ない場面に出ない）",
+      "provisional": false
+    },
     "dannoura": {
       "file": "dannoura.vrm",
       "fileLow": "dannoura_low.vrm",
-      "portrait": null,
+      "portrait": "../../../assets/gen/portrait/dan_normal.png",
+      "portraitNote": "HUD・会話の顔絵は本編の原画（assets/gen/portrait/dan_*.png）を使う。白い姿の時は原画が無いので白い姿のモデルから描いた顔に切り替える",
       "provisional": false,
       "height": 1.64,
       "fit": "none",

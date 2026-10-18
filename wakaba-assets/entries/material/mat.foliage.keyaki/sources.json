@@ -1,0 +1,33 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "mat.foliage.keyaki",
+ "files": [
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.keyaki_albedo.png",
+   "storage": "local-ignored",
+   "sha256": "abcee1aed77dbbac5b92b4f4ceaa6c075b3c39cba7189742eb163b8540c78d10",
+   "bytes": 877643,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.foliage.keyaki"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.keyaki_normal.png",
+   "storage": "local-ignored",
+   "sha256": "fa7e73425b864559483096ee641926c2c47f363b670e35974210cec08e8025c3",
+   "bytes": 681329,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.foliage.keyaki"
+  },
+  {
+   "role": "texture",
+   "path": "source/mat.foliage.keyaki_orh.png",
+   "storage": "local-ignored",
+   "sha256": "17dabdd782a680fea2044a429c4f2932ebd38fca25194140bbfd50dc02bc8add",
+   "bytes": 583232,
+   "tool": "tools/mapkit/matgen/matgen_veg.py v1・numpy 2.5.4",
+   "note": "1024px の原本（Git に入れない）。作り直し：python tools/mapkit/matgen/matgen_veg.py --only mat.foliage.keyaki"
+  }
+ ]
+}

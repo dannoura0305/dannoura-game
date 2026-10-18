@@ -9,6 +9,7 @@ import { gradientMap, canvasTex, JP_FONT } from '../render/toon.js';
 import { instanced, finish, BUILDERS3 } from './areas.js';
 import { lightShafts, stainDecals } from '../render/shafts.js';
 import { skyDome } from '../render/sky.js';
+import { vegPut } from './vegkit.js';   // P16：植物は試験マップと同じ部品
 import { YARD, LAB } from '../data/ch4.js';
 
 const rngOf = s => () => ((s = (s * 16807) % 2147483647) / 2147483647);
@@ -52,7 +53,7 @@ export function buildOffice() {
   const sofa = [[0, 0.22, 0, 2.2, 0.44, 0.8, 0x3a4a6a], [0, 0.62, -0.32, 2.2, 0.5, 0.16, 0x34425e], [1.06, 0.4, 0, 0.12, 0.36, 0.8, 0x34425e], [-1.06, 0.4, 0, 0.12, 0.36, 0.8, 0x34425e]];
   const sofas = [{ x: 6.4, z: 11.8, ry: Math.PI }, { x: 6.4, z: 8.4, ry: 0 }]; root.add(instanced(sofa, sofas, { name: 'sofas', shadow: true })); for (const s of sofas) solid(s.x, s.z, 2.2, 0.8, 0.8);
   B.box('prop', 6.4, 0.22, 10.1, 1.2, 0.44, 0.7, 0x7a6a5a); solid(6.4, 10.1, 1.2, 0.7, 0.5);
-  for (const [x, z] of [[11.2, 13.2], [-11.2, 13.2], [2.0, 6.6]]) { B.box('prop', x, 0.3, z, 0.5, 0.6, 0.5, 0x6a5a4a); B.box('prop', x, 0.95, z, 0.7, 0.7, 0.7, 0x2e5a3a, { edges: false }); B.box('prop', x, 1.45, z, 0.45, 0.5, 0.45, 0x3a6a42, { edges: false }); solid(x, z, 0.6, 0.6, 1.2); }
+  for (const [x, z] of [[11.2, 13.2], [-11.2, 13.2], [2.0, 6.6]]) { vegPut('veg.houseplant', x, 0, z, x, 1.15, 0); B.fb(true, () => { B.box('prop', x, 0.3, z, 0.5, 0.6, 0.5, 0x6a5a4a); B.box('prop', x, 0.95, z, 0.7, 0.7, 0.7, 0x2e5a3a, { edges: false }); B.box('prop', x, 1.45, z, 0.45, 0.5, 0.45, 0x3a6a42, { edges: false }); }, 'veg'); solid(x, z, 0.6, 0.6, 1.2); }   // P16：観葉植物の部品
   const nm = atlas.add(signDraw('観測分室（第二）', { bg: '#1a2230', fg: '#d8e4ff', size: 36, frameColor: '#6a8ac0' }));
   B.box('wall', 0, (2.35 + H) / 2, 6, 4.7, H - 2.35, 0.3, WL);   // P13：廊下の口の上の壁（名前の札を付ける・前は札が宙に浮いていた）
   B.box('sign', 0, 2.66, 6.17, 3.4, 0.5, 0.04, 0xffffff, { uv: nm, face: 4, edges: false });

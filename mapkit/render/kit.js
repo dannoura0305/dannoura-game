@@ -7,7 +7,7 @@ import { parseNode } from './assets.js';
 
 export class KitSet {
   constructor(scene, bank, P) { this.scene = scene; this.bank = bank; this.P = P; this.sets = []; this.last = null; this.frustum = new THREE.Frustum(); this.pm = new THREE.Matrix4(); this.stats = { items: 0, sets: 0 }; }
-  /** 置く物を足す（同じ id は 1 つの組にまとめる）。opt：{ cull（m）, shadow, lodScale } */
+  /** 置く物を足す（同じ id は 1 つの組にまとめる）。opt：{ cull（m）, shadow, lodScale, lodMin（この組だけ使う一番細かい LOD：境界侵食のスマホは木を遠景の板だけに） } */
   add(id, items, opt = {}) {
     let s = this.sets.find(x => x.id === id);
     if (!s) { s = { id, items: [], opt, levels: null, meshes: [] }; this.sets.push(s); }
@@ -60,7 +60,7 @@ export class KitSet {
     const visible = it => { sph.center.set(it.x, it.y, it.z); sph.radius = it.r || 1; return F.intersectsSphere(sph); };
     for (const s of this.sets) for (const V of Object.values(s.vars)) {
       const maxLod = V.levels.length - 1;
-      const { buckets } = assignLods(V.items, cam, s.dists, { cull: camera.far > 1000 ? camera.far : (s.opt.cull || this.P.far), visible, lodMin: Math.min(this.P.lodMin || 0, maxLod), maxLod });
+      const { buckets } = assignLods(V.items, cam, s.dists, { cull: camera.far > 1000 ? camera.far : (s.opt.cull || this.P.far), visible, lodMin: Math.min(s.opt.lodMin ?? this.P.lodMin ?? 0, maxLod), maxLod });
       V.levels.forEach((meshes, li) => {
         const list = buckets[li] || [];
         for (const m of meshes) {

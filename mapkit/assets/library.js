@@ -121,7 +121,7 @@ export function checkPackage(pkg, { config, projectId = 'shinshoku', registry })
     tech: { pivot: (m.tech || {}).pivot || null, sizeM: (m.tech || {}).sizeM || null, tris: (m.tech || {}).tris ?? null },
     targets, sources, web: webFiles, ue5,
     ...(m.material ? { material: m.material } : {}),            // ブラウザ版の描画が使う（材質の tileM・大きさ・ファイル）
-    ...(m.kit ? { kit: { nodes: m.kit.nodes, variants: m.kit.variants, lodDist: m.kit.lodDist, impostor: m.kit.impostor, materials: m.kit.materials } } : {}),
+    ...(m.kit ? { kit: { nodes: m.kit.nodes, variants: m.kit.variants, lodDist: m.kit.lodDist, impostor: m.kit.impostor, materials: m.kit.materials, ...(m.kit.cardDup != null ? { cardDup: m.kit.cardDup } : {}) } } : {}),   // cardDup：葉のカードの写しの数（境界侵食 P16：松は 0）
   };
   return { entry, errors, warnings };
 }

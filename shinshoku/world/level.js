@@ -10,6 +10,7 @@ import { applyTile, townMats, TILE_KEYS } from '../render/townmat.js';
 import { buildTown } from './town.js';
 import { HOME_O, homeW, inHome, TOWN } from '../data/town.js';
 import { kitCollector } from './envkit.js';
+import { vegTake, vegPut } from './vegkit.js';   // P16：植物（試験マップと同じ部品）の置き場所の記録
 import { furnKit } from './furn.js';
 
 const SLOT_W = 512, SLOT_H = 64;
@@ -93,13 +94,14 @@ export class Builder {
     const P = g.attributes.position;
     const arr = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const k = ao ? bakedAO(P.getY(i)) : 1; arr[i * 3] = c.r * k; arr[i * 3 + 1] = c.g * k; arr[i * 3 + 2] = c.b * k; }
     g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
-    const gk = key + (this.fbOn ? '~fb' : '') + '@' + this.cellOf(g);
+    const gk = key + (this.fbOn ? (this.fbOn === 'veg' ? '~vfb' : '~fb') : '') + '@' + this.cellOf(g);
     if (!this.groups.has(gk)) this.groups.set(gk, []);
     this.groups.get(gk).push(g);
     return g;
   }
-  /** P12：fn の中で作る形を「部品の代わりの網」にする（Blender の部品が読めたら隠す：world/envkit.js）。on＝false なら普通に作る */
-  fb(on, fn) { if (!on) return fn(); const p = this.fbOn; this.fbOn = true; try { return fn(); } finally { this.fbOn = p; } }
+  /** P12：fn の中で作る形を「部品の代わりの網」にする（Blender の部品が読めたら隠す：world/envkit.js）。on＝false なら普通に作る。
+   *  P16：tag＝'veg' は植物の代わりの網（world/vegkit.js の部品が読めたら隠す：町の部品とは別に読む） */
+  fb(on, fn) { if (!on) return fn(); const p = this.fbOn; this.fbOn = arguments[2] || true; try { return fn(); } finally { this.fbOn = p; } }   // 3 つ目＝tag（'veg'）
   box(key, cx, cy, cz, w, h, d, color, opt = {}) {
     // フェーズ10：升目より長い箱（道・歩道・屋根）は升目の半分ずつに分ける＝遠くの升目の網の範囲が広がらない（画面の外で描かない）。
     // 絵は世界の座標で貼るので継ぎ目は出ない。回転は「分ける向きの軸のまわり」だけなら分けられる（アーケードの屋根）
@@ -142,11 +144,12 @@ export class Builder {
     const root = new THREE.Group();
     const all = Object.assign(this.groups.size && [...this.groups.keys()].some(k => TILE_KEYS.has(k.split('@')[0])) ? townMats() : {}, mats);
     for (const [gk, list] of this.groups) {
-      const fb = gk.includes('~fb@'), key = gk.split('@')[0].replace('~fb', '');
+      const fb = gk.includes('~fb@'), vfb = gk.includes('~vfb@'), key = gk.split('@')[0].replace('~vfb', '').replace('~fb', '');
       const merged = mergeGeometries(list, false);
       if (!merged) { console.warn('merge failed', gk); continue; }
-      const m = new THREE.Mesh(merged, all[key] || all.prop); m.name = 'lv_' + key + (fb ? '_fb' : '') + (this.cell ? '_' + gk.split('@')[1] : '');
+      const m = new THREE.Mesh(merged, all[key] || all.prop); m.name = 'lv_' + key + (fb ? '_fb' : vfb ? '_vfb' : '') + (this.cell ? '_' + gk.split('@')[1] : '');
       if (fb) m.userData.kitFallback = true;
+      if (vfb) m.userData.vegFallback = true;
       m.receiveShadow = key !== 'glow' && key !== 'glass' && key !== 'sign' && key !== 'lamp' && key !== 'texglow';
       m.castShadow = key === 'wall' || key === 'prop' || key === 'tex';
       root.add(m);
@@ -184,6 +187,7 @@ export function groundTex(opt = {}) {
 export function buildLevel(_unused, opt = {}) {
   const scene = new THREE.Group(); scene.name = 'area_shotengai'; scene.add(skyDome({ mountains: true, clouds: 0.7, range: true }));
   const L = LEVEL, B = new Builder({ cell: 40, merge: true }), atlas = new Atlas(48, 4), KC = kitCollector();   // P12：Blender の部品を置く所
+  vegTake();                                                                                                   // P16：前の区画の残りは捨てる（区画ごとに記録する）
   const boxes = [], spots = [], dyn = {}, halos = [], hideSpots = [];
   const solid = (cx, cz, w, d, h = 7, y0 = 0) => { boxes.push(cbox(cx, cz, w, d, h, y0)); };
   const WALL = 0x8a8494, WALL2 = 0x6e6878, DARK = 0x2a2630, PILLAR = 0x5a5560;
@@ -292,7 +296,7 @@ export function buildLevel(_unused, opt = {}) {
     for (const z of [z0 + 0.2, z1 - 0.2]) { B.box('wall', midX, 2.5, z, w, 5, 0.4, WALL); solid(midX, z, w, 0.4, 5); }
     B.box('wall', xEnd + sx * 0.3, 2.5, zc, 0.6, 5, Math.abs(z0 - z1) + 0.8, WALL); solid(xEnd + sx * 0.3, zc, 0.6, Math.abs(z0 - z1) + 0.8, 5);
     // ごみ箱・室外機・配管
-    B.box('prop', sx * 8.2, 0.45, z0 - 0.45, 0.6, 0.9, 0.6, 0x3a5a3a); solid(sx * 8.2, z0 - 0.45, 0.6, 0.6, 0.9);
+    vegPut('veg.planter', sx * 8.2, 0, z0 - 0.45, 0, [0.6, 0.85, 0.6]); B.fb(true, () => B.box('prop', sx * 8.2, 0.45, z0 - 0.45, 0.6, 0.9, 0.6, 0x3a5a3a), 'veg'); solid(sx * 8.2, z0 - 0.45, 0.6, 0.6, 0.9);   // P16：植え込みの箱（部品）
     B.box('prop', sx * 12.5, 0.35, z1 + 0.45, 0.8, 0.7, 0.5, 0x8a8a8a); solid(sx * 12.5, z1 + 0.45, 0.8, 0.5, 0.7);
     B.box('prop', midX, 3.6, z0 - 0.1, w, 0.08, 0.08, 0x4a4a52, { edges: false });
   }
@@ -450,7 +454,8 @@ export function buildLevel(_unused, opt = {}) {
   const roofs = TOWN.walk.filter(w => w.roof).map(w => w.rect).concat([TOWN.station.canopy.slice(0, 4), [TOWN.station.walkway.x0 - 0.3, TOWN.station.walkway.z0, TOWN.station.walkway.x1 + 0.3, TOWN.station.walkway.z1]],
     TOWN.avenue.stops.filter(s => s.shelter).map(s => [s.rect[0] - 0.2, s.shelter[0] - 0.3, s.rect[2] + 0.2, s.shelter[1] + 0.3]), TOWN.station.bus.islands.map(r => [r[0] - 0.4, r[1] + 0.5, r[2] + 0.4, r[3] - 0.5]), [[50.9, -102.6, 55.1, -100.8], TOWN.station.bikes.rect]);
   const inR = (r, x, z) => x > r[0] && x < r[2] && z > r[1] && z < r[3];
-  const A = { id: 'shotengai', root: scene, boxes, spots, dyn, lights, halos, wet, hideSpots, surface, atlas, ground, tick, rain: true, far: 105, fogFar: 2.5, layout: TOWN.version, mapWalk, kitItems: KC.items,
+  const VG = vegTake();
+  const A = { id: 'shotengai', root: scene, boxes, spots, dyn, lights, halos, wet, hideSpots, surface, atlas, ground, tick, rain: true, far: 105, fogFar: 2.5, layout: TOWN.version, mapWalk, kitItems: KC.items, vegItems: VG.items, vegCover: VG.cover,
     // 霧：アーケードの中は濃く、外（住宅地）は少し遠くまで。中央通り・駅前は広いので、もう少し遠くまで見える
     fogAt: (x, z) => (z < -4 && Math.abs(x) < 4.8 ? 0.042 : z < -78 ? 0.024 : x > 62 ? 0.028 : x > 10.5 && z < -6 ? 0.03 : 0.034),
     rainRoof: (x, z) => (z < -4 && z > -72 && Math.abs(x) < 4.8) || inHome(x, z, 0.3) || (x > 30.5 && x < 36 && z > 43 && z < 52) || (x > 13 && x < 32 && z > 19.2 && z < 20.2) || roofs.some(r => inR(r, x, z)),
@@ -470,7 +475,8 @@ export function buildLevel(_unused, opt = {}) {
     const r = B2.build(mats); r.name = 'level_far';
     if (far.wires) r.add(far.wires); if (far.pools) r.add(far.pools); if (far.steam) r.add(far.steam);
     atlasTex.needsUpdate = true; r.updateMatrixWorld(true);
-    return { root: r, halos: far.halos, wet: far.wet, lights: far.lights, signals: far.signals, spots: far.spots, hideSpots: far.hideSpots, kitItems: KC2.items };
+    const VG2 = vegTake();
+    return { root: r, halos: far.halos, wet: far.wet, lights: far.lights, signals: far.signals, spots: far.spots, hideSpots: far.hideSpots, kitItems: KC2.items, vegItems: VG2.items, vegCover: VG2.cover };
   }];
   return A;
 }
@@ -639,7 +645,8 @@ function buildHome(B0, atlas, scene0, boxes0, spots0, dyn) {
   }
   // 床置きの灯り・観葉植物・本棚（左の壁）・壁の絵・カレンダー
   cyl('prop', -5.55, 0.02, 14.6, 0.16, 0.16, 0.04, 0x2a2a2e, 12); cyl('prop', -5.55, 0.8, 14.6, 0.015, 0.015, 1.56, 0x2a2a2e, 6); cyl('glow', -5.55, 1.6, 14.6, 0.14, 0.2, 0.26, 0xffe8c8, 14); solid(-5.55, 14.6, 0.3, 0.3, 1.7);
-  cyl('prop', -5.5, 0.2, 9.7, 0.18, 0.14, 0.4, 0xb8805a, 10); { const f = new THREE.IcosahedronGeometry(0.42, 1); f.scale(1, 1.4, 1); f.translate(-5.5, 0.95, 9.7); B.add('prop', f, 0x4a7a4a); } solid(-5.5, 9.7, 0.5, 0.5, 1.2);
+  vegPut('veg.houseplant', -5.5 + OX, 0, 9.7 + OZ, 0.6, 1.0, 0);   // P16：観葉植物は部品（白い鉢・大きな葉）。手続きの鉢と丸い形は代わりの網
+  B0.fb(true, () => { cyl('prop', -5.5, 0.2, 9.7, 0.18, 0.14, 0.4, 0xb8805a, 10); const f = new THREE.IcosahedronGeometry(0.42, 1); f.scale(1, 1.4, 1); f.translate(-5.5, 0.95, 9.7); B.add('prop', f, 0x4a7a4a); }, 'veg'); solid(-5.5, 9.7, 0.5, 0.5, 1.2);
   B.box('tex', -5.75, 0.6, 11.4, 0.36, 1.2, 1.6, 0xb89070, T('wood', 1)); solid(-5.75, 11.4, 0.4, 1.6, 1.2);
   for (let k = 0; k < 3; k++) for (let i = 0; i < 7; i++) B.box('prop', -5.62, 0.2 + k * 0.38 + 0.12, 10.75 + i * 0.2, 0.06, 0.26 + (i % 3) * 0.03, 0.12, [0xc06070, 0x6080c0, 0xd0b050, 0x5a8a5a, 0xe8e0d0][(i + k) % 5], { edges: false });
   win('W', 13.4, 1.5, 1.5, 1.3, 0xc8b8d8);

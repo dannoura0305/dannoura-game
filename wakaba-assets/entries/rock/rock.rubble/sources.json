@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "rock.rubble",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/rock.rubble.fbx",
+   "storage": "local-ignored",
+   "sha256": "1bf06a11f803c953208b8a5b27affd709cf3bc13186fa8ca44a2ca03fcf9673b",
+   "bytes": 47084,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_veg.py --only rock.rubble"
+  }
+ ]
+}
