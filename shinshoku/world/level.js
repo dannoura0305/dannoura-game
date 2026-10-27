@@ -468,6 +468,10 @@ export function buildLevel(_unused, opt = {}) {
       return (y || 0) > HF.y2 / 2 ? HF.y2 : 0; };
     A.boxesUp = boxes.filter(b => b.maxX > hx0 - 0.5 && b.minX < hx1 + 0.5 && b.maxZ > hz0 - 0.5 && b.minZ < hz1 + 0.5 && b.maxY > HF.y2 + 0.3).map(b => Object.assign({}, b, { minY: b.minY - HF.y2, maxY: b.maxY - HF.y2 }));
     A.upY = HF.y2 / 2;
+    // P17：カメラの床と天井（家の中だけ。外は地面の上）。1 階＝0〜3.22（階段の口の上は 6.0）／2 階＝3.3〜6.0（階段の口の上は下の段まで）
+    A.camRange = (x, z, py) => { if (x < hx0 || x > hx1 || z < hz0 || z > hz1) return [0.3, Infinity];
+      const st = x > s0x && x < s1x && z > s0z && z < s1z, up = py > HF.y2 / 2;
+      return up ? [st ? 0.3 + Math.max(0, Math.min(1, (z - s0z) / (s1z - s0z))) * HF.y2 : HF.y2 + 0.3, 6.0 - 0.28] : [0.3, st ? 6.0 - 0.28 : 3.22 - 0.28]; };
     A.stepTick = (dt, game) => homeDoorTick(dyn.homeDoor, dt, game); }   // 玄関の戸は動きの段（step：fastSim でも動く）
   // 遠い所（中央通り・駅前）：最初のこまの後で組み立てる（main の buildPending）。看板の地図帳は同じ物へ足す
   A.pending = [() => {
@@ -787,15 +791,16 @@ function openShop(B, atlas, s, halos, lights, boxes) {
   const bx = (key, d0, d1, y, h, z0, z1, color, opt = {}) => B.box(key, (X(d0) + X(d1)) / 2, y, (z0 + z1) / 2, Math.abs(X(d1) - X(d0)), h, z1 - z0, color, Object.assign({ edges: false }, opt));
   const cyl = (key, d, y, z, r0, r1, h, color, seg = 10) => { const g = new THREE.CylinderGeometry(r0, r1, h, seg); g.translate(X(d), y, z); return B.add(key, g, color); };
   const ball = (d, y, z, r, color, sy = 1) => { const g = new THREE.IcosahedronGeometry(r, 1); g.scale(1, sy, 1); g.translate(X(d), y, z); return B.add('prop', g, color); };
-  const warm = { yaoya: 0xa89a80, drug: 0xa8b0b0, kissa: 0x9a7a58, books: 0xa09078, sake: 0x9a8a70 }[kind] || 0xa09888;   // 灯りに照らされた壁（明るすぎると品物が影に見える）
+  const warm = { yaoya: 0xa89a80, drug: 0xc8d2d0, kissa: 0x9a7a58, books: 0xa09078, sake: 0xbca684 }[kind] || 0xa09888;   // 灯りに照らされた壁（明るすぎると品物が影に見える）。P17：薬局・酒店は暗くて中が読めなかった＝明るく
+  const bright = kind === 'drug' || kind === 'sake';
   // 店の中の箱：奥の壁・横の壁・天井・床（灯りの色の漆喰＝自ら光る絵）
   bx('texglow', D - 0.05, D, 1.5, 3.0, zA + 0.15, zB - 0.15, warm, { tile: 'plaster', ts: 1.5 });
   for (const z of [zA + 0.15, zB - 0.15]) bx('texglow', 0.2, D, 1.5, 3.0, z - 0.03, z + 0.03, warm, { tile: 'plaster', ts: 1.5 });
-  bx('texglow', 0.1, D, 2.97, 0.06, zA + 0.15, zB - 0.15, 0xc8c4bc, { tile: 'ceiling', ts: 1.2 });
+  bx('texglow', 0.1, D, 2.97, 0.06, zA + 0.15, zB - 0.15, bright ? 0xe6e4dc : 0xc8c4bc, { tile: 'ceiling', ts: 1.2 });
   bx('tex', 0.05, D, 0.01, 0.02, zA + 0.15, zB - 0.15, 0xffffff, { tile: kind === 'kissa' ? 'woodfloor' : kind === 'drug' ? 'vinyl' : 'concrete', ts: 1.5 });
-  for (const zz of [zc - len / 4, zc + len / 4]) bx('glow', 2.2, 2.6, 2.93, 0.03, zz - 0.6, zz + 0.6, 0xfff6e8);   // 天井の灯り
-  halos.push({ p: [X(1.2), 2.4, zc], size: 3.2, color: kind === 'kissa' ? 0xffc890 : 0xfff0d8, k: 0.28 });
-  lights.push({ pos: [X(1.8), 2.6, zc], color: kind === 'kissa' ? 0xffc890 : 0xfff0e0, intensity: 3, dist: 7, shop: true });
+  for (const zz of [zc - len / 4, zc + len / 4]) for (const d of bright ? [1.0, 2.2, 3.8] : [2.2]) bx('glow', d, d + 0.4, 2.93, 0.03, zz - 0.6, zz + 0.6, 0xfff6e8);   // 天井の灯り（P17：薬局・酒店は 3 列）
+  halos.push({ p: [X(1.2), 2.4, zc], size: bright ? 4.2 : 3.2, color: kind === 'kissa' ? 0xffc890 : 0xfff0d8, k: bright ? 0.36 : 0.28 });
+  lights.push({ pos: [X(1.8), 2.6, zc], color: kind === 'kissa' ? 0xffc890 : 0xfff0e0, intensity: bright ? 6.5 : 3, dist: bright ? 9 : 7, shop: true });
   // 半分上げたシャッター（巻いた箱・下の縁）
   bx('shutter', -0.02, 0.06, 2.45, 0.7, zA + 0.35, zB - 0.35, 0xffffff); bx('prop', -0.08, 0.04, 2.83, 0.14, zA + 0.3, zB - 0.3, 0x6a6e74); bx('prop', -0.04, 0.06, 2.08, 0.05, zA + 0.35, zB - 0.35, 0x3a3c40);
   // 表：ガラスの戸と窓（枠）・下の腰壁（八百屋は開いた表と台）
@@ -823,6 +828,11 @@ function openShop(B, atlas, s, halos, lights, boxes) {
     bx('glow', 0.07, 0.1, 1.75, 0.12, zc + 1.2, zc + 1.6, 0x3ad08a); bx('glow', 0.07, 0.1, 1.75, 0.4, zc + 1.34, zc + 1.46, 0x3ad08a);   // 十字（ガラスの内側）
     halos.push({ p: [X(-0.1), 1.75, zc + 1.4], size: 1.0, color: 0x6affb0, k: 0.5 });
     bx('prop', D - 0.45, D - 0.05, 0.9, 1.8, zA + 0.6, zB - 0.6, 0xf4f4f0); for (let k = 0; k < 4; k++) bx('prop', D - 0.47, D - 0.45, 0.3 + k * 0.42, 0.02, zA + 0.65, zB - 0.65, 0xb8bcc0);   // 奥の薬の引き出し
+    // P17：奥の壁の光る帯（緑）・調剤の窓口の灯り・ガラスの内側の低い台（光る値札と箱）＝表から中が読める
+    bx('glow', D - 0.07, D - 0.04, 2.15, 0.28, zA + 0.4, zB - 0.4, 0x3ad08a); bx('glow', D - 0.08, D - 0.05, 2.15, 0.16, zc - 0.9, zc + 0.9, 0xf4fff8);
+    bx('glow', 4.26, 4.3, 1.25, 0.5, zA + 1.0, zB - 1.0, 0xe8f4ff);
+    bx('prop', 0.3, 0.75, 0.35, 0.7, zA + 0.6, zB - 0.6, 0xf0f2f2);
+    for (let i = 0; i < Math.floor((len - 1.4) / 0.3); i++) { const z = zA + 0.75 + i * 0.3; bx('glow', 0.35, 0.7, 0.8, 0.18, z, z + 0.24, [0xf0c040, 0xe85a5a, 0x3a8ad8, 0x5ab05a, 0xf4f4f4][i % 5]); bx('glow', 0.28, 0.3, 0.6, 0.08, z, z + 0.24, 0xffe860); }
   }
   if (kind === 'kissa') {   // 喫茶：丸い机と椅子・カウンター（コーヒーの機械）・品書きの黒板（外）
     const FKs = furnKit(B);
@@ -850,6 +860,11 @@ function openShop(B, atlas, s, halos, lights, boxes) {
     for (let i = 0; i < 3; i++) for (let k = 0; k < 2; k++) bx('prop', -0.65, -0.15, 0.17 + k * 0.32, 0.3, zB - 2.4 + i * 0.52, zB - 1.94 + i * 0.52, k ? 0x2a6a3a : 0xc8a020);
     boxes.push(cbox((X(-0.65) + X(-0.15)) / 2, zB - 1.65, 0.5, 1.6, 0.65));
     bx('prop', 3.2, 3.8, 0.5, 1.0, zc - 0.6, zc + 0.6, 0x6a4a34);
+    // P17：ガラスの内側の低い棚（灯りの当たる一升瓶・四合瓶の列と値札）・奥の棚の上の灯り・軒の杉玉（酒屋の印）
+    bx('tex', 0.3, 0.75, 0.45, 0.9, zA + 0.7, zB - 2.6, 0xffffff, { tile: 'wood', ts: 1 });
+    for (let i = 0; i < Math.floor((len - 3.4) / 0.14); i++) { const z = zA + 0.8 + i * 0.14, c = [0x2a7a4a, 0x8a4a1a, 0x3a3a3a, 0xe8e0c8][i % 4]; cyl('glow', 0.52, 1.05, z, 0.045, 0.045, 0.24, c, 8); cyl('glow', 0.52, 1.21, z, 0.014, 0.026, 0.08, c, 6); bx('glow', 0.3, 0.32, 0.8, 0.06, z - 0.05, z + 0.05, 0xfff0c0); }
+    bx('glow', D - 0.55, D - 0.15, 2.02, 0.04, zA + 0.45, zB - 0.45, 0xfff2d8);
+    ball(-0.02, 2.45, zc + 1.6, 0.22, 0x5a6a30); cyl('prop', -0.02, 2.72, zc + 1.6, 0.012, 0.012, 0.1, 0x2a2a2a, 6);
   }
 }
 

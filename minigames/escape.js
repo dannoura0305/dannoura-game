@@ -141,6 +141,20 @@ addMinigameStyle('escape',`
 .esc-fuel i{display:block;height:100%;background:linear-gradient(90deg,#e83055,#e8b830);transition:width 1.2s;}
 `);
 
+// ══════════════════════════════════════════════════════════
+// 純粋なロジック（DOM なし。tests/minigame-escape.test.mjs が node:vm で読む）
+//   評価（grade）と報酬（rewardFx：脱出・時間切れ・あきらめ）は、改良前の式のまま。
+// ══════════════════════════════════════════════════════════
+var EscapeLogic=(function(){
+  function grade(left,hints){const l=left,h=hints;if(h===0&&l>=100)return 'S';if(h<=1&&l>=60)return 'A';if(h<=2&&l>=20)return 'B';return 'C';}
+  function rewardFx(out,hints){
+    if(out==='clear')return {fx:{certKnow:5,jobRep:6,mental:Math.max(0,4-hints),fatigue:6},time:60,sp:2};
+    if(out==='timeup')return {fx:{mental:-4,fatigue:7},time:60,sp:0};
+    return {fx:{fatigue:2},time:20,sp:0};
+  }
+  return {grade,rewardFx};
+})();
+
 (()=>{
 const FONT='"DotGothic16", monospace';
 const ROOMS=['locker','ctrl','store','exit'];
@@ -356,6 +370,10 @@ registerMinigame({
 
     // ── 会話シーン（顔グラ＋1文字ずつ） ──
     let dlgQ=null,dlgDone=null,typing=null,curLine=null;
+    // 振動（対応端末のみ）と画面の揺れ（失敗・落雷・大きな仕掛け）
+    const buzz=ms=>{try{if(mg.buzz)mg.buzz(ms);}catch(_){}};
+    let shk=0;
+    const jolt=(v,ms)=>{shk=Math.max(shk,v);if(ms)buzz(ms);};
     function dialog(lines,done){dlgQ=lines.slice();dlgDone=done;dlgEl.classList.remove('off');nextLine();}
     function nextLine(){
       if(!dlgQ)return;
@@ -696,11 +714,11 @@ registerMinigame({
     function tryDial(){
       const box=zc.querySelector('.esc-dial');
       if(S.dial.join('')===P.code){
-        box.classList.add('ok');AU.se('decide');sfx('unlock');
+        box.classList.add('ok');AU.se('decide');sfx('unlock');buzz(25);
         setTimeout(()=>{if(mg._ended)return;closeZoom(true);S.locker=true;sfx('creak');
           addItem('key','ガチャッ。ロッカーが開いた。<b>盤キー</b>を手に入れた。……扉の裏に、娘と撮った写真。',hsById('locker','own'));S.gotKey=true;updScore();},700);
       }else{
-        box.classList.remove('ng');void box.offsetWidth;box.classList.add('ng');AU.se('warn');sfx('clunk');
+        box.classList.remove('ng');void box.offsetWidth;box.classList.add('ng');AU.se('warn');sfx('clunk');jolt(.35,[30,40,30]);
         say('……開かない。番号が違う。');
       }
     }
@@ -711,11 +729,11 @@ registerMinigame({
       if(nm===P.genSteps[S.genStep]){
         S.genStep++;AU.se('tool');sfx('clunk');
         if(S.genStep>=P.genSteps.length){
-          S.gen=true;AU.se('machine');sfx('engine');burstAt('exit','gen','255,200,120',26);
+          S.gen=true;AU.se('machine');sfx('engine');jolt(.6,80);burstAt('exit','gen','255,200,120',26);
           say('キュルル……ドドドド！ <b>発電機が始動</b>した。これで分電盤に電圧が来る。',5);updScore();
         }
       }else{
-        S.genStep=0;AU.se('warn');sfx('trip');
+        S.genStep=0;AU.se('warn');sfx('trip');jolt(.5,[40,30,40]);
         say('プスン……止まった。<b>手順が違う</b>。銘板を見て最初から。');
       }
       renderZoom();
@@ -727,7 +745,7 @@ registerMinigame({
       if(code===need){
         S.bOn.push(code);AU.se('tool');sfx('clunk');renderZoom();
         if(S.bOn.length===P.order.length){
-          S.power=true;S.powerT=T;AU.se('machine');sfx('power');burstAt('ctrl','panel','255,230,150',30);updScore();
+          S.power=true;S.powerT=T;AU.se('machine');sfx('power');jolt(.4,60);burstAt('ctrl','panel','255,230,150',30);updScore();
           say('ウゥゥン……非常用発電機から給電。<b>照明が点いた！</b> コンプレッサーも回りだした。',5);
           setTimeout(()=>{if(!mg._ended&&zoomId==='breakers')closeZoom(true);},1100);
         }
@@ -735,7 +753,7 @@ registerMinigame({
         const box=zc.querySelector('.esc-brk');
         S.bOn.push(code);renderZoom();
         AU.se('warn');flash=.6;
-        setTimeout(()=>{if(mg._ended)return;S.bOn=[];renderZoom();const bx=zc.querySelector('.esc-brk');if(bx){bx.classList.add('trip');}AU.se('noise');sfx('trip');
+        setTimeout(()=>{if(mg._ended)return;S.bOn=[];renderZoom();const bx=zc.querySelector('.esc-brk');if(bx){bx.classList.add('trip');}AU.se('noise');sfx('trip');jolt(.8,[60,40,80]);
           say('<b>バチン！</b> トリップして全部落ちた。投入順が違う……結線図を見直そう。');},180);
       }
     }
@@ -745,7 +763,7 @@ registerMinigame({
       S.x[i]=!S.x[i];AU.se('btn');sfx('click');
       const outs=P.rungs.map(r=>!!P.ev(r,S.x));
       if(outs.join()===P.target.map(Boolean).join()){
-        S.plcOk=true;AU.se('decide');sfx('unlock');updScore();
+        S.plcOk=true;AU.se('decide');sfx('unlock');buzz(25);updScore();
         say('出力パターン一致。……遠くで<b>ガチャン</b>。非常口の電気錠が外れた音だ。',5);
       }
       renderZoom();
@@ -756,7 +774,7 @@ registerMinigame({
         S.valve=i;S.air=true;AU.se('repair');sfx('hiss');setTimeout(()=>sfx('rumble'),500);renderZoom();updScore();
         say('シューッ……系統'+'ABC'[i]+'を開いた。非常口のほうで<b>シャッターが上がる音</b>がする。',5);
       }else{
-        S.valve=i;renderZoom();AU.se('noise');sfx('hiss');S.left=Math.max(1,S.left-10);
+        S.valve=i;renderZoom();AU.se('noise');sfx('hiss');jolt(.5,[50,30,50]);S.left=Math.max(1,S.left-10);
         say('<b>プシューッ！</b> 違う系統だ、圧が抜ける……慌てて閉めた。（残り時間−10秒）');
         setTimeout(()=>{if(mg._ended)return;if(S.valve===i&&!S.air){S.valve=-1;renderZoom();}},1300);
       }
@@ -838,7 +856,7 @@ registerMinigame({
     // ゲーム内の時刻（4:30開始→制限時間いっぱいで7:00）
     function clock(){const tot=TIME+(TWIST?30:0),m=270+Math.floor((tot-Math.max(0,S.left))/tot*150);return `午前${Math.floor(m/60)}時${String(m%60).padStart(2,'0')}分`;}
     // ── 評価と記録 ──
-    function grade(){const l=S.left,h=S.hints;if(h===0&&l>=100)return 'S';if(h<=1&&l>=60)return 'A';if(h<=2&&l>=20)return 'B';return 'C';}
+    function grade(){return EscapeLogic.grade(S.left,S.hints);}
     let prevBest=REC.bestLeft,prevGrade=REC.bestGrade;
     function record(outcome){
       if(S.recorded)return;S.recorded=true;
@@ -891,7 +909,7 @@ registerMinigame({
       if(!S.started||(trans&&!trans.sw)||S.door||S.over)return;
       ripple={x,y,t:0};
       const h=hitAt(x,y);
-      if(h)tapHotspot(h);
+      if(h){S.seen['hs:'+S.room+'/'+h.id]=true;tapHotspot(h);}
       else if(S.sel){S.sel=null;renderInv();}
     });
     body.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>goRoom(+b.dataset.nav)));
@@ -1434,16 +1452,17 @@ registerMinigame({
     function drawScene(){
       const [draw,emis]=DRAW[S.room];
       cx.save();
+      if(shk>0&&!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)){const a=shk*shk*Math.min(W,H)*.02;cx.translate((Math.random()-.5)*a,(Math.random()-.5)*a);}
       if(trans){const k=trans.sw?(1-trans.t)*2:0;cx.translate(trans.d*k*W*.08*(trans.sw?1:0),0);}
       draw();
       // ── 暗闇＋懐中電灯 ──
       const lit=lightLevel();
-      let amb=S.power?.92-.5*lit:.95;
+      let amb=S.power?.92-.5*lit:.89;   // 停電中でも部屋の輪郭がうっすら分かる暗さ
       amb=Math.max(.15,amb-flash*.55);
       if(S.door)amb*=Math.max(0,1-S.anim.door*.7);
       if(S.over==='timeup')amb=.22;
       const L=lx*W,Lc=ly*H;
-      const R=(S.torch?.52:.27)*Math.min(W*1.15,H*.9)*(S.torch?1:(.96+.04*Math.sin(T*9)));
+      const R=(S.torch?.52:.31)*Math.min(W*1.15,H*.9)*(S.torch?1:(.96+.04*Math.sin(T*9)));
       dx.setTransform(dpr,0,0,dpr,0,0);
       dx.globalCompositeOperation='source-over';dx.clearRect(0,0,W,H);
       dx.fillStyle=`rgba(3,2,10,${amb})`;dx.fillRect(0,0,W,H);
@@ -1492,7 +1511,7 @@ registerMinigame({
           const [x,y,w,hh]=RX(h),cxp=x+w/2,cyp=y+hh/2;
           const dd=Math.hypot(cxp-L,cyp-Lc);
           const clue=CLUE_HL&&CLUES[h.id];
-          const a=Math.max(MARK_MIN*(clue?1.6:1),Math.max(0,1-dd/(R*1.05)))*(.45+.25*Math.sin(T*3+h.x*9));
+          const a=Math.max(MARK_MIN*(clue?1.6:1),S.seen['hs:'+S.room+'/'+h.id]?.22:0,Math.max(0,1-dd/(R*1.05)))*(.45+.25*Math.sin(T*3+h.x*9));
           if(a<=.02)return;
           const c=Math.min(w,hh)*.18+4;
           cx.strokeStyle=S.sel||clue?`rgba(232,184,48,${a})`:`rgba(0,232,200,${a})`;cx.lineWidth=1.5;cx.beginPath();
@@ -1535,8 +1554,9 @@ registerMinigame({
       if(msgT>0){msgT-=dt;if(msgT<=0)msgEl.classList.remove('on');}
       if(ripple){ripple.t+=dt*2.2;if(ripple.t>=1)ripple=null;}
       flash=Math.max(0,flash-dt*3);
+      shk=Math.max(0,shk-dt*2.4);
       nextBolt-=dt;
-      if(nextBolt<=0){flash=1;nextBolt=7+Math.random()*12;flashEl.style.transition='none';flashEl.style.opacity='.18';requestAnimationFrame(()=>{flashEl.style.transition='opacity .6s';flashEl.style.opacity='0';});setTimeout(()=>{if(!mg._ended)AU.se('noise');},300+Math.random()*700);}
+      if(nextBolt<=0){flash=1;shk=Math.max(shk,.25);nextBolt=7+Math.random()*12;flashEl.style.transition='none';flashEl.style.opacity='.18';requestAnimationFrame(()=>{flashEl.style.transition='opacity .6s';flashEl.style.opacity='0';});setTimeout(()=>{if(!mg._ended)AU.se('noise');},300+Math.random()*700);}
       dust.forEach(d=>{d.x=(d.x+d.vx*dt+1)%1;d.y=(d.y+d.vy*dt+1)%1;});
       for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.l-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=.35*dt;p.vx*=Math.pow(.97,dt*60);if(p.l<=0)parts.splice(i,1);}
       if(drip.y<0){drip.t+=dt;if(drip.t>2.2+Math.random()*.02){drip.y=.04;drip.sp=0;}}
@@ -1571,12 +1591,13 @@ registerMinigame({
       cleanup();rainStop();
       const out=S.over||reason;
       record(out);
+      const RW=EscapeLogic.rewardFx(out==='clear'||out==='timeup'?out:'quit',S.hints);
       if(out==='clear'){
-        const m=Math.max(0,4-S.hints),g=grade();
+        const g=grade();
         return {
           title:`🔐 脱出成功！　評価 ${g}`,
           summary:`残り時間 <span class="up">${fmt(S.left)}</span>　ヒント <span class="${S.hints?'down':'up'}">${S.hints}回</span>${TWIST?'（二夜目）':''}<br>雨上がりの朝。お隣さんの玄関で、娘が手を振っていた。`,
-          fx:{certKnow:5,jobRep:6,mental:m,fatigue:6},time:60,sp:2,
+          fx:RW.fx,time:RW.time,sp:RW.sp,
           log:S.hints?'停電の工場から、設備の知識で脱出した。':'停電の工場から、ヒントなしで脱出した。',
           cutin:g==='S'?['win','……段取り八分よ。迎えに行かなくちゃ。']:['happy','……間に合ったわ。迎えに行かなくちゃ。'],
         };
@@ -1585,7 +1606,7 @@ registerMinigame({
         return {
           title:'🔐 夜明けまで閉じ込められた',
           summary:`進捗 ${progress()}/${PMAX}。朝になって電力が復旧し、ようやく外に出られた。<br>お隣さんに平謝り……。`,
-          fx:{mental:-4,fatigue:7},time:60,sp:0,
+          fx:RW.fx,time:RW.time,sp:RW.sp,
           log:'停電の工場に朝まで閉じ込められた。',
           cutin:['tired','……ごめんね、遅くなって。'],
         };
@@ -1593,7 +1614,7 @@ registerMinigame({
       return {
         title:'🔐 脱出をあきらめた',
         summary:'守衛さんに電話して、開けてもらうのを待った。',
-        fx:{fatigue:2},time:20,sp:0,log:null,cutin:null,
+        fx:RW.fx,time:RW.time,sp:RW.sp,log:null,cutin:null,
       };
     }};
   },

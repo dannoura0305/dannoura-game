@@ -118,3 +118,12 @@
   .ky.ow-on .dlg-face { width: 60px; height: 60px; }
   .ky.ow-on .dlg-text { font-size: 16px; line-height: 1.6; min-height: 0; }
 }
+/* 通知（トースト）：歩く地図の場所名・目的・正面の名札に重ねない。
+   PC の右の列では、目的と操作の説明の下（移動ボタンの上）。指で操作する画面では、地図の下端（パネルの上）。 */
+@media (pointer: fine) and (min-width: 1000px) and (min-aspect-ratio: 5/4) {
+  .ky.ow-on .ky-toasts { top: auto; bottom: 124px; right: 12px; width: 316px; justify-content: flex-end; }
+  .ky.ow-on:has(.ky-panel.talking) .ky-toasts { bottom: 230px; }
+}
+@media (pointer: coarse) and (orientation: portrait), (max-width: 600px) {
+  .ky.ow-on .ky-toasts { top: auto; bottom: calc(var(--owp) + 8px + env(safe-area-inset-bottom)); }
+}

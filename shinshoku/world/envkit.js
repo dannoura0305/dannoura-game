@@ -16,6 +16,8 @@ const LIB = new URL('../../wakaba-assets/', import.meta.url).href;
 export const KIT_PIECES = {
   'prop.town.utility_pole': 'prop', 'prop.town.pole_steel': 'prop', 'prop.town.lamp_head': 'prop', 'prop.town.lamp_modern': 'prop', 'prop.town.vending': 'prop',
   'prop.town.car': 'prop', 'prop.town.car_lite': 'prop', 'prop.town.bicycle': 'prop', 'prop.town.ac_unit': 'prop', 'prop.town.guardrail': 'prop', 'bld.town.arcade_arch': 'building_module',
+  'prop.town.tram': 'prop', 'prop.town.tram_lite': 'prop', 'prop.town.bus': 'prop', 'prop.town.bus_lite': 'prop', 'prop.town.signal_car': 'prop', 'prop.town.signal_ped': 'prop',   // P17
+  'bld.town.canopy_truss': 'building_module', 'bld.town.canopy_column': 'building_module',
   'prop.int.bench_row': 'prop', 'prop.int.hospital_bed': 'prop', 'prop.int.locker': 'prop', 'prop.int.server_rack': 'prop', 'prop.int.desk_pc': 'prop',
 };
 /** 作ったが今は置いていない部品（読まない：UE5 の版・後の屋内の作り直しで使う） */
@@ -23,7 +25,7 @@ export const KIT_SPARE = new Set(['prop.int.desk_pc', 'prop.int.server_rack']);
 /** P14：車の種類（prop.town.car の v<k>）。town.js の car(p) は p.type（無ければ kei → 'kei'・他 → 'sedan'） */
 export const CAR_KINDS = ['sedan', 'kei', 'minivan', 'truck', 'taxi', 'hatch'];
 /** P14：段に関係なく読む部品（スマホの低い段でも車は箱の積み木にしない）。低い段は軽い版（LOD2 だけの glb）を同じ id で使う */
-const ALWAYS = { 'prop.town.car': 'prop.town.car_lite' };
+const ALWAYS = { 'prop.town.car': 'prop.town.car_lite', 'prop.town.tram': 'prop.town.tram_lite', 'prop.town.bus': 'prop.town.bus_lite' };   // P17：路面電車とバスも
 /** 材質の id → 町の地図帳の枠と 1 回の繰り返し（m） */
 const MAT2TILE = {
   'mat.town.paint': ['white', 1.0], 'mat.town.concrete': ['concrete', 3], 'mat.town.grating': ['drain', 0.9], 'mat.int.wood_floor': ['woodfloor', 1.8],
@@ -33,7 +35,9 @@ const MAT2TILE = {
 /** 部品ごとの LOD の距離（m）と影 */
 const OPT = { 'prop.town.utility_pole': { d: [40], shadow: true }, 'prop.town.pole_steel': { d: [60] }, 'prop.town.lamp_head': { d: [28] }, 'prop.town.lamp_modern': { d: [35] },
   'prop.town.vending': { d: [22], shadow: true }, 'prop.town.car': { d: [], shadow: true }, 'prop.town.bicycle': { d: [16] }, 'prop.town.ac_unit': { d: [18] },
-  'prop.town.guardrail': { d: [26] }, 'bld.town.arcade_arch': { d: [40] } };
+  'prop.town.guardrail': { d: [26] }, 'bld.town.arcade_arch': { d: [40] },
+  'prop.town.tram': { d: [36], shadow: true }, 'prop.town.bus': { d: [32], shadow: true }, 'prop.town.signal_car': { d: [30] }, 'prop.town.signal_ped': { d: [24] },   // P17
+  'bld.town.canopy_truss': { d: [40] }, 'bld.town.canopy_column': { d: [40] } };
 
 export const KIT = { on: false, ready: false, loading: null, pieces: new Map(), stats: { glbBytes: 0, ms: 0, pieces: 0, failed: [] } };
 export function envKitInit(P) { KIT.P = P; KIT.on = true; KIT.lite = !P.kit; KIT.only = P.kit ? null : new Set(Object.keys(ALWAYS)); }

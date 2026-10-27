@@ -218,6 +218,14 @@ test('人物・生き物の絵：16×16・4 色の文字だけ・人は 4 方向
   assert.deepEqual(bad, []);
 });
 
+test('地面の飾り：まとまりの乱数は 0〜1・校庭のトラックと枕木は地図の中・飾りは歩けるマスを変えない', () => {
+  for (let y = 0; y < 30; y++) for (let x = 0; x < 30; x++) { const v = KT.field3(x, y, 71); assert.ok(v >= 0 && v < 1, 'field3 ' + v); }
+  const sc = M.MAPS.school, tr = sc.track; const h = sc.rows.length, w = sc.rows[0].length;
+  assert.ok(tr && tr[0] - tr[2] >= 0 && tr[0] + tr[2] < w && tr[1] - tr[3] >= 0 && tr[1] + tr[3] < h, '校庭のトラックが地図の外');
+  const tn = M.MAPS.tunnel; assert.ok(tn.sleepers && tn.sleepers[0] >= 0 && tn.sleepers[1] < tn.rows[0].length);
+  assert.equal(typeof KT.decorOut, 'function'); assert.equal(typeof KT.decorIn, 'function');
+});
+
 test('正面の物の名札：分室の時計・ホワイトボード・カレンダー・世界 B の振り子時計', () => {
   const m = M.compile('center_office', 'A');
   const a = M.MAPS.center_office.anchors;

@@ -56,7 +56,7 @@
       "scale": 1,
       "rotateY": 0,
       "shader": "mtoon",
-      "anim": null,
+      "anim": "../anim/companion/clips.json",
       "kind": "companion",
       "meta": "companion.meta.json",
       "source": "tools/blender/char/build_char.py（リポジトリの中で Blender（bpy）で作った VRM 1.0・tools/charkit/build_chars.mjs で書き出し）",

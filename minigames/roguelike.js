@@ -78,6 +78,46 @@ addMinigameStyle('rogue',`
 @media (max-height:640px){.rg-pad{grid-template-rows:repeat(2,42px);}.rg-face{width:62px;height:62px;}.rg-log{min-height:2.4em;font-size:.66rem;}}
 `);
 
+// ══════════════════════════════════════════════════════════
+// 純粋なロジック（DOM なし。tests/minigame-rogue.test.mjs が node:vm で読む）
+//   ・評価（grade）：以前の computeGrade と同じ式
+//   ・報酬（rewardFx）：以前の result() の fx と同じ式（仕事評価・資格知識・収入・精神・希望・疲労）
+//   ・SP・怪談ネタ・敵の「次の手で襲う」判定（intent：見た目の予告だけに使う）
+// ══════════════════════════════════════════════════════════
+var RogueLogic=(function(){
+  function grade(o){
+    const clear=o.reason==='clear';
+    const score=o.inspected*100+(clear?500:0)+(o.bossDown?300:0)+Math.max(0,o.hp)*40+o.banished*20+o.floor*50;
+    let g='C';
+    if(clear&&o.inspected>=o.totalFaults&&o.bossDown&&o.hp>=3)g='S';
+    else if(clear&&o.inspected>=o.totalFaults-1)g='A';
+    else if(clear||(o.floor>=3&&o.inspected>=5))g='B';
+    return {g,score};
+  }
+  function rewardFx(o){
+    const clear=o.reason==='clear',down=o.reason==='down';
+    return {
+      jobRep:o.inspected*3+(clear?5:0),
+      certKnow:o.memos*4+(clear?2:0),
+      money:o.inspected*1500+(clear?3000:0),
+      mental:clear?4:down?-8:0,
+      hope:o.bossDown?2:0,
+      fatigue:10,
+    };
+  }
+  function sp(o){return o.reason==='clear'?2:o.inspected>0?1:0;}
+  function gotNeta(o){return o.met+o.banished>=2;}
+  // 隣にいる敵が「次のターンに襲ってくる」か（enemyTurn と同じ条件。表示の予告だけに使う）
+  function intent(en,man,lit){
+    if(man!==1)return false;
+    if(en.kind==='g')return en.cd<=1;   // 霊は手番のはじめに cd を1減らしてから襲う
+    if(en.kind==='k')return !lit;
+    if(en.kind==='b')return en.stun===0&&en.tick===1;
+    return false;
+  }
+  return {grade,rewardFx,sp,gotNeta,intent};
+})();
+
 registerMinigame({
   id:'rogue', icon:'🔦', name:'深夜の工場巡回', genre:'ローグライク', bgm:'kaidan',
   desc:'毎回形が変わる夜の工場を3フロア巡回。懐中電灯で照らし、異常箇所を点検し、怪異をかわして出口へ。',
@@ -205,7 +245,7 @@ registerMinigame({
     });
     cv.addEventListener('pointercancel',()=>{pd=null;});
     introEl.addEventListener('pointerdown',e=>{e.preventDefault();hideIntro();});
-    function hideIntro(){if(introOn){introOn=false;introEl.classList.add('hide');}if(scene==='tut')scene='play';}
+    function hideIntro(){if(introOn){introOn=false;introEl.classList.add('hide');}if(scene==='tut')scene='play';if(scene==='play')ambStart();}
     titleEl.addEventListener('pointerdown',e=>{e.preventDefault();advance();});
     talkEl.addEventListener('pointerdown',e=>{e.preventDefault();advance();});
     $('rg-skip').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();AU.se('back');talkI=talkLines.length;showTut();});
@@ -272,8 +312,44 @@ registerMinigame({
         else if(kind==='shutter'){const f=noise(.55,300,.6,.14,'lowpass');f.frequency.exponentialRampToValueAtTime(900,now+.5);}
         else if(kind==='stamp'){tone('sine',110,50,.3,.16);tone('triangle',660,660,.5,.05);tone('triangle',990,990,.6,.035);}
         else if(kind==='pick')tone('triangle',660,1320,.12,.05);
+        else if(kind==='beat'){tone('sine',70,46,.13,.13);setTimeout(()=>{try{const n2=c.currentTime,o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(64,n2);o.frequency.exponentialRampToValueAtTime(42,n2+.12);g.gain.setValueAtTime(.0001,n2);g.gain.exponentialRampToValueAtTime(.09*G,n2+.01);g.gain.exponentialRampToValueAtTime(.0001,n2+.13);o.connect(g);g.connect(c.destination);o.start(n2);o.stop(n2+.15);}catch(_){}},170);}
+        else if(kind==='warnEdge')tone('triangle',520,300,.09,.035);
       }catch(_){}
     }
+
+    // ── 振動（対応端末のみ・短く） ──
+    const buzz=ms=>{try{if(mg.buzz)mg.buzz(ms);}catch(_){}};
+    // ── 環境音：工場の低いうなり（階が深いほど低く・暗く）。巡回中だけ鳴らす ──
+    let amb=null,beatT=0;
+    function ambStart(){
+      if(amb||mg._ended)return;
+      try{
+        if(!window.AU||typeof AUDIO_SET==='undefined'||AUDIO_SET.se<=0)return;
+        AU.init();const c=AU.ctx;if(!c)return;
+        if(!noiseBuf){noiseBuf=c.createBuffer(1,c.sampleRate*.6|0,c.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
+        const g=c.createGain();g.gain.value=0;g.connect(c.destination);
+        const o=c.createOscillator();o.type='sawtooth';o.frequency.value=55;
+        const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=160;
+        const og=c.createGain();og.gain.value=.5;o.connect(lp);lp.connect(og);og.connect(g);
+        const n=c.createBufferSource();n.buffer=noiseBuf;n.loop=true;
+        const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=380;bp.Q.value=.8;
+        const ng=c.createGain();ng.gain.value=.35;n.connect(bp);bp.connect(ng);ng.connect(g);
+        o.start();n.start();
+        amb={c,g,o,lp,n};ambFloor();
+      }catch(_){amb=null;}
+    }
+    function ambFloor(){
+      if(!amb)return;
+      try{const t=amb.c.currentTime;
+        amb.o.frequency.setTargetAtTime([55,49,41][floor-1]||41,t,.8);
+        amb.lp.frequency.setTargetAtTime([170,140,115][floor-1]||115,t,.8);
+        amb.g.gain.setTargetAtTime(.035*AUDIO_SET.se,t,1.2);}catch(_){}
+    }
+    function ambStop(){
+      const a=amb;amb=null;if(!a)return;
+      try{const t=a.c.currentTime;a.g.gain.cancelScheduledValues(t);a.g.gain.setTargetAtTime(0,t,.12);setTimeout(()=>{try{a.o.stop();a.n.stop();a.g.disconnect();}catch(_){}},700);}catch(_){}
+    }
+    if(typeof mg.onEnd==='function')mg.onEnd(ambStop);
 
     // ── 演出用プール ──
     const parts=[];for(let i=0;i<110;i++)parts.push({l:0,m:1,x:0,y:0,vx:0,vy:0,s:1,c:'#fff'});
@@ -517,7 +593,7 @@ registerMinigame({
     function pickItem(it){
       const px=it.x+.5,py=it.y+.4;
       if(it.type==='fault'){
-        it.done=true;inspected++;floorFaultsDone++;AU.se('repair');sfx('pick');
+        it.done=true;inspected++;floorFaultsDone++;AU.se('repair');sfx('pick');buzz(16);
         say('⚠ 異常箇所を点検した。'+pick(['ボルトの緩みを締め直した。','ベアリングの異音。グリスを差した。','端子台に焦げ跡。応急処置をした。','圧力計の針が震えている。記録した。']));
         floatText(px,py,'点検✓','#44ee88');burst(px,py,10,'#e8b830',2,.05);
         if(floorFaultsDone===floorFaults)setTimeout(()=>{if(!mg._ended&&!trans)say('このフロアの点検は全部終わった。非常口へ。');},900);
@@ -531,7 +607,7 @@ registerMinigame({
       }
     }
     function hitEnemy(en,d){
-      en.hp--;en.hitT=1;AU.se('tool');sfx('hit');hitStop=.07;shake=Math.max(shake,.35);
+      en.hp--;en.hitT=1;AU.se('tool');sfx('hit');buzz(14);hitStop=.07;shake=Math.max(shake,.35);
       burst(en.x+.5,en.y+.45,8,en.kind==='k'?'#b48cff':en.kind==='b'?'#ff7090':'#cfe8ff',2.4,.05);
       if(en.hp<=0){banish(en);}
       else if(en.kind==='b'){
@@ -544,7 +620,7 @@ registerMinigame({
       else say('👻 光にひるんだが、まだそこにいる……');
     }
     function banish(en){
-      enemies.splice(enemies.indexOf(en),1);banished++;sfx('banish');hitStop=.12;
+      enemies.splice(enemies.indexOf(en),1);banished++;sfx('banish');buzz(28);hitStop=.12;
       fading.push({x:en.x,y:en.y,rx:en.rx,ry:en.ry,kind:en.kind,hp:0,max:en.max,id:en.id,frozen:false,hitT:1,lunge:0,lx:0,ly:0,fade:1,t:0,sc:1,sy:1});
       const x=en.x+.5,y=en.y+.4;
       if(en.kind==='b'){bossDown=true;AU.se('ach');burst(x,y,40,'#ff9ab0',3.6,.08);burst(x,y,20,'#ffffff',2.6,.06);floatText(x,y-.3,'退散','#ff9ab0');shake=.8;
@@ -553,7 +629,7 @@ registerMinigame({
         say(en.kind==='k'?'影は光に焼かれ、床の染みになって消えた。':'👻 光を当てると、影は霧のように消えた。');}
     }
     function hurt(byGhost){
-      hp--;hurtT=1;shake=1;hitStop=.1;sfx('hurt');if(byGhost)met++;
+      hp--;hurtT=1;shake=1;hitStop=.1;sfx('hurt');buzz([40,30,60]);if(byGhost)met++;
       if(byGhost)AU.se('warn');
       floatText(player.x+.5,player.y+.1,'-1🔋','#ff5070');
       if(hp>0&&hp<=2)flickDip=.6;
@@ -742,6 +818,44 @@ registerMinigame({
       ctx.fillStyle=`rgba(${col},${a})`;ctx.beginPath();ctx.ellipse(x-ex,y,s*.035,s*.05*blink+.5,0,0,TAU);ctx.ellipse(x+ex,y,s*.035,s*.05*blink+.5,0,0,TAU);ctx.fill();
       ctx.globalCompositeOperation='source-over';
     }
+    // 隣の敵が次の手で襲ってくるなら、頭上に「！」と、こちらとの境目に赤い線（見えているときだけ）
+    function drawIntents(t){
+      if(scene!=='play'||trans||dying)return;
+      const s=T;let any=false;
+      for(const en of enemies){
+        const man=Math.abs(en.x-player.x)+Math.abs(en.y-player.y);
+        const lit=!!cone[idx(en.x,en.y)];
+        if(!RogueLogic.intent(en,man,lit))continue;
+        const vis=en.kind==='b'?1:clamp01((lightR[idx(en.x,en.y)]-.05)/.25);
+        if(vis<=.05)continue;
+        any=true;
+        const pulse=.6+.4*Math.sin(t*9);
+        const x=(en.rx+.5)*s,y=(en.ry+.38)*s-s*(en.kind==='b'?.75:.6)-Math.abs(Math.sin(t*6))*s*.08;
+        ctx.globalAlpha=vis;
+        ctx.font=`${Math.round(s*.46)}px "DotGothic16", monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillStyle='rgba(0,0,0,.7)';ctx.fillText('！',x+1,y+1);
+        ctx.fillStyle=`rgba(255,${70+60*pulse|0},96,1)`;ctx.fillText('！',x,y);
+        // 境目の線
+        const mx=(en.x+player.x)/2+.5,my=(en.y+player.y)/2+.5,hor=en.y===player.y;
+        ctx.strokeStyle=`rgba(255,60,90,${.55*pulse})`;ctx.lineWidth=Math.max(2,s*.07);ctx.beginPath();
+        if(hor){ctx.moveTo(mx*s,(my-.38)*s);ctx.lineTo(mx*s,(my+.38)*s);}else{ctx.moveTo((mx-.38)*s,my*s);ctx.lineTo((mx+.38)*s,my*s);}
+        ctx.stroke();ctx.globalAlpha=1;
+      }
+      if(any&&!drawIntents.warned){drawIntents.warned=true;sfx('warnEdge');}
+      if(!any)drawIntents.warned=false;
+    }
+    // このフロアの点検が終わったら、主人公の足元に非常口の方向を示す（近ければ出さない）
+    function drawCompass(t){
+      if(scene!=='play'||trans||dying||floorFaultsDone<floorFaults)return;
+      const dx=exit.x-player.rx,dy=exit.y-player.ry,d=Math.hypot(dx,dy);
+      if(d<2.2)return;
+      const s=T,a=Math.atan2(dy,dx),r=s*.62,px=(player.rx+.5)*s,py=(player.ry+.5)*s;
+      const k=.55+.45*Math.sin(t*4);
+      ctx.save();ctx.translate(px+Math.cos(a)*r,py+Math.sin(a)*r);ctx.rotate(a);
+      ctx.globalAlpha=.55+.35*k;ctx.fillStyle='#44ee88';ctx.shadowColor='#44ee88';ctx.shadowBlur=s*.25;
+      ctx.beginPath();ctx.moveTo(s*.2,0);ctx.lineTo(-s*.08,-s*.13);ctx.lineTo(-s*.02,0);ctx.lineTo(-s*.08,s*.13);ctx.closePath();ctx.fill();
+      ctx.restore();ctx.globalAlpha=1;
+    }
     function drawPlayer(t){
       const s=T,x=(player.rx+.5)*s,by=(player.ry+.5)*s;
       const f=player.face;
@@ -903,12 +1017,14 @@ registerMinigame({
       // 遷移
       if(trans){
         trans.t+=dt;
-        if(!trans.swapped&&trans.t>=.5){trans.swapped=true;floor++;genFloor();
+        if(!trans.swapped&&trans.t>=.5){trans.swapped=true;floor++;genFloor();ambFloor();
           say(floor===2?'🚪 階段を下りた。B2F。空気が冷たい。':'🚪 B3F。……奥に、大きな“何か”がいる。');}
         if(!trans.opened&&trans.t>=1.35){trans.opened=true;sfx('shutter');AU.se('machine');}
         if(trans.t>=1.9){trans=null;if(buffered!==null){const b=buffered;buffered=null;act(b);}}
       }
       if(clearing>0)clearing+=dt;
+      // 電池が残りわずか：心音（間隔は残りで変わる）
+      if(scene==='play'&&!dying&&!trans&&hp>0&&hp<=2){beatT-=dt;if(beatT<=0){beatT=hp===1?.75:1.15;sfx('beat');}}else beatT=.4;
       if(scene==='talk'){const full=talkLines[talkI][1];if(talkPos<full.length){const p0=talkPos|0;talkPos=Math.min(full.length,talkPos+dt*30);
         if((talkPos|0)!==p0){txtEl.textContent=full.slice(0,talkPos|0);if((talkPos|0)%3===0)sfx('turn');}}}
 
@@ -924,9 +1040,9 @@ registerMinigame({
         const ed=Math.abs(x-exit.x)+Math.abs(y-exit.y);
         if(ed<=1)L=Math.max(L,ed?.2:.42);
         lightR[i]=L;
-        if(seen[i]&&L<.17)L=.17;
+        if(seen[i]&&L<.24)L=.24;   // 一度見た場所は薄く残す（地図を覚えていられる）
         lightD[i]=L;
-        const al=1-clamp01(L*1.32);
+        const al=1-clamp01(L*1.42);
         const o=i*4;data[o]=5;data[o+1]=4;data[o+2]=14;data[o+3]=al*255;
       }
       lctx.putImageData(lowImg,0,0);
@@ -973,6 +1089,8 @@ registerMinigame({
       drawExitSign(t);
       drawLeaks(t);
       for(const e of enemies)drawEyesInDark(e,t);
+      drawIntents(t);
+      drawCompass(t);
       // 光の中の埃
       ctx.fillStyle='#fff4d8';
       for(const m of motes){
@@ -1049,13 +1167,7 @@ registerMinigame({
 
     // ── 評価とエンディング ──
     function computeGrade(reason){
-      const clear=reason==='clear';
-      const score=inspected*100+(clear?500:0)+(bossDown?300:0)+Math.max(0,hp)*40+banished*20+floor*50;
-      let g='C';
-      if(clear&&inspected>=totalFaults&&bossDown&&hp>=3)g='S';
-      else if(clear&&inspected>=totalFaults-1)g='A';
-      else if(clear||(floor>=3&&inspected>=5))g='B';
-      return {g,score};
+      return RogueLogic.grade({reason,inspected,bossDown,hp,banished,floor,totalFaults});
     }
     function showEnding(reason){
       if(scene==='end'||mg._ended)return;
@@ -1088,6 +1200,7 @@ registerMinigame({
     mg.loop(frame);
     return {result(reason){
       if(ro)ro.disconnect();else window.removeEventListener('resize',resize);
+      ambStop();
       const R=endReason||reason;
       const clear=R==='clear', down=R==='down';
       // 記録
@@ -1096,21 +1209,15 @@ registerMinigame({
       if(bossDown)REC.bossDowns=(REC.bossDowns||0)+1;
       const gi=gradeInfo||(R!=='quit'?computeGrade(R):null);
       if(gi&&gi.score>(REC.bestScore||0)){REC.bestScore=gi.score;REC.bestGrade=gi.g;}
-      const fx={
-        jobRep:inspected*3+(clear?5:0),
-        certKnow:memos*4+(clear?2:0),
-        money:inspected*1500+(clear?3000:0),
-        mental:clear?4:down?-8:0,
-        hope:bossDown?2:0,
-        fatigue:10,
-      };
-      const gotNeta=met+banished>=2;
+      const st={reason:R,inspected,memos,bossDown,met,banished};
+      const fx=RogueLogic.rewardFx(st);
+      const gotNeta=RogueLogic.gotNeta(st);
       return {
         title:clear?'🔦 巡回完了':down?'🌑 闇に飲まれた':'🔦 巡回を切り上げた',
         summary:(gi?`評価 <span class="up">${gi.g}</span>　`:'')+`到達 <span class="up">B${floor}F</span>　点検 <span class="up">${inspected}</span>　追い払い <span class="up">${banished}</span>`+
           (bossDown?'<br>👁 B3Fの怨霊を鎮めた':'')+
           (gotNeta?'<br>📝 怪談ネタを手に入れた':''),
-        fx, time:90, sp:clear?2:inspected>0?1:0,
+        fx, time:90, sp:RogueLogic.sp(st),
         after(){if(gotNeta){gs.factoryNetaAvail=true;gs.factoryNetaType=bossDown?'地下の怨霊':'深夜巡回の怪異';}},
         log:clear?(bossDown?'深夜の工場を最後まで巡回した。地下の怨霊を鎮めた。':'深夜の工場を最後まで巡回した。'):'深夜の工場を巡回した。何かがいた気がする。',
         cutin:down?['fear','……今の、なに？']:clear&&bossDown?['win','……成仏、してくれたかしら。']:null,

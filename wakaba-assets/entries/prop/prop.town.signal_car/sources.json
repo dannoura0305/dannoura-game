@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.town.signal_car",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.town.signal_car.fbx",
+   "storage": "local-ignored",
+   "sha256": "375a0218fcc9493f42801903d39892693890b355e9678727b0ad20dee7439084",
+   "bytes": 30412,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_transit.py --only prop.town.signal_car"
+  }
+ ]
+}

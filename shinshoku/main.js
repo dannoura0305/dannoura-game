@@ -17,6 +17,7 @@ import { Heiten } from './ai/heiten.js';
 import { Shuuyou } from './ai/shuuyou.js';
 import { CompanionBrain } from './ai/companion.js';
 import { ThirdPersonCamera } from './render/camera.js';
+import { preloadEnemyPacks } from './actor/enemypack.js';
 import { Fx, Rain } from './render/fx.js';
 import { Halos, WetStreaks } from './render/halo.js';
 import { SwordTrail } from './render/trail.js';
@@ -158,8 +159,10 @@ class Game {
     this.cut = new CutscenePlayer(this.cutHost());
     this.moon.castShadow = !!this.settings.shadows;
     this.precompile();                 // 役者・光の輪などのシェーダーを GPU で先に作り始める（待たない：区画の組み立てと重ねる）
+    const epk = preloadEnemyPacks(this.presetVals() === PRESETS.low ? 'low' : 'high').catch(() => 0);   // P17：Blender で作り直した異形の体（読めない時はコードの形）
     this.events = await fetch(new URL('./data/events.json', import.meta.url)).then(r => r.json()).catch(() => ({ events: {}, barks: {}, texts: {}, speakers: {} }));
     this.manifest = await loadManifest();
+    this.enemyPacks = await epk;
     this.loadCharacterModels();
     // 状態
     this.frame = 0; this.playSec = 0; this.mode = 'title'; this.hitstop = 0; this.slowT = 0; this.slowScale = 1; this.worldScale = 1;
@@ -823,8 +826,8 @@ class Game {
       const lk = this.mode === 'play' ? look : { x: 0, y: 0 };
       // ロック中にマウス・右スティックを素早く振る＝相手を切り替える
       if (this.lock && this.mode === 'play' && Math.abs(lk.x) > 0.11) { this.switchLock(lk.x < 0 ? 1 : -1); lk.x = 0; }
-      if (this.giantMode) { const G = this.giant; this.cam.update(dt, { x: G.pos.x, y: (G.y || 0) * 0.5, z: G.pos.z }, lk, this.boxes, { lock: this.lock && this.lock.hittable() ? this.lock.pos : null, scale: 5.6 * G.scale / 8 + 0.4 }); }
-      else this.cam.update(dt, P.pos, lk, this.boxes, { aim: ((F.weapon === 'handgun' && F.aimHeld) || (F.weapon === 'matchlock' && F.white && (F.aimHeld || F.st.name === 'mcharge'))) && !['swap', 'reload'].includes(F.st.name), lock: this.lock && this.lock.hittable() ? this.lock.pos : null, indoor: A.indoor(P.pos.x, P.pos.z) });
+      if (this.giantMode) { const G = this.giant; this.cam.update(dt, { x: G.pos.x, y: (G.y || 0) * 0.5, z: G.pos.z }, lk, this.boxes, { lock: this.lock && this.lock.hittable() ? this.lock.pos : null, scale: 5.6 * G.scale / 8 + 0.4, range: () => [0.6, Infinity] }); }
+      else this.cam.update(dt, P.pos, lk, this.boxes, { aim: ((F.weapon === 'handgun' && F.aimHeld) || (F.weapon === 'matchlock' && F.white && (F.aimHeld || F.st.name === 'mcharge'))) && !['swap', 'reload'].includes(F.st.name), lock: this.lock && this.lock.hittable() ? this.lock.pos : null, indoor: A.indoor(P.pos.x, P.pos.z), range: this.camRangeFn(A, P) });
     }
     if (this.lock && !this.lock.hittable()) this.lock = null;
     const glassesPose = this.cinePlayerAnim === 'glasses' ? { pose: { spine: [0.05, 0, 0], head: [0.12, 0, 0], rightUpperArm: [-1.6, 0.3, -0.35], rightLowerArm: [-2.35, 0, 0], rightHand: [0.2, 0, 0.6], leftUpperArm: [0.05, 0, 0.12], leftLowerArm: [-0.2, 0, 0] }, rate: 0.25 } : null;
@@ -1046,7 +1049,7 @@ class Game {
       input: { script: list => g.input.runScript(list), press: (a, f = 0) => g.input.runScript([{ f, press: [a] }]), hold: (a, n) => g.input.runScript([{ f: 0, hold: { [a]: n } }]), move: (x, y, n) => g.input.runScript([{ f: 0, move: [x, y, n] }]) },
       debug: {
         veg() { return vegStats(g.area); },                         // P16：区画の植物の部品の数・読めたか
-        teleport(x, z, yaw, y = 0) { g.player.pos.set(x, y, z); if (yaw != null) { g.player.yaw = yaw; g.cam.yaw = yaw + Math.PI; } },
+        teleport(x, z, yaw, y = 0) { g.player.pos.set(x, y, z); if (yaw != null) { g.player.yaw = yaw; g.cam.yaw = yaw + Math.PI; } g.player.prevYaw = null; const sp = g.player.model && g.player.model.springs; if (sp && sp.reset) { g.player.root.position.copy(g.player.pos); g.player.root.rotation.y = g.player.yaw; g.player.root.updateMatrixWorld(true); sp.reset(); } },   // P17：揺れ物（髪）も置き直す（瞬間移動で横へ跳ねない）
         home(x, z) { return [x + TOWN_HOME[0], z + TOWN_HOME[1]]; }, town() { return { route: TOWN.route.map(p => p.slice()), routes: JSON.parse(JSON.stringify(TOWN.routes)), nodes: TOWN.nav.nodes, version: TOWN.version, pending: !!(g.areas.shotengai && g.areas.shotengai.pending && g.areas.shotengai.pending.length) }; }, buildPending() { const A = g.areas.shotengai; if (A) g.buildPending(A, 9); return !(A && A.pending && A.pending.length); },
         camYaw(y) { g.cam.yaw = y; }, camPitch(p) { g.cam.pitch = p; },
         faceTo(x, z) { const P = g.player; P.yaw = Math.atan2(x - P.pos.x, z - P.pos.z); g.cam.yaw = P.yaw + Math.PI; },
@@ -1089,6 +1092,12 @@ class Game {
       save: k => g.saveSlot(k), load: k => g.loadSlot(k), store: g.store, wp: g.WP,
     };
   }
+  /** P17：カメラの床と天井（camera.js の range）。区画の camRange（自宅の 2 階・階段）か、屋内の天井の高さ（CAM_CEIL）。外は地面の上だけ */
+  camRangeFn(A, P) {
+    if (A.camRange) return (x, z) => A.camRange(x, z, P.pos.y);
+    const top = CAM_CEIL[A.id] != null ? CAM_CEIL[A.id] - 0.28 : Infinity;
+    return () => [0.3, top];
+  }
   /** 撮影用：キャラクターの寄り（相手：player|companion|boss） */
   viewMode(name, opt = {}) {
     if (name === 'normal') { this.closeup = false; this.cineCam = null; this.ui.letterbox(false); this.mode = 'play'; return true; }
@@ -1113,6 +1122,9 @@ function mergeIn(a, b) {
   if (a.wantWeapon && !b.wantWeapon) o.wantWeapon = a.wantWeapon;
   return o;
 }
+
+/** P17：屋内の区画の天井の高さ（m・world/areas*.js の H）。カメラが天井を抜けて外から見下ろさない */
+const CAM_CEIL = { hospital: 3.6, tunnel: 3.4, office: 3.2, oldwing: 3.4, admin: 4.2, kiroku: 6.0, lab: 7.2, atrium: 9.0 };
 
 const game = new Game();
 game.init().catch(e => { console.error(e); const b = document.getElementById('sh-boot'); if (b) b.textContent = '起動できませんでした：' + e.message; });

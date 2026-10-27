@@ -673,6 +673,164 @@
    }
   },
   {
+   "id": "bld.town.canopy_column",
+   "version": 1,
+   "category": "building_module",
+   "name": {
+    "ja": "駅前の大屋根の柱（枝分かれの支え）",
+    "en": "Station canopy tree column"
+   },
+   "status": "draft",
+   "tags": [
+    "駅",
+    "鉄骨",
+    "手続き",
+    "自作"
+   ],
+   "dir": "building_module/bld.town.canopy_column",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     3.3,
+     8.6,
+     3.3
+    ],
+    "tris": 508
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/bld.town.canopy_column.fbx",
+     "storage": "local-ignored",
+     "sha256": "67eafd14dccd22770630e4b7b19b959611a6e0b193ebcb5a661f8f59df1501a7",
+     "bytes": 29132
+    }
+   ],
+   "web": [
+    {
+     "file": "web/bld.town.canopy_column.glb",
+     "bytes": 59584
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/BuildingModule/SM_bld_town_canopy_column",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/bld.town.canopy_column.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 508,
+     "LOD1": 260
+    },
+    "variants": 1,
+    "lodDist": [
+     60
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.town.paint#steel",
+     "mat.town.paint#steeldk"
+    ]
+   }
+  },
+  {
+   "id": "bld.town.canopy_truss",
+   "version": 1,
+   "category": "building_module",
+   "name": {
+    "ja": "駅前の大屋根の梁（鉄骨のトラス 13.6m）",
+    "en": "Station canopy truss beam (13.6m)"
+   },
+   "status": "draft",
+   "tags": [
+    "駅",
+    "鉄骨",
+    "手続き",
+    "自作"
+   ],
+   "dir": "building_module/bld.town.canopy_truss",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.24,
+     0.73,
+     13.6
+    ],
+    "tris": 512
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/bld.town.canopy_truss.fbx",
+     "storage": "local-ignored",
+     "sha256": "2f673227cc12bfbab800b8abf6e1a9d176e886341cb6a48295dc33e39c287ef7",
+     "bytes": 27260
+    }
+   ],
+   "web": [
+    {
+     "file": "web/bld.town.canopy_truss.glb",
+     "bytes": 62020
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/BuildingModule/SM_bld_town_canopy_truss",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/bld.town.canopy_truss.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 512,
+     "LOD1": 208
+    },
+    "variants": 1,
+    "lodDist": [
+     60
+    ],
+    "impostor": false,
+    "materials": [
+     "mat.town.paint#steel",
+     "mat.town.paint#steeldk"
+    ]
+   }
+  },
+  {
    "id": "char.companion",
    "version": 1,
    "category": "character",
@@ -12985,6 +13143,188 @@
    }
   },
   {
+   "id": "prop.town.bus",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "路線バス（独自の意匠。v0 暗い窓・v1 灯り）",
+    "en": "City bus (original design; v0 dark / v1 lit)"
+   },
+   "status": "draft",
+   "tags": [
+    "バス",
+    "町",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.town.bus",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     3.08,
+     3.25,
+     10.542
+    ],
+    "tris": 5676
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.town.bus.fbx",
+     "storage": "local-ignored",
+     "sha256": "0cc0a60fae3af56d3f35eeabfa13c850e9c94e1927f30a7b3f978f279ff025bf",
+     "bytes": 202556
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.town.bus.glb",
+     "bytes": 907876
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_town_bus",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.town.bus.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "v0_LOD0": 5676,
+     "v0_LOD1": 3356,
+     "v1_LOD0": 5676,
+     "v1_LOD1": 3356
+    },
+    "variants": 2,
+    "lodDist": [
+     60
+    ],
+    "impostor": false,
+    "materials": [
+     "emit.amber",
+     "emit.cabin",
+     "emit.dest",
+     "emit.head",
+     "emit.tail",
+     "glass.dark",
+     "mat.town.paint#black",
+     "mat.town.paint#blue",
+     "mat.town.paint#bwhite",
+     "mat.town.paint#chrome",
+     "mat.town.paint#dark",
+     "mat.town.paint#rim",
+     "mat.town.paint#roofgrey",
+     "mat.town.paint#tire"
+    ]
+   }
+  },
+  {
+   "id": "prop.town.bus_lite",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "路線バスの軽い版（スマホの低い段）",
+    "en": "City bus, lite (phone low preset)"
+   },
+   "status": "draft",
+   "tags": [
+    "バス",
+    "町",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.town.bus_lite",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     2.522,
+     3.25,
+     10.54
+    ],
+    "tris": 1276
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.town.bus_lite.fbx",
+     "storage": "local-ignored",
+     "sha256": "bf6fdc5ac70d17c2cdcc41c7cee21d1f635e441dfbe9c86220ad7149d5e2eddc",
+     "bytes": 70236
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.town.bus_lite.glb",
+     "bytes": 158672
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_town_bus_lite",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.town.bus_lite.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "v0_LOD0": 1276,
+     "v1_LOD0": 1276
+    },
+    "variants": 2,
+    "lodDist": [
+     60
+    ],
+    "impostor": false,
+    "materials": [
+     "emit.cabin",
+     "emit.dest",
+     "emit.head",
+     "emit.tail",
+     "glass.dark",
+     "mat.town.paint#black",
+     "mat.town.paint#blue",
+     "mat.town.paint#bwhite",
+     "mat.town.paint#dark",
+     "mat.town.paint#rim",
+     "mat.town.paint#roofgrey",
+     "mat.town.paint#tire"
+    ]
+   }
+  },
+  {
    "id": "prop.town.car",
    "version": 1,
    "category": "prop",
@@ -13484,6 +13824,358 @@
     "impostor": false,
     "materials": [
      "mat.town.paint#steel"
+    ]
+   }
+  },
+  {
+   "id": "prop.town.signal_car",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "車の信号（延長の柱・腕・横 3 灯・庇・背面板）",
+    "en": "Traffic signal, vehicle (arm, 3 lamps, visors)"
+   },
+   "status": "draft",
+   "tags": [
+    "信号",
+    "町",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.town.signal_car",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     4.09,
+     2.66,
+     0.49
+    ],
+    "tris": 492
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.town.signal_car.fbx",
+     "storage": "local-ignored",
+     "sha256": "375a0218fcc9493f42801903d39892693890b355e9678727b0ad20dee7439084",
+     "bytes": 30412
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.town.signal_car.glb",
+     "bytes": 60872
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_town_signal_car",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.town.signal_car.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 492,
+     "LOD1": 236
+    },
+    "variants": 1,
+    "lodDist": [
+     45
+    ],
+    "impostor": false,
+    "materials": [
+     "emit.sig_g",
+     "emit.sig_r",
+     "emit.sig_y",
+     "mat.town.paint#black",
+     "mat.town.paint#pole",
+     "mat.town.paint#signal"
+    ]
+   }
+  },
+  {
+   "id": "prop.town.signal_ped",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "歩行者の信号（柱・押しボタン・2 灯・庇）",
+    "en": "Traffic signal, pedestrian (pole, button, 2 lamps)"
+   },
+   "status": "draft",
+   "tags": [
+    "信号",
+    "町",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.town.signal_ped",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     0.38,
+     3.2,
+     0.45
+    ],
+    "tris": 324
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.town.signal_ped.fbx",
+     "storage": "local-ignored",
+     "sha256": "41b542fa85a1edb7193391e05adfacd268ab5e58ed1870b364163eb01fa8e173",
+     "bytes": 26908
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.town.signal_ped.glb",
+     "bytes": 48372
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_town_signal_ped",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.town.signal_ped.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "LOD0": 324,
+     "LOD1": 152
+    },
+    "variants": 1,
+    "lodDist": [
+     40
+    ],
+    "impostor": false,
+    "materials": [
+     "emit.ped_g",
+     "emit.ped_r",
+     "mat.town.paint#chrome",
+     "mat.town.paint#pole",
+     "mat.town.paint#signal",
+     "mat.town.paint#yellow"
+    ]
+   }
+  },
+  {
+   "id": "prop.town.tram",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "路面電車（2 両つなぎの低床車・独自の意匠。v0 暗い窓・v1 灯り）",
+    "en": "Tram, 2-section low floor (original design; v0 dark / v1 lit)"
+   },
+   "status": "draft",
+   "tags": [
+    "路面電車",
+    "町",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.town.tram",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     3.04,
+     5.884,
+     14.52
+    ],
+    "tris": 7692
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.town.tram.fbx",
+     "storage": "local-ignored",
+     "sha256": "99ca3fed989d946287aeb5b6f04020288befe35b9810e44ade3b46a5e4f2ce5d",
+     "bytes": 267484
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.town.tram.glb",
+     "bytes": 1443112
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_town_tram",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.town.tram.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "v0_LOD0": 7692,
+     "v0_LOD1": 4852,
+     "v1_LOD0": 7692,
+     "v1_LOD1": 4852
+    },
+    "variants": 2,
+    "lodDist": [
+     70
+    ],
+    "impostor": false,
+    "materials": [
+     "emit.cabin",
+     "emit.dest",
+     "emit.head",
+     "emit.tail",
+     "glass.dark",
+     "mat.town.paint#amber",
+     "mat.town.paint#bellows",
+     "mat.town.paint#black",
+     "mat.town.paint#chrome",
+     "mat.town.paint#dark",
+     "mat.town.paint#roofgrey",
+     "mat.town.paint#steel",
+     "mat.town.paint#steeldk",
+     "mat.town.paint#teal",
+     "mat.town.paint#twhite",
+     "mat.town.paint#yellow"
+    ]
+   }
+  },
+  {
+   "id": "prop.town.tram_lite",
+   "version": 1,
+   "category": "prop",
+   "name": {
+    "ja": "路面電車の軽い版（スマホの低い段）",
+    "en": "Tram, lite (phone low preset)"
+   },
+   "status": "draft",
+   "tags": [
+    "路面電車",
+    "町",
+    "手続き",
+    "自作"
+   ],
+   "dir": "prop/prop.town.tram_lite",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": "bottom_center",
+    "sizeM": [
+     2.344,
+     5.885,
+     14.52
+    ],
+    "tris": 1704
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [
+    {
+     "role": "fbx",
+     "path": "source/prop.town.tram_lite.fbx",
+     "storage": "local-ignored",
+     "sha256": "e31a4e0a759b5bd195dcc03976f44e99452f7ca8c99c387c38dc21358a8ec04d",
+     "bytes": 88236
+    }
+   ],
+   "web": [
+    {
+     "file": "web/prop.town.tram_lite.glb",
+     "bytes": 241524
+    }
+   ],
+   "ue5": {
+    "assetType": "StaticMesh",
+    "gamePath": "/Game/Wakaba/Prop/SM_prop_town_tram_lite",
+    "pivot": "bottom_center",
+    "source": {
+     "file": "source/prop.town.tram_lite.fbx",
+     "format": "fbx"
+    }
+   },
+   "kit": {
+    "nodes": {
+     "v0_LOD0": 1704,
+     "v1_LOD0": 1704
+    },
+    "variants": 2,
+    "lodDist": [
+     70
+    ],
+    "impostor": false,
+    "materials": [
+     "emit.cabin",
+     "emit.dest",
+     "emit.head",
+     "emit.tail",
+     "glass.dark",
+     "mat.town.paint#amber",
+     "mat.town.paint#bellows",
+     "mat.town.paint#black",
+     "mat.town.paint#dark",
+     "mat.town.paint#roofgrey",
+     "mat.town.paint#steel",
+     "mat.town.paint#steeldk",
+     "mat.town.paint#teal",
+     "mat.town.paint#twhite"
     ]
    }
   },

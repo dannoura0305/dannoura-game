@@ -21,6 +21,8 @@ import { SHADER_CFG } from '../../shinshoku/actor/charcfg.js';
 import { COMBAT } from '../../shinshoku/data/combat.js';
 import { buildVRM1, buildVRMA } from '../../charkit/core/vrmwrite.js';
 import { tpConv, HUMAN17 } from '../../charkit/runtime/tpose.js';
+import { LocoDriver } from '../../charkit/anim/locodriver.js';
+let PERS = null;   // P17：歩き方の性格（--pers companion など。無ければモデルの kind＝だんのうら）
 
 const DT = 1 / 60;
 const log = s => { document.getElementById('log').textContent += '\n' + s; };
@@ -303,6 +305,7 @@ function grab(J, T) {
 function makePlayer(weapon = 'none') {
   const m = buildDannoura();
   const P = new Player(m, { owned: weapon === 'none' ? [] : [weapon], weapon });
+  if (PERS && m.legDims) P.driver = new LocoDriver({ dims: m.legDims, scale: m.legScale || 1, pers: PERS });
   P.yaw = 0; P.pos.set(0, 0, 0);
   return { m, P, F: P.fighter };
 }
@@ -378,7 +381,7 @@ async function exportClips(T, opt = {}) {
     const times = c.keys.map((_, k) => k / (c.keys.length - 1) * c.dur);
     const file = id.replace('.', '_') + '.vrma';
     files[file] = toVRMA(id, sk, c.keys, times, { wakaba: { id, test } });
-    set.clips[id] = { file, role: 'loco', loop: true, speedMS: +v.toFixed(3), durationS: +c.dur.toFixed(4), strideM: +(c.cycleM / 2).toFixed(4), rootMotion: 'none', events: [{ t: 'footL', u: 0 }, { t: 'footR', u: 0.5 }], source: { type: 'procedural_capture', from: 'shinshoku/actor/actors.js Player（LocoDriver）' } };
+    set.clips[id] = { file, role: 'loco', loop: true, speedMS: +v.toFixed(3), durationS: +c.dur.toFixed(4), strideM: +(c.cycleM / 2).toFixed(4), rootMotion: 'none', events: [{ t: 'footL', u: 0 }, { t: 'footR', u: 0.5 }], source: { type: 'procedural_capture', from: 'shinshoku/actor/actors.js Player（LocoDriver）' + (PERS ? '・性格 ' + PERS : '') } };
   }
   {
     const c = recordIdle(T);
@@ -401,7 +404,7 @@ async function exportClips(T, opt = {}) {
 }
 
 window.exportAll = async (opt = {}) => {
-  const t0 = performance.now();
+  const t0 = performance.now(); PERS = opt.pers || null;
   const v = await exportVRM();
   const c = await exportClips(v.info.T, opt);
   delete v.info.T; delete v.info.bonesTable;

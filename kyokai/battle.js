@@ -14,6 +14,8 @@
        ボス戦（逃げられない）。負けたら安定度 −20 → シロが回復して何度でも再挑戦（負けるたびにユウの支援で少し強くなる）。
    - KY_BATTLE.rest()：シロの HP・技の残り回数を全快（研究所 center_* の場面に入ると自動で呼ばれる）。
    - KY_BATTLE.shiro()：シロの記録（S.flags.bt に保存＝kyokai_save_v1 に入る）。
+   - 見せ方（2026-10-27）：敵は影で滑り込んで色が付き鳴く（KY_BATTLE.cry(id)）。技は踏み込み＋属性ごとのドット絵のエフェクト
+     （場の上の低い解像度のキャンバスに 4 色・15 コマ。KY_BATTLE._FX）。弱点・急所は白く 2 回光る。シロの HP 2 割以下で警告音。
    本編のセーブ（dannoura_*）には触れない。だんのうらは戦闘に出てこない。
    ══════════════════════════════════════════════════════════════════════ */
 (function (root) {
@@ -316,7 +318,10 @@
     // 命中（ライトで目がくらんでいる敵は外しやすい）
     let acc = (mv.acc || 100) / 100;
     if (!me && B.en.blind > 0) acc *= 0.55;
-    if (mv.pow && rnd() >= acc) { await ui.msg(me ? 'しかし シロの技は 外れた！' : `しかし ${B.en.name}の技は 外れた！`); return; }
+    const miss = !!(mv.pow && rnd() >= acc);
+    // 技の演出（属性ごとのドット絵のエフェクト・踏み込み）。外れたときは踏み込みだけ
+    await ui.anim(who, mid, miss);
+    if (miss) { await ui.msg(me ? 'しかし シロの技は 外れた！' : `しかし ${B.en.name}の技は 外れた！`); return; }
     if (mv.eff === 'heal') {
       const sb = API.syncBonus();
       const amt = Math.max(4, Math.floor(B.me.max * mv.amt * sb.heal));
@@ -356,7 +361,7 @@
     const before = d.hp;
     d.hp = Math.max(0, before - r.dmg);
     ui.se(r.mul > 1 ? 'bt_hit2' : r.mul < 1 ? 'bt_hit0' : 'bt_hit');
-    await ui.hit(me ? 'en' : 'me', r.mul);
+    await ui.hit(me ? 'en' : 'me', r.mul, crit);
     await ui.hp(me ? 'en' : 'me', before, d.hp);
     if (crit) await ui.msg('きゅうしょに あたった！');
     if (weak) await ui.msg('観測した 弱いところに 当たった！');
@@ -632,7 +637,7 @@
       return Promise.resolve(c);
     },
     learn() { return Promise.resolve(AUTO.learn != null ? AUTO.learn : 0); },
-    hp() { return Promise.resolve(); }, hit() { return Promise.resolve(); }, faint() { return Promise.resolve(); }, fx() { return Promise.resolve(); },
+    hp() { return Promise.resolve(); }, hit() { return Promise.resolve(); }, faint() { return Promise.resolve(); }, fx() { return Promise.resolve(); }, anim() { return Promise.resolve(); },
     exp() { return Promise.resolve(); }, lvup() { return Promise.resolve(); },
     se() {}, music() {}, refresh() {}, showMe() {},
   };
@@ -687,7 +692,26 @@
     bt_learn: t => { seq([784, 988, 1175, 1568], t, 0.07, { duty: 0.25, vol: 0.03 }); },
     bt_phase: t => { tone(220, t, 0.4, { duty: 0.5, vol: 0.035, to: 880 }); noise(t, 0.4, { f: 1200, vol: 0.06 }); },
     bt_sel: t => { tone(1175, t, 0.03, { duty: 0.25, vol: 0.022 }); },
+    // シロの HP が少ないときの、控えめな警告音（ターンのはじめに 1 回だけ）
+    bt_low: t => { for (let i = 0; i < 2; i++) { tone(1568, t + i * 0.16, 0.07, { duty: 0.5, vol: 0.018 }); tone(1319, t + i * 0.16 + 0.075, 0.07, { duty: 0.5, vol: 0.018 }); } },
+    bt_shiro: t => { tone(1047, t, 0.07, { duty: 0.25, vol: 0.026, to: 1568 }); tone(1568, t + 0.09, 0.1, { duty: 0.125, vol: 0.022, to: 1319 }); },
   };
+  // 境界生物の鳴き声：名前から決まる短い音型（毎回同じ・生き物ごとに違う）
+  function cry(id) {
+    const a = AU(); if (!a || !a.ok) return;
+    let h = 2166136261; for (const ch of String(id)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+    const r = () => { h ^= h << 13; h >>>= 0; h ^= h >> 17; h ^= h << 5; h >>>= 0; return h / 4294967296; };
+    const t = a.ctx.currentTime + 0.01, base = 180 + r() * 520, e = ENEMIES[id] || {};
+    const n = 2 + ((r() * 3) | 0), big = !!e.big;
+    let x = t;
+    for (let i = 0; i < n; i++) {
+      const d = (big ? 0.12 : 0.07) + r() * 0.08, f = base * (0.7 + r() * 0.9) * (big ? 0.6 : 1);
+      tone(f, x, d, { duty: [0.125, 0.25, 0.5][(r() * 3) | 0], vol: 0.03, to: f * (0.5 + r() * 1.3) });
+      if (r() < 0.5) noise(x, d * 0.7, { f: 800 + r() * 2400, vol: 0.05 });
+      x += d * (0.75 + r() * 0.4);
+    }
+  }
+  API.cry = cry;
   function se(name) {
     const a = AU(); if (!a || !a.ok) return;
     try { BSE[name] && BSE[name](a.ctx.currentTime + 0.01); } catch (e) {}
@@ -930,18 +954,86 @@
   API.sprite = sprite;
   const PAL_DEF = { A: ['#0f380f', '#306230', '#8bac0f', '#cadc9f'], B: ['#2a1a0c', '#6e4a26', '#c09058', '#f2e2bc'], C: ['#0c1219', '#384a5c', '#8a9cac', '#dfe7ec'], S: ['#1b0f2e', '#4e3478', '#a688d4', '#ece2fa'], X: ['#04201e', '#17605a', '#5fc4b4', '#e2fbf4'], R: ['#240608', '#7a1a28', '#e0606e', '#fbe0e0'] };
   const palColors = k => { try { if (root.KY_ART && KY_ART.gb && KY_ART.gb.PAL[k]) return KY_ART.gb.PAL[k]; } catch (e) {} return PAL_DEF[k] || PAL_DEF.A; };
-  function paint(cv, g, pal, invert) {
+  function paint(cv, g, pal, invert, sil) {
     const ctx = cv.getContext('2d');
     const P = palColors(pal).map(h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]);
     const im = ctx.createImageData(N, N);
     for (let i = 0; i < N * N; i++) {
       const v = g[i]; if (v < 0) continue;
-      const c = P[invert ? 3 - v : v];
+      const c = P[sil ? 0 : invert ? 3 - v : v];
       im.data[i * 4] = c[0]; im.data[i * 4 + 1] = c[1]; im.data[i * 4 + 2] = c[2]; im.data[i * 4 + 3] = 255;
     }
     ctx.clearRect(0, 0, N, N); ctx.putImageData(im, 0, 0);
   }
   API.paint = paint;
+
+  /* ── 技のエフェクト（ドット絵）。座標はエフェクト用キャンバスの 1 ドット単位 ── */
+  const FX_DUR = { none: 620, flux: 640, echo: 640, void: 700, heal: 640, down: 520 };
+  function fxKind(mv) { if (mv.eff === 'heal' || mv.eff === 'selfheal') return 'heal'; if (mv.eff) return 'down'; return TYPES[mv.type] ? mv.type : 'none'; }
+  // 輪郭つきの点（明るい色を濃い色で縁取る：明るい場の上でも見える）
+  const dot = (x, y, s, c, k, ctx) => { x = Math.round(x); y = Math.round(y); ctx.fillStyle = c[0]; ctx.fillRect(x - 1, y - 1, s + 2, s + 2); ctx.fillStyle = c[k]; ctx.fillRect(x, y, s, s); };
+  const FX = {
+    // 観測光：攻める側から細い光の帯 → 当たった所で星形に開く
+    none(ctx, c, t, A, T) {
+      if (t < 0.5) {
+        const u = t / 0.5;
+        for (let i = 0; i < 18; i++) { const s = i / 18 * u; if ((i + ((t * 30) | 0)) % 3 === 0) continue; dot(A[0] + (T[0] - A[0]) * s, A[1] + (T[1] - A[1]) * s, 2, c, 3, ctx); }
+      } else {
+        const u = (t - 0.5) / 0.5, R = T[2] * (0.25 + u * 0.9);
+        for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + (k % 2) * 0.2; for (let j = 0; j < 3; j++) { const rr = R * (0.5 + j * 0.25); dot(T[0] + Math.cos(a) * rr, T[1] + Math.sin(a) * rr, j === 2 ? 1 : 2, c, j === 1 ? 2 : 3, ctx); } }
+        if (u < 0.5) { ctx.fillStyle = c[3]; ctx.fillRect(Math.round(T[0] - 2), Math.round(T[1] - 2), 5, 5); }
+      }
+    },
+    // 揺らぎ：波打つ 3 本の線が相手を通り抜ける
+    flux(ctx, c, t, A, T) {
+      const dx = T[0] - A[0], dy = T[1] - A[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+      for (let w = 0; w < 3; w++) {
+        for (let i = 0; i <= 40; i++) {
+          const s = i / 40, head = t * 1.6 - w * 0.12; if (s > head || s < head - 0.55) continue;
+          const amp = T[2] * 0.35 * Math.sin(s * Math.PI), off = Math.sin(s * 14 - t * 18 + w * 2.1) * amp;
+          ctx.fillStyle = c[w === 1 ? 0 : 1]; ctx.fillRect(Math.round(A[0] + dx * s + nx * off), Math.round(A[1] + dy * s + ny * off), 2, 2);
+        }
+      }
+      if (t > 0.6) { const u = (t - 0.6) / 0.4; for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; const rr = T[2] * (0.55 + 0.12 * Math.sin(a * 5 + u * 12)); if (i % 2) dot(T[0] + Math.cos(a) * rr, T[1] + Math.sin(a) * rr * 0.8, 1, c, 2, ctx); } }
+    },
+    // 残響：相手のまわりに点線の輪が 3 重に広がる
+    echo(ctx, c, t, A, T) {
+      for (let k = 0; k < 3; k++) {
+        const u = t * 1.4 - k * 0.22; if (u <= 0 || u > 1) continue;
+        const R = T[2] * (0.2 + u * 1.05), n = Math.max(12, Math.round(R * 1.2));
+        for (let i = 0; i < n; i++) { if ((i + k) % 2) continue; const a = i / n * Math.PI * 2; ctx.fillStyle = c[k === 1 ? 1 : 0]; ctx.fillRect(Math.round(T[0] + Math.cos(a) * R), Math.round(T[1] + Math.sin(a) * R * 0.85), 2, 2); }
+      }
+      if (t < 0.35) { const u = t / 0.35; for (let i = 0; i < 3; i++) { const a = -0.6 + i * 0.6; ctx.fillStyle = c[1]; ctx.fillRect(Math.round(T[0] + (A[0] - T[0]) * (1 - u) + Math.cos(a) * 3), Math.round(T[1] + (A[1] - T[1]) * (1 - u) + Math.sin(a) * 3), 2, 2); } }
+    },
+    // 空白：相手の上に黒い穴が開いて、縁が網点で欠けながら閉じる
+    void(ctx, c, t, A, T) {
+      const u = t < 0.65 ? t / 0.65 : 1 - (t - 0.65) / 0.35, R = T[2] * (0.15 + 0.85 * u);
+      const r2 = R * R, x0 = Math.floor(T[0] - R - 2), x1 = Math.ceil(T[0] + R + 2), y0 = Math.floor(T[1] - R - 2), y1 = Math.ceil(T[1] + R + 2);
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+        const d = (x - T[0]) * (x - T[0]) + (y - T[1]) * (y - T[1]);
+        if (d <= r2 * 0.55) { ctx.fillStyle = c[0]; ctx.fillRect(x, y, 1, 1); }
+        else if (d <= r2 && ((x + y + ((t * 20) | 0)) & 1) === 0) { ctx.fillStyle = c[d <= r2 * 0.8 ? 0 : 1]; ctx.fillRect(x, y, 1, 1); }
+      }
+      if (t > 0.85) { ctx.fillStyle = c[3]; ctx.fillRect(Math.round(T[0] - R), Math.round(T[1]), Math.round(R * 2), 1); ctx.fillRect(Math.round(T[0]), Math.round(T[1] - R), 1, Math.round(R * 2)); }
+    },
+    // 回復：小さな十字の光が下から上へのぼる
+    heal(ctx, c, t, A, T) {
+      for (let i = 0; i < 9; i++) {
+        const ph = (t * 1.3 + i * 0.13) % 1, x = T[0] + Math.sin(i * 2.7) * T[2] * 0.75, y = T[1] + T[2] * 0.7 - ph * T[2] * 1.7;
+        if (ph > 0.92) continue;
+        ctx.fillStyle = c[0]; ctx.fillRect(Math.round(x) - 2, Math.round(y) - 1, 5, 3); ctx.fillRect(Math.round(x) - 1, Math.round(y) - 2, 3, 5);
+        ctx.fillStyle = c[i % 2 ? 3 : 2]; ctx.fillRect(Math.round(x) - 1, Math.round(y), 3, 1); ctx.fillRect(Math.round(x), Math.round(y) - 1, 1, 3);
+      }
+    },
+    // 能力が下がる：相手の上を下向きの山形が流れ落ちる
+    down(ctx, c, t, A, T) {
+      for (let k = 0; k < 3; k++) {
+        const y = T[1] - T[2] * 0.9 + ((t * 1.2 + k / 3) % 1) * T[2] * 1.6;
+        for (let j = -1; j <= 1; j++) { const x = T[0] + j * T[2] * 0.55; for (let i = -3; i <= 3; i++) { ctx.fillStyle = c[k === 1 ? 1 : 0]; ctx.fillRect(Math.round(x + i), Math.round(y + 3 - Math.abs(i)), 1, 2); } }
+      }
+    },
+  };
+  API._FX = FX; API._fxKind = fxKind; API._FX_DUR = FX_DUR;
 
   /* ═════════════════════════ 画面（DOM） ═════════════════════════ */
   let BT = null;
@@ -1016,7 +1108,7 @@
     function drawSprites() {
       if (!BT) return;
       const B = BT.B;
-      paint(BT.ecv, sprite(B.en.id, BT.frame, { phase: B.en.phase }), B.pal, BT.inv === 'en');
+      paint(BT.ecv, sprite(B.en.id, BT.frame, { phase: B.en.phase }), B.pal, BT.inv === 'en', BT.sil);
       paint(BT.pcv, sprite('shiro_back', BT.frame), B.pal, BT.inv === 'me');
     }
     function paintMe() { drawSprites(); }
@@ -1065,14 +1157,40 @@
       return { skip() { if (fin) return; clearInterval(iv); el.textContent = text; fin = true; res(); }, done };
     }
 
+    function fxRun(kind, from, to, dur) {
+      return pend(done => {
+        if (!BT) return done();
+        const f = BT.field, fr = f.getBoundingClientRect();
+        if (fr.width < 10) return done();
+        const ps = Math.max(2, Math.round(fr.width / 180));
+        const W = Math.ceil(fr.width / ps), H = Math.ceil(fr.height / ps);
+        const cv = $('canvas', 'bt-fx'); cv.width = W; cv.height = H; cv.setAttribute('aria-hidden', 'true'); f.appendChild(cv);
+        const ctx = cv.getContext('2d'), col = palColors(BT.B.pal);
+        const cen = el => { const r = el.getBoundingClientRect(); return [(r.left + r.width / 2 - fr.left) / ps, (r.top + r.height * 0.56 - fr.top) / ps, r.width / ps / 2]; };
+        const A = cen(from), T = cen(to), t0 = performance.now(), fn = FX[kind] || FX.none;
+        let last = -1;
+        const step = () => {
+          if (!BT || !cv.isConnected) { cv.remove(); return done(); }
+          const t = Math.min(1, (performance.now() - t0) / dur), q = Math.floor(t * 15) / 15;   // 15 コマで動かす（ぬるぬるさせない）
+          if (q !== last) { last = q; ctx.clearRect(0, 0, W, H); try { fn(ctx, col, q, A, T, W, H); } catch (e) {} }
+          if (t >= 1) { cv.remove(); return done(); }
+          requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      });
+    }
+
     Object.assign(DOM_UI, {
       async open(B) {
         if (KY._hideDlg) KY._hideDlg();
+        if (root.KY_BGM) root.KY_BGM.stop(0.12);
         build(B);
         BT.mt.textContent = '';
         se('bt_start');
         music(B.boss ? 'boss' : 'wild');
         // 入り：画面が横縞で閉じて開く（GB 風）→ 敵が左から、シロが右から滑り込む
+        // 敵は滑り込むあいだ影（いちばん濃い色だけ）で、止まったら色が付いて鳴く（GB の携帯 RPG の入り方）
+        BT.sil = true; drawSprites();
         BT.scr.classList.add('enter');
         BT.wipe.classList.add('on');
         await sleep(620);
@@ -1081,8 +1199,18 @@
         await sleep(560);
         BT.scr.classList.remove('enter', 'slide');
         BT.wipe.remove();
+        if (!BT) return;
+        // 色が付く瞬間に一度だけ反転して光る（4 色のまま）
+        BT.sil = false; BT.inv = R() ? null : 'en'; drawSprites();
+        BT.eslot.classList.add('reveal');
+        cry(B.en.id);
+        await sleep(R() ? 60 : 110);
+        if (!BT) return;
+        BT.inv = null; drawSprites();
+        await sleep(R() ? 0 : 270);
+        if (BT) BT.eslot.classList.remove('reveal');
       },
-      showMe() { if (BT) { BT.pslot.classList.add('in'); BT.pbox.classList.add('in'); } },
+      showMe() { if (BT) { BT.pslot.classList.add('in'); BT.pbox.classList.add('in'); se('bt_shiro'); } },
       msg(text) {
         return pend(done => {
           if (!BT) return done();
@@ -1100,6 +1228,8 @@
           if (!BT) return done(null);
           const d = data();
           const fin = v => { BT.back = null; BT.menu.hidden = true; BT.msg.classList.remove('menuon'); done(v); };
+          if (B.me.hp > 0 && B.me.hp <= B.me.max * 0.2 && !BT.lowWarned) { BT.lowWarned = true; se('bt_low'); BT.pbox.classList.add('low'); }
+          else if (B.me.hp > B.me.max * 0.2) { BT.lowWarned = false; BT.pbox.classList.remove('low'); }
           const showTop = () => {
             BT.mode = 'menu'; BT.back = null;
             BT.mt.textContent = 'シロは どうする？'; BT.mn.hidden = true; BT.msg.dataset.wait = '';
@@ -1193,12 +1323,32 @@
           }, dur / steps);
         });
       },
-      async hit(side, mul) {
+      async hit(side, mul, crit) {
         if (!BT) return;
         const cv = side === 'me' ? BT.pcv : BT.ecv;
-        if (mul > 1 && !R()) { BT.scr.classList.remove('shake'); void BT.scr.offsetWidth; BT.scr.classList.add('shake'); }
+        if ((mul > 1 || crit) && !R()) {
+          BT.scr.classList.remove('shake'); void BT.scr.offsetWidth; BT.scr.classList.add('shake');
+          const fl = $('div', 'bt-flash'); BT.field.appendChild(fl); setTimeout(() => fl.remove(), 320);
+        }
+        if (side === 'me' && !R()) { BT.pslot.classList.remove('jolt'); void BT.pslot.offsetWidth; BT.pslot.classList.add('jolt'); }
+        if (side === 'en' && !R()) { BT.eslot.classList.remove('jolt'); void BT.eslot.offsetWidth; BT.eslot.classList.add('jolt'); }
         for (let i = 0; i < (R() ? 1 : 4); i++) { cv.style.visibility = 'hidden'; await sleep(70); cv.style.visibility = ''; await sleep(70); }
-        BT.scr.classList.remove('shake');
+        if (!BT) return;
+        BT.scr.classList.remove('shake'); BT.pslot.classList.remove('jolt'); BT.eslot.classList.remove('jolt');
+      },
+      // 技の演出：踏み込み → 属性ごとのエフェクト（場の上の低い解像度のキャンバスに 4 色で描く）
+      async anim(who, mid, miss) {
+        if (!BT) return;
+        const mv = MOVES[mid] || MOVES.furete, me = who === 'me';
+        const aSlot = me ? BT.pslot : BT.eslot, tSlot = me ? BT.eslot : BT.pslot;
+        aSlot.classList.remove('lunge'); void aSlot.offsetWidth; aSlot.classList.add('lunge');
+        await sleep(R() ? 40 : 200);
+        if (!BT) return;
+        if (!miss && !R()) {
+          const kind = fxKind(mv);
+          await fxRun(kind, aSlot, kind === 'heal' ? aSlot : tSlot, FX_DUR[kind] || 560);
+        }
+        if (BT) aSlot.classList.remove('lunge');
       },
       async fx(side, kind) {
         if (!BT) return;

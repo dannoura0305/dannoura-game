@@ -39,6 +39,9 @@ const MG_DIFF_KEY='dannoura_mg_diff';
 const MG_DIFF_NAMES={easy:'やさしい',normal:'ふつう',hard:'むずかしい'};
 function mgDifficulty(){try{const v=localStorage.getItem(MG_DIFF_KEY);return MG_DIFF_NAMES[v]?v:'easy';}catch(e){return 'easy';}}
 function setMgDifficulty(v){if(!MG_DIFF_NAMES[v])return;try{localStorage.setItem(MG_DIFF_KEY,v);}catch(e){}refreshMgDiffUI();}
+// 振動の設定（この端末に保存・初期値はオン）。main/ui.js の設定画面で切り替える
+const MG_VIB_KEY='dannoura_vibrate';
+function mgVibrateOn(){try{return localStorage.getItem(MG_VIB_KEY)!=='off';}catch(e){return true;}}
 function mgDiff(easy,normal,hard){const d=mgDifficulty();return d==='easy'?easy:d==='normal'?normal:hard;}
 addMinigameStyle('diffbadge','.mg-diffb{display:inline-block;margin-left:7px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.58rem;letter-spacing:0;vertical-align:1px;}.mg-diffb-easy{color:#44ee88;}.mg-diffb-normal{color:#e8b830;}.mg-diffb-hard{color:#ff6a86;}');
 function refreshMgDiffUI(){
@@ -408,6 +411,14 @@ const MG={
     mgShowSkillFx(def.id);
     // 見出しに難しさの表示が無いゲームには自動で付ける
     {const tt=this.el('mg-title');const d=mgDifficulty();if(tt&&!tt.querySelector('.mg-diffb'))tt.insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${d}">${MG_DIFF_NAMES[d]}</span>`);}
+  },
+  // 振動（対応端末だけ・設定画面の「振動」がオフなら何もしない）。p はミリ秒か [振動,休み,振動…]
+  buzz(p){
+    try{
+      if(typeof navigator==='undefined'||typeof navigator.vibrate!=='function')return false;
+      if(!mgVibrateOn())return false;
+      return navigator.vibrate(p);
+    }catch(e){return false;}
   },
   setScore(html){this.el('mg-score').innerHTML=html;},
   setTimer(t){this.el('mg-timer').textContent=t;},

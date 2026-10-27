@@ -724,6 +724,11 @@
     if (label instanceof Node) b.appendChild(label); else b.textContent = label;
     if (title) b.setAttribute('aria-label', title);
     b.addEventListener('click', e => { e.stopPropagation(); if (b.disabled) return; KY.se('tap'); fn && fn(e); });
+    // マウスを乗せた項目にカーソル（▶）も移す：選ばれて見える項目が 2 つにならないように（窓・タイトルの中だけ）
+    b.addEventListener('pointermove', e => {
+      if (e.pointerType !== 'mouse' || b.disabled || document.activeElement === b) return;
+      if (b.closest('.ky-ov, .title-menu')) { try { b.focus({ preventScroll: true }); } catch (er) {} }
+    });
     return b;
   }
   KY._button = button;
@@ -1297,6 +1302,12 @@
     r.addEventListener('input', () => { KY.setVolume(+r.value); v.textContent = r.value; });
     r.addEventListener('change', () => KY.se('beep'));
     row.append($('span', '', '全体'), r, v); a.appendChild(row);
+    if (root.KY_BGM) {
+      const row2 = $('label', 'set-row'); const r2 = $('input'); r2.type = 'range'; r2.min = 0; r2.max = 100; r2.step = 5; r2.value = SET.bgm == null ? 60 : SET.bgm; const v2 = $('span', 'set-v', r2.value + '');
+      r2.addEventListener('input', () => { KY_BGM.setVol(+r2.value); v2.textContent = r2.value; });
+      row2.append($('span', '', 'BGM'), r2, v2); a.appendChild(row2);
+      a.appendChild($('div', 'set-note', 'BGM は町や建物の中を歩いているあいだだけ流れます（0 で消えます）。'));
+    }
     const b = sec('文字の速さ');
     const rb = $('div', 'seg');
     [['slow', '遅い'], ['normal', '普通'], ['fast', '速い'], ['instant', '一瞬']].forEach(([k, lb]) => {
