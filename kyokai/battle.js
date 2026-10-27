@@ -659,7 +659,7 @@
     try { os.setPeriodicWave(pwave(o.duty || 0.5)); } catch (e) { os.type = 'square'; }
     os.frequency.setValueAtTime(f, t); if (o.to) os.frequency.linearRampToValueAtTime(o.to, t + dur);
     const v = o.vol == null ? 0.035 : o.vol;
-    g.gain.setValueAtTime(v, t); g.gain.setValueAtTime(v, t + dur * 0.8); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    g.gain.value = 0; g.gain.setValueAtTime(v, t); g.gain.setValueAtTime(v, t + dur * 0.8); g.gain.linearRampToValueAtTime(0.0001, t + dur);
     os.connect(g); g.connect(o.dest || a.out); os.start(t); os.stop(t + dur + 0.03);
   }
   function noise(t, dur, o) {
@@ -668,7 +668,7 @@
     const c = a.ctx, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
     s.buffer = a.noise; f.type = o.type || 'highpass'; f.frequency.value = o.f || 1500;
     const v = o.vol == null ? 0.08 : o.vol, st = 5;
-    g.gain.setValueAtTime(v, t); for (let i = 1; i <= st; i++) g.gain.setValueAtTime(v * (1 - i / st) + 0.0001, t + dur * i / st);
+    g.gain.value = 0; g.gain.setValueAtTime(v, t); for (let i = 1; i <= st; i++) g.gain.setValueAtTime(v * (1 - i / st) + 0.0001, t + dur * i / st);
     s.connect(f); f.connect(g); g.connect(o.dest || a.out); s.start(t, Math.random()); s.stop(t + dur + 0.05);
   }
   const seq = (notes, t, len, o) => notes.forEach((f, i) => { if (f) tone(f, t + i * len, len * 0.92, o); });

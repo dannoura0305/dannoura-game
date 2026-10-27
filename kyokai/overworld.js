@@ -434,8 +434,25 @@
     if (!(OW.m && OW.m.def && OW.m.def.noExit)) nav.appendChild(navBtn('町の地図', () => openTravel(), 'travel'));
     nav.appendChild(navBtn('メニュー', () => openMenu(), 'menu'));
     const keys = $('div', 'ow-keys', '矢印/WASD：歩く（Shift で走る）　Z・Enter：調べる／話す　X：メニュー　画面タップ：そこまで歩く');
-    D.ex.append(top, OWD.near, keys, pad, nav);
+    D.ex.append(top, OWD.near, keys, shiroCard(), pad, nav);
     OW.near = null; updateNear(true);
+  }
+  // シロの札（PC の右の列だけ。出会ったあと）：小さな後ろ姿・Lv・HP。押すとメニューの「シロのようす」
+  function shiroCard() {
+    const B = root.KY_BATTLE;
+    if (!B || !KY.has('shiro_met')) return $('span', 'ow-shiro-none');
+    const d = B.shiro(), max = Math.max(1, B.maxHp()), hp = Math.max(0, Math.min(max, d.hp | 0)), r = hp / max;
+    const card = KY._button('', () => KY.openMenu('shiro_bt'), 'ow-shiro');
+    card.setAttribute('aria-label', `シロのようす（Lv${d.lv}・HP ${hp}／${max}）`);
+    const cv = $('canvas', 'ow-shiro-cv'); cv.width = 40; cv.height = 40; cv.setAttribute('aria-hidden', 'true');
+    try { B.paint(cv, B.sprite('shiro_back', 0), OW.palK || 'A'); } catch (e) {}
+    const info = $('span', 'ow-shiro-i');
+    const nm = $('span', 'ow-shiro-n'); nm.append($('span', '', 'シロ'), $('span', '', ':L' + d.lv));
+    const bar = $('span', 'bt-hp me'); bar.innerHTML = '<span class="bt-hpl">HP</span><i class="bt-hpbar"><b></b></i>';
+    bar.querySelector('b').style.width = (r * 100).toFixed(1) + '%'; bar.dataset.lv = r <= 0.2 ? '2' : r <= 0.5 ? '1' : '0';
+    info.append(nm, bar, $('span', 'ow-shiro-h', hp <= 0 ? '研究所で休ませよう' : `${hp}／${max}`));
+    card.append(cv, info);
+    return card;
   }
   function bindPad(dp) {
     const set = d => { OW.pad = d; dp.querySelectorAll('.ow-d').forEach(b => b.classList.toggle('on', b.dataset.d === d)); };
