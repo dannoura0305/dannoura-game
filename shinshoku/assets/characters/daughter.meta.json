@@ -65,22 +65,22 @@
   {
    "file": "daughter.vrm",
    "lod": "pc",
-   "bytes": 2537972,
-   "sha256": "e785235d253bff927487797d46348f455a3b8040dd7a4abdd9193f60f4e42a2e",
+   "bytes": 2538284,
+   "sha256": "cc3e4458d4574e4ac6e12311e42c7b6345049c2ffbcbc5c70a9c553603c75e54",
    "tris": 35197,
    "materials": 5,
    "images": 7,
-   "imageBytes": 789478
+   "imageBytes": 789795
   },
   {
    "file": "daughter_low.vrm",
    "lod": "low",
-   "bytes": 1279412,
-   "sha256": "ec05c82ed177b81aee688dd7b4d9771ae12ed6d0f7fb87dd443657295b5cbb30",
+   "bytes": 1278612,
+   "sha256": "cd24e6fde88d31d14483fa76b58303d9e3a7ed07392328efc6714edda4036e0e",
    "tris": 16595,
    "materials": 5,
    "images": 7,
-   "imageBytes": 330468
+   "imageBytes": 329668
   }
  ]
 }

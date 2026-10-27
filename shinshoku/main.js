@@ -17,7 +17,7 @@ import { Heiten } from './ai/heiten.js';
 import { Shuuyou } from './ai/shuuyou.js';
 import { CompanionBrain } from './ai/companion.js';
 import { ThirdPersonCamera } from './render/camera.js';
-import { preloadEnemyPacks } from './actor/enemypack.js';
+import { preloadEnemyPacks, applyEnemyPack, ENEMY_PACK_KINDS } from './actor/enemypack.js';
 import { Fx, Rain } from './render/fx.js';
 import { Halos, WetStreaks } from './render/halo.js';
 import { SwordTrail } from './render/trail.js';
@@ -159,10 +159,10 @@ class Game {
     this.cut = new CutscenePlayer(this.cutHost());
     this.moon.castShadow = !!this.settings.shadows;
     this.precompile();                 // 役者・光の輪などのシェーダーを GPU で先に作り始める（待たない：区画の組み立てと重ねる）
-    const epk = preloadEnemyPacks(this.presetVals() === PRESETS.low ? 'low' : 'high').catch(() => 0);   // P17：Blender で作り直した異形の体（読めない時はコードの形）
     this.events = await fetch(new URL('./data/events.json', import.meta.url)).then(r => r.json()).catch(() => ({ events: {}, barks: {}, texts: {}, speakers: {} }));
     this.manifest = await loadManifest();
-    this.enemyPacks = await epk;
+    // P17：Blender で作り直した異形の体（起動の後で読む・読めたら今いる異形も差し替える。読めない時・?epack=0 はコードの形）
+    setTimeout(() => preloadEnemyPacks(this.presetVals() === PRESETS.low ? 'low' : 'high').then(n => { this.enemyPacks = n; this.refreshEnemyPacks(); }, () => 0), 2000);
     this.loadCharacterModels();
     // 状態
     this.frame = 0; this.playSec = 0; this.mode = 'title'; this.hitstop = 0; this.slowT = 0; this.slowScale = 1; this.worldScale = 1;
@@ -1094,6 +1094,8 @@ class Game {
       save: k => g.saveSlot(k), load: k => g.loadSlot(k), store: g.store, wp: g.WP,
     };
   }
+  /** P17：包みが読めた時、今いる異形（コードの形）の網を差し替える */
+  refreshEnemyPacks() { for (const e of this.enemies || []) { const m = e.model; if (m && !m.packed && ENEMY_PACK_KINDS.includes(m.kind)) applyEnemyPack(m, m.kind, { tint: m.packTint }); } }
   /** P17：カメラの床と天井（camera.js の range）。区画の camRange（自宅の 2 階・階段）か、屋内の天井の高さ（CAM_CEIL）。外は地面の上だけ */
   camRangeFn(A, P) {
     if (A.camRange) return (x, z) => A.camRange(x, z, P.pos.y);

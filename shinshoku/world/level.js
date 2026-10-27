@@ -832,7 +832,7 @@ function openShop(B, atlas, s, halos, lights, boxes) {
     bx('glow', D - 0.07, D - 0.04, 2.15, 0.28, zA + 0.4, zB - 0.4, 0x3ad08a); bx('glow', D - 0.08, D - 0.05, 2.15, 0.16, zc - 0.9, zc + 0.9, 0xf4fff8);
     bx('glow', 4.26, 4.3, 1.25, 0.5, zA + 1.0, zB - 1.0, 0xe8f4ff);
     bx('prop', 0.3, 0.75, 0.35, 0.7, zA + 0.6, zB - 0.6, 0xf0f2f2);
-    for (let i = 0; i < Math.floor((len - 1.4) / 0.3); i++) { const z = zA + 0.75 + i * 0.3; bx('glow', 0.35, 0.7, 0.8, 0.18, z, z + 0.24, [0xf0c040, 0xe85a5a, 0x3a8ad8, 0x5ab05a, 0xf4f4f4][i % 5]); bx('glow', 0.28, 0.3, 0.6, 0.08, z, z + 0.24, 0xffe860); }
+    for (let i = 0; i < Math.floor((len - 1.4) / 0.3); i++) { const z = zA + 0.75 + i * 0.3; bx('glow', 0.35, 0.7, 0.79, 0.18, z, z + 0.24, [0xf0c040, 0xe85a5a, 0x3a8ad8, 0x5ab05a, 0xf4f4f4][i % 5]); bx('glow', 0.28, 0.3, 0.6, 0.08, z, z + 0.24, 0xffe860); }
   }
   if (kind === 'kissa') {   // 喫茶：丸い机と椅子・カウンター（コーヒーの機械）・品書きの黒板（外）
     const FKs = furnKit(B);
@@ -862,7 +862,7 @@ function openShop(B, atlas, s, halos, lights, boxes) {
     bx('prop', 3.2, 3.8, 0.5, 1.0, zc - 0.6, zc + 0.6, 0x6a4a34);
     // P17：ガラスの内側の低い棚（灯りの当たる一升瓶・四合瓶の列と値札）・奥の棚の上の灯り・軒の杉玉（酒屋の印）
     bx('tex', 0.3, 0.75, 0.45, 0.9, zA + 0.7, zB - 2.6, 0xffffff, { tile: 'wood', ts: 1 });
-    for (let i = 0; i < Math.floor((len - 3.4) / 0.14); i++) { const z = zA + 0.8 + i * 0.14, c = [0x2a7a4a, 0x8a4a1a, 0x3a3a3a, 0xe8e0c8][i % 4]; cyl('glow', 0.52, 1.05, z, 0.045, 0.045, 0.24, c, 8); cyl('glow', 0.52, 1.21, z, 0.014, 0.026, 0.08, c, 6); bx('glow', 0.3, 0.32, 0.8, 0.06, z - 0.05, z + 0.05, 0xfff0c0); }
+    for (let i = 0; i < Math.floor((len - 3.4) / 0.14); i++) { const z = zA + 0.8 + i * 0.14, c = [0x2a7a4a, 0x8a4a1a, 0x3a3a3a, 0xe8e0c8][i % 4]; cyl('glow', 0.52, 1.02, z, 0.045, 0.045, 0.24, c, 8); cyl('glow', 0.52, 1.18, z, 0.014, 0.026, 0.08, c, 6); bx('glow', 0.3, 0.32, 0.8, 0.06, z - 0.05, z + 0.05, 0xfff0c0); }
     bx('glow', D - 0.55, D - 0.15, 2.02, 0.04, zA + 0.45, zB - 0.45, 0xfff2d8);
     ball(-0.02, 2.45, zc + 1.6, 0.22, 0x5a6a30); cyl('prop', -0.02, 2.72, zc + 1.6, 0.012, 0.012, 0.1, 0x2a2a2a, 6);
   }

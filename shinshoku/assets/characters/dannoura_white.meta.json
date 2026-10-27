@@ -80,22 +80,22 @@
   {
    "file": "dannoura_white.vrm",
    "lod": "pc",
-   "bytes": 2485388,
-   "sha256": "4f41c14420e59f70947f2295eae3de418fa1a4ad95214be72276d94c6dd1cb34",
+   "bytes": 2487768,
+   "sha256": "b3ce04516798c7cebc423a1c77b6b31bbe8467324fb1649bb1edd8c5e9aa45ee",
    "tris": 42357,
    "materials": 5,
    "images": 7,
-   "imageBytes": 474345
+   "imageBytes": 476723
   },
   {
    "file": "dannoura_white_low.vrm",
    "lod": "low",
-   "bytes": 1226336,
-   "sha256": "9d699d6c83261aaf291fe572b1cb1f1d26d9a150b9d53f619c5ab4375a266fd2",
+   "bytes": 1227472,
+   "sha256": "22766b898ad713bd3360a4fcd7928c84f415d8e9387c7dd4e03a2a0dd4b6a60c",
    "tris": 17889,
    "materials": 5,
    "images": 7,
-   "imageBytes": 239029
+   "imageBytes": 240166
   }
  ]
 }

@@ -444,7 +444,7 @@ export function buildKiro(color = 0xd04848) {
     g.strokeStyle = 'rgba(5,5,10,.8)'; g.lineWidth = 4; g.beginPath(); g.moveTo(44, 92); g.quadraticCurveTo(64, 100, 86, 90); g.stroke();
   });
   const m = sb.build(tex, { rim: 0.35, rimColor: 0x8aa0d0, outline: 0.01, outlineColor: 0x08080e, faceEmissive: 0, classes: enemyPackClasses('kiro') });
-  applyEnemyPack(m, 'kiro', { tint: color });
+  applyEnemyPack(m, 'kiro', { tint: color }); m.packTint = color;
   const weak = new THREE.Object3D(); weak.position.set(0, R * 1.3, -R * 0.25); m.J.head.add(weak);
   const eyeGlow = glowEyes(m, m.J, [[R * 0.36, R * 0.82, R * 0.95], [-R * 0.36, R * 0.82, R * 0.95]]);
   return Object.assign(m, { height: 1.78, provisional: true, kind: 'kiro', weak, bodyR: 0.34, weakY: 1.68, weakColor: 0xffd27a, eyeGlow });

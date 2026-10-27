@@ -67,7 +67,8 @@ export async function loadVRM(entry, opt = {}) {
       kind: entry.kind === 'white' ? 'dannoura' : entry.kind || 'vrm', white: entry.kind === 'white', update: dt => m.update(dt),
     };
     // 武器は差し込み口へ（コードの武器の形：腕を下ろした手の向きに合わせた口）
-    model.weapons = attachRigidWeapons(Object.assign({}, J17, { rightHand: sockets.rightHand || J17.rightHand, hips: sockets.hips || J17.hips }));
+    // P17：武器はだんのうら（紫・白い姿）だけ。相棒・娘の VRM に付けると刀・銃・鉄パイプ・火縄銃が全部手に見えていた
+    if (!entry.kind || entry.kind === 'dannoura' || entry.kind === 'white') model.weapons = attachRigidWeapons(Object.assign({}, J17, { rightHand: sockets.rightHand || J17.rightHand, hips: sockets.hips || J17.hips }));
     if (entry.anim) {
       try {
         const { loadClipSet } = await import('../../charkit/runtime/vrma.js');

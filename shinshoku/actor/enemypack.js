@@ -1,7 +1,7 @@
 // 境界侵食 P17：Blender で作り直した異形の体（tools/blender/enemy/build_enemy.py → shinshoku/assets/enemies/<kind>.pack.json）。
 // コードの異形（actor/models.js の buildKiro・buildHeiten・buildShuuyou：SkinBody）の網（本体と輪郭線）だけを差し替える。
 // 骨・動き（actor/anim.js）・弱点・光る目・顔の札（faceMesh：「閉店」の札・名札・帰路の顔のにじみ）・材質（トゥーン・崩れる霧）はコードのまま。
-// 読むのは起動の時に 1 回（preloadEnemyPacks）。読めない時・URL に ?epack=0 の時はコードの形のまま（落ちない）。
+// 読むのは起動の後に 1 回（preloadEnemyPacks：起動の読み込みを増やさない）。読み終わったら今いる異形の網も差し替える（main の refreshEnemyPacks）。読めない時・URL に ?epack=0 の時はコードの形のまま（落ちない）。
 import * as THREE from 'three';
 
 const BASE = new URL('../assets/enemies/', import.meta.url);
@@ -27,7 +27,9 @@ export async function preloadEnemyPacks(quality = 'high') {
 /** node の試験用：JSON を直に入れる */
 export function setEnemyPack(kind, json) { PACKS[kind] = json ? decode(json) : null; }
 export const enemyPackOf = kind => (OFF ? null : PACKS[kind] || null);
-export function enemyPackClasses(kind) { const p = enemyPackOf(kind); return p ? p.classes : []; }
+/** 材質の種類（包みを読む前に組んだコードの異形にも入れておく＝後で網だけ差し替えられる） */
+const PACK_CLASSES = { kiro: ['cloth', 'skin', 'hair', 'acc'], heiten: ['cloth', 'skin', 'hair', 'metal', 'acc', 'glow'], shuuyou: ['cloth', 'metal', 'acc', 'glow'] };
+export function enemyPackClasses(kind) { const p = enemyPackOf(kind); return OFF ? [] : [...new Set([...(PACK_CLASSES[kind] || []), ...(p ? p.classes : [])])]; }
 
 const f32 = s => { const b = typeof atob === 'function' ? Uint8Array.from(atob(s), c => c.charCodeAt(0)) : new Uint8Array(Buffer.from(s, 'base64')); return new Float32Array(b.buffer, b.byteOffset, b.byteLength / 4); };
 const u16 = s => { const b = typeof atob === 'function' ? Uint8Array.from(atob(s), c => c.charCodeAt(0)) : new Uint8Array(Buffer.from(s, 'base64')); return new Uint16Array(b.buffer, b.byteOffset, b.byteLength / 2); };

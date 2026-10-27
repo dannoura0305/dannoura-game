@@ -14,13 +14,13 @@ META_BASE = {
 LOOK_DANNOURA = {
     'skin': '#ffe6da', 'blush': 0.22, 'blushColor': '#ffa6b4', 'noseColor': '#e9b3a4', 'crease': '#c98f86', 'lash': '#2a1830', 'lashLow': '#5a3a52',
     'eyeWhite': '#fcf9ff', 'eyeShade': '#cbbfe0', 'irisTop': '#3c1d72', 'irisLow': '#9a62e6', 'irisRing': '#c9a4ff', 'irisGlow': '#d6b8ff', 'irisEdge': '#22103e', 'pupil': '#1a0c30',
-    'iris': (0.0068, 0.0083),
+    'iris': (0.0074, 0.009),   # P17：少し大きく（前 0.0068・0.0083：横・遠くから目が読みにくかった）
     'mouthIn': '#7c2738', 'tongue': '#d9727e', 'teeth': '#fbf7f6', 'mouthLine': '#5a1e2c', 'brow': '#4b2a78',
     'hair': '#6a3fa0', 'hairDark': '#3d2066', 'hairLight': '#9a72d0', 'hairRing': '#c9b2f0',
 }
 LOOK_WHITE = dict(LOOK_DANNOURA, hair='#f4f1fb', hairDark='#d8d1ec', hairLight='#ffffff', hairRing='#ffffff', brow='#b8aed4', hairShadeTint=(0.80, 0.76, 0.94))
 LOOK_COMPANION = dict(LOOK_DANNOURA, skin='#ffe4d4', blush=0.32, irisTop='#3a2414', irisLow='#a8703c', irisRing='#e0b080', irisGlow='#f0c890', irisEdge='#24140a', pupil='#1a0e06',
-                      eyeShade='#d6c8c0', lash='#24160e', lashLow='#5a4234', brow='#5a3a26', hair='#5a3826', hairDark='#3a2216', hairLight='#8a5a3c', hairRing='#d8b090', iris=(0.0062, 0.0078))
+                      eyeShade='#d6c8c0', lash='#1c100a', lashLow='#4a3426', brow='#4a2e1e', hair='#5a3826', hairDark='#3a2216', hairLight='#8a5a3c', hairRing='#d8b090', iris=(0.0069, 0.0086))   # P17：目を少し大きく・まつげと眉を濃く
 
 LOOK_DAUGHTER = dict(LOOK_COMPANION, skin='#ffe8dc', blush=0.42, blushColor='#ff9ab4', irisTop='#3a2414', irisLow='#b07a48', irisRing='#f0c898', irisGlow='#f8d8a8', irisEdge='#24140a',
                      pupil='#1a0e06', lash='#2a1810', lashLow='#6a4a3a', brow='#4a3226', hair='#3a2a22', hairDark='#241812', hairLight='#6a4e3e', hairRing='#c8a088', iris=(0.0078, 0.0094),
