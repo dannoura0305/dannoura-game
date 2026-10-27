@@ -118,6 +118,7 @@ export function renderBase(data, layout) {
   g.putImageData(img, 0, sy * CELL);
   for (const [k, x, y] of useSprite) Sprites.drawEntry(g, k, Math.floor(hash2(x, y, 4) * 9), x * CELL + 8, y * CELL + 16);
   void soilTex;
+  soilDetails(g, data, at);   // Ver.0.9
 
   // ── 2) 縁・飾り（数が少ないので fillRect）──
   for (let y = sy; y < h; y++) for (let x = 0; x < w; x++) {
@@ -214,6 +215,69 @@ export function drawObject(g, o, t, fill = 0, lift = 0) {
 }
 
 /** 素材（nest.*）で描く断面 */
+/**
+ * Ver.0.9：土の中の景色（見た目だけ・巣の id に関係なく巣の形から決まる）。地層のすじ・深いほど暗く・地表から下りる根・
+ * 埋まった小石・ごくまれに古い貝がら。掘った所（OPEN）には描かない＝遊びの見え方は変わらない。
+ */
+export function soilDetails(g, data, at) {
+  const w = data.w, h = data.h, sy = data.surfaceY;
+  const solid = (x, y) => { const c = at(x, y); return c === C.SOIL || c === C.ROCK; };
+  const solidPx = (px, py) => solid(Math.floor(px / CELL), Math.floor(py / CELL));
+  const ground = (x, y) => y > sy && at(x, y) === C.SOIL;
+  // 1) 深いほど少し暗く（土と岩だけ）
+  for (let y = sy + 1; y < h; y++) {
+    const k = (y - sy - 1) / Math.max(1, h - sy - 2);
+    g.fillStyle = `rgba(12,6,16,${(0.04 + 0.26 * k).toFixed(3)})`;
+    for (let x = 0; x < w; x++) if (solid(x, y)) g.fillRect(x * CELL, y * CELL, CELL, CELL);
+  }
+  // 2) 地層のすじ（ゆるく波うつ 1px の明るい線と暗い線）
+  for (let band = 0; band < 6; band++) {
+    const base = (sy + 3 + band * 4 + Math.floor(hash2(band, 5, 31) * 2)) * CELL + Math.floor(hash2(band, 9, 31) * 10);
+    if (base >= h * CELL - 4) break;
+    const amp = 1.5 + hash2(band, 2, 37) * 2.5, f = 18 + hash2(band, 3, 37) * 20;
+    for (let px = 0; px < w * CELL; px++) {
+      const py = Math.round(base + Math.sin(px / f + band) * amp + Math.sin(px / (f * 0.31) + band * 2) * 0.8);
+      if (!solidPx(px, py) || !solidPx(px, py + 1)) continue;
+      if (hash2(px >> 3, band, 41) < 0.12) continue;   // ところどころ切れる
+      g.fillStyle = 'rgba(255,226,180,0.10)'; g.fillRect(px, py, 1, 1);
+      g.fillStyle = 'rgba(20,8,4,0.16)'; g.fillRect(px, py + 1, 1, 1);
+    }
+  }
+  // 3) 根（地表のすぐ下から、くねって下りる・枝わかれ）
+  const roots = Math.max(3, Math.round(w / 5));
+  for (let i = 0; i < roots; i++) {
+    let px = Math.floor(hash2(i, 11, 43) * w * CELL), py = (sy + 1) * CELL;
+    const len = 10 + Math.floor(hash2(i, 12, 43) * 26), col = hash2(i, 13, 43) < 0.5 ? '#5e3f26' : '#74512f';
+    let dx = 0;
+    for (let k = 0; k < len; k++) {
+      dx += (hash2(i, k, 47) - 0.5) * 0.9; dx = Math.max(-0.8, Math.min(0.8, dx));
+      px += dx; py += 1;
+      const ix = Math.round(px);
+      if (!solidPx(ix, py)) break;
+      g.fillStyle = col; g.fillRect(ix, py, 1, 1);
+      if (k < len * 0.4) { g.fillStyle = 'rgba(30,14,6,0.35)'; g.fillRect(ix + 1, py, 1, 1); }
+      if (k > 4 && hash2(i, k, 53) < 0.08) {   // 細い枝
+        const s = hash2(i, k, 59) < 0.5 ? -1 : 1;
+        for (let j = 1; j < 5; j++) { const bx = ix + s * j, by = py + (j >> 1); if (!solidPx(bx, by)) break; g.fillStyle = col; g.fillRect(bx, by, 1, 1); }
+      }
+    }
+  }
+  // 4) 埋まった小石・5) ごくまれに古い貝がら（まわりが土のセルだけ）
+  for (let y = sy + 2; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    if (!ground(x, y) || !ground(x - 1, y) || !ground(x + 1, y) || !ground(x, y - 1) || !ground(x, y + 1)) continue;
+    const v = hash2(x, y, 67), ox = x * CELL + 3 + Math.floor(hash2(x, y, 71) * 9), oy = y * CELL + 3 + Math.floor(hash2(x, y, 73) * 9);
+    if (v < 0.07) {
+      const big = hash2(x, y, 79) < 0.35;
+      g.fillStyle = 'rgba(20,10,6,0.45)'; g.fillRect(ox, oy + 1, big ? 4 : 3, 2);
+      g.fillStyle = '#7d6f63'; g.fillRect(ox, oy, big ? 4 : 3, big ? 2 : 1);
+      g.fillStyle = '#a89886'; g.fillRect(ox, oy, 1, 1);
+    } else if (v > 0.994 && y > sy + 6) {
+      g.fillStyle = 'rgba(232,214,180,0.55)';
+      g.fillRect(ox + 1, oy, 3, 1); g.fillRect(ox, oy + 1, 1, 2); g.fillRect(ox + 4, oy + 1, 1, 2); g.fillRect(ox + 1, oy + 3, 3, 1); g.fillRect(ox + 2, oy + 1, 1, 1);
+    }
+  }
+}
+
 export function renderBaseAssets(data, layout) {
   const w = data.w, h = data.h, sy = data.surfaceY;
   const cv = A.mk(w * CELL, h * CELL), g = cv.getContext('2d');
@@ -254,6 +318,7 @@ export function renderBaseAssets(data, layout) {
     if (ladder(x, y + 1)) bits &= ~4;
     if (bits) Sprites.drawCell(g, 'nest.edge', bits, ox, oy);
   }
+  soilDetails(g, data, at);   // Ver.0.9
   // 部屋：敷き草・角の補強・柱
   for (const r of layout.rooms) {
     const fy = (r.y + r.h - 1) * CELL - 2;

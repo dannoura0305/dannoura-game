@@ -111,6 +111,28 @@ addMinigameStyle('race',`
 .race-grade.C b{color:#ff8ea0;text-shadow:0 0 22px #e83055;}
 `);
 
+// ══════════════════════════════════════════════════════════
+// 純粋なロジック（DOM なし。tests/minigame-race.test.mjs が node:vm で読む）
+//   評価（grade）と報酬（rewardFx：打刻成功・遅刻・転倒・引き返し）は改良前の式のまま。
+//   nearMiss：車の真横をすれすれで抜けたか（見た目と音の演出だけに使う。評価・報酬には関係しない）。
+// ══════════════════════════════════════════════════════════
+var RaceLogic=(function(){
+  function grade(o){
+    if(o.reason==='late')return 'C';
+    const sc=o.rem+(100-o.dmg)/10-o.reds*5-o.crashes*6-o.contacts*1.5;
+    return sc>=16?'S':sc>=9?'A':sc>=3?'B':'C';
+  }
+  function rewardFx(r){
+    if(r==='ontime')return {fx:{jobRep:6,mental:3,fatigue:6},time:30,sp:1};
+    if(r==='late')return {fx:{jobRep:-3,mental:-2,fatigue:6},time:30,sp:0};
+    if(r==='crash')return {fx:{jobRep:-2,mental:-5,fatigue:8,money:-3000},time:40,sp:0};
+    return {fx:{fatigue:2},time:15,sp:0};
+  }
+  // 横のすき間 gap（m）が 0〜0.9 で、前後が重なっていて、ある程度の速さ（v）なら「ニアミス」
+  function nearMiss(ds,ha,gap,v){return Math.abs(ds)<ha&&gap>0&&gap<.9&&v>=14;}
+  return {grade,rewardFx,nearMiss};
+})();
+
 registerMinigame({
   id:'race', icon:'🛵', name:'原付で夜勤へ', genre:'3Dレース', bgm:'factory',
   desc:'配信を延長しすぎた。雨の住宅街・商店街・工業道路を原付で抜けて、22:00の夜勤打刻に間に合わせる本格3Dレース。',
@@ -320,6 +342,15 @@ registerMinigame({
       try{const c=SND.ctx,t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(40,t+.25);
         g.gain.setValueAtTime(.12,t);g.gain.exponentialRampToValueAtTime(.0001,t+.3);o.connect(g);g.connect(SND.master);o.start(t);o.stop(t+.32);}catch(e){}
     }
+    // すれ違いの風切り音（ニアミス）
+    function whoosh(){
+      if(!SND||seVol()<=0)return;
+      try{const c=SND.ctx,t=c.currentTime,n=c.createBufferSource();n.buffer=SND.buf;
+        const f=c.createBiquadFilter();f.type='bandpass';f.Q.value=1.4;f.frequency.setValueAtTime(600,t);f.frequency.exponentialRampToValueAtTime(2600,t+.12);f.frequency.exponentialRampToValueAtTime(500,t+.4);
+        const g=c.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.09,t+.06);g.gain.exponentialRampToValueAtTime(.0001,t+.42);
+        n.connect(f);f.connect(g);g.connect(SND.master);n.start(t,Math.random());n.stop(t+.45);}catch(e){}
+    }
+    const buzz=p=>{try{if(typeof MG!=='undefined'&&MG.buzz)MG.buzz(p);}catch(e){}};
     function audioStop(){
       if(!SND)return;
       try{SND.o1.stop();SND.o2.stop();SND.ns.stop();}catch(e){}
@@ -1216,11 +1247,11 @@ registerMinigame({
     // ══ プレイ ══
     function hitCurb(sign){
       P.latV=-sign*2.2;
-      if(P.v>10&&P.curbCd<=0){P.dmg=Math.min(100,P.dmg+4*DF.dmg);P.v*=.8;shake=Math.max(shake,.5);P.curbCd=.8;msg('縁石！','gd sm',.9);se('tool');thud();}
+      if(P.v>10&&P.curbCd<=0){P.dmg=Math.min(100,P.dmg+4*DF.dmg);P.v*=.8;shake=Math.max(shake,.5);P.curbCd=.8;msg('縁石！','gd sm',.9);se('tool');thud();buzz(30);}
     }
     function crash(c){
       P.crashes++;P.dmg=Math.min(100,P.dmg+25*DF.dmg);phase='crashed';P.tumble=0;P.tumbleDir=Math.random()<.5?-1:1;
-      shake=1.3;hitFlash=1;se('warn');thud();msg('転倒！','rd');splash(26,1.4);
+      shake=1.3;hitFlash=1;se('warn');thud();buzz([90,50,140]);msg('転倒！','rd');splash(26,1.4);
       if(c&&c.kind!=='cross')c.v*=.3;
     }
     function updatePlay(dt){
@@ -1248,7 +1279,7 @@ registerMinigame({
         const a=(P.s-p.s)/p.a,b=(P.d-p.d)/(p.b+.2);
         if(a*a+b*b<1){p.hit=true;
           if(P.v>DF.slipV&&P.inv<=0){P.slip=.95;P.slipDir=Math.random()<.5?-1:1;P.latV+=P.slipDir*rnd(3.5,5.5);P.v*=.82;P.dmg=Math.min(100,P.dmg+5*DF.dmg);P.slips++;
-            shake=Math.max(shake,.45);fovKick=-4;msg('スリップ！','cy');se('noise');splash(30,1.2);}
+            shake=Math.max(shake,.45);fovKick=-4;msg('スリップ！','cy');se('noise');buzz([20,30,20]);splash(30,1.2);}
           else splash(10,.6);}
       }
       for(const m of manholes){if(m.hit||m.s<P.s-2)continue;if(m.s>P.s+2)break;if(Math.abs(P.s-m.s)<.7&&Math.abs(P.d-m.d)<.8){m.hit=true;shake=Math.max(shake,.22+P.v*.008);se('machine');}}
@@ -1263,8 +1294,11 @@ registerMinigame({
         if(ova>0&&ovc>0){
           if(ovc<DF.graze&&c.kind!=='cross'){ // かすった
             const sg=dd>0?-1:1;P.d+=sg*(ovc+.05);P.latV=sg*4.5;P.v*=.86;P.dmg=Math.min(100,P.dmg+6*DF.dmg);P.contacts++;P.inv=.5;
-            shake=Math.max(shake,.6);hitFlash=.45;msg('接触！','gd');se('tool');thud();splash(8,.8);
+            shake=Math.max(shake,.6);hitFlash=.45;msg('接触！','gd');se('tool');thud();buzz(45);splash(8,.8);
           }else{crash(c);return;}
+        }else if(!c.nm&&c.kind!=='cross'&&phase==='play'&&RaceLogic.nearMiss(ds,ha,-ovc,P.v)){
+          // すれすれで抜けた：演出だけ（評価・報酬は変えない）
+          c.nm=true;P.nearMiss=(P.nearMiss|0)+1;msg(c.kind==='onc'?'ギリギリ！':'ニアミス！','cy sm',.8);whoosh();fovKick=Math.max(fovKick,5);buzz(12);
         }
       }
       // チェックポイント
@@ -1321,8 +1355,7 @@ registerMinigame({
     // ── グレード ──
     function calcGrade(){
       if(endReason==='late')return 'C';
-      const sc=rem+(100-P.dmg)/10-P.reds*5-P.crashes*6-P.contacts*1.5;
-      return sc>=16?'S':sc>=9?'A':sc>=3?'B':'C';
+      return RaceLogic.grade({reason:endReason,rem,dmg:P.dmg,reds:P.reds,crashes:P.crashes,contacts:P.contacts});
     }
     function endScene(reason,atGate){
       endReason=reason;setOv('');
@@ -1508,6 +1541,7 @@ registerMinigame({
       result(reason){
         const r=reason||'quit';
         cleanup();
+        const RW=RaceLogic.rewardFx(r);
         RD.plays=(RD.plays|0)+1;
         let newBest=false;
         if(r==='ontime'){RD.ontime=(RD.ontime|0)+1;if(RD.best==null||finishT<RD.best){RD.best=Math.round(finishT*10)/10;newBest=true;}RD.lastVar=VAR.key;}
@@ -1517,28 +1551,28 @@ registerMinigame({
         if(r==='ontime')return {
           title:`🛵 打刻成功！ 評価 ${grade||'B'}`,
           summary:`${VAR.name}の夜道を走りきった。<br>タイム <span class="up">${fmtT(finishT)}</span>${newBest?' <span class="up">NEW BEST!</span>':`（ベスト ${fmtT(RD.best)}）`}　余裕 <span class="up">${rem.toFixed(1)}秒</span><br>${stats}`,
-          fx:{jobRep:6,mental:3,fatigue:6},time:30,sp:1,
+          fx:RW.fx,time:RW.time,sp:RW.sp,
           log:`雨の夜、原付で夜勤に滑り込んだ（評価${grade||'B'}・${fmtT(finishT)}）。`,
           cutin:['happy','……間に合ったわ。今夜も設備は止めないわよ。'],
         };
         if(r==='late')return {
           title:'🛵 遅刻……',
           summary:`工場に着いたのは22:00を過ぎてから。遅刻 <span class="down">+${lateT.toFixed(1)}秒</span><br>${stats}`,
-          fx:{jobRep:-3,mental:-2,fatigue:6},time:30,sp:0,
+          fx:RW.fx,time:RW.time,sp:RW.sp,
           log:'夜勤に遅刻した。班長に頭を下げた。',
           cutin:['tired','……遅刻。次は配信を早めに切り上げるわ。'],
         };
         if(r==='crash')return {
           title:'🛵 転倒……修理送り',
           summary:`雨の路面で${P.crashes}度目の転倒。原付は修理に出すことに。<br>走行 <span class="down">${Math.round(Math.min(P.s,GOAL))}m</span> / ${GOAL}m<br>${stats}`,
-          fx:{jobRep:-2,mental:-5,fatigue:8,money:-3000},time:40,sp:0,
+          fx:RW.fx,time:RW.time,sp:RW.sp,
           log:'原付で転倒し、夜勤に遅れた。修理代がかかった。',
           cutin:['tired','……体は無事。でも修理代が痛いわね。'],
         };
         return {
           title:'🛵 引き返した',
           summary:'今夜はタクシーを呼んだ。……財布が痛い、けど安全第一。',
-          fx:{fatigue:2},time:15,sp:0,
+          fx:RW.fx,time:RW.time,sp:RW.sp,
           log:'原付で出るのをやめた。',cutin:null,
         };
       },

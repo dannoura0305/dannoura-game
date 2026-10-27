@@ -1,8 +1,8 @@
 // tobinezumi/client/gfx.js — 画面：内部解像度のドット絵キャンバス（最近傍で拡大）＋
 // その上に高解像度の UI キャンバス（名札・吹き出しなどの文字をくっきり描く）＋ DOM の HUD。
-// PC（マウスとキーボード）：内部 480×270 を整数倍。タッチ端末：画面いっぱいに合わせて内部解像度を変え（W・H が変わる）、
+// PC（マウスとキーボード）：内部 480×270 以上（窓に合わせて最大 720×450 まで広げる）を整数倍。タッチ端末：画面いっぱいに合わせて内部解像度を変え（W・H が変わる）、
 // 拡大率は整数でなくてもよい（touch-logic.js の touchLayout）。W・H は live binding なので import 先でも最新の値になる。
-import { touchLayout } from './touch-logic.js';
+import { touchLayout, pcLayout } from './touch-logic.js';
 export let W = 480, H = 270;
 export const FONT = "'DotGothic16', 'DotGothic16 Local', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', sans-serif";
 
@@ -46,10 +46,8 @@ export class Screen {
       s = L.scale; w = L.W; h = L.H; pos = L;
     } else {
       this.layout = null;
-      const fit = Math.min(vw / 480, vh / 270);
-      s = Math.max(1, Math.floor(fit));
-      if (fit < 1) s = fit;                                  // とても小さい画面だけは縮小
-      if (this.zoomPref !== 'auto' && +this.zoomPref) s = Math.min(Math.max(1, +this.zoomPref), Math.max(1, Math.floor(fit)) || 1);
+      const L = pcLayout(vw, vh, this.zoomPref);              // Ver.0.9：整数倍のまま、窓いっぱいに内部解像度を広げる
+      s = L.scale; w = L.W; h = L.H;
     }
     const changed = w !== W || h !== H;
     W = w; H = h;

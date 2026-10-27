@@ -181,3 +181,51 @@ def hair_bob(B, Sk, C, F, lod=1.0, ctx=None):
     springs = [dict(name='side_L', bones=side['L'], stiffness=5.0, gravity=0.2, drag=0.55, radius=0.015, colliders=['head', 'neck', 'body']),
                dict(name='side_R', bones=side['R'], stiffness=5.0, gravity=0.2, drag=0.55, radius=0.015, colliders=['head', 'neck', 'body'])]
     return dict(parts=parts, textures=tex, springs=springs, ctx={})
+
+
+def hair_pigtails(B, Sk, C, F, lod=1.0, ctx=None):
+    """娘（4 歳・P17）：二つ結び（耳の少し後ろ・揺れ物）・ぱっつんの前髪・上と後ろの髪は結び目へなでつけ"""
+    hb = HR.HairBuilder(B, F['H'], C['look'], lod)
+    Hc, ey = hb.Hc, hb.ey
+    sk = hb.skull
+    rng = np.random.default_rng(11)
+    ties, chains = {}, {}
+    for sg, nm in ((1, 'L'), (-1, 'R')):
+        T = HR.on_scalp(sk, Hc, HR.sph(Hc, 108 * sg, 22), 0.016)
+        G = _guide([T, T + [0.032 * sg, -0.025, -0.012], T + [0.055 * sg, -0.08, -0.02], T + [0.062 * sg, -0.14, -0.012], T + [0.056 * sg, -0.185, 0.004]], n=44)
+        G = HR.resample(G, 44)
+        bp = [G[int(i)] for i in np.linspace(0, len(G) - 1, 4)]
+        chain = HR.chain_bones(Sk, 'ext_pig_' + nm, 'head', bp)
+        chains['pig_' + nm] = chain
+        tg, e1, e2 = _frame(G)
+        full = len(G)
+        nlk = 10 if lod >= 1 else 7
+        for i in range(nlk):
+            a = 2 * np.pi * i / nlk + rng.uniform(-0.15, 0.15)
+            lf = rng.uniform(0.82, 1.0) if i % 3 else 1.0
+            k = int(full * lf)
+            sv = np.linspace(0, 1, full)[:k] / lf
+            r = 0.008 + 0.03 * np.clip(sv / 0.3, 0, 1) ** 0.6 * (1 - 0.55 * sv ** 1.5)
+            ca, sa = np.cos(a), np.sin(a)
+            Cc = G[:k] + (e1[:k] * ca + e2[:k] * sa) * r[:, None]
+            out = HR._norm(e1[:k] * ca + e2[:k] * sa)
+            hb.add(Cc, 0.03 * (1.0 if i % 2 == 0 else 0.85), 0.009, chain='pig_' + nm, kind='lock', hold=0.05, flat_out=out, cup=0.16, root_w=0.55, tip_pow=0.8)
+        ties[nm] = dict(p=T, d=HR._norm(G[3] - G[0]))
+    # 上・後ろの髪を左右の結び目へ（後ろの真ん中で分ける）
+    for th in (-172, -150, -128, -106, -84, -62, -44, 44, 62, 84, 106, 128, 150, 172):
+        T = ties['L' if th > 0 else 'R']['p']
+        for ph in (66, 42, 14):
+            if ph == 14 and abs(th) < 100:
+                continue
+            p0 = HR.on_scalp(sk, Hc, HR.sph(Hc, th, ph), 0.008)
+            hb.lock(th, ph, 0.2, d0=HR._norm(T - p0), w=0.046, t=0.006, attract=T, attract_w=2.4, off0=0.0095, off1=0.010, kind='lock', tip_pow=1.3, cup=0.08)
+    # 前髪（ぱっつん：眉の上でそろう）
+    for th, ph, L, w in [(-50, 54, 0.10, 0.032), (-34, 61, 0.115, 0.034), (-18, 66, 0.125, 0.034), (-2, 68, 0.128, 0.034), (14, 66, 0.125, 0.034), (30, 61, 0.115, 0.034), (46, 55, 0.10, 0.032),
+                         (-62, 45, 0.085, 0.028), (60, 46, 0.085, 0.028), (-10, 76, 0.11, 0.03), (8, 76, 0.11, 0.03)]:
+        hb.lock(th, ph, L, d0=HR._norm(HR.sph(Hc, th, ph - 45) * [1, 0.2, 1] + [0, 0.3, 0.55]), w=w, t=0.006, grav=1.7, bias=(0.0, 0, 0.1), bias_w=0.2,
+                off0=0.0125, off1=0.013, kind='bang', tip_pow=0.45, cup=0.15)
+    cap = HR.scalp_cap(sk, Hc, lambda a: np.interp(a, [0, 40, 70, 100, 130, 180], [ey + 0.060, ey + 0.048, ey + 0.022, ey + 0.004, ey - 0.035, ey - 0.07]), off=0.0085, faces=1400 * lod)
+    parts, tex = hb.finish(cap, Sk, chains, ring=(42.0, 7.0))
+    springs = [dict(name='pig_L', bones=chains['pig_L'], stiffness=3.5, gravity=0.45, drag=0.45, radius=0.016, colliders=['head', 'neck', 'body']),
+               dict(name='pig_R', bones=chains['pig_R'], stiffness=3.5, gravity=0.45, drag=0.45, radius=0.016, colliders=['head', 'neck', 'body'])]
+    return dict(parts=parts, textures=tex, springs=springs, ctx={'ties': ties})

@@ -236,7 +236,7 @@ function observeStream(){
       let label=p.label,chips=p.costs.map(c=>chipHTML(c)).join('');
       const bm=label.match(/^(【[^】]*】)\s*([\s\S]+)$/);
       if(bm){label=bm[2];chips=chipHTML(bm[1].replace(/[【】]/g,''),'warn')+chips;}
-      b.innerHTML=`<span class="ui-rich">${icoHTML(p.icon,null,24)}<span class="cb-main"><span class="cb-lbl">${esc(label)}</span>${chips?`<span class="cb-cost">${chips}</span>`:''}</span></span>`;
+      b.innerHTML=`<span class="ui-rich">${icoHTML(p.icon||(b.classList.contains('sc')?streamTypeIcon():''),null,24)}<span class="cb-main"><span class="cb-lbl">${esc(label)}</span>${chips?`<span class="cb-cost">${chips}</span>`:''}</span></span>`;
       b.setAttribute('aria-label',tx);
     });
     const first=sc.querySelector('button');
@@ -827,6 +827,190 @@ function iconNotif(msg){
 }
 
 /* ══════════════════════════════════════════
+   7b. 仕上げ（配信モニター・SDの白背景・文字の大きさ・通知の位置）
+   ══════════════════════════════════════════ */
+/* ── 配信モニター：配信画面の上部を「配信ソフトのプレビュー」風に ──
+   顔（気分で表情が変わる）・ON AIR の経過時間・盛り上がりメーター・声に合わせて動く波形。
+   見た目だけ。数値（gs）は一切書き換えない。 */
+const MON={el:null,iv:0,t0:0,hype:0,lastMood:'',bars:[],vc:null};
+function monMood(){
+  try{
+    if(gs.mental<30||gs.fatigue>=75)return 'tired';
+    if(gs.streamType==='kaidan'||gs.flame>=6)return 'fear';
+    if(MON.hype>=70)return 'happy';
+  }catch(e){}
+  return 'normal';
+}
+function monBuild(){
+  if(MON.el)return MON.el;
+  const vis=document.querySelector('#streaming-ol .str-visual');if(!vis)return null;
+  vis.classList.add('ui-mon-on');
+  const icon=$('str-icon'),wave=vis.querySelector('.waveform');
+  const box=document.createElement('div');box.className='ui-mon';
+  box.innerHTML=`<div class="ui-mon-av"><img alt="" src="${(window.CHAR_IMG&&CHAR_IMG.normal)||'assets/img/char_normal.webp'}"><span class="ui-mon-ring"></span></div>
+    <div class="ui-mon-info">
+      <div class="ui-mon-row"><span class="ui-mon-air">● ON AIR</span><span class="ui-mon-up" id="ui-mon-up">00:00</span><span class="ui-mon-type"></span></div>
+      <div class="ui-mon-row ui-mon-hyrow"><span class="ui-mon-lbl">盛り上がり</span><span class="ui-mon-hype"><b id="ui-mon-hb"></b></span></div>
+      <div class="ui-mon-wave"></div>
+    </div>`;
+  vis.appendChild(box);
+  if(icon)box.querySelector('.ui-mon-type').appendChild(icon);
+  const wv=box.querySelector('.ui-mon-wave');
+  if(wave)wave.style.display='none';
+  for(let i=0;i<22;i++){const b=document.createElement('i');wv.appendChild(b);MON.bars.push(b);}
+  MON.el=box;
+  // 視聴者数が増えたら「+n」を浮かべる
+  const vcEl=$('viewer-cnt');
+  if(vcEl&&window.MutationObserver){
+    new MutationObserver(()=>{
+      const v=parseInt(vcEl.textContent,10);if(!Number.isFinite(v))return;
+      const prev=MON.vc;MON.vc=v;
+      if(prev==null||v<=prev||reduced()||!$('streaming-ol')?.classList.contains('active'))return;
+      const host=vcEl.closest('.viewer-cnt')||vcEl;
+      const d=document.createElement('span');d.className='ui-vc-pop';d.textContent='+'+(v-prev);
+      host.appendChild(d);setTimeout(()=>d.remove(),1000);
+    }).observe(vcEl,{childList:true,characterData:true,subtree:true});
+  }
+  return box;
+}
+function monSetMood(force){
+  if(!MON.el)return;
+  const m=monMood();if(!force&&m===MON.lastMood)return;
+  MON.lastMood=m;
+  const img=MON.el.querySelector('.ui-mon-av img');
+  const src=(window.CHAR_IMG&&CHAR_IMG[m])||'assets/img/char_'+m+'.webp';
+  if(img&&img.getAttribute('src')!==src){img.classList.remove('ui-mon-swap');void img.offsetWidth;img.classList.add('ui-mon-swap');img.src=src;}
+  MON.el.dataset.mood=m;
+}
+function monTick(){
+  if(!MON.el)return;
+  const s=Math.floor((Date.now()-MON.t0)/1000);
+  const up=$('ui-mon-up');if(up)up.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+  MON.hype=Math.max(0,MON.hype-(.25+MON.hype*.006));   // 盛り上がりは少しずつ冷める（コメントが速いほど高止まりする）
+  const hb=$('ui-mon-hb');if(hb)hb.style.width=Math.round(MON.hype)+'%';
+  MON.el.classList.toggle('hot',MON.hype>=70);
+  // 波形：盛り上がりで振れ幅が大きくなる（動きを減らす設定では止める）
+  if(!reduced()){
+    const amp=.25+MON.hype/100*.75,t=Date.now()/1000;
+    MON.bars.forEach((b,i)=>{const v=Math.abs(Math.sin(t*5.3+i*.9)*Math.sin(t*2.1+i*.37))*amp+Math.random()*.12;b.style.transform='scaleY('+Math.min(1,.12+v).toFixed(3)+')';});
+  }
+  monSetMood(false);
+}
+function monStart(){
+  if(!monBuild())return;
+  MON.t0=Date.now();MON.hype=12;MON.vc=null;MON.lastMood='';
+  monSetMood(true);monTick();
+  clearInterval(MON.iv);MON.iv=setInterval(monTick,140);
+}
+function monStop(){clearInterval(MON.iv);MON.iv=0;}
+function monComment(tp){
+  if(!MON.iv)return;
+  MON.hype=Math.min(100,MON.hype+(tp==='super'?26:tp==='bad'||tp==='anomaly'?3:10));
+  if(MON.el&&!reduced()){MON.el.classList.remove('talk');void MON.el.offsetWidth;MON.el.classList.add('talk');}
+}
+function watchStream(){
+  const ol=$('streaming-ol');if(!ol||!window.MutationObserver)return;
+  let on=false;
+  const sync=()=>{
+    const a=ol.classList.contains('active');
+    document.body.classList.toggle('ui-streaming',a);
+    if(a&&!on)monStart();else if(!a&&on)monStop();
+    on=a;
+  };
+  new MutationObserver(sync).observe(ol,{attributes:true,attributeFilter:['class']});
+  sync();
+}
+
+/* ── 状態画面のSDキャラ：画像の白い背景を抜いて、ネオンの舞台に立たせる ──
+   周りから塗りつぶし（flood fill）で「外側の白」だけ透明にする（服や目の白は残る）。結果は覚えておく。 */
+const KEYED={};
+function keyWhite(src,cb){
+  if(KEYED[src]){if(KEYED[src]!=='pending'&&KEYED[src]!=='fail')cb(KEYED[src]);return;}
+  KEYED[src]='pending';
+  const im=new Image();
+  im.onload=()=>{
+    try{
+      const w=im.naturalWidth,h=im.naturalHeight;if(!w||!h)throw 0;
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      const x=c.getContext('2d');x.drawImage(im,0,0);
+      const d=x.getImageData(0,0,w,h),p=d.data;
+      const near=i=>p[i]>232&&p[i+1]>232&&p[i+2]>226;
+      const seen=new Uint8Array(w*h),st=[];
+      for(let i=0;i<w;i++){st.push(i,(h-1)*w+i);}for(let j=0;j<h;j++){st.push(j*w,j*w+w-1);}
+      while(st.length){
+        const k=st.pop();if(seen[k])continue;seen[k]=1;
+        if(!near(k*4))continue;
+        p[k*4+3]=0;
+        const kx=k%w;
+        if(kx>0)st.push(k-1);if(kx<w-1)st.push(k+1);if(k>=w)st.push(k-w);if(k<w*(h-1))st.push(k+w);
+      }
+      // 抜いた境目を半透明にしてギザギザを和らげる
+      for(let k=0;k<w*h;k++){
+        if(p[k*4+3]===0)continue;
+        const kx=k%w;
+        const nb=(kx>0&&p[(k-1)*4+3]===0)||(kx<w-1&&p[(k+1)*4+3]===0)||(k>=w&&p[(k-w)*4+3]===0)||(k<w*(h-1)&&p[(k+w)*4+3]===0);
+        if(nb&&p[k*4]>200&&p[k*4+1]>200&&p[k*4+2]>200)p[k*4+3]=110;
+      }
+      x.putImageData(d,0,0);
+      KEYED[src]=c.toDataURL('image/png');cb(KEYED[src]);
+    }catch(e){KEYED[src]='fail';}
+  };
+  im.onerror=()=>{KEYED[src]='fail';};
+  im.src=src;
+}
+function keySdChar(){
+  const svg=$('sd-char');if(!svg)return;
+  const img=svg.querySelector('image');if(!img)return;
+  const src=img.getAttribute('href');if(!src||src.startsWith('data:'))return;
+  keyWhite(src,url=>{const cur=svg.querySelector('image');if(cur&&cur.getAttribute('href')===src)cur.setAttribute('href',url);});
+}
+
+/* ── 文字の大きさ（設定画面・この端末に保存）：標準／大きめ／特大 ──
+   本編の文字は rem 指定なので、html の文字の大きさを変えるだけで全体が拡大する。
+   ミニゲームは画面の作りが細かいので、遊んでいる間は標準に戻す。 */
+const FS_KEY='dannoura_textsize';
+const FS_STEPS={m:{n:'標準',px:16},l:{n:'大きめ',px:17.5},xl:{n:'特大',px:19}};
+function fsGet(){try{const v=localStorage.getItem(FS_KEY);return FS_STEPS[v]?v:'m';}catch(e){return 'm';}}
+function fsApply(){
+  const v=fsGet(),inMg=document.body.classList.contains('mg-active');
+  document.documentElement.style.fontSize=(v==='m'||inMg)?'':FS_STEPS[v].px+'px';
+  document.querySelectorAll('#fs-opts button').forEach(b=>{b.classList.toggle('on',b.dataset.fs===v);b.setAttribute('aria-pressed',b.dataset.fs===v?'true':'false');});
+}
+function fsSet(v){if(!FS_STEPS[v])return;try{localStorage.setItem(FS_KEY,v);}catch(e){}fsApply();se('decide');updateMore();}
+function fsInstall(){
+  const box=document.querySelector('#settings-sc .endlist-box');
+  const after=box&&box.querySelector('.mg-diff-row');
+  if(box&&after&&!$('fs-opts')){
+    const row=document.createElement('div');row.className='set-row mg-diff-row fs-row';
+    row.innerHTML='🔠 文字<div class="mg-diff" id="fs-opts" role="group" aria-label="文字の大きさ">'+
+      Object.entries(FS_STEPS).map(([k,o])=>`<button type="button" data-fs="${k}">${o.n}</button>`).join('')+'</div>';
+    after.insertAdjacentElement('afterend',row);
+    row.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>fsSet(b.dataset.fs)));
+    swapLead(row,20);
+    // 振動（ミニゲームの手ごたえ。対応端末だけに出す）。値は minigames/core.js の mgVibrateOn() が読む
+    if(typeof navigator!=='undefined'&&typeof navigator.vibrate==='function'){
+      const vr=document.createElement('div');vr.className='set-row mg-diff-row fs-row';
+      vr.innerHTML='📳 振動<div class="mg-diff" id="vib-opts" role="group" aria-label="振動"><button type="button" data-v="on">オン</button><button type="button" data-v="off">オフ</button></div>';
+      row.insertAdjacentElement('afterend',vr);
+      const sync=()=>{let off=false;try{off=localStorage.getItem('dannoura_vibrate')==='off';}catch(e){}
+        vr.querySelectorAll('button').forEach(b=>{const on=(b.dataset.v==='off')===off;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false');});};
+      vr.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+        try{localStorage.setItem('dannoura_vibrate',b.dataset.v);}catch(e){}
+        sync();se('decide');if(b.dataset.v==='on')try{navigator.vibrate(30);}catch(e){}
+      }));
+      sync();swapLead(vr,20);
+    }
+  }
+  if(window.MutationObserver)new MutationObserver(fsApply).observe(document.body,{attributes:true,attributeFilter:['class']});
+  fsApply();
+}
+
+/* ── 配信中の選択肢にも、配信の種類のアイコンを付ける（1段目と見た目をそろえる） ── */
+function streamTypeIcon(){
+  try{const t=(typeof streamTypes!=='undefined'?streamTypes:[]).find(x=>x.key===gs.streamType);return t?t.icon:'';}catch(e){return '';}
+}
+
+/* ══════════════════════════════════════════
    8. 関数を包む
    ══════════════════════════════════════════ */
 function install(){
@@ -853,8 +1037,11 @@ function install(){
     if(el&&/🚨|⚠️/.test(String(msg)))el.classList.add('ui-danger');
     iconNotif(msg);
   });
+  wrap('buildSdChar',()=>keySdChar());
+  wrap('addComment',(r,u,tx,tp)=>monComment(tp));
   iconizeStatic();
   observeChoices();observeStream();
+  watchStream();fsInstall();
   $('choices-area')?.addEventListener('scroll',updateMore,{passive:true});
   window.addEventListener('resize',updateMore);
   NAV.init();

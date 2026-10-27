@@ -831,3 +831,79 @@ img.ic.ic-lead{margin-right:.34em;}
 .slot-close{display:flex;align-items:center;justify-content:center;gap:6px;padding-left:12px;}
 .slot-close:focus-visible,.slot-confirm-btns .ev-btn:focus-visible{border-color:rgba(255,228,138,.85);outline:none;}
 @media (prefers-reduced-motion:reduce){.slot-box{transform:none !important;transition:opacity .12s !important;}}
+
+/* ══════════════════════════════════════════
+   仕上げ（main/ui.js 7b）：配信モニター・通知とカットインの位置・SDの舞台
+   ══════════════════════════════════════════ */
+/* 配信モニター */
+.str-visual.ui-mon-on{height:auto;min-height:92px;justify-content:flex-start;padding:10px 12px 8px;font-size:1rem;
+  background:radial-gradient(ellipse at 18% 50%,rgba(138,82,212,.22),transparent 60%),linear-gradient(180deg,#120c2c,#0a0720);
+  border-bottom:1px solid rgba(217,204,255,.1);}
+.ui-mon{display:flex;align-items:center;gap:12px;width:100%;min-width:0;}
+.ui-mon-av{position:relative;flex:none;width:68px;height:68px;border-radius:10px;overflow:visible;}
+.ui-mon-av img{display:block;width:68px;height:68px;object-fit:cover;border-radius:10px;border:2px solid rgba(217,204,255,.55);box-shadow:0 0 0 2px #04020c,0 4px 14px rgba(0,0,0,.5);background:#1a1430;}
+.ui-mon-av img.ui-mon-swap{animation:monSwap .32s ease-out;}
+@keyframes monSwap{from{filter:brightness(1.8);transform:scale(.94);}to{filter:none;transform:none;}}
+.ui-mon-ring{position:absolute;inset:-5px;border-radius:14px;border:2px solid rgba(0,232,200,.0);pointer-events:none;}
+.ui-mon.talk .ui-mon-ring{animation:monTalk .55s ease-out;}
+@keyframes monTalk{0%{border-color:rgba(0,232,200,.85);transform:scale(.96);}100%{border-color:rgba(0,232,200,0);transform:scale(1.08);}}
+.ui-mon.hot .ui-mon-av img{border-color:var(--gd);box-shadow:0 0 0 2px #04020c,0 0 16px rgba(232,184,48,.55);}
+.ui-mon[data-mood="fear"] .ui-mon-av img{border-color:rgba(232,48,85,.7);}
+.ui-mon-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;}
+.ui-mon-row{display:flex;align-items:center;gap:8px;min-width:0;font-family:var(--mono);font-size:.62rem;color:var(--tx-dim);letter-spacing:.06em;}
+.ui-mon-air{color:var(--rd);font-weight:bold;text-shadow:0 0 8px rgba(232,48,85,.6);animation:lp 1.8s ease-in-out infinite;}
+.ui-mon-up{color:var(--tx-b);font-variant-numeric:tabular-nums;}
+.ui-mon-type{margin-left:auto;display:flex;align-items:center;font-size:1.15rem;line-height:1;}
+.ui-mon-type .ic{width:22px;height:22px;}
+.ui-mon-lbl{flex:none;}
+.ui-mon-hype{position:relative;flex:1;height:8px;border-radius:2px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(217,204,255,.16);overflow:hidden;}
+.ui-mon-hype b{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#8a52d4,#ff6aa8 70%,#ffd36b);transition:width .25s linear;}
+.ui-mon.hot .ui-mon-hype b{box-shadow:0 0 10px rgba(255,211,107,.7);}
+.ui-mon-wave{display:flex;align-items:flex-end;gap:2px;height:18px;}
+.ui-mon-wave i{flex:1;max-width:6px;height:100%;background:linear-gradient(0deg,#8a52d4,#00e8c8);border-radius:1px;transform-origin:50% 100%;transform:scaleY(.15);opacity:.8;}
+.ui-mon.hot .ui-mon-wave i{background:linear-gradient(0deg,#ff6aa8,#ffd36b);}
+.viewer-cnt{position:relative;}
+.ui-vc-pop{position:absolute;right:0;top:-2px;font-family:var(--mono);font-size:.62rem;color:var(--up);pointer-events:none;animation:vcPop 1s ease-out forwards;}
+@keyframes vcPop{from{opacity:1;transform:translateY(0);}to{opacity:0;transform:translateY(-14px);}}
+.comment-feed:empty::before{content:'コメント待機中…　最初の一言を待っている';margin:auto;font-family:var(--mono);font-size:.62rem;color:var(--tx-dim);letter-spacing:.08em;animation:lp 2.4s ease-in-out infinite;}
+/* 配信中のカットイン：選択肢の上に重ねず、モニターの下（コメント欄の上端）に出す */
+body.ui-streaming #cutin-wrap{align-items:flex-start;padding-top:146px;padding-bottom:0;}
+/* 広い画面：カットインと通知を、ゲーム画面（幅480px）の内側にそろえる */
+@media (min-width:520px){
+  #cutin-wrap{padding-left:calc(50% - 240px);}
+}
+/* 通知：今日の目標の帯に重ならないよう、その下に出す */
+#notif-stack{top:124px;}
+body.ui-streaming #notif-stack{top:150px;}
+/* 状態画面のSD：白背景を抜いた絵を、床の光の上に立たせる */
+#sd-canvas-wrap::after{content:'';position:absolute;left:50%;bottom:2px;width:96px;height:14px;margin-left:-48px;border-radius:50%;background:radial-gradient(ellipse,rgba(138,82,212,.55),transparent 70%);z-index:-1;}
+#sd-char{position:relative;}
+/* 文字の大きさ（設定） */
+.fs-row .mg-diff button{font-size:.66rem;}
+.fs-row .mg-diff button[data-fs="l"]{font-size:.74rem;}
+.fs-row .mg-diff button[data-fs="xl"]{font-size:.82rem;}
+@media (prefers-reduced-motion: reduce){
+  .ui-mon-air,.ui-mon.talk .ui-mon-ring,.ui-mon-av img.ui-mon-swap,.ui-vc-pop,.comment-feed:empty::before{animation:none !important;}
+}
+/* コメント欄の奥に、うっすら自分の部屋（真っ黒な空白に見えないように） */
+#streaming-ol .comment-feed{background:linear-gradient(180deg,rgba(4,3,10,.78),rgba(4,3,10,.92) 70%),url(assets/img/bg_main.webp) center 30%/cover no-repeat;}
+.mg-diff button{white-space:nowrap;padding:0 2px;letter-spacing:-.02em;}
+/* 設定の行が増えたので、背の低い画面では行の高さと間隔を詰める（見出しが枠の上にはみ出す作りなので、スクロールにはしない） */
+@media (max-height:720px){
+  #settings-sc .endlist-box{gap:6px;padding-top:20px;}
+  #settings-sc .set-row{min-height:36px;}
+  #settings-sc .ev-btn{min-height:38px;padding-top:6px;padding-bottom:6px;}
+  #settings-sc .mg-diff button{min-height:30px;}
+}
+/* 横向きの背の低い画面：設定は2列に並べて、窓に収める */
+@media (max-height:480px) and (min-width:560px){
+  #settings-sc .endlist-box{display:grid;grid-template-columns:1fr 1fr;max-width:680px;width:94%;column-gap:10px;row-gap:5px;max-height:none;}
+  #settings-sc .set-row{min-height:34px;}
+  #settings-sc .ev-btn{min-height:34px;}
+}
+@media (max-height:480px){
+  .str-visual.ui-mon-on{min-height:0;padding:5px 12px;}
+  .ui-mon-av,.ui-mon-av img{width:44px;height:44px;}
+  .ui-mon-wave{height:12px;}
+  body.ui-streaming #cutin-wrap{padding-top:96px;}
+}

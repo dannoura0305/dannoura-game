@@ -34,7 +34,7 @@ export class TitleScene {
     const off = net.mode === 'offline';
     const ch = hello.character;
     const p = this._panel(`
-      <div class="tb-logo"><div class="tb-logo-main">トビネズミ</div><div class="tb-logo-sub">MMO（仮称）　ver.0.8「季節のたのしみ」</div></div>
+      <div class="tb-logo"><div class="tb-logo-main">トビネズミ</div><div class="tb-logo-sub">MMO（仮称）　ver.0.9「すみずみまで」</div></div>
       <div class="tb-mode ${off ? 'off' : 'on'}">${off ? 'オフライン：ひとりで遊ぶ（この端末に保存）' + (net.fallbackFrom ? '<br><small>サーバーにつながらなかったので、ひとりで遊びます</small>' : '') : 'オンライン：' + esc(net.url)}</div>
       <div class="tb-title-btns"></div>
       <a class="tb-back" href="index.html">← 本編（だんのうら）に戻る</a>`, 'tb-titlebox');
@@ -45,7 +45,7 @@ export class TitleScene {
         btn('つづきから（' + esc(ch.name) + '）', () => g.startGame(), 'primary').id = 'tb-continue';
         btn('はじめから（データを消す）', async () => {
           if (!await g.ui.confirm('はじめから', 'この端末のトビネズミの記録（持ち物・巣）を消して、はじめから遊びますか？<br><span class="tb-dim">本編・境界事象のセーブには影響しません。</span>', '消してはじめる', 'やめる')) return;
-          net.resetAll(); this.hello = null; await net.login('local'); this.hello = await net.hello(); this.showCreate();
+          net.resetAll(); delete g.settings.goal; g.saveSettings(); this.hello = null; await net.login('local'); this.hello = await net.hello(); this.showCreate();
         });
       } else {
         btn('はじめる', async () => { await net.login('local'); this.showCreate(); }, 'primary').id = 'tb-start';
@@ -152,36 +152,78 @@ export class TitleScene {
   fixed() {}
   update(dt) { this.t += dt; if (this._keys) { const inp = this.game.input; if (inp.take('ArrowLeft')) this._keys({ key: 'ArrowLeft' }); if (inp.take('ArrowRight')) this._keys({ key: 'ArrowRight' }); } }
 
-  /** 夜の砂漠で跳ねるトビネズミ */
+  /** 夜の砂漠で跳ねるトビネズミ（Ver.0.9：本物の三日月・遠い岩山・流れ星・親子で跳ねる） */
   draw() {
     const sc = this.game.screen, g = sc.g, t = this.t;
     const sky = g.createLinearGradient(0, 0, 0, H);
     sky.addColorStop(0, '#141026'); sky.addColorStop(0.5, '#3a2a4e'); sky.addColorStop(0.78, '#8a4e52'); sky.addColorStop(1, '#c8784e');
     g.fillStyle = sky; g.fillRect(0, 0, W, H);
     const gy = H - 270;   // 画面の高さが変わっても、砂丘は下端に
-    for (let i = 0; i < 70; i++) {
-      const x = Math.floor(hash2(i, 1, 3) * W), y = Math.floor(hash2(1, i, 3) * (140 + gy));
+    const nStars = Math.round(70 * (W * H) / (480 * 270));
+    for (let i = 0; i < nStars; i++) {
+      const x = Math.floor(hash2(i, 1, 3) * W), y = Math.floor(hash2(1, i, 3) * (150 + gy));
       const tw = 0.5 + 0.5 * Math.sin(t * (1 + hash2(i, i, 2) * 2) + i);
-      g.fillStyle = `rgba(255,244,214,${0.3 + tw * 0.6})`; g.fillRect(x, y, 1, 1);
+      const a = (0.25 + tw * 0.6) * (1 - y / (190 + gy) * 0.5);
+      g.fillStyle = `rgba(255,244,214,${a.toFixed(3)})`; g.fillRect(x, y, 1, 1);
+      if (hash2(i, 7, 11) < 0.06) { g.fillStyle = `rgba(255,244,214,${(a * 0.45).toFixed(3)})`; g.fillRect(x - 1, y, 1, 1); g.fillRect(x + 1, y, 1, 1); g.fillRect(x, y - 1, 1, 1); g.fillRect(x, y + 1, 1, 1); }
     }
+    // 流れ星（ときどき）
+    const sp = 7, k = (t % sp) / 0.9, si = Math.floor(t / sp);
+    if (k < 1) {
+      const sx = W * (0.15 + 0.5 * hash2(si, 3, 17)), sy = 18 + 50 * hash2(si, 4, 17);
+      for (let j = 0; j < 14; j++) { const q = k - j * 0.018; if (q < 0) break; g.fillStyle = `rgba(255,246,220,${((1 - j / 14) * (1 - k) * 0.9).toFixed(3)})`; g.fillRect(Math.round(sx + q * 90), Math.round(sy + q * 34), 1, 1); }
+    }
+    // 三日月（欠けた所は空が透ける）と ぼんやりした光
     const mx = Math.round(W * 0.79), my = Math.round(52 + gy * 0.3);
-    g.fillStyle = '#f4e8c8'; g.beginPath(); g.arc(mx, my, 13, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#3a2a4e'; g.beginPath(); g.arc(mx + 6, my - 4, 12, 0, Math.PI * 2); g.fill();
+    if (!this._moon) {
+      const c = document.createElement('canvas'); c.width = c.height = 32; const m = c.getContext('2d');
+      m.fillStyle = '#f4e8c8'; m.beginPath(); m.arc(16, 16, 13, 0, Math.PI * 2); m.fill();
+      m.fillStyle = '#fffbe8'; m.beginPath(); m.arc(14, 18, 11, 0, Math.PI * 2); m.fill();
+      m.globalCompositeOperation = 'destination-out'; m.beginPath(); m.arc(22, 12, 12, 0, Math.PI * 2); m.fill();
+      this._moon = c;
+    }
+    const glow = g.createRadialGradient(mx, my, 4, mx, my, 46);
+    glow.addColorStop(0, 'rgba(255,236,190,0.16)'); glow.addColorStop(1, 'rgba(255,236,190,0)');
+    g.fillStyle = glow; g.fillRect(mx - 46, my - 46, 92, 92);
+    g.drawImage(this._moon, mx - 16, my - 16);
+    // 遠い岩山（平らな頂の台地）
+    g.fillStyle = '#3e2c46';
+    for (let x = 0; x < W; x++) {
+      const u = (x + 37) / W;
+      const mesa = Math.max(0, 1 - Math.abs(u - 0.22) * 9) * 22 + Math.max(0, 1 - Math.abs(u - 0.66) * 6) * 30 + Math.max(0, 1 - Math.abs(u - 0.95) * 11) * 16;
+      const h = mesa > 1 ? Math.min(26, Math.round(mesa)) + Math.round(Math.sin(x / 9) * 1.2) : 0;
+      if (h > 0) g.fillRect(x, 196 + gy - h, 1, h + 8);
+    }
     const dune = (base, amp, f, ph, col, speed) => {
       g.fillStyle = col;
       base += gy;
       for (let x = 0; x < W; x++) { const y = Math.round(base + Math.sin((x + t * speed) / f + ph) * amp + Math.sin((x + t * speed) / (f * 0.37) + ph * 2) * amp * 0.3); g.fillRect(x, y, 1, H - y); }
     };
+    const duneY = (base, amp, f, ph, speed, x) => Math.round(base + gy + Math.sin((x + t * speed) / f + ph) * amp + Math.sin((x + t * speed) / (f * 0.37) + ph * 2) * amp * 0.3);
     dune(196, 9, 60, 1, '#5a3a3e', 4);
     dune(218, 7, 44, 3, '#7a4c3a', 8);
+    // 中ほどの砂丘の草（砂丘といっしょに流れる）
+    for (let i = 0; i < Math.ceil(W / 60); i++) {
+      const x = Math.round(((i * 60 + hash2(i, 2, 5) * 40) - t * 8) % (W + 40) + W + 40) % (W + 40) - 20;
+      const y = duneY(218, 7, 44, 3, 8, x);
+      g.fillStyle = '#5c3a2c';
+      g.fillRect(x, y - 3, 1, 3); g.fillRect(x + 2, y - 4, 1, 4); g.fillRect(x - 2, y - 2, 1, 2); g.fillRect(x + 4, y - 2, 1, 2);
+    }
     dune(240, 5, 30, 5, '#a2683e', 14);
-    // 跳ねるトビネズミ（左から右へ）
-    const span = W + 80, x = ((t * 46) % span) - 40;
-    const hop = (t * 46 / 26) % 1;
-    const z = Math.sin(hop * Math.PI) * 10;
-    const y = 246 + gy + Math.round(Math.sin((x + t * 14) / 30 + 5) * 5);
-    Sprites.drawShadow(g, x, y, 1 - z / 30);
-    Sprites.drawJerboa(g, 'sand', 'side', 'walk', 'right', Math.floor(hop * 4), x, y - z);
+    // 跳ねるトビネズミの親子（左から右へ。子は少し遅れて小さく）
+    const span = W + 120;
+    const hopper = (delay, scale, fur) => {
+      const x = ((t * 46 - delay) % span + span) % span - 40;
+      const hop = ((t * 46 - delay) / 26 % 1 + 1) % 1;
+      const z = Math.sin(hop * Math.PI) * 10 * scale;
+      const y = 246 + gy + Math.round(Math.sin((x + t * 14) / 30 + 5) * 5);
+      Sprites.drawShadow(g, x, y, (1 - z / 30) * scale);
+      if (scale === 1) { Sprites.drawJerboa(g, fur, 'side', 'walk', 'right', Math.floor(hop * 4), x, y - z); return; }
+      g.save(); g.translate(Math.round(x), Math.round(y - z)); g.scale(scale, scale);
+      Sprites.drawJerboa(g, fur, 'side', 'walk', 'right', Math.floor(hop * 4), 0, 0);
+      g.restore();
+    };
+    hopper(52, 0.62, 'cream'); hopper(30, 0.66, 'sand'); hopper(0, 1, 'sand');
     sc.clearUI();
   }
 }

@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { SkinBody, DIM, headDeform, faceAtlas, faceAtlasExpr, UVR, drawEye, drawBrow, drawMouth, drawNose, drawBlush } from './skin.js';
 import { toon, addOutlines } from '../render/toon.js';
 import { buildDannouraV2, buildCompanionV2 } from './heroes.js';
+import { applyEnemyPack, enemyPackClasses } from './enemypack.js';   // P17：Blender で作り直した異形の体
 
 /** モデルの版（2＝v2・既定。?charModel=1 で前のモデル：前後の比べ用） */
 export const CHAR_MODEL = (() => { try { return typeof location !== 'undefined' && /[?&]charModel=1\b/.test(location.search) ? 1 : 2; } catch (e) { return 2; } })();
@@ -442,7 +443,8 @@ export function buildKiro(color = 0xd04848) {
     g.fillStyle = 'rgba(5,5,10,.9)'; for (const x of [44, 84]) { g.beginPath(); g.ellipse(x, 52, 9, 13, 0, 0, Math.PI * 2); g.fill(); }
     g.strokeStyle = 'rgba(5,5,10,.8)'; g.lineWidth = 4; g.beginPath(); g.moveTo(44, 92); g.quadraticCurveTo(64, 100, 86, 90); g.stroke();
   });
-  const m = sb.build(tex, { rim: 0.35, rimColor: 0x8aa0d0, outline: 0.01, outlineColor: 0x08080e, faceEmissive: 0 });
+  const m = sb.build(tex, { rim: 0.35, rimColor: 0x8aa0d0, outline: 0.01, outlineColor: 0x08080e, faceEmissive: 0, classes: enemyPackClasses('kiro') });
+  applyEnemyPack(m, 'kiro', { tint: color }); m.packTint = color;
   const weak = new THREE.Object3D(); weak.position.set(0, R * 1.3, -R * 0.25); m.J.head.add(weak);
   const eyeGlow = glowEyes(m, m.J, [[R * 0.36, R * 0.82, R * 0.95], [-R * 0.36, R * 0.82, R * 0.95]]);
   return Object.assign(m, { height: 1.78, provisional: true, kind: 'kiro', weak, bodyR: 0.34, weakY: 1.68, weakColor: 0xffd27a, eyeGlow });
@@ -486,7 +488,8 @@ export function buildHeiten() {
     g.fillStyle = '#efe7d0'; g.fillRect(0, 128, 128, 128); g.strokeStyle = '#6b1a1a'; g.lineWidth = 6; g.strokeRect(6, 134, 116, 116);
     g.fillStyle = '#8a1010'; g.font = 'bold 50px ' + JP; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('閉', 64, 166); g.fillText('店', 64, 220);
   });
-  const m = sb.build(tex, { rim: 0.3, rimColor: 0x9ad0b0, outline: 0.012, outlineColor: 0x08080e, faceEmissive: 0x101010 });
+  const m = sb.build(tex, { rim: 0.3, rimColor: 0x9ad0b0, outline: 0.012, outlineColor: 0x08080e, faceEmissive: 0x101010, classes: enemyPackClasses('heiten') });
+  applyEnemyPack(m, 'heiten');
   const weak = new THREE.Object3D(); weak.position.set(0, -0.43, 0.06); m.J.rightLowerArm.add(weak);
   const eyeGlow = glowEyes(m, m.J, [[0.05, R * 1.32, R * 1.05], [-0.05, R * 1.32, R * 1.05]]);
   return Object.assign(m, { height: 2.15, provisional: true, kind: 'heiten', weak, bodyR: 0.5, weakColor: 0xffb040, eyeGlow });
@@ -544,7 +547,8 @@ export function buildShuuyou() {
     tag(128, 128, 128, 64, 'No.—', '');
     tag(0, 192, 128, 64, '避難所', '名札');
   });
-  const m = sb.build(tex, { rim: 0.35, rimColor: 0xd0d8ff, outline: 0.014, outlineColor: 0x08080e, faceEmissive: 0x202020 });
+  const m = sb.build(tex, { rim: 0.35, rimColor: 0xd0d8ff, outline: 0.014, outlineColor: 0x08080e, faceEmissive: 0x202020, classes: enemyPackClasses('shuuyou') });
+  applyEnemyPack(m, 'shuuyou');
   const weak = new THREE.Object3D(); weak.position.set(0, 0.02, 0.17); m.J.head.add(weak);
   const eyeGlow = glowEyes(m, m.J, [[0.06, d.headR * 0.9, 0.2], [-0.06, d.headR * 0.9, 0.2], [0, d.headR * 0.6, 0.22]]);
   return Object.assign(m, { height: 2.6, provisional: true, kind: 'shuuyou', weak, bodyR: 0.75, weakY: 2.3, weakColor: 0xd8b0ff, eyeGlow });

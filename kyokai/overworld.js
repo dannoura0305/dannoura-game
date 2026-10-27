@@ -434,8 +434,25 @@
     if (!(OW.m && OW.m.def && OW.m.def.noExit)) nav.appendChild(navBtn('町の地図', () => openTravel(), 'travel'));
     nav.appendChild(navBtn('メニュー', () => openMenu(), 'menu'));
     const keys = $('div', 'ow-keys', '矢印/WASD：歩く（Shift で走る）　Z・Enter：調べる／話す　X：メニュー　画面タップ：そこまで歩く');
-    D.ex.append(top, OWD.near, keys, pad, nav);
+    D.ex.append(top, OWD.near, keys, shiroCard(), pad, nav);
     OW.near = null; updateNear(true);
+  }
+  // シロの札（PC の右の列だけ。出会ったあと）：小さな後ろ姿・Lv・HP。押すとメニューの「シロのようす」
+  function shiroCard() {
+    const B = root.KY_BATTLE;
+    if (!B || !KY.has('shiro_met')) return $('span', 'ow-shiro-none');
+    const d = B.shiro(), max = Math.max(1, B.maxHp()), hp = Math.max(0, Math.min(max, d.hp | 0)), r = hp / max;
+    const card = KY._button('', () => KY.openMenu('shiro_bt'), 'ow-shiro');
+    card.setAttribute('aria-label', `シロのようす（Lv${d.lv}・HP ${hp}／${max}）`);
+    const cv = $('canvas', 'ow-shiro-cv'); cv.width = 40; cv.height = 40; cv.setAttribute('aria-hidden', 'true');
+    try { B.paint(cv, B.sprite('shiro_back', 0), OW.palK || 'A'); } catch (e) {}
+    const info = $('span', 'ow-shiro-i');
+    const nm = $('span', 'ow-shiro-n'); nm.append($('span', '', 'シロ'), $('span', '', ':L' + d.lv));
+    const bar = $('span', 'bt-hp me'); bar.innerHTML = '<span class="bt-hpl">HP</span><i class="bt-hpbar"><b></b></i>';
+    bar.querySelector('b').style.width = (r * 100).toFixed(1) + '%'; bar.dataset.lv = r <= 0.2 ? '2' : r <= 0.5 ? '1' : '0';
+    info.append(nm, bar, $('span', 'ow-shiro-h', hp <= 0 ? '研究所で休ませよう' : `${hp}／${max}`));
+    card.append(cv, info);
+    return card;
   }
   function bindPad(dp) {
     const set = d => { OW.pad = d; dp.querySelectorAll('.ow-d').forEach(b => b.classList.toggle('on', b.dataset.d === d)); };
@@ -895,6 +912,9 @@
       if (ch === '~') { const sh = ((ts / 400) | 0) % 4; ctx.fillStyle = col[2]; ctx.fillRect(ox + ((hash(tx, ty, 1) + sh * 2) % 10) + 2, oy + 6 + (sh % 2), 4, 1); ctx.fillRect(ox + ((hash(tx, ty, 2) + 16 - sh * 2) % 8) + 3, oy + 11, 3, 1); }
       else if (ch === 'n' && nOn) {
         const hs = hash(tx, ty, fr);
+        // 砂嵐の地（網点 2 段・コマごとに位相が変わる）＝「ここは踏むと何か出る」が遠目にも分かる
+        ctx.fillStyle = col[2];
+        for (let yy = 1; yy < 16; yy += 2) for (let xx = (yy + fr + tx + ty) & 3; xx < 16; xx += 4) ctx.fillRect(ox + xx, oy + yy, 1, 1);
         for (let i = 0; i < 14; i++) { const v = hash(i, hs, 5); ctx.fillStyle = col[v % 3 === 0 ? 0 : v % 3 === 1 ? 1 : 3]; ctx.fillRect(ox + (v >> 3) % 15, oy + (v >> 7) % 15, 2, 1); }
         if (fr % 5 === 0) { ctx.fillStyle = col[1]; ctx.fillRect(ox, oy + (hs % 14), 16, 1); }
       }
@@ -934,6 +954,17 @@
       // 足もとの影
       if (person || e.spr === 'shiro') { ctx.fillStyle = col[1]; ctx.fillRect(sx + 4, Math.round(e.y - camY) + 11, 8, 1); ctx.fillRect(sx + 5, Math.round(e.y - camY) + 12, 6, 1); }
       ctx.drawImage(cv, sx, sy);
+    }
+    // 足もとの草・土ぼこり：草むらを歩くと葉が、土の道では小さなほこりが跳ねる（歩いている間だけ）
+    if (OW.p.mv && !KY.reduced() && pt > 0.15 && pt < 0.95) {
+      const fch = MP.at(m, OW.p.mv.tx, OW.p.mv.ty), gch = fch === 'n' || fch === '.' ? m.ground : fch;
+      const fx = Math.round(ppx - camX), fy = Math.round(ppy - camY);
+      if (gch === ',' || gch === ':') {
+        ctx.fillStyle = col[gch === ',' ? 1 : 2];
+        const up = Math.round(Math.sin(pt * Math.PI) * 3);
+        ctx.fillRect(fx + 2, fy + 12 - up, 2, 1); ctx.fillRect(fx + 12, fy + 12 - up, 2, 1);
+        ctx.fillRect(fx + 1 - (pt > 0.5 ? 1 : 0), fy + 14 - up, 1, 1); ctx.fillRect(fx + 14 + (pt > 0.5 ? 1 : 0), fy + 14 - up, 1, 1);
+      }
     }
     // 調べられる物の目印：まだ調べていない物の上に、はずむ「！」の吹き出し
     const bounce = [0, -1, -2, -1][((ts / 140) | 0) % 4];

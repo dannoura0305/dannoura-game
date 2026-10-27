@@ -790,6 +790,89 @@
   function rift(g, c) { groundOut(g, c, c.m.ground); }
   function voidT(g, c) { g.F(0, 0, 16, 16, 0); if (c.h % 11 === 0) g.D(c.h % 14 + 1, (c.h >> 5) % 14 + 1, 1); if (c.h % 23 === 0) g.D((c.h >> 3) % 14 + 1, (c.h >> 7) % 14 + 1, 2); }
 
+  /* ═════════════════════════ 地面の飾り（歩ける床の上だけ・当たり判定は変えない） ═════════════════════════
+     広い地面がのっぺりしないように、まとまり（3×3 マスでならした乱数）のある所に花・落ち葉・小石・水たまり・ひび割れを置く。
+     A：花と濃い草むら／B：落ち葉と轍（わだち）／C：ひび・枯れ草・ちり。屋内は地下の水たまり・排水口だけ（調べ物と紛れる紙くずは置かない）。
+     地図ごとの飾り：def.track（校庭の白線の楕円 [中心x, 中心y, 半径x, 半径y]）、def.sleepers（廃トンネルの枕木の列 [x0, x1]）、水ぎわの葦。 */
+  function field3(x, y, seed) { let t = 0; for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) t += hash(x + i, y + j, seed) % 1000; return t / 9000; }
+  KT.field3 = field3;
+  // 小さな花（5×5：縁 1・花びら k・芯 0）
+  function flower(g, x, y, k) { g.P(x - 2, y - 2, ['..1..', '.1k1.', '1k0k1', '.1k1.', '..1..'].map(r => r.replace(/k/g, String(k)))); g.D(x + 2, y + 3, 1); g.D(x + 3, y + 2, 1); }
+  function tuft(g, x, y, s) { g.D(x, y, s); g.D(x + 2, y, s); g.D(x + 1, y + 1, s); g.D(x + 3, y - 1, s); g.D(x + 3, y + 1, s); }
+  function decorOut(g, c, ch) {
+    const w = c.world, d = c.def || {}, h = c.h, x = c.x, y = c.y;
+    const f = field3(x, y, 71), f2 = field3(x, y, 83);
+    const k = ch === 'n' || ch === '.' ? (c.m.ground === '.' ? ',' : c.m.ground) : ch;
+    const water = ['~'].includes(c.at(0, 1)) || ['~'].includes(c.at(0, -1));
+    // 水ぎわの葦（河川敷・池）
+    if (water && (k === ',' || k === ':') && c.at(0, 1) === '~') {
+      // 葦の茂み（タイルごとに 0〜3 本・高さばらばら・穂つき。C は折れて枯れている）
+      const n = h % 4;
+      for (let i = 0; i < n; i++) {
+        const v = hash(x * 5 + i, y, 91), px = 2 + ((i * 5 + v % 3) % 13), top = 4 + v % 6;
+        if (w === 'C') { g.line(px, 15, px + 2, top + 4, 1); g.D(px + 3, top + 3, 1); continue; }
+        g.F(px, top + 3, 1, 16 - top - 3, 1);
+        g.F(px - 1, top, 2, 3, 0); g.D(px - 1, top, 1);
+        if (v % 2) g.line(px + 1, 14, px + 3, 10, 1); else g.line(px - 1, 14, px - 3, 11, 1);
+      }
+      return;
+    }
+    if (k === ',') {
+      if (w === 'A') {
+        if (f > 0.6) { for (let i = 0; i < 2; i++) { const v = hash(x * 3 + i, y, 92); flower(g, 3 + (i * 7 + v % 4), 3 + (v >> 6) % 9, (v >> 12) % 3 === 0 ? 3 : 2); } }
+        else if (f2 > 0.58) { for (let i = 0; i < 3; i++) { const v = hash(x * 7 + i, y, 93); tuft(g, 1 + v % 10, 4 + (v >> 5) % 9, 1); } }
+      } else if (w === 'B') {
+        if (f > 0.57) for (let i = 0; i < 5; i++) { const v = hash(x * 3 + i, y, 94); const px = v % 14 + 1, py = (v >> 5) % 14 + 1; g.F(px, py, 2, 1, (v >> 11) % 2 ? 1 : 2); g.D(px + ((v >> 13) % 2 ? 2 : -1), py + 1, 1); }
+      } else if (w === 'C') {
+        if (f > 0.58) { g.line(2 + h % 6, 3 + (h >> 4) % 5, 8 + h % 5, 7 + (h >> 7) % 4, 1); g.line(8 + h % 5, 7 + (h >> 7) % 4, 13, 12, 1); for (let i = 0; i < 3; i++) { const v = hash(x + i * 13, y, 95); g.F(v % 13 + 1, (v >> 5) % 12 + 2, 1, 2, 2); } }
+      }
+    } else if (k === ':') {
+      if (f > 0.62) {   // 小石のまとまり
+        for (let i = 0; i < 3; i++) { const v = hash(x * 5 + i, y, 96), px = v % 12 + 1, py = (v >> 6) % 11 + 2; g.F(px, py, 2, 2, 1); g.D(px, py, w === 'C' ? 2 : 3); g.F(px, py + 2, 2, 1, 2); }
+      } else if (w === 'A' && f2 > 0.66 && !d.track) {   // 雨のあとの水たまり
+        const px = 2 + h % 4, py = 4 + (h >> 3) % 5;
+        g.F(px + 1, py, 8, 1, 1); g.F(px, py + 1, 10, 3, 1); g.F(px + 1, py + 4, 8, 1, 1); g.F(px + 2, py + 1, 3, 1, 3); g.D(px + 7, py + 3, 2);
+      } else if (w === 'B' && f2 > 0.6 && !d.track) {   // 轍（道の向きにそろえる）
+        const vert = c.at(0, -1) === ':' && c.at(0, 1) === ':' && (c.m.h > c.m.w || !(c.at(-1, 0) === ':' && c.at(1, 0) === ':'));
+        if (vert) { g.F(4, 0, 1, 16, 2); g.F(11, 0, 1, 16, 2); for (let i = 0; i < 16; i += 3) { g.D(4, i, 1); g.D(11, i + 1, 1); } }
+        else { g.F(0, 5, 16, 1, 2); g.F(0, 10, 16, 1, 2); for (let i = 0; i < 16; i += 3) { g.D(i, 5, 1); g.D(i + 1, 10, 1); } }
+      }
+      else if (w === 'C' && f2 > 0.6) { g.line(1 + h % 5, 2, 7 + h % 4, 9, 1); g.line(7 + h % 4, 9, 6 + h % 3, 15, 1); }
+    } else if (k === '-') {
+      if (w === 'A' && f > 0.64) { for (let i = 0; i < 4; i++) { const v = hash(x * 3 + i, y, 97); g.D(v % 15, ((v >> 5) % 2) * 8 + 6, 1); g.D(v % 15 + 1, ((v >> 5) % 2) * 8 + 7, 2); } }
+      else if (w === 'A' && h % 53 === 7) { g.circle(8, 8, 5, 0); g.circle(8, 8, 4, 2); for (let i = 5; i < 12; i += 2) g.F(i, 6, 1, 5, 1); }
+      else if (w === 'B' && f > 0.6) { for (let i = 0; i < 4; i++) { const v = hash(x * 3 + i, y, 98); g.F(v % 13 + 1, (v >> 5) % 13 + 1, 2, 1, (v >> 10) % 2 ? 1 : 2); } }
+      else if (w === 'C' && f > 0.56) { g.line(h % 8 + 1, 1, h % 8 + 5, 8, 1); g.line(h % 8 + 5, 8, h % 8 + 3, 14, 1); g.D(h % 8 + 6, 9, 0); }
+    } else if (k === 'U') {
+      if (f > 0.58) { const px = 2 + h % 5, py = 5 + (h >> 4) % 6; g.F(px + 1, py, 7, 1, 0); g.F(px, py + 1, 9, 2, 0); g.F(px + 1, py + 3, 7, 1, 0); g.F(px + 2, py + 1, 2, 1, 2); }
+    }
+    // 校庭の白線（楕円のトラック）
+    if (d.track) {
+      const [cx, cy, rx, ry] = d.track;
+      for (let j = 0; j < 16; j += 1) for (let i = 0; i < 16; i += 1) {
+        const X = (x * 16 + i + 0.5) / 16 - cx - 0.5, Y = (y * 16 + j + 0.5) / 16 - cy - 0.5;
+        const e = Math.sqrt((X * X) / (rx * rx) + (Y * Y) / (ry * ry));
+        if (Math.abs(e - 1) * Math.min(rx, ry) * 16 < 0.9 && ((i + j) % 4 !== 3 || w !== 'C')) g.D(i, j, w === 'C' ? 2 : 1);
+      }
+    }
+    // 廃トンネルの枕木（線路を外した跡）
+    if (d.sleepers && w !== 'B' && x >= d.sleepers[0] && x <= d.sleepers[1] && k === 'U') {
+      for (let j = 1; j < 16; j += 5) { if (w === 'C' && hash(x, y * 4 + j, 99) % 3 === 0) continue; g.F(x === d.sleepers[0] ? 2 : 0, j, x === d.sleepers[0] ? 14 : 14, 2, 0); g.F(x === d.sleepers[0] ? 3 : 0, j, x === d.sleepers[0] ? 13 : 13, 1, 2); }
+    }
+  }
+  function decorIn(g, c) {
+    const w = c.world, h = c.h;
+    if (c.style !== 'basement') return;
+    const f = field3(c.x, c.y, 72);
+    if (f > 0.64) {   // 水たまり（縁 1・水 2・光 3）
+      const px = 2 + h % 4, py = 4 + (h >> 3) % 6;
+      g.F(px + 1, py, 8, 1, 1); g.F(px, py + 1, 1, 3, 1); g.F(px + 9, py + 1, 1, 3, 1); g.F(px + 1, py + 4, 8, 1, 1);
+      g.F(px + 1, py + 1, 8, 3, 2); if (w !== 'C') { g.F(px + 2, py + 1, 3, 1, 3); g.D(px + 7, py + 3, 3); }
+    }
+    else if (h % 23 === 5) { g.F(4, 4, 8, 8, 0); for (let i = 5; i < 12; i += 2) g.F(i, 5, 1, 6, 1); }
+  }
+  KT.decorOut = decorOut; KT.decorIn = decorIn;
+
   /* ═════════════════════════ 全体を描く ═════════════════════════ */
   KT.render = function (m, world, col, flags) {
     const cv = document.createElement('canvas'); cv.width = m.w * TS; cv.height = m.h * TS;
@@ -815,7 +898,7 @@
           else if (ch === 'D') doorMat(g, c);
           else if (ch === 'o') stairsIn(g, c);
           else if (ch === 'V') voidT(g, c);
-          else floorIn(g, c);
+          else { floorIn(g, c); decorIn(g, c); }
         } else {
           if (ch === 'T') forestGround(g, c);
           else if (ch === '~') water(g, c);
@@ -835,6 +918,7 @@
           else if (ch === 'Q') OBJ_OUT.Q(g, c);
           else if ('wjcIaMeJ#'.includes(ch)) { facade(g, c, true); }
           else groundOut(g, c, ch);
+          if ('.,:-nU'.includes(ch) && !(c.def && c.def.mixed)) decorOut(g, c, ch);
         }
       } catch (e) { KT.errors++; g.F(0, 0, 16, 16, 2); }
     }

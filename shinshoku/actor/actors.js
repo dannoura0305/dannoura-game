@@ -256,7 +256,7 @@ export class EnemyActor {
   constructor(brain, model, opt = {}) {
     this.brain = brain; this.model = model; this.id = brain.id; this.kind = brain.kind;
     this.root = new THREE.Group(); this.root.add(model.root); this.root.name = this.id;
-    this.poser = new Poser(model.J, model.rest || {});
+    this.poser = new Poser(model.J, model.rest || {}, model.isVRM ? { tpose: !!model.tpose, hipScale: model.hipScale, vrm0: !!model.vrm0 } : {});   // P17：VRM（娘）は T ポーズの骨
     this.r = model.bodyR || 0.34; this.h = model.height || 1.7;
     this.phase = 0; this.speed = 0; this.time = Math.random() * 10; this.mark = null; this.opt = opt;
     this.y = 0; this.looks = new Looks(model); this.weakGlow = 0;
@@ -336,7 +336,7 @@ export class CompanionActor {
     this.speed = 0; this.phase = 0; this.time = 0; this.talking = false; this.anim = null; this.r = 0.3;
     this.setModel(model);
   }
-  setModel(model) { if (this.model) this.root.remove(this.model.root); this.model = model; this.root.add(model.root); this.poser = new Poser(model.J, model.rest || {}, { tpose: !!model.tpose, hipScale: model.hipScale, vrm0: !!model.vrm0 }); this.looks = new Looks(model); if (model.springs) model.springs.reset(); this.driver = model.legDims ? new LocoDriver({ dims: model.legDims, scale: model.legScale || 1, pers: model.kind || 'companion' }) : null; this.exactK = 0; }
+  setModel(model) { if (this.model) this.root.remove(this.model.root); this.model = model; this.root.add(model.root); this.poser = new Poser(model.J, model.rest || {}, { tpose: !!model.tpose, hipScale: model.hipScale, vrm0: !!model.vrm0 }); this.looks = new Looks(model); if (model.springs) model.springs.reset(); this.driver = model.legDims ? new LocoDriver({ dims: model.legDims, scale: model.legScale || 1, pers: model.kind || 'companion' }) : null; this.exactK = 0; this.clipAnim = model.clipAnim || null; this.clipRes = null; this.prevYaw = null; }
   get pos() { return this.brain.pos; }
   phaseRate(v) { if (this.clipAnim && this.clipAnim.hasLoco) return this.clipAnim.phaseRate(v); return this.driver ? this.driver.rate(this.driver.visV > 0.1 ? undefined : Math.max(0.6 * v, 0.12)) : this.model && this.model.legDims ? heroPhaseRate(v, this.model.legScale || 1) : phaseRate(v, 0.75); }
   say(text, dur) { this.looks.say(text, dur); }
@@ -365,6 +365,11 @@ export class CompanionActor {
     if (m.legDims && !pose._exactLegs && !pose._planted && this.speed <= 0.1 && !mode) pose = plantFeet(Object.assign({}, pose), m.legDims);
     this.looks.unapplyLook(m.J);
     this.poser.apply(pose, 1 - Math.pow(1 - rate, dt * 60));
+    // P17：相棒も本物の動きのクリップ（VRMA・clips.json の組：だんのうらと同じ係 charkit/anim/clipanim.js）。隠れる・つかまれる・すくむ・演出の姿勢は手続きのまま
+    if (this.clipAnim) {
+      const turn = this.prevYaw != null ? angWrap(this.brain.yaw - this.prevYaw) / Math.max(dt, 1 / 60) : 0; this.prevYaw = this.brain.yaw;
+      this.clipRes = this.clipAnim.update(dt, { st: 'free', f: 0, total: 0, speed: this.speed, phase: this.phase, turn, talking: !!this.talking, override: !!mode || !!this.overridePose, weapon: 'none' });
+    }
     this.root.position.set(this.brain.pos.x, this.rootY || 0, this.brain.pos.z); this.root.rotation.y = this.brain.yaw;
     this.root.updateMatrixWorld(true);
     this.looks.tickFace(dt); this.looks.tickFlinch(dt, this.model.J);

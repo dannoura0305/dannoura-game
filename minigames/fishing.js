@@ -155,7 +155,7 @@ registerMinigame({
     const lerp=(a,b,f)=>a+(b-a)*f;
     const ease=f=>f<.5?2*f*f:1-Math.pow(-2*f+2,2)/2;
     function se(t){try{AU.se(t);}catch(_){}}
-    function buzz(ms){try{if(navigator.vibrate)navigator.vibrate(ms);}catch(_){}}
+    function buzz(ms){try{if(mg.buzz)mg.buzz(ms);else if(navigator.vibrate)navigator.vibrate(ms);}catch(_){}}
 
     // ── 効果音（Web Audioで合成。AUDIO_SET.se に追従、0なら無音） ──
     const SFX={

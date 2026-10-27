@@ -1,4 +1,5 @@
 // tobinezumi/client/sfx.js — 小さな効果音（WebAudio で合成。音のファイルは使わない）。危険の予告（！）・急降下・飛びかかり・つかまった・入口をふさぐ。
+// Ver.0.9：拾う・食べる・飲む・掘る・跳ぶ・着地・画面を開く・置く・巣にもぐる/出る・なでる・生まれた・旅 も（SFX_NAMES）。
 // ブラウザは「最初に触るまで音を出せない」ので、最初の操作で AudioContext を作る。設定 tobi_settings.sound === false なら鳴らさない。
 let ctx = null, enabled = true, lastAt = new Map();
 
@@ -48,8 +49,25 @@ const SOUNDS = {
     for (let i = 0; i < 6; i++) { tone(t + 0.4 + i * 0.5, { f0: 900, f1: 700, dur: 0.05, noise: true, vol: 0.02 }); tone(t + 0.52 + i * 0.5, { f0: 900, f1: 700, dur: 0.05, noise: true, vol: 0.018 }); }
     tone(t + 0.2, { f0: 520, f1: 500, dur: 0.9, type: 'sine', vol: 0.014 }); tone(t + 1.2, { f0: 440, f1: 420, dur: 1.2, type: 'sine', vol: 0.012 });
   },
+  // Ver.0.9：ふだんの動作の手ごたえ（どれも小さく短く。環境音・危険の音より目立たない）
+  pick: t => { tone(t, { f0: 1320, f1: 1760, dur: 0.07, type: 'triangle', vol: 0.045 }); tone(t + 0.05, { f0: 1980, dur: 0.06, type: 'sine', vol: 0.025 }); },          // ぽっ（拾った）
+  rare: t => { [1047, 1319, 1568, 2093].forEach((f, i) => tone(t + i * 0.07, { f0: f, dur: 0.16, type: 'sine', vol: 0.04 })); },                                   // きらり（めずらしい物・図鑑）
+  eat: t => { for (let i = 0; i < 3; i++) tone(t + i * 0.09, { f0: 2600 - i * 300, f1: 1800, dur: 0.05, noise: true, vol: 0.05 }); },                           // かりかり
+  drink: t => { tone(t, { f0: 420, f1: 820, dur: 0.1, type: 'sine', vol: 0.05 }); tone(t + 0.13, { f0: 480, f1: 900, dur: 0.09, type: 'sine', vol: 0.04 }); },     // こくこく
+  dig: t => { for (let i = 0; i < 3; i++) tone(t + i * 0.12, { f0: 420, f1: 180, dur: 0.09, noise: true, vol: 0.07 }); },                                       // ざっざっ
+  jump: t => tone(t, { f0: 330, f1: 760, dur: 0.12, type: 'sine', vol: 0.03 }),                                                                            // ぴょん（大ジャンプ）
+  land: t => tone(t, { f0: 260, f1: 120, dur: 0.08, noise: true, vol: 0.05 }),                                                                              // とっ（着地）
+  open: t => tone(t, { f0: 1500, f1: 1700, dur: 0.035, type: 'triangle', vol: 0.025 }),                                                                     // 画面を開く
+  place: t => { tone(t, { f0: 520, f1: 380, dur: 0.06, type: 'triangle', vol: 0.06 }); tone(t + 0.02, { f0: 900, f1: 500, dur: 0.05, noise: true, vol: 0.03 }); },   // ことっ（置く・掘る）
+  remove: t => tone(t, { f0: 700, f1: 260, dur: 0.12, noise: true, vol: 0.05 }),
+  burrow: t => { tone(t, { f0: 520, f1: 200, dur: 0.22, type: 'sine', vol: 0.05 }); tone(t + 0.05, { f0: 500, f1: 250, dur: 0.18, noise: true, vol: 0.035 }); },  // 巣にもぐる
+  out: t => { tone(t, { f0: 240, f1: 620, dur: 0.2, type: 'sine', vol: 0.045 }); },                                                                        // 地上へ出る
+  pet: t => { tone(t, { f0: 1175, dur: 0.08, type: 'sine', vol: 0.035 }); tone(t + 0.09, { f0: 1397, dur: 0.12, type: 'sine', vol: 0.03 }); },
+  birth: t => { [784, 988, 1175, 1568].forEach((f, i) => tone(t + i * 0.12, { f0: f, dur: 0.22, type: 'triangle', vol: 0.06 })); },
+  travel: t => tone(t, { f0: 600, f1: 2400, dur: 0.45, noise: true, vol: 0.05 }),
   plug: t => { tone(t, { f0: 220, f1: 180, dur: 0.06, type: 'triangle', vol: 0.1 }); tone(t + 0.08, { f0: 260, f1: 200, dur: 0.06, type: 'triangle', vol: 0.1 }); },
 };
+export const SFX_NAMES = Object.keys(SOUNDS);
 /** 鳴らす（同じ音は 0.25 秒あける） */
 export function sfx(name) {
   if (!enabled || !ctx || ctx.state !== 'running' || !SOUNDS[name]) return;

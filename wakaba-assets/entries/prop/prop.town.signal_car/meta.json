@@ -1,0 +1,90 @@
+{
+ "id": "prop.town.signal_car",
+ "version": 1,
+ "name": {
+  "ja": "車の信号（延長の柱・腕・横 3 灯・庇・背面板）",
+  "en": "Traffic signal, vehicle (arm, 3 lamps, visors)"
+ },
+ "category": "prop",
+ "tags": [
+  "信号",
+  "町",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/kit/build_kit_transit.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/shinshoku/IMPLEMENTATION_STATUS.md"
+ },
+ "tech": {
+  "formats": [
+   "glb",
+   "fbx"
+  ],
+  "tris": 492,
+  "lods": [
+   492,
+   236
+  ],
+  "sizeM": [
+   4.09,
+   2.66,
+   0.49
+  ],
+  "pivot": "bottom_center",
+  "collision": "none",
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness"
+  ],
+  "fileBytes": 60880
+ },
+ "use": [
+  "境界侵食（shinshoku）の町と屋内"
+ ],
+ "status": "draft",
+ "kit": {
+  "kit": "wakaba-kit/1",
+  "nodes": {
+   "LOD0": 492,
+   "LOD1": 236
+  },
+  "variants": 1,
+  "lodDist": [
+   45
+  ],
+  "impostor": false,
+  "materials": [
+   "emit.siggreen",
+   "emit.sigred",
+   "emit.sigyellow",
+   "mat.town.paint#black",
+   "mat.town.paint#pole",
+   "mat.town.paint#signal"
+  ],
+  "vertexColor": "COLOR_0＝AO（焼き込み）",
+  "note": "節の名前 LOD<n>（種類が複数なら v<k>_LOD<n>）・IMP＝遠景の十字の板（画像は glb の中）。材質は id の名前で共有の PBR 材質に差し替える"
+ },
+ "history": [
+  {
+   "at": "2026-10-27",
+   "by": "claude-code",
+   "change": "tools/blender/kit/build_kit_transit.py（pieces_transit.py）で生成（境界侵食 P17：路面電車・バス・信号・駅前の大屋根）"
+  }
+ ]
+}

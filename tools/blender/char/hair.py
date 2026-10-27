@@ -182,6 +182,16 @@ class HairBuilder:
         if fo is not None and np.ndim(fo) == 2 and len(fo) == len(C):
             kw['flat_out'] = _norm(resample(np.asarray(fo, float), max(n, 5)))
         C = resample(C, max(n, 5))
+        # P17：房ごとのばらつき（幅・厚み・先の細り）。前は全部の房が同じ太さで「均一な束」に見えた。房の番号で決まる乱数（作り直しても同じ）
+        rv = np.random.default_rng(1000 + len(self.locks))
+        if kind == 'lock':
+            w *= rv.uniform(0.84, 1.2)
+            t *= rv.uniform(0.85, 1.45)
+        elif kind == 'bang':
+            w *= rv.uniform(0.9, 1.1)
+            t *= rv.uniform(0.9, 1.25)
+        if 'tip_pow' in kw:
+            kw['tip_pow'] = kw['tip_pow'] * rv.uniform(0.82, 1.22)
         L = lock_mesh(C, self.skull, self.Hc, w, t, M=self.M, **kw)
         L['chain'] = chain
         L['hold'] = hold

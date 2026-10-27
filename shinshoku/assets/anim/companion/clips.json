@@ -1,0 +1,140 @@
+{
+ "spec": "wakaba-clipset/1",
+ "skeleton": "vrm1-humanoid",
+ "note": "相棒（companion）の動きの組（P17）。手続きの動き（charkit/anim/clips の歩きの鍵の姿勢＋足の IK・戦闘のこまは shinshoku/data/combat.js）を録った VRMA。リポジトリの中で作った自作（tools/charkit/export_test_vrm.mjs --clips <名前>）。モーションキャプチャの動きが来たら差し替える（docs/shinshoku/VROID_GUIDE.md §4）。歩き方の性格は companion（charkit/anim/clips の PERSONALITY）。戦わないので攻撃の動きは入れない",
+ "source": {
+  "type": "self_made",
+  "generator": "tools/charkit/export_test_vrm.mjs"
+ },
+ "clips": {
+  "loco.walk": {
+   "file": "loco_walk.vrma",
+   "role": "loco",
+   "loop": true,
+   "speedMS": 2.2,
+   "durationS": 0.6928,
+   "strideM": 0.762,
+   "rootMotion": "none",
+   "events": [
+    {
+     "t": "footL",
+     "u": 0
+    },
+    {
+     "t": "footR",
+     "u": 0.5
+    }
+   ],
+   "source": {
+    "type": "procedural_capture",
+    "from": "shinshoku/actor/actors.js Player（LocoDriver）・性格 companion"
+   }
+  },
+  "loco.jog": {
+   "file": "loco_jog.vrma",
+   "role": "loco",
+   "loop": true,
+   "speedMS": 3.4,
+   "durationS": 0.6853,
+   "strideM": 1.1651,
+   "rootMotion": "none",
+   "events": [
+    {
+     "t": "footL",
+     "u": 0
+    },
+    {
+     "t": "footR",
+     "u": 0.5
+    }
+   ],
+   "source": {
+    "type": "procedural_capture",
+    "from": "shinshoku/actor/actors.js Player（LocoDriver）・性格 companion"
+   }
+  },
+  "loco.run": {
+   "file": "loco_run.vrma",
+   "role": "loco",
+   "loop": true,
+   "speedMS": 5,
+   "durationS": 0.6519,
+   "strideM": 1.6297,
+   "rootMotion": "none",
+   "events": [
+    {
+     "t": "footL",
+     "u": 0
+    },
+    {
+     "t": "footR",
+     "u": 0.5
+    }
+   ],
+   "source": {
+    "type": "procedural_capture",
+    "from": "shinshoku/actor/actors.js Player（LocoDriver）・性格 companion"
+   }
+  },
+  "loco.sprint": {
+   "file": "loco_sprint.vrma",
+   "role": "loco",
+   "loop": true,
+   "speedMS": 6.5,
+   "durationS": 0.5917,
+   "strideM": 1.9231,
+   "rootMotion": "none",
+   "events": [
+    {
+     "t": "footL",
+     "u": 0
+    },
+    {
+     "t": "footR",
+     "u": 0.5
+    }
+   ],
+   "source": {
+    "type": "procedural_capture",
+    "from": "shinshoku/actor/actors.js Player（LocoDriver）・性格 companion"
+   }
+  },
+  "idle": {
+   "file": "idle.vrma",
+   "role": "idle",
+   "loop": true,
+   "durationS": 4,
+   "rootMotion": "none",
+   "source": {
+    "type": "procedural_capture"
+   }
+  }
+ },
+ "files": [
+  {
+   "file": "loco_walk.vrma",
+   "bytes": 15344,
+   "sha256": "74f58abc890f09d9b1201d8fb2eb84fddfe84508e347076f980664f2160134fa"
+  },
+  {
+   "file": "loco_jog.vrma",
+   "bytes": 15344,
+   "sha256": "d5aa1f5cbb56bd347c23f502493bb244b54aba56b783fce917fc989a2c3a8850"
+  },
+  {
+   "file": "loco_run.vrma",
+   "bytes": 15344,
+   "sha256": "f3b103055095dc63045b22f6e34e8fca0447b868db91c0cf1b4acab22f96fae3"
+  },
+  {
+   "file": "loco_sprint.vrma",
+   "bytes": 15348,
+   "sha256": "30b23fcd826a0c26c7dbd785c1c02b3766f3c8ea912bd385b017c64effc81309"
+  },
+  {
+   "file": "idle.vrma",
+   "bytes": 40716,
+   "sha256": "f3b9a21245e8c8faf89903c918ec0aafae86b8c17e5d346481e841b74719c442"
+  }
+ ]
+}

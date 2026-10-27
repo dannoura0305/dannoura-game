@@ -336,7 +336,7 @@ export class SkinBody {
     this.root.updateMatrixWorld(true);
     const skeleton = new THREE.Skeleton(this.bones);
     const V2 = SHADER === 2;
-    const used = [...new Set(this.groups.body.mat.concat(this.groups.plain.mat, ['face']).filter(x => typeof x === 'string'))];
+    const used = [...new Set(this.groups.body.mat.concat(this.groups.plain.mat, ['face'], opt.classes || []).filter(x => typeof x === 'string'))];   // P17：opt.classes＝差し替える網（Blender の異形）が使う材質の種類
     const table = classTable(opt.shader && opt.shader.materials, used);
     const mk = (a, withOth) => {
       const g = new THREE.BufferGeometry();

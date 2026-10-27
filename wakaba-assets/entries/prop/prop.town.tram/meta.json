@@ -1,0 +1,102 @@
+{
+ "id": "prop.town.tram",
+ "version": 1,
+ "name": {
+  "ja": "路面電車（2 両つなぎの低床車・独自の意匠。v0 暗い窓・v1 灯り）",
+  "en": "Tram, 2-section low floor (original design; v0 dark / v1 lit)"
+ },
+ "category": "prop",
+ "tags": [
+  "路面電車",
+  "町",
+  "手続き",
+  "自作"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/kit/build_kit_transit.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/shinshoku/IMPLEMENTATION_STATUS.md"
+ },
+ "tech": {
+  "formats": [
+   "glb",
+   "fbx"
+  ],
+  "tris": 6252,
+  "lods": [
+   6252,
+   1704
+  ],
+  "sizeM": [
+   3.04,
+   5.875,
+   14.52
+  ],
+  "pivot": "bottom_center",
+  "collision": "box",
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "ao",
+   "roughness"
+  ],
+  "fileBytes": 885956
+ },
+ "use": [
+  "境界侵食（shinshoku）の町と屋内"
+ ],
+ "status": "draft",
+ "kit": {
+  "kit": "wakaba-kit/1",
+  "nodes": {
+   "v0_LOD0": 6252,
+   "v0_LOD1": 1704,
+   "v1_LOD0": 6252,
+   "v1_LOD1": 1704
+  },
+  "variants": 2,
+  "lodDist": [
+   70
+  ],
+  "impostor": false,
+  "materials": [
+   "emit.cabin",
+   "emit.dest",
+   "emit.head",
+   "emit.tail",
+   "glass.dark",
+   "mat.town.paint#amber",
+   "mat.town.paint#bellows",
+   "mat.town.paint#black",
+   "mat.town.paint#chrome",
+   "mat.town.paint#dark",
+   "mat.town.paint#roofgrey",
+   "mat.town.paint#steel",
+   "mat.town.paint#steeldk",
+   "mat.town.paint#teal",
+   "mat.town.paint#twhite",
+   "mat.town.paint#yellow"
+  ],
+  "vertexColor": "COLOR_0＝AO（焼き込み）",
+  "note": "節の名前 LOD<n>（種類が複数なら v<k>_LOD<n>）・IMP＝遠景の十字の板（画像は glb の中）。材質は id の名前で共有の PBR 材質に差し替える"
+ },
+ "history": [
+  {
+   "at": "2026-10-27",
+   "by": "claude-code",
+   "change": "tools/blender/kit/build_kit_transit.py（pieces_transit.py）で生成（境界侵食 P17：路面電車・バス・信号・駅前の大屋根）"
+  }
+ ]
+}

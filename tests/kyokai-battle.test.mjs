@@ -261,6 +261,38 @@ test('セーブ：シロの記録（Lv・経験値・HP・技）は kyokai_save_
   assert.equal(d3.lv, 30); assert.equal(d3.hp, 0); assert.ok(d3.moves.length >= 1 && d3.moves.every(m => B.MOVES[m.id]));
 });
 
+test('技の演出：どの技も演出の種類があり、どのエフェクトも 4 色だけで描く（整数のドット・途中で落ちない）', () => {
+  const { B } = load();
+  const kinds = new Set();
+  for (const [id, mv] of Object.entries(B.MOVES)) {
+    const k = B._fxKind(mv); kinds.add(k);
+    assert.ok(B._FX[k], id + ' の演出 ' + k + ' がない');
+    if (mv.eff === 'heal' || mv.eff === 'selfheal') assert.equal(k, 'heal', id);
+    else if (mv.eff) assert.equal(k, 'down', id);
+    else assert.equal(k, mv.type, id);
+    assert.ok(B._FX_DUR[k] >= 300 && B._FX_DUR[k] <= 900, k + ' の長さ');
+  }
+  for (const k of ['none', 'flux', 'echo', 'void', 'heal', 'down']) assert.ok(kinds.has(k), k + ' を使う技がある');
+  const pal = ['#000001', '#000002', '#000003', '#000004'];
+  for (const [k, fn] of Object.entries(B._FX)) {
+    for (const [A, T] of [[[40, 120, 30], [140, 40, 34]], [[150, 40, 40], [40, 130, 28]], [[60, 60, 12], [60, 60, 12]]]) {
+      for (let i = 0; i <= 15; i++) {
+        const used = [];
+        const ctx = { set fillStyle(v) { used.push(v); }, get fillStyle() { return ''; },
+          fillRect(x, y, w, h) { assert.ok([x, y, w, h].every(Number.isInteger), `${k} t=${i}/15 の点が整数でない ${[x, y, w, h]}`); assert.ok(w > 0 && h > 0, k + ' 幅0'); } };
+        fn(ctx, pal, i / 15, A, T, 200, 160);
+        for (const c of used) assert.ok(pal.includes(c), `${k} が 4 色以外 ${c}`);
+      }
+    }
+  }
+});
+
+test('鳴き声：生き物ごとに関数があり、音が無い環境でも落ちない', () => {
+  const { B } = load();
+  assert.equal(typeof B.cry, 'function');
+  for (const id of Object.keys(B.ENEMIES)) B.cry(id);
+});
+
 test('データ：敵 13 種＋ボス 4 体・技の属性・絵がある。章のボス戦は定義済みの敵を呼ぶ。だんのうらは出ない', () => {
   const { B } = load();
   const ids = Object.keys(B.ENEMIES);

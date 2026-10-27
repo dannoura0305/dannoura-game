@@ -496,3 +496,38 @@ html.tb-touch .tb-linexp .tb-btn { min-height: 36px; }
 /* 上の案内（ヘルプの 1 行）はトーストと重ならない：ui.js の fitHelp がトーストの下へずらす。下げすぎるときはトーストの間だけ隠す */
 .tb-help.tb-help-hide { opacity: 0 !important; visibility: hidden; transition: none; }
 .tb-compnote { font-size: .85em; margin-top: 2px; }
+
+/* ───────── Ver.0.9「みがき」 ───────── */
+/* どのパネルも画面の外へはみ出さない（PC でも。中が長いときはスクロール） */
+.tb-dialog, .tb-menu { max-height: calc(100% - var(--u) * 8px); overflow-y: auto; overscroll-behavior: contain; }
+/* メニュー：よく使う画面は 2 列のボタン（PC はキーつき）、設定はたためる欄 */
+.tb-mainmenu { width: calc(var(--u) * 210px); }
+.tb-menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 2px); margin: calc(var(--u) * 2px) 0 calc(var(--u) * 3px); }
+.tb-navbtn { display: flex; align-items: center; justify-content: space-between; gap: calc(var(--u) * 2px); padding: calc(var(--u) * 2.5px) calc(var(--u) * 4px); text-align: left; min-width: 0; }
+.tb-navbtn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tb-navbtn kbd { margin: 0; flex: none; opacity: .85; }
+.tb-settings { border: 1px solid rgba(200,164,106,.35); border-radius: calc(var(--u) * 2px); padding: calc(var(--u) * 1px) calc(var(--u) * 4px); margin: calc(var(--u) * 2px) 0; background: rgba(20,12,8,.25); }
+.tb-settings summary { cursor: pointer; color: var(--edge2); padding: calc(var(--u) * 1.5px) 0; list-style: none; }
+.tb-settings summary::-webkit-details-marker { display: none; }
+.tb-settings summary::before { content: '▸ '; color: var(--acc); }
+.tb-settings[open] summary::before { content: '▾ '; }
+.tb-mainmenu .tb-menu-items .tb-btn.wide { margin: calc(var(--u) * 2px) 0; }
+html.tb-touch .tb-mainmenu { width: min(calc(100% - 8px), 460px); }
+html.tb-touch .tb-navbtn { min-height: 44px; justify-content: center; text-align: center; }
+html.tb-touch .tb-settings summary { min-height: 40px; display: flex; align-items: center; }
+/* 土地の見立て（巣を掘る・土地を調べる）：項目ごとに折り返さない */
+.tb-landsum { display: grid; grid-template-columns: repeat(2, auto); justify-content: center; gap: 0 calc(var(--u) * 8px); margin: calc(var(--u) * 2px) 0; text-align: left; }
+.tb-landsum > b { grid-column: 1 / -1; text-align: center; color: var(--ok); font-weight: normal; }
+.tb-landsum > span { white-space: nowrap; }
+/* 暮らしのバー：増えた・減ったときに ひかる */
+.tb-lrow.up .tb-lbar { box-shadow: 0 0 0 calc(var(--u)*0.6px) #fff4c0, 0 0 calc(var(--u)*4px) rgba(255,230,140,.7); transition: box-shadow .1s; }
+.tb-lrow .tb-lbar { transition: box-shadow .6s; }
+/* はじめの めあて（地上・巣の中。ホットバー／案内の上に 1 行） */
+.tb-goal { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(var(--u) * 31px); width: max-content; max-width: min(calc(var(--u) * 220px), calc(100% - 16px)); display: flex; align-items: center; gap: calc(var(--u) * 3px); background: rgba(30,18,10,.84); border: 1px solid var(--acc); border-radius: calc(var(--u) * 2px); padding: calc(var(--u) * 1px) calc(var(--u) * 2px) calc(var(--u) * 1px) calc(var(--u) * 4px); font-size: .8em; z-index: 6; animation: tbin .4s; box-shadow: 0 0 calc(var(--u) * 4px) rgba(240,192,96,.25); }
+.tb-goal b { color: var(--acc); font-weight: normal; flex: none; }
+.tb-goal .n { color: var(--ok); flex: none; }
+.tb-goal button { flex: none; background: none; border: none; color: var(--dim); font: inherit; cursor: pointer; padding: 0 calc(var(--u) * 1px); }
+.tb-goal.done { border-color: #a8e0a0; }
+.tb-goal.walk { bottom: calc(var(--u) * 19px); }
+html.tb-touch .tb-goal { font-size: max(.8em, 12px); }
+html.tb-touch .tb-goal button { min-width: 32px; min-height: 28px; }

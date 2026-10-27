@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.town.bus_lite",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.town.bus_lite.fbx",
+   "storage": "local-ignored",
+   "sha256": "f8f8bf9f4b2e9e98b9bc656529e9bbddd34313bc19262796c8d883a562c729b0",
+   "bytes": 70156,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_transit.py --only prop.town.bus_lite"
+  }
+ ]
+}

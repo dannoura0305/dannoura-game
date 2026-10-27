@@ -26,6 +26,7 @@ import { FURNITURE } from '../shared/items.js';
 import { seasonOf } from '../shared/season.js';
 import { Ambient } from './ambient.js';
 import { festNote } from '../shared/festival.js';
+import { newGoal, goalStep, goalEvent } from './goal.js';
 
 const stage = document.getElementById('tb-stage');
 const game = {
@@ -145,10 +146,50 @@ game.eat = async function (from = 'inv', item = 'seed') {
   if (!r.ok) { game.ui.toast(r.reason || '食べられない', 'bad'); return r; }
   if (r.inv) game.setInv(r.inv);
   if (r.storage && game.nest) game.nest.storage = r.storage;
+  const hu0 = game.life ? game.life.hunger : 0;
   game.setLife(r.life, true);
+  sfx('eat');
+  game.goal('eat');
+  if (game.scene && game.scene.pops && game.scene.popAtMe) game.scene.popAtMe('空腹 +' + Math.max(0, Math.round(r.life.hunger - hu0)), '#ffe890');
   game.ui.toast(from === 'pile' ? '種の山から 種子を食べた（空腹 ' + Math.round(r.life.hunger) + '）' : (r.item === 'rare_seed' ? '珍しい種を食べた！ あまい（空腹 ' : '種子を食べた（空腹 ') + Math.round(r.life.hunger) + '・のこり ' + (r.left != null ? r.left : '?') + ' 個）');
   if (game.scene && game.scene.onEat) game.scene.onEat();
   return r;
+};
+// ── Ver.0.9：はじめの めあて（client/goal.js。進み具合は設定に・子ごと）──
+game.goalKey = () => ((game.account && game.account.id) || 'local') + '|' + ((game.character && game.character.name) || '');
+game.goalInit = function (hasNest) {
+  const k = game.goalKey(), s = game.settings;
+  if (!s.goal || s.goal.key !== k) { s.goal = newGoal(k, hasNest); saveSettings(s); }
+};
+game.goal = function (ev) { if (goalEvent(game.settings.goal, ev)) { saveSettings(game.settings); game.renderGoal(); } };
+game.renderGoal = function () {
+  const sc = game.scene, where = sc && sc === game.field ? 'field' : sc && sc === game.walk ? 'walk' : null;
+  const st = game.settings.goal;
+  const step = where ? goalStep(st, { hasNest: !!(game.field && game.field.myNest), touch: game.isTouch }) : null;
+  const key = step ? [step.id, step.n, where, game.isTouch].join('|') : '';
+  game.debug.goal = step ? step.id : null;
+  if (key === game._goalKey && (!game.goalEl || game.goalEl.isConnected)) { game.placeGoal(); return; }
+  game._goalKey = key;
+  if (game.goalEl) { game.goalEl.remove(); game.goalEl = null; }
+  if (!step) return;
+  const e = el('div', 'tb-goal tb-ui-block' + (where === 'walk' ? ' walk' : '') + (step.id === 'done' ? ' done' : ''),
+    `<b>めあて</b><span>${step.text}</span>${step.of ? `<span class="n">${step.n}/${step.of}</span>` : ''}<button type="button" title="めあてを出さない" aria-label="めあてを出さない">×</button>`);
+  const finish = () => { if (step.id === 'done') st.done = true; else st.off = true; saveSettings(game.settings); game.renderGoal(); };
+  e.querySelector('button').onclick = finish;
+  if (step.id === 'done') { sfx('rare'); setTimeout(() => { if (!st.done) { st.done = true; saveSettings(game.settings); game.renderGoal(); } }, 7000); }
+  game.hud.appendChild(e);
+  game.goalEl = e;
+  game.placeGoal();
+};
+/** めあての置き場所：地上はホットバーの上、巣の中は下の操作の案内の上（大きさを測って重ならないように） */
+game.placeGoal = function () {
+  const e = game.goalEl;
+  if (!e || !e.isConnected) return;
+  const anchor = game.scene === game.walk ? game.hud.querySelector('.tb-guide:not(.fade)') : game.hud.querySelector('.tb-hotbar');
+  const hr = game.hud.getBoundingClientRect();
+  const ar = anchor && anchor.offsetParent ? anchor.getBoundingClientRect() : null;
+  const b = ar && ar.height ? Math.round(hr.bottom - ar.top + 4) + 'px' : '';
+  if (e.style.bottom !== b) e.style.bottom = b;
 };
 game.openLife = function () {
   if (!game.life) return;
@@ -173,7 +214,7 @@ game.setFamily = function (fam, events = []) {
 game._familyEvent = function (e) {
   const ui = game.ui;
   if (e.type === 'born') {
-    sfx('safe');
+    sfx('birth');
     ui.toast('巣で 赤ちゃんが ' + e.pups.length + ' 匹 生まれた！');
     game.pendingNames = e.pups;
     if (game.scene === game.walk && game.nest && game.nest.own && !ui.busy()) game.openNaming();
@@ -372,6 +413,7 @@ game.startGame = async function () {
   game.setFriends(r.world.friends || []);
   if (r.world.family) game.setFamily(r.world.family);
   game.field.init(r.world);
+  game.goalInit(!!r.world.you.nest);
   game.go(game.field);
   if ((r.world.visitors && r.world.visitors.length) || (r.world.raids && r.world.raids.length)) setTimeout(() => { if (!game.ui.busy()) game.ui.visitorsPanel(r.world.visitors || [], r.world.raids || []); }, 600);
 };
@@ -379,6 +421,8 @@ game.enterNest = function (nest, ent, invite = null) {
   game.nest = nest; game.nestPeers = [];
   game.walk = game.walk || new NestWalkScene(game);
   game.go(game.walk, { nest, from: 'field' });
+  sfx('burrow');
+  if (nest.own) game.goal('enter');
   if (invite && invite.ok && invite.friend) { sfx('safe'); game.ui.toast(invite.name + ' が なかまとして 巣に住むことになった（ミミナガトビネズミ：種がちがうので 赤ちゃんはできない）'); }
   else if (invite && invite.ok) { sfx('safe'); game.ui.toast(invite.name + ' を 巣に むかえた！ つれあいになった（世界の半日ほどで 赤ちゃんが生まれる）'); }
   else if (invite) game.ui.toast(invite.name + ' は 入口で待っている：' + invite.reason, 'bad');
@@ -388,7 +432,7 @@ game.enterNest = function (nest, ent, invite = null) {
 };
 game.toBuild = function (nest) { game.build = game.build || new NestBuildScene(game); game.go(game.build, { nest }); };
 game.toWalk = function (nest) { game.walk = game.walk || new NestWalkScene(game); game.go(game.walk, { nest, from: 'build' }); };
-game.backToField = function (pos) { game.nest = null; game.go(game.field, { pos }); };
+game.backToField = function (pos) { game.nest = null; game.go(game.field, { pos }); sfx('out'); };
 
 game.openMenu = function () {
   const net = game.net, s = game.settings;
@@ -398,23 +442,36 @@ game.openMenu = function () {
   const fsOK = document.fullscreenEnabled && document.documentElement.requestFullscreen;
   const fn = net.clock ? festNote(net.clock, net.serverTime()) : null;   // Ver.0.8：小さな暦（次の行事）
   game.debug.festNote = fn ? fn.text : null;
-  const p = game.ui.menu('メニュー', `<div class="tb-menu-info">${net.mode === 'offline' ? 'オフライン（この端末に保存）' : 'オンライン'}　${game.character ? '「' + game.character.name + '」' : ''}</div>
+  // Ver.0.9：よく使う画面を 2 列のボタンに（PC はキーも表示）、設定はたためる欄へ。パネルは画面からはみ出さない（スクロール）
+  const kb = k => game.isTouch ? '' : `<kbd>${k}</kbd>`;
+  const go = fn => () => { game.ui.closeModal(); fn(); };
+  const nav = game.field ? [
+    ['世界地図', 'N', go(game.openWorldMap)], ['図鑑', 'C', go(game.openCollection)], ['実績', 'V', go(game.openAchievements)],
+    ['家族', 'K', go(game.openFamily)], ['家系図', '', go(game.openLineage)], ['くらし', '', go(game.openLife)],
+    ['フレンド', 'F', go(game.openFriends)], ['共同巣', '', go(game.openResidents)], ['巣めぐり', '', go(game.openTour)],
+  ] : [];
+  if (game.scene && game.scene.helpHTML) nav.push(['ヘルプ', '', () => { const h = game.scene.helpHTML(); game.ui.closeModal(); game.ui.menu('ヘルプ', `<div class="tb-help-full">${h}</div>`, [{ label: 'とじる', act: () => game.ui.closeModal() }]); }]);
+  if (fsOK && game.isTouch) nav.push([document.fullscreenElement ? '全画面をやめる' : '全画面にする', '', () => { game.ui.closeModal(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); }]);
+  const p = game.ui.menu('メニュー', `<div class="tb-menu-info">${net.mode === 'offline' ? 'オフライン（この端末に保存）' : 'オンライン'}　${game.character ? '「' + esc(game.character.name) + '」' : ''}</div>
     ${fn ? `<div class="tb-festnote${fn.now ? ' now' : ''}"><b>${esc(fn.text)}</b><span>${esc(fn.sub)}</span></div>` : ''}
+    <div class="tb-menu-grid"></div>
+    <details class="tb-settings"${s.menuSettingsOpen ? ' open' : ''}><summary>設定（${game.isTouch ? '表示の大きさ' : '拡大率'}・音・捕食者）</summary>
     <label class="tb-field">${game.isTouch ? '表示の大きさ' : '拡大率'} <select class="zoom">${zooms.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
     <label class="tb-field">タッチ操作のボタン <select class="touchui">${touchOpts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
     ${net.mode === 'offline' ? `<label class="tb-field">捕食者（フクロウ・キツネ・ヘビ） <select class="danger">${dangerOpts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>` : ''}
     <label class="tb-field">効果音 <select class="sound"><option value="on">鳴らす</option><option value="off">鳴らさない</option></select></label>
-    <label class="tb-field">環境音（風・雨・川・虫・鳴き声） <select class="ambient"><option value="0">鳴らさない</option><option value="0.25">小さく</option><option value="0.5">ふつう</option><option value="0.85">大きく</option></select></label>`, [
-    { label: 'ゲームにもどる', act: () => game.ui.closeModal() },
-    ...(game.field ? [{ label: '世界地図', act: () => { game.ui.closeModal(); game.openWorldMap(); } }, { label: '図鑑（収集品）', act: () => { game.ui.closeModal(); game.openCollection(); } },
-      { label: '実績', act: () => { game.ui.closeModal(); game.openAchievements(); } }, { label: '巣めぐり（たずねられる巣）', act: () => { game.ui.closeModal(); game.openTour(); } },
-      { label: 'フレンド', act: () => { game.ui.closeModal(); game.openFriends(); } }, { label: '共同巣', act: () => { game.ui.closeModal(); game.openResidents(); } }, { label: 'くらし（体調・空腹・水分・年齢）', act: () => { game.ui.closeModal(); game.openLife(); } },
-      { label: '家族', act: () => { game.ui.closeModal(); game.openFamily(); } }, { label: '家系図', act: () => { game.ui.closeModal(); game.openLineage(); } }] : []),
-    ...(game.scene && game.scene.helpHTML ? [{ label: 'ヘルプ（操作のしかた）', act: () => { const h = game.scene.helpHTML(); game.ui.closeModal(); game.ui.menu('ヘルプ', `<div class="tb-help-full">${h}</div>`, [{ label: 'とじる', act: () => game.ui.closeModal() }]); } }] : []),
-    ...(fsOK && game.isTouch ? [{ label: document.fullscreenElement ? '全画面をやめる' : '全画面にする', act: () => { game.ui.closeModal(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); } }] : []),
+    <label class="tb-field">環境音（風・雨・川・虫・鳴き声） <select class="ambient"><option value="0">鳴らさない</option><option value="0.25">小さく</option><option value="0.5">ふつう</option><option value="0.85">大きく</option></select></label>
+    </details>`, [
+    { label: 'ゲームにもどる', cls: 'primary', act: () => game.ui.closeModal() },
     { label: '保存してタイトルへ（ログアウト）', act: async () => { net.savePosition && net.savePosition(); await net.logout(); game.ui.closeModal(); game.field = null; game.walk = null; game.build = null; game.go(new TitleScene(game)); } },
     { label: '本編（だんのうら）に戻る', act: () => { net.savePosition && net.savePosition(); net.flush && net.flush(); location.href = 'index.html'; } },
-  ]);
+  ], { cls: 'tb-mainmenu' });
+  const grid = p.querySelector('.tb-menu-grid');
+  for (const [label, key, act] of nav) { const b = el('button', 'tb-btn tb-navbtn', `<span>${esc(label)}</span>${key ? kb(key) : ''}`); b.onclick = act; grid.appendChild(b); }
+  if (!nav.length) grid.remove();
+  const det = p.querySelector('.tb-settings');
+  det.addEventListener('toggle', () => { s.menuSettingsOpen = det.open; saveSettings(s); });
+  game.debug.menuNav = nav.map(n => n[0]);
   const zs = p.querySelector('.zoom'); zs.value = zooms.some(z => z[0] === s.zoom) ? s.zoom : 'auto';
   zs.onchange = () => { s.zoom = zs.value; saveSettings(s); game.screen.setZoomPref(zs.value); };
   const ts = p.querySelector('.touchui'); ts.value = s.touchUI || 'auto';
@@ -543,6 +600,7 @@ function frame(now) {
   if (game.field) game.updateEnv();
   if (game.field && game.ui.clockEl && (sc === game.field || sc === game.walk)) game.ui.setClock(game.tod(), game.env);
   if (game.isTouch) game.touch.setBusy(game.ui.busy());
+  if (now - (game._goalT || 0) > 400) { game._goalT = now; game.renderGoal(); }
   game.ambient.update(dt, game);
   game.input.endFrame();
   requestAnimationFrame(frame);

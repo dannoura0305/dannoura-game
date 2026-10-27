@@ -181,3 +181,18 @@ export function placeHelpLine(help, toasts, { limit = Infinity, gap = 4 } = {}) 
 }
 /** 2 つの箱が重なるか（{left, right, top, bottom}） */
 export const boxesOverlap = (a, b) => !!(a && b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom);
+
+/**
+ * Ver.0.9：PC（マウスとキーボード）の画面。拡大率は整数のまま（ドットがくっきり）、内部解像度を窓に合わせて広げて
+ * 黒い余白をなくす（480×270 より狭くはしない・広げすぎない：PC_MAX）。pref＝'auto' か '1'〜'4'（メニューの拡大率）。
+ * 返り値 {W, H, scale}
+ */
+export const PC_MAX = { W: 720, H: 450 };
+export function pcLayout(vw, vh, pref = 'auto') {
+  const fit = Math.min(vw / 480, vh / 270);
+  let s = fit < 1 ? fit : Math.max(1, Math.floor(fit));               // とても小さい窓だけは縮小
+  if (pref !== 'auto' && +pref) s = Math.min(Math.max(1, +pref), Math.max(1, Math.floor(fit)) || 1);
+  const W = Math.max(480, Math.min(PC_MAX.W, Math.floor(vw / s)));
+  const H = Math.max(270, Math.min(PC_MAX.H, Math.floor(vh / s)));
+  return { W, H, scale: s };
+}

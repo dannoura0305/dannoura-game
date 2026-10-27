@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "bld.town.canopy_truss",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/bld.town.canopy_truss.fbx",
+   "storage": "local-ignored",
+   "sha256": "2f673227cc12bfbab800b8abf6e1a9d176e886341cb6a48295dc33e39c287ef7",
+   "bytes": 27260,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_transit.py --only bld.town.canopy_truss"
+  }
+ ]
+}

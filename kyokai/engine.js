@@ -552,7 +552,7 @@
     try { os.setPeriodicWave(pulseWave(o.duty || 0.5)); } catch (e) { os.type = 'square'; }
     os.frequency.setValueAtTime(f, t); if (o.to) os.frequency.linearRampToValueAtTime(o.to, t + dur);
     const v = o.vol == null ? 0.04 : o.vol;
-    g.gain.setValueAtTime(v, t); g.gain.setValueAtTime(v, t + dur * 0.75); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    g.gain.value = 0; g.gain.setValueAtTime(v, t); g.gain.setValueAtTime(v, t + dur * 0.75); g.gain.linearRampToValueAtTime(0.0001, t + dur);
     os.connect(g); g.connect(o.dest || AU.out); os.start(t); os.stop(t + dur + 0.03);
   }
   function chipSeq(notes, t, len, o) { notes.forEach((f, i) => { if (f) chip(f, t + i * len, len * (o && o.hold && i === notes.length - 1 ? o.hold : 0.95), o); }); }
@@ -561,7 +561,7 @@
     const c = AU.ctx, s = noiseSrc(false), f = c.createBiquadFilter(), g = c.createGain();
     f.type = 'highpass'; f.frequency.value = o.f || 1800;
     const v = o.vol == null ? 0.08 : o.vol, st = 4;
-    g.gain.setValueAtTime(v, t); for (let i = 1; i <= st; i++) g.gain.setValueAtTime(v * (1 - i / st) + 0.0001, t + dur * i / st);
+    g.gain.value = 0; g.gain.setValueAtTime(v, t); for (let i = 1; i <= st; i++) g.gain.setValueAtTime(v * (1 - i / st) + 0.0001, t + dur * i / st);
     s.connect(f); f.connect(g); g.connect(o.dest || AU.out); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.05);
   }
   function tick(t, hi, vol, dest) { envNoise(t, 0.035, { f: hi ? 3600 : 2600, q: 9, vol: vol == null ? 0.22 : vol, dest }); envTone(hi ? 2100 : 1700, t, 0.03, { vol: (vol == null ? 0.22 : vol) * 0.25, dest }); }
@@ -724,6 +724,11 @@
     if (label instanceof Node) b.appendChild(label); else b.textContent = label;
     if (title) b.setAttribute('aria-label', title);
     b.addEventListener('click', e => { e.stopPropagation(); if (b.disabled) return; KY.se('tap'); fn && fn(e); });
+    // マウスを乗せた項目にカーソル（▶）も移す：選ばれて見える項目が 2 つにならないように（窓・タイトルの中だけ）
+    b.addEventListener('pointermove', e => {
+      if (e.pointerType !== 'mouse' || b.disabled || document.activeElement === b) return;
+      if (b.closest('.ky-ov, .title-menu')) { try { b.focus({ preventScroll: true }); } catch (er) {} }
+    });
     return b;
   }
   KY._button = button;
@@ -743,7 +748,13 @@
     return h;
   }
   KY._openOv = openOv;
-  function focusFirst(el) { setTimeout(() => { try { const b = el.querySelector('[data-autofocus]') || el.querySelector('button:not([disabled]),input'); b && b.focus({ preventScroll: true }); } catch (e) {} }, 30); }
+  // キーボードで動かしている間（と窓が開いた直後）は、止まっているマウスの下の項目を光らせない（選ばれて見える項目を 1 つに）
+  function noHover(on) { if (D.app) D.app.classList.toggle('nohover', !!on); }
+  if (HAS_DOM) {
+    document.addEventListener('keydown', () => noHover(true), true);
+    document.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' && (e.movementX || e.movementY)) noHover(false); }, true);
+  }
+  function focusFirst(el) { noHover(true); setTimeout(() => { try { const b = el.querySelector('[data-autofocus]') || el.querySelector('button:not([disabled]),input'); b && b.focus({ preventScroll: true }); } catch (e) {} }, 30); }
   KY._focusFirst = focusFirst;
 
   /* ── 場面キャンバス ── */
@@ -1297,6 +1308,12 @@
     r.addEventListener('input', () => { KY.setVolume(+r.value); v.textContent = r.value; });
     r.addEventListener('change', () => KY.se('beep'));
     row.append($('span', '', '全体'), r, v); a.appendChild(row);
+    if (root.KY_BGM) {
+      const row2 = $('label', 'set-row'); const r2 = $('input'); r2.type = 'range'; r2.min = 0; r2.max = 100; r2.step = 5; r2.value = SET.bgm == null ? 60 : SET.bgm; const v2 = $('span', 'set-v', r2.value + '');
+      r2.addEventListener('input', () => { KY_BGM.setVol(+r2.value); v2.textContent = r2.value; });
+      row2.append($('span', '', 'BGM'), r2, v2); a.appendChild(row2);
+      a.appendChild($('div', 'set-note', 'BGM は町や建物の中を歩いているあいだだけ流れます（0 で消えます）。'));
+    }
     const b = sec('文字の速さ');
     const rb = $('div', 'seg');
     [['slow', '遅い'], ['normal', '普通'], ['fast', '速い'], ['instant', '一瞬']].forEach(([k, lb]) => {

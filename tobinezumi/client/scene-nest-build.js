@@ -9,6 +9,7 @@ import { FURNITURE, FURNITURE_ORDER, countItem, costText, addCost, halfCost } fr
 import { CURIOS, CURIO_ORDER, ACHIEVEMENTS } from '../shared/collect.js';
 import { curioIconURL } from './world-ui.js';
 import { Gestures, snapZoom } from './touch-logic.js';
+import { sfx } from './sfx.js';
 
 export const TOOLS = [
   { id: 'dig', name: '掘る', key: '1', hint: 'クリック・ドラッグで土を 1 マスずつ掘る' },
@@ -59,7 +60,7 @@ export class NestBuildScene {
     tc.on('toggle:pan', on => { this.panMode = on; this._syncMenu(); });
     this.panMode = false;
     g.hud.classList.add('tb-hud-build');
-    requestAnimationFrame(() => { this._measure(); if (this._needHome && g.isTouch) this._fitHome(); this._needHome = false; });
+    requestAnimationFrame(() => { this._measure(); if (this._needHome) { if (g.isTouch) this._fitHome(); else this._fitWhole(); } this._needHome = false; });
   }
   leave() { if (this.dom) this.dom.remove(); this.dom = null; this.game.screen.clearUI(); this.game.hud.classList.remove('tb-hud-build'); }
   /** タッチ：入口と部屋が、ツール欄に隠れない所の真ん中に来るように。1 マスが指で押せる大きさ（約 24px 以上）に */
@@ -71,6 +72,12 @@ export class NestBuildScene {
     this.zf = [0.5, 0.75, 1, 1.5, 2].find(z => z >= need - 1e-6) || 2;
     this.cam.x = (x0 + x1) / 2 * CELL; this.cam.y = (y0 + y1) / 2 * CELL;
     this._clampCam(); this._syncMenu();
+  }
+  /** Ver.0.9：PC：巣の全体が見える いちばん大きい拡大率（窓が広いと 0.5 より大きく） */
+  _fitWhole() {
+    const d = this.nest.data, pw = d.w * CELL, ph = d.h * CELL;
+    this.zf = [1, 0.75, 0.5].find(z => pw * z <= this.VW - 8 && ph * z <= H - 44) || 0.5;
+    this._fit(); this._clampCam(); this._syncMenu();
   }
   helpHTML() {
     if (!this.game.isTouch) return '左のツール（<b>1〜7</b>）を選んでマウスで編集。<b>ホイール</b> 拡大縮小、<b>右ドラッグ</b>・方向キー 見回し、<b>Ctrl+Z</b> 取り消し、<b>R</b> 家具の向き、<b>Tab・B</b> 歩く';
@@ -434,6 +441,8 @@ export class NestBuildScene {
         return false;
       }
       this.nest.data = res.data; this.nest.rev = res.rev;
+      sfx(op.op === 'remove' ? 'remove' : 'place');
+      if (!isUndo && op.op !== 'remove' && this.nest.own !== false) g.goal('build');
       g.setInv(res.inv);
       this.view.setData(res.data, { fill: this._fill() });
       this._mats();

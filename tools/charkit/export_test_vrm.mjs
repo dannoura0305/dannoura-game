@@ -1,6 +1,7 @@
 // 試験用の VRM 1.0・VRMA 1.0 を作る（配管の試験用・本番の絵ではない）。docs/shinshoku/ASSET_IMPORT.md「試験用の VRM」。
 //   node tools/charkit/export_test_vrm.mjs [--out shinshoku/assets]
 //   node tools/charkit/export_test_vrm.mjs --clips dannoura   … 本番の動きの組（test の印なし）だけを shinshoku/assets/anim/dannoura/ へ（試験用の VRM は書かない）
+//   node tools/charkit/export_test_vrm.mjs --clips companion --pers companion   … P17：相棒の組（歩き方の性格 companion：charkit/anim/clips の PERSONALITY）
 // 中で小さな HTTP の配り手を一時的に立て（終わったら閉じる）、Playwright の Chromium で tools/charkit/export_test_vrm.html を開いて書き出す。
 // 出る物：shinshoku/assets/characters/test/dannoura_test.vrm・shinshoku/assets/anim/test/*.vrma・clips.json・README（sha256 の表）。
 import { createServer } from 'node:http';
@@ -30,7 +31,7 @@ try {
   await page.goto(`http://127.0.0.1:${port}/tools/charkit/export_test_vrm.html`);
   await page.waitForFunction(() => window.__ready, null, { timeout: 60000 });
   const clipsOnly = arg('clips', null);
-  const res = await page.evaluate(o => window.exportAll(o), { test: !clipsOnly });
+  const res = await page.evaluate(o => window.exportAll(o), { test: !clipsOnly, pers: arg('pers', null) });
   if (errs.length) { console.error('ページのエラー：', errs); process.exitCode = 1; }
   const sha = b => createHash('sha256').update(b).digest('hex');
   if (clipsOnly) {

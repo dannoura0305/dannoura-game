@@ -70,22 +70,22 @@
   {
    "file": "dannoura.vrm",
    "lod": "pc",
-   "bytes": 3411492,
-   "sha256": "752fb4382ee49c28371e1f0c7863570a5b9e815e8f38fb8a5534f659704fdeef",
+   "bytes": 3409932,
+   "sha256": "78ec50d37c1aa4eb847cce0398237c035eb9c112a2c92ea0b0733178ac9181a5",
    "tris": 40775,
    "materials": 5,
    "images": 7,
-   "imageBytes": 1435613
+   "imageBytes": 1434054
   },
   {
    "file": "dannoura_low.vrm",
    "lod": "low",
-   "bytes": 1653528,
-   "sha256": "647cf9e53906ed01b0cb65ccfec49cdf45910fbafff8f3ca9baf1b531a4dc8dd",
+   "bytes": 1653408,
+   "sha256": "f5452e4d8bd39f0cb63d9a08b1e23746183fe2a7cdd7df4229e40d89a95f074c",
    "tris": 18223,
    "materials": 5,
    "images": 7,
-   "imageBytes": 639172
+   "imageBytes": 639057
   }
  ]
 }

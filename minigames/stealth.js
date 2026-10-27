@@ -27,6 +27,31 @@ addMinigameStyle('stealth',`
 @keyframes stealth-pulse{0%,100%{box-shadow:0 0 10px rgba(0,232,200,.25),inset 0 0 10px rgba(0,232,200,.15);}50%{box-shadow:0 0 22px rgba(0,232,200,.6),inset 0 0 14px rgba(0,232,200,.3);}}
 `);
 
+// ══════════════════════════════════════════════════════════
+// 純粋なロジック（DOM なし。tests/minigame-stealth.test.mjs が node:vm で読む）
+//   評価（grade）と報酬（rewardFx：終わった・起こした・0時過ぎ・切り上げ）は改良前の式のまま。
+//   buzzLevel：物音メーターの段階（手元の振動で「今うるさい」を知らせるだけ。判定には使わない）。
+// ══════════════════════════════════════════════════════════
+var StealthLogic=(function(){
+  const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+  function grade(o){
+    if(o.reason==='clear'){
+      const sc=Math.round(clamp(100-o.maxNoise*.35-o.toyHits*6-o.creaks*1.5+(o.T_PLAY-o.cleared)*.7+o.catPets*3+o.hard*3,0,130));
+      return {grade:sc>=80?'S':sc>=62?'A':sc>=45?'B':'C',score:sc};
+    }
+    if(o.reason==='late')return {grade:o.done>=3?'B':'C',score:o.done*12};
+    return {grade:'C',score:o.done*8};
+  }
+  function rewardFx(reason,done){
+    if(reason==='clear')return {fx:{childStress:-10,mental:3,hope:2,fatigue:4},time:45,sp:1};
+    if(reason==='woke')return {fx:{childStress:4,mental:-3,fatigue:6},time:60,sp:0};
+    if(reason==='late')return {fx:{childStress:-Math.min(6,done*2),fatigue:5},time:60,sp:0};
+    return {fx:{fatigue:2},time:20,sp:0};
+  }
+  function buzzLevel(noise){return noise>=85?2:noise>=66?1:0;}
+  return {grade,rewardFx,buzzLevel};
+})();
+
 registerMinigame({
   id:'stealth', icon:'🤫', name:'起こさないで家事', genre:'ステルス', bgm:'night',
   desc:'やっと寝た子の横で、0時までに家事を4つ。足音、床のきしみ、踏んだおもちゃ……物音を立てたら起きてしまう。',
@@ -513,6 +538,8 @@ registerMinigame({
     }
     function ring(x,y,r,col,max){const o=rings[ri];ri=(ri+1)%rings.length;o.x=x;o.y=y;o.r=r;o.col=col;o.t=o.max=max||.6;}
     function pop(x,y,text,col,sz,dur){const o=pops[popi];popi=(popi+1)%pops.length;o.x=x;o.y=y;o.text=text;o.col=col;o.sz=sz||9;o.t=o.max=dur||1;}
+    const buzz=p=>{try{if(mg.buzz)mg.buzz(p);}catch(_){}};
+    let buzzLv=0,buzzCd=0;
     function se(type,force){if(force||seCd<=0){try{AU.se(type);}catch(_){}seCd=.08;}}
     function showBanner(main,sub,col,dur){banner={main,sub,col,t:0,dur:dur||2};}
     const dist=(ax,ay,bx,by)=>Math.hypot(ax-bx,ay-by);
@@ -529,7 +556,7 @@ registerMinigame({
       const c=col||(v>14?'#e83055':v>6?'#e8b830':'#bbaedd');
       ring(x,y,10+v*2.4,c,.5+v*.02);
       if(text)pop(x,y-12,text,c,v>14?12:9,1.1);
-      if(v>14){shake=Math.max(shake,4);se('noise');}
+      if(v>14){shake=Math.max(shake,4);se('noise');buzz(35);}
     }
     function floorAt(x,y){return y<250?'tatami':(x<60&&y>412)?'tile':'wood';}
 
@@ -566,7 +593,7 @@ registerMinigame({
       return best;
     }
     function completeStation(k){
-      const s=ST[k];s.done=true;s.p=1;
+      const s=ST[k];s.done=true;s.p=1;buzz(18);
       se('decide',true);SX.play('done');
       burst(s.x,s.y,22,['#7dffe9','#ffffff','#e8b830'],60,.9,1.6);
       ring(s.x,s.y,30,'#00e8c8',.7);
@@ -582,7 +609,7 @@ registerMinigame({
       }
     }
     function wake(){
-      phase='woke';endT=0;redFlash=1;shake=10;
+      phase='woke';endT=0;redFlash=1;shake=10;buzz([120,60,120,60,200]);
       try{AU.se('warn');}catch(_){}SX.setWater(false);SX.play('cry');
       showBanner('……起こしてしまった','「ぱぱぁ……」','#e83055',2.6);
       burst(CHILD.x,CHILD.y,26,['#9ad8ff','#ffffff'],70,1.2,1.6,40);
@@ -749,6 +776,8 @@ registerMinigame({
       noise-=(spikeGrace>0?2.5:6+noise*.03)*DF.decay*dt;
       noise=Math.max(0,noise);
       maxNoise=Math.min(100,Math.max(maxNoise,noise));
+      // 物音が大きくなったら手元にも知らせる（画面を見ていなくても分かるように。段階が上がったときだけ）
+      {buzzCd-=dt;const lv=phase==='play'?StealthLogic.buzzLevel(noise):0;if(lv>buzzLv&&buzzCd<=0){buzz(lv===2?[30,40,30]:20);buzzCd=1.2;}buzzLv=lv;}
       if(phase==='play'&&t>=0){
         if(noise>=100){noise=100;wake();}
         else if(noise>66&&!stirSaid){stirSaid=true;pop(CHILD.x+22,CHILD.y-14,'ん……ぅ','#ffb0c0',11,1.4);SX.play('whimper');if(warnCd<=0){se('warn',true);warnCd=3;}}
@@ -1493,11 +1522,7 @@ registerMinigame({
     }
     function computeGrade(){
       const done=ORDER.filter(k=>ST[k].done).length;
-      if(endReason==='clear'){
-        gradeScore=Math.round(clamp(100-maxNoise*.35-toyHits*6-creaks*1.5+(T_PLAY-cleared)*.7+catPets*3+hard*3,0,130));
-        grade=gradeScore>=80?'S':gradeScore>=62?'A':gradeScore>=45?'B':'C';
-      }else if(endReason==='late'){grade=done>=3?'B':'C';gradeScore=done*12;}
-      else{grade='C';gradeScore=done*8;}
+      {const g=StealthLogic.grade({reason:endReason,maxNoise,toyHits,creaks,T_PLAY,cleared,catPets,hard,done});grade=g.grade;gradeScore=g.score;}
       const R={S:4,A:3,B:2,C:1};
       if((R[grade]||0)>(R[data.bestGrade]||0)){data.bestGrade=grade;newBest=grade!=='C';}
       if(gradeScore>(data.bestScore||0))data.bestScore=gradeScore;
@@ -1670,8 +1695,9 @@ registerMinigame({
       const done=ORDER.filter(k=>ST[k].done).length;
       const doneNames=ORDER.filter(k=>ST[k].done).map(k=>ST[k].name).join('・')||'なし';
       let fx,title,time,sp=0,log,cutin=null;
+      const RW=StealthLogic.rewardFx(reason==='clear'||reason==='woke'||reason==='late'?reason:'quit',done);
       if(reason==='clear'){
-        fx={childStress:-10,mental:3,hope:2,fatigue:4};time=45;sp=1;
+        fx=RW.fx;time=RW.time;sp=RW.sp;
         title='🤫 起こさずに、ぜんぶ終わった';
         log='子どもを起こさずに家事を終えた。寝顔を見て、少しだけ肩の力が抜けた。';
         cutin=['happy','……おやすみ。明日もちゃんと起こしてあげるからね。'];
@@ -1680,21 +1706,20 @@ registerMinigame({
           (newBest?'<br>自己ベスト更新！':`<br>最速記録 <span class="up">${data.best}秒</span>`)};
       }
       if(reason==='woke'){
-        fx={childStress:4,mental:-3,fatigue:6};time=60;
+        fx=RW.fx;time=RW.time;
         title='😢 起こしてしまった';
         log='物音で子どもが起きてしまった。抱っこして、もう一度寝かしつけた。';
         cutin=['tired','ごめんね、起こしちゃったわね……よしよし。'];
         return {title,time,sp,fx,log,cutin,summary:gradeHtml+`終わった家事 <span class="down">${done}/4</span><br>泣き止むまで、背中をとんとんした。`+(toyHits?`<br>踏んだおもちゃ <span class="down">${toyHits}</span>`:'')};
       }
       if(reason==='late'){
-        const cs=-Math.min(6,done*2);
-        fx={childStress:cs,fatigue:5};time=60;
+        fx=RW.fx;time=RW.time;
         title='🕛 0時を過ぎてしまった';
         log='家事が終わらないまま日付が変わった。残りは朝にまわす。';
         cutin=['tired','……もう0時かしら。残りは朝ね。'];
         return {title,time,sp,fx,log,cutin,summary:gradeHtml+`終わった家事 <span class="down">${done}/4</span><br>子どもは、ぐっすり眠っている。`};
       }
-      fx={fatigue:2};time=20;
+      fx=RW.fx;time=RW.time;
       return {title:'🤫 家事を切り上げた',time,sp,fx,log:'家事を途中で切り上げた。',cutin:null,summary:`終わった家事 <span class="up">${done}/4</span>`};
     }};
   },

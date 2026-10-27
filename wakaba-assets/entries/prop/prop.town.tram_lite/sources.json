@@ -1,0 +1,15 @@
+{
+ "sources": "wakaba-asset-sources/1",
+ "id": "prop.town.tram_lite",
+ "files": [
+  {
+   "role": "fbx",
+   "path": "source/prop.town.tram_lite.fbx",
+   "storage": "local-ignored",
+   "sha256": "12f1a271af90b740367b5d1a609c90dbd80eb6356563c2d90dd58ecd6d460cbb",
+   "bytes": 88188,
+   "tool": "bpy 5.2.2 LTS",
+   "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_transit.py --only prop.town.tram_lite"
+  }
+ ]
+}

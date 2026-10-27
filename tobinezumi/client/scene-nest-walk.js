@@ -15,6 +15,8 @@ import { hash2 } from '../shared/rng.js';
 import * as A from './art.js';
 import { PLUG_COST } from '../shared/protocol.js';
 import { sfx } from './sfx.js';
+import { Pops } from './pops.js';
+import { layoutLabels } from './label-layout.js';
 import { lookOfInd } from './family-ui.js';
 import { STAGE_NAME, ageLabel, PUP, stageOf } from '../shared/family.js';
 import { familyScene, familyBubble, famRooms, petReply, familyLine, PET } from '../shared/family-life.js';
@@ -28,7 +30,9 @@ const GUIDE_TOUCH = '<span>◀ ▶ 移動</span><span>▲ ▼ 登る・降りる
 
 export class NestWalkScene {
   get touchLayout() { return 'walk'; }
-  constructor(game) { this.game = game; this.view = new NestView(); }
+  constructor(game) { this.game = game; this.view = new NestView(); this.pops = new Pops(); }
+  /** Ver.0.9：自分の頭の上に小さな文字（食べた） */
+  popAtMe(text, color) { this.pops.add(this.st.x, this.st.y - 42, text, { color }); }
 
   enter({ nest, from = 'field' }) {
     const g = this.game;
@@ -109,6 +113,7 @@ export class NestWalkScene {
   }
 
   update(dt) {
+    (this.pops || (this.pops = new Pops())).update(dt);
     const g = this.game, inp = g.input;
     this.t += dt;
     this.viewPeers = this._peerList(dt);
@@ -339,7 +344,7 @@ export class NestWalkScene {
     const v = this.fam.get(m.id);
     const reply = petReply(m, (this.t * 7.13) % 1);
     if (v) { v.say = { text: reply, until: this.t + 2.6 }; v.heartT = this.t; }
-    sfx('safe');
+    sfx('pet');
     g.ui.toast(m.name + ' を なでた。' + reply + '（体調 +' + (r.cond || PET.COND) + '）');
     g.debug.pets = (g.debug.pets || 0) + 1;
   }
@@ -459,18 +464,30 @@ export class NestWalkScene {
     sc.clearUI();
     sc.nameTag(s.x - cx, s.y - cy - 30 - footLift, this.game.character.name, { me: true });
     const bubbles = [];
-    for (const f of this.famViews || []) {
+    // Ver.0.9：家族の名札は重ならないように（自分の名札をよけて上へずらす・それでも重なる子は名前を出さない＝近づくと出る）
+    const famTags = (this.famViews || []).map(f => {
       const tall = f.m.stage === 'pup' ? 17 : f.m.stage === 'young' ? 24 : f.m.species === 'longear' ? 34 : 28;
       const tag = (f.m.role === 'mate' ? '♥' : f.m.role === 'friend' ? '☆' : f.m.npc ? '⌂' : '') + f.m.name;
-      sc.text(f.x - cx, f.y - cy - lift - tall, tag, { size: 5, color: f.m.role === 'mate' ? '#ffc0cc' : f.m.role === 'friend' ? '#d8e8ff' : f.m.npc ? '#c8f0c0' : '#f2e2c2', alpha: 0.85 });
-      if (f.anim === 'sleep') { const q = (this.t * 0.6 + f.x * 0.01) % 1; sc.text(f.x - cx + 6 + q * 8, f.y - cy - lift - 12 - q * 12, 'z', { size: 4 + q * 3, color: '#e8f0ff', alpha: 1 - q }); }
-      if (f.say && !this.sleeping) bubbles.push({ x: f.x - cx, y: f.y - cy - lift - tall - 6, text: f.say });
-      else if (!f.say && this._mine(f.m) && (f.m.stage === 'pup' || f.m.stage === 'young') && f.m.fed < PUP.AUTO_BELOW / 2 && f.anim !== 'sleep') sc.text(f.x - cx, f.y - cy - lift - tall - 7, 'おなかすいた', { size: 5, color: '#ffb8a0', alpha: 0.9 });
-    }
+      const near = Math.abs(f.x - s.x) < 14 && Math.abs(f.y - s.y) < 20;
+      return { x: f.x - cx, y: f.y - cy - lift - tall + 1, w: sc.measure(tag, 5) + 2, h: 6, prio: (f.say ? 2 : 0) + (near ? 1 : 0), tag };
+    });
+    const meW = sc.measure(this.game.character.name, 6.5) + 6;
+    const lay = layoutLabels([{ x: s.x - cx, y: s.y - cy - 28 - footLift, w: meW, h: 10, prio: 99 }, ...famTags], { maxLift: 2 }).slice(1);
+    this.game.debug.famTags = { n: famTags.length, hidden: lay.filter(l => l.hidden).length };
+    let zN = 0;   // 眠っている子の「z」は 2 匹ぶんまで（かたまって眠ると z だらけになる）
+    (this.famViews || []).forEach((f, i) => {
+      const tall = f.m.stage === 'pup' ? 17 : f.m.stage === 'young' ? 24 : f.m.species === 'longear' ? 34 : 28;
+      const L = lay[i];
+      if (!L.hidden) sc.text(L.x, L.y - 1, famTags[i].tag, { size: 5, color: f.m.role === 'mate' ? '#ffc0cc' : f.m.role === 'friend' ? '#d8e8ff' : f.m.npc ? '#c8f0c0' : '#f2e2c2', alpha: L.lifted ? 0.75 : 0.85 });
+      if (f.anim === 'sleep' && (zN++ < 2 || !L.hidden)) { const q = (this.t * 0.6 + f.x * 0.01) % 1; sc.text(f.x - cx + 6 + q * 8, f.y - cy - lift - 12 - q * 12, 'z', { size: 4 + q * 3, color: '#e8f0ff', alpha: 1 - q }); }
+      if (f.say && !this.sleeping) bubbles.push({ x: f.x - cx, y: (L.hidden ? f.y - cy - lift - tall : L.y - 1) - 6, text: f.say });
+      else if (!f.say && this._mine(f.m) && (f.m.stage === 'pup' || f.m.stage === 'young') && f.m.fed < PUP.AUTO_BELOW / 2 && f.anim !== 'sleep') sc.text(f.x - cx, (L.hidden ? f.y - cy - lift - tall : L.y) - 7, 'おなかすいた', { size: 5, color: '#ffb8a0', alpha: 0.9 });
+    });
     // ひとこと（重ならないように、近いものは上へずらす）
     bubbles.sort((a, b) => a.x - b.x);
     for (let i = 0; i < bubbles.length; i++) { for (let j = 0; j < i; j++) if (Math.abs(bubbles[i].x - bubbles[j].x) < 46 && Math.abs(bubbles[i].y - bubbles[j].y) < 12) bubbles[i].y = bubbles[j].y - 12; }
     for (const b of bubbles) sc.bubble(b.x, b.y, b.text, { size: 6 });
+    this.pops.draw(sc, cx, cy);
     const online = this.game.net.mode === 'online';
     for (const p of peers) {
       sc.nameTag(p.x - cx, p.y - cy - 30 - lift, p.name);
