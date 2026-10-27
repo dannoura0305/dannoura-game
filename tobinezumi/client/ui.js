@@ -7,6 +7,7 @@ import { REST_NAME } from '../shared/season.js';
 import * as A from './art.js';
 import { Sprites } from './sprites.js';
 import { placeHelpLine } from './touch-logic.js';
+import { sfx } from './sfx.js';
 
 export function el(tag, cls, html) {
   const e = document.createElement(tag);
@@ -249,7 +250,12 @@ export class UI {
       const k = row.dataset.k, v = Math.max(0, Math.min(100, life[k] || 0));
       const w = Math.round(v) + '%';
       const bar = row.querySelector('i');
-      if (bar.style.width !== w) bar.style.width = w;
+      if (bar.style.width !== w) {
+        // Ver.0.9：はっきり増えた（食べた・飲んだ・眠った）ときは バーを少しひからせる
+        const before = parseFloat(bar.style.width);
+        if (before >= 0 && v - before >= 4) { row.classList.add('up'); clearTimeout(row._upT); row._upT = setTimeout(() => row.classList.remove('up'), 700); }
+        bar.style.width = w;
+      }
       row.classList.toggle('low', v < (k === 'cond' ? LIFE.TIRED : LIFE.LOW));
       row.classList.toggle('empty', v <= 0);
     }
@@ -285,7 +291,7 @@ export class UI {
   landSummaryHTML(L) {
     if (!L) return '';
     const c = CLIMATES[L.climate] || { name: L.climate };
-    return `<div class="tb-landmini"><b>${esc(L.name)}</b>　食料 ${STARS(L.food)}　危険 ${STARS(L.danger)}　地質 ${STARS(L.hardness)}　景観 ${STARS(L.scenery)}　気候 ${esc(c.name)}${L.rare ? '　<span class="tb-ok">' + esc(RARES[L.rare].name) + '</span>' : ''}</div>`;
+    return `<div class="tb-landmini tb-landsum"><b>${esc(L.name)}</b><span>食料 ${STARS(L.food)}</span><span>危険 ${STARS(L.danger)}</span><span>地質 ${STARS(L.hardness)}</span><span>景観 ${STARS(L.scenery)}</span><span>気候 ${esc(c.name)}</span>${L.rare ? '<span class="tb-ok">' + esc(RARES[L.rare].name) + '</span>' : ''}</div>`;
   }
   /** 土地を調べた結果。h = {dig(), relocate()}（使えないものは null） */
   landPanel(L, here, h = {}) {
@@ -491,6 +497,7 @@ export class UI {
 
   // ── モーダル（1 つだけ）──
   _openModal(node, onClose) {
+    if (!this.modal) sfx('open');
     this.closeModal();
     this.modal = { node, onClose };
     this.hud.appendChild(node);
@@ -531,8 +538,8 @@ export class UI {
       setTimeout(() => inp.focus(), 0);
     });
   }
-  menu(title, html, items) {
-    const p = el('div', 'tb-panel tb-menu tb-ui-block');
+  menu(title, html, items, { cls = '' } = {}) {
+    const p = el('div', 'tb-panel tb-menu tb-ui-block' + (cls ? ' ' + cls : ''));
     p.innerHTML = `<div class="tb-ph">${esc(title)}<button class="tb-x">×</button></div>${html || ''}<div class="tb-menu-items"></div>`;
     const box = p.querySelector('.tb-menu-items');
     for (const it of items) {

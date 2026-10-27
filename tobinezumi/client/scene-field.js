@@ -22,6 +22,7 @@ import { landAt, digTime, overlayColor, buildLands, PLOT_W, PLOT_H, CLIMATES, RA
 import { fieldMods } from '../shared/season.js';
 import { threatTo, ALERT_STATES, inGrass, HIDE_AFTER, PRED } from '../shared/predators.js';
 import { sfx } from './sfx.js';
+import { Pops } from './pops.js';
 import { festivalAt, festActBlock, marksVisible, offerPileSize, sparkleSet, shootingStars, onHill, FEST, OFFER_SPOT, HILL_SPOT } from '../shared/festival.js';
 import { toyamaFestProps } from '../shared/toyama.js';
 import { plotAt } from '../shared/lands.js';
@@ -62,6 +63,7 @@ export class FieldScene {
     this.cam = { x: 0, y: 0 };
     this.t = 0;
     this.fx = [];        // 砂ぼこりなど
+    this.pops = new Pops();   // Ver.0.9：その場に浮かぶ「+1 種子」など
     this.flies = [];     // 蛍（富山・渓谷の夏の夜）
     this._prerender();
   }
@@ -377,13 +379,15 @@ export class FieldScene {
     this.cam.x += (tx - this.cam.x) * Math.min(1, dt * 8); this.cam.y += (ty - this.cam.y) * Math.min(1, dt * 8);
     // 着地の砂ぼこり
     const st = this.pred.state;
-    if (this._wasJump && !st.jump) { this.puff(st.x, st.y, '#e8cf9a', 6); }
+    if (this._wasJump && !st.jump) { this.puff(st.x, st.y, '#e8cf9a', 6); sfx('land'); this.squash = 0.14; }
+    else if (!this._wasJump && st.jump) sfx('jump');
     this._wasJump = !!st.jump;
     if (st.anim === 'hop' && (st.hop % 1) < (this._lastHop % 1) && Math.random() < 0.5) this.puff(st.x - st.fx * 4, st.y, '#e6c690', 2);
     this._lastHop = st.hop;
     let n = 0;
     for (const p of this.fx) { p.t += dt; if (p.t < p.life) this.fx[n++] = p; }
     this.fx.length = n;
+    this.pops.update(dt); this.squash = Math.max(0, (this.squash || 0) - dt);
     this.shake = Math.max(0, this.shake - dt); this.flash = Math.max(0, this.flash - dt * 1.4);
     this._weatherFx(dt);
     this.hidden = this.stillT >= HIDE_AFTER && inGrass(this.map, st.x, st.y);
@@ -539,8 +543,9 @@ export class FieldScene {
       if (res.ok) {
         this.resources.delete(r.id);
         this.inv = res.inv; g.ui.setInventory(this.inv);
-        if (res.item === 'curio') { this.puff(r.x, r.y, '#fff8d8', 10); sfx('safe'); }   // 図鑑へ（collect の通知で札を出す）
-        else g.ui.toast(itemName(res.item) + (res.n > 1 ? ' ×' + res.n : '') + ' を 手に入れた' + (r.id[0] === 'g' ? '（めずらしい！）' : ''));
+        if (res.item === 'curio') { this.puff(r.x, r.y, '#fff8d8', 10); sfx('rare'); }   // 図鑑へ（collect の通知で札を出す）
+        else if (r.id[0] === 'g') { g.ui.toast(itemName(res.item) + (res.n > 1 ? ' ×' + res.n : '') + ' を 手に入れた（めずらしい！）'); sfx('rare'); g.goal('pick'); this.popAtMe('+' + (res.n || 1) + ' ' + itemName(res.item), '#fff0a0', res.item); }
+        else { sfx('pick'); g.goal('pick'); this.popAtMe('+' + (res.n || 1) + ' ' + itemName(res.item), '#fff6e0', res.item); g.debug.lastPop = itemName(res.item); }   // Ver.0.9：ふつうの物はトーストでなく その場に小さく
         this.puff(r.x, r.y, '#fff0c0', 5);
       } else { r.pending = false; g.ui.toast(res.reason || '拾えなかった', 'bad'); }
     } else if (tgt.kind === 'ent') {
@@ -552,6 +557,7 @@ export class FieldScene {
       const L = landAt(this.map, this.pred.state.x, this.pred.state.y), dt = digTime(L);
       const ok = await g.ui.confirm('巣を掘る', 'ここに あなたの巣穴を掘りますか？<br>' + g.ui.landSummaryHTML(L) + '<span class="tb-dim">（巣穴は 1 つだけ。あとから中を広げられる。土地は「土地」で調べられ、あとで引っ越しもできる）</span>', '掘る', 'やめる');
       if (!ok) return;
+      sfx('dig');
       this.busyUntil = performance.now() + dt * 1000 + 200;
       this.digT = this.t; this.digDur = dt;
       await new Promise(r => setTimeout(r, dt * 1000));
@@ -561,7 +567,7 @@ export class FieldScene {
       this.onEntrance({ entrance: res.entrance });
       this.myNest = { id: res.entrance.nestId, x: res.entrance.x, y: res.entrance.y, land: res.land };
       if (res.inv) { this.inv = res.inv; g.ui.setInventory(this.inv); }
-      this.puff(res.entrance.x, res.entrance.y, '#b98552', 10);
+      this.puff(res.entrance.x, res.entrance.y, '#b98552', 10); sfx('place');
       g.ui.toast(g.isTouch ? '巣穴ができた！ 入口をタップすると入れる' : '巣穴ができた！ 入口で E を押すと入れる');
     } else if (tgt.kind === 'dew' || tgt.kind === 'water') {
       const r = tgt.res;
@@ -570,9 +576,13 @@ export class FieldScene {
       if (r) r.pending = false;
       if (!res.ok) { g.ui.toast(res.reason || '飲めなかった', 'bad'); return; }
       if (r) { this.resources.delete(r.id); this.puff(r.x, r.y, '#bfe8ff', 5); }
+      const th0 = g.life ? g.life.thirst : 0;
       g.setLife(res.life, true);
       this.eatT = this.t;
-      g.ui.toast((res.src === 'dew' ? '夜露を飲んだ' : '水を飲んだ') + '（水分 ' + Math.round(res.life.thirst) + '）');
+      sfx('drink');
+      const st = this.pred.state, dth = Math.round(res.life.thirst - th0);
+      this.pops.add(st.x, st.y - 40, (res.src === 'dew' ? '夜露 ' : '水分 ') + (dth > 0 ? '+' + dth : Math.round(res.life.thirst)), { color: '#a8e8ff' });
+      g.debug.lastPop = 'drink';
     } else if (tgt.kind === 'nodig') {
       g.ui.toast(tgt.label, 'bad');
     } else if (tgt.kind === 'fest') {   // Ver.0.8
@@ -618,7 +628,7 @@ export class FieldScene {
     const g = this.game;
     if (this._traveling) return;
     this._traveling = true; this.autoGo = null;
-    g.fade(true);
+    g.fade(true); sfx('travel');
     const r = await g.net.travel(gt.to);
     if (!r.ok) { g.fade(false); this._traveling = false; this._arrivedT = this.t; g.ui.toast(r.reason || '行けなかった', 'bad'); return; }
     g.arrive(r.world, 'travel');
@@ -733,6 +743,9 @@ export class FieldScene {
       if (Math.abs(x - this.view.x) < W && Math.abs(y - this.view.y) < H) this.flies.push({ x, y, a: Math.random() * 6, t: 0, life: 4 + Math.random() * 4, ph: Math.random() * 6 });
     }
   }
+
+  /** Ver.0.9：自分の頭の上に小さな文字（食べた・飲んだ） */
+  popAtMe(text, color, icon = null) { const st = this.pred.state; this.pops.add(st.x, st.y - 40, text, { color, icon }); }
 
   puff(x, y, color, n = 4) {
     for (let i = 0; i < n; i++) this.fx.push({ x: x + (Math.random() - 0.5) * 8, y: y + (Math.random() - 0.5) * 3, vx: (Math.random() - 0.5) * 20, vy: -Math.random() * 10, t: 0, life: 0.4 + Math.random() * 0.3, color });
@@ -930,6 +943,7 @@ export class FieldScene {
       const b = this.bubbles.get(o.id);
       if (b && b.until > nowMs) sc.bubble(x, y - 38, b.text, { alpha: Math.min(1, (b.until - nowMs) / 400) });
     }
+    this.pops.draw(sc, cx, cy);
   }
 
   // ───────── Ver.0.8「季節のたのしみ」：季節の行事（shared/festival.js）─────────
@@ -1191,7 +1205,10 @@ export class FieldScene {
     Sprites.drawShadow(g, o.x, o.y - 1, sh);
     const hid = o.me && this.hidden;
     if (hid) g.globalAlpha = 0.62;                              // 草むらでじっとして隠れている
+    const sq = o.me && this.squash > 0 ? this.squash / 0.14 : 0;   // Ver.0.9：大ジャンプの着地で少しつぶれる
+    if (sq) { g.save(); g.translate(Math.round(o.x), Math.round(o.y)); g.scale(1 + 0.18 * sq, 1 - 0.16 * sq); g.translate(-Math.round(o.x), -Math.round(o.y)); }
     Sprites.drawJerboa(g, o.fur, 'field', fr.anim, o.dir || 'down', fr.frame, o.x, o.y - z, o.look || null);
+    if (sq) g.restore();
     if (hid) { g.globalAlpha = 1; for (let i = 0; i < 3; i++) { g.fillStyle = i % 2 ? '#6f8a3a' : '#8fa84a'; g.fillRect(Math.round(o.x) - 5 + i * 4, Math.round(o.y) - 4 - (i % 2), 1, 4); } }
     if (o.me && o.cd > 0) {   // 大ジャンプのクールダウン
       const k = o.cd / FIELD.JUMP_CD;
