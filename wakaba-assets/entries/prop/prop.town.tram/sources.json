@@ -6,8 +6,8 @@
    "role": "fbx",
    "path": "source/prop.town.tram.fbx",
    "storage": "local-ignored",
-   "sha256": "d73179d5526613491c75cc3f47c16527f6ae7e42a7b34d1471a3e361051b4bd3",
-   "bytes": 267148,
+   "sha256": "9b1e1e7d86af74a2bdd8def30238e8ded11eacecb55e330265fb0f12bc4d6cf6",
+   "bytes": 224252,
    "tool": "bpy 5.2.2 LTS",
    "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_transit.py --only prop.town.tram"
   }

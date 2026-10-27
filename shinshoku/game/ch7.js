@@ -92,7 +92,8 @@ export const ch7Methods = {
     }
     if (id === 'epilogue') {
       const H = EPILOGUE.home;
-      const dg = this.addProp7(add, 'daughter7', buildDaughter(), H.child, 0, null); dg.poseFn = ctx => daughterPose(Object.assign({ mode: dg.mode7 }, ctx));
+      const dv = this.daughterVrm; if (dv && dv.root.parent) dv.root.parent.remove(dv.root);   // P17：VRM の娘（読めていれば。前の場面の入れ物から外して使い回す）
+      const dg = this.addProp7(add, 'daughter7', dv || buildDaughter(), H.child, 0, null); dg.poseFn = ctx => daughterPose(Object.assign({ mode: dg.mode7 }, ctx));
       this.addProp7(add, 'chiyo7', buildCivilian(5), H.chiyo, Math.PI * 0.8, ctx => civilianPose({ time: ctx.t, speed: ctx.speed, phase: ctx.phase }));
       for (const e of this.enemies) if (e.prop7) e.root.visible = false;
       return true;

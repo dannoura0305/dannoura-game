@@ -1,0 +1,64 @@
+{
+ "id": "char.daughter",
+ "version": 1,
+ "name": {
+  "ja": "娘",
+  "en": "Daughter・4 歳"
+ },
+ "category": "character",
+ "tags": [
+  "キャラクター",
+  "VRM",
+  "手続き",
+  "自作",
+  "Blender"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/char/build_char.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/shinshoku/VROID_GUIDE.md"
+ },
+ "tech": {
+  "formats": [
+   "vrm"
+  ],
+  "tris": 35197,
+  "lods": [
+   35197,
+   16595
+  ],
+  "texRes": 2048,
+  "sizeM": [
+   0.9,
+   1.58,
+   0.6
+  ]
+ },
+ "use": [
+  "キャラクター（境界侵食）"
+ ],
+ "usedBy": [
+  {
+   "project": "shinshoku",
+   "since": "2026-10-18"
+  }
+ ],
+ "status": "draft",
+ "storage": {
+  "original": "tools/blender/char（スクリプトが原本）",
+  "runtime": "shinshoku/assets/characters/daughter.vrm",
+  "sha256": "e785235d253bff927487797d46348f455a3b8040dd7a4abdd9193f60f4e42a2e"
+ }
+}

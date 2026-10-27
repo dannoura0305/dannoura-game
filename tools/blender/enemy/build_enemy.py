@@ -256,8 +256,8 @@ def kiro(rig):
         c = np.tile(lin(0x3a3a42), (len(V), 1))
         c *= (0.8 + 0.25 * np.abs(np.sin(V[:, 0] * 160 + V[:, 2] * 40)))[:, None]   # 毛の流れの筋
         return c
-    hair = S.inter(S.offset(S.ellipsoid(hc + [0, 0.008, -0.006], [0.096, 0.118, 0.105]), 0.011),
-                   lambda Q: np.maximum(-(Q[:, 1] - (hc[1] + 0.02 - 0.6 * np.maximum(0, -(Q[:, 2] - hc[2])))), -0.2 + 0 * Q[:, 0]))
+    hair = S.inter(S.offset(S.ellipsoid(hc + [0, 0.008, -0.006], [0.096, 0.118, 0.105]), 0.008),
+                   lambda Q: -(Q[:, 1] - (hc[1] + 0.055 + 0.03 * np.clip(Q[:, 2] - hc[2], 0, 1) * 10 - 0.75 * np.maximum(0, -(Q[:, 2] - hc[2])))))   # 後退した生え際（前は高く・後ろは首まで）
     P.append(Part('hair', hair, hc - 0.17, hc + 0.17, 0.0035, 'hair', hair_col, ('rigid', 'head'), oth=1.0, faces=1100))
     # 首（長い）
     P.append(Part('neck', S.round_cone(nk + [0, -0.04, -0.005], hc + [0, -0.08, -0.01], 0.036, 0.033), nk - 0.1, hc + 0.05, 0.004, 'skin', SKIN, 'body', ['neck', 'head', 'chest'], faces=400))
@@ -275,11 +275,15 @@ def kiro(rig):
         c *= (0.93 + 0.07 * hash3(V * 2.2, 3))[:, None]                                  # 布の濃淡
         c *= (1 - 0.18 * np.clip((np.sin(V[:, 0] * 55 + V[:, 1] * 9) - 0.6) * 2, 0, 1) * (V[:, 1] < 1.05))[:, None]   # 下のしわ
         return c
+    lap = U(*[S.box(ch + [sx * 0.06, 0.13, 0.093], [0.045, 0.1, 0.008], r=0.004, rot=rotz(sx * 0.35) @ rotx(-0.25)) for sx in (1, -1)])
+    P.append(Part('lapels', lap, ch + [-0.16, -0.05, 0.0], ch + [0.16, 0.32, 0.2], 0.0035, 'cloth', COAT2, 'body', ['chest', 'neck', 'spine'], oth=0.7, faces=500))
+    belt = S.inter(S.sub(S.offset(torso, 0.008), S.offset(torso, -0.004)), lambda Q: np.abs(Q[:, 1] - 1.0) - 0.022)
+    P.append(Part('belt', belt, [-0.25, 0.94, -0.2], [0.25, 1.06, 0.2], 0.004, 'cloth', 0x232833, 'body', ['spine', 'hips', 'chest'], oth=0.6, faces=700))
     P.append(Part('coat', torso, [-0.3, 0.84, -0.2], [0.3, 1.5, 0.2], 0.006, 'cloth', coat_col, 'body', ['hips', 'spine', 'chest', 'neck', 'leftUpperArm', 'rightUpperArm'], faces=2400))
     # すそ（ひざまで：前が少し開く）
-    skirt_shell = U(S.inter(S.offset(S.round_cone(hp + [0, 0.02, -0.006], hp + [0, -0.46, -0.004], 0.145, 0.205), 0.0),
-                            lambda Q: -(Q[:, 1] - (hp[1] + 0.04))), k=0)
-    skirt_f = S.inter(S.sub(skirt_shell, S.round_cone(hp + [0, 0.12, -0.006], hp + [0, -0.56, -0.004], 0.128, 0.19)), lambda Q: (hp[1] - 0.47) - Q[:, 1])
+    skirt_shell = S.inter(S.round_cone(hp + [0, 0.02, -0.006], hp + [0, -0.46, -0.004], 0.148, 0.212), lambda Q: Q[:, 1] - (hp[1] + 0.04))
+    skirt_f = S.inter(S.sub(skirt_shell, S.round_cone(hp + [0, 0.12, -0.006], hp + [0, -0.56, -0.004], 0.132, 0.198)), lambda Q: (hp[1] - 0.47) - Q[:, 1])
+    skirt_f = lambda Q, f0=skirt_f: f0(Q) - 0.004 * np.sin(np.arctan2(Q[:, 0], Q[:, 2]) * 9) * S.smoothstep(hp[1] - 0.05, hp[1] - 0.45, Q[:, 1])   # すその縦のしわ
     skirt_f = S.sub(skirt_f, S.box(hp + [0, -0.32, 0.2], [0.01, 0.17, 0.1], r=0.003))
 
     def skirt_col(V, N):
@@ -372,7 +376,7 @@ def heiten(rig):
     # 前かけ（胴の前の殻・ひざの上まで）
     apron_base = S.offset(torso, 0.012)
     apron = S.inter(S.sub(apron_base, S.offset(torso, 0.0)), lambda Q: np.maximum.reduce([0.04 - Q[:, 2], np.abs(Q[:, 0]) - 0.19, Q[:, 1] - (ch[1] + 0.14), (hp[1] - 0.02) - Q[:, 1]]))
-    skirt = S.inter(S.box(hp + [0, -0.22, 0.155], [0.2, 0.24, 0.008], r=0.006, rot=rotx(-0.08)), lambda Q: Q[:, 1] - (hp[1] - 0.45))
+    skirt = S.inter(S.box(hp + [0, -0.2, 0.15], [0.2, 0.25, 0.009], r=0.006, rot=rotx(-0.1)), lambda Q: (hp[1] - 0.45) - Q[:, 1])
     apron = U(apron, skirt, k=0.02)
     pocket = S.box(hp + [0, -0.12, 0.172], [0.12, 0.06, 0.006], r=0.004, rot=rotx(-0.08))
     apron = U(apron, pocket, k=0.004)
@@ -383,6 +387,9 @@ def heiten(rig):
         c[(np.abs(V[:, 1] - (ch[1] + 0.02)) < 0.022) & (np.abs(V[:, 0] - 0.09) < 0.04)] = lin(0xf2f0e8)   # 名札
         c *= (0.93 + 0.07 * hash3(V * 3, 2))[:, None]
         return c
+    string = S.inter(S.sub(S.offset(torso, 0.016), S.offset(torso, 0.002)), lambda Q: np.abs(Q[:, 1] - (sp[1] + 0.02)) - 0.012)
+    strap = S.inter(S.sub(S.offset(torso, 0.016), S.offset(torso, 0.002)), lambda Q: np.maximum(np.abs(np.abs(Q[:, 0]) - 0.13 + 0.25 * (Q[:, 1] - ch[1] - 0.15)) - 0.014, -(Q[:, 1] - (ch[1] + 0.1))))
+    P.append(Part('strings', U(string, strap), [-0.4, sp[1] - 0.1, -0.3], [0.4, ch[1] + 0.45, 0.3], 0.0045, 'cloth', 0x267a4c, 'body', ['spine', 'chest', 'neck', 'hips'], oth=0.6, faces=900))
     P.append(Part('apron', apron, [-0.28, hp[1] - 0.5, 0.0], [0.28, ch[1] + 0.2, 0.3], 0.005, 'cloth', apron_col, 'skirt', oth=0.8, faces=1600))
     # 背中のシャッター（波板）：巻いた箱・波の板・横の溝・下の棒
     R0 = rotx(0.14)
@@ -390,12 +397,12 @@ def heiten(rig):
 
     def corrug(Q):
         q = (Q - cen) @ R0
-        z = q[:, 2] - 0.012 * np.sin(q[:, 1] * 2 * math.pi / 0.075)
-        d = np.stack([np.abs(q[:, 0]) - 0.45, np.abs(q[:, 1] + 0.0) - 0.38, np.abs(z) - 0.012], -1)
+        z = q[:, 2] - 0.012 * np.sin(q[:, 1] * 2 * math.pi / 0.075) + 0.07 * (q[:, 0] / 0.45) ** 2   # 波板・背中に沿って少し曲がる
+        d = np.stack([np.abs(q[:, 0]) - 0.45, np.abs(q[:, 1] + 0.0) - 0.38, np.abs(z) - 0.011], -1)
         return np.minimum(d.max(-1), 0) + S._len(np.maximum(d, 0)) - 0.002
-    roll = S.cylinder(cen + R0 @ np.array([0, 0.44, 0.01]), 0.075, 0.49, rr=0.012, axis_rot=rotz(math.pi / 2) @ np.eye(3))
-    rails = U(*[S.box(cen + R0 @ np.array([sx * 0.47, 0.0, 0.0]), [0.025, 0.4, 0.035], r=0.005, rot=R0) for sx in (1, -1)])
-    bar = S.box(cen + R0 @ np.array([0, -0.39, 0.005]), [0.47, 0.02, 0.025], r=0.006, rot=R0)
+    roll = S.cylinder(cen + R0 @ np.array([0, 0.46, 0.03]), 0.1, 0.5, rr=0.015, axis_rot=rotz(math.pi / 2) @ np.eye(3))
+    rails = U(*[S.box(cen + R0 @ np.array([sx * 0.47, 0.0, 0.07]), [0.03, 0.42, 0.06], r=0.006, rot=R0) for sx in (1, -1)])
+    bar = U(S.box(cen + R0 @ np.array([0, -0.39, 0.0]), [0.47, 0.025, 0.035], r=0.008, rot=R0), S.box(cen + R0 @ np.array([0, -0.34, -0.03]), [0.08, 0.012, 0.03], r=0.008, rot=R0))   # 下の棒・取っ手
     shutter = U(corrug, roll, rails, bar)
 
     def shut_col(V, N):
@@ -458,7 +465,7 @@ def shuuyou(rig):
               S.ellipsoid(hp + [0, 0.0, 0.0], [0.27, 0.16, 0.22]), k=0.09)
 
     def crinkle(Q):
-        return body0(Q) - 0.012 * hash3(Q * 2.4, 11) - 0.007 * np.sin(Q[:, 1] * 38 + np.sin(Q[:, 0] * 9) * 2)
+        return body0(Q) - 0.008 * hash3(Q * 3.2, 11) - 0.006 * np.sin(Q[:, 1] * 44 + np.sin(Q[:, 0] * 9) * 2) - 0.004 * np.sin(Q[:, 0] * 31 + Q[:, 2] * 23)
     folds = U(*[S.ellipsoid(ch + [math.sin(a) * 0.31, 0.0 + (i % 2) * 0.12 - 0.12, math.cos(a) * 0.24], [0.17, 0.08, 0.1]) for i, a in enumerate(np.linspace(0, 2 * math.pi, 7)[:-1])])
     body = U(crinkle, folds, k=0.05)
 
@@ -469,9 +476,9 @@ def shuuyou(rig):
         return c
     P.append(Part('blanket', body, [-0.6, hp[1] - 0.25, -0.45], [0.6, ch[1] + 0.45, 0.45], 0.008, 'metal', blanket_col, 'body', ['hips', 'spine', 'chest', 'neck', 'leftUpperArm', 'rightUpperArm'], oth=1.0, faces=3600))
     # 首（暗い箱）とスピーカー（ラッパ）
-    P.append(Part('neck', S.box(hd + [0, -0.03, -0.03], [0.06, 0.09, 0.06], r=0.015), hd - 0.15, hd + 0.15, 0.004, 'cloth', DARK, 'body', ['neck', 'head', 'chest'], faces=300))
+    P.append(Part('neck', S.box(hd + [0, 0.02, -0.03], [0.065, 0.13, 0.065], r=0.015), hd - 0.2, hd + 0.25, 0.004, 'cloth', DARK, 'body', ['neck', 'head', 'chest'], faces=300))
     Rh = rotx(math.pi / 2 + 0.25)
-    sc = hd + np.array([0, 0.11, 0.04])
+    sc = hd + np.array([0, 0.24, 0.07])
     ax = Rh @ np.array([0, 1, 0])                                                        # ラッパの向き（前へ・少し上）
 
     def horn(Q):
@@ -491,7 +498,7 @@ def shuuyou(rig):
     chairs = []
     for i in range(3):
         R = rotz((i - 1) * 0.25) @ roty((i - 1) * 0.35) @ rotx(0.5 + (-0.2 if i == 1 else 0))
-        o = ch + np.array([(i - 1) * 0.22, 0.12 + (0.12 if i == 1 else 0), -0.32])
+        o = ch + np.array([(i - 1) * 0.24, -0.02 + (0.08 if i == 1 else 0), -0.34])
         for x in (-0.18, 0.18):
             chairs.append(S.capsule(o + R @ np.array([x, -0.15, 0]), o + R @ np.array([x, 0.65, 0]), 0.013))
         chairs.append(S.box(o + R @ np.array([0, 0.5, 0]), [0.19, 0.11, 0.012], r=0.006, rot=R))

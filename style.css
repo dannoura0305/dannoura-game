@@ -867,7 +867,7 @@ img.ic.ic-lead{margin-right:.34em;}
 @keyframes vcPop{from{opacity:1;transform:translateY(0);}to{opacity:0;transform:translateY(-14px);}}
 .comment-feed:empty::before{content:'コメント待機中…　最初の一言を待っている';margin:auto;font-family:var(--mono);font-size:.62rem;color:var(--tx-dim);letter-spacing:.08em;animation:lp 2.4s ease-in-out infinite;}
 /* 配信中のカットイン：選択肢の上に重ねず、モニターの下（コメント欄の上端）に出す */
-body.ui-streaming #cutin-wrap{align-items:flex-start;padding:146px 0 0;}
+body.ui-streaming #cutin-wrap{align-items:flex-start;padding-top:146px;padding-bottom:0;}
 /* 広い画面：カットインと通知を、ゲーム画面（幅480px）の内側にそろえる */
 @media (min-width:520px){
   #cutin-wrap{padding-left:calc(50% - 240px);}
@@ -887,3 +887,23 @@ body.ui-streaming #notif-stack{top:150px;}
 }
 /* コメント欄の奥に、うっすら自分の部屋（真っ黒な空白に見えないように） */
 #streaming-ol .comment-feed{background:linear-gradient(180deg,rgba(4,3,10,.78),rgba(4,3,10,.92) 70%),url(assets/img/bg_main.webp) center 30%/cover no-repeat;}
+.mg-diff button{white-space:nowrap;padding:0 2px;letter-spacing:-.02em;}
+/* 設定の行が増えたので、背の低い画面では行の高さと間隔を詰める（見出しが枠の上にはみ出す作りなので、スクロールにはしない） */
+@media (max-height:720px){
+  #settings-sc .endlist-box{gap:6px;padding-top:20px;}
+  #settings-sc .set-row{min-height:36px;}
+  #settings-sc .ev-btn{min-height:38px;padding-top:6px;padding-bottom:6px;}
+  #settings-sc .mg-diff button{min-height:30px;}
+}
+/* 横向きの背の低い画面：設定は2列に並べて、窓に収める */
+@media (max-height:480px) and (min-width:560px){
+  #settings-sc .endlist-box{display:grid;grid-template-columns:1fr 1fr;max-width:680px;width:94%;column-gap:10px;row-gap:5px;max-height:none;}
+  #settings-sc .set-row{min-height:34px;}
+  #settings-sc .ev-btn{min-height:34px;}
+}
+@media (max-height:480px){
+  .str-visual.ui-mon-on{min-height:0;padding:5px 12px;}
+  .ui-mon-av,.ui-mon-av img{width:44px;height:44px;}
+  .ui-mon-wave{height:12px;}
+  body.ui-streaming #cutin-wrap{padding-top:96px;}
+}

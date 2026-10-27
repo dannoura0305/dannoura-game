@@ -529,3 +529,20 @@ def acc_companion(B, Sk, C, F, lod=1.0, ctx=None):
     parts.append(dict(name='hairclip', V=Vc, T=Tc, N=Nc, UV=AC.solid_uv('clip', '#f2cc4a', len(Vc)), mat='ACC', weights=('bone', 'head')))
     img, shade = AC.render()
     return dict(parts=parts, textures={'acc': img, 'acc_shade': shade}, springs=[])
+
+
+def acc_daughter(B, Sk, C, F, lod=1.0, ctx=None):
+    """娘（P17）：二つ結びのゴム（ピンクの玉 2 つずつ）"""
+    ctx = ctx or {}
+    AC = Acc()
+    parts = []
+    for nm, t in (ctx.get('ties') or {}).items():
+        p, d = np.asarray(t['p']), np.asarray(t['d'])
+        side = _n(np.cross(d, [0, 0, 1.0]))
+        for k, off in enumerate((0.013, -0.013)):
+            c = p + d * 0.004 + side * off
+            ball = S.sphere(c, 0.0135)
+            V, T, N = sdf_part(ball, c - 0.03, c + 0.03, 0.0012, 260 * lod)
+            parts.append(dict(name='tie_%s%d' % (nm, k), V=V, T=T, N=N, UV=AC.solid_uv('tie', '#ff6aa0', len(V)), mat='ACC', weights=('bone', 'head')))
+    img, shade = AC.render()
+    return dict(parts=parts, textures={'acc': img, 'acc_shade': shade}, springs=[])

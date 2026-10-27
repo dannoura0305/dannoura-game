@@ -107,6 +107,25 @@ def head_scale(parts, Sk, s, ctx):
     ctx['headScale'] = s
 
 
+def global_scale(parts, Sk, gs, ctx):
+    """P17：全体の縮尺（娘＝大人の寸法で作って小さくする）。網・骨・尾・モーフ・小物の当たりを足もと（原点）のまわりに gs 倍"""
+    ctx['scale'] = gs
+    if abs(gs - 1) < 1e-6:
+        return
+    for p in parts:
+        p['V'] = p['V'] * gs
+        for mk in list((p.get('morphs') or {}).keys()):
+            p['morphs'][mk] = p['morphs'][mk] * gs
+    Sk.pos = [q * gs for q in Sk.pos]
+    Sk.tail = {k: v * gs for k, v in Sk.tail.items()}
+    for e in ctx.get('extra_colliders', []):
+        sh = e.get('capsule') or e.get('sphere')
+        sh['offset'] = [x * gs for x in sh['offset']]
+        sh['radius'] = sh['radius'] * gs
+        if 'tail' in sh:
+            sh['tail'] = [x * gs for x in sh['tail']]
+
+
 def main():
     o = parse_args()
     t0 = time.time()
@@ -144,6 +163,7 @@ def main():
         print(step['fn'], round(time.time() - t0, 1), 's')
     assign_weights(parts, Sk, B)
     head_scale(parts, Sk, C.get('headScale', 1.0), ctx)
+    global_scale(parts, Sk, C.get('scale', 1.0), ctx)
     # テクスチャを書く
     out = os.path.abspath(o['out'])
     os.makedirs(out, exist_ok=True)
@@ -163,7 +183,7 @@ def main():
         P.append(PK.Part(p['name'], p['V'], p['T'], p['N'], p['mat'], UV=p.get('UV'), UVc=p.get('UVc'), J=p['J'], W=p['W'], morphs=p.get('morphs'), group=p.get('group', 'body')))
     tris = sum(x.ntris() for x in P)
     # 揺れ物・当たり
-    spring = CH.spring_bones(C, Sk, B, ext, ctx['extra_colliders'], hs=ctx.get('headScale', 1.0))
+    spring = CH.spring_bones(C, Sk, B, ext, ctx['extra_colliders'], hs=ctx.get('headScale', 1.0), gs=ctx.get('scale', 1.0))
     # 視線（目の骨）
     head = Sk.P('head')
     eL = Sk.P('leftEye')

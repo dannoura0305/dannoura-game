@@ -391,3 +391,95 @@ def shoes(B, W, q, upper, accent, sole, lace, toe=None):
         UVc = W.bake_mesh(rect, m, T, kinds, N[T], col_fn)
         out.append(dict(name=side + '_shoe', V=m.V, T=T, N=N, UVc=UVc, mat='CLOTH', group='body', weights='body', smooth_w=1))
     return out
+
+
+# ───────────────────────── 娘（P17：4 歳・ピンクのワンピース・白いえり・白いくつした・ピンクのくつ）
+def outfit_daughter(B, Sk, C, F, lod=1.0, wardrobe=None, ctx=None):
+    """大人の寸法（female）で作り、build_char の全体の縮尺（C['scale']）と頭の大きさ（headScale）で子どもの体つきにする。
+    ワンピース：胴をふくらませた形＋ふんわりした A ラインのすそ（ひざの上）＋ちょうちん袖。腕と脚は肌（くつしたは白）"""
+    W = wardrobe or Wardrobe()
+    q = lod
+    J = B['joints']
+    torso = BD.torso_sdf(B)
+    hy = J['hips'][1]
+    hem = 0.555
+    nz = J['neck'][2]
+    skirt = S.round_cone((0, hy + 0.08, -0.012), (0, hem - 0.03, -0.012), 0.155, 0.285)
+    sleeves = S.union(S.offset(BD.arm_sdf(B, 1), lambda P: 0.022 + 0.01 * SS(0.17, 0.22, np.abs(P[:, 0]))), S.offset(BD.arm_sdf(B, -1), lambda P: 0.022 + 0.01 * SS(0.17, 0.22, np.abs(P[:, 0]))))
+    f = S.union(S.union(S.offset(torso, 0.009), skirt, k=0.07), sleeves, k=0.025)
+    m = G.extract(f, (-0.45, hem - 0.06, -0.32), (0.45, 1.45, 0.32), 0.005, faces=int(2600 * q))
+    m = G.cut_plane(m, (0, hem, 0), (0, -1, 0))
+    sx = abs(J['leftUpperArm'][0]) + 0.085
+    m = G.cut_plane(m, (sx, 0, 0), (1, 0, 0))
+    m = G.cut_plane(m, (-sx, 0, 0), (-1, 0, 0))
+    nr = B['neckR'] + 0.014
+
+    def neckline(Cc):
+        r = np.hypot(Cc[:, 0], (Cc[:, 2] - nz) * 1.05)
+        return ((Cc[:, 1] > J['neck'][1] - 0.06) & (r < nr)) | (Cc[:, 1] > J['neck'][1] + 0.035)
+    m = G.cut_region(m, neckline, f, smooth_iters=12)
+    m = G.relax_boundary(m, f)
+    N = S.normals(f, m.V)
+    T, _, _ = G.tri_data(m)
+    kinds = np.zeros(len(T), int)
+    PINK, PINK2, WHITE = _hx('#f4a6c4'), _hx('#e58aae'), _hx('#fff4f8')
+
+    def color(A_):
+        p = A_['p']
+        x, y, z = p[:, 0], p[:, 1], p[:, 2]
+        col = np.tile(PINK, (len(p), 1))
+        ang = np.arctan2(x, z - nz)
+        skirt_m = y < hy + 0.02
+        col[:, :3] *= (1 - 0.07 * (0.5 + 0.5 * np.sin(ang * 16)) * skirt_m)[:, None]          # すそのひだの濃淡
+        dots = (np.sin(x * 260) * np.sin(y * 260) > 0.93) & ~skirt_m
+        col[dots] = PT.mix(col[dots], WHITE, 0.5)
+        r = np.hypot(x, (z - nz) * 1.05)
+        collar = (y > J['neck'][1] - 0.075) & (r < nr + 0.06)
+        col[collar] = WHITE
+        col[collar & (np.abs(r - (nr + 0.058)) < 0.004)] = _hx('#f0c8d8')
+        ribbon = (np.abs(x) < 0.028) & (np.abs(y - (J['neck'][1] - 0.09)) < 0.014) & (z > nz)
+        col[ribbon] = _hx('#e8507e')
+        trim = y < hem + 0.028 + 0.006 * np.sin(ang * 26)
+        col[trim] = WHITE
+        cuff = np.abs(x) > sx - 0.02
+        col[cuff] = WHITE
+        return col, _tint(col, (0.86, 0.7, 0.82))
+    UVc = W.bake_mesh('top', m, T, kinds, N[T], color)
+    parts = [dict(name='dress', V=m.V, T=T, N=N, UVc=UVc, mat='CLOTH', group='body', weights='body', smooth_w=3)]
+    SKIN, SOCK = _hx('#ffe8dc'), _hx('#fffaf6')
+    # 腕（袖の先から手首まで：肌）
+    for sd, rect in ((1, 'inner'), (-1, 'extra')):
+        fa = S.offset(BD.arm_sdf(B, sd), 0.006)                             # 子どもの腕（少しふっくら）
+        ma = G.extract(fa, (0.1 if sd > 0 else -0.75, 1.15, -0.15), (0.75 if sd > 0 else -0.1, 1.45, 0.15), 0.004, faces=int(900 * q))
+        ma = G.cut_plane(ma, (sd * (sx - 0.035), 0, 0), (-sd, 0, 0))
+        Na = S.normals(fa, ma.V)
+        Ta, _, _ = G.tri_data(ma)
+
+        def acol(A_):
+            col = np.tile(SKIN, (len(A_['p']), 1))
+            return col, _tint(col, (0.95, 0.76, 0.76))
+        UVa = W.bake_mesh(rect, ma, Ta, np.zeros(len(Ta), int), Na[Ta], acol)
+        parts.append(dict(name='arm_' + ('L' if sd > 0 else 'R'), V=ma.V, T=Ta, N=Na, UVc=UVa, mat='CLOTH', group='body', weights='body', smooth_w=2))
+    # 脚（すその中から足首まで：肌・白いくつした）
+    fl = S.offset(S.union(BD.leg_sdf(B, 1), BD.leg_sdf(B, -1), k=0.0), lambda P: 0.009 * SS(0.12, 0.3, P[:, 1]))   # 子どもの脚（ふっくら・足首は細いまま）
+    ml = G.extract(fl, (-0.2, 0.03, -0.14), (0.2, hem + 0.1, 0.14), 0.004, faces=int(1500 * q))
+    ml = G.cut_plane(ml, (0, hem + 0.08, 0), (0, 1, 0))
+    Nl = S.normals(fl, ml.V)
+    Tl, _, _ = G.tri_data(ml)
+
+    def lcol(A_):
+        p = A_['p']
+        y = p[:, 1]
+        col = np.tile(SKIN, (len(p), 1))
+        knee = SS(0.05, 0.0, np.abs(y - J['leftLowerLeg'][1])) * (p[:, 2] > 0)
+        col = PT.mix(col, _hx('#ffc8c0'), knee * 0.35)
+        sock = y < 0.2
+        col[sock] = SOCK
+        col[sock & (y > 0.18)] = _hx('#f4e8ee')
+        col[sock & (np.sin(y * 900) > 0.6) & (y > 0.16)] = _hx('#efe2ea')
+        return col, _tint(col, (0.95, 0.78, 0.8))
+    UVl = W.bake_mesh('bottom', ml, Tl, np.zeros(len(Tl), int), Nl[Tl], lcol)
+    parts.append(dict(name='legs', V=ml.V, T=Tl, N=Nl, UVc=UVl, mat='CLOTH', group='body', weights='body', smooth_w=2))
+    parts += shoes(B, W, q, upper='#e86a8a', accent='#f6b0c4', sole='#f6f2f2', lace='#e86a8a', toe='#f08aa4')
+    img, shade = W.render()
+    return dict(parts=parts, textures={'cloth': img, 'cloth_shade': shade}, ctx={'f_jacket': f, 'nz': nz, 'back_z': -0.12})

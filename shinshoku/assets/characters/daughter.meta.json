@@ -1,0 +1,86 @@
+{
+ "id": "char.daughter",
+ "name": "娘（Daughter・4 歳）",
+ "provisional": false,
+ "test": false,
+ "note": "リポジトリの中で Blender（bpy）で作った VRM 1.0（tools/blender/char/build_char.py → tools/charkit/build_chars.mjs）。VRoid Studio などで作った本番のモデルに差し替えられる（docs/shinshoku/VROID_GUIDE.md）",
+ "license": {
+  "id": "project",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "attribution": "",
+  "verifiedBy": ""
+ },
+ "author": "project",
+ "source": {
+  "type": "self_made",
+  "tool": "blender 5.2（bpy）",
+  "generator": "tools/blender/char/build_char.py",
+  "vrmMeta": {
+   "commercialUsage": "corporation",
+   "avatarPermission": "onlyAuthor"
+  }
+ },
+ "body": {
+  "height": 1.58,
+  "sex": "female",
+  "shoulderW": 0.33,
+  "hipW": 0.32
+ },
+ "info": {
+  "bones": 62,
+  "humanBones": 54,
+  "expressions": 14,
+  "springs": 2,
+  "springJoints": 8,
+  "colliders": 11,
+  "parts": {
+   "head_skin": 4000,
+   "left_eyeball": 588,
+   "right_eyeball": 588,
+   "left_lidU": 204,
+   "left_lidL": 136,
+   "right_lidU": 204,
+   "right_lidL": 136,
+   "left_brow": 52,
+   "right_brow": 52,
+   "mouth": 80,
+   "left_hand": 1500,
+   "right_hand": 1499,
+   "hair_locks": 9246,
+   "hair_cap": 1400,
+   "dress": 5236,
+   "arm_L": 1584,
+   "arm_R": 1494,
+   "legs": 3860,
+   "left_shoe": 1149,
+   "right_shoe": 1149,
+   "tie_L0": 260,
+   "tie_L1": 260,
+   "tie_R0": 260,
+   "tie_R1": 260
+  }
+ },
+ "files": [
+  {
+   "file": "daughter.vrm",
+   "lod": "pc",
+   "bytes": 2537972,
+   "sha256": "e785235d253bff927487797d46348f455a3b8040dd7a4abdd9193f60f4e42a2e",
+   "tris": 35197,
+   "materials": 5,
+   "images": 7,
+   "imageBytes": 789478
+  },
+  {
+   "file": "daughter_low.vrm",
+   "lod": "low",
+   "bytes": 1279412,
+   "sha256": "ec05c82ed177b81aee688dd7b4d9771ae12ed6d0f7fb87dd443657295b5cbb30",
+   "tris": 16595,
+   "materials": 5,
+   "images": 7,
+   "imageBytes": 330468
+  }
+ ]
+}

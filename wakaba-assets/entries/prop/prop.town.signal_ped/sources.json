@@ -6,7 +6,7 @@
    "role": "fbx",
    "path": "source/prop.town.signal_ped.fbx",
    "storage": "local-ignored",
-   "sha256": "41b542fa85a1edb7193391e05adfacd268ab5e58ed1870b364163eb01fa8e173",
+   "sha256": "8a68ed3d053b3ed96a390ab8ffe2d0dce3687a0b391fc4f3133724e919713647",
    "bytes": 26908,
    "tool": "bpy 5.2.2 LTS",
    "note": "UE5 へ（LOD0）。作り直し：python tools/blender/kit/build_kit_transit.py --only prop.town.signal_ped"

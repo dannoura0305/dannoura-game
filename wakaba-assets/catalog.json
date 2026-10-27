@@ -963,6 +963,50 @@
    "ue5": null
   },
   {
+   "id": "char.daughter",
+   "version": 1,
+   "category": "character",
+   "name": {
+    "ja": "娘",
+    "en": "Daughter・4 歳"
+   },
+   "status": "draft",
+   "tags": [
+    "キャラクター",
+    "VRM",
+    "手続き",
+    "自作",
+    "Blender"
+   ],
+   "dir": "character/char.daughter",
+   "license": {
+    "id": "own",
+    "attribution": ""
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": [
+     0.9,
+     1.58,
+     0.6
+    ],
+    "tris": 35197
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [],
+   "web": [],
+   "ue5": null
+  },
+  {
    "id": "mat.bark.broadleaf",
    "version": 1,
    "category": "material",
@@ -13186,14 +13230,14 @@
      "role": "fbx",
      "path": "source/prop.town.bus.fbx",
      "storage": "local-ignored",
-     "sha256": "0cc0a60fae3af56d3f35eeabfa13c850e9c94e1927f30a7b3f978f279ff025bf",
-     "bytes": 202556
+     "sha256": "ab09536e42246a7fa92360690867d145463ee0495a5d882639fed8cd8b57d54c",
+     "bytes": 202604
     }
    ],
    "web": [
     {
      "file": "web/prop.town.bus.glb",
-     "bytes": 907876
+     "bytes": 906812
     }
    ],
    "ue5": {
@@ -13279,14 +13323,14 @@
      "role": "fbx",
      "path": "source/prop.town.bus_lite.fbx",
      "storage": "local-ignored",
-     "sha256": "bf6fdc5ac70d17c2cdcc41c7cee21d1f635e441dfbe9c86220ad7149d5e2eddc",
-     "bytes": 70236
+     "sha256": "f8f8bf9f4b2e9e98b9bc656529e9bbddd34313bc19262796c8d883a562c729b0",
+     "bytes": 70156
     }
    ],
    "web": [
     {
      "file": "web/prop.town.bus_lite.glb",
-     "bytes": 158672
+     "bytes": 158192
     }
    ],
    "ue5": {
@@ -13871,14 +13915,14 @@
      "role": "fbx",
      "path": "source/prop.town.signal_car.fbx",
      "storage": "local-ignored",
-     "sha256": "375a0218fcc9493f42801903d39892693890b355e9678727b0ad20dee7439084",
+     "sha256": "31d431230e751a5771f3e69e21c4fb3afaf3b63baf311db2fe104cfef0b20857",
      "bytes": 30412
     }
    ],
    "web": [
     {
      "file": "web/prop.town.signal_car.glb",
-     "bytes": 60872
+     "bytes": 60880
     }
    ],
    "ue5": {
@@ -13901,9 +13945,9 @@
     ],
     "impostor": false,
     "materials": [
-     "emit.sig_g",
-     "emit.sig_r",
-     "emit.sig_y",
+     "emit.siggreen",
+     "emit.sigred",
+     "emit.sigyellow",
      "mat.town.paint#black",
      "mat.town.paint#pole",
      "mat.town.paint#signal"
@@ -13954,14 +13998,14 @@
      "role": "fbx",
      "path": "source/prop.town.signal_ped.fbx",
      "storage": "local-ignored",
-     "sha256": "41b542fa85a1edb7193391e05adfacd268ab5e58ed1870b364163eb01fa8e173",
+     "sha256": "8a68ed3d053b3ed96a390ab8ffe2d0dce3687a0b391fc4f3133724e919713647",
      "bytes": 26908
     }
    ],
    "web": [
     {
      "file": "web/prop.town.signal_ped.glb",
-     "bytes": 48372
+     "bytes": 48376
     }
    ],
    "ue5": {
@@ -13984,8 +14028,8 @@
     ],
     "impostor": false,
     "materials": [
-     "emit.ped_g",
-     "emit.ped_r",
+     "emit.pedgreen",
+     "emit.pedred",
      "mat.town.paint#chrome",
      "mat.town.paint#pole",
      "mat.town.paint#signal",
@@ -14017,10 +14061,10 @@
     "pivot": "bottom_center",
     "sizeM": [
      3.04,
-     5.884,
+     5.875,
      14.52
     ],
-    "tris": 7692
+    "tris": 6252
    },
    "targets": {
     "web": {
@@ -14037,14 +14081,14 @@
      "role": "fbx",
      "path": "source/prop.town.tram.fbx",
      "storage": "local-ignored",
-     "sha256": "99ca3fed989d946287aeb5b6f04020288befe35b9810e44ade3b46a5e4f2ce5d",
-     "bytes": 267484
+     "sha256": "9b1e1e7d86af74a2bdd8def30238e8ded11eacecb55e330265fb0f12bc4d6cf6",
+     "bytes": 224252
     }
    ],
    "web": [
     {
      "file": "web/prop.town.tram.glb",
-     "bytes": 1443112
+     "bytes": 885956
     }
    ],
    "ue5": {
@@ -14058,10 +14102,10 @@
    },
    "kit": {
     "nodes": {
-     "v0_LOD0": 7692,
-     "v0_LOD1": 4852,
-     "v1_LOD0": 7692,
-     "v1_LOD1": 4852
+     "v0_LOD0": 6252,
+     "v0_LOD1": 1704,
+     "v1_LOD0": 6252,
+     "v1_LOD1": 1704
     },
     "variants": 2,
     "lodDist": [
@@ -14132,14 +14176,14 @@
      "role": "fbx",
      "path": "source/prop.town.tram_lite.fbx",
      "storage": "local-ignored",
-     "sha256": "e31a4e0a759b5bd195dcc03976f44e99452f7ca8c99c387c38dc21358a8ec04d",
-     "bytes": 88236
+     "sha256": "12f1a271af90b740367b5d1a609c90dbd80eb6356563c2d90dd58ecd6d460cbb",
+     "bytes": 88188
     }
    ],
    "web": [
     {
      "file": "web/prop.town.tram_lite.glb",
-     "bytes": 241524
+     "bytes": 240884
     }
    ],
    "ue5": {

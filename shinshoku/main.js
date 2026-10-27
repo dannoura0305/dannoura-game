@@ -205,6 +205,8 @@ class Game {
       const loadWhite = async () => { const v = await loadCharacter(m.dannoura_white, lopt); if (v) { const wasWhite = this.player.model === this.whiteModel; this.whiteModel = v; if (wasWhite) this.player.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('dannoura_white'); } };
       this.whiteVrmReady = new Promise(res => setTimeout(() => loadWhite().then(res, res), this.player.fighter.white ? 0 : 2500));
     }
+    // P17：娘（結末の家の場面だけ）：Blender で作った VRM（tools/blender/char の daughter）。起動を軽くするため後で読む。読めない時・読み終わる前はコードで組んだ娘
+    if (m.daughter && m.daughter.file) this.daughterVrmReady = new Promise(res => setTimeout(() => loadCharacter(m.daughter, lopt).then(v => { if (v) { this.daughterVrm = v; this.vrmLoaded = (this.vrmLoaded || []).concat('daughter'); } res(v); }, () => res(null)), 6000));
     // 異形（glTF 推奨）：読めたら次に区画を読み込む時から差し替え
     this.extModels = {};
     for (const k of ['kiro', 'heiten', 'shuuyou']) if (m[k] && m[k].file) { const v = await loadCharacter(m[k]); if (v) { await prepareClone(); this.extModels[k] = v; this.vrmLoaded = (this.vrmLoaded || []).concat(k); } }

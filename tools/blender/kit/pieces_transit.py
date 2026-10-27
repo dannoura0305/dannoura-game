@@ -35,8 +35,8 @@ kitlib.MAT_COLORS.update({
     P('steeldk'): (0.2, 0.21, 0.24), P('signal'): (0.16, 0.17, 0.19), P('yellow'): (0.86, 0.74, 0.18), P('pole'): (0.5, 0.52, 0.53),
     P('bellows'): (0.14, 0.14, 0.16),
     'glass.dark': (0.03, 0.04, 0.06), 'emit.head': (1.0, 0.95, 0.82), 'emit.tail': (0.85, 0.06, 0.04), 'emit.cabin': (0.62, 0.7, 0.76),
-    'emit.amber': (1.0, 0.55, 0.08), 'emit.sig_g': (0.08, 0.2, 0.15), 'emit.sig_y': (0.22, 0.17, 0.05), 'emit.sig_r': (0.22, 0.05, 0.05),
-    'emit.ped_r': (0.24, 0.05, 0.05), 'emit.ped_g': (0.05, 0.18, 0.1), 'emit.dest': (0.02, 0.015, 0.01),
+    'emit.amber': (1.0, 0.55, 0.08), 'emit.siggreen': (0.08, 0.2, 0.15), 'emit.sigyellow': (0.22, 0.17, 0.05), 'emit.sigred': (0.22, 0.05, 0.05),
+    'emit.pedred': (0.24, 0.05, 0.05), 'emit.pedgreen': (0.05, 0.18, 0.1), 'emit.dest': (0.02, 0.015, 0.01),
 })
 
 
@@ -233,7 +233,7 @@ def tram(lit, lod):
         B.box((0, bz, 0.26), (W - 0.24, 2.3, 0.3), P('black'), bevel=0.03 if lod < 2 else 0)
         for s in (-1, 1):
             for wz in (-0.75, 0.75):
-                wheel(B, s * S['gauge'] / 2, bz + wz, 0.3, 0.1, lod, s, tire=P('steeldk'), rim=P('steel'))
+                wheel(B, s * S['gauge'] / 2, bz + wz, 0.3, 0.1, max(lod, 1), s, tire=P('steeldk'), rim=P('steel'))   # 裾の覆いの陰（ボルトは作らない）
             if lod < 2:
                 B.box((s * (S['gauge'] / 2 + 0.12), bz, 0.36), (0.1, 1.9, 0.16), P('steeldk'))
         # 運転台：前照灯・尾灯・行き先のくぼみ・ワイパー・連結器のふた・鏡（カメラの腕）
@@ -431,7 +431,7 @@ def signal_car(lod):
     B.box((hx, 0.0, hz), (1.3, 0.3, 0.42), P('signal'), bevel=0.04 if lod == 0 else 0)
     B.box((hx, 0.17, hz), (1.6, 0.02, 0.66), P('black'))          # 背面板（後ろ）
     B.box((hx, 0.0, hz + 0.2), (0.08, 0.08, 0.2), P('signal'))
-    for k, (o, m) in enumerate(zip((-0.42, 0.0, 0.42), ('emit.sig_g', 'emit.sig_y', 'emit.sig_r'))):
+    for k, (o, m) in enumerate(zip((-0.42, 0.0, 0.42), ('emit.siggreen', 'emit.sigyellow', 'emit.sigred'))):
         B.cyl((hx + o, -0.15, hz), (hx + o, -0.17, hz), 0.12, 0.12, segs=(16, 10)[lod], mid=m)
         visor(B, (hx + o, -0.15, hz), 0.3, 0.3, 0.16, lod)
     return B.finish(32, uv=False)
@@ -447,7 +447,7 @@ def signal_ped(lod):
     if lod == 0:
         B.cyl((0, -0.13, 0.98), (0, -0.15, 0.98), 0.03, 0.03, segs=8, mid=P('chrome'))
     B.box((0, -0.02, 2.6), (0.38, 0.32, 0.86), P('signal'), bevel=0.03 if lod == 0 else 0)
-    for z, m in ((2.8, 'emit.ped_r'), (2.4, 'emit.ped_g')):
+    for z, m in ((2.8, 'emit.pedred'), (2.4, 'emit.pedgreen')):
         B.box((0, -0.185, z), (0.3, 0.02, 0.3), m)
         visor(B, (0, -0.19, z - 0.02), 0.34, 0.34, 0.12, lod)
     for z in (2.2, 3.0):
@@ -506,7 +506,7 @@ def canopy_column(lod):
 
 
 def trams():
-    return {'variant_lods': [[tram(v, 0), tram(v, 1)] for v in (0, 1)], 'no_tangents': True}
+    return {'variant_lods': [[tram(v, 0), tram(v, 2)] for v in (0, 1)], 'no_tangents': True}   # LOD1＝軽い版と同じ形（36m より遠く）
 
 
 def trams_lite():

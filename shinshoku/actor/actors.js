@@ -256,7 +256,7 @@ export class EnemyActor {
   constructor(brain, model, opt = {}) {
     this.brain = brain; this.model = model; this.id = brain.id; this.kind = brain.kind;
     this.root = new THREE.Group(); this.root.add(model.root); this.root.name = this.id;
-    this.poser = new Poser(model.J, model.rest || {});
+    this.poser = new Poser(model.J, model.rest || {}, model.isVRM ? { tpose: !!model.tpose, hipScale: model.hipScale, vrm0: !!model.vrm0 } : {});   // P17：VRM（娘）は T ポーズの骨
     this.r = model.bodyR || 0.34; this.h = model.height || 1.7;
     this.phase = 0; this.speed = 0; this.time = Math.random() * 10; this.mark = null; this.opt = opt;
     this.y = 0; this.looks = new Looks(model); this.weakGlow = 0;

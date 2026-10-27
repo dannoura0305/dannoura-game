@@ -94,7 +94,7 @@ await t('Blender の部品（町・屋内 15）：目録にあり web の門を�
   const ids = Object.keys(KIT_PIECES); assert.ok(ids.length >= 15);
   for (const id of ids) {
     const e = byId.get(id); assert.ok(e && e.kit, id); assert.equal(e.targets.web.result, 'pass', id);
-    const m = J(`wakaba-assets/entries/${e.dir}/meta.json`); assert.equal(m.license.id, 'own'); assert.ok(m.source.generator.endsWith('build_kit_town.py'));
+    const m = J(`wakaba-assets/entries/${e.dir}/meta.json`); assert.equal(m.license.id, 'own'); assert.ok(m.source.generator.endsWith('build_kit_town.py') || m.source.generator.endsWith('build_kit_transit.py'), id + ' の作り手');   // P17：路面電車・バス・信号・駅前の大屋根は build_kit_transit.py
     const b = readFileSync(new URL(`wakaba-assets/entries/${e.dir}/web/${id}.glb`, root)); assert.ok(b.length < 1048576, id + ' の大きさ');
     const len = b.readUInt32LE(12), g = JSON.parse(b.subarray(20, 20 + len).toString('utf8'));
     const names = g.nodes.filter(nd => nd.mesh != null).map(nd => nd.name);

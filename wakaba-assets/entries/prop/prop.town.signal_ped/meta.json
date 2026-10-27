@@ -52,7 +52,7 @@
    "ao",
    "roughness"
   ],
-  "fileBytes": 48372
+  "fileBytes": 48376
  },
  "use": [
   "境界侵食（shinshoku）の町と屋内"
@@ -70,8 +70,8 @@
   ],
   "impostor": false,
   "materials": [
-   "emit.ped_g",
-   "emit.ped_r",
+   "emit.pedgreen",
+   "emit.pedred",
    "mat.town.paint#chrome",
    "mat.town.paint#pole",
    "mat.town.paint#signal",
