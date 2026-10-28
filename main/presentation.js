@@ -764,6 +764,14 @@ function buildTitle(){
   T.introTimer = setTimeout(()=>{ if(T.st==='intro') setTitleState('attract'); }, RM ? 400 : 3900);
   setTimeout(()=>{ if(T.st==='intro' || T.st==='attract') SFX.stamp(); }, 2780);
   if(!RM) loopTitle(); else drawTitleOnce();
+  // タイトル画面の表示・非表示と、タブの表裏を見張って、止めたループを再開する
+  try{ new MutationObserver(kickTitle).observe(ts, {attributes:true, attributeFilter:['class']}); }catch(e){}
+  document.addEventListener('visibilitychange', kickTitle);
+}
+function kickTitle(){
+  if(RM || T.raf || !T.S || !titleVisible() || document.hidden) return;
+  if(T.vw !== innerWidth || T.vh !== innerHeight) setupTitleCanvas();   // 隠れている間に画面の大きさが変わっていたら作り直す
+  T.last = 0; T.raf = requestAnimationFrame(loopTitle);
 }
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 // タイトルメニューの操作アイコン（main/icons.js）
@@ -823,7 +831,7 @@ function onTitleKey(e){
   }
 }
 function setupTitleCanvas(){
-  const W = innerWidth, H = innerHeight;
+  const W = innerWidth, H = innerHeight; T.vw = W; T.vh = H;
   T.sc = clamp(Math.round(Math.min(W,H)/140), 2, 4);
   const w = Math.ceil(W/T.sc), h = Math.ceil(H/T.sc);
   T.cv.width = w; T.cv.height = h;
@@ -832,9 +840,11 @@ function setupTitleCanvas(){
   if(RM) drawTitleOnce();
 }
 function drawTitleOnce(){ if(T.S) drawStrait(T.ctx, T.S, 4, 0); }
+// タイトルが見えていない間（ゲーム中・タブが裏）は rAF を回さない。見えたら kickTitle() で再開する
 function loopTitle(){
-  T.raf = requestAnimationFrame(loopTitle);
+  T.raf = 0;
   if(!titleVisible() || document.hidden || !T.S) return;
+  T.raf = requestAnimationFrame(loopTitle);
   const now = performance.now(); if(now - (T.last||0) < 31) return; T.last = now;   // 30fps（ドット絵なので十分）
   const t = (now - T.t0)/1000;
   const cx = Math.sin(t*.07) * T.S.range * .8 + T.px * T.S.range * .6;

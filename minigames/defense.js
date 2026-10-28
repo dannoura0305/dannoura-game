@@ -212,6 +212,8 @@ registerMinigame({
     let sel=null, hoverSlot=-1, previewType=null, shake=0, flash=0, heartHit=0, stop=0, toast=null;
     let banner=null, bubble=null, tut=0, tutT=0, dlg=null, ending=null;
     let slotTower=[];
+    // 振動（設定の「振動」がオフ・非対応端末では何もしない。判定には使わない）
+    const buzz=p=>{try{if(mg.buzz)mg.buzz(p);}catch(_){}};
 
     // パーティクル（使い回しプール）
     const PN=480, parts=new Array(PN);
@@ -774,7 +776,7 @@ registerMinigame({
     function waveCleared(){
       const bonus=25+wave*5+DF.bonus;money+=bonus;bumpMoney();
       if(wave>=WAVES){phase='end';endReason='clear';endT=2.2;
-        banner={t:rt,text:'防衛成功',sub:'配信の心は守られた',col:'#44ee88'};sfx('clear');se('ach');}
+        banner={t:rt,text:'防衛成功',sub:'配信の心は守られた',col:'#44ee88'};sfx('clear');se('ach');buzz([20,50,20,50,60]);}
       else{phase='prep';cd=5;banner={t:rt,text:`WAVE ${wave} クリア`,sub:`ボーナス +¥${bonus}`,col:'#e8b830'};sfx('coin');se('decide');
         say(BETWEEN[wave-1]);}
       refreshMenu();
@@ -792,7 +794,7 @@ registerMinigame({
         burst(x,y,e.type==='boss'?70:e.type==='bot'?7:14,col,e.type==='boss'?280:150,e.type==='boss'?3.5:2.4);
         rings.push({x,y,r:b.r*C,max:b.r*C*(e.type==='boss'?5:2.6),life:.45,ml:.45,col});
         addFloat(x,y-b.r*C,`+¥${b.gold}`,'#e8b830');sfx('coin');sfx('death');
-        if(e.type==='boss'){bossKilled=true;shake=.7;stop=.28;flash=.2;sfx('boom');se('rank');}
+        if(e.type==='boss'){bossKilled=true;shake=.7;stop=.28;flash=.2;sfx('boom');se('rank');buzz([60,40,90]);}
         else if(e.type==='anti'){stop=Math.max(stop,.05);shake=Math.max(shake,.15);}
         refreshMenu();
       }
@@ -845,13 +847,13 @@ registerMinigame({
     function heartDamage(b){
       lives=Math.max(0,lives-b.dmg);shake=Math.min(.7,shake+.25+b.dmg*.06);flash=.35;heartHit=.5;stop=Math.max(stop,b.dmg>=3?.18:.07);
       burst(X(HEART.x),Y(HEART.y),14,'#ff5fa2',160,2.6);addFloat(X(HEART.x),Y(HEART.y)-C*.6,`心 -${b.dmg}`,'#ff5f80');
-      sfx('hurt');se(b.dmg>=3?'ghost':'noise');
+      sfx('hurt');se(b.dmg>=3?'ghost':'noise');buzz(b.dmg>=3?[50,30,70]:30);
       elLife.classList.remove('bump');void elLife.offsetWidth;elLife.classList.add('bump');
       if(lives===3&&phase!=='end')say(['joren','','心が限界だ。踏ん張れ、だんのうらさん！'],3);
       if(lives<=0&&phase!=='end'){
         phase='end';endReason='down';endT=2.2;
         burst(X(HEART.x),Y(HEART.y),70,'#ff5fa2',260,3.2);
-        banner={t:rt,text:'心が折れた',sub:'配信が荒らしに埋め尽くされた',col:'#e83055'};sfx('lose');se('warn');
+        banner={t:rt,text:'心が折れた',sub:'配信が荒らしに埋め尽くされた',col:'#e83055'};sfx('lose');se('warn');buzz([120,60,200]);
       }
     }
 

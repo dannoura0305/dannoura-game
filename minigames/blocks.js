@@ -367,6 +367,8 @@ registerMinigame({
     let shake=0,flash=0,danger=false,dangerSeen=false,introT=0;
     let pulse=0,spIdx=0,banner=null,wipe=null,fade=1,hitstop=0,buf=null,lastInput='touch',endReason='',grade='';
     const tut={step:0,t:0,done:[false,false,false,false]};
+    // 振動（設定の「振動」がオフ・非対応端末では何もしない。判定には使わない）
+    const buzz=p=>{try{if(mg.buzz)mg.buzz(p);}catch(_){}};
     const parts=[],pops=[],lifts=[],trails=[],debris=[],flyers=[];
     let lastScoreHtml='',lastTimer='';
     const belt=[];for(let i=0;i<8;i++)belt.push({x:i*70-30,v:22,t:1+(i*3)%5,s:rnd(.7,1)});
@@ -528,7 +530,7 @@ registerMinigame({
         else pop(`${NAME[nt]} 組立！ +${pts}`,my-cs*.3,TC[nt],nt>=4,gi*.18,mx,false,'merge');
       });
       if(chain>=2){const cc=['#44ee88','#00e8c8','#e8b830','#ff9ad0','#ff5a7a'][Math.min(4,chain-2)];pop(`${chain}連鎖組立！ ×${chain}`,wy+wh*.22,cc,true,.2,null,false,'chain');pulse=1;}
-      flash=Math.max(flash,.25+Math.min(.4,chain*.08));shake=Math.max(shake,2+chain*1.5);hitstop=Math.max(hitstop,.04+Math.min(.06,chain*.015));
+      flash=Math.max(flash,.25+Math.min(.4,chain*.08));shake=Math.max(shake,2+chain*1.5);hitstop=Math.max(hitstop,.04+Math.min(.06,chain*.015));if(chain>=2)buzz(Math.min(60,15+chain*10));
       fixes.forEach((v,k)=>{
         const x=k%COLS,y=(k/COLS)|0,c=board[y][x];if(!c||c.t!==9)return;
         c.hp-=v;const [px,py]=cellPx(x,y);
@@ -545,7 +547,7 @@ registerMinigame({
       flyers.push({x:px,y:py,t:0});
       addLift(shipped);
       pop(`ロボット完成！ 出荷！ +${pts}`,py,'#ff74da',true,0,px+cs/2);
-      flash=.7;shake=Math.max(shake,8);sfx('ship');se('rank');
+      flash=.7;shake=Math.max(shake,8);sfx('ship');se('rank');buzz([30,40,60]);
     }
     function afterResolve(){
       let over=false;for(let x=0;x<COLS;x++)if(board[0][x])over=true;
@@ -561,12 +563,12 @@ registerMinigame({
       for(let y=0;y<HID+5;y++)for(let x=0;x<COLS;x++){const c=board[y][x];if(!c)continue;const [px,py]=cellPx(x,y);
         for(let k=0;k<4;k++)spark(px+cs/2,py+cs/2,rnd(-120,120),rnd(-220,-40),rnd(.4,.8),TC[c.t],2.5,true);board[y][x]=null;}
       pop('班長が上の部品を引き取った！',wy+wh*.3,C.gd,true);pop('（助けは一度だけ）',wy+wh*.3+cs*1.1,C.txb,false,.2);
-      sfx('whistle');se('notif');shake=6;
+      sfx('whistle');se('notif');shake=6;buzz(40);
     }
     function gameOver(reason){
       if(phase==='over')return;
       phase='over';overReason=reason;overT=0;topRows=0;cur=null;ptr=null;mergeData=null;
-      if(reason==='topout'){sfx('crash');se('warn');shake=10;flash=.3;
+      if(reason==='topout'){sfx('crash');se('warn');shake=10;flash=.3;buzz([100,50,180]);
         for(let y=0;y<ROWS&&debris.length<16;y++)for(let x=0;x<COLS;x++){const c=board[y][x];if(!c||Math.random()<.5)continue;
           const [px,py]=cellPx(x,y);debris.push({x:px,y:py,vx:rnd(-160,160),vy:rnd(-260,-60),a:0,va:rnd(-8,8),t:c.t});if(debris.length>=16)break;}}
       else{sfx('whistle');se('ach');}

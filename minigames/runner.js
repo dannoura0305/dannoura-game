@@ -594,6 +594,8 @@ registerMinigame({
     let coins=0,drinks=0,purin=0,hits=0,puddles=0,psx=PX,doorOpen=0,fallRot=0,runTime=0;
     let umb={x:0,y:0,vx:0,vy:0,r:0,vr:0};
     let lastScore='', outcome=null, committed=false, gradeInfo=null, leaving=false;
+    // 振動（設定の「振動」がオフ・非対応端末では何もしない。見た目と音の手ごたえを補うだけで判定には使わない）
+    const buzz=p=>{try{if(mg.buzz)mg.buzz(p);}catch(_){}};
     let tr=null, dlg=null, banner=null, stageIdx=0, lightning=0, nextBolt=rnd(3,7), thunderAt=-1, train=null, nextTrain=2;
     const milestones=[700,500,300,100];
     let obs=[],items=[];
@@ -854,7 +856,7 @@ registerMinigame({
         return;
       }
       hp--;hits++;invul=DF.inv;slowMul=.42;flash=1;shake=.4;hitStop=.1;hitT=.32;
-      sfx('hit','warn');
+      sfx('hit','warn');buzz(hp<=0?[80,40,160]:40);
       const msg={box:'ドンッ',stack:'ドサッ',bike:'ガシャン',cat:'ニャッ！',sign:'ゴンッ',gate:'ゴンッ',car:'キキーッ'}[o.type]||'っ…';
       popup(msg,cam+PX+10,GY-py-74,'#ff8aa0',true);
       if(o.type==='car')sfx('horn');
@@ -910,7 +912,7 @@ registerMinigame({
         if(boostT>0)boostT-=dt;
         speed=speedAt(prog)*SPD*slowMul*(boostT>0?1.12:1);
         cam+=speed*dt;
-        if(!woke){wake+=dt/WAKE;if(wake>=1){wake=1;woke=true;sfx('wake','notif');popup('……パパ？（子どもが起きた）',cam+VW*.5,GY-180,'#ff8aa0',true);}}
+        if(!woke){wake+=dt/WAKE;if(wake>=1){wake=1;woke=true;sfx('wake','notif');buzz([30,60,30]);popup('……パパ？（子どもが起きた）',cam+VW*.5,GY-180,'#ff8aa0',true);}}
         const rem=GOAL_M-Math.floor(cam/M);
         if(milestones.length&&rem<=milestones[0]){const m=milestones.shift();popup(m===100?'あと100m！灯りが見える':'あと'+m+'m',cam+VW*.5,GY-200,'#00e8c8',true);if(m===100)sfx('ui','notif');}
         const si=stageAt(cam+PX);
@@ -920,7 +922,7 @@ registerMinigame({
         updatePlayer(dt);
         spawnAhead();
         collide();
-        if(cam>=GOAL&&phase==='run'){phase='arrive';phaseT=0;outcome='clear';psx=PX;held=false;slideT=0;sfx('fanfare','rank');}
+        if(cam>=GOAL&&phase==='run'){phase='arrive';phaseT=0;outcome='clear';psx=PX;held=false;slideT=0;sfx('fanfare','rank');buzz([20,50,20,50,60]);}
       }else if(phase==='arrive'){
         speed*=Math.exp(-3*dt);cam+=speed*dt;
         if(py>0||vy!==0){vy-=2300*dt;py+=vy*dt;if(py<=0){py=0;vy=0;}}

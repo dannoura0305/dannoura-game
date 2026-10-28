@@ -173,6 +173,8 @@ registerMinigame({
     const clamp=(v,a,b)=>v<a?a:v>b?b:v;
     const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
     const se=t=>{try{AU.se(t);}catch(e){}};
+    // 振動（設定の「振動」がオフ・非対応端末では何もしない。判定には使わない）
+    const buzz=p=>{try{if(mg.buzz)mg.buzz(p);}catch(_){}};
     const coarse=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 
     // ── レイアウトのテンプレート（10列×15行、上が北＝非常口側、S＝スタート） ──
@@ -1290,7 +1292,7 @@ registerMinigame({
           el.phase.textContent='— 気配 —';el.phase.className='factory3d-phase p1';
           focusHintT=4.5;
         }else if(n===2){
-          toast(S.inspected>=NEED?'影が追ってくる――非常口へ急げ！':'影が追ってくる――急げ！','bad');se('warn');sting();
+          toast(S.inspected>=NEED?'影が追ってくる――非常口へ急げ！':'影が追ってくる――急げ！','bad');se('warn');sting();buzz([40,60,40]);
           el.phase.textContent='— 追跡 —';el.phase.className='factory3d-phase p2';
           lightning(.8);thunder(.4);
         }
@@ -1461,7 +1463,7 @@ registerMinigame({
               se('repair');inp.buf=0;
               mg.setScore(`点検 ${S.inspected}/${NEED}`);
               el.chk[S.inspected-1].classList.add('ok');
-              if(S.inspected>=NEED){toast('全計器 点検完了！非常口へ','ok');se('ach');exitLamp.material.color.setHex(0x30ff70);}
+              if(S.inspected>=NEED){toast('全計器 点検完了！非常口へ','ok');se('ach');buzz([20,40,40]);exitLamp.material.color.setHex(0x30ff70);}
               else toast(`点検完了 ${S.inspected}/${NEED}`,'ok');
             }
           }else g.prog=Math.max(0,g.prog-dt*1.5);
@@ -1565,7 +1567,7 @@ registerMinigame({
         if(dist<.95&&GH.fade>.6&&GH.cool<=0){
           S.hits++;S.battery=Math.max(0,S.battery-HIT_DMG);
           P.hitT=1;P.shake=1;GH.cool=2;
-          wrap.classList.add('factory3d-hit');se('warn');thump(0,.5);
+          wrap.classList.add('factory3d-hit');se('warn');thump(0,.5);buzz([70,40,110]);
           toast(`影に触れられた　電池 -${HIT_DMG}%`,'bad');
           if(S.battery<=0){endWith('down');return;}
           placeGhostFar(P.x,P.z,22);
