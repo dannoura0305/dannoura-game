@@ -152,7 +152,7 @@ def _ang(C, x, y, r):
     return np.arctan2(y - C[1], z)
 
 
-def build_eye(B, side, E, re, hole_depth, skin_f, lod=1.0):
+def build_eye(B, side, E, re, hole_depth, skin_f, lod=1.0, iris=None):
     """片方の目：目玉・上まぶた・下まぶたの網と、まぶたのモーフ。戻り値 dict"""
     J = B['joints']
     sgn = 1 if side == 'left' else -1
@@ -162,7 +162,7 @@ def build_eye(B, side, E, re, hole_depth, skin_f, lod=1.0):
     rlo = re + 0.0006
     out = {}
     # 目玉（前の半球）
-    nr, ns = (12, 28) if lod >= 1 else (8, 18)
+    nr, ns = (18, 32) if lod >= 1 else (10, 20)                      # P18：前の輪を細かく（黒目のくぼみの形が出る）
     th = np.linspace(0, np.radians(78), nr)
     ph = np.linspace(0, 2 * np.pi, ns, endpoint=False)
     V = [C + [0, 0, re]]
@@ -180,6 +180,12 @@ def build_eye(B, side, E, re, hole_depth, skin_f, lod=1.0):
             T += [(a, c2, d), (a, d, b)]
     T = np.array(T)
     N = (V - C) / re
+    # P18：黒目（虹彩の楕円）の中を少しくぼませる（横・斜めから見た時に目が板に見えない：奥行きと視差）。法線は球のまま（陰影は前と同じ）
+    if iris is not None:
+        rx, ry = iris[0] * 1.08, iris[1] * 1.08
+        r2 = ((V[:, 0] - C[0]) / rx) ** 2 + ((V[:, 1] - C[1]) / ry) ** 2
+        dep = 0.0011 * np.clip(1 - r2, 0, 1) ** 0.75 * (V[:, 2] > C[2])
+        V = V - (V - C) / re * dep[:, None]
     # UV：前から平らに写す（左右で同じ：光の点の位置をそろえる）
     span = 0.034
     uv = np.stack([0.5 + (V[:, 0] - C[0]) / span * 1.0, 0.5 - (V[:, 1] - C[1]) / span], -1)

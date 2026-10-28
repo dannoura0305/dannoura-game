@@ -138,11 +138,17 @@ export async function loadVRMModel(src, opt = {}) {
   const wp = new THREE.Vector3(), wq = new THREE.Quaternion(), ws = new THREE.Vector3();
   springs = { reset() { try { if (sbm && sbm.reset) sbm.reset(); } catch (e) { /* */ } if (charkitSprings) charkitSprings.reset(); } };
   const L = vrmLegDims(J, 1);
+  // P18：半分の関節（補助の骨 ext_half_<人型の骨>：tools/blender/char/rig.py の add_half_joints）。子の骨の回りの半分だけ回し、曲げに合わせて少し膨らませる
+  //（ひざ・ひじ・肩を深く曲げた時の皮のつぶれを減らす）。無い VRM では何もしない
+  const halves = []; const qI = new THREE.Quaternion();
+  vrm.scene.traverse(o => { const m = /^ext_half_(.+)$/.exec(o.name || ''); if (!m) return; const src = vrm.humanoid && vrm.humanoid.getRawBoneNode(m[1]); if (src) halves.push({ o, src, rest: o.quaternion.clone() }); });
+  stats.halfJoints = halves.length;
   stats.loadMs = Math.round((typeof performance !== 'undefined' ? performance : Date).now() - t0);
   return {
     root, vrm, J, sceneScale: k, legDims: L, legScale: L ? L.thigh * k / 0.4 : 1, height: opt.height || stats.heightM, springs, stats, gltf,
     update(dt) {
       vrm.update(dt);
+      for (const h of halves) { h.o.quaternion.copy(h.rest).multiply(qI.identity().slerp(h.src.quaternion, 0.5)); const a = Math.min(1, 2 * Math.acos(Math.min(1, Math.abs(h.src.quaternion.w))) / 1.6); h.o.scale.setScalar(1 + 0.06 * a); }
       if (charkitSprings) { root.updateWorldMatrix(true, false); root.matrixWorld.decompose(wp, wq, ws); charkitSprings.update(dt, wp, wq); }
     },
   };

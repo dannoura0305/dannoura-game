@@ -64,6 +64,7 @@ for (const it of models) {
     nb('leftLowerArm').rotation.set(0, -0.5, 0); nb('rightLowerArm').rotation.set(0, 0.5, 0);
     nb('leftUpperLeg').rotation.set(-0.45, 0, 0); nb('rightUpperLeg').rotation.set(0.35, 0, 0); nb('leftLowerLeg').rotation.set(0.2, 0, 0); nb('rightLowerLeg').rotation.set(0.7, 0, 0);
   }
+  if (POSE === 'raise') { nb('leftUpperArm').rotation.set(0, 0, 1.25); nb('rightUpperArm').rotation.set(0, 0, -1.25); nb('leftLowerArm').rotation.set(0, -0.9, 0); nb('rightLowerArm').rotation.set(0, 0.9, 0); nb('leftUpperLeg').rotation.set(-0.9, 0, 0); nb('leftLowerLeg').rotation.set(1.9, 0, 0); }   // P18：腕を上げる・ひじとひざを深く曲げる（補助の骨の確かめ）
   if (POSE === 'squat') { nb('leftUpperLeg').rotation.set(-1.3, 0, 0); nb('rightUpperLeg').rotation.set(-1.3, 0, 0); nb('leftLowerLeg').rotation.set(2.2, 0, 0); nb('rightLowerLeg').rotation.set(2.2, 0, 0); nb('leftUpperArm').rotation.set(0, 0.0, -0.3); nb('leftUpperArm').rotateY(-1.2); nb('rightUpperArm').rotation.set(0, 0, 0.3); nb('rightUpperArm').rotateY(1.2); nb('leftLowerArm').rotation.set(0, -1.6, 0); nb('rightLowerArm').rotation.set(0, 1.6, 0); }
 }
 // 揺れ物を落ち着かせる

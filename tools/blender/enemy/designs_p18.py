@@ -291,13 +291,14 @@ def ell_rot(c, r, R):
 
 def cells(V, seeds=None, scale=1.0):
     """継ぎ当ての区切り（なめらかな値の段の番号・段の縁までのおよその距離 m）：sin の和の段（コードの継接の patch と同じ考え・速い）"""
+    scale = 0.75 * scale                                                   # 大きめの継ぎ当て
     x, y, z = V[:, 0] * scale, V[:, 1] * scale, V[:, 2] * scale
     v = (np.sin(x * 9 + y * 5) + np.sin(y * 7 - z * 11) + np.sin(z * 6 + x * 4) + 3) * 0.9
-    gx = 0.9 * (9 * np.cos(x * 9 + y * 5) + 4 * np.cos(z * 6 + x * 4))
-    gy = 0.9 * (5 * np.cos(x * 9 + y * 5) + 7 * np.cos(y * 7 - z * 11))
-    gz = 0.9 * (-11 * np.cos(y * 7 - z * 11) + 6 * np.cos(z * 6 + x * 4))
+    gx = 0.9 * scale * (9 * np.cos(x * 9 + y * 5) + 4 * np.cos(z * 6 + x * 4))
+    gy = 0.9 * scale * (5 * np.cos(x * 9 + y * 5) + 7 * np.cos(y * 7 - z * 11))
+    gz = 0.9 * scale * (-11 * np.cos(y * 7 - z * 11) + 6 * np.cos(z * 6 + x * 4))
     fr = v % 1.0
-    return np.floor(v).astype(int), np.minimum(fr, 1 - fr) / np.maximum(np.sqrt(gx * gx + gy * gy + gz * gz), 2.0)
+    return np.floor(v).astype(int), np.minimum(fr, 1 - fr) / np.maximum(np.sqrt(gx * gx + gy * gy + gz * gz), 1.5)
 
 
 # ───────────────────────── 継接
@@ -335,7 +336,7 @@ def tsugihagi(rig):
     blobs += [S.ellipsoid([0.26, 2.3, 0.16], [0.36, 0.34, 0.3]), S.ellipsoid([-0.18, 1.6, -0.12], [0.3, 0.3, 0.26])]
     body0 = U(*blobs, k=0.16)
     body = quilted(body0)
-    P.append(Part('body', body, [-0.8, 0.6, -0.65], [0.8, 2.82, 0.75], 0.012, 'cloth', patch, 'body', ['tHip', 'tBody', 'tChest'], oth=1.0, faces=4200, sym=False))
+    P.append(Part('body', body, [-0.8, 0.6, -0.65], [0.8, 2.82, 0.75], 0.011, 'cloth', patch, 'body', ['tHip', 'tBody', 'tChest'], oth=1.0, faces=8000, sym=False))
     # 背骨の突起（丸い骨の背びれ）
     spikes = []
     for i in range(8):
@@ -433,7 +434,7 @@ def tsugihagi(rig):
         P.append(Part('ten%d' % i, f, np.min(pts, 0) - 0.15, np.max(pts, 0) + 0.15, 0.005, 'cloth', lambda V, N, pts=pts: np.where((V[:, 1] < pts[-2][1] - 0.05)[:, None], lin(ST), lin(D)) * (0.9 + 0.1 * hash3(V * 8, 4))[:, None],
                       'body', names, oth=0.6, faces=900, sym=False))
         bumps = U(*[S.ellipsoid(pts[k] + [0, 0.05, 0.02], [0.045, 0.028, 0.025]) for k in range(1, 5)])
-        P.append(Part('ten%d_eyes' % i, bumps, np.min(pts, 0) - 0.15, np.max(pts, 0) + 0.15, 0.0025, 'glow', EYE, 'body', names, oth=0.0, faces=240, sym=False, ao=False))
+        P.append(Part('ten%d_eyes' % i, bumps, np.min(pts[1:5], 0) - 0.08, np.max(pts[1:5], 0) + 0.1, 0.0035, 'glow', EYE, 'body', names, oth=0.0, faces=240, sym=False, ao=False))
     return P
 
 
@@ -474,6 +475,11 @@ def nurikae(rig):
         rolls.append(S.cylinder(np.array([0, y, 0.05 * (i - 1)]), 0.07, 0.31, rr=0.02, axis_rot=rotz(math.pi / 2)))
     rolls_f = lambda Q, f0=U(*rolls, k=0.01): f0(Q) - 0.004 * np.sin(np.arctan2(Q[:, 1] - 1.0, Q[:, 2]) * 18)
     P.append(Part('rolls', rolls_f, [-0.4, 0.8, -0.2], [0.4, 1.12, 0.2], 0.004, 'metal', lambda V, N: tile(SHUT, V) * (0.8 + 0.2 * (np.sin(np.arctan2(V[:, 1] - 1.0, V[:, 2]) * 18) > 0))[:, None], ('rigid', 'nHip'), oth=0.8, faces=1400))
+    # 腰と胴をつなぐ電線の束（ねじれた 5 本）
+    hpv = B(rig, 'nHip')
+    bundle = U(*[tube([hpv + [math.sin(a) * 0.06, 0.02, math.cos(a) * 0.05], hpv + [math.sin(a + 0.6) * 0.08, 0.16, math.cos(a + 0.6) * 0.06 - 0.02], hb + [math.sin(a + 1.2) * 0.1, -0.12, math.cos(a + 1.2) * 0.08]], 0.03, 0.028, k=0.02)
+                 for a in np.linspace(0, 2 * math.pi, 6)[:-1]], k=0.015)
+    P.append(Part('bundle', bundle, hpv + [-0.25, -0.05, -0.25], hb + [0.25, 0.0, 0.25], 0.004, 'acc', lambda V, N: tile(CABLE, V) * (0.85 + 0.15 * (np.sin(V[:, 1] * 90 + V[:, 0] * 40) > 0))[:, None], 'body', ['nHip', 'nBody'], oth=0.7, faces=1200))
     # 胴：シャッターを積んだ柱（横の溝・天板）
     cy = (hb[1] + hc0[1]) / 2 - 0.04
     trunk0 = S.box(np.array([0, cy, hb[2]]), [0.25, 0.23, 0.17], r=0.02)

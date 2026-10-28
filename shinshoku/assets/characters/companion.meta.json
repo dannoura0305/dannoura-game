@@ -28,7 +28,7 @@
   "hipW": 0.32
  },
  "info": {
-  "bones": 60,
+  "bones": 66,
   "humanBones": 54,
   "expressions": 14,
   "springs": 2,
@@ -36,8 +36,8 @@
   "colliders": 11,
   "parts": {
    "head_skin": 4000,
-   "left_eyeball": 588,
-   "right_eyeball": 588,
+   "left_eyeball": 1056,
+   "right_eyeball": 1056,
    "left_lidU": 204,
    "left_lidL": 136,
    "right_lidU": 204,
@@ -50,8 +50,8 @@
    "hair_locks": 4830,
    "hair_cap": 1398,
    "shirt": 2099,
-   "jacket": 8044,
-   "trousers": 3754,
+   "jacket": 6379,
+   "trousers": 3653,
    "left_shoe": 1149,
    "right_shoe": 1149,
    "bagstrap": 576,
@@ -64,22 +64,22 @@
   {
    "file": "companion.vrm",
    "lod": "pc",
-   "bytes": 2960520,
-   "sha256": "8f27e0cbcbbaf9f5171848e7d4b6f2c7a3d38ee00cc383da9da60fec7f6fef03",
-   "tris": 33474,
+   "bytes": 3173228,
+   "sha256": "e0d51d5cf1229c351cd0a82ebc760e12b8f822ee81191e14e08da98a31930bf2",
+   "tris": 32644,
    "materials": 5,
    "images": 7,
-   "imageBytes": 1250318
+   "imageBytes": 1370703
   },
   {
    "file": "companion_low.vrm",
    "lod": "low",
-   "bytes": 1407320,
-   "sha256": "e9b1721cc6a10f3fc8446a8d8e10a321b0287e65170c5781b2602b4a36e68ecd",
-   "tris": 15039,
+   "bytes": 1457544,
+   "sha256": "525a864f62aa0bb852341242cd1b2c8b5af92d1ce098402b81026f97d05bb36c",
+   "tris": 14924,
    "materials": 5,
    "images": 7,
-   "imageBytes": 498321
+   "imageBytes": 534171
   }
  ]
 }

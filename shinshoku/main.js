@@ -18,6 +18,8 @@ import { Shuuyou } from './ai/shuuyou.js';
 import { CompanionBrain } from './ai/companion.js';
 import { ThirdPersonCamera } from './render/camera.js';
 import { preloadEnemyPacks, requestEnemyPacks, applyEnemyPack, ENEMY_PACK_KINDS } from './actor/enemypack.js';
+// P18：区画 → 先に読む異形の体（その区画とすぐ後の区画に出る種類）
+const LAZY_PACK_AREAS = { office: ['outou'], lab: ['outou'], oldwing: ['tsugihagi'], atrium: ['tsugihagi'], ruins: ['nurikae'], avenue: ['nurikae'], admin: ['touchoku'] };
 import { Fx, Rain } from './render/fx.js';
 import { Halos, WetStreaks } from './render/halo.js';
 import { SwordTrail } from './render/trail.js';
@@ -288,6 +290,7 @@ class Game {
     A.root.traverse(o => { if (o.userData.shafts || o.userData.stains) o.material.uniforms.uFog.value = fog.density; });
     this.twistSpawned = false; this.mamori = null; this.tenkiOpen = false; this.fires.length = 0; this.decoy = null; if (this.decoyModel) this.decoyModel.root.visible = false;
     this.spawnEnemies(id);
+    this.lazyEnemyPacks();                                            // P18：この区画の異形の体（第4章から）をすぐ頼む（あとから足される異形は 1 秒ごとに見る）
     this.buildPickups(id);
     // だんのうら・相棒の置き場所
     const sp = (A.spawns[spawn] || A.spawns[Object.keys(A.spawns)[0]]);
@@ -1099,7 +1102,8 @@ class Game {
   refreshEnemyPacks() { for (const e of this.enemies || []) { const m = e.model; if (m && !m.packed && ENEMY_PACK_KINDS.includes(m.kind)) applyEnemyPack(m, m.kind, { tint: m.packTint }); } }
   /** P18：第4章からの異形（応答体・継接・塗替・当直）の体は、その異形が置かれた時に読む（1 秒ごとに見る・1 種類 1 回） */
   lazyEnemyPacks() {
-    const ks = []; for (const e of this.enemies || []) if (e.model && !e.model.packed && e.model.kind) ks.push(e.model.kind);
+    const ks = [...(LAZY_PACK_AREAS[this.area && this.area.id] || [])];     // この区画（と次の区画）のボスは先に頼む（戦いの始まりに読み込みが重ならない）
+    for (const e of this.enemies || []) if (e.model && !e.model.packed && e.model.kind) ks.push(e.model.kind);
     const p = ks.length ? requestEnemyPacks(ks, this.presetVals() === PRESETS.low ? 'low' : 'high') : null;
     if (p) p.then(n => { this.enemyPacks = (this.enemyPacks || 0) + n; this.refreshEnemyPacks(); }, () => 0);
   }

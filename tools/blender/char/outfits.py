@@ -147,6 +147,18 @@ def make_jacket(B, W, q, base='#e7e0f7', rib='#d9cff0', rib_line='#cbbfe6', tape
         o = o - 0.001 * SS(0.2, 0.3, x)
         o = o - cuff_tight * SS(ax - 0.07, ax - 0.03, x)
         o = o - 0.004 * SS(hem + 0.06, hem + 0.01, y) * SS(0.2, 0.12, x)
+        # P18：布のしわ（形のしわ：SDF の法線にも出る＝トゥーンの影の線になる）。ひじの内側の斜めのしわ・手首の上のたるみ・わきの下から胸へ流れるしわ・すその上の横じわ
+        ex = abs(J['leftLowerArm'][0])
+        dy = y - J['leftHand'][1]
+        elbow = SS(0.065, 0.0, np.abs(x - ex)) * SS(-0.02, 0.012, z)
+        o = o + 0.0026 * elbow * (0.5 + 0.5 * np.sin(x * 105 + dy * 55))
+        wrist = SS(ax - 0.14, ax - 0.11, x) * SS(ax - 0.06, ax - 0.085, x)
+        o = o + 0.0022 * wrist * (0.5 + 0.5 * np.sin(x * 150 + np.arctan2(dy, z - J['leftHand'][2]) * 2.0))
+        uc = J['upperChest'][1]
+        pit = SS(0.09, 0.12, x) * SS(abs(J['leftUpperArm'][0]) + 0.01, abs(J['leftUpperArm'][0]) - 0.03, x) * SS(uc - 0.2, uc - 0.12, y) * SS(uc + 0.04, uc - 0.02, y)
+        o = o + 0.0018 * pit * (0.5 + 0.5 * np.sin((y + x * 0.9) * 115))
+        waistf = SS(hem + 0.04, hem + 0.08, y) * SS(hem + 0.2, hem + 0.12, y) * SS(0.06, 0.12, x)
+        o = o + 0.0016 * waistf * (0.5 + 0.5 * np.sin(y * 140 + x * 25))
         return o
     parts = [S.offset(S.union(torso, arms, k=0.035), j_off)]
     f = parts[0]
@@ -238,7 +250,18 @@ def make_pants(B, W, q, pattern='plaid', off=0.011, straight_r=0.053, waist=0.97
         straight = S.union(S.round_cone(J['leftLowerLeg'] + [0, 0.05, -0.004], J['leftFoot'] + [0, 0.03, 0.01], straight_r - 0.001, straight_r),
                            S.round_cone(J['rightLowerLeg'] + [0, 0.05, -0.004], J['rightFoot'] + [0, 0.03, 0.01], straight_r - 0.001, straight_r))
         shp = S.union(shp, straight, k=0.04)
-    f = S.offset(shp, lambda P: off - 0.006 * SS(0.80, 0.90, P[:, 1]))
+    ky = J['leftLowerLeg'][1]
+
+    def p_off(P):
+        y, z = P[:, 1], P[:, 2]
+        o = off - 0.006 * SS(0.80, 0.90, y)
+        # P18：ひざの横じわ（前と裏）・すその上のたまり（形のしわ）
+        knee = SS(0.09, 0.0, np.abs(y - ky))
+        o = o + 0.002 * knee * (0.5 + 0.5 * np.sin(y * 125 + P[:, 0] * 30 + (z < 0) * 1.3))
+        stack = SS(hem + 0.1, hem + 0.06, y) * SS(hem - 0.01, hem + 0.015, y)
+        o = o + 0.0024 * stack * (0.5 + 0.5 * np.sin(y * 170 + P[:, 0] * 20))
+        return o
+    f = S.offset(shp, p_off)
     m = G.extract(f, (-0.23, 0.04, -0.17), (0.23, waist + 0.05, 0.16), 0.006, faces=int(faces * q))
     m = G.cut_plane(m, (0, waist, 0), (0, 1, 0))
     m = G.cut_plane(m, (0, hem, 0), (0, -1, 0))

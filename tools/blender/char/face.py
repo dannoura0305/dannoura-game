@@ -85,7 +85,7 @@ def build_face(B, style, look, lod=1.0):
     morph_parts = []
     eyes = {}
     for s in ('left', 'right'):
-        e = HD.build_eye(B, s, E, re, 0.0019, f, lod=lod)
+        e = HD.build_eye(B, s, E, re, 0.0019, f, lod=lod, iris=look.get('iris', (0.0062, 0.0076)))
         eyes[s] = e
         eb = e['eyeball']
         parts.append(dict(name=s + '_eyeball', V=eb['V'], T=eb['T'], N=eb['N'], UV=FP.cell_uv('eye', eb['uv']), mat='FACE_PARTS', group='face', weights=('bone', s + 'Eye')))

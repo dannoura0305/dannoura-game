@@ -37,7 +37,8 @@ CHARS = {
                       meta=dict(META_BASE, name='相棒（Companion・仮）', version='1.0'),
                       steps=[dict(kind='hair', module='styles', fn='hair_bob'), dict(kind='outfit', module='outfits', fn='outfit_companion'), dict(kind='acc', module='props', fn='acc_companion')]),
     # P17：娘（4 歳・結末の家の場面だけ。危ない場面には出さない）。大人の寸法（female）で作って全体を scale 倍・頭を headScale 倍（子どもの頭身）
-    'daughter': dict(body='female', face='female', look=LOOK_DAUGHTER, height=1.0, headScale=1.62, scale=0.585, lowRatio=0.45,
+    # P18：4 歳らしく手足を短めに（脚 0.84 倍・腕 0.86 倍：tools/blender/char/build_char.py の limb_scale）。縮んだ分は全体の縮尺で背を 1m 前後に戻す。意匠（髪・服・色）は同じ
+    'daughter': dict(body='female', face='female', look=LOOK_DAUGHTER, height=1.0, headScale=1.62, scale=0.635, limbs=dict(legs=0.84, arms=0.86), lowRatio=0.45,
                      meta=dict(META_BASE, name='娘（Daughter・4 歳）', version='1.0'),
                      steps=[dict(kind='hair', module='styles', fn='hair_pigtails'), dict(kind='outfit', module='outfits', fn='outfit_daughter'), dict(kind='acc', module='props', fn='acc_daughter')]),
 }

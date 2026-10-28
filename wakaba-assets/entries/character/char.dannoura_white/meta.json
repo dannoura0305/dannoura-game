@@ -34,10 +34,10 @@
   "formats": [
    "vrm"
   ],
-  "tris": 42357,
+  "tris": 42865,
   "lods": [
-   42357,
-   17889
+   42865,
+   18129
   ],
   "texRes": 2048,
   "sizeM": [
@@ -59,6 +59,6 @@
  "storage": {
   "original": "tools/blender/char（スクリプトが原本）",
   "runtime": "shinshoku/assets/characters/dannoura_white.vrm",
-  "sha256": "b3ce04516798c7cebc423a1c77b6b31bbe8467324fb1649bb1edd8c5e9aa45ee"
+  "sha256": "d0ee295039937b0a51148695cab7c8f85bcc0406cc79f4fd8efc840aabc2d625"
  }
 }
