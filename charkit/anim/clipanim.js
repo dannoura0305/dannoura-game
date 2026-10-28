@@ -15,6 +15,8 @@ import { solveLeg } from './loco.js';
 
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const smooth = x => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
+const HIPDROP_IN = 0.001;                // P18：腰を下ろす速さ（秒：すぐ）
+const SNAP_OUT = 0.15;                   // P18：足を床へ下ろす補正を、足が離れてから戻す速さ（秒）
 const UPPER = /^(spine|chest|upperChest|neck|head|left(Shoulder|UpperArm|LowerArm|Hand)|right(Shoulder|UpperArm|LowerArm|Hand)|left(Thumb|Index|Middle|Ring|Little)|right(Thumb|Index|Middle|Ring|Little))/;
 const ARMS = /^(left|right)(UpperArm|LowerArm|Hand|Thumb|Index|Middle|Ring|Little)/;
 
@@ -201,44 +203,96 @@ export class ClipAnimator {
     const loc = (o, out = new THREE.Vector3()) => o.getWorldPosition(out).applyMatrix4(inv);
     const q = new THREE.Quaternion();
     this.stats.ikFrames++;
+    const k = L.thigh / 0.4;
     for (const f of this.feet) {
       const UL = J[f.s + 'UpperLeg'], LL = J[f.s + 'LowerLeg'], FT = J[f.s + 'Foot'];
-      const hj = loc(UL), kn = loc(LL), an = loc(FT);
+      const an = loc(FT);
       const footWQ = FT.getWorldQuaternion(new THREE.Quaternion());
       const anW = FT.getWorldPosition(new THREE.Vector3());
-      // 着いている点（かかと・つま先の付け根の低い方）のクリップのままの世界の動きを打ち消す（滑りの残りを消す）。
-      // 足首を 1 点に止めない：つま先で転がる間も足首は前へ動けるので、足の裏の転がりは崩れない。離れたら補正を 0.08 秒で 0 へ
-      const heelW = new THREE.Vector3(0, -ankleH, -L.heel).applyMatrix4(FT.matrixWorld), ballW = new THREE.Vector3(0, -ankleH, L.ball).applyMatrix4(FT.matrixWorld);
+      // 着いている点（かかと・つま先の付け根の低い方）を世界に止める。足首を 1 点に止めない：つま先で転がる間も足首は前へ動けるので、足の裏の転がりは崩れない。
+      // P18（歩きの滑り 1.2cm/s → 0.4cm/s）：①止める点を「世界の錨」（f.A）で持つ。②かかとと付け根の両方が着いている間（足の裏が平ら）は、
+      //   足の向きを「着いた時の水平の向き・足の裏が床と平ら」へ寄せる（クリップの足の小さな回りで点が滑らない）。③着いている間は浮きも床へ下ろす
+      //   （VRM とクリップの脚の長さの差で 2cm ほど浮いていた）。④届かない時は腰を下ろす。⑤解いた足首を測って寄せ直す（骨の休みの形で 1〜2cm ずれていた）。
+      //   離れたら補正を 0.08 秒で 0 へ
+      const hOff = new THREE.Vector3(0, -ankleH, -L.heel), bOff = new THREE.Vector3(0, -ankleH, L.ball);
+      const heelW = hOff.clone().applyMatrix4(FT.matrixWorld), ballW = bOff.clone().applyMatrix4(FT.matrixWorld);
       const gW = new THREE.Vector3(0, groundY, 0).applyMatrix4(R.matrixWorld).y;
       const useBall = ballW.y < heelW.y, pt = useBall ? ballW : heelW, pv = useBall ? f.prevBall : f.prevHeel, prev = pv ? pv.clone() : null;
       const vel = prev && dt > 0 ? Math.hypot(pt.x - prev.x, pt.z - prev.z) / dt : 9;
       (f.prevHeel || (f.prevHeel = new THREE.Vector3())).copy(heelW); (f.prevBall || (f.prevBall = new THREE.Vector3())).copy(ballW);
       const c = f.c || (f.c = new THREE.Vector3());
-      f.planted = pt.y - gW < 0.02 * (L.thigh / 0.4) && vel < 0.5;
-      if (f.planted && prev) { c.x -= (pt.x - prev.x); c.z -= (pt.z - prev.z); const m = Math.hypot(c.x, c.z), mx = 0.12 * (L.thigh / 0.4); if (m > mx) c.multiplyScalar(mx / m); this.stats.lockFrames++; }
-      else c.multiplyScalar(Math.exp(-dt / 0.08));
+      f.planted = pt.y - gW < 0.035 * k && vel < 0.5;                       // 着いた判定は床から 3.5cm まで（前は 2cm：浮いた足で固定が入ったり切れたりした）
+      const flat = f.planted && Math.max(heelW.y, ballW.y) - gW < 0.035 * k;
+      if (flat && !f.flatQ) {
+        const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(footWQ).applyQuaternion(rqi);
+        f.flatQ = rq.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(fwd.x, fwd.z)));
+      }
+      const hold = flat && f.flatQ && footWQ.angleTo(f.flatQ) < 0.44;      // 25° 以上ずれたら放す
+      f.fw = (f.fw || 0) + ((hold ? 1 : 0) - (f.fw || 0)) * Math.min(1, dt / (hold ? 0.05 : 0.08));
+      if (!hold && f.fw < 1e-3) f.flatQ = null;                             // 放す時も向きは跳ばない（重みが 0 になってから捨てる）
+      const Qf = f.flatQ ? footWQ.clone().slerp(f.flatQ, f.fw) : footWQ.clone();
+      const off = (useBall ? bOff : hOff).clone().applyQuaternion(Qf);
+      if (f.planted) {
+        if (!f.A || f.piv !== useBall) { f.A = anW.clone().add(c).add(off); f.piv = useBall; }   // 錨：着いた時（止める点が変わった時）の今の点
+        const want = f.A.clone().sub(off).sub(anW);
+        const m = Math.hypot(want.x, want.z), mx = 0.12 * k;
+        if (m > mx) { want.multiplyScalar(mx / m); f.A = anW.clone().add(want).add(off); }       // 届かない時は錨をずらす（まれ）
+        c.set(want.x, 0, want.z); this.stats.lockFrames++;
+      } else { f.A = null; c.multiplyScalar(Math.exp(-dt / 0.08)); }
       f.w = f.planted ? 1 : 0;
+      f.sw = (f.sw || 0) + ((f.planted ? 1 : 0) - (f.sw || 0)) * Math.min(1, dt / (f.planted ? 0.12 : SNAP_OUT));
       const tgt = anW.clone().add(c).applyMatrix4(inv);
-      // 床へ入れない：足の向き（クリップのまま）でかかと・つま先の付け根の低い方が床より下なら足首を上げる
-      const fq = rqi.clone().multiply(footWQ);
-      const heel = new THREE.Vector3(0, -ankleH, -L.heel).applyQuaternion(fq), ball = new THREE.Vector3(0, -ankleH, L.ball).applyQuaternion(fq);
+      // 床へ入れない：足の向きでかかと・つま先の付け根の低い方が床より下なら足首を上げる。着いている間は浮きも床へ下ろす
+      const fq = rqi.clone().multiply(Qf);
+      const heel = hOff.clone().applyQuaternion(fq), ball = bOff.clone().applyQuaternion(fq);
       const lowPt = tgt.y + Math.min(heel.y, ball.y);
       if (lowPt < groundY) tgt.y += groundY - lowPt;
-      if (tgt.distanceToSquared(an) < 1e-8) continue;
+      else if (f.sw > 1e-3) tgt.y -= Math.min(lowPt - groundY, 0.04 * k) * f.sw;
+      f.tgt = tgt; f.Qf = Qf; f.skip = tgt.distanceToSquared(an) < 1e-8 && f.fw < 1e-3;
+    }
+    // 腰を下ろす（着いた足が脚の長さで届かない時だけ・なめらかに）。VRM の脚はクリップの脚より少し短く、伸び切った足が床から浮いて滑っていた
+    let drop = 0;
+    for (const f of this.feet) {
+      if (f.skip || !f.planted) continue;
+      const UL = J[f.s + 'UpperLeg'], LL = J[f.s + 'LowerLeg'], FT = J[f.s + 'Foot'];
+      const hj = loc(UL), Lm = (LL.position.length() + FT.position.length()) * 0.995;
+      const dx = f.tgt.x - hj.x, dz = f.tgt.z - hj.z, h2 = Lm * Lm - dx * dx - dz * dz;
+      if (h2 > 0) drop = Math.max(drop, hj.y - f.tgt.y - Math.sqrt(h2));
+    }
+    drop = Math.min(drop, 0.06 * k);
+    const hd0 = this.hipDrop || 0;
+    this.hipDrop = hd0 + (drop - hd0) * Math.min(1, dt / (drop > hd0 ? HIPDROP_IN : 0.15));
+    if (this.hipDrop > 1e-4 && J.hips.parent) {
+      const d = new THREE.Vector3(0, -this.hipDrop, 0).applyQuaternion(rq);                       // root の下向き（世界）→ 腰の親の局所
+      const pw = J.hips.parent.getWorldQuaternion(new THREE.Quaternion()), ps = J.hips.parent.getWorldScale(new THREE.Vector3());
+      d.applyQuaternion(pw.invert()).divide(ps);
+      J.hips.position.add(d); J.hips.updateWorldMatrix(false, true);
+    }
+    for (const f of this.feet) {
+      if (f.skip && !(this.hipDrop > 1e-4)) continue;                  // 腰を下ろした時は宙の足も解き直す（床に入らない）
+      const UL = J[f.s + 'UpperLeg'], LL = J[f.s + 'LowerLeg'], FT = J[f.s + 'Foot'];
+      const hj = loc(UL), tgt = f.tgt, Qf = f.Qf;
       const L1 = LL.position.length(), L2 = FT.position.length();
       // ひざの向き：クリップの太ももの前（骨の +z）。脚が伸び切っていても向きが決まる（ひざの位置からだと裏返ることがある）
       const sg = this.opt.vrm0 ? -1 : 1;                               // VRM 0.x の normalized は骨の向きが 180° 違う（+z が後ろ）
-      const pole = new THREE.Vector3(0, 0, sg).applyQuaternion(rqi.clone().multiply(UL.getWorldQuaternion(new THREE.Quaternion()))).toArray(); void kn;
-      const r = solveLeg(hj.toArray(), tgt.toArray(), L1, L2, pole);
+      const pole = new THREE.Vector3(0, 0, sg).applyQuaternion(rqi.clone().multiply(UL.getWorldQuaternion(new THREE.Quaternion()))).toArray();
       // 太もも：root の局所の回転 → 親（腰）の局所
-      const parentWQ = UL.parent.getWorldQuaternion(new THREE.Quaternion());
-      const parentLQ = rqi.clone().multiply(parentWQ);                         // root の局所での親の回転
-      UL.quaternion.copy(parentLQ.invert().multiply(q.fromArray(r.thighQ)));
-      if (sg < 0) UL.quaternion.multiply(new THREE.Quaternion(0, 1, 0, 0));
-      LL.quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), r.knee * sg);
+      const parentLQ = rqi.clone().multiply(UL.parent.getWorldQuaternion(new THREE.Quaternion())).invert();
+      const aim = tgt.clone();
+      for (let it = 0; it < 3; it++) {
+        const r = solveLeg(hj.toArray(), aim.toArray(), L1, L2, pole);
+        UL.quaternion.copy(parentLQ).multiply(q.fromArray(r.thighQ));
+        if (sg < 0) UL.quaternion.multiply(new THREE.Quaternion(0, 1, 0, 0));
+        LL.quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), r.knee * sg);
+        if (it === 2) break;
+        UL.updateWorldMatrix(false, true);
+        const err = tgt.clone().sub(loc(FT));
+        if (err.lengthSq() < 1e-8) break;
+        aim.add(err);
+      }
       LL.updateWorldMatrix(true, false);
       const llWQ = LL.getWorldQuaternion(new THREE.Quaternion());
-      FT.quaternion.copy(llWQ.invert().multiply(footWQ));
+      FT.quaternion.copy(llWQ.invert().multiply(Qf));
     }
   }
 }

@@ -28,7 +28,7 @@
   "hipW": 0.32
  },
  "info": {
-  "bones": 62,
+  "bones": 68,
   "humanBones": 54,
   "expressions": 14,
   "springs": 2,
@@ -36,8 +36,8 @@
   "colliders": 11,
   "parts": {
    "head_skin": 4000,
-   "left_eyeball": 588,
-   "right_eyeball": 588,
+   "left_eyeball": 1056,
+   "right_eyeball": 1056,
    "left_lidU": 204,
    "left_lidL": 136,
    "right_lidU": 204,
@@ -65,9 +65,9 @@
   {
    "file": "daughter.vrm",
    "lod": "pc",
-   "bytes": 2538284,
-   "sha256": "cc3e4458d4574e4ac6e12311e42c7b6345049c2ffbcbc5c70a9c553603c75e54",
-   "tris": 35197,
+   "bytes": 2695896,
+   "sha256": "01e3e485585aa7fefa3ee2b8592b5fdbcbb3bf41624d8fe8d63ed345b0e395ad",
+   "tris": 36133,
    "materials": 5,
    "images": 7,
    "imageBytes": 789795
@@ -75,9 +75,9 @@
   {
    "file": "daughter_low.vrm",
    "lod": "low",
-   "bytes": 1278612,
-   "sha256": "cd24e6fde88d31d14483fa76b58303d9e3a7ed07392328efc6714edda4036e0e",
-   "tris": 16595,
+   "bytes": 1315424,
+   "sha256": "24735bf7cc0bad2c209532d87cf783353c6c8969ccf855201c3ea98ebdf65561",
+   "tris": 16807,
    "materials": 5,
    "images": 7,
    "imageBytes": 329668

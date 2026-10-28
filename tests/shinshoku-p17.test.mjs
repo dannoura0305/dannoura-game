@@ -56,7 +56,7 @@ await t('町の組み立て：電車・バス・信号・大屋根の部品の i
 });
 
 await t('異形の包み（3 種 × PC／スマホ）：骨の名前はコードの骨と同じ・重みの合計 1・骨の番号の範囲・三角形の予算・材質の種類', () => {
-  for (const kind of EP.ENEMY_PACK_KINDS) for (const low of [false, true]) {
+  for (const kind of EP.ENEMY_PACK_EARLY) for (const low of [false, true]) {          // P17 の 3 種（P18 の 4 種は tests/shinshoku-p18.test.mjs：ボスは予算が別）
     const f = `shinshoku/assets/enemies/${kind}${low ? '_low' : ''}.pack.json`; assert.ok(existsSync(new URL(f, root)), f);
     const pk = J(f), rig = J(`tools/blender/enemy/rigs/${kind}.json`);
     assert.equal(pk.spec, 'wakaba-enemypack/1'); assert.deepEqual(pk.bones, rig.bones.map(b => b.name), kind + ' の骨');

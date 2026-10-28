@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-11-03.1';   // 全体の品質向上：本編の配信画面・文字サイズ・ミニゲーム4本／トビネズミ v0.9／境界侵食 P17（カメラ・電車バス信号大屋根・異形3種・相棒の動き・娘の VRM。enemies/*.pack.json・anim/companion・daughter*.vrm は media、actor/enemypack.js は shell）
+const VERSION = '2026-11-04.1';   // 本編の案内・配信の顔のドット絵・軽量化・振動／トビネズミの通知と掘る知らせ／境界侵食 P18（異形4種の包み enemies/*.pack.json は media・VRM の補助骨と足の滑り）
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）

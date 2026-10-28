@@ -34,10 +34,10 @@
   "formats": [
    "vrm"
   ],
-  "tris": 33474,
+  "tris": 32644,
   "lods": [
-   33474,
-   15039
+   32644,
+   14924
   ],
   "texRes": 2048,
   "sizeM": [
@@ -59,6 +59,6 @@
  "storage": {
   "original": "tools/blender/char（スクリプトが原本）",
   "runtime": "shinshoku/assets/characters/companion.vrm",
-  "sha256": "8f27e0cbcbbaf9f5171848e7d4b6f2c7a3d38ee00cc383da9da60fec7f6fef03"
+  "sha256": "e0d51d5cf1229c351cd0a82ebc760e12b8f822ee81191e14e08da98a31930bf2"
  }
 }

@@ -34,10 +34,10 @@
   "formats": [
    "vrm"
   ],
-  "tris": 35197,
+  "tris": 36133,
   "lods": [
-   35197,
-   16595
+   36133,
+   16807
   ],
   "texRes": 2048,
   "sizeM": [
@@ -59,6 +59,6 @@
  "storage": {
   "original": "tools/blender/char（スクリプトが原本）",
   "runtime": "shinshoku/assets/characters/daughter.vrm",
-  "sha256": "cc3e4458d4574e4ac6e12311e42c7b6345049c2ffbcbc5c70a9c553603c75e54"
+  "sha256": "01e3e485585aa7fefa3ee2b8592b5fdbcbb3bf41624d8fe8d63ed345b0e395ad"
  }
 }

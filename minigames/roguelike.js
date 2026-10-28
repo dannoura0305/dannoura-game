@@ -818,6 +818,16 @@ registerMinigame({
       ctx.fillStyle=`rgba(${col},${a})`;ctx.beginPath();ctx.ellipse(x-ex,y,s*.035,s*.05*blink+.5,0,0,TAU);ctx.ellipse(x+ex,y,s*.035,s*.05*blink+.5,0,0,TAU);ctx.fill();
       ctx.globalCompositeOperation='source-over';
     }
+    // 「！」はドット絵で描く（文字の「！」は細く、スマホの小さなマスでは見落としやすかったため）。
+    // 太い縦棒＋点、黒い縁取り、左上に白い光。u は1ドットの大きさ（マスの約7%・最低2px）
+    function drawBang(cx,cy,s,pulse){
+      const u=Math.max(2,Math.round(s*.07)),w=2*u,h=8*u,x0=Math.round(cx-w/2),y0=Math.round(cy-h/2);
+      ctx.fillStyle='rgba(12,4,16,.92)';
+      ctx.fillRect(x0-u,y0-u,w+2*u,5*u+2*u);ctx.fillRect(x0-u,y0+6*u-u,w+2*u,2*u+2*u);
+      ctx.fillStyle=`rgb(255,${70+60*pulse|0},96)`;
+      ctx.fillRect(x0,y0,w,5*u);ctx.fillRect(x0,y0+6*u,w,2*u);
+      ctx.fillStyle='rgba(255,236,240,.9)';ctx.fillRect(x0,y0,u,2*u);
+    }
     // 隣の敵が次の手で襲ってくるなら、頭上に「！」と、こちらとの境目に赤い線（見えているときだけ）
     function drawIntents(t){
       if(scene!=='play'||trans||dying)return;
@@ -832,9 +842,7 @@ registerMinigame({
         const pulse=.6+.4*Math.sin(t*9);
         const x=(en.rx+.5)*s,y=(en.ry+.38)*s-s*(en.kind==='b'?.75:.6)-Math.abs(Math.sin(t*6))*s*.08;
         ctx.globalAlpha=vis;
-        ctx.font=`${Math.round(s*.46)}px "DotGothic16", monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
-        ctx.fillStyle='rgba(0,0,0,.7)';ctx.fillText('！',x+1,y+1);
-        ctx.fillStyle=`rgba(255,${70+60*pulse|0},96,1)`;ctx.fillText('！',x,y);
+        drawBang(x,y,s,pulse);
         // 境目の線
         const mx=(en.x+player.x)/2+.5,my=(en.y+player.y)/2+.5,hor=en.y===player.y;
         ctx.strokeStyle=`rgba(255,60,90,${.55*pulse})`;ctx.lineWidth=Math.max(2,s*.07);ctx.beginPath();

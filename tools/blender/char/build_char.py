@@ -52,6 +52,9 @@ def parse_args():
     return o
 
 
+HALF = []          # P18：add_half_joints の戻り値（main で入れる）
+
+
 def assign_weights(parts, Sk, B):
     """部品の weights の指定 → J, W"""
     for p in parts:
@@ -69,6 +72,8 @@ def assign_weights(parts, Sk, B):
             if p.get('smooth_w', 2):
                 nb = MO.adjacency(MO.Mesh(p['V'], [tuple(t) for t in p['T']]))
                 J, W = R.smooth_weights(J, W, nb, len(Sk.names), iters=p.get('smooth_w', 2), lam=0.5)
+            if HALF:
+                J, W = R.apply_half_joints(J, W, len(Sk.names), HALF)       # P18：ひざ・ひじ・肩の補助の骨（深い曲げのつぶれを減らす）
             p['J'], p['W'] = J, W
         else:
             raise ValueError(w)
@@ -105,6 +110,71 @@ def head_scale(parts, Sk, s, ctx):
         if Sk.idx(nm) in grp:
             Sk.tail[nm] = piv + (t - piv) * s
     ctx['headScale'] = s
+
+
+def _group(Sk, root):
+    """root とその子孫の骨の番号"""
+    grp = {Sk.idx(root)}
+    changed = True
+    while changed:
+        changed = False
+        for i, p in enumerate(Sk.parent):
+            if p in grp and i not in grp:
+                grp.add(i)
+                changed = True
+    return np.array(sorted(grp))
+
+
+def limb_scale(parts, Sk, limbs, ctx):
+    """P18：手足の長さ（娘＝4 歳らしく手足を短めに）。limbs={'legs': k, 'arms': k}。
+    脚：太ももの根（股関節）のまわりに縦は k・横と前後は √k（細くしすぎない）。脚の重みの分だけ動かし（腰でなめらかにつながる）、全体を短くなった分だけ下げる（足は床のまま）。
+    腕：肩（上腕の根）のまわりに腕の向き（x）は k・ほかは √k。骨（補助の骨・指を含む）も同じに動かす"""
+    if not limbs:
+        return
+    kl, ka = limbs.get('legs', 1.0), limbs.get('arms', 1.0)
+    ctx['limbs'] = dict(limbs)
+    drop = 0.0
+    if abs(kl - 1) > 1e-6:
+        hy = Sk.P('leftUpperLeg')[1]
+        drop = hy * (1 - kl)
+        sl = np.array([np.sqrt(kl), kl, np.sqrt(kl)])
+        for side in ('left', 'right'):
+            g = _group(Sk, side + 'UpperLeg')
+            piv = Sk.P(side + 'UpperLeg').copy()
+            for p in parts:
+                w = np.zeros(len(p['V']))
+                for j in range(4):
+                    w += np.isin(p['J'][:, j], g) * p['W'][:, j]
+                w = np.clip(w, 0, 1)[:, None]
+                p['V'] = p['V'] + ((piv + (p['V'] - piv) * sl) - p['V']) * w
+            for i in g:
+                Sk.pos[i] = piv + (Sk.pos[i] - piv) * sl
+                nm = Sk.names[i]
+                if nm in Sk.tail:
+                    Sk.tail[nm] = piv + (Sk.tail[nm] - piv) * sl
+        # 全体を drop だけ下げる（縮めた脚の足が床に戻る）
+        for p in parts:
+            p.pop('_legw', None)
+            p['V'] = p['V'] - np.array([0, drop, 0])
+        Sk.pos = [q - np.array([0, drop, 0]) for q in Sk.pos]
+        Sk.tail = {k: v - np.array([0, drop, 0]) for k, v in Sk.tail.items()}
+    if abs(ka - 1) > 1e-6:
+        sa = np.array([ka, np.sqrt(ka), np.sqrt(ka)])
+        for side in ('left', 'right'):
+            g = _group(Sk, side + 'UpperArm')
+            g = np.array(sorted(set(g.tolist()) | {Sk.idx('ext_half_' + side + 'UpperArm')} if 'ext_half_' + side + 'UpperArm' in Sk.names else set(g.tolist())))
+            piv = Sk.P(side + 'UpperArm').copy()
+            for p in parts:
+                w = np.zeros(len(p['V']))
+                for j in range(4):
+                    w += np.isin(p['J'][:, j], g) * p['W'][:, j]
+                w = np.clip(w, 0, 1)[:, None]
+                p['V'] = p['V'] + ((piv + (p['V'] - piv) * sa) - p['V']) * w
+            for i in g:
+                Sk.pos[i] = piv + (Sk.pos[i] - piv) * sa
+                nm = Sk.names[i]
+                if nm in Sk.tail:
+                    Sk.tail[nm] = piv + (Sk.tail[nm] - piv) * sa
 
 
 def global_scale(parts, Sk, gs, ctx):
@@ -161,8 +231,10 @@ def main():
         ctx['extra_colliders'] += r.get('colliders', [])
         ctx.update(r.get('ctx', {}))
         print(step['fn'], round(time.time() - t0, 1), 's')
+    HALF[:] = R.add_half_joints(Sk)
     assign_weights(parts, Sk, B)
     head_scale(parts, Sk, C.get('headScale', 1.0), ctx)
+    limb_scale(parts, Sk, C.get('limbs'), ctx)
     global_scale(parts, Sk, C.get('scale', 1.0), ctx)
     # テクスチャを書く
     out = os.path.abspath(o['out'])

@@ -185,6 +185,8 @@ registerMinigame({
     let ph='title',pt=0,T=0,dishIdx=-1,banner=null,wipe=null,hint='',hitstop=0,buf=0,shake=0,flash=0,flashCol='255,240,200';
     let finished=false,res=null,tutorial=true;
     const rec={egg:[],tako:[],oni:[],plate:[]};
+    // 振動（設定の「振動」がオフ・非対応端末では何もしない。判定には使わない）
+    const buzz=p=>{try{if(mg.buzz)mg.buzz(p);}catch(_){}};
     const cnt={P:0,G:0,M:0};
     const gauge={show:false,label:'',v:0,pa:0,pb:0,ga:0,gb:0,ramp:R_HEAT,lockV:-1,lockT:0,lockQ:'',right:''};
     const egg={heat:.5,heatF:1,layers:[],ry:0,rh:0,c:0,pour:0,sheet:false,rot:0,r0y:0,r0h:0,heatV:.5};
@@ -447,9 +449,9 @@ registerMinigame({
     function judge(key,q,x,y,sub,score){
       rec[key].push(score!==undefined?score:QV[q]);cnt[q]++;
       pop(QL[q],x,y,QC[q],q==='P'?26:22,q==='P'?1.1:.9,sub);
-      if(q==='P'){SND.perfect();hitstop=.11;shake=Math.max(shake,5*S);flash=.35;flashCol='255,236,170';sparkle(x,y,16);}
+      if(q==='P'){SND.perfect();hitstop=.11;shake=Math.max(shake,5*S);flash=.35;flashCol='255,236,170';sparkle(x,y,16);buzz(25);}
       else if(q==='G'){SND.good();sparkle(x,y,6,'#bff8ee');}
-      else{SND.miss();shake=Math.max(shake,3*S);flash=.2;flashCol='255,90,110';}
+      else{SND.miss();shake=Math.max(shake,3*S);flash=.2;flashCol='255,90,110';buzz([30,40,30]);}
     }
     function lockGauge(q){gauge.lockV=gauge.v;gauge.lockT=.6;gauge.lockQ=q;}
 
@@ -993,7 +995,7 @@ registerMinigame({
       cnt[q]++;
       const words=['にぎっ','ぎゅっ','くるっ','にぎっ','ぎゅっ','ぽんっ'];
       pop(QL[q],L.cx,L.CY-L.R*1.55,QC[q],q==='P'?22:19,.75,words[oni.beats.indexOf(best)]);
-      if(q==='P'){SND.perfect();hitstop=.07;shake=Math.max(shake,3*S);sparkle(L.cx,L.CY,8);}else if(q==='G')SND.good();else SND.miss();
+      if(q==='P'){SND.perfect();hitstop=.07;shake=Math.max(shake,3*S);sparkle(L.cx,L.CY,8);buzz(15);}else if(q==='G')SND.good();else SND.miss();
       for(let i=0;i<5;i++)emit('drop',L.cx+(Math.random()<.5?-1:1)*L.R*rnd(.9,1.2),L.CY+rnd(-20,20)*S,rnd(-60,60)*S,rnd(-120,-40)*S,.5,1.6*S,'rgba(200,230,255,.8)');
     }
     function updOni(dt){

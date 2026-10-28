@@ -479,6 +479,8 @@ registerMinigame({
     let inv=0, shake=0, hurtFlash=0, whiteFlash=0, slowT=0, spreadT=0, barrierT=0, laserT=0, stop=0, muzzle=0;
     let bombs=DF.bombs, bombT=0, bombBuf=0, banner=null, dying=0, boss=null, mid=null, midDone=false, bossBeaten=false, winT=0;
     let tapBuf=false,finalReason=null, grade=null, newRecord=false, trans=null, endCalled=false, paused=false, focus=false;
+    // 振動（設定の「振動」がオフ・非対応端末では何もしない。判定には使わない）
+    const buzz=p=>{try{if(mg.buzz)mg.buzz(p);}catch(_){}};
     let lastScoreHtml='', lastTimer='', glowPulse=0, glowCol='cy', forcePow=null, firstGood=true, touchedOnce=false;
     let hint=null; const hintQ=[];
     function updateBombBtn(){
@@ -751,7 +753,7 @@ registerMinigame({
 
     // ── ダメージ・取得 ──
     function loseShield(x,y,msg,kind){
-      shield--;inv=DF.inv;shake=Math.max(shake,9);hurtFlash=.5;combo=0;stop=Math.max(stop,.09);player.hitT=.4;
+      shield--;inv=DF.inv;shake=Math.max(shake,9);hurtFlash=.5;combo=0;stop=Math.max(stop,.09);player.hitT=.4;buzz(shield<=0?[90,50,180]:45);
       burst(x,y,18,['#e83055','#ff9aa8','#ffd0d8'],220,.6,3);
       pop(x,y-20,msg,'#ff7a90');
       sfx(kind||'hurt');
@@ -800,7 +802,7 @@ registerMinigame({
     function bomb(){
       if(bombs<=0){pop(player.x,player.y-40,'モデレーターは手が離せない','#8a7aa8');return;}
       bombs--;updateBombBtn();
-      bombT=1.4;whiteFlash=.6;shake=Math.max(shake,12);stop=.14;inv=Math.max(inv,1.2);
+      bombT=1.4;whiteFlash=.6;shake=Math.max(shake,12);stop=.14;inv=Math.max(inv,1.2);buzz(60);
       for(const e of enemies){if(e.dead)continue;if(e.type==='elite'){e.hp-=8;e.flash=.2;if(e.hp<=0)killEnemy(e);}else killEnemy(e);}
       convertBullets('非表示');
       if(mid&&!mid.dead&&mid.t>1){mid.hp-=Math.round(MID_HP*.25);mid.flash=.3;score+=300;}
@@ -1058,7 +1060,7 @@ registerMinigame({
       }
       if(live&&L.rectCircle(m.x,m.y,m.w/2*.8,m.h/2*.7,hx,hy,CORE_R))hurt(hx,hy,'まとめに載せられた');
       if(m.hp<=0){
-        m.dead=true;m.hp=0;m.dieT=0;score+=2500;stop=.22;shake=Math.max(shake,12);whiteFlash=.35;
+        m.dead=true;m.hp=0;m.dieT=0;score+=2500;stop=.22;shake=Math.max(shake,12);whiteFlash=.35;buzz([50,40,70]);
         convertBullets('記事削除');kills++;
         showBanner('記事削除','まとめ管理人を撃退した','#ffcc55',1.8);
         burst(m.x,m.y,50,['#ffcc55','#fff6c0','#ff7a1e','#fff'],320,.9,4);ring(m.x,m.y,90,'#ffcc55',.7);
@@ -1121,7 +1123,7 @@ registerMinigame({
           for(const b of eb)b.dead=true;for(const lz of lasers)lz.dead=true;
           for(const e of enemies)if(!e.dead){e.dead=true;e.dieT=0;corpses.push(e);burst(e.x,e.y,10,['#ffcc55','#fff'],150,.5,3);}
           showBanner('鎮火','炎上の渦が消えていく','#e8b830',2.4);
-          whiteFlash=.6;shake=16;sfx('boom');
+          whiteFlash=.6;shake=16;sfx('boom');buzz([80,50,80,50,160]);
         }else if(bs.t>BOSS_LIMIT&&live){
           // 時間切れ：渦は遠ざかる（夜明けまで耐えた＝クリア。撃破ではない）
           bs.leave=true;winT=2.4;convertBullets('夜明け');for(const lz of lasers)lz.dead=true;

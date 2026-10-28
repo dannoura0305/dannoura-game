@@ -1,7 +1,9 @@
 // トビネズミ Ver.0.9「すみずみまで」（みがき）：PC の画面を窓いっぱいに（整数倍のまま）・名札が重ならない並べ方・
 // はじめの めあて（進み具合は設定に・セーブの版は変えない）・その場に浮かぶ文字の動き・効果音の名前・言葉の決まり。DOM なし。
 import assert from 'node:assert/strict';
-import { pcLayout, PC_MAX, touchLayout } from '../tobinezumi/client/touch-logic.js';
+import { pcLayout, PC_MAX, touchLayout, placeToasts, holdToast, boxesOverlap } from '../tobinezumi/client/touch-logic.js';
+import { cellPath, planDigs, digStrokeNote } from '../tobinezumi/client/nest-layout.js';
+import { createNest, tryOp, cellAt, C } from '../tobinezumi/shared/nest-rules.js';
 import { layoutLabels } from '../tobinezumi/client/label-layout.js';
 import { newGoal, goalStep, goalEvent, GOAL_PICKS } from '../tobinezumi/client/goal.js';
 import { popCurve } from '../tobinezumi/client/pops.js';
@@ -106,6 +108,76 @@ await test('浮かぶ文字：上がって、終わりぎわに消える', () =>
 await test('効果音：ふだんの動作の音がそろっている（危険の音もそのまま）', () => {
   for (const n of ['pick', 'rare', 'eat', 'drink', 'dig', 'jump', 'land', 'open', 'place', 'remove', 'burrow', 'out', 'pet', 'birth', 'travel', 'alert', 'owl', 'fox', 'hiss', 'caught', 'safe', 'fest', 'plug'])
     assert.ok(SFX_NAMES.includes(n), n);
+});
+
+// ── Ver.0.9 の残り：トーストとパネル・全体モードの掘る知らせ ──
+await test('トースト：開いているパネルに重ねない（上 → 下 → 入らなければ閉じるまで待つ）', () => {
+  const area = { top: 2, bottom: 724 };
+  const t = { left: 120, right: 270, top: 70, bottom: 120 };   // 2 つ出ている
+  // パネルが無い・重ならない → そのまま
+  assert.deepEqual(placeToasts(t, null, area), { top: 70, moved: false, hold: false });
+  assert.equal(placeToasts(t, { left: 0, right: 100, top: 0, bottom: 700 }, area).moved, false);
+  // パネルの上に入る（スマホ縦：メニューの上の帯）
+  const up = placeToasts(t, { left: 8, right: 382, top: 100, bottom: 600 }, area);
+  assert.equal(up.moved, true); assert.equal(up.hold, false);
+  assert.ok(up.top + 50 <= 100 && up.top >= 2);
+  // 上が足りなければ下
+  const dn = placeToasts(t, { left: 8, right: 382, top: 30, bottom: 500 }, area);
+  assert.equal(dn.moved, true); assert.ok(dn.top >= 500);
+  assert.ok(!boxesOverlap({ ...t, top: dn.top, bottom: dn.top + 50 }, { left: 8, right: 382, top: 30, bottom: 500 }));
+  // スマホ横：パネルが画面いっぱい → 待つ
+  const full = placeToasts({ left: 330, right: 510, top: 90, bottom: 140 }, { left: 160, right: 684, top: 4, bottom: 386 }, { top: 2, bottom: 388 });
+  assert.equal(full.hold, true); assert.equal(full.moved, false);
+});
+await test('待たせたトースト：同じ文は 1 つ・新しい方から 3 つまで', () => {
+  let l = [];
+  for (const x of ['a', 'b', 'a', 'c', 'd']) l = holdToast(l, x);
+  assert.deepEqual(l.map(t => t.text), ['a', 'c', 'd']);
+  l = holdToast(l, 'e', 'bad');
+  assert.deepEqual(l.at(-1), { text: 'e', kind: 'bad' });
+  assert.equal(l.length, 3);
+});
+await test('全体モードの掘る：なぞった道のりは縦横でつながり、マスを飛ばさない', () => {
+  for (const [x0, y0, x1, y1] of [[0, 0, 5, 0], [3, 3, 3, -2], [0, 0, 4, 3], [5, 1, -2, 4], [2, 2, 2, 2]]) {
+    const p = cellPath(x0, y0, x1, y1);
+    assert.equal(p.length, Math.abs(x1 - x0) + Math.abs(y1 - y0));
+    let a = { x: x0, y: y0 };
+    for (const c of p) { assert.equal(Math.abs(c.x - a.x) + Math.abs(c.y - a.y), 1); a = c; }
+    if (p.length) assert.deepEqual(p.at(-1), { x: x1, y: y1 });
+  }
+});
+await test('全体モードの掘る：返事を待たずに手元の予想で続けて掘れる（速くなぞっても止まらない）', () => {
+  const d = createNest({ seed: 5, entranceX: 10 });
+  // 掘ってある所の端を探す
+  let s = null;
+  for (let y = d.surfaceY + 1; y < d.h && !s; y++) for (let x = 1; x < d.w - 8 && !s; x++)
+    if (cellAt(d, x, y) === C.OPEN && [1, 2, 3, 4, 5, 6].every(k => cellAt(d, x + k, y) === C.SOIL)) s = { x, y };
+  assert.ok(s, '掘り始められる所');
+  // 前の掘りの返事がまだでも、6 マス先まで 1 回で計画できる
+  const plan = planDigs(d, cellPath(s.x, s.y, s.x + 6, s.y));
+  assert.equal(plan.ops.length, 6); assert.equal(plan.reason, null);
+  assert.deepEqual(plan.at, { x: s.x + 6, y: s.y });
+  // 計画どおりに順に送れば、どれも通る（サーバーと同じ決まり）
+  let cur = d;
+  for (const op of plan.ops) { const r = tryOp(cur, op, null); assert.ok(r.ok, JSON.stringify(op)); cur = r.data; }
+  // 送りすぎない
+  assert.equal(planDigs(d, cellPath(s.x, s.y, s.x + 6, s.y), 2).ops.length, 2);
+  // つながっていない所は止まって理由
+  let lone = null;
+  for (let y = d.surfaceY + 2; y < d.h - 1 && !lone; y++) for (let x = 1; x < d.w - 1 && !lone; x++)
+    if (cellAt(d, x, y) === C.SOIL && [[1, 0], [-1, 0], [0, 1], [0, -1]].every(([a, b]) => cellAt(d, x + a, y + b) !== C.OPEN)) lone = { x, y };
+  const far = planDigs(d, [lone]);
+  assert.equal(far.ops.length, 0); assert.ok(far.reason);
+});
+await test('全体モードの掘る：知らせは なぞり 1 回に 1 つ（掘れた＝その場に小さく・掘れない＝理由）', () => {
+  assert.deepEqual(digStrokeNote({ n: 1 }), { pop: '掘った', toast: null });
+  assert.deepEqual(digStrokeNote({ n: 6 }), { pop: '6 マス掘った', toast: null });
+  const part = digStrokeNote({ n: 3, fail: '巣が更新された。もう一度' });
+  assert.equal(part.pop, '3 マス掘った'); assert.equal(part.toast.kind, 'bad'); assert.match(part.toast.text, /とちゅうで止まった/);
+  assert.deepEqual(digStrokeNote({ n: 0, reason: '巣とつながっていない' }), { pop: null, toast: { text: '巣とつながっていない', kind: 'bad' } });
+  assert.equal(digStrokeNote({ n: 0, already: true }).toast.text, 'もう掘ってある');
+  assert.deepEqual(digStrokeNote({}), { pop: null, toast: null });
+  for (const o of [{ n: 1 }, { n: 9 }, { n: 0, reason: 'x' }]) { const v = digStrokeNote(o); for (const w of BAD_WORDS) assert.ok(!JSON.stringify(v).includes(w)); }
 });
 
 await test('セーブの版は 8 のまま（めあては設定 tobi_settings に置く）', () => {

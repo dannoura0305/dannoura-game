@@ -205,6 +205,7 @@ function enhanceChoices(key){
     if(pick&&NAV.ctx&&NAV.ctx.id==='game'){NAV.set(pick,false);}
     NAV.remember('game',pick);
     ca.scrollTop=0;
+    guideApply();
     updateMore();
   }finally{enhancing=false;}
 }
@@ -289,8 +290,15 @@ function handSVG(){
 }
 const INSIDE=/(^|\s)(choice-btn|sc|str-type-btn|sk-card|ev-btn|mg-pick|set-row|nav-btn|btn-start|mini-endbtn)(\s|$)/;
 
+/* ゆびの見張り（軽量化）：
+   ・文脈の判定（どの画面が前か・モーダルの有無）は重いので、毎フレームではなく NAV_FULL_MS ごと＋画面が変わった合図のときだけ。
+   ・ゆびの位置は、動いている間（スクロール・出現アニメ）は毎フレーム追う。止まって NAV_SETTLE フレーム経ったら
+     rAF をやめて NAV_IDLE_MS ごとの見回りに落とす。DOM の変化・入力・スクロール・アニメ開始・タブ復帰で、すぐ毎フレームに戻る。
+   ・タブが裏にある間は何もしない（visibilitychange で再開）。 */
+const NAV_FULL_MS=120,NAV_IDLE_MS=100,NAV_SETTLE=30;
 const NAV={
   ctx:null,cur:null,kbd:false,mem:{},hand:null,
+  rafId:0,tmId:0,hot:NAV_SETTLE,full:true,lastFull:-1e9,lastKey:'',lastTf:'',handOn:false,
   topCtx(){
     for(const id of BLOCKERS){if(isActive($(id)))return null;}
     if(document.body.classList.contains('mg-active'))return null;
@@ -359,42 +367,63 @@ const NAV={
     const r=el.getBoundingClientRect();
     el.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window,clientX:r.left+r.width/2,clientY:r.top+r.height/2}));
   },
-  /* 毎フレーム：文脈の切替とゆびの位置合わせ */
-  tick(){
-    try{this._tick();}catch(e){console.error('[ui] tick',e);}
-    raf(()=>this.tick());
+  /* 文脈の切替とゆびの位置合わせ（毎フレーム、または止まっている間は見回りの間隔で） */
+  tick(now){
+    this.rafId=0;
+    try{this._tick(now==null?performance.now():now);}catch(e){console.error('[ui] tick',e);}
+    this.schedule();
   },
-  _tick(){
+  schedule(){
+    if(this.rafId||this.tmId||document.hidden)return;
+    if(this.hot>0)this.rafId=raf(t=>this.tick(t));
+    else this.tmId=setTimeout(()=>{this.tmId=0;this.full=true;this.rafId=raf(t=>this.tick(t));},NAV_IDLE_MS);
+  },
+  /* 何か変わった合図：次のフレームで文脈から見直し、しばらく毎フレーム追う */
+  wake(){
+    this.full=true;this.hot=NAV_SETTLE;
+    if(this.tmId){clearTimeout(this.tmId);this.tmId=0;}
+    this.schedule();
+  },
+  showHand(on){if(on!==this.handOn){this.handOn=on;this.hand.classList.toggle('on',on);}},
+  _tick(now){
     if(document.hidden)return;
-    const c=this.topCtx();
-    if(c!==this.ctx){
-      this.ctx=c;this.moved=false;
-      if(this.cur){this.cur.classList.remove('ui-cur');this.cur=null;}
-    }
-    let el=this.cur;
-    if(c&&!c.passive){
-      const root=$(c.el);
-      if(!el||!el.isConnected||!root.contains(el)||el.disabled){
-        const items=this.items(c);
-        const m=this.mem[c.id];
-        el=(m&&m.isConnected&&items.includes(m))?m:items[0]||null;
-        if(el!==this.cur)this.set(el,false);
+    let c=this.ctx,el=this.cur;
+    const full=this.full||now-this.lastFull>=NAV_FULL_MS||(el&&!el.isConnected);
+    if(full){
+      this.full=false;this.lastFull=now;
+      c=this.topCtx();
+      if(c!==this.ctx){
+        this.ctx=c;this.moved=false;
+        if(this.cur){this.cur.classList.remove('ui-cur');this.cur=null;}
+      }
+      el=this.cur;
+      if(c&&!c.passive){
+        const root=$(c.el);
+        if(!el||!el.isConnected||!root.contains(el)||el.disabled){
+          const items=this.items(c);
+          const m=this.mem[c.id];
+          el=(m&&m.isConnected&&items.includes(m))?m:items[0]||null;
+          if(el!==this.cur)this.set(el,false);
+        }
       }
     }
-    const h=this.hand;
     const show=el&&c&&!c.passive&&(!c.kbdOnly||this.kbd);
-    if(show){
-      const r=el.getBoundingClientRect();
-      const cy=r.top+Math.min(r.height/2,26);
-      const hit=document.elementFromPoint(Math.min(innerWidth-1,Math.max(0,r.left+r.width/2)),Math.min(innerHeight-1,Math.max(0,r.top+r.height/2)));
-      const visible=r.width>0&&hit&&(hit===el||el.contains(hit));
-      if(visible){
-        const inside=INSIDE.test(el.className)||r.left<20;
-        const x=inside?r.left+3:r.left-19;
-        h.style.transform=`translate(${Math.round(x)}px,${Math.round(cy-6)}px)`;
-        h.classList.add('on');
-      }else h.classList.remove('on');
-    }else h.classList.remove('on');
+    if(!show){this.showHand(false);this.lastKey='';if(this.hot>0)this.hot--;return;}
+    const r=el.getBoundingClientRect();
+    const key=r.left+','+r.top+','+r.width+','+r.height;
+    const moved=key!==this.lastKey;this.lastKey=key;
+    if(moved)this.hot=NAV_SETTLE;else if(this.hot>0)this.hot--;
+    // 隠れていないか（上に別の窓が重なっていないか）は、動いたときと文脈の見直しのときだけ確かめる
+    if(!moved&&!full)return;
+    const hit=document.elementFromPoint(Math.min(innerWidth-1,Math.max(0,r.left+r.width/2)),Math.min(innerHeight-1,Math.max(0,r.top+r.height/2)));
+    const visible=r.width>0&&hit&&(hit===el||el.contains(hit));
+    if(visible){
+      const inside=INSIDE.test(el.className)||r.left<20;
+      const x=inside?r.left+3:r.left-19,cy=r.top+Math.min(r.height/2,26);
+      const tf=`translate(${Math.round(x)}px,${Math.round(cy-6)}px)`;
+      if(tf!==this.lastTf){this.lastTf=tf;this.hand.style.transform=tf;}
+      this.showHand(true);
+    }else this.showHand(false);
   },
   init(){
     const h=document.createElement('div');h.id='ui-hand';h.setAttribute('aria-hidden','true');h.innerHTML=handSVG();
@@ -422,7 +451,20 @@ const NAV={
     });
     document.addEventListener('pointerdown',()=>{this.kbd=false;},true);
     document.addEventListener('keydown',e=>this.key(e));
-    raf(()=>this.tick());
+    // 見張りを起こす合図（どれも軽い：フラグを立てて次のフレームを予約するだけ）
+    const wk=()=>this.wake();
+    ['pointerdown','pointerup','keydown','keyup','wheel','touchmove','click','scroll','animationstart','animationend','transitionrun','transitionend','focusin']
+      .forEach(t=>document.addEventListener(t,wk,{capture:true,passive:true}));
+    document.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||!this.hot)wk();},{passive:true});
+    window.addEventListener('resize',wk);
+    document.addEventListener('visibilitychange',wk);
+    if(window.MutationObserver){
+      // 画面の開け閉め（class・hidden・disabled・aria-modal）と項目の出し入れ。ゆび自身・波形などの見た目だけの変化は数えない
+      new MutationObserver(recs=>{
+        for(const r of recs){const t=r.target;if(t===h||(t.closest&&t.closest('#ui-hand,.ui-mon-wave,.ui-mon-hype')))continue;wk();return;}
+      }).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden','disabled','aria-modal']});
+    }
+    this.wake();
   },
   key(e){
     if(e.defaultPrevented||e.isComposing||e.altKey||e.ctrlKey||e.metaKey)return;
@@ -532,6 +574,7 @@ const HUD={
       if(this.lastDay!==null&&!reduced()){const n=$('tb-day');n.classList.remove('ui-pop');void n.offsetWidth;n.classList.add('ui-pop');}
       this.lastDay=gs.day;
     }
+    if(GUIDE.fresh&&gs.day>GUIDE_DAYS)guideFinish();   // 3日目に着いたら案内は卒業
     track('tb-mental',false,true);
     track('tb-fatigue',true,true);
     track('tb-money',false,true);
@@ -830,9 +873,9 @@ function iconNotif(msg){
    7b. 仕上げ（配信モニター・SDの白背景・文字の大きさ・通知の位置）
    ══════════════════════════════════════════ */
 /* ── 配信モニター：配信画面の上部を「配信ソフトのプレビュー」風に ──
-   顔（気分で表情が変わる）・ON AIR の経過時間・盛り上がりメーター・声に合わせて動く波形。
+   顔（気分で表情が変わるドット絵・7c の danFaceRows。コメントが来ると口が動く）・ON AIR の経過時間・盛り上がりメーター・声に合わせて動く波形。
    見た目だけ。数値（gs）は一切書き換えない。 */
-const MON={el:null,iv:0,t0:0,hype:0,lastMood:'',bars:[],vc:null};
+const MON={el:null,iv:0,t0:0,hype:0,lastMood:'',bars:[],vc:null,mouth:0,mtm:0};
 function monMood(){
   try{
     if(gs.mental<30||gs.fatigue>=75)return 'tired';
@@ -847,7 +890,7 @@ function monBuild(){
   vis.classList.add('ui-mon-on');
   const icon=$('str-icon'),wave=vis.querySelector('.waveform');
   const box=document.createElement('div');box.className='ui-mon';
-  box.innerHTML=`<div class="ui-mon-av"><img alt="" src="${(window.CHAR_IMG&&CHAR_IMG.normal)||'assets/img/char_normal.webp'}"><span class="ui-mon-ring"></span></div>
+  box.innerHTML=`<div class="ui-mon-av"><img alt="" src="${monFaceSrc('normal',0)}"><span class="ui-mon-ring"></span></div>
     <div class="ui-mon-info">
       <div class="ui-mon-row"><span class="ui-mon-air">● ON AIR</span><span class="ui-mon-up" id="ui-mon-up">00:00</span><span class="ui-mon-type"></span></div>
       <div class="ui-mon-row ui-mon-hyrow"><span class="ui-mon-lbl">盛り上がり</span><span class="ui-mon-hype"><b id="ui-mon-hb"></b></span></div>
@@ -873,14 +916,39 @@ function monBuild(){
   }
   return box;
 }
+/* 顔の絵：ドット絵（描けない環境だけ今までの立ち絵） */
+function monFaceSrc(m,open){
+  const u=danFaceURL(m,open);
+  if(u)return u;
+  return (window.CHAR_IMG&&CHAR_IMG[m])||'assets/img/char_'+m+'.webp';
+}
 function monSetMood(force){
   if(!MON.el)return;
   const m=monMood();if(!force&&m===MON.lastMood)return;
   MON.lastMood=m;
   const img=MON.el.querySelector('.ui-mon-av img');
-  const src=(window.CHAR_IMG&&CHAR_IMG[m])||'assets/img/char_'+m+'.webp';
-  if(img&&img.getAttribute('src')!==src){img.classList.remove('ui-mon-swap');void img.offsetWidth;img.classList.add('ui-mon-swap');img.src=src;}
+  const src=monFaceSrc(m,0);
+  if(img){
+    img.classList.toggle('ui-mon-px',src.startsWith('data:'));
+    if(img.getAttribute('src')!==src){img.classList.remove('ui-mon-swap');void img.offsetWidth;img.classList.add('ui-mon-swap');img.src=src;}
+  }
+  MON.mouth=0;
   MON.el.dataset.mood=m;
+}
+/* しゃべる口：コメントが来たら 開→閉→開→閉 と短く動かす（表情の差し替え演出とは別。動きを減らす設定では動かさない） */
+function monTalk(){
+  if(!MON.el||reduced())return;
+  const img=MON.el.querySelector('.ui-mon-av img');if(!img||!img.classList.contains('ui-mon-px'))return;
+  clearTimeout(MON.mtm);
+  let n=0;
+  const step=()=>{
+    const open=n%2===0&&n<4;
+    const src=monFaceSrc(MON.lastMood||'normal',open?1:0);
+    if(img.getAttribute('src')!==src)img.src=src;
+    MON.mouth=open?1:0;
+    if(++n<=4)MON.mtm=setTimeout(step,110);
+  };
+  step();
 }
 function monTick(){
   if(!MON.el)return;
@@ -902,11 +970,11 @@ function monStart(){
   monSetMood(true);monTick();
   clearInterval(MON.iv);MON.iv=setInterval(monTick,140);
 }
-function monStop(){clearInterval(MON.iv);MON.iv=0;}
+function monStop(){clearInterval(MON.iv);MON.iv=0;clearTimeout(MON.mtm);}
 function monComment(tp){
   if(!MON.iv)return;
   MON.hype=Math.min(100,MON.hype+(tp==='super'?26:tp==='bad'||tp==='anomaly'?3:10));
-  if(MON.el&&!reduced()){MON.el.classList.remove('talk');void MON.el.offsetWidth;MON.el.classList.add('talk');}
+  if(MON.el&&!reduced()){MON.el.classList.remove('talk');void MON.el.offsetWidth;MON.el.classList.add('talk');monTalk();}
 }
 function watchStream(){
   const ol=$('streaming-ol');if(!ol||!window.MutationObserver)return;
@@ -1000,6 +1068,8 @@ function fsInstall(){
       }));
       sync();swapLead(vr,20);
     }
+    // はじめての案内（1〜2日目のおすすめを光らせる）
+    guideSettingRow(box.querySelector('#vib-opts')?.closest('.set-row')||row);
   }
   if(window.MutationObserver)new MutationObserver(fsApply).observe(document.body,{attributes:true,attributeFilter:['class']});
   fsApply();
@@ -1008,6 +1078,207 @@ function fsInstall(){
 /* ── 配信中の選択肢にも、配信の種類のアイコンを付ける（1段目と見た目をそろえる） ── */
 function streamTypeIcon(){
   try{const t=(typeof streamTypes!=='undefined'?streamTypes:[]).find(x=>x.key===gs.streamType);return t?t.icon:'';}catch(e){return '';}
+}
+
+
+/* ══════════════════════════════════════════
+   7c. 配信モニターの顔（ドット絵・表情差分）と、はじめての 1〜2 日目の案内
+   ══════════════════════════════════════════ */
+// ==DAN-FACE:BEGIN==
+/* だんのうらの顔（32×32 のドット絵・表情差分）。立ち絵 assets/gen/portrait/dan_*.png と同じ見た目：
+   紫の長い髪を右で結ぶ・ピンクの小さなシルクハット・花のヘアピン・黒縁の眼鏡・ラベンダーの上着にピンクの縞シャツ。
+   danFaceRows(mood, open) → 32 本の文字列（1文字＝1ドット、'.' は透明）。DOM に触らない（tests が node:vm で読む）。 */
+const DAN_FACE_PAL={
+  k:'#1b1226',H:'#5a22a8',h:'#3c147c',L:'#8c58dc',s:'#fde4d4',S:'#efc0b4',e:'#7a2ab8',E:'#3a1060',w:'#fffaf0',
+  g:'#2a1a3a',P:'#e676a6',p:'#7a2850',Q:'#ff9ac8',F:'#ff9ac8',y:'#ffe066',T:'#d6c2f0',t:'#a48cc8',I:'#f8b2cc',i:'#fffaf0',
+  B:'#ff9aae',m:'#a83a4a',r:'#e05a6a',l:'#ff9a9a',d:'#9fe0ff',u:'#8c78b8',z:'#e6dcf2',c:'#2b2152',C:'#211a48'
+};
+const DAN_FACE_MOODS=['normal','happy','tired','fear'];
+function danFaceRows(mood,open){
+  const N=32,G=[];for(let y=0;y<N;y++)G.push(new Array(N).fill('.'));
+  const px=(c,x,y)=>{if(x>=0&&y>=0&&x<N&&y<N)G[y][x]=c;};
+  const rect=(c,x,y,w,h)=>{for(let j=0;j<h;j++)for(let i=0;i<w;i++)px(c,x+i,y+j);};
+  const row=(c,y,x0,x1)=>rect(c,x0,y,x1-x0+1,1);
+  const disc=(c,cx,cy,rx,ry)=>{for(let y=0;y<N;y++)for(let x=0;x<N;x++){const dx=(x+.5-cx)/rx,dy=(y+.5-cy)/ry;if(dx*dx+dy*dy<=1)px(c,x,y);}};
+  const map=(rows,ox,oy)=>rows.forEach((r,j)=>[...r].forEach((ch,i)=>{if(ch!=='.')px(ch,ox+i,oy+j);}));
+  // 背景（配信部屋の暗い紫・下ほど暗い）
+  for(let y=0;y<N;y++)row(y<12?'c':'C',y,0,N-1);
+  // 後ろ髪＋右で結んだ髪（ポニーテール）
+  disc('k',16,15.5,11.4,11);disc('H',16,15.5,10.4,10);
+  map(['.kkk..','kHHHk.','kHLHHk','kHLHHk','kHHhHHk','.kHLhHk','.kHHhHk','.kHHhHHk','..kHHhHk','..kHHhHk','..kHHHhk','...kHHhk','...kHHhk','...kHhHk','....kHk.','....kHk.','.....k..'],23,7);
+  // 首・肩（ラベンダーの上着・ピンクの縞シャツ・襟）
+  rect('S',14,23,4,3);
+  map([
+    '....kkkkkk.......kkkkkk....',
+    '..kkTTTTTTk.....kTTTTTTkk..',
+    '.kTTTTTTTTTkIIIkTTTTTTTTTk.',
+    'kTTTTTTTTTTkiiikTTTTTTTTTTk',
+    'kTtTTTTTTTTkIIIkTTTTTTTTtTk',
+    'kTtTTTTTTTTkiiikTTTTTTTTtTk',
+  ],3,26);
+  map(['kTk','.kTk'],10,25);map(['kTk','kTk.'],19,25);
+  // 顔（輪郭とあご）
+  map([
+    '.kkkkkkkkkkkkkk.',
+    'kssssssssssssssk',
+    'kssssssssssssssk',
+    'kssssssssssssssk',
+    'kssssssssssssssk',
+    'kssssssssssssssk',
+    'kssssssssssssssk',
+    'kssssssssssssssk',
+    'kSssssssssssssSk',
+    '.kSssssssssssSk.',
+    '..kSsssssssSSk..',
+    '...kkSssssSkk...',
+    '.....kkkkkk.....',
+  ],8,11);
+  // 前髪（ぎざぎざの毛先）と横の髪
+  map([
+    '...kkkkkkkkkkkk...',
+    '..kHHLLHHHHHHHHk..',
+    '.kHHLHHHHHHHHHHHk.',
+    'kHHLHHHHHHHHHhHHHk',
+    'kHHHHhHHHhHHHhHHHk',
+    'kHHHkhHHkhHHHkhHHk',
+    'kHHk.kHk.kHHk.khHk',
+    'kHk...k...kk...kHk',
+    'kHk............kHk',
+    'kHk............kHk',
+    'kHHk...........kHk',
+    'kHhk..........kHHk',
+    '.kHk..........khk.',
+    '.kHk..........kHk.',
+  ],7,8);
+  // シルクハット（ピンク・左に少し傾ける）と花のヘアピン
+  map([
+    '..kkkkkk.....',
+    '.kQPPPPPk....',
+    '.kQPPPPPk....',
+    '.kQPPPPPPk...',
+    '..kppppppk...',
+    '.kkppppppkk..',
+    'kQPPPPPPPPPk.',
+    '.kkkkkkkkkkk.',
+  ],5,1);
+  map(['.k.','kFk','FyF','kFk'],21,7);px('F',22,7);
+  map(['kFk','FyF','kFk'],6,15);
+  // 眼鏡（黒縁）：左 x9..14・右 x17..22、y14..18
+  const lens=x0=>{row('g',14,x0,x0+5);row('g',18,x0,x0+5);rect('g',x0,14,1,5);rect('g',x0+5,14,1,5);};
+  lens(9);lens(17);row('g',15,15,16);
+  // 目（レンズの内側 4×3：左 x10..13・右 x18..21、y15..17）
+  const both=f=>{f(10,1);f(18,-1);};
+  const M=mood==='happy'||mood==='tired'||mood==='fear'?mood:'normal';
+  if(M==='normal'){
+    both((x,s)=>{row('k',15,x,x+3);rect('e',x+1,16,2,2);px('E',x+1,17);px('w',x+(s>0?1:2),16);px('k',x,16);px('k',x+3,16);});
+  }else if(M==='happy'){
+    both(x=>{px('k',x,17);px('k',x+3,17);row('k',16,x+1,x+2);});
+    row('B',19,9,11);row('B',19,20,22);
+  }else if(M==='tired'){
+    both(x=>{row('k',16,x,x+3);rect('e',x+1,17,2,1);});
+    row('u',19,10,13);row('u',19,18,21);
+  }else{
+    both(x=>{row('k',15,x,x+3);rect('w',x,16,4,2);px('e',x+1,16);px('E',x+2,16);px('e',x+1,17);px('e',x+2,17);});
+  }
+  // 口
+  if(M==='happy'){
+    if(open){map(['kkkk','krrk','klrk','.kk.'],14,20);}
+    else{map(['k..k','.kk.'],14,20);map(['kk'],15,21);}
+  }else if(M==='tired'){
+    if(open)map(['.kk.','krrk','.kk.'],14,20);else map(['kkkk'],14,21);
+  }else if(M==='fear'){
+    if(open)map(['.kk.','krrk','krrk','.kk.'],14,20);else map(['.kk.','k..k'],14,21);
+  }else{
+    if(open)map(['kkkk','krrk','.kk.'],14,20);else map(['k..k','.kk.'],14,20);
+  }
+  // 疲れ：額の影と汗／怖い：縦線と汗
+  if(M==='tired'){px('d',24,13);px('d',24,14);px('d',23,14);}
+  if(M==='fear'){for(let y=11;y<20;y++)for(let x=8;x<24;x++){if(G[y][x]==='s')G[y][x]='z';}px('d',24,12);rect('d',23,13,2,2);px('w',23,13);}
+  return G.map(r=>r.join(''));
+}
+// ==DAN-FACE:END==
+
+/* 顔を canvas に描いて dataURL にする（表情×口の開閉ごとに1回だけ）。描けない環境では null → 今までの立ち絵を使う */
+const FACE_URL={};
+function danFaceURL(mood,open){
+  const k=mood+(open?'1':'0');
+  if(k in FACE_URL)return FACE_URL[k];
+  let url=null;
+  try{
+    const rows=danFaceRows(mood,open),c=document.createElement('canvas');c.width=32;c.height=32;
+    const x=c.getContext('2d');
+    rows.forEach((r,y)=>{for(let i=0;i<r.length;i++){const col=DAN_FACE_PAL[r[i]];if(col){x.fillStyle=col;x.fillRect(i,y,1,1);}}});
+    url=c.toDataURL('image/png');
+  }catch(e){url=null;}
+  return FACE_URL[k]=url;
+}
+
+// ==GUIDE-LOGIC:BEGIN==
+/* はじめての 1〜2 日目：勧めたい行動を1つ選ぶ（「今日の目標」の文と同じ順で考える）。
+   g は gs（読むだけ）、o.factoryLeft は工場の残り種類数。勧めるものが無ければ null。 */
+const GUIDE_DAYS=2;
+function guidePick(g,o){
+  if(!g||!(g.day>=1&&g.day<=GUIDE_DAYS))return null;
+  const fl=o&&o.factoryLeft;
+  if(g.mental<=20)return 'rest_deep';
+  if(g.fatigue>=80)return 'rest_deep';
+  if(g.flame>=5)return 'rest_light';
+  if(g.childStress>=70)return 'childcare';
+  if(g.fatigue>=60)return 'rest_light';
+  if(!g.streamCount)return 'stream';
+  if(g.jobRep<30&&fl!==0)return 'factorywork';
+  if(g.certKnow<30)return 'study';
+  return 'stream';
+}
+/* 出すかどうか（設定・経験の判定は localStorage の設定側だけ。セーブデータには書かない）
+   st.off：設定でオフ／st.done：もう卒業した（3日目に着いた・ロードした・前に遊んだ跡がある）／st.fresh：この起動で「はじめから」を始めた */
+function guideShouldShow(st,g){
+  return !!(st&&!st.off&&!st.done&&st.fresh&&g&&g.day>=1&&g.day<=GUIDE_DAYS);
+}
+/* 「はじめから」を押した時点で、前に遊んだ跡があるか（セーブが1つでもある・エンディングを見た） */
+function guideExperienced(usedSlots,endingsSeen){
+  return (usedSlots|0)>0||(endingsSeen|0)>0;
+}
+// ==GUIDE-LOGIC:END==
+const GUIDE_KEY='dannoura_guide',GUIDE_DONE_KEY='dannoura_guide_done';
+const GUIDE={fresh:false};
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+function guideState(){return {off:lsGet(GUIDE_KEY)==='off',done:lsGet(GUIDE_DONE_KEY)==='1',fresh:GUIDE.fresh};}
+function guideFinish(){GUIDE.fresh=false;if(lsGet(GUIDE_DONE_KEY)!=='1')lsSet(GUIDE_DONE_KEY,'1');guideApply();}
+/* 「はじめから」：前に遊んだ跡があれば卒業扱い、なければこの起動の間だけ案内する */
+function guideOnNewGame(){
+  let used=0,ends=0;
+  try{if(typeof SAVESLOTS!=='undefined'&&SAVESLOTS.used)used=SAVESLOTS.used().length;}catch(e){}
+  try{const v=JSON.parse(lsGet('dannoura_endings')||'{}');ends=v&&typeof v==='object'?Object.keys(v).length:0;}catch(e){}
+  if(guideExperienced(used,ends)){guideFinish();return;}
+  GUIDE.fresh=lsGet(GUIDE_DONE_KEY)!=='1';
+}
+/* 今の行動メニューに光を付け直す */
+function guideApply(){
+  const ca=$('choices-area');if(!ca)return;
+  let ac=null;
+  try{
+    if(typeof gs!=='undefined'){
+      if(GUIDE.fresh&&gs.day>GUIDE_DAYS){guideFinish();return;}
+      if(ca.classList.contains('ui-grid')&&guideShouldShow(guideState(),gs))ac=guidePick(gs,{factoryLeft:factoryLeft()});
+    }
+  }catch(e){ac=null;}
+  ca.querySelectorAll(':scope > .choice-btn.ui-hint').forEach(b=>{if(b.dataset.ac!==ac){b.classList.remove('ui-hint');b.removeAttribute('data-hint');}});
+  if(!ac)return;
+  const b=ca.querySelector(`:scope > .choice-btn[data-ac="${ac}"]:not(.ui-locked)`);
+  if(b&&!b.classList.contains('ui-hint')){b.classList.add('ui-hint');b.setAttribute('data-hint','おすすめ');}
+}
+function guideSettingRow(after){
+  if(!after||$('guide-opts'))return null;
+  const r=document.createElement('div');r.className='set-row mg-diff-row fs-row';
+  r.innerHTML='🎯 案内<div class="mg-diff" id="guide-opts" role="group" aria-label="はじめての案内（1〜2日目のおすすめを光らせる）"><button type="button" data-g="on">オン</button><button type="button" data-g="off">オフ</button></div>';
+  after.insertAdjacentElement('afterend',r);
+  const sync=()=>{const off=lsGet(GUIDE_KEY)==='off';
+    r.querySelectorAll('button').forEach(b=>{const on=(b.dataset.g==='off')===off;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false');});};
+  r.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{lsSet(GUIDE_KEY,b.dataset.g);sync();se('decide');guideApply();}));
+  sync();swapLead(r,20);
+  return r;
 }
 
 /* ══════════════════════════════════════════
@@ -1039,6 +1310,9 @@ function install(){
   });
   wrap('buildSdChar',()=>keySdChar());
   wrap('addComment',(r,u,tx,tp)=>monComment(tp));
+  // はじめての案内：「はじめから」で始めたときだけ。ロードして続けたら卒業（セーブデータには何も書かない）
+  wrap('startStory',null,()=>guideOnNewGame());
+  wrap('loadGame',r=>{if(r)guideFinish();});
   iconizeStatic();
   observeChoices();observeStream();
   watchStream();fsInstall();

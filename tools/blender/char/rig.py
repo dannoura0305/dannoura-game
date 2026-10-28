@@ -227,3 +227,43 @@ def chain_weights_param(t, bones, head_bone, root_hold=0.15):
             J[i, :2] = [bones[a], bones[b]]
             W[i, :2] = [1 - w, w]
     return J, W
+
+
+# ───────────────────────── P18：半分の関節（補助の骨）
+# 深く曲げた時（ひざ・ひじ・肩）に関節の皮がつぶれる（直線の混ぜ＝LBS の欠点）のを減らす。関節の位置に「親の子・回りは子の骨の半分」の補助の骨
+# （ext_half_<子の骨>）を置き、関節のまわりで親と子に分かれていた重みの大部分をそこへ移す（皮は半分の角度の弧の上に乗る）。
+# 補助の骨を回すのは読み手（charkit/runtime/vrmrt.js の update：子の骨の回りの半分・少し膨らませる）。補助の骨を回さない読み手では親の子として
+# 休みの姿勢のまま＝重みを移した分だけ前より親に寄る（壊れはしない）。
+HALF_JOINTS = [(s + c, [s + p for p in ps] + extra) for s in ('left', 'right') for c, ps, extra in (
+    ('LowerLeg', ['UpperLeg'], []), ('LowerArm', ['UpperArm'], []), ('UpperArm', ['Shoulder'], ['upperChest']))]
+
+
+def add_half_joints(Sk):
+    """補助の骨を足す（親＝最初の親の候補・位置＝子の骨の根）。戻り値：[(補助の骨の番号, 子の番号, [親の番号…])]"""
+    out = []
+    for child, parents in HALF_JOINTS:
+        if child not in Sk.names or parents[0] not in Sk.names:
+            continue
+        c = Sk.P(child)
+        hi = Sk.add('ext_half_' + child, parents[0], c.copy(), tail=c + np.array([0, 0.02, 0]))
+        out.append((hi, Sk.idx(child), [Sk.idx(p) for p in parents if p in Sk.names]))
+    return out
+
+
+def apply_half_joints(J, W, nbones, half, take=0.85):
+    """関節のまわりの「親と子の両方に重みがある」頂点の重みを補助の骨へ移す（min(親, 子) の take 倍を両方から）"""
+    if not half:
+        return J, W
+    Wf = dense(J, W, nbones)
+    for hi, ci, pis in half:
+        wc = Wf[:, ci]
+        wp = Wf[:, pis].sum(1)
+        t = take * np.minimum(wc, wp)
+        if not (t > 1e-4).any():
+            continue
+        Wf[:, ci] -= t
+        frac = Wf[:, pis] / np.maximum(wp, 1e-9)[:, None]
+        Wf[:, pis] -= frac * t[:, None]
+        Wf[:, hi] += 2 * t
+    Wf = np.maximum(Wf, 0)
+    return top4(Wf)

@@ -34,13 +34,14 @@ export class Pops {
     for (const p of this.list) { p.t += dt; if (p.t < p.life) this.list[n++] = p; }
     this.list.length = n;
   }
-  /** sc = gfx の Screen、(cx,cy) = 画面左上の世界座標 */
-  draw(sc, cx, cy) {
+  /** sc = gfx の Screen、(cx,cy) = 画面左上の世界座標。map を渡すと 位置 → 画面 をそれで変える（巣の全体モードの拡大縮小） */
+  draw(sc, cx, cy, map = null) {
     if (!this.list.length) return;
     const g = sc.ug, k = sc.k;
     for (const p of this.list) {
       const c = popCurve(p.t / p.life);
-      const x = p.x - cx, y = p.y - cy - c.rise;
+      const [mx, my] = map ? map(p.x, p.y) : [p.x - cx, p.y - cy];
+      const x = mx, y = my - c.rise;
       const w = sc.measure(p.text, 7.5);
       const ix = p.icon ? 6 : 0;
       if (p.icon) {

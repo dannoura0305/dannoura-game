@@ -28,7 +28,7 @@
   "hipW": 0.3
  },
  "info": {
-  "bones": 72,
+  "bones": 78,
   "humanBones": 54,
   "expressions": 14,
   "springs": 5,
@@ -36,8 +36,8 @@
   "colliders": 13,
   "parts": {
    "head_skin": 4000,
-   "left_eyeball": 588,
-   "right_eyeball": 588,
+   "left_eyeball": 1056,
+   "right_eyeball": 1056,
    "left_lidU": 204,
    "left_lidL": 136,
    "right_lidU": 204,
@@ -50,8 +50,8 @@
    "hair_locks": 8832,
    "hair_cap": 1500,
    "shirt": 1873,
-   "jacket": 6726,
-   "trousers": 4180,
+   "jacket": 6618,
+   "trousers": 3855,
    "left_shoe": 1150,
    "right_shoe": 1149,
    "hat": 1100,
@@ -70,22 +70,22 @@
   {
    "file": "dannoura.vrm",
    "lod": "pc",
-   "bytes": 3409932,
-   "sha256": "78ec50d37c1aa4eb847cce0398237c035eb9c112a2c92ea0b0733178ac9181a5",
-   "tris": 40775,
+   "bytes": 3454728,
+   "sha256": "08ebd8a9acc4b02b910b93ab2dedcc829bff2cbaf0e17c8efbcd8a73c54aa0a3",
+   "tris": 41278,
    "materials": 5,
    "images": 7,
-   "imageBytes": 1434054
+   "imageBytes": 1337093
   },
   {
    "file": "dannoura_low.vrm",
    "lod": "low",
-   "bytes": 1653408,
-   "sha256": "f5452e4d8bd39f0cb63d9a08b1e23746183fe2a7cdd7df4229e40d89a95f074c",
-   "tris": 18223,
+   "bytes": 1729944,
+   "sha256": "de0b97da9b92b34fe4536f4ee7593664225e20b379433d84fa4bdf51ee1fd3db",
+   "tris": 18399,
    "materials": 5,
    "images": 7,
-   "imageBytes": 639057
+   "imageBytes": 668337
   }
  ]
 }

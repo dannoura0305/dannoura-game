@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { SkinBody, DIM, faceAtlas } from './skin.js';
 import { humanBody, humanHead, glowEyes, xfm, torus } from './models.js';
+import { applyEnemyPack, enemyPackClasses } from './enemypack.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const rng = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
@@ -48,7 +49,8 @@ export function buildOutou(seed = 1) {
   for (const HA of ['leftHand', 'rightHand']) { const w = sb.W(HA); sb.tube([{ c: [w.x, w.y + 0.035, 0], r: [0.026, 0.024] }, { c: [w.x, w.y + 0.01, 0], r: [0.026, 0.024] }], { sides: 8, weights: sb.rigid(HA === 'leftHand' ? 'leftLowerArm' : 'rightLowerArm'), color: 0xf0f0e8, capStart: false, capEnd: false, oth: 0.3 }); }
   for (const FT of ['leftFoot', 'rightFoot']) { const a = sb.W(FT); torus(sb, 0.032, 0.007, xfm([a.x, a.y + 0.08, 0], [Math.PI / 2, 0, 0]), { weights: sb.rigid(FT === 'leftFoot' ? 'leftLowerLeg' : 'rightLowerLeg'), color: 0x3a3e48, oth: 0.3 }); }
   const tex = faceAtlas(g => { g.fillStyle = '#e4e6ee'; g.fillRect(0, 128, 128, 128); });
-  const m = sb.build(tex, { rim: 0.85, rimColor: 0xb890ff, outline: 0.0095, outlineColor: 0x0a0812, faceEmissive: 0x101014 });
+  const m = sb.build(tex, { rim: 0.85, rimColor: 0xb890ff, outline: 0.0095, outlineColor: 0x0a0812, faceEmissive: 0x101014, classes: enemyPackClasses('outou') });
+  applyEnemyPack(m, 'outou');   // P18：Blender の体（読めていれば。?epack=0・読めない時はこのコードの形）
   const eyeGlow = glowEyes(m, m.J, [[0, R * 0.85, R * 1.0]]);
   const weak = new THREE.Object3D(); weak.position.set(0, R * 1.55 + 0.05, 0); m.J.head.add(weak);
   return Object.assign(m, { sway, height: 1.86, provisional: true, kind: 'outou', bodyR: 0.32, eyeGlow, weak, weakColor: 0xe0b0ff });
