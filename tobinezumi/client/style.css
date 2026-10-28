@@ -531,3 +531,10 @@ html.tb-touch .tb-settings summary { min-height: 40px; display: flex; align-item
 .tb-goal.walk { bottom: calc(var(--u) * 19px); }
 html.tb-touch .tb-goal { font-size: max(.8em, 12px); }
 html.tb-touch .tb-goal button { min-width: 32px; min-height: 28px; }
+/* Ver.0.9：トーストをパネルに重ねない。入る所が無いときはパネルを閉じるまで待たせる（ui.layoutToasts） */
+.tb-toasts.tb-toasts-hold { visibility: hidden; }
+/* Ver.0.9：全体モードのトーストは 道具の列の右（見えている巣）の真ん中に。長い文でも道具の列に重ならない */
+#tb-hud.tb-hud-build .tb-toasts { left: calc(var(--tb-toolw, 0px) + 6px); right: 6px; transform: none; max-width: none; pointer-events: none; }
+#tb-hud.tb-hud-build .tb-toast { white-space: normal; text-align: center; max-width: 100%; }
+/* Ver.0.9：めあてが 2 行になるときは 言葉の切れ目（空白）で折る（「（タッ／プ）」のように語の途中で切らない） */
+.tb-goal > span:not(.n) { word-break: keep-all; overflow-wrap: anywhere; line-break: strict; }

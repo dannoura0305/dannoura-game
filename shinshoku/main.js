@@ -17,7 +17,7 @@ import { Heiten } from './ai/heiten.js';
 import { Shuuyou } from './ai/shuuyou.js';
 import { CompanionBrain } from './ai/companion.js';
 import { ThirdPersonCamera } from './render/camera.js';
-import { preloadEnemyPacks, applyEnemyPack, ENEMY_PACK_KINDS } from './actor/enemypack.js';
+import { preloadEnemyPacks, requestEnemyPacks, applyEnemyPack, ENEMY_PACK_KINDS } from './actor/enemypack.js';
 import { Fx, Rain } from './render/fx.js';
 import { Halos, WetStreaks } from './render/halo.js';
 import { SwordTrail } from './render/trail.js';
@@ -593,6 +593,7 @@ class Game {
     else { this.stepPlayer(I); this.stepWhite(I); }
     const wdt = DT * this.worldScale;
     for (const e of this.enemies) { this.stepEnemy(e, wdt); if (e.justNoticed > 0) e.justNoticed -= DT; if (e.teleT > 0) { e.teleT -= DT; if (e.teleT <= 0) e.tele = null; } }
+    if (this.frame % 60 === 0) this.lazyEnemyPacks();
     this.stepCompanion(wdt);
     this.stepChild(wdt);
     this.stepCompanionThreats();
@@ -1096,6 +1097,12 @@ class Game {
   }
   /** P17：包みが読めた時、今いる異形（コードの形）の網を差し替える */
   refreshEnemyPacks() { for (const e of this.enemies || []) { const m = e.model; if (m && !m.packed && ENEMY_PACK_KINDS.includes(m.kind)) applyEnemyPack(m, m.kind, { tint: m.packTint }); } }
+  /** P18：第4章からの異形（応答体・継接・塗替・当直）の体は、その異形が置かれた時に読む（1 秒ごとに見る・1 種類 1 回） */
+  lazyEnemyPacks() {
+    const ks = []; for (const e of this.enemies || []) if (e.model && !e.model.packed && e.model.kind) ks.push(e.model.kind);
+    const p = ks.length ? requestEnemyPacks(ks, this.presetVals() === PRESETS.low ? 'low' : 'high') : null;
+    if (p) p.then(n => { this.enemyPacks = (this.enemyPacks || 0) + n; this.refreshEnemyPacks(); }, () => 0);
+  }
   /** P17：カメラの床と天井（camera.js の range）。区画の camRange（自宅の 2 階・階段）か、屋内の天井の高さ（CAM_CEIL）。外は地面の上だけ */
   camRangeFn(A, P) {
     if (A.camRange) return (x, z) => A.camRange(x, z, P.pos.y);

@@ -10,6 +10,8 @@ import { CURIOS, CURIO_ORDER, ACHIEVEMENTS } from '../shared/collect.js';
 import { curioIconURL } from './world-ui.js';
 import { Gestures, snapZoom } from './touch-logic.js';
 import { sfx } from './sfx.js';
+import { cellPath, planDigs, digStrokeNote } from './nest-layout.js';
+import { Pops } from './pops.js';
 
 export const TOOLS = [
   { id: 'dig', name: '掘る', key: '1', hint: 'クリック・ドラッグで土を 1 マスずつ掘る' },
@@ -31,7 +33,7 @@ const ZMIN = 0.5, ZMAX = 3;            // ピンチの範囲
 export class NestBuildScene {
   get touchLayout() { return 'build'; }
   constructor(game) {
-    this.game = game; this.view = new NestView(); this.undo = [];
+    this.game = game; this.view = new NestView(); this.undo = []; this.pops = new Pops();
     this.vx = 36;                       // 左のツール欄の幅（内部 px）。DOM の大きさから測る
     this.gest = new Gestures({ slop: 6, holdMs: 220 });
     game.screen.onResize(() => { if (this.dom) this._measure(); });
@@ -62,7 +64,7 @@ export class NestBuildScene {
     g.hud.classList.add('tb-hud-build');
     requestAnimationFrame(() => { this._measure(); if (this._needHome) { if (g.isTouch) this._fitHome(); else this._fitWhole(); } this._needHome = false; });
   }
-  leave() { if (this.dom) this.dom.remove(); this.dom = null; this.game.screen.clearUI(); this.game.hud.classList.remove('tb-hud-build'); }
+  leave() { if (this.drag && this.drag.kind === 'dig') this._endStroke(); this.drag = null; this.game.hud.style.removeProperty('--tb-toolw'); if (this.dom) this.dom.remove(); this.dom = null; this.game.screen.clearUI(); this.game.hud.classList.remove('tb-hud-build'); }
   /** タッチ：入口と部屋が、ツール欄に隠れない所の真ん中に来るように。1 マスが指で押せる大きさ（約 24px 以上）に */
   _fitHome() {
     const d = this.nest.data, s = this.game.screen.scale || 1;
@@ -90,6 +92,8 @@ export class NestBuildScene {
     const sr = this.game.screen.stage.getBoundingClientRect(), mr = this.menuEl.getBoundingClientRect();
     const s = this.game.screen.scale || 1;
     this.vx = mr.width ? Math.max(0, Math.min(W * 0.4, Math.ceil((mr.right - sr.left) / s) + 2)) : 0;
+    // Ver.0.9：トーストは道具の列の右の、見えている巣の真ん中に（長い文でも道具の列に重ならない）
+    this.game.hud.style.setProperty('--tb-toolw', Math.round(mr.width ? Math.max(0, mr.right - sr.left) : 0) + 'px');
   }
   /** ほかの人（所有者）の編集が届いた：見学中の画面を描き直す */
   onRemoteUpdate(nest) { this.nest = nest; this.view.setData(nest.data, { fill: this._fill() }); this.hover = null; }
@@ -206,7 +210,8 @@ export class NestBuildScene {
   update(dt) {
     const g = this.game, inp = g.input;
     this.t += dt;
-    if (g.ui.busy()) { if (g.ui.modal && inp.take('Escape')) g.ui.closeModal(); inp.takeMouse(); this.gest.reset(); this.touchPt = null; return; }
+    this.pops.update(dt);
+    if (g.ui.busy()) { if (g.ui.modal && inp.take('Escape')) g.ui.closeModal(); inp.takeMouse(); this.gest.reset(); this.touchPt = null; if (this.drag && this.drag.kind === 'dig') { this._endStroke(); this.drag = null; } return; }
     // キー
     if (inp.take('Tab')) { g.toWalk(this.nest); return; }
     if (inp.take('KeyB') || inp.take('Escape')) { g.toWalk(this.nest); return; }
@@ -270,8 +275,10 @@ export class NestBuildScene {
         this.onMouse({ type: 'up', button: 0, x: a.x, y: a.y, touch: true });
         return;
       case 'abort':
+        if (this.drag && this.drag.kind === 'dig') this._endStroke();
         this.drag = null; this.pan = null; this.touchPt = null; return;
       case 'pinch-start': {
+        if (this.drag && this.drag.kind === 'dig') this._endStroke();
         this.drag = null; this.pan = null; this.touchPt = null;
         this.pinch = { z0: this.z, anchor: this.toNest(a.cx, a.cy) };
         return;
@@ -330,7 +337,7 @@ export class NestBuildScene {
     const d = this.nest.data;
     if (ev.type === 'down' && ev.button === 0) {
       const t = this.tool;
-      if (t === 'dig') { this.drag = { kind: 'dig', last: null }; this._digAt(cx, cy); }
+      if (t === 'dig') { if (this.drag && this.drag.kind === 'dig') this._endStroke(); this.drag = { kind: 'dig', at: null, prev: null }; this.stroke = { n: 0, reason: null, fail: null, already: false, inv: [], last: null }; this._digAt(cx, cy); }
       else if (t === 'tunnel') this.drag = { kind: 'tunnel', x0: cx, y0: cy, x1: cx, y1: cy };
       else if (t === 'room') {
         const edge = this._edgeAt(ev.x, ev.y, !!ev.touch);
@@ -338,24 +345,55 @@ export class NestBuildScene {
         else this.drag = { kind: 'room', x0: cx, y0: cy, x1: cx, y1: cy };
       } else { const op = this.opAt(cx, cy, px, py); if (op) this.send(op); }
     } else if (ev.type === 'move' && this.drag) {
-      if (this.drag.kind === 'dig') { if (ev.buttons & 1) this._digAt(cx, cy); else this.drag = null; }
+      if (this.drag.kind === 'dig') { if (ev.buttons & 1) this._digAt(cx, cy); else { this._endStroke(); this.drag = null; } }
       else { this.drag.x1 = cx; this.drag.y1 = cy; }
     } else if (ev.type === 'up' && ev.button === 0 && this.drag) {
       const dr = this.drag; this.drag = null;
+      if (dr.kind === 'dig') { this._digAt(cx, cy, dr); this._endStroke(); return; }
       const op = this._dragOp(dr);
       if (op) this.send(op);
     }
   }
-  _digAt(cx, cy) {
-    const k = cx + ',' + cy;
-    if (this.drag.last === k) return;
-    const op = { op: 'dig', x: cx, y: cy };
-    // ドラッグ中は前の掘りが確定する前でも、手元の予想（いま掘ってある所の隣）で判定して送る。
-    // まだ隣が掘れていなければ、次に指（マウス）が動いたときにもう一度ためす
-    if (this.pending > 2) return;
-    if (validateOp(this._predicted(), op, null).ok) { this.drag.last = k; this.send(op, true); }
+  /**
+   * Ver.0.9：なぞって掘る。前に確かめたマスから今のマスまでを順に（指が速くてもマスを飛ばさない）、
+   * まだ返事の来ていない掘りも済んだものとした「手元の予想」で確かめて送る。知らせは なぞり終えたときに 1 つだけ（_endStroke）
+   */
+  _digAt(cx, cy, dr = this.drag) {
+    const st = this.stroke;
+    if (!dr || !st) return;
+    const from = dr.at || dr.prev;
+    if (from && from.x === cx && from.y === cy) return;
+    const room = 8 - this.pending;
+    if (room <= 0) return;                  // 送りすぎない：次に動いたときに続きから
+    const path = from ? cellPath(from.x, from.y, cx, cy) : [{ x: cx, y: cy }];
+    const plan = planDigs(this._predicted(), path, room);
+    dr.prev = { x: cx, y: cy };
+    if (plan.at) dr.at = plan.at;
+    if (plan.reason && !st.reason) st.reason = plan.reason;
+    if (!plan.ops.length && !plan.reason) st.already = true;
+    if (!plan.ops.length) return;
+    this._pred = plan.data;
+    for (const op of plan.ops) { st.last = op; this.send(op, true, false, st); }
   }
-  _predicted() { return this._pred && this._predRev === this.nest.rev ? this._pred : this.nest.data; }
+  /** 返事を待っている掘りがあれば、それも済んだものとした巣（無ければ今の巣） */
+  _predicted() { return this._pred && this.pending > 0 ? this._pred : this.nest.data; }
+  /** なぞり終えた：返事がそろってから、知らせを 1 つ（掘れた＝その場に小さく、掘れなかった＝理由のトースト）、取り消しも 1 回ぶんに */
+  _endStroke() {
+    const st = this.stroke;
+    if (!st) return;
+    this.stroke = null;
+    this.busy = this.busy.then(() => {
+      if (st.inv.length) {
+        this.undo.push({ ops: st.inv, label: st.n === 1 ? '土を掘った' : '土を ' + st.n + ' マス掘った' });
+        if (this.undo.length > 30) this.undo.shift();
+      }
+      const note = digStrokeNote(st);
+      this.game.debug.buildDig = { n: st.n, reason: st.reason, fail: st.fail, pop: note.pop, toast: note.toast && note.toast.text };
+      if (this.game.scene !== this) return;
+      if (note.pop && st.last) this.pops.add((st.last.x + 0.5) * CELL, st.last.y * CELL + 2, note.pop, { color: '#ffe9b0' });
+      if (note.toast) this.game.ui.toast(note.toast.text, note.toast.kind);
+    });
+  }
 
   _dragOp(dr) {
     if (dr.kind === 'tunnel') return tunnelFromDrag(dr.x0, dr.y0, dr.x1, dr.y1);
@@ -428,7 +466,7 @@ export class NestBuildScene {
   }
 
   // ───────── 送信（順番に・1 つずつ）─────────
-  send(op, quiet = false, isUndo = false) {
+  send(op, quiet = false, isUndo = false, stroke = null) {
     const g = this.game;
     this.pending++;
     this.busy = this.busy.then(async () => {
@@ -437,6 +475,7 @@ export class NestBuildScene {
       this.pending--;
       if (!res.ok) {
         if (res.code === 'stale_rev' && res.data) { this.nest.data = res.data; this.nest.rev = res.rev; this.view.setData(res.data); }
+        if (stroke) { this._pred = null; if (!stroke.fail) stroke.fail = res.reason || 'できなかった'; return false; }   // なぞった掘り：知らせは なぞり終えたときにまとめて
         if (!quiet || res.code !== 'rule') g.ui.toast(res.reason || 'できなかった', 'bad');
         return false;
       }
@@ -447,7 +486,8 @@ export class NestBuildScene {
       this.view.setData(res.data, { fill: this._fill() });
       this._mats();
       if ((op.op === 'place' && op.type === 'curio') || op.op === 'remove') { this._fillFurn(); this._syncMenu(); }
-      if (!isUndo) {
+      if (stroke) { stroke.n++; const inv = inverseOps(before, op, res); if (inv) stroke.inv.unshift(...inv); }
+      else if (!isUndo) {
         const inv = inverseOps(before, op, res);
         if (inv) { this.undo.push({ ops: inv, label: describe(op, before) }); if (this.undo.length > 30) this.undo.shift(); }
       }
@@ -462,6 +502,7 @@ export class NestBuildScene {
   async doUndo() {
     const u = this.undo.pop();
     if (!u) { this.game.ui.toast('取り消せる操作が無い'); return; }
+    this.pops.list.length = 0;   // 「n マス掘った」が取り消したあとに残らないように
     for (const op of u.ops) { const ok = await this.send(op, true, true); if (!ok) { this.game.ui.toast('取り消せなかった', 'bad'); return; } }
     this.game.ui.toast('「' + u.label + '」を取り消した');
   }
@@ -512,6 +553,8 @@ export class NestBuildScene {
       const [rx, ry] = this.toScreen((r.x + r.w / 2) * CELL, r.y * CELL);
       if (r.kind !== 'plain' || z >= 1) sc.text(rx, ry + 9 * Math.max(1, z * 0.8), KIND_NAME[r.kind], { size: 6, color: r.kind === 'bed' ? '#ffe2a0' : r.kind === 'store' ? '#d8f0b0' : '#f0dcc0', alpha: 0.9 });
     }
+    // Ver.0.9：掘れた知らせ（その場に小さく）
+    this.pops.draw(sc, 0, 0, (x, y) => { const [a, b] = this.toScreen(x, y); return [Math.max(this.VX + 30, Math.min(W - 30, a)), Math.max(24, Math.min(H - 8, b))]; });
     // カーソル脇の理由（タッチでは指に隠れないよう上に）
     const h = this.hover, touch = this.game.input.lastPointer !== 'mouse';
     const m = touch ? (this.touchPt || this.game.input.mouse) : this.game.input.mouse;

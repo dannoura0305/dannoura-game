@@ -1,34 +1,49 @@
-// 境界侵食 P17：Blender で作り直した異形の体（tools/blender/enemy/build_enemy.py → shinshoku/assets/enemies/<kind>.pack.json）。
-// コードの異形（actor/models.js の buildKiro・buildHeiten・buildShuuyou：SkinBody）の網（本体と輪郭線）だけを差し替える。
+// 境界侵食 P17・P18：Blender で作り直した異形の体（tools/blender/enemy/build_enemy.py・designs_p18.py → shinshoku/assets/enemies/<kind>.pack.json）。
+// コードの異形（actor/models*.js の buildKiro・buildHeiten・buildShuuyou・buildOutou・buildTsugihagi・buildNurikae・buildTouchoku：SkinBody）の網（本体と輪郭線）だけを差し替える。
+// 炎・垂れる光（glowMesh）・顔の札（faceMesh）・光る目・弱点・揺れの骨はコードのまま。
 // 骨・動き（actor/anim.js）・弱点・光る目・顔の札（faceMesh：「閉店」の札・名札・帰路の顔のにじみ）・材質（トゥーン・崩れる霧）はコードのまま。
 // 読むのは起動の後に 1 回（preloadEnemyPacks：起動の読み込みを増やさない）。読み終わったら今いる異形の網も差し替える（main の refreshEnemyPacks）。読めない時・URL に ?epack=0 の時はコードの形のまま（落ちない）。
 import * as THREE from 'three';
 
 const BASE = new URL('../assets/enemies/', import.meta.url);
-export const ENEMY_PACK_KINDS = ['kiro', 'heiten', 'shuuyou'];
+// P18：応答体（outou）・継接（tsugihagi）・塗替（nurikae）・当直（touchoku）を足した（tools/blender/enemy/designs_p18.py）。
+// 序章〜第2章の 3 種（EARLY）は起動の 2 秒後にまとめて読む。第4章からの 4 種（LAZY）はその異形が置かれた時に読む（requestEnemyPacks：
+// main の lazyEnemyPacks が 1 秒ごとに見る）＝起動の読み込みも、序盤の通信も増やさない。
+export const ENEMY_PACK_EARLY = ['kiro', 'heiten', 'shuuyou'];
+export const ENEMY_PACK_LAZY = ['outou', 'tsugihagi', 'nurikae', 'touchoku'];
+export const ENEMY_PACK_KINDS = [...ENEMY_PACK_EARLY, ...ENEMY_PACK_LAZY];
 const PACKS = {};
+const ASKED = {};
 let OFF = false;
 try { OFF = typeof location !== 'undefined' && /[?&]epack=0\b/.test(location.search); } catch (e) { /* node */ }
+export const enemyPacksOff = () => OFF;
 
-/** 起動の時に読む（quality 'low' はスマホの軽い版 *_low.pack.json）。戻り値：読めた種類の数 */
-export async function preloadEnemyPacks(quality = 'high') {
+async function loadOne(k, low) {
+  try {
+    const r = await fetch(new URL(k + (low ? '_low' : '') + '.pack.json', BASE));
+    if (!r.ok) return 0;
+    const j = await r.json(); if (j.spec !== 'wakaba-enemypack/1') return 0;
+    PACKS[k] = decode(j); return 1;
+  } catch (e) { console.warn('[shinshoku] 異形の体を読めません（コードの形で続けます）', k, e); return 0; }
+}
+/** 起動の後に読む（quality 'low' はスマホの軽い版 *_low.pack.json）。kinds の既定は序盤の 3 種。戻り値：読めた種類の数 */
+export async function preloadEnemyPacks(quality = 'high', kinds = ENEMY_PACK_EARLY) {
   if (OFF) return 0;
-  const low = quality === 'low';
-  const res = await Promise.all(ENEMY_PACK_KINDS.map(async k => {
-    try {
-      const r = await fetch(new URL(k + (low ? '_low' : '') + '.pack.json', BASE));
-      if (!r.ok) return 0;
-      const j = await r.json(); if (j.spec !== 'wakaba-enemypack/1') return 0;
-      PACKS[k] = decode(j); return 1;
-    } catch (e) { console.warn('[shinshoku] 異形の体を読めません（コードの形で続けます）', k, e); return 0; }
-  }));
+  const res = await Promise.all(kinds.filter(k => !ASKED[k]).map(k => (ASKED[k] = loadOne(k, quality === 'low'))));
   return res.reduce((a, b) => a + b, 0);
+}
+/** まだ頼んでいない種類だけを読む（1 種類につき 1 回だけ）。戻り値：新しく読めた数（頼む物が無い時は null） */
+export function requestEnemyPacks(kinds, quality = 'high') {
+  if (OFF) return null;
+  const want = [...new Set(kinds)].filter(k => ENEMY_PACK_KINDS.includes(k) && !ASKED[k]);
+  return want.length ? preloadEnemyPacks(quality, want) : null;
 }
 /** node の試験用：JSON を直に入れる */
 export function setEnemyPack(kind, json) { PACKS[kind] = json ? decode(json) : null; }
 export const enemyPackOf = kind => (OFF ? null : PACKS[kind] || null);
 /** 材質の種類（包みを読む前に組んだコードの異形にも入れておく＝後で網だけ差し替えられる） */
-const PACK_CLASSES = { kiro: ['cloth', 'skin', 'hair', 'acc'], heiten: ['cloth', 'skin', 'hair', 'metal', 'acc', 'glow'], shuuyou: ['cloth', 'metal', 'acc', 'glow'] };
+const PACK_CLASSES = { kiro: ['cloth', 'skin', 'hair', 'acc'], heiten: ['cloth', 'skin', 'hair', 'metal', 'acc', 'glow'], shuuyou: ['cloth', 'metal', 'acc', 'glow'],
+  outou: ['cloth', 'skin', 'metal', 'acc', 'glow'], tsugihagi: ['cloth', 'skin', 'acc', 'glow'], nurikae: ['cloth', 'metal', 'acc', 'glow'], touchoku: ['cloth', 'skin', 'metal', 'acc', 'glow'] };
 export function enemyPackClasses(kind) { const p = enemyPackOf(kind); return OFF ? [] : [...new Set([...(PACK_CLASSES[kind] || []), ...(p ? p.classes : [])])]; }
 
 const f32 = s => { const b = typeof atob === 'function' ? Uint8Array.from(atob(s), c => c.charCodeAt(0)) : new Uint8Array(Buffer.from(s, 'base64')); return new Float32Array(b.buffer, b.byteOffset, b.byteLength / 4); };

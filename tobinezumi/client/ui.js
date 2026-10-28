@@ -6,7 +6,7 @@ import { CLIMATES, RARES } from '../shared/lands.js';
 import { REST_NAME } from '../shared/season.js';
 import * as A from './art.js';
 import { Sprites } from './sprites.js';
-import { placeHelpLine } from './touch-logic.js';
+import { placeHelpLine, placeToasts, holdToast } from './touch-logic.js';
 import { sfx } from './sfx.js';
 
 export function el(tag, cls, html) {
@@ -99,12 +99,47 @@ export class UI {
     setTimeout(() => { if (n.isConnected) { n.classList.add('out'); setTimeout(() => n.remove(), 400); } }, 7000);
   }
   toast(text, kind = '') {
+    // Ver.0.9：パネルが画面いっぱいでトーストの入る所が無いときは、閉じるまで待たせる（重ねない・消えてしまわない）
+    if (this.modal && this._toastHold) { this._held = holdToast(this._held || [], String(text), kind); this.debugToasts = { held: this._held.length }; return; }
     this.layoutTop();
     const t = el('div', 'tb-toast ' + kind, esc(text));
     this.toastBox.appendChild(t);
     while (this.toastBox.children.length > 3) this.toastBox.firstChild.remove();
+    this.layoutToasts();
+    if (this._toastHold) {   // 出してみたら入らなかった：この 1 つは待たせる
+      t.remove(); this._held = holdToast(this._held || [], String(text), kind); this.layoutToasts(); return;
+    }
     this.fitHelp();
-    setTimeout(() => { t.classList.add('out'); setTimeout(() => { t.remove(); this.fitHelp(); }, 400); }, 2600);
+    setTimeout(() => { t.classList.add('out'); setTimeout(() => { t.remove(); this.layoutToasts(); this.fitHelp(); }, 400); }, 2600);
+  }
+  /**
+   * Ver.0.9：トーストを開いているパネルに重ねない（touch-logic.js の placeToasts）。
+   * パネルの上か下へずらし、どちらにも入らなければ待たせる（_toastHold）。パネルの大きさが変わった・開いた・閉じたときも呼ぶ。
+   */
+  layoutToasts() {
+    const tb = this.toastBox;
+    if (!tb) return;
+    const base = this._toastTop || '';
+    if (tb.style.top !== base) tb.style.top = base;
+    tb.classList.remove('tb-toasts-hold');
+    const node = this.modal && this.modal.node;
+    let res = { moved: false, hold: false };
+    if (node && node.isConnected && tb.children.length) {
+      const HR = this.hud.getBoundingClientRect(), q = tb.getBoundingClientRect(), pr = node.getBoundingClientRect();
+      const rel = r => ({ left: r.left - HR.left, right: r.right - HR.left, top: r.top - HR.top, bottom: r.bottom - HR.top });
+      res = placeToasts(q.height ? rel(q) : null, rel(pr), { top: 2, bottom: HR.height - 2 });
+      if (res.moved) tb.style.top = res.top + 'px';
+      if (res.hold) tb.classList.add('tb-toasts-hold');
+    }
+    this._toastHold = !!(node && res.hold);
+    this.debugToasts = { moved: !!res.moved, hold: this._toastHold, held: (this._held || []).length };
+  }
+  /** パネルを閉じた：待たせていたトーストを出す */
+  _flushHeld() {
+    this._toastHold = false;
+    const list = this._held || []; this._held = [];
+    this.layoutToasts();
+    for (const t of list) this.toast(t.text, t.kind);
   }
   /** Ver.0.7：地上の上の案内（ヘルプの 1 行）。トーストと重ならないように fitHelp で動かす・隠す */
   setHelpLine(h) { this.helpLine = h || null; this.fitHelp(); }
@@ -209,7 +244,7 @@ export class UI {
     if (this.chatLog && !(on && horiz)) this.chatLog.style.top = '';
     const ck = this.clockEl, ckOn = on && horiz && ck && !ck.classList.contains('hidden');
     if (ck && !ckOn) { ck.style.top = ''; ck.style.left = ''; ck.style.right = ''; }
-    if (!on) { if (life) life.style.top = ''; if (tb) tb.style.top = ''; this.fitHelp(); return; }
+    if (!on) { if (life) life.style.top = ''; this._toastTop = ''; this.layoutToasts(); this.fitHelp(); return; }
     const H = this.hud.getBoundingClientRect();
     const title = this.hud.querySelector('.tb-scene .tb-region, .tb-scene .tb-wtop');
     const tr = title && title.offsetParent ? title.getBoundingClientRect() : null;
@@ -221,7 +256,8 @@ export class UI {
       L = ck.getBoundingClientRect();
     }
     const tt = Math.round(L.bottom - H.top + 4) + 'px';
-    if (tb.style.top !== tt) tb.style.top = tt;
+    this._toastTop = tt;
+    this.layoutToasts();
     if (horiz && this.chatLog && this.chatLog.style.top !== tt) this.chatLog.style.top = tt;   // 横向きのチャットログもバーの下
     this.fitHelp();
   }
@@ -498,15 +534,25 @@ export class UI {
   // ── モーダル（1 つだけ）──
   _openModal(node, onClose) {
     if (!this.modal) sfx('open');
-    this.closeModal();
+    this.closeModal(true);
     this.modal = { node, onClose };
     this.hud.appendChild(node);
+    // Ver.0.9：トーストをパネルに重ねない（開いたとき・中身が伸び縮みしたとき：設定の欄を開く など）
+    this.layoutToasts();
+    if (this._toastHold) {   // 出ていたトーストが入らない：閉じたあとにもう一度出す
+      for (const t of [...this.toastBox.children]) { if (!t.classList.contains('out')) this._held = holdToast(this._held || [], t.textContent, t.classList.contains('bad') ? 'bad' : ''); t.remove(); }
+      this.layoutToasts();
+    }
+    if (globalThis.ResizeObserver) { const ro = new ResizeObserver(() => { if (this.modal && this.modal.node === node) this.layoutToasts(); }); ro.observe(node); this.modal.ro = ro; }
   }
-  closeModal() {
+  closeModal(reopen = false) {
     if (!this.modal) return;
     const m = this.modal; this.modal = null;
+    if (m.ro) m.ro.disconnect();
     m.node.remove();
     if (m.onClose) m.onClose();
+    if (!reopen && !this.modal) this._flushHeld();
+    else this.layoutToasts();
   }
   /** はい／いいえ。Promise<boolean> */
   confirm(title, body, yes = 'はい', no = 'いいえ') {

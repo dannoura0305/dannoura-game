@@ -179,6 +179,30 @@ export function placeHelpLine(help, toasts, { limit = Infinity, gap = 4 } = {}) 
   if (top + help.height > limit) return { top: help.top, hidden: true, moved: false };
   return { top, hidden: false, moved: true };
 }
+/**
+ * Ver.0.9：トーストとパネル（メニュー・図鑑・確認など）が重ならないように。
+ * toasts＝いつもの所に置いたトーストの箱、panel＝開いているパネルの箱（無ければ null）、area＝{top, bottom}（画面の上下）。
+ * 重ならなければそのまま。重なるならパネルの上 → 下の順に入る所へ。どちらにも入らないなら hold（パネルを閉じるまで出さずに待つ）。
+ * 返り値 {top, moved, hold}
+ */
+export function placeToasts(toasts, panel, area, { gap = 4 } = {}) {
+  const keep = { top: toasts ? toasts.top : 0, moved: false, hold: false };
+  if (!toasts || !(toasts.bottom > toasts.top) || !panel || !(panel.bottom > panel.top)) return keep;
+  if (!boxesOverlap(toasts, panel)) return keep;
+  const h = toasts.bottom - toasts.top;
+  const above = Math.floor(panel.top - gap - h);
+  if (above >= area.top) return { top: above, moved: true, hold: false };
+  const below = Math.ceil(panel.bottom + gap);
+  if (below + h <= area.bottom) return { top: below, moved: true, hold: false };
+  return { top: toasts.top, moved: false, hold: true };
+}
+/** 待たせたトーストに足す（同じ文は 1 つに・新しい方を残して max 件まで） */
+export function holdToast(list, text, kind = '', max = 3) {
+  const out = list.filter(t => t.text !== text);
+  out.push({ text, kind });
+  return out.slice(-max);
+}
+
 /** 2 つの箱が重なるか（{left, right, top, bottom}） */
 export const boxesOverlap = (a, b) => !!(a && b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom);
 

@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import { SkinBody, DIM, faceAtlas } from './skin.js';
 import { humanBody, humanHead, glowEyes, xfm, torus } from './models.js';
+import { applyEnemyPack, enemyPackClasses } from './enemypack.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const rng = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
@@ -379,7 +380,8 @@ export function buildTsugihagi() {
   }
   // 縫い目からもれる紫の気（glow の組）
   for (let i = 0; i < 8; i++) flame(sb, [Math.sin(i * 2.3) * 0.4, 1.4 + i * 0.15, Math.cos(i * 2.3) * 0.32 + 0.06], [Math.sin(i * 2.3) * 0.3, 1, -0.2], 0.26, { w: 0.06, col: 0x9a50ff, col1: 0x1a0638, weights: i > 4 ? rw('tChest') : rw('tBody') });
-  const m = sb.build(null, { rim: 0.45, rimColor: 0xb070ff, outline: 0.013, outlineColor: 0x060408, flameAmp: 0.03, flameK: 1.2 });
+  const m = sb.build(null, { rim: 0.45, rimColor: 0xb070ff, outline: 0.013, outlineColor: 0x060408, flameAmp: 0.03, flameK: 1.2, classes: enemyPackClasses('tsugihagi') });
+  applyEnemyPack(m, 'tsugihagi');   // P18：Blender の体（縫い目の光・紫の気＝glowMesh と目の位置・部分の骨はコードのまま）
   m.update = dt => { if (m.mats.glow) m.mats.glow.userData.u.uTime.value += dt; if (m.anim && m.actorRef) m.anim.update(dt, m.actorRef); };
   const weak = new THREE.Object3D(); weak.position.set(0, 0.1, 0.5); sb.B.tChest.add(weak);
   return Object.assign(m, { provisional: true, kind: 'tsugihagi', height: 3.4, bodyR: 0.9, sway, eyes, eyeGlow: eyes, names, legs, G: sb.B, weak, weakColor: 0xc890ff });

@@ -12,6 +12,7 @@
 読むのは shinshoku/actor/enemypack.js（コードの異形の網を差し替える。読めない時・?epack=0 はコードの形のまま）。
 意匠は独自（グロテスクにしない：人とモノが混ざった姿・顔は形を失っている／札で隠れる）。
   python tools/blender/enemy/build_enemy.py [--only kiro] [--out shinshoku/assets/enemies] [--lod pc|low]
+P18：応答体（outou）・継接（tsugihagi）・塗替（nurikae）・当直（touchoku）の意匠は designs_p18.py（同じ道具・同じ包み）。
 座標は glTF：Y 上・+Z 前・+X がキャラクターの左・m。
 """
 import base64
@@ -71,6 +72,10 @@ class Part:
 
 
 # ───────────────────────── 重み
+HUMAN = {'hips', 'spine', 'chest', 'neck', 'head', 'leftUpperArm', 'leftLowerArm', 'leftHand', 'rightUpperArm', 'rightLowerArm', 'rightHand',
+         'leftUpperLeg', 'leftLowerLeg', 'leftFoot', 'rightUpperLeg', 'rightLowerLeg', 'rightFoot', 'eyeL', 'eyeR', 'mouth'}
+
+
 def weights_for(P, part, rig):
     names = [b['name'] for b in rig['bones']]
     pos = {b['name']: np.array(b['pos']) for b in rig['bones']}
@@ -90,7 +95,15 @@ def weights_for(P, part, rig):
             main = ['neck']
         if n == 'hips':
             main = ['spine']
-        return a, pos[main[0]] if main else a + np.array([0, 0.05, 0])
+        if main:
+            return a, pos[main[0]]
+        par = rig['bones'][names.index(n)]['parent']
+        if n not in HUMAN and par >= 0:                                 # P18：鎖の先の骨（触腕・電線など）は親からの向きへ伸ばす
+            d = a - pos[names[par]]
+            L = np.linalg.norm(d)
+            if L > 1e-6:
+                return a, a + d / L * min(0.18, max(0.06, L * 0.8))
+        return a, a + np.array([0, 0.05, 0])
     n = len(P)
     J = np.zeros((n, 4), np.int64)
     W = np.zeros((n, 4))
@@ -563,6 +576,8 @@ def main():
         elif argv[i] == '--lod':
             lods = [argv[i + 1]]; i += 1
         i += 1
+    from designs_p18 import DESIGNS as D18                             # P18：応答体・継接・塗替・当直（tools/blender/enemy/designs_p18.py）
+    DESIGNS.update(D18)
     MO.clear_scene()
     for k in only or list(DESIGNS):
         for lod in lods:

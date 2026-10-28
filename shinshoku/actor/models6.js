@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { SkinBody, DIM, faceAtlas, UVR } from './skin.js';
 import { humanBody, humanHead, glowEyes, xfm, torus } from './models.js';
+import { applyEnemyPack, enemyPackClasses } from './enemypack.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const rng = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
@@ -91,7 +92,8 @@ export function buildNurikae() {
   tails.forEach((nm, i) => { const P = nm.map(n => W(n)); P.push(P[P.length - 1].clone().add(V(0, -0.08, -0.06))); sb.tube(P.map((c, k) => ({ c: [c.x, c.y, c.z], r: [0.028 - k * 0.003, 0.028 - k * 0.003] })), { sides: 6, weights: chainW(sb, nm), color: CABLE, capStart: true, capEnd: true, oth: 0.6 }); sway.push(...nm.map((n, k) => ({ b: sb.B[n], k: 10 + k * 2, d: 2.6, gain: 0.3, baseX: 0, amp: 0.18 + k * 0.04, freq: 0.5 + i * 0.17, ph: i * 1.3 + k * 0.5 }))); });
   // 胴からしたたる塗料
   for (let i = 0; i < 10; i++) { const a = r() * Math.PI * 2; drip(sb, [Math.sin(a) * 0.24, hb.y - 0.1 + r() * 0.4, hb.z + Math.cos(a) * 0.17], 0.18 + r() * 0.16, { w: 0.02, weights: rw('nBody') }); }
-  const m = sb.build(null, { rim: 0.45, rimColor: 0xd070ff, outline: 0.012, outlineColor: 0x060408, flameAmp: 0.025, flameK: 1.3 });
+  const m = sb.build(null, { rim: 0.45, rimColor: 0xd070ff, outline: 0.012, outlineColor: 0x060408, flameAmp: 0.025, flameK: 1.3, classes: enemyPackClasses('nurikae') });
+  applyEnemyPack(m, 'nurikae');   // P18：Blender の体（垂れる塗料・コイルの光＝glowMesh はコードのまま）
   m.update = dt => { if (m.mats.glow) m.mats.glow.userData.u.uTime.value += dt; };
   return Object.assign(m, { provisional: true, kind: 'nurikae', height: 2.1, bodyR: 0.5, sway, eyes, core, legs, arms, tails, G: sb.B });
 }
@@ -192,7 +194,8 @@ export function buildTouchoku() {
     g.fillStyle = '#f4f0e2'; g.fillRect(132, 4, 120, 120); g.strokeStyle = '#3a3a40'; g.lineWidth = 2; g.font = 'bold 14px monospace'; g.fillStyle = '#2a2a30'; g.fillText('点検表', 160, 22);
     for (let i = 0; i < 7; i++) { g.beginPath(); g.moveTo(140, 34 + i * 13); g.lineTo(244, 34 + i * 13); g.stroke(); g.fillRect(142, 28 + i * 13, 6, 6); }
   });
-  const m = sb.build(tex, { rim: 0.4, rimColor: 0x9ab0ff, outline: 0.012, outlineColor: 0x06060a, faceEmissive: 0x101014, flameAmp: 0.03, flameK: 1.0 });
+  const m = sb.build(tex, { rim: 0.4, rimColor: 0x9ab0ff, outline: 0.012, outlineColor: 0x06060a, faceEmissive: 0x101014, flameAmp: 0.03, flameK: 1.0, classes: enemyPackClasses('touchoku') });
+  applyEnemyPack(m, 'touchoku');   // P18：Blender の体（計器の文字盤・点検表＝顔の札と蒸気＝glowMesh はコードのまま）
   m.update = dt => { if (m.mats.glow) m.mats.glow.userData.u.uTime.value += dt; };
   const eyeGlow = glowEyes(m, m.J, [[0, R * 0.62 + R * 0.9, R * 1.3]]);
   const weak = new THREE.Object3D(); weak.position.set(0, 0.02, -0.26); sb.B.chest.add(weak);
