@@ -57,9 +57,8 @@ await t('材質の組：依頼の 23 種がそろう・各組に albedo／normal
 });
 
 await t('目録と門：自作の素材（license own・source.generator が tools/ の下）は web・ue5 とも pass、verifiedBy が空なのは注意（UNVERIFIED_GENERATED）だけ。条件を外すと止まる', () => {
-  // 2026-11-07：利用者の PC で作った VRoid 製のキャラクター（自作の手続きの生成ではない・再配布不可）は人が確かめるまで止まる（tests/shinshoku-vroid.test.mjs）。ここは自作の生成物だけ
-  const USER = new Set(['char.dannoura', 'char.dannoura_white', 'char.daughter', 'char.companion']);
-  for (const e of cat.entries) { if (USER.has(e.id)) { assert.equal(e.targets.web.result, 'block', e.id); continue; } assert.equal(e.targets.web.result, 'pass', e.id); assert.equal(e.targets.ue5.result, 'pass', e.id); }
+  // 2026-11-07：利用者の PC で作った VRoid 製のキャラクターも、利用者（作者本人）が確かめた記録（license.verifiedBy）と公開の承認で web・ue5 とも pass（tests/shinshoku-vroid.test.mjs）
+  for (const e of cat.entries) { assert.equal(e.targets.web.result, 'pass', e.id); assert.equal(e.targets.ue5.result, 'pass', e.id); }
   const meta = readJson(`wakaba-assets/entries/${byId.get('mat.ground.moss').dir}/meta.json`);
   assert.equal(meta.license.verifiedBy, '', 'AI は verifiedBy を書かない'); assert.ok(isRepoGenerated(meta));
   const web = makeContext(config, 'shinshoku', { target: 'web' }), r = evaluate(meta, web);
@@ -69,7 +68,7 @@ await t('目録と門：自作の素材（license own・source.generator が too
     ['自作でない', m => { m.source.type = 'cc0_site'; }], ['再配布 no', m => { m.license.redistributeRaw = 'no'; }]]) { const m = clone(meta); mut(m); assert.ok(codes(m).includes('UNVERIFIED'), why); }
   const v = clone(meta); v.license.verifiedBy = 'user'; assert.deepEqual(evaluate(v, web).warnings, [], '人が確かめたら注意も消える');
   // generator のファイルが実在する
-  for (const e of cat.entries) { const m = readJson(`wakaba-assets/entries/${e.dir}/meta.json`); if (USER.has(e.id)) { assert.ok(existsSync(rootPath(m.source.gameBuild)), m.source.gameBuild); continue; } assert.ok(existsSync(rootPath(m.source.generator)), m.source.generator); }
+  for (const e of cat.entries) { const m = readJson(`wakaba-assets/entries/${e.dir}/meta.json`); assert.ok(existsSync(rootPath(m.source.generator)), m.source.generator); }
 });
 
 await t('部品（glb）：配置の全部の種類に部品がある・節の名前（LOD<n>／v<k>_LOD<n>／IMP）・材質は目録の材質の名前・頂点の AO（COLOR_0）と接線がある・大きさが仮の形に近い', () => {

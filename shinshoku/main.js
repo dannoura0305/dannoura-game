@@ -211,6 +211,11 @@ class Game {
     }
     // P17：娘（結末の家の場面だけ）：Blender で作った VRM（tools/blender/char の daughter）。起動を軽くするため後で読む。読めない時・読み終わる前はコードで組んだ娘
     if (m.daughter && m.daughter.file) this.daughterVrmReady = new Promise(res => setTimeout(() => loadCharacter(m.daughter, lopt).then(v => { if (v) { this.daughterVrm = v; this.vrmLoaded = (this.vrmLoaded || []).concat('daughter'); } res(v); }, () => res(null)), 6000));
+    // 2026-11-07：結末A の見舞いの姿（白と紫が混ざった髪）＝利用者の VRoid 製（dannoura_visit）。使うのは結末A と家の場面だけなので、起動では読まない
+    // （ch7.js の loadVisitVrm7：終章A に入った時・終章A／結末A で読み込んだ時・結末A へ移る時に読む）。
+    // 読めない時・読み終わる前・?vrm=0・?vrmset=bl（sets.bl の file: null）はコードで組んだ姿（models3.js buildDannouraWhite({ mixed: true })）
+    this.visitEntry = m.dannoura_visit && m.dannoura_visit.file ? m.dannoura_visit : null; this.visitLopt = lopt;
+    if (this.visitEntry && this.route && this.route.route === 'reveal' && /^(ch7a_|end_a)/.test(this.story.step || '')) this.loadVisitVrm7();
     // 異形（glTF 推奨）：読めたら次に区画を読み込む時から差し替え
     this.extModels = {};
     for (const k of ['kiro', 'heiten', 'shuuyou']) if (m[k] && m[k].file) { const v = await loadCharacter(m[k]); if (v) { await prepareClone(); this.extModels[k] = v; this.vrmLoaded = (this.vrmLoaded || []).concat(k); } }

@@ -1,5 +1,5 @@
 {
-  "_note": "キャラクターの差し替え表（コードの変更は不要）。file に .vrm / .glb / .gltf（このフォルダに置く）を書くと、コードで組んだ仮のキャラクターの代わりに読み込みます。2026-11-07 から だんのうら・白い姿・娘・相棒（瀬名 灯里）は**利用者が自分の PC で VRoid Studio で作った VRM 1.0（tools/charkit/vroid_game.mjs で軽くした物）が既定**。前の Blender 製（tools/blender/char → tools/charkit/build_chars.mjs）は *_bl.vrm で残し、URL に ?vrmset=bl を付けると使う（sets.bl）。読み込みに失敗したら・URL に ?vrm=0 を付けた時はコードで組んだ予備のキャラクター。VRoid Studio などで作ったモデルに差し替える時は file を書き換える（docs/shinshoku/VROID_GUIDE.md）。portrait は会話・HUD の顔絵。手順は docs/shinshoku/ASSET_IMPORT.md。license・author・source は必ず記入。",
+  "_note": "キャラクターの差し替え表（コードの変更は不要）。file に .vrm / .glb / .gltf（このフォルダに置く）を書くと、コードで組んだ仮のキャラクターの代わりに読み込みます。2026-11-07 から だんのうら・白い姿・見舞いの姿（dannoura_visit：結末A）・娘・相棒（瀬名 灯里）は**利用者が自分の PC で VRoid Studio で作った VRM 1.0（tools/charkit/vroid_game.mjs で軽くした物）が既定**。前の Blender 製（tools/blender/char → tools/charkit/build_chars.mjs）は *_bl.vrm で残し、URL に ?vrmset=bl を付けると使う（sets.bl）。読み込みに失敗したら・URL に ?vrm=0 を付けた時はコードで組んだ予備のキャラクター。VRoid Studio などで作ったモデルに差し替える時は file を書き換える（docs/shinshoku/VROID_GUIDE.md）。portrait は会話・HUD の顔絵。手順は docs/shinshoku/ASSET_IMPORT.md。license・author・source は必ず記入。",
   "ver": 3,
   "characters": {
     "daughter": {
@@ -20,8 +20,8 @@
       "license": "VRM Public License 1.0（作者 WAKABA Project＝利用者本人）、VRoid Studio 標準パーツ＋自作。ゲーム用に軽くした VRM の利用条件：作者のみ・法人可（商用可）・改変可・再配布不可・クレジット必要（2026-11-07 利用者の承認で書き換え。PC から届いた元の VRM は「作者のみ・個人の非営利のみ・再配布不可・改変不可」のまま）",
       "author": "WAKABA Project（利用者本人）",
       "fallback": "code-built placeholder (shinshoku/actor/heroes.js buildDaughterV2)。前の Blender 製の VRM は ?vrmset=bl（sets.bl）",
-      "licenseChange": "2026-11-07 利用者の承認：meta の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（元は「作者のみ・個人の非営利のみ・再配布不可・改変不可」）。license.verifiedBy は人が確かめて書く",
-      "credit": "キャラクターモデル：WAKABA Project"
+      "licenseChange": "2026-11-07 利用者の承認：meta の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（元は「作者のみ・個人の非営利のみ・再配布不可・改変不可」）。素材の確認（license.verifiedBy）：利用者（作者本人・WAKABA Project）2026-11-07「公開リポジトリとサイトに置いてよい」",
+      "credit": "キャラクターモデル：WAKABA Project（VRoid Studio で制作）"
     },
     "dannoura": {
       "file": "dannoura.vrm",
@@ -41,8 +41,8 @@
       "license": "VRM Public License 1.0（作者 WAKABA Project＝利用者本人）、VRoid Studio 標準パーツ＋自作。ゲーム用に軽くした VRM の利用条件：作者のみ・法人可（商用可）・改変可・再配布不可・クレジット必要（2026-11-07 利用者の承認で書き換え。PC から届いた元の VRM は「作者のみ・法人可・再配布不可・改変不可」のまま）",
       "author": "WAKABA Project（利用者本人）",
       "fallback": "code-built placeholder (shinshoku/actor/models.js)。前の Blender 製の VRM は ?vrmset=bl（sets.bl）",
-      "licenseChange": "2026-11-07 利用者の承認：meta の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（元は「作者のみ・法人可・再配布不可・改変不可」）。license.verifiedBy は人が確かめて書く",
-      "credit": "キャラクターモデル：WAKABA Project",
+      "licenseChange": "2026-11-07 利用者の承認：meta の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（元は「作者のみ・法人可・再配布不可・改変不可」）。素材の確認（license.verifiedBy）：利用者（作者本人・WAKABA Project）2026-11-07「公開リポジトリとサイトに置いてよい」",
+      "credit": "キャラクターモデル：WAKABA Project（VRoid Studio で制作）",
       "strideK": 0.94,
       "strideKNote": "1 周期の距離の倍率（charkit/anim/clipanim.js の strideK）。VRoid 製は太もも・すねの割合が動きを録った体（Blender 製）と違い、腰の高さの比だけでは足が滑るので、歩き 2.2m/s・走り 3.4m/s の滑りが一番小さくなる値を測って入れた（2026-11-07・tests/shinshoku-vroid.test.mjs）"
     },
@@ -64,10 +64,34 @@
       "license": "VRM Public License 1.0（作者 WAKABA Project＝利用者本人）、VRoid Studio 標準パーツ＋自作。ゲーム用に軽くした VRM の利用条件：作者のみ・法人可（商用可）・改変可・再配布不可・クレジット必要（2026-11-07 利用者の承認で書き換え。PC から届いた元の VRM は「作者のみ・法人可・再配布不可・改変不可」のまま）",
       "author": "WAKABA Project（利用者本人）",
       "fallback": "code-built placeholder (shinshoku/actor/models3.js buildDannouraWhite)。前の Blender 製の VRM は ?vrmset=bl（sets.bl）",
-      "licenseChange": "2026-11-07 利用者の承認：meta の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（元は「作者のみ・法人可・再配布不可・改変不可」）。license.verifiedBy は人が確かめて書く",
-      "credit": "キャラクターモデル：WAKABA Project",
+      "licenseChange": "2026-11-07 利用者の承認：meta の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（元は「作者のみ・法人可・再配布不可・改変不可」）。素材の確認（license.verifiedBy）：利用者（作者本人・WAKABA Project）2026-11-07「公開リポジトリとサイトに置いてよい」",
+      "credit": "キャラクターモデル：WAKABA Project（VRoid Studio で制作）",
       "strideK": 0.94,
       "strideKNote": "1 周期の距離の倍率（charkit/anim/clipanim.js の strideK）。VRoid 製は太もも・すねの割合が動きを録った体（Blender 製）と違い、腰の高さの比だけでは足が滑るので、歩き 2.2m/s・走り 3.4m/s の滑りが一番小さくなる値を測って入れた（2026-11-07・tests/shinshoku-vroid.test.mjs）"
+    },
+    "dannoura_visit": {
+      "file": "dannoura_visit.vrm",
+      "fileLow": "dannoura_visit_low.vrm",
+      "portrait": "../../../assets/gen/portrait/dan_normal.png",
+      "portraitNote": "結末A の見舞いの場面（病室）と家の場面だけで使う姿（白と紫が混ざった髪。化けが不安定なだけ＝けがではない・同じ人・男性）。顔絵はだんのうらの原画",
+      "provisional": false,
+      "height": 1.64,
+      "fit": "none",
+      "scale": 1,
+      "rotateY": 0,
+      "shader": "mtoon",
+      "anim": "../anim/dannoura/clips.json",
+      "kind": "mixed",
+      "meta": "dannoura_visit.meta.json",
+      "source": "利用者が自分の PC で VRoid Studio 2.3.0＋Blender で作った VRM 1.0（2026-11-07 持ち込み：ブランチ models-from-pc の incoming/hq3d/characters/dannoura_visit/model/dannoura_visit.vrm。だんのうら（通常）の元データに Blender で手を入れた見舞い時の外見）→ tools/charkit/vroid_game.mjs でゲーム用に軽くした（テクスチャの縮小・WebP・モーフの差分の疎化・使われない accessor の除去。骨・揺れ物・材質・表情の割り当ては元のまま。スマホ版は表情に使わないモーフを省き、法線・重み・UV を量子化）",
+      "license": "VRM Public License 1.0（作者 WAKABA Project＝利用者本人）、VRoid Studio 標準パーツ＋自作。ゲーム用に軽くした VRM の利用条件：作者のみ・法人可（商用可）・改変可・再配布不可・クレジット必要（2026-11-07 利用者の承認で書き換え。PC から届いた元の VRM は「作者のみ・法人可・再配布不可・改変不可」のまま）",
+      "author": "WAKABA Project（利用者本人）",
+      "fallback": "code-built placeholder (shinshoku/actor/models3.js buildDannouraWhite({ mixed: true }))。読めない時・?vrm=0・?vrmset=bl（Blender 製は無い）はコードの姿",
+      "licenseChange": "2026-11-07 利用者の承認：meta の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（元は「作者のみ・法人可・再配布不可・改変不可」）。素材の確認（license.verifiedBy）：利用者（作者本人・WAKABA Project）2026-11-07「公開リポジトリとサイトに置いてよい」",
+      "credit": "キャラクターモデル：WAKABA Project（VRoid Studio で制作）",
+      "strideK": 0.94,
+      "strideKNote": "だんのうら（通常）と同じ体（同じ骨の割合）なので同じ値",
+      "use": "結末A（見舞い）の病室と、続く家の場面（娘との再会）。shinshoku/game/ch7.js の mixedHair7"
     },
     "companion": {
       "file": "companion.vrm",
@@ -86,8 +110,8 @@
       "license": "VRM Public License 1.0（作者 WAKABA Project＝利用者本人）、VRoid Studio 標準パーツ＋自作。ゲーム用に軽くした VRM の利用条件：作者のみ・法人可（商用可）・改変可・再配布不可・クレジット必要（2026-11-07 利用者の承認で書き換え。PC から届いた元の VRM は「作者のみ・個人の非営利のみ・再配布不可・改変不可」のまま）",
       "author": "WAKABA Project（利用者本人）",
       "fallback": "code-built placeholder。前の Blender 製の VRM は ?vrmset=bl（sets.bl）",
-      "licenseChange": "2026-11-07 利用者の承認：meta の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（元は「作者のみ・個人の非営利のみ・再配布不可・改変不可」）。license.verifiedBy は人が確かめて書く",
-      "credit": "キャラクターモデル：WAKABA Project",
+      "licenseChange": "2026-11-07 利用者の承認：meta の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（元は「作者のみ・個人の非営利のみ・再配布不可・改変不可」）。素材の確認（license.verifiedBy）：利用者（作者本人・WAKABA Project）2026-11-07「公開リポジトリとサイトに置いてよい」",
+      "credit": "キャラクターモデル：WAKABA Project（VRoid Studio で制作）",
       "note": "相棒＝瀬名 灯里（2026-11-07 利用者の回答）。会話の名前は「相棒」のまま",
       "strideK": 0.92,
       "strideKNote": "1 周期の距離の倍率（charkit/anim/clipanim.js の strideK）。VRoid 製は太もも・すねの割合が動きを録った体（Blender 製）と違い、腰の高さの比だけでは足が滑るので、歩き 2.2m/s・走り 3.4m/s の滑りが一番小さくなる値を測って入れた（2026-11-07・tests/shinshoku-vroid.test.mjs）"
@@ -206,6 +230,11 @@
         "license": "project（自作・商用可：VRM の利用条件 commercialUsage corporation）",
         "author": "project",
         "fallback": "code-built placeholder"
+      },
+      "dannoura_visit": {
+        "file": null,
+        "kind": "mixed",
+        "note": "見舞いの姿は Blender 製が無いので、?vrmset=bl の時はコードで組んだ姿（models3.js buildDannouraWhite({ mixed: true })）"
       }
     }
   },

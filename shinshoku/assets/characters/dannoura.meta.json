@@ -7,12 +7,14 @@
  "license": {
   "id": "VRM-1.0",
   "commercial": "yes",
-  "redistributeRaw": "no",
+  "redistributeRaw": "yes",
   "engines": [
    "any"
   ],
-  "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で作成）",
-  "verifiedBy": "",
+  "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で制作）",
+  "verifiedBy": "利用者（作者本人・WAKABA Project）",
+  "verifiedAt": "2026-11-07",
+  "verifiedNote": "2026-11-07 利用者（作者本人・WAKABA Project）が確認・承認：「公開リポジトリとサイトに置いてよい」。作者本人が自分のゲーム（境界侵食）として公開リポジトリと Web のサイトに置く（redistributeRaw: yes はこの承認による）。VRM の利用条件（作者のみ・再配布不可）はそのまま：第三者がこのファイルを持ち出して使う・配ることは不可。クレジット「キャラクターモデル：WAKABA Project（VRoid Studio で制作）」をスタッフロールに表示",
   "textUrl": "https://vrm.dev/licenses/1.0/",
   "note": "VRM Public License 1.0（作者 WAKABA Project＝利用者本人）、VRoid Studio 標準パーツ＋自作。2026-11-07 利用者の承認：ゲーム用に軽くした VRM の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（PC から届いた元の VRM は変えない）。元の VRM の条件は onlyAuthor・corporation・改変 prohibited・再配布 不可"
  },

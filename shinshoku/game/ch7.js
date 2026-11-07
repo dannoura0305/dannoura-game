@@ -14,6 +14,7 @@ import { Brain } from '../ai/brain.js';
 import { segDist, blocksLine } from '../ai/sakibure.js';
 import { buildKuramono, buildResearcher, buildSpouseLike, buildDaughter } from '../actor/models7.js';
 import { buildDannouraWhite } from '../actor/models3.js';
+import { loadCharacter } from '../actor/vrm.js';
 import { buildCivilian } from '../actor/models.js';
 import { KuramonoAnimator, researcherPose, spousePose, daughterPose } from '../actor/anim7.js';
 import { civilianPose, locomotion } from '../actor/anim.js';
@@ -34,6 +35,7 @@ export const ch7Methods = {
   startCh7a() {
     if (this.flags.ch7a_started || this.route.route !== 'reveal') return;
     this.flags.ch7a_started = true;
+    this.loadVisitVrm7();                                                     // 結末A の見舞いの姿（VRoid 製）を今のうちに読む
     if (this.giantMode) this.exitGiant();
     const F = this.F(); F.hp = F.hpMax; F.yokiOn = true; F.yoki = Math.max(F.yoki, 90);
     this.setStep('ch7a_edge');
@@ -354,9 +356,12 @@ export const ch7Methods = {
       case 'epiMood7': this.epiMood7(arg); return true;
       case 'mixedHair7': {
         const F = this.F(); F.yokiOn = false; if (F.white) F.setForm('purple'); this.ui.form(false);
-        this.mixedModel = this.mixedModel || buildDannouraWhite({ mixed: true });
+        // 2026-11-07：利用者の VRoid 製（dannoura_visit）が読めていればそれ、まだ・読めない時はコードで組んだ姿（読み終わったら差し替える）
+        this.mixedCodeModel = this.mixedCodeModel || buildDannouraWhite({ mixed: true });
+        this.mixedModel = this.visitVrm || this.mixedCodeModel;
         if (this.player.model !== this.mixedModel) this.player.setModel(this.mixedModel);
-        this.unarm7(); this.metrics.mixedHair7 = true; return true;
+        if (!this.visitVrm) this.loadVisitVrm7();
+        this.unarm7(); this.metrics.mixedHair7 = true; this.metrics.mixedVrm7 = !!this.visitVrm; return true;
       }
       case 'toHome7': this.later(skip ? 0.05 : 0.3, () => this.playCutscene('cs_end_home_' + String(arg).toLowerCase())); return true;
       case 'daughterHug7': { const d = this.enemies.find(x => x.id === 'daughter7'); if (d) d.mode7 = 'hug'; return true; }
@@ -379,8 +384,20 @@ export const ch7Methods = {
     this.metrics.endingRoute7 = this.route.route;
     if (id !== want) { console.warn('ending mismatch', id, want); }
     if (this.giantMode) this.exitGiant();
+    if (id === 'end_reveal') this.loadVisitVrm7();                       // 見舞いの姿の VRM（まだなら今すぐ読み始める）
     this.setStep(id === 'end_reveal' ? 'end_a' : 'end_b');
     this.changeArea('epilogue', id === 'end_reveal' ? 'hospital' : 'street');
+  },
+  /** 見舞いの姿の VRM（manifest の dannoura_visit）を読む（1 回だけ）。読めたら、今がコードの見舞いの姿なら差し替える（表情・武器を持たない状態は引き継ぐ） */
+  loadVisitVrm7() {
+    if (this.visitVrmReady || !this.visitEntry) return this.visitVrmReady || Promise.resolve(null);
+    this.visitVrmReady = loadCharacter(this.visitEntry, this.visitLopt || {}).then(v => {
+      if (!v) return null;
+      this.visitVrm = v; this.vrmLoaded = (this.vrmLoaded || []).concat('dannoura_visit');
+      if (this.mixedCodeModel && this.player.model === this.mixedCodeModel) { const ex = this.player.expr; this.mixedModel = v; this.player.setModel(v); if (ex) { this.player.expr = null; this.player.setExpr(ex, this.player.exprT || 0); } this.unarm7(); this.metrics.mixedVrm7 = true; }
+      return v;
+    }, () => null);
+    return this.visitVrmReady;
   },
   /** 結末の場面では武器を持たない（家・病室）。持ち物の記録は変えない（見た目だけ） */
   unarm7() { this.player.noWeapons = true; this.player.setWeaponVisual(); },
@@ -443,6 +460,7 @@ export const ch7Methods = {
     if (A === 'avenue' && s === 'ch6a_fin' && this.flags.endcard6a && !this.flags.ch7a_started) { this.later(0.6, () => this.startCh7a()); return; }
     if (A === 'admin' && s === 'ch6_s_end' && this.flags.endcard6s && !this.flags.ch7b_started) { this.later(0.6, () => this.startCh7b()); return; }
     if (!CH7_AREAS.includes(A)) return;
+    if (this.route.route === 'reveal' && (A === 'abyss' || A === 'epilogue')) this.loadVisitVrm7();   // 結末A の見舞いの姿（VRoid 製）
     this.applyArea7();
     if (A === 'abyss') {
       const F = this.F(); F.yokiOn = true;

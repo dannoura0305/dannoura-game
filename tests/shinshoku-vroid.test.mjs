@@ -1,5 +1,7 @@
 // 境界侵食：利用者が自分の PC で VRoid Studio で作った VRM 1.0 への差し替え（2026-11-07）。docs/shinshoku/ASSET_IMPORT.md §6。
 // だんのうら・白い姿・娘（musume）・相棒（瀬名 灯里）。tools/charkit/vroid_game.mjs で軽くした物が既定、前の Blender 製は *_bl.vrm（?vrmset=bl）。
+// 2026-11-07（2 回目）：結末A の見舞いの姿（dannoura_visit・白と紫が混ざった髪）も VRoid 製に（前はコードの姿だけ：?vrm=0・?vrmset=bl・読めない時はコードの姿）。
+// 素材の確認（license.verifiedBy）：利用者（作者本人・WAKABA Project）2026-11-07「公開リポジトリとサイトに置いてよい」→ 門は web・ue5 とも pass（門は緩めていない）。
 // 確かめること：manifest（file・fileLow・sets.bl・利用条件の記録）・meta の sha256 と大きさ・VRM 1.0 の中身（人型・表情・揺れ物・MToon・WebP・利用条件の書き換え）
 // ・three-vrm で読める（PC・スマホ）・VRMA の動きの組が当たる・権利の門（人が確かめるまで止まる：ゲートは緩めない）・?vrmset=bl と ?vrm=0。
 import { register } from 'node:module';
@@ -29,7 +31,9 @@ const t = async (name, fn) => { try { await fn(); n++; console.log('  ✓ ' + na
 const stubTex = l => { l.register(() => ({ name: 'EXT_texture_webp', loadTexture: () => Promise.resolve(new THREE.Texture()) })); l.register(() => ({ name: 'stubtex', loadTexture: () => Promise.resolve(new THREE.Texture()) })); };
 const DIR = 'shinshoku/assets/characters/';
 const man = readJson(DIR + 'manifest.json');
-const CH = ['dannoura', 'dannoura_white', 'daughter', 'companion'];
+const CH4 = ['dannoura', 'dannoura_white', 'daughter', 'companion'];
+const CH = CH4.concat('dannoura_visit');
+const VERIFIED_BY = '利用者（作者本人・WAKABA Project）', CREDIT = 'キャラクターモデル：WAKABA Project（VRoid Studio で制作）';
 const MB = 1048576;
 const FINGERS = ['Thumb', 'Index', 'Middle', 'Ring', 'Little'];
 const REQ = ['hips', 'spine', 'chest', 'upperChest', 'neck', 'head', 'leftEye', 'rightEye', 'leftShoulder', 'rightShoulder', 'leftUpperArm', 'leftLowerArm', 'leftHand', 'rightUpperArm', 'rightLowerArm', 'rightHand',
@@ -39,7 +43,7 @@ const EXPR = ['happy', 'angry', 'sad', 'relaxed', 'surprised', 'aa', 'ih', 'ou',
 
 // ───────── manifest・meta ─────────
 await t('manifest：4 体（だんのうら・白い姿・娘・相棒）は VRoid 製が既定・前の Blender 製は sets.bl・?vrm=0／?vrm=test は今まで通り', () => {
-  for (const k of CH) {
+  for (const k of CH4) {
     const e = man.characters[k];
     assert.equal(e.file, k + '.vrm'); assert.equal(e.fileLow, k + '_low.vrm'); assert.equal(e.meta, k + '.meta.json');
     assert.match(e.source, /VRoid Studio/); assert.match(e.source, /tools\/charkit\/vroid_game\.mjs/); assert.match(e.source, /models-from-pc/);
@@ -58,11 +62,24 @@ await t('manifest：4 体（だんのうら・白い姿・娘・相棒）は VRo
   assert.match(src, /Q\.get\('vrm'\) === '0'/); assert.match(src, /man\.sets\[Q\.get\('vrmset'\)\]/); assert.match(src, /man\.testEntries\[Q\.get\('vrm'\)\]/);
   assert.ok(!existsSync(P('incoming')), 'PC から持ち込んだ元（incoming/）は main に入れない');
 });
-await t('meta：sha256・大きさ（PC 3.5MB 以下・スマホ 1.8MB 以下）・出典・利用条件の書き換えの記録・verifiedBy は空', () => {
+await t('manifest：見舞いの姿（dannoura_visit）は VRoid 製・kind mixed・だんのうらの動きの組・?vrmset=bl はコードの姿（file: null）', () => {
+  const e = man.characters.dannoura_visit;
+  assert.equal(e.file, 'dannoura_visit.vrm'); assert.equal(e.fileLow, 'dannoura_visit_low.vrm'); assert.equal(e.meta, 'dannoura_visit.meta.json');
+  assert.equal(e.kind, 'mixed'); assert.equal(e.anim, '../anim/dannoura/clips.json'); assert.equal(e.height, 1.64); assert.equal(e.strideK, man.characters.dannoura.strideK);
+  assert.match(e.source, /dannoura_visit\/model\/dannoura_visit\.vrm/); assert.match(e.source, /tools\/charkit\/vroid_game\.mjs/);
+  assert.match(e.license, /VRM Public License 1\.0/); assert.match(e.licenseChange, /2026-11-07 利用者の承認/); assert.match(e.fallback, /buildDannouraWhite\(\{ mixed: true \}\)/);
+  assert.equal(e.credit, CREDIT);
+  assert.ok(man.sets.bl.dannoura_visit && man.sets.bl.dannoura_visit.file === null, '?vrmset=bl：見舞いの姿は Blender 製が無いのでコードの姿');
+  assert.ok(!man.testEntries.test.dannoura_visit);
+  for (const f of [e.file, e.fileLow]) assert.ok(existsSync(P(DIR + f)), f);
+});
+await t('meta：sha256・大きさ（PC 3.5MB 以下・スマホ 1.8MB 以下）・出典・利用条件の書き換えの記録・確認者（利用者・2026-11-07）・クレジット', () => {
   for (const k of CH) {
     const m = readJson(DIR + k + '.meta.json');
     assert.equal(m.id, 'char.' + k); assert.equal(m.source.generator, 'tools/charkit/vroid_game.mjs');
-    assert.equal(m.license.verifiedBy, '', 'verifiedBy は人が確かめて書く（AI は書かない）'); assert.equal(m.license.redistributeRaw, 'no');
+    assert.equal(m.license.verifiedBy, VERIFIED_BY); assert.equal(m.license.verifiedAt, '2026-11-07'); assert.match(m.license.verifiedNote, /公開リポジトリとサイトに置いてよい/);
+    assert.equal(m.license.redistributeRaw, 'yes'); assert.equal(m.license.attribution, CREDIT);
+    assert.equal(m.source.vrmMeta.allowRedistribution, false, 'VRM の条件（第三者の再配布不可）はそのまま');
     assert.match(m.source.vrmMetaChange, /2026-11-07 利用者の承認/);
     assert.equal(m.source.vrmMeta.modification, 'allowModification'); assert.equal(m.source.vrmMeta.commercialUsage, 'corporation');
     assert.equal(m.source.vrmMetaOriginal.modification, 'prohibited');
@@ -74,6 +91,9 @@ await t('meta：sha256・大きさ（PC 3.5MB 以下・スマホ 1.8MB 以下）
   }
   assert.equal(readJson(DIR + 'daughter.meta.json').source.vrmMetaOriginal.commercialUsage, 'personalNonProfit');
   assert.equal(readJson(DIR + 'companion.meta.json').source.vrmMetaOriginal.commercialUsage, 'personalNonProfit');
+  const v = readJson(DIR + 'dannoura_visit.meta.json');
+  assert.equal(v.body.sex, 'male'); assert.equal(v.source.original, 'origin/models-from-pc:incoming/hq3d/characters/dannoura_visit/model/dannoura_visit.vrm');
+  assert.equal(v.source.originalSha256, '88090903fd78a5340a3a76cfbb1767f184a23344dfdd3e8991757d02b1cf313d'); assert.equal(v.source.vrmMetaOriginal.commercialUsage, 'corporation');
 });
 
 // ───────── VRM 1.0 の中身 ─────────
@@ -118,6 +138,11 @@ await t('姿ごとの部品：白い姿は猫の耳・しっぽの揺れ物・�
   assert.ok(names('daughter').filter(x => x === 'Skirt').length >= 6);
   assert.ok(!names('dannoura').includes('CatTail'));
   assert.ok(J.dannoura.meshes.some(m => m.name === 'HQ3D_Glasses') && J.dannoura.meshes.some(m => m.name === 'HQ3D_Hat'));
+  // 見舞いの姿：だんのうらと同じ体・骨・揺れ物（猫の耳・しっぽは隠れている）。髪の色・服の色だけ違う（材質・画像が 1 つ多い）
+  assert.ok(!names('dannoura_visit').includes('CatTail') && !names('dannoura_visit').includes('CatEar'));
+  assert.deepEqual(names('dannoura_visit'), names('dannoura')); assert.deepEqual(J.dannoura_visit.nodes.map(n => n.name), J.dannoura.nodes.map(n => n.name));
+  assert.deepEqual(J.dannoura_visit.meshes.map(m => m.name), J.dannoura.meshes.map(m => m.name));
+  assert.equal(J.dannoura_visit.extensions.VRMC_vrm.meta.name, 'Dannoura');
   assert.equal(J.dannoura.extensions.VRMC_vrm.meta.name, 'Dannoura'); assert.equal(J.companion.extensions.VRMC_vrm.meta.name, 'Sena Akari');
 });
 
@@ -125,7 +150,7 @@ await t('姿ごとの部品：白い姿は猫の耳・しっぽの揺れ物・�
 const models = {};
 for (const k of CH) for (const low of [false, true]) models[k + (low ? '_low' : '')] = await loadVRMModel(buf(DIR + k + (low ? '_low' : '') + '.vrm'), { height: man.characters[k].height, fit: 'none', loader: stubTex });
 await t('three-vrm で読める（PC・スマホ）：表情 18・揺れ物の関節・高さ・脚の寸法・スマホも同じ高さ（量子化した法線・UV・重み）', () => {
-  const H = { dannoura: [1.62, 1.72], dannoura_white: [1.6, 1.7], daughter: [0.95, 1.05], companion: [1.53, 1.63] };
+  const H = { dannoura: [1.62, 1.72], dannoura_white: [1.6, 1.7], daughter: [0.95, 1.05], companion: [1.53, 1.63], dannoura_visit: [1.62, 1.72] };
   for (const k of CH) for (const low of [false, true]) {
     const m = models[k + (low ? '_low' : '')]; assert.ok(m, k);
     assert.equal(m.stats.metaVersion, '1'); assert.equal(m.stats.expressions, 18, k);
@@ -136,7 +161,7 @@ await t('three-vrm で読める（PC・スマホ）：表情 18・揺れ物の�
   for (const k of CH) assert.equal(models[k].stats.heightM, models[k + '_low'].stats.heightM, k + '：PC とスマホで高さが同じ');
 });
 await t('表情：瞬き・口・感情で顔のモーフが動く（PC・スマホ）', () => {
-  for (const k of ['dannoura', 'dannoura_low', 'daughter_low']) {
+  for (const k of ['dannoura', 'dannoura_low', 'daughter_low', 'dannoura_visit', 'dannoura_visit_low']) {
     const vrm = models[k].vrm, em = vrm.expressionManager;
     for (const e of ['blink', 'aa', 'happy', 'angry']) {
       em.setValue(e, 1); em.update(); let mx = 0; vrm.scene.traverse(o => { if (o.morphTargetInfluences) for (const x of o.morphTargetInfluences) mx = Math.max(mx, x); });
@@ -145,7 +170,7 @@ await t('表情：瞬き・口・感情で顔のモーフが動く（PC・スマ
   }
 });
 await t('男性の体つき（だんのうら・白い姿）：肩幅 > 腰幅（骨）・娘は 100cm', () => {
-  for (const k of ['dannoura', 'dannoura_white']) {
+  for (const k of ['dannoura', 'dannoura_white', 'dannoura_visit']) {
     const Hm = models[k].vrm.humanoid, p = nm => Hm.getNormalizedBoneNode(nm).getWorldPosition(new THREE.Vector3());
     assert.ok(p('leftUpperArm').distanceTo(p('rightUpperArm')) > p('leftUpperLeg').distanceTo(p('rightUpperLeg')) * 1.2, k);
     assert.equal(readJson(DIR + k + '.meta.json').body.sex, 'male');
@@ -153,7 +178,7 @@ await t('男性の体つき（だんのうら・白い姿）：肩幅 > 腰幅�
   assert.ok(Math.abs(models.daughter.stats.heightM - 1.0) < 0.02);
 });
 await t('動きの組：だんのうらの VRMA（待機・歩き・刀・ひるみ）と相棒の VRMA が VRoid 製に当たる（ClipAnimator：待機 → 歩き）', async () => {
-  for (const [k, a] of [['dannoura', 'dannoura'], ['dannoura_white', 'dannoura'], ['companion', 'companion'], ['dannoura_low', 'dannoura']]) {
+  for (const [k, a] of [['dannoura', 'dannoura'], ['dannoura_white', 'dannoura'], ['companion', 'companion'], ['dannoura_low', 'dannoura'], ['dannoura_visit', 'dannoura'], ['dannoura_visit_low', 'dannoura']]) {
     const set = readJson(`shinshoku/assets/anim/${a}/clips.json`), m = models[k];
     const cs = await loadClipSet(set, m.vrm, { fetchBinary: async (u, f) => buf(`shinshoku/assets/anim/${a}/` + f) });
     assert.equal(cs.errors.length, 0, JSON.stringify(cs.errors));
@@ -169,7 +194,7 @@ await t('動きの組：だんのうらの VRMA（待機・歩き・刀・ひる
 
 await t('足の固定（P18 と同じ測り方・manifest の strideK）：VRoid 製の歩き 2.2m/s の滑り ≤1.4cm/s（Blender 製は 0.4〜0.7）・走りも固定なしより小さい・床に入らない（だんのうら・白い姿・相棒）', async () => {
   const MET = await import('../charkit/anim/metrics.js');
-  for (const [k, a] of [['dannoura', 'dannoura'], ['dannoura_white', 'dannoura'], ['companion', 'companion']]) {
+  for (const [k, a] of [['dannoura', 'dannoura'], ['dannoura_white', 'dannoura'], ['companion', 'companion'], ['dannoura_visit', 'dannoura']]) {
     const m = models[k], set = readJson(`shinshoku/assets/anim/${a}/clips.json`);
     const cs = await loadClipSet(set, m.vrm, { fetchBinary: async (u, f) => buf(`shinshoku/assets/anim/${a}/` + f) });
     const holder = new THREE.Group(); holder.add(m.vrm.scene); const L = m.legDims;
@@ -198,24 +223,61 @@ await t('足の固定（P18 と同じ測り方・manifest の strideK）：VRoid
 });
 
 // ───────── 権利の門 ─────────
-await t('権利の門：VRoid 製は人が確かめる（verifiedBy）まで web・ue5 とも block（UNVERIFIED・web は NO_WEB_REDIST）── ゲートは緩めない。非営利の止め（VRM_META_NONCOMMERCIAL）は書き換えで出ない・Blender 製は pass', () => {
+await t('権利の門：VRoid 製 5 体は確認者（利用者・2026-11-07）と公開の承認（redistributeRaw: yes）で web・ue5 とも pass ── 門は緩めていない（空の確認者は UNVERIFIED・再配布 no は NO_WEB_REDIST で止まる）・Blender 製も pass', () => {
   const cfg = readJson('wakaba.config.json'), cat = readJson('wakaba-assets/catalog.json');
+  const web = makeContext(cfg, 'shinshoku', { target: 'web' }), ue5 = makeContext(cfg, 'shinshoku', { target: 'ue5' });
   for (const k of CH) {
     const meta = readJson(`wakaba-assets/entries/character/char.${k}/meta.json`);
-    assert.equal(meta.license.verifiedBy, ''); assert.equal(meta.license.redistributeRaw, 'no'); assert.equal(meta.source.gameBuild, 'tools/charkit/vroid_game.mjs');
-    const web = evaluate(meta, makeContext(cfg, 'shinshoku', { target: 'web' })), ue5 = evaluate(meta, makeContext(cfg, 'shinshoku', { target: 'ue5' }));
-    assert.equal(web.result, 'block'); assert.deepEqual(web.reasons.map(r => r.code).sort(), ['NO_WEB_REDIST', 'UNVERIFIED']);
-    assert.equal(ue5.result, 'block'); assert.deepEqual(ue5.reasons.map(r => r.code), ['UNVERIFIED']);
-    const e = cat.entries.find(x => x.id === 'char.' + k); assert.ok(e, '目録に char.' + k); assert.equal(e.targets.web.result, 'block');
-    const bl = cat.entries.find(x => x.id === 'char.' + k + '_bl'); assert.ok(bl && bl.targets.web.result === 'pass', 'char.' + k + '_bl');
+    assert.equal(meta.license.verifiedBy, VERIFIED_BY); assert.equal(meta.license.verifiedAt, '2026-11-07'); assert.match(meta.license.verifiedNote, /作者本人/);
+    assert.equal(meta.license.redistributeRaw, 'yes'); assert.equal(meta.license.attribution, CREDIT); assert.equal(meta.source.gameBuild, 'tools/charkit/vroid_game.mjs');
+    assert.equal(meta.source.vrmMeta.allowRedistribution, false); assert.ok(meta.history.some(h => /素材の確認/.test(h.change)));
+    const w = evaluate(meta, web), u = evaluate(meta, ue5);
+    assert.equal(w.result, 'pass', JSON.stringify(w.reasons)); assert.equal(u.result, 'pass', JSON.stringify(u.reasons));
+    assert.deepEqual(w.credits, { id: 'char.' + k, text: CREDIT });
+    // 門は緩めていない：確認者が空・再配布 no・非営利なら今まで通り止まる
+    const c = o => JSON.parse(JSON.stringify(o));
+    const a = c(meta); a.license.verifiedBy = ''; assert.deepEqual(evaluate(a, web).reasons.map(r => r.code), ['UNVERIFIED']);
+    const b = c(meta); b.license.redistributeRaw = 'no'; assert.deepEqual(evaluate(b, web).reasons.map(r => r.code), ['NO_WEB_REDIST']); assert.equal(evaluate(b, ue5).result, 'pass');
+    const d = c(meta); d.source.vrmMeta.commercialUsage = 'personalNonProfit'; assert.ok(evaluate(d, web).reasons.some(r => r.code === 'VRM_META_NONCOMMERCIAL'));
+    const e = cat.entries.find(x => x.id === 'char.' + k); assert.ok(e, '目録に char.' + k); assert.equal(e.targets.web.result, 'pass'); assert.equal(e.targets.ue5.result, 'pass');
   }
+  for (const k of CH4) { const bl = cat.entries.find(x => x.id === 'char.' + k + '_bl'); assert.ok(bl && bl.targets.web.result === 'pass', 'char.' + k + '_bl'); }
+  assert.equal(VG.LICENSE_VERIFIED.verifiedBy, VERIFIED_BY); assert.equal(VG.CREDIT_TEXT, CREDIT);
+});
+
+// ───────── ゲームでの使い方（見舞いの姿・表情・クレジット） ─────────
+await t('ゲーム：結末A の見舞いの姿（mixedHair7）は VRoid 製が読めていればそれ・まだ／読めない時はコードの姿（読み終わったら差し替え）・?vrm=0／?vrmset=bl はコード', () => {
+  const ch7 = readFileSync(P('shinshoku/game/ch7.js'), 'utf8'), main = readFileSync(P('shinshoku/main.js'), 'utf8'), vrmjs = readFileSync(P('shinshoku/actor/vrm.js'), 'utf8');
+  assert.match(ch7, /this\.mixedModel = this\.visitVrm \|\| this\.mixedCodeModel/); assert.match(ch7, /buildDannouraWhite\(\{ mixed: true \}\)/);
+  assert.match(ch7, /loadVisitVrm7\(\)/); assert.match(ch7, /this\.player\.model === this\.mixedCodeModel/);
+  assert.match(main, /m\.dannoura_visit && m\.dannoura_visit\.file/);
+  assert.ok(main.indexOf("Q.get('vrm') === '0'") < main.indexOf('m.dannoura_visit'), '?vrm=0 は読まない（その前で戻る）');
+  assert.match(vrmjs, /entry\.kind === 'mixed' \? 'dannoura_mixed'/); assert.match(vrmjs, /model\.mixed = true/);
+  // 決まった台詞・結末の文は変えていない（mixedHair7 は結末A の初めの出来事のまま）
+  assert.ok(!/九条/.test(ch7));
+});
+await t('表情：VRM のモデルは台詞の表情（smile・sad・calm）を VRM の表情（happy・sad・relaxed）へ（見舞いの姿・PC とスマホ）', async () => {
+  const { vrmFaceAdapter } = await import('../charkit/face/driver.js');
+  for (const k of ['dannoura_visit', 'dannoura_visit_low']) {
+    const vrm = models[k].vrm, em = vrm.expressionManager, fa = vrmFaceAdapter(vrm);
+    for (const [name, v] of [['smile', 'happy'], ['sad', 'sad'], ['calm', 'relaxed']]) {
+      fa.setExpr(name); assert.equal(em.getValue(v), 1, k + ' ' + name);
+      for (const o of ['happy', 'sad', 'relaxed'].filter(x => x !== v)) assert.equal(em.getValue(o), 0, k + ' ' + name + ' ' + o);
+    }
+    fa.setExpr('neutral'); for (const o of ['happy', 'sad', 'relaxed']) assert.equal(em.getValue(o), 0);
+  }
+});
+await t('クレジット（モデルの条件：クレジット必要）：スタッフロールに「キャラクターモデル：WAKABA Project（VRoid Studio で制作）」', async () => {
+  const { CREDITS } = await import('../shinshoku/data/ch7.js');
+  assert.ok(CREDITS.lines.some(([k, s]) => k === 'p' && s === CREDIT));
+  assert.ok(CREDITS.lines.some(([, s]) => /（相棒）　名前未定/.test(s)) && CREDITS.lines.at(-1)[1] === 'おしまい', '前の行はそのまま');
 });
 
 // ───────── 作る道具 ─────────
 await t('作る道具（tools/charkit/vroid_game.mjs・vroid_tex.py）：拡張の突き合わせ（check）・承認した利用条件・使わないモーフの省き方', () => {
   assert.ok(existsSync(P('tools/charkit/vroid_tex.py')));
   assert.deepEqual(VG.META_APPROVED, { avatarPermission: 'onlyAuthor', commercialUsage: 'corporation', modification: 'allowModification', allowRedistribution: false, creditNotation: 'required' });
-  assert.deepEqual(Object.keys(VG.SOURCES), CH); assert.equal(VG.SOURCES.daughter.src, 'musume/model/musume.vrm'); assert.equal(VG.SOURCES.companion.src, 'akari/model/akari.vrm');
+  assert.deepEqual(Object.keys(VG.SOURCES), CH); assert.equal(VG.SOURCES.dannoura_visit.src, 'dannoura_visit/model/dannoura_visit.vrm'); assert.equal(VG.SOURCES.dannoura_visit.sex, 'male'); assert.equal(VG.SOURCES.daughter.src, 'musume/model/musume.vrm'); assert.equal(VG.SOURCES.companion.src, 'akari/model/akari.vrm');
   // PC 版を「元」として、スマホ版と同じ省き方を当てると、表情の割り当てが同じ名前を指す
   const pc = JSON.parse(JSON.stringify(J.dannoura)); const keep = VG.pruneMorphs(pc);
   assert.equal([...keep.values()][0].length, 14);

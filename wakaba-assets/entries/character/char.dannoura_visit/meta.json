@@ -1,0 +1,96 @@
+{
+ "id": "char.dannoura_visit",
+ "version": 2,
+ "name": {
+  "ja": "だんのうら・見舞いの姿",
+  "en": "Dannoura, visit"
+ },
+ "category": "character",
+ "tags": [
+  "キャラクター",
+  "VRM",
+  "VRoid",
+  "自作",
+  "利用者の PC"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "WAKABA Project（利用者本人）",
+  "tool": "VRoid Studio 2.3.0＋Blender 5.x（VRM Add-on 4.10.3）",
+  "url": "",
+  "acquiredAt": "2026-11-07",
+  "original": "origin/models-from-pc:incoming/hq3d/characters/dannoura_visit/model/dannoura_visit.vrm",
+  "originalSha256": "88090903fd78a5340a3a76cfbb1767f184a23344dfdd3e8991757d02b1cf313d",
+  "generator": "tools/charkit/vroid_game.mjs",
+  "gameBuild": "tools/charkit/vroid_game.mjs",
+  "vrmMeta": {
+   "commercialUsage": "corporation",
+   "avatarPermission": "onlyAuthor",
+   "modification": "allowModification",
+   "allowRedistribution": false,
+   "creditNotation": "required"
+  },
+  "vrmMetaChange": "2026-11-07 利用者の承認：ゲーム用に軽くした VRM の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（PC から届いた元の VRM は変えない）"
+ },
+ "license": {
+  "id": "VRM-1.0",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で制作）",
+  "verifiedBy": "利用者（作者本人・WAKABA Project）",
+  "verifiedAt": "2026-11-07",
+  "verifiedNote": "2026-11-07 利用者（作者本人・WAKABA Project）が確認・承認：「公開リポジトリとサイトに置いてよい」。作者本人が自分のゲーム（境界侵食）として公開リポジトリと Web のサイトに置く（redistributeRaw: yes はこの承認による）。VRM の利用条件（作者のみ・再配布不可）はそのまま：第三者がこのファイルを持ち出して使う・配ることは不可。クレジット「キャラクターモデル：WAKABA Project（VRoid Studio で制作）」をスタッフロールに表示",
+  "textUrl": "https://vrm.dev/licenses/1.0/"
+ },
+ "tech": {
+  "formats": [
+   "vrm"
+  ],
+  "tris": 34522,
+  "lods": [
+   34522,
+   34522
+  ],
+  "texRes": 1024,
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "emissive"
+  ],
+  "sizeM": [
+   0.6,
+   1.64,
+   0.4
+  ]
+ },
+ "use": [
+  "キャラクター（境界侵食）"
+ ],
+ "usedBy": [
+  {
+   "project": "shinshoku",
+   "since": "2026-11-07"
+  }
+ ],
+ "status": "draft",
+ "storage": {
+  "original": "ブランチ origin/models-from-pc:incoming/hq3d/characters/dannoura_visit/model/dannoura_visit.vrm（リポジトリの main には入れない）",
+  "runtime": "shinshoku/assets/characters/dannoura_visit.vrm",
+  "sha256": "fd5d6dd862b33863d4eaba70b119caea4b11f6745c736e658ec5d9fbeddcc672"
+ },
+ "history": [
+  {
+   "at": "2026-11-07",
+   "by": "Claude Code（利用者の依頼）",
+   "change": "コードで組んだ姿（mixed）から利用者の VRoid 製に差し替え。2026-11-07 利用者の承認：ゲーム用に軽くした VRM の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（PC から届いた元の VRM は変えない）"
+  },
+  {
+   "at": "2026-11-07",
+   "by": "Claude Code（利用者の承認を記入）",
+   "change": "素材の確認（verifiedBy＝利用者（作者本人・WAKABA Project））：2026-11-07 利用者（作者本人・WAKABA Project）が確認・承認：「公開リポジトリとサイトに置いてよい」。作者本人が自分のゲーム（境界侵食）として公開リポジトリと Web のサイトに置く（redistributeRaw: yes はこの承認による）。VRM の利用条件（作者のみ・再配布不可）はそのまま：第三者がこのファイルを持ち出して使う・配ることは不可。クレジット「キャラクターモデル：WAKABA Project（VRoid Studio で制作）」をスタッフロールに表示"
+  }
+ ]
+}

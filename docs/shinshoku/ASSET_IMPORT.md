@@ -99,24 +99,31 @@
 VRoid Studio で作ったモデルに差し替える：`manifest.json` の `characters.<名前>.file`（と `fileLow`）を書き換える（このリポジトリの VRM は消さずに残してよい）。`fit` は VRoid の時は `"bbox"` か `"none"`（`VROID_GUIDE.md` §3）。
 
 ## 5.5 利用者が自分の PC で作った VRoid の VRM（既定・2026-11-07）
-だんのうら・白い姿・娘（musume・身長 100cm）・相棒（＝瀬名 灯里。会話の名前は「相棒」のまま）は、**利用者（WAKABA Project）が自分の PC で VRoid Studio 2.3.0＋Blender（VRM Add-on 4.10.3）で作った VRM 1.0** を、ゲーム用に軽くして使う。
+だんのうら・白い姿・娘（musume・身長 100cm）・相棒（＝瀬名 灯里。会話の名前は「相棒」のまま）・**見舞いの姿（`dannoura_visit`：結末A の病室と続く家の場面。白と紫が混ざった髪・2026-11-07 利用者の承認で追加）**は、**利用者（WAKABA Project）が自分の PC で VRoid Studio 2.3.0＋Blender（VRM Add-on 4.10.3）で作った VRM 1.0** を、ゲーム用に軽くして使う。
 
 | 物 | 中身 |
 |---|---|
-| 元 | ブランチ `models-from-pc` の `incoming/hq3d/characters/`（`dannoura/model/dannoura.vrm`・`dannoura_white/model/dannoura_white.vrm`・`musume/model/musume.vrm`・`akari/model/akari.vrm`、各 14〜16MB）。**incoming/ は main に入れない**（元のファイルはそのブランチに置いたまま） |
+| 元 | ブランチ `models-from-pc` の `incoming/hq3d/characters/`（`dannoura/model/dannoura.vrm`・`dannoura_white/model/dannoura_white.vrm`・`musume/model/musume.vrm`・`akari/model/akari.vrm`・`dannoura_visit/model/dannoura_visit.vrm`、各 14〜16MB）。**incoming/ は main に入れない**（元のファイルはそのブランチに置いたまま） |
 | 軽くする | `node tools/charkit/vroid_game.mjs --src <incoming/hq3d/characters のフォルダ> --python <Pillow（WebP 付き）の python>`（`tools/charkit/vroid_tex.py` を呼ぶ）。同じ元・同じ Pillow なら同じファイル（sha256 が同じ）。書いた後に `node tools/mapkit/catalog.mjs` |
 | 何をするか | テクスチャを縮めて WebP（`EXT_texture_webp`・PC 1024px／スマホ 512px・法線の地図は半分）・サムネイルは小さな JPEG・表情のモーフの差分を疎な accessor に（損失なし）・使われていない accessor（元の書き出しが残したモーフの法線）を除く・骨の重みを 16 bit。スマホ版はさらに表情に使わないモーフ（57 のうち 43）を省き、法線 8 bit（`KHR_mesh_quantization`）・重み 8 bit・0〜1 の UV を 16 bit。**VRM の拡張（VRMC_vrm の humanoid・expressions・lookAt・firstPerson、VRMC_springBone、VRMC_materials_mtoon、KHR_materials_*）は元のまま**で、書き出した後に元と突き合わせる（`check`：違えば止まる）。gltf-transform は使わない（未知の拡張を落とさないため自前で読み書き） |
-| 大きさ | PC：だんのうら 2.2MB・白い姿 2.3MB・娘 2.6MB・相棒 2.7MB（3.5 万〜4.9 万三角形はそのまま）。スマホ：1.3〜1.8MB |
+| 大きさ | PC：だんのうら 2.2MB・白い姿 2.3MB・娘 2.6MB・相棒 2.7MB・見舞いの姿 2.2MB（3.5 万〜4.9 万三角形はそのまま）。スマホ：1.3〜1.8MB |
+| 見舞いの姿 | `manifest.json` の `characters.dannoura_visit`（`kind: "mixed"`→ ゲームの中の `kind` は `dannoura_mixed`・`mixed: true`。だんのうらと同じ体なので動きの組 `anim/dannoura`・`strideK` 0.94 も同じ）。使う所：`shinshoku/game/ch7.js` の `mixedHair7`（結末A の初め）→ 家の場面まで。起動を軽くするため後で読み（9 秒後、または結末A に入った時の `loadVisitVrm7`）、**読み終わる前・読めない時・`?vrm=0`・`?vrmset=bl`（`sets.bl.dannoura_visit.file` が `null`：Blender 製は無い）はコードで組んだ姿**（`models3.js` の `buildDannouraWhite({ mixed: true })`）。読み終わった時にコードの姿なら差し替える |
+| 台詞の表情 | VRM のモデルにも `setExpr` を付けた（`shinshoku/actor/vrm.js`：`charkit/face/driver.js` の `vrmFaceAdapter`。smile→happy・sad→sad・calm→relaxed）。前は VRM の時、台詞の `expr` が顔に出ていなかった |
 | 骨・動き | VRoid の `J_Bip_*`（人型 54 本）・`J_Sec_*`（揺れ物）。VRMA の組（`anim/dannoura`・`anim/companion`）はそのまま当たる。太もも・すねの割合が Blender 製と違うので、manifest の `strideK`（1 周期の距離の倍率：だんのうら・白い姿 0.94・相棒 0.92）で足の滑りを抑える（歩き 2.2m/s で約 1.0〜1.3cm/s。Blender 製は 0.4〜0.7cm/s） |
 | 武器・表情 | 武器は手の骨の差し込み口（normalized の骨なので同じ向き）。表情は VRoid の preset 18（瞬き・感情・口・視線）。娘・相棒には武器を付けない |
 | 戻す | `?vrmset=bl`（前の Blender 製）・`?vrm=0`（コードで組んだ予備）・`?vrm=test`（試験用）は今まで通り |
 | 試験 | `tests/shinshoku-vroid.test.mjs` |
+| クレジット | 利用条件（クレジット必要）により、スタッフロール（`shinshoku/data/ch7.js` の `CREDITS`・結末の後）に「キャラクターモデル：WAKABA Project（VRoid Studio で制作）」。目録の `license.attribution` も同じ文 |
 
 ### 利用条件（VRM の meta）の書き換えの記録
-- **2026-11-07 利用者の承認**：ゲーム用に軽くした VRM（`shinshoku/assets/characters/{dannoura,dannoura_white,daughter,companion}{,_low}.vrm`）の meta を、**作者のみ（`avatarPermission: onlyAuthor`）・法人可（`commercialUsage: corporation`）・改変可（`modification: allowModification`）・再配布不可（`allowRedistribution: false`）・クレジット必要（`creditNotation: required`）** に書き換えた（`tools/charkit/vroid_game.mjs` の `META_APPROVED`）。
-- 元の条件：だんのうら・白い姿は「作者のみ・法人可・再配布不可・改変不可」、娘・灯里は「作者のみ・個人の非営利のみ・再配布不可・改変不可」。**PC から届いた元の VRM（incoming）は変えていない**。
+- **2026-11-07 利用者の承認**：ゲーム用に軽くした VRM（`shinshoku/assets/characters/{dannoura,dannoura_white,daughter,companion,dannoura_visit}{,_low}.vrm`。見舞いの姿は同じ日の 2 回目の承認）の meta を、**作者のみ（`avatarPermission: onlyAuthor`）・法人可（`commercialUsage: corporation`）・改変可（`modification: allowModification`）・再配布不可（`allowRedistribution: false`）・クレジット必要（`creditNotation: required`）** に書き換えた（`tools/charkit/vroid_game.mjs` の `META_APPROVED`）。
+- 元の条件：だんのうら・白い姿・見舞いの姿は「作者のみ・法人可・再配布不可・改変不可」、娘・灯里は「作者のみ・個人の非営利のみ・再配布不可・改変不可」。**PC から届いた元の VRM（incoming）は変えていない**。
 - ライセンス：VRM Public License 1.0（作者 WAKABA Project＝利用者本人）、VRoid Studio 標準パーツ＋自作（尻尾・猫耳・眼鏡・小物などは利用者の Blender スクリプト）。
-- 権利の門（`mapkit/assets/gate.js`）：素材ライブラリの `char.dannoura`・`char.dannoura_white`・`char.daughter`・`char.companion` は、`license.verifiedBy` が空（UNVERIFIED）・再配布不可で公開の Web（NO_WEB_REDIST）のため **block のまま**（門は緩めていない）。ゲームの読み込みは門を見ないので、ゲームでは使われる。人が確かめたら `verifiedBy` を書く。公開の Web に置くかどうかは利用者の判断（再配布不可の条件と公開リポジトリ）。Blender 製（`char.*_bl`）は今まで通り pass。
+- 権利の門（`mapkit/assets/gate.js`）：~~素材ライブラリの 4 体は `verifiedBy` が空（UNVERIFIED）・再配布不可で公開の Web（NO_WEB_REDIST）のため block~~ →
+  **2026-11-07 利用者の承認（「公開リポジトリとサイトに置いてよい」）で、`char.dannoura`・`char.dannoura_white`・`char.daughter`・`char.companion`・`char.dannoura_visit` の確認者を記入**：
+  `license.verifiedBy: "利用者（作者本人・WAKABA Project）"`・`verifiedAt: "2026-11-07"`・`verifiedNote`（承認の内容）・`history` に記録。
+  公開の Web は `license.redistributeRaw: "yes"`（スキーマの定義「素材ファイルをそのまま公開（Web 配信・公開リポジトリ）してよいか」＝作者本人が自分のゲームとしてこのリポジトリとサイトに置くことの承認）で通す。
+  **VRM の利用条件（作者のみ・`allowRedistribution: false`）は変えていない**：第三者がファイルを持ち出して使う・配ることは不可（`source.vrmMeta` に残す）。門の作りは変えていない（確認者が空なら UNVERIFIED、再配布 no なら NO_WEB_REDIST で今まで通り止まる：`tests/shinshoku-vroid.test.mjs`）。web・ue5 とも pass。値は `tools/charkit/vroid_game.mjs` の `LICENSE_VERIFIED` から書く。Blender 製（`char.*_bl`）は今まで通り pass。
 
 ## 6. 試験用の VRM（配管の試験・本番の絵ではない）
 - `shinshoku/assets/characters/test/dannoura_test.vrm`：コードで組んだだんのうらを **VRM 1.0** に書き出した物（T ポーズに焼き直し・人型 19 本・表情 14（瞬き・母音・感情：顔の部品を写した網＋モーフ）・揺れ物 7 鎖・MToon・頂点色）。
