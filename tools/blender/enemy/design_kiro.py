@@ -60,33 +60,34 @@ def worn(c, V, seed, amt=0.1, scale=2.4):
     return c * (1 + m)[:, None]
 
 
-def claw_hand(w, side):
+def claw_hand(w, side, k=1.0):
     """骨ばった長い手：手のひら＋手のひら側へ曲げた 4 本の指（3 節・節は少し太い）＋親指。
-    垂らした手の手のひらは体の側（-sx）を向く。指はそちらへ曲がり、少し前へ（設定画の鉤のような手）"""
+    垂らした手の手のひらは体の側（-sx）を向く。指はそちらへ曲がり、少し前へ（設定画の鉤のような手）。k：大きさ（静養は 1.5）"""
     sx = 1 if side == 'left' else -1
-    palm = S.box(w + [0, -0.055, 0.004], [0.012, 0.05, 0.036], r=0.011)
+    palm = S.box(w + np.array([0, -0.055, 0.004]) * k, np.array([0.012, 0.05, 0.036]) * k, r=0.011 * k)
     fs = [palm]
+    k_ = k
     for k, dz in enumerate((-0.026, -0.009, 0.009, 0.026)):
-        L = 0.052 * (0.9, 1.0, 0.97, 0.82)[k]                                                   # 付け根の節の長さ（長い指）
-        p = w + np.array([0, -0.1, dz * 1.05 + 0.004])
+        L = 0.052 * k_ * (0.9, 1.0, 0.97, 0.82)[k]                                              # 付け根の節の長さ（長い指）
+        p = w + np.array([0, -0.1, dz * 1.05 + 0.004]) * k_
         ang = 0.15 + 0.05 * k
-        for j, (seg, r0, r1, bend) in enumerate(((L, 0.0085, 0.0075, 0.5), (L * 0.72, 0.0075, 0.0065, 0.55), (L * 0.55, 0.0065, 0.005, 0.4))):
+        for j, (seg, r0, r1, bend) in enumerate(((L, 0.0085 * k_, 0.0075 * k_, 0.5), (L * 0.72, 0.0075 * k_, 0.0065 * k_, 0.55), (L * 0.55, 0.0065 * k_, 0.005 * k_, 0.4))):
             d = np.array([-sx * math.sin(ang), -math.cos(ang), 0.25 * math.sin(ang)])
             d /= np.linalg.norm(d)
             q = p + d * seg
             fs.append(S.round_cone(p, q, r0, r1))
             fs.append(S.sphere(p, r0 * 1.12))                                                   # 節
             p, ang = q, ang + bend
-    tb = w + np.array([-sx * 0.012, -0.035, 0.03])                                              # 親指
-    t1 = tb + np.array([-sx * 0.012, -0.04, 0.022])
-    t2 = t1 + np.array([-sx * 0.018, -0.028, 0.004])
-    fs += [S.round_cone(tb, t1, 0.01, 0.0085), S.round_cone(t1, t2, 0.0085, 0.006)]
-    f = U(*fs, k=0.006)
+    tb = w + np.array([-sx * 0.012, -0.035, 0.03]) * k_                                         # 親指
+    t1 = tb + np.array([-sx * 0.012, -0.04, 0.022]) * k_
+    t2 = t1 + np.array([-sx * 0.018, -0.028, 0.004]) * k_
+    fs += [S.round_cone(tb, t1, 0.01 * k_, 0.0085 * k_), S.round_cone(t1, t2, 0.0085 * k_, 0.006 * k_)]
+    f = U(*fs, k=0.006 * k_)
 
     def col(V, N):
         c = tile(SKIN, V) * (0.94 + 0.06 * hash3(V * 20, 71))[:, None]
         return c
-    return Part(side + '_hand', f, w + np.array([-0.12, -0.3, -0.1]), w + np.array([0.12, 0.03, 0.12]), 0.0024, 'skin', col,
+    return Part(side + '_hand', f, w + np.array([-0.12, -0.3, -0.1]) * k_, w + np.array([0.12, 0.03, 0.12]) * k_, 0.0024, 'skin', col,
                 ('rigid', side + 'Hand'), oth=0.7, faces=800, sym=False)
 
 

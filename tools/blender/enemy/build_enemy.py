@@ -585,6 +585,8 @@ def main():
     DESIGNS.update(DK)
     from design_omoomote import DESIGNS as DO                         # 2026-11-07：重面（tools/blender/enemy/design_omoomote.py）
     DESIGNS.update(DO)
+    from design_seiyou import DESIGNS as DS                           # 2026-11-07：静養（tools/blender/enemy/design_seiyou.py）
+    DESIGNS.update(DS)
     MO.clear_scene()
     for k in only or [k for k in DESIGNS if k != 'kiro_p17']:
         for lod in lods:

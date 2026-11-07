@@ -256,6 +256,19 @@ export function omoomotePose(ctx) {
     leftUpperArm: [-0.35, 0, 0.12], leftLowerArm: [-0.15, 0, 0],
   }), rate: 0.3 };
 }
+/** 静養（2026-11-07 デザイン案）：腰（＝ベッド）は動かさない。脚は布団の下で前へ。
+ *  ctx.state：'sleep'（横になって眠る・長い腕はベッドの両脇へ垂れる）／'reach'（覚醒：起き上がり、長い腕を前へ大きく伸ばす）／ほか（起きて前かがみ・腕は床へ垂らす）。AI はまだ無い */
+export function seiyouPose(ctx) {
+  const { t } = ctx; const st = ctx.state; const b = S(t * 0.5) * 0.03;
+  const legs = { leftUpperLeg: [-1.57, 0, 0.05], rightUpperLeg: [-1.57, 0, -0.05], leftLowerLeg: [0, 0, 0], rightLowerLeg: [0, 0, 0] };
+  // 腕の角度には胴の傾き（spine＋chest）の分を足す：胴を前へ倒すと、腕の「下」は後ろへ回るため
+  if (st === 'sleep') return { pose: Object.assign({}, legs, { spine: [-1.5, 0, 0], chest: [-0.05, 0, 0], neck: [0.15, 0, 0], head: [0.25, 0.4, 0],
+    leftUpperArm: [1.5, 0, 0.8], rightUpperArm: [1.5, 0, -0.8], leftLowerArm: [-0.1, 0, 0], rightLowerArm: [-0.1, 0, 0] }), rate: 0.05 };   // 横になり、長い腕はベッドの両脇へ垂れる
+  if (st === 'reach') return { pose: Object.assign({}, legs, { spine: [0.25, 0, 0], chest: [0.35, 0, 0], neck: [0.3, 0, 0], head: [0.2, 0, 0],
+    leftUpperArm: [-2.1, 0, 0.45], rightUpperArm: [-2.1, 0, -0.45], leftLowerArm: [-0.1, 0, 0], rightLowerArm: [-0.1, 0, 0] }), rate: 0.15 };   // 長い腕を前へ大きく伸ばす
+  return { pose: Object.assign({}, legs, { spine: [0.55 + b, 0, 0], chest: [0.8, 0, 0], neck: [0.7, 0, 0], head: [0.35, 0, 0.05 * S(t * 0.3)],
+    leftUpperArm: [-1.5, 0, 0.5], rightUpperArm: [-1.5, 0, -0.5], leftLowerArm: [-0.1, 0, 0], rightLowerArm: [-0.1, 0, 0] }), rate: 0.1 };   // 肩から外へ出て、床へ垂れる
+}
 export function heitenPose(ctx) {
   const { state, t } = ctx;
   if (state === 'rest') return { pose: { spine: [1.0, 0, 0], neck: [0.4, 0, 0], leftUpperArm: [0.1, 0, 0.1], rightUpperArm: [0.1, 0, -0.1], hipsY: -0.05 }, rate: 0.03 };

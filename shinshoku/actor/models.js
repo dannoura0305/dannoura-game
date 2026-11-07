@@ -513,6 +513,34 @@ export function buildOmoomote(body = null) {
   const eyeGlow = glowEyes(m, m.J, [[R * 0.36, R * 0.82, R * 0.95], [-R * 0.36, R * 0.82, R * 0.95]]);
   return Object.assign(m, { height: 1.75, provisional: true, kind: 'omoomote', weak, bodyR: 0.32, weakY: 1.66, weakColor: 0xffd27a, eyeGlow });
 }
+/** 静養（せいよう）：病院のベッドから離れられない患者（2026-11-07 利用者のデザイン案）。ベッド・点滴の柱は体の一部（腰の骨に付く）。
+ *  体は Blender の包み（tools/blender/enemy/design_seiyou.py → seiyou(_low).pack.json）。これはその骨と、包みが読めない時の予備の形。
+ *  腰＝マットレスの高さ・脚は布団の下（前へ伸ばす姿勢）・胴と首が長い・腕は床に届くほど長い。AI・置き場所（病院）はまだ無い */
+export function buildSeiyou() {
+  const packKind = 'seiyou';
+  const d = Object.assign({}, DIM, { leg: 0.72, spine: 0.14, chest: 0.32, neck: 0.3, headJ: 0.06, shoulderX: 0.2, upperArm: 0.52, lowerArm: 0.5, hipX: 0.09, thigh: 0.38, shin: 0.3, headR: 0.12 });
+  const sb = new SkinBody(d), R = d.headR;
+  const GOWN = 0x8a96a6, SK = 0xc4bcbc;
+  humanBody(sb, {
+    torso: [[0, 0.1, 0.08, 0], [0.12, 0.12, 0.085, 0], [0.32, 0.11, 0.08, 0], [0.55, 0.12, 0.085, 0.004], [0.8, 0.15, 0.09, 0], [0.93, 0.11, 0.07, 0], [1, 0.05, 0.045, 0]],
+    torsoColor: () => GOWN, armR: [0.036, 0.03, 0.024], armColor: (t, w) => (w === 'upper' && t < 0.3 ? GOWN : SK), cuff: GOWN,
+    legR: [0.05, 0.04, 0.04, 0.03], legColor: () => SK, skin: SK, shoe: SK, sole: SK, neckR: 0.04, hand: 1.5,
+  });
+  const surf = humanHead(sb, { R, skin: SK, jaw: 0.3, faceless: true, ears: false });
+  sb.decal([0, -0.05, 0.95], [R * 0.95, R * 1.15], UVR(0, 0, 128, 128), { surface: surf, weights: sb.rigid('head'), lift: 0.002, nx: 5, ny: 5 });
+  // 予備のベッド（箱）：包みが読めない時だけ見える
+  const hp = sb.W('hips');
+  sb.box([0, hp.y - 0.2, hp.z - 0.05], [0.9, 0.18, 2.0], { weights: sb.rigid('hips'), color: 0xc8c2b4, oth: 0.6 });
+  const tex = faceAtlas(g => {   // 予備の顔：目の上にかぶさる皮のひだ・口の線
+    g.fillStyle = 'rgba(60,50,55,.5)'; g.fillRect(22, 40, 84, 14);
+    g.strokeStyle = 'rgba(40,30,34,.85)'; g.lineWidth = 3; g.beginPath(); g.moveTo(52, 96); g.lineTo(76, 96); g.stroke();
+  });
+  const m = sb.build(tex, { rim: 0.3, rimColor: 0xa8b0c8, outline: 0.01, outlineColor: 0x0a0a0e, faceEmissive: 0, classes: enemyPackClasses(packKind) });
+  applyEnemyPack(m, packKind); m.packKind = packKind;
+  const weak = new THREE.Object3D(); weak.position.set(0, R * 1.3, -R * 0.25); m.J.head.add(weak);
+  const eyeGlow = glowEyes(m, m.J, [[R * 0.36, R * 0.82, R * 0.95], [-R * 0.36, R * 0.82, R * 0.95]]);
+  return Object.assign(m, { height: 1.9, provisional: true, kind: 'seiyou', weak, bodyR: 0.5, weakY: 1.5, weakColor: 0xffd27a, eyeGlow });
+}
 /** 光る目（紫）：頭の骨に付ける目印（光は main の光のにじみで描く） */
 export function glowEyes(m, J, pts) { return pts.map(p => { const o = new THREE.Object3D(); o.position.set(...p); J.head.add(o); return o; }); }
 function torusLike(sb, y, R, r, color, bone) {

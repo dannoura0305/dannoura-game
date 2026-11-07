@@ -107,6 +107,10 @@ await t('コードの異形の網を差し替える：頂点の数＝包み・�
   }
   const AN = await import('../shinshoku/actor/anim.js'); const op = AN.omoomotePose({ t: 0, speed: 0, phase: 0 }).pose;
   assert.ok(op.rightUpperArm && op.rightLowerArm[0] < -2, '重面：右手を顔へ上げる姿勢');
+  // 静養（2026-11-07：体・ベッド・姿勢だけ。AI・置き場所はまだ）：ベッドは腰の骨に付く・3 つの姿勢
+  { const m = M.buildSeiyou(); assert.equal(m.packed, 'seiyou'); assert.equal(m.kind, 'seiyou'); assert.ok(m.weak && m.eyeGlow);
+    const pk = EP.enemyPackOf('seiyou'); for (const n of ['mattress', 'blanket', 'bed_frame', 'wheels', 'iv_pole']) assert.ok(pk.parts.some(p => p.name === n), '静養：' + n);
+    for (const st of ['sleep', 'reach', 'awake']) { const sp = AN.seiyouPose({ t: 0, state: st }).pose; assert.ok(sp.leftUpperArm && !sp.hips && !sp.hipsY, '静養：腰（ベッド）は動かさない ' + st); } }
   // 包みが無い時（?epack=0・読めない）はコードの形
   for (const kind of EP.ENEMY_PACK_KINDS) EP.setEnemyPack(kind, null);
   const c = M.buildKiro(0xd04848); assert.ok(!c.packed && c.mesh.geometry.attributes.position.count > 1000);

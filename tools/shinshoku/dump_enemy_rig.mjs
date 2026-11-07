@@ -15,7 +15,7 @@ const oi = args.indexOf('--only'); const only = oi >= 0 ? args.splice(oi, 2)[1] 
 const dir = args[0] || out; mkdirSync(dir, { recursive: true });
 const v3 = o => { const p = new THREE.Vector3(); o.getWorldPosition(p); return [+p.x.toFixed(5), +p.y.toFixed(5), +p.z.toFixed(5)]; };
 const BUILDERS = [['kiro', () => M.buildKiro(0xd04848)], ['heiten', M.buildHeiten], ['shuuyou', M.buildShuuyou],
-  ['outou', () => M4.buildOutou(1)], ['tsugihagi', M5.buildTsugihagi], ['nurikae', M6.buildNurikae], ['touchoku', M6.buildTouchoku], ['omoomote', () => M.buildOmoomote()]];
+  ['outou', () => M4.buildOutou(1)], ['tsugihagi', M5.buildTsugihagi], ['nurikae', M6.buildNurikae], ['touchoku', M6.buildTouchoku], ['omoomote', () => M.buildOmoomote()], ['seiyou', () => M.buildSeiyou()]];
 const pointsOf = (m, g, step, named) => {
   const P = g.attributes.position, C = g.attributes.color, cls = g.attributes.mcls, pts = [];
   for (let i = 0; i < P.count; i += step) pts.push([+P.getX(i).toFixed(4), +P.getY(i).toFixed(4), +P.getZ(i).toFixed(4), +C.getX(i).toFixed(3), +C.getY(i).toFixed(3), +C.getZ(i).toFixed(3), named && cls ? m.table.names[cls.getX(i)] : named]);

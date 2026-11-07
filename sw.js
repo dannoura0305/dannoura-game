@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-11-13.2';   // 境界侵食：重面（omoomote）の体・個体差・姿勢（buildOmoomote・omoomotePose）／帰路の首の部品の欠けを直す
+const VERSION = '2026-11-13.2';   // 境界侵食：静養（seiyou）の体・ベッド・点滴・姿勢（buildSeiyou・seiyouPose）／重面（omoomote）の体・個体差・姿勢
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）
