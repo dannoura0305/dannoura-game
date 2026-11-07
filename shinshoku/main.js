@@ -196,7 +196,9 @@ class Game {
     // ?vrm=0：VRM を読まず、コードで組んだ予備のキャラクターで動かす（比べる用）
     if (Q.get('vrm') === '0') { this.vrmLoaded = []; this.vrmSkipped = true; return; }
     // ?vrm=test：配管の試験用の VRM（コードで組んだだんのうらを書き出した物）と VRMA のクリップを使う（manifest の testEntries。本番の絵ではない）
-    const m = Object.assign({}, man.characters, Q.get('vrm') && man.testEntries && man.testEntries[Q.get('vrm')] ? man.testEntries[Q.get('vrm')] : {});
+    // ?vrmset=bl：前の既定（リポジトリの中で Blender で作った VRM：*_bl.vrm）に戻す（manifest の sets。2026-11-07 から既定は利用者の VRoid 製）
+    const m = Object.assign({}, man.characters, Q.get('vrmset') && man.sets && man.sets[Q.get('vrmset')] ? man.sets[Q.get('vrmset')] : {}, Q.get('vrm') && man.testEntries && man.testEntries[Q.get('vrm')] ? man.testEntries[Q.get('vrm')] : {});
+    this.vrmSet = Q.get('vrmset') && man.sets && man.sets[Q.get('vrmset')] ? Q.get('vrmset') : 'default';
     const lopt = { quality: this.presetVals() === PRESETS.low ? 'low' : 'high' };
     for (const [k, v] of Object.entries(m)) if (v && v.portrait) this.portraits[k] = new URL('./assets/characters/' + v.portrait, import.meta.url).href;
     if (m.dannoura && m.dannoura.file) { const v = await loadCharacter(m.dannoura, lopt); if (v) { const wasPurple = this.player.model === this.purpleModel; this.purpleModel = v; if (wasPurple) this.player.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('dannoura'); this.vrmStats = Object.assign({ who: 'dannoura', test: !!v.test }, v.stats || {}); } }

@@ -1,6 +1,6 @@
 {
  "id": "char.dannoura",
- "version": 1,
+ "version": 2,
  "name": {
   "ja": "だんのうら",
   "en": "Dannoura"
@@ -9,41 +9,58 @@
  "tags": [
   "キャラクター",
   "VRM",
-  "手続き",
+  "VRoid",
   "自作",
-  "Blender"
+  "利用者の PC"
  ],
  "source": {
   "type": "self_made",
-  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
-  "generator": "tools/blender/char/build_char.py",
-  "url": ""
+  "author": "WAKABA Project（利用者本人）",
+  "tool": "VRoid Studio 2.3.0＋Blender 5.x（VRM Add-on 4.10.3）",
+  "url": "",
+  "acquiredAt": "2026-11-07",
+  "original": "origin/models-from-pc:incoming/hq3d/characters/dannoura/model/dannoura.vrm",
+  "originalSha256": "4fb74a8a742356d15fac2984395d31366357d7d7b77854cb3be0bbc51b8a572d",
+  "gameBuild": "tools/charkit/vroid_game.mjs",
+  "vrmMeta": {
+   "commercialUsage": "corporation",
+   "avatarPermission": "onlyAuthor",
+   "modification": "allowModification",
+   "allowRedistribution": false,
+   "creditNotation": "required"
+  },
+  "vrmMetaChange": "2026-11-07 利用者の承認：ゲーム用に軽くした VRM の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（PC から届いた元の VRM は変えない）"
  },
  "license": {
-  "id": "own",
+  "id": "VRM-1.0",
   "commercial": "yes",
-  "redistributeRaw": "yes",
+  "redistributeRaw": "no",
   "engines": [
    "any"
   ],
-  "attribution": "",
+  "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で作成）",
   "verifiedBy": "",
-  "textUrl": "docs/shinshoku/VROID_GUIDE.md"
+  "textUrl": "https://vrm.dev/licenses/1.0/"
  },
  "tech": {
   "formats": [
    "vrm"
   ],
-  "tris": 41278,
+  "tris": 34522,
   "lods": [
-   41278,
-   18399
+   34522,
+   34522
   ],
-  "texRes": 2048,
+  "texRes": 1024,
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "emissive"
+  ],
   "sizeM": [
-   0.9,
+   0.6,
    1.64,
-   0.6
+   0.4
   ]
  },
  "use": [
@@ -52,13 +69,20 @@
  "usedBy": [
   {
    "project": "shinshoku",
-   "since": "2026-10-18"
+   "since": "2026-11-07"
   }
  ],
  "status": "draft",
  "storage": {
-  "original": "tools/blender/char（スクリプトが原本）",
+  "original": "ブランチ origin/models-from-pc:incoming/hq3d/characters/dannoura/model/dannoura.vrm（リポジトリの main には入れない）",
   "runtime": "shinshoku/assets/characters/dannoura.vrm",
-  "sha256": "08ebd8a9acc4b02b910b93ab2dedcc829bff2cbaf0e17c8efbcd8a73c54aa0a3"
- }
+  "sha256": "d213fec9b2d82cf46370a20ae92ffdfa4d1512fcfec65d5d7a45b4932b30d798"
+ },
+ "history": [
+  {
+   "at": "2026-11-07",
+   "by": "Claude Code（利用者の依頼）",
+   "change": "Blender 製（char.dannoura_bl）から利用者の VRoid 製に差し替え。2026-11-07 利用者の承認：ゲーム用に軽くした VRM の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（PC から届いた元の VRM は変えない）"
+  }
+ ]
 }

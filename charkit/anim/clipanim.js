@@ -47,7 +47,8 @@ export class ClipAnimator {
    * root：AnimationMixer の根（VRM なら vrm.scene）。J：人型の骨（normalized・17 本＋あれば他）。
    * set：loadClipSet の戻り値 { clips: { id: { clip, meta } } }。
    * opt：{ blendS（慣性の混ぜの秒・既定 0.2）, footIK（既定 true）, legDims（loco.js の形・root の局所の単位）, ground（root の局所の床の高さを返す関数）,
-   *        sceneScale（root の大きさの倍率：1 周期の距離に掛ける）, vrm0（VRM 0.x：骨の向きが 180° 違う） }
+   *        sceneScale（root の大きさの倍率：1 周期の距離に掛ける）, vrm0（VRM 0.x：骨の向きが 180° 違う）,
+   *        strideK（2026-11-07：1 周期の距離にさらに掛ける倍率。脚の割合が動きを録った体と違うモデル（VRoid 製など）で、腰の高さの比だけでは合わない分。manifest の strideK） }
    */
   constructor(root, J, set, opt = {}) {
     this.root = root; this.J = J; this.opt = Object.assign({ blendS: 0.2, footIK: true }, opt);
@@ -55,7 +56,7 @@ export class ClipAnimator {
     this.items = Object.values((set && set.clips) || {}).map(({ clip, meta }) => ({ id: meta.id, clip, meta, action: null, action2: null }));
     for (const it of this.items) { it.action = this.mixer.clipAction(it.clip); it.action.setLoop(THREE.LoopRepeat, Infinity); if (it.meta.role === 'gesture') { it.action2 = this.mixer2.clipAction(it.clip); it.action2.setLoop(THREE.LoopRepeat, Infinity); } }
     this.loco = this.items.filter(it => it.meta.role === 'loco' && it.meta.speedMS > 0).sort((a, b) => a.meta.speedMS - b.meta.speedMS);
-    for (const it of this.loco) { const fl = (it.meta.events || []).find(e => e.t === 'footL' && e.u != null); it.uOff = fl ? fl.u : 0; it.cycleM = it.meta.speedMS * it.clip.duration * (it.meta.strideScale || 1) * (this.opt.sceneScale || 1); }
+    for (const it of this.loco) { const fl = (it.meta.events || []).find(e => e.t === 'footL' && e.u != null); it.uOff = fl ? fl.u : 0; it.cycleM = it.meta.speedMS * it.clip.duration * (it.meta.strideScale || 1) * (this.opt.sceneScale || 1) * (this.opt.strideK || 1); }
     this.role = r => this.items.filter(it => it.meta.role === r);
     // 慣性の混ぜの対象：クリップが動かす骨（回転）と J
     const nodes = new Set(Object.values(J));

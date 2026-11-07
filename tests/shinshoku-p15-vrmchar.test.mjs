@@ -1,4 +1,5 @@
-// 境界侵食 P15：リポジトリの中で Blender で作った VRM 1.0（だんのうら・白い姿・相棒）が本番の既定（docs/shinshoku/VROID_GUIDE.md §0・ASSET_IMPORT.md §5）。
+// 境界侵食 P15：リポジトリの中で Blender で作った VRM 1.0（だんのうら・白い姿・相棒）。docs/shinshoku/VROID_GUIDE.md §0・ASSET_IMPORT.md §5。
+// 2026-11-07 から既定は利用者の VRoid 製（tests/shinshoku-vroid.test.mjs）。Blender 製は *_bl.vrm に名前を変えて残し、?vrmset=bl（manifest の sets.bl）で使う。ここはその Blender 製を確かめる。
 // 確かめること：manifest の既定（file・fileLow・予備）・meta の sha256・VRM 1.0 の中身（人型の全部の骨・指・目・表情 14・視線・揺れ物の鎖と当たり・MToon・利用条件）
 // ・予算（三角形・材質・テクスチャ・ファイルの大きさ）・男性の体つき（だんのうら：肩幅 > 腰幅・胸は平ら）・three-vrm で読める・VRMA の動きの組（本番・試験の印なし）
 // ・権利の門（自作・商用可・リポジトリの道具で生成）・sw.js の版と振り分け。
@@ -28,6 +29,7 @@ const stubTex = l => l.register(() => ({ name: 'stubtex', loadTexture: () => Pro
 const DIR = 'shinshoku/assets/characters/';
 const man = readJson(DIR + 'manifest.json');
 const CH = ['dannoura', 'dannoura_white', 'companion'];
+const BL = k => k + '_bl';                                       // Blender 製のファイルの名前（<名前>_bl.vrm・_bl_low.vrm・_bl.meta.json）
 const FINGERS = ['Thumb', 'Index', 'Middle', 'Ring', 'Little'];
 const REQ = ['hips', 'spine', 'chest', 'upperChest', 'neck', 'head', 'leftEye', 'rightEye', 'leftShoulder', 'rightShoulder', 'leftUpperArm', 'leftLowerArm', 'leftHand', 'rightUpperArm', 'rightLowerArm', 'rightHand',
   'leftUpperLeg', 'leftLowerLeg', 'leftFoot', 'leftToes', 'rightUpperLeg', 'rightLowerLeg', 'rightFoot', 'rightToes'];
@@ -35,23 +37,23 @@ for (const s of ['left', 'right']) for (const f of FINGERS) for (const g of f ==
 const EXPR = ['happy', 'angry', 'sad', 'relaxed', 'surprised', 'aa', 'ih', 'ou', 'ee', 'oh', 'blink', 'blinkLeft', 'blinkRight', 'neutral'];
 
 // ───────── manifest・meta ─────────
-await t('manifest：だんのうら・白い姿・相棒は Blender で作った VRM が既定（file・fileLow）・異形は今のまま null（予備）', () => {
+await t('manifest：だんのうら・白い姿・相棒の Blender 製の VRM は sets.bl（?vrmset=bl）に残る（file・fileLow）・異形は今のまま null（予備）', () => {
   assert.ok(man.ver >= 3);
   for (const k of CH) {
-    const e = man.characters[k];
-    assert.ok(e && e.file === k + '.vrm' && e.fileLow === k + '_low.vrm', k);
+    const e = man.sets.bl[k];
+    assert.ok(e && e.file === BL(k) + '.vrm' && e.fileLow === BL(k) + '_low.vrm', k);
     assert.equal(e.provisional, false); assert.ok(e.source.includes('tools/blender/char'), k); assert.ok(e.license && e.author);
     assert.equal(e.fit, 'none'); assert.ok(existsSync(P(DIR + e.file)) && existsSync(P(DIR + e.fileLow)));
   }
-  assert.equal(man.characters.dannoura_white.kind, 'white');
-  assert.equal(man.characters.dannoura.anim, '../anim/dannoura/clips.json');
+  assert.equal(man.sets.bl.dannoura_white.kind, 'white');
+  assert.equal(man.sets.bl.dannoura.anim, '../anim/dannoura/clips.json');
   for (const k of ['kiro', 'heiten', 'shuuyou']) assert.equal(man.characters[k].file, null, k);
   assert.ok(man.testEntries.test.dannoura.test, '試験用の入口は残す（?vrm=test）');
 });
 await t('meta：sha256・三角形・出典（tools/blender/char）・利用条件（自作・商用可・verifiedBy は人が書く）', () => {
   for (const k of CH) {
-    const m = readJson(DIR + k + '.meta.json');
-    assert.equal(m.id, 'char.' + k); assert.equal(m.test, false);
+    const m = readJson(DIR + BL(k) + '.meta.json');
+    assert.equal(m.id, 'char.' + BL(k)); assert.equal(m.test, false);
     assert.equal(m.source.type, 'self_made'); assert.equal(m.source.generator, 'tools/blender/char/build_char.py');
     assert.equal(m.license.commercial, 'yes'); assert.equal(m.license.verifiedBy, '', 'verifiedBy は人が確かめて書く（AI は書かない）');
     assert.equal(m.files.length, 2);
@@ -62,7 +64,7 @@ await t('meta：sha256・三角形・出典（tools/blender/char）・利用条�
 // ───────── VRM 1.0 の中身（JSON） ─────────
 for (const k of CH) {
   for (const low of [false, true]) {
-    const file = DIR + k + (low ? '_low' : '') + '.vrm';
+    const file = DIR + BL(k) + (low ? '_low' : '') + '.vrm';
     await t(`${k}${low ? '（スマホ）' : ''}：VRM 1.0・人型（指・目・肩・つま先まで）・表情 14・視線（骨）・揺れ物・MToon・利用条件・予算`, () => {
       const size = statSync(P(file)).size;
       assert.ok(size <= (low ? 2.5 : 6) * 1048576, `大きさ ${(size / 1048576).toFixed(2)}MB`);
@@ -97,7 +99,7 @@ for (const k of CH) {
 
 // ───────── three-vrm で読む・体つき ─────────
 const models = {};
-for (const k of CH) models[k] = await loadVRMModel(buf(DIR + k + '.vrm'), { height: 1.64, fit: 'none', loader: stubTex });
+for (const k of CH) models[k] = await loadVRMModel(buf(DIR + BL(k) + '.vrm'), { height: 1.64, fit: 'none', loader: stubTex });
 await t('three-vrm で読める：人型の 17 本＋指・表情・揺れ物の関節・高さ（帽子と髪込み）・脚の寸法', () => {
   for (const k of CH) {
     const m = models[k];
@@ -124,7 +126,7 @@ await t('男性の体つき（だんのうら・白い姿）：肩幅 > 腰幅�
     assert.ok(sh > hp * 1.6, `${k} 骨：肩 ${sh.toFixed(3)} 腰 ${hp.toFixed(3)}`);
     const chest = widthAt(models[k].vrm, 1.16, 1.26), hips = widthAt(models[k].vrm, 0.86, 0.94);
     assert.ok(chest > hips, `${k} 網：胸の幅 ${chest.toFixed(3)} > 腰の幅 ${hips.toFixed(3)}`);
-    const mb = readJson(DIR + k + '.meta.json').body;
+    const mb = readJson(DIR + BL(k) + '.meta.json').body;
     assert.equal(mb.sex, 'male'); assert.ok(mb.shoulderW > mb.hipW);
   }
 });
@@ -165,7 +167,7 @@ await t('動きの組（anim/dannoura）：試験の印なし・自作の出典�
 await t('権利の門：自作（リポジトリの道具）・商用可・再配布可 → web・ue5 とも pass（verifiedBy 空は注意だけ）', () => {
   const cfg = readJson('wakaba.config.json');
   for (const k of CH) {
-    const meta = readJson(`wakaba-assets/entries/character/char.${k}/meta.json`);
+    const meta = readJson(`wakaba-assets/entries/character/char.${BL(k)}/meta.json`);
     assert.equal(meta.category, 'character'); assert.equal(meta.license.verifiedBy, '');
     for (const target of ['web', 'ue5']) {
       const r = evaluate(meta, makeContext(cfg, 'shinshoku', { target }));
@@ -174,7 +176,7 @@ await t('権利の門：自作（リポジトリの道具）・商用可・再�
     }
   }
   const cat = readJson('wakaba-assets/catalog.json');
-  for (const k of CH) assert.ok(cat.entries.find(e => e.id === 'char.' + k), '目録に char.' + k);
+  for (const k of CH) assert.ok(cat.entries.find(e => e.id === 'char.' + BL(k)), '目録に char.' + BL(k));
 });
 await t('sw.js：版を上げた・VRM／VRMA は素材（media）・clips.json はネット優先', async () => {
   const vm = await import('node:vm');
@@ -182,7 +184,7 @@ await t('sw.js：版を上げた・VRM／VRMA は素材（media）・clips.json 
   vm.createContext(ctx); vm.runInContext(readFileSync(P('sw.js'), 'utf8') + '\n;globalThis.__sw={VERSION,kindOf};', ctx);
   const sw = ctx.__sw, k = p => sw.kindOf(new URL(p, 'https://example.github.io/dannoura-game/'));
   assert.ok(sw.VERSION >= '2026-10-31.2', sw.VERSION);
-  for (const c of CH) { assert.equal(k(DIR + c + '.vrm'), 'media'); assert.equal(k(DIR + c + '_low.vrm'), 'media'); }
+  for (const c of CH) { assert.equal(k(DIR + BL(c) + '.vrm'), 'media'); assert.equal(k(DIR + BL(c) + '_low.vrm'), 'media'); }
   assert.equal(k('shinshoku/assets/anim/dannoura/loco_walk.vrma'), 'media');
   assert.equal(k('shinshoku/assets/anim/dannoura/clips.json'), 'shell');
   assert.equal(k(DIR + 'manifest.json'), 'shell');

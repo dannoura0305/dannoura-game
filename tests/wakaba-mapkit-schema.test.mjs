@@ -100,7 +100,9 @@ await t('設定（wakaba.config.json）：素材ライブラリの場所の指�
   // フェーズ 3：自作（リポジトリの道具で生成・license own）の材質と部品。全部が web・ue5 の門を通る（verifiedBy は空＝人の確認待ちの注意だけ）
   const es = JSON.parse(readFileSync(join(ROOT, c.assetLibrary.catalog), 'utf8')).entries;
   assert.ok(es.length >= 50, '材質＋部品 ' + es.length);
-  for (const e of es) { assert.equal(e.license.id, 'own', e.id); assert.equal(e.targets.web.result, 'pass', e.id); assert.equal(e.targets.ue5.result, 'pass', e.id); }
+  // 2026-11-07：利用者の PC で作った VRoid 製のキャラクター（VRM Public License 1.0・再配布不可）は、人が license.verifiedBy を書くまで門で止まる（緩めない）。ここは自作の素材だけ
+  const USER = new Set(['char.dannoura', 'char.dannoura_white', 'char.daughter', 'char.companion']);
+  for (const e of es) { if (USER.has(e.id)) { assert.equal(e.targets.web.result, 'block', e.id); continue; } assert.equal(e.license.id, 'own', e.id); assert.equal(e.targets.web.result, 'pass', e.id); assert.equal(e.targets.ue5.result, 'pass', e.id); }
 });
 
 console.log(`wakaba-mapkit-schema: ${n} ok`);

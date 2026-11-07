@@ -1,0 +1,85 @@
+{
+ "id": "char.companion_bl",
+ "name": "相棒（Companion・仮）",
+ "provisional": false,
+ "test": false,
+ "note": "前の既定：リポジトリの中で Blender（bpy）で作った VRM 1.0（tools/blender/char/build_char.py → tools/charkit/build_chars.mjs）。2026-11-07 から利用者の VRoid 製（companion.vrm）が既定になり、こちらは URL の ?vrmset=bl の時だけ使う（名前を companion_bl.vrm に変えた・中身は同じ）",
+ "license": {
+  "id": "project",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "attribution": "",
+  "verifiedBy": ""
+ },
+ "author": "project",
+ "source": {
+  "type": "self_made",
+  "tool": "blender 5.2（bpy）",
+  "generator": "tools/blender/char/build_char.py",
+  "vrmMeta": {
+   "commercialUsage": "corporation",
+   "avatarPermission": "onlyAuthor"
+  }
+ },
+ "body": {
+  "height": 1.58,
+  "sex": "female",
+  "shoulderW": 0.33,
+  "hipW": 0.32
+ },
+ "info": {
+  "bones": 66,
+  "humanBones": 54,
+  "expressions": 14,
+  "springs": 2,
+  "springJoints": 6,
+  "colliders": 11,
+  "parts": {
+   "head_skin": 4000,
+   "left_eyeball": 1056,
+   "right_eyeball": 1056,
+   "left_lidU": 204,
+   "left_lidL": 136,
+   "right_lidU": 204,
+   "right_lidL": 136,
+   "left_brow": 52,
+   "right_brow": 52,
+   "mouth": 80,
+   "left_hand": 1500,
+   "right_hand": 1499,
+   "hair_locks": 4830,
+   "hair_cap": 1398,
+   "shirt": 2099,
+   "jacket": 6379,
+   "trousers": 3653,
+   "left_shoe": 1149,
+   "right_shoe": 1149,
+   "bagstrap": 576,
+   "bagstrapB": 576,
+   "bag": 700,
+   "hairclip": 160
+  }
+ },
+ "files": [
+  {
+   "file": "companion_bl.vrm",
+   "lod": "pc",
+   "bytes": 3173228,
+   "sha256": "e0d51d5cf1229c351cd0a82ebc760e12b8f822ee81191e14e08da98a31930bf2",
+   "tris": 32644,
+   "materials": 5,
+   "images": 7,
+   "imageBytes": 1370703
+  },
+  {
+   "file": "companion_bl_low.vrm",
+   "lod": "low",
+   "bytes": 1457544,
+   "sha256": "525a864f62aa0bb852341242cd1b2c8b5af92d1ce098402b81026f97d05bb36c",
+   "tris": 14924,
+   "materials": 5,
+   "images": 7,
+   "imageBytes": 534171
+  }
+ ]
+}

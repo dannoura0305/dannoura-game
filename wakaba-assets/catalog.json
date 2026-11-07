@@ -832,10 +832,59 @@
   },
   {
    "id": "char.companion",
+   "version": 2,
+   "category": "character",
+   "name": {
+    "ja": "相棒・瀬名 灯里",
+    "en": "Companion, Sena Akari"
+   },
+   "status": "draft",
+   "tags": [
+    "キャラクター",
+    "VRM",
+    "VRoid",
+    "自作",
+    "利用者の PC"
+   ],
+   "dir": "character/char.companion",
+   "license": {
+    "id": "VRM-1.0",
+    "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で作成）"
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": [
+     0.6,
+     1.58,
+     0.4
+    ],
+    "tris": 48860
+   },
+   "targets": {
+    "web": {
+     "result": "block",
+     "reasons": [
+      "UNVERIFIED",
+      "NO_WEB_REDIST"
+     ]
+    },
+    "ue5": {
+     "result": "block",
+     "reasons": [
+      "UNVERIFIED"
+     ]
+    }
+   },
+   "sources": [],
+   "web": [],
+   "ue5": null
+  },
+  {
+   "id": "char.companion_bl",
    "version": 1,
    "category": "character",
    "name": {
-    "ja": "相棒",
+    "ja": "相棒（Blender 製・前の既定）",
     "en": "Companion・仮"
    },
    "status": "draft",
@@ -846,7 +895,7 @@
     "自作",
     "Blender"
    ],
-   "dir": "character/char.companion",
+   "dir": "character/char.companion_bl",
    "license": {
     "id": "own",
     "attribution": ""
@@ -876,10 +925,59 @@
   },
   {
    "id": "char.dannoura",
-   "version": 1,
+   "version": 2,
    "category": "character",
    "name": {
     "ja": "だんのうら",
+    "en": "Dannoura"
+   },
+   "status": "draft",
+   "tags": [
+    "キャラクター",
+    "VRM",
+    "VRoid",
+    "自作",
+    "利用者の PC"
+   ],
+   "dir": "character/char.dannoura",
+   "license": {
+    "id": "VRM-1.0",
+    "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で作成）"
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": [
+     0.6,
+     1.64,
+     0.4
+    ],
+    "tris": 34522
+   },
+   "targets": {
+    "web": {
+     "result": "block",
+     "reasons": [
+      "UNVERIFIED",
+      "NO_WEB_REDIST"
+     ]
+    },
+    "ue5": {
+     "result": "block",
+     "reasons": [
+      "UNVERIFIED"
+     ]
+    }
+   },
+   "sources": [],
+   "web": [],
+   "ue5": null
+  },
+  {
+   "id": "char.dannoura_bl",
+   "version": 1,
+   "category": "character",
+   "name": {
+    "ja": "だんのうら（Blender 製・前の既定）",
     "en": "Dannoura"
    },
    "status": "draft",
@@ -890,7 +988,7 @@
     "自作",
     "Blender"
    ],
-   "dir": "character/char.dannoura",
+   "dir": "character/char.dannoura_bl",
    "license": {
     "id": "own",
     "attribution": ""
@@ -920,10 +1018,59 @@
   },
   {
    "id": "char.dannoura_white",
-   "version": 1,
+   "version": 2,
    "category": "character",
    "name": {
     "ja": "だんのうら・白い姿",
+    "en": "Dannoura, true form"
+   },
+   "status": "draft",
+   "tags": [
+    "キャラクター",
+    "VRM",
+    "VRoid",
+    "自作",
+    "利用者の PC"
+   ],
+   "dir": "character/char.dannoura_white",
+   "license": {
+    "id": "VRM-1.0",
+    "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で作成）"
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": [
+     0.6,
+     1.64,
+     0.4
+    ],
+    "tris": 39976
+   },
+   "targets": {
+    "web": {
+     "result": "block",
+     "reasons": [
+      "UNVERIFIED",
+      "NO_WEB_REDIST"
+     ]
+    },
+    "ue5": {
+     "result": "block",
+     "reasons": [
+      "UNVERIFIED"
+     ]
+    }
+   },
+   "sources": [],
+   "web": [],
+   "ue5": null
+  },
+  {
+   "id": "char.dannoura_white_bl",
+   "version": 1,
+   "category": "character",
+   "name": {
+    "ja": "だんのうら・白い姿（Blender 製・前の既定）",
     "en": "Dannoura, true form"
    },
    "status": "draft",
@@ -934,7 +1081,7 @@
     "自作",
     "Blender"
    ],
-   "dir": "character/char.dannoura_white",
+   "dir": "character/char.dannoura_white_bl",
    "license": {
     "id": "own",
     "attribution": ""
@@ -964,10 +1111,59 @@
   },
   {
    "id": "char.daughter",
-   "version": 1,
+   "version": 2,
    "category": "character",
    "name": {
     "ja": "娘",
+    "en": "Daughter・4 歳"
+   },
+   "status": "draft",
+   "tags": [
+    "キャラクター",
+    "VRM",
+    "VRoid",
+    "自作",
+    "利用者の PC"
+   ],
+   "dir": "character/char.daughter",
+   "license": {
+    "id": "VRM-1.0",
+    "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で作成）"
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": [
+     0.6,
+     1,
+     0.4
+    ],
+    "tris": 45437
+   },
+   "targets": {
+    "web": {
+     "result": "block",
+     "reasons": [
+      "UNVERIFIED",
+      "NO_WEB_REDIST"
+     ]
+    },
+    "ue5": {
+     "result": "block",
+     "reasons": [
+      "UNVERIFIED"
+     ]
+    }
+   },
+   "sources": [],
+   "web": [],
+   "ue5": null
+  },
+  {
+   "id": "char.daughter_bl",
+   "version": 1,
+   "category": "character",
+   "name": {
+    "ja": "娘（Blender 製・前の既定）",
     "en": "Daughter・4 歳"
    },
    "status": "draft",
@@ -978,7 +1174,7 @@
     "自作",
     "Blender"
    ],
-   "dir": "character/char.daughter",
+   "dir": "character/char.daughter_bl",
    "license": {
     "id": "own",
     "attribution": ""
