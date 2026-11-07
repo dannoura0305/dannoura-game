@@ -91,7 +91,8 @@ const MET = await import('../charkit/anim/metrics.js');
 const stubTex = l => l.register(() => ({ name: 'stubtex', loadTexture: () => Promise.resolve(new THREE.Texture()) }));
 const DIR = 'shinshoku/assets/characters/';
 const models = {};
-for (const k of ['dannoura', 'companion', 'daughter']) models[k] = await loadVRMModel(buf(DIR + k + '.vrm'), { height: k === 'daughter' ? 1.0 : 1.64, fit: 'none', loader: stubTex });
+// 2026-11-07 から既定は利用者の VRoid 製（tests/shinshoku-vroid.test.mjs）。ここは前の Blender 製（*_bl.vrm・?vrmset=bl）を確かめる
+for (const k of ['dannoura', 'companion', 'daughter']) models[k] = await loadVRMModel(buf(DIR + k + '_bl.vrm'), { height: k === 'daughter' ? 1.0 : 1.64, fit: 'none', loader: stubTex });
 
 await t('足の固定：Blender の VRM の歩き（2.2m/s）の滑り ≤0.8cm/s（前 1.2）・走りも固定なしより小さい・床に入らない', async () => {
   const m = models.dannoura, set = J('shinshoku/assets/anim/dannoura/clips.json');

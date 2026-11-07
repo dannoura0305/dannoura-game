@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-11-04.1';   // 本編の案内・配信の顔のドット絵・軽量化・振動／トビネズミの通知と掘る知らせ／境界侵食 P18（異形4種の包み enemies/*.pack.json は media・VRM の補助骨と足の滑り）
+const VERSION = '2026-11-07.1';   // 境界侵食：キャラクターを利用者の VRoid 製 VRM に差し替え（だんのうら・白い姿・娘・相棒。WebP の軽量版。前の Blender 製は *_bl.vrm で ?vrmset=bl）
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）

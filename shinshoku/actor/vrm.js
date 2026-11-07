@@ -78,7 +78,7 @@ export async function loadVRM(entry, opt = {}) {
           const { ClipAnimator } = await import('../../charkit/anim/clipanim.js');
           const scene = vrm.scene, inv = new THREE.Matrix4(), v = new THREE.Vector3();
           model.clips = set;
-          model.clipAnim = new ClipAnimator(scene, m.J, set, { legDims: m.legDims, sceneScale: m.sceneScale || 1, vrm0: m.stats.metaVersion === '0', blendS: entry.blendS || 0.2, footIK: entry.footIK !== false,
+          model.clipAnim = new ClipAnimator(scene, m.J, set, { legDims: m.legDims, sceneScale: m.sceneScale || 1, vrm0: m.stats.metaVersion === '0', blendS: entry.blendS || 0.2, footIK: entry.footIK !== false, strideK: entry.strideK || 1,
             ground: () => { m.root.updateWorldMatrix(true, false); inv.copy(scene.matrixWorld).invert(); return v.setFromMatrixPosition(m.root.matrixWorld).applyMatrix4(inv).y; } });
           m.stats.clips = Object.keys(set.clips).length; m.stats.clipMs = set.ms;
         }

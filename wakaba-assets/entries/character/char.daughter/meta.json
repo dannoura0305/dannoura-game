@@ -1,6 +1,6 @@
 {
  "id": "char.daughter",
- "version": 1,
+ "version": 2,
  "name": {
   "ja": "娘",
   "en": "Daughter・4 歳"
@@ -9,41 +9,58 @@
  "tags": [
   "キャラクター",
   "VRM",
-  "手続き",
+  "VRoid",
   "自作",
-  "Blender"
+  "利用者の PC"
  ],
  "source": {
   "type": "self_made",
-  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
-  "generator": "tools/blender/char/build_char.py",
-  "url": ""
+  "author": "WAKABA Project（利用者本人）",
+  "tool": "VRoid Studio 2.3.0＋Blender 5.x（VRM Add-on 4.10.3）",
+  "url": "",
+  "acquiredAt": "2026-11-07",
+  "original": "origin/models-from-pc:incoming/hq3d/characters/musume/model/musume.vrm",
+  "originalSha256": "262dcb9880527c74d7b858d320355d20dbd160b8e8b2d7c01b800b34e71ef082",
+  "gameBuild": "tools/charkit/vroid_game.mjs",
+  "vrmMeta": {
+   "commercialUsage": "corporation",
+   "avatarPermission": "onlyAuthor",
+   "modification": "allowModification",
+   "allowRedistribution": false,
+   "creditNotation": "required"
+  },
+  "vrmMetaChange": "2026-11-07 利用者の承認：ゲーム用に軽くした VRM の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（PC から届いた元の VRM は変えない）"
  },
  "license": {
-  "id": "own",
+  "id": "VRM-1.0",
   "commercial": "yes",
-  "redistributeRaw": "yes",
+  "redistributeRaw": "no",
   "engines": [
    "any"
   ],
-  "attribution": "",
+  "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で作成）",
   "verifiedBy": "",
-  "textUrl": "docs/shinshoku/VROID_GUIDE.md"
+  "textUrl": "https://vrm.dev/licenses/1.0/"
  },
  "tech": {
   "formats": [
    "vrm"
   ],
-  "tris": 36133,
+  "tris": 45437,
   "lods": [
-   36133,
-   16807
+   45437,
+   45437
   ],
-  "texRes": 2048,
+  "texRes": 1024,
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "emissive"
+  ],
   "sizeM": [
-   0.9,
-   1.58,
-   0.6
+   0.6,
+   1,
+   0.4
   ]
  },
  "use": [
@@ -52,13 +69,20 @@
  "usedBy": [
   {
    "project": "shinshoku",
-   "since": "2026-10-18"
+   "since": "2026-11-07"
   }
  ],
  "status": "draft",
  "storage": {
-  "original": "tools/blender/char（スクリプトが原本）",
+  "original": "ブランチ origin/models-from-pc:incoming/hq3d/characters/musume/model/musume.vrm（リポジトリの main には入れない）",
   "runtime": "shinshoku/assets/characters/daughter.vrm",
-  "sha256": "01e3e485585aa7fefa3ee2b8592b5fdbcbb3bf41624d8fe8d63ed345b0e395ad"
- }
+  "sha256": "8c1d709b8db87e4b844a0fc708b1e2379f1e45a50d8c0b8b244e80bb4ab89ac4"
+ },
+ "history": [
+  {
+   "at": "2026-11-07",
+   "by": "Claude Code（利用者の依頼）",
+   "change": "Blender 製（char.daughter_bl）から利用者の VRoid 製に差し替え。2026-11-07 利用者の承認：ゲーム用に軽くした VRM の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（PC から届いた元の VRM は変えない）"
+  }
+ ]
 }

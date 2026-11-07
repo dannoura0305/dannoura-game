@@ -1,49 +1,66 @@
 {
  "id": "char.companion",
- "version": 1,
+ "version": 2,
  "name": {
-  "ja": "相棒",
-  "en": "Companion・仮"
+  "ja": "相棒・瀬名 灯里",
+  "en": "Companion, Sena Akari"
  },
  "category": "character",
  "tags": [
   "キャラクター",
   "VRM",
-  "手続き",
+  "VRoid",
   "自作",
-  "Blender"
+  "利用者の PC"
  ],
  "source": {
   "type": "self_made",
-  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
-  "generator": "tools/blender/char/build_char.py",
-  "url": ""
+  "author": "WAKABA Project（利用者本人）",
+  "tool": "VRoid Studio 2.3.0＋Blender 5.x（VRM Add-on 4.10.3）",
+  "url": "",
+  "acquiredAt": "2026-11-07",
+  "original": "origin/models-from-pc:incoming/hq3d/characters/akari/model/akari.vrm",
+  "originalSha256": "92a8ba090b4ca99d89dfeb27358d23d97972e8c80f5ee06f93cf458a2b5188c6",
+  "gameBuild": "tools/charkit/vroid_game.mjs",
+  "vrmMeta": {
+   "commercialUsage": "corporation",
+   "avatarPermission": "onlyAuthor",
+   "modification": "allowModification",
+   "allowRedistribution": false,
+   "creditNotation": "required"
+  },
+  "vrmMetaChange": "2026-11-07 利用者の承認：ゲーム用に軽くした VRM の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（PC から届いた元の VRM は変えない）"
  },
  "license": {
-  "id": "own",
+  "id": "VRM-1.0",
   "commercial": "yes",
-  "redistributeRaw": "yes",
+  "redistributeRaw": "no",
   "engines": [
    "any"
   ],
-  "attribution": "",
+  "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で作成）",
   "verifiedBy": "",
-  "textUrl": "docs/shinshoku/VROID_GUIDE.md"
+  "textUrl": "https://vrm.dev/licenses/1.0/"
  },
  "tech": {
   "formats": [
    "vrm"
   ],
-  "tris": 32644,
+  "tris": 48860,
   "lods": [
-   32644,
-   14924
+   48860,
+   48860
   ],
-  "texRes": 2048,
+  "texRes": 1024,
+  "texMaps": [
+   "baseColor",
+   "normal",
+   "emissive"
+  ],
   "sizeM": [
-   0.9,
+   0.6,
    1.58,
-   0.6
+   0.4
   ]
  },
  "use": [
@@ -52,13 +69,20 @@
  "usedBy": [
   {
    "project": "shinshoku",
-   "since": "2026-10-18"
+   "since": "2026-11-07"
   }
  ],
  "status": "draft",
  "storage": {
-  "original": "tools/blender/char（スクリプトが原本）",
+  "original": "ブランチ origin/models-from-pc:incoming/hq3d/characters/akari/model/akari.vrm（リポジトリの main には入れない）",
   "runtime": "shinshoku/assets/characters/companion.vrm",
-  "sha256": "e0d51d5cf1229c351cd0a82ebc760e12b8f822ee81191e14e08da98a31930bf2"
- }
+  "sha256": "efe7eda25d8d8890c842b737181dfc3048810ff4efe78721d7d5140cf3f30957"
+ },
+ "history": [
+  {
+   "at": "2026-11-07",
+   "by": "Claude Code（利用者の依頼）",
+   "change": "Blender 製（char.companion_bl）から利用者の VRoid 製に差し替え。2026-11-07 利用者の承認：ゲーム用に軽くした VRM の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（PC から届いた元の VRM は変えない）"
+  }
+ ]
 }

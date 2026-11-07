@@ -1,0 +1,64 @@
+{
+ "id": "char.dannoura_white_bl",
+ "version": 1,
+ "name": {
+  "ja": "だんのうら・白い姿（Blender 製・前の既定）",
+  "en": "Dannoura, true form"
+ },
+ "category": "character",
+ "tags": [
+  "キャラクター",
+  "VRM",
+  "手続き",
+  "自作",
+  "Blender"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/char/build_char.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/shinshoku/VROID_GUIDE.md"
+ },
+ "tech": {
+  "formats": [
+   "vrm"
+  ],
+  "tris": 42865,
+  "lods": [
+   42865,
+   18129
+  ],
+  "texRes": 2048,
+  "sizeM": [
+   0.9,
+   1.64,
+   0.6
+  ]
+ },
+ "use": [
+  "キャラクターの予備（境界侵食・URL の ?vrmset=bl）"
+ ],
+ "usedBy": [
+  {
+   "project": "shinshoku",
+   "since": "2026-10-18"
+  }
+ ],
+ "status": "draft",
+ "storage": {
+  "original": "tools/blender/char（スクリプトが原本）",
+  "runtime": "shinshoku/assets/characters/dannoura_white_bl.vrm",
+  "sha256": "d0ee295039937b0a51148695cab7c8f85bcc0406cc79f4fd8efc840aabc2d625"
+ }
+}

@@ -1,0 +1,64 @@
+{
+ "id": "char.companion_bl",
+ "version": 1,
+ "name": {
+  "ja": "相棒（Blender 製・前の既定）",
+  "en": "Companion・仮"
+ },
+ "category": "character",
+ "tags": [
+  "キャラクター",
+  "VRM",
+  "手続き",
+  "自作",
+  "Blender"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/char/build_char.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/shinshoku/VROID_GUIDE.md"
+ },
+ "tech": {
+  "formats": [
+   "vrm"
+  ],
+  "tris": 32644,
+  "lods": [
+   32644,
+   14924
+  ],
+  "texRes": 2048,
+  "sizeM": [
+   0.9,
+   1.58,
+   0.6
+  ]
+ },
+ "use": [
+  "キャラクターの予備（境界侵食・URL の ?vrmset=bl）"
+ ],
+ "usedBy": [
+  {
+   "project": "shinshoku",
+   "since": "2026-10-18"
+  }
+ ],
+ "status": "draft",
+ "storage": {
+  "original": "tools/blender/char（スクリプトが原本）",
+  "runtime": "shinshoku/assets/characters/companion_bl.vrm",
+  "sha256": "e0d51d5cf1229c351cd0a82ebc760e12b8f822ee81191e14e08da98a31930bf2"
+ }
+}

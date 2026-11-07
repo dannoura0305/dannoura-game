@@ -1,0 +1,64 @@
+{
+ "id": "char.daughter_bl",
+ "version": 1,
+ "name": {
+  "ja": "娘（Blender 製・前の既定）",
+  "en": "Daughter・4 歳"
+ },
+ "category": "character",
+ "tags": [
+  "キャラクター",
+  "VRM",
+  "手続き",
+  "自作",
+  "Blender"
+ ],
+ "source": {
+  "type": "self_made",
+  "author": "わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）",
+  "generator": "tools/blender/char/build_char.py",
+  "url": ""
+ },
+ "license": {
+  "id": "own",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "",
+  "verifiedBy": "",
+  "textUrl": "docs/shinshoku/VROID_GUIDE.md"
+ },
+ "tech": {
+  "formats": [
+   "vrm"
+  ],
+  "tris": 36133,
+  "lods": [
+   36133,
+   16807
+  ],
+  "texRes": 2048,
+  "sizeM": [
+   0.9,
+   1.58,
+   0.6
+  ]
+ },
+ "use": [
+  "キャラクターの予備（境界侵食・URL の ?vrmset=bl）"
+ ],
+ "usedBy": [
+  {
+   "project": "shinshoku",
+   "since": "2026-10-18"
+  }
+ ],
+ "status": "draft",
+ "storage": {
+  "original": "tools/blender/char（スクリプトが原本）",
+  "runtime": "shinshoku/assets/characters/daughter_bl.vrm",
+  "sha256": "01e3e485585aa7fefa3ee2b8592b5fdbcbb3bf41624d8fe8d63ed345b0e395ad"
+ }
+}

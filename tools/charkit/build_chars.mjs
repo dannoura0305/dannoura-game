@@ -2,7 +2,9 @@
 //   node tools/charkit/build_chars.mjs [--chars dannoura,dannoura_white,companion] [--lods pc,low] [--blender <blender の実行ファイル>] [--python <bpy の入った python>]
 //                                     [--build build/chars] [--out shinshoku/assets/characters] [--jobs 3] [--skip-blender]（包みから VRM だけ作り直す）
 // Blender：既定は「blender」（--background --python tools/blender/char/build_char.py -- …）。bpy のモジュールの python があれば --python（環境変数 BPY_PYTHON）。
-// 出る物：<out>/<名前>.vrm（PC）・<名前>_low.vrm（スマホ）・<名前>.meta.json（sha256・三角形・材質・表情・揺れ物・体の寸法・出典・利用条件）。
+// 出る物：<out>/<名前>_bl.vrm（PC）・<名前>_bl_low.vrm（スマホ）・<名前>_bl.meta.json（sha256・三角形・材質・表情・揺れ物・体の寸法・出典・利用条件）。
+// 2026-11-07 から既定のキャラクターは利用者の VRoid 製（tools/charkit/vroid_game.mjs が <名前>.vrm を書く）。ここで作る Blender 製は名前の後ろに --suffix（既定 _bl）を付け、
+// URL の ?vrmset=bl（manifest の sets.bl）の時だけ使う。--suffix '' で前の名前（<名前>.vrm）に書く（VRoid 製を上書きするので注意）。
 // 途中の物（*.pack.json・PNG）は --build（Git に入れない）。
 import { spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
@@ -22,6 +24,7 @@ const OUT = resolve(ROOT, arg('out', 'shinshoku/assets/characters'));
 const PY = arg('python', process.env.BPY_PYTHON || null);
 const BLENDER = arg('blender', process.env.BLENDER || 'blender');
 const JOBS = +arg('jobs', 3);
+const SUF = arg('suffix', '_bl');
 const SCRIPT = join(ROOT, 'tools/blender/char/build_char.py');
 const sha = b => createHash('sha256').update(b).digest('hex');
 
@@ -55,8 +58,8 @@ for (const c of CHARS) {
   const files = [];
   let info = null, pack0 = null;
   for (const l of LODS) {
-    const name = l === 'pc' ? c : c + '_low';
-    const pf = join(BUILD, name + '.pack.json');
+    const bname = l === 'pc' ? c : c + '_low', name = l === 'pc' ? c + SUF : c + SUF + '_low';
+    const pf = join(BUILD, bname + '.pack.json');
     if (!existsSync(pf)) { console.warn('包みが無い：', pf); continue; }
     const pack = JSON.parse(readFileSync(pf, 'utf8'));
     const { vrm, info: vi } = packToVRM(pack, f => new Uint8Array(readFileSync(join(BUILD, f))));
@@ -67,7 +70,7 @@ for (const c of CHARS) {
   }
   if (!pack0) continue;
   const meta = {
-    id: 'char.' + c, name: pack0.meta.name, provisional: false, test: false,
+    id: 'char.' + c + SUF, name: pack0.meta.name, provisional: false, test: false,
     note: 'リポジトリの中で Blender（bpy）で作った VRM 1.0（tools/blender/char/build_char.py → tools/charkit/build_chars.mjs）。VRoid Studio などで作った本番のモデルに差し替えられる（docs/shinshoku/VROID_GUIDE.md）',
     license: { id: 'project', commercial: 'yes', redistributeRaw: 'yes', attribution: '', verifiedBy: '' },
     author: 'project',
@@ -76,21 +79,21 @@ for (const c of CHARS) {
     info: { bones: info.bones, humanBones: info.human, expressions: info.expressions, springs: info.springs, springJoints: info.springJoints, colliders: info.colliders, parts: pack0.info.parts },
     files,
   };
-  writeFileSync(join(OUT, c + '.meta.json'), JSON.stringify(meta, null, 1) + '\n');
+  writeFileSync(join(OUT, c + SUF + '.meta.json'), JSON.stringify(meta, null, 1) + '\n');
   // 素材ライブラリ（wakaba-assets/entries/character/char.<名前>/meta.json）：権利の門と目録（tools/mapkit/catalog.mjs）のため。実物はゲームの場所（storage.runtime）
   if (!has('no-library')) {
     const pc = files.find(f => f.lod === 'pc'), lo = files.find(f => f.lod === 'low');
     const lib = {
-      id: 'char.' + c, version: 1, name: { ja: pack0.meta.name.replace(/（.*$/, ''), en: (pack0.meta.name.match(/（(.*)）/) || [])[1] || c },
+      id: 'char.' + c + SUF, version: 1, name: { ja: pack0.meta.name.replace(/（.*$/, ''), en: (pack0.meta.name.match(/（(.*)）/) || [])[1] || c },
       category: 'character', tags: ['キャラクター', 'VRM', '手続き', '自作', 'Blender'],
       source: { type: 'self_made', author: 'わかば（リポジトリの手続きの生成：Claude Code が書いたスクリプト）', generator: 'tools/blender/char/build_char.py', url: '' },
       license: { id: 'own', commercial: 'yes', redistributeRaw: 'yes', engines: ['any'], attribution: '', verifiedBy: '', textUrl: 'docs/shinshoku/VROID_GUIDE.md' },
       tech: { formats: ['vrm'], tris: pc ? pc.tris : 0, lods: files.map(f => f.tris), texRes: 2048, sizeM: [0.9, +(pack0.info.body.height || 1.64).toFixed(2), 0.6] },
       use: ['キャラクター（境界侵食）'], usedBy: [{ project: 'shinshoku', since: '2026-10-18' }], status: 'draft',
-      storage: { original: 'tools/blender/char（スクリプトが原本）', runtime: 'shinshoku/assets/characters/' + c + '.vrm', sha256: pc ? pc.sha256 : '' },
+      storage: { original: 'tools/blender/char（スクリプトが原本）', runtime: 'shinshoku/assets/characters/' + c + SUF + '.vrm', sha256: pc ? pc.sha256 : '' },
     };
     if (lo) lib.storage.runtimeLow = undefined;
-    const ldir = join(ROOT, 'wakaba-assets/entries/character', 'char.' + c);
+    const ldir = join(ROOT, 'wakaba-assets/entries/character', 'char.' + c + SUF);
     mkdirSync(ldir, { recursive: true });
     writeFileSync(join(ldir, 'meta.json'), JSON.stringify(lib, null, 1) + '\n');
   }
