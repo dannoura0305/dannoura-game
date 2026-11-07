@@ -1,0 +1,272 @@
+{
+  "character": "dannoura",
+  "sheet": "wakaba-character-model-factory/hq3d/characters/dannoura/reference/dannoura_sheet.webp",
+  "sheet_size": [
+    1536,
+    1024
+  ],
+  "analyzed": "2026-11-07（Claude が設計図を方眼つきで拡大して読んだ。画素の位置と色は実測、意味づけは読み取り）",
+  "_rules": "certainty: measured＝画素から測った値／read＝絵から読み取った（ほぼ確実）／guess＝推測。見えない所は書かない。設計図の正面は約 4.77 画素/cm（帽子を除いた頭の上 y≈163・足元 y≈945・身長 164cm）。だんのうらは男の子（見た目が女の子っぽい）",
+  "views_on_sheet": {
+    "front_full": {
+      "box": [
+        130,
+        120,
+        420,
+        950
+      ],
+      "note": "全身の正面。A ポーズ"
+    },
+    "side": {
+      "box": [
+        440,
+        120,
+        640,
+        950
+      ],
+      "note": "左の横顔（花飾りが見える側）"
+    },
+    "back": {
+      "box": [
+        680,
+        120,
+        900,
+        950
+      ]
+    },
+    "faces": {
+      "neutral": [
+        937,
+        122,
+        1133,
+        412
+      ],
+      "smile": [
+        1141,
+        122,
+        1332,
+        412
+      ],
+      "determined": [
+        1338,
+        122,
+        1530,
+        412
+      ]
+    },
+    "details": {
+      "glasses": [
+        946,
+        533,
+        1182,
+        671
+      ],
+      "hat": [
+        1190,
+        533,
+        1362,
+        671
+      ],
+      "flower": [
+        1370,
+        533,
+        1530,
+        671
+      ],
+      "pants_fabric": [
+        946,
+        745,
+        1162,
+        925
+      ],
+      "cat_backpack": [
+        1184,
+        745,
+        1530,
+        925
+      ]
+    }
+  },
+  "palette": {
+    "_note": "box は設計図の画素 [左, 上, 右, 下]。光の当たった無地の所",
+    "hair": {
+      "box": [
+        268,
+        162,
+        282,
+        178
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "Hair_00_HAIR",
+        "HairBack"
+      ],
+      "view": "front"
+    },
+    "skin": {
+      "box": [
+        258,
+        228,
+        266,
+        236
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "Face_00_SKIN"
+      ],
+      "view": "front"
+    },
+    "jacket": {
+      "boxes": [
+        [
+          175,
+          330,
+          195,
+          350
+        ],
+        [
+          345,
+          330,
+          365,
+          350
+        ]
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "N00_005_01_Tops_01"
+      ],
+      "view": "front",
+      "note": "パーカーの胸の無地の所（左右）"
+    },
+    "pants": {
+      "box": [
+        220,
+        600,
+        235,
+        640
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "Bottoms_01"
+      ],
+      "view": "front",
+      "note": "チェックの地の色（線を含む中央値）"
+    }
+  },
+  "proportions": {
+    "heads_tall": {
+      "value": 7.9,
+      "certainty": "measured",
+      "how": "帽子の下の髪の上端 y≈151、あご y≈252、足元 y≈945。(945-151)/(252-151)。設計図の目盛りは「約 6.5 頭身」（設計図の頭の絵は髪のふくらみ込みで大きめ）。モデルと同じ測り方の値を使う",
+      "model_measure": "正面のマスクで、髪の幅が最大幅の 40% を超える最初の行＝上端、顔の肌の最下行＝あご、靴の最下行＝足元"
+    }
+  },
+  "layout_cm": {
+    "_note": "設計図の正面から測った高さ（床から cm・read）。モデルの手直しの位置の目安",
+    "jacket_hem": 89.7,
+    "sleeve_cuff_end": 90,
+    "shirt_neck": 138,
+    "drawstring_end": 118,
+    "jacket_open_half": 4.8,
+    "stripe_pitch": 6.8,
+    "stripe_pink": 3.4,
+    "pants_hem": 8.4,
+    "shoe_top": 8.4,
+    "ponytail_end": 106,
+    "hat": {
+      "brim_w": 10,
+      "crown_w": 6.3,
+      "height": 7.3,
+      "center_x_from_face": -2
+    },
+    "flower": {
+      "diameter": 3.1,
+      "at": "モデルの左のこめかみの上（顔の中心から +8.5 cm・目の 6 cm 上）"
+    }
+  },
+  "parts": [
+    {
+      "id": "glasses",
+      "name": "黒い長方形の眼鏡",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_Glasses",
+          "GlassesHiFrame"
+        ],
+        "view": "front"
+      }
+    },
+    {
+      "id": "hat",
+      "name": "桃色のミニシルクハット（薄い桃色の帯・頭の上でモデルの右寄り）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_Hat"
+        ],
+        "view": "front"
+      }
+    },
+    {
+      "id": "flower",
+      "name": "桃色の五枚花の花飾り（モデルの左耳の上）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_Flower"
+        ],
+        "view": "left"
+      }
+    },
+    {
+      "id": "ponytail",
+      "name": "高い位置の一つ結びのポニーテール（腰まで）",
+      "certainty": "read",
+      "manual": "ある（VRoid の高い一つ結びの見本 #6E4592）"
+    },
+    {
+      "id": "hoodie",
+      "name": "薄紫の前開きパーカー（フード・白いひも・リブの袖口と裾・ファスナー）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "N00_005_01_Tops_01"
+        ],
+        "view": "front"
+      },
+      "shape_note": "前開きはテクスチャに描いた（形は閉じたかぶりのパーカー）。ひもは描いただけ。原画より太く、袖がふくらむ"
+    },
+    {
+      "id": "stripes",
+      "name": "中のシャツは桃色と白の太い横じま",
+      "certainty": "read",
+      "manual": "ある（jacket_open の縞で描いた。間隔 6.8 cm・桃色 3.4 cm）"
+    },
+    {
+      "id": "pants",
+      "name": "濃い紫のチェックのストレートパンツ",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "Bottoms_01"
+        ],
+        "view": "front"
+      }
+    },
+    {
+      "id": "shoes",
+      "name": "黒いハイカットのキャンバス地スニーカー（白いひも・白い底）",
+      "certainty": "read",
+      "manual": "ある（VRoid の黒いハイカット・白いひもと底）"
+    }
+  ],
+  "optional": [
+    "ネコ顔リュック（着脱装備・任意）。いまは作らない"
+  ],
+  "not_compared_yet": [
+    "全身のシルエット（原画は A ポーズ）",
+    "顔の目・鼻・口の位置",
+    "髪の毛束の流れ"
+  ]
+}

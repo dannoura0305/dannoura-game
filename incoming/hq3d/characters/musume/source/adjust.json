@@ -1,0 +1,402 @@
+{
+  "character": "musume",
+  "source": "wakaba-character-model-factory/hq3d/characters/musume/src/musume_vroid.vrm（VRoid Studio 2.3.0 で 2026-11-07 に作った素体（v4: 身長 100.0cm・頭 0.15・胴 +0.25・腰 +0.4・脚 -0.3・足 +0.4・腕 -0.1。前の書き出しは src/history）。src/musume.vroid）",
+  "_note": "だんのうらの娘（デザイン案 reference/musume_sheet.webp）。VRoid の素体（前髪のボブ・100.5cm・白い T シャツ・桃色の膝丈スカート・白い靴下・ベルトの靴）を、Blender で原画へ寄せる。値はどれも原画から推した値（guess）",
+  "steps": [
+    {
+      "op": "material_color",
+      "enabled": true,
+      "note": "顔の肌: 原画の肌（少し日に焼けた暖かい色）へ寄せる。基本色はテクスチャに掛け算。陰は赤みを抑えた色に決める（VRoid の濃い陰だと脚の裏が赤く見える）",
+      "tune": {
+        "color": "skin"
+      },
+      "params": {
+        "material": "Face_00_SKIN",
+        "color": "#F4E0DA",
+        "shade_color": "#E6C2B8"
+      }
+    },
+    {
+      "op": "material_color",
+      "enabled": true,
+      "note": "体の肌: 顔と同じだけ寄せる（首・腕・脚の色を顔にそろえる）。陰は赤みを抑えた色に決める（VRoid の濃い陰だと脚の裏が赤く見える）",
+      "params": {
+        "material": "Body_00_SKIN",
+        "color": "#F4E0DA",
+        "shade_color": "#E6C2B8"
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "T シャツ: VRoid の白を、原画のクリーム色へ（布の陰の濃淡は半分残す）",
+      "params": {
+        "material": "N00_004_01_Tops_01",
+        "items": [
+          {
+            "type": "recolor",
+            "max_value": 1.01,
+            "max_sat": 0.2,
+            "color": "#EFE2D6",
+            "keep_shade": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "op": "material_color",
+      "enabled": true,
+      "note": "T シャツの陰: VRoid の青みの陰を、クリームに合う暖かい陰へ",
+      "params": {
+        "material": "N00_004_01_Tops_01",
+        "color": "#FFFFFF",
+        "shade_color": "#D6BFB0"
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "スカート: VRoid の桃色の花柄・レースの裾を、原画の無地の桃色へ（ひだの陰は 20% 残す）",
+      "params": {
+        "material": "N00_002_03_Tops_01_CLOTH_01",
+        "items": [
+          {
+            "type": "recolor",
+            "max_value": 1.01,
+            "max_sat": 1.01,
+            "color": "#E59DA3",
+            "keep_shade": 0.2
+          }
+        ]
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "スカートの裏地: 少し濃い桃色の無地へ",
+      "params": {
+        "material": "N00_002_03_Tops_01_CLOTH_02",
+        "items": [
+          {
+            "type": "recolor",
+            "max_value": 1.01,
+            "max_sat": 1.01,
+            "color": "#D98C94",
+            "keep_shade": 0.2
+          }
+        ]
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "腰の帯: 花柄と白いふちを消して、スカートと同じ桃色の無地へ（原画の腰の切り替え）",
+      "params": {
+        "material": "N00_002_03_Tops_01_CLOTH_03",
+        "items": [
+          {
+            "type": "recolor",
+            "max_value": 1.01,
+            "max_sat": 1.01,
+            "color": "#E59DA3",
+            "keep_shade": 0.2
+          }
+        ]
+      }
+    },
+    {
+      "op": "delete_faces",
+      "enabled": true,
+      "note": "腰の帯の前の結び目と房を消す（原画には無い）",
+      "params": {
+        "material": "N00_002_03_Tops_01_CLOTH_03",
+        "box": [
+          -0.035,
+          -0.3,
+          0.4,
+          0.035,
+          0.0,
+          0.53
+        ]
+      }
+    },
+    {
+      "op": "front_marks",
+      "enabled": true,
+      "note": "スカートの左右の貼りポケット（原画: 床から 38.5〜48.5 cm・中心から 5〜12 cm・下の角が丸い・上に縫い目）",
+      "params": {
+        "material": "N00_002_03_Tops_01_CLOTH_01",
+        "facing": 0.25,
+        "items": [
+          {
+            "type": "rect",
+            "box": [
+              0.05,
+              0.385,
+              0.12,
+              0.485
+            ],
+            "round": 0.014,
+            "outline": "#C27880",
+            "line_w": 0.0022,
+            "mirror": true
+          },
+          {
+            "type": "line",
+            "from": [
+              0.052,
+              0.472
+            ],
+            "to": [
+              0.118,
+              0.472
+            ],
+            "width": 0.0015,
+            "color": "#C27880",
+            "mirror": true
+          }
+        ]
+      }
+    },
+    {
+      "op": "pinafore_bib",
+      "enabled": true,
+      "note": "ジャンパースカートの胸当て・後ろ身ごろ・肩ひも・ボタン（原画: 胸当ての上 69 cm・半幅 8.6 cm・前のボタン 68 cm で ±5.7 cm・背中のボタン 3 つ）。幅は体に合わせて少し細め（モデルの腰は片側 8 cm）。下の端はスカートの腰の下まで入れる（すき間が出ないように 0.48。v4 の素体は腰が下がった）。胴まわりは脇の下（0.655）まで一周させる（原画の横から見た身ごろ）。腰の切り替えの縫い目（原画 58.5 cm）を細い帯で一周",
+      "params": {
+        "material": "N00_004_01_Tops_01",
+        "offset": 0.005,
+        "name": "HQ3D_Pinafore",
+        "front": {
+          "z": [
+            0.48,
+            0.69
+          ],
+          "half_width": [
+            [
+              0.48,
+              0.088
+            ],
+            [
+              0.54,
+              0.085
+            ],
+            [
+              0.62,
+              0.08
+            ],
+            [
+              0.69,
+              0.075
+            ]
+          ]
+        },
+        "back": {
+          "z": [
+            0.48,
+            0.675
+          ],
+          "half_width": [
+            [
+              0.48,
+              0.088
+            ],
+            [
+              0.54,
+              0.085
+            ],
+            [
+              0.675,
+              0.08
+            ]
+          ]
+        },
+        "strap": {
+          "x": 0.057,
+          "width": 0.026,
+          "thick": 0.003,
+          "shoulder_z": 0.75
+        },
+        "buttons": {
+          "front": [
+            [
+              0.057,
+              0.68
+            ],
+            [
+              -0.057,
+              0.68
+            ]
+          ],
+          "back": [
+            [
+              0.0,
+              0.66
+            ],
+            [
+              0.0,
+              0.635
+            ],
+            [
+              0.0,
+              0.61
+            ]
+          ],
+          "radius": 0.0065
+        },
+        "color": "#E59DA3",
+        "shade_color": "#C77F88",
+        "center_color": "#D7858F",
+        "band": {
+          "z": [
+            0.48,
+            0.665
+          ],
+          "cols": 48,
+          "rows": 9
+        },
+        "seam": {
+          "z": 0.585,
+          "width": 0.004,
+          "thick": 0.0015
+        }
+      }
+    },
+    {
+      "op": "follow_weights",
+      "enabled": true,
+      "note": "胸当ての重みを T シャツから写す（体と一緒に曲がる）",
+      "params": {
+        "objects": [
+          "HQ3D_Pinafore"
+        ],
+        "material": "N00_004_01_Tops_01"
+      }
+    },
+    {
+      "op": "zone_paint",
+      "enabled": true,
+      "note": "靴下を短く: 原画の靴下は床から 12 cm まで。それより上の白を、膝の下の肌の色で塗る",
+      "params": {
+        "material": "Body_00_SKIN",
+        "z": [
+          0.125,
+          0.42
+        ],
+        "match": "#FFFFFF",
+        "tol": 0.3,
+        "color": "sample",
+        "sample_z": [
+          0.33,
+          0.38
+        ],
+        "keep_shade": 0.0
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "靴: VRoid の黒いひも靴を全部白へ（原画は白地に桃色。ひもや底の濃い所も白にする）。元が黒いので濃淡は 12% だけ残す（多く残すと灰色になる）",
+      "params": {
+        "material": "Shoes_01",
+        "items": [
+          {
+            "type": "recolor",
+            "max_value": 1.01,
+            "max_sat": 1.01,
+            "color": "#F4F0F0",
+            "keep_shade": 0.12
+          }
+        ]
+      }
+    },
+    {
+      "op": "material_color",
+      "enabled": true,
+      "note": "靴の陰: VRoid の青みの陰を、白い靴に合う灰色がかった桃色へ",
+      "params": {
+        "material": "Shoes_01",
+        "color": "#FFFFFF",
+        "shade_color": "#E4DCDE"
+      }
+    },
+    {
+      "op": "front_marks",
+      "enabled": true,
+      "note": "靴の桃色のつま先・底のふち・マジックテープのベルト 2 本（靴の高さ 9.1 cm に合わせた位置）",
+      "params": {
+        "material": "Shoes_01",
+        "facing": 0.2,
+        "items": [
+          {
+            "type": "rect",
+            "box": [
+              0.02,
+              0.005,
+              0.095,
+              0.015
+            ],
+            "fill": "#E7A1B1",
+            "mirror": true
+          },
+          {
+            "type": "rect",
+            "box": [
+              0.02,
+              0.015,
+              0.095,
+              0.038
+            ],
+            "fill": "#EFB3C0",
+            "mirror": true
+          },
+          {
+            "type": "rect",
+            "box": [
+              0.022,
+              0.048,
+              0.092,
+              0.06
+            ],
+            "fill": "#FFFFFF",
+            "outline": "#BDB3B6",
+            "line_w": 0.0012,
+            "mirror": true
+          },
+          {
+            "type": "rect",
+            "box": [
+              0.022,
+              0.065,
+              0.092,
+              0.077
+            ],
+            "fill": "#FFFFFF",
+            "outline": "#BDB3B6",
+            "line_w": 0.0012,
+            "mirror": true
+          }
+        ]
+      }
+    },
+    {
+      "op": "hair_clip",
+      "enabled": true,
+      "note": "桃色のぱっちんピン（原画: モデルの左＝向かって右のこめかみの上・前が下がる）",
+      "params": {
+        "name": "HQ3D_HairClip",
+        "side": 1,
+        "at": [
+          -0.03,
+          0.925
+        ],
+        "length": 0.036,
+        "width": 0.01,
+        "thick": 0.003,
+        "angle": -30,
+        "material": "Hair_00_HAIR",
+        "color": "#E98CA0",
+        "shade_color": "#C46A7E"
+      }
+    }
+  ]
+}

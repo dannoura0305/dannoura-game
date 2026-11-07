@@ -1,0 +1,687 @@
+{
+  "character": "wakaba",
+  "sheet": "wakaba-system/cast-engine/reference/wakaba_charactersheet.webp",
+  "sheet_size": [
+    1448,
+    1086
+  ],
+  "analyzed": "2026-11-04（Claude が設定画を拡大して読んだ。画素の位置と色は実測、意味づけは読み取り）",
+  "_rules": "certainty: measured＝画素から測った値／read＝絵から読み取った（ほぼ確実）／guess＝推測（ポーズ・遠近・隠れで確定できない）。見えない所は書かない",
+  "views_on_sheet": {
+    "front_full": {
+      "box": [
+        425,
+        5,
+        805,
+        1045
+      ],
+      "note": "全身。歩くポーズで右手を前に出している（T ポーズではない）"
+    },
+    "three_quarter": {
+      "box": [
+        22,
+        218,
+        258,
+        400
+      ]
+    },
+    "back": {
+      "box": [
+        265,
+        218,
+        485,
+        505
+      ],
+      "note": "上半身の背面。尻尾は付け根の近くだけ見える"
+    },
+    "faces": {
+      "smile": [
+        848,
+        203,
+        1002,
+        358
+      ],
+      "gentle": [
+        1008,
+        203,
+        1165,
+        358
+      ],
+      "surprised": [
+        848,
+        383,
+        1002,
+        538
+      ],
+      "ehehe": [
+        1008,
+        383,
+        1165,
+        538
+      ]
+    }
+  },
+  "palette": {
+    "_note": "box（1 つ）か boxes（複数）は設定画の画素 [左, 上, 右, 下]。色は箱の中の中央値で比べる。原画は水彩風で光と陰が強いので、柄の無い・光の当たった所を選ぶ（モデルの正面も光の当たった色で測るため）",
+    "hair": {
+      "box": [
+        615,
+        62,
+        640,
+        80
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "Hair_00_HAIR_02",
+        "HairBack"
+      ],
+      "view": "front"
+    },
+    "ears_inner": {
+      "box": [
+        574,
+        70,
+        580,
+        78
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "HQ3D_EarInner"
+      ],
+      "view": "front",
+      "note": "左耳の内側の桃色（右耳は光が強く白っぽく描かれているので使わない）"
+    },
+    "ears_rim": {
+      "boxes": [
+        [
+          572,
+          60,
+          584,
+          64
+        ],
+        [
+          585,
+          62,
+          595,
+          66
+        ]
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "HQ3D_EarRim"
+      ],
+      "view": "front",
+      "note": "左耳の外側の縁（髪に近い黄緑がかったベージュ）"
+    },
+    "skin": {
+      "box": [
+        636,
+        146,
+        648,
+        158
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "Face_00_SKIN"
+      ],
+      "view": "front"
+    },
+    "eyes": {
+      "box": [
+        1115,
+        286,
+        1121,
+        293
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "EyeIris"
+      ],
+      "view": "front",
+      "note": "表情集「やさしい」の右目の瞳（全身の絵では瞳が小さく、瞳孔の黒が混ざる）"
+    },
+    "jacket": {
+      "boxes": [
+        [
+          735,
+          360,
+          752,
+          385
+        ],
+        [
+          700,
+          300,
+          712,
+          340
+        ]
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "Tops_01"
+      ],
+      "view": "front",
+      "note": "上着の光の当たった無地の所（暖かい白）。2026-11-04 まで使っていた [755,385,780,425] は袖の緑の帯にかかっていた"
+    },
+    "pants": {
+      "boxes": [
+        [
+          640,
+          605,
+          665,
+          645
+        ],
+        [
+          600,
+          560,
+          625,
+          590
+        ],
+        [
+          680,
+          700,
+          700,
+          740
+        ]
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "Onepiece_00_CLOTH_01"
+      ],
+      "view": "front",
+      "note": "柄の無い 3 か所"
+    },
+    "shoes": {
+      "box": [
+        648,
+        1020,
+        668,
+        1035
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "Shoes_01_CLOTH"
+      ],
+      "view": "front",
+      "note": "前の足のつま先（光の当たった白）。前の箱 [590,955,610,975] は陰だった"
+    },
+    "tail": {
+      "box": [
+        500,
+        525,
+        520,
+        565
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "CatTail"
+      ],
+      "view": "back"
+    }
+  },
+  "proportions": {
+    "heads_tall": {
+      "value": 7.1,
+      "certainty": "guess",
+      "how": "髪の上端（アホ毛と猫耳を除く）y≈40、あご y≈177、足元 y≈1015（歩くポーズで前後の足の高さが違うので平均）。(1015-40)/(177-40)",
+      "model_measure": "正面のマスクで、髪の幅が最大幅の 40% を超える最初の行＝上端、顔の肌の最下行＝あご、靴の最下行＝足元"
+    }
+  },
+  "parts": [
+    {
+      "id": "cat_ears",
+      "name": "猫耳（白っぽい毛・内側は桃色）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "Hair_00_HAIR_01",
+          "HQ3D_Ear"
+        ],
+        "view": "front"
+      }
+    },
+    {
+      "id": "tail",
+      "name": "尻尾（白・太くふわふわ・やさしい花模様）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "CatTail"
+        ],
+        "view": "back"
+      },
+      "shape_note": "花模様は surface_pattern で入れた（薄い黄緑の小さな葉と、ところどころ小花・2026-11-05）"
+    },
+    {
+      "id": "glasses",
+      "name": "眼鏡（細い角ばった枠・濃い緑がかった色）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "Glasses"
+        ],
+        "view": "front"
+      },
+      "shape_note": "glasses_frame で作り直した（細い角ばった枠・濃いオリーブ緑 #46503A・2026-11-05）。色は画素がまつ毛と混ざって測れないので読み取りからの推測。レンズは無し"
+    },
+    {
+      "id": "ahoge",
+      "name": "アホ毛",
+      "certainty": "read",
+      "manual": "ある（2026-11-03 VRoid で追加）"
+    },
+    {
+      "id": "hood",
+      "name": "上着のフード",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_Hood"
+        ],
+        "view": "back"
+      },
+      "shape_note": "花の柄は surface_pattern で入れた（緑の葉と桃色の花の小枝・2026-11-05）。上胸の骨に固定なので、頭を後ろへ大きく倒すと髪と重なることがある"
+    },
+    {
+      "id": "open_front",
+      "name": "上着が前開き（ジッパー）・中に白いシャツ",
+      "certainty": "read",
+      "manual": "ある（2026-11-04 Blender でテクスチャを描きかえて前開きに見せた。形は閉じたまま）",
+      "shape_note": "テクスチャで描いた前開き。横を向いたり動いたりしても布は開かない"
+    },
+    {
+      "id": "ribbon",
+      "name": "首元の緑のリボンタイ",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_Ribbon"
+        ],
+        "view": "front"
+      }
+    },
+    {
+      "id": "pendant",
+      "name": "桃色の花のペンダント",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_Pendant"
+        ],
+        "view": "front"
+      }
+    },
+    {
+      "id": "charm",
+      "name": "クローバーのサブチャーム（上着の右胸）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_Clover"
+        ],
+        "view": "front"
+      }
+    },
+    {
+      "id": "ear_flower",
+      "name": "耳の花飾り（ジャスミン・クローバー・新緑）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_EarFlower"
+        ],
+        "view": "front"
+      },
+      "shape_note": "白い小花 3 つ・葉 2 枚・小さなクローバー（ジャスミン・新緑の形は簡略）"
+    },
+    {
+      "id": "cargo",
+      "name": "パンツのカーゴポケット・草花の柄・裾のしぼり",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_Pocket"
+        ],
+        "view": "front"
+      },
+      "shape_note": "ポケット・草花の柄・裾の色・ゆったりした形と裾のしぼり・脇に垂れるひも（hanging_straps）は入れた（2026-11-05）。裾の帯そのものは元の太さ（肌が出ないよう縮めていない）"
+    },
+    {
+      "id": "chain",
+      "name": "腰のチェーン（花のチャーム付き）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_WaistChain"
+        ],
+        "view": "front"
+      }
+    },
+    {
+      "id": "laces",
+      "name": "白いスニーカーに緑の靴ひも",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_Laces"
+        ],
+        "view": "front"
+      },
+      "shape_note": "靴は VRoid のマジックテープ型のまま。その上にひもを通した"
+    }
+  ],
+  "not_compared_yet": [
+    "顔の目・鼻・口の位置（顔の目印の検出は未導入）",
+    "髪の毛束の流れ"
+  ],
+  "silhouette": {
+    "_note": "全身のシルエット比較の設定。座標はすべて box の左上からの画素。目印（seeds）・尻尾の除外範囲・足した関節・奥行きの手がかりは Claude が絵を見て置いた（read／guess）。関節（keypoints）は OpenPose で測った値",
+    "view": "front_full",
+    "box": [
+      425,
+      5,
+      850,
+      1045
+    ],
+    "inner": [
+      60,
+      10,
+      418,
+      1035
+    ],
+    "keypoints": "sheet/front_keypoints.json",
+    "silhouette": "sheet/front_silhouette.png",
+    "seeds": {
+      "fg_from_keypoints": true,
+      "fg": [
+        {
+          "what": "前に出した右手（手のひらと指）",
+          "pts": [
+            [
+              150,
+              320
+            ],
+            [
+              150,
+              365
+            ],
+            [
+              125,
+              412
+            ]
+          ],
+          "width": 6
+        },
+        {
+          "what": "右手の指",
+          "pts": [
+            [
+              150,
+              365
+            ],
+            [
+              165,
+              432
+            ]
+          ],
+          "width": 5
+        },
+        {
+          "what": "右手の指",
+          "pts": [
+            [
+              150,
+              365
+            ],
+            [
+              198,
+              405
+            ]
+          ],
+          "width": 5
+        },
+        {
+          "what": "右手の親指",
+          "pts": [
+            [
+              150,
+              365
+            ],
+            [
+              105,
+              375
+            ]
+          ],
+          "width": 5
+        },
+        {
+          "what": "尻尾（先から付け根へ）",
+          "pts": [
+            [
+              25,
+              455
+            ],
+            [
+              50,
+              430
+            ],
+            [
+              80,
+              425
+            ],
+            [
+              100,
+              445
+            ],
+            [
+              90,
+              480
+            ],
+            [
+              80,
+              520
+            ],
+            [
+              85,
+              560
+            ],
+            [
+              100,
+              595
+            ],
+            [
+              125,
+              612
+            ]
+          ],
+          "width": 6
+        },
+        {
+          "what": "頭",
+          "pts": [
+            [
+              236,
+              60
+            ],
+            [
+              236,
+              136
+            ],
+            [
+              205,
+              90
+            ],
+            [
+              270,
+              90
+            ]
+          ],
+          "width": 10
+        },
+        {
+          "what": "後ろの足（右）の靴",
+          "pts": [
+            [
+              190,
+              960
+            ],
+            [
+              200,
+              880
+            ]
+          ],
+          "width": 10
+        },
+        {
+          "what": "前の足（左）の靴",
+          "pts": [
+            [
+              240,
+              1000
+            ],
+            [
+              246,
+              920
+            ]
+          ],
+          "width": 10
+        }
+      ],
+      "bg": [
+        {
+          "what": "箱の左端",
+          "pts": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              1039
+            ]
+          ],
+          "width": 16
+        },
+        {
+          "what": "箱の右端",
+          "pts": [
+            [
+              424,
+              0
+            ],
+            [
+              424,
+              1039
+            ]
+          ],
+          "width": 6
+        },
+        {
+          "what": "箱の上端",
+          "pts": [
+            [
+              0,
+              0
+            ],
+            [
+              424,
+              0
+            ]
+          ],
+          "width": 6
+        },
+        {
+          "what": "左上の文字",
+          "pts": [
+            [
+              10,
+              10
+            ],
+            [
+              120,
+              10
+            ],
+            [
+              120,
+              80
+            ]
+          ],
+          "width": 6
+        },
+        {
+          "what": "右の縦書きの文字（もっと素敵な未来へ）の上の方",
+          "pts": [
+            [
+              372,
+              145
+            ],
+            [
+              372,
+              228
+            ]
+          ],
+          "width": 4
+        }
+      ],
+      "bg_rects": [
+        [
+          345,
+          70,
+          380,
+          140
+        ]
+      ]
+    },
+    "tail_exclude": [
+      [
+        0,
+        395
+      ],
+      [
+        92,
+        395
+      ],
+      [
+        92,
+        442
+      ],
+      [
+        120,
+        448
+      ],
+      [
+        120,
+        545
+      ],
+      [
+        138,
+        545
+      ],
+      [
+        138,
+        650
+      ],
+      [
+        0,
+        650
+      ]
+    ],
+    "extra_keypoints": {},
+    "depth_hints": [
+      {
+        "joint": "R_wrist",
+        "in_front_of": "R_shoulder",
+        "by_m": 0.25,
+        "certainty": "read",
+        "note": "右手を見る人の方へ差し出している（手が大きく描かれている）"
+      },
+      {
+        "joint": "L_ankle",
+        "in_front_of": "R_ankle",
+        "by_m": 0.15,
+        "certainty": "read",
+        "note": "歩くポーズで左足が前（絵の下の方にあり、靴が大きい）"
+      }
+    ],
+    "certainty": "read"
+  }
+}

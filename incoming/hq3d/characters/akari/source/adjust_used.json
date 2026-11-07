@@ -1,0 +1,312 @@
+{
+  "character": "akari",
+  "source": "wakaba-character-model-factory/hq3d/characters/akari/src/akari_vroid.vrm（VRoid Studio 2.3.0 で 2026-11-07 に作った素体。src/akari.vroid）",
+  "_note": "瀬名 灯里（デザイン案 reference/akari_sheet.webp）。VRoid の素体（ボブ・158cm・緑のパーカーのセット・ジーンズ・白い靴）を、Blender で原画へ寄せる。値はどれも原画から推した値（guess）",
+  "steps": [
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "上着: VRoid のパーカーの緑を、原画のオリーブ色へ（布の陰の濃淡は半分残す）",
+      "params": {
+        "material": "Tops_01",
+        "items": [
+          {
+            "type": "recolor",
+            "match": "#5E6F5C",
+            "tol": 0.22,
+            "color": "#524E3C",
+            "keep_shade": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "op": "jacket_open",
+      "enabled": true,
+      "note": "前開き: 中のクリームと紺のボーダーのシャツ・銀のファスナー。開きの幅は原画の見え幅（胸で片側 5.6 cm・裾で 6.8 cm）から。縞の間隔 3.4 cm・紺の幅 1.3 cm",
+      "params": {
+        "material": "Tops_01",
+        "z": [
+          0.74,
+          1.3
+        ],
+        "facing": 0.2,
+        "half_width": [
+          [
+            0.75,
+            0.068
+          ],
+          [
+            1,
+            0.062
+          ],
+          [
+            1.15,
+            0.056
+          ],
+          [
+            1.25,
+            0.05
+          ],
+          [
+            1.3,
+            0.046
+          ]
+        ],
+        "tape_width": 0.006,
+        "tape_color": "#46443A",
+        "teeth_color": "#9A9A92",
+        "teeth_pitch": 0.005,
+        "shirt_color": "#E9E0D0",
+        "shade_color": "#B8AE9E",
+        "shade_width": 0.01,
+        "stripes": {
+          "pitch": 0.034,
+          "width": 0.013,
+          "color": "#2F3653",
+          "z0": 1
+        }
+      }
+    },
+    {
+      "op": "front_marks",
+      "enabled": true,
+      "note": "上着の前の飾り（原画: 胸の切り替え線・腰のふた付きポケット・開きの両側の銀のスナップ）。位置は裾からの高さで原画に合わせた",
+      "params": {
+        "material": "Tops_01",
+        "facing": 0.25,
+        "items": [
+          {
+            "type": "line",
+            "from": [
+              0.078,
+              1.195
+            ],
+            "to": [
+              0.17,
+              1.205
+            ],
+            "width": 0.0025,
+            "color": "#3B392A",
+            "mirror": true
+          },
+          {
+            "type": "rect",
+            "box": [
+              0.092,
+              0.785,
+              0.162,
+              0.9
+            ],
+            "outline": "#3F3D2D",
+            "line_w": 0.0018,
+            "mirror": true
+          },
+          {
+            "type": "rect",
+            "box": [
+              0.09,
+              0.9,
+              0.165,
+              0.945
+            ],
+            "fill": "#4B4836",
+            "outline": "#3A3829",
+            "line_w": 0.002,
+            "mirror": true
+          },
+          {
+            "type": "dot",
+            "at": [
+              0.128,
+              0.918
+            ],
+            "radius": 0.0045,
+            "color": "#D8D8D2",
+            "rim": "#86857C",
+            "mirror": true
+          },
+          {
+            "type": "dot",
+            "at": [
+              0.083,
+              1.24
+            ],
+            "radius": 0.0045,
+            "color": "#D8D8D2",
+            "rim": "#86857C",
+            "mirror": true
+          },
+          {
+            "type": "dot",
+            "at": [
+              0.086,
+              1.12
+            ],
+            "radius": 0.0045,
+            "color": "#D8D8D2",
+            "rim": "#86857C",
+            "mirror": true
+          },
+          {
+            "type": "dot",
+            "at": [
+              0.088,
+              1
+            ],
+            "radius": 0.0045,
+            "color": "#D8D8D2",
+            "rim": "#86857C",
+            "mirror": true
+          },
+          {
+            "type": "dot",
+            "at": [
+              0.09,
+              0.88
+            ],
+            "radius": 0.0045,
+            "color": "#D8D8D2",
+            "rim": "#86857C",
+            "mirror": true
+          },
+          {
+            "type": "dot",
+            "at": [
+              0.092,
+              0.78
+            ],
+            "radius": 0.0045,
+            "color": "#D8D8D2",
+            "rim": "#86857C",
+            "mirror": true
+          }
+        ]
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "ジーンズ: VRoid の濃い紺を、原画の中くらいの青（洗いのかかったデニム）へ。デニムの濃淡は 6 割残す",
+      "params": {
+        "material": "Bottoms_01",
+        "items": [
+          {
+            "type": "recolor",
+            "match": "#16202E",
+            "tol": 0.3,
+            "color": "#55607A",
+            "keep_shade": 0.6
+          }
+        ]
+      }
+    },
+    {
+      "op": "hair_clip",
+      "enabled": true,
+      "note": "ヘアピン（原画: モデルの左＝向かって右のこめかみの上に、銀色の細いピン。前が少し下がる）。前の端が髪の外へはみ出したので、少し後ろ・上へ（2026-11-07）",
+      "params": {
+        "name": "HQ3D_HairClip",
+        "side": 1,
+        "at": [
+          -0.045,
+          1.515
+        ],
+        "length": 0.042,
+        "width": 0.0065,
+        "thick": 0.0025,
+        "angle": -25,
+        "material": "Hair_00_HAIR",
+        "color": "#CFD2D6",
+        "shade_color": "#9DA0A6"
+      }
+    },
+    {
+      "op": "shoulder_bag",
+      "enabled": true,
+      "note": "茶色の革のショルダーバッグ（原画の正面: モデルの左肩から右の腰へ斜めがけ。ふたに留め具のベルト 2 本と金具）。大きさは原画の画素（約 539 画素/m）から",
+      "params": {
+        "name": "HQ3D_Bag",
+        "strap_name": "HQ3D_BagStrap",
+        "bag": {
+          "theta": -55,
+          "z": 0.8,
+          "size": [
+            0.15,
+            0.13,
+            0.055
+          ],
+          "gap": 0.015,
+          "flap": 0.62,
+          "straps": [
+            -0.25,
+            0.25
+          ],
+          "bone": "J_Bip_C_Hips",
+          "round": 0.014
+        },
+        "strap": {
+          "front": [
+            [
+              45,
+              1.21
+            ],
+            [
+              20,
+              1.13
+            ],
+            [
+              -5,
+              1.02
+            ],
+            [
+              -30,
+              0.93
+            ]
+          ],
+          "back": [
+            [
+              140,
+              1.21
+            ],
+            [
+              175,
+              1.1
+            ],
+            [
+              -150,
+              0.98
+            ],
+            [
+              -110,
+              0.9
+            ]
+          ],
+          "shoulder_x": 0.09,
+          "width": 0.026,
+          "thick": 0.004,
+          "offset": 0.007,
+          "material": "Tops_01"
+        },
+        "color": "#7D5E4D",
+        "shade_color": "#4F382C",
+        "center_color": "#6B4E3F",
+        "cord_color": "#B5AFA3",
+        "strap_color": "#5A3F31",
+        "strap_shade": "#3F2B21",
+        "material_from": "Tops_01"
+      }
+    },
+    {
+      "op": "follow_weights",
+      "enabled": true,
+      "note": "肩ひもの重みを上着の布から写す（体と一緒に曲がる）",
+      "params": {
+        "objects": [
+          "HQ3D_BagStrap"
+        ],
+        "material": "Tops_01"
+      }
+    }
+  ]
+}

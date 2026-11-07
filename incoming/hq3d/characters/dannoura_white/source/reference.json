@@ -1,0 +1,293 @@
+{
+  "character": "dannoura_white",
+  "sheet": "wakaba-character-model-factory/hq3d/characters/dannoura_white/reference/dannoura_white_sheet.webp",
+  "sheet_size": [
+    1536,
+    1024
+  ],
+  "analyzed": "2026-11-07（Claude が設計図を方眼つきで拡大して読んだ。画素の位置と色は実測、意味づけは読み取り）",
+  "_rules": "certainty: measured＝画素から測った値／read＝絵から読み取った（ほぼ確実）／guess＝推測。見えない所は書かない。設計図の正面は約 4.77 画素/cm（猫耳を除いた頭の上 y≈163・足元 y≈945・身長 164cm）。だんのうらは男の子（見た目が女の子っぽい）。白い姿＝体調不良の形態（同一人物・男性）",
+  "views_on_sheet": {
+    "front_full": {
+      "box": [
+        130,
+        120,
+        420,
+        950
+      ],
+      "note": "全身の正面。A ポーズ"
+    },
+    "side": {
+      "box": [
+        440,
+        120,
+        640,
+        950
+      ],
+      "note": "左の横顔（花飾りが見える側）"
+    },
+    "back": {
+      "box": [
+        680,
+        120,
+        900,
+        950
+      ]
+    },
+    "faces": {
+      "neutral": [
+        937,
+        122,
+        1133,
+        412
+      ],
+      "smile": [
+        1141,
+        122,
+        1332,
+        412
+      ],
+      "determined": [
+        1338,
+        122,
+        1530,
+        412
+      ]
+    },
+    "details": {
+      "ear": [
+        940,
+        515,
+        1128,
+        640
+      ],
+      "tail_base": [
+        1135,
+        515,
+        1325,
+        640
+      ],
+      "tail": [
+        1332,
+        515,
+        1530,
+        640
+      ],
+      "glasses": [
+        940,
+        698,
+        1140,
+        810
+      ],
+      "nails": [
+        1147,
+        698,
+        1325,
+        810
+      ],
+      "hoodie": [
+        1332,
+        698,
+        1530,
+        810
+      ],
+      "fabrics": [
+        946,
+        872,
+        1530,
+        935
+      ]
+    }
+  },
+  "palette": {
+    "_note": "box は設計図の画素 [左, 上, 右, 下]。光の当たった無地の所",
+    "hair": {
+      "box": [
+        255,
+        175,
+        265,
+        185
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "Hair_00_HAIR",
+        "HairBack"
+      ],
+      "view": "front"
+    },
+    "skin": {
+      "box": [
+        258,
+        228,
+        266,
+        236
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "Face_00_SKIN"
+      ],
+      "view": "front"
+    },
+    "jacket": {
+      "boxes": [
+        [
+          205,
+          330,
+          225,
+          350
+        ],
+        [
+          330,
+          330,
+          345,
+          350
+        ]
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "N00_005_01_Tops_01"
+      ],
+      "view": "front",
+      "note": "黒いパーカーの胸（設計図の指定は #1a1620・マット）"
+    },
+    "pants": {
+      "box": [
+        220,
+        600,
+        235,
+        640
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "Bottoms_01"
+      ],
+      "view": "front"
+    },
+    "ears": {
+      "box": [
+        238,
+        135,
+        246,
+        145
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "CatEar"
+      ],
+      "view": "front",
+      "note": "猫耳の外側の白"
+    }
+  },
+  "proportions": {
+    "heads_tall": {
+      "value": 7.4,
+      "certainty": "measured",
+      "how": "猫耳の下の髪の上端 y≈143、あご y≈252、足元 y≈945。(945-143)/(252-143)=7.4。設計図の目盛りは「約 6.5 頭身」（頭の絵は髪込みで大きめ）。通常姿の設計図は同じ測り方で 7.9（髪の上端の取り方で差が出る）",
+      "model_measure": "正面のマスクで、髪の幅が最大幅の 40% を超える最初の行＝上端、顔の肌の最下行＝あご、靴の最下行＝足元"
+    }
+  },
+  "layout_cm": {
+    "_note": "設計図の正面から測った高さ（床から cm・read）",
+    "jacket_hem": 90,
+    "sleeve_cuff_end": 90,
+    "drawstring_end": 118,
+    "sleeve_patch": "上腕の外側（肩から袖口までの 35%）に白い四角の当て布",
+    "sleeve_bands": "袖口の少し上（79%・85%）に白い帯 2 本",
+    "tail_tip": 47,
+    "ear_height": 6.3,
+    "shirt_neck": 138
+  },
+  "parts": [
+    {
+      "id": "glasses",
+      "name": "黒い長方形の眼鏡",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_Glasses",
+          "GlassesHiFrame"
+        ],
+        "view": "front"
+      }
+    },
+    {
+      "id": "ears",
+      "name": "白い猫耳（内側は桃色・短い毛）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "CatEar"
+        ],
+        "view": "front"
+      }
+    },
+    {
+      "id": "tail",
+      "name": "白い長い猫の尻尾（仙骨から・しなやかに先まで）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_CatTail"
+        ],
+        "view": "back"
+      }
+    },
+    {
+      "id": "ponytail",
+      "name": "高い位置の一つ結びのポニーテール（薄い藤色・腰まで）",
+      "certainty": "read",
+      "manual": "ある（通常姿と同じ VRoid の見本 #E4D3F0）"
+    },
+    {
+      "id": "hoodie",
+      "name": "黒い前開きのパーカー（フード・オフホワイトのひも・袖の白いベルト）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "N00_005_01_Tops_01"
+        ],
+        "view": "front"
+      }
+    },
+    {
+      "id": "straps",
+      "name": "袖の白い当て布と帯",
+      "certainty": "read",
+      "manual": "ある（テクスチャに描いた: 上腕の当て布 1・袖口の上の帯 2）"
+    },
+    {
+      "id": "inner",
+      "name": "チャコールの丸首の T シャツ",
+      "certainty": "read",
+      "manual": "ある（jacket_open のシャツの色 #55505E と、胸の丸首を描いた）"
+    },
+    {
+      "id": "pants",
+      "name": "黒に近い濃い色のストレートパンツ",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "Bottoms_01"
+        ],
+        "view": "front"
+      }
+    },
+    {
+      "id": "shoes",
+      "name": "黒いハイカットのスニーカー（白いひも・白い底）",
+      "certainty": "read",
+      "manual": "ある（通常姿と同じ VRoid の黒いハイカット）"
+    },
+    {
+      "id": "nails",
+      "name": "やや鋭いダークパープルの爪",
+      "certainty": "read",
+      "manual": "未"
+    }
+  ],
+  "not_compared_yet": [
+    "全身のシルエット（原画は A ポーズ）",
+    "顔の目・鼻・口の位置",
+    "髪の毛束の流れ"
+  ]
+}

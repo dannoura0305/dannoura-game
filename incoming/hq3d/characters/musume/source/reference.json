@@ -1,0 +1,279 @@
+{
+  "character": "musume",
+  "sheet": "wakaba-character-model-factory/hq3d/characters/musume/reference/musume_sheet.webp",
+  "sheet_size": [
+    1536,
+    1024
+  ],
+  "analyzed": "2026-11-07（Claude が設計図を方眼つきで拡大して読んだ。画素の位置と色は実測、意味づけは読み取り）",
+  "_rules": "certainty: measured＝画素から測った値／read＝絵から読み取った（ほぼ確実）／guess＝推測。見えない所は書かない。設計図の正面は約 6.68 画素/cm（髪の上 y≈72・足元 y≈740・身長約 100cm）",
+  "views_on_sheet": {
+    "front_full": {
+      "box": [
+        110,
+        60,
+        470,
+        760
+      ],
+      "note": "全身の正面。A ポーズ"
+    },
+    "side": {
+      "box": [
+        500,
+        60,
+        720,
+        760
+      ],
+      "note": "左の横顔（ヘアピンが見える側）"
+    },
+    "back": {
+      "box": [
+        760,
+        60,
+        1100,
+        760
+      ]
+    },
+    "faces": {
+      "curious": [
+        1145,
+        65,
+        1413,
+        298
+      ],
+      "smile": [
+        1145,
+        307,
+        1413,
+        532
+      ],
+      "excited": [
+        1145,
+        541,
+        1413,
+        771
+      ]
+    },
+    "details": {
+      "hair_back": [
+        160,
+        815,
+        307,
+        975
+      ],
+      "clip": [
+        318,
+        815,
+        434,
+        975
+      ],
+      "front_straps": [
+        445,
+        815,
+        624,
+        975
+      ],
+      "back_buttons": [
+        633,
+        815,
+        815,
+        975
+      ],
+      "pocket": [
+        826,
+        815,
+        988,
+        975
+      ],
+      "fabric": [
+        997,
+        815,
+        1132,
+        975
+      ],
+      "shoes": [
+        1141,
+        815,
+        1335,
+        975
+      ],
+      "velcro": [
+        1344,
+        815,
+        1532,
+        975
+      ]
+    }
+  },
+  "palette": {
+    "_note": "box は設計図の画素 [左, 上, 右, 下]。光の当たった無地の所",
+    "hair": {
+      "box": [
+        217,
+        160,
+        227,
+        180
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "Hair_00_HAIR",
+        "HairBack"
+      ],
+      "view": "front"
+    },
+    "skin": {
+      "box": [
+        255,
+        187,
+        265,
+        197
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "Face_00_SKIN"
+      ],
+      "view": "front",
+      "note": "頬の赤みが入る"
+    },
+    "dress": {
+      "boxes": [
+        [
+          275,
+          360,
+          290,
+          380
+        ],
+        [
+          262,
+          410,
+          280,
+          432
+        ]
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "N00_002_03_Tops_01_CLOTH_01",
+        "HQ3D_Pinafore"
+      ],
+      "view": "front",
+      "note": "ジャンパースカートのスカートの無地の所（ポケットの間）"
+    },
+    "shirt": {
+      "box": [
+        200,
+        295,
+        220,
+        310
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "N00_004_01_Tops_01"
+      ],
+      "view": "front",
+      "note": "T シャツの袖"
+    }
+  },
+  "proportions": {
+    "heads_tall": {
+      "value": 4.2,
+      "certainty": "guess",
+      "how": "髪の上端 y≈72、あご y≈230、足元 y≈740。(740-72)/(230-72)。髪のふくらみを含む",
+      "model_measure": "正面のマスクで、髪の幅が最大幅の 40% を超える最初の行＝上端、顔の肌の最下行＝あご、靴の最下行＝足元"
+    }
+  },
+  "layout_cm": {
+    "_note": "設計図の正面から測った高さ（床から cm・read）。モデルの手直しの位置の目安",
+    "bib_top": 69,
+    "front_buttons": 68,
+    "button_x": 5.7,
+    "bib_half_width": 8.6,
+    "waist_seam": 58.5,
+    "pocket_z": [
+      38.5,
+      48.5
+    ],
+    "pocket_abs_x": [
+      5,
+      12
+    ],
+    "skirt_hem": 28,
+    "sock_top": 12,
+    "sleeve_end": 63
+  },
+  "parts": [
+    {
+      "id": "hair_clip",
+      "name": "桃色のぱっちんピン（モデルの左＝向かって右のこめかみの上）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_HairClip"
+        ],
+        "view": "left"
+      }
+    },
+    {
+      "id": "tshirt",
+      "name": "クリーム色の半袖 T シャツ",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "N00_004_01_Tops_01"
+        ],
+        "view": "front"
+      }
+    },
+    {
+      "id": "pinafore",
+      "name": "桃色のジャンパースカート（胸当て・ギャザーのスカート・膝丈）",
+      "certainty": "read",
+      "shape_note": "スカートはギャザーではなく VRoid のフレア。腰の切り替えの縫い目は無い",
+      "detect": {
+        "materials": [
+          "HQ3D_Pinafore"
+        ],
+        "view": "front"
+      },
+      "note_made": "ある（2026-11-07 胸当て・後ろ身ごろ・肩ひもは Blender の板 HQ3D_Pinafore。スカートは VRoid の桃色のスカートを無地に塗り直した）"
+    },
+    {
+      "id": "front_buttons",
+      "name": "胸当ての肩ひもを留める前のボタン 2 つ",
+      "certainty": "read",
+      "manual": "ある（HQ3D_Pinafore のボタン・平たい円柱）"
+    },
+    {
+      "id": "back_buttons",
+      "name": "背中の真ん中のボタン 3 つ",
+      "certainty": "read",
+      "manual": "ある（HQ3D_Pinafore のボタン・背中の真ん中に縦に 3 つ）"
+    },
+    {
+      "id": "pockets",
+      "name": "スカートの左右の貼りポケット（角の丸い）",
+      "certainty": "read",
+      "manual": "ある（テクスチャに角の丸い四角と縫い目を描いた）",
+      "shape_note": "ふくらみは無い（描いただけ）"
+    },
+    {
+      "id": "socks",
+      "name": "白い靴下（くるぶしの上まで）",
+      "certainty": "read",
+      "manual": "ある（VRoid の白い靴下の上の部分を肌の色で塗って、床から 12 cm までにした）",
+      "shape_note": "折り返しは無い"
+    },
+    {
+      "id": "shoes",
+      "name": "桃色と白のマジックテープの運動靴（ベルト 2 本）",
+      "certainty": "read",
+      "manual": "ある（VRoid のひも靴を白く塗り、桃色のつま先・底のふち・ベルト 2 本を描いた）",
+      "shape_note": "形はひも靴のまま（ベルトは描いただけ）"
+    }
+  ],
+  "not_compared_yet": [
+    "全身のシルエット（原画は A ポーズ）",
+    "顔の目・鼻・口の位置",
+    "髪の毛束の流れ",
+    "靴下の色（VRoid のレッグウェアは体のテクスチャに描かれていて、材質で分けて測れない。原画の靴下は #D9D1CD 前後・目視で確認）"
+  ]
+}

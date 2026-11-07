@@ -1,0 +1,283 @@
+{
+  "character": "dannoura_visit",
+  "sheet": "wakaba-character-model-factory/hq3d/characters/dannoura_visit/reference/dannoura_visit_sheet.webp",
+  "sheet_size": [
+    1536,
+    1024
+  ],
+  "analyzed": "2026-11-07（Claude が設計図を方眼つきで拡大して読んだ）",
+  "_rules": "certainty: measured＝画素から測った値／read＝絵から読み取った／guess＝推測。見舞い時の外見（境界浸食のエピローグ。化けが不安定な状態・同一人物・男性）。通常姿と同じ体・服の形で、髪の色の混ざり方とパーカーの色が違う。設計図の正面は約 5.0 画素/cm（帽子を除いた頭の上 y≈112・足元 y≈935）",
+  "views_on_sheet": {
+    "front_full": {
+      "box": [
+        40,
+        80,
+        330,
+        940
+      ]
+    },
+    "side": {
+      "box": [
+        360,
+        80,
+        580,
+        940
+      ]
+    },
+    "back": {
+      "box": [
+        620,
+        80,
+        860,
+        940
+      ]
+    },
+    "faces": {
+      "neutral": [
+        902,
+        75,
+        1198,
+        380
+      ],
+      "smile": [
+        1205,
+        75,
+        1530,
+        380
+      ]
+    },
+    "details": {
+      "back_head": [
+        902,
+        390,
+        1170,
+        755
+      ],
+      "hair_map": [
+        1178,
+        390,
+        1530,
+        735
+      ],
+      "hair_texture": [
+        902,
+        770,
+        1170,
+        975
+      ],
+      "pose": [
+        1178,
+        745,
+        1530,
+        1015
+      ]
+    }
+  },
+  "palette": {
+    "_note": "box は設計図の画素 [左, 上, 右, 下]。設計図の指定は 紫（ベース）#6a3fa0・白（広いメッシュ）#f2eefa",
+    "hair": {
+      "box": [
+        155,
+        120,
+        165,
+        140
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "Hair_00_HAIR",
+        "HairBack"
+      ],
+      "view": "front",
+      "note": "紫の地（モデルの右の前髪）"
+    },
+    "hair_white": {
+      "box": [
+        195,
+        125,
+        205,
+        140
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "HQ3D_HairWhite"
+      ],
+      "view": "front",
+      "note": "モデルの左の前髪の白いメッシュ"
+    },
+    "skin": {
+      "box": [
+        178,
+        190,
+        186,
+        198
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "Face_00_SKIN"
+      ],
+      "view": "front"
+    },
+    "jacket": {
+      "boxes": [
+        [
+          110,
+          290,
+          130,
+          320
+        ],
+        [
+          230,
+          290,
+          250,
+          320
+        ]
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "N00_005_01_Tops_01"
+      ],
+      "view": "front",
+      "note": "紫のパーカー（通常姿の薄紫より濃い）"
+    },
+    "pants": {
+      "box": [
+        140,
+        600,
+        155,
+        640
+      ],
+      "certainty": "measured",
+      "model_materials": [
+        "Bottoms_01"
+      ],
+      "view": "front"
+    }
+  },
+  "proportions": {
+    "heads_tall": {
+      "value": 7.9,
+      "certainty": "guess",
+      "how": "同一人物・同じ体型なので通常姿の設計図の値（7.9）を使う。この設計図は全身が小さく、帽子と前髪で頭の上端が読みにくい",
+      "model_measure": "正面のマスクで、髪の幅が最大幅の 40% を超える最初の行＝上端、顔の肌の最下行＝あご、靴の最下行＝足元"
+    }
+  },
+  "layout_cm": {
+    "_note": "通常姿と同じ（同一人物・同じ服の形）",
+    "jacket_hem": 89.7,
+    "sleeve_cuff_end": 90,
+    "shirt_neck": 138,
+    "drawstring_end": 118,
+    "jacket_open_half": 4.8,
+    "stripe_pitch": 6.8,
+    "stripe_pink": 3.4,
+    "pants_hem": 8.4,
+    "shoe_top": 8.4,
+    "ponytail_end": 106,
+    "hat": {
+      "brim_w": 10,
+      "crown_w": 6.3,
+      "height": 7.3,
+      "center_x_from_face": -2
+    },
+    "flower": {
+      "diameter": 3.1,
+      "at": "モデルの左のこめかみの上（顔の中心から +8.5 cm・目の 6 cm 上）"
+    }
+  },
+  "parts": [
+    {
+      "id": "glasses",
+      "name": "黒い長方形の眼鏡",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_Glasses",
+          "GlassesHiFrame"
+        ],
+        "view": "front"
+      }
+    },
+    {
+      "id": "hat",
+      "name": "桃色のミニシルクハット（薄い桃色の帯・頭の上でモデルの右寄り）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_Hat"
+        ],
+        "view": "front"
+      }
+    },
+    {
+      "id": "flower",
+      "name": "桃色の五枚花の花飾り（モデルの左耳の上）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_Flower"
+        ],
+        "view": "left"
+      }
+    },
+    {
+      "id": "ponytail",
+      "name": "高い位置の一つ結びのポニーテール（紫の地に白い束 2 本）",
+      "certainty": "read",
+      "manual": "ある（VRoid の高い一つ結び。白い束は hair_two_tone）"
+    },
+    {
+      "id": "hoodie",
+      "name": "紫の前開きパーカー（フード・白いひも・リブの袖口と裾・ファスナー）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "N00_005_01_Tops_01"
+        ],
+        "view": "front"
+      },
+      "shape_note": "前開きはテクスチャに描いた（形は閉じたかぶりのパーカー）。ひもは描いただけ。原画より太く、袖がふくらむ"
+    },
+    {
+      "id": "stripes",
+      "name": "中のシャツは桃色と白の太い横じま",
+      "certainty": "read",
+      "manual": "ある（jacket_open の縞）"
+    },
+    {
+      "id": "pants",
+      "name": "濃い紫のチェックのストレートパンツ",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "Bottoms_01"
+        ],
+        "view": "front"
+      }
+    },
+    {
+      "id": "shoes",
+      "name": "黒いハイカットのキャンバス地スニーカー（白いひも・白い底）",
+      "certainty": "read",
+      "manual": "ある（VRoid の黒いハイカット）"
+    },
+    {
+      "id": "hair_mesh",
+      "name": "白い広いメッシュ（モデルの左の前髪〜頭頂の大きな束）",
+      "certainty": "read",
+      "detect": {
+        "materials": [
+          "HQ3D_HairWhite"
+        ],
+        "view": "front"
+      }
+    }
+  ],
+  "optional": [
+    "ネコ顔リュック（着脱装備・任意）。いまは作らない"
+  ],
+  "not_compared_yet": [
+    "全身のシルエット（原画は A ポーズ）",
+    "顔の目・鼻・口の位置",
+    "髪の毛束の流れ"
+  ]
+}

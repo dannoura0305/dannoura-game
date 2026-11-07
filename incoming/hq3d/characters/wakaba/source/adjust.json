@@ -1,0 +1,2654 @@
+{
+  "character": "wakaba",
+  "source": "wakaba-system/cast-engine/storage/models3d/wakaba/src/wakaba_vroid.vrm（VRoid から書き出したまま）",
+  "reference": "wakaba-system/cast-engine/reference/wakaba_charactersheet.webp",
+  "steps": [
+    {
+      "op": "tail_duplicate",
+      "enabled": true,
+      "note": "尻尾を 2 本に（2026-11-06・利用者の指示: 猫又なので尻尾は 2 本）。尻尾の骨の鎖（10 本）をまるごと写して J_Opt_C_CatTail*_02 を作り、揺れもの（硬さ・重力・抵抗・当たりの半径）も元と同じ設定で足す",
+      "params": {
+        "first_bone": "J_Opt_C_CatTail1_01",
+        "suffix_from": "_01",
+        "suffix_to": "_02",
+        "spring_name": "CatTail2"
+      }
+    },
+    {
+      "op": "tail_swing",
+      "enabled": true,
+      "note": "尻尾を横へ振る（2026-11-06）。原画の尻尾は後ろから横へ弧を描く。まっすぐ下に垂れると、正面から両脚の間に白い柱が見えて体のつり合いが崩れて見えた。付け根を中心に横 35°・下へ 10°、先へ行くほど横へ 40° 足す（後ろへ 30° では、横から見て棒のように水平に突き出た）",
+      "params": {
+        "side": 35,
+        "back": -10,
+        "curl": 40
+      }
+    },
+    {
+      "op": "tail_swing",
+      "enabled": true,
+      "note": "2 本目の尻尾を、1 本目と反対の横へ振る（横 -30°・下へ 5°・先へ行くほど -35°）。正面から見て左右に 1 本ずつ出る",
+      "params": {
+        "first_bone": "J_Opt_C_CatTail1_02",
+        "side": -30,
+        "back": -5,
+        "curl": -35
+      }
+    },
+    {
+      "op": "cat_tail_tube",
+      "enabled": true,
+      "note": "設定画の尻尾は白く太くふわっとしている。VRoid のネコしっぽは平たく細いので、骨と揺れものはそのままに形だけ筒で作り直す。太さは設定画の見た目からの推測値（背面・側面の設定画は尻尾がはっきりしないので、正面と全身から推した）。11-05 夜: 原画の尻尾は白く太く、毛がふわふわ。太さを約 1.25 倍にし、表面に毛の房 900 個（幅 2.2 cm・長さ 1.4 cm、先の向きへ深く寝かせて重ねる。立てるとトゲのように見えた）を散らした。陰の色を明るく（#C4BBAD→#DDD6C8。毛の房の陰が灰色の汚れに見えた）。11-06（軽くする案）: 毛の房を 900→380 個にし、1 個を幅 3 cm・長さ 1.6 cm に（重なりの描きすぎを減らす）。runs/20261106-201342 で試した案。この PC の GPU で本番の舞台を測ると 900 個でも 60fps を保てたので、900 個に戻した（本番と同じ）",
+      "params": {
+        "first_bone": "J_Opt_C_CatTail1_01",
+        "color": "#F7F5EE",
+        "shade_color": "#DDD6C8",
+        "radius": [
+          [
+            0,
+            0.024
+          ],
+          [
+            0.12,
+            0.042
+          ],
+          [
+            0.5,
+            0.056
+          ],
+          [
+            0.82,
+            0.062
+          ],
+          [
+            0.94,
+            0.05
+          ],
+          [
+            1,
+            0
+          ]
+        ],
+        "length_tufts": 7,
+        "length_tuft_depth": 0.1,
+        "ridges": 9,
+        "ridge_depth": 0.07,
+        "ridge_twist": 2.5,
+        "rings": 72,
+        "sides": 20,
+        "remove_original": true,
+        "original_material": "CatTail",
+        "fur": {
+          "count": 900,
+          "len": 0.014,
+          "width": 0.022,
+          "lean": 1.6,
+          "seed": 3
+        }
+      }
+    },
+    {
+      "op": "cat_tail_tube",
+      "enabled": true,
+      "note": "2 本目の尻尾の筒（1 本目と同じ形・毛の房の並びだけ変える）。11-06（軽くする案）: 毛の房を 900→380 個にし、1 個を幅 3 cm・長さ 1.6 cm に（重なりの描きすぎを減らす）。runs/20261106-201342 で試した案。この PC の GPU で本番の舞台を測ると 900 個でも 60fps を保てたので、900 個に戻した（本番と同じ）",
+      "params": {
+        "first_bone": "J_Opt_C_CatTail1_02",
+        "color": "#F7F5EE",
+        "shade_color": "#DDD6C8",
+        "radius": [
+          [
+            0,
+            0.024
+          ],
+          [
+            0.12,
+            0.042
+          ],
+          [
+            0.5,
+            0.056
+          ],
+          [
+            0.82,
+            0.062
+          ],
+          [
+            0.94,
+            0.05
+          ],
+          [
+            1,
+            0
+          ]
+        ],
+        "length_tufts": 7,
+        "length_tuft_depth": 0.1,
+        "ridges": 9,
+        "ridge_depth": 0.07,
+        "ridge_twist": 2.5,
+        "rings": 72,
+        "sides": 20,
+        "remove_original": false,
+        "original_material": "CatTail",
+        "fur": {
+          "count": 900,
+          "len": 0.014,
+          "width": 0.022,
+          "lean": 1.6,
+          "seed": 8
+        },
+        "name": "HQ3D_CatTail2",
+        "material_name": "HQ3D_CatTail2",
+        "template_material": "HQ3D_CatTail"
+      }
+    },
+    {
+      "op": "ear_regions",
+      "enabled": true,
+      "note": "設定画の猫耳は 外側＝髪に近い黄緑がかったベージュ・内側＝桃色・付け根に白い毛の房。VRoid の耳は全体が灰色の毛皮なので、面を場所と向きで 3 つに分けて色を替える。色は run.js --tune で原画の色へ寄せる（tune の欄）。VRoid の耳のテクスチャ（灰色の毛皮）は暗く、基本色を最大にしても原画の明るさに届かないので、texture_lift で暗い所を持ち上げた写しを使う",
+      "params": {
+        "material": "HAIR_01",
+        "inner_color": "#FCC4AD",
+        "tuft_color": "#FFFFFF",
+        "rim_color": "#FFFDE3",
+        "inner_facing": 0.35,
+        "inner_width": 0.55,
+        "inner_z": [
+          0.2,
+          0.9
+        ],
+        "tuft_z": 0.28,
+        "tuft_width": 0.7,
+        "texture_lift": 0.4
+      },
+      "tune": {
+        "inner_color": "ears_inner",
+        "rim_color": "ears_rim"
+      }
+    },
+    {
+      "op": "material_color",
+      "enabled": true,
+      "note": "設定画の上着は光の当たった所が暖かい白（クリーム寄り）。モデルは少し青みのある白なので、ほんの少し暖かくする",
+      "params": {
+        "material": "Tops_01",
+        "color": "#FFF9F0"
+      },
+      "tune": {
+        "color": "jacket"
+      }
+    },
+    {
+      "op": "jacket_open",
+      "enabled": true,
+      "note": "設定画の上着は前が開いていて、中の白いシャツと、開いた端のファスナーのテープが見える。VRoid の上着は閉じた形で、下の体も消してあるので、テクスチャの前の真ん中をシャツとファスナーに描きかえる。開きの幅は設定画の上着の幅に対するシャツの見え幅から推した値。閉じた上着の合わせ目として描いてあった薄い黄緑の帯（向かって左だけにあった）は、上着の地の色で消す（erase_band）。11-06: テクスチャのファスナーは消した（上着の地の色で描く）。ファスナーは hood の lapel で立体に付ける（かえりと二重になっていた）",
+      "params": {
+        "material": "Tops_01",
+        "z": [
+          0.86,
+          1.38
+        ],
+        "facing": 0.2,
+        "center_x": 0,
+        "half_width": [
+          [
+            0.86,
+            0.065
+          ],
+          [
+            1,
+            0.058
+          ],
+          [
+            1.15,
+            0.05
+          ],
+          [
+            1.28,
+            0.042
+          ],
+          [
+            1.38,
+            0.03
+          ]
+        ],
+        "tape_width": 0.007,
+        "tape_color": "#FFF9F0",
+        "teeth_color": "#FFF9F0",
+        "teeth_pitch": 0.006,
+        "shirt_color": "#F8F8F3",
+        "shade_color": "#D8D6CC",
+        "shade_width": 0.012,
+        "buttons": {
+          "z": [
+            1.27,
+            1.17,
+            1.07,
+            0.97
+          ],
+          "radius": 0.0045,
+          "color": "#D9D9D2"
+        },
+        "erase_band": {
+          "max_d": 0.09,
+          "min_r": 0.72,
+          "min_g": 0.8,
+          "min_gb": 0.04,
+          "fill": "#FDFDFD"
+        }
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "上着のクローバー柄を控えめに（2026-11-05 夜）。原画の上着には大きなクローバーが無い。鮮やかな緑（彩度 0.22 以上）を上着の地の色へ 70% 寄せて薄くする。襟の輪・帯・ファスナーのテープと歯の色は残す（場所で外すと襟元のクローバーまで残った）",
+      "params": {
+        "material": "Tops_01",
+        "items": [
+          {
+            "type": "fade",
+            "min_sat": 0.22,
+            "toward": "#FFF9F0",
+            "amount": 0.7,
+            "keep": [
+              "#5F6E41",
+              "#9DB073",
+              "#A9BE86",
+              "#7F9468"
+            ],
+            "keep_tol": 0.08
+          }
+        ]
+      }
+    },
+    {
+      "op": "pants_shape",
+      "enabled": true,
+      "note": "ズボンの形（設定画: 腰から下がゆったり太く、裾はしぼったジョガー型で、しぼりの上に布がたるむ）。2026-11-05 のシルエット比較で、モデルの太ももは原画の 80%・すねは 88% の面積だった。倍率と高さはその比と設定画の見た目から推した値。11-06: 内側（股の側）の広げ方を 0.6→0.3 に（両脚がくっついて股の下のすき間が見えず、脚が長く見えた）。11-06: 股を下げた（z 0.84〜0.73 の内側の布を真ん中へ寄せる）。上着の裾のすぐ下で脚が分かれると、脚がとても長く見えた（原画はゆったりした股が低い所まで下がる）。11-06: もっとゆったり（太もも〜ひざを 1.28→1.42 倍）。原画のズボンは太ももからひざがだぼっと太い。11-06（2 回目）: 利用者「ふくらはぎの筋肉が異常に発達した人に見える。足首でキュッとなりすぎ」。脚の形のまま広げていたので、ふくらはぎの出っ張りがそのまま大きくなっていた。断面を丸い筒へ寄せ（round 0.8）、ひざから足首へゆるやかに細く（1.38→1.12）、裾のたるみの波を半分に",
+      "params": {
+        "material": "Onepiece_00_CLOTH",
+        "profile": [
+          [
+            0.86,
+            1.0
+          ],
+          [
+            0.8,
+            1.1
+          ],
+          [
+            0.7,
+            1.32
+          ],
+          [
+            0.56,
+            1.42
+          ],
+          [
+            0.45,
+            1.38
+          ],
+          [
+            0.38,
+            1.32
+          ],
+          [
+            0.32,
+            1.26
+          ],
+          [
+            0.27,
+            1.2
+          ],
+          [
+            0.24,
+            1.12
+          ],
+          [
+            0.22,
+            1.04
+          ]
+        ],
+        "inner": 0.3,
+        "wrinkles": {
+          "z": [
+            0.22,
+            0.36
+          ],
+          "amp": 0.04,
+          "wave": 0.05
+        },
+        "crotch_drop": {
+          "z": [
+            0.73,
+            0.84
+          ],
+          "gap": 0.004,
+          "strength": 1.0
+        },
+        "round": 0.8
+      }
+    },
+    {
+      "op": "garment_inflate",
+      "enabled": true,
+      "note": "上着をオーバーサイズに（2026-11-05 夜）。原画の上着はぶかぶかで、裾へ向かって箱形に広がり、袖も太い。胴は体の縦の芯から、袖は腕の芯から外へ押し出す（首の付け根は 0）。量は原画から読んだ推測。小物はこのあとで表面に置くので、この位置に入れる。初めの値ではシルエットの上半身の面積が原画の 103% になったので 0.75 倍にした。11-05 夜: 原画は丈が太ももまであり、肩が落ちている。裾を 6 cm 伸ばし（1.0 m より下を引きのばす。伸ばした所は太ももの骨に最大 40% の重み）、肩を横へ 1.2 cm 広げた。11-06: 原画と並べると丈が短く（裾が全身の 0.47、原画は 0.52）、袖がマントのように広がって見えたので、裾を 10 cm 下げ、袖のふくらみを 0.6 倍・肩の広がりを半分に。11-06: 袖を手の甲の方へ 4.5 cm 伸ばした（原画は袖が手の甲までかかる。手首が細く見えた）",
+      "params": {
+        "material": "Tops_01",
+        "torso": [
+          [
+            0.86,
+            0.0165
+          ],
+          [
+            0.95,
+            0.015
+          ],
+          [
+            1.1,
+            0.0112
+          ],
+          [
+            1.25,
+            0.006
+          ],
+          [
+            1.33,
+            0.0
+          ]
+        ],
+        "arm": [
+          [
+            0.0,
+            0.0045
+          ],
+          [
+            0.1,
+            0.0072
+          ],
+          [
+            0.25,
+            0.009
+          ],
+          [
+            0.37,
+            0.009
+          ],
+          [
+            0.43,
+            0.0054
+          ]
+        ],
+        "blend": 0.03,
+        "shoulder": {
+          "x": [
+            0.06,
+            0.2
+          ],
+          "z": [
+            1.22,
+            1.38
+          ],
+          "out": 0.006
+        },
+        "lengthen": {
+          "from": 1.0,
+          "hem": 0.86,
+          "add": 0.1,
+          "leg_weight": 0.4
+        },
+        "sleeve_extend": {
+          "from": 0.28,
+          "add": 0.045
+        }
+      }
+    },
+    {
+      "op": "accessory",
+      "enabled": true,
+      "note": "シャツの白い襟（2026-11-05 夜）。原画はリボンの左右にとがった襟が見える。大きさは推測。11-06: 原画のシャツの襟ははっきり立つ。大きく（長さ 5.8 cm）して、外の角と先を 1 cm 浮かせた",
+      "params": {
+        "name": "HQ3D_Collar",
+        "kind": "collar",
+        "bone": "J_Bip_C_UpperChest",
+        "at": {
+          "ray": [
+            0,
+            1.345
+          ],
+          "offset": 0.007
+        },
+        "half": 0.03,
+        "length": 0.058,
+        "spread": 0.034,
+        "thick": 0.0035,
+        "color": "#F8F8F3",
+        "shade_color": "#D8D6CC",
+        "lift": 0.01
+      }
+    },
+    {
+      "op": "accessory",
+      "enabled": true,
+      "note": "首元の緑のリボンタイ（設定画の正面）。位置は襟の前（高さ 1.34m・頭身から推した値）、大きさは設定画の見た目からの推測。11-05 夜: 原画はシャツの襟元に細い濃い緑のリボンの蝶結び（長く垂れる 2 本）。平たいひもの輪と垂れに作り直した",
+      "params": {
+        "name": "HQ3D_Ribbon",
+        "kind": "ribbon",
+        "bone": "J_Bip_C_UpperChest",
+        "at": {
+          "ray": [
+            0,
+            1.34
+          ],
+          "offset": 0.012
+        },
+        "size": 0.03,
+        "color": "#4F6E34",
+        "shade_color": "#344A22",
+        "width": 0.0045,
+        "tail": 0.065
+      }
+    },
+    {
+      "op": "accessory",
+      "enabled": true,
+      "note": "桃色の花のペンダント（真ん中は黄色）を金の鎖で首から下げる。高さは設定画で頭の上から 2.1 頭ぶん下（推測）",
+      "params": {
+        "name": "HQ3D_Pendant",
+        "kind": "flower",
+        "bone": "J_Bip_C_UpperChest",
+        "at": {
+          "ray": [
+            0,
+            1.2
+          ],
+          "offset": 0.01
+        },
+        "size": 0.023,
+        "petals": 5,
+        "color": "#F29DB2",
+        "center_color": "#F5D36A",
+        "chain": {
+          "from": [
+            [
+              -0.042,
+              1.352
+            ],
+            [
+              0.042,
+              1.352
+            ]
+          ],
+          "radius": 0.0011,
+          "color": "#C9B37E",
+          "offset": 0.004
+        }
+      }
+    },
+    {
+      "op": "accessory",
+      "enabled": true,
+      "note": "耳の花飾り（設定画では向かって右＝モデルの左耳の付け根の前）。白い小花 3 つ・細い葉 2 枚・小さなクローバー。数と位置は推測。11-05 夜: 原画の耳飾りはジャスミンの白い花・クローバー・新緑の葉が多めに寄っている。大きさ 1.12 倍・花 2 輪と葉 2 枚を足した",
+      "params": {
+        "name": "HQ3D_EarFlower",
+        "kind": "cluster",
+        "bone": "J_Bip_C_Head",
+        "at": {
+          "ray": [
+            0.092,
+            1.575
+          ],
+          "offset": 0.006
+        },
+        "size": 0.019,
+        "petals": 5,
+        "color": "#FBFAF4",
+        "center_color": "#F2C94C",
+        "items": [
+          {
+            "type": "flower",
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "scale": 1,
+            "roll": 0
+          },
+          {
+            "type": "flower",
+            "offset": [
+              0.008,
+              -0.002,
+              -0.017
+            ],
+            "scale": 0.85,
+            "roll": 20
+          },
+          {
+            "type": "flower",
+            "offset": [
+              -0.006,
+              -0.004,
+              -0.013
+            ],
+            "scale": 0.7,
+            "roll": 40
+          },
+          {
+            "type": "leaf",
+            "offset": [
+              0.003,
+              0,
+              0.013
+            ],
+            "scale": 1.3,
+            "angle": 80
+          },
+          {
+            "type": "leaf",
+            "offset": [
+              -0.013,
+              0,
+              0.002
+            ],
+            "scale": 1.1,
+            "angle": 140
+          },
+          {
+            "type": "clover",
+            "offset": [
+              0.004,
+              -0.002,
+              -0.031
+            ],
+            "scale": 0.95,
+            "roll": 15
+          },
+          {
+            "type": "flower",
+            "offset": [
+              0.012,
+              -0.003,
+              0.006
+            ],
+            "scale": 0.75,
+            "roll": 55
+          },
+          {
+            "type": "flower",
+            "offset": [
+              -0.012,
+              -0.003,
+              -0.024
+            ],
+            "scale": 0.65,
+            "roll": 10
+          },
+          {
+            "type": "leaf",
+            "offset": [
+              0.012,
+              0,
+              -0.012
+            ],
+            "scale": 1.2,
+            "angle": 20
+          },
+          {
+            "type": "leaf",
+            "offset": [
+              -0.01,
+              0,
+              -0.036
+            ],
+            "scale": 1.0,
+            "angle": 200
+          }
+        ],
+        "leaf_color": "#8DB05A"
+      }
+    },
+    {
+      "op": "accessory",
+      "enabled": true,
+      "note": "クローバーのサブチャーム（設定画では向かって右＝モデルの左胸＝+x 側に吊るす。濃い緑の 4 枚葉・下に緑の房）。位置は推測。11-06: 原画のクローバーは厚みのある立体で、結び目から房が長く垂れる。大きさ 1.27 倍・葉の厚み 2.4 倍・房を 7 本のひもで 7.5 cm に",
+      "params": {
+        "name": "HQ3D_Clover",
+        "kind": "clover",
+        "bone": "J_Bip_C_UpperChest",
+        "at": {
+          "ray": [
+            0.085,
+            1.19
+          ],
+          "offset": 0.012
+        },
+        "size": 0.038,
+        "color": "#5C8A43",
+        "center_color": "#86B05E",
+        "cord_color": "#4E7A3A",
+        "cord": {
+          "length": 0.075,
+          "radius": 0.0016,
+          "hang": 0.035,
+          "strands": 7,
+          "spread": 0.016
+        },
+        "puff": 2.4
+      }
+    },
+    {
+      "op": "accessory",
+      "enabled": true,
+      "note": "腰のチェーン（設定画では向かって右の腰から垂れる金の鎖に桃色の花のチャーム）。上着の裾の下で +x 側の腰に。たるみと位置は推測（11-05 夜: 上着の丈を伸ばしたので、鎖の両端を裾の下 z 0.775・0.765 へ下げた。裾をまたぐと鎖が折れ曲がった）（11-05 夜: 原画は金の太い鎖が腰から大きく垂れる。小さな輪をつないだ金の鎖にして、たるみを 11 cm に・飾りを大きく）（11-06: 丈を伸ばしたので z 0.735・0.70 へ）",
+      "params": {
+        "name": "HQ3D_WaistChain",
+        "kind": "hanging_chain",
+        "bone": "J_Bip_C_Hips",
+        "points": [
+          [
+            0.03,
+            0.735
+          ],
+          [
+            0.15,
+            0.7
+          ]
+        ],
+        "sag": 0.11,
+        "radius": 0.0013,
+        "offset": 0.005,
+        "size": 0.019,
+        "color": "#F29DB2",
+        "center_color": "#F5D36A",
+        "cord_color": "#D9B65A",
+        "charm": {
+          "type": "flower",
+          "scale": 1.25
+        },
+        "links": {
+          "pitch": 0.0075,
+          "size": 0.0065,
+          "radius": 0.0009
+        }
+      }
+    },
+    {
+      "op": "sole_thicken",
+      "enabled": true,
+      "note": "靴底を厚く（2026-11-05 夜）。原画は厚底のスニーカー。靴の下 3 cm を 1.5 倍に引きのばし、3〜8 cm の間を詰める（上は動かさない・床より下へは出ない）。靴ひもは表面に置くので、この手順は靴ひもより前",
+      "params": {
+        "material": "Shoes_01_CLOTH",
+        "z0": 0.03,
+        "z1": 0.08,
+        "factor": 1.5
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "靴底を白く・ベロのつまみを金に（2026-11-05 夜）。VRoid の靴は底とかかと・つま先が暗い灰色、ベロに桃色のつまみ。原画は白っぽい底と金の飾りなので、暗い灰色をクリーム色の白へ、桃色を金へ置きかえる",
+      "params": {
+        "material": "Shoes_01_CLOTH_01",
+        "items": [
+          {
+            "type": "recolor",
+            "max_value": 0.6,
+            "max_sat": 0.08,
+            "color": "#F2EFE6",
+            "keep_shade": 0.3
+          },
+          {
+            "type": "recolor",
+            "match": "#E632E6",
+            "tol": 0.45,
+            "color": "#D4B35A",
+            "keep_shade": 0.3
+          }
+        ]
+      }
+    },
+    {
+      "op": "shoe_laces",
+      "enabled": true,
+      "note": "白いスニーカーに緑の靴ひも（設定画）。甲の上に 4 段のバツ印＋結び目。穴の位置は推測",
+      "params": {
+        "name": "HQ3D_Laces",
+        "cord_color": "#7E8F3A",
+        "radius": 0.0018,
+        "offset": 0.003,
+        "material": "Shoes",
+        "shoes": [
+          {
+            "bone": "J_Bip_L_Foot",
+            "x": [
+              0.062,
+              0.098
+            ],
+            "y": [
+              -0.11,
+              -0.045
+            ],
+            "rows": 4
+          },
+          {
+            "bone": "J_Bip_R_Foot",
+            "x": [
+              -0.098,
+              -0.062
+            ],
+            "y": [
+              -0.11,
+              -0.045
+            ],
+            "rows": 4
+          }
+        ]
+      }
+    },
+    {
+      "op": "shoe_hightop",
+      "enabled": true,
+      "note": "靴をハイカットに（2026-11-05 夜）。原画は足首まで覆う白いハイカットで、前に靴ひも、外側に金の飾り。靴の口（z 0.105）から z 0.2 まで、足首を囲む厚みのある筒を足す。上はズボンの裾の中に入る。寸法は靴の口と足首の肌から測った値、飾りの色と位置は推測（11-05 夜: 白い筒だけだと靴下に見えたので、上の縁の詰め物・前の靴ひも 3 段・外側の金の飾りを足した）",
+      "params": {
+        "name": "HQ3D_HighTop",
+        "z": [
+          0.105,
+          0.2
+        ],
+        "radius": [
+          [
+            0,
+            0.042,
+            0.062
+          ],
+          [
+            0.5,
+            0.039,
+            0.05
+          ],
+          [
+            1,
+            0.036,
+            0.044
+          ]
+        ],
+        "center_dy": 0.0,
+        "thick": 0.004,
+        "color": "#FAFAF6",
+        "shade_color": "#D9D7D0",
+        "tag": {
+          "color": "#D4B35A",
+          "shade_color": "#A88A3A",
+          "size": 0.014,
+          "t": 0.5
+        },
+        "rim": {
+          "radius": 0.0045
+        },
+        "laces": {
+          "color": "#7E8F3A",
+          "rows": 3,
+          "spread": 30,
+          "t": [
+            0.08,
+            0.9
+          ],
+          "radius": 0.0018
+        }
+      }
+    },
+    {
+      "op": "hood",
+      "enabled": true,
+      "note": "上着のフード（設定画の背面: 首の後ろから背中の上へ垂れる。外はクリーム色、口の縁から緑の裏地。正面: 首の両脇に緑の縁）。長さ・幅・ふくらみは設定画の背面から推した値。花の柄はまだ。11-05 夜: 原画のフードは背中に大きく垂れる。高さ 30 cm・幅 1.2 倍・ふくらみ 7.5 cm、縁を太く（2.2 cm）・前まで回す（±125°）。11-06: 原画はフードが肩に厚く乗り前からも見えるので、上の幅を 19 cm・縁を 2.8 cm に（11-06: 上の幅を 16 cm に戻した。19 cm では正面から肩の上に箱のような角が見えた）。11-06: かえりを足した（利用者「フードから正面まで繋がっているかえりがないので不自然」）。縁の前の端から、上着の前の開きのふちに沿って 裾の上（z 0.83。裾の帯の上まで）まで、縁と一続きの丸いひもを下ろし、下へ行くほど細くする（平たい帯では背広のえりに見えた）。11-06（2 回目）: 利用者「かえりを変えたのにファスナーがそのまま。かえしの所でファスナーもかえっている。原画と比較」。原画では、フードの裏地の折り返しは胸（z 1.16）までで、ファスナーは折り返しの内側のふちに沿って一緒に曲がり、その下は前の開きのふちを裾まで続く。折り返しを胸で細くして終わらせ、ファスナー（テープと歯）を立体で付けた",
+      "params": {
+        "name": "HQ3D_Hood",
+        "bone": "J_Bip_C_UpperChest",
+        "color": "#F4EEDD",
+        "lining_color": "#8FAE6A",
+        "panel": {
+          "z": [
+            1.08,
+            1.38
+          ],
+          "half_width": [
+            [
+              0,
+              0.16
+            ],
+            [
+              0.5,
+              0.15
+            ],
+            [
+              0.85,
+              0.1
+            ],
+            [
+              1,
+              0.04
+            ]
+          ],
+          "bulge": 0.075,
+          "offset": 0.008,
+          "cols": 24,
+          "rows": 20,
+          "piping_radius": 0.004
+        },
+        "rim": {
+          "z_back": 1.37,
+          "z_front": 1.33,
+          "angles": [
+            -125,
+            125
+          ],
+          "radius": 0.028,
+          "offset": 0.004,
+          "steps": 28,
+          "max_r": 0.12
+        },
+        "center_color": "#D8CDB0",
+        "lapel": {
+          "edge": [
+            [
+              0.78,
+              0.056
+            ],
+            [
+              0.95,
+              0.054
+            ],
+            [
+              1.1,
+              0.05
+            ],
+            [
+              1.2,
+              0.046
+            ],
+            [
+              1.28,
+              0.042
+            ],
+            [
+              1.34,
+              0.04
+            ]
+          ],
+          "z_end": 0.83,
+          "width": 0.02,
+          "end_radius": 0.009,
+          "offset": 0.002,
+          "blend": 0.35,
+          "material": "Tops_01",
+          "fold_end": 1.16,
+          "zipper": {
+            "width": 0.006,
+            "pitch": 0.005
+          }
+        },
+        "cord_color": "#A9BE86",
+        "leaf_color": "#7F9468"
+      }
+    },
+    {
+      "op": "recolor_region",
+      "enabled": true,
+      "note": "裾: VRoid の濃いチェックの折り返し（CLOTH_03）を、ズボンと同じ緑の無地にする（同じ材質のウエストはそのまま）。設定画の裾はしぼったジョガー型だが、形はまだ",
+      "params": {
+        "name": "HQ3D_PantsCuff",
+        "material": "Onepiece_00_CLOTH_03",
+        "z": [
+          0,
+          0.3
+        ],
+        "color": "#59643A"
+      }
+    },
+    {
+      "op": "cuff_gather",
+      "enabled": true,
+      "note": "ズボンの裾をすぼめる（2026-11-05 夜）。原画は足首でしぼったジョガー型。VRoid の折り返しの裾（太い筒）を脚の芯へ 0.7 倍に寄せる（足首の肌が出ないよう芯から 4.2 cm より内へは寄せない）。上のズボンはふくらんだまま残るので、裾の上にたまりができる。11-06: 0.82 倍に（0.7 では足首でキュッとしまりすぎた）",
+      "params": {
+        "material": "HQ3D_PantsCuff",
+        "z": [
+          0.0,
+          0.3
+        ],
+        "scale": 0.82,
+        "min_r": 0.042
+      }
+    },
+    {
+      "op": "texture_vines",
+      "enabled": true,
+      "note": "ズボンの草花の柄（設定画: 向かって左の脚は腰から太もも、向かって右の脚はひざからすねに、つると葉と桃色・黄色の小花）。位置と数は推測。11-06: 葉と花の間を不ぞろいに",
+      "params": {
+        "material": "Onepiece_00_CLOTH_01",
+        "facing": 0.3,
+        "vine_color": "#A3B05C",
+        "leaf_color": "#B9C46E",
+        "flower_colors": [
+          "#F2A7B5",
+          "#F2D36B"
+        ],
+        "center_color": "#F7E9A8",
+        "vines": [
+          {
+            "x": -0.09,
+            "z": [
+              0.55,
+              0.86
+            ],
+            "amp": 0.012,
+            "waves": 1.2,
+            "phase": 0,
+            "width": 0.0022,
+            "leaf_every": 0.03,
+            "leaf_size": 0.012,
+            "flower_every": 0.08,
+            "flower_size": 0.01,
+            "jitter": 0.6,
+            "seed": 10
+          },
+          {
+            "x": 0.085,
+            "z": [
+              0.22,
+              0.6
+            ],
+            "amp": 0.012,
+            "waves": 1.3,
+            "phase": 1.5,
+            "width": 0.0022,
+            "leaf_every": 0.03,
+            "leaf_size": 0.012,
+            "flower_every": 0.08,
+            "flower_size": 0.01,
+            "jitter": 0.6,
+            "seed": 11
+          }
+        ]
+      }
+    },
+    {
+      "op": "texture_vines",
+      "enabled": true,
+      "note": "ズボンに金色の草花の刺繍（2026-11-05 夜）。原画のズボンは太ももからすねまで、金色がかった細い草花の刺繍で覆われている。細いつる 6 本を前に足す。色と位置は推測。11-06: 6 本→3 本に減らし、葉と花の間と大きさを不ぞろいに（同じ間隔の繰り返しが、ズボンの変な縞模様に見えた）",
+      "params": {
+        "material": "Onepiece_00_CLOTH_01",
+        "facing": 0.3,
+        "vine_color": "#B8A85A",
+        "leaf_color": "#C9BC6C",
+        "flower_colors": [
+          "#F4B6C2",
+          "#E9CF7A"
+        ],
+        "center_color": "#F7E9A8",
+        "vines": [
+          {
+            "x": 0.12,
+            "z": [
+              0.3,
+              0.72
+            ],
+            "amp": 0.016,
+            "waves": 1.1,
+            "phase": 2.1,
+            "width": 0.0016,
+            "leaf_every": 0.022,
+            "leaf_size": 0.009,
+            "flower_every": 0.06,
+            "flower_size": 0.008,
+            "jitter": 0.7,
+            "seed": 3
+          },
+          {
+            "x": -0.055,
+            "z": [
+              0.3,
+              0.75
+            ],
+            "amp": 0.016,
+            "waves": 1.4000000000000001,
+            "phase": 1.2,
+            "width": 0.0016,
+            "leaf_every": 0.022,
+            "leaf_size": 0.009,
+            "flower_every": 0.06,
+            "flower_size": 0.008,
+            "jitter": 0.7,
+            "seed": 4
+          },
+          {
+            "x": -0.1,
+            "z": [
+              0.24,
+              0.5
+            ],
+            "amp": 0.016,
+            "waves": 1.7000000000000002,
+            "phase": 4.0,
+            "width": 0.0016,
+            "leaf_every": 0.022,
+            "leaf_size": 0.009,
+            "flower_every": 0.06,
+            "flower_size": 0.008,
+            "jitter": 0.7,
+            "seed": 5
+          }
+        ]
+      }
+    },
+    {
+      "op": "side_pocket",
+      "enabled": true,
+      "note": "カーゴポケット（設定画: 太ももの外側にふた付き。見えているのは向かって右の脚だが、左右にあると推した）（11-05 夜: 原画のカーゴポケットは大きい。高さ 23 cm・幅 10 cm・ふた 4.2 cm に）",
+      "params": {
+        "name": "HQ3D_Pocket",
+        "material": "Onepiece_00_CLOTH_01",
+        "color": "#6E7A45",
+        "center_color": "#4E592F",
+        "flap": 0.042,
+        "bulge": 0.018,
+        "offset": 0.004,
+        "pockets": [
+          {
+            "bone": "J_Bip_L_UpperLeg",
+            "side": 1,
+            "y": [
+              -0.045,
+              0.055
+            ],
+            "z": [
+              0.5,
+              0.73
+            ]
+          },
+          {
+            "bone": "J_Bip_R_UpperLeg",
+            "side": -1,
+            "y": [
+              -0.045,
+              0.055
+            ],
+            "z": [
+              0.5,
+              0.73
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "op": "hanging_straps",
+      "enabled": true,
+      "note": "腰の脇から垂れる細い帯（設定画: 向かって左＝モデルの右は緑の帯 2 本、向かって右＝モデルの左は細い帯 2 本で先に金具）。長さ約 25 cm・幅 1〜1.8 cm は設定画の画素（約 641 画素/m）から推した値。ポケットに重ならないよう、ポケットの前と後ろに垂らす。11-05 夜: 原画の紐はひざの下まで垂れるので、長さを 34〜44 cm に",
+      "params": {
+        "name": "HQ3D_Strap",
+        "material": "Onepiece_00_CLOTH_01",
+        "color": "#6F7A45",
+        "center_color": "#A8A070",
+        "thickness": 0.003,
+        "clearance": 0.008,
+        "straps": [
+          {
+            "side": -1,
+            "y": -0.042,
+            "z_top": 0.85,
+            "length": 0.42,
+            "width": 0.017,
+            "bone": "J_Bip_R_UpperLeg",
+            "tip": 0.012
+          },
+          {
+            "side": -1,
+            "y": 0.05,
+            "z_top": 0.85,
+            "length": 0.34,
+            "width": 0.014,
+            "bone": "J_Bip_R_UpperLeg",
+            "tip": 0.0
+          },
+          {
+            "side": 1,
+            "y": -0.042,
+            "z_top": 0.85,
+            "length": 0.4,
+            "width": 0.011,
+            "bone": "J_Bip_L_UpperLeg",
+            "tip": 0.018
+          },
+          {
+            "side": 1,
+            "y": 0.05,
+            "z_top": 0.85,
+            "length": 0.44,
+            "width": 0.011,
+            "bone": "J_Bip_L_UpperLeg",
+            "tip": 0.018
+          }
+        ]
+      }
+    },
+    {
+      "op": "follow_weights",
+      "enabled": true,
+      "note": "ポケットの骨の重みを、ズボンの布から写す（2026-11-06）。太ももの骨 1 本に付けていたので、脚を上げると布だけが曲がってポケットのふたが浮いた",
+      "params": {
+        "objects": [
+          "HQ3D_Pocket"
+        ],
+        "material": "Onepiece_00_CLOTH_01"
+      }
+    },
+    {
+      "op": "follow_weights",
+      "enabled": true,
+      "note": "腰の紐の重みを、ズボンの布から写し、下ほど腰の骨へ寄せる（2026-11-06）。太ももの骨 1 本に付けていたので、脚を上げると紐が棒のように前へ突き出た。下の端で 60% を腰の骨へ",
+      "params": {
+        "objects": [
+          "HQ3D_Strap"
+        ],
+        "material": "Onepiece_00_CLOTH_01",
+        "hang": {
+          "bone": "J_Bip_C_Hips",
+          "z": [
+            0.4,
+            0.85
+          ],
+          "max": 0.6
+        }
+      }
+    },
+    {
+      "op": "welt_pocket",
+      "enabled": true,
+      "note": "上着の腰の斜めのポケット口（2026-11-06）。原画は上着の腰の脇に、緑の縁取りの斜めのポケット口がある。|x| 0.10〜0.15・z 0.93〜1.03 の斜めの帯（緑）と奥の影。位置と大きさは推測",
+      "params": {
+        "name": "HQ3D_Welt",
+        "material": "Tops_01",
+        "from": [
+          0.1,
+          0.93
+        ],
+        "to": [
+          0.15,
+          1.03
+        ],
+        "width": 0.013,
+        "thick": 0.003,
+        "offset": 0.003,
+        "color": "#9DB073",
+        "shade_color": "#6F8550",
+        "center_color": "#5F6E41"
+      }
+    },
+    {
+      "op": "follow_weights",
+      "enabled": true,
+      "note": "ポケット口の重みを上着の布から写す（体をひねっても上着と一緒に動く）",
+      "params": {
+        "objects": [
+          "HQ3D_Welt"
+        ],
+        "material": "Tops_01"
+      }
+    },
+    {
+      "op": "surface_pattern",
+      "enabled": true,
+      "note": "尻尾のやさしい柄（設定画: 白地に薄い黄緑の小さな葉を散らし、ところどころ小さな花）。数・大きさ・色は設定画の見た目から推した値",
+      "params": {
+        "object": "HQ3D_CatTail",
+        "materials": [
+          "HQ3D_CatTail"
+        ],
+        "count": 70,
+        "size": 0.016,
+        "min_dist": 0.03,
+        "seed": 11,
+        "leaves": 3,
+        "leaf_colors": [
+          "#CFDC97",
+          "#BCCF83",
+          "#DCE6A8"
+        ],
+        "flower_colors": [
+          "#F3E7A6",
+          "#F4D2D6"
+        ],
+        "center_color": "#F2D77E",
+        "flower_ratio": 0.2,
+        "softness": 0.7,
+        "resolution": 1024
+      }
+    },
+    {
+      "op": "surface_pattern",
+      "enabled": true,
+      "note": "2 本目の尻尾の柄",
+      "params": {
+        "object": "HQ3D_CatTail2",
+        "materials": [
+          "HQ3D_CatTail2"
+        ],
+        "count": 70,
+        "size": 0.016,
+        "min_dist": 0.03,
+        "seed": 12,
+        "leaves": 3,
+        "leaf_colors": [
+          "#CFDC97",
+          "#BCCF83",
+          "#DCE6A8"
+        ],
+        "flower_colors": [
+          "#F3E7A6",
+          "#F4D2D6"
+        ],
+        "center_color": "#F2D77E",
+        "flower_ratio": 0.2,
+        "softness": 0.7,
+        "resolution": 1024,
+        "image_name": "HQ3D_CatTail2_hq3d_pattern"
+      }
+    },
+    {
+      "op": "surface_pattern",
+      "enabled": true,
+      "note": "フードの花の柄（設定画の背面: クリーム地に緑の葉と桃色の花の小枝。上着の柄と同じ系統）。外側（HQ3D_Hood）だけに描き、裏地と縁はそのまま。数・大きさ・色は推測",
+      "params": {
+        "object": "HQ3D_Hood",
+        "materials": [
+          "HQ3D_Hood"
+        ],
+        "count": 16,
+        "size": 0.028,
+        "min_dist": 0.045,
+        "seed": 5,
+        "leaves": 4,
+        "leaf_colors": [
+          "#8FB26A",
+          "#A3C27C",
+          "#7FA35E"
+        ],
+        "flower_colors": [
+          "#F2A7B5",
+          "#F5BFA8"
+        ],
+        "center_color": "#F2D36B",
+        "flower_ratio": 0.55,
+        "softness": 0.9,
+        "resolution": 1024
+      }
+    },
+    {
+      "op": "glasses_frame",
+      "enabled": true,
+      "note": "眼鏡（設定画: 細い角ばった枠・横に長い長方形で角は少し丸く、下の辺がやや丸い・濃い緑がかった色）。VRoid の丸い太い黒縁とレンズを消して作り直す。位置と顔への沿い方は元のレンズから測り、高さ 0.72 倍・太さ半径 0.9 mm・色は設定画の読み取り（画素はまつ毛と混ざって測れないので推測）",
+      "params": {
+        "name": "HQ3D_Glasses",
+        "lens_material": "GlassesHiLens",
+        "frame_material": "GlassesHiFrame",
+        "width_scale": 1.0,
+        "height_scale": 0.72,
+        "z_offset": 0.001,
+        "top_n": 6.0,
+        "bottom_n": 3.2,
+        "radius": 0.0009,
+        "front": 0.0015,
+        "color": "#46503A"
+      }
+    },
+    {
+      "op": "ear_scale",
+      "enabled": true,
+      "note": "猫耳を小さく（2026-11-05 のシルエット比較で、頭の帯の面積が原画の 117%・耳が原画より大きく高く出ていた）。付け根を中心に縮める。倍率は重ねた絵から推した値",
+      "params": {
+        "materials": [
+          "HQ3D_EarInner",
+          "HQ3D_EarTuft",
+          "HQ3D_EarRim"
+        ],
+        "scale": 0.78,
+        "base_frac": 0.2
+      }
+    },
+    {
+      "op": "ear_fluff",
+      "enabled": true,
+      "note": "猫耳の内側の白い毛（2026-11-05 夜）。原画の耳は、桃色の内側の付け根から白い毛がふわっと出ている。耳の内側の下 35%（付け根）に、片耳 30 本の幅広の白い房を上へ寝かせて立てる（内側全体に散らすと白い欠片に見えた）。耳の骨の重みを写すので一緒に揺れる",
+      "params": {
+        "material": "HQ3D_EarInner",
+        "count": 30,
+        "len": 0.013,
+        "width": 0.011,
+        "up": 1.8,
+        "z_frac": 0.35,
+        "seed": 4,
+        "color": "#FFFFFF",
+        "shade_color": "#ECE6DE"
+      }
+    },
+    {
+      "op": "neck_shorten",
+      "enabled": true,
+      "note": "首を少し短く（2026-11-05 のシルエット比較で、肩の線から目までの高さが原画の +27%＝約 4 cm 長い。肩の関節は上着の上から推した値で不確かなので、その半分の 2 cm だけ縮める）",
+      "params": {
+        "dz": -0.02
+      }
+    },
+    {
+      "op": "hair_tousle",
+      "enabled": true,
+      "note": "髪を原画のように無造作にする（2026-11-05）。毛束ごとに毛先を外へはねさせ・横へ流し・長さを不ぞろいにする。前髪は目の高さまで伸ばし、真ん中の 1 本をいちばん長くする（原画では目の間まで垂れる）。顔の前へ大きく張り出すアホ毛の輪は、根元を中心に 0.55 倍に縮める（原画は短い 1 本）。はねの量は原画の正面と 3/4 の絵から読んだ値。後ろ向きの毛束は、はねと横への流れを 0.4 倍・長さは伸ばすだけ（首の後ろが見えたため）。11-05 夜: 原画の量の多さとゆるいくせに寄せて、毛先を外へ 1.2 cm ふくらませ（前髪は除く）、横へ 5 mm のゆるい波（長さ 9 cm。前髪は半分）を付けた（4.5 cm だと細かく縮れて見えた）。11-05 夜（3 回目）: もっと無造作に（はね 0.10〜0.34・横 0.22・長さ 0.20）（後ろ向きの毛束は 0.3 倍に）。11-06: 頭頂を 0.7 cm ふくらませた（1.4 cm では頭が大きく見え、頭身の点が 98→88 に下がった）（原画は頭頂がふんわり盛り上がる）。11-06: もみあげを伸ばした（利用者の指示・原画に寄せる。顔の横・耳の前で毛先が z 1.52 より下の毛束を 6.5 cm 前後下へ）",
+      "params": {
+        "seed": 7,
+        "out": [
+          0.1,
+          0.34
+        ],
+        "side": 0.22,
+        "length": 0.2,
+        "curve": 2.2,
+        "flip": 0.06,
+        "skip_top": 1.6,
+        "bangs": {
+          "x": 0.065,
+          "lengthen": 0.022,
+          "center": 0.02,
+          "forward": 0.3,
+          "out": 0.25
+        },
+        "ahoge": {
+          "front_y": -0.095,
+          "scale": 0.55
+        },
+        "back_out": 0.3,
+        "volume": 0.012,
+        "wave": {
+          "amp": 0.005,
+          "period": 0.09
+        },
+        "crown": {
+          "z0": 1.56,
+          "lift": 0.007
+        },
+        "sideburns": {
+          "x": [
+            0.07,
+            0.13
+          ],
+          "y_max": 0.03,
+          "z_max": 1.52,
+          "lengthen": 0.065,
+          "inward": 0.15,
+          "forward": 0.1,
+          "out": 0.2
+        }
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "頬の赤みと斜線（2026-11-05）。原画の顔はどの表情でも頬が淡く赤い。位置は顔のテクスチャ（正面からの投影）の目の穴の下。色は原画の頬から読んだ推測。11-05 夜: 赤みを濃く（0.42→0.55）",
+      "params": {
+        "material": "Face_00_SKIN",
+        "items": [
+          {
+            "type": "blush",
+            "center": [
+              0.335,
+              0.635
+            ],
+            "radius": [
+              0.085,
+              0.042
+            ],
+            "color": "#F2A0A0",
+            "alpha": 0.55
+          },
+          {
+            "type": "blush",
+            "center": [
+              0.665,
+              0.635
+            ],
+            "radius": [
+              0.085,
+              0.042
+            ],
+            "color": "#F2A0A0",
+            "alpha": 0.55
+          },
+          {
+            "type": "hatch",
+            "center": [
+              0.335,
+              0.632
+            ],
+            "count": 3,
+            "length": 0.03,
+            "spacing": 0.018,
+            "angle": 65,
+            "width": 0.0022,
+            "color": "#E07F86",
+            "alpha": 0.55
+          },
+          {
+            "type": "hatch",
+            "center": [
+              0.665,
+              0.632
+            ],
+            "count": 3,
+            "length": 0.03,
+            "spacing": 0.018,
+            "angle": 65,
+            "width": 0.0022,
+            "color": "#E07F86",
+            "alpha": 0.55
+          }
+        ]
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "瞳を 1.12 倍に大きく、少し明るく（2026-11-05）。原画の瞳は白目に対して大きく、色も明るい（大きくすると上の暗い所が増えて色の点が下がったので、暗い所を 12% 持ち上げる）。11-05 夜: 1.18 倍に（1.18 倍にすると色の点が 79.9 に下がったので、持ち上げを 18% に）。11-06: 1.22 倍・持ち上げ 20%",
+      "params": {
+        "material": "EyeIris",
+        "items": [
+          {
+            "type": "scale_disc",
+            "center": [
+              0.254,
+              0.504
+            ],
+            "radius": 0.125,
+            "scale": 1.22
+          },
+          {
+            "type": "scale_disc",
+            "center": [
+              0.747,
+              0.504
+            ],
+            "radius": 0.125,
+            "scale": 1.22
+          },
+          {
+            "type": "lift",
+            "center": [
+              0.254,
+              0.504
+            ],
+            "radius": 0.145,
+            "lift": 0.2
+          },
+          {
+            "type": "lift",
+            "center": [
+              0.747,
+              0.504
+            ],
+            "radius": 0.145,
+            "lift": 0.2
+          }
+        ]
+      }
+    },
+    {
+      "op": "shape_key_bake",
+      "enabled": true,
+      "note": "目を少し大きく丸く開いた顔をふだんの顔にする（2026-11-05）。驚きの形（Fcl_EYE_Surprised）を 35% 混ぜる。まばたき・笑い目の形は位置をそのまま残し、目がきちんと閉じることを確かめた。11-05 夜: 50% に。11-06: 60% に",
+      "params": {
+        "object": "Face",
+        "key": "Fcl_EYE_Surprised",
+        "amount": 0.6,
+        "keep": [
+          "Fcl_EYE_Close",
+          "Fcl_EYE_Close_R",
+          "Fcl_EYE_Close_L",
+          "Fcl_EYE_Joy",
+          "Fcl_EYE_Joy_R",
+          "Fcl_EYE_Joy_L",
+          "Fcl_EYE_Fun",
+          "Fcl_ALL_Joy",
+          "Fcl_ALL_Fun"
+        ]
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "上着の襟まわりの濃い緑の輪に緑のアーガイル（2026-11-05 夜）。原画の裾・袖口・フードの縁は緑とクリーム色の菱形の格子。輪の濃い緑（#5F6E41）の画素だけに描く。菱形の大きさは推測。裾と袖口は次の cloth_folds で体の位置から描く（裾は一部が UV の別の所にあり、画像の上の範囲では塗り残した）",
+      "params": {
+        "material": "Tops_01",
+        "items": [
+          {
+            "type": "argyle",
+            "box": [
+              0.18,
+              0.19,
+              0.82,
+              0.27
+            ],
+            "cell": [
+              0.0105,
+              0.0105
+            ],
+            "colors": [
+              "#5F6E41",
+              "#9DB073"
+            ],
+            "line": "#E2E9C6",
+            "line_w": 0.05,
+            "match": "#5F6E41",
+            "tol": 0.1
+          }
+        ]
+      }
+    },
+    {
+      "op": "texture_vines",
+      "enabled": true,
+      "note": "上着に草花のつるとピンクの花（2026-11-05 夜）。原画の上着は全体に草花の柄。前の身頃の左右に縦のつるを描く（前と後ろは同じ UV なので背中にも出る）。位置と色は原画からの推測",
+      "params": {
+        "material": "Tops_01",
+        "facing": 0.3,
+        "vine_color": "#9DB46A",
+        "leaf_color": "#B5C77A",
+        "flower_colors": [
+          "#F2A7B5",
+          "#F7C6CF"
+        ],
+        "center_color": "#F5D36A",
+        "vines": [
+          {
+            "x": 0.115,
+            "z": [
+              0.8,
+              1.2
+            ],
+            "amp": 0.012,
+            "waves": 1.3,
+            "phase": 0.0,
+            "width": 0.002,
+            "leaf_every": 0.028,
+            "leaf_size": 0.011,
+            "flower_every": 0.075,
+            "flower_size": 0.011
+          },
+          {
+            "x": -0.12,
+            "z": [
+              0.82,
+              1.18
+            ],
+            "amp": 0.012,
+            "waves": 1.3,
+            "phase": 1.7,
+            "width": 0.002,
+            "leaf_every": 0.028,
+            "leaf_size": 0.011,
+            "flower_every": 0.075,
+            "flower_size": 0.011
+          },
+          {
+            "x": 0.165,
+            "z": [
+              0.84,
+              1.1
+            ],
+            "amp": 0.012,
+            "waves": 1.3,
+            "phase": 3.0,
+            "width": 0.002,
+            "leaf_every": 0.028,
+            "leaf_size": 0.011,
+            "flower_every": 0.075,
+            "flower_size": 0.011
+          },
+          {
+            "x": -0.165,
+            "z": [
+              0.8,
+              1.12
+            ],
+            "amp": 0.012,
+            "waves": 1.3,
+            "phase": 4.4,
+            "width": 0.002,
+            "leaf_every": 0.028,
+            "leaf_size": 0.011,
+            "flower_every": 0.075,
+            "flower_size": 0.011
+          }
+        ]
+      }
+    },
+    {
+      "op": "cloth_folds",
+      "enabled": true,
+      "note": "上着の服のしわ（2026-11-05）。オーバーサイズの袖の脇・ひじ・袖口のたるみ、身頃の縦のたるみを、水彩風の陰と明るい縁でテクスチャに描く。この上着は前と後ろが同じ UV なので、身頃の線は前だけに決める。身頃のしわは 11-05 夜に濃く・太くし、脇から胸へ広がる線・裾の帯の上のたまり・縦の線 1 本を足した。袖口に緑のアーガイルの帯（肩から 35〜40.5 cm。その先の袖口のリブは緑の無地のまま（リブは UV が細く、格子がつぶれて縞に見えた））を描く（原画の袖口の柄）。裾の帯にも緑のアーガイル（帯の緑の所だけ）（裾の帯は後ろの方が高いので z 0.84〜0.99。帯の緑の所だけに描く）。11-06: 前の開きの真ん中で、シャツの裾を腰（z 0.95）までにして、その下をズボンの色・腰のベルト（z 0.922〜0.95）で塗り、前の縫い目と股のしわを描く（シャツが上着の裾まで見えて股下が分からず、脚がとても長く見えた）。11-06: 袖を伸ばしたので、袖口のアーガイルを肩から 39〜44.5 cm、たるみのしわを 33〜38.5 cm へ",
+      "params": {
+        "material": "Tops_01",
+        "seed": 3,
+        "shade": "#C2BDB2",
+        "highlight": 0.35,
+        "limbs": [
+          {
+            "bones": [
+              "J_Bip_L_UpperArm",
+              "J_Bip_L_LowerArm",
+              "J_Bip_L_Hand"
+            ],
+            "side_ref": "up",
+            "radius": 0.06,
+            "groups": [
+              {
+                "type": "radial",
+                "from": [
+                  0.0,
+                  -0.075
+                ],
+                "count": 3,
+                "angle": [
+                  -5,
+                  35
+                ],
+                "length": [
+                  0.08,
+                  0.14
+                ],
+                "bend": 0.12,
+                "width": 0.004,
+                "dark": 0.45
+              },
+              {
+                "type": "radial",
+                "from": [
+                  0.205,
+                  -0.03
+                ],
+                "count": 3,
+                "angle": [
+                  130,
+                  220
+                ],
+                "length": [
+                  0.05,
+                  0.09
+                ],
+                "bend": 0.2,
+                "width": 0.004,
+                "dark": 0.4
+              },
+              {
+                "type": "radial",
+                "from": [
+                  0.205,
+                  -0.03
+                ],
+                "count": 2,
+                "angle": [
+                  -30,
+                  30
+                ],
+                "length": [
+                  0.05,
+                  0.08
+                ],
+                "bend": 0.2,
+                "width": 0.004,
+                "dark": 0.35
+              },
+              {
+                "type": "rings",
+                "u": [
+                  0.33,
+                  0.385
+                ],
+                "count": 4,
+                "v": [
+                  -0.15,
+                  0.15
+                ],
+                "tilt": 0.06,
+                "width": 0.0045,
+                "dark": 0.42,
+                "wave": 0.002,
+                "period": 0.08,
+                "bow": 0.01,
+                "span": [
+                  0.35,
+                  0.7
+                ]
+              },
+              {
+                "type": "lines",
+                "pts": [
+                  [
+                    0.03,
+                    0.03
+                  ],
+                  [
+                    0.09,
+                    0.045
+                  ],
+                  [
+                    0.16,
+                    0.035
+                  ]
+                ],
+                "width": 0.004,
+                "dark": 0.28
+              }
+            ],
+            "bands": [
+              {
+                "u": [
+                  0.39,
+                  0.445
+                ],
+                "cell": 0.011,
+                "colors": [
+                  "#9DB073",
+                  "#E2E9C6"
+                ],
+                "line": "#F6F6E8",
+                "line_w": 0.05
+              }
+            ]
+          }
+        ],
+        "torso": {
+          "x_max": 0.3,
+          "front": [
+            {
+              "type": "lines",
+              "pts": [
+                [
+                  0.112,
+                  1.16
+                ],
+                [
+                  0.118,
+                  1.06
+                ],
+                [
+                  0.108,
+                  0.96
+                ],
+                [
+                  0.114,
+                  0.9
+                ]
+              ],
+              "width": 0.0083,
+              "dark": 0.75
+            },
+            {
+              "type": "lines",
+              "pts": [
+                [
+                  0.15,
+                  1.19
+                ],
+                [
+                  0.156,
+                  1.08
+                ],
+                [
+                  0.145,
+                  0.97
+                ],
+                [
+                  0.152,
+                  0.9
+                ]
+              ],
+              "width": 0.0083,
+              "dark": 0.75
+            },
+            {
+              "type": "lines",
+              "pts": [
+                [
+                  0.082,
+                  1.05
+                ],
+                [
+                  0.088,
+                  0.97
+                ],
+                [
+                  0.078,
+                  0.91
+                ]
+              ],
+              "width": 0.0069,
+              "dark": 0.7
+            },
+            {
+              "type": "radial",
+              "from": [
+                0.17,
+                1.24
+              ],
+              "count": 2,
+              "angle": [
+                205,
+                240
+              ],
+              "length": [
+                0.07,
+                0.11
+              ],
+              "bend": 0.1,
+              "width": 0.0069,
+              "dark": 0.75
+            },
+            {
+              "type": "lines",
+              "pts": [
+                [
+                  0.022,
+                  1.2
+                ],
+                [
+                  0.028,
+                  1.1
+                ],
+                [
+                  0.02,
+                  1.0
+                ]
+              ],
+              "width": 0.0048,
+              "dark": 0.51
+            },
+            {
+              "type": "radial",
+              "from": [
+                0.17,
+                1.27
+              ],
+              "count": 3,
+              "angle": [
+                235,
+                265
+              ],
+              "length": [
+                0.1,
+                0.16
+              ],
+              "bend": 0.15,
+              "width": 0.006,
+              "dark": 0.5
+            },
+            {
+              "type": "rings",
+              "u": [
+                0.875,
+                0.905
+              ],
+              "count": 3,
+              "v": [
+                0.06,
+                0.19
+              ],
+              "span": [
+                0.25,
+                0.5
+              ],
+              "bow": 0.008,
+              "tilt": 0.1,
+              "wave": 0.0,
+              "width": 0.005,
+              "dark": 0.45
+            },
+            {
+              "type": "lines",
+              "pts": [
+                [
+                  0.13,
+                  1.1
+                ],
+                [
+                  0.125,
+                  1.0
+                ],
+                [
+                  0.132,
+                  0.9
+                ]
+              ],
+              "width": 0.006,
+              "dark": 0.45
+            },
+            {
+              "type": "lines",
+              "pts": [
+                [
+                  0.0,
+                  0.92
+                ],
+                [
+                  0.0,
+                  0.86
+                ],
+                [
+                  0.0,
+                  0.8
+                ]
+              ],
+              "width": 0.0025,
+              "dark": 0.6
+            },
+            {
+              "type": "radial",
+              "from": [
+                0.0,
+                0.8
+              ],
+              "angle": [
+                30,
+                65
+              ],
+              "count": 2,
+              "length": [
+                0.04,
+                0.06
+              ],
+              "bend": 0.1,
+              "width": 0.003,
+              "dark": 0.5
+            },
+            {
+              "type": "lines",
+              "pts": [
+                [
+                  0.0,
+                  0.953
+                ],
+                [
+                  0.04,
+                  0.954
+                ],
+                [
+                  0.075,
+                  0.952
+                ]
+              ],
+              "width": 0.003,
+              "dark": 0.45
+            }
+          ],
+          "bands": [
+            {
+              "z": [
+                0.84,
+                0.99
+              ],
+              "radius": 0.16,
+              "cell": 0.011,
+              "colors": [
+                "#9DB073",
+                "#E2E9C6"
+              ],
+              "line": "#F6F6E8",
+              "line_w": 0.05,
+              "match": "#9DB073",
+              "tol": 0.16
+            },
+            {
+              "z": [
+                0.74,
+                0.95
+              ],
+              "x": [
+                0.0,
+                0.08
+              ],
+              "match": "#F8F8F3",
+              "tol": 0.1,
+              "colors": [
+                "#5E6A3B",
+                "#5E6A3B"
+              ],
+              "cell": 0.01,
+              "radius": 0.16
+            },
+            {
+              "z": [
+                0.922,
+                0.95
+              ],
+              "x": [
+                0.0,
+                0.08
+              ],
+              "match": "#F8F8F3",
+              "tol": 0.1,
+              "colors": [
+                "#4C5730",
+                "#4C5730"
+              ],
+              "cell": 0.01,
+              "radius": 0.16
+            }
+          ]
+        }
+      }
+    },
+    {
+      "op": "cloth_folds",
+      "enabled": true,
+      "note": "ズボンの服のしわ（2026-11-05）。股から広がる線・ひざの弧・裾のしぼりの上のたまり（原画のジョガー型）を描く。11-06: 裾の上のしわを控えめに",
+      "params": {
+        "material": "Onepiece_00_CLOTH_01",
+        "seed": 5,
+        "shade": "#7A8768",
+        "highlight": 0.3,
+        "limbs": [
+          {
+            "bones": [
+              "J_Bip_L_UpperLeg",
+              "J_Bip_L_LowerLeg",
+              "J_Bip_L_Foot"
+            ],
+            "side_ref": "out",
+            "radius": 0.08,
+            "groups": [
+              {
+                "type": "radial",
+                "from": [
+                  0.02,
+                  -0.1
+                ],
+                "count": 3,
+                "angle": [
+                  -25,
+                  20
+                ],
+                "length": [
+                  0.12,
+                  0.18
+                ],
+                "bend": 0.1,
+                "width": 0.0055,
+                "dark": 0.42
+              },
+              {
+                "type": "rings",
+                "u": [
+                  0.31,
+                  0.39
+                ],
+                "count": 3,
+                "v": [
+                  -0.1,
+                  0.1
+                ],
+                "tilt": 0.06,
+                "width": 0.0055,
+                "dark": 0.38,
+                "wave": 0.002,
+                "period": 0.08,
+                "bow": 0.012,
+                "span": [
+                  0.4,
+                  0.7
+                ]
+              },
+              {
+                "type": "rings",
+                "u": [
+                  0.33,
+                  0.37
+                ],
+                "count": 2,
+                "v": [
+                  0.17,
+                  0.28
+                ],
+                "tilt": 0.06,
+                "width": 0.005,
+                "dark": 0.38,
+                "wave": 0.002,
+                "period": 0.08,
+                "bow": -0.008,
+                "span": [
+                  0.5,
+                  0.9
+                ]
+              },
+              {
+                "type": "rings",
+                "u": [
+                  0.52,
+                  0.63
+                ],
+                "count": 3,
+                "v": [
+                  -0.24,
+                  0.24
+                ],
+                "tilt": 0.06,
+                "width": 0.0055,
+                "dark": 0.32,
+                "wave": 0.002,
+                "period": 0.08,
+                "bow": 0.014,
+                "span": [
+                  0.35,
+                  0.65
+                ]
+              },
+              {
+                "type": "lines",
+                "pts": [
+                  [
+                    0.06,
+                    0.05
+                  ],
+                  [
+                    0.16,
+                    0.062
+                  ],
+                  [
+                    0.27,
+                    0.048
+                  ]
+                ],
+                "width": 0.005,
+                "dark": 0.28
+              },
+              {
+                "type": "lines",
+                "pts": [
+                  [
+                    0.42,
+                    -0.02
+                  ],
+                  [
+                    0.49,
+                    0.005
+                  ]
+                ],
+                "width": 0.005,
+                "dark": 0.3
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "髪の色とつや（2026-11-05）。原画の髪は毛先ほど白っぽく明るく、細い毛の筋が見える。髪の画像（上＝根元・下＝毛先）の下半分を白っぽいクリーム色へ混ぜ、暗い筋と明るい筋を縦に描く。色は原画からの推測。11-05 夜: 全体を明るい黄みのクリーム色（#E2DA9E）へ 30% 寄せ、毛先の白っぽさを 60% まで強めた（原画は銀がかった明るい髪）。11-05 夜（3 回目）: 銀がかった色へ（全体を #E6E4C8 へ 45%、毛先 #F7F6EA を 65% まで）",
+      "params": {
+        "material": "Hair_00_HAIR_02",
+        "items": [
+          {
+            "type": "gradient",
+            "v": [
+              0.0,
+              1.0
+            ],
+            "alpha": [
+              0.45,
+              0.45
+            ],
+            "color": "#E6E4C8"
+          },
+          {
+            "type": "gradient",
+            "v": [
+              0.5,
+              1.0
+            ],
+            "alpha": [
+              0.0,
+              0.65
+            ],
+            "color": "#F7F6EA"
+          },
+          {
+            "type": "streaks",
+            "count": 70,
+            "length": [
+              0.15,
+              0.45
+            ],
+            "width": 0.0045,
+            "v": [
+              0.12,
+              1.0
+            ],
+            "color": "#86874F",
+            "alpha": 0.4,
+            "seed": 11
+          },
+          {
+            "type": "streaks",
+            "count": 45,
+            "length": [
+              0.12,
+              0.35
+            ],
+            "width": 0.0035,
+            "v": [
+              0.2,
+              0.95
+            ],
+            "color": "#FFFDEB",
+            "alpha": 0.55,
+            "seed": 12
+          }
+        ]
+      }
+    },
+    {
+      "op": "hair_tufts",
+      "enabled": true,
+      "note": "頭のてっぺんの はねる毛束 12 本（2026-11-05）。原画は頭頂から後ろにかけて毛束が無造作に立つ。頭に沿って後ろ・横へ寝かせ、毛先を上へはね上げる。髪と同じ材質・頭の骨に重み 1。本数と向きは原画の正面・3/4・背面から読んだ推測。11-05 夜（3 回目）: 横に 4 本足して 16 本（後ろの低い所の 3 本は、寝てしまい浮いた欠片に見えたので外した）",
+      "params": {
+        "seed": 5,
+        "tufts": [
+          {
+            "az": 170,
+            "el": 75,
+            "len": 0.05,
+            "width": 0.022,
+            "lean": [
+              0,
+              1.4,
+              0.2
+            ],
+            "curl": -55,
+            "sink": 0.01
+          },
+          {
+            "az": 140,
+            "el": 70,
+            "len": 0.045,
+            "width": 0.02,
+            "lean": [
+              0.5,
+              1.2,
+              0.2
+            ],
+            "curl": -50,
+            "sink": 0.01
+          },
+          {
+            "az": 205,
+            "el": 70,
+            "len": 0.045,
+            "width": 0.02,
+            "lean": [
+              -0.5,
+              1.2,
+              0.2
+            ],
+            "curl": -50,
+            "sink": 0.01
+          },
+          {
+            "az": 180,
+            "el": 55,
+            "len": 0.04,
+            "width": 0.02,
+            "lean": [
+              0,
+              1.2,
+              -0.2
+            ],
+            "curl": -60,
+            "sink": 0.01
+          },
+          {
+            "az": 110,
+            "el": 60,
+            "len": 0.04,
+            "width": 0.018,
+            "lean": [
+              1.0,
+              0.6,
+              0.1
+            ],
+            "curl": -50,
+            "sink": 0.01
+          },
+          {
+            "az": 250,
+            "el": 60,
+            "len": 0.04,
+            "width": 0.018,
+            "lean": [
+              -1.0,
+              0.6,
+              0.1
+            ],
+            "curl": -50,
+            "sink": 0.01
+          },
+          {
+            "az": 20,
+            "el": 75,
+            "len": 0.035,
+            "width": 0.018,
+            "lean": [
+              0.4,
+              -0.9,
+              0.3
+            ],
+            "curl": -40,
+            "sink": 0.01
+          },
+          {
+            "az": 340,
+            "el": 75,
+            "len": 0.035,
+            "width": 0.018,
+            "lean": [
+              -0.4,
+              -0.9,
+              0.3
+            ],
+            "curl": -40,
+            "sink": 0.01
+          },
+          {
+            "az": 75,
+            "el": 45,
+            "len": 0.035,
+            "width": 0.016,
+            "lean": [
+              1.0,
+              0.2,
+              -0.3
+            ],
+            "curl": -45,
+            "sink": 0.01
+          },
+          {
+            "az": 285,
+            "el": 45,
+            "len": 0.035,
+            "width": 0.016,
+            "lean": [
+              -1.0,
+              0.2,
+              -0.3
+            ],
+            "curl": -45,
+            "sink": 0.01
+          },
+          {
+            "az": 50,
+            "el": 82,
+            "len": 0.035,
+            "width": 0.016,
+            "lean": [
+              0.3,
+              0.2,
+              1.0
+            ],
+            "curl": -35,
+            "sink": 0.01
+          },
+          {
+            "az": 310,
+            "el": 82,
+            "len": 0.03,
+            "width": 0.015,
+            "lean": [
+              -0.3,
+              0.3,
+              1.0
+            ],
+            "curl": -35,
+            "sink": 0.01
+          },
+          {
+            "az": 100,
+            "el": 30,
+            "len": 0.035,
+            "width": 0.016,
+            "lean": [
+              1.0,
+              0.3,
+              -0.4
+            ],
+            "curl": -50,
+            "sink": 0.01
+          },
+          {
+            "az": 260,
+            "el": 30,
+            "len": 0.035,
+            "width": 0.016,
+            "lean": [
+              -1.0,
+              0.3,
+              -0.4
+            ],
+            "curl": -50,
+            "sink": 0.01
+          },
+          {
+            "az": 60,
+            "el": 50,
+            "len": 0.03,
+            "width": 0.014,
+            "lean": [
+              0.8,
+              -0.2,
+              0.2
+            ],
+            "curl": -45,
+            "sink": 0.01
+          },
+          {
+            "az": 300,
+            "el": 50,
+            "len": 0.03,
+            "width": 0.014,
+            "lean": [
+              -0.8,
+              -0.2,
+              0.2
+            ],
+            "curl": -45,
+            "sink": 0.01
+          }
+        ],
+        "material": "Hair_00_HAIR_02",
+        "hit_material": "Hair_00_HAIR"
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "眉を薄く（2026-11-05）。原画の眉は髪の色に近く、前髪に隠れてほとんど見えない。眉の画像を 45% 持ち上げてから、次の手順で髪に近い色を掛ける",
+      "params": {
+        "material": "FaceBrow",
+        "items": [
+          {
+            "type": "lift",
+            "center": [
+              0.5,
+              0.5
+            ],
+            "radius": 2.0,
+            "lift": 0.45
+          }
+        ]
+      }
+    },
+    {
+      "op": "material_color",
+      "enabled": true,
+      "note": "眉の色を髪に近いオリーブ色に（推測）",
+      "params": {
+        "material": "FaceBrow",
+        "color": "#9FA265"
+      }
+    },
+    {
+      "op": "shape_key_bake",
+      "enabled": true,
+      "note": "ふだんの口を少し笑った形に（2026-11-05）。原画はどの絵でも口角が上がっている。口を閉じた笑い（Fcl_MTH_Fun）を 35% 混ぜる。口の形が決まっている表情（怒り・悲しみ・喜び・驚き など）は位置をそのまま残し、悲しい顔で口角が上がらないようにする。あいうえおの口は笑った口から動く。11-05 夜: 50% に",
+      "params": {
+        "object": "Face",
+        "key": "Fcl_MTH_Fun",
+        "amount": 0.5,
+        "keep": [
+          "Fcl_MTH_Fun",
+          "Fcl_MTH_Joy",
+          "Fcl_MTH_Angry",
+          "Fcl_MTH_Sorrow",
+          "Fcl_MTH_Surprised",
+          "Fcl_MTH_Close",
+          "Fcl_ALL_Fun",
+          "Fcl_ALL_Joy",
+          "Fcl_ALL_Angry",
+          "Fcl_ALL_Sorrow",
+          "Fcl_ALL_Surprised"
+        ]
+      }
+    },
+    {
+      "op": "shape_key_bake",
+      "enabled": true,
+      "note": "ふだんの口を少し開けた笑顔に（2026-11-06）。原画は口を開けて笑う絵が多い。口を開けた喜び（Fcl_MTH_Joy）を 15% 混ぜる。口の形が決まっている表情は位置を残す",
+      "params": {
+        "object": "Face",
+        "key": "Fcl_MTH_Joy",
+        "amount": 0.15,
+        "keep": [
+          "Fcl_MTH_Fun",
+          "Fcl_MTH_Joy",
+          "Fcl_MTH_Angry",
+          "Fcl_MTH_Sorrow",
+          "Fcl_MTH_Surprised",
+          "Fcl_MTH_Close",
+          "Fcl_ALL_Fun",
+          "Fcl_ALL_Joy",
+          "Fcl_ALL_Angry",
+          "Fcl_ALL_Sorrow",
+          "Fcl_ALL_Surprised"
+        ]
+      }
+    },
+    {
+      "op": "closed_lash_fix",
+      "enabled": true,
+      "note": "目を閉じたときのまつげ（2026-11-06）。利用者「目をつぶったときなど、まつげが変な方向と場所についている」。VRoid のまま閉じると、目尻のまつげの束が斜め下へねじれて閉じたまぶたの下へ突き出し、笑い目では目の下に点々と並んだ。原画の閉じた目は弧の線に目尻の短い毛だけ。閉じる表情 9 個で、まつげをまぶたの線に付けて 0.3 倍に縮める（向きは開いた目のまま）",
+      "params": {
+        "object": "Face",
+        "material": "FaceEyelash",
+        "follow": "FaceEyeline",
+        "shrink": 0.3,
+        "keys": [
+          "Fcl_EYE_Close",
+          "Fcl_EYE_Close_R",
+          "Fcl_EYE_Close_L",
+          "Fcl_EYE_Joy",
+          "Fcl_EYE_Joy_R",
+          "Fcl_EYE_Joy_L",
+          "Fcl_EYE_Fun",
+          "Fcl_ALL_Joy",
+          "Fcl_ALL_Fun"
+        ]
+      }
+    },
+    {
+      "op": "surface_argyle",
+      "enabled": true,
+      "note": "フードの縁（首まわりの緑の裏地）に緑のアーガイル（2026-11-05 夜）。柄は首の芯のまわりの角度と高さで決める",
+      "params": {
+        "object": "HQ3D_Hood",
+        "materials": [
+          "HQ3D_Hood_Lining"
+        ],
+        "center": [
+          0.0,
+          0.035
+        ],
+        "radius": 0.08,
+        "cell": 0.012,
+        "colors": [
+          "#6F8A4A",
+          "#A9BE86"
+        ],
+        "line": "#E2E9C6",
+        "line_w": 0.05
+      }
+    },
+    {
+      "op": "toon_style",
+      "enabled": true,
+      "note": "塗りを水彩風に（2026-11-05 夜）。原画は柔らかい水彩で、輪郭線は細い茶緑。陰の境目をやわらかく（toony 0.7 以下）、輪郭線を 0.75 倍の太さ・暗いオリーブ色（#5A5638）・光を 60% 混ぜる。目・まつげ・眉・眼鏡は変えない",
+      "params": {
+        "toony": 0.7,
+        "outline_color": "#5A5638",
+        "outline_lighting_mix": 0.6,
+        "outline_width_scale": 0.75,
+        "exclude": [
+          "Eye",
+          "FaceEyeline",
+          "FaceEyelash",
+          "FaceBrow",
+          "Glasses"
+        ]
+      }
+    },
+    {
+      "op": "ear_flatten",
+      "enabled": true,
+      "note": "人の耳を頭の横へ押しつぶす（2026-11-06・利用者の指示。原画とは違うが、人の耳は髪の下に完全に隠す）。顔の肌のうち、高さ 1.425〜1.515 m・前後 0〜0.08 m で横へ 8 cm より外へ出た分を 0.1 倍に。表情の形にも同じ差を足す。11-06（2 回目）: 利用者「猫耳はそのままで人間の耳をなくして」。頭の横（8 cm→7.6 cm）より外へ出た分を全部たたみ、耳の形を無くした。頭の横 7 cm まで寄せ（7.6 cm では横に平たい板が残った）、耳の面の UV を額の肌へ寄せて、テクスチャに描かれた耳の輪郭も消した",
+      "params": {
+        "object": "Face",
+        "material": "Face_00_SKIN",
+        "x0": 0.07,
+        "z": [
+          1.42,
+          1.52
+        ],
+        "y": [
+          -0.005,
+          0.085
+        ],
+        "keep": 0.0,
+        "blend": 0.008,
+        "uv_to": [
+          0.5,
+          0.42
+        ]
+      }
+    },
+    {
+      "op": "merge_plain_parts",
+      "enabled": true,
+      "note": "描画を軽くする（2026-11-06）。利用者の配信 PC で 45fps（目標 60）。小物（花・鎖・ひも・ポケット・襟・ハイカットなど）は物体ごと・材質ごとに描くので、描画の呼び出しが VRoid の素の 29 回から 121 回に増えていた。テクスチャを持たない単色の小物を、色見本の画像を使って 1 つの物体・1 つの材質にまとめる。見た目は変わらない",
+      "params": {
+        "prefix": "HQ3D_",
+        "exclude": [
+          "CatTail",
+          "Hood"
+        ],
+        "name": "HQ3D_Parts",
+        "cell": 4
+      }
+    }
+  ]
+}

@@ -1,0 +1,250 @@
+{
+  "character": "dannoura",
+  "source": "wakaba-character-model-factory/hq3d/characters/dannoura/src/dannoura_vroid.vrm（VRoid Studio 2.3.0 で 2026-11-07 に本番の通常版の写し src/dannoura.vroid を直した素体：一つ結びの高いポニーテール #6E4592・灰色のフードのパーカー・黒いハイカットの靴・頭 −0.5・身長 163.9cm・肌 #EDCBC0。本番の 11-04 版は src/history/dannoura_prod_20261104.vrm）",
+  "_note": "だんのうら 通常姿（デザイン案 reference/dannoura_sheet.webp）。男の子（見た目が女の子っぽい）。値はどれも原画から推した値（guess）",
+  "steps": [
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "パーカー: VRoid の灰色を、原画の薄紫へ（布の陰の濃淡は半分残す）。描いた色が少し暗く出るので明るめに置く",
+      "params": {
+        "material": "N00_005_01_Tops_01",
+        "items": [
+          {
+            "type": "recolor",
+            "max_value": 1.01,
+            "max_sat": 0.15,
+            "color": "#E2CCEE",
+            "keep_shade": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "op": "material_color",
+      "enabled": true,
+      "note": "パーカーの陰: VRoid の青みの陰を、薄紫に合う陰へ",
+      "params": {
+        "material": "N00_005_01_Tops_01",
+        "color": "#FFFFFF",
+        "shade_color": "#BBA7CC"
+      }
+    },
+    {
+      "op": "jacket_open",
+      "enabled": true,
+      "note": "前開き: 中の桃色と白の太い横じまのシャツ・ファスナー（原画: 開きの半幅 4.8 cm・縞の間隔 6.8 cm・桃色の幅 3.4 cm）",
+      "params": {
+        "material": "N00_005_01_Tops_01",
+        "z": [
+          0.81,
+          1.37
+        ],
+        "facing": 0.2,
+        "half_width": [
+          [
+            0.81,
+            0.05
+          ],
+          [
+            1.0,
+            0.049
+          ],
+          [
+            1.2,
+            0.047
+          ],
+          [
+            1.3,
+            0.044
+          ],
+          [
+            1.37,
+            0.038
+          ]
+        ],
+        "tape_width": 0.006,
+        "tape_color": "#B9A3C9",
+        "teeth_color": "#C9C6D0",
+        "teeth_pitch": 0.005,
+        "shirt_color": "#F6EEF3",
+        "shade_color": "#D9C8D4",
+        "shade_width": 0.01,
+        "stripes": {
+          "pitch": 0.068,
+          "width": 0.034,
+          "color": "#E696BA",
+          "z0": 1.29
+        }
+      }
+    },
+    {
+      "op": "front_marks",
+      "enabled": true,
+      "note": "フードの白いひも（原画: 首元 138 cm から 118 cm まで・開きの外側。先に金具）",
+      "params": {
+        "material": "N00_005_01_Tops_01",
+        "facing": 0.2,
+        "items": [
+          {
+            "type": "line",
+            "from": [
+              0.072,
+              1.37
+            ],
+            "to": [
+              0.078,
+              1.19
+            ],
+            "width": 0.006,
+            "color": "#F7F5F8",
+            "mirror": true
+          },
+          {
+            "type": "rect",
+            "box": [
+              0.073,
+              1.165,
+              0.083,
+              1.19
+            ],
+            "fill": "#E9E6EC",
+            "outline": "#B8B2BE",
+            "line_w": 0.001,
+            "mirror": true
+          }
+        ]
+      }
+    },
+    {
+      "op": "front_marks",
+      "enabled": true,
+      "note": "首元: パーカーの V 字の襟から見える胸の肌に、中のシャツ（白と桃色の丸首）を描く（縞の位置は jacket_open とそろえる）",
+      "params": {
+        "material": "Body_00_SKIN",
+        "facing": 0.3,
+        "items": [
+          {
+            "type": "rect",
+            "box": [
+              -0.075,
+              1.29,
+              0.075,
+              1.324
+            ],
+            "fill": "#E696BA"
+          },
+          {
+            "type": "rect",
+            "box": [
+              -0.075,
+              1.324,
+              0.075,
+              1.358
+            ],
+            "fill": "#F6EEF3"
+          },
+          {
+            "type": "rect",
+            "box": [
+              -0.075,
+              1.358,
+              0.075,
+              1.392
+            ],
+            "fill": "#E696BA"
+          }
+        ]
+      }
+    },
+    {
+      "op": "material_color",
+      "enabled": true,
+      "note": "靴の陰: VRoid の青みの陰を、灰色へ",
+      "params": {
+        "material": "Shoes_01",
+        "color": "#FFFFFF",
+        "shade_color": "#9A96A0"
+      }
+    },
+    {
+      "op": "glasses_frame",
+      "enabled": true,
+      "note": "眼鏡: VRoid の丸い枠を、原画の黒い長方形の枠へ作り直す",
+      "params": {
+        "name": "HQ3D_Glasses",
+        "lens_material": "GlassesHiLens",
+        "frame_material": "GlassesHiFrame",
+        "width_scale": 1.0,
+        "height_scale": 0.62,
+        "z_offset": 0.0,
+        "top_n": 9.0,
+        "bottom_n": 7.0,
+        "radius": 0.0016,
+        "front": 0.0015,
+        "color": "#1F1C24"
+      }
+    },
+    {
+      "op": "mini_hat",
+      "enabled": true,
+      "note": "桃色のミニシルクハット（原画: つばの幅 10 cm・山の幅 6.3 cm・高さ 7.3 cm・頭の上でモデルの右寄り・薄い桃色の帯）",
+      "params": {
+        "name": "HQ3D_Hat",
+        "at": [
+          -0.02,
+          0.0
+        ],
+        "material": "Hair",
+        "sink": 0.012,
+        "crown": {
+          "r_bottom": 0.03,
+          "r_top": 0.033,
+          "height": 0.058
+        },
+        "brim": {
+          "r": 0.05,
+          "thick": 0.004,
+          "curl": 0.006
+        },
+        "band": {
+          "height": 0.013,
+          "r_scale": 1.03
+        },
+        "tilt": -8,
+        "pitch": 0,
+        "color": "#D27A9E",
+        "shade_color": "#A85A7C",
+        "center_color": "#F4C6D8"
+      }
+    },
+    {
+      "op": "accessory",
+      "enabled": true,
+      "note": "桃色の五枚花の花飾り（原画: モデルの左のこめかみの上・直径 3.1 cm・真ん中は黄色）。髪に隠れないよう少し前・上へ",
+      "params": {
+        "name": "HQ3D_Flower",
+        "kind": "flower",
+        "bone": "J_Bip_C_Head",
+        "size": 0.023,
+        "petals": 5,
+        "at": {
+          "point": [
+            0.071,
+            -0.043,
+            1.562
+          ],
+          "normal": [
+            0.75,
+            -0.58,
+            0.32
+          ]
+        },
+        "color": "#E7A0BE",
+        "shade_color": "#C27896",
+        "center_color": "#F2D27A",
+        "material_from": "N00_005_01_Tops_01"
+      }
+    }
+  ]
+}

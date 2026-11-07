@@ -1,0 +1,122 @@
+{
+ "_note": "原画の関節（OpenPose）へ骨を合わせたポーズ。推測（guess）: 絵は平らで奥行きが分からないので、前後は depth_hints で決めた。骨の回転はモデル全体の軸（X＝モデルの左・Y＝後ろ・Z＝上）で、度。hq3d_pose.py で付ける",
+ "certainty": "guess",
+ "made_by": "vrm_pose_fit.py",
+ "time": "2026-11-05T19:01:52",
+ "model": "C:\\wakaba\\wakaba-character-model-factory\\hq3d\\characters\\wakaba\\runs\\20261105-190112\\model.vrm",
+ "keypoints": "C:\\wakaba\\wakaba-character-model-factory\\hq3d\\characters\\wakaba\\sheet/front_keypoints.json",
+ "bones": {
+  "hips": [
+   0.0,
+   2.5,
+   5.0
+  ],
+  "spine": [
+   0.0,
+   -3.0,
+   5.0
+  ],
+  "head": [
+   0.0,
+   -9.1,
+   0.1
+  ],
+  "right_upper_arm": [
+   -0.1,
+   -38.3,
+   77.8
+  ],
+  "right_lower_arm": [
+   0.0,
+   22.1,
+   0.7
+  ],
+  "left_upper_arm": [
+   0.7,
+   79.1,
+   1.7
+  ],
+  "left_lower_arm": [
+   0.0,
+   16.6,
+   0.0
+  ],
+  "right_upper_leg": [
+   20.2,
+   7.0,
+   -17.0
+  ],
+  "right_lower_leg": [
+   23.1,
+   0.0,
+   0.0
+  ],
+  "left_upper_leg": [
+   1.0,
+   4.6,
+   -4.6
+  ],
+  "left_lower_leg": [
+   34.1,
+   0.0,
+   0.0
+  ]
+ },
+ "fit": {
+  "rms_px": 8.9,
+  "per_joint_px": {
+   "R_shoulder": 17.6,
+   "R_elbow": 0.5,
+   "R_wrist": 0.1,
+   "L_shoulder": 17.3,
+   "L_elbow": 0.5,
+   "L_wrist": 1.0,
+   "R_hip": 11.6,
+   "R_knee": 0.2,
+   "R_ankle": 0.1,
+   "L_hip": 16.3,
+   "L_knee": 0.1,
+   "L_ankle": 0.2,
+   "neck": 3.4
+  },
+  "eye_line_deg_off": 1.0,
+  "widths": {
+   "shoulders": {
+    "sheet_px": 146.0,
+    "model_px": 179.9
+   },
+   "hips": {
+    "sheet_px": 96.0,
+    "model_px": 102.6
+   }
+  },
+  "scale_px_per_m": 645.94,
+  "offset_px": [
+   252.1,
+   1065.2
+  ],
+  "depth_hints": [
+   {
+    "joint": "R_wrist",
+    "in_front_of": "R_shoulder",
+    "want_m": 0.25,
+    "got_m": 0.376,
+    "ok": true
+   },
+   {
+    "joint": "L_ankle",
+    "in_front_of": "R_ankle",
+    "want_m": 0.15,
+    "got_m": 0.15,
+    "ok": true
+   }
+  ],
+  "starts_cost": [
+   1660.0,
+   979.6,
+   1029.4,
+   979.5
+  ],
+  "fk_check_mm": 0.012
+ }
+}

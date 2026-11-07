@@ -1,0 +1,362 @@
+{
+  "character": "dannoura_white",
+  "source": "wakaba-character-model-factory/hq3d/characters/dannoura_white/src/dannoura_white_vroid.vrm（2026-11-07。通常姿の写し dannoura.vroid を src/dannoura_white.vroid に別名保存し、髪 #E4D3F0・ネコミミ（白・耳毛 60）・ネコしっぽ（#F1E9F6）を足した。本番の 11-04 の体調不良版は src/history/dannoura_sick_prod_20261104.vrm）",
+  "_note": "だんのうら 白い姿（体調不良の形態・同一人物・男性。デザイン案 reference/dannoura_white_sheet.webp）。値はどれも原画から推した値（guess）",
+  "steps": [
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "髪: VRoid の髪のテクスチャは暗いので、全体を持ち上げて原画の明るい藤色へ（毛の筋の濃淡は残る）",
+      "params": {
+        "material": "N00_000_Hair_00_HAIR",
+        "items": [
+          {
+            "type": "lift",
+            "center": [
+              0.5,
+              0.5
+            ],
+            "radius": 1.0,
+            "lift": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "後ろ髪も同じだけ持ち上げる",
+      "params": {
+        "material": "HairBack",
+        "items": [
+          {
+            "type": "lift",
+            "center": [
+              0.5,
+              0.5
+            ],
+            "radius": 1.0,
+            "lift": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "猫耳の内側を桃色に（原画: 内側ピンク・ふちは白い毛）。テクスチャの真ん中の 2 枚が内側（下の 2 枚は外側だった）",
+      "params": {
+        "material": "CatEar",
+        "items": [
+          {
+            "type": "blush",
+            "center": [
+              0.25,
+              0.4
+            ],
+            "radius": [
+              0.12,
+              0.13
+            ],
+            "color": "#EBB0C4",
+            "alpha": 0.9
+          },
+          {
+            "type": "blush",
+            "center": [
+              0.75,
+              0.4
+            ],
+            "radius": [
+              0.12,
+              0.13
+            ],
+            "color": "#EBB0C4",
+            "alpha": 0.9
+          }
+        ]
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "パーカー: 灰色を、原画の黒（#1a1620 のマット）へ",
+      "params": {
+        "material": "N00_005_01_Tops_01",
+        "items": [
+          {
+            "type": "recolor",
+            "max_value": 1.01,
+            "max_sat": 0.15,
+            "color": "#3A3340",
+            "keep_shade": 0.35
+          }
+        ]
+      }
+    },
+    {
+      "op": "material_color",
+      "enabled": true,
+      "note": "パーカーの陰: 黒に合う濃い陰へ",
+      "params": {
+        "material": "N00_005_01_Tops_01",
+        "color": "#FFFFFF",
+        "shade_color": "#6E6575"
+      }
+    },
+    {
+      "op": "jacket_open",
+      "enabled": true,
+      "note": "前開き: 中のチャコールの T シャツ・ファスナー（銀）",
+      "params": {
+        "material": "N00_005_01_Tops_01",
+        "z": [
+          0.81,
+          1.37
+        ],
+        "facing": 0.2,
+        "half_width": [
+          [
+            0.81,
+            0.05
+          ],
+          [
+            1.0,
+            0.049
+          ],
+          [
+            1.2,
+            0.047
+          ],
+          [
+            1.3,
+            0.044
+          ],
+          [
+            1.37,
+            0.038
+          ]
+        ],
+        "tape_width": 0.006,
+        "tape_color": "#26212B",
+        "teeth_color": "#C4C1CA",
+        "teeth_pitch": 0.005,
+        "shirt_color": "#55505E",
+        "shade_color": "#45404D",
+        "shade_width": 0.01
+      }
+    },
+    {
+      "op": "front_marks",
+      "enabled": true,
+      "note": "フードのオフホワイトのひも・袖の白い当て布（上腕）と帯 2 本（袖口の少し上）。袖は T ポーズで横に伸びるので x が腕に沿う向き",
+      "params": {
+        "material": "N00_005_01_Tops_01",
+        "facing": 0.2,
+        "items": [
+          {
+            "type": "line",
+            "from": [
+              0.072,
+              1.37
+            ],
+            "to": [
+              0.078,
+              1.19
+            ],
+            "width": 0.006,
+            "color": "#E6E0DC",
+            "mirror": true
+          },
+          {
+            "type": "rect",
+            "box": [
+              0.073,
+              1.165,
+              0.083,
+              1.19
+            ],
+            "fill": "#D9D3D0",
+            "outline": "#8F8992",
+            "line_w": 0.001,
+            "mirror": true
+          },
+          {
+            "type": "rect",
+            "box": [
+              0.25,
+              1.302,
+              0.31,
+              1.336
+            ],
+            "fill": "#DDD6DA",
+            "outline": "#8F8992",
+            "line_w": 0.0015,
+            "mirror": true
+          },
+          {
+            "type": "rect",
+            "box": [
+              0.442,
+              1.2,
+              0.454,
+              1.45
+            ],
+            "fill": "#DDD6DA",
+            "mirror": true
+          },
+          {
+            "type": "rect",
+            "box": [
+              0.464,
+              1.2,
+              0.476,
+              1.45
+            ],
+            "fill": "#DDD6DA",
+            "mirror": true
+          }
+        ]
+      }
+    },
+    {
+      "op": "front_marks",
+      "enabled": true,
+      "note": "首元: パーカーの V 字の襟から見える胸に、チャコールの丸首を描く",
+      "params": {
+        "material": "Body_00_SKIN",
+        "facing": 0.3,
+        "items": [
+          {
+            "type": "rect",
+            "box": [
+              -0.075,
+              1.29,
+              0.075,
+              1.392
+            ],
+            "fill": "#55505E"
+          },
+          {
+            "type": "rect",
+            "box": [
+              -0.075,
+              1.378,
+              0.075,
+              1.392
+            ],
+            "fill": "#4A4553"
+          }
+        ]
+      }
+    },
+    {
+      "op": "texture_paint",
+      "enabled": true,
+      "note": "ズボン: 紫のチェックを、原画の黒に近い無地（ダーク・マット）へ",
+      "params": {
+        "material": "Bottoms_01",
+        "items": [
+          {
+            "type": "recolor",
+            "max_value": 1.01,
+            "max_sat": 1.01,
+            "color": "#3E3747",
+            "keep_shade": 0.3
+          }
+        ]
+      }
+    },
+    {
+      "op": "material_color",
+      "enabled": true,
+      "note": "靴の陰: VRoid の青みの陰を、灰色へ",
+      "params": {
+        "material": "Shoes_01",
+        "color": "#FFFFFF",
+        "shade_color": "#9A96A0"
+      }
+    },
+    {
+      "op": "glasses_frame",
+      "enabled": true,
+      "note": "眼鏡: 黒い長方形の枠（通常姿と同じ）",
+      "params": {
+        "name": "HQ3D_Glasses",
+        "lens_material": "GlassesHiLens",
+        "frame_material": "GlassesHiFrame",
+        "width_scale": 1.0,
+        "height_scale": 0.62,
+        "z_offset": 0.0,
+        "top_n": 9.0,
+        "bottom_n": 7.0,
+        "radius": 0.0016,
+        "front": 0.0015,
+        "color": "#1F1C24"
+      }
+    },
+    {
+      "op": "tail_swing",
+      "enabled": true,
+      "note": "尻尾: VRoid の後ろへまっすぐ伸びた形を、下へ垂らして、モデルの左へ流し、先を外へ丸める（原画の正面・背面）",
+      "params": {
+        "first_bone": "J_Opt_C_CatTail1_01",
+        "side": 12,
+        "back": -88,
+        "curl": 35
+      }
+    },
+    {
+      "op": "cat_tail_tube",
+      "enabled": true,
+      "note": "尻尾を毛のある筒に作り直す（わかばと同じ作り方。色は白に薄い藤色）。原画の尻尾は直径 6 cm ほどなので、わかばより細い",
+      "params": {
+        "first_bone": "J_Opt_C_CatTail1_01",
+        "color": "#F3ECF7",
+        "shade_color": "#D3C7DC",
+        "radius": [
+          [
+            0,
+            0.018
+          ],
+          [
+            0.12,
+            0.027
+          ],
+          [
+            0.5,
+            0.031
+          ],
+          [
+            0.8,
+            0.032
+          ],
+          [
+            0.93,
+            0.025
+          ],
+          [
+            1,
+            0
+          ]
+        ],
+        "length_tufts": 7,
+        "length_tuft_depth": 0.1,
+        "ridges": 9,
+        "ridge_depth": 0.07,
+        "ridge_twist": 2.5,
+        "rings": 72,
+        "sides": 20,
+        "remove_original": true,
+        "original_material": "CatTail",
+        "fur": {
+          "count": 700,
+          "len": 0.012,
+          "width": 0.02,
+          "lean": 1.6,
+          "seed": 5
+        }
+      }
+    }
+  ]
+}

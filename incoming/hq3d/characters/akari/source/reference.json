@@ -1,0 +1,49 @@
+{
+  "character": "akari",
+  "sheet": "wakaba-character-model-factory/hq3d/characters/akari/reference/akari_sheet.webp",
+  "sheet_size": [1536, 1024],
+  "analyzed": "2026-11-07（Claude が設計図を方眼つきで拡大して読んだ。画素の位置と色は実測、意味づけは読み取り）",
+  "_rules": "certainty: measured＝画素から測った値／read＝絵から読み取った（ほぼ確実）／guess＝推測。見えない所は書かない。原画は写実寄りの AI 風の絵で、正面・側面・背面でバッグの向きが食い違う所がある（正面を正とした）",
+  "views_on_sheet": {
+    "front_full": {"box": [70, 60, 400, 935], "note": "全身の正面。A ポーズ（腕を下ろして少し開く）。身長 158cm の目盛り"},
+    "side": {"box": [480, 60, 700, 935], "note": "左の横顔（ヘアピンが見える側）"},
+    "back": {"box": [730, 60, 1090, 935]},
+    "faces": {"neutral": [1140, 62, 1530, 367], "smile": [1140, 372, 1530, 668], "determined": [1140, 673, 1530, 977]}
+  },
+  "palette": {
+    "_note": "box は設計図の画素 [左, 上, 右, 下]。光の当たった無地の所（肩ひも・縞・陰を避けた）",
+    "hair": {"box": [205, 100, 215, 115], "certainty": "measured", "model_materials": ["Hair_00_HAIR", "HairBack"], "view": "front"},
+    "skin": {"box": [230, 150, 240, 160], "certainty": "measured", "model_materials": ["Face_00_SKIN"], "view": "front"},
+    "jacket": {"boxes": [[322, 322, 338, 348], [176, 332, 190, 358]], "certainty": "measured", "model_materials": ["Tops_01"], "view": "front", "note": "上着の胸と脇腹の無地の所"},
+    "jeans": {"boxes": [[188, 610, 208, 650], [278, 610, 292, 650]], "certainty": "measured", "model_materials": ["Bottoms_01"], "view": "front"},
+    "shoes": {"box": [190, 892, 210, 905], "certainty": "measured", "model_materials": ["Shoes_01"], "view": "front"},
+    "bag": {"box": [145, 460, 175, 490], "certainty": "measured", "model_materials": ["HQ3D_Bag"], "view": "front", "note": "バッグの前の面（ふたの下）"}
+  },
+  "proportions": {
+    "heads_tall": {
+      "value": 8.4,
+      "certainty": "guess",
+      "how": "髪の上端 y≈70、あご y≈172、足元 y≈925。(925-70)/(172-70)。髪のふくらみを含むので頭は少し大きめに測っている",
+      "model_measure": "正面のマスクで、髪の幅が最大幅の 40% を超える最初の行＝上端、顔の肌の最下行＝あご、靴の最下行＝足元"
+    }
+  },
+  "parts": [
+    {"id": "hood", "name": "上着のフード（背中側）", "certainty": "read", "manual": "ある（VRoid のパーカーのフード）"},
+    {"id": "open_front", "name": "上着が前開き（銀のファスナー）・中にクリームと紺のボーダーのシャツ", "certainty": "read", "manual": "ある（2026-11-07 テクスチャで前開きとボーダーを描いた。形は閉じたまま）", "shape_note": "テクスチャで描いた前開き。横を向いたり動いたりしても布は開かない"},
+    {"id": "snaps", "name": "開きの両側の銀のスナップ", "certainty": "read", "manual": "ある（テクスチャ）"},
+    {"id": "flap_pockets", "name": "腰のふた付きポケット（スナップ付き）", "certainty": "read", "manual": "ある（テクスチャ。ふたは平ら）", "shape_note": "ふたは描いただけで立体ではない"},
+    {"id": "yoke", "name": "胸の切り替え線", "certainty": "read", "manual": "ある（テクスチャ）"},
+    {"id": "drawstrings", "name": "首元から下がるひも（黒い留め具付き）", "certainty": "read", "manual": "ある（VRoid のパーカーのひも。留め具は無し）", "shape_note": "原画のひもは開きの外側、モデルは内寄り"},
+    {"id": "cuffs", "name": "ゴムの袖口", "certainty": "read", "manual": "ある（VRoid のパーカーのリブ）"},
+    {"id": "bag", "name": "茶色の革のショルダーバッグ（ふたに留め具のベルト 2 本）", "certainty": "read", "detect": {"materials": ["HQ3D_Bag"], "view": "front"}},
+    {"id": "strap", "name": "バッグの肩ひも（左肩から右の腰へ斜めがけ）", "certainty": "read", "detect": {"materials": ["HQ3D_BagStrap"], "view": "front"}},
+    {"id": "hair_clip", "name": "銀色のヘアピン（左のこめかみの上）", "certainty": "read", "detect": {"materials": ["HQ3D_HairClip"], "view": "left"}},
+    {"id": "jeans", "name": "青いストレートのジーンズ", "certainty": "read", "detect": {"materials": ["Bottoms_01"], "view": "front"}},
+    {"id": "sneakers", "name": "白いキャンバスのスニーカー", "certainty": "read", "detect": {"materials": ["Shoes_01"], "view": "front"}, "shape_note": "モデルは VRoid の白い革靴風（ひも付き）。キャンバス地の形ではない"}
+  ],
+  "not_compared_yet": [
+    "全身のシルエット（原画は A ポーズ。pose.json を作れば比べられる）",
+    "顔の目・鼻・口の位置（原画は写実寄り、モデルは VRoid のアニメ顔）",
+    "髪の毛束の流れ"
+  ]
+}
