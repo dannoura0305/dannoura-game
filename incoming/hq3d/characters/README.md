@@ -15,7 +15,6 @@
 | `musume/` | だんのうらの娘（身長 100cm） | `model/musume.vrm` | `runs/20261107-144709` | |
 | `akari/` | 瀬名 灯里 | `model/akari.vrm` | `runs/20261107-145156` | |
 | `wakaba/` | わかば | `model/wakaba.vrm` | `runs/20261107-155023` | 本番の `wakaba.vrm` と同じファイル |
-| `rune/` | ルーン（相棒の竜） | `model/rune.glb` | `runs/face46` | 本番の Profile には未切替 |
 | `nekomata/` | 猫又 | `model/nekomata.glb` | `runs/v1` | |
 | `_tools/` | 作り方のスクリプト（共通） | — | — | 下の「作り方」を参照 |
 
@@ -27,7 +26,7 @@
   - `*_vroid.vrm` … VRoid Studio から書き出した素の VRM（Blender で手を入れる前）
   - `adjust.json` … Blender での手直しの指定（いまの設定）／`adjust_used.json` … 完成版を作ったときの指定
   - `reference.json`・`reference/*.webp` … 見比べに使った設定画と、その読み取り結果
-  - `build.json`・`make_build*.py`・`rune.blend` … 竜・猫又を Blender で一から組むための設定とスクリプト
+  - `build.json`・`make_build*.py` … 猫又を Blender で一から組むための設定とスクリプト
 - `preview_*.png` … 完成版の正面の確認画像
 
 ## 作り方（`_tools/`）
@@ -40,7 +39,7 @@
 | `_tools/blender_python/vrm_roundtrip.py`・`vrm_pose_fit.py`・`hq3d_pose.py` | VRM の読み書き・ポーズ合わせ |
 | `_tools/blender_python/vrm_views.py`・`vrm_compare_render.py`・`hq3d_glb_views.py` | 確認画像を撮る |
 | `_tools/hq3d/hq3d_compare.py`・`hq3d_sheet_silhouette.py` | 設定画との色・シルエットの比較 |
-| `_tools/blender_python/hq3d_dragon.py`・`hq3d_dragon_face.py` | ルーン（竜）を一から組む |
+| `_tools/blender_python/hq3d_dragon.py`・`hq3d_dragon_face.py` | 竜の骨格・体を組む（猫又のスクリプトが読み込むので残している） |
 | `_tools/blender_python/hq3d_nekomata.py` | 猫又を一から組む |
 | `_tools/hq3d/creature_check.js`・`sway_check.js` | 竜・猫又の自動確認 |
 
@@ -59,7 +58,6 @@
 | 娘 | VRM 1.0 | 同上 | 228（155） | 45,437 | 31,601 | 57 | 13.9MB |
 | 瀬名 灯里 | VRM 1.0 | 同上 | 124（67） | 48,860 | 34,595 | 57 | 15.1MB |
 | わかば | VRM 1.0 | 同上 | 172（112） | 99,254 | 86,936 | 57 | 20.0MB |
-| ルーン（竜） | glTF 2.0（.glb） | 自作の四つ足骨格（人型ではない・VRM ではない） | 34（なし） | 82,682 | 59,667 | 20 ＋ 動き 1 本 | 9.4MB |
 | 猫又 | glTF 2.0（.glb） | 自作の四つ足骨格（ルーンと同じ骨の名前） | 34（なし） | 250,132 | 325,880 | 6 ＋ 動き 1 本 | 22.8MB |
 
 - 人型 6 体は VRoid Studio で作った体に、Blender で尻尾・猫耳・小物などを足して書き出したものです。骨の名前は VRoid の `J_Bip_*`（体）・`J_Sec_*`（揺れもの）に、足したパーツの骨が加わっています。材質は MToon。
@@ -76,7 +74,7 @@
 | だんのうら・白い姿・見舞い時・わかば | 作者のみ | 法人でも可 | 不可 | 不可 | 必要 |
 | 娘・瀬名 灯里 | 作者のみ | 個人の非営利のみ | 不可 | 不可 | 必要 |
 
-ルーンと猫又は .glb なので利用条件の書き込みはありません。
+猫又は .glb なので利用条件の書き込みはありません。
 
 > **注意**：このリポジトリは公開されています。モデルの条件は「再配布不可」ですが、作者本人の置き場所として入れています。第三者が持ち出して使ってよいという意味ではありません。娘・灯里は「個人の非営利のみ」になっているので、商用で使う前に書き換えが必要です。
 
@@ -86,7 +84,7 @@
 |---|---|---|
 | 人型 6 体の体・髪・服の元 | VRoid Studio 2.3.0 の標準パーツで作成 | VRoid Studio の利用規約に従う（作った人がモデルを利用・商用利用できる） |
 | 尻尾・猫耳・眼鏡・小物・服の柄など足したパーツ | Blender のスクリプト（`_tools/`）で形と色を作ったもの。外の画像やモデルは読み込んでいない | 自作 |
-| ルーン・猫又 | Blender のスクリプトで一から組んだもの。外の画像やモデルは読み込んでいない | 自作 |
+| 猫又 | Blender のスクリプトで一から組んだもの。外の画像やモデルは読み込んでいない | 自作 |
 | 設定画（`source/reference/*.webp`） | 本人が用意した設定画 | 本人の著作物（出どころの確認はしていません） |
 
 ## 入れなかったもの
@@ -106,3 +104,7 @@
 - **わかばの VRoid 元データ**（`wakaba.vroid`・`wakaba_vroid.vrm`）は hq3d のフォルダには無かったので、PC 側の `wakaba-system/cast-engine/storage/models3d/wakaba/src/` から写して `wakaba/source/` に入れました。同じ場所にある服の柄の画像（`pattern_*.png`・`tops_layer.png`・`cuff_plain.png`）は入れていません（出どころ未確認）。
 - **猫又の .blend** は作業回に残っていません（スクリプトと `build.json` から作り直せます）。
 - だんのうらの見舞い時の姿は .vroid を持たず、だんのうら（通常）の元データに Blender で手を入れて作っています。
+
+## 外したもの
+
+- 2026-11-07：ルーン（竜）は『だんのうら』とは関係ないため、利用者の指示でこのフォルダから外しました（`rune/`）。PC 側の元ファイルはそのまま残っています。竜の骨格のスクリプト（`hq3d_dragon*.py`）は猫又のスクリプトが使うので残しています。
