@@ -9,6 +9,7 @@ import * as THREE from 'three';
 const BASE = new URL('../assets/characters/', import.meta.url);
 import { JOINT_NAMES, matchBones } from './bones.js';
 import { attachRigidWeapons } from './models.js';
+import { vrmFaceAdapter } from '../../charkit/face/driver.js';
 export { JOINT_NAMES, matchBones };
 
 export async function loadManifest() {
@@ -64,11 +65,16 @@ export async function loadVRM(entry, opt = {}) {
       root: m.root, J: J17, Jx, vrm, rest: {}, tpose: true, vrm0: m.stats.metaVersion === '0', hipScale: 1 / (m.sceneScale || 1), isVRM: true, isExternal: true,
       height: entry.height || 1.64, provisional: !!entry.provisional, test: !!entry.test, portrait: portraitURL(entry),
       legDims: m.legDims ? scaleDims(m.legDims, m.sceneScale || 1) : null, legScale: m.legScale, sockets, springs: m.springs, stats: m.stats,
-      kind: entry.kind === 'white' ? 'dannoura' : entry.kind || 'vrm', white: entry.kind === 'white', update: dt => m.update(dt),
+      kind: entry.kind === 'white' ? 'dannoura' : entry.kind === 'mixed' ? 'dannoura_mixed' : entry.kind || 'vrm', white: entry.kind === 'white' || entry.kind === 'mixed', update: dt => m.update(dt),
     };
+    // 結末A の見舞いの姿（kind: mixed）：コードの姿（models3.js buildDannouraWhite({ mixed: true })）と同じ印（白と紫が混ざった髪）
+    if (entry.kind === 'mixed') model.mixed = true;
+    // 台詞の表情（smile・sad・calm…）：VRM の表情（happy・sad・relaxed…）へ。charkit/face/driver.js の EXPR_TO_VRM（Player.setExpr → model.setExpr）
+    if (vrm.expressionManager) { const fa = vrmFaceAdapter(vrm); model.setExpr = n => fa.setExpr(n); }
     // 武器は差し込み口へ（コードの武器の形：腕を下ろした手の向きに合わせた口）
     // P17：武器はだんのうら（紫・白い姿）だけ。相棒・娘の VRM に付けると刀・銃・鉄パイプ・火縄銃が全部手に見えていた
     if (!entry.kind || entry.kind === 'dannoura' || entry.kind === 'white') model.weapons = attachRigidWeapons(Object.assign({}, J17, { rightHand: sockets.rightHand || J17.rightHand, hips: sockets.hips || J17.hips }));
+    else if (entry.kind === 'mixed') model.weapons = attachRigidWeapons(Object.assign({}, J17, { rightHand: sockets.rightHand || J17.rightHand, hips: sockets.hips || J17.hips }));   // 見舞いの姿：武器は持たない場面だけ（unarm7 で隠す）。差し込み口の向きは同じ
     if (entry.anim) {
       try {
         const { loadClipSet } = await import('../../charkit/runtime/vrma.js');

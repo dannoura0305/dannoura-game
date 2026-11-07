@@ -21,6 +21,7 @@
   "acquiredAt": "2026-11-07",
   "original": "origin/models-from-pc:incoming/hq3d/characters/dannoura_white/model/dannoura_white.vrm",
   "originalSha256": "253447f738ae1499bded7c5f71440c7c6c7f8e8c195903c0c210df832b610e6e",
+  "generator": "tools/charkit/vroid_game.mjs",
   "gameBuild": "tools/charkit/vroid_game.mjs",
   "vrmMeta": {
    "commercialUsage": "corporation",
@@ -34,12 +35,14 @@
  "license": {
   "id": "VRM-1.0",
   "commercial": "yes",
-  "redistributeRaw": "no",
+  "redistributeRaw": "yes",
   "engines": [
    "any"
   ],
-  "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で作成）",
-  "verifiedBy": "",
+  "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で制作）",
+  "verifiedBy": "利用者（作者本人・WAKABA Project）",
+  "verifiedAt": "2026-11-07",
+  "verifiedNote": "2026-11-07 利用者（作者本人・WAKABA Project）が確認・承認：「公開リポジトリとサイトに置いてよい」。作者本人が自分のゲーム（境界侵食）として公開リポジトリと Web のサイトに置く（redistributeRaw: yes はこの承認による）。VRM の利用条件（作者のみ・再配布不可）はそのまま：第三者がこのファイルを持ち出して使う・配ることは不可。クレジット「キャラクターモデル：WAKABA Project（VRoid Studio で制作）」をスタッフロールに表示",
   "textUrl": "https://vrm.dev/licenses/1.0/"
  },
  "tech": {
@@ -83,6 +86,11 @@
    "at": "2026-11-07",
    "by": "Claude Code（利用者の依頼）",
    "change": "Blender 製（char.dannoura_white_bl）から利用者の VRoid 製に差し替え。2026-11-07 利用者の承認：ゲーム用に軽くした VRM の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（PC から届いた元の VRM は変えない）"
+  },
+  {
+   "at": "2026-11-07",
+   "by": "Claude Code（利用者の承認を記入）",
+   "change": "素材の確認（verifiedBy＝利用者（作者本人・WAKABA Project））：2026-11-07 利用者（作者本人・WAKABA Project）が確認・承認：「公開リポジトリとサイトに置いてよい」。作者本人が自分のゲーム（境界侵食）として公開リポジトリと Web のサイトに置く（redistributeRaw: yes はこの承認による）。VRM の利用条件（作者のみ・再配布不可）はそのまま：第三者がこのファイルを持ち出して使う・配ることは不可。クレジット「キャラクターモデル：WAKABA Project（VRoid Studio で制作）」をスタッフロールに表示"
   }
  ]
 }

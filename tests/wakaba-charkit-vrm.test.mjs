@@ -38,7 +38,8 @@ const loadSet = vrm => loadClipSet(JSON.parse(readFileSync(P(SET_FILE), 'utf8'))
 await t('manifest：異形は null（コード製の予備）・人の 4 体は Blender で作った VRM（P15・娘は P17）・testEntries は ?vrm= の時だけ・試験用の印と出典', () => {
   const man = JSON.parse(readFileSync(P('shinshoku/assets/characters/manifest.json'), 'utf8'));
   for (const [k, e] of Object.entries(man.characters)) {
-    if (['dannoura', 'dannoura_white', 'companion', 'daughter'].includes(k)) { assert.ok(/\.vrm$/.test(e.file) && !e.test, k + '：リポジトリの中で作った VRM（tests/shinshoku-p15-vrmchar.test.mjs・娘は P17）'); continue; }
+    // 2026-11-07：見舞いの姿（dannoura_visit・結末A）も利用者の VRoid 製（tests/shinshoku-vroid.test.mjs）
+    if (['dannoura', 'dannoura_white', 'companion', 'daughter', 'dannoura_visit'].includes(k)) { assert.ok(/\.vrm$/.test(e.file) && !e.test, k + '：リポジトリの中で作った VRM（tests/shinshoku-p15-vrmchar.test.mjs・娘は P17）'); continue; }
     assert.equal(e.file, null, k + ' は null（本番のモデルが来るまで）');
   }
   const te = man.testEntries.test.dannoura;

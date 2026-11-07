@@ -849,7 +849,7 @@
    "dir": "character/char.companion",
    "license": {
     "id": "VRM-1.0",
-    "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で作成）"
+    "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で制作）"
    },
    "tech": {
     "pivot": null,
@@ -862,17 +862,12 @@
    },
    "targets": {
     "web": {
-     "result": "block",
-     "reasons": [
-      "UNVERIFIED",
-      "NO_WEB_REDIST"
-     ]
+     "result": "pass",
+     "reasons": []
     },
     "ue5": {
-     "result": "block",
-     "reasons": [
-      "UNVERIFIED"
-     ]
+     "result": "pass",
+     "reasons": []
     }
    },
    "sources": [],
@@ -942,7 +937,7 @@
    "dir": "character/char.dannoura",
    "license": {
     "id": "VRM-1.0",
-    "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で作成）"
+    "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で制作）"
    },
    "tech": {
     "pivot": null,
@@ -955,17 +950,12 @@
    },
    "targets": {
     "web": {
-     "result": "block",
-     "reasons": [
-      "UNVERIFIED",
-      "NO_WEB_REDIST"
-     ]
+     "result": "pass",
+     "reasons": []
     },
     "ue5": {
-     "result": "block",
-     "reasons": [
-      "UNVERIFIED"
-     ]
+     "result": "pass",
+     "reasons": []
     }
    },
    "sources": [],
@@ -1017,6 +1007,50 @@
    "ue5": null
   },
   {
+   "id": "char.dannoura_visit",
+   "version": 2,
+   "category": "character",
+   "name": {
+    "ja": "だんのうら・見舞いの姿",
+    "en": "Dannoura, visit"
+   },
+   "status": "draft",
+   "tags": [
+    "キャラクター",
+    "VRM",
+    "VRoid",
+    "自作",
+    "利用者の PC"
+   ],
+   "dir": "character/char.dannoura_visit",
+   "license": {
+    "id": "VRM-1.0",
+    "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で制作）"
+   },
+   "tech": {
+    "pivot": null,
+    "sizeM": [
+     0.6,
+     1.64,
+     0.4
+    ],
+    "tris": 34522
+   },
+   "targets": {
+    "web": {
+     "result": "pass",
+     "reasons": []
+    },
+    "ue5": {
+     "result": "pass",
+     "reasons": []
+    }
+   },
+   "sources": [],
+   "web": [],
+   "ue5": null
+  },
+  {
    "id": "char.dannoura_white",
    "version": 2,
    "category": "character",
@@ -1035,7 +1069,7 @@
    "dir": "character/char.dannoura_white",
    "license": {
     "id": "VRM-1.0",
-    "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で作成）"
+    "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で制作）"
    },
    "tech": {
     "pivot": null,
@@ -1048,17 +1082,12 @@
    },
    "targets": {
     "web": {
-     "result": "block",
-     "reasons": [
-      "UNVERIFIED",
-      "NO_WEB_REDIST"
-     ]
+     "result": "pass",
+     "reasons": []
     },
     "ue5": {
-     "result": "block",
-     "reasons": [
-      "UNVERIFIED"
-     ]
+     "result": "pass",
+     "reasons": []
     }
    },
    "sources": [],
@@ -1128,7 +1157,7 @@
    "dir": "character/char.daughter",
    "license": {
     "id": "VRM-1.0",
-    "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で作成）"
+    "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で制作）"
    },
    "tech": {
     "pivot": null,
@@ -1141,17 +1170,12 @@
    },
    "targets": {
     "web": {
-     "result": "block",
-     "reasons": [
-      "UNVERIFIED",
-      "NO_WEB_REDIST"
-     ]
+     "result": "pass",
+     "reasons": []
     },
     "ue5": {
-     "result": "block",
-     "reasons": [
-      "UNVERIFIED"
-     ]
+     "result": "pass",
+     "reasons": []
     }
    },
    "sources": [],

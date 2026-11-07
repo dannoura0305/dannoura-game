@@ -1,0 +1,90 @@
+{
+ "id": "char.dannoura_visit",
+ "name": "だんのうら・見舞いの姿（Dannoura, visit）",
+ "provisional": false,
+ "test": false,
+ "note": "利用者が自分の PC で VRoid Studio＋Blender で作った VRM 1.0（2026-11-07 持ち込み・ブランチ models-from-pc の incoming/hq3d/characters/dannoura_visit/model/dannoura_visit.vrm）を tools/charkit/vroid_game.mjs でゲーム用に軽くした物。前はコードで組んだ姿だけ（Blender 製は無い）。?vrmset=bl・?vrm=0 の時はコードの姿",
+ "license": {
+  "id": "VRM-1.0",
+  "commercial": "yes",
+  "redistributeRaw": "yes",
+  "engines": [
+   "any"
+  ],
+  "attribution": "キャラクターモデル：WAKABA Project（VRoid Studio で制作）",
+  "verifiedBy": "利用者（作者本人・WAKABA Project）",
+  "verifiedAt": "2026-11-07",
+  "verifiedNote": "2026-11-07 利用者（作者本人・WAKABA Project）が確認・承認：「公開リポジトリとサイトに置いてよい」。作者本人が自分のゲーム（境界侵食）として公開リポジトリと Web のサイトに置く（redistributeRaw: yes はこの承認による）。VRM の利用条件（作者のみ・再配布不可）はそのまま：第三者がこのファイルを持ち出して使う・配ることは不可。クレジット「キャラクターモデル：WAKABA Project（VRoid Studio で制作）」をスタッフロールに表示",
+  "textUrl": "https://vrm.dev/licenses/1.0/",
+  "note": "VRM Public License 1.0（作者 WAKABA Project＝利用者本人）、VRoid Studio 標準パーツ＋自作。2026-11-07 利用者の承認：ゲーム用に軽くした VRM の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（PC から届いた元の VRM は変えない）。元の VRM の条件は onlyAuthor・corporation・改変 prohibited・再配布 不可"
+ },
+ "author": "WAKABA Project（利用者本人）",
+ "source": {
+  "type": "self_made",
+  "tool": "VRoid Studio 2.3.0＋Blender 5.x（VRM Add-on 4.10.3）",
+  "generator": "tools/charkit/vroid_game.mjs",
+  "original": "origin/models-from-pc:incoming/hq3d/characters/dannoura_visit/model/dannoura_visit.vrm",
+  "originalSha256": "88090903fd78a5340a3a76cfbb1767f184a23344dfdd3e8991757d02b1cf313d",
+  "originalBytes": 15245012,
+  "vrmMeta": {
+   "commercialUsage": "corporation",
+   "avatarPermission": "onlyAuthor",
+   "modification": "allowModification",
+   "allowRedistribution": false,
+   "creditNotation": "required"
+  },
+  "vrmMetaOriginal": {
+   "commercialUsage": "corporation",
+   "avatarPermission": "onlyAuthor",
+   "modification": "prohibited",
+   "allowRedistribution": false,
+   "creditNotation": "required"
+  },
+  "vrmMetaChange": "2026-11-07 利用者の承認：ゲーム用に軽くした VRM の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（PC から届いた元の VRM は変えない）"
+ },
+ "body": {
+  "height": 1.64,
+  "sex": "male"
+ },
+ "info": {
+  "bones": 130,
+  "humanBones": 54,
+  "expressions": 18,
+  "morphTargets": 57,
+  "springs": 17,
+  "springJoints": 72,
+  "colliders": 22,
+  "meshes": [
+   "Body (merged)",
+   "Face (merged)(Clone)",
+   "Hair001 (merged)",
+   "HQ3D_Flower",
+   "HQ3D_Glasses",
+   "HQ3D_Hat"
+  ]
+ },
+ "files": [
+  {
+   "file": "dannoura_visit.vrm",
+   "lod": "pc",
+   "bytes": 2346604,
+   "sha256": "fd5d6dd862b33863d4eaba70b119caea4b11f6745c736e658ec5d9fbeddcc672",
+   "tris": 34522,
+   "materials": 19,
+   "images": 24,
+   "imageBytes": 404294,
+   "maxTexture": 1024
+  },
+  {
+   "file": "dannoura_visit_low.vrm",
+   "lod": "low",
+   "bytes": 1407872,
+   "sha256": "6352ea1c446c2bd7329afbf80d4d68e97580591fda64defe3267be527889f15c",
+   "tris": 34522,
+   "materials": 19,
+   "images": 24,
+   "imageBytes": 141307,
+   "maxTexture": 512
+  }
+ ]
+}

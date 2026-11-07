@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 利用者が自分の PC（VRoid Studio＋Blender）で作った VRM 1.0 を、ゲーム（境界侵食）用に軽くする。docs/shinshoku/ASSET_IMPORT.md §5.5。
 //   node tools/charkit/vroid_game.mjs --src <PC から持ち込んだ characters のフォルダ> [--python <Pillow の入った python>]
-//        [--chars dannoura,dannoura_white,daughter,companion] [--out shinshoku/assets/characters] [--work <途中の物の置き場>] [--no-meta] [--no-library]
+//        [--chars dannoura,dannoura_white,daughter,companion,dannoura_visit] [--out shinshoku/assets/characters] [--work <途中の物の置き場>] [--no-meta] [--no-library]
 // 元：ブランチ models-from-pc の incoming/hq3d/characters/（リポジトリの main には入れない）。<src>/<フォルダ>/model/<名前>.vrm を読む。
 // 出る物：<out>/<ゲームの名前>.vrm（PC）・<ゲームの名前>_low.vrm（スマホ）・<ゲームの名前>.meta.json、wakaba-assets/entries/character/char.<名前>/meta.json
 //
@@ -34,6 +34,8 @@ export const SOURCES = {
   dannoura_white: { src: 'dannoura_white/model/dannoura_white.vrm', name: 'だんのうら・白い姿（Dannoura, true form）', sex: 'male', height: 1.64, kind: 'white' },
   daughter: { src: 'musume/model/musume.vrm', name: '娘（Daughter・4 歳）', sex: 'female', height: 1.0, kind: 'daughter' },
   companion: { src: 'akari/model/akari.vrm', name: '相棒・瀬名 灯里（Companion, Sena Akari）', sex: 'female', height: 1.58, kind: 'companion' },
+  // 2026-11-07 利用者の承認：結末A の見舞いの姿（白と紫が混ざった髪・化けが不安定なだけ。同じ人・男性）。前はコードで組んだ姿（models3.js buildDannouraWhite({ mixed: true })）だけで、Blender 製（_bl）は無い
+  dannoura_visit: { src: 'dannoura_visit/model/dannoura_visit.vrm', name: 'だんのうら・見舞いの姿（Dannoura, visit）', sex: 'male', height: 1.64, kind: 'mixed', prev: 'code' },
 };
 /** 段（PC・スマホ）ごとのテクスチャの上限と画質 */
 export const LODS = {
@@ -44,6 +46,14 @@ export const LODS = {
 /** 利用条件（2026-11-07 利用者の承認）。ここに無い meta の欄は元のまま */
 export const META_APPROVED = { avatarPermission: 'onlyAuthor', commercialUsage: 'corporation', modification: 'allowModification', allowRedistribution: false, creditNotation: 'required' };
 export const META_APPROVED_NOTE = '2026-11-07 利用者の承認：ゲーム用に軽くした VRM の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（PC から届いた元の VRM は変えない）';
+/** 素材の確認（2026-11-07 利用者の承認「公開リポジトリとサイトに置いてよい」）。素材ライブラリと meta.json の license に書く */
+export const LICENSE_VERIFIED = {
+  verifiedBy: '利用者（作者本人・WAKABA Project）', verifiedAt: '2026-11-07',
+  // asset-meta.schema.json の redistributeRaw＝「素材ファイルをそのまま公開（Web 配信・公開リポジトリ）してよいか」。作者本人が自分の作品（このリポジトリ・サイト）に置くことの承認
+  redistributeRaw: 'yes',
+  verifiedNote: '2026-11-07 利用者（作者本人・WAKABA Project）が確認・承認：「公開リポジトリとサイトに置いてよい」。作者本人が自分のゲーム（境界侵食）として公開リポジトリと Web のサイトに置く（redistributeRaw: yes はこの承認による）。VRM の利用条件（作者のみ・再配布不可）はそのまま：第三者がこのファイルを持ち出して使う・配ることは不可。クレジット「キャラクターモデル：WAKABA Project（VRoid Studio で制作）」をスタッフロールに表示',
+};
+export const CREDIT_TEXT = 'キャラクターモデル：WAKABA Project（VRoid Studio で制作）';
 
 const sha = b => createHash('sha256').update(b).digest('hex');
 const CT = { 5120: Int8Array, 5121: Uint8Array, 5122: Int16Array, 5123: Uint16Array, 5125: Uint32Array, 5126: Float32Array };
@@ -320,13 +330,14 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     if (has('no-meta')) continue;
     const m0 = srcJson.extensions.VRMC_vrm.meta;
     const lic = {
-      id: 'VRM-1.0', commercial: 'yes', redistributeRaw: 'no', engines: ['any'],
-      attribution: 'キャラクターモデル：WAKABA Project（VRoid Studio で作成）', verifiedBy: '', textUrl: 'https://vrm.dev/licenses/1.0/',
+      id: 'VRM-1.0', commercial: 'yes', redistributeRaw: LICENSE_VERIFIED.redistributeRaw, engines: ['any'],
+      attribution: CREDIT_TEXT, verifiedBy: LICENSE_VERIFIED.verifiedBy, verifiedAt: LICENSE_VERIFIED.verifiedAt, verifiedNote: LICENSE_VERIFIED.verifiedNote, textUrl: 'https://vrm.dev/licenses/1.0/',
       note: 'VRM Public License 1.0（作者 WAKABA Project＝利用者本人）、VRoid Studio 標準パーツ＋自作。' + META_APPROVED_NOTE + '。元の VRM の条件は ' + `${m0.avatarPermission}・${m0.commercialUsage}・改変 ${m0.modification}・再配布 ${m0.allowRedistribution ? '可' : '不可'}`,
     };
+    const prevNote = S.prev === 'code' ? '前はコードで組んだ姿だけ（Blender 製は無い）。?vrmset=bl・?vrm=0 の時はコードの姿' : '前の Blender 製は ' + c + '_bl.vrm（?vrmset=bl）';
     const meta = {
       id: 'char.' + c, name: S.name, provisional: false, test: false,
-      note: '利用者が自分の PC で VRoid Studio＋Blender で作った VRM 1.0（2026-11-07 持ち込み・ブランチ models-from-pc の incoming/hq3d/characters/' + S.src + '）を tools/charkit/vroid_game.mjs でゲーム用に軽くした物。前の Blender 製は ' + c + '_bl.vrm（?vrmset=bl）',
+      note: '利用者が自分の PC で VRoid Studio＋Blender で作った VRM 1.0（2026-11-07 持ち込み・ブランチ models-from-pc の incoming/hq3d/characters/' + S.src + '）を tools/charkit/vroid_game.mjs でゲーム用に軽くした物。' + prevNote,
       license: lic, author: 'WAKABA Project（利用者本人）',
       source: { type: 'self_made', tool: 'VRoid Studio 2.3.0＋Blender 5.x（VRM Add-on 4.10.3）', generator: 'tools/charkit/vroid_game.mjs', original: 'origin/models-from-pc:incoming/hq3d/characters/' + S.src, originalSha256: srcSha, originalBytes: u8.length,
         vrmMeta: { commercialUsage: META_APPROVED.commercialUsage, avatarPermission: META_APPROVED.avatarPermission, modification: META_APPROVED.modification, allowRedistribution: false, creditNotation: 'required' },
@@ -337,19 +348,20 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       files,
     };
     writeFileSync(join(OUT, c + '.meta.json'), JSON.stringify(meta, null, 1) + '\n');
-    // 素材ライブラリ（権利の門と目録 tools/mapkit/catalog.mjs のため）。verifiedBy は人が書く（空のまま）
+    // 素材ライブラリ（権利の門と目録 tools/mapkit/catalog.mjs のため）。verifiedBy は利用者が確かめた記録（LICENSE_VERIFIED・2026-11-07 利用者の承認）
     if (!has('no-library')) {
       const pc = files.find(f => f.lod === 'pc');
       const lib = {
         id: 'char.' + c, version: 2, name: { ja: S.name.replace(/（.*$/, ''), en: (S.name.match(/（(.*)）/) || [])[1] || c },
         category: 'character', tags: ['キャラクター', 'VRM', 'VRoid', '自作', '利用者の PC'],
         source: { type: 'self_made', author: 'WAKABA Project（利用者本人）', tool: 'VRoid Studio 2.3.0＋Blender 5.x（VRM Add-on 4.10.3）', url: '', acquiredAt: '2026-11-07',
-          original: meta.source.original, originalSha256: srcSha, gameBuild: 'tools/charkit/vroid_game.mjs', vrmMeta: meta.source.vrmMeta, vrmMetaChange: META_APPROVED_NOTE },
-        license: { id: lic.id, commercial: lic.commercial, redistributeRaw: lic.redistributeRaw, engines: lic.engines, attribution: lic.attribution, verifiedBy: '', textUrl: lic.textUrl },
+          original: meta.source.original, originalSha256: srcSha, generator: 'tools/charkit/vroid_game.mjs', gameBuild: 'tools/charkit/vroid_game.mjs', vrmMeta: meta.source.vrmMeta, vrmMetaChange: META_APPROVED_NOTE },
+        license: { id: lic.id, commercial: lic.commercial, redistributeRaw: lic.redistributeRaw, engines: lic.engines, attribution: lic.attribution, verifiedBy: lic.verifiedBy, verifiedAt: lic.verifiedAt, verifiedNote: lic.verifiedNote, textUrl: lic.textUrl },
         tech: { formats: ['vrm'], tris: pc ? pc.tris : 0, lods: files.map(f => f.tris), texRes: LODS.pc.colorMax, texMaps: ['baseColor', 'normal', 'emissive'], sizeM: [0.6, S.height, 0.4] },
         use: ['キャラクター（境界侵食）'], usedBy: [{ project: 'shinshoku', since: '2026-11-07' }], status: 'draft',
         storage: { original: 'ブランチ ' + meta.source.original + '（リポジトリの main には入れない）', runtime: 'shinshoku/assets/characters/' + c + '.vrm', sha256: pc ? pc.sha256 : '' },
-        history: [{ at: '2026-11-07', by: 'Claude Code（利用者の依頼）', change: 'Blender 製（char.' + c + '_bl）から利用者の VRoid 製に差し替え。' + META_APPROVED_NOTE }],
+        history: [{ at: '2026-11-07', by: 'Claude Code（利用者の依頼）', change: (S.prev === 'code' ? 'コードで組んだ姿（' + S.kind + '）から利用者の VRoid 製に差し替え。' : 'Blender 製（char.' + c + '_bl）から利用者の VRoid 製に差し替え。') + META_APPROVED_NOTE },
+          { at: LICENSE_VERIFIED.verifiedAt, by: 'Claude Code（利用者の承認を記入）', change: '素材の確認（verifiedBy＝' + LICENSE_VERIFIED.verifiedBy + '）：' + LICENSE_VERIFIED.verifiedNote }],
       };
       const ldir = join(ROOT, 'wakaba-assets/entries/character', 'char.' + c);
       mkdirSync(ldir, { recursive: true });
