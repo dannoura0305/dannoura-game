@@ -482,6 +482,37 @@ export function buildKiro(color = 0xd04848, body = null) {
   const eyeGlow = glowEyes(m, m.J, [[R * 0.36, R * 0.82, R * 0.95], [-R * 0.36, R * 0.82, R * 0.95]]);
   return Object.assign(m, { height: 1.78, provisional: true, kind: 'kiro', weak, bodyR: 0.34, weakY: 1.68, weakColor: 0xffd27a, eyeGlow });
 }
+/** 重面（おもおもて）：別の可能性の顔がいくつも重なった人（2026-11-07 利用者の設定画 docs/shinshoku/reference/omoomote_sheet.webp）。
+ *  体は Blender の包み（tools/blender/enemy/design_omoomote.py → omoomote(_<body>).pack.json）。これはその骨と、包みが読めない時の予備の形。
+ *  body：個体差（'skirt'＝スカートの女・'stout'＝太った男。null＝設定画の正面）。AI・置き場所（病院・地下）はまだ無い */
+export function buildOmoomote(body = null) {
+  const packKind = body ? 'omoomote_' + body : 'omoomote';
+  const d = Object.assign({}, DIM, { leg: 0.92, thigh: 0.43, shin: 0.43, neck: 0.25, headJ: 0.07, upperArm: 0.33, lowerArm: 0.33, shoulderX: 0.16, headR: 0.118 });
+  const sb = new SkinBody(d), R = d.headR;
+  const CARD = 0x4a4446, SKIN = 0xb0a6a4;
+  humanBody(sb, {
+    torso: [[0, 0.1, 0.08, 0], [0.12, 0.12, 0.09, 0], [0.32, 0.11, 0.085, 0], [0.55, 0.12, 0.09, 0.006], [0.8, 0.14, 0.088, 0], [0.94, 0.1, 0.068, -0.006], [1, 0.05, 0.045, 0]],
+    torsoColor: () => CARD, armR: [0.04, 0.032, 0.026], armColor: (t, w) => (w === 'lower' ? SKIN : CARD), cuff: CARD,
+    legR: [0.075, 0.055, 0.055, 0.036], legColor: () => 0x3a3638, skin: SKIN, shoe: 0x2a2624, sole: 0x1c1a19, neckR: 0.036, hand: 1.3,
+  });
+  const surf = humanHead(sb, { R, skin: SKIN, jaw: 0.3, faceless: true, ears: false });
+  sb.decal([0, -0.05, 0.95], [R * 0.95, R * 1.15], UVR(0, 0, 128, 128), { surface: surf, weights: sb.rigid('head'), lift: 0.002, nx: 5, ny: 5 });
+  hairCap(sb, R, { base: 0x4a4446, dark: 0x3a3436, faceZ: 0.1, hairline: 0.7, nape: -0.3, bottom: -0.4, sy: 1.04 });
+  const tex = faceAtlas(g => {
+    // 予備の顔：ずれて重なった 2 つの顔（目・鼻・口の暗い線）
+    g.strokeStyle = 'rgba(30,24,26,.85)'; g.lineWidth = 3;
+    for (const [ox, oy, s] of [[0, 0, 1], [16, 34, 0.75]]) {
+      for (const x of [44, 84]) { g.beginPath(); g.ellipse(x * s + ox + 16 * (1 - s), 50 * s + oy, 10 * s, 4 * s, 0, 0, Math.PI * 2); g.stroke(); }
+      g.beginPath(); g.moveTo(64 * s + ox + 16 * (1 - s), 56 * s + oy); g.lineTo(62 * s + ox + 16 * (1 - s), 78 * s + oy); g.stroke();
+      g.beginPath(); g.moveTo(52 * s + ox + 16 * (1 - s), 92 * s + oy); g.quadraticCurveTo(64 * s + ox + 16 * (1 - s), 88 * s + oy, 76 * s + ox + 16 * (1 - s), 92 * s + oy); g.stroke();
+    }
+  });
+  const m = sb.build(tex, { rim: 0.3, rimColor: 0xa090b0, outline: 0.01, outlineColor: 0x0a080a, faceEmissive: 0, classes: enemyPackClasses(packKind) });
+  applyEnemyPack(m, packKind); m.packKind = packKind;
+  const weak = new THREE.Object3D(); weak.position.set(0, R * 1.3, -R * 0.25); m.J.head.add(weak);
+  const eyeGlow = glowEyes(m, m.J, [[R * 0.36, R * 0.82, R * 0.95], [-R * 0.36, R * 0.82, R * 0.95]]);
+  return Object.assign(m, { height: 1.75, provisional: true, kind: 'omoomote', weak, bodyR: 0.32, weakY: 1.66, weakColor: 0xffd27a, eyeGlow });
+}
 /** 光る目（紫）：頭の骨に付ける目印（光は main の光のにじみで描く） */
 export function glowEyes(m, J, pts) { return pts.map(p => { const o = new THREE.Object3D(); o.position.set(...p); J.head.add(o); return o; }); }
 function torusLike(sb, y, R, r, color, bone) {

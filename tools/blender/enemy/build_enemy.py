@@ -583,6 +583,8 @@ def main():
     from design_kiro import DESIGNS as DK                              # 2026-11-07：帰路「怪異強化案」（tools/blender/enemy/design_kiro.py）。前の意匠は kiro_p17
     DESIGNS['kiro_p17'] = DESIGNS['kiro']
     DESIGNS.update(DK)
+    from design_omoomote import DESIGNS as DO                         # 2026-11-07：重面（tools/blender/enemy/design_omoomote.py）
+    DESIGNS.update(DO)
     MO.clear_scene()
     for k in only or [k for k in DESIGNS if k != 'kiro_p17']:
         for lod in lods:

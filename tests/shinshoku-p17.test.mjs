@@ -58,7 +58,7 @@ await t('町の組み立て：電車・バス・信号・大屋根の部品の i
 await t('異形の包み（3 種 × PC／スマホ）：骨の名前はコードの骨と同じ・重みの合計 1・骨の番号の範囲・三角形の予算・材質の種類', () => {
   for (const kind of [...EP.ENEMY_PACK_EARLY, ...EP.ENEMY_PACK_VARIANTS]) for (const low of [false, true]) {   // 2026-11-07：帰路の個体差（kiro_coat など）も同じ骨・同じ予算          // P17 の 3 種（P18 の 4 種は tests/shinshoku-p18.test.mjs：ボスは予算が別）
     const f = `shinshoku/assets/enemies/${kind}${low ? '_low' : ''}.pack.json`; assert.ok(existsSync(new URL(f, root)), f);
-    const pk = J(f), rig = J(`tools/blender/enemy/rigs/${kind.startsWith('kiro') ? 'kiro' : kind}.json`);
+    const pk = J(f), rig = J(`tools/blender/enemy/rigs/${kind.split('_')[0]}.json`);   // 個体差（kiro_coat・omoomote_skirt など）は元の骨
     assert.equal(pk.spec, 'wakaba-enemypack/1'); assert.deepEqual(pk.bones, rig.bones.map(b => b.name), kind + ' の骨');
     assert.ok(pk.tris < (low ? 12000 : 20000) && pk.tris > 5000, `${f} ${pk.tris}`);
     for (const c of pk.classes) assert.ok(['cloth', 'skin', 'hair', 'metal', 'acc', 'glow'].includes(c), c);
@@ -100,6 +100,13 @@ await t('コードの異形の網を差し替える：頂点の数＝包み・�
     assert.ok(EP.enemyPackOf('kiro_' + v).parts.some(p => p.tint), v + '：手ぬぐい（置く時の色）');
   }
   assert.ok(/body: 'coat'/.test(read('shinshoku/data/level.js')) && /buildKiro\(k\.color \|\| \(door && door\.color\) \|\| 0xd04848, k\.body\)/.test(read('shinshoku/main.js')), '帰路の表の body で体を選ぶ');
+  // 重面（2026-11-07：体と骨と姿勢だけ。AI・置き場所はまだ）：buildOmoomote(body) は omoomote(_<body>) の包み・顔は網に彫った（hideFace）
+  for (const [b, k] of [[null, 'omoomote'], ['skirt', 'omoomote_skirt'], ['stout', 'omoomote_stout']]) {
+    const m = M.buildOmoomote(b); assert.equal(m.packed, k); assert.equal(m.kind, 'omoomote'); assert.ok(m.weak && m.eyeGlow);
+    if (m.faceMesh) assert.equal(m.faceMesh.visible, false, k + '：顔は網に彫った');
+  }
+  const AN = await import('../shinshoku/actor/anim.js'); const op = AN.omoomotePose({ t: 0, speed: 0, phase: 0 }).pose;
+  assert.ok(op.rightUpperArm && op.rightLowerArm[0] < -2, '重面：右手を顔へ上げる姿勢');
   // 包みが無い時（?epack=0・読めない）はコードの形
   for (const kind of EP.ENEMY_PACK_KINDS) EP.setEnemyPack(kind, null);
   const c = M.buildKiro(0xd04848); assert.ok(!c.packed && c.mesh.geometry.attributes.position.count > 1000);

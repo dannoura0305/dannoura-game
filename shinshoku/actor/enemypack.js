@@ -17,7 +17,8 @@ const BASE = new URL('../assets/enemies/', import.meta.url);
 export const ENEMY_PACK_EARLY = ['kiro', 'heiten', 'shuuyou'];
 export const ENEMY_PACK_LAZY = ['outou', 'tsugihagi', 'nurikae', 'touchoku', 'mimic', 'machibito', 'shuusha', 'sakibure', 'nekomata'];
 // 2026-11-07：帰路の個体差（設定画の右の 4 体：ジャンパーは kiro・ほかはコート／カーディガン／老女）。骨と動きは帰路と同じ。その帰路が置かれた時に読む
-export const ENEMY_PACK_VARIANTS = ['kiro_coat', 'kiro_cardigan', 'kiro_obaa'];
+// 重面（omoomote）と個体差も、置かれた時に読む（2026-11-07：体だけ。AI と置き場所はまだ）
+export const ENEMY_PACK_VARIANTS = ['kiro_coat', 'kiro_cardigan', 'kiro_obaa', 'omoomote', 'omoomote_skirt', 'omoomote_stout'];
 export const ENEMY_PACK_KINDS = [...ENEMY_PACK_EARLY, ...ENEMY_PACK_LAZY, ...ENEMY_PACK_VARIANTS];
 /** P19：Codex のモデルから作った包み（assets/enemies/codex/）を使う種類 */
 export const ENEMY_PACK_CODEX = ['heiten', 'shuuyou', 'shuusha', 'mimic', 'outou', 'machibito', 'tsugihagi', 'sakibure', 'nekomata'];
@@ -60,7 +61,7 @@ export function requestEnemyPacks(kinds, quality = 'high') {
 export function setEnemyPack(kind, json) { PACKS[kind] = json ? decode(json) : null; }
 export const enemyPackOf = kind => (OFF ? null : PACKS[kind] || null);
 /** 材質の種類（包みを読む前に組んだコードの異形にも入れておく＝後で網だけ差し替えられる） */
-const PACK_CLASSES = { kiro: ['cloth', 'skin', 'hair', 'acc', 'metal'], kiro_coat: ['cloth', 'skin', 'hair', 'acc'], kiro_cardigan: ['cloth', 'skin', 'hair', 'acc'], kiro_obaa: ['cloth', 'skin', 'hair', 'acc'], heiten: ['cloth', 'skin', 'hair', 'metal', 'acc', 'glow'], shuuyou: ['cloth', 'skin', 'metal', 'acc', 'glow'],
+const PACK_CLASSES = { kiro: ['cloth', 'skin', 'hair', 'acc', 'metal'], kiro_coat: ['cloth', 'skin', 'hair', 'acc'], kiro_cardigan: ['cloth', 'skin', 'hair', 'acc'], kiro_obaa: ['cloth', 'skin', 'hair', 'acc'], omoomote: ['cloth', 'skin', 'hair', 'acc'], omoomote_skirt: ['cloth', 'skin', 'hair', 'acc'], omoomote_stout: ['cloth', 'skin', 'hair', 'acc'], heiten: ['cloth', 'skin', 'hair', 'metal', 'acc', 'glow'], shuuyou: ['cloth', 'skin', 'metal', 'acc', 'glow'],
   outou: ['cloth', 'skin', 'metal', 'acc', 'glow'], tsugihagi: ['cloth', 'skin', 'metal', 'acc', 'glow'], nurikae: ['cloth', 'metal', 'acc', 'glow'], touchoku: ['cloth', 'skin', 'metal', 'acc', 'glow'],
   mimic: ['cloth', 'skin', 'acc', 'glow'], machibito: ['cloth', 'skin', 'metal', 'acc'], shuusha: ['cloth', 'skin', 'acc'], sakibure: ['cloth', 'acc', 'glow'], nekomata: ['fur', 'skin', 'acc', 'glow'] };
 export function enemyPackClasses(kind) { const p = enemyPackOf(kind); return OFF ? [] : [...new Set([...(PACK_CLASSES[kind] || []), ...(p ? p.classes : [])])]; }

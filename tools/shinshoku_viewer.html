@@ -15,7 +15,7 @@
 <div id="info"></div>
 <script type="module">
 import * as THREE from 'three';
-import { buildDannoura, buildCompanion, buildKiro, buildHeiten, buildShuuyou, buildCivilian } from '../shinshoku/actor/models.js';
+import { buildDannoura, buildCompanion, buildKiro, buildHeiten, buildShuuyou, buildCivilian, buildOmoomote } from '../shinshoku/actor/models.js';
 import { buildDannouraWhite } from '../shinshoku/actor/models3.js';
 import { buildDaughter } from '../shinshoku/actor/models7.js';
 import { FaceDriver, codeFaceAdapter } from '../charkit/face/driver.js';
@@ -42,7 +42,7 @@ if (LP.fog) scene.fog = new THREE.FogExp2(LP.fog, 0.045);
 scene.background = new THREE.Color(LP.bg);
 const floor = new THREE.Mesh(new THREE.CircleGeometry(6, 32), new THREE.MeshToonMaterial({ color: 0x3a3446 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
 const cam = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.05, 50);
-const builders = { dannoura: buildDannoura, companion: buildCompanion, kiro: () => buildKiro(0xd04848), kiro_coat: () => buildKiro(0x3a6ad0, 'coat'), kiro_cardigan: () => buildKiro(0x4aa060, 'cardigan'), kiro_obaa: () => buildKiro(0xe08a3a, 'obaa'), heiten: buildHeiten, shuuyou: buildShuuyou, civilian: () => buildCivilian(3), white: buildDannouraWhite, mixed: () => buildDannouraWhite({ mixed: true }), daughter: buildDaughter };
+const builders = { dannoura: buildDannoura, companion: buildCompanion, kiro: () => buildKiro(0xd04848), kiro_coat: () => buildKiro(0x3a6ad0, 'coat'), kiro_cardigan: () => buildKiro(0x4aa060, 'cardigan'), kiro_obaa: () => buildKiro(0xe08a3a, 'obaa'), omoomote: () => buildOmoomote(), omoomote_skirt: () => buildOmoomote('skirt'), omoomote_stout: () => buildOmoomote('stout'), heiten: buildHeiten, shuuyou: buildShuuyou, civilian: () => buildCivilian(3), white: buildDannouraWhite, mixed: () => buildDannouraWhite({ mixed: true }), daughter: buildDaughter };
 const list = (Q.get('c') || 'dannoura,companion,kiro,heiten,shuuyou').split(',');
 const actors = [];
 const man = Q.get('manifest') === '1' ? await loadManifest() : null;
@@ -78,9 +78,11 @@ function frame() {
     if (a.driver) { a.ph += ctx.speed / 60 * a.driver.rate(); ctx.phase = a.ph; ctx.basePose = a.driver.update(1 / 60, { speed: ctx.speed, phase: a.ph, time: a.t }); }
     if (a.n === 'dannoura' || a.n === 'white') p = A.dannouraPose(ctx).pose;
     else if (a.n.startsWith('kiro')) p = A.kiroPose(ctx).pose;
+    else if (a.n.startsWith('omoomote')) p = A.omoomotePose(ctx).pose;
     else if (a.n === 'heiten') p = A.heitenPose(ctx).pose;
     else if (a.n === 'shuuyou' && A.shuuyouPose) p = A.shuuyouPose(Object.assign(ctx, { state: 'idle' })).pose;
     else p = A.companionPose({ time: a.t, speed: ctx.speed, phase: ctx.phase, basePose: ctx.basePose }).pose;
+    if (Q.get('rest')) p = {};   // &rest=1：姿勢をかけない（形を真正面から見る）
     a.poser.apply(p, 0.2);
     if (a.m.weapons && a.m.weapons.bones) { const W = a.m.weapons, hold = Q.get('w') || 'none', on = (o, v) => o && o.scale.setScalar(v ? 1 : 1e-4); on(W.katana, hold === 'katana'); on(W.sayaHilt, hold !== 'katana'); on(W.saya, true); on(W.gun, hold === 'handgun'); on(W.holster, true); on(W.holsterGun, hold !== 'handgun'); on(W.pipe, hold === 'pipe'); on(W.pipeBack, !!Q.get('pipe')); on(W.match, hold === 'matchlock'); on(W.matchBack, false); }
     if (a.face && !Q.get('freeze')) { if (Q.get('say') && !a.face.talking && a.t > 1) a.face.say(Q.get('say'), +(Q.get('sayDur') || 3)); a.face.update(1 / 60); }

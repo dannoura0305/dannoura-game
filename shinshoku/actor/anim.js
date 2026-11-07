@@ -238,6 +238,24 @@ export function kiroPose(ctx) {
   return { pose: Object.assign(loc, hunch, sp > 2.5 ? { spine: [0.6, 0, 0], leftUpperArm: [-0.9, 0, 0.2], rightUpperArm: [-0.9, 0, -0.2] }
     : { leftUpperArm: [-0.55, 0, 0.1], rightUpperArm: [-0.62 + S(ctx.phase) * 0.12, 0, -0.1], leftLowerArm: [-0.22, 0, 0], rightLowerArm: [-0.22, 0, 0] }), rate: 0.4 };
 }
+/** 重面（2026-11-07 設定画）：右手で顔（重なった顔）を押さえ、頭を右へ大きく傾ける・ひざを曲げ、腰をひねった立ち方・左腕は長く垂らす。
+ *  AI はまだ無い（ctx.state が無い時は待機と歩き） */
+export function omoomotePose(ctx) {
+  const { t } = ctx; const sp = ctx.speed || 0;
+  const loc = sp > 0.05 ? locomotion(ctx.phase, sp, { k: 0.7 }) : idle(t, 0.5);
+  for (const side of ['left', 'right']) {
+    const ul = loc[side + 'UpperLeg'] || [0, 0, 0], ll = loc[side + 'LowerLeg'] || [0, 0, 0], ft = loc[side + 'Foot'] || [0, 0, 0];
+    const k = side === 'left' ? 1.15 : 0.85;                                             // 左右でひざの曲げが違う（ねじれた立ち方）
+    loc[side + 'UpperLeg'] = [ul[0] - 0.3 * k, ul[1], ul[2]]; loc[side + 'LowerLeg'] = [ll[0] + 0.6 * k, ll[1], ll[2]]; loc[side + 'Foot'] = [ft[0] - 0.3 * k, ft[1], ft[2]];
+  }
+  loc.hipsY = (loc.hipsY || 0) - 0.045;
+  const sway = S(t * 0.6) * 0.06;
+  return { pose: Object.assign(loc, {
+    hips: [0, 0.15, 0.05], spine: [0.18, -0.12, -0.08], chest: [0.12, -0.1, -0.06], neck: [0.15, 0.1, -0.3], head: [0.1, 0.15, -0.45 + sway],
+    rightUpperArm: [-0.95, 1.12, 0.05], rightLowerArm: [-2.47, 0.05, 0],             // 右手を右の頬へ（骨の位置で探した角度）
+    leftUpperArm: [-0.35, 0, 0.12], leftLowerArm: [-0.15, 0, 0],
+  }), rate: 0.3 };
+}
 export function heitenPose(ctx) {
   const { state, t } = ctx;
   if (state === 'rest') return { pose: { spine: [1.0, 0, 0], neck: [0.4, 0, 0], leftUpperArm: [0.1, 0, 0.1], rightUpperArm: [0.1, 0, -0.1], hipsY: -0.05 }, rate: 0.03 };
