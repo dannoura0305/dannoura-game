@@ -16,11 +16,13 @@ const BASE = new URL('../assets/enemies/', import.meta.url);
 // P19：模倣する影（mimic・第3章）・待人（machibito）・収容者（旧研究棟 shuusha）・境界の先触れ（sakibure）・巨大猫又（nekomata＝だんのうらの巨大な姿）も LAZY。
 export const ENEMY_PACK_EARLY = ['kiro', 'heiten', 'shuuyou'];
 export const ENEMY_PACK_LAZY = ['outou', 'tsugihagi', 'nurikae', 'touchoku', 'mimic', 'machibito', 'shuusha', 'sakibure', 'nekomata'];
-export const ENEMY_PACK_KINDS = [...ENEMY_PACK_EARLY, ...ENEMY_PACK_LAZY];
+// 2026-11-07：帰路の個体差（設定画の右の 4 体：ジャンパーは kiro・ほかはコート／カーディガン／老女）。骨と動きは帰路と同じ。その帰路が置かれた時に読む
+export const ENEMY_PACK_VARIANTS = ['kiro_coat', 'kiro_cardigan', 'kiro_obaa'];
+export const ENEMY_PACK_KINDS = [...ENEMY_PACK_EARLY, ...ENEMY_PACK_LAZY, ...ENEMY_PACK_VARIANTS];
 /** P19：Codex のモデルから作った包み（assets/enemies/codex/）を使う種類 */
 export const ENEMY_PACK_CODEX = ['heiten', 'shuuyou', 'shuusha', 'mimic', 'outou', 'machibito', 'tsugihagi', 'sakibure', 'nekomata'];
-/** P17・P18 の包み（assets/enemies/ 直下）がある種類 */
-const OLD_PACKS = ['kiro', 'heiten', 'shuuyou', 'outou', 'tsugihagi', 'nurikae', 'touchoku'];
+/** P17・P18 の包み（assets/enemies/ 直下）がある種類（帰路と個体差は 2026-11-07 の「怪異強化案」） */
+const OLD_PACKS = ['kiro', 'heiten', 'shuuyou', 'outou', 'tsugihagi', 'nurikae', 'touchoku', ...ENEMY_PACK_VARIANTS];
 const PACKS = {};
 const ASKED = {};
 let OFF = false, OLD = false;
@@ -58,7 +60,7 @@ export function requestEnemyPacks(kinds, quality = 'high') {
 export function setEnemyPack(kind, json) { PACKS[kind] = json ? decode(json) : null; }
 export const enemyPackOf = kind => (OFF ? null : PACKS[kind] || null);
 /** 材質の種類（包みを読む前に組んだコードの異形にも入れておく＝後で網だけ差し替えられる） */
-const PACK_CLASSES = { kiro: ['cloth', 'skin', 'hair', 'acc'], heiten: ['cloth', 'skin', 'hair', 'metal', 'acc', 'glow'], shuuyou: ['cloth', 'skin', 'metal', 'acc', 'glow'],
+const PACK_CLASSES = { kiro: ['cloth', 'skin', 'hair', 'acc', 'metal'], kiro_coat: ['cloth', 'skin', 'hair', 'acc'], kiro_cardigan: ['cloth', 'skin', 'hair', 'acc'], kiro_obaa: ['cloth', 'skin', 'hair', 'acc'], heiten: ['cloth', 'skin', 'hair', 'metal', 'acc', 'glow'], shuuyou: ['cloth', 'skin', 'metal', 'acc', 'glow'],
   outou: ['cloth', 'skin', 'metal', 'acc', 'glow'], tsugihagi: ['cloth', 'skin', 'metal', 'acc', 'glow'], nurikae: ['cloth', 'metal', 'acc', 'glow'], touchoku: ['cloth', 'skin', 'metal', 'acc', 'glow'],
   mimic: ['cloth', 'skin', 'acc', 'glow'], machibito: ['cloth', 'skin', 'metal', 'acc'], shuusha: ['cloth', 'skin', 'acc'], sakibure: ['cloth', 'acc', 'glow'], nekomata: ['fur', 'skin', 'acc', 'glow'] };
 export function enemyPackClasses(kind) { const p = enemyPackOf(kind); return OFF ? [] : [...new Set([...(PACK_CLASSES[kind] || []), ...(p ? p.classes : [])])]; }
@@ -71,7 +73,7 @@ const s2l = c => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4))
 const S2L = new Float32Array(256).map((_, i) => s2l(i / 255));
 function decode(j) {
   if (j.spec === 'wakaba-enemypack/2') return decode2(j);
-  return { kind: j.kind, bones: j.bones, classes: j.classes || [], tris: j.tris,
+  return { kind: j.kind, bones: j.bones, classes: j.classes || [], tris: j.tris, hideFace: !!j.hideFace,
     parts: j.parts.map(p => ({ name: p.name, mat: p.mat, oth: p.oth, tint: !!p.tint, count: p.count, P: f32(p.position), N: f32(p.normal), C: f32(p.color), J: u16(p.joints), W: f32(p.weights), I: p.indexType === 'u32' ? u32(p.index) : u16(p.index) })) };
 }
 /** v2（量子化）→ v1 と同じ形の配列（P・N・C は Float32、J は Uint16）＋ 休みの骨の位置・目や弱点の位置・隠すコードの網 */
@@ -122,10 +124,11 @@ export function applyEnemyPack(m, kind, opt = {}) {
   const old = m.mesh.geometry;
   m.mesh.geometry = g; if (m.outline) m.outline.geometry = g;
   old.dispose();
-  m.tris = ni / 3 + (m.faceMesh ? m.faceMesh.geometry.index.count / 3 : 0);
+  m.tris = ni / 3 + (m.faceMesh && !pk.hideFace ? m.faceMesh.geometry.index.count / 3 : 0);
   m.packed = kind;
   if (pk.rest) rebind(m, pk);
-  if ((opt.hideFace || (pk.hide || []).includes('face')) && m.faceMesh) { m.faceMesh.visible = false; m.tris = ni / 3; }
+  // 包みの hideFace（v1）：顔を網に彫った意匠（帰路 2026-11-07）。v2 は hide に 'face'
+  if ((opt.hideFace || pk.hideFace || (pk.hide || []).includes('face')) && m.faceMesh) { m.faceMesh.visible = false; m.tris = ni / 3; }
   if ((pk.hide || []).includes('glow') && m.glowMesh) m.glowMesh.visible = false;
   if (pk.anchors) { m.packAnchors = pk.anchors; placePackAnchors(m); }
   if (pk.clips) m.packClips = pk.clips;

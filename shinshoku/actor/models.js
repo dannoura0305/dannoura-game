@@ -438,7 +438,9 @@ export function buildCivilian(seed = 1) {
 
 // ───────────────────────── 異形 ─────────────────────────
 /** 帰路：家に帰る途中の住人。顔は形を失い（のっぺりした面に黒いにじみ）、首と腕が少し長い。マフラーの色＝自分の家の戸の灯りの色（手掛かり） */
-export function buildKiro(color = 0xd04848) {
+export function buildKiro(color = 0xd04848, body = null) {
+  // body：個体差（'coat'・'cardigan'・'obaa'。null／'jacket'＝設定画の正面のジャンパー）。Blender の体の包みだけが変わる（骨・動き・弱点は同じ）
+  const packKind = body && body !== 'jacket' ? 'kiro_' + body : 'kiro';
   const d = Object.assign({}, DIM, { leg: 0.92, thigh: 0.43, shin: 0.43, neck: 0.25, headJ: 0.07, upperArm: 0.33, lowerArm: 0.32, shoulderX: 0.17, headR: 0.112 });
   const sb = new SkinBody(d), R = d.headR;
   const COAT = 0x3d4656, COAT2 = 0x2f3644, SKIN = 0xc8ccd4;
@@ -474,8 +476,8 @@ export function buildKiro(color = 0xd04848) {
     g.fillStyle = 'rgba(5,5,10,.9)'; for (const x of [44, 84]) { g.beginPath(); g.ellipse(x, 52, 9, 13, 0, 0, Math.PI * 2); g.fill(); }
     g.strokeStyle = 'rgba(5,5,10,.8)'; g.lineWidth = 4; g.beginPath(); g.moveTo(44, 92); g.quadraticCurveTo(64, 100, 86, 90); g.stroke();
   });
-  const m = sb.build(tex, { rim: 0.35, rimColor: 0x8aa0d0, outline: 0.01, outlineColor: 0x08080e, faceEmissive: 0, classes: enemyPackClasses('kiro') });
-  applyEnemyPack(m, 'kiro', { tint: color }); m.packTint = color;
+  const m = sb.build(tex, { rim: 0.35, rimColor: 0x8aa0d0, outline: 0.01, outlineColor: 0x08080e, faceEmissive: 0, classes: enemyPackClasses(packKind) });
+  applyEnemyPack(m, packKind, { tint: color }); m.packTint = color; m.packKind = packKind;
   const weak = new THREE.Object3D(); weak.position.set(0, R * 1.3, -R * 0.25); m.J.head.add(weak);
   const eyeGlow = glowEyes(m, m.J, [[R * 0.36, R * 0.82, R * 0.95], [-R * 0.36, R * 0.82, R * 0.95]]);
   return Object.assign(m, { height: 1.78, provisional: true, kind: 'kiro', weak, bodyR: 0.34, weakY: 1.68, weakColor: 0xffd27a, eyeGlow });

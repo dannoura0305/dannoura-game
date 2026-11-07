@@ -23,6 +23,7 @@ import { Poser } from '../shinshoku/actor/rig.js';
 import * as A from '../shinshoku/actor/anim.js';
 import { loadManifest, loadCharacter } from '../shinshoku/actor/vrm.js';
 import { LocoDriver } from '../charkit/anim/locodriver.js';
+import { preloadEnemyPacks, ENEMY_PACK_KINDS } from '../shinshoku/actor/enemypack.js';
 const Q = new URLSearchParams(location.search);
 const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(innerWidth, innerHeight); r.setPixelRatio(Math.min(2, devicePixelRatio)); document.body.appendChild(r.domElement);
 r.shadowMap.enabled = true;
@@ -41,10 +42,12 @@ if (LP.fog) scene.fog = new THREE.FogExp2(LP.fog, 0.045);
 scene.background = new THREE.Color(LP.bg);
 const floor = new THREE.Mesh(new THREE.CircleGeometry(6, 32), new THREE.MeshToonMaterial({ color: 0x3a3446 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
 const cam = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.05, 50);
-const builders = { dannoura: buildDannoura, companion: buildCompanion, kiro: () => buildKiro(0xd04848), heiten: buildHeiten, shuuyou: buildShuuyou, civilian: () => buildCivilian(3), white: buildDannouraWhite, mixed: () => buildDannouraWhite({ mixed: true }), daughter: buildDaughter };
+const builders = { dannoura: buildDannoura, companion: buildCompanion, kiro: () => buildKiro(0xd04848), kiro_coat: () => buildKiro(0x3a6ad0, 'coat'), kiro_cardigan: () => buildKiro(0x4aa060, 'cardigan'), kiro_obaa: () => buildKiro(0xe08a3a, 'obaa'), heiten: buildHeiten, shuuyou: buildShuuyou, civilian: () => buildCivilian(3), white: buildDannouraWhite, mixed: () => buildDannouraWhite({ mixed: true }), daughter: buildDaughter };
 const list = (Q.get('c') || 'dannoura,companion,kiro,heiten,shuuyou').split(',');
 const actors = [];
 const man = Q.get('manifest') === '1' ? await loadManifest() : null;
+// 異形の Blender の体（shinshoku/assets/enemies/*.pack.json）を先に読む。&epack=0 でコードの形
+if (Q.get('epack') !== '0') await preloadEnemyPacks('high', ENEMY_PACK_KINDS.filter(k => list.includes(k)));
 let x = -(list.length - 1) * 0.55;
 for (const n of list) {
   let m = null;
@@ -74,7 +77,7 @@ function frame() {
     const ctx = { st: { name: pose === 'walk' || pose === 'run' || pose === 'idle' ? 'free' : pose, f: 10, atk: { startup: 6, active: 4, recovery: 14 }, step: 0 }, f: 10, w: Q.get('w') || 'none', speed: pose === 'walk' ? 2.2 : pose === 'run' ? 5 : 0, phase: a.t * (pose === 'run' ? 13 : 7.5), time: a.t, aiming: false, state: 'loop', sub: 'walk', t: a.t };
     if (a.driver) { a.ph += ctx.speed / 60 * a.driver.rate(); ctx.phase = a.ph; ctx.basePose = a.driver.update(1 / 60, { speed: ctx.speed, phase: a.ph, time: a.t }); }
     if (a.n === 'dannoura' || a.n === 'white') p = A.dannouraPose(ctx).pose;
-    else if (a.n === 'kiro') p = A.kiroPose(ctx).pose;
+    else if (a.n.startsWith('kiro')) p = A.kiroPose(ctx).pose;
     else if (a.n === 'heiten') p = A.heitenPose(ctx).pose;
     else if (a.n === 'shuuyou' && A.shuuyouPose) p = A.shuuyouPose(Object.assign(ctx, { state: 'idle' })).pose;
     else p = A.companionPose({ time: a.t, speed: ctx.speed, phase: ctx.phase, basePose: ctx.basePose }).pose;

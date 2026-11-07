@@ -161,7 +161,7 @@ def b64(a, dt):
 
 
 def build(kind, lod, out):
-    rig = json.load(open(os.path.join(HERE, 'rigs', kind + '.json')))
+    rig = json.load(open(os.path.join(HERE, 'rigs', getattr(DESIGNS[kind], 'rig', kind) + '.json')))   # 個体差（kiro_coat など）は元の骨
     parts = DESIGNS[kind](rig)
     fall = U(*[p.f for p in parts if p.ao])
     prims = []
@@ -181,6 +181,8 @@ def build(kind, lod, out):
         print('  %-14s %6d tris  %5.1fs' % (p.name, len(T), time.time() - t0), flush=True)
     pack = {'spec': 'wakaba-enemypack/1', 'kind': kind, 'lod': lod, 'generator': 'tools/blender/enemy/build_enemy.py', 'license': 'own（自作・商用可）',
             'bones': [b['name'] for b in rig['bones']], 'classes': sorted({p['mat'] for p in prims}), 'tris': int(tri), 'parts': prims}
+    if getattr(DESIGNS[kind], 'hide_face', False):
+        pack['hideFace'] = True                                        # 顔は網に彫った（コードの顔の札 faceMesh を隠す）
     os.makedirs(out, exist_ok=True)
     path = os.path.join(out, kind + ('' if lod == 'pc' else '_low') + '.pack.json')
     json.dump(pack, open(path, 'w'))
@@ -578,8 +580,11 @@ def main():
         i += 1
     from designs_p18 import DESIGNS as D18                             # P18：応答体・継接・塗替・当直（tools/blender/enemy/designs_p18.py）
     DESIGNS.update(D18)
+    from design_kiro import DESIGNS as DK                              # 2026-11-07：帰路「怪異強化案」（tools/blender/enemy/design_kiro.py）。前の意匠は kiro_p17
+    DESIGNS['kiro_p17'] = DESIGNS['kiro']
+    DESIGNS.update(DK)
     MO.clear_scene()
-    for k in only or list(DESIGNS):
+    for k in only or [k for k in DESIGNS if k != 'kiro_p17']:
         for lod in lods:
             build(k, lod, out)
 
