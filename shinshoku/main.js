@@ -30,6 +30,7 @@ import { Input } from './core/input.js';
 import { Sfx } from './core/audio.js';
 import { UI } from './ui/ui.js';
 import { setupTouch } from './ui/touch.js';
+import { fsMode, toggleFs, onFsChange, syncFsButtons, fsElement, FS_HINT } from './ui/fullscreen.js';
 import { SaveStore, makeSlot } from './save/save.js';
 import { createWP } from './link/progress.js';
 import { newRouteState } from './story/route.js';
@@ -155,6 +156,8 @@ class Game {
     this.input.onUnlock = () => { if (this.mode === 'play' && !this.noPauseOnUnlock && !this.cut.active) this.pause(); };
     this.ui = new UI(document.getElementById('sh-ui'), this);
     this.touchUI = setupTouch(document.getElementById('sh-ui'), this.input, this);
+    // フル画面の出入り（ボタン・Esc・戻る操作）：ボタンの文字・押しっぱなしの入力・画面の大きさを合わせる
+    onFsChange(() => { syncFsButtons(); this.input.held.clear(); if (this.touchUI.release) this.touchUI.release(); this.metrics.fullscreen = !!fsElement(); this.resize(); });
     this.applySetting('touchUI', this.settings.touchUI, true);
     this.applySetting('subSize', this.settings.subSize, true);
     this.applySetting('teleCB', !!this.settings.teleCB, true);
@@ -166,7 +169,11 @@ class Game {
     this.manifest = await loadManifest();
     // P17：Blender で作り直した異形の体（起動の後で読む・読めたら今いる異形も差し替える。読めない時・?epack=0 はコードの形）
     setTimeout(() => preloadEnemyPacks(this.presetVals() === PRESETS.low ? 'low' : 'high').then(n => { this.enemyPacks = n; this.refreshEnemyPacks(); }, () => 0), 2000);
-    this.loadCharacterModels();
+    // 2026-11-08：だんのうらと相棒の VRoid を読み終わるまでは、コードで組んだ前の姿を見せない（タイトルの後ろでも・遊び始めでも）。
+    // 読めない時・?vrm=0 はすぐ前の姿で出す。charsSettle() が姿を戻し、待っている「はじめから」等を進める
+    this.charsSettled = false; this.charsWait = [];
+    this.charsHidden = [this.player.model, this.companion.model].filter(m => m && m.root).map(m => m.root); for (const o of this.charsHidden) o.visible = false;   // 隠すのはコードの姿の網だけ（root は演出が出し入れするので触らない。VRM に差し替われば VRM の網が見える）
+    this.loadCharacterModels().catch(() => {}).finally(() => this.charsSettle());
     // 状態
     this.frame = 0; this.playSec = 0; this.mode = 'title'; this.hitstop = 0; this.slowT = 0; this.slowScale = 1; this.worldScale = 1;
     this.lock = null; this.dialog = null; this.pendingIn = null; this.autosaveReq = false; this.gunshot = null; this.gunshotT = 0; this.darkness = 0;
@@ -192,6 +199,12 @@ class Game {
   makeWhiteModel() { const m = buildDannouraWhite(); return m; }
   presetVals() { const k = this.settings.preset === 'auto' ? this.autoPresetKey : this.settings.preset; return PRESETS[k] || PRESETS[this.autoPresetKey] || PRESETS.high; }
   presetKey() { const P = this.presetVals(); return Object.keys(PRESETS).find(k => PRESETS[k] === P) || 'high'; }
+  /** だんのうら・相棒の姿が決まった（VRM を読めた・読めなかった・読まない）。隠していた姿を出し、待っていた開始を進める（何度呼んでもよい） */
+  charsSettle() {
+    if (this.charsSettled) return; this.charsSettled = true;
+    for (const o of this.charsHidden || []) o.visible = true; this.charsHidden = [];
+    const w = this.charsWait || []; this.charsWait = []; for (const f of w) f();
+  }
   async loadCharacterModels() {
     const man = this.manifest; this.portraits = {}; if (!man || !man.characters) return;
     // ?vrm=0：VRM を読まず、コードで組んだ予備のキャラクターで動かす（比べる用）
@@ -204,6 +217,7 @@ class Game {
     for (const [k, v] of Object.entries(m)) if (v && v.portrait) this.portraits[k] = new URL('./assets/characters/' + v.portrait, import.meta.url).href;
     if (m.dannoura && m.dannoura.file) { const v = await loadCharacter(m.dannoura, lopt); if (v) { const wasPurple = this.player.model === this.purpleModel; this.purpleModel = v; if (wasPurple) this.player.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('dannoura'); this.vrmStats = Object.assign({ who: 'dannoura', test: !!v.test }, v.stats || {}); } }
     if (m.companion && m.companion.file) { const v = await loadCharacter(m.companion, lopt); if (v) { this.companion.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('companion'); } }
+    this.charsSettle();
     // 白い姿（化けを解いた姿）：起動を軽くするため少し後で読む（白い姿は第3章から）。読めたら網の差し替え先を VRM に（今が白い姿ならすぐ差し替え）。
     // 読み終わる前に化けを解いた時は、コードで組んだ白い姿のまま（後で差し替わる）。予備の分身（ch3 の幻術）はコードの白い姿のまま
     if (m.dannoura_white && m.dannoura_white.file) {
@@ -445,6 +459,10 @@ class Game {
     el.querySelector('[data-a="cont"]').hidden = !has;
     el.querySelector('[data-a="gallery"]').hidden = !cleared;
     el.querySelector('.tt-panel').hidden = true;
+    const fm = fsMode(), fsHint = el.querySelector('.tt-fshint');   // フル画面：ボタン（Android など）／ホーム画面に追加の案内（iPhone）／なし（ホーム画面から開いた時）
+    el.querySelector('[data-a="fs"]').hidden = fm !== 'button';
+    if (fsHint) { fsHint.hidden = fm !== 'hint'; fsHint.textContent = FS_HINT; }
+    this.metrics.fsMode = fm; syncFsButtons(el);
     el.hidden = false; document.getElementById('sh-boot').hidden = true;
     el.onclick = e => {
       const b = e.target.closest('button'); if (!b) return;
@@ -454,6 +472,7 @@ class Game {
       else if (a === 'cont') this.loadSlot('auto');
       else if (a === 'chapters' || a === 'gallery') this.titlePanel(a);
       else if (a === 'settings') this.ui.openMenu('settings');
+      else if (a === 'fs') toggleFs();
       else if (a === 'back') { location.href = 'index.html'; }
       else if (a === 'close') { el.querySelector('.tt-panel').hidden = true; el.classList.remove('tt-open'); }
       else if (a === 'fresh') this.newGame(null);
@@ -515,6 +534,16 @@ class Game {
   }
   /** はじめから。step（試験用）でその段から始められる */
   newGame(step) {
+    // タイトルから始める時、VRoid の姿をまだ読んでいる最中なら、読み終わるまで（長くても 20 秒）待ってから始める（前の姿で始まらないように）。
+    // ?autostart=1（開発・試験用の直接起動）は待たない：その間は姿を隠したまま進み、読めた時に VRoid の姿で出る
+    if (!this.charsSettled && Q.get('autostart') !== '1') {
+      if (this.charsWaitingStart) return;
+      this.charsWaitingStart = true;
+      const note = document.querySelector('#sh-title .tt-note'); const old = note ? note.innerHTML : null; if (note) note.textContent = 'キャラクターを読み込んでいます……';
+      const go = () => { if (!this.charsWaitingStart) return; this.charsWaitingStart = false; clearTimeout(to); if (note && old != null) note.innerHTML = old; this.charsSettle(); this.newGame(step); };
+      const to = setTimeout(go, 20000); this.charsWait.push(go);
+      return;
+    }
     document.getElementById('sh-title').hidden = true;
     this.startedAt = performance.now();
     this.mode = 'play';

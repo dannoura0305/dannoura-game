@@ -2,12 +2,15 @@
 // 角度はラジアン [x, y, z]。前へ振る＝x マイナス／ひざを曲げる＝x プラス／前かがみ＝背骨 x プラス。
 // 歩き・走りは「足を地面に置く」ように、進んだ距離で位相を進める（phaseRate）。脚の振れ幅と歩幅を合わせて足が滑らない。
 import { locomotionIK, turnStep } from './anim8.js';
+import { dodgeTravel } from '../data/combat.js';
 const S = Math.sin, C = Math.cos, lerp = (a, b, t) => a + (b - a) * t;
 // 姿勢の混ぜ・足し：骨の角度 [x,y,z]・hipsY（数）・hipsT（[x,0,z]）。「_」で始まる印（_exactLegs・_feet など）は混ぜない（混ぜた姿勢には付けない）
 export const mix = (A, B, t) => { const o = {}; for (const k of new Set([...Object.keys(A), ...Object.keys(B)])) { if (k[0] === '_') continue; if (k === 'hipsY') { o.hipsY = lerp(A.hipsY || 0, B.hipsY || 0, t); continue; } const a = A[k] || [0, 0, 0], b = B[k] || [0, 0, 0]; o[k] = [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)]; } return o; };
 export const add = (A, B) => { const o = Object.assign({}, A); for (const k of Object.keys(B)) { if (k[0] === '_') continue; if (k === 'hipsY') { o.hipsY = (A.hipsY || 0) + B.hipsY; continue; } const a = A[k] || [0, 0, 0], b = B[k]; o[k] = [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; } return o; };
 export const ease = t => t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t);
 const easeOut = t => t < 0 ? 0 : t > 1 ? 1 : 1 - (1 - t) * (1 - t) * (1 - t);
+/** 振り（0..1）：初めに加速し（1 こま目から 0 ではない）、終わりは減速して止まる */
+const swingK = t => { t = t < 0 ? 0 : t > 1 ? 1 : t; return t < 0.35 ? 0.15 * t / 0.35 + 0.6 * (t / 0.35) ** 2 * 0.5 : 1 - (1 - 0.45) * Math.pow((1 - t) / 0.65, 2.2); };
 
 /** 歩幅の振れ（ラジアン）：速いほど大きく */
 export function strideAmp(speed) { return Math.min(0.92, 0.42 + 0.1 * speed); }
@@ -79,25 +82,29 @@ const base = ctx => {
 
 // ── だんのうら ──
 const KATANA_READY = { rightUpperArm: [-0.3, 0, -0.22], rightLowerArm: [-0.85, 0, 0], rightHand: [-0.15, 0, 0.25] };
+const CHUDAN = { spine: [0.05, 0.1, 0], rightUpperArm: [-1.05, 0, 0.3], rightLowerArm: [-0.9, 0, 0], leftUpperArm: [-1.0, 0, -0.4], leftLowerArm: [-1.0, 0, 0], rightHand: [0.3, 0, 0] };   // 両手で前に構える（溜めの入り）
 const PIPE_READY = { rightUpperArm: [-0.9, 0.2, -0.55], rightLowerArm: [-1.9, 0, 0], rightHand: [0.2, 0, 0.3] };
-const ATK = [
-  { a: { spine: [0.05, 0.7, 0], chest: [0, 0.25, 0], rightUpperArm: [-1.6, -0.4, -1.4], rightLowerArm: [-1.0, 0, 0], rightHand: [0, 0, 0.6], leftUpperArm: [-0.4, 0, 0.4], leftUpperLeg: [-0.25, 0, 0.05], rightUpperLeg: [0.2, 0, 0] },
-    b: { spine: [0.18, -0.7, 0], chest: [0, -0.3, 0], rightUpperArm: [-1.3, 0.3, 1.0], rightLowerArm: [-0.15, 0, 0], rightHand: [0, 0, -0.5], leftUpperArm: [0.3, 0, 0.5], hipsY: -0.06, leftUpperLeg: [-0.45, 0, 0.05], leftLowerLeg: [0.4, 0, 0], rightUpperLeg: [0.3, 0, 0] } },
-  { a: { spine: [0.05, -0.55, 0], chest: [0, -0.2, 0], rightUpperArm: [-2.5, 0, 0.6], rightLowerArm: [-1.2, 0, 0], rightHand: [0.4, 0, 0], leftUpperArm: [-0.3, 0, 0.3], rightUpperLeg: [-0.2, 0, 0] },
-    b: { spine: [0.25, 0.6, 0], chest: [0, 0.25, 0], rightUpperArm: [-0.5, 0, -0.95], rightLowerArm: [-0.25, 0, 0], rightHand: [-0.5, 0, 0], leftUpperArm: [0.2, 0, 0.6], hipsY: -0.07, rightUpperLeg: [-0.5, 0, 0], rightLowerLeg: [0.45, 0, 0], leftUpperLeg: [0.3, 0, 0] } },
-  { a: { spine: [-0.18, 0, 0], rightUpperArm: [-2.95, 0, -0.1], rightLowerArm: [-0.6, 0, 0], leftUpperArm: [-2.75, 0, 0.1], leftLowerArm: [-0.6, 0, 0], rightHand: [0.6, 0, 0], leftUpperLeg: [0.3, 0, 0], rightUpperLeg: [-0.6, 0, 0], rightLowerLeg: [0.8, 0, 0] },
-    b: { spine: [0.5, 0, 0], chest: [0.1, 0, 0], rightUpperArm: [-1.0, 0, 0], rightLowerArm: [-0.1, 0, 0], leftUpperArm: [-0.9, 0, 0.1], leftLowerArm: [-0.2, 0, 0], rightHand: [-0.2, 0, 0], leftUpperLeg: [-1.0, 0, 0], leftLowerLeg: [1.0, 0, 0], rightUpperLeg: [0.55, 0, 0], hipsY: -0.18 } },
+// 2026-11-08：刀の振り。前は左腕が横へ跳ね上がり（ひじが伸びたまま肩の高さ近くまで）、脚はほぼまっすぐ・腰は回らず、
+//  強攻撃は両腕をばらばらに真上へ上げていた。→ 左手は胸の前（構え・振り終わりは柄の近く）・振りかぶりで腰と胸を後ろへひねり体重を後ろ足へ、
+//  振り抜きで前足へ踏み込んでひざを曲げる（腰を下げた分は脚を曲げて受ける）。強攻撃は両手で柄を持って振りかぶる
+export const ATK = [
+  { a: { hips: [0, 0.18, 0], spine: [0.02, 0.55, 0], chest: [0, 0.22, 0], rightUpperArm: [-1.6, -0.4, -1.4], rightLowerArm: [-1.0, 0, 0], rightHand: [0, 0, 0.6], leftUpperArm: [-0.45, 0, 0.12], leftLowerArm: [-1.35, 0, 0], leftUpperLeg: [-0.22, 0, 0.05], leftLowerLeg: [0.2, 0, 0], rightUpperLeg: [0.12, 0, 0], rightLowerLeg: [0.22, 0, 0], hipsY: -0.03 },
+    b: { hips: [0, -0.22, 0], spine: [0.16, -0.55, 0], chest: [0, -0.25, 0], rightUpperArm: [-1.3, 0.3, 1.0], rightLowerArm: [-0.15, 0, 0], rightHand: [0, 0, -0.5], leftUpperArm: [-0.15, 0, 0.22], leftLowerArm: [-0.85, 0, 0], hipsY: -0.08, leftUpperLeg: [-0.5, 0, 0.05], leftLowerLeg: [0.55, 0, 0], rightUpperLeg: [0.32, 0, 0], rightLowerLeg: [0.22, 0, 0] } },
+  { a: { hips: [0, -0.15, 0], spine: [0.04, -0.45, 0], chest: [0, -0.18, 0], rightUpperArm: [-2.5, 0, 0.6], rightLowerArm: [-1.2, 0, 0], rightHand: [0.4, 0, 0], leftUpperArm: [-0.4, 0, 0.12], leftLowerArm: [-1.3, 0, 0], rightUpperLeg: [-0.2, 0, 0], rightLowerLeg: [0.25, 0, 0], leftLowerLeg: [0.18, 0, 0], hipsY: -0.03 },
+    b: { hips: [0, 0.2, 0], spine: [0.22, 0.5, 0], chest: [0, 0.22, 0], rightUpperArm: [-0.5, 0, -0.95], rightLowerArm: [-0.25, 0, 0], rightHand: [-0.5, 0, 0], leftUpperArm: [-0.1, 0, 0.25], leftLowerArm: [-0.8, 0, 0], hipsY: -0.08, rightUpperLeg: [-0.5, 0, 0], rightLowerLeg: [0.5, 0, 0], leftUpperLeg: [0.3, 0, 0], leftLowerLeg: [0.25, 0, 0] } },
+  { a: { spine: [-0.15, 0, 0], rightUpperArm: [-2.75, 0, 0.35], rightLowerArm: [-1.1, 0, 0], leftUpperArm: [-2.65, 0, -0.45], leftLowerArm: [-1.2, 0, 0], rightHand: [0.6, 0, 0], leftUpperLeg: [0.3, 0, 0], leftLowerLeg: [0.25, 0, 0], rightUpperLeg: [-0.6, 0, 0], rightLowerLeg: [0.8, 0, 0], hipsY: -0.04 },
+    b: { spine: [0.45, 0, 0], chest: [0.1, 0, 0], rightUpperArm: [-1.0, 0, 0.12], rightLowerArm: [-0.1, 0, 0], leftUpperArm: [-0.95, 0, -0.18], leftLowerArm: [-0.3, 0, 0], rightHand: [-0.2, 0, 0], leftUpperLeg: [-1.0, 0, 0], leftLowerLeg: [1.05, 0, 0], rightUpperLeg: [0.5, 0, 0], rightLowerLeg: [0.35, 0, 0], hipsY: -0.18 } },
 ];
-const HEAVY = { a: { spine: [-0.25, 0.45, 0], chest: [-0.1, 0.2, 0], rightUpperArm: [-2.95, 0, -0.3], rightLowerArm: [-0.9, 0, 0], leftUpperArm: [-2.6, 0, 0.3], rightHand: [0.8, 0, 0], hipsY: -0.04, leftUpperLeg: [-0.3, 0, 0.1] },
-  b: { spine: [0.65, -0.25, 0], chest: [0.15, 0, 0], rightUpperArm: [-0.7, 0, -0.2], rightLowerArm: [0, 0, 0], leftUpperArm: [-0.7, 0, 0.3], rightHand: [-0.4, 0, 0], leftUpperLeg: [-1.05, 0, 0], leftLowerLeg: [1.15, 0, 0], rightUpperLeg: [0.6, 0, 0], hipsY: -0.22 } };
+export const HEAVY = { a: { hips: [0, 0.15, 0], spine: [-0.2, 0.35, 0], chest: [-0.1, 0.15, 0], rightUpperArm: [-2.7, 0, 0.35], rightLowerArm: [-1.2, 0, 0], leftUpperArm: [-2.6, 0, -0.45], leftLowerArm: [-1.3, 0, 0], rightHand: [0.8, 0, 0], hipsY: -0.05, leftUpperLeg: [-0.3, 0, 0.1], leftLowerLeg: [0.25, 0, 0], rightUpperLeg: [0.15, 0, 0], rightLowerLeg: [0.3, 0, 0] },
+  b: { hips: [0, -0.1, 0], spine: [0.6, -0.2, 0], chest: [0.15, 0, 0], rightUpperArm: [-0.75, 0, 0.12], rightLowerArm: [-0.1, 0, 0], leftUpperArm: [-0.75, 0, -0.18], leftLowerArm: [-0.3, 0, 0], rightHand: [-0.4, 0, 0], leftUpperLeg: [-1.05, 0, 0], leftLowerLeg: [1.15, 0, 0], rightUpperLeg: [0.55, 0, 0], rightLowerLeg: [0.4, 0, 0], hipsY: -0.22 } };
 // 鉄パイプ：両手で重く振る
-const PIPE_ATK = [
+export const PIPE_ATK = [
   { a: { spine: [0.0, 0.95, 0], chest: [0, 0.35, 0], rightUpperArm: [-1.2, -0.6, -1.5], rightLowerArm: [-1.3, 0, 0], leftUpperArm: [-1.2, 0.3, -0.6], leftLowerArm: [-1.4, 0, 0], rightHand: [0.3, 0, 0.6], leftUpperLeg: [0.25, 0, 0], rightUpperLeg: [-0.3, 0, 0], hipsY: -0.05 },
     b: { spine: [0.25, -0.95, 0], chest: [0, -0.4, 0], rightUpperArm: [-1.4, 0.4, 0.9], rightLowerArm: [-0.2, 0, 0], leftUpperArm: [-1.3, -0.2, 0.9], leftLowerArm: [-0.4, 0, 0], rightHand: [0, 0, -0.6], leftUpperLeg: [-0.55, 0, 0], leftLowerLeg: [0.5, 0, 0], rightUpperLeg: [0.35, 0, 0], hipsY: -0.1 } },
   { a: { spine: [-0.3, -0.35, 0], rightUpperArm: [-2.9, 0, 0.3], rightLowerArm: [-1.1, 0, 0], leftUpperArm: [-2.8, 0, -0.2], leftLowerArm: [-1.0, 0, 0], rightHand: [0.7, 0, 0], rightUpperLeg: [-0.3, 0, 0] },
     b: { spine: [0.7, 0.3, 0], chest: [0.15, 0, 0], rightUpperArm: [-0.6, 0, -0.3], rightLowerArm: [-0.1, 0, 0], leftUpperArm: [-0.6, 0, 0.2], leftLowerArm: [-0.2, 0, 0], rightHand: [-0.4, 0, 0], rightUpperLeg: [-0.9, 0, 0], rightLowerLeg: [1.0, 0, 0], leftUpperLeg: [0.5, 0, 0], hipsY: -0.2 } },
 ];
-const PIPE_HEAVY = { a: { spine: [-0.4, 0, 0], chest: [-0.15, 0, 0], rightUpperArm: [-3.1, 0, 0.1], rightLowerArm: [-0.5, 0, 0], leftUpperArm: [-3.0, 0, -0.1], leftLowerArm: [-0.5, 0, 0], rightHand: [0.9, 0, 0], leftUpperLeg: [0.2, 0, 0], rightUpperLeg: [-0.4, 0, 0], hipsY: 0.0 },
+export const PIPE_HEAVY = { a: { spine: [-0.4, 0, 0], chest: [-0.15, 0, 0], rightUpperArm: [-2.75, 0, 0.35], rightLowerArm: [-1.1, 0, 0], leftUpperArm: [-2.65, 0, -0.45], leftLowerArm: [-1.2, 0, 0], rightHand: [0.9, 0, 0], leftUpperLeg: [0.2, 0, 0], leftLowerLeg: [0.2, 0, 0], rightUpperLeg: [-0.4, 0, 0], rightLowerLeg: [0.35, 0, 0], hipsY: -0.03 },
   b: { spine: [0.85, 0, 0], chest: [0.2, 0, 0], rightUpperArm: [-0.4, 0, 0], rightLowerArm: [0, 0, 0], leftUpperArm: [-0.45, 0, 0.1], rightHand: [-0.6, 0, 0], leftUpperLeg: [-1.1, 0, 0], leftLowerLeg: [1.2, 0, 0], rightUpperLeg: [0.65, 0, 0], hipsY: -0.26 } };
 const IAI_STANCE = { spine: [0.3, 0.7, 0], chest: [0, 0.2, 0], head: [-0.2, -0.8, 0], rightUpperArm: [0.4, 0, -0.5], rightLowerArm: [-1.6, 0, 0], rightHand: [0.8, 0, 0], leftUpperArm: [0.1, 0, 0.3], leftLowerArm: [-1.2, 0, 0], leftUpperLeg: [-0.7, 0, 0.1], leftLowerLeg: [1.0, 0, 0], rightUpperLeg: [0.5, 0, -0.1], rightLowerLeg: [0.6, 0, 0], hipsY: -0.16 };
 const ISSEN_END = { spine: [0.5, -0.9, 0], chest: [0, -0.3, 0], head: [-0.4, 0.9, 0], rightUpperArm: [-1.3, 0, -1.5], rightLowerArm: [0, 0, 0], rightHand: [0, 0, -0.3], leftUpperArm: [0.4, 0, 0.6], leftUpperLeg: [-1.1, 0, 0.2], leftLowerLeg: [1.3, 0, 0], rightUpperLeg: [0.8, 0, -0.1], rightLowerLeg: [0.5, 0, 0], hipsY: -0.26 };
@@ -131,19 +138,22 @@ export function dannouraPose(ctx) {
     let t;
     if (f < a.startup) t = 0; else if (f < a.startup + a.active) t = (f - a.startup + 1) / a.active; else t = 1 + Math.min(1, (f - a.startup - a.active) / Math.max(1, a.recovery));
     let pose;
-    if (f < a.startup) pose = mix(b, P.a, easeOut(f / Math.max(1, a.startup)));
-    else if (t <= 1) pose = mix(P.a, P.b, easeOut(t));
-    else pose = mix(P.b, Object.assign({}, b, w === 'matchlock' ? MATCH_READY : pipe ? PIPE_READY : KATANA_READY), ease((t - 1 - 0.35) / 0.65));   // 戻り：残心から構えへ
-    return { pose: st.iai ? mix(IAI_STANCE, ISSEN_END, ease(Math.min(1, t))) : pose, rate: f < a.startup ? 0.5 : 0.9 };
+    // 2026-11-08：振りかぶりは「ため」（なめらかに入って止まる）・振りは加速して振り抜く・戻りは振り終わりで少し流れてから（前は 35% 止まってから急に）構えへ
+    const ready = Object.assign({}, b, w === 'matchlock' ? MATCH_READY : pipe ? PIPE_READY : KATANA_READY);
+    if (f < a.startup) pose = mix(b, P.a, ease(Math.min(1, (f + 1) / Math.max(1, a.startup))));
+    else if (t <= 1) pose = mix(P.a, P.b, swingK(t));
+    else { const u = t - 1; pose = u < 0.25 ? mix(P.b, mix(P.b, ready, -0.12), ease(u / 0.25)) : mix(mix(P.b, ready, -0.12), ready, ease((u - 0.25) / 0.75)); }   // 振り抜いた向きへ少し流れる（残心）→ 構えへ
+    return { pose: st.iai ? mix(IAI_STANCE, ISSEN_END, swingK(Math.min(1, t))) : pose, rate: f < a.startup ? 0.6 : 0.9 };
   }
-  if (st.name === 'charge') return { pose: pipe ? mix(PIPE_READY, PIPE_HEAVY.a, ease(f / 18)) : mix(HEAVY.a, IAI_STANCE, ease((f - 10) / 26)), rate: 0.25 };
+  // 溜め：2026-11-08 刀は「両手で前に構える（中段）→ 振りかぶる」の順に（前は腕が横へ開いてから上がっていた：VRoid の体で両腕が水平に開く形を通った）
+  if (st.name === 'charge') return pipe ? { pose: mix(PIPE_READY, PIPE_HEAVY.a, ease(f / 18)), rate: 0.25 } : f < 9 ? { pose: mix(Object.assign({}, b, CHUDAN), HEAVY.a, ease((f - 2) / 7)), rate: 0.45 } : { pose: mix(HEAVY.a, IAI_STANCE, ease((f - 10) / 26)), rate: 0.3 };
   if (st.name === 'issen') {
     const k = ctx.issen || {}; const strike = k.strike || 8;
     if (f < strike) return { pose: mix(IAI_STANCE, ISSEN_END, ease(f / strike) * 0.3), rate: 0.6 };
     return { pose: ISSEN_END, rate: 0.9 };
   }
   if (st.name === 'parry') return { pose: pipe ? PIPE_PARRY : PARRY, rate: 0.7 };
-  if (st.name === 'dodge') return { pose: mix(b, TUCK, Math.min(1, S(Math.min(1, f / 18) * Math.PI) * 1.6)), rate: 0.7 };
+  if (st.name === 'dodge') return { pose: mix(b, TUCK, Math.min(1, S(rollFrac(f) * Math.PI) * 1.6)), rate: 0.7 };   // 丸まり：転がりの回りと同じ進み
   if (st.name === 'hurt') return { pose: ctx.hurtDir === 'back' ? HURT_B : HURT_F, rate: 0.5 };
   if (st.name === 'dead') return { pose: DEAD, rate: 0.12 };
   if (st.name === 'reload') return { pose: Object.assign({}, b, RELOAD), rate: 0.3 };
@@ -154,10 +164,17 @@ export function dannouraPose(ctx) {
   return { pose: b, rate };
 }
 /** 回避の転がり（体の回転の角度・腰の下がり）。f：回避のフレーム（全体 24） */
+/** 転がりの進み（0..1）。2026-11-08：前は時間でなめらかに回し（真ん中が速い）、体の動き（始めが速い）とずれて、
+ *  始めは回らずに滑り、終わりはその場で回っていた。→ 進んだ距離（dodgeTravel）に合わせて回す（体を丸めた半径 ≈ 進む距離 ÷ 2π で転がる）。
+ *  最初の 1 こまは踏み込み（回り始めを少し遅らせる）・最後は起き上がり（ease で止める） */
+export function rollFrac(f) {
+  if (f < 1) return 0;
+  const a = dodgeTravel(f - 1), b = ease((f - 1) / 17);
+  return Math.min(1, 0.75 * a + 0.25 * b);
+}
 export function rollAt(f) {
-  const t = Math.max(0, Math.min(1, (f - 1) / 17));
-  const k = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-  return { angle: k * Math.PI * 2, drop: S(t * Math.PI) * 0.42 };
+  const k = rollFrac(f);
+  return { angle: k * Math.PI * 2, drop: S(k * Math.PI) * 0.42 };
 }
 
 // ── 相棒・町の人 ──

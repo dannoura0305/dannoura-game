@@ -105,6 +105,15 @@ export class Sway {
   }
 }
 
+/** 回避の転がり：体（骨＋だいたいの太さ）の一番低い所の高さ（世界の y）。無い骨は飛ばす */
+const ROLL_PTS = [['head', 0.12], ['neck', 0.08], ['chest', 0.12], ['spine', 0.12], ['hips', 0.12], ['leftShoulder', 0.07], ['rightShoulder', 0.07], ['leftLowerLeg', 0.06], ['rightLowerLeg', 0.06], ['leftFoot', -1], ['rightFoot', -1], ['leftLowerArm', 0.05], ['rightLowerArm', 0.05]];
+const _rv = new THREE.Vector3();
+function rollLowest(m) {
+  const J = m.J; let low = Infinity;
+  for (const [n, r] of ROLL_PTS) { const b = J && J[n]; if (!b) continue; b.getWorldPosition(_rv); low = Math.min(low, _rv.y - (r < 0 ? (m.legDims ? m.legDims.ankleY : 0.07) : r)); }
+  return Number.isFinite(low) ? low : null;
+}
+
 export class Player {
   constructor(model, opt) {
     this.root = new THREE.Group(); this.root.name = 'dannoura';
@@ -224,7 +233,13 @@ export class Player {
     // 曲がる時は体を内へ傾ける（向きの変わる速さ × 速さ：足の下を軸に）
     { const tr = this.prevYaw != null ? angWrap(this.yaw - this.prevYaw) / Math.max(dt, 1 / 120) : 0; this.turnS += (clampN(tr, -10, 10) - this.turnS) * Math.min(1, dt * 10); }
     const bank = this.driver && F.st.name === 'free' && !extra.override ? clampN(-this.turnS * (this.driver.visV || 0) * 0.022, -0.16, 0.16) : 0;
-    if (F.st.name === 'dodge' && !extra.override && !F.st.white && !(this.clipRes && this.clipRes.roll)) { const r = rollAt(F.st.f); this.pivot.rotation.x = r.angle; this.pivot.position.y = 0.55 - r.drop; this.pivot.rotation.z = 0; this.pivot.position.x = 0; }
+    if (F.st.name === 'dodge' && !extra.override && !F.st.white && !(this.clipRes && this.clipRes.roll)) {
+      const r = rollAt(F.st.f); this.pivot.rotation.x = r.angle; this.pivot.position.y = 0.55; this.pivot.rotation.z = 0; this.pivot.position.x = 0;
+      // 2026-11-08：転がる体の一番低い所を床へ（前は回る点を決まった高さ（0.55m→0.13m）で下げていて、VRoid の体は逆さの時に床へ潜り、起き上がりで宙に浮いていた）
+      this.root.position.copy(this.pos); this.root.rotation.y = this.yaw; this.root.updateMatrixWorld(true);
+      const low = rollLowest(m);
+      if (low != null) this.pivot.position.y += this.pos.y - low;
+    }
     else { this.pivot.rotation.x = 0; this.pivot.rotation.z += (bank - this.pivot.rotation.z) * Math.min(1, dt * 8); this.pivot.position.x = -0.55 * Math.sin(this.pivot.rotation.z); this.pivot.position.y = 0.55 * Math.cos(this.pivot.rotation.z); }
     this.root.position.copy(this.pos); this.root.rotation.y = this.yaw;
     this.setWeaponVisual();

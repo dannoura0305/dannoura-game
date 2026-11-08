@@ -144,7 +144,7 @@
    "role": "attack",
    "loop": false,
    "fps": 60,
-   "frames": 35,
+   "frames": 32,
    "events": [
     {
      "t": "hitStart",
@@ -152,7 +152,7 @@
     },
     {
      "t": "hitEnd",
-     "frame": 5
+     "frame": 6
     }
    ],
    "rootMotion": "none",
@@ -162,7 +162,7 @@
    "match": {
     "weapon": "katana",
     "heavy": true,
-    "step": null
+    "step": 8
    },
    "combatRef": {
     "file": "shinshoku/data/combat.js",
@@ -186,22 +186,22 @@
   {
    "file": "loco_walk.vrma",
    "bytes": 15344,
-   "sha256": "e29f6b2920f9ef8c692ce0896579710cbe4759a589437e0caf5581d214333702"
+   "sha256": "5e442dd23bf7310dc46f11ac707a753bf2b6fd903e7943c2e629c591896d661e"
   },
   {
    "file": "loco_jog.vrma",
    "bytes": 15344,
-   "sha256": "95532869ec751ee8303ebb4521284f84703f8b642a30ecb896eebe890e5f2bd1"
+   "sha256": "de0fa3160db9ed9899f1f4f1d0c677dbe2523c5d0d5873bffad44ba08e2f2b99"
   },
   {
    "file": "loco_run.vrma",
    "bytes": 15344,
-   "sha256": "6151c9a22ec1018601a0586004da3f886162859c1e274293a31e747df520c0d7"
+   "sha256": "99c3e70514e7755a26e0f1c4482d01f3cce0311023bedc9a81f137e5e27880df"
   },
   {
    "file": "loco_sprint.vrma",
    "bytes": 15348,
-   "sha256": "f3c7ebb54214af082a06c1b41c39b379cd37ea4fad6e074396ff13e1197880da"
+   "sha256": "1955f134b018f1eea8be1aa69d130fa7347f2447391313f316d326a26a205d8c"
   },
   {
    "file": "idle.vrma",
@@ -211,12 +211,12 @@
   {
    "file": "cmb_katana_light_1.vrma",
    "bytes": 12832,
-   "sha256": "e7badf48bfab88727dcd8a5fae7e0cd984eddec39c569afe0ed0f45a0dc53114"
+   "sha256": "d5655ed114ec8ce628e0b058a3d57f26c6bc1db027ea1c57123ef00ab0e3cf12"
   },
   {
    "file": "cmb_katana_heavy.vrma",
-   "bytes": 16000,
-   "sha256": "f7adf9899d0a56b403c4d9a2e9e170ff4a47cfe240d3bec8a789749dd8dfad2c"
+   "bytes": 15136,
+   "sha256": "98fa93c5358a31d9cb69ca5e144a31df4ef648d6aa520a25c8a879a4d18ca4cc"
   },
   {
    "file": "react_hit_front.vrma",
