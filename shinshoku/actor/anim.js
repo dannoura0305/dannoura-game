@@ -83,6 +83,7 @@ const base = ctx => {
 // ── だんのうら ──
 const KATANA_READY = { rightUpperArm: [-0.3, 0, -0.22], rightLowerArm: [-0.85, 0, 0], rightHand: [-0.15, 0, 0.25] };
 const CHUDAN = { spine: [0.05, 0.1, 0], rightUpperArm: [-1.05, 0, 0.3], rightLowerArm: [-0.9, 0, 0], leftUpperArm: [-1.0, 0, -0.4], leftLowerArm: [-1.0, 0, 0], rightHand: [0.3, 0, 0] };   // 両手で前に構える（溜めの入り）
+const RAISE = { spine: [-0.05, 0.2, 0], rightUpperArm: [-1.95, 0, 0.3], rightLowerArm: [-1.1, 0, 0], leftUpperArm: [-1.9, 0, -0.4], leftLowerArm: [-1.2, 0, 0], rightHand: [0.6, 0, 0] };   // 振りかぶりの途中（前から上へ）
 const PIPE_READY = { rightUpperArm: [-0.9, 0.2, -0.55], rightLowerArm: [-1.9, 0, 0], rightHand: [0.2, 0, 0.3] };
 // 2026-11-08：刀の振り。前は左腕が横へ跳ね上がり（ひじが伸びたまま肩の高さ近くまで）、脚はほぼまっすぐ・腰は回らず、
 //  強攻撃は両腕をばらばらに真上へ上げていた。→ 左手は胸の前（構え・振り終わりは柄の近く）・振りかぶりで腰と胸を後ろへひねり体重を後ろ足へ、
@@ -146,7 +147,7 @@ export function dannouraPose(ctx) {
     return { pose: st.iai ? mix(IAI_STANCE, ISSEN_END, swingK(Math.min(1, t))) : pose, rate: f < a.startup ? 0.6 : 0.9 };
   }
   // 溜め：2026-11-08 刀は「両手で前に構える（中段）→ 振りかぶる」の順に（前は腕が横へ開いてから上がっていた：VRoid の体で両腕が水平に開く形を通った）
-  if (st.name === 'charge') return pipe ? { pose: mix(PIPE_READY, PIPE_HEAVY.a, ease(f / 18)), rate: 0.25 } : f < 9 ? { pose: mix(Object.assign({}, b, CHUDAN), HEAVY.a, ease((f - 2) / 7)), rate: 0.45 } : { pose: mix(HEAVY.a, IAI_STANCE, ease((f - 10) / 26)), rate: 0.3 };
+  if (st.name === 'charge') return pipe ? { pose: mix(PIPE_READY, PIPE_HEAVY.a, ease(f / 18)), rate: 0.25 } : f < 14 ? { pose: f < 7 ? mix(Object.assign({}, b, CHUDAN), RAISE, ease((f - 2) / 5)) : mix(RAISE, HEAVY.a, ease((f - 7) / 6)), rate: 0.5 } : { pose: mix(HEAVY.a, IAI_STANCE, ease((f - 14) / 22)), rate: 0.3 };
   if (st.name === 'issen') {
     const k = ctx.issen || {}; const strike = k.strike || 8;
     if (f < strike) return { pose: mix(IAI_STANCE, ISSEN_END, ease(f / strike) * 0.3), rate: 0.6 };
