@@ -203,7 +203,7 @@ export function buildAtrium() {
   B.box('prop', -13.98, 1.6, -14.0, 0.04, 0.8, 0.6, 0xf0eee0, { edges: false });
   // 相棒が見守る観測室（南東・ガラス張りの小部屋）
   const [wx, wz] = ATRIUM.watch;
-  wall(wx - 3.0, wz, 0.2, 2.6, W2, 2.8); wall(wx, wz - 1.3, 6.0, 0.2, W2, 1.0); B.box('glass', wx, 1.9, wz - 1.3, 6.0, 1.8, 0.04, 0x2a3a50, { edges: false });
+  wall(wx - 3.0, wz - 1.05, 0.2, 0.5, W2, 2.8); wall(wx - 3.0, wz + 0.9, 0.2, 0.8, W2, 2.8); B.box('wall', wx - 3.0, 2.45, wz - 0.2, 0.2, 0.7, 1.2, W2); for (const dz of [-0.82, 0.42]) B.box('prop', wx - 3.0, 1.05, wz + dz, 0.26, 2.1, 0.06, 0x3a3e48, { edges: false });   // 西の壁に戸口（z −0.8〜+0.5）：（相棒）はここから入る（前は口が無く、壁を抜けて入っていた） wall(wx, wz - 1.3, 6.0, 0.2, W2, 1.0); B.box('glass', wx, 1.9, wz - 1.3, 6.0, 1.8, 0.04, 0x2a3a50, { edges: false });
   B.box('prop', wx + 1.5, 0.45, wz + 0.4, 1.6, 0.9, 0.6, 0x4a4e58); halos.push({ p: [wx, 2.4, wz], size: 2.0, color: 0xffd8a0, k: 0.45 });
   // 中央：割れた観測装置（中ボスの輪の中心）・床の縫い目のような亀裂（紫）
   { const g = new THREE.CylinderGeometry(1.6, 2.0, 0.6, 16); g.translate(0, 0.3, -6); B.add('prop', g, 0x3a3c46); solid(0, -6, 0.0, 0.0, 0.0); }

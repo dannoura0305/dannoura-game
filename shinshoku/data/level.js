@@ -53,7 +53,7 @@ export const LEVEL = {
   ],
   // 閉店の店（右側・z −35〜−45）
   heiten: {
-    id: 'heiten_1', start: [8.2, -40], center: [7.6, -40], leash: 9,
+    id: 'heiten_1', start: [7.85, -40], center: [7.6, -40], leash: 9,
     zone: { minX: 4.5, maxX: 11, minZ: -45, maxZ: -35 },
     stations: { lights: [10.0, -36.1], register: [9.4, -42.4], shutter: [5.4, -40], bow: [3.9, -40] },
     help: { lights: [10.85, -35.6], register: [9.6, -43.5], sign: [4.0, -36.2] },
@@ -75,8 +75,25 @@ export const LEVEL = {
     { pos: [-3.3, 1.6, -33.5], color: 0x9fd0ff, intensity: 4, dist: 6, vending: true },
     { pos: [0, 5.2, -56], color: 0xbfd8ff, intensity: 10, dist: 15, flicker: true },
   ],
-  homeLight: { pos: [0, 2.5, 12], color: 0xffd2a0, intensity: 5, dist: 11 },
-  homeLight2: { pos: [1.5, 5.5, 10.5], color: 0xffe8d0, intensity: 4.5, dist: 10 },              // P14：2 階の灯り
+  homeLight: { pos: [-1.0, 2.7, 12.4], color: 0xffd8b0, intensity: 7, dist: 13 },                // P18：LDK の真ん中（明るく）
+  homeLight2: { pos: [0, 5.6, 11.0], color: 0xffe8d0, intensity: 5.5, dist: 11 },              // P14：2 階の灯り
+  // P18：窓（家の中の win と外の皮 town.js の homeExterior が同じ所に置く）。face：外の向き・u：壁に沿う座標（N/S は x・W/E は z）・y：中心の高さ（その階の床から）・
+  //  inner：内側（shoji 障子・frost すりガラス・無ければカーテン curtain の色）・outer：外から見た絵（lit 灯り・curtain カーテン越し・shoji・lit2 すりガラス・dark 暗い）
+  homeWindows: [
+    { face: 'N', u: -3.4, y: 1.5, w: 1.6, h: 1.1, inner: 'shoji', outer: 'shoji' },                       // 和室
+    { face: 'N', u: 1.8, y: 2.15, w: 0.5, h: 0.4, inner: 'frost', outer: 'lit2' },                        // トイレ
+    { face: 'N', u: 3.95, y: 2.15, w: 0.5, h: 0.4, inner: 'frost', outer: 'lit2' },                       // 洗面所
+    { face: 'N', u: 5.15, y: 2.1, w: 0.9, h: 0.5, inner: 'frost', outer: 'lit2' },                        // 浴室
+    { face: 'W', u: 11.8, y: 1.45, w: 1.6, h: 1.3, curtain: 0xc8b8d8, outer: 'lit' },                     // 居間（西）
+    { face: 'S', u: -3.5, y: 1.15, w: 2.4, h: 1.9, curtain: 0xc8b8d8, outer: 'lit' },                     // 居間（南の掃き出し窓：裏の庭）
+    { face: 'S', u: 0.8, y: 1.5, w: 0.8, h: 0.6, curtain: 0xe8e0c8, outer: 'lit' },                       // 台所（流しの上）
+    { face: 'E', u: 11.7, y: 2.6, w: 0.8, h: 0.9, curtain: 0xe8e0d0, outer: 'lit' },                      // 階段
+    { face: 'N', u: -3.4, y: 1.1, w: 1.8, h: 2.0, floor: 1, curtain: 0xb8c0d0, outer: 'curtain', door: true },   // 寝室のベランダの戸
+    { face: 'N', u: 0, y: 1.5, w: 0.6, h: 0.9, floor: 1, curtain: 0xe8e0d0, outer: 'dark' },              // 2 階の廊下
+    { face: 'N', u: 3.2, y: 1.5, w: 1.4, h: 1.2, floor: 1, curtain: 0xa8b8c8, outer: 'lit2' },            // 仕事部屋
+    { face: 'W', u: 12.4, y: 1.5, w: 1.0, h: 1.0, floor: 1, curtain: 0xf0b8d0, outer: 'curtain' },        // 娘の部屋（西）
+    { face: 'S', u: -3.3, y: 1.45, w: 1.2, h: 1.0, floor: 1, curtain: 0xf0b8d0, outer: 'curtain' },       // 娘の部屋（南：机の上）
+  ],
   // P14：2 階（床の高さ y2）と階段（x0,z0,x1,z1：z0 が下・z1 が上）
   homeFloor: { y2: 3.3, stair: [5.0, 9.6, 6.0, 13.8], steps: 17 },
   // 調べられる物（自宅）

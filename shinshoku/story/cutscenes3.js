@@ -19,7 +19,7 @@ export const CUTSCENES3 = {
     actors: [
       { t: 0, id: 'player', pos: [0.4, 24.6], yaw: Math.PI },
       { t: 0, id: 'companion', pos: [1.5, 25.8], yaw: Math.PI, mode: 'scripted', show: true },
-      { t: 0.6, id: 'player', to: [0.3, 17.4], run: true }, { t: 0.9, id: 'companion', to: [1.2, 18.5], run: true },
+      { t: 0.6, id: 'player', to: [0.3, 17.4], run: true }, { t: 0.9, id: 'companion', to: [0.7, 18.5], run: true },
       { t: 4.0, id: 'player', to: [0.2, 16.6] }, { t: 4.4, id: 'companion', to: [1.1, 17.6] },
       { t: 10.2, id: 'player', yaw: -2.36 },
     ],
@@ -45,7 +45,7 @@ export const CUTSCENES3 = {
     ],
     actors: [
       { t: 0, id: 'player', pos: [3.4, -16.0], yaw: Math.PI / 2 },
-      { t: 0, id: 'companion', pos: [1.6, -15.2], yaw: Math.PI / 2, mode: 'scripted', show: true },
+      { t: 0, id: 'companion', pos: [1.45, -15.2], yaw: Math.PI / 2, mode: 'scripted', show: true },
       { t: 0, id: 'mamori', pos: [6.6, -16.8], yaw: -Math.PI / 2 },
       { t: 0, id: 'child', anim: 'cower' },
       { t: 9.0, id: 'player', yaw: Math.PI / 2 },

@@ -176,7 +176,7 @@ export const ADMIN = {
   provisional: true,
   spawn: { bridge: [0, 20.5, Math.PI], hall: [0, 4, Math.PI], machine: [0, -10.5, Math.PI], control: [0, -27.5, Math.PI] },
   machibito: { id: 'machibito_1', pos: [6.0, 15.4], clock: [8.6, 17.6], item: [-11.2, 14.6] },     // 受付の待合で待つ人（待人）・忘れ物
-  roam: [{ id: 'mimic_a1', pos: [-8.0, 8.0], yaw: 0.2 }, { id: 'mimic_a2', pos: [9.0, -2.0], yaw: -1.2 }],
+  roam: [{ id: 'mimic_a1', pos: [-8.0, 9.2], yaw: 0.2 }, { id: 'mimic_a2', pos: [9.0, -2.0], yaw: -1.2 }],
   boss: { id: 'touchoku', pos: [0, -16.0], desk: [12.0, -13.4], valve: [-3.0, -18.0] },
   steam: [                                                                                   // 機械室の蒸気弁（調べる＝線で噴く・当直が線の中なら崩れる）
     { id: 'V1', at: [-12.6, -12.0], dir: [1, 0], len: 9 },

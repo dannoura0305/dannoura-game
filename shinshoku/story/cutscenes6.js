@@ -101,7 +101,7 @@ export const CUTSCENES6 = {
       { t: 13.6, pos: [-0.8, 1.7, 18.8], look: [6.0, 1.1, 15.4], fov: 38 },
     ],
     actors: [
-      { t: 0, id: 'player', pos: [0, 21.2], yaw: P }, { t: 0, id: 'companion', pos: [0.9, 21.8], yaw: P, mode: 'scripted', show: true },
+      { t: 0, id: 'player', pos: [0, 21.2], yaw: P }, { t: 0, id: 'companion', pos: [0.9, 21.6], yaw: P, mode: 'scripted', show: true },
       { t: 0.4, id: 'player', to: [0, 17.6] }, { t: 0.8, id: 'companion', to: [1.0, 18.4] },
     ],
     lines: [

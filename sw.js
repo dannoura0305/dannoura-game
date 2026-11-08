@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-11-07.2';   // 境界侵食：見舞い時のだんのうらを VRoid 製に（dannoura_visit*.vrm は media・終章A/結末Aでだけ読む）・VRM の台詞の表情・クレジット・確認者の記入
+const VERSION = '2026-11-08.1';   // 境界侵食：再会の場面の壁抜け修正・だんのうらの家の間取りと外観・病室のベッドの布団・演出のめり込み修正
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）

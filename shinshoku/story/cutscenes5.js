@@ -39,7 +39,7 @@ export const CUTSCENES5 = {
       { t: 15.0, pos: [6.2, 1.8, 11.6], look: [10.6, 1.4, 9.2], fov: 44 },
     ],
     actors: [
-      { t: 0, id: 'player', pos: [13.2, 9.6], yaw: -P / 2 }, { t: 0, id: 'companion', pos: [13.6, 10.6], yaw: -P / 2, mode: 'scripted', show: true },
+      { t: 0, id: 'player', pos: [13.2, 9.6], yaw: -P / 2 }, { t: 0, id: 'companion', pos: [13.3, 10.6], yaw: -P / 2, mode: 'scripted', show: true },
       { t: 0.5, id: 'player', to: [10.8, 9.5] }, { t: 0.9, id: 'companion', to: [11.8, 10.6] },
     ],
     lines: [
@@ -90,7 +90,7 @@ export const CUTSCENES5 = {
       { t: 9.8, pos: [1.2, 1.62, 5.6], look: [0, 1.5, 7.2], fov: 38, cut: true },
       { t: 15.0, pos: [1.1, 1.62, 5.5], look: [0, 1.5, 7.2], fov: 36 },
     ],
-    actors: [{ t: 0, id: 'player', pos: [0, 7.4], yaw: P }, { t: 0, id: 'companion', pos: [0.8, 8.0], yaw: P, mode: 'scripted', show: true }, { t: 12.6, id: 'companion', to: [10.6, 7.8], run: true }],
+    actors: [{ t: 0, id: 'player', pos: [0, 7.4], yaw: P }, { t: 0, id: 'companion', pos: [0.8, 8.0], yaw: P, mode: 'scripted', show: true }, { t: 12.6, id: 'companion', path: [[6.6, 7.6], [10.6, 7.8]], run: true }],
     lines: [
       { t: 0.6, who: 'sys', text: '（吹き抜けの真ん中で、いくつもの体を縫い合わせたものが、何もない所を叩いている。片腕に、古い鞄）', dur: 4.2 },
       { t: 5.6, who: 'tsugihagi', text: '……あけて……かえして……あけて……', dur: 2.6 },
@@ -110,7 +110,7 @@ export const CUTSCENES5 = {
       { t: 9.8, pos: [1.2, 1.62, 5.6], look: [0, 1.5, 7.2], fov: 38, cut: true },
       { t: 15.0, pos: [1.1, 1.62, 5.5], look: [0, 1.5, 7.2], fov: 36 },
     ],
-    actors: [{ t: 0, id: 'player', pos: [0, 7.4], yaw: P }, { t: 0, id: 'companion', pos: [0.8, 8.0], yaw: P, mode: 'scripted', show: true }, { t: 12.6, id: 'companion', to: [10.6, 7.8], run: true }],
+    actors: [{ t: 0, id: 'player', pos: [0, 7.4], yaw: P }, { t: 0, id: 'companion', pos: [0.8, 8.0], yaw: P, mode: 'scripted', show: true }, { t: 12.6, id: 'companion', path: [[6.6, 7.6], [10.6, 7.8]], run: true }],
     lines: [
       { t: 0.6, who: 'sys', text: '（吹き抜けの真ん中で、いくつもの体を縫い合わせたものが、何もない所を叩いている。片腕に、古い鞄）', dur: 4.2 },
       { t: 5.6, who: 'tsugihagi', text: '……あけて……かえして……あけて……', dur: 2.6 },
