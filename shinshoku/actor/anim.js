@@ -83,7 +83,7 @@ const base = ctx => {
 // ── だんのうら ──
 const KATANA_READY = { rightUpperArm: [-0.3, 0, -0.22], rightLowerArm: [-0.85, 0, 0], rightHand: [-0.15, 0, 0.25] };
 const CHUDAN = { spine: [0.05, 0.1, 0], rightUpperArm: [-1.05, 0, 0.3], rightLowerArm: [-0.9, 0, 0], leftUpperArm: [-1.0, 0, -0.4], leftLowerArm: [-1.0, 0, 0], rightHand: [0.3, 0, 0] };   // 両手で前に構える（溜めの入り）
-const RAISE = { spine: [-0.05, 0.2, 0], rightUpperArm: [-1.95, 0, 0.3], rightLowerArm: [-1.1, 0, 0], leftUpperArm: [-1.9, 0, -0.4], leftLowerArm: [-1.2, 0, 0], rightHand: [0.6, 0, 0] };   // 振りかぶりの途中（前から上へ）
+const RAISE = { spine: [-0.05, 0.2, 0], rightUpperArm: [-1.95, 0, 0.05], rightLowerArm: [-1.1, 0, 0], leftUpperArm: [-1.9, 0, -0.1], leftLowerArm: [-1.2, 0, 0], rightHand: [0.6, 0, 0] };   // 振りかぶりの途中（前から上へ）
 const PIPE_READY = { rightUpperArm: [-0.9, 0.2, -0.55], rightLowerArm: [-1.9, 0, 0], rightHand: [0.2, 0, 0.3] };
 // 2026-11-08：刀の振り。前は左腕が横へ跳ね上がり（ひじが伸びたまま肩の高さ近くまで）、脚はほぼまっすぐ・腰は回らず、
 //  強攻撃は両腕をばらばらに真上へ上げていた。→ 左手は胸の前（構え・振り終わりは柄の近く）・振りかぶりで腰と胸を後ろへひねり体重を後ろ足へ、

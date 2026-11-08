@@ -16,12 +16,12 @@ import { solveLeg } from './loco.js';
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const smooth = x => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
 const HIPDROP_IN = 0.02;                // P18：腰を下ろす速さ（秒）。2026-11-08：0.001（すぐ）→ 0.02（着地で腰が 1 こまで数 cm 落ちる「がくっ」を和らげる。足は着く前に床の近くまで下りている）
-const SNAP_OUT = 0.15;
+const SNAP_OUT = 0.15;                   // P18：足を床へ下ろす補正を、足が離れてから戻す速さ（秒）
 const TAIL_DROP = 0.015;                 // 2026-11-08：蹴り終わり（クリップの着いている間の後）の足のために腰を下ろす上限（m）
 const TAIL_V = 2.8;                      // 2026-11-08：蹴り終わりの足を着いたままにする速さの上限（m/s・歩きだけ）
 const LEAN = 4.5 * Math.PI / 180;       // 2026-11-08：移動の時の上体の前への傾き（速さ 1.5m/s 以上で全部）
 const _q = new THREE.Quaternion(), _X = new THREE.Vector3(1, 0, 0);
-const HOVER = 0.03;                      // 2026-11-08：移動の時、着く前の足を床から浮かせる高さ（m・太もも 0.4m の体で）                   // P18：足を床へ下ろす補正を、足が離れてから戻す速さ（秒）
+const HOVER = 0.03;                      // 2026-11-08：移動の時、着く前の足を床から浮かせる高さ（m・太もも 0.4m の体で）
 const UPPER = /^(spine|chest|upperChest|neck|head|left(Shoulder|UpperArm|LowerArm|Hand)|right(Shoulder|UpperArm|LowerArm|Hand)|left(Thumb|Index|Middle|Ring|Little)|right(Thumb|Index|Middle|Ring|Little))/;
 const ARMS = /^(left|right)(UpperArm|LowerArm|Hand|Thumb|Index|Middle|Ring|Little)/;
 
