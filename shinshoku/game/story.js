@@ -288,15 +288,19 @@ export const storyMethods = {
     if (a.pos) setPos(a.pos[0], a.pos[1]);
     if (a.yaw != null) setYaw(a.yaw);
     if (tgt.kind === 'player') this.cinePlayerAnim = a.anim || null;
-    if (a.to) {
-      if (instant) { setPos(a.to[0], a.to[1]); if (a.hideAtEnd && tgt.kind === 'companion') this.companion.root.visible = false; }
-      else this.cineMoves.push({ tgt, to: a.to, speed: a.run ? 4.6 : 1.6, hideAtEnd: a.hideAtEnd });
+    // to：まっすぐ 1 点へ／path：角ごとの点を順に（壁・物を回りこむ。例：裏路地のくぼみから出る・柵の切れ目を通る）
+    const pts = a.path ? a.path.slice() : a.to ? [a.to] : null;
+    if (pts && pts.length) {
+      const last = pts[pts.length - 1];
+      if (instant) { setPos(last[0], last[1]); if (a.hideAtEnd && tgt.kind === 'companion') this.companion.root.visible = false; }
+      else this.cineMoves.push({ tgt, to: pts.shift(), rest: pts, speed: a.run ? 4.6 : 1.6, hideAtEnd: a.hideAtEnd });
     }
   },
   stepCineMoves(dt) {
     for (let i = this.cineMoves.length - 1; i >= 0; i--) {
       const m = this.cineMoves[i]; const p = m.tgt.kind === 'player' ? this.player.pos : m.tgt.kind === 'companion' ? this.companion.brain.pos : m.tgt.e.brain.pos;
       const dx = m.to[0] - p.x, dz = m.to[1] - p.z, L = Math.hypot(dx, dz);
+      if (L < 0.08 && m.rest && m.rest.length) { m.to = m.rest.shift(); i++; continue; }   // 次の角へ（同じこまでもう一度）
       if (L < 0.08) { if (m.hideAtEnd && m.tgt.kind === 'companion') this.companion.root.visible = false; this.cineMoves.splice(i, 1); continue; }
       const s = Math.min(L, m.speed * dt); p.x += dx / L * s; p.z += dz / L * s;
       const yaw = Math.atan2(dx, dz);
@@ -364,7 +368,7 @@ export const storyMethods = {
     this.cinePlayerAnim = null;
     if (this.child && this.child.cineTo) { const m = this.child.cineTo; this.child.pos.x = m.to[0]; this.child.pos.z = m.to[1]; if (m.hideAtEnd) this.child.root.visible = false; this.child.cineTo = null; }
     if (this.flickerTimer) { this.flickerTimer = null; if (!this.player.fighter.white && this.player.model !== this.purpleModel) this.player.setModel(this.purpleModel); }
-    for (const m of this.cineMoves) { const p = m.tgt.kind === 'companion' ? this.companion.brain.pos : m.tgt.kind === 'player' ? this.player.pos : m.tgt.e.brain.pos; p.x = m.to[0]; p.z = m.to[1]; if (m.hideAtEnd && m.tgt.kind === 'companion') this.companion.root.visible = false; }
+    for (const m of this.cineMoves) { const p = m.tgt.kind === 'companion' ? this.companion.brain.pos : m.tgt.kind === 'player' ? this.player.pos : m.tgt.e.brain.pos, to = m.rest && m.rest.length ? m.rest[m.rest.length - 1] : m.to; p.x = to[0]; p.z = to[1]; if (m.hideAtEnd && m.tgt.kind === 'companion') this.companion.root.visible = false; }
     this.cineMoves.length = 0;
     this.cam.yaw = (this.giantMode ? this.giant.yaw : this.player.yaw) + Math.PI; this.cam.pitch = this.giantMode ? 0.22 : 0.16; this.cam.curDist = this.giantMode ? 18 : 2.2;
     if (!this.isTest() && !this.touch) this.input.requestLock();
