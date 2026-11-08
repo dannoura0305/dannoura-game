@@ -1,0 +1,21 @@
+{
+  "name": "境界侵食（仮題）― だんのうら",
+  "short_name": "境界侵食",
+  "description": "『だんのうら』の新作 3D ホラーアクション（開発中の試作）。ホーム画面から開くと、横向きの全画面で遊べます。",
+  "lang": "ja",
+  "dir": "ltr",
+  "id": "./shinshoku.html",
+  "start_url": "./shinshoku.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#0c0a16",
+  "theme_color": "#0c0a16",
+  "categories": ["games"],
+  "icons": [
+    { "src": "assets/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/pwa/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

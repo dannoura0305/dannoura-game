@@ -121,8 +121,12 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0a16; col
 @keyframes shIssen { from { opacity: 1; } to { opacity: 0; } }
 
 /* 会話 */
-#sh-dialog { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); width: min(92vw, 820px); min-height: 104px; padding: 22px 28px 18px; pointer-events: auto;
-  background: linear-gradient(180deg, rgba(20, 12, 36, .9), rgba(10, 6, 20, .94)); border: 1px solid rgba(200, 170, 255, .45); clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px); cursor: pointer; }
+#sh-dialog { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); width: min(92vw, 820px); min-height: 104px; padding: 22px 28px 18px; pointer-events: auto; cursor: pointer; }
+/* 枠の形（角を切った形）は後ろの板だけに付ける。#sh-dialog 自体に clip-path を付けると、枠の上にはみ出す名前の札と顔が切れる */
+#sh-dialog::before { content: ''; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(180deg, rgba(20, 12, 36, .9), rgba(10, 6, 20, .94)); border: 1px solid rgba(200, 170, 255, .45); clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px); }
+.sh-dname { border: 1px solid rgba(200, 170, 255, .45); }
+.sh-dport { display: none; }   /* 会話の顔の絵：これまで枠の clip-path で切れて一度も見えていなかった。出すと名前の札に重なるので、今は出さない（出すなら札の位置と合わせて決める） */
 .sh-dname { position: absolute; left: 24px; top: -2px; font-size: 14px; font-weight: 700; letter-spacing: .15em; padding: 2px 10px; background: rgba(10, 6, 20, .95); transform: translateY(-40%); }
 .sh-dtext { font-size: 17px; line-height: 1.75; }
 #sh-dialog.sys .sh-dtext { color: #d8d0e8; font-size: 15px; }
@@ -130,6 +134,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0a16; col
 
 /* メニュー */
 #sh-menu, #sh-safe, #sh-dead { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(6, 4, 12, .72); pointer-events: auto; z-index: 10; }
+#sh-ui.sh-ui-top { z-index: 25; }   /* タイトルの「設定」を開いている間だけ、タイトル画面（z 20）の上に出す */
+body:has(#sh-title:not([hidden])) #sh-ui > :not(#sh-menu) { visibility: hidden; }   /* タイトル画面では HUD・会話の枠・字幕を出さない（後ろの演出の分が透けて見えていた） */
 .sh-mbox { width: min(94vw, 860px); max-height: 90vh; overflow: auto; background: rgba(16, 10, 30, .96); border: 1px solid rgba(200, 170, 255, .4); padding: 18px 22px; }
 .sh-mbox nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 .sh-mbox nav button { min-width: 0 !important; padding: 7px 18px !important; font-size: 14px !important; }
@@ -385,3 +391,18 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0a16; col
 .sh-fadein small { display: block; font-size: 13px; color: #b8a8d8; max-width: 70vw; }
 #sh-ui.cb .sh-mark.red { color: #1a1000; background: radial-gradient(circle, rgba(255, 176, 0, .98), rgba(255, 176, 0, .2) 72%); border: 3px solid #fff; border-radius: 2px; text-shadow: none; }
 #sh-ui.cb .sh-mark.parry { color: #7ad8ff; border: 3px solid #7ad8ff; border-radius: 50%; text-shadow: 0 0 6px #0a3a6a, 0 0 2px #000; }
+/* フル画面（タイトル・メニューのボタン、iPhone の「ホーム画面に追加」の案内） */
+#sh-title .tt-fs { font-size: 13px; min-width: 0; padding: 6px 22px; }
+.tt-fshint { max-width: 360px; font-size: 12px; line-height: 1.6; color: #ffd7f0; margin: 4px 0 0; padding: 6px 10px; border: 1px dashed rgba(255, 140, 200, .45); background: rgba(14, 10, 26, .6); }
+.sh-fsrow { margin: 0 0 10px; }
+.sh-fshint { color: #ffd7f0 !important; }
+@media (max-height: 520px) and (orientation: landscape) { #sh-title .tt-fs { padding: 5px 18px; font-size: 12px; } .tt-fshint { font-size: 11px; max-width: 300px; } }
+/* セーフエリア（ノッチ・角丸・ホームバー）：フル画面やホーム画面から開いた時に、ボタンや表示が端に隠れないよう内側へ寄せる。
+   全面を覆う効果（暗転・閃光・周辺の暗さ）と画面上の目印は寄せない。位置は translate（transform と重ねられる）で足す */
+:root { --sa-t: env(safe-area-inset-top, 0px); --sa-r: env(safe-area-inset-right, 0px); --sa-b: env(safe-area-inset-bottom, 0px); --sa-l: env(safe-area-inset-left, 0px); }
+#sh-touch { inset: var(--sa-t) var(--sa-r) var(--sa-b) var(--sa-l); }
+.sh-vital, .sh-obj, .sh-comp, .sh-slots4, .sh-combo, .sh-form { translate: var(--sa-l) var(--sa-t); }
+.sh-weapon, .sh-map, .sh-log, .sh-hints, .sh-lightic, .sh-gskills, .sh-skip { translate: calc(-1 * var(--sa-r)) 0; }
+#sh-title { padding: max(16px, var(--sa-t)) max(16px, var(--sa-r)) max(16px, var(--sa-b)) max(16px, var(--sa-l)); }
+@media (max-height: 520px) and (orientation: landscape) { #sh-title { padding: max(10px, var(--sa-t)) max(24px, var(--sa-r)) max(10px, var(--sa-b)) max(24px, var(--sa-l)); } }
+#sh-menu, #sh-safe, #sh-dead, #sh-puz { padding: var(--sa-t) var(--sa-r) var(--sa-b) var(--sa-l); }

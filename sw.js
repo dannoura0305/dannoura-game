@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-11-08.1';   // 境界侵食：再会の場面の壁抜け修正・だんのうらの家の間取りと外観・病室のベッドの布団・演出のめり込み修正
+const VERSION = '2026-11-08.2';   // 境界侵食：フル画面ボタン・専用マニフェスト・タイトルの設定・会話の名前の札・起動時の姿・歩き／走り／回避／刀の動き・刀掛け
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）
@@ -89,6 +89,7 @@ function kindOf(url) {
   if (/^assets\/(.+\/)?manifest\.json$/.test(p)) return 'shell';     // 生成画像の目録は差し替えがすぐ効くようにネット優先
   // おまけ『トビネズミ』：ページと ES モジュールはネット優先（オフラインなら保存分）、素材は保存分
   if (/^tobinezumi\.(html|webmanifest)$/.test(p)) return 'shell';
+  if (p === 'shinshoku.webmanifest') return 'shell';               // 境界侵食のホーム画面用マニフェスト
   if (/^tobinezumi\/(client|shared)\/.+\.(js|css)$/.test(p)) return 'shell';
   if (/^tobinezumi\/assets\/manifest\.json$/.test(p)) return 'shell';
   if (/^tobinezumi\/assets\//.test(p)) return 'media';

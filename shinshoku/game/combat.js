@@ -1,7 +1,7 @@
 // 戦闘の実行（だんのうらの操作・当たり判定・一閃と連鎖一閃・銃・ロックオン・異形の出来事・ボスの攻撃・相棒をつかむ）。
 // Game（main.js）のメソッドとして組み込む（Object.assign(Game.prototype, combatMethods)）。
 import * as THREE from 'three';
-import { COMBAT, ITEMS, f2ms } from '../data/combat.js';
+import { COMBAT, ITEMS, f2ms, dodgeSpeedK } from '../data/combat.js';
 import { resolveCircle, rayBoxes, lineOfSight, insideAny, rayCylinder, raySphere } from '../world/collide.js';
 import { turnTo } from '../actor/actors.js';
 import { pickChainTarget, canChain } from '../combat/chain.js';
@@ -30,7 +30,7 @@ export const combatMethods = {
     if (I.interact && this.nearSpot) this.useSpot(this.nearSpot);
     const st = F.st; let vx = 0, vz = 0;
     if (st.name === 'dodge') {
-      const tot = st.white ? COMBAT.white.dash.total : 24, t = st.f / tot, k = t < 0.72 ? Math.cos(t / 0.72 * Math.PI / 2) : 0;
+      const tot = st.white ? COMBAT.white.dash.total : COMBAT.dodge.total, t = st.f / tot, k = dodgeSpeedK(t);
       const sp = (st.white ? COMBAT.white.dash.dist / (tot / 60 * 0.6) : COMBAT.dodge.dist / 0.28) * k * 0.9;
       vx = P.dodgeDir.x * sp; vz = P.dodgeDir.z * sp;
       P.yaw = turnTo(P.yaw, Math.atan2(P.dodgeDir.x, P.dodgeDir.z), 0.5);

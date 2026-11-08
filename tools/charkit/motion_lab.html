@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Motion Lab</title>
 <!-- 開発用（charkit P13）：主要キャラクターの動きを決まった時間の刻み（60Hz）で進めて撮る・数値を取る。tools/charkit/capture.mjs が使う。
-     ?c=dannoura|white|companion  &scn=idle|walk|run|jog|sprint|startstop|turn180|circle|combo|dodge  &v=2.2（walk の速さ）&cam=side|front|fixed|face
+     ?c=dannoura|white|companion  &scn=idle|walk|run|jog|sprint|startstop|turn180|circle|combo|heavy|dodge  &v=2.2（walk の速さ）&cam=side|front|fixed|face
      &w=katana|none|pipe|handgun  &auto=1（ブラウザで見る：実時間で回す）
      window.lab：step(n) で n こま進めて描く・frames（記録）・info。数値の計算は capture.mjs（charkit/anim/metrics.js） -->
 <style>html,body{margin:0;height:100%;background:#1a1626;color:#eee;font:13px sans-serif;overflow:hidden}#info{position:fixed;left:8px;top:6px;white-space:pre;text-shadow:0 1px 2px #000}</style>
@@ -20,7 +20,7 @@ import * as THREE from 'three';
 import { buildDannoura, buildCompanion } from '../../shinshoku/actor/models.js';
 import { buildDannouraWhite } from '../../shinshoku/actor/models3.js';
 import { Player, CompanionActor, turnTo } from '../../shinshoku/actor/actors.js';
-import { COMBAT } from '../../shinshoku/data/combat.js';
+import { COMBAT, dodgeSpeedK } from '../../shinshoku/data/combat.js';
 
 const Q = new URLSearchParams(location.search);
 const W = +(Q.get('W') || innerWidth), H = +(Q.get('H') || innerHeight);
@@ -78,6 +78,7 @@ const SCN = {
   turnwalk: { dur: 4.4, f: t => ({ v: t < 0.4 ? 0 : t < 3.4 ? COMBAT.move.walk : 0, dir: t < 1.9 ? 0 : Math.PI }) },
   circle: { dur: 5, f: t => ({ v: COMBAT.move.run, dir: t * 1.6 }) },
   combo: { dur: 3.6, f: t => ({ v: 0, dir: 0, press: (t > 0.3 && t < 0.32) || (t > 0.62 && t < 0.64) || (t > 0.98 && t < 1.0) ? 'attack' : t > 2.0 && t < 2.6 ? 'heavy' : null }) },
+  heavy: { dur: 2.2, f: t => ({ v: 0, dir: 0, press: t > 0.3 && t < 0.65 ? 'heavy' : null }) },
   dodge: { dur: 2.4, f: t => ({ v: t < 1.2 ? COMBAT.move.run : 0, dir: 0, press: t > 0.6 && t < 0.62 ? 'dodge' : null }) },
 };
 const scn = SCN[Q.get('scn') || 'walk'] || SCN.walk;
@@ -105,7 +106,7 @@ function sim() {
     if (I.dodge) P.dodgeDir = { x: Math.sin(P.yaw), z: Math.cos(P.yaw) };
     F.tick(I);
     const st = F.st; let vx = 0, vz = 0;
-    if (st.name === 'dodge') { const tot = st.white ? COMBAT.white.dash.total : 24, tt = st.f / tot, k = tt < 0.72 ? Math.cos(tt / 0.72 * Math.PI / 2) : 0; const sp = (st.white ? COMBAT.white.dash.dist / (tot / 60 * 0.6) : COMBAT.dodge.dist / 0.28) * k * 0.9; vx = P.dodgeDir.x * sp; vz = P.dodgeDir.z * sp; }
+    if (st.name === 'dodge') { const tot = st.white ? COMBAT.white.dash.total : COMBAT.dodge.total, tt = st.f / tot, k = dodgeSpeedK(tt); const sp = (st.white ? COMBAT.white.dash.dist / (tot / 60 * 0.6) : COMBAT.dodge.dist / 0.28) * k * 0.9; vx = P.dodgeDir.x * sp; vz = P.dodgeDir.z * sp; }
     else if (st.name === 'attack' && st.f < st.atk.startup + st.atk.active + 2 && st.atk.lunge) { const dur = st.atk.startup + st.atk.active + 2, sp = st.atk.lunge / (dur * DT); vx = Math.sin(P.yaw) * sp; vz = Math.cos(P.yaw) * sp; }
     else { const mul = F.moveMul(); if (inp.v > 0 && mul > 0) { P.moveDir = { x: Math.sin(inp.dir), z: Math.cos(inp.dir) }; vx = P.moveDir.x * inp.v * mul; vz = P.moveDir.z * inp.v * mul; P.yaw = turnTo(P.yaw, inp.dir, 0.25); } }
     const bx = P.pos.x, bz = P.pos.z; P.pos.x += vx * DT; P.pos.z += vz * DT;

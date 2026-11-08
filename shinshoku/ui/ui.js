@@ -1,5 +1,6 @@
 // 画面の部品（DOM）：HUD・調べるの印・トースト・会話・一時停止メニュー・設定・金庫・倒れた時・性能表示。
 import { drawTownMap } from './townmap.js';
+import { fsMenuHTML, toggleFs } from './fullscreen.js';
 const $ = (s, r = document) => r.querySelector(s);
 const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -365,6 +366,7 @@ export class UI {
     const g = this.g, m = this.el.menu, S = g.settings;
     m.hidden = false;
     const inTitle = g.mode === 'title';                                   // タイトルの「設定」：設定・操作・キーだけ
+    m.parentElement.classList.toggle('sh-ui-top', inTitle);               // タイトルの「設定」：#sh-ui ごとタイトル画面（z 20）の上へ（#sh-ui は fixed で重なりの層を作るので、#sh-menu だけ上げても届かない）
     const tabs = inTitle ? [['settings', '設定'], ['controls', '操作'], ['keys', 'キー'], ['close', '閉じる']] : [['top', '再開'], ['map', '地図'], ['equip', '装備'], ['controls', '操作'], ['keys', 'キー'], ['settings', '設定'], ['load', 'ロード'], ['title', 'タイトルへ']];
     let body = '';
     if (tab === 'controls') {
@@ -377,7 +379,7 @@ export class UI {
     } else if (tab === 'equip') {
       body = this.equipBody(g);
     } else if (tab === 'settings') {
-      body = `<div class="sh-set">
+      body = fsMenuHTML() + `<div class="sh-set">
         <label>画質の段 <select data-s="preset">${[['auto', '自動（' + (g.autoPresetKey === 'low' ? '低' : g.autoPresetKey === 'mid' ? '中' : '高') + '）'], ['ultra', '最高（PC）'], ['high', '高（PC）'], ['mid', '中'], ['low', '低（スマホ）'], ['custom', '個別']].map(([v, n]) => `<option value="${v}" ${(S.preset || 'auto') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
         <label>画質（解像度）<input type="range" min="0.4" max="1" step="0.05" data-s="resScale" value="${S.resScale}"><span>${Math.round(S.resScale * 100)}%</span></label>
         <label><input type="checkbox" data-s="shadows" ${S.shadows ? 'checked' : ''}>影</label>
@@ -400,7 +402,7 @@ export class UI {
       const L = g.store.list();
       body = `<div class="sh-slots">${['auto', 'slot1', 'slot2', 'slot3', 'tenki', 'branch'].filter(k => k !== 'tenki' && k !== 'branch' || L[k]).map(k => { const s = L[k]; return `<button data-load="${k}" ${s ? '' : 'disabled'}>${k === 'auto' ? '自動' : k === 'tenki' ? '転機の前' : k === 'branch' ? '◆ 分岐の前' : '枠' + k.slice(-1)}　${s ? new Date(s.savedAt).toLocaleString('ja-JP') + '　' + fmtSec(s.playSec) : '（空き）'}</button>`; }).join('')}</div>`;
     } else {
-      body = `<div class="sh-mtitle">境界侵食<small>（仮題）序章〜終章 試作</small></div><p class="sh-note">${esc(g.chapterTitle())}　／　${esc(g.objectiveText())}</p><p class="sh-note">救った帰路：${g.count('kiro', 'rescue')}　倒した帰路：${g.count('kiro', 'kill')}　閉店：${g.heitenStatus()}　収容者：${g.bossStatus()}　（相棒）の信頼：${g.companionTrust()}</p>`;
+      body = `<div class="sh-mtitle">境界侵食<small>（仮題）序章〜終章 試作</small></div>${fsMenuHTML()}<p class="sh-note">${esc(g.chapterTitle())}　／　${esc(g.objectiveText())}</p><p class="sh-note">救った帰路：${g.count('kiro', 'rescue')}　倒した帰路：${g.count('kiro', 'kill')}　閉店：${g.heitenStatus()}　収容者：${g.bossStatus()}　（相棒）の信頼：${g.companionTrust()}</p>`;
     }
     m.innerHTML = `<div class="sh-mbox"><nav>${tabs.map(([k, n]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${n}</button>`).join('')}</nav><div class="sh-mbody">${body}</div></div>`;
     if (tab === 'map') { const cv = m.querySelector('.sh-townmap'), P = g.player; if (cv) drawTownMap(cv, g.area.id, g.area.id === 'shotengai' ? { x: P.pos.x, z: P.pos.z, yaw: P.yaw } : null); }
@@ -410,6 +412,7 @@ export class UI {
       if (b.dataset.tab === 'top' && tab === 'top') return g.resume();
       if (b.dataset.tab === 'title') { location.href = 'shinshoku.html'; return; }
       if (b.dataset.tab === 'close') { this.closeMenu(); return; }
+      if (b.dataset.fs) { toggleFs(); return; }                       // 文字はフル画面の出入り（fullscreenchange）で変わる
       if (b.dataset.tab) return this.openMenu(b.dataset.tab === 'top' ? 'top' : b.dataset.tab);
       if (b.dataset.load) { g.loadSlot(b.dataset.load); }
       if (b.dataset.eq) { g.toggleEquip(b.dataset.eq); this.openMenu('equip'); }
@@ -425,7 +428,7 @@ export class UI {
     };
     this.menuTab = tab;
   }
-  closeMenu() { this.el.menu.hidden = true; }
+  closeMenu() { this.el.menu.hidden = true; this.el.menu.parentElement.classList.remove('sh-ui-top'); }
   // ── スタッフロール（結末の後）：下から上へ流れる。とばせる ──
   credits(lines, sec, onDone) {
     const d = document.createElement('div'); d.id = 'sh-credits';

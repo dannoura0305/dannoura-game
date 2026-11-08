@@ -15,8 +15,13 @@ import { solveLeg } from './loco.js';
 
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const smooth = x => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
-const HIPDROP_IN = 0.001;                // P18：腰を下ろす速さ（秒：すぐ）
+const HIPDROP_IN = 0.02;                // P18：腰を下ろす速さ（秒）。2026-11-08：0.001（すぐ）→ 0.02（着地で腰が 1 こまで数 cm 落ちる「がくっ」を和らげる。足は着く前に床の近くまで下りている）
 const SNAP_OUT = 0.15;                   // P18：足を床へ下ろす補正を、足が離れてから戻す速さ（秒）
+const TAIL_DROP = 0.015;                 // 2026-11-08：蹴り終わり（クリップの着いている間の後）の足のために腰を下ろす上限（m）
+const TAIL_V = 2.8;                      // 2026-11-08：蹴り終わりの足を着いたままにする速さの上限（m/s・歩きだけ）
+const LEAN = 4.5 * Math.PI / 180;       // 2026-11-08：移動の時の上体の前への傾き（速さ 1.5m/s 以上で全部）
+const _q = new THREE.Quaternion(), _X = new THREE.Vector3(1, 0, 0);
+const HOVER = 0.03;                      // 2026-11-08：移動の時、着く前の足を床から浮かせる高さ（m・太もも 0.4m の体で）
 const UPPER = /^(spine|chest|upperChest|neck|head|left(Shoulder|UpperArm|LowerArm|Hand)|right(Shoulder|UpperArm|LowerArm|Hand)|left(Thumb|Index|Middle|Ring|Little)|right(Thumb|Index|Middle|Ring|Little))/;
 const ARMS = /^(left|right)(UpperArm|LowerArm|Hand|Thumb|Index|Middle|Ring|Little)/;
 
@@ -71,7 +76,84 @@ export class ClipAnimator {
     this.stats = { switches: 0, lastKey: null, ikFrames: 0, lockFrames: 0, fits: {} };
     this._fit = new Map();
     this.active = new Set();
+    if (this.opt.legDims && this.loco.length && this.opt.gaitFix !== false) this.prepLoco();
   }
+  /**
+   * 2026-11-08：移動のクリップを、このモデルの体で 1 周期なぞって覚える（読み込みの時に 1 回）。
+   *  ①足の「着いている間」（contact）：世界で止まっている間（体の進む速さを足した足の点の速さが小さい・低い）。
+   *    前は「床から 3.5cm 以内・0.5m/s 以下」で着いたと決めていたが、脚の短い VRoid の体ではクリップの足が止まる前に床へ着き、
+   *    床の上を 3〜5 こま滑ってから止まっていた（走りで 15cm・歩きで 10cm ほど。足すべりの数（着いた間の速さの平均）には出ない滑り）。
+   *    → 着いている間はクリップが決める。それより前は床の少し上に浮かせ（hover）、止まる時に着く。
+   *  ②腰の上下（hipsY）：クリップの腰の高さを周期の低い成分（1 歩の 1・2 倍の波）だけにして振れを bobK 倍にする。
+   *    前は着地の 4〜6 こまで 6〜7cm 落ちる「がくっ」があった（歩きの上下 9cm）。
+   */
+  prepLoco() {
+    const J = this.J, R = this.root, L = this.opt.legDims, B = this.bones;
+    if (!J.hips || !J.leftFoot || !J.rightFoot) return;
+    const keepQ = B.map(b => b.quaternion.clone()), keepH = J.hips.position.clone();
+    const N = 48, k = L.thigh / 0.4, bobK = this.opt.bobK ?? 0.62;
+    const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(R.quaternion.clone().invert());   // 進む向き（root の局所）
+    const inv = new THREE.Matrix4(), P = new THREE.Vector3();
+    for (const it of this.loco) {
+      for (const o of this.items) o.action.stop();
+      const a = it.action; a.reset(); a.play(); a.enabled = true; a.setEffectiveWeight(1); a.setEffectiveTimeScale(0);
+      const d = it.clip.duration, hy = [], pts = { left: [], right: [] };
+      for (let i = 0; i < N; i++) {
+        a.time = i / N * d; this.mixer.update(0); R.updateWorldMatrix(true, true); inv.copy(R.matrixWorld).invert();
+        hy.push(J.hips.position.y);
+        for (const s of ['left', 'right']) {
+          const F = J[s + 'Foot'];
+          const h = P.set(0, -L.ankleY, -L.heel).applyMatrix4(F.matrixWorld).applyMatrix4(inv).clone(), b = P.set(0, -L.ankleY, L.ball).applyMatrix4(F.matrixWorld).applyMatrix4(inv).clone();
+          pts[s].push([h, b, F.getWorldPosition(new THREE.Vector3()).applyMatrix4(inv)]);
+        }
+      }
+      a.stop();
+      // 腰：DFT で 0〜4 次（1 周期＝2 歩なので 2・4 次が歩みの 1・2 倍）だけ残し、振れを bobK 倍
+      const mean = hy.reduce((s, x) => s + x, 0) / N, hs = new Float32Array(N).fill(mean);
+      for (let h = 1; h <= 4; h++) {
+        let c = 0, sn = 0; for (let i = 0; i < N; i++) { c += (hy[i] - mean) * Math.cos(2 * Math.PI * h * i / N); sn += (hy[i] - mean) * Math.sin(2 * Math.PI * h * i / N); }
+        c *= 2 / N; sn *= 2 / N;
+        for (let i = 0; i < N; i++) hs[i] += bobK * (c * Math.cos(2 * Math.PI * h * i / N) + sn * Math.sin(2 * Math.PI * h * i / N));
+      }
+      it.hipsY = hs; it.hipsRaw = Float32Array.from(hy);
+      // 足：世界での速さ＝局所の速さ＋体の速さ（1 周期の距離 ÷ 長さ。root の単位）
+      const bodyV = it.cycleM / (this.opt.sceneScale || 1) / d, dt = d / N;
+      it.contact = {};
+      for (const s of ['left', 'right']) {
+        const arr = pts[s], minY = Math.min(...arr.map(([h, b]) => Math.min(h.y, b.y)));
+        const c = new Float32Array(N);
+        for (let i = 0; i < N; i++) {
+          const [h0, b0] = arr[(i + N - 1) % N], [h1, b1] = arr[(i + 1) % N], [h, b] = arr[i];
+          const sp = (p0, p1) => { const v = p1.clone().sub(p0).divideScalar(2 * dt).addScaledVector(fwd, bodyV); return Math.hypot(v.x, v.z); };
+          const thr = Math.max(0.3, 0.1 * bodyV) * k;
+          const on = (p, p0, p1) => p.y - minY < 0.035 * k && sp(p0, p1) < thr;
+          c[i] = on(h, h0, h1) || on(b, b0, b1) ? 1 : 0;
+        }
+        for (let i = 0; i < N; i++) if (!c[i] && c[(i + N - 1) % N] && c[(i + 1) % N]) c[i] = 1;   // 1 点の切れ目を埋める
+        it.contact[s] = c;
+        // 着く前の高さ：次に着くまでの時間で 0..1（0.1 秒より前は 1）。床から HOVER まで浮かせ、着く瞬間に 0（減速しながら下りる）
+        //  あわせて、着く場所へ先に寄せる量（root の局所・水平）：クリップの足は着く直前まで体と同じ速さで前へ動き、着いた瞬間に止まっていた。
+        //  着く 0.1 秒前から、着く場所との差を (1-land)² の割合で寄せる → 足は着く場所へ減速しながら下りる（速さが 1 こまで 0 にならない）
+        const land = new Float32Array(N), pre = new Float32Array(N * 2), hov = new Float32Array(N);
+        for (let i = 0; i < N; i++) {
+          land[i] = 1; if (c[i]) { land[i] = 0; continue; }
+          let j = 1; while (j < N && !c[(i + j) % N]) j++;
+          if (j >= N) continue;
+          const tc = j * dt;                                                   // 次に着くまで（秒）
+          land[i] = Math.min(1, tc / 0.1);
+          hov[i] = land[i] * clamp((0.2 - tc) / 0.05, 0, 1);                    // 浮かせるのは着く 0.2 秒前から（離れた直後のつま先は触らない）
+          if (tc < 0.1) { const ic = (i + j) % N, o = arr[ic][2].clone().addScaledVector(fwd, bodyV * tc).sub(arr[i][2]); pre[i * 2] = o.x; pre[i * 2 + 1] = o.z; }
+        }
+        (it.land || (it.land = {}))[s] = land; (it.pre || (it.pre = {}))[s] = pre; (it.hov || (it.hov = {}))[s] = hov;
+      }
+    }
+    for (let i = 0; i < B.length; i++) B[i].quaternion.copy(keepQ[i]);
+    J.hips.position.copy(keepH);
+  }
+  /** 覚えた周期の 2 成分の値（x,z を交互に N 点）を時刻で読む */
+  static cyc2(arr, t, d) { const N = arr.length / 2, x = ((t / d) % 1 + 1) % 1 * N, i = Math.floor(x), f = x - i, a = i % N, b = (i + 1) % N; return [arr[a * 2] * (1 - f) + arr[b * 2] * f, arr[a * 2 + 1] * (1 - f) + arr[b * 2 + 1] * f]; }
+  /** 覚えた周期の値（N 点・周期）を時刻で読む */
+  static cyc(arr, t, d) { const N = arr.length, x = ((t / d) % 1 + 1) % 1 * N, i = Math.floor(x), f = x - i; return arr[i % N] * (1 - f) + arr[(i + 1) % N] * f; }
   get hasLoco() { return this.loco.length > 0; }
   /** 1 周期（2 歩）の距離（m）：速さで重ねる。Player の位相の進み（distance matching）に使う */
   cycleLen(v) { const w = locoWeights(this.loco, v); let s = 0; for (const x of w) s += x.w * x.it.cycleM; return s || 1.5; }
@@ -147,11 +229,26 @@ export class ClipAnimator {
     const procHips = J.hips ? J.hips.position.clone() : null;
     const sel = this.select(dt, ctx);
     const used = sel.parts.length > 0;
+    this.contactW = null;
     if (used) {
       const want = new Set(sel.parts.map(p => p.it));
       for (const it of this.active) if (!want.has(it)) { it.action.stop(); this.active.delete(it); }
       for (const p of sel.parts) { const a = p.it.action; if (!this.active.has(p.it)) { a.reset(); a.play(); this.active.add(p.it); } a.enabled = true; a.setEffectiveWeight(p.w); a.setEffectiveTimeScale(0); a.time = p.time; }
       this.mixer.update(0);
+      // 2026-11-08：移動のクリップは覚えた腰の高さ（なめらかにした上下）と、足の着いている間（prepLoco）
+      if (sel.key === 'loco' && sel.parts.every(p => p.it.hipsY)) {
+        const cy = ClipAnimator.cyc, pre = { left: [0, 0], right: [0, 0] }, hv = { left: 0, right: 0 }; let y = 0, cl = 0, cr = 0, ll = 0, lr = 0, ws = 0;
+        for (const p of sel.parts) {
+          const d = p.it.clip.duration; y += p.w * cy(p.it.hipsY, p.time, d); ws += p.w;
+          cl += p.w * cy(p.it.contact.left, p.time, d); cr += p.w * cy(p.it.contact.right, p.time, d); ll += p.w * cy(p.it.land.left, p.time, d); lr += p.w * cy(p.it.land.right, p.time, d);
+          for (const sd of ['left', 'right']) { const o = ClipAnimator.cyc2(p.it.pre[sd], p.time, d); pre[sd][0] += p.w * o[0]; pre[sd][1] += p.w * o[1]; hv[sd] += p.w * cy(p.it.hov[sd], p.time, d); }
+        }
+        this.preW = pre;
+        if (ws > 1e-4 && J.hips) { J.hips.position.y = y / ws; this.contactW = { left: cl / ws, right: cr / ws }; this.landW = { left: ll / ws, right: lr / ws }; this.hovW = { left: hv.left / ws, right: hv.right / ws }; }
+        // 上体を少し前へ（クリップの歩きは上体がわずかに後ろへ反っていた：首と腰の差で -1〜-2°）。頭は前を見たまま
+        const lean = LEAN * Math.min(1, this.visV / 1.5) * (this.opt.vrm0 ? -1 : 1);
+        if (J.spine && Math.abs(lean) > 1e-4) { J.spine.quaternion.premultiply(_q.setFromAxisAngle(_X, lean)); if (J.head) J.head.quaternion.premultiply(_q.setFromAxisAngle(_X, -lean * 0.7)); }
+      }
       // 武器を持っている時などは腕を手続きの姿勢のまま（作品が決める）
       if (ctx.armsFromProc) for (let i = 0; i < B.length; i++) if (this.isArm[i]) B[i].quaternion.copy(this.procQ[i]);
     } else if (this.active.size) { for (const it of this.active) it.action.stop(); this.active.clear(); }
@@ -222,7 +319,13 @@ export class ClipAnimator {
       const vel = prev && dt > 0 ? Math.hypot(pt.x - prev.x, pt.z - prev.z) / dt : 9;
       (f.prevHeel || (f.prevHeel = new THREE.Vector3())).copy(heelW); (f.prevBall || (f.prevBall = new THREE.Vector3())).copy(ballW);
       const c = f.c || (f.c = new THREE.Vector3());
-      f.planted = pt.y - gW < 0.035 * k && vel < 0.5;                       // 着いた判定は床から 3.5cm まで（前は 2cm：浮いた足で固定が入ったり切れたりした）
+      const cw = this.contactW ? this.contactW[f.s] : null;
+      // 2026-11-08：移動のクリップは「着いている間」をクリップから（prepLoco）。それ以外（待機）は前と同じ：床から 3.5cm・0.5m/s
+      const near = pt.y - gW < 0.035 * k && vel < 0.5;
+      const byClip = cw != null && cw > 0.5 && pt.y - gW < 0.07 * k;
+      f.planted = cw != null ? byClip || (f.planted && near && this.visV < TAIL_V) : near;   // 歩きでつま先で蹴る間は、着いたままなら前の決め方でも続ける（走りは続けない：腰が沈む）
+      f.tail = f.planted && cw != null && !byClip;                      // 続けている間（腰は少しだけ下ろす：TAIL_DROP）
+      f.hover = cw != null && !f.planted ? HOVER * k * this.hovW[f.s] : 0;
       const flat = f.planted && Math.max(heelW.y, ballW.y) - gW < 0.035 * k;
       if (flat && !f.flatQ) {
         const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(footWQ).applyQuaternion(rqi);
@@ -243,11 +346,12 @@ export class ClipAnimator {
       f.w = f.planted ? 1 : 0;
       f.sw = (f.sw || 0) + ((f.planted ? 1 : 0) - (f.sw || 0)) * Math.min(1, dt / (f.planted ? 0.12 : SNAP_OUT));
       const tgt = anW.clone().add(c).applyMatrix4(inv);
+      if (cw != null && !f.planted && this.preW) { const g = (1 - this.landW[f.s]) ** 2, o = this.preW[f.s]; tgt.x += o[0] * g; tgt.z += o[1] * g; }   // 着く場所へ先に寄せる（prepLoco）
       // 床へ入れない：足の向きでかかと・つま先の付け根の低い方が床より下なら足首を上げる。着いている間は浮きも床へ下ろす
       const fq = rqi.clone().multiply(Qf);
       const heel = hOff.clone().applyQuaternion(fq), ball = bOff.clone().applyQuaternion(fq);
       const lowPt = tgt.y + Math.min(heel.y, ball.y);
-      if (lowPt < groundY) tgt.y += groundY - lowPt;
+      if (lowPt < groundY + f.hover) tgt.y += groundY + f.hover - lowPt;              // 着く前の足は床の少し上（床の上を滑らない）
       else if (f.sw > 1e-3) tgt.y -= Math.min(lowPt - groundY, 0.04 * k) * f.sw;
       f.tgt = tgt; f.Qf = Qf; f.skip = tgt.distanceToSquared(an) < 1e-8 && f.fw < 1e-3;
     }
@@ -258,7 +362,7 @@ export class ClipAnimator {
       const UL = J[f.s + 'UpperLeg'], LL = J[f.s + 'LowerLeg'], FT = J[f.s + 'Foot'];
       const hj = loc(UL), Lm = (LL.position.length() + FT.position.length()) * 0.995;
       const dx = f.tgt.x - hj.x, dz = f.tgt.z - hj.z, h2 = Lm * Lm - dx * dx - dz * dz;
-      if (h2 > 0) drop = Math.max(drop, hj.y - f.tgt.y - Math.sqrt(h2));
+      if (h2 > 0) drop = Math.max(drop, Math.min(hj.y - f.tgt.y - Math.sqrt(h2), f.tail ? TAIL_DROP * k : Infinity));   // 蹴り終わりの足のためには少しだけ
     }
     drop = Math.min(drop, 0.06 * k);
     const hd0 = this.hipDrop || 0;

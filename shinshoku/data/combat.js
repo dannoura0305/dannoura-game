@@ -9,7 +9,7 @@ export const COMBAT = {
   hitstop: { light: 3, heavy: 5, issen: 8 },
   hurt: { stun: 16, invuln: 30 },
   buffer: 10,                                   // 入力の先行受付（攻撃・回避とも）
-  dodge: { total: 24, iStart: 3, iEnd: 14, just: 8, dist: 3.4, chainMax: 2, chainLag: 12, chainGap: 30 },
+  dodge: { total: 24, iStart: 3, iEnd: 14, just: 8, dist: 4.1, chainMax: 2, chainLag: 12, chainGap: 30 },   // dist：速さの基準（実際に進むのは約 0.62 倍＝2.5m）。2026-11-08 に 3.4（2.1m）→ 4.1（+20%・利用者の依頼「少し距離を伸ばす」）。無敵・ジャストの受付は同じ
   justSlow: { scale: 0.3, frames: 36 },          // ジャスト回避の成功：世界 0.3 倍速を実時間 36f
   parry: { before: 6, after: 2, stagger: 54, failLag: 18, guardMul: 0.5 },
   issen: {
@@ -100,6 +100,15 @@ export const ITEMS = {
   ammo_small: { name: '拳銃の弾（6発）', ammo: 6 },
   ammo_100: { name: '拳銃の弾（100発）', ammo: 100 },
 };
+
+/** 回避の速さの形（0..1・前へ寄った余弦）。t＝回避の f ÷ total。動き（game/combat.js）と転がりの見た目（actor/anim.js rollAt）が同じ形を使う */
+export const dodgeSpeedK = t => t < 0.72 ? Math.cos(t / 0.72 * Math.PI / 2) : 0;
+/** 回避で進んだ割合（0..1）：f こま目の動きの後（game/combat.js の 1 こまごとの足し算と同じ） */
+export function dodgeTravel(f, total = COMBAT.dodge.total) {
+  let s = 0, all = 0;
+  for (let i = 0; i < total; i++) { const k = dodgeSpeedK(i / total); all += k; if (i <= f) s += k; }
+  return all > 0 ? Math.min(1, s / all) : 1;
+}
 
 export const f2ms = f => Math.round(f * 1000 / FPS);
 export const ms2f = ms => ms * FPS / 1000;

@@ -27,7 +27,7 @@ export function setupTouch(root, input, game) {
         btnTimers.set(t.identifier, { a, el: b });
         continue;
       }
-      if (t.clientX < innerWidth * 0.42 && stickId == null) { stickId = t.identifier; sx = t.clientX; sy = t.clientY; stick.style.left = (sx - 70) + 'px'; stick.style.top = (sy - 70) + 'px'; stick.classList.add('on'); }
+      if (t.clientX < innerWidth * 0.42 && stickId == null) { stickId = t.identifier; sx = t.clientX; sy = t.clientY; const o = wrap.getBoundingClientRect(); stick.style.left = (sx - o.left - 70) + 'px'; stick.style.top = (sy - o.top - 70) + 'px'; stick.classList.add('on'); }
       else if (lookId == null) { lookId = t.identifier; lx = t.clientX; ly = t.clientY; tap0 = { x: t.clientX, y: t.clientY, t: performance.now(), moved: 0 }; }
     }
     e.preventDefault();
@@ -61,8 +61,14 @@ export function setupTouch(root, input, game) {
     e.preventDefault();
   };
   wrap.addEventListener('touchend', end, { passive: false }); wrap.addEventListener('touchcancel', end, { passive: false });
+  // フル画面の出入りなどで指が離れた知らせ（touchend）が来ないことがある：押しっぱなしを全部離す
+  const release = () => {
+    stickId = null; lookId = null; tap0 = null; T.move.x = T.move.y = 0; knob.style.transform = ''; stick.classList.remove('on');
+    for (const b of btnTimers.values()) { if (b.timer) clearTimeout(b.timer); if (b.el) b.el.classList.remove('on'); }
+    btnTimers.clear(); T.held.clear(); T.pressQ.length = 0;
+  };
   return {
-    el: wrap,
+    el: wrap, release,
     show(on) { wrap.style.display = on ? '' : 'none'; },
     setUse(on) { wrap.querySelector('.tc-use').classList.toggle('vis', !!on); },
     setIssen(on) { wrap.querySelector('.tc-atk').classList.toggle('issen', !!on); },

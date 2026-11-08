@@ -8,6 +8,11 @@
 <meta name="description" content="『だんのうら』の新作 3D ホラーアクション（開発中の試作：序章〜終章・結末A／B）。夜の商店街で、帰り道をくり返す異形と向き合う。">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="境界侵食">
+<!-- ホーム画面に追加して開くと全画面・横向き（本編の manifest.webmanifest とは別の id） -->
+<link rel="manifest" href="shinshoku.webmanifest">
+<link rel="apple-touch-icon" href="assets/pwa/apple-touch-icon.png">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="shinshoku/style.css">
 <!-- three.js は版を固定して同梱（vendor/three-esm/。既存の vendor/three.min.js r158 とは別） -->
@@ -44,9 +49,11 @@
       <button data-a="chapters">章選択</button>
       <button data-a="gallery" hidden>記録（ギャラリー）</button>
       <button data-a="settings">設定</button>
+      <button data-a="fs" class="tt-fs sh-fsbtn" hidden>フル画面にする</button>
       <button data-a="back" class="tt-back">本編のタイトルへ</button>
     </nav>
     <div class="tt-panel" hidden></div>
+    <p class="tt-fshint" hidden></p>
     <p class="tt-note">PC：キーボード＋マウス（クリックで視点を固定）／ゲームパッド。スマホ：横向き・タッチ。<br>素材はすべて仮（provisional）。音が出ます。</p>
   </div>
 </div>
