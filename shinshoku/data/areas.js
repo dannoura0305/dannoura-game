@@ -70,7 +70,7 @@ export const AREA_DATA = {
       { id: 'kanja_4', path: [[-6.0, -4.6], [-3.2, -4.6]], bed: [-6.0, -4.6] },
     ],
     mimics: [{ id: 'mimic_h1', pos: [-6.2, 13.9], yaw: 0.3, disguise: 'civilian', lure: 'mimic_lure_visitor' }],
-    twist: { mamori: { id: 'mamori', pos: [6.6, -16.8], child: [9.0, -17.2] }, mimics: [{ id: 'mimic_t1', pos: [8.3, -14.9] }, { id: 'mimic_t2', pos: [8.3, -20.0] }, { id: 'mimic_t3', pos: [3.0, -19.6] }] },
+    twist: { mamori: { id: 'mamori', pos: [6.6, -16.8], child: [9.0, -17.2] }, mimics: [{ id: 'mimic_t1', pos: [8.3, -14.9] }, { id: 'mimic_t2', pos: [8.3, -20.45] }, { id: 'mimic_t3', pos: [3.0, -20.15] }] },
     pickups: [
       { id: 'ho_ammo_1', item: 'ammo_small', pos: [-7.6, 4.6] },
       { id: 'ho_med_1', item: 'medkit_s', pos: [-8.6, 17.4] },
@@ -83,7 +83,7 @@ export const AREA_DATA = {
   tunnel: {
     mimics: [
       { id: 'mimic_u1', pos: [0.4, -15.0], yaw: 0, disguise: 'companion', lure: 'mimic_lure_companion' },
-      { id: 'mimic_u2', pos: [-3.6, -8.0], yaw: Math.PI / 2, dormant: true },
+      { id: 'mimic_u2', pos: [-3.6, -7.4], yaw: Math.PI / 2, dormant: true },   // P18：眠っている間の手が南の壁（z −9.7）に入らない所へ
     ],
     boss: { id: 'utsushimi', pos: [0, -35] },
     refuge: { x: 10.5, z: -29, door: [8.0, -29] },

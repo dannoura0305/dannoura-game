@@ -253,7 +253,7 @@ export const ch7Methods = {
   renderBoss7(dt) {
     const A = this.area; if (!CH7_AREAS.includes(A.id)) return;
     for (const e of this.enemies) if (e.prop7 && !this.cineMoves.some(m => m.tgt.e === e)) e.speed = 0;
-    if (A.id === 'epilogue') { const C = this.companion; C.rootY = C.anim === 'bed' ? 0.18 : 0; if (this.split7) this.tickBoth7(dt); }
+    if (A.id === 'epilogue') { const C = this.companion; C.rootY = C.anim === 'bed' ? this.bedRootY7(C) : 0; if (this.split7) this.tickBoth7(dt); }
     if (A.id === 'abyss') {
       const F = A.dyn.floaters, t = this.playSec;
       if (F && (this.frame % 2 === 0 || this.cut.active)) { F.list.forEach((f, i) => { F.E.set(f.rx + t * f.sp, f.ry + t * f.sp * 0.7, 0); F.Q.setFromEuler(F.E); F.S.set(f.s, f.s, f.s); F.V.set(f.x, f.y + Math.sin(t * 0.4 + f.bob) * 0.8 - (this.flags.pitClosed7 ? Math.min(f.y - 1, this.pitT7 || 0) : 0), f.z); F.M.compose(F.V, F.Q, F.S); F.mesh.setMatrixAt(i, F.M); }); F.mesh.instanceMatrix.needsUpdate = true; }
@@ -520,6 +520,13 @@ export const ch7Methods = {
     S.L.root.visible = S.R.root.visible = true;
   },
   /** 撮影・試験用：終章の小さな API */
+  /** P18：病室のベッドで上体を起こす（相棒）の体の高さ：腰の骨がマットレス（上 0.70m）の 0.10m 上に来るように（モデルの脚の長さに合わせる：VRoid・Blender・コードの形） */
+  bedRootY7(C) {
+    const hips = C.model && C.model.J && C.model.J.hips; if (!hips) return 0.18;
+    const v = (this._bedV || (this._bedV = new THREE.Vector3())); hips.getWorldPosition(v);
+    const rel = v.y - C.root.position.y; if (!(rel > 0.2 && rel < 1.4)) return C.rootY || 0.18;
+    return Math.max(0, Math.min(0.5, 0.80 - rel));
+  },
   debug7() {
     const g = this;
     return {

@@ -8,6 +8,7 @@ import { makeTown2, isFar } from './town2.js';
 import { steamMesh } from '../render/steam.js';
 import { CAR_KINDS } from './envkit.js';
 import { furnKit } from './furn.js';
+import { LEVEL } from '../data/level.js';   // P18：自宅の窓（家の中と同じ所）
 import { vegTree, vegPut, vegHedge, vegCoverLine, vegCoverRect } from './vegkit.js';   // P16：植物は試験マップと同じ部品（world/vegkit.js）
 
 // 決まった乱数（区画の id から）：data/town.js の seeded（出入り口の位置と同じ乱数）
@@ -465,43 +466,76 @@ export function buildTown(ctx) {
   /** 刈り込んだ植え込み（P16：veg.shrub.tsutsuji の種類 v・大きさ s）。F の座標（u, v）・向きは区画の向き */
   function shrubAt(F, u, v, kind = 0, s = 1, y = 0) { const [x, z] = F.at(u, v); vegPut('veg.shrub.tsutsuji', x, y, z, (F.ry || 0) + (kind ? 0 : u * 1.7), s, kind); }
   function homeExterior() {
-    // 自宅（2 階建て）：1 階の壁は level.js（家の中）。ここは外側の皮・2 階・瓦屋根・カーポート・前庭・小物
+    // 自宅（2 階建て・北陸の家：富山の「アズマダチ」ふう）：1 階の壁は level.js（家の中）。ここは外側の皮・2 階・屋根・下屋・ベランダ・前庭・小物
+    // P18：妻（三角の面）を表に向けた大きな切妻（黒い釉薬瓦・雪止め）・白い漆喰と黒い梁の「枠の内」・1 階は焦げ茶の板張り・高い基礎。
+    //  玄関の前に風除室（level.js：ガラスの引き戸）。窓は data/level.js の homeWindows（家の中と同じ所）。
     const [x0, z0] = homeW(-6, 6), [x1, z1] = homeW(6, 16), cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, w = x1 - x0, d = z1 - z0;
-    const tint = 0xd8c8b4, door = 1.4;
-    // 1 階の外側（玄関の口を空ける）
-    for (const [a, b] of [[x0 - 0.2, cx - door / 2], [cx + door / 2, x1 + 0.2]]) B.box('tex', (a + b) / 2, 1.6, z0 - 0.19, b - a, 3.2, 0.06, tint, { tile: 'siding', ts: 2, ao: true, edges: true });
-    B.box('tex', cx, 2.75, z0 - 0.19, door, 0.9, 0.06, tint, { tile: 'siding', ts: 2, edges: false });
-    // P14：玄関の戸（開き戸：level.js の dyn.homeDoor＝閉じていて、近づくと外へ開き、離れると閉じる）・枠・袖の明かり取り・ポーチ・表札・インターホン・灯り
+    const door = 1.4, BOARD = 0x6a4c36, PLAS = 0xf0ece0, BEAM = 0x2e2420, BASE = 0xa8a8a4;
+    // 1 階の外側（焦げ茶の板張り・玄関の口を空ける）・高い基礎（雪国）
+    for (const [a, b] of [[x0 - 0.2, cx - door / 2], [cx + door / 2, x1 + 0.2]]) B.box('tex', (a + b) / 2, 1.6, z0 - 0.19, b - a, 3.2, 0.06, BOARD, { tile: 'wood', ts: 1.6, ao: true, edges: true });
+    B.box('tex', cx, 2.75, z0 - 0.19, door, 0.9, 0.06, BOARD, { tile: 'wood', ts: 1.6, edges: false });
+    for (const x of [x0 - 0.19, x1 + 0.19]) B.box('tex', x, 1.6, cz, 0.06, 3.2, d + 0.4, BOARD, { tile: 'wood', ts: 1.6, ao: true, edges: true });
+    B.box('tex', cx, 1.6, z1 + 0.19, w + 0.4, 3.2, 0.06, BOARD, { tile: 'wood', ts: 1.6, edges: false });
+    for (const [a, b] of [[x0 - 0.24, cx - 1.42], [cx + 1.42, x1 + 0.24]]) B.box('tex', (a + b) / 2, 0.2, z0 - 0.25, b - a, 0.4, 0.06, BASE, { tile: 'concrete', ts: 1.5, edges: false });
+    for (const x of [x0 - 0.25, x1 + 0.25]) B.box('tex', x, 0.2, cz, 0.06, 0.4, d + 0.5, BASE, { tile: 'concrete', ts: 1.5, edges: false });
+    B.box('tex', cx, 0.2, z1 + 0.25, w + 0.56, 0.4, 0.06, BASE, { tile: 'concrete', ts: 1.5, edges: false });
+    // P14：玄関の戸（開き戸：level.js の dyn.homeDoor＝閉じていて、近づくと外へ開き、離れると閉じる）・枠・袖の明かり取り・表札・インターホン・灯り（風除室の中と横）
     { const zf = z0 - 0.24, hh = 2.3;
       for (const s of [-1, 1]) B.box('prop', cx + s * (door / 2 + 0.045), hh / 2, zf + 0.02, 0.1, hh + 0.1, 0.1, 0x3a3430, { edges: false });
       B.box('prop', cx, hh + 0.06, zf + 0.02, door + 0.2, 0.1, 0.12, 0x3a3430, { edges: false });                    // 上の枠
-      B.box('prop', cx, 0.025, zf + 0.06, door, 0.05, 0.2, 0x8a8a88, { edges: false });                                // 沓摺り
       B.box('prop', cx + door / 2 - 0.4, hh / 2, zf + 0.1, 0.04, hh - 0.05, 0.08, 0x3a3430, { edges: false });          // 戸と明かり取りの間の方立て
-      B.box('tex', cx, 0.03, z0 - 0.75, 2.2, 0.06, 1.0, 0xd8d4cc, { tile: 'stone', ts: 0.6, edges: false });            // ポーチ
       const puv2 = signUV('だんのうら', { bg: '#f1e9d6', fg: '#1d1712', size: 46, serif: true });
-      B.box('sign', cx - door / 2 - 0.45, 1.65, zf - 0.01, 0.36, 0.11, 0.02, 0xffffff, { uv: puv2, face: 5, edges: false });
-      B.box('prop', cx - door / 2 - 0.45, 1.3, zf - 0.01, 0.13, 0.19, 0.05, 0x2a2c30, { edges: false });           // インターホン
-      B.box('glow', cx - door / 2 - 0.45, 2.15, zf - 0.04, 0.16, 0.22, 0.12, 0xffd8a0, { edges: false }); }
-    for (const x of [x0 - 0.19, x1 + 0.19]) B.box('tex', x, 1.6, cz, 0.06, 3.2, d + 0.4, tint, { tile: 'siding', ts: 2, ao: true, edges: true });
-    B.box('tex', cx, 1.6, z1 + 0.19, w + 0.4, 3.2, 0.06, tint, { tile: 'siding', ts: 2, edges: false });
-    // 2 階（P14：中に部屋がある＝外の皮だけ。前は中の詰まった箱だった）
-    B.box('tex', cx, 3.2 + 1.45, z0 - 0.19, w + 0.4, 2.9, 0.06, tint, { tile: 'siding', ts: 2, edges: true });
-    B.box('tex', cx, 3.2 + 1.45, z1 + 0.19, w + 0.4, 2.9, 0.06, tint, { tile: 'siding', ts: 2, edges: false });
-    for (const x of [x0 - 0.19, x1 + 0.19]) B.box('tex', x, 3.2 + 1.45, cz, 0.06, 2.9, d + 0.4, tint, { tile: 'siding', ts: 2, edges: true });
-    B.box('prop', cx, 3.25, cz, w + 0.5, 0.14, d + 0.5, 0x8a7a6a);
+      B.box('sign', cx + 1.75, 1.65, zf - 0.01, 0.36, 0.11, 0.02, 0xffffff, { uv: puv2, face: 5, edges: false });     // 風除室の東の壁の表札
+      B.box('prop', cx + 1.75, 1.3, zf - 0.01, 0.13, 0.19, 0.05, 0x2a2c30, { edges: false });                         // インターホン
+      B.box('glow', cx - 1.7, 2.2, zf - 0.04, 0.16, 0.22, 0.12, 0xffd8a0, { edges: false }); }
+    // 2 階（白い漆喰）・1 階と 2 階の間の帯（胴差し）・角の柱
+    B.box('tex', cx, 3.2 + 1.45, z0 - 0.19, w + 0.4, 2.9, 0.06, PLAS, { tile: 'plaster', ts: 2, edges: true });
+    B.box('tex', cx, 3.2 + 1.45, z1 + 0.19, w + 0.4, 2.9, 0.06, PLAS, { tile: 'plaster', ts: 2, edges: false });
+    for (const x of [x0 - 0.19, x1 + 0.19]) B.box('tex', x, 3.2 + 1.45, cz, 0.06, 2.9, d + 0.4, PLAS, { tile: 'plaster', ts: 2, edges: true });
+    B.box('prop', cx, 3.25, cz, w + 0.5, 0.14, d + 0.5, BEAM);
+    for (const [x, z] of [[x0 - 0.22, z0 - 0.22], [x1 + 0.22, z0 - 0.22], [x0 - 0.22, z1 + 0.22], [x1 + 0.22, z1 + 0.22]]) prop(x, 3.05, z, 0.16, 6.1, 0.16, BEAM);
+    for (const x of [cx - 2.1, cx + 2.1]) prop(x, 4.68, z0 - 0.24, 0.12, 2.86, 0.06, BEAM);                                // 2 階の表の柱
+    // 屋根：妻を表に向けた切妻（棟は奥へ）・黒い釉薬瓦・妻は白い漆喰
+    const G = { W: d + 0.4, D: w + 0.4, alongX: false, f: 'N', out: [0, -1], at: (u, v) => [x0 - 0.2 + v, z0 - 0.2 + u] };
+    G.box = (key, u, v, y, a, b, h, color, tile, opt = {}) => { const [x, z] = G.at(u, v); return B.box(key, x, y, z, b, h, a, color, Object.assign({ tile, edges: false }, opt)); };
+    roofGable(G, 0, 0, G.W, G.D, 6.1, 'kawara', 0x4a4e58, 0.7, 'plaster', PLAS);
+    // 枠の内（妻の黒い梁と束）：表の三角（z0−0.2）の前
+    { const zf = z0 - 0.25, tn = Math.tan(0.42), top = x => 6.1 + Math.max(0, (w / 2 + 0.2 - Math.abs(x - cx))) * tn;
+      for (const [y, half] of [[6.18, w / 2 + 0.2], [6.95, w / 2 + 0.2 - 0.85 / tn], [7.75, w / 2 + 0.2 - 1.65 / tn]]) prop(cx, y, zf, half * 2 - 0.1, 0.14, 0.08, BEAM);
+      for (const dx of [-4.2, -2.1, 0, 2.1, 4.2]) { const t = top(cx + dx) - 0.12; prop(cx + dx, (6.1 + t) / 2, zf, 0.12, t - 6.1, 0.08, BEAM); }
+      // 破風板（屋根の縁の板）
+      for (const s of [-1, 1]) { const L = (w / 2 + 0.9) / Math.cos(0.42); B.box('prop', cx + s * (w / 4 + 0.45), 6.1 + (w / 2 + 0.2) * tn / 2 + 0.02, z0 - 0.92, L, 0.3, 0.08, BEAM, { rz: -s * 0.42, edges: false }); } }
+    // 雪止め（両方の屋根の軒の近くに 2 列）・雨どい
+    for (const s of [-1, 1]) for (const hd of [5.1, 6.0]) { const y = 6.1 + (w / 2 + 0.2 - hd) * Math.tan(0.42) + 0.2; prop(cx + s * hd, y, cz, 0.05, 0.1, d + 1.6, 0x2a2c30); }
+    for (const s of [-1, 1]) prop(cx + s * (w / 2 + 0.85), 5.82, cz, 0.12, 0.1, d + 1.8, 0x5a5a58);
+    for (const [x, z] of [[x0 - 0.3, z0 - 0.3], [x1 + 0.3, z0 - 0.3], [x0 - 0.3, z1 + 0.3], [x1 + 0.3, z1 + 0.3]]) prop(x, 2.95, z, 0.08, 5.9, 0.08, 0x5a5a58);
+    // 下屋（1 階の表の東の半分の上：瓦の小さな屋根）・ベランダ（表の西の半分：柱で支える＝雪の重さ）
+    { const ua = cx - 1.6, ub = x1 + 0.3, y = 3.05, dep = 0.95;
+      B.box('tex', (ua + ub) / 2, y + 0.17, z0 - 0.2 - dep / 2, ub - ua, 0.1, dep / Math.cos(0.32), 0x4a4e58, { tile: 'kawara', ts: 1.2, rx: 0.32, edges: true });
+      prop((ua + ub) / 2, y - 0.05, z0 - 0.2 - dep + 0.04, ub - ua, 0.1, 0.1, 0x5a5a58); }
+    { const ua = x0 + 0.4, ub = cx - 1.6, zb = z0 - 1.25, yf = 3.25;
+      B.box('tex', (ua + ub) / 2, yf, (zb + z0 - 0.2) / 2, ub - ua, 0.12, z0 - 0.2 - zb, 0xb8b8b4, { tile: 'concrete', ts: 1.5, edges: false });
+      for (const x of [ua + 0.08, ub - 0.08]) prop(x, yf / 2, zb + 0.08, 0.12, yf, 0.12, 0xb8bcc0);
+      B.box('tex', (ua + ub) / 2, yf + 0.55, zb + 0.03, ub - ua, 0.95, 0.04, 0xffffff, { tile: 'balcony', fit: true, edges: false });
+      for (const x of [ua + 0.02, ub - 0.02]) B.box('tex', x, yf + 0.55, (zb + z0 - 0.2) / 2, 0.04, 0.95, z0 - 0.2 - zb, 0xffffff, { tile: 'balcony', fit: true, edges: false });
+      prop((ua + ub) / 2, yf + 1.04, zb + 0.03, ub - ua + 0.04, 0.05, 0.08, 0x8a8e94);
+      for (const x of [ua + 0.9, ua + 1.3]) prop(x, yf + 0.86, (zb + z0 - 0.2) / 2, 0.02, 0.02, z0 - 0.2 - zb - 0.1, 0xc8ccd0);   // 物干しの竿受け（ベランダの中）
+      B.box('prop', ua + 3.2, yf + 0.3, z0 - 0.5, 0.7, 0.5, 0.3, 0xe8e8e8, { edges: false }); }                             // 室外機（ベランダ）
+    // 窓（外側）：homeWindows。表＝F・西＝SW・東＝SE・裏＝SB
     const F = { W: w + 0.4, D: d + 0.4, alongX: true, f: 'N', out: [0, -1], at: (u, v) => [x0 - 0.2 + u, z0 - 0.2 + v] };
     F.box = (key, u, v, y, a, b, h, color, tile, opt = {}) => { const [x, z] = F.at(u, v); return B.box(key, x, y, z, a, h, b, color, Object.assign({ tile, edges: false }, opt)); };
-    roofGable(F, 0, 0, F.W, F.D, 6.1, 'kawara', 0xc8c8d0, 0.6, 'siding', tint);
-    // 窓：1 階の居間（点いている：家の中の灯り）・2 階（子ども部屋＝暗い・カーテン）
-    win(F, 2.2, 0, 1.4, 2.0, 1.3, 'curtain'); win(F, F.W - 2.2, 0, 1.5, 1.6, 1.1, 'lit');
-    win(F, 2.6, 0, 4.7, 1.6, 1.2, 'curtain'); win(F, F.W - 2.0, 0, 4.5, 1.3, 2.2, 'curtain');   // 2 階：娘の部屋・寝室（ベランダの戸）
-    { const SW = { W: F.D, D: F.W, alongX: false, f: 'W', out: [-1, 0], at: (u, v) => [x0 - 0.2 + v, z1 + 0.2 - u] };       // 西の横の面（居間の窓・娘の部屋の窓）
-      SW.box = (key, u, v, y, a, b, h, color, tile, opt = {}) => { const [x, z] = SW.at(u, v); return B.box(key, x, y, z, b, h, a, color, Object.assign({ tile, edges: false }, opt)); };
-      win(SW, (z1 + 0.2) - homeW(0, 13.4)[1], 0, 1.5, 1.5, 1.3, 'lit'); win(SW, (z1 + 0.2) - homeW(0, 9.7)[1], 0, 5.0, 1.0, 0.8, 'curtain'); }
-    F.box('prop', F.W - 2.8, -0.5, 3.3, 2.8, 1.0, 0.12, 0x8a8a88); F.box('tex', F.W - 2.8, -0.98, 3.8, 2.8, 0.04, 0.9, 0xffffff, 'balcony', { fit: true });
-    // 室外機・雨どい・外の水道
+    const SW = { W: d + 0.4, D: w + 0.4, alongX: false, f: 'W', out: [-1, 0], at: (u, v) => [x0 - 0.2 + v, z1 + 0.2 - u] };
+    const SE = { W: d + 0.4, D: w + 0.4, alongX: false, f: 'E', out: [1, 0], at: (u, v) => [x1 + 0.2 - v, z0 - 0.2 + u] };
+    const SB = { W: w + 0.4, D: d + 0.4, alongX: true, f: 'S', out: [0, 1], at: (u, v) => [x1 + 0.2 - u, z1 + 0.2 - v] };
+    for (const Fr of [SW, SE]) Fr.box = (key, u, v, y, a, b, h, color, tile, opt = {}) => { const [x, z] = Fr.at(u, v); return B.box(key, x, y, z, b, h, a, color, Object.assign({ tile, edges: false }, opt)); };
+    SB.box = (key, u, v, y, a, b, h, color, tile, opt = {}) => { const [x, z] = SB.at(u, v); return B.box(key, x, y, z, a, h, b, color, Object.assign({ tile, edges: false }, opt)); };
+    for (const hw of LEVEL.homeWindows) {
+      const Fr = { N: F, W: SW, E: SE, S: SB }[hw.face], u = hw.face === 'N' ? hw.u + 6.2 : hw.face === 'S' ? 6.2 - hw.u : hw.face === 'W' ? 16.2 - hw.u : hw.u - 5.8, y = hw.y + (hw.floor ? 3.3 : 0);
+      win(Fr, u, 0, y, hw.w, hw.h, hw.outer);
+      if (hw.outer === 'shoji') Fr.box('tex', u, -0.12, y, hw.w + 0.1, 0.05, hw.h + 0.1, 0x5a4030, 'koshi', { fit: true });   // 和室の窓の外の格子
+    }
+    // 室外機・外の水道
     acAt(F, F.W - 0.8, -0.35, 0.32);
-    for (const u of [0.1, F.W - 0.1]) F.box('prop', u, -0.06, 3.0, 0.08, 0.08, 6.0, 0x5a5a58);
     // 前の塀（門）・門柱の表札・郵便受け・玄関灯の光
     const H = TOWN.homeLot;
     for (const [a, b] of [[36, H.gate[0]], [H.gate[1], 48]]) { B.box('tex', (a + b) / 2, 0.7, 43, b - a, 1.4, 0.16, 0xffffff, { tile: 'block', ts: 1.2, ao: true, edges: false }); B.box('prop', (a + b) / 2, 1.44, 43, b - a, 0.08, 0.2, 0x8a8884, { edges: false }); }
@@ -514,7 +548,7 @@ export function buildTown(ctx) {
     halos.push({ p: [cx - 1.1, 2.3, z0 - 0.4], size: 1.1, color: 0xffd8a0, k: 0.85 });
     lights.push({ id: 'home_porch', pos: [cx - 0.6, 2.4, z0 - 1.0], color: 0xffd2a0, intensity: 4, dist: 7, town: true, home: true });
     // 前庭：飛び石・植木鉢・子ども用の自転車（娘の物・補助輪つき）
-    for (let z = 43.6; z < 45.8; z += 0.7) B.box('tex', cx + 0.0, 0.036, z, 0.7, 0.06, 0.5, 0xd8d0c8, { tile: 'stone', ts: 0.8, edges: false });
+    for (let z = 43.6; z < 44.5; z += 0.7) B.box('tex', cx + 0.0, 0.036, z, 0.7, 0.06, 0.5, 0xd8d0c8, { tile: 'stone', ts: 0.8, edges: false });   // P18：風除室（z 44.6〜）の前まで
     { const bx = 44.6, bz = 44.4; for (const dx of [-0.32, 0.32]) { const g = new THREE.TorusGeometry(0.2, 0.03, 6, 14); g.rotateY(Math.PI / 2); g.translate(bx + dx * 0.0, 0.22, bz + dx); B.add('prop', g, 0x2a2a2a); } prop(bx, 0.42, bz, 0.06, 0.06, 0.66, 0xf09ac8); prop(bx, 0.55, bz - 0.25, 0.1, 0.06, 0.18, 0x2a2a2a); prop(bx, 0.48, bz - 0.25, 0.03, 0.12, 0.03, 0x2a2a2a); for (const s of [-1, 1]) { const g = new THREE.TorusGeometry(0.08, 0.02, 5, 10); g.rotateY(Math.PI / 2); g.translate(bx + s * 0.18, 0.1, bz + 0.38); B.add('prop', g, 0xe8e8e8); } }
     // カーポート：柱と透明な屋根
     for (const [x, z] of [[30.9, 43.4], [30.9, 51.6], [35.6, 43.4], [35.6, 51.6]]) prop(x, 1.2, z, 0.1, 2.4, 0.1, 0xb8bcc0);

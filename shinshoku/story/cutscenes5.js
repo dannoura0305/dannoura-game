@@ -39,7 +39,7 @@ export const CUTSCENES5 = {
       { t: 15.0, pos: [6.2, 1.8, 11.6], look: [10.6, 1.4, 9.2], fov: 44 },
     ],
     actors: [
-      { t: 0, id: 'player', pos: [13.2, 9.6], yaw: -P / 2 }, { t: 0, id: 'companion', pos: [13.6, 10.6], yaw: -P / 2, mode: 'scripted', show: true },
+      { t: 0, id: 'player', pos: [13.2, 9.6], yaw: -P / 2 }, { t: 0, id: 'companion', pos: [13.3, 10.6], yaw: -P / 2, mode: 'scripted', show: true },
       { t: 0.5, id: 'player', to: [10.8, 9.5] }, { t: 0.9, id: 'companion', to: [11.8, 10.6] },
     ],
     lines: [

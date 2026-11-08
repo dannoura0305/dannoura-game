@@ -62,9 +62,9 @@ export const LAB = {
   provisional: true,
   // 応答体：習慣の輪（habit：槽 ⇄ 試験端末）・待機（idle：槽のそば）
   outou: [
-    { id: 'outou_1', pos: [-10.0, 2.0], tank: [-11.2, 2.0], habit: true },
-    { id: 'outou_2', pos: [10.0, -4.0], tank: [11.2, -4.0] },
-    { id: 'outou_3', pos: [-10.0, -12.0], tank: [-11.2, -12.0], habit: true },
+    { id: 'outou_1', pos: [-9.3, 2.0], tank: [-11.2, 2.0], habit: true },   // P18：槽のガラス（半径 1.25）の外に立つ（前は体の半分がガラスの中）
+    { id: 'outou_2', pos: [9.3, -4.0], tank: [11.2, -4.0] },
+    { id: 'outou_3', pos: [-9.3, -12.0], tank: [-11.2, -12.0], habit: true },
   ],
   terminal: [-5.6, 0.4],
   // 罠（試験床）：（相棒）を囲む群れ。分岐の戦い（reveal：白い姿／secret：人の姿の試練）に使う。手助けは 1 体減らす
