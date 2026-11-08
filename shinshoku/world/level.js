@@ -750,9 +750,15 @@ function buildHome(B0, atlas, scene0, boxes0, spots0, dyn) {
   B.box('tex', 5.42, 0.06, 14.82, 0.86, 0.04, 2.06, 0x7a5a3a, T('wood', 1));                                   // 一段上げた板
   B.box('tex', 5.84, 1.6, 14.82, 0.02, 3.1, 2.0, 0xa88a68, T('wood', 1));                                       // 奥の板の壁
   B.box('prop', 4.9, 3.05, 14.82, 0.12, 0.3, 2.1, TRIM, { edges: false });                                       // 口の上の梁
-  B.box('prop', 5.79, 1.25, 14.0, 0.08, 0.08, 0.5, 0x3a2418); B.box('prop', 5.79, 1.55, 14.0, 0.08, 0.08, 0.5, 0x3a2418);   // 刀掛け（東の壁の面）
-  const rk = new THREE.Group(); const rkM = new THREE.MeshToonMaterial({ color: 0x2a1630, gradientMap: gradientMap() });
-  for (const y of [1.33, 1.63]) { const k = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.95), rkM); k.position.set(5.72, y, 14.0); rk.add(k); }
+  // 刀掛け（奥の板の壁に付けた 2 本の腕・刀は腕の上に横に載せる）。一角は z 13.85（階段の端の壁）〜 15.85。刀の長さ 1.0m が階段側の壁に入らないよう z 14.45 を中心にする
+  const RKZ = 14.45;
+  B.box('prop', 5.8, 1.32, RKZ, 0.04, 0.42, 0.9, 0x3a2418, { edges: false });                                      // 腕を留める板
+  for (const dz of [-0.3, 0.3]) B.box('prop', 5.71, 1.3, RKZ + dz, 0.16, 0.04, 0.05, 0x3a2418);                       // 腕（壁から手前へ）
+  const rk = new THREE.Group(), toon = c => new THREE.MeshToonMaterial({ color: c, gradientMap: gradientMap() });
+  const part = (w, h, d, z, m) => { const k = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); k.position.set(5.7, 1.343, RKZ + z); rk.add(k); };
+  part(0.034, 0.03, 0.72, -0.13, toon(0x1a0e14));      // 鞘
+  part(0.012, 0.075, 0.075, 0.24, toon(0x5a4a30));     // 鍔
+  part(0.03, 0.032, 0.25, 0.37, toon(0x2a1630));       // 柄
   scene.add(rk); dyn.rackKatana = rk;
   const safe = 5.4;
   B.box('prop', safe, 0.48, 15.3, 0.75, 0.8, 0.7, 0x3a3e46); solid(safe, 15.3, 0.75, 0.7, 0.88);
@@ -850,7 +856,7 @@ function buildHome(B0, atlas, scene0, boxes0, spots0, dyn) {
   spots.push({ id: 'laptop', kind: 'save', x: -3.6, z: 12.9, r: 1.3, label: 'ノートPC（セーブ）', floor: 0 });
   spots.push({ id: 'calendar', kind: 'read', x: -1.6, z: 14.9, r: 1.2, label: 'カレンダーを見る', text: 'calendar', floor: 0 });
   spots.push({ id: 'tv', kind: 'read', x: -3.5, z: 10.5, r: 1.2, label: 'テレビ', text: 'tv', floor: 0 });
-  spots.push({ id: 'katana_rack', kind: 'rack', x: 5.0, z: 14.0, r: 1.1, label: '刀掛け', floor: 0 });
+  spots.push({ id: 'katana_rack', kind: 'rack', x: 5.0, z: 14.45, r: 1.1, label: '刀掛け', floor: 0 });
   spots.push({ id: 'sofa', kind: 'sofa', x: -3.5, z: 13.6, r: 1.2, label: 'ソファ', floor: 0 });
   spots.push({ id: 'home_daughter', kind: 'read', x: -3.3, z: 14.4, r: 1.2, label: '娘の机', text: 'home_daughter', floor: 1 });
   spots.push({ id: 'home_work', kind: 'read', x: 3.1, z: 8.3, r: 1.3, label: '仕事の机', text: 'home_work', floor: 1 });
