@@ -16,6 +16,7 @@ import { Kiro } from './ai/kiro.js';
 import { Heiten } from './ai/heiten.js';
 import { Shuuyou } from './ai/shuuyou.js';
 import { CompanionBrain } from './ai/companion.js';
+import { insideAny } from './world/collide.js';
 import { ThirdPersonCamera } from './render/camera.js';
 import { preloadEnemyPacks, requestEnemyPacks, applyEnemyPack, ENEMY_PACK_KINDS } from './actor/enemypack.js';
 // P18：区画 → 先に読む異形の体（その区画とすぐ後の区画に出る種類）
@@ -315,7 +316,7 @@ class Game {
     this.ui.fade(true, { title: (AREA_GRAPH[to] || {}).name || '', tip: LOAD_TIPS[(this.tipN = ((this.tipN ?? Math.floor(Math.random() * LOAD_TIPS.length)) + 1)) % LOAD_TIPS.length] }); this.sfx.play('door');
     const comp = this.companion.brain.mode === 'follow' || this.companion.brain.mode === 'hide';
     this.loadArea(to, spawn);
-    if (comp && this.companion.root.visible) { this.companion.brain.setMode('follow'); this.companion.brain.teleportBehind(this.player.pos, this.player.yaw); this.companion.root.visible = true; this.placeChildForArea(to); }
+    if (comp && this.companion.root.visible) { this.companion.brain.setMode('follow'); this.companion.brain.teleportBehind(this.player.pos, this.player.yaw); this.companion.rootY = this.player.pos.y || 0; if (insideAny(this.companion.brain.pos, this.companionBoxes(), 0.05)) this.companionUnstick(); this.companion.root.visible = true; this.placeChildForArea(to); }
     this.autosaveReq = true;
     setTimeout(() => this.ui.fade(false), this.isTest() ? 50 : 420);
     this.onAreaEnterStory(to);
@@ -329,7 +330,7 @@ class Game {
     if (this.placeCompanion4(id)) return;
     if (id === 'shotengai' && s === 'pro_meet') { C.root.visible = true; b.setMode('wait'); b.pos = { x: -2.5, z: -33.8 }; b.yaw = 0.6; return; }
     if (id === 'tunnel' && ['ch3_boss', 'ch3_boss2'].includes(s)) { b.setMode('scripted'); b.pos = { x: 11.2, z: -28.8 }; return; }   // 詰所に隠れている
-    if (this.flags.reunited) { C.root.visible = true; if (b.mode === 'wait' || b.mode === 'scripted') b.setMode('follow'); b.teleportBehind(this.player.pos, this.player.yaw); return; }
+    if (this.flags.reunited) { C.root.visible = true; if (b.mode === 'wait' || b.mode === 'scripted') b.setMode('follow'); b.teleportBehind(this.player.pos, this.player.yaw); C.rootY = this.player.pos.y || 0; if (insideAny(b.pos, this.companionBoxes(), 0.05)) this.companionUnstick(); return; }
     if (id === 'alley' && atLeast(s, 'ch1_street')) { C.root.visible = true; b.setMode('scripted'); b.pos = { x: 6.0, z: -19.7 }; b.yaw = Math.PI; C.anim = 'hide'; }
   }
   areaLight(fn) { return this.area.lights.find(fn); }
@@ -620,7 +621,16 @@ class Game {
       hideSpots: this.area.hideSpots,
     };
     const out = b.update(dt, sense);
-    C.step(dt, out, this.boxes);
+    // 自宅の階段・2 階：足の高さ（floorAt）と、2 階にいる時は 2 階の当たり（プレイヤーと同じ）。前は 1 階の高さのまま階段の中・天井を歩いていた
+    const A = this.area, BX = this.companionBoxes();
+    C.step(dt, out, BX);
+    if (A.floorAt && b.mode !== 'scripted' && b.mode !== 'wait') { const fy = A.floorAt(b.pos.x, b.pos.z, C.rootY || 0); C.rootY = fy ?? 0; }
+    // 詰まった（離れているのに 2.2 秒進めない）・壁の中にいる → だんのうらの通った跡の、通れる所へ寄せる
+    if (b.mode === 'follow') {
+      const dP = Math.hypot(P.pos.x - b.pos.x, P.pos.z - b.pos.z);
+      C.stuckT = dP > 4.5 && C.speed < 0.35 ? (C.stuckT || 0) + dt : 0;
+      if (C.stuckT > 2.2 || insideAny(b.pos, BX, 0.05)) this.companionUnstick();
+    }
     for (const ev of out.events) {
       if (ev.t === 'warn') { this.bark(ev.key, 2.2); this.sfx.play('notify'); this.metrics.warnings = (this.metrics.warnings || 0) + 1; }
       if (ev.t === 'hide' && !this.flags.hide_bark) { this.flags.hide_bark = true; this.bark('companion_hide', 2.4); }
@@ -628,6 +638,19 @@ class Game {
     }
   }
 
+  /** 相棒の当たり：自宅の 2 階にいる時は 2 階の当たり */
+  companionBoxes() { const A = this.area, C = this.companion; return A.boxesUp && (C.rootY || 0) > A.upY ? A.boxesUp : this.boxes; }
+  /** 相棒を通れる所へ寄せる：だんのうらの通った跡（新しい順）のうち、だんのうらから 1.2m 以上離れ・壁の中でない点。無ければだんのうらの近くの空いた所 */
+  companionUnstick() {
+    const C = this.companion, b = C.brain, P = this.player.pos, py = P.y || 0, BX = this.area.boxesUp && py > this.area.upY ? this.area.boxesUp : this.boxes;
+    const free = q => !insideAny(q, BX, 0.32);
+    let to = null;
+    for (let i = b.trail.length - 1; i >= 0 && !to; i--) { const c = b.trail[i]; if (Math.hypot(c.x - P.x, c.z - P.z) >= 1.2 && free(c)) to = { x: c.x, z: c.z }; }
+    if (!to) for (let k = 0; k < 16 && !to; k++) { const a = this.player.yaw + Math.PI + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.4, d = 1.4 + (k > 9 ? 0.6 : 0); const q = { x: P.x + Math.sin(a) * d, z: P.z + Math.cos(a) * d }; if (free(q)) to = q; }
+    if (!to) to = { x: P.x, z: P.z };
+    b.pos.x = to.x; b.pos.z = to.z; C.rootY = this.area.floorAt ? (this.area.floorAt(to.x, to.z, py) ?? 0) : C.rootY; C.stuckT = 0;
+    this.metrics.companionUnstick = (this.metrics.companionUnstick || 0) + 1;
+  }
   // ── 世界（拾う・調べる・出入り・自動セーブ・緊張） ──
   stepWorld(I) {
     const P = this.player;

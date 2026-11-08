@@ -364,7 +364,7 @@ export function buildLevel(_unused, opt = {}) {
     const geo = new THREE.BoxGeometry(1.4, 0.5, 0.04); geo.translate(0, 0.75, 0); geo.rotateY(ry); geo.translate(x, 0, z); B.add('prop', geo, 0xf4f2ea);
     B.box('sign', x, 0.75, z, 1.36, 0.44, 0.05, 0xffffff, { uv, face: 4, ry, edges: false });
     for (const lx of [-0.6, 0.6]) B.box('prop', x + Math.cos(ry) * lx, 0.45, z - Math.sin(ry) * lx, 0.05, 0.9, 0.3, 0x2a2a2a, { edges: false });
-    solid(x, z, 1.4, 0.4, 1.0);
+    if (Math.abs(Math.abs(ry) - Math.PI / 2) < 0.01) solid(x, z, 0.4, 1.4, 1.0); else solid(x, z, 1.4, 0.4, 1.0);   // 横向きの柵は当たりも横向き（前は向きが合わず、柵の端を素通りできた）
   }
   for (const [x, z] of [[-3.3, -28.2], [-3.3, -31.3], [-0.8, -64.2], [1.4, -63.0], [3.3, -63.4]]) { const cg = new THREE.ConeGeometry(0.16, 0.6, 10); cg.translate(x, 0.3, z); B.add('prop', cg, 0xe85a1a); B.box('prop', x, 0.03, z, 0.38, 0.05, 0.38, 0x2a2a2a, { edges: false }); }
   // 事故の車（右・電柱にぶつかって止まった）

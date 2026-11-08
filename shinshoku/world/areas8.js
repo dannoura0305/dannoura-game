@@ -180,7 +180,7 @@ export function buildKiroku() {
   const [px, pz] = KIROKU.phone; B.box('prop', px + 0.25, 1.3, pz, 0.15, 0.5, 0.35, 0x2a3a2e); B.box('glow', px + 0.16, 1.4, pz, 0.02, 0.18, 0.24, 0xd8ffd8, { edges: false });
   halos.push({ p: [px, 1.5, pz], size: 0.9, color: 0xa0ffb0, k: 0.5 });
   spots.push({ id: 'ki_phone', kind: 'save', x: px - 0.4, z: pz, r: 1.1, label: '内線電話（セーブ）' });
-  const [cx, cz] = KIROKU.companionAt; B.box('prop', cx - 0.6, 0.55, cz - 0.6, 1.8, 1.1, 0.7, 0x2a2c3a); B.box('glow', cx - 0.6, 1.12, cz - 0.6, 1.6, 0.02, 0.5, 0x5a3a9a, { edges: false }); solid(cx - 0.6, cz - 0.6, 1.8, 0.7, 1.1);
+  const [cx, cz] = KIROKU.companionAt; B.box('prop', cx - 1.3, 0.55, cz - 0.95, 1.8, 1.1, 0.7, 0x2a2c3a); B.box('glow', cx - 1.3, 1.12, cz - 0.95, 1.6, 0.02, 0.5, 0x5a3a9a, { edges: false }); solid(cx - 1.3, cz - 0.95, 1.8, 0.7, 1.1);
   hideSpots.push({ x: cx, z: cz });
   // 配偶者に似た異形の立つ所（北の壁の前）：資料（任意）
   spots.push({ id: 'ki_last', kind: 'clue7', clue: 'spouse7b', x: KIROKU.spouseAt[0] + 2.0, z: KIROKU.spouseAt[1] + 2.2, r: 1.2, label: '最後のこまの画面（任意）' });

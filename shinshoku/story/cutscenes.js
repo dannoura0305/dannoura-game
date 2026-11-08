@@ -25,8 +25,7 @@ export const CUTSCENES = {
       { t: 0, id: 'companion', pos: [-2.5, -33.8], yaw: 0.6, mode: 'scripted' },
       { t: 0.8, id: 'companion', yaw: Math.PI, anim: 'warn' },
       { t: 8.6, id: 'kiro_t', pos: [0.9, -45.5], yaw: 0, show: true },
-      { t: 12.4, id: 'companion', to: [-4.0, -29.6], run: true, anim: 'run' },
-      { t: 13.4, id: 'companion', to: [-10.5, -29.6], run: true, hideAtEnd: true },
+      { t: 12.4, id: 'companion', path: [[-3.2, -30.55], [-4.6, -30.55], [-10.5, -29.9]], run: true, anim: 'run', hideAtEnd: true },   // 脇道の口の「立入禁止」の柵の南の端を回って奥へ（前は柵を突き抜けた）
       { t: 12.6, id: 'player', yaw: -0.9 },
     ],
     lines: [
@@ -129,7 +128,7 @@ export const CUTSCENES = {
     actors: [
       { t: 0, id: 'player', pos: [0.3, 2.6], yaw: Math.PI },
       { t: 0, id: 'companion', pos: [-1.2, 4.0], yaw: Math.PI, mode: 'scripted' },
-      { t: 12.2, id: 'companion', to: [-8.9, 3.8], run: true },
+      { t: 12.2, id: 'companion', path: [[-7.4, -2.0], [-8.64, -2.0], [-8.64, 3.8]], run: true },   // 低い仕切りの切れ目（z −2.4〜−0.4）を通って陰へ（前は仕切りを突き抜けた）
     ],
     lines: [
       { t: 0.8, who: 'pa', text: '（放送）点呼を、はじめます', dur: 2.2 },
