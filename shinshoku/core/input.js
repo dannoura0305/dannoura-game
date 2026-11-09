@@ -9,7 +9,7 @@ export const KEYMAP = {
 };
 
 /** キーの割り当てを変えられる操作（キーボード）。[操作, 表示名] */
-export const REBINDABLE = [['up', '前へ'], ['down', '後ろへ'], ['left', '左へ'], ['right', '右へ'], ['run', '走る'], ['dodge', '回避'], ['parry', '弾く'], ['heavy', '強攻撃・居合（長押し）'], ['interact', '調べる'], ['reload', '装填'], ['swap', '持ち替え'], ['lock', 'ロックオン'], ['lockPrev', '相手の切替（前）'], ['lockNext', '相手の切替（次）'], ['heal', '回復'], ['light', '懐中電灯'], ['transform', '化けを解く（長押し）'], ['pause', '一時停止'], ['map', '地図']];
+export const REBINDABLE = [['up', '前へ'], ['down', '後ろへ'], ['left', '左へ'], ['right', '右へ'], ['run', '走る'], ['dodge', '回避'], ['parry', '弾く'], ['heavy', '強攻撃（長押し）'], ['interact', '調べる'], ['reload', '装填'], ['swap', '持ち替え'], ['lock', 'ロックオン'], ['lockPrev', '相手の切替（前）'], ['lockNext', '相手の切替（次）'], ['heal', '回復'], ['light', '懐中電灯'], ['transform', '化けを解く（長押し）'], ['pause', '一時停止'], ['map', '地図']];
 /** 割り当ての上書き（{ 操作: [コード…] }）を既定に重ねた表を作る。上書きのキーは、ほかの操作から外す */
 export function buildKeymap(over = {}) {
   const m = Object.assign({}, KEYMAP);
@@ -77,6 +77,16 @@ export class Input {
     o.x += this.touch.lookX || 0; o.y += this.touch.lookY || 0; this.touch.lookX = this.touch.lookY = 0;
     return o;
   }
+  /** コントローラーの「押した瞬間」を消す（メニューの決定の A が、閉じた直後の回避などに化けないように：padnav.js） */
+  swallowPad(i) { this.padPrev[i] = true; }
+  /** 振動（vibrationActuator があるコントローラーだけ）。strong／weak は 0〜1、ms は長さ。設定で切れる（rumbleOff） */
+  rumble(strong, weak, ms) {
+    if (this.rumbleOff || this.device !== 'pad') return false;
+    const now = performance.now(); if (now - (this.rumbleAt || 0) < 60) return false; this.rumbleAt = now;
+    const g = this._pad(), a = g && g.vibrationActuator; if (!a || !a.playEffect) return false;
+    try { const p = a.playEffect(a.type || 'dual-rumble', { startDelay: 0, duration: ms, weakMagnitude: weak, strongMagnitude: strong }); if (p && p.catch) p.catch(() => {}); } catch (e) { return false; }
+    this.rumbleN = (this.rumbleN || 0) + 1; return true;
+  }
   _pad() {
     if (!navigator.getGamepads) return null;
     const ps = navigator.getGamepads(); for (const p of ps) if (p && p.connected) return p;
@@ -95,7 +105,7 @@ export class Input {
     o.moveX = (h.has('right') ? 1 : 0) - (h.has('left') ? 1 : 0);
     o.moveY = (h.has('up') ? 1 : 0) - (h.has('down') ? 1 : 0);
     o.run = h.has('run'); o.aim = h.has('aim'); o.heavy = h.has('heavy') || h.has('mouseL');
-    o.transform = h.has('transform');                                       // 化けを解く：押している間（長押しはゲーム側で数える）   // 左クリック長押し＝強攻撃・居合（押した瞬間は「溜め」に入り、すぐ離すと 1 段目）
+    o.transform = h.has('transform');                                       // 化けを解く：押している間（長押しはゲーム側で数える）   // 左クリック長押し＝強攻撃（押した瞬間は「溜め」に入り、すぐ離すと 1 段目）
     o.skipHeld = h.has('interact') || h.has('pause') || h.has('dodge');
     for (const a of this.pressQ) {
       if (a === 'weapon1') o.wantWeapon = 'katana'; else if (a === 'weapon2') o.wantWeapon = 'handgun'; else if (a === 'weapon3') o.wantWeapon = 'pipe'; else if (a === 'weapon4') o.wantWeapon = 'matchlock';
@@ -120,7 +130,8 @@ export class Input {
         if (pr(2)) { if (b(6)) o.reload = true; else o.attack = true; }
         if (pr(7)) o.attack = true;                                  // RT：撃つ（構え中）
         o.heavy = o.heavy || b(3);
-        if (pr(0)) o.dodge = true; if (pr(1)) o.interact = true; if (pr(4)) o.parry = true; if (pr(5)) o.swap = true;
+        if (pr(0)) o.dodge = true; if (pr(1)) o.interact = true; if (pr(4)) o.parry = true;
+        if (pr(5)) { if (b(8)) o.cycleMelee = true; else o.swap = true; }   // View を押しながら RB＝近接の武器を順に（タッチの「替 長押し」と同じ）
         if (pr(9)) o.pause = true; if (pr(11)) o.lock = true; if (pr(12)) o.heal = true; if (pr(13)) o.light = true; if (pr(14)) o.lockPrev = true; if (pr(15)) o.lockNext = true;
         if (b(1) || b(9)) o.skipHeld = true;
         if (b(8)) o.transform = true;

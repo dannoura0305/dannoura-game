@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { SkinBody, DIM, faceAtlas } from './skin.js';
 import { humanBody, humanHead, glowEyes, xfm, torus } from './models.js';
-import { applyEnemyPack, enemyPackClasses } from './enemypack.js';
+import { applyEnemyPack, enemyPackClasses, placePackAnchors } from './enemypack.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const rng = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
@@ -53,7 +53,7 @@ export function buildOutou(seed = 1) {
   applyEnemyPack(m, 'outou');   // P18：Blender の体（読めていれば。?epack=0・読めない時はこのコードの形）
   const eyeGlow = glowEyes(m, m.J, [[0, R * 0.85, R * 1.0]]);
   const weak = new THREE.Object3D(); weak.position.set(0, R * 1.55 + 0.05, 0); m.J.head.add(weak);
-  return Object.assign(m, { sway, height: 1.86, provisional: true, kind: 'outou', bodyR: 0.32, eyeGlow, weak, weakColor: 0xe0b0ff });
+  return placePackAnchors(Object.assign(m, { sway, height: 1.86, provisional: true, kind: 'outou', bodyR: 0.32, eyeGlow, weak, weakColor: 0xe0b0ff }));
 }
 
 // 巨大猫又はフェーズ6 で作り直した（actor/models5.js）。第4章もそちらを使う。

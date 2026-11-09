@@ -13,6 +13,7 @@ import { EnemyActor } from '../actor/actors.js';
 import { Poser } from '../actor/rig.js';
 import { buildCivilian, buildCompanion } from '../actor/models.js';
 import { buildKanja, buildMimicShadow, buildUtsushimi, buildMamori, buildChild } from '../actor/models3.js';
+import { packPoseFn } from '../actor/enemypack.js';
 import { kanjaPose, mimicPose, mamoriPose, childPose, civilianPose, companionPose, phaseRate } from '../actor/anim.js';
 import { whiteAllowed, setStance, logYokai, STANCES, currentStance } from '../story/route.js';
 import { atLeast, chapterNo, stepDef } from '../story/chapters.js';
@@ -99,7 +100,7 @@ export const ch3Methods = {
   addMimic(add, m, disguise) {
     const brain = new Mimic({ id: m.id, pos: { x: m.pos[0], z: m.pos[1] }, yaw: m.yaw || 0, disguise: disguise || null, lure: m.lure || null, dormant: m.dormant, seed: m.id.length * 7 });
     const e = add(brain, buildMimicShadow({ seed: m.id.charCodeAt(m.id.length - 1) }));
-    e.poseFn = mimicPose;
+    e.poseFn = packPoseFn('mimic', mimicPose, e.model);   // P19：模倣者（Codex）の動き（声で呼ぶ時の首の傾き）
     if (disguise === 'civilian') e.setAlt(buildCivilian(7), civilianPose);
     else if (disguise === 'companion') { const alt = buildCompanion(); alt.mesh.castShadow = false; e.setAlt(alt, ctx => companionPose(Object.assign({}, ctx, { talking: false }))); }
     if (!disguise) e.setReveal && e.model.mesh && (e.altK = 1);
@@ -333,7 +334,7 @@ export const ch3Methods = {
         // 狙いをそらす：近くの敵は分身の方を向く
         for (const e of this.enemies) if (e.brain.alive && d2(e.pos, P.pos) < 12) { e.confusedT = ev.dur; if (e.brain.atk && e.brain.atk.phase === 'windup') e.brain.atk = null; }
         P.pos.x -= Math.sin(P.yaw) * 1.6; P.pos.z -= Math.cos(P.yaw) * 1.6; resolveCircle(P.pos, P.r, this.boxes);
-        this.ui.toast('幻術', 'iai', 1.0);
+        this.ui.toast('幻術', 'big', 1.0);
         break;
       }
       case 'noYoki': this.sfx.play('no_yoki'); this.ui.toast(`妖力が足りない（${ev.need}）`, 'weak', 0.9); break;

@@ -90,7 +90,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0a16; col
   opacity: 0; transition: opacity .12s, transform .12s; text-shadow: 0 0 12px rgba(180, 140, 255, .9), 2px 2px 0 #1a0f2a; white-space: nowrap; }
 .sh-toast.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 .sh-toast.issen { font-size: 46px; color: #fff; text-shadow: 0 0 18px #fff, 0 0 32px rgba(160, 110, 255, .9), 3px 3px 0 #1a0f2a; }
-.sh-toast.just { color: #c9e4ff; } .sh-toast.parry { color: #fff4d0; } .sh-toast.weak { color: #ffd27a; font-size: 24px; } .sh-toast.iai { color: #fff; font-size: 26px; }
+.sh-toast.just { color: #c9e4ff; } .sh-toast.parry { color: #fff4d0; } .sh-toast.weak { color: #ffd27a; font-size: 24px; } .sh-toast.big { color: #fff; font-size: 26px; }
 .sh-bark { position: absolute; left: 50%; bottom: 140px; transform: translateX(-50%); max-width: min(80vw, 720px); text-align: center; font-size: 16px; line-height: 1.6;
   text-shadow: 0 1px 3px #000, 0 0 6px #000; opacity: 0; transition: opacity .3s; }
 .sh-bark b { margin-right: .8em; font-weight: 700; }
@@ -406,3 +406,20 @@ body:has(#sh-title:not([hidden])) #sh-ui > :not(#sh-menu) { visibility: hidden; 
 #sh-title { padding: max(16px, var(--sa-t)) max(16px, var(--sa-r)) max(16px, var(--sa-b)) max(16px, var(--sa-l)); }
 @media (max-height: 520px) and (orientation: landscape) { #sh-title { padding: max(10px, var(--sa-t)) max(24px, var(--sa-r)) max(10px, var(--sa-b)) max(24px, var(--sa-l)); } }
 #sh-menu, #sh-safe, #sh-dead, #sh-puz { padding: var(--sa-t) var(--sa-r) var(--sa-b) var(--sa-l); }
+/* コントローラー（ui/padnav.js）：焦点の枠・接続のお知らせ・ボタンの絵柄 */
+.sh-padfocus { outline: 3px solid #ffd860 !important; outline-offset: 3px; filter: brightness(1.35); box-shadow: 0 0 0 5px rgba(255, 216, 96, .22), 0 0 16px rgba(255, 216, 96, .55) !important; }
+#sh-title button.sh-padfocus, #sh-menu button.sh-padfocus, #sh-safe button.sh-padfocus, #sh-dead button.sh-padfocus, #sh-puz button.sh-padfocus { clip-path: none; }
+label.sh-padfocus-row { background: rgba(255, 216, 96, .14); box-shadow: inset 3px 0 0 #ffd860; border-radius: 4px; }
+label.sh-padfocus-row input.sh-padfocus { outline-offset: 1px; }
+#sh-padnote { position: fixed; left: 50%; top: calc(12px + env(safe-area-inset-top, 0px)); transform: translate(-50%, -12px); z-index: 50; padding: 7px 16px; font-size: 13px; color: #f2e8ff; background: rgba(16, 10, 30, .92); border: 1px solid rgba(255, 216, 96, .6); border-radius: 6px; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; white-space: nowrap; }
+#sh-padnote.on { opacity: 1; transform: translate(-50%, 0); }
+kbd.sh-pk { display: inline-block; min-width: 1.5em; padding: 0 5px; border-radius: 999px; font-family: var(--jp); font-weight: 700; text-align: center; border: 1px solid rgba(232, 224, 244, .7); }
+kbd.sh-pk.pk-a { color: #8fe08a; border-color: #8fe08a; } kbd.sh-pk.pk-b { color: #ff8a8a; border-color: #ff8a8a; }
+kbd.sh-pk.pk-x { color: #8ab8ff; border-color: #8ab8ff; } kbd.sh-pk.pk-y { color: #ffe07a; border-color: #ffe07a; }
+kbd.sh-pk.ps.pk-a { color: #9ab8ff; border-color: #9ab8ff; } kbd.sh-pk.ps.pk-b { color: #ff8a9a; border-color: #ff8a9a; } kbd.sh-pk.ps.pk-x { color: #ff9ad8; border-color: #ff9ad8; } kbd.sh-pk.ps.pk-y { color: #8ae0c8; border-color: #8ae0c8; }
+.sh-dpad kbd.sh-pk { font-size: 11px; margin-right: 4px; }
+.sh-skipk kbd.sh-pk { font-size: 11px; } .sh-skipk { margin-right: 2px; }
+.sh-ctl.pad-on td:nth-child(3), .sh-ctl.pad-on tr:first-child th:nth-child(3) { background: rgba(255, 216, 96, .1); color: #fff2c8; }
+.sh-padnow { color: #fff2c8; }
+.sh-padkeys-h { margin: 6px 0 4px; } .sh-padkeys-h small { color: var(--dim); font-weight: 400; }
+.sh-padkeys th { width: 9em; }

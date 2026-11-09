@@ -15,6 +15,7 @@ import { Touchoku } from '../ai/touchoku.js';
 import { segDist } from '../ai/sakibure.js';
 import { buildNurikae, buildMachibito, buildTouchoku } from '../actor/models6.js';
 import { NurikaeAnimator, touchokuPose, machibitoPose } from '../actor/anim6.js';
+import { packPoseFn } from '../actor/enemypack.js';   // P19：届いたモデルの動き
 import { stepDef, stepRoute, R6_STEPS, S6_STEPS } from '../story/chapters.js';
 import { EnemyActor } from '../actor/actors.js';
 
@@ -114,7 +115,7 @@ export const ch6Methods = {
     const r = this.enemyRes[id]; if (r === 'kill') return null;
     const b = new Machibito({ id, pos: { x, z }, yaw, seed: id.length * 7, state: r === 'rescue' ? 'rest' : r === 'neutralize' ? 'sleep' : 'loop' });
     if (r) b.resolution = r;
-    const e = add(b, buildMachibito(id.endsWith('r') ? 1 : 2)); e.poseFn = machibitoPose; return e;
+    const e = add(b, buildMachibito(id.endsWith('r') ? 1 : 2)); e.poseFn = packPoseFn('machibito', machibitoPose, e.model); return e;
   },
   bossModel6() {
     const m = buildNurikae(); m.root.scale.setScalar(12); m.root.traverse(o => { if (o.isMesh) o.frustumCulled = false; });

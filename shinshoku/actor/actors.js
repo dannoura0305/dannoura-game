@@ -8,8 +8,10 @@ import { attachRigidWeapons } from './models.js';
 import { heroPhaseRate, plantFeet, legDims } from './anim8.js';
 import { LocoDriver } from '../../charkit/anim/locodriver.js';
 import { groundClamp } from '../../charkit/anim/loco.js';
+import { StepPlanter, GripIK, makeFingers, setFingers, placeLongGun, placeHeldAt } from '../../charkit/anim/limbik.js';
 import { FaceDriver, codeFaceAdapter, vrmFaceAdapter } from '../../charkit/face/driver.js';
 import { Fighter } from '../combat/fighter.js';
+import { Sheath } from '../combat/sheath.js';
 import { COMBAT } from '../data/combat.js';
 import { resolveCircle } from '../world/collide.js';
 
@@ -119,6 +121,7 @@ export class Player {
     this.root = new THREE.Group(); this.root.name = 'dannoura';
     this.pivot = new THREE.Group(); this.pivot.position.y = 0.55; this.root.add(this.pivot);
     this.fighter = new Fighter(opt);
+    this.sheath = new Sheath();                                                  // 刀の鞘（見た目だけ：combat/sheath.js）
     this.pos = new THREE.Vector3(); this.yaw = Math.PI; this.r = 0.34;
     this.phase = 0; this.speed = 0; this.time = 0; this.moveDir = { x: 0, z: -1 }; this.dodgeDir = { x: 0, z: -1 };
     this.noise = 'none'; this.issenInfo = null; this.hurtDir = 'front';
@@ -139,6 +142,12 @@ export class Player {
     // 外部のモデル（VRM）＋本物の動き（VRMA のクリップ）：charkit/anim/clipanim.js。無い時・無い動きは手続きの姿勢（予備）
     this.clipAnim = model.clipAnim || null; this.clipRes = null;
     this.exactK = 0; this.turnS = 0;
+    // 2026-11-09：攻撃の踏み込みで足を床に置いて一歩ずつ踏み出す（charkit/anim/limbik.js）。見た目だけ
+    this.stepper = model.legDims && model.J.leftFoot ? new StepPlanter(model.J, { dims: model.legDims }) : null;
+    // 両手持ち（鉄パイプ・刀の溜めと強攻撃・3 段目・拳銃の構え）：左手を武器の握る所へ。外部のモデル（VRM：武器は手の差し込み口に付いた物）だけ
+    this.fingers = model.isVRM && model.vrm ? makeFingers(model.vrm, !!model.vrm0) : null; this.fistR = 0; this.fistL = 0;   // 武器を握る指（VRM）
+    //  コードの骨（?vrm=0）は手の骨そのものが武器の形に合わせた向き（VRM の差し込み口と同じ）
+    this.grip = model.weapons && model.J.leftHand ? new GripIK(model.J, model.weapons.bones ? { sockR: model.J.rightHand, sockLq: new THREE.Quaternion() } : { sockR: model.sockets && model.sockets.rightHand, sockL: model.sockets && model.sockets.leftHand }) : null;
     if (!model.weapons) model.weapons = attachRigidWeapons(model.J);
     this.looks = new Looks(model);
     this.springs = [];
@@ -156,6 +165,8 @@ export class Player {
     const F = this.fighter, n = F.st.name, own = F.owned;
     let hand = F.weapon;
     if (n === 'swap') hand = F.st.f < F.st.total / 2 ? F.st.from : F.st.to;
+    // 2026-11-09：刀は抜いている時だけ手に（普段は左腰の鞘の中：combat/sheath.js）。刀へ持ち替える後半・一閃は手に
+    if (hand === 'katana' && !F.white && n !== 'issen' && !(n === 'swap' && F.st.to === 'katana' && hand === F.st.to) && !this.sheath.drawn) hand = null;
     if (n === 'issen' && F.weapon !== 'claw') hand = own.includes('katana') ? 'katana' : F.weapon;
     const set = (o, on) => { if (!o) return; if (W.bones) o.scale.setScalar(on ? 1 : HIDE); else o.visible = on; };
     if (this.noWeapons) { for (const k of ['katana', 'gun', 'pipe', 'saya', 'sayaHilt', 'holster', 'holsterGun', 'pipeBack', 'match', 'matchBack']) set(W[k], false); return; }   // 結末の場面（病室・家）では持たない
@@ -186,7 +197,8 @@ export class Player {
   animate(dt, extra = {}) {
     this.time += dt;
     const F = this.fighter, m = this.model;
-    const ctx = { st: F.st, f: F.st.f, w: F.weapon, speed: this.speed, phase: this.phase, time: this.time, aiming: F.aimHeld && F.weapon === 'handgun', issen: this.issenInfo, hurtDir: this.hurtDir, white: F.white };
+    if (extra.override) this.sheath.sheatheNow();                               // 会話・演出の姿勢：刀は鞘の中
+    const ctx = { sheathed: this.sheath.sheathed(F), st: F.st, f: F.st.f, w: F.weapon, speed: this.speed, phase: this.phase, time: this.time, aiming: F.aimHeld && F.weapon === 'handgun', fireAgo: F.frame != null && F.lastFire != null ? F.frame - F.lastFire : 99, issen: this.issenInfo, hurtDir: this.hurtDir, white: F.white };
     // v2 のモデル：足の IK・その場の向き替え・立ち止まりの小さな動き・動き出し／止まりの傾き
     const turn0 = this.prevYaw != null ? angWrap(this.yaw - this.prevYaw) / Math.max(dt, 1 / 60) : 0;
     if (m.legDims) {
@@ -198,7 +210,7 @@ export class Player {
       this.idleT = quiet && Math.abs(turn0) < 0.3 ? this.idleT + dt : 0;
       if (this.idleVar) { this.idleVar.t += dt; if (this.idleVar.t >= this.idleVar.dur || !quiet) this.idleVar = null; }
       if (!this.idleVar && this.idleT > this.nextIdle) {
-        const kinds = F.weapon === 'none' || F.weapon === 'handgun' ? ['glasses', 'look', 'lookR', 'stretch'] : ['look', 'lookR', 'stretch'];
+        const kinds = F.weapon === 'none' || F.weapon === 'handgun' || ctx.sheathed ? ['glasses', 'look', 'lookR', 'stretch'] : ['look', 'lookR', 'stretch'];
         this.idleVar = { kind: kinds[Math.floor(Math.random() * kinds.length)], t: 0, dur: 2.4 }; this.idleT = 0; this.nextIdle = 6 + Math.random() * 6;
       }
       ctx.idleVar = this.idleVar;
@@ -227,7 +239,7 @@ export class Player {
     if (this.clipAnim) {
       const sn = F.st.name;
       this.clipRes = this.clipAnim.update(dt, { st: sn, f: F.st.f, total: sn === 'dodge' ? COMBAT.dodge.total : sn === 'hurt' ? COMBAT.hurt.stun : 0, atk: F.st.atk, step: F.st.step, heavy: !!F.st.heavy, weapon: F.weapon,
-        speed: this.speed, phase: this.phase, turn: turn0, talking: !!(this.looks.face && this.looks.face.talking), override: !!extra.override, armsFromProc: sn === 'free' && F.weapon !== 'none' });
+        speed: this.speed, phase: this.phase, turn: turn0, talking: !!(this.looks.face && this.looks.face.talking), override: !!extra.override, armsFromProc: sn === 'free' && F.weapon !== 'none' && !ctx.sheathed });
     }
     // 回避の転がり（体ごと前へ回る）
     // 曲がる時は体を内へ傾ける（向きの変わる速さ × 速さ：足の下を軸に）
@@ -242,6 +254,70 @@ export class Player {
     }
     else { this.pivot.rotation.x = 0; this.pivot.rotation.z += (bank - this.pivot.rotation.z) * Math.min(1, dt * 8); this.pivot.position.x = -0.55 * Math.sin(this.pivot.rotation.z); this.pivot.position.y = 0.55 * Math.cos(this.pivot.rotation.z); }
     this.root.position.copy(this.pos); this.root.rotation.y = this.yaw;
+    // 攻撃の踏み込み：足を床に置き、体が離れたら一歩ずつ（前の足 → 後ろの足を引き寄せる）。戻り（振り終わりの後）は小さなずれも置き直す
+    if (this.stepper && !extra.override) {
+      const sn = F.st.name, fight = sn === 'attack' || sn === 'charge';
+      if (this.stepper.on && ['dodge', 'hurt', 'dead', 'issen'].includes(sn)) this.stepper.reset();   // 転がる・ひるむ・一閃は体ごと動く：足を置いたまま混ぜない
+      // 攻撃が終わって立ち止まった直後（0.35 秒）も、待機の足の場所へ一歩で置き直す（前は床の上を 10cm ほど滑って戻っていた）
+      this.stepTail = fight ? 0 : (this.stepTail || 0) + dt;
+      const tail = !fight && this.stepper.on && sn === 'free' && this.speed < 0.1 && this.stepTail < 0.35;
+      const act = fight || tail;
+      if (act || this.stepper.on) this.root.updateMatrixWorld(true);
+      this.stepper.update(dt, { active: act, settle: tail || (sn === 'attack' && F.st.atk && F.st.f >= F.st.atk.startup + F.st.atk.active + 2), ground: this.pos.y, body: this.pos });
+    }
+    // 火縄銃：体に対する銃の置き場所（持ち歩き＝斜めに両手で・構え＝銃床を右肩に・銃床の打撃＝引いて突き出す）を決め、右腕を IK で
+    if (m.weapons && F.weapon === 'matchlock' && !extra.override) {
+      const sn = F.st.name, st = F.st, Wm = m.weapons.match;
+      const on = Wm && !['dodge', 'hurt', 'dead', 'swap', 'issen'].includes(sn) ? 1 : 0;
+      this.mHoldW = (this.mHoldW || 0) + (on - (this.mHoldW || 0)) * Math.min(1, dt / 0.08);
+      if (this.mHoldW > 1e-3 && Wm) {
+        this.root.updateMatrixWorld(true);
+        const rq = this.root.getWorldQuaternion(new THREE.Quaternion()), R = v => new THREE.Vector3(...v).applyQuaternion(rq);
+        const hips = m.J.hips.getWorldPosition(new THREE.Vector3()), shR = m.J.rightUpperArm.getWorldPosition(new THREE.Vector3()), chest = (m.J.chest || m.J.spine).getWorldPosition(new THREE.Vector3());
+        const sc = Math.max(0.6, (hips.y - this.pos.y) / 0.9);   // 体の大きさ（腰の高さ 0.9m で 1）
+        const carry = { B: hips.clone().add(R([-0.15 * sc, -0.05 * sc, 0.16 * sc])), D: R([0.6, 0.55, 0.35]), up: R([-0.2, 0.4, 1]) };   // 斜めに胸の前（銃口は左上）
+        const aimP = extra.aimPitch || 0;
+        const aim = { B: shR.clone().add(R([0.04 * sc, -0.05 * sc, 0.07 * sc])), D: R([0, Math.sin(aimP * 0.5), 1]), up: R([0, 1, 0]) };
+        let P = carry;
+        const aiming = F.white && (sn === 'mcharge' || sn === 'mrecoil' || F.aimHeld);
+        if (aiming) { P = aim; if (sn === 'mrecoil') { const k = Math.max(0, 1 - st.f / 10); P = { B: aim.B.clone().add(R([0, 0.02 * k, -0.06 * k])), D: R([0, 0.25 * k + Math.sin(aimP * 0.5), 1]), up: aim.up }; } }
+        else if (sn === 'mreload') P = { B: hips.clone().add(R([-0.08 * sc, -0.06 * sc, 0.26 * sc])), D: R([0.1, 1, 0.12]), up: R([0, 0, 1]) };
+        else if (sn === 'attack' && st.atk) {
+          // 銃床の打撃：振りかぶり（銃床を右の腰へ引き、銃身を立てる）→ 突き出す（銃床を胸の前へ・銃身は上の後ろ）→ 持ち歩きへ
+          const a = st.atk, f = st.f;
+          const pull = { B: hips.clone().add(R([-0.2 * sc, 0.12 * sc, -0.06 * sc])), D: R([0.3, 0.92, 0.25]), up: R([0, 0, 1]) };
+          const hit = { B: chest.clone().add(R([0.0, 0.06 * sc, 0.55 * sc])), D: R([0.25, 0.7, -0.66]), up: R([0, 0.6, 0.8]) };
+          const lerpP = (A, Bp, t) => ({ B: A.B.clone().lerp(Bp.B, t), D: A.D.clone().lerp(Bp.D, t), up: A.up.clone().lerp(Bp.up, t) });
+          const e = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
+          P = f < a.startup ? lerpP(carry, pull, e((f + 1) / a.startup)) : f < a.startup + a.active ? lerpP(pull, hit, e((f - a.startup + 1) / Math.max(2, a.active * 0.7))) : lerpP(hit, carry, e((f - a.startup - a.active) / Math.max(1, a.recovery * 0.8)));
+        }
+        placeLongGun(m.J, Wm, P.B, P.D, P.up, this.mHoldW);
+      }
+    } else this.mHoldW = 0;
+    // 刀を抜く・納める：右手を腰の柄へ（抜く＝最初の一振りの出だしで柄から振りへ・納める＝刀を鞘へ・納めた後＝柄から手を戻す）。見た目だけ
+    if (m.weapons && m.weapons.sayaRef && !extra.override) {
+      const h = this.sheath.hand(F);
+      if (h.w > 1e-3) { this.root.updateMatrixWorld(true); placeHeldAt(m.J, m.weapons.katana, m.weapons.sayaRef, h.w, this.root); }
+    }
+    if (this.grip) {
+      const sn = F.st.name, w = F.weapon, Wp = m.weapons, st = F.st;
+      let want = 0, weapon = null, grip = null;
+      if (!extra.override && w === 'matchlock' && !['dodge', 'hurt', 'dead', 'swap', 'issen'].includes(sn)) { want = 1; weapon = Wp.match; grip = [0, 0.38, 0.012]; }   // 火縄銃：左手は先台（銃身の下）
+      else if (!extra.override && !F.white && !['dodge', 'hurt', 'dead', 'swap', 'issen'].includes(sn)) {
+        const atkOn = sn === 'attack' && st.atk && st.f < st.atk.startup + st.atk.active + st.atk.recovery * 0.55;
+        if (w === 'pipe' && !(sn === 'free' && this.speed > 3.2) && (sn !== 'attack' || atkOn)) { want = 1; weapon = Wp.pipe; grip = [0, 0.13, 0]; }
+        else if (w === 'katana' && this.sheath.drawn && (sn === 'charge' || (atkOn && (st.heavy || st.step >= 2)))) { want = 1; weapon = Wp.katana; grip = [0, -0.1, 0]; }
+        else if (w === 'handgun' && ctx.aiming) { want = 1; weapon = Wp.gun; grip = [0, -0.035, -0.012]; }   // 拳銃：左手で右手ごと握りを包む
+      }
+      if (want || this.grip.w > 0) { this.root.updateMatrixWorld(true); this.grip.update(dt, { want, weapon, grip }); }
+    }
+    if (this.fingers) {
+      // 右手：刀・鉄パイプ・銃・火縄銃を持っている間は握る。左手：両手持ち（GripIK）の重みで握る
+      const W = m.weapons, held = W && ['katana', 'pipe', 'gun', 'match'].some(k => W[k] && (W.bones ? W[k].scale.x > 0.5 : W[k].visible));
+      this.fistR += ((held && !extra.override ? 1 : 0) - this.fistR) * Math.min(1, dt / 0.06);
+      this.fistL = this.grip ? this.grip.w : 0;
+      setFingers(this.fingers, 'right', this.fistR * 0.95); setFingers(this.fingers, 'left', this.fistL * 0.9);
+    }
     this.setWeaponVisual();
     this.looks.tickFace(dt); this.looks.tickFlinch(dt, m.J);
     // 視線：演出の相手（lookTarget）・ロックオンの相手（extra.look）。攻撃などの動きの間は弱める
@@ -345,6 +421,9 @@ export class EnemyActor {
   setDissolve(k) { const M = this.model.mats; if (!M) return; for (const m of [M.body, M.face, M.outline]) if (m && m.userData.u) m.userData.u.uDissolve.value = k; }
 }
 
+/** 相棒がついて歩く時の見た目の速さ：加速 7・減速 10m/s² で目標の速さへ（CompanionActor.step） */
+export const followSpeed = (v, want, dt) => Math.max(0, v + Math.max(-10 * dt, Math.min(7 * dt, want - v)));
+
 export class CompanionActor {
   constructor(model, brain) {
     this.root = new THREE.Group(); this.root.name = 'companion'; this.brain = brain;
@@ -358,11 +437,25 @@ export class CompanionActor {
   /** 60Hz：AI の結果で動かす */
   step(dt, out, boxes) {
     const b = this.brain; let moved = 0;
+    // 2026-11-09：ついて歩く時は速さを少しずつ変える（加速 7・減速 10m/s²）。前は 0 → 2.4 → 3.7 → 5m/s が 1 こまで変わり、
+    //  止まる・歩き出すをくり返すたびに足が床を滑り、歩きと走りの切り替えで脚が跳んでいた（隠れる・演出の動きは前のまま）
+    const follow = !!(out && out.pose === 'follow');
+    const want = out && out.move ? out.move.speed : 0;
+    if (!follow || this.vSm == null) this.vSm = follow ? 0 : want;
+    else this.vSm = followSpeed(this.vSm, want, dt);
+    if (follow && !(out && out.move) && this.vSm > 0.05 && this.lastDir) {
+      const bx = b.pos.x, bz = b.pos.z; b.pos.x += this.lastDir.x * this.vSm * dt; b.pos.z += this.lastDir.z * this.vSm * dt; resolveCircle(b.pos, this.r, boxes); moved = Math.hypot(b.pos.x - bx, b.pos.z - bz);
+    }
     if (out && out.move) {
       const dx = out.move.x - b.pos.x, dz = out.move.z - b.pos.z, L = Math.hypot(dx, dz);
-      if (L > 1e-4) { const m = Math.min(L, out.move.speed * dt), bx = b.pos.x, bz = b.pos.z; b.pos.x += dx / L * m; b.pos.z += dz / L * m; resolveCircle(b.pos, this.r, boxes); moved = Math.hypot(b.pos.x - bx, b.pos.z - bz); }
+      if (L > 1e-4) { this.lastDir = { x: dx / L, z: dz / L }; const m = Math.min(L, (follow ? Math.max(0.3, this.vSm) : out.move.speed) * dt), bx = b.pos.x, bz = b.pos.z; b.pos.x += dx / L * m; b.pos.z += dz / L * m; resolveCircle(b.pos, this.r, boxes); moved = Math.hypot(b.pos.x - bx, b.pos.z - bz); }
     }
-    if (out && out.face) b.yaw = turnTo(b.yaw, Math.atan2(out.face.x - b.pos.x, out.face.z - b.pos.z), 0.18);
+    if (out && out.face) {
+      const want = Math.atan2(out.face.x - b.pos.x, out.face.z - b.pos.z);
+      // ついて歩く時は向きの回る速さをなめらかに（足跡の点を 0.45m ごとに乗り換えるたびに、向きが 1 こまで 5〜10° 跳んでいた）
+      if (follow) { const w = Math.max(-7, Math.min(7, angWrap(want - b.yaw) * 9)); this.yawV = (this.yawV || 0) + (w - (this.yawV || 0)) * Math.min(1, dt * 14); b.yaw += this.yawV * dt; }
+      else { this.yawV = 0; b.yaw = turnTo(b.yaw, want, 0.18); }
+    }
     this.speed = moved / dt;
     if (this.driver && this.speed > 0.08 && !this.wasMoving && this.driver.mode === 'idle') this.phase = this.driver.startPhase(this.speed);
     this.wasMoving = this.speed > 0.08;

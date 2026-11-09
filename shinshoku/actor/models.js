@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { SkinBody, DIM, headDeform, faceAtlas, faceAtlasExpr, UVR, drawEye, drawBrow, drawMouth, drawNose, drawBlush } from './skin.js';
 import { toon, addOutlines } from '../render/toon.js';
 import { buildDannouraV2, buildCompanionV2 } from './heroes.js';
-import { applyEnemyPack, enemyPackClasses } from './enemypack.js';   // P17：Blender で作り直した異形の体
+import { applyEnemyPack, enemyPackClasses, placePackAnchors } from './enemypack.js';   // P17：Blender で作り直した異形の体
 
 /** モデルの版（2＝v2・既定。?charModel=1 で前のモデル：前後の比べ用） */
 export const CHAR_MODEL = (() => { try { return typeof location !== 'undefined' && /[?&]charModel=1\b/.test(location.search) ? 1 : 2; } catch (e) { return 2; } })();
@@ -250,20 +250,35 @@ export function buildDannouraV1() {
   return Object.assign(m, { tail, coat: [], weapons, height: 1.64, provisional: true, kind: 'dannoura', eyes: [sb.B.eyeL, sb.B.eyeR], mouth: sb.B.mouth, faceTex: tex, setExpr: n => tex.userData.setExpr(n) });
 }
 
+/**
+ * 刀の鞘の置き場所（腰の骨に対する：+x＝体の左・+z＝前・+y＝上）。2026-11-09：普段は刀を左腰の鞘に納める（利用者の依頼）。
+ * 戻り値の位置・向きは「刀の形の局所」（手に持つ刀と同じ：柄 y −0.12〜0.08・鍔 y 0.085・刃 y 0.09〜0.88）の原点と向き。
+ * 鍔は帯の左前・柄は前の上へ・鞘は腰の左を回って後ろの下へ（刃の向き d）。コードの体（buildWeaponBones）と VRM（attachRigidWeapons）で同じ
+ */
+export const SAYA_POSE = { tsuba: [0.15, 0.04, 0.12], dir: [0.3, -0.55, -0.78] };
+export function sayaFrame(P = SAYA_POSE) {
+  const Y = V(...P.dir).normalize(), up = V(0, 1, 0), Z = up.clone().addScaledVector(Y, -up.dot(Y)).normalize(), X = new THREE.Vector3().crossVectors(Y, Z);
+  const q = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, Z));
+  const p = V(...P.tsuba).addScaledVector(Y, -0.085);
+  return { p, q };
+}
+/** 刀の色（手に持つ刀・鞘・柄・鍔。コードの体・VRM・家の刀掛け（world/level.js）で同じ） */
+export const KATANA_COLORS = { steel: 0xdde2ee, tsuba: 0xb08a3a, saya: 0x2a1630, wrap: 0x5a2a6a };
+
 /** 武器の骨と形（刀・鞘・拳銃・ホルスター・鉄パイプ）。出し入れは骨の大きさ。戻り値は actor が使う */
 export function buildWeaponBones(sb) {
   const bone = (name, parent, p, r) => { const b = sb.addBone(name, parent, ...p); b.rotation.set(...r); return b; };
   bone('wKatana', 'rightHand', [0, -0.06, 0.02], [2.1, 0, 0]);
-  bone('wSaya', 'hips', [-0.2, 0.15, -0.16], [0, 0.15, -1.85]);
+  { const F = sayaFrame(), e = new THREE.Euler().setFromQuaternion(F.q); bone('wSaya', 'hips', [F.p.x, F.p.y, F.p.z], [e.x, e.y, e.z]); }   // 2026-11-09：左腰（前は腰の後ろに横向き）
   bone('wSayaHilt', 'wSaya', [0, 0, 0], [0, 0, 0]);
-  bone('wGun', 'rightHand', [0, -0.07, 0.03], [0, 0, 0]);
+  bone('wGun', 'rightHand', [0.006, -0.05, 0.034], [Math.PI / 2, 0, 0]);      // 2026-11-09：銃身は指の向き・握りは手のひらの中（前は親指の向き：構えると上を向いた）
   bone('wHolster', 'hips', [-0.15, -0.08, 0.02], [0, 0, 0]);
   bone('wHolsterGun', 'wHolster', [0, 0, 0], [0, 0, 0]);
   bone('wPipe', 'rightHand', [0, -0.06, 0.02], [2.0, 0, 0]);
   bone('wPipeBack', 'chest', [-0.13, -0.02, -0.17], [0, 0, 0.35]);
   bone('wMatch', 'rightHand', [0, -0.06, 0.02], [2.0, 0, 0]);                  // 火縄銃（第4章から・登録証つきの古い持ち物）
   bone('wMatchBack', 'chest', [0.12, 0.0, -0.19], [0, 0, -0.42]);
-  const steel = 0xdde2ee, dark = 0x1c1822, tsuba = 0xb08a3a, saya = 0x2a1630, wrap = 0x5a2a6a;
+  const { steel, tsuba, saya, wrap } = KATANA_COLORS, dark = 0x1c1822;
   const K = boneXf(sb, 'wKatana'), w = sb.rigid('wKatana');
   sb.box([0, -0.02, 0], [0.03, 0.2, 0.034], { xf: K, weights: w, color: wrap, oth: 0.4, mat: 'cloth' });
   sb.cyl([0, 0.085, 0], 0.045, 0.045, 0.012, { xf: K, weights: w, color: tsuba, seg: 10, oth: 0.3 });
@@ -271,9 +286,11 @@ export function buildWeaponBones(sb) {
   sb.box([0, 0.46, 0.017], [0.012, 0.74, 0.004], { xf: K, weights: w, color: 0xffffff, oth: 0 });
   sb.blob([0, 0.85, 0.004], [0.006, 0.035, 0.015], { xf: K, weights: w, color: steel, w: 6, h: 4, oth: 0.3 });
   const SA = boneXf(sb, 'wSaya');
-  sb.box([0, 0.3, 0], [0.036, 0.78, 0.044], { xf: SA, weights: sb.rigid('wSaya'), color: saya, oth: 0.5, mat: 'acc' });
+  // 鞘（骨の局所＝刀の形の局所：刃 y 0.09〜0.88 を包む）
+  sb.box([0, 0.485, 0], [0.036, 0.79, 0.044], { xf: SA, weights: sb.rigid('wSaya'), color: saya, oth: 0.5, mat: 'acc' });
+  // 納めた刀の柄と鍔（手に持つ刀と同じ所）
   const SH = boneXf(sb, 'wSayaHilt'), sw = sb.rigid('wSayaHilt');
-  sb.box([0, -0.18, 0], [0.03, 0.2, 0.034], { xf: SH, weights: sw, color: wrap, oth: 0.4, mat: 'cloth' }); sb.cyl([0, -0.08, 0], 0.045, 0.045, 0.012, { xf: SH, weights: sw, color: tsuba, seg: 10, oth: 0.3 });
+  sb.box([0, -0.02, 0], [0.03, 0.2, 0.034], { xf: SH, weights: sw, color: wrap, oth: 0.4, mat: 'cloth' }); sb.cyl([0, 0.085, 0], 0.045, 0.045, 0.012, { xf: SH, weights: sw, color: tsuba, seg: 10, oth: 0.3 });
   const G = boneXf(sb, 'wGun'), gw = sb.rigid('wGun');
   sb.box([0, 0.02, 0.06], [0.03, 0.045, 0.17], { xf: G, weights: gw, color: dark, oth: 0.4 });
   sb.box([0, -0.03, -0.005], [0.028, 0.1, 0.045], { rot: [-0.25, 0, 0], xf: G, weights: gw, color: dark, oth: 0.4 });
@@ -302,7 +319,8 @@ export function buildWeaponBones(sb) {
   const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0.02, 0.15); sb.B.wGun.add(muzzle);
   const mMuzzle = new THREE.Object3D(); mMuzzle.position.set(0, 1.18, 0.012); sb.B.wMatch.add(mMuzzle);
   const B = sb.B;
-  return { katana: B.wKatana, sayaHilt: B.wSayaHilt, saya: B.wSaya, gun: B.wGun, holster: B.wHolster, holsterGun: B.wHolsterGun, pipe: B.wPipe, pipeBack: B.wPipeBack, match: B.wMatch, matchBack: B.wMatchBack, muzzle, mMuzzle, bones: true };
+  const sayaRef = new THREE.Object3D(); sayaRef.name = 'sayaRef'; B.wSaya.add(sayaRef);   // 納めた刀の在り処（刀の形の局所の原点）：抜く・納める動きで右手を寄せる先
+  return { sayaRef, katana: B.wKatana, sayaHilt: B.wSayaHilt, saya: B.wSaya, gun: B.wGun, holster: B.wHolster, holsterGun: B.wHolsterGun, pipe: B.wPipe, pipeBack: B.wPipeBack, match: B.wMatch, matchBack: B.wMatchBack, muzzle, mMuzzle, bones: true };
 }
 
 /** VRM／glTF のモデル用：手の骨に普通の網で武器を付ける（スキン網の武器の骨と同じ取り扱いができる形） */
@@ -310,15 +328,28 @@ export function attachRigidWeapons(J) {
   const mk = (parent, p, r) => { const g = new THREE.Group(); g.position.set(...p); g.rotation.set(...r); parent.add(g); return g; };
   const katana = mk(J.rightHand, [0, -0.06, 0.02], [2.1, 0, 0]);
   const add = (g, geo, c, p) => { const m = new THREE.Mesh(geo, toon(c)); m.position.set(...p); m.castShadow = true; g.add(m); return m; };
-  add(katana, new THREE.BoxGeometry(0.03, 0.2, 0.034), 0x5a2a6a, [0, -0.02, 0]); add(katana, new THREE.BoxGeometry(0.011, 0.74, 0.03), 0xdde2ee, [0, 0.46, 0]);
-  const gun = mk(J.rightHand, [0, -0.07, 0.03], [0, 0, 0]); add(gun, new THREE.BoxGeometry(0.03, 0.045, 0.17), 0x1c1822, [0, 0.02, 0.06]);
+  const KC = KATANA_COLORS;
+  // 刀：柄・鍔・刃（コードの体の刀 buildWeaponBones と同じ形と色。2026-11-09 に鍔を足した）
+  const hilt = g => { add(g, new THREE.BoxGeometry(0.03, 0.2, 0.034), KC.wrap, [0, -0.02, 0]); const t = add(g, new THREE.CylinderGeometry(0.045, 0.045, 0.012, 10), KC.tsuba, [0, 0.085, 0]); return t; };
+  hilt(katana); add(katana, new THREE.BoxGeometry(0.011, 0.74, 0.03), KC.steel, [0, 0.46, 0]);
+  // 2026-11-09：拳銃。前は握りの無い箱で、銃口が親指の向き（腕を前へ伸ばすと真上）・手のひらから離れて浮いていた（利用者「銃の持ち方がひどい」）。
+  //  → 握り（グリップ）を手のひらの中に置き、銃身は指の向き（腕を伸ばすと前・下ろすと下）・遊底は親指の側。指は Player.animate で握る
+  const gun = mk(J.rightHand, [0.006, -0.05, 0.034], [Math.PI / 2, 0, 0]);
+  add(gun, new THREE.BoxGeometry(0.027, 0.034, 0.17), 0x1c1822, [0, 0.032, 0.045]);   // 遊底・銃身
+  add(gun, new THREE.BoxGeometry(0.025, 0.085, 0.036), 0x24202a, [0, -0.022, -0.012]); // 握り（手のひらの中）
+  add(gun, new THREE.BoxGeometry(0.008, 0.02, 0.034), 0x1c1822, [0, 0.0, 0.03]);       // 用心金
   const pipe = mk(J.rightHand, [0, -0.06, 0.02], [2.0, 0, 0]); add(pipe, new THREE.CylinderGeometry(0.017, 0.017, 0.92, 8), 0x8a8580, [0, 0.38, 0]);
   const match = mk(J.rightHand, [0, -0.06, 0.02], [2.0, 0, 0]); add(match, new THREE.BoxGeometry(0.04, 0.6, 0.045), 0x6a3a22, [0, 0.1, 0]); add(match, new THREE.CylinderGeometry(0.013, 0.015, 0.92, 8), 0x26242a, [0, 0.72, 0.012]);
-  const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0.02, 0.15); gun.add(muzzle);
+  const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0.032, 0.13); gun.add(muzzle);
   const mMuzzle = new THREE.Object3D(); mMuzzle.position.set(0, 1.18, 0.012); match.add(mMuzzle);
+  // 2026-11-09：左腰の鞘と、納めた刀の柄・鍔（前は空の組で、VRM では腰に何も描かれていなかった）。腰の差し込み口（hips）に付ける
+  const SF = sayaFrame(), saya = new THREE.Group(); saya.name = 'saya'; saya.position.copy(SF.p); saya.quaternion.copy(SF.q); J.hips.add(saya);
+  add(saya, new THREE.BoxGeometry(0.036, 0.79, 0.044), KC.saya, [0, 0.485, 0]);
+  const sayaHilt = new THREE.Group(); sayaHilt.name = 'sayaHilt'; saya.add(sayaHilt); hilt(sayaHilt);
+  const sayaRef = new THREE.Object3D(); sayaRef.name = 'sayaRef'; saya.add(sayaRef);
   const none = new THREE.Group(); J.hips.add(none);
-  addOutlines(katana, 0.006); addOutlines(gun, 0.006); addOutlines(pipe, 0.006); addOutlines(match, 0.006);
-  return { katana, gun, pipe, match, muzzle, mMuzzle, sayaHilt: none, saya: none, holster: none, holsterGun: none, pipeBack: none, matchBack: none, bones: false };
+  addOutlines(katana, 0.006); addOutlines(gun, 0.006); addOutlines(pipe, 0.006); addOutlines(match, 0.006); addOutlines(saya, 0.006);
+  return { katana, gun, pipe, match, muzzle, mMuzzle, sayaRef, sayaHilt, saya, holster: none, holsterGun: none, pipeBack: none, matchBack: none, bones: false };
 }
 
 // ───────────────────────── 相棒 ─────────────────────────
@@ -492,7 +523,7 @@ export function buildHeiten() {
   applyEnemyPack(m, 'heiten');
   const weak = new THREE.Object3D(); weak.position.set(0, -0.43, 0.06); m.J.rightLowerArm.add(weak);
   const eyeGlow = glowEyes(m, m.J, [[0.05, R * 1.32, R * 1.05], [-0.05, R * 1.32, R * 1.05]]);
-  return Object.assign(m, { height: 2.15, provisional: true, kind: 'heiten', weak, bodyR: 0.5, weakColor: 0xffb040, eyeGlow });
+  return placePackAnchors(Object.assign(m, { height: 2.15, provisional: true, kind: 'heiten', weak, bodyR: 0.5, weakColor: 0xffb040, eyeGlow }));   // P19：目・弱点を包み（Codex のモデル）の位置へ
 }
 
 /**
@@ -551,5 +582,5 @@ export function buildShuuyou() {
   applyEnemyPack(m, 'shuuyou');
   const weak = new THREE.Object3D(); weak.position.set(0, 0.02, 0.17); m.J.head.add(weak);
   const eyeGlow = glowEyes(m, m.J, [[0.06, d.headR * 0.9, 0.2], [-0.06, d.headR * 0.9, 0.2], [0, d.headR * 0.6, 0.22]]);
-  return Object.assign(m, { height: 2.6, provisional: true, kind: 'shuuyou', weak, bodyR: 0.75, weakY: 2.3, weakColor: 0xd8b0ff, eyeGlow });
+  return placePackAnchors(Object.assign(m, { height: 2.6, provisional: true, kind: 'shuuyou', weak, bodyR: 0.75, weakY: 2.3, weakColor: 0xd8b0ff, eyeGlow }));
 }

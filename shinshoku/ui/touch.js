@@ -1,5 +1,5 @@
 // タッチ操作（横向き）：左の円で移動、右側をなぞってカメラ、ボタン（斬・避・弾・銃・替・調・回・≡）。
-// COMBAT_SYSTEM_SPEC §6：銃＝押すと自動照準で構え・離すと撃つ／斬の長押し＝強攻撃・居合／ロックオンは自動。
+// COMBAT_SYSTEM_SPEC §6：銃＝押すと自動照準で構え・離すと撃つ／斬の長押し＝強攻撃／ロックオンは自動。
 export function setupTouch(root, input, game) {
   const T = input.touch; T.pressQ = []; T.held = new Set();
   const wrap = document.createElement('div'); wrap.id = 'sh-touch';

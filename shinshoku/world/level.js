@@ -756,9 +756,9 @@ function buildHome(B0, atlas, scene0, boxes0, spots0, dyn) {
   for (const dz of [-0.3, 0.3]) B.box('prop', 5.71, 1.3, RKZ + dz, 0.16, 0.04, 0.05, 0x3a2418);                       // 腕（壁から手前へ）
   const rk = new THREE.Group(), toon = c => new THREE.MeshToonMaterial({ color: c, gradientMap: gradientMap() });
   const part = (w, h, d, z, m) => { const k = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); k.position.set(5.7, 1.343, RKZ + z); rk.add(k); };
-  part(0.034, 0.03, 0.72, -0.13, toon(0x1a0e14));      // 鞘
-  part(0.012, 0.075, 0.075, 0.24, toon(0x5a4a30));     // 鍔
-  part(0.03, 0.032, 0.25, 0.37, toon(0x2a1630));       // 柄
+  part(0.034, 0.03, 0.72, -0.13, toon(0x2a1630));      // 鞘（色はだんのうらの刀と同じ：actor/models.js KATANA_COLORS）
+  part(0.012, 0.075, 0.075, 0.24, toon(0xb08a3a));     // 鍔
+  part(0.03, 0.032, 0.25, 0.37, toon(0x5a2a6a));       // 柄
   scene.add(rk); dyn.rackKatana = rk;
   const safe = 5.4;
   B.box('prop', safe, 0.48, 15.3, 0.75, 0.8, 0.7, 0x3a3e46); solid(safe, 15.3, 0.75, 0.7, 0.88);

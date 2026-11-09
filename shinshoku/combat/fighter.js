@@ -3,7 +3,7 @@
 // 位置・当たり判定はゲーム側（shinshoku/actor/player.js）。ここは時間と状態と結果だけを持つ。
 //
 // tick(inp) の inp：
-//   attack（押した）・heavy（押している：強攻撃／居合の構え）・dodge（押した）・parry（押した）・
+//   attack（押した）・heavy（押している：強攻撃の溜め）・dodge（押した）・parry（押した）・
 //   swap（押した）・aim（押している）・reload（押した）
 // incoming(atk)：敵の攻撃判定が出たフレームに呼ぶ。atk = { src, dmg, parryable, inRange, nearMiss }
 // 戻り値の events は配列。ゲーム側が演出（ヒットストップ・スロー・音）と当たり判定に使う。
@@ -111,7 +111,7 @@ export class Fighter {
   addAmmo(n) { this.ammo += n; }
   /** 弱点に当たった（撃ち一閃の窓） */
   markWeakHit(src) { this.utsu = { src, at: this.frame }; }
-  /** 居合の空振り判定用：振りが当たったか */
+  /** 振りが当たったか（記録用） */
   markSwingHit() { if (this.st.name === 'attack') this.st.hit = true; }
 
   tick(inp = {}) {
@@ -280,28 +280,26 @@ export class Fighter {
   _attack(evs, inp) {
     const s = this.st, a = s.atk, C = this.C;
     const actEnd = a.startup + a.active;
-    if (s.f >= a.startup && s.f < actEnd) { this._ev(evs, { t: 'active', step: s.step, atk: a, first: !s.act, iai: !!s.iai }); s.act = true; }
-    if (s.f === actEnd && s.iai && !s.hit) s.extra = C.issen.iai.miss - a.recovery;   // 居合の空振り＝30f の硬直
+    if (s.f >= a.startup && s.f < actEnd) { this._ev(evs, { t: 'active', step: s.step, atk: a, first: !s.act }); s.act = true; }
     const rf = s.f - actEnd;                                                      // 戻りの何フレーム目か
     if (rf >= 0) {
       if (this._buffered('attack') && s.step < this._mw().light.length - 1 && !s.heavy && this.press.attack > this.frame - s.f + 2) {
         this._consume('attack'); return this._startAttack(evs, s.step + 1);
       }
-      if (this._buffered('dodge') && !s.iai) { this._consume('dodge'); return this._startDodge(evs, inp); }
+      if (this._buffered('dodge')) { this._consume('dodge'); return this._startDodge(evs, inp); }
       if (inp.parry && this.white) return this._illusion(evs);
-      if (inp.parry && this.canParry && !s.iai) return this._startParry(evs);
-      if (!this.white && (inp.swap || (inp.aim && !s.aimWas)) && !s.iai && this.owned.includes('handgun')) {
+      if (inp.parry && this.canParry) return this._startParry(evs);
+      if (!this.white && (inp.swap || (inp.aim && !s.aimWas)) && this.owned.includes('handgun')) {
         const fr = swapFrames(this.weapon, 'handgun', { recoveryFrame: rf }, C);
         return this._startSwap(evs, 'handgun', inp.aim ? 'fire' : null, fr);
       }
     }
     s.aimWas = !!inp.aim;
-    if (s.f >= actEnd + a.recovery + (s.extra || 0)) { this._go('free'); }
+    if (s.f >= actEnd + a.recovery) { this._go('free'); }
   }
   _charge(evs, inp) {
     const s = this.st, C = this.C;
     if (this._buffered('dodge')) { this._consume('dodge'); return this._startDodge(evs, inp); }
-    const pipe = this.weapon !== 'katana';                                 // 居合は刀だけ（鉄パイプ・火縄銃は強攻撃）
     if (this.white) {                                                       // 妖刀：溜めて離すと刃の伸びる刀（妖力 5）
       if (!inp.heavy) {
         const B = C.white.blade;
@@ -310,20 +308,15 @@ export class Fighter {
       }
       return;
     }
-    if (s.f === this.w.iaiHold && !pipe) this._ev(evs, { t: 'iaiReady' });
+    // 溜め（heavy.startup こま）以上押してから離すと強攻撃、それより早く離すと 1 段目。長く押し続けても同じ強攻撃
     if (!inp.heavy) {
-      if (s.f >= this.w.iaiHold && !pipe) {
-        const a = Object.assign({ startup: 0 }, C.katana.iaiSwing);
-        this._go('attack', { step: 9, atk: a, heavy: true, iai: true, hit: false });
-        this._ev(evs, { t: 'attackStart', step: 9, atk: a, iai: true });
-      } else if (s.f >= this._mw().heavy.startup) {
+      if (s.f >= this._mw().heavy.startup) {
         const a = Object.assign({}, this._mw().heavy, { startup: 0 });
         this._go('attack', { step: 8, atk: a, heavy: true, hit: false });
         this._ev(evs, { t: 'attackStart', step: 8, atk: a, heavy: true });
       } else this._startAttack(evs, 0);
     }
   }
-  get iaiStance() { return !this.white && this.st.name === 'charge' && this.weapon === 'katana' && this.st.f >= this.w.iaiHold; }
 
   _startDodge(evs, inp) {
     const C = this.C;
@@ -385,7 +378,6 @@ export class Fighter {
     }
     if (s.name === 'dodge' && s.white) { const D = this.C.white.dash; if (s.f >= D.iStart && s.f <= D.iEnd) return 'evade'; }
     if (!atk.inRange) return 'miss';
-    if (this.iaiStance) { this._startIssen(evs, 'iai', atk.src); return 'iai'; }
     if (this.frame < this.invulnUntil) return 'invuln';
     if (s.name === 'parry' && !s.ok) {
       const r = judgeParry(this.frame - s.at, this.w);

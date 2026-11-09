@@ -353,7 +353,7 @@ function recordAction(T, weapon, kind) {
   const fr = []; let st = null, meta = null;
   if (kind === 'hurt') { F._go('hurt'); st = 'hurt'; }
   for (let i = 0; i < 300; i++) {
-    const I = kind === 'light' && i === 0 ? { attack: true } : kind === 'heavy' && i < 20 ? { heavy: true } : {};   // 強攻撃：溜め 18f を越えて離す（前は 40f 押して居合を録っていた：強攻撃に居合の動きが出ていた）
+    const I = kind === 'light' && i === 0 ? { attack: true } : kind === 'heavy' && i < 20 ? { heavy: true } : {};   // 強攻撃：溜め 18f を越えて離す（前は 40f 押して長押しの別の技を録っていて、強攻撃に違う動きが出ていた。その技は 2026-11-09 に削除）
     step(P, F, 0, I);
     const s = F.st;
     if (kind === 'hurt') { if (s.name !== 'hurt') break; fr.push(grab(m.J, T)); meta = meta || { total: COMBAT.hurt.stun }; continue; }

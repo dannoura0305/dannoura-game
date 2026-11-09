@@ -113,8 +113,8 @@
       "licenseChange": "2026-11-07 利用者の承認：meta の利用条件を「作者のみ・法人可・改変可・再配布不可・クレジット必要」に書き換え（元は「作者のみ・個人の非営利のみ・再配布不可・改変不可」）。素材の確認（license.verifiedBy）：利用者（作者本人・WAKABA Project）2026-11-07「公開リポジトリとサイトに置いてよい」",
       "credit": "キャラクターモデル：WAKABA Project（VRoid Studio で制作）",
       "note": "相棒＝瀬名 灯里（2026-11-07 利用者の回答）。会話の名前は「相棒」のまま",
-      "strideK": 0.92,
-      "strideKNote": "1 周期の距離の倍率（charkit/anim/clipanim.js の strideK）。VRoid 製は太もも・すねの割合が動きを録った体（Blender 製）と違い、腰の高さの比だけでは足が滑るので、歩き 2.2m/s・走り 3.4m/s の滑りが一番小さくなる値を測って入れた（2026-11-07・tests/shinshoku-vroid.test.mjs）"
+      "strideK": 0.94,
+      "strideKNote": "1 周期の距離の倍率（charkit/anim/clipanim.js の strideK）。VRoid 製は太もも・すねの割合が動きを録った体（Blender 製）と違い、腰の高さの比だけでは足が滑るので、歩き 2.2m/s・走り 3.4m/s の滑りが一番小さくなる値を測って入れた（2026-11-07・tests/shinshoku-vroid.test.mjs）。2026-11-09：0.92 → 0.94（足の着き方の直し（prepLoco）の後に測り直し：走り 5.0m/s の床の上の滑り 7.0 → 3.7cm/s・歩き 0.8 → 1.0cm/s・歩き⇄走りの切り替えの滑り 87 → 69cm）"
     },
     "kiro": {
       "file": null,

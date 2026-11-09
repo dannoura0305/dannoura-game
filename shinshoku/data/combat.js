@@ -15,7 +15,6 @@ export const COMBAT = {
   issen: {
     mikiri: { window: 21, dmg: 60, total: 34, strike: 10, slow: 0.25 },   // 見切り一閃：背後へ抜けて斬る
     hajiki: { window: 24, dmg: 50, total: 30, strike: 8, slow: 0.3 },     // 弾き一閃：正面から斬り返す
-    iai: { hold: 36, dmg: 55, total: 30, strike: 4, miss: 30 },           // 抜刀一閃：構え中に攻撃が届くと自動で居合
     utsu: { window: 30, dmg: 45, total: 28, strike: 7 },                   // 撃ち一閃：弱点を撃った怯み光の間に刀
     chain: { window: 60, dmg: 45, total: 26, strike: 7, max: 5, range: 7 }, // 連鎖一閃：一閃が当たった直後、近くの「見切り」状態（青い縁）の敵へ跳んで一閃
   },
@@ -27,8 +26,7 @@ export const COMBAT = {
       { startup: 8, active: 4, recovery: 16, dmg: 10, reach: 2.2, arc: 140, lunge: 0.6, stop: 'light', poise: 10 },
       { startup: 10, active: 4, recovery: 22, dmg: 16, reach: 2.6, arc: 120, lunge: 1.6, stop: 'heavy', poise: 20 },
     ],
-    heavy: { startup: 18, active: 6, recovery: 26, dmg: 30, reach: 2.8, arc: 160, lunge: 1.0, stop: 'heavy', poise: 35 },
-    iaiSwing: { active: 5, recovery: 20, dmg: 30, reach: 3.0, arc: 120, stop: 'heavy', poise: 40 },
+    heavy: { startup: 18, active: 6, recovery: 26, dmg: 30, reach: 2.8, arc: 160, lunge: 1.0, stop: 'heavy', poise: 35 },   // startup＝溜め（長押しでこれだけ押すと強攻撃。振りは離した時から）
   },
   // 鉄パイプ（WEAPON §1：近接・よろけ強・壊れない）。ガードを崩す（guardBreak：構えている敵・体幹を大きく削る）
   pipe: {

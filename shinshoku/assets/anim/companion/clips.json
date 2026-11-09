@@ -114,22 +114,22 @@
   {
    "file": "loco_walk.vrma",
    "bytes": 15344,
-   "sha256": "74f58abc890f09d9b1201d8fb2eb84fddfe84508e347076f980664f2160134fa"
+   "sha256": "836724f9216a3521296a83cbb43d27286b323f2da4fd1ea82079e37de6e852f8"
   },
   {
    "file": "loco_jog.vrma",
    "bytes": 15344,
-   "sha256": "d5aa1f5cbb56bd347c23f502493bb244b54aba56b783fce917fc989a2c3a8850"
+   "sha256": "b8b5bc91124a4c31a4c6605741eaf0bc62722e6bad662f13e903ce7fa291d787"
   },
   {
    "file": "loco_run.vrma",
    "bytes": 15344,
-   "sha256": "f3b103055095dc63045b22f6e34e8fca0447b868db91c0cf1b4acab22f96fae3"
+   "sha256": "4658e077e34ea3571a1221d03da0ac1aac823d592f8d8f3d1f9614f1f5d6128d"
   },
   {
    "file": "loco_sprint.vrma",
    "bytes": 15348,
-   "sha256": "30b23fcd826a0c26c7dbd785c1c02b3766f3c8ea912bd385b017c64effc81309"
+   "sha256": "0d5c0c626d5d1e29c2c0f0e7e966626d0cc0e296a53c1b9384db70607f4ebf9a"
   },
   {
    "file": "idle.vrma",

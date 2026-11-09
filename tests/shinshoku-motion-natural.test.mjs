@@ -4,7 +4,7 @@
 //    前は脚の短い体でクリップの足が止まる前に床へ着き、歩きで 27cm/s・走りで 124cm/s 滑っていた（今までの数え方「着いた間（2cm・30cm/s 以下）の平均」には出ない）
 //  ・腰の上下：歩きの上下が 7cm 以下・着地の「がくっ」（腰の上下の 2 階差）が小さい
 //  ・回避：進む距離が前（2.1m）の 1.15〜1.25 倍・無敵とジャストの受付のこまは同じ・転がりの回りは進んだ距離に合わせる（0→1・単調）
-//  ・刀：強攻撃の動き（VRMA）は強攻撃（溜め 18f で離す）を録った物（前は居合の空振りを録っていて、強攻撃に居合の動きが出ていた）
+//  ・刀：強攻撃の動き（VRMA）は強攻撃（溜め 18f で離す）を録った物（前は長押しの別の技の空振りを録っていて、強攻撃に違う動きが出ていた。その技は 2026-11-09 に削除）
 import { register } from 'node:module';
 register('./helpers/three-node-hooks.mjs', import.meta.url);
 import assert from 'node:assert/strict';
@@ -47,7 +47,7 @@ await t('回避の転がり：0 こま目は回らない・進んだ距離に合
   const fHalf = [...Array(25).keys()].find(f => rollFrac(f) >= 0.5);
   assert.ok(Math.abs(dodgeTravel(fHalf) - 0.5) < 0.2, `半分回った f${fHalf} で進んだ割合 ${dodgeTravel(fHalf).toFixed(2)}`);
 });
-await t('刀の強攻撃の動き（VRMA）：強攻撃（step 8・当たり 0〜6f・32f）を録った物・居合（step 9）は手続きの動き', () => {
+await t('刀の強攻撃の動き（VRMA）：強攻撃（step 8・当たり 0〜6f・32f）を録った物', () => {
   const set = readJson('shinshoku/assets/anim/dannoura/clips.json'), h = set.clips.cmb_katana_heavy;
   assert.deepEqual(h.match, { weapon: 'katana', heavy: true, step: 8 });
   assert.equal(h.frames, COMBAT.katana.heavy.active + COMBAT.katana.heavy.recovery);

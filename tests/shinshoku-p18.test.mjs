@@ -23,7 +23,7 @@ const NEW = ['outou', 'tsugihagi', 'nurikae', 'touchoku'];
 const BUDGET = { outou: 22000, touchoku: 32000, nurikae: 32000, tsugihagi: 42000 };   // PC（ボスは 1 体だけ）。スマホは半分
 
 await t('包み（4 種 × PC／スマホ）：骨の名前はコードの骨と同じ・重みの合計 1・骨の番号の範囲・三角形の予算・材質の種類', () => {
-  assert.deepEqual(EP.ENEMY_PACK_LAZY, NEW);
+  assert.deepEqual(EP.ENEMY_PACK_LAZY.slice(0, NEW.length), NEW);   // P19 で模倣する影・待人・収容者（旧研究棟）・先触れ・巨大猫又を足した（tests/shinshoku-p19.test.mjs）
   for (const kind of NEW) for (const low of [false, true]) {
     const f = `shinshoku/assets/enemies/${kind}${low ? '_low' : ''}.pack.json`; assert.ok(existsSync(new URL(f, root)), f);
     const pk = J(f), rig = J(`tools/blender/enemy/rigs/${kind}.json`);

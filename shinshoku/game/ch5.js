@@ -15,10 +15,12 @@ import { Tsugihagi, sideOf } from '../ai/tsugihagi.js';
 import { EnemyActor } from '../actor/actors.js';
 import { buildShuusha, buildTsugihagi } from '../actor/models5.js';
 import { shuushaPose, TsugiAnimator } from '../actor/anim5.js';
+import { packPoseFn } from '../actor/enemypack.js';   // P19：届いたモデルの動き
 import { Rampage, Protect } from '../combat/rampage.js';
 import { CHAPTERS, stepDef, stepRoute, R5_STEPS, S5_STEPS } from '../story/chapters.js';
 import { TOWN } from '../world/areas6.js';
 import { toon } from '../render/toon.js';
+import { padLabel } from '../ui/padnav.js';
 
 const DT = 1 / 60;
 const d2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -95,7 +97,7 @@ export const ch5Methods = {
         const door = { x: sx * 1.7, z: cz }, room = { x: cx + sx * 0.6, z: cz - 0.6 };
         const brain = new Shuusha({ id: o.id, pos: r === 'rescue' ? room : { x: o.path[0][0], z: o.path[0][1] }, path: o.path, subject: sub, door, room, seed: 31 + i * 7, state: r === 'rescue' ? 'rest' : 'loop' });
         if (r === 'rescue') { brain.resolution = 'rescue'; brain.yaw = -sx * Math.PI / 2; }
-        const e = add(brain, buildShuusha(i + 1, sub.no)); e.poseFn = shuushaPose;
+        const e = add(brain, buildShuusha(i + 1, sub.no)); e.poseFn = packPoseFn('shuusha', shuushaPose, e.model);
       });
       for (const o of rv ? OLDWING.reveal : OLDWING.secret) {
         if (this.enemyRes[o.id]) continue;
@@ -414,7 +416,7 @@ export const ch5Methods = {
     this.ui.root.classList.add('rampage'); this.rampOverlay(true);
     const C = this.companion; C.root.visible = true; C.brain.setMode('scripted'); C.brain.pos = { x: TOWN.companion[0], z: TOWN.companion[1] }; C.brain.yaw = -Math.PI * 0.9; C.anim = this.flags.companion_injured ? 'injured' : null;
     this.metrics.rampageStart6 = this.playSec; this.metrics.rampageAttackIgnored = 0;
-    this.hint('……抑える：化を長押し（V／LB＋RB／化）・弾の連打（F／LB／弾）でも。攻撃はできない'); this.later(7, () => this.hint(null));
+    this.hint('……抑える：化を長押し（V／View／化）・弾の連打（F／LB／弾）でも。攻撃はできない'); this.later(7, () => this.hint(null));
     this.later(1.0, () => this.bark('rampage_strain', 2.6));
   },
   rampOverlay(on) {
@@ -545,7 +547,7 @@ export const ch5Methods = {
     if (!this.giantMode || !(this.rampage || this.protect)) return false;
     const G = this.giant, F = G.fighter, el = this.ui.el, dev = this.input.device;
     el.hpfill.style.width = (F.hp / F.hpMax * 100).toFixed(1) + '%'; el.hplag.style.width = el.hpfill.style.width; el.hpnum.textContent = `HP ${Math.ceil(F.hp)} / ${F.hpMax}`;
-    const K = dev === 'pad' ? { hold: 'LB+RB', mash: 'LB', atk: 'X', parry: 'LB', use: 'B' } : dev === 'touch' ? { hold: '化', mash: '弾', atk: '斬', parry: '弾', use: '調' } : { hold: 'V', mash: 'F', atk: '左クリ', parry: 'F', use: 'E' };
+    const K = dev === 'pad' ? { hold: padLabel('View'), mash: padLabel('LB'), atk: padLabel('X'), parry: padLabel('LB'), use: padLabel('B') } : dev === 'touch' ? { hold: '化', mash: '弾', atk: '斬', parry: '弾', use: '調' } : { hold: 'V', mash: 'F', atk: '左クリ', parry: 'F', use: 'E' };
     if (this.rampage && !this.rampage.calm) {
       if (!el.yoki.classList.contains('on')) el.yoki.classList.add('on');
       el.ykfill.style.width = (this.rampage.suppress * 100).toFixed(1) + '%'; el.ykn.textContent = Math.round(this.rampage.suppress * 100);

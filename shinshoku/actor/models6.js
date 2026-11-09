@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 import { SkinBody, DIM, faceAtlas, UVR } from './skin.js';
 import { humanBody, humanHead, glowEyes, xfm, torus } from './models.js';
-import { applyEnemyPack, enemyPackClasses } from './enemypack.js';
+import { applyEnemyPack, enemyPackClasses, placePackAnchors } from './enemypack.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const rng = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
@@ -132,9 +132,10 @@ export function buildMachibito(seed = 1) {
     g.fillStyle = '#2a0a2a'; for (const x of [-20, 20]) { g.beginPath(); g.ellipse(x, 14, 8, 4, 0, 0, 7); g.fill(); }
     g.restore();
   });
-  const m = sb.build(tex, { rim: 0.3, rimColor: 0xd8c8a0, outline: 0.01, outlineColor: 0x08060a, faceEmissive: 0x1a1612 });
+  const m = sb.build(tex, { rim: 0.3, rimColor: 0xd8c8a0, outline: 0.01, outlineColor: 0x08060a, faceEmissive: 0x1a1612, classes: enemyPackClasses('machibito') });
+  applyEnemyPack(m, 'machibito');   // P19：待人（Codex のモデル：長い首）
   const eyeGlow = glowEyes(m, m.J, [[R * 0.36, R * 0.62, R * 0.32], [-R * 0.36, R * 0.62, R * 0.32]]);
-  return Object.assign(m, { height: 1.86, provisional: true, kind: 'machibito', bodyR: 0.32, eyeGlow });
+  return placePackAnchors(Object.assign(m, { height: 1.86, provisional: true, kind: 'machibito', bodyR: 0.32, eyeGlow }));
 }
 
 // ───────────────────────── 当直（第6章B のボス） ─────────────────────────
