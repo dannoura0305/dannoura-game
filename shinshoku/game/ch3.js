@@ -334,7 +334,7 @@ export const ch3Methods = {
         // 狙いをそらす：近くの敵は分身の方を向く
         for (const e of this.enemies) if (e.brain.alive && d2(e.pos, P.pos) < 12) { e.confusedT = ev.dur; if (e.brain.atk && e.brain.atk.phase === 'windup') e.brain.atk = null; }
         P.pos.x -= Math.sin(P.yaw) * 1.6; P.pos.z -= Math.cos(P.yaw) * 1.6; resolveCircle(P.pos, P.r, this.boxes);
-        this.ui.toast('幻術', 'iai', 1.0);
+        this.ui.toast('幻術', 'big', 1.0);
         break;
       }
       case 'noYoki': this.sfx.play('no_yoki'); this.ui.toast(`妖力が足りない（${ev.need}）`, 'weak', 0.9); break;

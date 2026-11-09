@@ -90,7 +90,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0a16; col
   opacity: 0; transition: opacity .12s, transform .12s; text-shadow: 0 0 12px rgba(180, 140, 255, .9), 2px 2px 0 #1a0f2a; white-space: nowrap; }
 .sh-toast.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 .sh-toast.issen { font-size: 46px; color: #fff; text-shadow: 0 0 18px #fff, 0 0 32px rgba(160, 110, 255, .9), 3px 3px 0 #1a0f2a; }
-.sh-toast.just { color: #c9e4ff; } .sh-toast.parry { color: #fff4d0; } .sh-toast.weak { color: #ffd27a; font-size: 24px; } .sh-toast.iai { color: #fff; font-size: 26px; }
+.sh-toast.just { color: #c9e4ff; } .sh-toast.parry { color: #fff4d0; } .sh-toast.weak { color: #ffd27a; font-size: 24px; } .sh-toast.big { color: #fff; font-size: 26px; }
 .sh-bark { position: absolute; left: 50%; bottom: 140px; transform: translateX(-50%); max-width: min(80vw, 720px); text-align: center; font-size: 16px; line-height: 1.6;
   text-shadow: 0 1px 3px #000, 0 0 6px #000; opacity: 0; transition: opacity .3s; }
 .sh-bark b { margin-right: .8em; font-weight: 700; }

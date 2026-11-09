@@ -15,7 +15,6 @@ export function windows(diff = 'normal', opt = {}, C = COMBAT) {
     hajiki: C.issen.hajiki.window + t + a,
     utsu: C.issen.utsu.window + t + a,
     chain: C.issen.chain ? C.issen.chain.window + t + a : 0,
-    iaiHold: C.issen.iai.hold,
     iStart: C.dodge.iStart, iEnd: C.dodge.iEnd,
     dmgMul: d.dmgMul, dropMul: d.dropMul,
     slowFrames: C.justSlow.frames + (opt.assist ? C.assist.slowBonus : 0),
@@ -50,5 +49,3 @@ export function issenOpen(kind, since, w = windows()) {
   return typeof win === 'number' && since >= 0 && since <= win;
 }
 
-/** 抜刀一閃の構えに入れるか（長押しのフレーム数） */
-export function iaiReady(holdFrames, w = windows()) { return holdFrames >= w.iaiHold; }

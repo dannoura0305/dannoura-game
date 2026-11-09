@@ -147,7 +147,7 @@ class Game {
     this.items = {}; this.flags = {}; this.picked = new Set(); this.opened = new Set(); this.resol = {}; this.enemyRes = {}; this.route = newRouteState();
     this.story = { step: 'pro_meet', boss: null }; this.puz = { roster: { done: {}, miss: 0 } };
     this.ownedEquip = []; this.equipped = [];
-    this.metrics = { swaps: [], issen: { mikiri: 0, hajiki: 0, iai: 0, utsu: 0, chain: 0 }, just: 0, parry: 0, shots: 0, shotHits: 0, weakHits: 0, slashHits: 0, wallClips: 0, outOfBounds: 0, hurt: 0, enemyAttacks: {}, events: [], steps: [], cutscenes: [], puzzles: {}, areas: [] };
+    this.metrics = { swaps: [], issen: { mikiri: 0, hajiki: 0, utsu: 0, chain: 0 }, just: 0, parry: 0, shots: 0, shotHits: 0, weakHits: 0, slashHits: 0, wallClips: 0, outOfBounds: 0, hurt: 0, enemyAttacks: {}, events: [], steps: [], cutscenes: [], puzzles: {}, areas: [] };
     this.enemies = []; this.civilians = []; this.pickupsList = []; this.areas = {}; this.timers = []; this.cineMoves = [];
     // 役者
     this.player = new Player(buildDannoura(), { difficulty: this.settings.difficulty, touch: isTouch, assist: this.settings.assist, ammo: 0, owned: [], weapon: 'none' });
@@ -963,7 +963,7 @@ class Game {
     if (S.rain && A.rain) { const roofed = A.rainRoof(P.pos.x, P.pos.z); this.rain.mesh.visible = !roofed; if (!roofed) this.rain.update(dt, P.pos.x, P.pos.z, false); } else this.rain.mesh.visible = false;
     // 刀の軌跡：振りの判定中と一閃
     const swinging = (F.st.name === 'attack' && F.st.f >= F.st.atk.startup - 2 && F.st.f <= F.st.atk.startup + F.st.atk.active + 3) || (F.st.name === 'issen' && F.st.f >= (P.issenInfo ? P.issenInfo.strike : 6) - 3 && F.st.f <= (P.issenInfo ? P.issenInfo.strike : 6) + 4);
-    if (swinging && pdt > 0) { const bp = F.weapon === 'claw' && !F.st.blade ? this.clawPoints() : P.bladePoints(); if (bp) this.trail.push(bp[0], bp[1], F.weapon === 'claw' ? 0xc070ff : F.st.name === 'issen' || F.st.iai ? 0xffffff : F.weapon === 'pipe' ? 0xffd8a8 : 0xd8c8ff); }
+    if (swinging && pdt > 0) { const bp = F.weapon === 'claw' && !F.st.blade ? this.clawPoints() : P.bladePoints(); if (bp) this.trail.push(bp[0], bp[1], F.weapon === 'claw' ? 0xc070ff : F.st.name === 'issen' ? 0xffffff : F.weapon === 'pipe' ? 0xffd8a8 : 0xd8c8ff); }
     this.trail.update(pdt);
     this.fx.update(Math.max(wdt, 0.0001) + (this.mode === 'play' && this.worldScale < 1 ? dt * 0.3 : 0));
     this.wet.update(this.camera); this.halos.flush(); this.wet.flush();
@@ -1045,7 +1045,7 @@ class Game {
   buildTune() {
     const d = document.createElement('div'); d.id = 'sh-tune';
     const W = COMBAT.difficulty.normal;
-    const rows = [['ジャスト回避', W, 'just'], ['パリィ（前）', W, 'parryBefore'], ['パリィ（後）', W, 'parryAfter'], ['見切り一閃の窓', COMBAT.issen.mikiri, 'window'], ['弾き一閃の窓', COMBAT.issen.hajiki, 'window'], ['連鎖一閃の窓', COMBAT.issen.chain, 'window'], ['居合の長押し', COMBAT.issen.iai, 'hold'], ['スロー（f）', COMBAT.justSlow, 'frames']];
+    const rows = [['ジャスト回避', W, 'just'], ['パリィ（前）', W, 'parryBefore'], ['パリィ（後）', W, 'parryAfter'], ['見切り一閃の窓', COMBAT.issen.mikiri, 'window'], ['弾き一閃の窓', COMBAT.issen.hajiki, 'window'], ['連鎖一閃の窓', COMBAT.issen.chain, 'window'], ['強攻撃の溜め（刀）', COMBAT.katana.heavy, 'startup'], ['スロー（f）', COMBAT.justSlow, 'frames']];
     d.innerHTML = '<b>?tune=1（ふつうの値・f）</b>' + rows.map(([n, o, k], i) => `<label>${n}<input type="number" data-i="${i}" value="${o[k]}" min="0" max="120"></label>`).join('');
     d.oninput = e => { const i = +e.target.dataset.i; const [, o, k] = rows[i]; o[k] = +e.target.value; this.applyEquip(); };
     document.body.appendChild(d);

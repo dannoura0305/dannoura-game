@@ -9,7 +9,7 @@ export const KEYMAP = {
 };
 
 /** キーの割り当てを変えられる操作（キーボード）。[操作, 表示名] */
-export const REBINDABLE = [['up', '前へ'], ['down', '後ろへ'], ['left', '左へ'], ['right', '右へ'], ['run', '走る'], ['dodge', '回避'], ['parry', '弾く'], ['heavy', '強攻撃・居合（長押し）'], ['interact', '調べる'], ['reload', '装填'], ['swap', '持ち替え'], ['lock', 'ロックオン'], ['lockPrev', '相手の切替（前）'], ['lockNext', '相手の切替（次）'], ['heal', '回復'], ['light', '懐中電灯'], ['transform', '化けを解く（長押し）'], ['pause', '一時停止'], ['map', '地図']];
+export const REBINDABLE = [['up', '前へ'], ['down', '後ろへ'], ['left', '左へ'], ['right', '右へ'], ['run', '走る'], ['dodge', '回避'], ['parry', '弾く'], ['heavy', '強攻撃（長押し）'], ['interact', '調べる'], ['reload', '装填'], ['swap', '持ち替え'], ['lock', 'ロックオン'], ['lockPrev', '相手の切替（前）'], ['lockNext', '相手の切替（次）'], ['heal', '回復'], ['light', '懐中電灯'], ['transform', '化けを解く（長押し）'], ['pause', '一時停止'], ['map', '地図']];
 /** 割り当ての上書き（{ 操作: [コード…] }）を既定に重ねた表を作る。上書きのキーは、ほかの操作から外す */
 export function buildKeymap(over = {}) {
   const m = Object.assign({}, KEYMAP);
@@ -105,7 +105,7 @@ export class Input {
     o.moveX = (h.has('right') ? 1 : 0) - (h.has('left') ? 1 : 0);
     o.moveY = (h.has('up') ? 1 : 0) - (h.has('down') ? 1 : 0);
     o.run = h.has('run'); o.aim = h.has('aim'); o.heavy = h.has('heavy') || h.has('mouseL');
-    o.transform = h.has('transform');                                       // 化けを解く：押している間（長押しはゲーム側で数える）   // 左クリック長押し＝強攻撃・居合（押した瞬間は「溜め」に入り、すぐ離すと 1 段目）
+    o.transform = h.has('transform');                                       // 化けを解く：押している間（長押しはゲーム側で数える）   // 左クリック長押し＝強攻撃（押した瞬間は「溜め」に入り、すぐ離すと 1 段目）
     o.skipHeld = h.has('interact') || h.has('pause') || h.has('dodge');
     for (const a of this.pressQ) {
       if (a === 'weapon1') o.wantWeapon = 'katana'; else if (a === 'weapon2') o.wantWeapon = 'handgun'; else if (a === 'weapon3') o.wantWeapon = 'pipe'; else if (a === 'weapon4') o.wantWeapon = 'matchlock';

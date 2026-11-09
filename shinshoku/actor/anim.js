@@ -108,7 +108,7 @@ export const PIPE_ATK = [
 ];
 export const PIPE_HEAVY = { a: { hips: [0, 0.12, 0], spine: [-0.32, 0.2, 0], chest: [-0.15, 0.05, 0], rightUpperArm: [-2.85, 0, 0.4], rightLowerArm: [-1.4, 0, 0], rightHand: [0.9, 0, 0], leftUpperArm: [-2.75, 0, -0.4], leftLowerArm: [-1.3, 0, 0], leftUpperLeg: [-0.3, 0, 0.08], leftLowerLeg: [0.3, 0, 0], rightUpperLeg: [0.15, 0, 0], rightLowerLeg: [0.3, 0, 0], hipsY: -0.05 },
   b: { hips: [0, -0.08, 0], spine: [0.85, -0.1, 0], chest: [0.2, 0, 0], rightUpperArm: [-0.55, 0, 0.1], rightLowerArm: [-0.05, 0, 0], rightHand: [-0.6, 0, 0], leftUpperArm: [-0.55, 0, -0.1], leftLowerArm: [-0.15, 0, 0], leftUpperLeg: [-1.1, 0, 0], leftLowerLeg: [1.2, 0, 0], rightUpperLeg: [0.65, 0, 0], rightLowerLeg: [0.4, 0, 0], hipsY: -0.26 } };
-const IAI_STANCE = { spine: [0.3, 0.7, 0], chest: [0, 0.2, 0], head: [-0.2, -0.8, 0], rightUpperArm: [0.4, 0, -0.5], rightLowerArm: [-1.6, 0, 0], rightHand: [0.8, 0, 0], leftUpperArm: [0.1, 0, 0.3], leftLowerArm: [-1.2, 0, 0], leftUpperLeg: [-0.7, 0, 0.1], leftLowerLeg: [1.0, 0, 0], rightUpperLeg: [0.5, 0, -0.1], rightLowerLeg: [0.6, 0, 0], hipsY: -0.16 };
+const ISSEN_START = { spine: [0.3, 0.7, 0], chest: [0, 0.2, 0], head: [-0.2, -0.8, 0], rightUpperArm: [0.4, 0, -0.5], rightLowerArm: [-1.6, 0, 0], rightHand: [0.8, 0, 0], leftUpperArm: [0.1, 0, 0.3], leftLowerArm: [-1.2, 0, 0], leftUpperLeg: [-0.7, 0, 0.1], leftLowerLeg: [1.0, 0, 0], rightUpperLeg: [0.5, 0, -0.1], rightLowerLeg: [0.6, 0, 0], hipsY: -0.16 };
 const ISSEN_END = { spine: [0.5, -0.9, 0], chest: [0, -0.3, 0], head: [-0.4, 0.9, 0], rightUpperArm: [-1.3, 0, -1.5], rightLowerArm: [0, 0, 0], rightHand: [0, 0, -0.3], leftUpperArm: [0.4, 0, 0.6], leftUpperLeg: [-1.1, 0, 0.2], leftLowerLeg: [1.3, 0, 0], rightUpperLeg: [0.8, 0, -0.1], rightLowerLeg: [0.5, 0, 0], hipsY: -0.26 };
 const PARRY = { spine: [0.05, -0.3, 0], rightUpperArm: [-1.5, 0, 0.5], rightLowerArm: [-1.2, 0, 0], rightHand: [0, 0, 1.3], leftUpperArm: [-1.2, 0, -0.1], leftLowerArm: [-1.4, 0, 0], hipsY: -0.06, leftUpperLeg: [-0.3, 0, 0], leftLowerLeg: [0.3, 0, 0] };
 const PIPE_PARRY = { spine: [0.1, -0.2, 0], rightUpperArm: [-1.7, 0.3, 0.4], rightLowerArm: [-1.3, 0, 0], rightHand: [0, 0, 1.4], leftUpperArm: [-1.6, -0.3, -0.4], leftLowerArm: [-1.3, 0, 0], hipsY: -0.08, leftUpperLeg: [-0.3, 0, 0], leftLowerLeg: [0.35, 0, 0] };
@@ -127,7 +127,8 @@ export function dannouraPose(ctx) {
   let b = base(ctx);
   let rate = ctx.speed > 0.1 ? 0.55 : 0.2;
   const pipe = w === 'pipe' || w === 'matchlock';
-  if (w === 'katana' && !['attack', 'issen', 'parry', 'charge'].includes(st.name)) {
+  // 2026-11-09：刀を鞘に納めている間（ctx.sheathed：combat/sheath.js）は構えない（手は空き・腕は自然に）
+  if (w === 'katana' && !ctx.sheathed && !['attack', 'issen', 'parry', 'charge'].includes(st.name)) {
     // P13：歩き・走りでは構えた右腕にも振りを少し残す（片腕だけ固まって見えない）
     const sw = b._gait && b.rightUpperArm ? b.rightUpperArm[0] : null;
     b = Object.assign(b, KATANA_READY);
@@ -145,13 +146,13 @@ export function dannouraPose(ctx) {
     if (f < a.startup) pose = mix(b, P.a, ease(Math.min(1, (f + 1) / Math.max(1, a.startup))));
     else if (t <= 1) pose = mix(P.a, P.b, swingK(t));
     else { const u = t - 1; pose = u < 0.25 ? mix(P.b, mix(P.b, ready, -0.12), ease(u / 0.25)) : mix(mix(P.b, ready, -0.12), ready, ease((u - 0.25) / 0.75)); }   // 振り抜いた向きへ少し流れる（残心）→ 構えへ
-    return { pose: st.iai ? mix(IAI_STANCE, ISSEN_END, swingK(Math.min(1, t))) : pose, rate: f < a.startup ? 0.6 : 0.9 };
+    return { pose, rate: f < a.startup ? 0.6 : 0.9 };
   }
   // 溜め：2026-11-08 刀は「両手で前に構える（中段）→ 振りかぶる」の順に（前は腕が横へ開いてから上がっていた：VRoid の体で両腕が水平に開く形を通った）
-  if (st.name === 'charge') return pipe ? { pose: mix(Object.assign({}, b, PIPE_READY), PIPE_HEAVY.a, ease(f / 18)), rate: 0.25 } : f < 14 ? { pose: f < 7 ? mix(Object.assign({}, b, CHUDAN), RAISE, ease((f - 2) / 5)) : mix(RAISE, HEAVY.a, ease((f - 7) / 6)), rate: 0.5 } : { pose: mix(HEAVY.a, IAI_STANCE, ease((f - 14) / 22)), rate: 0.3 };
+  if (st.name === 'charge') return pipe ? { pose: mix(Object.assign({}, b, PIPE_READY), PIPE_HEAVY.a, ease(f / 18)), rate: 0.25 } : f < 14 ? { pose: f < 7 ? mix(Object.assign({}, b, CHUDAN), RAISE, ease((f - 2) / 5)) : mix(RAISE, HEAVY.a, ease((f - 7) / 6)), rate: 0.5 } : { pose: HEAVY.a, rate: 0.3 };   // 溜め切ったら振りかぶったまま待つ
   if (st.name === 'issen') {
     const k = ctx.issen || {}; const strike = k.strike || 8;
-    if (f < strike) return { pose: mix(IAI_STANCE, ISSEN_END, ease(f / strike) * 0.3), rate: 0.6 };
+    if (f < strike) return { pose: mix(ISSEN_START, ISSEN_END, ease(f / strike) * 0.3), rate: 0.6 };
     return { pose: ISSEN_END, rate: 0.9 };
   }
   if (st.name === 'parry') return { pose: pipe ? PIPE_PARRY : PARRY, rate: 0.7 };

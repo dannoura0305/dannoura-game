@@ -26,6 +26,8 @@ export const combatMethods = {
     if (I.cycleMelee) { const M = ['katana', 'pipe', 'matchlock'].filter(w => F.owned.includes(w)); if (M.length) I.wantWeapon = M[(M.indexOf(F.weapon) + 1) % M.length]; }
     const evs = F.tick({ attack: I.attack, heavy: I.heavy, dodge: I.dodge, parry: I.parry, swap: I.swap, aim: I.aim, reload: I.reload, wantWeapon: I.wantWeapon });
     this.handleFighter(evs);
+    // 刀の鞘（見た目だけ）：攻撃で抜き、しばらく戦わなければ納める。ロックオン中・敵が近い（5m）間は抜いたまま
+    P.sheath.tick(F, { alert: P.sheath.drawn && ((this.lock && this.lock.hittable()) || this.enemies.some(e => e.hittable() && Math.hypot(e.pos.x - P.pos.x, e.pos.z - P.pos.z) < 5)) });
     if (I.heal) this.useHeal();
     if (I.interact && this.nearSpot) this.useSpot(this.nearSpot);
     const st = F.st; let vx = 0, vz = 0;
@@ -134,13 +136,13 @@ export const combatMethods = {
         case 'mreloadDone': this.metrics.mReloads = (this.metrics.mReloads || 0) + 1; break;
         case 'parryStart': this.pushAct('parry'); break;
         case 'attackStart': {
-          this.pushAct(F.weapon === 'claw' ? (ev.blade ? 'blade' : 'claw') : ev.iai ? 'iai' : ev.heavy ? 'heavy' : F.weapon === 'pipe' || F.weapon === 'matchlock' ? 'pipe' : 'slash');
+          this.pushAct(F.weapon === 'claw' ? (ev.blade ? 'blade' : 'claw') : ev.heavy ? 'heavy' : F.weapon === 'pipe' || F.weapon === 'matchlock' ? 'pipe' : 'slash');
           const t = (this.lock && this.lock.hittable() && Math.hypot(this.lock.pos.x - P.pos.x, this.lock.pos.z - P.pos.z) < 5) ? this.lock : this.nearestEnemy(3.6, true, 220);
           this.softTarget = t;
           if (t) P.yaw = Math.atan2(t.pos.x - P.pos.x, t.pos.z - P.pos.z);
           else if (this.curMoveMag > 0.3) P.yaw = Math.atan2(P.moveDir.x, P.moveDir.z);
           this.swingHits = new Set(); this.trail.cut(); this.swingT = 0;
-          this.sfx.play(F.weapon === 'claw' ? (ev.blade ? 'blade' : 'claw') : F.weapon === 'pipe' || F.weapon === 'matchlock' ? 'swing_pipe' : ev.heavy || ev.iai || ev.step === 2 ? 'swing_heavy' : 'swing');
+          this.sfx.play(F.weapon === 'claw' ? (ev.blade ? 'blade' : 'claw') : F.weapon === 'pipe' || F.weapon === 'matchlock' ? 'swing_pipe' : ev.heavy || ev.step === 2 ? 'swing_heavy' : 'swing');
           if (F.weapon === 'claw') { const hp = P.model.J[ev.step % 2 ? 'leftHand' : 'rightHand']; if (hp) { const v = new THREE.Vector3(); hp.getWorldPosition(v); for (let i = 0; i < 4; i++) this.fx.puff(v.x, v.y, v.z, (Math.random() - 0.5) * 0.5, 0.3, (Math.random() - 0.5) * 0.5, 0xa060ff, 0.4, 0.45); } }
           break;
         }
@@ -180,7 +182,6 @@ export const combatMethods = {
           break;
         }
         case 'dead': this.onPlayerDead(); break;
-        case 'iaiReady': this.sfx.play('issen_ready'); this.ui.toast('居合', 'iai', 0.6); break;
       }
     }
   },
@@ -243,7 +244,7 @@ export const combatMethods = {
         P.yaw = Math.atan2(e.pos.x - P.pos.x, e.pos.z - P.pos.z);
       } else P.yaw = Math.atan2(dx, dz);
     }
-    const names = { mikiri: '見切り一閃', hajiki: '弾き一閃', iai: '抜刀一閃', utsu: '撃ち一閃', chain: `連鎖一閃 ${this.player.fighter.chainN + 1}` };
+    const names = { mikiri: '見切り一閃', hajiki: '弾き一閃', utsu: '撃ち一閃', chain: `連鎖一閃 ${this.player.fighter.chainN + 1}` };
     this.ui.toast(names[ev.kind], 'issen', 1.4);
     this.ui.flash('issen'); this.rumble('issen'); this.sfx.play(ev.kind === 'chain' ? 'chain' : 'issen'); this.sfx.setMuffle(0.85);
     this.slowT = Math.max(this.slowT, COMBAT.issen[ev.kind].total + 10); this.slowScale = 0.2; this.ui.slow(true);
@@ -441,7 +442,7 @@ export const combatMethods = {
         case 'calm': e.mark = null; break;
         // ボス
         case 'phase': this.onBossPhase(ev.n); break;
-        case 'rollcall': this.metrics.rollcalls = (this.metrics.rollcalls || 0) + 1; this.sfx.play('pa_chime'); this.ui.toast('点呼', 'iai', 1.2); this.hint(this.flags.roster_done ? '点呼のあいだ、舞台の前のマイクで名前を呼べる' : '点呼……。名簿で名前が分かれば、呼べるかもしれない'); break;
+        case 'rollcall': this.metrics.rollcalls = (this.metrics.rollcalls || 0) + 1; this.sfx.play('pa_chime'); this.ui.toast('点呼', 'big', 1.2); this.hint(this.flags.roster_done ? '点呼のあいだ、舞台の前のマイクで名前を呼べる' : '点呼……。名簿で名前が分かれば、呼べるかもしれない'); break;
         case 'rollcallEnd': case 'rollcallBroken': this.hint(null); break;
         case 'stuck': this.sfx.play('crash', b.pos); this.bark('shuuyou_stuck', 3); this.hint('今なら器具庫のシャッターを下ろせる（入口の右のスイッチ）'); break;
         case 'unstuck': this.hint(null); break;

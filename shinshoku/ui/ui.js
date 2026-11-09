@@ -10,7 +10,7 @@ export const keyName = c => c.startsWith('Key') ? c.slice(3) : c.startsWith('Dig
 
 export const CONTROLS = [
   ['移動', 'WASD', '左スティック', '左の円'], ['カメラ', 'マウス', '右スティック', '右側をなぞる'], ['走る', 'Shift', 'L3（切替）', '円を外まで倒す'],
-  ['攻撃（刀・鉄パイプ）', '左クリック', 'X', '斬'], ['強攻撃／居合の構え', '左クリック長押し／Q 長押し', 'Y 長押し', '斬 長押し'],
+  ['攻撃（刀・鉄パイプ）', '左クリック', 'X', '斬'], ['強攻撃（溜め）', '左クリック長押し／Q 長押し', 'Y 長押し', '斬 長押し'],
   ['銃を構える', '右クリック（押す間）', 'LT', '銃（押す→構え・離す→撃つ）'], ['撃つ', '構え中に左クリック', 'RT', '同上'],
   ['回避（ジャスト回避）', 'Space', 'A', '避'], ['弾く（パリィ）', 'F', 'LB', '弾'], ['持ち替え（近接⇄銃）', 'ホイール／X', 'RB', '替'],
   ['武器を選ぶ', '1 刀・2 銃・3 鉄パイプ', 'View を押しながら RB（近接を順に）', '替 長押し（近接を順に）'],
@@ -350,7 +350,7 @@ export class UI {
   equipBody(g) {
     const own = g.ownedEquip || [], on = g.equipped || [];
     if (!own.length) return '<p class="sh-note">まだ装備を持っていません。（金庫・裏路地の祠・警備室の落とし物箱）</p>';
-    return `<div class="sh-equip">${own.map(id => { const e = g.EQUIP[id]; return `<button data-eq="${id}" class="${on.includes(id) ? 'on' : ''}"><b>${esc(e.name)}</b><small>${esc(e.desc)}</small>${on.includes(id) ? '<em>装備中</em>' : ''}</button>`; }).join('')}</div><p class="sh-note">装備の枠は 2 つ。持ち替え・居合・見切りの時間が変わります（名前・効果は仮）。</p>`;
+    return `<div class="sh-equip">${own.map(id => { const e = g.EQUIP[id]; return `<button data-eq="${id}" class="${on.includes(id) ? 'on' : ''}"><b>${esc(e.name)}</b><small>${esc(e.desc)}</small>${on.includes(id) ? '<em>装備中</em>' : ''}</button>`; }).join('')}</div><p class="sh-note">装備の枠は 2 つ。持ち替え・強攻撃の溜め・見切りの時間が変わります（名前・効果は仮）。</p>`;
   }
   /** キーの割り当て（キーボード）：操作ごとに今のキーと「変える」。変える＝次に押したキー（Esc でやめる） */
   keysBody(g) {
@@ -394,7 +394,7 @@ export class UI {
     if (tab === 'controls') {
       const padOn = this.dev === 'pad';
       body = `${padOn ? `<p class="sh-note sh-padnow">コントローラーで操作中（${getPadStyle() === 'ps' ? 'PlayStation の配置' : 'Xbox の配置'}）：十字キー／左スティックで選ぶ・${padKbd('A')} 決定・${padKbd('B')} 戻る・${padKbd('LB')}／${padKbd('RB')} でタブ</p>` : ''}<table class="sh-ctl ${padOn ? 'pad-on' : ''}"><tr><th>操作</th><th>キーボード＋マウス</th><th>コントローラー</th><th>タッチ</th></tr>${CONTROLS.map(r => `<tr>${r.map((c, i) => i ? `<td>${esc(i === 2 ? padText(c) : c)}</td>` : `<th>${esc(c)}</th>`).join('')}</tr>`).join('')}</table>
-      <p class="sh-note">一閃：<b>ジャスト回避</b>（敵の攻撃が当たる直前に回避）の直後に攻撃＝見切り一閃。<b>パリィ</b>（白い「！」の攻撃に合わせて弾く）の直後に攻撃＝弾き一閃。<b>居合</b>（Q 長押しで構え）中に攻撃を受けると抜刀一閃。弱点（光る所）を撃った直後に攻撃＝撃ち一閃。赤い「危」は弾けない：回避のみ。</p>`;
+      <p class="sh-note">一閃：<b>ジャスト回避</b>（敵の攻撃が当たる直前に回避）の直後に攻撃＝見切り一閃。<b>パリィ</b>（白い「！」の攻撃に合わせて弾く）の直後に攻撃＝弾き一閃。弱点（光る所）を撃った直後に攻撃＝撃ち一閃。赤い「危」は弾けない：回避のみ。</p>`;
     } else if (tab === 'map') {
       body = `<canvas class="sh-townmap" width="1280" height="680"></canvas><p class="sh-note">黄色の点線：自宅から商店街までの道のり（約 95m・角 4 つ）。区画どうしは出入り口でつながる（商店街の奥の空き店舗 → 裏路地 → 商業施設の前 → 市民体育館 → 病院・観測分室 → 研究施設）。名前はすべて仮。</p>`;
     } else if (tab === 'keys') {

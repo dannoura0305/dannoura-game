@@ -254,3 +254,27 @@ export function placeLongGun(J, W, B, D, up, w, butt = -0.21) {
   twoBoneIK(J.rightUpperArm, J.rightLowerArm, H, Hp.clone().lerp(Ph, w), bend.multiplyScalar(3).add(el));
   setWorldQuat(H, Hq.slerp(Qh, w));
 }
+
+/**
+ * 右手に持つ物 K（手の骨の子・間の物は大きさ 1）が、世界の在り処 T（Object3D）に重なる所へ右手を寄せる（重み w：0..1）。
+ * 2026-11-09：刀を抜く・納める（shinshoku/actor/actors.js：右手を腰の鞘の柄へ）。腕は 2 本の骨の IK・ひじは体の右（−x）の外・少し後ろへ。
+ * root：体の向き（ひじの向きを決める）。手から K までの局所の位置と向きは決まっているので、T からそれを引いて手の場所と向きを出す
+ */
+export function placeHeldAt(J, K, T, w, root) {
+  const H = J.rightHand;
+  if (!H || !J.rightUpperArm || !J.rightLowerArm || !K || !T || w <= 1e-3) return false;
+  const rq = new THREE.Quaternion(), rp = new THREE.Vector3(), chain = [];
+  for (let o = K; o && o !== H; o = o.parent) chain.push(o);
+  if (!chain.length || chain[chain.length - 1].parent !== H) return false;
+  for (let i = chain.length - 1; i >= 0; i--) { const c = chain[i]; rp.add(_v.copy(c.position).applyQuaternion(rq)); rq.multiply(c.quaternion); }
+  H.updateWorldMatrix(true, false); T.updateWorldMatrix(true, false);
+  const s = H.getWorldScale(new THREE.Vector3()).x;
+  const Qh = T.getWorldQuaternion(new THREE.Quaternion()).multiply(rq.clone().invert());
+  const Ph = T.getWorldPosition(new THREE.Vector3()).sub(rp.multiplyScalar(s).applyQuaternion(Qh));
+  const Hq = H.getWorldQuaternion(new THREE.Quaternion()), Hp = H.getWorldPosition(new THREE.Vector3());
+  const rootQ = root ? root.getWorldQuaternion(new THREE.Quaternion()) : new THREE.Quaternion();
+  const pole = J.rightLowerArm.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(-0.4, -0.1, -0.15).applyQuaternion(rootQ));
+  twoBoneIK(J.rightUpperArm, J.rightLowerArm, H, Hp.lerp(Ph, w), pole);
+  setWorldQuat(H, Hq.slerp(Qh, w));
+  return true;
+}

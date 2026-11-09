@@ -168,7 +168,7 @@ async function runPC(browser) {
   await page.keyboard.press('Enter'); await page.waitForTimeout(300);
   const safe = await page.evaluate(() => { __sh.debug.skipDialog(); const s = __sh.state(); return { opened: !!s.flags.safe_opened, owned: s.player.owned, ammo: s.player.ammo, equip: s.equip }; });
   ok('金庫（任意）：カレンダーの番号で開く → 拳銃・弾 100 発・小型銃用ホルスター', safe.opened && safe.owned.includes('handgun') && safe.ammo >= 100 && safe.equip.includes('holster'), JSON.stringify({ code, ...safe }));
-  // 5. 発生後の商店街：一閃・弾き・居合・赤い予兆・銃・救う・倒す
+  // 5. 発生後の商店街：一閃・弾き・強攻撃の溜め・刀の鞘・赤い予兆・銃・救う・倒す
   await isolate(page, 'kiro_1');
   await justDodgeIssen(page, 'kiro_1', [0, -24]);                                   // 慣らしの 1 回（数えない：場面の切り替わり直後の状態をそろえる）
   let n = 0; for (let i = 0; i < 10; i++) if (await justDodgeIssen(page, 'kiro_1', [0, -24])) n++;
@@ -181,8 +181,18 @@ async function runPC(browser) {
     return ok;
   });
   ok('パリィ→弾き一閃（入力列 5 回）', parry === 5, `${parry}/5`);
-  const iai = await page.evaluate(() => { const D = __sh.debug, g = __sh.game; D.resetEnemy('kiro_2'); D.heal(); g.slowT = 0; D.teleport(0, -30, Math.PI); D.placeEnemy('kiro_2', 0, -31.4); D.freezeEnemies(true); D.fastSim(2); const b = __sh.state().metrics.issen.iai; __sh.input.script([{ f: 0, hold: { heavy: 120 } }]); D.fastSim(45); D.freezeEnemies(false); const W = D.forceAttack('kiro_2', 'grab'); D.fastSim(W + 50); return __sh.state().metrics.issen.iai - b; });
-  ok('居合の構え（長押し）→抜刀一閃（弾けないつかみにも）', iai === 1);
+  // 2026-11-09：居合は削除。長押しは強攻撃の溜めだけ（長く押しても構えにならず、離すと強攻撃）
+  const heavy = await page.evaluate(() => { const D = __sh.debug, g = __sh.game, F = g.player.fighter; D.resetEnemy('kiro_2'); D.heal(); g.slowT = 0; D.teleport(0, -30, Math.PI); D.placeEnemy('kiro_2', 0, -31.4); D.freezeEnemies(true); D.fastSim(2); const i0 = Object.values(__sh.state().metrics.issen).reduce((a, b) => a + b, 0); __sh.input.script([{ f: 0, hold: { heavy: 60 } }]); D.fastSim(50); const mid = F.st.name; D.fastSim(20); const hit = F.log.some(e => e.t === 'attackStart' && e.heavy && e.step === 8); D.fastSim(40); D.freezeEnemies(false); return { mid, hit, issen: Object.values(__sh.state().metrics.issen).reduce((a, b) => a + b, 0) - i0, iai: 'iai' in __sh.state().metrics.issen }; });
+  ok('強攻撃の溜め（長押し 60f）→強攻撃（居合の構え・抜刀一閃は無い）', heavy.mid === 'charge' && heavy.hit && heavy.issen === 0 && !heavy.iai, JSON.stringify(heavy));
+  // 刀の鞘：普段は納める → 攻撃で抜く（攻撃のこま数は同じ）→ 敵から離れて 3.5 秒で納める
+  const sheath = await page.evaluate(() => { const D = __sh.debug, g = __sh.game, P = g.player, F = P.fighter; D.freezeEnemies(true); D.teleport(0, -12, Math.PI); g.lock = null; if (F.owned.includes('katana') && F.weapon !== 'katana') { F._go('free'); F.weapon = 'katana'; } P.sheath.sheatheNow(); D.fastSim(10);
+    const vis = () => { const W = P.model.weapons, on = o => !!o && (W.bones ? o.scale.x > 0.5 : o.visible); return { hand: on(W.katana), hilt: on(W.sayaHilt), saya: on(W.saya) }; };
+    P.setWeaponVisual(); const v0 = vis(), s0 = P.sheath.drawn;
+    __sh.input.script([{ f: 0, press: ['attack'] }]); D.fastSim(2); P.setWeaponVisual(); const v1 = vis(), s1 = P.sheath.drawn;
+    const a0 = (F.log.filter(e => e.t === 'attackStart').pop() || {}).frame; let k = 0; while (F.st.name !== 'free' && k < 200) { D.fastSim(1); k++; } const atkF = F.frame - 1 - a0;
+    D.fastSim(60); const s2 = P.sheath.drawn; D.fastSim(200); P.setWeaponVisual(); const v3 = vis(), s3 = P.sheath.drawn; D.freezeEnemies(false);
+    return { w: F.weapon, v0, s0, v1, s1, atkF, s2, v3, s3 }; });
+  ok('刀の鞘：普段は左腰の鞘に納め、攻撃で抜き、戦わずに 3.5 秒で納める（攻撃のこま数は同じ）', sheath.w !== 'katana' || (!sheath.s0 && !sheath.v0.hand && sheath.v0.hilt && sheath.v0.saya && sheath.s1 && sheath.v1.hand && !sheath.v1.hilt && sheath.s2 && !sheath.s3 && !sheath.v3.hand && sheath.v3.hilt && sheath.atkF === 6 + 4 + 14), JSON.stringify(sheath));
   const red = await page.evaluate(() => { const D = __sh.debug, g = __sh.game; D.resetEnemy('kiro_2'); D.heal(); g.slowT = 0; D.teleport(0, -30, Math.PI); D.placeEnemy('kiro_2', 0, -31.4); D.fastSim(2); const p0 = __sh.state().metrics.parry, h0 = g.player.fighter.hp; const W = D.forceAttack('kiro_2', 'grab'); __sh.input.script([{ f: W - 3, press: ['parry'] }]); D.fastSim(W + 10); return { parried: __sh.state().metrics.parry - p0, dmg: h0 - g.player.fighter.hp }; });
   ok('赤い予兆（つかみ）は弾けない', red.parried === 0 && red.dmg > 0, JSON.stringify(red));
   await unisolate(page); await isolate(page, 'kiro_4');

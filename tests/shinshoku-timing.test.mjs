@@ -123,18 +123,20 @@ t('弾けない攻撃（赤い予兆）はパリィで受けられない', () =>
   const F = new Fighter(); F.tick({ parry: true }); run(F, 2);
   assert.equal(F.incoming({ src: 'e', dmg: 20, parryable: false, inRange: true }), 'hit'); assert.equal(F.hp, 80);
 });
-t('居合：長押し 36f で構え → 攻撃が届くと抜刀一閃', () => {
+t('居合は無い（2026-11-09 削除）：長く溜めても構えにならず、攻撃を受ければ当たる。離すと強攻撃（硬直は強攻撃のまま）', () => {
   const F = new Fighter();
-  const evs = run(F, 40, { heavy: true });
-  assert.ok(evs.some(e => e.t === 'iaiReady'));
-  assert.equal(F.incoming({ src: 'e4', dmg: 20, parryable: false, inRange: true }), 'iai');
-  assert.ok(F.drain().some(e => e.t === 'issen' && e.kind === 'iai'));
-  assert.ok(run(F, 10).some(e => e.t === 'issenStrike' && e.kind === 'iai'));
+  const evs = run(F, 60, { heavy: true });
+  assert.ok(!evs.some(e => /iai/i.test(e.t)), '居合の出来事が無い');
+  assert.equal(F.name, 'charge'); assert.equal(F.iaiStance, undefined);
+  assert.equal(windows().iaiHold, undefined); assert.equal(COMBAT.issen.iai, undefined); assert.equal(COMBAT.katana.iaiSwing, undefined);
+  const r = F.incoming({ src: 'e4', dmg: 20, parryable: false, inRange: true });
+  assert.equal(r, 'hit'); assert.ok(!F.drain().some(e => e.t === 'issen'));
+  const G = new Fighter(); run(G, 60, { heavy: true }); const e = G.tick({});
+  const s = e.find(x => x.t === 'attackStart'); assert.ok(s && s.heavy && s.step === 8 && !('iai' in s));
+  let k = 0; while (G.name !== 'free' && k < 200) { G.tick({}); k++; }
+  assert.equal(k, COMBAT.katana.heavy.active + COMBAT.katana.heavy.recovery, `強攻撃の長さ ${k}f`);
 });
-t('居合の空振りは 30f の硬直・強攻撃（18f 長押し）', () => {
-  const F = new Fighter(); run(F, 40, { heavy: true });
-  let k = 0; F.tick({}); while (F.name !== 'free' && k < 100) { F.tick({}); k++; }
-  assert.ok(k >= 30 + 5 - 2, `硬直 ${k}f`);
+t('強攻撃（18f 長押し）', () => {
   const G = new Fighter(); run(G, 20, { heavy: true }); const e = G.tick({});
   assert.ok(e.some(x => x.t === 'attackStart' && x.heavy));
 });

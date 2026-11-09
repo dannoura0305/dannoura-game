@@ -17,7 +17,7 @@ const run = (F, frames, inp = {}) => { const evs = []; for (let i = 0; i < frame
 t('装備：元の数値は変えず、写しに足す（ホルスター・抜刀補助・見切り補助）', () => {
   const C = combatWithEquip(COMBAT, ['holster', 'battou']);
   assert.equal(C.swap.katanaToGun, COMBAT.swap.katanaToGun - 3); assert.equal(C.swap.quickShot, COMBAT.swap.quickShot - 1);
-  assert.equal(C.issen.iai.hold, 24); assert.equal(COMBAT.issen.iai.hold, 36);
+  assert.equal(C.katana.heavy.startup, 13); assert.equal(COMBAT.katana.heavy.startup, 18);   // 抜刀補助：刀の強攻撃の溜め 18f→13f
   const M = combatWithEquip(COMBAT, ['mikiri']); assert.equal(windows('normal', {}, M).just, windows('normal', {}, COMBAT).just + 2);
   assert.equal(swapFrames('katana', 'handgun', {}, C), 6);
   for (const e of Object.values(EQUIP)) assert.equal(e.provisional, true);
@@ -39,7 +39,7 @@ t('鉄パイプ：2 段の連撃・遅い発生（12f）・ガード崩し・弾
   const act = evs.find(e => e.t === 'active'); assert.equal(act.atk.guardBreak, true); assert.ok(act.frame >= 12);
   const F2 = new Fighter({ owned: ['pipe'], weapon: 'pipe' }); F2.tick({ parry: true }); assert.equal(F2.st.name, 'parry');
 });
-t('左クリック長押し：押した瞬間は溜め、すぐ離すと 1 段目、18f で強攻撃、居合は刀だけ', () => {
+t('左クリック長押し：押した瞬間は溜め、すぐ離すと 1 段目、18f で強攻撃（鉄パイプも）', () => {
   const F = new Fighter({});
   const e1 = run(F, 20, i => ({ attack: i === 0, heavy: i < 4 }));
   assert.equal(e1.find(e => e.t === 'attackStart').step, 0);
@@ -48,7 +48,22 @@ t('左クリック長押し：押した瞬間は溜め、すぐ離すと 1 段�
   assert.equal(e2.find(e => e.t === 'attackStart').step, 8);
   const H = new Fighter({ owned: ['pipe'], weapon: 'pipe' });
   const e3 = run(H, 80, i => ({ attack: i === 0, heavy: i < 50 }));
-  assert.equal(e3.filter(e => e.t === 'iaiReady').length, 0); assert.equal(e3.find(e => e.t === 'attackStart').step, 8);
+  assert.equal(e3.find(e => e.t === 'attackStart').step, 8);
+});
+t('抜刀補助（鍔止めの紐）：刀の強攻撃の溜めが短くなる（18f→13f）。振り・硬直・他の武器は同じ', () => {
+  const C = combatWithEquip(COMBAT, ['battou']);
+  assert.ok(C.katana.heavy.startup <= COMBAT.katana.heavy.startup * 0.8 && C.katana.heavy.startup >= COMBAT.katana.heavy.startup * 0.7);
+  assert.ok(/強攻撃の溜め/.test(EQUIP.battou.desc) && !/居合/.test(EQUIP.battou.desc)); assert.equal(EQUIP.battou.name, '抜刀補助（鍔止めの紐）');
+  for (const k of ['active', 'recovery', 'dmg', 'reach']) assert.equal(C.katana.heavy[k], COMBAT.katana.heavy[k]);
+  assert.deepEqual(C.pipe, COMBAT.pipe); assert.deepEqual(C.katana.light, COMBAT.katana.light);
+  // 14f 押して離す：装備なしは 1 段目、抜刀補助ありは強攻撃
+  const hold = (F, n) => run(F, n + 1, i => ({ heavy: i < n })).find(e => e.t === 'attackStart');
+  assert.equal(hold(new Fighter({}), 14).step, 0);
+  const B = new Fighter({}); B.setCombat(C); const s = hold(B, 14); assert.equal(s.step, 8); assert.ok(s.heavy);
+  assert.equal(hold(new Fighter({}), 18).step, 8);
+  // 振りの長さは同じ
+  let k = 0; while (B.name !== 'free' && k < 200) { B.tick({}); k++; }
+  assert.equal(k, COMBAT.katana.heavy.active + COMBAT.katana.heavy.recovery);
 });
 t('持ち替え：近接→銃、銃→最後の近接。鉄パイプが絡むと重い（18〜27f）', () => {
   const F = new Fighter({ owned: ['pipe', 'katana', 'handgun'], weapon: 'pipe' });

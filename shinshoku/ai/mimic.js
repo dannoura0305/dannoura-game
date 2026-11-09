@@ -6,8 +6,8 @@ import { Brain, dist2 } from './brain.js';
 import { ENEMIES } from '../data/enemies.js';
 
 /** 行動の種類 → 写し方の分類 */
-export const ACT_CAT = { slash: 'melee', heavy: 'melee', claw: 'melee', blade: 'melee', iai: 'melee', pipe: 'melee', dodge: 'dodge', dash: 'dodge', shot: 'shot', foxfire: 'shot', parry: 'guard', illusion: 'guard' };
-export const ACT_LABEL = { slash: '斬', heavy: '強', claw: '爪', blade: '刃', iai: '居', pipe: '打', dodge: '避', dash: '瞬', shot: '撃', foxfire: '火', parry: '弾', illusion: '幻' };
+export const ACT_CAT = { slash: 'melee', heavy: 'melee', claw: 'melee', blade: 'melee', pipe: 'melee', dodge: 'dodge', dash: 'dodge', shot: 'shot', foxfire: 'shot', parry: 'guard', illusion: 'guard' };
+export const ACT_LABEL = { slash: '斬', heavy: '強', claw: '爪', blade: '刃', pipe: '打', dodge: '避', dash: '瞬', shot: '撃', foxfire: '火', parry: '弾', illusion: '幻' };
 const CAT_ATK = { melee: 'mslash', dodge: 'mlunge', shot: 'mshot', guard: 'mgrab' };
 
 /**
