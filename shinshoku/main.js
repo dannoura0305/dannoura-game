@@ -27,6 +27,7 @@ import { SwordTrail } from './render/trail.js';
 import { PRESETS, autoPreset, applyPreset } from './render/quality.js';
 import { setOutlinesVisible, canvasTex, JP_FONT, toon } from './render/toon.js';
 import { Input } from './core/input.js';
+import { PadNav, padLabel } from './ui/padnav.js';
 import { Sfx } from './core/audio.js';
 import { UI } from './ui/ui.js';
 import { setupTouch } from './ui/touch.js';
@@ -47,6 +48,12 @@ import { ch5Methods } from './game/ch5.js';
 import { ch6Methods } from './game/ch6.js';
 import { ch7Methods } from './game/ch7.js';
 import { CHAPTER_SELECT, GALLERY, selectableChapters, galleryUnlocked } from './data/ch7.js';
+// テストプレイ：章選択で全部の章と結末を選べる（この端末の localStorage だけ。本作・他のゲームの記録は書かない）
+const TEST_KEY = 'shinshoku_testplay';
+const testPlayOn = () => { try { return localStorage.getItem(TEST_KEY) === '1'; } catch { return false; } };
+const setTestPlay = on => { try { if (on) localStorage.setItem(TEST_KEY, '1'); else localStorage.removeItem(TEST_KEY); } catch { /* 保存できない時は切り替えない */ } };
+const TEST_ENDINGS = [{ id: 'endA', title: '結末A', step: 'end_a', route: 'reveal' }, { id: 'endB', title: '結末B', step: 'end_b', route: 'secret' }];
+const CHAPTER_ORDER = ['prologue', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5a', 'ch6a', 'ch7a', 'endA', 'ch5b', 'ch6b', 'ch7b', 'endB'];
 import './world/areas8.js';
 import './world/areas7.js';
 import './world/areas5.js';
@@ -84,7 +91,7 @@ const Q = new URLSearchParams(location.search);
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || Q.get('touch') === '1';
 const AUTO_PRESET = autoPreset({ touch: isTouch, w: innerWidth, h: innerHeight, dpr: devicePixelRatio, cores: navigator.hardwareConcurrency, mem: navigator.deviceMemory });
 
-const DEFAULT_SETTINGS = () => Object.assign(applyPreset({ preset: 'auto' }, AUTO_PRESET), { preset: 'auto', difficulty: 'normal', assist: false, sens: 1, invertY: false, volume: 0.7, touchUI: isTouch, subSize: 'm', teleCB: false, rampageInput: 'both', shake: 1, keys: {} });
+const DEFAULT_SETTINGS = () => Object.assign(applyPreset({ preset: 'auto' }, AUTO_PRESET), { preset: 'auto', difficulty: 'normal', assist: false, sens: 1, invertY: false, volume: 0.7, touchUI: isTouch, subSize: 'm', teleCB: false, rampageInput: 'both', shake: 1, rumble: true, keys: {} });
 
 /** 区画の明かり（定義）と使い回しの点光源 */
 const POOL_MAX = 8;
@@ -156,6 +163,7 @@ class Game {
     this.input.onUnlock = () => { if (this.mode === 'play' && !this.noPauseOnUnlock && !this.cut.active) this.pause(); };
     this.ui = new UI(document.getElementById('sh-ui'), this);
     this.touchUI = setupTouch(document.getElementById('sh-ui'), this.input, this);
+    this.padNav = new PadNav(this); this.input.rumbleOff = this.settings.rumble === false;   // コントローラーで DOM の画面を操作・接続のお知らせ（ui/padnav.js）
     // フル画面の出入り（ボタン・Esc・戻る操作）：ボタンの文字・押しっぱなしの入力・画面の大きさを合わせる
     onFsChange(() => { syncFsButtons(); this.input.held.clear(); if (this.touchUI.release) this.touchUI.release(); this.metrics.fullscreen = !!fsElement(); this.resize(); });
     this.applySetting('touchUI', this.settings.touchUI, true);
@@ -477,6 +485,7 @@ class Game {
       else if (a === 'close') { el.querySelector('.tt-panel').hidden = true; el.classList.remove('tt-open'); }
       else if (a === 'fresh') this.newGame(null);
       else if (a === 'ngplus') this.newGamePlus();
+      else if (a === 'testplay') { setTestPlay(!testPlayOn()); this.titlePanel('chapters'); }
       else if (b.dataset.ch) this.chapterSelect(b.dataset.ch);
       else if (b.dataset.g) this.galleryPlay(b.dataset.g);
     };
@@ -489,10 +498,13 @@ class Game {
     const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
     let html = '';
     if (kind === 'chapters') {
-      const ok = selectableChapters(T.own);
-      html = `<h3>章選択</h3>${T.cleared ? '' : '<div class="tt-lock">結末を見ると、すべての章を選べます（今は記録のある章だけ）。</div>'}`
-        + CHAPTER_SELECT.map(c => `<div class="tt-row"><button data-ch="${c.id}" ${ok.includes(c.id) ? '' : 'disabled'}>${esc(c.title)}</button>${c.route ? `<span class="tt-lock">${c.route === 'reveal' ? '妖力解放' : '正体秘匿'}</span>` : ''}</div>`).join('')
+      // テストプレイ（2026-11-09）：結末を見ていなくても、全部の章と結末A／B を選んで確かめられる（この端末だけの切り替え・記録は変えない）
+      const test = testPlayOn(), ok = test ? CHAPTER_SELECT.concat(TEST_ENDINGS).map(c => c.id) : selectableChapters(T.own);
+      html = `<h3>章選択</h3>${test ? '<div class="tt-lock">テストプレイ：すべての章と結末を選べます。</div>' : T.cleared ? '' : '<div class="tt-lock">結末を見ると、すべての章を選べます（今は記録のある章だけ）。</div>'}`
+        + (T.cleared && !test ? '' : `<div class="tt-row"><button data-a="testplay">${test ? 'テストプレイをやめる（記録のある章だけに戻す）' : 'テストプレイ：すべての章を選べるようにする'}</button></div>`)
+        + (test ? TEST_ENDINGS : []).concat(CHAPTER_SELECT).sort((a, b) => CHAPTER_ORDER.indexOf(a.id) - CHAPTER_ORDER.indexOf(b.id)).map(c => `<div class="tt-row"><button data-ch="${c.id}" ${ok.includes(c.id) ? '' : 'disabled'}>${esc(c.title)}</button>${c.route ? `<span class="tt-lock">${c.route === 'reveal' ? '妖力解放' : '正体秘匿'}</span>` : ''}</div>`).join('')
         + '<div class="tt-sec">分岐の後の章は、そのルートで始まります（記録に「章選択」と残る）。</div>';
+      this.metrics.testPlay = test;
     }
     if (kind === 'gallery') {
       const got = galleryUnlocked(T.own.endings || {});
@@ -505,7 +517,7 @@ class Game {
   }
   /** 章選択（クリア後）：その章の初めから。分岐の後の章はそのルートで（branchLog の via は chapter_select） */
   chapterSelect(id) {
-    const c = CHAPTER_SELECT.find(q => q.id === id); if (!c) return;
+    const c = CHAPTER_SELECT.concat(testPlayOn() ? TEST_ENDINGS : []).find(q => q.id === id); if (!c) return;
     this.jumpVia = 'chapter_select'; this.flags.chapterSelect = id; this.metrics.chapterSelect = id;
     this.newGame(c.step);
   }
@@ -593,6 +605,7 @@ class Game {
   frameLoop() {
     const now = performance.now(); let dt = (now - this.last) / 1000; this.last = now;
     if (dt > 0.25) dt = 0.25;
+    if (this.padNav) this.padNav.poll(dt);                                 // コントローラーでメニュー・タイトル・調べ物の画面（遊びの操作より先に：決定の A を飲み込む）
     this.acc += dt; let n = 0;
     while (this.acc >= DT && n < 6) { if (!this.simHold) this.step(); this.acc -= DT; n++; }
     if (n >= 6) this.acc = 0;
@@ -846,11 +859,14 @@ class Game {
     if (k === 'volume') this.sfx.setVolume(v);
     if (k === 'rain') this.sfx.setRain(v);
     if (k === 'touchUI' && this.touchUI) { this.touchUI.show(v); document.getElementById('sh-ui').classList.toggle('touch', !!v); }
+    if (k === 'rumble') { this.input.rumbleOff = !v; if (v && !silent) this.rumble('hit'); }
     if (k === 'shake') { this.settings.shake = +v; this.cam.shakeMul = +v; }
     if (k === 'teleCB') document.getElementById('sh-ui').classList.toggle('cb', !!v);
     if (k === 'subSize') { const r = document.getElementById('sh-ui'); r.classList.remove('sub-s', 'sub-m', 'sub-l'); r.classList.add('sub-' + v); }
     if (!silent) this.store.writeSettings(this.settings);
   }
+  /** コントローラーの振動（当たり・被弾・一閃。設定で切れる・振動の無いコントローラーでは何もしない） */
+  rumble(kind) { const R = { hit: [0.2, 0.45, 70], hurt: [0.75, 0.45, 180], issen: [0.55, 0.85, 240] }[kind]; if (R && this.input.rumble(R[0], R[1], R[2])) (this.metrics.rumble || (this.metrics.rumble = {}))[kind] = ((this.metrics.rumble || {})[kind] || 0) + 1; }
   /** キーの割り当てを変える：action に code を。code を使っていた別の操作には、action の前のキーを渡す（入れ替え） */
   rebindKey(action, code) {
     const cur = Object.assign({}, this.settings.keys || {}), map = this.input.keymap, other = map[code], prev = this.input.codesOf(action);
@@ -969,7 +985,7 @@ class Game {
     const dev = this.input.device;
     if ((this.mapTick = (this.mapTick || 0) + 1) % 2 === 0 && (this.mode === 'play' || this.mode === 'dialog')) this.drawMinimap();
     if (!this.giantMode) this.ui.hints(dev, { gun: F.weapon === 'handgun', melee: F.melee, match: F.weapon === 'matchlock', white: F.white });
-    this.ui.prompt(this.mode === 'play' && !this.cut.active && this.nearSpot && !(this.nearSpot.kind === 'exit' && this.nearSpot.auto) ? this.nearSpot.label : null, dev === 'pad' ? 'B' : dev === 'touch' ? '調' : 'E');
+    this.ui.prompt(this.mode === 'play' && !this.cut.active && this.nearSpot && !(this.nearSpot.kind === 'exit' && this.nearSpot.auto) ? this.nearSpot.label : null, dev === 'pad' ? padLabel('B') : dev === 'touch' ? '調' : 'E');
     const C = this.companion; this.ui.companion(C.root.visible && !this.cut.active && C.brain.mode !== 'scripted' ? C.brain.mode : null, '（相棒）');
     if (this.boss && this.boss.kind === 'utsushimi') { const b = this.boss.brain; if (b.alive && !['dormant', 'rest'].includes(b.state) && !this.cut.active) this.ui.boss('写し身（仮）', b.hp / b.hpMax, b.state === 'voice' ? (this.flags.memo ? '呼び声 ―― 今なら本物の声を聞かせられる' : '呼び声 ―― 動きが止まっている（よく効く）') : b.state === 'tenki' ? '……' : b.phase ? '写す・影の波' : '写す', b.state === 'voice'); }
     else if (this.boss && this.boss.kind === 'shuuyou' && this.boss.brain.alive && !['dormant', 'rest', 'neutral', 'rise'].includes(this.boss.brain.state) && !this.cut.active) { const b = this.boss.brain; this.ui.boss('収容者（仮）', b.hp / b.hpMax, b.state === 'rollcall' ? '点呼中 ―― 今なら名前を呼べる' : b.state === 'stuck' ? '器具庫に挟まっている' : b.state === 'down' ? '崩れている（青い縁）' : ['', '照明が落ちた', '必死'][b.phase] || '', b.state === 'rollcall' || b.state === 'stuck'); }
@@ -1192,7 +1208,7 @@ Object.assign(Game.prototype, combatMethods, storyMethods, ch3Methods, ch4Method
 function raySphereHit(o, d, c, r) { const ox = o.x - c.x, oy = o.y - c.y, oz = o.z - c.z; const B = ox * d.x + oy * d.y + oz * d.z, Cc = ox * ox + oy * oy + oz * oz - r * r; const disc = B * B - Cc; return disc >= 0 && -B - Math.sqrt(disc) > 0; }
 function mergeIn(a, b) {
   if (!a) return b; const o = Object.assign({}, b);
-  for (const k of ['attack', 'dodge', 'parry', 'swap', 'reload', 'interact', 'lock', 'heal', 'light', 'lockPrev', 'lockNext']) o[k] = a[k] || b[k];
+  for (const k of ['attack', 'dodge', 'parry', 'swap', 'reload', 'interact', 'lock', 'heal', 'light', 'lockPrev', 'lockNext', 'cycleMelee']) o[k] = a[k] || b[k];
   if (a.wantWeapon && !b.wantWeapon) o.wantWeapon = a.wantWeapon;
   return o;
 }
