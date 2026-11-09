@@ -8,6 +8,7 @@ import { attachRigidWeapons } from './models.js';
 import { heroPhaseRate, plantFeet, legDims } from './anim8.js';
 import { LocoDriver } from '../../charkit/anim/locodriver.js';
 import { groundClamp } from '../../charkit/anim/loco.js';
+import { StepPlanter, GripIK } from '../../charkit/anim/limbik.js';
 import { FaceDriver, codeFaceAdapter, vrmFaceAdapter } from '../../charkit/face/driver.js';
 import { Fighter } from '../combat/fighter.js';
 import { COMBAT } from '../data/combat.js';
@@ -139,6 +140,10 @@ export class Player {
     // 外部のモデル（VRM）＋本物の動き（VRMA のクリップ）：charkit/anim/clipanim.js。無い時・無い動きは手続きの姿勢（予備）
     this.clipAnim = model.clipAnim || null; this.clipRes = null;
     this.exactK = 0; this.turnS = 0;
+    // 2026-11-09：攻撃の踏み込みで足を床に置いて一歩ずつ踏み出す（charkit/anim/limbik.js）。見た目だけ
+    this.stepper = model.legDims && model.J.leftFoot ? new StepPlanter(model.J, { dims: model.legDims }) : null;
+    // 両手持ち（鉄パイプ・刀の溜めと強攻撃・3 段目・拳銃の構え）：左手を武器の握る所へ。外部のモデル（VRM：武器は手の差し込み口に付いた物）だけ
+    this.grip = model.weapons && !model.weapons.bones && model.J.leftHand ? new GripIK(model.J, { sockR: model.sockets && model.sockets.rightHand, sockL: model.sockets && model.sockets.leftHand }) : null;
     if (!model.weapons) model.weapons = attachRigidWeapons(model.J);
     this.looks = new Looks(model);
     this.springs = [];
@@ -186,7 +191,7 @@ export class Player {
   animate(dt, extra = {}) {
     this.time += dt;
     const F = this.fighter, m = this.model;
-    const ctx = { st: F.st, f: F.st.f, w: F.weapon, speed: this.speed, phase: this.phase, time: this.time, aiming: F.aimHeld && F.weapon === 'handgun', issen: this.issenInfo, hurtDir: this.hurtDir, white: F.white };
+    const ctx = { st: F.st, f: F.st.f, w: F.weapon, speed: this.speed, phase: this.phase, time: this.time, aiming: F.aimHeld && F.weapon === 'handgun', fireAgo: F.frame != null && F.lastFire != null ? F.frame - F.lastFire : 99, issen: this.issenInfo, hurtDir: this.hurtDir, white: F.white };
     // v2 のモデル：足の IK・その場の向き替え・立ち止まりの小さな動き・動き出し／止まりの傾き
     const turn0 = this.prevYaw != null ? angWrap(this.yaw - this.prevYaw) / Math.max(dt, 1 / 60) : 0;
     if (m.legDims) {
@@ -242,6 +247,28 @@ export class Player {
     }
     else { this.pivot.rotation.x = 0; this.pivot.rotation.z += (bank - this.pivot.rotation.z) * Math.min(1, dt * 8); this.pivot.position.x = -0.55 * Math.sin(this.pivot.rotation.z); this.pivot.position.y = 0.55 * Math.cos(this.pivot.rotation.z); }
     this.root.position.copy(this.pos); this.root.rotation.y = this.yaw;
+    // 攻撃の踏み込み：足を床に置き、体が離れたら一歩ずつ（前の足 → 後ろの足を引き寄せる）。戻り（振り終わりの後）は小さなずれも置き直す
+    if (this.stepper && !extra.override) {
+      const sn = F.st.name, fight = sn === 'attack' || sn === 'charge';
+      if (this.stepper.on && ['dodge', 'hurt', 'dead', 'issen'].includes(sn)) this.stepper.reset();   // 転がる・ひるむ・一閃は体ごと動く：足を置いたまま混ぜない
+      // 攻撃が終わって立ち止まった直後（0.35 秒）も、待機の足の場所へ一歩で置き直す（前は床の上を 10cm ほど滑って戻っていた）
+      this.stepTail = fight ? 0 : (this.stepTail || 0) + dt;
+      const tail = !fight && this.stepper.on && sn === 'free' && this.speed < 0.1 && this.stepTail < 0.35;
+      const act = fight || tail;
+      if (act || this.stepper.on) this.root.updateMatrixWorld(true);
+      this.stepper.update(dt, { active: act, settle: tail || (sn === 'attack' && F.st.atk && F.st.f >= F.st.atk.startup + F.st.atk.active + 2), ground: this.pos.y, body: this.pos });
+    }
+    if (this.grip) {
+      const sn = F.st.name, w = F.weapon, Wp = m.weapons, st = F.st;
+      let want = 0, weapon = null, grip = null;
+      if (!extra.override && !F.white && !['dodge', 'hurt', 'dead', 'swap', 'issen'].includes(sn)) {
+        const atkOn = sn === 'attack' && st.atk && st.f < st.atk.startup + st.atk.active + st.atk.recovery * 0.55;
+        if (w === 'pipe' && !(sn === 'free' && this.speed > 3.2) && (sn !== 'attack' || atkOn)) { want = 1; weapon = Wp.pipe; grip = [0, 0.13, 0]; }
+        else if (w === 'katana' && (sn === 'charge' || (atkOn && !st.iai && (st.heavy || st.step >= 2)))) { want = 1; weapon = Wp.katana; grip = [0, -0.1, 0]; }
+        else if (w === 'handgun' && ctx.aiming) { want = 1; weapon = Wp.gun; grip = [0, -0.07, -0.01]; }
+      }
+      if (want || this.grip.w > 0) { this.root.updateMatrixWorld(true); this.grip.update(dt, { want, weapon, grip }); }
+    }
     this.setWeaponVisual();
     this.looks.tickFace(dt); this.looks.tickFlinch(dt, m.J);
     // 視線：演出の相手（lookTarget）・ロックオンの相手（extra.look）。攻撃などの動きの間は弱める
@@ -345,6 +372,9 @@ export class EnemyActor {
   setDissolve(k) { const M = this.model.mats; if (!M) return; for (const m of [M.body, M.face, M.outline]) if (m && m.userData.u) m.userData.u.uDissolve.value = k; }
 }
 
+/** 相棒がついて歩く時の見た目の速さ：加速 7・減速 10m/s² で目標の速さへ（CompanionActor.step） */
+export const followSpeed = (v, want, dt) => Math.max(0, v + Math.max(-10 * dt, Math.min(7 * dt, want - v)));
+
 export class CompanionActor {
   constructor(model, brain) {
     this.root = new THREE.Group(); this.root.name = 'companion'; this.brain = brain;
@@ -358,9 +388,18 @@ export class CompanionActor {
   /** 60Hz：AI の結果で動かす */
   step(dt, out, boxes) {
     const b = this.brain; let moved = 0;
+    // 2026-11-09：ついて歩く時は速さを少しずつ変える（加速 7・減速 10m/s²）。前は 0 → 2.4 → 3.7 → 5m/s が 1 こまで変わり、
+    //  止まる・歩き出すをくり返すたびに足が床を滑り、歩きと走りの切り替えで脚が跳んでいた（隠れる・演出の動きは前のまま）
+    const follow = !!(out && out.pose === 'follow');
+    const want = out && out.move ? out.move.speed : 0;
+    if (!follow || this.vSm == null) this.vSm = follow ? 0 : want;
+    else this.vSm = followSpeed(this.vSm, want, dt);
+    if (follow && !(out && out.move) && this.vSm > 0.05 && this.lastDir) {
+      const bx = b.pos.x, bz = b.pos.z; b.pos.x += this.lastDir.x * this.vSm * dt; b.pos.z += this.lastDir.z * this.vSm * dt; resolveCircle(b.pos, this.r, boxes); moved = Math.hypot(b.pos.x - bx, b.pos.z - bz);
+    }
     if (out && out.move) {
       const dx = out.move.x - b.pos.x, dz = out.move.z - b.pos.z, L = Math.hypot(dx, dz);
-      if (L > 1e-4) { const m = Math.min(L, out.move.speed * dt), bx = b.pos.x, bz = b.pos.z; b.pos.x += dx / L * m; b.pos.z += dz / L * m; resolveCircle(b.pos, this.r, boxes); moved = Math.hypot(b.pos.x - bx, b.pos.z - bz); }
+      if (L > 1e-4) { this.lastDir = { x: dx / L, z: dz / L }; const m = Math.min(L, (follow ? Math.max(0.3, this.vSm) : out.move.speed) * dt), bx = b.pos.x, bz = b.pos.z; b.pos.x += dx / L * m; b.pos.z += dz / L * m; resolveCircle(b.pos, this.r, boxes); moved = Math.hypot(b.pos.x - bx, b.pos.z - bz); }
     }
     if (out && out.face) b.yaw = turnTo(b.yaw, Math.atan2(out.face.x - b.pos.x, out.face.z - b.pos.z), 0.18);
     this.speed = moved / dt;

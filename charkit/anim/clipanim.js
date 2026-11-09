@@ -251,7 +251,14 @@ export class ClipAnimator {
       }
       // 武器を持っている時などは腕を手続きの姿勢のまま（作品が決める）
       if (ctx.armsFromProc) for (let i = 0; i < B.length; i++) if (this.isArm[i]) B[i].quaternion.copy(this.procQ[i]);
-    } else if (this.active.size) { for (const it of this.active) it.action.stop(); this.active.clear(); }
+    } else if (this.active.size) {
+      // 2026-11-09：three.js の mixer は動きを止めると骨を「元の値」（VRM は T ポーズ）へ戻す。クリップ → 手続きへ移るこまで腕が T ポーズへ跳び、
+      //  手続きの姿勢はそこから追うので、強攻撃の溜めの入りの 3〜6 こまで両腕が横へ開いていた（V 字）。→ 止める前の骨（手続きの姿勢）を残す
+      const keepQ = B.map(b => b.quaternion.clone()), keepH = J.hips ? J.hips.position.clone() : null;
+      for (const it of this.active) it.action.stop(); this.active.clear();
+      for (let i = 0; i < B.length; i++) B[i].quaternion.copy(keepQ[i]);
+      if (keepH) J.hips.position.copy(keepH);
+    }
     // 源が変わった：慣性の混ぜを始める
     if (sel.key !== this.key) {
       if (this.key != null) {
@@ -281,7 +288,7 @@ export class ClipAnimator {
         for (let i = 0; i < B.length; i++) { if (this.isUpper[i]) B[i].quaternion.copy(keep[i]).slerp(B[i].quaternion, this.gestW); else B[i].quaternion.copy(keep[i]); }
         if (hp) J.hips.position.copy(hp);
       }
-    } else if (this.lastGest && this.lastGest.action2) { this.lastGest.action2.stop(); this.lastGest = null; this.gestT = 0; }
+    } else if (this.lastGest && this.lastGest.action2) { const keepQ = B.map(b => b.quaternion.clone()), keepH = J.hips ? J.hips.position.clone() : null; this.lastGest.action2.stop(); for (let i = 0; i < B.length; i++) B[i].quaternion.copy(keepQ[i]); if (keepH) J.hips.position.copy(keepH); this.lastGest = null; this.gestT = 0; }   // 止めても骨を戻さない（上と同じ）
     // 足の固定（クリップの移動・待機の時）
     if (used && sel.ik && this.opt.footIK && this.opt.legDims) this.footIK(dt, ctx); else for (const f of this.feet) { f.lock = null; f.w = 0; f.planted = false; }
     for (let i = 0; i < B.length; i++) this.prevQ[i].copy(B[i].quaternion);
