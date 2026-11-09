@@ -15,6 +15,7 @@ import { EnemyActor } from '../actor/actors.js';
 import { buildOutou, buildGiantNekomata, buildSakibure } from '../actor/models4.js';
 import { buildMimicShadow } from '../actor/models3.js';
 import { mimicPose } from '../actor/anim.js';
+import { packPoseFn } from '../actor/enemypack.js';   // P19：届いたモデルの動き
 import { outouPose, SakibureAnimator } from '../actor/anim4.js';
 import { GiantAnimator } from '../actor/anim5.js';
 import { GiantFighter } from '../combat/giant.js';
@@ -78,7 +79,7 @@ export const ch4Methods = {
   },
   addOutou(add, o, opt = {}) {
     const brain = new Outou({ id: o.id, pos: { x: o.pos[0], z: o.pos[1] }, tank: o.tank ? { x: o.tank[0], z: o.tank[1] } : null, seed: o.id.length * 13 + (o.id.charCodeAt(o.id.length - 1) || 1), habit: opt.habit, terminal: opt.terminal, path: opt.path ? opt.path.map(([x, z]) => [x, z]) : null, phase: opt.habit ? (o.id === 'outou_3' ? 3.5 : 0) : 0, state: opt.state, leash: opt.leash });
-    const e = add(brain, buildOutou(o.id.charCodeAt(o.id.length - 1))); e.poseFn = outouPose; return e;
+    const e = add(brain, buildOutou(o.id.charCodeAt(o.id.length - 1))); e.poseFn = packPoseFn('outou', outouPose, e.model); return e;
   },
   /** 試験床の罠の群れ（分岐の戦い）。active：すぐに敵対（読み込み直後など） */
   spawnTrap(add, active) {
@@ -89,7 +90,7 @@ export const ch4Methods = {
       if (assist && t.id === 'trap_m2') continue;                                            // 手助け：敵の数 −1
       let e;
       if (t.kind === 'outou') e = this.addOutou(add, { id: t.id, pos: t.pos }, { state: active ? 'hostile' : 'loop', leash: 30 });
-      else { const brain = new Mimic({ id: t.id, pos: { x: t.pos[0], z: t.pos[1] }, yaw: 0, dormant: !active, seed: t.id.length * 5 }); e = add(brain, buildMimicShadow({ seed: t.id.charCodeAt(4) })); e.poseFn = mimicPose; }
+      else { const brain = new Mimic({ id: t.id, pos: { x: t.pos[0], z: t.pos[1] }, yaw: 0, dormant: !active, seed: t.id.length * 5 }); e = add(brain, buildMimicShadow({ seed: t.id.charCodeAt(4) })); e.poseFn = packPoseFn('mimic', mimicPose, e.model); }
       if (t.kind !== 'outou') e.brain.home = { x: LAB.trapCenter[0], z: LAB.trapCenter[1] }; e.trap = true;
       e.brain.yaw = Math.atan2(LAB.trapCenter[0] - t.pos[0], LAB.trapCenter[1] - t.pos[1]);
     }

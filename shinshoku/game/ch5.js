@@ -15,6 +15,7 @@ import { Tsugihagi, sideOf } from '../ai/tsugihagi.js';
 import { EnemyActor } from '../actor/actors.js';
 import { buildShuusha, buildTsugihagi } from '../actor/models5.js';
 import { shuushaPose, TsugiAnimator } from '../actor/anim5.js';
+import { packPoseFn } from '../actor/enemypack.js';   // P19：届いたモデルの動き
 import { Rampage, Protect } from '../combat/rampage.js';
 import { CHAPTERS, stepDef, stepRoute, R5_STEPS, S5_STEPS } from '../story/chapters.js';
 import { TOWN } from '../world/areas6.js';
@@ -96,7 +97,7 @@ export const ch5Methods = {
         const door = { x: sx * 1.7, z: cz }, room = { x: cx + sx * 0.6, z: cz - 0.6 };
         const brain = new Shuusha({ id: o.id, pos: r === 'rescue' ? room : { x: o.path[0][0], z: o.path[0][1] }, path: o.path, subject: sub, door, room, seed: 31 + i * 7, state: r === 'rescue' ? 'rest' : 'loop' });
         if (r === 'rescue') { brain.resolution = 'rescue'; brain.yaw = -sx * Math.PI / 2; }
-        const e = add(brain, buildShuusha(i + 1, sub.no)); e.poseFn = shuushaPose;
+        const e = add(brain, buildShuusha(i + 1, sub.no)); e.poseFn = packPoseFn('shuusha', shuushaPose, e.model);
       });
       for (const o of rv ? OLDWING.reveal : OLDWING.secret) {
         if (this.enemyRes[o.id]) continue;

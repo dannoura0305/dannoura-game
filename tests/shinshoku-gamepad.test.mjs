@@ -80,7 +80,7 @@ if (!existsSync(PW) || !existsSync(CHROME)) {
     window.__padDisconnect = () => { const gp = window.__pad; gp.connected = false; window.__pad = null; fire('gamepaddisconnected', gp); };
     const frames = k => new Promise(r => { let i = 0; const f = () => { if (++i >= k) r(); else requestAnimationFrame(f); }; requestAnimationFrame(f); });
     window.__padSet = (i, on) => { const b = window.__pad.buttons[i]; b.pressed = on; b.value = on ? 1 : 0; };
-    window.__padPress = async (i, hold = 3) => { window.__padSet(i, true); await frames(hold); window.__padSet(i, false); await frames(3); };
+    window.__padPress = async (i, hold = 2) => { window.__padSet(i, true); await frames(hold); window.__padSet(i, false); await frames(2); };
     window.__padHold = async (list, hold = 3) => { for (const i of list) window.__padSet(i, true); await frames(hold); for (const i of list) window.__padSet(i, false); await frames(3); };
     window.__padStick = async (x, y, hold = 3) => { window.__pad.axes[0] = x; window.__pad.axes[1] = y; await frames(hold); window.__pad.axes[0] = 0; window.__pad.axes[1] = 0; await frames(3); };
   };
@@ -89,21 +89,24 @@ if (!existsSync(PW) || !existsSync(CHROME)) {
   let lastCtx = null;
   const open = async (query = '', padId = XBOX_ID, storage = null) => {
     if (lastCtx) { await lastCtx.close().catch(() => {}); lastCtx = null; }      // 前の試験が途中で落ちても、重い描画を残さない
-    const ctx = lastCtx = await browser.newContext({ viewport: { width: 1280, height: 720 } }); ctx.setDefaultTimeout(60000);
+    const ctx = lastCtx = await browser.newContext({ viewport: { width: 1024, height: 576 } }); ctx.setDefaultTimeout(60000);
     const page = await ctx.newPage(); const errs = [];
     page.on('pageerror', e => errs.push('pageerror: ' + e.message));
     await page.addInitScript(FAKE_PAD, padId);
     if (storage) await page.addInitScript(storage);
     await page.goto(`${BASE}/shinshoku.html${query}`, { timeout: 120000 });
     await page.waitForFunction(() => window.__sh && window.__sh.state().mode === 'title' && !document.getElementById('sh-title').hidden, null, { timeout: 120000, polling: 100 });
+    await page.evaluate(() => __sh.game.applySetting('resScale', 0.4, true));    // 試験は描画を軽く（こまが速いほど押す操作が早く終わる。設定は保存しない）
     return { ctx, page, errs };
   };
   const shot = async (page, name) => { if (SHOTS) { await page.waitForTimeout(300); await page.screenshot({ path: join(SHOTS, name) }); } };
+  const tick = page => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
   const A = 0, B = 1, X = 2, LB = 4, RB = 5, VIEW = 8, START = 9, UP = 12, DOWN = 13, LEFT = 14, RIGHT = 15;
-  const press = (page, i, hold) => page.evaluate(([i, h]) => window.__padPress(i, h), [i, hold || 3]);
-  const focused = page => page.evaluate(() => { const e = document.querySelector('.sh-padfocus'); return e ? { tag: e.tagName, data: Object.assign({}, e.dataset), text: e.textContent.trim().slice(0, 30) } : null; });
+  const press = (page, i, hold) => page.evaluate(([i, h]) => window.__padPress(i, h), [i, hold || 2]);
+  const focused = async page => { await tick(page); return focused0(page); };
+  const focused0 = page => page.evaluate(() => { const e = document.querySelector('.sh-padfocus'); return e ? { tag: e.tagName, data: Object.assign({}, e.dataset), text: e.textContent.trim().slice(0, 30) } : null; });
   /** 焦点が cond を満たすまで、方向を押す（最大 n 回） */
-  const seek = async (page, dir, cond, n = 40) => { for (let i = 0; i < n; i++) { const f = await focused(page); if (f && cond(f)) return f; await press(page, dir); } const f = await focused(page); assert.ok(f && cond(f), '焦点が見つからない ' + JSON.stringify(f)); return f; };
+  const seek = async (page, dir, cond, n = 40) => { for (let i = 0; i < n; i++) { const f = await focused0(page); if (f && cond(f)) return f; await press(page, dir); } const f = await focused(page); assert.ok(f && cond(f), '焦点が見つからない ' + JSON.stringify(f)); return f; };
 
   try {
     await t('タイトル → 章選択（開く・B で閉じる）→ 設定（チェック・スライダー・選ぶ欄を変える・B で閉じる）→ はじめから → 会話送り → 一時停止 → タブ → 設定 → B で再開', async () => {
@@ -121,7 +124,7 @@ if (!existsSync(PW) || !existsSync(CHROME)) {
       // 章選択：A で開く → 焦点は表の中 → B で閉じる
       await press(page, A);
       await page.waitForFunction(() => !document.querySelector('#sh-title .tt-panel').hidden);
-      f = await focused(page); assert.ok(f && document, '表の中に焦点'); assert.ok(await page.evaluate(() => !!document.querySelector('#sh-title .tt-panel .sh-padfocus')), '焦点が表の中');
+      f = await focused(page); assert.ok(f, '表の中に焦点'); assert.ok(await page.evaluate(() => !!document.querySelector('#sh-title .tt-panel .sh-padfocus')), '焦点が表の中');
       await press(page, B);
       await page.waitForFunction(() => document.querySelector('#sh-title .tt-panel').hidden);
       // 設定：下へ → A
@@ -253,12 +256,14 @@ if (!existsSync(PW) || !existsSync(CHROME)) {
       await page.waitForFunction(() => document.getElementById('sh-safe').hidden && __sh.state().mode === 'play');
       // セーブ（ノートPC）：B で閉じる
       await page.evaluate(() => { const g = __sh.game; g.mode = 'pause'; g.ui.openSave(); });
+      await tick(page);
       assert.equal((await focused(page)).data.close, '1');
       await press(page, DOWN); assert.equal((await focused(page)).data.save, 'slot1');
       await press(page, B);
       await page.waitForFunction(() => __sh.state().mode === 'play' && document.getElementById('sh-menu').hidden);
       // 倒れた時：「直前から」に焦点 → A
       await page.evaluate(() => { const g = __sh.game; window.__retried = 0; g.retry = () => { window.__retried++; g.ui.showDead(false); }; g.ui.showDead(true); });
+      await tick(page);
       assert.equal((await focused(page)).data.a, 'retry');
       await shot(page, 'pad_dead_focus.png');
       await press(page, A);
@@ -294,13 +299,16 @@ if (!existsSync(PW) || !existsSync(CHROME)) {
       await page.waitForFunction(() => /□/.test(document.querySelector('.sh-hints').innerHTML) || /×/.test(document.querySelector('.sh-hints').innerHTML));
       assert.match(await page.locator('.sh-hints').innerHTML(), /pk-a ps">×</);
       await shot(page, 'pad_hud_ps.png');
-      // View＋RB：近接を順に（刀と鉄パイプを持っている時）
-      await page.evaluate(() => { const F = __sh.game.player.fighter; F.give('katana'); F.give('pipe'); F.give('handgun'); __sh.game.pendingWant = 'katana'; });
-      await page.waitForFunction(() => __sh.game.player.fighter.weapon === 'katana' && __sh.game.player.fighter.st.name === 'free', null, { timeout: 20000 });
-      await page.evaluate(() => window.__padSet(8, true));
-      await press(page, RB);
-      await page.evaluate(() => window.__padSet(8, false));
-      await page.waitForFunction(() => { const F = __sh.game.player.fighter; return F.weapon === 'pipe' || (F.st.name === 'swap' && F.st.to === 'pipe'); }, null, { timeout: 20000 });
+      // View＋RB：近接を順に（入力の段で確かめる：シミュレーションを止めて sample() を直に読む）
+      const cyc = await page.evaluate(() => {
+        const g = __sh.game, I = g.input; g.simHold = true;
+        const out = [];
+        I.padPrev = []; window.__padSet(8, true); window.__padSet(5, true); let o = I.sample(); out.push([!!o.cycleMelee, !!o.swap]);
+        window.__padSet(8, false); window.__padSet(5, false); I.sample();
+        window.__padSet(5, true); o = I.sample(); out.push([!!o.cycleMelee, !!o.swap]); window.__padSet(5, false); I.sample();
+        g.simHold = false; return out;
+      });
+      assert.deepEqual(cyc, [[true, false], [false, true]], 'View＋RB＝近接を順に・RB だけ＝持ち替え');
       // 切断：お知らせ・遊びの最中なら一時停止
       await page.evaluate(() => window.__padDisconnect());
       await page.waitForFunction(() => __sh.state().mode === 'pause');

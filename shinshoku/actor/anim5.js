@@ -21,7 +21,7 @@ export class GiantAnimator {
       else { B['gHLu' + s].rotation.set(-sw * 0.75 - 0.05, 0, 0); B['gHLl' + s].rotation.x = lift * 0.6; B['gHLh' + s].rotation.x = -lift * 0.7; B['gHLp' + s].rotation.x = lift * 0.5; }
     }
     const breathe = S(t * 1.5) * 0.01;
-    B.gBody.position.y = this.by + Math.abs(S(ph)) * 0.02 * walk + breathe;
+    B.gBody.position.y = (this.m.bodyY ?? this.by) + Math.abs(S(ph)) * 0.02 * walk + breathe;   // P19：包み（Codex の猫又）を後で当てた時は胴の高さが変わる
     B.gBody.rotation.z = S(ph) * 0.025 * walk; B.gChest.rotation.x = breathe * 2;
     // 頭：低く構え、見回す
     let head = [0.12 + S(t * 0.7) * 0.03, S(t * 0.4) * 0.12, 0], neck = [0.05, 0, 0], jaw = 0.04, chest = [breathe * 2, 0, 0], body = [0, 0, B.gBody.rotation.z];
@@ -108,7 +108,7 @@ export class TsugiAnimator {
     const vis = (bn, on) => { const s = on ? 1 : Math.max(0.0001, B[bn].scale.x - dt * 3); B[bn].scale.setScalar(on ? 1 : s); };
     vis(R[0], P.right ? P.right.alive : true); vis(Ln[0], P.left ? P.left.alive : true); vis('tLegs', P.legs ? P.legs.alive : true); vis('tBag', b.bag === 'held');
     const down = (P.legs && !P.legs.alive) || st === 'unravel' ? 1 : 0; this.drop += (down - this.drop) * Math.min(1, dt * 2.5);
-    B.tHip.position.y = 1.3 - this.drop * 1.0 + (st === 'down' ? -0.25 : 0) + Math.abs(S(ph)) * 0.04 * walk;
+    B.tHip.position.y = (this.m.tHipY ?? 1.3) - this.drop * 1.0 + (st === 'down' ? -0.25 : 0) + Math.abs(S(ph)) * 0.04 * walk;
     this.sway.step(dt, t, sp, 0, a && a.phase === 'active' ? 0.6 : 0);
   }
 }

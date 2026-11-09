@@ -45,7 +45,7 @@ await t('鉄パイプ：振りかぶりで腰と胸を後ろへひねり、振�
 await t('拳銃：構えたまま撃つと 1〜2 こまで腕と手首が跳ね上がり、10 こまで戻る（前は撃っても動かなかった）', () => {
   const st = { name: 'free', f: 0 }, base = { st, f: 0, w: 'handgun', speed: 0, phase: 0, time: 0, aiming: true };
   const still = A.dannouraPose(Object.assign({}, base, { fireAgo: 99 })).pose, kick = A.dannouraPose(Object.assign({}, base, { fireAgo: 1 })).pose, back = A.dannouraPose(Object.assign({}, base, { fireAgo: 10 })).pose;
-  assert.ok(kick.rightUpperArm[0] < still.rightUpperArm[0] - 0.1, '跳ねる'); assert.ok(kick.rightHand[0] < -0.2, '手首');
+  assert.ok(kick.rightUpperArm[0] < still.rightUpperArm[0] - 0.05, '跳ねる'); assert.ok(kick.rightHand[0] < -0.2, '手首');
   assert.ok(Math.abs(back.rightUpperArm[0] - still.rightUpperArm[0]) < 1e-9, '戻る');
 });
 

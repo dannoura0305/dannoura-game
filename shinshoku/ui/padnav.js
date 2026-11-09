@@ -158,20 +158,20 @@ export class PadNav {
     if (!cur) return null;
     if ((dir === 'left' || dir === 'right') && this.adjust(cur, dir === 'right' ? 1 : -1)) return cur;
     const r0 = cur.getBoundingClientRect(), cx = r0.left + r0.width / 2, cy = r0.top + r0.height / 2;
-    let best = null, bs = Infinity;
-    for (const el of list) {
-      if (el === cur) continue;
-      const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
-      let main, cross;
-      if (dir === 'down' || dir === 'up') {
-        main = dir === 'down' ? y - cy : cy - y; if (main < 4) continue;
-        cross = Math.max(0, Math.max(r.left, r0.left) - Math.min(r.right, r0.right)) + Math.abs(x - cx) * 0.15;
-      } else {
-        main = dir === 'right' ? x - cx : cx - x; if (main < 4) continue;
-        if (r.bottom < r0.top - 4 || r.top > r0.bottom + 4) cross = Math.abs(y - cy) * 3; else cross = Math.abs(y - cy) * 0.3;
+    const C = list.filter(el => el !== cur).map(el => { const r = el.getBoundingClientRect(); return { el, r, x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+    let best = null;
+    if (dir === 'down' || dir === 'up') {
+      // 行ごと：向きの側でいちばん近い行（中心の高さが 10px 以内を同じ行とみる）→ その行で横がいちばん近い物
+      const ahead = C.filter(c => (dir === 'down' ? c.y - cy : cy - c.y) > 4);
+      if (ahead.length) {
+        const near = Math.min(...ahead.map(c => Math.abs(c.y - cy)));
+        const row = ahead.filter(c => Math.abs(c.y - cy) - near < 10);
+        row.sort((a, b) => Math.abs(a.x - cx) - Math.abs(b.x - cx)); best = row[0].el;
       }
-      const s = main + cross * 2;
-      if (s < bs) { bs = s; best = el; }
+    } else {
+      // 同じ行（縦に重なる物）で、向きの側のいちばん近い物
+      const ahead = C.filter(c => (dir === 'right' ? c.x - cx : cx - c.x) > 4 && c.r.bottom > r0.top + 2 && c.r.top < r0.bottom - 2);
+      ahead.sort((a, b) => Math.abs(a.x - cx) - Math.abs(b.x - cx)); if (ahead.length) best = ahead[0].el;
     }
     if (best) this.set(best, list);
     return best;

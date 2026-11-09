@@ -474,7 +474,7 @@ export class UI {
   openSafe(digits, onTry, onClose) {
     const s = this.el.safe; s.hidden = false; const val = new Array(digits).fill(0);
     const render = () => {
-      s.innerHTML = `<div class="sh-sbox"><div class="sh-stitle">金庫（4桁）<small>番号は仮</small></div><div class="sh-dials">${val.map((v, i) => `<div class="sh-dial"><button data-i="${i}" data-d="1">▲</button><b>${v}</b><button data-i="${i}" data-d="-1">▼</button></div>`).join('')}</div><div class="sh-sbtn"><button data-a="open">開ける</button><button data-a="close">やめる</button></div><p class="sh-note">数字キー・矢印でも入力できます</p></div>`;
+      s.innerHTML = `<div class="sh-sbox"><div class="sh-stitle">金庫（4桁）<small>番号は仮</small></div><div class="sh-dials">${val.map((v, i) => `<div class="sh-dial"><button data-i="${i}" data-d="1">▲</button><b>${v}</b><button data-i="${i}" data-d="-1">▼</button></div>`).join('')}</div><div class="sh-sbtn"><button data-a="open">開ける</button><button data-a="close">やめる</button></div><p class="sh-note">数字キー・矢印でも入力できます${this.dev === 'pad' ? `（コントローラー：十字キーで選んで ${padLabel('A')}・${padLabel('B')} でやめる）` : ''}</p></div>`;
     };
     render();
     let cur = 0;

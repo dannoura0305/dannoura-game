@@ -9,7 +9,7 @@
 import * as THREE from 'three';
 import { SkinBody, DIM, faceAtlas } from './skin.js';
 import { humanBody, humanHead, glowEyes, xfm, torus } from './models.js';
-import { applyEnemyPack, enemyPackClasses } from './enemypack.js';
+import { applyEnemyPack, enemyPackClasses, placePackAnchors } from './enemypack.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const rng = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
@@ -185,11 +185,12 @@ export function buildGiantNekomata() {
     const tip = new THREE.Object3D(); tip.position.set(-sx * 0.015, 0.03, 0.06); sb.B[names[names.length - 1]].add(tip); tailTips.push(tip);
     sway.push(...names.map((n, i) => ({ b: sb.B[n], k: 24 - i * 2, d: 4.2, gain: -(0.07 + i * 0.018), baseX: 0, amp: 0.09 + i * 0.025, freq: 0.85 + (sx > 0 ? 0 : 0.17), ph: i * 0.5 + (sx > 0 ? 0 : 1.6), tail: true })));
   }
-  const m = sb.build(null, { rim: 0.95, rimColor: 0xd8b0ff, outline: 0.004, outlineColor: 0x1a0f26, flameAmp: 0.022, flameK: 1.1 });
+  const m = sb.build(null, { rim: 0.95, rimColor: 0xd8b0ff, outline: 0.004, outlineColor: 0x1a0f26, flameAmp: 0.022, flameK: 1.1, classes: enemyPackClasses('nekomata') });
+  m.bodyY = BODY_Y; applyEnemyPack(m, 'nekomata');   // P19：巨大猫又（Codex のモデル nekomata_light）。胴の高さ（bodyY）は包みの骨の位置
   /** 暴走（力があふれて抑えきれない）の見た目：0〜1。毛の縁と炎を赤紫へ寄せて強く。性格や姿（性別）は変えない */
   m.setRampage = k => { const U = m.mats.body.userData.u; U.uRimColor.value.setHex(lerpC(0xd8b0ff, 0xff4a9a, k)); U.uRim.value = 0.95 + k * 0.6; if (m.mats.glow) { const G = m.mats.glow.userData.u; G.uK.value = 1.1 + k * 1.1; G.uAmp.value = 0.022 + k * 0.03; G.uTint.value.setHex(0xff3a8a); G.uTintK.value = k * 0.55; } };
   m.update = dt => { if (m.mats.glow) m.mats.glow.userData.u.uTime.value += dt; };
-  return Object.assign(m, { provisional: true, kind: 'giant_nekomata', male: true, height: 1.25, bodyY: BODY_Y, sway, eyes, paws, claws, tailTips, tails, G: sb.B, bodyR: 0.5 });
+  return placePackAnchors(Object.assign(m, { provisional: true, kind: 'giant_nekomata', male: true, height: 1.25, bodyY: m.bodyY, sway, eyes, paws, claws, tailTips, tails, G: sb.B, bodyR: 0.5 }));
 }
 export { lerpC, tuft, flame, chain, chainW, rng, V };
 
@@ -260,9 +261,10 @@ export function buildSakibure() {
   }
   // 肩から立ちのぼる瘴気（glow の組）
   for (let i = 0; i < 10; i++) { const sx = i % 2 ? 1 : -1; flame(sb, [sx * (0.25 + r() * 0.25), 1.15 + r() * 0.15, -0.05 + r() * 0.1], [sx * 0.2, 1, -0.3], 0.28 + r() * 0.2, { w: 0.07, col: 0xff3aa8, col1: 0x30061e, weights: sb.rigid('sChest') }); }
-  const m = sb.build(null, { rim: 0.75, rimColor: 0xff5ac8, outline: 0.004, outlineColor: 0x050208, flameAmp: 0.03, flameK: 0.9 });
+  const m = sb.build(null, { rim: 0.75, rimColor: 0xff5ac8, outline: 0.004, outlineColor: 0x050208, flameAmp: 0.03, flameK: 0.9, classes: enemyPackClasses('sakibure') });
+  applyEnemyPack(m, 'sakibure');   // P19：境界の先触れ（Codex のモデル：四つ脚と縁の輪）
   m.update = dt => { if (m.mats.glow) m.mats.glow.userData.u.uTime.value += dt; };
-  return Object.assign(m, { provisional: true, kind: 'sakibure', height: 1.75, bodyR: 0.8, sway, wings, arms, core, eyes, G: sb.B });
+  return placePackAnchors(Object.assign(m, { provisional: true, kind: 'sakibure', height: 1.75, bodyR: 0.8, sway, wings, arms, core, eyes, G: sb.B }));
 }
 
 // ───────────────────────── 収容者（旧研究棟の被験者） ─────────────────────────
@@ -299,9 +301,10 @@ export function buildShuusha(seed = 1, no = 'S-00') {
     sway.push(...names.map((n, k) => ({ b: sb.B[n], k: 14 + k * 2, d: 3.0, gain: 0.35, baseX: 0.08, amp: 0.15, freq: 0.8 + i * 0.3, ph: i + k * 0.5 })));
   });
   const tex = faceAtlas(g => { g.fillStyle = '#f2efe4'; g.fillRect(0, 128, 128, 64); g.strokeStyle = '#3a3a40'; g.lineWidth = 3; g.strokeRect(3, 131, 122, 58); g.fillStyle = '#20202a'; g.font = 'bold 30px monospace'; g.textAlign = 'center'; g.fillText(no, 64, 172); });
-  const m = sb.build(tex, { rim: 0.35, rimColor: 0xb8c8e0, outline: 0.01, outlineColor: 0x08080e, faceEmissive: 0x101010 });
+  const m = sb.build(tex, { rim: 0.35, rimColor: 0xb8c8e0, outline: 0.01, outlineColor: 0x08080e, faceEmissive: 0x101010, classes: enemyPackClasses('shuusha') });
+  applyEnemyPack(m, 'shuusha');   // P19：収容者・旧研究棟（Codex のモデル inmate_standard）
   const eyeGlow = glowEyes(m, m.J, [[R * 0.32, R * 0.06, R * 1.02], [-R * 0.32, R * 0.06, R * 1.02]]);
-  return Object.assign(m, { sway, height: 1.78, provisional: true, kind: 'shuusha', bodyR: 0.32, eyeGlow });
+  return placePackAnchors(Object.assign(m, { sway, height: 1.78, provisional: true, kind: 'shuusha', bodyR: 0.32, eyeGlow }));
 }
 const UVR = (x0, y0, x1, y1) => [x0 / 256, 1 - y1 / 256, x1 / 256, 1 - y0 / 256];
 
@@ -384,5 +387,5 @@ export function buildTsugihagi() {
   applyEnemyPack(m, 'tsugihagi');   // P18：Blender の体（縫い目の光・紫の気＝glowMesh と目の位置・部分の骨はコードのまま）
   m.update = dt => { if (m.mats.glow) m.mats.glow.userData.u.uTime.value += dt; if (m.anim && m.actorRef) m.anim.update(dt, m.actorRef); };
   const weak = new THREE.Object3D(); weak.position.set(0, 0.1, 0.5); sb.B.tChest.add(weak);
-  return Object.assign(m, { provisional: true, kind: 'tsugihagi', height: 3.4, bodyR: 0.9, sway, eyes, eyeGlow: eyes, names, legs, G: sb.B, weak, weakColor: 0xc890ff });
+  return placePackAnchors(Object.assign(m, { provisional: true, kind: 'tsugihagi', height: 3.4, bodyR: 0.9, sway, eyes, eyeGlow: eyes, names, legs, G: sb.B, weak, weakColor: 0xc890ff }));
 }

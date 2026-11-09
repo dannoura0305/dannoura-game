@@ -166,8 +166,8 @@ export function dannouraPose(ctx) {
     const ago = ctx.fireAgo ?? 99, k = ago < 2 ? (ago + 1) / 2 : Math.max(0, 1 - (ago - 2) / 8);
     const p = Object.assign({}, b, AIM, { spine: [0, 0, 0] });
     if (k > 0) {
-      p.rightUpperArm = [AIM.rightUpperArm[0] - 0.16 * k, AIM.rightUpperArm[1], AIM.rightUpperArm[2]]; p.rightLowerArm = [AIM.rightLowerArm[0] - 0.22 * k, 0, 0]; p.rightHand = [-0.35 * k, 0, 0];
-      p.leftUpperArm = [AIM.leftUpperArm[0] - 0.14 * k, AIM.leftUpperArm[1], AIM.leftUpperArm[2]]; p.chest = [AIM.chest[0] - 0.06 * k, AIM.chest[1], AIM.chest[2]]; p.head = [AIM.head[0] - 0.03 * k, AIM.head[1], AIM.head[2]];
+      p.rightUpperArm = [AIM.rightUpperArm[0] - 0.1 * k, AIM.rightUpperArm[1], AIM.rightUpperArm[2]]; p.rightLowerArm = [AIM.rightLowerArm[0] - 0.14 * k, 0, 0]; p.rightHand = [-0.28 * k, 0, 0];
+      p.leftUpperArm = [AIM.leftUpperArm[0] - 0.09 * k, AIM.leftUpperArm[1], AIM.leftUpperArm[2]]; p.chest = [AIM.chest[0] - 0.06 * k, AIM.chest[1], AIM.chest[2]]; p.head = [AIM.head[0] - 0.03 * k, AIM.head[1], AIM.head[2]];
     }
     return { pose: p, rate: k > 0 ? 0.85 : 0.5 };
   }

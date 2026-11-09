@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { SkinBody, DIM, faceAtlas, faceAtlasExpr, UVR, drawEye, drawBrow, drawMouth, drawNose, drawBlush } from './skin.js';
 import { humanBody, humanHead, hairCap, onHead, buildWeaponBones, glowEyes, xfm, CHAR_MODEL } from './models.js';
 import { buildDannouraWhiteV2 } from './heroes.js';
+import { applyEnemyPack, enemyPackClasses, placePackAnchors } from './enemypack.js';   // P19：模倣する影の体（Codex のモデル・写し身は差し替えない）
 /** だんのうら（白髪形態）：v2（既定）／?charModel=1 で前のモデル */
 export function buildDannouraWhite(opt = {}) { return CHAR_MODEL === 1 ? buildDannouraWhiteV1(opt) : buildDannouraWhiteV2(opt); }
 
@@ -266,11 +267,12 @@ export function buildMimicShadow(opt = {}) {
     g.save(); g.translate(128, 48); g.strokeStyle = '#2a1830'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.moveTo(26, 16); g.quadraticCurveTo(64, 42, 102, 16); g.stroke(); g.restore();
     if (opt.boss) { g.save(); g.strokeStyle = 'rgba(240,236,250,.9)'; g.lineWidth = 3; g.strokeRect(20, 44, 88, 52); g.restore(); }
   });
-  const m = sb.build(tex, { rim: 0.9, rimColor: opt.rim || 0x9a5aff, outline: opt.boss ? 0.016 : 0.011, outlineColor: 0x05030a, faceEmissive: 0x302838 });
+  const m = sb.build(tex, { rim: 0.9, rimColor: opt.rim || 0x9a5aff, outline: opt.boss ? 0.016 : 0.011, outlineColor: 0x05030a, faceEmissive: 0x302838, classes: opt.boss ? undefined : enemyPackClasses('mimic') });
+  if (!opt.boss) applyEnemyPack(m, 'mimic');                                   // P19：模倣者（Codex のモデル）。写し身（boss）は作りかけなので今の姿
   m.mesh.castShadow = false;                                                    // 見分け方：影が無い
   const eyeGlow = glowEyes(m, m.J, [[R * 0.36, R * 0.82, R * 0.96], [-R * 0.36, R * 0.82, R * 0.96]]);
   const weak = new THREE.Object3D(); weak.position.set(0, R * 0.9, R * 0.9); m.J.head.add(weak);
-  return Object.assign(m, { sway: ribbons, height: 1.7 * scale, provisional: true, kind: opt.boss ? 'utsushimi' : 'mimic', bodyR: 0.34 * Math.max(1, scale * 0.9), eyeGlow, weak, weakColor: 0xd0a0ff, noShadow: true });
+  return placePackAnchors(Object.assign(m, { sway: ribbons, height: 1.7 * scale, provisional: true, kind: opt.boss ? 'utsushimi' : 'mimic', bodyR: 0.34 * Math.max(1, scale * 0.9), eyeGlow, weak, weakColor: 0xd0a0ff, noShadow: true }));
 }
 export function buildUtsushimi() { return buildMimicShadow({ scale: 1.62, boss: true, seed: 21, rim: 0xb070ff }); }
 

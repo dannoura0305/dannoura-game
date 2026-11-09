@@ -199,9 +199,10 @@ export class GripIK {
     const Qh = H.getWorldQuaternion(new THREE.Quaternion());
     // 左手の向き：右手（の差し込み口）を柄の線の回りに 180° 回した向き（柄の反対の側から握る・親指は同じ向き）。差し込み口が無ければ指の向きで返す
     let Qw;
-    const sR = this.opt.sockR, sL = this.opt.sockL;
-    if (sR && sL) {
-      Qw = sR.getWorldQuaternion(new THREE.Quaternion()).premultiply(flipQ).multiply(sL.quaternion.clone().invert());
+    // sockR：右手の「武器の形に合わせた口」（VRM は差し込み口・コードの骨は手そのもの）。sockLq：左手の口の手に対する回転
+    const sR = this.opt.sockR, sLq = this.opt.sockLq || (this.opt.sockL && this.opt.sockL.quaternion);
+    if (sR && sLq) {
+      Qw = sR.getWorldQuaternion(new THREE.Quaternion()).premultiply(flipQ).multiply(sLq.clone().invert());
     } else Qw = J.rightHand.getWorldQuaternion(new THREE.Quaternion()).multiply(this.opt.flip);
     const w = this.w;
     twoBoneIK(UA, LA, H, cur.clone().lerp(tgt, w), pole);
@@ -229,4 +230,27 @@ export function makeFingers(vrm, vrm0 = false) {
 export function setFingers(F, side, w) {
   if (!F || !F[side]) return;
   for (const f of F[side]) f.b.quaternion.setFromAxisAngle(f.axis, f.a * w);
+}
+
+/**
+ * 長い銃（火縄銃）を体に対して置く：銃床の端 B（世界）・銃身の向き D・銃の上の向き up から、右手の場所と向きを決めて腕を IK で。
+ * 2026-11-09：前は右手の骨の回転（手続きの姿勢）だけで銃の向きが決まり、銃が体の前で縦に立ったり、構えても銃床が肩から離れていた。
+ * W：右手の子の銃（銃身＝局所 +y・上＝局所 +z）。butt：銃床の端の局所 y（負）。w：0..1
+ */
+export function placeLongGun(J, W, B, D, up, w, butt = -0.21) {
+  if (!J.rightUpperArm || !J.rightLowerArm || !J.rightHand || w <= 1e-3) return;
+  const H = J.rightHand;
+  H.updateWorldMatrix(true, false); W.updateWorldMatrix(true, false);
+  const Hq = H.getWorldQuaternion(new THREE.Quaternion()), Hp = H.getWorldPosition(new THREE.Vector3());
+  const Gq = W.getWorldQuaternion(new THREE.Quaternion()), Gp = W.getWorldPosition(new THREE.Vector3());
+  const HqI = Hq.clone().invert(), rel = HqI.clone().multiply(Gq), relP = Gp.clone().sub(Hp).applyQuaternion(HqI);
+  const Y = D.clone().normalize(), Z = up.clone().addScaledVector(Y, -up.dot(Y)).normalize(), X = new THREE.Vector3().crossVectors(Y, Z);
+  const Qg = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, Z));
+  const origin = B.clone().addScaledVector(Y, -butt);
+  const Qh = Qg.clone().multiply(rel.invert());
+  const Ph = origin.sub(relP.applyQuaternion(Qh));
+  const sh = J.rightUpperArm.getWorldPosition(new THREE.Vector3()), el = J.rightLowerArm.getWorldPosition(new THREE.Vector3());
+  const bend = el.clone().sub(sh.clone().add(Hp).multiplyScalar(0.5)); if (bend.lengthSq() < 1e-6) bend.set(0, -0.1, -0.05);
+  twoBoneIK(J.rightUpperArm, J.rightLowerArm, H, Hp.clone().lerp(Ph, w), bend.multiplyScalar(3).add(el));
+  setWorldQuat(H, Hq.slerp(Qh, w));
 }

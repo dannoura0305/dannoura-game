@@ -8,7 +8,7 @@ import { attachRigidWeapons } from './models.js';
 import { heroPhaseRate, plantFeet, legDims } from './anim8.js';
 import { LocoDriver } from '../../charkit/anim/locodriver.js';
 import { groundClamp } from '../../charkit/anim/loco.js';
-import { StepPlanter, GripIK, makeFingers, setFingers } from '../../charkit/anim/limbik.js';
+import { StepPlanter, GripIK, makeFingers, setFingers, placeLongGun } from '../../charkit/anim/limbik.js';
 import { FaceDriver, codeFaceAdapter, vrmFaceAdapter } from '../../charkit/face/driver.js';
 import { Fighter } from '../combat/fighter.js';
 import { COMBAT } from '../data/combat.js';
@@ -144,7 +144,8 @@ export class Player {
     this.stepper = model.legDims && model.J.leftFoot ? new StepPlanter(model.J, { dims: model.legDims }) : null;
     // 両手持ち（鉄パイプ・刀の溜めと強攻撃・3 段目・拳銃の構え）：左手を武器の握る所へ。外部のモデル（VRM：武器は手の差し込み口に付いた物）だけ
     this.fingers = model.isVRM && model.vrm ? makeFingers(model.vrm, !!model.vrm0) : null; this.fistR = 0; this.fistL = 0;   // 武器を握る指（VRM）
-    this.grip = model.weapons && !model.weapons.bones && model.J.leftHand ? new GripIK(model.J, { sockR: model.sockets && model.sockets.rightHand, sockL: model.sockets && model.sockets.leftHand }) : null;
+    //  コードの骨（?vrm=0）は手の骨そのものが武器の形に合わせた向き（VRM の差し込み口と同じ）
+    this.grip = model.weapons && model.J.leftHand ? new GripIK(model.J, model.weapons.bones ? { sockR: model.J.rightHand, sockLq: new THREE.Quaternion() } : { sockR: model.sockets && model.sockets.rightHand, sockL: model.sockets && model.sockets.leftHand }) : null;
     if (!model.weapons) model.weapons = attachRigidWeapons(model.J);
     this.looks = new Looks(model);
     this.springs = [];
@@ -259,10 +260,39 @@ export class Player {
       if (act || this.stepper.on) this.root.updateMatrixWorld(true);
       this.stepper.update(dt, { active: act, settle: tail || (sn === 'attack' && F.st.atk && F.st.f >= F.st.atk.startup + F.st.atk.active + 2), ground: this.pos.y, body: this.pos });
     }
+    // 火縄銃：体に対する銃の置き場所（持ち歩き＝斜めに両手で・構え＝銃床を右肩に・銃床の打撃＝引いて突き出す）を決め、右腕を IK で
+    if (m.weapons && F.weapon === 'matchlock' && !extra.override) {
+      const sn = F.st.name, st = F.st, Wm = m.weapons.match;
+      const on = Wm && !['dodge', 'hurt', 'dead', 'swap', 'issen'].includes(sn) ? 1 : 0;
+      this.mHoldW = (this.mHoldW || 0) + (on - (this.mHoldW || 0)) * Math.min(1, dt / 0.08);
+      if (this.mHoldW > 1e-3 && Wm) {
+        this.root.updateMatrixWorld(true);
+        const rq = this.root.getWorldQuaternion(new THREE.Quaternion()), R = v => new THREE.Vector3(...v).applyQuaternion(rq);
+        const hips = m.J.hips.getWorldPosition(new THREE.Vector3()), shR = m.J.rightUpperArm.getWorldPosition(new THREE.Vector3()), chest = (m.J.chest || m.J.spine).getWorldPosition(new THREE.Vector3());
+        const sc = Math.max(0.6, (hips.y - this.pos.y) / 0.9);   // 体の大きさ（腰の高さ 0.9m で 1）
+        const carry = { B: hips.clone().add(R([-0.15 * sc, -0.05 * sc, 0.16 * sc])), D: R([0.6, 0.55, 0.35]), up: R([-0.2, 0.4, 1]) };   // 斜めに胸の前（銃口は左上）
+        const aimP = extra.aimPitch || 0;
+        const aim = { B: shR.clone().add(R([0.04 * sc, -0.05 * sc, 0.07 * sc])), D: R([0, Math.sin(aimP * 0.5), 1]), up: R([0, 1, 0]) };
+        let P = carry;
+        const aiming = F.white && (sn === 'mcharge' || sn === 'mrecoil' || F.aimHeld);
+        if (aiming) { P = aim; if (sn === 'mrecoil') { const k = Math.max(0, 1 - st.f / 10); P = { B: aim.B.clone().add(R([0, 0.02 * k, -0.06 * k])), D: R([0, 0.25 * k + Math.sin(aimP * 0.5), 1]), up: aim.up }; } }
+        else if (sn === 'mreload') P = { B: hips.clone().add(R([-0.08 * sc, -0.06 * sc, 0.26 * sc])), D: R([0.1, 1, 0.12]), up: R([0, 0, 1]) };
+        else if (sn === 'attack' && st.atk) {
+          // 銃床の打撃：振りかぶり（銃床を右の腰へ引き、銃身を立てる）→ 突き出す（銃床を胸の前へ・銃身は上の後ろ）→ 持ち歩きへ
+          const a = st.atk, f = st.f;
+          const pull = { B: hips.clone().add(R([-0.2 * sc, 0.12 * sc, -0.06 * sc])), D: R([0.3, 0.92, 0.25]), up: R([0, 0, 1]) };
+          const hit = { B: chest.clone().add(R([0.0, 0.06 * sc, 0.55 * sc])), D: R([0.25, 0.7, -0.66]), up: R([0, 0.6, 0.8]) };
+          const lerpP = (A, Bp, t) => ({ B: A.B.clone().lerp(Bp.B, t), D: A.D.clone().lerp(Bp.D, t), up: A.up.clone().lerp(Bp.up, t) });
+          const e = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
+          P = f < a.startup ? lerpP(carry, pull, e((f + 1) / a.startup)) : f < a.startup + a.active ? lerpP(pull, hit, e((f - a.startup + 1) / Math.max(2, a.active * 0.7))) : lerpP(hit, carry, e((f - a.startup - a.active) / Math.max(1, a.recovery * 0.8)));
+        }
+        placeLongGun(m.J, Wm, P.B, P.D, P.up, this.mHoldW);
+      }
+    } else this.mHoldW = 0;
     if (this.grip) {
       const sn = F.st.name, w = F.weapon, Wp = m.weapons, st = F.st;
       let want = 0, weapon = null, grip = null;
-      if (!extra.override && w === 'matchlock' && !['dodge', 'hurt', 'dead', 'swap', 'issen'].includes(sn)) { want = 1; weapon = Wp.match; grip = [0, 0.5, 0.012]; }   // 火縄銃：左手は先台（銃身の下）
+      if (!extra.override && w === 'matchlock' && !['dodge', 'hurt', 'dead', 'swap', 'issen'].includes(sn)) { want = 1; weapon = Wp.match; grip = [0, 0.38, 0.012]; }   // 火縄銃：左手は先台（銃身の下）
       else if (!extra.override && !F.white && !['dodge', 'hurt', 'dead', 'swap', 'issen'].includes(sn)) {
         const atkOn = sn === 'attack' && st.atk && st.f < st.atk.startup + st.atk.active + st.atk.recovery * 0.55;
         if (w === 'pipe' && !(sn === 'free' && this.speed > 3.2) && (sn !== 'attack' || atkOn)) { want = 1; weapon = Wp.pipe; grip = [0, 0.13, 0]; }

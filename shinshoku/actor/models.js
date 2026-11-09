@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { SkinBody, DIM, headDeform, faceAtlas, faceAtlasExpr, UVR, drawEye, drawBrow, drawMouth, drawNose, drawBlush } from './skin.js';
 import { toon, addOutlines } from '../render/toon.js';
 import { buildDannouraV2, buildCompanionV2 } from './heroes.js';
-import { applyEnemyPack, enemyPackClasses } from './enemypack.js';   // P17：Blender で作り直した異形の体
+import { applyEnemyPack, enemyPackClasses, placePackAnchors } from './enemypack.js';   // P17：Blender で作り直した異形の体
 
 /** モデルの版（2＝v2・既定。?charModel=1 で前のモデル：前後の比べ用） */
 export const CHAR_MODEL = (() => { try { return typeof location !== 'undefined' && /[?&]charModel=1\b/.test(location.search) ? 1 : 2; } catch (e) { return 2; } })();
@@ -256,7 +256,7 @@ export function buildWeaponBones(sb) {
   bone('wKatana', 'rightHand', [0, -0.06, 0.02], [2.1, 0, 0]);
   bone('wSaya', 'hips', [-0.2, 0.15, -0.16], [0, 0.15, -1.85]);
   bone('wSayaHilt', 'wSaya', [0, 0, 0], [0, 0, 0]);
-  bone('wGun', 'rightHand', [0, -0.07, 0.03], [0, 0, 0]);
+  bone('wGun', 'rightHand', [0.006, -0.05, 0.034], [Math.PI / 2, 0, 0]);      // 2026-11-09：銃身は指の向き・握りは手のひらの中（前は親指の向き：構えると上を向いた）
   bone('wHolster', 'hips', [-0.15, -0.08, 0.02], [0, 0, 0]);
   bone('wHolsterGun', 'wHolster', [0, 0, 0], [0, 0, 0]);
   bone('wPipe', 'rightHand', [0, -0.06, 0.02], [2.0, 0, 0]);
@@ -497,7 +497,7 @@ export function buildHeiten() {
   applyEnemyPack(m, 'heiten');
   const weak = new THREE.Object3D(); weak.position.set(0, -0.43, 0.06); m.J.rightLowerArm.add(weak);
   const eyeGlow = glowEyes(m, m.J, [[0.05, R * 1.32, R * 1.05], [-0.05, R * 1.32, R * 1.05]]);
-  return Object.assign(m, { height: 2.15, provisional: true, kind: 'heiten', weak, bodyR: 0.5, weakColor: 0xffb040, eyeGlow });
+  return placePackAnchors(Object.assign(m, { height: 2.15, provisional: true, kind: 'heiten', weak, bodyR: 0.5, weakColor: 0xffb040, eyeGlow }));   // P19：目・弱点を包み（Codex のモデル）の位置へ
 }
 
 /**
@@ -556,5 +556,5 @@ export function buildShuuyou() {
   applyEnemyPack(m, 'shuuyou');
   const weak = new THREE.Object3D(); weak.position.set(0, 0.02, 0.17); m.J.head.add(weak);
   const eyeGlow = glowEyes(m, m.J, [[0.06, d.headR * 0.9, 0.2], [-0.06, d.headR * 0.9, 0.2], [0, d.headR * 0.6, 0.22]]);
-  return Object.assign(m, { height: 2.6, provisional: true, kind: 'shuuyou', weak, bodyR: 0.75, weakY: 2.3, weakColor: 0xd8b0ff, eyeGlow });
+  return placePackAnchors(Object.assign(m, { height: 2.6, provisional: true, kind: 'shuuyou', weak, bodyR: 0.75, weakY: 2.3, weakColor: 0xd8b0ff, eyeGlow }));
 }

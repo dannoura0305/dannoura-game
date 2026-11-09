@@ -18,8 +18,10 @@ import { Shuuyou } from './ai/shuuyou.js';
 import { CompanionBrain } from './ai/companion.js';
 import { insideAny } from './world/collide.js';
 import { ThirdPersonCamera } from './render/camera.js';
-import { preloadEnemyPacks, requestEnemyPacks, applyEnemyPack, ENEMY_PACK_KINDS } from './actor/enemypack.js';
+import { preloadEnemyPacks, requestEnemyPacks, applyEnemyPack, ENEMY_PACK_KINDS, packPoseFn } from './actor/enemypack.js';
+import { heitenPose, shuuyouPose } from './actor/anim.js';   // P19：届いたモデルの動き（glb）を決まった状態で重ねる（packPoseFn）
 // P18：区画 → 先に読む異形の体（その区画とすぐ後の区画に出る種類）
+const GIANT_FOES = ['sakibure', 'nurikae', 'kuramono'];
 const LAZY_PACK_AREAS = { office: ['outou'], lab: ['outou'], oldwing: ['tsugihagi'], atrium: ['tsugihagi'], ruins: ['nurikae'], avenue: ['nurikae'], admin: ['touchoku'] };
 import { Fx, Rain } from './render/fx.js';
 import { Halos, WetStreaks } from './render/halo.js';
@@ -410,7 +412,7 @@ class Game {
         const st = {}; for (const [k, v] of Object.entries(H.stations)) st[k] = { x: v[0], z: v[1] };
         st.shutter.face = { x: -10, z: -40 }; st.bow.face = { x: -10, z: -40 }; st.register.face = { x: 9.6, z: -45 }; st.lights.face = { x: 12, z: -35.5 };
         const hb = new Heiten({ id: H.id, stations: st, pos: { x: H.start[0], z: H.start[1] }, center: { x: H.center[0], z: H.center[1] }, leash: H.leash, seed: 5 });
-        this.heiten = add(hb, buildHeiten());
+        this.heiten = add(hb, buildHeiten()); this.heiten.poseFn = packPoseFn('heiten', heitenPose, this.heiten.model);
         if (r === 'rescue') { hb.resolution = 'rescue'; hb.state = 'rest'; this.heitenSign.set('本日は\n閉店しました'); this.heitenStep('rest'); } else { this.heitenSign.set('営業中'); this.heitenStep('reset'); }
       }
       return;
@@ -428,7 +430,7 @@ class Game {
       const B = AREA_DATA.shelter.boss, r = this.enemyRes[B.id];
       if (r === 'kill' || r === 'neutralize' || atLeast(s, 'ch3_hosp')) return;
       const b = new Shuuyou({ id: B.id, pos: { x: B.pos[0], z: B.pos[1] }, yaw: 0, trueName: bossName(), storage: B.storage, arena: B.arena, seed: 9 });
-      this.boss = add(b, buildShuuyou());
+      this.boss = add(b, buildShuuyou()); this.boss.poseFn = packPoseFn('shuuyou', shuuyouPose, this.boss.model);
       if (r === 'rescue') { b.resolution = 'rescue'; b.state = 'rest'; }
     }
   }
@@ -1174,11 +1176,18 @@ class Game {
     };
   }
   /** P17：包みが読めた時、今いる異形（コードの形）の網を差し替える */
-  refreshEnemyPacks() { for (const e of this.enemies || []) { const m = e.model; if (m && !m.packed && ENEMY_PACK_KINDS.includes(m.kind)) applyEnemyPack(m, m.kind, { tint: m.packTint }); } }
+  refreshEnemyPacks() {
+    for (const e of this.enemies || []) {
+      const m = e.model; if (!(m && !m.packed && ENEMY_PACK_KINDS.includes(m.kind)) || !applyEnemyPack(m, m.kind, { tint: m.packTint })) continue;
+      const d = m.packShift; if (d && e.poser) { e.poser.hipsBase += d.y; e.poser.hipsBaseX += d.x; e.poser.hipsBaseZ += d.z; }   // P19：腰の休みの位置が動いた分（Poser は作った時の高さを持つ）
+    }
+    const G = this.giantModel; if (G && !G.packed) applyEnemyPack(G, 'nekomata');   // P19：巨大猫又（だんのうらの巨大な姿）
+  }
   /** P18：第4章からの異形（応答体・継接・塗替・当直）の体は、その異形が置かれた時に読む（1 秒ごとに見る・1 種類 1 回） */
   lazyEnemyPacks() {
     const ks = [...(LAZY_PACK_AREAS[this.area && this.area.id] || [])];     // この区画（と次の区画）のボスは先に頼む（戦いの始まりに読み込みが重ならない）
     for (const e of this.enemies || []) if (e.model && !e.model.packed && e.model.kind) ks.push(e.model.kind);
+    if ((this.giantModel && !this.giantModel.packed) || (this.enemies || []).some(e => GIANT_FOES.includes(e.kind))) ks.push('nekomata');   // P19：巨大猫又は巨大な敵が居る区画で先に
     const p = ks.length ? requestEnemyPacks(ks, this.presetVals() === PRESETS.low ? 'low' : 'high') : null;
     if (p) p.then(n => { this.enemyPacks = (this.enemyPacks || 0) + n; this.refreshEnemyPacks(); }, () => 0);
   }

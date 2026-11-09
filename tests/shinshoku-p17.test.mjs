@@ -72,7 +72,7 @@ await t('異形の包み（3 種 × PC／スマホ）：骨の名前はコード
 });
 
 await t('コードの異形の網を差し替える：頂点の数＝包み・骨の番号はコードの骨へ・輪郭線も同じ網・帰路のマフラーは置く時の色・顔の札は残す', async () => {
-  for (const kind of EP.ENEMY_PACK_KINDS) EP.setEnemyPack(kind, J(`shinshoku/assets/enemies/${kind}.pack.json`));
+  for (const kind of EP.ENEMY_PACK_KINDS) if (existsSync(new URL(`shinshoku/assets/enemies/${kind}.pack.json`, root))) EP.setEnemyPack(kind, J(`shinshoku/assets/enemies/${kind}.pack.json`));   // P17・P18 の包み（P19 の Codex の包みは tests/shinshoku-p19.test.mjs）
   const M = await import('../shinshoku/actor/models.js');
   const red = M.buildKiro(0xd04848), blue = M.buildKiro(0x3a6ad0);
   for (const [m, kind] of [[red, 'kiro'], [M.buildHeiten(), 'heiten'], [M.buildShuuyou(), 'shuuyou']]) {

@@ -1,0 +1,263 @@
+{
+ "spec": "wakaba-enemypack-manifest/1",
+ "note": "境界侵食 P19：利用者が自宅 PC の Codex（Blender のスクリプト）で作った異形の 3D モデルを、tools/blender/enemy/convert_codex.py でゲーム用に軽くした包み。形・色・骨・動きは届いたモデルから（デザインは変えていない）。",
+ "source": {
+  "branch": "models-from-pc",
+  "path": "incoming/codex/characters/（main には入れない）",
+  "received": "2026-11-09",
+  "tool": "Blender 5.2（Codex 側）／bpy 5.0.1（変換）"
+ },
+ "license": {
+  "id": "own",
+  "text": "自作（商用可）",
+  "model": "Codex が Blender のスクリプトで一から作成（外の画像・モデル・素材集は読み込んでいない）。埋め込みの画像もスクリプトで描いた物",
+  "reference": "参照した原画は利用者が ChatGPT（OpenAI）で作った画像（リポジトリには入れていない・出力の権利は利用者）",
+  "notUsed": "Mixamo・Fab などの外部素材は使っていない"
+ },
+ "mapping": {
+  "heiten": "heiten/heiten.glb",
+  "shuuyou": "shuyosha_v2/shuyosha.glb（v1 は使わない）",
+  "shuusha": "inmate_standard/inmate_standard.glb",
+  "mimic": "mohosha/mohosha.glb",
+  "outou": "outoutai/outoutai.glb",
+  "machibito": "machibito/machibito.glb",
+  "tsugihagi": "tsugihagi/tsugihagi.glb",
+  "sakibure": "sakibure/sakibure.glb",
+  "nekomata": "nekomata/nekomata_light.glb（巨大猫又＝だんのうらの巨大な姿）"
+ },
+ "notConverted": {
+  "utsushimi": "作りかけのため差し替えない（今の姿のまま）"
+ },
+ "entries": [
+  {
+   "file": "heiten.pack.json",
+   "kind": "heiten",
+   "lod": "pc",
+   "tris": 12000,
+   "bytes": 372693,
+   "sourceModel": "incoming/codex/characters/heiten/heiten.glb",
+   "sourceTris": 522612,
+   "clips": [
+    "closing_gesture",
+    "idle"
+   ]
+  },
+  {
+   "file": "heiten_low.pack.json",
+   "kind": "heiten",
+   "lod": "low",
+   "tris": 6118,
+   "bytes": 231492,
+   "sourceModel": "incoming/codex/characters/heiten/heiten.glb",
+   "sourceTris": 522612,
+   "clips": [
+    "closing_gesture",
+    "idle"
+   ]
+  },
+  {
+   "file": "machibito.pack.json",
+   "kind": "machibito",
+   "lod": "pc",
+   "tris": 10000,
+   "bytes": 300687,
+   "sourceModel": "incoming/codex/characters/machibito/machibito.glb",
+   "sourceTris": 307902,
+   "clips": [
+    "check_watch",
+    "idle",
+    "look_around",
+    "wait"
+   ]
+  },
+  {
+   "file": "machibito_low.pack.json",
+   "kind": "machibito",
+   "lod": "low",
+   "tris": 5000,
+   "bytes": 185806,
+   "sourceModel": "incoming/codex/characters/machibito/machibito.glb",
+   "sourceTris": 307902,
+   "clips": [
+    "check_watch",
+    "idle",
+    "look_around",
+    "wait"
+   ]
+  },
+  {
+   "file": "mimic.pack.json",
+   "kind": "mimic",
+   "lod": "pc",
+   "tris": 9999,
+   "bytes": 276341,
+   "sourceModel": "incoming/codex/characters/mohosha/mohosha.glb",
+   "sourceTris": 337694,
+   "clips": [
+    "head_tilt",
+    "idle",
+    "reach",
+    "walk_in_place"
+   ]
+  },
+  {
+   "file": "mimic_low.pack.json",
+   "kind": "mimic",
+   "lod": "low",
+   "tris": 5000,
+   "bytes": 165660,
+   "sourceModel": "incoming/codex/characters/mohosha/mohosha.glb",
+   "sourceTris": 337694,
+   "clips": [
+    "head_tilt",
+    "idle",
+    "reach",
+    "walk_in_place"
+   ]
+  },
+  {
+   "file": "nekomata.pack.json",
+   "kind": "nekomata",
+   "lod": "pc",
+   "tris": 35999,
+   "bytes": 899028,
+   "sourceModel": "incoming/codex/characters/nekomata/nekomata_light.glb",
+   "sourceTris": 543380,
+   "clips": []
+  },
+  {
+   "file": "nekomata_low.pack.json",
+   "kind": "nekomata",
+   "lod": "low",
+   "tris": 17999,
+   "bytes": 464348,
+   "sourceModel": "incoming/codex/characters/nekomata/nekomata_light.glb",
+   "sourceTris": 543380,
+   "clips": []
+  },
+  {
+   "file": "outou.pack.json",
+   "kind": "outou",
+   "lod": "pc",
+   "tris": 11000,
+   "bytes": 327549,
+   "sourceModel": "incoming/codex/characters/outoutai/outoutai.glb",
+   "sourceTris": 410176,
+   "clips": [
+    "acknowledge",
+    "idle",
+    "respond",
+    "standby"
+   ]
+  },
+  {
+   "file": "outou_low.pack.json",
+   "kind": "outou",
+   "lod": "low",
+   "tris": 5497,
+   "bytes": 207498,
+   "sourceModel": "incoming/codex/characters/outoutai/outoutai.glb",
+   "sourceTris": 410176,
+   "clips": [
+    "acknowledge",
+    "idle",
+    "respond",
+    "standby"
+   ]
+  },
+  {
+   "file": "sakibure.pack.json",
+   "kind": "sakibure",
+   "lod": "pc",
+   "tris": 30000,
+   "bytes": 713478,
+   "sourceModel": "incoming/codex/characters/sakibure/sakibure.glb",
+   "sourceTris": 408500,
+   "clips": []
+  },
+  {
+   "file": "sakibure_low.pack.json",
+   "kind": "sakibure",
+   "lod": "low",
+   "tris": 14999,
+   "bytes": 386359,
+   "sourceModel": "incoming/codex/characters/sakibure/sakibure.glb",
+   "sourceTris": 408500,
+   "clips": []
+  },
+  {
+   "file": "shuusha.pack.json",
+   "kind": "shuusha",
+   "lod": "pc",
+   "tris": 9999,
+   "bytes": 274308,
+   "sourceModel": "incoming/codex/characters/inmate_standard/inmate_standard.glb",
+   "sourceTris": 281054,
+   "clips": [
+    "idle",
+    "walk"
+   ]
+  },
+  {
+   "file": "shuusha_low.pack.json",
+   "kind": "shuusha",
+   "lod": "low",
+   "tris": 5000,
+   "bytes": 162667,
+   "sourceModel": "incoming/codex/characters/inmate_standard/inmate_standard.glb",
+   "sourceTris": 281054,
+   "clips": [
+    "idle",
+    "walk"
+   ]
+  },
+  {
+   "file": "shuuyou.pack.json",
+   "kind": "shuuyou",
+   "lod": "pc",
+   "tris": 12999,
+   "bytes": 404108,
+   "sourceModel": "incoming/codex/characters/shuyosha_v2/shuyosha.glb",
+   "sourceTris": 526334,
+   "clips": [
+    "charge_ready",
+    "idle",
+    "reach_pull"
+   ]
+  },
+  {
+   "file": "shuuyou_low.pack.json",
+   "kind": "shuuyou",
+   "lod": "low",
+   "tris": 6500,
+   "bytes": 236460,
+   "sourceModel": "incoming/codex/characters/shuyosha_v2/shuyosha.glb",
+   "sourceTris": 526334,
+   "clips": [
+    "charge_ready",
+    "idle",
+    "reach_pull"
+   ]
+  },
+  {
+   "file": "tsugihagi.pack.json",
+   "kind": "tsugihagi",
+   "lod": "pc",
+   "tris": 24000,
+   "bytes": 621899,
+   "sourceModel": "incoming/codex/characters/tsugihagi/tsugihagi.glb",
+   "sourceTris": 231042,
+   "clips": []
+  },
+  {
+   "file": "tsugihagi_low.pack.json",
+   "kind": "tsugihagi",
+   "lod": "low",
+   "tris": 11999,
+   "bytes": 329032,
+   "sourceModel": "incoming/codex/characters/tsugihagi/tsugihagi.glb",
+   "sourceTris": 231042,
+   "clips": []
+  }
+ ]
+}
