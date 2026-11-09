@@ -86,6 +86,15 @@ await t('相棒のカクつき（60Hz で位置・向きを記録）：速さが
   assert.equal(jumps, 0); assert.ok(yawAcc < 60, '向き ' + yawAcc); assert.ok(dmax < 6.5, '距離 ' + dmax);
 });
 
+await t('相棒が古い足跡を取りに戻らない：足跡の途中へ寄せられた（詰まった時の寄せ）後も、だんのうらの方へ進む（前は逆の向きへ走って戻り、また詰まって寄せる＝位置が飛ぶ）', async () => {
+  const { CompanionBrain } = await import('../shinshoku/ai/companion.js');
+  const c = new CompanionBrain({ x: 0, z: -6, mode: 'follow' });
+  for (let i = 0; i <= 20; i++) c.crumb({ x: 0, z: -i * 0.5 });
+  const o = c.update(1 / 60, { player: { x: 0, z: -10, yaw: Math.PI, speed: 2.2 }, enemies: [], hideSpots: [] });
+  assert.ok(o.move && o.move.z < -6, '進む先 ' + (o.move && o.move.z));
+  const src = readFileSync(P('shinshoku/main.js'), 'utf8'); assert.match(src, /b\.trail\.splice\(0, ti\)/, '寄せた点より古い足跡を捨てる');
+});
+
 // VRoid のだんのうら（本物の骨）
 const m = await loadVRMModel(buf('shinshoku/assets/characters/dannoura.vrm'), { height: 1.64, fit: 'none', loader: stubTex });
 const cs = await loadClipSet(readJson('shinshoku/assets/anim/dannoura/clips.json'), m.vrm, { fetchBinary: async (u, f) => buf('shinshoku/assets/anim/dannoura/' + f) });

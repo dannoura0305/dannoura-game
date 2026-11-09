@@ -70,6 +70,8 @@ export class CompanionBrain {
       if (!tgt && dP > CFG.follow + 0.6) tgt = this.trail[0] || P;
       // 自分より後ろの足跡は捨てる
       while (this.trail.length > 1 && Math.hypot(this.trail[0].x - this.pos.x, this.trail[0].z - this.pos.z) < 0.5) this.trail.shift();
+      // 2026-11-09：次の足跡の方が近い（自分が古い足跡より先にいる：寄せられた・角を近道した）なら古い方を捨てる。前はだんのうらと逆の向きへ古い足跡を取りに戻っていた
+      while (this.trail.length > 1) { const d0 = Math.hypot(this.trail[0].x - this.pos.x, this.trail[0].z - this.pos.z), d1 = Math.hypot(this.trail[1].x - this.pos.x, this.trail[1].z - this.pos.z); if (d1 < d0) this.trail.shift(); else break; }
       if (tgt && dP > CFG.follow) {
         const next = this.trail.length ? this.trail[0] : tgt;
         const goal = Math.hypot(next.x - this.pos.x, next.z - this.pos.z) > 0.3 ? next : tgt;

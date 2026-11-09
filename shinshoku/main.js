@@ -689,7 +689,10 @@ class Game {
     const C = this.companion, b = C.brain, P = this.player.pos, py = P.y || 0, BX = this.area.boxesUp && py > this.area.upY ? this.area.boxesUp : this.boxes;
     const free = q => !insideAny(q, BX, 0.32);
     let to = null;
-    for (let i = b.trail.length - 1; i >= 0 && !to; i--) { const c = b.trail[i]; if (Math.hypot(c.x - P.x, c.z - P.z) >= 1.2 && free(c)) to = { x: c.x, z: c.z }; }
+    let ti = -1;
+    for (let i = b.trail.length - 1; i >= 0 && !to; i--) { const c = b.trail[i]; if (Math.hypot(c.x - P.x, c.z - P.z) >= 1.2 && free(c)) { to = { x: c.x, z: c.z }; ti = i; } }
+    // 2026-11-09：寄せた点より古い足跡は捨てる。前は残っていて、寄せた直後に古い足跡（だんのうらと逆の向き）へ走って戻り、また詰まって寄せる、をくり返していた（相棒のカクつき・位置の飛び）
+    if (ti > 0) b.trail.splice(0, ti);
     if (!to) for (let k = 0; k < 16 && !to; k++) { const a = this.player.yaw + Math.PI + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.4, d = 1.4 + (k > 9 ? 0.6 : 0); const q = { x: P.x + Math.sin(a) * d, z: P.z + Math.cos(a) * d }; if (free(q)) to = q; }
     if (!to) to = { x: P.x, z: P.z };
     b.pos.x = to.x; b.pos.z = to.z; C.rootY = this.area.floorAt ? (this.area.floorAt(to.x, to.z, py) ?? 0) : C.rootY; C.stuckT = 0;
