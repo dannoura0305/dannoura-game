@@ -5,6 +5,7 @@
 //  ・両手持ち（GripIK）：左手首が武器の握る所へ届く
 //  ・鉄パイプの振りは腰と胸をひねって踏み込む・拳銃は撃つと反動で跳ねる
 //  ・相棒（瀬名 灯里）がついて歩く：速さを少しずつ変える（前は 1 こまで 0 ⇄ 2.4m/s：止まる・歩き出すを 10 秒で 20 回くり返し、そのたびに足が滑った）
+//  ・銃の持ち方（利用者「銃の持ち方がひどい」）：拳銃の銃身は指の向き（腕を伸ばすと前）・握りは手のひらの中。火縄銃は銃床の端を決めた所へ（構え＝右肩）
 //  ・戦闘の数値（こま数・踏み込みの距離・無敵とジャストの受付）は変えない
 import { register } from 'node:module';
 register('./helpers/three-node-hooks.mjs', import.meta.url);
@@ -22,7 +23,7 @@ const readJson = p => JSON.parse(readFileSync(P(p), 'utf8'));
 const { loadVRMModel } = await import('../charkit/runtime/vrmrt.js');
 const { loadClipSet } = await import('../charkit/runtime/vrma.js');
 const { ClipAnimator } = await import('../charkit/anim/clipanim.js');
-const { StepPlanter, GripIK, twoBoneIK } = await import('../charkit/anim/limbik.js');
+const { StepPlanter, GripIK, twoBoneIK, placeLongGun } = await import('../charkit/anim/limbik.js');
 const { COMBAT } = await import('../shinshoku/data/combat.js');
 const A = await import('../shinshoku/actor/anim.js');
 
@@ -167,6 +168,30 @@ await t('両手持ち（GripIK）：左手首が武器の握る所（＋右手�
   const d = J.leftHand.getWorldPosition(new THREE.Vector3()).distanceTo(want);
   assert.ok(d < 0.02, `左手首のずれ ${(d * 100).toFixed(1)}cm`);
   J.rightHand.remove(W); rest.back();
+});
+
+await t('拳銃（VRM の差し込み口）：銃身は指の向き（25° 以内）・握りは手のひらの近く（5cm 以内）・銃口は手より前（前は銃身が親指の向き：構えると上を向いた）', async () => {
+  rest.back(); holder.position.set(0, 0, 0);
+  const { makeSockets } = await import('../shinshoku/actor/vrm.js');
+  const { attachRigidWeapons } = await import('../shinshoku/actor/models.js');
+  const So = makeSockets(J, {}, m.vrm);
+  const W = attachRigidWeapons(Object.assign({}, J, { rightHand: So.rightHand, hips: So.hips || J.hips }));
+  m.vrm.scene.updateMatrixWorld(true);
+  const hand = J.rightHand.getWorldPosition(new THREE.Vector3()), mid = m.vrm.humanoid.getNormalizedBoneNode('rightMiddleProximal').getWorldPosition(new THREE.Vector3());
+  const fing = mid.clone().sub(hand).normalize(), barrel = new THREE.Vector3(0, 0, 1).applyQuaternion(W.gun.getWorldQuaternion(new THREE.Quaternion()));
+  const ang = barrel.angleTo(fing) * 180 / Math.PI, grip = W.gun.localToWorld(new THREE.Vector3(0, -0.022, -0.012)), palm = hand.clone().lerp(mid, 0.55);
+  const muz = W.muzzle.getWorldPosition(new THREE.Vector3());
+  console.log(`    銃身と指の向きの差 ${ang.toFixed(0)}°・握りと手のひら ${(grip.distanceTo(palm) * 100).toFixed(1)}cm`);
+  assert.ok(ang < 25, '向き ' + ang); assert.ok(grip.distanceTo(palm) < 0.05, '握り'); assert.ok(muz.clone().sub(hand).dot(fing) > 0.1, '銃口は手より前');
+  // 火縄銃：銃床の端を右肩の前へ・銃身は前（placeLongGun）
+  const sh = J.rightUpperArm.getWorldPosition(new THREE.Vector3()), B = sh.clone().add(new THREE.Vector3(0.04, -0.05, 0.07));
+  for (let i = 0; i < 3; i++) placeLongGun(J, W.match, B, new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0), 1);
+  m.vrm.scene.updateMatrixWorld(true);
+  const butt = W.match.localToWorld(new THREE.Vector3(0, -0.21, 0)), dir = new THREE.Vector3(0, 1, 0).applyQuaternion(W.match.getWorldQuaternion(new THREE.Quaternion()));
+  console.log(`    火縄銃の銃床の端と右肩の前 ${(butt.distanceTo(B) * 100).toFixed(1)}cm・銃身と前の差 ${(dir.angleTo(new THREE.Vector3(0, 0, 1)) * 57.3).toFixed(0)}°`);
+  assert.ok(butt.distanceTo(B) < 0.03, '銃床'); assert.ok(dir.angleTo(new THREE.Vector3(0, 0, 1)) < 0.1, '銃身の向き');
+  for (const k of Object.keys(So)) So[k].parent.remove(So[k]);
+  rest.back();
 });
 
 console.log(`shinshoku-motion-natural2: ${n} ok`);
