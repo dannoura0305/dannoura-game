@@ -174,7 +174,7 @@ export const combatMethods = {
         case 'swapStart': this.sfx.play('swap'); this.swapStartFrame = ev.frame; break;
         case 'swapDone': this.metrics.swaps.push({ to: ev.weapon, frames: ev.frames, ms: f2ms(ev.frames), measured: ev.frame - this.swapStartFrame }); break;
         case 'hurt': {
-          this.metrics.hurt++; this.sfx.play('hurt'); this.cam.shake(ev.grab ? 0.22 : 0.14, 0.25); this.ui.flash('hurt');
+          this.metrics.hurt++; this.sfx.play('hurt'); this.rumble('hurt'); this.cam.shake(ev.grab ? 0.22 : 0.14, 0.25); this.ui.flash('hurt');
           if (ev.src && ev.src.pos) { const a = Math.abs(wrap(Math.atan2(ev.src.pos.x - P.pos.x, ev.src.pos.z - P.pos.z) - P.yaw)); P.hurtDir = a > Math.PI / 2 ? 'back' : 'front'; P.looks.hit(P.pos.x - ev.src.pos.x, P.pos.z - ev.src.pos.z, P.yaw, 0.6); }
           if (F.hp < 30 && !this.flags.lowhp_bark) { this.flags.lowhp_bark = true; this.bark('low_hp'); }
           break;
@@ -199,7 +199,7 @@ export const combatMethods = {
       F.markSwingHit();
       const heavy = atk.stop === 'heavy';
       this.damageEnemy(e, Math.round(atk.dmg * F.comboMul()), 'slash', { poise: atk.poise || COMBAT.poise.slash, guardBreak: atk.guardBreak });
-      F.registerHit(); F.gainYoki('hit');
+      F.registerHit(); F.gainYoki('hit'); this.rumble('hit');
       this.metrics.slashHits++; if (pipe) this.metrics.pipeHits = (this.metrics.pipeHits || 0) + 1;
       e.looks.hit(dx, dz, e.brain.yaw, heavy ? 1.2 : 0.7);
       this.hitstop = heavy ? COMBAT.hitstop.heavy : COMBAT.hitstop.light;
@@ -245,7 +245,7 @@ export const combatMethods = {
     }
     const names = { mikiri: '見切り一閃', hajiki: '弾き一閃', iai: '抜刀一閃', utsu: '撃ち一閃', chain: `連鎖一閃 ${this.player.fighter.chainN + 1}` };
     this.ui.toast(names[ev.kind], 'issen', 1.4);
-    this.ui.flash('issen'); this.sfx.play(ev.kind === 'chain' ? 'chain' : 'issen'); this.sfx.setMuffle(0.85);
+    this.ui.flash('issen'); this.rumble('issen'); this.sfx.play(ev.kind === 'chain' ? 'chain' : 'issen'); this.sfx.setMuffle(0.85);
     this.slowT = Math.max(this.slowT, COMBAT.issen[ev.kind].total + 10); this.slowScale = 0.2; this.ui.slow(true);
     this.cam.shake(0.05, 0.2);
   },
@@ -301,7 +301,7 @@ export const combatMethods = {
     if (hit) {
       this.metrics.shotHits++;
       const dmg = Math.round(ev.dmg * (weak ? COMBAT.handgun.weakMul : 1));
-      this.damageEnemy(hit, dmg, 'shot', { poise: weak ? COMBAT.poise.weak : COMBAT.poise.shot }); this.fx.sparks(end, weak ? 14 : 6, weak ? 0xffd27a : 0xd0d0d0); F.registerHit(); F.gainYoki('hit');
+      this.damageEnemy(hit, dmg, 'shot', { poise: weak ? COMBAT.poise.weak : COMBAT.poise.shot }); this.fx.sparks(end, weak ? 14 : 6, weak ? 0xffd27a : 0xd0d0d0); F.registerHit(); F.gainYoki('hit'); this.rumble('hit');
       hit.looks.hit(d.x, d.z, hit.brain.yaw, weak ? 1 : 0.4);
       if (weak) { this.metrics.weakHits++; F.markWeakHit(hit); if (hit.brain.alive && hit.kind !== 'shuuyou') { hit.brain.atk = null; if (hit.brain.state !== 'stagger') { hit.brain.staggerFor = 0.6; hit.brain.go('stagger', [], 'weak'); } } this.ui.toast('怯み', 'weak', 0.6); }
     } else if (ht < maxT) this.fx.sparks(end, 4, 0xa0a0a0);

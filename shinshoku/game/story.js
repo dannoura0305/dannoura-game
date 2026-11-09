@@ -9,6 +9,7 @@ import { CHAPTERS, stepDef, atLeast, streetState } from '../story/chapters.js';
 import { CUTSCENES } from '../story/cutscenes.js';
 import * as PZ from '../story/puzzles.js';
 import { inHome, homeL } from '../data/town.js';
+import { padLabel } from '../ui/padnav.js';
 
 export const storyMethods = {
   chapterTitle() { const d = stepDef(this.story.step); return CHAPTERS[d.ch].title; },
@@ -21,7 +22,7 @@ export const storyMethods = {
     this.story.step = id; this.refreshObjective(); this.autosaveReq = true;
     this.metrics.steps.push(id);
     if (this.area.id === 'shotengai' && streetState(id) !== prevState) this.applyStreetState(true);
-    if (id === 'pro_fight') { const k = this.enemies.find(e => e.id === 'kiro_t'); if (k) { k.brain.lastSeen = { x: this.player.pos.x, z: this.player.pos.z }; k.brain.lastSeenT = k.brain.total; k.brain.hostileBy = 'tutorial'; k.brain.go('hostile', []); } this.hint('白い「！」は弾ける（F）／赤い「危」は避ける（Space）。弱らせると帰っていく'); }
+    if (id === 'pro_fight') { const k = this.enemies.find(e => e.id === 'kiro_t'); if (k) { k.brain.lastSeen = { x: this.player.pos.x, z: this.player.pos.z }; k.brain.lastSeenT = k.brain.total; k.brain.hostileBy = 'tutorial'; k.brain.go('hostile', []); } this.hint(this.input.device === 'pad' ? `白い「！」は弾ける（${padLabel('LB')}）／赤い「危」は避ける（${padLabel('A')}）。弱らせると帰っていく` : this.input.device === 'touch' ? '白い「！」は弾ける（弾）／赤い「危」は避ける（避）。弱らせると帰っていく' : '白い「！」は弾ける（F）／赤い「危」は避ける（Space）。弱らせると帰っていく'); }
     if (id === 'pro_home') this.hint(null);
   },
   hint(text) { this.ui.hint(text); },

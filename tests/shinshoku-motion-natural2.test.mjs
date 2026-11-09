@@ -67,6 +67,24 @@ await t('相棒がついて歩く（歩き 2.2 → 走り 5.0 → 止まる）�
   assert.ok(Math.hypot(c.pos.x, c.pos.z - pz) < 3.5, 'ついてくる');
 });
 
+await t('相棒のカクつき（60Hz で位置・向きを記録）：速さが 1 こまで跳ばない（前は 15 秒で 99 こま・144m/s²）・向きの回る速さの変わりが小さい（前 155rad/s²）・ついてくる距離は前と同じくらい', async () => {
+  const { CompanionActor } = await import('../shinshoku/actor/actors.js');
+  const { CompanionBrain } = await import('../shinshoku/ai/companion.js');
+  const C = new CompanionActor({ root: new THREE.Group(), J: {}, rest: {} }, new CompanionBrain({ x: 0, z: -2.2, mode: 'follow' }));
+  const b = C.brain, dt = 1 / 60, log = []; let px = 0, pz = 0, pyaw = 0;
+  for (let i = 0; i < 900; i++) {
+    const tt = i / 60, v = tt < 4 ? 2.2 : tt < 8 ? 5 : tt < 10 ? 0 : 2.2; pyaw += (tt > 2 && tt < 7 ? 0.35 : tt > 11 ? -0.3 : 0) * dt;
+    px += Math.sin(pyaw) * v * dt; pz += Math.cos(pyaw) * v * dt; b.crumb({ x: px, z: pz });
+    C.step(dt, b.update(dt, { player: { x: px, z: pz, yaw: pyaw, speed: v }, enemies: [], hideSpots: [] }), []);
+    log.push({ yaw: b.yaw, sp: C.speed, d: Math.hypot(px - b.pos.x, pz - b.pos.z) });
+  }
+  let jumps = 0, yawAcc = 0;
+  for (let i = 2; i < log.length; i++) { if (Math.abs(log[i].sp - log[i - 1].sp) * 60 > 30) jumps++; yawAcc = Math.max(yawAcc, Math.abs((log[i].yaw - 2 * log[i - 1].yaw + log[i - 2].yaw) * 3600)); }
+  const dmax = Math.max(...log.slice(60).map(r => r.d));
+  console.log(`    速さの跳び ${jumps} こま・向きの回る速さの変わり 最大 ${yawAcc.toFixed(0)}rad/s²・離れる距離 最大 ${dmax.toFixed(2)}m`);
+  assert.equal(jumps, 0); assert.ok(yawAcc < 60, '向き ' + yawAcc); assert.ok(dmax < 6.5, '距離 ' + dmax);
+});
+
 // VRoid のだんのうら（本物の骨）
 const m = await loadVRMModel(buf('shinshoku/assets/characters/dannoura.vrm'), { height: 1.64, fit: 'none', loader: stubTex });
 const cs = await loadClipSet(readJson('shinshoku/assets/anim/dannoura/clips.json'), m.vrm, { fetchBinary: async (u, f) => buf('shinshoku/assets/anim/dannoura/' + f) });
@@ -130,7 +148,7 @@ await t('攻撃の踏み込みの足：体が 0.6m・1.6m 前へ出ても床の�
   }
 });
 
-await t('両手持ち（GripIK）：左手首が武器の握る所（＋右手と同じずれ）へ 2cm 以内で届く', () => {
+await t('両手持ち（GripIK）：左手首が武器の握る所（＋右手のずれを柄の反対の側へ）へ 2cm 以内で届く', () => {
   rest.back(); holder.position.set(0, 0, 0); holder.updateMatrixWorld(true);
   // 右腕を前へ（両手で構える形）・武器は右手の子
   const c = J.chest.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0.1, -0.12, 0.25));
@@ -140,7 +158,9 @@ await t('両手持ち（GripIK）：左手首が武器の握る所（＋右手�
   // 握る所：左肩から届く所（左手首の目標＝握る所＋（右の手首 − 武器の根元））
   const want = J.leftUpperArm.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(-0.1, -0.2, 0.25));
   const O0 = W.getWorldPosition(new THREE.Vector3()), R0 = J.rightHand.getWorldPosition(new THREE.Vector3());
-  const gl = W.worldToLocal(want.clone().sub(R0.sub(O0))).toArray();
+  const ax = new THREE.Vector3(0, 1, 0).applyQuaternion(W.getWorldQuaternion(new THREE.Quaternion())).normalize();
+  const off = R0.sub(O0); off.addScaledVector(ax, -off.dot(ax)).applyQuaternion(new THREE.Quaternion().setFromAxisAngle(ax, Math.PI));   // 柄の反対の側
+  const gl = W.worldToLocal(want.clone().sub(off)).toArray();
   const G = new GripIK(J);
   for (let i = 0; i < 30; i++) G.update(1 / 60, { want: 1, weapon: W, grip: gl });
   m.vrm.scene.updateMatrixWorld(true);

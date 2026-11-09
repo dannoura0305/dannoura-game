@@ -1,6 +1,7 @@
 // 画面の部品（DOM）：HUD・調べるの印・トースト・会話・一時停止メニュー・設定・金庫・倒れた時・性能表示。
 import { drawTownMap } from './townmap.js';
 import { fsMenuHTML, toggleFs } from './fullscreen.js';
+import { padLabel, padKbd, padText, PAD_BINDS, getPadStyle } from './padnav.js';
 const $ = (s, r = document) => r.querySelector(s);
 const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -12,7 +13,7 @@ export const CONTROLS = [
   ['攻撃（刀・鉄パイプ）', '左クリック', 'X', '斬'], ['強攻撃／居合の構え', '左クリック長押し／Q 長押し', 'Y 長押し', '斬 長押し'],
   ['銃を構える', '右クリック（押す間）', 'LT', '銃（押す→構え・離す→撃つ）'], ['撃つ', '構え中に左クリック', 'RT', '同上'],
   ['回避（ジャスト回避）', 'Space', 'A', '避'], ['弾く（パリィ）', 'F', 'LB', '弾'], ['持ち替え（近接⇄銃）', 'ホイール／X', 'RB', '替'],
-  ['武器を選ぶ', '1 刀・2 銃・3 鉄パイプ', '—', '—'],
+  ['武器を選ぶ', '1 刀・2 銃・3 鉄パイプ', 'View を押しながら RB（近接を順に）', '替 長押し（近接を順に）'],
   ['装填', 'R', '構え中に X', '弾切れで自動'], ['ロックオン／相手の切替', '中クリック・T ／ Z・C（ロック中にマウスを素早く振っても）', 'R3 ／ 十字キー左右', '自動／敵をタップ'],
   ['懐中電灯', 'L', '十字キー下', '灯'], ['調べる・話す', 'E', 'B', '調'],
   ['回復', 'H', '十字キー上', '回'], ['化けを解く／戻す（白髪形態・第3章の転機のあと）', 'V 長押し', 'View（Back）長押し', '化 長押し'],
@@ -20,6 +21,7 @@ export const CONTROLS = [
   ['巨大猫又：妖爪連撃／紫の咆哮／跳躍／妖気放出', '左クリック／F／Space／右クリック（押し続ける）', 'X／LB／A／LT', '斬／弾／避／銃（押し続ける）'],
   ['第6章：糸の中継を切る（白）／振動計を当てる／蒸気弁を開ける／点検表を渡す', '調べる（E）', 'B', '調'],
   ['白髪形態：妖爪／妖刀／猫火／瞬歩／幻術', '左クリック／長押し／構え＋左クリック／Space／F', 'X／Y 長押し／LT＋RT／A／LB', '斬／斬 長押し／銃／避／弾'], ['一時停止', 'Esc／P', 'Start', '≡'], ['地図（町の見取り図）', 'M', 'Start →「地図」', '≡ →「地図」'], ['場面を飛ばす', 'E・Esc・Space を 1 秒長押し', 'B／Start 長押し', '調／≡ 長押し'],
+  ['会話を送る', 'E・Enter・Space・クリック', 'A／B／X', '会話の枠をタップ'], ['メニュー・タイトル・調べ物の画面', 'マウス・数字キー・Esc（閉じる）', '十字キー／左スティックで選ぶ・A 決定・B 戻る・LB／RB でタブ（スライダーは左右）', 'タップ'],
 ];
 
 const svg = d => `<svg viewBox="0 0 48 48" aria-hidden="true">${d}</svg>`;
@@ -63,10 +65,10 @@ export class UI {
   <div class="sh-hint"></div>
   <div class="sh-gskills"></div>
 </div>
-<div class="sh-lb sh-lbt"></div><div class="sh-lb sh-lbb"></div><div class="sh-sub"></div><div class="sh-skip">長押しで飛ばす</div>
+<div class="sh-lb sh-lbt"></div><div class="sh-lb sh-lbb"></div><div class="sh-sub"></div><div class="sh-skip"><span class="sh-skipk"></span>長押しで飛ばす</div>
 <div class="sh-card"><div class="sh-cardt"></div></div><div class="sh-fade"></div>
 <div id="sh-puz" hidden></div>
-<div id="sh-dialog" hidden><div class="sh-dname"></div><div class="sh-dtext"></div><div class="sh-dnext">▼</div></div>
+<div id="sh-dialog" hidden><div class="sh-dname"></div><div class="sh-dtext"></div><div class="sh-dnext"><span class="sh-dpad"></span>▼</div></div>
 <div id="sh-menu" hidden></div>
 <div id="sh-safe" hidden></div>
 <div id="sh-dead" hidden><div class="sh-deadt">倒れた……</div><button data-a="retry">直前から</button><button data-a="title">タイトルへ</button></div>
@@ -81,11 +83,18 @@ export class UI {
       obj: $('.sh-obj', root), objc: $('.sh-objc', root), objt: $('.sh-objt', root), objs: $('.sh-objs', root), comp: $('.sh-comp', root), lightic: $('.sh-lightic', root),
       gskills: $('.sh-gskills', root), boss: $('.sh-boss', root), yoki: $('.sh-yoki', root), ykfill: $('.sh-ykbar i', root), ykmin: $('.sh-ykbar b', root), ykn: $('.sh-ykn', root), combo: $('.sh-combo', root), cn: $('.sh-cn', root), cb: $('.sh-cb', root), form: $('.sh-form', root), bossn: $('.sh-bossn', root), bossbar: $('.sh-bossbar i', root), bossp: $('.sh-bossp', root),
       lbt: $('.sh-lbt', root), lbb: $('.sh-lbb', root), sub: $('.sh-sub', root), skip: $('.sh-skip', root), card: $('.sh-card', root), cardt: $('.sh-cardt', root), fadeEl: $('.sh-fade', root), puz: $('#sh-puz', root),
-      dialog: $('#sh-dialog', root), dname: $('.sh-dname', root), dtext: $('.sh-dtext', root), menu: $('#sh-menu', root), safe: $('#sh-safe', root), dead: $('#sh-dead', root), perf: $('#sh-perf', root), rotate: $('#sh-rotate', root),
+      dialog: $('#sh-dialog', root), dpad: $('.sh-dpad', root), skipk: $('.sh-skipk', root), dname: $('.sh-dname', root), dtext: $('.sh-dtext', root), menu: $('#sh-menu', root), safe: $('#sh-safe', root), dead: $('#sh-dead', root), perf: $('#sh-perf', root), rotate: $('#sh-rotate', root),
     };
-    this.lag = 1; this.markEls = new Map();
+    this.lag = 1; this.markEls = new Map(); this.devChanged('kbm');
     this.el.dialog.addEventListener('pointerdown', e => { e.preventDefault(); this.g.dialogNext(); });
     this.el.dead.addEventListener('click', e => { const a = e.target.dataset.a; if (a === 'retry') this.g.retry(); if (a === 'title') location.href = 'index.html'; });
+  }
+  /** 入力の種類が変わった時（padnav.js）：会話の ▼・飛ばすの案内・メニューの操作／キーの欄をその入力の表示に */
+  devChanged(dev) {
+    this.dev = dev;
+    this.el.dpad.innerHTML = dev === 'pad' ? padKbd('A') : '';
+    this.el.skipk.innerHTML = dev === 'pad' ? `${padKbd('B')}／${padKbd('Start')} を` : dev === 'touch' ? '調 を' : 'E を';
+    if (!this.el.menu.hidden && (this.menuTab === 'controls' || this.menuTab === 'keys') && !this.keyWait && this.g.input) this.openMenu(this.menuTab);
   }
   // ── HUD ──
   hud(p) {
@@ -119,12 +128,12 @@ export class UI {
   }
   /** 右側の操作のヒント（入力の種類で変える） */
   hints(dev, ctx) {
-    const K = dev === 'pad' ? { aim: 'LT', fire: 'RT', atk: 'X', reload: 'X長', swap: 'RB', dodge: 'A', parry: 'LB', use: 'B', heal: '↑', light: '↓', lock: 'R3' } : { aim: '右クリ', fire: '左クリ', atk: '左クリ', reload: 'R', swap: 'ホイール', dodge: 'Space', parry: 'F', use: 'E', heal: 'H', light: 'L', lock: 'T' };
+    const K = dev === 'pad' ? { aim: padKbd('LT'), fire: padKbd('RT'), atk: padKbd('X'), reload: padKbd('X', '長'), swap: padKbd('RB'), dodge: padKbd('A'), parry: padKbd('LB'), use: padKbd('B'), heal: '<kbd>十字↑</kbd>', light: '<kbd>十字↓</kbd>', lock: padKbd('R3') } : { aim: '右クリ', fire: '左クリ', atk: '左クリ', reload: 'R', swap: 'ホイール', dodge: 'Space', parry: 'F', use: 'E', heal: 'H', light: 'L', lock: 'T' };
     const rows = ctx.gun ? [[K.aim, '構える'], [K.fire, '発砲'], [K.reload, 'リロード'], [K.swap, '武器切替'], [K.dodge, '回避'], [K.heal, '回復']]
       : ctx.match && ctx.white ? [[K.atk, '妖弾（溜め）'], [K.aim, '構える'], [K.swap, '妖爪へ'], [K.dodge, '瞬歩'], [K.parry, '幻術'], [K.lock, 'ロックオン']]
-      : ctx.match ? [[K.atk, '銃床で打つ（長押し：強）'], [K.dodge, '回避'], [K.swap, '武器切替'], [dev === 'pad' ? '—' : '1〜4', '武器を選ぶ'], [K.lock, 'ロックオン'], [K.light, '懐中電灯']]
+      : ctx.match ? [[K.atk, '銃床で打つ（長押し：強）'], [K.dodge, '回避'], [K.swap, '武器切替'], [dev === 'pad' ? padKbd('View') + '＋' + padKbd('RB') : '1〜4', dev === 'pad' ? '近接を順に' : '武器を選ぶ'], [K.lock, 'ロックオン'], [K.light, '懐中電灯']]
       : [[K.atk, ctx.melee ? '攻撃（長押し：強）' : '—'], [K.parry, '弾く'], [K.dodge, '回避'], [K.swap, '武器切替'], [K.lock, 'ロックオン'], [K.light, '懐中電灯']];
-    const html = rows.map(([k, t]) => `<div><kbd>${k}</kbd>${t}</div>`).join('');
+    const html = rows.map(([k, t]) => `<div>${k.startsWith('<kbd') ? k : `<kbd>${k}</kbd>`}${t}</div>`).join('');
     if (html !== this.hintHtml) { this.hintHtml = html; this.el.hints.innerHTML = html; }
   }
   setPortrait(url) { if (url) { this.el.faceImg.src = url; this.el.faceImg.parentElement.classList.add('img'); } }
@@ -194,6 +203,7 @@ export class UI {
     if (!this.el.dport) { this.el.dport = document.createElement('img'); this.el.dport.className = 'sh-dport'; this.el.dialog.appendChild(this.el.dport); }
     this.el.dport.hidden = !url; if (url) this.el.dport.src = url; this.el.dialog.classList.toggle('port', !!url);
     this.el.dialog.hidden = false; this.el.dname.textContent = sp.name || ''; this.el.dname.style.color = sp.color || '#fff';
+    if (this.dev === 'pad' && /^WASD：移動/.test(text)) text = `左スティック：移動　右スティック：カメラ　${padLabel('B')}：話す・調べる　${padLabel('A')}：回避・会話を送る　${padLabel('Start')}：一時停止（「操作」に一覧）`;   // 序章の操作の案内：コントローラーの時はその名前で
     this.el.dname.hidden = !sp.name; this.el.dtext.textContent = text; this.el.dialog.classList.toggle('sys', !sp.name);
   }
   hideDialog() { this.el.dialog.hidden = true; }
@@ -323,7 +333,7 @@ export class UI {
   }
   /** 巨大猫又の技の案内（concept_04 の配置を参考に独自に：右下に 4 つ） */
   giantSkills(dev, F) {
-    const K = dev === 'pad' ? ['X', 'LB', 'A', 'LT'] : dev === 'touch' ? ['斬', '弾', '避', '銃'] : ['左クリ', 'F', 'Space', '右クリ'];
+    const K = dev === 'pad' ? ['X', 'LB', 'A', 'LT'].map(padLabel) : dev === 'touch' ? ['斬', '弾', '避', '銃'] : ['左クリ', 'F', 'Space', '右クリ'];
     const st = F.st.name, need = F.G.roar.cost;
     const items = [['妖爪連撃', K[0], st === 'claw'], ['紫の咆哮', K[1], st === 'roar', F.gauge < need], ['跳躍', K[2], st === 'leap'], ['妖気放出', K[3], st === 'beam', F.gauge < 5]];
     const key = items.map(i => i.join()).join('|') + dev;
@@ -345,18 +355,30 @@ export class UI {
   /** キーの割り当て（キーボード）：操作ごとに今のキーと「変える」。変える＝次に押したキー（Esc でやめる） */
   keysBody(g) {
     const L = g.input.rebindable(), wait = this.keyWait;
-    return `<table class="sh-ctl sh-keys">${L.map(([a, label]) => `<tr><th>${esc(label)}</th><td>${g.input.codesOf(a).map(c => `<kbd>${esc(keyName(c))}</kbd>`).join(' ') || '—'}</td><td><button data-rebind="${a}" class="${wait === a ? 'on' : ''}">${wait === a ? '次に押すキー…（Esc でやめる）' : '変える'}</button></td></tr>`).join('')}</table>
-      <p class="sh-note">マウス（攻撃・構え・ロック）とゲームパッド・タッチの割り当ては変わりません。同じキーを別の操作に使っていた時は、入れ替えます。</p><div class="sh-sbtn"><button data-keyreset="1">既定に戻す</button></div>`;
+    const pad = this.padKeysHTML(g);
+    return (this.dev === 'pad' ? pad : '') + `<table class="sh-ctl sh-keys">${L.map(([a, label]) => `<tr><th>${esc(label)}</th><td>${g.input.codesOf(a).map(c => `<kbd>${esc(keyName(c))}</kbd>`).join(' ') || '—'}</td><td><button data-rebind="${a}" class="${wait === a ? 'on' : ''}">${wait === a ? '次に押すキー…（Esc でやめる）' : '変える'}</button></td></tr>`).join('')}</table>
+      <p class="sh-note">マウス（攻撃・構え・ロック）とゲームパッド・タッチの割り当ては変わりません。同じキーを別の操作に使っていた時は、入れ替えます。</p><div class="sh-sbtn"><button data-keyreset="1">既定に戻す</button></div>` + (this.dev === 'pad' ? '' : pad);
+  }
+  /** コントローラーの割り当て（標準配置・見るだけ） */
+  padKeysHTML(g) {
+    let name = ''; try { const p = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(x => x && x.connected); name = p ? p.id : ''; } catch (e) { /* */ }
+    const lab = k => k.replace(/^(View＋RB|View|Start|LB|RB|LT|RT|L3|R3|A|B|X|Y)$/, m => m === 'View＋RB' ? `${padLabel('View')}＋${padLabel('RB')}` : padLabel(m));
+    return `<div class="sh-phead sh-padkeys-h">コントローラー（標準配置）${name ? `<small>　つながっている：${esc(name.slice(0, 60))}</small>` : '<small>　（つながっていません。ボタンを押すと出ます）</small>'}</div>
+      <table class="sh-ctl sh-keys sh-padkeys">${PAD_BINDS.map(([k, t]) => `<tr><th><kbd>${esc(lab(k))}</kbd></th><td colspan="2">${esc(t)}</td></tr>`).join('')}</table>
+      <p class="sh-note">コントローラーの割り当ては変えられません（標準配置）。振動は「設定」で切れます。</p>`;
   }
   waitKey(action) {
     const g = this.g; this.keyWait = action; this.openMenu('keys');
-    const fn = e => {
-      e.preventDefault(); e.stopPropagation(); removeEventListener('keydown', fn, true); this.keyWait = null;
+    if (this.keyWaitFn) removeEventListener('keydown', this.keyWaitFn, true);
+    const fn = this.keyWaitFn = e => {
+      e.preventDefault(); e.stopPropagation(); removeEventListener('keydown', fn, true); this.keyWait = null; this.keyWaitFn = null;
       if (e.code !== 'Escape') g.rebindKey(action, e.code);
       this.openMenu('keys');
     };
     addEventListener('keydown', fn, true);
   }
+  /** キーの割り当ての待ちをやめる（コントローラーの B） */
+  cancelKeyWait() { if (this.keyWaitFn) removeEventListener('keydown', this.keyWaitFn, true); this.keyWaitFn = null; this.keyWait = null; if (!this.el.menu.hidden) this.openMenu('keys'); }
   endCard(stats, onClose, title = '第2章（避難所）　ここまで', note = '', btn = '続ける') {
     const html = `<div class="sh-ptitle">${esc(title)}</div><div class="sh-stats">${stats.map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(String(v))}</b></div>`).join('')}</div><p class="sh-note">${esc(note)}</p><div class="sh-sbtn"><button data-close="1">${esc(btn)}</button></div>`;
     this._puz(html, d => { if (d.close) onClose(); });
@@ -370,7 +392,8 @@ export class UI {
     const tabs = inTitle ? [['settings', '設定'], ['controls', '操作'], ['keys', 'キー'], ['close', '閉じる']] : [['top', '再開'], ['map', '地図'], ['equip', '装備'], ['controls', '操作'], ['keys', 'キー'], ['settings', '設定'], ['load', 'ロード'], ['title', 'タイトルへ']];
     let body = '';
     if (tab === 'controls') {
-      body = `<table class="sh-ctl"><tr><th>操作</th><th>キーボード＋マウス</th><th>ゲームパッド</th><th>タッチ</th></tr>${CONTROLS.map(r => `<tr>${r.map((c, i) => i ? `<td>${esc(c)}</td>` : `<th>${esc(c)}</th>`).join('')}</tr>`).join('')}</table>
+      const padOn = this.dev === 'pad';
+      body = `${padOn ? `<p class="sh-note sh-padnow">コントローラーで操作中（${getPadStyle() === 'ps' ? 'PlayStation の配置' : 'Xbox の配置'}）：十字キー／左スティックで選ぶ・${padKbd('A')} 決定・${padKbd('B')} 戻る・${padKbd('LB')}／${padKbd('RB')} でタブ</p>` : ''}<table class="sh-ctl ${padOn ? 'pad-on' : ''}"><tr><th>操作</th><th>キーボード＋マウス</th><th>コントローラー</th><th>タッチ</th></tr>${CONTROLS.map(r => `<tr>${r.map((c, i) => i ? `<td>${esc(i === 2 ? padText(c) : c)}</td>` : `<th>${esc(c)}</th>`).join('')}</tr>`).join('')}</table>
       <p class="sh-note">一閃：<b>ジャスト回避</b>（敵の攻撃が当たる直前に回避）の直後に攻撃＝見切り一閃。<b>パリィ</b>（白い「！」の攻撃に合わせて弾く）の直後に攻撃＝弾き一閃。<b>居合</b>（Q 長押しで構え）中に攻撃を受けると抜刀一閃。弱点（光る所）を撃った直後に攻撃＝撃ち一閃。赤い「危」は弾けない：回避のみ。</p>`;
     } else if (tab === 'map') {
       body = `<canvas class="sh-townmap" width="1280" height="680"></canvas><p class="sh-note">黄色の点線：自宅から商店街までの道のり（約 95m・角 4 つ）。区画どうしは出入り口でつながる（商店街の奥の空き店舗 → 裏路地 → 商業施設の前 → 市民体育館 → 病院・観測分室 → 研究施設）。名前はすべて仮。</p>`;
@@ -395,6 +418,7 @@ export class UI {
         <label>画面の揺れ <select data-s="shake">${[['1', 'ふつう'], ['0.4', '弱い'], ['0', 'なし']].map(([v, n]) => `<option value="${v}" ${String(S.shake ?? 1) === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
         <label>視点の速さ<input type="range" min="0.3" max="2.5" step="0.1" data-s="sens" value="${S.sens}"><span>${S.sens}</span></label>
         <label><input type="checkbox" data-s="invertY" ${S.invertY ? 'checked' : ''}>上下を反転</label>
+        <label><input type="checkbox" data-s="rumble" ${S.rumble !== false ? 'checked' : ''}>コントローラーの振動（当たり・被弾・一閃）</label>
         <label>音量<input type="range" min="0" max="1" step="0.05" data-s="volume" value="${S.volume}"><span>${Math.round(S.volume * 100)}%</span></label>
         <label><input type="checkbox" data-s="touchUI" ${S.touchUI ? 'checked' : ''}>タッチ操作を表示</label>
       </div><p class="sh-note">セーブは自宅のノートPC（手動）と、場所の移動・決着のあと（自動）。戦闘中は自動セーブしません。</p>`;

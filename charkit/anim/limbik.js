@@ -169,7 +169,7 @@ export class StepPlanter {
 /**
  * 両手持ち：左手を右手の持つ武器（刀の柄・鉄パイプ・拳銃）の握る所へ（腕の IK）。2026-11-09：左手が鉄パイプから離れて見えた・強攻撃の溜めで左手が柄から外れた。
  * update(dt, { want（0..1）, weapon（右手に付いた武器の Object3D）, grip（武器の局所の握る点 [x,y,z]）})
- *  左の手首＝握る点＋（右の手首 − 武器の根元）。左手の向きは右手の向きを指の向きで返した物へ寄せる。ひじは姿勢のひじの向き
+ *  左の手首＝握る点＋（右の手首 − 武器の根元：柄の線に直角な分を柄の回りに 180° 回した物）。左手の向きは右手の向きを指の向きで返した物へ寄せる。ひじは姿勢のひじの向き
  */
 export class GripIK {
   constructor(J, opt = {}) {
@@ -188,7 +188,10 @@ export class GripIK {
     W.updateWorldMatrix(true, false); J.rightHand.updateWorldMatrix(true, false);
     const O = W.getWorldPosition(new THREE.Vector3()), R = J.rightHand.getWorldPosition(new THREE.Vector3());
     const g = o.grip || [0, -0.1, 0];
-    const tgt = W.localToWorld(new THREE.Vector3(g[0], g[1], g[2])).add(R.sub(O));
+    // 柄の線（武器の局所 y）の回りに 180°：左手は柄の反対の側から握る（手首のずれも同じに回す）
+    const ax = new THREE.Vector3(0, 1, 0).applyQuaternion(W.getWorldQuaternion(new THREE.Quaternion())).normalize(), flipQ = new THREE.Quaternion().setFromAxisAngle(ax, Math.PI);
+    const off = R.sub(O); off.addScaledVector(ax, -off.dot(ax)).applyQuaternion(flipQ);
+    const tgt = W.localToWorld(new THREE.Vector3(g[0], g[1], g[2])).add(off);
     const cur = H.getWorldPosition(new THREE.Vector3()), sh = UA.getWorldPosition(new THREE.Vector3()), el = LA.getWorldPosition(new THREE.Vector3());
     const bend = el.clone().sub(sh.clone().add(cur).multiplyScalar(0.5));
     if (bend.lengthSq() < 1e-6) bend.set(0, -0.1, -0.05);                                 // 腕が伸び切っている：ひじは下・後ろ
@@ -198,11 +201,32 @@ export class GripIK {
     let Qw;
     const sR = this.opt.sockR, sL = this.opt.sockL;
     if (sR && sL) {
-      const ax = new THREE.Vector3(0, 1, 0).applyQuaternion(W.getWorldQuaternion(new THREE.Quaternion())).normalize();
-      Qw = sR.getWorldQuaternion(new THREE.Quaternion()).premultiply(new THREE.Quaternion().setFromAxisAngle(ax, Math.PI)).multiply(sL.quaternion.clone().invert());
+      Qw = sR.getWorldQuaternion(new THREE.Quaternion()).premultiply(flipQ).multiply(sL.quaternion.clone().invert());
     } else Qw = J.rightHand.getWorldQuaternion(new THREE.Quaternion()).multiply(this.opt.flip);
     const w = this.w;
     twoBoneIK(UA, LA, H, cur.clone().lerp(tgt, w), pole);
     setWorldQuat(H, Qh.slerp(Qw, w));
   }
+}
+
+/**
+ * 指を握る（VRM の normalized の指の骨：T ポーズで指は腕の向き・手のひらは下）。2026-11-09：武器を持っても手が開いたままで、銃・柄が手から浮いて見えた。
+ * makeFingers(vrm, vrm0) → { right: [{ b, k }...], left: [...] }。setFingers(F, side, w)：0＝開く・1＝握る（手のひらの側へ曲げる）
+ */
+const CURL = { Proximal: 1.2, Intermediate: 1.3, Distal: 0.85 };
+export function makeFingers(vrm, vrm0 = false) {
+  const H = vrm && vrm.humanoid; if (!H || !H.getNormalizedBoneNode) return null;
+  const out = { right: [], left: [] };
+  for (const side of ['right', 'left']) for (const f of ['Index', 'Middle', 'Ring', 'Little']) for (const [seg, a] of Object.entries(CURL)) {
+    const b = H.getNormalizedBoneNode(side + f + seg); if (b) out[side].push({ b, a: a * (side === 'right' ? 1 : -1) * (vrm0 ? -1 : 1), axis: new THREE.Vector3(0, 0, 1) });
+  }
+  for (const side of ['right', 'left']) {   // 親指：柄を回り込むように少し内へ
+    const t = H.getNormalizedBoneNode(side + 'ThumbDistal') || H.getNormalizedBoneNode(side + 'ThumbIntermediate');
+    if (t) out[side].push({ b: t, a: 0.6 * (side === 'right' ? -1 : 1) * (vrm0 ? -1 : 1), axis: new THREE.Vector3(0, 1, 0) });
+  }
+  return out.right.length || out.left.length ? out : null;
+}
+export function setFingers(F, side, w) {
+  if (!F || !F[side]) return;
+  for (const f of F[side]) f.b.quaternion.setFromAxisAngle(f.axis, f.a * w);
 }

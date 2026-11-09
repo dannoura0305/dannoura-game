@@ -311,10 +311,15 @@ export function attachRigidWeapons(J) {
   const katana = mk(J.rightHand, [0, -0.06, 0.02], [2.1, 0, 0]);
   const add = (g, geo, c, p) => { const m = new THREE.Mesh(geo, toon(c)); m.position.set(...p); m.castShadow = true; g.add(m); return m; };
   add(katana, new THREE.BoxGeometry(0.03, 0.2, 0.034), 0x5a2a6a, [0, -0.02, 0]); add(katana, new THREE.BoxGeometry(0.011, 0.74, 0.03), 0xdde2ee, [0, 0.46, 0]);
-  const gun = mk(J.rightHand, [0, -0.07, 0.03], [0, 0, 0]); add(gun, new THREE.BoxGeometry(0.03, 0.045, 0.17), 0x1c1822, [0, 0.02, 0.06]);
+  // 2026-11-09：拳銃。前は握りの無い箱で、銃口が親指の向き（腕を前へ伸ばすと真上）・手のひらから離れて浮いていた（利用者「銃の持ち方がひどい」）。
+  //  → 握り（グリップ）を手のひらの中に置き、銃身は指の向き（腕を伸ばすと前・下ろすと下）・遊底は親指の側。指は Player.animate で握る
+  const gun = mk(J.rightHand, [0.006, -0.05, 0.034], [Math.PI / 2, 0, 0]);
+  add(gun, new THREE.BoxGeometry(0.027, 0.034, 0.17), 0x1c1822, [0, 0.032, 0.045]);   // 遊底・銃身
+  add(gun, new THREE.BoxGeometry(0.025, 0.085, 0.036), 0x24202a, [0, -0.022, -0.012]); // 握り（手のひらの中）
+  add(gun, new THREE.BoxGeometry(0.008, 0.02, 0.034), 0x1c1822, [0, 0.0, 0.03]);       // 用心金
   const pipe = mk(J.rightHand, [0, -0.06, 0.02], [2.0, 0, 0]); add(pipe, new THREE.CylinderGeometry(0.017, 0.017, 0.92, 8), 0x8a8580, [0, 0.38, 0]);
   const match = mk(J.rightHand, [0, -0.06, 0.02], [2.0, 0, 0]); add(match, new THREE.BoxGeometry(0.04, 0.6, 0.045), 0x6a3a22, [0, 0.1, 0]); add(match, new THREE.CylinderGeometry(0.013, 0.015, 0.92, 8), 0x26242a, [0, 0.72, 0.012]);
-  const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0.02, 0.15); gun.add(muzzle);
+  const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0.032, 0.13); gun.add(muzzle);
   const mMuzzle = new THREE.Object3D(); mMuzzle.position.set(0, 1.18, 0.012); match.add(mMuzzle);
   const none = new THREE.Group(); J.hips.add(none);
   addOutlines(katana, 0.006); addOutlines(gun, 0.006); addOutlines(pipe, 0.006); addOutlines(match, 0.006);

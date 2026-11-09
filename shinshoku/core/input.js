@@ -77,6 +77,16 @@ export class Input {
     o.x += this.touch.lookX || 0; o.y += this.touch.lookY || 0; this.touch.lookX = this.touch.lookY = 0;
     return o;
   }
+  /** コントローラーの「押した瞬間」を消す（メニューの決定の A が、閉じた直後の回避などに化けないように：padnav.js） */
+  swallowPad(i) { this.padPrev[i] = true; }
+  /** 振動（vibrationActuator があるコントローラーだけ）。strong／weak は 0〜1、ms は長さ。設定で切れる（rumbleOff） */
+  rumble(strong, weak, ms) {
+    if (this.rumbleOff || this.device !== 'pad') return false;
+    const now = performance.now(); if (now - (this.rumbleAt || 0) < 60) return false; this.rumbleAt = now;
+    const g = this._pad(), a = g && g.vibrationActuator; if (!a || !a.playEffect) return false;
+    try { const p = a.playEffect(a.type || 'dual-rumble', { startDelay: 0, duration: ms, weakMagnitude: weak, strongMagnitude: strong }); if (p && p.catch) p.catch(() => {}); } catch (e) { return false; }
+    this.rumbleN = (this.rumbleN || 0) + 1; return true;
+  }
   _pad() {
     if (!navigator.getGamepads) return null;
     const ps = navigator.getGamepads(); for (const p of ps) if (p && p.connected) return p;
@@ -120,7 +130,8 @@ export class Input {
         if (pr(2)) { if (b(6)) o.reload = true; else o.attack = true; }
         if (pr(7)) o.attack = true;                                  // RT：撃つ（構え中）
         o.heavy = o.heavy || b(3);
-        if (pr(0)) o.dodge = true; if (pr(1)) o.interact = true; if (pr(4)) o.parry = true; if (pr(5)) o.swap = true;
+        if (pr(0)) o.dodge = true; if (pr(1)) o.interact = true; if (pr(4)) o.parry = true;
+        if (pr(5)) { if (b(8)) o.cycleMelee = true; else o.swap = true; }   // View を押しながら RB＝近接の武器を順に（タッチの「替 長押し」と同じ）
         if (pr(9)) o.pause = true; if (pr(11)) o.lock = true; if (pr(12)) o.heal = true; if (pr(13)) o.light = true; if (pr(14)) o.lockPrev = true; if (pr(15)) o.lockNext = true;
         if (b(1) || b(9)) o.skipHeld = true;
         if (b(8)) o.transform = true;
