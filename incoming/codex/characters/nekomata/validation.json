@@ -1,0 +1,15 @@
+{
+  "reimport_ok": true,
+  "bones": 34,
+  "required_bones_present": true,
+  "morph_names_present": true,
+  "actions": [
+    "idle"
+  ],
+  "meshes": 21,
+  "vertices": 771184,
+  "triangles": 1275182,
+  "bytes": 48732292,
+  "finite_vertices": true,
+  "unweighted_vertices": 0
+}

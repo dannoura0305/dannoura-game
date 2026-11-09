@@ -1,0 +1,28 @@
+{
+  "reimport_ok": true,
+  "bones": 28,
+  "actions": [
+    "charge_ready",
+    "idle",
+    "reach_pull"
+  ],
+  "finite_vertices": true,
+  "unweighted_vertices": 0,
+  "max_weight_sum_error": 1.3777753338217735e-07,
+  "cast_engine_tested": false,
+  "root_motion": false,
+  "physical_grabbing": false,
+  "glb_animations": [
+    "charge_ready",
+    "idle",
+    "reach_pull"
+  ],
+  "embedded_images": true,
+  "normal_mapped_materials": 3,
+  "blink_displacement_m": 0.006445164623064645,
+  "animation_displacement_m": {
+    "idle": 0.009095726626281138,
+    "reach_pull": 1.2753904614295095,
+    "charge_ready": 0.4333396931977808
+  }
+}

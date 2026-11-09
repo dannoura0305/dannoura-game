@@ -1,0 +1,46 @@
+{
+  "reimport_ok": true,
+  "bones": 31,
+  "finite_vertices": true,
+  "unweighted_vertices": 0,
+  "max_weight_sum_error": 2.9802322387695312e-08,
+  "cast_engine_tested": false,
+  "combat_logic_implemented": false,
+  "human_form_included": false,
+  "root_motion": false,
+  "glb_animations": [
+    "head_tilt",
+    "idle",
+    "mimic_pose",
+    "reaching_lunge"
+  ],
+  "embedded_images": 12,
+  "patterned_materials": [
+    "Fine charcoal windowpane trousers",
+    "Rose and grey horizontal stripes"
+  ],
+  "height_m": 3.328005132963881,
+  "ground_clearance_m": 0.0009993931744247675,
+  "animation_displacement_m": {
+    "idle": 0.07353045736202848,
+    "mimic_pose": 1.4975386874154188,
+    "reaching_lunge": 2.284514108732723,
+    "head_tilt": 0.32406676346518043
+  },
+  "loop_error_m": {
+    "idle": 0.0,
+    "mimic_pose": 0.0,
+    "reaching_lunge": 0.0,
+    "head_tilt": 0.0
+  },
+  "rest_start_error_m": {
+    "idle": 1.0335717063088238e-06,
+    "mimic_pose": 0.011317140040705132,
+    "reaching_lunge": 0.011317140040705132,
+    "head_tilt": 1.0335717063088238e-06
+  },
+  "mimic_pose_hand_joint_gap_m": 5.786564302130818e-07,
+  "mimic_pose_minimum_z": 0.0009996321750804782,
+  "reaching_lunge_hand_joint_gap_m": 5.623090941939713e-07,
+  "reaching_lunge_minimum_z": 0.0009989722166210413
+}

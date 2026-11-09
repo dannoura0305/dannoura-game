@@ -1,0 +1,33 @@
+{
+  "reimport_ok": true,
+  "bones": 28,
+  "actions": [
+    "head_tilt",
+    "idle",
+    "reach",
+    "walk_in_place"
+  ],
+  "finite_vertices": true,
+  "unweighted_vertices": 0,
+  "max_weight_sum_error": 1.183070708066225e-07,
+  "cast_engine_tested": false,
+  "root_motion": false,
+  "physical_grabbing": false,
+  "glb_animations": [
+    "head_tilt",
+    "idle",
+    "reach",
+    "walk_in_place"
+  ],
+  "embedded_images": true,
+  "normal_mapped_materials": 3,
+  "smile_displacement_m": 0.006798553972476482,
+  "animation_displacement_m": {
+    "idle": 0.012076097893829863,
+    "head_tilt": 0.06899935974016595,
+    "reach": 1.1670403370839904,
+    "walk_in_place": 0.10069140355181976
+  },
+  "reach_wrist_separation_m": 0.6400001083314355,
+  "walk_min_foot_z_m": 0.0011873156763613224
+}

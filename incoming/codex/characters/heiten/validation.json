@@ -1,0 +1,23 @@
+{
+  "reimport_ok": true,
+  "bones": 28,
+  "actions": [
+    "closing_gesture",
+    "idle"
+  ],
+  "finite_vertices": true,
+  "unweighted_vertices": 0,
+  "max_weight_sum_error": 1.2014061212539673e-07,
+  "cast_engine_tested": false,
+  "door_interaction_implemented": false,
+  "glb_animations": [
+    "closing_gesture",
+    "idle"
+  ],
+  "embedded_images": true,
+  "shutter_closed_displacement_m": 0.01399993896484375,
+  "animation_displacement_m": {
+    "idle": 0.008799098884699772,
+    "closing_gesture": 2.5491563124287633
+  }
+}

@@ -1,0 +1,61 @@
+from PIL import Image,ImageDraw,ImageFont,ImageOps
+from pathlib import Path
+import shutil,json
+root=Path(__file__).resolve().parents[2];out=root/'outputs/shuyosha';work=root/'work/shuyosha'
+font=ImageFont.truetype(r'C:\Windows\Fonts\meiryo.ttc',25)
+def board(name,items,n=600):
+    b=Image.new('RGB',(len(items)*n,n+65),(35,38,44));d=ImageDraw.Draw(b)
+    for i,(label,file) in enumerate(items):
+        d.text((i*n+20,12),label,font=font,fill='white')
+        im=ImageOps.contain(Image.open(out/file).convert('RGB'),(n,n),Image.Resampling.LANCZOS);b.paste(im,(i*n,60))
+    b.save(out/name)
+board('preview.png',[('収容者・肩に扉を持つ通常個体','three_quarter.png'),('頭部と胸の扉','face.png')],750)
+board('three_views.png',[('正面','front.png'),('側面','side.png'),('背面','back.png')])
+board('details.png',[('背中の5つの扉','back_detail.png'),('厚い手と指','hand.png')],700)
+board('motions.png',[('待機','idle.png'),('手を伸ばして引く仕草','reach_pull.png'),('突進前の構え','charge_ready.png')],600)
+for n in ['build_shuyosha.py','geometry.py','studio.py','validate.py','package.py','garment_weights.py']:shutil.copy2(work/n,out/'source'/n)
+s=json.loads((out/'build_stats.json').read_text())
+readme=f'''# 収容者（しゅうようしゃ）・肩に扉を持つ通常個体
+
+参照画像：ChatGPT 画像 2026年11月8日 13_32_52.png。
+大きく丸い肩、小さく埋もれた頭、厚い腕と手、灰色の服、胸4つ・背中5つの扉状のくぼみを造形した初版です。
+以前制作した旧研究棟の細身の収容者とは別モデル・別ファイルです。
+
+## ファイル
+- `shuyosha.blend`：編集用モデル、骨組み、素材、基本動作、撮影用の床と照明。
+- `shuyosha.glb`：モデル本体、埋め込みテクスチャ、骨組み、アニメーション。撮影用の床・照明は含みません。
+- `preview.png` / `three_views.png`：全体と頭部、正面・側面・背面。
+- `details.png`：背面の扉と手。
+- `motions.png`：GLBを再読み込みして確認した基本動作。
+- `validation.json`：書き出し後の検査結果。
+- `source/`：再生成用Pythonスクリプト。
+
+## モデル仕様
+- メートル単位、上方向Z、正面-Y。全高約2.08mは制作時の仮設定です。
+- 骨{s['bones']}本、頂点{s['vertices']:,}、三角形{s['triangles']:,}。
+- GLB約{s['bytes']/1024/1024:.1f} MiB。ゲーム用LODや実機の描画負荷調整は未実施です。
+- `idle`：待機。
+- `reach_pull`：両腕を前に伸ばし、戻す仕草。
+- `charge_ready`：腰を下げて上体を前に傾ける構え。
+- 各動作は30fps・120フレーム。移動量を持たないその場での基本動作です。
+- 両目に`blink`シェイプキー。指は各1本の骨で操作できます。
+- .blendのNLAトラックは初期状態ではミュートしています。再生時は目的のトラックだけミュートを解除してください。
+- 胸の布札は無記名です。体の扉は固定の造形で、開閉機構はありません。
+
+## 確認と制作範囲
+GLBをBlender 5.2で再読み込みし、骨・3つの動作・まばたき・埋め込み画像・ウェイトを確認しました。
+各動作でメッシュが実際に変形することも確認し、動作中の画像を収録しています。
+突進の移動制御、他キャラクターをつかんで連れ戻す処理、当たり判定、接地IK、布の物理演算は含みません。
+Cast Engineやゲーム内での動作は未検証です。VRM設定はありません。
+原画の皮膚の細かな凹凸・しわ、衣服の折り目を完全に一致させたものではありません。
+画像右下の細身・幅広の別個体は今回のモデルには含みません。
+
+## 再生成
+`blender -b --factory-startup -P source/build_shuyosha.py -- 出力先フォルダー`
+
+既存の収容者・閉店・巨大猫又・ルーン、およびC:\\wakabaのプロジェクトファイルは変更していません。
+'''
+(out/'README.md').write_text(readme,encoding='utf-8')
+backup=out/'shuyosha.blend1'
+if backup.exists():backup.unlink()
+print('Packaged',out)

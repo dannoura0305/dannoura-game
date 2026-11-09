@@ -1,0 +1,8 @@
+{
+  "light_reimport_ok": true,
+  "blink_max_vertex_change_m": 0.11332178212856236,
+  "jaw_max_vertex_change_m": 0.24032806589319536,
+  "light_vertices": 318092,
+  "light_unweighted_vertices": 0,
+  "cast_engine_tested": false
+}

@@ -1,0 +1,37 @@
+{
+  "reimport_ok": true,
+  "bones": 29,
+  "finite_vertices": true,
+  "unweighted_vertices": 0,
+  "max_weight_sum_error": 1.2293457984924316e-07,
+  "cast_engine_tested": false,
+  "root_motion": false,
+  "terminal_interaction_implemented": false,
+  "light_state_driven": false,
+  "glb_animations": [
+    "acknowledge",
+    "idle",
+    "respond",
+    "standby"
+  ],
+  "transparent_materials": [
+    "Pale blue translucent covers"
+  ],
+  "transmission_materials": [
+    "Pale blue translucent covers"
+  ],
+  "emissive_materials": [
+    "Cyan response light"
+  ],
+  "animation_displacement_m": {
+    "idle": 0.00708058757229696,
+    "standby": 0.09258946447902727,
+    "respond": 0.9347136994385135,
+    "acknowledge": 0.059554589330048716
+  },
+  "respond_wrist_m": [
+    -0.2300003319978714,
+    -0.5399999618530273,
+    1.4300001859664917
+  ]
+}

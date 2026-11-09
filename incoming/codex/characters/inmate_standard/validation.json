@@ -1,0 +1,19 @@
+{
+  "reimport_ok": true,
+  "bones": 29,
+  "actions": [
+    "idle",
+    "walk"
+  ],
+  "finite_vertices": true,
+  "unweighted_vertices": 0,
+  "max_weight_sum_error": 1.382431946694851e-07,
+  "cast_engine_tested": false,
+  "walk_is_in_place": true,
+  "glb_animations": [
+    "idle",
+    "walk"
+  ],
+  "blink_displacement_m": 0.005223960928834303,
+  "walk_mesh_displacement_m": 0.1383545638434773
+}

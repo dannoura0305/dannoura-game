@@ -1,0 +1,15 @@
+{
+  "full": {
+    "vertices": 769402,
+    "triangles": 1275182,
+    "bytes": 48732292
+  },
+  "light": {
+    "vertices": 316314,
+    "triangles": 543380,
+    "bytes": 19902936
+  },
+  "bones": 34,
+  "removed_strand_vertices": 348744,
+  "mesh_cleanup": []
+}

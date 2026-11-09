@@ -1,0 +1,30 @@
+{
+  "reimport_ok": true,
+  "bones": 31,
+  "finite_vertices": true,
+  "unweighted_vertices": 0,
+  "max_weight_sum_error": 1.2014061212539673e-07,
+  "cast_engine_tested": false,
+  "root_motion": false,
+  "clock_time_driven": false,
+  "glb_animations": [
+    "check_watch",
+    "idle",
+    "look_around",
+    "wait"
+  ],
+  "embedded_images": true,
+  "normal_mapped_materials": 6,
+  "animation_displacement_m": {
+    "idle": 0.007882732349872591,
+    "wait": 0.1531435922209065,
+    "check_watch": 0.3108923778378159,
+    "look_around": 0.20964529429185205
+  },
+  "minimum_vertex_z_m": {
+    "idle": 1.0606085254494246e-07,
+    "wait": 1.0606085254494246e-07,
+    "check_watch": 1.0606085254494246e-07,
+    "look_around": 1.0606085254494246e-07
+  }
+}

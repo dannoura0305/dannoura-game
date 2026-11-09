@@ -1,0 +1,44 @@
+{
+  "reimport_ok": true,
+  "bones": 23,
+  "finite_vertices": true,
+  "unweighted_vertices": 0,
+  "max_weight_sum_error": 2.9802322387695312e-08,
+  "cast_engine_tested": false,
+  "combat_logic_implemented": false,
+  "root_motion": false,
+  "glb_animations": [
+    "core_pulse",
+    "devour",
+    "idle",
+    "sweep"
+  ],
+  "emissive_materials": [
+    "Rose boundary fissure"
+  ],
+  "normal_mapped_materials": [
+    "Deep violet understructure",
+    "Fractured core stone",
+    "Layered purple black rock",
+    "Raised purple rock folds",
+    "Weathered violet edges"
+  ],
+  "embedded_images": 10,
+  "height_m": 18.000002933154065,
+  "ground_clearance_m": -4.840502697334159e-06,
+  "animation_displacement_m": {
+    "idle": 0.06934833419069358,
+    "sweep": 7.430941791736119,
+    "devour": 3.1428833997546146,
+    "core_pulse": 0.1868605310716863
+  },
+  "loop_error_m": {
+    "idle": 0.0,
+    "sweep": 0.0,
+    "devour": 0.0,
+    "core_pulse": 0.0
+  },
+  "sweep_foot_raise_m": 3.8717269897460938,
+  "support_foot_drift_m": 4.266626874965019e-06,
+  "talon_joint_gap_m": 4.291534423828125e-06
+}
