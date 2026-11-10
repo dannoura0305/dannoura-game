@@ -1748,6 +1748,8 @@ const headView = page => page.evaluate(() => {
   return { ndc: [+n.x.toFixed(3), +n.y.toFixed(3)], behind: fw[0] * v[0] + fw[1] * v[1] < 0, above: c.pos[1] > h.y + 0.1, model: P.model.kind, white: !!P.model.white, mixed: !!P.model.mixed, fov: c.fov };
 });
 const waitArea = (page, area, n = 80) => page.evaluate(({ area, n }) => { for (let i = 0; i < n && __sh.state().area !== area; i++) __sh.debug.fastSim(5); __sh.debug.fastSim(12); return __sh.state().area; }, { area, n });
+// タイトルから枠を読む：「続きから」は VRoid の姿を読み終わるまで（長くても 60 秒）待つので、始まるのを待つ
+const loadFromTitle = async (page, k) => { await page.evaluate(k => __sh.load(k), k); await page.waitForFunction(() => __sh.game.mode !== 'title' && !__sh.game.charsWaitingLoad, null, { timeout: 90000 }).catch(() => {}); };
 const titleReady = page => page.waitForFunction(() => window.__sh && __sh.game.mode === 'title' && !document.getElementById('sh-title').hidden, null, { timeout: 90000 });
 async function runCh7PC(browser) {
   const errs = []; const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -1773,9 +1775,7 @@ async function runCh7PC(browser) {
   ok('公衆電話（最終戦の前のセーブ地点）で枠1 にセーブ', saved && saved.story.step === 'ch7a_edge' && saved.place.area === 'abyss', JSON.stringify(saved && { s: saved.story.step, a: saved.place.area }));
   // ページを読み直して、枠1 から続ける（セーブのつながり）
   await page.goto(`${BASE}/shinshoku.html?test=1&perf=1`); await titleReady(page);
-  await page.evaluate(() => __sh.load('slot1'));
-  // 「続きから」は VRoid の姿を読み終わるまで（長くても 60 秒）待つので、始まるのを待つ
-  await page.waitForFunction(() => __sh.state().mode !== 'title' && !__sh.game.charsWaitingLoad, null, { timeout: 90000 }).catch(() => {});
+  await loadFromTitle(page, 'slot1');
   await sim(page, 20);
   st = await S(page);
   ok('読み直し → 枠1：終章A の淵の縁から（ルート reveal・相棒は知っている）', st.area === 'abyss' && st.step === 'ch7a_edge' && st.route === 'reveal' && st.companionKnows && !st.cut, JSON.stringify({ area: st.area, step: st.step, cut: st.cut }));
@@ -1868,7 +1868,7 @@ async function runCh7PC(browser) {
   const saved2 = await page.evaluate(() => __sh.store.load('slot2'));
   ok('内線電話（最終戦の前のセーブ地点）で枠2 にセーブ', saved2 && saved2.story.step === 'ch7b_enter' && saved2.place.area === 'kiroku', JSON.stringify(saved2 && saved2.story.step));
   await page.goto(`${BASE}/shinshoku.html?test=1&perf=1`); await titleReady(page);
-  await page.evaluate(() => __sh.load('slot2')); await sim(page, 20); await injectAF(page);
+  await loadFromTitle(page, 'slot2'); await sim(page, 20); await injectAF(page);
   st = await S(page); ok('読み直し → 枠2：記録の間の通路から（secret・（相棒）が一緒）', st.area === 'kiroku' && st.step === 'ch7b_enter' && st.route === 'secret' && st.companion.visible, JSON.stringify({ area: st.area, step: st.step }));
   const wk = await walkTo(page, 0, 3.0, 900); await sim(page, 6);
   st = await S(page); ok('部屋へ入る → 記録の間の演出（壁一面の画面・事故の瞬間）', st.cut === 'cs07b_arrive', JSON.stringify({ wk, cut: st.cut }));
