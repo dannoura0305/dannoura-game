@@ -185,7 +185,7 @@ class Game {
     // 2026-11-08：だんのうらと相棒の VRoid を読み終わるまでは、コードで組んだ前の姿を見せない（タイトルの後ろでも・遊び始めでも）。
     // 読めない時・?vrm=0 はすぐ前の姿で出す。charsSettle() が姿を戻し、待っている「はじめから」等を進める
     this.charsSettled = false; this.charsWait = [];
-    this.charsHidden = [this.player.model, this.companion.model].filter(m => m && m.root).map(m => m.root); for (const o of this.charsHidden) o.visible = false;   // 隠すのはコードの姿の網だけ（root は演出が出し入れするので触らない。VRM に差し替われば VRM の網が見える）
+    this.charsHidden = [this.player.model, this.companion.model, this.whiteModel].filter(m => m && m.root).map(m => m.root); for (const o of this.charsHidden) o.visible = false;   // 隠すのはコードの姿の網だけ（root は演出が出し入れするので触らない。VRM に差し替われば VRM の網が見える）
     this.loadCharacterModels().catch(() => {}).finally(() => this.charsSettle());
     // 状態
     this.frame = 0; this.playSec = 0; this.mode = 'title'; this.hitstop = 0; this.slowT = 0; this.slowScale = 1; this.worldScale = 1;
@@ -233,9 +233,11 @@ class Game {
     this.charsSettle();
     // 白い姿（化けを解いた姿）：起動を軽くするため少し後で読む（白い姿は第3章から）。読めたら網の差し替え先を VRM に（今が白い姿ならすぐ差し替え）。
     // 読み終わる前に化けを解いた時は、コードで組んだ白い姿のまま（後で差し替わる）。予備の分身（ch3 の幻術）はコードの白い姿のまま
+    // 2026-11-10：読み終わるまでは、コードの白い姿の網を隠しておく（第4章の変身などで、前の姿が一瞬見えないように）。読めなかった時だけ見せる
     if (m.dannoura_white && m.dannoura_white.file) {
-      const loadWhite = async () => { const v = await loadCharacter(m.dannoura_white, lopt); if (v) { const wasWhite = this.player.model === this.whiteModel; this.whiteModel = v; if (wasWhite) this.player.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('dannoura_white'); } };
-      this.whiteVrmReady = new Promise(res => setTimeout(() => loadWhite().then(res, res), this.player.fighter.white ? 0 : 2500));
+      const code = this.whiteModel; if (code && code.root && !code.isVRM) code.root.visible = false;
+      const loadWhite = async () => { let v = null; try { v = await loadCharacter(m.dannoura_white, lopt); } catch (e) { v = null; } if (v) { const wasWhite = this.player.model === this.whiteModel; this.whiteModel = v; if (wasWhite) this.player.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('dannoura_white'); } else if (code && code.root) code.root.visible = true; };
+      this.whiteVrmReady = new Promise(res => setTimeout(() => loadWhite().then(res, res), this.player.fighter.white ? 0 : 600));
     }
     // P17：娘（結末の家の場面だけ）：Blender で作った VRM（tools/blender/char の daughter）。起動を軽くするため後で読む。読めない時・読み終わる前はコードで組んだ娘
     if (m.daughter && m.daughter.file) this.daughterVrmReady = new Promise(res => setTimeout(() => loadCharacter(m.daughter, lopt).then(v => { if (v) { this.daughterVrm = v; this.vrmLoaded = (this.vrmLoaded || []).concat('daughter'); } res(v); }, () => res(null)), 6000));
@@ -555,14 +557,15 @@ class Game {
   }
   /** はじめから。step（試験用）でその段から始められる */
   newGame(step) {
-    // タイトルから始める時、VRoid の姿をまだ読んでいる最中なら、読み終わるまで（長くても 20 秒）待ってから始める（前の姿で始まらないように）。
+    // タイトルから始める時、VRoid の姿をまだ読んでいる最中なら、読み終わるまで（長くても 60 秒）待ってから始める（前の姿で始まらないように）。
+    // 2026-11-10：待ちきれずに始める時も、前の姿（コードの網）は見せない（読み終われば VRoid、読めなかった時だけ前の姿）。
     // ?autostart=1（開発・試験用の直接起動）は待たない：その間は姿を隠したまま進み、読めた時に VRoid の姿で出る
-    if (!this.charsSettled && Q.get('autostart') !== '1') {
+    if (!this.charsSettled && !this.charsStartAnyway && Q.get('autostart') !== '1') {
       if (this.charsWaitingStart) return;
       this.charsWaitingStart = true;
       const note = document.querySelector('#sh-title .tt-note'); const old = note ? note.innerHTML : null; if (note) note.textContent = 'キャラクターを読み込んでいます……';
-      const go = () => { if (!this.charsWaitingStart) return; this.charsWaitingStart = false; clearTimeout(to); if (note && old != null) note.innerHTML = old; this.charsSettle(); this.newGame(step); };
-      const to = setTimeout(go, 20000); this.charsWait.push(go);
+      const go = timedOut => { if (!this.charsWaitingStart) return; this.charsWaitingStart = false; clearTimeout(to); if (note && old != null) note.innerHTML = old; if (timedOut) this.charsStartAnyway = true; else this.charsSettle(); this.newGame(step); };
+      const to = setTimeout(() => go(true), 60000); this.charsWait.push(() => go(false));
       return;
     }
     document.getElementById('sh-title').hidden = true;
@@ -811,6 +814,15 @@ class Game {
   }
   loadSlot(k) {
     const s = this.store.load(k); if (!s) return false;
+    // 2026-11-10：「続きから」も、VRoid の姿を読み終わるまで（長くても 60 秒）待つ（前の姿で始まらないように。newGame と同じ）
+    if (!this.charsSettled && !this.charsStartAnyway && Q.get('autostart') !== '1' && Q.get('continue') !== '1' && this.mode === 'title') {
+      if (this.charsWaitingLoad) return true;
+      this.charsWaitingLoad = true;
+      const note = document.querySelector('#sh-title .tt-note'); const old = note ? note.innerHTML : null; if (note) note.textContent = 'キャラクターを読み込んでいます……';
+      const go = timedOut => { if (!this.charsWaitingLoad) return; this.charsWaitingLoad = false; clearTimeout(to); if (note && old != null) note.innerHTML = old; if (timedOut) this.charsStartAnyway = true; else this.charsSettle(); this.loadSlot(k); };
+      const to = setTimeout(() => go(true), 60000); this.charsWait.push(() => go(false));
+      return true;
+    }
     document.getElementById('sh-title').hidden = true; this.ui.closeMenu(); this.ui.showDead(false); this.ui.hideDialog(); this.ui.closePuzzle(); this.dialog = null;
     if (this.cut.active) this.cut.cs = null; if (this.trans) this.trans.stop(); this.ui.letterbox(false); this.ui.subtitle(null); this.cineCam = null; this.timers.length = 0; this.ui.boss(null); this.hint(null);
     const st = s.story || {};
