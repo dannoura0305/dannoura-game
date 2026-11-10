@@ -1773,7 +1773,10 @@ async function runCh7PC(browser) {
   ok('公衆電話（最終戦の前のセーブ地点）で枠1 にセーブ', saved && saved.story.step === 'ch7a_edge' && saved.place.area === 'abyss', JSON.stringify(saved && { s: saved.story.step, a: saved.place.area }));
   // ページを読み直して、枠1 から続ける（セーブのつながり）
   await page.goto(`${BASE}/shinshoku.html?test=1&perf=1`); await titleReady(page);
-  await page.evaluate(() => __sh.load('slot1')); await sim(page, 20);
+  await page.evaluate(() => __sh.load('slot1'));
+  // 「続きから」は VRoid の姿を読み終わるまで（長くても 60 秒）待つので、始まるのを待つ
+  await page.waitForFunction(() => __sh.state().mode !== 'title' && !__sh.game.charsWaitingLoad, null, { timeout: 90000 }).catch(() => {});
+  await sim(page, 20);
   st = await S(page);
   ok('読み直し → 枠1：終章A の淵の縁から（ルート reveal・相棒は知っている）', st.area === 'abyss' && st.step === 'ch7a_edge' && st.route === 'reveal' && st.companionKnows && !st.cut, JSON.stringify({ area: st.area, step: st.step, cut: st.cut }));
   await injectGF(page);

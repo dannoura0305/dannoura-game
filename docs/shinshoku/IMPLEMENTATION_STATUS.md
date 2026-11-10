@@ -932,6 +932,12 @@ VRoid などで人が作ったモデルとの差：目は描いた絵と板の�
 - 変更：`main.js`（飛び先 `at`・フック・キーの割り当て・設定）・`game/story.js`・`game/combat.js`（遅くなる場・待人／当直の出来事・塗替の「塗り替え」の先）・`game/ch4.js`（巨大戦を塗替にも）・`game/ch5.js`（守った後の続き・第5章B の続き・抑えるの方式）・`story/chapters.js`・`story/cutscenes.js`・`story/cutscenes5.js`（cs06_end の続き）・`data/enemies.js`・`data/areas.js`・`data/events.json`・`core/input.js`（キーの割り当て）・`core/audio.js`・`render/camera.js`（揺れの倍率）・`ui/ui.js`（時刻・点検表・手順・監視卓・キー・設定）・`world/areas.js`・`style.css`・`shinshoku.html`（表示の文）・`tests/shinshoku-p3-story.test.mjs`・`tests/shinshoku-p6.test.mjs`・`tools/shinshoku_play.mjs`
 - `sw.js` は VERSION だけ更新（2026-10-19.1）。
 
+## 6f. 演出の台詞の声（2026-11-10）
+- 演出（cutscenes.js・cutscenes3〜7.js）の声のある 232 行に、VOICEVOX（ENGINE 0.26.1・この作業環境で生成）の声を付けた。地の文（sys）・全体が（ ）のト書き・「……」だけの行は声なし。字幕・文・固定の台詞・結末はそのまま。
+- 新：`shinshoku/core/voice.js`（対応表・ハッシュ・再生）・`shinshoku/assets/voice/`（mp3 232 本・約 2.8MB と `manifest.json`）・`tools/voice/`（`gen.mjs`・`voices.json`・`yomi.json`）・`docs/shinshoku/VOICE_CREDITS.md`（声と規約・クレジット）・`tests/shinshoku-voice.test.mjs`。
+- 変更：`story/cutscene.js`（`voiceWarp`：声が次の行に収まらない時に間を差し込む・各場面 +30% まで）・`game/story.js`（行が出た時に鳴らす・飛ばしで止める）・`core/audio.js`（声の出口・遷移の沈みを声にも）・`main.js`（設定 `voiceOn`・`voiceVol`）・`ui/ui.js`（設定の画面）・`data/ch7.js`（スタッフロールの声のクレジット）・`shinshoku.html`（タイトルの注記）。
+- 起動時は読まない：対応表は遊び始めて 2.5 秒後、音声は演出の再生の直前にその演出の分だけ。文が変わった行はハッシュが合わず鳴らない（`node tools/voice/gen.mjs` で作り直す）。
+
 ## 7. 次の作業（提案）
 1. 利用者の実機で `shinshoku.html?perf=1` と手触りの確認（PC・スマホ）。
 2. わかばシステムで作ったモデル・顔絵を manifest に入れて見た目を確かめる（`tools/shinshoku_viewer.html?manifest=1`）。表情・外部アニメーションへの対応。

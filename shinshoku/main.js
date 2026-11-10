@@ -38,6 +38,7 @@ import { SaveStore, makeSlot } from './save/save.js';
 import { createWP } from './link/progress.js';
 import { newRouteState } from './story/route.js';
 import { CutscenePlayer } from './story/cutscene.js';
+import { Voice } from './core/voice.js';
 import { stepDef, streetState, atLeast, weaponsAt, STEPS, TARGETS } from './story/chapters.js';
 import { AREA_GRAPH } from './data/areas.js';
 import { bossName } from './story/puzzles.js';
@@ -95,7 +96,7 @@ const Q = new URLSearchParams(location.search);
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || Q.get('touch') === '1';
 const AUTO_PRESET = autoPreset({ touch: isTouch, w: innerWidth, h: innerHeight, dpr: devicePixelRatio, cores: navigator.hardwareConcurrency, mem: navigator.deviceMemory });
 
-const DEFAULT_SETTINGS = () => Object.assign(applyPreset({ preset: 'auto' }, AUTO_PRESET), { preset: 'auto', difficulty: 'normal', assist: false, sens: 1, invertY: false, volume: 0.7, touchUI: isTouch, subSize: 'm', teleCB: false, rampageInput: 'both', shake: 1, rumble: true, keys: {} });
+const DEFAULT_SETTINGS = () => Object.assign(applyPreset({ preset: 'auto' }, AUTO_PRESET), { preset: 'auto', difficulty: 'normal', assist: false, sens: 1, invertY: false, volume: 0.7, voiceOn: true, voiceVol: 0.9, touchUI: isTouch, subSize: 'm', teleCB: false, rampageInput: 'both', shake: 1, rumble: true, keys: {} });
 
 /** 区画の明かり（定義）と使い回しの点光源 */
 const POOL_MAX = 8;
@@ -162,6 +163,7 @@ class Game {
     this.heitenSign = this.makeSignStand();
     // 入力・画面
     this.sfx = new Sfx(); this.sfx.setVolume(this.settings.volume);
+    this.voice = new Voice(this.sfx, new URL('./assets/voice/', import.meta.url)); this.voice.setOn(this.settings.voiceOn !== false); this.voice.setVolume(this.settings.voiceVol ?? 0.9); this.voice.setMaster(this.settings.volume);   // 演出の台詞の声（core/voice.js）
     this.input = new Input(canvas, { sens: this.settings.sens, keys: this.settings.keys });
     this.input.wantLock = () => this.mode === 'play' && !this.cut.active;
     this.input.onUnlock = () => { if (this.mode === 'play' && !this.noPauseOnUnlock && !this.cut.active) this.pause(); };
@@ -181,6 +183,7 @@ class Game {
     this.events = await fetch(new URL('./data/events.json', import.meta.url)).then(r => r.json()).catch(() => ({ events: {}, barks: {}, texts: {}, speakers: {} }));
     this.manifest = await loadManifest();
     // P17：Blender で作り直した異形の体（起動の後で読む・読めたら今いる異形も差し替える。読めない時・?epack=0 はコードの形）
+    setTimeout(() => { if (this.settings.voiceOn !== false) this.voice.loadManifest(); }, 2500);   // 声の対応表（小さい）だけ後で読む。音声そのものは演出の直前に、その演出の分だけ
     setTimeout(() => preloadEnemyPacks(this.presetVals() === PRESETS.low ? 'low' : 'high').then(n => { this.enemyPacks = n; this.refreshEnemyPacks(); }, () => 0), 2000);
     // 2026-11-08：だんのうらと相棒の VRoid を読み終わるまでは、コードで組んだ前の姿を見せない（タイトルの後ろでも・遊び始めでも）。
     // 読めない時・?vrm=0 はすぐ前の姿で出す。charsSettle() が姿を戻し、待っている「はじめから」等を進める
@@ -824,7 +827,7 @@ class Game {
       return true;
     }
     document.getElementById('sh-title').hidden = true; this.ui.closeMenu(); this.ui.showDead(false); this.ui.hideDialog(); this.ui.closePuzzle(); this.dialog = null;
-    if (this.cut.active) this.cut.cs = null; if (this.trans) this.trans.stop(); this.ui.letterbox(false); this.ui.subtitle(null); this.cineCam = null; this.timers.length = 0; this.ui.boss(null); this.hint(null);
+    if (this.cut.active) this.cut.cs = null; this.voice.stop(); if (this.trans) this.trans.stop(); this.ui.letterbox(false); this.ui.subtitle(null); this.cineCam = null; this.timers.length = 0; this.ui.boss(null); this.hint(null);
     const st = s.story || {};
     if (this.giantMode) this.exitGiant();
     const prevRoute = this.route;
@@ -882,7 +885,9 @@ class Game {
     if (k === 'difficulty' || k === 'assist') this.player.fighter.setDifficulty(this.settings.difficulty, { touch: isTouch, assist: this.settings.assist });
     if (k === 'sens') this.input.sens = v;
     if (k === 'invertY') this.cam.invertY = v;
-    if (k === 'volume') this.sfx.setVolume(v);
+    if (k === 'volume') { this.sfx.setVolume(v); this.voice.setMaster(v); }
+    if (k === 'voiceVol') this.voice.setVolume(v);
+    if (k === 'voiceOn') { this.voice.setOn(v); if (v) this.voice.loadManifest(); }
     if (k === 'rain') this.sfx.setRain(v);
     if (k === 'touchUI' && this.touchUI) { this.touchUI.show(v); document.getElementById('sh-ui').classList.toggle('touch', !!v); }
     if (k === 'rumble') { this.input.rumbleOff = !v; if (v && !silent) this.rumble('hit'); }
