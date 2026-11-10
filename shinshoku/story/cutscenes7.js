@@ -22,7 +22,7 @@ export const CUTSCENES7 = {
     cam: [
       { t: 0, pos: [3.0, 2.0, 52.0], look: [0, 6, -30], fov: 52 },
       { t: 6.0, pos: [2.0, 2.6, 48.0], look: [0, 12, -34], fov: 48 },
-      { t: 6.2, pos: [1.2, 1.7, 37.4], look: [0, 1.55, 40.0], fov: 36, cut: true },
+      { t: 6.2, pos: [1.2, 1.7, 37.4], look: [0, 1.55, 40.0], fov: 36, cut: true, tr: 'dissolve', trDur: 0.6 },
       { t: 11.4, pos: [1.1, 1.7, 37.6], look: [0, 1.55, 40.0], fov: 34 },
       { t: 11.6, pos: [-1.2, 1.9, 42.6], look: [0, 1.5, 40.0], fov: 40, cut: true },
       { t: 18.2, pos: [-1.0, 1.9, 42.4], look: [0, 1.5, 40.0], fov: 38 },
@@ -44,9 +44,9 @@ export const CUTSCENES7 = {
     cam: [
       { t: 0, pos: [1.3, 1.7, ABYSS.edge[1] - 2.4], look: [0, 1.55, ABYSS.edge[1]], fov: 36 },
       { t: 2.8, pos: [1.2, 1.7, ABYSS.edge[1] - 2.2], look: [0, 1.6, ABYSS.edge[1]], fov: 34 },
-      { t: 3.0, pos: [14, 8, 48], look: [0, 6, 20], fov: 54, cut: true },
+      { t: 3.0, pos: [14, 8, 48], look: [0, 6, 20], fov: 54, cut: true, tr: 'white', trDur: 0.8 },
       { t: 6.0, pos: [15, 10, 50], look: [0, 8, 18], fov: 54 },
-      { t: 6.2, pos: [18, 12, 30], look: [0, 18, -30], fov: 52, cut: true },
+      { t: 6.2, pos: [18, 12, 30], look: [0, 18, -30], fov: 52, cut: true, tr: 'seep', trDur: 1.0 },
       { t: 13.8, pos: [16, 11, 28], look: [0, 22, -30], fov: 50 },
       { t: 14.0, pos: [1.4, 8.8, ABYSS.giantStart[1] - 9.4], look: [0, 8.9, ABYSS.giantStart[1] - 4.6], fov: 40, cut: true },
       { t: 18.0, pos: [1.3, 8.8, ABYSS.giantStart[1] - 9.2], look: [0, 8.9, ABYSS.giantStart[1] - 4.6], fov: 38 },
@@ -67,9 +67,9 @@ export const CUTSCENES7 = {
     cam: [
       { t: 0, pos: [8, 30, 64], look: [10, 12, 10], fov: 50 },
       { t: 5.6, pos: [12, 28, 60], look: [16, 14, 14], fov: 48 },
-      { t: 5.8, pos: [RF.pos[0] - 3.4, RF.y + 1.7, RF.pos[1] + 1.8], look: [RF.pos[0], RF.y + 1.3, RF.pos[1] + 0.2], fov: 38, cut: true },
+      { t: 5.8, pos: [RF.pos[0] - 3.4, RF.y + 1.7, RF.pos[1] + 1.8], look: [RF.pos[0], RF.y + 1.3, RF.pos[1] + 0.2], fov: 38, cut: true, tr: 'dissolve', trDur: 0.6 },   // 遠くの病院の屋上へ
       { t: 12.6, pos: [RF.pos[0] - 3.1, RF.y + 1.7, RF.pos[1] + 1.6], look: [RF.pos[0], RF.y + 1.35, RF.pos[1] + 0.2], fov: 36 },
-      { t: 12.8, pos: [20, 18, 40], look: [0, 12, 0], fov: 52, cut: true },
+      { t: 12.8, pos: [20, 18, 40], look: [0, 12, 0], fov: 52, cut: true, tr: 'dissolve', trDur: 0.6 },
       { t: 17.0, pos: [18, 18, 36], look: [0, 16, -22], fov: 50 },
     ],
     actors: [{ t: 0, id: 'companion', pos: RF.pos, yaw: -P / 2, show: true, mode: 'scripted', anim: 'warn' }],
@@ -90,10 +90,12 @@ export const CUTSCENES7 = {
     cam: [
       { t: 0, pos: [6, 20, -2], look: [0, 21, -24], fov: 34 },
       { t: 7.2, pos: [5, 20.5, -4], look: [0, 21, -24], fov: 30 },
-      { t: 7.4, pos: [13.2, 1.7, -7.6], look: [7.6, 2.2, -11.2], fov: 40, cut: true },
+      { t: 7.4, pos: [13.2, 1.7, -7.6], look: [7.6, 2.2, -11.2], fov: 40, cut: true, tr: 'seep', trDur: 1.0 },   // 淵の縁の人影（境界のにじみの中から）
       { t: 14.2, pos: [12.8, 1.8, -7.2], look: [7.6, 2.6, -11.2], fov: 38 },
-      { t: 14.4, pos: [1.4, 8.8, 9.0], look: [0, 12, -20], fov: 46, cut: true },
-      { t: 19.6, pos: [1.2, 8.8, 9.6], look: [0, 14, -20], fov: 44 },
+      { t: 14.4, pos: [1.4, 8.8, 9.0], look: [0, 12, -20], fov: 46, cut: true, tr: 'dissolve', trDur: 0.5 },
+      { t: 16.5, pos: [1.3, 8.8, 9.3], look: [0, 13, -20], fov: 45 },
+      { t: 16.55, shot: { shot: 'close', on: 'dan', from: [0, -20, 14], dist: 6.5, side: 1, fov: 40 }, cut: true },   // 前：巨大猫又（だんのうら）の言葉の間、顔が映らなかった
+      { t: 19.6, shot: { shot: 'close', on: 'dan', from: [0, -20, 14], dist: 5.8, side: 1, fov: 38 } },
     ],
     actors: [],
     lines: [
@@ -113,15 +115,17 @@ export const CUTSCENES7 = {
     cam: [
       { t: 0, pos: [8, 16, -4], look: [0, 18, -26], fov: 46 },
       { t: 4.4, pos: [7, 15, -2], look: [0, 16, -26], fov: 44 },
-      { t: 4.6, pos: [3.2, 1.2, 7.2], look: [0, 0.7, 4.0], fov: 40, cut: true },
-      { t: 10.6, pos: [3.0, 1.3, 7.4], look: [0, 0.8, 4.0], fov: 38 },
-      { t: 10.8, pos: [13.2, 1.7, -7.6], look: [7.6, 1.8, -11.2], fov: 40, cut: true },
+      { t: 4.6, pos: [3.2, 1.2, 7.2], look: [0, 0.7, 4.0], fov: 40, cut: true, tr: 'dissolve', trDur: 0.6 },
+      { t: 7.2, pos: [3.1, 1.25, 7.3], look: [0, 0.75, 4.0], fov: 39 },
+      { t: 7.25, shot: { shot: 'low', on: 'dan', from: [0, 4.0, 0.7], dist: 7.5, h: 1.0, fov: 50 }, cut: true },   // 前：「壊すために大きくなったんじゃない」の主（巨大猫又）が画面の外 → 研究者の側から見上げる
+      { t: 10.6, shot: { shot: 'low', on: 'dan', from: [0, 4.0, 0.7], dist: 7.0, h: 1.0, fov: 48 } },
+      { t: 10.8, pos: [13.2, 1.7, -7.6], look: [7.6, 1.8, -11.2], fov: 40, cut: true, tr: 'seep', trDur: 1.0 },
       { t: 14.4, pos: [13.0, 1.7, -7.4], look: [7.6, 1.8, -11.2], fov: 38 },
-      { t: 14.6, pos: [-2.4, 1.0, 6.4], look: [0, 0.7, 4.0], fov: 38, cut: true },
+      { t: 14.6, pos: [-2.4, 1.0, 6.4], look: [0, 0.7, 4.0], fov: 38, cut: true, tr: 'dissolve', trDur: 0.5 },
       { t: 17.8, pos: [-2.2, 1.0, 6.6], look: [0, 0.7, 4.0], fov: 36 },
-      { t: 18.0, pos: [10, 20, 62], look: [0, 6, -20], fov: 50, cut: true },
+      { t: 18.0, pos: [10, 20, 62], look: [0, 6, -20], fov: 50, cut: true, tr: 'black', trDur: 1.3 },   // 淵が閉じる → 夜明け（時間が飛ぶ）
       { t: 21.0, pos: [9, 18, 58], look: [0, 8, -20], fov: 48 },
-      { t: 21.2, pos: [3.8, 1.6, 9.2], look: [1.0, 1.3, 5.0], fov: 40, cut: true },
+      { t: 21.2, pos: [3.8, 1.6, 9.2], look: [1.0, 1.3, 5.0], fov: 40, cut: true, tr: 'dissolve', trDur: 0.7 },
       { t: 27.4, pos: [3.6, 1.6, 9.0], look: [1.0, 1.3, 5.0], fov: 38 },
     ],
     actors: [],
@@ -145,7 +149,11 @@ export const CUTSCENES7 = {
     cam: [
       { t: 0, pos: [1.3, 2.0, 6.4], look: [0, 2.4, -8], fov: 54 },
       { t: 4.4, pos: [1.1, 2.2, 4.8], look: [0, 2.6, -8], fov: 52 },
-      { t: 4.6, pos: [0.9, 1.75, K.boss.pos[1] + 2.0], look: [0, 1.6, K.boss.pos[1]], fov: 36, cut: true },
+      { t: 4.6, pos: [0.9, 1.75, K.boss.pos[1] + 2.0], look: [0, 1.6, K.boss.pos[1]], fov: 36, cut: true, tr: 'dissolve', trDur: 0.5 },
+      { t: 8.6, pos: [0.86, 1.75, K.boss.pos[1] + 2.04], look: [0, 1.6, K.boss.pos[1]], fov: 35 },
+      { t: 8.65, shot: { shot: 'close', on: 'dan', from: 'kenkyusha', dist: 1.5, side: 1 }, cut: true },   // 前：「戻って、どうするの」の主が画面の外
+      { t: 10.6, shot: { shot: 'close', on: 'dan', from: 'kenkyusha', dist: 1.4, side: 1 } },
+      { t: 10.65, pos: [0.84, 1.75, K.boss.pos[1] + 2.06], look: [0, 1.6, K.boss.pos[1]], fov: 35, cut: true },
       { t: 14.8, pos: [0.8, 1.75, K.boss.pos[1] + 2.1], look: [0, 1.6, K.boss.pos[1]], fov: 34 },
       { t: 15.0, pos: [K.companionAt[0] + 1.8, 1.5, K.companionAt[1] - 2.0], look: [K.companionAt[0], 1.25, K.companionAt[1]], fov: 38, cut: true },
       { t: 17.4, pos: [K.companionAt[0] + 1.7, 1.5, K.companionAt[1] - 1.9], look: [K.companionAt[0], 1.25, K.companionAt[1]], fov: 36 },
@@ -173,15 +181,15 @@ export const CUTSCENES7 = {
     cam: [
       { t: 0, pos: [4.0, 2.6, 0.0], look: [0, 2.8, -12], fov: 50 },
       { t: 3.8, pos: [3.6, 2.6, -0.4], look: [0, 3.0, -12], fov: 48 },
-      { t: 4.0, pos: [1.2, 3.3, -14.4], look: [2.36, 3.4, -18.95], fov: 36, cut: true },
+      { t: 4.0, pos: [1.2, 3.3, -14.4], look: [2.36, 3.4, -18.95], fov: 36, cut: true, tr: 'seep', trDur: 0.9 },
       { t: 7.8, pos: [1.3, 3.3, -14.6], look: [2.36, 3.4, -18.95], fov: 34 },
       { t: 8.0, pos: [1.0, 1.0, K.boss.pos[1] + 1.8], look: [0, 0.9, K.boss.pos[1]], fov: 38, cut: true },
       { t: 14.4, pos: [0.9, 1.0, K.boss.pos[1] + 1.9], look: [0, 0.9, K.boss.pos[1]], fov: 36 },
       { t: 14.6, pos: [0.6, 1.62, -3.6], look: [0, 1.55, -1.6], fov: 34, cut: true },
       { t: 17.0, pos: [0.55, 1.62, -3.55], look: [0, 1.55, -1.6], fov: 32 },
-      { t: 17.2, pos: [5.0, 1.8, -12.0], look: [K.spouseAt[0], 1.5, K.spouseAt[1]], fov: 40, cut: true },
+      { t: 17.2, pos: [5.0, 1.8, -12.0], look: [K.spouseAt[0], 1.5, K.spouseAt[1]], fov: 40, cut: true, tr: 'seep', trDur: 0.9 },
       { t: 20.8, pos: [4.8, 1.8, -12.2], look: [K.spouseAt[0], 1.5, K.spouseAt[1]], fov: 38 },
-      { t: 21.0, pos: [1.6, 1.6, 1.2], look: [-0.8, 1.3, 3.4], fov: 42, cut: true },
+      { t: 21.0, pos: [1.6, 1.6, 1.2], look: [-0.8, 1.3, 3.4], fov: 42, cut: true, tr: 'dissolve', trDur: 0.6 },
       { t: 26.4, pos: [1.5, 1.6, 1.0], look: [-0.8, 1.3, 3.4], fov: 40 },
     ],
     actors: [{ t: 0, id: 'player', pos: [0, -1.6], yaw: P }, { t: 0, id: 'kenkyusha', pos: K.boss.pos, yaw: 0 }, { t: 0, id: 'companion', pos: K.companionAt, yaw: P * 0.85, mode: 'scripted', show: true, anim: 'idle' }, { t: 20.8, id: 'companion', to: [-0.6, 2.6] }, { t: 20.8, id: 'player', pos: [0.2, 1.4], yaw: 0.2 }],
@@ -205,16 +213,16 @@ export const CUTSCENES7 = {
     cam: [
       { t: 0, pos: [HX + 2.6, 1.7, 2.9], look: [HX - 1.2, 0.9, -1.2], fov: 50 },
       { t: 6.0, pos: [HX + 2.4, 1.6, 2.6], look: [HX - 1.2, 0.9, -1.2], fov: 46 },
-      { t: 6.2, pos: [BED[0] + 1.3, 1.25, BED[1] + 1.6], look: [BED[0], 1.1, BED[1] - 0.2], fov: 38, cut: true },
+      { t: 6.2, pos: [BED[0] + 1.3, 1.25, BED[1] + 1.6], look: [BED[0], 1.1, BED[1] - 0.2], fov: 38, cut: true, tr: 'dissolve', trDur: 0.6 },
       { t: 12.8, pos: [BED[0] + 1.2, 1.25, BED[1] + 1.5], look: [BED[0], 1.1, BED[1] - 0.2], fov: 36 },
       { t: 13.0, pos: [DAN_A[0] + FW[0] * 0.9 - FW[1] * 0.3, 1.55, DAN_A[1] + FW[1] * 0.9 + FW[0] * 0.3], look: [DAN_A[0], 1.5, DAN_A[1]], fov: 36, cut: true },
       { t: 18.6, pos: [DAN_A[0] + FW[0] * 0.85 - FW[1] * 0.28, 1.55, DAN_A[1] + FW[1] * 0.85 + FW[0] * 0.28], look: [DAN_A[0], 1.5, DAN_A[1]], fov: 34 },
       // 原文の一言：白い髪を映す（顔ではなく髪。相棒の声だけが聞こえる）
       { t: 18.8, pos: HAIR_CAM, look: HAIR_A, fov: 34, cut: true, hair: true },
       { t: 24.0, pos: HAIR_CAM2, look: HAIR_A, fov: 31, hair: true },
-      { t: 24.2, pos: [HX + 2.2, 1.6, 2.4], look: [BED[0], 1.1, BED[1]], fov: 44, cut: true },
+      { t: 24.2, pos: [HX + 2.2, 1.6, 2.4], look: [BED[0], 1.1, BED[1]], fov: 44, cut: true, tr: 'dissolve', trDur: 0.8 },
       { t: 33.0, pos: [HX + 2.0, 1.6, 2.2], look: [BED[0], 1.1, BED[1]], fov: 42 },
-      { t: 33.2, pos: [HX + 0.1, 1.5, -0.2], look: [HX + 0.6, 1.75, -3.5], fov: 50, cut: true },
+      { t: 33.2, pos: [HX + 0.1, 1.5, -0.2], look: [HX + 0.6, 1.75, -3.5], fov: 50, cut: true, tr: 'dissolve', trDur: 0.8 },
       { t: 38.0, pos: [HX + 0.2, 1.55, -0.8], look: [HX + 0.6, 1.75, -3.5], fov: 46 },
     ],
     actors: [{ t: 0, id: 'player', pos: DAN_A, yaw: YAW_A, anim: 'stand' }, { t: 0, id: 'companion', pos: BED, yaw: 0, show: true, mode: 'scripted', anim: 'bed' }],
@@ -232,6 +240,7 @@ export const CUTSCENES7 = {
       { t: 33.4, who: 'sys', text: '（窓の外：足場の組まれた商店街。青いシートの向こうで、店の看板が直されていく）', dur: 3.8 },
     ],
     events: [{ t: 0.0, do: 'epiMood7', arg: 'day' }, { t: 0.0, do: 'mixedHair7' }, { t: 0.1, do: 'chapterCard', arg: 'enda' }, { t: 38.2, do: 'toHome7', arg: 'A' }],
+    outro: { kind: 'black', out: 1.1, hold: 0.7, in: 1.1 },   // 病室 → その夜の家（時間が飛ぶ：ゆっくり黒へ）
     sounds: [{ t: 16.2, s: 'knock' }],
   },
   // ── 結末B「信頼」：元に戻りつつある商店街（夕方）。（相棒）は何も知らない。紫の髪だけを映す ──
@@ -240,9 +249,9 @@ export const CUTSCENES7 = {
     cam: [
       { t: 0, pos: [ST.x + 3.2, 2.4, -6], look: [ST.x, 1.6, 8], fov: 50 },
       { t: 6.0, pos: [ST.x + 2.8, 2.2, -3.4], look: [ST.x, 1.5, 8], fov: 48 },
-      { t: 6.2, pos: [ST.x + 1.6, 1.6, ST.companion[1] - 2.2], look: [ST.x + 0.2, 1.5, ST.companion[1]], fov: 38, cut: true },
+      { t: 6.2, pos: [ST.x + 1.6, 1.6, ST.companion[1] - 2.2], look: [ST.x + 0.2, 1.5, ST.companion[1]], fov: 38, cut: true, tr: 'dissolve', trDur: 0.6 },
       { t: 17.4, pos: [ST.x + 1.5, 1.6, ST.companion[1] - 2.0], look: [ST.x + 0.2, 1.5, ST.companion[1]], fov: 36 },
-      { t: 17.6, pos: [ST.x + 0.2, 1.85, ST.dan[1] - 2.2], look: [ST.x - 0.1, 1.55, ST.dan[1] + 6], fov: 40, cut: true, purpleHair: true },
+      { t: 17.6, pos: [ST.x + 0.2, 1.85, ST.dan[1] - 2.2], look: [ST.x - 0.1, 1.55, ST.dan[1] + 6], fov: 40, cut: true, purpleHair: true, tr: 'dissolve', trDur: 0.8 },
       { t: 22.0, pos: [ST.x + 0.1, 1.85, ST.dan[1] - 1.4], look: [ST.x - 0.1, 1.6, ST.dan[1] + 6], fov: 36, purpleHair: true },
     ],
     actors: [{ t: 0, id: 'player', pos: [ST.dan[0], ST.dan[1] - 6], yaw: 0 }, { t: 0.2, id: 'player', to: ST.dan }, { t: 0, id: 'companion', pos: [ST.companion[0], ST.companion[1] - 6], yaw: 0, show: true, mode: 'scripted', anim: 'idle' }, { t: 0.2, id: 'companion', to: ST.companion },
@@ -257,6 +266,7 @@ export const CUTSCENES7 = {
       { t: 17.8, who: 'sys', text: '（二人の後ろ姿。紫の髪が、夕方の風にゆれる）', dur: 3.4 },
     ],
     events: [{ t: 0.0, do: 'epiMood7', arg: 'dusk' }, { t: 0.0, do: 'ensurePurple7' }, { t: 0.1, do: 'chapterCard', arg: 'endb' }, { t: 22.2, do: 'toHome7', arg: 'B' }],
+    outro: { kind: 'black', out: 1.1, hold: 0.7, in: 1.1 },
     sounds: [{ t: 0.4, s: 'chime' }],
   },
   // ── 家の場面（両ルート）：娘と再会（安全な家で）。千代さん。町は直りつつある → スタッフロール ──
@@ -291,13 +301,16 @@ function homeScene(r) {
       { t: 5.4, pos: [x - 1.8, 1.1, -1.0], look: [x, 0.9, 1.0], fov: 44, cut: true },
       { t: 15.6, pos: [x - 1.6, 1.0, -0.6], look: [x, 0.8, 1.4], fov: 40 },
       { t: 15.8, pos: [x + 1.2, 0.9, -0.2], look: [x - 0.1, 0.8, 1.5], fov: 38, cut: true },
-      { t: 21.4, pos: [x + 1.1, 0.9, 0.0], look: [x - 0.1, 0.8, 1.5], fov: 36 },
-      { t: 21.6, pos: [x + 2.8, 1.9, -2.8], look: [x, 0.8, 0.6], fov: 50, cut: true },
+      { t: 18.4, pos: [x + 1.15, 0.9, -0.1], look: [x - 0.1, 0.8, 1.5], fov: 37 },
+      { t: 18.45, shot: { shot: 'close', on: 'dan', from: 'daughter7', dist: 1.4, side: -1, h: 1.35 }, cut: true },   // 前：娘への答えの間、だんのうらが画面の外
+      { t: 21.5, shot: { shot: 'close', on: 'dan', from: 'daughter7', dist: 1.3, side: -1, h: 1.35 } },
+      { t: 21.6, pos: [x + 2.8, 1.9, -2.8], look: [x, 0.8, 0.6], fov: 50, cut: true, tr: 'dissolve', trDur: 0.7 },
       { t: 26.8, pos: [x + 2.6, 2.0, -2.6], look: [x, 0.8, 0.6], fov: 48 },
     ],
     actors: [{ t: 0, id: 'player', pos: D, yaw: P }, { t: 0.4, id: 'player', to: HOME.dan }, { t: 0, id: 'chiyo7', pos: HOME.chiyo, yaw: P * 0.8, show: true }, { t: 0, id: 'daughter7', pos: C, yaw: 0, show: true }, { t: 5.4, id: 'daughter7', to: [x, 1.22], run: true }, { t: 7.0, id: 'player', anim: 'hug' }],
     lines,
     events: [{ t: 0.0, do: 'epiMood7', arg: 'night' }, { t: 6.6, do: 'daughterHug7' }, { t: 27.0, do: 'credits7', arg: r }],
+    outro: { kind: 'black', out: 1.4, hold: 0.4, in: 1.0 },   // 家の灯り → ゆっくり黒 → エンドロール
     sounds: [{ t: 0.2, s: 'door' }, { t: 24.6, s: 'chime' }],
   };
 }

@@ -217,21 +217,27 @@ body:has(#sh-title:not([hidden])) #sh-ui > :not(#sh-menu) { visibility: hidden; 
 .sh-bossp { font-size: 12px; color: var(--dim); margin-top: 3px; }
 .sh-boss.rc .sh-bossp { color: #ffe8a0; animation: shBlink .5s infinite alternate; }
 /* 演出 */
-.sh-lb { position: absolute; left: 0; right: 0; height: 0; background: #000; transition: height .5s; z-index: 6; }
+.sh-lb { position: absolute; left: 0; right: 0; height: 0; background: #000; transition: height .9s cubic-bezier(.45,0,.2,1); z-index: 6; }
 .sh-lbt { top: 0; } .sh-lbb { bottom: 0; }
 .sh-lb.on { height: 11vh; }
 #sh-ui.cine #sh-hud > :not(.sh-flash):not(.sh-slow):not(.sh-vignette) { opacity: 0 !important; transition: opacity .3s; }
 #sh-ui.cine #sh-touch { opacity: .25; }
 .sh-sub { position: absolute; left: 50%; bottom: calc(11vh + 14px); transform: translateX(-50%); width: min(90vw, 860px); text-align: center; font-size: 18px; line-height: 1.6; text-shadow: 0 1px 3px #000, 0 0 8px #000; opacity: 0; transition: opacity .25s; z-index: 7; }
 .sh-sub.on { opacity: 1; } .sh-sub b { margin-right: .8em; }
+.sh-sub { transition: opacity .35s; }
+/* 場面の継ぎ目（ui/transition.js）：前の画の写し・黒／白の幕・境界のにじみ。帯と字幕の下、遊びの画面の上 */
+.sh-trans { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0; z-index: 5; font-family: var(--jps, serif); }
 #sh-ui.sub-s .sh-sub { font-size: 15px; } #sh-ui.sub-l .sh-sub { font-size: 23px; }
 #sh-ui.sub-s .sh-bark { font-size: 14px; } #sh-ui.sub-l .sh-bark { font-size: 20px; }
 .sh-skip { position: absolute; right: 18px; bottom: 3vh; font-size: 12px; color: #aaa; opacity: 0; z-index: 7; --k: 0; }
 .sh-skip.on { opacity: .75; }
 .sh-skip::after { content: ''; display: block; height: 2px; margin-top: 3px; background: #fff; width: calc(var(--k) * 100%); }
 .sh-card { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; opacity: 0; z-index: 8; }
-.sh-card.on { animation: shCard 3.2s ease-in-out forwards; }
-@keyframes shCard { 0% { opacity: 0; } 18% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+.sh-card.on { transition: none; }
+/* 章の札：文字の間がゆっくり詰まり、上下の細い線が伸びる（黒の上に出す：game/trans.js chapterCard・動きは ui.js cardTick） */
+.sh-cardt { position: relative; }
+.sh-cardt::before, .sh-cardt::after { content: ''; position: absolute; left: 50%; height: 1px; width: var(--cl, 0%); background: linear-gradient(90deg, rgba(200,170,255,0), rgba(200,170,255,.7), rgba(200,170,255,0)); transform: translateX(-50%); }
+.sh-cardt::before { top: 6px; } .sh-cardt::after { bottom: 6px; }
 .sh-cardt { font-family: var(--jps); font-size: clamp(26px, 5vw, 46px); letter-spacing: .35em; padding: 18px 40px; color: #f4eefc; text-shadow: 0 0 18px rgba(180, 140, 255, .7); background: linear-gradient(90deg, rgba(8, 6, 16, 0), rgba(8, 6, 16, .8), rgba(8, 6, 16, 0)); }
 .sh-fade { position: absolute; inset: 0; background: #000; opacity: 0; transition: opacity .35s; z-index: 9; }
 .sh-fade.on { opacity: 1; }

@@ -11,8 +11,10 @@ export const CUTSCENES3 = {
     cam: [
       { t: 0, pos: [9.5, 2.8, 33.0], look: [0, 6.5, 19.8], fov: 54 },
       { t: 2.9, pos: [5.2, 2.1, 28.2], look: [0, 2.4, 19.8], fov: 46 },
-      { t: 3.0, pos: [8.6, 2.6, 18.4], look: [-1.5, 1.0, 9.5], fov: 50, cut: true },
-      { t: 9.5, pos: [6.6, 2.0, 17.2], look: [-1.0, 1.2, 8.0], fov: 44 },
+      { t: 3.0, pos: [8.6, 2.6, 18.4], look: [-1.5, 1.0, 9.5], fov: 50, cut: true, tr: 'dissolve', trDur: 0.7 },
+      { t: 7.3, pos: [7.2, 2.2, 17.6], look: [-1.2, 1.15, 8.6], fov: 46 },
+      { t: 7.35, shot: { shot: 'close', on: 'companion', from: 'dan', dist: 1.5, side: 1 }, cut: true },   // 前：引きのまま声だけ → 話す（相棒）の寄り
+      { t: 9.9, shot: { shot: 'close', on: 'companion', from: 'dan', dist: 1.4, side: 1 } },
       { t: 10.0, pos: [-1.2, 1.55, 15.2], look: [0.4, 1.45, 17.4], fov: 42, cut: true },
       { t: 14.5, pos: [-1.0, 1.6, 15.0], look: [0.3, 1.45, 17.3], fov: 40 },
     ],
@@ -21,6 +23,7 @@ export const CUTSCENES3 = {
       { t: 0, id: 'companion', pos: [1.5, 25.8], yaw: Math.PI, mode: 'scripted', show: true },
       { t: 0.6, id: 'player', to: [0.3, 17.4], run: true }, { t: 0.9, id: 'companion', to: [0.7, 18.5], run: true },
       { t: 4.0, id: 'player', to: [0.2, 16.6] }, { t: 4.4, id: 'companion', to: [1.1, 17.6] },
+      { t: 7.2, id: 'companion', face: 'dan' },
       { t: 10.2, id: 'player', yaw: -2.36 },
     ],
     lines: [
@@ -39,9 +42,13 @@ export const CUTSCENES3 = {
       { t: 0, pos: [2.4, 1.7, -14.6], look: [7.4, 1.4, -17.0], fov: 52 },
       { t: 4.0, pos: [3.4, 1.9, -15.2], look: [6.6, 2.0, -17.0], fov: 40 },
       { t: 4.6, pos: [11.3, 1.15, -15.2], look: [6.8, 1.6, -17.0], fov: 50, cut: true },
-      { t: 8.6, pos: [11.2, 1.2, -15.3], look: [6.8, 1.9, -17.0], fov: 46 },
-      { t: 9.0, pos: [3.6, 1.6, -15.0], look: [5.2, 1.5, -16.4], fov: 40, cut: true },
-      { t: 13.0, pos: [3.4, 1.65, -14.9], look: [5.2, 1.6, -16.4], fov: 38 },
+      { t: 6.3, pos: [11.25, 1.18, -15.25], look: [6.8, 1.75, -17.0], fov: 48 },
+      { t: 6.35, shot: { shot: 'close', on: 'companion', from: 'mamori', dist: 1.4, side: -1 }, cut: true },   // 前：（相棒）の声が壁の向こうから → 本人
+      { t: 8.9, shot: { shot: 'close', on: 'companion', from: 'mamori', dist: 1.3, side: -1 } },
+      { t: 9.0, shot: { shot: 'close', on: 'dan', from: 'mamori', dist: 1.6, side: 1 }, cut: true },           // 前：だんのうらの横から異形を見るだけで、本人が映らなかった
+      { t: 11.3, shot: { shot: 'close', on: 'dan', from: 'mamori', dist: 1.4, side: 1 } },
+      { t: 11.4, shot: { shot: 'back', on: 'dan', from: 'mamori', dist: 1.5 }, cut: true },                   // 向き合う：異形の「しー」
+      { t: 13.0, shot: { shot: 'back', on: 'dan', from: 'mamori', dist: 1.7 } },
     ],
     actors: [
       { t: 0, id: 'player', pos: [3.4, -16.0], yaw: Math.PI / 2 },
@@ -82,10 +89,17 @@ export const CUTSCENES3 = {
   // 真相（大きな患者は子どもを守っていた）：救った場合
   cs03_truth_rescue: {
     id: 'cs03_truth_rescue', area: 'hospital', letterbox: true, skippable: true,
-    cam: [{ t: 0, pos: [3.8, 1.5, -15.0], look: [7.6, 1.0, -17.4], fov: 46 }, { t: 9, pos: [4.2, 1.4, -15.2], look: [7.6, 0.9, -17.4], fov: 40 }],
+    cam: [
+      { t: 0, pos: [3.8, 1.5, -15.0], look: [7.6, 1.0, -17.4], fov: 46 }, { t: 3.3, pos: [4.0, 1.45, -15.1], look: [7.6, 0.95, -17.4], fov: 42 },
+      { t: 3.4, shot: { shot: 'close', on: 'child', from: 'dan', dist: 1.3, h: 1.05 }, cut: true, tr: 'dissolve', trDur: 0.4 },   // 話す子ども
+      { t: 7.1, shot: { shot: 'close', on: 'child', from: 'dan', dist: 1.15, h: 1.0 } },
+      { t: 7.2, shot: { shot: 'two', on: 'companion', from: 'child', fov: 40 }, cut: true },                   // 前：（相棒）が画面の外 → 子どもに寄り添う二人
+      { t: 10.0, shot: { shot: 'two', on: 'companion', from: 'child', fov: 38, dist: 2.2 } },
+    ],
     actors: [
       { t: 0, id: 'player', pos: [4.6, -16.2], yaw: Math.PI / 2 }, { t: 0, id: 'companion', pos: [3.2, -15.4], yaw: Math.PI / 2, mode: 'scripted', show: true },
       { t: 2.6, id: 'child', to: [4.2, -15.8], anim: 'follow' }, { t: 3.0, id: 'companion', to: [3.8, -15.6] },
+      { t: 3.6, id: 'player', face: 'child' }, { t: 7.0, id: 'companion', face: 'child' },
     ],
     lines: [
       { t: 0.6, who: 'sys', text: '（大きな患者は、ゆっくりとひざをつき、ベッドの前から体をどけた）', dur: 2.8 },
@@ -97,10 +111,18 @@ export const CUTSCENES3 = {
   // 真相：倒してしまった場合
   cs03_truth_kill: {
     id: 'cs03_truth_kill', area: 'hospital', letterbox: true, skippable: true,
-    cam: [{ t: 0, pos: [3.8, 1.5, -15.0], look: [7.6, 0.8, -17.4], fov: 46 }, { t: 9, pos: [4.0, 1.3, -15.2], look: [7.4, 0.7, -17.4], fov: 40 }],
+    cam: [
+      { t: 0, pos: [3.8, 1.5, -15.0], look: [7.6, 0.8, -17.4], fov: 46 }, { t: 3.1, pos: [3.9, 1.4, -15.1], look: [7.5, 0.75, -17.4], fov: 42 },
+      { t: 3.2, shot: { shot: 'close', on: 'child', from: 'dan', dist: 1.3, h: 1.05 }, cut: true, tr: 'dissolve', trDur: 0.4 },
+      { t: 6.8, shot: { shot: 'close', on: 'dan', from: 'child', dist: 1.5, side: -1 }, cut: true },          // 前：だんのうらの悔いが画面の外
+      { t: 9.4, shot: { shot: 'close', on: 'dan', from: 'child', dist: 1.3, side: -1 } },
+      { t: 9.5, shot: { shot: 'two', on: 'companion', from: 'child', fov: 40 }, cut: true },
+      { t: 12.0, shot: { shot: 'two', on: 'companion', from: 'child', fov: 38, dist: 2.2 } },
+    ],
     actors: [
       { t: 0, id: 'player', pos: [4.6, -16.2], yaw: Math.PI / 2 }, { t: 0, id: 'companion', pos: [3.2, -15.4], yaw: Math.PI / 2, mode: 'scripted', show: true },
       { t: 2.6, id: 'child', to: [4.2, -15.8], anim: 'follow' }, { t: 3.0, id: 'companion', to: [3.8, -15.6] },
+      { t: 3.4, id: 'player', face: 'child' }, { t: 9.0, id: 'companion', face: 'child' },
     ],
     lines: [
       { t: 0.6, who: 'sys', text: '（ベッドの前に、白紙の記録だけが落ちている）', dur: 2.6 },
@@ -153,7 +175,7 @@ export const CUTSCENES3 = {
     cam: [
       { t: 0, pos: [-3.2, 2.5, -22.8], look: [8.8, 1.4, -28.2], fov: 50 },
       { t: 6.4, pos: [-2.4, 2.2, -23.6], look: [8.8, 1.6, -28.2], fov: 44 },
-      { t: 6.8, pos: [2.2, 1.35, -27.6], look: [0, 1.4, -35.2], fov: 48, cut: true },
+      { t: 6.8, pos: [2.2, 1.35, -27.6], look: [0, 1.4, -35.2], fov: 48, cut: true, tr: 'seep', trDur: 1.1 },   // 影が立つ：境界のにじみで
       { t: 12.6, pos: [1.6, 1.5, -28.6], look: [0, 2.2, -35.2], fov: 52 },
       { t: 13.0, pos: [-1.0, 1.6, -26.6], look: [0, 1.55, -24.6], fov: 40, cut: true },
       { t: 16.4, pos: [-1.1, 1.6, -26.8], look: [0, 1.6, -24.6], fov: 38 },
@@ -180,19 +202,23 @@ export const CUTSCENES3 = {
     id: 'cs03_tenki', area: 'tunnel', letterbox: true, skippable: true,
     cam: [
       { t: 0, pos: [2.2, 1.5, -28.4], look: [0, 1.9, -34.6], fov: 46 },
-      { t: 4.4, pos: [1.6, 1.6, -29.2], look: [0, 2.2, -34.6], fov: 40 },
-      { t: 4.8, pos: [0.55, 1.55, -31.1], look: [0, 1.52, -30.0], fov: 32, cut: true },
-      { t: 10.4, pos: [0.5, 1.55, -31.0], look: [0, 1.5, -30.0], fov: 28 },
+      { t: 2.9, pos: [1.9, 1.55, -28.8], look: [0, 2.05, -34.6], fov: 43 },
+      { t: 3.0, shot: { shot: 'close', on: 'dan', from: 'utsushimi', dist: 1.5, side: -1 }, cut: true },     // 前：「その声を使わないで」の主が画面の外
+      { t: 4.7, shot: { shot: 'close', on: 'dan', from: 'utsushimi', dist: 1.4, side: -1 } },
+      { t: 4.8, pos: [1.6, 1.6, -29.2], look: [0, 2.2, -34.6], fov: 40, cut: true },                         // 影が化けの下の姿を写す瞬間
+      { t: 7.2, pos: [1.2, 1.5, -29.8], look: [0, 2.0, -34.6], fov: 36 },
+      { t: 7.3, pos: [0.55, 1.55, -31.1], look: [0, 1.52, -30.0], fov: 32, cut: true, tr: 'seep', trDur: 0.9 },
+      { t: 11.8, pos: [0.5, 1.55, -31.0], look: [0, 1.5, -30.0], fov: 28 },
     ],
     actors: [{ t: 0, id: 'player', pos: [0, -30.0], yaw: Math.PI }, { t: 0, id: 'utsushimi', pos: [0, -34.8], yaw: 0 }],
     lines: [
       { t: 0.6, who: 'utsushimi', text: '……だんのうらさん……開けて……', dur: 2.4 },
       { t: 3.2, who: 'dan', text: 'その声を使わないで', dur: 1.8, expr: 'angry' },
-      { t: 5.2, who: 'sys', text: '（影の頭に、猫の耳の形が生える。背に、長い尾の影。……化けの下の姿を、写している）', dur: 3.6 },
-      { t: 9.0, who: 'dan', text: '……見えてるのね。アタシの、本当の姿', dur: 2.6, expr: 'serious' },
+      { t: 5.0, who: 'sys', text: '（影の頭に、猫の耳の形が生える。背に、長い尾の影。……化けの下の姿を、写している）', dur: 3.4 },
+      { t: 9.2, who: 'dan', text: '……見えてるのね。アタシの、本当の姿', dur: 2.6, expr: 'serious' },
     ],
-    events: [{ t: 7.0, do: 'whiteFlicker' }, { t: 9.0, do: 'expr', arg: { who: 'player', name: 'serious' } }],
-    sounds: [{ t: 0.6, s: 'mimic_voice' }, { t: 7.0, s: 'heartbeat' }],
+    events: [{ t: 7.8, do: 'whiteFlicker' }, { t: 9.2, do: 'expr', arg: { who: 'player', name: 'serious' } }],
+    sounds: [{ t: 0.6, s: 'mimic_voice' }, { t: 7.8, s: 'heartbeat' }],
   },
   // 化けを解く（reveal の構え）。暴走ではない：静かに、本来の姿に戻るだけ
   cs03_transform: {
@@ -200,7 +226,7 @@ export const CUTSCENES3 = {
     cam: [
       { t: 0, pos: [0.5, 1.55, -31.0], look: [0, 1.5, -30.0], fov: 30 },
       { t: 2.8, pos: [0.4, 1.4, -31.4], look: [0, 1.45, -30.0], fov: 34 },
-      { t: 3.2, pos: [2.6, 0.6, -31.8], look: [0, 1.2, -30.0], fov: 46, cut: true, ease: 'linear' },
+      { t: 3.2, pos: [2.6, 0.6, -31.8], look: [0, 1.2, -30.0], fov: 46, cut: true, ease: 'linear', tr: 'white', trDur: 0.9 },   // 化けがほどける：白く飛んで、白い姿が回りこむ画へ
       { t: 7.6, pos: [-2.4, 1.0, -31.4], look: [0, 1.3, -30.0], fov: 44, ease: 'linear' },
       { t: 8.0, pos: [0.45, 1.5, -30.95], look: [0, 1.53, -30.0], fov: 32, cut: true },
       { t: 12.0, pos: [0.42, 1.5, -30.92], look: [0, 1.53, -30.0], fov: 30 },
@@ -232,14 +258,20 @@ export const CUTSCENES3 = {
     cam: [
       { t: 0, pos: [-2.6, 1.6, -27.6], look: [0, 1.0, -33.0], fov: 46 },
       { t: 3.6, pos: [-2.0, 1.55, -28.0], look: [0, 1.4, -30.0], fov: 38 },
-      { t: 4.0, pos: [3.2, 1.6, -26.4], look: [8.8, 1.3, -28.6], fov: 46, cut: true },
-      { t: 11.0, pos: [3.0, 1.6, -26.6], look: [6.2, 1.3, -28.4], fov: 42 },
+      { t: 4.0, pos: [3.2, 1.6, -26.4], look: [8.8, 1.3, -28.6], fov: 46, cut: true, tr: 'dissolve', trDur: 0.6 },   // シャッターが上がる
+      { t: 5.9, pos: [3.1, 1.6, -26.5], look: [8.0, 1.3, -28.5], fov: 44 },
+      { t: 6.0, shot: { shot: 'close', on: 'companion', from: 'dan', dist: 1.6, side: 1 }, cut: true },     // 前：駆け寄る（相棒）が壁の向こう
+      { t: 8.2, shot: { shot: 'close', on: 'companion', from: 'dan', dist: 1.45, side: 1 } },
+      { t: 8.3, shot: { shot: 'two', on: 'dan', from: 'companion', fov: 42 }, cut: true },
+      { t: 11.0, shot: { shot: 'close', on: 'child', from: 'dan', dist: 1.3, h: 1.05 }, cut: true },
+      { t: 13.0, shot: { shot: 'close', on: 'child', from: 'dan', dist: 1.2, h: 1.0 } },
     ],
     actors: [
       { t: 0, id: 'player', pos: [0.4, -29.6], yaw: 2.4 },
       { t: 4.4, id: 'companion', pos: [10.6, -28.4], yaw: -Math.PI / 2, mode: 'scripted', show: true }, { t: 4.4, id: 'child', pos: [10.8, -29.2], anim: 'follow', show: true },
       { t: 5.4, id: 'companion', to: [6.6, -28.2], run: true }, { t: 5.6, id: 'child', to: [6.9, -28.9] },
       { t: 4.2, id: 'player', to: [4.2, -28.4] },
+      { t: 8.0, id: 'player', face: 'companion' },
     ],
     lines: [
       { t: 0.6, who: 'dan', text: '……ちゃんと、帰りなさい', dur: 2.0, expr: 'calm' },
@@ -249,6 +281,7 @@ export const CUTSCENES3 = {
       { t: 11.2, who: 'child', text: '……ありがとう', dur: 1.6 },
     ],
     events: [{ t: 2.4, do: 'revertWhite' }, { t: 4.2, do: 'refugeShutter', arg: 'up' }, { t: 12.8, do: 'flag', arg: 'tunnel_clear' }, { t: 12.8, do: 'companionFollow' }, { t: 12.8, do: 'childFollow' }, { t: 12.9, do: 'setStep', arg: 'ch3_end' }, { t: 13.0, do: 'endCard3' }],
+    outro: { kind: 'black', out: 0.9, hold: 0.2, in: 0.8 },
     sounds: [{ t: 4.2, s: 'shutter' }],
   },
 };

@@ -174,6 +174,7 @@ export class UI {
   flash(kind = 'issen') { const f = this.el.flash; f.className = 'sh-flash'; void f.offsetWidth; f.className = 'sh-flash on ' + kind; }
   slow(on) { this.el.slow.classList.toggle('on', !!on); }
   tick(dt) {
+    if (this.card) this.cardTick(Math.min(dt, 0.1));
     if (this.toastT > 0) { this.toastT -= dt; if (this.toastT <= 0) this.el.toast.classList.remove('on'); }
     if (this.barkT > 0) { this.barkT -= dt; if (this.barkT <= 0) this.el.bark.classList.remove('on'); }
     if (this.cr) this.creditsTick(dt);
@@ -216,7 +217,15 @@ export class UI {
   letterbox(on) { this.el.lbt.classList.toggle('on', !!on); this.el.lbb.classList.toggle('on', !!on); this.el.skip.classList.toggle('on', !!on); this.root.classList.toggle('cine', !!on); }
   subtitle(sp, text) { const e = this.el.sub; if (!text) { e.classList.remove('on'); return; } e.innerHTML = (sp && sp.name ? `<b style="color:${sp.color || '#fff'}">${esc(sp.name)}</b>` : '') + esc(text); e.classList.add('on'); }
   skipProgress(k) { this.el.skip.style.setProperty('--k', String(Math.min(1, k))); }
-  chapterCard(title, dur = 3.2) { const c = this.el.card; this.el.cardt.textContent = title; c.classList.remove('on'); void c.offsetWidth; c.classList.add('on'); clearTimeout(this.cardTimer); this.cardTimer = setTimeout(() => c.classList.remove('on'), dur * 1000); }
+  /** 章の札：ゆっくり出て、文字の間が詰まり、上下の細い線が伸び、ゆっくり消える（毎こま tick で動かす：CSS の時計に頼らない） */
+  chapterCard(title, dur = 3.2) { const c = this.el.card; this.el.cardt.textContent = title; this.card = { t: 0, dur }; c.classList.add('on'); this.cardTick(0); clearTimeout(this.cardTimer); this.cardTimer = setTimeout(() => { if (this.card && this.card.t >= this.card.dur - 0.05) this.cardTick(99); }, (dur + 0.5) * 1000); }
+  cardTick(dt) {
+    const K = this.card, c = this.el.card; if (!K) return; K.t += dt;
+    const u = Math.min(1, K.t / K.dur), sm = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
+    const op = u < 0.22 ? sm(u / 0.22) : u > 0.78 ? 1 - sm((u - 0.78) / 0.22) : 1, a = sm(K.t / Math.min(1.4, K.dur * 0.4));
+    c.style.opacity = op.toFixed(3); this.el.cardt.style.letterSpacing = (0.6 - 0.26 * a).toFixed(3) + 'em'; this.el.cardt.style.filter = a < 0.99 ? `blur(${(3 * (1 - a)).toFixed(2)}px)` : ''; c.style.setProperty('--cl', (86 * a).toFixed(1) + '%');
+    if (u >= 1) { this.card = null; c.classList.remove('on'); c.style.opacity = '0'; }
+  }
   /** 暗転（場所の移動）。info = { title, tip } があれば場所の名前と小さな助言を出す */
   fade(on, info) {
     const f = this.el.fadeEl;
