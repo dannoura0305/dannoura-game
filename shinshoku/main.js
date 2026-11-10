@@ -49,6 +49,8 @@ import { ch4Methods } from './game/ch4.js';
 import { ch5Methods } from './game/ch5.js';
 import { ch6Methods } from './game/ch6.js';
 import { ch7Methods } from './game/ch7.js';
+import { transMethods } from './game/trans.js';
+import { TransitionFX } from './ui/transition.js';
 import { CHAPTER_SELECT, GALLERY, selectableChapters, galleryUnlocked } from './data/ch7.js';
 // テストプレイ：章選択で全部の章と結末を選べる（この端末の localStorage だけ。本作・他のゲームの記録は書かない）
 const TEST_KEY = 'shinshoku_testplay';
@@ -164,6 +166,7 @@ class Game {
     this.input.wantLock = () => this.mode === 'play' && !this.cut.active;
     this.input.onUnlock = () => { if (this.mode === 'play' && !this.noPauseOnUnlock && !this.cut.active) this.pause(); };
     this.ui = new UI(document.getElementById('sh-ui'), this);
+    this.trans = new TransitionFX(document.getElementById('sh-ui'));   // 場面の継ぎ目（暗転・溶け・境界のにじみ：ui/transition.js・game/trans.js）
     this.touchUI = setupTouch(document.getElementById('sh-ui'), this.input, this);
     this.padNav = new PadNav(this); this.input.rumbleOff = this.settings.rumble === false;   // コントローラーで DOM の画面を操作・接続のお知らせ（ui/padnav.js）
     // フル画面の出入り（ボタン・Esc・戻る操作）：ボタンの文字・押しっぱなしの入力・画面の大きさを合わせる
@@ -337,12 +340,16 @@ class Game {
     if (ENV.pbr && !A.poolsDim) { A.poolsDim = true; A.root.traverse(o => { if (o.name === 'town_pools') o.material.color.setScalar(0.5); }); }   // PBR の段は点光源が地面を照らすので、足し合わせの光のたまりは弱く
   }
   changeArea(to, spawn) {
-    this.ui.fade(true, { title: (AREA_GRAPH[to] || {}).name || '', tip: LOAD_TIPS[(this.tipN = ((this.tipN ?? Math.floor(Math.random() * LOAD_TIPS.length)) + 1)) % LOAD_TIPS.length] }); this.sfx.play('door');
+    // 区画の移動：前の画を写して黒へゆっくり落とす → その裏で読み込む → 場所の名前を出して間を置く → ゆっくり明ける（game/trans.js）。
+    // 覆っている間は遊び・演出の時計を止める（入った時の演出は明ける時から始まる）。遷移を使わない時（試験の起動）は前の短い暗転
+    const info = { title: (AREA_GRAPH[to] || {}).name || '', tip: LOAD_TIPS[(this.tipN = ((this.tipN ?? Math.floor(Math.random() * LOAD_TIPS.length)) + 1)) % LOAD_TIPS.length] };
+    const smooth = this.startTrans('area', {}, 'area', info);
+    if (!smooth) this.ui.fade(true, info); this.sfx.play('door');
     const comp = this.companion.brain.mode === 'follow' || this.companion.brain.mode === 'hide';
     this.loadArea(to, spawn);
     if (comp && this.companion.root.visible) { this.companion.brain.setMode('follow'); this.companion.brain.teleportBehind(this.player.pos, this.player.yaw); this.companion.rootY = this.player.pos.y || 0; if (insideAny(this.companion.brain.pos, this.companionBoxes(), 0.05)) this.companionUnstick(); this.companion.root.visible = true; this.placeChildForArea(to); }
     this.autosaveReq = true;
-    setTimeout(() => this.ui.fade(false), this.isTest() ? 50 : 420);
+    if (!smooth) setTimeout(() => this.ui.fade(false), this.isTest() ? 50 : 420);
     this.onAreaEnterStory(to);
   }
   placeCompanion() {
@@ -625,8 +632,9 @@ class Game {
     if (this.mode === 'title') return;
     // 遅らせた出来事（演出の明かりの順番など）：シミュレーションの時間で
     for (let i = this.timers.length - 1; i >= 0; i--) { const t = this.timers[i]; t.t -= DT; if (t.t <= 0) { this.timers.splice(i, 1); t.fn(); } }
+    const cover = this.transCovering();                                    // 暗転・前の画で覆っている間：演出の時計と遊びを止める（遅らせた出来事は進める）
     if (this.cut.active) {
-      this.cut.update(DT, { skipHeld: inp.skipHeld, advance: inp.interact || inp.attack });
+      this.cut.update(DT, { skipHeld: inp.skipHeld, advance: (inp.interact || inp.attack) && !cover, freeze: cover });
       this.ui.skipProgress(this.cut.hold || 0);
       this.stepCineMoves(DT);
       if (this.child && this.child.cineTo) this.stepChildCine(DT);
@@ -638,6 +646,7 @@ class Game {
     if (this.mode !== 'play') { if (inp.pause && this.mode === 'pause') this.resume(); return; }
     if (inp.pause) { this.pause(); return; }
     if (inp.map && !this.giantMode) { this.pause(); this.ui.openMenu('map'); return; }
+    if (cover) { this.pendingIn = null; return; }
     this.frame++; this.playSec += DT;
     if (this.hitstop > 0) { this.hitstop--; this.pendingIn = mergeIn(this.pendingIn, inp); return; }
     const I = this.pendingIn ? mergeIn(this.pendingIn, inp) : inp; this.pendingIn = null;
@@ -803,7 +812,7 @@ class Game {
   loadSlot(k) {
     const s = this.store.load(k); if (!s) return false;
     document.getElementById('sh-title').hidden = true; this.ui.closeMenu(); this.ui.showDead(false); this.ui.hideDialog(); this.ui.closePuzzle(); this.dialog = null;
-    if (this.cut.active) this.cut.cs = null; this.ui.letterbox(false); this.ui.subtitle(null); this.cineCam = null; this.timers.length = 0; this.ui.boss(null); this.hint(null);
+    if (this.cut.active) this.cut.cs = null; if (this.trans) this.trans.stop(); this.ui.letterbox(false); this.ui.subtitle(null); this.cineCam = null; this.timers.length = 0; this.ui.boss(null); this.hint(null);
     const st = s.story || {};
     if (this.giantMode) this.exitGiant();
     const prevRoute = this.route;
@@ -1004,9 +1013,12 @@ class Game {
     if (this.splash) { const on = S.rain && A.rain && !this.cut.active; this.splash.mesh.visible = !!on; if (on) this.splash.update(dt, P.pos.x, P.pos.z, A.rainRoof, this.scene.fog.density); }
     if (this.refl && this.presetVals().refl && !this.split7) { const pk = A.pending ? A.pending.length : 0; if (!A.poolsMesh || A.poolsPk !== pk) { A.poolsPk = pk; A.poolsMesh = []; A.root.traverse(o => { if (o.name === 'town_pools') A.poolsMesh.push(o); }); } this.refl.render(this.renderer, this.scene, this.camera, [this.rain.mesh, this.splash && this.splash.mesh, this.wet.mesh, this.trail.mesh, ...A.poolsMesh]); }
     else if (this.refl) ENV_U.uReflOn.value = 0;
-    if (this.split7) this.renderSplit7(); else if (this.post && this.presetVals().post) this.post.render(this.scene, this.camera); else this.renderer.render(this.scene, this.camera);
+    this.drawScene();
+    if (this.trans) this.trans.tick(Math.min(dt, 1 / 20));               // 遷移の重ね（読み込みで止まったこまの後も、飛ばさず滑らかに）
     if (this.perfOn) this.perfTick(dt, steps);
   }
+  /** 画面へ描く（最後の 1 回。遷移の写しでも使う：game/trans.js snapFrame） */
+  drawScene() { if (this.split7) this.renderSplit7(); else if (this.post && this.presetVals().post) this.post.render(this.scene, this.camera); else this.renderer.render(this.scene, this.camera); }
   /** 使い回しの点光源を近い明かりへ。ちらつき・消灯。光のにじみ・映り込みも明かりに合わせる */
   updateLights(dt) {
     const A = this.area, P = this.player.pos, t = performance.now() / 1000;
@@ -1215,7 +1227,7 @@ class Game {
     return false;
   }
 }
-Object.assign(Game.prototype, combatMethods, storyMethods, ch3Methods, ch4Methods, ch5Methods, ch6Methods, ch7Methods);
+Object.assign(Game.prototype, combatMethods, storyMethods, ch3Methods, ch4Methods, ch5Methods, ch6Methods, ch7Methods, transMethods);
 
 function raySphereHit(o, d, c, r) { const ox = o.x - c.x, oy = o.y - c.y, oz = o.z - c.z; const B = ox * d.x + oy * d.y + oz * d.z, Cc = ox * ox + oy * oy + oz * oz - r * r; const disc = B * B - Cc; return disc >= 0 && -B - Math.sqrt(disc) > 0; }
 function mergeIn(a, b) {

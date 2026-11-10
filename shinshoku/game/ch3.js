@@ -119,7 +119,7 @@ export const ch3Methods = {
   // ── 第3章の流れ ──
   startCh3() {
     if (this.flags.ch3_started) return;
-    this.playEvent('ev_ch3_start', () => { this.flags.ch3_started = true; this.setStep('ch3_hosp'); this.ui.chapterCard('第3章　見た目'); this.sfx.play('notify'); this.F().yokiOn = false; });
+    this.playEvent('ev_ch3_start', () => { this.flags.ch3_started = true; this.setStep('ch3_hosp'); this.chapterCard('第3章　見た目'); this.F().yokiOn = false; });
   },
   F() { return this.player.fighter; },
   storyTick3() {

@@ -36,7 +36,7 @@ export const ch4Methods = {
     this.playEvent('ev_ch4_start', () => {
       this.flags.ch4_started = true; this.setStep('ch4_office');
       this.changeArea('office', 'entrance');
-      this.ui.chapterCard('第4章　境界の夜'); this.sfx.play('notify');
+      this.chapterCard('第4章　境界の夜');
     });
   },
   ch4Secret() { const s = this.story.step; return stepRoute(s) === 'secret' || (s === 'ch4_branch' && this.flags.branch_secret_trial); },

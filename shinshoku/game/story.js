@@ -7,6 +7,8 @@ import { EQUIP } from '../data/equip.js';
 import { ROSTER } from '../data/areas.js';
 import { CHAPTERS, stepDef, atLeast, streetState } from '../story/chapters.js';
 import { CUTSCENES } from '../story/cutscenes.js';
+import { shotCam } from '../story/cutscene.js';
+import { rayBoxes } from '../world/collide.js';
 import * as PZ from '../story/puzzles.js';
 import { inHome, homeL } from '../data/town.js';
 import { padLabel } from '../ui/padnav.js';
@@ -251,6 +253,7 @@ export const storyMethods = {
     this.mode = 'play'; this.input.exitLock();
     this.lock = null; this.fx.clearDecals(); this.trail.cut(); if (this.trail.reset) this.trail.reset();
     this.cutDone = done;
+    this.earlyChapterCard(cs);                                     // 始まりの章の札は、演出の前に黒の上で（game/trans.js）
     this.cut.play(cs);
   },
   cutHost() {
@@ -269,7 +272,32 @@ export const storyMethods = {
       actor(a, instant) { g.cineActor(a, instant); },
       event(name, arg) { g.cineEvent(name, arg); },
       done(cs) { g.ui.skipProgress(0); g.onCutsceneDone(cs); },
+      transition(kind, opt, why) { g.startTrans(kind, opt, why); },   // 継ぎ目（intro・outro・場面の中の cut の tr）
+      shot(spec, prev) {   // 動く被写体に合わせるカメラ。映す人がその場にいない時は、相手（from）の寄りにする
+        const ctx = { at: id => g.shotSubject(id), clear: (p, q) => g.shotClear(p, q) };
+        return shotCam(spec, ctx, prev)
+          || (spec.from && !ctx.at(spec.from) && ctx.at(spec.on) ? shotCam(Object.assign({}, spec, { from: null, shot: spec.shot === 'two' || spec.shot === 'ots' ? 'close' : spec.shot }), ctx, prev) : null)   // 相手がいない：映す人だけ
+          || (spec.from && !Array.isArray(spec.from) ? shotCam({ shot: 'close', on: spec.from, fov: spec.fov }, ctx, prev) : null);
+      },
     };
+  },
+  /** カメラの被写体（shot の on・from）：{ x, z, h（頭の高さ）, yaw }。'dan' は巨大な姿の時は巨大猫又の頭 */
+  shotSubject(id) {
+    if (Array.isArray(id)) return { x: id[0], z: id[1], h: id[2] ?? 1.4, yaw: id[3] ?? 0 };
+    if (id === 'dan' || id === 'player') {
+      if (this.giantMode && this.giant) { const G = this.giant, s = (G.scale || 1); return { x: G.pos.x, z: G.pos.z, h: 1.05 * s, yaw: G.yaw }; }
+      const P = this.player; return { x: P.pos.x, z: P.pos.z, h: (P.pos.y || 0) + 1.5, yaw: P.yaw };
+    }
+    if (id === 'companion') { const C = this.companion; if (!C.root.visible) return null; return { x: C.brain.pos.x, z: C.brain.pos.z, h: (C.rootY || 0) + 1.38, yaw: C.brain.yaw }; }
+    if (id === 'child') { const c = this.child; if (!c || !c.root.visible) return null; return { x: c.pos.x, z: c.pos.z, h: 0.95, yaw: c.yaw || 0 }; }
+    const e = id === 'boss' ? this.boss : this.enemies.find(q => q.id === id);
+    if (!e || !e.root.visible) return null;
+    return { x: e.pos.x, z: e.pos.z, h: Math.min(e.h || 1.8, 6) * (e.big ? 0.8 : 0.92), yaw: e.brain ? e.brain.yaw : 0 };
+  },
+  /** p から q が見通せるか（区画の当たりの箱） */
+  shotClear(p, q) {
+    const dx = q[0] - p[0], dy = q[1] - p[1], dz = q[2] - p[2], L = Math.hypot(dx, dy, dz); if (L < 0.05) return true;
+    return rayBoxes({ x: p[0], y: p[1], z: p[2] }, { x: dx / L, y: dy / L, z: dz / L }, L, this.boxes) >= L - 0.3;
   },
   /** 話す人の口を動かし、近くの人をその人へ向かせる */
   cineSpeak(who, text, dur) {
@@ -288,6 +316,18 @@ export const storyMethods = {
     if (tgt.kind === 'enemy' && a.show) tgt.e.root.visible = true;
     if (a.pos) setPos(a.pos[0], a.pos[1]);
     if (a.yaw != null) setYaw(a.yaw);
+    // face：その時いる人の方へ向く（振り向く）。near：その人の横（立ち位置が毎回ちがう戦いの後の場面）へ歩いて寄る
+    const cur = () => (tgt.kind === 'player' ? this.player.pos : tgt.kind === 'companion' ? this.companion.brain.pos : tgt.e.brain.pos);
+    if (a.face) { const o = this.shotSubject(a.face), p = cur(); if (o) setYaw(Math.atan2(o.x - p.x, o.z - p.z)); }
+    if (a.near) {
+      const o = this.shotSubject(a.near.id || a.near), p = cur();
+      if (o) {
+        const d = a.near.d || 1.5, sd = a.near.side || 1, base = Math.atan2(p.x - o.x, p.z - o.z);
+        let best = null;
+        for (const da of [0, 0.5 * sd, -0.5 * sd, 1.0 * sd, -1.0 * sd, 1.6, -1.6, Math.PI]) { const q = [o.x + Math.sin(base + da) * d, o.z + Math.cos(base + da) * d]; if (this.shotClear([o.x, 1.0, o.z], [q[0], 1.0, q[1]]) && this.shotClear([p.x, 1.0, p.z], [q[0], 1.0, q[1]])) { best = q; break; } }
+        if (best && Math.hypot(best[0] - p.x, best[1] - p.z) > 0.3) { if (instant) setPos(best[0], best[1]); else this.cineMoves.push({ tgt, to: best, rest: [], speed: a.run ? 4.6 : 1.6, faceTo: a.near.face !== false ? (a.near.id || a.near) : null }); }
+      }
+    }
     if (tgt.kind === 'player') this.cinePlayerAnim = a.anim || null;
     // to：まっすぐ 1 点へ／path：角ごとの点を順に（壁・物を回りこむ。例：裏路地のくぼみから出る・柵の切れ目を通る）
     const pts = a.path ? a.path.slice() : a.to ? [a.to] : null;
@@ -302,7 +342,12 @@ export const storyMethods = {
       const m = this.cineMoves[i]; const p = m.tgt.kind === 'player' ? this.player.pos : m.tgt.kind === 'companion' ? this.companion.brain.pos : m.tgt.e.brain.pos;
       const dx = m.to[0] - p.x, dz = m.to[1] - p.z, L = Math.hypot(dx, dz);
       if (L < 0.08 && m.rest && m.rest.length) { m.to = m.rest.shift(); i++; continue; }   // 次の角へ（同じこまでもう一度）
-      if (L < 0.08) { if (m.hideAtEnd && m.tgt.kind === 'companion') this.companion.root.visible = false; this.cineMoves.splice(i, 1); continue; }
+      if (L < 0.08) {
+        if (m.hideAtEnd && m.tgt.kind === 'companion') this.companion.root.visible = false;
+        if (m.faceTo) { const o = this.shotSubject(m.faceTo); if (o) { const y = Math.atan2(o.x - p.x, o.z - p.z); if (m.tgt.kind === 'companion') this.companion.brain.yaw = y; else if (m.tgt.kind === 'player') this.player.yaw = y; else m.tgt.e.brain.yaw = y; } }
+        if (m.tgt.kind === 'companion') this.companion.speed = 0; else if (m.tgt.kind === 'player') this.player.speed = 0;
+        this.cineMoves.splice(i, 1); continue;
+      }
       const s = Math.min(L, m.speed * dt); p.x += dx / L * s; p.z += dz / L * s;
       const yaw = Math.atan2(dx, dz);
       if (m.tgt.kind === 'companion') { this.companion.brain.yaw = yaw; this.companion.speed = m.speed; this.companion.phase += s * (this.companion.phaseRate ? this.companion.phaseRate(m.speed) : 3.6); }
@@ -344,7 +389,7 @@ export const storyMethods = {
       case 'endCard3': this.later(skip ? 0 : 0.3, () => this.showEndCard3()); break;
       case 'setStep': this.setStep(arg); break;
       case 'flag': this.flags[arg] = true; break;
-      case 'chapterCard': this.ui.chapterCard(CHAPTERS[arg].title); this.sfx.play('notify'); break;
+      case 'chapterCard': this.chapterCard(CHAPTERS[arg].title); break;
       case 'lightsOut': {
         const L = this.area.halos.filter(h => (h.strip || h.shopFront || h.light) && h.p[2] <= arg.from * -0 + 100).sort((a, b) => a.p[2] - b.p[2]);
         const seq = L.filter(h => h.p[2] >= arg.from && h.p[2] <= arg.to);

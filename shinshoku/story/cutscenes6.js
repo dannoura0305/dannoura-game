@@ -13,7 +13,7 @@ export const CUTSCENES6 = {
       { t: 6.0, pos: [2.4, 1.8, 31.0], look: [0, 1.5, 22.0], fov: 48 },
       { t: 6.2, pos: [0.45, 1.62, 26.7], look: [0, 1.56, 28.0], fov: 34, cut: true },
       { t: 17.6, pos: [0.42, 1.62, 26.8], look: [0, 1.56, 28.0], fov: 32 },
-      { t: 17.8, pos: [0.6, 2.0, 30.6], look: [0, 9.0, -40.0], fov: 50, cut: true },
+      { t: 17.8, pos: [0.6, 2.0, 30.6], look: [0, 9.0, -40.0], fov: 50, cut: true, tr: 'dissolve', trDur: 0.7 },
       { t: 24.0, pos: [0.4, 2.1, 30.2], look: [0, 10.0, -40.0], fov: 46 },
     ],
     actors: [{ t: 0, id: 'player', pos: [0, 30.5], yaw: P }, { t: 0.4, id: 'player', to: [0, 28.0] }],
@@ -34,7 +34,10 @@ export const CUTSCENES6 = {
   // 糸の元（3 つ目を切った）：光の柱が脈打つ。研究者の声（防災スピーカー）
   cs06r_source: {
     id: 'cs06r_source', area: 'ruins', letterbox: true, skippable: true,
-    cam: [{ t: 0, pos: [3.2, 2.0, 22.0], look: [0, 11.0, -60.0], fov: 46 }, { t: 9.6, pos: [3.0, 2.2, 21.0], look: [0, 13.0, -60.0], fov: 42 }],
+    // 前：空の柱だけを映し、「行くわよ」の主が映らなかった → 柱 → 見上げるだんのうらの顔
+    cam: [{ t: 0, pos: [3.2, 2.0, 22.0], look: [0, 11.0, -60.0], fov: 46 }, { t: 6.7, pos: [3.05, 2.15, 21.3], look: [0, 12.4, -60.0], fov: 43 },
+      { t: 6.75, shot: { shot: 'close', on: 'dan', from: [0, -60, 12], dist: 1.6, side: 1 }, cut: true },
+      { t: 9.8, shot: { shot: 'close', on: 'dan', from: [0, -60, 12], dist: 1.4, side: 1 } }],
     actors: [],
     lines: [
       { t: 0.4, who: 'sys', text: '（三つ目の中継がほどけると、糸は北へ縮んでいった。光の柱が、大きく脈打つ）', dur: 3.2 },
@@ -50,9 +53,9 @@ export const CUTSCENES6 = {
     cam: [
       { t: 0, pos: [5.0, 1.6, 44.0], look: [0, 2.0, 34.0], fov: 50 },
       { t: 3.4, pos: [5.4, 2.6, 46.0], look: [0, 5.0, 34.0], fov: 52 },
-      { t: 3.6, pos: [8.0, 6.0, 52.0], look: [0, 8.0, 30.0], fov: 56, cut: true },
+      { t: 3.6, pos: [8.0, 6.0, 52.0], look: [0, 8.0, 30.0], fov: 56, cut: true, tr: 'white', trDur: 0.8 },
       { t: 7.4, pos: [9.0, 9.0, 54.0], look: [0, 9.0, 30.0], fov: 54 },
-      { t: 7.6, pos: [14.0, 10.0, 26.0], look: [0, 16.0, -14.0], fov: 52, cut: true },
+      { t: 7.6, pos: [14.0, 10.0, 26.0], look: [0, 16.0, -14.0], fov: 52, cut: true, tr: 'seep', trDur: 1.0 },
       { t: 14.6, pos: [12.0, 9.0, 24.0], look: [0, 18.0, -14.0], fov: 50 },
       { t: 14.8, pos: [1.4, 8.8, 24.6], look: [0, 8.9, 29.4], fov: 40, cut: true },
       { t: 19.0, pos: [1.3, 8.8, 24.8], look: [0, 8.9, 29.4], fov: 38 },
@@ -73,7 +76,7 @@ export const CUTSCENES6 = {
     cam: [
       { t: 0, pos: [11.0, 17.0, 46.0], look: [0, 10.0, -10.0], fov: 54 },
       { t: 6.0, pos: [10.0, 15.0, 44.0], look: [0, 10.0, -10.0], fov: 52 },
-      { t: 6.2, pos: [3.0, 1.8, 24.6], look: [0, 1.5, 20.0], fov: 44, cut: true },
+      { t: 6.2, pos: [3.0, 1.8, 24.6], look: [0, 1.5, 20.0], fov: 44, cut: true, tr: 'black', trDur: 1.2 },   // 巨大な姿がほどけた後（少しの間）
       { t: 15.4, pos: [2.8, 1.8, 24.2], look: [0, 1.6, 20.0], fov: 40 },
       { t: 15.6, pos: [0.6, 2.0, 24.0], look: [0, 16.0, -80.0], fov: 46, cut: true },
       { t: 21.0, pos: [0.5, 2.1, 23.6], look: [0, 18.0, -80.0], fov: 42 },
@@ -88,6 +91,7 @@ export const CUTSCENES6 = {
       { t: 19.2, who: 'sys', text: '（第6章A　巨躯　―― 終わり）', dur: 1.8 },
     ],
     events: [{ t: 0.1, do: 'bossCollapse6' }, { t: 3.0, do: 'pillarDim6' }, { t: 6.2, do: 'giantPose6', arg: { x: 0, z: 20, yaw: P } }, { t: 6.3, do: 'giantShrink' }, { t: 6.4, do: 'ensureWhite' }, { t: 21.2, do: 'setStep', arg: 'ch6a_fin' }, { t: 21.3, do: 'endCard6a' }],
+    outro: { kind: 'black', out: 0.9, hold: 0.2, in: 0.8 },
     sounds: [{ t: 0.2, s: 'crash' }, { t: 3.0, s: 'rescue' }, { t: 6.3, s: 'revert' }, { t: 9.2, s: 'pa_voice' }],
   },
 
@@ -136,11 +140,16 @@ export const CUTSCENES6 = {
       { t: 0, pos: [-5.0, 2.4, -13.0], look: [-3.0, 0.9, -20.0], fov: 46 },
       { t: 3.8, pos: [-4.6, 2.3, -13.4], look: [-3.0, 0.9, -20.0], fov: 44 },
       { t: 4.0, pos: [-3.8, 2.2, -11.6], look: [8.0, 1.6, -14.0], fov: 48, cut: true },
-      { t: 8.6, pos: [-3.6, 2.2, -11.8], look: [5.0, 1.8, -14.0], fov: 46 },
-      { t: 8.8, pos: [2.2, 2.3, -13.4], look: [4.6, 2.1, -14.0], fov: 36, cut: true },
-      { t: 16.4, pos: [2.3, 2.3, -13.5], look: [4.6, 2.1, -14.0], fov: 34 },
+      { t: 6.8, pos: [-3.7, 2.2, -11.7], look: [6.2, 1.7, -14.0], fov: 47 },
+      { t: 6.85, shot: { shot: 'close', on: 'dan', from: 'touchoku', dist: 1.6, side: -1 }, cut: true },   // 前：言い返すだんのうらが画面の外
+      { t: 9.9, shot: { shot: 'close', on: 'dan', from: 'touchoku', dist: 1.45, side: -1 } },
+      { t: 9.95, pos: [2.2, 2.3, -13.4], look: [4.6, 2.1, -14.0], fov: 36, cut: true },
+      { t: 12.9, pos: [2.25, 2.3, -13.45], look: [4.6, 2.1, -14.0], fov: 35 },
+      { t: 12.95, shot: { shot: 'close', on: 'dan', from: 'companion', dist: 1.6, side: 1 }, cut: true },   // （相棒）へ言いつける
+      { t: 16.4, shot: { shot: 'close', on: 'dan', from: 'companion', dist: 1.45, side: 1 } },
     ],
-    actors: [{ t: 0, id: 'player', pos: [-1.6, -16.6], yaw: P }, { t: 0, id: 'companion', pos: [-0.6, -12.6], yaw: P, mode: 'scripted', show: true }, { t: 3.9, id: 'touchoku', pos: [11.0, -13.6], yaw: -P / 2, show: true }, { t: 4.2, id: 'touchoku', to: [4.6, -14.0] }],
+    actors: [{ t: 0, id: 'player', pos: [-1.6, -16.6], yaw: P }, { t: 0, id: 'companion', pos: [-0.6, -12.6], yaw: P, mode: 'scripted', show: true }, { t: 3.9, id: 'touchoku', pos: [11.0, -13.6], yaw: -P / 2, show: true }, { t: 4.2, id: 'touchoku', to: [4.6, -14.0] },
+      { t: 6.7, id: 'player', face: [4.6, -14.0] }, { t: 12.8, id: 'player', face: 'companion' }, { t: 13.0, id: 'companion', face: 'dan' }],   // 振り向いて言い返す → （相棒）へ
     lines: [
       { t: 0.4, who: 'sys', text: '（P-2 のうなりが小さくなり、止まった。監視の画面の数字が下がっていく。拡大　出力 68% → 31%）', dur: 3.4 },
       { t: 4.2, who: 'touchoku', text: '……巡回の、時間だ。P-2 を止めたのは、誰だ', dur: 2.6 },
@@ -154,8 +163,13 @@ export const CUTSCENES6 = {
   // 当直の決着（救う／無力化／倒す：台詞の差は bark）→ 制御室が開く
   cs06s_after: {
     id: 'cs06s_after', area: 'admin', letterbox: true, skippable: true,
-    cam: [{ t: 0, pos: [0, 2.6, -8.4], look: [2.0, 1.0, -16.0], fov: 48 }, { t: 8.2, pos: [0.4, 2.5, -9.0], look: [0, 1.6, -26.0], fov: 46 }],
-    actors: [{ t: 0, id: 'companion', pos: [0, -8.0], yaw: P, mode: 'scripted', show: true }],
+    // 前：高い所からの 1 枚だけで、話す二人がどちらも映らなかった → 緑に変わる扉 → （相棒）→ だんのうら（戦いの後の立ち位置に合わせる）
+    cam: [{ t: 0, pos: [0, 2.6, -8.4], look: [2.0, 1.0, -16.0], fov: 48 }, { t: 3.5, pos: [0.2, 2.55, -8.7], look: [0.8, 1.4, -22.0], fov: 47 },
+      { t: 3.55, shot: { shot: 'close', on: 'companion', from: 'dan', dist: 1.5 }, cut: true },
+      { t: 5.6, shot: { shot: 'close', on: 'companion', from: 'dan', dist: 1.4 } },
+      { t: 5.65, shot: { shot: 'close', on: 'dan', from: 'companion', dist: 1.5, side: -1 }, cut: true },
+      { t: 8.4, shot: { shot: 'close', on: 'dan', from: 'companion', dist: 1.4, side: -1 } }],
+    actors: [{ t: 0, id: 'companion', pos: [0, -8.0], yaw: P, mode: 'scripted', show: true }, { t: 0.4, id: 'companion', near: { id: 'dan', d: 1.4, face: true } }, { t: 3.4, id: 'player', face: 'companion' }],
     lines: [
       { t: 0.5, who: 'sys', text: '（機械室が静かになる。制御室の扉の灯りが、赤から緑に変わった）', dur: 3.0 },
       { t: 3.8, who: 'companion', text: '……終わった、んですか', dur: 1.8 },
@@ -172,8 +186,10 @@ export const CUTSCENES6 = {
       { t: 8.6, pos: [2.2, 2.0, -27.2], look: [0, 2.8, -32.0], fov: 42 },
       { t: 8.8, pos: [0.35, 1.62, -29.6], look: [0, 1.56, -28.6], fov: 34, cut: true },
       { t: 15.4, pos: [0.33, 1.62, -29.65], look: [0, 1.56, -28.6], fov: 32 },
-      { t: 15.6, pos: [-2.4, 1.7, -25.6], look: [0.5, 1.4, -28.0], fov: 44, cut: true },
-      { t: 22.4, pos: [-2.2, 1.7, -25.8], look: [0.5, 1.4, -28.0], fov: 42 },
+      { t: 15.6, shot: { shot: 'two', on: 'dan', from: 'companion', fov: 42 }, cut: true, tr: 'dissolve', trDur: 0.5 },   // 前：カメラが壁の中で二人が映らなかった
+      { t: 18.5, shot: { shot: 'two', on: 'dan', from: 'companion', fov: 40, dist: 2.5 } },
+      { t: 18.55, shot: { shot: 'close', on: 'dan', from: 'companion', dist: 1.5, side: -1 }, cut: true },
+      { t: 22.4, shot: { shot: 'close', on: 'dan', from: 'companion', dist: 1.35, side: -1 } },
     ],
     actors: [{ t: 0, id: 'player', pos: [0, -28.6], yaw: P }, { t: 0, id: 'companion', pos: [1.4, -27.4], yaw: P, mode: 'scripted', show: true }],
     lines: [
@@ -187,6 +203,7 @@ export const CUTSCENES6 = {
       { t: 21.8, who: 'sys', text: '（第6章B　制御　―― 終わり）', dur: 1.6 },
     ],
     events: [{ t: 0.2, do: 'expandOff6' }, { t: 4.0, do: 'screenOn6' }, { t: 15.6, do: 'screenOff6' }, { t: 22.6, do: 'setStep', arg: 'ch6_s_end' }, { t: 22.7, do: 'endCard6s' }],
+    outro: { kind: 'black', out: 0.9, hold: 0.2, in: 0.8 },
     sounds: [{ t: 0.2, s: 'power_down' }, { t: 4.0, s: 'tv_blip' }, { t: 6.8, s: 'pa_voice' }],
   },
 };

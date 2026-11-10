@@ -24,6 +24,8 @@ export class Sfx {
   /** スロー・一閃のとき音を抑える（0〜1） */
   setMuffle(m) { if (!this.ctx) return; this.muffle = m; this.lp.frequency.setTargetAtTime(18000 - m * 17000, this.ctx.currentTime, 0.03); }
   /** 無音の間（秒）：全体を下げて戻す */
+  /** 場面の継ぎ目（遷移）：out 秒で floor まで沈め、hold 秒置き、in 秒で戻す（暗転と一緒に音も遠のく） */
+  dip(out = 0.6, hold = 0.3, inn = 1.0, floor = 0.3) { if (!this.ctx || !this.duck) return; const t = this.ctx.currentTime, g = this.duck.gain; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(floor, t + Math.max(0.02, out)); g.setValueAtTime(floor, t + out + hold); g.linearRampToValueAtTime(1, t + out + hold + Math.max(0.05, inn)); }
   silence(sec = 1.5) { if (!this.ctx) return; const t = this.ctx.currentTime; this.duck.gain.cancelScheduledValues(t); this.duck.gain.setTargetAtTime(0.0, t, 0.08); this.duck.gain.setTargetAtTime(1, t + sec, 0.4); }
   setListener(x, z, yaw) { this.L.x = x; this.L.z = z; this.L.yaw = yaw; }
   /** 位置のある音の出口（距離で小さく・左右へ） */

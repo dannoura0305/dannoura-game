@@ -85,7 +85,7 @@ export const CUTSCENES5 = {
     cam: [
       { t: 0, pos: [-6.0, 2.2, 6.0], look: [0, 2.2, -6], fov: 46 },
       { t: 5.0, pos: [-4.6, 1.6, 4.0], look: [0, 2.6, -6], fov: 40 },
-      { t: 5.4, pos: [1.6, 2.6, -1.8], look: [-0.3, 2.4, -6], fov: 34, cut: true },
+      { t: 5.4, pos: [1.6, 2.6, -1.8], look: [-0.3, 2.4, -6], fov: 34, cut: true, tr: 'dissolve', trDur: 0.5 },
       { t: 9.6, pos: [1.4, 2.4, -2.0], look: [-0.3, 2.0, -6], fov: 32 },
       { t: 9.8, pos: [1.2, 1.62, 5.6], look: [0, 1.5, 7.2], fov: 38, cut: true },
       { t: 15.0, pos: [1.1, 1.62, 5.5], look: [0, 1.5, 7.2], fov: 36 },
@@ -105,7 +105,7 @@ export const CUTSCENES5 = {
     cam: [
       { t: 0, pos: [-6.0, 2.2, 6.0], look: [0, 2.2, -6], fov: 46 },
       { t: 5.0, pos: [-4.6, 1.6, 4.0], look: [0, 2.6, -6], fov: 40 },
-      { t: 5.4, pos: [1.6, 2.6, -1.8], look: [-0.3, 2.4, -6], fov: 34, cut: true },
+      { t: 5.4, pos: [1.6, 2.6, -1.8], look: [-0.3, 2.4, -6], fov: 34, cut: true, tr: 'dissolve', trDur: 0.5 },
       { t: 9.6, pos: [1.4, 2.4, -2.0], look: [-0.3, 2.0, -6], fov: 32 },
       { t: 9.8, pos: [1.2, 1.62, 5.6], look: [0, 1.5, 7.2], fov: 38, cut: true },
       { t: 15.0, pos: [1.1, 1.62, 5.5], look: [0, 1.5, 7.2], fov: 36 },
@@ -147,13 +147,21 @@ export const CUTSCENES5 = {
       { t: 17.2, who: 'companion', text: 'はい。……あなたがいると、怖くないです', dur: 2.2, expr: 'smile' },
     ],
     events: [{ t: 0.2, do: 'tsugiCollapse' }, { t: 5.4, do: 'pa' }, { t: 19.4, do: 'setStep', arg: 'ch5_s_end' }, { t: 19.6, do: 'endCard5', arg: 'secret' }],
+    outro: { kind: 'black', out: 0.9, hold: 0.2, in: 0.8 },
     sounds: [{ t: 0.2, s: 'wave' }, { t: 5.4, s: 'pa_chime' }, { t: 5.6, s: 'pa_voice' }],
   },
   // reveal：屋上の階段 → 町へ出る（フェードで巨大用の町へ）→ 町の灯りが紫に塗り替わっていく（広域計画）
   cs05_r_roof: {
     id: 'cs05_r_roof', area: 'town', letterbox: true, skippable: true,
-    cam: [{ t: 0, pos: [2.6, 1.7, 30.0], look: [-0.5, 4.0, 10.0], fov: 56 }, { t: 4.0, pos: [2.4, 2.0, 29.0], look: [0, 18.0, -60.0], fov: 52 }, { t: 4.4, pos: [1.2, 1.62, 21.4], look: [0.6, 1.5, 23.6], fov: 38, cut: true }, { t: 12.0, pos: [1.1, 1.62, 21.3], look: [0.6, 1.5, 23.6], fov: 36 }],
-    actors: [{ t: 0, id: 'player', pos: [0.6, 23.6], yaw: P }, { t: 0, id: 'companion', pos: [2.2, 24.4], yaw: P, mode: 'scripted', show: true, anim: 'idle' }],
+    // 前：（相棒）の「町が……！」の間、カメラはだんのうらの顔だけ（（相棒）は背中の後ろ）→ 驚く（相棒）→ 決めるだんのうら → 二人
+    cam: [{ t: 0, pos: [2.6, 1.7, 30.0], look: [-0.5, 4.0, 10.0], fov: 56 }, { t: 4.0, pos: [2.4, 2.0, 29.0], look: [0, 18.0, -60.0], fov: 52 },
+      { t: 4.4, shot: { shot: 'close', on: 'companion', from: [0, -60, 12], dist: 1.5, side: -1 }, cut: true },
+      { t: 6.8, shot: { shot: 'close', on: 'companion', from: [0, -60, 12], dist: 1.35, side: -1 } },
+      { t: 6.85, pos: [1.2, 1.62, 21.4], look: [0.6, 1.5, 23.6], fov: 38, cut: true },
+      { t: 10.0, pos: [1.15, 1.62, 21.35], look: [0.6, 1.5, 23.6], fov: 37 },
+      { t: 10.05, shot: { shot: 'two', on: 'dan', from: 'companion', fov: 42 }, cut: true },
+      { t: 12.0, shot: { shot: 'two', on: 'dan', from: 'companion', fov: 40, dist: 2.4 } }],
+    actors: [{ t: 0, id: 'player', pos: [0.6, 23.6], yaw: P }, { t: 0, id: 'companion', pos: [2.2, 24.4], yaw: P, mode: 'scripted', show: true, anim: 'idle' }, { t: 4.4, id: 'companion', anim: 'warn' }, { t: 9.8, id: 'companion', anim: 'idle', face: 'dan' }, { t: 10.0, id: 'player', face: 'companion' }],
     lines: [
       { t: 0.6, who: 'sys', text: '（観測棟の外は、商店街の通りだった。町の灯りが、遠くから一列ずつ、紫に塗り替わっていく）', dur: 3.8 },
       { t: 4.6, who: 'companion', text: '町が……！　商店街の方まで', dur: 2.2, expr: 'surprised' },
@@ -169,9 +177,9 @@ export const CUTSCENES5 = {
     cam: [
       { t: 0, pos: [3.6, 1.3, 28.0], look: [0.0, 3.0, 8.0], fov: 54 },
       { t: 3.6, pos: [3.4, 1.3, 27.6], look: [0, 4.0, 6.0], fov: 52 },
-      { t: 4.0, pos: [3.8, 4, 20], look: [0, 3, 6], fov: 56, cut: true, ease: 'linear' },
+      { t: 4.0, pos: [3.8, 4, 20], look: [0, 3, 6], fov: 56, cut: true, ease: 'linear', tr: 'white', trDur: 0.8 },
       { t: 8.0, pos: [4, 12, 30], look: [0, 8, 4], fov: 54 },
-      { t: 8.4, pos: [1.2, 8.7, -3.6], look: [0, 8.9, 1.4], fov: 40, cut: true },
+      { t: 8.4, pos: [1.2, 8.7, -3.6], look: [0, 8.9, 1.4], fov: 40, cut: true, tr: 'seep', trDur: 0.9 },   // 力が流れ込む：境界のにじみ
       { t: 13.0, pos: [1.1, 8.7, -3.4], look: [0, 8.9, 1.4], fov: 38 },
       { t: 13.2, pos: [3.8, 1.3, 27.6], look: [0, 8.0, 6.0], fov: 56, cut: true },
       { t: 16.4, pos: [3.6, 1.4, 27.2], look: [0, 8.5, 6.0], fov: 54 },
@@ -223,7 +231,11 @@ export const CUTSCENES5 = {
   // 守りきった（第6章A の前半の終わり）→ 人の大きさに戻って崩れた商店街へ（フェーズ7：第6章A の続き）
   cs06_end: {
     id: 'cs06_end', area: 'town', letterbox: true, skippable: true,
-    cam: [{ t: 0, pos: [-4, 12, 40], look: [0, 4, 12], fov: 54 }, { t: 5.0, pos: [-3, 11, 38], look: [0, 4, 12], fov: 52 }, { t: 5.4, pos: [1.4, 1.4, 27.2], look: [3.4, 1.0, 24.0], fov: 38, cut: true }, { t: 12.4, pos: [1.5, 1.4, 27.0], look: [3.4, 1.0, 24.0], fov: 36 }],
+    cam: [{ t: 0, pos: [-4, 12, 40], look: [0, 4, 12], fov: 54 }, { t: 5.0, pos: [-3, 11, 38], look: [0, 4, 12], fov: 52 }, { t: 5.4, pos: [1.4, 1.4, 27.2], look: [3.4, 1.0, 24.0], fov: 38, cut: true },
+      { t: 7.8, pos: [1.45, 1.4, 27.1], look: [3.4, 1.0, 24.0], fov: 37 },
+      { t: 7.85, shot: { shot: 'ots', on: 'dan', from: 'companion', side: 1, dist: 1.1, fov: 50 }, cut: true },   // 前：だんのうら（巨大猫又）の声だけ → 見上げる（相棒）の肩ごしに巨大猫又
+      { t: 11.0, shot: { shot: 'ots', on: 'dan', from: 'companion', side: 1, dist: 1.0, fov: 48 } },
+      { t: 11.05, pos: [1.5, 1.4, 27.0], look: [3.4, 1.0, 24.0], fov: 36, cut: true }, { t: 12.4, pos: [1.55, 1.4, 26.9], look: [3.4, 1.0, 24.0], fov: 35 }],
     actors: [{ t: 0, id: 'companion', pos: [3.4, 24.0], yaw: P * 0.95, mode: 'scripted', show: true, anim: 'injured' }],
     lines: [
       { t: 0.6, who: 'sys', text: '（逃げ遅れた人たちが、避難の列へ駆けていく。巨大な猫又は、その背中を見送った）', dur: 3.8 },

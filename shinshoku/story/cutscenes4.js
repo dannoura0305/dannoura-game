@@ -55,7 +55,7 @@ export const CUTSCENES4 = {
     cam: [
       { t: 0, pos: [-6.0, 5.6, 6.6], look: [4.0, 2.0, -14.0], fov: 52 },
       { t: 7.0, pos: [-3.0, 4.8, 3.6], look: [6.0, 2.2, -12.0], fov: 46 },
-      { t: 7.4, pos: [1.4, 1.6, 4.8], look: [0.0, 1.45, 7.0], fov: 40, cut: true },
+      { t: 7.4, pos: [1.4, 1.6, 4.8], look: [0.0, 1.45, 7.0], fov: 40, cut: true, tr: 'dissolve', trDur: 0.7 },
       { t: 13.0, pos: [1.3, 1.6, 4.9], look: [0.0, 1.45, 7.0], fov: 38 },
     ],
     actors: [{ t: 0, id: 'player', pos: [0, 7.6], yaw: P }, { t: 0, id: 'companion', pos: [0.8, 8.4], yaw: P, mode: 'scripted', show: true }, { t: 0.6, id: 'player', to: [0, 6.6] }, { t: 0.8, id: 'companion', to: [0.8, 7.4] }],
@@ -72,6 +72,10 @@ export const CUTSCENES4 = {
     id: 'cs04_trap', area: 'lab', letterbox: true, skippable: true,
     cam: [
       { t: 0, pos: [5.6, 3.4, -1.0], look: [0, 1.2, -9.0], fov: 50 },
+      { t: 2.6, pos: [5.3, 3.2, -1.5], look: [0, 1.2, -9.0], fov: 48 },
+      { t: 2.65, shot: { shot: 'close', on: 'dan', from: 'companion', dist: 1.5, side: -1 }, cut: true },   // 前：「待ちなさい！」の主が画面の外
+      { t: 4.9, shot: { shot: 'close', on: 'dan', from: 'companion', dist: 1.35, side: -1 } },
+      { t: 4.95, pos: [5.1, 3.05, -1.85], look: [0, 1.2, -9.0], fov: 47, cut: true },
       { t: 5.6, pos: [5.0, 3.0, -2.0], look: [0, 1.2, -9.0], fov: 46 },
       { t: 6.0, pos: [0.6, 1.05, -10.6], look: [0, 1.5, -3.0], fov: 46, cut: true },
       { t: 10.4, pos: [0.5, 1.0, -10.4], look: [0, 1.6, -3.0], fov: 44 },
@@ -82,6 +86,7 @@ export const CUTSCENES4 = {
       { t: 0, id: 'player', pos: [0, -2.4], yaw: P }, { t: 0, id: 'companion', pos: [0.9, -1.8], yaw: P, mode: 'scripted', show: true },
       { t: 1.8, id: 'companion', to: [0, -9.0], run: true }, { t: 6.0, id: 'companion', yaw: 0, anim: 'cower' },
       { t: 6.0, id: 'player', to: [0, -3.4], run: true },
+      { t: 2.6, id: 'player', face: 'companion' },
     ],
     lines: [
       { t: 0.4, who: 'mimic', text: '「こっちよ。早く、こっちへいらっしゃい」', dur: 2.2 },
@@ -138,12 +143,25 @@ export const CUTSCENES4 = {
   // 地響き：相棒を先に地上のポンプ室へ逃がす
   cs04_rise: {
     id: 'cs04_rise', area: 'lab', letterbox: true, skippable: true,
-    cam: [{ t: 0, pos: [3.0, 2.0, -5.0], look: [0, 1.5, -12.0], fov: 46 }, { t: 7.0, pos: [2.6, 2.2, -5.4], look: [0, 2.5, -22.0], fov: 44 }],
-    actors: [{ t: 0, id: 'player', pos: [0, -7.4], yaw: P }, { t: 0, id: 'companion', pos: [0.8, -8.6], yaw: P, mode: 'scripted', show: true, anim: 'idle' }, { t: 3.4, id: 'companion', to: [0.8, -23.0], run: true, hideAtEnd: true }],
+    // 前：引きの 1 枚のまま、だんのうらは画面の外・（相棒）は走り去ってから返事をしていた → 揺れ（引き）→ 言いつける顔 → 返事の顔 → 走る背中を見送る
+    cam: [
+      { t: 0, pos: [3.0, 2.0, -5.0], look: [0, 1.5, -12.0], fov: 46 }, { t: 2.7, pos: [2.9, 2.05, -5.1], look: [0, 1.7, -14.0], fov: 45 },
+      { t: 2.75, shot: { shot: 'close', on: 'dan', from: 'companion', dist: 1.5, side: 1 }, cut: true },
+      { t: 5.8, shot: { shot: 'close', on: 'dan', from: 'companion', dist: 1.35, side: 1 } },
+      { t: 5.85, shot: { shot: 'close', on: 'companion', from: 'dan', dist: 1.45, side: -1 }, cut: true },
+      { t: 7.6, shot: { shot: 'close', on: 'companion', from: 'dan', dist: 1.35, side: -1 } },
+      { t: 7.65, shot: { shot: 'back', on: 'dan', from: [0.8, -23.0, 1.3], dist: 1.6 }, cut: true },
+      { t: 9.4, shot: { shot: 'back', on: 'dan', from: [0.8, -23.0, 1.3], dist: 1.9, h: 1.8 } },
+    ],
+    actors: [
+      { t: 0, id: 'player', pos: [0, -7.4], yaw: P }, { t: 0, id: 'companion', pos: [0.8, -8.6], yaw: P, mode: 'scripted', show: true, anim: 'idle' },
+      { t: 2.6, id: 'player', face: 'companion' }, { t: 2.8, id: 'companion', face: 'dan' },
+      { t: 7.4, id: 'companion', to: [0.8, -23.0], run: true, hideAtEnd: true }, { t: 7.8, id: 'player', yaw: P },
+    ],
     lines: [
       { t: 0.4, who: 'sys', text: '（足もとが揺れる。搬入口の向こう、地上で何かが目を覚ます）', dur: 2.8 },
-      { t: 3.2, who: 'dan', text: '先に地上のポンプ室へ。……戸を閉めて、出てこないこと。いい？', dur: 3.0, expr: 'serious' },
-      { t: 6.4, who: 'companion', text: '……はい。だんのうらさんも、必ず', dur: 2.0 },
+      { t: 2.9, who: 'dan', text: '先に地上のポンプ室へ。……戸を閉めて、出てこないこと。いい？', dur: 3.0, expr: 'serious' },
+      { t: 6.0, who: 'companion', text: '……はい。だんのうらさんも、必ず', dur: 2.0 },
     ],
     events: [{ t: 0.2, do: 'camShake', arg: 0.18 }, { t: 0.2, do: 'flag', arg: 'ch4_rise' }],
     sounds: [{ t: 0.2, s: 'rumble' }],
@@ -154,9 +172,9 @@ export const CUTSCENES4 = {
     cam: [
       { t: 0, pos: [26, 5, 44], look: [0, 12, -30], fov: 52 },
       { t: 4.4, pos: [20, 6, 38], look: [0, 18, -30], fov: 48 },
-      { t: 4.8, pos: [7.0, 1.62, 28.9], look: [6, 1.55, 30], fov: 34, cut: true },
+      { t: 4.8, pos: [7.0, 1.62, 28.9], look: [6, 1.55, 30], fov: 34, cut: true, tr: 'dissolve', trDur: 0.5 },
       { t: 8.0, pos: [6.9, 1.62, 28.8], look: [6, 1.55, 30], fov: 32 },
-      { t: 8.2, pos: [11, 2.0, 22], look: [6, 2.0, 30], fov: 50, cut: true, ease: 'linear' },
+      { t: 8.2, pos: [11, 2.0, 22], look: [6, 2.0, 30], fov: 50, cut: true, ease: 'linear', tr: 'seep', trDur: 0.9 },   // 大きくなる：境界のにじみで
       { t: 11.4, pos: [30, 16, 52], look: [6, 6, 26], fov: 52 },
       { t: 14.6, pos: [24, 14, 52], look: [2, 8, 4], fov: 50 },
     ],
@@ -176,7 +194,7 @@ export const CUTSCENES4 = {
     cam: [
       { t: 0, pos: [30, 14, 14], look: [0, 6, -30], fov: 50 },
       { t: 4.4, pos: [26, 12, 10], look: [0, 3, -30], fov: 46 },
-      { t: 4.8, pos: [-26, 2.0, 38], look: [-34.6, 1.6, 30], fov: 44, cut: true },
+      { t: 4.8, pos: [-26, 2.0, 38], look: [-34.6, 1.6, 30], fov: 44, cut: true, tr: 'black', trDur: 1.2 },   // 崩れ終わる → 少しの間 → ポンプ室の（相棒）
       { t: 8.6, pos: [-26.4, 2.0, 37.6], look: [-34.6, 1.6, 30], fov: 40 },
       { t: 9.0, pos: [-21, 3.0, 35], look: [-26, 1.6, 30], fov: 42, cut: true },
       { t: 16.0, pos: [-26.2, 1.65, 33.6], look: [-26.4, 1.45, 30.2], fov: 38 },
@@ -191,6 +209,7 @@ export const CUTSCENES4 = {
       { t: 14.4, who: 'dan', text: '帰りましょ。……娘を千代さんに預けっぱなしなのよ', dur: 2.4, expr: 'smile' },
     ],
     events: [{ t: 0.2, do: 'bossCollapse' }, { t: 8.8, do: 'giantShrink' }, { t: 16.6, do: 'setStep', arg: 'ch4_r_end' }, { t: 16.8, do: 'endCard4', arg: 'reveal' }],
+    outro: { kind: 'black', out: 0.9, hold: 0.2, in: 0.8 },
     sounds: [{ t: 0.2, s: 'wave' }, { t: 8.8, s: 'revert' }],
   },
   // CS-04S「人として」（secret）：割れた槽のガラスに映る自分 → 白がにじみかけて、戻る（見るのはプレイヤーだけ）
@@ -209,8 +228,10 @@ export const CUTSCENES4 = {
   // 試練に勝った（secret）：相棒は疑わない → 非常停止（赤い灯）
   cs04_s_win: {
     id: 'cs04_s_win', area: 'lab', letterbox: true, skippable: true,
-    cam: [{ t: 0, pos: [2.6, 1.5, -6.6], look: [0, 1.4, -8.6], fov: 42 }, { t: 6.0, pos: [2.4, 1.5, -6.8], look: [0, 1.4, -8.6], fov: 40 }, { t: 6.4, pos: [-8, 4.6, -2], look: [-12, 1.5, -18], fov: 50, cut: true }, { t: 12.0, pos: [-8.4, 4.4, -3], look: [-13.5, 1.5, -18], fov: 46 }],
-    actors: [{ t: 0, id: 'player', pos: [0.2, -7.4], yaw: P }, { t: 0, id: 'companion', pos: [0, -9.0], yaw: 0, mode: 'scripted', show: true, anim: 'idle' }],
+    cam: [{ t: 0, pos: [2.6, 1.5, -6.6], look: [0, 1.4, -8.6], fov: 42 }, { t: 6.0, pos: [2.4, 1.5, -6.8], look: [0, 1.4, -8.6], fov: 40 }, { t: 6.4, pos: [-8, 4.6, -2], look: [-12, 1.5, -18], fov: 50, cut: true }, { t: 9.8, pos: [-8.25, 4.48, -2.6], look: [-12.9, 1.5, -18], fov: 48 },
+      { t: 9.85, shot: { shot: 'close', on: 'dan', from: [-12, -18, 1.5], dist: 1.6, h: 1.55 }, cut: true },   // 前：「配電盤、見てくるわ」の主が画面の外（赤い灯の中の顔）
+      { t: 12.6, shot: { shot: 'close', on: 'dan', from: [-12, -18, 1.5], dist: 1.45, h: 1.55 } }],
+    actors: [{ t: 0, id: 'player', pos: [0.2, -7.4], yaw: P }, { t: 0, id: 'companion', pos: [0, -9.0], yaw: 0, mode: 'scripted', show: true, anim: 'idle' }, { t: 9.7, id: 'player', face: [-12, -18] }],
     lines: [
       { t: 0.5, who: 'companion', text: '……すごいですね。今の、全部……', dur: 2.4, expr: 'surprised' },
       { t: 3.2, who: 'dan', text: '伊達に毎晩、機械と喧嘩してないわよ', dur: 2.4, expr: 'smile' },
@@ -223,8 +244,11 @@ export const CUTSCENES4 = {
   // 制御室：相棒が炉を止める手順を進める（守り）
   cs04_s_hold: {
     id: 'cs04_s_hold', area: 'lab', letterbox: true, skippable: true,
-    cam: [{ t: 0, pos: [15.4, 1.8, -15.0], look: [19.2, 1.2, -18.4], fov: 46 }, { t: 7.6, pos: [15.6, 1.8, -15.4], look: [19.2, 1.2, -18.4], fov: 42 }],
-    actors: [{ t: 0, id: 'player', pos: [16.0, -18.2], yaw: P / 2 }, { t: 0, id: 'companion', pos: [15.4, -17.4], yaw: P / 2, mode: 'scripted', show: true }, { t: 0.6, id: 'companion', to: [18.2, -18.2] }],
+    cam: [{ t: 0, pos: [15.4, 1.8, -15.0], look: [19.2, 1.2, -18.4], fov: 46 }, { t: 3.8, pos: [15.5, 1.8, -15.2], look: [19.2, 1.2, -18.4], fov: 44 },
+      { t: 3.85, shot: { shot: 'close', on: 'dan', from: 'companion', dist: 1.5, side: 1 }, cut: true },   // 前：戸口を見張るだんのうらが画面の外
+      { t: 6.6, shot: { shot: 'close', on: 'dan', from: 'companion', dist: 1.35, side: 1 } },
+      { t: 6.65, pos: [15.5, 1.8, -15.3], look: [19.2, 1.2, -18.4], fov: 43, cut: true }, { t: 8.8, pos: [15.6, 1.8, -15.4], look: [19.2, 1.2, -18.4], fov: 42 }],
+    actors: [{ t: 0, id: 'player', pos: [16.0, -18.2], yaw: P / 2 }, { t: 0, id: 'companion', pos: [15.4, -17.4], yaw: P / 2, mode: 'scripted', show: true }, { t: 0.6, id: 'companion', to: [18.2, -18.2] }, { t: 3.7, id: 'player', face: 'companion' }, { t: 6.6, id: 'player', yaw: P / 2 }],
     lines: [
       { t: 0.8, who: 'companion', text: '止める手順、ここに書いてあります。……でも、時間がかかりそう', dur: 2.8 },
       { t: 4.0, who: 'dan', text: 'アタシが戸口を見てる。アンタは手を動かして', dur: 2.6, expr: 'serious' },
@@ -236,8 +260,15 @@ export const CUTSCENES4 = {
   // 炉が止まる（secret の章の終わり）
   cs04_s_end: {
     id: 'cs04_s_end', area: 'lab', letterbox: true, skippable: true,
-    cam: [{ t: 0, pos: [16.4, 1.7, -15.6], look: [21.8, 1.8, -18.2], fov: 46 }, { t: 5.0, pos: [16.2, 1.6, -16.0], look: [21.8, 1.6, -18.2], fov: 42 }, { t: 5.4, pos: [17.0, 1.55, -19.6], look: [17.2, 1.45, -18.2], fov: 38, cut: true }, { t: 12.0, pos: [17.1, 1.55, -19.7], look: [17.4, 1.45, -18.2], fov: 36 }],
-    actors: [{ t: 0, id: 'player', pos: [16.6, -18.6], yaw: P / 2 }, { t: 0, id: 'companion', pos: [18.2, -18.0], yaw: -P / 2, mode: 'scripted', show: true }],
+    // 前：後半はカメラがだんのうらの真横 0.5m で、話す二人がどちらも映らなかった → 止まった（相棒）→ だんのうら → 二人
+    cam: [{ t: 0, pos: [16.4, 1.7, -15.6], look: [21.8, 1.8, -18.2], fov: 46 }, { t: 3.8, pos: [16.25, 1.62, -15.9], look: [21.8, 1.65, -18.2], fov: 43 },
+      { t: 3.85, shot: { shot: 'close', on: 'companion', from: 'dan', dist: 1.5 }, cut: true },
+      { t: 5.8, shot: { shot: 'close', on: 'companion', from: 'dan', dist: 1.4 } },
+      { t: 5.85, shot: { shot: 'close', on: 'dan', from: 'companion', dist: 1.5, side: -1 }, cut: true },
+      { t: 9.2, shot: { shot: 'close', on: 'dan', from: 'companion', dist: 1.35, side: -1 } },
+      { t: 9.25, shot: { shot: 'two', on: 'dan', from: 'companion', fov: 42 }, cut: true },
+      { t: 12.4, shot: { shot: 'two', on: 'dan', from: 'companion', fov: 40, dist: 2.3 } }],
+    actors: [{ t: 0, id: 'player', pos: [16.6, -18.6], yaw: P / 2 }, { t: 0, id: 'companion', pos: [18.2, -18.0], yaw: -P / 2, mode: 'scripted', show: true }, { t: 3.6, id: 'companion', face: 'dan' }, { t: 5.7, id: 'player', face: 'companion' }],
     lines: [
       { t: 0.6, who: 'sys', text: '（炉の窓の紫が、ゆっくり消えていく。槽の中の影も、静かに沈む）', dur: 3.2 },
       { t: 4.0, who: 'companion', text: '止まった……', dur: 1.6, expr: 'smile' },
@@ -245,6 +276,7 @@ export const CUTSCENES4 = {
       { t: 9.4, who: 'companion', text: '……はい。帰りましょう', dur: 2.4, expr: 'smile' },
     ],
     events: [{ t: 0.4, do: 'reactorOff' }, { t: 12.2, do: 'setStep', arg: 'ch4_s_end' }, { t: 12.4, do: 'endCard4', arg: 'secret' }],
+    outro: { kind: 'black', out: 0.9, hold: 0.2, in: 0.8 },
     sounds: [{ t: 0.4, s: 'power_down' }],
   },
 };
