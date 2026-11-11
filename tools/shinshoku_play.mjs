@@ -1873,7 +1873,7 @@ async function runCh7PC(browser) {
   const wk = await walkTo(page, 0, 3.0, 900); await sim(page, 6);
   st = await S(page); ok('部屋へ入る → 記録の間の演出（壁一面の画面・事故の瞬間）', st.cut === 'cs07b_arrive', JSON.stringify({ wk, cut: st.cut }));
   const r1 = await untilSub(page, /記録の間だ/, 80, 10); await sim(page, 40); await holdShot(page, 'pc_185_kiroku_arrive.png', 1800);
-  const c1 = await untilSub(page, /ずっと同じ場面を見てる/, 80, 10);
+  const c1 = await untilSub(page, /ずっと同じ場面を見てる/, 160, 10);   // 声の演技で場面が延びた分、長めに待つ
   ok('研究者（名前未定）「ここは私の記録の間だ」・（相棒）「……あの人、ずっと同じ場面を見てる」（正体は知らない）', /記録の間だ/.test(r1) && /研究者（名前未定）/.test(r1) && /同じ場面/.test(c1), JSON.stringify({ r1, c1 }));
   await skipCut(page); await sim(page, 10); await page.waitForTimeout(800);
   const kb = await page.evaluate(() => ({ b: __sh.debug.ch7.boss(), auto: __sh.store.load('auto').story.step, comp: __sh.game.companion.anim, hud: document.querySelector('.sh-boss').textContent }));

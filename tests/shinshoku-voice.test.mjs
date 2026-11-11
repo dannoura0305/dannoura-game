@@ -116,4 +116,33 @@ t('読み込み：起動時に音声を読まない（対応表は後で・音�
   assert.match(main, /voiceOn: true, voiceVol: 0\.9/);
   assert.match(voice, /setOn\(on\) \{ this\.on = !!on; if \(!on\) this\.stop\(\); \}/);
 });
+{
+  const AC = JSON.parse(readFileSync(R('tools/voice/acting.json'), 'utf8'));
+  const { punctGroups, applyActing, specOf } = await import('../tools/voice/acting.mjs');
+  const STY = { '玄野武宏': [11, 39, 40, 41], '冥鳴ひまり': [14], '麒ヶ島宗麟': [53], '九州そら': [15, 16, 17, 18, 19], '東北きりたん': [108], 'ずんだもん': [1, 3, 5, 7, 22, 38, 75, 76], '東北イタコ': [109], '白上虎太郎': [12, 32, 33, 34, 35], '雀松朱司': [52] };
+  t('演技の指定：全行・型あり・理由あり・スタイルが声に合う', () => {
+    let n2 = 0;
+    for (const cs of all) (cs.lines || []).forEach((l, i) => {
+      const k = voiceKey(cs.id, i), a = AC.lines[k];
+      if (!voiceText(l.who, l.text)) { assert.ok(!a, '声の無い行に演技: ' + k); return; }
+      assert.ok(a && AC.presets[a.a] && a.why, '演技の指定: ' + k); n2++;
+      const P = Object.assign({}, VO.who[l.who], VO.overrides[k] || {}), sp = specOf(AC.presets, a, P.voice);
+      if (sp.styleId != null) assert.ok(STY[P.voice].includes(sp.styleId), k + ' のスタイル ' + sp.styleId);
+    });
+    assert.equal(Object.keys(AC.lines).length, n2);
+    for (const v of Object.values(VO.who)) assert.ok(STY[v.voice].includes(v.style));
+  });
+  t('間の種類：「……」は読点より長い・頭の「……」は前に溜め・終わりの「……」は消え入る・「！」は強く', () => {
+    const g = punctGroups('……あそこ。人が、立ってる……');
+    assert.deepEqual(g, { mid: ['period', 'comma'], lead: 'ellipsis', end: 'ellipsis' });
+    assert.deepEqual(punctGroups('ちょっと、アンタ！　そっちは駄目よ！').mid, ['comma', 'excl']);
+    const mk = () => ({ accent_phrases: [0, 1, 2].map(j => ({ moras: [{ pitch: 5.0, vowel_length: 0.1 }, { pitch: 5.2, vowel_length: 0.1 }], pause_mora: j < 2 ? { vowel_length: 0.4 } : null })) });
+    const q = mk(); assert.equal(applyActing(q, { mid: ['ellipsis', 'comma'], lead: 'ellipsis', end: 'ellipsis' }, {}), true);
+    assert.ok(q.accent_phrases[0].pause_mora.vowel_length > q.accent_phrases[1].pause_mora.vowel_length);
+    assert.ok(q.prePhonemeLength > 0.2 && q.postPhonemeLength > 0.2);
+    const lastP = q.accent_phrases[2].moras[1]; assert.ok(lastP.pitch < 5.2 && lastP.vowel_length > 0.1);
+    const up = mk(); applyActing(up, { mid: ['comma', 'comma'], lead: null, end: null }, { tail: 'up' }); assert.ok(up.accent_phrases[2].moras[1].pitch > 5.2);
+    const bad = mk(); assert.equal(applyActing(bad, { mid: ['comma'], lead: null, end: null }, { pause: 2 }), false); assert.equal(bad.accent_phrases[0].pause_mora.vowel_length, 0.8);
+  });
+}
 console.log(`shinshoku-voice: ${n} passed`);
