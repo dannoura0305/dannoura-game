@@ -96,6 +96,37 @@ export function shotCam(spec, ctx, prev = -1) {
   for (let ci = 0; ci < N; ci++) { const c = cand(ci); if (ok(c)) return Object.assign(c, { ci }); }
   return Object.assign(cand(0), { ci: 0 });
 }
+/**
+ * 声に合わせて場面の時間を延ばす（core/voice.js・tools/voice/）。lens[i] = 行 i の声の長さ（秒・0 は声なし）。
+ *  ・声が次の行（最後の行は場面の終わり）までに収まる行は、字幕の dur を「声の長さ＋pad」まで延ばすだけ
+ *  ・収まらない行は、次の行の少し前（at）に「間」を差し込む：at より後のカメラの鍵・行・出来事・人物・音をまとめて後ろへずらす
+ *    （カメラは間の分だけゆっくり動く／切り替えの前の画で待つ。出来事と台詞の並びは変わらない）
+ *  ・延ばす合計は元の長さの maxRatio（既定 30%）まで。超える分は延ばさない（声は次の行が出た時に止まる）
+ * 返り値 { cs（元を変えない写し）, added（延ばした秒）, inserts }
+ */
+export function voiceWarp(cs, lens, opt = {}) {
+  const pad = opt.pad ?? 0.3, D0 = duration(cs), budget = D0 * (opt.maxRatio ?? 0.3), lines = cs.lines || [];
+  const order = lines.map((l, i) => i).sort((a, b) => lines[a].t - lines[b].t), inserts = []; let used = 0;
+  order.forEach((i, k) => {
+    const V = (lens && lens[i]) || 0; if (!V) return;
+    const L = lines[i]; let nx = null; for (let j = k + 1; j < order.length; j++) if (lines[order[j]].t > L.t + 1e-6) { nx = lines[order[j]].t; break; }
+    const end = nx ?? D0, add = Math.min(V + pad - (end - L.t), budget - used);
+    if (add > 0.01) { inserts.push({ at: Math.max(L.t + 0.05, end - 0.12), add: +add.toFixed(3) }); used += add; }
+  });
+  if (!lens || !lens.some(v => v > 0)) return { cs, added: 0, inserts };
+  const map = t => { let o = t; for (const s of inserts) if (t >= s.at) o += s.add; return +o.toFixed(4); };
+  const mv = arr => (arr ? arr.map(o => Object.assign({}, o, { t: map(o.t) })) : arr);
+  const out = Object.assign({}, cs, {
+    cam: mv(cs.cam), events: mv(cs.events), actors: mv(cs.actors), sounds: mv(cs.sounds),
+    lines: lines.map((l, i) => {
+      const V = (lens && lens[i]) || 0; if (!V) return Object.assign({}, l, { t: map(l.t) });
+      const lastT = lines[order[order.length - 1]].t, room = l.t >= lastT - 1e-6 ? map(D0) - map(l.t) : Infinity;   // 最後の行は場面の終わりを越えない（延ばす上限を守る）
+      return Object.assign({}, l, { t: map(l.t), dur: Math.max(l.dur ?? 2.6, +Math.min(V + pad, room).toFixed(3)) });
+    }),
+  });
+  if (cs.dur) out.dur = map(cs.dur);
+  return { cs: out, added: +used.toFixed(3), inserts };
+}
 /** 原文の台詞（fixed:true）を集める（テスト用） */
 export function fixedLines(all) { const o = []; for (const cs of Object.values(all)) for (const l of cs.lines || []) if (l.fixed) o.push({ id: cs.id, who: l.who, text: l.text }); return o; }
 
@@ -104,6 +135,8 @@ export class CutscenePlayer {
   constructor(host) { this.host = host; this.cs = null; this.t = 0; this.hold = 0; }
   get active() { return !!this.cs; }
   play(cs, onDone) {
+    const lens = this.host.voiceLens ? this.host.voiceLens(cs) : null;   // 声の長さ（対応表が読めていない・声が切の時は null＝今のまま）
+    if (lens) cs = voiceWarp(cs, lens).cs;
     this.keys = (cs.cam || []).map(k => (k.shot ? Object.assign({}, k, { pos: null, look: null, fovFixed: k.fov }) : k)); this.hasShot = this.keys.some(k => k.shot);
     this.cs = cs; this.t = 0; this.prevT = -1e-6; this.skipped = false; this.dur = duration(cs); this.onDone = onDone; this.hold = 0; this.lastLine = null;
     const it = introOf(cs); if (it && this.host.transition) this.host.transition(it.kind, it, 'intro');

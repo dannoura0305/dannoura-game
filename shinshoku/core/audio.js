@@ -14,6 +14,8 @@ export class Sfx {
     this.duck = c.createGain(); this.duck.gain.value = 1;
     this.lp = c.createBiquadFilter(); this.lp.type = 'lowpass'; this.lp.frequency.value = 18000;
     this.master.connect(this.duck); this.duck.connect(this.lp); this.lp.connect(c.destination);
+    // 台詞の声の出口（core/voice.js）：遷移の沈み（dip）は一緒に受けるが、演出の「無音の間」（silence）・スロー（muffle）は受けない
+    this.voiceBus = c.createGain(); this.voiceBus.gain.value = 1; this.voiceBus.connect(c.destination);
     const n = c.createBuffer(1, c.sampleRate * 2, c.sampleRate), d = n.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     this.noiseBuf = n;
@@ -25,7 +27,7 @@ export class Sfx {
   setMuffle(m) { if (!this.ctx) return; this.muffle = m; this.lp.frequency.setTargetAtTime(18000 - m * 17000, this.ctx.currentTime, 0.03); }
   /** 無音の間（秒）：全体を下げて戻す */
   /** 場面の継ぎ目（遷移）：out 秒で floor まで沈め、hold 秒置き、in 秒で戻す（暗転と一緒に音も遠のく） */
-  dip(out = 0.6, hold = 0.3, inn = 1.0, floor = 0.3) { if (!this.ctx || !this.duck) return; const t = this.ctx.currentTime, g = this.duck.gain; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(floor, t + Math.max(0.02, out)); g.setValueAtTime(floor, t + out + hold); g.linearRampToValueAtTime(1, t + out + hold + Math.max(0.05, inn)); }
+  dip(out = 0.6, hold = 0.3, inn = 1.0, floor = 0.3) { if (!this.ctx || !this.duck) return; const t = this.ctx.currentTime; for (const g of [this.duck.gain, this.voiceBus && this.voiceBus.gain].filter(Boolean)) { g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(floor, t + Math.max(0.02, out)); g.setValueAtTime(floor, t + out + hold); g.linearRampToValueAtTime(1, t + out + hold + Math.max(0.05, inn)); } }
   silence(sec = 1.5) { if (!this.ctx) return; const t = this.ctx.currentTime; this.duck.gain.cancelScheduledValues(t); this.duck.gain.setTargetAtTime(0.0, t, 0.08); this.duck.gain.setTargetAtTime(1, t + sec, 0.4); }
   setListener(x, z, yaw) { this.L.x = x; this.L.z = z; this.L.yaw = yaw; }
   /** 位置のある音の出口（距離で小さく・左右へ） */

@@ -38,6 +38,7 @@ import { SaveStore, makeSlot } from './save/save.js';
 import { createWP } from './link/progress.js';
 import { newRouteState } from './story/route.js';
 import { CutscenePlayer } from './story/cutscene.js';
+import { Voice } from './core/voice.js';
 import { stepDef, streetState, atLeast, weaponsAt, STEPS, TARGETS } from './story/chapters.js';
 import { AREA_GRAPH } from './data/areas.js';
 import { bossName } from './story/puzzles.js';
@@ -95,7 +96,7 @@ const Q = new URLSearchParams(location.search);
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || Q.get('touch') === '1';
 const AUTO_PRESET = autoPreset({ touch: isTouch, w: innerWidth, h: innerHeight, dpr: devicePixelRatio, cores: navigator.hardwareConcurrency, mem: navigator.deviceMemory });
 
-const DEFAULT_SETTINGS = () => Object.assign(applyPreset({ preset: 'auto' }, AUTO_PRESET), { preset: 'auto', difficulty: 'normal', assist: false, sens: 1, invertY: false, volume: 0.7, touchUI: isTouch, subSize: 'm', teleCB: false, rampageInput: 'both', shake: 1, rumble: true, keys: {} });
+const DEFAULT_SETTINGS = () => Object.assign(applyPreset({ preset: 'auto' }, AUTO_PRESET), { preset: 'auto', difficulty: 'normal', assist: false, sens: 1, invertY: false, volume: 0.7, voiceOn: true, voiceVol: 0.9, touchUI: isTouch, subSize: 'm', teleCB: false, rampageInput: 'both', shake: 1, rumble: true, keys: {} });
 
 /** 区画の明かり（定義）と使い回しの点光源 */
 const POOL_MAX = 8;
@@ -162,6 +163,7 @@ class Game {
     this.heitenSign = this.makeSignStand();
     // 入力・画面
     this.sfx = new Sfx(); this.sfx.setVolume(this.settings.volume);
+    this.voice = new Voice(this.sfx, new URL('./assets/voice/', import.meta.url)); this.voice.setOn(this.settings.voiceOn !== false); this.voice.setVolume(this.settings.voiceVol ?? 0.9); this.voice.setMaster(this.settings.volume);   // 演出の台詞の声（core/voice.js）
     this.input = new Input(canvas, { sens: this.settings.sens, keys: this.settings.keys });
     this.input.wantLock = () => this.mode === 'play' && !this.cut.active;
     this.input.onUnlock = () => { if (this.mode === 'play' && !this.noPauseOnUnlock && !this.cut.active) this.pause(); };
@@ -181,11 +183,12 @@ class Game {
     this.events = await fetch(new URL('./data/events.json', import.meta.url)).then(r => r.json()).catch(() => ({ events: {}, barks: {}, texts: {}, speakers: {} }));
     this.manifest = await loadManifest();
     // P17：Blender で作り直した異形の体（起動の後で読む・読めたら今いる異形も差し替える。読めない時・?epack=0 はコードの形）
+    setTimeout(() => { if (this.settings.voiceOn !== false) this.voice.loadManifest(); }, 2500);   // 声の対応表（小さい）だけ後で読む。音声そのものは演出の直前に、その演出の分だけ
     setTimeout(() => preloadEnemyPacks(this.presetVals() === PRESETS.low ? 'low' : 'high').then(n => { this.enemyPacks = n; this.refreshEnemyPacks(); }, () => 0), 2000);
     // 2026-11-08：だんのうらと相棒の VRoid を読み終わるまでは、コードで組んだ前の姿を見せない（タイトルの後ろでも・遊び始めでも）。
     // 読めない時・?vrm=0 はすぐ前の姿で出す。charsSettle() が姿を戻し、待っている「はじめから」等を進める
     this.charsSettled = false; this.charsWait = [];
-    this.charsHidden = [this.player.model, this.companion.model].filter(m => m && m.root).map(m => m.root); for (const o of this.charsHidden) o.visible = false;   // 隠すのはコードの姿の網だけ（root は演出が出し入れするので触らない。VRM に差し替われば VRM の網が見える）
+    this.charsHidden = [this.player.model, this.companion.model, this.whiteModel].filter(m => m && m.root).map(m => m.root); for (const o of this.charsHidden) o.visible = false;   // 隠すのはコードの姿の網だけ（root は演出が出し入れするので触らない。VRM に差し替われば VRM の網が見える）
     this.loadCharacterModels().catch(() => {}).finally(() => this.charsSettle());
     // 状態
     this.frame = 0; this.playSec = 0; this.mode = 'title'; this.hitstop = 0; this.slowT = 0; this.slowScale = 1; this.worldScale = 1;
@@ -233,9 +236,11 @@ class Game {
     this.charsSettle();
     // 白い姿（化けを解いた姿）：起動を軽くするため少し後で読む（白い姿は第3章から）。読めたら網の差し替え先を VRM に（今が白い姿ならすぐ差し替え）。
     // 読み終わる前に化けを解いた時は、コードで組んだ白い姿のまま（後で差し替わる）。予備の分身（ch3 の幻術）はコードの白い姿のまま
+    // 2026-11-10：読み終わるまでは、コードの白い姿の網を隠しておく（第4章の変身などで、前の姿が一瞬見えないように）。読めなかった時だけ見せる
     if (m.dannoura_white && m.dannoura_white.file) {
-      const loadWhite = async () => { const v = await loadCharacter(m.dannoura_white, lopt); if (v) { const wasWhite = this.player.model === this.whiteModel; this.whiteModel = v; if (wasWhite) this.player.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('dannoura_white'); } };
-      this.whiteVrmReady = new Promise(res => setTimeout(() => loadWhite().then(res, res), this.player.fighter.white ? 0 : 2500));
+      const code = this.whiteModel; if (code && code.root && !code.isVRM) code.root.visible = false;
+      const loadWhite = async () => { let v = null; try { v = await loadCharacter(m.dannoura_white, lopt); } catch (e) { v = null; } if (v) { const wasWhite = this.player.model === this.whiteModel; this.whiteModel = v; if (wasWhite) this.player.setModel(v); this.vrmLoaded = (this.vrmLoaded || []).concat('dannoura_white'); } else if (code && code.root) code.root.visible = true; };
+      this.whiteVrmReady = new Promise(res => setTimeout(() => loadWhite().then(res, res), this.player.fighter.white ? 0 : 600));
     }
     // P17：娘（結末の家の場面だけ）：Blender で作った VRM（tools/blender/char の daughter）。起動を軽くするため後で読む。読めない時・読み終わる前はコードで組んだ娘
     if (m.daughter && m.daughter.file) this.daughterVrmReady = new Promise(res => setTimeout(() => loadCharacter(m.daughter, lopt).then(v => { if (v) { this.daughterVrm = v; this.vrmLoaded = (this.vrmLoaded || []).concat('daughter'); } res(v); }, () => res(null)), 6000));
@@ -555,14 +560,15 @@ class Game {
   }
   /** はじめから。step（試験用）でその段から始められる */
   newGame(step) {
-    // タイトルから始める時、VRoid の姿をまだ読んでいる最中なら、読み終わるまで（長くても 20 秒）待ってから始める（前の姿で始まらないように）。
+    // タイトルから始める時、VRoid の姿をまだ読んでいる最中なら、読み終わるまで（長くても 60 秒）待ってから始める（前の姿で始まらないように）。
+    // 2026-11-10：待ちきれずに始める時も、前の姿（コードの網）は見せない（読み終われば VRoid、読めなかった時だけ前の姿）。
     // ?autostart=1（開発・試験用の直接起動）は待たない：その間は姿を隠したまま進み、読めた時に VRoid の姿で出る
-    if (!this.charsSettled && Q.get('autostart') !== '1') {
+    if (!this.charsSettled && !this.charsStartAnyway && Q.get('autostart') !== '1') {
       if (this.charsWaitingStart) return;
       this.charsWaitingStart = true;
       const note = document.querySelector('#sh-title .tt-note'); const old = note ? note.innerHTML : null; if (note) note.textContent = 'キャラクターを読み込んでいます……';
-      const go = () => { if (!this.charsWaitingStart) return; this.charsWaitingStart = false; clearTimeout(to); if (note && old != null) note.innerHTML = old; this.charsSettle(); this.newGame(step); };
-      const to = setTimeout(go, 20000); this.charsWait.push(go);
+      const go = timedOut => { if (!this.charsWaitingStart) return; this.charsWaitingStart = false; clearTimeout(to); if (note && old != null) note.innerHTML = old; if (timedOut) this.charsStartAnyway = true; else this.charsSettle(); this.newGame(step); };
+      const to = setTimeout(() => go(true), 60000); this.charsWait.push(() => go(false));
       return;
     }
     document.getElementById('sh-title').hidden = true;
@@ -811,8 +817,17 @@ class Game {
   }
   loadSlot(k) {
     const s = this.store.load(k); if (!s) return false;
+    // 2026-11-10：「続きから」も、VRoid の姿を読み終わるまで（長くても 60 秒）待つ（前の姿で始まらないように。newGame と同じ）
+    if (!this.charsSettled && !this.charsStartAnyway && Q.get('autostart') !== '1' && Q.get('continue') !== '1' && this.mode === 'title') {
+      if (this.charsWaitingLoad) return true;
+      this.charsWaitingLoad = true;
+      const note = document.querySelector('#sh-title .tt-note'); const old = note ? note.innerHTML : null; if (note) note.textContent = 'キャラクターを読み込んでいます……';
+      const go = timedOut => { if (!this.charsWaitingLoad) return; this.charsWaitingLoad = false; clearTimeout(to); if (note && old != null) note.innerHTML = old; if (timedOut) this.charsStartAnyway = true; else this.charsSettle(); this.loadSlot(k); };
+      const to = setTimeout(() => go(true), 60000); this.charsWait.push(() => go(false));
+      return true;
+    }
     document.getElementById('sh-title').hidden = true; this.ui.closeMenu(); this.ui.showDead(false); this.ui.hideDialog(); this.ui.closePuzzle(); this.dialog = null;
-    if (this.cut.active) this.cut.cs = null; if (this.trans) this.trans.stop(); this.ui.letterbox(false); this.ui.subtitle(null); this.cineCam = null; this.timers.length = 0; this.ui.boss(null); this.hint(null);
+    if (this.cut.active) this.cut.cs = null; this.voice.stop(); if (this.trans) this.trans.stop(); this.ui.letterbox(false); this.ui.subtitle(null); this.cineCam = null; this.timers.length = 0; this.ui.boss(null); this.hint(null);
     const st = s.story || {};
     if (this.giantMode) this.exitGiant();
     const prevRoute = this.route;
@@ -870,7 +885,9 @@ class Game {
     if (k === 'difficulty' || k === 'assist') this.player.fighter.setDifficulty(this.settings.difficulty, { touch: isTouch, assist: this.settings.assist });
     if (k === 'sens') this.input.sens = v;
     if (k === 'invertY') this.cam.invertY = v;
-    if (k === 'volume') this.sfx.setVolume(v);
+    if (k === 'volume') { this.sfx.setVolume(v); this.voice.setMaster(v); }
+    if (k === 'voiceVol') this.voice.setVolume(v);
+    if (k === 'voiceOn') { this.voice.setOn(v); if (v) this.voice.loadManifest(); }
     if (k === 'rain') this.sfx.setRain(v);
     if (k === 'touchUI' && this.touchUI) { this.touchUI.show(v); document.getElementById('sh-ui').classList.toggle('touch', !!v); }
     if (k === 'rumble') { this.input.rumbleOff = !v; if (v && !silent) this.rumble('hit'); }

@@ -1,0 +1,28 @@
+{
+  "_note": "演出の台詞の声の割り当て表（VOICEVOX 0.26.1 のスタイル id）。規約の要点とクレジットは docs/shinshoku/VOICE_CREDITS.md。fx は gen.mjs の FX（ffmpeg の加工）。overrides は「場面id#行の番号」ごとの上書き。styleByExpr は行の expr（表情）で声の種類を変える。",
+  "engine": "VOICEVOX ENGINE 0.26.1（Linux CPU 版）",
+  "who": {
+    "dan":           { "voice": "玄野武宏", "style": 11, "speed": 0.98, "pitch": -0.02, "intonation": 1.0, "styleByExpr": { "sad": 41 } },
+    "companion":     { "voice": "冥鳴ひまり", "style": 14, "speed": 1.0, "pitch": 0.0, "intonation": 1.05 },
+    "researcher":    { "voice": "麒ヶ島宗麟", "style": 53, "speed": 0.95, "pitch": 0.0, "intonation": 0.9, "fx": "speaker" },
+    "researcher2":   { "voice": "麒ヶ島宗麟", "style": 53, "speed": 0.95, "pitch": 0.0, "intonation": 0.9 },
+    "pa":            { "voice": "九州そら", "style": 16, "speed": 0.92, "pitch": -0.02, "intonation": 0.6, "fx": "pa" },
+    "child":         { "voice": "東北きりたん", "style": 108, "speed": 0.95, "pitch": 0.03, "intonation": 1.0 },
+    "daughter":      { "voice": "ずんだもん", "style": 1, "speed": 0.92, "pitch": 0.06, "intonation": 1.15, "fx": "phone" },
+    "daughter_home": { "voice": "ずんだもん", "style": 1, "speed": 0.92, "pitch": 0.06, "intonation": 1.15 },
+    "chiyo":         { "voice": "東北イタコ", "style": 109, "speed": 0.9, "pitch": -0.04, "intonation": 1.0 },
+    "townsfolk":     { "voice": "白上虎太郎", "style": 34, "speed": 1.05, "pitch": -0.03, "intonation": 1.1 },
+    "kiro":          { "voice": "雀松朱司", "style": 52, "speed": 0.85, "pitch": -0.04, "intonation": 0.5, "fx": "ghost" },
+    "mamori":        { "voice": "雀松朱司", "style": 52, "speed": 0.8, "pitch": -0.06, "intonation": 0.6, "fx": "monster" },
+    "tsugihagi":     { "voice": "雀松朱司", "style": 52, "speed": 0.85, "pitch": -0.03, "intonation": 0.4, "fx": "monster" },
+    "touchoku":      { "voice": "雀松朱司", "style": 52, "speed": 0.88, "pitch": -0.05, "intonation": 0.6, "fx": "ghost_light" },
+    "mimic":         { "voice": "九州そら", "style": 15, "speed": 0.9, "pitch": 0.0, "intonation": 0.8, "fx": "mimic" },
+    "utsushimi":     { "voice": "冥鳴ひまり", "style": 14, "speed": 0.9, "pitch": -0.02, "intonation": 0.7, "fx": "mimic" }
+  },
+  "overrides": {
+    "cs04_trap#0":     { "voice": "玄野武宏", "style": 11, "speed": 0.95, "pitch": -0.02, "intonation": 0.9, "fx": "mimic", "_why": "だんのうらの声を真似る（「今のはアタシじゃない！」）" },
+    "cs05_delay_r#1":  { "fx": "muffled", "_why": "（向こう側から）" },
+    "cs07a_end#6":     { "fx": "phone", "_why": "（電話）" },
+    "cs02_end_neutral#0": { "fx": "pa_muffled", "_why": "（シャッターの向こうで）" }
+  }
+}

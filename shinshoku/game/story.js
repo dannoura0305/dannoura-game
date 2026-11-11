@@ -260,7 +260,10 @@ export const storyMethods = {
     const g = this;
     return {
       setCam(pos, look, fov) { g.cineCam = { pos, look, fov }; },
+      // 声：対応表が読めていて声が入の時だけ、声の長さに合わせて場面を延ばす（story/cutscene.js voiceWarp）。その演出の分の音声をここで読み始める
+      voiceLens(cs) { const V = g.voice; if (!V || !V.on) return null; if (!V.man) { V.loadManifest(); return null; } V.preload(cs); return V.lensFor(cs); },
       subtitle(who, text, L) {
+        if (g.voice && L && text && !g.cut.skipping) { const cs = g.cut.cs, i = cs ? (cs.lines || []).indexOf(L) : -1; if (L.cond === 'white' && !g.player.fighter.white) g.voice.stop(); else if (i >= 0) g.voice.line(cs, i, L); }   // 行が出た時に、その行の声（前の声は止める）。行の無い間は鳴り終わるまで待つ
         if (L && L.cond === 'white' && !g.player.fighter.white) { g.ui.subtitle(null, null); return; }
         g.ui.subtitle(who ? (g.events.speakers || {})[who] || { name: who === 'pa' ? '館内放送' : '' } : null, text); if (text && L && L.who === 'pa') g.sfx.play('notify');
         if (text && L && L.expr) { if (L.who === 'dan') g.player.setExpr(L.expr, 4); else if (L.who === 'companion' && g.companion.model.setExpr) g.companion.model.setExpr(L.expr); }
@@ -271,7 +274,7 @@ export const storyMethods = {
       sound(name) { g.sfx.play(name); },
       actor(a, instant) { g.cineActor(a, instant); },
       event(name, arg) { g.cineEvent(name, arg); },
-      done(cs) { g.ui.skipProgress(0); g.onCutsceneDone(cs); },
+      done(cs) { g.ui.skipProgress(0); if (g.voice && g.cut.skipped) g.voice.stop(); g.onCutsceneDone(cs); },   // 飛ばした時は声も止める（最後まで見た時は、最後の声の残りだけ鳴り終わるまで）
       transition(kind, opt, why) { g.startTrans(kind, opt, why); },   // 継ぎ目（intro・outro・場面の中の cut の tr）
       shot(spec, prev) {   // 動く被写体に合わせるカメラ。映す人がその場にいない時は、相手（from）の寄りにする
         const ctx = { at: id => g.shotSubject(id), clear: (p, q) => g.shotClear(p, q) };
