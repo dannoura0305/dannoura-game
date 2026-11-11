@@ -936,6 +936,7 @@ VRoid などで人が作ったモデルとの差：目は描いた絵と板の�
 - 演出（cutscenes.js・cutscenes3〜7.js）の声のある 232 行に、VOICEVOX（ENGINE 0.26.1・この作業環境で生成）の声を付けた。地の文（sys）・全体が（ ）のト書き・「……」だけの行は声なし。字幕・文・固定の台詞・結末はそのまま。
 - 新：`shinshoku/core/voice.js`（対応表・ハッシュ・再生）・`shinshoku/assets/voice/`（mp3 232 本・約 2.8MB と `manifest.json`）・`tools/voice/`（`gen.mjs`・`voices.json`・`yomi.json`）・`docs/shinshoku/VOICE_CREDITS.md`（声と規約・クレジット）・`tests/shinshoku-voice.test.mjs`。
 - 変更：`story/cutscene.js`（`voiceWarp`：声が次の行に収まらない時に間を差し込む・各場面 +30% まで）・`game/story.js`（行が出た時に鳴らす・飛ばしで止める）・`core/audio.js`（声の出口・遷移の沈みを声にも）・`main.js`（設定 `voiceOn`・`voiceVol`）・`ui/ui.js`（設定の画面）・`data/ch7.js`（スタッフロールの声のクレジット）・`shinshoku.html`（タイトルの注記）。
+- 2026-11-11：行ごとの演技（`tools/voice/acting.json`・`acting.mjs`：型と理由・間の長さ・語尾・声の種類・句ごとの抑揚）を付けて 232 行を作り直した。ファイル名の最後に演技のハッシュ（変えたら別の名前）。
 - 起動時は読まない：対応表は遊び始めて 2.5 秒後、音声は演出の再生の直前にその演出の分だけ。文が変わった行はハッシュが合わず鳴らない（`node tools/voice/gen.mjs` で作り直す）。
 
 ## 7. 次の作業（提案）
