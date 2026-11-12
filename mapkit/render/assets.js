@@ -11,6 +11,13 @@ import { patchWind } from './wind.js';
 
 const LIB = 'wakaba-assets/';
 
+/** 目録（catalog.json）を読む。同じ置き場は 1 回だけ読み、読んだ物を使い回す（失敗した時は次にまた読む）。中身は読むだけで書き換えない */
+const CATALOGS = new Map();
+export function fetchCatalog(lib) {
+  let p = CATALOGS.get(lib);
+  if (!p) { p = fetch(lib + 'catalog.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }); p.catch(() => CATALOGS.delete(lib)); CATALOGS.set(lib, p); }
+  return p;
+}
 export class AssetBank {
   /**
    * opt：onProgress(done, pending)・adapt(material, info)＝作った材質を作品の側で手直しする所（境界侵食 P16：色の調整・軽い材質。無ければそのまま＝山の廃村は今まで通り）・
@@ -24,8 +31,7 @@ export class AssetBank {
   }
   async loadCatalog() {
     try {
-      const r = await fetch(this.lib + 'catalog.json'); if (!r.ok) throw new Error(r.status);
-      this.catalog = await r.json();
+      this.catalog = await fetchCatalog(this.lib);
       for (const e of this.catalog.entries || []) if (e.targets && e.targets.web && e.targets.web.result === 'pass') this.byId.set(e.id, e);
     } catch (e) { this.catalog = { entries: [] }; this.stats.failed.push('catalog: ' + e.message); }
     return this;
