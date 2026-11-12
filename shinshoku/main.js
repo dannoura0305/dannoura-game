@@ -630,7 +630,7 @@ class Game {
     if (this.portraitDue != null && --this.portraitDue <= 0) { this.portraitDue = null; setTimeout(() => { const t0 = performance.now(); try { this.makePortrait(); this.bootMs.portrait = [Math.round(t0), Math.round(performance.now() - t0)]; } catch (e) { console.warn('portrait', e); } }, 3500); }
     // 遠い所の組み立て：起動の直後（GPU がシェーダーを作っている間）は待ち、少し後か、近づいた時に
     // P12：PBR の地図帳と部品は起動の後（最初のこまの 1.2 秒後）に読む＝起動を遅くしない
-    if (this.bootMs && this.bootMs.frame1 && !this.envLoadAsked && performance.now() - this.bootMs.frame1 > 1200) { this.envLoadAsked = true; const t0 = performance.now(); envLoad().then(ok => { this.bootMs.envAtlas = ok ? [Math.round(t0), Math.round(performance.now() - t0)] : 'none'; }); envKitLoad(this).then(n => { this.bootMs.kit = n; }); const t1 = performance.now(); vegLoad(this).then(n => { this.bootMs.veg = [Math.round(t1), Math.round(performance.now() - t1), n]; }); }
+    if (this.bootMs && this.bootMs.frame1 && !this.envLoadAsked && performance.now() - this.bootMs.frame1 > 1200) { this.envLoadAsked = true; const t0 = performance.now(); this.bootMs.lateAt = Math.round(t0); envLoad().then(ok => { this.bootMs.envAtlas = ok ? [Math.round(t0), Math.round(performance.now() - t0)] : 'none'; }); envKitLoad(this).then(n => { this.bootMs.kit = n; }); const t1 = performance.now(); vegLoad(this).then(n => { this.bootMs.veg = [Math.round(t1), Math.round(performance.now() - t1), n]; }); }
     if (this.area && this.area.pending && this.area.pending.length && this.bootMs && this.bootMs.frame1 && !this.cut.active) { const P = this.player.pos, near = P.x > 48 || P.z < -60; if (near || performance.now() - this.bootMs.frame1 > 2500) this.buildPending(this.area, 1); }
   }
   step() {

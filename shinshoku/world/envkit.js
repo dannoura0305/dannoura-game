@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { assignLods } from '../../mapkit/render/lod.js';
+import { fetchCatalog } from '../../mapkit/render/assets.js';
 import { tileRect } from '../render/townmat.js';
 import { envKitMats, ENV } from '../render/envmat.js';
 
@@ -96,7 +97,7 @@ export function envKitLoad(game) {
   if (KIT.loading) return KIT.loading;
   if (!KIT.on) return (KIT.loading = Promise.resolve(0));
   const t0 = performance.now(), loader = new GLTFLoader();
-  KIT.loading = fetch(LIB + 'catalog.json').then(r => r.json()).then(cat => {
+  KIT.loading = fetchCatalog(LIB).then(cat => {   // 目録は植木（vegkit）と 1 回だけ読んで使い回す
     const want = KIT.only ? new Map([...KIT.only].map(id => [KIT.lite ? ALWAYS[id] : id, id])) : null;   // 読む glb の id → 置く時の id
     const ok = new Map(); for (const e of cat.entries || []) if (KIT_PIECES[e.id] && !KIT_SPARE.has(e.id) && e.targets && e.targets.web && e.targets.web.result === 'pass' && e.kit && (want ? want.has(e.id) : !Object.values(ALWAYS).includes(e.id))) ok.set(want ? want.get(e.id) : e.id, e);
     return Promise.all([...ok.entries()].map(([pid, e]) => new Promise(res => {

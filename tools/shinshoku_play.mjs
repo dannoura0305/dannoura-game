@@ -102,9 +102,12 @@ async function runPC(browser) {
   const errs = []; const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const { page, loadMs } = await openGame(ctx, 'autostart=1&perf=1', errs);
   const before = await otherKeys(page);
-  const res = await page.evaluate(() => { const r = performance.getEntriesByType('resource'); let t = 0; for (const e of r) t += e.transferSize || e.encodedBodySize || 0; return { n: r.length, bytes: t }; });
+  // 起動の読み込み：操作できるようになった時まで、かつ起動の後読み（部品・植木：main.js の bootMs.lateAt）を始める前までに読み始めた物だけを数える。
+  // 重い時は後読みが操作できる時より先に始まって混ざり、合計が揺れていた（2026-11-12）。同じオリジンで transferSize 0 の物は手元の保存分（HTTP キャッシュ）なので数えない
+  const res = await page.evaluate(() => { const now = performance.now(), la = __sh.game.bootMs && __sh.game.bootMs.lateAt, cut = Math.min(now, la != null ? la : Infinity), own = location.origin;
+    const r = performance.getEntriesByType('resource').filter(e => e.startTime < cut); let b = 0; for (const e of r) b += e.name.startsWith(own) ? e.transferSize : (e.transferSize || e.encodedBodySize || 0); return { n: r.length, bytes: b, cut: Math.round(cut) }; });
   ok('PC 起動→操作可能（5 秒以内・遅い時は 3 回の中央値）', boot.med < 5000, `${boot.med}ms（${boot.list.join('・')}ms）`);
-  ok('読み込み合計 5MB 以下', res.bytes < 5 * 1048576, `${(res.bytes / 1048576).toFixed(2)}MB（${res.n} 件）`);
+  ok('読み込み合計 5MB 以下', res.bytes < 5 * 1048576, `${(res.bytes / 1048576).toFixed(2)}MB（${res.n} 件・${res.cut}ms まで）`);
   let st = await S(page);
   ok('序章：最初の会話（データ駆動）・素手', st.mode === 'dialog' && st.step === 'pro_meet' && st.player.weapon === 'none');
   await shot(page, 'pc_01_intro.png', 1200);
