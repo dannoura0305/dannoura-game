@@ -36,7 +36,7 @@
 - `source/*.py` … モデルを作り直すための Blender スクリプト（`build_*.py` が本体）
 - `README.md` … Codex が書いた、そのモデルの説明（各キャラのフォルダの中）
 - `validation.json`・`build_stats.json` … 書き出したあとの自動検査の結果
-- `preview.png`・`three_views.png` … 確認画像（全体・三面図）
+- `*.png`・`*.jpg` … 確認画像（全体・三面図・顔・手・動きごとの画像など。`outputs/` にあったものは全部入れています）
 
 作り直すとき（各フォルダで）：
 
@@ -96,11 +96,10 @@ blender -b --factory-startup -P source/build_<名前>.py -- 出力先フォル�
 
 **100MB を超えるファイル：なし**（2026-11-13 に元のフォルダ全体を調べ直しました。いちばん大きいのは `nekomata_sculpt.glb` の 46.5MB です）。
 
-次は入れていません（PC 側には残っています）：
+2026-11-13 に、ルーン以外の `outputs/` の中身（確認画像を含む）はすべて入れました。入れていないのは次だけです（PC 側には残っています）：
 
 | 入れなかったもの | 理由 |
 |---|---|
 | `rune/`（約 91MB） | このリポジトリには関係ないという指示があったため |
-| 確認用の画像のうち `preview.png`・`three_views.png` 以外（顔・手・動きごとの画像など） | 大きさを抑えるため。各 README にはその画像の説明が残っています |
 | `*.blend1` | Blender が自動で作る、1 つ前の保存の控え |
 | 配偶者に似た異形の作業用の画像（`work/spouse_apparition/*.jpg`・`tex*.png`）と `studio_export.vrm` | 作業の途中のもの。完成品は `outputs/` から入れています |
