@@ -208,7 +208,7 @@ async function runPC(browser) {
     __sh.input.script([{ f: 0, press: ['weapon1'] }]); D.fastSim(20);
     const s0 = g.metrics.swaps.length;
     __sh.input.script([{ f: 0, press: ['swap'] }]); D.fastSim(14);
-    D.placeEnemy('kiro_4', 0, -45); D.faceTo(0, -45); g.cam.pitch = 0.08;   // 2026-11-13：撃つ前に的を正面へ置き直す（帰路は歩き回る：歩いた先が左右へ 0.5m ずれると肩越しの狙いの線から外れる。前の場面までのこま数で、どこまで歩いたかが変わる）
+    D.placeEnemy('kiro_4', 0.3, -45); D.faceTo(0, -45); g.cam.pitch = 0.08;   // 2026-11-13：撃つ前に的を狙いの線の上へ置き直す（構えたカメラは右肩 0.35m：狙いの線は x≈0.35。帰路は歩き回るので、前の場面までのこま数で左右にずれて外れることがあった。前は通る時の帰路が x 0.3〜0.4 にいた）
     const k4 = g.enemies.find(e => e.id === 'kiro_4'), kpre = [k4.pos.x.toFixed(2), k4.pos.z.toFixed(2), k4.brain.state, g.player.fighter.st.name, g.player.fighter.weapon, g.player.pos.x.toFixed(2), g.player.pos.z.toFixed(2), g.player.yaw.toFixed(2), g.cam.yaw.toFixed(2)];
     const m0 = __sh.state().metrics; __sh.input.script([{ f: 0, hold: { aim: 30 } }, { f: 12, press: ['attack'] }]); D.fastSim(32); const kpost = [k4.pos.x.toFixed(2), k4.pos.z.toFixed(2), k4.brain.state]; g.syncCamera(); const dbgD = new __sh.THREE.Vector3(); g.camera.getWorldDirection(dbgD); const dbg = { dev: g.input.device, cam: g.camera.position.toArray().map(x => +x.toFixed(2)), dir: dbgD.toArray().map(x => +x.toFixed(3)), aimT: g.cam.aimT, cd: g.cam.curDist, pitch: g.cam.pitch, yaw: g.cam.yaw, kr: k4.r, kh: k4.h, ev: g.metrics.events.slice(-8).map(e => e.t) }; const m1 = __sh.state().metrics;
     const mag1 = g.player.fighter.mag; __sh.input.script([{ f: 0, press: ['reload'] }]); D.fastSim(90); const mag2 = g.player.fighter.mag;
