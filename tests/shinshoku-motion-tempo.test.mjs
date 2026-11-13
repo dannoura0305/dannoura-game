@@ -112,6 +112,7 @@ await t('移動の加減速：押した最初のこまから動く（取りこ�
   assert.ok(t90(p) >= 0.25 && t90(p) <= 0.4, '紫 ' + t90(p)); assert.ok(t90(w) <= 0.15, '白 ' + t90(w));
   assert.ok(p.stopD >= 0.2 && p.stopD <= 0.45, '紫の止まり ' + p.stopD); assert.ok(w.stopD < 0.25 && w.stopD < p.stopD, '白の止まり ' + w.stopD);
   assert.equal(p.v[79], 0, '止まり切る');
+  { const M = new TP.Motion(); let i = 0; for (; i < 60; i++) { const v = M.step({ form: 'purple', state: 'free', want: { x: 0, z: 2.2 }, smooth: true }); if (Math.hypot(v.x, v.z) >= 1.98) break; } assert.ok(i / 60 < t90(p) && i / 60 >= 0.12, '歩き出しは走り出しより軽い ' + i / 60); }
   // 動けない状態（攻撃・ひるみ）：その場で止まる（前の速さで滑らない）
   const M = p.M; M.vx = 5; const v = M.step({ form: 'purple', state: 'attack', want: { x: 0, z: 0 }, smooth: false }); assert.equal(Math.hypot(v.x, v.z), 0);
   assert.ok(TP.TEMPO.purple.move.turn < 0.25 && TP.TEMPO.white.move.turn > 0.25, '振り向きの速さ（前は 0.25）');

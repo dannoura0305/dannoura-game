@@ -210,7 +210,7 @@ async function runPC(browser) {
     __sh.input.script([{ f: 0, press: ['swap'] }]); D.fastSim(14);
     D.placeEnemy('kiro_4', 0, -45); D.faceTo(0, -45); g.cam.pitch = 0.08;   // 2026-11-13：撃つ前に的を正面へ置き直す（帰路は歩き回る：歩いた先が左右へ 0.5m ずれると肩越しの狙いの線から外れる。前の場面までのこま数で、どこまで歩いたかが変わる）
     const k4 = g.enemies.find(e => e.id === 'kiro_4'), kpre = [k4.pos.x.toFixed(2), k4.pos.z.toFixed(2), k4.brain.state, g.player.fighter.st.name, g.player.fighter.weapon, g.player.pos.x.toFixed(2), g.player.pos.z.toFixed(2), g.player.yaw.toFixed(2), g.cam.yaw.toFixed(2)];
-    const m0 = __sh.state().metrics; __sh.input.script([{ f: 0, hold: { aim: 30 } }, { f: 12, press: ['attack'] }]); D.fastSim(32); const kpost = [k4.pos.x.toFixed(2), k4.pos.z.toFixed(2), k4.brain.state]; const m1 = __sh.state().metrics;
+    const m0 = __sh.state().metrics; __sh.input.script([{ f: 0, hold: { aim: 30 } }, { f: 12, press: ['attack'] }]); D.fastSim(32); const kpost = [k4.pos.x.toFixed(2), k4.pos.z.toFixed(2), k4.brain.state]; g.syncCamera(); const dbgD = new __sh.THREE.Vector3(); g.camera.getWorldDirection(dbgD); const dbg = { dev: g.input.device, cam: g.camera.position.toArray().map(x => +x.toFixed(2)), dir: dbgD.toArray().map(x => +x.toFixed(3)), aimT: g.cam.aimT, cd: g.cam.curDist, pitch: g.cam.pitch, yaw: g.cam.yaw, kr: k4.r, kh: k4.h, ev: g.metrics.events.slice(-8).map(e => e.t) }; const m1 = __sh.state().metrics;
     const mag1 = g.player.fighter.mag; __sh.input.script([{ f: 0, press: ['reload'] }]); D.fastSim(90); const mag2 = g.player.fighter.mag;
     __sh.input.script([{ f: 0, press: ['swap'] }]); D.fastSim(14);
     __sh.input.script([{ f: 0, press: ['attack'] }, { f: 18, hold: { aim: 12 } }]); D.fastSim(40);
@@ -220,11 +220,11 @@ async function runPC(browser) {
     g.equipped = ['holster']; g.applyEquip(); __sh.input.script([{ f: 0, press: ['swap'] }]); D.fastSim(14); const sw3 = g.metrics.swaps[g.metrics.swaps.length - 1];
     __sh.input.script([{ f: 0, press: ['weapon1'] }]); D.fastSim(30);
     D.freezeEnemies(false);
-    return { kpre, kpost, kpos: [g.enemies.find(e => e.id === 'kiro_4').pos.x.toFixed(1), g.enemies.find(e => e.id === 'kiro_4').pos.z.toFixed(1)], ppos: [g.player.pos.x.toFixed(1), g.player.pos.z.toFixed(1)], w0: g.player.fighter.weapon, st: g.player.fighter.st.name, sw: g.metrics.swaps.slice(s0, s0 + 2), evs: ev.slice(-10).map(e => e.t + '@' + e.frame), shots: m1.shots - m0.shots, hits: m1.shotHits - m0.shotHits, mag1, mag2, quick: q && sh ? sh.frame - q.frame : null, holster: sw3 };
+    return { kpre, kpost, dbg, kpos: [g.enemies.find(e => e.id === 'kiro_4').pos.x.toFixed(1), g.enemies.find(e => e.id === 'kiro_4').pos.z.toFixed(1)], ppos: [g.player.pos.x.toFixed(1), g.player.pos.z.toFixed(1)], w0: g.player.fighter.weapon, st: g.player.fighter.st.name, sw: g.metrics.swaps.slice(s0, s0 + 2), evs: ev.slice(-10).map(e => e.t + '@' + e.frame), shots: m1.shots - m0.shots, hits: m1.shotHits - m0.shotHits, mag1, mag2, quick: q && sh ? sh.frame - q.frame : null, holster: sw3 };
   });
   await unisolate(page);
   ok('刀→銃の持ち替え 9f（150ms）・銃→刀 9f', gun.sw[0] && gun.sw[0].frames === 9 && gun.sw[0].measured === 9 && gun.sw[1] && gun.sw[1].measured === 9, JSON.stringify(gun.sw));
-  ok('構えて撃つ（命中）・装填', gun.shots === 1 && gun.hits === 1 && gun.mag2 === 12 && gun.mag1 === 11, JSON.stringify({ shots: gun.shots, hits: gun.hits, mag: [gun.mag1, gun.mag2], evs: gun.evs, k: gun.kpos, p: gun.ppos, kpre: gun.kpre, kpost: gun.kpost }));
+  ok('構えて撃つ（命中）・装填', gun.shots === 1 && gun.hits === 1 && gun.mag2 === 12 && gun.mag1 === 11, JSON.stringify({ shots: gun.shots, hits: gun.hits, mag: [gun.mag1, gun.mag2], evs: gun.evs, k: gun.kpos, p: gun.ppos, kpre: gun.kpre, kpost: gun.kpost, dbg: gun.dbg }));
   ok('切替撃ち 4f（67ms）で 1 発目', gun.quick === 4, `${gun.quick}f`);
   ok('装備「小型銃用ホルスター」で刀→銃 6f', gun.holster && gun.holster.measured === 6, JSON.stringify(gun.holster));
   // 構えの画面
@@ -497,7 +497,10 @@ async function runPhone(browser) {
   // スティックで歩いて相棒のところへ
   await page.evaluate(() => { __sh.debug.teleport(-1.3, -27.5, Math.PI); __sh.game.cam.yaw = 0; });
   const z0 = (await S(page)).player.z;
-  await touch('touchStart', [[150, 300, 1]]); await touch('touchMove', [[150, 250, 1]]); await page.waitForTimeout(2500); await touch('touchEnd', []);
+  // 2026-11-13：押している間を「2.5 秒」から「動いた（0.6m）か 6 秒」へ（紫の走り出しの加速の分と、ソフト描画で 1 秒に進むこまが揺れる分。前は 2.5 秒で 20〜40 こま）
+  await touch('touchStart', [[150, 300, 1]]); await touch('touchMove', [[150, 250, 1]]); await page.waitForTimeout(2500);
+  for (let i = 0; i < 14 && (await S(page)).player.z > z0 - 0.6; i++) await page.waitForTimeout(250);
+  await touch('touchEnd', []);
   let st = await S(page); ok('タッチのスティックで移動（→ 相棒の近くで会話が始まる）', st.player.z < z0 - 0.5 || st.mode === 'dialog', `${z0.toFixed(1)}→${st.player.z.toFixed(1)} ${st.mode}`);
   await page.evaluate(() => { const D = __sh.debug; D.teleport(-1.6, -31.6, Math.PI); D.fastSim(3); D.skipDialog(); D.fastSim(3); });
   await page.waitForTimeout(400);

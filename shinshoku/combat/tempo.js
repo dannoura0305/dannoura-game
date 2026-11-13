@@ -148,7 +148,8 @@ export class Motion {
       const cur = Math.hypot(this.vx, this.vz), want = Math.hypot(vx, vz), up = want > cur + 1e-3;
       const dx = vx - this.vx, dz = vz - this.vz, L = Math.hypot(dx, dz);
       if (L > 1e-6) {
-        const stepV = Math.min(L, Math.max(L * (1 - Math.exp(-(up ? P.move.up : P.move.down) * dt)), (up ? P.move.upMin : P.move.downMin) * dt));
+        const kUp = P.move.up * Math.min(1.6, Math.max(1, 5 / Math.max(want, 0.1)));   // 歩き出しは軽く（歩き 2.2m/s で 1.6 倍：約 0.19 秒）、走り出しは重い
+        const stepV = Math.min(L, Math.max(L * (1 - Math.exp(-(up ? kUp : P.move.down) * dt)), (up ? P.move.upMin : P.move.downMin) * dt));
         vx = this.vx + dx / L * stepV; vz = this.vz + dz / L * stepV;
       }
     }
