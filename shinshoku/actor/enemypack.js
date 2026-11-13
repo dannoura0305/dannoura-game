@@ -22,7 +22,8 @@ export const ENEMY_PACK_LAZY = ['outou', 'tsugihagi', 'nurikae', 'touchoku', 'mi
 export const ENEMY_PACK_KINDS = [...ENEMY_PACK_EARLY, ...ENEMY_PACK_LAZY];
 /** P19：Codex のモデルから作った包み（assets/enemies/codex/）を使う種類 */
 export const ENEMY_PACK_CODEX = ['heiten', 'shuuyou', 'shuusha', 'mimic', 'outou', 'machibito', 'tsugihagi', 'sakibure', 'nekomata',
-  'kanja', 'mamori', 'utsushimi', 'touchoku', 'nurikae', 'kuramono', 'kenkyusha', 'spouse_like'];   // P20
+  'kanja', 'mamori', 'utsushimi', 'touchoku', 'nurikae', 'kuramono', 'kenkyusha', 'spouse_like',
+  'kiro'];   // P20（帰路は Codex のモデルが無いので、同じ作り方の tools/blender/enemy/build_kiro_codex.py で作り直した物。P17 の包みは ?epack=p18）
 /** P17・P18 の包み（assets/enemies/ 直下）がある種類 */
 const OLD_PACKS = ['kiro', 'heiten', 'shuuyou', 'outou', 'tsugihagi', 'nurikae', 'touchoku'];
 const PACKS = {};
@@ -90,7 +91,7 @@ function decode2(j) {
     for (let i = 0; i < n * 3; i++) { const a = i % 3; P[i] = lo[a] + (q[i] + 32768) * sp[a]; N[i] = nq[i] / 127; C[i] = S2L[cb[i]]; }
     for (let i = 0; i < n * 4; i++) { J[i] = jb[i]; W[i] = wb[i] / 255; }
     const I = p.indexType === 'u32' ? new Uint32Array(ib.buffer.slice(ib.byteOffset, ib.byteOffset + ib.byteLength)) : new Uint16Array(ib.buffer.slice(ib.byteOffset, ib.byteOffset + ib.byteLength));
-    return { name: p.name, mat: p.mat, oth: p.oth, tint: false, count: n, P, N, C, J, W, I };
+    return { name: p.name, mat: p.mat, oth: p.oth, tint: !!p.tint, count: n, P, N, C, J, W, I };   // P20：帰路のマフラー（置く時の色）
   });
   return { kind: j.kind, v: 2, bones: j.bones, classes: j.classes || [], tris: j.tris, rest: j.rest || null, anchors: j.anchors || null, hide: j.hide || [], clips: j.clips || null, parts };
 }

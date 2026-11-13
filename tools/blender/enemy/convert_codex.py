@@ -173,6 +173,11 @@ KINDS = {
                         cls=[(r'hair|chestnut', 'hair')]),
     'nurikae': dict(dir='nurikae', glb='nurikae.glb', map=NURI, rest=NURI_REST, straight=False, top=2.45, tris=(32000, 16000), hide=['glow'],
                     anchors={'core': dict(mat=r'boundary discharge', gb=r'^(core|chest)$', bone='nChest'), 'eyes': dict(mat=r'boundary discharge', gb=r'^lamp', eyes=3, bone='nHead')}),
+    # P20：帰路（序章）は Codex のモデルが無いので、同じ作り方の tools/blender/enemy/build_kiro_codex.py で作った glb から（骨はコードの帰路の休みの位置そのまま）。
+    # マフラー（材質の名前に lamp colour）は置く時の色（tint）・顔の黒いにじみ（コードの顔の札）は隠さない
+    'kiro': dict(dir='kiro', glb='kiro.glb', map=HUMAN, rest=HUMAN_REST, straight=False, top=None, tris=(16000, 8000), tint=r'lamp colour', showFace=True,
+                 cls=[(r'hair', 'hair'), (r'shoes|sole|button|bag|handle|band|leek', 'acc')],
+                 source=dict(made_by='build_kiro_codex.py（Codex のモデルと同じ作り方・このリポジトリの Blender のスクリプトで一から作成）', reference='今の帰路（P17：build_enemy.py の kiro）の意匠')),
     'kuramono': dict(dir='boundary_eater', glb='boundary_eater.glb', map=KURA, rest=KURA_REST, straight=False, top=2.68, tris=(36000, 18000), hide=['glow'],
                      anchors={'core': dict(mat=r'abyss pupil', gb=r'^(core|pupil)$', bone='kChest'), 'eyes': dict(mat=r'wing eyes', eyes=10, perBone=True)}),
 }
@@ -575,7 +580,10 @@ def extract(o, cfg, mats, s, bone_map, groups):
     slot_cls = []
     for sl in o.material_slots:
         info = mats.get(sl.material.name) if sl.material else None
-        slot_cls.append(cls_of(info, cfg) if info else 'cloth')
+        c = cls_of(info, cfg) if info else 'cloth'
+        if info and cfg.get('tint') and re.search(cfg['tint'], info['name'].lower()):   # P20：置く時の色（帰路のマフラー）は別の部品
+            c += '+tint'
+        slot_cls.append(c)
     parts = []
     tri_cls = np.array([slot_cls[i] if i < len(slot_cls) else 'cloth' for i in tm])
     for c in sorted(set(tri_cls)):
@@ -588,8 +596,8 @@ def extract(o, cfg, mats, s, bone_map, groups):
         np.add.at(csum, inv, cl[L.ravel()])
         cnt = np.bincount(inv, minlength=len(uniq))[:, None]
         C = csum / np.maximum(1, cnt)
-        mat, _, oth = c.partition(':')                          # 'fur:0' ＝ 種類 fur・輪郭線 0（細い毛の房：輪郭線で黒くならない）
-        parts.append({'name': c.replace(':', '_'), 'mat': mat, 'oth': float(oth) if oth else OTH.get(mat, 1.0), 'P': P[uniq], 'N': N[uniq], 'C': C, 'J': J[uniq], 'W': W[uniq], 'I': inv.reshape(-1, 3)})
+        mat, _, oth = c.replace('+tint', '').partition(':')                          # 'fur:0' ＝ 種類 fur・輪郭線 0（細い毛の房：輪郭線で黒くならない）
+        parts.append({'name': c.replace(':', '_'), 'mat': mat, 'oth': float(oth) if oth else OTH.get(mat, 1.0), 'tint': c.endswith('+tint'), 'P': P[uniq], 'N': N[uniq], 'C': C, 'J': J[uniq], 'W': W[uniq], 'I': inv.reshape(-1, 3)})
     return parts, names
 
 
@@ -781,17 +789,19 @@ def write_pack(kind, lod, parts, names, rest, anchors, cfg, out, src_tris, s, bo
         Wq[:, 0] += 255 - Wq.sum(1)                             # 合計をちょうど 255 に
         I = p['I'].ravel()
         it = 'u16' if len(p['P']) < 65536 else 'u32'
-        prims.append({'name': p['name'], 'mat': p['mat'], 'oth': p['oth'], 'tint': False, 'count': int(len(p['P'])), 'tris': int(len(I) // 3),
+        prims.append({'name': p['name'], 'mat': p['mat'], 'oth': p['oth'], 'tint': bool(p.get('tint')), 'count': int(len(p['P'])), 'tris': int(len(I) // 3),
                       'position': b64(q, '<i2'), 'normal': b64(np.round(n * 127), '<i1'), 'color': b64(np.round(lin2srgb(p['C']) * 255), 'u1'),
                       'joints': b64(p['J'], 'u1'), 'weights': b64(np.clip(Wq, 0, 255), 'u1'), 'index': b64(I, '<u2' if it == 'u16' else '<u4'), 'indexType': it})
         tri += len(I) // 3
     pack = {'spec': 'wakaba-enemypack/2', 'kind': kind, 'lod': lod, 'generator': 'tools/blender/enemy/convert_codex.py',
             'license': 'own（自作・商用可）',
-            'source': {'model': 'incoming/codex/characters/%s/%s' % (cfg['dir'], cfg['glb']), 'branch': 'models-from-pc', 'made_by': 'Codex（利用者の PC・Blender のスクリプトで一から作成）',
-                       'reference': '利用者が ChatGPT で作った原画（リポジトリには入れていない）', 'tris': int(src_tris)},
+            'source': ({'model': 'tools/blender/enemy/build_kiro_codex.py → %s' % cfg['glb'], 'made_by': cfg['source']['made_by'], 'reference': cfg['source']['reference'], 'tris': int(src_tris)}
+                       if cfg.get('source') else
+                       {'model': 'incoming/codex/characters/%s/%s' % (cfg['dir'], cfg['glb']), 'branch': 'models-from-pc', 'made_by': 'Codex（利用者の PC・Blender のスクリプトで一から作成）',
+                        'reference': '利用者が ChatGPT で作った原画（リポジトリには入れていない）', 'tris': int(src_tris)}),
             'scale': round(float(s), 5), 'bones': names, 'classes': sorted({p['mat'] for p in prims}), 'tris': int(tri),
             'q': {'min': [round(float(x), 5) for x in lo], 'max': [round(float(x), 5) for x in hi]},
-            'rest': rest, 'anchors': anchors, 'hide': ['face'] + list(cfg.get('hide', [])), 'clips': clips or {}, 'parts': prims}
+            'rest': rest, 'anchors': anchors, 'hide': ([] if cfg.get('showFace') else ['face']) + list(cfg.get('hide', [])), 'clips': clips or {}, 'parts': prims}
     os.makedirs(out, exist_ok=True)
     path = os.path.join(out, kind + ('' if lod == 'pc' else '_low') + '.pack.json')
     json.dump(pack, open(path, 'w'), ensure_ascii=False, separators=(',', ':'))
