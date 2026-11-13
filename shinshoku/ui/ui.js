@@ -429,6 +429,7 @@ export class UI {
         <label><input type="checkbox" data-s="invertY" ${S.invertY ? 'checked' : ''}>上下を反転</label>
         <label><input type="checkbox" data-s="rumble" ${S.rumble !== false ? 'checked' : ''}>コントローラーの振動（当たり・被弾・一閃）</label>
         <label>音量<input type="range" min="0" max="1" step="0.05" data-s="volume" value="${S.volume}"><span>${Math.round(S.volume * 100)}%</span></label>
+        <label>BGM の音量（全体の音量に掛かる）<input type="range" min="0" max="1" step="0.05" data-s="bgmVol" value="${S.bgmVol ?? 0.5}"><span>${Math.round((S.bgmVol ?? 0.5) * 100)}%</span></label>
         <label><input type="checkbox" data-s="voiceOn" ${S.voiceOn !== false ? 'checked' : ''}>声（演出の台詞）：入</label>
         <label>声の音量<input type="range" min="0" max="1" step="0.05" data-s="voiceVol" value="${S.voiceVol ?? 0.9}"><span>${Math.round((S.voiceVol ?? 0.9) * 100)}%</span></label>
         <label><input type="checkbox" data-s="touchUI" ${S.touchUI ? 'checked' : ''}>タッチ操作を表示</label>
