@@ -128,26 +128,6 @@
    ]
   },
   {
-   "file": "kiro.pack.json",
-   "kind": "kiro",
-   "lod": "pc",
-   "tris": 15999,
-   "bytes": 414558,
-   "sourceModel": "tools/blender/enemy/build_kiro_codex.py → kiro.glb",
-   "sourceTris": 48420,
-   "clips": []
-  },
-  {
-   "file": "kiro_low.pack.json",
-   "kind": "kiro",
-   "lod": "low",
-   "tris": 7996,
-   "bytes": 242082,
-   "sourceModel": "tools/blender/enemy/build_kiro_codex.py → kiro.glb",
-   "sourceTris": 48420,
-   "clips": []
-  },
-  {
    "file": "kuramono.pack.json",
    "kind": "kuramono",
    "lod": "pc",

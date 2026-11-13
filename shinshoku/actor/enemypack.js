@@ -22,8 +22,7 @@ export const ENEMY_PACK_LAZY = ['outou', 'tsugihagi', 'nurikae', 'touchoku', 'mi
 export const ENEMY_PACK_KINDS = [...ENEMY_PACK_EARLY, ...ENEMY_PACK_LAZY];
 /** P19：Codex のモデルから作った包み（assets/enemies/codex/）を使う種類 */
 export const ENEMY_PACK_CODEX = ['heiten', 'shuuyou', 'shuusha', 'mimic', 'outou', 'machibito', 'tsugihagi', 'sakibure', 'nekomata',
-  'kanja', 'mamori', 'utsushimi', 'touchoku', 'nurikae', 'kuramono', 'kenkyusha', 'spouse_like',
-  'kiro'];   // P20（帰路は Codex のモデルが無いので、同じ作り方の tools/blender/enemy/build_kiro_codex.py で作り直した物。P17 の包みは ?epack=p18）
+  'kanja', 'mamori', 'utsushimi', 'touchoku', 'nurikae', 'kuramono', 'kenkyusha', 'spouse_like'];   // P20
 /** P17・P18 の包み（assets/enemies/ 直下）がある種類 */
 const OLD_PACKS = ['kiro', 'heiten', 'shuuyou', 'outou', 'tsugihagi', 'nurikae', 'touchoku'];
 const PACKS = {};
@@ -91,7 +90,7 @@ function decode2(j) {
     for (let i = 0; i < n * 3; i++) { const a = i % 3; P[i] = lo[a] + (q[i] + 32768) * sp[a]; N[i] = nq[i] / 127; C[i] = S2L[cb[i]]; }
     for (let i = 0; i < n * 4; i++) { J[i] = jb[i]; W[i] = wb[i] / 255; }
     const I = p.indexType === 'u32' ? new Uint32Array(ib.buffer.slice(ib.byteOffset, ib.byteOffset + ib.byteLength)) : new Uint16Array(ib.buffer.slice(ib.byteOffset, ib.byteOffset + ib.byteLength));
-    return { name: p.name, mat: p.mat, oth: p.oth, tint: !!p.tint, count: n, P, N, C, J, W, I };   // P20：帰路のマフラー（置く時の色）
+    return { name: p.name, mat: p.mat, oth: p.oth, tint: false, count: n, P, N, C, J, W, I };
   });
   return { kind: j.kind, v: 2, bones: j.bones, classes: j.classes || [], tris: j.tris, rest: j.rest || null, anchors: j.anchors || null, hide: j.hide || [], clips: j.clips || null, parts };
 }
@@ -260,7 +259,7 @@ export const PACK_CLIP_RULES = {
     { when: c => c.state === 'loop' && !c.atk && c.speed > 0.05, clip: 'patrol', bones: ['head'] }],
   kenkyusha: [{ when: c => c.atk && c.atk.name === 'accident' && c.atk.phase === 'windup', clip: 'accident_replay', t: c => windupT(c, 2), loop: false },
     { when: c => c.state === 'dormant', clip: c => (Math.floor((c.t || 0) / 8) % 2 ? 'record_check' : 'idle') }, { when: c => c.state === 'hostile' && still(c), clip: 'idle', bones: ['spine', 'chest', 'neck', 'head'] }],
-  spouse_like: [{ when: () => true, clip: 'Wait' }],
+  spouse_like: [{ when: c => Math.floor((c.t || 0) / 8) % 2 === 1, clip: 'Look_back', t: c => Math.min((c.t || 0) % 8, 3.7), loop: false }, { when: () => true, clip: 'Wait' }],   // 静かに待つ・時々振り向く
 };
 /** 構えの時間（予兆の割合）→ 動きの秒（0〜span 秒） */
 function windupT(c, span) { const A = c.atkDef || {}; return Math.min(span, (c.atk.t / (A.windup || 1)) * span); }
