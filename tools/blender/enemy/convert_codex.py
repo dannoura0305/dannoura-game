@@ -81,6 +81,41 @@ NEKO_REST = dict([('gBody', 'pelvis'), ('gChest', 'chest'), ('gNeck', 'neck1'), 
                   ('gHLuL', 'hindLegL'), ('gHLlL', 'hindShinL'), ('gHLhL', 'hindFootL'), ('gHLuR', 'hindLegR'), ('gHLlR', 'hindShinR'), ('gHLhR', 'hindFootR')]
                  + [('gTailL%d' % i, 'tail%d' % (i + 1)) for i in range(6)] + [('gTailR%d' % i, 'tailB%d' % (i + 1)) for i in range(6)])
 
+# P20：人型の追加の骨（守り手の頭巾・記録のない患者の点滴台と記録の板・当直の作業灯と針と点検表と弁・研究者の白衣の裾・写し身の後ろ髪）。
+# 対応の無い骨は親の骨へ（点滴台＝root → 腰）。記録の板（folder）は右手で胸に抱えているので右手へ
+HUMAN_X = [(r'^hood$', 'head'), (r'^folder$', 'rightHand'), (r'^(lamp|needle)$', 'head'), (r'^clipboard$', 'leftLowerArm'), (r'^valve$', 'spine'),
+           (r'^tail\d$', 'head')] + HUMAN
+# VRoid（配偶者に似た異形）：J_Bip_* の骨の名前 → Codex の人型の名前（動きを写した後に名前を変える）。肩・つま先・目・髪は親の骨へ
+VROID = {'Root': 'root', 'J_Bip_C_Hips': 'pelvis', 'J_Bip_C_Spine': 'spine', 'J_Bip_C_Chest': 'spine1', 'J_Bip_C_UpperChest': 'chest', 'J_Bip_C_Neck': 'neck', 'J_Bip_C_Head': 'head'}
+for _s, _k in (('L', 'L'), ('R', 'R')):
+    VROID.update({'J_Bip_%s_UpperArm' % _s: 'upperArm' + _k, 'J_Bip_%s_LowerArm' % _s: 'foreArm' + _k, 'J_Bip_%s_Hand' % _s: 'hand' + _k,
+                  'J_Bip_%s_UpperLeg' % _s: 'thigh' + _k, 'J_Bip_%s_LowerLeg' % _s: 'shin' + _k, 'J_Bip_%s_Foot' % _s: 'foot' + _k})
+# 塗替：コードの骨（anim6.js の NurikaeAnimator：nHip・nBody・nChest・nHead・脚 nLeg{L|R}0..2・腕 nArm{L|R}0..4・尾 nTail*）。
+# 街灯 3 本＝冠（nHead）・胸の核＝nChest・左腕の箱と 3 本の爪＝nArmL2..4・右腕の 5 本の電線の輪＝nArmR3（根もと半分）と nArmR4（先の半分）
+NURI = [
+    (r'^root$', 'nRoot'), (r'^pelvis$', 'nHip'), (r'^spine$', 'nBody'), (r'^(chest|core)$', 'nChest'), (r'^lamp\d$', 'nHead'),
+    (r'^upperArmL$', 'nArmL0'), (r'^foreArmL$', 'nArmL1'), (r'^handL$', 'nArmL2'), (r'^claw\d$', 'nArmL3'), (r'^claw\dtip$', 'nArmL4'),
+    (r'^upperArmR$', 'nArmR0'), (r'^foreArmR$', 'nArmR1'), (r'^handR$', 'nArmR2'), (r'^cable\d_[0-5]$', 'nArmR3'), (r'^cable\d_\d+$', 'nArmR4'),
+    (r'^thighL$', 'nLegL0'), (r'^shinL$', 'nLegL1'), (r'^footL$', 'nLegL2'), (r'^thighR$', 'nLegR0'), (r'^shinR$', 'nLegR1'), (r'^footR$', 'nLegR2'),
+]
+NURI_REST = {'nHip': 'pelvis', 'nBody': 'spine', 'nChest': 'chest', 'nHead': 'lamp0',
+             'nArmL0': 'upperArmL', 'nArmL1': 'foreArmL', 'nArmL2': 'handL', 'nArmL3': 'claw2', 'nArmL4': 'claw2tip',
+             'nArmR0': 'upperArmR', 'nArmR1': 'foreArmR', 'nArmR2': 'handR', 'nArmR3': 'cable2_0', 'nArmR4': 'cable2_6',
+             'nLegL0': 'thighL', 'nLegL1': 'shinL', 'nLegL2': 'footL', 'nLegR0': 'thighR', 'nLegR1': 'shinR', 'nLegR2': 'footR'}
+# 境界を喰らうもの：コードの骨（anim7.js の KuramonoAnimator：kBody・kChest・kCrown・翼 kW{L|R}{0..2}_0..3・根 kT{0..5}_0..3）。
+# 翼 6 枚（上・中・下）＝kW*_0..2・根の脚 4 本＝根 kT0..3（前左・前右・後左・後右）・胸の淵の目＝kChest。時計の冠（kCrown）は届いたモデルに無い
+KURA = [(r'^root$', 'kRoot'), (r'^(pelvis|spine)$', 'kBody'), (r'^(chest|core|pupil)$', 'kChest')]
+KURA_REST = {'kBody': 'pelvis', 'kChest': 'chest'}
+for _s in 'LR':
+    for _i in range(3):
+        for _j, _p in enumerate(('wingRoot', 'wingMid', 'wingTip')):
+            KURA.append((r'^%s%s%d$' % (_p, _s, _i), 'kW%s%d_%d' % (_s, _i, _j)))
+            KURA_REST['kW%s%d_%d' % (_s, _i, _j)] = '%s%s%d' % (_p, _s, _i)
+for _t, _l in enumerate(('FL', 'FR', 'BL', 'BR')):
+    for _j, _p in enumerate(('thigh', 'shin', 'foot')):
+        KURA.append((r'^%s%s$' % (_p, _l), 'kT%d_%d' % (_t, _j)))
+        KURA_REST['kT%d_%d' % (_t, _j)] = _p + _l
+
 # ───────────────────────── 材質 → 種類（charkit/shader/toon2.js の cloth／skin／metal／acc／glow／fur）・輪郭線の太さ
 def cls_of(mat, cfg):
     n = mat['name'].lower()
@@ -123,6 +158,23 @@ KINDS = {
                      anchors={'core': dict(mat=r'fissure', bone='sChest'), 'eyes': dict(mat=r'fissure', eyes=4, bone='sChest')}),
     'nekomata': dict(dir='nekomata', glb='nekomata_light.glb', map=NEKO, rest=NEKO_REST, straight=False, top=1.80, tris=(36000, 18000),
                      cls=[(r'sculpted fur', 'fur:0'), (r'coat', 'fur')], strands=(r'sculpted fur', 1100, 500), anchors={'eyes': dict(mat=r'lavender iris', eyes=2, bone='gHead')}),
+    # P20（2026-11-13 に届いた 7 体＋写し身の完成版）
+    'mamori': dict(dir='mamorite', glb='mamorite.glb', map=HUMAN_X, rest=HUMAN_REST, straight=True, top=2.2, tris=(12000, 6000),
+                   anchors={'eyeGlow': dict(mat=r'pale weathered skin', gb=r'^head$', front=0.2, eyes=2)}),
+    'kanja': dict(dir='unrecorded_patient', glb='unrecorded_patient.glb', map=HUMAN_X, rest=HUMAN_REST, straight=True, keep=('upperArmR', 'foreArmR', 'handR'), top=2.13, tris=(11000, 5500),
+                  skip=r'clear infusion', anchors={'weak': dict(mat=r'infusion liquid'), 'eyeGlow': dict(mat=r'ash pale skin', gb=r'^head$', front=0.2, eyes=2)}),
+    'utsushimi': dict(dir='utsushimi', glb='utsushimi.glb', map=HUMAN_X, rest=HUMAN_REST, straight=True, top=2.8, tris=(16000, 8000),
+                      cls=[(r'hair', 'hair')], anchors={'eyeGlow': dict(mat=r'eye glints', eyes=2), 'weak': dict(mat=r'recessed smile')}),
+    'touchoku': dict(dir='tochoku', glb='tochoku.glb', map=HUMAN_X, rest=HUMAN_REST, straight=True, top=2.25, tris=(18000, 9000),
+                     cls=[(r'forearm', 'skin')], anchors={'eyeGlow': dict(mat=r'worklamp', eyes=1), 'weak': dict(mat=r'red valve', bone='chest')}),
+    'kenkyusha': dict(dir='researcher', glb='researcher.glb', map=HUMAN_X, rest=HUMAN_REST, straight=True, top=None, tris=(18000, 9000),
+                      cls=[(r'hair', 'hair'), (r'^neck$', 'skin')]),
+    'spouse_like': dict(dir='spouse_apparition', glb='spouse_animated.glb', rename=VROID, map=HUMAN_X, rest=HUMAN_REST, straight=True, top=None, tris=(9000, 4500),
+                        cls=[(r'hair|chestnut', 'hair')]),
+    'nurikae': dict(dir='nurikae', glb='nurikae.glb', map=NURI, rest=NURI_REST, straight=False, top=2.45, tris=(32000, 16000), hide=['glow'],
+                    anchors={'core': dict(mat=r'boundary discharge', gb=r'^(core|chest)$', bone='nChest'), 'eyes': dict(mat=r'boundary discharge', gb=r'^lamp', eyes=3, bone='nHead')}),
+    'kuramono': dict(dir='boundary_eater', glb='boundary_eater.glb', map=KURA, rest=KURA_REST, straight=False, top=2.68, tris=(36000, 18000), hide=['glow'],
+                     anchors={'core': dict(mat=r'abyss pupil', gb=r'^(core|pupil)$', bone='kChest'), 'eyes': dict(mat=r'wing eyes', eyes=10, perBone=True)}),
 }
 
 
@@ -245,13 +297,27 @@ def bake_colors(o, mats):
     a.data.foreach_set('color', col.ravel())
 
 
+def rename_bones(arm, meshes, ren, raw):
+    """骨（と同じ名前の頂点の組・写した動きのこま）の名前を変える"""
+    for b in arm.data.bones:
+        if b.name in ren:
+            old = b.name
+            b.name = ren[old]
+            for o in meshes:
+                g = o.vertex_groups.get(old)
+                if g is not None:
+                    g.name = ren[old]
+    for clip in raw.values():
+        clip['frames'] = [{ren.get(k, k): v for k, v in fr.items()} for fr in clip['frames']]
+
+
 def chain_dirs(arm, name_a, name_b):
     import bpy  # noqa
     pa, pb = arm.pose.bones.get(name_a), arm.pose.bones.get(name_b)
     return pa, pb
 
 
-def straighten(arm, side_max=0.16):
+def straighten(arm, side_max=0.16, keep=()):
     """腕と脚：骨の向き（この関節 → 次の関節）を前後の成分を消した「まっすぐ下」へ（外への開きは side_max ラジアンまで残す）"""
     import bpy
     from mathutils import Matrix, Vector
@@ -267,7 +333,7 @@ def straighten(arm, side_max=0.16):
         chains += [('upperArm' + s, 'foreArm' + s, side_max), ('foreArm' + s, 'hand' + s, side_max), ('hand' + s, None, side_max),
                    ('thigh' + s, 'shin' + s, 0.07), ('shin' + s, 'foot' + s, 0.07)]
     for a, b, lim in chains:
-        if a not in P:
+        if a not in P or a in keep:                            # keep：届いた姿のまま残す腕（記録のない患者の右腕＝胸に記録の板を抱える）
             continue
         bpy.context.view_layer.update()
         h = P[a].head.copy()
@@ -527,8 +593,23 @@ def extract(o, cfg, mats, s, bone_map, groups):
     return parts, names
 
 
+def kmeans(Q, n, it=30):
+    """点を n 個のかたまりへ（翼の目・街灯）。始めは遠い点から選ぶ"""
+    C = [Q[np.argmax(Q[:, 1])]]
+    for _ in range(1, n):
+        d = np.min([((Q - c) ** 2).sum(1) for c in C], axis=0)
+        C.append(Q[np.argmax(d)])
+    C = np.array(C)
+    for _ in range(it):
+        lab = np.argmin(((Q[:, None, :] - C[None]) ** 2).sum(2), 1)
+        C = np.array([Q[lab == k].mean(0) if (lab == k).any() else C[k] for k in range(n)])
+    return C, lab
+
+
 def anchors_of(o_full, cfg, mats, s, bone_map, rest):
-    """目・弱点・核の位置（材質の点の真ん中・目は左右に分ける）。glb の全部の点（間引く前）で測る"""
+    """目・弱点・核の位置（材質の点の真ん中・目は左右に分ける）。glb の全部の点（間引く前）で測る。
+    P20：gb（glb の骨の名前：その骨の重みの多い点だけ）・front（前の割合だけ＝顔）・eyes が 3 以上（4 以外）は点を n 個のかたまりへ・
+    perBone（かたまりごとに骨を書く＝翼ごとの目）"""
     me = o_full.data
     out = {}
     co = np.zeros(len(me.vertices) * 3, np.float32)
@@ -539,6 +620,15 @@ def anchors_of(o_full, cfg, mats, s, bone_map, rest):
     me.polygons.foreach_get('material_index', mi)
     slot_names = [sl.material.name.lower() if sl.material else '' for sl in o_full.material_slots]
     gname = {g.index: g.name for g in o_full.vertex_groups}
+
+    def dom_bone(vs):
+        acc = {}
+        for vi in vs[::max(1, len(vs) // 400)]:
+            for g in me.vertices[int(vi)].groups:
+                gn = gname.get(g.group)
+                if gn in bone_map:
+                    acc[bone_map[gn]] = acc.get(bone_map[gn], 0) + g.weight
+        return max(acc, key=acc.get) if acc else None
     for key, a in cfg.get('anchors', {}).items():
         slots = [i for i, n in enumerate(slot_names) if re.search(a['mat'], n)]
         polys = np.where(np.isin(mi, slots))[0]
@@ -549,33 +639,45 @@ def anchors_of(o_full, cfg, mats, s, bone_map, rest):
         for pi in polys:
             vs.update(me.polygons[pi].vertices)
         vs = np.array(sorted(vs))
+        if a.get('gb'):                                        # その骨（glb の名前）の重みが多い点だけ
+            gi = {g.index for g in o_full.vertex_groups if re.search(a['gb'], g.name)}
+            k = np.array([sum(g.weight for g in me.vertices[int(v)].groups if g.group in gi) >= 0.4 for v in vs], bool)
+            if k.any():
+                vs = vs[k]
+            else:
+                print('  anchor', key, 'の骨の点が無い', a['gb'])
         Q = P[vs]
         if a.get('top'):                                       # 上の方（目と口が同じ材質の時：上の割合だけ）
             y0, y1 = Q[:, 1].min(), Q[:, 1].max()
             k = Q[:, 1] >= y1 - (y1 - y0) * a['top']
             vs, Q = vs[k], Q[k]
+        if a.get('front'):                                     # 前の方（顔：+Z の割合だけ）
+            z0, z1 = Q[:, 2].min(), Q[:, 2].max()
+            k = Q[:, 2] >= z1 - (z1 - z0) * a['front']
+            vs, Q = vs[k], Q[k]
         # 骨：指定が無ければ点の重みが一番多い骨
-        bone = a.get('bone')
-        if not bone:
-            acc = {}
-            for vi in vs[::max(1, len(vs) // 400)]:
-                for g in me.vertices[int(vi)].groups:
-                    gn = gname.get(g.group)
-                    if gn in bone_map:
-                        acc[bone_map[gn]] = acc.get(bone_map[gn], 0) + g.weight
-            bone = max(acc, key=acc.get) if acc else None
+        bone = a.get('bone') or dom_bone(vs)
+        bones = None
         n = a.get('eyes', 0)
-        if n >= 2 and n != 4:
-            L = Q[Q[:, 0] > 0.01]
-            R = Q[Q[:, 0] < -0.01]
+        if n == 2:
+            cx = Q[:, 0].mean() if a.get('front') else 0.0      # 顔（front）：傾いた頭（記録のない患者）は点の真ん中で左右に分ける
+            L = Q[Q[:, 0] > cx + 0.01]
+            R = Q[Q[:, 0] < cx - 0.01]
             pts = [L.mean(0) if len(L) else Q.mean(0), R.mean(0) if len(R) else Q.mean(0)]
         elif n == 4:                                           # 輪の上下左右（先触れの縁の輪）
             c = Q.mean(0)
             r = np.percentile(np.abs(Q[:, 0] - c[0]), 90)
             pts = [c + np.array([r * 0.8, 0, 0]), c - np.array([r * 0.8, 0, 0]), c + np.array([0, r * 0.8, 0]), c - np.array([0, r * 0.8, 0])]
+        elif n >= 3:
+            C, lab = kmeans(Q, n)
+            pts = list(C)
+            if a.get('perBone'):
+                bones = [dom_bone(vs[lab == k]) or bone for k in range(n)]
         else:
             pts = [Q.mean(0)]
         out[key] = {'bone': bone, 'p': [[round(float(x), 4) for x in p] for p in pts]}
+        if bones:
+            out[key]['bones'] = bones
     return out
 
 
@@ -598,8 +700,10 @@ def convert(kind, src, out, lods=('pc', 'low')):
     for o in meshes:
         bake_colors(o, mats)
     raw = sample_clips(arm) if cfg['straight'] else {}
+    if cfg.get('rename'):                                      # VRoid の骨の名前 → Codex の人型の名前（動きは元の名前で写した後）
+        rename_bones(arm, meshes, cfg['rename'], raw)
     if cfg['straight']:
-        straighten(arm)
+        straighten(arm, keep=cfg.get('keep', ()))
     straight_rot = {pb.name: rot3(pb) for pb in arm.pose.bones}
     clips = code_clips(raw, straight_rot, cfg['rest'], HUMAN_PARENT) if raw else {}
     # 骨の対応
@@ -627,7 +731,14 @@ def convert(kind, src, out, lods=('pc', 'low')):
     me.vertices.foreach_get('co', co)
     co = co.reshape(-1, 3)
     top, bottom = co[:, 2].max(), co[:, 2].min()
-    s = cfg['top'] / top
+    if bottom < -0.01 * top:                                    # 曲がった脚をまっすぐにして足が床の下へ出た時（守り手）：全体を上げて足もとを 0 へ
+        from mathutils import Matrix
+        me.transform(Matrix.Translation((0, 0, -bottom)))
+        me.update()
+        for k in head:
+            head[k].z -= bottom
+        top, bottom = top - bottom, 0.0
+    s = cfg['top'] / top if cfg.get('top') else 1.0             # top が無い時は届いた大きさ（m）のまま（人の大きさの研究者・配偶者に似た異形）
     rest = {}
     for cn, gn in cfg['rest'].items():
         for g in ([gn] if isinstance(gn, str) else gn):
@@ -680,12 +791,31 @@ def write_pack(kind, lod, parts, names, rest, anchors, cfg, out, src_tris, s, bo
                        'reference': '利用者が ChatGPT で作った原画（リポジトリには入れていない）', 'tris': int(src_tris)},
             'scale': round(float(s), 5), 'bones': names, 'classes': sorted({p['mat'] for p in prims}), 'tris': int(tri),
             'q': {'min': [round(float(x), 5) for x in lo], 'max': [round(float(x), 5) for x in hi]},
-            'rest': rest, 'anchors': anchors, 'hide': ['face'], 'clips': clips or {}, 'parts': prims}
+            'rest': rest, 'anchors': anchors, 'hide': ['face'] + list(cfg.get('hide', [])), 'clips': clips or {}, 'parts': prims}
     os.makedirs(out, exist_ok=True)
     path = os.path.join(out, kind + ('' if lod == 'pc' else '_low') + '.pack.json')
     json.dump(pack, open(path, 'w'), ensure_ascii=False, separators=(',', ':'))
     print('%s %s：%d → %d 三角形・%d 部品・%.0f KB' % (kind, lod, src_tris, tri, len(prims), os.path.getsize(path) / 1024), flush=True)
     return pack
+
+
+def update_manifest(out):
+    """manifest.json の entries を、置き場にある包み（KINDS の順・通常と _low）から作り直す（ほかの項目はそのまま）"""
+    path = os.path.join(out, 'manifest.json')
+    man = json.load(open(path, encoding='utf-8')) if os.path.exists(path) else {'spec': 'wakaba-enemypack-manifest/1'}
+    ent = []
+    for k in sorted(KINDS):
+        for lod in ('pc', 'low'):
+            f = k + ('' if lod == 'pc' else '_low') + '.pack.json'
+            fp = os.path.join(out, f)
+            if not os.path.exists(fp):
+                continue
+            pk = json.load(open(fp, encoding='utf-8'))
+            ent.append({'file': f, 'kind': k, 'lod': lod, 'tris': pk['tris'], 'bytes': os.path.getsize(fp), 'sourceModel': pk['source']['model'],
+                        'sourceTris': pk['source']['tris'], 'clips': sorted(pk.get('clips', {}).keys())})
+    man['entries'] = ent
+    json.dump(man, open(path, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    print('manifest：%d 件' % len(ent))
 
 
 def main():
@@ -699,6 +829,7 @@ def main():
         if a.only and k not in a.only.split(','):
             continue
         convert(k, a.src, a.out, tuple(a.lod.split(',')))
+    update_manifest(a.out)
 
 
 if __name__ == '__main__':

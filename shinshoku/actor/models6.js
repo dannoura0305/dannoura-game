@@ -93,9 +93,9 @@ export function buildNurikae() {
   // 胴からしたたる塗料
   for (let i = 0; i < 10; i++) { const a = r() * Math.PI * 2; drip(sb, [Math.sin(a) * 0.24, hb.y - 0.1 + r() * 0.4, hb.z + Math.cos(a) * 0.17], 0.18 + r() * 0.16, { w: 0.02, weights: rw('nBody') }); }
   const m = sb.build(null, { rim: 0.45, rimColor: 0xd070ff, outline: 0.012, outlineColor: 0x060408, flameAmp: 0.025, flameK: 1.3, classes: enemyPackClasses('nurikae') });
-  applyEnemyPack(m, 'nurikae');   // P18：Blender の体（垂れる塗料・コイルの光＝glowMesh はコードのまま）
+  applyEnemyPack(m, 'nurikae');   // P20：Codex のモデル（街灯 3 本・左腕の爪・右腕の電線の輪）。コードの垂れる塗料・コイルの光（glowMesh）は隠す（原画に無い）。P18 の包みは ?epack=p18
   m.update = dt => { if (m.mats.glow) m.mats.glow.userData.u.uTime.value += dt; };
-  return Object.assign(m, { provisional: true, kind: 'nurikae', height: 2.1, bodyR: 0.5, sway, eyes, core, legs, arms, tails, G: sb.B });
+  return placePackAnchors(Object.assign(m, { provisional: true, kind: 'nurikae', height: 2.1, bodyR: 0.5, sway, eyes, core, legs, arms, tails, G: sb.B }));
 }
 
 // ───────────────────────── 待人（まちびと） ─────────────────────────
@@ -196,9 +196,9 @@ export function buildTouchoku() {
     for (let i = 0; i < 7; i++) { g.beginPath(); g.moveTo(140, 34 + i * 13); g.lineTo(244, 34 + i * 13); g.stroke(); g.fillRect(142, 28 + i * 13, 6, 6); }
   });
   const m = sb.build(tex, { rim: 0.4, rimColor: 0x9ab0ff, outline: 0.012, outlineColor: 0x06060a, faceEmissive: 0x101014, flameAmp: 0.03, flameK: 1.0, classes: enemyPackClasses('touchoku') });
-  applyEnemyPack(m, 'touchoku');   // P18：Blender の体（計器の文字盤・点検表＝顔の札と蒸気＝glowMesh はコードのまま）
+  applyEnemyPack(m, 'touchoku');   // P20：Codex のモデル（圧力計の顔・作業灯・レンチ・点検表・背の配管と弁）。顔の札は隠し、蒸気（glowMesh）はコードのまま
   m.update = dt => { if (m.mats.glow) m.mats.glow.userData.u.uTime.value += dt; };
   const eyeGlow = glowEyes(m, m.J, [[0, R * 0.62 + R * 0.9, R * 1.3]]);
   const weak = new THREE.Object3D(); weak.position.set(0, 0.02, -0.26); sb.B.chest.add(weak);
-  return Object.assign(m, { height: 2.3, provisional: true, kind: 'touchoku', bodyR: 0.5, sway, eyeGlow, weak, weakColor: 0xd8e0ff });
+  return placePackAnchors(Object.assign(m, { height: 2.3, provisional: true, kind: 'touchoku', bodyR: 0.5, sway, eyeGlow, weak, weakColor: 0xd8e0ff }));
 }

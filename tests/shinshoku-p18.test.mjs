@@ -73,10 +73,10 @@ await t('読む時：序盤の 3 種は起動の 2 秒後・第4章からの 4 �
   const mn = read('shinshoku/main.js'), ep = read('shinshoku/actor/enemypack.js');
   assert.ok(/setTimeout\(\(\) => preloadEnemyPacks\(/.test(mn), '序盤の 3 種');
   assert.ok(/if \(this\.frame % 60 === 0\) this\.lazyEnemyPacks\(\);/.test(mn) && /lazyEnemyPacks\(\) \{/.test(mn));
-  assert.ok(/const LAZY_PACK_AREAS = \{ office: \['outou'\], lab: \['outou'\], oldwing: \['tsugihagi'\], atrium: \['tsugihagi'\], ruins: \['nurikae'\], avenue: \['nurikae'\], admin: \['touchoku'\] \}/.test(mn), 'ボスは区画に入った時に先に頼む');
+  assert.ok(/const LAZY_PACK_AREAS = \{ office: \['outou'\], lab: \['outou'\], oldwing: \['tsugihagi'\], atrium: \['tsugihagi'\], ruins: \['nurikae'\], avenue: \['nurikae'\], admin: \['touchoku'\][,\s]/.test(mn), 'ボスは区画に入った時に先に頼む');   // P20 で第3章・終章の区画を後ろに足した
   assert.ok(/export function requestEnemyPacks/.test(ep) && /!ASKED\[k\]/.test(ep));
   assert.deepEqual(EP.ENEMY_PACK_EARLY, ['kiro', 'heiten', 'shuuyou']);
-  assert.equal(EP.requestEnemyPacks(['civilian', 'kanja']), null, '包みの無い種類は頼まない');
+  assert.equal(EP.requestEnemyPacks(['civilian', 'child']), null, '包みの無い種類は頼まない');   // P20 で記録のない患者（kanja）は包みあり
   for (const [f, k] of [['models4.js', 'outou'], ['models5.js', 'tsugihagi'], ['models6.js', 'nurikae'], ['models6.js', 'touchoku']]) {
     const src = read('shinshoku/actor/' + f);
     assert.ok(src.includes(`classes: enemyPackClasses('${k}')`) && src.includes(`applyEnemyPack(m, '${k}')`), k);

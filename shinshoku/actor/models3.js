@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { SkinBody, DIM, faceAtlas, faceAtlasExpr, UVR, drawEye, drawBrow, drawMouth, drawNose, drawBlush } from './skin.js';
 import { humanBody, humanHead, hairCap, onHead, buildWeaponBones, glowEyes, xfm, CHAR_MODEL } from './models.js';
 import { buildDannouraWhiteV2 } from './heroes.js';
-import { applyEnemyPack, enemyPackClasses, placePackAnchors } from './enemypack.js';   // P19：模倣する影の体（Codex のモデル・写し身は差し替えない）
+import { applyEnemyPack, enemyPackClasses, placePackAnchors } from './enemypack.js';   // P19：模倣する影の体（Codex のモデル）・P20：記録のない患者・写し身・守り手
 /** だんのうら（白髪形態）：v2（既定）／?charModel=1 で前のモデル */
 export function buildDannouraWhite(opt = {}) { return CHAR_MODEL === 1 ? buildDannouraWhiteV1(opt) : buildDannouraWhiteV2(opt); }
 
@@ -217,10 +217,11 @@ export function buildKanja(seed = 1) {
       g.fillStyle = 'rgba(90,70,60,.18)'; g.beginPath(); g.ellipse(ox + 90, 220, 18, 10, 0.4, 0, 7); g.fill();   // 水のしみ
     }
   });
-  const m = sb.build(tex, { rim: 0.35, rimColor: 0xa0d0d0, outline: 0.01, outlineColor: 0x08080e, faceEmissive: 0x101010 });
+  const m = sb.build(tex, { rim: 0.35, rimColor: 0xa0d0d0, outline: 0.01, outlineColor: 0x08080e, faceEmissive: 0x101010, classes: enemyPackClasses('kanja') });
+  applyEnemyPack(m, 'kanja');   // P20：記録のない患者（Codex のモデル：点滴台は床に立つ・右腕に記録の板）。点滴の袋（弱点）・目は届いたモデルの位置へ
   const weak = new THREE.Object3D(); weak.position.set(0.03, 1.22, 0.08); m.J.leftHand.add(weak);
   const eyeGlow = glowEyes(m, m.J, [[R * 0.3, R * 0.95, R * 1.0], [-R * 0.3, R * 0.95, R * 1.0]]);
-  return Object.assign(m, { height: 1.8, provisional: true, kind: 'kanja', weak, bodyR: 0.32, weakColor: 0x9ff0f0, eyeGlow });
+  return placePackAnchors(Object.assign(m, { height: 1.8, provisional: true, kind: 'kanja', weak, bodyR: 0.32, weakColor: 0x9ff0f0, eyeGlow }));
 }
 
 // ───────────────────────── 模倣する影 ─────────────────────────
@@ -267,8 +268,9 @@ export function buildMimicShadow(opt = {}) {
     g.save(); g.translate(128, 48); g.strokeStyle = '#2a1830'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.moveTo(26, 16); g.quadraticCurveTo(64, 42, 102, 16); g.stroke(); g.restore();
     if (opt.boss) { g.save(); g.strokeStyle = 'rgba(240,236,250,.9)'; g.lineWidth = 3; g.strokeRect(20, 44, 88, 52); g.restore(); }
   });
-  const m = sb.build(tex, { rim: 0.9, rimColor: opt.rim || 0x9a5aff, outline: opt.boss ? 0.016 : 0.011, outlineColor: 0x05030a, faceEmissive: 0x302838, classes: opt.boss ? undefined : enemyPackClasses('mimic') });
-  if (!opt.boss) applyEnemyPack(m, 'mimic');                                   // P19：模倣者（Codex のモデル）。写し身（boss）は作りかけなので今の姿
+  const pk = opt.boss ? 'utsushimi' : 'mimic';
+  const m = sb.build(tex, { rim: 0.9, rimColor: opt.rim || 0x9a5aff, outline: opt.boss ? 0.016 : 0.011, outlineColor: 0x05030a, faceEmissive: 0x302838, classes: enemyPackClasses(pk) });
+  applyEnemyPack(m, pk);                                                        // P19：模倣者（Codex のモデル）・P20：写し身（2026-11-10 の完成版）
   m.mesh.castShadow = false;                                                    // 見分け方：影が無い
   const eyeGlow = glowEyes(m, m.J, [[R * 0.36, R * 0.82, R * 0.96], [-R * 0.36, R * 0.82, R * 0.96]]);
   const weak = new THREE.Object3D(); weak.position.set(0, R * 0.9, R * 0.9); m.J.head.add(weak);
@@ -306,7 +308,8 @@ export function buildMamori() {
   // 腕から垂れる白紙の帯（ゆらゆらしない・重さ）
   for (const [HA, LA] of [['leftHand', 'leftLowerArm'], ['rightHand', 'rightLowerArm']]) { const w = sb.W(LA); for (let i = 0; i < 4; i++) sb.card([w.x + (r() - 0.5) * 0.1, w.y - 0.15 - i * 0.08, w.z + 0.07], [0.09, 0.2], UVR(0, 128, 128, 256), { rot: [0.1, (r() - 0.5) * 1.2, (r() - 0.5) * 0.4], weights: sb.rigid(LA) }); void HA; }
   const tex = faceAtlas(g => { g.fillStyle = '#efeadc'; g.fillRect(0, 128, 128, 128); g.strokeStyle = 'rgba(80,100,120,.2)'; g.lineWidth = 2; for (let y = 150; y < 250; y += 12) { g.beginPath(); g.moveTo(10, y); g.lineTo(118, y); g.stroke(); } g.fillStyle = 'rgba(60,80,110,.35)'; g.font = '14px ' + JP; g.fillText('氏名：', 10, 144); });
-  const m = sb.build(tex, { rim: 0.45, rimColor: 0xc0e8e0, outline: 0.014, outlineColor: 0x08080e, faceEmissive: 0x101010 });
+  const m = sb.build(tex, { rim: 0.45, rimColor: 0xc0e8e0, outline: 0.014, outlineColor: 0x08080e, faceEmissive: 0x101010, classes: enemyPackClasses('mamori') });
+  applyEnemyPack(m, 'mamori');   // P20：守り手（Codex のモデル：毛布をかぶった大きな患者・大きく開いた掌）
   const eyeGlow = glowEyes(m, m.J, [[R * 0.3, R * 0.95, R * 1.0], [-R * 0.3, R * 0.95, R * 1.0]]);
-  return Object.assign(m, { height: 2.5, provisional: true, kind: 'mamori', bodyR: 0.6, eyeGlow });
+  return placePackAnchors(Object.assign(m, { height: 2.5, provisional: true, kind: 'mamori', bodyR: 0.6, eyeGlow }));
 }

@@ -9,6 +9,7 @@ import { buildDaughterV2 } from './heroes.js';
 import { CHAR_MODEL } from './models.js';
 import { SkinBody, DIM, faceAtlasExpr, drawEye, drawBrow, drawMouth, drawNose, drawBlush } from './skin.js';
 import { humanBody, humanHead, hairCap, onHead, torus, xfm, glowEyes } from './models.js';
+import { applyEnemyPack, enemyPackClasses, placePackAnchors } from './enemypack.js';   // P20：Codex のモデル（境界を喰らうもの・研究者・配偶者に似た異形）
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const rng = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
@@ -83,9 +84,10 @@ export function buildKuramono() {
   }
   // 根：淵へ垂れる紫の帯（光る）
   tendrils.forEach((nm, i) => { const P = nm.map(n => W(n)); P.push(P[P.length - 1].clone().add(V(0, -0.5, 0))); sb.strand(P.map(p => [p.x, p.y, p.z]), 0.05, { weights: chainW(sb, nm), segs: 10, sides: 5, taper: 0.9, flat: 0.3, group: 'glow', out: [0, 0, 1], color: (p, t) => lerpC(0xb040ff, 0x10001a, t) }); });
-  const m = sb.build(null, { rim: 0.6, rimColor: 0xd070ff, outline: 0.012, outlineColor: 0x060408, flameAmp: 0.03, flameK: 1.4 });
+  const m = sb.build(null, { rim: 0.6, rimColor: 0xd070ff, outline: 0.012, outlineColor: 0x060408, flameAmp: 0.03, flameK: 1.4, classes: enemyPackClasses('kuramono') });
+  applyEnemyPack(m, 'kuramono');   // P20：Codex のモデル（中央の黒い眼・6 枚の翼・根の脚 4 本）。コードの光（冠・根・目盛りの輪＝glowMesh）は隠す（原画に無い）
   m.update = dt => { if (m.mats.glow) m.mats.glow.userData.u.uTime.value += dt; };
-  return Object.assign(m, { provisional: true, kind: 'kuramono', height: 2.7, bodyR: 0.5, eyes, core, wings, tendrils, G: sb.B, sway: [] });
+  return placePackAnchors(Object.assign(m, { provisional: true, kind: 'kuramono', height: 2.7, bodyR: 0.5, eyes, core, wings, tendrils, G: sb.B, sway: [] }));
 }
 
 // ───────────────────────── 研究者（終章B・人の大きさ） ─────────────────────────
@@ -116,16 +118,18 @@ export function buildResearcher(opt = {}) {
   const rh = sb.W('rightHand'), rhw = sb.rigid('rightHand');
   sb.box([rh.x - 0.01, rh.y - 0.12, rh.z + 0.06], [0.02, 0.26, 0.19], { weights: rhw, color: 0x5a4a3a });
   sb.box([rh.x - 0.022, rh.y - 0.12, rh.z + 0.06], [0.004, 0.23, 0.16], { weights: rhw, color: 0xe8e4d8, oth: 0 });
-  const m = sb.build(null, { rim: 0.55, rimColor: 0xc080ff, outline: 0.009, outlineColor: 0x0a0812, flameAmp: 0.015, flameK: 1.0 });
+  const kind = opt.kind || 'kenkyusha';
+  const m = sb.build(null, { rim: 0.55, rimColor: 0xc080ff, outline: 0.009, outlineColor: 0x0a0812, flameAmp: 0.015, flameK: 1.0, classes: enemyPackClasses(kind) });
+  applyEnemyPack(m, kind);   // P20：Codex のモデル（研究者＝Blender 版／配偶者に似た異形＝spouse_animated）。顔の光（glowMesh）はコードのまま＝顔は見えない
   m.update = dt => { if (m.mats.glow) m.mats.glow.userData.u.uTime.value += dt; };
   const weak = new THREE.Object3D(); weak.position.set(0, 0.1, 0.12); sb.B.chest.add(weak);
-  return Object.assign(m, { height: 1.74, provisional: true, kind: 'kenkyusha', bodyR: 0.34, weak, weakColor: 0xd8a0ff });
+  return Object.assign(m, { height: 1.74, provisional: true, kind, bodyR: 0.34, weak, weakColor: 0xd8a0ff });
 }
 
 // ───────────────────────── 配偶者に似た異形（記録の光の人影） ─────────────────────────
 /** 戦わない。白衣のような長い上着の、淡い光の人影。顔は描かない（本人かどうかは決めない） */
 export function buildSpouseLike() {
-  const m = buildResearcher({ dim: true });
+  const m = buildResearcher({ dim: true, kind: 'spouse_like' });   // P20：体は配偶者に似た異形の包み（光の人影の材質で描く＝顔は描かない）
   const mat = new THREE.MeshBasicMaterial({ color: 0xd8e6ff, transparent: true, opacity: 0.42, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
   m.mesh.material = mat; m.mesh.castShadow = false; m.outline.visible = false; m.outline = null; if (m.glowMesh) m.glowMesh.visible = false; if (m.faceMesh) m.faceMesh.visible = false;
   m.mats.ghost = mat;

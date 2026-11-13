@@ -22,6 +22,7 @@ import { buildDannoura } from '../actor/models.js';
 import { stepDef, stepRoute, R7_STEPS, S7_STEPS } from '../story/chapters.js';
 import { EnemyActor } from '../actor/actors.js';
 import { accidentTex } from '../world/areas8.js';
+import { packPoseFn } from '../actor/enemypack.js';   // P20：届いたモデルの動き（研究者・配偶者に似た異形）
 
 const DT = 1 / 60;
 const CH7_AREAS = ['abyss', 'kiroku', 'epilogue'];
@@ -87,7 +88,7 @@ export const ch7Methods = {
       const r = this.enemyRes.kenkyusha, B = KIROKU.boss;
       const brain = new Kenkyusha({ id: B.id, pos: { x: B.pos[0], z: B.pos[1] }, yaw: 0, seed: 91, assist: !!this.assist7b, decks: 3 - (this.flags.decks7 || []).length, state: r ? 'kneel' : 'dormant' });
       if (r) brain.resolution = r;
-      const e = add(brain, buildResearcher()); e.poseFn = researcherPose; e.r = 0.42; e.h = 1.8; this.boss = r ? null : e;
+      const e = add(brain, buildResearcher()); e.poseFn = packPoseFn('kenkyusha', researcherPose, e.model); e.r = 0.42; e.h = 1.8; this.boss = r ? null : e;   // P20：届いたモデルの動き
       e.root.visible = true;
       if (s === 'ch7b_boss' && !r) brain.wake([]);
       return true;
@@ -320,7 +321,7 @@ export const ch7Methods = {
       case 'companionHide7': { const C = this.companion; C.root.visible = false; C.rootY = 0; C.anim = null; for (const e of this.enemies) if (/^roof7_/.test(e.id)) { e.root.visible = false; if (e.lampHalo != null) this.halos.setK(e.lampHalo, 0); } return true; }
       case 'spouseShow7': {
         this.flags.eyeOpen7 = true;
-        if (!this.enemies.some(x => x.kind === 'spouse_like')) { const add = (brain, model) => { const e = new EnemyActor(brain, model); this.enemies.push(e); this.scene.add(e.root); return e; }; const e = this.addProp7(add, 'spouse7', buildSpouseLike(), [7.6, -11.2], Math.atan2(0 - 7.6, -30 + 11.2), spousePose); e.kind = 'spouse_like'; e.brain.kind = 'spouse_like'; e.root.visible = true; }
+        if (!this.enemies.some(x => x.kind === 'spouse_like')) { const add = (brain, model) => { const e = new EnemyActor(brain, model); this.enemies.push(e); this.scene.add(e.root); return e; }; const sm = buildSpouseLike(), e = this.addProp7(add, 'spouse7', sm, [7.6, -11.2], Math.atan2(0 - 7.6, -30 + 11.2), packPoseFn('spouse_like', spousePose, sm)); e.kind = 'spouse_like'; e.brain.kind = 'spouse_like'; e.root.visible = true; }
         this.metrics.spouseSeen7 = (this.metrics.spouseSeen7 || 0) + 1; return true;
       }
       case 'finalHint7': this.flags.eyeOpen7 = false; this.hint('壊すためじゃない：中の人を引き上げるために、胸の淵の目を砕く（咆哮・崩しで開くと 2 倍）'); this.later(7, () => this.hint(null)); return true;
@@ -330,7 +331,7 @@ export const ch7Methods = {
         return true;
       }
       case 'researcherOut7': {
-        if (!this.enemies.some(x => x.id === 'researcher7')) { const add = (brain, model) => { const e = new EnemyActor(brain, model); this.enemies.push(e); this.scene.add(e.root); return e; }; const e = this.addProp7(add, 'researcher7', buildResearcher(), [0, 4.0], 0, researcherPose, 'kneel'); e.root.visible = true; }
+        if (!this.enemies.some(x => x.id === 'researcher7')) { const add = (brain, model) => { const e = new EnemyActor(brain, model); this.enemies.push(e); this.scene.add(e.root); return e; }; const rm = buildResearcher(), e = this.addProp7(add, 'researcher7', rm, [0, 4.0], 0, packPoseFn('kenkyusha', researcherPose, rm), 'kneel'); e.root.visible = true; }
         return true;
       }
       case 'spouseFade7': for (const x of this.enemies) if (x.kind === 'spouse_like') x.fade7 = true; return true;
@@ -349,7 +350,7 @@ export const ch7Methods = {
       case 'screensOff7': { const D = this.area.dyn; (D.screens || []).forEach((sc, i) => this.later(skip ? 0 : i * 0.18, () => { sc.material.color.setHex(0x101018); })); for (const h of this.area.halos) if (h.color === 0xff6a8a && h.idx >= 0) { h.off = true; } return true; }
       case 'spouseShow7b': {
         const D = this.area.dyn, sc = D.screens && D.screens[5]; if (sc) { sc.material.map = D.spouseTex || accidentTex(7, true); sc.material.color.setHex(0xffffff); sc.material.needsUpdate = true; }
-        if (!this.enemies.some(x => x.kind === 'spouse_like')) { const add = (brain, model) => { const e = new EnemyActor(brain, model); this.enemies.push(e); this.scene.add(e.root); return e; }; const S = KIROKU.spouseAt, B = KIROKU.boss.pos; const e = this.addProp7(add, 'spouse7', buildSpouseLike(), S, Math.atan2(B[0] - S[0], B[1] - S[1]), spousePose); e.kind = 'spouse_like'; e.brain.kind = 'spouse_like'; e.root.visible = true; }
+        if (!this.enemies.some(x => x.kind === 'spouse_like')) { const add = (brain, model) => { const e = new EnemyActor(brain, model); this.enemies.push(e); this.scene.add(e.root); return e; }; const S = KIROKU.spouseAt, B = KIROKU.boss.pos; const sm = buildSpouseLike(), e = this.addProp7(add, 'spouse7', sm, S, Math.atan2(B[0] - S[0], B[1] - S[1]), packPoseFn('spouse_like', spousePose, sm)); e.kind = 'spouse_like'; e.brain.kind = 'spouse_like'; e.root.visible = true; }
         this.metrics.spouseSeen7 = (this.metrics.spouseSeen7 || 0) + 1; return true;
       }
       case 'toEnding7': this.later(skip ? 0 : 0.4, () => this.toEnding7(arg)); return true;

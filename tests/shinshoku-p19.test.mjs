@@ -19,7 +19,7 @@ await t('包み 9 種 × PC／スマホ：v2・三角形の予算・大きさ・
   const man = J('shinshoku/assets/enemies/codex/manifest.json');
   assert.equal(man.license.id, 'own'); assert.ok(/ChatGPT/.test(man.license.reference) && /Codex/.test(man.license.model));
   assert.ok(!existsSync(new URL('incoming', root)), 'incoming/ は main に入れない');
-  assert.deepEqual([...EP.ENEMY_PACK_CODEX].sort(), [...KINDS].sort());
+  for (const k of KINDS) assert.ok(EP.ENEMY_PACK_CODEX.includes(k), k);   // P20 で 8 種を足した（tests/shinshoku-p20.test.mjs）
   for (const kind of KINDS) for (const low of [false, true]) {
     const f = `shinshoku/assets/enemies/codex/${kind}${low ? '_low' : ''}.pack.json`; assert.ok(existsSync(new URL(f, root)), f);
     const size = readFileSync(new URL(f, root)).length, pk = J(f);
@@ -86,18 +86,15 @@ await t('人型：腰の高さのずれ（packShift）・巨大猫又の胴（bo
   new GiantAnimator(g).update(1 / 60, { phase: 0, speed: 0, st: { name: 'free', f: 0 } }); assert.ok(Math.abs(g.G.gBody.position.y - g.bodyY) < 0.03, '猫又の胴が包みの高さ');
   const ts = BUILD.tsugihagi(); const def = (await import('../shinshoku/data/enemies.js')).ENEMIES.tsugihagi;
   new TsugiAnimator(ts).update(1 / 60, { brain: { state: 'loop', atk: null, def, parts: {} }, speed: 0, phase: 0 }); assert.ok(Math.abs(ts.G.tHip.position.y - ts.tHipY) < 0.05, '継接の腰');
-  const s = J('shinshoku/assets/enemies/codex/manifest.json');
-  assert.ok(s.notConverted.utsushimi);
   const src = read('shinshoku/main.js');
   assert.ok(/e\.poser\.hipsBase \+= d\.y/.test(src), '後で読めた時は Poser の腰の高さも足す');
   assert.ok(/applyEnemyPack\(G, 'nekomata'\)/.test(src) && /ks\.push\('nekomata'\)/.test(src), '巨大猫又は巨大な敵の区画で読む・後で当てる');
 });
 
-await t('写し身は差し替えない・模倣する影だけ／?epack=p18 は前の包み（無い種類は無し）・?epack=0 はコードの形', () => {
-  const u = M3.buildUtsushimi(); assert.ok(!u.packed, '写し身は今の姿'); assert.equal(u.kind, 'utsushimi');
+await t('?epack=p18 は前の包み（無い種類は無し）・?epack=0 はコードの形（P20：写し身・塗替・当直も Codex の包みへ＝tests/shinshoku-p20.test.mjs）', () => {
   assert.equal(EP.enemyPackPath('heiten', false), 'codex/heiten.pack.json'); assert.equal(EP.enemyPackPath('heiten', true), 'codex/heiten_low.pack.json');
   assert.equal(EP.enemyPackPath('heiten', false, true), 'heiten.pack.json'); assert.equal(EP.enemyPackPath('mimic', false, true), null);
-  assert.equal(EP.enemyPackPath('kiro', false), 'kiro.pack.json'); assert.equal(EP.enemyPackPath('nurikae', true), 'nurikae_low.pack.json');
+  assert.equal(EP.enemyPackPath('kiro', false), 'kiro.pack.json'); assert.equal(EP.enemyPackPath('nurikae', true, true), 'nurikae_low.pack.json');
   for (const k of ['kiro', 'heiten', 'shuuyou', 'outou', 'tsugihagi', 'nurikae', 'touchoku']) assert.ok(existsSync(new URL(`shinshoku/assets/enemies/${k}.pack.json`, root)), '前の包みを残す ' + k);
   const src = read('shinshoku/actor/enemypack.js'); assert.ok(/epack=0/.test(src) && /epack=p18/.test(src));
 });
