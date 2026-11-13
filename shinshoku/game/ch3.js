@@ -393,6 +393,12 @@ Object.assign(ch3Methods, {
     const v = new THREE.Vector3(); const on = F.white && !this.cut.active || (this.cut.active && F.white);
     ['rightHand', 'leftHand'].forEach((n, i) => { const j = P.model.J[n]; if (!j) return; j.getWorldPosition(v); this.halos.setPos(this.handHalos[i], v.x, v.y - 0.06, v.z); this.halos.setK(this.handHalos[i], on ? 0.3 + Math.sin(this.playSec * 7 + i) * 0.1 + (F.st.name === 'attack' ? 0.5 : 0) : 0); });
     if (on && Math.random() < 0.25) { const j = P.model.J[Math.random() < 0.5 ? 'rightHand' : 'leftHand']; j.getWorldPosition(v); this.fx.particle(v.x, v.y, v.z, (Math.random() - 0.5) * 0.2, 0.5, (Math.random() - 0.5) * 0.2, 0xb070ff, 0.5); }
+    // 2026-11-13：残像（瞬歩・妖爪の振りの判定の間）：体の節に薄い紫の粒を置いていく（粒は霧の共有の入れ物：描画呼び出しは増えない）。紫の姿には無い
+    const sn = F.st.name, fast = sn === 'dodge' || (sn === 'attack' && F.st.atk && F.st.f >= F.st.atk.startup - 1 && F.st.f <= F.st.atk.startup + F.st.atk.active);
+    if (on && dt > 0 && fast) {
+      this.ghostT = (this.ghostT || 0) - dt;
+      if (this.ghostT <= 0) { this.ghostT = 0.05; for (const n of GHOST_BONES) { const j = P.model.J[n]; if (!j) continue; j.getWorldPosition(v); this.fx.puff(v.x, v.y, v.z, 0, 0.04, 0, 0xc8a8ff, 0.24, 0.3); } this.metrics.ghosts = (this.metrics.ghosts || 0) + 1; }
+    } else this.ghostT = 0;
     if (this.decoy && this.decoyModel) { const M = this.decoyModel; M.root.visible = true; M.model.root.updateMatrixWorld(); }
   },
   /** 妖爪の軌跡：攻める手の手首 → 爪の先 */
@@ -411,5 +417,6 @@ Object.assign(ch3Methods, {
   },
 });
 
+const GHOST_BONES = ['head', 'chest', 'hips', 'leftLowerArm', 'rightLowerArm', 'leftLowerLeg', 'rightLowerLeg'];
 function fmtSec(s) { s = Math.round(s || 0); return `${Math.floor(s / 60)}分${String(s % 60).padStart(2, '0')}秒`; }
 export { ACT_LABEL, mimicPlan, HOSP, ITEMS };
