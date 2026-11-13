@@ -10,6 +10,7 @@
 // 塗替と当直は P18 の Blender の包みから Codex の包みへ（P18 の包みは ?epack=p18 用に残す）。
 // 前の姿へ戻す：?epack=p18（P17・P18 の Blender の包み・無い種類はコードの形）／?epack=0（全部コードの形）。
 import * as THREE from 'three';
+import { clipSchedule } from '../data/horror.js';
 
 const BASE = new URL('../assets/enemies/', import.meta.url);
 // P18：応答体（outou）・継接（tsugihagi）・塗替（nurikae）・当直（touchoku）を足した（tools/blender/enemy/designs_p18.py）。
@@ -247,8 +248,8 @@ export const PACK_CLIP_RULES = {
     { when: c => c.state === 'rollcall' && still(c), clip: 'idle', bones: ['spine', 'chest', 'neck', 'head'] }],
   shuusha: [{ when: c => (c.state === 'loop' || c.state === 'bell') && still(c), clip: 'idle', bones: ['spine', 'chest', 'neck', 'head', 'leftUpperArm', 'rightUpperArm'] }],
   mimic: [{ when: c => c.state === 'voice', clip: 'head_tilt', bones: ['neck', 'head'] }, { when: c => c.state === 'loop' && still(c), clip: 'idle', bones: ['spine', 'chest', 'neck', 'head'] }],
-  outou: [{ when: c => c.sub === 'answer' && still(c), clip: 'respond' }, { when: c => c.state === 'loop' && still(c), clip: c => (Math.floor((c.t || 0) / 8) % 2 ? 'acknowledge' : 'standby'), bones: ['spine', 'chest', 'neck', 'head'] }],
-  machibito: [{ when: c => c.state === 'loop' && still(c), clip: c => ['check_watch', 'look_around', 'wait'][Math.floor((c.t || 0) / 4) % 3] }, { when: c => c.state === 'sad' && still(c), clip: 'wait', bones: ['neck', 'head'] }],
+  outou: [{ when: c => c.sub === 'answer' && still(c), clip: 'respond' }, { when: c => c.state === 'loop' && still(c), clip: c => (sched(c, 2, 6, 11).idx ? 'acknowledge' : 'standby'), t: c => sched(c, 2, 6, 11).lt, bones: ['spine', 'chest', 'neck', 'head'] }],
+  machibito: [{ when: c => c.state === 'loop' && still(c), clip: c => ['check_watch', 'look_around', 'wait'][sched(c, 3).idx], t: c => sched(c, 3).lt, loop: false }, { when: c => c.state === 'sad' && still(c), clip: 'wait', bones: ['neck', 'head'] }],   // Q-horror 12：順番と長さ（3〜7 秒）を種で乱し、始めに 0.4 秒止まる（前は 4 秒ごとに決まった順）
   // P20：届いた 7 体と写し身の完成版（構えの動きは予兆の時間に合わせて 0〜2 秒の所まで＝動きの山の手前で止める）
   kanja: [{ when: c => c.state === 'assess', clip: 'search_record' }, { when: c => c.sub === 'ask' && still(c), clip: 'hold_record' },
     { when: c => (c.state === 'loop' || c.state === 'nurse') && still(c), clip: 'idle' }, { when: c => (c.state === 'loop' || c.state === 'nurse') && !c.atk && c.speed > 0.05 && c.speed < 2, clip: 'walk_in_place' }],
@@ -261,9 +262,11 @@ export const PACK_CLIP_RULES = {
     { when: c => c.state === 'round' && still(c), clip: 'restart' }, { when: c => c.state === 'loop' && still(c), clip: 'idle' },
     { when: c => c.state === 'loop' && !c.atk && c.speed > 0.05, clip: 'patrol', bones: ['head'] }],
   kenkyusha: [{ when: c => c.atk && c.atk.name === 'accident' && c.atk.phase === 'windup', clip: 'accident_replay', t: c => windupT(c, 2), loop: false },
-    { when: c => c.state === 'dormant', clip: c => (Math.floor((c.t || 0) / 8) % 2 ? 'record_check' : 'idle') }, { when: c => c.state === 'hostile' && still(c), clip: 'idle', bones: ['spine', 'chest', 'neck', 'head'] }],
-  spouse_like: [{ when: c => Math.floor((c.t || 0) / 8) % 2 === 1, clip: 'Look_back', t: c => Math.min((c.t || 0) % 8, 3.7), loop: false }, { when: () => true, clip: 'Wait' }],   // 静かに待つ・時々振り向く
+    { when: c => c.state === 'dormant', clip: c => (sched(c, 2, 6, 11).idx ? 'record_check' : 'idle'), t: c => sched(c, 2, 6, 11).lt }, { when: c => c.state === 'hostile' && still(c), clip: 'idle', bones: ['spine', 'chest', 'neck', 'head'] }],
+  spouse_like: [{ when: c => sched(c, 2, 6, 11).idx === 1, clip: 'Look_back', t: c => Math.min(sched(c, 2, 6, 11).lt, 3.7), loop: false }, { when: () => true, clip: 'Wait' }],   // 静かに待つ・時々振り向く
 };
+/** Q-horror 12：届いた動きの順番（種＝異形ごと・時刻＝その状態の時間）。data/horror.js clipSchedule */
+function sched(c, n, min = 3, max = 7) { return clipSchedule(c.time ?? c.t ?? 0, c.seed ?? 1, n, min, max, 0.4); }
 /** 構えの時間（予兆の割合）→ 動きの秒（0〜span 秒） */
 function windupT(c, span) { const A = c.atkDef || {}; return Math.min(span, (c.atk.t / (A.windup || 1)) * span); }
 /** e.poseFn を種類の決まりで包む（決まりの無い種類はそのまま） */

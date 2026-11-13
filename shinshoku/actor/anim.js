@@ -3,6 +3,9 @@
 // 歩き・走りは「足を地面に置く」ように、進んだ距離で位相を進める（phaseRate）。脚の振れ幅と歩幅を合わせて足が滑らない。
 import { locomotionIK, turnStep } from './anim8.js';
 import { dodgeTravel } from '../data/combat.js';
+import { twitch } from '../data/horror.js';
+// Q-horror 12：首は「止める → 急に傾ける」（twitch：異形ごとの種 ctx.seed・時刻 ctx.time）。前は一定の周期の sin でゆれ続けた
+const tw = (ctx, amp, a, b, snap) => twitch(ctx.time ?? ctx.t ?? 0, ctx.seed ?? 1, amp, a, b, snap);
 const S = Math.sin, C = Math.cos, lerp = (a, b, t) => a + (b - a) * t;
 // 姿勢の混ぜ・足し：骨の角度 [x,y,z]・hipsY（数）・hipsT（[x,0,z]）。「_」で始まる印（_exactLegs・_feet など）は混ぜない（混ぜた姿勢には付けない）
 export const mix = (A, B, t) => { const o = {}; for (const k of new Set([...Object.keys(A), ...Object.keys(B)])) { if (k[0] === '_') continue; if (k === 'hipsY') { o.hipsY = lerp(A.hipsY || 0, B.hipsY || 0, t); continue; } const a = A[k] || [0, 0, 0], b = B[k] || [0, 0, 0]; o[k] = [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)]; } return o; };
@@ -24,13 +27,20 @@ export function footfall(prev, cur) {
 }
 
 /** 歩き・走り（ph：位相、speed：m/s、opt.k：振れの倍率、opt.noArms） */
+/**
+ * Q-horror 4：異形の歩き（EnemyActor が姿勢の関数を呼ぶ間だけ planted＝true）：立脚の間（cos(q)≤0）の太ももを位相に比例して後ろへ送る
+ * （sin のままだと足の速さが立脚の真ん中で速く端で 0 になり、体の一定の進みと合わず 35% ほど必ず滑った）。振り出しは sin のまま。
+ */
+let PLANTED = false;
+export function withPlanted(fn) { const was = PLANTED; PLANTED = true; try { return fn(); } finally { PLANTED = was; } }
+const stanceTh = (q, A) => { let u = ((q - Math.PI / 2) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI); return u <= Math.PI ? -A + 2 * A * (u / Math.PI) : -A * S(q); };
 export function locomotion(ph, speed, opt = {}) {
   const run = speed > 3.2, A = strideAmp(speed) * (opt.k || 1) * Math.min(1, speed / 0.8);
-  const L = opt.legLen || 0.78, p = {};
+  const L = opt.legLen || 0.78, p = {}, planted = opt.planted ?? PLANTED;
   let drop = 0;
   for (const [side, off] of [['left', 0], ['right', Math.PI]]) {
-    const q = ph + off, th = -A * S(q), swing = C(q) > 0;
-    const knee = swing ? (run ? 1.55 : 0.95) * A * Math.pow(C(q), 1.2) : 0.06 + (run ? 0.25 : 0.06) * Math.max(0, -C(q)) * A;
+    const q = ph + off, swing = C(q) > 0, th = planted && !swing ? stanceTh(q, A) : -A * S(q);
+    const knee = swing ? (run ? 1.55 : 0.95) * A * Math.pow(C(q), 1.2) : 0.06 + (run ? 0.25 : 0.06) * (planted ? 0.64 : Math.max(0, -C(q))) * A;   // planted：立脚のひざは一定（足の速さを一定に）
     p[side + 'UpperLeg'] = [th - (run ? 0.12 : 0), 0, 0];
     p[side + 'LowerLeg'] = [knee, 0, 0];
     p[side + 'Foot'] = [-(th + knee) * 0.85 + (swing ? -0.2 * A : 0), 0, 0];
@@ -210,7 +220,7 @@ export function civilianPose(ctx) { return { pose: ctx.speed > 0.1 ? locomotion(
 export function kiroPose(ctx) {
   const { state, t, sub } = ctx;
   // 2026-11-07 怪異強化案：背中を丸め、首から前へ垂れる（設定画 docs/shinshoku/reference/kiro_sheet.webp の側面）
-  const hunch = { spine: [0.36, 0, 0], chest: [0.32, 0, 0], neck: [0.5, 0, 0.06], head: [-0.22, 0, 0.2 + 0.1 * S(t * 0.7)] };
+  const hunch = { spine: [0.36, 0, 0], chest: [0.32, 0, 0], neck: [0.5, 0, 0.06], head: [-0.22, 0, 0.2 + tw(ctx, 0.17)] };
   if (state === 'home') return { pose: { hipsY: -0.5, leftUpperLeg: [-1.5, 0, 0.1], rightUpperLeg: [-1.5, 0, -0.1], leftLowerLeg: [1.6, 0, 0], rightLowerLeg: [1.6, 0, 0], spine: [0.5, 0, 0], neck: [0.6, 0, 0], leftUpperArm: [-0.6, 0, 0], rightUpperArm: [-0.6, 0, 0], leftLowerArm: [-0.8, 0, 0], rightLowerArm: [-0.8, 0, 0] }, rate: 0.05 };
   if (state === 'hostile' && ctx.atk) {
     const a = ctx.atk; const w = a.phase === 'windup' ? ease(a.t / ctx.atkDef.windup) : 1;
@@ -225,7 +235,7 @@ export function kiroPose(ctx) {
   }
   if (state === 'stagger') return { pose: { spine: [-0.5, 0.3, 0], head: [-0.6, 0, 0.3], leftUpperArm: [-0.5, 0, 0.8], rightUpperArm: [0.2, 0, -0.9], hipsY: -0.06, leftUpperLeg: [0.3, 0, 0], rightUpperLeg: [-0.3, 0, 0], rightLowerLeg: [0.5, 0, 0] }, rate: 0.3 };
   if (state === 'loop' && sub === 'knock') return { pose: Object.assign(idle(t, 0.5), hunch, { rightUpperArm: [-1.45, 0, 0.1], rightLowerArm: [-0.5 - Math.max(0, S(t * 7.8)) * 0.7, 0, 0], leftUpperArm: [0.05, 0, 0.1] }), rate: 0.3 };
-  if (state === 'assess') return { pose: Object.assign({}, idle(t, 0.4), hunch, { head: [0.0, 0, 0.6 * S(t * 2)], neck: [0.1, 0, 0.25] }), rate: 0.1 };
+  if (state === 'assess') return { pose: Object.assign({}, idle(t, 0.4), hunch, { head: [0.0, 0, 0.35 + tw(ctx, 0.3, 0.35, 0.8, 0.08)], neck: [0.1, 0, 0.25] }), rate: 0.25 };   // 見定め：小刻みに首を傾けて止める
   if (state === 'family') return { pose: Object.assign(locomotion(ctx.phase, ctx.speed || 0, { k: 0.7 }), { spine: [0.1, 0, 0], head: [-0.1, 0, 0.1] }), rate: 0.4 };
   const sp = ctx.speed || 0;
   const loc = sp > 0.05 ? locomotion(ctx.phase, sp, { k: 0.75 }) : idle(t, 0.5);
@@ -263,7 +273,7 @@ export function heitenPose(ctx) {
 /** 収容者（避難所の個体）：重い足取り・点呼の構え・椅子の薙ぎ払い・突進・叩きつけ・毛布投げ・倒れる／座り込む */
 export function shuuyouPose(ctx) {
   const { state, t } = ctx;
-  const hunch = { spine: [0.42, 0, 0], chest: [0.2, 0, 0], neck: [-0.3, 0, 0], head: [-0.2, 0, 0.1 * S(t * 0.5)], leftUpperArm: [-0.15, 0, 0.35], rightUpperArm: [-0.15, 0, -0.35], leftLowerArm: [-0.3, 0, 0], rightLowerArm: [-0.3, 0, 0] };
+  const hunch = { spine: [0.42, 0, 0], chest: [0.2, 0, 0], neck: [-0.3, 0, 0], head: [-0.2, 0, tw(ctx, 0.12)], leftUpperArm: [-0.15, 0, 0.35], rightUpperArm: [-0.15, 0, -0.35], leftLowerArm: [-0.3, 0, 0], rightLowerArm: [-0.3, 0, 0] };
   if (state === 'rest' || state === 'dormant' || state === 'neutral') return { pose: { hipsY: -0.8, spine: [0.9, 0, 0], neck: [0.3, 0, 0], leftUpperLeg: [-1.5, 0, 0.3], rightUpperLeg: [-1.5, 0, -0.3], leftLowerLeg: [2.0, 0, 0], rightLowerLeg: [2.0, 0, 0], leftUpperArm: [-1.1, 0, 0.3], rightUpperArm: [-1.1, 0, -0.3], leftLowerArm: [-1.4, 0, 0], rightLowerArm: [-1.4, 0, 0] }, rate: 0.03 };
   if (state === 'down') return { pose: { hipsY: -0.55, spine: [0.8, 0, 0.2], head: [0.4, 0, 0.3], leftUpperLeg: [-1.3, 0, 0.2], rightUpperLeg: [-0.4, 0, -0.2], leftLowerLeg: [1.9, 0, 0], rightLowerLeg: [1.2, 0, 0], leftUpperArm: [-0.6, 0, 0.5], rightUpperArm: [-0.9, 0, -0.4] }, rate: 0.12 };
   if (state === 'stagger') return { pose: Object.assign({}, hunch, { spine: [-0.2, 0.4 * S(t * 7), 0], head: [-0.5, 0, 0.4], hipsY: -0.08 }), rate: 0.3 };
@@ -345,7 +355,7 @@ export function whitePose(ctx) {
 /** 記録のない患者：すり足・首をかしげる・点滴の柱（左手）。管で打つ（右手）・すがりつく（両手）・眠る（座り込む） */
 export function kanjaPose(ctx) {
   const { state, t } = ctx;
-  const lean = { spine: [0.2, 0, 0.05], neck: [0.2, 0, 0.35 + 0.1 * S(t * 0.6)], head: [0.1, 0, 0.25], leftUpperArm: [-0.25, 0, 0.12], leftLowerArm: [-1.1, 0, 0] };
+  const lean = { spine: [0.2, 0, 0.05], neck: [0.2, 0, 0.35 + tw(ctx, 0.17)], head: [0.1, 0, 0.25], leftUpperArm: [-0.25, 0, 0.12], leftLowerArm: [-1.1, 0, 0] };
   if (state === 'sleep') return { pose: { hipsY: -0.62, spine: [0.7, 0, 0.1], neck: [0.5, 0, 0.3], leftUpperLeg: [-1.5, 0, 0.2], rightUpperLeg: [-1.4, 0, -0.2], leftLowerLeg: [1.7, 0, 0], rightLowerLeg: [1.6, 0, 0], leftUpperArm: [-0.4, 0, 0.1], leftLowerArm: [-1.1, 0, 0], rightUpperArm: [-0.2, 0, -0.1] }, rate: 0.05 };
   if (state === 'hostile' && ctx.atk) {
     const a = ctx.atk; const w = a.phase === 'windup' ? ease(a.t / (ctx.atkDef.windup || 1)) : 1, act = a.phase !== 'windup';
@@ -353,7 +363,7 @@ export function kanjaPose(ctx) {
     return { pose: act ? Object.assign({}, lean, { spine: [0.35, -0.6, 0], rightUpperArm: [-1.4, 0, 0.8], rightLowerArm: [-0.1, 0, 0] }) : Object.assign({}, lean, { spine: [0.05, 0.6 * w, 0], rightUpperArm: [-1.3 * w, 0, -1.4 * w], rightLowerArm: [-0.9, 0, 0] }), rate: act ? 0.7 : 0.18 };
   }
   if (state === 'stagger') return { pose: Object.assign({}, lean, { spine: [-0.4, 0.3, 0], head: [-0.5, 0, 0.4] }), rate: 0.3 };
-  if (state === 'assess') return { pose: Object.assign({}, idle(t, 0.3), lean, { neck: [0.0, 0, 0.6 * S(t * 1.6)], head: [-0.2, 0, 0.5] }), rate: 0.08 };
+  if (state === 'assess') return { pose: Object.assign({}, idle(t, 0.3), lean, { neck: [0.0, 0, 0.3 + tw(ctx, 0.3, 0.35, 0.8, 0.08)], head: [-0.2, 0, 0.5] }), rate: 0.25 };
   if (state === 'nurse') return { pose: Object.assign(ctx.speed > 0.05 ? locomotion(ctx.phase, ctx.speed, { k: 0.5 }) : idle(t, 0.4), lean, { rightUpperArm: [-0.7, 0, -0.1], rightLowerArm: [-0.8, 0, 0] }), rate: 0.25 };
   if (ctx.sub === 'ask') return { pose: Object.assign(idle(t, 0.4), lean, { rightUpperArm: [-1.2, 0, -0.1], rightLowerArm: [-0.5 - S(t * 2.4) * 0.2, 0, 0], head: [0.3, 0, 0.5] }), rate: 0.12 };
   const sp = ctx.speed || 0;
@@ -363,7 +373,7 @@ export function kanjaPose(ctx) {
 /** 模倣する影・写し身：低く構えた人影。崩れる（化けが解ける）・写した攻め（連撃・突き・影の弾・つかみ・影の波） */
 export function mimicPose(ctx) {
   const { state, t } = ctx;
-  const crouch = { spine: [0.45, 0, 0], chest: [0.15, 0, 0], neck: [-0.3, 0, 0], head: [-0.15, 0, 0.15 * S(t * 1.3)], leftUpperArm: [-0.4, 0, 0.5], rightUpperArm: [-0.4, 0, -0.5], leftLowerArm: [-0.8, 0, 0], rightLowerArm: [-0.8, 0, 0], hipsY: -0.12, leftUpperLeg: [-0.4, 0, 0.12], rightUpperLeg: [-0.4, 0, -0.12], leftLowerLeg: [0.6, 0, 0], rightLowerLeg: [0.6, 0, 0] };
+  const crouch = { spine: [0.45, 0, 0], chest: [0.15, 0, 0], neck: [-0.3, 0, 0], head: [-0.15, 0, tw(ctx, 0.17, 1.2, 3)], leftUpperArm: [-0.4, 0, 0.5], rightUpperArm: [-0.4, 0, -0.5], leftLowerArm: [-0.8, 0, 0], rightLowerArm: [-0.8, 0, 0], hipsY: -0.12, leftUpperLeg: [-0.4, 0, 0.12], rightUpperLeg: [-0.4, 0, -0.12], leftLowerLeg: [0.6, 0, 0], rightLowerLeg: [0.6, 0, 0] };
   if (state === 'dormant' || state === 'rest' || state === 'tenki') return { pose: { hipsY: -0.5, spine: [0.9, 0, 0], neck: [0.5, 0, 0], head: [0.3, 0, 0], leftUpperLeg: [-1.4, 0, 0.3], rightUpperLeg: [-1.4, 0, -0.3], leftLowerLeg: [1.8, 0, 0], rightLowerLeg: [1.8, 0, 0], leftUpperArm: [-0.2, 0, 0.3], rightUpperArm: [-0.2, 0, -0.3] }, rate: state === 'tenki' ? 0.05 : 0.04 };
   if (state === 'reveal') return { pose: Object.assign({}, crouch, { spine: [0.2 + S(t * 14) * 0.3, S(t * 9) * 0.4, 0], head: [-0.6, S(t * 11) * 0.5, 0.4], leftUpperArm: [-2.2, 0, 1.0], rightUpperArm: [-2.0, 0, -1.1] }), rate: 0.4 };
   if (state === 'voice') return { pose: { spine: [-0.1, 0, 0], neck: [-0.3, 0, 0.2], head: [-0.2, 0.3 * S(t * 0.7), 0.2], leftUpperArm: [-0.9, 0, 0.3], rightUpperArm: [-0.9, 0, -0.3], leftLowerArm: [-1.4, 0, 0], rightLowerArm: [-1.4, 0, 0] }, rate: 0.06 };
@@ -382,13 +392,22 @@ export function mimicPose(ctx) {
     if (a.name === 'mwave') return { pose: act ? Object.assign({}, crouch, { spine: [-0.3, 0, 0], leftUpperArm: [-1.6, 0, 1.4], rightUpperArm: [-1.6, 0, -1.4], hipsY: 0.02 }) : Object.assign({}, crouch, { spine: [0.9 * w, 0, 0], hipsY: -0.35 * w, leftUpperArm: [0.2, 0, 0.2], rightUpperArm: [0.2, 0, -0.2] }), rate: act ? 0.7 : 0.12 };
   }
   const sp = ctx.speed || 0;
-  return { pose: Object.assign(sp > 0.05 ? locomotion(ctx.phase, sp, { k: 0.9 }) : idle(t, 0.8), crouch, sp > 0.05 ? { hipsY: -0.08 } : {}), rate: 0.35 };
+  // Q-horror 4：歩く時は構えの脚の角度を「足す」（前は上書きして脚が動かず、体だけ滑っていた）
+  if (sp > 0.05) return { pose: Object.assign(bendLegs(locomotion(ctx.phase, sp, { k: 0.9 }), 0.4, 0.6), upper(crouch), { hipsY: -0.08 - 0.04 }), rate: 0.35 };
+  return { pose: Object.assign(idle(t, 0.8), crouch), rate: 0.35 };
 }
+/** 歩きの脚に、ひざを曲げた構えを足す（太ももを前へ a・すねを後ろへ b・足首で戻す） */
+function bendLegs(loc, a, b) {
+  for (const side of ['left', 'right']) { const ul = loc[side + 'UpperLeg'] || [0, 0, 0], ll = loc[side + 'LowerLeg'] || [0, 0, 0], ft = loc[side + 'Foot'] || [0, 0, 0]; loc[side + 'UpperLeg'] = [ul[0] - a, ul[1], ul[2]]; loc[side + 'LowerLeg'] = [ll[0] + b, ll[1], ll[2]]; loc[side + 'Foot'] = [ft[0] - (b - a), ft[1], ft[2]]; }
+  return loc;
+}
+/** 脚と腰の高さを除いた構え（上半身だけ） */
+function upper(P) { const o = {}; for (const k of Object.keys(P)) if (!/Leg$|Foot$/.test(k) && k !== 'hipsY') o[k] = P[k]; return o; }
 
 /** 守り手：子どものベッドの前で腕を広げる（守る）・押し返す・影を払う・ひざをつく */
 export function mamoriPose(ctx) {
   const { state, t } = ctx;
-  const shield = { spine: [0.55, 0, 0], chest: [0.2, 0, 0], neck: [-0.35, 0, 0], head: [-0.1, 0, 0.18 + 0.08 * S(t * 0.5)], leftUpperArm: [-1.05, 0.25, 0.55], rightUpperArm: [-1.05, -0.25, -0.55], leftLowerArm: [-1.05, 0, 0], rightLowerArm: [-1.05, 0, 0], leftHand: [0.3, 0, 0], rightHand: [0.3, 0, 0], hipsY: -0.16, leftUpperLeg: [-0.45, 0, 0.18], rightUpperLeg: [-0.45, 0, -0.18], leftLowerLeg: [0.6, 0, 0], rightLowerLeg: [0.6, 0, 0] };
+  const shield = { spine: [0.55, 0, 0], chest: [0.2, 0, 0], neck: [-0.35, 0, 0], head: [-0.1, 0, 0.18 + tw(ctx, 0.08, 2.5, 5)], leftUpperArm: [-1.05, 0.25, 0.55], rightUpperArm: [-1.05, -0.25, -0.55], leftLowerArm: [-1.05, 0, 0], rightLowerArm: [-1.05, 0, 0], leftHand: [0.3, 0, 0], rightHand: [0.3, 0, 0], hipsY: -0.16, leftUpperLeg: [-0.45, 0, 0.18], rightUpperLeg: [-0.45, 0, -0.18], leftLowerLeg: [0.6, 0, 0], rightLowerLeg: [0.6, 0, 0] };
   if (state === 'rest') return { pose: { hipsY: -0.75, spine: [0.6, 0, 0], neck: [0.4, 0, 0], leftUpperLeg: [-1.6, 0, 0.2], rightUpperLeg: [-0.4, 0, -0.2], leftLowerLeg: [1.9, 0, 0], rightLowerLeg: [2.0, 0, 0], leftUpperArm: [-0.4, 0, 0.3], rightUpperArm: [-0.4, 0, -0.3], leftLowerArm: [-0.6, 0, 0], rightLowerArm: [-0.6, 0, 0] }, rate: 0.04 };
   if (ctx.atk) {
     const a = ctx.atk; const w = a.phase === 'windup' ? ease(a.t / (ctx.atkDef ? ctx.atkDef.windup : 1)) : 1, act = a.phase !== 'windup';
@@ -396,7 +415,8 @@ export function mamoriPose(ctx) {
     return { pose: act ? Object.assign({}, shield, { spine: [0.4, -1.0, 0], rightUpperArm: [-1.5, 0.4, 1.2], rightLowerArm: [-0.1, 0, 0] }) : Object.assign({}, shield, { spine: [0.2, 0.9 * w, 0], rightUpperArm: [-1.2, 0, -1.6 * w], rightLowerArm: [-0.6, 0, 0] }), rate: act ? 0.75 : 0.2 };
   }
   const sp = ctx.speed || 0;
-  return { pose: Object.assign(sp > 0.05 ? locomotion(ctx.phase, sp, { k: 0.6, legLen: 1.0 }) : idle(t, 1.2), shield), rate: 0.25 };
+  if (sp > 0.05) return { pose: Object.assign(bendLegs(locomotion(ctx.phase, sp, { k: 0.6, legLen: 1.0 }), 0.45, 0.6), upper(shield), { hipsY: -0.16 }), rate: 0.25 };   // Q-horror 4：脚は足す（前は上書きで滑った）
+  return { pose: Object.assign(idle(t, 1.2), shield), rate: 0.25 };
 }
 
 /** 子ども：ベッドに座る・（相棒）と手をつないで歩く・おびえる */

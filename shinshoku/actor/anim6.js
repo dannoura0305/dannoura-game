@@ -1,6 +1,7 @@
 // フェーズ7 の手続きアニメ：塗替（骨を直接回す）・当直／待人（人型の姿勢＝Poser）。
 import { locomotion, idle, ease } from './anim.js';
 import { Sway } from './actors.js';
+import { twitch } from '../data/horror.js';
 const S = Math.sin, C = Math.cos;
 
 /** 塗替：脚の歩き（電柱の脚がぎこちなく）・電線の腕の揺れ・攻めの姿勢（薙ぎ＝腕を払う／光線＝冠を向けて反る／雨＝腕を上げて振る／塗り替え＝前へ伸ばす）・崩れ */
@@ -64,6 +65,6 @@ export function machibitoPose(ctx) {
   if (state === 'stagger' || state === 'down') return { pose: Object.assign({}, thin, { spine: [-0.35, 0.3, 0], head: [-0.4, 0, 0.3], hipsY: state === 'down' ? -0.4 : -0.06 }), rate: 0.3 };
   const sp = ctx.speed || 0;
   if (state === 'sad') return { pose: Object.assign(sp > 0.05 ? locomotion(ctx.phase, sp, { k: 0.5 }) : idle(t, 0.3), { spine: [0.3, 0, 0], neck: [0.5, 0, 0], head: [0.2, 0, 0], leftUpperArm: [0.05, 0, 0.05], rightUpperArm: [0.05, 0, -0.05] }), rate: 0.25 };
-  if (state === 'loop' && sp < 0.1) return { pose: Object.assign(idle(t, 0.4), thin, { leftUpperArm: [-1.0, 0.2, 0.25], leftLowerArm: [-1.5, 0, 0], neck: [0.35, 0, 0], head: [0.25, 0, 0], rightUpperArm: [0.05, 0, -0.08] }), rate: 0.1 };
+  if (state === 'loop' && sp < 0.1) return { pose: Object.assign(idle(t, 0.4), thin, { leftUpperArm: [-1.0, 0.2, 0.25], leftLowerArm: [-1.5, 0, 0], neck: [0.35, 0, 0], head: [0.25, 0, twitch(ctx.time ?? t, ctx.seed ?? 1, 0.17)], rightUpperArm: [0.05, 0, -0.08] }), rate: 0.1 };   // Q-horror 12：首は止める → 急に傾ける
   return { pose: Object.assign(sp > 0.05 ? locomotion(ctx.phase, sp, { k: 0.6 }) : idle(t, 0.4), thin), rate: 0.3 };
 }

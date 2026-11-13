@@ -3,7 +3,7 @@
 // 手続きアニメの上に重ねる層：まばたき・ポニーテールと燕尾のばね・当たった時のひるみ（体のねじれ）・当たった光・黒い霧への崩れ。
 import * as THREE from 'three';
 import { Poser } from './rig.js';
-import { dannouraPose, kiroPose, heitenPose, shuuyouPose, companionPose, civilianPose, rollAt, phaseRate, footfall } from './anim.js';
+import { dannouraPose, kiroPose, heitenPose, shuuyouPose, companionPose, civilianPose, rollAt, phaseRate, footfall, withPlanted } from './anim.js';
 import { attachRigidWeapons } from './models.js';
 import { heroPhaseRate, plantFeet, legDims } from './anim8.js';
 import { LocoDriver } from '../../charkit/anim/locodriver.js';
@@ -14,10 +14,17 @@ import { Fighter } from '../combat/fighter.js';
 import { Sheath } from '../combat/sheath.js';
 import { COMBAT } from '../data/combat.js';
 import { resolveCircle } from '../world/collide.js';
+import { collapsePose, COLLAPSE_KINDS, calibratePhaseRate, hash32, stopGo, APPROACH, rng } from '../data/horror.js';
+// Q-horror 14：予兆の最初の 0.1 秒は止まり（前の形のまま）、そのあと後ろへ反る人型の異形
+const TELE_BODY = ['kiro', 'heiten', 'kanja', 'mimic', 'utsushimi', 'machibito', 'shuusha', 'touchoku', 'mamori', 'outou', 'shuuyou'];
 
 const DT = 1 / 60;
 const angWrap = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
 export const turnTo = (cur, want, rate) => cur + angWrap(want - cur) * Math.min(1, rate);
+/** 脚の長さ（太もも・すね：m。骨の世界の位置の間の距離。測れない時は 0.42・0.42） */
+function legLengths(J) {
+  try { const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(); J.leftUpperLeg.getWorldPosition(a); J.leftLowerLeg.getWorldPosition(b); J.leftFoot.getWorldPosition(c); const l1 = a.distanceTo(b), l2 = b.distanceTo(c); return l1 > 0.1 && l2 > 0.1 ? [l1, l2] : [0.42, 0.42]; } catch (e) { return [0.42, 0.42]; }
+}
 const HIDE = 1e-4;
 
 const _lv1 = new THREE.Vector3(), _lv2 = new THREE.Vector3(), _lq = new THREE.Quaternion(), _lq2 = new THREE.Quaternion(), _le = new THREE.Euler();
@@ -354,8 +361,27 @@ export class EnemyActor {
     this.root.position.set(brain.pos.x, 0, brain.pos.z);
     this.outlineBase = model.mats && model.mats.outline ? model.mats.outline.color.getHex() : 0;
     this.sway = new Sway(model.sway || []);
+    this.seed = hash32(brain.id || 'e'); this.apRand = rng(this.seed ^ 0xA77);   // Q-horror 12・13：異形ごとの種（首の傾き・止まって動く間）
   }
   get pos() { return this.brain.pos; }
+  /**
+   * Q-horror 4：足の滑らない位相の速さ（ラジアン/m）。今の姿勢の関数の脚の角度から、立脚の間の足の動きと体の進みが釣り合う速さを測る
+   * （状態・速さ 0.2m/s ごとに 1 回だけ測って覚える）。前は全員 phaseRate（振れの倍率 k・曲げたひざを数えない）で、足が 35〜100% 滑った。
+   */
+  gaitRate(sp) {
+    const legLen = this.kind === 'heiten' || this.kind === 'shuuyou' ? 0.95 : 0.85, def = phaseRate(sp, legLen);
+    if (sp < 0.05) return def;
+    const b = this.brain, fn = this.poseFn || (this.kind === 'heiten' ? heitenPose : this.kind === 'shuuyou' ? shuuyouPose : kiroPose);
+    const key = (b.state || '') + '|' + (b.sub || '') + '|' + Math.round(sp * 5) + '|' + (this.model.packed ? 1 : 0), C = this._gait || (this._gait = new Map());
+    if (C.has(key)) return C.get(key) ?? def;
+    let r = null;
+    try {
+      const J = this.model.J, pk = !!this.model.packed; if (!this.legLens || this.legLensP !== pk) { this.legLens = legLengths(J); this.legLensP = pk; } const L = this.legLens;
+      const ctx = { state: b.state, t: b.t || 0, sub: b.sub, speed: sp, atk: null, atkDef: null, time: 0, seed: this.seed };
+      r = withPlanted(() => calibratePhaseRate(ph => (fn(Object.assign(ctx, { phase: ph })).pose || {}), L[0], L[1]));
+    } catch (e) { r = null; }
+    C.set(key, r); return r ?? def;
+  }
   hittable() { const b = this.brain; return b.alive && !b.immune() && this.root.visible; }
   /** 60Hz のステップ（dt は世界の時間） */
   step(dt, sense, boxes, player) {
@@ -363,6 +389,13 @@ export class EnemyActor {
     b.tickPoise(dt, COMBAT.poise);
     const out = b.update(dt, sense);
     let moved = 0;
+    // Q-horror 13：止まって動く（間合いの外だけ・攻撃の予兆と数値は変えない）／模倣する影は画面の外にいる時だけ速い
+    if (out.move && !this.held && b.state === 'hostile' && !b.atk && sense && sense.player) {
+      const dp = Math.hypot(sense.player.x - b.pos.x, sense.player.z - b.pos.z);
+      const ap = APPROACH[this.kind];
+      if (ap && dp > 3.0) { if (!stopGo(this.apSt || (this.apSt = {}), dt, ap, this.apRand)) out.move = null; } else if (this.apSt) this.apSt.mode = null;
+      if (out.move && this.kind === 'mimic' && sense.inView === false && dp > 3.0) out.move = Object.assign({}, out.move, { speed: out.move.speed * 1.4 });
+    }
     if (out.move && !this.held) {
       const dx = out.move.x - b.pos.x, dz = out.move.z - b.pos.z, L = Math.hypot(dx, dz);
       if (L > 1e-4) {
@@ -379,16 +412,28 @@ export class EnemyActor {
       }
     }
     this.speed = dt > 0 ? moved / dt : 0;
-    this.phase += moved * phaseRate(this.speed, this.kind === 'heiten' || this.kind === 'shuuyou' ? 0.95 : 0.85);
+    this.phase += moved * this.gaitRate(this.speed);
     if (out.face) b.yaw = turnTo(b.yaw, Math.atan2(out.face.x - b.pos.x, out.face.z - b.pos.z), (out.faceRate || 6) * Math.max(dt, 1e-4) * 1.4);
     return out;
   }
   animate(dt) {
     const b = this.brain; this.time += dt;
-    const ctx = { state: b.state, t: b.t, sub: b.sub, speed: this.speed, phase: this.phase, atk: b.atk, atkDef: b.atk ? b.def.attacks[b.atk.name] : null, atStation: b.atStation, step: b.step && b.step.id, stepT: b.stepT };
+    const ctx = { state: b.state, t: b.t, sub: b.sub, speed: this.speed, phase: this.phase, atk: b.atk, atkDef: b.atk ? b.def.attacks[b.atk.name] : null, atStation: b.atStation, step: b.step && b.step.id, stepT: b.stepT, time: this.time, seed: this.seed };
     const fn = this.poseFn || (this.kind === 'heiten' ? heitenPose : this.kind === 'shuuyou' ? shuuyouPose : kiroPose);
-    const { pose, rate } = fn(ctx);
-    this.poser.apply(pose, 1 - Math.pow(1 - rate, dt * 60));
+    let { pose, rate } = withPlanted(() => fn(ctx));                // Q-horror 4：立脚の脚を位相に比例して送る（anim.js locomotion）
+    // Q-horror 3：倒れ方（ひざが抜ける → 前へ崩れて手をつく → 間 → 指が 1 回）。前は立ったまま霧になった
+    if (b.state === 'dead' && COLLAPSE_KINDS.includes(this.kind) && !this.noCollapse) { this.deadT = (this.deadT || 0) + dt; ({ pose, rate } = collapsePose(this.deadT, this.kind)); }
+    else this.deadT = 0;
+    // Q-horror 14：予兆は体で：最初の 0.1 秒は止まる（前の形のまま）→ 後ろへ反る
+    let freeze = false;
+    if (b.atk && b.atk.phase === 'windup' && TELE_BODY.includes(this.kind)) {
+      const W = (ctx.atkDef && ctx.atkDef.windup) || 1, w = Math.min(1, b.atk.t / W);
+      if (b.atk.t < 0.1) freeze = true;
+      else { pose = Object.assign({}, pose); const sp0 = pose.spine || [0, 0, 0]; pose.spine = [sp0[0] - 0.14 * Math.sin(Math.PI * w), sp0[1], sp0[2]]; }
+    }
+    // Q-horror 10：首だけ振り向く（序章の帰路）
+    if (this.headTurn) { pose = Object.assign({}, pose); const n = pose.neck || [0, 0, 0], h = pose.head || [0, 0, 0]; pose.neck = [n[0], n[1] + this.headTurn * 0.45, n[2]]; pose.head = [h[0], h[1] + this.headTurn * 0.55, h[2]]; }
+    if (!freeze) this.poser.apply(pose, 1 - Math.pow(1 - rate, dt * 60));
     this.root.position.set(b.pos.x, this.y, b.pos.z); this.root.rotation.y = b.yaw;
     this.looks.tickFlinch(dt, this.model.J);
     this.sway.step(dt, this.time, this.speed, 0, b.atk && b.atk.phase === 'active' ? 0.5 : 0);
