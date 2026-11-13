@@ -576,9 +576,11 @@ class Game {
     e.root.visible = true;
     if (e.brain && typeof e.brain.cool === 'number') e.brain.cool = Math.max(e.brain.cool, 4);   // 着いてすぐは攻めない（見る時間）
     if (!m.giant && !this.giantMode) {
-      const P = this.player, ex = e.brain.pos.x, ez = e.brain.pos.z; let dx = P.pos.x - ex, dz = P.pos.z - ez; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
-      const r = Math.max(3.2, (e.r || 0.5) + 2.6); P.pos.set(ex + dx * r, 0, ez + dz * r);
-      P.yaw = Math.atan2(ex - P.pos.x, ez - P.pos.z); this.cam.yaw = P.yaw + Math.PI; P.prevYaw = null;
+      // 敵の向いている側（歩く道＝開けた所）に立つ＝敵の正面が見える。カメラは斜め後ろから（体で敵を隠さない）
+      const P = this.player, ex = e.brain.pos.x, ez = e.brain.pos.z, ry = e.root.rotation.y; let dx = Math.sin(ry), dz = Math.cos(ry);
+      if (!isFinite(dx) || Math.hypot(dx, dz) < 0.5) { dx = P.pos.x - ex; dz = P.pos.z - ez; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d; }
+      const r = Math.max(3.6, (e.r || 0.5) + 3.0); P.pos.set(ex + dx * r, 0, ez + dz * r);
+      P.yaw = Math.atan2(ex - P.pos.x, ez - P.pos.z); this.cam.yaw = P.yaw + Math.PI + 0.6; P.prevYaw = null;
       const sp = P.model && P.model.springs; if (sp && sp.reset) { P.root.position.copy(P.pos); P.root.rotation.y = P.yaw; P.root.updateMatrixWorld(true); sp.reset(); }
     }
     this.ui.toast(`テストプレイ：${m.title}`, '', 2);
