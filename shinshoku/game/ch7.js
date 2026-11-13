@@ -88,7 +88,7 @@ export const ch7Methods = {
       const r = this.enemyRes.kenkyusha, B = KIROKU.boss;
       const brain = new Kenkyusha({ id: B.id, pos: { x: B.pos[0], z: B.pos[1] }, yaw: 0, seed: 91, assist: !!this.assist7b, decks: 3 - (this.flags.decks7 || []).length, state: r ? 'kneel' : 'dormant' });
       if (r) brain.resolution = r;
-      const e = add(brain, buildResearcher()); e.poseFn = packPoseFn('kenkyusha', researcherPose, e.model);   // P20：届いたモデルの動き e.r = 0.42; e.h = 1.8; this.boss = r ? null : e;
+      const e = add(brain, buildResearcher()); e.poseFn = packPoseFn('kenkyusha', researcherPose, e.model); e.r = 0.42; e.h = 1.8; this.boss = r ? null : e;   // P20：届いたモデルの動き
       e.root.visible = true;
       if (s === 'ch7b_boss' && !r) brain.wake([]);
       return true;
