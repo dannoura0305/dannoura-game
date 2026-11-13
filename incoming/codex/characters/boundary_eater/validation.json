@@ -1,0 +1,53 @@
+{
+  "reimport_ok": true,
+  "bones": 36,
+  "finite_vertices": true,
+  "unweighted_vertices": 0,
+  "max_weight_sum_error": 2.9802322387695312e-08,
+  "cast_engine_tested": false,
+  "gameplay_implemented": false,
+  "game_effects": false,
+  "root_motion": false,
+  "glb_animations": [
+    "abyss_gaze",
+    "devour",
+    "idle",
+    "wing_sweep"
+  ],
+  "embedded_images": 8,
+  "emissive_materials": [
+    "Faint violet core rim"
+  ],
+  "height_m": 11.999999606540428,
+  "ground_clearance_m": 3.9345957247860497e-07,
+  "animation_displacement_m": {
+    "idle": 0.24686753155707788,
+    "wing_sweep": 2.3338153283099077,
+    "devour": 9.621089085009764,
+    "abyss_gaze": 0.10525462719814242
+  },
+  "loop_error_m": {
+    "idle": 0.0,
+    "wing_sweep": 0.0,
+    "devour": 0.0,
+    "abyss_gaze": 0.0
+  },
+  "minimum_z_m": {
+    "idle": -7.26622829461121e-07,
+    "wing_sweep": -7.26622829461121e-07,
+    "devour": -7.26622829461121e-07,
+    "abyss_gaze": -7.26622829461121e-07
+  },
+  "wing_joint_gap_m": {
+    "idle": 3.480115074394941e-06,
+    "wing_sweep": 3.6708913064391187e-06,
+    "devour": 3.1719528903126884e-06,
+    "abyss_gaze": 3.4714269110109892e-06
+  },
+  "rest_pose_error_m": {
+    "idle": 5.1577824718437046e-06,
+    "wing_sweep": 5.1577824718437046e-06,
+    "devour": 5.1577824718437046e-06,
+    "abyss_gaze": 5.1577824718437046e-06
+  }
+}

@@ -8,7 +8,7 @@ def board(name,items,w,h):
     for i,(label,file) in enumerate(items):
         d.text((i*w+18,13),label,font=font,fill='white');im=ImageOps.contain(Image.open(out/file).convert('RGB'),(w,h),Image.Resampling.LANCZOS);b.paste(im,(i*w+(w-im.width)//2,65+(h-im.height)//2))
     b.save(out/name)
-board('preview.png',[('写し身（うつしみ）・ボス初版','glb_preview.png'),('眼鏡・帽子・花飾り・笑み','face.png')],700,850)
+board('preview.png',[('写し身（うつしみ）・ボス初版','glb_preview.png'),('眼鏡・帽子・花飾り・笑み','glb_face.png')],700,850)
 board('three_views.png',[('正面','front.png'),('側面','side.png'),('背面','back.png')],600,800)
 board('details.png',[('頭部と長い髪','face.png'),('縞模様と紫の衣装','torso.png'),('長い五本指','hand.png')],650,700)
 board('motions.png',[('模倣の構え','mimic_pose.png'),('前方へ手を伸ばす踏み込み','reaching_lunge.png'),('首を傾ける','head_tilt.png')],700,650)

@@ -1,0 +1,42 @@
+{
+  "reimport_ok": true,
+  "bones": 29,
+  "finite_vertices": true,
+  "unweighted_vertices": 0,
+  "max_weight_sum_error": 2.9802322387695312e-08,
+  "cast_engine_tested": false,
+  "combat_logic_implemented": false,
+  "cloth_physics": false,
+  "root_motion": false,
+  "glb_animations": [
+    "idle",
+    "protect_ground",
+    "push_back",
+    "recoil"
+  ],
+  "embedded_images": 10,
+  "height_m": 1.9420464491704479,
+  "ground_clearance_m": 0.0009997630259022117,
+  "animation_displacement_m": {
+    "idle": 0.007964175270677302,
+    "push_back": 0.23307383494544767,
+    "protect_ground": 1.3663206559148342,
+    "recoil": 0.21600345030582527
+  },
+  "loop_error_m": {
+    "idle": 0.0,
+    "push_back": 0.0,
+    "protect_ground": 0.0,
+    "recoil": 0.0
+  },
+  "minimum_z_m": {
+    "idle": 0.0009997697779908776,
+    "push_back": 0.0009997974848374724,
+    "protect_ground": 0.0009997880551964045,
+    "recoil": 0.0009997974848374724
+  },
+  "idle_wrist_gap_m": 2.1490760299348766e-07,
+  "push_back_wrist_gap_m": 2.6656007498500226e-07,
+  "protect_ground_wrist_gap_m": 1.8907453925087333e-07,
+  "recoil_wrist_gap_m": 1.884864366154897e-07
+}

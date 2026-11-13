@@ -86,7 +86,15 @@ angular_tube('Long folded neck',[(0,0,2.48),(.008,.005,2.59),(0,0,2.77)],[.07,.0
 
 # An elongated, planar mask; facial details are placed against its actual surface.
 HEADSTART=len(ASSETS)
-head=torso('Pointed smiling mask',[(2.67,.008,.019,-.015),(2.72,.051,.06,-.005),(2.80,.091,.088,0),(2.90,.105,.099,0),(2.99,.092,.083,.006),(3.055,.025,.029,.01)],SKIN,['head'])
+head_sections=[(2.67,.008,.019,-.015),(2.72,.051,.06,-.005),(2.80,.091,.088,0),(2.90,.105,.099,0),(2.99,.092,.083,.006),(3.055,.025,.029,.01)]
+vs=[];fs=[];uv=[];N=32
+for i,(z,rx,ry,cy) in enumerate(head_sections):
+    for j in range(N):
+        a=math.tau*j/N;vs.append((rx*math.sin(a),cy-ry*math.cos(a),z));uv.append((j/N,i/(len(head_sections)-1)))
+for i in range(len(head_sections)-1):
+    for j in range(N):a=i*N+j;b=i*N+(j+1)%N;fs.append((a,b,b+N,a+N))
+fs.extend([tuple(reversed(range(N))),tuple((len(head_sections)-1)*N+j for j in range(N))])
+head=flat(mesh('Pointed smiling mask',vs,fs,SKIN,['head'],uv))
 def surf(x,z):
     hit,p,n,idx=head.ray_cast(Vector((x,-1,z)),Vector((0,1,0)))
     if not hit:raise RuntimeError('Face point outside mask '+str((x,z)))
@@ -240,5 +248,5 @@ bpy.ops.export_scene.gltf(filepath=os.path.join(OUT,'utsushimi.glb'),export_form
 verts=[v.co for o in models if o.type=='MESH' for v in o.data.vertices];stats={'bones':len(ad.bones),'vertices':len(verts),'triangles':sum(sum(len(p.vertices)-2 for p in o.data.polygons) for o in models if o.type=='MESH'),'bytes':os.path.getsize(os.path.join(OUT,'utsushimi.glb')),'height_m':max(p.z for p in verts)-min(p.z for p in verts),'cast_engine_tested':False,'human_form_included':False}
 json.dump(stats,open(os.path.join(OUT,'build_stats.json'),'w'),indent=2)
 studio.setup()
-for k in ['front','side','back','three_quarter','face','hand','torso']:studio.render(os.path.join(OUT,k+'.png'),k)
+for k in (['face'] if '--face-check' in sys.argv else ['front','side','back','three_quarter','face','hand','torso']):studio.render(os.path.join(OUT,k+'.png'),k)
 studio.prepare_edit_view();bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT,'utsushimi.blend'));print('DONE',stats,flush=True)

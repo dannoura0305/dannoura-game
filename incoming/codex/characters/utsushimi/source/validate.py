@@ -22,7 +22,7 @@ def evaluated():
     return result
 base=evaluated();report['height_m']=max(p.z for p in base)-min(p.z for p in base);report['ground_clearance_m']=min(p.z for p in base)
 assert 3.1<report['height_m']<3.4 and abs(report['ground_clearance_m'])<.005
-sc.cycles.samples=24;studio.render(os.path.join(OUT,'glb_preview.png'),'three_quarter');report['animation_displacement_m']={};report['loop_error_m']={};report['rest_start_error_m']={}
+sc.cycles.samples=24;studio.render(os.path.join(OUT,'glb_preview.png'),'three_quarter');studio.render(os.path.join(OUT,'glb_face.png'),'face');report['animation_displacement_m']={};report['loop_error_m']={};report['rest_start_error_m']={}
 for name in ['idle','mimic_pose','reaching_lunge','head_tilt']:
     studio.neutral();act=bpy.data.actions.get(name);assert act;arm.animation_data.action=act
     if act.slots:arm.animation_data.action_slot=act.slots[0]

@@ -1,0 +1,53 @@
+{
+  "reimport_ok": true,
+  "bones": 26,
+  "finite_vertices": true,
+  "unweighted_vertices": 0,
+  "max_weight_sum_error": 1.471489667892456e-07,
+  "cast_engine_tested": false,
+  "gameplay_implemented": false,
+  "steam_effects": false,
+  "root_motion": false,
+  "glb_animations": [
+    "idle",
+    "patrol",
+    "restart",
+    "steam_brace"
+  ],
+  "embedded_images": 11,
+  "emissive_materials": [
+    "Warm worklamp emission"
+  ],
+  "height_m": 2.485161165241152,
+  "ground_clearance_m": 0.0024997196160256863,
+  "animation_displacement_m": {
+    "idle": 0.01802805768488315,
+    "patrol": 0.14277784220222936,
+    "restart": 0.5470964700699245,
+    "steam_brace": 0.6670388261985157
+  },
+  "loop_error_m": {
+    "idle": 0.0,
+    "patrol": 1.2644054553268208e-07,
+    "restart": 0.0,
+    "steam_brace": 0.0
+  },
+  "minimum_z_m": {
+    "idle": 0.0024996832944452763,
+    "patrol": 0.0024996541906148195,
+    "restart": 0.0024996832944452763,
+    "steam_brace": 0.0024984050542116165
+  },
+  "wrist_gap_m": {
+    "idle": 1.341104507446289e-07,
+    "patrol": 1.341104507446289e-07,
+    "restart": 2.5288109106536417e-07,
+    "steam_brace": 1.3514129182113002e-07
+  },
+  "rest_pose_error_m": {
+    "idle": 1.095919371139818e-06,
+    "patrol": 1.2120654344280422e-06,
+    "restart": 1.095919371139818e-06,
+    "steam_brace": 1.2222586068159268e-06
+  }
+}

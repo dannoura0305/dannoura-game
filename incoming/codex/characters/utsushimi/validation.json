@@ -23,8 +23,8 @@
   "ground_clearance_m": 0.0009993931744247675,
   "animation_displacement_m": {
     "idle": 0.07353045736202848,
-    "mimic_pose": 1.4975386874154188,
-    "reaching_lunge": 2.284514108732723,
+    "mimic_pose": 1.8580865262465869,
+    "reaching_lunge": 2.2526365981587952,
     "head_tilt": 0.32406676346518043
   },
   "loop_error_m": {
@@ -39,8 +39,8 @@
     "reaching_lunge": 0.011317140040705132,
     "head_tilt": 1.0335717063088238e-06
   },
-  "mimic_pose_hand_joint_gap_m": 5.786564302130818e-07,
+  "mimic_pose_hand_joint_gap_m": 5.643292253762215e-07,
   "mimic_pose_minimum_z": 0.0009996321750804782,
-  "reaching_lunge_hand_joint_gap_m": 5.623090941939713e-07,
+  "reaching_lunge_hand_joint_gap_m": 5.967910407334801e-07,
   "reaching_lunge_minimum_z": 0.0009989722166210413
 }

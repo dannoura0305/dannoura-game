@@ -1,0 +1,47 @@
+{
+  "reimport_ok": true,
+  "bones": 34,
+  "finite_vertices": true,
+  "unweighted_vertices": 0,
+  "max_weight_sum_error": 2.9802322387695312e-08,
+  "cast_engine_tested": false,
+  "gameplay_implemented": false,
+  "cloth_physics": false,
+  "root_motion": false,
+  "glb_animations": [
+    "hold_record",
+    "idle",
+    "search_record",
+    "walk_in_place"
+  ],
+  "embedded_images": 10,
+  "height_m": 2.4071650984056774,
+  "ground_clearance_m": -4.78990855867778e-08,
+  "animation_displacement_m": {
+    "idle": 0.016554373222700144,
+    "search_record": 1.0015322095540822,
+    "hold_record": 0.0544705818018449,
+    "walk_in_place": 0.14951627448956098
+  },
+  "loop_error_m": {
+    "idle": 0.0,
+    "search_record": 0.0,
+    "hold_record": 0.0,
+    "walk_in_place": 0.0
+  },
+  "minimum_z_m": {
+    "idle": -1.4742262521849625e-07,
+    "search_record": -1.4742262521849625e-07,
+    "hold_record": -1.4742262521849625e-07,
+    "walk_in_place": 0.007000000216066837
+  },
+  "wrist_gap_m": {
+    "idle": 4.777675730550706e-07,
+    "search_record": 4.920204574197249e-07,
+    "hold_record": 5.967910407334801e-07,
+    "walk_in_place": 5.984629877812625e-07
+  },
+  "idle_rest_pose_error_m": 1.5521948535950182e-06,
+  "search_record_rest_pose_error_m": 1.6570560671037975e-06,
+  "hold_record_rest_pose_error_m": 1.5521948535950182e-06
+}

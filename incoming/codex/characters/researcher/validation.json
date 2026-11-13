@@ -1,0 +1,43 @@
+{
+  "clips": [
+    "accident_replay",
+    "idle",
+    "neutralized",
+    "record_check"
+  ],
+  "bones": 32,
+  "height_m": 1.7757197618484497,
+  "embedded_images": 13,
+  "unweighted_vertices": 0,
+  "weight_error": 1.1408701539039612e-07,
+  "poses": {
+    "accident_replay": {
+      "loop_error_m": 0.0,
+      "start_error_m": 8.101119988168648e-07,
+      "max_displacement_m": 0.7908608317375183,
+      "minimum_z_m": -4.5785165525558114e-07,
+      "wrist_gap_m": 5.960464477539063e-08
+    },
+    "idle": {
+      "loop_error_m": 0.0,
+      "start_error_m": 8.101119988168648e-07,
+      "max_displacement_m": 0.010043292306363583,
+      "minimum_z_m": -4.5785165525558114e-07,
+      "wrist_gap_m": 6.155189738369847e-08
+    },
+    "neutralized": {
+      "loop_error_m": 0.0,
+      "start_error_m": 8.101119988168648e-07,
+      "max_displacement_m": 0.8494868278503418,
+      "minimum_z_m": -4.5785165525558114e-07,
+      "wrist_gap_m": 3.332000937312528e-08
+    },
+    "record_check": {
+      "loop_error_m": 0.0,
+      "start_error_m": 8.101119988168648e-07,
+      "max_displacement_m": 0.5074178576469421,
+      "minimum_z_m": -4.5785165525558114e-07,
+      "wrist_gap_m": 1.210576058124894e-07
+    }
+  }
+}

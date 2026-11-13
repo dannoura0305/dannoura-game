@@ -1,0 +1,53 @@
+{
+  "reimport_ok": true,
+  "bones": 86,
+  "finite_vertices": true,
+  "unweighted_vertices": 0,
+  "max_weight_sum_error": 2.9802322387695312e-08,
+  "cast_engine_tested": false,
+  "gameplay_implemented": false,
+  "cable_physics": false,
+  "root_motion": false,
+  "glb_animations": [
+    "cable_sweep",
+    "core_pulse",
+    "idle",
+    "repaint"
+  ],
+  "embedded_images": 7,
+  "emissive_materials": [
+    "Purple boundary discharge"
+  ],
+  "height_m": 20.000004090882157,
+  "ground_clearance_m": -4.0908821574703325e-06,
+  "animation_displacement_m": {
+    "idle": 0.12509595668250173,
+    "cable_sweep": 15.351024413714182,
+    "repaint": 4.940634701168566,
+    "core_pulse": 0.21869808670937332
+  },
+  "loop_error_m": {
+    "idle": 0.0,
+    "cable_sweep": 0.0,
+    "repaint": 0.0,
+    "core_pulse": 0.0
+  },
+  "minimum_z_m": {
+    "idle": -1.216667442349717e-06,
+    "cable_sweep": -1.961849193321541e-06,
+    "repaint": -1.4014103726367466e-06,
+    "core_pulse": -1.216667442349717e-06
+  },
+  "wrist_gap_m": {
+    "idle": 3.0584792162579296e-06,
+    "cable_sweep": 3.0445081684880576e-06,
+    "repaint": 3.5121249825134837e-06,
+    "core_pulse": 2.786158536081372e-06
+  },
+  "rest_pose_error_m": {
+    "idle": 8.017548282269842e-06,
+    "cable_sweep": 8.639178720471114e-06,
+    "repaint": 8.639178720471114e-06,
+    "core_pulse": 8.017548282269842e-06
+  }
+}
