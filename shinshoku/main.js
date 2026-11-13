@@ -59,6 +59,21 @@ const TEST_KEY = 'shinshoku_testplay';
 const testPlayOn = () => { try { return localStorage.getItem(TEST_KEY) === '1'; } catch { return false; } };
 const setTestPlay = on => { try { if (on) localStorage.setItem(TEST_KEY, '1'); else localStorage.removeItem(TEST_KEY); } catch { /* 保存できない時は切り替えない */ } };
 const TEST_ENDINGS = [{ id: 'endA', title: '結末A', step: 'end_a', route: 'reveal' }, { id: 'endB', title: '結末B', step: 'end_b', route: 'secret' }];
+// テストプレイ（2026-11-13）：「敵に会う」＝その敵がいる場面から始めて、敵の手前に立つ（モデルの確かめ用。記録・セーブは変えない）
+// step：その敵がいる段／kind：異形の種類／pack：帰路の個体差（kiro_coat など）／cine：出す演出（配偶者に似た異形）／giant：巨大猫又の戦い（だんのうら＝巨大猫又なので立ち位置は動かさない）
+const TEST_MEET = [
+  { id: 'kiro', title: '帰路（ジャンパー）', step: 'ch1_street', kind: 'kiro', pack: 'kiro' }, { id: 'kiro_coat', title: '帰路（コート）', step: 'ch1_street', kind: 'kiro', pack: 'kiro_coat' },
+  { id: 'kiro_cardigan', title: '帰路（カーディガン）', step: 'ch1_street', kind: 'kiro', pack: 'kiro_cardigan' }, { id: 'kiro_obaa', title: '帰路（老女）', step: 'ch1_street', kind: 'kiro', pack: 'kiro_obaa' },
+  { id: 'heiten', title: '閉店', step: 'ch1_street', kind: 'heiten' }, { id: 'shuuyou', title: '収容者（避難所の大きな個体）', step: 'ch2_boss', kind: 'shuuyou' },
+  { id: 'kanja', title: '記録のない患者', step: 'ch3_ward', kind: 'kanja' }, { id: 'mimic', title: '模倣する影', step: 'ch3_ward', kind: 'mimic' },
+  { id: 'mamori', title: '守り手', step: 'ch3_guard', kind: 'mamori' }, { id: 'utsushimi', title: '写し身', step: 'ch3_boss', kind: 'utsushimi' },
+  { id: 'outou', title: '応答体', step: 'ch4_lab', kind: 'outou' }, { id: 'sakibure', title: '境界の先触れ', step: 'ch4_r_giant', kind: 'sakibure', giant: true },
+  { id: 'nekomata', title: '巨大猫又（だんのうらの巨大な姿）', step: 'ch4_r_giant', kind: 'sakibure', giant: true },
+  { id: 'shuusha', title: '収容者（旧研究棟の通常個体）', step: 'ch5_r_enter', kind: 'shuusha' }, { id: 'tsugihagi', title: '継接', step: 'ch5_r_boss', kind: 'tsugihagi' },
+  { id: 'machibito', title: '待人', step: 'ch6a_threads', kind: 'machibito' }, { id: 'nurikae', title: '塗替', step: 'ch6a_boss', kind: 'nurikae', giant: true },
+  { id: 'touchoku', title: '当直', step: 'ch6_s_boss', kind: 'touchoku' }, { id: 'kuramono', title: '境界を喰らうもの', step: 'ch7a_boss', kind: 'kuramono', giant: true },
+  { id: 'kenkyusha', title: '研究者', step: 'ch7b_boss', kind: 'kenkyusha' }, { id: 'spouse_like', title: '配偶者に似た異形', step: 'ch7b_boss', kind: 'spouse_like', cine: 'spouseShow7b' },
+];
 const CHAPTER_ORDER = ['prologue', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5a', 'ch6a', 'ch7a', 'endA', 'ch5b', 'ch6b', 'ch7b', 'endB'];
 import './world/areas8.js';
 import './world/areas7.js';
@@ -501,6 +516,8 @@ class Game {
       else if (a === 'fresh') this.newGame(null);
       else if (a === 'ngplus') this.newGamePlus();
       else if (a === 'testplay') { setTestPlay(!testPlayOn()); this.titlePanel('chapters'); }
+      else if (a === 'meet') this.titlePanel('meet');
+      else if (b.dataset.meet) this.testMeetStart(b.dataset.meet);
       else if (b.dataset.ch) this.chapterSelect(b.dataset.ch);
       else if (b.dataset.g) this.galleryPlay(b.dataset.g);
     };
@@ -518,8 +535,14 @@ class Game {
       html = `<h3>章選択</h3>${test ? '<div class="tt-lock">テストプレイ：すべての章と結末を選べます。</div>' : T.cleared ? '' : '<div class="tt-lock">結末を見ると、すべての章を選べます（今は記録のある章だけ）。</div>'}`
         + (T.cleared && !test ? '' : `<div class="tt-row"><button data-a="testplay">${test ? 'テストプレイをやめる（記録のある章だけに戻す）' : 'テストプレイ：すべての章を選べるようにする'}</button></div>`)
         + (test ? TEST_ENDINGS : []).concat(CHAPTER_SELECT).sort((a, b) => CHAPTER_ORDER.indexOf(a.id) - CHAPTER_ORDER.indexOf(b.id)).map(c => `<div class="tt-row"><button data-ch="${c.id}" ${ok.includes(c.id) ? '' : 'disabled'}>${esc(c.title)}</button>${c.route ? `<span class="tt-lock">${c.route === 'reveal' ? '妖力解放' : '正体秘匿'}</span>` : ''}</div>`).join('')
+        + (test ? '<div class="tt-row"><button data-a="meet">敵に会う（テストプレイ）</button></div>' : '')
         + '<div class="tt-sec">分岐の後の章は、そのルートで始まります（記録に「章選択」と残る）。</div>';
       this.metrics.testPlay = test;
+    }
+    if (kind === 'meet' && testPlayOn()) {
+      html = '<h3>敵に会う（テストプレイ）</h3><div class="tt-lock">その敵がいる場面から始めて、敵の手前に立ちます。戦いの途中の場面もあります。</div>'
+        + TEST_MEET.map(m => `<div class="tt-row"><button data-meet="${m.id}">${esc(m.title)}</button></div>`).join('')
+        + '<div class="tt-row"><button data-a="chapters">章選択に戻る</button></div>';
     }
     if (kind === 'gallery') {
       const got = galleryUnlocked(T.own.endings || {});
@@ -535,6 +558,32 @@ class Game {
     const c = CHAPTER_SELECT.concat(testPlayOn() ? TEST_ENDINGS : []).find(q => q.id === id); if (!c) return;
     this.jumpVia = 'chapter_select'; this.flags.chapterSelect = id; this.metrics.chapterSelect = id;
     this.newGame(c.step);
+  }
+  /** テストプレイ：その敵がいる場面から始めて、遊べるようになったら敵の手前に立つ（testMeetTick） */
+  testMeetStart(id) {
+    const m = TEST_MEET.find(q => q.id === id); if (!m || !testPlayOn()) return;
+    this.testMeet = Object.assign({ t: 0 }, m); this.metrics.testMeet = id; this.jumpVia = 'chapter_select'; this.flags.chapterSelect = 'meet_' + id;
+    this.newGame(m.step);
+  }
+  testMeetTick() {
+    const m = this.testMeet; if (!m || this.mode !== 'play' || this.cut.active || (this.transCovering && this.transCovering())) return;
+    if (++m.t < 20) return;                                              // 区画の組み立ての後、少し置いてから
+    if (m.cine && !this.enemies.some(x => x.kind === m.kind)) this.cineEvent7(m.cine);
+    const e = this.enemies.find(x => x.kind === m.kind && (!m.pack || (x.model && (x.model.packKind || 'kiro') === m.pack)));
+    if (!e && m.t < 600) return;
+    this.testMeet = null;
+    if (!e) { this.ui.toast(`テストプレイ：${m.title} が見つかりませんでした`, 'weak', 3); return; }
+    e.root.visible = true;
+    if (e.brain && typeof e.brain.cool === 'number') e.brain.cool = Math.max(e.brain.cool, 4);   // 着いてすぐは攻めない（見る時間）
+    if (!m.giant && !this.giantMode) {
+      // 敵の向いている側（歩く道＝開けた所）に立つ＝敵の正面が見える。カメラは斜め後ろから（体で敵を隠さない）
+      const P = this.player, ex = e.brain.pos.x, ez = e.brain.pos.z, ry = e.root.rotation.y; let dx = Math.sin(ry), dz = Math.cos(ry);
+      if (!isFinite(dx) || Math.hypot(dx, dz) < 0.5) { dx = P.pos.x - ex; dz = P.pos.z - ez; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d; }
+      const r = Math.max(3.6, (e.r || 0.5) + 3.0); P.pos.set(ex + dx * r, 0, ez + dz * r);
+      P.yaw = Math.atan2(ex - P.pos.x, ez - P.pos.z); this.cam.yaw = P.yaw + Math.PI + 0.6; P.prevYaw = null;
+      const sp = P.model && P.model.springs; if (sp && sp.reset) { P.root.position.copy(P.pos); P.root.rotation.y = P.yaw; P.root.updateMatrixWorld(true); sp.reset(); }
+    }
+    this.ui.toast(`テストプレイ：${m.title}`, '', 2);
   }
   galleryPlay(id) {
     this.galleryMode = true; this.metrics.gallery = id;
@@ -637,6 +686,7 @@ class Game {
   step() {
     const inp = this.input.sample();
     if (this.mode === 'title') return;
+    if (this.testMeet) this.testMeetTick();
     // 遅らせた出来事（演出の明かりの順番など）：シミュレーションの時間で
     for (let i = this.timers.length - 1; i >= 0; i--) { const t = this.timers[i]; t.t -= DT; if (t.t <= 0) { this.timers.splice(i, 1); t.fn(); } }
     const cover = this.transCovering();                                    // 暗転・前の画で覆っている間：演出の時計と遊びを止める（遅らせた出来事は進める）
