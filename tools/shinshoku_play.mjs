@@ -880,6 +880,8 @@ async function runCh3Phone(browser) {
   ok('スマホ：「化」ボタン（長押しで化けを解く／戻す）が出る', formBtn);
   await page.evaluate(() => { const g = __sh.game, b = g.boss.brain; b.cool = 99; __sh.debug.teleport(0, -32.6, Math.PI); b.pos.x = 0; b.pos.z = -34.2; __sh.debug.faceTo(0, -34.2); g.player.fighter.yoki = 100; for (let i = 0; i < 3; i++) { __sh.input.script([0, 9, 18, 28, 40].map(f => ({ f, press: ['attack'] }))); __sh.debug.fastSim(56); } __sh.input.script([0, 9].map(f => ({ f, press: ['attack'] }))); __sh.debug.fastSim(12); g.cam.yaw = 0.4; __sh.debug.hold(true); });
   await shot(page, 'phone_11_white_combo.png', 1600); await page.evaluate(() => __sh.debug.hold(false));
+  // fastSim は描かずに進めるので、連撃の爪痕（fx.streak：描く時にだけ消える）が溜まったまま。数こま描いて消えてから測る（2026-11-13：当たった回だけ 176 になっていた）
+  await page.waitForFunction(() => !__sh.game.fx.items.some(it => it.kind === 'streak'), null, { timeout: 15000 }).catch(() => {}); await page.waitForTimeout(300);
   const perfBoss = await page.evaluate(() => __sh.debug.renderInfo());
   await page.evaluate(() => { __sh.game.boss.brain.cool = 0; });
   const p2 = await AF(page, { ids: ['utsushimi'], max: 1200, heal: true, stopOnCut: true });
