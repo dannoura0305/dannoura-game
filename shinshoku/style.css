@@ -109,8 +109,18 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0a16; col
 .sh-mark.red { color: #fff; background: radial-gradient(circle, rgba(255, 40, 60, .95), rgba(255, 40, 60, 0) 70%); text-shadow: 0 0 4px #600; animation: shBlink .18s infinite alternate; font-family: var(--jps); }
 .sh-mark.issen { color: #e8dcff; font-family: var(--jps); font-size: 22px; text-shadow: 0 0 10px #a07aff, 0 0 3px #000; animation: shBlink .12s infinite alternate; }
 @keyframes shBlink { from { filter: brightness(1); } to { filter: brightness(1.6); } }
-.sh-slow, .sh-flash, .sh-lowhp, .sh-vignette { position: absolute; inset: 0; }
-.sh-vignette { background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 55%, rgba(4, 2, 10, .6) 100%); }
+.sh-slow, .sh-flash, .sh-lowhp, .sh-vignette, .sh-grain, .sh-dread { position: absolute; inset: 0; pointer-events: none; }
+/* Q-horror 8：周辺減光の強さ（--vig：区画と消灯で 0.3〜0.75。0.3 が前と同じ）・フィルムの粒（--grain）・異形が近くで見ている時の縁（--dread） */
+.sh-vignette { background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) calc(68% - var(--vig, .3) * 44%), rgba(4, 2, 10, calc(var(--vig, .3) * 2)) 100%); }
+.sh-grain { opacity: var(--grain, 0); background-repeat: repeat; background-size: 96px 96px; mix-blend-mode: soft-light; animation: shGrain .5s steps(5) infinite; }
+@keyframes shGrain { 0% { background-position: 0 0; } 20% { background-position: -37px 21px; } 40% { background-position: 53px -11px; } 60% { background-position: -19px -47px; } 80% { background-position: 29px 41px; } 100% { background-position: 0 0; } }
+.sh-dread { opacity: calc(var(--dread, 0) * 10); background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 52%, rgba(120, 20, 90, .10) 78%, rgba(60, 10, 70, .22) 100%); box-shadow: inset 2px 0 0 rgba(255, 40, 80, .12), inset -2px 0 0 rgba(60, 120, 255, .12); }
+/* Q-horror 9：探索中（4 秒なにも起きない）は表示を引っ込める。中身は残す（試験の読み取り・画面の読み上げ） */
+#sh-ui.quiet .sh-hints, #sh-ui.quiet .sh-map, #sh-ui.quiet .sh-slots4, #sh-ui.quiet .sh-weapon, #sh-ui.quiet .sh-objc, #sh-ui.quiet .sh-objh, #sh-ui.quiet .sh-objsh, #sh-ui.quiet .sh-objs, #sh-ui.quiet .sh-comp, #sh-ui.quiet .sh-lightic { opacity: 0; transition: opacity .6s; }
+#sh-ui.nohints .sh-hints { opacity: 0; }
+.sh-hints, .sh-map, .sh-slots4, .sh-weapon, .sh-objc, .sh-objh, .sh-objsh, .sh-objs, .sh-comp, .sh-lightic { transition: opacity .3s; }
+/* Q-horror 14：予兆の表示「控えめ」 */
+#sh-ui.telesubtle .sh-mark.on { opacity: .55; scale: .72; }
 .sh-slow { opacity: 0; transition: opacity .15s; background: radial-gradient(ellipse at center, rgba(120, 160, 255, 0) 40%, rgba(70, 90, 200, .32) 100%); box-shadow: inset 0 0 0 3px rgba(190, 210, 255, .25); }
 .sh-slow.on { opacity: 1; }
 .sh-lowhp { opacity: 0; background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 45%, rgba(160, 10, 30, .7) 100%); transition: opacity .3s; }
@@ -220,7 +230,7 @@ body:has(#sh-title:not([hidden])) #sh-ui > :not(#sh-menu) { visibility: hidden; 
 .sh-lb { position: absolute; left: 0; right: 0; height: 0; background: #000; transition: height .9s cubic-bezier(.45,0,.2,1); z-index: 6; }
 .sh-lbt { top: 0; } .sh-lbb { bottom: 0; }
 .sh-lb.on { height: 11vh; }
-#sh-ui.cine #sh-hud > :not(.sh-flash):not(.sh-slow):not(.sh-vignette) { opacity: 0 !important; transition: opacity .3s; }
+#sh-ui.cine #sh-hud > :not(.sh-flash):not(.sh-slow):not(.sh-vignette):not(.sh-grain):not(.sh-dread) { opacity: 0 !important; transition: opacity .3s; }
 #sh-ui.cine #sh-touch { opacity: .25; }
 .sh-sub { position: absolute; left: 50%; bottom: calc(11vh + 14px); transform: translateX(-50%); width: min(90vw, 860px); text-align: center; font-size: 18px; line-height: 1.6; text-shadow: 0 1px 3px #000, 0 0 8px #000; opacity: 0; transition: opacity .25s; z-index: 7; }
 .sh-sub.on { opacity: 1; } .sh-sub b { margin-right: .8em; }

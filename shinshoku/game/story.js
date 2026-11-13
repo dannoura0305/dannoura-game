@@ -20,11 +20,12 @@ export const storyMethods = {
   refreshObjective() { const d = stepDef(this.story.step); this.ui.objective(CHAPTERS[d.ch].title, d.obj, d.sub); },
   setStep(id) {
     if (this.story.step === id) return;
-    const prevState = streetState(this.story.step);
+    const prevState = streetState(this.story.step), prevStep = this.story.step;
     this.story.step = id; this.refreshObjective(); this.autosaveReq = true;
     this.metrics.steps.push(id);
     if (this.area.id === 'shotengai' && streetState(id) !== prevState) this.applyStreetState(true);
     if (id === 'pro_fight') { const k = this.enemies.find(e => e.id === 'kiro_t'); if (k) { k.brain.lastSeen = { x: this.player.pos.x, z: this.player.pos.z }; k.brain.lastSeenT = k.brain.total; k.brain.hostileBy = 'tutorial'; k.brain.go('hostile', []); } this.hint(this.input.device === 'pad' ? `白い「！」は弾ける（${padLabel('LB')}）／赤い「危」は避ける（${padLabel('A')}）。弱らせると帰っていく` : this.input.device === 'touch' ? '白い「！」は弾ける（弾）／赤い「危」は避ける（避）。弱らせると帰っていく' : '白い「！」は弾ける（F）／赤い「危」は避ける（Space）。弱らせると帰っていく'); }
+    if (id === 'pro_fight' && prevStep === 'pro_pipe' && this.startIntroHold) this.startIntroHold();   // Q-horror 10：拾った直後から（描画を待たない）
     if (id === 'pro_home') this.hint(null);
   },
   hint(text) { this.ui.hint(text); },
@@ -259,7 +260,7 @@ export const storyMethods = {
   cutHost() {
     const g = this;
     return {
-      setCam(pos, look, fov) { g.cineCam = { pos, look, fov }; },
+      setCam(pos, look, fov) { const [p2, l2] = g.cineHand(pos, look); g.cineCam = { pos: p2, look: l2, fov }; },   // Q-horror 16：cs.hand（手持ちの揺れ）
       // 声：対応表が読めていて声が入の時だけ、声の長さに合わせて場面を延ばす（story/cutscene.js voiceWarp）。その演出の分の音声をここで読み始める
       voiceLens(cs) { const V = g.voice; if (!V || !V.on) return null; if (!V.man) { V.loadManifest(); return null; } V.preload(cs); return V.lensFor(cs); },
       subtitle(who, text, L) {
@@ -318,7 +319,7 @@ export const storyMethods = {
     if (tgt.kind === 'companion') { if (a.mode) this.companion.brain.setMode(a.mode); if (a.show) this.companion.root.visible = true; if (a.anim !== undefined) this.companion.anim = a.anim === 'idle' || a.anim === 'run' ? null : a.anim; }
     if (tgt.kind === 'enemy' && a.show) tgt.e.root.visible = true;
     if (a.pos) setPos(a.pos[0], a.pos[1]);
-    if (a.yaw != null) setYaw(a.yaw);
+    if (a.yaw != null) { if (a.turn && !instant) this.cineTurn(tgt, a.yaw, a.turn); else setYaw(a.yaw); }   // Q-horror 17：turn（秒）＝ゆっくり振り向く
     // face：その時いる人の方へ向く（振り向く）。near：その人の横（立ち位置が毎回ちがう戦いの後の場面）へ歩いて寄る
     const cur = () => (tgt.kind === 'player' ? this.player.pos : tgt.kind === 'companion' ? this.companion.brain.pos : tgt.e.brain.pos);
     if (a.face) { const o = this.shotSubject(a.face), p = cur(); if (o) setYaw(Math.atan2(o.x - p.x, o.z - p.z)); }

@@ -16,7 +16,7 @@ import { Kiro } from './ai/kiro.js';
 import { Heiten } from './ai/heiten.js';
 import { Shuuyou } from './ai/shuuyou.js';
 import { CompanionBrain } from './ai/companion.js';
-import { insideAny } from './world/collide.js';
+import { insideAny, lineOfSight } from './world/collide.js';
 import { ThirdPersonCamera } from './render/camera.js';
 import { preloadEnemyPacks, requestEnemyPacks, applyEnemyPack, ENEMY_PACK_KINDS, packPoseFn } from './actor/enemypack.js';
 import { heitenPose, shuuyouPose } from './actor/anim.js';   // P19：届いたモデルの動き（glb）を決まった状態で重ねる（packPoseFn）
@@ -45,6 +45,8 @@ import { AREA_GRAPH } from './data/areas.js';
 import { bossName } from './story/puzzles.js';
 import { combatWithEquip, toggleEquip } from './combat/equip.js';
 import { combatMethods } from './game/combat.js';
+import { horrorMethods } from './game/horror.js';
+import { Flicker, hash32 } from './data/horror.js';
 import { storyMethods } from './game/story.js';
 import { ch3Methods } from './game/ch3.js';
 import { ch4Methods } from './game/ch4.js';
@@ -98,6 +100,7 @@ import { vegInit, vegLoad, vegApply, vegUpdate, vegNight, vegStats, VEG } from '
 
 const DT = 1 / 60;
 /** 場所の移動の暗転で出す小さな助言（操作・遊び方。物語の内容は書かない） */
+const QUIET_TIP_AREAS = ['alley', 'hospital', 'tunnel', 'office', 'lab', 'oldwing', 'atrium', 'admin', 'kiroku'];
 const LOAD_TIPS = [
   '赤い「危」は弾けない。避ける（ジャスト回避）と見切り一閃につながる',
   '白い「！」は弾ける。弾いた直後の攻撃が弾き一閃',
@@ -112,7 +115,7 @@ const Q = new URLSearchParams(location.search);
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || Q.get('touch') === '1';
 const AUTO_PRESET = autoPreset({ touch: isTouch, w: innerWidth, h: innerHeight, dpr: devicePixelRatio, cores: navigator.hardwareConcurrency, mem: navigator.deviceMemory });
 
-const DEFAULT_SETTINGS = () => Object.assign(applyPreset({ preset: 'auto' }, AUTO_PRESET), { preset: 'auto', difficulty: 'normal', assist: false, sens: 1, invertY: false, volume: 0.7, voiceOn: true, voiceVol: 0.9, touchUI: isTouch, subSize: 'm', teleCB: false, rampageInput: 'both', shake: 1, rumble: true, keys: {} });
+const DEFAULT_SETTINGS = () => Object.assign(applyPreset({ preset: 'auto' }, AUTO_PRESET), { preset: 'auto', difficulty: 'normal', assist: false, sens: 1, invertY: false, volume: 0.7, voiceOn: true, voiceVol: 0.9, touchUI: isTouch, subSize: 'm', teleCB: false, teleShow: 'standard', hudAuto: true, rampageInput: 'both', shake: 1, rumble: true, keys: {} });
 
 /** 区画の明かり（定義）と使い回しの点光源 */
 const POOL_MAX = 8;
@@ -149,7 +152,8 @@ class Game {
     this.scene.add(moon); this.scene.add(moon.target);
     this.keyLight = new THREE.PointLight(0xc8b8ff, 1.4, 4, 1.5); this.scene.add(this.keyLight);
     // 懐中電灯
-    this.flash = new THREE.SpotLight(0xfff2d8, 0, 18, 0.42, 0.45, 1.4); this.flash.castShadow = false; this.scene.add(this.flash); this.scene.add(this.flash.target);
+    this.flash = new THREE.SpotLight(0xfff2d8, 0, 18, 0.36, 0.45, 1.4);   // Q-horror 5：狭く強く（前は角 0.42・強さ 26）
+    this.flash.castShadow = false; this.scene.add(this.flash); this.scene.add(this.flash.target);
     this.flashlightOn = false;
     // 使い回しの点光源（区画の明かりのうち近い物に割り当てる。数を変えない＝シェーダーを作り直さない）
     this.pool = []; this.poolN = Math.min(POOL_MAX, P0.lights);
@@ -323,7 +327,7 @@ class Game {
     const fog = A.fog || { color: 0x100c1c, density: 0.045 };
     this.scene.fog.color.setHex(fog.color); this.scene.fog.density = fog.density; this.scene.background.setHex(fog.color);
     this.halos.uniforms.uFog.value = fog.density; this.wet.uniforms.uFog.value = fog.density;
-    { const LT = A.light || { hemi: 1.1, amb: 0.6 }; this.hemi.intensity = LT.hemi; this.amb.intensity = LT.amb; }   // 区画ごとの空と周りの明かり（P12：背景の材質の側だけ envmat の uAmbK で弱める＝人物の明るさは前のまま）   // 区画ごとの空と周りの明かり（病院は弱く：白く飛ばない）
+    { const LT = A.light || { hemi: 1.1, amb: 0.6 }; this.hemi.intensity = LT.hemi; this.amb.intensity = LT.amb; this.lightBase = { hemi: LT.hemi, amb: LT.amb }; }   // 区画ごとの空と周りの明かり（P12：背景の材質の側だけ envmat の uAmbK で弱める＝人物の明るさは前のまま）   // 区画ごとの空と周りの明かり（病院は弱く：白く飛ばない）
     this.halos.clear(); for (const h of A.halos) h.idx = this.halos.add(h.p, h.size, h.color, h.k);
     this.flashHalo = this.halos.add([0, -50, 0], 0.4, 0xfff0d0, 0);
     this.wet.clear(); for (const w of A.wet) w.idx = this.wet.add(w.p, w.size, w.color, w.k);
@@ -363,7 +367,7 @@ class Game {
   changeArea(to, spawn) {
     // 区画の移動：前の画を写して黒へゆっくり落とす → その裏で読み込む → 場所の名前を出して間を置く → ゆっくり明ける（game/trans.js）。
     // 覆っている間は遊び・演出の時計を止める（入った時の演出は明ける時から始まる）。遷移を使わない時（試験の起動）は前の短い暗転
-    const info = { title: (AREA_GRAPH[to] || {}).name || '', tip: LOAD_TIPS[(this.tipN = ((this.tipN ?? Math.floor(Math.random() * LOAD_TIPS.length)) + 1)) % LOAD_TIPS.length] };
+    const info = { title: (AREA_GRAPH[to] || {}).name || '', tip: this.settings.hudAuto !== false && QUIET_TIP_AREAS.includes(to) ? '' : LOAD_TIPS[(this.tipN = ((this.tipN ?? Math.floor(Math.random() * LOAD_TIPS.length)) + 1)) % LOAD_TIPS.length] };   // Q-horror 9：ホラーの区画では操作のヒントを出さない（場所の名前と間だけ）
     const smooth = this.startTrans('area', {}, 'area', info);
     if (!smooth) this.ui.fade(true, info); this.sfx.play('door');
     const comp = this.companion.brain.mode === 'follow' || this.companion.brain.mode === 'hide';
@@ -730,6 +734,8 @@ class Game {
       enemies: this.enemies.filter(e => e.brain.alive && e.root.visible).map(e => ({ id: e.id, x: e.pos.x, z: e.pos.z, hostile: ['hostile', 'assess', 'stagger', 'down', 'rollcall'].includes(e.brain.state), attacking: !!e.brain.attacking, tele: e.tele || null, justNoticed: e.justNoticed > 0 })),
       hideSpots: this.area.hideSpots,
     };
+    // Q-horror 15：カメラの向き（水平）と、その点に立てるか（壁の中でない・だんのうらから見通せる）
+    if (b.mode === 'follow') { const fw = this.cam.forward(), BX0 = this.companionBoxes(); sense.cam = { x: fw.x, z: fw.z }; sense.free = q => !insideAny(q, BX0, 0.32) && lineOfSight(P.pos, q, BX0); }
     const out = b.update(dt, sense);
     // 自宅の階段・2 階：足の高さ（floorAt）と、2 階にいる時は 2 階の当たり（プレイヤーと同じ）。前は 1 階の高さのまま階段の中・天井を歩いていた
     const A = this.area, BX = this.companionBoxes();
@@ -990,7 +996,7 @@ class Game {
       // ロック中にマウス・右スティックを素早く振る＝相手を切り替える
       if (this.lock && this.mode === 'play' && Math.abs(lk.x) > 0.11) { this.switchLock(lk.x < 0 ? 1 : -1); lk.x = 0; }
       if (this.giantMode) { const G = this.giant; this.cam.update(dt, { x: G.pos.x, y: (G.y || 0) * 0.5, z: G.pos.z }, lk, this.boxes, { lock: this.lock && this.lock.hittable() ? this.lock.pos : null, scale: 5.6 * G.scale / 8 + 0.4, range: () => [0.6, Infinity] }); }
-      else this.cam.update(dt, P.pos, lk, this.boxes, { aim: ((F.weapon === 'handgun' && F.aimHeld) || (F.weapon === 'matchlock' && F.white && (F.aimHeld || F.st.name === 'mcharge'))) && !['swap', 'reload'].includes(F.st.name), lock: this.lock && this.lock.hittable() ? this.lock.pos : null, indoor: A.indoor(P.pos.x, P.pos.z), range: this.camRangeFn(A, P) });
+      else this.cam.update(dt, P.pos, lk, this.boxes, { aim: ((F.weapon === 'handgun' && F.aimHeld) || (F.weapon === 'matchlock' && F.white && (F.aimHeld || F.st.name === 'mcharge'))) && !['swap', 'reload'].includes(F.st.name), lock: this.lock && this.lock.hittable() ? this.lock.pos : null, indoor: A.indoor(P.pos.x, P.pos.z), range: this.camRangeFn(A, P), ...this.horrorCamOpt() });
     }
     if (this.lock && !this.lock.hittable()) this.lock = null;
     const glassesPose = this.cinePlayerAnim === 'glasses' ? { pose: { spine: [0.05, 0, 0], head: [0.12, 0, 0], rightUpperArm: [-1.6, 0.3, -0.35], rightLowerArm: [-2.35, 0, 0], rightHand: [0.2, 0, 0.6], leftUpperArm: [0.05, 0, 0.12], leftLowerArm: [-0.2, 0, 0] }, rate: 0.25 } : null;
@@ -1028,12 +1034,11 @@ class Game {
       else if (A.fogFar && this.camera.far !== (A.far || 120)) { this.camera.far = A.far || 120; this.camera.updateProjectionMatrix(); } }
     // 光源とプレイヤーの近く
     this.keyLight.position.set(P.pos.x + Math.sin(this.cam.yaw) * 1.6, (P.pos.y || 0) + 1.9, P.pos.z + Math.cos(this.cam.yaw) * 1.6);
-    this.keyLight.intensity = this.darkness ? 0.6 : 1.4;
+    this.horrorLights(dt);                                            // Q-horror 1：区画ごとの空と周りの明かり・補助光・月（game/horror.js）
     this.moon.position.set(P.pos.x - 6, 14, P.pos.z + 8); this.moon.target.position.set(P.pos.x, 0, P.pos.z);
-    this.moon.intensity = A.id === 'shelter' ? (this.darkness ? 0.25 : 0.45) : 0.9;
     // 懐中電灯：胸から、カメラの向きへ
     const fwd = new THREE.Vector3(); this.camera.getWorldDirection(fwd);
-    this.flash.intensity = this.flashlightOn ? 26 : 0;
+    this.flash.intensity = this.flashlightOn ? 34 : 0;
     this.flash.position.set(P.pos.x + Math.sin(P.yaw) * 0.25, (P.pos.y || 0) + 1.3, P.pos.z + Math.cos(P.yaw) * 0.25);
     this.flash.target.position.copy(this.flash.position).addScaledVector(fwd, 6);
     if (this.flashHalo >= 0) { this.halos.setPos(this.flashHalo, this.flash.position.x, this.flash.position.y, this.flash.position.z); this.halos.setK(this.flashHalo, this.flashlightOn ? 0.35 : 0); }
@@ -1058,7 +1063,7 @@ class Game {
       // 光る目（紫）
       if (e.eyeHalos == null) e.eyeHalos = (e.model.eyeGlow || []).map(() => this.halos.add([0, -50, 0], e.kind === 'shuuyou' ? 0.35 : 0.2, 0xb070ff, 0));
       if (e.alt && e.altK < 0.5 && e.eyeHalos.length) { this.mimicTell(e); continue; }
-      if (e.eyeHalos.length) { const on = e.brain.alive && e.root.visible && e.model.root.visible && !['home', 'rest', 'neutral', 'dormant', 'gone', 'sleep'].includes(e.brain.state); const v = new THREE.Vector3(); e.model.eyeGlow.forEach((o, i) => { o.getWorldPosition(v); this.halos.setPos(e.eyeHalos[i], v.x, v.y, v.z); this.halos.setK(e.eyeHalos[i], on ? (e.brain.state === 'hostile' || e.brain.state === 'rollcall' ? 1.4 : 0.8) * (0.85 + Math.sin(this.playSec * 3 + i) * 0.15) : 0); }); }
+      if (e.eyeHalos.length) { const on = e.brain.alive && e.root.visible && e.model.root.visible && !['home', 'rest', 'neutral', 'dormant', 'gone', 'sleep'].includes(e.brain.state); const v = new THREE.Vector3(); e.model.eyeGlow.forEach((o, i) => { o.getWorldPosition(v); this.halos.setPos(e.eyeHalos[i], v.x, v.y, v.z); this.halos.setK(e.eyeHalos[i], on ? (e.brain.atk && e.brain.atk.phase === 'windup' ? 2.2 : e.brain.state === 'hostile' || e.brain.state === 'rollcall' ? 1.4 : 0.8) * (0.85 + Math.sin(this.playSec * 3 + i) * 0.15) : 0); }); }
       // 弱点の光（帰路の頭・閉店のレジ・収容者のスピーカー）
       if (e.weakHalo == null && e.model.weak) e.weakHalo = this.halos.add([0, -50, 0], e.kind === 'shuuyou' ? 1.2 : 0.55, e.model.weakColor || 0xffd27a, 0);
       if (e.weakHalo != null && e.weakHalo >= 0 && e.model.weak) { const w = this.weakPos(e); this.halos.setPos(e.weakHalo, w.x, w.y, w.z); const k = !e.brain.alive || !e.root.visible ? 0 : e.kind === 'kiro' ? e.weakGlow || 0 : e.kind === 'shuuyou' ? (e.brain.state === 'dormant' ? 0 : 0.35 + (e.brain.state === 'rollcall' ? 0.5 + Math.sin(this.playSec * 9) * 0.3 : 0)) : 0.45; this.halos.setK(e.weakHalo, k); }
@@ -1077,10 +1082,11 @@ class Game {
       for (const e of this.enemies) if (e.kind === 'kiro' && !e.mark) e.weakGlow = 0.35;
     } else { P.aimWeak = false; for (const e of this.enemies) if (e.kind === 'kiro' && !e.mark) e.weakGlow = 0; }
     // P12：色の調整（区画・場所）・水たまりの波紋の時間・雨の跳ね
-    envTick(dt); envApplyGrade(gradeAt(A.id, P.pos.x, P.pos.z, inHome), dt); envKitUpdate(A, this.camera); vegUpdate(A, this.camera, dt, this.moon);
+    envTick(dt); envApplyGrade(gradeAt(A.id, P.pos.x, P.pos.z, inHome, A.id === 'shotengai' && (streetState(this.story.step) !== 'normal' || !!this.flags.lights_out)), dt); envKitUpdate(A, this.camera); vegUpdate(A, this.camera, dt, this.moon);
     if (this.splash) { const on = S.rain && A.rain && !this.cut.active; this.splash.mesh.visible = !!on; if (on) this.splash.update(dt, P.pos.x, P.pos.z, A.rainRoof, this.scene.fog.density); }
     if (this.refl && this.presetVals().refl && !this.split7) { const pk = A.pending ? A.pending.length : 0; if (!A.poolsMesh || A.poolsPk !== pk) { A.poolsPk = pk; A.poolsMesh = []; A.root.traverse(o => { if (o.name === 'town_pools') A.poolsMesh.push(o); }); } this.refl.render(this.renderer, this.scene, this.camera, [this.rain.mesh, this.splash && this.splash.mesh, this.wet.mesh, this.trail.mesh, ...A.poolsMesh]); }
     else if (this.refl) ENV_U.uReflOn.value = 0;
+    this.horrorFrame(dt);                                            // Q-horror：異形の見え方・画面の重ね・HUD・遠くの影・演出の振り向き（game/horror.js）
     this.drawScene();
     if (this.trans) this.trans.tick(Math.min(dt, 1 / 20));               // 遷移の重ね（読み込みで止まったこまの後も、飛ばさず滑らかに）
     if (this.perfOn) this.perfTick(dt, steps);
@@ -1099,15 +1105,16 @@ class Game {
     }
     for (const l of A.lights) {
       let k = l.off ? 0 : 1;
-      if (l.flicker && !l.off) { const n = Math.sin(t * 13.7 + l.pos[2]) * Math.sin(t * 7.3); if (n > 0.86) k = 0.15; }
+      // Q-horror 2：ちらつきは明かりごとの不規則な状態の機械（data/horror.js Flicker：種＝明かりの id・位置）。前は全部の明かりが同じ周期で揃って瞬いた
+      if (l.flicker && !l.off) { if (!l.fs) l.fs = new Flicker(hash32((l.id || '') + l.pos.join(','))); k = l.fs.step(dt); if (l.fs.takeEdge()) this.onLightFlickerOff(l); }
       if (l.flickerT > 0) { l.flickerT -= dt; k *= Math.random() < 0.5 ? 0.1 : 1; }
       l.cur = (l.intensity ?? l.base) * k;
     }
-    for (const p of this.pool) { const want = p.def ? p.def.cur : 0; p.light.intensity += (want - p.light.intensity) * Math.min(1, dt * 20); }
+    for (const p of this.pool) { const want = p.def ? p.def.cur : 0; p.light.intensity = want < p.light.intensity - 1e-3 && p.def && p.def.flicker ? want : p.light.intensity + (want - p.light.intensity) * Math.min(1, dt * 20); }   // 消える時はすぐ（丸めない）・点く時だけ補間
     for (const h of A.halos) if (h.idx >= 0) {
       let k = h.off ? 0 : h.k;
       if (h.light) k = h.light.off ? 0 : h.k * Math.min(1.2, (h.light.cur || 0) / Math.max(0.01, h.light.base || 1));
-      if (h.flicker) k *= 0.75 + Math.sin(t * 9 + h.p[0] + h.p[2]) * 0.25;
+      if (h.flicker && !h.light) { if (!h.fs) h.fs = new Flicker(hash32('h' + h.p.join(',')), { onMin: 3, onMax: 11 }); k *= 0.12 + 0.88 * h.fs.step(dt); }   // Q-horror 2：光のにじみも不規則に（前は 9Hz の sin で呼吸していた）
       if (h.hazard) k *= Math.sin(t * 5.5) > 0 ? 1 : 0.08;
       this.halos.setK(h.idx, k);
     }
@@ -1296,7 +1303,7 @@ class Game {
     return false;
   }
 }
-Object.assign(Game.prototype, combatMethods, storyMethods, ch3Methods, ch4Methods, ch5Methods, ch6Methods, ch7Methods, transMethods);
+Object.assign(Game.prototype, combatMethods, storyMethods, ch3Methods, ch4Methods, ch5Methods, ch6Methods, ch7Methods, transMethods, horrorMethods);
 
 function raySphereHit(o, d, c, r) { const ox = o.x - c.x, oy = o.y - c.y, oz = o.z - c.z; const B = ox * d.x + oy * d.y + oz * d.z, Cc = ox * ox + oy * oy + oz * oz - r * r; const disc = B * B - Cc; return disc >= 0 && -B - Math.sqrt(disc) > 0; }
 function mergeIn(a, b) {

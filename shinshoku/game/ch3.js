@@ -198,7 +198,9 @@ export const ch3Methods = {
   },
   applyWardLights() {
     if (this.area.id !== 'hospital') return;
-    for (const l of this.area.lights) if (l.ward) { l.off = !!this.flags.ward_dark; }
+    // Q-horror 5：「暗い病棟」：ch3_ward からは c3・c5 を消し、c4 だけ不規則にちらつく（非常灯の緑・306 の常夜灯は残る）。照明を落とす（ward_dark）と残りも消える
+    const dim = atLeast(this.story.step, 'ch3_ward');
+    for (const l of this.area.lights) if (l.ward) { l.off = !!this.flags.ward_dark || (dim && (l.id === 'c3' || l.id === 'c5')); if (dim && l.id === 'c4') l.flicker = true; }
     this.darkness = this.flags.ward_dark ? 0.6 : 0;
   },
   /** カルテの照合（必須） */

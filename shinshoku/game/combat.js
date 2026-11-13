@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { COMBAT, ITEMS, f2ms, dodgeSpeedK } from '../data/combat.js';
 import { resolveCircle, rayBoxes, lineOfSight, insideAny, rayCylinder, raySphere } from '../world/collide.js';
 import { turnTo } from '../actor/actors.js';
+import { COLLAPSE, COLLAPSE_KINDS } from '../data/horror.js';
 import { pickChainTarget, canChain } from '../combat/chain.js';
 import { sideOf } from '../ai/tsugihagi.js';
 
@@ -323,6 +324,7 @@ export const combatMethods = {
     if (b.state === 'home') { this.enterHome(e, dt); return; }
     if (!e.fleeing && b.def.tutorial && b.alive && b.hp < b.hpMax * 0.5) { e.fleeing = true; e.fleeTo = { x: 1.0, z: -64 }; b.atk = null; e.mark = null; this.bark('kiro_flee', 2.4); }
     if (e.fleeing) { this.flee(e, dt); return; }
+    if (e.introHold && this.introHoldStep(e, dt)) return;             // Q-horror 10：序章の帰路が振り向くまで（頭脳を進めない）
     if (e.confusedT > 0) e.confusedT -= dt;
     const dec = this.senseTarget ? this.senseTarget(e) : null;
     const tp = dec || (this.giantMode ? this.giant.pos : P.pos);
@@ -336,6 +338,7 @@ export const combatMethods = {
     if (e.kind === 'mamori') sense.threats = this.enemies.filter(o => o.kind === 'mimic' && o.brain.alive && o.brain.revealed && o.root.visible).map(o => ({ id: o.id, x: o.pos.x, z: o.pos.z }));
     if (this.senseExtra7) { const x7 = this.senseExtra7(e); if (x7) Object.assign(sense, x7); }
     e.targetDecoy = !!dec;
+    if (e.kind === 'mimic') { const fw = this.cam.forward(), vx = b.pos.x - P.pos.x, vz = b.pos.z - P.pos.z, vl = Math.hypot(vx, vz) || 1; sense.inView = (vx * fw.x + vz * fw.z) / vl > 0.55; }   // Q-horror 13：画面の中か
     if (this.flashlightOn && b.def.senses) sense.dark = false;    // 懐中電灯：暗くても遠くから見える
     const out = e.step(dt, sense, this.boxes, this.giantMode ? null : P);
     if (e.kind === 'sakibure' || e.kind === 'nurikae' || e.kind === 'kuramono') { this.bossEvents4(e, out.events); return; }
@@ -382,8 +385,9 @@ export const combatMethods = {
           this.sfx.play(ev.parryable ? 'tel_parry' : 'tel_red', b.pos);
           if (e.kind === 'kiro') e.weakGlow = 0.85;
           if (ev.plan) { e.copyLabel = ev.plan.label; e.copyT = (ev.def.windup || 0.6) + 0.3; if (!ev.follow) this.sfx.play('copy', b.pos); if (!this.flags.copy_bark && ev.plan.seq && ev.plan.seq.length >= 2) { this.flags.copy_bark = true; this.bark('mimic_copy', 2.6); } if (e.model.mats && e.model.mats.outline) e.model.mats.outline.color.setHex(ev.plan.white ? 0xf0e8ff : e.outlineBase); }
-          const A = ev.def;
-          if (A.aoe && ev.at) this.fx.decal('circle', ev.at.x, ev.at.z, { r: A.aoe.r, dur: A.windup, hold: 0.25, color: 0xff3040 });
+          const A = ev.def, decalOk = this.settings.teleShow !== 'subtle' || e === this.boss || !!e.big || !!(b.def && b.def.boss);   // Q-horror 14：「控えめ」は地面の印をボスだけ（既定の「標準」は今のまま）
+          if (!decalOk) { /* 体の構え・目の光だけで見せる */ }
+          else if (A.aoe && ev.at) this.fx.decal('circle', ev.at.x, ev.at.z, { r: A.aoe.r, dur: A.windup, hold: 0.25, color: 0xff3040 });
           else if (A.dash) this.fx.decal('line', b.pos.x, b.pos.z, { r: A.range, w: e.r * 2 + 0.6, yaw: b.yaw, dur: A.windup, hold: 0.4, color: 0xff3040 });
           else if (e.kind === 'shuuyou' && A.parryable) this.fx.decal('arc', b.pos.x, b.pos.z, { r: A.range, arc: A.arc, yaw: b.yaw, dur: A.windup, hold: 0.15, color: 0xfff0e0 });
           this.companionSeeTelegraph(e, ev.parryable ? 'parry' : 'red');
@@ -431,7 +435,7 @@ export const combatMethods = {
         }
         case 'neutralized': if (e.kind === 'kanja' || e.kind === 'outou') { this.resolve(e, 'neutralize'); if (e.kind === 'outou') this.sfx.play('steam', b.pos); break; } this.sfx.play('shutter'); this.resolve(e, 'neutralize'); this.onBossResolved('neutralize'); break;
         case 'die': {
-          this.sfx.play('die', b.pos); this.fx.mist(new THREE.Vector3(b.pos.x, 0, b.pos.z), 70, e.h); this.resolve(e, 'kill'); e.fadeT = 0;
+          this.sfx.play('die', b.pos); { const at = new THREE.Vector3(b.pos.x, 0, b.pos.z), hh = e.h; if (COLLAPSE_KINDS.includes(e.kind)) this.later(COLLAPSE.mistDelay, () => this.fx.mist(at, 70, hh * 0.5)); else this.fx.mist(at, 70, hh); } this.resolve(e, 'kill'); e.fadeT = 0;   // Q-horror 3：崩れ落ちてから霧
           if (this.lock === e) this.lock = null;
           if (e.kind === 'heiten') this.bark('heiten_killed', 3);
           else if (e.kind === 'shuuyou') this.onBossResolved('kill');
@@ -472,9 +476,10 @@ export const combatMethods = {
   dissolve(e, dt) {
     if (e.fadeT == null) e.fadeT = 0;
     e.fadeT += dt;
-    const k = Math.min(1, e.fadeT / 1.8);
+    const delay = e.deadT != null && e.deadT > 0 ? COLLAPSE.mistDelay : 0;   // Q-horror 3：崩れ落ちてから霧になる（倒れ方を使う異形だけ 0.9 秒遅らせる）
+    const k = Math.max(0, Math.min(1, (e.fadeT - delay) / 1.8));
     e.setDissolve(k); e.y = -k * 0.15;
-    if (Math.random() < 0.5 && k < 1) this.fx.mist(new THREE.Vector3(e.pos.x, 0, e.pos.z), 3, e.h * (1 - k * 0.6));
+    if (k > 0 && Math.random() < 0.5 && k < 1) this.fx.mist(new THREE.Vector3(e.pos.x, 0, e.pos.z), 3, e.h * (1 - k * 0.6));
     if (k >= 1) e.root.visible = false;
   },
   enterHome(e, dt) {
@@ -486,7 +491,7 @@ export const combatMethods = {
   flee(e, dt) {
     const b = e.brain, t = e.fleeTo;
     const dx = t.x - b.pos.x, dz = t.z - b.pos.z, L = Math.hypot(dx, dz);
-    if (L > 0.3) { const m = Math.min(L, 2.2 * dt); b.pos.x += dx / L * m; b.pos.z += dz / L * m; b.yaw = turnTo(b.yaw, Math.atan2(dx, dz), 0.1); e.speed = 2.2; e.phase += m * 3.4; }
+    if (L > 0.3) { const m = Math.min(L, 2.2 * dt); b.pos.x += dx / L * m; b.pos.z += dz / L * m; b.yaw = turnTo(b.yaw, Math.atan2(dx, dz), 0.1); e.speed = 2.2; e.phase += m * (e.gaitRate ? e.gaitRate(2.2) : 3.4); }   // Q-horror 4：足の滑らない位相
     e.fleeT = (e.fleeT || 0) + dt;
     if (e.fleeT > 1.5) e.setDissolve(Math.min(1, (e.fleeT - 1.5) / 2.5));
     if (e.fleeT > 4.2 && e.root.visible) { e.root.visible = false; b.resolution = 'escape'; b.state = 'gone'; this.resolve(e, 'escape'); }

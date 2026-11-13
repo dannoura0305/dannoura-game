@@ -76,11 +76,23 @@ export class CompanionBrain {
         const next = this.trail.length ? this.trail[0] : tgt;
         const goal = Math.hypot(next.x - this.pos.x, next.z - this.pos.z) > 0.3 ? next : tgt;
         const sp = dP > 6 ? CFG.run : dP > 3.5 ? (CFG.walk + CFG.run) / 2 : CFG.walk;
-        out.move = { x: goal.x, z: goal.z, speed: sp }; out.face = { x: goal.x, z: goal.z };
+        let g = goal;
+        // Q-horror 15：カメラとだんのうらの間（視線）に入りそうな時は、さらに 0.6m 横へ（通れる時だけ）
+        const C = sense.cam; if (C && sense.free) { const rx = -C.z, rz = C.x, bx = this.pos.x - P.x, bz = this.pos.z - P.z, back = -(bx * C.x + bz * C.z), lat = bx * rx + bz * rz; if (back > 0 && Math.abs(lat) < 0.5) { const q = { x: goal.x - rx * 0.6, z: goal.z - rz * 0.6 }; if (sense.free(q)) g = q; } }
+        out.move = { x: g.x, z: g.z, speed: sp }; out.face = { x: g.x, z: g.z };
       } else if (dP < 1.2) {                                     // 近すぎる：少し下がる
         const ax = this.pos.x - P.x, az = this.pos.z - P.z, L = Math.hypot(ax, az) || 1;
         out.move = { x: this.pos.x + ax / L, z: this.pos.z + az / L, speed: 1.2 };
-      } else out.face = { x: P.x, z: P.z };
+      } else {
+        // Q-horror 15：止まっている時は「左後ろ」（カメラから見てだんのうらの左 0.9m・後ろ 1.4m）へ寄る。前は真後ろ＝画面の下の中央をふさいだ
+        const C = sense.cam; let moved = false;
+        if (C && sense.free) {
+          const rx = -C.z, rz = C.x, slot = { x: P.x - C.x * 1.4 - rx * 0.9, z: P.z - C.z * 1.4 - rz * 0.9 };
+          if (Math.hypot(slot.x - this.pos.x, slot.z - this.pos.z) > (this.slotting ? 0.25 : 0.8) && sense.free(slot)) { out.move = { x: slot.x, z: slot.z, speed: 1.4 }; out.face = { x: slot.x, z: slot.z }; moved = true; }
+        }
+        this.slotting = moved;
+        if (!moved) out.face = { x: P.x, z: P.z };
+      }
       out.pose = 'follow';
     }
     return out;
