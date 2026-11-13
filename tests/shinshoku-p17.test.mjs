@@ -56,9 +56,9 @@ await t('町の組み立て：電車・バス・信号・大屋根の部品の i
 });
 
 await t('異形の包み（3 種 × PC／スマホ）：骨の名前はコードの骨と同じ・重みの合計 1・骨の番号の範囲・三角形の予算・材質の種類', () => {
-  for (const kind of EP.ENEMY_PACK_EARLY) for (const low of [false, true]) {          // P17 の 3 種（P18 の 4 種は tests/shinshoku-p18.test.mjs：ボスは予算が別）
+  for (const kind of [...EP.ENEMY_PACK_EARLY, ...EP.ENEMY_PACK_VARIANTS]) for (const low of [false, true]) {   // 2026-11-07：帰路の個体差（kiro_coat など）も同じ骨・同じ予算          // P17 の 3 種（P18 の 4 種は tests/shinshoku-p18.test.mjs：ボスは予算が別）
     const f = `shinshoku/assets/enemies/${kind}${low ? '_low' : ''}.pack.json`; assert.ok(existsSync(new URL(f, root)), f);
-    const pk = J(f), rig = J(`tools/blender/enemy/rigs/${kind}.json`);
+    const pk = J(f), rig = J(`tools/blender/enemy/rigs/${kind.startsWith('kiro') ? 'kiro' : kind}.json`);
     assert.equal(pk.spec, 'wakaba-enemypack/1'); assert.deepEqual(pk.bones, rig.bones.map(b => b.name), kind + ' の骨');
     assert.ok(pk.tris < (low ? 12000 : 20000) && pk.tris > 5000, `${f} ${pk.tris}`);
     for (const c of pk.classes) assert.ok(['cloth', 'skin', 'hair', 'metal', 'acc', 'glow'].includes(c), c);
@@ -81,13 +81,25 @@ await t('コードの異形の網を差し替える：頂点の数＝包み・�
     assert.equal(g.attributes.position.count, nv); assert.equal(m.outline.geometry, g);
     for (const a of ['mcls', 'rp', 'normal', 'color', 'uv', 'skinIndex', 'skinWeight', 'oth']) assert.ok(g.attributes[a], kind + ' ' + a);
     const si = g.attributes.skinIndex.array; let mx = 0; for (const v of si) mx = Math.max(mx, v); assert.ok(mx < m.skeleton.bones.length);
-    if (m.faceMesh) assert.ok(m.faceMesh.visible !== false, kind + '：顔の札・名札は残す');
+    if (m.faceMesh) assert.ok(EP.enemyPackOf(kind).hideFace ? m.faceMesh.visible === false : m.faceMesh.visible !== false, kind + '：顔の札・名札は残す（顔を網に彫った包み＝hideFace は隠す：帰路 2026-11-07）');
     assert.ok(m.weak && m.eyeGlow && m.eyeGlow.length >= 2, kind + '：弱点と光る目はコードのまま');
   }
   // マフラーの色が違う（tint の部品だけ）
-  const pk = EP.enemyPackOf('kiro'); let o = 0; const sc = pk.parts.find(p => p.tint); for (const p of pk.parts) { if (p === sc) break; o += p.count; }
-  const cr = red.mesh.geometry.attributes.color.array, cb = blue.mesh.geometry.attributes.color.array; const i = (o + 3) * 3;
-  assert.ok(cr[i] > cr[i + 2] && cb[i + 2] > cb[i], 'マフラー＝家の戸の灯りの色');
+  // 2026-11-07 怪異強化案の帰路はマフラーの代わりに腰の手ぬぐい（towel）が家の戸の灯りの色
+  const pk = EP.enemyPackOf('kiro'); let o = 0; const sc = pk.parts.find(p => p.tint);
+  assert.ok(sc, '帰路には置く時の色（tint）の部品がある');
+  {
+    for (const p of pk.parts) { if (p === sc) break; o += p.count; }
+    const cr = red.mesh.geometry.attributes.color.array, cb = blue.mesh.geometry.attributes.color.array; const i = (o + 3) * 3;
+    assert.ok(cr[i] > cr[i + 2] && cb[i + 2] > cb[i], '手ぬぐい（前はマフラー）＝家の戸の灯りの色');
+  }
+  // 個体差：buildKiro(色, 'coat') は kiro_coat の包み（骨・弱点・光る目は同じ）・手ぬぐいは置く時の色
+  for (const v of EP.ENEMY_PACK_VARIANTS) EP.setEnemyPack(v, J(`shinshoku/assets/enemies/${v}.pack.json`));
+  for (const v of ['coat', 'cardigan', 'obaa']) {
+    const m = M.buildKiro(0x3a6ad0, v); assert.equal(m.packed, 'kiro_' + v); assert.equal(m.kind, 'kiro'); assert.ok(m.weak && m.eyeGlow);
+    assert.ok(EP.enemyPackOf('kiro_' + v).parts.some(p => p.tint), v + '：手ぬぐい（置く時の色）');
+  }
+  assert.ok(/body: 'coat'/.test(read('shinshoku/data/level.js')) && /buildKiro\(k\.color \|\| \(door && door\.color\) \|\| 0xd04848, k\.body\)/.test(read('shinshoku/main.js')), '帰路の表の body で体を選ぶ');
   // 包みが無い時（?epack=0・読めない）はコードの形
   for (const kind of EP.ENEMY_PACK_KINDS) EP.setEnemyPack(kind, null);
   const c = M.buildKiro(0xd04848); assert.ok(!c.packed && c.mesh.geometry.attributes.position.count > 1000);

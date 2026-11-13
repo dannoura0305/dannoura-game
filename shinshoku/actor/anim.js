@@ -209,7 +209,8 @@ export function civilianPose(ctx) { return { pose: ctx.speed > 0.1 ? locomotion(
 // ── 敵 ──
 export function kiroPose(ctx) {
   const { state, t, sub } = ctx;
-  const hunch = { spine: [0.32, 0, 0], chest: [0.15, 0, 0], neck: [0.28, 0, 0.08], head: [0.1, 0, 0.32 + 0.12 * S(t * 0.7)] };
+  // 2026-11-07 怪異強化案：背中を丸め、首から前へ垂れる（設定画 docs/shinshoku/reference/kiro_sheet.webp の側面）
+  const hunch = { spine: [0.36, 0, 0], chest: [0.32, 0, 0], neck: [0.5, 0, 0.06], head: [-0.22, 0, 0.2 + 0.1 * S(t * 0.7)] };
   if (state === 'home') return { pose: { hipsY: -0.5, leftUpperLeg: [-1.5, 0, 0.1], rightUpperLeg: [-1.5, 0, -0.1], leftLowerLeg: [1.6, 0, 0], rightLowerLeg: [1.6, 0, 0], spine: [0.5, 0, 0], neck: [0.6, 0, 0], leftUpperArm: [-0.6, 0, 0], rightUpperArm: [-0.6, 0, 0], leftLowerArm: [-0.8, 0, 0], rightLowerArm: [-0.8, 0, 0] }, rate: 0.05 };
   if (state === 'hostile' && ctx.atk) {
     const a = ctx.atk; const w = a.phase === 'windup' ? ease(a.t / ctx.atkDef.windup) : 1;
@@ -228,7 +229,14 @@ export function kiroPose(ctx) {
   if (state === 'family') return { pose: Object.assign(locomotion(ctx.phase, ctx.speed || 0, { k: 0.7 }), { spine: [0.1, 0, 0], head: [-0.1, 0, 0.1] }), rate: 0.4 };
   const sp = ctx.speed || 0;
   const loc = sp > 0.05 ? locomotion(ctx.phase, sp, { k: 0.75 }) : idle(t, 0.5);
-  return { pose: Object.assign(loc, hunch, sp > 2.5 ? { spine: [0.6, 0, 0], leftUpperArm: [-0.9, 0, 0.2], rightUpperArm: [-0.9, 0, -0.2] } : { leftUpperArm: [-0.1, 0, 0.08], rightUpperArm: [-0.25 + S(ctx.phase) * 0.15, 0, -0.08] }), rate: 0.4 };
+  // 2026-11-07 怪異強化案：ひざを少し曲げたまま（足は腰の真下：太ももを前へ・すねを後ろへ同じだけ）・腕は丸めた背中から前へ垂れる
+  if (sp <= 2.5) for (const side of ['left', 'right']) {
+    const ul = loc[side + 'UpperLeg'] || [0, 0, 0], ll = loc[side + 'LowerLeg'] || [0, 0, 0], ft = loc[side + 'Foot'] || [0, 0, 0];
+    loc[side + 'UpperLeg'] = [ul[0] - 0.32, ul[1], ul[2]]; loc[side + 'LowerLeg'] = [ll[0] + 0.64, ll[1], ll[2]]; loc[side + 'Foot'] = [ft[0] - 0.32, ft[1], ft[2]];
+  }
+  if (sp <= 2.5) loc.hipsY = (loc.hipsY || 0) - 0.045;
+  return { pose: Object.assign(loc, hunch, sp > 2.5 ? { spine: [0.6, 0, 0], leftUpperArm: [-0.9, 0, 0.2], rightUpperArm: [-0.9, 0, -0.2] }
+    : { leftUpperArm: [-0.55, 0, 0.1], rightUpperArm: [-0.62 + S(ctx.phase) * 0.12, 0, -0.1], leftLowerArm: [-0.22, 0, 0], rightLowerArm: [-0.22, 0, 0] }), rate: 0.4 };
 }
 export function heitenPose(ctx) {
   const { state, t } = ctx;

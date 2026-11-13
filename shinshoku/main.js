@@ -403,7 +403,7 @@ class Game {
     const mkKiro = (k, i, doors) => {
       const brain = new Kiro({ id: k.id, path: k.path.map(([x, z]) => ({ x, z })), home: k.door, startIdx: k.start, seed: 11 + i * 7, def: k.def });
       const door = doors && doors[k.door];
-      return add(brain, buildKiro(k.color || (door && door.color) || 0xd04848));
+      return add(brain, buildKiro(k.color || (door && door.color) || 0xd04848, k.body));
     };
     if (id === 'shotengai') {
       if (streetState(s) === 'normal') {
@@ -1211,7 +1211,8 @@ class Game {
   /** P17：包みが読めた時、今いる異形（コードの形）の網を差し替える */
   refreshEnemyPacks() {
     for (const e of this.enemies || []) {
-      const m = e.model; if (!(m && !m.packed && ENEMY_PACK_KINDS.includes(m.kind)) || !applyEnemyPack(m, m.kind, { tint: m.packTint })) continue;
+      const m = e.model, k = m && (m.packKind || m.kind);   // packKind：帰路の個体差（kiro_coat など）
+      if (!(m && !m.packed && ENEMY_PACK_KINDS.includes(k)) || !applyEnemyPack(m, k, { tint: m.packTint })) continue;
       const d = m.packShift; if (d && e.poser) { e.poser.hipsBase += d.y; e.poser.hipsBaseX += d.x; e.poser.hipsBaseZ += d.z; }   // P19：腰の休みの位置が動いた分（Poser は作った時の高さを持つ）
     }
     const G = this.giantModel; if (G && !G.packed) applyEnemyPack(G, 'nekomata');   // P19：巨大猫又（だんのうらの巨大な姿）
@@ -1219,7 +1220,7 @@ class Game {
   /** P18：第4章からの異形（応答体・継接・塗替・当直）の体は、その異形が置かれた時に読む（1 秒ごとに見る・1 種類 1 回） */
   lazyEnemyPacks() {
     const ks = [...(LAZY_PACK_AREAS[this.area && this.area.id] || [])];     // この区画（と次の区画）のボスは先に頼む（戦いの始まりに読み込みが重ならない）
-    for (const e of this.enemies || []) if (e.model && !e.model.packed && e.model.kind) ks.push(e.model.kind);
+    for (const e of this.enemies || []) if (e.model && !e.model.packed && e.model.kind) ks.push(e.model.packKind || e.model.kind);
     if ((this.giantModel && !this.giantModel.packed) || (this.enemies || []).some(e => GIANT_FOES.includes(e.kind))) ks.push('nekomata');   // P19：巨大猫又は巨大な敵が居る区画で先に
     const p = ks.length ? requestEnemyPacks(ks, this.presetVals() === PRESETS.low ? 'low' : 'high') : null;
     if (p) p.then(n => { this.enemyPacks = (this.enemyPacks || 0) + n; this.refreshEnemyPacks(); }, () => 0);
