@@ -6,7 +6,9 @@
 // P19：利用者が Codex（PC の Blender）で作った異形のモデル 9 体（閉店・収容者（避難所／旧研究棟）・模倣する影・応答体・待人・継接・境界の先触れ・巨大猫又）を
 // tools/blender/enemy/convert_codex.py で軽くした包み（wakaba-enemypack/2：shinshoku/assets/enemies/codex/）。v2 は量子化（位置 int16・法線 int8・色 sRGB uint8・骨と重み uint8）で
 // 「休みの骨の位置」（rest）を持つ：差し替える時にコードの骨をその位置へ動かし（骨の逆行列も）、コードの光・顔の網も骨の動いた分だけずらす。目・弱点・核（anchors）は届いたモデルの位置へ。
-// 写し身（utsushimi）は差し替えない（作りかけ）。前の姿へ戻す：?epack=p18（P17・P18 の Blender の包み・無い種類はコードの形）／?epack=0（全部コードの形）。
+// P20：2026-11-13 に届いた 7 体と写し身の完成版も同じ包みへ（守り手・記録のない患者・写し身・当直・塗替・境界を喰らうもの・研究者・配偶者に似た異形）。
+// 塗替と当直は P18 の Blender の包みから Codex の包みへ（P18 の包みは ?epack=p18 用に残す）。
+// 前の姿へ戻す：?epack=p18（P17・P18 の Blender の包み・無い種類はコードの形）／?epack=0（全部コードの形）。
 import * as THREE from 'three';
 
 const BASE = new URL('../assets/enemies/', import.meta.url);
@@ -15,10 +17,12 @@ const BASE = new URL('../assets/enemies/', import.meta.url);
 // main の lazyEnemyPacks が 1 秒ごとに見る）＝起動の読み込みも、序盤の通信も増やさない。
 // P19：模倣する影（mimic・第3章）・待人（machibito）・収容者（旧研究棟 shuusha）・境界の先触れ（sakibure）・巨大猫又（nekomata＝だんのうらの巨大な姿）も LAZY。
 export const ENEMY_PACK_EARLY = ['kiro', 'heiten', 'shuuyou'];
-export const ENEMY_PACK_LAZY = ['outou', 'tsugihagi', 'nurikae', 'touchoku', 'mimic', 'machibito', 'shuusha', 'sakibure', 'nekomata'];
+// P20：記録のない患者・守り手・写し身（第3章）・境界を喰らうもの・研究者・配偶者に似た異形（終章）も LAZY。
+export const ENEMY_PACK_LAZY = ['outou', 'tsugihagi', 'nurikae', 'touchoku', 'mimic', 'machibito', 'shuusha', 'sakibure', 'nekomata', 'kanja', 'mamori', 'utsushimi', 'kuramono', 'kenkyusha', 'spouse_like'];
 export const ENEMY_PACK_KINDS = [...ENEMY_PACK_EARLY, ...ENEMY_PACK_LAZY];
 /** P19：Codex のモデルから作った包み（assets/enemies/codex/）を使う種類 */
-export const ENEMY_PACK_CODEX = ['heiten', 'shuuyou', 'shuusha', 'mimic', 'outou', 'machibito', 'tsugihagi', 'sakibure', 'nekomata'];
+export const ENEMY_PACK_CODEX = ['heiten', 'shuuyou', 'shuusha', 'mimic', 'outou', 'machibito', 'tsugihagi', 'sakibure', 'nekomata',
+  'kanja', 'mamori', 'utsushimi', 'touchoku', 'nurikae', 'kuramono', 'kenkyusha', 'spouse_like'];   // P20
 /** P17・P18 の包み（assets/enemies/ 直下）がある種類 */
 const OLD_PACKS = ['kiro', 'heiten', 'shuuyou', 'outou', 'tsugihagi', 'nurikae', 'touchoku'];
 const PACKS = {};
@@ -60,7 +64,9 @@ export const enemyPackOf = kind => (OFF ? null : PACKS[kind] || null);
 /** 材質の種類（包みを読む前に組んだコードの異形にも入れておく＝後で網だけ差し替えられる） */
 const PACK_CLASSES = { kiro: ['cloth', 'skin', 'hair', 'acc'], heiten: ['cloth', 'skin', 'hair', 'metal', 'acc', 'glow'], shuuyou: ['cloth', 'skin', 'metal', 'acc', 'glow'],
   outou: ['cloth', 'skin', 'metal', 'acc', 'glow'], tsugihagi: ['cloth', 'skin', 'metal', 'acc', 'glow'], nurikae: ['cloth', 'metal', 'acc', 'glow'], touchoku: ['cloth', 'skin', 'metal', 'acc', 'glow'],
-  mimic: ['cloth', 'skin', 'acc', 'glow'], machibito: ['cloth', 'skin', 'metal', 'acc'], shuusha: ['cloth', 'skin', 'acc'], sakibure: ['cloth', 'acc', 'glow'], nekomata: ['fur', 'skin', 'acc', 'glow'] };
+  mimic: ['cloth', 'skin', 'acc', 'glow'], machibito: ['cloth', 'skin', 'metal', 'acc'], shuusha: ['cloth', 'skin', 'acc'], sakibure: ['cloth', 'acc', 'glow'], nekomata: ['fur', 'skin', 'acc', 'glow'],
+  kanja: ['cloth', 'skin', 'metal', 'acc'], mamori: ['cloth', 'skin', 'acc'], utsushimi: ['cloth', 'skin', 'hair', 'acc', 'glow'], kuramono: ['cloth', 'acc', 'glow'],
+  kenkyusha: ['cloth', 'skin', 'hair', 'metal', 'acc', 'glow'], spouse_like: ['cloth', 'skin', 'hair', 'metal', 'acc', 'glow'] };
 export function enemyPackClasses(kind) { const p = enemyPackOf(kind); return OFF ? [] : [...new Set([...(PACK_CLASSES[kind] || []), ...(p ? p.classes : [])])]; }
 
 const f32 = s => { const b = typeof atob === 'function' ? Uint8Array.from(atob(s), c => c.charCodeAt(0)) : new Uint8Array(Buffer.from(s, 'base64')); return new Float32Array(b.buffer, b.byteOffset, b.byteLength / 4); };
@@ -172,6 +178,8 @@ function rebind(m, pk) {
   m.packRest = Object.fromEntries(bones.map((b, i) => [b.name, neu[i]]));
   if (m.bodyY != null && m.packRest.gBody) m.bodyY = m.packRest.gBody.y;      // 巨大猫又の胴の高さ（anim5 の GiantAnimator）
   if (m.packRest.tHip) m.tHipY = m.packRest.tHip.y;                             // 継接の腰の高さ（anim5 の TsugiAnimator）
+  if (m.packRest.nHip) m.nHipY = m.packRest.nHip.y;                             // P20：塗替の腰の高さ（anim6 の NurikaeAnimator）
+  if (m.packRest.kBody) m.kBodyY = m.packRest.kBody.y;                          // P20：境界を喰らうものの胴の高さ（anim7 の KuramonoAnimator）
 }
 
 /**
@@ -185,7 +193,7 @@ export function placePackAnchors(m) {
     const objs = Array.isArray(m[key]) ? m[key] : m[key] && m[key].isObject3D ? [m[key]] : null;
     if (!objs || !objs.length || !a.p || !a.p.length) continue;
     objs.forEach((o, i) => {
-      const bone = byName[a.bone] || o.parent; if (!bone || !bone.isBone) return;
+      const bone = byName[a.bones ? a.bones[i % a.bones.length] : a.bone] || byName[a.bone] || o.parent; if (!bone || !bone.isBone) return;   // P20：bones＝点ごとの骨（翼ごとの目）
       const rest = m.packRest && m.packRest[bone.name]; if (!rest) return;
       const p = a.p[i % a.p.length];
       if (o.parent !== bone) bone.add(o);
@@ -238,6 +246,22 @@ export const PACK_CLIP_RULES = {
   mimic: [{ when: c => c.state === 'voice', clip: 'head_tilt', bones: ['neck', 'head'] }, { when: c => c.state === 'loop' && still(c), clip: 'idle', bones: ['spine', 'chest', 'neck', 'head'] }],
   outou: [{ when: c => c.sub === 'answer' && still(c), clip: 'respond' }, { when: c => c.state === 'loop' && still(c), clip: c => (Math.floor((c.t || 0) / 8) % 2 ? 'acknowledge' : 'standby'), bones: ['spine', 'chest', 'neck', 'head'] }],
   machibito: [{ when: c => c.state === 'loop' && still(c), clip: c => ['check_watch', 'look_around', 'wait'][Math.floor((c.t || 0) / 4) % 3] }, { when: c => c.state === 'sad' && still(c), clip: 'wait', bones: ['neck', 'head'] }],
+  // P20：届いた 7 体と写し身の完成版（構えの動きは予兆の時間に合わせて 0〜2 秒の所まで＝動きの山の手前で止める）
+  kanja: [{ when: c => c.state === 'assess', clip: 'search_record' }, { when: c => c.sub === 'ask' && still(c), clip: 'hold_record' },
+    { when: c => (c.state === 'loop' || c.state === 'nurse') && still(c), clip: 'idle' }, { when: c => (c.state === 'loop' || c.state === 'nurse') && !c.atk && c.speed > 0.05 && c.speed < 2, clip: 'walk_in_place' }],
+  mamori: [{ when: c => c.atk && c.atk.name === 'push' && c.atk.phase === 'windup', clip: 'push_back', t: c => windupT(c, 2), loop: false },
+    { when: c => c.state === 'protect' && !c.atk, clip: 'protect_ground' }, { when: c => c.state === 'guard' && still(c), clip: 'idle' }],
+  utsushimi: [{ when: c => c.atk && c.atk.name === 'mlunge' && c.atk.phase === 'windup', clip: 'reaching_lunge', t: c => windupT(c, 2), loop: false },
+    { when: c => c.state === 'reveal', clip: 'mimic_pose', t: c => Math.min(c.t || 0, 2), loop: false }, { when: c => c.state === 'voice', clip: 'head_tilt', bones: ['neck', 'head'] },
+    { when: c => c.state === 'hostile' && still(c), clip: 'idle', bones: ['spine', 'chest', 'neck', 'head'] }],
+  touchoku: [{ when: c => c.atk && c.atk.name === 'steam' && c.atk.phase === 'windup', clip: 'steam_brace', t: c => windupT(c, 2), loop: false },
+    { when: c => c.state === 'round' && still(c), clip: 'restart' }, { when: c => c.state === 'loop' && still(c), clip: 'idle' },
+    { when: c => c.state === 'loop' && !c.atk && c.speed > 0.05, clip: 'patrol', bones: ['head'] }],
+  kenkyusha: [{ when: c => c.atk && c.atk.name === 'accident' && c.atk.phase === 'windup', clip: 'accident_replay', t: c => windupT(c, 2), loop: false },
+    { when: c => c.state === 'dormant', clip: c => (Math.floor((c.t || 0) / 8) % 2 ? 'record_check' : 'idle') }, { when: c => c.state === 'hostile' && still(c), clip: 'idle', bones: ['spine', 'chest', 'neck', 'head'] }],
+  spouse_like: [{ when: () => true, clip: 'Wait' }],
 };
+/** 構えの時間（予兆の割合）→ 動きの秒（0〜span 秒） */
+function windupT(c, span) { const A = c.atkDef || {}; return Math.min(span, (c.atk.t / (A.windup || 1)) * span); }
 /** e.poseFn を種類の決まりで包む（決まりの無い種類はそのまま） */
 export const packPoseFn = (kind, fn, model) => (PACK_CLIP_RULES[kind] ? withPackClips(fn, model, PACK_CLIP_RULES[kind]) : fn);

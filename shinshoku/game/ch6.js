@@ -100,12 +100,12 @@ export const ch6Methods = {
       if (!r) {
         const B = ADMIN.boss, route = ROUNDS.machines.map(m => [m.pos[0], m.pos[1] + 1.8]);
         const brain = new Touchoku({ id: B.id, pos: { x: B.desk[0] - 1.2, z: B.desk[1] }, valve: { x: B.valve[0], z: B.valve[1] + 0.6 }, desk: { x: B.desk[0], z: B.desk[1] }, route, seed: 71, assist: !!this.touchokuAssist6, state: 'dormant' });
-        const e = add(brain, buildTouchoku()); e.poseFn = touchokuPose; e.r = 0.55; e.h = 2.3; this.boss = e;
+        const e = add(brain, buildTouchoku()); e.poseFn = packPoseFn('touchoku', touchokuPose, e.model); e.r = 0.55; e.h = 2.3; this.boss = e;
         e.root.visible = s === 'ch6_s_boss' || s === 'ch6_s_isolate' && !!this.flags.isolate6;
         if (s === 'ch6_s_boss') { brain.state = 'loop'; brain.wake([]); }
       } else if (r === 'rescue' || r === 'neutralize') {
         const B = ADMIN.boss, brain = new Touchoku({ id: B.id, pos: { x: B.desk[0] - 1.0, z: B.desk[1] + 0.2 }, state: r === 'rescue' ? 'rest' : 'locked' }); brain.resolution = r; brain.yaw = Math.PI / 2;
-        const e = add(brain, buildTouchoku()); e.poseFn = touchokuPose; e.r = 0.55; e.h = 2.3;
+        const e = add(brain, buildTouchoku()); e.poseFn = packPoseFn('touchoku', touchokuPose, e.model); e.r = 0.55; e.h = 2.3;
       }
       return true;
     }

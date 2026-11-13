@@ -1,11 +1,11 @@
 {
  "spec": "wakaba-enemypack-manifest/1",
- "note": "境界侵食 P19：利用者が自宅 PC の Codex（Blender のスクリプト）で作った異形の 3D モデルを、tools/blender/enemy/convert_codex.py でゲーム用に軽くした包み。形・色・骨・動きは届いたモデルから（デザインは変えていない）。",
+ "note": "境界侵食 P19：利用者が自宅 PC の Codex（Blender のスクリプト）で作った異形の 3D モデルを、tools/blender/enemy/convert_codex.py でゲーム用に軽くした包み。形・色・骨・動きは届いたモデルから（デザインは変えていない）。 P20（2026-11-13 に届いた 7 体・写し身の完成版）も同じ道具で同じ形の包みへ。",
  "source": {
   "branch": "models-from-pc",
   "path": "incoming/codex/characters/（main には入れない）",
-  "received": "2026-11-09",
-  "tool": "Blender 5.2（Codex 側）／bpy 5.0.1（変換）"
+  "received": "2026-11-09（9 体）・2026-11-13（P20：7 体と写し身の完成版）",
+  "tool": "Blender 5.2（Codex 側）／bpy 5.0.1（P19 の変換）・bpy 5.3.0（P20 の変換）"
  },
  "license": {
   "id": "own",
@@ -23,10 +23,22 @@
   "machibito": "machibito/machibito.glb",
   "tsugihagi": "tsugihagi/tsugihagi.glb",
   "sakibure": "sakibure/sakibure.glb",
-  "nekomata": "nekomata/nekomata_light.glb（巨大猫又＝だんのうらの巨大な姿）"
+  "nekomata": "nekomata/nekomata_light.glb（巨大猫又＝だんのうらの巨大な姿）",
+  "kanja": "unrecorded_patient/unrecorded_patient.glb（記録のない患者）",
+  "mamori": "mamorite/mamorite.glb（守り手）",
+  "utsushimi": "utsushimi/utsushimi.glb（写し身・2026-11-10 の完成版）",
+  "touchoku": "tochoku/tochoku.glb（当直・P18 の Blender の包みから差し替え）",
+  "nurikae": "nurikae/nurikae.glb（塗替・P18 の Blender の包みから差し替え）",
+  "kuramono": "boundary_eater/boundary_eater.glb（境界を喰らうもの）",
+  "kenkyusha": "researcher/researcher.glb（研究者・Blender 版・動き 4 本。VRM 版は使わない）",
+  "spouse_like": "spouse_apparition/spouse_animated.glb（配偶者に似た異形・動き Wait／Look_back。ゲームでは光の人影の材質で描く＝顔は描かない）"
  },
- "notConverted": {
-  "utsushimi": "作りかけのため差し替えない（今の姿のまま）"
+ "notUsed": {
+  "researcher/replay_afterimages.glb": "ゲームの「残像」は光の筋の演出で、モデルを並べる残像の仕組みが無いため入れていない",
+  "researcher/*.vrm・blender_refined・natural_face": "利用者の指示（Blender 版を使う）",
+  "spouse_apparition/spouse_apparition.glb・.vrm": "動きの入った spouse_animated.glb を使った",
+  "nekomata/nekomata_sculpt.glb": "詳細版（127 万三角形）。軽量版 nekomata_light.glb を使う（P19 から変わらず）",
+  "inmate_standard 以外の旧い版（shuyosha v1）": "P19 から変わらず"
  },
  "entries": [
   {
@@ -56,6 +68,86 @@
    ]
   },
   {
+   "file": "kanja.pack.json",
+   "kind": "kanja",
+   "lod": "pc",
+   "tris": 11000,
+   "bytes": 321620,
+   "sourceModel": "incoming/codex/characters/unrecorded_patient/unrecorded_patient.glb",
+   "sourceTris": 417548,
+   "clips": [
+    "hold_record",
+    "idle",
+    "search_record",
+    "walk_in_place"
+   ]
+  },
+  {
+   "file": "kanja_low.pack.json",
+   "kind": "kanja",
+   "lod": "low",
+   "tris": 5499,
+   "bytes": 197499,
+   "sourceModel": "incoming/codex/characters/unrecorded_patient/unrecorded_patient.glb",
+   "sourceTris": 417548,
+   "clips": [
+    "hold_record",
+    "idle",
+    "search_record",
+    "walk_in_place"
+   ]
+  },
+  {
+   "file": "kenkyusha.pack.json",
+   "kind": "kenkyusha",
+   "lod": "pc",
+   "tris": 18000,
+   "bytes": 512061,
+   "sourceModel": "incoming/codex/characters/researcher/researcher.glb",
+   "sourceTris": 183576,
+   "clips": [
+    "accident_replay",
+    "idle",
+    "neutralized",
+    "record_check"
+   ]
+  },
+  {
+   "file": "kenkyusha_low.pack.json",
+   "kind": "kenkyusha",
+   "lod": "low",
+   "tris": 9000,
+   "bytes": 299715,
+   "sourceModel": "incoming/codex/characters/researcher/researcher.glb",
+   "sourceTris": 183576,
+   "clips": [
+    "accident_replay",
+    "idle",
+    "neutralized",
+    "record_check"
+   ]
+  },
+  {
+   "file": "kuramono.pack.json",
+   "kind": "kuramono",
+   "lod": "pc",
+   "tris": 35999,
+   "bytes": 981027,
+   "sourceModel": "incoming/codex/characters/boundary_eater/boundary_eater.glb",
+   "sourceTris": 813668,
+   "clips": []
+  },
+  {
+   "file": "kuramono_low.pack.json",
+   "kind": "kuramono",
+   "lod": "low",
+   "tris": 18000,
+   "bytes": 560796,
+   "sourceModel": "incoming/codex/characters/boundary_eater/boundary_eater.glb",
+   "sourceTris": 813668,
+   "clips": []
+  },
+  {
    "file": "machibito.pack.json",
    "kind": "machibito",
    "lod": "pc",
@@ -83,6 +175,36 @@
     "idle",
     "look_around",
     "wait"
+   ]
+  },
+  {
+   "file": "mamori.pack.json",
+   "kind": "mamori",
+   "lod": "pc",
+   "tris": 12000,
+   "bytes": 352887,
+   "sourceModel": "incoming/codex/characters/mamorite/mamorite.glb",
+   "sourceTris": 354500,
+   "clips": [
+    "idle",
+    "protect_ground",
+    "push_back",
+    "recoil"
+   ]
+  },
+  {
+   "file": "mamori_low.pack.json",
+   "kind": "mamori",
+   "lod": "low",
+   "tris": 6000,
+   "bytes": 215208,
+   "sourceModel": "incoming/codex/characters/mamorite/mamorite.glb",
+   "sourceTris": 354500,
+   "clips": [
+    "idle",
+    "protect_ground",
+    "push_back",
+    "recoil"
    ]
   },
   {
@@ -133,6 +255,26 @@
    "bytes": 464348,
    "sourceModel": "incoming/codex/characters/nekomata/nekomata_light.glb",
    "sourceTris": 543380,
+   "clips": []
+  },
+  {
+   "file": "nurikae.pack.json",
+   "kind": "nurikae",
+   "lod": "pc",
+   "tris": 31999,
+   "bytes": 889956,
+   "sourceModel": "incoming/codex/characters/nurikae/nurikae.glb",
+   "sourceTris": 518320,
+   "clips": []
+  },
+  {
+   "file": "nurikae_low.pack.json",
+   "kind": "nurikae",
+   "lod": "low",
+   "tris": 15999,
+   "bytes": 493686,
+   "sourceModel": "incoming/codex/characters/nurikae/nurikae.glb",
+   "sourceTris": 518320,
    "clips": []
   },
   {
@@ -240,6 +382,62 @@
    ]
   },
   {
+   "file": "spouse_like.pack.json",
+   "kind": "spouse_like",
+   "lod": "pc",
+   "tris": 8999,
+   "bytes": 296664,
+   "sourceModel": "incoming/codex/characters/spouse_apparition/spouse_animated.glb",
+   "sourceTris": 91195,
+   "clips": [
+    "Look_back",
+    "Wait"
+   ]
+  },
+  {
+   "file": "spouse_like_low.pack.json",
+   "kind": "spouse_like",
+   "lod": "low",
+   "tris": 4499,
+   "bytes": 172511,
+   "sourceModel": "incoming/codex/characters/spouse_apparition/spouse_animated.glb",
+   "sourceTris": 91195,
+   "clips": [
+    "Look_back",
+    "Wait"
+   ]
+  },
+  {
+   "file": "touchoku.pack.json",
+   "kind": "touchoku",
+   "lod": "pc",
+   "tris": 17999,
+   "bytes": 636116,
+   "sourceModel": "incoming/codex/characters/tochoku/tochoku.glb",
+   "sourceTris": 450799,
+   "clips": [
+    "idle",
+    "patrol",
+    "restart",
+    "steam_brace"
+   ]
+  },
+  {
+   "file": "touchoku_low.pack.json",
+   "kind": "touchoku",
+   "lod": "low",
+   "tris": 9000,
+   "bytes": 403504,
+   "sourceModel": "incoming/codex/characters/tochoku/tochoku.glb",
+   "sourceTris": 450799,
+   "clips": [
+    "idle",
+    "patrol",
+    "restart",
+    "steam_brace"
+   ]
+  },
+  {
    "file": "tsugihagi.pack.json",
    "kind": "tsugihagi",
    "lod": "pc",
@@ -258,6 +456,36 @@
    "sourceModel": "incoming/codex/characters/tsugihagi/tsugihagi.glb",
    "sourceTris": 231042,
    "clips": []
+  },
+  {
+   "file": "utsushimi.pack.json",
+   "kind": "utsushimi",
+   "lod": "pc",
+   "tris": 15999,
+   "bytes": 610165,
+   "sourceModel": "incoming/codex/characters/utsushimi/utsushimi.glb",
+   "sourceTris": 23544,
+   "clips": [
+    "head_tilt",
+    "idle",
+    "mimic_pose",
+    "reaching_lunge"
+   ]
+  },
+  {
+   "file": "utsushimi_low.pack.json",
+   "kind": "utsushimi",
+   "lod": "low",
+   "tris": 8000,
+   "bytes": 424542,
+   "sourceModel": "incoming/codex/characters/utsushimi/utsushimi.glb",
+   "sourceTris": 23544,
+   "clips": [
+    "head_tilt",
+    "idle",
+    "mimic_pose",
+    "reaching_lunge"
+   ]
   }
  ]
 }

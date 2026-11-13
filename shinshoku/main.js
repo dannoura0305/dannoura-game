@@ -22,7 +22,8 @@ import { preloadEnemyPacks, requestEnemyPacks, applyEnemyPack, ENEMY_PACK_KINDS,
 import { heitenPose, shuuyouPose } from './actor/anim.js';   // P19：届いたモデルの動き（glb）を決まった状態で重ねる（packPoseFn）
 // P18：区画 → 先に読む異形の体（その区画とすぐ後の区画に出る種類）
 const GIANT_FOES = ['sakibure', 'nurikae', 'kuramono'];
-const LAZY_PACK_AREAS = { office: ['outou'], lab: ['outou'], oldwing: ['tsugihagi'], atrium: ['tsugihagi'], ruins: ['nurikae'], avenue: ['nurikae'], admin: ['touchoku'] };
+const LAZY_PACK_AREAS = { office: ['outou'], lab: ['outou'], oldwing: ['tsugihagi'], atrium: ['tsugihagi'], ruins: ['nurikae'], avenue: ['nurikae'], admin: ['touchoku'],
+  hospital: ['kanja', 'mamori', 'utsushimi'], tunnel: ['utsushimi'], abyss: ['kuramono', 'kenkyusha', 'spouse_like'], kiroku: ['kenkyusha', 'spouse_like'] };   // P20：第3章・終章
 import { Fx, Rain } from './render/fx.js';
 import { Halos, WetStreaks } from './render/halo.js';
 import { SwordTrail } from './render/trail.js';

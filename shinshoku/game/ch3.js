@@ -72,13 +72,13 @@ export const ch3Methods = {
         const r = this.enemyRes[k.id]; if (r === 'kill') return;
         const brain = new Kanja({ id: k.id, path: k.path.map(([x, z]) => ({ x, z })), bed: { x: k.bed[0], z: k.bed[1] }, seed: 31 + i * 5, asleep: r === 'rescue' || r === 'neutralize' || this.flags.ward_dark });
         if (r) brain.resolution = r;
-        const e = add(brain, buildKanja(i + 1)); e.poseFn = kanjaPose;
+        const e = add(brain, buildKanja(i + 1)); e.poseFn = packPoseFn('kanja', kanjaPose, e.model);   // P20：届いたモデルの動き
         if (brain.state === 'sleep') { const b = brain.bed; brain.pos.x = b.x; brain.pos.z = b.z; }
       });
       for (const m of H.mimics) if (!this.enemyRes[m.id]) this.addMimic(add, m, 'civilian');
       if (!this.flags.child_saved) {
         const T = H.twist, r = this.enemyRes[T.mamori.id];
-        if (r !== 'kill') { const b = new Mamori({ id: T.mamori.id, pos: { x: T.mamori.pos[0], z: T.mamori.pos[1] }, yaw: -Math.PI / 2, child: { x: T.mamori.child[0], z: T.mamori.child[1] }, seed: 3 }); if (r === 'rescue') { b.resolution = 'rescue'; b.state = 'rest'; } const e = add(b, buildMamori()); e.poseFn = mamoriPose; this.mamori = e; }
+        if (r !== 'kill') { const b = new Mamori({ id: T.mamori.id, pos: { x: T.mamori.pos[0], z: T.mamori.pos[1] }, yaw: -Math.PI / 2, child: { x: T.mamori.child[0], z: T.mamori.child[1] }, seed: 3 }); if (r === 'rescue') { b.resolution = 'rescue'; b.state = 'rest'; } const e = add(b, buildMamori()); e.poseFn = packPoseFn('mamori', mamoriPose, e.model); this.mamori = e; }
       }
       return true;
     }
@@ -88,7 +88,7 @@ export const ch3Methods = {
       const B = U.boss, r = this.enemyRes[B.id];
       if (!r) {
         const b = new Utsushimi({ id: B.id, pos: { x: B.pos[0], z: B.pos[1] }, yaw: 0, seed: 17 });
-        const e = add(b, buildUtsushimi()); e.poseFn = mimicPose; this.boss = e; e.root.visible = atLeast(s, 'ch3_boss');
+        const e = add(b, buildUtsushimi()); e.poseFn = packPoseFn('utsushimi', mimicPose, e.model); this.boss = e; e.root.visible = atLeast(s, 'ch3_boss');
         if (s === 'ch3_boss' && this.flags.tenki_pending) { b.hp = Math.ceil(b.hpMax * b.def.tenkiAt); b.state = 'tenki'; b.hostileBy = 'boss'; }
         else if (s === 'ch3_boss') { b.wake([]); }
         else if (s === 'ch3_boss2') { b.hp = Math.ceil(b.hpMax * b.def.tenkiAt); b.state = 'tenki'; b.resume(currentStance(this.route) || 'secret', [], !!this.flags.ch3_assist); }

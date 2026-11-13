@@ -22,7 +22,8 @@ export class NurikaeAnimator {
     // 脚：重い歩き（交互に）
     const walk = Math.min(1, sp / 1.2);
     this.m.legs.forEach((Lg, i) => { const q = this.ph * 6 + (i ? Math.PI : 0); B[Lg.n[0]].rotation.x = -S(q) * 0.32 * walk; B[Lg.n[1]].rotation.x = Math.max(0, C(q)) * 0.45 * walk; });
-    B.nHip.position.y = 1.0 + Math.abs(S(this.ph * 6)) * 0.03 * walk - (st === 'down' || st === 'stagger' ? 0.12 : 0) - (st === 'dead' ? 0.3 : 0);
+    // P20：腰の高さは包み（Codex のモデル）の休みの位置（m.nHipY・無い時はコードの 1.0）
+    B.nHip.position.y = (this.m.nHipY ?? 1.0) + Math.abs(S(this.ph * 6)) * 0.03 * walk - (st === 'down' || st === 'stagger' ? 0.12 : 0) - (st === 'dead' ? 0.3 : 0);
     this.sway.step(dt, t, sp, 0, a && a.phase === 'active' ? 0.6 : 0);
   }
 }

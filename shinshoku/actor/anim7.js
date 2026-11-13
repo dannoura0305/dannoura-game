@@ -18,7 +18,8 @@ export class KuramonoAnimator {
     if (st === 'dead') { want.body = [0.8, 0, 0.3]; want.chest = [0.5, 0, 0.1]; want.droop = 1.6; want.flap = 0; }
     const L = (o, key, v, r = 3) => { const c = this.k[key] || (this.k[key] = [0, 0, 0]); for (let i = 0; i < 3; i++) c[i] += ((v[i] || 0) - c[i]) * Math.min(1, dt * r); o.rotation.set(c[0], c[1], c[2]); return c; };
     L(B.kBody, 'body', want.body); L(B.kChest, 'chest', want.chest, a && a.phase === 'active' ? 8 : 3); L(B.kCrown, 'crown', want.crown);
-    B.kBody.position.y = 1.2 + S(t * 0.7) * 0.06 - (st === 'dead' ? Math.min(1.2, (this.deadT = (this.deadT || 0) + dt) * 0.3) : 0);
+    // P20：胴の高さは包み（Codex のモデル）の休みの位置（m.kBodyY・無い時はコードの 1.2）
+    B.kBody.position.y = (this.m.kBodyY ?? 1.2) + S(t * 0.7) * 0.06 - (st === 'dead' ? Math.min(1.2, (this.deadT = (this.deadT || 0) + dt) * 0.3) : 0);
     const sm = (key, v, r = 3) => { this.k[key] = (this.k[key] ?? 0) + (v - (this.k[key] ?? 0)) * Math.min(1, dt * r); return this.k[key]; };
     const spread = sm('spread', want.spread), droop = sm('droop', want.droop), fL = sm('fL', want.fwdL, a && a.phase === 'active' ? 9 : 3), fR = sm('fR', want.fwdR, a && a.phase === 'active' ? 9 : 3);
     for (const Wg of this.m.wings) {
