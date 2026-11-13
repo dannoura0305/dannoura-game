@@ -112,9 +112,12 @@ export const horrorMethods = {
     let dread = 0; const P = this.player.pos;
     if (this.mode === 'play' && !this.cut.active) for (const e of this.enemies) { if (!e.brain.alive || !e.root.visible || !['assess', 'hostile'].includes(e.brain.state)) continue; const dd = Math.hypot(e.pos.x - P.x, e.pos.z - P.z); if (dd < 6) dread = Math.max(dread, 1 - dd / 6); }
     this.hzDread = (this.hzDread || 0) + (dread - (this.hzDread || 0)) * Math.min(1, dt * 4 * 4);
-    const set = (k, v) => { const t = v.toFixed(3); if (root.style.getPropertyValue(k) !== t) root.style.setProperty(k, t); };
-    set('--vig', vig); set('--grain', grain); set('--dread', this.hzDread * 0.1 * (H ? 1 : 0.6));
-    if (grain > 0 && !this.hzGrainSet) { const u = grainImage(); const g = root.querySelector && root.querySelector('.sh-grain'); if (u && g) { g.style.backgroundImage = `url(${u})`; this.hzGrainSet = true; } }
+    // 変数は重ねの要素にだけ置く（UI 全体の再計算をしない）・小数 2 桁で変わった時だけ
+    const E = this.hzEls || (this.hzEls = root.querySelector ? { v: root.querySelector('.sh-vignette'), g: root.querySelector('.sh-grain'), d: root.querySelector('.sh-dread') } : {});
+    const set = (el, k, v) => { if (!el) return; const t = v.toFixed(2); if (el.style.getPropertyValue(k) !== t) el.style.setProperty(k, t); };
+    set(E.v, '--vig', vig); set(E.g, '--grain', grain); set(E.d, '--dread', this.hzDread * 0.1 * (H ? 1 : 0.6));
+    if (grain > 0 && !this.hzGrainSet) { const u = grainImage(); if (u && E.g) { E.g.style.backgroundImage = `url(${u})`; this.hzGrainSet = true; } }
+    if (E.g) { const on = grain > 0; if (E.g.classList.contains('on') !== on) E.g.classList.toggle('on', on); }   // 粒が要らない区画では動かさない
     this.metrics.screenFx = { vig: +vig.toFixed(2), grain, dread: +this.hzDread.toFixed(2) };
   },
 
