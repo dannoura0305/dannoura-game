@@ -466,7 +466,7 @@ class Game {
     m.name = 'pickups'; this.scene.add(m); this.pickMesh = m;
   }
   placePlayer(pos, yaw) {
-    this.player.pos.set(pos[0], 0, pos[2] != null ? pos[2] : pos[1]); this.player.yaw = yaw;
+    this.player.pos.set(pos[0], 0, pos[2] != null ? pos[2] : pos[1]); this.player.yaw = yaw; this.player.motion.reset();   // 区画の移り：前の勢い（加減速）を持ち込まない
     this.cam.yaw = yaw + Math.PI; this.cam.curDist = 1.2;
   }
 
@@ -1165,7 +1165,7 @@ class Game {
       input: { script: list => g.input.runScript(list), press: (a, f = 0) => g.input.runScript([{ f, press: [a] }]), hold: (a, n) => g.input.runScript([{ f: 0, hold: { [a]: n } }]), move: (x, y, n) => g.input.runScript([{ f: 0, move: [x, y, n] }]) },
       debug: {
         veg() { return vegStats(g.area); },                         // P16：区画の植物の部品の数・読めたか
-        teleport(x, z, yaw, y = 0) { g.player.pos.set(x, y, z); if (yaw != null) { g.player.yaw = yaw; g.cam.yaw = yaw + Math.PI; } g.player.prevYaw = null; const sp = g.player.model && g.player.model.springs; if (sp && sp.reset) { g.player.root.position.copy(g.player.pos); g.player.root.rotation.y = g.player.yaw; g.player.root.updateMatrixWorld(true); sp.reset(); } },   // P17：揺れ物（髪）も置き直す（瞬間移動で横へ跳ねない）
+        teleport(x, z, yaw, y = 0) { g.player.pos.set(x, y, z); g.player.motion.reset(); if (yaw != null) { g.player.yaw = yaw; g.cam.yaw = yaw + Math.PI; } g.player.prevYaw = null; const sp = g.player.model && g.player.model.springs; if (sp && sp.reset) { g.player.root.position.copy(g.player.pos); g.player.root.rotation.y = g.player.yaw; g.player.root.updateMatrixWorld(true); sp.reset(); } },   // P17：揺れ物（髪）も置き直す（瞬間移動で横へ跳ねない）
         home(x, z) { return [x + TOWN_HOME[0], z + TOWN_HOME[1]]; }, town() { return { route: TOWN.route.map(p => p.slice()), routes: JSON.parse(JSON.stringify(TOWN.routes)), nodes: TOWN.nav.nodes, version: TOWN.version, pending: !!(g.areas.shotengai && g.areas.shotengai.pending && g.areas.shotengai.pending.length) }; }, buildPending() { const A = g.areas.shotengai; if (A) g.buildPending(A, 9); return !(A && A.pending && A.pending.length); },
         camYaw(y) { g.cam.yaw = y; }, camPitch(p) { g.cam.pitch = p; },
         faceTo(x, z) { const P = g.player; P.yaw = Math.atan2(x - P.pos.x, z - P.pos.z); g.cam.yaw = P.yaw + Math.PI; },

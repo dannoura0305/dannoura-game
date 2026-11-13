@@ -135,9 +135,9 @@ await t('息切れ（紫だけ）：連撃と回避で息が上がり（足が�
   const F = new Fighter(), K = new TP.Motion(); const evs = F.tick({ attack: true }); for (const e of evs) K.onEvent(e, 'purple', F.weapon); assert.ok(K.tired > 0);
 });
 
-await t('よろけ：紫は当たった瞬間に大きく受け（ひるみのクリップの半分まで 0.22）ゆっくり戻る・その後 0.6 秒は前屈みで足が遅い。白は短く受けて早く戻る', () => {
-  assert.ok(Math.abs(TP.hurtClipU('purple', 0.22) - 0.5) < 1e-9 && TP.hurtClipU('purple', 1) === 1);
-  assert.ok(TP.hurtClipU('white', 0.625) >= 0.999);
+await t('よろけ：紫は当たった瞬間に大きく受け（ひるみのクリップの半分近くまで 0.22）ゆっくり戻る・その後 0.6 秒は前屈みで足が遅い。白は短く受けて早く戻る', () => {
+  assert.ok(Math.abs(TP.hurtClipU('purple', 0.22) - 0.465) < 1e-9 && Math.abs(TP.hurtClipU('purple', 1) - 0.93) < 1e-9, 'クリップの最後のこまへは行かない');
+  assert.ok(Math.abs(TP.hurtClipU('white', 0.625) - 0.93) < 1e-9, '白は 10 こまで受け切る');
   let prev = -1; for (let u = 0; u <= 1; u += 0.05) { const x = TP.hurtClipU('purple', u); assert.ok(x >= prev); prev = x; }
   const M = new TP.Motion(); M.step({ form: 'purple', state: 'hurt', want: { x: 0, z: 0 } }); M.step({ form: 'purple', state: 'free', want: { x: 0, z: 0 }, smooth: true });
   assert.ok(M.hurtL > 0.9 && M.speedMul('purple') < 0.6, 'よろけの直後 ' + M.speedMul('purple'));

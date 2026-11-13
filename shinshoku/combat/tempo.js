@@ -81,11 +81,13 @@ export function atkClipF(form, a, f) {
   return s + A + r * w;
 }
 
+const HURT_END = 0.93;
 /** 被弾（ひるみ）のクリップの進み（0..1 → 0..1）。紫：当たった瞬間に大きくのけぞり、ゆっくり戻る。白：短く受けて早く戻る */
 export function hurtClipU(form, u) {
+  // 上限 HURT_END：クリップの最後のこま（前もひるみの間は 15/16 までしか使っていなかった）へは行かない（白で最後のこまへ届くと頭が 18cm 跳んだ）
   u = clamp(u);
-  if (T(form).hurtWarp === 'light') return clamp(u * 1.6);
-  return u < 0.22 ? u / 0.22 * 0.5 : 0.5 + 0.5 * easeOutPow((u - 0.22) / 0.78, 1.6);
+  if (T(form).hurtWarp === 'light') return HURT_END * clamp(u * 1.6);
+  return HURT_END * (u < 0.22 ? u / 0.22 * 0.5 : 0.5 + 0.5 * easeOutPow((u - 0.22) / 0.78, 1.6));
 }
 
 /** 踏み込み（lunge）の 1 こまの割合。f：0..dur-1（dur＝startup＋active＋2）。全部足すと 1（距離は data のまま） */
@@ -107,6 +109,8 @@ export function punchFor(form, heavy) { const P = T(form).punch; return { deg: h
  */
 export class Motion {
   constructor() { this.vx = 0; this.vz = 0; this.tired = 0; this.restT = 0; this.hurtL = 0; this.riseL = 0; this.acc = 0; this.prevSp = 0; this.wasHurt = false; this.wasDodge = false; }
+  /** 瞬間移動・区画の移り：勢いを捨てる（息切れは残す） */
+  reset() { this.vx = 0; this.vz = 0; this.acc = 0; this.prevSp = 0; }
   /** 戦いの出来事（Fighter の events）で息が上がる */
   onEvent(ev, form, weapon) {
     const D = T(form).tired; if (!D) return;

@@ -213,6 +213,8 @@ export class Player {
     const F = this.fighter, m = this.model;
     if (extra.override) this.sheath.sheatheNow();                               // 会話・演出の姿勢：刀は鞘の中
     const ctx = { sheathed: this.sheath.sheathed(F), st: F.st, f: F.st.f, w: F.weapon, speed: this.speed, phase: this.phase, time: this.time, aiming: F.aimHeld && F.weapon === 'handgun', fireAgo: F.frame != null && F.lastFire != null ? F.frame - F.lastFire : 99, issen: this.issenInfo, hurtDir: this.hurtDir, white: F.white };
+    // 白い姿の走りの腕（構え ⇄ 走り）：速さの重みを約 0.2 秒でならす（走り出しの 2〜3 こまで腕が跳ばない）
+    { const want = Math.max(0, Math.min(1, (this.speed - 2.6) / 1.4)); this.runW = (this.runW ?? want) + (want - (this.runW ?? want)) * Math.min(1, dt / 0.2); ctx.runW = this.runW * this.runW * (3 - 2 * this.runW); }
     // v2 のモデル：足の IK・その場の向き替え・立ち止まりの小さな動き・動き出し／止まりの傾き
     const turn0 = this.prevYaw != null ? angWrap(this.yaw - this.prevYaw) / Math.max(dt, 1 / 60) : 0;
     if (m.legDims) {

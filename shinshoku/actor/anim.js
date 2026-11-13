@@ -316,11 +316,16 @@ export function whitePose(ctx) {
   if (!ctx.basePose && ctx.speed <= 0.1 && ctx.turnStep) b = Object.assign(b, turnStep(ctx.turnStep.ph, ctx.turnStep.turn, ctx.loco || {}));
   const hy0 = b.hipsY, exact = b._exactLegs;
   if (!['attack', 'issen', 'cast', 'dodge', 'charge'].includes(st.name)) {
-    if (ctx.speed > 3.2) {
-      // 白い姿の走り（腕を後ろへ流す・前へ傾ける）。P13：歩きの係の背骨の回り（肩の逆回り）と腕の振りを少し残す
-      const g = b._gait, sp = b.spine || [0, 0, 0], la = b.leftUpperArm || [0, 0, 0], ra = b.rightUpperArm || [0, 0, 0];
-      b = Object.assign(b, { spine: [0.38, g ? sp[1] : 0, g ? sp[2] : 0], leftUpperArm: [0.7 + (g ? la[0] * 0.25 : 0), 0, 0.3], rightUpperArm: [0.7 + (g ? ra[0] * 0.25 : 0), 0, -0.3], leftLowerArm: [-0.4, 0, 0], rightLowerArm: [-0.4, 0, 0] });
-    } else { const sp = b.spine || [0, 0, 0], g = b._gait; b = Object.assign(b, W_READY); if (g) b.spine = [W_READY.spine[0] + sp[0] * 0.5, sp[1], sp[2]]; }
+    // 白い姿の走り（腕を後ろへ流す・前へ傾ける）。P13：歩きの係の背骨の回り（肩の逆回り）と腕の振りを少し残す。
+    // 2026-11-13：速さで構え ⇄ 走りの腕を混ぜる（加速が入って、速さが 3.2 を越えたこまで腕が 30cm 跳んでいた）
+    const g = b._gait, sp = b.spine || [0, 0, 0], la = b.leftUpperArm || [0, 0, 0], ra = b.rightUpperArm || [0, 0, 0];
+    const runW = ctx.runW != null ? ctx.runW : ease((ctx.speed - 2.6) / 1.4);   // Player が時間でならした値（約 0.2 秒）
+    const ready = Object.assign({}, b, W_READY); if (g) ready.spine = [W_READY.spine[0] + sp[0] * 0.5, sp[1], sp[2]];
+    if (runW > 0) {
+      const runP = Object.assign({}, b, { spine: [0.38, g ? sp[1] : 0, g ? sp[2] : 0], leftUpperArm: [0.7 + (g ? la[0] * 0.25 : 0), 0, 0.3], rightUpperArm: [0.7 + (g ? ra[0] * 0.25 : 0), 0, -0.3], leftLowerArm: [-0.4, 0, 0], rightLowerArm: [-0.4, 0, 0], leftHand: W_READY.leftHand, rightHand: W_READY.rightHand });
+      const mixed = mix(ready, runP, runW);
+      b = Object.assign(b, mixed);
+    } else b = Object.assign(b, ready);
     if (exact) b.hipsY = hy0;
   }
   if (st.name === 'attack') {
