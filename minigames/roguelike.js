@@ -291,40 +291,75 @@ registerMinigame({
     ['tired','normal','fear','win','happy','collapse'].forEach(n=>{const im=new Image();im.src=FACE+n+'.webp';});
 
     // ── 効果音（Web Audioで短く合成。AU.ctxがあるときだけ） ──
-    let noiseBuf=null;
+    //   夜の工場の巡回：コンクリートの足音・配管の低いうなり・心音。ホラーなので「間」と低音を大事に、
+    //   電子音っぽい「ピコ」は避ける。音の大きさは LV（dB）でそろえる（se=1 で Mmax の目安をコメントに）。
+    //   ※ AU は game.js の const なので window.AU では見えない（以前はここで弾かれて全く鳴っていなかった）
+    let noiseBuf=null;const sfxLast={};
+    const SFX_LV={step:.5,turn:7,type:-5,wait:5.5,hit:-.5,banish:0,zap:6.5,hurt:-5,shutter:3.5,stamp:-4,pick:8.4,beat:-8.5,warnEdge:3,near:2.5,battery:9.5,memo:5,off:-2.5,pipe:-8.5};
+    const SFX_GAP={step:.05,turn:.06,type:.045,wait:.08,hit:.03,warnEdge:.25,near:1.2,beat:.3};
     function sfx(kind){
       try{
-        if(!window.AU||typeof AUDIO_SET==='undefined'||AUDIO_SET.se<=0)return;
+        if(typeof AU==='undefined'||typeof AUDIO_SET==='undefined'||!(AUDIO_SET.se>0))return;
         AU.init();const c=AU.ctx;if(!c)return;
         if(c.state==='suspended')c.resume().catch(()=>{});
-        const now=c.currentTime,G=AUDIO_SET.se;
+        const now=c.currentTime;
+        if(SFX_GAP[kind]&&sfxLast[kind]!=null&&now-sfxLast[kind]<SFX_GAP[kind]&&now>=sfxLast[kind])return; // 連打の間引き
+        sfxLast[kind]=now;
         if(!noiseBuf){noiseBuf=c.createBuffer(1,c.sampleRate*.6|0,c.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
-        const env=(g,a,dur)=>{g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(Math.max(.0002,a*G),now+.008);g.gain.exponentialRampToValueAtTime(.0001,now+dur);};
-        const noise=(dur,freq,q,a,type)=>{const n=c.createBufferSource();n.buffer=noiseBuf;const f=c.createBiquadFilter();f.type=type||'bandpass';f.frequency.value=freq;f.Q.value=q;const g=c.createGain();env(g,a,dur);n.connect(f);f.connect(g);g.connect(c.destination);n.start(now);n.stop(now+dur+.02);return f;};
-        const tone=(type,f0,f1,dur,a)=>{const o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f0,now);o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),now+dur);env(g,a,dur);o.connect(g);g.connect(c.destination);o.start(now);o.stop(now+dur+.02);};
-        if(kind==='step')noise(.06,player.step%2?700:900,2.5,.09);
-        else if(kind==='turn')tone('sine',190,150,.05,.05);
-        else if(kind==='wait')tone('triangle',120,110,.12,.04);
-        else if(kind==='hit'){noise(.08,1800,1.2,.12);tone('square',220,90,.09,.05);}
-        else if(kind==='banish'){tone('sine',880,180,.45,.08);noise(.4,2400,.7,.05,'highpass');}
-        else if(kind==='zap'){tone('sawtooth',70,1400,.16,.06);noise(.18,3000,.8,.1);}
-        else if(kind==='hurt'){tone('square',170,55,.28,.07);noise(.2,400,1,.06);}
-        else if(kind==='shutter'){const f=noise(.55,300,.6,.14,'lowpass');f.frequency.exponentialRampToValueAtTime(900,now+.5);}
-        else if(kind==='stamp'){tone('sine',110,50,.3,.16);tone('triangle',660,660,.5,.05);tone('triangle',990,990,.6,.035);}
-        else if(kind==='pick')tone('triangle',660,1320,.12,.05);
-        else if(kind==='beat'){tone('sine',70,46,.13,.13);setTimeout(()=>{try{const n2=c.currentTime,o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(64,n2);o.frequency.exponentialRampToValueAtTime(42,n2+.12);g.gain.setValueAtTime(.0001,n2);g.gain.exponentialRampToValueAtTime(.09*G,n2+.01);g.gain.exponentialRampToValueAtTime(.0001,n2+.13);o.connect(g);g.connect(c.destination);o.start(n2);o.stop(n2+.15);}catch(_){}},170);}
-        else if(kind==='warnEdge')tone('triangle',520,300,.09,.035);
+        const jr=(a,b)=>a+Math.random()*(b-a);
+        // 1 回ごとの出口（音量 × 小さなゆらぎ）
+        const out=c.createGain();out.gain.value=AUDIO_SET.se*Math.pow(10,(SFX_LV[kind]||0)/20)*jr(.88,1.06);out.connect(c.destination);
+        setTimeout(()=>{try{out.disconnect();}catch(_){}},4000);
+        const env=(g,a,dur,at=0,atk=.006)=>{const t=now+at;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.0002,a),t+atk);g.gain.exponentialRampToValueAtTime(.0001,t+dur);};
+        const noise=(dur,freq,q,a,type,at=0,atk)=>{const n=c.createBufferSource();n.buffer=noiseBuf;const f=c.createBiquadFilter();f.type=type||'bandpass';f.frequency.setValueAtTime(freq,now+at);f.Q.value=q;const g=c.createGain();env(g,a,dur,at,atk);n.connect(f);f.connect(g);g.connect(out);n.start(now+at,Math.random()*.3);n.stop(now+at+dur+.02);return f;};
+        const tone=(type,f0,f1,dur,a,at=0,atk,lp)=>{const o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f0,now+at);o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),now+at+dur);env(g,a,dur,at,atk);
+          if(lp){const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=lp;o.connect(f);f.connect(g);}else o.connect(g);g.connect(out);o.start(now+at);o.stop(now+at+dur+.03);return o;};
+        if(kind==='step'){ // 安全靴でコンクリートを踏む：かかとの低い「とん」＋靴底のこすれ。左右で少し違う
+          const L=player.step%2;tone('sine',jr(95,115)*(L?1:.9),55,.07,.22,0,.004);
+          noise(.07,jr(L?650:820,L?750:950),1.6,.32,'bandpass',.004);noise(.05,2600,.8,.05,'highpass',.03);}
+        else if(kind==='turn'){noise(.08,jr(1200,1600),1.2,.12,'bandpass',0,.02);tone('sine',140,110,.05,.08);}           // 壁の前で向きを変える：靴底のきゅっ
+        else if(kind==='type'){noise(.03,jr(2200,2800),1.2,.5,'bandpass',0,.003);}                                                           // 文字送り：小さな紙のこすれ
+        else if(kind==='wait'){noise(.5,500,.7,.08,'lowpass',0,.18);tone('sine',90,82,.4,.04,0,.15);}                     // 足を止めて息をひそめる：吐く息
+        else if(kind==='hit'){ // 懐中電灯で影を払う：手応えの「ぼすっ」と光のはじけ
+          tone('sine',jr(150,175),60,.13,.38,0,.003);noise(.11,jr(900,1200),1.1,.4);noise(.08,3800,1,.08,'highpass',.01);}
+        else if(kind==='banish'){ // 影が光にほどける：下がっていく息と、細い高音の消え残り
+          noise(.7,1800,.6,.22,'bandpass',0,.03).frequency.exponentialRampToValueAtTime(380,now+.7);
+          tone('sine',jr(820,900),300,.65,.06,0,.02);tone('sine',1240,1180,.9,.025,.1,.08);tone('sine',110,55,.5,.16,0,.01);}
+        else if(kind==='zap'){ // 漏電：60Hz のうなり＋ぱちぱちの火花
+          tone('sawtooth',60,58,.3,.09,0,.003,1800);for(let i=0;i<5;i++)noise(.025,jr(2500,5000),1.5,jr(.25,.45),'bandpass',i*jr(.035,.06),.002);}
+        else if(kind==='hurt'){ // 影に触れられた：低い衝撃＋冷たいざわめき
+          tone('sine',120,38,.45,.5,0,.004);tone('sawtooth',90,45,.35,.08,0,.01,500);noise(.55,700,.9,.16,'bandpass',.02,.05);}
+        else if(kind==='shutter'){ // 非常口のシャッター：がらがらと巻き上がる（細かい揺れで鎖の音）
+          const f=noise(.9,260,.8,.3,'lowpass',0,.08);f.frequency.exponentialRampToValueAtTime(1100,now+.85);
+          for(let i=0;i<9;i++)noise(.03,jr(900,1500),2,.06,'bandpass',.05+i*.085,.003);tone('sine',70,60,.5,.12,0,.03);}
+        else if(kind==='stamp'){ // 点検票にハンコ：どん＋紙のこすれ（鐘のような余韻は控えめに）
+          tone('sine',120,48,.32,.6,0,.003);noise(.12,1400,.8,.18,'bandpass',.005);tone('triangle',660,660,.7,.025,.04,.01);tone('sine',990,990,.8,.015,.04,.01);}
+        else if(kind==='pick'){ // 異常箇所の点検完了：工具の「かちっ」と小さな確認音
+          noise(.03,4200,2,.3,'bandpass',0,.002);noise(.03,3600,2,.22,'bandpass',.07,.002);tone('triangle',880,880,.16,.05,.12,.005);tone('sine',1320,1320,.2,.03,.16,.005);}
+        else if(kind==='beat'){ // 電池が切れそう：心音（どくっ・どくん）
+          tone('sine',62,40,.16,.55,0,.008);tone('sine',56,38,.18,.42,.19,.008);}
+        else if(kind==='warnEdge'){tone('sine',330,300,.18,.08,0,.01);tone('sine',349,320,.18,.05,0,.01);}                   // 影が光の縁に入った：かすかな不協和
+        else if(kind==='near'){ // 影がすぐそばに来た：吸い込む息のようなノイズの立ち上がり
+          const f=noise(.9,500,4,.22,'bandpass',0,.6);f.frequency.exponentialRampToValueAtTime(1500,now+.8);tone('sine',55,52,.9,.08,0,.5);}
+        else if(kind==='battery'){ // 予備電池：電気が戻るうなりの立ち上がり
+          tone('sawtooth',80,240,.35,.05,0,.04,900);noise(.03,4000,2,.25,'bandpass',0,.002);tone('sine',660,660,.18,.035,.3,.01);}
+        else if(kind==='memo'){noise(.18,3000,.7,.14,'bandpass',0,.03);noise(.14,2200,.7,.1,'bandpass',.16,.03);}           // メモ：紙をめくる
+        else if(kind==='pipe'){ // 遠くの配管が鳴る（環境音の合間に。遠いのでこもらせる）
+          const f0=jr(180,260);tone('triangle',f0,f0*.97,1.2,.06,0,.004,700);tone('sine',f0*2.76,f0*2.7,.9,.02,0,.004);noise(.06,500,1,.12,'lowpass',0,.003);}
+        else if(kind==='off'){ // 懐中電灯が消える：スイッチ＋電気が落ちる
+          noise(.025,3500,2,.3,'bandpass',0,.002);tone('sawtooth',180,30,.9,.08,.03,.01,600);tone('sine',90,35,1,.25,.03,.01);}
       }catch(_){}
     }
 
+    if(mg&&mg.exposeSfx)mg.exposeSfx(['step','turn','type','wait','hit','banish','zap','hurt','shutter','stamp','pick','beat','warnEdge','near','battery','memo','off','pipe'],k=>sfx(k));
     // ── 振動（対応端末のみ・短く） ──
     const buzz=ms=>{try{if(mg.buzz)mg.buzz(ms);}catch(_){}};
     // ── 環境音：工場の低いうなり（階が深いほど低く・暗く）。巡回中だけ鳴らす ──
-    let amb=null,beatT=0;
+    const AMB_G=.07;let amb=null,beatT=0,nearPrev=false,ambSe=-1,pipeT=9;
     function ambStart(){
       if(amb||mg._ended)return;
       try{
-        if(!window.AU||typeof AUDIO_SET==='undefined'||AUDIO_SET.se<=0)return;
+        if(typeof AU==='undefined'||typeof AUDIO_SET==='undefined'||!(AUDIO_SET.se>0))return;
         AU.init();const c=AU.ctx;if(!c)return;
         if(!noiseBuf){noiseBuf=c.createBuffer(1,c.sampleRate*.6|0,c.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
         const g=c.createGain();g.gain.value=0;g.connect(c.destination);
@@ -343,7 +378,17 @@ registerMinigame({
       try{const t=amb.c.currentTime;
         amb.o.frequency.setTargetAtTime([55,49,41][floor-1]||41,t,.8);
         amb.lp.frequency.setTargetAtTime([170,140,115][floor-1]||115,t,.8);
-        amb.g.gain.setTargetAtTime(.035*AUDIO_SET.se,t,1.2);}catch(_){}
+        ambSe=AUDIO_SET.se;amb.g.gain.setTargetAtTime(AMB_G*AUDIO_SET.se,t,1.2);}catch(_){}
+    }
+    // 設定の効果音音量に追従（0 なら止める・0 から上げたら鳴らし始める）。ときどき遠くの配管が鳴る
+    function ambSync(dt){
+      const se=(typeof AUDIO_SET!=='undefined'&&+AUDIO_SET.se)||0;
+      if(scene==='end'||dying){if(amb)ambStop();return;}
+      if(scene!=='play')return;
+      if(!amb){if(se>0)ambStart();return;}
+      if(se<=0){ambStop();return;}
+      if(se!==ambSe){ambSe=se;try{amb.g.gain.setTargetAtTime(AMB_G*se,amb.c.currentTime,.2);}catch(_){}}
+      pipeT-=dt;if(pipeT<=0){pipeT=14+Math.random()*16;sfx('pipe');}
     }
     function ambStop(){
       const a=amb;amb=null;if(!a)return;
@@ -587,6 +632,8 @@ registerMinigame({
       }
       enemyTurn();
       computeLight();
+      // 影がすぐそば（2マス以内）に来た瞬間だけ、息を吸うような音で知らせる
+      {const nearNow=enemies.some(e=>Math.abs(e.x-player.x)+Math.abs(e.y-player.y)<=2);if(nearNow&&!nearPrev&&hp>0)sfx('near');nearPrev=nearNow;}
       updateHud();
       if(hp<=0&&!dying)die();
     }
@@ -598,10 +645,10 @@ registerMinigame({
         floatText(px,py,'点検✓','#44ee88');burst(px,py,10,'#e8b830',2,.05);
         if(floorFaultsDone===floorFaults)setTimeout(()=>{if(!mg._ended&&!trans)say('このフロアの点検は全部終わった。非常口へ。');},900);
       }else if(it.type==='battery'){
-        items.splice(items.indexOf(it),1);hp=Math.min(MAX_HP,hp+2);AU.se('ach');
+        items.splice(items.indexOf(it),1);hp=Math.min(MAX_HP,hp+2);AU.se('ach');sfx('battery');
         say('🔋 予備バッテリーを見つけた。明かりが強くなった。');floatText(px,py,'+2','#44ee88');burst(px,py,12,'#44ee88',2.2,.05);
       }else if(it.type==='memo'){
-        items.splice(items.indexOf(it),1);memos++;AU.se('notif');
+        items.splice(items.indexOf(it),1);memos++;AU.se('notif');sfx('memo');
         say('📄 先輩の点検メモだ。'+pick(['「この配管、夜になると鳴る」','「影は、見ている間は動かない」','「漏電箇所は三拍子で止まる」','「B3の奥には一人で行くな」',`「${gs.day}日目の記録：異常なし……のはずだった」`]));
         floatText(px,py,'メモ','#deccf8');
       }
@@ -635,7 +682,7 @@ registerMinigame({
       if(hp>0&&hp<=2)flickDip=.6;
     }
     function die(){
-      dying=true;busy=true;say('……懐中電灯が消えた。');AU.se('noise');hitStop=.25;
+      dying=true;busy=true;say('……懐中電灯が消えた。');AU.se('noise');sfx('off');ambStop();hitStop=.25;
       setTimeout(()=>{if(!mg._ended)showEnding('down');},1700);
     }
     function enemyTurn(){
@@ -1032,9 +1079,10 @@ registerMinigame({
       }
       if(clearing>0)clearing+=dt;
       // 電池が残りわずか：心音（間隔は残りで変わる）
+      ambSync(dt);
       if(scene==='play'&&!dying&&!trans&&hp>0&&hp<=2){beatT-=dt;if(beatT<=0){beatT=hp===1?.75:1.15;sfx('beat');}}else beatT=.4;
       if(scene==='talk'){const full=talkLines[talkI][1];if(talkPos<full.length){const p0=talkPos|0;talkPos=Math.min(full.length,talkPos+dt*30);
-        if((talkPos|0)!==p0){txtEl.textContent=full.slice(0,talkPos|0);if((talkPos|0)%3===0)sfx('turn');}}}
+        if((talkPos|0)!==p0){txtEl.textContent=full.slice(0,talkPos|0);if((talkPos|0)%3===0)sfx('type');}}}
 
       // 明るさ（連続位置で計算 → 低解像度 → 拡大）
       const flick=(.94+.035*Math.sin(t*13.1)+.025*Math.sin(t*31.7))*(1-flickDip)*lightMul;

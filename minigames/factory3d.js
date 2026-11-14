@@ -308,7 +308,10 @@ registerMinigame({
     // 効果音（Web Audio合成：足音・環境音・心音・雷など）
     // AU.ctx がある時だけ。音量は AUDIO_SET.se に追従し、0なら無音。
     // ══════════════════════════════════════════════════════
-    const SFX={ctx:null,out:null,noise:null,loops:[],whisper:null,burn:null,hb:0};
+    const SFX={ctx:null,out:null,amb:null,noise:null,loops:[],whisper:null,burn:null,hb:0};
+    // 環境音（雨・発電機・ささやき・焼ける音）はまとめて AMB_G を掛けて BGM の下に敷く（単独で -38 LUFS 前後）。
+    // 以前は合計 -31 LUFS 前後で常に鳴っていて、BGM（約 -33.5）より大きかった。
+    const AMB_G=.42;
     const seVol=()=>{try{return typeof AUDIO_SET!=='undefined'?+AUDIO_SET.se||0:1;}catch(e){return 1;}};
     function sfxInit(){
       try{
@@ -317,27 +320,33 @@ registerMinigame({
         const c=AU.ctx;if(!c)return;
         if(c.state==='suspended')c.resume().catch(()=>{});
         SFX.ctx=c;SFX.out=c.createGain();SFX.out.gain.value=0;SFX.out.connect(c.destination);
+        SFX.amb=c.createGain();SFX.amb.gain.value=AMB_G;SFX.amb.connect(SFX.out);
         const len=c.sampleRate*2,buf=c.createBuffer(1,len,c.sampleRate),d=buf.getChannelData(0);
         for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
         SFX.noise=buf;
         // 環境音：雨（屋根を叩く）
         const rain=noiseSrc(true),rf=c.createBiquadFilter(),rg=c.createGain();
-        rf.type='lowpass';rf.frequency.value=900;rg.gain.value=.05;rain.connect(rf);rf.connect(rg);rg.connect(SFX.out);rain.start();
+        rf.type='lowpass';rf.frequency.value=900;rg.gain.value=.05;rain.connect(rf);rf.connect(rg);rg.connect(SFX.amb);rain.start();
+        // 雨のゆらぎ（強くなったり弱くなったり。ゆっくり）
+        const rl=c.createOscillator(),rlg=c.createGain();rl.frequency.value=.07;rlg.gain.value=.015;rl.connect(rlg);rlg.connect(rg.gain);rl.start();
+        // 屋根の高いところを叩く細かい雨粒
+        const rh=noiseSrc(true),rhf=c.createBiquadFilter(),rhg=c.createGain();rhf.type='bandpass';rhf.frequency.value=3200;rhf.Q.value=.7;rhg.gain.value=.012;
+        rh.connect(rhf);rhf.connect(rhg);rhg.connect(SFX.amb);rh.start();
         // 非常用発電機のうなり
         const o1=c.createOscillator(),o2=c.createOscillator(),hf=c.createBiquadFilter(),hg=c.createGain();
         o1.type='sawtooth';o1.frequency.value=49;o2.type='sine';o2.frequency.value=98.6;hf.type='lowpass';hf.frequency.value=160;hg.gain.value=.03;
-        o1.connect(hf);o2.connect(hf);hf.connect(hg);hg.connect(SFX.out);o1.start();o2.start();
+        o1.connect(hf);o2.connect(hf);hf.connect(hg);hg.connect(SFX.amb);o1.start();o2.start();
         SFX.hum={o1,hg};
         // 影のささやき（帯域ノイズ、近いほど大きい）
         const w=noiseSrc(true),wf=c.createBiquadFilter(),wg=c.createGain(),lfo=c.createOscillator(),lg=c.createGain();
         wf.type='bandpass';wf.frequency.value=1100;wf.Q.value=7;wg.gain.value=0;lfo.frequency.value=3.3;lg.gain.value=500;
-        lfo.connect(lg);lg.connect(wf.frequency);w.connect(wf);wf.connect(wg);wg.connect(SFX.out);w.start();lfo.start();
+        lfo.connect(lg);lg.connect(wf.frequency);w.connect(wf);wf.connect(wg);wg.connect(SFX.amb);w.start();lfo.start();
         SFX.whisper=wg;
         // 影が光で焼ける音
         const b=noiseSrc(true),bf=c.createBiquadFilter(),bg=c.createGain();
-        bf.type='highpass';bf.frequency.value=2600;bg.gain.value=0;b.connect(bf);bf.connect(bg);bg.connect(SFX.out);b.start();
+        bf.type='highpass';bf.frequency.value=2600;bg.gain.value=0;b.connect(bf);bf.connect(bg);bg.connect(SFX.amb);b.start();
         SFX.burn=bg;
-        SFX.loops.push(rain,o1,o2,w,lfo,b);
+        SFX.loops.push(rain,rl,rh,o1,o2,w,lfo,b);
       }catch(e){SFX.ctx=null;}
     }
     function noiseSrc(loop){const s=SFX.ctx.createBufferSource();s.buffer=SFX.noise;s.loop=!!loop;if(loop)s.loopStart=Math.random();return s;}
@@ -346,8 +355,8 @@ registerMinigame({
       const v=seVol(),t=SFX.ctx.currentTime;
       try{
         SFX.out.gain.setTargetAtTime(S.disposed?0:v,t,.1);
-        SFX.whisper.gain.setTargetAtTime(ghostNear*.09,t,.15);
-        SFX.burn.gain.setTargetAtTime(burning?.05:0,t,.05);
+        SFX.whisper.gain.setTargetAtTime(ghostNear*.15,t,.15);
+        SFX.burn.gain.setTargetAtTime(burning?.09:0,t,.05);
         SFX.hum.o1.frequency.setTargetAtTime(tension>=2?54:49,t,.5);
       }catch(e){}
       // 心音（影が出てから、近いほど速く強く）
@@ -355,37 +364,64 @@ registerMinigame({
         SFX.hb-=dt;
         if(SFX.hb<=0){
           const rate=.9+ghostNear*1.6+(tension>=2?.35:0);SFX.hb=1/rate;
-          const g=.12+ghostNear*.35;thump(0,g);thump(.16,g*.7);
+          const g=.06+ghostNear*.36;thump(0,g);thump(.17,g*.72);
           if(ghostNear>.45){el.vig.style.transform='scale(1.06)';setTimeout(()=>{if(!S.disposed)el.vig.style.transform='';},120);}
         }
       }
     }
-    function env(node,g0,dur,at=0){const c=SFX.ctx,g=c.createGain(),t=c.currentTime+at;g.gain.setValueAtTime(Math.max(.0001,g0),t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);node.connect(g);g.connect(SFX.out);return t;}
+    // g.gain は最初から .0001（at で遅らせた音が、始まるまで素通しの 1 で鳴ってしまうのを防ぐ）
+    function env(node,g0,dur,at=0,atk=0){const c=SFX.ctx,g=c.createGain(),t=c.currentTime+at;g.gain.value=.0001;
+      if(atk>0){g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.0002,g0),t+atk);}else g.gain.setValueAtTime(Math.max(.0001,g0),t);
+      g.gain.exponentialRampToValueAtTime(.0001,t+Math.max(atk+.01,dur));node.connect(g);g.connect(SFX.out);return t;}
+    // 一発の音の大きさ（dB）。se=1 の時の目安：足音 -37・カチ -35・しずく ≦-36・心音 -38〜-28・出現 -27・雷 -30〜-27
+    const SFX_LV={step:3,click:7,plink:6,thump:-1,sting:2,thunder:3,hit:-4};
+    const lv=k=>Math.pow(10,(SFX_LV[k]||0)/20);
     function thump(at,g){
       if(!SFX.ctx||seVol()<=0)return;
-      try{const c=SFX.ctx,o=c.createOscillator();o.type='sine';const t=c.currentTime+at;o.frequency.setValueAtTime(70,t);o.frequency.exponentialRampToValueAtTime(38,t+.14);env(o,g,.18,at);o.start(t);o.stop(t+.2);}catch(e){}
+      try{const c=SFX.ctx,o=c.createOscillator();o.type='sine';const t=c.currentTime+at;o.frequency.setValueAtTime(66,t);o.frequency.exponentialRampToValueAtTime(36,t+.15);env(o,g*lv('thump'),.2,at,.008);o.start(t);o.stop(t+.22);}catch(e){}
     }
-    function step(){
+    let stepN=0;
+    function step(){ // 濡れたコンクリートを安全靴で歩く：かかと（低い）＋靴底（帯域ノイズ）＋ときどき水たまりのぴちゃ
       if(!SFX.ctx||seVol()<=0)return;
-      try{const c=SFX.ctx,n=noiseSrc(false),f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=rnd(350,650);f.Q.value=1.2;n.connect(f);const t=env(f,.22,.11);n.start(t,Math.random());n.stop(t+.13);
-        const o=c.createOscillator();o.frequency.value=rnd(70,90);env(o,.08,.07);o.start();o.stop(c.currentTime+.08);}catch(e){}
+      try{const c=SFX.ctx,L=lv('step'),side=(stepN++)%2?1:.88;
+        const n=noiseSrc(false),f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=rnd(420,640)*side;f.Q.value=1.3;n.connect(f);const t=env(f,.2*L*rnd(.85,1.1),.1,0,.004);n.start(t,Math.random());n.stop(t+.13);
+        const o=c.createOscillator();o.frequency.setValueAtTime(rnd(85,100)*side,t);o.frequency.exponentialRampToValueAtTime(50,t+.07);env(o,.11*L,.08,0,.003);o.start(t);o.stop(t+.1);
+        if(Math.random()<.3){const w=noiseSrc(false),wf=c.createBiquadFilter();wf.type='bandpass';wf.frequency.setValueAtTime(rnd(1600,2200),t+.02);wf.frequency.exponentialRampToValueAtTime(3600,t+.12);wf.Q.value=3;w.connect(wf);env(wf,.12*L,.12,.02,.005);w.start(t+.02,Math.random());w.stop(t+.16);}
+      }catch(e){}
     }
-    function thunder(delay){
+    function thunder(delay,near){ // 雷：近い時は最初に「ばりっ」と裂ける音、その後に低いごろごろ
       if(!SFX.ctx||seVol()<=0)return;
-      try{const c=SFX.ctx,n=noiseSrc(false),f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=260;n.connect(f);const t=env(f,.5,2.6,delay);n.start(t,Math.random());n.stop(t+2.7);}catch(e){}
+      try{const c=SFX.ctx,L=lv('thunder');
+        if(near){const k=noiseSrc(false),kf=c.createBiquadFilter();kf.type='highpass';kf.frequency.value=1200;k.connect(kf);const t0=env(kf,.12*L,.35,delay,.004);k.start(t0,Math.random());k.stop(t0+.4);}
+        const n=noiseSrc(false),f=c.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(near?420:260,c.currentTime+delay);f.frequency.exponentialRampToValueAtTime(120,c.currentTime+delay+2.4);n.connect(f);
+        const t=env(f,(near?.42:.4)*L,2.6,delay+(near?.05:0),.06);n.start(t,Math.random());n.stop(t+2.7);
+        const r=noiseSrc(false),rf=c.createBiquadFilter();rf.type='lowpass';rf.frequency.value=160;r.connect(rf);const t2=env(rf,.3*L,1.6,delay+rnd(.5,.9),.25);r.start(t2,Math.random());r.stop(t2+1.7);
+      }catch(e){}
     }
-    function plink(g){
+    function plink(g){ // 天井から落ちるしずく（距離で小さく）
       if(!SFX.ctx||seVol()<=0)return;
-      try{const c=SFX.ctx,o=c.createOscillator();o.type='sine';const t=c.currentTime;o.frequency.setValueAtTime(1500,t);o.frequency.exponentialRampToValueAtTime(700,t+.08);env(o,g,.12);o.start(t);o.stop(t+.14);}catch(e){}
+      try{const c=SFX.ctx,o=c.createOscillator();o.type='sine';const t=c.currentTime,f0=rnd(1300,1800);o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f0*1.6,t+.05);o.frequency.exponentialRampToValueAtTime(f0*.55,t+.12);env(o,g*lv('plink'),.14,0,.003);o.start(t);o.stop(t+.16);}catch(e){}
     }
-    function click(){
+    function click(){ // 懐中電灯のスイッチ・電池をはめる：プラスチックの「かちっ」
       if(!SFX.ctx||seVol()<=0)return;
-      try{const c=SFX.ctx,o=c.createOscillator();o.type='square';o.frequency.value=1800;env(o,.04,.03);o.start();o.stop(c.currentTime+.04);}catch(e){}
+      try{const c=SFX.ctx,L=lv('click');
+        const n=noiseSrc(false),f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=rnd(2600,3200);f.Q.value=2.5;n.connect(f);const t=env(f,.35*L,.035,0,.001);n.start(t,Math.random());n.stop(t+.05);
+        const o=c.createOscillator();o.type='triangle';o.frequency.value=rnd(1100,1250);env(o,.05*L,.04,.012,.001);o.start(t);o.stop(t+.07);}catch(e){}
     }
-    function sting(){ // 影の出現時の不協和音
+    function sting(){ // 影の出現：低い不協和のうねり＋上に伸びる細いきしみ（ホラーの「溜め」なので長め）
       if(!SFX.ctx||seVol()<=0)return;
-      try{const c=SFX.ctx;[233,247,330].forEach((f,i)=>{const o=c.createOscillator();o.type='sawtooth';o.frequency.value=f;const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=900;o.connect(lp);env(lp,.05,1.6,i*.03);o.start();o.stop(c.currentTime+1.8);});}catch(e){}
+      try{const c=SFX.ctx,L=lv('sting'),t=c.currentTime;
+        [55,58.3,82.4].forEach((f,i)=>{const o=c.createOscillator();o.type='sawtooth';o.frequency.value=f;const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(300,t);lp.frequency.exponentialRampToValueAtTime(1200,t+.4);lp.frequency.exponentialRampToValueAtTime(250,t+1.6);o.connect(lp);env(lp,.09*L,1.7,i*.02,.03);o.start(t);o.stop(t+1.8);});
+        [233,247,330].forEach((f,i)=>{const o=c.createOscillator();o.type='sawtooth';o.frequency.value=f;const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=900;o.connect(lp);env(lp,.035*L,1.5,i*.03,.02);o.start(t);o.stop(t+1.6);});
+        const s2=c.createOscillator();s2.type='sine';s2.frequency.setValueAtTime(1800,t+.1);s2.frequency.exponentialRampToValueAtTime(2900,t+1.3);env(s2,.025*L,1.3,.1,.4);s2.start(t+.1);s2.stop(t+1.5);
+      }catch(e){}
     }
+    function hitSfx(){ // 影につかまれた：重い衝撃（心音と重ねる）
+      if(!SFX.ctx||seVol()<=0)return;
+      try{const c=SFX.ctx,L=lv('hit'),t=c.currentTime;const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(34,t+.4);env(o,.5*L,.45,0,.004);o.start(t);o.stop(t+.5);
+        const n=noiseSrc(false),f=c.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(1800,t);f.frequency.exponentialRampToValueAtTime(200,t+.35);n.connect(f);env(f,.25*L,.4,0,.003);n.start(t,Math.random());n.stop(t+.45);}catch(e){}
+    }
+    if(mg&&mg.exposeSfx)mg.exposeSfx(['step','click','plink','thump','thumpFar','sting','thunder','thunderNear','hit'],k=>{sfxInit();if(k==='step')step();else if(k==='click')click();else if(k==='plink')plink(.05);else if(k==='thump'){thump(0,.42);thump(.17,.3);}else if(k==='thumpFar'){thump(0,.06);thump(.17,.045);}else if(k==='sting')sting();else if(k==='thunder')thunder(0,false);else if(k==='thunderNear')thunder(0,true);else if(k==='hit')hitSfx();});
     function sfxStop(){
       SFX.loops.forEach(n=>{try{n.stop();}catch(e){}try{n.disconnect();}catch(e){}});SFX.loops=[];
       if(SFX.out){try{SFX.out.disconnect();}catch(e){}}
@@ -1287,7 +1323,7 @@ registerMinigame({
           const c=freeCells.map(([r,c])=>({x:cx(c),z:cz(r)})).filter(p=>{const dx=p.x-P.x,dz=p.z-P.z,d=Math.hypot(dx,dz);return d>11&&d<20&&(dx*fx+dz*fz)/d>.55;});
           if(c.length){const p=pick(c);GH.x=p.x;GH.z=p.z;}else placeGhostFar(P.x,P.z,15);
           GH.fade=1;GH.stun=2;GH.shroud=1;
-          lightning(1);thunder(.25);sting();se('ghost');
+          lightning(1);thunder(.25,true);sting();se('ghost');
           toast('……奥に、何かいる','bad');
           el.phase.textContent='— 気配 —';el.phase.className='factory3d-phase p1';
           focusHintT=4.5;
@@ -1567,7 +1603,7 @@ registerMinigame({
         if(dist<.95&&GH.fade>.6&&GH.cool<=0){
           S.hits++;S.battery=Math.max(0,S.battery-HIT_DMG);
           P.hitT=1;P.shake=1;GH.cool=2;
-          wrap.classList.add('factory3d-hit');se('warn');thump(0,.5);buzz([70,40,110]);
+          wrap.classList.add('factory3d-hit');se('warn');hitSfx();thump(.05,.4);buzz([70,40,110]);
           toast(`影に触れられた　電池 -${HIT_DMG}%`,'bad');
           if(S.battery<=0){endWith('down');return;}
           placeGhostFar(P.x,P.z,22);
