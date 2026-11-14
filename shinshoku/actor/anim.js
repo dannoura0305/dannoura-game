@@ -6,14 +6,12 @@ import { dodgeTravel } from '../data/combat.js';
 import { twitch } from '../data/horror.js';
 // Q-horror 12：首は「止める → 急に傾ける」（twitch：異形ごとの種 ctx.seed・時刻 ctx.time）。前は一定の周期の sin でゆれ続けた
 const tw = (ctx, amp, a, b, snap) => twitch(ctx.time ?? ctx.t ?? 0, ctx.seed ?? 1, amp, a, b, snap);
+import { atkProgress } from '../combat/tempo.js';
 const S = Math.sin, C = Math.cos, lerp = (a, b, t) => a + (b - a) * t;
 // 姿勢の混ぜ・足し：骨の角度 [x,y,z]・hipsY（数）・hipsT（[x,0,z]）。「_」で始まる印（_exactLegs・_feet など）は混ぜない（混ぜた姿勢には付けない）
 export const mix = (A, B, t) => { const o = {}; for (const k of new Set([...Object.keys(A), ...Object.keys(B)])) { if (k[0] === '_') continue; if (k === 'hipsY') { o.hipsY = lerp(A.hipsY || 0, B.hipsY || 0, t); continue; } const a = A[k] || [0, 0, 0], b = B[k] || [0, 0, 0]; o[k] = [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)]; } return o; };
 export const add = (A, B) => { const o = Object.assign({}, A); for (const k of Object.keys(B)) { if (k[0] === '_') continue; if (k === 'hipsY') { o.hipsY = (A.hipsY || 0) + B.hipsY; continue; } const a = A[k] || [0, 0, 0], b = B[k]; o[k] = [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; } return o; };
 export const ease = t => t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t);
-const easeOut = t => t < 0 ? 0 : t > 1 ? 1 : 1 - (1 - t) * (1 - t) * (1 - t);
-/** 振り（0..1）：初めに加速し（1 こま目から 0 ではない）、終わりは減速して止まる */
-const swingK = t => { t = t < 0 ? 0 : t > 1 ? 1 : t; return t < 0.35 ? 0.15 * t / 0.35 + 0.6 * (t / 0.35) ** 2 * 0.5 : 1 - (1 - 0.45) * Math.pow((1 - t) / 0.65, 2.2); };
 
 /** 歩幅の振れ（ラジアン）：速いほど大きく */
 export function strideAmp(speed) { return Math.min(0.92, 0.42 + 0.1 * speed); }
@@ -127,6 +125,7 @@ const HIP = { rightUpperArm: [-1.3, 0, 0.0], rightLowerArm: [-0.2, 0, 0] };
 const RELOAD = { rightUpperArm: [-0.8, 0, 0.3], rightLowerArm: [-1.0, 0, 0], leftUpperArm: [-0.7, 0, -0.5], leftLowerArm: [-1.4, 0, 0], head: [0.4, 0, 0] };
 const HURT_F = { spine: [-0.4, 0.2, 0], chest: [-0.15, 0, 0], head: [-0.35, 0, 0], leftUpperArm: [-0.4, 0, 0.6], rightUpperArm: [-0.2, 0, -0.6], hipsY: -0.05, leftUpperLeg: [0.25, 0, 0], rightUpperLeg: [-0.2, 0, 0] };
 const HURT_B = { spine: [0.45, -0.15, 0], chest: [0.15, 0, 0], head: [0.3, 0, 0], leftUpperArm: [0.4, 0, 0.5], rightUpperArm: [0.3, 0, -0.5], hipsY: -0.07, leftUpperLeg: [-0.3, 0, 0], leftLowerLeg: [0.4, 0, 0] };
+const STAGGER = { spine: [0.24, 0.12, 0.06], chest: [0.06, 0, 0], head: [0.13, 0, 0.08], leftUpperArm: [-0.25, 0, 0.35], rightUpperArm: [-0.3, 0, -0.35], leftLowerArm: [-0.6, 0, 0], rightLowerArm: [-0.7, 0, 0], leftUpperLeg: [-0.35, 0, 0.05], leftLowerLeg: [0.55, 0, 0], rightUpperLeg: [0.15, 0, -0.05], rightLowerLeg: [0.35, 0, 0], hipsY: -0.1 };   // よろけの崩れ（ひざが抜けて前へ。背骨の前屈みの残りは体の重ね：combat/tempo.js bodyOverlay）
 const DEAD = { spine: [0.3, 0, 0], head: [0.5, 0, 0], leftUpperArm: [0, 0, 0.9], rightUpperArm: [0, 0, -0.9], leftUpperLeg: [-1.4, 0, 0.1], rightUpperLeg: [-1.3, 0, -0.1], leftLowerLeg: [2.0, 0, 0], rightLowerLeg: [2.0, 0, 0], hipsY: -0.55 };
 const TUCK = { spine: [1.3, 0, 0], chest: [0.4, 0, 0], neck: [0.5, 0, 0], head: [0.4, 0, 0], leftUpperArm: [-0.9, 0, 0.3], rightUpperArm: [-0.9, 0, -0.3], leftLowerArm: [-1.7, 0, 0], rightLowerArm: [-1.7, 0, 0], leftUpperLeg: [-2.0, 0, 0.1], rightUpperLeg: [-1.9, 0, -0.1], leftLowerLeg: [2.3, 0, 0], rightLowerLeg: [2.2, 0, 0], hipsY: -0.1 };
 
@@ -148,15 +147,15 @@ export function dannouraPose(ctx) {
   if (w === 'matchlock' && !['attack', 'parry', 'charge'].includes(st.name)) b = Object.assign(b, MATCH_READY);
   if (st.name === 'attack') {
     const a = st.atk; const P = pipe ? (st.step >= 8 ? PIPE_HEAVY : PIPE_ATK[st.step] || PIPE_ATK[0]) : st.step >= 8 ? HEAVY : ATK[st.step] || ATK[0];
-    let t;
-    if (f < a.startup) t = 0; else if (f < a.startup + a.active) t = (f - a.startup + 1) / a.active; else t = 1 + Math.min(1, (f - a.startup - a.active) / Math.max(1, a.recovery));
-    let pose;
-    // 2026-11-08：振りかぶりは「ため」（なめらかに入って止まる）・振りは加速して振り抜く・戻りは振り終わりで少し流れてから（前は 35% 止まってから急に）構えへ
+    // 2026-11-13：緩急（combat/tempo.js）。紫＝溜め（構えに早く入ってじわじわ詰める）→ 打ち（加速して振り抜く）→ 余韻（振り抜いた形で止まる・少し流れる）→ 重い戻り。
+    //  区間の境（startup・startup＋active）は data のこまのまま（構え終わり・振り抜きのこまは前と同じ）
     const ready = Object.assign({}, b, w === 'matchlock' ? MATCH_READY : pipe ? PIPE_READY : KATANA_READY);
-    if (f < a.startup) pose = mix(b, P.a, ease(Math.min(1, (f + 1) / Math.max(1, a.startup))));
-    else if (t <= 1) pose = mix(P.a, P.b, swingK(t));
-    else { const u = t - 1; pose = u < 0.25 ? mix(P.b, mix(P.b, ready, -0.12), ease(u / 0.25)) : mix(mix(P.b, ready, -0.12), ready, ease((u - 0.25) / 0.75)); }   // 振り抜いた向きへ少し流れる（残心）→ 構えへ
-    return { pose, rate: f < a.startup ? 0.6 : 0.9 };
+    const p = atkProgress('purple', a, f);
+    let pose;
+    if (p.seg === 'wind') pose = mix(b, P.a, p.k);
+    else if (p.seg === 'strike') pose = mix(P.a, P.b, p.k);
+    else { const over = mix(P.b, ready, -(p.over || 0)); pose = p.k <= 0 ? over : mix(over, ready, p.k); }   // 振り抜いた向きへ少し流れる（残心）→ 構えへ
+    return { pose, rate: p.seg === 'wind' ? 0.75 : p.seg === 'strike' ? 0.9 : p.k <= 0 ? 0.85 : 0.35 };
   }
   // 溜め：2026-11-08 刀は「両手で前に構える（中段）→ 振りかぶる」の順に（前は腕が横へ開いてから上がっていた：VRoid の体で両腕が水平に開く形を通った）
   if (st.name === 'charge') return pipe ? { pose: mix(Object.assign({}, b, PIPE_READY), PIPE_HEAVY.a, ease(f / 18)), rate: 0.25 } : f < 14 ? { pose: f < 7 ? mix(Object.assign({}, b, CHUDAN), RAISE, ease((f - 2) / 5)) : mix(RAISE, HEAVY.a, ease((f - 7) / 6)), rate: 0.5 } : { pose: HEAVY.a, rate: 0.3 };   // 溜め切ったら振りかぶったまま待つ
@@ -167,7 +166,11 @@ export function dannouraPose(ctx) {
   }
   if (st.name === 'parry') return { pose: pipe ? PIPE_PARRY : PARRY, rate: 0.7 };
   if (st.name === 'dodge') return { pose: mix(b, TUCK, Math.min(1, S(rollFrac(f) * Math.PI) * 1.6)), rate: 0.7 };   // 丸まり：転がりの回りと同じ進み
-  if (st.name === 'hurt') return { pose: ctx.hurtDir === 'back' ? HURT_B : HURT_F, rate: 0.5 };
+  if (st.name === 'hurt') {
+    // 2026-11-13：よろけ。当たったこまで大きくのけぞり（速く）→ ひざが抜けて前へ折れる（ゆっくり）。白い姿は短く受けて戻る（whitePose）
+    const H = ctx.hurtDir === 'back' ? HURT_B : HURT_F;
+    return f < 4 ? { pose: H, rate: 0.85 } : { pose: mix(H, STAGGER, ease((f - 4) / 12)), rate: 0.3 };
+  }
   if (st.name === 'dead') return { pose: DEAD, rate: 0.12 };
   if (st.name === 'reload') return { pose: Object.assign({}, b, RELOAD), rate: 0.3 };
   if (st.name === 'hipfire') return { pose: Object.assign({}, b, HIP, f >= 3 ? { rightUpperArm: [HIP.rightUpperArm[0] - 0.12, 0, 0], rightHand: [-0.3, 0, 0] } : {}), rate: 0.6 };   // 腰だめ：撃つこまで少し跳ねる
@@ -323,20 +326,26 @@ export function whitePose(ctx) {
   if (!ctx.basePose && ctx.speed <= 0.1 && ctx.turnStep) b = Object.assign(b, turnStep(ctx.turnStep.ph, ctx.turnStep.turn, ctx.loco || {}));
   const hy0 = b.hipsY, exact = b._exactLegs;
   if (!['attack', 'issen', 'cast', 'dodge', 'charge'].includes(st.name)) {
-    if (ctx.speed > 3.2) {
-      // 白い姿の走り（腕を後ろへ流す・前へ傾ける）。P13：歩きの係の背骨の回り（肩の逆回り）と腕の振りを少し残す
-      const g = b._gait, sp = b.spine || [0, 0, 0], la = b.leftUpperArm || [0, 0, 0], ra = b.rightUpperArm || [0, 0, 0];
-      b = Object.assign(b, { spine: [0.38, g ? sp[1] : 0, g ? sp[2] : 0], leftUpperArm: [0.7 + (g ? la[0] * 0.25 : 0), 0, 0.3], rightUpperArm: [0.7 + (g ? ra[0] * 0.25 : 0), 0, -0.3], leftLowerArm: [-0.4, 0, 0], rightLowerArm: [-0.4, 0, 0] });
-    } else { const sp = b.spine || [0, 0, 0], g = b._gait; b = Object.assign(b, W_READY); if (g) b.spine = [W_READY.spine[0] + sp[0] * 0.5, sp[1], sp[2]]; }
+    // 白い姿の走り（腕を後ろへ流す・前へ傾ける）。P13：歩きの係の背骨の回り（肩の逆回り）と腕の振りを少し残す。
+    // 2026-11-13：速さで構え ⇄ 走りの腕を混ぜる（加速が入って、速さが 3.2 を越えたこまで腕が 30cm 跳んでいた）
+    const g = b._gait, sp = b.spine || [0, 0, 0], la = b.leftUpperArm || [0, 0, 0], ra = b.rightUpperArm || [0, 0, 0];
+    const runW = ctx.runW != null ? ctx.runW : ease((ctx.speed - 2.6) / 1.4);   // Player が時間でならした値（約 0.2 秒）
+    const ready = Object.assign({}, b, W_READY); if (g) ready.spine = [W_READY.spine[0] + sp[0] * 0.5, sp[1], sp[2]];
+    if (runW > 0) {
+      const runP = Object.assign({}, b, { spine: [0.38, g ? sp[1] : 0, g ? sp[2] : 0], leftUpperArm: [0.7 + (g ? la[0] * 0.25 : 0), 0, 0.3], rightUpperArm: [0.7 + (g ? ra[0] * 0.25 : 0), 0, -0.3], leftLowerArm: [-0.4, 0, 0], rightLowerArm: [-0.4, 0, 0], leftHand: W_READY.leftHand, rightHand: W_READY.rightHand });
+      const mixed = mix(ready, runP, runW);
+      b = Object.assign(b, mixed);
+    } else b = Object.assign(b, ready);
     if (exact) b.hipsY = hy0;
   }
   if (st.name === 'attack') {
     const a = st.atk, P = st.blade ? BLADE : CLAW[st.step] || CLAW[0];
-    let t; if (f < a.startup) t = 0; else if (f < a.startup + a.active) t = (f - a.startup + 1) / a.active; else t = 1 + Math.min(1, (f - a.startup - a.active) / Math.max(1, a.recovery));
+    // 2026-11-13：白い姿は予備動作が短く小さい（妖爪は振りかぶりの 6 割）・戻りも短い（recovery の 6 割で構えへ）。紫との差（combat/tempo.js）
+    const p = atkProgress('white', a, f), W = st.blade ? P.a : mix(b, P.a, p.amp);
     let pose;
-    if (f < a.startup) pose = mix(b, P.a, easeOut(f / Math.max(1, a.startup)));
-    else if (t <= 1) pose = mix(P.a, P.b, easeOut(t));
-    else pose = mix(P.b, Object.assign({}, b, W_READY), ease((t - 1 - 0.2) / 0.8));
+    if (p.seg === 'wind') pose = mix(b, W, p.k);
+    else if (p.seg === 'strike') pose = mix(W, P.b, p.k);
+    else pose = mix(P.b, Object.assign({}, b, W_READY), p.k);
     return { pose, rate: 0.95 };
   }
   if (st.name === 'charge') return { pose: mix(W_READY, BLADE.a, ease(f / 12)), rate: 0.4 };
@@ -347,7 +356,7 @@ export function whitePose(ctx) {
   if (st.name === 'mreload') return { pose: Object.assign({}, b, MATCH_RELOAD, { leftUpperArm: [-1.1 - Math.max(0, Math.sin(f * 0.25)) * 0.6, 0, 0.35] }), rate: 0.35 };
   if (ctx.w === 'matchlock' && !['attack', 'dodge', 'issen', 'hurt', 'dead'].includes(st.name)) return { pose: Object.assign({}, b, MATCH_READY), rate: ctx.speed > 0.1 ? 0.55 : 0.2 };
   if (st.name === 'issen') { const k = ctx.issen || {}; const strike = k.strike || 8; return { pose: f < strike ? mix(W_READY, CLAW[4].a, ease(f / strike)) : CLAW[4].b, rate: 0.8 }; }
-  if (st.name === 'hurt') return { pose: ctx.hurtDir === 'back' ? HURT_B : HURT_F, rate: 0.5 };
+  if (st.name === 'hurt') { const H = ctx.hurtDir === 'back' ? HURT_B : HURT_F; return f < 3 ? { pose: H, rate: 0.9 } : { pose: mix(H, W_READY, ease((f - 3) / 7)), rate: 0.7 }; }   // 白：短く受けて、すぐ構えへ
   if (st.name === 'dead') return { pose: DEAD, rate: 0.12 };
   return { pose: b, rate: ctx.speed > 0.1 ? 0.55 : 0.2 };
 }

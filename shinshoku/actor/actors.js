@@ -12,6 +12,7 @@ import { StepPlanter, GripIK, makeFingers, setFingers, placeLongGun, placeHeldAt
 import { FaceDriver, codeFaceAdapter, vrmFaceAdapter } from '../../charkit/face/driver.js';
 import { Fighter } from '../combat/fighter.js';
 import { Sheath } from '../combat/sheath.js';
+import { Motion, atkClipF, hurtClipU, bodyOverlay } from '../combat/tempo.js';
 import { COMBAT } from '../data/combat.js';
 import { resolveCircle } from '../world/collide.js';
 import { collapsePose, COLLAPSE_KINDS, calibratePhaseRate, hash32, stopGo, APPROACH, rng } from '../data/horror.js';
@@ -123,11 +124,23 @@ function rollLowest(m) {
   return Number.isFinite(low) ? low : null;
 }
 
+/** 体の重ね（combat/tempo.js bodyOverlay）を骨の局所の回転として足す・次のこまの初めに外す。VRM 0.x は x・z の向きが逆 */
+const OV_BONES = ['spine', 'chest', 'neck', 'head'];
+function applyOverlay(J, o, flip) {
+  if (!o) return;
+  for (const k of OV_BONES) { const v = o[k], b = J[k]; if (!b || !v || (!v[0] && !v[1] && !v[2])) continue; _le.set(flip ? -v[0] : v[0], v[1], flip ? -v[2] : v[2], 'YXZ'); b.quaternion.multiply(_lq.setFromEuler(_le)); }
+}
+function unapplyOverlay(J, o, flip) {
+  if (!o) return;
+  for (let i = OV_BONES.length - 1; i >= 0; i--) { const k = OV_BONES[i], v = o[k], b = J[k]; if (!b || !v || (!v[0] && !v[1] && !v[2])) continue; _le.set(flip ? -v[0] : v[0], v[1], flip ? -v[2] : v[2], 'YXZ'); b.quaternion.multiply(_lq.setFromEuler(_le).invert()); }
+}
+
 export class Player {
   constructor(model, opt) {
     this.root = new THREE.Group(); this.root.name = 'dannoura';
     this.pivot = new THREE.Group(); this.pivot.position.y = 0.55; this.root.add(this.pivot);
     this.fighter = new Fighter(opt);
+    this.motion = new Motion();                                                  // 2026-11-13：移動の加減速・息切れ・よろけの名残（combat/tempo.js）
     this.sheath = new Sheath();                                                  // 刀の鞘（見た目だけ：combat/sheath.js）
     this.pos = new THREE.Vector3(); this.yaw = Math.PI; this.r = 0.34;
     this.phase = 0; this.speed = 0; this.time = 0; this.moveDir = { x: 0, z: -1 }; this.dodgeDir = { x: 0, z: -1 };
@@ -142,6 +155,7 @@ export class Player {
   setModel(model) {
     if (this.model) this.pivot.remove(this.model.root);
     this.model = model; model.root.position.y = -0.55; this.pivot.add(model.root);
+    this.overlay = null;                                                         // 体の重ね（前の姿の骨に当てた分は前の姿に残る：次に使う時は姿勢で上書きされる）
     if (model.springs) model.springs.reset();
     this.idleT = 0; this.nextIdle = 7; this.idleVar = null; this.moveT = 0; this.accS = 0; this.prevSpeed = 0; this.turnPh = 0;
     this.poser = new Poser(model.J, model.rest || {}, { tpose: !!model.tpose, hipScale: model.hipScale, vrm0: !!model.vrm0 });
@@ -206,6 +220,8 @@ export class Player {
     const F = this.fighter, m = this.model;
     if (extra.override) this.sheath.sheatheNow();                               // 会話・演出の姿勢：刀は鞘の中
     const ctx = { sheathed: this.sheath.sheathed(F), st: F.st, f: F.st.f, w: F.weapon, speed: this.speed, phase: this.phase, time: this.time, aiming: F.aimHeld && F.weapon === 'handgun', fireAgo: F.frame != null && F.lastFire != null ? F.frame - F.lastFire : 99, issen: this.issenInfo, hurtDir: this.hurtDir, white: F.white };
+    // 白い姿の走りの腕（構え ⇄ 走り）：速さの重みを約 0.2 秒でならす（走り出しの 2〜3 こまで腕が跳ばない）
+    { const want = Math.max(0, Math.min(1, (this.speed - 2.6) / 1.4)); this.runW = (this.runW ?? want) + (want - (this.runW ?? want)) * Math.min(1, dt / 0.2); ctx.runW = this.runW * this.runW * (3 - 2 * this.runW); }
     // v2 のモデル：足の IK・その場の向き替え・立ち止まりの小さな動き・動き出し／止まりの傾き
     const turn0 = this.prevYaw != null ? angWrap(this.yaw - this.prevYaw) / Math.max(dt, 1 / 60) : 0;
     if (m.legDims) {
@@ -241,12 +257,20 @@ export class Player {
       }
     }
     this.looks.unapplyLook(m.J);
+    unapplyOverlay(m.J, this.overlay, !!m.vrm0); this.overlay = null;
     if (extra.aimPitch != null && ctx.aiming) { pose.rightUpperArm = [(pose.rightUpperArm || [0, 0, 0])[0] - extra.aimPitch, pose.rightUpperArm[1], pose.rightUpperArm[2]]; pose.leftUpperArm = [(pose.leftUpperArm || [0, 0, 0])[0] - extra.aimPitch, pose.leftUpperArm[1], pose.leftUpperArm[2]]; pose.chest = [(pose.chest || [0, 0, 0])[0] - extra.aimPitch * 0.3, (pose.chest || [0, 0, 0])[1], 0]; }
     this.poser.apply(pose, 1 - Math.pow(1 - rate, dt * 60));
     if (this.clipAnim) {
       const sn = F.st.name;
       this.clipRes = this.clipAnim.update(dt, { st: sn, f: F.st.f, total: sn === 'dodge' ? COMBAT.dodge.total : sn === 'hurt' ? COMBAT.hurt.stun : 0, atk: F.st.atk, step: F.st.step, heavy: !!F.st.heavy, weapon: F.weapon,
-        speed: this.speed, phase: this.phase, turn: turn0, talking: !!(this.looks.face && this.looks.face.talking), override: !!extra.override, armsFromProc: sn === 'free' && F.weapon !== 'none' && !ctx.sheathed });
+        speed: this.speed, phase: this.phase, turn: turn0, talking: !!(this.looks.face && this.looks.face.talking), override: !!extra.override, armsFromProc: sn === 'free' && F.weapon !== 'none' && !ctx.sheathed,
+        atkF: sn === 'attack' && F.st.atk ? (f => atkClipF(F.white ? 'white' : 'purple', F.st.atk, f)) : null, hurtU: u => hurtClipU(F.white ? 'white' : 'purple', u) });
+    }
+    // 2026-11-13：体の重ね（肩で息をする・振り抜いた後の沈み・被弾の後の前屈み・走り出しの前傾。白はほぼ無し）。クリップ・手続きの姿勢の後、腕の IK の前
+    if (!extra.override && !['dodge', 'dead', 'issen'].includes(F.st.name)) {
+      const M = this.motion;
+      this.overlay = bodyOverlay({ form: F.white ? 'white' : 'purple', st: F.st.name, f: F.st.f, atk: F.st.atk, heavy: !!F.st.heavy, weapon: F.weapon, time: this.time, speed: this.speed, tired: M.tired, hurtL: M.hurtL, riseL: M.riseL, acc: M.acc });
+      applyOverlay(m.J, this.overlay, !!m.vrm0);
     }
     // 回避の転がり（体ごと前へ回る）
     // 曲がる時は体を内へ傾ける（向きの変わる速さ × 速さ：足の下を軸に）

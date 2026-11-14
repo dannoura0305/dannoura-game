@@ -177,7 +177,8 @@ export class ClipAnimator {
   }
   /**
    * 今のこまの源を選ぶ。ctx：{ st（状態の名前）, f（状態のこま）, total（状態の長さ こま）, atk（startup/active/recovery）, step, heavy, weapon,
-   *   speed, phase（ラジアン）, turn（rad/s）, talking, override（演出の姿勢）, aiming }
+   *   speed, phase（ラジアン）, turn（rad/s）, talking, override（演出の姿勢）, aiming,
+   *   atkF（任意：攻撃のこま f → クリップに渡すこま。緩急の時刻のゆがめ。区間の境はそのまま返すこと）, hurtU（任意：ひるみの進み 0..1 → 0..1） }
    * 戻り値：{ key, parts:[{ it, time, w }], ik:bool, roll:bool（回避の転がりをクリップが受け持つ） }
    */
   select(dt, ctx) {
@@ -187,12 +188,12 @@ export class ClipAnimator {
     if (ctx.override) return { key: 'proc:override', parts: [] };
     if (st === 'attack' && ctx.atk) {
       const it = this.find('attack', ctx);
-      if (it) { const f = this.fit(it, ctx.atk); const tGame = (ctx.f || 0) / GAME_FPS; const t = f.map.length ? warpTime(f.map, tGame) : tGame; return { key: 'attack:' + it.id + ':' + (ctx.step ?? '') + (ctx.heavy ? 'h' : ''), parts: [{ it, time: clamp(t, 0, it.clip.duration - 1e-4), w: 1 }] }; }
+      if (it) { const f = this.fit(it, ctx.atk); const tGame = (ctx.atkF ? ctx.atkF(ctx.f || 0) : (ctx.f || 0)) / GAME_FPS; const t = f.map.length ? warpTime(f.map, tGame) : tGame; return { key: 'attack:' + it.id + ':' + (ctx.step ?? '') + (ctx.heavy ? 'h' : ''), parts: [{ it, time: clamp(t, 0, it.clip.duration - 1e-4), w: 1 }] }; }
       return { key: 'proc:attack', parts: [] };
     }
     if (st === 'dodge' || st === 'hurt') {
       const it = this.find(st === 'dodge' ? 'dodge' : 'hit');
-      if (it) { const total = ctx.total || it.meta.frames || 24; const t = (ctx.f || 0) / total * it.clip.duration; return { key: st + ':' + it.id, parts: [{ it, time: clamp(t, 0, it.clip.duration - 1e-4), w: 1 }], roll: st === 'dodge' }; }
+      if (it) { const total = ctx.total || it.meta.frames || 24, u = (ctx.f || 0) / total; const t = (st === 'hurt' && ctx.hurtU ? ctx.hurtU(u) : u) * it.clip.duration; return { key: st + ':' + it.id, parts: [{ it, time: clamp(t, 0, it.clip.duration - 1e-4), w: 1 }], roll: st === 'dodge' }; }
       return { key: 'proc:' + st, parts: [] };
     }
     if (st !== 'free') { this.one = null; return { key: 'proc:' + st, parts: [] }; }

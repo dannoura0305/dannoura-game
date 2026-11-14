@@ -9,6 +9,8 @@ export class ThirdPersonCamera {
     this.aimT = 0; this.shakeT = 0; this.shakeA = 0; this.cur = new THREE.Vector3(); this.first = true;
     this.pivot = new THREE.Vector3(); this.fovBase = 62; this.curDist = 4;
   }
+  /** 2026-11-13：寄り（画角を deg 度狭め、t 秒で戻す：すぐ寄って、ゆっくり離れる）。揺れの設定（shakeMul）に従う。紫は重く長く・白は鋭く短く（combat/tempo.js punchFor） */
+  punch(deg, t = 0.3) { deg *= this.shakeMul ?? 1; if (deg <= 0) return; if (!(this.punchT > 0) || deg >= this.punchA * (this.punchT / this.punchD)) { this.punchA = deg; this.punchT = t; this.punchD = t; } }
   shake(a, t = 0.25) { a *= this.shakeMul ?? 1; if (a <= 0) return; if (a > this.shakeA * (this.shakeT > 0 ? 1 : 0)) { this.shakeA = a; this.shakeT = t; this.shakeD = t; } }
   /** dt：実時間。target：プレイヤーの位置。aim：構え中。lock：ロックオンの相手の位置 */
   update(dt, target, look, boxes, opt = {}) {
@@ -69,7 +71,9 @@ export class ThirdPersonCamera {
     const sw = opt.sway ? (this.swayK = (this.swayK || 0) + (opt.sway - (this.swayK || 0)) * Math.min(1, dt * 1.5)) : (this.swayK = (this.swayK || 0) * Math.max(0, 1 - dt * 1.5));
     const wx = sw ? smoothNoise(this.clock * 0.7, 3) * sw * 10 : 0, wy = sw ? smoothNoise(this.clock * 0.6, 17) * sw * 7 : 0;
     this.cam.lookAt(piv.x - dir.x * 10 + Math.cos(this.yaw) * wx, piv.y - dir.y * 10 + wy, piv.z - dir.z * 10 - Math.sin(this.yaw) * wx);
-    const fov = this.fovBase - 14 * a + (opt.fovKick || 0);
+    let pk = 0;
+    if (this.punchT > 0) { this.punchT = Math.max(0, this.punchT - dt); const u = 1 - this.punchT / this.punchD; pk = this.punchA * (u < 0.15 ? u / 0.15 : Math.pow(1 - (u - 0.15) / 0.85, 2)); }
+    const fov = this.fovBase - 14 * a + (opt.fovKick || 0) - pk;
     if (Math.abs(this.cam.fov - fov) > 0.01) { this.cam.fov = fov; this.cam.updateProjectionMatrix(); }
   }
   /** カメラの前方（水平） */

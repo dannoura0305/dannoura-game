@@ -7,6 +7,7 @@ import { turnTo } from '../actor/actors.js';
 import { COLLAPSE, COLLAPSE_KINDS } from '../data/horror.js';
 import { pickChainTarget, canChain } from '../combat/chain.js';
 import { sideOf } from '../ai/tsugihagi.js';
+import { lungeShare, hitstopFor, punchFor } from '../combat/tempo.js';
 
 const DT = 1 / 60;
 const wrap = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
@@ -31,25 +32,28 @@ export const combatMethods = {
     P.sheath.tick(F, { alert: P.sheath.drawn && ((this.lock && this.lock.hittable()) || this.enemies.some(e => e.hittable() && Math.hypot(e.pos.x - P.pos.x, e.pos.z - P.pos.z) < 5)) });
     if (I.heal) this.useHeal();
     if (I.interact && this.nearSpot) this.useSpot(this.nearSpot);
-    const st = F.st; let vx = 0, vz = 0;
+    const st = F.st, form = F.white ? 'white' : 'purple', M = P.motion; let vx = 0, vz = 0, smooth = false;
+    for (const ev of evs) M.onEvent(ev, form, F.weapon);
     if (st.name === 'dodge') {
       const tot = st.white ? COMBAT.white.dash.total : COMBAT.dodge.total, t = st.f / tot, k = dodgeSpeedK(t);
       const sp = (st.white ? COMBAT.white.dash.dist / (tot / 60 * 0.6) : COMBAT.dodge.dist / 0.28) * k * 0.9;
       vx = P.dodgeDir.x * sp; vz = P.dodgeDir.z * sp;
       P.yaw = turnTo(P.yaw, Math.atan2(P.dodgeDir.x, P.dodgeDir.z), 0.5);
     } else if (st.name === 'attack' && st.f < st.atk.startup + st.atk.active + 2 && st.atk.lunge) {
-      const dur = st.atk.startup + st.atk.active + 2;
-      const sp = st.atk.lunge / (dur * DT) * (this.lockTargetClose() ? 0.35 : 1);
+      // 2026-11-13：踏み込みの配分（combat/tempo.js）。紫＝溜めの間は足を置き、打ちで踏み込む／白＝先にすっと入る。合計の距離は data のまま
+      const sp = st.atk.lunge * lungeShare(form, st.atk, st.f) / DT * (this.lockTargetClose() ? 0.35 : 1);
       vx = Math.sin(P.yaw) * sp; vz = Math.cos(P.yaw) * sp;
     } else {
-      const mul = F.moveMul();
+      const mul0 = F.moveMul(), mul = mul0 > 0 ? mul0 * M.speedMul(form) : 0;   // 紫：息切れ・よろけの後は足が遅い
       const run = I.run && !(F.aimHeld && F.weapon === 'handgun');
       const sp = (run ? COMBAT.move.run : COMBAT.move.walk) * mul * mag;
       vx = P.moveDir.x * sp * (mag > 1e-3 ? 1 : 0); vz = P.moveDir.z * sp * (mag > 1e-3 ? 1 : 0);
+      smooth = mul0 > 0;                                                                 // 走り出し・止まり・振り向きの加減速（紫は重く・白はほぼ即時）。動けない状態（攻撃・ひるみ）はその場で止まる（滑らない）
       if (F.aimHeld && F.weapon === 'handgun') P.yaw = turnTo(P.yaw, Math.atan2(fw.x, fw.z), 0.4);
       else if (this.lock && this.lock.hittable() && (st.name === 'free' || st.name === 'charge' || st.name === 'parry') && mag < 0.1) P.yaw = turnTo(P.yaw, Math.atan2(this.lock.pos.x - P.pos.x, this.lock.pos.z - P.pos.z), 0.2);
-      else if (mag > 1e-3 && mul > 0) P.yaw = turnTo(P.yaw, Math.atan2(P.moveDir.x, P.moveDir.z), 0.25);
+      else if (mag > 1e-3 && mul > 0) P.yaw = turnTo(P.yaw, Math.atan2(P.moveDir.x, P.moveDir.z), M.turnRate(form));
     }
+    { const v = M.step({ form, state: st.name, want: { x: vx, z: vz }, smooth, run: !!I.run, dt: DT }); vx = v.x; vz = v.z; }
     const before = { x: P.pos.x, z: P.pos.z };
     const zk = this.slowZoneK ? this.slowZoneK(P.pos) : 1;
     P.pos.x += vx * DT * zk; P.pos.z += vz * DT * zk;
@@ -178,6 +182,7 @@ export const combatMethods = {
         case 'swapDone': this.metrics.swaps.push({ to: ev.weapon, frames: ev.frames, ms: f2ms(ev.frames), measured: ev.frame - this.swapStartFrame }); break;
         case 'hurt': {
           this.metrics.hurt++; this.sfx.play('hurt'); this.rumble('hurt'); this.cam.shake(ev.grab ? 0.22 : 0.14, 0.25); this.ui.flash('hurt');
+          if (!F.white && this.cam.punch) this.cam.punch(1.8, 0.55);                // 紫：当たった重さでカメラがゆっくり寄る（よろけ）
           if (ev.src && ev.src.pos) { const a = Math.abs(wrap(Math.atan2(ev.src.pos.x - P.pos.x, ev.src.pos.z - P.pos.z) - P.yaw)); P.hurtDir = a > Math.PI / 2 ? 'back' : 'front'; P.looks.hit(P.pos.x - ev.src.pos.x, P.pos.z - ev.src.pos.z, P.yaw, 0.6); }
           if (F.hp < 30 && !this.flags.lowhp_bark) { this.flags.lowhp_bark = true; this.bark('low_hp'); }
           break;
@@ -204,8 +209,10 @@ export const combatMethods = {
       F.registerHit(); F.gainYoki('hit'); this.rumble('hit');
       this.metrics.slashHits++; if (pipe) this.metrics.pipeHits = (this.metrics.pipeHits || 0) + 1;
       e.looks.hit(dx, dz, e.brain.yaw, heavy ? 1.2 : 0.7);
-      this.hitstop = heavy ? COMBAT.hitstop.heavy : COMBAT.hitstop.light;
+      // 2026-11-13：紫は当たりが重い（止まりが長く・カメラがゆっくり寄る）／白は鋭い（短く止まって次へ）。combat/tempo.js
+      this.hitstop = hitstopFor(F.white ? 'white' : 'purple', heavy);
       this.cam.shake(heavy ? 0.12 : 0.06, 0.15);
+      if (this.cam.punch) { const pu = punchFor(F.white ? 'white' : 'purple', heavy); this.cam.punch(pu.deg, pu.t); }
       this.fx.sparks(new THREE.Vector3(e.pos.x - dx / d * e.r, 1.2, e.pos.z - dz / d * e.r), heavy ? 16 : 9, pipe ? 0xffd8a0 : 0xfff0c0);
       this.sfx.play(F.weapon === 'claw' ? 'claw_hit' : F.weapon === 'matchlock' ? 'stock' : pipe ? 'hit_pipe' : heavy ? 'hit_heavy' : 'hit');
       if (F.weapon === 'matchlock') this.metrics.stockHits = (this.metrics.stockHits || 0) + 1;

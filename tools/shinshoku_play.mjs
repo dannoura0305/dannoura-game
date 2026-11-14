@@ -117,7 +117,8 @@ async function runPC(browser) {
   ok('移動（前へ 1.5 秒）', (await S(page)).player.z < z0 - 2, `z ${z0.toFixed(1)}→${(await S(page)).player.z.toFixed(1)}`);
   // 1. 相棒と会う → 「明かりが消える」（CS-00）を実時間で少し再生して撮る
   await page.evaluate(() => __sh.debug.teleport(0, -26, Math.PI));
-  const r1 = await walkTo(page, -1.6, -31.6);
+  // 2026-11-13：着く所を相棒（-2.5, -33.8）の 2.6m の内側の奥へ（-1.6, -31.6 は 2.38m：着いた判定の 0.6m の手前で止まると外。前は 10 こまごとの確かめの間に通り越して入っていた。紫の走り出しの加速で止まる所が変わった）
+  const r1 = await walkTo(page, -1.9, -32.2);
   st = await S(page); ok('序章：喫茶「灯」の前で相棒と会う（歩いて近づく → 会話）', st.mode === 'dialog' || r1 === 'interrupted', JSON.stringify({ r1, mode: st.mode }));
   await skipDlg(page); await sim(page, 2);
   st = await S(page); ok('CS-00「明かりが消える」が始まる（上下の黒い帯・字幕）', st.cut === 'cs00_lightsout');
@@ -152,7 +153,7 @@ async function runPC(browser) {
   const tWalk0 = await page.evaluate(() => __sh.game.frame); let walked = true;
   for (const [x, z] of route.slice(1)) { const r = await walkTo(page, x, z, 1600, true); if (r !== true) { walked = false; console.log('  [route]', x, z, r, JSON.stringify((await S(page)).player)); break; } }
   const tWalk = (await page.evaluate(() => __sh.game.frame)) - tWalk0;
-  await walkTo(page, ...H(0, 9.6), 400, false);
+  await walkTo(page, ...H(0, 10.0), 400, false);   // 2026-11-13：居間の入りの線（z 9.2）の 0.8m 奥へ（9.6 は着いた判定の 0.6m の手前で止まると線の外）
   st = await S(page); ok('アーケードから家まで歩いて帰れる（広場 → 横断歩道 → 用水路沿い → 家の前の道 → 門 → 玄関・角 4 つ）→ 居間に入ると次の段', walked && st.step === 'pro_tv', `${(tWalk / 60).toFixed(1)} 秒（走って）・${st.step}`);
   await walkTo(page, ...H(-3.4, 13.6), 400, false);
   await page.evaluate(() => { __sh.input.press('interact'); __sh.debug.fastSim(3); });
@@ -207,7 +208,9 @@ async function runPC(browser) {
     __sh.input.script([{ f: 0, press: ['weapon1'] }]); D.fastSim(20);
     const s0 = g.metrics.swaps.length;
     __sh.input.script([{ f: 0, press: ['swap'] }]); D.fastSim(14);
-    const m0 = __sh.state().metrics; __sh.input.script([{ f: 0, hold: { aim: 30 } }, { f: 12, press: ['attack'] }]); D.fastSim(32); const m1 = __sh.state().metrics;
+    D.placeEnemy('kiro_4', 0.3, -45); D.faceTo(0, -45); g.cam.pitch = 0.08;   // 2026-11-13：撃つ前に的を狙いの線の上へ置き直す（構えたカメラは右肩 0.35m：狙いの線は x≈0.35。帰路は歩き回るので、前の場面までのこま数で左右にずれて外れることがあった。前は通る時の帰路が x 0.3〜0.4 にいた）
+    const k4 = g.enemies.find(e => e.id === 'kiro_4'), kpre = [k4.pos.x.toFixed(2), k4.pos.z.toFixed(2), k4.brain.state, g.player.fighter.st.name, g.player.fighter.weapon, g.player.pos.x.toFixed(2), g.player.pos.z.toFixed(2), g.player.yaw.toFixed(2), g.cam.yaw.toFixed(2)];
+    const m0 = __sh.state().metrics; __sh.input.script([{ f: 0, hold: { aim: 30 } }, { f: 12, press: ['attack'] }]); D.fastSim(32); const kpost = [k4.pos.x.toFixed(2), k4.pos.z.toFixed(2), k4.brain.state]; g.syncCamera(); const dbgD = new __sh.THREE.Vector3(); g.camera.getWorldDirection(dbgD); const dbg = { dev: g.input.device, cam: g.camera.position.toArray().map(x => +x.toFixed(2)), dir: dbgD.toArray().map(x => +x.toFixed(3)), aimT: g.cam.aimT, cd: g.cam.curDist, pitch: g.cam.pitch, yaw: g.cam.yaw, kr: k4.r, kh: k4.h, ev: g.metrics.events.slice(-8).map(e => e.t) }; const m1 = __sh.state().metrics;
     const mag1 = g.player.fighter.mag; __sh.input.script([{ f: 0, press: ['reload'] }]); D.fastSim(90); const mag2 = g.player.fighter.mag;
     __sh.input.script([{ f: 0, press: ['swap'] }]); D.fastSim(14);
     __sh.input.script([{ f: 0, press: ['attack'] }, { f: 18, hold: { aim: 12 } }]); D.fastSim(40);
@@ -217,11 +220,11 @@ async function runPC(browser) {
     g.equipped = ['holster']; g.applyEquip(); __sh.input.script([{ f: 0, press: ['swap'] }]); D.fastSim(14); const sw3 = g.metrics.swaps[g.metrics.swaps.length - 1];
     __sh.input.script([{ f: 0, press: ['weapon1'] }]); D.fastSim(30);
     D.freezeEnemies(false);
-    return { kpos: [g.enemies.find(e => e.id === 'kiro_4').pos.x.toFixed(1), g.enemies.find(e => e.id === 'kiro_4').pos.z.toFixed(1)], ppos: [g.player.pos.x.toFixed(1), g.player.pos.z.toFixed(1)], w0: g.player.fighter.weapon, st: g.player.fighter.st.name, sw: g.metrics.swaps.slice(s0, s0 + 2), evs: ev.slice(-10).map(e => e.t + '@' + e.frame), shots: m1.shots - m0.shots, hits: m1.shotHits - m0.shotHits, mag1, mag2, quick: q && sh ? sh.frame - q.frame : null, holster: sw3 };
+    return { kpre, kpost, dbg, kpos: [g.enemies.find(e => e.id === 'kiro_4').pos.x.toFixed(1), g.enemies.find(e => e.id === 'kiro_4').pos.z.toFixed(1)], ppos: [g.player.pos.x.toFixed(1), g.player.pos.z.toFixed(1)], w0: g.player.fighter.weapon, st: g.player.fighter.st.name, sw: g.metrics.swaps.slice(s0, s0 + 2), evs: ev.slice(-10).map(e => e.t + '@' + e.frame), shots: m1.shots - m0.shots, hits: m1.shotHits - m0.shotHits, mag1, mag2, quick: q && sh ? sh.frame - q.frame : null, holster: sw3 };
   });
   await unisolate(page);
   ok('刀→銃の持ち替え 9f（150ms）・銃→刀 9f', gun.sw[0] && gun.sw[0].frames === 9 && gun.sw[0].measured === 9 && gun.sw[1] && gun.sw[1].measured === 9, JSON.stringify(gun.sw));
-  ok('構えて撃つ（命中）・装填', gun.shots === 1 && gun.hits === 1 && gun.mag2 === 12 && gun.mag1 === 11, JSON.stringify({ shots: gun.shots, hits: gun.hits, mag: [gun.mag1, gun.mag2], evs: gun.evs, k: gun.kpos, p: gun.ppos }));
+  ok('構えて撃つ（命中）・装填', gun.shots === 1 && gun.hits === 1 && gun.mag2 === 12 && gun.mag1 === 11, JSON.stringify({ shots: gun.shots, hits: gun.hits, mag: [gun.mag1, gun.mag2], evs: gun.evs, k: gun.kpos, p: gun.ppos, kpre: gun.kpre, kpost: gun.kpost, dbg: gun.dbg }));
   ok('切替撃ち 4f（67ms）で 1 発目', gun.quick === 4, `${gun.quick}f`);
   ok('装備「小型銃用ホルスター」で刀→銃 6f', gun.holster && gun.holster.measured === 6, JSON.stringify(gun.holster));
   // 構えの画面
@@ -338,6 +341,7 @@ async function runPC(browser) {
   const fight = await page.evaluate(() => {
     const D = __sh.debug, g = __sh.game, P = g.player, b = g.boss.brain;
     const log = { parries: 0, dodges: 0, combos: 0, heals: 0, deaths: 0, hajiki: g.metrics.issen.hajiki || 0, mikiri: g.metrics.issen.mikiri || 0, phases: [], rollcalls: 0, darkLight: false, shotsWeak: 0 };
+    const rc0 = g.metrics.rollcalls || 0;   // 2026-11-13：点呼の数はゲームの記録（点呼の出来事）でも数える（入力列の区切りで見た時に点呼中だった数だけだと、点呼が斬られて崩れた時に 0 になる）
     let shotPhase = false;
     for (let it = 0; it < 900 && b.alive; it++) {
       if (g.mode === 'dead' || P.fighter.dead) { log.deaths++; g.retry(); D.fastSim(10); if (g.cut.active) D.skipCutscene(); continue; }
@@ -357,11 +361,12 @@ async function runPC(browser) {
       if (b.state === 'stuck') { D.fastSim(10); }
     }
     D.fastSim(60 * 3);
+    log.rcEv = (g.metrics.rollcalls || 0) - rc0;
     log.res = b.resolution; log.state = b.state; log.hp = b.hp; log.hajiki = (g.metrics.issen.hajiki || 0) - log.hajiki; log.mikiri = (g.metrics.issen.mikiri || 0) - log.mikiri; log.cut = g.cut.active ? g.cut.cs.id : null; log.playerHp = P.fighter.hp; log.broken = g.metrics.broken || 0;
     return log;
   });
   ok('収容者を倒す（自動の戦い方・god なし：弾く／避ける／斬る）', fight.res === 'kill', JSON.stringify(fight));
-  ok('収容者：段階（照明が落ちる→懐中電灯）と点呼が起きる', fight.phases.includes(1) && fight.phases.includes(2) && fight.rollcalls > 0 && fight.darkLight, JSON.stringify({ phases: fight.phases, rc: fight.rollcalls }));
+  ok('収容者：段階（照明が落ちる→懐中電灯）と点呼が起きる', fight.phases.includes(1) && fight.phases.includes(2) && (fight.rollcalls > 0 || fight.rcEv > 0) && fight.darkLight, JSON.stringify({ phases: fight.phases, rc: fight.rollcalls, rcEv: fight.rcEv }));
   await page.evaluate(() => __sh.debug.hold(true)); await shot(page, 'pc_12_boss_end.png', 1600); await page.evaluate(() => __sh.debug.hold(false));
   await skipCut(page); await sim(page, 30);
   st = await S(page); ok('決着の演出 → 第2章（試作）ここまでの札', st.step === 'ch2_end' && st.metrics.endCard, `${st.step}`);
@@ -492,7 +497,10 @@ async function runPhone(browser) {
   // スティックで歩いて相棒のところへ
   await page.evaluate(() => { __sh.debug.teleport(-1.3, -27.5, Math.PI); __sh.game.cam.yaw = 0; });
   const z0 = (await S(page)).player.z;
-  await touch('touchStart', [[150, 300, 1]]); await touch('touchMove', [[150, 250, 1]]); await page.waitForTimeout(2500); await touch('touchEnd', []);
+  // 2026-11-13：押している間を「2.5 秒」から「動いた（0.6m）か 6 秒」へ（紫の走り出しの加速の分と、ソフト描画で 1 秒に進むこまが揺れる分。前は 2.5 秒で 20〜40 こま）
+  await touch('touchStart', [[150, 300, 1]]); await touch('touchMove', [[150, 250, 1]]); await page.waitForTimeout(2500);
+  for (let i = 0; i < 14 && (await S(page)).player.z > z0 - 0.6; i++) await page.waitForTimeout(250);
+  await touch('touchEnd', []);
   let st = await S(page); ok('タッチのスティックで移動（→ 相棒の近くで会話が始まる）', st.player.z < z0 - 0.5 || st.mode === 'dialog', `${z0.toFixed(1)}→${st.player.z.toFixed(1)} ${st.mode}`);
   await page.evaluate(() => { const D = __sh.debug; D.teleport(-1.6, -31.6, Math.PI); D.fastSim(3); D.skipDialog(); D.fastSim(3); });
   await page.waitForTimeout(400);
