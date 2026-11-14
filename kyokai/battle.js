@@ -741,7 +741,10 @@
     const BG = root.KY_BGM;
     if (BG && BG.force && BG.battleSong) {
       musicStop();
-      let w = KY.world, pal = null; try { const st = root.KY_WORLD && KY_WORLD.state && KY_WORLD.state(); if (st) { w = st.world || w; pal = st.pal; } } catch (e) {}
+      // 戦闘そのものの観測層と色（章のボス戦などは opts.world・opts.pal で決まる）を先に使い、無ければ歩く地図の状態
+      let w = KY.world, pal = null;
+      if (CUR) { w = CUR.world || w; pal = CUR.pal || null; }
+      else { try { const st = root.KY_WORLD && KY_WORLD.state && KY_WORLD.state(); if (st) { w = st.world || w; pal = st.pal; } } catch (e) {} }
       BG.force(kind ? BG.battleSong(kind, w, pal) : null);
       return;
     }
