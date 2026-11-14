@@ -122,6 +122,10 @@ export class Sfx {
       case 'ui_ok': this.tone(700, 0.06, 'sine', 0.07); this.tone(1050, 0.08, 'sine', 0.06, 1, 0.05); break;
       case 'ui_ng': this.tone(220, 0.15, 'square', 0.06); break;
       case 'save': this.tone(523, 0.12, 'sine', 0.08); this.tone(784, 0.2, 'sine', 0.08, 1, 0.1); break;
+      // Q-horror の合図（素材が届くまでの合成音。どれも小さく短い）
+      case 'flicker_buzz': this.tone(100, 0.09, 'sawtooth', 0.025, 1); this.tone(120, 0.07, 'square', 0.012, 1, 0.01); this.noise(0.04, 0.05, 'highpass', 4500); break;
+      case 'stalker_seen': this.tone(46, 1.8, 'sine', 0.09, 0.92); this.noise(1.4, 0.035, 'lowpass', 220, 1, 0.1, 0.6); break;
+      case 'stalker_gone': this.noise(0.9, 0.04, 'bandpass', 500, 0.8, 0, 0.3); break;
       case 'light_on': this.tone(60, 0.3, 'sine', 0.05); this.noise(0.05, 0.08, 'highpass', 5000); break;
       // 敵の合図（読み取れる音）
       case 'notice': this.tone(110, 0.6, 'sine', 0.12, 1.4); break;
