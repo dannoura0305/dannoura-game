@@ -182,36 +182,55 @@ registerMinigame({
         g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(Math.max(.0002,peak),t0+Math.min(.015,dur*.3));g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
         s.connect(f);f.connect(g);g.connect(c.destination);s.start(t0,Math.random()*.5);s.stop(t0+dur+.02);
       },
-      play(k,amt){
+      j(a){return 1+(Math.random()*2-1)*a;},
+      // 音ごとの大きさの補正（計測して揃えた値。小さく頻繁な音は -38〜-34、物音の失敗は -31〜-28 LUFS 前後）
+      LV:{step:7,creak:2.5,clack:8,squeak:1.8,rattle:12,ball:2.1,rustle:4.5,clink:2.7,scratch:12,zip:18,pick:8,done:3,box:4.3,meow:2.7,purr:1.9,crash:1.4,whimper:3.5,cry:4,heart:1.5,whoosh:20,bird:5,stamp:3,sad:3.5,tension:2.5,alert:3},
+      play(k,amt,fl){
         const c=this.c();if(!c)return;
-        const v=this.v()*(amt||1);
+        const v=this.v()*(amt||1)*(this.LV[k]||1),J=a=>this.j(a);
         try{switch(k){
-          case 'step':this.noise(c,.08,.06*v,'lowpass',240,140,1);break;
-          case 'creak':this.tone(c,'sawtooth',230,120,.45,.05*v,0,900);this.tone(c,'sawtooth',236,128,.4,.03*v,.02,700);break;
-          case 'clack':for(let i=0;i<3;i++){this.noise(c,.05,.14*v,'bandpass',2600-i*300,2200,3,i*.055);this.tone(c,'square',1200-i*220,900,.035,.025*v,i*.055);}break;
-          case 'squeak':this.tone(c,'sine',1300,2100,.12,.08*v);this.tone(c,'sine',2000,1100,.22,.07*v,.12);break;
-          case 'rattle':for(let i=0;i<7;i++)this.noise(c,.03,.07*v,'bandpass',1500+i*60,1400,4,i*.045);break;
-          case 'ball':this.tone(c,'sine',300,180,.12,.09*v);this.tone(c,'sine',280,170,.1,.05*v,.2);break;
-          case 'rustle':this.noise(c,.24,.05*v,'bandpass',3400,2200,.8);break;
-          case 'clink':this.tone(c,'sine',2600,2580,.3,.05*v);this.tone(c,'sine',3950,3900,.2,.03*v);break;
-          case 'scratch':this.noise(c,.1,.025*v,'highpass',5200,4800,.7);break;
-          case 'zip':this.noise(c,.32,.05*v,'bandpass',700,3400,5);break;
-          case 'pick':this.tone(c,'sine',660,990,.12,.05*v);break;
-          case 'done':this.tone(c,'triangle',880,880,.28,.06*v);this.tone(c,'triangle',1320,1320,.45,.05*v,.11);break;
-          case 'box':this.noise(c,.08,.16*v,'lowpass',700,260,1);this.tone(c,'square',170,90,.09,.04*v);break;
-          case 'meow':this.tone(c,'triangle',620,980,.14,.05*v,0,1900);this.tone(c,'triangle',980,520,.3,.05*v,.13,1700);break;
+          // 足音：床で音色が変わる（畳＝こもる・タイル＝少し硬い・板の間＝ふつう）。毎回少しずつ違う
+          case 'step':{const p=J(.12),g=v*J(.15);
+            if(fl==='tatami'){this.noise(c,.08,.2*g,'lowpass',420*p,160,.8);this.noise(c,.05,.045*g,'bandpass',2200*p,1600,1.2,.01);}
+            else if(fl==='tile'){this.noise(c,.06,.2*g,'lowpass',700*p,220,1);this.noise(c,.03,.07*g,'bandpass',3200*p,2600,2,.005);}
+            else{this.noise(c,.08,.06*g,'lowpass',520*p,150,1);this.tone(c,'sine',110*p,70,.07,.035*g);}
+            break;}
+          // 床のきしみ：ゆっくり不規則に揺れる「ギィ……」
+          case 'creak':{const o=c.createOscillator(),f=c.createBiquadFilter(),f2=c.createBiquadFilter(),g=c.createGain(),t0=c.currentTime,d=.38+Math.random()*.25,b=J(.12);
+            o.type='sawtooth';o.frequency.setValueAtTime(90*b,t0);for(let i=1;i<7;i++)o.frequency.linearRampToValueAtTime((70+Math.random()*80)*b,t0+d*i/6);
+            f.type='bandpass';f.frequency.value=900*b;f.Q.value=6;f2.type='bandpass';f2.frequency.value=1900*b;f2.Q.value=5;
+            g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(Math.max(.0002,.16*v),t0+.06);g.gain.setValueAtTime(.16*v,t0+d*.6);g.gain.exponentialRampToValueAtTime(.0001,t0+d);
+            o.connect(f);o.connect(f2);f.connect(g);f2.connect(g);g.connect(c.destination);o.start(t0);o.stop(t0+d+.05);break;}
+          case 'clack':for(let i=0;i<3;i++){const p=J(.1);this.noise(c,.05,.1*v,'bandpass',2300*p-i*250,1800,2.5,i*.05+Math.random()*.015);this.tone(c,'triangle',900*p-i*120,700,.04,.03*v,i*.05);}break;
+          case 'squeak':this.tone(c,'sine',1300,2100,.12,.06*v,0,3000);this.tone(c,'sine',2000,1100,.22,.05*v,.12,3000);break;
+          case 'rattle':for(let i=0;i<7;i++)this.noise(c,.03,.06*v*J(.3),'bandpass',1500*J(.15),1300,2,i*.045+Math.random()*.01);break;
+          case 'ball':this.tone(c,'sine',260,150,.14,.12*v);this.noise(c,.06,.05*v,'lowpass',500,200,1);this.tone(c,'sine',240,140,.1,.06*v,.24);break;
+          // 衣ずれ・洗濯物（ふわっと）
+          case 'rustle':this.noise(c,.28*J(.2),.04*v*J(.2),'bandpass',2600*J(.2),1700,.9);this.noise(c,.18,.02*v,'bandpass',4200*J(.2),3200,1.2,.08);break;
+          // 食器の小さな「カチャ」
+          case 'clink':{const p=J(.04);this.tone(c,'sine',2600*p,2580*p,.22,.03*v);this.tone(c,'sine',3950*p,3900*p,.15,.018*v,.01);this.noise(c,.025,.03*v,'bandpass',5000,4500,3);break;}
+          case 'scratch':for(let i=0;i<3;i++)this.noise(c,.05,.02*v*J(.3),'bandpass',4200*J(.2),3800,2,i*.07+Math.random()*.02);break;
+          case 'zip':this.noise(c,.32,.04*v,'bandpass',700,3400,4);break;
+          case 'pick':this.noise(c,.05,.05*v,'lowpass',900,400,1);this.tone(c,'sine',520,700,.1,.03*v,.03);break;
+          // 家事がひとつ終わった（ささやかな安堵）
+          case 'done':this.tone(c,'triangle',660,660,.35,.05*v);this.tone(c,'triangle',988,988,.5,.04*v,.12);break;
+          case 'box':this.noise(c,.1,.12*v,'lowpass',600,220,1);this.tone(c,'sine',140,80,.1,.08*v);break;
+          case 'meow':this.tone(c,'triangle',620,980,.14,.04*v,0,1900);this.tone(c,'triangle',980,520,.3,.04*v,.13,1700);break;
           case 'purr':this.tone(c,'sawtooth',27,24,.9,.06*v,0,220);break;
-          case 'crash':this.noise(c,.45,.2*v,'highpass',1600,500,.7);this.tone(c,'sine',1900,1700,.6,.04*v);this.tone(c,'sine',2870,2800,.4,.025*v,.05);break;
+          // 猫がなにかを落とした（大きな物音）
+          case 'crash':this.noise(c,.5,.12*v,'highpass',1600,500,.7);this.noise(c,.12,.1*v,'lowpass',500,150,1);this.tone(c,'sine',1900,1700,.6,.025*v);this.tone(c,'sine',2870,2800,.4,.015*v,.05);break;
           case 'whimper':this.tone(c,'sine',560,430,.35,.035*v,0);this.tone(c,'sine',520,400,.4,.03*v,.4);break;
-          case 'cry':this.tone(c,'sawtooth',470,580,.6,.05*v,0,1500);this.tone(c,'sawtooth',580,400,.9,.05*v,.6,1500);break;
+          case 'cry':this.tone(c,'sawtooth',470,580,.6,.04*v,0,1500);this.tone(c,'sawtooth',580,400,.9,.04*v,.6,1500);break;
           case 'heart':this.tone(c,'sine',62,44,.13,.16*v);this.tone(c,'sine',58,42,.13,.1*v,.17);break;
-          case 'blip':this.tone(c,'square',900,900,.025,.012*v);break;
-          case 'whoosh':this.noise(c,.6,.04*v,'bandpass',300,2400,2);break;
-          case 'bird':this.tone(c,'sine',3600,4600,.06,.03*v);this.tone(c,'sine',3800,4800,.06,.025*v,.1);break;
-          case 'stamp':this.noise(c,.12,.2*v,'lowpass',500,120,1);this.tone(c,'triangle',523,523,.5,.05*v,.05);this.tone(c,'triangle',784,784,.6,.05*v,.15);this.tone(c,'triangle',1046,1046,.8,.05*v,.25);break;
-          case 'sad':this.tone(c,'triangle',440,430,.5,.05*v);this.tone(c,'triangle',349,345,.8,.05*v,.25);break;
-          case 'tension':this.tone(c,'sawtooth',55,52,1.4,.05*v,0,260);this.tone(c,'sawtooth',82,78,1.4,.03*v,0,300);break;
-          case 'alert':this.tone(c,'square',740,740,.08,.04*v);this.tone(c,'square',988,988,.12,.04*v,.09);break;
+          case 'blip':this.tone(c,'sine',1150*J(.04),1050,.03,.1*v);break;
+          case 'whoosh':this.noise(c,.6,.03*v,'bandpass',300,1800,1.5);break;
+          case 'bird':this.tone(c,'sine',3600,4600,.06,.02*v);this.tone(c,'sine',3800,4800,.06,.016*v,.1);this.tone(c,'sine',3500,4400,.05,.012*v,.45);break;
+          case 'stamp':this.noise(c,.12,.12*v,'lowpass',500,120,1);this.tone(c,'triangle',523,523,.5,.04*v,.05);this.tone(c,'triangle',784,784,.6,.04*v,.15);this.tone(c,'triangle',1046,1046,.8,.04*v,.25);break;
+          case 'sad':this.tone(c,'triangle',440,430,.5,.045*v);this.tone(c,'triangle',349,345,.8,.045*v,.25);break;
+          // 張りつめる低音（重なる2本がゆっくりうなる）
+          case 'tension':this.tone(c,'sawtooth',55,52,1.4,.05*v,0,260);this.tone(c,'sawtooth',58,55,1.4,.035*v,0,300);break;
+          // 「気付かれそう」：息をのむ気配（短い吸気のノイズ＋低い不協和）。電子音のピピッはやめた
+          case 'alert':this.noise(c,.22,.05*v,'bandpass',1400,2600,1.5);this.tone(c,'sawtooth',98,92,.6,.05*v,.05,500);this.tone(c,'sawtooth',104,98,.6,.04*v,.05,520);break;
         }}catch(_){}
       },
       setWater(on){
@@ -223,11 +242,12 @@ registerMinigame({
             s.buffer=this.buf(c);s.loop=true;f.type='bandpass';f.frequency.value=1500;f.Q.value=.6;g.gain.value=.0001;
             s.connect(f);f.connect(g);g.connect(c.destination);s.start();this.water={s,g};
           }
-          if(this.water)this.water.g.gain.setTargetAtTime(on?.05*this.v():.0001,c.currentTime,.08);
+          if(this.water)this.water.g.gain.setTargetAtTime(on?.04*this.v():.0001,c.currentTime,.08);
         }catch(_){}
       },
       stop(){if(this.water){try{this.water.s.stop();}catch(_){}this.water=null;}},
     };
+    if(mg&&mg.exposeSfx)mg.exposeSfx(['step','creak','clack','squeak','rattle','ball','rustle','clink','scratch','zip','pick','done','box','meow','purr','crash','whimper','cry','heart','blip','whoosh','bird','stamp','sad','tension','alert','stepSlow','stepTatami','stepTile','water'],k=>k==='stepSlow'?SX.play('step',.35):k==='stepTatami'?SX.play('step',1,'tatami'):k==='stepTile'?SX.play('step',1.2,'tile'):k==='water'?(SX.setWater(true),setTimeout(()=>{SX.setWater(false);},2500)):SX.play(k));
 
     // ── サイズ・事前描画 ──
     let W=0,H=0,dpr=1,S=1,OX=0,OY=0;
@@ -697,7 +717,7 @@ registerMinigame({
         const q=Math.max(0,(s-.32)/.68);
         if(q>0)addNoise(26*Math.pow(q,1.25)*fm*dt,P.x,P.y);
         stepAcc+=mv;
-        if(stepAcc>22){stepAcc=0;if(s>.2){ring(P.x,P.y,6+s*16,q>0?'rgba(232,184,48,.7)':'rgba(187,174,221,.35)',.5);SX.play('step',.25+s*.9*fm);}}
+        if(stepAcc>22){stepAcc=0;if(s>.2){ring(P.x,P.y,6+s*16,q>0?'rgba(232,184,48,.7)':'rgba(187,174,221,.35)',.5);SX.play('step',.25+s*.9*fm,fl);}}
         // きしむ床
         for(let i=0;i<CREAK.length;i++){
           const c=CREAK[i],inside=P.x>c[0]&&P.x<c[2]&&P.y>c[1]&&P.y<c[3];
