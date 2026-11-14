@@ -40,11 +40,12 @@ const BGM_DATA={
   mg_cards:'assets/bgm_cc0/mg_cards.mp3',
   mg_quiz:'assets/bgm_cc0/mg_quiz.mp3',
   mg_cooking:'assets/bgm_cc0/mg_cooking.mp3',
-  mg_stealth:'assets/bgm_cc0/mg_stealth.mp3'
+  mg_stealth:'assets/bgm_cc0/mg_stealth.mp3',
+  mg_rpg_battle:'assets/bgm_cc0/mg_rpg_battle.mp3'
 };
 // 曲ごとの大きさの補正（ffmpeg ebur128 で測った平均の大きさ LUFS を -17 に揃える倍率）。ファイルそのものは変えない
 const BGM_LUFS={night:-15.4,stream:-13.7,kaidan:-15.6,factory:-14.5,mental:-14.2,rebirth:-16.9,king:-14.7,collapse:-13.6,
-  mg_race:-17.4,mg_runner:-18.1,mg_defense:-17.9,mg_cards:-18.0,mg_quiz:-18.3,mg_cooking:-18.1,mg_stealth:-18.7};
+  mg_race:-17.4,mg_runner:-18.1,mg_defense:-17.9,mg_cards:-18.0,mg_quiz:-18.3,mg_cooking:-18.1,mg_stealth:-18.7,mg_rpg_battle:-19.1};
 function bgmTrim(type){const l=BGM_LUFS[type];return l==null?1:Math.min(1.5,Math.pow(10,(-17-l)/20));}
 
 // ══ 音声システム ══
@@ -64,7 +65,7 @@ function setAudioVolume(kind,v){
   try{localStorage.setItem(AUDIO_KEY,JSON.stringify(AUDIO_SET));}catch(e){}
   if(kind==='bgm'){
     if(AU._ba)AU._ba.volume=bgmVol();
-    if(AU._og&&AU.ctx)try{AU._og.gain.setValueAtTime(AUDIO_SET.bgm,AU.ctx.currentTime);}catch(e){}
+    if(AU._og&&AU.ctx)try{const t=AU.ctx.currentTime;AU._og.gain.cancelScheduledValues(t);AU._og.gain.setValueAtTime(AUDIO_SET.bgm,t);}catch(e){}
   }
   if(kind==='voice'&&_voiceAudio)_voiceAudio.volume=AUDIO_SET.voice;
 }
@@ -153,7 +154,7 @@ function _showAudioRetry(){
 // ──────────────────────────
 const AU={
   ctx:null,_og:null,_on:null,_ba:null,bgmType:null,
-  presets:{night:[{f:110,t:'sine',g:.036},{f:165,t:'sine',g:.02}],stream:[{f:130,t:'triangle',g:.034},{f:196,t:'sine',g:.017}],kaidan:[{f:55,t:'sawtooth',g:.03},{f:82,t:'sine',g:.015}],factory:[{f:80,t:'square',g:.02},{f:120,t:'sawtooth',g:.012}],mental:[{f:40,t:'sawtooth',g:.036},{f:61,t:'sawtooth',g:.017}],rebirth:[{f:220,t:'sine',g:.03},{f:330,t:'sine',g:.017}],king:[{f:174,t:'triangle',g:.03},{f:261,t:'triangle',g:.015}],collapse:[{f:28,t:'sawtooth',g:.036}],mg_race:[{f:98,t:'sawtooth',g:.014},{f:147,t:'triangle',g:.02}],mg_runner:[{f:131,t:'triangle',g:.03},{f:196,t:'triangle',g:.016}],mg_defense:[{f:73,t:'sawtooth',g:.016},{f:110,t:'triangle',g:.024}],mg_cards:[{f:147,t:'triangle',g:.028},{f:220,t:'sine',g:.016}],mg_quiz:[{f:262,t:'sine',g:.024},{f:392,t:'sine',g:.012}],mg_cooking:[{f:196,t:'sine',g:.028},{f:294,t:'sine',g:.014}],mg_stealth:[{f:82,t:'triangle',g:.028},{f:123,t:'sine',g:.012}]},
+  presets:{night:[{f:110,t:'sine',g:.036},{f:165,t:'sine',g:.02}],stream:[{f:130,t:'triangle',g:.034},{f:196,t:'sine',g:.017}],kaidan:[{f:55,t:'sawtooth',g:.03},{f:82,t:'sine',g:.015}],factory:[{f:80,t:'square',g:.02},{f:120,t:'sawtooth',g:.012}],mental:[{f:40,t:'sawtooth',g:.036},{f:61,t:'sawtooth',g:.017}],rebirth:[{f:220,t:'sine',g:.03},{f:330,t:'sine',g:.017}],king:[{f:174,t:'triangle',g:.03},{f:261,t:'triangle',g:.015}],collapse:[{f:28,t:'sawtooth',g:.036}],mg_race:[{f:98,t:'sawtooth',g:.014},{f:147,t:'triangle',g:.02}],mg_runner:[{f:131,t:'triangle',g:.03},{f:196,t:'triangle',g:.016}],mg_defense:[{f:73,t:'sawtooth',g:.016},{f:110,t:'triangle',g:.024}],mg_cards:[{f:147,t:'triangle',g:.028},{f:220,t:'sine',g:.016}],mg_quiz:[{f:262,t:'sine',g:.024},{f:392,t:'sine',g:.012}],mg_cooking:[{f:196,t:'sine',g:.028},{f:294,t:'sine',g:.014}],mg_stealth:[{f:82,t:'triangle',g:.028},{f:123,t:'sine',g:.012}],mg_rpg_battle:[{f:98,t:'sawtooth',g:.014},{f:147,t:'triangle',g:.024}]},
   init(){if(this.ctx)return;try{this.ctx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}},
   playBGM(type){
     if(this.bgmType===type)return;
