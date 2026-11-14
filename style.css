@@ -531,8 +531,8 @@ body.fatigue-hi .choice-btn:nth-child(odd){transform:translateX(var(--fatigue-dr
 
 /* ══════════════ CUTIN ══════════════ */
 #cutin-wrap{position:fixed;inset:0;z-index:210;pointer-events:none;display:flex;align-items:flex-end;padding:0 0 66px 0;}
-.cutin-box{padding:9px 13px 9px 10px;max-width:280px;margin-left:6px;transform:translateX(-310px);transition:transform .38s cubic-bezier(.34,1.56,.64,1);}
-.cutin-box.show{transform:translateX(0);}
+.cutin-box{padding:9px 13px 9px 10px;max-width:280px;margin-left:6px;transform:translateX(-310px);opacity:0;visibility:hidden;transition:transform .38s cubic-bezier(.34,1.56,.64,1),opacity .25s ease,visibility 0s linear .38s;}
+.cutin-box.show{transform:translateX(0);opacity:1;visibility:visible;transition:transform .38s cubic-bezier(.34,1.56,.64,1),opacity .2s ease,visibility 0s;}   /* 隠れている間は見せない（広い画面では左へずらしても画面の中に残っていた） */
 .cutin-inner{display:flex;gap:9px;align-items:flex-start;}
 .cutin-face{width:44px;height:44px;border-radius:3px;background:#0a0720;box-shadow:0 0 0 2px #04020c,0 0 0 3px var(--win-mid);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
 .cutin-name{display:inline-block;font-family:var(--dot);font-size:.62rem;color:var(--cur);letter-spacing:.12em;margin-top:1px;text-shadow:1px 1px 0 #000;}
@@ -745,7 +745,7 @@ body.mg-active #cutin-wrap{display:none;}
   #daily-guide.ui-swap #daily-guide-text,body.fatigue-hi .dlg-text,body.ph3crit .dlg-text,body.ph3crit .top-bar,.live-badge,.ci{animation:none !important;}
   #ui-wipe{display:none !important;}
   .ev-box,.ui-res-box,.endlist-box,.mg-pick-box,.ov-screen{transform:none !important;transition:opacity .12s !important;}
-  .cutin-box{transition:none;}
+  .cutin-box,.cutin-box.show{transition:none;}
   .ui-delta{animation-duration:.01s !important;}
   .ui-gauge > b,.ui-gauge > i,.srf,.day-line-fill{transition:none !important;}
 }
