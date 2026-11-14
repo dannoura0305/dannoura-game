@@ -652,6 +652,7 @@
     for (let i = 1; i < n; i++) re[i] = (2 / (i * Math.PI)) * Math.sin(i * Math.PI * duty);
     const w = c.createPeriodicWave(re, im); PW[k] = { ctx: c, w }; return w;
   }
+  let DEST = null;   // se() が鳴らすあいだだけ、効果音ごとの音量（BSE_GAIN）を掛けた入口
   function tone(f, t, dur, o) {
     o = o || {};
     const a = AU(); if (!a || !a.ok) return;
@@ -660,7 +661,7 @@
     os.frequency.setValueAtTime(f, t); if (o.to) os.frequency.linearRampToValueAtTime(o.to, t + dur);
     const v = o.vol == null ? 0.035 : o.vol;
     g.gain.value = 0; g.gain.setValueAtTime(v, t); g.gain.setValueAtTime(v, t + dur * 0.8); g.gain.linearRampToValueAtTime(0.0001, t + dur);
-    os.connect(g); g.connect(o.dest || a.out); os.start(t); os.stop(t + dur + 0.03);
+    os.connect(g); g.connect(o.dest || DEST || a.out); os.start(t); os.stop(t + dur + 0.03);
   }
   function noise(t, dur, o) {
     o = o || {};
@@ -669,16 +670,19 @@
     s.buffer = a.noise; f.type = o.type || 'highpass'; f.frequency.value = o.f || 1500;
     const v = o.vol == null ? 0.08 : o.vol, st = 5;
     g.gain.value = 0; g.gain.setValueAtTime(v, t); for (let i = 1; i <= st; i++) g.gain.setValueAtTime(v * (1 - i / st) + 0.0001, t + dur * i / st);
-    s.connect(f); f.connect(g); g.connect(o.dest || a.out); s.start(t, Math.random()); s.stop(t + dur + 0.05);
+    s.connect(f); f.connect(g); g.connect(o.dest || DEST || a.out); s.start(t, Math.random()); s.stop(t + dur + 0.05);
   }
   const seq = (notes, t, len, o) => notes.forEach((f, i) => { if (f) tone(f, t + i * len, len * 0.92, o); });
   const BSE = {
     bt_start: t => { for (let i = 0; i < 6; i++) tone(1568 - i * 180, t + i * 0.05, 0.05, { duty: 0.25, vol: 0.03 }); noise(t + 0.3, 0.35, { f: 600, vol: 0.06 }); },
     bt_atk: t => { tone(660, t, 0.06, { duty: 0.125, vol: 0.03, to: 1320 }); },
     bt_eatk: t => { tone(330, t, 0.08, { duty: 0.5, vol: 0.03, to: 165 }); },
-    bt_hit: t => { noise(t, 0.14, { f: 900, vol: 0.12 }); tone(110, t, 0.08, { duty: 0.5, vol: 0.03 }); },
-    bt_hit2: t => { noise(t, 0.22, { f: 500, vol: 0.16 }); tone(98, t, 0.14, { duty: 0.5, vol: 0.04, to: 55 }); noise(t + 0.1, 0.12, { f: 2600, vol: 0.06 }); },
-    bt_hit0: t => { noise(t, 0.08, { f: 2400, vol: 0.06 }); },
+    // 当たり（2026-11 見直し）：ノイズの「パシッ」＋矩形波の音程が落ちる「ドッ」で、手応えを出す
+    bt_hit: t => { noise(t, 0.12, { f: 900, vol: 0.12 }); tone(220, t, 0.09, { duty: 0.5, vol: 0.04, to: 70 }); noise(t + 0.02, 0.06, { type: 'lowpass', f: 300, vol: 0.1 }); },
+    // こうかばつぐん：2 段の打撃＋低い沈み込み
+    bt_hit2: t => { noise(t, 0.2, { f: 500, vol: 0.16 }); tone(260, t, 0.12, { duty: 0.5, vol: 0.045, to: 55 }); noise(t + 0.02, 0.1, { type: 'lowpass', f: 260, vol: 0.14 }); noise(t + 0.1, 0.12, { f: 2600, vol: 0.06 }); tone(1568, t + 0.1, 0.05, { duty: 0.125, vol: 0.02, to: 1047 }); },
+    // いまひとつ：鈍い「コッ」
+    bt_hit0: t => { noise(t, 0.08, { f: 2400, vol: 0.05 }); tone(147, t, 0.05, { duty: 0.25, vol: 0.022, to: 110 }); },
     bt_down: t => { tone(880, t, 0.25, { duty: 0.25, vol: 0.03, to: 220 }); },
     bt_heal: t => { seq([523, 659, 784, 659, 784, 1047], t, 0.06, { duty: 0.25, vol: 0.03 }); },
     bt_light: t => { tone(2093, t, 0.18, { duty: 0.125, vol: 0.025, to: 3136 }); noise(t, 0.2, { f: 4000, vol: 0.05 }); },
@@ -712,9 +716,14 @@
     }
   }
   API.cry = cry;
+  // 効果音ごとの音量の補正（2026-11：ラウドネスを測って揃えた）。書いていない物は 1
+  // 自分の攻撃（bt_atk）が −54 LUFS とほとんど聞こえず、こうかばつぐんとふつうの差が 8 LU もあったのを揃えた
+  const BSE_GAIN = API._seGain = { bt_atk: 2.5, bt_eatk: 1.17, bt_hit2: 0.87, bt_hit0: 1.6, bt_start: 0.83, bt_faint: 0.73, bt_phase: 0.9, bt_shiro: 1.6, bt_sel: 1.4 };
   function se(name) {
     const a = AU(); if (!a || !a.ok) return;
-    try { BSE[name] && BSE[name](a.ctx.currentTime + 0.01); } catch (e) {}
+    const k = BSE_GAIN[name];
+    try { if (k != null && k !== 1) { DEST = a.ctx.createGain(); DEST.gain.value = k; DEST.connect(a.out); } BSE[name] && BSE[name](a.ctx.currentTime + 0.01); } catch (e) {}
+    if (DEST) { const d = DEST; DEST = null; setTimeout(() => { try { d.disconnect(); } catch (e) {} }, 4000); }
   }
   API.se = se;
   // 戦闘の曲（短いループ。オリジナル）：低音のパルス＋上の分散和音
@@ -726,7 +735,16 @@
     win_boss: { bpm: 140, once: true, bass: [131, 0, 165, 0, 196, 0, 262, 0, 196, 262, 0, 0], lead: [523, 659, 784, 1047, 0, 988, 1047, 0, 1319, 0, 1568, 0] },
   };
   function musicStop() { if (MUS.iv) { clearInterval(MUS.iv); MUS.iv = 0; } MUS.kind = null; }
+  // 2026-11：曲は KY_BGM（music.js）で鳴らす。設定の「BGM」音量に従い、観測層（崩壊 C・混ざる世界 X）で曲が変わる。
+  // KY_BGM が無いとき（単体のテストなど）だけ、下の短いループで鳴らす。
   function music(kind) {
+    const BG = root.KY_BGM;
+    if (BG && BG.force && BG.battleSong) {
+      musicStop();
+      let w = KY.world, pal = null; try { const st = root.KY_WORLD && KY_WORLD.state && KY_WORLD.state(); if (st) { w = st.world || w; pal = st.pal; } } catch (e) {}
+      BG.force(kind ? BG.battleSong(kind, w, pal) : null);
+      return;
+    }
     musicStop();
     const a = AU(); if (!kind || !a || !a.ok || !SONGS[kind]) return;
     const sg = SONGS[kind], len = 60 / sg.bpm / 2;
@@ -746,7 +764,7 @@
     MUS.iv = setInterval(tickM, 90);
   }
   API.music = music;
-  if (KY._reset) KY._reset.push(() => { musicStop(); BUSY = false; CUR = null; if (BT && BT.h) { try { BT.h.close(); } catch (e) {} } BT = null; });
+  if (KY._reset) KY._reset.push(() => { musicStop(); try { root.KY_BGM && KY_BGM.force && KY_BGM.force(null); } catch (e) {} BUSY = false; CUR = null; if (BT && BT.h) { try { BT.h.close(); } catch (e) {} } BT = null; });
 
   /* ═════════════════════════ ドット絵（境界生物・シロの後ろ姿） ═════════════════════════ */
   // 40×40 の格子に 4 階調（0 いちばん濃い〜3 いちばん明るい、-1 透明）で描き、最後に輪郭（0）を自動で付ける。
@@ -1153,7 +1171,13 @@
       if (!cps || R() && cps < 40 || chars.length < 2) { el.textContent = text; return { skip() {}, done: Promise.resolve() }; }
       let n = 0, fin = false, iv = 0, res;
       const done = new Promise(r => { res = r; });
-      iv = setInterval(() => { n += Math.max(1, Math.round(cps / 30)); if (n >= chars.length) { clearInterval(iv); el.textContent = text; fin = true; res(); return; } el.textContent = chars.slice(0, n).join(''); }, 1000 / 30);
+      let k = 0;
+      iv = setInterval(() => {
+        n += Math.max(1, Math.round(cps / 30));
+        // 文字送りの音（会話と同じ。2026-11 追加：戦闘のメッセージだけ無音だった）
+        if (KY._typeBlip && (k++ % 2) === 0 && n < chars.length && /\S/.test(chars[n] || '')) KY._typeBlip('b');
+        if (n >= chars.length) { clearInterval(iv); el.textContent = text; fin = true; res(); return; } el.textContent = chars.slice(0, n).join('');
+      }, 1000 / 30);
       return { skip() { if (fin) return; clearInterval(iv); el.textContent = text; fin = true; res(); }, done };
     }
 
@@ -1412,6 +1436,7 @@
         if (!BT) { musicStop(); return; }
         const b = BT;
         if (MUS.kind && !/^win/.test(MUS.kind)) musicStop();
+        try { const BG = root.KY_BGM, f = BG && BG.forced && BG.forced(); if (f && !/^bt_win/.test(f)) BG.force(null); } catch (e) {}
         cancelAnimationFrame(b.raf);
         b.h.el.classList.add('out');
         await new Promise(r => setTimeout(r, R() ? 30 : 320));
