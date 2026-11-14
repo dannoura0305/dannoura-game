@@ -32,7 +32,7 @@ function ckData(){
 function ckUnlocked(r,d){return !r.plays||d.plays>=r.plays||(gs.day||1)>=r.day;}
 
 registerMinigame({
-  id:'cooking', icon:'🍳', name:'深夜の夜食づくり', genre:'タイミング（料理）', bgm:'night',
+  id:'cooking', icon:'🍳', name:'深夜の夜食づくり', genre:'タイミング（料理）', bgm:'mg_cooking',
   desc:'あの子が寝たあとの小さな台所。卵焼き・ウインナー・焼きおにぎりを作って、明日のお弁当に詰める。端っこは自分の夜食。',
   effect:'育児ストレス↓ 精神↑ 希望↑ ／ 疲労+5 食材費-¥300 約45分',
   help:'金色ゾーンでタップ/Space・盛り付けはドラッグ',
@@ -85,9 +85,10 @@ registerMinigame({
     ['normal','happy','sad'].forEach(k=>{const im=new Image();im.src=(typeof CHILD_IMG!=='undefined'&&CHILD_IMG[k])||('assets/img/child_'+k+'.svg');KIMG[k]=im;});
     const imgOk=im=>im&&im.complete&&im.naturalWidth>0;
 
-    // ── 効果音（AU.se＋Web Audioの合成音。設定で音量0なら鳴らない） ──
+    // ── 効果音（Web Audioの合成音。AUDIO_SET.se に従い、0なら無音。焼ける音のループも追従） ──
+    // 調理の音：刻む（まな板のトン）・焼く（油のジュー＋はぜる音）・注ぐ（卵液のジュワッ）・返す（へらの擦れ＋ぽすっ）・にぎる・塗る・盛る
     const SND={
-      nbuf:null,siz:null,
+      nbuf:null,siz:null,lastT:{},popAt:0,
       c(){
         try{if(typeof AU==='undefined')return null;AU.init();const c=AU.ctx;
           if(!c||typeof AUDIO_SET==='undefined'||!(AUDIO_SET.se>0))return null;
@@ -100,51 +101,84 @@ registerMinigame({
           for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;this.nbuf=b;
         }return this.nbuf;
       },
-      burst(ft,f,q,dur,gain,delay,f2){
+      // 連打の間引き（ms）
+      gap(k,ms){const n=performance.now();if(this.lastT[k]&&n-this.lastT[k]<ms)return false;this.lastT[k]=n;return true;},
+      j(a){return 1+(Math.random()*2-1)*a;},
+      burst(ft,f,q,dur,gain,delay,f2,att){
         const c=this.c();if(!c)return;
         try{const t=c.currentTime+(delay||0);
           const s=c.createBufferSource();s.buffer=this.noise(c);
           const fl=c.createBiquadFilter();fl.type=ft;fl.frequency.setValueAtTime(f,t);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t+dur);fl.Q.value=q;
-          const gn=c.createGain();gn.gain.setValueAtTime(0.0001,t);gn.gain.exponentialRampToValueAtTime(gain*this.vol(),t+.008);gn.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+          const gn=c.createGain();gn.gain.value=.0001;gn.gain.setValueAtTime(0.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,gain*this.vol()),t+(att||.006));gn.gain.exponentialRampToValueAtTime(0.0001,t+dur);
           s.connect(fl);fl.connect(gn);gn.connect(c.destination);s.start(t,Math.random()*.5);s.stop(t+dur+.05);}catch(_){}
       },
-      tone(f,dur,type,gain,delay,f2){
+      tone(f,dur,type,gain,delay,f2,att){
         const c=this.c();if(!c)return;
         try{const t=c.currentTime+(delay||0);
           const o=c.createOscillator();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);
-          const gn=c.createGain();gn.gain.setValueAtTime(0.0001,t);gn.gain.exponentialRampToValueAtTime(gain*this.vol(),t+.01);gn.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+          const gn=c.createGain();gn.gain.value=.0001;gn.gain.setValueAtTime(0.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,gain*this.vol()),t+(att||.008));gn.gain.exponentialRampToValueAtTime(0.0001,t+dur);
           o.connect(gn);gn.connect(c.destination);o.start(t);o.stop(t+dur+.05);}catch(_){}
       },
-      sizzle(level){ // 焼ける音（ループ）。level 0〜1
-        const c=this.c();
-        if(!c){return;}
+      // 焼ける音（ループ）。level 0〜1。高い「シャー」＋中域の「ジュー」、ときどき油がはぜる
+      sizzle(level){
+        level=Math.max(0,Math.min(1,level||0));
+        const v=this.vol();
+        if(!(v>0)){if(this.siz){try{this.siz.gn.gain.setTargetAtTime(0,AU.ctx.currentTime,.05);}catch(_){}}return;}
+        const c=this.c();if(!c)return;
         try{
           if(!this.siz){
+            if(level<=0)return;
             const s=c.createBufferSource();s.buffer=this.noise(c);s.loop=true;
-            const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=2600;
-            const pk=c.createBiquadFilter();pk.type='peaking';pk.frequency.value=6200;pk.gain.value=8;
+            const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=2200;
+            const pk=c.createBiquadFilter();pk.type='peaking';pk.frequency.value=5400;pk.gain.value=6;pk.Q.value=.7;
+            const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=9000;
             const gn=c.createGain();gn.gain.value=0;
-            s.connect(hp);hp.connect(pk);pk.connect(gn);gn.connect(c.destination);s.start();
-            this.siz={s,gn,lv:0};
+            // 中域の「ジュー」：ゆっくり揺れる帯域ノイズ
+            const s2=c.createBufferSource();s2.buffer=this.noise(c);s2.loop=true;s2.playbackRate.value=.93;
+            const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1500;bp.Q.value=.9;
+            const g2=c.createGain();g2.gain.value=.35;
+            s.connect(hp);hp.connect(pk);pk.connect(lp);lp.connect(gn);
+            s2.connect(bp);bp.connect(g2);g2.connect(gn);
+            gn.connect(c.destination);s.start();s2.start(0,.37);
+            this.siz={s,s2,gn,bp};
           }
-          const v=Math.max(0,Math.min(1,level))*.055*this.vol()*(.75+Math.random()*.5);
-          this.siz.gn.gain.setTargetAtTime(v,c.currentTime,.06);
+          const now=c.currentTime;
+          const tgt=level*.016*v*(.85+Math.random()*.3);
+          this.siz.gn.gain.setTargetAtTime(tgt,now,.08);
+          this.siz.bp.frequency.setTargetAtTime(1100+level*900+Math.random()*300,now,.2);
+          // 油がはぜる音（量は焼け具合に比例。間隔はランダム）
+          if(level>.12&&now>=this.popAt){this.popAt=now+(.05+Math.random()*.38)/(.25+level);this.crackle(level);}
         }catch(_){}
       },
-      stop(){if(this.siz){try{this.siz.s.stop();this.siz.gn.disconnect();}catch(_){}this.siz=null;}},
+      crackle(l){
+        const n=1+(Math.random()<.35?1:0);
+        for(let i=0;i<n;i++)this.burst('bandpass',2600+Math.random()*3800,2.5,.012+Math.random()*.02,(.12+Math.random()*.16)*(.4+l*.6),i*(.008+Math.random()*.02));
+      },
+      stop(){if(this.siz){try{this.siz.s.stop();this.siz.s2.stop();this.siz.gn.disconnect();}catch(_){}this.siz=null;}},
       se(t){try{AU.se(t);}catch(_){}},
       tap(){this.se('btn');},
-      perfect(){this.se('rank');[1046,1318,1568,2093].forEach((f,i)=>this.tone(f,.22,'triangle',.07,i*.045));},
-      good(){this.se('decide');this.tone(880,.14,'triangle',.06);},
-      miss(){this.se('back');this.tone(240,.22,'sawtooth',.04,0,150);},
-      chop(){this.se('tool');this.burst('bandpass',2400,1.2,.07,.32);this.tone(150,.09,'sine',.35,0,70);},
-      pour(){this.burst('lowpass',1400,.7,.45,.16,0,500);this.burst('highpass',4000,.5,.5,.06,.05);},
-      flip(){this.se('btn');this.burst('bandpass',700,.8,.22,.16,0,1800);},
-      pon(){this.tone(520,.1,'sine',.2,0,330);this.burst('lowpass',600,.8,.06,.12);},
-      brush(){this.burst('bandpass',3200,2,.08,.05);},
-      place(){this.se('btn');this.tone(420,.08,'sine',.16,0,300);},
-      wipe(){this.burst('bandpass',500,.7,.45,.08,0,2400);},
+      // 判定：きれいに決まった／まあまあ／失敗（電子音ではなく、やわらかい音）
+      perfect(){const k=this.j(.02);this.tone(1046*k,.32,'triangle',.12);this.tone(1568*k,.36,'sine',.085,.05);this.tone(2093*k,.4,'sine',.045,.1);},
+      good(){const k=this.j(.02);this.tone(880*k,.18,'triangle',.17);this.tone(1318*k,.22,'sine',.085,.05);},
+      miss(){this.tone(280*this.j(.04),.2,'triangle',.26,0,180);this.burst('lowpass',420,.7,.1,.26);},
+      // 包丁がまな板に当たる「トン」＋切れる「サク」
+      chop(){if(!this.gap('chop',40))return;const k=this.j(.06);this.tone(200*k,.09,'sine',.3,0,95);this.burst('lowpass',1000*k,.7,.06,.2);this.burst('bandpass',3400*k,1.4,.03,.075,.004);},
+      // 卵液を流し込む「ジュワッ」＋小さな泡
+      pour(){this.burst('highpass',2600,.6,.7,.07,0,4200,.08);this.burst('bandpass',900,.8,.45,.08,.02,500,.05);[0,.11,.24].forEach((d,i)=>this.tone((240+i*40)*this.j(.08),.07,'sine',.07,d,420));},
+      // へらで返す：擦れ＋ぽすっ
+      flip(){if(!this.gap('flip',60))return;this.burst('bandpass',1900,1.2,.12,.11,0,700);this.tone(150*this.j(.05),.11,'sine',.29,.1,80);this.burst('lowpass',520,.8,.09,.18,.1);},
+      // ごはんをにぎる・ぽんと置く
+      pon(){if(!this.gap('pon',40))return;const k=this.j(.06);this.burst('lowpass',760*k,.8,.1,.4,0,300);this.tone(230*k,.09,'sine',.25,0,150);},
+      // タレを刷毛で塗る（細かく何度も鳴る）
+      brush(){this.burst('bandpass',2400*this.j(.15),1.2,.11,.28,0,3200*this.j(.1),.03);},
+      // お弁当箱に置く「コト」
+      place(){const k=this.j(.05);this.tone(560*k,.07,'triangle',.4,0,400);this.burst('lowpass',1300*k,.9,.07,.6);},
+      // 場面転換（やわらかい風）
+      wipe(){this.burst('bandpass',380,.8,.5,.33,0,1700,.15);},
+      // 一品できた：お皿の小さな「チン」と、あたたかい和音
+      done(){this.tone(2380,.6,'sine',.05);this.tone(3610,.4,'sine',.024);[523,659,784].forEach((f,i)=>this.tone(f,.6,'triangle',.1,.06+i*.06));},
     };
+    if(mg&&mg.exposeSfx)mg.exposeSfx(['tap','perfect','good','miss','chop','pour','flip','pon','brush','place','wipe','done','crackle','sizzle'],k=>k==='crackle'?SND.crackle(.8):k==='sizzle'?(()=>{let n=0;const iv=setInterval(()=>{SND.sizzle(.6);if(++n>150){clearInterval(iv);SND.sizzle(0);}},16);})():SND[k]());
 
     // ── キャンバス ──
     const cv=document.createElement('canvas');cv.className='cooking-cv';cv.tabIndex=-1;body.appendChild(cv);
@@ -464,7 +498,7 @@ registerMinigame({
       }else if(p==='egg_pour'){egg.sheet=true;egg.pour=0;egg.c=0;gauge.show=false;SND.pour();}
       else if(p==='egg_cook'){setGauge('焼き加減',EGGR,zones(.68,.14,.4,DISH[0].diff),(egg.layers.length+1)+'/3巻');hint='半熟のうちに！ 金色でタップして巻く';}
       else if(p==='egg_roll'){egg.r0y=egg.rh?egg.ry:0;egg.r0h=egg.rh||.05;SND.flip();}
-      else if(p==='egg_finish'){gauge.show=false;hint='';sparkle(L.cx,L.CY,22);pop(V.egg.name+' 完成！',L.cx,L.CY+L.PH*.3,'#ffe9a8',20,1.4);SND.se('ach');}
+      else if(p==='egg_finish'){gauge.show=false;hint='';sparkle(L.cx,L.CY,22);pop(V.egg.name+' 完成！',L.cx,L.CY+L.PH*.3,'#ffe9a8',20,1.4);SND.done();}
       else if(p==='tako_cut'){tako.tm=rnd(.42,.56);setGauge('',null,{},'');gauge.show=false;hint=isKani?'包丁が点線に重なったらタップ（両端に切れ目）':'包丁が点線に重なったらタップ（足を作る）';}
       else if(p==='tako_sear'){
         const rates=[.3,.37,.45].sort(()=>Math.random()-.5);
@@ -473,7 +507,7 @@ registerMinigame({
         const z=zones(.71,.15,.38,DISH[1].diff);tako.z=z;
         hint='きつね色になった'+sausName+'からタップで取り出す';tako.endT=-1;
       }
-      else if(p==='tako_finish'){hint='';sparkle(L.cx,L.CY,20);pop(V.tako.name+' 完成！',L.cx,L.CY+L.PR*.62,'#ffd0b0',20,1.4);SND.se('ach');}
+      else if(p==='tako_finish'){hint='';sparkle(L.cx,L.CY,20);pop(V.tako.name+' 完成！',L.cx,L.CY+L.PR*.62,'#ffd0b0',20,1.4);SND.done();}
       else if(p==='oni_shape'){
         oni.beats=[];const bp=BEAT;for(let i=0;i<6;i++)oni.beats.push({t:1.25+i*bp,q:''});
         oni.shapeP=0;oni.shapeQ=[];gauge.show=false;hint='輪がごはんに重なる瞬間にタップ（にぎにぎ）';
@@ -482,9 +516,9 @@ registerMinigame({
         setGauge(isMiso?'みそ':'タレ',R_SOY,{pa:.86,pb:1.01,ga:.6,gb:1.01},'');hint='ドラッグで'+(isMiso?'みそ':'醤油ダレ')+'を全体に塗る（Space長押しでも）';}
       else if(p==='oni_grill'){oni.side=0;oni.c=0;setGauge('焼き色',GRILLR,zones(.69,.13,.36,DISH[2].diff),'表');hint='香ばしい焼き色でタップ → 裏返す';}
       else if(p==='oni_flip'){SND.flip();}
-      else if(p==='oni_finish'){gauge.show=false;hint='';sparkle(L.cx,L.CY,22);pop(V.oni.name+' 完成！',L.cx,L.CY+L.R*1.25,'#ffd8a0',20,1.4);SND.se('ach');}
+      else if(p==='oni_finish'){gauge.show=false;hint='';sparkle(L.cx,L.CY,22);pop(V.oni.name+' 完成！',L.cx,L.CY+L.R*1.25,'#ffd8a0',20,1.4);SND.done();}
       else if(p==='plate'){initPlate();gauge.show=false;hint=tutorialPlate?'おかずを同じ形の仕切りへドラッグ！':'仕切りの真ん中に置くほどきれい';}
-      else if(p==='plate_done'){hint='';SND.se('ach');}
+      else if(p==='plate_done'){hint='';SND.done();}
       else if(p==='morning'){hint='';gauge.show=false;}
       else if(p==='final'){hint='';}
     }
@@ -1687,7 +1721,7 @@ registerMinigame({
       else if(ph==='morning'){
         if(res&&res.grade==='great'&&pt>1.3)every('mh',4,dt,()=>emit('heart',L.cx+rnd(-L.BW*.4,L.BW*.4),L.by+L.BH*.5,rnd(-10,10),-50*S,1.6,rnd(5,8)*S,Math.random()<.5?'#ff7aa8':'#ffb0c8'));
         if(pt>.7&&pt-dt<=.7){SND.flip();sparkle(L.cx,L.by+L.BH/2,24);}
-        if(pt>1.3&&pt-dt<=1.3)SND.se(res&&res.grade==='poor'?'notif':'ach');
+        if(pt>1.3&&pt-dt<=1.3){if(res&&res.grade==='poor')SND.se('notif');else SND.done();}
       }
     }
     function draw(dt){

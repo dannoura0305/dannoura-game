@@ -39,7 +39,9 @@ export const PACKS = {
   ad_undead: oga('undead-moans', 'Undead Moans', 'AntumDeluge', 'undead-moans.zip'),
   ad_scrapes: oga('scrapes', 'Scrapes', 'AntumDeluge', 'scrapes.zip'),
   da_zmoans: oga('zombie-moans', 'Zombie moans', 'Darsycho', 'darsycho__zombie-moans_0.ogg'),
-  kurt_pistol: oga('gunshots', 'Gunshots', 'kurt', '22%20Pistol.wav'),
+  // 2026-11-14 の見直し：同じページ（Gunshots・CC0）の 22 Pistol.wav（3 発入り）を丸ごと使って 1 回で 3 発鳴っていた → 別のファイルから 1 発ずつ切り出す（AUDIO_CREDITS.md の「見直し」）
+  kurt_magnum: oga('gunshots', 'Gunshots', 'kurt', '22%20Magnum.wav'),          // 拳銃の 1 発
+  kurt_unknown: oga('gunshots', 'Gunshots', 'kurt', 'Unkown.wav'),              // 同じページ（CC0）の別のファイル。低く重い 1 発目を火縄銃に（2026-11-14 の見直し）
   zs_reload: oga('handgun-reload-sound-effect', 'Handgun Reload Sound Effect', 'zer0_sol', 'reload.wav'),
   bart_heart: oga('heartbeat-sounds', 'Heartbeat sounds', 'bart', 'heartbeat_slow_0.wav'),
   bart_steam: oga('steam-release-sounds', 'Steam release sounds', 'bart', 'steam_hisses.zip'),
@@ -141,7 +143,9 @@ export const MATERIALS = {
   se_katana_clash2: M('sn_clash', 'sword_clash.2.ogg', '刃の打ち合い2', 'se'),
   se_katana_hold: M('kenney_rpg', 'Audio/metalClick.ogg', '刀を構える「チャキッ」（金属のカチッ）', 'se'),
   se_growl: M('sn_monster', 'monster.2.ogg', '怪物の唸り声', 'se'),
-  se_handgun: M('kurt_pistol', '22%20Pistol.wav', '拳銃（.22）を撃つ', 'se'),
+  // 2026-11-14 の見直し：元は 22 Pistol.wav を丸ごと（3 発入り）使っていて 1 回で 3 発鳴っていた → 1 発だけ切り出し、低い胴と短い響きを足す
+  se_handgun: M('kurt_magnum', '22%20Magnum.wav', '拳銃を撃つ（1 発・低い胴と部屋の響きを足す）', 'se', { cut: [1.6, 0.5], fx: 'bass=g=5:f=120:w=0.7,aecho=0.8:0.4:35|80:0.25|0.12' }),
+  se_matchlock: M('kurt_unknown', 'Unkown.wav', '火縄銃を撃つ（重い 1 発・低い胴と長い響きを足す）', 'se', { cut: [0.2, 1.1], fx: 'bass=g=6:f=90:w=0.8,aecho=0.8:0.5:60|170:0.3|0.18' }),
   se_handgun_empty: M('kenney_rpg', 'Audio/metalLatch.ogg', '弾切れの空撃ち（金属のカチッ）', 'se'),
   se_handgun_ready: M('zs_reload', 'reload.wav', '拳銃の装填', 'se'),
   se_cloth: M('kenney_rpg', 'Audio/cloth1.ogg', '衣擦れ', 'se'),
@@ -185,9 +189,11 @@ export const MATERIALS = {
   bgm_hauntpiano: M('m_hauntpiano', 'haunting%20piano_0.mp3', '暗いピアノ（Haunting piano）', 'bgm'),
   bgm_lost: M('m_lost', 'lost_2.ogg', '低い弦の持続（Lost in a bad place）', 'bgm'),
   bgm_humidity: M('m_humidity', 'deep-humidity.ogg', '地下の探索（Deep Humidity）', 'bgm'),
-  bgm_horroratmo: M('m_horroratmo', 'Juhani%20Junkala%20-%20Post%20Apocalyptic%20Wastelands%20%5BLoop%20Ready%5D.ogg', '旧棟の気配（Horror Atmosphere）', 'bgm'),
+  // 2026-11-14 の見直し：急な盛り上がり（5 秒で 35dB 上がる所）が探索中の意図しない驚かしになるので、起伏を圧縮する（静かな所は静かなまま）
+  bgm_horroratmo: M('m_horroratmo', 'Juhani%20Junkala%20-%20Post%20Apocalyptic%20Wastelands%20%5BLoop%20Ready%5D.ogg', '旧棟の気配（Horror Atmosphere・起伏を圧縮）', 'bgm', { fx: 'acompressor=threshold=-34dB:ratio=10:attack=120:release=3000:knee=8' }),
   bgm_tension: M('m_tension', 'aflicao.wav', '戦い（tension and distress）', 'bgm', { loop: true }),
-  bgm_evilapproach: M('m_evilapproach', 'Evil%20Approach.wav', 'ボス戦（Evil Approach）', 'bgm', { loop: true }),
+  // 2026-11-14 の見直し：13〜21 秒の静かな谷まで繰り返すとボス戦の途中で 20 秒静かになる → 前奏は最初の 1 回だけ、24 秒（盛り上がり）から繰り返す
+  bgm_evilapproach: M('m_evilapproach', 'Evil%20Approach.wav', 'ボス戦（Evil Approach・24 秒から繰り返す）', 'bgm', { loop: true, loopAt: 24 }),
   bgm_bossbattle: M('m_bossbattle', 'Juhani%20Junkala%20-%20Epic%20Boss%20Battle%20%5BSeamlessly%20Looping%5D.wav', '巨大戦（Boss Battle Music）', 'bgm', { loop: true, seamless: true }),
   bgm_firstlight: M('m_firstlight', 'first_light_particles_0.wav', '終わりの朝（First Light Particles）', 'bgm', { loop: true }),
 };
@@ -208,9 +214,10 @@ export const SE_MAP = {
   swing: { m: ['se_katana_swing1', 'se_katana_swing2'], g: 0.55, r: [0.95, 1.08] },
   swing_heavy: { m: ['se_sword_swing'], g: 0.6, r: [0.9, 1.0] },
   swing_pipe: { m: ['se_heavy_swing'], g: 0.6, r: [0.9, 1.0] },
-  hit: { m: ['se_katana_slash1', 'se_katana_slash3'], g: 0.6, r: [0.95, 1.06] },
-  hit_heavy: { m: ['se_katana_slash2'], g: 0.7, r: [0.92, 1.0] },
-  hit_pipe: { m: ['se_blow2'], g: 0.7, r: [0.9, 1.05] },
+  // body＝素材に重ねる合成の低い「胴」[高さ Hz, 大きさ, 長さ 秒]（2026-11-14 の見直し：斬った・殴った手応え。素材だけだと金属の擦れが主で重さが足りない）
+  hit: { m: ['se_katana_slash1', 'se_katana_slash3'], g: 0.6, r: [0.95, 1.06], body: [95, 0.16, 0.14] },
+  hit_heavy: { m: ['se_katana_slash2'], g: 0.7, r: [0.92, 1.0], body: [70, 0.24, 0.22] },
+  hit_pipe: { m: ['se_blow2'], g: 0.7, r: [0.9, 1.05], body: [85, 0.2, 0.16] },
   claw: { m: ['se_claw_swing'], g: 0.5, r: [1.0, 1.15] },
   claw_hit: { m: ['se_knife_slash'], g: 0.6, r: [0.95, 1.1] },
   blade: { m: ['se_katana_slash4'], g: 0.6 },
@@ -219,12 +226,12 @@ export const SE_MAP = {
   parry: { m: ['se_katana_clash1'], g: 0.7 },
   guard: { m: ['se_katana_clash2'], g: 0.55 },
   tel_parry: { m: ['se_katana_hold'], g: 0.7, r: [1.1, 1.15] },
-  tel_red: { m: ['se_growl'], g: 0.75, r: [0.72, 0.8] },
-  shot: { m: ['se_handgun'], g: 0.75 },
+  tel_red: { m: ['se_growl'], g: 0.6, r: [0.72, 0.8] },          // 2026-11-14：0.75→0.6（全部の音で一番大きく、戦いのたびに驚かしのようになっていた。それでも刀の当たりより大きい）
+  shot: { m: ['se_handgun'], g: 0.95, r: [0.97, 1.03], body: [65, 0.18, 0.18] },   // 2026-11-14：1 発だけの素材に替え、刀の当たりと同じくらいの手応えに
   dry: { m: ['se_handgun_empty'], g: 0.5 },
   reload: { m: ['se_handgun_ready'], g: 0.5 },
-  yodan: { m: ['se_handgun'], g: 0.9, r: [0.68, 0.72] },
-  stock: { m: ['se_blow6'], g: 0.6 },
+  yodan: { m: ['se_matchlock'], g: 0.8, r: [0.9, 0.95], body: [48, 0.24, 0.45] },   // 2026-11-14：火縄銃は拳銃を遅くした物（3 発鳴っていた）→ 重い 1 発の素材。一番重い銃声に
+  stock: { m: ['se_blow6'], g: 0.6, body: [110, 0.14, 0.12] },
   dodge: { m: ['se_cloth'], g: 0.4, r: [0.95, 1.1] },
   hurt: { m: ['se_blow1'], g: 0.6, r: [0.9, 1.0] },
   die: { m: ['se_down'], g: 0.6, r: [0.85, 0.9] },
@@ -236,7 +243,7 @@ export const SE_MAP = {
   prop_break: { m: ['se_wall_break'], g: 0.6 },
   rumble: { m: ['se_tremor'], g: 0.7 },
   wave: { m: ['se_quake'], g: 0.6 },
-  land: { m: ['se_quake'], g: 0.7, r: [0.75, 0.8] },
+  land: { m: ['se_monster_step'], g: 0.85, r: [0.6, 0.66], also: { m: ['se_quake'], g: 0.45, r: [0.8, 0.85] }, body: [40, 0.2, 0.5] },   // 2026-11-14：地震の録音だけだと衝撃が無くゴロゴロだけ → 着地の衝撃（巨大な足音を低く）＋揺れを重ねる
   giant_step: { m: ['se_monster_step'], g: 0.7, r: [0.85, 1.0] },
   giant_claw: { m: ['se_large_slash'], g: 0.6, r: [0.8, 0.9] },
   giant_roar: { m: ['se_dragon'], g: 0.6, r: [0.72, 0.78] },
@@ -280,11 +287,12 @@ export const PRESENCE_NAMES = ['p_creak', 'p_knock', 'p_iron_knock', 'p_window',
 
 /** 足音：地面の種類 → 歩き・走りの素材（1 歩ずつの切り出しは sound_files.js の slices） */
 export const STEPS = {
+  // 2026-11-14 の見直し：1 歩のエネルギーで揃える（asphalt -35.3・wet -33.7・tile -34.8 dB に合わせる）。gRun＝走りだけ別の大きさ（素材が別の時）
   asphalt: { walk: 'step_asphalt', run: 'step_asphalt_run', g: 0.75 },   // 素材の 1 歩が短く鋭いので、ほかの地面と同じに聞こえるよう少し上げる（AUDIO_CREDITS.md の大きさの表）
   wet: { walk: 'step_wet', run: 'step_wet_run', g: 0.5 },
   tile: { walk: 'step_tile', run: 'step_tile_run', g: 0.45 },
-  wood: { walk: 'step_wood', run: 'step_wood_run', g: 0.5 },
-  gym: { walk: 'step_gym', run: 'step_gym_run', g: 0.5 },
+  wood: { walk: 'step_wood', run: 'step_wood_run', g: 0.62, gRun: 0.4 },   // 歩き（rubberduck）は 3dB 小さく、走り（Kenney）は 2dB 大きかった
+  gym: { walk: 'step_gym', run: 'step_gym_run', g: 0.42 },                 // 響きを足した分 3dB 大きかった
 };
 
 /** 環境音の層（区画の ambience の種類 → 素材の層と大きさ）。合成の層（うなり・雨・風・換気）は残し、素材がある時は同じ役の合成を弱める */
@@ -309,11 +317,23 @@ export const AMB_MIX = {
   abyss: { amb_wind_open: 1.2, amb_wind: 0.5 },
   kiroku: { amb_room: 1 },
   epi_day: { amb_morning: 0.8 },
-  epi_dusk: { amb_dusk: 0.8 },
+  epi_dusk: { amb_town: 0.55 },        // 2026-11-14：カラス（6.9 秒）を繰り返すと同じ鳴き声が 7 秒ごとに聞こえる → 夕方の屋外を地にして、カラスは AMB_SPOTS で時々
   epi_home: { amb_night: 0.7 },
 };
 /** 素材の層がある時に弱める合成の層（同じ役） */
 export const AMB_SYNTH_ROLE = { amb_rain: 'rain', amb_wind: 'wind', amb_wind_open: 'wind', amb_vent: 'vent', amb_machine: 'vent', amb_sewer: 'vent' };
+/**
+ * 短い繰り返しを目立たなくする（2026-11-14 の見直し）：同じ素材をもう 1 本、少し遅い速さで重ねる（それぞれ -3dB）。
+ * 2 本の周期がずれるので、突風（吹きさらしの風 9.8 秒）・大きな水滴（地下の水滴 17.6 秒）の並びが同じ形で繰り返さない。値＝2 本目の速さ。
+ */
+export const AMB_TWIN = { amb_wind_open: 0.89, amb_sewer: 0.93 };
+/**
+ * 時々だけ鳴らす環境の音（環境の種類 → 素材・間隔の秒の幅・大きさ・速さの幅）。気配（PRESENCE）と違い、驚かしではない生活の音。2026-11-14
+ * 位置は左右に振るだけ（遠い・こもらせない）。鳴らすのは素材が読めている時だけ（合成の代わりは無い）。
+ */
+export const AMB_SPOTS = {
+  epi_dusk: { m: 'amb_dusk', every: [10, 24], g: 0.9, r: [0.92, 1.06] },
+};
 /** 素材の層の基準の大きさ（ラウドネスを揃えた後の掛け算） */
 export const AMB_GAIN = 0.32;
 
@@ -388,7 +408,7 @@ export const BGM_AREAS = {
 /**
  * 今鳴らすべき曲（純粋関数）。s = {
  *   area, normal（序章のふだんの町）, credits（スタッフロール中）, boss（ボス戦の最中）, battle（敵対の異形が近い：ヒステリシスは呼ぶ側）,
- *   cut（演出中）, cur（今の役 'explore'|'battle'|'boss'|'ending'|null）, explorePhase（'play'|'wait'|'rest'）, voice（台詞の声が鳴っている）
+ *   cut（演出中）, cur（今の役 'explore'|'battle'|'boss'|'ending'|null）, explorePhase（'play'|'wait'|'rest'）, voice（台詞の声が鳴っている）, home（家の中）
  * } → { role, track（BGM_TRACKS のキー）|null, level（0〜1） }
  */
 export function bgmPlan(s) {
@@ -398,6 +418,7 @@ export function bgmPlan(s) {
   if (s.boss) return { role: 'boss', track: A.boss || 'boss', level: BGM_LEVEL.boss * (s.voice ? 0.6 : 1) };
   if (s.battle && !s.cut) return { role: 'battle', track: 'battle', level: BGM_LEVEL.battle };
   if (s.cut && (s.cur === 'battle')) return { role: 'none', track: null, level: 0 };          // 戦いが演出に入ったら曲は引く（間を作る）
+  if (s.home) return { role: 'none', track: null, level: 0 };                                // 家の中は鳴らさない（2026-11-14：商店街の区画の中にある家でも、外の曲が流れていた）
   const ex = s.normal && 'normal' in A ? A.normal : A.explore;
   if (!ex) return { role: 'none', track: null, level: 0 };
   if (s.cut && s.cur !== 'explore') return { role: 'none', track: null, level: 0 };           // 演出中に新しく始めない
@@ -408,7 +429,7 @@ export function bgmPlan(s) {
 /** 区画に入った時に読む物（純粋関数）：その区画の環境音の層・気配・探索とボスの曲。ファイルの表（files）に有る物だけ */
 export function areaLoadList(area, ambKinds, files) {
   const want = new Set();
-  for (const k of ambKinds) { for (const id of Object.keys(AMB_MIX[k] || {})) want.add(id); for (const p of ((PRESENCE[k] || {}).pool || [])) for (const id of ((SE_MAP[p] || {}).m || [])) want.add(id); }
+  for (const k of ambKinds) { for (const id of Object.keys(AMB_MIX[k] || {})) want.add(id); if (AMB_SPOTS[k]) want.add(AMB_SPOTS[k].m); for (const p of ((PRESENCE[k] || {}).pool || [])) for (const id of ((SE_MAP[p] || {}).m || [])) want.add(id); }
   const A = BGM_AREAS[area] || {};
   for (const role of [A.explore, A.normal, A.boss, A.credits]) if (role && BGM_TRACKS[role]) want.add(BGM_TRACKS[role]);
   return [...want].filter(id => files && files[fileOf(id)]);
@@ -417,7 +438,7 @@ export function areaLoadList(area, ambKinds, files) {
 export function seLoadList(files) {
   const want = new Set();
   for (const s of Object.values(STEPS)) { want.add(s.walk); want.add(s.run); }
-  for (const e of Object.values(SE_MAP)) for (const id of e.m) want.add(id);
+  for (const e of Object.values(SE_MAP)) for (const id of [...e.m, ...((e.also || {}).m || [])]) want.add(id);
   return [...want].filter(id => files && files[fileOf(id)]);
 }
 

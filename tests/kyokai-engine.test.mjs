@@ -405,6 +405,16 @@ test('手帳：未解決の既定・更新で番号を保つ', async () => {
   assert.equal(b.text, 'まだ'); assert.equal(b.n, a.n); assert.ok(KY.solved('case', b));
 });
 
+test('音（2026-11）：効果音ごとの音量補正は実在する効果音だけ・範囲内。文字送りの音は音が無い環境でも落ちない', async () => {
+  const { KY } = load();
+  const names = new Set(KY._seNames);
+  for (const [k, v] of Object.entries(KY._seGain)) { assert.ok(names.has(k), '不明な効果音 ' + k); assert.ok(v > 0.2 && v <= 3, k + ' ' + v); }
+  assert.ok(KY._seGain.static < 0.5, '砂嵐は大きく下げた');
+  assert.equal(typeof KY._typeBlip, 'function');
+  for (const w of 'npymgksdctxb?') KY._typeBlip(w, w === 'x' ? '駅員' : '');   // AudioContext が無くても何もしないで戻る
+  KY.se('static'); KY.se('type');
+});
+
 for (const [name, fn] of T) {
   try { await fn(); pass++; console.log('  ✓ ' + name); }
   catch (e) { fail++; console.log('  ✗ ' + name + '\n    ' + (e && e.stack || e)); }

@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs';
 import {
-  SOURCES, PACKS, LICENSE, MATERIALS, SE_MAP, STEPS, AMB_MIX, AMB_SYNTH_ROLE, PRESENCE, PRESENCE_NAMES, BGM_TRACKS, BGM_AREAS, BGM_LEVEL,
+  SOURCES, PACKS, LICENSE, MATERIALS, SE_MAP, STEPS, AMB_MIX, AMB_SYNTH_ROLE, AMB_TWIN, AMB_SPOTS, PRESENCE, PRESENCE_NAMES, BGM_TRACKS, BGM_AREAS, BGM_LEVEL,
   fileOf, sourceUrl, authorOf, bgmPlan, areaLoadList, seLoadList, usedSources, usedAuthors, audioCreditText, withAudioCredits, presencePos,
 } from '../shinshoku/data/sound.js';
 import { SOUND_FILES } from '../shinshoku/data/sound_files.js';
@@ -34,7 +34,8 @@ t('合成音は消していない（今までの名前がすべて残る）', ()
 });
 t('素材：対応で使う物はすべて MATERIALS にあり、MATERIALS に使われない物は無い', () => {
   const used = new Set();
-  for (const e of Object.values(SE_MAP)) for (const id of e.m) { assert.ok(MATERIALS[id], id); used.add(id); }
+  for (const e of Object.values(SE_MAP)) for (const id of [...e.m, ...((e.also || {}).m || [])]) { assert.ok(MATERIALS[id], id); used.add(id); }
+  for (const sp of Object.values(AMB_SPOTS)) { assert.equal(MATERIALS[sp.m].kind, 'amb', sp.m); used.add(sp.m); }
   for (const s of Object.values(STEPS)) for (const id of [s.walk, s.run]) { assert.equal(MATERIALS[id].kind, 'step', id); used.add(id); }
   for (const mix of Object.values(AMB_MIX)) for (const id of Object.keys(mix)) { assert.equal(MATERIALS[id].kind, 'amb', id); used.add(id); }
   for (const id of Object.values(BGM_TRACKS)) { assert.equal(MATERIALS[id].kind, 'bgm', id); used.add(id); }
@@ -197,4 +198,38 @@ t('繰り返す音（環境音・曲）：端の無音を外し、終わりに�
   assert.match(bgm, /if \(src\.loop\) this\.bank\.setLoop\(src, id\);/);
   for (const [id, m] of Object.entries(MATERIALS)) if (m.kind === 'bgm') assert.equal(!!m.loop, ['battle', 'boss', 'giant', 'ending'].some(r => BGM_TRACKS[r] === id), '繰り返す曲の印: ' + id);
 }
+t('見直し（2026-11-14）：銃声は 1 発だけ・火縄銃は拳銃と別の重い素材・ボス曲の前奏は 1 回だけ・旧棟の曲は起伏を圧縮', () => {
+  const hg = MATERIALS[SE_MAP.shot.m[0]], ml = MATERIALS[SE_MAP.yodan.m[0]];
+  assert.ok(hg.cut && hg.cut[1] <= 0.6, '拳銃は 1 発を切り出す'); assert.ok(ml.cut && ml.cut[1] <= 1.2, '火縄銃も 1 発');
+  assert.notEqual(SE_MAP.shot.m[0], SE_MAP.yodan.m[0], '火縄銃は拳銃を遅くした物ではない');
+  for (const k of ['shot', 'yodan']) { const e = SOUND_FILES[fileOf(SE_MAP[k].m[0])]; if (e) assert.ok(e.dur <= 1.2, k + ' の長さ ' + e.dur); }
+  const ea = MATERIALS[BGM_TRACKS.boss]; assert.ok(ea.loop && ea.loopAt > 20, 'ボス曲は盛り上がりから繰り返す');
+  assert.match(bank, /MATERIALS\[id\]\.loopAt/);
+  assert.match(MATERIALS[BGM_TRACKS.oldwing].fx || '', /acompressor/);
+  assert.ok(SE_MAP.tel_red.g < SE_MAP.hit_heavy.g + 0.05, '弾けない予兆の唸りを一番大きくしない');
+  assert.ok(SE_MAP.land.m.includes('se_monster_step') && SE_MAP.land.also, '着地は衝撃＋揺れ');
+});
+t('見直し：合成の胴（body）・重ねる素材（also）は素材の音と同じ出口（位置のある音もそのまま）', () => {
+  for (const [k, e] of Object.entries(SE_MAP)) { if (e.body) { assert.equal(e.body.length, 3, k); assert.ok(e.body[0] >= 30 && e.body[0] <= 200 && e.body[1] <= 0.35, k); } if (e.also) assert.ok(e.also.m.length && e.also.g <= 0.6, k); }
+  assert.match(audio, /if \(m\.also\) \{ this\.out = o;/); assert.match(audio, /if \(m\.body\) \{ this\.out = o; this\._body\(m\.body\); \}/);
+  const all = Object.fromEntries(Object.keys(MATERIALS).map(id => [fileOf(id), { id }]));
+  assert.ok(seLoadList(all).includes('se_quake'), '重ねる素材も読む');
+});
+t('見直し：短い環境音の 2 本重ね・時々のカラス・足音の大きさ（走りだけ別の大きさ）', () => {
+  for (const [id, r] of Object.entries(AMB_TWIN)) { assert.equal(MATERIALS[id].kind, 'amb', id); assert.ok(r > 0.8 && r < 1, id); }
+  assert.ok(!Object.values(AMB_MIX).some(m => 'amb_dusk' in m), 'カラスは繰り返さない');
+  const all = Object.fromEntries(Object.keys(MATERIALS).map(id => [fileOf(id), { id }]));
+  assert.ok(areaLoadList('epilogue', ['epi_dusk'], all).includes('amb_dusk'), '時々のカラスも区画に入った時に読む');
+  for (const sp of Object.values(AMB_SPOTS)) assert.ok(sp.every[0] >= 8, '連発しない');
+  assert.match(bank, /run && s\.gRun != null \? s\.gRun : s\.g/);
+  for (const s of Object.values(STEPS)) assert.ok(s.g <= 0.8 && (s.gRun ?? s.g) <= 0.8);
+});
+t('見直し：家の中は環境音を home にし、探索の曲を鳴らさない（戦いの曲はそのまま）', () => {
+  const base = { area: 'shotengai', normal: false, cut: false, cur: null, explorePhase: 'play', voice: false };
+  assert.equal(bgmPlan({ ...base }).track, 'ruin'); assert.equal(bgmPlan({ ...base, home: true }).track, null);
+  assert.equal(bgmPlan({ ...base, home: true, battle: true }).role, 'battle');
+  assert.match(main, /streetAmb\(inH\) \{ return inH \? 'home'/); assert.match(main, /if \(inH !== this\.wasInHome\) this\.sfx\.setAmbience\(this\.streetAmb\(inH\)\);/);
+  assert.match(main, /home: this\.area\.id === 'shotengai' && !!this\.wasInHome/); assert.match(bgm, /home: !!g\.home/);
+  assert.ok(AMB_MIX.home && !PRESENCE.home);
+});
 console.log(`shinshoku-audio: ${n} tests passed`);

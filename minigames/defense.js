@@ -57,7 +57,7 @@ addMinigameStyle('defense',`
 `);
 
 registerMinigame({
-  id:'defense', icon:'🛡', name:'荒らしディフェンス', genre:'タワーディフェンス', bgm:'stream',
+  id:'defense', icon:'🛡', name:'荒らしディフェンス', genre:'タワーディフェンス', bgm:'mg_defense',
   desc:'荒らしの大群がコメント欄に押し寄せる。流れに沿って防衛を置き、配信の「心」を最後まで守り抜け。',
   effect:'炎上↓ フォロワー↑ 配信人気↑ 精神↑ ／ 疲労+8 約60分',
   help:'空き枠に配置・タップで強化',
@@ -157,49 +157,74 @@ registerMinigame({
     const seVol=()=>typeof AUDIO_SET!=='undefined'?AUDIO_SET.se:1;
     let noiseBuf=null;const sndLast={};
     const SND_FB={shot:'comment',hit:'comment',boom:'machine',coin:'comment',build:'tool',upgrade:'repair',sell:'back',deny:'warn',hurt:'noise',
-      wave:'live',boss:'warn',clear:'ach',lose:'ghost',type:'comment',stamp:'rank',tap:'btn',death:'comment',spawn:'notif',start:'decide'};
-    const SND_GAP={shot:.07,hit:.05,coin:.06,type:.045,death:.05,tap:.04};
-    function tone(ac,f0,f1,dur,type,gain,delay){
-      const t=ac.currentTime+(delay||0),o=ac.createOscillator(),g=ac.createGain();
-      o.type=type;o.frequency.setValueAtTime(f0,t);if(f1!==f0)o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+dur);
-      g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(Math.max(.0002,gain),t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
-      o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+dur+.03);
+      wave:'live',boss:'warn',clear:'ach',lose:'ghost',type:'comment',stamp:'rank',tap:'btn',death:'comment',spawn:'notif',start:'decide',waveclear:'decide',danger:'warn',near:'notif',beat:'',tick:''};
+    const SND_GAP={shot:.07,hit:.05,coin:.06,type:.045,death:.05,tap:.04,boom:.06,near:1.6,beat:.5,tick:.5};
+    // 一発の音の部品。o:{t:波形,f:周波数,f2:終わりの周波数,fd:動く長さ,d:長さ,g:大きさ,a:立ち上がり,h:保持,dl:遅れ,j:音程の揺らぎ,ft/ff/q:フィルタ}
+    function envG(p,t0,g,a,h,d){p.value=.0001;p.setValueAtTime(.0001,t0);p.linearRampToValueAtTime(Math.max(.0002,g),t0+a);if(h)p.setValueAtTime(Math.max(.0002,g),t0+a+h);p.exponentialRampToValueAtTime(.0001,t0+d);}
+    function osc(ac,o,v){
+      const t0=ac.currentTime+(o.dl||0),d=o.d,j=o.j?1+(Math.random()*2-1)*o.j:1,x=ac.createOscillator(),g=ac.createGain();
+      x.type=o.t||'sine';x.frequency.setValueAtTime(o.f*j,t0);if(o.f2)x.frequency.exponentialRampToValueAtTime(Math.max(20,o.f2*j),t0+(o.fd||d));
+      envG(g.gain,t0,o.g*v,o.a||.004,o.h||0,d);
+      let n=x;if(o.ft){const fl=ac.createBiquadFilter();fl.type=o.ft;fl.frequency.value=o.ff;if(o.q)fl.Q.value=o.q;x.connect(fl);n=fl;}
+      n.connect(g);g.connect(ac.destination);x.start(t0);x.stop(t0+d+.03);
     }
-    function noise(ac,dur,gain,freq,delay){
+    function nz(ac,o,v){
       if(!noiseBuf){noiseBuf=ac.createBuffer(1,ac.sampleRate*.5,ac.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
-      const t=ac.currentTime+(delay||0),s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();
-      s.buffer=noiseBuf;f.type='lowpass';f.frequency.value=freq;
-      g.gain.setValueAtTime(Math.max(.0002,gain),t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
-      s.connect(f);f.connect(g);g.connect(ac.destination);s.start(t);s.stop(t+dur+.02);
+      const t0=ac.currentTime+(o.dl||0),d=o.d,s=ac.createBufferSource(),fl=ac.createBiquadFilter(),g=ac.createGain();
+      s.buffer=noiseBuf;s.loop=true;fl.type=o.ft||'bandpass';fl.frequency.setValueAtTime(o.f,t0);if(o.f2)fl.frequency.exponentialRampToValueAtTime(o.f2,t0+(o.fd||d));if(o.q)fl.Q.value=o.q;
+      envG(g.gain,t0,o.g*v,o.a||.002,o.h||0,d);
+      s.connect(fl);fl.connect(g);g.connect(ac.destination);s.start(t0,Math.random()*.4);s.stop(t0+d+.03);
     }
+    // 効果音の一覧（タワーディフェンス：戦況が耳で分かるように。ウェーブ開始は太鼓＋上がる号令（ウェーブが進むほど高く）、
+    //   心が削られると重い衝撃、心が残り少ないと鼓動、荒らしが心に迫ると短い警報、ウェーブを守り切ると解決する和音）
+    const SND={
+      shot:(ac,v)=>{osc(ac,{t:'triangle',f:1400,f2:700,d:.05,g:.06,j:.06},v);nz(ac,{ft:'highpass',f:4000,d:.02,g:.05},v);},
+      hit:(ac,v)=>{nz(ac,{ft:'bandpass',f:3600,q:2,d:.03,g:.12},v);osc(ac,{t:'triangle',f:1000,f2:700,d:.03,g:.05,j:.08},v);},
+      boom:(ac,v)=>{nz(ac,{ft:'lowpass',f:1800,f2:250,d:.3,g:.2},v);osc(ac,{f:130,f2:45,d:.26,g:.2,j:.05},v);},
+      coin:(ac,v)=>{const j=1+(Math.random()-.5)*.04;osc(ac,{t:'square',f:1319*j,d:.05,g:.012,ft:'lowpass',ff:5000},v);osc(ac,{t:'square',f:1976*j,d:.1,g:.012,dl:.045,ft:'lowpass',ff:5000},v);},
+      death:(ac,v)=>{nz(ac,{ft:'bandpass',f:1600,f2:400,q:1,d:.09,g:.1},v);osc(ac,{t:'square',f:520,f2:150,d:.08,g:.02,ft:'lowpass',ff:2000,j:.06},v);},
+      build:(ac,v)=>{nz(ac,{ft:'lowpass',f:1400,d:.07,g:.25},v);osc(ac,{f:160,f2:80,d:.12,g:.2},v);[659,988].forEach((f,i)=>osc(ac,{t:'triangle',f,d:.12,g:.08,dl:.05+i*.06},v));},
+      upgrade:(ac,v)=>{[523,659,784,1047].forEach((f,i)=>osc(ac,{t:'square',f,d:.1,g:.03,dl:i*.06,ft:'lowpass',ff:3500},v));osc(ac,{f:2093,d:.35,g:.06,dl:.24},v);},
+      sell:(ac,v)=>{[784,587,440].forEach((f,i)=>osc(ac,{t:'triangle',f,d:.09,g:.09,dl:i*.05},v));nz(ac,{ft:'bandpass',f:2500,q:2,d:.05,g:.05,dl:.12},v);},
+      deny:(ac,v)=>{osc(ac,{t:'square',f:150,f2:130,d:.14,g:.06,ft:'lowpass',ff:900},v);osc(ac,{t:'square',f:150,f2:120,d:.14,g:.06,dl:.13,ft:'lowpass',ff:900},v);},
+      // 心が削られた：重い衝撃＋ひび割れ
+      hurt:(ac,v)=>{osc(ac,{f:140,f2:40,d:.4,g:.3},v);nz(ac,{ft:'lowpass',f:2200,f2:300,d:.3,g:.22},v);osc(ac,{t:'sawtooth',f:300,f2:90,d:.25,g:.04,ft:'lowpass',ff:1600},v);},
+      // ウェーブ開始：太鼓 2 発＋号令（ウェーブ番号で音程が上がる）
+      wave:(ac,v)=>{const up=Math.pow(2,Math.max(0,wave-1)/12*2);
+        [0,.16].forEach(dl=>{osc(ac,{f:110,f2:55,d:.22,g:.24,dl},v);nz(ac,{ft:'lowpass',f:900,d:.08,g:.12,dl},v);});
+        [392,523,659].forEach((f,i)=>osc(ac,{t:'sawtooth',f:f*up,d:i===2?.45:.14,g:.025,dl:.3+i*.1,a:.01,ft:'lowpass',ff:2400},v));},
+      // ボス（最終ウェーブ・ボス出現）：低い金管の警報 3 回＋太鼓
+      boss:(ac,v)=>{for(let i=0;i<3;i++){osc(ac,{t:'sawtooth',f:147,f2:139,d:.3,g:.05,a:.02,h:.08,dl:i*.32,ft:'lowpass',ff:1100},v);osc(ac,{t:'sawtooth',f:220,f2:208,d:.3,g:.035,a:.02,h:.08,dl:i*.32,ft:'lowpass',ff:1400},v);osc(ac,{f:70,f2:40,d:.25,g:.22,dl:i*.32},v);}},
+      // ウェーブを守り切った（次がある）：解決する和音
+      waveclear:(ac,v)=>{[523,659,784].forEach((f,i)=>osc(ac,{t:'triangle',f,d:.5,g:.06,dl:i*.06,a:.01},v));osc(ac,{t:'triangle',f:1047,d:.55,g:.05,dl:.2},v);},
+      clear:(ac,v)=>{[523,659,784,1047,784,1047,1319].forEach((f,i)=>osc(ac,{t:'square',f,d:i===6?.6:.13,g:.035,dl:i*.1,ft:'lowpass',ff:4000},v));osc(ac,{f:131,d:.8,g:.1,dl:.6},v);},
+      lose:(ac,v)=>{[392,330,262,196].forEach((f,i)=>osc(ac,{t:'triangle',f,f2:f*.97,d:.4,g:.11,dl:i*.22},v));osc(ac,{f:65,d:.85,g:.18,dl:.6,a:.05},v);},
+      type:(ac,v)=>osc(ac,{t:'square',f:820+Math.random()*120,d:.032,g:.016,ft:'lowpass',ff:3000},v),
+      stamp:(ac,v)=>{nz(ac,{ft:'lowpass',f:600,d:.2,g:.35},v);osc(ac,{f:95,f2:45,d:.3,g:.35},v);},
+      tap:(ac,v)=>osc(ac,{f:760,f2:900,d:.04,g:.08},v),
+      // ボスが手下をばらまいた
+      spawn:(ac,v)=>{osc(ac,{t:'sawtooth',f:200,f2:620,d:.2,g:.04,ft:'lowpass',ff:2400},v);nz(ac,{ft:'bandpass',f:1200,f2:3000,q:1.5,d:.2,g:.08},v);},
+      start:(ac,v)=>{[659,988].forEach((f,i)=>osc(ac,{t:'triangle',f,d:.14,g:.1,dl:i*.08},v));},
+      // 荒らしが心のすぐ手前まで来た：短い警報（間引き 1.6 秒）
+      near:(ac,v)=>{osc(ac,{t:'square',f:988,d:.07,g:.03,ft:'lowpass',ff:2500},v);osc(ac,{t:'square',f:740,d:.09,g:.03,dl:.09,ft:'lowpass',ff:2500},v);},
+      // 心が残り少ない：鼓動（どくん・どくん）
+      beat:(ac,v)=>{osc(ac,{f:62,f2:45,d:.16,g:.32},v);osc(ac,{f:58,f2:42,d:.2,g:.24,dl:.2},v);},
+      // 心が残り 3 以下になった瞬間
+      danger:(ac,v)=>{[0,.18,.36].forEach(dl=>osc(ac,{t:'square',f:880,f2:830,d:.12,g:.035,dl,ft:'lowpass',ff:2600},v));osc(ac,{f:62,f2:45,d:.3,g:.3},v);},
+      // 次のウェーブまで 3・2・1
+      tick:(ac,v)=>osc(ac,{t:'triangle',f:1175,d:.06,g:.06},v),
+    };
+    // 音ごとの大きさの倍率（se=1 で測って揃えた。射撃・命中・撃破など頻繁な音 -38〜-36、操作 -32〜-28、ウェーブ・被弾・勝敗 -28〜-25 LUFS）
+    const SND_LV={shot:2.3,hit:3.5,boom:.9,coin:4.5,death:3.5,build:1.5,upgrade:2,sell:2.4,deny:2.5,wave:1.15,boss:1.4,waveclear:1.9,clear:1.8,lose:1.15,
+      type:4.5,tap:3.2,spawn:5,start:2.4,near:4.7,beat:.7,danger:1.3,tick:4};
     function sfx(kind){
       const vol=seVol();if(!(vol>0)||mg._ended)return;
       const ac=AU.ctx;
-      if(!ac){try{AU.se(SND_FB[kind]||'btn');}catch(e){}return;}
+      if(!ac){if(SND_FB[kind]!=='')try{AU.se(SND_FB[kind]||'btn');}catch(e){}return;}
       const now=ac.currentTime;if(sndLast[kind]&&now-sndLast[kind]<(SND_GAP[kind]||.03))return;sndLast[kind]=now;
-      const v=vol*.55;
-      try{switch(kind){
-        case 'shot':tone(ac,1500,700,.06,'square',.025*v);break;
-        case 'hit':noise(ac,.05,.05*v,3200);break;
-        case 'boom':noise(ac,.32,.2*v,900);tone(ac,150,40,.3,'sine',.3*v);break;
-        case 'coin':tone(ac,1320,1320,.05,'square',.022*v);tone(ac,1980,1980,.09,'square',.022*v,.05);break;
-        case 'build':[523,659,784].forEach((f,i)=>tone(ac,f,f,.09,'triangle',.08*v,i*.05));noise(ac,.08,.06*v,1500);break;
-        case 'upgrade':[523,659,784,1047].forEach((f,i)=>tone(ac,f,f,.1,'square',.035*v,i*.06));tone(ac,2093,2093,.3,'sine',.04*v,.24);break;
-        case 'sell':[784,587,440].forEach((f,i)=>tone(ac,f,f,.08,'triangle',.07*v,i*.05));break;
-        case 'deny':tone(ac,150,120,.16,'square',.07*v);tone(ac,150,120,.12,'square',.06*v,.12);break;
-        case 'hurt':tone(ac,240,55,.28,'sawtooth',.11*v);noise(ac,.18,.1*v,700);break;
-        case 'wave':[392,523,659,784].forEach((f,i)=>tone(ac,f,f,.12,'triangle',.07*v,i*.07));break;
-        case 'boss':for(let i=0;i<3;i++)tone(ac,380,760,.32,'sawtooth',.05*v,i*.34);break;
-        case 'clear':[523,659,784,1047,784,1047,1319].forEach((f,i)=>tone(ac,f,f,i===6?.5:.12,'square',.04*v,i*.1));break;
-        case 'lose':[392,330,262,196].forEach((f,i)=>tone(ac,f,f*.98,.35,'triangle',.08*v,i*.22));break;
-        case 'type':tone(ac,820+Math.random()*120,820,.025,'square',.012*v);break;
-        case 'stamp':noise(ac,.2,.2*v,500);tone(ac,95,45,.3,'sine',.35*v);break;
-        case 'tap':tone(ac,720,720,.03,'sine',.035*v);break;
-        case 'death':tone(ac,640,180,.09,'square',.03*v);break;
-        case 'spawn':tone(ac,200,520,.18,'sawtooth',.04*v);break;
-        case 'start':[659,988].forEach((f,i)=>tone(ac,f,f,.12,'triangle',.08*v,i*.08));break;
-      }}catch(e){}
+      try{if(SND[kind])SND[kind](ac,vol*(SND_LV[kind]||1));}catch(e){}
     }
+    if(mg&&mg.exposeSfx)mg.exposeSfx(Object.keys(SND),k=>sfx(k));
     const se=t=>{try{AU.se(t);}catch(e){}};
 
     // ══ 状態 ══
@@ -207,6 +232,7 @@ registerMinigame({
     const modBonus=Math.min(3,modCount)*30;
     let scene='title', tr=null;
     let money=0, lives=MAX_LIVES, wave=0, phase='prep', cd=12, speed=1;
+    let beatT=0;
     let gt=0, rt=0, spawnT=0, queue=[], qi=0, endT=0, endReason='', kills=0, leaked=0, bossKilled=false, playT=0;
     let towers=[], enemies=[], shots=[], floats=[], rings=[], corpses=[], taps=[];
     let sel=null, hoverSlot=-1, previewType=null, shake=0, flash=0, heartHit=0, stop=0, toast=null;
@@ -771,13 +797,13 @@ registerMinigame({
       if(tut<2){tut=2;tutT=0;}
       const boss=wave===WAVES;
       banner={t:rt,text:boss?'FINAL WAVE':`WAVE ${wave}`,sub:WAVE_DEF[wave-1].sub,col:boss?'#ff6a2a':'#00e8c8'};
-      sfx(boss?'boss':'wave');se(boss?'warn':'live');
+      sfx(boss?'boss':'wave');
     }
     function waveCleared(){
       const bonus=25+wave*5+DF.bonus;money+=bonus;bumpMoney();
       if(wave>=WAVES){phase='end';endReason='clear';endT=2.2;
-        banner={t:rt,text:'防衛成功',sub:'配信の心は守られた',col:'#44ee88'};sfx('clear');se('ach');buzz([20,50,20,50,60]);}
-      else{phase='prep';cd=5;banner={t:rt,text:`WAVE ${wave} クリア`,sub:`ボーナス +¥${bonus}`,col:'#e8b830'};sfx('coin');se('decide');
+        banner={t:rt,text:'防衛成功',sub:'配信の心は守られた',col:'#44ee88'};sfx('clear');buzz([20,50,20,50,60]);}
+      else{phase='prep';cd=5;banner={t:rt,text:`WAVE ${wave} クリア`,sub:`ボーナス +¥${bonus}`,col:'#e8b830'};sfx('waveclear');
         say(BETWEEN[wave-1]);}
       refreshMenu();
     }
@@ -794,7 +820,7 @@ registerMinigame({
         burst(x,y,e.type==='boss'?70:e.type==='bot'?7:14,col,e.type==='boss'?280:150,e.type==='boss'?3.5:2.4);
         rings.push({x,y,r:b.r*C,max:b.r*C*(e.type==='boss'?5:2.6),life:.45,ml:.45,col});
         addFloat(x,y-b.r*C,`+¥${b.gold}`,'#e8b830');sfx('coin');sfx('death');
-        if(e.type==='boss'){bossKilled=true;shake=.7;stop=.28;flash=.2;sfx('boom');se('rank');buzz([60,40,90]);}
+        if(e.type==='boss'){bossKilled=true;shake=.7;stop=.28;flash=.2;sfx('boom');sfx('stamp');buzz([60,40,90]);}
         else if(e.type==='anti'){stop=Math.max(stop,.05);shake=Math.max(shake,.15);}
         refreshMenu();
       }
@@ -810,7 +836,7 @@ registerMinigame({
       });
     }
     function deny(btn,si){
-      sfx('deny');se('warn');
+      sfx('deny');
       if(btn){btn.classList.remove('defense-shake');void btn.offsetWidth;btn.classList.add('defense-shake');}
       if(si!=null)addFloat(X(SLOTS[si][0]+.5),Y(SLOTS[si][1]+.1),'投げ銭が足りない','#ff7090');
     }
@@ -820,7 +846,7 @@ registerMinigame({
       money-=d.cost;bumpMoney();
       const t={type,lv:1,x:SLOTS[si][0]+.5,y:SLOTS[si][1]+.5,cd:.2,aim:-1.57,fl:0,buff:1,links:[],spent:d.cost,slot:si,bt:.45,ut:0,tg:false};
       towers.push(t);slotTower[si]=t;computeBuffs();
-      se('tool');sfx('build');closeMenu();
+      sfx('build');closeMenu();
       const q=QUIP[type];addFloat(X(t.x),Y(t.y)-C*.75,'「'+q[Math.floor(Math.random()*q.length)]+'」',d.col);
       if(tut===0){tut=1;tutT=0;}
     }
@@ -830,13 +856,13 @@ registerMinigame({
       money-=d.up;t.lv=2;t.spent+=d.up;t.ut=.9;computeBuffs();bumpMoney();
       burst(X(t.x),Y(t.y),22,d.col,170,2.4);rings.push({x:X(t.x),y:Y(t.y),r:C*.3,max:C*1.1,life:.5,ml:.5,col:d.col});
       addFloat(X(t.x),Y(t.y)-C*.5,'LEVEL UP!','#ffe080');addFloat(X(t.x),Y(t.y)-C*.85,'「'+QUIP_UP[t.type]+'」',d.col);
-      se('repair');sfx('upgrade');stop=Math.max(stop,.06);openMenu(si);
+      sfx('upgrade');stop=Math.max(stop,.06);openMenu(si);
     }
     function sell(si){
       const t=slotTower[si];if(!t)return;
       const back=Math.floor(t.spent*.7);money+=back;bumpMoney();towers.splice(towers.indexOf(t),1);slotTower[si]=null;computeBuffs();
       burst(X(t.x),Y(t.y),12,'#bbaedd',100,2);addFloat(X(t.x),Y(t.y)-C*.3,`+¥${back}`,'#e8b830');
-      se('back');sfx('sell');closeMenu();
+      sfx('sell');closeMenu();
     }
     function firstInRange(x,y,range){
       let best=null,bd=-1;
@@ -847,25 +873,27 @@ registerMinigame({
     function heartDamage(b){
       lives=Math.max(0,lives-b.dmg);shake=Math.min(.7,shake+.25+b.dmg*.06);flash=.35;heartHit=.5;stop=Math.max(stop,b.dmg>=3?.18:.07);
       burst(X(HEART.x),Y(HEART.y),14,'#ff5fa2',160,2.6);addFloat(X(HEART.x),Y(HEART.y)-C*.6,`心 -${b.dmg}`,'#ff5f80');
-      sfx('hurt');se(b.dmg>=3?'ghost':'noise');buzz(b.dmg>=3?[50,30,70]:30);
+      sfx('hurt');if(lives<=3&&lives+b.dmg>3&&lives>0)sfx('danger');buzz(b.dmg>=3?[50,30,70]:30);
       elLife.classList.remove('bump');void elLife.offsetWidth;elLife.classList.add('bump');
       if(lives===3&&phase!=='end')say(['joren','','心が限界だ。踏ん張れ、だんのうらさん！'],3);
       if(lives<=0&&phase!=='end'){
         phase='end';endReason='down';endT=2.2;
         burst(X(HEART.x),Y(HEART.y),70,'#ff5fa2',260,3.2);
-        banner={t:rt,text:'心が折れた',sub:'配信が荒らしに埋め尽くされた',col:'#e83055'};sfx('lose');se('warn');buzz([120,60,200]);
+        banner={t:rt,text:'心が折れた',sub:'配信が荒らしに埋め尽くされた',col:'#e83055'};sfx('lose');buzz([120,60,200]);
       }
     }
 
     function update(dt){
       gt+=dt;tutT+=dt;
-      if(phase==='prep'){cd-=dt;if(cd<=0)startWave();}
+      if(phase==='prep'){const c0=Math.ceil(cd);cd-=dt;if(cd<=0)startWave();else if(Math.ceil(cd)!==c0&&c0<=4&&wave>0)sfx('tick');}
       else if(phase==='wave'){
         spawnT+=dt;
         while(qi<queue.length&&queue[qi].t<=spawnT){spawnEnemy(queue[qi].type);qi++;}
         if(qi>=queue.length&&enemies.length===0)waveCleared();
       }else if(phase==='end'){endT-=dt;if(endT<=0&&!tr){playT=gt;closeMenu();transition('mosaic',1.1,enterEnding);}}
       if(tut===2&&tutT>5)tut=3;
+      // 心が残り 3 以下：ウェーブ中は鼓動を鳴らし続ける（残りが少ないほど速く）
+      if(phase==='wave'&&lives>0&&lives<=3){beatT-=dt;if(beatT<=0){beatT=lives<=1?.7:lives===2?.85:1.05;sfx('beat');}}else beatT=0;
       for(let i=0;i<enemies.length;i++)enemies[i].slowF=1;
       for(let k=0;k<towers.length;k++){const t=towers[k];if(t.type!=='ng')continue;const L=TW.ng.lv[t.lv-1];t.tg=false;
         for(let i=0;i<enemies.length;i++){const e=enemies[i];if(e.dead)continue;
@@ -882,6 +910,7 @@ registerMinigame({
           if(e.spawnCd<=0&&e.d>1){e.spawnCd=DF.bossSpawn;e.shoutT=.5;for(let k=0;k<2;k++)spawnEnemy('bot',Math.max(0,e.d-.3-k*.35),1.4);
             addFloat(X(e.x),Y(e.y)-C*.9,'拡散！','#ff7a28');sfx('spawn');}
         }else if(e.type==='anti'&&Math.random()<dt*3)spark(X(e.x),Y(e.y)+C*.2,0,10,.8,'rgba(176,124,255,.6)',2.5,0);
+        if(phase==='wave'&&e.d>=PATH_LEN-1.6&&e.d-v*dt<PATH_LEN-1.6)sfx('near');
         if(e.d>=PATH_LEN-.3){
           e.dead=true;leaked+=b.dmg;
           if(!(phase==='end'&&endReason==='down'))heartDamage(b);
@@ -1138,7 +1167,7 @@ registerMinigame({
     }
     function updateEnding(dt){
       const e=ending;e.t+=dt;
-      if(!e.stamped&&e.t>=.95){e.stamped=true;sfx('stamp');se('rank');shake=.35;
+      if(!e.stamped&&e.t>=.95){e.stamped=true;sfx('stamp');shake=.35;
         burst(W/2,H*.3,40,GRADE_COL[e.grade],260,3);rings.push({x:W/2,y:H*.3,r:C*.6,max:C*2.4,life:.6,ml:.6,col:GRADE_COL[e.grade]});}
       if(!e.talk&&e.t>=2.1){e.talk=true;startDialog(e.lines,finishGame);}
       updateDialog(dt);updateFx(dt);
@@ -1259,7 +1288,7 @@ registerMinigame({
       return -1;
     }
     function goStory(){
-      if(tr)return;sfx('start');se('decide');
+      if(tr)return;sfx('start');
       transition('mosaic',1,()=>{scene='story';startDialog(introLines(),goPlay);});
     }
     function goPlay(){
@@ -1297,7 +1326,7 @@ registerMinigame({
     });
     cv.addEventListener('pointerleave',()=>{hoverSlot=-1;});
     function toggleSpeed(){speed=speed===1?2:1;se('btn');sfx('tap');toast={text:speed===2?'×2 倍速':'×1 通常',t:rt};}
-    btnNext.onclick=()=>{if(phase==='prep'&&scene==='play'){se('decide');startWave();}};
+    btnNext.onclick=()=>{if(phase==='prep'&&scene==='play')startWave();};
     btnSpd.onclick=toggleSpeed;
     mg.onKey(e=>{
       if(e.type!=='keydown')return;
@@ -1305,7 +1334,7 @@ registerMinigame({
       if(scene==='title'){if(k===' '||k==='Enter'){e.preventDefault();goStory();}return;}
       if(scene==='story'||scene==='ending'){if(k===' '||k==='Enter'){e.preventDefault();if(scene==='ending'&&ending.t<2.1)ending.t=2.1;else dialogTap();}else if(k==='Escape'&&scene==='story'){dlg=null;goPlay();}return;}
       if(scene!=='play')return;
-      if(k===' '||k==='Enter'){e.preventDefault();if(phase==='prep'){se('decide');startWave();}}
+      if(k===' '||k==='Enter'){e.preventDefault();if(phase==='prep')startWave();}
       else if(k==='x'||k==='X')toggleSpeed();
       else if(k==='Escape'){if(sel!==null)se('back');closeMenu();}
       else if(sel!==null&&k>='1'&&k<='4'&&!slotTower[sel])build(sel,TW_KEYS[+k-1]);

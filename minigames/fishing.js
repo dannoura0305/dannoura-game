@@ -158,39 +158,70 @@ registerMinigame({
     function buzz(ms){try{if(mg.buzz)mg.buzz(ms);else if(navigator.vibrate)navigator.vibrate(ms);}catch(_){}}
 
     // ── 効果音（Web Audioで合成。AUDIO_SET.se に追従、0なら無音） ──
+    // 夜釣りなので、電子音は使わず水と道具の音だけ。どれも小さめ・やわらかめで、毎回少しずつ揺らす
     const SFX={
-      ctx:null,nb:null,amb:null,
+      ctx:null,nb:null,amb:null,ambWant:false,last:{},
       vol(){return typeof AUDIO_SET==='object'?clamp(+AUDIO_SET.se||0,0,1):0;},
       ok(){if(this.vol()<=0)return false;try{if(!AU.ctx&&AU.init)AU.init();}catch(_){}this.ctx=AU.ctx||null;
         if(this.ctx&&this.ctx.state==='suspended'){try{this.ctx.resume();}catch(_){}}return !!this.ctx;},
+      gap(k,ms){const n=performance.now();if(this.last[k]&&n-this.last[k]<ms)return false;this.last[k]=n;return true;},
+      j(a){return 1+(Math.random()*2-1)*a;},
       buf(){if(!this.nb){const c=this.ctx,n=Math.floor(c.sampleRate*1.6),b=c.createBuffer(1,n,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;this.nb=b;}return this.nb;},
-      nz(dur,f0,f1,q,g,delay){if(!this.ok())return;try{const c=this.ctx,t=c.currentTime+(delay||0),v=g*this.vol();
-        const s=c.createBufferSource();s.buffer=this.buf();const f=c.createBiquadFilter();f.type='bandpass';f.Q.value=q;
+      // 帯域ノイズ（type 省略で bandpass）
+      nz(dur,f0,f1,q,g,delay,type,att){if(!this.ok())return;try{const c=this.ctx,t=c.currentTime+(delay||0),v=g*this.vol();
+        const s=c.createBufferSource();s.buffer=this.buf();const f=c.createBiquadFilter();f.type=type||'bandpass';f.Q.value=q;
         f.frequency.setValueAtTime(f0,t);f.frequency.exponentialRampToValueAtTime(f1,t+dur);
-        const gn=c.createGain();gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(v,t+.015);gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
+        const gn=c.createGain();gn.gain.value=.0001;gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,v),t+(att||.015));gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
         s.connect(f);f.connect(gn);gn.connect(c.destination);s.start(t,Math.random()*.8);s.stop(t+dur+.05);}catch(_){}},
-      tone(f0,f1,dur,g,type,delay){if(!this.ok())return;try{const c=this.ctx,t=c.currentTime+(delay||0),v=g*this.vol();
+      tone(f0,f1,dur,g,type,delay,att){if(!this.ok())return;try{const c=this.ctx,t=c.currentTime+(delay||0),v=g*this.vol();
         const o=c.createOscillator(),gn=c.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);
-        gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(v,t+.01);gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
+        gn.gain.value=.0001;gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,v),t+(att||.01));gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
         o.connect(gn);gn.connect(c.destination);o.start(t);o.stop(t+dur+.05);}catch(_){}},
-      splash(big){this.nz(big?.55:.32,2600,280,.7,big?.2:.12);this.tone(240,80,.16,.05);},
-      plop(){this.tone(540,170,.11,.07);this.nz(.12,1900,700,1.4,.05);},
-      nibble(){this.tone(700,420,.06,.04);},
-      click(){this.tone(2800,2300,.016,.018,'square');},
-      whoosh(){this.nz(.42,280,2800,1.6,.1);},
-      chime(){[988,1480,1976].forEach((f,i)=>this.tone(f,f*.998,1.6,.05/(i+1),'sine',i*.07));},
-      bell(){[1320,1980].forEach((f,i)=>this.tone(f,f,2.2,.035,'sine',i*.25));},
-      stamp(){this.tone(110,55,.25,.12,'triangle');this.nz(.2,600,200,1,.08);},
-      ambStart(){if(this.amb||!this.ok())return;try{const c=this.ctx;
+      // 水滴・泡の「ポコッ」：音程が上がっていくのが水の音らしさ
+      bub(f,g,delay){const k=this.j(.12);this.tone(f*k,f*k*2.1,.05+Math.random()*.03,g,'sine',delay,.004);},
+      // 水しぶき（小：魚が暴れる／大：掛かった・釣り上げた）
+      splash(big){const g=big?2.1:1.7;
+        this.nz(big?.6:.38,big?3200:2800,big?260:420,.6,.12*g*this.j(.15),0,'bandpass',.008);
+        this.nz(big?.4:.25,900,160,.7,.12*g,0,'lowpass',.006);
+        for(let i=0;i<(big?5:3);i++)this.bub(500+Math.random()*700,.03*g,.05+Math.random()*(big?.4:.25));},
+      // ウキ・仕掛けが着水する「チャポン」
+      plop(){this.nz(.12,1800*this.j(.1),600,1.2,.22,0,'bandpass',.004);this.bub(330,.3);this.bub(620,.11,.07);},
+      // 魚がつつく：小さな波紋
+      nibble(){if(!this.gap('nib',60))return;this.bub(700,.2);this.nz(.06,2400,1500,2,.09);},
+      // リールを巻く「カリカリ」（連打される）
+      click(){if(!this.gap('clk',40))return;const k=this.j(.08);this.nz(.018,3200*k,2600*k,1.5,.35*this.j(.25),0,'bandpass',.002);this.tone(1900*k,1700*k,.015,.05,'triangle',0,.002);},
+      // 竿を振る「ヒュッ」＋糸が出ていく音
+      whoosh(){this.nz(.32,500,2600,1.4,.6,0,'bandpass',.08);this.nz(.5,5200,3400,3,.1,.12);},
+      // 竿鈴「チリン」：アタリの合図（電子音の代わり）
+      bite(){const k=this.j(.02);[0,.13].forEach((d,i)=>{this.tone(2940*k,2930*k,.45,.065/(i+1),'sine',d,.003);this.tone(4170*k,4150*k,.3,.034/(i+1),'sine',d,.003);});this.plop();},
+      // 合わせ：重い「グッ」＋しぶき
+      hook(big){this.tone(120,70,.18,.22,'sine',0,.006);this.splash(big);},
+      // 逃げられた：糸がふっとゆるむ＋小さく水音
+      lose(){this.nz(.3,2400,700,2,.08,0,'bandpass',.03);this.tone(330,200,.35,.12,'triangle',.05,.02);this.bub(420,.2,.25);},
+      // 釣り上げた：ふつうは小さな2音、初物・めずらしい魚は3音
+      catchUp(rare){this.splash(true);(rare?[988,1480,1976]:[1175,1568]).forEach((f,i)=>this.tone(f,f*.998,1.2,.07/(i+1),'sine',.15+i*.08,.01));},
+      chime(){[988,1480,1976].forEach((f,i)=>this.tone(f,f*.998,1.4,.08/(i+1),'sine',i*.07));},
+      bell(){[1320,1980].forEach((f,i)=>this.tone(f,f,1.6,.06,'sine',i*.25));},
+      // 時間が進んだ：遠くの低い鐘
+      toll(){this.tone(196,195,2.2,.065,'sine',0,.01);this.tone(523,521,1.4,.016,'sine',0,.01);this.tone(311,310,1.8,.02,'sine',0,.01);},
+      // 成績のはんこ：やわらかい「ポン」
+      stamp(){this.tone(130,62,.28,.36,'triangle',0,.006);this.nz(.16,700,220,1,.2,0,'lowpass',.005);},
+      // 岸壁に当たる小さな波「ちゃぷ」（環境音の合間にときどき）
+      lap(){const g=.5+Math.random()*.5;this.nz(.5+Math.random()*.3,700,260,.8,.2*g,0,'lowpass',.12);this.bub(260+Math.random()*200,.07*g,.18);},
+      ambStart(){this.ambWant=true;if(this.amb||!this.ok())return;try{const c=this.ctx;
         const s=c.createBufferSource();s.buffer=this.buf();s.loop=true;
         const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=420;
         const g=c.createGain();g.gain.value=0;const lfo=c.createOscillator();lfo.frequency.value=.085;const lg=c.createGain();lg.gain.value=0;
         lfo.connect(lg);lg.connect(g.gain);s.connect(f);f.connect(g);g.connect(c.destination);s.start();lfo.start();
         this.amb={s,g,lg,lfo};this.ambSet();}catch(_){this.amb=null;}},
-      ambSet(){if(!this.amb)return;const v=this.vol();try{const t=this.ctx.currentTime;this.amb.g.gain.setTargetAtTime(.026*v,t,.6);this.amb.lg.gain.setTargetAtTime(.016*v,t,.6);}catch(_){}},
-      ambStop(){const a=this.amb;this.amb=null;if(!a)return;try{const t=this.ctx.currentTime;a.g.gain.cancelScheduledValues(t);a.g.gain.setTargetAtTime(0,t,.15);a.lg.gain.setTargetAtTime(0,t,.15);
+      // 1秒ごとに呼ぶ：音量設定に追従（0→上げたら鳴らし直す）
+      ambSet(){if(!this.amb){if(this.ambWant&&this.vol()>0)this.ambStart();return;}const v=this.vol();try{const t=this.ctx.currentTime;this.amb.g.gain.setTargetAtTime(.085*v,t,.6);this.amb.lg.gain.setTargetAtTime(.05*v,t,.6);}catch(_){}},
+      ambStop(){this.ambWant=false;const a=this.amb;this.amb=null;if(!a)return;try{const t=this.ctx.currentTime;a.g.gain.cancelScheduledValues(t);a.g.gain.setTargetAtTime(0,t,.15);a.lg.gain.setTargetAtTime(0,t,.15);
         setTimeout(()=>{try{a.s.stop();a.lfo.stop();a.g.disconnect();}catch(_){}},900);}catch(_){}},
     };
+    if(mg&&mg.exposeSfx)mg.exposeSfx(['splash','splashBig','plop','nibble','click','whoosh','bite','hook','hookBig','lose','catch','catchRare','chime','bell','toll','stamp','lap','amb'],
+      k=>k==='splashBig'?SFX.splash(true):k==='hookBig'?SFX.hook(true):k==='catch'?SFX.catchUp(false):k==='catchRare'?SFX.catchUp(true):
+        k==='amb'?(SFX.ambStart(),setTimeout(()=>{if(SFX.amb)SFX.ambStop();},3500)):SFX[k]());
 
     // ── 画面サイズ・事前描画 ──
     let W=0,H=0,dpr=1,HZ=0,PY=0,U=1,M=28; // HZ=水平線, PY=岸壁の上端, U=キャラの縮尺, M=視差の余白
@@ -711,7 +742,7 @@ registerMinigame({
     let cardReadyAt=0,ignoreRelease=false,firstReel=true,bucketT=0,lastCatch=null;
     const catches=[];let newSpecies=0,rareCaught=false,bigCaught=false,escapes=0,grade='C',score=0,gradeT=0;
     let bgCache=null,bgG=null,bgKey='';
-    let lhAng=Math.random()*6.28,lastHud='',lastTm='',rzT=0,ambT=0,genTwitch=0;
+    let lhAng=Math.random()*6.28,lastHud='',lastTm='',rzT=0,ambT=0,lapT=4,genTwitch=0;
     const keys={l:false,r:false};
 
     function ring(x,y,r,a,c,max){const o=rings[rgi];rgi=(rgi+1)%rings.length;o.x=x;o.y=y;o.r=r;o.a=a;o.c=c||'200,220,255';o.t=o.max=max||1.6;o.s=scaleAt(y);}
@@ -858,7 +889,7 @@ registerMinigame({
     function landed(){
       fl.x=fl.tx;fl.y=fl.ty;
       splash(fl.x,fl.y,10,90);ring(fl.x,fl.y,4,.6,'200,230,255',1.8);ring(fl.x,fl.y,2,.4,'120,255,230',1.3);
-      SFX.plop();se('notif');
+      SFX.plop();
       // ここで何が寄ってくるかが決まる（影の大きさで分かる）
       const s=pickSpecies();
       const f=clamp(Math.pow(Math.random(),1.35)*(.78+fl.castP*.22)+(s.r===3?.15:0),0,1);
@@ -898,8 +929,8 @@ registerMinigame({
       cur.str=item?.2:clamp(.3+cur.sf*.45+(s.r-1)*.12,0,1);
       Object.assign(reel,{z:.35,zv:0,f:.5,fv:0,ft:.5,fcd:.4,pr:.28,zw:(item?.38:clamp(.31-cur.sf*.05-(s.r===3?.03:0),.22,.34))*RZW,inside:true,grace:(firstReel?2.2:.8)+RGRACE,clickT:0,splT:0});
       tension=.3;shadow.on=false;
-      setState('reel');se('decide');buzz(25);
-      splash(fl.x,fl.y,14,130);ring(fl.x,fl.y,3,.7,'120,255,230',1.4);SFX.splash(cur.big);
+      setState('reel');buzz(25);
+      splash(fl.x,fl.y,14,130);ring(fl.x,fl.y,3,.7,'120,255,230',1.4);SFX.hook(cur.big);
       if(firstReel)say('長押しで光の枠が右へ、離すと左へ。魚を枠に入れて','#00e8c8',3.6);
       else say(item?'……ん？ 重いだけで、暴れないわね':cur.big?'重い……大物よ！':'かかった！','#00e8c8',1.6);
       firstReel=false;
@@ -907,7 +938,7 @@ registerMinigame({
     function escape(text){
       escapes++;cur=null;
       say(text,'#9a8cc0',2.6);
-      se('back');setState('after');fl.vis=false;shadow.on=false;
+      SFX.lose();setState('after');fl.vis=false;shadow.on=false;
     }
     function caught(){
       const s=cur.sp;
@@ -922,9 +953,9 @@ registerMinigame({
       catches.push({id:s.id,size:cur.size,sf:cur.sf,isNew,big:cur.big});
       lastCatch={sp:s,size:cur.size};
       splash(fl.x,fl.y,20,160);ring(fl.x,fl.y,4,.8,'120,255,230',1.6);
-      SFX.splash(true);
-      if(s.id==='suzu')SFX.bell();else if(s.r===3||isNew)SFX.chime();
-      se(s.r===3||isNew?'ach':'rank');buzz(40);
+      SFX.catchUp(s.r===3||isNew);
+      if(s.id==='suzu')SFX.bell();
+      buzz(40);
       fl.vis=false;
       showCard(s,cur.size,isNew,record,cur.big);
       cur=null;updZbtn();
@@ -934,7 +965,7 @@ registerMinigame({
       else{
         setState('ready');
         const ti=Math.min(2,Math.floor((CASTS-castsLeft)/2));
-        if(ti!==timeIdx){showBanner(`── ${TIMES[ti]} ──`,ti===1?'街の灯りが減ってきた':'海が、いちばん静かな時間',ti===2?'#9fb8ff':'#deccf8');se('notif');}
+        if(ti!==timeIdx){showBanner(`── ${TIMES[ti]} ──`,ti===1?'街の灯りが減ってきた':'海が、いちばん静かな時間',ti===2?'#9fb8ff':'#deccf8');SFX.toll();}
       }
     }
     function computeGrade(){
@@ -970,7 +1001,7 @@ registerMinigame({
     function closeCard(){
       ov.classList.remove('on');ov.onpointerdown=null;
       ignoreRelease=holding;
-      bucketT=1;SFX.plop();se('btn');
+      bucketT=1;SFX.plop();
       nextOrEnd();
     }
     function drawCardCanvas(c,s,w,h,size,sil){
@@ -1284,6 +1315,7 @@ registerMinigame({
       clock+=dt;
       rzT+=dt;if(rzT>.5){rzT=0;resize();}
       ambT+=dt;if(ambT>1){ambT=0;SFX.ambSet();}
+      if(SFX.amb){lapT-=dt;if(lapT<=0){lapT=3+Math.random()*6;SFX.lap();}}
       if(msgT>0)msgT-=dt;
       if(banner){banner.t+=dt;if(banner.t>banner.dur)banner=null;}
       lhAng+=dt*.85;
@@ -1331,7 +1363,7 @@ registerMinigame({
         if(cur&&cur.big&&stT>1.4&&stT-dt<=1.4)showBanner('大物の気配……','影が、でかい','#ff9ab0');
         if(nibbles.length&&stT>=nibbles[0]){nibbles.shift();fl.sinkT=.45;shadow.dart=1;ring(fl.x,fl.y,2,.5,'200,230,255',1.2);SFX.nibble();}
         if(stT>=waitT){
-          setState('bite');SFX.plop();se('notif');buzz(60);
+          setState('bite');SFX.bite();buzz(60);
           splash(fl.x,fl.y,8,70);ring(fl.x,fl.y,3,.8,'120,255,230',1.5);ring(fl.x,fl.y,1,.6,'255,255,255',.9);
           say('今！ タップ！','#44ee88',1.3);
           if(clock-pressBuf<.28)hook(); // 少し早押しでも拾う
@@ -1380,7 +1412,7 @@ registerMinigame({
         if(stT>1.8)nextOrEnd();
       }else if(state==='ending'){
         const pg=gradeT;gradeT+=dt;
-        if(pg<.6&&gradeT>=.6){SFX.stamp();se('rank');buzz(50);if(grade==='S')SFX.chime();}
+        if(pg<.6&&gradeT>=.6){SFX.stamp();buzz(50);if(grade==='S'||grade==='A')SFX.chime();}
         if(pg<1.7&&gradeT>=1.7)talkStart(endingLines(),()=>{setState('fadeout');});
       }else if(state==='fadeout'){
         fadeA=Math.min(1,stT/.9);

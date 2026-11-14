@@ -255,7 +255,7 @@ export function buildDannouraV1() {
  * 戻り値の位置・向きは「刀の形の局所」（手に持つ刀と同じ：柄 y −0.12〜0.08・鍔 y 0.085・刃 y 0.09〜0.88）の原点と向き。
  * 鍔は帯の左前・柄は前の上へ・鞘は腰の左を回って後ろの下へ（刃の向き d）。コードの体（buildWeaponBones）と VRM（attachRigidWeapons）で同じ
  */
-export const SAYA_POSE = { tsuba: [0.15, 0.04, 0.12], dir: [0.3, -0.55, -0.78] };
+export const SAYA_POSE = { tsuba: [0.115, 0.03, 0.11], dir: [0.04, -0.55, -0.83] };
 export function sayaFrame(P = SAYA_POSE) {
   const Y = V(...P.dir).normalize(), up = V(0, 1, 0), Z = up.clone().addScaledVector(Y, -up.dot(Y)).normalize(), X = new THREE.Vector3().crossVectors(Y, Z);
   const q = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, Z));

@@ -394,7 +394,7 @@ const MG={
   },
   _start(def){
     closeMinigamePicker();
-    this.def=def;this._ended=false;this._onEnd=[];this._loopErr=false;
+    this.def=def;this._ended=false;this._onEnd=[];this._loopErr=false;this.sfxProbe=null;
     if(window.ICONS&&ICONS.has(def.id))this.el('mg-title').innerHTML=mgIconHTML(def,20)+`<span class="ic-t">${def.name}</span>`;
     else this.el('mg-title').textContent=def.icon+' '+def.name;
     this.el('mg-help').textContent=def.help;
@@ -420,6 +420,9 @@ const MG={
       return navigator.vibrate(p);
     }catch(e){return false;}
   },
+  // 効果音の一覧を出す（音の大きさを 1 つずつ測る道具・テスト用。遊びには使わない）
+  //   各ゲームは mg.exposeSfx(['名前',…], k=>鳴らす関数(k)) を呼ぶ。MG.sfxProbe.play('名前') で 1 つ鳴らせる
+  exposeSfx(names,play){try{if(Array.isArray(names)&&typeof play==='function')this.sfxProbe={names:names.slice(),play:k=>{try{play(k);}catch(e){}}};}catch(e){}},
   setScore(html){this.el('mg-score').innerHTML=html;},
   setTimer(t){this.el('mg-timer').textContent=t;},
   every(fn,ms){const id=setInterval(fn,ms);this._iv.push(id);return id;},
