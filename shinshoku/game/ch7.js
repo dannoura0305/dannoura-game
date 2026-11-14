@@ -12,6 +12,7 @@ import { Kuramono } from '../ai/kuramono.js';
 import { Kenkyusha } from '../ai/kenkyusha.js';
 import { Brain } from '../ai/brain.js';
 import { segDist, blocksLine } from '../ai/sakibure.js';
+import { rayBoxes, insideAny, lineOfSight } from '../world/collide.js';
 import { buildKuramono, buildResearcher, buildSpouseLike, buildDaughter } from '../actor/models7.js';
 import { buildDannouraWhite } from '../actor/models3.js';
 import { loadCharacter } from '../actor/vrm.js';
@@ -129,7 +130,24 @@ export const ch7Methods = {
   senseExtra7(e) {
     if (e.kind !== 'kenkyusha') return null;
     const C = this.companion, past = this.pastPos7(e.brain.def.attacks.rewind.past);
-    return { past, companion: C.root.visible ? { x: C.brain.pos.x, z: C.brain.pos.z } : null, decks: 3 - (this.flags.decks7 || []).length };
+    return { past, companion: C.root.visible ? { x: C.brain.pos.x, z: C.brain.pos.z } : null, decks: 3 - (this.flags.decks7 || []).length, clipLine: (a, b) => this.clipLine7(a, b, e.r) };
+  },
+  /** 研究者の「残像」の線（a → b）を、記録の間の円（中心 KIROKU.center・半径 KIROKU.r）の内側と、壁・物の手前で止める（体の半径 r ＋余白） */
+  clipLine7(a, b, r = 0.42) {
+    const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz); if (L < 1e-6) return { x: b.x, z: b.z };
+    const ux = dx / L, uz = dz / L, pad = r + 0.35; let t = L;
+    const [cx, cz] = KIROKU.center, R = KIROKU.r - pad, ox = a.x - cx, oz = a.z - cz;   // 円の内側：|o + u t| = R の正の根
+    const B = ox * ux + oz * uz, Cc = ox * ox + oz * oz - R * R, disc = B * B - Cc; if (disc >= 0) t = Math.min(t, Math.max(0, -B + Math.sqrt(disc)));
+    for (const y of [0.4, 1.2]) t = Math.min(t, Math.max(0, rayBoxes({ x: a.x, y, z: a.z }, { x: ux, y: 0, z: uz }, L, this.boxes) - pad));
+    return { x: a.x + ux * t, z: a.z + uz * t };
+  },
+  /** 念のため：研究者が円の外・壁の中に出たら、最後にいた正しい所へ戻す（2026-11-14：壁を抜けて戻ってこなくなった） */
+  keepResearcherIn7() {
+    const e = this.boss && this.boss.kind === 'kenkyusha' ? this.boss : null; if (!e || !e.brain.alive) return;
+    const p = e.brain.pos, [cx, cz] = KIROKU.center, out = insideAny(p, this.boxes, 0.05) || (Math.hypot(p.x - cx, p.z - cz) > KIROKU.r - 0.3 && !lineOfSight(p, { x: cx, z: cz }, this.boxes));   // 壁の中・壁の向こう（入口の通路へ歩いて追うのは戻さない）
+    if (!out) { this.r7ok = { x: p.x, z: p.z }; return; }
+    const q = this.r7ok || { x: KIROKU.boss.pos[0], z: KIROKU.boss.pos[1] }; p.x = q.x; p.z = q.z;
+    this.metrics.researcherRescued7 = (this.metrics.researcherRescued7 || 0) + 1;
   },
   pastPos7(sec = 2) { const h = this.hist7 || []; const want = this.playSec - sec; for (let i = h.length - 1; i >= 0; i--) if (h[i].t <= want) return { x: h[i].x, z: h[i].z }; return h.length ? { x: h[0].x, z: h[0].z } : { x: this.player.pos.x, z: this.player.pos.z }; },
 
@@ -138,6 +156,7 @@ export const ch7Methods = {
     const A = this.area.id; if (!CH7_AREAS.includes(A)) return;
     const P = this.player.pos, s = this.story.step;
     if (A === 'kiroku') {
+      this.keepResearcherIn7();
       const h = this.hist7 || (this.hist7 = []); if (this.frame % 6 === 0) { h.push({ t: this.playSec, x: P.x, z: P.z }); if (h.length > 40) h.shift(); }
       if (s === 'ch7b_enter' && P.z < KIROKU.enter && !this.cut.active) this.playCutscene('cs07b_arrive');
       this.tickDecks7();
@@ -188,7 +207,7 @@ export const ch7Methods = {
         const T7 = this.metrics.kenTele7 || (this.metrics.kenTele7 = {}); T7[ev.name] = (T7[ev.name] || 0) + 1;
         if (ev.name === 'rewind' && ev.at) { this.fx.decal('circle', ev.at.x, ev.at.z, { r: ev.def.aoe.r, dur: ev.def.windup, hold: 0.25, color: 0xff3040 }); this.sfx.play('rewind7', ev.at); if (!this.flags.rewind_hint7) { this.flags.rewind_hint7 = true; this.hint('巻き戻し：数秒前にいた所が狙われる ── 動き続ける'); this.later(5, () => this.hint(null)); } }
         if (ev.line) { const L = ev.line, dx = L.to.x - L.from.x, dz = L.to.z - L.from.z; this.fx.decal('line', L.from.x, L.from.z, { r: Math.hypot(dx, dz), w: L.w, yaw: Math.atan2(dx, dz), dur: ev.def.windup, hold: 0.3, color: ev.parryable ? 0xfff0f0 : 0xff3040 }); }
-        if (ev.name === 'accident') { this.ui.toast('事故の瞬間 ──（相棒）を狙っている：線の間に立って受ける', 'weak', 1.8); this.bark('accident7', 2.2); }
+        if (ev.name === 'accident') { this.ui.toast('事故の瞬間 ──灯里を狙っている：線の間に立って受ける', 'weak', 1.8); this.bark('accident7', 2.2); }
         if (ev.name === 'strike') this.fx.decal('arc', b.pos.x, b.pos.z, { r: ev.def.range, arc: ev.def.arc, yaw: b.yaw, dur: ev.def.windup, hold: 0.15, color: 0xfff0e0 });
         this.companionSeeTelegraph(e, ev.parryable ? 'parry' : 'red');
         return true;
@@ -205,9 +224,9 @@ export const ch7Methods = {
         if (ev.name === 'accident') {
           const L = ev.line, block = blocksLine(P.pos, P.r, L);
           this.fx.streak(new THREE.Vector3(L.from.x, 1.4, L.from.z), new THREE.Vector3(block ? P.pos.x : L.to.x, 1.2, block ? P.pos.z : L.to.z), 0xffe0f0, 0.5, 0.6); this.sfx.play('slam', block ? P.pos : L.to);
-          if (block) { this.metrics.accidentBlocks7 = (this.metrics.accidentBlocks7 || 0) + 1; const r = F.incoming({ src: e, dmg: A.dmg, parryable: true, inRange: true, nearMiss: true }); this.handleFighter(F.drain()); e.lastAttackResult = r; this.ui.toast('（相棒）の前で受けた', 'parry', 1.2); return true; }
+          if (block) { this.metrics.accidentBlocks7 = (this.metrics.accidentBlocks7 || 0) + 1; const r = F.incoming({ src: e, dmg: A.dmg, parryable: true, inRange: true, nearMiss: true }); this.handleFighter(F.drain()); e.lastAttackResult = r; this.ui.toast('灯里の前で受けた', 'parry', 1.2); return true; }
           this.metrics.accidentHits7 = (this.metrics.accidentHits7 || 0) + 1; const C = this.companion; C.brain.trust = Math.max(0, C.brain.trust - 2); C.anim = 'cower'; this.later(1.4, () => { if (this.story.step === 'ch7b_boss') C.anim = 'hide'; });
-          this.ui.toast('（相棒）の近くに落ちた！（けがはない）', 'weak', 1.4); this.bark('accident_miss7', 2.4); return true;
+          this.ui.toast('灯里の近くに落ちた！（けがはない）', 'weak', 1.4); this.bark('accident_miss7', 2.4); return true;
         }
         return true;
       }
@@ -268,7 +287,7 @@ export const ch7Methods = {
       const D = A.dyn, st = this.flags.decks7 || [];
       for (const dk of KIROKU.decks) if (!st.includes(dk.id)) for (const r of D.decks[dk.id].reels) r.rotation.y += dt * (deckLamp(this.playSec, dk) === 'write' ? 4 : 0.6);
       const e = this.boss && this.boss.kind === 'kenkyusha' ? this.boss : null;
-      if (e && !this.cut.active) { const b = e.brain; if (b.alive && !b.resolution && !['dormant', 'kneel'].includes(b.state)) { const left = 3 - st.length; const ph = b.state === 'down' ? '崩れている ── 2 倍' : b.atk ? (b.atk.name === 'accident' ? '事故の瞬間 ──（相棒）への線の間に立つ' : b.def.attacks[b.atk.name].parryable ? '白：弾ける' : '赤：避ける') : left ? `記録装置 ${left} 台が動いている ── 傷が巻き戻される` : '記録は止まった'; this.ui.boss('研究者（名前未定）', b.hp / b.hpMax, ph, b.state === 'down'); } }
+      if (e && !this.cut.active) { const b = e.brain; if (b.alive && !b.resolution && !['dormant', 'kneel'].includes(b.state)) { const left = 3 - st.length; const ph = b.state === 'down' ? '崩れている ── 2 倍' : b.atk ? (b.atk.name === 'accident' ? '事故の瞬間 ──灯里への線の間に立つ' : b.def.attacks[b.atk.name].parryable ? '白：弾ける' : '赤：避ける') : left ? `記録装置 ${left} 台が動いている ── 傷が巻き戻される` : '記録は止まった'; this.ui.boss('研究者（名前未定）', b.hp / b.hpMax, ph, b.state === 'down'); } }
       for (const x of this.enemies) if (x.kind === 'spouse_like') this.renderGhost7(dt, x);
     }
   },
@@ -344,7 +363,7 @@ export const ch7Methods = {
         e.root.visible = true; e.brain.wake([]); this.lock = e; this.metrics.bossStart7b = this.playSec;
         const C = this.companion; C.brain.setMode('scripted'); C.brain.pos = { x: KIROKU.companionAt[0], z: KIROKU.companionAt[1] }; C.brain.yaw = Math.PI; C.anim = 'hide';
         this.saveSlot('auto', true);
-        this.hint('紫の姿だけ：白い予兆は弾く・赤は避ける。記録装置（3 台）は灯が緑（待機）の時に止める。（相棒）への白い線は、間に立って受ける'); this.later(8, () => this.hint(null));
+        this.hint('紫の姿だけ：白い予兆は弾く・赤は避ける。記録装置（3 台）は灯が緑（待機）の時に止める。灯里への白い線は、間に立って受ける'); this.later(8, () => this.hint(null));
         if (this.assist7b) this.ui.toast('手助け：研究者の体力 −25%（記録に残るだけ）', 'weak', 2);
         return true;
       }
@@ -437,8 +456,8 @@ export const ch7Methods = {
     const E = ENDINGS[id], rf = this.refuges7 || {};
     const stats = [['結末', E.title], ['ルート', this.route.route === 'reveal' ? '妖力解放（化けを、解いた）' : '正体秘匿（人として通した）'], ['プレイ時間', fmt(this.playSec)], ['難しさ', ({ easy: 'やさしい', normal: 'ふつう', hard: 'むずかしい' })[this.settings.difficulty] || '—']];
     if (this.route.route === 'reveal') stats.push(['境界を喰らうもの', this.story.boss7 === 'rescue' ? '中の人を引き上げた' : '—'], ['避難の灯', ABYSS.refuges.map(x => `${x.name.replace(/（仮）/, '')} ${rf[x.id] ?? 100}%`).join('・')]);
-    else stats.push(['研究者', this.story.boss7 === 'neutralize' ? '膝をついた（記録装置を止めた）' : '—'], ['記録装置', `止めた ${(this.flags.decks7 || []).length}／3（書き込み中は ${this.metrics.deckRefused7 || 0} 回待った）`], ['（相棒）', '正体を知らないまま']);
-    stats.push(['（相棒）の信頼', this.companion.brain.trust]);
+    else stats.push(['研究者', this.story.boss7 === 'neutralize' ? '膝をついた（記録装置を止めた）' : '—'], ['記録装置', `止めた ${(this.flags.decks7 || []).length}／3（書き込み中は ${this.metrics.deckRefused7 || 0} 回待った）`], ['灯里', '正体を知らないまま']);
+    stats.push(['灯里の信頼', this.companion.brain.trust]);
     this.metrics.endingCard7 = id;
     this.mode = 'puzzle'; this.input.exitLock();
     this.ui.endCard(stats, () => { this.ui.closePuzzle(); this.toTitle7(); }, `${E.title}　おしまい`, this.galleryMode ? 'ギャラリーの再生でした（記録は変わりません）。' : 'タイトルの「章選択」から、どの章でも遊び直せます。もう一方のルートも、「分岐の前」のセーブか章選択から。', 'タイトルへ');

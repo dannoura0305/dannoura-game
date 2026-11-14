@@ -88,7 +88,7 @@ t('台詞のデータ：話し手・吠え声・調べた時の文がそろう�
   for (const ev of Object.values(events.events)) for (const l of ev) assert.ok(events.speakers[l.who], l.who);
   for (const b of Object.values(events.barks)) assert.ok(events.speakers[b.who], b.who);
   for (const k of ['roster', 'cards', 'torn_tag', 'gym_locked', 'safe_prologue', 'rack_take', 'car']) assert.ok(events.texts[k], k);
-  assert.equal(events.speakers.companion.provisional, true);
+  assert.equal(events.speakers.companion.name, '灯里'); assert.ok(!events.speakers.companion.provisional);   // 2026-11-14：相棒の名前が決まった（瀬名 灯里）
 });
 t('画質の段：スマホの小さい横画面は「低」・PC は「高」・段の値を流し込む', () => {
   assert.equal(autoPreset({ touch: true, w: 844, h: 390 }), 'low'); assert.equal(autoPreset({ touch: true, w: 1180, h: 820 }), 'mid'); assert.equal(autoPreset({ touch: false, w: 1920, h: 1080, cores: 8 }), 'high');

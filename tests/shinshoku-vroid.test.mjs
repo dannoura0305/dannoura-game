@@ -270,7 +270,7 @@ await t('表情：VRM のモデルは台詞の表情（smile・sad・calm）を 
 await t('クレジット（モデルの条件：クレジット必要）：スタッフロールに「キャラクターモデル：WAKABA Project（VRoid Studio で制作）」', async () => {
   const { CREDITS } = await import('../shinshoku/data/ch7.js');
   assert.ok(CREDITS.lines.some(([k, s]) => k === 'p' && s === CREDIT));
-  assert.ok(CREDITS.lines.some(([, s]) => /（相棒）　名前未定/.test(s)) && CREDITS.lines.at(-1)[1] === 'おしまい', '前の行はそのまま');
+  assert.ok(CREDITS.lines.some(([, s]) => /瀬名 灯里/.test(s)) && CREDITS.lines.at(-1)[1] === 'おしまい', '前の行はそのまま');
 });
 
 // ───────── 作る道具 ─────────

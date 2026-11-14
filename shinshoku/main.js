@@ -112,7 +112,7 @@ const LOAD_TIPS = [
   '地図は一時停止メニューの「地図」。黄色の点線が自宅から商店街までの道',
   '暗い所では懐中電灯（L／十字キー下／灯）',
   '自動セーブは場所の移動と決着のあと。手動のセーブは自宅のノートPC',
-  '（相棒）は近くの物陰に隠れる。離れすぎないように',
+  '灯里は近くの物陰に隠れる。離れすぎないように',
   '回復は H／十字キー上／回。缶コーヒーでも少し戻る',
 ];
 const Q = new URLSearchParams(location.search);
@@ -686,7 +686,7 @@ class Game {
     const bn = this.ui.el.boss && this.ui.el.boss.classList.contains('on') ? (this.ui.el.bossn.textContent || '') : '';
     this.music.update(dt, {
       area: this.area.id, normal: this.area.id === 'shotengai' && streetState(this.story.step) === 'normal', credits: !!this.ui.cr,
-      boss: !!bn && !bn.startsWith('（相棒）') && this.mode !== 'title', hostile: this.mode === 'play' ? this.sfx.tension : 0,
+      boss: !!bn && !bn.startsWith('灯里') && this.mode !== 'title', hostile: this.mode === 'play' ? this.sfx.tension : 0,
       cut: !!this.cut.active || this.mode === 'title', voice: !!(this.voice && this.voice.playing), home: this.area.id === 'shotengai' && !!this.wasInHome,
     });
   }
@@ -1097,7 +1097,7 @@ class Game {
     if ((this.mapTick = (this.mapTick || 0) + 1) % 2 === 0 && (this.mode === 'play' || this.mode === 'dialog')) this.drawMinimap();
     if (!this.giantMode) this.ui.hints(dev, { gun: F.weapon === 'handgun', melee: F.melee, match: F.weapon === 'matchlock', white: F.white });
     this.ui.prompt(this.mode === 'play' && !this.cut.active && this.nearSpot && !(this.nearSpot.kind === 'exit' && this.nearSpot.auto) ? this.nearSpot.label : null, dev === 'pad' ? padLabel('B') : dev === 'touch' ? '調' : 'E');
-    const C = this.companion; this.ui.companion(C.root.visible && !this.cut.active && C.brain.mode !== 'scripted' ? C.brain.mode : null, '（相棒）');
+    const C = this.companion; this.ui.companion(C.root.visible && !this.cut.active && C.brain.mode !== 'scripted' ? C.brain.mode : null, '灯里');
     if (this.boss && this.boss.kind === 'utsushimi') { const b = this.boss.brain; if (b.alive && !['dormant', 'rest'].includes(b.state) && !this.cut.active) this.ui.boss('写し身（仮）', b.hp / b.hpMax, b.state === 'voice' ? (this.flags.memo ? '呼び声 ―― 今なら本物の声を聞かせられる' : '呼び声 ―― 動きが止まっている（よく効く）') : b.state === 'tenki' ? '……' : b.phase ? '写す・影の波' : '写す', b.state === 'voice'); }
     else if (this.boss && this.boss.kind === 'shuuyou' && this.boss.brain.alive && !['dormant', 'rest', 'neutral', 'rise'].includes(this.boss.brain.state) && !this.cut.active) { const b = this.boss.brain; this.ui.boss('収容者（仮）', b.hp / b.hpMax, b.state === 'rollcall' ? '点呼中 ―― 今なら名前を呼べる' : b.state === 'stuck' ? '器具庫に挟まっている' : b.state === 'down' ? '崩れている（青い縁）' : ['', '照明が落ちた', '必死'][b.phase] || '', b.state === 'rollcall' || b.state === 'stuck'); }
     if (F.weapon === 'handgun' && F.aimHeld && dev === 'kbm') {

@@ -497,7 +497,7 @@ export const ch6Methods = {
     const stats = [['プレイ時間', fmt(this.playSec)], ['ルート', '正体秘匿（人として通した）'], ['時刻の矛盾', this.flags.mdoor6 ? `01:47 を割り出した（ちがう時刻 ${this.clockMiss6 || 0} 回）` : '—'],
       ['巡回点検', `${ROUNDS.machines.filter(m => this.flags['meas6_' + m.id]).length} / ${ROUNDS.machines.length} 台を測った・診断 ${this.flags.diag6 ? 'P-2（ちがう診断 ' + (this.diagMiss6 || 0) + ' 回）' : '—'}`], ['隔離の手順', this.flags.isolate6 ? `止めて・切って・締めて・抜く（やり直し ${this.lotoMiss6 || 0} 回）` : '—'],
       ['当直', ({ rescue: '救った（点検表を渡した）', neutralize: '動けなくした（レンチを施錠）', kill: '倒した' })[this.story.boss6] || '—'], ['待人（受付）', ({ rescue: '封筒を渡した（救う）', neutralize: '時計を止めた', kill: '倒した' })[this.enemyRes.machibito_1] || '—'],
-      ['任意の資料', ['duty6', 'cover', 'rec6', 'log6'].filter(k => this.flags['seen_' + k]).length + ' / 4'], ['（相棒）の信頼', this.companion.brain.trust]];
+      ['任意の資料', ['duty6', 'cover', 'rec6', 'log6'].filter(k => this.flags['seen_' + k]).length + ' / 4'], ['灯里の信頼', this.companion.brain.trust]];
     this.metrics.endCard6s = true;
     this.mode = 'puzzle'; this.input.exitLock();
     this.ui.endCard(stats, () => { this.ui.closePuzzle(); this.mode = 'play'; this.flags.endcard6s = true; this.saveSlot('auto', true); this.later(0.4, () => this.startCh7b()); }, '第6章B（制御）　ここまで', '続けて終章B（記録の間）へ進めます。「分岐の前」のセーブ（ロード）から、もう一方のルートも遊べます。');

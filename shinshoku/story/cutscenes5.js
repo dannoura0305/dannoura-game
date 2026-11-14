@@ -200,7 +200,7 @@ export const CUTSCENES5 = {
     cam: [{ t: 0, pos: [1.0, 1.6, 27.8], look: [3.4, 0.9, 24.0], fov: 44 }, { t: 4.6, pos: [1.2, 1.4, 27.4], look: [3.4, 0.8, 24.0], fov: 40 }],
     actors: [{ t: 0, id: 'companion', pos: [3.4, 24.0], yaw: P * 0.95, mode: 'scripted', show: true, anim: 'cower' }],
     lines: [
-      { t: 0.4, who: 'sys', text: '（尾に払われた看板が崩れ、破片が（相棒）の腕をかすめた）', dur: 2.6 },
+      { t: 0.4, who: 'sys', text: '（尾に払われた看板が崩れ、破片が灯里の腕をかすめた）', dur: 2.6 },
       { t: 3.2, who: 'companion', text: 'っ……！　……大丈夫、です……', dur: 2.0, expr: 'sad' },
     ],
     events: [{ t: 0.2, do: 'debrisNearCompanion' }, { t: 2.8, do: 'companionInjured' }, { t: 5.4, do: 'rampageResume' }],
@@ -220,7 +220,7 @@ export const CUTSCENES5 = {
     actors: [{ t: 0, id: 'companion', pos: [3.4, 24.0], yaw: P * 0.95, mode: 'scripted', show: true, anim: 'call' }],
     lines: [
       { t: 0.6, who: 'companion', text: 'だんのうらさん！', dur: 1.8 },
-      { t: 2.6, who: 'sys', text: '（大きな瞳に、座り込んだ（相棒）が映る）', dur: 1.8 },
+      { t: 2.6, who: 'sys', text: '（大きな瞳に、座り込んだ灯里が映る）', dur: 1.8 },
       { t: 4.2, who: 'companion', text: '……戻って、きた', dur: 2.0, expr: 'smile' },
       { t: 7.6, who: 'dan', text: '……ごめんなさいね。もう、大丈夫', dur: 2.4, expr: 'sad' },
       { t: 10.4, who: 'dan', text: '今度は、守る番よ', dur: 2.2, expr: 'serious' },
