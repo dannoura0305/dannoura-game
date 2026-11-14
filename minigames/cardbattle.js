@@ -178,7 +178,7 @@ addMinigameStyle('cards',`
 `);
 
 registerMinigame({
-  id:'cards', icon:'🃏', name:'配信トークバトル', genre:'カードバトル', bgm:'stream',
+  id:'cards', icon:'🃏', name:'配信トークバトル', genre:'カードバトル', bgm:'mg_cards',
   desc:'話題カードで配信を荒らす3体の「夜」に挑む。勝つたびにカードが増える。スキルが高いほどデッキが強くなる。',
   effect:'フォロワー↑ 配信人気↑ 収入↑ ／ 疲労+8 約80分',
   help:'タップ2回で使用・PC:1-9/Space',

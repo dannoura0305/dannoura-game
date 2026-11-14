@@ -400,7 +400,7 @@ function synth(name,lv){
 }
 
 registerMinigame({
-  id:'quiz',icon:'📝',name:'危険物取扱者 一問一答',genre:'クイズ',bgm:'factory',
+  id:'quiz',icon:'📝',name:'危険物取扱者 一問一答',genre:'クイズ',bgm:'mg_quiz',
   desc:'来月は乙4の試験。深夜の机で4択を10問。連続正解でコンボ倍率、間違えた問題はまた出る。好成績で模擬試験モード解放。',
   effect:'資格知識↑ 仕事評価↑ 精神± ／ 疲労+5 約50分',
   help:'タップ/1-4キーで解答',

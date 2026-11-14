@@ -134,7 +134,7 @@ var RaceLogic=(function(){
 })();
 
 registerMinigame({
-  id:'race', icon:'🛵', name:'原付で夜勤へ', genre:'3Dレース', bgm:'factory',
+  id:'race', icon:'🛵', name:'原付で夜勤へ', genre:'3Dレース', bgm:'mg_race',
   desc:'配信を延長しすぎた。雨の住宅街・商店街・工業道路を原付で抜けて、22:00の夜勤打刻に間に合わせる本格3Dレース。',
   effect:'仕事評価↑ 精神↑ ／ 疲労+6 約30分',
   help:'←→/画面左右長押しで操作・↓/ブレーキ',

@@ -9,7 +9,7 @@ addMinigameStyle('runner',`
 `);
 
 registerMinigame({
-  id:'runner', icon:'🏃', name:'深夜の買い出しダッシュ', genre:'アクション', bgm:'stream',
+  id:'runner', icon:'🏃', name:'深夜の買い出しダッシュ', genre:'アクション', bgm:'mg_runner',
   desc:'子どもが熱を出した。目を覚ます前に、雨の町を走って24時間コンビニへ。冷却シートと、好きなプリンを買いに。',
   effect:'育児ストレス↓ 精神↑ 収入↑ ／ 疲労+8 約40分',
   help:'タップ:ジャンプ／↓スワイプ:スライド',

@@ -57,7 +57,7 @@ addMinigameStyle('defense',`
 `);
 
 registerMinigame({
-  id:'defense', icon:'🛡', name:'荒らしディフェンス', genre:'タワーディフェンス', bgm:'stream',
+  id:'defense', icon:'🛡', name:'荒らしディフェンス', genre:'タワーディフェンス', bgm:'mg_defense',
   desc:'荒らしの大群がコメント欄に押し寄せる。流れに沿って防衛を置き、配信の「心」を最後まで守り抜け。',
   effect:'炎上↓ フォロワー↑ 配信人気↑ 精神↑ ／ 疲労+8 約60分',
   help:'空き枠に配置・タップで強化',

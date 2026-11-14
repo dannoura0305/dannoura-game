@@ -53,7 +53,7 @@ var StealthLogic=(function(){
 })();
 
 registerMinigame({
-  id:'stealth', icon:'🤫', name:'起こさないで家事', genre:'ステルス', bgm:'night',
+  id:'stealth', icon:'🤫', name:'起こさないで家事', genre:'ステルス', bgm:'mg_stealth',
   desc:'やっと寝た子の横で、0時までに家事を4つ。足音、床のきしみ、踏んだおもちゃ……物音を立てたら起きてしまう。',
   effect:'育児ストレス↓ 精神↑ 希望↑ ／ 疲労+4 約45分',
   help:'ドラッグで移動（ゆっくり＝静か）・長押しで家事／WASD+Space（Shiftで早足）',

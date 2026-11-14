@@ -32,7 +32,7 @@ function ckData(){
 function ckUnlocked(r,d){return !r.plays||d.plays>=r.plays||(gs.day||1)>=r.day;}
 
 registerMinigame({
-  id:'cooking', icon:'🍳', name:'深夜の夜食づくり', genre:'タイミング（料理）', bgm:'night',
+  id:'cooking', icon:'🍳', name:'深夜の夜食づくり', genre:'タイミング（料理）', bgm:'mg_cooking',
   desc:'あの子が寝たあとの小さな台所。卵焼き・ウインナー・焼きおにぎりを作って、明日のお弁当に詰める。端っこは自分の夜食。',
   effect:'育児ストレス↓ 精神↑ 希望↑ ／ 疲労+5 食材費-¥300 約45分',
   help:'金色ゾーンでタップ/Space・盛り付けはドラッグ',
