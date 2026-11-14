@@ -112,5 +112,16 @@ test('効果音：音量 0 なら何も作らない・音量に比例・cancel �
   const r = sandbox(1); r.s.AU._se('btn'); const o1 = r.made.osc; r.s.AU._se('btn'); assert.equal(r.made.osc, o1);
 });
 
+test('ミニゲーム：window.AU を条件に使わない（AU は const なので window に無く、音が鳴らなくなる）・音の一覧を出す・効果音の音量を読む', () => {
+  const files = readdirSync(join(ROOT, 'minigames')).filter(f => f.endsWith('.js') && !['core.js', 'registry.js'].includes(f));
+  assert.ok(files.length >= 17);
+  for (const f of files) {
+    const src = rd('minigames/' + f).split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
+    assert.doesNotMatch(src, /window\.AU\b/, f);
+    assert.match(src, /mg\.exposeSfx\(/, `${f} に mg.exposeSfx が無い`);
+    assert.match(src, /AUDIO_SET\.se/, `${f} が効果音の音量を読んでいない`);
+  }
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

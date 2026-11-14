@@ -364,38 +364,80 @@ const ENDINGS={
   C:{face:'char_tired',lines:['文字が目の上を滑っていく。今夜は頭が働かない。','……無理はしない。倒れたら、あの子の朝ごはんを誰が作る。','ノートを閉じて、目を閉じた。']},
 };
 
-// 効果音：AU.se に加えて、AU.ctx があれば短い合成音を重ねる（SE音量0なら無音）
+// 効果音：Web Audio で合成（本編の AU.se は重ねず、このゲームの音だけで統一。AU.ctx がある時だけ・SE音量0なら無音）
+//   方針：正解は「上がる」明るいベル（ピンポーン）、不正解は「下がる」低いブザー（ブブー）で、音程の動きで聞き分けられるように。
+//   残り時間は 10 秒から時計の刻み、5 秒からやや強く、3 秒からは高い 2 音で急かす。大きさは測って揃えた（LV）。
+let _qNb=null,_qBus=null,_qBusC=null;const _qLast={};
+const _Q_LV={ok:.309,ng:.285,stamp:0.4,page:.832,tick:1.4,tick1:.891,tick2:.724,count:1.4,type:1.6,phase:.562,fanfare:.495,title:.347,notif:.556,decide:.861,btn:1.189,back:.776};
+const _Q_GAP={tick:.2,tick1:.2,tick2:.2,count:.05,type:.03,page:.08,btn:.05,notif:.1};
 function synth(name,lv){
   try{
     if(typeof AU==='undefined')return;
+    const vol=typeof AUDIO_SET==='undefined'?1:Math.max(0,Math.min(1,+AUDIO_SET.se||0));
+    if(!(vol>0))return;
     if(!AU.ctx&&AU.init)AU.init();
-    const ac=AU.ctx;const vol=(typeof AUDIO_SET!=='undefined'?AUDIO_SET.se:1);
-    if(!ac||!(vol>0))return;
+    const ac=AU.ctx;if(!ac)return;
     if(ac.state==='suspended')ac.resume().catch(()=>{});
-    const t0=ac.currentTime+.005;
-    const tone=(f,t,d,g,type,f2)=>{
+    const key=name==='tick'?(lv>=2?'tick2':lv>=1?'tick1':'tick'):name;
+    const now=ac.currentTime,gap=_Q_GAP[key]||0;
+    if(gap&&_qLast[key]!=null&&now-_qLast[key]<gap&&now>=_qLast[key])return;
+    _qLast[key]=now;
+    if(!_qBus||_qBusC!==ac){const c=ac.createDynamicsCompressor();try{c.threshold.value=-14;c.knee.value=6;c.ratio.value=6;c.attack.value=.002;c.release.value=.1;}catch(e){}c.connect(ac.destination);_qBus=c;_qBusC=ac;}
+    if(!_qNb||_qNb.sampleRate!==ac.sampleRate){_qNb=ac.createBuffer(1,ac.sampleRate|0,ac.sampleRate);const ch=_qNb.getChannelData(0);for(let i=0;i<ch.length;i++)ch[i]=Math.random()*2-1;}
+    const out=ac.createGain();out.gain.value=vol*(_Q_LV[key]||1);out.connect(_qBus);
+    const t0=now+.005;
+    // tone(周波数, 開始時刻, 長さ, 大きさ, 波形, 終わりの周波数, 立ち上がり)
+    const tone=(f,t,d,g,type,f2,atk)=>{
       const o=ac.createOscillator(),gn=ac.createGain();o.type=type||'triangle';
       o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);
-      gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g*vol),t+.01);gn.gain.exponentialRampToValueAtTime(.0001,t+d);
-      o.connect(gn);gn.connect(ac.destination);o.start(t);o.stop(t+d+.02);
+      gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t+(atk||.006));gn.gain.exponentialRampToValueAtTime(.0001,t+d);
+      o.connect(gn);gn.connect(out);o.start(t);o.stop(t+d+.03);
     };
-    const noise=(t,d,g,fq,q,fq2)=>{
-      const len=Math.max(1,Math.floor(ac.sampleRate*d)),buf=ac.createBuffer(1,len,ac.sampleRate),ch=buf.getChannelData(0);
-      for(let i=0;i<len;i++)ch[i]=(Math.random()*2-1)*(1-i/len);
-      const s=ac.createBufferSource(),f=ac.createBiquadFilter(),gn=ac.createGain();s.buffer=buf;
-      f.type='bandpass';f.frequency.setValueAtTime(fq,t);if(fq2)f.frequency.exponentialRampToValueAtTime(fq2,t+d);f.Q.value=q||1;
-      gn.gain.setValueAtTime(g*vol,t);s.connect(f);f.connect(gn);gn.connect(ac.destination);s.start(t);
+    // noise(開始時刻, 長さ, 大きさ, 周波数, Q, 終わりの周波数, フィルタ)
+    const noise=(t,d,g,fq,q,fq2,ft)=>{
+      const s=ac.createBufferSource(),f=ac.createBiquadFilter(),gn=ac.createGain();s.buffer=_qNb;
+      f.type=ft||'bandpass';f.frequency.setValueAtTime(fq,t);if(fq2)f.frequency.exponentialRampToValueAtTime(fq2,t+d);f.Q.value=q||1;
+      gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t+.003);gn.gain.exponentialRampToValueAtTime(.0001,t+d);
+      s.connect(f);f.connect(gn);gn.connect(out);s.start(t,Math.random()*.5);s.stop(t+d+.03);
     };
-    const k=Math.pow(2,Math.min(lv||0,8)/12);
-    if(name==='ok'){[0,4,7,12].forEach((s,i)=>tone(660*k*Math.pow(2,s/12),t0+i*.055,.22,.07,'triangle'));tone(1320*k,t0+.2,.35,.03,'sine');}
-    else if(name==='ng'){tone(220,t0,.28,.08,'square',110);tone(233,t0+.02,.28,.05,'sawtooth',116);}
-    else if(name==='stamp'){noise(t0,.12,.5,180,.8);tone(90,t0,.14,.12,'sine',50);}
-    else if(name==='page'){noise(t0,.22,.22,1800,.7,5200);}
-    else if(name==='tick'){noise(t0,.025,.22,3200,4);}
-    else if(name==='type'){tone(880+Math.random()*120,t0,.03,.025,'square');}
-    else if(name==='phase'){[0,5,7,12].forEach((s,i)=>tone(392*Math.pow(2,s/12),t0+i*.09,.3,.05,'sawtooth'));noise(t0,.5,.08,600,.5,4000);}
-    else if(name==='fanfare'){[0,4,7,12,16,19,24].forEach((s,i)=>tone(523*Math.pow(2,s/12),t0+i*.07,.4,.06,'triangle'));}
-    else if(name==='title'){tone(98,t0,1.1,.08,'sine',96);[0,7,12].forEach((s,i)=>tone(392*Math.pow(2,s/12),t0+.15+i*.12,.6,.04,'triangle'));}
+    const bell=(f,t,d,g)=>{tone(f,t,d,g,'sine');tone(f*2.01,t,d*.5,g*.25,'sine');tone(f*3.98,t,d*.25,g*.07,'sine');};
+    const k=Math.pow(2,Math.min(lv||0,8)/12);   // 連続正解で少しずつ上がる
+    switch(key){
+      // 正解：5 度上がる「ピン・ポーン」＋きらめき
+      case 'ok':bell(880*k,t0,.16,.2);tone(880*k,t0,.12,.06,'triangle');bell(1319*k,t0+.11,.5,.22);tone(1319*k,t0+.11,.3,.06,'triangle');noise(t0+.11,.25,.06,6000,1.5,9000);break;
+      // 不正解：下がる低いブザー「ブッ・ブー」（角を落とした矩形波）
+      case 'ng':{const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1400;lp.connect(out);
+        const bz=(f,f2,t,d,g)=>{const o=ac.createOscillator(),o2=ac.createOscillator(),gn=ac.createGain();o.type='square';o2.type='sawtooth';
+          o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f2,t+d);o2.frequency.setValueAtTime(f*1.012,t);o2.frequency.exponentialRampToValueAtTime(f2*1.012,t+d);
+          gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(g,t+.01);gn.gain.setValueAtTime(g,t+d*.7);gn.gain.exponentialRampToValueAtTime(.0001,t+d);
+          o.connect(gn);o2.connect(gn);gn.connect(lp);o.start(t);o2.start(t);o.stop(t+d+.03);o2.stop(t+d+.03);};
+        bz(233,220,t0,.11,.09);bz(196,165,t0+.15,.32,.09);break;}
+      // 時間切れのハンコ
+      case 'stamp':noise(t0,.08,.5,650,.7,0,'lowpass');tone(150,t0,.13,.4,'sine',80,.006);noise(t0,.015,.3,3000,1.5);break;
+      // 紙をめくる「サッ」
+      case 'page':noise(t0,.16,.3,1200,.8,4200);noise(t0+.06,.08,.15,5000,1.2);break;
+      // 残り時間の刻み（10〜6 秒：小さな「コッ」、5〜4 秒：やや強く、3〜1 秒：高い 2 音）
+      case 'tick':noise(t0,.02,.45,2600,3);tone(1100,t0,.03,.06,'sine');break;
+      case 'tick1':noise(t0,.025,.6,2900,3);tone(1320,t0,.05,.12,'triangle');break;
+      case 'tick2':tone(1760,t0,.06,.16,'triangle');tone(1760,t0+.09,.06,.13,'triangle');noise(t0,.02,.5,3200,3);break;
+      // 結果の数え上げ
+      case 'count':{const p=1+(Math.random()-.5)*.08;noise(t0,.012,.35,3600*p,2);tone(1500*p,t0,.02,.05,'sine');break;}
+      // 会話の文字送り
+      case 'type':{const p=1+(Math.random()-.5)*.12;noise(t0,.009,.25,3200*p,1.5);tone(1900*p,t0,.018,.05,'sine');break;}
+      // フェーズの切り替え：ゆっくり上がる 4 音＋サッ
+      case 'phase':[0,5,7,12].forEach((s,i)=>{tone(392*Math.pow(2,s/12),t0+i*.09,.32,.12,'triangle');tone(784*Math.pow(2,s/12),t0+i*.09,.2,.03,'sine');});noise(t0,.4,.08,600,.6,4000);break;
+      // 連続正解・ランクアップ・好成績
+      case 'fanfare':[0,4,7,12,16,19,24].forEach((s,i)=>{const f=523*Math.pow(2,s/12);tone(f,t0+i*.07,i===6?.6:.3,.12,'triangle');tone(f*2,t0+i*.07,.15,.025,'sine');});tone(262,t0+.42,.6,.12,'sine');break;
+      // タイトル：深夜のランプが灯る
+      case 'title':tone(98,t0,1.1,.14,'sine',96,.05);[0,7,12].forEach((s,i)=>bell(392*Math.pow(2,s/12),t0+.15+i*.12,.6,.09));break;
+      // 出題：やわらかい「ポン」
+      case 'notif':bell(1047,t0,.22,.12);tone(523,t0,.08,.08,'triangle');break;
+      // 決定（開始・50:50）
+      case 'decide':noise(t0,.02,.4,2800,2.5);tone(659,t0,.07,.16,'triangle');tone(988,t0+.06,.12,.16,'triangle');break;
+      // 会話を進める・飛ばす
+      case 'btn':noise(t0,.016,.4,2400,2);tone(880,t0,.04,.13,'triangle',700);break;
+      case 'back':noise(t0,.1,.25,2600,1,700);tone(660,t0,.08,.12,'triangle',440);break;
+    }
   }catch(e){}
 }
 
@@ -405,6 +447,7 @@ registerMinigame({
   effect:'資格知識↑ 仕事評価↑ 精神± ／ 疲労+5 約50分',
   help:'タップ/1-4キーで解答',
   start(body,mg){
+    if(mg&&mg.exposeSfx)mg.exposeSfx(['ok','ok5','ng','stamp','page','tick','tick1','tick2','count','type','phase','fanfare','title','notif','decide','btn','back'],k=>k==='ok5'?synth('ok',5):k==='tick1'?synth('tick',1):k==='tick2'?synth('tick',2):synth(k));
     // 難しさ（開始時に読む）：制限時間・出題の難易度寄せ・50:50ヒントの回数
     const DIFF=mgDifficulty();
     mg.el('mg-title').insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);
@@ -704,7 +747,7 @@ registerMinigame({
     function pickMode(m){
       if(st!=='title'||(m&&!data.mockOpen))return;
       mock=m;qs=pickQuestions(ck,data,mock,focus,Q_BIAS);
-      AU.se('decide');synth('page');
+      synth('decide');synth('page');
       st='story';elTitle.classList.add('off');
       startStory(storyLines(),showIntro,'char_normal',`<small>PROLOGUE</small>${mock?'模擬試験の夜':'勉強の夜'}`);
     }
@@ -723,14 +766,14 @@ registerMinigame({
         `<div class="quiz-story-box"><div class="quiz-face" style="background-image:${IMG(faceN)}"></div><div style="flex:1"><div class="quiz-story-name">だんのうら</div><div class="quiz-story-txt"></div></div><div class="quiz-story-nx">▼ TAP</div></div>`;
       sTxt=elStory.querySelector('.quiz-story-txt');
       elStory.classList.remove('off');
-      elStory.querySelector('.quiz-story-skip').addEventListener('click',e=>{e.stopPropagation();AU.se('back');endStory();});
+      elStory.querySelector('.quiz-story-skip').addEventListener('click',e=>{e.stopPropagation();synth('back');endStory();});
       elStory.onclick=advStory;
     }
     function advStory(){
       if(!sDone)return;
       const line=sLines[sIdx]||'';
       if(sChar<line.length){sChar=line.length;sTxt.textContent=line;return;}
-      AU.se('btn');sIdx++;sChar=0;sAcc=0;
+      synth('btn');sIdx++;sChar=0;sAcc=0;
       if(sIdx>=sLines.length)endStory();
     }
     function endStory(){if(!sDone)return;const d=sDone;sDone=null;elStory.onclick=null;elStory.classList.add('off');d();}
@@ -764,7 +807,7 @@ registerMinigame({
     }
     function begin(){
       if(st!=='intro')return;
-      st='wait';AU.se('decide');elOv.classList.remove('on');root.classList.remove('quiz-pre');
+      st='wait';synth('decide');elOv.classList.remove('on');root.classList.remove('quiz-pre');
       later(()=>showPhase(0,showQuestion),250);
     }
     function showPhase(p,cb){
@@ -773,7 +816,7 @@ registerMinigame({
       elPhase.querySelector('small').textContent=`PHASE ${p+1} · ${P.en}`;
       elPhase.querySelector('b').textContent=P.name;
       elPhase.classList.remove('on');void elPhase.offsetWidth;elPhase.classList.add('on');
-      synth('phase');AU.se('notif');
+      synth('phase');
       say(['まずは肩慣らし。','ここからが本番。','最後は実戦問題。落ち着いて。'][p],1800);
       face(p===2?'char_fear':'char_normal','hop');
       later(cb,1050);
@@ -812,7 +855,7 @@ registerMinigame({
       if(combo<3)face('char_normal');
       if((data.wrong[cur.id]||0)>0)say('……これ、前に間違えたやつね。',1800);
       setCombo(false);hudScore();
-      AU.se('notif');
+      synth('notif');
     }
 
     // 50:50：まちがいの選択肢を2つ消す（やさしい・ふつうのみ）
@@ -822,7 +865,7 @@ registerMinigame({
       const btns=[...elCh.children],wrong=btns.map((b,i)=>i).filter(i=>i!==correctIdx);
       for(let i=wrong.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[wrong[i],wrong[j]]=[wrong[j],wrong[i]];}
       wrong.slice(0,2).forEach(i=>{btns[i].disabled=true;btns[i].classList.add('is-dim');});
-      AU.se('decide');say('……この2つは違う。',1200);
+      synth('decide');say('……この2つは違う。',1200);
     }
     elHint.addEventListener('click',useHint);
     function choose(k){
@@ -849,9 +892,9 @@ registerMinigame({
         const cdr=relRect(elCard);burst(cdr.x+cdr.w/2,cdr.y+cdr.h/2,12,['#ff3b5c','#ffd38a'],.7);
         flash=1;flashCol='255,200,120';
         pop(cr.x+cr.w*.55,cr.y-4,`+${gained}${combo>=2?` <small style="font-size:.7em">×${multOf(combo).toFixed(1)}</small>`:''}`);
-        AU.se(combo>=3?'ach':'rank');synth('ok',combo-1);
+        synth('ok',combo-1);
         face(combo>=3?'char_win':'char_happy','hop');say(combo>=3?rpick(COMBO_LINES):rpick(OK_LINES),1300);
-        if([3,5,7,10].includes(combo)){later(()=>{banner(combo===10?'全問連続正解！':combo+'連続正解！');AU.se('ach');synth('fanfare');
+        if([3,5,7,10].includes(combo)){later(()=>{banner(combo===10?'全問連続正解！':combo+'連続正解！');synth('fanfare');
           burst(W/2,Hh*.4,40,['#e8b830','#fff3c8','#e83055','#00e8c8'],1.3);},260);}
       }else{
         combo=0;
@@ -864,7 +907,7 @@ registerMinigame({
         btns.forEach((b,i)=>{if(i!==k&&i!==correctIdx)b.classList.add('is-dim');});
         vign=1;
         root.classList.remove('quiz-shake');void root.offsetWidth;root.classList.add('quiz-shake');
-        AU.se('warn');synth('ng');
+        synth('ng');
         face(timeout?'char_tired':'char_fear','sad');say(timeout?'あ、時間……':rpick(NG_LINES),1400);
       }
       setCombo(ok);hudScore();
@@ -889,7 +932,7 @@ registerMinigame({
       if(st!=='reveal')return;
       if(!elSheet.classList.contains('on')){openSheet();return;}   // 早押しは解説をすぐ出す
       if(performance.now()-sheetAt<300)return;
-      AU.se('btn');synth('page');
+      synth('page');
       elSheet.classList.remove('on');
       elCard.classList.remove('enter');elCard.classList.add('out');
       qi++;st='wait';
@@ -935,15 +978,15 @@ registerMinigame({
       const cnt=elOv.querySelector('.quiz-f-cnt'),pts=elOv.querySelector('.quiz-f-pts');
       const t0=performance.now();
       const step=()=>{if(mg._ended||st!=='final')return;const k=Math.min(1,(performance.now()-t0)/900),e=1-Math.pow(1-k,3);
-        cnt.textContent=Math.round(correct*e);pts.textContent=Math.round(score*e).toLocaleString();if(k<1){if(Math.random()<.4)synth('tick');requestAnimationFrame(step);}};
+        cnt.textContent=Math.round(correct*e);pts.textContent=Math.round(score*e).toLocaleString();if(k<1){if(Math.random()<.4)synth('count');requestAnimationFrame(step);}};
       requestAnimationFrame(step);
-      later(()=>{synth('stamp');AU.se(correct>=7?'ach':'decide');
+      later(()=>{synth('stamp');
         if(correct>=7){synth('fanfare');const r=relRect(elOv.querySelector('.quiz-paper'));for(let i=0;i<3;i++)later(()=>burst(r.x+r.w*(.2+.3*i),r.y+30,26,['#e8b830','#00e8c8','#e83055','#44ee88','#b98cff'],1.1),i*160);}
       },1150);
     }
     function finish(){
       if(st!=='final'||performance.now()-finalAt<500)return;
-      AU.se('decide');synth('page');
+      synth('decide');synth('page');
       st='ending';elOv.classList.remove('on');root.classList.add('quiz-pre');
       const E=ENDINGS[grade.g];
       if(grade.g==='B'||grade.g==='C')lampOn=grade.g==='C'?.3:.6;
@@ -958,7 +1001,8 @@ registerMinigame({
         const s=Math.max(0,Math.ceil(left));
         elFill.style.width=Math.max(0,left/qtime*100)+'%';
         if(s!==lastSec){lastSec=s;elTN.textContent=s;mg.setTimer(s+'s');
-          if(s<=5&&s>0){elTimer.classList.add('low');AU.se('comment');synth('tick');if(s===5){face('char_fear');say('やば、時間……',1200);}}}
+          if(s<=10&&s>0)synth('tick',s<=3?2:s<=5?1:0);
+          if(s<=5&&s>0){elTimer.classList.add('low');if(s===5){face('char_fear');say('やば、時間……',1200);}}}
         if(left<=0)choose(-1);
       }
       storyTick(dt);

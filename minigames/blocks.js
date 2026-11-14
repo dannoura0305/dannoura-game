@@ -104,52 +104,98 @@ registerMinigame({
     const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
     const bd=gs.blocksData=Object.assign({best:0,bestLines:0,plays:0,bestGrade:'',clears:0,bestShip:0,bestChain:0},gs.blocksData||{});
 
-    // ── 効果音（Web Audioで合成。SE音量0なら無音） ──
-    let nbuf=null;
+    // ── 効果音（Web Audioで合成。SE音量0なら無音。本編の AU.se は重ねず、この中の音だけで統一） ──
+    //   方針：工場の部品なので「金属・プラスチックのカチッ／ゴトッ」。移動は小さく、回転は少し上がる音、
+    //   着地は軽い「コッ」、固定は「ガチャ」、ハードドロップは風切り＋重い「ドン」。組立（消去）は和音で、
+    //   連鎖ごとに 2 半音ずつ上がり音も増える。繰り返す音はゆらし、連打は間引く。大きさは測って揃えた（LV）。
+    let nbuf=null,sbus=null,sbusC=null;const sLast={};
+    const SLV={move:1.9,rotate:.794,lock:0.66,land:.556,hard:.269,hold:.741,merge:.407,weld:1.3,fix:.575,tick:.902,ship:.462,beep:.716,horn:.442,crash:.285,start:.646,blip:1.4,warn:.724,whistle:.891,stamp:.484,fanfare:.638,sad:.75,next:1.0,skip:1.0,decide:.767,nohold:.582};
+    const SGAP={move:.045,rotate:.035,land:.045,lock:.05,weld:.06,blip:.03,tick:.05,beep:.1,next:.05};
     function sfx(name,arg){
       try{
-        if(typeof AUDIO_SET!=='undefined'&&AUDIO_SET.se<=0)return;
+        const vol=typeof AUDIO_SET==='undefined'?1:Math.max(0,Math.min(1,+AUDIO_SET.se||0));
+        if(vol<=0)return;
         if(!AU.ctx&&AU.init)AU.init();
         const ac=AU.ctx;
         if(!ac)return;
         if(ac.state==='suspended')ac.resume().catch(()=>{});
-        const vol=(typeof AUDIO_SET!=='undefined'?AUDIO_SET.se:1)*.9,t0=ac.currentTime;
-        const tone=(f,type,g,d,at,f2)=>{at=at||0;const o=ac.createOscillator(),gn=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,t0+at);
-          if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+at+d);gn.gain.setValueAtTime(.0001,t0+at);gn.gain.linearRampToValueAtTime(g*vol,t0+at+.006);
-          gn.gain.exponentialRampToValueAtTime(.0001,t0+at+d);o.connect(gn);gn.connect(ac.destination);o.start(t0+at);o.stop(t0+at+d+.03);};
-        const noise=(g,d,at,freq,q)=>{at=at||0;
-          if(!nbuf){nbuf=ac.createBuffer(1,ac.sampleRate*.5,ac.sampleRate);const ch=nbuf.getChannelData(0);for(let i=0;i<ch.length;i++)ch[i]=Math.random()*2-1;}
-          const s=ac.createBufferSource(),f=ac.createBiquadFilter(),gn=ac.createGain();s.buffer=nbuf;f.type='bandpass';f.frequency.value=freq||800;f.Q.value=q||.8;
-          gn.gain.setValueAtTime(g*vol,t0+at);gn.gain.exponentialRampToValueAtTime(.0001,t0+at+d);s.connect(f);f.connect(gn);gn.connect(ac.destination);s.start(t0+at);s.stop(t0+at+d+.02);};
+        const now=ac.currentTime,gap=SGAP[name]||0;
+        if(gap&&sLast[name]!=null&&now-sLast[name]<gap&&now>=sLast[name])return;
+        sLast[name]=now;
+        if(!sbus||sbusC!==ac){const k=ac.createDynamicsCompressor();try{k.threshold.value=-14;k.knee.value=6;k.ratio.value=6;k.attack.value=.002;k.release.value=.1;}catch(_){}k.connect(ac.destination);sbus=k;sbusC=ac;}
+        if(!nbuf||nbuf.sampleRate!==ac.sampleRate){nbuf=ac.createBuffer(1,ac.sampleRate|0,ac.sampleRate);const ch=nbuf.getChannelData(0);for(let i=0;i<ch.length;i++)ch[i]=Math.random()*2-1;}
+        const out=ac.createGain();out.gain.value=vol*(SLV[name]||1);out.connect(sbus);
+        const t0=now+.005;
+        // tone(周波数, 波形, 大きさ, 長さ, 開始, 終わりの周波数, 立ち上がり)
+        const tone=(f,type,g,d,at,f2,atk)=>{at=at||0;const o=ac.createOscillator(),gn=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,t0+at);
+          if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+at+d);gn.gain.setValueAtTime(.0001,t0+at);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t0+at+(atk||.004));
+          gn.gain.exponentialRampToValueAtTime(.0001,t0+at+d);o.connect(gn);gn.connect(out);o.start(t0+at);o.stop(t0+at+d+.03);};
+        // noise(大きさ, 長さ, 開始, 周波数, Q, フィルタ, 終わりの周波数)
+        const noise=(g,d,at,freq,q,ft,f2)=>{at=at||0;
+          const s=ac.createBufferSource(),f=ac.createBiquadFilter(),gn=ac.createGain();s.buffer=nbuf;f.type=ft||'bandpass';f.frequency.setValueAtTime(freq||800,t0+at);
+          if(f2)f.frequency.exponentialRampToValueAtTime(f2,t0+at+d);f.Q.value=q||.8;
+          gn.gain.setValueAtTime(.0001,t0+at);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t0+at+.002);gn.gain.exponentialRampToValueAtTime(.0001,t0+at+d);
+          s.connect(f);f.connect(gn);gn.connect(out);s.start(t0+at,Math.random()*.5);s.stop(t0+at+d+.02);};
+        const J=a=>1+(Math.random()*2-1)*a;
+        const bell=(f,g,d,at)=>{tone(f,'sine',g,d,at);tone(f*2.01,'sine',g*.25,d*.5,at);tone(f*3.97,'sine',g*.07,d*.25,at);};
         switch(name){
-          case 'move':tone(300,'square',.018,.03);noise(.02,.025,0,2400,2);break;
-          case 'rotate':tone(480,'triangle',.05,.06,0,760);noise(.025,.03,0,3200,3);break;
-          case 'lock':tone(170,'square',.045,.07,0,80);noise(.05,.06,0,600);break;
-          case 'land':tone(120,'sine',.05,.06,0,70);noise(.03,.04,0,900,1.2);break;
-          case 'hard':noise(.18,.18,0,260,.7);tone(110,'sine',.2,.2,0,40);noise(.05,.07,.02,2600,3);break;
-          case 'hold':tone(392,'sine',.06,.07);tone(587,'sine',.06,.09,.06);break;
-          case 'merge':{const tier=(arg&&arg.tier)||1,ch=(arg&&arg.chain)||1;const up=Math.pow(1.0595,Math.min(14,(ch-1)*3+tier));
-            [392,494,587,784].forEach((f,i)=>tone(f*up,'triangle',.07,.14,i*.045));
-            noise(.09,.16,0,3400,2.5);tone(90,'square',.06,.09,0,60);break;}
-          case 'weld':noise(.04,.06,0,4200,4);break;
-          case 'fix':tone(660,'square',.04,.06);tone(990,'square',.04,.1,.07);tone(1320,'triangle',.05,.16,.14);break;
-          case 'tick':tone(880,'square',.03,.05);break;
-          case 'ship':[523,659,784,1047].forEach((f,i)=>tone(f,'triangle',.08,i===3?.45:.12,i*.09));tone(1568,'sine',.05,.5,.38);tone(220,'sawtooth',.05,.5,.1,215);break;
-          case 'beep':tone(1040,'square',.035,.09);tone(1040,'square',.035,.09,.22);break;
-          case 'horn':tone(220,'sawtooth',.06,.55,0,215);tone(277,'sawtooth',.045,.55,0,272);break;
-          case 'crash':noise(.28,.9,0,300,.5);noise(.18,.6,.12,900,.8);tone(90,'sawtooth',.12,.8,0,30);break;
-          case 'start':[523,784,1047].forEach((f,i)=>tone(f,'square',.04,.12,i*.08));break;
-          case 'blip':tone(760+Math.random()*80,'square',.012,.025);break;
-          case 'warn':tone(660,'square',.04,.12);tone(520,'square',.04,.14,.14);break;
-          case 'whistle':tone(1800,'sine',.06,.18,0,2200);tone(1800,'sine',.06,.4,.22,2100);break;
-          case 'stamp':noise(.2,.15,0,400);tone(160,'square',.08,.12,0,80);break;
-          case 'fanfare':[523,659,784,1047,784,1047].forEach((f,i)=>tone(f,'triangle',.07,i===5?.5:.13,i*.11));break;
-          case 'sad':[392,370,330,262].forEach((f,i)=>tone(f,'triangle',.05,.3,i*.2));break;
+          // 横移動：小さな「チッ」
+          case 'move':{const p=J(.05);noise(.4,.014,0,4200*p,2.2);tone(1500*p,'sine',.09,.025,0,1200*p);tone(520*p,'triangle',.12,.03,0,440*p);break;}
+          // 回転：プラスチックの「カチッ」＋少し上がる音
+          case 'rotate':{const p=J(.05);noise(.6,.02,0,2600*p,2.5);tone(620*p,'triangle',.22,.06,0,900*p);break;}
+          // 着地（バラけた部品が積み上がる）：軽い「コッ」
+          case 'land':{const p=J(.08);tone(240*p,'triangle',.3,.06,0,170*p);noise(.45,.03,0,1100*p,1.4);break;}
+          // 固定：金具の「ガチャ」
+          case 'lock':{const p=J(.04);noise(.7,.04,0,1500*p,1.6);tone(150*p,'square',.06,.07,0,100*p);tone(180*p,'triangle',.3,.08,0,120*p);noise(.35,.02,.035,3200*p,3);break;}
+          // ハードドロップ：風切り＋重い「ドン」（固定の音もこれに含む）
+          case 'hard':noise(.25,.07,0,900,1,'bandpass',3800);tone(120,'sine',.7,.22,.05,45);noise(.7,.1,.05,380,.7,'lowpass');noise(.3,.03,.06,2600,2.5);break;
+          // ホールド：入れ替えの「シュッ・カチ」
+          case 'hold':noise(.35,.08,0,1200,1.2,'bandpass',3600);tone(523,'triangle',.18,.06,.04);tone(784,'triangle',.18,.09,.09);break;
+          // ホールドできない：くぐもった「ブッ」
+          case 'nohold':tone(150,'triangle',.4,.08,0,120);noise(.3,.04,0,400,.8,'lowpass');break;
+          // 組立（消去）：和音。連鎖ごとに 2 半音上がり、音が増え、きらめきが乗る
+          case 'merge':{const tier=(arg&&arg.tier)||1,ch=(arg&&arg.chain)||1;const up=Math.pow(2,(Math.min(6,ch-1)*2+Math.min(5,tier-1))/12);
+            const notes=[523,659,784,1047,1319,1568].slice(0,Math.min(6,3+ch));
+            notes.forEach((f,i)=>{tone(f*up,'triangle',.13,i===notes.length-1?.32:.14,i*.04);tone(f*up*2,'sine',.03,.1,i*.04);});
+            noise(.3,.09,0,3000,2,'bandpass',6000);tone(110,'sine',.35,.12,0,70);
+            if(ch>=2)notes.forEach((f,i)=>bell(f*up*2,.035+.008*Math.min(4,ch),.25,.06+i*.04));
+            break;}
+          // 溶接の火花：ごく小さな「チリッ」
+          case 'weld':{const p=J(.15);noise(.25,.03,0,5200*p,4);break;}
+          // 不良品の修理完了：ラチェット＋「チン」
+          case 'fix':[0,.05,.1].forEach((a,i)=>noise(.5,.02,a,3000+i*400,3));tone(200,'triangle',.25,.1,0,140);bell(1568,.13,.3,.15);break;
+          // 不良品にもう 1 回：金属の「キン」
+          case 'tick':tone(1320,'triangle',.16,.09);tone(1980,'sine',.05,.06);noise(.25,.02,0,3500,3);break;
+          // ロボット完成・出荷：明るい上がりの和音＋「チーン」
+          case 'ship':[523,659,784,1047].forEach((f,i)=>{tone(f,'triangle',.15,i===3?.55:.14,i*.08);});bell(2093,.09,.6,.32);tone(262,'sine',.18,.6,.32);noise(.2,.2,.3,4000,1.5,'bandpass',8000);break;
+          // リフト・場面切り替え：やわらかい 2 回の「ピッ」
+          case 'beep':tone(988,'triangle',.14,.08);tone(988,'triangle',.14,.1,.2);break;
+          // スピードアップ：工場のチャイム（2 音）
+          case 'horn':tone(659,'triangle',.18,.3);tone(330,'sine',.12,.3);tone(523,'triangle',.18,.42,.25);tone(262,'sine',.12,.42,.25);break;
+          // 積み上がり（失敗）：崩れる「ガラガラ・ドン」
+          case 'crash':noise(.6,.5,0,600,.6,'lowpass',200);for(let i=0;i<6;i++)noise(.4,.05,.05+i*.07,1200+Math.random()*2400,2.5);tone(90,'sine',.6,.6,0,35);break;
+          // 開始：上がる 3 音
+          case 'start':[523,784,1047].forEach((f,i)=>{tone(f,'triangle',.16,i===2?.3:.12,i*.08);tone(f*2,'sine',.03,.08,i*.08);});break;
+          // 会話の文字送り
+          case 'blip':{const p=J(.06);noise(.25,.008,0,3400*p,1.5);tone(1900*p,'sine',.05,.018);break;}
+          // 危険（あふれそう）：下がる 2 音
+          case 'warn':tone(784,'triangle',.18,.12);tone(587,'triangle',.18,.16,.15);tone(392,'sine',.06,.16,.15);break;
+          // 班長の笛・終業の笛
+          case 'whistle':tone(1900,'sine',.08,.16,0,2200,.02);tone(1900,'sine',.08,.36,.2,2050,.02);break;
+          // 評価のハンコ
+          case 'stamp':noise(.8,.07,0,700,.7,'lowpass');tone(150,'sine',.5,.12,0,80);noise(.3,.015,0,3000,1.5);break;
+          case 'fanfare':[523,659,784,1047,784,1047].forEach((f,i)=>{tone(f,'triangle',.15,i===5?.55:.14,i*.11);tone(f*2,'sine',.03,.1,i*.11);});tone(262,'sine',.12,.6,.55);break;
+          case 'sad':[392,370,330,262].forEach((f,i)=>{tone(f,'triangle',.16,i===3?.45:.22,i*.18);tone(f/2,'sine',.08,.22,i*.18);});break;
+          // 会話を進める・飛ばす・決定
+          case 'next':noise(.4,.016,0,2400,2);tone(880,'triangle',.15,.04,0,700);break;
+          case 'skip':noise(.3,.12,0,700,1,'bandpass',2600);tone(660,'triangle',.12,.08,0,440);break;
+          case 'decide':noise(.4,.02,0,2800,2.5);tone(659,'triangle',.18,.07);tone(988,'triangle',.18,.12,.06);break;
           default:tone(420,'sine',.05,.05);
         }
       }catch(_){}
     }
     const se=t2=>{try{AU.se(t2);}catch(_){}};
+    if(mg&&mg.exposeSfx)mg.exposeSfx(['move','rotate','lock','land','hard','hold','nohold','merge','merge3','weld','fix','tick','ship','beep','horn','crash','start','blip','warn','whistle','stamp','fanfare','sad','next','skip','decide'],k=>k==='merge3'?sfx('merge',{tier:2,chain:3}):sfx(k));
 
     // ── DOM ──
     const cv=document.createElement('canvas');cv.className='blocks-cv';body.appendChild(cv);
@@ -453,11 +499,11 @@ registerMinigame({
     function doHold(){
       if(buffer('hold'))return;
       if(phase!=='play'||!cur)return;
-      if(holdUsed){sfx('warn');return;}
+      if(holdUsed){sfx('nohold');return;}
       const p={a:cur.a,b:cur.b};
       holdUsed=true;
       if(hold){const h=hold;hold=p;spawnNext(h);}else{hold=p;spawnNext();}
-      sfx('hold');se('btn');
+      sfx('hold');
     }
     const cellPx=(X,Y)=>[wx+X*cs,wy+(Y-HID)*cs];
     function lockPair(hard){
@@ -465,7 +511,7 @@ registerMinigame({
       pcells(cur.x,cur.y,cur.o).forEach(([x,y],i)=>{board[y][x]=mkCell(i?cur.b:cur.a);});
       pieces++;
       cur=null;holdUsed=false;
-      sfx('lock');se('tool');
+      if(!hard)sfx('lock');
       doGravity();
       chain=0;settleT=0;phase='settle';
     }
@@ -507,7 +553,7 @@ registerMinigame({
       const map={};
       groups.forEach(G=>G.cells.forEach(([x,y])=>{map[y*COLS+x]={tx:G.tx,ty:G.ty,target:x===G.tx&&y===G.ty};}));
       mergeData={groups,map,t:0};phase='merge';
-      sfx('merge',{tier:Math.max(...groups.map(G=>G.tier)),chain});se('repair');
+      sfx('merge',{tier:Math.max(...groups.map(G=>G.tier)),chain});
       tutDone(3);
     }
     function applyMerge(){
@@ -547,7 +593,7 @@ registerMinigame({
       flyers.push({x:px,y:py,t:0});
       addLift(shipped);
       pop(`ロボット完成！ 出荷！ +${pts}`,py,'#ff74da',true,0,px+cs/2);
-      flash=.7;shake=Math.max(shake,8);sfx('ship');se('rank');buzz([30,40,60]);
+      flash=.7;shake=Math.max(shake,8);sfx('ship');buzz([30,40,60]);
     }
     function afterResolve(){
       let over=false;for(let x=0;x<COLS;x++)if(board[0][x])over=true;
@@ -563,15 +609,15 @@ registerMinigame({
       for(let y=0;y<HID+5;y++)for(let x=0;x<COLS;x++){const c=board[y][x];if(!c)continue;const [px,py]=cellPx(x,y);
         for(let k=0;k<4;k++)spark(px+cs/2,py+cs/2,rnd(-120,120),rnd(-220,-40),rnd(.4,.8),TC[c.t],2.5,true);board[y][x]=null;}
       pop('班長が上の部品を引き取った！',wy+wh*.3,C.gd,true);pop('（助けは一度だけ）',wy+wh*.3+cs*1.1,C.txb,false,.2);
-      sfx('whistle');se('notif');shake=6;buzz(40);
+      sfx('whistle');shake=6;buzz(40);
     }
     function gameOver(reason){
       if(phase==='over')return;
       phase='over';overReason=reason;overT=0;topRows=0;cur=null;ptr=null;mergeData=null;
-      if(reason==='topout'){sfx('crash');se('warn');shake=10;flash=.3;buzz([100,50,180]);
+      if(reason==='topout'){sfx('crash');shake=10;flash=.3;buzz([100,50,180]);
         for(let y=0;y<ROWS&&debris.length<16;y++)for(let x=0;x<COLS;x++){const c=board[y][x];if(!c||Math.random()<.5)continue;
           const [px,py]=cellPx(x,y);debris.push({x:px,y:py,vx:rnd(-160,160),vy:rnd(-260,-60),a:0,va:rnd(-8,8),t:c.t});if(debris.length>=16)break;}}
-      else{sfx('whistle');se('ach');}
+      else sfx('whistle');
     }
 
     // ── 演出 ──
@@ -620,7 +666,7 @@ registerMinigame({
       if(!scLines)return;
       const L=scLines[scIdx];
       if(scChars<L.text.length){scChars=L.text.length;scLine.textContent=L.text;return;}
-      se('btn');
+      sfx('next');
       scIdx++;
       if(scIdx>=scLines.length){finishScene();return;}
       setLine();
@@ -631,7 +677,7 @@ registerMinigame({
       const d=scDone;scDone=null;if(d)d();
     }
     scene.addEventListener('pointerdown',e=>{e.preventDefault();lastInput='touch';advanceScene();});
-    scSkip.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();se('back');finishScene();});
+    scSkip.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();sfx('skip');finishScene();});
 
     function introLines(){
       const L=[];
@@ -697,7 +743,7 @@ registerMinigame({
     function doWipe(mid){wipe={t:0,dur:.75,mid,fired:false};sfx('beep');}
     function toStory(){
       if(phase!=='title'||wipe)return;
-      se('decide');
+      sfx('decide');
       doWipe(()=>{phase='story';showScene(introLines(),startGame);});
     }
 
@@ -709,7 +755,7 @@ registerMinigame({
         phase='play';t=0;spIdx=0;
         bd.plays++;
         spawnNext();
-        banner={i:0,t:0};sfx('start');se('decide');
+        banner={i:0,t:0};sfx('start');
       });
     }
     mg.onKey(e=>{
@@ -831,7 +877,7 @@ registerMinigame({
       if(active){
         t+=dt;
         updateTut(dt);
-        if(spIdx<SPEED.length-1&&t>=SPEED[spIdx+1].t){spIdx++;banner={i:spIdx,t:0};sfx('horn');se('notif');}
+        if(spIdx<SPEED.length-1&&t>=SPEED[spIdx+1].t){spIdx++;banner={i:spIdx,t:0};sfx('horn');}
         if(t>=TIME){t=TIME;gameOver('timeup');}
       }
       if(phase!=='over'&&phase!=='ending'){
@@ -873,7 +919,7 @@ registerMinigame({
       }
       // あふれそうな列（上から3段目まで積まれている）
       let hi=false;for(let x=0;x<COLS;x++)if(board[HID+2][x])hi=true;
-      if(hi&&!danger&&phase==='play'&&!dangerSeen){sfx('warn');se('warn');dangerSeen=true;}
+      if(hi&&!danger&&phase==='play'&&!dangerSeen){sfx('warn');dangerSeen=true;}
       if(!hi)dangerSeen=false;
       danger=hi&&phase!=='ending';
       if(banner){banner.t+=dt;if(banner.t>2)banner=null;}

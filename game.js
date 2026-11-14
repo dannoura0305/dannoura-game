@@ -214,29 +214,28 @@ const AU={
   _seBus(){
     const c=this.ctx;
     if(this._sb&&this._sb.context===c)return this._sb;
-    // 重なった時の頭打ちを防ぐ軽いリミッター
-    const k=c.createDynamicsCompressor();
-    try{k.threshold.value=-12;k.knee.value=6;k.ratio.value=8;k.attack.value=.002;k.release.value=.12;}catch(e){}
-    k.connect(c.destination);this._sb=k;return k;
+    // まとめ役の GainNode（コンプレッサーは付けない：Chrome の DynamicsCompressor は自動で音を持ち上げ、
+    // 立ち上がりの一瞬を素通しして、一つずつ測った時より大きな「パチッ」になることがあったため）
+    const g=c.createGain();g.gain.value=1;g.connect(c.destination);this._sb=g;return g;
   },
   _nb(){const c=this.ctx;if(this._nbuf&&this._nbuf.sampleRate===c.sampleRate)return this._nbuf;const n=c.sampleRate|0,b=c.createBuffer(1,n,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;return this._nbuf=b;},
   SE_DEF:{
     // [種類, 開始秒, 長さ, 大きさ, 周波数, 終わりの周波数, 波形/フィルタ, Q]  t=音  n=ノイズ
-    btn:[['t',0,.045,0.384,1250,820,'sine'],['n',0,.012,0.12,4200,0,'bandpass',1.2]],
-    decide:[['t',0,.07,0.16,660,0,'triangle'],['t',.055,.12,0.16,990,0,'triangle'],['t',.055,.12,0.037,1980,0,'sine']],
-    back:[['t',0,.07,0.172,560,0,'triangle'],['t',.06,.11,0.157,392,0,'triangle']],
-    rank:[['t',0,.12,0.098,523,0,'triangle'],['t',.09,.12,0.098,659,0,'triangle'],['t',.18,.12,0.098,784,0,'triangle'],['t',.27,.42,0.116,1047,0,'triangle'],['t',.27,.42,0.036,2094,0,'sine']],
-    ach:[['t',0,.6,0.077,1047,0,'sine'],['t',0,.35,0.029,2637,0,'sine'],['t',.08,.55,0.058,1568,0,'sine']],
-    micOn:[['t',0,.09,0.191,140,60,'sine'],['n',0,.02,0.07,2500,0,'bandpass',.8]],
-    live:[['t',0,.14,0.11,784,0,'sine'],['t',.12,.26,0.11,1175,0,'sine'],['t',.12,.26,0.028,2350,0,'sine']],
-    comment:[['t',0,.03,0.071,1900,1500,'sine']],
-    notif:[['t',0,.08,0.122,880,0,'triangle'],['t',.07,.13,0.11,1320,0,'sine']],
-    tool:[['n',0,.09,0.332,2600,0,'bandpass',6],['t',0,.07,0.166,175,120,'square'],['n',.05,.06,0.133,3800,0,'bandpass',8]],
-    machine:[['t',0,.16,0.136,98,70,'square'],['n',0,.05,0.119,500,0,'lowpass',.7],['n',.1,.04,0.068,1200,0,'bandpass',2]],
-    warn:[['t',0,.12,.09,440,0,'square'],['t',.15,.16,.09,330,0,'square']],
-    repair:[['t',0,.22,.11,420,880,'sine'],['t',.16,.2,.08,1320,0,'triangle'],['n',.16,.1,.03,6000,0,'highpass',.7]],
-    noise:[['n',0,.38,0.195,1600,0,'bandpass',.6],['t',0,.36,0.061,58,52,'sawtooth']],
-    ghost:[['t',0,.95,0.116,58,41,'sine'],['t',0,.95,0.041,87,63,'sine'],['n',0,.8,0.017,300,0,'lowpass',.7]],
+    btn:[['t',0,.045,0.23,1250,820,'sine'],['n',0,.012,0.072,4200,0,'bandpass',1.2]],
+    decide:[['t',0,.07,0.294,660,0,'triangle'],['t',.055,.12,0.294,990,0,'triangle'],['t',.055,.12,0.068,1980,0,'sine']],
+    back:[['t',0,.07,0.316,560,0,'triangle'],['t',.06,.11,0.289,392,0,'triangle']],
+    rank:[['t',0,.12,0.178,523,0,'triangle'],['t',.09,.12,0.178,659,0,'triangle'],['t',.18,.12,0.178,784,0,'triangle'],['t',.27,.42,0.211,1047,0,'triangle'],['t',.27,.42,0.066,2094,0,'sine']],
+    ach:[['t',0,.6,0.134,1047,0,'sine'],['t',0,.35,0.05,2637,0,'sine'],['t',.08,.55,0.101,1568,0,'sine']],
+    micOn:[['t',0,.09,0.344,140,60,'sine'],['n',0,.02,0.126,2500,0,'bandpass',.8]],
+    live:[['t',0,.14,0.198,784,0,'sine'],['t',.12,.26,0.198,1175,0,'sine'],['t',.12,.26,0.05,2350,0,'sine']],
+    comment:[['t',0,.03,0.132,1900,1500,'sine']],
+    notif:[['t',0,.08,0.222,880,0,'triangle'],['t',.07,.13,0.2,1320,0,'sine']],
+    tool:[['n',0,.09,0.641,2600,0,'bandpass',6],['t',0,.07,0.32,175,120,'square'],['n',.05,.06,0.257,3800,0,'bandpass',8]],
+    machine:[['t',0,.16,0.245,98,70,'square'],['n',0,.05,0.214,500,0,'lowpass',.7],['n',.1,.04,0.122,1200,0,'bandpass',2]],
+    warn:[['t',0,.12,0.167,440,0,'square'],['t',.15,.16,0.167,330,0,'square']],
+    repair:[['t',0,.22,0.198,420,880,'sine'],['t',.16,.2,0.144,1320,0,'triangle'],['n',.16,.1,0.054,6000,0,'highpass',.7]],
+    noise:[['n',0,.38,0.347,1600,0,'bandpass',.6],['t',0,.36,0.109,58,52,'sawtooth']],
+    ghost:[['t',0,.95,0.197,58,41,'sine'],['t',0,.95,0.07,87,63,'sine'],['n',0,.8,0.029,300,0,'lowpass',.7]],
   },
   _seNames(){return Object.keys(this.SE_DEF).concat(['cancel']);},
   _se(type){

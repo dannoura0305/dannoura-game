@@ -270,31 +270,81 @@ registerMinigame({
         s.connect(f);f.connect(gn);gn.connect(c.destination);s.start(t0);s.stop(t0+dur+.02);}catch(_){}
       return true;
     }
-    let shotN=0;
+    // 一発の音の部品。o:{t:波形,f:周波数,f2:終わりの周波数,fd:動く長さ,d:長さ,g:大きさ,a:立ち上がり,h:保持,dl:遅れ,j:音程の揺らぎ,ft/ff/q:フィルタ}
+    //   大きさには効果音の音量（AUDIO_SET.se）を掛ける。0 なら actx() が null で鳴らない。
+    function envG(p,t0,g,a,h,d){p.setValueAtTime(.0001,t0);p.linearRampToValueAtTime(Math.max(.0002,g),t0+a);if(h)p.setValueAtTime(Math.max(.0002,g),t0+a+h);p.exponentialRampToValueAtTime(.0001,t0+d);}
+    function osc(o){
+      const c=actx();if(!c)return false;
+      try{const t0=c.currentTime+(o.dl||0),d=o.d,j=o.j?1+(Math.random()*2-1)*o.j:1,x=c.createOscillator(),g=c.createGain();
+        x.type=o.t||'sine';x.frequency.setValueAtTime(o.f*j,t0);if(o.f2)x.frequency.exponentialRampToValueAtTime(Math.max(20,o.f2*j),t0+(o.fd||d));
+        envG(g.gain,t0,o.g*vol()*sfxLv,o.a||.003,o.h||0,d);
+        let n=x;if(o.ft){const fl=c.createBiquadFilter();fl.type=o.ft;fl.frequency.value=o.ff;if(o.q)fl.Q.value=o.q;x.connect(fl);n=fl;}
+        n.connect(g);g.connect(c.destination);x.start(t0);x.stop(t0+d+.03);}catch(_){}
+      return true;
+    }
+    function nz(o){
+      const c=actx();if(!c)return false;
+      try{
+        if(!noiseBuf){noiseBuf=c.createBuffer(1,c.sampleRate*.5,c.sampleRate);const dd=noiseBuf.getChannelData(0);for(let i=0;i<dd.length;i++)dd[i]=Math.random()*2-1;}
+        const t0=c.currentTime+(o.dl||0),d=o.d,s=c.createBufferSource(),fl=c.createBiquadFilter(),g=c.createGain();
+        s.buffer=noiseBuf;s.loop=true;fl.type=o.ft||'bandpass';fl.frequency.setValueAtTime(o.f,t0);if(o.f2)fl.frequency.exponentialRampToValueAtTime(o.f2,t0+(o.fd||d));if(o.q)fl.Q.value=o.q;
+        envG(g.gain,t0,o.g*vol()*sfxLv,o.a||.002,o.h||0,d);
+        s.connect(fl);fl.connect(g);g.connect(c.destination);s.start(t0,Math.random()*.4);s.stop(t0+d+.03);}catch(_){}
+      return true;
+    }
+    let shotN=0,sfxLv=1;
+    // 音ごとの大きさの倍率（se=1 で測って揃えた。ショット・命中など頻繁な音 -38 前後、操作 -32〜-28、被弾・爆発・ボム -28〜-25 LUFS）
+    const SFX_LV={shot:1.5,hit:3.6,clink:1.9,kill:1.2,catch:1.9,power:2.6,hurt:1.15,ff:1.7,bomb:.8,boom:.67,warn:1.4,wave:2.4,stamp:1.3,blip:4.5,
+      decide:3.2,title:2.2,graze:3.4,charge:2,beam:.87,phase:2.4,convert:3.2,pause:3.3};
+    // 効果音（シューターらしく：撃つ音は短い破裂＋低い芯で手応え、倒すと弾ける、被弾は歪んだ衝撃）
     const SFX={
-      shot(){if((shotN++)%2)return;tone(1500,900,.035,'square',.012);},
-      hit(){noise(.04,.05,3000);},
-      clink(){if(!tone(1800,1400,.06,'square',.03))AU.se('tool');noise(.03,.04,6000);},
-      kill(){if(!tone(700,180,.12,'square',.045))AU.se('comment');noise(.1,.06,1800);},
-      catch(){if(!tone(660,660,.07,'triangle',.06))AU.se('ach');tone(880,880,.07,'triangle',.06,.06);tone(1320,1320,.12,'triangle',.06,.12);},
-      hurt(){if(!tone(320,60,.3,'sawtooth',.08))AU.se('noise');noise(.25,.1,900);},
-      ff(){if(!tone(500,250,.2,'triangle',.06))AU.se('back');},
-      bomb(){if(!tone(200,1600,.5,'sawtooth',.06))AU.se('rank');noise(.7,.12,2400);tone(1046,1046,.3,'triangle',.05,.35);},
-      warn(){if(!tone(440,440,.18,'square',.05))AU.se('warn');tone(330,330,.18,'square',.05,.22);tone(440,440,.18,'square',.05,.44);tone(330,330,.18,'square',.05,.66);},
-      wave(){if(!tone(523,523,.08,'triangle',.05))AU.se('live');tone(784,784,.12,'triangle',.05,.08);},
-      boom(){if(!noise(1,.16,700))AU.se('machine');tone(120,40,.8,'sine',.12);},
-      stamp(){if(!noise(.15,.14,500))AU.se('decide');tone(90,50,.2,'sine',.15);tone(1568,1568,.25,'triangle',.05,.12);},
-      blip(){if(!tone(1200,1200,.02,'square',.012))AU.se('comment');},
-      decide(){if(!tone(880,1320,.08,'triangle',.05))AU.se('decide');},
-      title(){if(!tone(392,392,.12,'triangle',.05))AU.se('decide');tone(523,523,.12,'triangle',.05,.12);tone(784,784,.3,'triangle',.06,.24);},
-      graze(){tone(2600,2200,.025,'sine',.018);},
-      power(){if(!tone(523,1046,.12,'square',.035))AU.se('ach');tone(784,1568,.14,'square',.03,.08);tone(1046,2093,.2,'triangle',.04,.16);},
-      charge(){tone(180,900,.7,'sawtooth',.025);},
-      beam(){noise(.45,.07,4200);tone(140,90,.45,'square',.035);},
-      phase(){tone(220,110,.5,'sawtooth',.06);noise(.6,.1,1200);tone(660,660,.12,'square',.04,.45);tone(880,880,.2,'square',.04,.58);},
-      convert(){tone(1320,1760,.08,'triangle',.03);},
-      pause(){tone(660,440,.08,'triangle',.04);},
+      // 自動ショット（0.12 秒ごと）：ノイズの破裂＋音程が落ちる矩形波＋低い芯。1 発おきに少し弱く（タタッという刻み）。レーザー中は細い光線の音
+      shot(){const k=(shotN++)%2?.6:1;
+        if(laserT>0){osc({t:'sawtooth',f:2400,f2:1300,d:.06,g:.02*k,ft:'bandpass',ff:2200,q:3,j:.03});nz({ft:'highpass',f:5000,d:.03,g:.03*k});return;}
+        nz({ft:'bandpass',f:3200,q:.9,d:.03,g:.11*k});osc({t:'square',f:900,f2:330,d:.055,g:.028*k,ft:'lowpass',ff:3200,j:.04});osc({f:190,f2:85,d:.05,g:.09*k});
+        if(spreadT>0)osc({t:'triangle',f:1800,f2:1400,d:.04,g:.015*k,j:.05});},
+      // 当たった（まだ倒れない）：コツッ
+      hit(){nz({ft:'bandpass',f:4200,q:2,d:.03,g:.1});osc({t:'triangle',f:1300,f2:800,d:.035,g:.045,j:.08});},
+      // 硬い敵・バリアで弾いた：キン（金属の倍音）
+      clink(){osc({t:'square',f:2350,d:.09,g:.022,ft:'highpass',ff:1500,j:.03});osc({t:'sine',f:3170,d:.12,g:.05,j:.03});nz({ft:'highpass',f:6000,d:.03,g:.1});},
+      // 倒した：パンッと弾けて落ちる。コンボが続くと少しずつ音程が上がる
+      kill(){const up=1+Math.min(combo,12)*.025;
+        nz({ft:'bandpass',f:2600*up,f2:500,q:.8,d:.14,g:.2});osc({t:'square',f:700*up,f2:170,d:.11,g:.04,ft:'lowpass',ff:2400,j:.04});osc({f:150,f2:55,d:.12,g:.18});},
+      // アイテムを取った：明るい 3 音
+      catch(){[1046,1319,1568].forEach((f,i)=>osc({t:'triangle',f,d:i===2?.16:.07,g:.09,dl:i*.05}));},
+      // 被弾：歪んだ衝撃（ノイズ＋落ちるのこぎり波＋低音）
+      hurt(){nz({ft:'lowpass',f:2600,f2:300,d:.35,g:.28});osc({t:'sawtooth',f:330,f2:60,d:.32,g:.08,ft:'lowpass',ff:1800});osc({f:120,f2:40,d:.3,g:.22});},
+      // 誤射（応援コメントを撃った）：がっかりの下がる 2 音
+      ff(){osc({t:'triangle',f:587,f2:550,d:.14,g:.11});osc({t:'triangle',f:440,f2:392,d:.28,g:.11,dl:.13});nz({ft:'lowpass',f:900,d:.12,g:.08});},
+      // ボム：溜めて上がる→大きな破裂→残響のきらめき
+      bomb(){osc({t:'sawtooth',f:200,f2:1400,d:.35,g:.035,ft:'lowpass',ff:3000});nz({ft:'lowpass',f:4000,f2:300,d:.9,g:.32,dl:.25});osc({f:90,f2:30,d:.7,g:.3,dl:.25});osc({t:'triangle',f:1568,d:.4,g:.05,dl:.45});},
+      // 警告（ボス接近）：2 音のサイレン
+      warn(){[0,.22,.44,.66].forEach((dl,i)=>osc({t:'square',f:i%2?349:466,d:.2,g:.05,h:.08,dl,ft:'lowpass',ff:1800}));},
+      // ウェーブ開始：上がる 2 音＋スネア
+      wave(){nz({ft:'bandpass',f:1800,q:.7,d:.1,g:.12});osc({t:'triangle',f:523,d:.1,g:.09});osc({t:'triangle',f:784,d:.2,g:.09,dl:.09});},
+      // 大きな爆発（大物・ボス撃破・自機が落ちた）
+      boom(){nz({ft:'lowpass',f:2400,f2:180,d:1,g:.4});osc({f:110,f2:32,d:.8,g:.32});nz({ft:'bandpass',f:5000,q:1,d:.15,g:.12});},
+      // 評価のハンコ：どすん＋きらっ
+      stamp(){nz({ft:'lowpass',f:700,d:.16,g:.3});osc({f:95,f2:45,d:.22,g:.3});osc({t:'triangle',f:1568,d:.3,g:.06,dl:.12});},
+      // 台詞の文字送り
+      blip(){osc({t:'square',f:1200,d:.032,g:.016,ft:'lowpass',ff:3000,j:.03});},
+      decide(){osc({t:'triangle',f:880,f2:1320,d:.09,g:.1});},
+      title(){[392,523,784].forEach((f,i)=>osc({t:'triangle',f,d:i===2?.32:.12,g:.09,dl:i*.12}));},
+      // かすり：シュッ（高いノイズ）
+      graze(){nz({ft:'highpass',f:5500,d:.035,g:.045});osc({f:2600,f2:2200,d:.03,g:.015});},
+      // パワーアップの効果：上がるきらめき
+      power(){[523,784,1046].forEach((f,i)=>osc({t:'square',f,f2:f*2,d:.14,g:.025,dl:i*.07,ft:'lowpass',ff:4000}));osc({t:'sine',f:2093,d:.3,g:.04,dl:.2});},
+      // レーザーの予告：低くうなりながら上がる
+      charge(){osc({t:'sawtooth',f:150,f2:700,d:.7,g:.04,a:.25,ft:'lowpass',ff:1800});osc({f:300,f2:1400,d:.7,g:.03,a:.3});},
+      // レーザー発射：ビーッ（太い）
+      beam(){nz({ft:'bandpass',f:3200,q:.8,d:.45,g:.12,a:.01,h:.2});osc({t:'sawtooth',f:140,f2:100,d:.45,g:.07,h:.2,ft:'lowpass',ff:1500});},
+      // ボスの形態変化：沈む音＋衝撃＋上がる 2 音
+      phase(){osc({t:'sawtooth',f:220,f2:80,d:.5,g:.07,ft:'lowpass',ff:1500});nz({ft:'lowpass',f:1600,f2:200,d:.6,g:.25});osc({t:'square',f:660,d:.12,g:.04,dl:.45,ft:'lowpass',ff:3000});osc({t:'square',f:880,d:.22,g:.04,dl:.58,ft:'lowpass',ff:3000});},
+      // 敵の弾をスコアに変えた
+      convert(){osc({t:'triangle',f:1320,f2:1760,d:.09,g:.07,j:.03});osc({t:'sine',f:2640,d:.08,g:.02,dl:.03});},
+      pause(){osc({t:'triangle',f:660,f2:440,d:.09,g:.08});},
     };
+    const SFX_FB={clink:'tool',kill:'comment',catch:'ach',hurt:'noise',ff:'back',bomb:'rank',warn:'warn',wave:'live',boom:'machine',stamp:'decide',decide:'decide',title:'decide',power:'ach'};
     // ── ボス戦だけ足す軽いリズム（音程のない打楽器なので本編BGMとぶつからない。音量はBGM設定） ──
     let beatT=0,beatN=0;
     function musicStep(dt,on,fast){
@@ -309,7 +359,16 @@ registerMinigame({
     }
     let seCd=0;
     let grzCd=0;
-    const sfx=k=>{if(k==='kill'||k==='hit'||k==='clink'){if(seCd>0)return;seCd=.05;}if(k==='graze'){if(grzCd>0)return;grzCd=.06;}try{SFX[k]();}catch(_){}};
+    const seCds={};   // 連打される音の間引き（種類ごと）
+    const SE_GAP={hit:.05,clink:.05,kill:.035,graze:.06,convert:.04};
+    const sfx=k=>{
+      if(typeof AUDIO_SET!=='undefined'&&AUDIO_SET.se<=0)return;
+      const now=performance.now()/1000,gap=SE_GAP[k];if(gap){if((seCds[k]||0)>now)return;seCds[k]=now+gap;}
+      if(k==='hit'&&(seCds.kill||0)>now+.01)return;   // 倒した音の直後のコツッは省く
+      if(!actx()){if(SFX_FB[k])try{AU.se(SFX_FB[k]);}catch(_){}return;}
+      sfxLv=SFX_LV[k]||1;try{SFX[k]();}catch(_){}sfxLv=1;
+    };
+    if(mg&&mg.exposeSfx)mg.exposeSfx(Object.keys(SFX),k=>sfx(k));
 
     // ── DOM ──
     const cv=document.createElement('canvas');cv.className='shooter-cv';body.appendChild(cv);

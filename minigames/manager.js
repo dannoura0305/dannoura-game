@@ -366,43 +366,90 @@ const CAST={
 };
 const porSrc=(who,face)=>who==='hero'?`assets/img/char_${face||'normal'}.webp`:portrait(who);
 
-// ═════ 効果音（Web Audio 合成。AU.ctx があるときだけ）═════
+// ═════ 効果音（Web Audio 合成。AU.ctx があるときだけ。本編の AU.se は重ねず、この中の音だけで統一）═════
+//   方針：会議室の机の上。カードは紙の「ペラ・パタ」、決定は木の「コトン」＋明るい 2 音、数値が増えると
+//   硬貨の「チャリン」、減る・失敗は下がる音。月（週）の締めは数え上げの「カラカラ」とハンコ。
+//   繰り返す音はゆらし、連打は間引く。大きさは 1 つずつ測って揃えた（LV）。
+let _mNb=null,_mBus=null,_mBusC=null;const _mLast={};
+const _M_LV={pick:2.3,place:.724,remove:.881,undo:.861,band:1.0,deny:.507,go:.661,wipe:1.334,text:1.6,next:1.303,night:.525,nightoff:.692,good:.519,great:.49,disc:.462,bad:.575,coin:.519,roll:.891,stamp:0.56,fanfare:.638,sad:.676,warn:.716,tick:1.3,decide:.861};
+const _M_GAP={pick:.04,place:.04,band:.04,deny:.08,text:.03,next:.05,coin:.06,tick:.3,night:.2};
 function sfx(kind){
   try{
     if(typeof AU==='undefined')return;
+    const vol=typeof AUDIO_SET==='undefined'?1:Math.max(0,Math.min(1,+AUDIO_SET.se||0));
+    if(!(vol>0))return;
     if(!AU.ctx&&AU.init)AU.init();
-    const ctx=AU.ctx,vol=(typeof AUDIO_SET!=='undefined'?AUDIO_SET.se:1);
-    if(!ctx||!(vol>0))return;
+    const ctx=AU.ctx;if(!ctx)return;
     if(ctx.state==='suspended')ctx.resume().catch(()=>{});
-    const t0=ctx.currentTime;
-    const tone=(f,at,d,g,type,f2)=>{
-      const o=ctx.createOscillator(),gn=ctx.createGain();o.type=type||'square';
+    const now=ctx.currentTime,gap=_M_GAP[kind]||0;
+    if(gap&&_mLast[kind]!=null&&now-_mLast[kind]<gap&&now>=_mLast[kind])return;
+    _mLast[kind]=now;
+    if(!_mBus||_mBusC!==ctx){const k=ctx.createDynamicsCompressor();try{k.threshold.value=-14;k.knee.value=6;k.ratio.value=6;k.attack.value=.002;k.release.value=.1;}catch(e){}k.connect(ctx.destination);_mBus=k;_mBusC=ctx;}
+    if(!_mNb||_mNb.sampleRate!==ctx.sampleRate){_mNb=ctx.createBuffer(1,ctx.sampleRate|0,ctx.sampleRate);const d=_mNb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
+    const out=ctx.createGain();out.gain.value=vol*(_M_LV[kind]||1);out.connect(_mBus);
+    const t0=now+.005;
+    // tone(周波数, 開始, 長さ, 大きさ, 波形, 終わりの周波数, 立ち上がり)
+    const tone=(f,at,d,g,type,f2,atk)=>{
+      const o=ctx.createOscillator(),gn=ctx.createGain();o.type=type||'triangle';
       o.frequency.setValueAtTime(f,t0+at);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+at+d);
-      gn.gain.setValueAtTime(0.0001,t0+at);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g*vol),t0+at+.008);
+      gn.gain.setValueAtTime(.0001,t0+at);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t0+at+(atk||.005));
       gn.gain.exponentialRampToValueAtTime(.0001,t0+at+d);
-      o.connect(gn);gn.connect(ctx.destination);o.start(t0+at);o.stop(t0+at+d+.02);
+      o.connect(gn);gn.connect(out);o.start(t0+at);o.stop(t0+at+d+.03);
     };
+    // noise(開始, 長さ, 大きさ, 周波数, Q, 終わりの周波数, フィルタ)
+    const noise=(at,d,g,f,q,f2,ft)=>{
+      const s=ctx.createBufferSource(),fl=ctx.createBiquadFilter(),gn=ctx.createGain();s.buffer=_mNb;
+      fl.type=ft||'bandpass';fl.frequency.setValueAtTime(f,t0+at);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t0+at+d);fl.Q.value=q||1;
+      gn.gain.setValueAtTime(.0001,t0+at);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t0+at+.003);gn.gain.exponentialRampToValueAtTime(.0001,t0+at+d);
+      s.connect(fl);fl.connect(gn);gn.connect(out);s.start(t0+at,Math.random()*.5);s.stop(t0+at+d+.03);
+    };
+    const J=a=>1+(Math.random()*2-1)*a;
+    const bell=(f,at,d,g)=>{tone(f,at,d,g,'sine');tone(f*2.01,at,d*.5,g*.25,'sine');tone(f*3.98,at,d*.25,g*.07,'sine');};
     switch(kind){
-      case 'pick':tone(988,0,.05,.035,'square');break;
-      case 'place':tone(784,0,.05,.04,'square');tone(1175,.05,.09,.04,'square');break;
-      case 'remove':tone(523,0,.05,.035,'triangle');tone(392,.05,.08,.035,'triangle');break;
-      case 'undo':tone(659,0,.05,.035,'triangle');tone(494,.05,.05,.035,'triangle');tone(392,.1,.08,.03,'triangle');break;
-      case 'band':tone(1318,0,.04,.025,'square');break;
-      case 'deny':tone(180,0,.12,.05,'square',120);break;
-      case 'go':[523,659,784,1047].forEach((f,i)=>tone(f,i*.07,.14,.045,'square'));tone(1568,.3,.35,.03,'triangle');break;
-      case 'wipe':tone(200,0,.25,.025,'sawtooth',1600);break;
-      case 'text':tone(1400+Math.random()*200,0,.025,.012,'square');break;
-      case 'next':tone(880,0,.04,.03,'triangle');tone(1320,.04,.06,.03,'triangle');break;
-      case 'night':tone(392,0,.2,.03,'triangle');tone(587,.08,.25,.025,'triangle');break;
-      case 'good':tone(988,0,.08,.04,'square');tone(1319,.08,.16,.04,'square');break;
-      case 'great':[784,988,1175,1568].forEach((f,i)=>tone(f,i*.06,.12,.04,'square'));break;
-      case 'disc':[1047,1319,1568,2093].forEach((f,i)=>tone(f,i*.05,.1,.03,'triangle'));break;
-      case 'bad':tone(330,0,.15,.04,'square',220);tone(247,.14,.22,.04,'square',165);break;
-      case 'coin':tone(988,0,.06,.04,'square');tone(1319,.06,.22,.04,'square');break;
-      case 'roll':for(let i=0;i<14;i++)tone(140+i*6,i*.045,.035,.03,'square');break;
-      case 'stamp':tone(110,0,.22,.09,'sine',50);tone(1568,.06,.4,.03,'triangle');tone(2093,.12,.5,.02,'triangle');break;
-      case 'fanfare':[523,659,784,1047,784,1047].forEach((f,i)=>tone(f,i*.09,.16,.04,'square'));break;
-      case 'sad':tone(392,0,.25,.035,'triangle');tone(330,.22,.25,.035,'triangle');tone(262,.44,.45,.035,'triangle');break;
+      // カードを手に取る：紙の「ペラ」
+      case 'pick':{const p=J(.06);noise(0,.05,.4,2600*p,1.2,4800*p);tone(1200*p,0,.03,.08,'sine');tone(660*p,0,.04,.16,'triangle',590*p);break;}
+      // 枠に置く（決定）：紙の「パタ」＋木の「コトン」＋明るい 2 音
+      case 'place':{const p=J(.03);noise(0,.025,.7,1800*p,1.6);tone(330*p,0,.06,.28,'triangle',240*p);tone(784,.04,.06,.12,'triangle');tone(1175,.08,.12,.12,'triangle');break;}
+      // 外す：下がる 2 音
+      case 'remove':noise(0,.04,.4,2200,1.2,1200);tone(587,0,.06,.14,'triangle');tone(440,.06,.09,.14,'triangle');break;
+      // ひとつ戻す：巻き戻しの「キュル」＋下がる 3 音
+      case 'undo':noise(0,.1,.2,3000,1.5,1200);tone(659,0,.05,.12,'triangle');tone(523,.05,.05,.12,'triangle');tone(392,.1,.09,.12,'triangle');break;
+      // 時間帯の切り替え・早送り：小さなスイッチ「カチ」
+      case 'band':{const p=J(.05);noise(0,.012,.6,3400*p,3);tone(1500*p,0,.025,.1,'square');break;}
+      // できない：くぐもった「トッ、トッ」
+      case 'deny':tone(196,0,.05,.4,'triangle',165);noise(0,.03,.35,500,.8,0,'lowpass');tone(175,.085,.06,.36,'triangle',145);break;
+      // 会議の開始・放送開始：明るく上がる和音
+      case 'go':[523,659,784,1047].forEach((f,i)=>{tone(f,i*.07,i===3?.4:.14,.13,'triangle');tone(f*2,i*.07,.08,.025,'sine');});bell(1568,.3,.5,.06);break;
+      // 場面の切り替え
+      case 'wipe':noise(0,.3,.25,500,.9,2600);break;
+      // 文字送り・コメントの流れ：ごく小さな「カチ」
+      case 'text':{const p=J(.1);noise(0,.009,.25,3400*p,1.5);tone(2000*p,0,.018,.05,'sine');break;}
+      // 会話を進める
+      case 'next':noise(0,.016,.4,2400,2);tone(880,0,.04,.13,'triangle',700);break;
+      // 決定（会議を終える）
+      case 'decide':noise(0,.02,.4,2800,2.5);tone(659,0,.07,.16,'triangle');tone(988,.06,.12,.16,'triangle');break;
+      // その夜の放送開始（ON AIR のチャイム）・休みの夜
+      case 'night':bell(784,0,.25,.1);bell(1175,.09,.35,.1);break;
+      case 'nightoff':bell(587,0,.35,.08);tone(294,0,.3,.06,'sine');break;
+      // 数値が増えた：硬貨の「チャリン」
+      case 'coin':{const p=J(.03);bell(1568*p,0,.12,.1);bell(2093*p,.06,.3,.11);noise(.06,.05,.12,7000,2);break;}
+      // 良い出来事・大当たり
+      case 'good':bell(988,0,.2,.13);bell(1319,.08,.35,.13);break;
+      case 'great':[784,988,1175,1568].forEach((f,i)=>bell(f,i*.06,i===3?.5:.18,.12));noise(.18,.3,.08,6000,1.2,10000);break;
+      // 新発見：きらめき
+      case 'disc':[1047,1319,1568,2093].forEach((f,i)=>bell(f,i*.05,.35,.09));noise(0,.4,.06,7000,1,11000);break;
+      // 悪い出来事・数値が減る：下がる 2 音（角を落とした矩形波）
+      case 'bad':tone(330,0,.16,.12,'square',300);tone(247,.15,.26,.12,'square',220);tone(165,.15,.26,.08,'sine');break;
+      // 締めの数え上げ：だんだん速くなる「カラカラ」
+      case 'roll':{let a=0;for(let i=0;i<14;i++){const p=J(.04);noise(a,.012,.4,3000*p,2.5);tone((700+i*30)*p,a,.02,.06,'sine');a+=.055-i*.0022;}break;}
+      // 通信簿のハンコ
+      case 'stamp':noise(0,.08,.8,650,.7,0,'lowpass');tone(150,0,.13,.3,'sine',80,.003);noise(0,.015,.3,3000,1.5);bell(1568,.08,.4,.05);break;
+      case 'fanfare':[523,659,784,1047,784,1047].forEach((f,i)=>{tone(f,i*.09,i===5?.55:.15,.14,'triangle');tone(f*2,i*.09,.08,.025,'sine');});tone(262,.45,.6,.12,'sine');break;
+      case 'sad':tone(392,0,.28,.16,'triangle');tone(330,.22,.28,.16,'triangle');tone(262,.44,.5,.16,'triangle');tone(131,.44,.5,.08,'sine');break;
+      // 会議の残り時間わずか：時計の 2 音
+      case 'warn':tone(880,0,.12,.18,'triangle');tone(660,.16,.18,.18,'triangle');noise(0,.02,.3,3000,3);break;
+      // 残り 10 秒の刻み
+      case 'tick':noise(0,.02,.45,2600,3);tone(1100,0,.03,.06,'sine');break;
     }
   }catch(e){}
 }
@@ -608,6 +655,7 @@ registerMinigame({
   bgm:'stream',
   _sim:simulate,_aff:affinity,_dz:MGR_DZ,
   start(body,mg){
+    if(mg&&mg.exposeSfx)mg.exposeSfx(['pick','place','remove','undo','band','deny','go','wipe','text','next','decide','night','nightoff','good','great','disc','bad','coin','roll','stamp','fanfare','sad','warn','tick'],k=>sfx(k));
     // 難しさ（開始時に読む）：ペナルティの強さ（MGR_DZ）と常連のアドバイスの親切さ
     const DIFF=mgDifficulty(),DZ=MGR_DZ[DIFF];
     mg.el('mg-title').insertAdjacentHTML('beforeend',`<span class="mg-diffb mg-diffb-${DIFF}">${MG_DIFF_NAMES[DIFF]}</span>`);
@@ -662,8 +710,8 @@ registerMinigame({
       const bb=el('button','mgr-band');r.appendChild(bb);
       bb.onclick=()=>{
         if(phase!=='plan')return;
-        if(!isStream(plan[i].t)){se('back');sfx('deny');say('休み・告知の日は時間帯なし',true);return;}
-        snap();plan[i].b=(plan[i].b+1)%3;se('tool');sfx('band');
+        if(!isStream(plan[i].t)){sfx('deny');say('休み・告知の日は時間帯なし',true);return;}
+        snap();plan[i].b=(plan[i].b+1)%3;sfx('band');
         const ba=DIFF==='easy'?advise(i):null;
         if(ba)say(ba,false,false,true);else say(`${DAYS[i]}曜は ${BANDS[plan[i].b]} から配信`,false,true);renderBoard();
       };
@@ -724,12 +772,12 @@ registerMinigame({
       setTimeout(()=>f.remove(),230);
     }
     function place(k,i,from,fromEl,fromXY){
-      if(from==null&&!canPlace(k,i)){shake(i);se('warn');sfx('deny');say(`${T[k].n}は今週${T[k].lim}回まで`,true);return false;}
+      if(from==null&&!canPlace(k,i)){shake(i);sfx('deny');say(`${T[k].n}は今週${T[k].lim}回まで`,true);return false;}
       snap();
       let msg;
       if(from!=null&&from!==i){const tmp=plan[i].t;plan[i].t=k;plan[from].t=tmp;msg=tmp?`${DAYS[from]}曜と${DAYS[i]}曜を入れ替えた`:`${T[k].n}を${DAYS[i]}曜へ移動`;}
       else{const old=plan[i].t;plan[i].t=k;msg=old&&old!==k?`${DAYS[i]}曜：${T[old].s} → ${T[k].n}`:`${DAYS[i]}曜に「${T[k].n}」`;}
-      se('decide');sfx('place');
+      sfx('place');
       if(fromEl||fromXY)fly(k,fromEl,i,fromXY);
       later(fromEl||fromXY?170:0,()=>{popSlot(i);});
       placedOnce=true;stopCoach();
@@ -738,11 +786,11 @@ registerMinigame({
       if(a)say(a,false,false,true);else say(msg,false,true);
       return true;
     }
-    function removeAt(i){if(!plan[i].t)return;snap();const k=plan[i].t;plan[i].t=null;se('back');sfx('remove');say(`${DAYS[i]}曜の「${T[k].n}」を外した`);renderBoard();}
+    function removeAt(i){if(!plan[i].t)return;snap();const k=plan[i].t;plan[i].t=null;sfx('remove');say(`${DAYS[i]}曜の「${T[k].n}」を外した`);renderBoard();}
     undoBtn.onclick=()=>{
-      if(phase!=='plan'||!hist.length){se('back');sfx('deny');return;}
+      if(phase!=='plan'||!hist.length){sfx('deny');return;}
       const h=hist.pop();h.forEach((p,i)=>{plan[i].t=p.t;plan[i].b=p.b;});
-      se('back');sfx('undo');say('ひとつ前に戻した',false,true);renderBoard();
+      sfx('undo');say('ひとつ前に戻した',false,true);renderBoard();
     };
     function renderBoard(){
       const fp=fatPreview(plan,startFat,DZ);
@@ -782,7 +830,7 @@ registerMinigame({
       const card=e.target.closest('.mgr-card'),slot=e.target.closest('.mgr-slot');
       if(!card&&!slot)return;
       let k,from=null;
-      if(card){k=card.dataset.k;if(card.classList.contains('out')){se('warn');sfx('deny');say(`${T[k].n}は今週もう使い切った（枠から外すと戻る）`,true);return;}}
+      if(card){k=card.dataset.k;if(card.classList.contains('out')){sfx('deny');say(`${T[k].n}は今週もう使い切った（枠から外すと戻る）`,true);return;}}
       else{from=+slot.dataset.i;k=plan[from].t;}
       drag={k,from,x0:e.clientX,y0:e.clientY,moved:false,ghost:null,id:e.pointerId};
       try{(card||slot).setPointerCapture(e.pointerId);}catch(_){}
@@ -813,11 +861,11 @@ registerMinigame({
         const s=slotAt(e.clientX,e.clientY);
         if(s){place(d.k,+s.dataset.i,d.from,null,[e.clientX,e.clientY]);}
         else if(d.from!=null)removeAt(d.from);
-        else{se('back');sfx('deny');say('曜日の枠の上で離してね');}
+        else{sfx('deny');say('曜日の枠の上で離してね');}
         return;
       }
       // タップ
-      if(d.from==null){sel=sel===d.k?null:d.k;se('btn');sfx('pick');hintHold=false;renderBoard();return;}
+      if(d.from==null){sel=sel===d.k?null:d.k;sfx('pick');hintHold=false;renderBoard();return;}
       const i=d.from;
       if(sel){const k=sel;if(place(k,i,null,cards[k])&&!canPlace(k,-1))sel=null;renderBoard();}
       else removeAt(i);
@@ -827,7 +875,7 @@ registerMinigame({
       if(slot&&!plan[+slot.dataset.i].t){
         if(phase!=='plan')return;
         if(sel){const k=sel;if(place(k,+slot.dataset.i,null,cards[k])&&!canPlace(k,-1))sel=null;renderBoard();}
-        else{se('back');shake(+slot.dataset.i);say('下の企画カードを選ぶか、ドラッグして置こう',true);}
+        else{sfx('deny');shake(+slot.dataset.i);say('下の企画カードを選ぶか、ドラッグして置こう',true);}
         e.preventDefault();return;
       }
       onDown(e);
@@ -835,7 +883,7 @@ registerMinigame({
     pl.addEventListener('pointermove',onMove);
     pl.addEventListener('pointerup',onUp);
     pl.addEventListener('pointercancel',()=>{if(drag&&drag.ghost)drag.ghost.remove();if(drag&&drag.from!=null)rows[drag.from].s.style.opacity='';drag=null;clearHot();});
-    goBtn.onclick=()=>{if(phase==='plan'&&!goBtn.disabled)startSim();else if(phase==='plan'){se('warn');sfx('deny');say('7日ぶん全部埋めよう',true);}};
+    goBtn.onclick=()=>{if(phase==='plan'&&!goBtn.disabled)startSim();else if(phase==='plan'){sfx('deny');say('7日ぶん全部埋めよう',true);}};
 
     // ── チュートリアルの「手」：カードを月曜へ運ぶ見本 ──
     let coach=null,coachIv=null;
@@ -871,10 +919,10 @@ registerMinigame({
       return `<div class="mgr-note"><b>客層メモ</b>：最近のリスナーは「${T[favs[0]].n}」と「${T[favs[1]].n}」の反応がいい気がする。「${T[favs[favs.length-1]].n}」はいまいち…？</div>`;
     }
     memoBtn.onclick=()=>{
-      if(phase!=='plan')return;se('decide');sfx('next');
+      if(phase!=='plan')return;sfx('next');
       const ov=el('div','mgr-ov');const bx=el('div','mgr-box',`<div class="sub">MEETING MEMO</div><h3>📝 運営メモ</h3>${audienceNote()}
         <div class="mgr-note" style="border-color:var(--cy)"><b style="color:var(--cy)">基本</b>：🤝コラボ週1・📣告知週2まで。💤休みで疲労−28。日曜夜の疲労が${DZ.pen}を超えると減点。</div>${memoHtml()}`);
-      const b=el('button','mgr-btn','閉じる');b.onclick=()=>{se('back');sfx('remove');ov.remove();};bx.appendChild(b);ov.appendChild(bx);root.appendChild(ov);
+      const b=el('button','mgr-btn','閉じる');b.onclick=()=>{sfx('next');ov.remove();};bx.appendChild(b);ov.appendChild(bx);root.appendChild(ov);
     };
 
     // ═════ タイトル ═════
@@ -920,7 +968,7 @@ registerMinigame({
       drawSpr(c,sp,W-22*S-14,hy-24*S+Math.round(Math.sin(titleT*3)*2),S);
     }
     title.onclick=()=>{
-      if(phase!=='title')return;phase='story0';se('decide');sfx('go');
+      if(phase!=='title')return;phase='story0';sfx('go');
       wipe('MEETING START',()=>{title.remove();startStory();});
     };
 
@@ -936,7 +984,7 @@ registerMinigame({
       phase='story';
       story=el('div','mgr-story');root.appendChild(story);
       const sk=el('button','mgr-skip','SKIP ▶▶');story.appendChild(sk);
-      sk.onclick=e=>{e.stopPropagation();se('back');sfx('next');endStory();};
+      sk.onclick=e=>{e.stopPropagation();sfx('wipe');endStory();};
       story.onclick=()=>advance();
       showLine();
     }
@@ -956,7 +1004,7 @@ registerMinigame({
     function advance(){
       if(phase!=='story')return;
       if(typing){typing.tx.textContent=typing.full;typing=null;return;}
-      li++;se('btn');sfx('next');
+      li++;sfx('next');
       if(li>=LINES.length)endStory();else showLine();
     }
     function endStory(){
@@ -975,7 +1023,8 @@ registerMinigame({
       if(root.querySelector('.mgr-ov'))return; // メモを読んでいる間は止める
       planLeft--;
       mg.setTimer(`会議 ${Math.floor(Math.max(0,planLeft)/60)}:${String(Math.max(0,planLeft)%60).padStart(2,'0')}`);
-      if(planLeft===15){se('warn');sfx('deny');say('会議の残り時間わずか！空き枠は休みになる',true);}
+      if(planLeft<=10&&planLeft>0)sfx('tick');
+      if(planLeft===15){sfx('warn');say('会議の残り時間わずか！空き枠は休みになる',true);}
       if(planLeft<=0){snap();plan.forEach(p=>{if(!p.t)p.t='rest';});renderBoard();startSim();}
     },1000);
 
@@ -986,7 +1035,7 @@ registerMinigame({
 
     function startSim(){
       if(phase!=='plan')return;
-      phase='simwait';sel=null;stopCoach();se('live');sfx('go');
+      phase='simwait';sel=null;stopCoach();sfx('go');
       res=simulate(plan,{aff,trend,startFat,base,fix:(gs.skills&&gs.skills.emergencyFix)||0,flame:gs.flame||0,dz:DZ});
       wipe('ON AIR',()=>{
         pl.remove();
@@ -1003,8 +1052,8 @@ registerMinigame({
         chart.addEventListener('pointerleave',()=>{tip=null;});
         const ctrl=el('div','mgr-ctrl');sim.appendChild(ctrl);
         const bSp=el('button','','▶▶ 早送り');const bSk=el('button','','⏭ 結果まで飛ばす');
-        bSp.onclick=()=>{speed=speed===1?2.5:1;bSp.classList.toggle('on',speed>1);bSp.textContent=speed>1?'▶ ふつう':'▶▶ 早送り';se('tool');sfx('band');};
-        bSk.onclick=()=>{if(simDone)return;se('decide');sfx('next');finishSim();};
+        bSp.onclick=()=>{speed=speed===1?2.5:1;bSp.classList.toggle('on',speed>1);bSp.textContent=speed>1?'▶ ふつう':'▶▶ 早送り';sfx('band');};
+        bSk.onclick=()=>{if(simDone)return;sfx('next');finishSim();};
         ctrl.appendChild(bSp);ctrl.appendChild(bSk);
         night=0;nt=0;phase='sim';beginNight();
       });
@@ -1013,8 +1062,7 @@ registerMinigame({
       evtShown=false;discShown=false;chatT=.3;vShown=0;chat.innerHTML='';
       [...week.children].forEach((w,i)=>w.classList.toggle('now',i===night));
       const n=res.nights[night];
-      if(n.t==='rest'||n.t==='short')se('notif');else se('micOn');
-      sfx('night');
+      sfx(n.t==='rest'?'nightoff':'night');
       mg.setTimer(`放送 ${night+1}/7 ${DAYS[night]}曜`);
     }
     function endNight(){
@@ -1023,7 +1071,7 @@ registerMinigame({
       const r=w.querySelector('.r');
       if(n.t==='rest'){r.textContent='OFF';r.style.color='var(--tx-d)';}
       else{r.textContent=`+${n.gain}`;if(isStream(n.t)&&n.q<.8)w.classList.add('bad');if(n.q>=1.6)w.classList.add('great');}
-      if(n.gain>0){se('comment');sfx('coin');}
+      if(n.gain>0)sfx('coin');
     }
     function finishSim(){
       if(simDone)return;simDone=true;
@@ -1056,7 +1104,7 @@ registerMinigame({
       if(!n.evt)return;
       const e=el('div','mgr-evt',`<small>${n.evt.good?'HAPPENING!':'TROUBLE…'}</small>${n.evt.txt}`);e.style.setProperty('--c',n.evt.c);mon.appendChild(e);
       later(2000,()=>e.remove());
-      se(n.evt.good?'rank':'noise');sfx(n.evt.big?'great':n.evt.good?'good':'bad');
+      sfx(n.evt.big?'great':n.evt.good?'good':'bad');
       if(n.evt.good)happyT=1.4;
       if(n.evt.sc){const b=el('div','mgr-bub sc',`<i style="color:#ff8fb0">${n.evt.sc}</i>¥500　今日もおつかれさま！`);chat.appendChild(b);}
     }
@@ -1067,7 +1115,7 @@ registerMinigame({
       const id=nw.find(x=>['short_big','short','kaidan_radio','work','rest_fresh','radio_totsu','trend','late','early','fav'].includes(x))||nw[0];
       const d=el('div','mgr-disc',`<b>新発見！</b>${FOUND[id]}`);mon.appendChild(d);
       later(2300,()=>d.remove());
-      se('ach');sfx('disc');happyT=Math.max(happyT,.8);
+      sfx('disc');happyT=Math.max(happyT,.8);
     }
 
     // ── 描画 ──
@@ -1333,10 +1381,10 @@ registerMinigame({
         ${res.found.length?res.found.map(f=>`<div class="mgr-found${res.newFound.includes(f)?' new':''}">${FOUND[f]}${res.newFound.includes(f)?'<span class="nw">NEW</span>':''}</div>`).join(''):'<div class="mgr-found">特になし</div>'}
         ${md.reports.length>1?`<div class="mgr-sec">PAST REPORTS ／ 過去の通信簿</div>${pastTable(4,true)}`:''}`;
       const b=el('button','mgr-btn','会議を終える');b.style.borderColor=gc;b.style.color=gc;
-      b.onclick=()=>{se('decide');mg.end('done');};
+      b.onclick=()=>{sfx('decide');mg.end('done');};
       bx.appendChild(b);ov.appendChild(bx);root.appendChild(ov);
       sfx('roll');
-      later(420,()=>{sfx('stamp');se(g==='S'||g==='A'?'ach':'rank');});
+      later(420,()=>sfx('stamp'));
       later(900,()=>sfx(g==='S'||g==='A'?'fanfare':g==='B'?'good':'sad'));
       mg.setScore(`評価 <span style="color:${gc}">${g}</span> ・ スコア ${res.score.toFixed(1)}`);
     }

@@ -200,52 +200,109 @@ registerMinigame({
     const REC=gs.cardsData;
     const remix=REC.clears>=1, firstPlay=!REC.plays;
 
-    // ── 合成効果音（AU.ctx があるときだけ鳴らす） ──
+    // ── 合成効果音（AU.ctx があるときだけ鳴らす。本編の AU.se は重ねず、この中の音だけで統一） ──
+    //   方針：カードは紙の「シュッ・パシッ」、ダメージは打撃の「ドスッ」、ガードは硬い「カン」、回復はやわらかいベル。
+    //   引く音は 1 枚ずつ小さく（ゆらぎ付き）、シャッフルはパラパラ。勝ちは明るい和音、負けは下がる音。大きさは測って揃えた（LV）。
     const SFX=(()=>{
-      let nb=null;
-      const vol=()=>{try{return AUDIO_SET.se==null?1:+AUDIO_SET.se;}catch(e){return 1;}};
+      let nb=null,bus=null,busC=null;const last={};
+      const LV={select:.977,card:.676,draw:.7,shuffle:.676,hit:0.5,big:.327,block:.851,guard:.733,heal:.457,hurt:.38,heavy:.204,wind:.624,nope:.512,type:1.8,wipe:1.216,defeat:.292,fanfare:.525,sad:.631,stamp:.412,curse:.871,burn:.55,ebuff:.519,fizz:.501,song:.638,kaidan:.285,endturn:.832,round:.676,boss:.254,reward:.495,getcard:.49,decide:.776,micon:.384,next:1.259,skip:.759,taunt:.851};
+      const GAP={select:.04,draw:.035,type:.03,hit:.04,hurt:.05,block:.05,next:.05,taunt:.1,heal:.08};
+      const vol=()=>{try{if(typeof AUDIO_SET==='undefined'||AUDIO_SET.se==null)return 1;const v=+AUDIO_SET.se;return v>0?Math.min(1,v):0;}catch(e){return 1;}};
       const ctx=()=>{try{if(!AU.ctx&&AU.init)AU.init();return AU.ctx||null;}catch(e){return null;}};
-      function tone(c,out,t0,f1,f2,dur,type,g){
-        const o=c.createOscillator(),gn=c.createGain();o.type=type;o.frequency.setValueAtTime(f1,t0);
-        if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+dur);
-        gn.gain.setValueAtTime(.0001,t0);gn.gain.exponentialRampToValueAtTime(g,t0+.008);gn.gain.exponentialRampToValueAtTime(.0001,t0+dur);
-        o.connect(gn);gn.connect(out);o.start(t0);o.stop(t0+dur+.03);
-      }
-      function noise(c,out,t0,dur,g,f,f2,q){
-        if(!nb){nb=c.createBuffer(1,Math.floor(c.sampleRate*.6),c.sampleRate);const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
-        const sr=c.createBufferSource(),fl=c.createBiquadFilter(),gn=c.createGain();sr.buffer=nb;
-        fl.type='bandpass';fl.Q.value=q||1;fl.frequency.setValueAtTime(f,t0);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t0+dur);
-        gn.gain.setValueAtTime(g,t0);gn.gain.exponentialRampToValueAtTime(.0001,t0+dur);
-        sr.connect(fl);fl.connect(gn);gn.connect(out);sr.start(t0);sr.stop(t0+dur+.02);
-      }
       return function(kind){
         const v=vol();if(!v)return;const c=ctx();if(!c)return;
         try{
-          if(c.state==='suspended'&&c.resume)c.resume();
-          const t=c.currentTime,out=c.createGain();out.gain.value=.5*v;out.connect(c.destination);
+          if(c.state==='suspended'&&c.resume)c.resume().catch(()=>{});
+          const now=c.currentTime,g0=GAP[kind]||0;
+          if(g0&&last[kind]!=null&&now-last[kind]<g0&&now>=last[kind])return;
+          last[kind]=now;
+          if(!bus||busC!==c){const k=c.createDynamicsCompressor();try{k.threshold.value=-14;k.knee.value=6;k.ratio.value=6;k.attack.value=.002;k.release.value=.1;}catch(e){}k.connect(c.destination);bus=k;busC=c;}
+          if(!nb||nb.sampleRate!==c.sampleRate){nb=c.createBuffer(1,c.sampleRate|0,c.sampleRate);const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
+          const out=c.createGain();out.gain.value=v*(LV[kind]||1);out.connect(bus);
+          const t=now+.005;
+          // T(開始, 周波数, 終わりの周波数, 長さ, 波形, 大きさ, 立ち上がり)
+          const T=(at,f1,f2,dur,type,g,atk)=>{const t0=t+at,o=c.createOscillator(),gn=c.createGain();o.type=type;o.frequency.setValueAtTime(f1,t0);
+            if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+dur);
+            gn.gain.setValueAtTime(.0001,t0);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t0+(atk||.005));gn.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+            o.connect(gn);gn.connect(out);o.start(t0);o.stop(t0+dur+.03);};
+          // N(開始, 長さ, 大きさ, 周波数, 終わりの周波数, Q, フィルタ)
+          const N=(at,dur,g,f,f2,q,ft)=>{const t0=t+at,sr=c.createBufferSource(),fl=c.createBiquadFilter(),gn=c.createGain();sr.buffer=nb;
+            fl.type=ft||'bandpass';fl.Q.value=q||1;fl.frequency.setValueAtTime(f,t0);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t0+dur);
+            gn.gain.setValueAtTime(.0001,t0);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t0+.003);gn.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+            sr.connect(fl);fl.connect(gn);gn.connect(out);sr.start(t0,Math.random()*.5);sr.stop(t0+dur+.03);};
+          const J=a=>1+(Math.random()*2-1)*a;
+          const bell=(at,f,dur,g)=>{T(at,f,0,dur,'sine',g);T(at,f*2.01,0,dur*.5,'sine',g*.25);T(at,f*3.98,0,dur*.25,'sine',g*.07);};
           switch(kind){
-            case 'select':tone(c,out,t,880,1320,.06,'square',.08);break;
-            case 'card':noise(c,out,t,.16,.35,600,4000,.8);tone(c,out,t,300,600,.08,'triangle',.08);break;
-            case 'draw':tone(c,out,t,1600,2200,.035,'square',.04);break;
-            case 'hit':noise(c,out,t,.14,.6,900,200,.7);tone(c,out,t,170,45,.16,'square',.22);break;
-            case 'big':noise(c,out,t,.3,.8,700,120,.6);tone(c,out,t,120,30,.32,'sawtooth',.28);tone(c,out,t+.03,240,60,.2,'square',.12);break;
-            case 'block':tone(c,out,t,1200,900,.12,'triangle',.18);tone(c,out,t,1800,1500,.1,'sine',.08);break;
-            case 'heal':[523,659,784,1046].forEach((f,i)=>tone(c,out,t+i*.05,f,0,.16,'sine',.12));break;
-            case 'hurt':tone(c,out,t,260,70,.22,'sawtooth',.18);noise(c,out,t,.12,.4,400,150,1);break;
-            case 'wind':tone(c,out,t,90,260,.22,'sawtooth',.08);break;
-            case 'nope':tone(c,out,t,200,0,.07,'square',.12);tone(c,out,t+.08,150,0,.09,'square',.12);break;
-            case 'type':tone(c,out,t,620+Math.random()*80,0,.025,'square',.025);break;
-            case 'wipe':noise(c,out,t,.35,.25,300,3000,.6);break;
-            case 'defeat':[784,659,523,392,262].forEach((f,i)=>tone(c,out,t+i*.07,f,f*.98,.12,'square',.1));noise(c,out,t,.6,.3,2000,200,.5);break;
-            case 'fanfare':[[523,659,784],[587,740,880],[659,830,988,1318]].forEach((ch,i)=>ch.forEach(f=>tone(c,out,t+i*.16,f,0,i===2?.6:.15,'square',.06)));break;
-            case 'sad':[440,415,392,330].forEach((f,i)=>tone(c,out,t+i*.18,f,0,.3,'triangle',.1));break;
-            case 'stamp':noise(c,out,t,.2,.6,300,80,.7);tone(c,out,t,90,40,.25,'sine',.35);break;
-            case 'curse':tone(c,out,t,400,110,.3,'sawtooth',.12);noise(c,out,t,.25,.25,1500,500,2);break;
+            // カードを選ぶ：紙の端に触れる小さな「ペタ」
+            case 'select':{const p=J(.05);N(0,.02,.5,3000*p,0,2);T(0,1100*p,900*p,.035,'triangle',.12);break;}
+            // カードを出す：「シュッ」と振って「パシッ」と置く
+            case 'card':N(0,.12,.5,900,4200,.9);N(.1,.03,.9,2200,0,1.4);T(.1,220,150,.06,'triangle',.25);break;
+            // 1 枚引く：短い紙の擦れ（1 枚ずつ少しゆらす）
+            case 'draw':{const p=J(.1);N(0,.06,.45*J(.15),2400*p,5200*p,1.2);N(.04,.012,.35,4200*p,0,2);break;}
+            // 捨て札をシャッフル：パラパラ
+            case 'shuffle':for(let i=0;i<9;i++)N(i*.035,.025,.4*J(.2),2600*J(.15),0,2);N(.32,.03,.6,1800,0,1.4);break;
+            // 盛り上がりダメージ：「ドスッ」
+            case 'hit':{const p=J(.06);N(0,.07,.45,1400*p,300,.8);T(0,190*p,70,.12,'sine',.3,.006);T(0,380*p,150,.05,'triangle',.15);break;}
+            // 大ダメージ：重い「ドゴッ」＋高いきらめき
+            case 'big':N(0,.16,.9,1200,180,.7);T(0,150,40,.3,'sine',.45);T(.02,300,90,.14,'triangle',.25);N(.04,.25,.18,6000,9000,1.2);break;
+            // ガードで防いだ：硬い「カン」
+            case 'block':T(0,1250,1150,.12,'triangle',.18);T(0,1870,0,.08,'sine',.06);N(0,.02,.5,3200,0,3);break;
+            // ガードを張った：「シャキン」
+            case 'guard':N(0,.12,.35,2500,7000,1.5);T(.03,880,0,.16,'triangle',.12);T(.03,1320,0,.2,'sine',.08);break;
+            // 回復：やわらかく上がるベル
+            case 'heal':[523,659,784,1047].forEach((f,i)=>bell(i*.05,f,.28,.1));break;
+            // 自分が傷つく：鈍い「ズン」＋下がる音
+            case 'hurt':{const p=J(.05);N(0,.1,.7,600*p,150,.9,'lowpass');T(0,240*p,70,.2,'sawtooth',.08);T(0,160*p,55,.2,'sine',.55);break;}
+            // 相手の大技（予告の一撃）
+            case 'heavy':T(0,90,40,.4,'sine',.6);N(0,.2,.4,400,120,.7,'lowpass');break;
+            // 相手の溜め
+            case 'wind':N(0,.24,.25,300,1400,1.2);T(0,110,220,.24,'triangle',.18,.08);break;
+            // ⚡が足りない：くぐもった「トッ、トッ」
+            case 'nope':T(0,196,165,.05,'triangle',.4);N(0,.03,.35,500,0,.8,'lowpass');T(.085,175,145,.06,'triangle',.36);break;
+            // 会話の文字送り
+            case 'type':{const p=J(.1);N(0,.009,.25,3200*p,0,1.5);T(0,1700*p,0,.018,'sine',.05);break;}
+            // 場面切り替え：ブラインドの「サーッ」
+            case 'wipe':N(0,.32,.25,500,2800,.9);break;
+            // 相手を追い払った：崩れる打撃＋下がる音
+            case 'defeat':N(0,.3,.8,1600,200,.6);T(0,140,35,.4,'sine',.4);[784,659,523,392].forEach((f,i)=>T(.06+i*.06,f,f*.97,.12,'triangle',.12));break;
+            // 勝利
+            case 'fanfare':[[523,659,784],[587,740,880],[659,830,988,1318]].forEach((ch,i)=>ch.forEach(f=>{T(i*.16,f,0,i===2?.7:.16,'triangle',.09);T(i*.16,f*2,0,.1,'sine',.015);}));T(.32,165,0,.7,'sine',.15);break;
+            // 負け・時間切れ
+            case 'sad':[440,415,392,330].forEach((f,i)=>{T(i*.18,f,0,i===3?.5:.26,'triangle',.16);T(i*.18,f/2,0,.26,'sine',.08);});break;
+            // 結果のハンコ
+            case 'stamp':N(0,.08,.8,650,0,.7,'lowpass');T(0,150,80,.13,'sine',.55);N(0,.015,.3,3000,0,1.5);break;
+            // 火種カードを押しつけられる
+            case 'curse':T(0,400,110,.3,'sawtooth',.06);N(0,.3,.35,1500,500,1.5);N(.05,.25,.2,3000,0,2);break;
+            // 炎上：ボッと燃え上がる
+            case 'burn':N(0,.3,.5,600,2400,.8);T(0,120,240,.2,'sine',.25,.03);break;
+            // 相手の強化・シラけ：暗く上がる音
+            case 'ebuff':T(0,147,220,.25,'triangle',.22,.03);T(0,220,330,.25,'sine',.08,.03);N(0,.2,.15,800,0,2);break;
+            // 火種カードを処理した：ジュッ
+            case 'fizz':N(0,.25,.35,5000,2000,1.2);break;
+            // 歌カード・怪談カードの味付け
+            case 'song':bell(0,1047,.25,.06);bell(.06,1568,.3,.06);break;
+            case 'kaidan':T(0,98,90,.5,'sine',.25,.05);T(0,147,140,.5,'sine',.06,.05);break;
+            // ターン終了：「カチッ」＋下がる 2 音
+            case 'endturn':N(0,.02,.5,2600,0,2.5);T(0,784,0,.08,'triangle',.16);T(.07,587,0,.12,'triangle',.16);break;
+            // ラウンド開始・ボス登場
+            case 'round':T(0,392,0,.14,'triangle',.18);T(.12,587,0,.3,'triangle',.18);N(0,.2,.15,1500,4000,1);break;
+            case 'boss':T(0,62,55,.9,'sine',.5,.04);T(0,93,82,.9,'sine',.15,.04);N(0,.6,.1,300,0,.7,'lowpass');T(.1,233,0,.6,'triangle',.06,.05);break;
+            // ご褒美の画面・カードを得た
+            case 'reward':bell(0,784,.3,.12);bell(.08,1047,.35,.12);break;
+            case 'getcard':N(0,.08,.4,1500,5000,1);[784,988,1175,1568].forEach((f,i)=>bell(.04+i*.05,f,.3,.1));break;
+            // 決定（タイトル・遊び方）・マインON
+            case 'decide':N(0,.02,.4,2800,0,2.5);T(0,659,0,.07,'triangle',.18);T(.06,988,0,.12,'triangle',.18);break;
+            case 'micon':T(0,140,60,.09,'sine',.5);N(0,.02,.25,2500,0,.8);T(.12,1047,0,.18,'sine',.06);break;
+            // 会話を進める・飛ばす
+            case 'next':N(0,.016,.4,2400,0,2);T(0,880,700,.04,'triangle',.13);break;
+            case 'skip':N(0,.1,.25,2600,700,1);T(0,660,440,.08,'triangle',.12);break;
+            // 相手の吹き出し（コメント）
+            case 'taunt':{const p=J(.05);T(0,1500*p,1200*p,.05,'sine',.14);N(0,.015,.2,3500,0,2);break;}
           }
         }catch(e){}
       };
     })();
-
+    if(mg&&mg.exposeSfx)mg.exposeSfx(['select','card','draw','shuffle','hit','big','block','guard','heal','hurt','heavy','wind','nope','type','wipe','defeat','fanfare','sad','stamp','curse','burn','ebuff','fizz','song','kaidan','endturn','round','boss','reward','getcard','decide','micon','next','skip','taunt'],k=>SFX(k));
     // ── カテゴリ（枠の色） ──
     const CAT={
       talk:   {label:'トーク',  c:'#b484ff',c1:'#2b1752',g:'rgba(180,132,255,.35)'},
@@ -835,7 +892,7 @@ registerMinigame({
         i++;
         if(!draw.length){
           if(!discard.length){if(done)done();return;}
-          draw=shuffle(discard);discard=[];say('捨て札をシャッフルして山札へ');
+          draw=shuffle(discard);discard=[];say('捨て札をシャッフルして山札へ');SFX('shuffle');
         }
         const id=draw.pop();
         const e=makeCard(id);e.style.transition='none';
@@ -874,13 +931,13 @@ registerMinigame({
         if(ev.type==='pointercancel'){layoutHand();return;}
         if(d.moved){if(d.armed)playCard(h);else{selCard=null;layoutHand();}}
         else if(d.type==='mouse'||selCard===h)playCard(h);
-        else{selCard=h;kbdIdx=hand.indexOf(h);layoutHand();se('btn');showTip(h.id);}
+        else{selCard=h;kbdIdx=hand.indexOf(h);layoutHand();SFX('select');showTip(h.id);}
       };
       e.addEventListener('pointerup',up);e.addEventListener('pointercancel',up);
       e.addEventListener('pointerenter',ev=>{if(ev.pointerType==='mouse'&&!drag&&!busy){hoverCard=h;layoutHand();}});
       e.addEventListener('pointerleave',ev=>{if(ev.pointerType==='mouse'&&hoverCard===h){hoverCard=null;layoutHand();}});
     }
-    el.relics.addEventListener('pointerdown',e=>{const n=e.target.closest('.cards-relic');if(n){e.stopPropagation();const c=CHARM[n.dataset.k];say(`お守り「${c.name}」：${c.desc}`,true);se('btn');}});
+    el.relics.addEventListener('pointerdown',e=>{const n=e.target.closest('.cards-relic');if(n){e.stopPropagation();const c=CHARM[n.dataset.k];say(`お守り「${c.name}」：${c.desc}`,true);SFX('select');}});
     stage.addEventListener('pointerdown',()=>{if(selCard&&!drag){selCard=null;layoutHand();}});
 
     function showTip(id){const d=CARD[id];say(`${d.name}：${cardText(id).replace(/<br>/g,'・').replace(/<[^>]+>/g,'')}　もう一度タップで使う`,true);}
@@ -947,8 +1004,8 @@ registerMinigame({
       if(has('boots')&&!bootsUsed&&!silent){bootsUsed=true;v=Math.max(0,v-3);fireRelic('boots');}
       const b=Math.min(me.block,v);me.block-=b;const d=v-b;
       if(b)floatNum(PX.hp.x+40,PX.hp.y-14,'ガード-'+b,'#58c8ff',16);
-      if(d>0){me.hp-=d;floatNum(PX.hp.x,PX.hp.y-10,'-'+d,'#ff4d6d',24);flashP=1;shake=Math.max(shake,d>=10?12:7);hitStop=d>=10?.1:.05;SFX('hurt');if(!silent)se('noise');}
-      else{SFX('block');if(!silent)se('repair');}
+      if(d>0){me.hp-=d;floatNum(PX.hp.x,PX.hp.y-10,'-'+d,'#ff4d6d',24);flashP=1;shake=Math.max(shake,d>=10?12:7);hitStop=d>=10?.1:.05;SFX('hurt');}
+      else SFX('block');
     }
     function healMe(v){const before=me.hp;me.hp=Math.min(me.max,me.hp+v);const d=me.hp-before;floatNum(PX.hp.x,PX.hp.y-10,'+'+d,'#44ee88',22);burst(PX.hp.x,PX.hp.y,'#44ee88',8,80,60);SFX('heal');}
 
@@ -958,7 +1015,7 @@ registerMinigame({
       const d=CARD[h.id];
       if(d.cost>me.energy){
         h.el.classList.remove('nope');void h.el.offsetWidth;h.el.classList.add('nope');
-        say('⚡が足りない。ターン終了で回復する');se('back');SFX('nope');selCard=null;layoutHand();return;
+        say('⚡が足りない。ターン終了で回復する');SFX('nope');selCard=null;layoutHand();return;
       }
       busy=true;resolving=true;me.energy-=d.cost;SFX('card');
       hand.splice(hand.indexOf(h),1);selCard=null;hoverCard=null;kbdIdx=-1;
@@ -970,7 +1027,7 @@ registerMinigame({
       const an=e.animate([{transform:from},{transform:mid,offset:.4},{transform:mid,offset:.55,filter:'brightness(1.6)'},{transform:end,opacity:gone?0:.3,filter:gone?'brightness(3) blur(2px)':'none'}],{duration:gone?620:700,easing:'cubic-bezier(.35,.7,.3,1)'});
       an.onfinish=()=>e.remove();
       e.style.transform=end;e.style.opacity='0';
-      layoutHand();renderHUD();se(d.curse?'warn':'decide');
+      layoutHand();renderHUD();if(d.curse)later(()=>SFX('fizz'),200);
       later(()=>{
         const extra=resolveCard(h.id);
         if(!gone)discard.push(h.id);
@@ -1005,10 +1062,10 @@ registerMinigame({
         extra=(n-1)*150;
         msg.push(`盛り上がり${per}${n>1?'×'+n:''}`+(heatUsed?`（熱気+${heatUsed}）`:'')+(mul>1?` 連続×${mul.toFixed(2)}`:''));
         if(d.cat==='talk'&&has('stamp')&&!stampUsed){stampUsed=true;me.heat+=2;fireRelic('stamp');floatNum(PX.hp.x-60,PX.hp.y-30,'熱気+2','#e8b830',16);}
-        se(d.cat==='kaidan'?'ghost':d.cat==='song'?'live':'comment');
+        if(d.cat==='kaidan'||d.cat==='song')SFX(d.cat);
       }
-      if(d.block){me.block+=d.block;floatNum(PX.hp.x+40,PX.hp.y-14,'ガード+'+d.block,'#58c8ff',18);msg.push('ガード'+d.block);if(!d.dmg)se('tool');}
-      if(d.heal){healMe(d.heal);msg.push('回復'+d.heal);if(!d.dmg)se('notif');}
+      if(d.block){me.block+=d.block;floatNum(PX.hp.x+40,PX.hp.y-14,'ガード+'+d.block,'#58c8ff',18);msg.push('ガード'+d.block);SFX('guard');}
+      if(d.heal){healMe(d.heal);msg.push('回復'+d.heal);}
       if(d.heat){me.heat+=d.heat;floatNum(PX.hp.x-60,PX.hp.y-14,'熱気+'+d.heat,'#e8b830',18);msg.push('熱気+'+d.heat);}
       if(d.clearBurn&&me.burn){me.burn=0;msg.push('炎上が鎮まった');}
       if(d.self){me.hp-=d.self;floatNum(PX.hp.x,PX.hp.y-10,'-'+d.self,'#ff4d6d',20);msg.push('心-'+d.self);}
@@ -1022,7 +1079,7 @@ registerMinigame({
     function endTurn(){
       if(overlay||mg._ended)return;
       if(busy){if(resolving)queued='end';return;}
-      busy=true;queued=null;selCard=null;hoverCard=null;kbdIdx=-1;se('decide');
+      busy=true;queued=null;selCard=null;hoverCard=null;kbdIdx=-1;SFX('endturn');
       let burns=0;
       hand.forEach((h,i)=>{
         const e=h.el,from=e.style.transform;e.style.transition='none';
@@ -1053,10 +1110,10 @@ registerMinigame({
         if(it.k==='chill'&&me.heat){me.heat=0;floatNum(PX.hp.x-60,PX.hp.y-14,'熱気が冷めた','#9fe6ff',16);}
         for(let i=0;i<it.times;i++)later(()=>{elunge=1;hurtMe(it.n+str);renderHUD();},i*240);
         wait=it.times*240+420;
-        if(it.k==='heavy'){shake=16;se('warn');}
-      }else if(it.k==='block'){enemy.block+=it.n;floatNum(ex,ey-R*.6,'シラけ+'+it.n,'#9fb4d8',20);se('machine');}
-      else if(it.k==='burn'){me.burn+=it.n;floatNum(PX.hp.x-30,PX.hp.y-14,'炎上+'+it.n,'#ff7a3c',22);burst(PX.hp.x,PX.hp.y,'#ff7a3c',14,90,40);se('warn');}
-      else if(it.k==='buff'){enemy.str+=it.n;enemy.block+=it.block||0;floatNum(ex,ey-R*.6,'勢い+'+it.n,'#b484ff',20);burst(ex,ey,'#b484ff',14,120);se('machine');}
+        if(it.k==='heavy'){shake=16;SFX('heavy');}
+      }else if(it.k==='block'){enemy.block+=it.n;floatNum(ex,ey-R*.6,'シラけ+'+it.n,'#9fb4d8',20);SFX('ebuff');}
+      else if(it.k==='burn'){me.burn+=it.n;floatNum(PX.hp.x-30,PX.hp.y-14,'炎上+'+it.n,'#ff7a3c',22);burst(PX.hp.x,PX.hp.y,'#ff7a3c',14,90,40);SFX('burn');}
+      else if(it.k==='buff'){enemy.str+=it.n;enemy.block+=it.block||0;floatNum(ex,ey-R*.6,'勢い+'+it.n,'#b484ff',20);burst(ex,ey,'#b484ff',14,120);SFX('ebuff');}
       else if(it.k==='curse'){SFX('curse');
         for(let i=0;i<it.n;i++)later(()=>{
           const e=makeCard('burn');e.style.transition='none';el.hl.appendChild(e);
@@ -1064,7 +1121,7 @@ registerMinigame({
           e.style.opacity=0;a.onfinish=()=>{e.remove();discard.push('burn');renderPiles();};
         },i*160);
         if(it.burn){me.burn+=it.burn;floatNum(PX.hp.x-30,PX.hp.y-14,'炎上+'+it.burn,'#ff7a3c',20);}
-        se('warn');wait=900;
+        wait=900;
       }
       renderHUD();
       later(()=>{
@@ -1100,7 +1157,7 @@ registerMinigame({
       draw=shuffle(deck.slice());discard=[];me.block=0;me.heat=0;
       intentDisplay();renderHUD();
       banner(d.boss?'FINAL':'ROUND '+(i+1),d.name,d.boss?'静かすぎる夜が、配信ごと飲み込もうとしている。':i===0?'コメント欄に、嫌な気配。':'同じ文面が、画面を埋め尽くしていく。',d.col,1300,()=>{taunt(d.taunt,d.col);later(beginTurn,500);});
-      se(d.boss?'ghost':'warn');
+      SFX(d.boss?'boss':'round');
     }
     function banner(k,t,s,col,ms,done){
       overlay=true;phase='banner';
@@ -1112,14 +1169,14 @@ registerMinigame({
       if(busy2)return;busy2=true;busy=true;
       edie=.01;el.intent.style.opacity=0;enemy.intent=null;cleared=stageIdx+1;
       if(has('onigiri')){fireRelic('onigiri');later(()=>healMe(6),500);}
-      shake=14;flashE=1;hitStop=.18;se('rank');SFX('defeat');
+      shake=14;flashE=1;hitStop=.18;SFX('defeat');
       burst(ex,ey,enemy.def.col,40,240);burst(ex,ey,'#fff',20,200);
       say(`${enemy.def.name}を追い払った！`);
       // 手札は捨て札へ
       hand.forEach(h=>{const e=h.el;const a=e.animate([{transform:e.style.transform},{transform:tf(PX.disc.x-cw/2,PX.disc.y-ch/2,30,.22),opacity:.2}],{duration:380,easing:'ease-in'});a.onfinish=()=>e.remove();e.style.opacity=0;});
       hand=[];renderHUD();
       if(enemy.def.boss){
-        later(()=>{banner('CLEAR','配信大成功！','コメントが止まらない。夜が明けていく。','#e8b830',1700,()=>ending('win'));se('ach');SFX('fanfare');},1300);
+        later(()=>{banner('CLEAR','配信大成功！','コメントが止まらない。夜が明けていく。','#e8b830',1700,()=>ending('win'));SFX('fanfare');},1300);
         return;
       }
       later(showReward,1500);
@@ -1134,20 +1191,20 @@ registerMinigame({
       const box=el.ov.querySelector('.cards-rw');
       pool.forEach((id,i)=>{const c=makeCard(id,'static');c.querySelector('.cards-key').textContent=i+1;c.addEventListener('click',()=>pickReward(id,c));box.appendChild(c);});
       el.ov.querySelector('.cards-skip').addEventListener('click',()=>pickReward(null));
-      el.ov.classList.add('on');renderHUD();se('notif');
+      el.ov.classList.add('on');renderHUD();SFX('reward');
       rewardPool=pool;
     }
     let rewardPool=null;
     function pickReward(id,node){
       if(phase!=='reward')return;phase='picked';rewardPool=null;
-      if(id){deck.push(id);se('ach');if(node){node.style.transition='transform .35s,opacity .35s';node.style.transform='translateY(-20px) scale(1.12)';node.style.boxShadow='0 0 30px var(--cc)';}say(`「${CARD[id].name}」をデッキに加えた`);}
-      else{const v=Math.min(5,me.max-me.hp);me.hp+=v;se('btn');say(`水を飲んだ。心+${v}`);}
+      if(id){deck.push(id);SFX('getcard');if(node){node.style.transition='transform .35s,opacity .35s';node.style.transform='translateY(-20px) scale(1.12)';node.style.boxShadow='0 0 30px var(--cc)';}say(`「${CARD[id].name}」をデッキに加えた`);}
+      else{const v=Math.min(5,me.max-me.hp);me.hp+=v;SFX('heal');say(`水を飲んだ。心+${v}`);}
       later(()=>{el.ov.classList.remove('on');overlay=false;busy2=false;renderHUD();
         const nx=stageIdx+1;scene(BEAT[nx],()=>wipe(()=>startEncounter(nx)));},id?500:200);
     }
     function defeat(){
       if(phase==='end')return;busy=true;phase='end';
-      se('warn');shake=10;
+      shake=10;
       SFX('sad');banner('LOST','心が折れた…','言葉が、もう出てこない。','#e83055',1500,()=>ending('lose'));
     }
     function timeUp(){
@@ -1169,7 +1226,7 @@ registerMinigame({
 <div class="cards-how-go">タップで次へ</div></div>`;
       el.ov.classList.add('on');el.ov.style.background='';
       let fired=false;
-      const go=()=>{if(fired||phase!=='how')return;fired=true;el.ov.classList.remove('on');overlay=false;se('decide');SFX('select');done();};
+      const go=()=>{if(fired||phase!=='how')return;fired=true;el.ov.classList.remove('on');overlay=false;SFX('decide');done();};
       ovTap=go;later(go,firstPlay?9000:4000);
     }
     let ovTap=null;
@@ -1188,9 +1245,9 @@ registerMinigame({
     function title(done){
       overlay=true;phase='title';
       el.ov.innerHTML=`<div class="cards-title">${remix?'<div class="cards-title-rmx">REMIX ─ 深夜2時の部</div>':''}<div class="cards-logo">${LOGO}</div><div class="cards-title-sub">NIGHT TALK BATTLE</div><div class="cards-title-tag">${day}日目の夜。話題カードで、夜を越えろ。</div><div class="cards-title-diff" style="--dc:${DIFF==='easy'?'#44ee88':DIFF==='normal'?'#e8b830':'#ff6a86'}">難しさ：${MG_DIFF_NAMES[DIFF]}　心${MAXHP}・${TURNS}ターン</div>${REC.best?`<div class="cards-title-best">BEST ${REC.best}（${REC.bestScore}点） ・ クリア${REC.clears}回</div>`:''}<div class="cards-title-go">TAP TO START</div></div>`;
-      el.ov.classList.add('on');el.ov.style.background='rgba(4,3,10,.6)';se('micOn');
+      el.ov.classList.add('on');el.ov.style.background='rgba(4,3,10,.6)';SFX('micon');
       let fired=false;
-      const go=()=>{if(fired||phase!=='title')return;fired=true;SFX('select');se('decide');el.ov.classList.remove('on');done();};
+      const go=()=>{if(fired||phase!=='title')return;fired=true;SFX('decide');el.ov.classList.remove('on');done();};
       ovTap=go;later(go,3000);
     }
 
@@ -1225,8 +1282,8 @@ registerMinigame({
         full=L.t;shown=0;typing=true;token++;el.nx.style.visibility='hidden';el.sayD.textContent='';
         tick(token);
       };
-      sceneTap=()=>{if(typing){typing=false;el.sayD.textContent=full;el.nx.style.visibility='visible';}else{se('btn');next();}};
-      sceneSkip=()=>{se('back');finish();};
+      sceneTap=()=>{if(typing){typing=false;el.sayD.textContent=full;el.nx.style.visibility='visible';}else{SFX('next');next();}};
+      sceneSkip=()=>{SFX('skip');finish();};
       next();
     }
     el.dlgw.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(sceneTap)sceneTap();});
@@ -1278,7 +1335,7 @@ registerMinigame({
     }
     function taunt(t,col){
       const b=document.createElement('div');b.className='cards-ebub';b.style.setProperty('--k',col);b.textContent=t;
-      b.style.left=ex+'px';b.style.top=Math.max(ezTop+80,ey-R*.42)+'px';stage.appendChild(b);se('comment');
+      b.style.left=ex+'px';b.style.top=Math.max(ezTop+80,ey-R*.42)+'px';stage.appendChild(b);SFX('taunt');
       later(()=>{b.style.transition='opacity .3s';b.style.opacity=0;later(()=>b.remove(),320);},1900);
     }
 
@@ -1326,7 +1383,7 @@ ${r.isNew?'<div class="cards-grade-new">NEW RECORD</div>':`<div class="cards-gra
     }
 
     // ── 入力 ──
-    el.endBtn.addEventListener('click',e=>{e.stopPropagation();SFX('select');endTurn();});
+    el.endBtn.addEventListener('click',e=>{e.stopPropagation();endTurn();});
     el.endBtn.addEventListener('pointerdown',e=>e.stopPropagation());
     mg.onKey(e=>{
       if(e.type!=='keydown')return;
