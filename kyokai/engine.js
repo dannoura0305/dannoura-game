@@ -485,6 +485,9 @@
   KY.setVolume = v => { SET.vol = clamp(v | 0, 0, 100); KY.saveSettings(); if (AU.out) AU.out.gain.setTargetAtTime((SET.vol / 100) * 0.9, AU.ctx.currentTime, 0.05); };
   const T = () => AU.ctx.currentTime;
   function gainNode(v, dest) { const g = AU.ctx.createGain(); g.gain.value = v; if (dest) g.connect(dest); return g; }
+  // 効果音の出口。KY.se が鳴らすあいだだけ、効果音ごとの音量（SE_GAIN）を掛けた入口に差し替える
+  let SEBUS = null;
+  const OUT = () => SEBUS || AU.out;
   function filt(type, f, q, dest) { const b = AU.ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; if (q != null) b.Q.value = q; if (dest) b.connect(dest); return b; }
   function noiseSrc(loop) { const s = AU.ctx.createBufferSource(); s.buffer = AU.noise; s.loop = !!loop; s.loopStart = Math.random(); return s; }
   function envTone(f, t, dur, o) {
@@ -493,7 +496,7 @@
     os.type = o.type || 'sine'; os.frequency.setValueAtTime(f, t); if (o.to) os.frequency.exponentialRampToValueAtTime(o.to, t + dur);
     const v = o.vol == null ? 0.2 : o.vol, a = o.a || 0.004;
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    os.connect(g); g.connect(o.dest || AU.out); os.start(t); os.stop(t + dur + 0.05);
+    os.connect(g); g.connect(o.dest || OUT()); os.start(t); os.stop(t + dur + 0.05);
     return g;
   }
   function envNoise(t, dur, o) {
@@ -502,7 +505,7 @@
     f.type = o.type || 'bandpass'; f.frequency.value = o.f || 1200; f.Q.value = o.q == null ? 1 : o.q;
     const v = o.vol == null ? 0.2 : o.vol, a = o.a || 0.003;
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    s.connect(f); f.connect(g); g.connect(o.dest || AU.out); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.05);
+    s.connect(f); f.connect(g); g.connect(o.dest || OUT()); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.05);
     return g;
   }
   // 月代駅の汽笛：二本の笛のずれた和音＋蒸気の息＋谷のこだま。dist 0（近い）〜1（とても遠い）
@@ -511,9 +514,9 @@
     const bus = gainNode((vol == null ? 0.32 : vol) * (1 - dist * 0.45));
     const lp = filt('lowpass', 3400 - dist * 2300, 0.5);
     bus.connect(lp);
-    const dry = gainNode(1 - dist * 0.55, AU.out), wet = gainNode(0.35 + dist * 0.5, AU.rev);
+    const dry = gainNode(1 - dist * 0.55, OUT()), wet = gainNode(0.35 + dist * 0.5, AU.rev);
     lp.connect(dry); lp.connect(wet);
-    const dl = c.createDelay(2); dl.delayTime.value = 0.38 + dist * 0.2; const fb = gainNode(0.26); lp.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(gainNode(0.45, AU.out));
+    const dl = c.createDelay(2); dl.delayTime.value = 0.38 + dist * 0.2; const fb = gainNode(0.26); lp.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(gainNode(0.45, OUT()));
     const notes = [[440, 1], [523.3, 0.55], [622.3, 0.32]];
     const blow = (t0, len) => {
       notes.forEach(([f, gv], i) => {
@@ -553,7 +556,7 @@
     os.frequency.setValueAtTime(f, t); if (o.to) os.frequency.linearRampToValueAtTime(o.to, t + dur);
     const v = o.vol == null ? 0.04 : o.vol;
     g.gain.value = 0; g.gain.setValueAtTime(v, t); g.gain.setValueAtTime(v, t + dur * 0.75); g.gain.linearRampToValueAtTime(0.0001, t + dur);
-    os.connect(g); g.connect(o.dest || AU.out); os.start(t); os.stop(t + dur + 0.03);
+    os.connect(g); g.connect(o.dest || OUT()); os.start(t); os.stop(t + dur + 0.03);
   }
   function chipSeq(notes, t, len, o) { notes.forEach((f, i) => { if (f) chip(f, t + i * len, len * (o && o.hold && i === notes.length - 1 ? o.hold : 0.95), o); }); }
   function chipNoise(t, dur, o) {
@@ -562,7 +565,7 @@
     f.type = 'highpass'; f.frequency.value = o.f || 1800;
     const v = o.vol == null ? 0.08 : o.vol, st = 4;
     g.gain.value = 0; g.gain.setValueAtTime(v, t); for (let i = 1; i <= st; i++) g.gain.setValueAtTime(v * (1 - i / st) + 0.0001, t + dur * i / st);
-    s.connect(f); f.connect(g); g.connect(o.dest || AU.out); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.05);
+    s.connect(f); f.connect(g); g.connect(o.dest || OUT()); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.05);
   }
   function tick(t, hi, vol, dest) { envNoise(t, 0.035, { f: hi ? 3600 : 2600, q: 9, vol: vol == null ? 0.22 : vol, dest }); envTone(hi ? 2100 : 1700, t, 0.03, { vol: (vol == null ? 0.22 : vol) * 0.25, dest }); }
   function step1(t, vol, dest) { envNoise(t, 0.12, { type: 'lowpass', f: 380, q: 0.7, vol: vol || 0.35, dest }); envNoise(t + 0.01, 0.05, { f: 1800, q: 2, vol: (vol || 0.35) * 0.25, dest }); }
@@ -575,7 +578,7 @@
       const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(base * (0.9 + Math.random() * 0.25), x);
       const g = c.createGain(); g.gain.setValueAtTime(0.0001, x); g.gain.linearRampToValueAtTime(vol || 0.05, x + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, x + syl);
       const f1 = filt('bandpass', v[0], 6), f2 = filt('bandpass', v[1], 8), mix = gainNode(1);
-      o.connect(f1); o.connect(f2); f1.connect(mix); f2.connect(gainNode(0.6, mix)); mix.connect(g); g.connect(dest || AU.out);
+      o.connect(f1); o.connect(f2); f1.connect(mix); f2.connect(gainNode(0.6, mix)); mix.connect(g); g.connect(dest || OUT());
       o.start(x); o.stop(x + syl + 0.05);
       x += syl + (Math.random() < 0.2 ? 0.25 : 0.03);
     }
@@ -584,14 +587,14 @@
     const c = AU.ctx, s = noiseSrc(true), f = filt('bandpass', 1500, 0.6), g = c.createGain(), am = c.createOscillator(), ag = c.createGain();
     am.frequency.value = 23; ag.gain.value = 0.5; am.connect(ag); ag.connect(g.gain);
     g.gain.setValueAtTime(vol || 0.2, t); g.gain.setValueAtTime(vol || 0.2, t + dur - 0.05); g.gain.linearRampToValueAtTime(0, t + dur);
-    s.connect(f); f.connect(g); g.connect(dest || AU.out); s.start(t); s.stop(t + dur + 0.1); am.start(t); am.stop(t + dur + 0.1);
+    s.connect(f); f.connect(g); g.connect(dest || OUT()); s.start(t); s.stop(t + dur + 0.1); am.start(t); am.stop(t + dur + 0.1);
   }
   const SE = {
     whistle: () => whistle(0.35),
     whistle_far: () => whistle(0.9, null, 0.3),
     static: () => staticBurst(T(), 0.7, 0.18),
     clock: () => { const t = T(); for (let i = 0; i < 4; i++) tick(t + i, i % 2 === 0, 0.25); },
-    wire: () => { const t = T(), g = gainNode(0.0001, AU.out); g.gain.linearRampToValueAtTime(0.12, t + 0.6); g.gain.linearRampToValueAtTime(0.0001, t + 2.6); [50, 100, 150, 250].forEach((f, i) => envTone(f, t, 2.6, { vol: 0.6 / (i + 1), dest: g, a: 0.5 })); envNoise(t, 2.4, { f: 2400, q: 3, vol: 0.04, a: 0.6 }); },
+    wire: () => { const t = T(), g = gainNode(0.0001, OUT()); g.gain.linearRampToValueAtTime(0.12, t + 0.6); g.gain.linearRampToValueAtTime(0.0001, t + 2.6); [50, 100, 150, 250].forEach((f, i) => envTone(f, t, 2.6, { vol: 0.6 / (i + 1), dest: g, a: 0.5 })); envNoise(t, 2.4, { f: 2400, q: 3, vol: 0.04, a: 0.6 }); },
     steps: () => { const t = T(); for (let i = 0; i < 5; i++) step1(t + i * 0.48, 0.3 - i * 0.03); },
     voice: () => murmur(T(), 1.8, 0.05),
     // ここから下はゲームボーイ風（矩形波・パルス波・ノイズ）
@@ -621,9 +624,45 @@
     G.lastSe[name] = t;
     const f = SE[name];
     if (!f) { console.warn('[KY] 不明な効果音', name); return; }
-    try { f(); } catch (e) {}
+    const k = SE_GAIN[name];
+    try { if (k != null && k !== 1) { SEBUS = gainNode(k, AU.out); } f(); } catch (e) {}
+    if (SEBUS) { const bus = SEBUS; SEBUS = null; setTimeout(() => { try { bus.disconnect(); } catch (e) {} }, 9000); }
   };
+  // 効果音ごとの音量の補正（2026-11：ラウドネスを測って揃えた。docs/kyokai/audio-review.md）。書いていない物は 1
+  // static（砂嵐）は他より 15 LU も大きく耳に刺さったので大きく下げ、声のざわめき・足音・ボタンの音は聞こえる所まで上げた
+  const SE_GAIN = KY._seGain = { static: 0.32, heart: 0.58, shutter: 0.85, voice: 2.8, steps: 1.6, error: 0.7, tap: 1.5, cursor: 1.4 };
   KY._seNames = Object.keys(SE);
+  // 文字送りの音（2026-11）：話す人ごとに高さと音色を変える（前は全員同じ 1175Hz）。
+  // 地の文はいちばん小さく、端末は短いクリック、配信の男性はノイズ混じり。
+  // x は町の人（名前つき）：名前から決まる、ふつうの高さ（毎回同じ・人ごとに少し違う）。名前の無い「？？？」だけ低くて高さが定まらない。
+  const BLIP = {
+    n: { f: 880, duty: 0.5, vol: 0.008, dur: 0.016 },
+    p: { f: 1047, duty: 0.5, vol: 0.010 },
+    y: { f: 1175, duty: 0.25, vol: 0.015 },
+    m: { f: 698, duty: 0.5, vol: 0.0106 },
+    g: { f: 1397, duty: 0.25, vol: 0.0145 },
+    k: { f: 784, duty: 0.25, vol: 0.016 },
+    s: { f: 1661, duty: 0.125, vol: 0.020, jit: 60 },
+    d: { f: 932, duty: 0.5, vol: 0.0046, noise: 0.0114 },
+    c: { f: 1760, duty: 0.25, vol: 0.0103, dur: 0.014 },
+    t: { f: 2093, duty: 0.125, vol: 0.016, dur: 0.012 },
+    x: { f: 392, duty: 0.5, vol: 0.0123, jit: 140 },   // ？？？
+    xn: { f: 988, duty: 0.25, vol: 0.0155 },            // 町の人（高さは名前で変える）
+    b: { f: 1175, duty: 0.5, vol: 0.0087 },   // 戦闘のメッセージ
+  };
+  const XN_F = [784, 880, 988, 1047, 1175, 1319];
+  function typeBlip(who, name) {
+    if (!AU.ok) return;
+    const named = who === 'x' && name && !/^[？?]+$/.test(name);
+    const b = named ? BLIP.xn : (BLIP[who] || BLIP.p), t = T();
+    try {
+      let f = b.jit ? b.f + (Math.random() - 0.5) * b.jit : b.f;
+      if (named) { let h = 0; for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; f = XN_F[h % XN_F.length]; }
+      chip(f, t, b.dur || 0.02, { duty: b.duty, vol: b.vol });
+      if (b.noise) chipNoise(t, 0.025, { f: 2600, vol: b.noise });
+    } catch (e) {}
+  }
+  KY._typeBlip = typeBlip;
   /* 環境音：鳴らし続けるもの。{stop()} を返す */
   function loopGain(v) { const g = AU.ctx.createGain(); g.gain.setValueAtTime(0.0001, T()); g.gain.linearRampToValueAtTime(v, T() + 1.6); g.connect(AU.out); return g; }
   function every(fn, min, max) { let id = 0, alive = true; const go = () => { if (!alive) return; try { fn(); } catch (e) {} id = setTimeout(go, (min + Math.random() * (max - min)) * 1000); }; id = setTimeout(go, (min * 0.3 + Math.random() * min * 0.5) * 1000); return () => { alive = false; clearTimeout(id); }; }
@@ -974,14 +1013,14 @@
     D.dlgNext = $('button', 'dlg-next', '▼'); D.dlgNext.type = 'button'; D.dlgNext.setAttribute('aria-label', '次へ');
     box.appendChild(D.dlgNext);
   }
-  function typeInto(el, text, onDone) {
+  function typeInto(el, text, onDone, who, name) {
     const cps = SPEED[SET.speed] == null ? 40 : SPEED[SET.speed];
     const chars = Array.from(text);
     if (!cps || chars.length < 2) { el.textContent = text; onDone(); return () => {}; }
     let n = 0, done = false, k = 0;
     const iv = setInterval(() => {
       n += Math.max(1, Math.round(cps / 30));
-      if (AU.ok && (k++ % 2) === 0 && n < chars.length && /\S/.test(chars[n] || '')) { try { SE.type(); } catch (e) {} }
+      if (AU.ok && (k++ % 2) === 0 && n < chars.length && /\S/.test(chars[n] || '')) typeBlip(who, name);
       if (n >= chars.length) { clearInterval(iv); el.textContent = text; done = true; onDone(); return; }
       el.textContent = chars.slice(0, n).join('');
     }, 1000 / 30);
@@ -1020,7 +1059,7 @@
         typing = false;
         if (L.more) { waitT = setTimeout(finish, 260); G.adv = finish; return; }
         D.dlgNext.hidden = false;
-      });
+      }, L.who, L.name);
       G.adv = () => { if (typing) skip(); else finish(); };
       if (L.who === 'd' || L.who === 'c') { /* 配信・コメントは少しノイズ */ }
     });
@@ -1215,7 +1254,8 @@
         if (y < -inner.offsetHeight - 20) return end();
         raf = requestAnimationFrame(step);
       };
-      const end = () => { if (ended) return; ended = true; cancelAnimationFrame(raf); h.close(); done(); };
+      const end = () => { if (ended) return; ended = true; D.rollOn = false; cancelAnimationFrame(raf); h.close(); done(); };
+      D.rollOn = true;   // music.js がスタッフロールの曲を流す
       raf = requestAnimationFrame(step);
       h.esc = end;
       whistle && AU.ok && setTimeout(() => KY.se('whistle_far'), 1200);
@@ -1312,7 +1352,7 @@
       const row2 = $('label', 'set-row'); const r2 = $('input'); r2.type = 'range'; r2.min = 0; r2.max = 100; r2.step = 5; r2.value = SET.bgm == null ? 60 : SET.bgm; const v2 = $('span', 'set-v', r2.value + '');
       r2.addEventListener('input', () => { KY_BGM.setVol(+r2.value); v2.textContent = r2.value; });
       row2.append($('span', '', 'BGM'), r2, v2); a.appendChild(row2);
-      a.appendChild($('div', 'set-note', 'BGM は町や建物の中を歩いているあいだだけ流れます（0 で消えます）。'));
+      a.appendChild($('div', 'set-note', 'BGM はタイトル・町や建物の中を歩いているあいだ・戦闘・スタッフロールで流れます（0 で消えます）。'));
     }
     const b = sec('文字の速さ');
     const rb = $('div', 'seg');
@@ -1395,7 +1435,7 @@
   function showTitle() {
     if (!HAS_DOM) return;
     mount();
-    closeAllOv(); hideDlg();
+    closeAllOv(); hideDlg(); D.rollOn = false;
     UI.game(false);
     setPal('A');
     const old = document.querySelector('.ky-titlescr'); if (old) old.remove();
