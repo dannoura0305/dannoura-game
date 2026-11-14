@@ -365,8 +365,8 @@ class Game {
     this.placeCompanion();
     this.placeChildForArea(id);
     this.exitArmed = false; this.wasInHome = null;
-    this.sfx.setAmbience(A.amb || (id === 'shotengai' ? (streetState(this.story.step) === 'normal' && !this.flags.lights_out ? 'street_normal' : 'street') : 'street'));
-    this.sound.enterArea(id, id === 'shotengai' ? ['street', 'street_normal'] : [this.sfx.amb || this.sfx.pendingAmb]);   // その区画の環境音・曲を頼む（読み始めるのは遊びが始まって起動の後読みを過ぎてから）
+    this.sfx.setAmbience(A.amb || (id === 'shotengai' ? this.streetAmb(false) : 'street'));     // 家の中かどうかは、次のこまで見て合わせる（wasInHome = null）
+    this.sound.enterArea(id, id === 'shotengai' ? ['street', 'street_normal', 'home'] : [this.sfx.amb || this.sfx.pendingAmb]);   // その区画の環境音・曲を頼む（読み始めるのは遊びが始まって起動の後読みを過ぎてから）
     this.rain.mesh.visible = !!A.rain && this.settings.rain;
     envKitApply(A);                                                   // P12：Blender の部品（読めていれば）
     vegApply(A, this);                                                // P16：植物の部品（読めていれば・まだの物だけ）
@@ -398,6 +398,8 @@ class Game {
     if (id === 'alley' && atLeast(s, 'ch1_street')) { C.root.visible = true; b.setMode('scripted'); b.pos = { x: 6.0, z: -19.7 }; b.yaw = Math.PI; C.anim = 'hide'; }
   }
   areaLight(fn) { return this.area.lights.find(fn); }
+  /** 商店街の区画の環境音の種類：家の中＝home（2026-11-14 の見直し：家の中でも外の雨と町の音が同じ大きさで鳴っていた）・序章のふだん＝street_normal・ほか street */
+  streetAmb(inH) { return inH ? 'home' : streetState(this.story.step) === 'normal' && !this.flags.lights_out ? 'street_normal' : 'street'; }
   /** 商店街の明かり・人・敵の状態（序章のふだん／消灯後／発生後） */
   applyStreetState(respawn) {
     if (this.area.id !== 'shotengai') return;
@@ -415,7 +417,7 @@ class Game {
       if (h.neon) { h.off = st === 'normal' && out; }
     }
     if (A.dyn.lampMat) A.dyn.lampMat.color.setScalar(st === 'normal' && !out ? 1 : st === 'normal' ? 0.12 : 0.55);
-    this.sfx.setAmbience(st === 'normal' && !out ? 'street_normal' : 'street');
+    this.sfx.setAmbience(this.streetAmb(!!this.wasInHome));
     if (respawn) this.spawnEnemies('shotengai');
   }
 
@@ -685,7 +687,7 @@ class Game {
     this.music.update(dt, {
       area: this.area.id, normal: this.area.id === 'shotengai' && streetState(this.story.step) === 'normal', credits: !!this.ui.cr,
       boss: !!bn && !bn.startsWith('（相棒）') && this.mode !== 'title', hostile: this.mode === 'play' ? this.sfx.tension : 0,
-      cut: !!this.cut.active || this.mode === 'title', voice: !!(this.voice && this.voice.playing),
+      cut: !!this.cut.active || this.mode === 'title', voice: !!(this.voice && this.voice.playing), home: this.area.id === 'shotengai' && !!this.wasInHome,
     });
   }
 
@@ -826,6 +828,7 @@ class Game {
     if (this.area.id === 'shotengai') {
       const inH = inHome(P.pos.x, P.pos.z);
       if (this.wasInHome != null && inH !== this.wasInHome) this.autosaveReq = true;
+      if (inH !== this.wasInHome) this.sfx.setAmbience(this.streetAmb(inH));   // 家に出入りした（区画に入った直後も）：環境音を合わせる
       this.wasInHome = inH;
     }
     if (this.autosaveReq && this.calm()) { this.autosaveReq = false; this.saveSlot('auto', true); }

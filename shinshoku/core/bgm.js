@@ -1,5 +1,6 @@
 // BGM（CC0 の曲：OpenGameArt.org。data/sound.js の BGM_*・bgmPlan）。2026-11-13（2026-11-14 素材を CC0 に切り替え）
 // ・常には鳴らさない：探索の曲は区画に入ってしばらく（wait）してから小さく一度だけ流し、長く休む（rest）。家・結末・記録の間・序章のふだんの町は鳴らさない。
+//   家（商店街の区画の中の自宅）に入ったら探索の曲を引く（g.home。2026-11-14 の見直し）。
 // ・敵対の異形が近い時は戦いの曲、ボス戦はボスの曲。戦いが終わって 6 秒たったら引く。演出中は新しく始めず、台詞の声が鳴る間は下げる。
 // ・出口は Sfx の master（全体の音量・遷移の沈み dip・無音の間 silence・スローのこもり muffle がそのまま掛かる）。BGM の音量は設定（bgmVol）。
 // ・曲が読めていない時は鳴らさない（合成のフォールバックは無い）。読むのは区画に入った時（core/soundbank.js）。
@@ -24,7 +25,7 @@ export class Music {
     if (this.cur && this.role === 'explore') this._stop(2.5);
   }
   has(track) { return !!(this.bank && this.bank.has(BGM_TRACKS[track])); }
-  /** 描画のこまごとに呼ぶ。g = { area, normal, credits, boss, hostile（敵対が近い 0〜1）, cut, voice } */
+  /** 描画のこまごとに呼ぶ。g = { area, normal, credits, boss, hostile（敵対が近い 0〜1）, cut, voice, home（家の中） } */
   update(dt, g) {
     if (g.area !== this.area) this.enterArea(g.area);
     // 戦い：近い敵対が強い間 → 6 秒は保つ（行き来でぶつ切りにしない）
@@ -36,7 +37,8 @@ export class Music {
       if (this.phase === 'wait' && this.phaseT <= 0) { this.phase = 'play'; this.phaseT = 9999; }
       else if (this.phase === 'rest' && this.phaseT <= 0) { this.phase = 'play'; this.phaseT = 9999; }
     }
-    const plan = bgmPlan({ area: g.area, normal: g.normal, credits: g.credits, boss: g.boss, battle: this.battleHold > 0, cut: g.cut, cur: this.role, explorePhase: this.phase, voice: g.voice });
+    if (g.home && this.role === 'explore') { this.phase = 'rest'; const r = A.rest || [90, 150]; this.phaseT = r[0] + Math.random() * (r[1] - r[0]); }   // 家に入った：探索の曲を引いて休みへ（出た時に頭から流し直さない）
+    const plan = bgmPlan({ area: g.area, normal: g.normal, credits: g.credits, boss: g.boss, battle: this.battleHold > 0, cut: g.cut, cur: this.role, explorePhase: this.phase, voice: g.voice, home: !!g.home });
     this.last = plan;
     const ctx = this._ensure(); if (!ctx) return;
     const want = plan.track ? BGM_TRACKS[plan.track] : null;
