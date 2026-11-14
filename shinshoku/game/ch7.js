@@ -412,7 +412,7 @@ export const ch7Methods = {
   credits7(r) {
     const id = r === 'A' ? 'end_reveal' : 'end_secret';
     if (!this.galleryMode) this.recordEnding7(id);
-    this.mode = 'puzzle'; this.input.exitLock(); if (!this.music.has('ending')) this.sfx.play('ending7');   // 終わりの曲（魔王魂）が読めていれば、合成の短い旋律の代わりにそれ（core/bgm.js）
+    this.mode = 'puzzle'; this.input.exitLock(); if (!this.music.has('ending')) this.sfx.play('ending7');   // 終わりの曲（CC0 の曲）が読めていれば、合成の短い旋律の代わりにそれ（core/bgm.js）
     this.metrics.credits7 = true;
     this.ui.credits(withAudioCredits(CREDITS.lines, SOUND_FILES), this.isTest() ? 2 : CREDITS.sec, () => this.showEndingCard7(id));
   },

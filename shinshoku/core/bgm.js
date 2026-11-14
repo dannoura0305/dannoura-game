@@ -1,4 +1,4 @@
-// BGM（魔王魂の曲。data/sound.js の BGM_*・bgmPlan）。2026-11-13
+// BGM（CC0 の曲：OpenGameArt.org。data/sound.js の BGM_*・bgmPlan）。2026-11-13（2026-11-14 素材を CC0 に切り替え）
 // ・常には鳴らさない：探索の曲は区画に入ってしばらく（wait）してから小さく一度だけ流し、長く休む（rest）。家・結末・記録の間・序章のふだんの町は鳴らさない。
 // ・敵対の異形が近い時は戦いの曲、ボス戦はボスの曲。戦いが終わって 6 秒たったら引く。演出中は新しく始めず、台詞の声が鳴る間は下げる。
 // ・出口は Sfx の master（全体の音量・遷移の沈み dip・無音の間 silence・スローのこもり muffle がそのまま掛かる）。BGM の音量は設定（bgmVol）。
@@ -55,7 +55,7 @@ export class Music {
   }
   _start(id, role, level) {
     const ctx = this.sfx.ctx, b = this.bank.buf(id); if (!b) return;
-    const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = b; src.loop = role !== 'explore'; src.connect(g); g.connect(this.out);
+    const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = b; src.loop = role !== 'explore'; if (src.loop) this.bank.setLoop(src, id); src.connect(g); g.connect(this.out);
     const t = ctx.currentTime; g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(Math.max(0.001, level), t + (role === 'explore' ? 6 : role === 'ending' ? 2 : 1.2));
     const c = { id, src, g, ended: false }; src.onended = () => { c.ended = true; };
     src.start(t); this.cur = c; this.role = role;

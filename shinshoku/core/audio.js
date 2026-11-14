@@ -287,7 +287,7 @@ export class Sfx {
       const lv = (mix[id] || 0) * AMB_GAIN * (id === 'amb_rain' && this.rainOff ? 0 : 1), B = this.fileBeds[id];
       if (lv > 0 && !B) {
         const buf = this.bank && this.bank.buf(id); if (!buf) continue;
-        const src = c.createBufferSource(), g = c.createGain(); src.buffer = buf; src.loop = true; g.gain.value = 0; src.connect(g); g.connect(this.master);
+        const src = c.createBufferSource(), g = c.createGain(); src.buffer = buf; src.loop = true; this.bank.setLoop(src, id); g.gain.value = 0; src.connect(g); g.connect(this.master);
         src.start(t, Math.random() * buf.duration); g.gain.setTargetAtTime(lv, t, 1.2); this.fileBeds[id] = { src, g };
       } else if (B) {
         B.g.gain.cancelScheduledValues(t); B.g.gain.setTargetAtTime(lv, t, lv > 0 ? 0.8 : 0.6);
