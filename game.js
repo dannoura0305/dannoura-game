@@ -32,8 +32,20 @@ const BGM_DATA={
   mental:'assets/bgm/mental_break.mp3',
   rebirth:'assets/bgm/ending_rebirth.mp3',
   king:'assets/bgm/ending_king.mp3',
-  collapse:'assets/bgm/ending_collapse.mp3'
+  collapse:'assets/bgm/ending_collapse.mp3',
+  // ミニゲーム用に足した CC0 の曲（assets/bgm_cc0/・出典は docs/AUDIO_CREDITS_MAIN.md）。使う時に初めて読む（後読み）
+  mg_race:'assets/bgm_cc0/mg_race.mp3',
+  mg_runner:'assets/bgm_cc0/mg_runner.mp3',
+  mg_defense:'assets/bgm_cc0/mg_defense.mp3',
+  mg_cards:'assets/bgm_cc0/mg_cards.mp3',
+  mg_quiz:'assets/bgm_cc0/mg_quiz.mp3',
+  mg_cooking:'assets/bgm_cc0/mg_cooking.mp3',
+  mg_stealth:'assets/bgm_cc0/mg_stealth.mp3'
 };
+// 曲ごとの大きさの補正（ffmpeg ebur128 で測った平均の大きさ LUFS を -17 に揃える倍率）。ファイルそのものは変えない
+const BGM_LUFS={night:-15.4,stream:-13.7,kaidan:-15.6,factory:-14.5,mental:-14.2,rebirth:-16.9,king:-14.7,collapse:-13.6,
+  mg_race:-17.4,mg_runner:-18.1,mg_defense:-17.9,mg_cards:-18.0,mg_quiz:-18.3,mg_cooking:-18.1,mg_stealth:-18.7};
+function bgmTrim(type){const l=BGM_LUFS[type];return l==null?1:Math.min(1.5,Math.pow(10,(-17-l)/20));}
 
 // ══ 音声システム ══
 // iOS Safari対応：BGM・ボイスはAudio要素で再生する
@@ -44,8 +56,9 @@ let audioUnlocked = false;
 // 音量設定（0〜1）。ブラウザに保存し、次回も使う
 const AUDIO_KEY='dannoura_audio';
 const AUDIO_SET=Object.assign({bgm:1,voice:1,se:1},(()=>{try{return JSON.parse(localStorage.getItem(AUDIO_KEY)||'{}')||{};}catch(e){return {};}})());
-const BGM_BASE_VOL=0.12;
-function bgmVol(){return BGM_BASE_VOL*AUDIO_SET.bgm;}
+// 以前は 0.12（曲の大きさがばらばら）。補正を掛けたうえで、いちばん長く流れる night が以前とほぼ同じ大きさになる値
+const BGM_BASE_VOL=0.15;
+function bgmVol(type){const t=type!==undefined?type:(typeof AU!=='undefined'&&AU.bgmType)||'night';return Math.min(1,BGM_BASE_VOL*AUDIO_SET.bgm*bgmTrim(t));}
 function setAudioVolume(kind,v){
   AUDIO_SET[kind]=Math.max(0,Math.min(1,v));
   try{localStorage.setItem(AUDIO_KEY,JSON.stringify(AUDIO_SET));}catch(e){}
@@ -88,7 +101,7 @@ function unlockAudio(callback){
     // タップ同期内でplay()
     const a = new Audio(url);
     a.loop = true;
-    a.volume = bgmVol();
+    a.volume = bgmVol('night');
     const p = a.play();
     if(p !== undefined){
       p.then(()=>{
@@ -123,7 +136,7 @@ function _showAudioRetry(){
     const url2 = BGM_DATA['night'];
     if(!url2){ return; }
     const a2 = new Audio(url2);
-    a2.loop=true; a2.volume = bgmVol();
+    a2.loop=true; a2.volume = bgmVol('night');
     a2.play().then(()=>{
       audioUnlocked=true; AU._ba=a2; AU.bgmType='night';
       ind.textContent='🔊 音声ON'; ind.style.color='#00e8c8';
@@ -140,7 +153,7 @@ function _showAudioRetry(){
 // ──────────────────────────
 const AU={
   ctx:null,_og:null,_on:null,_ba:null,bgmType:null,
-  presets:{night:[{f:110,t:'sine',g:.036},{f:165,t:'sine',g:.02}],stream:[{f:130,t:'triangle',g:.034},{f:196,t:'sine',g:.017}],kaidan:[{f:55,t:'sawtooth',g:.03},{f:82,t:'sine',g:.015}],factory:[{f:80,t:'square',g:.02},{f:120,t:'sawtooth',g:.012}],mental:[{f:40,t:'sawtooth',g:.036},{f:61,t:'sawtooth',g:.017}],rebirth:[{f:220,t:'sine',g:.03},{f:330,t:'sine',g:.017}],king:[{f:174,t:'triangle',g:.03},{f:261,t:'triangle',g:.015}],collapse:[{f:28,t:'sawtooth',g:.036}]},
+  presets:{night:[{f:110,t:'sine',g:.036},{f:165,t:'sine',g:.02}],stream:[{f:130,t:'triangle',g:.034},{f:196,t:'sine',g:.017}],kaidan:[{f:55,t:'sawtooth',g:.03},{f:82,t:'sine',g:.015}],factory:[{f:80,t:'square',g:.02},{f:120,t:'sawtooth',g:.012}],mental:[{f:40,t:'sawtooth',g:.036},{f:61,t:'sawtooth',g:.017}],rebirth:[{f:220,t:'sine',g:.03},{f:330,t:'sine',g:.017}],king:[{f:174,t:'triangle',g:.03},{f:261,t:'triangle',g:.015}],collapse:[{f:28,t:'sawtooth',g:.036}],mg_race:[{f:98,t:'sawtooth',g:.014},{f:147,t:'triangle',g:.02}],mg_runner:[{f:131,t:'triangle',g:.03},{f:196,t:'triangle',g:.016}],mg_defense:[{f:73,t:'sawtooth',g:.016},{f:110,t:'triangle',g:.024}],mg_cards:[{f:147,t:'triangle',g:.028},{f:220,t:'sine',g:.016}],mg_quiz:[{f:262,t:'sine',g:.024},{f:392,t:'sine',g:.012}],mg_cooking:[{f:196,t:'sine',g:.028},{f:294,t:'sine',g:.014}],mg_stealth:[{f:82,t:'triangle',g:.028},{f:123,t:'sine',g:.012}]},
   init(){if(this.ctx)return;try{this.ctx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}},
   playBGM(type){
     if(this.bgmType===type)return;
@@ -150,17 +163,24 @@ const AU={
     const url = BGM_DATA[type];
     if(!url){ this._osc(type); return; }
     const a=new Audio(url);
-    a.loop=true; a.volume = bgmVol();
+    a.loop=true; a.volume = bgmVol(type);
+    // 先に持っておく（再生が始まる前に別の曲へ替わった時、止められずに二重に鳴るのを防ぐ）
+    this._ba=a;
+    // 読めない時（通信・ファイルが無い）は合成音の代わりの BGM にする
+    a.addEventListener('error',()=>{ if(this._ba===a&&this.bgmType===type){ this._ba=null; this._osc(type); } },{once:true});
     const p=a.play();
     if(p!==undefined){
-      p.then(()=>{
-        this._ba=a;
-      }).catch(e=>{
-        const ind=document.getElementById('audio-ind');
-        if(ind){ind.textContent='🔇 タップで音声ON';ind.style.color='#e83055';ind.style.pointerEvents='auto';ind.style.cursor='pointer';ind.onclick=()=>unlockAudio(()=>AU.playBGM(type));}
-        this._osc(type);
+      p.catch(e=>{
+        if(this._ba!==a)return;
+        this._ba=null;
+        // 自動再生が止められた時だけ「タップで音声ON」を出す（読めない時は error の方で代わりの音にする）
+        if(e&&e.name==='NotAllowedError'){
+          const ind=document.getElementById('audio-ind');
+          if(ind){ind.textContent='🔇 タップで音声ON';ind.style.color='#e83055';ind.style.pointerEvents='auto';ind.style.cursor='pointer';ind.onclick=()=>unlockAudio(()=>{AU.bgmType=null;AU.playBGM(type);});}
+        }
+        if(!this._on)this._osc(type);
       });
-    }else{ this._ba=a;; }
+    }
   },
   _osc(type){if(!this.ctx)return;try{this._og=this.ctx.createGain();this._og.gain.value=0;this._og.connect(this.ctx.destination);const pr=this.presets[type]||this.presets.night;this._on=pr.map(p=>{const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=p.t;o.frequency.value=p.f;g.gain.value=p.g;o.connect(g);g.connect(this._og);o.start();return o;});this._og.gain.linearRampToValueAtTime(AUDIO_SET.bgm,this.ctx.currentTime+2);}catch(e){}},
   stopBGM(){if(this._ba){try{this._ba.pause();}catch(e){}this._ba=null;}if(this._burl){try{URL.revokeObjectURL(this._burl);}catch(e){}this._burl=null;}if(this._on){this._on.forEach(o=>{try{o.stop();}catch(e){}});this._on=null;}if(this._og){try{this._og.disconnect();}catch(e){}this._og=null;}this.bgmType=null;document.getElementById('bgm-ind').textContent='♪ --';},
@@ -188,8 +208,59 @@ const AU={
       this._se(type);
     }
   },
+  // 効果音（Web Audio の合成）。以前は 1 音の電子音だけだったのを、音色・音程の動き・ノイズを組み合わせて作り直した。
+  // 大きさは 1 つずつ測って揃えてある（docs/audio-review-main.md）。音量は AUDIO_SET.se、0 なら鳴らさない。
+  // 名前の無い物は btn。cancel は back と同じ音（以前は名前が無く btn になっていた）。
+  _seBus(){
+    const c=this.ctx;
+    if(this._sb&&this._sb.context===c)return this._sb;
+    // まとめ役の GainNode（コンプレッサーは付けない：Chrome の DynamicsCompressor は自動で音を持ち上げ、
+    // 立ち上がりの一瞬を素通しして、一つずつ測った時より大きな「パチッ」になることがあったため）
+    const g=c.createGain();g.gain.value=1;g.connect(c.destination);this._sb=g;return g;
+  },
+  _nb(){const c=this.ctx;if(this._nbuf&&this._nbuf.sampleRate===c.sampleRate)return this._nbuf;const n=c.sampleRate|0,b=c.createBuffer(1,n,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;return this._nbuf=b;},
+  SE_DEF:{
+    // [種類, 開始秒, 長さ, 大きさ, 周波数, 終わりの周波数, 波形/フィルタ, Q]  t=音  n=ノイズ
+    btn:[['t',0,.045,0.23,1250,820,'sine'],['n',0,.012,0.072,4200,0,'bandpass',1.2]],
+    decide:[['t',0,.07,0.294,660,0,'triangle'],['t',.055,.12,0.294,990,0,'triangle'],['t',.055,.12,0.068,1980,0,'sine']],
+    back:[['t',0,.07,0.316,560,0,'triangle'],['t',.06,.11,0.289,392,0,'triangle']],
+    rank:[['t',0,.12,0.178,523,0,'triangle'],['t',.09,.12,0.178,659,0,'triangle'],['t',.18,.12,0.178,784,0,'triangle'],['t',.27,.42,0.211,1047,0,'triangle'],['t',.27,.42,0.066,2094,0,'sine']],
+    ach:[['t',0,.6,0.134,1047,0,'sine'],['t',0,.35,0.05,2637,0,'sine'],['t',.08,.55,0.101,1568,0,'sine']],
+    micOn:[['t',0,.09,0.344,140,60,'sine'],['n',0,.02,0.126,2500,0,'bandpass',.8]],
+    live:[['t',0,.14,0.198,784,0,'sine'],['t',.12,.26,0.198,1175,0,'sine'],['t',.12,.26,0.05,2350,0,'sine']],
+    comment:[['t',0,.03,0.132,1900,1500,'sine']],
+    notif:[['t',0,.08,0.222,880,0,'triangle'],['t',.07,.13,0.2,1320,0,'sine']],
+    tool:[['n',0,.09,0.641,2600,0,'bandpass',6],['t',0,.07,0.32,175,120,'square'],['n',.05,.06,0.257,3800,0,'bandpass',8]],
+    machine:[['t',0,.16,0.245,98,70,'square'],['n',0,.05,0.214,500,0,'lowpass',.7],['n',.1,.04,0.122,1200,0,'bandpass',2]],
+    warn:[['t',0,.12,0.167,440,0,'square'],['t',.15,.16,0.167,330,0,'square']],
+    repair:[['t',0,.22,0.198,420,880,'sine'],['t',.16,.2,0.144,1320,0,'triangle'],['n',.16,.1,0.054,6000,0,'highpass',.7]],
+    noise:[['n',0,.38,0.347,1600,0,'bandpass',.6],['t',0,.36,0.109,58,52,'sawtooth']],
+    ghost:[['t',0,.95,0.197,58,41,'sine'],['t',0,.95,0.07,87,63,'sine'],['n',0,.8,0.029,300,0,'lowpass',.7]],
+  },
+  _seNames(){return Object.keys(this.SE_DEF).concat(['cancel']);},
   _se(type){
-    try{const m={btn:{f:420,t:'sine',g:.065,d:.05},decide:{f:640,t:'triangle',g:.085,d:.1},back:{f:320,t:'sine',g:.055,d:.07},rank:{f:860,t:'triangle',g:.1,d:.32},ach:{f:1020,t:'sine',g:.085,d:.28},micOn:{f:195,t:'sine',g:.12,d:.07},live:{f:510,t:'sine',g:.1,d:.18},comment:{f:860,t:'sine',g:.032,d:.035},notif:{f:720,t:'triangle',g:.055,d:.09},tool:{f:175,t:'sawtooth',g:.1,d:.09},machine:{f:98,t:'square',g:.085,d:.14},warn:{f:275,t:'square',g:.12,d:.2},repair:{f:640,t:'sine',g:.085,d:.16},noise:{f:58,t:'sawtooth',g:.085,d:.38},ghost:{f:28,t:'sine',g:.042,d:.75}};const p=m[type]||m.btn;const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.connect(g);g.connect(this.ctx.destination);o.type=p.t;o.frequency.value=p.f;g.gain.setValueAtTime(Math.max(.0011,p.g*AUDIO_SET.se),this.ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,this.ctx.currentTime+p.d);o.start();o.stop(this.ctx.currentTime+p.d+.01);}catch(e){}},
+    try{
+      const c=this.ctx;if(!c)return;
+      const def=this.SE_DEF[type==='cancel'?'back':type]||this.SE_DEF.btn;
+      // 同じ音が一瞬に何度も重なると大きくなりすぎるので、30ms 以内の同じ音は 1 回にまとめる
+      const now=c.currentTime;this._seLast=this._seLast||{};
+      if(this._seLast[type]&&now-this._seLast[type]<.03)return;this._seLast[type]=now;
+      const vol=Math.max(0,Math.min(1,+AUDIO_SET.se||0));if(vol<=0)return;
+      const out=this._seBus();
+      for(const v of def){
+        const [k,at,d,g,f,f2,tp,q]=v,t0=now+at+.005,gn=c.createGain();
+        gn.gain.value=.0001;gn.gain.setValueAtTime(.0001,t0);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g*vol),t0+Math.min(.008,d*.25));
+        gn.gain.exponentialRampToValueAtTime(.0001,t0+d);gn.connect(out);
+        if(k==='t'){
+          const o=c.createOscillator();o.type=tp||'sine';o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+d);
+          o.connect(gn);o.start(t0);o.stop(t0+d+.03);
+        }else{
+          const sr=c.createBufferSource();sr.buffer=this._nb();const fl=c.createBiquadFilter();fl.type=tp||'bandpass';fl.frequency.value=f;fl.Q.value=q||1;
+          sr.connect(fl);fl.connect(gn);sr.start(t0,Math.random()*.5);sr.stop(t0+d+.03);
+        }
+      }
+    }catch(e){}
+  }
 };
 
 // ──────────────────────────

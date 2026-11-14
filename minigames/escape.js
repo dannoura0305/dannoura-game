@@ -333,39 +333,71 @@ registerMinigame({
     const dlgEl=$('.esc-dlg');
 
     // ── 効果音（Web Audioで合成。AU.ctxがあり、SE音量>0のときだけ） ──
-    let _nb=null,rainSrc=null;
+    let _nb=null,rainSrc=null,rainT=0;const RAIN_G=.035;
     const seVol=()=>typeof AUDIO_SET!=='undefined'?+AUDIO_SET.se||0:1;
     function actx(){try{if(seVol()<=0)return null;if(!AU.ctx&&AU.init)AU.init();const c=AU.ctx;if(!c)return null;if(c.state==='suspended')c.resume().catch(()=>{});return c;}catch(e){return null;}}
     function noiseBuf(c){if(_nb&&_nb.sampleRate===c.sampleRate)return _nb;const b=c.createBuffer(1,c.sampleRate*2,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return _nb=b;}
+    // 音ごとの大きさの補正（計測して揃えた値。文字送り・水滴は -45〜-40、操作は -36〜-30、大きな出来事は -29〜-26 LUFS 前後）
+    const SFX_LV={buzz:3,click:1.3,clunk:2,creak:2,drip:1.8,power:1.6,pick:2.2,screw:2,steps:2.8,thunder:.85,thunderFar:2,torch:2.3,trip:1.4,type:2.5,unlock:1.5,door:1.3};
     function sfx(kind){
       if(mg._ended)return;
       const c=actx();if(!c)return;
       try{
-        const t0=c.currentTime,out=c.createGain();out.gain.value=seVol();out.connect(c.destination);
-        const noise=(dur,type,f,q,g,att,dl)=>{const t=t0+(dl||0),s=c.createBufferSource();s.buffer=noiseBuf(c);s.loop=true;const fl=c.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q||1;const gg=c.createGain();gg.gain.setValueAtTime(0,t);gg.gain.linearRampToValueAtTime(g,t+(att||.005));gg.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(fl);fl.connect(gg);gg.connect(out);s.start(t);s.stop(t+dur+.05);return fl;};
-        const tone=(f,type,g,dur,dl,f2)=>{const t=t0+(dl||0),o=c.createOscillator(),gg=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);gg.gain.setValueAtTime(0,t);gg.gain.linearRampToValueAtTime(g,t+.006);gg.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(gg);gg.connect(out);o.start(t);o.stop(t+dur+.05);};
+        const t0=c.currentTime,out=c.createGain();out.gain.value=seVol()*(SFX_LV[kind]||1);out.connect(c.destination);
+        const J=a=>1+(Math.random()*2-1)*a;
+        const noise=(dur,type,f,q,g,att,dl)=>{const t=t0+(dl||0),s=c.createBufferSource();s.buffer=noiseBuf(c);s.loop=true;const fl=c.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q||1;const gg=c.createGain();gg.gain.value=.0001;gg.gain.setValueAtTime(0,t);gg.gain.linearRampToValueAtTime(g,t+(att||.005));gg.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(fl);fl.connect(gg);gg.connect(out);s.start(t,Math.random()*1.5);s.stop(t+dur+.05);return fl;};
+        const tone=(f,type,g,dur,dl,f2)=>{const t=t0+(dl||0),o=c.createOscillator(),gg=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);gg.gain.value=.0001;gg.gain.setValueAtTime(0,t);gg.gain.linearRampToValueAtTime(g,t+.006);gg.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(gg);gg.connect(out);o.start(t);o.stop(t+dur+.05);};
+        // 金属・機械の短い当たり音（工場なので、鉄っぽい倍音を少し混ぜる）
+        const metal=(f,g,dur,dl)=>{tone(f,'sine',g,dur,dl);tone(f*2.76,'sine',g*.45,dur*.6,dl);tone(f*5.4,'sine',g*.2,dur*.35,dl);};
         switch(kind){
-          case 'thunder':{const f=noise(2.6,'lowpass',500,.7,.55,.02);f.frequency.exponentialRampToValueAtTime(70,t0+2.3);noise(.3,'highpass',1800,.5,.12);break;}
-          case 'clunk':tone(110,'square',.1,.12,0,45);noise(.07,'bandpass',2400,3,.25);break;
-          case 'trip':noise(.35,'highpass',3000,.5,.32);tone(70,'sawtooth',.16,.35,0,30);noise(.08,'bandpass',1500,2,.3,.005,.05);break;
-          case 'click':noise(.03,'bandpass',3600,4,.3);break;
-          case 'unlock':noise(.05,'bandpass',2600,3,.35);noise(.06,'bandpass',1500,3,.35,.005,.09);tone(880,'triangle',.07,.3,.16);tone(1320,'triangle',.06,.5,.27);break;
-          case 'creak':tone(150,'sawtooth',.045,.8,0,90);noise(.7,'bandpass',800,7,.06,.1);break;
-          case 'hiss':noise(1.1,'highpass',2600,.6,.2,.02);break;
+          // 落雷（オープニング）：バリッ＋長い低い轟き
+          case 'thunder':{const f=noise(2.4,'lowpass',500,.7,.38,.02);f.frequency.exponentialRampToValueAtTime(70,t0+2.1);noise(.25,'highpass',1800,.5,.08);tone(38,'sine',.25,1.6,0,30);break;}
+          // 遠雷（背景の稲光のあと）：低くこもった「ゴロゴロ」だけ
+          case 'thunderFar':{const f=noise(2.2,'lowpass',260,.7,.16*J(.3),.4);f.frequency.exponentialRampToValueAtTime(60,t0+2);break;}
+          // レバー・重い金具「ガコン」
+          case 'clunk':tone(120*J(.05),'square',.07,.12,0,50);noise(.08,'lowpass',900,1,.22);metal(380*J(.05),.05,.18,.01);break;
+          // ブレーカーが落ちる・発電機が止まる：「バチン」＋落ちていく唸り
+          case 'trip':noise(.2,'highpass',2600,.5,.16);tone(70,'sawtooth',.09,.35,0,30);noise(.08,'bandpass',1500,2,.16,.005,.05);break;
+          // ダイヤル・スイッチ「カチッ」
+          case 'click':noise(.03,'bandpass',3200*J(.08),2,.5);tone(1800*J(.06),'triangle',.05,.02);break;
+          // 鍵・ロックが外れる「カチャ…カチン」
+          case 'unlock':noise(.05,'bandpass',2600,3,.6);noise(.06,'bandpass',1500,3,.6,.005,.09);metal(1046,.06,.4,.16);break;
+          // 扉・引き出しのきしみ
+          case 'creak':tone(150*J(.08),'sawtooth',.06,.8,0,90);noise(.7,'bandpass',800,7,.12,.1);break;
+          // 圧縮空気「シューッ」
+          case 'hiss':noise(1.1,'highpass',2600,.6,.07,.05);noise(.9,'bandpass',5200,1,.03,.1);break;
+          // 軽油を注ぐ「トクトクトク」
+          case 'glug':for(let i=0;i<5;i++){const d=i*.17+Math.random()*.03;tone(170*J(.1),'sine',.16,.09,d,320);noise(.06,'lowpass',600,1,.1,.005,d);}break;
           case 'rumble':noise(2.8,'lowpass',260,.8,.32,.3);tone(46,'sawtooth',.05,2.8,0,38);noise(.08,'bandpass',900,2,.25,.005,2.7);break;
-          case 'power':tone(50,'sawtooth',.09,2,0,120);tone(100,'sine',.08,2,0,240);noise(.5,'bandpass',4200,9,.07,.01,.3);break;
-          case 'pick':tone(660,'triangle',.07,.12);tone(990,'triangle',.07,.2,.08);break;
-          case 'engine':tone(28,'sawtooth',.2,2.6,0,52);noise(2.6,'lowpass',180,1,.28,.5);noise(.4,'bandpass',600,2,.2);break;
-          case 'door':tone(70,'sawtooth',.07,1.4,0,50);noise(1.5,'lowpass',600,.5,.14,.3);tone(523,'sine',.05,1.8,.9);tone(659,'sine',.05,1.8,1.1);tone(784,'sine',.05,2.2,1.3);break;
-          case 'drip':tone(1400,'sine',.03,.09,0,500);break;
-          case 'type':noise(.015,'bandpass',2800,3,.05);break;
+          // 電源が戻る：低い唸りが立ち上がる＋蛍光灯の「チッ」
+          case 'power':tone(50,'sawtooth',.06,2,0,120);tone(100,'sine',.07,2,0,240);noise(.5,'bandpass',4200,9,.07,.01,.3);noise(.03,'bandpass',3000,2,.25,.003,.55);noise(.03,'bandpass',3400,2,.18,.003,.75);break;
+          // 物を拾う：手ざわり（布・金属の小さな音）＋小さな「コト」
+          case 'pick':noise(.08,'bandpass',2200*J(.15),1.2,.18);tone(620*J(.05),'triangle',.12,.09,.05,520);break;
+          // 発電機の始動「ブルン…ドドド」
+          case 'engine':tone(28,'sawtooth',.16,2.6,0,52);noise(2.6,'lowpass',180,1,.22,.5);noise(.4,'bandpass',600,2,.16);break;
+          // 搬出口が開く：重い扉＋外の空気（明るい和音）
+          case 'door':tone(70,'sawtooth',.07,1.4,0,50);noise(1.5,'lowpass',600,.5,.16,.3);tone(523,'sine',.06,1.8,.9);tone(659,'sine',.06,1.8,1.1);tone(784,'sine',.06,2.2,1.3);break;
+          case 'drip':tone(1400*J(.1),'sine',.04,.09,0,500);tone(700*J(.1),'sine',.02,.06,.05,1100);break;
+          // 会話の文字送り（小さく）
+          case 'type':noise(.02,'bandpass',2600*J(.1),2,.12);break;
+          // 部屋を移る：コンクリートの足音 3 歩
+          case 'steps':for(let i=0;i<3;i++){const d=i*.19+Math.random()*.02,k=J(.12);noise(.07,'lowpass',520*k,1,.22*J(.15),.004,d);noise(.03,'bandpass',2800*k,2,.04,.002,d);}break;
+          // 暗証番号・順番を間違えた：低い電気のブザー
+          case 'buzz':tone(110,'square',.035,.32,0);tone(116,'square',.025,.32,0);noise(.3,'lowpass',300,1,.05,.01);break;
+          // ドライバーでネジを外す：小さなカリカリが続く
+          case 'screw':for(let i=0;i<6;i++)noise(.025,'bandpass',3600*J(.1),3,.25*J(.3),.002,i*.06+Math.random()*.01);break;
+          // 懐中電灯：電池を入れる「カチャ」＋スイッチ「カチ」
+          case 'torch':noise(.05,'bandpass',1800,2,.3);noise(.03,'bandpass',3600,3,.4,.002,.22);tone(2200,'triangle',.04,.02,.22);break;
         }
       }catch(e){}
     }
+    if(mg&&mg.exposeSfx)mg.exposeSfx(['thunder','thunderFar','clunk','trip','click','unlock','creak','hiss','glug','rumble','power','pick','engine','door','drip','type','steps','buzz','screw','torch','rain'],k=>{if(k==='rain'){rainStart();setTimeout(rainStop,3500);}else sfx(k);});
     function rainStart(){
       const c=actx();if(!c||rainSrc)return;
-      try{const s=c.createBufferSource();s.buffer=noiseBuf(c);s.loop=true;const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=1100;f.Q.value=.4;const g=c.createGain();g.gain.value=0;g.gain.linearRampToValueAtTime(.035*seVol(),c.currentTime+2);s.connect(f);f.connect(g);g.connect(c.destination);s.start();rainSrc={s,g};}catch(e){}
+      try{const s=c.createBufferSource();s.buffer=noiseBuf(c);s.loop=true;const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=1100;f.Q.value=.4;const g=c.createGain();g.gain.value=0;g.gain.linearRampToValueAtTime(RAIN_G*seVol(),c.currentTime+2);s.connect(f);f.connect(g);g.connect(c.destination);s.start();rainSrc={s,g};}catch(e){}
     }
+    // 1秒ごと：雨の音量を設定に合わせる（0なら無音、0から上げたら鳴らし直す）
+    function rainSync(){if(!S.started||S.over||S.door)return;if(!rainSrc){if(seVol()>0)rainStart();return;}try{rainSrc.g.gain.setTargetAtTime(RAIN_G*seVol(),AU.ctx.currentTime,.3);}catch(e){}}
     function rainStop(){if(!rainSrc)return;try{const c=AU.ctx;rainSrc.g.gain.linearRampToValueAtTime(0,c.currentTime+.6);const s=rainSrc.s;setTimeout(()=>{try{s.stop();}catch(e){}},700);}catch(e){}rainSrc=null;}
 
     // ── 会話シーン（顔グラ＋1文字ずつ） ──
@@ -495,7 +527,7 @@ registerMinigame({
     }
     function addItem(id,text,h){
       const tut=S.tut===1&&id==='torch0';if(tut){S.tut=2;S.tutT=9;}
-      S.inv.push(id);S.sel=null;AU.se('tool');sfx('pick');renderInv(id);if(text)say(text);if(h)burstAt(S.room,h.id,'0,232,200',16);
+      S.inv.push(id);S.sel=null;sfx('pick');renderInv(id);if(text)say(text);if(h)burstAt(S.room,h.id,'0,232,200',16);
       if(tut)setTimeout(()=>{if(!mg._ended&&S.tut===2)say('拾った物は下の<b>持ち物</b>に入る。<b>タップで選んで</b>→場所をタップで使う。持ち物どうしは<b>組み合わせ</b>られる。',6);},3200);
     }
     function removeItem(id){S.inv=S.inv.filter(x=>x!==id);if(S.sel===id)S.sel=null;renderInv();}
@@ -505,7 +537,7 @@ registerMinigame({
         const pair=[S.sel,id].sort().join('+');
         if(pair==='batt+torch0'){
           S.inv=S.inv.filter(x=>x!=='batt'&&x!=='torch0');S.inv.push('torch');S.sel=null;S.torch=true;
-          AU.se('repair');sfx('click');renderInv('torch');burstAt(S.room,null,'255,214,150',18);
+          sfx('torch');renderInv('torch');burstAt(S.room,null,'255,214,150',18);
           say('電池を入れて……カチッ。<b>懐中電灯</b>が点いた！ 光の輪が大きくなった。');
           return;
         }
@@ -521,7 +553,7 @@ registerMinigame({
       const i=ROOMS.indexOf(S.room)+d;
       if(i<0||i>=ROOMS.length)return;
       closeZoom(true);
-      trans={to:ROOMS[i],d,t:0,sw:false,t0:performance.now()};AU.se('btn');
+      trans={to:ROOMS[i],d,t:0,sw:false,t0:performance.now()};sfx('steps');
     }
 
     // ── ヒント ──
@@ -706,7 +738,7 @@ registerMinigame({
       const sw=e.target.closest('[data-sw]');if(sw){tapSwitch(+sw.dataset.sw);return;}
       const gb=e.target.closest('[data-gen]');if(gb&&!gb.disabled){tapGen(+gb.dataset.gen);return;}
       const vl=e.target.closest('[data-valve]');if(vl&&!vl.disabled){tapValve(+vl.dataset.valve);return;}
-      const dl=e.target.closest('[data-dial]');if(dl){const i=+dl.dataset.dial;S.dial[i]=(S.dial[i]+(+dl.dataset.d)+10)%10;AU.se('btn');sfx('click');const dg=dl.parentNode.querySelector('.dg');dg.textContent=S.dial[i];dg.classList.remove('roll');void dg.offsetWidth;dg.classList.add('roll');return;}
+      const dl=e.target.closest('[data-dial]');if(dl){const i=+dl.dataset.dial;S.dial[i]=(S.dial[i]+(+dl.dataset.d)+10)%10;sfx('click');const dg=dl.parentNode.querySelector('.dg');dg.textContent=S.dial[i];dg.classList.remove('roll');void dg.offsetWidth;dg.classList.add('roll');return;}
       if(e.target.closest('[data-open]'))tryDial();
     });
 
@@ -714,11 +746,11 @@ registerMinigame({
     function tryDial(){
       const box=zc.querySelector('.esc-dial');
       if(S.dial.join('')===P.code){
-        box.classList.add('ok');AU.se('decide');sfx('unlock');buzz(25);
+        box.classList.add('ok');sfx('unlock');buzz(25);
         setTimeout(()=>{if(mg._ended)return;closeZoom(true);S.locker=true;sfx('creak');
           addItem('key','ガチャッ。ロッカーが開いた。<b>盤キー</b>を手に入れた。……扉の裏に、娘と撮った写真。',hsById('locker','own'));S.gotKey=true;updScore();},700);
       }else{
-        box.classList.remove('ng');void box.offsetWidth;box.classList.add('ng');AU.se('warn');sfx('clunk');jolt(.35,[30,40,30]);
+        box.classList.remove('ng');void box.offsetWidth;box.classList.add('ng');sfx('buzz');sfx('clunk');jolt(.35,[30,40,30]);
         say('……開かない。番号が違う。');
       }
     }
@@ -727,13 +759,13 @@ registerMinigame({
       if(!S.fueled){AU.se('back');sfx('click');say('燃料計はEMPTY。先に<b>軽油</b>を入れないと。');return;}
       const nm=P.genSteps[k];
       if(nm===P.genSteps[S.genStep]){
-        S.genStep++;AU.se('tool');sfx('clunk');
+        S.genStep++;sfx('clunk');
         if(S.genStep>=P.genSteps.length){
-          S.gen=true;AU.se('machine');sfx('engine');jolt(.6,80);burstAt('exit','gen','255,200,120',26);
+          S.gen=true;sfx('engine');jolt(.6,80);burstAt('exit','gen','255,200,120',26);
           say('キュルル……ドドドド！ <b>発電機が始動</b>した。これで分電盤に電圧が来る。',5);updScore();
         }
       }else{
-        S.genStep=0;AU.se('warn');sfx('trip');jolt(.5,[40,30,40]);
+        S.genStep=0;sfx('trip');jolt(.5,[40,30,40]);
         say('プスン……止まった。<b>手順が違う</b>。銘板を見て最初から。');
       }
       renderZoom();
@@ -743,27 +775,27 @@ registerMinigame({
       if(!S.gen){AU.se('back');sfx('clunk');say('レバーは入るが……電圧計がゼロ。<b>発電機が止まっている</b>。');return;}
       const need=P.order[S.bOn.length];
       if(code===need){
-        S.bOn.push(code);AU.se('tool');sfx('clunk');renderZoom();
+        S.bOn.push(code);sfx('clunk');renderZoom();
         if(S.bOn.length===P.order.length){
-          S.power=true;S.powerT=T;AU.se('machine');sfx('power');jolt(.4,60);burstAt('ctrl','panel','255,230,150',30);updScore();
+          S.power=true;S.powerT=T;sfx('power');jolt(.4,60);burstAt('ctrl','panel','255,230,150',30);updScore();
           say('ウゥゥン……非常用発電機から給電。<b>照明が点いた！</b> コンプレッサーも回りだした。',5);
           setTimeout(()=>{if(!mg._ended&&zoomId==='breakers')closeZoom(true);},1100);
         }
       }else{
         const box=zc.querySelector('.esc-brk');
         S.bOn.push(code);renderZoom();
-        AU.se('warn');flash=.6;
-        setTimeout(()=>{if(mg._ended)return;S.bOn=[];renderZoom();const bx=zc.querySelector('.esc-brk');if(bx){bx.classList.add('trip');}AU.se('noise');sfx('trip');jolt(.8,[60,40,80]);
+        sfx('buzz');flash=.6;
+        setTimeout(()=>{if(mg._ended)return;S.bOn=[];renderZoom();const bx=zc.querySelector('.esc-brk');if(bx){bx.classList.add('trip');}sfx('trip');jolt(.8,[60,40,80]);
           say('<b>バチン！</b> トリップして全部落ちた。投入順が違う……結線図を見直そう。');},180);
       }
     }
     function tapSwitch(i){
       if(!S.power){AU.se('back');say('PLCに電源が来ていない。先に分電盤だ。');return;}
       if(S.plcOk)return;
-      S.x[i]=!S.x[i];AU.se('btn');sfx('click');
+      S.x[i]=!S.x[i];sfx('click');
       const outs=P.rungs.map(r=>!!P.ev(r,S.x));
       if(outs.join()===P.target.map(Boolean).join()){
-        S.plcOk=true;AU.se('decide');sfx('unlock');buzz(25);updScore();
+        S.plcOk=true;sfx('unlock');buzz(25);updScore();
         say('出力パターン一致。……遠くで<b>ガチャン</b>。非常口の電気錠が外れた音だ。',5);
       }
       renderZoom();
@@ -771,10 +803,10 @@ registerMinigame({
     function tapValve(i){
       if(!S.power||S.air)return;
       if(i===P.vOk){
-        S.valve=i;S.air=true;AU.se('repair');sfx('hiss');setTimeout(()=>sfx('rumble'),500);renderZoom();updScore();
+        S.valve=i;S.air=true;sfx('hiss');setTimeout(()=>sfx('rumble'),500);renderZoom();updScore();
         say('シューッ……系統'+'ABC'[i]+'を開いた。非常口のほうで<b>シャッターが上がる音</b>がする。',5);
       }else{
-        S.valve=i;renderZoom();AU.se('noise');sfx('hiss');jolt(.5,[50,30,50]);S.left=Math.max(1,S.left-10);
+        S.valve=i;renderZoom();sfx('buzz');sfx('hiss');jolt(.5,[50,30,50]);S.left=Math.max(1,S.left-10);
         say('<b>プシューッ！</b> 違う系統だ、圧が抜ける……慌てて閉めた。（残り時間−10秒）');
         setTimeout(()=>{if(mg._ended)return;if(S.valve===i&&!S.air){S.valve=-1;renderZoom();}},1300);
       }
@@ -790,12 +822,12 @@ registerMinigame({
         case 'ctrl/roster':if(it)return no();return openZoom('roster');
         case 'ctrl/panel':
           if(S.panel)return openZoom('breakers');
-          if(it==='key'){removeItem('key');S.panel=true;AU.se('decide');sfx('unlock');setTimeout(()=>sfx('creak'),250);say('盤キーで分電盤の扉を開けた。');setTimeout(()=>{if(!mg._ended&&S.room==='ctrl')openZoom('breakers');},600);return;}
+          if(it==='key'){removeItem('key');S.panel=true;sfx('unlock');setTimeout(()=>sfx('creak'),250);say('盤キーで分電盤の扉を開けた。');setTimeout(()=>{if(!mg._ended&&S.room==='ctrl')openZoom('breakers');},600);return;}
           if(it)return no();
           return say('分電盤 LP-1。扉は<b>施錠</b>されている。三角の<b>盤キー</b>が要る。……鍵はたしか自分のロッカーに。');
         case 'ctrl/plc':
           if(S.plcCover)return openZoom('plc');
-          if(it==='driver'){removeItem('driver');S.plcCover=true;AU.se('repair');sfx('click');setTimeout(()=>sfx('clunk'),400);say('ネジを4本外して、PLC盤のカバーを開けた。');setTimeout(()=>{if(!mg._ended&&S.room==='ctrl')openZoom('plc');},600);return;}
+          if(it==='driver'){removeItem('driver');S.plcCover=true;sfx('screw');setTimeout(()=>sfx('clunk'),400);say('ネジを4本外して、PLC盤のカバーを開けた。');setTimeout(()=>{if(!mg._ended&&S.room==='ctrl')openZoom('plc');},600);return;}
           if(it)return no();
           return say('PLC盤。電気錠の制御はここだ。カバーが<b>ネジ止め</b>されている。');
         case 'ctrl/desk':
@@ -824,7 +856,7 @@ registerMinigame({
         case 'ctrl/memo':if(it)return no();return openZoom('memo');
         case 'exit/gen':
           if(!S.fueled){
-            if(it==='fuel'){removeItem('fuel');S.fueled=true;AU.se('repair');sfx('hiss');say('トクトクトク……<b>軽油を給油</b>した。');setTimeout(()=>{if(!mg._ended&&S.room==='exit')openZoom('gen');},700);return;}
+            if(it==='fuel'){removeItem('fuel');S.fueled=true;sfx('glug');say('トクトクトク……<b>軽油を給油</b>した。');setTimeout(()=>{if(!mg._ended&&S.room==='exit')openZoom('gen');},700);return;}
             if(it)return no();
           }else if(it)return no();
           return openZoom('gen');
@@ -850,7 +882,7 @@ registerMinigame({
     }
     function openDoor(){
       if(S.door)return;
-      S.door=true;S.clearT=T;AU.se('ach');sfx('door');renderInv();updScore();closeZoom(true);
+      S.door=true;S.clearT=T;sfx('door');renderInv();updScore();closeZoom(true);
       say('扉を押し開ける。冷たい朝の空気。雨はもう上がりかけている。',4);
     }
     // ゲーム内の時刻（4:30開始→制限時間いっぱいで7:00）
@@ -884,7 +916,7 @@ registerMinigame({
     function endingTimeup(){
       if(S.over)return;S.over='timeup';S.tut=0;closeZoom(true);rainStop();record('timeup');renderInv();
       dialog([
-        {text:'窓の外が白み……やがて、照明が一斉に戻った。',fx:()=>{flash=1;AU.se('machine');sfx('power');}},
+        {text:'窓の外が白み……やがて、照明が一斉に戻った。',fx:()=>{flash=1;sfx('power');}},
         {who:'だんのうら',img:'char_tired',text:'……結局、朝まで出られなかったのね。'},
         {who:'だんのうら',img:'char_tired',text:'お隣さんに電話しないと。……ごめんね、パパ遅くなるわ。'},
         {who:'RESULT',text:`<div class="esc-grade"><div class="g" style="color:var(--rd);font-size:1.6rem">失敗</div><div class="i">進捗 ${progress()}/${PMAX}<br>ヒント ${S.hints}回</div></div><div style="text-align:center;font-family:var(--dot);font-size:.72rem;color:var(--tx)">配置は毎回変わる。次の夜にまた挑もう。</div>`,
@@ -920,7 +952,7 @@ registerMinigame({
       if(introGo)return;introGo=true;AU.se('decide');$('.esc-intro').classList.add('off');
       const lines=[
         {text:'午前4時半。夜勤明け。制御室で日報を書き終えた、そのとき――'},
-        {text:'ドォン!!　落雷。工場じゅうの明かりが一斉に消えた。',fx:()=>{flash=1;flashEl.style.transition='none';flashEl.style.opacity='.7';requestAnimationFrame(()=>{flashEl.style.transition='opacity 1.2s';flashEl.style.opacity='0';});AU.se('noise');sfx('thunder');}},
+        {text:'ドォン!!　落雷。工場じゅうの明かりが一斉に消えた。',fx:()=>{flash=1;flashEl.style.transition='none';flashEl.style.opacity='.7';requestAnimationFrame(()=>{flashEl.style.transition='opacity 1.2s';flashEl.style.opacity='0';});sfx('thunder');}},
         {who:'だんのうら',img:'char_fear',text:'……停電!? やだ、電気錠もシャッターも、閉じたまま止まってる……'},
       ];
       if(TWIST)lines.push({who:'だんのうら',img:'char_tired',text:'また雷なの……。しかも今夜は、非常用発電機まで止まってるじゃない。'});
@@ -1556,7 +1588,8 @@ registerMinigame({
       flash=Math.max(0,flash-dt*3);
       shk=Math.max(0,shk-dt*2.4);
       nextBolt-=dt;
-      if(nextBolt<=0){flash=1;shk=Math.max(shk,.25);nextBolt=7+Math.random()*12;flashEl.style.transition='none';flashEl.style.opacity='.18';requestAnimationFrame(()=>{flashEl.style.transition='opacity .6s';flashEl.style.opacity='0';});setTimeout(()=>{if(!mg._ended)AU.se('noise');},300+Math.random()*700);}
+      rainT-=dt;if(rainT<=0){rainT=1;rainSync();}
+      if(nextBolt<=0){flash=1;shk=Math.max(shk,.25);nextBolt=7+Math.random()*12;flashEl.style.transition='none';flashEl.style.opacity='.18';requestAnimationFrame(()=>{flashEl.style.transition='opacity .6s';flashEl.style.opacity='0';});setTimeout(()=>{if(!mg._ended)sfx('thunderFar');},300+Math.random()*700);}
       dust.forEach(d=>{d.x=(d.x+d.vx*dt+1)%1;d.y=(d.y+d.vy*dt+1)%1;});
       for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.l-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=.35*dt;p.vx*=Math.pow(.97,dt*60);if(p.l<=0)parts.splice(i,1);}
       if(drip.y<0){drip.t+=dt;if(drip.t>2.2+Math.random()*.02){drip.y=.04;drip.sp=0;}}
@@ -1566,7 +1599,7 @@ registerMinigame({
       appr('shutter',S.air,dt,.35);appr('door',S.door,dt,.42);
       if(trans){
         trans.t=(performance.now()-trans.t0)/550;
-        if(!trans.sw&&trans.t>=.5){trans.sw=true;S.room=trans.to;updNav();AU.se('btn');}
+        if(!trans.sw&&trans.t>=.5){trans.sw=true;S.room=trans.to;updNav();}
         if(trans.t>=1)trans=null;
       }
       if(S.started&&!S.door&&!S.over){

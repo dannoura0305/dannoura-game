@@ -134,7 +134,7 @@ var RaceLogic=(function(){
 })();
 
 registerMinigame({
-  id:'race', icon:'🛵', name:'原付で夜勤へ', genre:'3Dレース', bgm:'factory',
+  id:'race', icon:'🛵', name:'原付で夜勤へ', genre:'3Dレース', bgm:'mg_race',
   desc:'配信を延長しすぎた。雨の住宅街・商店街・工業道路を原付で抜けて、22:00の夜勤打刻に間に合わせる本格3Dレース。',
   effect:'仕事評価↑ 精神↑ ／ 疲労+6 約30分',
   help:'←→/画面左右長押しで操作・↓/ブレーキ',
@@ -290,7 +290,12 @@ registerMinigame({
     window.addEventListener('blur',onBlur);
     if(mg.onEnd)mg.onEnd(()=>cleanup());
 
-    // ══ サウンド（Web Audio：エンジン音・雨音・クラクション） ══
+    // ══ サウンド（Web Audio：エンジン音・吸気・風・雨音・効果音） ══
+    //   全部 SND.master（＝効果音の音量 AUDIO_SET.se、毎フレーム追従）を通る。0 なら無音。
+    //   エンジン：回転数 rpm（0〜1）をアクセル開度 thr・速度から作り、上がりは速く・落ちはゆっくり。
+    //   鋸波＋矩形波＋サブ → ローパス → ソフトクリップ（アクセルで歪み↑）。回転には小さな揺らぎ。
+    //   吸気ノイズ（帯域ノイズ）はアクセル開度で、風切りは速さの 2 乗で、雨のタイヤ音は速さで増える。
+    //   大きさの目安（se=1、エンジン＋吸気＋風＋雨）：全開 -36.6 / 巡航 -39 / ブレーキ中 -45 LUFS（豪雨は +2dB）。BGM（約 -33.5）の下に敷く。
     let SND=null;
     const seVol=()=>{try{return typeof AUDIO_SET!=='undefined'?Math.max(0,+AUDIO_SET.se||0):1;}catch(e){return 1;}};
     function audioStart(){
@@ -300,60 +305,148 @@ registerMinigame({
         if(AU.init)AU.init();
         const ctx=AU.ctx;if(!ctx)return;
         if(ctx.state==='suspended')ctx.resume().catch(()=>{});
-        const master=ctx.createGain();master.gain.value=0;master.connect(ctx.destination);
-        const eg=ctx.createGain();eg.gain.value=.0;const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=700;
-        const o1=ctx.createOscillator();o1.type='sawtooth';o1.frequency.value=60;
-        const o2=ctx.createOscillator();o2.type='square';o2.frequency.value=121;
-        const g2=ctx.createGain();g2.gain.value=.35;
-        o1.connect(lp);o2.connect(g2);g2.connect(lp);lp.connect(eg);eg.connect(master);
-        // 雨：ホワイトノイズ
+        const master=ctx.createGain();master.gain.value=seVol();master.connect(ctx.destination);
+        // エンジン
+        const eg=ctx.createGain();eg.gain.value=0;
+        const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=500;lp.Q.value=2.2;
+        const drive=ctx.createGain();drive.gain.value=1;
+        const ws=ctx.createWaveShaper();{const n=1024,cv=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;cv[i]=Math.tanh(x*2.2)/Math.tanh(2.2);}ws.curve=cv;}
+        const o1=ctx.createOscillator();o1.type='sawtooth';o1.frequency.value=40;
+        const o2=ctx.createOscillator();o2.type='square';o2.frequency.value=81;
+        const o3=ctx.createOscillator();o3.type='sine';o3.frequency.value=20;
+        const g2=ctx.createGain();g2.gain.value=.28;const g3=ctx.createGain();g3.gain.value=.7;
+        o1.connect(lp);o2.connect(g2);g2.connect(lp);o3.connect(g3);g3.connect(lp);
+        lp.connect(drive);drive.connect(ws);ws.connect(eg);eg.connect(master);
+        // ノイズ（雨・吸気・風で共用）
         const len=ctx.sampleRate*2|0,buf=ctx.createBuffer(1,len,ctx.sampleRate),ch=buf.getChannelData(0);
         for(let i=0;i<len;i++)ch[i]=Math.random()*2-1;
         const ns=ctx.createBufferSource();ns.buffer=buf;ns.loop=true;
         const hp=ctx.createBiquadFilter();hp.type='bandpass';hp.frequency.value=2600;hp.Q.value=.6;
         const rg=ctx.createGain();rg.gain.value=0;ns.connect(hp);hp.connect(rg);rg.connect(master);
-        o1.start();o2.start();ns.start();
-        SND={ctx,master,eg,lp,o1,o2,rg,ns,buf};
+        const ib=ctx.createBiquadFilter();ib.type='bandpass';ib.frequency.value=900;ib.Q.value=1.6;
+        const ig=ctx.createGain();ig.gain.value=0;ns.connect(ib);ib.connect(ig);ig.connect(master);
+        const ns2=ctx.createBufferSource();ns2.buffer=buf;ns2.loop=true;ns2.playbackRate.value=.73;
+        const wl=ctx.createBiquadFilter();wl.type='lowpass';wl.frequency.value=400;wl.Q.value=.4;
+        const wg=ctx.createGain();wg.gain.value=0;ns2.connect(wl);wl.connect(wg);wg.connect(master);
+        o1.start();o2.start();o3.start();ns.start();ns2.start(0,.9);
+        SND={ctx,master,eg,lp,drive,o1,o2,o3,rg,ns,ns2,ib,ig,wl,wg,buf,rpm:.1,thr:0,lastT:ctx.currentTime,popCd:0,wob:0,brk:false};
       }catch(e){SND=null;}
     }
     function audioUpdate(){
       if(!SND)return;
       try{
         const c=SND.ctx,t=c.currentTime,vol=seVol();
+        const dt=clamp(t-SND.lastT,0,.1);SND.lastT=t;
         SND.master.gain.setTargetAtTime(vol>0&&!cleaned?vol:0,t,.05);
-        const run=phase==='play'||phase==='count'||phase==='goal'||phase==='crashed';
-        const f=48+P.v*4.2+(input.b||touch.b?-8:0);
-        SND.o1.frequency.setTargetAtTime(f,t,.08);SND.o2.frequency.setTargetAtTime(f*2.02,t,.08);
-        SND.lp.frequency.setTargetAtTime(380+P.v*38,t,.1);
-        SND.eg.gain.setTargetAtTime(run&&phase!=='crashed'?.045+P.v*.0016:0.012,t,.15);
-        SND.rg.gain.setTargetAtTime(.022*VAR.rain*(1+P.v/40),t,.3);
+        const run=phase==='play'||phase==='goal';
+        const brake=(input.b||touch.b)&&phase==='play';
+        const vr=clamp(P.v/VMAX,0,1.1);
+        const vmax=VMAX*(1-P.dmg*.0015);
+        // アクセル開度：ブレーキ中・転倒中・ゴール後は 0、加速中は 1、巡航は .55
+        const thr=!run||brake||phase==='goal'?0:P.v<vmax-.6?1:.55;
+        SND.thr+=(thr-SND.thr)*Math.min(1,dt*(thr>SND.thr?14:6));
+        const idle=phase==='crashed'?.02:.1;
+        const rpmT=run||phase==='count'?Math.max(idle,.16+.5*vr+.32*SND.thr*(.45+.55*vr)):idle;
+        SND.rpm+=(rpmT-SND.rpm)*Math.min(1,dt*(rpmT>SND.rpm?7:2.6));  // 上がりは速く、落ちはゆっくり
+        // 回転の揺らぎ（ゆっくりした揺れ＋細かいばらつき）
+        SND.wob+=dt*(5+SND.rpm*9);
+        const jit=1+Math.sin(SND.wob)*.008*(.4+SND.thr)+(Math.random()-.5)*.012*(.3+SND.thr);
+        const rpm=SND.rpm, f=(36+rpm*118)*jit;
+        SND.o1.frequency.setTargetAtTime(f,t,.03);SND.o2.frequency.setTargetAtTime(f*2.01,t,.03);SND.o3.frequency.setTargetAtTime(f*.5,t,.03);
+        SND.lp.frequency.setTargetAtTime(260+rpm*900+SND.thr*900,t,.06);
+        SND.drive.gain.setTargetAtTime(.8+SND.thr*2.4,t,.08);
+        const engOn=phase!=='crashed'&&phase!=='ending'&&phase!=='title'&&phase!=='intro';
+        SND.eg.gain.setTargetAtTime(engOn?(.0042+rpm*.006+SND.thr*.0022):phase==='crashed'?0:.002,t,.08);
+        // 吸気ノイズ：アクセル開度と回転で
+        SND.ib.frequency.setTargetAtTime(600+rpm*1500,t,.06);
+        SND.ig.gain.setTargetAtTime(engOn?SND.thr*(.006+rpm*.015):0,t,.06);
+        // 風切り：速さの 2 乗
+        SND.wl.frequency.setTargetAtTime(280+vr*900,t,.2);
+        SND.wg.gain.setTargetAtTime(.024*vr*vr,t,.2);
+        SND.rg.gain.setTargetAtTime(.007*Math.sqrt(VAR.rain)*(1+P.v/30),t,.3);
+        // 減速時のアフターファイア（ポコポコ）
+        SND.popCd-=dt;
+        if(engOn&&run&&SND.thr<.25&&rpm>.42&&SND.popCd<=0&&Math.random()<dt*9){SND.popCd=.07;rn({ft:'lowpass',f:900,d:.05,g:.02*(rpm-.3),a:.002});}
+        // ブレーキの鳴き（踏み始め・速いとき）
+        if(brake&&!SND.brk&&P.v>11)rsfx('brake');
+        SND.brk=brake;
       }catch(e){}
     }
-    function horn(){
+    // 一発の音の部品（SND.master へ）。o:{t:波形,f:周波数,f2:終わりの周波数,d:長さ,g:大きさ,a:立ち上がり,h:保持,dl:遅れ,j:音程の揺らぎ,ft/ff/q:フィルタ}
+    function envG(p,t0,g,a,h,d){p.value=.0001;p.setValueAtTime(.0001,t0);p.linearRampToValueAtTime(Math.max(.0002,g),t0+a);if(h)p.setValueAtTime(Math.max(.0002,g),t0+a+h);p.exponentialRampToValueAtTime(.0001,t0+d);}
+    function rv(o){
       if(!SND||seVol()<=0)return;
-      try{
-        const c=SND.ctx,t=c.currentTime,g=c.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.05,t+.02);g.gain.setValueAtTime(.05,t+.42);g.gain.exponentialRampToValueAtTime(.0001,t+.5);
-        g.connect(SND.master);
-        [370,466].forEach(fq=>{const o=c.createOscillator();o.type='square';o.frequency.value=fq;o.connect(g);o.start(t);o.stop(t+.52);});
-      }catch(e){}
+      try{const c=SND.ctx,t0=c.currentTime+(o.dl||0),d=o.d,j=o.j?1+(Math.random()*2-1)*o.j:1,x=c.createOscillator(),g=c.createGain();
+        x.type=o.t||'sine';x.frequency.setValueAtTime(o.f*j,t0);if(o.f2)x.frequency.exponentialRampToValueAtTime(o.f2*j,t0+(o.fd||d));
+        envG(g.gain,t0,o.g*rLv,o.a||.004,o.h||0,d);
+        let n=x;if(o.ft){const fl=c.createBiquadFilter();fl.type=o.ft;fl.frequency.value=o.ff;if(o.q)fl.Q.value=o.q;x.connect(fl);n=fl;}
+        n.connect(g);g.connect(SND.master);x.start(t0);x.stop(t0+d+.05);}catch(e){}
     }
-    function thud(){
+    function rn(o){
       if(!SND||seVol()<=0)return;
-      try{const c=SND.ctx,t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(40,t+.25);
-        g.gain.setValueAtTime(.12,t);g.gain.exponentialRampToValueAtTime(.0001,t+.3);o.connect(g);g.connect(SND.master);o.start(t);o.stop(t+.32);}catch(e){}
+      try{const c=SND.ctx,t0=c.currentTime+(o.dl||0),d=o.d,n=c.createBufferSource(),fl=c.createBiquadFilter(),g=c.createGain();
+        n.buffer=SND.buf;fl.type=o.ft||'bandpass';fl.frequency.setValueAtTime(o.f,t0);if(o.f2)fl.frequency.exponentialRampToValueAtTime(o.f2,t0+(o.fd||d));if(o.q)fl.Q.value=o.q;
+        envG(g.gain,t0,o.g*rLv,o.a||.004,o.h||0,d);
+        n.connect(fl);fl.connect(g);g.connect(SND.master);n.start(t0,Math.random()*1.5);n.stop(t0+d+.05);}catch(e){}
     }
+    // 効果音の一覧（ジャンルに合わせた専用の音。大きさは se=1 で測って揃えた）
+    const RSFX={
+      // カウントダウン 3・2・1（短い電子音）と GO（1 オクターブ上で長め）
+      cd:()=>{rv({t:'square',f:880,d:.2,g:.05,h:.08,ft:'lowpass',ff:2600});rv({t:'sine',f:880,d:.22,g:.06,h:.08});},
+      go:()=>{rv({t:'square',f:1760,d:.55,g:.045,h:.28,ft:'lowpass',ff:4200});rv({t:'sine',f:1760,d:.6,g:.06,h:.28});rv({t:'sine',f:880,d:.5,g:.04,h:.2});},
+      // 縁石：ゴトゴトッ（低いノイズの連打）＋どすん
+      curb:()=>{for(let i=0;i<4;i++)rn({ft:'lowpass',f:700,d:.06,g:.16-i*.025,a:.002,dl:i*.055});rv({f:120,f2:45,d:.22,g:.16});},
+      // 接触：金属のこすれ＋ぶつかり
+      contact:()=>{rn({ft:'bandpass',f:2600,f2:1200,q:3,d:.32,g:.13});rv({t:'square',f:523,f2:380,d:.18,g:.035,ft:'bandpass',ff:1600,q:4,j:.05});rv({f:130,f2:50,d:.2,g:.16});rn({ft:'lowpass',f:1500,d:.08,g:.14,a:.002});},
+      // 転倒：ガシャーン（大きなノイズ＋低いどすん＋金属の転がり）
+      crash:()=>{rn({ft:'lowpass',f:3500,f2:400,d:.7,g:.2,a:.002});rv({f:110,f2:35,d:.45,g:.24});
+        [0,.13,.27,.44].forEach((dl,i)=>{rv({t:'triangle',f:1300-i*170,f2:900-i*120,d:.12,g:.035,dl:dl+.05,j:.08});rn({ft:'bandpass',f:3200,q:2,d:.08,g:.07,dl:dl+.05});});},
+      // スリップ：水をはねる音＋タイヤの鳴き
+      slip:()=>{rn({ft:'bandpass',f:1800,f2:600,q:.8,d:.45,g:.12,a:.01});rv({t:'sawtooth',f:1250,f2:980,d:.4,g:.018,ft:'bandpass',ff:1300,q:6,a:.02});},
+      // 水たまり（滑らずに抜けた）：ばしゃっ
+      puddle:()=>rn({ft:'bandpass',f:2200,f2:800,q:.9,d:.25,g:.065,a:.006}),
+      // マンホール：ガコン（低い金属）
+      manhole:()=>{rv({t:'triangle',f:240,f2:160,d:.18,g:.09,j:.06});rv({t:'square',f:410,d:.12,g:.02,ft:'lowpass',ff:1200});rn({ft:'lowpass',f:900,d:.06,g:.1,a:.002});},
+      // チェックポイント：明るい 2 音＋きらっ
+      check:()=>{rv({t:'triangle',f:1319,d:.14,g:.08});rv({t:'triangle',f:1976,d:.3,g:.08,dl:.09});rv({t:'sine',f:3951,d:.25,g:.02,dl:.12});},
+      // 信号無視：ブブー（低いブザー）
+      redrun:()=>{rv({t:'square',f:196,d:.22,g:.06,h:.12,ft:'lowpass',ff:900});rv({t:'square',f:185,d:.3,g:.06,h:.18,ft:'lowpass',ff:900,dl:.26});},
+      // 22:00 を過ぎた：時計の鐘（低め・重め）
+      late:()=>{rv({f:392,d:.9,g:.08,a:.003});rv({f:784*1.003,d:.6,g:.03});rv({f:311,d:1,g:.07,dl:.4});},
+      // 打刻（ゴール）：ガチャン＋上がる和音
+      goal:()=>{rn({ft:'lowpass',f:1200,d:.09,g:.16,a:.002});rv({f:140,f2:60,d:.15,g:.14});[784,988,1175,1568].forEach((f,i)=>rv({t:'triangle',f,d:i===3?.7:.18,g:.06,dl:.12+i*.08}));},
+      // 黄信号になった：ピッ ピッ（小さく）
+      yellow:()=>{rv({t:'sine',f:1046,d:.08,g:.05});rv({t:'sine',f:1046,d:.08,g:.05,dl:.14});},
+      // 青になった：ピロン
+      green:()=>{rv({t:'triangle',f:784,d:.1,g:.07});rv({t:'triangle',f:1175,d:.22,g:.07,dl:.08});},
+      // 再スタート：セルモーター（キュルルッ）→ かかる
+      restart:()=>{for(let i=0;i<5;i++)rv({t:'sawtooth',f:70,f2:95,d:.08,g:.04,dl:i*.075,ft:'lowpass',ff:900});rv({t:'sawtooth',f:60,f2:140,d:.4,g:.06,dl:.38,ft:'lowpass',ff:1100,a:.02});},
+      // 雷：遠い低いゴロゴロ
+      thunder:()=>{rn({ft:'lowpass',f:420,f2:90,d:1.4,g:.35,a:.04});rn({ft:'lowpass',f:1600,f2:300,d:.35,g:.1,a:.01,dl:.05});},
+      // 対向車のクラクション（少し音程が下がる＝すれ違い）
+      horn:()=>{[370,466].forEach(fq=>rv({t:'square',f:fq,f2:fq*.94,fd:.5,d:.5,g:.022,a:.02,h:.3,ft:'lowpass',ff:2200}));},
+      // ニアミスの風切り
+      whoosh:()=>rn({ft:'bandpass',f:600,f2:2600,fd:.14,q:1.4,d:.42,g:.12,a:.05}),
+      // ブレーキの鳴き（キーッ）
+      brake:()=>{rv({t:'sawtooth',f:2100,f2:1850,d:.32,g:.008,a:.03,ft:'bandpass',ff:2100,q:8,j:.04});rn({ft:'bandpass',f:3200,q:2,d:.25,g:.03,a:.03});},
+    };
+    let rsLast={},rLv=1;
+    // 音ごとの大きさの倍率（se=1 で測って揃えた。小さな音 -36 前後、操作・手応え -32〜-28、転倒・打刻など -28〜-25 LUFS）
+    const RS_LV={brake:7,cd:.7,go:.45,check:2,contact:1.9,crash:1,curb:1.7,goal:2.4,green:2.3,horn:1.2,late:2,manhole:2.6,puddle:3.9,redrun:1,restart:3.6,slip:3.2,thunder:2.5,whoosh:3.6,yellow:3.2};
+    function rsfx(k){
+      if(!SND||seVol()<=0||!RSFX[k])return;
+      const now=SND.ctx.currentTime;if(rsLast[k]&&now-rsLast[k]<.05)return;rsLast[k]=now;
+      rLv=RS_LV[k]||1;try{RSFX[k]();}catch(e){}rLv=1;
+    }
+    function horn(){rsfx('horn');}
+    function thud(){rv({f:140,f2:40,d:.3,g:.12});}
     // すれ違いの風切り音（ニアミス）
-    function whoosh(){
-      if(!SND||seVol()<=0)return;
-      try{const c=SND.ctx,t=c.currentTime,n=c.createBufferSource();n.buffer=SND.buf;
-        const f=c.createBiquadFilter();f.type='bandpass';f.Q.value=1.4;f.frequency.setValueAtTime(600,t);f.frequency.exponentialRampToValueAtTime(2600,t+.12);f.frequency.exponentialRampToValueAtTime(500,t+.4);
-        const g=c.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.09,t+.06);g.gain.exponentialRampToValueAtTime(.0001,t+.42);
-        n.connect(f);f.connect(g);g.connect(SND.master);n.start(t,Math.random());n.stop(t+.45);}catch(e){}
-    }
+    function whoosh(){rsfx('whoosh');}
     const buzz=p=>{try{if(typeof MG!=='undefined'&&MG.buzz)MG.buzz(p);}catch(e){}};
+    if(mg&&mg.exposeSfx)mg.exposeSfx(Object.keys(RSFX),k=>{audioStart();rsfx(k);});
     function audioStop(){
       if(!SND)return;
-      try{SND.o1.stop();SND.o2.stop();SND.ns.stop();}catch(e){}
+      try{SND.o1.stop();SND.o2.stop();SND.o3.stop();SND.ns.stop();SND.ns2.stop();}catch(e){}
       try{SND.master.disconnect();}catch(e){}
       SND=null;
     }
@@ -1239,19 +1332,19 @@ registerMinigame({
       const n=phT<1.4?-1:phT<2.4?3:phT<3.4?2:phT<4.4?1:0;
       if(n!==cdShown){
         cdShown=n;
-        if(n>0){setOv(`<div class="race-cd">${n}</div><div class="race-how"><b>◀ ▶</b> 左右でハンドル　<b>ブレーキ</b>で減速<br><span class="rd">赤信号は止まる</span>／水たまり・車に注意</div>`);se('btn');}
-        else if(n===0){setOv('<div class="race-cd go">GO!</div>');se('decide');phase='play';wipe();fovKick=10;msg('住宅街','sm',1.6);}
+        if(n>0){setOv(`<div class="race-cd">${n}</div><div class="race-how"><b>◀ ▶</b> 左右でハンドル　<b>ブレーキ</b>で減速<br><span class="rd">赤信号は止まる</span>／水たまり・車に注意</div>`);if(SND)rsfx('cd');else se('btn');}
+        else if(n===0){setOv('<div class="race-cd go">GO!</div>');if(SND)rsfx('go');else se('decide');phase='play';wipe();fovKick=10;msg('住宅街','sm',1.6);}
       }
     }
 
     // ══ プレイ ══
     function hitCurb(sign){
       P.latV=-sign*2.2;
-      if(P.v>10&&P.curbCd<=0){P.dmg=Math.min(100,P.dmg+4*DF.dmg);P.v*=.8;shake=Math.max(shake,.5);P.curbCd=.8;msg('縁石！','gd sm',.9);se('tool');thud();buzz(30);}
+      if(P.v>10&&P.curbCd<=0){P.dmg=Math.min(100,P.dmg+4*DF.dmg);P.v*=.8;shake=Math.max(shake,.5);P.curbCd=.8;msg('縁石！','gd sm',.9);rsfx('curb');buzz(30);}
     }
     function crash(c){
       P.crashes++;P.dmg=Math.min(100,P.dmg+25*DF.dmg);phase='crashed';P.tumble=0;P.tumbleDir=Math.random()<.5?-1:1;
-      shake=1.3;hitFlash=1;se('warn');thud();buzz([90,50,140]);msg('転倒！','rd');splash(26,1.4);
+      shake=1.3;hitFlash=1;rsfx('crash');buzz([90,50,140]);msg('転倒！','rd');splash(26,1.4);
       if(c&&c.kind!=='cross')c.v*=.3;
     }
     function updatePlay(dt){
@@ -1279,10 +1372,10 @@ registerMinigame({
         const a=(P.s-p.s)/p.a,b=(P.d-p.d)/(p.b+.2);
         if(a*a+b*b<1){p.hit=true;
           if(P.v>DF.slipV&&P.inv<=0){P.slip=.95;P.slipDir=Math.random()<.5?-1:1;P.latV+=P.slipDir*rnd(3.5,5.5);P.v*=.82;P.dmg=Math.min(100,P.dmg+5*DF.dmg);P.slips++;
-            shake=Math.max(shake,.45);fovKick=-4;msg('スリップ！','cy');se('noise');buzz([20,30,20]);splash(30,1.2);}
-          else splash(10,.6);}
+            shake=Math.max(shake,.45);fovKick=-4;msg('スリップ！','cy');rsfx('slip');buzz([20,30,20]);splash(30,1.2);}
+          else{splash(10,.6);rsfx('puddle');}}
       }
-      for(const m of manholes){if(m.hit||m.s<P.s-2)continue;if(m.s>P.s+2)break;if(Math.abs(P.s-m.s)<.7&&Math.abs(P.d-m.d)<.8){m.hit=true;shake=Math.max(shake,.22+P.v*.008);se('machine');}}
+      for(const m of manholes){if(m.hit||m.s<P.s-2)continue;if(m.s>P.s+2)break;if(Math.abs(P.s-m.s)<.7&&Math.abs(P.d-m.d)<.8){m.hit=true;shake=Math.max(shake,.22+P.v*.008);rsfx('manhole');}}
       if(P.bumpCd<=0&&P.v>8){P.bumpCd=rnd(.9,2.4);shake=Math.max(shake,.08+P.v*.003);}
       // 車との当たり判定（横からのかすりは「接触」で弾かれるだけ）
       if(P.inv<=0)for(const c of cars){
@@ -1294,7 +1387,7 @@ registerMinigame({
         if(ova>0&&ovc>0){
           if(ovc<DF.graze&&c.kind!=='cross'){ // かすった
             const sg=dd>0?-1:1;P.d+=sg*(ovc+.05);P.latV=sg*4.5;P.v*=.86;P.dmg=Math.min(100,P.dmg+6*DF.dmg);P.contacts++;P.inv=.5;
-            shake=Math.max(shake,.6);hitFlash=.45;msg('接触！','gd');se('tool');thud();buzz(45);splash(8,.8);
+            shake=Math.max(shake,.6);hitFlash=.45;msg('接触！','gd');rsfx('contact');buzz(45);splash(8,.8);
           }else{crash(c);return;}
         }else if(!c.nm&&c.kind!=='cross'&&phase==='play'&&RaceLogic.nearMiss(ds,ha,-ovc,P.v)){
           // すれすれで抜けた：演出だけ（評価・報酬は変えない）
@@ -1303,7 +1396,7 @@ registerMinigame({
       }
       // チェックポイント
       for(const cp of CPS)if(!cp.done&&P.s>=cp.s){cp.done=true;
-        if(!late){rem+=cp.add;msg(`CHECK ${CPS.indexOf(cp)+1}  +${cp.add}秒`,'cy');se('repair');fovKick=8;}else msg('CHECK（遅刻中）','sm');
+        if(!late){rem+=cp.add;msg(`CHECK ${CPS.indexOf(cp)+1}  +${cp.add}秒`,'cy');rsfx('check');fovKick=8;}else msg('CHECK（遅刻中）','sm');
       }
       // ゾーン表示
       if(!P.zoneShop&&P.s>SHOP0){P.zoneShop=true;msg('商店街','sm',1.6);}
@@ -1312,27 +1405,27 @@ registerMinigame({
       for(const g of SIGS){
         if(!g.passed&&P.s>=g.stop){
           g.passed=true;
-          if(g.state==='red'){P.reds++;g.ran=true;if(!late)rem-=DF.red;else lateT+=DF.red;msg(`信号無視！ −${DF.red}秒`,'rd');se('warn');hitFlash=.5;}
+          if(g.state==='red'){P.reds++;g.ran=true;if(!late)rem-=DF.red;else lateT+=DF.red;msg(`信号無視！ −${DF.red}秒`,'rd');rsfx('redrun');hitFlash=.5;}
         }
       }
       // 時間
-      if(!late){rem-=dt;if(rem<=0){rem=0;late=true;msg('22:00…遅刻だ','rd',2);se('warn');}}
+      if(!late){rem-=dt;if(rem<=0){rem=0;late=true;msg('22:00…遅刻だ','rd',2);rsfx('late');}}
       else{lateT+=dt;if(lateT>45&&phase==='play'){phase='ending';P.v=0;endScene('late',true);return;}}
       // ゴール
-      if(P.s>=GOAL){phase='goal';phT=0;finishT=et;se('ach');msg('打刻！','gd',2);fovKick=12;}
+      if(P.s>=GOAL){phase='goal';phT=0;finishT=et;rsfx('goal');msg('打刻！','gd',2);fovKick=12;}
       // しぶき
       if(P.v>6&&Math.random()<P.v*.06){trackAt(P.s+.9,P.d,tp);emit(tp.x,.2,tp.z,rnd(-.6,.6),rnd(.8,2),rnd(-.6,.6),rnd(.3,.55));}
     }
     function updateSignals(dt){
       for(const g of SIGS){
         const dist=g.stop-P.s;
-        if(g.use&&!g.trig&&phase==='play'&&dist<rnd(88,104)&&dist>0){g.trig=true;g.t=1.7;setSig(g,'yellow');se('notif');}
+        if(g.use&&!g.trig&&phase==='play'&&dist<rnd(88,104)&&dist>0){g.trig=true;g.t=1.7;setSig(g,'yellow');rsfx('yellow');}
         if(g.state==='yellow'){g.t-=dt;if(g.t<=0){setSig(g,'red');g.red=0;g.spawnT=.6;}}
         else if(g.state==='red'){
           g.red+=dt;
           if(P.v<.8&&dist>-.5&&dist<30&&phase==='play')g.wait+=dt;
           const doneWait=g.wait>2.4, timeout=g.red>(g.ran?7:9);
-          if(doneWait||timeout){setSig(g,'green');if(doneWait&&!g.ran&&dist>-1){msg('青！','gn');se('decide');}}
+          if(doneWait||timeout){setSig(g,'green');if(doneWait&&!g.ran&&dist>-1){msg('青！','gn');rsfx('green');}}
         }
       }
     }
@@ -1344,7 +1437,7 @@ registerMinigame({
         if(P.crashes>=DF.crashes||P.dmg>=100){phase='ending';endScene('crash',false);return;}
         phase='play';P.v=0;P.d=-1.8;P.latV=0;P.slip=0;P.inv=2.2;P.steer=0;
         cars.forEach(c=>{if(c.on&&c.kind!=='cross'&&Math.abs(c.s-P.s)<20)c.on=false;});
-        msg(`再スタート（残り${DF.crashes-P.crashes}回）`,'sm');se('repair');
+        msg(`再スタート（残り${DF.crashes-P.crashes}回）`,'sm');rsfx('restart');
       }
     }
     function updateGoal(dt){
@@ -1415,7 +1508,7 @@ registerMinigame({
       if(gateBar){const open=P.s>GOAL-45;gateBar.rotation.z+=((open?1.45:0)-gateBar.rotation.z)*Math.min(1,dt*3);}
       // 雷
       lightningT-=dt;
-      if(lightningT<=0){lightningT=rnd(VAR.thunder,VAR.thunder*1.8);flashA=1;setTimeout(()=>{if(!cleaned&&!mg._ended)se('noise');},rnd(300,1200));}
+      if(lightningT<=0){lightningT=rnd(VAR.thunder,VAR.thunder*1.8);flashA=1;setTimeout(()=>{if(!cleaned&&!mg._ended)rsfx('thunder');},rnd(300,1200));}
       flashA=Math.max(0,flashA-dt*3.2);
       const fl=flashA>0?(Math.sin(flashA*30)>0?flashA:flashA*.3):0;
       hemi.intensity=.9+fl*5;el.flash.style.opacity=(fl*.35).toFixed(3);

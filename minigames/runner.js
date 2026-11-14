@@ -9,7 +9,7 @@ addMinigameStyle('runner',`
 `);
 
 registerMinigame({
-  id:'runner', icon:'🏃', name:'深夜の買い出しダッシュ', genre:'アクション', bgm:'stream',
+  id:'runner', icon:'🏃', name:'深夜の買い出しダッシュ', genre:'アクション', bgm:'mg_runner',
   desc:'子どもが熱を出した。目を覚ます前に、雨の町を走って24時間コンビニへ。冷却シートと、好きなプリンを買いに。',
   effect:'育児ストレス↓ 精神↑ 収入↑ ／ 疲労+8 約40分',
   help:'タップ:ジャンプ／↓スワイプ:スライド',
@@ -69,35 +69,64 @@ registerMinigame({
       g.gain.setValueAtTime(Math.max(.0002,gain*AUDIO_SET.se),t0);g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
       s.connect(f);f.connect(g);g.connect(c.destination);s.start(t0);s.stop(t0+dur+.03);
     }
+    // 一発の音の部品（tone/noise の拡張）。o:{t:波形,f:周波数,f2:終わりの周波数,fd:動く長さ,d:長さ,g:大きさ,a:立ち上がり,h:保持,dl:遅れ,j:音程の揺らぎ,ft/ff/q:フィルタ}
+    //   大きさには効果音の音量（AUDIO_SET.se）を掛ける。0 なら actx() が null で鳴らない。
+    function envG(p,t0,g,a,h,d){p.value=.0001;p.setValueAtTime(.0001,t0);p.linearRampToValueAtTime(Math.max(.0002,g),t0+a);if(h)p.setValueAtTime(Math.max(.0002,g),t0+a+h);p.exponentialRampToValueAtTime(.0001,t0+d);}
+    function osc(c,o){
+      const t0=c.currentTime+(o.dl||0),d=o.d,j=o.j?1+(Math.random()*2-1)*o.j:1,x=c.createOscillator(),g=c.createGain();
+      x.type=o.t||'sine';x.frequency.setValueAtTime(o.f*j,t0);if(o.f2)x.frequency.exponentialRampToValueAtTime(Math.max(20,o.f2*j),t0+(o.fd||d));
+      envG(g.gain,t0,o.g*AUDIO_SET.se*sfxLv,o.a||.004,o.h||0,d);
+      let n=x;if(o.ft){const fl=c.createBiquadFilter();fl.type=o.ft;fl.frequency.value=o.ff;if(o.q)fl.Q.value=o.q;x.connect(fl);n=fl;}
+      n.connect(g);g.connect(c.destination);x.start(t0);x.stop(t0+d+.03);
+    }
+    function nz(c,o){
+      if(!noiseBuf){noiseBuf=c.createBuffer(1,c.sampleRate|0,c.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
+      const t0=c.currentTime+(o.dl||0),d=o.d,s=c.createBufferSource(),fl=c.createBiquadFilter(),g=c.createGain();
+      s.buffer=noiseBuf;s.loop=true;fl.type=o.ft||'bandpass';fl.frequency.setValueAtTime(o.f,t0);if(o.f2)fl.frequency.exponentialRampToValueAtTime(o.f2,t0+(o.fd||d));if(o.q)fl.Q.value=o.q;
+      envG(g.gain,t0,o.g*AUDIO_SET.se*sfxLv,o.a||.002,o.h||0,d);
+      s.connect(fl);fl.connect(g);g.connect(c.destination);s.start(t0,Math.random()*.8);s.stop(t0+d+.03);
+    }
+    let stepN=0,sfxLv=1;
+    // 音ごとの大きさの倍率（se=1 で測って揃えた。小さく頻繁な音 -38〜-34・操作 -32〜-28・出来事 -28〜-25 LUFS が目安）
+    const SFX_LV={step:3.3,jump:3.4,jump2:3.1,land:1.5,slide:2.6,coin:2,drink:1.8,purin:2.5,hit:1,splash:1.6,cat:2,horn:1.3,thunder:1.9,train:2.1,
+      stage:2.6,chime:1,text:5,stamp:1.2,fanfare:2.4,fall:1.15,warn:4,wake:1.4,ui:2.9};
+    // 効果音（夜の街を走る：足音・ジャンプの踏み切り・着地の重さ・水はね。取る音は明るく短く）
     const SFX={
-      jump:c=>tone(c,'square',260,640,.12,.045),
-      jump2:c=>{tone(c,'square',440,1040,.13,.04);tone(c,'triangle',880,1760,.1,.02,.03);},
-      land:c=>noise(c,.07,.06,'lowpass',900,250),
-      slide:c=>noise(c,.28,.08,'bandpass',2600,600),
-      coin:c=>{tone(c,'square',988,0,.06,.035);tone(c,'square',1319,0,.18,.035,.06);},
-      drink:c=>[523,659,784,1047].forEach((f,i)=>tone(c,'triangle',f,0,.12,.06,i*.06)),
-      purin:c=>[784,988,1175,1568,1319,1568].forEach((f,i)=>tone(c,'square',f,0,.1,.03,i*.07)),
-      hit:c=>{noise(c,.2,.16,'lowpass',2400,200);tone(c,'sawtooth',190,55,.24,.08);},
-      splash:c=>noise(c,.32,.1,'bandpass',3200,700),
-      cat:c=>{tone(c,'triangle',950,520,.16,.05);tone(c,'triangle',1100,700,.12,.03,.05);},
-      horn:c=>{tone(c,'square',370,0,.4,.03);tone(c,'square',466,0,.4,.026);},
-      thunder:c=>{noise(c,1.8,.2,'lowpass',500,50);noise(c,.25,.12,'lowpass',2500,300);},
-      train:c=>noise(c,2.6,.07,'lowpass',260,120),
-      stage:c=>[523,659,784,1047].forEach((f,i)=>tone(c,'square',f,0,.14,.035,i*.08)),
-      chime:c=>{tone(c,'sine',784,0,.5,.07);tone(c,'sine',622,0,.7,.07,.32);},
-      text:c=>tone(c,'square',1250,0,.022,.012),
-      stamp:c=>{noise(c,.18,.18,'lowpass',1500,120);tone(c,'square',110,55,.2,.07);},
-      fanfare:c=>[523,659,784,1047,784,1047].forEach((f,i)=>tone(c,'square',f,0,i===5?.5:.11,.04,i*.1)),
-      fall:c=>{tone(c,'triangle',520,110,.7,.07);noise(c,.4,.08,'lowpass',800,100,.25);},
-      warn:c=>{tone(c,'square',880,0,.08,.03);tone(c,'square',880,0,.08,.03,.14);},
-      wake:c=>{tone(c,'sine',660,440,.3,.06);tone(c,'sine',550,330,.4,.05,.25);},
-      ui:c=>tone(c,'triangle',700,900,.07,.05),
+      // 足音（新規・走っている間ずっと）：小さく、左右で少し音程を変える
+      step:c=>{const k=(stepN++)%2;nz(c,{ft:'lowpass',f:(k?1300:1050)*(.9+Math.random()*.2),d:.06,g:.07});osc(c,{f:k?120:105,f2:60,d:.05,g:.06});},
+      jump:c=>{osc(c,{t:'square',f:280,f2:720,d:.13,g:.05,ft:'lowpass',ff:2600,j:.03});nz(c,{ft:'lowpass',f:900,d:.05,g:.12});nz(c,{ft:'bandpass',f:1200,f2:3000,q:1,d:.14,g:.04,a:.02});},
+      jump2:c=>{osc(c,{t:'square',f:440,f2:1040,d:.13,g:.045,ft:'lowpass',ff:3200,j:.03});osc(c,{t:'triangle',f:1320,f2:1980,d:.12,g:.05,dl:.04});nz(c,{ft:'bandpass',f:2000,f2:4500,q:1,d:.16,g:.05,a:.02});},
+      land:c=>{nz(c,{ft:'lowpass',f:900,f2:250,d:.08,g:.2});osc(c,{f:130,f2:55,d:.09,g:.16,j:.05});},
+      slide:c=>{nz(c,{ft:'bandpass',f:2600,f2:700,q:1.2,d:.3,g:.13,a:.01});nz(c,{ft:'lowpass',f:600,d:.12,g:.08});},
+      coin:c=>{const j=1+(Math.random()-.5)*.03;osc(c,{t:'square',f:988*j,d:.06,g:.03,ft:'lowpass',ff:5000});osc(c,{t:'square',f:1319*j,d:.18,g:.03,dl:.06,ft:'lowpass',ff:5000});},
+      drink:c=>{[523,659,784,1047].forEach((f,i)=>osc(c,{t:'triangle',f,d:.13,g:.11,dl:i*.06}));nz(c,{ft:'bandpass',f:3000,q:1.5,d:.18,g:.04,dl:.05});},
+      purin:c=>{[784,988,1175,1568,1319,1568].forEach((f,i)=>osc(c,{t:'square',f,d:i===5?.3:.1,g:.035,dl:i*.07,ft:'lowpass',ff:4500}));osc(c,{f:3136,d:.3,g:.03,dl:.38});},
+      // ぶつかった：どすっ（低音＋ノイズ）＋痛い下がり音
+      hit:c=>{nz(c,{ft:'lowpass',f:2400,f2:200,d:.24,g:.3});osc(c,{f:160,f2:45,d:.26,g:.28});osc(c,{t:'sawtooth',f:300,f2:110,d:.2,g:.04,ft:'lowpass',ff:1500});},
+      splash:c=>{nz(c,{ft:'bandpass',f:3000,f2:700,q:.9,d:.35,g:.2,a:.005});nz(c,{ft:'lowpass',f:500,d:.1,g:.1});},
+      // 猫：にゃっ（上がって下がる）
+      cat:c=>{osc(c,{t:'triangle',f:700,f2:1050,fd:.06,d:.18,g:.08});osc(c,{t:'triangle',f:1050,f2:600,d:.15,g:.07,dl:.07});},
+      horn:c=>{[370,466].forEach(f=>osc(c,{t:'square',f,f2:f*.95,d:.42,g:.022,a:.02,h:.25,ft:'lowpass',ff:2200}));},
+      thunder:c=>{nz(c,{ft:'lowpass',f:500,f2:70,d:1.5,g:.35,a:.03});nz(c,{ft:'lowpass',f:2500,f2:300,d:.3,g:.12});},
+      // 電車：ゴーという低音＋ガタンゴトン
+      train:c=>{nz(c,{ft:'lowpass',f:300,f2:150,d:2.4,g:.12,a:.4,h:1});[0,.16,.55,.71,1.1,1.26,1.65,1.81].forEach(dl=>{osc(c,{t:'triangle',f:180,f2:90,d:.07,g:.06,dl:dl+.3});nz(c,{ft:'bandpass',f:1500,q:2,d:.04,g:.04,dl:dl+.3});});},
+      stage:c=>{[523,659,784,1047].forEach((f,i)=>osc(c,{t:'square',f,d:i===3?.3:.14,g:.035,dl:i*.08,ft:'lowpass',ff:4000}));},
+      // ドアのチャイム（ピンポーン）
+      chime:c=>{osc(c,{f:784,d:.55,g:.1});osc(c,{f:622,d:.75,g:.1,dl:.32});},
+      text:c=>osc(c,{t:'square',f:1250,d:.03,g:.014,ft:'lowpass',ff:3000,j:.02}),
+      stamp:c=>{nz(c,{ft:'lowpass',f:1200,f2:120,d:.18,g:.32});osc(c,{f:110,f2:50,d:.22,g:.3});},
+      fanfare:c=>{[523,659,784,1047,784,1047].forEach((f,i)=>osc(c,{t:'square',f,d:i===5?.55:.11,g:.04,dl:i*.1,ft:'lowpass',ff:4000}));osc(c,{t:'triangle',f:262,d:.7,g:.08,dl:.5});},
+      fall:c=>{osc(c,{t:'triangle',f:520,f2:110,d:.7,g:.12});nz(c,{ft:'lowpass',f:900,f2:100,d:.4,g:.25,dl:.25});osc(c,{f:90,f2:40,d:.3,g:.25,dl:.25});},
+      warn:c=>{osc(c,{t:'square',f:880,d:.08,g:.035,ft:'lowpass',ff:3000});osc(c,{t:'square',f:880,d:.08,g:.035,dl:.14,ft:'lowpass',ff:3000});},
+      wake:c=>{osc(c,{f:660,f2:440,d:.3,g:.1});osc(c,{f:550,f2:330,d:.4,g:.09,dl:.25});},
+      ui:c=>osc(c,{t:'triangle',f:700,f2:900,d:.07,g:.1}),
     };
     function sfx(k,fb){
       const c=actx();
-      if(c&&SFX[k]){try{SFX[k](c);}catch(e){}}
-      else if(fb&&typeof AU!=='undefined')AU.se(fb);
+      if(c&&SFX[k]){sfxLv=SFX_LV[k]||1;try{SFX[k](c);}catch(e){}sfxLv=1;}
+      else if(fb&&!c&&typeof AU!=='undefined')AU.se(fb);
     }
+    if(mg&&mg.exposeSfx)mg.exposeSfx(Object.keys(SFX),k=>sfx(k));
     // 立ち絵
     const IMG={};
     ['normal','fear','happy','tired','win'].forEach(k=>{const im=new Image();im.src='assets/img/char_'+k+'.webp';IMG[k]=im;});
@@ -945,7 +974,10 @@ registerMinigame({
         if(phaseT>12)finishGame();
       }
       // 走りのアニメ位相
+      const ph0=ph;
       if(phase==='run'||phase==='arrive')ph+=dt*(phase==='arrive'?Math.max(2,speed*.045+(Math.abs(DOOR_X-cam-psx)>4?6:0)):speed*.048);
+      // 足音：走りの半周期ごと（地面にいて、スライディング中でないとき）
+      if(phase==='run'&&onG&&slideT<=0&&Math.floor(ph/Math.PI)!==Math.floor(ph0/Math.PI))sfx('step');
       if(banner){banner.t+=dt;if(banner.t>2.6)banner=null;}
       if(train){train.x-=(300+speed*.3)*dt;if(train.x<-420){train=null;nextTrain=rnd(5,9);}}
       // 障害物の動き（猫が逃げる・車が走る）

@@ -1253,7 +1253,7 @@ function makeSnd(){
   let ctx=null,master=null,amb=null,nb=null,dead=false;
   const vol=()=>{try{return typeof AUDIO_SET!=='undefined'?AUDIO_SET.se:1;}catch(e){return 1;}};
   function get(){
-    if(dead||!window.AU)return null;
+    if(dead||typeof AU==='undefined')return null;
     try{AU.init();}catch(e){}
     ctx=AU.ctx;if(!ctx)return null;
     const v=vol();if(!(v>0)){if(master)master.gain.value=0;return null;}
@@ -1263,12 +1263,14 @@ function makeSnd(){
     if(!nb){nb=ctx.createBuffer(1,ctx.sampleRate*2|0,ctx.sampleRate);const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
     return ctx;
   }
-  function env(g,t0,a,pk,d){g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(Math.max(.0002,pk),t0+a);g.gain.exponentialRampToValueAtTime(.0001,t0+a+d);}
+  function env(g,t0,a,pk,d){g.gain.value=.0001;g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(Math.max(.0002,pk),t0+a);g.gain.exponentialRampToValueAtTime(.0001,t0+a+d);}
   function osc(type,f,t0,a,pk,d,f2){const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+a+d);env(g,t0,a,pk,d);o.connect(g);g.connect(master);o.start(t0);o.stop(t0+a+d+.05);}
   function noise(t0,a,pk,d,ft,fq,q,fq2){const s=ctx.createBufferSource();s.buffer=nb;s.loop=true;const f=ctx.createBiquadFilter();f.type=ft;f.frequency.setValueAtTime(fq,t0);if(fq2)f.frequency.exponentialRampToValueAtTime(fq2,t0+a+d);f.Q.value=q||1;const g=ctx.createGain();env(g,t0,a,pk,d);s.connect(f);f.connect(g);g.connect(master);s.start(t0,Math.random());s.stop(t0+a+d+.05);}
   return {
+    // 音ごとの大きさの補正（計測して揃えた値）。文字送り・紙は -40 前後、物音は -34〜-30、驚かしは -28〜-26 LUFS 前後
+    LV:{tick:10,page:5,step:9,creak:11,whisper:10,drip:1.8,knock:2.1,phone:2.8,pick:2.8,hum:1.4,static:1,sting:1.3,thunder:2.5},
     play(n,k){
-      k=k==null?1:k;if(k<=0)return;const c=get();if(!c)return;const t=c.currentTime+.01;
+      k=k==null?1:k;if(k<=0)return;const c=get();if(!c)return;const t=c.currentTime+.01;k*=this.LV[n]||1;
       try{switch(n){
         case 'chime':osc('sine',659,t,.01,.07*k,1.1);osc('sine',523,t+.42,.01,.07*k,1.4);break;
         case 'intercom':osc('triangle',784,t,.01,.11*k,.9);osc('triangle',622,t+.5,.01,.11*k,1.5);break;
@@ -1282,10 +1284,10 @@ function makeSnd(){
         case 'step':noise(t,.006,.16*k,.2,'lowpass',280,1);break;
         case 'phone':[0,.17].forEach(o=>osc('square',1320,t+o,.004,.04*k,.11));break;
         case 'hum':osc('sawtooth',62,t,.35,.05*k,1.6);osc('sawtooth',93,t,.35,.025*k,1.6);break;
-        case 'tick':osc('sine',1900+Math.random()*200,t,.002,.01*k,.03);break;
+        case 'tick':osc('sine',1500+Math.random()*300,t,.002,.01*k,.03);break;
         case 'page':noise(t,.01,.05*k,.16,'bandpass',3200,1.2,1800);break;
         case 'act':osc('sine',110,t,.05,.12*k,2.2,82);osc('triangle',220,t,.05,.03*k,1.6,164);break;
-        case 'sting':osc('sawtooth',46,t,.01,.12*k,1.4,30);noise(t,.005,.08*k,.9,'bandpass',1200,4,300);break;
+        case 'sting':osc('sawtooth',46,t,.01,.12*k,1.4,30);osc('sine',38,t,.01,.12*k,1.6,28);noise(t,.005,.08*k,.9,'bandpass',1200,4,300);break;
         case 'pick':osc('triangle',520,t,.005,.05*k,.12);osc('sine',780,t+.05,.005,.04*k,.18);break;
       }}catch(e){}
     },
@@ -1294,8 +1296,8 @@ function makeSnd(){
       try{
         if(!amb){const s=c.createBufferSource();s.buffer=nb;s.loop=true;const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=450;const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2800;const g=c.createGain();g.gain.value=.0001;s.connect(hp);hp.connect(lp);lp.connect(g);g.connect(master);s.start();
           const o=c.createOscillator();o.type='sine';o.frequency.value=46;const o2=c.createOscillator();o2.type='sine';o2.frequency.value=46.7;const og=c.createGain();og.gain.value=.0001;o.connect(og);o2.connect(og);og.connect(master);o.start();o2.start();amb={s,g,o,o2,og};}
-        const t=c.currentTime;amb.g.gain.cancelScheduledValues(t);amb.g.gain.setTargetAtTime(Math.max(.0001,.045*rain),t,.6);
-        amb.og.gain.cancelScheduledValues(t);amb.og.gain.setTargetAtTime(Math.max(.0001,dr),t,.9);
+        const t=c.currentTime;amb.g.gain.cancelScheduledValues(t);amb.g.gain.setTargetAtTime(Math.max(.0001,.018*rain),t,.6);
+        amb.og.gain.cancelScheduledValues(t);amb.og.gain.setTargetAtTime(Math.max(.0001,dr*.4),t,.9);
       }catch(e){}
     },
     stop(){dead=true;if(amb){try{amb.s.stop();amb.o.stop();amb.o2.stop();}catch(e){}}amb=null;if(master){try{master.disconnect();}catch(e){}}master=null;},
@@ -1339,6 +1341,7 @@ registerMinigame({
     const hd=hdata();
     let story=pickStory(hd);
     const SFX=makeSnd();
+    if(mg&&mg.exposeSfx)mg.exposeSfx(['chime','intercom','drip','heart','creak','static','thunder','whisper','knock','step','phone','hum','tick','page','act','sting','pick','amb'],k=>{if(k==='amb'){SFX.ambient(1,.036);setTimeout(()=>SFX.ambient(0,0),3000);}else SFX.play(k);});
     body.innerHTML=`<div class="hr-stage"><canvas class="hr-cv"></canvas>
 <div class="hr-top"><span class="hr-live"><i></i><span class="hr-lv">LIVE</span></span><span class="hr-view">👁 --</span><span class="hr-heart">♥ 0</span><span class="hr-ttl"></span></div>
 <div class="hr-chat"></div><div class="hr-choices"></div>
@@ -1593,7 +1596,7 @@ registerMinigame({
         (justUnlocked?`<br><span style="color:var(--gd)">◆ 最終話「？？？」が解放されました</span>`:'')+`</div><div class="e5">▶ タップで配信を終える</div>`;
       o.onclick=e=>{e.stopPropagation();finishStory();};
       stage.appendChild(o);
-      if(endKey==='good')se('rank');else if(endKey==='cursed'){if(!hd.mild)se('ghost');snd('sting',.6);}else se('notif');
+      if(endKey==='good')se('rank');else if(endKey==='cursed'){if(!hd.mild)later(()=>snd('whisper',.8),700);snd('sting',.8);}else se('notif');
       mg.setScore(`📖 ${esc(story.short)}　<span style="color:var(--gd)">END ${tot}/${all}</span>`);
     }
     function finishStory(){if(phase==='done')return;phase='done';se('decide');mg.end(endKey);}

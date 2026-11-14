@@ -714,48 +714,74 @@ FOES.eye=(x,s,t,e)=>{
 };
 
 // ── 効果音：AU.se に加えて、Web Audio で短い音を合成（AU.ctx がある時だけ） ──
+//   ドット絵 RPG なので矩形波・三角波の「ピコピコ」を土台にしつつ、ローパスで角を丸めて夜の物語に合う柔らかさにする。
+//   大きさは SFX_LV（dB）でそろえる（se=1 の時の Mmax の目安：文字送り・カーソル -38〜-35、操作・命中 -32〜-28、
+//   エンカウント・勝利・レベルアップ・大きな被弾 -28〜-25）。連打される音は SFX_GAP で間引き、毎回少しだけ音程と大きさを揺らす。
+const SFX_LV={blip:10,cursor:8,ready:4.4,bump:-3,hit:4,crit:1,hurt:1,hurtBig:-2.2,block:4.3,ko:5.8,heal:0,guard:5,counter:4,talk:7.5,sing:3,fix:9,pray:0,light:2.4,lvup:6,enc:2.5,win:6,lose:1,item:9,down:4,wipe:4,bubble:4.6,enemy:6.5,swoosh:9,chest:7.8,save:2,miss:9,dual:4,spot:10,door:5};
+const SFX_GAP={blip:.045,cursor:.03,ready:.08,bump:.18,hit:.03,crit:.04,hurt:.04,enemy:.05,bubble:.05,light:.05,spot:.15,miss:.05};
+const sfxLast={};let sfxNoise=null;
 function sfx(type){
   try{
     const vol=(typeof AUDIO_SET!=='undefined'&&AUDIO_SET)?+AUDIO_SET.se:1;
-    if(!vol||typeof AU==='undefined')return;
+    if(!(vol>0)||typeof AU==='undefined')return;
     if(!AU.ctx&&AU.init)AU.init();
     const c=AU.ctx;if(!c)return;
     if(c.state==='suspended'){c.resume().catch(()=>{});return;}
     const now=c.currentTime;
-    const tone=(f,d,tp='sine',g=.05,at=0,f2)=>{const o=c.createOscillator(),gn=c.createGain();o.type=tp;o.frequency.setValueAtTime(f,now+at);if(f2)o.frequency.exponentialRampToValueAtTime(f2,now+at+d);gn.gain.setValueAtTime(.0001,now+at);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g*vol),now+at+.008);gn.gain.exponentialRampToValueAtTime(.0001,now+at+d);o.connect(gn);gn.connect(c.destination);o.start(now+at);o.stop(now+at+d+.02);};
-    const noise=(d,g=.08,at=0,fq=1200)=>{const n=Math.floor(c.sampleRate*d),b=c.createBuffer(1,n,c.sampleRate),ch=b.getChannelData(0);for(let i=0;i<n;i++)ch[i]=(Math.random()*2-1)*(1-i/n);const s=c.createBufferSource();s.buffer=b;const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=fq;const gn=c.createGain();gn.gain.value=g*vol;s.connect(f);f.connect(gn);gn.connect(c.destination);s.start(now+at);};
+    if(SFX_GAP[type]&&sfxLast[type]!=null&&now>=sfxLast[type]&&now-sfxLast[type]<SFX_GAP[type])return;
+    sfxLast[type]=now;
+    const jr=(a,b)=>a+Math.random()*(b-a),P=jr(.985,1.015); // 音程のゆらぎ（±1.5%）
+    if(!sfxNoise){const n=c.sampleRate|0;sfxNoise=c.createBuffer(1,n,c.sampleRate);const ch=sfxNoise.getChannelData(0);for(let i=0;i<n;i++)ch[i]=Math.random()*2-1;}
+    // この音 1 回分の出口：設定の音量 × LV × 小さなゆらぎ。角を丸めるローパスを通す
+    const out=c.createGain();out.gain.value=vol*Math.pow(10,(SFX_LV[type]||0)/20)*jr(.9,1.05);
+    const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=6500;out.connect(lp);lp.connect(c.destination);
+    setTimeout(()=>{try{lp.disconnect();}catch(e){}},5000);
+    const gn0=(g,at,atk,d)=>{const gn=c.createGain();gn.gain.value=.0001;gn.gain.setValueAtTime(.0001,now+at);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),now+at+atk);gn.gain.exponentialRampToValueAtTime(.0001,now+at+Math.max(atk+.01,d));gn.connect(out);return gn;};
+    // tone(周波数, 長さ, 波形, 大きさ, 開始の遅れ, 終わりの周波数, 立ち上がり, ローパス)
+    const tone=(f,d,tp='sine',g=.05,at=0,f2,atk=.006,cut)=>{const o=c.createOscillator();o.type=tp;o.frequency.setValueAtTime(f*P,now+at);if(f2)o.frequency.exponentialRampToValueAtTime(f2*P,now+at+d);
+      const gn=gn0(g,at,atk,d);if(cut){const f1=c.createBiquadFilter();f1.type='lowpass';f1.frequency.value=cut;o.connect(f1);f1.connect(gn);}else o.connect(gn);o.start(now+at);o.stop(now+at+d+.03);return o;};
+    // noise(長さ, 大きさ, 開始の遅れ, 中心周波数, 終わりの中心周波数, Q, 種類, 立ち上がり)
+    const noise=(d,g=.08,at=0,fq=1200,fq2,q=1,ft='bandpass',atk=.004)=>{const s=c.createBufferSource();s.buffer=sfxNoise;const f=c.createBiquadFilter();f.type=ft;f.frequency.setValueAtTime(fq,now+at);if(fq2)f.frequency.exponentialRampToValueAtTime(fq2,now+at+d);f.Q.value=q;
+      s.connect(f);f.connect(gn0(g,at,atk,d));s.start(now+at,Math.random()*.4);s.stop(now+at+d+.03);};
+    const arp=(fs,step,d,tp,g,at=0,cut)=>fs.forEach((f,i)=>tone(f,d,tp,g,at+i*step,null,.006,cut));
     switch(type){
-      case 'blip':tone(760+Math.random()*80,.025,'square',.01);break;
-      case 'hit':noise(.12,.2,0,900);tone(200,.12,'square',.04,0,60);break;
-      case 'crit':noise(.2,.25,0,1500);tone(1500,.1,'square',.035,0,300);tone(110,.22,'sawtooth',.05,.02,40);break;
-      case 'hurt':noise(.22,.22,0,420);tone(150,.26,'sawtooth',.05,0,45);break;
-      case 'heal':[660,880,1100,1320].forEach((f,i)=>tone(f,.2,'sine',.04,i*.06));break;
-      case 'guard':tone(300,.18,'triangle',.06,0,620);noise(.08,.05,0,3200);break;
-      case 'counter':tone(220,.08,'square',.05,0,880);noise(.15,.2,.06,1800);break;
-      case 'talk':tone(420,.05,'square',.025);tone(540,.05,'square',.025,.07);tone(470,.06,'square',.025,.14);break;
-      case 'sing':[523,659,784,1047].forEach((f,i)=>tone(f,.18,'triangle',.04,i*.08));break;
-      case 'fix':noise(.05,.15,0,4200);noise(.05,.15,.1,4200);tone(1900,.06,'square',.025,.2);break;
-      case 'pray':[392,494,587,784].forEach((f,i)=>tone(f,.55,'sine',.032,i*.12));break;
-      case 'light':[523,659,784,1047,1319,1568].forEach((f,i)=>tone(f,.45,'triangle',.04,i*.07));break;
-      case 'lvup':[523,659,784,1047].forEach((f,i)=>tone(f,.14,'square',.03,i*.08));tone(1047,.45,'square',.03,.34);break;
-      case 'enc':for(let i=0;i<7;i++)tone(180+i*110,.07,'sawtooth',.035,i*.045);noise(.35,.07,.3,700);break;
-      case 'win':[784,784,784,1047].forEach((f,i)=>tone(f,i<3?.1:.5,'square',.03,i*.12));tone(523,.6,'triangle',.03,.36);break;
-      case 'lose':[392,370,349,311].forEach((f,i)=>tone(f,.4,'triangle',.045,i*.26));break;
-      case 'item':tone(988,.07,'square',.03);tone(1319,.16,'square',.03,.08);break;
-      case 'down':noise(.6,.16,0,300);tone(220,.7,'sawtooth',.045,0,40);break;
-      case 'wipe':noise(.45,.05,0,700);break;
-      case 'bubble':tone(380,.09,'sine',.04,0,1000);break;
-      case 'enemy':tone(130,.16,'sawtooth',.045,0,90);noise(.1,.08,0,500);break;
-      case 'swoosh':noise(.28,.12,0,2400);tone(300,.22,'sine',.03,0,900);break;
-      case 'ready':tone(1175,.06,'square',.022);tone(1568,.1,'square',.022,.06);break;
-      case 'chest':tone(523,.08,'square',.03);tone(784,.08,'square',.03,.08);tone(1047,.22,'square',.03,.16);break;
-      case 'save':[784,988,1175,1568].forEach((f,i)=>tone(f,.4,'sine',.035,i*.1));break;
-      case 'cursor':tone(880,.03,'square',.016);break;
-      case 'bump':tone(110,.06,'square',.03);break;
-      case 'miss':tone(500,.1,'sine',.03,0,250);break;
-      case 'dual':[392,523,659,784,1047,1319].forEach((f,i)=>tone(f,.3,'square',.026,i*.05));noise(.4,.08,.2,2600);break;
-      case 'spot':tone(988,.06,'square',.035);tone(1319,.12,'square',.035,.07);break;
-      case 'door':noise(.25,.06,0,500);tone(160,.2,'triangle',.03,0,120);break;
+      // ── 小さく頻繁な音 ──
+      case 'blip':tone(jr(700,820),.03,'square',.05,0,null,.003,2200);break;                                   // 文字送り：丸めた短い「ぷ」
+      case 'cursor':tone(1320,.035,'triangle',.12,0,null,.002);tone(2640,.02,'square',.015,0,null,.002,5000);break; // カーソル：軽い「ちっ」
+      case 'ready':tone(1175,.06,'triangle',.1,0,null,.004);tone(1568,.09,'triangle',.1,.055,null,.004);break;      // 行動ゲージがたまった
+      case 'bump':tone(110,.08,'sine',.35,0,70,.003);noise(.05,.15,0,400,null,1,'lowpass');break;                  // 壁にぶつかる：鈍い「どん」
+      case 'wipe':noise(.5,.18,0,500,2400,.8,'bandpass',.18);break;                                              // 場面の切り替え：さあっ
+      case 'door':noise(.12,.3,0,300,null,.8,'lowpass',.004);tone(140,.25,'triangle',.12,.02,105,.01,700);noise(.18,.05,.06,2200,1600,4);break; // 扉：ごとっ＋きしみ
+      case 'miss':noise(.22,.12,0,1800,700,.9,'bandpass',.03);tone(520,.14,'sine',.06,0,260);break;                // 空振り・逃げ失敗
+      case 'bubble':tone(jr(340,420),.09,'sine',.18,0,1000,.004);tone(jr(500,600),.07,'sine',.1,.07,1400,.004);break; // 泡：ぽこっ・ぽこ
+      // ── 操作・手応え ──
+      case 'talk':[420,540,470].forEach((f,i)=>tone(f*jr(.97,1.03),.07,'triangle',.11,i*.075,f*1.08,.008,1600));break; // 語りかける：ことばのような 3 音
+      case 'spot':tone(988,.06,'square',.05,0,null,.003,3000);tone(1319,.13,'square',.05,.07,null,.003,3000);break;   // 「！」見つかった
+      case 'enemy':tone(130,.18,'sawtooth',.18,0,80,.01,700);noise(.14,.2,0,500,250,1);break;                       // 敵の動き：低いうなり
+      case 'hit':noise(.1,.5,0,1100,500,1.1);tone(210,.12,'square',.08,0,60,.003,1400);tone(90,.1,'sine',.18,0,45,.003);break; // 命中：ばしっ
+      case 'item':tone(988,.07,'square',.05,0,null,.004,3200);tone(1319,.18,'square',.05,.08,null,.004,3200);tone(1976,.15,'sine',.03,.08);break;
+      case 'chest':tone(95,.18,'sawtooth',.08,0,80,.02,500);arp([523,784,1047],.08,.14,'square',.045,.12,3200);tone(1568,.35,'sine',.04,.36);break; // 宝箱：ぎっ（ふた）＋ちゃららん
+      case 'swoosh':noise(.3,.3,0,700,3200,1.2,'bandpass',.05);break;                                             // 逃げる・素早い動き：ひゅっ
+      case 'guard':tone(300,.16,'triangle',.12,0,620,.005);[1800,2710].forEach((f,i)=>tone(f,.35,'sine',.035,.02+i*.01,null,.003));noise(.06,.15,0,3200,null,2);break; // 守り：盾の「きん」
+      case 'block':noise(.08,.35,0,2400,null,2);tone(1500,.3,'sine',.05,0,null,.002);tone(2260,.25,'sine',.03,0,null,.002);tone(150,.1,'sine',.14,0,70,.003);break; // 守った上での被弾：きんっ
+      case 'fix':noise(.04,.28,0,4200,null,3,'bandpass',.002);noise(.04,.28,.1,4600,null,3,'bandpass',.002);tone(1900,.08,'square',.04,.2,null,.003,4000);break; // 修理：かちっ・かちっ・ぴん
+      case 'heal':arp([660,880,1100,1320],.06,.26,'sine',.1);arp([1320,1760,2200,2640],.06,.2,'sine',.02,.01);break; // 回復：きらきら上がる
+      case 'sing':[523,659,784,1047].forEach((f,i)=>{const o=tone(f,.22,'triangle',.1,i*.09,null,.02,2400);const l=c.createOscillator(),lg=c.createGain();l.frequency.value=6;lg.gain.value=f*.012;l.connect(lg);lg.connect(o.frequency);l.start(now+i*.09);l.stop(now+i*.09+.26);});break; // 歌：ビブラートつき
+      case 'pray':[392,494,587,784].forEach((f,i)=>tone(f,.7,'sine',.07,i*.12,null,.12));break;                   // 祈り：ふわっと重なる和音
+      case 'light':arp([523,659,784,1047,1319,1568],.065,.4,'triangle',.06,0,3000);noise(.5,.04,.1,7000,null,.7,'highpass',.1);break; // 光：上がるアルペジオ＋さらさら
+      case 'hurt':noise(.25,.5,0,500,200,.9);tone(160,.28,'sawtooth',.12,0,45,.004,900);tone(80,.2,'sine',.35,0,40,.003);break; // 被弾：どすっ
+      case 'counter':tone(220,.08,'square',.06,0,880,.004,2400);noise(.16,.4,.06,1800,null,1.2);[1400,2100].forEach(f=>tone(f,.4,'sine',.04,.06,null,.002));break; // 反撃：きぃん＋ばしっ
+      // ── 大きな出来事 ──
+      case 'crit':noise(.06,.35,0,4000,null,1,'highpass',.002);noise(.22,.55,.02,1500,500,1);tone(1500,.1,'square',.05,0,300,.003,3000);tone(110,.25,'sawtooth',.12,.02,40,.004,900);tone(70,.25,'sine',.28,.02,35,.003);break; // 会心：しゃきっ＋重い一撃
+      case 'hurtBig':noise(.35,.55,0,600,180,.9);tone(140,.4,'sawtooth',.15,0,38,.004,800);tone(70,.35,'sine',.5,0,32,.003);break; // 大きな被弾
+      case 'down':noise(.6,.35,0,900,180,.8,'lowpass',.01);tone(220,.7,'sawtooth',.1,0,40,.01,900);[880,660].forEach((f,i)=>tone(f,.25,'sine',.03,.1+i*.1));break; // 敵が消える：しゅわーっ
+      case 'ko':tone(392,.35,'triangle',.1,0,330,.01,1800);tone(294,.6,'triangle',.1,.3,220,.01,1600);noise(.4,.12,0,400,null,.8,'lowpass');break; // 仲間が倒れる
+      case 'enc':for(let i=0;i<7;i++)tone(180+i*110,.08,'sawtooth',.06,i*.045,null,.004,2400);noise(.4,.15,.3,600,2000,.8);tone(90,.45,'sine',.25,.3,55,.01);break; // エンカウント
+      case 'lvup':arp([523,659,784,1047],.08,.14,'square',.05,0,3600);[1047,1319,1568].forEach(f=>tone(f,.55,'square',.035,.34,null,.006,3600));break; // レベルアップ
+      case 'win':[784,784,784,1047].forEach((f,i)=>tone(f,i<3?.1:.55,'square',.05,i*.12,null,.004,3600));tone(523,.65,'triangle',.08,.36);tone(262,.65,'triangle',.08,.36);break; // 勝利ファンファーレ
+      case 'lose':[392,370,349,311].forEach((f,i)=>tone(f,.45,'triangle',.1,i*.26,null,.01,1400));tone(98,1.2,'sine',.15,.5,80,.2);break; // 敗北：沈む
+      case 'save':[784,988,1175,1568].forEach((f,i)=>{tone(f,.45,'sine',.07,i*.1,null,.004);tone(f*2.01,.25,'sine',.015,i*.1,null,.004);});break; // セーブ：鈴のような 4 音
+      case 'dual':arp([392,523,659,784,1047,1319],.05,.32,'square',.04,0,3000);noise(.45,.12,.2,2600,6000,.7,'bandpass',.05);tone(131,.6,'triangle',.12,.2);break; // 二人の技
     }
   }catch(e){}
 }
@@ -2543,6 +2569,7 @@ registerMinigame({
     let cleaned=false;
     function cleanup(){if(cleaned)return;cleaned=true;try{ro&&ro.disconnect();}catch(e){}window.removeEventListener('resize',resize);window.removeEventListener('keydown',capKey,true);window.removeEventListener('keyup',capKey,true);window.removeEventListener('blur',clearKeys);}
     if(typeof mg.onEnd==='function')mg.onEnd(cleanup);
+    if(mg&&mg.exposeSfx)mg.exposeSfx(['blip','cursor','ready','bump','hit','crit','hurt','hurtBig','block','ko','heal','guard','counter','talk','sing','fix','pray','light','lvup','enc','win','lose','item','down','wipe','bubble','enemy','swoosh','chest','save','miss','dual','spot','door'],k=>sfx(k));
 
     // テキストウィンドウ
     const box=el('div','rpg-box rpg-hide');
@@ -3683,10 +3710,10 @@ registerMinigame({
       if((p.st.barrier||0)>B.clock)d*=.5;
       d=Math.max(1,Math.round(d));
       p.hp-=d;run.stat.dmg+=d;p.a.flash=1;p.a.flashW=0;V.hurt=Math.max(V.hurt,.6);V.shake=Math.max(V.shake,6);V.stop=.05;
-      pop(p.a.x,p.a.y-26,String(d),'#ff6080',d>=15);sfx('hurt');AU.se('noise');addFx('slash',{x:p.a.x,y:p.a.y-8,dur:.3});
+      pop(p.a.x,p.a.y-26,String(d),'#ff6080',d>=15);sfx(d>=15?'hurtBig':B.guard?'block':'hurt');AU.se('noise');addFx('slash',{x:p.a.x,y:p.a.y-8,dur:.3});
       if(p.hp<=0){
         if(p.id==='dan'&&run.f.ch3_promise&&chNo>=3&&!B.guts){B.guts=1;p.hp=1;B.gutsNow=1;}
-        else{p.hp=0;p.ko=true;p.g=0;p.queued=false;B.queue=B.queue.filter(a=>a.p!==p&&a.p2!==p);if(B.menu&&B.menu.p===p)closeCmd();if(B.tgt&&B.tgt.p===p)endTarget(null);p.a.pose='down';sfx('down');}
+        else{p.hp=0;p.ko=true;p.g=0;p.queued=false;B.queue=B.queue.filter(a=>a.p!==p&&a.p2!==p);if(B.menu&&B.menu.p===p)closeCmd();if(B.tgt&&B.tgt.p===p)endTarget(null);p.a.pose='down';sfx('ko');}
       }
       return d;
     }
