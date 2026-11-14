@@ -464,7 +464,7 @@ game.openMenu = function () {
     </details>`, [
     { label: 'ゲームにもどる', cls: 'primary', act: () => game.ui.closeModal() },
     { label: '保存してタイトルへ（ログアウト）', act: async () => { net.savePosition && net.savePosition(); await net.logout(); game.ui.closeModal(); game.field = null; game.walk = null; game.build = null; game.go(new TitleScene(game)); } },
-    { label: '本編（だんのうら）に戻る', act: () => { net.savePosition && net.savePosition(); net.flush && net.flush(); location.href = 'index.html'; } },
+    { label: '本編に戻る', act: () => { net.savePosition && net.savePosition(); net.flush && net.flush(); location.href = 'index.html'; } },
   ], { cls: 'tb-mainmenu' });
   const grid = p.querySelector('.tb-menu-grid');
   for (const [label, key, act] of nav) { const b = el('button', 'tb-btn tb-navbtn', `<span>${esc(label)}</span>${key ? kb(key) : ''}`); b.onclick = act; grid.appendChild(b); }
