@@ -40,6 +40,10 @@ import { createWP } from './link/progress.js';
 import { newRouteState } from './story/route.js';
 import { CutscenePlayer } from './story/cutscene.js';
 import { Voice } from './core/voice.js';
+import { SoundBank } from './core/soundbank.js';   // 2026-11-13：無料素材サイトの音（効果音ラボ・魔王魂）。起動では読まず、遊びが始まって区画に入った時に後から
+import { Music } from './core/bgm.js';
+import { SOUND_FILES } from './data/sound_files.js';
+import { audioCreditText } from './data/sound.js';
 import { stepDef, streetState, atLeast, weaponsAt, STEPS, TARGETS } from './story/chapters.js';
 import { AREA_GRAPH } from './data/areas.js';
 import { bossName } from './story/puzzles.js';
@@ -115,7 +119,7 @@ const Q = new URLSearchParams(location.search);
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || Q.get('touch') === '1';
 const AUTO_PRESET = autoPreset({ touch: isTouch, w: innerWidth, h: innerHeight, dpr: devicePixelRatio, cores: navigator.hardwareConcurrency, mem: navigator.deviceMemory });
 
-const DEFAULT_SETTINGS = () => Object.assign(applyPreset({ preset: 'auto' }, AUTO_PRESET), { preset: 'auto', difficulty: 'normal', assist: false, sens: 1, invertY: false, volume: 0.7, voiceOn: true, voiceVol: 0.9, touchUI: isTouch, subSize: 'm', teleCB: false, teleShow: 'standard', hudAuto: true, rampageInput: 'both', shake: 1, rumble: true, keys: {} });
+const DEFAULT_SETTINGS = () => Object.assign(applyPreset({ preset: 'auto' }, AUTO_PRESET), { preset: 'auto', difficulty: 'normal', assist: false, sens: 1, invertY: false, volume: 0.7, voiceOn: true, voiceVol: 0.9, bgmVol: 0.5, touchUI: isTouch, subSize: 'm', teleCB: false, teleShow: 'standard', hudAuto: true, rampageInput: 'both', shake: 1, rumble: true, keys: {} });
 
 /** 区画の明かり（定義）と使い回しの点光源 */
 const POOL_MAX = 8;
@@ -184,6 +188,9 @@ class Game {
     // 入力・画面
     this.sfx = new Sfx(); this.sfx.setVolume(this.settings.volume);
     this.voice = new Voice(this.sfx, new URL('./assets/voice/', import.meta.url)); this.voice.setOn(this.settings.voiceOn !== false); this.voice.setVolume(this.settings.voiceVol ?? 0.9); this.voice.setMaster(this.settings.volume);   // 演出の台詞の声（core/voice.js）
+    this.sound = new SoundBank(this.sfx, new URL('./assets/sound/', import.meta.url), SOUND_FILES); this.sfx.bank = this.sound; this.sound.onload = id => this.sfx.onBankLoad(id);   // 音の素材（core/soundbank.js）
+    this.music = new Music(this.sfx, this.sound); this.music.setVolume(this.settings.bgmVol ?? 0.5);   // BGM（core/bgm.js・全体の音量が掛かる）
+    { const ac = document.getElementById('tt-audio-credit'), t = audioCreditText(SOUND_FILES); if (ac) { ac.textContent = t ? '　' + t : ''; ac.hidden = !t; } }   // タイトルの注記（使っている素材だけ）
     this.input = new Input(canvas, { sens: this.settings.sens, keys: this.settings.keys });
     this.input.wantLock = () => this.mode === 'play' && !this.cut.active;
     this.input.onUnlock = () => { if (this.mode === 'play' && !this.noPauseOnUnlock && !this.cut.active) this.pause(); };
@@ -359,6 +366,7 @@ class Game {
     this.placeChildForArea(id);
     this.exitArmed = false; this.wasInHome = null;
     this.sfx.setAmbience(A.amb || (id === 'shotengai' ? (streetState(this.story.step) === 'normal' && !this.flags.lights_out ? 'street_normal' : 'street') : 'street'));
+    this.sound.enterArea(id, id === 'shotengai' ? ['street', 'street_normal'] : [this.sfx.amb || this.sfx.pendingAmb]);   // その区画の環境音・曲を頼む（読み始めるのは遊びが始まって起動の後読みを過ぎてから）
     this.rain.mesh.visible = !!A.rain && this.settings.rain;
     envKitApply(A);                                                   // P12：Blender の部品（読めていれば）
     vegApply(A, this);                                                // P16：植物の部品（読めていれば・まだの物だけ）
@@ -669,6 +677,17 @@ class Game {
     this.refreshObjective();
   }
   isTest() { return Q.get('autostart') === '1' || Q.get('test') === '1'; }
+  /** 音の素材を読み始める時（遊びが始まり、起動の後読みを過ぎた）・BGM の状態（core/bgm.js） */
+  tickMusic(dt) {
+    if (!this.sound.opened && this.mode !== 'title' && this.bootMs && this.bootMs.lateAt) this.sound.open();
+    if (!this.area) return;
+    const bn = this.ui.el.boss && this.ui.el.boss.classList.contains('on') ? (this.ui.el.bossn.textContent || '') : '';
+    this.music.update(dt, {
+      area: this.area.id, normal: this.area.id === 'shotengai' && streetState(this.story.step) === 'normal', credits: !!this.ui.cr,
+      boss: !!bn && !bn.startsWith('（相棒）') && this.mode !== 'title', hostile: this.mode === 'play' ? this.sfx.tension : 0,
+      cut: !!this.cut.active || this.mode === 'title', voice: !!(this.voice && this.voice.playing),
+    });
+  }
 
   // ── ループ ──
   frameLoop() {
@@ -944,6 +963,7 @@ class Game {
     if (k === 'invertY') this.cam.invertY = v;
     if (k === 'volume') { this.sfx.setVolume(v); this.voice.setMaster(v); }
     if (k === 'voiceVol') this.voice.setVolume(v);
+    if (k === 'bgmVol') this.music.setVolume(v);
     if (k === 'voiceOn') { this.voice.setOn(v); if (v) this.voice.loadManifest(); }
     if (k === 'rain') this.sfx.setRain(v);
     if (k === 'touchUI' && this.touchUI) { this.touchUI.show(v); document.getElementById('sh-ui').classList.toggle('touch', !!v); }
@@ -1049,7 +1069,8 @@ class Game {
     this.trail.update(pdt);
     this.fx.update(Math.max(wdt, 0.0001) + (this.mode === 'play' && this.worldScale < 1 ? dt * 0.3 : 0));
     this.wet.update(this.camera); this.halos.flush(); this.wet.flush();
-    this.sfx.setListener(cp.x, cp.z, Math.atan2(-fwd.x, -fwd.z)); this.sfx.update(dt);
+    this.sfx.setListener(cp.x, cp.z, Math.atan2(-fwd.x, -fwd.z)); this.sfx.quiet = !!this.cut.active; this.sfx.update(dt);
+    this.tickMusic(dt);
     // 画面の部品
     this.ui.tick(dt);
     if (this.mode === 'play' || this.mode === 'dialog' || this.closeup) { if (this.giantMode) this.hudGiant(); else this.ui.hud(P); }

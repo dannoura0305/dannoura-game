@@ -23,6 +23,8 @@ import { stepDef, stepRoute, R7_STEPS, S7_STEPS } from '../story/chapters.js';
 import { EnemyActor } from '../actor/actors.js';
 import { accidentTex } from '../world/areas8.js';
 import { packPoseFn } from '../actor/enemypack.js';   // P20：届いたモデルの動き（研究者・配偶者に似た異形）
+import { withAudioCredits } from '../data/sound.js';   // 2026-11-13：音の素材の表記（使っている物だけ）
+import { SOUND_FILES } from '../data/sound_files.js';
 
 const DT = 1 / 60;
 const CH7_AREAS = ['abyss', 'kiroku', 'epilogue'];
@@ -410,9 +412,9 @@ export const ch7Methods = {
   credits7(r) {
     const id = r === 'A' ? 'end_reveal' : 'end_secret';
     if (!this.galleryMode) this.recordEnding7(id);
-    this.mode = 'puzzle'; this.input.exitLock(); this.sfx.play('ending7');
+    this.mode = 'puzzle'; this.input.exitLock(); if (!this.music.has('ending')) this.sfx.play('ending7');   // 終わりの曲（魔王魂）が読めていれば、合成の短い旋律の代わりにそれ（core/bgm.js）
     this.metrics.credits7 = true;
-    this.ui.credits(CREDITS.lines, this.isTest() ? 2 : CREDITS.sec, () => this.showEndingCard7(id));
+    this.ui.credits(withAudioCredits(CREDITS.lines, SOUND_FILES), this.isTest() ? 2 : CREDITS.sec, () => this.showEndingCard7(id));
   },
   /** 結末の記録：本作のセーブ（clear 枠）と共通の進行（wakaba_progress_v1 の games.shinshoku）だけ。他作品のキーには書かない */
   recordEnding7(id) {
