@@ -1,10 +1,11 @@
-# 『境界侵食』音の素材：出典・ライセンス・使い方（2026-11-14）
+# 『境界侵食』音の素材：出典・ライセンス・使い方（2026-11-14・同日に見直し）
 
 方針（決定）：素材は **CC0（パブリックドメイン）** の物だけ。サイトは **OpenGameArt.org** と **Kenney**。怖さは**じわじわ型**（静かな不安・環境音・間・暗さ・気配。驚かしは要所だけ）。
 
 ## 経緯
 
 - 2026-11-13：無料素材サイト（効果音ラボ・魔王魂）の 95 件を候補に選んだが、作業環境から mp3 を取得できなかった（直リンク防止で 403。ページのボタンを押す方法は、ボットチェックの回避に当たるため行っていない）。その時の候補と規約の記録は、この文書の末尾「（記録）2026-11-13 の候補」に残す。
+- 2026-11-14（見直し）：じわじわ型に合っているかを数値とゲームと同じ鳴らし方での書き出しで見直した（`docs/shinshoku/audio-review.md`）。拳銃・火縄銃が 1 回で 3 発鳴っていたのを、同じ Gunshots のページ（CC0）の別のファイルから 1 発ずつ切り出して直した（`kurt_magnum`・`kurt_unknown`。火縄銃 `se_matchlock` を 1 件足して 96 件）。旧研究棟の曲は起伏を圧縮、ボス戦の曲は前奏の後から繰り返すように作り直した。素材のページは改めて開き、ライセンスの欄が CC0 だけであることを確かめた（Gunshots・Horror Atmosphere・Evil Approach）。
 - 2026-11-14：ユーザーの判断で CC0 の素材に切り替えた。素材のページを 1 件ずつ開き、ライセンスの欄が **CC0** であることを確かめた物だけを使う（CC-BY・OGA-BY・GPL などは使わない。CC0 と他のライセンスを並べて出している物も、迷いを避けるため使わない）。
   - OpenGameArt.org：各ページの「License(s)」の欄が CC0 だけの物。作者は各ページの「Author」。
   - Kenney：各パックのページの「License」が Creative Commons CC0（パックに同梱の License.txt も CC0）。作者は Kenney。ダウンロードは各ページの「Download」ボタンと同じ公開の経路（ログイン不要）。
@@ -27,20 +28,25 @@
 - 悲鳴・台詞・笑い声などの**人の声の素材は使わない**（相棒の悲鳴は合成のまま）。
 - 異形の声・気配の息は、作者が口で作った唸り・うめき・息を録った物（ページに書いてある：16 Monster Growls・Undead Moans・Zombie moans・Ghost breath）。言葉は無く、ゲームでは低く・遅く再生し（`SE_MAP` の `r`）、遠くで小さく鳴らす。
 
-## どの場面で何が鳴るか（設計は 2026-11-13 のまま）
+## どの場面で何が鳴るか（設計は 2026-11-13・2026-11-14 に見直し）
+
+区画ごとの一覧と、見直しで変えた物の前・後・理由は `docs/shinshoku/audio-review.md`。
 
 - **起動時には読まない**。遊びが始まり、起動の後読み（`bootMs.lateAt`）を過ぎてから、区画に入った時にその区画の環境音・曲を、続いて効果音・足音を 1 つずつ（2 本まで並行）読む（`core/soundbank.js`）。読めるまでの間・読めない時は合成音（`core/audio.js`。合成音は消していない）。
-- **環境音**（`AMB_MIX`）：区画ごとの層。雨（商店街・路地・広場）、不気味な風（路地・吹き抜け・崩れた商店街）、換気のうなり（体育館・病院・研究区画・管理棟）、地下の水滴（地下通路）、静かな部屋の空気（自宅・病院・分室・記録の間）、機械室の機械。序章のふだんの町は夕方の屋外、結末は朝の鳥・夕方のカラス・夜の虫。素材がある時は同じ役の合成の層を弱める。
+- **環境音**（`AMB_MIX`）：区画ごとの層。雨（商店街・路地・広場）、不気味な風（路地・吹き抜け・崩れた商店街）、換気のうなり（体育館・病院・研究区画・管理棟）、地下の水滴（地下通路）、静かな部屋の空気（自宅・病院・分室・記録の間）、機械室の機械。序章のふだんの町は夕方の屋外、結末は朝の鳥・夕方の屋外＋時々のカラス（`AMB_SPOTS`）・夜の虫。素材がある時は同じ役の合成の層を弱める。
+  商店街の区画の中の自宅に入ったら環境を `home`（静かな部屋＋こもった雨）に切り替える。短い素材の繰り返しが目立つ吹きさらしの風・地下の水滴は、速さを少し変えたもう 1 本を重ねる（`AMB_TWIN`）。
 - **気配**（`PRESENCE`）：静かな時だけ、20〜80 秒に一度、聞き手の後ろ寄り 9〜22m で遠い物音（木のきしみ・ノック・鉄の扉を叩く音・窓を叩く音・鉄の物が落ちる音・息・水滴・引きずる音・誰かの足音）。
 - **予兆**：弾ける攻撃＝高い金属の「チャキッ」、弾けない攻撃＝低い唸り（区別を残す）。
+- **戦いの手応え**：当たり・銃声・着地には、素材に合成の低い「胴」（`SE_MAP` の `body`）を小さく重ねる。巨大な異形の着地は、巨大な足音と揺れの 2 つの素材を重ねる（`also`）。
 - **驚かし**は要所だけ：模倣する影の正体（`mimic_reveal`＝ホラーの一撃）・ボスの起き上がり（`boss_rise`＝持ち上がる不穏な音）。
-- **BGM**（`BGM_AREAS`・`bgmPlan`・`core/bgm.js`）：探索の曲は区画に入ってしばらくしてから小さく一度だけ流し、長く休む。家・記録の間・結末の場面・序章のふだんの町は鳴らさない。戦い・ボス・巨大戦・スタッフロールの曲はつなぎ目なしで繰り返す。
+- **BGM**（`BGM_AREAS`・`bgmPlan`・`core/bgm.js`）：探索の曲は区画に入ってしばらくしてから小さく一度だけ流し、長く休む。家（商店街の中の自宅を含む）・記録の間・結末の場面・序章のふだんの町は鳴らさない。戦い・ボス・巨大戦・スタッフロールの曲はつなぎ目なしで繰り返す（ボス戦の曲は前奏の後の 24 秒から：`loopAt`）。
 - **UI の音・一閃の準備・回復・変身・電話のベル**などは合成音のまま（遊びの合図として分かりやすい・合う素材が無かった）。
 
 ## 変換（`tools/sound/prepare.mjs`）
 
 1. 下の「素材のページ」から、各パックをダウンロードして `<フォルダ>/<パックのキー>/` に置く（zip は展開する。中のスクリプト等は実行しない）。
 2. `node tools/sound/prepare.mjs <フォルダ> --sample <リポジトリの外>/sample.mp3`
+   - 一部のパックだけ手元にある時は `--only <キー,キー,…>`：挙げた素材だけ作り直し、`sound_files.js` のほかの行はそのまま残す（2026-11-14 の見直しはこれで 4 件だけ作り直した。Kenney のページはこの環境から開けなかったため）。
    - モノラル。効果音・足音 44.1kHz 64kbps、環境音 32kHz 48kbps（40 秒まで）、曲 44.1kHz 48kbps（3 分 30 秒まで）。
    - 大きさ：効果音は一瞬の大きさ（400ms の窓の最大）で -16 LUFS、足音は 1 歩ずつの中央で -20、環境音は平均 -30、曲は平均 -22。短く鋭い音は上げ幅を「最大値の余裕＋3dB」までにする（頭打ちで潰しすぎない）。
    - 効果音は前後の無音を削り、切り口に短いフェード。足音は 1 歩ずつの録音を並べて 1 本にし、1 歩ずつの位置（slices）を探す。
@@ -52,10 +58,10 @@
 | 種類 | 件数 | 大きさ | 大きさ（LUFS）の幅・中央 | 目標 |
 |---|---|---|---|---|
 | 環境音 | 11 | 1.19MB | -31.3〜-30.1・-30.5 | 平均 -30 |
-| 曲 | 10 | 7.16MB | -22.5〜-21.6・-22.5 | 平均 -22 |
-| 効果音 | 64 | 0.64MB | -28.1〜-16.1・-17.8 | 一瞬の大きさ（400ms の最大）-16（短く鋭い音は頭打ちの手前まで） |
+| 曲 | 10 | 7.18MB | -22.7〜-22.4・-22.5 | 平均 -22 |
+| 効果音 | 65 | 0.64MB | -27.4〜-16.1・-17.8 | 一瞬の大きさ（400ms の最大）-16（短く鋭い音は頭打ちの手前まで） |
 | 足音 | 10 | 0.26MB | -29.7〜-19.8・-23.1 | 1 歩の一瞬の大きさ -20（同上） |
-| 合計 | 95 | 9.26MB | | 目安 16MB 以下 |
+| 合計 | 96 | 9.27MB | | 目安 16MB 以下 |
 
 - 効果音・足音の中で低めの物（-20 より下）は、短く鋭い音（打撃・素振り・ノック・足音の 1 歩）。一瞬の大きさの測り方では低く出るが、最大値は -2dBFS 付近まで上げてあり、聞こえ方は揃う。アスファルトの足音は 1 歩がとくに短いので、`STEPS.asphalt.g` を 0.75 にして補う。
 - 起動時の読み込みには入らない（後読み）。`sw.js` の先読みにも入れていない。
@@ -79,7 +85,9 @@
 | ad_undead | OpenGameArt.org | https://opengameart.org/content/undead-moans | AntumDeluge | https://opengameart.org/sites/default/files/undead-moans.zip |
 | ad_scrapes | OpenGameArt.org | https://opengameart.org/content/scrapes | AntumDeluge | https://opengameart.org/sites/default/files/scrapes.zip |
 | da_zmoans | OpenGameArt.org | https://opengameart.org/content/zombie-moans | Darsycho | https://opengameart.org/sites/default/files/darsycho__zombie-moans_0.ogg |
-| kurt_pistol | OpenGameArt.org | https://opengameart.org/content/gunshots | kurt | https://opengameart.org/sites/default/files/22%20Pistol.wav |
+| kurt_magnum | OpenGameArt.org | https://opengameart.org/content/gunshots | kurt | https://opengameart.org/sites/default/files/22%20Magnum.wav |
+| kurt_unknown | OpenGameArt.org | https://opengameart.org/content/gunshots | kurt | https://opengameart.org/sites/default/files/Unkown.wav |
+| （kurt_pistol：2026-11-14 の見直しで外した） | OpenGameArt.org | https://opengameart.org/content/gunshots | kurt | https://opengameart.org/sites/default/files/22%20Pistol.wav（1 本に 3 発入っていて、1 回で 3 発鳴っていた。同じページの上の 2 つに替えた） |
 | zs_reload | OpenGameArt.org | https://opengameart.org/content/handgun-reload-sound-effect | zer0_sol | https://opengameart.org/sites/default/files/reload.wav |
 | bart_heart | OpenGameArt.org | https://opengameart.org/content/heartbeat-sounds | bart | https://opengameart.org/sites/default/files/heartbeat_slow_0.wav |
 | bart_steam | OpenGameArt.org | https://opengameart.org/content/steam-release-sounds | bart | https://opengameart.org/sites/default/files/steam_hisses.zip |
@@ -137,9 +145,9 @@
 | amb_machine | 環境音 | 機械室の機械（機械の繰り返し）（元からつなぎ目なし） | 100 CC0 SFX #2：`sfx100v2_loop_machine_02.ogg` | rubberduck | https://opengameart.org/content/100-cc0-sfx-2 | 環境 lab・環境 admin_machine | 10.69 秒 | -30.3 |
 | amb_sewer | 環境音 | 地下の水滴（地下室の響き）（つなぎ目なしの繰り返し（2 秒重ね）） | Dripping water loop：`atmosbasement.mp3_.flac` | Independent.nu | https://opengameart.org/content/dripping-water-loop | 環境 tunnel | 17.6 秒 | -31.3 |
 | amb_room | 環境音 | 静かな部屋の空気（低い環境の繰り返し）（元からつなぎ目なし） | 30 CC0 SFX loops：`ambient_01.ogg` | rubberduck | https://opengameart.org/content/30-cc0-sfx-loops | 環境 home・環境 gym・環境 hospital・環境 office・環境 oldwing・環境 oldwing_dark・環境 admin・環境 kiroku | 8.28 秒 | -30.5 |
-| amb_town | 環境音 | 夕方の屋外（静かな町）（つなぎ目なしの繰り返し（2 秒重ね）） | AMB Outside 1：`amb_outdoor1_loop.ogg` | Kresiek The Furry | https://opengameart.org/content/amb-outside-1 | 環境 street_normal | 27.43 秒 | -30.4 |
+| amb_town | 環境音 | 夕方の屋外（静かな町）（つなぎ目なしの繰り返し（2 秒重ね）） | AMB Outside 1：`amb_outdoor1_loop.ogg` | Kresiek The Furry | https://opengameart.org/content/amb-outside-1 | 環境 street_normal・環境 epi_dusk（2026-11-14 から） | 27.43 秒 | -30.4 |
 | amb_morning | 環境音 | 朝の鳥（つなぎ目なしの繰り返し（2 秒重ね）） | Ambient Bird Sounds：`birds-isaiah658_0.ogg` | isaiah658 | https://opengameart.org/content/ambient-bird-sounds | 環境 epi_day | 28.26 秒 | -30.3 |
-| amb_dusk | 環境音 | 夕方のカラス（つなぎ目なしの繰り返し（2 秒重ね）） | Crows singing：`Crows.ogg` | IgnasD | https://opengameart.org/content/crows-singing | 環境 epi_dusk | 6.91 秒 | -30.9 |
+| amb_dusk | 環境音 | 夕方のカラス（つなぎ目なしの繰り返し（2 秒重ね）） | Crows singing：`Crows.ogg` | IgnasD | https://opengameart.org/content/crows-singing | 環境 epi_dusk（2026-11-14 から：繰り返さず、10〜24 秒に一度 3〜7 秒だけ鳴らす AMB_SPOTS） | 6.91 秒 | -30.9 |
 | amb_night | 環境音 | 夜の虫（元からつなぎ目なし） | Crickets Ambient Noise - loopable：`crickets_1.mp3` | Wolfgang_ | https://opengameart.org/content/crickets-ambient-noise-loopable | 環境 epi_home | 11.52 秒 | -30.4 |
 | p_creak | 効果音 | 木のきしみ | RPG Audio：`creak1.ogg` | Kenney | https://kenney.nl/assets/rpg-audio | p_creak | 0.6 秒 | -16.5 |
 | p_knock | 効果音 | 木を叩く音（3 回）（3 本を間 0.22 秒でつなぐ） | Impact Sounds：`impactWood_light_000.ogg` `impactWood_light_002.ogg` `impactWood_light_001.ogg` | Kenney | https://kenney.nl/assets/impact-sounds | p_knock | 1.25 秒 | -25.8 |
@@ -169,7 +177,8 @@
 | se_katana_clash2 | 効果音 | 刃の打ち合い2 | 20 Sword Sound Effects (Attacks and Clashes)：`sword_clash.2.ogg` | StarNinjas | https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes | guard | 0.84 秒 | -16.4 |
 | se_katana_hold | 効果音 | 刀を構える「チャキッ」（金属のカチッ） | RPG Audio：`metalClick.ogg` | Kenney | https://kenney.nl/assets/rpg-audio | tel_parry | 0.39 秒 | -23.9 |
 | se_growl | 効果音 | 怪物の唸り声 | 16 Monster Growls：`monster.2.ogg` | StarNinjas | https://opengameart.org/content/16-monster-growls | tel_red | 0.78 秒 | -16.2 |
-| se_handgun | 効果音 | 拳銃（.22）を撃つ | Gunshots：`22 Pistol.wav` | kurt | https://opengameart.org/content/gunshots | shot・yodan | 2.04 秒 | -28.1 |
+| se_handgun | 効果音 | 拳銃を撃つ（1.6 秒から 0.5 秒＝1 発を切り出す・低い胴と部屋の響きを足す `bass=g=5:f=120:w=0.7,aecho=0.8:0.4:35\|80:0.25\|0.12`） | Gunshots：`22 Magnum.wav` | kurt | https://opengameart.org/content/gunshots | shot | 0.26 秒 | -26.4 |
+| se_matchlock | 効果音 | 火縄銃を撃つ（0.2 秒から 1.1 秒＝重い 1 発目を切り出す・低い胴と長い響きを足す `bass=g=6:f=90:w=0.8,aecho=0.8:0.5:60\|170:0.3\|0.18`） | Gunshots：`Unkown.wav` | kurt | https://opengameart.org/content/gunshots | yodan | 0.97 秒 | -19.9 |
 | se_handgun_empty | 効果音 | 弾切れの空撃ち（金属のカチッ） | RPG Audio：`metalLatch.ogg` | Kenney | https://kenney.nl/assets/rpg-audio | dry | 0.24 秒 | -22.6 |
 | se_handgun_ready | 効果音 | 拳銃の装填 | Handgun Reload Sound Effect：`reload.wav` | zer0_sol | https://opengameart.org/content/handgun-reload-sound-effect | reload | 1.31 秒 | -16.4 |
 | se_cloth | 効果音 | 衣擦れ | RPG Audio：`cloth1.ogg` | Kenney | https://kenney.nl/assets/rpg-audio | dodge | 0.57 秒 | -22.5 |
@@ -210,9 +219,9 @@
 | bgm_hauntpiano | 曲 | 暗いピアノ（Haunting piano） | Haunting piano：`haunting piano_0.mp3` | Emma_MA | https://opengameart.org/content/haunting-piano | 曲 piano（shelter・office） | 58.49 秒 | -22.4 |
 | bgm_lost | 曲 | 低い弦の持続（Lost in a bad place） | Lost in a bad place (horror ambience loop)：`lost_2.ogg` | congusbongus | https://opengameart.org/content/lost-in-a-bad-place-horror-ambience-loop | 曲 low（hospital・atrium・admin） | 134.77 秒 | -22.5 |
 | bgm_humidity | 曲 | 地下の探索（Deep Humidity） | Deep Humidity：`deep-humidity.ogg` | TinyWorlds | https://opengameart.org/content/deep-humidity | 曲 under（tunnel・lab） | 131.13 秒 | -22.5 |
-| bgm_horroratmo | 曲 | 旧棟の気配（Horror Atmosphere） | Horror Atmosphere：`Juhani Junkala - Post Apocalyptic Wastelands [Loop Ready].ogg` | SubspaceAudio（Juhani Junkala） | https://opengameart.org/content/horror-atmosphere | 曲 oldwing（oldwing） | 210.05 秒 | -21.6 |
+| bgm_horroratmo | 曲 | 旧棟の気配（Horror Atmosphere）（起伏を圧縮 `acompressor=threshold=-34dB:ratio=10:attack=120:release=3000:knee=8`・3 分 30 秒まで） | Horror Atmosphere：`Juhani Junkala - Post Apocalyptic Wastelands [Loop Ready].ogg` | SubspaceAudio（Juhani Junkala） | https://opengameart.org/content/horror-atmosphere | 曲 oldwing（oldwing） | 210.05 秒 | -22.7 |
 | bgm_tension | 曲 | 戦い（tension and distress）（つなぎ目なしの繰り返し（3 秒重ね）） | tension and distress：`aflicao.wav` | allen yatsura | https://opengameart.org/content/tension-and-distress | 曲 battle（敵対が近い時・どの区画も） | 118.52 秒 | -22.5 |
-| bgm_evilapproach | 曲 | ボス戦（Evil Approach）（つなぎ目なしの繰り返し（3 秒重ね）） | Evil Approach：`Evil Approach.wav` | nene | https://opengameart.org/content/evil-approach | 曲 boss（ボス戦・巨大戦以外） | 64.89 秒 | -22.5 |
+| bgm_evilapproach | 曲 | ボス戦（Evil Approach）（前奏は最初の 1 回だけ・終わりの 3 秒に 21〜24 秒を重ね、24 秒から繰り返す） | Evil Approach：`Evil Approach.wav` | nene | https://opengameart.org/content/evil-approach | 曲 boss（ボス戦・巨大戦以外） | 67.89 秒 | -22.5 |
 | bgm_bossbattle | 曲 | 巨大戦（Boss Battle Music）（つなぎ目なしの繰り返し（3 秒重ね）・元からつなぎ目なし） | Boss Battle Music：`Juhani Junkala - Epic Boss Battle [Seamlessly Looping].wav` | SubspaceAudio（Juhani Junkala） | https://opengameart.org/content/boss-battle-music | 曲 giant（yard・town・avenue・abyss） | 123.48 秒 | -22.4 |
 | bgm_firstlight | 曲 | 終わりの朝（First Light Particles）（つなぎ目なしの繰り返し（3 秒重ね）） | First Light Particles：`first_light_particles_0.wav` | Yoiyami | https://opengameart.org/content/first-light-particles-%E2%80%93-cc0-atmospheric-pianoambient-track | 曲 ending（epilogue） | 128.76 秒 | -22.5 |
 

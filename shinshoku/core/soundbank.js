@@ -4,6 +4,8 @@
 // ・読めない・まだの音は、呼ぶ側（core/audio.js・core/bgm.js）が合成音で鳴らすか、鳴らさない。
 // ・繰り返す音（環境音・繰り返す曲）は、読んだ時に端の無音（mp3 の詰め物が残るブラウザ向け）を測って外し、終わりの 80ms に頭の 80ms を溶かし込んで
 //   繰り返す区間 loop(id) を [頭の 80ms の後, 終わり] にする（mp3 の境目が数サンプルずれても継ぎ目で音が切れない）（2026-11-14）。
+//   戻り先 loopAt（秒）を持つ曲は、その位置から繰り返す（前奏は最初の 1 回だけ）（2026-11-14 の見直し）。
+// ・効果音の also（同時に重ねるもう 1 つの素材）・body（重ねる合成の胴）も返す（core/audio.js が鳴らす）（2026-11-14 の見直し）。
 import { MATERIALS, SE_MAP, STEPS, fileOf, areaLoadList, seLoadList } from '../data/sound.js';
 
 export class SoundBank {
@@ -43,14 +45,16 @@ export class SoundBank {
     const ok = e.m.filter(id => this.bufs.has(id));
     if (!ok.length) { if (e.m.some(id => this.exists(id))) this.want(e.m, true); return null; }
     const id = ok[Math.floor(Math.random() * ok.length)], r = e.r || [1, 1];
-    return { id, buf: this.bufs.get(id), g: e.g ?? 0.6, rate: r[0] + Math.random() * (r[1] - r[0]) };
+    const out = { id, buf: this.bufs.get(id), g: e.g ?? 0.6, rate: r[0] + Math.random() * (r[1] - r[0]), body: e.body || null, also: null };
+    if (e.also) { const a = e.also, okA = a.m.filter(i => this.bufs.has(i)); if (okA.length) { const ra = a.r || [1, 1], ia = okA[Math.floor(Math.random() * okA.length)]; out.also = { id: ia, buf: this.bufs.get(ia), g: a.g ?? 0.5, rate: ra[0] + Math.random() * (ra[1] - ra[0]) }; } else this.want(a.m); }
+    return out;
   }
   /** 足音の 1 歩（読めていれば）{ buf, off, dur, g } */
   step(surface, run) {
     const s = STEPS[surface] || STEPS.asphalt, id = run ? s.run : s.walk, b = this.bufs.get(id); if (!b) return null;
     const sl = (this.info(id) || {}).slices; let off = 0, dur = Math.min(0.4, b.duration);
     if (sl && sl.length) { const k = sl[Math.floor(Math.random() * sl.length)]; off = k[0]; dur = k[1]; }
-    return { id, buf: b, off, dur, g: s.g };
+    return { id, buf: b, off, dur, g: run && s.gRun != null ? s.gRun : s.g };
   }
   _pump() {
     if (!this.opened) return;
@@ -60,7 +64,7 @@ export class SoundBank {
       const t0 = performance.now();
       const p = fetch(new URL(f, this.base)).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status))))
         .then(ab => { this.bytes += ab.byteLength; return new Promise((ok, ng) => { const q = ctx.decodeAudioData(ab, ok, ng); if (q && q.then) q.then(ok, ng); }); })
-        .then(b => { const k = (MATERIALS[id] || {}).kind; if (k === 'amb' || (k === 'bgm' && MATERIALS[id].loop)) this.loops.set(id, loopFade(b, edgeTrim(b))); this.bufs.set(id, b); this.log.push({ id, f, at: Math.round(t0), ms: Math.round(performance.now() - t0), kind: (MATERIALS[id] || {}).kind }); if (this.onload) this.onload(id); return b; })
+        .then(b => { const k = (MATERIALS[id] || {}).kind; if (k === 'amb' || (k === 'bgm' && MATERIALS[id].loop)) { const E = edgeTrim(b), at = MATERIALS[id].loopAt; this.loops.set(id, loopFade(b, at && at < E[1] - 1 ? [at, E[1]] : E)); } this.bufs.set(id, b); this.log.push({ id, f, at: Math.round(t0), ms: Math.round(performance.now() - t0), kind: (MATERIALS[id] || {}).kind }); if (this.onload) this.onload(id); return b; })
         .catch(e => { this.log.push({ id, f, err: String(e && e.message || e) }); return null; })
         .finally(() => { this.loading.delete(id); this.active--; this._pump(); });
       this.loading.set(id, p);

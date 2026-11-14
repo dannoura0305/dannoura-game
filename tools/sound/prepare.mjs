@@ -1,5 +1,6 @@
 // 『境界侵食』の音の素材を変換して置く道具（ffmpeg を使う）。2026-11-14（CC0 の素材に合わせて作り直し）
-//   node tools/sound/prepare.mjs <元の素材のフォルダ> [--sample <聞き比べ用の mp3 の出力先>] [--tmp <作業用フォルダ>]
+//   node tools/sound/prepare.mjs <元の素材のフォルダ> [--sample <聞き比べ用の mp3 の出力先>] [--tmp <作業用フォルダ>] [--only <キー,キー,…>]
+//   --only：挙げた素材だけ作り直し、置いた物の表（sound_files.js）のほかの行はそのまま残す（一部のパックだけ手元にある時。2026-11-14 の見直し）
 // ・<元の素材のフォルダ>/<パックのキー>/ に、各素材ページ（shinshoku/data/sound.js の PACKS・docs/shinshoku/AUDIO_CREDITS.md）から
 //   ダウンロードした物を置く（zip は展開して、展開した中身はそのまま／x/ の下でもよい）。展開した中のスクリプト等は実行しない（この道具は音のファイルを ffmpeg で読むだけ）。
 //   どれを使うかは shinshoku/data/sound.js の MATERIALS（pack・files・cut・fx・gap・loop・seamless）。フォルダに無い物は飛ばす（ゲームでは合成音で鳴る）。
@@ -8,6 +9,7 @@
 //   足音：1 歩ずつの録音を間（gap）をあけて 1 本に並べ、1 歩ずつの位置（slices）を探す。
 //   環境音：平均の大きさ（integrated）-30 LUFS。40 秒までを切り出し、終わりを頭に 2 秒重ねてつなぎ目なしで繰り返せる形に（元からつなぎ目なしの物 seamless はそのまま）・32kHz 48kbps。
 //   曲：平均 -22 LUFS。3 分 30 秒まで（長い時は終わりを 4 秒で消す）。繰り返す曲（loop）は終わりを頭に 3 秒重ねる・44.1kHz 48kbps。
+//   繰り返しの戻り先 loopAt（秒）がある曲は、頭から最後まで残し、終わりの 3 秒に loopAt の手前 3 秒を重ねる（前奏は最初の 1 回だけ。ゲームは loopAt から繰り返す）。
 // ・出力：shinshoku/assets/sound/<kind>/<キー>.mp3 と、置いた物の表 shinshoku/data/sound_files.js（ゲームはこの表にある物だけ読む）。
 //   表には長さ（dur）と、変換後に測った大きさ（lu：効果音・足音は Mmax、環境音・曲は平均）・最大値（pk dBFS）を書く。
 // ・元の素材そのもの（加工前）はリポジトリに置かない。--sample の聞き比べもリポジトリの外に出す。
@@ -17,6 +19,7 @@ import { join, dirname, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { MATERIALS, PACKS, fileOf, SE_MAP, BGM_TRACKS } from '../../shinshoku/data/sound.js';
+import { SOUND_FILES } from '../../shinshoku/data/sound_files.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const OUT = join(ROOT, 'shinshoku/assets/sound');
@@ -78,8 +81,12 @@ function stepSlices(f) {
 /** つなぎ目なしで繰り返せる形：本体＝[X, L+X]、その終わりに頭の [0, X] を重ねる → 終わりから頭（X の位置）へ切れ目なくつながる */
 const loopFc = (L, X, tail) => `[0:a]atrim=${X}:${L + X},asetpts=PTS-STARTPTS[body];[1:a]atrim=0:${X},asetpts=PTS-STARTPTS[head];[body][head]acrossfade=d=${X}:c1=tri:c2=tri,${tail}[o]`;
 
-const table = {}; const done = []; const skipped = [];
+const only = opt('--only') ? new Set(opt('--only').split(',').map(x => x.trim()).filter(Boolean)) : null;
+if (only) for (const id of only) if (!MATERIALS[id]) { console.error('MATERIALS に無いキー：' + id); process.exit(1); }
+// --only の時は、今の表のうち MATERIALS にまだある物を残す（作り直す物は下で上書き）
+const table = only ? Object.fromEntries(Object.entries(SOUND_FILES).filter(([k, v]) => MATERIALS[v.id] && fileOf(v.id) === k)) : {}; const done = []; const skipped = [];
 for (const [id, m] of Object.entries(MATERIALS)) {
+  if (only && !only.has(id)) continue;
   const inF = gather(id, m);
   if (!inF) { skipped.push(id + '（' + m.pack + '：' + m.files.join('・') + '）'); continue; }
   const rel = fileOf(id), outF = join(OUT, rel); mkdirSync(dirname(outF), { recursive: true });
@@ -99,7 +106,8 @@ for (const [id, m] of Object.entries(MATERIALS)) {
     else { const L = Math.min(40, Math.max(4, dur(inF) - 2.5)), X = 2; ff(['-i', inF, '-i', inF, '-filter_complex', loopFc(L, X, g + ',aresample=32000'), '-map', '[o]', '-ac', '1', '-ar', '32000', '-c:a', 'libmp3lame', '-b:a', '48k', outF]); }
   } else if (m.kind === 'bgm') {
     const D = dur(inF), g = gainTo(inF, -22, 'i');
-    if (m.loop && !m.seamless) { const X = 3, L = Math.min(210, D) - X; ff(['-i', inF, '-i', inF, '-filter_complex', loopFc(L, X, g), '-map', '[o]', '-ac', '1', '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '48k', outF]); }
+    if (m.loop && m.loopAt) { const X = 3, S = m.loopAt, E = Math.min(210, D); ff(['-i', inF, '-i', inF, '-filter_complex', `[0:a]atrim=0:${E},asetpts=PTS-STARTPTS[a];[1:a]atrim=${S - X}:${S},asetpts=PTS-STARTPTS[b];[a][b]acrossfade=d=${X}:c1=tri:c2=tri,${g}[o]`, '-map', '[o]', '-ac', '1', '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '48k', outF]); }
+    else if (m.loop && !m.seamless) { const X = 3, L = Math.min(210, D) - X; ff(['-i', inF, '-i', inF, '-filter_complex', loopFc(L, X, g), '-map', '[o]', '-ac', '1', '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '48k', outF]); }
     else { const T = Math.min(D, 210), fade = D > 210 ? `,afade=t=out:st=${T - 4}:d=4` : ''; ff(['-i', inF, '-t', String(T), '-af', g + fade, '-ac', '1', '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '48k', outF]); }
   }
   const ms = measure(outF), e = { id, bytes: statSync(outF).size, dur: +dur(outF).toFixed(2), lu: +(m.kind === 'se' || m.kind === 'step' ? ms.mmax : ms.i).toFixed(1), pk: +ms.pk.toFixed(1) };

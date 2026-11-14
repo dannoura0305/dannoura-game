@@ -5,9 +5,10 @@
 // 敵の予兆の音は種類ごとに違う：弾ける攻撃＝高い金属の「チッ」、弾けない攻撃（赤）＝低いうなり。
 // 2026-11-13：無料素材サイトの音（data/sound.js・core/soundbank.js）。素材が読めていればそれを鳴らし、無い・まだの時はここの合成音で鳴る（合成音は消さない）。
 //   環境は素材の層（雨・風・換気・下水・部屋の静けさ…）を足し、同じ役の合成の層は弱める。遠くの「気配」（p_*）を時々、聞き手の後ろ寄りで鳴らす。
-import { AMB_MIX, AMB_SYNTH_ROLE, AMB_GAIN, PRESENCE, presencePos } from '../data/sound.js';
+//   2026-11-14 の見直し：効果音に重ねる素材（also）・合成の胴（body）、短い環境音の 2 本重ね（AMB_TWIN）、時々だけ鳴る環境の音（AMB_SPOTS）、家の中の環境（home）。
+import { AMB_MIX, AMB_SYNTH_ROLE, AMB_GAIN, AMB_TWIN, AMB_SPOTS, PRESENCE, presencePos } from '../data/sound.js';
 export class Sfx {
-  constructor() { this.ctx = null; this.vol = 0.7; this.muffle = 0; this.out = null; this.L = { x: 0, z: 0, yaw: 0 }; this.amb = null; this.timers = { siren: 20, drip: 2, muzak: 8, creak: 12, presence: 25 }; this.tension = 0; this.bank = null; this.fileBeds = {}; this.quiet = false; this.presenceLog = []; }
+  constructor() { this.ctx = null; this.vol = 0.7; this.muffle = 0; this.out = null; this.L = { x: 0, z: 0, yaw: 0 }; this.amb = null; this.timers = { siren: 20, drip: 2, muzak: 8, creak: 12, presence: 25, spot: 6 }; this.tension = 0; this.bank = null; this.fileBeds = {}; this.quiet = false; this.presenceLog = []; }
   init() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {}); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
@@ -33,6 +34,8 @@ export class Sfx {
     if (dur > 0) { const t = c.currentTime; gn.gain.setValueAtTime(g, t + Math.max(0, dur / rate - 0.03)); gn.gain.linearRampToValueAtTime(0, t + dur / rate); src.start(t, off, dur + 0.01); } else src.start();
     return src;
   }
+  /** 素材に重ねる合成の低い「胴」：[高さ Hz, 大きさ, 長さ 秒]。短く下がるサイン（斬った・撃った重さ。出口は this.out か master） */
+  _body([f, v, d]) { this.tone(f, d, 'sine', v, 0.55); }
   setVolume(v) { this.vol = v; if (this.master) this.master.gain.value = v; }
   /** スロー・一閃のとき音を抑える（0〜1） */
   setMuffle(m) { if (!this.ctx) return; this.muffle = m; this.lp.frequency.setTargetAtTime(18000 - m * 17000, this.ctx.currentTime, 0.03); }
@@ -90,7 +93,7 @@ export class Sfx {
     this.out = pos ? this._spatial(pos) : null;
     if (pos && !this.out) return;
     const m = this.bank && this.bank.se(name);                          // 素材が読めていれば素材で
-    if (m) { this._buf(m.buf, m.g, m.rate); this.out = null; return; }
+    if (m) { const o = this.out; this._buf(m.buf, m.g, m.rate); if (m.also) { this.out = o; this._buf(m.also.buf, m.also.g, m.also.rate); } if (m.body) { this.out = o; this._body(m.body); } this.out = null; return; }
     switch (name) {
       case 'rewind7': this.tone(900, 0.5, 'sine', 0.06, 0.4); this.tone(1400, 0.4, 'triangle', 0.04, 0.5, 0.05); this.noise(0.4, 0.12, 'bandpass', 2600, 3, 0, 0.5); break;
       case 'ending7': [523, 659, 784, 1047, 784, 880, 698, 784].forEach((f, i) => this.tone(f, 0.9, 'sine', 0.05, 1, i * 0.42)); break;
@@ -287,11 +290,17 @@ export class Sfx {
       const lv = (mix[id] || 0) * AMB_GAIN * (id === 'amb_rain' && this.rainOff ? 0 : 1), B = this.fileBeds[id];
       if (lv > 0 && !B) {
         const buf = this.bank && this.bank.buf(id); if (!buf) continue;
-        const src = c.createBufferSource(), g = c.createGain(); src.buffer = buf; src.loop = true; this.bank.setLoop(src, id); g.gain.value = 0; src.connect(g); g.connect(this.master);
-        src.start(t, Math.random() * buf.duration); g.gain.setTargetAtTime(lv, t, 1.2); this.fileBeds[id] = { src, g };
+        const src = c.createBufferSource(), g = c.createGain(); src.buffer = buf; src.loop = true; this.bank.setLoop(src, id); g.gain.value = 0; g.connect(this.master);
+        let src2 = null;
+        if (AMB_TWIN[id]) {                                              // 2 本重ね：周期をずらして繰り返しを目立たなくする（それぞれ -3dB）
+          const h = c.createGain(); h.gain.value = Math.SQRT1_2; h.connect(g); src.connect(h);
+          src2 = c.createBufferSource(); src2.buffer = buf; src2.loop = true; this.bank.setLoop(src2, id); src2.playbackRate.value = AMB_TWIN[id]; src2.connect(h);
+          src2.start(t, Math.random() * buf.duration);
+        } else src.connect(g);
+        src.start(t, Math.random() * buf.duration); g.gain.setTargetAtTime(lv, t, 1.2); this.fileBeds[id] = { src, src2, g };
       } else if (B) {
         B.g.gain.cancelScheduledValues(t); B.g.gain.setTargetAtTime(lv, t, lv > 0 ? 0.8 : 0.6);
-        if (lv <= 0) { const s = B.src; delete this.fileBeds[id]; try { s.stop(t + 4); } catch (e) { /* 止まっている */ } }
+        if (lv <= 0) { delete this.fileBeds[id]; for (const s of [B.src, B.src2]) if (s) { try { s.stop(t + 4); } catch (e) { /* 止まっている */ } } }
       }
       if (lv > 0 && this.fileBeds[id] && AMB_SYNTH_ROLE[id]) cover.add(AMB_SYNTH_ROLE[id]);
     }
@@ -306,7 +315,13 @@ export class Sfx {
   update(dt) {
     if (!this.ctx || !this.amb) return;
     const T = this.timers, outdoor = ['street', 'alley', 'plaza', 'street_normal'].includes(this.amb);
-    T.siren -= dt; T.drip -= dt; T.muzak -= dt; T.creak -= dt; T.presence -= dt;
+    T.siren -= dt; T.drip -= dt; T.muzak -= dt; T.creak -= dt; T.presence -= dt; T.spot -= dt;
+    const SP = AMB_SPOTS[this.amb];
+    if (T.spot <= 0) {                                                  // 時々だけ鳴る環境の音（結末の夕方のカラス 等）。読めている時だけ・左右に振る
+      T.spot = SP ? SP.every[0] + Math.random() * (SP.every[1] - SP.every[0]) : 6;
+      const b = SP && this.bank && this.bank.buf(SP.m);
+      if (b) { const c = this.ctx, t = c.currentTime, src = c.createBufferSource(), g = c.createGain(), r = SP.r[0] + Math.random() * (SP.r[1] - SP.r[0]); src.buffer = b; src.playbackRate.value = r; const d = Math.min(b.duration / r, 3 + Math.random() * 4); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(SP.g * AMB_GAIN, t + 0.3); g.gain.setValueAtTime(SP.g * AMB_GAIN, t + d - 0.6); g.gain.linearRampToValueAtTime(0.0001, t + d); src.connect(g); const p = c.createStereoPanner ? c.createStereoPanner() : null; if (p) { p.pan.value = Math.random() * 1.4 - 0.7; g.connect(p); p.connect(this.master); } else g.connect(this.master); src.start(t, Math.random() * Math.max(0, b.duration - d * r)); src.stop(t + d + 0.05); }
+    }
     const PR = PRESENCE[this.amb];
     if (T.presence <= 0) {                                              // 遠くの気配：静かな時だけ（戦い・演出の間は鳴らさない）。後ろ寄りの 9〜22m
       T.presence = PR ? PR.every[0] + Math.random() * (PR.every[1] - PR.every[0]) : 20;
