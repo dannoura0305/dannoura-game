@@ -37,7 +37,7 @@ export class TitleScene {
       <div class="tb-logo"><div class="tb-logo-main">トビネズミ</div><div class="tb-logo-sub">MMO（仮称）　ver.0.9「すみずみまで」</div></div>
       <div class="tb-mode ${off ? 'off' : 'on'}">${off ? 'オフライン：ひとりで遊ぶ（この端末に保存）' + (net.fallbackFrom ? '<br><small>サーバーにつながらなかったので、ひとりで遊びます</small>' : '') : 'オンライン：' + esc(net.url)}</div>
       <div class="tb-title-btns"></div>
-      <a class="tb-back" href="index.html">← 本編（だんのうら）に戻る</a>`, 'tb-titlebox');
+      <a class="tb-back" href="index.html">← 本編に戻る</a>`, 'tb-titlebox');
     const box = p.querySelector('.tb-title-btns');
     const btn = (label, fn, cls = '') => { const b = el('button', 'tb-btn wide ' + cls, label); b.onclick = fn; box.appendChild(b); return b; };
     if (off) {
