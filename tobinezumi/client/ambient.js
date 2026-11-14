@@ -111,9 +111,11 @@ export class Ambient {
     this.muffle.frequency.setTargetAtTime(inNest ? 700 : w === 'snow' ? 6000 : 18000, this.ctx.currentTime, 0.3);
     this.wind.f.frequency.setTargetAtTime(m.windTone, this.ctx.currentTime, 0.5);
     // 素材が鳴る層は合成を弱める（風は合成の低いうなりを少し残す：砂嵐の強さを出すため）
+    // 砂嵐の風は層の値（ambMix）のままだと大きすぎる（-27 dBFS）ので、録音も合成も約 4dB 下げる（-31 前後。雨 -33 より少し上）
+    const stormK = w === 'sandstorm' ? 0.5 : 1;
     const fileOn = {};
-    for (const [id, role] of Object.entries(AMB_LAYERS)) fileOn[role] = this._file(id, m[role] * FILE_K[role] * (role === 'wind' && w === 'sandstorm' ? 0.8 : 1));
-    this._set(this.wind, m.wind * (fileOn.wind ? 0.35 : 1));
+    for (const [id, role] of Object.entries(AMB_LAYERS)) fileOn[role] = this._file(id, m[role] * FILE_K[role] * (role === 'wind' ? stormK : 1));
+    this._set(this.wind, m.wind * (fileOn.wind ? 0.35 : 1) * (w === 'sandstorm' ? 0.62 : 1));
     this._set(this.rain, fileOn.rain ? m.rain * 0.15 : m.rain);
     this._set(this.river, fileOn.river ? 0 : m.river);
     this._set(this.insects, inField && !fileOn.insects ? m.insects * 0.03 : 0, 1.2);
