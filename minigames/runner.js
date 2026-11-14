@@ -71,7 +71,7 @@ registerMinigame({
     }
     // 一発の音の部品（tone/noise の拡張）。o:{t:波形,f:周波数,f2:終わりの周波数,fd:動く長さ,d:長さ,g:大きさ,a:立ち上がり,h:保持,dl:遅れ,j:音程の揺らぎ,ft/ff/q:フィルタ}
     //   大きさには効果音の音量（AUDIO_SET.se）を掛ける。0 なら actx() が null で鳴らない。
-    function envG(p,t0,g,a,h,d){p.setValueAtTime(.0001,t0);p.linearRampToValueAtTime(Math.max(.0002,g),t0+a);if(h)p.setValueAtTime(Math.max(.0002,g),t0+a+h);p.exponentialRampToValueAtTime(.0001,t0+d);}
+    function envG(p,t0,g,a,h,d){p.value=.0001;p.setValueAtTime(.0001,t0);p.linearRampToValueAtTime(Math.max(.0002,g),t0+a);if(h)p.setValueAtTime(Math.max(.0002,g),t0+a+h);p.exponentialRampToValueAtTime(.0001,t0+d);}
     function osc(c,o){
       const t0=c.currentTime+(o.dl||0),d=o.d,j=o.j?1+(Math.random()*2-1)*o.j:1,x=c.createOscillator(),g=c.createGain();
       x.type=o.t||'sine';x.frequency.setValueAtTime(o.f*j,t0);if(o.f2)x.frequency.exponentialRampToValueAtTime(Math.max(20,o.f2*j),t0+(o.fd||d));

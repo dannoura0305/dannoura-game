@@ -249,7 +249,7 @@ const AU={
       const out=this._seBus();
       for(const v of def){
         const [k,at,d,g,f,f2,tp,q]=v,t0=now+at+.005,gn=c.createGain();
-        gn.gain.setValueAtTime(.0001,t0);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g*vol),t0+Math.min(.008,d*.25));
+        gn.gain.value=.0001;gn.gain.setValueAtTime(.0001,t0);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g*vol),t0+Math.min(.008,d*.25));
         gn.gain.exponentialRampToValueAtTime(.0001,t0+d);gn.connect(out);
         if(k==='t'){
           const o=c.createOscillator();o.type=tp||'sine';o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+d);

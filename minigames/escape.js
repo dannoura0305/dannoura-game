@@ -345,8 +345,8 @@ registerMinigame({
       try{
         const t0=c.currentTime,out=c.createGain();out.gain.value=seVol()*(SFX_LV[kind]||1);out.connect(c.destination);
         const J=a=>1+(Math.random()*2-1)*a;
-        const noise=(dur,type,f,q,g,att,dl)=>{const t=t0+(dl||0),s=c.createBufferSource();s.buffer=noiseBuf(c);s.loop=true;const fl=c.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q||1;const gg=c.createGain();gg.gain.setValueAtTime(0,t);gg.gain.linearRampToValueAtTime(g,t+(att||.005));gg.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(fl);fl.connect(gg);gg.connect(out);s.start(t,Math.random()*1.5);s.stop(t+dur+.05);return fl;};
-        const tone=(f,type,g,dur,dl,f2)=>{const t=t0+(dl||0),o=c.createOscillator(),gg=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);gg.gain.setValueAtTime(0,t);gg.gain.linearRampToValueAtTime(g,t+.006);gg.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(gg);gg.connect(out);o.start(t);o.stop(t+dur+.05);};
+        const noise=(dur,type,f,q,g,att,dl)=>{const t=t0+(dl||0),s=c.createBufferSource();s.buffer=noiseBuf(c);s.loop=true;const fl=c.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q||1;const gg=c.createGain();gg.gain.value=.0001;gg.gain.setValueAtTime(0,t);gg.gain.linearRampToValueAtTime(g,t+(att||.005));gg.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(fl);fl.connect(gg);gg.connect(out);s.start(t,Math.random()*1.5);s.stop(t+dur+.05);return fl;};
+        const tone=(f,type,g,dur,dl,f2)=>{const t=t0+(dl||0),o=c.createOscillator(),gg=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);gg.gain.value=.0001;gg.gain.setValueAtTime(0,t);gg.gain.linearRampToValueAtTime(g,t+.006);gg.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(gg);gg.connect(out);o.start(t);o.stop(t+dur+.05);};
         // 金属・機械の短い当たり音（工場なので、鉄っぽい倍音を少し混ぜる）
         const metal=(f,g,dur,dl)=>{tone(f,'sine',g,dur,dl);tone(f*2.76,'sine',g*.45,dur*.6,dl);tone(f*5.4,'sine',g*.2,dur*.35,dl);};
         switch(kind){

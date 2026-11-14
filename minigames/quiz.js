@@ -390,14 +390,14 @@ function synth(name,lv){
     const tone=(f,t,d,g,type,f2,atk)=>{
       const o=ac.createOscillator(),gn=ac.createGain();o.type=type||'triangle';
       o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);
-      gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t+(atk||.006));gn.gain.exponentialRampToValueAtTime(.0001,t+d);
+      gn.gain.value=.0001;gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t+(atk||.006));gn.gain.exponentialRampToValueAtTime(.0001,t+d);
       o.connect(gn);gn.connect(out);o.start(t);o.stop(t+d+.03);
     };
     // noise(開始時刻, 長さ, 大きさ, 周波数, Q, 終わりの周波数, フィルタ)
     const noise=(t,d,g,fq,q,fq2,ft)=>{
       const s=ac.createBufferSource(),f=ac.createBiquadFilter(),gn=ac.createGain();s.buffer=_qNb;
       f.type=ft||'bandpass';f.frequency.setValueAtTime(fq,t);if(fq2)f.frequency.exponentialRampToValueAtTime(fq2,t+d);f.Q.value=q||1;
-      gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t+.003);gn.gain.exponentialRampToValueAtTime(.0001,t+d);
+      gn.gain.value=.0001;gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t+.003);gn.gain.exponentialRampToValueAtTime(.0001,t+d);
       s.connect(f);f.connect(gn);gn.connect(out);s.start(t,Math.random()*.5);s.stop(t+d+.03);
     };
     const bell=(f,t,d,g)=>{tone(f,t,d,g,'sine');tone(f*2.01,t,d*.5,g*.25,'sine');tone(f*3.98,t,d*.25,g*.07,'sine');};
@@ -409,7 +409,7 @@ function synth(name,lv){
       case 'ng':{const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1400;lp.connect(out);
         const bz=(f,f2,t,d,g)=>{const o=ac.createOscillator(),o2=ac.createOscillator(),gn=ac.createGain();o.type='square';o2.type='sawtooth';
           o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f2,t+d);o2.frequency.setValueAtTime(f*1.012,t);o2.frequency.exponentialRampToValueAtTime(f2*1.012,t+d);
-          gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(g,t+.01);gn.gain.setValueAtTime(g,t+d*.7);gn.gain.exponentialRampToValueAtTime(.0001,t+d);
+          gn.gain.value=.0001;gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(g,t+.01);gn.gain.setValueAtTime(g,t+d*.7);gn.gain.exponentialRampToValueAtTime(.0001,t+d);
           o.connect(gn);o2.connect(gn);gn.connect(lp);o.start(t);o2.start(t);o.stop(t+d+.03);o2.stop(t+d+.03);};
         bz(233,220,t0,.11,.09);bz(196,165,t0+.15,.32,.09);break;}
       // 時間切れのハンコ

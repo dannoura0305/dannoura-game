@@ -296,7 +296,7 @@ registerMinigame({
     //   ※ AU は game.js の const なので window.AU では見えない（以前はここで弾かれて全く鳴っていなかった）
     let noiseBuf=null;const sfxLast={};
     const SFX_LV={step:.5,turn:7,type:-5,wait:5.5,hit:-.5,banish:0,zap:6.5,hurt:-5,shutter:3.5,stamp:-4,pick:8.4,beat:-8.5,warnEdge:3,near:2.5,battery:9.5,memo:5,off:-2.5,pipe:-8.5};
-    const SFX_GAP={step:.05,turn:.06,type:.045,wait:.08,hit:.03,warnEdge:.25,near:1.2,beat:.3};
+    const SFX_GAP={step:.12,turn:.06,type:.045,wait:.4,hurt:.25,hit:.08,warnEdge:.25,near:1.2,beat:.3};
     function sfx(kind){
       try{
         if(typeof AU==='undefined'||typeof AUDIO_SET==='undefined'||!(AUDIO_SET.se>0))return;
@@ -310,7 +310,7 @@ registerMinigame({
         // 1 回ごとの出口（音量 × 小さなゆらぎ）
         const out=c.createGain();out.gain.value=AUDIO_SET.se*Math.pow(10,(SFX_LV[kind]||0)/20)*jr(.88,1.06);out.connect(c.destination);
         setTimeout(()=>{try{out.disconnect();}catch(_){}},4000);
-        const env=(g,a,dur,at=0,atk=.006)=>{const t=now+at;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.0002,a),t+atk);g.gain.exponentialRampToValueAtTime(.0001,t+dur);};
+        const env=(g,a,dur,at=0,atk=.006)=>{const t=now+at;g.gain.value=.0001;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.0002,a),t+atk);g.gain.exponentialRampToValueAtTime(.0001,t+dur);};
         const noise=(dur,freq,q,a,type,at=0,atk)=>{const n=c.createBufferSource();n.buffer=noiseBuf;const f=c.createBiquadFilter();f.type=type||'bandpass';f.frequency.setValueAtTime(freq,now+at);f.Q.value=q;const g=c.createGain();env(g,a,dur,at,atk);n.connect(f);f.connect(g);g.connect(out);n.start(now+at,Math.random()*.3);n.stop(now+at+dur+.02);return f;};
         const tone=(type,f0,f1,dur,a,at=0,atk,lp)=>{const o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f0,now+at);o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),now+at+dur);env(g,a,dur,at,atk);
           if(lp){const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=lp;o.connect(f);f.connect(g);}else o.connect(g);g.connect(out);o.start(now+at);o.stop(now+at+dur+.03);return o;};

@@ -223,12 +223,12 @@ registerMinigame({
           // T(開始, 周波数, 終わりの周波数, 長さ, 波形, 大きさ, 立ち上がり)
           const T=(at,f1,f2,dur,type,g,atk)=>{const t0=t+at,o=c.createOscillator(),gn=c.createGain();o.type=type;o.frequency.setValueAtTime(f1,t0);
             if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+dur);
-            gn.gain.setValueAtTime(.0001,t0);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t0+(atk||.005));gn.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+            gn.gain.value=.0001;gn.gain.setValueAtTime(.0001,t0);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t0+(atk||.005));gn.gain.exponentialRampToValueAtTime(.0001,t0+dur);
             o.connect(gn);gn.connect(out);o.start(t0);o.stop(t0+dur+.03);};
           // N(開始, 長さ, 大きさ, 周波数, 終わりの周波数, Q, フィルタ)
           const N=(at,dur,g,f,f2,q,ft)=>{const t0=t+at,sr=c.createBufferSource(),fl=c.createBiquadFilter(),gn=c.createGain();sr.buffer=nb;
             fl.type=ft||'bandpass';fl.Q.value=q||1;fl.frequency.setValueAtTime(f,t0);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t0+dur);
-            gn.gain.setValueAtTime(.0001,t0);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t0+.003);gn.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+            gn.gain.value=.0001;gn.gain.setValueAtTime(.0001,t0);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t0+.003);gn.gain.exponentialRampToValueAtTime(.0001,t0+dur);
             sr.connect(fl);fl.connect(gn);gn.connect(out);sr.start(t0,Math.random()*.5);sr.stop(t0+dur+.03);};
           const J=a=>1+(Math.random()*2-1)*a;
           const bell=(at,f,dur,g)=>{T(at,f,0,dur,'sine',g);T(at,f*2.01,0,dur*.5,'sine',g*.25);T(at,f*3.98,0,dur*.25,'sine',g*.07);};

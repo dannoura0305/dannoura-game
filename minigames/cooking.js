@@ -109,14 +109,14 @@ registerMinigame({
         try{const t=c.currentTime+(delay||0);
           const s=c.createBufferSource();s.buffer=this.noise(c);
           const fl=c.createBiquadFilter();fl.type=ft;fl.frequency.setValueAtTime(f,t);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t+dur);fl.Q.value=q;
-          const gn=c.createGain();gn.gain.setValueAtTime(0.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,gain*this.vol()),t+(att||.006));gn.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+          const gn=c.createGain();gn.gain.value=.0001;gn.gain.setValueAtTime(0.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,gain*this.vol()),t+(att||.006));gn.gain.exponentialRampToValueAtTime(0.0001,t+dur);
           s.connect(fl);fl.connect(gn);gn.connect(c.destination);s.start(t,Math.random()*.5);s.stop(t+dur+.05);}catch(_){}
       },
       tone(f,dur,type,gain,delay,f2,att){
         const c=this.c();if(!c)return;
         try{const t=c.currentTime+(delay||0);
           const o=c.createOscillator();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);
-          const gn=c.createGain();gn.gain.setValueAtTime(0.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,gain*this.vol()),t+(att||.008));gn.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+          const gn=c.createGain();gn.gain.value=.0001;gn.gain.setValueAtTime(0.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,gain*this.vol()),t+(att||.008));gn.gain.exponentialRampToValueAtTime(0.0001,t+dur);
           o.connect(gn);gn.connect(c.destination);o.start(t);o.stop(t+dur+.05);}catch(_){}
       },
       // 焼ける音（ループ）。level 0〜1。高い「シャー」＋中域の「ジュー」、ときどき油がはぜる

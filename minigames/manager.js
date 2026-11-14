@@ -392,7 +392,7 @@ function sfx(kind){
     const tone=(f,at,d,g,type,f2,atk)=>{
       const o=ctx.createOscillator(),gn=ctx.createGain();o.type=type||'triangle';
       o.frequency.setValueAtTime(f,t0+at);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+at+d);
-      gn.gain.setValueAtTime(.0001,t0+at);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t0+at+(atk||.005));
+      gn.gain.value=.0001;gn.gain.setValueAtTime(.0001,t0+at);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t0+at+(atk||.005));
       gn.gain.exponentialRampToValueAtTime(.0001,t0+at+d);
       o.connect(gn);gn.connect(out);o.start(t0+at);o.stop(t0+at+d+.03);
     };
@@ -400,7 +400,7 @@ function sfx(kind){
     const noise=(at,d,g,f,q,f2,ft)=>{
       const s=ctx.createBufferSource(),fl=ctx.createBiquadFilter(),gn=ctx.createGain();s.buffer=_mNb;
       fl.type=ft||'bandpass';fl.frequency.setValueAtTime(f,t0+at);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t0+at+d);fl.Q.value=q||1;
-      gn.gain.setValueAtTime(.0001,t0+at);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t0+at+.003);gn.gain.exponentialRampToValueAtTime(.0001,t0+at+d);
+      gn.gain.value=.0001;gn.gain.setValueAtTime(.0001,t0+at);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t0+at+.003);gn.gain.exponentialRampToValueAtTime(.0001,t0+at+d);
       s.connect(fl);fl.connect(gn);gn.connect(out);s.start(t0+at,Math.random()*.5);s.stop(t0+at+d+.03);
     };
     const J=a=>1+(Math.random()*2-1)*a;

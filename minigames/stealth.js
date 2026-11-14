@@ -172,14 +172,14 @@ registerMinigame({
       tone(c,type,f0,f1,dur,peak,dl,lp){
         const t0=c.currentTime+(dl||0),o=c.createOscillator(),g=c.createGain();
         o.type=type;o.frequency.setValueAtTime(f0,t0);o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t0+dur);
-        g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(Math.max(.0002,peak),t0+Math.min(.02,dur*.3));g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+        g.gain.value=.0001;g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(Math.max(.0002,peak),t0+Math.min(.02,dur*.3));g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
         if(lp){const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=lp;f.Q.value=4;o.connect(f);f.connect(g);}else o.connect(g);
         g.connect(c.destination);o.start(t0);o.stop(t0+dur+.02);
       },
       noise(c,dur,peak,ft,f0,f1,q,dl){
         const t0=c.currentTime+(dl||0),s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();
         s.buffer=this.buf(c);f.type=ft;f.frequency.setValueAtTime(f0,t0);f.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t0+dur);f.Q.value=q;
-        g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(Math.max(.0002,peak),t0+Math.min(.015,dur*.3));g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+        g.gain.value=.0001;g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(Math.max(.0002,peak),t0+Math.min(.015,dur*.3));g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
         s.connect(f);f.connect(g);g.connect(c.destination);s.start(t0,Math.random()*.5);s.stop(t0+dur+.02);
       },
       j(a){return 1+(Math.random()*2-1)*a;},

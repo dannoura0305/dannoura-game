@@ -171,11 +171,11 @@ registerMinigame({
       nz(dur,f0,f1,q,g,delay,type,att){if(!this.ok())return;try{const c=this.ctx,t=c.currentTime+(delay||0),v=g*this.vol();
         const s=c.createBufferSource();s.buffer=this.buf();const f=c.createBiquadFilter();f.type=type||'bandpass';f.Q.value=q;
         f.frequency.setValueAtTime(f0,t);f.frequency.exponentialRampToValueAtTime(f1,t+dur);
-        const gn=c.createGain();gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,v),t+(att||.015));gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
+        const gn=c.createGain();gn.gain.value=.0001;gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,v),t+(att||.015));gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
         s.connect(f);f.connect(gn);gn.connect(c.destination);s.start(t,Math.random()*.8);s.stop(t+dur+.05);}catch(_){}},
       tone(f0,f1,dur,g,type,delay,att){if(!this.ok())return;try{const c=this.ctx,t=c.currentTime+(delay||0),v=g*this.vol();
         const o=c.createOscillator(),gn=c.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);
-        gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,v),t+(att||.01));gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
+        gn.gain.value=.0001;gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,v),t+(att||.01));gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
         o.connect(gn);gn.connect(c.destination);o.start(t);o.stop(t+dur+.05);}catch(_){}},
       // 水滴・泡の「ポコッ」：音程が上がっていくのが水の音らしさ
       bub(f,g,delay){const k=this.j(.12);this.tone(f*k,f*k*2.1,.05+Math.random()*.03,g,'sine',delay,.004);},

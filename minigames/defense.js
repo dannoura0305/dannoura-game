@@ -160,7 +160,7 @@ registerMinigame({
       wave:'live',boss:'warn',clear:'ach',lose:'ghost',type:'comment',stamp:'rank',tap:'btn',death:'comment',spawn:'notif',start:'decide',waveclear:'decide',danger:'warn',near:'notif',beat:'',tick:''};
     const SND_GAP={shot:.07,hit:.05,coin:.06,type:.045,death:.05,tap:.04,boom:.06,near:1.6,beat:.5,tick:.5};
     // 一発の音の部品。o:{t:波形,f:周波数,f2:終わりの周波数,fd:動く長さ,d:長さ,g:大きさ,a:立ち上がり,h:保持,dl:遅れ,j:音程の揺らぎ,ft/ff/q:フィルタ}
-    function envG(p,t0,g,a,h,d){p.setValueAtTime(.0001,t0);p.linearRampToValueAtTime(Math.max(.0002,g),t0+a);if(h)p.setValueAtTime(Math.max(.0002,g),t0+a+h);p.exponentialRampToValueAtTime(.0001,t0+d);}
+    function envG(p,t0,g,a,h,d){p.value=.0001;p.setValueAtTime(.0001,t0);p.linearRampToValueAtTime(Math.max(.0002,g),t0+a);if(h)p.setValueAtTime(Math.max(.0002,g),t0+a+h);p.exponentialRampToValueAtTime(.0001,t0+d);}
     function osc(ac,o,v){
       const t0=ac.currentTime+(o.dl||0),d=o.d,j=o.j?1+(Math.random()*2-1)*o.j:1,x=ac.createOscillator(),g=ac.createGain();
       x.type=o.t||'sine';x.frequency.setValueAtTime(o.f*j,t0);if(o.f2)x.frequency.exponentialRampToValueAtTime(Math.max(20,o.f2*j),t0+(o.fd||d));

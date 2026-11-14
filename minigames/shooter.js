@@ -272,7 +272,7 @@ registerMinigame({
     }
     // 一発の音の部品。o:{t:波形,f:周波数,f2:終わりの周波数,fd:動く長さ,d:長さ,g:大きさ,a:立ち上がり,h:保持,dl:遅れ,j:音程の揺らぎ,ft/ff/q:フィルタ}
     //   大きさには効果音の音量（AUDIO_SET.se）を掛ける。0 なら actx() が null で鳴らない。
-    function envG(p,t0,g,a,h,d){p.setValueAtTime(.0001,t0);p.linearRampToValueAtTime(Math.max(.0002,g),t0+a);if(h)p.setValueAtTime(Math.max(.0002,g),t0+a+h);p.exponentialRampToValueAtTime(.0001,t0+d);}
+    function envG(p,t0,g,a,h,d){p.value=.0001;p.setValueAtTime(.0001,t0);p.linearRampToValueAtTime(Math.max(.0002,g),t0+a);if(h)p.setValueAtTime(Math.max(.0002,g),t0+a+h);p.exponentialRampToValueAtTime(.0001,t0+d);}
     function osc(o){
       const c=actx();if(!c)return false;
       try{const t0=c.currentTime+(o.dl||0),d=o.d,j=o.j?1+(Math.random()*2-1)*o.j:1,x=c.createOscillator(),g=c.createGain();
@@ -294,7 +294,7 @@ registerMinigame({
     }
     let shotN=0,sfxLv=1;
     // 音ごとの大きさの倍率（se=1 で測って揃えた。ショット・命中など頻繁な音 -38 前後、操作 -32〜-28、被弾・爆発・ボム -28〜-25 LUFS）
-    const SFX_LV={shot:1.5,hit:3.6,clink:1.9,kill:1.2,catch:1.9,power:2.6,hurt:1.15,ff:1.7,bomb:.8,boom:.67,warn:1.4,wave:2.4,stamp:1.3,blip:4.5,
+    const SFX_LV={shot:1.5,hit:3.6,clink:1.9,kill:1.2,catch:1.9,power:2.6,hurt:1.15,ff:1.7,bomb:.68,boom:.57,warn:1.4,wave:2.4,stamp:1.3,blip:4.5,
       decide:3.2,title:2.2,graze:3.4,charge:2,beam:.87,phase:2.4,convert:3.2,pause:3.3};
     // 効果音（シューターらしく：撃つ音は短い破裂＋低い芯で手応え、倒すと弾ける、被弾は歪んだ衝撃）
     const SFX={

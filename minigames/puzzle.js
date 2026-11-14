@@ -121,14 +121,14 @@ const SFX=(()=>{
       const T=(f,at,d,g,type,f2,atk)=>{
         const t=t0+(at||0),os=c.createOscillator(),gn=c.createGain();
         os.type=type||'sine';os.frequency.setValueAtTime(f,t);if(f2)os.frequency.exponentialRampToValueAtTime(f2,t+d);
-        gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t+(atk||.003));gn.gain.exponentialRampToValueAtTime(.0001,t+d);
+        gn.gain.value=.0001;gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t+(atk||.003));gn.gain.exponentialRampToValueAtTime(.0001,t+d);
         os.connect(gn);gn.connect(o);os.start(t);os.stop(t+d+.03);
       };
       // N(開始, 長さ, 大きさ, 周波数, フィルタ, Q, 終わりの周波数)
       const N=(at,d,g,f,type,q,f2)=>{
         const t=t0+(at||0),s=c.createBufferSource(),fl=c.createBiquadFilter(),gn=c.createGain();
         s.buffer=nbuf(c);fl.type=type||'bandpass';fl.frequency.setValueAtTime(f,t);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t+d);fl.Q.value=q||1;
-        gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t+.002);gn.gain.exponentialRampToValueAtTime(.0001,t+d);
+        gn.gain.value=.0001;gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(Math.max(.0002,g),t+.002);gn.gain.exponentialRampToValueAtTime(.0001,t+d);
         s.connect(fl);fl.connect(gn);gn.connect(o);s.start(t,Math.random()*.5);s.stop(t+d+.03);
       };
       fn(T,N);

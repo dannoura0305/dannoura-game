@@ -1263,7 +1263,7 @@ function makeSnd(){
     if(!nb){nb=ctx.createBuffer(1,ctx.sampleRate*2|0,ctx.sampleRate);const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
     return ctx;
   }
-  function env(g,t0,a,pk,d){g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(Math.max(.0002,pk),t0+a);g.gain.exponentialRampToValueAtTime(.0001,t0+a+d);}
+  function env(g,t0,a,pk,d){g.gain.value=.0001;g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(Math.max(.0002,pk),t0+a);g.gain.exponentialRampToValueAtTime(.0001,t0+a+d);}
   function osc(type,f,t0,a,pk,d,f2){const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+a+d);env(g,t0,a,pk,d);o.connect(g);g.connect(master);o.start(t0);o.stop(t0+a+d+.05);}
   function noise(t0,a,pk,d,ft,fq,q,fq2){const s=ctx.createBufferSource();s.buffer=nb;s.loop=true;const f=ctx.createBiquadFilter();f.type=ft;f.frequency.setValueAtTime(fq,t0);if(fq2)f.frequency.exponentialRampToValueAtTime(fq2,t0+a+d);f.Q.value=q||1;const g=ctx.createGain();env(g,t0,a,pk,d);s.connect(f);f.connect(g);g.connect(master);s.start(t0,Math.random());s.stop(t0+a+d+.05);}
   return {

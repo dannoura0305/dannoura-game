@@ -373,7 +373,7 @@ registerMinigame({
       }catch(e){}
     }
     // 一発の音の部品（SND.master へ）。o:{t:波形,f:周波数,f2:終わりの周波数,d:長さ,g:大きさ,a:立ち上がり,h:保持,dl:遅れ,j:音程の揺らぎ,ft/ff/q:フィルタ}
-    function envG(p,t0,g,a,h,d){p.setValueAtTime(.0001,t0);p.linearRampToValueAtTime(Math.max(.0002,g),t0+a);if(h)p.setValueAtTime(Math.max(.0002,g),t0+a+h);p.exponentialRampToValueAtTime(.0001,t0+d);}
+    function envG(p,t0,g,a,h,d){p.value=.0001;p.setValueAtTime(.0001,t0);p.linearRampToValueAtTime(Math.max(.0002,g),t0+a);if(h)p.setValueAtTime(Math.max(.0002,g),t0+a+h);p.exponentialRampToValueAtTime(.0001,t0+d);}
     function rv(o){
       if(!SND||seVol()<=0)return;
       try{const c=SND.ctx,t0=c.currentTime+(o.dl||0),d=o.d,j=o.j?1+(Math.random()*2-1)*o.j:1,x=c.createOscillator(),g=c.createGain();
