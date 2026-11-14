@@ -4,8 +4,10 @@ import * as THREE from 'three';
 import { COMBAT, ITEMS, f2ms, dodgeSpeedK } from '../data/combat.js';
 import { resolveCircle, rayBoxes, lineOfSight, insideAny, rayCylinder, raySphere } from '../world/collide.js';
 import { turnTo } from '../actor/actors.js';
+import { COLLAPSE, COLLAPSE_KINDS } from '../data/horror.js';
 import { pickChainTarget, canChain } from '../combat/chain.js';
 import { sideOf } from '../ai/tsugihagi.js';
+import { lungeShare, hitstopFor, punchFor } from '../combat/tempo.js';
 
 const DT = 1 / 60;
 const wrap = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
@@ -30,25 +32,28 @@ export const combatMethods = {
     P.sheath.tick(F, { alert: P.sheath.drawn && ((this.lock && this.lock.hittable()) || this.enemies.some(e => e.hittable() && Math.hypot(e.pos.x - P.pos.x, e.pos.z - P.pos.z) < 5)) });
     if (I.heal) this.useHeal();
     if (I.interact && this.nearSpot) this.useSpot(this.nearSpot);
-    const st = F.st; let vx = 0, vz = 0;
+    const st = F.st, form = F.white ? 'white' : 'purple', M = P.motion; let vx = 0, vz = 0, smooth = false;
+    for (const ev of evs) M.onEvent(ev, form, F.weapon);
     if (st.name === 'dodge') {
       const tot = st.white ? COMBAT.white.dash.total : COMBAT.dodge.total, t = st.f / tot, k = dodgeSpeedK(t);
       const sp = (st.white ? COMBAT.white.dash.dist / (tot / 60 * 0.6) : COMBAT.dodge.dist / 0.28) * k * 0.9;
       vx = P.dodgeDir.x * sp; vz = P.dodgeDir.z * sp;
       P.yaw = turnTo(P.yaw, Math.atan2(P.dodgeDir.x, P.dodgeDir.z), 0.5);
     } else if (st.name === 'attack' && st.f < st.atk.startup + st.atk.active + 2 && st.atk.lunge) {
-      const dur = st.atk.startup + st.atk.active + 2;
-      const sp = st.atk.lunge / (dur * DT) * (this.lockTargetClose() ? 0.35 : 1);
+      // 2026-11-13：踏み込みの配分（combat/tempo.js）。紫＝溜めの間は足を置き、打ちで踏み込む／白＝先にすっと入る。合計の距離は data のまま
+      const sp = st.atk.lunge * lungeShare(form, st.atk, st.f) / DT * (this.lockTargetClose() ? 0.35 : 1);
       vx = Math.sin(P.yaw) * sp; vz = Math.cos(P.yaw) * sp;
     } else {
-      const mul = F.moveMul();
+      const mul0 = F.moveMul(), mul = mul0 > 0 ? mul0 * M.speedMul(form) : 0;   // 紫：息切れ・よろけの後は足が遅い
       const run = I.run && !(F.aimHeld && F.weapon === 'handgun');
       const sp = (run ? COMBAT.move.run : COMBAT.move.walk) * mul * mag;
       vx = P.moveDir.x * sp * (mag > 1e-3 ? 1 : 0); vz = P.moveDir.z * sp * (mag > 1e-3 ? 1 : 0);
+      smooth = mul0 > 0;                                                                 // 走り出し・止まり・振り向きの加減速（紫は重く・白はほぼ即時）。動けない状態（攻撃・ひるみ）はその場で止まる（滑らない）
       if (F.aimHeld && F.weapon === 'handgun') P.yaw = turnTo(P.yaw, Math.atan2(fw.x, fw.z), 0.4);
       else if (this.lock && this.lock.hittable() && (st.name === 'free' || st.name === 'charge' || st.name === 'parry') && mag < 0.1) P.yaw = turnTo(P.yaw, Math.atan2(this.lock.pos.x - P.pos.x, this.lock.pos.z - P.pos.z), 0.2);
-      else if (mag > 1e-3 && mul > 0) P.yaw = turnTo(P.yaw, Math.atan2(P.moveDir.x, P.moveDir.z), 0.25);
+      else if (mag > 1e-3 && mul > 0) P.yaw = turnTo(P.yaw, Math.atan2(P.moveDir.x, P.moveDir.z), M.turnRate(form));
     }
+    { const v = M.step({ form, state: st.name, want: { x: vx, z: vz }, smooth, run: !!I.run, dt: DT }); vx = v.x; vz = v.z; }
     const before = { x: P.pos.x, z: P.pos.z };
     const zk = this.slowZoneK ? this.slowZoneK(P.pos) : 1;
     P.pos.x += vx * DT * zk; P.pos.z += vz * DT * zk;
@@ -177,6 +182,7 @@ export const combatMethods = {
         case 'swapDone': this.metrics.swaps.push({ to: ev.weapon, frames: ev.frames, ms: f2ms(ev.frames), measured: ev.frame - this.swapStartFrame }); break;
         case 'hurt': {
           this.metrics.hurt++; this.sfx.play('hurt'); this.rumble('hurt'); this.cam.shake(ev.grab ? 0.22 : 0.14, 0.25); this.ui.flash('hurt');
+          if (!F.white && this.cam.punch) this.cam.punch(1.8, 0.55);                // 紫：当たった重さでカメラがゆっくり寄る（よろけ）
           if (ev.src && ev.src.pos) { const a = Math.abs(wrap(Math.atan2(ev.src.pos.x - P.pos.x, ev.src.pos.z - P.pos.z) - P.yaw)); P.hurtDir = a > Math.PI / 2 ? 'back' : 'front'; P.looks.hit(P.pos.x - ev.src.pos.x, P.pos.z - ev.src.pos.z, P.yaw, 0.6); }
           if (F.hp < 30 && !this.flags.lowhp_bark) { this.flags.lowhp_bark = true; this.bark('low_hp'); }
           break;
@@ -203,8 +209,10 @@ export const combatMethods = {
       F.registerHit(); F.gainYoki('hit'); this.rumble('hit');
       this.metrics.slashHits++; if (pipe) this.metrics.pipeHits = (this.metrics.pipeHits || 0) + 1;
       e.looks.hit(dx, dz, e.brain.yaw, heavy ? 1.2 : 0.7);
-      this.hitstop = heavy ? COMBAT.hitstop.heavy : COMBAT.hitstop.light;
+      // 2026-11-13：紫は当たりが重い（止まりが長く・カメラがゆっくり寄る）／白は鋭い（短く止まって次へ）。combat/tempo.js
+      this.hitstop = hitstopFor(F.white ? 'white' : 'purple', heavy);
       this.cam.shake(heavy ? 0.12 : 0.06, 0.15);
+      if (this.cam.punch) { const pu = punchFor(F.white ? 'white' : 'purple', heavy); this.cam.punch(pu.deg, pu.t); }
       this.fx.sparks(new THREE.Vector3(e.pos.x - dx / d * e.r, 1.2, e.pos.z - dz / d * e.r), heavy ? 16 : 9, pipe ? 0xffd8a0 : 0xfff0c0);
       this.sfx.play(F.weapon === 'claw' ? 'claw_hit' : F.weapon === 'matchlock' ? 'stock' : pipe ? 'hit_pipe' : heavy ? 'hit_heavy' : 'hit');
       if (F.weapon === 'matchlock') this.metrics.stockHits = (this.metrics.stockHits || 0) + 1;
@@ -323,6 +331,7 @@ export const combatMethods = {
     if (b.state === 'home') { this.enterHome(e, dt); return; }
     if (!e.fleeing && b.def.tutorial && b.alive && b.hp < b.hpMax * 0.5) { e.fleeing = true; e.fleeTo = { x: 1.0, z: -64 }; b.atk = null; e.mark = null; this.bark('kiro_flee', 2.4); }
     if (e.fleeing) { this.flee(e, dt); return; }
+    if (e.introHold && this.introHoldStep(e, dt)) return;             // Q-horror 10：序章の帰路が振り向くまで（頭脳を進めない）
     if (e.confusedT > 0) e.confusedT -= dt;
     const dec = this.senseTarget ? this.senseTarget(e) : null;
     const tp = dec || (this.giantMode ? this.giant.pos : P.pos);
@@ -336,6 +345,7 @@ export const combatMethods = {
     if (e.kind === 'mamori') sense.threats = this.enemies.filter(o => o.kind === 'mimic' && o.brain.alive && o.brain.revealed && o.root.visible).map(o => ({ id: o.id, x: o.pos.x, z: o.pos.z }));
     if (this.senseExtra7) { const x7 = this.senseExtra7(e); if (x7) Object.assign(sense, x7); }
     e.targetDecoy = !!dec;
+    if (e.kind === 'mimic') { const fw = this.cam.forward(), vx = b.pos.x - P.pos.x, vz = b.pos.z - P.pos.z, vl = Math.hypot(vx, vz) || 1; sense.inView = (vx * fw.x + vz * fw.z) / vl > 0.55; }   // Q-horror 13：画面の中か
     if (this.flashlightOn && b.def.senses) sense.dark = false;    // 懐中電灯：暗くても遠くから見える
     const out = e.step(dt, sense, this.boxes, this.giantMode ? null : P);
     if (e.kind === 'sakibure' || e.kind === 'nurikae' || e.kind === 'kuramono') { this.bossEvents4(e, out.events); return; }
@@ -382,8 +392,9 @@ export const combatMethods = {
           this.sfx.play(ev.parryable ? 'tel_parry' : 'tel_red', b.pos);
           if (e.kind === 'kiro') e.weakGlow = 0.85;
           if (ev.plan) { e.copyLabel = ev.plan.label; e.copyT = (ev.def.windup || 0.6) + 0.3; if (!ev.follow) this.sfx.play('copy', b.pos); if (!this.flags.copy_bark && ev.plan.seq && ev.plan.seq.length >= 2) { this.flags.copy_bark = true; this.bark('mimic_copy', 2.6); } if (e.model.mats && e.model.mats.outline) e.model.mats.outline.color.setHex(ev.plan.white ? 0xf0e8ff : e.outlineBase); }
-          const A = ev.def;
-          if (A.aoe && ev.at) this.fx.decal('circle', ev.at.x, ev.at.z, { r: A.aoe.r, dur: A.windup, hold: 0.25, color: 0xff3040 });
+          const A = ev.def, decalOk = this.settings.teleShow !== 'subtle' || e === this.boss || !!e.big || !!(b.def && b.def.boss);   // Q-horror 14：「控えめ」は地面の印をボスだけ（既定の「標準」は今のまま）
+          if (!decalOk) { /* 体の構え・目の光だけで見せる */ }
+          else if (A.aoe && ev.at) this.fx.decal('circle', ev.at.x, ev.at.z, { r: A.aoe.r, dur: A.windup, hold: 0.25, color: 0xff3040 });
           else if (A.dash) this.fx.decal('line', b.pos.x, b.pos.z, { r: A.range, w: e.r * 2 + 0.6, yaw: b.yaw, dur: A.windup, hold: 0.4, color: 0xff3040 });
           else if (e.kind === 'shuuyou' && A.parryable) this.fx.decal('arc', b.pos.x, b.pos.z, { r: A.range, arc: A.arc, yaw: b.yaw, dur: A.windup, hold: 0.15, color: 0xfff0e0 });
           this.companionSeeTelegraph(e, ev.parryable ? 'parry' : 'red');
@@ -431,7 +442,7 @@ export const combatMethods = {
         }
         case 'neutralized': if (e.kind === 'kanja' || e.kind === 'outou') { this.resolve(e, 'neutralize'); if (e.kind === 'outou') this.sfx.play('steam', b.pos); break; } this.sfx.play('shutter'); this.resolve(e, 'neutralize'); this.onBossResolved('neutralize'); break;
         case 'die': {
-          this.sfx.play('die', b.pos); this.fx.mist(new THREE.Vector3(b.pos.x, 0, b.pos.z), 70, e.h); this.resolve(e, 'kill'); e.fadeT = 0;
+          this.sfx.play('die', b.pos); { const at = new THREE.Vector3(b.pos.x, 0, b.pos.z), hh = e.h; if (COLLAPSE_KINDS.includes(e.kind)) this.later(COLLAPSE.mistDelay, () => this.fx.mist(at, 70, hh * 0.5)); else this.fx.mist(at, 70, hh); } this.resolve(e, 'kill'); e.fadeT = 0;   // Q-horror 3：崩れ落ちてから霧
           if (this.lock === e) this.lock = null;
           if (e.kind === 'heiten') this.bark('heiten_killed', 3);
           else if (e.kind === 'shuuyou') this.onBossResolved('kill');
@@ -472,9 +483,10 @@ export const combatMethods = {
   dissolve(e, dt) {
     if (e.fadeT == null) e.fadeT = 0;
     e.fadeT += dt;
-    const k = Math.min(1, e.fadeT / 1.8);
+    const delay = e.deadT != null && e.deadT > 0 ? COLLAPSE.mistDelay : 0;   // Q-horror 3：崩れ落ちてから霧になる（倒れ方を使う異形だけ 0.9 秒遅らせる）
+    const k = Math.max(0, Math.min(1, (e.fadeT - delay) / 1.8));
     e.setDissolve(k); e.y = -k * 0.15;
-    if (Math.random() < 0.5 && k < 1) this.fx.mist(new THREE.Vector3(e.pos.x, 0, e.pos.z), 3, e.h * (1 - k * 0.6));
+    if (k > 0 && Math.random() < 0.5 && k < 1) this.fx.mist(new THREE.Vector3(e.pos.x, 0, e.pos.z), 3, e.h * (1 - k * 0.6));
     if (k >= 1) e.root.visible = false;
   },
   enterHome(e, dt) {
@@ -486,7 +498,7 @@ export const combatMethods = {
   flee(e, dt) {
     const b = e.brain, t = e.fleeTo;
     const dx = t.x - b.pos.x, dz = t.z - b.pos.z, L = Math.hypot(dx, dz);
-    if (L > 0.3) { const m = Math.min(L, 2.2 * dt); b.pos.x += dx / L * m; b.pos.z += dz / L * m; b.yaw = turnTo(b.yaw, Math.atan2(dx, dz), 0.1); e.speed = 2.2; e.phase += m * 3.4; }
+    if (L > 0.3) { const m = Math.min(L, 2.2 * dt); b.pos.x += dx / L * m; b.pos.z += dz / L * m; b.yaw = turnTo(b.yaw, Math.atan2(dx, dz), 0.1); e.speed = 2.2; e.phase += m * (e.gaitRate ? e.gaitRate(2.2) : 3.4); }   // Q-horror 4：足の滑らない位相
     e.fleeT = (e.fleeT || 0) + dt;
     if (e.fleeT > 1.5) e.setDissolve(Math.min(1, (e.fleeT - 1.5) / 2.5));
     if (e.fleeT > 4.2 && e.root.visible) { e.root.visible = false; b.resolution = 'escape'; b.state = 'gone'; this.resolve(e, 'escape'); }

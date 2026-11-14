@@ -3,8 +3,11 @@
 // ・足音：地面の種類（アスファルト・濡れ・タイル・板・体育館）で変える。
 // ・環境：区画ごとの層（うなり・雨・風・換気・しずく・遠いサイレン・遠い店内放送の名残）。緊張の低い持続音（敵が近いほど）。
 // 敵の予兆の音は種類ごとに違う：弾ける攻撃＝高い金属の「チッ」、弾けない攻撃（赤）＝低いうなり。
+// 2026-11-13：無料素材サイトの音（data/sound.js・core/soundbank.js）。素材が読めていればそれを鳴らし、無い・まだの時はここの合成音で鳴る（合成音は消さない）。
+//   環境は素材の層（雨・風・換気・下水・部屋の静けさ…）を足し、同じ役の合成の層は弱める。遠くの「気配」（p_*）を時々、聞き手の後ろ寄りで鳴らす。
+import { AMB_MIX, AMB_SYNTH_ROLE, AMB_GAIN, PRESENCE, presencePos } from '../data/sound.js';
 export class Sfx {
-  constructor() { this.ctx = null; this.vol = 0.7; this.muffle = 0; this.out = null; this.L = { x: 0, z: 0, yaw: 0 }; this.amb = null; this.timers = { siren: 20, drip: 2, muzak: 8, creak: 12 }; this.tension = 0; }
+  constructor() { this.ctx = null; this.vol = 0.7; this.muffle = 0; this.out = null; this.L = { x: 0, z: 0, yaw: 0 }; this.amb = null; this.timers = { siren: 20, drip: 2, muzak: 8, creak: 12, presence: 25 }; this.tension = 0; this.bank = null; this.fileBeds = {}; this.quiet = false; this.presenceLog = []; }
   init() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {}); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
@@ -21,6 +24,14 @@ export class Sfx {
     this.noiseBuf = n;
     this.buildBeds();
     if (this.pendingAmb) this.setAmbience(this.pendingAmb);
+    if (this.bank) this.bank._pump();                                   // 音の準備ができた：頼まれていた素材を読み始める
+  }
+  /** 素材の音（AudioBuffer）を鳴らす。出口は this.out（位置のある音）か master。off・dur は切り出し（足音） */
+  _buf(buf, g = 0.6, rate = 1, off = 0, dur = 0) {
+    const c = this.ctx, src = c.createBufferSource(), gn = c.createGain(); src.buffer = buf; src.playbackRate.value = rate; gn.gain.value = g;
+    src.connect(gn); gn.connect(this.out || this.master);
+    if (dur > 0) { const t = c.currentTime; gn.gain.setValueAtTime(g, t + Math.max(0, dur / rate - 0.03)); gn.gain.linearRampToValueAtTime(0, t + dur / rate); src.start(t, off, dur + 0.01); } else src.start();
+    return src;
   }
   setVolume(v) { this.vol = v; if (this.master) this.master.gain.value = v; }
   /** スロー・一閃のとき音を抑える（0〜1） */
@@ -78,6 +89,8 @@ export class Sfx {
     if (!this.ctx) return;
     this.out = pos ? this._spatial(pos) : null;
     if (pos && !this.out) return;
+    const m = this.bank && this.bank.se(name);                          // 素材が読めていれば素材で
+    if (m) { this._buf(m.buf, m.g, m.rate); this.out = null; return; }
     switch (name) {
       case 'rewind7': this.tone(900, 0.5, 'sine', 0.06, 0.4); this.tone(1400, 0.4, 'triangle', 0.04, 0.5, 0.05); this.noise(0.4, 0.12, 'bandpass', 2600, 3, 0, 0.5); break;
       case 'ending7': [523, 659, 784, 1047, 784, 880, 698, 784].forEach((f, i) => this.tone(f, 0.9, 'sine', 0.05, 1, i * 0.42)); break;
@@ -109,6 +122,10 @@ export class Sfx {
       case 'ui_ok': this.tone(700, 0.06, 'sine', 0.07); this.tone(1050, 0.08, 'sine', 0.06, 1, 0.05); break;
       case 'ui_ng': this.tone(220, 0.15, 'square', 0.06); break;
       case 'save': this.tone(523, 0.12, 'sine', 0.08); this.tone(784, 0.2, 'sine', 0.08, 1, 0.1); break;
+      // Q-horror の合図（素材が届くまでの合成音。どれも小さく短い）
+      case 'flicker_buzz': this.tone(100, 0.09, 'sawtooth', 0.025, 1); this.tone(120, 0.07, 'square', 0.012, 1, 0.01); this.noise(0.04, 0.05, 'highpass', 4500); break;
+      case 'stalker_seen': this.tone(46, 1.8, 'sine', 0.09, 0.92); this.noise(1.4, 0.035, 'lowpass', 220, 1, 0.1, 0.6); break;
+      case 'stalker_gone': this.noise(0.9, 0.04, 'bandpass', 500, 0.8, 0, 0.3); break;
       case 'light_on': this.tone(60, 0.3, 'sine', 0.05); this.noise(0.05, 0.08, 'highpass', 5000); break;
       // 敵の合図（読み取れる音）
       case 'notice': this.tone(110, 0.6, 'sine', 0.12, 1.4); break;
@@ -186,12 +203,24 @@ export class Sfx {
       case 'relay_regrow': this.tone(180, 0.6, 'sawtooth', 0.04, 1.8); this.noise(0.5, 0.08, 'bandpass', 1400, 2, 0.1); break;
       case 'water_hammer': this.noise(0.15, 0.6, 'lowpass', 500); this.tone(60, 0.35, 'square', 0.25, 0.6); this.tone(900, 0.3, 'triangle', 0.06, 0.8, 0.05); break;
       case 'prop_break': this.noise(0.5, 0.3, 'lowpass', 900, 1, 0, 0.3); for (let i = 0; i < 4; i++) this.tone(300 + Math.random() * 500, 0.12, 'triangle', 0.04, 0.6, 0.05 + i * 0.07); break;
+      // 2026-11-13：遠くの気配（素材が無い時の合成。小さく・短く・はっきりしない音）
+      case 'p_creak': this.noise(1.4, 0.05, 'bandpass', 420, 9, 0, 0.6); this.tone(160, 1.2, 'sawtooth', 0.006, 0.85); break;
+      case 'p_knock': for (let i = 0; i < 3; i++) this.noise(0.05, 0.22, 'lowpass', 260, 2, i * 0.34); break;
+      case 'p_iron_knock': for (let i = 0; i < 2; i++) { this.tone(300, 0.25, 'triangle', 0.04, 0.98, i * 0.5); this.noise(0.04, 0.16, 'bandpass', 900, 3, i * 0.5); } break;
+      case 'p_window': for (let i = 0; i < 3; i++) this.noise(0.03, 0.1, 'bandpass', 2200, 4, i * 0.24); break;
+      case 'p_metal': this.noise(0.06, 0.14, 'highpass', 2500); this.tone(523, 0.9, 'triangle', 0.025, 0.99); this.tone(790, 0.7, 'sine', 0.015, 1, 0.02); this.tone(510, 0.4, 'triangle', 0.012, 0.99, 0.38); break;
+      case 'p_breath': this.noise(1.6, 0.03, 'bandpass', 600, 1.5, 0, 1.3); this.noise(1.2, 0.022, 'bandpass', 500, 1.5, 1.9, 0.8); break;
+      case 'p_drip': for (let i = 0; i < 4; i++) this.tone(1700 + Math.random() * 600, 0.08, 'sine', 0.025, 0.6, i * (0.5 + Math.random() * 0.6)); break;
+      case 'p_drag': this.noise(1.8, 0.06, 'lowpass', 380, 1, 0, 0.7); this.noise(0.9, 0.03, 'bandpass', 1200, 2, 0.5, 0.8); break;
+      case 'p_steps': for (let i = 0; i < 4; i++) this.noise(0.05, 0.05, 'lowpass', 500, 1, i * 0.56); break;
     }
     this.out = null;
   }
   /** 足音：地面の種類 surface と走りかどうか */
   step(surface = 'asphalt', run = false, pos = null) {
     if (!this.ctx) return; this.out = pos ? this._spatial(pos, 2, 18) : null; if (pos && !this.out) return;
+    const fs = this.bank && this.bank.step(surface === 'shotengai' ? 'asphalt' : surface, run);   // 素材の足音（1 歩ずつ切り出した物）
+    if (fs) { this._buf(fs.buf, fs.g * (run ? 1.15 : 1), 0.94 + Math.random() * 0.12, fs.off, fs.dur); this.out = null; return; }
     const v = run ? 1.4 : 1;
     switch (surface) {
       case 'wet': this.noise(0.05, 0.05 * v, 'lowpass', 500); this.noise(0.09, 0.035 * v, 'bandpass', 2600, 1.4, 0.01); break;
@@ -247,8 +276,29 @@ export class Sfx {
       epi_home: { hum: 0.5, rain: 0.15, wind: 0.2, vent: 0, buzz: 0, shop: 0 },
     }[kind] || {};
     const t = this.ctx.currentTime;
-    for (const [k, b] of Object.entries(this.beds)) b.g.gain.setTargetAtTime((P[k] || 0) * b.vol * (k === 'rain' && this.rainOff ? 0 : 1), t, 0.8);
+    const cover = this._fileBeds(kind);                                  // 素材の層（あれば）。同じ役の合成の層は弱める
+    for (const [k, b] of Object.entries(this.beds)) b.g.gain.setTargetAtTime((P[k] || 0) * b.vol * (k === 'rain' && this.rainOff ? 0 : 1) * (cover.has(k) ? 0.25 : 1), t, 0.8);
   }
+  /** 素材の環境音の層を合わせる（読めている物だけ・まだの物は頼む）。返り値：素材が受け持った合成の役 */
+  _fileBeds(kind) {
+    const mix = AMB_MIX[kind] || {}, c = this.ctx, t = c.currentTime, cover = new Set();
+    if (this.bank) this.bank.want(Object.keys(mix), true);
+    for (const id of new Set([...Object.keys(this.fileBeds), ...Object.keys(mix)])) {
+      const lv = (mix[id] || 0) * AMB_GAIN * (id === 'amb_rain' && this.rainOff ? 0 : 1), B = this.fileBeds[id];
+      if (lv > 0 && !B) {
+        const buf = this.bank && this.bank.buf(id); if (!buf) continue;
+        const src = c.createBufferSource(), g = c.createGain(); src.buffer = buf; src.loop = true; g.gain.value = 0; src.connect(g); g.connect(this.master);
+        src.start(t, Math.random() * buf.duration); g.gain.setTargetAtTime(lv, t, 1.2); this.fileBeds[id] = { src, g };
+      } else if (B) {
+        B.g.gain.cancelScheduledValues(t); B.g.gain.setTargetAtTime(lv, t, lv > 0 ? 0.8 : 0.6);
+        if (lv <= 0) { const s = B.src; delete this.fileBeds[id]; try { s.stop(t + 4); } catch (e) { /* 止まっている */ } }
+      }
+      if (lv > 0 && this.fileBeds[id] && AMB_SYNTH_ROLE[id]) cover.add(AMB_SYNTH_ROLE[id]);
+    }
+    return cover;
+  }
+  /** 素材が読めた（core/soundbank.js から）：今の環境の層なら入れ直す */
+  onBankLoad(id) { if (this.amb && (AMB_MIX[this.amb] || {})[id] != null) this.setAmbience(this.amb); }
   setRain(on) { this.rainOff = !on; if (this.amb) this.setAmbience(this.amb); }
   /** 緊張（0〜1）：敵が近い・敵対中ほど持続音が上がる */
   setTension(k) { if (!this.ctx || !this.tensionBed) return; k = Math.max(0, Math.min(1, k)); if (Math.abs(k - this.tension) < 0.02) return; this.tension = k; this.tensionBed.g.gain.setTargetAtTime(k * this.tensionBed.vol, this.ctx.currentTime, 0.6); }
@@ -256,7 +306,12 @@ export class Sfx {
   update(dt) {
     if (!this.ctx || !this.amb) return;
     const T = this.timers, outdoor = ['street', 'alley', 'plaza', 'street_normal'].includes(this.amb);
-    T.siren -= dt; T.drip -= dt; T.muzak -= dt; T.creak -= dt;
+    T.siren -= dt; T.drip -= dt; T.muzak -= dt; T.creak -= dt; T.presence -= dt;
+    const PR = PRESENCE[this.amb];
+    if (T.presence <= 0) {                                              // 遠くの気配：静かな時だけ（戦い・演出の間は鳴らさない）。後ろ寄りの 9〜22m
+      T.presence = PR ? PR.every[0] + Math.random() * (PR.every[1] - PR.every[0]) : 20;
+      if (PR && !this.quiet && this.tension < 0.15) { const name = PR.pool[Math.floor(Math.random() * PR.pool.length)], pos = presencePos(this.L, Math.random(), Math.random()); this.play(name, pos); this.presenceLog.push({ name, d: Math.round(pos.d), at: Math.round(performance.now()) }); if (this.presenceLog.length > 50) this.presenceLog.shift(); }
+    }
     if (T.siren <= 0) { T.siren = 35 + Math.random() * 45; if (outdoor) this.siren(); }
     if (T.drip <= 0) { T.drip = 0.6 + Math.random() * 2.2; if (this.amb === 'alley' || this.amb === 'tunnel') { this.out = this._spatial({ x: this.L.x + (Math.random() - 0.5) * 10, z: this.L.z + (Math.random() - 0.5) * 10 }); if (this.out) this.tone(1800 + Math.random() * 1400, 0.09, 'sine', 0.025, 0.6); this.out = null; } }
     if (T.muzak <= 0) { T.muzak = 14 + Math.random() * 20; if (this.amb === 'plaza') { const notes = [523, 659, 587, 494]; notes.forEach((f, i) => { this.out = this._spatial({ x: 0, z: -14 }, 2, 60); if (this.out) this.tone(f * (1 + (Math.random() - 0.5) * 0.02), 0.5, 'triangle', 0.012, 0.98, i * 0.55); this.out = null; }); } }

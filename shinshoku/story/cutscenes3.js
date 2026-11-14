@@ -21,8 +21,7 @@ export const CUTSCENES3 = {
     actors: [
       { t: 0, id: 'player', pos: [0.4, 24.6], yaw: Math.PI },
       { t: 0, id: 'companion', pos: [1.5, 25.8], yaw: Math.PI, mode: 'scripted', show: true },
-      { t: 0.6, id: 'player', to: [0.3, 17.4], run: true }, { t: 0.9, id: 'companion', to: [0.7, 18.5], run: true },
-      { t: 4.0, id: 'player', to: [0.2, 16.6] }, { t: 4.4, id: 'companion', to: [1.1, 17.6] },
+      { t: 0.6, id: 'player', path: [[0.3, 17.4], [0.2, 16.6]] }, { t: 0.9, id: 'companion', path: [[0.7, 18.5], [1.1, 17.6]] },   // Q-horror 17：駆け込まず歩いて入る
       { t: 7.2, id: 'companion', face: 'dan' },
       { t: 10.2, id: 'player', yaw: -2.36 },
     ],
@@ -37,7 +36,7 @@ export const CUTSCENES3 = {
   },
   // 306 号室：子どものベッドの前に、大きな異形
   cs03_guard: {
-    id: 'cs03_guard', area: 'hospital', letterbox: true, skippable: true,
+    id: 'cs03_guard', area: 'hospital', letterbox: true, skippable: true, hand: 0.005,
     cam: [
       { t: 0, pos: [2.4, 1.7, -14.6], look: [7.4, 1.4, -17.0], fov: 52 },
       { t: 4.0, pos: [3.4, 1.9, -15.2], look: [6.6, 2.0, -17.0], fov: 40 },
@@ -47,8 +46,8 @@ export const CUTSCENES3 = {
       { t: 8.9, shot: { shot: 'close', on: 'companion', from: 'mamori', dist: 1.3, side: -1 } },
       { t: 9.0, shot: { shot: 'close', on: 'dan', from: 'mamori', dist: 1.6, side: 1 }, cut: true },           // 前：だんのうらの横から異形を見るだけで、本人が映らなかった
       { t: 11.3, shot: { shot: 'close', on: 'dan', from: 'mamori', dist: 1.4, side: 1 } },
-      { t: 11.4, shot: { shot: 'back', on: 'dan', from: 'mamori', dist: 1.5 }, cut: true },                   // 向き合う：異形の「しー」
-      { t: 13.0, shot: { shot: 'back', on: 'dan', from: 'mamori', dist: 1.7 } },
+      { t: 11.4, shot: { shot: 'back', on: 'dan', from: 'mamori', dist: 1.5, side: 1.8, h: 2.05 }, cut: true },   // 向き合う：異形の「しー」（Q-horror 17：横へ・高く＝だんのうらの頭で顔が隠れない）
+      { t: 13.0, shot: { shot: 'back', on: 'dan', from: 'mamori', dist: 1.7, side: 1.8, h: 2.1 } },
     ],
     actors: [
       { t: 0, id: 'player', pos: [3.4, -16.0], yaw: Math.PI / 2 },
@@ -76,7 +75,7 @@ export const CUTSCENES3 = {
       { t: 3.8, pos: [8.8, 1.3, -14.4], look: [6.2, 2.0, -17.0], fov: 46, cut: true },
       { t: 7.4, pos: [8.6, 1.4, -14.6], look: [6.2, 2.1, -17.0], fov: 42 },
     ],
-    actors: [{ t: 0.0, id: 'mamori', yaw: -Math.PI / 2 }, { t: 3.6, id: 'mamori', yaw: Math.PI / 2 }],
+    actors: [{ t: 0.0, id: 'mamori', yaw: -Math.PI / 2 }, { t: 3.6, id: 'mamori', yaw: Math.PI / 2, turn: 1.2 }],   // Q-horror 17：ゆっくり振り向く（前は 1 こまで 180 度）
     lines: [
       { t: 0.6, who: 'mimic', text: '……ユウ……ママよ……開けて……', dur: 2.6 },
       { t: 3.6, who: 'child', text: 'ママ……？', dur: 1.4 },

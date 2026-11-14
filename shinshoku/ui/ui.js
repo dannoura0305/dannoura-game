@@ -61,7 +61,7 @@ export class UI {
   <div class="sh-log"></div>
   <div class="sh-lock"></div>
   <div class="sh-marks"></div>
-  <div class="sh-slow"></div><div class="sh-flash"></div><div class="sh-lowhp"></div><div class="sh-vignette"></div>
+  <div class="sh-slow"></div><div class="sh-flash"></div><div class="sh-lowhp"></div><div class="sh-vignette"></div><div class="sh-grain"></div><div class="sh-dread"></div>
   <div class="sh-hint"></div>
   <div class="sh-gskills"></div>
 </div>
@@ -420,6 +420,8 @@ export class UI {
         <label><input type="checkbox" data-s="halos" ${S.halos !== false ? 'checked' : ''}>光のにじみ（ブルームの代わり）</label>
         <label><input type="checkbox" data-s="wet" ${S.wet !== false ? 'checked' : ''}>濡れた地面の映り込み</label>
         <label><input type="checkbox" data-s="teleCB" ${S.teleCB ? 'checked' : ''}>予兆の色を見分けやすく（橙の四角＝避ける／青の丸＝弾ける）</label>
+        <label>予兆の表示 <select data-s="teleShow">${[['standard', '標準'], ['subtle', '控えめ（地面の印はボスだけ）']].map(([v, n]) => `<option value="${v}" ${(S.teleShow || 'standard') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+        <label><input type="checkbox" data-s="hudAuto" ${S.hudAuto !== false ? 'checked' : ''}>探索中は画面の表示を引っ込める（操作の一覧は第1章まで）</label>
         <label>字幕の大きさ <select data-s="subSize">${[['s', '小'], ['m', '中'], ['l', '大']].map(([v, n]) => `<option value="${v}" ${(S.subSize || 'm') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
         <label>難しさ <select data-s="difficulty">${[['easy', 'やさしい'], ['normal', 'ふつう'], ['hard', 'むずかしい']].map(([v, n]) => `<option value="${v}" ${S.difficulty === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
         <label><input type="checkbox" data-s="assist" ${S.assist ? 'checked' : ''}>一閃の手助け（窓を広げる・スロー延長）</label>
@@ -429,6 +431,7 @@ export class UI {
         <label><input type="checkbox" data-s="invertY" ${S.invertY ? 'checked' : ''}>上下を反転</label>
         <label><input type="checkbox" data-s="rumble" ${S.rumble !== false ? 'checked' : ''}>コントローラーの振動（当たり・被弾・一閃）</label>
         <label>音量<input type="range" min="0" max="1" step="0.05" data-s="volume" value="${S.volume}"><span>${Math.round(S.volume * 100)}%</span></label>
+        <label>BGM の音量（全体の音量に掛かる）<input type="range" min="0" max="1" step="0.05" data-s="bgmVol" value="${S.bgmVol ?? 0.5}"><span>${Math.round((S.bgmVol ?? 0.5) * 100)}%</span></label>
         <label><input type="checkbox" data-s="voiceOn" ${S.voiceOn !== false ? 'checked' : ''}>声（演出の台詞）：入</label>
         <label>声の音量<input type="range" min="0" max="1" step="0.05" data-s="voiceVol" value="${S.voiceVol ?? 0.9}"><span>${Math.round((S.voiceVol ?? 0.9) * 100)}%</span></label>
         <label><input type="checkbox" data-s="touchUI" ${S.touchUI ? 'checked' : ''}>タッチ操作を表示</label>

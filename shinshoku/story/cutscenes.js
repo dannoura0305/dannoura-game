@@ -11,7 +11,8 @@ const HP = (x, y, z) => { const [wx, wz] = homeW(x, z); return [wx, y, wz]; };  
 export const CUTSCENES = {
   // CS-00「明かりが消える」（序章）
   cs00_lightsout: {
-    id: 'cs00_lightsout', area: 'shotengai', letterbox: true, skippable: true,
+    id: 'cs00_lightsout', area: 'shotengai', letterbox: true, skippable: true, hand: 0.004,
+    // Q-horror 10：明かりの下の帰路への寄りを 2.5 秒かけた遅い寄りに（fov 38→34）・「ただいま」の前に 1.5 秒の無音。台詞と順番は同じ（10.65 秒より後を 1.5 秒うしろへ）
     cam: [
       { t: 0, pos: [0.6, 2.0, -26.5], look: [-1.2, 1.4, -34], fov: 46 },
       { t: 2.0, pos: [0.4, 2.2, -27.5], look: [0, 2.6, -60], fov: 50 },
@@ -20,9 +21,9 @@ export const CUTSCENES = {
       { t: 9.25, shot: { shot: 'close', on: 'companion', from: 'kiro_t', side: -1, dist: 1.4 }, cut: true },   // 前：声だけで、誰が見つけたか分からなかった → 指さす（相棒）の寄り
       { t: 10.6, shot: { shot: 'close', on: 'companion', from: 'kiro_t', side: -1, dist: 1.25 } },
       { t: 10.65, pos: [0.3, 1.9, -30.9], look: [0.8, 1.42, -45.2], fov: 38, cut: true },                     // その指の先＝明かりの下の帰路
-      { t: 11.9, pos: [0.3, 1.9, -31.0], look: [0.8, 1.4, -45], fov: 34 },
-      { t: 12.2, pos: [-0.2, 1.7, -29.0], look: [-1.8, 1.3, -34], fov: 48, cut: true },
-      { t: 15.0, pos: [0.2, 1.8, -28.0], look: [-1.2, 1.2, -36], fov: 50 },
+      { t: 13.15, pos: [0.3, 1.9, -31.1], look: [0.8, 1.4, -45], fov: 34, ease: 'linear' },
+      { t: 13.7, pos: [-0.2, 1.7, -29.0], look: [-1.8, 1.3, -34], fov: 48, cut: true },
+      { t: 16.5, pos: [0.2, 1.8, -28.0], look: [-1.2, 1.2, -36], fov: 50 },
     ],
     actors: [
       { t: 0, id: 'player', pos: [-1.3, -32.4], yaw: -2.5 },
@@ -31,16 +32,16 @@ export const CUTSCENES = {
       { t: 3.6, id: 'companion', anim: 'idle' },
       { t: 8.6, id: 'kiro_t', pos: [0.9, -45.5], yaw: 0, show: true },
       { t: 9.1, id: 'companion', face: 'kiro_t', anim: 'warn' },
-      { t: 12.4, id: 'companion', path: [[-3.2, -30.55], [-4.6, -30.55], [-10.5, -29.9]], run: true, anim: 'run', hideAtEnd: true },   // 脇道の口の「立入禁止」の柵の南の端を回って奥へ（前は柵を突き抜けた）
-      { t: 12.6, id: 'player', yaw: -0.9 },
+      { t: 13.9, id: 'companion', path: [[-3.2, -30.55], [-4.6, -30.55], [-10.5, -29.9]], run: true, anim: 'run', hideAtEnd: true },   // 脇道の口の「立入禁止」の柵の南の端を回って奥へ（前は柵を突き抜けた）
+      { t: 14.1, id: 'player', yaw: -0.9 },
     ],
     lines: [
       { t: 1.0, who: 'companion', text: '……今、奥の方', dur: 2.4 },
       { t: 4.4, who: 'dan', text: '停電、かしら', dur: 2.2 },
       { t: 9.4, who: 'companion', text: '……あそこ。人が、立ってる', dur: 2.2 },
-      { t: 11.0, who: 'kiro', text: '……ただいま……ただいま……', dur: 1.8 },
-      { t: 12.6, who: 'companion', text: '（悲鳴）', dur: 1.2 },
-      { t: 13.8, who: 'dan', text: 'ちょっと、アンタ！　そっちは駄目よ！', dur: 2.0 },
+      { t: 12.5, who: 'kiro', text: '……ただいま……ただいま……', dur: 1.8 },
+      { t: 14.1, who: 'companion', text: '（悲鳴）', dur: 1.2 },
+      { t: 15.3, who: 'dan', text: 'ちょっと、アンタ！　そっちは駄目よ！', dur: 2.0 },
     ],
     events: [
       { t: 2.0, do: 'lightsOut', arg: { from: -70, to: -24, step: 0.45 } },
@@ -48,9 +49,10 @@ export const CUTSCENES = {
       { t: 6.4, do: 'vendingOff' },
       { t: 6.5, do: 'silence', arg: 1.6 },
       { t: 8.6, do: 'flickerKiroLight' },
-      { t: 15.0, do: 'setStep', arg: 'pro_pipe' },
+      { t: 10.8, do: 'silence', arg: 1.5 },
+      { t: 16.5, do: 'setStep', arg: 'pro_pipe' },
     ],
-    sounds: [{ t: 2.0, s: 'power_down' }, { t: 8.6, s: 'notice' }, { t: 11.0, s: 'kiro_voice' }, { t: 12.6, s: 'scream' }],
+    sounds: [{ t: 2.0, s: 'power_down' }, { t: 8.6, s: 'notice' }, { t: 12.5, s: 'kiro_voice' }, { t: 14.1, s: 'scream' }],
   },
   // 序章の終わり：テレビに研究者の顔が一瞬（音声なし）。研究者は九条とは別人・名前未定（DECISIONS）
   cs00_tv: {

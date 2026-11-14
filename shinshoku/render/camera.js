@@ -1,6 +1,7 @@
 // 三人称カメラ：ふだんは追従（少し右肩）、構えると肩越しに寄る。壁に当たると手前に寄せる。ロックオンで敵の方へ回る。揺れ。
 import * as THREE from 'three';
 import { rayBoxes } from '../world/collide.js';
+import { smoothNoise } from '../data/horror.js';
 
 export class ThirdPersonCamera {
   constructor(camera) {
@@ -8,6 +9,8 @@ export class ThirdPersonCamera {
     this.aimT = 0; this.shakeT = 0; this.shakeA = 0; this.cur = new THREE.Vector3(); this.first = true;
     this.pivot = new THREE.Vector3(); this.fovBase = 62; this.curDist = 4;
   }
+  /** 2026-11-13：寄り（画角を deg 度狭め、t 秒で戻す：すぐ寄って、ゆっくり離れる）。揺れの設定（shakeMul）に従う。紫は重く長く・白は鋭く短く（combat/tempo.js punchFor） */
+  punch(deg, t = 0.3) { deg *= this.shakeMul ?? 1; if (deg <= 0) return; if (!(this.punchT > 0) || deg >= this.punchA * (this.punchT / this.punchD)) { this.punchA = deg; this.punchT = t; this.punchD = t; } }
   shake(a, t = 0.25) { a *= this.shakeMul ?? 1; if (a <= 0) return; if (a > this.shakeA * (this.shakeT > 0 ? 1 : 0)) { this.shakeA = a; this.shakeT = t; this.shakeD = t; } }
   /** dt：実時間。target：プレイヤーの位置。aim：構え中。lock：ロックオンの相手の位置 */
   update(dt, target, look, boxes, opt = {}) {
@@ -57,13 +60,20 @@ export class ThirdPersonCamera {
     const pos = piv.clone().addScaledVector(dir, this.curDist);
     // 近すぎる（壁の角に押された）時：見下ろしの向きへ少し上げる（顔の真後ろに張り付かない）
     if (this.curDist < 1.1 * sc && opt.range) { const r = opt.range(pos.x, pos.z) || [0.3, Infinity]; pos.y = Math.min(Math.max(r[0], pos.y + (1.1 * sc - this.curDist) * 0.35), Math.max(r[1], piv.y)); }
+    this.clock = (this.clock || 0) + dt;
     if (this.shakeT > 0) {
-      this.shakeT -= dt; const k = this.shakeA * Math.max(0, this.shakeT / this.shakeD);
-      pos.x += (Math.random() - 0.5) * k; pos.y += (Math.random() - 0.5) * k; pos.z += (Math.random() - 0.5) * k;
+      // Q-horror 16：揺れはなめらかな低い周波数（前は毎こまの乱数のジッター）。大きさと長さは前と同じ
+      this.shakeT -= dt; const k = this.shakeA * Math.max(0, this.shakeT / this.shakeD), c = this.clock * 9;
+      pos.x += smoothNoise(c, 1) * 0.5 * k; pos.y += smoothNoise(c * 1.13, 7) * 0.5 * k; pos.z += smoothNoise(c * 0.91, 13) * 0.5 * k;
     }
     this.cam.position.copy(pos);
-    this.cam.lookAt(piv.x - dir.x * 10, piv.y - dir.y * 10, piv.z - dir.z * 10);
-    const fov = this.fovBase - 14 * a + (opt.fovKick || 0);
+    // Q-horror 16：手持ちの揺れ（opt.sway：ラジアン。ホラーの区画だけ）。見る先を少しずらす
+    const sw = opt.sway ? (this.swayK = (this.swayK || 0) + (opt.sway - (this.swayK || 0)) * Math.min(1, dt * 1.5)) : (this.swayK = (this.swayK || 0) * Math.max(0, 1 - dt * 1.5));
+    const wx = sw ? smoothNoise(this.clock * 0.7, 3) * sw * 10 : 0, wy = sw ? smoothNoise(this.clock * 0.6, 17) * sw * 7 : 0;
+    this.cam.lookAt(piv.x - dir.x * 10 + Math.cos(this.yaw) * wx, piv.y - dir.y * 10 + wy, piv.z - dir.z * 10 - Math.sin(this.yaw) * wx);
+    let pk = 0;
+    if (this.punchT > 0) { this.punchT = Math.max(0, this.punchT - dt); const u = 1 - this.punchT / this.punchD; pk = this.punchA * (u < 0.15 ? u / 0.15 : Math.pow(1 - (u - 0.15) / 0.85, 2)); }
+    const fov = this.fovBase - 14 * a + (opt.fovKick || 0) - pk;
     if (Math.abs(this.cam.fov - fov) > 0.01) { this.cam.fov = fov; this.cam.updateProjectionMatrix(); }
   }
   /** カメラの前方（水平） */
