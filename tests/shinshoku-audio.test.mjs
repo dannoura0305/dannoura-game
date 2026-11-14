@@ -1,11 +1,11 @@
-// 『境界侵食』音の素材（無料素材サイト：効果音ラボ・魔王魂）の対応表・読み込み・BGM・表記。2026-11-13
-// 対応表：音の名前は実在する（合成音のフォールバックがある）・素材はすべて出典と規約のあるサイトから・置いたファイルは表と一致し大きさの上限内。
+// 『境界侵食』音の素材（CC0：OpenGameArt.org・Kenney）の対応表・読み込み・BGM・表記。2026-11-13（2026-11-14 CC0 の素材に切り替え）
+// 対応表：音の名前は実在する（合成音のフォールバックがある）・素材はすべて CC0 を確かめたページから・置いたファイルは表と一致し大きさの上限内。
 // 読み込み：起動時には読まない（遊びが始まり起動の後読みを過ぎてから）。BGM：常には鳴らさない・戦い／ボス／演出／声の扱い。表記：使った物だけ出る。
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs';
 import {
-  SOURCES, MATERIALS, SE_MAP, STEPS, AMB_MIX, AMB_SYNTH_ROLE, PRESENCE, PRESENCE_NAMES, BGM_TRACKS, BGM_AREAS, BGM_LEVEL,
-  fileOf, sourceUrl, bgmPlan, areaLoadList, seLoadList, usedSources, audioCreditText, withAudioCredits, presencePos,
+  SOURCES, PACKS, LICENSE, MATERIALS, SE_MAP, STEPS, AMB_MIX, AMB_SYNTH_ROLE, PRESENCE, PRESENCE_NAMES, BGM_TRACKS, BGM_AREAS, BGM_LEVEL,
+  fileOf, sourceUrl, authorOf, bgmPlan, areaLoadList, seLoadList, usedSources, usedAuthors, audioCreditText, withAudioCredits, presencePos,
 } from '../shinshoku/data/sound.js';
 import { SOUND_FILES } from '../shinshoku/data/sound_files.js';
 import { CREDITS } from '../shinshoku/data/ch7.js';
@@ -41,16 +41,24 @@ t('素材：対応で使う物はすべて MATERIALS にあり、MATERIALS に�
   for (const id of Object.keys(MATERIALS)) assert.ok(used.has(id), '使われない素材: ' + id);
   for (const id of Object.keys(AMB_SYNTH_ROLE)) assert.ok(MATERIALS[id], id);
 });
-t('素材：出典は規約を読めたサイト（効果音ラボ・魔王魂）だけ。DOVA・OtoLogic は使わない', () => {
-  assert.deepEqual(Object.keys(SOURCES).sort(), ['maou', 'sel']);
-  for (const [id, m] of Object.entries(MATERIALS)) {
-    assert.ok(SOURCES[m.src], id); assert.ok(m.title && m.path, id);
-    assert.match(sourceUrl(id), m.src === 'sel' ? /^https:\/\/soundeffect-lab\.info\/sound\/[a-z]+\/mp3\/[a-z0-9-]+\.mp3$/ : /^https:\/\/maou\.audio\/sound\/(bgm|se)\/maou_[a-z0-9_]+\.mp3$/, id);
+t('素材：出典はすべて CC0 を確かめたページ（OpenGameArt.org・Kenney）。作者・ダウンロードの記録あり。ほかのライセンス・サイトは使わない', () => {
+  assert.deepEqual(Object.keys(SOURCES).sort(), ['kenney', 'oga']);
+  assert.equal(LICENSE.id, 'CC0'); assert.match(LICENSE.url, /publicdomain\/zero\/1\.0/);
+  for (const [k, P] of Object.entries(PACKS)) {
+    assert.equal(P.license, 'CC0', k); assert.ok(SOURCES[P.site], k); assert.ok(P.author && P.title, k);
+    if (P.site === 'oga') { assert.match(P.page, /^https:\/\/opengameart\.org\/content\/[a-zA-Z0-9%-]+$/, k); assert.match(P.dl, /^https:\/\/opengameart\.org\/sites\/default\/files\/\S+$/, k); }
+    else { assert.match(P.page, /^https:\/\/kenney\.nl\/assets\/[a-z-]+$/, k); assert.equal(P.author, 'Kenney'); }
   }
-  assert.doesNotMatch(JSON.stringify(MATERIALS), /dova|otologic/i);
+  for (const [id, m] of Object.entries(MATERIALS)) {
+    assert.ok(PACKS[m.pack], id); assert.ok(m.title && m.files.length, id);
+    assert.equal(sourceUrl(id), PACKS[m.pack].page); assert.equal(authorOf(id), PACKS[m.pack].author);
+  }
+  const used = new Set(Object.values(MATERIALS).map(m => m.pack)); for (const k of Object.keys(PACKS)) assert.ok(used.has(k), '使わないページ: ' + k);
+  assert.doesNotMatch(JSON.stringify({ PACKS, MATERIALS }), /CC-BY|OGA-BY|GPL|soundeffect-lab|maou\.audio|dova|otologic/i);
 });
-t('魔王魂の曲：ファイル名に maoudamashii を含める（二次配布のルール）', () => {
-  for (const [id, m] of Object.entries(MATERIALS)) if (m.src === 'maou') { if (m.kind === 'bgm') assert.match(fileOf(id), /maoudamashii/, id); }
+t('素材：ファイル名は素材のキーだけ（元のサイトの名前に依らない）', () => {
+  for (const id of Object.keys(MATERIALS)) assert.match(fileOf(id), /^(se|step|amb|bgm)\/[a-z0-9_]+\.mp3$/, id);
+  for (const id of Object.values(BGM_TRACKS)) assert.match(id, /^bgm_/);
 });
 t('予兆の区別を残す：弾ける＝高い金属（速めに）／弾けない＝低い唸り（遅めに）', () => {
   const p = SE_MAP.tel_parry, r = SE_MAP.tel_red;
@@ -60,9 +68,9 @@ t('予兆の区別を残す：弾ける＝高い金属（速めに）／弾け�
 t('驚かしは要所だけ：不協和音・迫り来る恐怖は 1 つの名前ずつ（模倣する影の正体・ボスの起き上がり）', () => {
   const scare = Object.entries(SE_MAP).filter(([, e]) => e.m.some(id => /dissonance|approach/.test(id))).map(([k]) => k).sort();
   assert.deepEqual(scare, ['boss_rise', 'mimic_reveal']);
-  assert.ok(!Object.values(MATERIALS).some(m => /voice\/|悲鳴/.test(m.path + m.title)), '人の声素材（悲鳴）は使わない');
+  assert.ok(!Object.values(MATERIALS).some(m => /悲鳴|scream|human_|female|male|cough|laugh|voice/i.test(m.files.join(' ') + m.title)), '人の声素材（悲鳴・台詞）は使わない');
 });
-t('置いたファイルの表：表と実物が一致・出典あり・大きさの上限内（効果音 120KB・足音 150KB・環境音 400KB・曲 1.6MB・合計 20MB）', () => {
+t('置いたファイルの表：表と実物が一致・出典あり・大きさの上限内（効果音 120KB・足音 150KB・環境音 400KB・曲 1.6MB・合計 16MB）', () => {
   const dir = R('shinshoku/assets/sound/'); let total = 0;
   const lim = { se: 120e3, step: 150e3, amb: 400e3, bgm: 1.6e6 };
   for (const [rel, e] of Object.entries(SOUND_FILES)) {
@@ -72,25 +80,35 @@ t('置いたファイルの表：表と実物が一致・出典あり・大き�
     if (MATERIALS[e.id].kind === 'step') assert.ok(e.slices && e.slices.length >= 2, '足音の切り出しが無い: ' + rel);
     total += sz;
   }
-  assert.ok(total <= 20 * 1048576, '合計 ' + total);
+  assert.ok(total <= 16 * 1048576, '合計 ' + total);
   if (existsSync(dir)) for (const kd of readdirSync(dir)) for (const f of readdirSync(new URL(kd + '/', dir))) assert.ok(SOUND_FILES[kd + '/' + f], '表に無いファイル（読まれない）: ' + kd + '/' + f);
 });
-t('記録：docs/shinshoku/AUDIO_CREDITS.md に素材すべての出典と、4 サイトの規約の要点', () => {
+t('記録：docs/shinshoku/AUDIO_CREDITS.md に素材すべての出典（確かめたページ）・作者・CC0', () => {
   const doc = read('docs/shinshoku/AUDIO_CREDITS.md');
-  for (const id of Object.keys(MATERIALS)) { assert.ok(doc.includes('| ' + id + ' |'), id); assert.ok(doc.includes(sourceUrl(id)), id); }
-  for (const s of ['効果音ラボ', '魔王魂', 'DOVA-SYNDROME', 'OtoLogic', '再配布', 'ホラー', 'maoudamashii']) assert.ok(doc.includes(s), s);
+  for (const id of Object.keys(MATERIALS)) { assert.ok(doc.includes('| ' + id + ' |'), id); assert.ok(doc.includes(sourceUrl(id)), id); assert.ok(doc.includes(authorOf(id)), id); }
+  for (const P of Object.values(PACKS)) if (P.dl) assert.ok(doc.includes(P.dl), P.dl);
+  for (const s of ['CC0', 'OpenGameArt.org', 'Kenney', 'ホラー', '人の声', '効果音ラボ', '魔王魂']) assert.ok(doc.includes(s), s);
 });
-t('表記：使った物だけ出る（無ければスタッフロールもタイトルもそのまま）', () => {
+t('置いた音の大きさ・長さが揃っている（効果音は短く・環境音と曲は平均の大きさを揃える）', () => {
+  const lim = { se: [-32, -14, 8], step: [-31, -18, 12], amb: [-32, -28.5, 41], bgm: [-23.5, -20.5, 211] };
+  for (const [rel, e] of Object.entries(SOUND_FILES)) {
+    const [lo, hi, maxDur] = lim[MATERIALS[e.id].kind];
+    assert.ok(e.lu >= lo && e.lu <= hi, '大きさが外れ: ' + rel + ' ' + e.lu); assert.ok(e.pk <= 0.5, '割れ: ' + rel + ' ' + e.pk); assert.ok(e.dur <= maxDur, '長い: ' + rel + ' ' + e.dur);
+  }
+});
+t('表記：使った物だけ出る（無ければスタッフロールもタイトルもそのまま）・CC0 でも作者名を載せる', () => {
   assert.equal(audioCreditText({}), ''); assert.equal(withAudioCredits(CREDITS.lines, {}), CREDITS.lines);
-  const fake = { 'bgm/maoudamashii_cyber19.mp3': { id: 'maoudamashii_cyber19' }, 'se/se_heart.mp3': { id: 'se_heart' } };
-  assert.deepEqual(usedSources(fake), ['maou', 'sel']);
-  assert.equal(audioCreditText(fake), '音楽：魔王魂・効果音：効果音ラボ');
-  const L = withAudioCredits(CREDITS.lines, fake), i = L.findIndex(l => l[1] === '音楽：魔王魂'), j = L.findIndex(l => l[1] === '使わせてもらったもの');
-  assert.ok(i > 0 && j > i, '「使わせてもらったもの」の前に入る'); assert.ok(L.some(l => /maou\.audio/.test(l[1])), '魔王魂の URL');
-  assert.equal(audioCreditText({ 'se/p_drag.mp3': { id: 'p_drag' } }), '効果音：魔王魂');
-  // 今置いている物の表記が、スタッフロールとタイトルの仕組みに出る
-  const now = audioCreditText(SOUND_FILES);
-  if (now) for (const part of now.split('・')) assert.ok(withAudioCredits(CREDITS.lines, SOUND_FILES).some(l => l[1] === part), part);
+  const fake = { 'bgm/bgm_emptycity.mp3': { id: 'bgm_emptycity' }, 'se/se_heart.mp3': { id: 'se_heart' }, 'se/se_blow1.mp3': { id: 'se_blow1' } };
+  assert.deepEqual(usedSources(fake), ['kenney', 'oga']);
+  assert.deepEqual(usedAuthors(fake), { bgm: ['yd'], se: ['Kenney', 'bart'] });
+  assert.match(audioCreditText(fake), /OpenGameArt\.org/); assert.match(audioCreditText(fake), /Kenney/); assert.match(audioCreditText(fake), /CC0/);
+  const L = withAudioCredits(CREDITS.lines, fake), i = L.findIndex(l => l[1] === '音楽・効果音（CC0 の素材）'), j = L.findIndex(l => l[1] === '使わせてもらったもの');
+  assert.ok(i > 0 && j > i, '「使わせてもらったもの」の前に入る'); assert.ok(L.some(l => /opengameart\.org/.test(l[1]) && /kenney\.nl/.test(l[1])), 'サイトの URL');
+  assert.ok(L.some(l => l[1] === 'yd') && L.some(l => l[1] === 'Kenney・bart'), '作者名');
+  // 今置いている物の作者がすべてスタッフロールに出る（行は長すぎない）
+  const now = withAudioCredits(CREDITS.lines, SOUND_FILES), text = now.map(l => l[1]).join('\n');
+  for (const e of Object.values(SOUND_FILES)) assert.ok(text.includes(authorOf(e.id)), authorOf(e.id));
+  assert.ok(now.length - CREDITS.lines.length <= 16, '音の段は 16 行まで');
   assert.match(read('shinshoku.html'), /VOICEVOX:ずんだもん（設定で切れます）<span id="tt-audio-credit" hidden><\/span>/);
   assert.match(main, /audioCreditText\(SOUND_FILES\)/);
   assert.match(read('shinshoku/game/ch7.js'), /withAudioCredits\(CREDITS\.lines, SOUND_FILES\)/);
@@ -161,4 +179,22 @@ t('距離と左右の振り（今の仕組み）は残す：素材の音も位�
   assert.match(audio, /const m = this\.bank && this\.bank\.se\(name\);/);
 });
 
+t('繰り返す音（環境音・曲）：端の無音を外し、終わりに頭を溶かして継ぎ目で切れない・環境音と繰り返す曲は区間を付けて鳴らす', async () => {});
+{
+  const { edgeTrim, loopFade } = await import('../shinshoku/core/soundbank.js');
+  const fake = (arr, sr = 1000) => { const d = Float32Array.from(arr); return { sampleRate: sr, numberOfChannels: 1, duration: arr.length / sr, getChannelData: () => d }; };
+  const sig = Array.from({ length: 1000 }, (_, i) => Math.sin(i / 3) * 0.3 + 0.01);
+  assert.deepEqual(edgeTrim(fake(sig)), [0, 1], '無音が無ければそのまま');
+  const L = edgeTrim(fake([...Array(30).fill(0), ...sig, ...Array(20).fill(0)]));
+  assert.equal(L[0], 0.03); assert.equal(L[1], 1.03);
+  assert.ok(edgeTrim(fake([...Array(400).fill(0), ...sig]))[0] <= 0.08, '削るのは各端 0.08 秒まで');
+  { // 継ぎ目を溶かす：頭と終わりがずれた信号でも、区間の終わり → 区間の始めが続く
+    const sr = 1000, x = Array.from({ length: 2000 }, (_, i) => Math.sin(i * 0.05)), B = fake(x.slice(0, 1937), sr), R = loopFade(B, [0, 1.937]);
+    const d = B.getChannelData(0), s0 = Math.round(R[0] * sr), e1 = Math.round(R[1] * sr) - 1;
+    assert.equal(R[0], 0.08); assert.ok(Math.abs(d[e1] - d[s0 - 1]) < 1e-6, '終わり＝始めの 1 つ前'); assert.ok(Math.abs(d[s0] - d[e1]) < 0.06, '継ぎ目の段差が小さい ' + Math.abs(d[s0] - d[e1]));
+  }
+  assert.match(audio, /src\.loop = true; this\.bank\.setLoop\(src, id\);/);
+  assert.match(bgm, /if \(src\.loop\) this\.bank\.setLoop\(src, id\);/);
+  for (const [id, m] of Object.entries(MATERIALS)) if (m.kind === 'bgm') assert.equal(!!m.loop, ['battle', 'boss', 'giant', 'ending'].some(r => BGM_TRACKS[r] === id), '繰り返す曲の印: ' + id);
+}
 console.log(`shinshoku-audio: ${n} tests passed`);

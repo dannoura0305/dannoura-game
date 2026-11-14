@@ -40,7 +40,7 @@ import { createWP } from './link/progress.js';
 import { newRouteState } from './story/route.js';
 import { CutscenePlayer } from './story/cutscene.js';
 import { Voice } from './core/voice.js';
-import { SoundBank } from './core/soundbank.js';   // 2026-11-13：無料素材サイトの音（効果音ラボ・魔王魂）。起動では読まず、遊びが始まって区画に入った時に後から
+import { SoundBank } from './core/soundbank.js';   // 2026-11-13：素材の音（2026-11-14 から CC0：OpenGameArt.org・Kenney）。起動では読まず、遊びが始まって区画に入った時に後から
 import { Music } from './core/bgm.js';
 import { SOUND_FILES } from './data/sound_files.js';
 import { audioCreditText } from './data/sound.js';
