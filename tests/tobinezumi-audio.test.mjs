@@ -82,6 +82,11 @@ t('合成音の音色：四角波・のこぎり波を使わない（柔らか�
   assert.doesNotMatch(src, /'square'|'sawtooth'/);
   assert.doesNotMatch(read('tobinezumi/client/ambient.js'), /'sawtooth'|'square'/);
 });
+t('合成の虫の声：大きさ 0 なら鳴らない（揺らしを大きさの段に直接足さない。前は 4200Hz がいつも鳴り続けていた）', () => {
+  const src = read('tobinezumi/client/ambient.js');
+  assert.doesNotMatch(src, /amg\.connect\(ig\.gain\)/);
+  assert.match(src, /amg\.connect\(trem\.gain\); o\.connect\(trem\); trem\.connect\(ig\)/);
+});
 t('選曲：タイトル・巣・土地・時間帯・季節・天気・行事で変わる。富山と砂嵐は流さない', () => {
   assert.equal(bgmPick({ scene: 'title' }), 'bgm_home');
   assert.equal(bgmPick({ scene: 'nest', region: 'toyama' }), 'bgm_nest');

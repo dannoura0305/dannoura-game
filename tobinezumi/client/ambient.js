@@ -17,7 +17,7 @@ function noiseBuffer(c, seconds = 2, brown = false) {
   return buf;
 }
 /** 素材の層の大きさ（ambMix の値 1 に対して）。素材は平均 -30 LUFS に揃えてある */
-const FILE_K = { birds: 0.9, insects: 0.55, river: 1.2, wind: 1.6, rain: 1.5 };
+const FILE_K = { birds: 0.9, insects: 0.8, river: 1.2, wind: 1.6, rain: 1.0 };
 
 export class Ambient {
   constructor(volume = 0.5) {
@@ -32,7 +32,7 @@ export class Ambient {
     if (this.ctx) return;
     const c = this.ctx = audioCtx(); if (!c) return;
     setBusVolume('amb', this.volume * 0.5 * 2);
-    this.master = c.createGain(); this.master.gain.value = 0.5;
+    this.master = c.createGain(); this.master.gain.value = 1.5;   // 2026-11-14：0.5 → 1.5（測ると層が -50 dBFS 台で小さすぎた）
     this.muffle = c.createBiquadFilter(); this.muffle.type = 'lowpass'; this.muffle.frequency.value = 18000;
     this.master.connect(this.muffle); this.muffle.connect(bus('amb'));
     const loop = (buf, filterType, freq, q = 0.7) => {
@@ -47,10 +47,13 @@ export class Ambient {
     this.rain = loop(white, 'highpass', 1400);
     this.river = loop(brown, 'bandpass', 700, 0.9);
     // 虫の声（合成）：高い音を小刻みに揺らす。録音が読めるまでのかわり
+    // 2026-11-14：揺らす段（0〜1）と大きさの段（ig）を分けた。前は揺らしを大きさの段に直接足していたので、大きさ 0 でも
+    //   4200Hz の音がいつも（昼も・巣の中でも）鳴り続けていた
     const o = c.createOscillator(); o.type = 'sine'; o.frequency.value = 4200;
     const am = c.createOscillator(); am.frequency.value = 23; const amg = c.createGain(); amg.gain.value = 0.5;
+    const trem = c.createGain(); trem.gain.value = 0.5;
     const ig = c.createGain(); ig.gain.value = 0;
-    am.connect(amg); amg.connect(ig.gain); o.connect(ig); ig.connect(this.master); o.start(); am.start();
+    am.connect(amg); amg.connect(trem.gain); o.connect(trem); trem.connect(ig); ig.connect(this.master); o.start(); am.start();
     this.insects = { g: ig };
     this.on = true;
   }
@@ -109,7 +112,7 @@ export class Ambient {
     this.wind.f.frequency.setTargetAtTime(m.windTone, this.ctx.currentTime, 0.5);
     // 素材が鳴る層は合成を弱める（風は合成の低いうなりを少し残す：砂嵐の強さを出すため）
     const fileOn = {};
-    for (const [id, role] of Object.entries(AMB_LAYERS)) fileOn[role] = this._file(id, m[role] * FILE_K[role] * (role === 'wind' && w === 'sandstorm' ? 1.3 : 1));
+    for (const [id, role] of Object.entries(AMB_LAYERS)) fileOn[role] = this._file(id, m[role] * FILE_K[role] * (role === 'wind' && w === 'sandstorm' ? 0.8 : 1));
     this._set(this.wind, m.wind * (fileOn.wind ? 0.35 : 1));
     this._set(this.rain, fileOn.rain ? m.rain * 0.15 : m.rain);
     this._set(this.river, fileOn.river ? 0 : m.river);
