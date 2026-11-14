@@ -166,7 +166,7 @@ async function swapDebris(D) {
   const pre = new THREE.Matrix4().makeScale(1.7, 1.7, 1.7).multiply(new THREE.Matrix4().makeTranslation(0, -0.31, 0));
   const meshes = prims.map(({ geometry, material }) => {
     const g = geometry.clone().applyMatrix4(pre), m = new THREE.InstancedMesh(g, material, n);
-    m.instanceMatrix.array.set(orig.instanceMatrix.array); m.count = n; m.castShadow = false; m.receiveShadow = true; m.name = 'debris_kit';   // 影の描画の網（新しい影のシェーダー）を戦いの最中に作らない。画面の外では描かない（スマホの描画呼び出しを増やさない）
+    m.instanceMatrix.array.set(orig.instanceMatrix.array); m.count = n; m.castShadow = false;   // 影の描画の網（新しい影のシェーダー）を戦いの最中に作らない m.receiveShadow = true; m.frustumCulled = false; m.name = 'debris_kit';
     orig.parent.add(m); return m;
   });
   orig.visible = false;
