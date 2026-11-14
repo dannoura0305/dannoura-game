@@ -70,7 +70,8 @@ t('演出場面のデータ：区画・段・話し手が正しい。原文（fi
     for (const e of cs.events || []) if (e.do === 'setStep') assert.ok(stepIds.has(e.arg), e.arg);
     for (const l of cs.lines || []) assert.ok(events.speakers[l.who], l.who);
   }
-  const F = fixedLines(CUTSCENES).filter(f => f.id !== 'cs_end_a'); assert.equal(F.length, 2); assert.equal(F[0].who, 'dan');   // フェーズ8：結末A の原文（cs_end_a）は別に数える（p8） assert.equal(F[0].id, 'cs03_line'); assert.equal(F[1].who, 'companion'); assert.equal(F[1].id, 'cs04_line');
+  const F = fixedLines(CUTSCENES).filter(f => f.id !== 'cs_end_a'); assert.equal(F.length, 2); assert.equal(F[0].who, 'dan');   // フェーズ8：結末A の原文（cs_end_a）は別に数える（p8）
+  assert.equal(F[0].id, 'cs03_line'); assert.equal(F[1].who, 'companion'); assert.equal(F[1].id, 'cs04_line');
   const texts = JSON.stringify(CUTSCENES) + JSON.stringify(events);
   assert.equal(texts.split('見た目だけで決めつけちゃ駄目').length - 1, 2, '原文は第3章のだんのうら 1 回と、第4章で相棒が返す 1 回だけ（3 回目は無い）');
 });

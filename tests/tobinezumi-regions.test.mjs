@@ -130,7 +130,8 @@ await test('土地ごとの天気：はじまりの原は前と同じ・砂丘�
 
 // ───────── 収集品・穴・実績 ─────────
 await test('収集品：土地・季節・時間帯・天気の条件・全員が持っている物は出ない・???の札は不思議な品 4 つから・出る場所のくせ', () => {
-  assert.equal(CURIO_ORDER.length, 24);   // Ver.0.8：季節の行事の品 4 つ   // Ver.0.6：富山の季節の品 2 つ（稲穂・ろうそく） assert.equal(SIGNS.length, 3); assert.equal(CROSSOVER.length, 6);
+  assert.equal(CURIO_ORDER.length, 24);   // Ver.0.8：季節の行事の品 4 つ   // Ver.0.6：富山の季節の品 2 つ（稲穂・ろうそく）
+  assert.equal(SIGNS.length, 3); assert.equal(CROSSOVER.length, 6);
   assert.equal(CURIOS.dragons_card.desc, 'どこかで見た絵が描かれた札');
   assert.equal(CURIOS.machine_part.desc, '人間の世界のものらしい');
   assert.equal(CURIOS.charm.desc, '見たことのない紋章が刻まれている');
