@@ -1164,7 +1164,8 @@ async function runCh4Phone(browser) {
   // 替：380ms 以上は長押し（近接の順送り）。ソフト描画では 1 フレームが 250ms 近くかかり、指を離す知らせが遅れて長押しになることがあるので、
   // 持ち替わるまで最大 3 回タップする（ゲームの仕組みは変えない・入力の届き方だけの揺れ）
   for (let i = 0; i < 3 && (await page.evaluate(() => __sh.game.player.fighter.weapon)) !== 'matchlock'; i++) { await tap('.tc-swap', 40); await sim(page, 50); }
-  await tap('.tc-atk', 60);                // 替は 380ms 以上で長押し（近接の順送り）になるので短く await page.waitForTimeout(300); await sim(page, 80);
+  await tap('.tc-atk', 60);                // 替は 380ms 以上で長押し（近接の順送り）になるので短く
+  await page.waitForTimeout(300); await sim(page, 80);
   const tv = await page.evaluate(n => ({ ev: [...new Set(__sh.game.metrics.events.slice(-60).map(e => e.t))], w: __sh.game.player.fighter.weapon, shots: __sh.game.metrics.yodanShots || 0, st: __sh.game.player.fighter.st.name }), ev0);
   ok('スマホ：タッチの斬（妖爪）・避（瞬歩）・替（火縄銃へ）・斬（妖弾の溜め）', tv.ev.includes('attackStart') && tv.ev.includes('dodge') && tv.w === 'matchlock' && (tv.shots >= 1 || ['mcharge', 'mrecoil', 'mreload'].includes(tv.st)), JSON.stringify(tv));
   await page.evaluate(() => { __sh.debug.fastSim(160); __sh.debug.hold(true); }); await clearUI(page); await shot(page, 'phone_20_lab_white.png', 1500); await page.evaluate(() => __sh.debug.hold(false));
