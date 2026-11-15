@@ -1824,7 +1824,8 @@ registerMinigame({
         cx.fillStyle='#ffe6da';cx.beginPath();cx.arc(kx+16,ky+28,2.5,0,TAU);cx.fill();
       }else{
         cx.fillStyle='#9fe2c8';cx.beginPath();cx.ellipse(fx0+32,fy+12,11,4.5,0,0,TAU);cx.fill();
-        drawKidFace(fx0+32,fy-2,12,false,st==='sleepCool',st==='sleepHot');
+        // 寝ている時は頭を枕の上で横に倒す（頭のてっぺんが枕の側・あごが体の側）。前は起きている時と同じ縦向きで、首が立って見えた
+        cx.save();cx.translate(fx0+30,fy+3);cx.rotate(-1.35);drawKidFace(0,-3.6,12,false,st==='sleepCool',st==='sleepHot');cx.restore();
         if(st==='sleepHot'||st==='sleepCool'){cx.font=F11;cx.textAlign='left';cx.fillStyle='rgba(222,204,248,.6)';cx.fillText('z',fx0+50,fy-22-((t*8)%10));}
       }
       // 掛け布団（呼吸で上下）

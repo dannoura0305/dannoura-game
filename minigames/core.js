@@ -109,6 +109,16 @@ const MG_CATS=[
   {id:'story',  name:'物語',       ids:['rpg','horror']},
   {id:'life',   name:'暮らし・癒し',ids:['cooking','fishing']},
 ];
+// 試作のミニゲーム（開発用の印がある時だけ選択画面に出す。ふだんの遊びでは出ない）
+//  買い出しダッシュ 高難易度版（試作）：URL に ?runnerhard=1（docs/minigames/runner-hard-design.md）
+try{
+  if(typeof location!=='undefined'&&/[?&]runnerhard=1\b/.test(location.search||'')&&!MINIGAMES.some(m=>m.id==='runner_hard')){
+    MINIGAMES.push({id:'runner_hard',file:'runner_hard',icon:'☔',name:'買い出しダッシュ（高難易度版・試作）',genre:'アクション',bgm:'mg_runner',
+      desc:'試作：横スクロールのアクション。走る・跳ぶ・ダッシュ・壁蹴りで、雨の町をコンビニまで。',effect:'試作（本編の数値はほとんど変わらない） ／ 疲労+4 約20分',
+      help:'←→:移動 Z:ジャンプ C:ダッシュ ↓:スライド'});
+    MG_CATS.find(c=>c.id==='action').ids.push('runner_hard');
+  }
+}catch(e){}
 // 工場の選択画面のタブ（アイコンは main/icons.js の work）
 const MG_FACTORY_CATS=[
   {id:'factory',name:'工場',icon:'work'},
