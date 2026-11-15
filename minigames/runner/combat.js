@@ -19,8 +19,10 @@
     // 空中斬り（基本）：上がる・落ちる途中。横の動きはそのまま。着地で終わる
     air: { base: true, on: 'air', startup: 3, active: 5, recover: 10, step: 0,
       hit: { x: -6, y: 2, w: 58, h: 50, dmg: 1, hitstop: 4, kb: 3 }, cancel: {} },
-    // 習得技の枠（例。名前・中身・どのボスで覚えるかは未決定。data を足すだけで増やせる）
-    // rising: { base: false, learnedFrom: '（未定）', on: 'ground', input: 'up', ... }
+    // 習得技（仮）：切り上げ。↑を押しながら攻撃。上と前を広く払う（宙の敵に）。仮のボス（大きな雨坊主・仮）を倒すと覚える
+    // 正式な技の名前・中身・どのボスで覚えるかは未決定。表に足すだけで増やせる
+    rising: { base: false, learnedFrom: 'boss_a', name: '切り上げ（仮）', on: 'ground', input: 'up', startup: 5, active: 6, recover: 16, step: 3,
+      hit: { x: -4, y: 20, w: 48, h: 86, dmg: 2, hitstop: 6, kb: 2 }, cancel: { jump: [10, 27], dash: [12, 27] } },
   };
   const BUFFER_F = 8;                                               // 硬直中に押した攻撃を覚えておくこま数
   const GROUND = ['stand', 'walk_start', 'walk', 'land', 'dash', 'dash_end'];
@@ -36,7 +38,7 @@
     // 攻撃を始める（入れる技を選ぶ）
     function pick(b, inp) {
       if (AIR.includes(b.state)) return usable('air') ? 'air' : null;
-      if (GROUND.includes(b.state)) return usable('slash1') ? 'slash1' : null;
+      if (GROUND.includes(b.state)) { if (inp.up && usable('rising')) return 'rising'; return usable('slash1') ? 'slash1' : null; }
       return null;
     }
     function start(b, id) { b.atk = { id, f: 0, hits: new Set(), chain: 0 }; if (MOVES[id].on === 'ground' && b.state !== 'stand') act.go(b, 'stand'); }
@@ -49,6 +51,7 @@
         const m = MOVES[a.id];
         a.f++;
         // 次の技へ（窓の中で、覚えていた攻撃）
+        if (m.on === 'ground' && a.id !== 'rising' && inp.up && b.atkBuf > 0 && usable('rising') && inWin(m.cancel.slash2 || m.cancel.slash3 || m.cancel.jump, a.f)) { b.atkBuf = 0; b.atk = { id: 'rising', f: 1, hits: new Set(), chain: a.chain + 1 }; return hold(b, inp, MOVES.rising); }
         for (const [to, w] of Object.entries(m.cancel)) {
           if (to === 'jump' || to === 'dash' || !inWin(w, a.f) || !(b.atkBuf > 0) || !usable(to)) continue;
           b.atkBuf = 0; b.atk = { id: to, f: 1, hits: new Set(), chain: a.chain + 1 }; return hold(b, inp, MOVES[to]);

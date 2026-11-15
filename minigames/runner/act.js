@@ -27,7 +27,8 @@
   function makeMap(rows, tile = TILE) {
     const H = rows.length, W = Math.max(...rows.map(r => r.length));
     const at = (cx, cy) => { const r = H - 1 - cy; if (cx < 0 || cx >= W) return '#'; if (r < 0) return '.'; if (r >= H) return '#'; return rows[r][cx] || '.'; };
-    return { rows, tile, W, H, at, solid: (cx, cy) => at(cx, cy) === '#', oneway: (cx, cy) => at(cx, cy) === '=', spike: (cx, cy) => at(cx, cy) === '^' };
+    const extra = new Set();                                         // 後から足す壁（ボスの部屋の柵など）：'列,高さ'
+    return { rows, tile, W, H, at, extra, solid: (cx, cy) => at(cx, cy) === '#' || extra.has(cx + ',' + cy), oneway: (cx, cy) => at(cx, cy) === '=', spike: (cx, cy) => at(cx, cy) === '^' };
   }
   const EMPTY = { tile: TILE, at: () => '.', solid: () => false, oneway: () => false, spike: () => false };
 

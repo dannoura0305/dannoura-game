@@ -19,7 +19,7 @@ let n = 0; const t = (name, fn) => { fn(); n++; console.log('  ✓ ' + name); };
 const ROWS = ST.rows(), T = RA.TILE, Hh = ROWS.length;
 const find = ch => { for (let r = 0; r < Hh; r++) { const c = ROWS[r].indexOf(ch); if (c >= 0) return { c, x: c * T + T / 2, y: (Hh - 1 - r) * T }; } return null; };
 const map = RA.makeMap(ROWS.map(r => r.replace(/[SCG]/g, '.')));
-const S = find('S'), G = find('G');
+const S = find('S'), G = find('G'), AR = ST.arena();
 
 t('登録：runner_hard が 1 本・面は 14 行で幅がそろう・始まりと戸がある', () => {
   assert.equal(defs.length, 1); assert.equal(defs[0].id, 'runner_hard'); assert.equal(typeof defs[0].start, 'function');
@@ -47,11 +47,11 @@ function bot(b, f, mem) {
 }
 function runBot(limit = 60 * 90) {
   const A = RA.make({ map }), b = A.body(S.x, S.y, 1), mem = {}; let hurt = 0, maxX = 0, f = 0;
-  for (; f < limit; f++) { A.step(b, bot(b, f, mem)); if (b.state === 'hurt') hurt++; maxX = Math.max(maxX, b.x); if (Math.abs(b.x - G.x) < 26 && Math.abs(b.y - G.y) < 30) return { ok: true, f, hurt, b }; }
+  for (; f < limit; f++) { A.step(b, bot(b, f, mem)); if (b.state === 'hurt') hurt++; maxX = Math.max(maxX, b.x); if (b.x > (AR.c0 + 2) * T && b.y === 80) return { ok: true, f, hurt, b }; }
   return { ok: false, f, hurt, maxX: Math.round(maxX / T), b };
 }
 
-t('通れる：自動操作で、始まりからコンビニの戸まで行ける（とげに当たらずに）', () => {
+t('通れる：自動操作で、始まりからボスの部屋まで行ける（とげに当たらずに）', () => {
   const r = runBot();
   assert.ok(r.ok, `届かなかった：いちばん右 ${r.maxX} マス・最後 ${r.b.state} (${(r.b.x / T).toFixed(1)}, ${(r.b.y / T).toFixed(1)})`);
   assert.equal(r.hurt, 0, 'とげに当たった');
@@ -74,6 +74,17 @@ t('区間の意味：立ったまま（歩き）では低い天井の下を通�
   const A = RA.make({ map }), b = A.body(80 * T, 80, 1);
   for (let f = 0; f < 200; f++) A.step(b, { r: true });
   assert.ok(b.x < 84 * T, `通れてしまう x=${(b.x / T).toFixed(1)}`);
+});
+
+t('ボスの部屋：平らな床（列 c0〜c1）・その先にコンビニの戸・部屋から戸まで歩いて行ける', () => {
+  for (let c = AR.c0 - 1; c <= AR.c1 + 1; c++) { assert.ok(map.solid(c, 1), `床 ${c}`); assert.ok(!map.solid(c, 2) && !map.solid(c, 3), `空き ${c}`); }
+  assert.ok(G.c > AR.c1 + 1);
+  const A = RA.make({ map }), b = A.body((AR.c1 - 1) * T, 80, 1); let f = 0;
+  for (; f < 600; f++) { A.step(b, { r: true }); if (Math.abs(b.x - G.x) < 26) break; }
+  assert.ok(Math.abs(b.x - G.x) < 26, `戸に届かない x=${(b.x / T).toFixed(1)}`);
+  map.extra.add((AR.c1 + 1) + ',2'); map.extra.add((AR.c1 + 1) + ',3');
+  const c = A.body((AR.c1 - 1) * T, 80, 1); for (let i = 0; i < 200; i++) A.step(c, { r: true }); assert.ok(c.x < (AR.c1 + 1) * T, '柵が閉まっていれば通れない');
+  map.extra.clear();
 });
 
 console.log(`runner-hard-stage: ${n} ok`);
