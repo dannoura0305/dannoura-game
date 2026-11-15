@@ -33,13 +33,17 @@ var RunnerHardStage = RunnerHardStage || {
     put(114, 2, 'G');                           // コンビニの戸
     return g.map(r => r.join(''));
   },
+  // 弱い敵の置き場所 [種類, 列, 高さ（マス）, 向き]（名前・見た目は仮）
+  enemies() {
+    return [['walker', 19, 2, -1], ['flyer', 34, 6, -1], ['walker', 40, 2, -1], ['walker', 56, 7, -1], ['walker', 80, 2, -1], ['flyer', 97, 4, -1], ['walker', 106, 2, -1]];
+  },
 };
 
 registerMinigame({
   id: 'runner_hard', icon: '☔', name: '買い出しダッシュ（高難易度版・試作）', genre: 'アクション', bgm: 'mg_runner',
   desc: '試作：横スクロールのアクション。走る・跳ぶ・ダッシュ・壁蹴りで、雨の町をコンビニまで。',
   effect: '試作（本編の数値はほとんど変わらない） ／ 疲労+4 約20分',
-  help: '←→:移動 Z:ジャンプ C:ダッシュ ↓:スライド',
+  help: '←→:移動 Z:ジャンプ X:攻撃 C:ダッシュ ↓:スライド',
   start(body, mg) {
     const TAU = Math.PI * 2, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), rnd = (a, b) => a + Math.random() * (b - a);
     // ── 記録（gs.runnerHard。通常版の gs.runnerData には触らない） ──
@@ -62,7 +66,7 @@ registerMinigame({
     //  # 床・壁　= 上からだけ乗れる床（店のひさし）　^ とげ（割れた植木鉢の破片）　S 始まり　C 途中の印　G コンビニの戸
     //  通れることは tests/runner-hard-stage.test.mjs で自機を動かして確かめる
     const ROWS = RunnerHardStage.rows();
-    let act = null, map = null, B = null, tick = null;
+    let act = null, map = null, B = null, C = null, E = null, foes = [], kills = 0, hitStop = 0, acc = 0, prevIn = {};
     let spawn = { x: 0, y: 0 }, check = { x: 0, y: 0 }, goal = { x: 0, y: 0 };
 
     // ── 状態 ──
@@ -76,23 +80,23 @@ registerMinigame({
     // ── 効果音（通常版と同じく合成。AUDIO_SET.se に従う） ──
     function actx() { if (typeof AU === 'undefined' || typeof AUDIO_SET === 'undefined' || !(AUDIO_SET.se > 0)) return null; try { AU.init(); } catch (e) {} const c = AU.ctx; if (c && c.state === 'suspended') c.resume().catch(() => {}); return c; }
     function blip(type, f0, f1, dur, g) { const c = actx(); if (!c) return; const t0 = c.currentTime, o = c.createOscillator(), v = c.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t0); if (f1) o.frequency.exponentialRampToValueAtTime(f1, t0 + dur); v.gain.setValueAtTime(.0001, t0); v.gain.linearRampToValueAtTime(g * AUDIO_SET.se, t0 + .008); v.gain.exponentialRampToValueAtTime(.0001, t0 + dur); o.connect(v); v.connect(AU.out || c.destination); o.start(t0); o.stop(t0 + dur + .02); }
-    const SE = { jump: () => blip('triangle', 420, 760, .12, .12), dash: () => blip('sawtooth', 160, 90, .14, .05), kick: () => blip('square', 300, 620, .1, .07), land: () => blip('sine', 140, 70, .08, .12), hurt: () => blip('square', 220, 90, .25, .1), slide: () => blip('sawtooth', 120, 80, .2, .04), check: () => { blip('sine', 660, 0, .12, .09); setTimeout(() => blip('sine', 990, 0, .2, .08), 90); }, clear: () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => blip('triangle', f, 0, .25, .1), i * 110)) };
+    const SE = { swing: big => { blip('sawtooth', big ? 900 : 1300, big ? 300 : 500, big ? .16 : .1, .05); }, hit: dead => { blip('square', dead ? 180 : 260, dead ? 60 : 140, dead ? .22 : .09, .12); }, jump: () => blip('triangle', 420, 760, .12, .12), dash: () => blip('sawtooth', 160, 90, .14, .05), kick: () => blip('square', 300, 620, .1, .07), land: () => blip('sine', 140, 70, .08, .12), hurt: () => blip('square', 220, 90, .25, .1), slide: () => blip('sawtooth', 120, 80, .2, .04), check: () => { blip('sine', 660, 0, .12, .09); setTimeout(() => blip('sine', 990, 0, .2, .08), 90); }, clear: () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => blip('triangle', f, 0, .25, .1), i * 110)) };
 
     // ── 入力：キーボード・ゲームパッド・画面のボタン ──
-    const K = { l: false, r: false, j: false, d: false, dn: false };
-    const keyMap = { ArrowLeft: 'l', a: 'l', A: 'l', ArrowRight: 'r', d: 'r', D: 'r', z: 'j', Z: 'j', ' ': 'j', ArrowUp: 'j', w: 'j', W: 'j', c: 'd', C: 'd', Shift: 'd', ArrowDown: 'dn', s: 'dn', S: 'dn' };
+    const K = { l: false, r: false, j: false, d: false, dn: false, atk: false };
+    const keyMap = { ArrowLeft: 'l', a: 'l', A: 'l', ArrowRight: 'r', d: 'r', D: 'r', z: 'j', Z: 'j', ' ': 'j', ArrowUp: 'j', w: 'j', W: 'j', c: 'd', C: 'd', Shift: 'd', ArrowDown: 'dn', s: 'dn', S: 'dn', x: 'atk', X: 'atk' };
     mg.onKey(e => {
       const k = keyMap[e.key]; if (!k) { if (e.key === 'Enter' && e.type === 'keydown') advance(); return; }
       e.preventDefault(); K[k] = e.type === 'keydown';
       if (e.type === 'keydown' && k === 'j' && !e.repeat) advance();
     });
     function padInput() {
-      const o = { l: false, r: false, j: false, d: false, dn: false };
+      const o = { l: false, r: false, j: false, d: false, dn: false, atk: false };
       let pads = []; try { pads = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean) : []; } catch (e) {}
       for (const g of pads) {
         const b = i => !!(g.buttons[i] && g.buttons[i].pressed), ax = g.axes[0] || 0, ay = g.axes[1] || 0;
         o.l = o.l || b(14) || ax < -.4; o.r = o.r || b(15) || ax > .4; o.dn = o.dn || b(13) || ay > .6;
-        o.j = o.j || b(0); o.d = o.d || b(2) || b(5) || b(7) || b(1);
+        o.j = o.j || b(0); o.atk = o.atk || b(2) || b(3); o.d = o.d || b(1) || b(5) || b(7);   // A ジャンプ・X（Y）攻撃・B（RB・RT）ダッシュ
         if (b(0) && !padPrevA) advance(); padPrevA = b(0);
       }
       return o;
@@ -100,13 +104,13 @@ registerMinigame({
     let padPrevA = false;
     // 画面のボタン（スマホ）：左下に ← →、右下に ジャンプ・ダッシュ・スライド。複数の指に対応
     const touches = new Map(); let showTouch = (typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches);
-    const btns = () => { const r = 34, y = VH - 58; return [{ k: 'l', x: 52, y, r, lab: '◀' }, { k: 'r', x: 132, y, r, lab: '▶' }, { k: 'dn', x: VW - 212, y: y + 6, r: 28, lab: '▼' }, { k: 'd', x: VW - 136, y, r, lab: 'ダッシュ' }, { k: 'j', x: VW - 58, y: y - 24, r: 38, lab: 'ジャンプ' }]; };
-    function touchKeys() { const o = { l: false, r: false, j: false, d: false, dn: false }; for (const p of touches.values()) for (const b of btns()) if (Math.hypot(p.x - b.x, p.y - b.y) < b.r + 14) o[b.k] = true; return o; }
+    const btns = () => { const r = 34, y = VH - 58; return [{ k: 'l', x: 52, y, r, lab: '◀' }, { k: 'r', x: 132, y, r, lab: '▶' }, { k: 'dn', x: 92, y: y - 66, r: 26, lab: '▼' }, { k: 'd', x: VW - 212, y: y + 4, r: 30, lab: 'ダッシュ' }, { k: 'atk', x: VW - 136, y: y - 4, r: 34, lab: '攻撃' }, { k: 'j', x: VW - 58, y: y - 30, r: 38, lab: 'ジャンプ' }]; };
+    function touchKeys() { const o = { l: false, r: false, j: false, d: false, dn: false, atk: false }; for (const p of touches.values()) for (const b of btns()) if (Math.hypot(p.x - b.x, p.y - b.y) < b.r + 14) o[b.k] = true; return o; }
     const toV = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / sc, y: (e.clientY - r.top) / sc }; };
     cv.addEventListener('pointerdown', e => { e.preventDefault(); if (e.pointerType === 'touch') showTouch = true; if (advance()) return; try { cv.setPointerCapture(e.pointerId); } catch (_) {} touches.set(e.pointerId, toV(e)); });
     cv.addEventListener('pointermove', e => { if (touches.has(e.pointerId)) touches.set(e.pointerId, toV(e)); });
     const up = e => touches.delete(e.pointerId); cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up); cv.addEventListener('contextmenu', e => e.preventDefault());
-    function readInput() { const p = padInput(), tch = showTouch ? touchKeys() : {}; const o = {}; for (const k of ['l', 'r', 'j', 'd', 'dn']) o[k] = !!(K[k] || p[k] || tch[k]); return o; }
+    function readInput() { const p = padInput(), tch = showTouch ? touchKeys() : {}; const o = {}; for (const k of ['l', 'r', 'j', 'd', 'dn', 'atk']) o[k] = !!(K[k] || p[k] || tch[k]); return o; }
 
     // ── 流れ ──
     function advance() {
@@ -135,18 +139,43 @@ registerMinigame({
       // 印の足もとを床まで下ろす
       const drop = p => { let y = p.y; while (y > 0 && !map.solid(Math.floor(p.x / T), Math.floor((y - 1) / T))) y -= T; p.y = Math.max(0, Math.ceil(y / T) * T); };
       [spawn, goal, ...checks].forEach(drop);
-      act = RunnerAct.make({ map }); tick = RunnerAct.stepper(act);
+      act = RunnerAct.make({ map }); C = RunnerCombat.make(act, { learned: REC.moves || [] }); E = RunnerEnemies.make(map);
+      foes = RunnerHardStage.enemies().map(([type, c, cy, face]) => E.spawn(type, c * T + T / 2, cy * T, face));
       check = { x: spawn.x, y: spawn.y }; B = act.body(spawn.x, spawn.y, 1);
       phase = 'intro'; phaseT = 0;
     }
     const checks = [];
+    // 自機の動き・技・敵（minigames/runner/*.js）を順に読む（読み込み済みなら読まない）
     function loadAct() {
-      if (typeof RunnerAct !== 'undefined') { build(); return; }
-      const s = document.createElement('script'); s.src = 'minigames/runner/act.js'; s.async = true;
-      s.onload = () => { if (!mg._ended) build(); }; s.onerror = () => { phase = 'error'; };
-      document.head.appendChild(s);
+      const need = [['RunnerAct', 'act'], ['RunnerCombat', 'combat'], ['RunnerEnemies', 'enemies']].filter(([g]) => typeof window[g] === 'undefined');
+      const next = () => {
+        if (mg._ended) return; const n = need.shift(); if (!n) { build(); return; }
+        const s = document.createElement('script'); s.src = 'minigames/runner/' + n[1] + '.js'; s.async = true;
+        s.onload = next; s.onerror = () => { phase = 'error'; }; document.head.appendChild(s);
+      };
+      next();
     }
 
+    // ── 1 こま（1/60 秒）：技 → 自機の動き → 踏み込み → 敵 → 当たり ──
+    function frame(raw) {
+      const inp = Object.assign({}, raw); inp.atkP = inp.atk && !prevIn.atk; inp.jP = inp.j && !prevIn.j; inp.dP = inp.d && !prevIn.d; prevIn = raw;
+      if (hitStop > 0) { hitStop--; if (inp.atkP) B.atkBuf = RunnerCombat.BUFFER_F; return; }   // 当たった瞬間の止め（押した攻撃は覚えておく）
+      const wasAtk = B.atk && B.atk.id + ':' + B.atk.chain;
+      act.step(B, C.pre(B, inp)); C.post(B);
+      if (B.atk && B.atk.id + ':' + B.atk.chain !== wasAtk) { SE.swing(B.atk.id === 'slash3'); }
+      for (const e of foes) E.step(e, B);
+      foes = foes.filter(e => !e.gone);
+      // 攻撃が敵に当たる
+      const hb = C.hitbox(B);
+      if (hb) for (const e of foes) {
+        if (e.dead || !RunnerCombat.overlap(hb, E.box(e)) || !C.tryHit(B, e)) continue;
+        E.hurt(e, hb.dmg, hb.kb); hitStop = Math.max(hitStop, hb.hitstop); shake = Math.max(shake, hb.hitstop > 5 ? .25 : .12); SE.hit(e.dead);
+        const ex = e.x, ey = e.y + 18; for (let i = 0; i < (e.dead ? 16 : 8); i++) emit(ex, ey, rnd(-160, 160), rnd(-60, 200), .35, i % 2 ? '#e8f0ff' : '#00e8c8', 2.2, 400);
+        if (e.dead) kills++;
+      }
+      // 敵に触れる → やられ（後ろへ飛ぶ・無敵）
+      if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); for (const e of foes) { if (e.dead || !RunnerCombat.overlap(pb, E.box(e))) continue; B.atk = null; act.hurt(B, e.x < B.x ? -1 : 1); break; } }   // 敵の方を向いたまま、後ろへ飛ぶ
+    }
     // ── 更新 ──
     let lastState = 'stand';
     function update(dt) {
@@ -157,7 +186,8 @@ registerMinigame({
       if (phase !== 'play' || !act) { if (phase === 'clear' && B) { B.vx = 0; } return; }
       runTime += dt;
       const inp = readInput(), wasInvul = B.invul;
-      tick(B, dt, inp);
+      acc = Math.min(acc + dt, 5 / 60);
+      while (acc >= 1 / 60 - 1e-9) { acc -= 1 / 60; frame(inp); if (phase !== 'play') break; }
       // 状態の変わり目の音と粒
       if (B.state !== lastState) {
         if (B.state === 'jump') { SE.jump(); for (let i = 0; i < 6; i++) emit(B.x, B.y, rnd(-80, 80), rnd(20, 90), .3, 'rgba(170,200,255,.75)', 2, 300); }
@@ -187,6 +217,12 @@ registerMinigame({
     function setPose() {
       const st = B.state, spd = Math.abs(B.vx) * 60;
       const set = (hy, lean, lt, rt, la, ra, ua) => { J.hx = 0; J.hy = hy; J.lean = lean; J.lt[0] = lt[0]; J.lt[1] = lt[1]; J.rt[0] = rt[0]; J.rt[1] = rt[1]; J.la[0] = la[0]; J.la[1] = la[1]; J.ra[0] = ra[0]; J.ra[1] = ra[1]; J.ua = ua; };
+      if (B.atk) {                                                    // 攻撃：傘を閉じて振る（腕の角度を、出る前 → 当たる間 → 戻り で動かす）
+        const m = RunnerCombat.MOVES[B.atk.id], f = B.atk.f, u = f <= m.startup ? 0 : f <= m.startup + m.active ? (f - m.startup) / m.active : 1;
+        const sw = { slash1: [2.8, .55], slash2: [.7, 2.5], slash3: [3.1, .25], air: [2.7, .35] }[B.atk.id] || [2.8, .55], aa = sw[0] + (sw[1] - sw[0]) * u;
+        const air = m.on === 'air';
+        return set(air ? -28 : -26, (B.atk.id === 'slash3' ? .35 : .22) * (u > 0 ? 1 : .4), air ? [1.1, -.2] : [.55, -.05], air ? [.3, -1.0] : [-.45, -.25], [-.6, .3], [aa, aa], 0);
+      }
       if (st === 'hurt') return set(-27, -.42, [.5, .2], [-.4, -.6], [2.3, 2.9], [2.2, 2.5], -.5);
       if (st === 'slide') return set(-9, -.95, [1.55, 1.6], [1.05, -.25], [-1.1, -.6], [1.4, 1.9], 1.25);
       if (st === 'wall_slide') return set(-28, -.15, [.6, -.2], [.1, -.5], [-1.4, -.9], [2.7, 2.9], -.2);
@@ -212,7 +248,15 @@ registerMinigame({
       if (!pal.rim) { cx.fillStyle = pal.hairHi; cx.fillRect(hdx - 4, hdy - 7, 5, 1.5); cx.strokeStyle = '#2a1c36'; cx.lineWidth = 1; cx.strokeRect(hdx + 3.5, hdy - .6, 4.4, 3); cx.fillStyle = 'rgba(200,255,250,.85)'; cx.fillRect(hdx + 4, hdy, 3.5, 2); cx.fillStyle = '#ff9ac8'; for (let i = 0; i < 5; i++) { const a = i * TAU / 5; cx.beginPath(); cx.arc(hdx - 5 + Math.cos(a) * 1.3, hdy - 6 + Math.sin(a) * 1.3, 1.1, 0, TAU); cx.fill(); } }
       cx.save(); cx.translate(hdx + 1, hdy - 7); cx.rotate(J.lean * .6 - .12); cx.fillStyle = pal.hat; cx.fillRect(-6, -1, 12, 2); cx.fillRect(-3.5, -7, 7, 6.5); cx.restore();
       limb(sx + 1, sy + 1, J.la[0], 10, J.la[1], 10, pal.jacket, 5, null);
-      drawUmbrella(pal, hand[0], hand[1], J.ua);
+      if (B.atk) drawClosedUmbrella(pal, hand[0], hand[1]); else drawUmbrella(pal, hand[0], hand[1], J.ua);
+      cx.restore();
+    }
+    // 攻撃の形（仮）：傘を閉じて刀のように振る。腕の向き（J.ra）に合わせて、閉じた傘を手の先へ伸ばす
+    function drawClosedUmbrella(pal, hx, hy) {
+      const a = J.ra[1];
+      cx.save(); cx.translate(hx, hy); cx.rotate(-a + Math.PI);
+      cx.strokeStyle = pal.rim ? pal.jacket : '#c8c0d8'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(0, 3); cx.lineTo(0, -40); cx.stroke();
+      if (!pal.rim) { cx.fillStyle = 'rgba(200,215,240,.85)'; cx.beginPath(); cx.moveTo(-3.5, -8); cx.lineTo(0, -40); cx.lineTo(3.5, -8); cx.closePath(); cx.fill(); cx.strokeStyle = '#8a74b8'; cx.lineWidth = 1.2; cx.beginPath(); cx.moveTo(-3, -16); cx.lineTo(3, -18); cx.stroke(); }
       cx.restore();
     }
     function drawUmbrella(pal, hx, hy, ua) {
@@ -261,6 +305,38 @@ registerMinigame({
       cx.fillStyle = '#fff'; cx.font = 'bold 13px sans-serif'; cx.textAlign = 'center'; cx.fillText('24H', gx, gy - 106);
       cx.fillStyle = 'rgba(255,250,200,.85)'; cx.fillRect(gx - 22, gy - 70, 44, 70); cx.fillStyle = 'rgba(255,240,160,.25)'; cx.fillRect(gx - 90, gy - 4, 180, 6);
     }
+    // 敵（仮の見た目）：雨坊主＝雨合羽の小さな坊主・からかさ＝一つ目の古い傘
+    function drawFoes() {
+      for (const e of foes) {
+        const x = sx(e.x), y = sy(e.y), a = e.dead ? Math.max(0, 1 - e.deadF / RunnerEnemies.DEATH_F) : 1, fl = e.hitT > 6;
+        cx.globalAlpha = a; cx.save(); cx.translate(x, y); if (e.dead) cx.scale(1 + e.deadF * .03, 1 - e.deadF * .03);
+        if (e.type === 'walker') {
+          const bob = Math.abs(Math.sin(e.f * .2)) * 2;
+          cx.fillStyle = 'rgba(0,0,0,.35)'; cx.beginPath(); cx.ellipse(0, 1, 14, 3, 0, 0, TAU); cx.fill();
+          cx.fillStyle = fl ? '#ffffff' : '#3a6a8a'; cx.beginPath(); cx.moveTo(-14, 0); cx.quadraticCurveTo(-12, -30 - bob, 0, -36 - bob); cx.quadraticCurveTo(12, -30 - bob, 14, 0); cx.closePath(); cx.fill();
+          cx.fillStyle = fl ? '#ffffff' : '#5a9ac0'; cx.beginPath(); cx.arc(0, -26 - bob, 11, Math.PI, 0); cx.fill();
+          cx.fillStyle = '#0a0a18'; cx.fillRect(e.face * 3 - 5, -24 - bob, 3, 4); cx.fillRect(e.face * 3 + 2, -24 - bob, 3, 4);
+        } else {
+          const tilt = e.state === 'dive' ? .5 * Math.sign(e.vx || 1) : Math.sin(e.f * .07) * .15;
+          cx.rotate(tilt);
+          cx.fillStyle = fl ? '#ffffff' : '#b04a5a'; cx.beginPath(); cx.moveTo(-18, -8); cx.quadraticCurveTo(0, -34, 18, -8); cx.closePath(); cx.fill();
+          cx.strokeStyle = '#3a1a20'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(0, -8); cx.lineTo(0, 8); cx.stroke();
+          cx.fillStyle = '#fff6e0'; cx.beginPath(); cx.arc(0, -16, 5, 0, TAU); cx.fill(); cx.fillStyle = '#1a0a10'; cx.beginPath(); cx.arc(e.face * 1.5, -16, 2.2, 0, TAU); cx.fill();
+          cx.fillStyle = '#e8a0a8'; cx.fillRect(4, -10, 6, 3);
+        }
+        cx.restore(); cx.globalAlpha = 1;
+      }
+    }
+    // 振りの軌跡（当たる間だけ）
+    function drawSlash() {
+      const hb = C && C.hitbox(B); if (!hb) return;
+      const x0 = sx(hb.x0), x1 = sx(hb.x1), y0 = sy(hb.y1), y1 = sy(hb.y0), cxm = (x0 + x1) / 2, cym = (y0 + y1) / 2, f = B.face;
+      cx.strokeStyle = hb.id === 'slash3' ? 'rgba(232,184,48,.9)' : 'rgba(0,232,200,.85)'; cx.lineWidth = hb.id === 'slash3' ? 5 : 3.5; cx.lineCap = 'round';
+      cx.beginPath();
+      if (hb.id === 'slash2') cx.ellipse(cxm - f * 10, cym, (x1 - x0) / 2, (y1 - y0) / 2, 0, f > 0 ? -1.4 : Math.PI - 1.7, f > 0 ? 1.7 : Math.PI + 1.4);
+      else cx.ellipse(cxm - f * 10, cym, (x1 - x0) / 2, (y1 - y0) / 2, 0, f > 0 ? -1.9 : Math.PI - .4, f > 0 ? .4 : Math.PI + 1.9);
+      cx.stroke(); cx.lineCap = 'butt';
+    }
     function drawPlayer() {
       setPose(); ph += Math.abs(B.vx) * .2;
       let alpha = 1; if (B.invul > 0) alpha = (Math.floor(B.invul / 4) % 2) ? .35 : 1;
@@ -292,20 +368,20 @@ registerMinigame({
       cx.save(); cx.translate(shx, 0);
       drawBack(); drawTiles();
       for (const p of P) if (p.a) { cx.globalAlpha = Math.max(0, p.l / p.m); cx.fillStyle = p.c; cx.fillRect(sx(p.x) - p.s / 2, sy(p.y) - p.s / 2, p.s, p.s); }
-      cx.globalAlpha = 1; drawPlayer();
+      cx.globalAlpha = 1; drawFoes(); drawPlayer(); drawSlash();
       cx.strokeStyle = 'rgba(170,190,255,.3)'; cx.lineWidth = 1; cx.beginPath(); for (let i = 0; i < RN; i += 2) { cx.moveTo(rx[i], ry[i]); cx.lineTo(rx[i] - 6, ry[i] - rl[i]); } cx.stroke();
       cx.restore();
       if (flash > 0) { cx.fillStyle = `rgba(255,120,140,${flash * .25})`; cx.fillRect(0, 0, VW, VH); }
       drawHUD();
       if (banner) { const a = Math.min(1, banner.t * 3, (2.6 - banner.t) * 3); cx.globalAlpha = a; cx.fillStyle = 'rgba(5,4,14,.7)'; cx.fillRect(0, 70, VW, 34); cx.fillStyle = '#00e8c8'; cx.font = 'bold 15px sans-serif'; cx.textAlign = 'center'; cx.fillText(banner.txt, VW / 2, 93); cx.globalAlpha = 1; }
-      if (phase === 'intro') card(['高難易度版（試作）', '雨の町を、コンビニまで。', '←→ 移動　Z ジャンプ　C ダッシュ　↓ スライド', '壁に向かって押しながら跳ぶと、壁を蹴る'], (showTouch ? 'タップ' : 'Z・Enter') + 'で はじめる');
+      if (phase === 'intro') card(['高難易度版（試作）', '雨の町を、コンビニまで。', '←→ 移動　Z ジャンプ　X 攻撃（3 段・空中）　C ダッシュ　↓ スライド', '壁に向かって押しながら跳ぶと、壁を蹴る'], (showTouch ? 'タップ' : 'Z・Enter') + 'で はじめる');
       if (phase === 'clear') card(['コンビニに着いた', `${runTime.toFixed(1)} 秒　／　ぶつかった ${hurts} 回`, '冷却シートと、プリン。'], (showTouch ? 'タップ' : 'Z・Enter') + 'で 戻る');
       if (phase === 'over') card(['傘が折れた……', 'もう一度、行かなきゃ。'], (showTouch ? 'タップ' : 'Z・Enter') + 'で 戻る');
     }
 
     // 試験の時だけの入口（window.__MG_TEST__ がある時だけ）
     if (typeof window !== 'undefined' && window.__MG_TEST__) window.__MG_TEST__.runnerHard = {
-      get s() { return { phase, hp, falls, hurts, runTime, outcome, x: B && B.x, y: B && B.y, state: B && B.state, goal, spawn, checks: checks.map(c => !!c.got) }; },
+      get s() { return { phase, hp, falls, hurts, runTime, outcome, kills, foes: foes.map(e => ({ type: e.type, x: e.x, y: e.y, hp: e.hp, dead: e.dead, face: e.face })), invul: B && B.invul, atk: B && B.atk && B.atk.id, x: B && B.x, y: B && B.y, state: B && B.state, goal, spawn, checks: checks.map(c => !!c.got) }; },
       warp(x, y) { if (B) { B.x = x; B.y = y; B.vx = B.vy = 0; act.go(B, 'fall'); } }, start() { advance(); },
     };
 
