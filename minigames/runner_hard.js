@@ -8,6 +8,9 @@
 // ══════════════════════════════════════════════════════════
 addMinigameStyle('runner_hard', `
 .mg-runner_hard{background:#05040e;}
+.mg-body.mg-runner_hard{max-width:none;}
+#mg-screen .rh-fs{margin-left:auto;flex-shrink:0;padding:3px 9px;border:1px solid rgba(0,232,200,.55);border-radius:4px;background:rgba(0,232,200,.08);color:#00e8c8;font-size:.7rem;line-height:1.4;cursor:pointer;white-space:nowrap;}
+#mg-screen:fullscreen{background:#05040e;}
 .mg-runner_hard .rh-cv{position:absolute;left:0;top:0;display:block;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;outline:none;}
 `);
 
@@ -140,7 +143,7 @@ registerMinigame({
   id: 'runner_hard', icon: '☔', name: '買い出しダッシュ（高難易度版・試作）', genre: 'アクション', bgm: 'mg_runner',
   desc: '試作：横スクロールのアクション。走る・跳ぶ・ダッシュ・壁蹴り・傘で斬って、雨の町をコンビニまで。ボスを倒すと技を覚える。',
   effect: '育児ストレス↓ 精神↑ ／ 疲労+8 約40分',
-  help: '←→:移動 Z:ジャンプ X:攻撃 C:ダッシュ ↓:スライド ↑+X:覚えた技',
+  help: '←→:移動 Z:ジャンプ X:攻撃 C:ダッシュ ↓:スライド（技はボスを倒して覚える）',
   start(body, mg) {
     const TAU = Math.PI * 2, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), rnd = (a, b) => a + Math.random() * (b - a);
     // ── 記録（gs.runnerHard。通常版の gs.runnerData には触らない） ──
@@ -158,6 +161,19 @@ registerMinigame({
       sc = Math.min(H / 560, W / 520); VW = W / sc; VH = H / sc;   // 縦の 560（14 マス）は必ず入れ、横も最低 520 は見せる（縦長のスマホでは上に空が広がる）
     }
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => { if (!mg._ended) resize(); }) : null;
+    // 全画面（高難易度版だけ）：本編の 480px の枠を外して窓いっぱいに使う（上の .mg-body.mg-runner_hard）。さらに「全画面」ボタンでアドレスバーなども隠す
+    //  スマホは全画面の間 横向きに固定を試みる（できない端末はそのまま）。全画面の仕組みが無い端末（iPhone の Safari など）ではボタンを出さない。終わると戻す
+    const scr = document.getElementById('mg-screen'), hd = scr && scr.querySelector('.mini-hd');
+    const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+    const fsOK = !!(scr && (scr.requestFullscreen || scr.webkitRequestFullscreen) && (document.fullscreenEnabled || document.webkitFullscreenEnabled));
+    let fsBtn = null;
+    const fsLabel = () => { if (!fsBtn) return; const t2 = fsEl() ? '全画面を戻す' : '全画面'; fsBtn.title = t2; fsBtn.setAttribute('aria-label', t2); fsBtn.textContent = (typeof matchMedia !== 'undefined' && matchMedia('(max-width: 480px)').matches) ? '⛶' : '⛶ ' + t2; };   // 幅の狭いスマホは印だけ
+    function fsExit() { try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (_) {} if (fsEl()) { try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (_) {} } }
+    function fsToggle() {
+      if (fsEl()) { fsExit(); return; }
+      try { const r = (scr.requestFullscreen || scr.webkitRequestFullscreen).call(scr, { navigationUI: 'hide' }); if (r && r.then) r.then(() => { if (screen.orientation && screen.orientation.lock && matchMedia('(pointer: coarse)').matches) screen.orientation.lock('landscape').catch(() => {}); }).catch(() => {}); } catch (_) {}
+    }
+    if (fsOK && hd) { fsBtn = document.createElement('button'); fsBtn.type = 'button'; fsBtn.className = 'rh-fs'; fsBtn.addEventListener('click', e => { e.stopPropagation(); fsToggle(); setTimeout(() => cv.focus(), 50); }); hd.appendChild(fsBtn); fsLabel(); document.addEventListener('fullscreenchange', fsLabel); document.addEventListener('webkitfullscreenchange', fsLabel); }
 
     // ── 面（試しの 1 面）：区間ごとに組み立てる（1 マス 40px・縦 14 マス＝560）。上の行が高い所
     //  # 床・壁　= 上からだけ乗れる床（店のひさし）　^ とげ（割れた植木鉢の破片）　S 始まり　C 途中の印　G コンビニの戸
@@ -259,7 +275,7 @@ registerMinigame({
       say(short ? tail : [N('（帰宅。冷却シートを貼って、プリンは冷蔵庫に。今夜はずっと、そばにいる）'), N('── 数日後 ──')].concat(tail), () => { phase = 'warning'; phaseT = 0; SE.warn(); });
     }
     function startCold() {
-      const H = ROWS.length, W = clamp(Math.floor(VW / 40), 13, 20), rows = [];   // 1 画面に収まる部屋（縦長のスマホで 13 マス・横長で 15 マスほど）
+      const H = ROWS.length, W = clamp(Math.floor(VW / 40), 13, 34), rows = [];   // 1 画面に収まる部屋（縦長のスマホで 13 マス・横長で 15 マスほど）
       for (let r = 0; r < H; r++) { const cy = H - 1 - r; rows.push(cy <= 1 ? '#'.repeat(W) : '#' + '.'.repeat(W - 2) + '#'); }
       map = RunnerAct.makeMap(rows); const T = map.tile;
       act = RunnerAct.make({ map, phys: DF ? DF.phys : {}, airDash: () => !!C && C.usable('kazebashiri') }); C = RunnerCombat.make(act, { learned: REC.moves || [] });
@@ -534,6 +550,11 @@ registerMinigame({
         }
       }
       if (CZ) return;
+      if (arenaOn && AR) for (const c of [AR.c0 - 1, AR.c1 + 1]) {   // ボスの部屋の柵（閉まっている間）：縦の鉄格子
+        const x = sx(c * T), y0 = sy(12 * T), y1 = sy(2 * T); cx.fillStyle = 'rgba(20,14,40,.78)'; cx.fillRect(x, y0, T, y1 - y0);
+        cx.fillStyle = '#7a6aa8'; for (let i = 4; i < T; i += 9) cx.fillRect(x + i, y0, 3, y1 - y0); cx.fillStyle = '#e8b830'; for (let yy = y0; yy < y1; yy += 60) cx.fillRect(x, yy, T, 5);
+        cx.fillStyle = `rgba(255,90,140,${.35 + .25 * Math.sin(t * 6)})`; cx.fillRect(x, y1 - 6, T, 6);
+      }
       drawGimmicks();
       // 途中の印（傘立て）とコンビニ
       for (const c of checks) { const x = sx(c.x), y = sy(c.y); cx.fillStyle = c.got ? '#00e8c8' : '#5a5a78'; cx.fillRect(x - 3, y - 34, 6, 34); cx.fillRect(x - 10, y - 38, 20, 5); }
@@ -926,6 +947,7 @@ registerMinigame({
     let firstBeat = null;                                             // この回で初めて倒したボス（結果の表示とごほうび）
     return { result(reason) {
       if (ro) ro.disconnect();
+      fsExit(); if (fsBtn) { fsBtn.remove(); document.removeEventListener('fullscreenchange', fsLabel); document.removeEventListener('webkitfullscreenchange', fsLabel); }
       if (outcome) reason = outcome;
       if (reason === 'clear' || reason === 'down') commit();
       if (reason === 'cold' || (reason === 'clear' && coldRes)) {   // 隠しボス（看病のあと）。効き目は通常のクリアに近く、負けても軽め
