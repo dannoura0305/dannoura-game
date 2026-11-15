@@ -87,6 +87,15 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_select.png` });
   await p.keyboard.press('ArrowRight'); await p.keyboard.press('ArrowRight'); await p.waitForTimeout(500);   // 雷殻の怪異（C）を選ぶ
   ok(`${label}：←→ でボスを選ぶ（雷殻の怪異）`, (await S()).selIdx === 2);
+  { const cw = await p.evaluate(() => document.querySelector('.rh-cv').getBoundingClientRect().width);
+    ok(`${label}：本編の 480px の枠を外して、窓の幅いっぱいに表示する`, Math.abs(cw - vw) < 2, `${Math.round(cw)} / ${vw}`);
+    const fb = await p.$('#mg-screen .rh-fs'); ok(`${label}：見出しに「全画面」ボタン`, !!fb);
+    if (fb && label === '横長') {
+      await fb.click(); const on = await until(() => p.evaluate(() => !!document.fullscreenElement && document.fullscreenElement.id === 'mg-screen'), 2000, 50);
+      ok(`${label}：「全画面」を押すと全画面になり、ボタンが「全画面を戻す」に変わる`, !!on && /戻す/.test(await fb.getAttribute('title')));
+      if (SHOTS) { await p.waitForTimeout(400); await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_select_fs.png` }); }
+      await fb.click(); const off = await until(() => p.evaluate(() => !document.fullscreenElement), 2000, 50); ok(`${label}：もう一度押すと全画面が戻る`, !!off);
+    } }
   { await until(async () => (await S()).selArt && (await S()).selRects.length === 3, 5000, 100); const v = await S(); ok(`${label}：ボス選択画面は利用者の絵（BOSS SELECT）・カード 3 枚`, v.selArt && v.selRects.length === 3);
     const cr = await p.evaluate(() => { const r = document.querySelector('.rh-cv').getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width }; }), k = cr.w / v.VW, r = v.selRects[1];
     await p.mouse.click(cr.l + (r.x0 + r.x1) / 2 * k, cr.t + (r.y0 + r.y1) / 2 * k); await p.waitForTimeout(200); const v2 = await S();
@@ -204,6 +213,7 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
   await p.waitForTimeout(1300); await p.keyboard.press('Enter');
   const ended = await until(() => p.evaluate(() => MG._ended), 8000);
   const rec = await p.evaluate(() => JSON.parse(JSON.stringify(gs.runnerHard)));
+  ok(`${label}：終わると「全画面」ボタンを片付ける`, !(await p.$('#mg-screen .rh-fs')));
   ok(`${label}：終わる・記録（gs.runnerHard.proto：遊んだ・着いた・時間・cold：勝ち 1）・通常版の記録には触らない`, !!ended && rec.proto.plays >= 1 && rec.proto.clears >= 1 && rec.proto.bestTime > 0 && rec.cold && rec.cold.wins === 1, JSON.stringify([rec.proto, rec.cold]));
   ok(`${label}：ページのエラーが出ない`, errs.length === 0, JSON.stringify(errs.slice(0, 3)));
   await p.close();

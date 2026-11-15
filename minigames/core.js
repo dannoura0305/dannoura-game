@@ -115,7 +115,7 @@ const MG_CATS=[
 //  ・ふつうの遊びでは、ほかのミニゲームと同じく 1 日 1 回
 const MG_RUNNER_HARD_META={id:'runner_hard',file:'runner_hard',icon:'☔',name:'買い出しダッシュ（高難易度版・試作）',genre:'アクション',bgm:'mg_runner',
   desc:'試作：横スクロールのアクション。走る・跳ぶ・ダッシュ・壁蹴り・傘で斬って、雨の町をコンビニまで。ボスを倒すと技を覚える。',effect:'育児ストレス↓ 精神↑ ／ 疲労+8 約40分',
-  help:'←→:移動 Z:ジャンプ X:攻撃 C:ダッシュ ↓:スライド ↑+X:覚えた技'};
+  help:'←→:移動 Z:ジャンプ X:攻撃 C:ダッシュ ↓:スライド（技はボスを倒して覚える）'};
 const MG_DEV_RUNNER_HARD=(()=>{try{return typeof location!=='undefined'&&/[?&]runnerhard=1\b/.test(location.search||'');}catch(e){return false;}})();
 function runnerHardUnlocked(){return MG_DEV_RUNNER_HARD||!!(typeof gs!=='undefined'&&gs&&gs.runnerData&&(gs.runnerData.clears|0)>0);}
 // 一覧に足す・外す（選択画面を開く時・開く前に呼ぶ）
