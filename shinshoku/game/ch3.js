@@ -257,7 +257,7 @@ export const ch3Methods = {
     const R = this.route, F = this.F();
     const stats = [['プレイ時間', fmtSec(this.playSec)], ['構え（第3章の転機）', R.stance === 'reveal' ? '化けを、解く（白髪形態）' : R.stance === 'secret' ? 'このまま、人として' : '—'], ['写し身', { rescue: '救った（本物の声）', kill: '倒した' }[this.story.boss3] || '—'],
       ['大きな患者（守り手）', this.enemyRes.mamori === 'kill' ? '倒した' : '救った'], ['記録のない患者', `救う ${this.count('kanja', 'rescue')}・眠らせる ${this.count('kanja', 'neutralize')}・倒す ${this.count('kanja', 'kill')}`],
-      ['模倣する影', `倒した ${this.count('mimic', 'kill')}`], ['最大の連撃', this.metrics.comboMax || 0], ['白髪形態の時間', fmtSec(this.metrics.whiteSec || 0)], ['カルテの照合', this.flags.records_done ? '済' : '—'], ['看護記録（任意）', this.flags.memo ? '読んだ' : '—'], ['（相棒）の信頼', this.companion.brain.trust]];
+      ['模倣する影', `倒した ${this.count('mimic', 'kill')}`], ['最大の連撃', this.metrics.comboMax || 0], ['白髪形態の時間', fmtSec(this.metrics.whiteSec || 0)], ['カルテの照合', this.flags.records_done ? '済' : '—'], ['看護記録（任意）', this.flags.memo ? '読んだ' : '—'], ['灯里の信頼', this.companion.brain.trust]];
     this.metrics.endCard3 = true;
     this.mode = 'puzzle'; this.input.exitLock();
     this.ui.endCard(stats, () => { this.ui.closePuzzle(); this.mode = 'play'; this.saveSlot('auto', true); if (this.story.step === 'ch3_end') this.later(0.4, () => this.startCh4()); }, '第3章（病院・地下通路）　ここまで', '続けて第4章（境界の夜：観測分室と地下の研究区画）へ進めます。');

@@ -74,7 +74,7 @@ export class Kenkyusha extends Brain {
       this.patIdx++;
       const a = this.atk = { name, phase: 'windup', t: 0 };
       if (name === 'rewind') { const q = sense.past || p; a.at = { x: q.x, z: q.z }; }
-      if (name === 'echo') { const L2 = Math.max(1e-3, d), ux = (p.x - this.pos.x) / L2, uz = (p.z - this.pos.z) / L2; a.line = { from: { x: this.pos.x, z: this.pos.z }, to: { x: this.pos.x + ux * A.range, z: this.pos.z + uz * A.range }, w: A.line.w }; }
+      if (name === 'echo') { const L2 = Math.max(1e-3, d), ux = (p.x - this.pos.x) / L2, uz = (p.z - this.pos.z) / L2, from = { x: this.pos.x, z: this.pos.z }, to = { x: this.pos.x + ux * A.range, z: this.pos.z + uz * A.range }; a.line = { from, to: sense.clipLine ? sense.clipLine(from, to) : to, w: A.line.w }; }   // 2026-11-14：線は壁・部屋の外で切る（前は 14m まっすぐ跳び、壁を抜けて戻れなくなった）
       if (name === 'accident') { const c = sense.companion; a.line = { from: { x: this.pos.x, z: this.pos.z }, to: { x: c.x, z: c.z }, w: A.line.w }; }
       evs.push({ t: 'telegraph', name, def: A, parryable: A.parryable, at: a.at || null, line: a.line || null });
       return;

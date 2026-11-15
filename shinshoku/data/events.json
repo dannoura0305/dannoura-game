@@ -1,8 +1,8 @@
 {
-  "_note": "『境界侵食』序章〜第5章・第6章（試作）の台詞・調べた時の文（データ駆動）。相棒は仮 ID companion・表示名は未決定（Q8）。台詞はすべて【仮】（SCENARIO_FLOW の「仮：」を含む）。fixed:true の原文台詞はこの範囲（序章〜第2章）には無い。演出場面の台詞は story/cutscenes.js。",
+  "_note": "『境界侵食』序章〜第5章・第6章（試作）の台詞・調べた時の文（データ駆動）。相棒は ID companion・表示名は「灯里」（瀬名 灯里。2026-11-14 利用者の指定）。台詞はすべて【仮】（SCENARIO_FLOW の「仮：」を含む）。fixed:true の原文台詞はこの範囲（序章〜第2章）には無い。演出場面の台詞は story/cutscenes.js。",
   "speakers": {
     "dan": { "name": "だんのうら", "color": "#c9a8ff" },
-    "companion": { "name": "（相棒・名前未定）", "color": "#ffd7a8", "provisional": true },
+    "companion": { "name": "灯里", "color": "#ffd7a8" },
     "heiten": { "name": "閉店", "color": "#9fe0b8" },
     "kiro": { "name": "帰路", "color": "#b8c4d8" },
     "shuuyou": { "name": "収容者", "color": "#e0e4f0" },

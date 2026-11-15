@@ -36,7 +36,9 @@ function loadGame(file, gs) {
   vm.runInContext(read('minigames/' + file + '.js'), ctx, { filename: file + '.js' });
   return defs;
 }
-const GAME_FILES = readdirSync(join(ROOT, 'minigames')).filter(f => f.endsWith('.js') && !['core.js', 'registry.js'].includes(f)).map(f => f.slice(0, -3)).sort();
+// 試作のミニゲーム（目録には入れず、core.js の開発用の印がある時だけ出す）：買い出しダッシュ 高難易度版（?runnerhard=1）
+const PROTO_FILES = ['runner_hard'];
+const GAME_FILES = readdirSync(join(ROOT, 'minigames')).filter(f => f.endsWith('.js') && !['core.js', 'registry.js'].includes(f)).map(f => f.slice(0, -3)).filter(f => !PROTO_FILES.includes(f)).sort();
 const plain = v => JSON.parse(JSON.stringify(v));   // vm の別 realm の配列を比べられる形に
 const { META } = loadRegistry({ day: 1 });
 
@@ -44,6 +46,18 @@ test('目録：17本・id の重複なし・各ファイルに1本ずつ', () =>
   assert.equal(META.length, 17);
   assert.equal(new Set(META.map(m => m.id)).size, META.length);
   assert.deepEqual(plain(META.map(m => m.file)).sort(), GAME_FILES);
+});
+
+test('試作：目録には入らない・通常版を 1 回クリアするか、開発用の印（?runnerhard=1）がある時だけ一覧に足す', () => {
+  assert.ok(!META.some(m => PROTO_FILES.includes(m.file)));
+  const core = read('minigames/core.js');
+  assert.match(core, /runnerhard=1/); assert.match(core, /id:'runner_hard',file:'runner_hard'/);
+  const defs = loadGame('runner_hard', { day: 1 }); assert.equal(defs.length, 1); assert.equal(defs[0].id, 'runner_hard');
+  // core.js の一覧の文と registerMinigame の文がそろう（名前・説明・効果・操作）
+  for (const k of ['name', 'desc', 'effect', 'help', 'icon', 'genre', 'bgm']) assert.ok(core.includes(`${k}:'${defs[0][k]}'`), `runner_hard.${k}`);
+  // 入口：通常版を 1 回クリアすると出る（gs.runnerData.clears）
+  assert.match(core, /function runnerHardUnlocked\(\)\{return MG_DEV_RUNNER_HARD\|\|!!\(typeof gs!=='undefined'&&gs&&gs\.runnerData&&\(gs\.runnerData\.clears\|0\)>0\);\}/);
+  assert.match(core, /function openMinigamePicker\(place\)\{\n  mgSyncRunnerHard\(\);/);
 });
 
 test('目録と registerMinigame の id・名前・ジャンル・アイコン・BGM・説明・効果・操作が一致', () => {

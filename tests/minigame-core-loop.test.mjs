@@ -169,7 +169,8 @@ test('シューティングは core の dt をそのまま使う（自前の時�
 test('MG.loop を使う全ミニゲームが dt を受け取る（16本＋シューティング）', () => {
   const files = readdirSync(join(ROOT, 'minigames')).filter(f => f.endsWith('.js') && !['core.js', 'registry.js'].includes(f));
   const users = files.filter(f => /mg\.loop\(/.test(read('minigames/' + f)));
-  assert.equal(users.length, 17, users.join(','));
+  assert.equal(users.filter(f => f !== 'runner_hard.js').length, 17, users.join(','));   // 試作の runner_hard.js（開発用の印がある時だけ）は別に数える
+  assert.ok(users.includes('runner_hard.js'));
 });
 
 for (const [name, fn] of queue) {

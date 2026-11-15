@@ -32,7 +32,7 @@ export const CUTSCENES7 = {
       { t: 0.6, who: 'sys', text: '（町の北が、抜け落ちていた。底の見えない淵。崩れた家や看板の欠片が、ゆっくり浮かんでいる）', dur: 3.6 },
       { t: 4.4, who: 'researcher2', text: '来たか。……ここが境界の底だ。ここなら、全部やり直せる', dur: 3.4 },
       { t: 8.0, who: 'dan', text: 'やり直す、ね。……アンタが崩したものを、アタシは直しに来たのよ', dur: 3.2, expr: 'serious' },
-      { t: 11.8, who: 'sys', text: '（スマホが震える。（相棒）から：「病院の屋上に、みんな集まってます。灯りを持って。……待ってます」）', dur: 3.8 },
+      { t: 11.8, who: 'sys', text: '（スマホが震える。灯里から：「病院の屋上に、みんな集まってます。灯りを持って。……待ってます」）', dur: 3.8 },
       { t: 15.8, who: 'dan', text: '……ええ。待ってなさい', dur: 2.2, expr: 'calm' },
     ],
     events: [{ t: 0.0, do: 'ensureWhite' }, { t: 0.1, do: 'chapterCard', arg: 'ch7a' }, { t: 18.4, do: 'setStep', arg: 'ch7a_edge' }, { t: 18.5, do: 'edgeHint7' }],

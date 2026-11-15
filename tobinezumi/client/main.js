@@ -14,7 +14,12 @@ import { lifeAlerts, normalizeLife } from '../shared/life.js';
 import { itemName } from '../shared/items.js';
 import { dayPhase, timeOfDay } from '../shared/daynight.js';
 import { envAt, REST_NAME } from '../shared/season.js';
-import { initSfx, setSfx, sfx } from './sfx.js';
+import { initSfx, setSfx, sfx, setSfxBank } from './sfx.js';
+import { Music } from './music.js';
+import { SoundBank } from './soundbank.js';
+import { SOUND_FILES } from './sound-files.js';
+import { audioCreditText } from './sound-data.js';
+import { audioCtx, attachMeter } from './audio-core.js';
 import { familyPanel, namingDialog, farewellScene, lineagePanel } from './family-ui.js';
 import { lookOf, traitMoveMods } from '../shared/genetics.js';
 import { walkersOfFamily } from '../shared/household.js';
@@ -45,7 +50,8 @@ function loadSettings() { try { return JSON.parse(localStorage.getItem(SETTINGS_
 function saveSettings(s) { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch (e) {} }
 game.settings = loadSettings();
 game.saveSettings = () => saveSettings(game.settings);
-initSfx(game.settings.sound !== false);
+const SFX_VOL = { on: 1, low: 0.5 };
+initSfx(game.settings.sound !== false, SFX_VOL[game.settings.sfxVol] || 1);
 if (game.settings.zoom) game.screen.setZoomPref(game.settings.zoom);
 
 // ── タッチ（スマホ・タブレット）──
@@ -62,8 +68,28 @@ game.setTouch = function (on) {
   if (game.scene && game.scene.onTouchChange) game.scene.onTouchChange(on);
 };
 game.setTouch(detectTouch(game.settings.touchUI || 'auto'));
-// Ver.0.5：環境音（風・雨・川・虫・フクロウ・キツネ。WebAudio で合成）
+// Ver.0.5：環境音（風・雨・川・虫・小鳥・フクロウ・キツネ。WebAudio の合成と、後から読む CC0 の録音）
 game.ambient = new Ambient(game.settings.ambient != null ? game.settings.ambient : 0.5);
+// 2026-11-14：曲と音の素材（CC0）。起動時には読まない：最初の操作のあと少し待ってから、場面に要る物だけを 1 つずつ読む（読めるまでは合成音）
+game.sound = new SoundBank(new URL('tobinezumi/assets/sound/', location.href), SOUND_FILES);
+game.music = new Music(game.settings.music != null ? game.settings.music : 0.5);
+game.music.setBank(game.sound); game.ambient.setBank(game.sound); setSfxBank(game.sound);
+{
+  let armed = false;
+  const arm = () => { if (armed) return; armed = true; setTimeout(() => game.sound.open(), 1500); };
+  addEventListener('pointerdown', arm, { capture: true, passive: true });
+  addEventListener('keydown', arm, { capture: true });
+}
+/** 今の場面（曲・素材の読み込み用） */
+game.soundScene = function () {
+  const sc = game.scene, f = game.field;
+  const scene = sc instanceof TitleScene ? 'title' : f && sc === f ? 'field' : f && (sc === game.walk || sc === game.build) ? 'nest' : 'other';
+  if (scene === 'title' || scene === 'other') return { scene };
+  const tod = game.tod(), env = game.env || {};
+  return { scene, region: (f.map && f.map.region) || 'plains', period: tod.period, season: env.season || 'spring', weather: env.weather || 'clear', fest: f.fest || null, threat: scene === 'field' ? !!f.threat : false };
+};
+game.debug.audioMeter = () => attachMeter();
+game.debug.audio = () => ({ ctx: audioCtx() && audioCtx().state, opened: game.sound.opened, loaded: [...game.sound.bufs.keys()], log: game.sound.log.slice(), bytes: game.sound.bytes, music: { ...game.music.debug, log: game.music.debug.log.slice() }, mix: game.ambient.mix });
 // 自動のとき：タッチパネル付きの PC でも、指で触ったらタッチ用に切り替える
 game.input.onPointer = e => { if (e.pointerType === 'touch' && !game.isTouch && (game.settings.touchUI || 'auto') === 'auto') game.setTouch(true); };
 addEventListener('pointerdown', e => game.input.onPointer(e), { capture: true, passive: true });
@@ -440,6 +466,7 @@ game.openMenu = function () {
   const touchOpts = [['auto', '自動'], ['on', 'いつも出す'], ['off', '出さない（キーボード・マウス）']];
   const dangerOpts = [['normal', 'ふつう'], ['easy', 'やさしい（見つかりにくい・遅い・罰が軽い・巣は襲われない）'], ['off', '出ない']];
   const fsOK = document.fullscreenEnabled && document.documentElement.requestFullscreen;
+  const credit = audioCreditText(SOUND_FILES);   // 2026-11-14：音の素材の作者（CC0）
   const fn = net.clock ? festNote(net.clock, net.serverTime()) : null;   // Ver.0.8：小さな暦（次の行事）
   game.debug.festNote = fn ? fn.text : null;
   // Ver.0.9：よく使う画面を 2 列のボタンに（PC はキーも表示）、設定はたためる欄へ。パネルは画面からはみ出さない（スクロール）
@@ -459,8 +486,10 @@ game.openMenu = function () {
     <label class="tb-field">${game.isTouch ? '表示の大きさ' : '拡大率'} <select class="zoom">${zooms.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
     <label class="tb-field">タッチ操作のボタン <select class="touchui">${touchOpts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
     ${net.mode === 'offline' ? `<label class="tb-field">捕食者（フクロウ・キツネ・ヘビ） <select class="danger">${dangerOpts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>` : ''}
-    <label class="tb-field">効果音 <select class="sound"><option value="on">鳴らす</option><option value="off">鳴らさない</option></select></label>
+    <label class="tb-field">効果音 <select class="sound"><option value="on">ふつう</option><option value="low">小さく</option><option value="off">鳴らさない</option></select></label>
+    <label class="tb-field">音楽（ときどき小さく流れる） <select class="music"><option value="0">鳴らさない</option><option value="0.25">小さく</option><option value="0.5">ふつう</option><option value="0.85">大きく</option></select></label>
     <label class="tb-field">環境音（風・雨・川・虫・鳴き声） <select class="ambient"><option value="0">鳴らさない</option><option value="0.25">小さく</option><option value="0.5">ふつう</option><option value="0.85">大きく</option></select></label>
+    ${credit ? `<div class="tb-dim tb-audio-credit">${esc(credit)}</div>` : ''}
     </details>`, [
     { label: 'ゲームにもどる', cls: 'primary', act: () => game.ui.closeModal() },
     { label: '保存してタイトルへ（ログアウト）', act: async () => { net.savePosition && net.savePosition(); await net.logout(); game.ui.closeModal(); game.field = null; game.walk = null; game.build = null; game.go(new TitleScene(game)); } },
@@ -478,8 +507,11 @@ game.openMenu = function () {
   ts.onchange = () => { s.touchUI = ts.value; s.touchHidden = false; saveSettings(s); game.setTouch(detectTouch(ts.value)); };
   const ds = p.querySelector('.danger');
   if (ds) { ds.value = net.dangerMode || s.danger || 'normal'; ds.onchange = () => { s.danger = ds.value; saveSettings(s); net.setDanger(ds.value); if (game.field && game.field.danger) game.field.danger.predators = ds.value; game.ui.toast('捕食者：' + dangerOpts.find(o => o[0] === ds.value)[1]); }; }
-  const ss = p.querySelector('.sound'); ss.value = s.sound === false ? 'off' : 'on';
-  ss.onchange = () => { s.sound = ss.value === 'on'; saveSettings(s); setSfx(s.sound); };
+  const ss = p.querySelector('.sound'); ss.value = s.sound === false ? 'off' : s.sfxVol === 'low' ? 'low' : 'on';
+  ss.onchange = () => { s.sound = ss.value !== 'off'; s.sfxVol = ss.value === 'low' ? 'low' : 'on'; saveSettings(s); setSfx(s.sound, SFX_VOL[s.sfxVol]); };
+  const ms = p.querySelector('.music'); const mv = s.music != null ? s.music : 0.5;
+  ms.value = ['0', '0.25', '0.5', '0.85'].reduce((a, b) => Math.abs(b - mv) < Math.abs(a - mv) ? b : a, '0.5');
+  ms.onchange = () => { s.music = Number(ms.value); saveSettings(s); game.music.setVolume(s.music); };
   const as = p.querySelector('.ambient'); const av = s.ambient != null ? s.ambient : 0.5;
   as.value = ['0', '0.25', '0.5', '0.85'].reduce((a, b) => Math.abs(b - av) < Math.abs(a - av) ? b : a, '0.5');
   as.onchange = () => { s.ambient = Number(as.value); saveSettings(s); game.ambient.setVolume(s.ambient); };
@@ -602,6 +634,7 @@ function frame(now) {
   if (game.isTouch) game.touch.setBusy(game.ui.busy());
   if (now - (game._goalT || 0) > 400) { game._goalT = now; game.renderGoal(); }
   game.ambient.update(dt, game);
+  { const sc = game.soundScene(); if (game.sound.opened) game.sound.enter(sc); game.music.update(dt, sc); }
   game.input.endFrame();
   requestAnimationFrame(frame);
 }

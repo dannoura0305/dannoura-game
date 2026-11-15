@@ -293,6 +293,13 @@ test('鳴き声：生き物ごとに関数があり、音が無い環境でも�
   for (const id of Object.keys(B.ENEMIES)) B.cry(id);
 });
 
+test('効果音の音量補正（2026-11）：範囲内・音が無い環境でも se と music は落ちない', () => {
+  const { B } = load();
+  for (const [k, v] of Object.entries(B._seGain)) { assert.ok(/^bt_/.test(k), k); assert.ok(v > 0.2 && v <= 3, k + ' ' + v); }
+  for (const k of Object.keys(B._seGain)) B.se(k);
+  B.music('wild'); B.music('boss'); B.music(null);
+});
+
 test('データ：敵 13 種＋ボス 4 体・技の属性・絵がある。章のボス戦は定義済みの敵を呼ぶ。だんのうらは出ない', () => {
   const { B } = load();
   const ids = Object.keys(B.ENEMIES);

@@ -1845,7 +1845,7 @@ async function runCh7PC(browser) {
   const hv = await headView(page);
   await holdShot(page, 'pc_180_ending_hair.png', 1800);
   const fx = await page.evaluate(() => (__sh.game.metrics.fixedLines || []).slice());
-  ok('結末A の原文：（相棒）「でも、あの後……みんなを助けてくれたんですよね」（一字一句・1 回）', endLine.endsWith(ENDING_LINE) && /（相棒・名前未定）/.test(endLine) && fx.filter(f => f.text === ENDING_LINE).length === 1 && fx.filter(f => f.text === MID_LINE).length === 0, JSON.stringify({ endLine, fx }));
+  ok('結末A の原文：灯里「でも、あの後……みんなを助けてくれたんですよね」（一字一句・1 回）', endLine.endsWith(ENDING_LINE) && /^灯里/.test(endLine) && fx.filter(f => f.text === ENDING_LINE).length === 1 && fx.filter(f => f.text === MID_LINE).length === 0, JSON.stringify({ endLine, fx }));
   ok('その間、カメラはだんのうらの白い髪（頭の後ろ・上から。顔ではない）・髪は白と紫が混ざっている（けがではない）', hv && hv.behind && hv.above && Math.abs(hv.ndc[0]) < 0.4 && Math.abs(hv.ndc[1]) < 0.5 && hv.mixed && hv.model === 'dannoura_mixed', JSON.stringify(hv));
   const keep = await untilSub(page, /誰にも言いませんよ/, 80, 10);
   ok('（相棒）は秘密を守る（まだ許すとは言わないが、認める）', /誰にも言いませんよ/.test(keep) && /まだ、怒ってます/.test(JSON.stringify(await page.evaluate(() => __sh.game.cut.cs && __sh.game.cut.cs.lines.map(l => l.text)))), keep);
@@ -1857,7 +1857,7 @@ async function runCh7PC(browser) {
   await skipCut(page); await sim(page, 30); await page.waitForSelector('#sh-credits', { timeout: 8000 }).catch(() => {});
   await page.waitForTimeout(2200); await shot(page, 'pc_183_credits.png', 200);
   const cr = await page.evaluate(() => (document.getElementById('sh-credits') || {}).textContent || '');
-  ok('スタッフロール（仮・名前未定）・飛ばせる', /研究者　名前未定/.test(cr) && /（相棒）　名前未定/.test(cr) && !/九条/.test(cr), cr.slice(0, 60));
+  ok('スタッフロール（仮・研究者は名前未定・相棒は瀬名 灯里）・飛ばせる', /研究者　名前未定/.test(cr) && /瀬名 灯里/.test(cr) && !/九条/.test(cr), cr.slice(0, 60));
   await page.click('#sh-credits .cr-skip'); await page.waitForSelector('#sh-puz [data-close]', { timeout: 8000 }).catch(() => {});
   await shot(page, 'pc_184_endcard_a.png', 600);
   const recA = await page.evaluate(() => ({ card: document.querySelector('#sh-puz').textContent, wp: __sh.debug.ch7.wp(), clear: __sh.debug.ch7.clear() }));

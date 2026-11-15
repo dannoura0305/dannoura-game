@@ -109,6 +109,38 @@ const MG_CATS=[
   {id:'story',  name:'物語',       ids:['rpg','horror']},
   {id:'life',   name:'暮らし・癒し',ids:['cooking','fishing']},
 ];
+// 買い出しダッシュ 高難易度版（試作）の入口（docs/minigames/runner-hard-design.md）
+//  ・通常版の買い出しダッシュを 1 回クリアすると、夜の🎮のアクションの欄に出る（gs.runnerData.clears）
+//  ・開発用の印 ?runnerhard=1 の時は、いつでも出る＋画面の隅に「☔ 試作を遊ぶ」ボタン（1 日 1 回の数に入れない）
+//  ・ふつうの遊びでは、ほかのミニゲームと同じく 1 日 1 回
+const MG_RUNNER_HARD_META={id:'runner_hard',file:'runner_hard',icon:'☔',name:'買い出しダッシュ（高難易度版・試作）',genre:'アクション',bgm:'mg_runner',
+  desc:'試作：横スクロールのアクション。走る・跳ぶ・ダッシュ・壁蹴り・傘で斬って、雨の町をコンビニまで。ボスを倒すと技を覚える。',effect:'育児ストレス↓ 精神↑ ／ 疲労+8 約40分',
+  help:'←→:移動 Z:ジャンプ X:攻撃 C:ダッシュ ↓:スライド ↑+X:覚えた技'};
+const MG_DEV_RUNNER_HARD=(()=>{try{return typeof location!=='undefined'&&/[?&]runnerhard=1\b/.test(location.search||'');}catch(e){return false;}})();
+function runnerHardUnlocked(){return MG_DEV_RUNNER_HARD||!!(typeof gs!=='undefined'&&gs&&gs.runnerData&&(gs.runnerData.clears|0)>0);}
+// 一覧に足す・外す（選択画面を開く時・開く前に呼ぶ）
+function mgSyncRunnerHard(){
+  try{
+    const on=runnerHardUnlocked(),i=MINIGAMES.findIndex(m=>m.id==='runner_hard'),cat=MG_CATS.find(c=>c.id==='action');
+    if(on&&i<0){MINIGAMES.push(Object.assign({},MG_RUNNER_HARD_META));if(cat&&!cat.ids.includes('runner_hard'))cat.ids.push('runner_hard');}
+    if(!on&&i>=0){MINIGAMES.splice(i,1);if(cat)cat.ids=cat.ids.filter(x=>x!=='runner_hard');}
+  }catch(e){}
+}
+try{
+  if(MG_DEV_RUNNER_HARD){
+    mgSyncRunnerHard();
+    const addBtn=()=>{
+      if(document.getElementById('mg-proto-btn'))return;
+      const b=document.createElement('button');b.id='mg-proto-btn';b.type='button';b.textContent='☔ 試作を遊ぶ';
+      b.style.cssText='position:fixed;right:10px;bottom:10px;z-index:9999;padding:9px 14px;border:1px solid #00e8c8;border-radius:6px;background:rgba(5,4,14,.92);color:#00e8c8;font:600 13px sans-serif;cursor:pointer;';
+      b.onclick=()=>{try{if(typeof AU!=='undefined'&&AU.init)AU.init();}catch(_){}if(typeof gs!=='undefined'&&gs){gs.mgDay=gs.mgDay||{};delete gs.mgDay.runner_hard;}mgSyncRunnerHard();if(MG._ended!==false)MG.open('runner_hard');};
+      document.body.appendChild(b);
+      const hide=()=>{b.style.display=document.body.classList.contains('mg-active')?'none':'';};
+      new MutationObserver(hide).observe(document.body,{attributes:true,attributeFilter:['class']});
+    };
+    if(document.body)addBtn();else document.addEventListener('DOMContentLoaded',addBtn);
+  }
+}catch(e){}
 // 工場の選択画面のタブ（アイコンは main/icons.js の work）
 const MG_FACTORY_CATS=[
   {id:'factory',name:'工場',icon:'work'},
@@ -162,6 +194,7 @@ addMinigameStyle('picker-place',`
 #mg-screen .mg-skillfx b{color:#fff;font-weight:normal;}
 `);
 function openMinigamePicker(place){
+  mgSyncRunnerHard();
   _mgPlace=place==='factory'?'factory':'night';   // 引数なし（以前の呼び方）は夜の🎮
   const P=_mgPlace,pool=minigamesIn(P);
   const picker=document.getElementById('mg-picker');

@@ -1,0 +1,31 @@
+// 自動生成（tobinezumi/tools/sound_prepare.mjs）：tobinezumi/assets/sound/ に置いた、変換済みの音の素材の表。手で書き換えない。
+// キー＝assets/sound/ からの相対パス。id＝sound-data.js の MATERIALS のキー・bytes＝大きさ・dur＝長さ（秒）
+// lu＝変換後に測った大きさ（LUFS：効果音は 400ms の窓の最大、環境音・曲は平均）・pk＝最大値（dBFS）
+export const SOUND_FILES = {
+  "amb/amb_birds.mp3": {"id":"amb_birds","bytes":169821,"dur":28.26,"lu":-30.3,"pk":-11.6},
+  "amb/amb_crickets.mp3": {"id":"amb_crickets","bytes":69381,"dur":11.52,"lu":-30.4,"pk":-17.5},
+  "amb/amb_rain.mp3": {"id":"amb_rain","bytes":240669,"dur":40.07,"lu":-30.4,"pk":-12},
+  "amb/amb_river.mp3": {"id":"amb_river","bytes":237685,"dur":39.56,"lu":-30.4,"pk":-13.6},
+  "amb/amb_wind.mp3": {"id":"amb_wind","bytes":59229,"dur":9.83,"lu":-30.1,"pk":-15.4},
+  "bgm/bgm_canyon.mp3": {"id":"bgm_canyon","bytes":494098,"dur":82.31,"lu":-22.4,"pk":-5.8},
+  "bgm/bgm_days.mp3": {"id":"bgm_days","bytes":384383,"dur":64.03,"lu":-22.5,"pk":-5.1},
+  "bgm/bgm_fest.mp3": {"id":"bgm_fest","bytes":393161,"dur":65.49,"lu":-22.5,"pk":-5.5},
+  "bgm/bgm_home.mp3": {"id":"bgm_home","bytes":279215,"dur":46.5,"lu":-22.4,"pk":-5},
+  "bgm/bgm_meadow.mp3": {"id":"bgm_meadow","bytes":898943,"dur":149.79,"lu":-22.4,"pk":-4.5},
+  "bgm/bgm_nest.mp3": {"id":"bgm_nest","bytes":237523,"dur":39.55,"lu":-22.5,"pk":-8.9},
+  "bgm/bgm_night.mp3": {"id":"bgm_night","bytes":427172,"dur":71.16,"lu":-22.4,"pk":-4.3},
+  "bgm/bgm_sand.mp3": {"id":"bgm_sand","bytes":427172,"dur":71.16,"lu":-22.5,"pk":-2},
+  "bgm/bgm_snow.mp3": {"id":"bgm_snow","bytes":206176,"dur":34.32,"lu":-22.4,"pk":-5.9},
+  "se/se_bell1.mp3": {"id":"se_bell1","bytes":8209,"dur":0.99,"lu":-24.7,"pk":-2.6},
+  "se/se_bell3.mp3": {"id":"se_bell3","bytes":11343,"dur":1.38,"lu":-16.7,"pk":-2.3},
+  "se/se_dig.mp3": {"id":"se_dig","bytes":7776,"dur":0.94,"lu":-17.8,"pk":-1.9},
+  "se/se_plop1.mp3": {"id":"se_plop1","bytes":1506,"dur":0.16,"lu":-30.3,"pk":-2.4},
+  "se/se_plop2.mp3": {"id":"se_plop2","bytes":1924,"dur":0.21,"lu":-24.3,"pk":-2.1},
+  "se/se_pop1.mp3": {"id":"se_pop1","bytes":1924,"dur":0.21,"lu":-22.8,"pk":-2.7},
+  "se/se_pop2.mp3": {"id":"se_pop2","bytes":1715,"dur":0.18,"lu":-26.1,"pk":-2.5},
+  "se/se_pop3.mp3": {"id":"se_pop3","bytes":1715,"dur":0.18,"lu":-26.1,"pk":-2.5},
+  "se/se_sand1.mp3": {"id":"se_sand1","bytes":4223,"dur":0.5,"lu":-16.9,"pk":-1.9},
+  "se/se_sand2.mp3": {"id":"se_sand2","bytes":4223,"dur":0.5,"lu":-16.7,"pk":-2.1},
+  "se/se_stone1.mp3": {"id":"se_stone1","bytes":3387,"dur":0.39,"lu":-26.4,"pk":-2.4},
+  "se/se_stone2.mp3": {"id":"se_stone2","bytes":3178,"dur":0.37,"lu":-22.9,"pk":-2},
+};

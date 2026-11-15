@@ -132,7 +132,7 @@ t('塗替：先触れと同じ骨組み（段階・咆哮で止まる・崩れ�
   const mid = { x: (tel.line.from.x + tel.line.to.x) / 2, z: (tel.line.from.z + tel.line.to.z) / 2 }; assert.ok(blocksLine(mid, 2.2, tel.line)); assert.ok(!blocksLine({ x: 40, z: 40 }, 2.2, tel.line));
   assert.ok(b.roared([])); assert.equal(b.coreOpen, true);
   const h0 = b.hp; b.hurt(100, 'slash', [], {}); assert.equal(h0 - b.hp, 200, '核が開いている間は 2 倍');
-  assert.ok(AVENUE.blocks.some(x => /相棒/.test(x.name)), '守る棟の一つは（相棒）のいる病院の別棟');
+  assert.ok(AVENUE.blocks.some(x => /灯里/.test(x.name)), '守る棟の一つは灯里（相棒）のいる病院の別棟');
   const g4 = src('game/ch4.js');
   assert.ok(/giantBoss\(\) \{ return this\.enemies\.find\(e => e\.kind === 'sakibure' \|\| e\.kind === 'nurikae'/.test(g4) && /if \(e\.kind === 'nurikae'\) \{ this\.resolve\(e, 'kill'\); this\.onNurikaeDown6\(\)/.test(g4));
   assert.ok(/feedHit6\(L, block\)/.test(g4));

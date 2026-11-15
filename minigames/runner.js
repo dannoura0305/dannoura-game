@@ -1057,7 +1057,7 @@ registerMinigame({
           }
           continue;
         }
-        if(invul>0)continue;
+        if(invul>0||testGod)continue;
         if(o.over){if(y1>o.clr+2+DF.slack)hitBy(o);}
         else if(y0<o.h-5-DF.slack)hitBy(o);
         if(phase!=='run')return;
@@ -1824,7 +1824,8 @@ registerMinigame({
         cx.fillStyle='#ffe6da';cx.beginPath();cx.arc(kx+16,ky+28,2.5,0,TAU);cx.fill();
       }else{
         cx.fillStyle='#9fe2c8';cx.beginPath();cx.ellipse(fx0+32,fy+12,11,4.5,0,0,TAU);cx.fill();
-        drawKidFace(fx0+32,fy-2,12,false,st==='sleepCool',st==='sleepHot');
+        // 寝ている時は頭を枕の上で横に倒す（頭のてっぺんが枕の側・あごが体の側）。前は起きている時と同じ縦向きで、首が立って見えた
+        cx.save();cx.translate(fx0+30,fy+3);cx.rotate(-1.35);drawKidFace(0,-3.6,12,false,st==='sleepCool',st==='sleepHot');cx.restore();
         if(st==='sleepHot'||st==='sleepCool'){cx.font=F11;cx.textAlign='left';cx.fillStyle='rgba(222,204,248,.6)';cx.fillText('z',fx0+50,fy-22-((t*8)%10));}
       }
       // 掛け布団（呼吸で上下）
@@ -2006,6 +2007,12 @@ registerMinigame({
       mg.setTimer(phase==='story'||phase==='title'?'深夜2:14':phase==='home'||phase==='grade'?'帰宅':rem+'m');
     }
 
+    // 試験の時だけの入口（window.__MG_TEST__ がある時だけ。ふだんは何もしない）：状態を読む・ぶつからない・先へ進める・傘の耐久を変える
+    let testGod=false;
+    if(typeof window!=='undefined'&&window.__MG_TEST__)window.__MG_TEST__.runner={
+      get s(){return {phase,cam,m:Math.floor(cam/M),py,vy,onG,jumps,slideT,hp,invul,hits,coins,outcome,woke,dlg:!!dlg};},
+      god(on){testGod=!!on;}, warp(m){cam=Math.max(cam,m*M);nextX=Math.max(nextX,cam+VW);obs=obs.filter(o=>o.x>cam+VW);}, setHp(n){hp=n;},
+    };
     resize();
     if(ro)ro.observe(body);
     startDialog(INTRO,()=>wipe(()=>{phase='title';phaseT=0;sfx('stage','decide');}));
