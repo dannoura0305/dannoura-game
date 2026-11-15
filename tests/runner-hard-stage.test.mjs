@@ -9,9 +9,11 @@ import assert from 'node:assert/strict';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const defs = [];
-const ctx = { console, Math, Object, Array, Number, JSON, registerMinigame: d => defs.push(d), addMinigameStyle() {} };
+const ctx = { console, Math, Object, Array, Number, JSON, Set, registerMinigame: d => defs.push(d), addMinigameStyle() {} };
 vm.createContext(ctx);
 vm.runInContext(readFileSync(join(ROOT, 'minigames/runner/act.js'), 'utf8'), ctx, { filename: 'act.js' });
+vm.runInContext(readFileSync(join(ROOT, 'minigames/runner/gimmicks.js'), 'utf8'), ctx, { filename: 'gimmicks.js' });
+vm.runInContext(readFileSync(join(ROOT, 'minigames/runner/bosses.js'), 'utf8'), ctx, { filename: 'bosses.js' });
 vm.runInContext(readFileSync(join(ROOT, 'minigames/runner_hard.js'), 'utf8'), ctx, { filename: 'runner_hard.js' });
 const RA = ctx.RunnerAct, ST = ctx.RunnerHardStage;
 let n = 0; const t = (name, fn) => { fn(); n++; console.log('  ✓ ' + name); };
@@ -86,5 +88,64 @@ t('ボスの部屋：平らな床（列 c0〜c1）・その先にコンビニの
   const c = A.body((AR.c1 - 1) * T, 80, 1); for (let i = 0; i < 200; i++) A.step(c, { r: true }); assert.ok(c.x < (AR.c1 + 1) * T, '柵が閉まっていれば通れない');
   map.extra.clear();
 });
+
+// ── 雷殻の怪異の面「高架下・都市送電区」（RunnerHardStages.koka）と、面の仕掛け（gimmicks.js） ──
+{
+  const K = ctx.RunnerHardStages.koka, KR = K.rows(), KH = KR.length, GD = K.gimmicks(), KA = K.arena();
+  const kfind = ch => { for (let r = 0; r < KH; r++) { const c = KR[r].indexOf(ch); if (c >= 0) return { c, x: c * T + T / 2, y: (KH - 1 - r) * T }; } return null; };
+  const kmap = () => RA.makeMap(KR.map(r => r.replace(/[SCG]/g, '.')));
+  const KS = kfind('S'), KG = kfind('G');
+  t('高架下：14 行で幅がそろう・始まりと戸・ボスの表の面と部屋のボスがつながる（雷殻の怪異）', () => {
+    assert.equal(KR.length, 14); assert.ok(KR.every(r => r.length === KR[0].length)); assert.ok(KS && KG && KG.x > (KA.c1 + 1) * T);
+    const d = ctx.RunnerBosses.BOSSES.find(b => b.id === KA.boss); assert.ok(d && d.stage === 'koka' && ctx.RunnerHardStages[d.stage] === K);
+    for (const b of ctx.RunnerBosses.visible()) assert.ok(ctx.RunnerHardStages[b.stage] && ctx.RunnerHardStages[b.stage].arena().boss === b.id, 'どのボスにも面がある ' + b.id);
+  });
+  // 自動操作：帯電する床は止んでいる間に渡る（箱で待つ）・壊れる足場は止まらずに跳び移る・柱は壁蹴り・広い穴はダッシュジャンプ・ダクトはスライド
+  function kbot(G, b, f, mem) {
+    const c = b.x / T, inp = { r: true }, ground = ['stand', 'walk', 'walk_start', 'land'].includes(b.state), [s1, s2] = G.strips;
+    if (b.state === 'jump') inp.j = true;
+    if (c > 15 && c < 15.6 && ground && (G.live(s1) || G.left(s1) < 62)) inp.r = false;
+    if (c > 19.7 && c < 20.6 && b.y <= 80.5 && ground) inp.j = true;
+    if (c > 21 && c < 22.7 && b.y >= 119 && ground && (G.live(s2) || G.left(s2) < 64)) inp.r = false;
+    for (const e of [33.2, 38.2, 42.2, 46.2]) if (c > e && c < e + 0.6 && ground) inp.j = true;
+    if (c > 56 && c < 60.5 && b.y < 320) { if (ground) inp.j = true; else if (b.state === 'wall_slide') inp.j = (f % 2 === 0); else if (b.state === 'wall_kick' || b.state === 'jump') inp.j = true; }
+    if (c > 66 && c < 71.6 && b.y >= 79 && b.y < 81) { inp.d = b.state === 'dash' || !mem.prevD; if (c > 70.4) inp.j = true; }
+    if ((b.state === 'jump' || b.state === 'fall') && b.dashJump) { inp.d = true; inp.j = true; }
+    if (c > 83 && c < 97) inp.dn = (f % 40 < 2);
+    if (mem.prevJ && inp.j && ground) inp.j = false;
+    mem.prevJ = !!inp.j; mem.prevD = !!inp.d; return inp;
+  }
+  t('高架下：通れる（自動操作で、始まりからボスの部屋まで。電気にも とげにも当たらずに）', () => {
+    const map = kmap(), G = ctx.RunnerGimmicks.make(map, GD), A = RA.make({ map }), b = A.body(KS.x, KS.y, 1), mem = {}; let hurt = 0, f = 0, ok = false;
+    for (; f < 60 * 90; f++) { A.step(b, kbot(G, b, f, mem)); G.step(b, A.box(b)); if (G.shock(A.box(b)) || b.state === 'hurt') hurt++; if (b.y < -40) break; if (b.x > (KA.c0 + 2) * T && b.y === 80) { ok = true; break; } }
+    assert.ok(ok, `届かなかった：${(b.x / T).toFixed(1)} マス・${b.state}`); assert.equal(hurt, 0); assert.ok(f / 60 < 45, `${(f / 60).toFixed(1)} 秒`);
+  });
+  t('仕掛けの意味：帯電する床は、流れている間に歩いて渡ると やられ（流れる前にちらつく）', () => {
+    const map = kmap(), G = ctx.RunnerGimmicks.make(map, GD), A = RA.make({ map }), b = A.body(15 * T, 80, 1); let shocked = false, warned = false;
+    for (let f = 0; f < 300 && !shocked; f++) { A.step(b, { r: true }); G.step(b, A.box(b)); warned = warned || G.warn(G.strips[0]); if (G.shock(A.box(b))) shocked = true; }
+    assert.ok(shocked); assert.ok(warned || G.live(G.strips[0]));
+  });
+  t('仕掛けの意味：壊れる足場は乗ると揺れて落ちる → しばらくして戻る。看板（stable）は乗っても落ちず、踏みつけで壊れる', () => {
+    const map = kmap(), G = ctx.RunnerGimmicks.make(map, GD), A = RA.make({ map }), c0 = G.crumbles[0], b = A.body((c0.c0 + 1) * T, (c0.cy + 1) * T, 1);
+    let fell = false; for (let f = 0; f < 120; f++) { A.step(b, {}); G.step(b, A.box(b)); if (c0.st === 'gone') fell = true; }
+    assert.ok(fell && b.y < 80, '落ちる'); for (let f = 0; f < 400; f++) G.step(null, null); assert.equal(c0.st, 'solid', '戻る'); assert.ok(map.solid(c0.c0, c0.cy));
+    const sign = G.crumbles.find(c => c.arena), s = A.body((sign.c0 + 1) * T, (sign.cy + 1) * T, 1);
+    for (let f = 0; f < 200; f++) { A.step(s, {}); G.step(s, A.box(s)); } assert.equal(sign.st, 'solid'); assert.equal(s.y, (sign.cy + 1) * T, '看板は乗っても落ちない');
+    G.breakArena(); assert.equal(sign.st, 'gone'); assert.ok(!map.solid(sign.c0, sign.cy));
+    G.charge(true); for (let f = 0; f < 400; f++) G.step(null, null); assert.equal(sign.st, 'solid'); assert.ok(G.shock({ x0: sign.c0 * T + 5, x1: sign.c0 * T + 19, y0: (sign.cy + 1) * T, y1: (sign.cy + 1) * T + 48 }), '帯電した看板に触れると やられ');
+  });
+  t('高架下のボスの部屋：平らな床・1 画面ほどの幅（13〜16 マス）・その先にコンビニの戸まで歩いて行ける', () => {
+    const map = kmap(); for (let c = KA.c0 - 1; c <= KA.c1 + 1; c++) { assert.ok(map.solid(c, 1), `床 ${c}`); assert.ok(!map.solid(c, 2) && !map.solid(c, 3), `空き ${c}`); }
+    assert.ok(KA.c1 - KA.c0 + 1 >= 13 && KA.c1 - KA.c0 + 1 <= 16); assert.ok(KA.bossC > KA.c0 && KA.bossC < KA.c1);
+    const A = RA.make({ map }), b = A.body((KA.c1 - 1) * T, 80, 1); for (let f = 0; f < 600 && Math.abs(b.x - KG.x) >= 26; f++) A.step(b, { r: true });
+    assert.ok(Math.abs(b.x - KG.x) < 26, `戸に届かない x=${(b.x / T).toFixed(1)}`);
+  });
+  t('仕掛けの意味：高架の柱（240px）はふつうのジャンプでは届かない・看板には床からジャンプで届く', () => {
+    const map = kmap(), A = RA.make({ map }), b = A.body(58 * T, 80, 1); for (let f = 0; f < 120; f++) A.step(b, { r: true, j: true }); assert.ok(b.y < 320);
+    const sign = GD.crumbles.find(c => c.arena), G = ctx.RunnerGimmicks.make(map, GD), s = A.body((sign.c0 - 1) * T, 80, 1);
+    for (let f = 0; f < 120; f++) { A.step(s, { r: f > 6, j: f < 40 }); G.step(s, A.box(s)); if (s.y === (sign.cy + 1) * T) break; }
+    assert.equal(s.y, (sign.cy + 1) * T, '看板に乗れる');
+  });
+}
 
 console.log(`runner-hard-stage: ${n} ok`);
