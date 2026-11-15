@@ -13,7 +13,7 @@ addMinigameStyle('runner_hard', `
 
 // 試しの 1 面（区間の並び）。寸法：地面の上は y=80（2 マス）
 var RunnerHardStage = RunnerHardStage || {
-  W: 124, H: 14,
+  W: 152, H: 14,
   rows() {
     const W = this.W, H = this.H, g = Array.from({ length: H }, () => Array(W).fill('.'));
     const put = (c, cy, ch) => { if (c >= 0 && c < W && cy >= 0 && cy < H) g[H - 1 - cy][c] = ch; };
@@ -30,13 +30,16 @@ var RunnerHardStage = RunnerHardStage || {
     put(66, 2, 'C');
     fill(84, 94, 3, H - 2);                     // 低い天井（すき間 40px）：スライドでくぐる
     put(100, 2, 'C');
-    put(114, 2, 'G');                           // コンビニの戸
+    // ボスの部屋（列 108〜134）：入ると後ろ（107）の柵が閉まり、倒すと前（135）の柵が開く（柵は runner_hard.js が map.extra に足す）
+    put(144, 2, 'G');                           // コンビニの戸（ボスの部屋の先）
     return g.map(r => r.join(''));
   },
   // 弱い敵の置き場所 [種類, 列, 高さ（マス）, 向き]（名前・見た目は仮）
   enemies() {
-    return [['walker', 19, 2, -1], ['flyer', 34, 6, -1], ['walker', 40, 2, -1], ['walker', 56, 7, -1], ['walker', 80, 2, -1], ['flyer', 97, 4, -1], ['walker', 106, 2, -1]];
+    return [['walker', 19, 2, -1], ['flyer', 34, 6, -1], ['walker', 40, 2, -1], ['walker', 56, 7, -1], ['walker', 80, 2, -1], ['flyer', 97, 4, -1]];
   },
+  // ボスの部屋：[入口の列, 出口の列]（柵は c0-1 と c1+1）・ボスの立つ列・どのボスか（RunnerBosses.BOSSES の id）
+  arena() { return { c0: 108, c1: 134, bossC: 128, boss: 'boss_a' }; },
 };
 
 registerMinigame({
@@ -67,6 +70,8 @@ registerMinigame({
     //  通れることは tests/runner-hard-stage.test.mjs で自機を動かして確かめる
     const ROWS = RunnerHardStage.rows();
     let act = null, map = null, B = null, C = null, E = null, foes = [], kills = 0, hitStop = 0, acc = 0, prevIn = {};
+    let BZ = null, boss = null, AR = null, arenaOn = false, selIdx = 0, learnedNow = null;
+    const selList = () => RunnerBosses.visible();
     let spawn = { x: 0, y: 0 }, check = { x: 0, y: 0 }, goal = { x: 0, y: 0 };
 
     // ── 状態 ──
@@ -83,19 +88,20 @@ registerMinigame({
     const SE = { swing: big => { blip('sawtooth', big ? 900 : 1300, big ? 300 : 500, big ? .16 : .1, .05); }, hit: dead => { blip('square', dead ? 180 : 260, dead ? 60 : 140, dead ? .22 : .09, .12); }, jump: () => blip('triangle', 420, 760, .12, .12), dash: () => blip('sawtooth', 160, 90, .14, .05), kick: () => blip('square', 300, 620, .1, .07), land: () => blip('sine', 140, 70, .08, .12), hurt: () => blip('square', 220, 90, .25, .1), slide: () => blip('sawtooth', 120, 80, .2, .04), check: () => { blip('sine', 660, 0, .12, .09); setTimeout(() => blip('sine', 990, 0, .2, .08), 90); }, clear: () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => blip('triangle', f, 0, .25, .1), i * 110)) };
 
     // ── 入力：キーボード・ゲームパッド・画面のボタン ──
-    const K = { l: false, r: false, j: false, d: false, dn: false, atk: false };
-    const keyMap = { ArrowLeft: 'l', a: 'l', A: 'l', ArrowRight: 'r', d: 'r', D: 'r', z: 'j', Z: 'j', ' ': 'j', ArrowUp: 'j', w: 'j', W: 'j', c: 'd', C: 'd', Shift: 'd', ArrowDown: 'dn', s: 'dn', S: 'dn', x: 'atk', X: 'atk' };
+    const K = { l: false, r: false, j: false, d: false, dn: false, atk: false, up: false };
+    const keyMap = { ArrowLeft: 'l', a: 'l', A: 'l', ArrowRight: 'r', d: 'r', D: 'r', z: 'j', Z: 'j', ' ': 'j', ArrowUp: 'up', w: 'up', W: 'up', c: 'd', C: 'd', Shift: 'd', ArrowDown: 'dn', s: 'dn', S: 'dn', x: 'atk', X: 'atk' };
     mg.onKey(e => {
       const k = keyMap[e.key]; if (!k) { if (e.key === 'Enter' && e.type === 'keydown') advance(); return; }
       e.preventDefault(); K[k] = e.type === 'keydown';
-      if (e.type === 'keydown' && k === 'j' && !e.repeat) advance();
+      if (e.type === 'keydown' && (k === 'j' || k === 'atk') && !e.repeat) advance();
+      if (e.type === 'keydown' && phase === 'select' && (k === 'l' || k === 'r')) selIdx = (selIdx + (k === 'r' ? 1 : -1) + selList().length) % selList().length;
     });
     function padInput() {
-      const o = { l: false, r: false, j: false, d: false, dn: false, atk: false };
+      const o = { l: false, r: false, j: false, d: false, dn: false, atk: false, up: false };
       let pads = []; try { pads = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean) : []; } catch (e) {}
       for (const g of pads) {
         const b = i => !!(g.buttons[i] && g.buttons[i].pressed), ax = g.axes[0] || 0, ay = g.axes[1] || 0;
-        o.l = o.l || b(14) || ax < -.4; o.r = o.r || b(15) || ax > .4; o.dn = o.dn || b(13) || ay > .6;
+        o.l = o.l || b(14) || ax < -.4; o.r = o.r || b(15) || ax > .4; o.dn = o.dn || b(13) || ay > .6; o.up = o.up || b(12) || ay < -.6;
         o.j = o.j || b(0); o.atk = o.atk || b(2) || b(3); o.d = o.d || b(1) || b(5) || b(7);   // A ジャンプ・X（Y）攻撃・B（RB・RT）ダッシュ
         if (b(0) && !padPrevA) advance(); padPrevA = b(0);
       }
@@ -104,17 +110,19 @@ registerMinigame({
     let padPrevA = false;
     // 画面のボタン（スマホ）：左下に ← →、右下に ジャンプ・ダッシュ・スライド。複数の指に対応
     const touches = new Map(); let showTouch = (typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches);
-    const btns = () => { const r = 34, y = VH - 58; return [{ k: 'l', x: 52, y, r, lab: '◀' }, { k: 'r', x: 132, y, r, lab: '▶' }, { k: 'dn', x: 92, y: y - 66, r: 26, lab: '▼' }, { k: 'd', x: VW - 212, y: y + 4, r: 30, lab: 'ダッシュ' }, { k: 'atk', x: VW - 136, y: y - 4, r: 34, lab: '攻撃' }, { k: 'j', x: VW - 58, y: y - 30, r: 38, lab: 'ジャンプ' }]; };
-    function touchKeys() { const o = { l: false, r: false, j: false, d: false, dn: false, atk: false }; for (const p of touches.values()) for (const b of btns()) if (Math.hypot(p.x - b.x, p.y - b.y) < b.r + 14) o[b.k] = true; return o; }
+    const btns = () => { const r = 34, y = VH - 58; return [{ k: 'l', x: 52, y, r, lab: '◀' }, { k: 'r', x: 132, y, r, lab: '▶' }, { k: 'up', x: 92, y: y - 126, r: 24, lab: '▲' }, { k: 'dn', x: 92, y: y - 66, r: 26, lab: '▼' }, { k: 'd', x: VW - 212, y: y + 4, r: 30, lab: 'ダッシュ' }, { k: 'atk', x: VW - 136, y: y - 4, r: 34, lab: '攻撃' }, { k: 'j', x: VW - 58, y: y - 30, r: 38, lab: 'ジャンプ' }]; };
+    function touchKeys() { const o = { l: false, r: false, j: false, d: false, dn: false, atk: false, up: false }; for (const p of touches.values()) for (const b of btns()) if (Math.hypot(p.x - b.x, p.y - b.y) < b.r + 14) o[b.k] = true; return o; }
     const toV = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / sc, y: (e.clientY - r.top) / sc }; };
     cv.addEventListener('pointerdown', e => { e.preventDefault(); if (e.pointerType === 'touch') showTouch = true; if (advance()) return; try { cv.setPointerCapture(e.pointerId); } catch (_) {} touches.set(e.pointerId, toV(e)); });
     cv.addEventListener('pointermove', e => { if (touches.has(e.pointerId)) touches.set(e.pointerId, toV(e)); });
     const up = e => touches.delete(e.pointerId); cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up); cv.addEventListener('contextmenu', e => e.preventDefault());
-    function readInput() { const p = padInput(), tch = showTouch ? touchKeys() : {}; const o = {}; for (const k of ['l', 'r', 'j', 'd', 'dn', 'atk']) o[k] = !!(K[k] || p[k] || tch[k]); return o; }
+    function readInput() { const p = padInput(), tch = showTouch ? touchKeys() : {}; const o = {}; for (const k of ['l', 'r', 'j', 'd', 'dn', 'atk', 'up']) o[k] = !!(K[k] || p[k] || tch[k]); return o; }
 
     // ── 流れ ──
     function advance() {
-      if (phase === 'intro' && phaseT > .4) { phase = 'play'; phaseT = 0; banner = { t: 0, txt: 'STAGE 1　雨の住宅街（試作）' }; return true; }
+      if (phase === 'intro' && phaseT > .4) { phase = 'select'; phaseT = 0; return true; }
+      if (phase === 'select' && phaseT > .3) { phase = 'play'; phaseT = 0; banner = { t: 0, txt: 'STAGE 1　雨の住宅街（試作）' }; return true; }
+      if (phase === 'learn' && phaseT > .8) { finishLearn(); return true; }
       if (phase === 'clear' && phaseT > 1.6) { finish(); return true; }
       if (phase === 'over' && phaseT > 1.2) { finish(); return true; }
       return phase !== 'play';
@@ -125,7 +133,7 @@ registerMinigame({
       const R = REC.proto; R.plays = (R.plays | 0) + 1;
       if (outcome === 'clear') { R.clears = (R.clears | 0) + 1; if (!R.bestTime || runTime < R.bestTime) R.bestTime = Math.round(runTime * 10) / 10; }
     }
-    function respawn() { B = act.body(check.x, check.y, 1); B.invul = 60; }
+    function respawn() { B = act.body(check.x, check.y, 1); B.invul = 60; if (arenaOn && boss && !boss.dead) { arenaOn = false; setGates(false); boss = BZ.spawn(AR.boss, AR.bossC * map.tile + map.tile / 2, 2 * map.tile, AR); BZ.shots.length = 0; } }
     function damage(n, why) {
       hp -= n; hurts++; flash = .8; shake = .3; SE.hurt(); if (mg.buzz) try { mg.buzz(40); } catch (_) {}
       if (hp <= 0) { hp = 0; phase = 'over'; phaseT = 0; outcome = 'down'; commit(); }
@@ -141,13 +149,22 @@ registerMinigame({
       [spawn, goal, ...checks].forEach(drop);
       act = RunnerAct.make({ map }); C = RunnerCombat.make(act, { learned: REC.moves || [] }); E = RunnerEnemies.make(map);
       foes = RunnerHardStage.enemies().map(([type, c, cy, face]) => E.spawn(type, c * T + T / 2, cy * T, face));
+      BZ = RunnerBosses.make(map); const a = RunnerHardStage.arena(); AR = Object.assign({}, a, { x0: a.c0 * T, x1: (a.c1 + 1) * T });
+      if (!(REC.beaten || []).includes(a.boss)) boss = BZ.spawn(a.boss, a.bossC * T + T / 2, 2 * T, AR);
       check = { x: spawn.x, y: spawn.y }; B = act.body(spawn.x, spawn.y, 1);
       phase = 'intro'; phaseT = 0;
     }
     const checks = [];
+    // だんのうらのドット絵（assets/runner/dannoura.webp・.json。利用者の絵）。読めるまで・読めない時は、今までのコードで描く人物
+    let SPR = null;
+    function loadSprite() {
+      fetch('assets/runner/dannoura.json').then(r => r.json()).then(meta => {
+        const img = new Image(); img.onload = () => { SPR = { img, F: meta.frames }; }; img.src = 'assets/runner/' + meta.image;
+      }).catch(() => {});
+    }
     // 自機の動き・技・敵（minigames/runner/*.js）を順に読む（読み込み済みなら読まない）
     function loadAct() {
-      const need = [['RunnerAct', 'act'], ['RunnerCombat', 'combat'], ['RunnerEnemies', 'enemies']].filter(([g]) => typeof window[g] === 'undefined');
+      const need = [['RunnerAct', 'act'], ['RunnerCombat', 'combat'], ['RunnerEnemies', 'enemies'], ['RunnerBosses', 'bosses']].filter(([g]) => typeof window[g] === 'undefined');
       const next = () => {
         if (mg._ended) return; const n = need.shift(); if (!n) { build(); return; }
         const s = document.createElement('script'); s.src = 'minigames/runner/' + n[1] + '.js'; s.async = true;
@@ -173,8 +190,27 @@ registerMinigame({
         const ex = e.x, ey = e.y + 18; for (let i = 0; i < (e.dead ? 16 : 8); i++) emit(ex, ey, rnd(-160, 160), rnd(-60, 200), .35, i % 2 ? '#e8f0ff' : '#00e8c8', 2.2, 400);
         if (e.dead) kills++;
       }
+      // ボスの部屋：入ると柵が閉まり、ボスが起きる
+      if (boss && !boss.dead && !arenaOn && B.x > AR.x0 + 40 && B.y < 140) { arenaOn = true; setGates(true); BZ.wake(boss); banner = { t: 0, txt: 'ボス　' + bossDef().name }; SE.check(); }
+      if (boss) {
+        BZ.step(boss, B); BZ.stepShots();
+        if (hb && !boss.dead && RunnerCombat.overlap(hb, BZ.box(boss)) && C.tryHit(B, boss)) { if (BZ.hurt(boss, hb.dmg)) { hitStop = Math.max(hitStop, hb.hitstop + 1); shake = Math.max(shake, .15); SE.hit(boss.dead); for (let i = 0; i < 10; i++) emit(boss.x, boss.y + 40, rnd(-180, 180), rnd(-40, 220), .4, i % 2 ? '#e8f0ff' : '#00e8c8', 2.4, 400); if (boss.dead) { shake = .6; SE.clear(); } } }
+        if (boss.dead && boss.deadF === 70) { phase = 'learn'; phaseT = 0; learnedNow = bossDef().teaches; }
+        if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); let hit = !boss.dead && boss.state !== 'wait' && RunnerCombat.overlap(pb, BZ.box(boss)) ? boss.x : null; for (const sh of BZ.shots) if (RunnerCombat.overlap(pb, BZ.shotBox(sh))) { hit = sh.x; sh.life = 0; } if (hit !== null) { B.atk = null; act.hurt(B, hit < B.x ? -1 : 1); } }
+      }
       // 敵に触れる → やられ（後ろへ飛ぶ・無敵）
       if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); for (const e of foes) { if (e.dead || !RunnerCombat.overlap(pb, E.box(e))) continue; B.atk = null; act.hurt(B, e.x < B.x ? -1 : 1); break; } }   // 敵の方を向いたまま、後ろへ飛ぶ
+    }
+    const bossDef = () => RunnerBosses.BOSSES.find(b => b.id === AR.boss);
+    // 柵（部屋の入口と出口）：map.extra に壁を足す・消す
+    function setGates(on) { for (const c of [AR.c0 - 1, AR.c1 + 1]) for (let cy = 2; cy < 12; cy++) { const k = c + ',' + cy; if (on) map.extra.add(k); else map.extra.delete(k); } }
+    // 技を覚える：記録（gs.runnerHard.beaten・moves）に入れ、柵を開ける
+    function finishLearn() {
+      const d = bossDef(); REC.beaten = REC.beaten || []; REC.moves = REC.moves || [];
+      if (!REC.beaten.includes(d.id)) REC.beaten.push(d.id);
+      if (d.teaches && !REC.moves.includes(d.teaches)) REC.moves.push(d.teaches);
+      if (d.teaches) C.learn(d.teaches);
+      setGates(false); arenaOn = false; boss = null; phase = 'play'; phaseT = 0; banner = { t: 0, txt: 'コンビニへ（柵が開いた）' };
     }
     // ── 更新 ──
     let lastState = 'stand';
@@ -327,17 +363,64 @@ registerMinigame({
         cx.restore(); cx.globalAlpha = 1;
       }
     }
+    // 仮のボス：大きな雨坊主（仮）。予兆の間は体が膨らんで赤く光る
+    function drawBoss() {
+      if (!boss) return;
+      for (const sh of BZ.shots) { const x = sx(sh.x), y = sy(sh.y); cx.fillStyle = sh.kind === 'wave' ? 'rgba(120,200,255,.85)' : '#7ac8ff';
+        if (sh.kind === 'wave') { cx.beginPath(); cx.moveTo(x - 12, y); cx.quadraticCurveTo(x, y - 30, x + 12, y); cx.closePath(); cx.fill(); } else { cx.beginPath(); cx.arc(x, y - 3, 6, 0, TAU); cx.moveTo(x - 5, y - 5); cx.lineTo(x, y - 14); cx.lineTo(x + 5, y - 5); cx.fill(); } }
+      const e = boss, x = sx(e.x), y = sy(e.y), tele = BZ.telegraph(e), a = e.dead ? Math.max(0, 1 - e.deadF / 70) : 1, fl = e.hitT > 4;
+      cx.globalAlpha = a; cx.save(); cx.translate(x, y); const sq = tele ? 1 + Math.sin(e.f * .6) * .06 : 1; cx.scale(2.1 * sq, 2.1 / sq);
+      if (e.dead) cx.rotate(Math.min(1.4, e.deadF * .03) * -e.face);
+      cx.fillStyle = 'rgba(0,0,0,.35)'; cx.beginPath(); cx.ellipse(0, 1, 15, 3, 0, 0, TAU); cx.fill();
+      cx.fillStyle = fl ? '#ffffff' : tele ? '#a04a6a' : '#2f5a7a'; cx.beginPath(); cx.moveTo(-15, 0); cx.quadraticCurveTo(-13, -32, 0, -38); cx.quadraticCurveTo(13, -32, 15, 0); cx.closePath(); cx.fill();
+      cx.fillStyle = fl ? '#ffffff' : '#4a86b0'; cx.beginPath(); cx.arc(0, -27, 12, Math.PI, 0); cx.fill();
+      cx.fillStyle = tele ? '#ff4060' : '#0a0a18'; cx.fillRect(e.face * 3 - 6, -25, 4, 5); cx.fillRect(e.face * 3 + 2, -25, 4, 5);
+      cx.restore(); cx.globalAlpha = 1;
+    }
     // 振りの軌跡（当たる間だけ）
     function drawSlash() {
       const hb = C && C.hitbox(B); if (!hb) return;
+      if (SPR) cx.globalAlpha = .45;
       const x0 = sx(hb.x0), x1 = sx(hb.x1), y0 = sy(hb.y1), y1 = sy(hb.y0), cxm = (x0 + x1) / 2, cym = (y0 + y1) / 2, f = B.face;
       cx.strokeStyle = hb.id === 'slash3' ? 'rgba(232,184,48,.9)' : 'rgba(0,232,200,.85)'; cx.lineWidth = hb.id === 'slash3' ? 5 : 3.5; cx.lineCap = 'round';
       cx.beginPath();
       if (hb.id === 'slash2') cx.ellipse(cxm - f * 10, cym, (x1 - x0) / 2, (y1 - y0) / 2, 0, f > 0 ? -1.4 : Math.PI - 1.7, f > 0 ? 1.7 : Math.PI + 1.4);
       else cx.ellipse(cxm - f * 10, cym, (x1 - x0) / 2, (y1 - y0) / 2, 0, f > 0 ? -1.9 : Math.PI - .4, f > 0 ? .4 : Math.PI + 1.9);
-      cx.stroke(); cx.lineCap = 'butt';
+      cx.stroke(); cx.lineCap = 'butt'; cx.globalAlpha = 1;
+    }
+    // 状態 → ドット絵のコマ（行_列）。行：0 立つ・1 走る・2 ジャンプ・3 ダッシュとスライド・4 拳と構え・5 傘で斬る・6 傘を開く・7 やられ
+    const ATK_SPR = { rising: ['4_1', '4_2', '4_3'], slash1: ['5_1', '5_2', '5_0'], slash2: ['5_4', '5_5', '5_7'], slash3: ['4_3', '5_6', '4_7'], air: ['2_3', '5_6', '2_4'] };
+    function spriteKey() {
+      const st = B.state, f = B.f, cyc = (keys, fps) => keys[Math.floor(t * fps) % keys.length];
+      if (phase === 'over') return '7_4';
+      if (phase === 'intro' || phase === 'clear') return cyc(['0_0', '0_1', '0_2', '0_3', '0_4', '0_5', '0_6', '0_7'], 8);
+      if (B.atk) { const m = RunnerCombat.MOVES[B.atk.id], ks = ATK_SPR[B.atk.id] || ATK_SPR.slash1, a = B.atk.f; return a <= m.startup ? ks[0] : a <= m.startup + m.active ? ks[1] : ks[2]; }
+      if (st === 'hurt') return f < 8 ? '7_0' : '7_1';
+      if (st === 'slide') return f < 4 ? '3_4' : '3_5';
+      if (st === 'dash') return ['3_1', '3_2', '3_3'][Math.floor(f / 4) % 3];
+      if (st === 'dash_end') return '3_7';
+      if (st === 'wall_slide') return '4_6';
+      if (st === 'wall_kick') return f < 5 ? '4_6' : '2_2';
+      if (st === 'jump') return f < 5 ? '2_1' : B.vy > 5 ? '2_2' : '2_3';
+      if (st === 'fall') return B.vy > -4 ? '2_3' : B.vy > -9 ? '2_4' : '2_5';
+      if (st === 'land') return '2_6';
+      if (st === 'walk' || st === 'walk_start') return '1_' + (Math.floor(Math.abs(B.x) / 16) % 8);   // 進んだ距離でコマを送る（足が滑らない）
+      return cyc(['0_0', '0_1', '0_2', '0_3', '0_4', '0_5', '0_6', '0_7'], 7);
+    }
+    const SPR_SCALE = .74;                                            // 立った姿で 約 70px（当たりの高さ 48px より少し大きく見せる）
+    function drawSprite(x, y, alpha) {
+      const k = spriteKey(), r = SPR.F[k] || SPR.F['0_0'], f = B.face || 1, s2 = SPR_SCALE;
+      cx.globalAlpha = alpha; cx.save(); cx.translate(x, y); cx.scale(f * s2, s2);
+      cx.drawImage(SPR.img, r[0], r[1], r[2], r[3], -r[4], -r[5], r[2], r[3]);
+      cx.restore(); cx.globalAlpha = 1;
     }
     function drawPlayer() {
+      if (SPR) {
+        let alpha = 1; if (B.invul > 0 && B.state !== 'hurt') alpha = (Math.floor(B.invul / 4) % 2) ? .35 : 1;
+        const x = sx(B.x), y = sy(B.y);
+        cx.fillStyle = 'rgba(0,0,0,.45)'; cx.beginPath(); cx.ellipse(x, y + 1, 14, 2.5, 0, 0, TAU); cx.fill();
+        drawSprite(x, y, alpha); return;
+      }
       setPose(); ph += Math.abs(B.vx) * .2;
       let alpha = 1; if (B.invul > 0) alpha = (Math.floor(B.invul / 4) % 2) ? .35 : 1;
       const x = sx(B.x), y = sy(B.y);
@@ -345,6 +428,27 @@ registerMinigame({
       cx.globalAlpha = alpha; cx.save(); cx.translate(x, y); cx.scale(1.12 * B.face, 1.12);
       drawFigure(PAL_R, 1.3, -1); drawFigure(PAL_N, 0, 0);
       cx.restore(); cx.globalAlpha = 1;
+    }
+    function drawBossBar() {
+      if (!boss || !arenaOn) return; const w = Math.min(320, VW - 40), x = (VW - w) / 2, y = 48;
+      cx.fillStyle = 'rgba(0,0,0,.55)'; cx.fillRect(x - 4, y - 16, w + 8, 30); cx.fillStyle = '#deccf8'; cx.font = '11px sans-serif'; cx.textAlign = 'left'; cx.fillText(bossDef().name, x, y - 4);
+      cx.fillStyle = 'rgba(255,255,255,.15)'; cx.fillRect(x, y, w, 7); cx.fillStyle = '#ff6a8a'; cx.fillRect(x, y, w * boss.hp / boss.hpMax, 7);
+    }
+    function drawSelect() {
+      cx.fillStyle = 'rgba(5,4,14,.86)'; cx.fillRect(0, 0, VW, VH); cx.textAlign = 'center';
+      cx.fillStyle = '#00e8c8'; cx.font = 'bold 20px sans-serif'; cx.fillText('どこへ行く？（試作）', VW / 2, 90);
+      const L = selList(), cw = 170, gap = 18, x0 = VW / 2 - (L.length * cw + (L.length - 1) * gap) / 2;
+      L.forEach((d, i) => {
+        const x = x0 + i * (cw + gap), y = 140, beat = (REC.beaten || []).includes(d.id), on = i === selIdx;
+        cx.fillStyle = on ? 'rgba(0,232,200,.18)' : 'rgba(255,255,255,.06)'; cx.fillRect(x, y, cw, 210); cx.strokeStyle = on ? '#00e8c8' : 'rgba(255,255,255,.25)'; cx.lineWidth = 2; cx.strokeRect(x, y, cw, 210);
+        cx.save(); cx.translate(x + cw / 2, y + 120); cx.scale(1.6, 1.6); cx.fillStyle = beat ? '#555a6a' : '#2f5a7a'; cx.beginPath(); cx.moveTo(-15, 0); cx.quadraticCurveTo(-13, -32, 0, -38); cx.quadraticCurveTo(13, -32, 15, 0); cx.closePath(); cx.fill(); cx.restore();
+        cx.fillStyle = '#deccf8'; cx.font = 'bold 13px sans-serif'; cx.fillText(d.name, x + cw / 2, y + 150);
+        cx.font = '11px sans-serif'; cx.fillStyle = beat ? '#e8b830' : 'rgba(222,204,248,.7)';
+        const mv = d.teaches && RunnerCombat.MOVES[d.teaches]; cx.fillText(beat ? '倒した（' + (mv ? mv.name : '') + '）' : '覚える技：？？？', x + cw / 2, y + 172);
+        cx.fillStyle = 'rgba(222,204,248,.5)'; cx.fillText('雨の住宅街（試作）', x + cw / 2, y + 192);
+      });
+      cx.fillStyle = 'rgba(222,204,248,.55)'; cx.font = '11px sans-serif'; cx.fillText('ボスの人数・名前・技は、まだ仮です', VW / 2, 384);
+      if (Math.sin(t * 6) > -.3) { cx.fillStyle = '#e8b830'; cx.font = '13px sans-serif'; cx.fillText((showTouch ? 'タップ' : 'Z・Enter') + 'で 行く', VW / 2, 420); }
     }
     function drawHUD() {
       cx.textAlign = 'left'; cx.font = 'bold 14px sans-serif';
@@ -368,26 +472,29 @@ registerMinigame({
       cx.save(); cx.translate(shx, 0);
       drawBack(); drawTiles();
       for (const p of P) if (p.a) { cx.globalAlpha = Math.max(0, p.l / p.m); cx.fillStyle = p.c; cx.fillRect(sx(p.x) - p.s / 2, sy(p.y) - p.s / 2, p.s, p.s); }
-      cx.globalAlpha = 1; drawFoes(); drawPlayer(); drawSlash();
+      cx.globalAlpha = 1; drawFoes(); drawBoss(); drawPlayer(); drawSlash();
       cx.strokeStyle = 'rgba(170,190,255,.3)'; cx.lineWidth = 1; cx.beginPath(); for (let i = 0; i < RN; i += 2) { cx.moveTo(rx[i], ry[i]); cx.lineTo(rx[i] - 6, ry[i] - rl[i]); } cx.stroke();
       cx.restore();
       if (flash > 0) { cx.fillStyle = `rgba(255,120,140,${flash * .25})`; cx.fillRect(0, 0, VW, VH); }
-      drawHUD();
+      drawHUD(); drawBossBar();
       if (banner) { const a = Math.min(1, banner.t * 3, (2.6 - banner.t) * 3); cx.globalAlpha = a; cx.fillStyle = 'rgba(5,4,14,.7)'; cx.fillRect(0, 70, VW, 34); cx.fillStyle = '#00e8c8'; cx.font = 'bold 15px sans-serif'; cx.textAlign = 'center'; cx.fillText(banner.txt, VW / 2, 93); cx.globalAlpha = 1; }
-      if (phase === 'intro') card(['高難易度版（試作）', '雨の町を、コンビニまで。', '←→ 移動　Z ジャンプ　X 攻撃（3 段・空中）　C ダッシュ　↓ スライド', '壁に向かって押しながら跳ぶと、壁を蹴る'], (showTouch ? 'タップ' : 'Z・Enter') + 'で はじめる');
+      if (phase === 'intro') card(['高難易度版（試作）', '雨の町を、コンビニまで。', '←→ 移動　Z ジャンプ　X 攻撃（3 段・空中）　C ダッシュ　↓ スライド　↑＋X 覚えた技', '壁に向かって押しながら跳ぶと、壁を蹴る'], (showTouch ? 'タップ' : 'Z・Enter') + 'で はじめる');
+      if (phase === 'select') drawSelect();
+      if (phase === 'learn') { const mv = RunnerCombat.MOVES[learnedNow] || {}; card(['新しい技を覚えた', mv.name || '', '↑を押しながら 攻撃（X）', '上と前を広く払う'], (showTouch ? 'タップ' : 'Z・Enter') + 'で 続ける'); }
       if (phase === 'clear') card(['コンビニに着いた', `${runTime.toFixed(1)} 秒　／　ぶつかった ${hurts} 回`, '冷却シートと、プリン。'], (showTouch ? 'タップ' : 'Z・Enter') + 'で 戻る');
       if (phase === 'over') card(['傘が折れた……', 'もう一度、行かなきゃ。'], (showTouch ? 'タップ' : 'Z・Enter') + 'で 戻る');
     }
 
     // 試験の時だけの入口（window.__MG_TEST__ がある時だけ）
     if (typeof window !== 'undefined' && window.__MG_TEST__) window.__MG_TEST__.runnerHard = {
-      get s() { return { phase, hp, falls, hurts, runTime, outcome, kills, foes: foes.map(e => ({ type: e.type, x: e.x, y: e.y, hp: e.hp, dead: e.dead, face: e.face })), invul: B && B.invul, atk: B && B.atk && B.atk.id, x: B && B.x, y: B && B.y, state: B && B.state, goal, spawn, checks: checks.map(c => !!c.got) }; },
+      get s() { return { boss: boss ? { hp: boss.hp, state: boss.state, dead: boss.dead, x: boss.x } : null, arenaOn, arena: AR, moves: C ? [...C.learned] : [], beaten: REC.beaten || [], sprite: !!SPR, spriteKey: SPR && B ? spriteKey() : null, phase, hp, falls, hurts, runTime, outcome, kills, foes: foes.map(e => ({ type: e.type, x: e.x, y: e.y, hp: e.hp, dead: e.dead, face: e.face })), invul: B && B.invul, atk: B && B.atk && B.atk.id, x: B && B.x, y: B && B.y, state: B && B.state, goal, spawn, checks: checks.map(c => !!c.got) }; },
+      bossHp(n) { if (boss) boss.hp = n; },
       warp(x, y) { if (B) { B.x = x; B.y = y; B.vx = B.vy = 0; act.go(B, 'fall'); } }, start() { advance(); },
     };
 
     try { if (mg.exposeSfx) mg.exposeSfx(Object.keys(SE), k => SE[k] && SE[k]()); } catch (_) {}   // 音の一覧（設定・試験から鳴らせる）
     resize(); initRain(); if (ro) ro.observe(body);
-    loadAct();
+    loadAct(); loadSprite();
     mg.loop(dt => { update(Math.max(0, Math.min(.1, dt))); if (mg._ended) return; draw(); });
 
     return { result(reason) {

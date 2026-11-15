@@ -43,12 +43,15 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
   if (label === '横長') ok('印がある時：アクションの欄に出る', await p.evaluate(() => MINIGAMES.some(m => m.id === 'runner_hard') && MG_CATS.find(c => c.id === 'action').ids.includes('runner_hard')));
   const S = () => p.evaluate(() => window.__MG_TEST__.runnerHard ? window.__MG_TEST__.runnerHard.s : null);
   const until = async (fn, ms = 15000, step = 80) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const v = await fn(); if (v) return v; await p.waitForTimeout(step); } return null; };
-  await p.evaluate(async () => { gs.mgDay = {}; await MG.open('runner_hard'); });
+  await p.evaluate(async () => { gs.mgDay = {}; delete gs.runnerHard; await MG.open('runner_hard'); });
   const intro = await until(async () => { const s = await S(); return s && s.phase === 'intro' ? s : null; });
   ok(`${label}：開く → 自機の動き（act.js）を読み込んで説明の画面`, !!intro);
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_intro.png` });
-  await p.waitForTimeout(700); await p.keyboard.press('z'); await p.waitForTimeout(300);   // 説明の画面は出てから 0.4 秒は進まない（誤操作よけ）
-  let s = await S(); ok(`${label}：Z で遊び始める`, s.phase === 'play');
+  await p.waitForTimeout(700); await p.keyboard.press('z'); await p.waitForTimeout(400);   // 説明の画面は出てから 0.4 秒は進まない（誤操作よけ）
+  let s = await S(); ok(`${label}：Z → ボス選択の画面（表から並べる・仮のボス 1 体）`, s.phase === 'select');
+  if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_select.png` });
+  await p.waitForTimeout(500); await p.keyboard.press('z'); await p.waitForTimeout(300);
+  s = await S(); ok(`${label}：選んで遊び始める・自機はドット絵`, s.phase === 'play' && s.sprite, JSON.stringify({ phase: s.phase, sprite: s.sprite }));
   const x0 = s.x; await p.keyboard.down('ArrowRight'); await p.waitForTimeout(700); await p.keyboard.up('ArrowRight');
   s = await S(); ok(`${label}：→ で右へ歩く`, s.x > x0 + 80, `${Math.round(x0)} → ${Math.round(s.x)}`);
   await p.keyboard.down('z'); const jy = await until(async () => { const v = await S(); return v.state === 'jump' && v.y > 120 ? v : null; }, 1500, 20); await p.keyboard.up('z');
@@ -71,6 +74,33 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
     // 敵に触れると やられ（傘の耐久が減る）
     const st2 = await S(), w2 = st2.foes.find(e => e.type === 'walker' && !e.dead);
     if (w2) { await p.waitForTimeout(1100); const hp0 = (await S()).hp; await p.evaluate(e => window.__MG_TEST__.runnerHard.warp(e.x, e.y + 4), w2); const hurt = await until(async () => { const v = await S(); return v.hp < hp0 ? v : null; }, 2000, 30); ok(`${label}：敵に触れると やられ（傘の耐久が減る）`, !!hurt, hurt ? '' : JSON.stringify(await S()).slice(0, 300)); }
+  }
+  // ボスの部屋：入ると柵が閉まる → 倒す → 技を覚える → 柵が開く → ↑＋X で切り上げ
+  {
+    const ar = (await S()).arena; await p.waitForTimeout(1100);
+    await p.evaluate(x => window.__MG_TEST__.runnerHard.warp(x, 90), ar.x0 + 80);
+    const on = await until(async () => (await S()).arenaOn, 3000, 50);
+    ok(`${label}：ボスの部屋に入ると柵が閉まり、ボスが起きる`, !!on && (await S()).boss.state !== 'wait');
+    if (SHOTS) { await p.waitForTimeout(1500); await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_boss.png` }); }
+    await p.evaluate(() => window.__MG_TEST__.runnerHard.bossHp(1));
+    let learned = null;
+    for (let i = 0; i < 80 && !learned; i++) {
+      const v = await S(); if (v.phase === 'learn') { learned = v; break; }
+      if (!v.boss || v.boss.dead) { await p.waitForTimeout(150); continue; }
+      if (!['walk', 'recover', 'slam_tele', 'spit_tele'].includes(v.boss.state)) { await p.waitForTimeout(120); continue; }   // 跳んでいる間は地上の技が届かない
+      await p.evaluate(b => window.__MG_TEST__.runnerHard.warp(b.x - 40, 80), v.boss); await p.keyboard.down('ArrowRight'); await p.waitForTimeout(30); await p.keyboard.up('ArrowRight');
+      await p.keyboard.down('x'); await p.waitForTimeout(60); await p.keyboard.up('x'); await p.waitForTimeout(150);
+    }
+    if (!learned) learned = await until(async () => { const v = await S(); return v.phase === 'learn' ? v : null; }, 4000, 50);
+    ok(`${label}：ボスを倒す → 「新しい技を覚えた」`, !!learned, learned ? '' : JSON.stringify(await S()).slice(0, 200));
+    if (SHOTS && learned) await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_learn.png` });
+    await p.waitForTimeout(900); await p.keyboard.press('z'); await p.waitForTimeout(300);
+    const v2 = await S();
+    ok(`${label}：覚えた技と倒したボスを記録・柵が開く`, v2.phase === 'play' && v2.moves.includes('rising') && v2.beaten.includes('boss_a') && !v2.arenaOn, JSON.stringify({ phase: v2.phase, moves: v2.moves, beaten: v2.beaten }));
+    await p.keyboard.down('ArrowUp'); await p.keyboard.down('x'); const rs = await until(async () => { const v = await S(); return v.atk === 'rising' ? v : null; }, 1000, 15); await p.keyboard.up('x'); await p.keyboard.up('ArrowUp');
+    ok(`${label}：↑＋X で切り上げ（覚えた技）`, !!rs);
+    const rec = await p.evaluate(() => JSON.parse(JSON.stringify(gs.runnerHard)));
+    ok(`${label}：記録 gs.runnerHard に技と倒したボス`, rec.moves.includes('rising') && rec.beaten.includes('boss_a'));
   }
   // 途中の印 → 戸の手前へ
   const g = (await S()).goal;
