@@ -1057,7 +1057,7 @@ registerMinigame({
           }
           continue;
         }
-        if(invul>0)continue;
+        if(invul>0||testGod)continue;
         if(o.over){if(y1>o.clr+2+DF.slack)hitBy(o);}
         else if(y0<o.h-5-DF.slack)hitBy(o);
         if(phase!=='run')return;
@@ -2006,6 +2006,12 @@ registerMinigame({
       mg.setTimer(phase==='story'||phase==='title'?'深夜2:14':phase==='home'||phase==='grade'?'帰宅':rem+'m');
     }
 
+    // 試験の時だけの入口（window.__MG_TEST__ がある時だけ。ふだんは何もしない）：状態を読む・ぶつからない・先へ進める・傘の耐久を変える
+    let testGod=false;
+    if(typeof window!=='undefined'&&window.__MG_TEST__)window.__MG_TEST__.runner={
+      get s(){return {phase,cam,m:Math.floor(cam/M),py,vy,onG,jumps,slideT,hp,invul,hits,coins,outcome,woke,dlg:!!dlg};},
+      god(on){testGod=!!on;}, warp(m){cam=Math.max(cam,m*M);nextX=Math.max(nextX,cam+VW);obs=obs.filter(o=>o.x>cam+VW);}, setHp(n){hp=n;},
+    };
     resize();
     if(ro)ro.observe(body);
     startDialog(INTRO,()=>wipe(()=>{phase='title';phaseT=0;sfx('stage','decide');}));

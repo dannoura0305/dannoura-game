@@ -1,0 +1,411 @@
+{
+ "format": "xstyle-action-physics",
+ "version": 1,
+ "made": "2026-11-15",
+ "source": {
+  "kind": "ROM の逆アセンブル（解析用の写し）",
+  "reference": "SFC の横スクロールアクション 3 作（1〜3 作目）。自機の速さの表は 3 作で同じ",
+  "measured_on_emulator": false,
+  "note": "数値の出どころは研究メモ rockman_x_player_physics.md。ROM のコードや絵・音は一切含まない"
+ },
+ "units": {
+  "frame_rate": 60,
+  "original": "px/フレーム（縦 224 の画面）。上向きを＋",
+  "game_scale": 2.5,
+  "game": "px/秒・px/秒²（runner.js の仮想の高さ 560 に合わせて 2.5 倍）。上向きを＋（runner.js の py と同じ）",
+  "rescale": "別の大きさにするなら：px/秒 = 元の値 × 60 × 倍率、px/秒² = 元の値 × 3600 × 倍率。倍率 = ゲームの画面の高さ ÷ 224"
+ },
+ "certainty_levels": {
+  "high": "ROM の表と処理の両方で読めた（3 作で同じ）",
+  "inferred": "処理を読んで意味を推し量った",
+  "unknown": "未確認"
+ },
+ "params": [
+  {
+   "key": "walk_start_speed",
+   "name": "歩き出しの速さ",
+   "original": 1.0,
+   "original_unit": "px/f",
+   "certainty": "high",
+   "game": 150.0,
+   "game_unit": "px/s",
+   "note": "歩き出しの 5 フレームだけ"
+  },
+  {
+   "key": "walk_start_frames",
+   "name": "歩き出しの長さ",
+   "original": 5,
+   "original_unit": "frames",
+   "certainty": "high",
+   "seconds": 0.0833
+  },
+  {
+   "key": "walk_speed",
+   "name": "歩く速さ",
+   "original": 1.46875,
+   "original_unit": "px/f",
+   "certainty": "high",
+   "game": 220.3,
+   "game_unit": "px/s",
+   "note": "0x178/256。加速・減速なし（すぐこの速さ）"
+  },
+  {
+   "key": "rewalk_buffer_frames",
+   "name": "止まってすぐ歩き直すと歩き出しを省く時間",
+   "original": 10,
+   "original_unit": "frames",
+   "certainty": "inferred",
+   "seconds": 0.1667
+  },
+  {
+   "key": "dash_speed",
+   "name": "ダッシュの速さ",
+   "original": 3.457031,
+   "original_unit": "px/f",
+   "certainty": "high",
+   "game": 518.6,
+   "game_unit": "px/s",
+   "note": "0x375/256"
+  },
+  {
+   "key": "dash_max_frames",
+   "name": "ダッシュが続く最長",
+   "original": 33,
+   "original_unit": "frames",
+   "certainty": "high",
+   "seconds": 0.55,
+   "note": "数え 32 から -1 まで。ボタンを離す・壁に当たると早く終わる"
+  },
+  {
+   "key": "dash_end_frames",
+   "name": "ダッシュの止まり際",
+   "original": 8,
+   "original_unit": "frames",
+   "certainty": "inferred",
+   "seconds": 0.1333,
+   "note": "止まり際の 8 フレーム。方向を押していれば歩きへ"
+  },
+  {
+   "key": "air_dash_max_frames",
+   "name": "空中ダッシュの最長（2・3 作目）",
+   "original": 16,
+   "original_unit": "frames",
+   "certainty": "high",
+   "seconds": 0.2667,
+   "note": "1 作目には無い。空中ダッシュ中に落ちるかは未確認"
+  },
+  {
+   "key": "jump_speed",
+   "name": "ジャンプの初速（上向き）",
+   "original": 5.324219,
+   "original_unit": "px/f",
+   "certainty": "high",
+   "game": 798.6,
+   "game_unit": "px/s",
+   "note": "0x553/256"
+  },
+  {
+   "key": "gravity",
+   "name": "重さ（毎フレーム速さから引く）",
+   "original": 0.25,
+   "original_unit": "px/f^2",
+   "certainty": "high",
+   "game": 2250.0,
+   "game_unit": "px/s^2",
+   "note": "0x40/256"
+  },
+  {
+   "key": "fall_speed_max",
+   "name": "落ちる速さの上限",
+   "original": 5.75,
+   "original_unit": "px/f",
+   "certainty": "high",
+   "game": 862.5,
+   "game_unit": "px/s",
+   "note": "-5.5 で止めてから重さを引くので、動くのは 5.75"
+  },
+  {
+   "key": "jump_release",
+   "name": "ボタンを離したとき",
+   "original": "vy=0",
+   "certainty": "high",
+   "note": "上がっている途中で離すと、上向きの速さをその場で 0 にする（少しずつ減らさない）"
+  },
+  {
+   "key": "air_control",
+   "name": "空中の横の動き",
+   "original": "instant",
+   "certainty": "high",
+   "note": "方向を押している間だけ横の速さ（歩き or ダッシュの速さ）。離すと 0。慣性なし"
+  },
+  {
+   "key": "dash_jump_speed",
+   "name": "ダッシュジャンプの横の速さ",
+   "original": 3.457031,
+   "original_unit": "px/f",
+   "certainty": "high",
+   "game": 518.6,
+   "game_unit": "px/s",
+   "note": "ダッシュ中に跳ぶと、着地まで横の速さがダッシュのまま"
+  },
+  {
+   "key": "wall_stick_frames",
+   "name": "壁に付いてからすべり出すまで",
+   "original": 8,
+   "original_unit": "frames",
+   "certainty": "high",
+   "seconds": 0.1333,
+   "note": "この間は縦の速さ 0"
+  },
+  {
+   "key": "wall_slide_speed",
+   "name": "壁ずり落ちの速さ",
+   "original": 2.0,
+   "original_unit": "px/f",
+   "certainty": "high",
+   "game": 300.0,
+   "game_unit": "px/s",
+   "note": "重さなし・一定。壁の方向を押している間だけ"
+  },
+  {
+   "key": "wall_kick_windup_frames",
+   "name": "壁蹴りの溜め",
+   "original": 5,
+   "original_unit": "frames",
+   "certainty": "inferred",
+   "seconds": 0.0833,
+   "note": "1 作目で確認。動かない"
+  },
+  {
+   "key": "wall_kick_push_frames",
+   "name": "壁蹴りで壁から離れる時間",
+   "original": 8,
+   "original_unit": "frames",
+   "certainty": "high",
+   "seconds": 0.1333,
+   "note": "この間は入力に関係なく壁と逆へ。終わったときジャンプを押していればジャンプの続き、離していれば落下（縦 0）"
+  },
+  {
+   "key": "wall_kick_speed_x",
+   "name": "壁蹴りの横の速さ",
+   "original": 1.46875,
+   "original_unit": "px/f",
+   "certainty": "high",
+   "game": 220.3,
+   "game_unit": "px/s",
+   "note": "ダッシュを押していればダッシュの速さ（3.457）"
+  },
+  {
+   "key": "wall_kick_speed_y",
+   "name": "壁蹴りの縦の初速",
+   "original": 5.324219,
+   "original_unit": "px/f",
+   "certainty": "high",
+   "game": 798.6,
+   "game_unit": "px/s",
+   "note": "ジャンプと同じ"
+  },
+  {
+   "key": "hurt_knockback_x",
+   "name": "やられの横の速さ（後ろへ）",
+   "original": -0.539062,
+   "original_unit": "px/f",
+   "certainty": "high",
+   "game": -80.9,
+   "game_unit": "px/s"
+  },
+  {
+   "key": "hurt_knockback_y",
+   "name": "やられの縦の初速",
+   "original": 2.0,
+   "original_unit": "px/f",
+   "certainty": "high",
+   "game": 300.0,
+   "game_unit": "px/s",
+   "note": "重さあり"
+  },
+  {
+   "key": "invincible_frames",
+   "name": "やられた後の無敵",
+   "original": 60,
+   "original_unit": "frames",
+   "certainty": "high",
+   "seconds": 1.0,
+   "note": "3 作で同じ"
+  },
+  {
+   "key": "landing_frames",
+   "name": "着地の硬直",
+   "original": 4,
+   "original_unit": "frames",
+   "certainty": "inferred",
+   "seconds": 0.0667
+  },
+  {
+   "key": "ladder_speed",
+   "name": "はしごの速さ",
+   "original": 1.46875,
+   "original_unit": "px/f",
+   "certainty": "high",
+   "game": 220.3,
+   "game_unit": "px/s"
+  }
+ ],
+ "derived": {
+  "full_jump": {
+   "apex_px": 54.06,
+   "apex_frame": 21,
+   "air_frames": 42,
+   "dist_px": 0.0,
+   "apex_game_px": 135.2,
+   "air_seconds": 0.7,
+   "dist_game_px": 0.0
+  },
+  "half_jump_release_at_8f": {
+   "apex_px": 33.59,
+   "apex_frame": 8,
+   "air_frames": 24,
+   "dist_px": 0.0,
+   "apex_game_px": 84.0,
+   "air_seconds": 0.4,
+   "dist_game_px": 0.0
+  },
+  "tap_jump": {
+   "apex_px": 5.07,
+   "apex_frame": 1,
+   "air_frames": 7,
+   "dist_px": 0.0,
+   "apex_game_px": 12.7,
+   "air_seconds": 0.1167,
+   "dist_game_px": 0.0
+  },
+  "walk_jump": {
+   "apex_px": 54.06,
+   "apex_frame": 21,
+   "air_frames": 42,
+   "dist_px": 61.7,
+   "apex_game_px": 135.2,
+   "air_seconds": 0.7,
+   "dist_game_px": 154.2
+  },
+  "dash_jump": {
+   "apex_px": 54.06,
+   "apex_frame": 21,
+   "air_frames": 42,
+   "dist_px": 145.2,
+   "apex_game_px": 135.2,
+   "air_seconds": 0.7,
+   "dist_game_px": 363.0
+  },
+  "dash_distance_33f": {
+   "px": 114.1,
+   "game_px": 285.2
+  }
+ },
+ "states": [
+  {
+   "id": "stand",
+   "ja": "立つ",
+   "to": [
+    "walk_start",
+    "walk(歩き直しの猶予中)",
+    "jump",
+    "dash",
+    "fall"
+   ]
+  },
+  {
+   "id": "walk_start",
+   "ja": "歩き出し（5f・1.0）",
+   "to": [
+    "walk",
+    "stand",
+    "jump",
+    "dash",
+    "fall"
+   ]
+  },
+  {
+   "id": "walk",
+   "ja": "歩く",
+   "to": [
+    "stand",
+    "jump",
+    "dash",
+    "fall"
+   ]
+  },
+  {
+   "id": "dash",
+   "ja": "ダッシュ（最長 33f）",
+   "to": [
+    "dash_end",
+    "jump(ダッシュジャンプ)",
+    "fall"
+   ]
+  },
+  {
+   "id": "dash_end",
+   "ja": "止まり際（8f）",
+   "to": [
+    "stand",
+    "walk",
+    "jump"
+   ]
+  },
+  {
+   "id": "jump",
+   "ja": "上がる",
+   "to": [
+    "fall(離す・頂点・天井)",
+    "wall_slide",
+    "land"
+   ]
+  },
+  {
+   "id": "fall",
+   "ja": "落ちる",
+   "to": [
+    "land",
+    "wall_slide"
+   ]
+  },
+  {
+   "id": "land",
+   "ja": "着地（4f）",
+   "to": [
+    "stand",
+    "walk",
+    "jump",
+    "dash"
+   ]
+  },
+  {
+   "id": "wall_slide",
+   "ja": "壁ずり（8f 止まる→2.0 で落ちる）",
+   "to": [
+    "wall_kick",
+    "fall(壁から離れる)",
+    "land"
+   ]
+  },
+  {
+   "id": "wall_kick",
+   "ja": "壁蹴り（溜め 5f→押し出し 8f）",
+   "to": [
+    "jump(押している)",
+    "fall(離している)",
+    "wall_slide"
+   ]
+  },
+  {
+   "id": "hurt",
+   "ja": "やられ（後ろへ飛ぶ・無敵 60f）",
+   "to": [
+    "fall",
+    "land"
+   ]
+  }
+ ],
+ "frame_order": "1 フレームごとに：①入力で状態を変える ②落下中なら縦の速さを上限で止める ③重さを引く ④位置に速さを足す ⑤当たりを直す。runner.js のように dt を掛けるなら、1/60 秒の固定の歩みで回すと同じ動きになる"
+}
