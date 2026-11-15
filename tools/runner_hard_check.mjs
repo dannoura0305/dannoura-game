@@ -147,10 +147,71 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
   await p.keyboard.down('ArrowRight'); const cl = await until(async () => { const v = await S(); return v.phase === 'clear' ? v : null; }, 5000, 30); await p.keyboard.up('ArrowRight');
   ok(`${label}：コンビニの戸で着く`, !!cl && cl.outcome === 'clear');
   await p.waitForTimeout(1800); await p.keyboard.press('Enter');
+  // 隠しボス：ボスを全員倒して着くと、看病の場面 → WARNING → 風邪菌（仮）との戦い
+  const CS = () => p.evaluate(() => window.__MG_TEST__.runnerHard.cold);
+  const st0 = await until(async () => { const v = await S(); return v.phase === 'story' ? await CS() : null; }, 3000, 50);
+  ok(`${label}：隠しボス：全員倒して着くと、看病の場面が始まる`, !!st0 && st0.story.n === 6 && /帰宅/.test(st0.story.txt), JSON.stringify(st0 && st0.story));
+  if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_story.png` });
+  for (let i = 0; i < 10 && (await S()).phase === 'story'; i++) { await p.waitForTimeout(380); await p.keyboard.press('z'); }
+  const wn = await until(async () => (await S()).phase === 'warning', 2000, 30);
+  ok(`${label}：隠しボス：WARNING`, !!wn);
+  if (SHOTS) { await p.waitForTimeout(500); await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_warning.png` }); }
+  const on = await until(async () => { const c = await CS(); return c.on && (await S()).phase === 'play' ? c : null; }, 4000, 50);
+  ok(`${label}：隠しボス：戦いが始まる（感染ゲージ 0・記録に「会った」）`, !!on && on.infect === 0 && on.rec && on.rec.seen, JSON.stringify(on));
+  if (SHOTS) { await p.waitForTimeout(1800); await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_cold.png` }); }
+  // 当たると感染ゲージが上がる（傘の耐久は減らない）
+  { const hp0 = (await S()).hp; await p.waitForTimeout(1200); const c = await CS(); await p.evaluate(c => window.__MG_TEST__.runnerHard.warp(c.x, c.y - 20), c);
+    const inf = await until(async () => { const v = await CS(); return v.infect > 0 ? v : null; }, 2000, 30);
+    ok(`${label}：隠しボス：触れると感染ゲージが上がる・傘の耐久は減らない`, !!inf && (await S()).hp === hp0, JSON.stringify(inf)); }
+  // ジャンプ攻撃で倒す
+  await p.evaluate(() => window.__MG_TEST__.runnerHard.coldHp(1));
+  let won = null;
+  for (let i = 0; i < 60 && !won; i++) {
+    const c = await CS(); if (c.res || c.dead) { won = c; break; }
+    await p.waitForTimeout(1100);   // 無敵が切れるまで
+    const c2 = await CS(); await p.evaluate(c => window.__MG_TEST__.runnerHard.warp(c.x - 30, Math.max(80, c.y - 60)), c2); await p.keyboard.down('ArrowRight'); await p.waitForTimeout(20); await p.keyboard.up('ArrowRight');
+    await p.keyboard.down('x'); await p.waitForTimeout(60); await p.keyboard.up('x');
+  }
+  const ws = await until(async () => { const v = await S(); const c = await CS(); return v.phase === 'story' && c.res === 'win' ? c : null; }, 4000, 50);
+  ok(`${label}：隠しボス：攻撃で倒す → 勝ちの結末（翌朝）`, !!ws && /翌朝/.test(ws.story.txt), JSON.stringify(ws || await CS()).slice(0, 300));
+  for (let i = 0; i < 6 && (await S()).phase === 'story'; i++) { await p.waitForTimeout(380); await p.keyboard.press('z'); }
+  ok(`${label}：隠しボス：「父ちゃんは今日も休めない！」`, (await S()).phase === 'coldend');
+  if (SHOTS) { await p.waitForTimeout(300); await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_coldwin.png` }); }
+  await p.waitForTimeout(1300); await p.keyboard.press('Enter');
   const ended = await until(() => p.evaluate(() => MG._ended), 8000);
   const rec = await p.evaluate(() => JSON.parse(JSON.stringify(gs.runnerHard)));
-  ok(`${label}：終わる・記録（gs.runnerHard.proto：遊んだ・着いた・時間）・通常版の記録には触らない`, !!ended && rec.proto.plays >= 1 && rec.proto.clears >= 1 && rec.proto.bestTime > 0, JSON.stringify(rec.proto));
+  ok(`${label}：終わる・記録（gs.runnerHard.proto：遊んだ・着いた・時間・cold：勝ち 1）・通常版の記録には触らない`, !!ended && rec.proto.plays >= 1 && rec.proto.clears >= 1 && rec.proto.bestTime > 0 && rec.cold && rec.cold.wins === 1, JSON.stringify([rec.proto, rec.cold]));
   ok(`${label}：ページのエラーが出ない`, errs.length === 0, JSON.stringify(errs.slice(0, 3)));
+  await p.close();
+}
+// 隠しボス：一度会うと選択画面から戦える → 感染ゲージが満タンで負けの結末
+{
+  const p = await b.newPage({ viewport: { width: 960, height: 540 } }); const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.addInitScript(() => { window.__MG_TEST__ = {}; });
+  await p.goto(BASE + '/index.html?runnerhard=1'); await p.waitForTimeout(2500); await p.mouse.click(480, 270);
+  await p.evaluate(() => { gs.runnerHard = { v: 1, beaten: ['boss_a'], moves: ['rising'], proto: { plays: 0, clears: 0, bestTime: 0 }, cold: { seen: true, wins: 0, losses: 0, last: null } }; MG.open('runner_hard'); });
+  const R = () => p.evaluate(() => window.__MG_TEST__.runnerHard && Object.assign({}, window.__MG_TEST__.runnerHard.s, { cold: window.__MG_TEST__.runnerHard.cold }));
+  const wait = async (fn, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const v = await R().catch(() => null); if (v && fn(v)) return v; await p.waitForTimeout(50); } return null; };
+  await wait(v => v.phase === 'intro', 15000); await p.waitForTimeout(600); await p.keyboard.press('z'); await p.waitForTimeout(500);
+  const sel = await R(); ok('隠しボス：一度会うと選択画面に風邪菌（仮）が出る', sel.phase === 'select' && sel.cold.sel.includes('cold'), JSON.stringify(sel.cold.sel));
+  await p.keyboard.press('ArrowRight'); await p.waitForTimeout(100);
+  await p.screenshot({ path: (SHOTS || '/tmp') + '/rh_select_cold.png' });
+  await p.keyboard.press('z');
+  const sto = await wait(v => v.phase === 'story', 2000);
+  ok('隠しボス：選ぶと短い看病の場面（4 行）から', !!sto && sto.cold.story.n === 4, JSON.stringify(sto && sto.cold.story));
+  for (let i = 0; i < 8 && (await R()).phase === 'story'; i++) { await p.waitForTimeout(380); await p.keyboard.press('z'); }
+  const on = await wait(v => v.phase === 'play' && v.cold.on, 5000);
+  ok('隠しボス：WARNING の後に戦い', !!on);
+  await p.evaluate(() => window.__MG_TEST__.runnerHard.infect(99)); await p.waitForTimeout(1200);
+  const c = (await R()).cold; await p.evaluate(c => window.__MG_TEST__.runnerHard.warp(c.x, c.y - 20), c);
+  const lo = await wait(v => v.phase === 'story' && v.cold.res === 'lose', 3000);
+  ok('隠しボス：感染ゲージが満タン → 負けの結末（翌朝。寝込む）', !!lo && /寝込/.test(lo.cold.story.txt), JSON.stringify(lo && lo.cold.story));
+  for (let i = 0; i < 6 && (await R()).phase === 'story'; i++) { await p.waitForTimeout(380); await p.keyboard.press('z'); }
+  await p.waitForTimeout(1300); await p.keyboard.press('Enter');
+  const ended = await (async () => { const t0 = Date.now(); while (Date.now() - t0 < 8000) { if (await p.evaluate(() => MG._ended)) return true; await p.waitForTimeout(100); } return false; })();
+  const rec = await p.evaluate(() => JSON.parse(JSON.stringify(gs.runnerHard)));
+  ok('隠しボス：負けて終わる・記録（負け 1・試しの走りの回数は増えない）', ended && rec.cold.losses === 1 && rec.cold.last === 'lose' && rec.proto.plays === 0, JSON.stringify([rec.cold, rec.proto]));
+  ok('隠しボス（選択画面から）：ページのエラーが出ない', errs.length === 0, JSON.stringify(errs.slice(0, 3)));
   await p.close();
 }
 await b.close();

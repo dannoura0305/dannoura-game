@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════
-// 買い出しダッシュ　高難易度版（試作・段 3：試しの 1 面）
+// 買い出しダッシュ　高難易度版（試作。段の進み具合は docs/minigames/runner-hard-design.md の「進み具合」）
 // 横スクロールの 2D アクション。自機の動きは minigames/runner/act.js（RunnerAct・1/60 の固定の歩み）。
 // ・まだ試作：開発用の印（URL に ?runnerhard=1）がある時だけ選択画面に出る（minigames/core.js の末尾）。通常版（runner.js）には触らない
 // ・この段では攻撃・敵・ボスは無い（段 4 から）。傘を差して走る・跳ぶ・ダッシュ・壁ずり・壁蹴り・スライドで、コンビニまで行く
@@ -71,7 +71,10 @@ registerMinigame({
     const ROWS = RunnerHardStage.rows();
     let act = null, map = null, B = null, C = null, E = null, foes = [], kills = 0, hitStop = 0, acc = 0, prevIn = {};
     let BZ = null, boss = null, AR = null, arenaOn = false, selIdx = 0, learnedNow = null;
-    const selList = () => RunnerBosses.visible();
+    // 隠しボス（風邪菌・仮）：CZ＝cold.js の部屋・cboss＝本体・infect＝感染ゲージ（0〜100）・coldRes＝'win'/'lose'・coldOnly＝選択画面から直接
+    let CZ = null, cboss = null, infect = 0, infF = 0, coldRes = null, coldOnly = false, story = null, coldFirst = false;
+    const coldRec = () => (REC.cold = REC.cold || { seen: false, wins: 0, losses: 0, last: null });
+    const selList = () => RunnerBosses.visible().concat(REC.cold && REC.cold.seen ? [RunnerBosses.BOSSES.find(b => b.id === 'cold')] : []);
     let spawn = { x: 0, y: 0 }, check = { x: 0, y: 0 }, goal = { x: 0, y: 0 };
 
     // ── 状態 ──
@@ -92,7 +95,7 @@ registerMinigame({
     // ── 効果音（通常版と同じく合成。AUDIO_SET.se に従う） ──
     function actx() { if (typeof AU === 'undefined' || typeof AUDIO_SET === 'undefined' || !(AUDIO_SET.se > 0)) return null; try { AU.init(); } catch (e) {} const c = AU.ctx; if (c && c.state === 'suspended') c.resume().catch(() => {}); return c; }
     function blip(type, f0, f1, dur, g) { const c = actx(); if (!c) return; const t0 = c.currentTime, o = c.createOscillator(), v = c.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t0); if (f1) o.frequency.exponentialRampToValueAtTime(f1, t0 + dur); v.gain.setValueAtTime(.0001, t0); v.gain.linearRampToValueAtTime(g * AUDIO_SET.se, t0 + .008); v.gain.exponentialRampToValueAtTime(.0001, t0 + dur); o.connect(v); v.connect(AU.out || c.destination); o.start(t0); o.stop(t0 + dur + .02); }
-    const SE = { swing: big => { blip('sawtooth', big ? 900 : 1300, big ? 300 : 500, big ? .16 : .1, .05); }, hit: dead => { blip('square', dead ? 180 : 260, dead ? 60 : 140, dead ? .22 : .09, .12); }, jump: () => blip('triangle', 420, 760, .12, .12), dash: () => blip('sawtooth', 160, 90, .14, .05), kick: () => blip('square', 300, 620, .1, .07), land: () => blip('sine', 140, 70, .08, .12), hurt: () => blip('square', 220, 90, .25, .1), slide: () => blip('sawtooth', 120, 80, .2, .04), check: () => { blip('sine', 660, 0, .12, .09); setTimeout(() => blip('sine', 990, 0, .2, .08), 90); }, clear: () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => blip('triangle', f, 0, .25, .1), i * 110)) };
+    const SE = { swing: big => { blip('sawtooth', big ? 900 : 1300, big ? 300 : 500, big ? .16 : .1, .05); }, hit: dead => { blip('square', dead ? 180 : 260, dead ? 60 : 140, dead ? .22 : .09, .12); }, jump: () => blip('triangle', 420, 760, .12, .12), dash: () => blip('sawtooth', 160, 90, .14, .05), kick: () => blip('square', 300, 620, .1, .07), land: () => blip('sine', 140, 70, .08, .12), hurt: () => blip('square', 220, 90, .25, .1), slide: () => blip('sawtooth', 120, 80, .2, .04), check: () => { blip('sine', 660, 0, .12, .09); setTimeout(() => blip('sine', 990, 0, .2, .08), 90); }, clear: () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => blip('triangle', f, 0, .25, .1), i * 110)), warn: () => { for (let i = 0; i < 6; i++) setTimeout(() => blip('square', i % 2 ? 620 : 880, 0, .22, .07), i * 380); } };
 
     // ── 入力：キーボード・ゲームパッド・画面のボタン ──
     const K = { l: false, r: false, j: false, d: false, dn: false, atk: false, up: false };
@@ -128,9 +131,11 @@ registerMinigame({
     // ── 流れ ──
     function advance() {
       if (phase === 'intro' && phaseT > .4) { phase = 'select'; phaseT = 0; return true; }
-      if (phase === 'select' && phaseT > .3) { phase = 'play'; phaseT = 0; banner = { t: 0, txt: 'STAGE 1　雨の住宅街（試作）' }; return true; }
+      if (phase === 'select' && phaseT > .3) { const d = selList()[selIdx]; if (d && d.id === 'cold') { coldOnly = true; committed = true; coldStory(true); return true; } phase = 'play'; phaseT = 0; banner = { t: 0, txt: 'STAGE 1　雨の住宅街（試作）' }; return true; }
+      if (phase === 'story' && phaseT > .3) { story.i++; phaseT = 0; if (story.i >= story.lines.length) story.then(); return true; }
+      if (phase === 'coldend' && phaseT > 1.2) { finish(); return true; }
       if (phase === 'learn' && phaseT > .8) { finishLearn(); return true; }
-      if (phase === 'clear' && phaseT > 1.6) { finish(); return true; }
+      if (phase === 'clear' && phaseT > 1.6) { if (RunnerBosses.coldUnlocked(REC.beaten) && !coldRec().seen && typeof RunnerCold !== 'undefined') coldStory(false); else finish(); return true; }
       if (phase === 'over' && phaseT > 1.2) { finish(); return true; }
       return phase !== 'play';
     }
@@ -145,6 +150,54 @@ registerMinigame({
     function damage(n, why) {
       hp -= n; hurts++; flash = .8; shake = .3; SE.hurt(); if (mg.buzz) try { mg.buzz(40); } catch (_) {}
       if (hp <= 0) { hp = 0; phase = 'over'; phaseT = 0; outcome = 'down'; commit(); }
+    }
+
+    // ── 隠しボス：看病の場面 → WARNING → 戦い → 結末（台詞は利用者の指示のまま。ト書きは（ ）） ──
+    const N = txt => ({ who: '', txt }), D = txt => ({ who: 'だんのうら', txt });
+    function say(lines, then) { story = { lines, i: 0, then }; phase = 'story'; phaseT = 0; }
+    function coldStory(short) {
+      const tail = [N('（子どもの熱は下がり、少しずつ元気になってきた）'), D('よかったわぁ。ようやく元気になってきたじゃない'), D('……へっくしゅん！'), D('……あら？')];
+      say(short ? tail : [N('（帰宅。冷却シートを貼って、プリンは冷蔵庫に。今夜はずっと、そばにいる）'), N('── 数日後 ──')].concat(tail), () => { phase = 'warning'; phaseT = 0; SE.warn(); });
+    }
+    function startCold() {
+      const H = ROWS.length, W = clamp(Math.floor(VW / 40), 13, 20), rows = [];   // 1 画面に収まる部屋（縦長のスマホで 13 マス・横長で 15 マスほど）
+      for (let r = 0; r < H; r++) { const cy = H - 1 - r; rows.push(cy <= 1 ? '#'.repeat(W) : '#' + '.'.repeat(W - 2) + '#'); }
+      map = RunnerAct.makeMap(rows); const T = map.tile;
+      act = RunnerAct.make({ map, phys: DF ? DF.phys : {} }); C = RunnerCombat.make(act, { learned: REC.moves || [] });
+      foes = []; boss = null; arenaOn = false; B = act.body(3 * T + T / 2, 2 * T, 1); B.invul = 60; lastState = B.state;
+      CZ = RunnerCold.make({ x0: T, x1: (W - 1) * T, floor: 2 * T }); CZ.W = W; cboss = CZ.spawn((W - 4) * T);
+      cboss.hp = cboss.hpMax = Math.round(cboss.hpMax * (DF ? DF.boss : 1));
+      infect = 0; infF = 0; camX = 0; camY = 0; hitStop = 0; acc = 0;
+      const R = coldRec(); coldFirst = !R.seen; R.seen = true;
+      phase = 'play'; phaseT = 0; banner = { t: 0, txt: 'ボス　' + RunnerBosses.BOSSES.find(b => b.id === 'cold').name };
+    }
+    function addInfect(n) {
+      infect = Math.min(100, infect + n); hurts++; flash = .8; shake = .3; SE.hurt(); if (mg.buzz) try { mg.buzz(40); } catch (_) {}
+      if (infect >= 100) coldEnd('lose');
+    }
+    function coldEnd(res) {
+      if (coldRes) return; coldRes = res; const R = coldRec(); R.last = res; if (res === 'win') R.wins = (R.wins | 0) + 1; else R.losses = (R.losses | 0) + 1;
+      if (coldOnly) outcome = 'cold';
+      if (res === 'win') say([N('（翌朝）'), D('ふふん、そう簡単に倒れてられないのよ！'), N('（子どもは、すっかり元気になっている）')], () => { phase = 'coldend'; phaseT = 0; SE.clear(); });
+      else say([N('（翌朝。子どもは元気になったのに、布団で寝込んでいるのは――）'), D('……今度はあたしが風邪ひいたわ……'), N('（元気になった子どもが、枕元にやってきた）')], () => { phase = 'coldend'; phaseT = 0; });
+    }
+    // 戦いの 1 こま（自機の動きの後）
+    function coldFrame() {
+      CZ.step(cboss, B); CZ.stepOthers(B);
+      const hb = C.hitbox(B), ov = RunnerCombat.overlap;
+      if (hb) {
+        if (!cboss.dead && ov(hb, CZ.box(cboss)) && C.tryHit(B, cboss) && CZ.hurt(cboss, hb.dmg)) { hitStop = Math.max(hitStop, hb.hitstop + 1); shake = Math.max(shake, .15); SE.hit(cboss.dead); for (let i = 0; i < 10; i++) emit(cboss.x, cboss.y, rnd(-180, 180), rnd(-120, 180), .4, i % 2 ? '#c8ff8a' : '#00e8c8', 2.4, 300); if (cboss.dead) { shake = .6; SE.clear(); } }
+        for (const m of CZ.minis) if (!m.dead && ov(hb, CZ.miniBox(m)) && C.tryHit(B, m) && CZ.hurtMini(m)) { SE.hit(true); for (let i = 0; i < 6; i++) emit(m.x, m.y + 8, rnd(-120, 120), rnd(20, 160), .3, '#9ad860', 2, 400); }
+      }
+      if (cboss.dead) { if (cboss.deadF > 60) coldEnd('win'); return; }
+      if (++infF >= 120) { infF = 0; infect = Math.max(0, infect - 1); }   // 少しずつ治る
+      if (B.invul <= 0 && B.state !== 'hurt') {
+        const pb = act.box(B), I = RunnerCold.COLD.infect; let hit = null, n = 0;
+        if (ov(pb, CZ.box(cboss))) { hit = cboss.x; n = I.touch; }
+        if (hit === null) for (const sh of CZ.shots) if (ov(pb, CZ.shotBox(sh))) { hit = sh.x; n = I.shot; sh.life = 0; break; }
+        if (hit === null) for (const m of CZ.minis) if (!m.dead && ov(pb, CZ.miniBox(m))) { hit = m.x; n = I.mini; break; }
+        if (hit !== null) { B.atk = null; act.hurt(B, hit < B.x ? -1 : 1); addInfect(n); }
+      }
     }
 
     // ── 面を作る ──
@@ -172,7 +225,7 @@ registerMinigame({
     }
     // 自機の動き・技・敵（minigames/runner/*.js）を順に読む（読み込み済みなら読まない）
     function loadAct() {
-      const need = [['RunnerAct', 'act'], ['RunnerCombat', 'combat'], ['RunnerEnemies', 'enemies'], ['RunnerBosses', 'bosses']].filter(([g]) => typeof window[g] === 'undefined');
+      const need = [['RunnerAct', 'act'], ['RunnerCombat', 'combat'], ['RunnerEnemies', 'enemies'], ['RunnerBosses', 'bosses'], ['RunnerCold', 'cold']].filter(([g]) => typeof window[g] === 'undefined');
       const next = () => {
         if (mg._ended) return; const n = need.shift(); if (!n) { build(); return; }
         const s = document.createElement('script'); s.src = 'minigames/runner/' + n[1] + '.js'; s.async = true;
@@ -188,6 +241,7 @@ registerMinigame({
       const wasAtk = B.atk && B.atk.id + ':' + B.atk.chain;
       act.step(B, C.pre(B, inp)); C.post(B);
       if (B.atk && B.atk.id + ':' + B.atk.chain !== wasAtk) { SE.swing(B.atk.id === 'slash3'); }
+      if (CZ) { coldFrame(); return; }
       for (const e of foes) E.step(e, B);
       foes = foes.filter(e => !e.gone);
       // 攻撃が敵に当たる
@@ -227,6 +281,7 @@ registerMinigame({
       if (banner) { banner.t += dt; if (banner.t > 2.6) banner = null; }
       for (const p of P) { if (!p.a) continue; p.l -= dt; if (p.l <= 0) { p.a = false; continue; } p.vy -= p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
       for (let i = 0; i < RN; i++) { rx[i] -= 90 * dt; ry[i] += rv[i] * dt; if (ry[i] > VH + 10) { ry[i] = -10 - Math.random() * 60; rx[i] = Math.random() * (VW + 160); } if (rx[i] < -30) rx[i] += VW + 150; }
+      if (phase === 'warning' && phaseT > 2.4) startCold();
       if (phase !== 'play' || !act) { if (phase === 'clear' && B) { B.vx = 0; } return; }
       runTime += dt;
       const inp = readInput(), wasInvul = B.invul;
@@ -239,10 +294,11 @@ registerMinigame({
         if (B.state === 'wall_kick') SE.kick();
         if (B.state === 'land') { SE.land(); for (let i = 0; i < 6; i++) emit(B.x + rnd(-8, 8), B.y, rnd(-70, 70), rnd(20, 70), .3, 'rgba(170,200,255,.7)', 1.8, 300); }
         if (B.state === 'slide') SE.slide();
-        if (B.state === 'hurt' && !wasInvul) damage(1, 'spike');
+        if (B.state === 'hurt' && !wasInvul && !CZ) damage(1, 'spike');   // 風邪菌の戦いは感染ゲージ（coldFrame）
         lastState = B.state;
       }
       if (B.state === 'wall_slide' && B.vy < 0 && Math.random() < .5) emit(B.x + B.wallDir * 7, B.y + 30, -B.wallDir * rnd(10, 40), rnd(-20, 20), .25, 'rgba(200,220,255,.7)', 1.5, 200);
+      if (CZ) return;
       // 穴に落ちた
       if (B.y < -120) { falls++; damage(1, 'pit'); if (phase === 'play') respawn(); }
       // 途中の印
@@ -317,6 +373,7 @@ registerMinigame({
     // 画面の座標：x = 世界の x − camX、y = 地面の基準から（上が＋）→ 画面の下が 0
     const sx = x => x - camX, sy = y => VH - (y - camY);
     function drawBack() {
+      if (CZ) { drawHome(); return; }
       const g = cx.createLinearGradient(0, 0, 0, VH); g.addColorStop(0, '#0a0820'); g.addColorStop(.6, '#1a1238'); g.addColorStop(1, '#241a40'); cx.fillStyle = g; cx.fillRect(0, 0, VW, VH);
       // 遠くの家並み（2 枚・ゆっくり流れる）
       for (const [k, col, hBase, wd] of [[.2, '#140f2c', 200, 90], [.45, '#1c1538', 140, 70]]) {
@@ -329,7 +386,11 @@ registerMinigame({
       const T = map.tile, c0 = Math.floor(camX / T) - 1, c1 = c0 + Math.ceil(VW / T) + 3;
       for (let c = c0; c <= c1; c++) for (let cy = 0; cy < ROWS.length; cy++) {
         const ch = map.at(c, cy), x = sx(c * T), y = sy((cy + 1) * T);
-        if (ch === '#') {
+        if (ch === '#' && CZ) {   // 家の床（板の間）と壁
+          const wall = cy > 1; cx.fillStyle = wall ? '#3a2a24' : '#6a4a32'; cx.fillRect(x, y, T + .5, T + .5);
+          if (!wall) { cx.fillStyle = 'rgba(0,0,0,.22)'; cx.fillRect(x, y + T / 2, T, 1); cx.fillRect(x + (c % 3) * 13, y, 1, T); if (map.at(c, cy + 1) !== '#') { cx.fillStyle = '#8a6a48'; cx.fillRect(x, y, T + .5, 4); } }
+          else { cx.fillStyle = 'rgba(255,255,255,.05)'; cx.fillRect(x + 4, y, 3, T); }
+        } else if (ch === '#') {
           const topOpen = map.at(c, cy + 1) !== '#';
           cx.fillStyle = '#2a2440'; cx.fillRect(x, y, T + .5, T + .5);
           cx.fillStyle = '#332b4e'; cx.fillRect(x + 2, y + 2, T - 4, T - 4);
@@ -342,6 +403,7 @@ registerMinigame({
           cx.fillStyle = '#c8b8a8'; for (let i = 0; i < 4; i++) { cx.beginPath(); cx.moveTo(x + i * 10, y + T - 8); cx.lineTo(x + i * 10 + 5, y + T - 26 - (i % 2) * 6); cx.lineTo(x + i * 10 + 10, y + T - 8); cx.closePath(); cx.fill(); }
         }
       }
+      if (CZ) return;
       // 途中の印（傘立て）とコンビニ
       for (const c of checks) { const x = sx(c.x), y = sy(c.y); cx.fillStyle = c.got ? '#00e8c8' : '#5a5a78'; cx.fillRect(x - 3, y - 34, 6, 34); cx.fillRect(x - 10, y - 38, 20, 5); }
       const gx = sx(goal.x), gy = sy(goal.y);
@@ -437,7 +499,65 @@ registerMinigame({
       drawFigure(PAL_R, 1.3, -1); drawFigure(PAL_N, 0, 0);
       cx.restore(); cx.globalAlpha = 1;
     }
+    // 家（隠しボスの部屋）：雨の窓・布団の子ども・やかん
+    function drawHome() {
+      const g = cx.createLinearGradient(0, 0, 0, VH); g.addColorStop(0, '#2a1e2a'); g.addColorStop(1, '#3e2c30'); cx.fillStyle = g; cx.fillRect(0, 0, VW, VH);
+      cx.fillStyle = 'rgba(255,220,160,.06)'; for (let i = 0; i < 20; i++) cx.fillRect(sx(i * 60), 0, 2, VH);   // 壁紙の筋
+      const RW = CZ ? CZ.W * 40 : 1040, wx = sx(RW / 2 - 100), wy = sy(9 * 40);   // 窓（外は雨）
+      cx.fillStyle = '#5a4030'; cx.fillRect(wx - 6, wy - 6, 212, 132); cx.fillStyle = '#141a30'; cx.fillRect(wx, wy, 200, 120);
+      cx.strokeStyle = 'rgba(170,190,255,.45)'; cx.lineWidth = 1; cx.beginPath(); for (let i = 0; i < 26; i++) { const rx0 = wx + ((i * 37 + t * 220) % 200), ry0 = wy + ((i * 53 + t * 380) % 110); cx.moveTo(rx0, ry0); cx.lineTo(rx0 - 3, ry0 + 9); } cx.stroke();
+      cx.fillStyle = '#5a4030'; cx.fillRect(wx + 97, wy, 6, 120); cx.fillRect(wx, wy + 57, 200, 6);
+      cx.fillStyle = 'rgba(200,120,140,.55)'; cx.fillRect(wx - 30, wy - 10, 30, 150); cx.fillRect(wx + 200, wy - 10, 30, 150);   // カーテン
+      // 布団と子ども（奥の左）
+      const fx = sx(1.2 * 40), fy = sy(2 * 40);
+      cx.fillStyle = '#e8e0f0'; cx.fillRect(fx, fy - 16, 120, 16); cx.fillStyle = '#c86a9a'; cx.fillRect(fx + 28, fy - 26, 92, 14);
+      cx.fillStyle = '#fff'; cx.fillRect(fx + 4, fy - 24, 24, 10); cx.fillStyle = '#f0d4c4'; cx.beginPath(); cx.arc(fx + 18, fy - 26, 8, 0, TAU); cx.fill();
+      cx.fillStyle = '#3d2a20'; cx.beginPath(); cx.arc(fx + 18, fy - 29, 8, Math.PI * 1.05, Math.PI * 1.95); cx.fill();
+      cx.strokeStyle = '#3d2a20'; cx.lineWidth = 1; cx.beginPath(); cx.moveTo(fx + 13, fy - 25); cx.lineTo(fx + 16, fy - 25); cx.moveTo(fx + 20, fy - 25); cx.lineTo(fx + 23, fy - 25); cx.stroke();
+      if (CZ && !cboss.dead) { cx.fillStyle = '#aee0ff'; cx.fillRect(fx + 13, fy - 33, 10, 5); }   // 冷却シート
+      // ちゃぶ台とやかん（奥の右）
+      const tx = sx(RW - 2.6 * 40), ty = sy(2 * 40);
+      cx.fillStyle = '#5a3a26'; cx.fillRect(tx - 40, ty - 22, 80, 6); cx.fillRect(tx - 34, ty - 16, 5, 16); cx.fillRect(tx + 29, ty - 16, 5, 16);
+      cx.fillStyle = '#a8a8b8'; cx.beginPath(); cx.ellipse(tx, ty - 32, 12, 10, 0, 0, TAU); cx.fill(); cx.fillRect(tx + 10, ty - 36, 10, 3);
+      if (Math.sin(t * 3) > 0) { cx.fillStyle = 'rgba(255,255,255,.25)'; cx.beginPath(); cx.arc(tx + 22, ty - 46 - (t * 20) % 14, 4, 0, TAU); cx.fill(); }
+    }
+    // 風邪菌（仮）：緑のとげとげ・とぼけた顔。予兆の間はほっぺが赤く膨らむ
+    function drawCold() {
+      if (!CZ) return;
+      for (const sh of CZ.shots) { const x = sx(sh.x), y = sy(sh.y); cx.fillStyle = 'rgba(170,230,110,.85)'; cx.beginPath(); cx.arc(x, y, sh.r, 0, TAU); cx.fill(); cx.fillStyle = 'rgba(255,255,255,.5)'; cx.beginPath(); cx.arc(x - 2, y - 2, 2, 0, TAU); cx.fill(); }
+      for (const m of CZ.minis) {
+        const x = sx(m.x), y = sy(m.y), a = m.dead ? Math.max(0, 1 - m.deadF / 20) : 1; cx.globalAlpha = a;
+        cx.fillStyle = '#7ac040'; cx.beginPath(); for (let i = 0; i < 10; i++) { const an = i / 10 * TAU, rr = i % 2 ? 7 : 11; cx.lineTo(x + Math.cos(an) * rr, y - 9 + Math.sin(an) * rr); } cx.closePath(); cx.fill();
+        cx.fillStyle = '#1a2a10'; cx.fillRect(x - 4, y - 11, 2, 3); cx.fillRect(x + 2, y - 11, 2, 3); cx.globalAlpha = 1;
+      }
+      const e = cboss, x = sx(e.x), y = sy(e.y), tele = CZ.telegraph(e), fl = e.hitT > 4, a = e.dead ? Math.max(0, 1 - e.deadF / 60) : 1, R = RunnerCold.COLD.r;
+      cx.globalAlpha = a; cx.save(); cx.translate(x, y); const sq = tele ? 1 + Math.sin(e.f * .7) * .08 : 1; cx.scale(sq, 1 / sq); if (e.dead) cx.rotate(e.deadF * .08);
+      cx.fillStyle = fl ? '#ffffff' : e.state === 'rush' ? '#a0d040' : '#6ab030'; cx.beginPath();
+      for (let i = 0; i < 24; i++) { const an = i / 24 * TAU + e.f * .01, rr = i % 2 ? R * .82 : R * 1.12; cx.lineTo(Math.cos(an) * rr, Math.sin(an) * rr); } cx.closePath(); cx.fill();
+      cx.fillStyle = fl ? '#ffffff' : '#8ad050'; cx.beginPath(); cx.arc(0, 0, R * .72, 0, TAU); cx.fill();
+      const f = e.face; cx.fillStyle = '#fff'; cx.beginPath(); cx.arc(f * 6 - 9, -6, 7, 0, TAU); cx.arc(f * 6 + 9, -6, 7, 0, TAU); cx.fill();
+      cx.fillStyle = '#1a2a10'; cx.beginPath(); cx.arc(f * 8 - 9, -5, 3, 0, TAU); cx.arc(f * 8 + 9, -5, 3, 0, TAU); cx.fill();
+      if (tele) { cx.fillStyle = 'rgba(255,90,110,.8)'; cx.beginPath(); cx.arc(f * 6 - 16, 8, 6, 0, TAU); cx.arc(f * 6 + 16, 8, 6, 0, TAU); cx.fill(); cx.fillStyle = '#3a1a10'; cx.beginPath(); cx.ellipse(f * 6, 12, 5, 7, 0, 0, TAU); cx.fill(); }
+      else { cx.strokeStyle = '#1a2a10'; cx.lineWidth = 2; cx.beginPath(); cx.arc(f * 6, 8, 7, .2, Math.PI - .2); cx.stroke(); }
+      cx.restore(); cx.globalAlpha = 1;
+    }
+    function drawStory() {
+      cx.fillStyle = 'rgba(5,4,14,.9)'; cx.fillRect(0, 0, VW, VH); const L = story.lines[Math.min(story.i, story.lines.length - 1)], bw = Math.min(560, VW - 32), bx = (VW - bw) / 2, by = VH - 190;
+      cx.fillStyle = 'rgba(255,255,255,.06)'; cx.fillRect(bx, by, bw, 110); cx.strokeStyle = 'rgba(222,204,248,.4)'; cx.lineWidth = 2; cx.strokeRect(bx, by, bw, 110);
+      cx.textAlign = 'left'; if (L.who) { cx.fillStyle = '#00e8c8'; cx.font = 'bold 14px sans-serif'; cx.fillText(L.who, bx + 16, by + 26); }
+      cx.fillStyle = L.who ? '#ffffff' : 'rgba(222,204,248,.8)'; cx.font = '16px sans-serif';
+      const words = [...L.txt], maxW = bw - 32; let line = '', ly = by + (L.who ? 56 : 44); for (const ch of words) { if (cx.measureText(line + ch).width > maxW) { cx.fillText(line, bx + 16, ly); line = ''; ly += 24; } line += ch; } cx.fillText(line, bx + 16, ly);
+      if (Math.sin(t * 6) > -.3) { cx.textAlign = 'right'; cx.fillStyle = '#e8b830'; cx.font = '12px sans-serif'; cx.fillText('▼ ' + (showTouch ? 'タップ' : 'Z・Enter'), bx + bw - 12, by + 100); }
+    }
+    function drawWarning() {
+      cx.fillStyle = `rgba(80,0,10,${.55 + Math.sin(t * 10) * .15})`; cx.fillRect(0, 0, VW, VH);
+      const y = VH / 2; cx.fillStyle = '#ff2a40'; cx.fillRect(0, y - 70, VW, 10); cx.fillRect(0, y + 60, VW, 10);
+      cx.fillStyle = 'rgba(0,0,0,.6)'; cx.fillRect(0, y - 60, VW, 120);
+      if (Math.sin(t * 9) > -.5) { cx.textAlign = 'center'; cx.fillStyle = '#ff4a5a'; cx.font = 'bold 48px sans-serif'; cx.fillText('WARNING', VW / 2, y + 4); }
+      cx.fillStyle = '#ffd0d8'; cx.font = 'bold 18px sans-serif'; cx.textAlign = 'center'; cx.fillText('風邪菌襲来！', VW / 2, y + 40);
+    }
     function drawBossBar() {
+      if (CZ && cboss && phase === 'play') { const w = Math.min(320, VW - 40), x = (VW - w) / 2, y = 48; cx.fillStyle = 'rgba(0,0,0,.55)'; cx.fillRect(x - 4, y - 16, w + 8, 30); cx.fillStyle = '#deccf8'; cx.font = '11px sans-serif'; cx.textAlign = 'left'; cx.fillText(RunnerBosses.BOSSES.find(b => b.id === 'cold').name, x, y - 4); cx.fillStyle = 'rgba(255,255,255,.15)'; cx.fillRect(x, y, w, 7); cx.fillStyle = '#8ad050'; cx.fillRect(x, y, w * cboss.hp / cboss.hpMax, 7); return; }
       if (!boss || !arenaOn) return; const w = Math.min(320, VW - 40), x = (VW - w) / 2, y = 48;
       cx.fillStyle = 'rgba(0,0,0,.55)'; cx.fillRect(x - 4, y - 16, w + 8, 30); cx.fillStyle = '#deccf8'; cx.font = '11px sans-serif'; cx.textAlign = 'left'; cx.fillText(bossDef().name, x, y - 4);
       cx.fillStyle = 'rgba(255,255,255,.15)'; cx.fillRect(x, y, w, 7); cx.fillStyle = '#ff6a8a'; cx.fillRect(x, y, w * boss.hp / boss.hpMax, 7);
@@ -447,7 +567,11 @@ registerMinigame({
       cx.fillStyle = '#00e8c8'; cx.font = 'bold 20px sans-serif'; cx.fillText('どこへ行く？（試作）', VW / 2, 90);
       const L = selList(), cw = 170, gap = 18, x0 = VW / 2 - (L.length * cw + (L.length - 1) * gap) / 2;
       L.forEach((d, i) => {
-        const x = x0 + i * (cw + gap), y = 140, beat = (REC.beaten || []).includes(d.id), on = i === selIdx;
+        const x = x0 + i * (cw + gap), y = 140, on = i === selIdx;
+        if (d.id === 'cold') { const R = coldRec(); cx.fillStyle = on ? 'rgba(138,208,80,.18)' : 'rgba(255,255,255,.06)'; cx.fillRect(x, y, cw, 210); cx.strokeStyle = on ? '#8ad050' : 'rgba(255,255,255,.25)'; cx.lineWidth = 2; cx.strokeRect(x, y, cw, 210);
+          cx.fillStyle = '#6ab030'; cx.beginPath(); for (let k = 0; k < 20; k++) { const an = k / 20 * TAU, rr = k % 2 ? 26 : 34; cx.lineTo(x + cw / 2 + Math.cos(an) * rr, y + 80 + Math.sin(an) * rr); } cx.closePath(); cx.fill();
+          cx.fillStyle = '#deccf8'; cx.font = 'bold 13px sans-serif'; cx.fillText(d.name, x + cw / 2, y + 150); cx.font = '11px sans-serif'; cx.fillStyle = R.wins ? '#e8b830' : 'rgba(222,204,248,.7)'; cx.fillText(R.wins ? `追い払った ${R.wins} 回` : 'まだ追い払えていない', x + cw / 2, y + 172); cx.fillStyle = 'rgba(222,204,248,.5)'; cx.fillText('家（看病のあと）', x + cw / 2, y + 192); return; }
+        const beat = (REC.beaten || []).includes(d.id);
         cx.fillStyle = on ? 'rgba(0,232,200,.18)' : 'rgba(255,255,255,.06)'; cx.fillRect(x, y, cw, 210); cx.strokeStyle = on ? '#00e8c8' : 'rgba(255,255,255,.25)'; cx.lineWidth = 2; cx.strokeRect(x, y, cw, 210);
         cx.save(); cx.translate(x + cw / 2, y + 120); cx.scale(1.6, 1.6); cx.fillStyle = beat ? '#555a6a' : '#2f5a7a'; cx.beginPath(); cx.moveTo(-15, 0); cx.quadraticCurveTo(-13, -32, 0, -38); cx.quadraticCurveTo(13, -32, 15, 0); cx.closePath(); cx.fill(); cx.restore();
         cx.fillStyle = '#deccf8'; cx.font = 'bold 13px sans-serif'; cx.fillText(d.name, x + cw / 2, y + 150);
@@ -460,8 +584,13 @@ registerMinigame({
     }
     function drawHUD() {
       cx.textAlign = 'left'; cx.font = 'bold 14px sans-serif';
+      if (CZ) {   // 感染ゲージ（満タンで寝込む）
+        cx.fillStyle = 'rgba(0,0,0,.5)'; cx.fillRect(10, 10, 220, 30); cx.fillStyle = '#deccf8'; cx.font = 'bold 12px sans-serif'; cx.fillText('感染', 16, 30);
+        cx.fillStyle = 'rgba(255,255,255,.15)'; cx.fillRect(52, 18, 168, 14); cx.fillStyle = infect > 70 ? '#ff4a5a' : infect > 40 ? '#e8b830' : '#8ad050'; cx.fillRect(52, 18, 168 * infect / 100, 14); cx.font = 'bold 14px sans-serif';
+      } else {
       cx.fillStyle = 'rgba(0,0,0,.5)'; cx.fillRect(10, 10, 184, 30); cx.fillStyle = '#deccf8'; cx.fillText('☂', 18, 31);
       for (let i = 0; i < HP_MAX; i++) { cx.fillStyle = i < hp ? '#00e8c8' : 'rgba(255,255,255,.15)'; cx.fillRect(38 + i * 18, 18, 14, 14); }
+      }
       cx.textAlign = 'right'; cx.fillStyle = '#deccf8'; cx.fillText(runTime.toFixed(1) + '秒', VW - 14, 30);
       if (showTouch && phase === 'play') { for (const b of btns()) { const on = touchKeys()[b.k]; cx.fillStyle = on ? 'rgba(0,232,200,.35)' : 'rgba(255,255,255,.1)'; cx.strokeStyle = 'rgba(255,255,255,.35)'; cx.lineWidth = 2; cx.beginPath(); cx.arc(b.x, b.y, b.r, 0, TAU); cx.fill(); cx.stroke(); cx.fillStyle = '#fff'; cx.textAlign = 'center'; cx.font = (b.lab.length > 1 ? 11 : 16) + 'px sans-serif'; cx.fillText(b.lab, b.x, b.y + 5); } }
     }
@@ -480,8 +609,8 @@ registerMinigame({
       cx.save(); cx.translate(shx, 0);
       drawBack(); drawTiles();
       for (const p of P) if (p.a) { cx.globalAlpha = Math.max(0, p.l / p.m); cx.fillStyle = p.c; cx.fillRect(sx(p.x) - p.s / 2, sy(p.y) - p.s / 2, p.s, p.s); }
-      cx.globalAlpha = 1; drawFoes(); drawBoss(); drawPlayer(); drawSlash();
-      cx.strokeStyle = 'rgba(170,190,255,.3)'; cx.lineWidth = 1; cx.beginPath(); for (let i = 0; i < RN; i += 2) { cx.moveTo(rx[i], ry[i]); cx.lineTo(rx[i] - 6, ry[i] - rl[i]); } cx.stroke();
+      cx.globalAlpha = 1; drawFoes(); drawBoss(); drawCold(); drawPlayer(); drawSlash();
+      if (!CZ) { cx.strokeStyle = 'rgba(170,190,255,.3)'; cx.lineWidth = 1; cx.beginPath(); for (let i = 0; i < RN; i += 2) { cx.moveTo(rx[i], ry[i]); cx.lineTo(rx[i] - 6, ry[i] - rl[i]); } cx.stroke(); }
       cx.restore();
       if (flash > 0) { cx.fillStyle = `rgba(255,120,140,${flash * .25})`; cx.fillRect(0, 0, VW, VH); }
       drawHUD(); drawBossBar();
@@ -491,11 +620,19 @@ registerMinigame({
       if (phase === 'learn') { const mv = RunnerCombat.MOVES[learnedNow] || {}; card(['新しい技を覚えた', mv.name || '', '↑を押しながら 攻撃（X）', '上と前を広く払う'], (showTouch ? 'タップ' : 'Z・Enter') + 'で 続ける'); }
       if (phase === 'clear') card(['コンビニに着いた', `${runTime.toFixed(1)} 秒　／　ぶつかった ${hurts} 回`, '冷却シートと、プリン。'], (showTouch ? 'タップ' : 'Z・Enter') + 'で 戻る');
       if (phase === 'over') card(['傘が折れた……', 'もう一度、行かなきゃ。'], (showTouch ? 'タップ' : 'Z・Enter') + 'で 戻る');
+      if (phase === 'story') drawStory();
+      if (phase === 'warning') drawWarning();
+      if (phase === 'coldend') {
+        if (coldRes === 'win') { cx.fillStyle = 'rgba(5,4,14,.82)'; cx.fillRect(0, 0, VW, VH); cx.textAlign = 'center'; cx.fillStyle = '#e8b830'; cx.font = 'bold ' + Math.min(34, VW / 14) + 'px sans-serif'; cx.fillText('父ちゃんは今日も休めない！', VW / 2, VH / 2 - 10); cx.fillStyle = '#deccf8'; cx.font = '14px sans-serif'; cx.fillText(`風邪菌（仮）を追い払った　／　感染 ${Math.round(infect)}%`, VW / 2, VH / 2 + 30); if (Math.sin(t * 6) > -.3) { cx.fillStyle = '#e8b830'; cx.font = '13px sans-serif'; cx.fillText((showTouch ? 'タップ' : 'Z・Enter') + 'で 戻る', VW / 2, VH / 2 + 90); } }
+        else card(['寝込んでしまった……', '子どもが、枕元にいる。'], (showTouch ? 'タップ' : 'Z・Enter') + 'で 戻る');
+      }
     }
 
     // 試験の時だけの入口（window.__MG_TEST__ がある時だけ）
     if (typeof window !== 'undefined' && window.__MG_TEST__) window.__MG_TEST__.runnerHard = {
       get s() { return { boss: boss ? { hp: boss.hp, state: boss.state, dead: boss.dead, x: boss.x } : null, arenaOn, arena: AR, moves: C ? [...C.learned] : [], beaten: REC.beaten || [], sprite: !!SPR, spriteKey: SPR && B ? spriteKey() : null, phase, hp, falls, hurts, runTime, outcome, kills, foes: foes.map(e => ({ type: e.type, x: e.x, y: e.y, hp: e.hp, dead: e.dead, face: e.face })), invul: B && B.invul, atk: B && B.atk && B.atk.id, x: B && B.x, y: B && B.y, state: B && B.state, goal, spawn, checks: checks.map(c => !!c.got) }; },
+      get cold() { return { on: !!CZ, hp: cboss ? cboss.hp : null, state: cboss ? cboss.state : null, dead: cboss ? cboss.dead : null, x: cboss ? cboss.x : null, y: cboss ? cboss.y : null, infect, res: coldRes, rec: REC.cold || null, story: story ? { i: story.i, n: story.lines.length, txt: (story.lines[story.i] || {}).txt } : null, sel: selList().map(d => d.id) }; },
+      coldHp(n) { if (cboss) cboss.hp = n; }, infect(n) { infect = n; }, beatAll() { REC.beaten = RunnerBosses.visible().map(b => b.id); },
       bossHp(n) { if (boss) boss.hp = n; },
       warp(x, y) { if (B) { B.x = x; B.y = y; B.vx = B.vy = 0; act.go(B, 'fall'); } }, start() { advance(); },
     };
@@ -510,6 +647,18 @@ registerMinigame({
       if (ro) ro.disconnect();
       if (outcome) reason = outcome;
       if (reason === 'clear' || reason === 'down') commit();
+      if (reason === 'cold' || (reason === 'clear' && coldRes)) {   // 隠しボス（看病のあと）。効き目は通常のクリアに近く、負けても軽め
+        const win = coldRes === 'win', withRun = reason === 'clear';
+        const fx = win ? { childStress: -(6 + (firstBeat ? 2 : 0)), mental: 3 + (firstBeat ? 2 : 0), fatigue: 8 } : coldRes === 'lose' ? { childStress: -4, mental: -1, fatigue: 8 } : { fatigue: 4 };
+        return {
+          title: (win ? '🦠 父ちゃんは今日も休めない！' : coldRes === 'lose' ? '🦠 今度は自分が風邪をひいた' : '🦠 引き返した') + '（高難易度版・試作）',
+          summary: (withRun ? `コンビニまで ${runTime.toFixed(1)} 秒。` : '') + (win ? '風邪菌（仮）を追い払った。子どもは、すっかり元気になっている。' : coldRes === 'lose' ? '寝込んでしまった。元気になった子どもが、枕元にやってきた。' : '')
+            + `<br>感染 ${Math.round(infect)}%` + (firstBeat ? `<br>${firstBeat.name} を倒した。` : ''),
+          fx, time: 40, sp: firstBeat ? 1 : 0,
+          log: win ? '子どもの風邪がうつりかけたが、気合いで追い払った（高難易度版）。' : coldRes === 'lose' ? '子どもは元気になったが、看病していた自分が風邪で寝込んだ（高難易度版）。' : '看病のあと、途中で引き返した（高難易度版）。',
+          cutin: win ? ['happy', 'ふふん、そう簡単に倒れてられないのよ！'] : coldRes === 'lose' ? ['tired', '……今度はあたしが風邪ひいたわ……'] : null,
+        };
+      }
       const clear = reason === 'clear', down = reason === 'down';
       const mv = firstBeat && RunnerCombat.MOVES[firstBeat.teaches];
       // 本編への効き目：通常版（クリアで育児ストレス −8・精神 +2・疲労 +8）と同じくらい。初めてボスを倒した回は少し多め

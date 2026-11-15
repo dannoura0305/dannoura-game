@@ -10,7 +10,8 @@
   'use strict';
   const BOSSES = [
     { id: 'boss_a', name: '大きな雨坊主（仮）', stage: 'stage1', teaches: 'rising', hidden: false, order: null, reason: '（未定）' },
-    { id: 'cold', name: '風邪菌（仮）', stage: null, teaches: null, hidden: true, unlock: '（未定）', reason: '看病のあとで…（未定）' },
+    // 隠しボス：通常ボスを全員倒した後にコンビニへ着くと、看病の場面から始まる（解放の条件は仮：設計案 §6-4 の案 A）。一度戦うと選択画面からも戦える
+    { id: 'cold', name: '風邪菌（仮）', stage: 'home', teaches: null, hidden: true, unlock: 'after_all', reason: '子どもは元気になってきたのに、今度は看病していた自分が…' },
   ];
   // 仮のボス：大きな雨坊主（仮）。のしのし近づく・跳んで踏みつけ（地を這う波 2 つ）・雨粒を吐く（3 つ・山なり）。体力が半分を切ると速くなる
   const BOSS_A = { hp: 24, w: 24, h: 70, walk: 0.8, gravity: 0.25 * 2.5, fallCap: 5.75 * 2.5, touch: 1,
@@ -77,7 +78,10 @@
     const wake = e => { if (e.state === 'wait') go(e, 'walk'); };
     return { spawn, step, stepShots, shots, box, shotBox, hurt, wake, telegraph: e => e.state === 'slam_tele' || e.state === 'spit_tele' };
   }
-  const API = { BOSSES, BOSS_A, make, visible: () => BOSSES.filter(b => !b.hidden) };
+  const visible = () => BOSSES.filter(b => !b.hidden);
+  // 隠しボスに会える（倒したボスの id の並び beaten が、隠しでないボスを全員ふくむ）
+  const coldUnlocked = beaten => visible().every(b => (beaten || []).includes(b.id));
+  const API = { BOSSES, BOSS_A, make, visible, coldUnlocked };
   root.RunnerBosses = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

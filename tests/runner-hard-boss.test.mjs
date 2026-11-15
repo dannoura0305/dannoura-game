@@ -18,10 +18,11 @@ const T = RA.TILE;
 const room = () => RA.makeMap(['#' + '.'.repeat(28) + '#', '#' + '.'.repeat(28) + '#', '#' + '.'.repeat(28) + '#', '#'.repeat(30), '#'.repeat(30)]);
 const AR = { x0: T, x1: 29 * T };
 
-t('ボスの表：選択画面に出るのは隠しでない物だけ・覚える技は技の表にある（習得技）・隠しボスは枠だけ', () => {
+t('ボスの表：選択画面に出るのは隠しでない物だけ・覚える技は技の表にある（習得技）・隠しボスは全員倒した後', () => {
   const vis = RB.visible(); assert.ok(vis.length >= 1 && vis.every(b => !b.hidden));
   for (const b of RB.BOSSES) if (b.teaches) { assert.ok(RC.MOVES[b.teaches], b.teaches); assert.equal(RC.MOVES[b.teaches].base, false); assert.equal(RC.MOVES[b.teaches].learnedFrom, b.id); }
-  const cold = RB.BOSSES.find(b => b.id === 'cold'); assert.ok(cold && cold.hidden && !cold.stage, '隠しボスはまだ戦えない（面が無い）');
+  const cold = RB.BOSSES.find(b => b.id === 'cold'); assert.ok(cold && cold.hidden && cold.stage === 'home' && cold.unlock === 'after_all', '隠しボス：家・全員倒した後');
+  assert.ok(!RB.coldUnlocked([])); assert.ok(RB.coldUnlocked(RB.visible().map(b => b.id)), '全員倒すと会える');
 });
 
 t('仮のボス：起きるまで動かない・起きると近づく', () => {
