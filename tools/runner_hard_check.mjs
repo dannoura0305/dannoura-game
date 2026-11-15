@@ -17,6 +17,18 @@ const b = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-requ
   await p.close();
 }
 
+// 「試作を遊ぶ」ボタン：印がある時だけ画面の隅に出て、押すとすぐ始まる
+{
+  const p = await b.newPage({ viewport: { width: 960, height: 540 } }); const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.addInitScript(() => { window.__MG_TEST__ = {}; });
+  await p.goto(BASE + '/index.html?runnerhard=1'); await p.waitForTimeout(2500);
+  const has = await p.$('#mg-proto-btn'); ok('印がある時：画面の隅に「試作を遊ぶ」ボタンが出る', !!has);
+  if (has) { await p.click('#mg-proto-btn'); const t0 = Date.now(); let ph = null; while (Date.now() - t0 < 15000) { ph = await p.evaluate(() => window.__MG_TEST__.runnerHard && window.__MG_TEST__.runnerHard.s.phase); if (ph === 'intro') break; await p.waitForTimeout(100); } ok('ボタンを押すと試作がすぐ始まる（タイトル画面からでも）', ph === 'intro', String(ph)); }
+  ok('ボタンの場面でエラーが出ない', errs.length === 0, JSON.stringify(errs.slice(0, 2)));
+  const p2 = await b.newPage(); await p2.goto(BASE + '/index.html'); await p2.waitForTimeout(2000); ok('印が無い時：ボタンは出ない', !(await p2.$('#mg-proto-btn'))); await p2.close();
+  await p.close();
+}
+
 for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
   const p = await b.newPage({ viewport: { width: vw, height: vh } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
@@ -47,6 +59,19 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
   const x1 = (await S()).x; await p.evaluate(() => { window.__padR = true; }); await p.waitForTimeout(600); await p.evaluate(() => { window.__padR = false; });
   ok(`${label}：ゲームパッド（左スティック右）で動く`, (await S()).x > x1 + 60);
   if (SHOTS) { await p.waitForTimeout(200); await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_play.png` }); }
+  // 攻撃：歩く敵の左に立って X（3 段）→ 倒す
+  {
+    const st = await S(); const w = st.foes.find(e => e.type === 'walker' && !e.dead && e.y === 80);
+    await p.evaluate(w => window.__MG_TEST__.runnerHard.warp(w.x + w.face * 36, 90), w); await p.keyboard.down(w.face > 0 ? 'ArrowLeft' : 'ArrowRight'); await p.waitForTimeout(40); await p.keyboard.up(w.face > 0 ? 'ArrowLeft' : 'ArrowRight');   // 敵の進む先に、敵の方を向いて立つ
+    const k0 = st.kills; let atk = null;
+    for (let i = 0; i < 12 && (await S()).kills === k0; i++) { await p.keyboard.down('x'); await p.waitForTimeout(60); const v = await S(); if (v.atk) atk = v.atk; await p.keyboard.up('x'); await p.waitForTimeout(110); }
+    const k1 = (await S()).kills;
+    ok(`${label}：X で傘を振る（${atk || '—'}）→ 歩く敵を倒す`, k1 > k0 && !!atk, `倒した ${k1}` + (k1 > k0 ? '' : ' ' + JSON.stringify(await S()).slice(0, 300)));
+    if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_attack.png` });
+    // 敵に触れると やられ（傘の耐久が減る）
+    const st2 = await S(), w2 = st2.foes.find(e => e.type === 'walker' && !e.dead);
+    if (w2) { await p.waitForTimeout(1100); const hp0 = (await S()).hp; await p.evaluate(e => window.__MG_TEST__.runnerHard.warp(e.x, e.y + 4), w2); const hurt = await until(async () => { const v = await S(); return v.hp < hp0 ? v : null; }, 2000, 30); ok(`${label}：敵に触れると やられ（傘の耐久が減る）`, !!hurt, hurt ? '' : JSON.stringify(await S()).slice(0, 300)); }
+  }
   // 途中の印 → 戸の手前へ
   const g = (await S()).goal;
   await p.evaluate(() => { const r = window.__MG_TEST__.runnerHard; r.warp(42 * 40 + 20, 90); });

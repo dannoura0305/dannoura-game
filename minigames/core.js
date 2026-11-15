@@ -115,8 +115,19 @@ try{
   if(typeof location!=='undefined'&&/[?&]runnerhard=1\b/.test(location.search||'')&&!MINIGAMES.some(m=>m.id==='runner_hard')){
     MINIGAMES.push({id:'runner_hard',file:'runner_hard',icon:'☔',name:'買い出しダッシュ（高難易度版・試作）',genre:'アクション',bgm:'mg_runner',
       desc:'試作：横スクロールのアクション。走る・跳ぶ・ダッシュ・壁蹴りで、雨の町をコンビニまで。',effect:'試作（本編の数値はほとんど変わらない） ／ 疲労+4 約20分',
-      help:'←→:移動 Z:ジャンプ C:ダッシュ ↓:スライド'});
+      help:'←→:移動 Z:ジャンプ X:攻撃 C:ダッシュ ↓:スライド'});
     MG_CATS.find(c=>c.id==='action').ids.push('runner_hard');
+    // 画面の隅の「試作を遊ぶ」ボタン：押すとすぐ始まる（試作は 1 日 1 回の数に入れない）
+    const addBtn=()=>{
+      if(document.getElementById('mg-proto-btn'))return;
+      const b=document.createElement('button');b.id='mg-proto-btn';b.type='button';b.textContent='☔ 試作を遊ぶ';
+      b.style.cssText='position:fixed;right:10px;bottom:10px;z-index:9999;padding:9px 14px;border:1px solid #00e8c8;border-radius:6px;background:rgba(5,4,14,.92);color:#00e8c8;font:600 13px sans-serif;cursor:pointer;';
+      b.onclick=()=>{try{if(typeof AU!=='undefined'&&AU.init)AU.init();}catch(_){}if(typeof gs!=='undefined'&&gs){gs.mgDay=gs.mgDay||{};delete gs.mgDay.runner_hard;}if(MG._ended!==false)MG.open('runner_hard');};
+      document.body.appendChild(b);
+      const hide=()=>{b.style.display=document.body.classList.contains('mg-active')?'none':'';};
+      new MutationObserver(hide).observe(document.body,{attributes:true,attributeFilter:['class']});
+    };
+    if(document.body)addBtn();else document.addEventListener('DOMContentLoaded',addBtn);
   }
 }catch(e){}
 // 工場の選択画面のタブ（アイコンは main/icons.js の work）
