@@ -19,10 +19,14 @@
     // 空中斬り（基本）：上がる・落ちる途中。横の動きはそのまま。着地で終わる
     air: { base: true, on: 'air', startup: 3, active: 5, recover: 10, step: 0,
       hit: { x: -6, y: 2, w: 58, h: 50, dmg: 1, hitstop: 4, kb: 3 }, cancel: {} },
-    // 習得技（仮）：切り上げ。↑を押しながら攻撃。上と前を広く払う（宙の敵に）。仮のボス（大きな雨坊主・仮）を倒すと覚える
+    // 習得技（仮）：切り上げ。↑を押しながら攻撃。上と前を広く払う（宙の敵に）
+    // 教えていた仮のボス（大きな雨坊主・仮）は雷殻の怪異に差し替えたので、今は覚える先が無い（覚えた記録がある人はそのまま使える）。どのボスで覚えるかは未決定
     // 正式な技の名前・中身・どのボスで覚えるかは未決定。表に足すだけで増やせる
-    rising: { base: false, learnedFrom: 'boss_a', name: '切り上げ（仮）', on: 'ground', input: 'up', startup: 5, active: 6, recover: 16, step: 3,
+    rising: { base: false, learnedFrom: null, name: '切り上げ（仮）', howto: '↑を押しながら 攻撃（X）', desc: '上と前を広く払う', on: 'ground', input: 'up', startup: 5, active: 6, recover: 16, step: 3,
       hit: { x: -4, y: 20, w: 48, h: 86, dmg: 2, hitstop: 6, kb: 2 }, cancel: { jump: [10, 27], dash: [12, 27] } },
+    // 習得技（仮）：雷突き。ダッシュ中に攻撃 → 雷をまとって前へ踏み込み、突く。雷殻の怪異を倒すと覚える（名前・中身は仮）
+    raitotsu: { base: false, learnedFrom: 'raikaku', name: '雷突き（仮）', howto: 'ダッシュ中に 攻撃（X）', desc: '雷をまとって前へ踏み込み、突く', on: 'ground', input: 'dash', startup: 4, active: 7, recover: 15, step: 56,
+      hit: { x: -2, y: 8, w: 66, h: 36, dmg: 3, hitstop: 7, kb: 6 }, cancel: { jump: [12, 26] } },
   };
   const BUFFER_F = 8;                                               // 硬直中に押した攻撃を覚えておくこま数
   const GROUND = ['stand', 'walk_start', 'walk', 'land', 'dash', 'dash_end'];
@@ -38,7 +42,7 @@
     // 攻撃を始める（入れる技を選ぶ）
     function pick(b, inp) {
       if (AIR.includes(b.state)) return usable('air') ? 'air' : null;
-      if (GROUND.includes(b.state)) { if (inp.up && usable('rising')) return 'rising'; return usable('slash1') ? 'slash1' : null; }
+      if (GROUND.includes(b.state)) { if (inp.up && usable('rising')) return 'rising'; if (b.state === 'dash' && usable('raitotsu')) return 'raitotsu'; return usable('slash1') ? 'slash1' : null; }
       return null;
     }
     function start(b, id) { b.atk = { id, f: 0, hits: new Set(), chain: 0 }; if (MOVES[id].on === 'ground' && b.state !== 'stand') act.go(b, 'stand'); }
