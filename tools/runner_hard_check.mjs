@@ -29,6 +29,40 @@ const b = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-requ
   await p.close();
 }
 
+// 入口（印なし）：通常版をクリアする前は一覧に出ない → 1 回クリアすると出る・難しさ・本編への結果・1 日 1 回
+{
+  const p = await b.newPage({ viewport: { width: 960, height: 540 } }); const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.addInitScript(() => { window.__MG_TEST__ = {}; });
+  await p.goto(BASE + '/index.html'); await p.waitForTimeout(2500); await p.mouse.click(480, 270);
+  const listed = () => p.evaluate(() => { openMinigamePicker('night'); const ids = minigamesIn('night').map(d => d.id); closeMinigamePicker(); return ids.includes('runner_hard'); });
+  await p.evaluate(() => { gs.runnerData = { plays: 0, clears: 0 }; });
+  ok('入口：通常版をクリアする前は、夜の🎮の一覧に出ない', !(await listed()));
+  await p.evaluate(() => { gs.runnerData = { plays: 1, clears: 1 }; });
+  ok('入口：通常版を 1 回クリアすると、アクションの欄に出る', await listed() && await p.evaluate(() => MG_CATS.find(c => c.id === 'action').ids.includes('runner_hard')));
+  ok('入口：印が無い時は「試作を遊ぶ」ボタンは出ない', !(await p.$('#mg-proto-btn')));
+  // 難しさ：むずかしい＝傘の耐久 4・やさしい＝7
+  for (const [d, want] of [['hard', 4], ['easy', 7]]) {
+    await p.evaluate(d => { localStorage.setItem(MG_DIFF_KEY, d); gs.mgDay = {}; delete gs.runnerHard; }, d);
+    await p.evaluate(() => MG.open('runner_hard'));
+    const v = await (async () => { const t0 = Date.now(); while (Date.now() - t0 < 15000) { const s = await p.evaluate(() => window.__MG_TEST__.runnerHard && window.__MG_TEST__.runnerHard.s); if (s && s.phase === 'intro') return s; await p.waitForTimeout(100); } return null; })();
+    ok(`難しさ（${d}）：傘の耐久 ${want}`, v && v.hp === want, JSON.stringify(v && v.hp));
+    if (d === 'hard') {
+      // 着いて終わる → 本編へ結果（育児ストレス↓・疲労↑）・1 日 1 回
+      const before = await p.evaluate(() => ({ cs: gs.childStress, fa: gs.fatigue }));
+      await p.waitForTimeout(600); await p.keyboard.press('z'); await p.waitForTimeout(600); await p.keyboard.press('z'); await p.waitForTimeout(300);
+      const g = v.goal; await p.evaluate(() => { const r = window.__MG_TEST__.runnerHard; r.bossHp(0); }); 
+      await p.evaluate(gx => window.__MG_TEST__.runnerHard.warp(gx - 60, 90), g.x); await p.keyboard.down('ArrowRight'); await p.waitForTimeout(800); await p.keyboard.up('ArrowRight');
+      const st = await p.evaluate(() => window.__MG_TEST__.runnerHard.s.phase);
+      await p.waitForTimeout(1800); await p.keyboard.press('Enter'); await p.waitForTimeout(1500);
+      const after = await p.evaluate(() => ({ cs: gs.childStress, fa: gs.fatigue, day: gs.mgDay.runner_hard === gs.day, ended: MG._ended }));
+      ok('着く → 本編へ結果（育児ストレスが下がる・疲労が上がる）・その日はもう遊べない', st === 'clear' && after.ended && after.fa > before.fa && after.cs <= before.cs && after.day, JSON.stringify({ st, before, after }));
+    } else { await p.evaluate(() => MG.end('quit')); await p.waitForTimeout(800); }
+  }
+  await p.evaluate(() => localStorage.removeItem(MG_DIFF_KEY));
+  ok('入口の場面でエラーが出ない', errs.length === 0, JSON.stringify(errs.slice(0, 2)));
+  await p.close();
+}
+
 for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
   const p = await b.newPage({ viewport: { width: vw, height: vh } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));

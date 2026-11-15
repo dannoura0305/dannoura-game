@@ -48,11 +48,16 @@ test('目録：17本・id の重複なし・各ファイルに1本ずつ', () =>
   assert.deepEqual(plain(META.map(m => m.file)).sort(), GAME_FILES);
 });
 
-test('試作：目録には入らない・core.js の開発用の印（?runnerhard=1）がある時だけ一覧に足す', () => {
+test('試作：目録には入らない・通常版を 1 回クリアするか、開発用の印（?runnerhard=1）がある時だけ一覧に足す', () => {
   assert.ok(!META.some(m => PROTO_FILES.includes(m.file)));
   const core = read('minigames/core.js');
   assert.match(core, /runnerhard=1/); assert.match(core, /id:'runner_hard',file:'runner_hard'/);
   const defs = loadGame('runner_hard', { day: 1 }); assert.equal(defs.length, 1); assert.equal(defs[0].id, 'runner_hard');
+  // core.js の一覧の文と registerMinigame の文がそろう（名前・説明・効果・操作）
+  for (const k of ['name', 'desc', 'effect', 'help', 'icon', 'genre', 'bgm']) assert.ok(core.includes(`${k}:'${defs[0][k]}'`), `runner_hard.${k}`);
+  // 入口：通常版を 1 回クリアすると出る（gs.runnerData.clears）
+  assert.match(core, /function runnerHardUnlocked\(\)\{return MG_DEV_RUNNER_HARD\|\|!!\(typeof gs!=='undefined'&&gs&&gs\.runnerData&&\(gs\.runnerData\.clears\|0\)>0\);\}/);
+  assert.match(core, /function openMinigamePicker\(place\)\{\n  mgSyncRunnerHard\(\);/);
 });
 
 test('目録と registerMinigame の id・名前・ジャンル・アイコン・BGM・説明・効果・操作が一致', () => {

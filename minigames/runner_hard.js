@@ -44,9 +44,9 @@ var RunnerHardStage = RunnerHardStage || {
 
 registerMinigame({
   id: 'runner_hard', icon: '☔', name: '買い出しダッシュ（高難易度版・試作）', genre: 'アクション', bgm: 'mg_runner',
-  desc: '試作：横スクロールのアクション。走る・跳ぶ・ダッシュ・壁蹴りで、雨の町をコンビニまで。',
-  effect: '試作（本編の数値はほとんど変わらない） ／ 疲労+4 約20分',
-  help: '←→:移動 Z:ジャンプ X:攻撃 C:ダッシュ ↓:スライド',
+  desc: '試作：横スクロールのアクション。走る・跳ぶ・ダッシュ・壁蹴り・傘で斬って、雨の町をコンビニまで。ボスを倒すと技を覚える。',
+  effect: '育児ストレス↓ 精神↑ ／ 疲労+8 約40分',
+  help: '←→:移動 Z:ジャンプ X:攻撃 C:ダッシュ ↓:スライド ↑+X:覚えた技',
   start(body, mg) {
     const TAU = Math.PI * 2, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), rnd = (a, b) => a + Math.random() * (b - a);
     // ── 記録（gs.runnerHard。通常版の gs.runnerData には触らない） ──
@@ -76,7 +76,14 @@ registerMinigame({
 
     // ── 状態 ──
     let phase = 'load', phaseT = 0, t = 0, hp = 5, falls = 0, hurts = 0, runTime = 0, outcome = null, committed = false, camX = 0, camY = 0, shake = 0, flash = 0, banner = null;
-    const HP_MAX = 5;
+    // 難しさ（ミニゲームの選択画面の「やさしい・ふつう・むずかしい」）。むずかしい＝受け取った数値のまま（元の作品の形）
+    const DIFF = typeof mgDifficulty === 'function' ? mgDifficulty() : 'normal';
+    const DF = {
+      easy: { hp: 7, boss: .75, phys: { wallStickF: 14, coyoteF: 6, bufferF: 6, invulF: 90 } },
+      normal: { hp: 5, boss: 1, phys: { wallStickF: 10, coyoteF: 4, bufferF: 4, invulF: 72 } },
+      hard: { hp: 4, boss: 1.25, phys: {} },
+    }[DIFF] || null;
+    const HP_MAX = DF ? DF.hp : 5; hp = HP_MAX;
     const P = []; for (let i = 0; i < 160; i++) P.push({ a: false, x: 0, y: 0, vx: 0, vy: 0, l: 0, m: 1, c: '#fff', s: 2, g: 0 });
     function emit(x, y, vx, vy, l, c, s, g) { for (const p of P) if (!p.a) { Object.assign(p, { a: true, x, y, vx, vy, l, m: l, c, s, g }); return; } }
     const RN = 180, rx = new Float32Array(RN), ry = new Float32Array(RN), rl = new Float32Array(RN), rv = new Float32Array(RN);
@@ -133,7 +140,8 @@ registerMinigame({
       const R = REC.proto; R.plays = (R.plays | 0) + 1;
       if (outcome === 'clear') { R.clears = (R.clears | 0) + 1; if (!R.bestTime || runTime < R.bestTime) R.bestTime = Math.round(runTime * 10) / 10; }
     }
-    function respawn() { B = act.body(check.x, check.y, 1); B.invul = 60; if (arenaOn && boss && !boss.dead) { arenaOn = false; setGates(false); boss = BZ.spawn(AR.boss, AR.bossC * map.tile + map.tile / 2, 2 * map.tile, AR); BZ.shots.length = 0; } }
+    function respawn() { B = act.body(check.x, check.y, 1); B.invul = 60; if (arenaOn && boss && !boss.dead) { arenaOn = false; setGates(false); boss = spawnBoss(); BZ.shots.length = 0; } }
+    function spawnBoss() { const e = BZ.spawn(AR.boss, AR.bossC * map.tile + map.tile / 2, 2 * map.tile, AR); e.hp = e.hpMax = Math.round(e.hpMax * (DF ? DF.boss : 1)); return e; }
     function damage(n, why) {
       hp -= n; hurts++; flash = .8; shake = .3; SE.hurt(); if (mg.buzz) try { mg.buzz(40); } catch (_) {}
       if (hp <= 0) { hp = 0; phase = 'over'; phaseT = 0; outcome = 'down'; commit(); }
@@ -147,10 +155,10 @@ registerMinigame({
       // 印の足もとを床まで下ろす
       const drop = p => { let y = p.y; while (y > 0 && !map.solid(Math.floor(p.x / T), Math.floor((y - 1) / T))) y -= T; p.y = Math.max(0, Math.ceil(y / T) * T); };
       [spawn, goal, ...checks].forEach(drop);
-      act = RunnerAct.make({ map }); C = RunnerCombat.make(act, { learned: REC.moves || [] }); E = RunnerEnemies.make(map);
+      act = RunnerAct.make({ map, phys: DF ? DF.phys : {} }); C = RunnerCombat.make(act, { learned: REC.moves || [] }); E = RunnerEnemies.make(map);
       foes = RunnerHardStage.enemies().map(([type, c, cy, face]) => E.spawn(type, c * T + T / 2, cy * T, face));
       BZ = RunnerBosses.make(map); const a = RunnerHardStage.arena(); AR = Object.assign({}, a, { x0: a.c0 * T, x1: (a.c1 + 1) * T });
-      if (!(REC.beaten || []).includes(a.boss)) boss = BZ.spawn(a.boss, a.bossC * T + T / 2, 2 * T, AR);
+      if (!(REC.beaten || []).includes(a.boss)) boss = spawnBoss();
       check = { x: spawn.x, y: spawn.y }; B = act.body(spawn.x, spawn.y, 1);
       phase = 'intro'; phaseT = 0;
     }
@@ -207,7 +215,7 @@ registerMinigame({
     // 技を覚える：記録（gs.runnerHard.beaten・moves）に入れ、柵を開ける
     function finishLearn() {
       const d = bossDef(); REC.beaten = REC.beaten || []; REC.moves = REC.moves || [];
-      if (!REC.beaten.includes(d.id)) REC.beaten.push(d.id);
+      if (!REC.beaten.includes(d.id)) { REC.beaten.push(d.id); firstBeat = d; }
       if (d.teaches && !REC.moves.includes(d.teaches)) REC.moves.push(d.teaches);
       if (d.teaches) C.learn(d.teaches);
       setGates(false); arenaOn = false; boss = null; phase = 'play'; phaseT = 0; banner = { t: 0, txt: 'コンビニへ（柵が開いた）' };
@@ -497,17 +505,22 @@ registerMinigame({
     loadAct(); loadSprite();
     mg.loop(dt => { update(Math.max(0, Math.min(.1, dt))); if (mg._ended) return; draw(); });
 
+    let firstBeat = null;                                             // この回で初めて倒したボス（結果の表示とごほうび）
     return { result(reason) {
       if (ro) ro.disconnect();
       if (outcome) reason = outcome;
       if (reason === 'clear' || reason === 'down') commit();
-      const clear = reason === 'clear';
+      const clear = reason === 'clear', down = reason === 'down';
+      const mv = firstBeat && RunnerCombat.MOVES[firstBeat.teaches];
+      // 本編への効き目：通常版（クリアで育児ストレス −8・精神 +2・疲労 +8）と同じくらい。初めてボスを倒した回は少し多め
+      const fx = clear ? { childStress: -(6 + (firstBeat ? 2 : 0)), mental: 2 + (firstBeat ? 2 : 0), fatigue: 8 } : down ? { childStress: -2, mental: -3, fatigue: 8 } : { fatigue: 4 };
       return {
-        title: clear ? '☔ コンビニまで着いた（高難易度版・試作）' : reason === 'down' ? '☔ 傘が折れた（試作）' : '☔ 引き返した（試作）',
-        summary: clear ? `${runTime.toFixed(1)} 秒　ぶつかった ${hurts} 回` : `ぶつかった ${hurts} 回`,
-        fx: clear ? { mental: 1, fatigue: 4 } : { fatigue: 4 }, time: 20, sp: 0,
-        log: clear ? '試作の買い出し（高難易度版）で、コンビニまで着いた。' : '試作の買い出し（高難易度版）を途中でやめた。',
-        cutin: null,
+        title: (clear ? '☔ コンビニまで着いた' : down ? '☔ 傘が折れた' : '☔ 引き返した') + '（高難易度版・試作）',
+        summary: (clear ? `冷却シートと、いつものプリンを買えた。<br>${runTime.toFixed(1)} 秒　ぶつかった <span class="${hurts ? 'down' : 'up'}">${hurts}</span> 回` : `ぶつかった ${hurts} 回`)
+          + (firstBeat ? `<br>${firstBeat.name} を倒した。新しい技 <span class="up">${mv ? mv.name : ''}</span>` : ''),
+        fx, time: clear || down ? 40 : 20, sp: firstBeat ? 1 : 0,
+        log: clear ? '豪雨の中、傘を振るって町を抜け、コンビニまで行った（高難易度版）。' + (firstBeat ? firstBeat.name + 'を倒した。' : '') : down ? '豪雨の中で傘が折れて、引き返した（高難易度版）。' : '買い出し（高難易度版）の途中で引き返した。',
+        cutin: clear ? ['happy', '……ずぶ濡れだけど、買えたわよ。熱、下がるといいわね。'] : down ? ['tired', '……今日はここまで。明日こそ、ね。'] : null,
       };
     } };
   },
