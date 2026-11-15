@@ -87,6 +87,11 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_select.png` });
   await p.keyboard.press('ArrowRight'); await p.keyboard.press('ArrowRight'); await p.waitForTimeout(500);   // 雷殻の怪異（C）を選ぶ
   ok(`${label}：←→ でボスを選ぶ（雷殻の怪異）`, (await S()).selIdx === 2);
+  { await until(async () => (await S()).selArt && (await S()).selRects.length === 3, 5000, 100); const v = await S(); ok(`${label}：ボス選択画面は利用者の絵（BOSS SELECT）・カード 3 枚`, v.selArt && v.selRects.length === 3);
+    const cr = await p.evaluate(() => { const r = document.querySelector('.rh-cv').getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width }; }), k = cr.w / v.VW, r = v.selRects[1];
+    await p.mouse.click(cr.l + (r.x0 + r.x1) / 2 * k, cr.t + (r.y0 + r.y1) / 2 * k); await p.waitForTimeout(200); const v2 = await S();
+    ok(`${label}：カードを押すと そのボスを選ぶ（まだ始まらない）`, v2.selIdx === 1 && v2.phase === 'select', JSON.stringify({ i: v2.selIdx, phase: v2.phase }));
+    await p.keyboard.press('ArrowRight'); await p.waitForTimeout(100); }
   await p.keyboard.press('z'); await p.waitForTimeout(300);
   s = await S(); ok(`${label}：選んで遊び始める（ボスの面＝高架下・都市送電区）・自機とボスはドット絵`, s.phase === 'play' && s.sprite && s.bossSprite && s.stage === 'koka', JSON.stringify({ phase: s.phase, sprite: s.sprite, boss: s.bossSprite, stage: s.stage }));
   const x0 = s.x; await p.keyboard.down('ArrowRight'); await p.waitForTimeout(700); await p.keyboard.up('ArrowRight');
@@ -264,7 +269,8 @@ for (const [idx, id, stage, move, label] of [[0, 'kazegiri', 'okujo', 'kazebashi
   const R = () => p.evaluate(() => window.__MG_TEST__.runnerHard && Object.assign({}, window.__MG_TEST__.runnerHard.s, { cold: window.__MG_TEST__.runnerHard.cold }));
   const wait = async (fn, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const v = await R().catch(() => null); if (v && fn(v)) return v; await p.waitForTimeout(50); } return null; };
   await wait(v => v.phase === 'intro', 15000); await p.waitForTimeout(600); await p.keyboard.press('z'); await p.waitForTimeout(500);
-  const sel = await R(); ok('隠しボス：一度会うと選択画面に風邪菌（仮）が出る', sel.phase === 'select' && sel.cold.sel.includes('cold'), JSON.stringify(sel.cold.sel));
+  const sel = await wait(v => v.phase === 'select' && v.selArt && v.selRects.length === 4, 5000);
+  ok('隠しボス：一度会うと選択画面に風邪菌が出る（カード 4 枚・利用者の絵）', !!sel && sel.cold.sel.includes('cold'), JSON.stringify(sel && sel.cold.sel));
   await p.keyboard.press('ArrowLeft'); await p.waitForTimeout(100);   // いちばん右（隠しボス）
   await p.screenshot({ path: (SHOTS || '/tmp') + '/rh_select_cold.png' });
   await p.keyboard.press('z');

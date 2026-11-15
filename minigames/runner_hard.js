@@ -210,16 +210,19 @@ registerMinigame({
         o.l = o.l || b(14) || ax < -.4; o.r = o.r || b(15) || ax > .4; o.dn = o.dn || b(13) || ay > .6; o.up = o.up || b(12) || ay < -.6;
         o.j = o.j || b(0); o.atk = o.atk || b(2) || b(3); o.d = o.d || b(1) || b(5) || b(7);   // A ジャンプ・X（Y）攻撃・B（RB・RT）ダッシュ
         if (b(0) && !padPrevA) advance(); padPrevA = b(0);
+        const lr = (b(15) || ax > .5) - (b(14) || ax < -.5); if (phase === 'select' && lr && !padPrevLR) selIdx = (selIdx + lr + selList().length) % selList().length; padPrevLR = lr;   // 選択画面：十字・スティックで選ぶ
       }
       return o;
     }
-    let padPrevA = false;
+    let padPrevA = false, padPrevLR = 0, selRects = [];   // selRects：選択画面のカードの場所（画面の座標。タップで選ぶ）
     // 画面のボタン（スマホ）：左下に ← →、右下に ジャンプ・ダッシュ・スライド。複数の指に対応
     const touches = new Map(); let showTouch = (typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches);
     const btns = () => { const r = 34, y = VH - 58; return [{ k: 'l', x: 52, y, r, lab: '◀' }, { k: 'r', x: 132, y, r, lab: '▶' }, { k: 'up', x: 92, y: y - 126, r: 24, lab: '▲' }, { k: 'dn', x: 92, y: y - 66, r: 26, lab: '▼' }, { k: 'd', x: VW - 212, y: y + 4, r: 30, lab: 'ダッシュ' }, { k: 'atk', x: VW - 136, y: y - 4, r: 34, lab: '攻撃' }, { k: 'j', x: VW - 58, y: y - 30, r: 38, lab: 'ジャンプ' }]; };
     function touchKeys() { const o = { l: false, r: false, j: false, d: false, dn: false, atk: false, up: false }; for (const p of touches.values()) for (const b of btns()) if (Math.hypot(p.x - b.x, p.y - b.y) < b.r + 14) o[b.k] = true; return o; }
     const toV = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / sc, y: (e.clientY - r.top) / sc }; };
-    cv.addEventListener('pointerdown', e => { e.preventDefault(); if (e.pointerType === 'touch') showTouch = true; if (advance()) return; try { cv.setPointerCapture(e.pointerId); } catch (_) {} touches.set(e.pointerId, toV(e)); });
+    cv.addEventListener('pointerdown', e => { e.preventDefault(); if (e.pointerType === 'touch') showTouch = true;
+      if (phase === 'select') { const v = toV(e), i = selRects.findIndex(r => v.x >= r.x0 && v.x <= r.x1 && v.y >= r.y0 && v.y <= r.y1); if (i >= 0 && i !== selIdx) { selIdx = i; return; } }   // 別のカードを押すと選ぶ・選んでいるカード（か、カードの外）を押すと行く
+      if (advance()) return; try { cv.setPointerCapture(e.pointerId); } catch (_) {} touches.set(e.pointerId, toV(e)); });
     cv.addEventListener('pointermove', e => { if (touches.has(e.pointerId)) touches.set(e.pointerId, toV(e)); });
     const up = e => touches.delete(e.pointerId); cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up); cv.addEventListener('contextmenu', e => e.preventDefault());
     function readInput() { const p = padInput(), tch = showTouch ? touchKeys() : {}; const o = {}; for (const k of ['l', 'r', 'j', 'd', 'dn', 'atk', 'up']) o[k] = !!(K[k] || p[k] || tch[k]); return o; }
@@ -317,10 +320,11 @@ registerMinigame({
     }
     const checks = [];
     // だんのうらのドット絵（assets/runner/dannoura.webp・.json。利用者の絵）。読めるまで・読めない時は、今までのコードで描く人物
-    let SPR = null;
+    let SPR = null, SEL = null;   // SEL：ボス選択画面の絵（assets/runner/select.json）
     function loadSprite() {
+      fetch('assets/runner/select.json').then(r => r.json()).then(meta => { const bg = new Image(), img = new Image(); let n = 0; const ok = () => { if (++n === 2) SEL = { bg, img, F: meta.frames, W: meta.W, H: meta.H }; }; bg.onload = ok; img.onload = ok; bg.src = 'assets/runner/' + meta.bg; img.src = 'assets/runner/' + meta.image; }).catch(() => {});   // ボス選択画面の絵（利用者の絵）
       for (const id of ['kazegiri', 'dakuryu', 'raikaku', 'kazekin'])   // ボスと隠しボスのドット絵（利用者の絵）
-        fetch('assets/runner/' + id + '.json').then(r => r.json()).then(meta => { const img = new Image(); img.onload = () => { BSPR[id] = { img, F: meta.frames }; }; img.src = 'assets/runner/' + meta.image; }).catch(() => {});
+      fetch('assets/runner/' + id + '.json').then(r => r.json()).then(meta => { const img = new Image(); img.onload = () => { BSPR[id] = { img, F: meta.frames }; }; img.src = 'assets/runner/' + meta.image; }).catch(() => {});
       fetch('assets/runner/dannoura.json').then(r => r.json()).then(meta => {
         const img = new Image(); img.onload = () => { SPR = { img, F: meta.frames }; }; img.src = 'assets/runner/' + meta.image;
       }).catch(() => {});
@@ -795,10 +799,50 @@ registerMinigame({
       cx.fillStyle = 'rgba(0,0,0,.55)'; cx.fillRect(x - 4, y - 16, w + 8, 30); cx.fillStyle = '#deccf8'; cx.font = '11px sans-serif'; cx.textAlign = 'left'; cx.fillText(bossDef().name, x, y - 4);
       cx.fillStyle = 'rgba(255,255,255,.15)'; cx.fillRect(x, y, w, 7); cx.fillStyle = '#ff6a8a'; cx.fillRect(x, y, w * boss.hp / boss.hpMax, 7);
     }
+    // ボス選択画面（利用者の絵「BOSS SELECT」）：背景・カードの中身・CLEAR／SECRET の札は絵。枠・選んでいる光・▼・下の帯の名前と面はコードで描く
+    const ELEM = { kazegiri: ['風', '#ff7ae0'], dakuryu: ['水', '#7ac8ff'], raikaku: ['雷', '#ffd84a'], cold: ['菌', '#e070ff'] };
     function drawSelect() {
+      if (SEL) { drawSelectArt(); return; }
+      drawSelectPlain();
+    }
+    function drawSelectArt() {
+      const L = selList(), n = L.length, IW = SEL.W, IH = SEL.H, k = Math.min(VW / IW, (VH - 20) / IH), ox = (VW - IW * k) / 2, oy = Math.max(10, (VH - IH * k) / 2);
+      cx.fillStyle = '#07051a'; cx.fillRect(0, 0, VW, VH);
+      cx.save(); cx.translate(ox, oy); cx.scale(k, k); cx.drawImage(SEL.bg, 0, 0);
+      const rr = (x, y, w, h, r) => { cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); };
+      const cw = 374, ch = 612, top = 138, gap = n > 3 ? 18 : 60, x0 = IW / 2 - (n * cw + (n - 1) * gap) / 2; selRects = [];
+      L.forEach((d, i) => {
+        const x = x0 + i * (cw + gap), on = i === selIdx, beat = (REC.beaten || []).includes(d.id), a = SEL.F[d.id === 'cold' ? 'kazekin' : d.id];
+        selRects.push({ x0: ox + x * k, x1: ox + (x + cw) * k, y0: oy + top * k, y1: oy + (top + ch) * k });
+        cx.fillStyle = '#160e30'; rr(x, top, cw, ch, 16); cx.fill();
+        if (a) cx.drawImage(SEL.img, a[0], a[1], a[2], a[3], x + 14, top + 66, cw - 28, 530);
+        if (!on) { cx.fillStyle = 'rgba(10,6,28,.38)'; cx.fillRect(x + 14, top + 66, cw - 28, 530); }
+        if (on) { cx.shadowColor = '#ff40e0'; cx.shadowBlur = 34 + Math.sin(t * 5) * 8; }
+        cx.lineWidth = on ? 8 : 5; cx.strokeStyle = on ? '#ff7af2' : '#5e4c9a'; rr(x, top, cw, ch, 16); cx.stroke(); cx.shadowBlur = 0;
+        if (on) {   // 角の かぎ と ▼
+          cx.strokeStyle = '#ffffff'; cx.lineWidth = 5; const m = 18, L2 = 34;
+          for (const [px, py, sx2, sy2] of [[x + m, top + m, 1, 1], [x + cw - m, top + m, -1, 1], [x + m, top + ch - m, 1, -1], [x + cw - m, top + ch - m, -1, -1]]) { cx.beginPath(); cx.moveTo(px + sx2 * L2, py); cx.lineTo(px, py); cx.lineTo(px, py + sy2 * L2); cx.stroke(); }
+          const by = top - 46 + Math.sin(t * 6) * 6; cx.fillStyle = '#ffffff'; cx.strokeStyle = '#ff7af2'; cx.lineWidth = 6; cx.beginPath(); cx.moveTo(x + cw / 2 - 34, by); cx.lineTo(x + cw / 2 + 34, by); cx.lineTo(x + cw / 2, by + 34); cx.closePath(); cx.stroke(); cx.fill();
+        }
+        const badge = d.id === 'cold' ? SEL.F.secret : beat ? SEL.F.clear : null;
+        if (badge) { const bw = Math.min(cw - 30, badge[2]), bh = badge[3] * bw / badge[2]; cx.drawImage(SEL.img, badge[0], badge[1], badge[2], badge[3], x + (cw - bw) / 2, top + 10, bw, bh); }
+        else { cx.fillStyle = 'rgba(222,204,248,.55)'; cx.font = 'bold 26px sans-serif'; cx.textAlign = 'center'; cx.fillText(d.order ? 'BOSS ' + d.order : '', x + cw / 2, top + 46); }
+      });
+      // 下の帯：選んでいるボスの名前と面
+      const d = L[selIdx] || L[0], el = ELEM[d.id] || ['？', '#ffffff'], st = d.id === 'cold' ? '家（看病のあと）' : stageOf(d).name;
+      cx.fillStyle = el[1]; cx.beginPath(); cx.arc(318, 840, 26, 0, TAU); cx.fill(); cx.fillStyle = '#1a0e34'; cx.font = 'bold 32px sans-serif'; cx.textAlign = 'center'; cx.fillText(el[0], 318, 852);
+      cx.textAlign = 'left'; cx.fillStyle = '#ffffff'; let z = 58; do { cx.font = 'bold ' + z + 'px sans-serif'; } while (cx.measureText(d.name).width > 290 && --z > 20); cx.fillText(d.name, 360, 840 + z * .36);
+      cx.fillStyle = '#ffe070'; z = 36; do { cx.font = 'bold ' + z + 'px sans-serif'; } while (cx.measureText(st).width > 330 && --z > 14); cx.fillText(st, 758, 840 + z * .36);
+      if (showTouch) { cx.fillStyle = 'rgba(7,5,26,.85)'; cx.fillRect(1140, 806, 500, 70); cx.fillStyle = '#ffffff'; cx.font = 'bold 25px sans-serif'; cx.textAlign = 'center'; cx.fillText('カードをタップで選ぶ／もう一度で 行く', 1385, 850); }
+      const mv = d.teaches && RunnerCombat.MOVES[d.teaches], beat = (REC.beaten || []).includes(d.id);
+      cx.fillStyle = 'rgba(7,5,26,.7)'; cx.fillRect(IW / 2 - 330, 757, 660, 34); cx.fillStyle = 'rgba(232,220,255,.95)'; cx.font = 'bold 24px sans-serif'; cx.textAlign = 'center'; cx.fillText(d.id === 'cold' ? (coldRec().wins ? `追い払った ${coldRec().wins} 回` : 'まだ追い払えていない') : beat ? '倒した ── 覚えた技：' + (mv ? mv.name : '') : '倒すと 技を覚える（技は まだ仮です）', IW / 2, 782);
+      cx.restore();
+    }
+    function drawSelectPlain() {
       cx.fillStyle = 'rgba(5,4,14,.86)'; cx.fillRect(0, 0, VW, VH); cx.textAlign = 'center';
       cx.fillStyle = '#00e8c8'; cx.font = 'bold 20px sans-serif'; cx.fillText('どこへ行く？（試作）', VW / 2, 90);
       const L = selList(), gap = L.length > 3 ? 8 : 18, cw = Math.min(170, (VW - 24 - gap * (L.length - 1)) / L.length), x0 = VW / 2 - (L.length * cw + (L.length - 1) * gap) / 2;
+      selRects = L.map((d, i) => ({ x0: x0 + i * (cw + gap), x1: x0 + i * (cw + gap) + cw, y0: 140, y1: 350 }));
       const thumb = (id, x, y, dim) => { const SP = BSPR[id]; if (!SP) return false; const r = SP.F['0_0'], k = Math.min(1.1, (cw - 14) / r[2], 96 / r[3]); cx.save(); cx.translate(x + cw / 2, y + 128); cx.scale(-k, k); if (dim) cx.globalAlpha = .55; cx.drawImage(SP.img, r[0], r[1], r[2], r[3], -r[4], -r[5], r[2], r[3]); cx.restore(); cx.globalAlpha = 1; return true; };
       const fit = (txt, w, px, bold) => { let z = px; do { cx.font = (bold ? 'bold ' : '') + z + 'px sans-serif'; } while (cx.measureText(txt).width > w && --z > 7); };
       L.forEach((d, i) => {
@@ -867,7 +911,7 @@ registerMinigame({
 
     // 試験の時だけの入口（window.__MG_TEST__ がある時だけ）
     if (typeof window !== 'undefined' && window.__MG_TEST__) window.__MG_TEST__.runnerHard = {
-      get s() { return { stage: STAGE.id, bossSprite: !!(boss ? BSPR[boss.id] : BSPR.raikaku), sprites: Object.keys(BSPR), sel: typeof RunnerBosses !== 'undefined' ? selList().map(d => d.id) : [], selIdx, gmW: GM ? { winds: GM.winds.map(q => GM.live(q)), floods: GM.floods.map(q => Math.round(GM.level(q))) } : null, gm: GM ? { strips: GM.strips.map(q => GM.live(q)), crumbles: GM.crumbles.map(c => c.st), charged: GM.charged } : null, boss: boss ? { hp: boss.hp, state: boss.state, dead: boss.dead, x: boss.x, face: boss.face, frame: BZ.frame(boss), w: BZ.spec(boss).w, grounded: boss.grounded } : null, arenaOn, arena: AR, moves: C ? [...C.learned] : [], beaten: REC.beaten || [], sprite: !!SPR, spriteKey: SPR && B ? spriteKey() : null, phase, hp, falls, hurts, runTime, outcome, kills, foes: foes.map(e => ({ type: e.type, x: e.x, y: e.y, hp: e.hp, dead: e.dead, face: e.face })), invul: B && B.invul, atk: B && B.atk && B.atk.id, x: B && B.x, y: B && B.y, state: B && B.state, goal, spawn, checks: checks.map(c => !!c.got) }; },
+      get s() { return { selArt: !!SEL, selRects, VW, stage: STAGE.id, bossSprite: !!(boss ? BSPR[boss.id] : BSPR.raikaku), sprites: Object.keys(BSPR), sel: typeof RunnerBosses !== 'undefined' ? selList().map(d => d.id) : [], selIdx, gmW: GM ? { winds: GM.winds.map(q => GM.live(q)), floods: GM.floods.map(q => Math.round(GM.level(q))) } : null, gm: GM ? { strips: GM.strips.map(q => GM.live(q)), crumbles: GM.crumbles.map(c => c.st), charged: GM.charged } : null, boss: boss ? { hp: boss.hp, state: boss.state, dead: boss.dead, x: boss.x, face: boss.face, frame: BZ.frame(boss), w: BZ.spec(boss).w, grounded: boss.grounded } : null, arenaOn, arena: AR, moves: C ? [...C.learned] : [], beaten: REC.beaten || [], sprite: !!SPR, spriteKey: SPR && B ? spriteKey() : null, phase, hp, falls, hurts, runTime, outcome, kills, foes: foes.map(e => ({ type: e.type, x: e.x, y: e.y, hp: e.hp, dead: e.dead, face: e.face })), invul: B && B.invul, atk: B && B.atk && B.atk.id, x: B && B.x, y: B && B.y, state: B && B.state, goal, spawn, checks: checks.map(c => !!c.got) }; },
       get cold() { return { on: !!CZ, hp: cboss ? cboss.hp : null, state: cboss ? cboss.state : null, dead: cboss ? cboss.dead : null, x: cboss ? cboss.x : null, y: cboss ? cboss.y : null, infect, res: coldRes, rec: REC.cold || null, story: story ? { i: story.i, n: story.lines.length, txt: (story.lines[story.i] || {}).txt } : null, sel: selList().map(d => d.id) }; },
       heal() { hp = HP_MAX; }, coldHp(n) { if (cboss) cboss.hp = n; }, infect(n) { infect = n; }, beatAll() { REC.beaten = RunnerBosses.visible().map(b => b.id); },
       bossHp(n) { if (boss) boss.hp = n; }, bossGo(st) { if (boss) { boss.state = st; boss.f = 0; boss.blocks = 0; } },
