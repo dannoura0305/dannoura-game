@@ -13,7 +13,8 @@
   // 元の値（px/こま・こま数）。むずかしさの調整はこの表を書き換える（make(opts.phys) で上書きできる）
   const BASE = {
     walkStart: 1.0, walkStartF: 5, walk: 1.46875, rewalkF: 10,
-    dash: 3.457031, dashF: 33, dashEndF: 8, airDashF: 0,          // airDashF 0＝空中ダッシュなし（1 作目の形。入れるかは未決定）
+    dash: 3.457031, dashF: 33, dashEndF: 8, airDashF: 0,          // airDashF 0＝空中ダッシュなし（1 作目の形）
+    airDashLearnF: 18,                                             // 習得技（仮）「風走り」：空中ダッシュ（風斬の怪異を倒すと。opts.airDash が真の時だけ。空中で 1 回）
     jump: 5.324219, gravity: 0.25, fallCap: 5.5,                  // 上限：-5.5 で止めてから重さを引くので、動くのは 5.75
     wallStickF: 8, wallSlide: 2.0, kickWindF: 5, kickPushF: 8,
     hurtX: 0.539062, hurtY: 2.0, invulF: 60, landF: 4,
@@ -91,8 +92,10 @@
     S.slide = { enter: (b, inp) => { const d = dirOf(inp); if (d) b.face = d; b.vx = V(P.slide) * b.face; },
       tick(b, inp) { if (b.jumpP && !solidBox(b.x - BODY.hw, b.x + BODY.hw, b.y + BODY.slideH, b.y + BODY.h)) { b.dashJump = false; return go(b, 'jump', inp); } b.vx = V(P.slide) * b.face;
         if (b.f >= P.slideF && !solidBox(b.x - BODY.hw, b.x + BODY.hw, b.y + BODY.slideH, b.y + BODY.h)) go(b, 'stand', inp); } };   // 低い所では立てるまで滑り続ける
+    const canAirDash = () => (P.airDashF > 0) || (typeof opts.airDash === 'function' ? !!opts.airDash() : !!opts.airDash);
     const airCtl = (b, inp) => {                                   // 空中で共通：横は押している間だけ（慣性なし）・壁
       const d = dirOf(inp); if (d) b.face = d;
+      if (inp.dP && !b.airDashed && canAirDash() && (b.state === 'jump' || b.state === 'fall')) { go(b, 'air_dash', inp); return true; }
       b.vx = d ? V(b.dashJump ? P.dash : P.walk) * d : 0;
       if (d && wallAt(b, d)) { if (b.jumpP) { b.kickDir = -d; return go(b, 'wall_kick', inp), true; } if (b.vy <= 0) { b.wallDir = d; return go(b, 'wall_slide', inp), true; } }
       if (b.jumpP && b.coyote > 0 && !b.usedCoyote) { b.usedCoyote = true; go(b, 'jump', inp); return true; }
@@ -103,7 +106,9 @@
     S.fall = { air: true, tick(b, inp) { airCtl(b, inp); } };
     S.land = { enter: b => { b.vx = 0; },
       tick(b, inp) { if (groundCtl(b, inp)) return; const d = dirOf(inp); if (d) { b.face = d; return go(b, b.sinceWalk <= P.rewalkF ? 'walk' : 'walk_start', inp); } if (b.f >= P.landF) go(b, 'stand', inp); } };
-    S.wall_slide = { air: true, nograv: true, enter: b => { b.vx = 0; b.vy = 0; b.dashJump = false; },
+    S.air_dash = { air: true, nograv: true, enter: (b, inp) => { const d = dirOf(inp); if (d) b.face = d; b.vy = 0; b.vx = V(P.dash) * b.face; b.airDashed = true; },   // 空中ダッシュ：横へまっすぐ（落ちない）。終わるとダッシュの速さのまま落ちる
+      tick(b, inp) { b.vy = 0; b.vx = V(P.dash) * b.face; if (b.f >= (P.airDashF || P.airDashLearnF) || b.hitWall || !inp.d) { b.dashJump = true; go(b, 'fall', inp); } } };
+    S.wall_slide = { air: true, nograv: true, enter: b => { b.vx = 0; b.vy = 0; b.dashJump = false; b.airDashed = false; },
       tick(b, inp) {
         if (b.jumpP) { b.kickDir = -b.wallDir; return go(b, 'wall_kick', inp); }
         const d = dirOf(inp); if (d !== b.wallDir || !wallAt(b, b.wallDir)) { b.face = d || b.face; b.vx = d ? V(P.walk) * d : 0; return go(b, 'fall', inp); }
@@ -137,7 +142,7 @@
       b.hitWall = moveX(b, b.vx);
       const hitY = air ? moveY(b, b.vy) : 0;
       if (hitY > 0) b.vy = 0;                                      // 天井
-      if (air && hitY < 0) { b.vy = 0; b.dashJump = false; b.usedCoyote = false; go(b, b.state === 'hurt' ? 'stand' : 'land', inp); }
+      if (air && hitY < 0) { b.vy = 0; b.dashJump = false; b.airDashed = false; b.usedCoyote = false; go(b, b.state === 'hurt' ? 'stand' : 'land', inp); }
       else if (!air) {
         if (!onGround(b)) { b.coyote = P.coyoteF; b.usedCoyote = false; b.vy = 0; b.dashJump = b.state === 'dash'; go(b, 'fall', inp); }
         else b.y = Math.round(b.y * 1000) / 1000;

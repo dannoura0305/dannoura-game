@@ -1,4 +1,4 @@
-// 買い出しダッシュ　高難易度版：隠しボス「風邪菌（仮）」（minigames/runner/cold.js）
+// 買い出しダッシュ　高難易度版：隠しボス「風邪菌」（minigames/runner/cold.js）
 // ・予兆の後に攻撃（くしゃみ弾・分裂・体当たり）が出る・部屋の外に出ない・小さな菌は 4 匹まで・跳ねて寄ってくる
 // ・攻撃で減って倒れる（弾が消え、小さな菌も倒れる）・体力が半分を切ると予兆が短くなる
 import vm from 'node:vm';
@@ -37,12 +37,27 @@ t('小さな菌：床を跳ねて自機の方へ寄る・攻撃で倒れて消�
 });
 
 t('攻撃で減り、0 で倒れる（弾が消え・小さな菌も倒れる）・体力が半分を切ると予兆が短くなる', () => {
-  const tele = hp => { const Z = RC.make(room), e = Z.spawn(600); e.hp = hp; let f = 0, on = false; for (let i = 0; i < 600; i++) { Z.step(e, { x: 200, y: 80 }); if (Z.telegraph(e)) { on = true; f++; } else if (on) break; } return f; };
+  const tele = hp => { const Z = RC.make(room), e = Z.spawn(600); e.hp = hp; if (hp <= e.hpMax / 2) e.form = 2;   // 変身は済ませておく
+ let f = 0, on = false; for (let i = 0; i < 600; i++) { Z.step(e, { x: 200, y: 80 }); if (Z.telegraph(e)) { on = true; f++; } else if (on) break; } return f; };
   assert.ok(tele(10) < tele(30));
   const Z = RC.make(room), e = Z.spawn(600), p = { x: 200, y: 80 };
   for (let i = 0; i < 600; i++) { Z.step(e, p); Z.stepOthers(p); }
   while (!e.dead) Z.hurt(e, 1);
   assert.equal(Z.shots.length, 0); assert.ok(Z.minis.every(m => m.dead));
+});
+
+const SPR = JSON.parse(readFileSync(join(ROOT, 'assets/runner/kazekin.json'), 'utf8')).frames;
+t('霧（エアロ）：予兆の後に漂う霧が出て、しばらくで消える・ダメージで分裂する（6 ごとに 1 匹）', () => {
+  const Z = RC.make(room), e = Z.spawn(600), p = { x: 200, y: 80 }; let mist = false, gone = false;
+  for (let i = 0; i < 3000; i++) { Z.step(e, p); Z.stepOthers(p); if (Z.mists.length) { mist = true; assert.ok(Z.mistBox(Z.mists[0]).x1 > Z.mistBox(Z.mists[0]).x0 || Z.mists[0].f === 0); } else if (mist) gone = true; }
+  assert.ok(mist && gone);
+  const Z2 = RC.make(room), e2 = Z2.spawn(600); const n0 = Z2.minis.length; for (let i = 0; i < RC.COLD.form2.splitEvery; i++) Z2.hurt(e2, 1); assert.equal(Z2.minis.length, n0 + 1, '受けると分裂');
+});
+t('第 2 形態：体力が半分を切ると変身して大きくなる・広範囲の感染攻撃（全方向の菌弾）を使う・ドット絵のコマがある', () => {
+  const Z = RC.make(room), e = Z.spawn(600), p = { x: 200, y: 80 }; const r0 = Z.radius(e); e.hp = 14; let ev = false, burst = 0; const keys = new Set();
+  for (let i = 0; i < 4000; i++) { const nb = Z.shots.length; Z.step(e, p); Z.stepOthers(p); ev = ev || e.ev.includes('form2'); keys.add(Z.frame(e)); if (e.state === 'recover' && e.last === 'burst' && e.f === 0) burst = Math.max(burst, Z.shots.length - nb); for (const m of Z.minis) keys.add(Z.miniFrame(m)); for (const s of Z.shots) keys.add(Z.shotFrame(s)); }
+  assert.ok(ev && e.form === 2 && Z.radius(e) > r0, '変身して大きくなる'); assert.ok(burst >= RC.COLD.form2.burstN * 2, `全方向 ${burst}`);
+  for (const k of keys) assert.ok(SPR[k], 'コマが無い ' + k);
 });
 
 console.log(`runner-hard-cold: ${n} ok`);
