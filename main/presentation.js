@@ -1314,7 +1314,7 @@ function creditsHTML(){
     <div class="h">ENDING</div><div class="tl" style="color:${esc(info.color||'#fff')}">${esc(info.title)}</div>
     <div class="h">RECORD</div>${st}
     <div class="h">CAST</div><div class="n">だんのうら</div><div class="s">設備保全技術者・深夜配信者・ひとりの親</div><div class="n">娘</div><div class="s">いちばん小さな、いちばん大事なリスナー</div>
-    <div class="h">STAFF</div><div class="s">企画・脚本・制作</div><div class="n">だんのうら制作班</div><div class="s">音楽・効果音</div><div class="n">深夜の雨音とノイズ</div><div class="s">ミニゲームの音楽（CC0・OpenGameArt.org）</div><div class="n">Zane Little Music</div><div class="n">tebruno99</div><div class="n">DST</div><div class="n">MintoDog</div><div class="n">Pro Sensory</div><div class="n">artisticdude</div><div class="n">cynicmusic</div><div class="s">舞台</div><div class="n">壇ノ浦 ― 関門の海</div>
+    <div class="h">STAFF</div><div class="s">企画・脚本・制作</div><div class="n">だんのうら制作班</div><div class="s">音楽・効果音</div><div class="n">深夜の雨音とノイズ</div><div class="s">ミニゲームの音楽（CC0・OpenGameArt.org）</div><div class="n">Zane Little Music</div><div class="n">tebruno99</div><div class="n">DST</div><div class="n">MintoDog</div><div class="n">Pro Sensory</div><div class="n">artisticdude</div><div class="n">cynicmusic</div><div class="n">SubspaceAudio</div><div class="s">舞台</div><div class="n">壇ノ浦 ― 関門の海</div>
     <div class="h">SPECIAL THANKS</div><div class="s">深夜のリスナーのみなさん</div>${names.map(n=>`<div class="n">${esc(n)}</div>`).join('')}
     <div class="s" style="margin-top:14px">そして ―― 画面の向こうの、あなたへ。</div>
     <div style="height:30vh"></div>`;

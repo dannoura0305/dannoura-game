@@ -3808,8 +3808,8 @@ registerMinigame({
       const mv=[moveTo(D,C.x-16,C.y+34,360),moveTo(M,C.x+16,C.y+40,360)];
       B.en.forEach((e,i)=>mv.push(moveTo(e,C.x+form[i][0],C.y+form[i][1],380)));
       B.pa.forEach(p=>{p.a.dir='u';if(p.ko)p.a.pose='down';});
-      // ふつうの戦闘は CC0 の戦闘曲（後読み）。ボスは今まで通り kaidan・最後は mental
-      bgm(boss?(opt.final?'mental':'kaidan'):'mg_rpg_battle');
+      // ふつうの戦闘・ボス戦は CC0 の曲（後読み）。最後の戦いは今まで通り mental（ボスの登場の場面の kaidan は物語の側でそのまま）
+      bgm(boss?(opt.final?'mental':'mg_rpg_boss'):'mg_rpg_battle');
       await Promise.all(mv);
       D.dir='u';M.dir='u';
       buildBattleUI();
