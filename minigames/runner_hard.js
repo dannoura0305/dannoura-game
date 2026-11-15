@@ -1,0 +1,331 @@
+// ══════════════════════════════════════════════════════════
+// 買い出しダッシュ　高難易度版（試作・段 3：試しの 1 面）
+// 横スクロールの 2D アクション。自機の動きは minigames/runner/act.js（RunnerAct・1/60 の固定の歩み）。
+// ・まだ試作：開発用の印（URL に ?runnerhard=1）がある時だけ選択画面に出る（minigames/core.js の末尾）。通常版（runner.js）には触らない
+// ・この段では攻撃・敵・ボスは無い（段 4 から）。傘を差して走る・跳ぶ・ダッシュ・壁ずり・壁蹴り・スライドで、コンビニまで行く
+// ・主人公の絵は通常版（runner.js の drawFigure・drawUmbrella）を写した物。共通のファイルに寄せるのは後の段
+// 設計：docs/minigames/runner-hard-design.md
+// ══════════════════════════════════════════════════════════
+addMinigameStyle('runner_hard', `
+.mg-runner_hard{background:#05040e;}
+.mg-runner_hard .rh-cv{position:absolute;left:0;top:0;display:block;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;outline:none;}
+`);
+
+// 試しの 1 面（区間の並び）。寸法：地面の上は y=80（2 マス）
+var RunnerHardStage = RunnerHardStage || {
+  W: 124, H: 14,
+  rows() {
+    const W = this.W, H = this.H, g = Array.from({ length: H }, () => Array(W).fill('.'));
+    const put = (c, cy, ch) => { if (c >= 0 && c < W && cy >= 0 && cy < H) g[H - 1 - cy][c] = ch; };
+    const fill = (c0, c1, y0, y1, ch = '#') => { for (let c = c0; c <= c1; c++) for (let y = y0; y <= y1; y++) put(c, y, ch); };
+    fill(0, W - 1, 0, 1);                       // 地面（上が y=80）
+    fill(0, 0, 2, H - 1); fill(W - 1, W - 1, 2, H - 1);   // 両端の壁
+    put(2, 2, 'S');
+    fill(14, 15, 2, 2);                         // 箱（1 マス）：ふつうのジャンプ
+    fill(22, 24, 0, 1, '.'); fill(22, 24, 0, 0, '^');      // 穴（3 マス・とげ）：歩きながらのジャンプで越える
+    fill(30, 32, 5, 5, '='); fill(36, 38, 7, 7, '=');      // ひさし（上からだけ乗れる）：寄り道
+    put(42, 2, 'C');                            // 途中の印
+    fill(48, 62, 2, 6);                         // 高い塀（5 マス＝200px）：ジャンプでは届かない → 壁蹴りで登る
+    fill(70, 75, 0, 1, '.'); fill(70, 75, 0, 0, '^');      // 広い穴（6 マス＝240px）：歩きのジャンプ（約 154px）では届かない → ダッシュジャンプ（約 363px）
+    put(66, 2, 'C');
+    fill(84, 94, 3, H - 2);                     // 低い天井（すき間 40px）：スライドでくぐる
+    put(100, 2, 'C');
+    put(114, 2, 'G');                           // コンビニの戸
+    return g.map(r => r.join(''));
+  },
+};
+
+registerMinigame({
+  id: 'runner_hard', icon: '☔', name: '買い出しダッシュ（高難易度版・試作）', genre: 'アクション', bgm: 'mg_runner',
+  desc: '試作：横スクロールのアクション。走る・跳ぶ・ダッシュ・壁蹴りで、雨の町をコンビニまで。',
+  effect: '試作（本編の数値はほとんど変わらない） ／ 疲労+4 約20分',
+  help: '←→:移動 Z:ジャンプ C:ダッシュ ↓:スライド',
+  start(body, mg) {
+    const TAU = Math.PI * 2, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), rnd = (a, b) => a + Math.random() * (b - a);
+    // ── 記録（gs.runnerHard。通常版の gs.runnerData には触らない） ──
+    if (!gs.runnerHard || typeof gs.runnerHard !== 'object') gs.runnerHard = { v: 1, beaten: [], moves: [], proto: { plays: 0, clears: 0, bestTime: 0 } };
+    const REC = gs.runnerHard; if (!REC.proto) REC.proto = { plays: 0, clears: 0, bestTime: 0 };
+
+    const cv = document.createElement('canvas'); cv.className = 'rh-cv'; cv.tabIndex = 0; body.appendChild(cv);
+    const cx = cv.getContext('2d');
+    let W = 0, H = 0, dpr = 1, sc = 1, VW = 0, VH = 560;
+    function resize() {
+      const r = body.getBoundingClientRect();
+      W = Math.max(240, Math.floor(r.width)); H = Math.max(240, Math.floor(r.height));
+      dpr = Math.min(3, window.devicePixelRatio || 1);
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px';
+      sc = Math.min(H / 560, W / 520); VW = W / sc; VH = H / sc;   // 縦の 560（14 マス）は必ず入れ、横も最低 520 は見せる（縦長のスマホでは上に空が広がる）
+    }
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => { if (!mg._ended) resize(); }) : null;
+
+    // ── 面（試しの 1 面）：区間ごとに組み立てる（1 マス 40px・縦 14 マス＝560）。上の行が高い所
+    //  # 床・壁　= 上からだけ乗れる床（店のひさし）　^ とげ（割れた植木鉢の破片）　S 始まり　C 途中の印　G コンビニの戸
+    //  通れることは tests/runner-hard-stage.test.mjs で自機を動かして確かめる
+    const ROWS = RunnerHardStage.rows();
+    let act = null, map = null, B = null, tick = null;
+    let spawn = { x: 0, y: 0 }, check = { x: 0, y: 0 }, goal = { x: 0, y: 0 };
+
+    // ── 状態 ──
+    let phase = 'load', phaseT = 0, t = 0, hp = 5, falls = 0, hurts = 0, runTime = 0, outcome = null, committed = false, camX = 0, camY = 0, shake = 0, flash = 0, banner = null;
+    const HP_MAX = 5;
+    const P = []; for (let i = 0; i < 160; i++) P.push({ a: false, x: 0, y: 0, vx: 0, vy: 0, l: 0, m: 1, c: '#fff', s: 2, g: 0 });
+    function emit(x, y, vx, vy, l, c, s, g) { for (const p of P) if (!p.a) { Object.assign(p, { a: true, x, y, vx, vy, l, m: l, c, s, g }); return; } }
+    const RN = 180, rx = new Float32Array(RN), ry = new Float32Array(RN), rl = new Float32Array(RN), rv = new Float32Array(RN);
+    function initRain() { for (let i = 0; i < RN; i++) { rx[i] = Math.random() * (VW + 120); ry[i] = Math.random() * VH; rl[i] = 9 + Math.random() * 12; rv[i] = 620 + Math.random() * 320; } }
+
+    // ── 効果音（通常版と同じく合成。AUDIO_SET.se に従う） ──
+    function actx() { if (typeof AU === 'undefined' || typeof AUDIO_SET === 'undefined' || !(AUDIO_SET.se > 0)) return null; try { AU.init(); } catch (e) {} const c = AU.ctx; if (c && c.state === 'suspended') c.resume().catch(() => {}); return c; }
+    function blip(type, f0, f1, dur, g) { const c = actx(); if (!c) return; const t0 = c.currentTime, o = c.createOscillator(), v = c.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t0); if (f1) o.frequency.exponentialRampToValueAtTime(f1, t0 + dur); v.gain.setValueAtTime(.0001, t0); v.gain.linearRampToValueAtTime(g * AUDIO_SET.se, t0 + .008); v.gain.exponentialRampToValueAtTime(.0001, t0 + dur); o.connect(v); v.connect(AU.out || c.destination); o.start(t0); o.stop(t0 + dur + .02); }
+    const SE = { jump: () => blip('triangle', 420, 760, .12, .12), dash: () => blip('sawtooth', 160, 90, .14, .05), kick: () => blip('square', 300, 620, .1, .07), land: () => blip('sine', 140, 70, .08, .12), hurt: () => blip('square', 220, 90, .25, .1), slide: () => blip('sawtooth', 120, 80, .2, .04), check: () => { blip('sine', 660, 0, .12, .09); setTimeout(() => blip('sine', 990, 0, .2, .08), 90); }, clear: () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => blip('triangle', f, 0, .25, .1), i * 110)) };
+
+    // ── 入力：キーボード・ゲームパッド・画面のボタン ──
+    const K = { l: false, r: false, j: false, d: false, dn: false };
+    const keyMap = { ArrowLeft: 'l', a: 'l', A: 'l', ArrowRight: 'r', d: 'r', D: 'r', z: 'j', Z: 'j', ' ': 'j', ArrowUp: 'j', w: 'j', W: 'j', c: 'd', C: 'd', Shift: 'd', ArrowDown: 'dn', s: 'dn', S: 'dn' };
+    mg.onKey(e => {
+      const k = keyMap[e.key]; if (!k) { if (e.key === 'Enter' && e.type === 'keydown') advance(); return; }
+      e.preventDefault(); K[k] = e.type === 'keydown';
+      if (e.type === 'keydown' && k === 'j' && !e.repeat) advance();
+    });
+    function padInput() {
+      const o = { l: false, r: false, j: false, d: false, dn: false };
+      let pads = []; try { pads = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean) : []; } catch (e) {}
+      for (const g of pads) {
+        const b = i => !!(g.buttons[i] && g.buttons[i].pressed), ax = g.axes[0] || 0, ay = g.axes[1] || 0;
+        o.l = o.l || b(14) || ax < -.4; o.r = o.r || b(15) || ax > .4; o.dn = o.dn || b(13) || ay > .6;
+        o.j = o.j || b(0); o.d = o.d || b(2) || b(5) || b(7) || b(1);
+        if (b(0) && !padPrevA) advance(); padPrevA = b(0);
+      }
+      return o;
+    }
+    let padPrevA = false;
+    // 画面のボタン（スマホ）：左下に ← →、右下に ジャンプ・ダッシュ・スライド。複数の指に対応
+    const touches = new Map(); let showTouch = (typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches);
+    const btns = () => { const r = 34, y = VH - 58; return [{ k: 'l', x: 52, y, r, lab: '◀' }, { k: 'r', x: 132, y, r, lab: '▶' }, { k: 'dn', x: VW - 212, y: y + 6, r: 28, lab: '▼' }, { k: 'd', x: VW - 136, y, r, lab: 'ダッシュ' }, { k: 'j', x: VW - 58, y: y - 24, r: 38, lab: 'ジャンプ' }]; };
+    function touchKeys() { const o = { l: false, r: false, j: false, d: false, dn: false }; for (const p of touches.values()) for (const b of btns()) if (Math.hypot(p.x - b.x, p.y - b.y) < b.r + 14) o[b.k] = true; return o; }
+    const toV = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / sc, y: (e.clientY - r.top) / sc }; };
+    cv.addEventListener('pointerdown', e => { e.preventDefault(); if (e.pointerType === 'touch') showTouch = true; if (advance()) return; try { cv.setPointerCapture(e.pointerId); } catch (_) {} touches.set(e.pointerId, toV(e)); });
+    cv.addEventListener('pointermove', e => { if (touches.has(e.pointerId)) touches.set(e.pointerId, toV(e)); });
+    const up = e => touches.delete(e.pointerId); cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up); cv.addEventListener('contextmenu', e => e.preventDefault());
+    function readInput() { const p = padInput(), tch = showTouch ? touchKeys() : {}; const o = {}; for (const k of ['l', 'r', 'j', 'd', 'dn']) o[k] = !!(K[k] || p[k] || tch[k]); return o; }
+
+    // ── 流れ ──
+    function advance() {
+      if (phase === 'intro' && phaseT > .4) { phase = 'play'; phaseT = 0; banner = { t: 0, txt: 'STAGE 1　雨の住宅街（試作）' }; return true; }
+      if (phase === 'clear' && phaseT > 1.6) { finish(); return true; }
+      if (phase === 'over' && phaseT > 1.2) { finish(); return true; }
+      return phase !== 'play';
+    }
+    function finish() { if (!mg._ended) mg.end(outcome || 'quit'); }
+    function commit() {
+      if (committed) return; committed = true;
+      const R = REC.proto; R.plays = (R.plays | 0) + 1;
+      if (outcome === 'clear') { R.clears = (R.clears | 0) + 1; if (!R.bestTime || runTime < R.bestTime) R.bestTime = Math.round(runTime * 10) / 10; }
+    }
+    function respawn() { B = act.body(check.x, check.y, 1); B.invul = 60; }
+    function damage(n, why) {
+      hp -= n; hurts++; flash = .8; shake = .3; SE.hurt(); if (mg.buzz) try { mg.buzz(40); } catch (_) {}
+      if (hp <= 0) { hp = 0; phase = 'over'; phaseT = 0; outcome = 'down'; commit(); }
+    }
+
+    // ── 面を作る ──
+    function build() {
+      map = RunnerAct.makeMap(ROWS.map(r => r.replace(/[SCG]/g, '.')));
+      const T = map.tile, Hh = ROWS.length;
+      ROWS.forEach((row, r) => { for (let c = 0; c < row.length; c++) { const ch = row[c], p = { x: c * T + T / 2, y: (Hh - 1 - r) * T }; if (ch === 'S') spawn = p; if (ch === 'G') goal = p; if (ch === 'C') (checks.push(p)); } });
+      // 印の足もとを床まで下ろす
+      const drop = p => { let y = p.y; while (y > 0 && !map.solid(Math.floor(p.x / T), Math.floor((y - 1) / T))) y -= T; p.y = Math.max(0, Math.ceil(y / T) * T); };
+      [spawn, goal, ...checks].forEach(drop);
+      act = RunnerAct.make({ map }); tick = RunnerAct.stepper(act);
+      check = { x: spawn.x, y: spawn.y }; B = act.body(spawn.x, spawn.y, 1);
+      phase = 'intro'; phaseT = 0;
+    }
+    const checks = [];
+    function loadAct() {
+      if (typeof RunnerAct !== 'undefined') { build(); return; }
+      const s = document.createElement('script'); s.src = 'minigames/runner/act.js'; s.async = true;
+      s.onload = () => { if (!mg._ended) build(); }; s.onerror = () => { phase = 'error'; };
+      document.head.appendChild(s);
+    }
+
+    // ── 更新 ──
+    let lastState = 'stand';
+    function update(dt) {
+      t += dt; phaseT += dt; if (flash > 0) flash = Math.max(0, flash - dt * 2.4); if (shake > 0) shake = Math.max(0, shake - dt);
+      if (banner) { banner.t += dt; if (banner.t > 2.6) banner = null; }
+      for (const p of P) { if (!p.a) continue; p.l -= dt; if (p.l <= 0) { p.a = false; continue; } p.vy -= p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
+      for (let i = 0; i < RN; i++) { rx[i] -= 90 * dt; ry[i] += rv[i] * dt; if (ry[i] > VH + 10) { ry[i] = -10 - Math.random() * 60; rx[i] = Math.random() * (VW + 160); } if (rx[i] < -30) rx[i] += VW + 150; }
+      if (phase !== 'play' || !act) { if (phase === 'clear' && B) { B.vx = 0; } return; }
+      runTime += dt;
+      const inp = readInput(), wasInvul = B.invul;
+      tick(B, dt, inp);
+      // 状態の変わり目の音と粒
+      if (B.state !== lastState) {
+        if (B.state === 'jump') { SE.jump(); for (let i = 0; i < 6; i++) emit(B.x, B.y, rnd(-80, 80), rnd(20, 90), .3, 'rgba(170,200,255,.75)', 2, 300); }
+        if (B.state === 'dash') { SE.dash(); for (let i = 0; i < 8; i++) emit(B.x - B.face * 8, B.y + 2, -B.face * rnd(60, 160), rnd(10, 60), .3, 'rgba(170,200,255,.7)', 2, 300); }
+        if (B.state === 'wall_kick') SE.kick();
+        if (B.state === 'land') { SE.land(); for (let i = 0; i < 6; i++) emit(B.x + rnd(-8, 8), B.y, rnd(-70, 70), rnd(20, 70), .3, 'rgba(170,200,255,.7)', 1.8, 300); }
+        if (B.state === 'slide') SE.slide();
+        if (B.state === 'hurt' && !wasInvul) damage(1, 'spike');
+        lastState = B.state;
+      }
+      if (B.state === 'wall_slide' && B.vy < 0 && Math.random() < .5) emit(B.x + B.wallDir * 7, B.y + 30, -B.wallDir * rnd(10, 40), rnd(-20, 20), .25, 'rgba(200,220,255,.7)', 1.5, 200);
+      // 穴に落ちた
+      if (B.y < -120) { falls++; damage(1, 'pit'); if (phase === 'play') respawn(); }
+      // 途中の印
+      for (const c of checks) if (!c.got && Math.abs(B.x - c.x) < 24 && Math.abs(B.y - c.y) < 60) { c.got = true; check = { x: c.x, y: c.y }; SE.check(); banner = { t: 0, txt: '途中の印（ここから やり直せる）' }; }
+      // コンビニの戸
+      if (Math.abs(B.x - goal.x) < 26 && Math.abs(B.y - goal.y) < 30) { phase = 'clear'; phaseT = 0; outcome = 'clear'; SE.clear(); commit(); for (let i = 0; i < 20; i++) emit(B.x, B.y + 30, rnd(-140, 140), rnd(40, 200), .8, i % 2 ? '#00e8c8' : '#e8b830', 2.5, 300); }
+    }
+
+    // ── 描画 ──
+    const PAL_N = { pants: '#2e2048', shoe: '#0e0a18', jacket: '#8a74b8', jacketB: '#5e4c88', hair: '#3d2266', hairHi: '#6a44a8', skin: '#e6cdd8', hat: '#c86a9a', rim: null };
+    const PAL_R = { pants: 'rgba(0,232,200,.55)', shoe: 'rgba(0,232,200,.55)', jacket: 'rgba(0,232,200,.55)', jacketB: 'rgba(0,232,200,.55)', hair: 'rgba(0,232,200,.55)', hairHi: 'rgba(0,232,200,.55)', skin: 'rgba(0,232,200,.55)', hat: 'rgba(0,232,200,.55)', rim: true };
+    const J = { hx: 0, hy: 0, lean: 0, lt: [0, 0], rt: [0, 0], la: [0, 0], ra: [0, 0], ua: 0 };
+    let ph = 0;
+    function seg(x, y, a, l) { return [x + Math.sin(a) * l, y + Math.cos(a) * l]; }
+    function limb(x, y, a1, l1, a2, l2, col, w, shoe) { const k = seg(x, y, a1, l1), f = seg(k[0], k[1], a2, l2); cx.strokeStyle = col; cx.lineWidth = w; cx.beginPath(); cx.moveTo(x, y); cx.lineTo(k[0], k[1]); cx.lineTo(f[0], f[1]); cx.stroke(); if (shoe) { cx.fillStyle = shoe; cx.beginPath(); cx.ellipse(f[0] + 2, f[1] - 1, 4.5, 2.4, 0, 0, TAU); cx.fill(); } return f; }
+    function setPose() {
+      const st = B.state, spd = Math.abs(B.vx) * 60;
+      const set = (hy, lean, lt, rt, la, ra, ua) => { J.hx = 0; J.hy = hy; J.lean = lean; J.lt[0] = lt[0]; J.lt[1] = lt[1]; J.rt[0] = rt[0]; J.rt[1] = rt[1]; J.la[0] = la[0]; J.la[1] = la[1]; J.ra[0] = ra[0]; J.ra[1] = ra[1]; J.ua = ua; };
+      if (st === 'hurt') return set(-27, -.42, [.5, .2], [-.4, -.6], [2.3, 2.9], [2.2, 2.5], -.5);
+      if (st === 'slide') return set(-9, -.95, [1.55, 1.6], [1.05, -.25], [-1.1, -.6], [1.4, 1.9], 1.25);
+      if (st === 'wall_slide') return set(-28, -.15, [.6, -.2], [.1, -.5], [-1.4, -.9], [2.7, 2.9], -.2);
+      if (st === 'wall_kick') return set(-27, .35, [1.0, -.4], [-.6, -1.0], [1.4, 1.9], [2.75, 2.9], .3);
+      if (act.STATES && (st === 'jump' || st === 'fall')) { const upk = clamp(B.vy / (5.324 * 2.5), -1, 1); return set(-28, .28, [1.2 - upk * .2, -.1], [.35, -1.1 + upk * .3], [1.1 + upk * .4, 1.8], [2.75, 2.9], .25 - upk * .15); }
+      if (st === 'dash') { const s = Math.sin(ph); return set(-25, .55, [1.1 * s + .3, -.6], [-.9 * s + .2, -1.2], [-1.2, -.4], [2.6, 2.8], .55); }
+      if (spd < 10) { const b = Math.sin(t * 2.4) * .6; return set(-28 + b, .06, [.12, .04], [-.1, -.12], [.15, .5], [2.85, 3.0], .08); }
+      const s = Math.sin(ph), c = Math.cos(ph);
+      J.hx = 0; J.hy = -27 - Math.abs(c) * 2.4; J.lean = .2; J.lt[0] = .85 * s; J.lt[1] = J.lt[0] - (.15 + 1.25 * Math.max(0, c)); J.rt[0] = -.85 * s; J.rt[1] = J.rt[0] - (.15 + 1.25 * Math.max(0, -c)); J.la[0] = -.95 * s + .2; J.la[1] = J.la[0] + 1.3; J.ra[0] = 2.7 + s * .08; J.ra[1] = 2.95 + s * .06; J.ua = .32;
+    }
+    function drawFigure(pal, ox, oy) {
+      cx.save(); cx.translate(ox, oy); cx.lineCap = 'round'; cx.lineJoin = 'round';
+      const hx = J.hx, hy = J.hy, sx = hx + Math.sin(J.lean) * 17, sy = hy - Math.cos(J.lean) * 17, hdx = sx + Math.sin(J.lean) * 8.5, hdy = sy - Math.cos(J.lean) * 8.5;
+      const wave = Math.sin(t * 9) * 2.5, back = Math.abs(B.vx) > .5 ? 1 : .4;
+      cx.fillStyle = pal.hair; cx.beginPath(); cx.moveTo(hdx - 3, hdy - 6); cx.quadraticCurveTo(hdx - 16 * back - 6, hdy - 6 + wave, hdx - 24 * back - 4, hdy + 4 + wave * 1.5); cx.quadraticCurveTo(hdx - 12 * back - 4, hdy + 4, hdx - 4, hdy + 3); cx.closePath(); cx.fill();
+      limb(hx - 1, hy, J.rt[0], 14, J.rt[1], 14, pal.rim ? pal.pants : '#221838', 6, pal.shoe);
+      const hand = limb(sx - 1, sy + 1, J.ra[0], 10, J.ra[1], 10, pal.rim ? pal.jacket : pal.jacketB, 5, null);
+      cx.strokeStyle = pal.jacket; cx.lineWidth = 11; cx.beginPath(); cx.moveTo(hx, hy); cx.lineTo(sx, sy); cx.stroke();
+      if (!pal.rim) { cx.strokeStyle = '#e8a8c8'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(hx + Math.cos(J.lean) * 1.5, hy - 2); cx.lineTo(sx + Math.cos(J.lean) * 1.5, sy + 3); cx.stroke(); }
+      limb(hx + 1, hy, J.lt[0], 14, J.lt[1], 14, pal.pants, 6, pal.shoe);
+      cx.fillStyle = pal.skin; cx.beginPath(); cx.arc(hdx + 1, hdy, 7, 0, TAU); cx.fill();
+      cx.fillStyle = pal.hair; cx.beginPath(); cx.arc(hdx - 1, hdy - 1, 7.6, Math.PI * .55, Math.PI * 1.95); cx.quadraticCurveTo(hdx + 6, hdy - 2, hdx + 3, hdy + 1); cx.closePath(); cx.fill(); cx.fillRect(hdx - 7, hdy - 2, 4, 11);
+      if (!pal.rim) { cx.fillStyle = pal.hairHi; cx.fillRect(hdx - 4, hdy - 7, 5, 1.5); cx.strokeStyle = '#2a1c36'; cx.lineWidth = 1; cx.strokeRect(hdx + 3.5, hdy - .6, 4.4, 3); cx.fillStyle = 'rgba(200,255,250,.85)'; cx.fillRect(hdx + 4, hdy, 3.5, 2); cx.fillStyle = '#ff9ac8'; for (let i = 0; i < 5; i++) { const a = i * TAU / 5; cx.beginPath(); cx.arc(hdx - 5 + Math.cos(a) * 1.3, hdy - 6 + Math.sin(a) * 1.3, 1.1, 0, TAU); cx.fill(); } }
+      cx.save(); cx.translate(hdx + 1, hdy - 7); cx.rotate(J.lean * .6 - .12); cx.fillStyle = pal.hat; cx.fillRect(-6, -1, 12, 2); cx.fillRect(-3.5, -7, 7, 6.5); cx.restore();
+      limb(sx + 1, sy + 1, J.la[0], 10, J.la[1], 10, pal.jacket, 5, null);
+      drawUmbrella(pal, hand[0], hand[1], J.ua);
+      cx.restore();
+    }
+    function drawUmbrella(pal, hx, hy, ua) {
+      cx.save(); cx.translate(hx, hy); cx.rotate(ua);
+      const R = 23, top = -40;
+      cx.strokeStyle = pal.rim ? pal.jacket : '#c8c0d8'; cx.lineWidth = 1.6; cx.beginPath(); cx.moveTo(0, 0); cx.lineTo(0, top - 4); cx.stroke(); cx.beginPath(); cx.arc(2.5, 0, 2.5, Math.PI, 0, true); cx.stroke();
+      if (pal.rim) { cx.restore(); return; }
+      const dmg = clamp(Math.ceil((HP_MAX - hp) * 3 / HP_MAX), 0, 3), lf = dmg >= 2 ? -10 : 0, flap = dmg >= 1 ? Math.sin(t * 22) * 3 : 0;
+      cx.fillStyle = 'rgba(220,235,255,.24)'; cx.strokeStyle = 'rgba(235,245,255,.8)'; cx.lineWidth = 1.1; cx.beginPath();
+      cx.moveTo(-R, top + 16 + lf); cx.quadraticCurveTo(-R * .85, top - 2, 0, top - 4); cx.quadraticCurveTo(R * .85, top - 2, R, top + 16); cx.quadraticCurveTo(R * .75, top + 12, R * .5, top + 14 + flap); cx.quadraticCurveTo(R * .25, top + 11, 0, top + 14); cx.quadraticCurveTo(-R * .25, top + 11, -R * .5, top + 14 + lf * .6); cx.quadraticCurveTo(-R * .75, top + 12 + lf, -R, top + 16 + lf); cx.closePath(); cx.fill(); cx.stroke();
+      cx.strokeStyle = 'rgba(235,245,255,.45)'; cx.lineWidth = .8; cx.beginPath(); cx.moveTo(0, top - 4); cx.quadraticCurveTo(-R * .3, top + 2, -R * .5, top + 14 + lf * .6); cx.moveTo(0, top - 4); cx.quadraticCurveTo(R * .3, top + 2, R * .5, top + 14 + flap); cx.stroke();
+      cx.restore();
+    }
+    // 画面の座標：x = 世界の x − camX、y = 地面の基準から（上が＋）→ 画面の下が 0
+    const sx = x => x - camX, sy = y => VH - (y - camY);
+    function drawBack() {
+      const g = cx.createLinearGradient(0, 0, 0, VH); g.addColorStop(0, '#0a0820'); g.addColorStop(.6, '#1a1238'); g.addColorStop(1, '#241a40'); cx.fillStyle = g; cx.fillRect(0, 0, VW, VH);
+      // 遠くの家並み（2 枚・ゆっくり流れる）
+      for (const [k, col, hBase, wd] of [[.2, '#140f2c', 200, 90], [.45, '#1c1538', 140, 70]]) {
+        cx.fillStyle = col; const off = (camX * k) % (wd * 8);
+        for (let i = -1; i < VW / wd + 2; i++) { const n = Math.floor((camX * k) / wd) + i, hh = hBase + ((n * 73) % 5) * 26 - camY * k * .3, x = i * wd - (camX * k) % wd; cx.fillRect(x, VH - hh - 60, wd - 6, hh + 60); if (k > .3) { cx.fillStyle = 'rgba(255,214,120,.5)'; for (let w = 0; w < 3; w++) if ((n * 7 + w * 3) % 4 === 0) cx.fillRect(x + 10 + w * 18, VH - hh - 40 + w * 22, 8, 10); cx.fillStyle = col; } }
+        void off;
+      }
+    }
+    function drawTiles() {
+      const T = map.tile, c0 = Math.floor(camX / T) - 1, c1 = c0 + Math.ceil(VW / T) + 3;
+      for (let c = c0; c <= c1; c++) for (let cy = 0; cy < ROWS.length; cy++) {
+        const ch = map.at(c, cy), x = sx(c * T), y = sy((cy + 1) * T);
+        if (ch === '#') {
+          const topOpen = map.at(c, cy + 1) !== '#';
+          cx.fillStyle = '#2a2440'; cx.fillRect(x, y, T + .5, T + .5);
+          cx.fillStyle = '#332b4e'; cx.fillRect(x + 2, y + 2, T - 4, T - 4);
+          cx.fillStyle = 'rgba(0,0,0,.25)'; cx.fillRect(x, y + T / 2, T, 1); cx.fillRect(x + (cy % 2 ? T / 2 : 0), y, 1, T / 2); cx.fillRect(x + (cy % 2 ? 0 : T / 2), y + T / 2, 1, T / 2);
+          if (topOpen) { cx.fillStyle = '#5a4e80'; cx.fillRect(x, y, T + .5, 4); cx.fillStyle = 'rgba(160,190,255,.35)'; cx.fillRect(x, y + 4, T, 1); }
+        } else if (ch === '=') {
+          cx.fillStyle = '#7a2a58'; cx.fillRect(x, y, T + .5, 7); for (let i = 0; i < 4; i++) { cx.fillStyle = i % 2 ? '#e8e0f0' : '#c86a9a'; cx.fillRect(x + i * 10, y + 7, 10, 5); }
+        } else if (ch === '^') {
+          cx.fillStyle = '#5a4030'; cx.fillRect(x, y + T - 10, T, 10);
+          cx.fillStyle = '#c8b8a8'; for (let i = 0; i < 4; i++) { cx.beginPath(); cx.moveTo(x + i * 10, y + T - 8); cx.lineTo(x + i * 10 + 5, y + T - 26 - (i % 2) * 6); cx.lineTo(x + i * 10 + 10, y + T - 8); cx.closePath(); cx.fill(); }
+        }
+      }
+      // 途中の印（傘立て）とコンビニ
+      for (const c of checks) { const x = sx(c.x), y = sy(c.y); cx.fillStyle = c.got ? '#00e8c8' : '#5a5a78'; cx.fillRect(x - 3, y - 34, 6, 34); cx.fillRect(x - 10, y - 38, 20, 5); }
+      const gx = sx(goal.x), gy = sy(goal.y);
+      cx.fillStyle = '#e8f0ff'; cx.fillRect(gx - 70, gy - 120, 140, 120); cx.fillStyle = '#30a8ff'; cx.fillRect(gx - 70, gy - 120, 140, 18); cx.fillStyle = '#ff7a30'; cx.fillRect(gx - 70, gy - 102, 140, 6);
+      cx.fillStyle = '#fff'; cx.font = 'bold 13px sans-serif'; cx.textAlign = 'center'; cx.fillText('24H', gx, gy - 106);
+      cx.fillStyle = 'rgba(255,250,200,.85)'; cx.fillRect(gx - 22, gy - 70, 44, 70); cx.fillStyle = 'rgba(255,240,160,.25)'; cx.fillRect(gx - 90, gy - 4, 180, 6);
+    }
+    function drawPlayer() {
+      setPose(); ph += Math.abs(B.vx) * .2;
+      let alpha = 1; if (B.invul > 0) alpha = (Math.floor(B.invul / 4) % 2) ? .35 : 1;
+      const x = sx(B.x), y = sy(B.y);
+      cx.fillStyle = 'rgba(0,0,0,.45)'; cx.beginPath(); cx.ellipse(x, y + 1, 12, 2.5, 0, 0, TAU); cx.fill();
+      cx.globalAlpha = alpha; cx.save(); cx.translate(x, y); cx.scale(1.12 * B.face, 1.12);
+      drawFigure(PAL_R, 1.3, -1); drawFigure(PAL_N, 0, 0);
+      cx.restore(); cx.globalAlpha = 1;
+    }
+    function drawHUD() {
+      cx.textAlign = 'left'; cx.font = 'bold 14px sans-serif';
+      cx.fillStyle = 'rgba(0,0,0,.5)'; cx.fillRect(10, 10, 184, 30); cx.fillStyle = '#deccf8'; cx.fillText('☂', 18, 31);
+      for (let i = 0; i < HP_MAX; i++) { cx.fillStyle = i < hp ? '#00e8c8' : 'rgba(255,255,255,.15)'; cx.fillRect(38 + i * 18, 18, 14, 14); }
+      cx.textAlign = 'right'; cx.fillStyle = '#deccf8'; cx.fillText(runTime.toFixed(1) + '秒', VW - 14, 30);
+      if (showTouch && phase === 'play') { for (const b of btns()) { const on = touchKeys()[b.k]; cx.fillStyle = on ? 'rgba(0,232,200,.35)' : 'rgba(255,255,255,.1)'; cx.strokeStyle = 'rgba(255,255,255,.35)'; cx.lineWidth = 2; cx.beginPath(); cx.arc(b.x, b.y, b.r, 0, TAU); cx.fill(); cx.stroke(); cx.fillStyle = '#fff'; cx.textAlign = 'center'; cx.font = (b.lab.length > 1 ? 11 : 16) + 'px sans-serif'; cx.fillText(b.lab, b.x, b.y + 5); } }
+    }
+    function card(lines, sub) {
+      cx.fillStyle = 'rgba(5,4,14,.78)'; cx.fillRect(0, 0, VW, VH); cx.textAlign = 'center';
+      lines.forEach((l, i) => { cx.fillStyle = i ? '#deccf8' : '#00e8c8'; cx.font = (i ? '15px' : 'bold 22px') + ' sans-serif'; cx.fillText(l, VW / 2, VH / 2 - 40 + i * 30); });
+      if (sub && Math.sin(t * 6) > -.3) { cx.fillStyle = '#e8b830'; cx.font = '13px sans-serif'; cx.fillText(sub, VW / 2, VH / 2 + 90); }
+    }
+    function draw() {
+      cx.setTransform(dpr * sc, 0, 0, dpr * sc, 0, 0);
+      if (!act) { cx.fillStyle = '#05040e'; cx.fillRect(0, 0, VW, VH); cx.fillStyle = '#deccf8'; cx.textAlign = 'center'; cx.font = '14px sans-serif'; cx.fillText(phase === 'error' ? '読み込めませんでした' : '読み込み中…', VW / 2, VH / 2); return; }
+      // カメラ：向いている方を少し広く見せる・縦はゆっくり追う
+      const wantX = clamp(B.x - VW * (B.face > 0 ? .38 : .62), 0, map.W * map.tile - VW), wantY = clamp(B.y - 160, 0, Math.max(0, map.H * map.tile - VH));
+      camX += (wantX - camX) * .12; camY += (wantY - camY) * .08;
+      const shx = shake > 0 ? rnd(-3, 3) * shake * 3 : 0;
+      cx.save(); cx.translate(shx, 0);
+      drawBack(); drawTiles();
+      for (const p of P) if (p.a) { cx.globalAlpha = Math.max(0, p.l / p.m); cx.fillStyle = p.c; cx.fillRect(sx(p.x) - p.s / 2, sy(p.y) - p.s / 2, p.s, p.s); }
+      cx.globalAlpha = 1; drawPlayer();
+      cx.strokeStyle = 'rgba(170,190,255,.3)'; cx.lineWidth = 1; cx.beginPath(); for (let i = 0; i < RN; i += 2) { cx.moveTo(rx[i], ry[i]); cx.lineTo(rx[i] - 6, ry[i] - rl[i]); } cx.stroke();
+      cx.restore();
+      if (flash > 0) { cx.fillStyle = `rgba(255,120,140,${flash * .25})`; cx.fillRect(0, 0, VW, VH); }
+      drawHUD();
+      if (banner) { const a = Math.min(1, banner.t * 3, (2.6 - banner.t) * 3); cx.globalAlpha = a; cx.fillStyle = 'rgba(5,4,14,.7)'; cx.fillRect(0, 70, VW, 34); cx.fillStyle = '#00e8c8'; cx.font = 'bold 15px sans-serif'; cx.textAlign = 'center'; cx.fillText(banner.txt, VW / 2, 93); cx.globalAlpha = 1; }
+      if (phase === 'intro') card(['高難易度版（試作）', '雨の町を、コンビニまで。', '←→ 移動　Z ジャンプ　C ダッシュ　↓ スライド', '壁に向かって押しながら跳ぶと、壁を蹴る'], (showTouch ? 'タップ' : 'Z・Enter') + 'で はじめる');
+      if (phase === 'clear') card(['コンビニに着いた', `${runTime.toFixed(1)} 秒　／　ぶつかった ${hurts} 回`, '冷却シートと、プリン。'], (showTouch ? 'タップ' : 'Z・Enter') + 'で 戻る');
+      if (phase === 'over') card(['傘が折れた……', 'もう一度、行かなきゃ。'], (showTouch ? 'タップ' : 'Z・Enter') + 'で 戻る');
+    }
+
+    // 試験の時だけの入口（window.__MG_TEST__ がある時だけ）
+    if (typeof window !== 'undefined' && window.__MG_TEST__) window.__MG_TEST__.runnerHard = {
+      get s() { return { phase, hp, falls, hurts, runTime, outcome, x: B && B.x, y: B && B.y, state: B && B.state, goal, spawn, checks: checks.map(c => !!c.got) }; },
+      warp(x, y) { if (B) { B.x = x; B.y = y; B.vx = B.vy = 0; act.go(B, 'fall'); } }, start() { advance(); },
+    };
+
+    try { if (mg.exposeSfx) mg.exposeSfx(Object.keys(SE), k => SE[k] && SE[k]()); } catch (_) {}   // 音の一覧（設定・試験から鳴らせる）
+    resize(); initRain(); if (ro) ro.observe(body);
+    loadAct();
+    mg.loop(dt => { update(Math.max(0, Math.min(.1, dt))); if (mg._ended) return; draw(); });
+
+    return { result(reason) {
+      if (ro) ro.disconnect();
+      if (outcome) reason = outcome;
+      if (reason === 'clear' || reason === 'down') commit();
+      const clear = reason === 'clear';
+      return {
+        title: clear ? '☔ コンビニまで着いた（高難易度版・試作）' : reason === 'down' ? '☔ 傘が折れた（試作）' : '☔ 引き返した（試作）',
+        summary: clear ? `${runTime.toFixed(1)} 秒　ぶつかった ${hurts} 回` : `ぶつかった ${hurts} 回`,
+        fx: clear ? { mental: 1, fatigue: 4 } : { fatigue: 4 }, time: 20, sp: 0,
+        log: clear ? '試作の買い出し（高難易度版）で、コンビニまで着いた。' : '試作の買い出し（高難易度版）を途中でやめた。',
+        cutin: null,
+      };
+    } };
+  },
+});
