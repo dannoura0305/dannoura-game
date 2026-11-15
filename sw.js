@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-11-15.11';   // 買い出しダッシュ 高難易度版（試作）：ボス選択画面を利用者の絵に
+const VERSION = '2026-11-15.12';   // 買い出しダッシュ 高難易度版（試作）：本体と目録をネット優先に（選択画面の絵が古い版のまま出ない）
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）
@@ -109,6 +109,9 @@ function kindOf(url) {
   // 書き出し（entries/<分類>/<id>/web/ の WebP・glb など）は重いので画像と同じ扱い（保存分をすぐ返し、裏で新しくする）。meta.json・source/ は扱わない
   if (/^wakaba-assets\/catalog\.json$/.test(p)) return 'shell';
   if (/^wakaba-assets\/entries\/[a-z0-9_]+\/[A-Za-z0-9_.]+\/web\/[^/]+\.(webp|glb|png|jpg|jpeg|ktx2)$/.test(p)) return 'media';
+  // 買い出しダッシュ 高難易度版（試作中）：本体・動き・ボスのコードと、ドット絵や選択画面の目録（.json）はネット優先。
+  // 作り直しが多いので、「更新」を押す前でも 1 回の再読み込みで新しい物になる（オフラインなら保存分）。絵（.webp）は下の media
+  if (/^minigames\/runner_hard\.js$/.test(p) || /^minigames\/runner\/.+\.js$/.test(p) || /^assets\/runner\/.+\.json$/.test(p)) return 'shell';
   if (/^(minigames|vendor)\/.+\.js$/.test(p)) return 'code';
   // mapkit フェーズ 4：圧縮の復号器（KTX2 の basis transcoder の wasm）も版ごとの保存分（.mo.glb・.ktx2 は上の素材ライブラリの web/ で media）
   if (/^vendor\/three-esm\/.+\.wasm$/.test(p)) return 'code';
