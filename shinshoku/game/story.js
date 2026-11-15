@@ -430,7 +430,7 @@ export const storyMethods = {
     if (this.WP.write) this.WP.write('shinshoku', { chaptersCleared: ['prologue', 'ch1', 'ch2_slice'] });
     const how = { rescue: '救った（名前を呼んだ）', neutralize: '閉じ込めた', kill: '倒した' }[this.story.boss] || '—';
     const stats = [['プレイ時間', fmtSec(this.playSec)], ['収容者', how], ['救った帰路', this.count('kiro', 'rescue')], ['倒した帰路', this.count('kiro', 'kill')],
-      ['見切り一閃', this.metrics.issen.mikiri || 0], ['弾き一閃', this.metrics.issen.hajiki || 0], ['連鎖一閃（最大）', this.metrics.chainMax || 0], ['（相棒）の信頼', this.companion.brain.trust],
+      ['見切り一閃', this.metrics.issen.mikiri || 0], ['弾き一閃', this.metrics.issen.hajiki || 0], ['連鎖一閃（最大）', this.metrics.chainMax || 0], ['灯里の信頼', this.companion.brain.trust],
       ['名簿の照合', this.flags.roster_done ? '済' : '—'], ['防犯映像（任意）', this.flags.cctv_done ? '済' : '—'], ['金庫（任意）', this.flags.safe_opened ? '開けた' : '—']];
     this.metrics.endCard = true;
     this.mode = 'puzzle'; this.input.exitLock();

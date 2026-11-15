@@ -23,13 +23,13 @@ export const CHAPTERS = {
 };
 
 export const STEPS = [
-  { id: 'pro_meet', ch: 'prologue', area: 'shotengai', state: 'normal', obj: '商店街で（相棒）と会う（喫茶「灯」の前）' },
+  { id: 'pro_meet', ch: 'prologue', area: 'shotengai', state: 'normal', obj: '商店街で灯里と会う（喫茶「灯」の前）' },
   { id: 'pro_pipe', ch: 'prologue', area: 'shotengai', state: 'normal', obj: '何か武器になる物を（自販機の横）' },
   { id: 'pro_fight', ch: 'prologue', area: 'shotengai', state: 'normal', obj: '帰路を追い払う' },
   { id: 'pro_home', ch: 'prologue', area: 'shotengai', state: 'normal', obj: '家へ戻る（アーケードを出て駅前通りの信号を渡り、用水路沿いの道の先）' },
   { id: 'pro_tv', ch: 'prologue', area: 'shotengai', state: 'normal', obj: '居間で一息つく（ソファ）' },
   { id: 'ch1_katana', ch: 'ch1', area: 'shotengai', state: 'outbreak', obj: '刀を取る（居間の刀掛け）', sub: '金庫は任意（番号の手掛かりを探す）' },
-  { id: 'ch1_street', ch: 'ch1', area: 'shotengai', state: 'outbreak', obj: '（相棒）を探す：商店街の奥、空き店舗から裏路地へ', sub: '帰路は救っても倒しても、避けてもよい' },
+  { id: 'ch1_street', ch: 'ch1', area: 'shotengai', state: 'outbreak', obj: '灯里を探す：商店街の奥、空き店舗から裏路地へ', sub: '帰路は救っても倒しても、避けてもよい' },
   { id: 'ch1_alley', ch: 'ch1', area: 'alley', obj: '裏路地を抜ける', sub: '帰路の道をふさがなければ、素通りする' },
   { id: 'ch1_plaza', ch: 'ch1', area: 'plaza', obj: '表通りへ（商業施設の前）' },
   { id: 'ch2_shelter', ch: 'ch2', area: 'plaza', obj: '避難所（市民体育館）へ：渡り廊下', sub: '警備室の防犯映像（任意）' },
@@ -37,7 +37,7 @@ export const STEPS = [
   { id: 'ch2_key', ch: 'ch2', area: 'shelter', obj: '体育館の鍵を探す（受付の机の引き出し）' },
   { id: 'ch2_gym', ch: 'ch2', area: 'shelter', obj: '体育館の中を確かめる' },
   { id: 'ch2_boss', ch: 'ch2', area: 'shelter', obj: '収容者を止める', sub: '点呼の間に名前を呼ぶ（マイク）／器具庫へ誘って閉じ込める／倒す' },
-  { id: 'ch2_end', ch: 'ch2', area: 'shelter', obj: '（相棒）と話す' },
+  { id: 'ch2_end', ch: 'ch2', area: 'shelter', obj: '灯里と話す' },
   // 第3章「見た目」【仮】病院 → 地下通路
   { id: 'ch3_hosp', ch: 'ch3', area: 'shelter', obj: '病院へ（ロビー西の連絡通路）', sub: '名簿の未着の人は、病院へ運ばれた？' },
   { id: 'ch3_lobby', ch: 'ch3', area: 'hospital', obj: '病院の受付を調べる', sub: '待合の人に気をつける' },
@@ -45,7 +45,7 @@ export const STEPS = [
   { id: 'ch3_ward', ch: 'ch3', area: 'hospital', obj: '「記録のない患者」の病室へ（小児病棟の奥）', sub: '暗い病棟：懐中電灯' },
   { id: 'ch3_guard', ch: 'ch3', area: 'hospital', obj: '子どもの前に立つ異形……？', sub: '攻めずに様子を見る／倒す' },
   { id: 'ch3_down', ch: 'ch3', area: 'hospital', obj: '地下通路へ（奥の階段・地下1階）', sub: '子どもを連れて避難所へ戻る' },
-  { id: 'ch3_tunnel', ch: 'ch3', area: 'tunnel', obj: '地下通路を抜けて避難所へ', sub: '（相棒）の声に気をつける' },
+  { id: 'ch3_tunnel', ch: 'ch3', area: 'tunnel', obj: '地下通路を抜けて避難所へ', sub: '灯里の声に気をつける' },
   { id: 'ch3_boss', ch: 'ch3', area: 'tunnel', obj: '写し身を止める', sub: 'こちらの動きを真似てくる（頭の上の印を見る）' },
   { id: 'ch3_boss2', ch: 'ch3', area: 'tunnel', obj: '写し身を止める', sub: '「呼び声」の間は動きが止まる' },
   { id: 'ch3_end', ch: 'ch3', area: 'tunnel', obj: '（第3章はここまで。自由に歩けます）' },
@@ -56,15 +56,15 @@ export const STEPS = [
   { id: 'ch4_vault', ch: 'ch4', area: 'office', obj: '保管庫の返却箱から職員証 B-07 を取る', sub: '保管庫に預けていた物もある' },
   { id: 'ch4_down', ch: 'ch4', area: 'office', obj: '地下の研究区画へ（奥のエレベーター）', sub: '所長室の記録（任意）' },
   { id: 'ch4_lab', ch: 'ch4', area: 'lab', obj: '地下研究区画を進む（中央の試験床）', sub: '応答体：試験の手順をくり返している' },
-  { id: 'ch4_branch', ch: 'ch4', area: 'lab', obj: '（相棒）を助ける' },
-  { id: 'ch4_r_fight', ch: 'ch4', area: 'lab', obj: '（相棒）を囲む群れを払う', sub: '白い姿：妖爪・猫火・瞬歩・幻術・妖弾' },
+  { id: 'ch4_branch', ch: 'ch4', area: 'lab', obj: '灯里を助ける' },
+  { id: 'ch4_r_fight', ch: 'ch4', area: 'lab', obj: '灯里を囲む群れを払う', sub: '白い姿：妖爪・猫火・瞬歩・幻術・妖弾' },
   { id: 'ch4_r_rise', ch: 'ch4', area: 'lab', obj: '搬入口へ（区画の南）', sub: '地響きが近づいてくる' },
   { id: 'ch4_r_giant', ch: 'ch4', area: 'yard', obj: '境界の先触れを止める', sub: '「喰らう」は詰所を狙う：間に立つか、咆哮で止める' },
   { id: 'ch4_r_end', ch: 'ch4', area: 'yard', obj: '（第4章はここまで）' },
   { id: 'ch4_s_trial', ch: 'ch4', area: 'lab', obj: '人の姿のまま、群れを払う', sub: '紫の姿の技だけ（白い姿は使わない）' },
   { id: 'ch4_s_power', ch: 'ch4', area: 'lab', obj: '配電盤で制御室の隔壁に電気を回す（西の壁）', sub: '保全記録：非常電源の容量' },
-  { id: 'ch4_s_sneak', ch: 'ch4', area: 'lab', obj: '（相棒）と制御室へ（東の通路）', sub: '弁を開けると蒸気で姿を隠せる' },
-  { id: 'ch4_s_hold', ch: 'ch4', area: 'lab', obj: '（相棒）が応答炉を止めるまで守る', sub: '戸口から来る応答体を近づけない' },
+  { id: 'ch4_s_sneak', ch: 'ch4', area: 'lab', obj: '灯里と制御室へ（東の通路）', sub: '弁を開けると蒸気で姿を隠せる' },
+  { id: 'ch4_s_hold', ch: 'ch4', area: 'lab', obj: '灯里が応答炉を止めるまで守る', sub: '戸口から来る応答体を近づけない' },
   { id: 'ch4_s_end', ch: 'ch4', area: 'lab', obj: '（第4章はここまで）' },
   // 第5章A「侵食」（reveal）【仮】旧研究棟：搬入ヤードの崩れた壁から入る。白い姿の自由操作。点呼（必須）・主任研究室の延期の記録（必須・崩れた床を白い姿で跳ぶ）→ 観測棟の継接
   { id: 'ch5_r_enter', ch: 'ch5a', area: 'oldwing', obj: '旧研究棟の収容棟へ（崩れた西の壁から）', sub: '白い姿：化を長押し（いつでも戻れる）' },
@@ -75,15 +75,15 @@ export const STEPS = [
   { id: 'ch5_r_end', ch: 'ch5a', area: 'atrium', obj: '屋上へ（北東の階段）' },
   // 第6章A「巨躯」の冒頭（reveal）【仮】広域計画で町が置き換えられ始める → 止めるために力を使い、巨大猫又の力があふれて抑えきれなくなる（暴走）→ （相棒）の声で我に返る → 町を守る
   { id: 'ch6a_rampage', ch: 'ch6a', area: 'town', obj: '……抑える（化を長押し／弾の連打）', sub: '体が言うことを聞かない。町を壊したくない' },
-  { id: 'ch6a_protect', ch: 'ch6a', area: 'town', obj: '町の人と（相棒）を守る', sub: '電柱・看板は尾で払う（攻撃）／瓦礫は体で受ける（弾く）／バスは前足で運ぶ（調べる）' },
-  { id: 'ch6a_end', ch: 'ch6a', area: 'town', obj: '（相棒）を救急の列へ見送る' },
+  { id: 'ch6a_protect', ch: 'ch6a', area: 'town', obj: '町の人と灯里を守る', sub: '電柱・看板は尾で払う（攻撃）／瓦礫は体で受ける（弾く）／バスは前足で運ぶ（調べる）' },
+  { id: 'ch6a_end', ch: 'ch6a', area: 'town', obj: '灯里を救急の列へ見送る' },
   // 第6章A の続き（フェーズ7）【仮】崩れた商店街（人の大きさ・白い姿）：置換の糸の中継を元から順に切る（必須）→ 中央通りで巨大猫又（自分の意思で）と塗替 → 最終章の入口
   { id: 'ch6a_threads', ch: 'ch6a', area: 'ruins', obj: '置換の糸の中継を、元（上流）から順に切る', sub: '白い姿の目で糸の流れを見る／防災無線の記録（任意）。白い姿の爪で切る' },
   { id: 'ch6a_avenue', ch: 'ch6a', area: 'ruins', obj: '中央通りへ（商店街の北の端）', sub: '糸の元：光の柱の下に、何かがいる' },
   { id: 'ch6a_boss', ch: 'ch6a', area: 'avenue', obj: '塗替を止める', sub: '「塗り替え」は人の残る棟を狙う：線の間に立つか、咆哮で止める' },
   { id: 'ch6a_fin', ch: 'ch6a', area: 'avenue', obj: '（第6章Aはここまで。光の柱の奥：最終章へ）' },
   // 第5章B「秘匿」（secret）【仮】同じ旧研究棟を別の順路で：地下研究区画の連絡通路から入る。応答炉を止めたので停電 → 配電盤（保全の知識）→ 点呼（必須）→ 封印の札を刀で切る・弁で水を抜く → 記録保管庫の延期の記録（控え・必須）→ 観測棟の継接（紫だけ）
-  { id: 'ch5_s_enter', ch: 'ch5b', area: 'oldwing', obj: '旧研究棟の収容棟へ（地下の連絡通路から）', sub: '（相棒）と一緒：白い姿にはならない' },
+  { id: 'ch5_s_enter', ch: 'ch5b', area: 'oldwing', obj: '旧研究棟の収容棟へ（地下の連絡通路から）', sub: '灯里と一緒：白い姿にはならない' },
   { id: 'ch5_s_power', ch: 'ch5b', area: 'oldwing', obj: '電気室の配電盤で、非常電源を回す（廊下の北東）', sub: '盤の横の保全記録：容量と焼却炉' },
   { id: 'ch5_s_ward', ch: 'ch5b', area: 'oldwing', obj: '点呼卓で、在棟の被験者の点呼を終える', sub: '被験者名簿（資料室）か、鐘の時に戸口に立つ順を見る／記録保管庫（西）も' },
   { id: 'ch5_s_archive', ch: 'ch5b', area: 'oldwing', obj: '記録保管庫で「延期の記録」の控えを探す（広間の西）', sub: '封印の札は刀で切れる・水は弁と排水ポンプで抜ける' },
@@ -91,7 +91,7 @@ export const STEPS = [
   { id: 'ch5_s_boss', ch: 'ch5b', area: 'atrium', obj: '継接を止める（人の姿のまま）', sub: '部分ごとに壊れる：右腕（叩く）・左腕（鞄）・脚。鞄を持ち主の机へ返すこともできる' },
   { id: 'ch5_s_end', ch: 'ch5b', area: 'atrium', obj: '連絡橋から中央管理棟へ（北東の階段）' },
   // 第6章B「制御」（secret）【仮】中央管理棟：時刻の矛盾（監視室・必須）→ 巡回点検と診断（機械室・必須）→ 隔離の手順（必須）→ 当直（ボス）→ 制御装置の停止 → 最終章の入口
-  { id: 'ch6_s_enter', ch: 'ch6b', area: 'admin', obj: '中央管理棟に入る（連絡橋から）', sub: '（相棒）と一緒：白い姿にはならない' },
+  { id: 'ch6_s_enter', ch: 'ch6b', area: 'admin', obj: '中央管理棟に入る（連絡橋から）', sub: '灯里と一緒：白い姿にはならない' },
   { id: 'ch6_s_monitor', ch: 'ch6b', area: 'admin', obj: '監視室で、機械室の保守扉の時刻を割り出す（西）', sub: '監視カメラの記録・当番表（任意）。ずれた時計に気をつける' },
   { id: 'ch6_s_rounds', ch: 'ch6b', area: 'admin', obj: '機械室を巡回点検して、止めるべき機械を見つける', sub: '振動計を当てる（調べる・離れずに少し待つ）→ 点検表で前回の値と比べる' },
   { id: 'ch6_s_isolate', ch: 'ch6b', area: 'admin', obj: '異常な機械を、安全な手順で止める', sub: '止めて・切って・締めて・抜く（盤の横の札）' },
@@ -105,7 +105,7 @@ export const STEPS = [
   { id: 'end_a', ch: 'enda', area: 'epilogue', obj: '（結末A　見舞い）' },
   // 終章B「記録の間」（secret）【仮】境界制御室の奥：内線電話（セーブ）→ 研究者（人間大の特別な最終戦・紫の姿だけ）→ 結末B
   { id: 'ch7b_enter', ch: 'ch7b', area: 'kiroku', obj: '記録の間へ（通路の奥）', sub: '内線電話でセーブできる（最終戦の前）' },
-  { id: 'ch7b_boss', ch: 'ch7b', area: 'kiroku', obj: '研究者を止める（人の姿のまま）', sub: '記録装置は待機（緑）の時に止める／（相棒）への線の間に立つ' },
+  { id: 'ch7b_boss', ch: 'ch7b', area: 'kiroku', obj: '研究者を止める（人の姿のまま）', sub: '記録装置は待機（緑）の時に止める／灯里への線の間に立つ' },
   { id: 'ch7b_end', ch: 'ch7b', area: 'kiroku', obj: '（終章B　ここまで）' },
   { id: 'end_b', ch: 'endb', area: 'epilogue', obj: '（結末B　信頼）' },
 ];

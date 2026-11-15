@@ -258,7 +258,7 @@ export const ch4Methods = {
     this.flags.branch_pending = true; delete this.flags.branch_secret_trial;
     if (!this.loadedBranch) { this.saveSlot('branch', true); this.metrics.branchSaved = (this.metrics.branchSaved || 0) + 1; }
     this.mode = 'puzzle'; this.input.exitLock();
-    const opts = [{ id: 'reveal', label: '化けを、解く', sub: '白い姿で群れを払う（（相棒）が見ることになる）' }, { id: 'secret', label: 'このまま、人として戦う', sub: '紫の姿の技だけで切り抜ける（むずかしい）' }];
+    const opts = [{ id: 'reveal', label: '化けを、解く', sub: '白い姿で群れを払う（灯里が見ることになる）' }, { id: 'secret', label: 'このまま、人として戦う', sub: '紫の姿の技だけで切り抜ける（むずかしい）' }];
     this.ui.choiceUI('……どうする？', opts, id => { this.ui.closePuzzle(); this.mode = 'play'; this.chooseBranch(id); }, '');
     this.metrics.branchOpened = (this.metrics.branchOpened || 0) + 1;
   },
@@ -332,7 +332,7 @@ export const ch4Methods = {
   holdStart() {
     this.hold = { t: 0, prog: 0, wave: 0, spawned: 0, grabs: 0 };
     const C = this.companion; C.root.visible = true; C.brain.setMode('scripted'); C.brain.pos = { x: LAB.hold.console[0] - 0.4, z: LAB.hold.console[1] }; C.brain.yaw = Math.PI / 2; C.anim = null;
-    this.ui.boss('（相棒）の操作', 0, '応答炉の停止まで守る'); this.hint('換気口から来る応答体を、（相棒）に近づけない（つかまれたら叩いて離す）'); this.later(5, () => this.hint(null));
+    this.ui.boss('灯里の操作', 0, '応答炉の停止まで守る'); this.hint('換気口から来る応答体を、灯里に近づけない（つかまれたら叩いて離す）'); this.later(5, () => this.hint(null));
   },
   stepHold(dt) {
     const H = this.hold; if (!H || this.cut.active || H.done) return;
@@ -344,7 +344,7 @@ export const ch4Methods = {
     if (grabbed && !H.wasGrabbed) { H.grabs++; this.bark('companion_hold_grab', 2.4); this.sfx.play('scream', C.brain.pos); }
     H.wasGrabbed = grabbed;
     if (!H.half && H.prog > LAB.hold.sec / 2) { H.half = true; this.bark('hold_half', 2); }
-    this.ui.boss('（相棒）の操作', Math.min(1, H.prog / LAB.hold.sec), grabbed ? 'つかまれた！　叩いて離す' : '応答炉の停止まで守る', grabbed);
+    this.ui.boss('灯里の操作', Math.min(1, H.prog / LAB.hold.sec), grabbed ? 'つかまれた！　叩いて離す' : '応答炉の停止まで守る', grabbed);
     if (H.prog >= LAB.hold.sec && !H.done) {
       H.done = true; this.ui.boss(null); this.metrics.holdSec = Math.round(H.t); this.metrics.holdGrabs = H.grabs;
       for (const e of this.enemies) if (e.hold && e.brain.alive) { const ev = []; e.brain.sedate(ev, true); this.enemyEvents(e, ev); }
@@ -632,9 +632,9 @@ export const ch4Methods = {
     const R = this.route, L = lastLock(R) || {};
     const stats = [['プレイ時間', fmtSec(this.playSec)], ['ルート', R.route === 'reveal' ? '妖力解放（化けを、解いた）' : R.route === 'secret' ? '正体秘匿（人として通した）' : '—'], ['分岐の記録', `#${L.seq || '—'}・${({ choice: '選択', load_branch: '分岐前から選び直し', debug: '試験の飛び先', chapter_select: '章選択' })[L.via] || L.via || '—'}`],
       ['入退室の記録の照合', this.flags.logs_done ? '済' : '—'], ['応答体', `救う ${this.count('outou', 'rescue')}・眠らせる ${this.count('outou', 'neutralize')}・倒す ${this.count('outou', 'kill')}`], ['妖弾', this.metrics.yodanShots || 0]];
-    if (route === 'reveal') stats.push(['（相棒）が知った', R.reveal.companionKnows ? 'はい' : 'いいえ'], ['境界の先触れ', this.enemyRes.sakibure === 'kill' ? '止めた' : '—'], ['壊れた設備', this.metrics.propsBroken || 0], ['ポンプ室', `${this.shelter4 ? this.shelter4.hp : 100}%（体で受けた ${this.metrics.shelterBlocks || 0}）`]);
-    else stats.push(['人の姿の試練', `${(this.trialLosses || 0) + 1} 回目で勝利${this.flags.trial_assist ? '（手助けあり）' : ''}`], ['配電盤', this.flags.breaker_ok ? '済' : '—'], ['（相棒）を守った', `${this.metrics.holdSec || 0} 秒・つかまれた ${this.metrics.holdGrabs || 0}`]);
-    stats.push(['（相棒）の信頼', this.companion.brain.trust]);
+    if (route === 'reveal') stats.push(['灯里が知った', R.reveal.companionKnows ? 'はい' : 'いいえ'], ['境界の先触れ', this.enemyRes.sakibure === 'kill' ? '止めた' : '—'], ['壊れた設備', this.metrics.propsBroken || 0], ['ポンプ室', `${this.shelter4 ? this.shelter4.hp : 100}%（体で受けた ${this.metrics.shelterBlocks || 0}）`]);
+    else stats.push(['人の姿の試練', `${(this.trialLosses || 0) + 1} 回目で勝利${this.flags.trial_assist ? '（手助けあり）' : ''}`], ['配電盤', this.flags.breaker_ok ? '済' : '—'], ['灯里を守った', `${this.metrics.holdSec || 0} 秒・つかまれた ${this.metrics.holdGrabs || 0}`]);
+    stats.push(['灯里の信頼', this.companion.brain.trust]);
     this.metrics.endCard4 = route;
     this.mode = 'puzzle'; this.input.exitLock();
     this.ui.endCard(stats, () => { this.ui.closePuzzle(); this.mode = 'play'; this.saveSlot('auto', true); if (['ch4_r_end', 'ch4_s_end'].includes(this.story.step)) this.later(0.4, () => this.startCh5()); }, `第4章（境界の夜）　${route === 'reveal' ? '妖力解放' : '正体秘匿'}　ここまで`, `続けて第5章${route === 'reveal' ? 'A（侵食）' : 'B（秘匿）'}（旧研究棟）へ進めます。「分岐の前」のセーブ（ロード）から、もう一方のルートも遊べます。`);

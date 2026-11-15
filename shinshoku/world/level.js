@@ -692,8 +692,14 @@ function buildHome(B0, atlas, scene0, boxes0, spots0, dyn) {
   B.box('prop', -3.5, 1.05, 9.25, 1.5, 0.88, 0.06, 0x101014, { edges: false });                               // テレビの枠
   const tvC = document.createElement('canvas'); tvC.width = 128; tvC.height = 72; const tvT = new THREE.CanvasTexture(tvC); tvT.colorSpace = THREE.SRGBColorSpace;
   const tv = new THREE.Mesh(new THREE.PlaneGeometry(1.42, 0.8), new THREE.MeshBasicMaterial({ map: tvT, color: 0x9a9aa8 })); tv.position.set(-3.5, 1.05, 9.285); scene.add(tv);
+  const tvImg = typeof Image !== 'undefined' ? new Image() : { complete: false }; if (tvImg.src !== undefined) tvImg.src = new URL('../assets/tv/spouse_tv.png', import.meta.url).href;   // 2.7KB（node のテストでは絵なし）
   const tvG = ctx2d(tvC); const tvDraw = kind => { const g = tvG; const im = g.createImageData(128, 72); for (let i = 0; i < im.data.length; i += 4) { const v = Math.random() * 200; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } g.putImageData(im, 0, 0);
-    if (kind === 'face') { g.fillStyle = 'rgba(230,230,240,.92)'; g.fillRect(0, 0, 128, 72); g.fillStyle = '#3a3a44'; g.beginPath(); g.ellipse(64, 30, 15, 19, 0, 0, Math.PI * 2); g.fill(); g.fillRect(40, 48, 48, 30); g.fillStyle = '#f4f4f8'; g.beginPath(); g.moveTo(52, 50); g.lineTo(64, 66); g.lineTo(76, 50); g.lineTo(88, 72); g.lineTo(40, 72); g.fill(); g.fillStyle = 'rgba(0,0,0,.35)'; for (let y = 0; y < 72; y += 3) g.fillRect(0, y, 128, 1); }
+    // 2026-11-14：砂嵐の中に一瞬映るのは、配偶者に似た異形（新しいモデルを写した絵 assets/tv/spouse_tv.png・灰色）。前は仮の白衣の人影の絵
+    if (kind === 'face') {
+      if (tvImg.complete && tvImg.naturalWidth) { g.globalAlpha = 0.82; for (let y = 0; y < 72; y += 2) { const dx = (Math.random() - 0.5) * (Math.random() < 0.12 ? 10 : 2); g.drawImage(tvImg, 0, y * 2, 256, 4, dx, y, 128, 2); } g.globalAlpha = 1; }
+      else { g.fillStyle = 'rgba(220,226,240,.55)'; g.beginPath(); g.ellipse(64, 24, 9, 11, 0, 0, Math.PI * 2); g.fill(); g.fillRect(52, 34, 24, 38); }   // 絵が読めない時の淡い人影
+      g.fillStyle = 'rgba(0,0,0,.35)'; for (let y = 0; y < 72; y += 3) g.fillRect(0, y, 128, 1);
+    }
     tvT.needsUpdate = true; };
   tvDraw('static'); dyn.tv = { mesh: tv, draw: tvDraw, kind: 'static' };
   for (const x of [-4.55, -2.45]) { B.box('prop', x, 0.535, 9.27, 0.16, 0.19, 0.18, 0x2a2a2e, { edges: false }); }                 // 小さなスピーカー（テレビ台の上）

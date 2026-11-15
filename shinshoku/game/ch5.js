@@ -579,7 +579,7 @@ export const ch5Methods = {
     return [['プレイ時間', fmt(this.playSec)], ['ルート', rv ? '妖力解放（化けを、解いた）' : '正体秘匿（人として通した）'], ['点呼', this.flags.ow_gate ? `済（ちがう点呼 ${this.rcMiss5 || 0} 回）` : '—'],
       ['延期の記録', this.flags.delay5 ? (this.flags.delay5_where === 'chief' ? '主任研究室の原本' : '記録保管庫の控え') : '—'], [rv ? '崩れた床を跳んだ' : '配電盤・封印・排水', rv ? `${this.metrics.leaps5 || 0} 回` : [this.flags.breaker5 && '配電盤', this.flags.seal5 && '封印', this.flags.drained5 && '排水'].filter(Boolean).join('・') || '—'],
       ['収容者', `救う ${this.count('shuusha', 'rescue')}・倒す ${this.count('shuusha', 'kill')}`], ['継接', { rescue: '救った（鞄を机へ返した）', neutralize: '動けなくした（脚）', kill: '倒した' }[this.story.boss5] || '—'],
-      ['任意の資料', ['notes', 'letter', 'duty', 'roster'].filter(k => this.flags['seen_' + k + '5']).length + ' / 4'], ['（相棒）の信頼', this.companion.brain.trust]];
+      ['任意の資料', ['notes', 'letter', 'duty', 'roster'].filter(k => this.flags['seen_' + k + '5']).length + ' / 4'], ['灯里の信頼', this.companion.brain.trust]];
   },
 
   // ── 試験・ショートカット（?ch=5&route=reveal|secret・?ch=6）の初期状態 ──

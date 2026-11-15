@@ -268,7 +268,7 @@ t('タイトル：ロゴ・続きから／はじめから／章選択／記録�
 });
 t('スタッフロール（仮）：出演・制作は仮。名前の決まっていない人物は「名前未定」。飛ばせる', () => {
   assert.ok(CREDITS.provisional && CREDITS.lines.length > 10 && CREDITS.sec > 10);
-  assert.ok(CREDITS.lines.some(([, s]) => /（相棒）　名前未定/.test(s)));
+  assert.ok(CREDITS.lines.some(([, s]) => /瀬名 灯里/.test(s)));   // 2026-11-14：相棒の名前が決まった
   assert.ok(/credits\(lines, sec, onDone\)/.test(src('ui/ui.js')) && /cr-skip/.test(src('ui/ui.js')));
   for (const id of ['cs_end_home_a', 'cs_end_home_b']) assert.ok(CUTSCENES7[id].events.some(e => e.do === 'credits7'));
 });

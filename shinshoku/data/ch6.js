@@ -61,7 +61,7 @@ export const AVENUE = {
   blocks: [
     { id: 'A', name: '集合住宅 A 棟', pos: [-30, -2], hp: 100 },
     { id: 'B', name: '集合住宅 B 棟', pos: [30, 6], hp: 100 },
-    { id: 'C', name: '病院の別棟（相棒のいる所）', pos: [-26, 30], hp: 100 },
+    { id: 'C', name: '病院の別棟（灯里のいる所）', pos: [-26, 30], hp: 100 },
   ],
 };
 

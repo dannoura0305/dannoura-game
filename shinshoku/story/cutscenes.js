@@ -54,7 +54,7 @@ export const CUTSCENES = {
     ],
     sounds: [{ t: 2.0, s: 'power_down' }, { t: 8.6, s: 'notice' }, { t: 12.5, s: 'kiro_voice' }, { t: 14.1, s: 'scream' }],
   },
-  // 序章の終わり：テレビに研究者の顔が一瞬（音声なし）。研究者は九条とは別人・名前未定（DECISIONS）
+  // 序章の終わり：テレビの砂嵐に、配偶者に似た異形の人影が一瞬（音声なし）。2026-11-14 利用者の指定（前は研究者の顔。研究者は九条とは別人・名前未定）
   cs00_tv: {
     id: 'cs00_tv', area: 'shotengai', letterbox: true, skippable: true,
     cam: [
@@ -66,7 +66,7 @@ export const CUTSCENES = {
     actors: [{ t: 0, id: 'player', pos: homeW(-3.4, 14.35), yaw: Math.PI, anim: 'sit' }],
     lines: [
       { t: 0.6, who: 'sys', text: '（テレビは砂嵐。音を消しても、ざらざらした音が続く）', dur: 3.0 },
-      { t: 4.4, who: 'sys', text: '（一瞬、知らない人の顔が映る。白衣。声はない）', dur: 2.6 },
+      { t: 4.4, who: 'sys', text: '（一瞬、淡い光の人影が映る。白い長い上着。顔は、よく見えない。声はない）', dur: 2.6 },
       { t: 7.4, who: 'dan', text: '……今の、誰？', dur: 2.0 },
       { t: 9.6, who: 'dan', text: 'あの子に電話……つながらない。……探しに行くしかないわね', dur: 3.0 },
     ],
