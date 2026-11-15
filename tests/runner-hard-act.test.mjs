@@ -146,9 +146,21 @@ t('固定の歩み：dt を 1/60 ずつ回し、余りは持ち越す（1 回に
   assert.equal(go(b, 1, {}), 5, '止まっていた後も一度に 5 歩まで');
 });
 
-t('状態は 12 個（立つ・歩き出し・歩く・ダッシュ・止まり際・スライド・上がる・落ちる・着地・壁ずり・壁蹴り・やられ）', () => {
+t('状態は 13 個（立つ・歩き出し・歩く・ダッシュ・止まり際・スライド・上がる・落ちる・着地・壁ずり・壁蹴り・やられ・空中ダッシュ＝習得技）', () => {
   const A = air();
-  for (const s of ['stand', 'walk_start', 'walk', 'dash', 'dash_end', 'slide', 'jump', 'fall', 'land', 'wall_slide', 'wall_kick', 'hurt']) assert.ok(A.STATES.includes(s), s);
+  for (const s of ['stand', 'walk_start', 'walk', 'dash', 'dash_end', 'slide', 'jump', 'fall', 'land', 'wall_slide', 'wall_kick', 'hurt', 'air_dash']) assert.ok(A.STATES.includes(s), s);
+  assert.equal(A.STATES.length, 13);
+});
+
+t('空中ダッシュ（習得技・風走り）：覚えるまで出ない・覚えると空中で 1 回、落ちずに横へ・着地で戻る', () => {
+  const map = RA.makeMap(['.'.repeat(80), '.'.repeat(80), '.'.repeat(80), '.'.repeat(80), '.'.repeat(80), '#'.repeat(80)]), T = RA.TILE;
+  const run = can => { const A = RA.make({ map, airDash: () => can }), b = A.body(5 * T, T, 1); A.step(b, { j: true }); for (let i = 0; i < 10; i++) A.step(b, { j: true, r: true }); A.step(b, { r: true, d: true }); return { A, b }; };
+  assert.notEqual(run(false).b.state, 'air_dash');
+  const { A, b } = run(true); assert.equal(b.state, 'air_dash'); const y0 = b.y, x0 = b.x;
+  for (let i = 0; i < 10; i++) A.step(b, { r: true, d: true }); assert.equal(b.y, y0, '落ちない'); assert.ok(b.x - x0 > 70, '横へ速く');
+  for (let i = 0; i < 20; i++) A.step(b, { r: true, d: true }); assert.equal(b.state, 'fall');
+  A.step(b, { r: true }); A.step(b, { r: true, d: true }); assert.notEqual(b.state, 'air_dash', '空中で 1 回');
+  for (let i = 0; i < 120 && b.state !== 'land'; i++) A.step(b, {}); assert.ok(!b.airDashed, '着地で戻る');
 });
 
 console.log(`runner-hard-act: ${n} ok`);

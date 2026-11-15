@@ -82,9 +82,12 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
   ok(`${label}：開く → 自機の動き（act.js）を読み込んで説明の画面`, !!intro);
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_intro.png` });
   await p.waitForTimeout(700); await p.keyboard.press('z'); await p.waitForTimeout(400);   // 説明の画面は出てから 0.4 秒は進まない（誤操作よけ）
-  let s = await S(); ok(`${label}：Z → ボス選択の画面（表から並べる・雷殻の怪異）`, s.phase === 'select');
+  let s = await S(); ok(`${label}：Z → ボス選択の画面（表から並べる・通常ボス A・B・C）`, s.phase === 'select' && s.sel.join() === 'kazegiri,dakuryu,raikaku', JSON.stringify(s.sel));
+  await until(async () => (await S()).sprites.length >= 4, 5000, 100);
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_select.png` });
-  await p.waitForTimeout(500); await p.keyboard.press('z'); await p.waitForTimeout(300);
+  await p.keyboard.press('ArrowRight'); await p.keyboard.press('ArrowRight'); await p.waitForTimeout(500);   // 雷殻の怪異（C）を選ぶ
+  ok(`${label}：←→ でボスを選ぶ（雷殻の怪異）`, (await S()).selIdx === 2);
+  await p.keyboard.press('z'); await p.waitForTimeout(300);
   s = await S(); ok(`${label}：選んで遊び始める（ボスの面＝高架下・都市送電区）・自機とボスはドット絵`, s.phase === 'play' && s.sprite && s.bossSprite && s.stage === 'koka', JSON.stringify({ phase: s.phase, sprite: s.sprite, boss: s.bossSprite, stage: s.stage }));
   const x0 = s.x; await p.keyboard.down('ArrowRight'); await p.waitForTimeout(700); await p.keyboard.up('ArrowRight');
   s = await S(); ok(`${label}：→ で右へ歩く`, s.x > x0 + 80, `${Math.round(x0)} → ${Math.round(s.x)}`);
@@ -151,7 +154,8 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
     const rec = await p.evaluate(() => JSON.parse(JSON.stringify(gs.runnerHard)));
     ok(`${label}：記録 gs.runnerHard に技と倒したボス`, rec.moves.includes('raitotsu') && rec.beaten.includes('raikaku'));
   }
-  // 途中の印 → 戸の手前へ
+  // 途中の印 → 戸の手前へ（隠しボスに会うため、ほかの通常ボスも倒した事にする）
+  await p.evaluate(() => window.__MG_TEST__.runnerHard.beatAll());
   const g = (await S()).goal;
   await p.evaluate(() => { const r = window.__MG_TEST__.runnerHard; r.warp(52 * 40 + 20, 90); });
   await p.waitForTimeout(500);
@@ -199,6 +203,58 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
   ok(`${label}：ページのエラーが出ない`, errs.length === 0, JSON.stringify(errs.slice(0, 3)));
   await p.close();
 }
+// 通常ボス A（風斬の怪異・雨のビルの屋上・突風）と B（濁流の怪異・排水路・増水）：選ぶ → 面の仕掛け → ボスを倒す → 技を覚えて使う
+for (const [idx, id, stage, move, label] of [[0, 'kazegiri', 'okujo', 'kazebashiri', 'A 風斬'], [1, 'dakuryu', 'haisui', 'mizukiri', 'B 濁流']]) {
+  const p = await b.newPage({ viewport: { width: 960, height: 540 } }); const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.addInitScript(() => { window.__MG_TEST__ = {}; });
+  await p.goto(BASE + '/index.html?runnerhard=1'); await p.waitForTimeout(2500); await p.mouse.click(480, 270);
+  await p.evaluate(async () => { gs.mgDay = {}; delete gs.runnerHard; await MG.open('runner_hard'); });
+  const S = () => p.evaluate(() => window.__MG_TEST__.runnerHard ? window.__MG_TEST__.runnerHard.s : null);
+  const H = (f, ...a) => p.evaluate(([f, a]) => window.__MG_TEST__.runnerHard[f](...a), [f, a]);
+  const until = async (fn, ms = 15000, step = 80) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const v = await fn(); if (v) return v; await p.waitForTimeout(step); } return null; };
+  await until(async () => { const s = await S(); return s && s.phase === 'intro'; }); await p.waitForTimeout(600); await p.keyboard.press('z'); await p.waitForTimeout(500);
+  for (let i = 0; i < idx; i++) await p.keyboard.press('ArrowRight');
+  await p.keyboard.press('z'); await p.waitForTimeout(400);
+  let s = await S(); ok(`${label}：選ぶと そのボスの面（${stage}）`, s.phase === 'play' && s.stage === stage, JSON.stringify({ phase: s.phase, stage: s.stage }));
+  if (stage === 'okujo') {   // 突風：吹いている間は自機が押される
+    await until(async () => (await S()).gmW.winds[0], 6000, 30); await H('warp', 30 * 40, 164); const x0 = (await S()).x; await p.waitForTimeout(250); const x1 = (await S()).x;
+    ok(`${label}：突風が吹くと 自機が押し戻される`, x1 < x0 - 20, `${Math.round(x0)} → ${Math.round(x1)}`);
+  } else {                   // 増水：上がると通りの自機が やられ
+    await until(async () => (await S()).gmW.floods[0] > 40, 8000, 30); const hp0 = (await S()).hp; await H('warp', 21 * 40 + 20, 84);
+    const hurt = await until(async () => (await S()).hp < hp0, 1500, 20); ok(`${label}：増水すると 通りに立つ自機が やられ`, !!hurt);
+  }
+  if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${id}_stage.png` });
+  await p.waitForTimeout(1300); await H('heal');
+  const ar = (await S()).arena; await H('warp', ar.x0 + 80, 90);
+  const on = await until(async () => (await S()).arenaOn, 3000, 50); ok(`${label}：ボスの部屋に入ると柵が閉まり、ボスが起きる`, !!on);
+  await p.waitForTimeout(1600); if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${id}_boss.png` });
+  await H('heal'); await H('bossHp', 1);
+  let learned = null;
+  for (let i = 0; i < 100 && !learned; i++) {
+    const v = await S(); if (v.phase === 'learn') { learned = v; break; }
+    if (!v.boss || v.boss.dead) { await p.waitForTimeout(150); continue; }
+    if (!/walk|recover|_tele$|shot$/.test(v.boss.state) || !v.boss.grounded) { await p.waitForTimeout(60); continue; }
+    await p.waitForTimeout(1000); await H('heal');
+    const v2 = await S(); await H('warp', v2.boss.x - v2.boss.w - 24, 80); await p.keyboard.down('ArrowRight'); await p.waitForTimeout(20); await p.keyboard.up('ArrowRight');
+    await p.keyboard.down('x'); await p.waitForTimeout(60); await p.keyboard.up('x'); await p.waitForTimeout(80);
+  }
+  if (!learned) learned = await until(async () => { const v = await S(); return v.phase === 'learn' ? v : null; }, 4000, 50);
+  ok(`${label}：ボスを倒す → 「新しい技を覚えた」`, !!learned, learned ? '' : JSON.stringify((await S()).boss));
+  if (SHOTS && learned) await p.screenshot({ path: `${SHOTS}/rh_${id}_learn.png` });
+  await p.waitForTimeout(900); await p.keyboard.press('z'); await p.waitForTimeout(300); await H('heal');
+  const v3 = await S(); ok(`${label}：覚えた技と倒したボスを記録`, v3.moves.includes(move) && v3.beaten.includes(id), JSON.stringify({ moves: v3.moves, beaten: v3.beaten }));
+  await until(async () => ['stand', 'land', 'walk'].includes((await S()).state), 3000, 30);
+  if (move === 'kazebashiri') {
+    await p.keyboard.down('z'); await p.waitForTimeout(150); await p.keyboard.down('c'); const ad = await until(async () => (await S()).state === 'air_dash', 800, 10); await p.keyboard.up('c'); await p.keyboard.up('z');
+    ok(`${label}：空中で C → 風走り（空中ダッシュ）`, !!ad);
+  } else {
+    await p.keyboard.down('ArrowDown'); await p.waitForTimeout(60); await p.keyboard.down('x'); const mk = await until(async () => (await S()).atk === 'mizukiri', 800, 10); await p.keyboard.up('x'); await p.keyboard.up('ArrowDown');
+    ok(`${label}：スライディング中に X → 水切り`, !!mk);
+  }
+  ok(`${label}：ページのエラーが出ない`, errs.length === 0, JSON.stringify(errs.slice(0, 3)));
+  await p.close();
+}
+
 // 隠しボス：一度会うと選択画面から戦える → 感染ゲージが満タンで負けの結末
 {
   const p = await b.newPage({ viewport: { width: 960, height: 540 } }); const errs = []; p.on('pageerror', e => errs.push(e.message));
@@ -209,7 +265,7 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
   const wait = async (fn, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const v = await R().catch(() => null); if (v && fn(v)) return v; await p.waitForTimeout(50); } return null; };
   await wait(v => v.phase === 'intro', 15000); await p.waitForTimeout(600); await p.keyboard.press('z'); await p.waitForTimeout(500);
   const sel = await R(); ok('隠しボス：一度会うと選択画面に風邪菌（仮）が出る', sel.phase === 'select' && sel.cold.sel.includes('cold'), JSON.stringify(sel.cold.sel));
-  await p.keyboard.press('ArrowRight'); await p.waitForTimeout(100);
+  await p.keyboard.press('ArrowLeft'); await p.waitForTimeout(100);   // いちばん右（隠しボス）
   await p.screenshot({ path: (SHOTS || '/tmp') + '/rh_select_cold.png' });
   await p.keyboard.press('z');
   const sto = await wait(v => v.phase === 'story', 2000);

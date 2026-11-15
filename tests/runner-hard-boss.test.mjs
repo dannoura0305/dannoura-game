@@ -16,6 +16,7 @@ vm.createContext(ctx);
 for (const f of ['act.js', 'combat.js', 'bosses.js']) vm.runInContext(readFileSync(join(ROOT, 'minigames/runner/' + f), 'utf8'), ctx, { filename: f });
 const RA = ctx.RunnerAct, RC = ctx.RunnerCombat, RB = ctx.RunnerBosses, RK = RB.RAIKAKU;
 const SPR = JSON.parse(readFileSync(join(ROOT, 'assets/runner/raikaku.json'), 'utf8'));
+const SPRS = id => JSON.parse(readFileSync(join(ROOT, `assets/runner/${id}.json`), 'utf8')).frames;
 let n = 0; const t = (name, fn) => { fn(); n++; console.log('  ✓ ' + name); };
 const T = RA.TILE;
 const room = () => RA.makeMap(['#' + '.'.repeat(28) + '#', '#' + '.'.repeat(28) + '#', '#' + '.'.repeat(28) + '#', '#'.repeat(30), '#'.repeat(30)]);
@@ -24,6 +25,8 @@ const boss = () => { const map = room(), Z = RB.make(map), e = Z.spawn('raikaku'
 
 t('ボスの表：選択画面に出るのは隠しでない物だけ（雷殻の怪異）・覚える技は技の表にある・隠しボスは全員倒した後', () => {
   const vis = RB.visible(); assert.ok(vis.length >= 1 && vis.every(b => !b.hidden)); assert.ok(vis.some(b => b.id === 'raikaku' && b.name === '雷殻の怪異' && b.stage === 'koka'));
+  assert.equal(vis.map(b => b.id).join(), 'kazegiri,dakuryu,raikaku', '通常ボス A・B・C'); assert.equal(vis.map(b => b.name).join(), '風斬の怪異,濁流の怪異,雷殻の怪異');
+  for (const b of vis) assert.ok(b.special && b.stage && b.teaches, b.id);
   assert.ok(!RB.BOSSES.some(b => b.id === 'boss_a'), '仮のボスは差し替え済み');
   for (const b of RB.BOSSES) if (b.teaches) { assert.ok(RC.MOVES[b.teaches], b.teaches); assert.equal(RC.MOVES[b.teaches].base, false); assert.equal(RC.MOVES[b.teaches].learnedFrom, b.id); }
   const cold = RB.BOSSES.find(b => b.id === 'cold'); assert.ok(cold && cold.hidden && cold.stage === 'home' && cold.unlock === 'after_all', '隠しボス：家・全員倒した後');
@@ -101,6 +104,60 @@ t('切り上げ（仮）：覚えるまで ↑＋攻撃でも 1 段目。覚え�
   const r = tryUp(['rising']); assert.equal(r.b.atk.id, 'rising');
   for (let i = 0; i < 5; i++) { A.step(r.b, r.C.pre(r.b, {})); }
   const hb = r.C.hitbox(r.b); assert.ok(hb && hb.y1 - r.b.y > 100, '上に高く届く');
+});
+
+// ── 風斬の怪異・濁流の怪異 ──
+const run = (id, frames, opt = {}) => {
+  const map = room(), Z = RB.make(map), e = Z.spawn(id, 20 * T, 2 * T, AR), p = { x: opt.px || 8 * T, y: 2 * T }; Z.wake(e); if (opt.hp) e.hp = opt.hp;
+  const seen = new Set(), kinds = new Set(), evs = new Set(), keys = new Set(); let teleBefore = true, last = null;
+  for (let i = 0; i < frames; i++) {
+    const before = Z.shots.length, st0 = e.state; if (opt.chase && i % 90 === 0) p.x = e.x + (i % 180 ? -60 : 260);
+    Z.step(e, p); Z.stepShots(); seen.add(e.state); for (const v of e.ev) evs.add(v); keys.add(Z.frame(e));
+    if (e.state !== st0 && !/_tele$|walk|recover/.test(e.state) && !/_tele$|slash|walk/.test(st0) && e.state !== 'air_up' && e.state !== 'air_dive' && e.state !== 'shot' && e.state !== 'grab') last = [st0, e.state];
+    for (const s of Z.shots.slice(before)) kinds.add(s.kind);
+    assert.ok(e.x >= AR.x0 && e.x <= AR.x1, '部屋の外に出ない');
+  }
+  return { Z, e, seen, kinds, evs, keys, last };
+};
+t('風斬の怪異：高速ダッシュ・地上の 3 連斬り・空中から斜めの斬撃・突きが予兆の後に出る・部屋の外に出ない・体力が多い間は奥義を出さない', () => {
+  const r = run('kazegiri', 4000, { chase: true });
+  for (const s of ['dash_tele', 'dash', 'slash_tele', 'slash', 'air_tele', 'air_up', 'air_dive', 'thrust_tele', 'thrust', 'recover']) assert.ok(r.seen.has(s), s + '：' + [...r.seen].join(','));
+  assert.ok(r.kinds.has('melee')); assert.ok(!r.seen.has('storm'));
+  for (const k of r.keys) assert.ok(SPRS('kazegiri')[k], 'コマが無い ' + k);
+});
+t('風斬の怪異：フェイント（手前で止まってすぐ斬る）・休みに 3 回当てると立て直して反撃・風断連嵐（体力半分から：周りの刃と、高低の風の刃）', () => {
+  const r = run('kazegiri', 3000, { hp: 14 }); assert.ok(r.seen.has('storm_tele') && r.seen.has('storm') && r.evs.has('special'));
+  assert.ok(r.kinds.has('ring') && r.kinds.has('blade'));
+  const map = room(), Z = RB.make(map), e = Z.spawn('kazegiri', 20 * T, 2 * T, AR); Z.wake(e); e.state = 'recover'; e.f = 0;
+  Z.hurt(e, 1); Z.hurt(e, 1); assert.equal(e.state, 'recover'); Z.hurt(e, 1); assert.equal(e.state, 'dash_tele', '反撃');
+  let feint = false; const Z2 = RB.make(room()), e2 = Z2.spawn('kazegiri', 20 * T, 2 * T, AR); Z2.wake(e2); e2.state = 'dash_tele'; e2.f = 0; e2.k = RB.KAZEGIRI.dash.feint - 1;   // 次のダッシュがフェイント
+  for (let i = 0; i < 80 && !feint; i++) { const st = e2.state; Z2.step(e2, { x: 12 * T, y: 2 * T }); if (st === 'dash' && e2.state === 'slash_tele') feint = true; }
+  assert.ok(feint && Math.abs(e2.x - 12 * T) < 90, 'フェイント：手前で止まる');
+  const Z3 = RB.make(room()), e3 = Z3.spawn('kazegiri', 20 * T, 2 * T, AR); Z3.wake(e3); e3.state = 'dash_tele'; e3.f = 0; e3.k = 0; let passed = false;
+  for (let i = 0; i < 80; i++) { Z3.step(e3, { x: 12 * T, y: 2 * T }); if (e3.x < 12 * T - 60) passed = true; } assert.ok(passed, 'ふつうのダッシュは駆け抜ける');
+});
+t('濁流の怪異：地を這う・スプラッシュラッシュ（水たまり）・飛沫弾（着弾で水しぶき）・大波（水位が上がって下がる）・近いと捕縛', () => {
+  const r = run('dakuryu', 4000, { px: 8 * T });
+  for (const s of ['walk', 'rush_tele', 'rush', 'shot_tele', 'shot', 'wave_tele', 'wave', 'recover']) assert.ok(r.seen.has(s), s + '：' + [...r.seen].join(','));
+  for (const k of ['splash', 'drop', 'flood']) assert.ok(r.kinds.has(k), k);
+  const g = run('dakuryu', 600, { px: 17 * T }); assert.ok(g.seen.has('grab_tele') && g.seen.has('grab') && g.kinds.has('melee'), '捕縛');
+  const map = room(), Z = RB.make(map), e = Z.spawn('dakuryu', 20 * T, 2 * T, AR); Z.wake(e); e.state = 'wave_tele'; e.f = 0; let maxL = 0, boxed = false, gone = false;
+  for (let i = 0; i < 400; i++) { Z.step(e, { x: 5 * T, y: 80 }); Z.stepShots(); const fl = Z.shots.find(s => s.kind === 'flood'); if (fl) { maxL = Math.max(maxL, fl.level); const b = Z.shotBox(fl); if (b) { boxed = true; assert.ok(b.y1 <= 80 + RB.DAKURYU.wave.level + 0.01 && b.y1 < 200, '高い足場（200）までは届かない'); } } else if (maxL > 0) gone = true; }
+  assert.ok(maxL >= RB.DAKURYU.wave.level - 0.01 && boxed && gone, '上がって下がる');
+  for (const k of r.keys) assert.ok(SPRS('dakuryu')[k], 'コマが無い ' + k);
+});
+t('濁流の怪異：豪雨濁流・都市氾濫（体力半分から）：左右から濁流が断続的に押し寄せる（跳べる高さ）', () => {
+  const r = run('dakuryu', 2500, { hp: 16 }); assert.ok(r.seen.has('flood_tele') && r.seen.has('flood') && r.evs.has('special') && r.kinds.has('surge'));
+  assert.ok(RB.DAKURYU.flood.h < 100, '跳んで越えられる');
+});
+t('水切り（仮）：覚えるまでスライディング中の攻撃は出ない。覚えると滑りながら足もとを払う', () => {
+  const map = RA.makeMap(['.'.repeat(60), '.'.repeat(60), '.'.repeat(60), '#'.repeat(60)]), A = RA.make({ map });
+  const go = learned => { const C = RC.make(A, { learned }), b = A.body(10 * T, T, 1); A.step(b, C.pre(b, { dn: true })); C.post(b); assert.equal(b.state, 'slide'); A.step(b, C.pre(b, { atk: true, atkP: true })); C.post(b); return { b, C }; };
+  assert.equal(go([]).b.atk, null);
+  const r = go(['mizukiri']); assert.equal(r.b.atk.id, 'mizukiri'); const x0 = r.b.x; let hb = null;
+  for (let i = 0; i < 6; i++) { A.step(r.b, r.C.pre(r.b, {})); r.C.post(r.b); hb = hb || r.C.hitbox(r.b); }
+  assert.equal(r.b.state, 'slide'); assert.ok(r.b.x > x0 + 15, '滑り続ける'); assert.ok(hb && hb.y1 - r.b.y <= 30 && hb.dmg >= 2, '低く払う');
+  for (let i = 0; i < 60; i++) { A.step(r.b, r.C.pre(r.b, {})); r.C.post(r.b); } assert.equal(r.b.atk, null, '滑りが終わると終わる');
 });
 
 console.log(`runner-hard-boss: ${n} ok`);

@@ -27,6 +27,7 @@ function rig(learned) {
 
 t('技の表：こま数が正・連なる先が実在する・基本技（地上 3 段・空中）がある', () => {
   for (const [id, m] of Object.entries(RC.MOVES)) {
+    if (m.ability) { assert.equal(m.base, false); continue; }                 // 動きを足す習得技（空中ダッシュ）は こま数を持たない
     for (const k of ['startup', 'active', 'recover']) assert.ok(Number.isInteger(m[k]) && m[k] > 0, `${id}.${k}`);
     for (const to of Object.keys(m.cancel)) assert.ok(to === 'jump' || to === 'dash' || RC.MOVES[to], `${id} → ${to}`);
     for (const w of Object.values(m.cancel)) assert.ok(w[0] >= 1 && w[1] >= w[0] && w[1] <= RC.total(m), `${id} の窓`);
