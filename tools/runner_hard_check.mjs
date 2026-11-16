@@ -231,16 +231,17 @@ for (const [idx, id, stage, move, label] of [[0, 'kazegiri', 'okujo', 'kazebashi
   for (let i = 0; i < idx; i++) await p.keyboard.press('ArrowRight');
   await p.keyboard.press('z'); await p.waitForTimeout(400);
   let s = await S(); ok(`${label}：選ぶと そのボスの面（${stage}）`, s.phase === 'play' && s.stage === stage, JSON.stringify({ phase: s.phase, stage: s.stage }));
+  if (stage === 'haisui') { const art = await until(async () => (await S()).art, 6000, 100); ok(`${label}：面の背景は利用者の絵（3 枚）`, !!art); if (SHOTS) { await p.waitForTimeout(500); await p.screenshot({ path: `${SHOTS}/rh_haisui_start.png` }); } }
   if (stage === 'okujo') {   // 突風：吹いている間は自機が押される
     await until(async () => (await S()).gmW.winds[0], 6000, 30); await H('warp', 30 * 40, 164); const x0 = (await S()).x; await p.waitForTimeout(250); const x1 = (await S()).x;
     ok(`${label}：突風が吹くと 自機が押し戻される`, x1 < x0 - 20, `${Math.round(x0)} → ${Math.round(x1)}`);
   } else {                   // 増水：上がると通りの自機が やられ
-    await until(async () => (await S()).gmW.floods[0] > 40, 8000, 30); const hp0 = (await S()).hp; await H('warp', 21 * 40 + 20, 84);
-    const hurt = await until(async () => (await S()).hp < hp0, 1500, 20); ok(`${label}：増水すると 通りに立つ自機が やられ`, !!hurt);
+    await until(async () => { const v = await S(); return v.gmW.floods[0] > 70 && v.invul <= 0; }, 12000, 30); const hp0 = (await S()).hp; await H('warp', 670, 141);   // 水の中の低い柱（137）
+    const hurt = await until(async () => (await S()).hp < hp0, 1500, 20); ok(`${label}：増水すると 水の中の低い柱に立つ自機が やられ`, !!hurt);
   }
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${id}_stage.png` });
   await p.waitForTimeout(1300); await H('heal');
-  const ar = (await S()).arena; await H('warp', ar.x0 + 80, 90);
+  const ar = (await S()).arena; await H('warp', ar.x0 + 80, ar.floor + 10);
   const on = await until(async () => (await S()).arenaOn, 3000, 50); ok(`${label}：ボスの部屋に入ると柵が閉まり、ボスが起きる`, !!on);
   await p.waitForTimeout(1600); if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${id}_boss.png` });
   await H('heal'); await H('bossHp', 1);
@@ -250,7 +251,7 @@ for (const [idx, id, stage, move, label] of [[0, 'kazegiri', 'okujo', 'kazebashi
     if (!v.boss || v.boss.dead) { await p.waitForTimeout(150); continue; }
     if (!/walk|recover|_tele$|shot$/.test(v.boss.state) || !v.boss.grounded) { await p.waitForTimeout(60); continue; }
     await p.waitForTimeout(1000); await H('heal');
-    const v2 = await S(); await H('warp', v2.boss.x - v2.boss.w - 24, 80); await p.keyboard.down('ArrowRight'); await p.waitForTimeout(20); await p.keyboard.up('ArrowRight');
+    const v2 = await S(); await H('warp', v2.boss.x - v2.boss.w - 24, v2.boss.y); await p.keyboard.down('ArrowRight'); await p.waitForTimeout(20); await p.keyboard.up('ArrowRight');
     await p.keyboard.down('x'); await p.waitForTimeout(60); await p.keyboard.up('x'); await p.waitForTimeout(80);
   }
   if (!learned) learned = await until(async () => { const v = await S(); return v.phase === 'learn' ? v : null; }, 4000, 50);

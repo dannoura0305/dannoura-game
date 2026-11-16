@@ -29,7 +29,8 @@
     const H = rows.length, W = Math.max(...rows.map(r => r.length));
     const at = (cx, cy) => { const r = H - 1 - cy; if (cx < 0 || cx >= W) return '#'; if (r < 0) return '.'; if (r >= H) return '#'; return rows[r][cx] || '.'; };
     const extra = new Set();                                         // 後から足す壁（ボスの部屋の柵など）：'列,高さ'
-    return { rows, tile, W, H, at, extra, solid: (cx, cy) => at(cx, cy) === '#' || extra.has(cx + ',' + cy), oneway: (cx, cy) => at(cx, cy) === '=', spike: (cx, cy) => at(cx, cy) === '^' };
+    const ledges = [];                                               // 好きな高さの「上からだけ乗れる足場」：{ x0, x1, y }（世界の px。背景の絵に合わせる面で使う）
+    return { rows, tile, W, H, at, extra, ledges, solid: (cx, cy) => at(cx, cy) === '#' || extra.has(cx + ',' + cy), oneway: (cx, cy) => at(cx, cy) === '=', spike: (cx, cy) => at(cx, cy) === '^' };
   }
   const EMPTY = { tile: TILE, at: () => '.', solid: () => false, oneway: () => false, spike: () => false };
 
@@ -46,6 +47,7 @@
     function onGround(b) {
       const y = b.y - 0.5, cy = Math.floor(y / T);
       for (const cx of cells(b.x - BODY.hw, b.x + BODY.hw)) { if (map.solid(cx, cy)) return true; if (map.oneway(cx, cy) && Math.abs(b.y - (cy + 1) * T) < 0.6) return true; }
+      if (map.ledges) for (const L of map.ledges) if (Math.abs(b.y - L.y) < 0.6 && b.x + BODY.hw > L.x0 && b.x - BODY.hw < L.x1) return true;
       return false;
     }
     const wallAt = (b, dir) => { const x = dir > 0 ? b.x + BODY.hw + 0.5 : b.x - BODY.hw - 0.5; return solidBox(x - 0.01, x + 0.01, b.y + 1, b.y + h(b) - 1); };
@@ -60,11 +62,14 @@
       if (!dy) return 0;
       const ny = b.y + dy, x0 = b.x - BODY.hw, x1 = b.x + BODY.hw;
       if (dy < 0) {                                                // 落ちる：床・上からだけ乗れる床（前のこまで上にいた時だけ）
+        let land = -Infinity;
+        if (map.ledges) for (const L of map.ledges) if (b.y >= L.y - 0.01 && ny < L.y && x1 > L.x0 && x0 < L.x1) land = Math.max(land, L.y);   // 好きな高さの足場
         const cyTop = Math.floor((b.y - 1e-6) / T), cyBot = Math.floor(ny / T);
-        for (let cy = cyTop; cy >= cyBot; cy--) for (const cx of cells(x0, x1)) {
+        for (let cy = cyTop; cy >= cyBot && (cy + 1) * T > land; cy--) for (const cx of cells(x0, x1)) {
           const top = (cy + 1) * T;
           if ((map.solid(cx, cy) || (map.oneway(cx, cy) && b.y >= top - 0.01)) && ny < top) { b.y = top; return -1; }
         }
+        if (land > -Infinity) { b.y = land; return -1; }
       } else if (solidBox(x0, x1, ny + h(b) - 0.01, ny + h(b))) { b.y = Math.floor((ny + h(b)) / T) * T - h(b) - 0.001; return 1; }   // 天井
       b.y = ny; return 0;
     }

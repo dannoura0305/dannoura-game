@@ -153,13 +153,13 @@ t('ボスの部屋：平らな床（列 c0〜c1）・その先にコンビニの
 function runStage(id, bot, limit=60*120, log=false) {
   const ST=ctx.RunnerHardStages[id], ROWS=ST.rows(), Hh=ROWS.length;
   let S=null; ROWS.forEach((r,ri)=>{ const c=r.indexOf('S'); if(c>=0) S={x:c*T+T/2,y:(Hh-1-ri)*T}; });
-  const map=RA.makeMap(ROWS.map(r=>r.replace(/[SCG]/g,'.'))); const G=ctx.RunnerGimmicks.make(map, ST.gimmicks());
+  const map=RA.makeMap(ROWS.map(r=>r.replace(/[SCG]/g,'.'))); if (ST.ledges) for (const L of ST.ledges()) map.ledges.push(L); const G=ctx.RunnerGimmicks.make(map, ST.gimmicks());
   while (S.y>0 && !map.solid(Math.floor(S.x/T), Math.floor((S.y-1)/T))) S.y-=T;
-  const A=RA.make({map}); const b=A.body(S.x,S.y,1), mem={}, AR=ST.arena(); let hurt=0,f=0;
+  const A=RA.make({map}); const b=A.body(S.x,S.y,1), mem={}, AR=ST.arena(), FL=(AR.floorCy||2)*T, FY=ST.fallY!=null?ST.fallY:-120; let hurt=0,f=0;
   for(;f<limit;f++){ const inp=bot(G,b,f,mem); A.step(b,inp); G.step(b,A.box(b)); const sh=G.shock(A.box(b)); if((sh||b.state==='hurt')&&!mem.h){hurt++; if(log) console.log('hurt',id,(b.x/T).toFixed(1),b.y.toFixed(0),b.state,f, sh?'shock':'');} mem.h=sh||b.state==='hurt';
     if (b.y < 10 && b.y>=0 && b.state!=='hurt' && log && !mem.low) { console.log('low', (b.x/T).toFixed(1)); mem.low=1; }
-    if (b.y < 30) { if (log) console.log('fell', (b.x/T).toFixed(1)); return {ok:false,f,hurt,b,x:(b.x/T).toFixed(1),y:'fell'}; }
-    if (b.x>(AR.c0+2)*T && Math.abs(b.y-80)<0.5) return {ok:true,f,hurt,b};
+    if (b.y < (ST.fallY!=null?ST.fallY:30)) { if (log) console.log('fell', (b.x/T).toFixed(1)); return {ok:false,f,hurt,b,x:(b.x/T).toFixed(1),y:'fell'}; }
+    if (b.x>(AR.c0+2)*T && Math.abs(b.y-FL)<0.5) return {ok:true,f,hurt,b};
   }
   return {ok:false,f,hurt,b,x:(b.x/T).toFixed(1),y:b.y.toFixed(0)};
 }
@@ -179,35 +179,32 @@ function okujoBot(G,b,f,mem){
   mem.prevJ=!!inp.j; mem.prevD=!!inp.d; return inp;
 }
 function haisuiBot(G,b,f,mem){
-  const c=b.x/T, inp={r:true}, [f1,f2]=G.floods;
+  const x=b.x, inp={r:true}, [f1,f2]=G.floods, gr=['stand','walk','walk_start','land'].includes(b.state);
+  const wait=(fl,need)=>G.live(fl)||G.left(fl)<need;
   if (b.state==='jump') inp.j=true;
-  // 増水：水が上がる前に高い足場へ・水が引いたら次へ
-  const plats=[[17,19],[24,26],[31,33],[88,90],[95,97]];
-  const fl = c<40 ? f1 : f2, inZone = (c>13.5&&c<37)||(c>84.5&&c<101);
-  const onPlat = Math.abs(b.y-160)<0.5;
-  if (inZone || (c>12 && c<14) || (c>83 && c<85)) {
-    const safeLeft = G.live(fl) ? 0 : G.left(fl);
-    if (onPlat) { if (G.live(fl) || safeLeft < 110) inp.r=false; else { const p=plats.find(p=>c>=p[0]&&c<=p[1]+1); if (p && c>p[1]+0.3 ) inp.j=true; } }
-    else if (b.y<=80.5 && ground(b)) {
-      const next=plats.find(p=>p[0]-c>-0.5 && p[0]-c<6); 
-      if (!inZone && (G.live(fl) || safeLeft<125)) inp.r=false;
-      else if (next && next[0]-c<1.6) inp.j=true;
-    }
-  }
-  if (c>42 && c<46.5 && b.y<320) { if (ground(b)) inp.j=true; else if (b.state==='wall_slide') inp.j=(f%2===0); else if (b.state==='wall_kick'||b.state==='jump') inp.j=true; }
-  if (c>50 && c<55.6 && b.y>=79 && b.y<81) { inp.d = b.state==='dash' || !mem.prevD; if (c>54.4) inp.j=true; }
+  // 1 枚目：左の岸壁の端で、水が引くのを待ってダッシュジャンプ → 柱を 4 本 → 右の岸壁
+  if (x>300 && x<334 && gr && Math.abs(b.y-160)<1) { if (wait(f1,150)) inp.r=false; else { inp.d=true; mem.go1=f; } }
+  if (mem.go1 && f-mem.go1<30 && x<360 && (b.state==='dash'||gr)) { inp.d=b.state==='dash'||!mem.prevD; if (x>326) inp.j=true; }
   if ((b.state==='jump'||b.state==='fall') && b.dashJump) { inp.d=true; inp.j=true; }
-  if (c>67 && c<81) inp.dn=(f%40<2);
-  if (mem.prevJ && inp.j && (ground(b)||onPlat)) inp.j=false;
+  if (gr && Math.abs(b.y-137)<1 && x>730) inp.j=true;
+  if (gr && Math.abs(b.y-110)<1 && x>935) inp.j=true;
+  if (gr && Math.abs(b.y-165)<1 && x>1160) inp.j=true;
+  if (gr && Math.abs(b.y-203)<1 && x>1428) inp.j=true;
+  // 2 枚目：左の床の端で待つ → 柱 → 作業台（安全）→ 待つ → 柱 → 張り出し（安全）→ 柱 → 右の岸壁
+  if (gr && Math.abs(b.y-200)<1 && x>2280 && x<2320 && wait(f2,90)) inp.r=false;
+  if (gr && Math.abs(b.y-175)<1 && x>2440) inp.j=true;
+  if (gr && Math.abs(b.y-240)<1 && x>2840 && x<2870 && wait(f2,110)) inp.r=false;
+  if (gr && Math.abs(b.y-170)<1 && x>3040) inp.j=true;
+  if (gr && Math.abs(b.y-177)<1 && x>3380) inp.j=true;
+  if (mem.prevJ && inp.j && gr) inp.j=false;
   mem.prevJ=!!inp.j; mem.prevD=!!inp.d; return inp;
 }
-
   for (const [id, bot, boss, sec] of [['okujo', okujoBot, 'kazegiri', 40], ['haisui', haisuiBot, 'dakuryu', 60]]) {
     const K = ctx.RunnerHardStages[id], KR = K.rows();
     t(`${K.name}：14 行で幅がそろう・始まりと戸・ボスの表とつながる・ボスの部屋は平らで 1 画面ほど`, () => {
       assert.equal(KR.length, 14); assert.ok(KR.every(r => r.length === KR[0].length)); assert.ok(KR.some(r => r.includes('S')) && KR.some(r => r.includes('G')));
       const A = K.arena(), d = ctx.RunnerBosses.BOSSES.find(b => b.id === A.boss); assert.ok(d && ctx.RunnerHardStages[d.stage] === K && d.id === boss);
-      const map = RA.makeMap(KR.map(r => r.replace(/[SCG]/g, '.'))); for (let c = A.c0; c <= A.c1; c++) { assert.ok(map.solid(c, 1) && !map.solid(c, 2) && !map.solid(c, 3), `床 ${c}`); }
+      const map = RA.makeMap(KR.map(r => r.replace(/[SCG]/g, '.'))), fc = A.floorCy || 2; for (let c = A.c0; c <= A.c1; c++) { assert.ok(map.solid(c, fc - 1) && !map.solid(c, fc) && !map.solid(c, fc + 1), `床 ${c}`); }
       assert.ok(A.c1 - A.c0 + 1 >= 13 && A.c1 - A.c0 + 1 <= 16);
     });
     t(`${K.name}：通れる（自動操作で、始まりからボスの部屋まで。仕掛けにも とげにも当たらずに）`, () => {
@@ -220,11 +217,17 @@ function haisuiBot(G,b,f,mem){
     for (let f = 0; f < 200; f++) { const c = b.x / T, inp = { r: true, d: b.state === 'dash' || !mem.d }; if (c > 29.9 || b.state === 'jump' || b.state === 'fall') { inp.j = true; inp.d = true; } mem.d = inp.d; A.step(b, inp); G.step(b, A.box(b)); if (b.y < 120) break; }
     assert.ok(b.y < 120, '向かい風でも届いてしまう');
   });
-  t('仕掛けの意味：増水の間は通りに立っていると やられ・高い足場（160）には水が届かない', () => {
+  t('仕掛けの意味：増水の間は水の中の低い柱に立っていると やられ・高い足場（203）には水が届かない', () => {
     const K = ctx.RunnerHardStages.haisui, map = RA.makeMap(K.rows().map(r => r.replace(/[SCG]/g, '.'))), G = ctx.RunnerGimmicks.make(map, K.gimmicks());
-    const fl = G.floods[0]; for (let f = 0; f < 80; f++) G.step(null, null); assert.ok(G.live(fl) && G.level(fl) > 50);
-    assert.ok(G.shock({ x0: 20 * T, x1: 20 * T + 14, y0: 80, y1: 128 }), '通りは浸かる'); assert.ok(!G.shock({ x0: 18 * T, x1: 18 * T + 14, y0: 160, y1: 208 }), '足場は浸からない');
-    for (let f = 0; f < 200; f++) G.step(null, null); assert.ok(!G.live(fl)); assert.ok(!G.shock({ x0: 20 * T, x1: 20 * T + 14, y0: 80, y1: 128 }), '引くと立てる');
+    const fl = G.floods[0]; for (let f = 0; f < 80; f++) G.step(null, null); assert.ok(G.live(fl) && G.level(fl) > 80);
+    assert.ok(G.shock({ x0: 650, x1: 664, y0: 137, y1: 185 }), '低い柱（137）は浸かる'); assert.ok(!G.shock({ x0: 1350, x1: 1364, y0: 203, y1: 251 }), '高い柱（203）は浸からない');
+    for (let f = 0; f < 200; f++) G.step(null, null); assert.ok(!G.live(fl)); assert.ok(!G.shock({ x0: 650, x1: 664, y0: 137, y1: 185 }), '引くと立てる');
+  });
+  t('排水路：足場は背景の絵に合わせた好きな高さ（ledges）にも乗れる・水より下へ落ちたら穴と同じ', () => {
+    const K = ctx.RunnerHardStages.haisui, map = RA.makeMap(K.rows().map(r => r.replace(/[SCG]/g, '.'))); for (const L of K.ledges()) map.ledges.push(L);
+    const A = RA.make({ map }), b = A.body(670, 300, 1); for (let f = 0; f < 120; f++) A.step(b, {}); assert.equal(b.y, 137, '柱の上に立つ');
+    const c = A.body(780, 300, 1); for (let f = 0; f < 120; f++) A.step(c, {}); assert.ok(c.y < K.fallY, '柱の間は水へ落ちる');
+    assert.ok(K.art.length === 3 && K.W * 40 === K.art.length * 2000, '絵 3 枚＝面の幅');
   });
 }
 
