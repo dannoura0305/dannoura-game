@@ -103,6 +103,7 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
     await p.keyboard.press('ArrowRight'); await p.waitForTimeout(100); }
   await p.keyboard.press('z'); await p.waitForTimeout(300);
   s = await S(); ok(`${label}：選んで遊び始める（ボスの面＝高架下・都市送電区）・自機とボスはドット絵`, s.phase === 'play' && s.sprite && s.bossSprite && s.stage === 'koka', JSON.stringify({ phase: s.phase, sprite: s.sprite, boss: s.bossSprite, stage: s.stage }));
+  await p.evaluate(() => window.__MG_TEST__.runnerHard.warp(1720, 170)); await p.waitForTimeout(300); s = await S();   // 長い床（帯電する床の先）で動きを試す
   const x0 = s.x; await p.keyboard.down('ArrowRight'); await p.waitForTimeout(700); await p.keyboard.up('ArrowRight');
   s = await S(); ok(`${label}：→ で右へ歩く`, s.x > x0 + 80, `${Math.round(x0)} → ${Math.round(s.x)}`);
   await p.keyboard.down('z'); const jy = await until(async () => { const v = await S(); return v.state === 'jump' && v.y > 120 ? v : null; }, 1500, 20); await p.keyboard.up('z');
@@ -115,8 +116,8 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
   if (SHOTS) { await p.waitForTimeout(200); await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_play.png` }); }
   // 攻撃：歩く敵の左に立って X（3 段）→ 倒す
   {
-    const st = await S(); const w = st.foes.find(e => e.type === 'walker' && !e.dead && e.y === 80);
-    await p.evaluate(w => window.__MG_TEST__.runnerHard.warp(w.x + w.face * 36, 90), w); await p.keyboard.down(w.face > 0 ? 'ArrowLeft' : 'ArrowRight'); await p.waitForTimeout(40); await p.keyboard.up(w.face > 0 ? 'ArrowLeft' : 'ArrowRight');   // 敵の進む先に、敵の方を向いて立つ
+    const st = await S(); const w = st.foes.find(e => e.type === 'walker' && !e.dead);
+    await p.evaluate(w => window.__MG_TEST__.runnerHard.warp(w.x + w.face * 36, w.y + 10), w); await p.keyboard.down(w.face > 0 ? 'ArrowLeft' : 'ArrowRight'); await p.waitForTimeout(40); await p.keyboard.up(w.face > 0 ? 'ArrowLeft' : 'ArrowRight');   // 敵の進む先に、敵の方を向いて立つ
     const k0 = st.kills; let atk = null;
     for (let i = 0; i < 12 && (await S()).kills === k0; i++) { await p.keyboard.down('x'); await p.waitForTimeout(60); const v = await S(); if (v.atk) atk = v.atk; await p.keyboard.up('x'); await p.waitForTimeout(110); }
     const k1 = (await S()).kills;
@@ -124,26 +125,25 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
     if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_attack.png` });
     // 敵に触れると やられ（傘の耐久が減る）
     const st2 = await S(), w2 = st2.foes.find(e => e.type === 'walker' && !e.dead);
-    if (w2) { await p.waitForTimeout(1100); const hp0 = (await S()).hp; await p.evaluate(e => window.__MG_TEST__.runnerHard.warp(e.x, e.y + 4), w2); const hurt = await until(async () => { const v = await S(); return v.hp < hp0 ? v : null; }, 2000, 30); ok(`${label}：敵に触れると やられ（傘の耐久が減る）`, !!hurt, hurt ? '' : JSON.stringify(await S()).slice(0, 300)); }
+    if (w2) { await until(async () => (await S()).invul <= 0, 3000, 30); const v0 = await S(), hp0 = v0.hp, w3 = v0.foes.find(e => e.type === 'walker' && !e.dead) || w2; await p.evaluate(e => window.__MG_TEST__.runnerHard.warp(e.x, e.y + 4), w3); const hurt = await until(async () => { const v = await S(); return v.hp < hp0 ? v : null; }, 2000, 30); ok(`${label}：敵に触れると やられ（傘の耐久が減る）`, !!hurt, hurt ? '' : (v => JSON.stringify({ w2, hp0, hp: v.hp, invul: v.invul, x: v.x, y: v.y, st: v.state, foes: v.foes.filter(e => e.type === 'walker') }))(await S())); }
   }
   // 面の仕掛け：帯電する床（流れている間に乗ると やられ）・壊れる足場（乗ると落ちる）
   {
-    await p.waitForTimeout(1300); await until(async () => (await S()).gm.strips[0], 4000, 30);
-    const hp0 = (await S()).hp; await p.evaluate(() => window.__MG_TEST__.runnerHard.warp(18 * 40 + 20, 84));
+    await until(async () => { const v = await S(); return v.invul <= 0 && v.gm.strips[0]; }, 8000, 30);
+    const hp0 = (await S()).hp; await p.evaluate(() => window.__MG_TEST__.runnerHard.warp(28 * 40 + 100, 164));
     const sh = await until(async () => { const v = await S(); return v.hp < hp0 ? v : null; }, 1500, 20);
     ok(`${label}：帯電する床：電気が流れている間に乗ると やられ`, !!sh);
     if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_strip.png` });
-    await p.waitForTimeout(1300); await p.evaluate(() => window.__MG_TEST__.runnerHard.warp(37 * 40 + 40, 84));
-    const fell = await until(async () => { const v = await S(); return v.gm.crumbles[0] === 'gone' ? v : null; }, 2500, 30);
-    ok(`${label}：壊れる足場：乗ると揺れて落ちる`, !!fell);
-    if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_crumble.png` });
+    await p.waitForTimeout(1300); await p.evaluate(() => window.__MG_TEST__.runnerHard.heal()); const f0 = (await S()).falls; await p.evaluate(() => window.__MG_TEST__.runnerHard.warp(505, 300));
+    const fell = await until(async () => { const v = await S(); return v.falls > f0 ? v : null; }, 2500, 30);
+    ok(`${label}：足場の間の稲妻の穴へ落ちると、途中の印から`, !!fell);
     await until(async () => (await S()).phase !== 'play' || (await S()).y > 60, 3000, 50);   // 落ちたら途中の印から（耐久が残っていれば）
     await p.waitForTimeout(1300); await p.evaluate(() => window.__MG_TEST__.runnerHard.heal());
   }
   // ボスの部屋：入ると柵が閉まる → 倒す → 技を覚える → 柵が開く → ↑＋X で切り上げ
   {
     const ar = (await S()).arena; await p.waitForTimeout(1100);
-    await p.evaluate(x => window.__MG_TEST__.runnerHard.warp(x, 90), ar.x0 + 80);
+    await p.evaluate(ar => window.__MG_TEST__.runnerHard.warp(ar.x0 + 80, ar.floor + 10), ar);
     const on = await until(async () => (await S()).arenaOn, 3000, 50);
     ok(`${label}：ボスの部屋に入ると柵が閉まり、ボスが起きる`, !!on && (await S()).boss.state !== 'wait');
     if (SHOTS) { await p.waitForTimeout(1500); await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_boss.png` }); }
@@ -153,7 +153,7 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
       const v = await S(); if (v.phase === 'learn') { learned = v; break; }
       if (!v.boss || v.boss.dead) { await p.waitForTimeout(150); continue; }
       if (!['walk', 'recover', 'stomp_tele', 'discharge_tele', 'rush_tele', 'storm_tele', 'storm'].includes(v.boss.state)) { await p.waitForTimeout(120); continue; }   // ガード（正面は防ぐ）・突進の間は待つ
-      await p.evaluate(b => window.__MG_TEST__.runnerHard.warp(b.x - 50, 80), v.boss); await p.keyboard.down('ArrowRight'); await p.waitForTimeout(30); await p.keyboard.up('ArrowRight');
+      await p.evaluate(b => window.__MG_TEST__.runnerHard.warp(b.x - 50, b.y), v.boss); await p.keyboard.down('ArrowRight'); await p.waitForTimeout(30); await p.keyboard.up('ArrowRight');
       await p.keyboard.down('x'); await p.waitForTimeout(60); await p.keyboard.up('x'); await p.waitForTimeout(150);
     }
     if (!learned) learned = await until(async () => { const v = await S(); return v.phase === 'learn' ? v : null; }, 4000, 50);
@@ -162,6 +162,7 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
     await p.waitForTimeout(900); await p.keyboard.press('z'); await p.waitForTimeout(300);
     const v2 = await S();
     ok(`${label}：覚えた技と倒したボスを記録・柵が開く`, v2.phase === 'play' && v2.moves.includes('raitotsu') && v2.beaten.includes('raikaku') && !v2.arenaOn, JSON.stringify({ phase: v2.phase, moves: v2.moves, beaten: v2.beaten }));
+    await p.evaluate(ar => window.__MG_TEST__.runnerHard.warp(ar.x0 + 60, ar.floor + 4), (await S()).arena);   // 部屋の左の端から右へ
     await until(async () => ['stand', 'land', 'walk'].includes((await S()).state), 2000, 30);
     await p.keyboard.down('ArrowRight'); await p.keyboard.down('c'); await p.waitForTimeout(80); await p.keyboard.down('x'); const rs = await until(async () => { const v = await S(); return v.atk === 'raitotsu' ? v : null; }, 1000, 15); await p.keyboard.up('x'); await p.keyboard.up('c'); await p.keyboard.up('ArrowRight');
     ok(`${label}：ダッシュ中に X で雷突き（覚えた技）`, !!rs);
@@ -171,10 +172,10 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
   // 途中の印 → 戸の手前へ（隠しボスに会うため、ほかの通常ボスも倒した事にする）
   await p.evaluate(() => window.__MG_TEST__.runnerHard.beatAll());
   const g = (await S()).goal;
-  await p.evaluate(() => { const r = window.__MG_TEST__.runnerHard; r.warp(52 * 40 + 20, 90); });
+  await p.evaluate(() => { const r = window.__MG_TEST__.runnerHard; r.warp(52 * 40 + 20, 170); });
   await p.waitForTimeout(500);
   ok(`${label}：途中の印に触れる`, (await S()).checks.some(Boolean));
-  await p.evaluate(gx => window.__MG_TEST__.runnerHard.warp(gx - 140, 90), g.x);
+  await p.evaluate(g => window.__MG_TEST__.runnerHard.warp(g.x - 140, g.y + 10), g);
   await p.waitForTimeout(400);
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_goal.png` });
   await p.keyboard.down('ArrowRight'); const cl = await until(async () => { const v = await S(); return v.phase === 'clear' ? v : null; }, 5000, 30); await p.keyboard.up('ArrowRight');
