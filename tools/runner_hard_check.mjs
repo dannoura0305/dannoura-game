@@ -51,7 +51,7 @@ const b = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-requ
       const before = await p.evaluate(() => ({ cs: gs.childStress, fa: gs.fatigue }));
       await p.waitForTimeout(600); await p.keyboard.press('z'); await p.waitForTimeout(600); await p.keyboard.press('z'); await p.waitForTimeout(300);
       const g = v.goal; await p.evaluate(() => { const r = window.__MG_TEST__.runnerHard; r.bossHp(0); }); 
-      await p.evaluate(gx => window.__MG_TEST__.runnerHard.warp(gx - 60, 90), g.x); await p.keyboard.down('ArrowRight'); await p.waitForTimeout(800); await p.keyboard.up('ArrowRight');
+      await p.evaluate(g => window.__MG_TEST__.runnerHard.warp(g.x - 60, g.y + 10), g); await p.keyboard.down('ArrowRight'); await p.waitForTimeout(800); await p.keyboard.up('ArrowRight');
       const st = await p.evaluate(() => window.__MG_TEST__.runnerHard.s.phase);
       await p.waitForTimeout(1800); await p.keyboard.press('Enter'); await p.waitForTimeout(1500);
       const after = await p.evaluate(() => ({ cs: gs.childStress, fa: gs.fatigue, day: gs.mgDay.runner_hard === gs.day, ended: MG._ended }));
@@ -231,9 +231,9 @@ for (const [idx, id, stage, move, label] of [[0, 'kazegiri', 'okujo', 'kazebashi
   for (let i = 0; i < idx; i++) await p.keyboard.press('ArrowRight');
   await p.keyboard.press('z'); await p.waitForTimeout(400);
   let s = await S(); ok(`${label}：選ぶと そのボスの面（${stage}）`, s.phase === 'play' && s.stage === stage, JSON.stringify({ phase: s.phase, stage: s.stage }));
-  if (stage === 'haisui') { const art = await until(async () => (await S()).art, 6000, 100); ok(`${label}：面の背景は利用者の絵（3 枚）`, !!art); if (SHOTS) { await p.waitForTimeout(500); await p.screenshot({ path: `${SHOTS}/rh_haisui_start.png` }); } }
+  { const art = await until(async () => (await S()).art, 6000, 100); ok(`${label}：面の背景は利用者の絵（3 枚）`, !!art); if (SHOTS) { await p.waitForTimeout(500); await p.screenshot({ path: `${SHOTS}/rh_${stage}_start.png` }); } }
   if (stage === 'okujo') {   // 突風：吹いている間は自機が押される
-    await until(async () => (await S()).gmW.winds[0], 6000, 30); await H('warp', 30 * 40, 164); const x0 = (await S()).x; await p.waitForTimeout(250); const x1 = (await S()).x;
+    await until(async () => (await S()).gmW.winds[0], 6000, 30); await H('warp', 420, 164); const x0 = (await S()).x; await p.waitForTimeout(250); const x1 = (await S()).x;
     ok(`${label}：突風が吹くと 自機が押し戻される`, x1 < x0 - 20, `${Math.round(x0)} → ${Math.round(x1)}`);
   } else {                   // 増水：上がると通りの自機が やられ
     await until(async () => { const v = await S(); return v.gmW.floods[0] > 70 && v.invul <= 0; }, 12000, 30); const hp0 = (await S()).hp; await H('warp', 670, 141);   // 水の中の低い柱（137）
