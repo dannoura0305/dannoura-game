@@ -137,7 +137,7 @@ var RunnerHardStageHaisui = RunnerHardStageHaisui || {
   arena() { return { c0: 111, c1: 125, bossC: 122, boss: 'dakuryu', floorCy: 4 }; },
   gimmicks() {
     return {
-      floods: [{ c0: 14, c1: 39, base: 85, max: 95, period: 340, on: 170, off: 0 }, { c0: 58, c1: 85, base: 85, max: 100, period: 320, on: 160, off: 120 }],
+      floods: [{ c0: 9, c1: 39, base: 85, max: 70, period: 340, on: 170, off: 0 }, { c0: 58, c1: 85, base: 85, max: 100, period: 320, on: 160, off: 120 }],
       crumbles: [{ c0: 113, c1: 115, cy: 6, stable: true, arena: true }, { c0: 121, c1: 123, cy: 6, stable: true, arena: true }],   // 部屋の高い足場（大波から逃げる）
     };
   },
@@ -625,6 +625,19 @@ registerMinigame({
       const gy = 60; cx.fillStyle = '#10122c'; cx.fillRect(0, gy, VW, 40); for (let i = -1; i < VW / 300 + 2; i++) { const x = i * 300 - (camX * .6) % 300; cx.fillRect(x, gy + 40, 30, VH); }
       for (let i = -1; i < VW / 260 + 2; i++) { const x = i * 260 - (camX * .9) % 260 + 120, base = VH - 40 + camY * .2; cx.strokeStyle = '#3a3a52'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(x, base); cx.lineTo(x, base - 150); cx.lineTo(x + 18, base - 150); cx.stroke(); cx.fillStyle = 'rgba(255,220,150,.9)'; cx.beginPath(); cx.arc(x + 18, base - 146, 5, 0, TAU); cx.fill(); cx.fillStyle = 'rgba(255,220,150,.08)'; cx.beginPath(); cx.moveTo(x + 18, base - 146); cx.lineTo(x - 30, base); cx.lineTo(x + 66, base); cx.fill(); }
     }
+    // 水（増水・大波）：波打つ水面・白い波頭・しぶき。下は絵の川に溶け込むよう、元の水面より下まで塗る。x0・x1 は画面の座標、yBase・lv は世界の高さ
+    function drawWater(x0, x1, yBase, lv, below = 60) {   // below：元の水面より下を塗る深さ（部屋の床の上なら浅く）
+      if (lv <= 1 || x1 <= x0) return;
+      const ty = sy(yBase + lv), by = Math.min(VH, sy(yBase - below)), amp = Math.min(1, lv / 30);
+      const wave = x => (Math.sin(x * .034 + t * 3.1) * 4 + Math.sin(x * .012 - t * 1.6) * 3 + Math.sin(x * .09 + t * 6) * 1.2) * amp;
+      const g = cx.createLinearGradient(0, ty - 6, 0, by); g.addColorStop(0, 'rgba(110,130,235,.82)'); g.addColorStop(.18, 'rgba(58,66,180,.86)'); g.addColorStop(.7, 'rgba(32,26,110,.9)'); g.addColorStop(1, 'rgba(22,16,80,.55)');
+      cx.fillStyle = g; cx.beginPath(); cx.moveTo(x0, by); for (let x = x0; x <= x1 + 5; x += 5) cx.lineTo(Math.min(x, x1), ty + wave(Math.min(x, x1) + camX)); cx.lineTo(x1, by); cx.closePath(); cx.fill();
+      cx.strokeStyle = 'rgba(150,170,255,.28)'; cx.lineWidth = 2; cx.beginPath();   // 水の中の流れの筋
+      for (let i = 0; i < (x1 - x0) / 40; i++) { const xx = x0 + ((i * 97 + t * 70) % (x1 - x0)), yy = ty + 14 + ((i * 37) % Math.max(10, by - ty - 20)); cx.moveTo(xx, yy); cx.lineTo(Math.min(x1, xx + 18 + (i % 3) * 8), yy); } cx.stroke();
+      cx.strokeStyle = 'rgba(240,244,255,.95)'; cx.lineWidth = 3; cx.beginPath(); for (let x = x0; x <= x1; x += 4) cx.lineTo(x, ty + wave(x + camX)); cx.stroke();   // 波頭
+      cx.fillStyle = 'rgba(235,240,255,.85)';
+      for (let i = 0; i < (x1 - x0) / 12; i++) { const xx = x0 + ((i * 53 + t * 45) % (x1 - x0)), h2 = ((i * 7 + Math.floor(t * 12)) % 5); cx.fillRect(xx, ty + wave(xx + camX) - 3 - h2 * 2, 3, 3); }   // しぶき
+    }
     // 面の仕掛け：帯電する床（流れる前にちらつく）・壊れる足場（揺れる）・ボスの部屋の看板（雷雲招来の間は帯電）
     function drawGimmicks() {
       if (!GM) return; const T = map.tile;
@@ -635,8 +648,8 @@ registerMinigame({
       }
       for (const fl of GM.floods) {   // 増水：上がる前に水面がちらつく
         const lv = GM.level(fl), x0 = sx(fl.c0 * T), x1 = sx((fl.c1 + 1) * T), base = sy(fl.base);
-        if (GM.warn(fl) && Math.sin(t * 30) > 0) { cx.fillStyle = 'rgba(120,150,255,.35)'; cx.fillRect(x0, base - 6, x1 - x0, 6); }
-        if (lv > 0) { const top = sy(fl.base + lv); cx.fillStyle = 'rgba(60,64,140,.62)'; cx.fillRect(x0, top, x1 - x0, base - top); cx.strokeStyle = 'rgba(200,215,255,.85)'; cx.lineWidth = 2; cx.beginPath(); for (let xx = x0; xx <= x1; xx += 10) cx.lineTo(xx, top + Math.sin(xx * .08 + t * 7) * 3); cx.stroke(); }
+        if (GM.warn(fl)) { cx.fillStyle = `rgba(230,236,255,${.35 + .35 * Math.sin(t * 24)})`; for (let xx = x0; xx < x1; xx += 22) cx.fillRect(xx + (Math.floor(t * 20) % 3) * 4, base - 3 - Math.abs(Math.sin(xx + t * 9)) * 6, 4, 3); }   // 上がる前：水面が泡立つ
+        drawWater(x0, x1, fl.base, lv);
       }
       for (const s2 of GM.strips) {
         const x0 = sx(s2.c0 * T), x1 = sx((s2.c1 + 1) * T), y = sy((s2.cy + 1) * T), on = GM.live(s2), wn = GM.warn(s2);
@@ -695,8 +708,13 @@ registerMinigame({
         else if (sh.kind === 'blade') { cx.save(); cx.translate(x, y); cx.scale(Math.sign(sh.vx) || 1, 1); cx.fillStyle = 'rgba(255,190,240,.9)'; cx.beginPath(); cx.moveTo(-16, -14); cx.quadraticCurveTo(18, 0, -16, 14); cx.quadraticCurveTo(4, 0, -16, -14); cx.fill(); cx.restore(); for (let i = 0; i < 2; i++) { cx.fillStyle = '#ffc8e8'; cx.fillRect(x - Math.sign(sh.vx) * (20 + i * 10), y + rnd(-6, 6), 4, 4); } }
         else if (sh.kind === 'drop') { cx.fillStyle = 'rgba(150,190,255,.95)'; cx.beginPath(); cx.arc(x, y, 9, 0, TAU); cx.fill(); cx.fillStyle = 'rgba(255,255,255,.6)'; cx.beginPath(); cx.arc(x - 3, y - 3, 3, 0, TAU); cx.fill(); }
         else if (sh.kind === 'splash') { cx.strokeStyle = 'rgba(170,210,255,.85)'; cx.lineWidth = 2; cx.beginPath(); for (let i = -2; i <= 2; i++) { cx.moveTo(x + i * 6, y); cx.lineTo(x + i * 9, y - 12 - (2 - Math.abs(i)) * 6 * (sh.life / 26)); } cx.stroke(); }
-        else if (sh.kind === 'surge') { const d = Math.sign(sh.vx) || 1; cx.fillStyle = 'rgba(80,90,180,.85)'; cx.beginPath(); cx.moveTo(x - d * 40, y); cx.quadraticCurveTo(x - d * 20, y - sh.h * 1.1, x + d * sh.w, y - sh.h); cx.quadraticCurveTo(x + d * (sh.w + 8), y - sh.h * .5, x + d * sh.w, y); cx.closePath(); cx.fill(); cx.strokeStyle = 'rgba(210,230,255,.9)'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(x - d * 20, y - sh.h * .95); cx.quadraticCurveTo(x + d * 4, y - sh.h * 1.15, x + d * sh.w, y - sh.h); cx.stroke(); }
-        else if (sh.kind === 'flood') { const x0 = sx(sh.x0), x1 = sx(sh.x1), top = sy(sh.y + sh.level); if (sh.level > 1) { cx.fillStyle = 'rgba(60,70,150,.6)'; cx.fillRect(x0, top, x1 - x0, y - top); cx.strokeStyle = 'rgba(200,220,255,.8)'; cx.lineWidth = 2; cx.beginPath(); for (let xx = x0; xx < x1; xx += 12) cx.lineTo(xx, top + Math.sin(xx * .1 + t * 6) * 3); cx.stroke(); } }
+        else if (sh.kind === 'surge') {   // 濁流：前が巻き込む大きな波
+          const d = Math.sign(sh.vx) || 1, Hh = sh.h, fx = x + d * sh.w, g = cx.createLinearGradient(0, y - Hh * 1.1, 0, y); g.addColorStop(0, 'rgba(110,130,235,.92)'); g.addColorStop(.4, 'rgba(56,64,178,.92)'); g.addColorStop(1, 'rgba(26,20,96,.9)');
+          cx.fillStyle = g; cx.beginPath(); cx.moveTo(x - d * 130, y); cx.quadraticCurveTo(x - d * 70, y - Hh * .45, x - d * 12, y - Hh * .95); cx.quadraticCurveTo(fx + d * 18, y - Hh * 1.12, fx + d * 6, y - Hh * .55); cx.quadraticCurveTo(fx - d * 10, y - Hh * .42, fx - d * 2, y - Hh * .28); cx.lineTo(fx + d * 8, y); cx.closePath(); cx.fill();
+          cx.strokeStyle = 'rgba(240,244,255,.95)'; cx.lineWidth = 4; cx.beginPath(); cx.moveTo(x - d * 70, y - Hh * .45); cx.quadraticCurveTo(x - d * 30, y - Hh * .85, x - d * 12, y - Hh * .95); cx.quadraticCurveTo(fx + d * 18, y - Hh * 1.12, fx + d * 6, y - Hh * .55); cx.stroke();
+          cx.fillStyle = 'rgba(235,240,255,.9)'; for (let i = 0; i < 10; i++) cx.fillRect(fx + d * (4 + ((i * 13 + sh.life * 3) % 26)), y - Hh * (.3 + ((i * 17) % 70) / 100) - (sh.life * (i + 1)) % 9, 3, 3);   // しぶき
+        }
+        else if (sh.kind === 'flood') drawWater(sx(sh.x0), sx(sh.x1), sh.y, sh.level, 4);   // 大波：部屋の水位（床の上だけ）
         else if (sh.kind === 'bolt') {
           if (sh.f <= sh.tele) { cx.fillStyle = `rgba(255,90,120,${.25 + .25 * Math.sin(sh.f * .8)})`; cx.fillRect(x - sh.w, 0, sh.w * 2, y); cx.fillStyle = '#ff5a78'; cx.fillRect(x - sh.w, y - 4, sh.w * 2, 4); }   // 予兆：落ちる所が赤く光る
           else { cx.fillStyle = 'rgba(240,210,255,.95)'; cx.beginPath(); let px = x; cx.moveTo(px, 0); for (let yy = 0; yy < y; yy += 30) { px = x + rnd(-sh.w * .7, sh.w * .7); cx.lineTo(px, yy); } cx.lineTo(x, y); cx.lineTo(x + 6, y); cx.lineTo(px + 6, 0); cx.closePath(); cx.fill(); cx.fillStyle = 'rgba(200,140,255,.3)'; cx.fillRect(x - sh.w * 2, 0, sh.w * 4, y); }

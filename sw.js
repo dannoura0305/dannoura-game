@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-11-16.4';   // 買い出しダッシュ 高難易度版（試作）：風邪菌の部屋を利用者の家の絵に
+const VERSION = '2026-11-16.5';   // 買い出しダッシュ 高難易度版（試作）：濁流の水の演出・更新が届かない事の直し
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）
@@ -142,7 +142,7 @@ self.addEventListener('fetch', event => {
 async function networkFirst(req, isNav) {
   const c = await caches.open(SHELL);
   try {
-    const res = await fetch(req);
+    const res = await fetch(req, { cache: 'no-cache' });   // ブラウザの通信の保存（GitHub Pages は 10 分）を通さず、いつも確かめに行く
     if (res && res.ok && res.status === 200 && res.type === 'basic') {
       const u = new URL(req.url);
       c.put(isNav ? u.origin + u.pathname : req, res.clone()).catch(() => {});

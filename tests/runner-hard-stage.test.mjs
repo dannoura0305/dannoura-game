@@ -202,7 +202,7 @@ function haisuiBot(G,b,f,mem){
   });
   t('仕掛けの意味：増水の間は水の中の低い柱に立っていると やられ・高い足場（203）には水が届かない', () => {
     const K = ctx.RunnerHardStages.haisui, map = RA.makeMap(K.rows().map(r => r.replace(/[SCG]/g, '.'))), G = ctx.RunnerGimmicks.make(map, K.gimmicks());
-    const fl = G.floods[0]; for (let f = 0; f < 80; f++) G.step(null, null); assert.ok(G.live(fl) && G.level(fl) > 80);
+    const fl = G.floods[0]; for (let f = 0; f < 80; f++) G.step(null, null); assert.ok(G.live(fl) && G.level(fl) > 60); assert.ok(fl.base + fl.max < 160, '岸壁（160）までは上がらない');
     assert.ok(G.shock({ x0: 650, x1: 664, y0: 137, y1: 185 }), '低い柱（137）は浸かる'); assert.ok(!G.shock({ x0: 1350, x1: 1364, y0: 203, y1: 251 }), '高い柱（203）は浸からない');
     for (let f = 0; f < 200; f++) G.step(null, null); assert.ok(!G.live(fl)); assert.ok(!G.shock({ x0: 650, x1: 664, y0: 137, y1: 185 }), '引くと立てる');
   });

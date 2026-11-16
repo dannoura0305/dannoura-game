@@ -238,7 +238,7 @@ for (const [idx, id, stage, move, label] of [[0, 'kazegiri', 'okujo', 'kazebashi
     await until(async () => (await S()).gmW.winds[0], 6000, 30); await H('warp', 420, 164); const x0 = (await S()).x; await p.waitForTimeout(250); const x1 = (await S()).x;
     ok(`${label}：突風が吹くと 自機が押し戻される`, x1 < x0 - 20, `${Math.round(x0)} → ${Math.round(x1)}`);
   } else {                   // 増水：上がると通りの自機が やられ
-    await until(async () => { const v = await S(); return v.gmW.floods[0] > 70 && v.invul <= 0; }, 12000, 30); const hp0 = (await S()).hp; await H('warp', 670, 141);   // 水の中の低い柱（137）
+    await until(async () => { const v = await S(); return v.gmW.floods[0] > 55 && v.invul <= 0; }, 12000, 30); const hp0 = (await S()).hp; await H('warp', 670, 141);   // 水の中の低い柱（137）
     const hurt = await until(async () => (await S()).hp < hp0, 1500, 20); ok(`${label}：増水すると 水の中の低い柱に立つ自機が やられ`, !!hurt);
   }
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${id}_stage.png` });
