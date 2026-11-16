@@ -46,65 +46,65 @@ var RunnerHardStage = RunnerHardStage || {
   gimmicks() { return {}; },
 };
 
-// 雷殻の怪異の面「高架下・都市送電区」（設定画の場所）。寸法：地面の上は y=80（2 マス）
-//  帯電する床・壊れる足場は minigames/runner/gimmicks.js（gimmicks() の表）。高架・鉄塔・電線は背景の絵
+// 雷殻の怪異の面「高架下・都市送電区」：利用者の背景の絵 3 枚（assets/runner/koka_1〜3.webp：桜と鉄の足場の変電所・高架下の変電所・屋内の変圧器の広間）を左から並べた面
+//  絵の 1px＝世界の 1px（2000×667 を半分で保存して 2 倍で描く）。世界の y ＝ 698 − 絵の y。1 枚＝50 マス・全部で 150 マス
+//  床・鉄の足場・渡り廊下は「好きな高さの足場」（ledges）。足場の間の 稲妻の走る穴 へ落ちたら途中の印から
+//  帯電する床（strips）：外の床の 3 か所で周期的に電気が流れる（流れる前にちらつく）。ボスの部屋は屋内の広間（マスの床・160）。部屋の上に「高電圧」の看板（踏みつけで壊れる・雷雲招来で帯電）
 var RunnerHardStageKoka = RunnerHardStageKoka || {
-  id: 'koka', name: '高架下・都市送電区', W: 148, H: 14,
+  id: 'koka', name: '高架下・都市送電区', W: 150, H: 14, fallY: 40, art: ['koka_1', 'koka_2', 'koka_3'], artTop: 698,
   rows() {
     const W = this.W, H = this.H, g = Array.from({ length: H }, () => Array(W).fill('.'));
     const put = (c, cy, ch) => { if (c >= 0 && c < W && cy >= 0 && cy < H) g[H - 1 - cy][c] = ch; };
     const fill = (c0, c1, y0, y1, ch = '#') => { for (let c = c0; c <= c1; c++) for (let y = y0; y <= y1; y++) put(c, y, ch); };
-    fill(0, W - 1, 0, 1); fill(0, 0, 2, H - 1); fill(W - 1, W - 1, 2, H - 1);
-    put(2, 2, 'S');
-    fill(21, 22, 2, 2);                           // 帯電する床の間の 箱（電気が止むのを待つ所）
-    fill(34, 49, 0, 1, '.'); fill(34, 49, 0, 0, '^');   // とげの穴（16 マス）：壊れる足場（gimmicks）を渡る
-    put(52, 2, 'C');
-    fill(60, 63, 2, 7);                           // 高架の柱（6 マス＝240px）：壁蹴りで登る
-    fill(72, 77, 0, 1, '.'); fill(72, 77, 0, 0, '^');   // 広い穴（6 マス）：ダッシュジャンプ
-    put(82, 2, 'C');
-    fill(86, 96, 3, H - 2);                       // 低い送電ダクト（すき間 40px）：スライド
-    put(104, 2, 'C');
-    // ボスの部屋（列 114〜128＝1 画面ほど）：入ると柵が閉まり、カメラが部屋に止まる。部屋の上の方に 看板（gimmicks の stable な足場）
-    put(140, 2, 'G');
+    fill(0, 0, 0, H - 1); fill(W - 1, W - 1, 0, H - 1);
+    put(2, 7, 'S'); put(26, 5, 'C'); put(52, 5, 'C'); put(92, 5, 'C');
+    fill(100, W - 2, 0, 3);                       // 3 枚目：屋内の広間（床 160）。ボスの部屋（列 106〜120）
+    put(145, 4, 'G');                             // 広間の右の戸
     return g.map(r => r.join(''));
   },
-  enemies() { return [['walker', 12, 2, -1], ['flyer', 27, 6, -1], ['walker', 56, 2, -1], ['flyer', 68, 5, -1], ['walker', 100, 2, -1], ['flyer', 106, 5, -1]]; },
-  arena() { return { c0: 114, c1: 128, bossC: 125, boss: 'raikaku' }; },
+  ledges() {
+    const A = [   // [絵の番号（0〜2）, x0, x1, 絵の y]
+      [0, 0, 195, 445], [0, 195, 345, 518], [0, 335, 470, 482], [0, 550, 735, 553], [0, 535, 750, 413], [0, 815, 1005, 340], [0, 885, 985, 538], [0, 985, 2000, 538],
+      [1, 0, 460, 538], [1, 545, 695, 545], [1, 655, 1245, 362], [1, 785, 935, 498], [1, 1020, 1250, 455], [1, 1250, 2000, 538],
+    ];
+    return A.map(([i, x0, x1, y]) => ({ x0: i * 2000 + x0, x1: i * 2000 + x1, y: 698 - y }));
+  },
+  enemies() { return [['flyer', 12, 9, -1], ['flyer', 30, 7, -1], ['flyer', 44, 7, -1], ['flyer', 63, 9, -1], ['flyer', 80, 8, -1], ['walker', 102, 4, -1], ['walker', 104, 4, -1]]; },
+  arena() { return { c0: 106, c1: 120, bossC: 117, boss: 'raikaku', floorCy: 4 }; },
   gimmicks() {
     return {
-      strips: [{ c0: 16, c1: 20, cy: 1, period: 180, on: 80, off: 0 }, { c0: 23, c1: 27, cy: 1, period: 180, on: 80, off: 90 }],
-      crumbles: [{ c0: 37, c1: 38, cy: 1 }, { c0: 41, c1: 42, cy: 1 }, { c0: 45, c1: 46, cy: 1 },
-        { c0: 116, c1: 118, cy: 4, stable: true, arena: true }, { c0: 124, c1: 126, cy: 4, stable: true, arena: true }],
+      strips: [{ c0: 28, c1: 32, cy: 3, period: 180, on: 80, off: 0 }, { c0: 38, c1: 42, cy: 3, period: 180, on: 80, off: 90 }, { c0: 84, c1: 89, cy: 3, period: 200, on: 90, off: 40 }],
+      crumbles: [{ c0: 108, c1: 110, cy: 6, stable: true, arena: true }, { c0: 116, c1: 118, cy: 6, stable: true, arena: true }],
     };
   },
 };
-// 風斬の怪異の面「雨のビルの屋上」（仮の場所。設定画に場所の指定が無い）。屋上から屋上へ跳び移る。すき間の底は とげ（割れたガラス）
-//  突風（gimmicks の winds）：向かい風の間は広いすき間を越えにくい → 止むのを待つ。追い風は助けになる
+// 風斬の怪異の面「雨のビルの屋上」：利用者の背景の絵 3 枚（assets/runner/okujo_1〜3.webp：桜と鳥居の屋上・給水塔と社殿の屋上・社の長い屋上）を左から並べた面
+//  絵の 1px＝世界の 1px（2000×667 を半分で保存して 2 倍で描く）。世界の y ＝ 595 − 絵の y。1 枚＝50 マス・全部で 150 マス
+//  ビルの屋上・塔・渡り廊下・壁の張り出しは「好きな高さの足場」（ledges：上からだけ乗れる）。すき間（ビルの間）へ落ちたら途中の印から
+//  突風（winds）：塔と塔の間で吹く。向かい風の間は押し戻される。ボスの部屋は 3 枚目の社の屋上（マスの床・160）
 var RunnerHardStageOkujo = RunnerHardStageOkujo || {
-  id: 'okujo', name: '雨のビルの屋上', W: 140, H: 14, fallY: 30,   // すき間の底（とげ）まで落ちたら、穴に落ちたのと同じ（途中の印から）
+  id: 'okujo', name: '雨のビルの屋上', W: 150, H: 14, fallY: 40, art: ['okujo_1', 'okujo_2', 'okujo_3'], artTop: 595,
   rows() {
     const W = this.W, H = this.H, g = Array.from({ length: H }, () => Array(W).fill('.'));
     const put = (c, cy, ch) => { if (c >= 0 && c < W && cy >= 0 && cy < H) g[H - 1 - cy][c] = ch; };
     const fill = (c0, c1, y0, y1, ch = '#') => { for (let c = c0; c <= c1; c++) for (let y = y0; y <= y1; y++) put(c, y, ch); };
-    const roof = (c0, c1, h) => fill(c0, c1, 0, h - 1);
-    const gap = (c0, c1) => fill(c0, c1, 0, 0, '^');
     fill(0, 0, 0, H - 1); fill(W - 1, W - 1, 0, H - 1);
-    roof(1, 15, 3); put(2, 3, 'S');
-    gap(16, 18); roof(19, 30, 4);                 // 3 マスのすき間・1 段上の屋上
-    gap(31, 35); roof(36, 50, 3); put(38, 3, 'C');  // 5 マスのすき間（ダッシュジャンプ。向かい風の間は届かない）
-    roof(51, 56, 9);                              // 高いビル（壁蹴りで登る）
-    gap(57, 59); roof(60, 75, 4);
-    fill(66, 72, 5, H - 2);                       // 張り出した看板の下（すき間 40px）：スライド
-    gap(76, 77); roof(78, 92, 3); put(80, 3, 'C');
-    gap(93, 96); roof(97, 110, 3); put(100, 3, 'C');   // 4 マスのすき間（追い風に乗る・ダッシュジャンプ）
-    roof(111, W - 2, 2);                          // ボスの部屋（列 111〜125）の屋上は低い（床 80）
-    put(133, 2, 'G');
+    put(3, 5, 'S'); put(41, 5, 'C'); put(53, 5, 'C'); put(92, 5, 'C');
+    fill(100, W - 2, 0, 3);                       // 3 枚目：社の長い屋上（床 160）。ボスの部屋（列 103〜117）
+    put(126, 4, 'G');                             // 社殿の前（コンビニへの近道の戸・仮）
     return g.map(r => r.join(''));
   },
-  enemies() { return [['walker', 12, 3, -1], ['flyer', 27, 7, -1], ['walker', 45, 3, -1], ['flyer', 64, 8, -1], ['walker', 88, 3, -1], ['flyer', 104, 6, -1]]; },
-  arena() { return { c0: 111, c1: 125, bossC: 122, boss: 'kazegiri' }; },
+  ledges() {
+    const A = [   // [絵の番号（0〜2）, x0, x1, 絵の y]
+      [0, 0, 455, 435], [0, 555, 765, 397], [0, 765, 915, 397], [0, 900, 1120, 320], [0, 950, 1043, 443], [0, 1064, 1121, 374], [0, 1210, 1410, 400], [0, 1214, 1300, 474], [0, 1435, 2000, 435],
+      [1, 0, 385, 435], [1, 385, 570, 435], [1, 565, 775, 282], [1, 654, 731, 421], [1, 726, 789, 343], [1, 895, 1080, 160], [1, 928, 1007, 365], [1, 1007, 1078, 290], [1, 1090, 1410, 400], [1, 1410, 1540, 410], [1, 1530, 2000, 435],
+    ];
+    return A.map(([i, x0, x1, y]) => ({ x0: i * 2000 + x0, x1: i * 2000 + x1, y: 595 - y }));
+  },
+  enemies() { return [['flyer', 14, 8, -1], ['flyer', 33, 10, -1], ['flyer', 48, 9, -1], ['flyer', 66, 11, -1], ['flyer', 84, 9, -1], ['walker', 101, 4, -1]]; },
+  arena() { return { c0: 103, c1: 117, bossC: 114, boss: 'kazegiri', floorCy: 4 }; },
   gimmicks() {
-    return { winds: [{ c0: 24, c1: 37, dir: -1, period: 220, on: 100, off: 0, force: 5 }, { c0: 86, c1: 98, dir: 1, period: 200, on: 110, off: 60, force: 2.0 }] };
+    return { winds: [{ c0: 8, c1: 15, dir: -1, period: 220, on: 100, off: 0, force: 5 }, { c0: 69, c1: 79, dir: -1, period: 240, on: 110, off: 60, force: 3.2 }, { c0: 84, c1: 98, dir: 1, period: 200, on: 110, off: 30, force: 2.0 }] };
   },
 };
 // 濁流の怪異の面「排水路・増水した市街地」：利用者の背景の絵 3 枚（assets/runner/haisui_1〜3.webp：外の排水機場・ポンプ室の中・水門の広間）を左から並べた面
@@ -332,7 +332,8 @@ registerMinigame({
       const T = map.tile, Hh = ROWS.length;
       ROWS.forEach((row, r) => { for (let c = 0; c < row.length; c++) { const ch = row[c], p = { x: c * T + T / 2, y: (Hh - 1 - r) * T }; if (ch === 'S') spawn = p; if (ch === 'G') goal = p; if (ch === 'C') (checks.push(p)); } });
       // 印の足もとを床まで下ろす
-      const drop = p => { let y = p.y; while (y > 0 && !map.solid(Math.floor(p.x / T), Math.floor((y - 1) / T))) y -= T; p.y = Math.max(0, Math.ceil(y / T) * T); };
+      const drop = p => { const y0 = p.y; let y = p.y; while (y > 0 && !map.solid(Math.floor(p.x / T), Math.floor((y - 1) / T))) y -= T; p.y = Math.max(0, Math.ceil(y / T) * T);
+        for (const L of map.ledges) if (L.y <= y0 + 0.01 && L.y > p.y && p.x > L.x0 && p.x < L.x1) p.y = L.y; };   // 好きな高さの足場の上にも置ける
       [spawn, goal, ...checks].forEach(drop);
       act = RunnerAct.make({ map, phys: DF ? DF.phys : {}, airDash: () => !!C && C.usable('kazebashiri') }); C = RunnerCombat.make(act, { learned: REC.moves || [] }); E = RunnerEnemies.make(map);
       foes = STAGE.enemies().map(([type, c, cy, face]) => E.spawn(type, c * T + T / 2, cy * T, face));
@@ -346,7 +347,7 @@ registerMinigame({
     let SPR = null, SEL = null; const ART = {};   // ART：面の背景の絵（名前 → 画像）   // SEL：ボス選択画面の絵（assets/runner/select.json）
     function loadSprite() {
       fetch('assets/runner/select.json').then(r => r.json()).then(meta => { const bg = new Image(), img = new Image(); let n = 0; const ok = () => { if (++n === 2) SEL = { bg, img, F: meta.frames, W: meta.W, H: meta.H }; }; bg.onload = ok; img.onload = ok; bg.src = 'assets/runner/' + meta.bg; img.src = 'assets/runner/' + meta.image; }).catch(() => {});   // ボス選択画面の絵（利用者の絵）
-      for (const nm of ['haisui_1', 'haisui_2', 'haisui_3']) { const img = new Image(); img.onload = () => { ART[nm] = img; }; img.src = 'assets/runner/' + nm + '.webp'; }   // 濁流の面の背景（利用者の絵）
+      for (const nm of ['haisui_1', 'haisui_2', 'haisui_3', 'okujo_1', 'okujo_2', 'okujo_3', 'koka_1', 'koka_2', 'koka_3']) { const img = new Image(); img.onload = () => { ART[nm] = img; }; img.src = 'assets/runner/' + nm + '.webp'; }   // 濁流・風斬・雷殻の面の背景（利用者の絵）
       for (const id of ['kazegiri', 'dakuryu', 'raikaku', 'kazekin'])   // ボスと隠しボスのドット絵（利用者の絵）
       fetch('assets/runner/' + id + '.json').then(r => r.json()).then(meta => { const img = new Image(); img.onload = () => { BSPR[id] = { img, F: meta.frames }; }; img.src = 'assets/runner/' + meta.image; }).catch(() => {});
       fetch('assets/runner/dannoura.json').then(r => r.json()).then(meta => {
@@ -508,9 +509,9 @@ registerMinigame({
     const sx = x => x - camX, sy = y => VH - (y - camY);
     function drawBack() {
       if (CZ) { drawHome(); return; }
+      if (STAGE.art && STAGE.art.every(n => ART[n])) { drawArt(); return; }
       if (STAGE.id === 'koka') { drawKoka(); return; }
       if (STAGE.id === 'okujo') { drawOkujo(); return; }
-      if (STAGE.art && STAGE.art.every(n => ART[n])) { drawArt(); return; }
       if (STAGE.id === 'haisui') { drawHaisui(); return; }
       const g = cx.createLinearGradient(0, 0, 0, VH); g.addColorStop(0, '#0a0820'); g.addColorStop(.6, '#1a1238'); g.addColorStop(1, '#241a40'); cx.fillStyle = g; cx.fillRect(0, 0, VW, VH);
       // 遠くの家並み（2 枚・ゆっくり流れる）
@@ -600,6 +601,7 @@ registerMinigame({
       const sm = cx.imageSmoothingEnabled; cx.imageSmoothingEnabled = false;
       STAGE.art.forEach((n, i) => { const x = sx(i * 2000); if (x > VW || x + 2000 < 0) return; cx.drawImage(ART[n], Math.floor(x), Math.floor(sy(top)), 2001, 668); });
       cx.imageSmoothingEnabled = sm;
+      const bot = sy(top - 667); if (bot < VH) { cx.fillStyle = '#0a0820'; cx.fillRect(0, bot - 1, VW, VH - bot + 1); }   // 絵の下（水面の下・地面の下）
     }
     // 雨のビルの屋上：夜のビル街・遠くのネオン・月
     function drawOkujo() {

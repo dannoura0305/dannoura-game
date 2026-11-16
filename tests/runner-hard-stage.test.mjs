@@ -89,72 +89,13 @@ t('ボスの部屋：平らな床（列 c0〜c1）・その先にコンビニの
   map.extra.clear();
 });
 
-// ── 雷殻の怪異の面「高架下・都市送電区」（RunnerHardStages.koka）と、面の仕掛け（gimmicks.js） ──
-{
-  const K = ctx.RunnerHardStages.koka, KR = K.rows(), KH = KR.length, GD = K.gimmicks(), KA = K.arena();
-  const kfind = ch => { for (let r = 0; r < KH; r++) { const c = KR[r].indexOf(ch); if (c >= 0) return { c, x: c * T + T / 2, y: (KH - 1 - r) * T }; } return null; };
-  const kmap = () => RA.makeMap(KR.map(r => r.replace(/[SCG]/g, '.')));
-  const KS = kfind('S'), KG = kfind('G');
-  t('高架下：14 行で幅がそろう・始まりと戸・ボスの表の面と部屋のボスがつながる（雷殻の怪異）', () => {
-    assert.equal(KR.length, 14); assert.ok(KR.every(r => r.length === KR[0].length)); assert.ok(KS && KG && KG.x > (KA.c1 + 1) * T);
-    const d = ctx.RunnerBosses.BOSSES.find(b => b.id === KA.boss); assert.ok(d && d.stage === 'koka' && ctx.RunnerHardStages[d.stage] === K);
-    for (const b of ctx.RunnerBosses.visible()) assert.ok(ctx.RunnerHardStages[b.stage] && ctx.RunnerHardStages[b.stage].arena().boss === b.id, 'どのボスにも面がある ' + b.id);
-  });
-  // 自動操作：帯電する床は止んでいる間に渡る（箱で待つ）・壊れる足場は止まらずに跳び移る・柱は壁蹴り・広い穴はダッシュジャンプ・ダクトはスライド
-  function kbot(G, b, f, mem) {
-    const c = b.x / T, inp = { r: true }, ground = ['stand', 'walk', 'walk_start', 'land'].includes(b.state), [s1, s2] = G.strips;
-    if (b.state === 'jump') inp.j = true;
-    if (c > 15 && c < 15.6 && ground && (G.live(s1) || G.left(s1) < 62)) inp.r = false;
-    if (c > 19.7 && c < 20.6 && b.y <= 80.5 && ground) inp.j = true;
-    if (c > 21 && c < 22.7 && b.y >= 119 && ground && (G.live(s2) || G.left(s2) < 64)) inp.r = false;
-    for (const e of [33.2, 38.2, 42.2, 46.2]) if (c > e && c < e + 0.6 && ground) inp.j = true;
-    if (c > 56 && c < 60.5 && b.y < 320) { if (ground) inp.j = true; else if (b.state === 'wall_slide') inp.j = (f % 2 === 0); else if (b.state === 'wall_kick' || b.state === 'jump') inp.j = true; }
-    if (c > 66 && c < 71.6 && b.y >= 79 && b.y < 81) { inp.d = b.state === 'dash' || !mem.prevD; if (c > 70.4) inp.j = true; }
-    if ((b.state === 'jump' || b.state === 'fall') && b.dashJump) { inp.d = true; inp.j = true; }
-    if (c > 83 && c < 97) inp.dn = (f % 40 < 2);
-    if (mem.prevJ && inp.j && ground) inp.j = false;
-    mem.prevJ = !!inp.j; mem.prevD = !!inp.d; return inp;
-  }
-  t('高架下：通れる（自動操作で、始まりからボスの部屋まで。電気にも とげにも当たらずに）', () => {
-    const map = kmap(), G = ctx.RunnerGimmicks.make(map, GD), A = RA.make({ map }), b = A.body(KS.x, KS.y, 1), mem = {}; let hurt = 0, f = 0, ok = false;
-    for (; f < 60 * 90; f++) { A.step(b, kbot(G, b, f, mem)); G.step(b, A.box(b)); if (G.shock(A.box(b)) || b.state === 'hurt') hurt++; if (b.y < -40) break; if (b.x > (KA.c0 + 2) * T && b.y === 80) { ok = true; break; } }
-    assert.ok(ok, `届かなかった：${(b.x / T).toFixed(1)} マス・${b.state}`); assert.equal(hurt, 0); assert.ok(f / 60 < 45, `${(f / 60).toFixed(1)} 秒`);
-  });
-  t('仕掛けの意味：帯電する床は、流れている間に歩いて渡ると やられ（流れる前にちらつく）', () => {
-    const map = kmap(), G = ctx.RunnerGimmicks.make(map, GD), A = RA.make({ map }), b = A.body(15 * T, 80, 1); let shocked = false, warned = false;
-    for (let f = 0; f < 300 && !shocked; f++) { A.step(b, { r: true }); G.step(b, A.box(b)); warned = warned || G.warn(G.strips[0]); if (G.shock(A.box(b))) shocked = true; }
-    assert.ok(shocked); assert.ok(warned || G.live(G.strips[0]));
-  });
-  t('仕掛けの意味：壊れる足場は乗ると揺れて落ちる → しばらくして戻る。看板（stable）は乗っても落ちず、踏みつけで壊れる', () => {
-    const map = kmap(), G = ctx.RunnerGimmicks.make(map, GD), A = RA.make({ map }), c0 = G.crumbles[0], b = A.body((c0.c0 + 1) * T, (c0.cy + 1) * T, 1);
-    let fell = false; for (let f = 0; f < 120; f++) { A.step(b, {}); G.step(b, A.box(b)); if (c0.st === 'gone') fell = true; }
-    assert.ok(fell && b.y < 80, '落ちる'); for (let f = 0; f < 400; f++) G.step(null, null); assert.equal(c0.st, 'solid', '戻る'); assert.ok(map.solid(c0.c0, c0.cy));
-    const sign = G.crumbles.find(c => c.arena), s = A.body((sign.c0 + 1) * T, (sign.cy + 1) * T, 1);
-    for (let f = 0; f < 200; f++) { A.step(s, {}); G.step(s, A.box(s)); } assert.equal(sign.st, 'solid'); assert.equal(s.y, (sign.cy + 1) * T, '看板は乗っても落ちない');
-    G.breakArena(); assert.equal(sign.st, 'gone'); assert.ok(!map.solid(sign.c0, sign.cy));
-    G.charge(true); for (let f = 0; f < 400; f++) G.step(null, null); assert.equal(sign.st, 'solid'); assert.ok(G.shock({ x0: sign.c0 * T + 5, x1: sign.c0 * T + 19, y0: (sign.cy + 1) * T, y1: (sign.cy + 1) * T + 48 }), '帯電した看板に触れると やられ');
-  });
-  t('高架下のボスの部屋：平らな床・1 画面ほどの幅（13〜16 マス）・その先にコンビニの戸まで歩いて行ける', () => {
-    const map = kmap(); for (let c = KA.c0 - 1; c <= KA.c1 + 1; c++) { assert.ok(map.solid(c, 1), `床 ${c}`); assert.ok(!map.solid(c, 2) && !map.solid(c, 3), `空き ${c}`); }
-    assert.ok(KA.c1 - KA.c0 + 1 >= 13 && KA.c1 - KA.c0 + 1 <= 16); assert.ok(KA.bossC > KA.c0 && KA.bossC < KA.c1);
-    const A = RA.make({ map }), b = A.body((KA.c1 - 1) * T, 80, 1); for (let f = 0; f < 600 && Math.abs(b.x - KG.x) >= 26; f++) A.step(b, { r: true });
-    assert.ok(Math.abs(b.x - KG.x) < 26, `戸に届かない x=${(b.x / T).toFixed(1)}`);
-  });
-  t('仕掛けの意味：高架の柱（240px）はふつうのジャンプでは届かない・看板には床からジャンプで届く', () => {
-    const map = kmap(), A = RA.make({ map }), b = A.body(58 * T, 80, 1); for (let f = 0; f < 120; f++) A.step(b, { r: true, j: true }); assert.ok(b.y < 320);
-    const sign = GD.crumbles.find(c => c.arena), G = ctx.RunnerGimmicks.make(map, GD), s = A.body((sign.c0 - 1) * T, 80, 1);
-    for (let f = 0; f < 120; f++) { A.step(s, { r: f > 6, j: f < 40 }); G.step(s, A.box(s)); if (s.y === (sign.cy + 1) * T) break; }
-    assert.equal(s.y, (sign.cy + 1) * T, '看板に乗れる');
-  });
-}
-
-// ── 風斬の怪異の面「雨のビルの屋上」・濁流の怪異の面「排水路・増水した市街地」（突風・増水） ──
+// ── 背景の絵で作った 3 つの面：雷殻「高架下・都市送電区」・風斬「雨のビルの屋上」・濁流「排水路・増水した市街地」（帯電する床・突風・増水） ──
 {
 function runStage(id, bot, limit=60*120, log=false) {
   const ST=ctx.RunnerHardStages[id], ROWS=ST.rows(), Hh=ROWS.length;
   let S=null; ROWS.forEach((r,ri)=>{ const c=r.indexOf('S'); if(c>=0) S={x:c*T+T/2,y:(Hh-1-ri)*T}; });
   const map=RA.makeMap(ROWS.map(r=>r.replace(/[SCG]/g,'.'))); if (ST.ledges) for (const L of ST.ledges()) map.ledges.push(L); const G=ctx.RunnerGimmicks.make(map, ST.gimmicks());
-  while (S.y>0 && !map.solid(Math.floor(S.x/T), Math.floor((S.y-1)/T))) S.y-=T;
+  { const y0=S.y; while (S.y>0 && !map.solid(Math.floor(S.x/T), Math.floor((S.y-1)/T))) S.y-=T; for (const L of map.ledges) if (L.y<=y0+0.01 && L.y>S.y && S.x>L.x0 && S.x<L.x1) S.y=L.y; }
   const A=RA.make({map}); const b=A.body(S.x,S.y,1), mem={}, AR=ST.arena(), FL=(AR.floorCy||2)*T, FY=ST.fallY!=null?ST.fallY:-120; let hurt=0,f=0;
   for(;f<limit;f++){ const inp=bot(G,b,f,mem); A.step(b,inp); G.step(b,A.box(b)); const sh=G.shock(A.box(b)); if((sh||b.state==='hurt')&&!mem.h){hurt++; if(log) console.log('hurt',id,(b.x/T).toFixed(1),b.y.toFixed(0),b.state,f, sh?'shock':'');} mem.h=sh||b.state==='hurt';
     if (b.y < 10 && b.y>=0 && b.state!=='hurt' && log && !mem.low) { console.log('low', (b.x/T).toFixed(1)); mem.low=1; }
@@ -164,18 +105,37 @@ function runStage(id, bot, limit=60*120, log=false) {
   return {ok:false,f,hurt,b,x:(b.x/T).toFixed(1),y:b.y.toFixed(0)};
 }
 const ground=b=>['stand','walk','walk_start','land'].includes(b.state);
-function okujoBot(G,b,f,mem){
-  const c=b.x/T, inp={r:true}, w0=G.winds[0];
+function kokaBot(G,b,f,mem){
+  const x=b.x, y=b.y, inp={r:true}, gr=['stand','walk','walk_start','land'].includes(b.state), on=h=>gr&&Math.abs(y-h)<1, S=G.strips;
   if (b.state==='jump') inp.j=true;
-  for (const e of [15.3, 18.2]) if (c>e&&c<e+0.6&&ground(b)) inp.j=true;
-  // 5 マスのすき間：向かい風が止んでいる間にダッシュジャンプ
-  if (c>27 && c<30.7 && Math.abs(b.y-160)<0.5) { if (c<27.6 && ground(b) && (G.live(w0) || G.left(w0)<70)) inp.r=false; else if (c>=27.6) { inp.d = b.state==='dash' || !mem.prevD; if (c>29.9) inp.j=true; } }
-  if ((b.state==='jump'||b.state==='fall') && b.dashJump) { inp.d=true; inp.j=true; }
-  if (c>46 && c<51.2 && b.y<360) { if (ground(b)) inp.j=true; else if (b.state==='wall_slide') inp.j=(f%2===0); else if (b.state==='wall_kick'||b.state==='jump') inp.j=true; }
-  for (const e of [56.2, 75.4]) if (c>e&&c<e+0.6&&ground(b)) inp.j=true;
-  if (c>63 && c<73.5) inp.dn=(f%40<2);
-  if (c>90 && c<92.7 && Math.abs(b.y-120)<0.5) { inp.d = b.state==='dash' || !mem.prevD; if (c>92.0) inp.j=true; }
-  if (mem.prevJ && inp.j && ground(b)) inp.j=false;
+  if (on(180) && x>300) inp.j=true;                                                   // → 鉄の足場（216）
+  if (on(216) && x>450) inp.j=true;                                                   // → 足場（285）
+  if (on(285) && x>730) inp.j=true;                                                   // → 高い足場（358）
+  for (const [i,a] of [[0,1080],[1,1480],[2,3310]]) if (on(160) && x>a && x<a+30 && (G.live(S[i])||G.left(S[i])<70)) inp.r=false;   // 帯電する床：止むのを待つ
+  if (on(160) && x>2440 && x<2460) inp.j=true;                                       // → 足場（153）
+  if (on(153) && x>2675) inp.j=true;                                                  // → 足場（200）
+  if (on(200) && x>2915) inp.j=true;                                                  // → 足場（243）
+  if (mem.prevJ && inp.j && gr) inp.j=false;
+  mem.prevJ=!!inp.j; mem.prevD=!!inp.d; return inp;
+}
+function okujoBot(G,b,f,mem){
+  const x=b.x, y=b.y, inp={r:true}, gr=['stand','walk','walk_start','land'].includes(b.state), air=b.state==='jump'||b.state==='fall', on=h=>gr&&Math.abs(y-h)<1, w0=G.winds[0];
+  if (b.state==='jump') inp.j=true;
+  if (on(160) && x>380 && x<420 && (G.live(w0)||G.left(w0)<60)) inp.r=false;        // 向かい風：止むのを待つ
+  if (on(160) && x>440 && x<460) inp.j=true;                                         // → 給水塔のビル（198）
+  if (on(198) && x>865 && x<915) inp.j=true;                                         // 渡り廊下 → 塔（275）
+  if (on(275) && x>1100) inp.j=true;                                                  // 塔 → 隣のビル（195）
+  if (on(160) && x>2550 && x<2600) inp.j=true;                                                  // → 張り出し（174）
+  if (on(174) && x>2654) inp.j=true;                                                  // → 張り出し（252）
+  if (air && y>256 && y<320 && x>2730 && x<2785 && b.vy<0) inp.r=false;            // 張り出し（252）に降りる
+  if (on(252) && x>2735) inp.j=true;                                                  // → 塔の上（313）
+  if (air && y>318 && x>2700 && x<2780 && b.vy<0) inp.r=false;                       // 塔の上に降りる
+  if (on(313) && x>2700 && x<2745 && (G.live(G.winds[1])||G.left(G.winds[1])<50)) inp.r=false;   // 2 つめの向かい風：止むのを待つ
+  if (on(313) && x>2740 && x<2775) { inp.d=b.state==='dash'||!mem.prevD; if (x>2755) inp.j=true; }   // ダッシュジャンプで隣の塔の張り出し（230）へ
+  if (air && b.dashJump) { inp.d=true; inp.j=b.state==='jump'; }
+  if (air && y>235 && x>2930 && x<2990 && b.vy<0) { inp.r=false; inp.d=false; }      // 張り出し（230）に降りる
+  if (on(230) && x>2985) inp.j=true;                                                  // → まん中のビル（195）
+  if (mem.prevJ && inp.j && gr) inp.j=false;
   mem.prevJ=!!inp.j; mem.prevD=!!inp.d; return inp;
 }
 function haisuiBot(G,b,f,mem){
@@ -199,7 +159,7 @@ function haisuiBot(G,b,f,mem){
   if (mem.prevJ && inp.j && gr) inp.j=false;
   mem.prevJ=!!inp.j; mem.prevD=!!inp.d; return inp;
 }
-  for (const [id, bot, boss, sec] of [['okujo', okujoBot, 'kazegiri', 40], ['haisui', haisuiBot, 'dakuryu', 60]]) {
+  for (const [id, bot, boss, sec] of [['koka', kokaBot, 'raikaku', 40], ['okujo', okujoBot, 'kazegiri', 40], ['haisui', haisuiBot, 'dakuryu', 60]]) {
     const K = ctx.RunnerHardStages[id], KR = K.rows();
     t(`${K.name}：14 行で幅がそろう・始まりと戸・ボスの表とつながる・ボスの部屋は平らで 1 画面ほど`, () => {
       assert.equal(KR.length, 14); assert.ok(KR.every(r => r.length === KR[0].length)); assert.ok(KR.some(r => r.includes('S')) && KR.some(r => r.includes('G')));
@@ -211,11 +171,34 @@ function haisuiBot(G,b,f,mem){
       const r = runStage(id, bot, 60 * 120); assert.ok(r.ok, `届かなかった：${r.x} ${r.y}`); assert.equal(r.hurt, 0); assert.ok(r.f / 60 < sec, `${(r.f / 60).toFixed(1)} 秒`);
     });
   }
-  t('仕掛けの意味：向かい風の間は、屋上の広いすき間をダッシュジャンプでも越えられない（止むのを待つ）', () => {
-    const K = ctx.RunnerHardStages.okujo, map = RA.makeMap(K.rows().map(r => r.replace(/[SCG]/g, '.'))), G = ctx.RunnerGimmicks.make(map, K.gimmicks()), A = RA.make({ map });
-    const w = G.winds[0]; assert.ok(G.live(w)); const b = A.body(27.6 * T, 160, 1), mem = {};
-    for (let f = 0; f < 200; f++) { const c = b.x / T, inp = { r: true, d: b.state === 'dash' || !mem.d }; if (c > 29.9 || b.state === 'jump' || b.state === 'fall') { inp.j = true; inp.d = true; } mem.d = inp.d; A.step(b, inp); G.step(b, A.box(b)); if (b.y < 120) break; }
-    assert.ok(b.y < 120, '向かい風でも届いてしまう');
+  const kmap = () => { const K = ctx.RunnerHardStages.koka, map = RA.makeMap(K.rows().map(r => r.replace(/[SCG]/g, '.'))); for (const L of K.ledges()) map.ledges.push(L); return { K, map }; };
+  t('高架下：帯電する床は、流れている間に歩いて渡ると やられ（流れる前にちらつく）', () => {
+    const { K, map } = kmap(), G = ctx.RunnerGimmicks.make(map, K.gimmicks()), A = RA.make({ map }), s0 = G.strips[0], b = A.body(s0.c0 * 40 - 30, 160, 1); let shocked = false, warned = false;
+    for (let f = 0; f < 300 && !shocked; f++) { A.step(b, { r: true }); G.step(b, A.box(b)); warned = warned || G.warn(s0); if (G.shock(A.box(b))) shocked = true; }
+    assert.ok(shocked); assert.ok(warned || G.live(s0));
+  });
+  t('高架下：ボスの部屋の看板は乗っても落ちない・踏みつけで壊れて戻る・雷雲招来の間は帯電・床からジャンプで届く', () => {
+    const { K, map } = kmap(), G = ctx.RunnerGimmicks.make(map, K.gimmicks()), A = RA.make({ map }), sign = G.crumbles.find(c => c.arena), top = (sign.cy + 1) * 40;
+    const s = A.body((sign.c0 + 1) * 40, top, 1); for (let f = 0; f < 200; f++) { A.step(s, {}); G.step(s, A.box(s)); } assert.equal(sign.st, 'solid'); assert.equal(s.y, top);
+    G.breakArena(); assert.equal(sign.st, 'gone'); assert.ok(!map.solid(sign.c0, sign.cy));
+    G.charge(true); for (let f = 0; f < 400; f++) G.step(null, null); assert.equal(sign.st, 'solid'); assert.ok(G.shock({ x0: sign.c0 * 40 + 5, x1: sign.c0 * 40 + 19, y0: top, y1: top + 48 }));
+    const j = A.body((sign.c0 - 1) * 40, 160, 1); for (let f = 0; f < 120; f++) { A.step(j, { r: f > 6, j: f < 40 }); G.step(j, A.box(j)); if (j.y === top) break; } assert.equal(j.y, top, '看板に乗れる');
+  });
+  t('高架下：足場は背景の絵に合わせた高さ・稲妻の穴へ落ちたら途中の印から（穴と同じ）', () => {
+    const { K, map } = kmap(); assert.ok(K.art.length === 3 && K.W * 40 === K.art.length * 2000, '絵 3 枚＝面の幅');
+    const A = RA.make({ map }), b = A.body(400, 400, 1); for (let f = 0; f < 120; f++) A.step(b, {}); assert.equal(b.y, 216, '鉄の足場の上に立つ');
+    const c = A.body(505, 400, 1); for (let f = 0; f < 120; f++) A.step(c, {}); assert.ok(c.y < K.fallY, '足場の間（稲妻の穴）は落ちる');
+  });
+  t('仕掛けの意味：向かい風の間は、屋上を歩いても押し戻されて すき間の手前まで進めない（止むのを待つ）', () => {
+    const K = ctx.RunnerHardStages.okujo, map = RA.makeMap(K.rows().map(r => r.replace(/[SCG]/g, '.'))); for (const L of K.ledges()) map.ledges.push(L);
+    const walk = live => { const G = ctx.RunnerGimmicks.make(map, K.gimmicks()); if (!live) for (let f = 0; f < 110; f++) G.step(null, null); assert.equal(G.live(G.winds[0]), live); const A = RA.make({ map }), b = A.body(450, 160, 1); for (let f = 0; f < 40; f++) { A.step(b, { r: true }); G.step(b, A.box(b)); } return b.x; };
+    assert.ok(walk(true) < 450, '向かい風で押し戻される'); assert.ok(walk(false) > 520, '止むと進める');
+  });
+  t('雨のビルの屋上：足場は背景の絵に合わせた高さ・塔の上はジャンプ 1 回では届かない（張り出しを伝う）', () => {
+    const K = ctx.RunnerHardStages.okujo, map = RA.makeMap(K.rows().map(r => r.replace(/[SCG]/g, '.'))); for (const L of K.ledges()) map.ledges.push(L);
+    assert.ok(K.art.length === 3 && K.W * 40 === K.art.length * 2000, '絵 3 枚＝面の幅');
+    const A = RA.make({ map }), b = A.body(2450, 160, 1); let top = 0; for (let f = 0; f < 80; f++) { A.step(b, { j: true }); top = Math.max(top, b.y); } assert.ok(top < 313, `塔（313）に届いてしまう ${top}`);
+    const c = A.body(2690, 300, 1); for (let f = 0; f < 120; f++) A.step(c, {}); assert.equal(c.y, 174, '張り出しの上に立つ');
   });
   t('仕掛けの意味：増水の間は水の中の低い柱に立っていると やられ・高い足場（203）には水が届かない', () => {
     const K = ctx.RunnerHardStages.haisui, map = RA.makeMap(K.rows().map(r => r.replace(/[SCG]/g, '.'))), G = ctx.RunnerGimmicks.make(map, K.gimmicks());
