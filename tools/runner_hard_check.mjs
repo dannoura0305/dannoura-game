@@ -192,6 +192,7 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
   if (SHOTS) { await p.waitForTimeout(500); await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_warning.png` }); }
   const on = await until(async () => { const c = await CS(); return c.on && (await S()).phase === 'play' ? c : null; }, 4000, 50);
   ok(`${label}：隠しボス：戦いが始まる（感染ゲージ 0・記録に「会った」）`, !!on && on.infect === 0 && on.rec && on.rec.seen, JSON.stringify(on));
+  ok(`${label}：隠しボス：部屋は利用者の家の絵（寝室・居間・台所）`, !!on && on.home);
   if (SHOTS) { await p.waitForTimeout(1800); await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_cold.png` }); }
   // 当たると感染ゲージが上がる（傘の耐久は減らない）
   { const hp0 = (await S()).hp; await p.waitForTimeout(1200); const c = await CS(); await p.evaluate(c => window.__MG_TEST__.runnerHard.warp(c.x, c.y - 20), c);

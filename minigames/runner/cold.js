@@ -23,6 +23,7 @@
   };
   function make(room) {                                              // room：{ x0, x1, floor }（床の高さ）
     const shots = [], minis = [], mists = [];
+    const floorAt = x => (room.floorAt ? room.floorAt(x) : room.floor);   // 段のある部屋（家の絵）では場所ごとの床の高さ
     function spawn(x) { return { x, y: room.floor + COLD.float, baseY: room.floor + COLD.float, hp: COLD.hp, hpMax: COLD.hp, state: 'float', f: 0, seq: 0, vx: 0, hitT: 0, dead: false, deadF: 0, face: -1, form: 1, last: null, taken: 0, ev: [] }; }
     const R = e => COLD.r * (e.form === 2 ? COLD.form2.scale : 1);
     const addMini = (x, y, vx) => { if (minis.length < COLD.split.max) minis.push({ x, y, vx, vy: 3, hp: COLD.mini.hp, f: 0, dead: false, deadF: 0 }); };
@@ -59,14 +60,14 @@
       e.x = Math.max(room.x0 + R(e), Math.min(room.x1 - R(e), e.x));
     }
     function stepOthers(p) {
-      for (const s of shots) { if (s.wait > 0) { s.wait--; continue; } s.x += s.vx; s.y += s.vy; s.life--; if (s.y < room.floor || s.x < room.x0 || s.x > room.x1) s.life = 0; }
+      for (const s of shots) { if (s.wait > 0) { s.wait--; continue; } s.x += s.vx; s.y += s.vy; s.life--; if (s.y < floorAt(s.x) || s.x < room.x0 || s.x > room.x1) s.life = 0; }
       for (let i = shots.length - 1; i >= 0; i--) if (shots[i].life <= 0) shots.splice(i, 1);
       for (const m of mists) { m.f++; m.life--; m.x += m.vx; m.vx *= 0.995; }
       for (let i = mists.length - 1; i >= 0; i--) if (mists[i].life <= 0) mists.splice(i, 1);
       for (const m of minis) {
         m.f++; if (m.dead) { m.deadF++; continue; }
         m.vy -= COLD.mini.gravity; m.x += m.vx; m.y += m.vy;
-        if (m.y <= room.floor) { m.y = room.floor; m.vy = 0; m.vx = 0; if (m.f % 40 === 0) { m.vy = COLD.mini.hop; m.vx = (p && p.x < m.x ? -1 : 1) * COLD.mini.speedX; } }
+        const fy = floorAt(m.x); if (m.y <= fy && m.y > fy - 30) { m.y = fy; m.vy = 0; m.vx = 0; if (m.f % 40 === 0) { m.vy = COLD.mini.hop; m.vx = (p && p.x < m.x ? -1 : 1) * COLD.mini.speedX; } }
         m.x = Math.max(room.x0 + COLD.mini.w, Math.min(room.x1 - COLD.mini.w, m.x));
       }
       for (let i = minis.length - 1; i >= 0; i--) if (minis[i].dead && minis[i].deadF > 20) minis.splice(i, 1);
@@ -96,7 +97,7 @@
       }
       return cyc(0, [0, 1, 2, 3, 4, 5, 6], 8);
     }
-    const miniFrame = m => (m.dead ? '6_' + Math.min(7, 4 + Math.floor(m.deadF / 6)) : m.y > room.floor + 0.5 ? '6_2' : '5_' + (Math.floor(m.f / 6) % 8));
+    const miniFrame = m => (m.dead ? '6_' + Math.min(7, 4 + Math.floor(m.deadF / 6)) : m.y > floorAt(m.x) + 0.5 ? '6_2' : '5_' + (Math.floor(m.f / 6) % 8));
     const shotFrame = s => '7_' + (Math.floor((s.life || 0) / 4) % 5);
     function hurtMini(m) { if (m.dead) return false; m.hp--; if (m.hp <= 0) { m.dead = true; m.deadF = 0; } return true; }
     return { spawn, step, stepOthers, shots, minis, mists, box, shotBox, miniBox, mistBox, hurt, hurtMini, frame, miniFrame, shotFrame, radius: R, telegraph: e => /_tele$/.test(e.state) || e.state === 'form2' };

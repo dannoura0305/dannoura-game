@@ -281,12 +281,13 @@ registerMinigame({
       say(short ? tail : [N('（帰宅。冷却シートを貼って、プリンは冷蔵庫に。今夜はずっと、そばにいる）'), N('── 数日後 ──')].concat(tail), () => { phase = 'warning'; phaseT = 0; SE.warn(); });
     }
     function startCold() {
-      const H = ROWS.length, W = clamp(Math.floor(VW / 40), 13, 34), rows = [];   // 1 画面に収まる部屋（縦長のスマホで 13 マス・横長で 15 マスほど）
-      for (let r = 0; r < H; r++) { const cy = H - 1 - r; rows.push(cy <= 1 ? '#'.repeat(W) : '#' + '.'.repeat(W - 2) + '#'); }
+      // 家の絵（assets/runner/home.webp・2000×667）が読めていれば、絵の通りの 50 マスの家（寝室・一段高い居間と廊下・台所）。読めなければ 1 画面の部屋
+      const HOME = !!ART.home, H = ROWS.length, W = HOME ? 50 : clamp(Math.floor(VW / 40), 13, 34), rows = [];   // 1 画面に収まる部屋（縦長のスマホで 13 マス・横長で 15 マスほど）
+      for (let r = 0; r < H; r++) { const cy = H - 1 - r; let row = cy <= 1 ? '#'.repeat(W) : '#' + '.'.repeat(W - 2) + '#'; if (HOME && cy === 2) row = row.slice(0, 14) + '#'.repeat(20) + row.slice(34); rows.push(row); }   // 居間と廊下（列 14〜33）は一段（40px）高い
       map = RunnerAct.makeMap(rows); const T = map.tile;
       act = RunnerAct.make({ map, phys: DF ? DF.phys : {}, airDash: () => !!C && C.usable('kazebashiri') }); C = RunnerCombat.make(act, { learned: REC.moves || [] });
       foes = []; boss = null; arenaOn = false; B = act.body(3 * T + T / 2, 2 * T, 1); B.invul = 60; lastState = B.state;
-      CZ = RunnerCold.make({ x0: T, x1: (W - 1) * T, floor: 2 * T }); CZ.W = W; cboss = CZ.spawn((W - 4) * T);
+      CZ = RunnerCold.make({ x0: T, x1: (W - 1) * T, floor: 2 * T, floorAt: x => (map.solid(Math.floor(x / T), 2) ? 3 * T : 2 * T) }); CZ.W = W; CZ.home = HOME; cboss = CZ.spawn(HOME ? 15 * T : (W - 4) * T);
       cboss.hp = cboss.hpMax = Math.round(cboss.hpMax * (DF ? DF.boss : 1));
       infect = 0; infF = 0; camX = 0; camY = 0; hitStop = 0; acc = 0;
       const R = coldRec(); coldFirst = !R.seen; R.seen = true;
@@ -347,7 +348,7 @@ registerMinigame({
     let SPR = null, SEL = null; const ART = {};   // ART：面の背景の絵（名前 → 画像）   // SEL：ボス選択画面の絵（assets/runner/select.json）
     function loadSprite() {
       fetch('assets/runner/select.json').then(r => r.json()).then(meta => { const bg = new Image(), img = new Image(); let n = 0; const ok = () => { if (++n === 2) SEL = { bg, img, F: meta.frames, W: meta.W, H: meta.H }; }; bg.onload = ok; img.onload = ok; bg.src = 'assets/runner/' + meta.bg; img.src = 'assets/runner/' + meta.image; }).catch(() => {});   // ボス選択画面の絵（利用者の絵）
-      for (const nm of ['haisui_1', 'haisui_2', 'haisui_3', 'okujo_1', 'okujo_2', 'okujo_3', 'koka_1', 'koka_2', 'koka_3']) { const img = new Image(); img.onload = () => { ART[nm] = img; }; img.src = 'assets/runner/' + nm + '.webp'; }   // 濁流・風斬・雷殻の面の背景（利用者の絵）
+      for (const nm of ['haisui_1', 'haisui_2', 'haisui_3', 'okujo_1', 'okujo_2', 'okujo_3', 'koka_1', 'koka_2', 'koka_3', 'home']) { const img = new Image(); img.onload = () => { ART[nm] = img; }; img.src = 'assets/runner/' + nm + '.webp'; }   // 濁流・風斬・雷殻の面と、風邪菌の家の背景（利用者の絵）
       for (const id of ['kazegiri', 'dakuryu', 'raikaku', 'kazekin'])   // ボスと隠しボスのドット絵（利用者の絵）
       fetch('assets/runner/' + id + '.json').then(r => r.json()).then(meta => { const img = new Image(); img.onload = () => { BSPR[id] = { img, F: meta.frames }; }; img.src = 'assets/runner/' + meta.image; }).catch(() => {});
       fetch('assets/runner/dannoura.json').then(r => r.json()).then(meta => {
@@ -508,6 +509,10 @@ registerMinigame({
     // 画面の座標：x = 世界の x − camX、y = 地面の基準から（上が＋）→ 画面の下が 0
     const sx = x => x - camX, sy = y => VH - (y - camY);
     function drawBack() {
+      if (CZ && CZ.home && ART.home) {   // 家の絵：世界の y ＝ 610 − 絵の y（寝室・台所の床の前の縁が 80、居間が 120）
+        cx.fillStyle = '#241a30'; cx.fillRect(0, 0, VW, VH); const sm = cx.imageSmoothingEnabled; cx.imageSmoothingEnabled = false;
+        cx.drawImage(ART.home, Math.floor(sx(0)), Math.floor(sy(610)), 2001, 668); cx.imageSmoothingEnabled = sm; return;
+      }
       if (CZ) { drawHome(); return; }
       if (STAGE.art && STAGE.art.every(n => ART[n])) { drawArt(); return; }
       if (STAGE.id === 'koka') { drawKoka(); return; }
@@ -526,6 +531,7 @@ registerMinigame({
       for (let c = c0; c <= c1; c++) for (let cy = 0; cy < ROWS.length; cy++) {
         const ch = map.at(c, cy), x = sx(c * T), y = sy((cy + 1) * T);
         if (artOn) continue;                                         // 背景の絵が足場を描いている
+        if (CZ && CZ.home && ART.home) continue;                    // 家の絵が床を描いている
         if (ch === '#' && CZ) {   // 家の床（板の間）と壁
           const wall = cy > 1; cx.fillStyle = wall ? '#3a2a24' : '#6a4a32'; cx.fillRect(x, y, T + .5, T + .5);
           if (!wall) { cx.fillStyle = 'rgba(0,0,0,.22)'; cx.fillRect(x, y + T / 2, T, 1); cx.fillRect(x + (c % 3) * 13, y, 1, T); if (map.at(c, cy + 1) !== '#') { cx.fillStyle = '#8a6a48'; cx.fillRect(x, y, T + .5, 4); } }
@@ -953,7 +959,7 @@ registerMinigame({
     // 試験の時だけの入口（window.__MG_TEST__ がある時だけ）
     if (typeof window !== 'undefined' && window.__MG_TEST__) window.__MG_TEST__.runnerHard = {
       get s() { return { selArt: !!SEL, selRects, VW, stage: STAGE.id, bossSprite: !!(boss ? BSPR[boss.id] : BSPR.raikaku), sprites: Object.keys(BSPR), sel: typeof RunnerBosses !== 'undefined' ? selList().map(d => d.id) : [], selIdx, gmW: GM ? { winds: GM.winds.map(q => GM.live(q)), floods: GM.floods.map(q => Math.round(GM.level(q))) } : null, gm: GM ? { strips: GM.strips.map(q => GM.live(q)), crumbles: GM.crumbles.map(c => c.st), charged: GM.charged } : null, boss: boss ? { hp: boss.hp, state: boss.state, dead: boss.dead, x: boss.x, face: boss.face, frame: BZ.frame(boss), w: BZ.spec(boss).w, grounded: boss.grounded, y: boss.y } : null, art: artVisible(), arenaOn, arena: AR, moves: C ? [...C.learned] : [], beaten: REC.beaten || [], sprite: !!SPR, spriteKey: SPR && B ? spriteKey() : null, phase, hp, falls, hurts, runTime, outcome, kills, foes: foes.map(e => ({ type: e.type, x: e.x, y: e.y, hp: e.hp, dead: e.dead, face: e.face })), invul: B && B.invul, atk: B && B.atk && B.atk.id, x: B && B.x, y: B && B.y, state: B && B.state, goal, spawn, checks: checks.map(c => !!c.got) }; },
-      get cold() { return { on: !!CZ, hp: cboss ? cboss.hp : null, state: cboss ? cboss.state : null, dead: cboss ? cboss.dead : null, x: cboss ? cboss.x : null, y: cboss ? cboss.y : null, infect, res: coldRes, rec: REC.cold || null, story: story ? { i: story.i, n: story.lines.length, txt: (story.lines[story.i] || {}).txt } : null, sel: selList().map(d => d.id) }; },
+      get cold() { return { on: !!CZ, home: !!(CZ && CZ.home), hp: cboss ? cboss.hp : null, state: cboss ? cboss.state : null, dead: cboss ? cboss.dead : null, x: cboss ? cboss.x : null, y: cboss ? cboss.y : null, infect, res: coldRes, rec: REC.cold || null, story: story ? { i: story.i, n: story.lines.length, txt: (story.lines[story.i] || {}).txt } : null, sel: selList().map(d => d.id) }; },
       heal() { hp = HP_MAX; }, coldHp(n) { if (cboss) cboss.hp = n; }, infect(n) { infect = n; }, beatAll() { REC.beaten = RunnerBosses.visible().map(b => b.id); },
       bossHp(n) { if (boss) boss.hp = n; }, bossGo(st) { if (boss) { boss.state = st; boss.f = 0; boss.blocks = 0; } },
       warp(x, y) { if (B) { B.x = x; B.y = y; B.vx = B.vy = 0; act.go(B, 'fall'); } }, start() { advance(); },
