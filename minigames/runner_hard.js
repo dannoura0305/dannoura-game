@@ -137,7 +137,7 @@ var RunnerHardStageHaisui = RunnerHardStageHaisui || {
   arena() { return { c0: 111, c1: 125, bossC: 122, boss: 'dakuryu', floorCy: 4 }; },
   gimmicks() {
     return {
-      floods: [{ c0: 14, c1: 39, base: 85, max: 95, period: 340, on: 170, off: 0 }, { c0: 58, c1: 85, base: 85, max: 100, period: 320, on: 160, off: 120 }],
+      floods: [{ c0: 9, c1: 39, base: 85, max: 70, period: 340, on: 170, off: 0 }, { c0: 58, c1: 85, base: 85, max: 100, period: 320, on: 160, off: 120 }],
       crumbles: [{ c0: 113, c1: 115, cy: 6, stable: true, arena: true }, { c0: 121, c1: 123, cy: 6, stable: true, arena: true }],   // 部屋の高い足場（大波から逃げる）
     };
   },
@@ -281,12 +281,14 @@ registerMinigame({
       say(short ? tail : [N('（帰宅。冷却シートを貼って、プリンは冷蔵庫に。今夜はずっと、そばにいる）'), N('── 数日後 ──')].concat(tail), () => { phase = 'warning'; phaseT = 0; SE.warn(); });
     }
     function startCold() {
-      const H = ROWS.length, W = clamp(Math.floor(VW / 40), 13, 34), rows = [];   // 1 画面に収まる部屋（縦長のスマホで 13 マス・横長で 15 マスほど）
-      for (let r = 0; r < H; r++) { const cy = H - 1 - r; rows.push(cy <= 1 ? '#'.repeat(W) : '#' + '.'.repeat(W - 2) + '#'); }
+      // 家の絵（assets/runner/home.webp・2000×667：雨の夜の 2 階建ての家の断面）が読めていれば、絵の通りの 50 マスの家。1 階の縁側（床 80）・2 階の床（342）・右の階段（段の足場）。読めなければ 1 画面の部屋
+      const HOME = !!ART.home, H = ROWS.length, W = HOME ? 50 : clamp(Math.floor(VW / 40), 13, 34), rows = [];   // 1 画面に収まる部屋（縦長のスマホで 13 マス・横長で 15 マスほど）
+      for (let r = 0; r < H; r++) { const cy = H - 1 - r; let row = cy <= 1 ? '#'.repeat(W) : '#' + '.'.repeat(W - 2) + '#'; if (HOME && cy > 1) row = '####' + '.'.repeat(W - 8) + '####'; rows.push(row); }   // 家の外（庭・道）は壁
       map = RunnerAct.makeMap(rows); const T = map.tile;
+      if (HOME) for (const [x0, x1, y] of [[330, 1590, 342], [1760, 1850, 150], [1690, 1770, 220], [1615, 1700, 290]]) map.ledges.push({ x0, x1, y });   // 2 階の床・階段の段（世界の y ＝ 620 − 絵の y）
       act = RunnerAct.make({ map, phys: DF ? DF.phys : {}, airDash: () => !!C && C.usable('kazebashiri') }); C = RunnerCombat.make(act, { learned: REC.moves || [] });
-      foes = []; boss = null; arenaOn = false; B = act.body(3 * T + T / 2, 2 * T, 1); B.invul = 60; lastState = B.state;
-      CZ = RunnerCold.make({ x0: T, x1: (W - 1) * T, floor: 2 * T }); CZ.W = W; cboss = CZ.spawn((W - 4) * T);
+      foes = []; boss = null; arenaOn = false; B = act.body((HOME ? 6 : 3) * T + T / 2, 2 * T, 1); B.invul = 60; lastState = B.state;
+      CZ = RunnerCold.make({ x0: (HOME ? 4 : 1) * T, x1: (W - (HOME ? 4 : 1)) * T, floor: 2 * T }); CZ.W = W; CZ.home = HOME; cboss = CZ.spawn(HOME ? 19 * T : (W - 4) * T);
       cboss.hp = cboss.hpMax = Math.round(cboss.hpMax * (DF ? DF.boss : 1));
       infect = 0; infF = 0; camX = 0; camY = 0; hitStop = 0; acc = 0;
       const R = coldRec(); coldFirst = !R.seen; R.seen = true;
@@ -347,7 +349,7 @@ registerMinigame({
     let SPR = null, SEL = null; const ART = {};   // ART：面の背景の絵（名前 → 画像）   // SEL：ボス選択画面の絵（assets/runner/select.json）
     function loadSprite() {
       fetch('assets/runner/select.json').then(r => r.json()).then(meta => { const bg = new Image(), img = new Image(); let n = 0; const ok = () => { if (++n === 2) SEL = { bg, img, F: meta.frames, W: meta.W, H: meta.H }; }; bg.onload = ok; img.onload = ok; bg.src = 'assets/runner/' + meta.bg; img.src = 'assets/runner/' + meta.image; }).catch(() => {});   // ボス選択画面の絵（利用者の絵）
-      for (const nm of ['haisui_1', 'haisui_2', 'haisui_3', 'okujo_1', 'okujo_2', 'okujo_3', 'koka_1', 'koka_2', 'koka_3']) { const img = new Image(); img.onload = () => { ART[nm] = img; }; img.src = 'assets/runner/' + nm + '.webp'; }   // 濁流・風斬・雷殻の面の背景（利用者の絵）
+      for (const nm of ['haisui_1', 'haisui_2', 'haisui_3', 'okujo_1', 'okujo_2', 'okujo_3', 'koka_1', 'koka_2', 'koka_3', 'home']) { const img = new Image(); img.onload = () => { ART[nm] = img; }; img.src = 'assets/runner/' + nm + '.webp'; }   // 濁流・風斬・雷殻の面と、風邪菌の家の背景（利用者の絵）
       for (const id of ['kazegiri', 'dakuryu', 'raikaku', 'kazekin'])   // ボスと隠しボスのドット絵（利用者の絵）
       fetch('assets/runner/' + id + '.json').then(r => r.json()).then(meta => { const img = new Image(); img.onload = () => { BSPR[id] = { img, F: meta.frames }; }; img.src = 'assets/runner/' + meta.image; }).catch(() => {});
       fetch('assets/runner/dannoura.json').then(r => r.json()).then(meta => {
@@ -508,6 +510,10 @@ registerMinigame({
     // 画面の座標：x = 世界の x − camX、y = 地面の基準から（上が＋）→ 画面の下が 0
     const sx = x => x - camX, sy = y => VH - (y - camY);
     function drawBack() {
+      if (CZ && CZ.home && ART.home) {   // 家の絵：世界の y ＝ 620 − 絵の y（1 階の縁側の前の縁が 80・2 階の床が 342）
+        cx.fillStyle = '#251855'; cx.fillRect(0, 0, VW, VH); const sm = cx.imageSmoothingEnabled; cx.imageSmoothingEnabled = false;
+        cx.drawImage(ART.home, Math.floor(sx(0)), Math.floor(sy(620)), 2001, 668); cx.imageSmoothingEnabled = sm; return;
+      }
       if (CZ) { drawHome(); return; }
       if (STAGE.art && STAGE.art.every(n => ART[n])) { drawArt(); return; }
       if (STAGE.id === 'koka') { drawKoka(); return; }
@@ -526,6 +532,7 @@ registerMinigame({
       for (let c = c0; c <= c1; c++) for (let cy = 0; cy < ROWS.length; cy++) {
         const ch = map.at(c, cy), x = sx(c * T), y = sy((cy + 1) * T);
         if (artOn) continue;                                         // 背景の絵が足場を描いている
+        if (CZ && CZ.home && ART.home) continue;                    // 家の絵が床を描いている
         if (ch === '#' && CZ) {   // 家の床（板の間）と壁
           const wall = cy > 1; cx.fillStyle = wall ? '#3a2a24' : '#6a4a32'; cx.fillRect(x, y, T + .5, T + .5);
           if (!wall) { cx.fillStyle = 'rgba(0,0,0,.22)'; cx.fillRect(x, y + T / 2, T, 1); cx.fillRect(x + (c % 3) * 13, y, 1, T); if (map.at(c, cy + 1) !== '#') { cx.fillStyle = '#8a6a48'; cx.fillRect(x, y, T + .5, 4); } }
@@ -619,6 +626,19 @@ registerMinigame({
       const gy = 60; cx.fillStyle = '#10122c'; cx.fillRect(0, gy, VW, 40); for (let i = -1; i < VW / 300 + 2; i++) { const x = i * 300 - (camX * .6) % 300; cx.fillRect(x, gy + 40, 30, VH); }
       for (let i = -1; i < VW / 260 + 2; i++) { const x = i * 260 - (camX * .9) % 260 + 120, base = VH - 40 + camY * .2; cx.strokeStyle = '#3a3a52'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(x, base); cx.lineTo(x, base - 150); cx.lineTo(x + 18, base - 150); cx.stroke(); cx.fillStyle = 'rgba(255,220,150,.9)'; cx.beginPath(); cx.arc(x + 18, base - 146, 5, 0, TAU); cx.fill(); cx.fillStyle = 'rgba(255,220,150,.08)'; cx.beginPath(); cx.moveTo(x + 18, base - 146); cx.lineTo(x - 30, base); cx.lineTo(x + 66, base); cx.fill(); }
     }
+    // 水（増水・大波）：波打つ水面・白い波頭・しぶき。下は絵の川に溶け込むよう、元の水面より下まで塗る。x0・x1 は画面の座標、yBase・lv は世界の高さ
+    function drawWater(x0, x1, yBase, lv, below = 60) {   // below：元の水面より下を塗る深さ（部屋の床の上なら浅く）
+      if (lv <= 1 || x1 <= x0) return;
+      const ty = sy(yBase + lv), by = Math.min(VH, sy(yBase - below)), amp = Math.min(1, lv / 30);
+      const wave = x => (Math.sin(x * .034 + t * 3.1) * 4 + Math.sin(x * .012 - t * 1.6) * 3 + Math.sin(x * .09 + t * 6) * 1.2) * amp;
+      const g = cx.createLinearGradient(0, ty - 6, 0, by); g.addColorStop(0, 'rgba(110,130,235,.82)'); g.addColorStop(.18, 'rgba(58,66,180,.86)'); g.addColorStop(.7, 'rgba(32,26,110,.9)'); g.addColorStop(1, 'rgba(22,16,80,.55)');
+      cx.fillStyle = g; cx.beginPath(); cx.moveTo(x0, by); for (let x = x0; x <= x1 + 5; x += 5) cx.lineTo(Math.min(x, x1), ty + wave(Math.min(x, x1) + camX)); cx.lineTo(x1, by); cx.closePath(); cx.fill();
+      cx.strokeStyle = 'rgba(150,170,255,.28)'; cx.lineWidth = 2; cx.beginPath();   // 水の中の流れの筋
+      for (let i = 0; i < (x1 - x0) / 40; i++) { const xx = x0 + ((i * 97 + t * 70) % (x1 - x0)), yy = ty + 14 + ((i * 37) % Math.max(10, by - ty - 20)); cx.moveTo(xx, yy); cx.lineTo(Math.min(x1, xx + 18 + (i % 3) * 8), yy); } cx.stroke();
+      cx.strokeStyle = 'rgba(240,244,255,.95)'; cx.lineWidth = 3; cx.beginPath(); for (let x = x0; x <= x1; x += 4) cx.lineTo(x, ty + wave(x + camX)); cx.stroke();   // 波頭
+      cx.fillStyle = 'rgba(235,240,255,.85)';
+      for (let i = 0; i < (x1 - x0) / 12; i++) { const xx = x0 + ((i * 53 + t * 45) % (x1 - x0)), h2 = ((i * 7 + Math.floor(t * 12)) % 5); cx.fillRect(xx, ty + wave(xx + camX) - 3 - h2 * 2, 3, 3); }   // しぶき
+    }
     // 面の仕掛け：帯電する床（流れる前にちらつく）・壊れる足場（揺れる）・ボスの部屋の看板（雷雲招来の間は帯電）
     function drawGimmicks() {
       if (!GM) return; const T = map.tile;
@@ -629,8 +649,8 @@ registerMinigame({
       }
       for (const fl of GM.floods) {   // 増水：上がる前に水面がちらつく
         const lv = GM.level(fl), x0 = sx(fl.c0 * T), x1 = sx((fl.c1 + 1) * T), base = sy(fl.base);
-        if (GM.warn(fl) && Math.sin(t * 30) > 0) { cx.fillStyle = 'rgba(120,150,255,.35)'; cx.fillRect(x0, base - 6, x1 - x0, 6); }
-        if (lv > 0) { const top = sy(fl.base + lv); cx.fillStyle = 'rgba(60,64,140,.62)'; cx.fillRect(x0, top, x1 - x0, base - top); cx.strokeStyle = 'rgba(200,215,255,.85)'; cx.lineWidth = 2; cx.beginPath(); for (let xx = x0; xx <= x1; xx += 10) cx.lineTo(xx, top + Math.sin(xx * .08 + t * 7) * 3); cx.stroke(); }
+        if (GM.warn(fl)) { cx.fillStyle = `rgba(230,236,255,${.35 + .35 * Math.sin(t * 24)})`; for (let xx = x0; xx < x1; xx += 22) cx.fillRect(xx + (Math.floor(t * 20) % 3) * 4, base - 3 - Math.abs(Math.sin(xx + t * 9)) * 6, 4, 3); }   // 上がる前：水面が泡立つ
+        drawWater(x0, x1, fl.base, lv);
       }
       for (const s2 of GM.strips) {
         const x0 = sx(s2.c0 * T), x1 = sx((s2.c1 + 1) * T), y = sy((s2.cy + 1) * T), on = GM.live(s2), wn = GM.warn(s2);
@@ -689,8 +709,13 @@ registerMinigame({
         else if (sh.kind === 'blade') { cx.save(); cx.translate(x, y); cx.scale(Math.sign(sh.vx) || 1, 1); cx.fillStyle = 'rgba(255,190,240,.9)'; cx.beginPath(); cx.moveTo(-16, -14); cx.quadraticCurveTo(18, 0, -16, 14); cx.quadraticCurveTo(4, 0, -16, -14); cx.fill(); cx.restore(); for (let i = 0; i < 2; i++) { cx.fillStyle = '#ffc8e8'; cx.fillRect(x - Math.sign(sh.vx) * (20 + i * 10), y + rnd(-6, 6), 4, 4); } }
         else if (sh.kind === 'drop') { cx.fillStyle = 'rgba(150,190,255,.95)'; cx.beginPath(); cx.arc(x, y, 9, 0, TAU); cx.fill(); cx.fillStyle = 'rgba(255,255,255,.6)'; cx.beginPath(); cx.arc(x - 3, y - 3, 3, 0, TAU); cx.fill(); }
         else if (sh.kind === 'splash') { cx.strokeStyle = 'rgba(170,210,255,.85)'; cx.lineWidth = 2; cx.beginPath(); for (let i = -2; i <= 2; i++) { cx.moveTo(x + i * 6, y); cx.lineTo(x + i * 9, y - 12 - (2 - Math.abs(i)) * 6 * (sh.life / 26)); } cx.stroke(); }
-        else if (sh.kind === 'surge') { const d = Math.sign(sh.vx) || 1; cx.fillStyle = 'rgba(80,90,180,.85)'; cx.beginPath(); cx.moveTo(x - d * 40, y); cx.quadraticCurveTo(x - d * 20, y - sh.h * 1.1, x + d * sh.w, y - sh.h); cx.quadraticCurveTo(x + d * (sh.w + 8), y - sh.h * .5, x + d * sh.w, y); cx.closePath(); cx.fill(); cx.strokeStyle = 'rgba(210,230,255,.9)'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(x - d * 20, y - sh.h * .95); cx.quadraticCurveTo(x + d * 4, y - sh.h * 1.15, x + d * sh.w, y - sh.h); cx.stroke(); }
-        else if (sh.kind === 'flood') { const x0 = sx(sh.x0), x1 = sx(sh.x1), top = sy(sh.y + sh.level); if (sh.level > 1) { cx.fillStyle = 'rgba(60,70,150,.6)'; cx.fillRect(x0, top, x1 - x0, y - top); cx.strokeStyle = 'rgba(200,220,255,.8)'; cx.lineWidth = 2; cx.beginPath(); for (let xx = x0; xx < x1; xx += 12) cx.lineTo(xx, top + Math.sin(xx * .1 + t * 6) * 3); cx.stroke(); } }
+        else if (sh.kind === 'surge') {   // 濁流：前が巻き込む大きな波
+          const d = Math.sign(sh.vx) || 1, Hh = sh.h, fx = x + d * sh.w, g = cx.createLinearGradient(0, y - Hh * 1.1, 0, y); g.addColorStop(0, 'rgba(110,130,235,.92)'); g.addColorStop(.4, 'rgba(56,64,178,.92)'); g.addColorStop(1, 'rgba(26,20,96,.9)');
+          cx.fillStyle = g; cx.beginPath(); cx.moveTo(x - d * 130, y); cx.quadraticCurveTo(x - d * 70, y - Hh * .45, x - d * 12, y - Hh * .95); cx.quadraticCurveTo(fx + d * 18, y - Hh * 1.12, fx + d * 6, y - Hh * .55); cx.quadraticCurveTo(fx - d * 10, y - Hh * .42, fx - d * 2, y - Hh * .28); cx.lineTo(fx + d * 8, y); cx.closePath(); cx.fill();
+          cx.strokeStyle = 'rgba(240,244,255,.95)'; cx.lineWidth = 4; cx.beginPath(); cx.moveTo(x - d * 70, y - Hh * .45); cx.quadraticCurveTo(x - d * 30, y - Hh * .85, x - d * 12, y - Hh * .95); cx.quadraticCurveTo(fx + d * 18, y - Hh * 1.12, fx + d * 6, y - Hh * .55); cx.stroke();
+          cx.fillStyle = 'rgba(235,240,255,.9)'; for (let i = 0; i < 10; i++) cx.fillRect(fx + d * (4 + ((i * 13 + sh.life * 3) % 26)), y - Hh * (.3 + ((i * 17) % 70) / 100) - (sh.life * (i + 1)) % 9, 3, 3);   // しぶき
+        }
+        else if (sh.kind === 'flood') drawWater(sx(sh.x0), sx(sh.x1), sh.y, sh.level, 4);   // 大波：部屋の水位（床の上だけ）
         else if (sh.kind === 'bolt') {
           if (sh.f <= sh.tele) { cx.fillStyle = `rgba(255,90,120,${.25 + .25 * Math.sin(sh.f * .8)})`; cx.fillRect(x - sh.w, 0, sh.w * 2, y); cx.fillStyle = '#ff5a78'; cx.fillRect(x - sh.w, y - 4, sh.w * 2, 4); }   // 予兆：落ちる所が赤く光る
           else { cx.fillStyle = 'rgba(240,210,255,.95)'; cx.beginPath(); let px = x; cx.moveTo(px, 0); for (let yy = 0; yy < y; yy += 30) { px = x + rnd(-sh.w * .7, sh.w * .7); cx.lineTo(px, yy); } cx.lineTo(x, y); cx.lineTo(x + 6, y); cx.lineTo(px + 6, 0); cx.closePath(); cx.fill(); cx.fillStyle = 'rgba(200,140,255,.3)'; cx.fillRect(x - sh.w * 2, 0, sh.w * 4, y); }
@@ -953,7 +978,7 @@ registerMinigame({
     // 試験の時だけの入口（window.__MG_TEST__ がある時だけ）
     if (typeof window !== 'undefined' && window.__MG_TEST__) window.__MG_TEST__.runnerHard = {
       get s() { return { selArt: !!SEL, selRects, VW, stage: STAGE.id, bossSprite: !!(boss ? BSPR[boss.id] : BSPR.raikaku), sprites: Object.keys(BSPR), sel: typeof RunnerBosses !== 'undefined' ? selList().map(d => d.id) : [], selIdx, gmW: GM ? { winds: GM.winds.map(q => GM.live(q)), floods: GM.floods.map(q => Math.round(GM.level(q))) } : null, gm: GM ? { strips: GM.strips.map(q => GM.live(q)), crumbles: GM.crumbles.map(c => c.st), charged: GM.charged } : null, boss: boss ? { hp: boss.hp, state: boss.state, dead: boss.dead, x: boss.x, face: boss.face, frame: BZ.frame(boss), w: BZ.spec(boss).w, grounded: boss.grounded, y: boss.y } : null, art: artVisible(), arenaOn, arena: AR, moves: C ? [...C.learned] : [], beaten: REC.beaten || [], sprite: !!SPR, spriteKey: SPR && B ? spriteKey() : null, phase, hp, falls, hurts, runTime, outcome, kills, foes: foes.map(e => ({ type: e.type, x: e.x, y: e.y, hp: e.hp, dead: e.dead, face: e.face })), invul: B && B.invul, atk: B && B.atk && B.atk.id, x: B && B.x, y: B && B.y, state: B && B.state, goal, spawn, checks: checks.map(c => !!c.got) }; },
-      get cold() { return { on: !!CZ, hp: cboss ? cboss.hp : null, state: cboss ? cboss.state : null, dead: cboss ? cboss.dead : null, x: cboss ? cboss.x : null, y: cboss ? cboss.y : null, infect, res: coldRes, rec: REC.cold || null, story: story ? { i: story.i, n: story.lines.length, txt: (story.lines[story.i] || {}).txt } : null, sel: selList().map(d => d.id) }; },
+      get cold() { return { on: !!CZ, home: !!(CZ && CZ.home), hp: cboss ? cboss.hp : null, state: cboss ? cboss.state : null, dead: cboss ? cboss.dead : null, x: cboss ? cboss.x : null, y: cboss ? cboss.y : null, infect, res: coldRes, rec: REC.cold || null, story: story ? { i: story.i, n: story.lines.length, txt: (story.lines[story.i] || {}).txt } : null, sel: selList().map(d => d.id) }; },
       heal() { hp = HP_MAX; }, coldHp(n) { if (cboss) cboss.hp = n; }, infect(n) { infect = n; }, beatAll() { REC.beaten = RunnerBosses.visible().map(b => b.id); },
       bossHp(n) { if (boss) boss.hp = n; }, bossGo(st) { if (boss) { boss.state = st; boss.f = 0; boss.blocks = 0; } },
       warp(x, y) { if (B) { B.x = x; B.y = y; B.vx = B.vy = 0; act.go(B, 'fall'); } }, start() { advance(); },

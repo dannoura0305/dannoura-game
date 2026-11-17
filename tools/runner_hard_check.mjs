@@ -192,6 +192,7 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
   if (SHOTS) { await p.waitForTimeout(500); await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_warning.png` }); }
   const on = await until(async () => { const c = await CS(); return c.on && (await S()).phase === 'play' ? c : null; }, 4000, 50);
   ok(`${label}：隠しボス：戦いが始まる（感染ゲージ 0・記録に「会った」）`, !!on && on.infect === 0 && on.rec && on.rec.seen, JSON.stringify(on));
+  ok(`${label}：隠しボス：部屋は利用者の家の絵（寝室・居間・台所）`, !!on && on.home);
   if (SHOTS) { await p.waitForTimeout(1800); await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_cold.png` }); }
   // 当たると感染ゲージが上がる（傘の耐久は減らない）
   { const hp0 = (await S()).hp; await p.waitForTimeout(1200); const c = await CS(); await p.evaluate(c => window.__MG_TEST__.runnerHard.warp(c.x, c.y - 20), c);
@@ -237,7 +238,7 @@ for (const [idx, id, stage, move, label] of [[0, 'kazegiri', 'okujo', 'kazebashi
     await until(async () => (await S()).gmW.winds[0], 6000, 30); await H('warp', 420, 164); const x0 = (await S()).x; await p.waitForTimeout(250); const x1 = (await S()).x;
     ok(`${label}：突風が吹くと 自機が押し戻される`, x1 < x0 - 20, `${Math.round(x0)} → ${Math.round(x1)}`);
   } else {                   // 増水：上がると通りの自機が やられ
-    await until(async () => { const v = await S(); return v.gmW.floods[0] > 70 && v.invul <= 0; }, 12000, 30); const hp0 = (await S()).hp; await H('warp', 670, 141);   // 水の中の低い柱（137）
+    await until(async () => { const v = await S(); return v.gmW.floods[0] > 55 && v.invul <= 0; }, 12000, 30); const hp0 = (await S()).hp; await H('warp', 670, 141);   // 水の中の低い柱（137）
     const hurt = await until(async () => (await S()).hp < hp0, 1500, 20); ok(`${label}：増水すると 水の中の低い柱に立つ自機が やられ`, !!hurt);
   }
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${id}_stage.png` });
