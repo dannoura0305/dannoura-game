@@ -281,13 +281,14 @@ registerMinigame({
       say(short ? tail : [N('（帰宅。冷却シートを貼って、プリンは冷蔵庫に。今夜はずっと、そばにいる）'), N('── 数日後 ──')].concat(tail), () => { phase = 'warning'; phaseT = 0; SE.warn(); });
     }
     function startCold() {
-      // 家の絵（assets/runner/home.webp・2000×667）が読めていれば、絵の通りの 50 マスの家（寝室・一段高い居間と廊下・台所）。読めなければ 1 画面の部屋
+      // 家の絵（assets/runner/home.webp・2000×667：雨の夜の 2 階建ての家の断面）が読めていれば、絵の通りの 50 マスの家。1 階の縁側（床 80）・2 階の床（342）・右の階段（段の足場）。読めなければ 1 画面の部屋
       const HOME = !!ART.home, H = ROWS.length, W = HOME ? 50 : clamp(Math.floor(VW / 40), 13, 34), rows = [];   // 1 画面に収まる部屋（縦長のスマホで 13 マス・横長で 15 マスほど）
-      for (let r = 0; r < H; r++) { const cy = H - 1 - r; let row = cy <= 1 ? '#'.repeat(W) : '#' + '.'.repeat(W - 2) + '#'; if (HOME && cy === 2) row = row.slice(0, 14) + '#'.repeat(20) + row.slice(34); rows.push(row); }   // 居間と廊下（列 14〜33）は一段（40px）高い
+      for (let r = 0; r < H; r++) { const cy = H - 1 - r; let row = cy <= 1 ? '#'.repeat(W) : '#' + '.'.repeat(W - 2) + '#'; if (HOME && cy > 1) row = '####' + '.'.repeat(W - 8) + '####'; rows.push(row); }   // 家の外（庭・道）は壁
       map = RunnerAct.makeMap(rows); const T = map.tile;
+      if (HOME) for (const [x0, x1, y] of [[330, 1590, 342], [1760, 1850, 150], [1690, 1770, 220], [1615, 1700, 290]]) map.ledges.push({ x0, x1, y });   // 2 階の床・階段の段（世界の y ＝ 620 − 絵の y）
       act = RunnerAct.make({ map, phys: DF ? DF.phys : {}, airDash: () => !!C && C.usable('kazebashiri') }); C = RunnerCombat.make(act, { learned: REC.moves || [] });
-      foes = []; boss = null; arenaOn = false; B = act.body(3 * T + T / 2, 2 * T, 1); B.invul = 60; lastState = B.state;
-      CZ = RunnerCold.make({ x0: T, x1: (W - 1) * T, floor: 2 * T, floorAt: x => (map.solid(Math.floor(x / T), 2) ? 3 * T : 2 * T) }); CZ.W = W; CZ.home = HOME; cboss = CZ.spawn(HOME ? 15 * T : (W - 4) * T);
+      foes = []; boss = null; arenaOn = false; B = act.body((HOME ? 6 : 3) * T + T / 2, 2 * T, 1); B.invul = 60; lastState = B.state;
+      CZ = RunnerCold.make({ x0: (HOME ? 4 : 1) * T, x1: (W - (HOME ? 4 : 1)) * T, floor: 2 * T }); CZ.W = W; CZ.home = HOME; cboss = CZ.spawn(HOME ? 19 * T : (W - 4) * T);
       cboss.hp = cboss.hpMax = Math.round(cboss.hpMax * (DF ? DF.boss : 1));
       infect = 0; infF = 0; camX = 0; camY = 0; hitStop = 0; acc = 0;
       const R = coldRec(); coldFirst = !R.seen; R.seen = true;
@@ -509,9 +510,9 @@ registerMinigame({
     // 画面の座標：x = 世界の x − camX、y = 地面の基準から（上が＋）→ 画面の下が 0
     const sx = x => x - camX, sy = y => VH - (y - camY);
     function drawBack() {
-      if (CZ && CZ.home && ART.home) {   // 家の絵：世界の y ＝ 610 − 絵の y（寝室・台所の床の前の縁が 80、居間が 120）
-        cx.fillStyle = '#241a30'; cx.fillRect(0, 0, VW, VH); const sm = cx.imageSmoothingEnabled; cx.imageSmoothingEnabled = false;
-        cx.drawImage(ART.home, Math.floor(sx(0)), Math.floor(sy(610)), 2001, 668); cx.imageSmoothingEnabled = sm; return;
+      if (CZ && CZ.home && ART.home) {   // 家の絵：世界の y ＝ 620 − 絵の y（1 階の縁側の前の縁が 80・2 階の床が 342）
+        cx.fillStyle = '#251855'; cx.fillRect(0, 0, VW, VH); const sm = cx.imageSmoothingEnabled; cx.imageSmoothingEnabled = false;
+        cx.drawImage(ART.home, Math.floor(sx(0)), Math.floor(sy(620)), 2001, 668); cx.imageSmoothingEnabled = sm; return;
       }
       if (CZ) { drawHome(); return; }
       if (STAGE.art && STAGE.art.every(n => ART[n])) { drawArt(); return; }
