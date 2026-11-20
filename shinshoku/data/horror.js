@@ -123,7 +123,7 @@ export function collapsePose(t, kind = '') {
   return { pose: p, rate: t < COLLAPSE.down ? 0.45 : 0.3 };
 }
 /** 倒れ方を使う異形（Poser の人型で、死ぬと立ったまま霧になっていた物） */
-export const COLLAPSE_KINDS = ['kiro', 'heiten', 'kanja', 'mimic', 'machibito', 'outou', 'shuusha', 'touchoku'];
+export const COLLAPSE_KINDS = ['kiro', 'heiten', 'kanja', 'mimic', 'machibito', 'outou', 'shuusha', 'touchoku', 'omoomote'];   // 静養はベッドの上（崩れない）
 
 // ───────────── 4：足の滑らない位相の速さ ─────────────
 /**

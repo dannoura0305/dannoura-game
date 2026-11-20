@@ -23,7 +23,7 @@ import { heitenPose, shuuyouPose } from './actor/anim.js';   // P19：届いた�
 // P18：区画 → 先に読む異形の体（その区画とすぐ後の区画に出る種類）
 const GIANT_FOES = ['sakibure', 'nurikae', 'kuramono'];
 const LAZY_PACK_AREAS = { office: ['outou'], lab: ['outou'], oldwing: ['tsugihagi'], atrium: ['tsugihagi'], ruins: ['nurikae'], avenue: ['nurikae'], admin: ['touchoku'],
-  hospital: ['kanja', 'mamori', 'utsushimi'], tunnel: ['utsushimi'], abyss: ['kuramono', 'kenkyusha', 'spouse_like'], kiroku: ['kenkyusha', 'spouse_like'] };   // P20：第3章・終章
+  hospital: ['kanja', 'mamori', 'utsushimi', 'seiyou', 'omoomote', 'omoomote_skirt'], tunnel: ['utsushimi'], abyss: ['kuramono', 'kenkyusha', 'spouse_like'], kiroku: ['kenkyusha', 'spouse_like'] };   // P20：第3章・終章
 import { Fx, Rain } from './render/fx.js';
 import { Halos, WetStreaks } from './render/halo.js';
 import { SwordTrail } from './render/trail.js';
@@ -72,6 +72,7 @@ const TEST_MEET = [
   { id: 'kiro_cardigan', title: '帰路（カーディガン）', step: 'ch1_street', kind: 'kiro', pack: 'kiro_cardigan' }, { id: 'kiro_obaa', title: '帰路（老女）', step: 'ch1_street', kind: 'kiro', pack: 'kiro_obaa' },
   { id: 'heiten', title: '閉店', step: 'ch1_street', kind: 'heiten' }, { id: 'shuuyou', title: '収容者（避難所の大きな個体）', step: 'ch2_boss', kind: 'shuuyou' },
   { id: 'kanja', title: '記録のない患者', step: 'ch3_ward', kind: 'kanja' }, { id: 'mimic', title: '模倣する影', step: 'ch3_ward', kind: 'mimic' },
+{ id: 'seiyou', title: '静養', step: 'ch3_ward', kind: 'seiyou' }, { id: 'omoomote', title: '重面', step: 'ch3_ward', kind: 'omoomote' },
   { id: 'mamori', title: '守り手', step: 'ch3_guard', kind: 'mamori' }, { id: 'utsushimi', title: '写し身', step: 'ch3_boss', kind: 'utsushimi' },
   { id: 'outou', title: '応答体', step: 'ch4_lab', kind: 'outou' }, { id: 'sakibure', title: '境界の先触れ', step: 'ch4_r_giant', kind: 'sakibure', giant: true },
   { id: 'nekomata', title: '巨大猫又（だんのうらの巨大な姿）', step: 'ch4_r_giant', kind: 'sakibure', giant: true },
@@ -349,6 +350,7 @@ class Game {
     if (id === 'hospital') {
       const D = A.dyn.door306; if (D && this.flags.door306 && !D.open) { D.open = true; const i = A.boxes.indexOf(D.box); if (i >= 0) A.boxes.splice(i, 1); D.mesh.position.z = -16.7; D.mesh.rotation.y = 1.4; this.halos.setColor(D.halo, 0x60ff90); }
       for (const l of A.lights) l.off = false; this.applyWardLights();
+      if (this.flags.nursecall_fixed && A.dyn.nurseCallLamp != null) this.halos.setColor(A.dyn.nurseCallLamp, 0x60ff90);   // ナースコールの配線は直してある
     }
     if (id === 'tunnel') {
       const R = A.dyn.refugeShutter, closed = ['ch3_boss', 'ch3_boss2'].includes(this.story.step);
@@ -806,6 +808,7 @@ class Game {
       if (e.kind === 'kanja' && e.brain.state === 'nurse') extra.push({ id: 'callout_' + e.id, kind: 'callout', ref: e, x: e.pos.x, z: e.pos.z, r: 2.6, label: '声をかける（巡回の時間ですよ）' });
       if (e.kind === 'utsushimi' && e.brain.state === 'voice' && this.flags.memo) extra.push({ id: 'memo', kind: 'memo', ref: e, x: P.pos.x, z: P.pos.z, r: 99, label: '本物の声を聞かせる（子ども用の携帯の留守電）' });
     }
+    if (this.extraSpots3 && this.area.id === 'hospital') extra.push(...this.extraSpots3());   // 重面：写真を見せる・相棒に呼んでもらう・縛る
     if (this.extraSpots5) extra.push(...this.extraSpots5());
     if (this.extraSpots6) extra.push(...this.extraSpots6());
     if (extra.length) spots = spots.concat(extra);

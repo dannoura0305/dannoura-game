@@ -144,6 +144,20 @@ export function buildHospital() {
   dyn.door306 = { mesh: d306, box: dbox, open: false };
   spots.push({ id: 'door_306', kind: 'hdoor', x: 1.0, z: -16.0, r: 1.2, label: '306 号室の戸' });
   B.box('glow', 2.0, 2.4, -15.1, 0.06, 0.08, 0.08, 0xff6040, { edges: false }); const dh = halos.push({ p: [1.9, 2.4, -15.1], size: 0.5, color: 0xff6040, k: 0.7 }) - 1; dyn.door306.halo = dh;
+  // 2026-11-20：重面（鏡の前で顔を合わせ直す）・静養（ナースコール）のための物
+  // 廊下の洗面台と鏡（東の壁 z −1.4・−13.6）：重面が立ち止まる所
+  for (const [x, z, sx] of [[1.84, -1.4, -1], [1.84, -13.6, -1]]) {
+    B.box('prop', x + sx * 0.22, 0.8, z, 0.44, 0.12, 0.7, 0xe8ecec); B.box('prop', x + sx * 0.22, 0.42, z, 0.08, 0.8, 0.08, 0xb8bcc4, { edges: false }); solid(x + sx * 0.22, z, 0.44, 0.7, 0.9);
+    B.box('glass', x + sx * 0.02, 1.55, z, 0.03, 0.8, 0.6, 0x9ab4c4, { edges: false }); B.box('prop', x + sx * 0.01, 1.55, z, 0.02, 0.86, 0.66, 0x6a7276, { edges: false });
+  }
+  // ナースステーション：入院患者の名簿（顔写真つき）＝重面を救う手掛かり
+  B.box('prop', -8.6, 0.45, 7.45, 1.4, 0.9, 0.5, 0x8a7a64); solid(-8.6, 7.45, 1.4, 0.5, 0.9);
+  B.box('prop', -8.6, 0.92, 7.4, 0.5, 0.03, 0.36, 0xf0ece0, { edges: false }); B.box('prop', -8.45, 0.94, 7.38, 0.12, 0.01, 0.15, 0x6a7a8a, { edges: false });
+  spots.push({ id: 'hosp_roster', kind: 'roster', x: -8.6, z: 6.6, r: 1.1, label: '入院患者の名簿（顔写真つき）' });
+  // 303 号室の前：ナースコールの配線盤（静養を救う：巡回の時刻を戻す）
+  B.box('prop', -1.86, 1.45, -18.2, 0.06, 0.5, 0.4, 0xc8c4b8, { edges: false }); B.box('glow', -1.82, 1.6, -18.1, 0.02, 0.05, 0.05, 0xff5030, { edges: false });
+  const nch = halos.push({ p: [-1.75, 1.6, -18.1], size: 0.35, color: 0xff5030, k: 0.6 }) - 1; dyn.nurseCallLamp = nch;
+  spots.push({ id: 'hosp_nursecall', kind: 'nursecall', x: -1.1, z: -18.2, r: 1.0, label: 'ナースコールの配線盤（303 の前）' });
   // 照明のスイッチ（病棟）：落とすと戦っていない患者は眠る（無力化）
   B.box('prop', -1.86, 1.3, -6.2, 0.04, 0.16, 0.1, 0xe8e8e0, { edges: false }); B.box('glow', -1.83, 1.32, -6.2, 0.02, 0.04, 0.04, 0x40ff80, { edges: false });
   spots.push({ id: 'hosp_switch', kind: 'wardswitch', x: -1.2, z: -6.2, r: 1.0, label: '病棟の照明のスイッチ' });

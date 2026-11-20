@@ -101,6 +101,53 @@ export const ENEMIES = {
     weak: { part: 'drip', mul: 2.5 },
     poise: 26,
   },
+  // 静養（せいよう）：病院のベッドから離れられない患者（ENEMY_AI_SPEC §2.3）。ベッドごと動かない（体の包みにベッド・点滴が入っている）。
+  // 輪：眠る。廊下の音（走る音）で半身を起こす。取り違え：白衣の名札の者は「看護の人」（攻めない）。
+  // 守る：ほかの患者の眠り＝銃声・走る音で起こされると、同じ部屋の静養が皆で起きて腕を伸ばす（部屋の外へは出ない）。
+  // 攻め：ベッドから伸びる腕（白・弾ける）・点滴の管で縛る（赤・つかみ・遠くまで届く）。
+  // 解決：救う＝ナースコールの配線を直す（皆が深く眠る）／無力化＝病棟の照明を落とす／逃げる＝しゃがんで通る／倒す。
+  seiyou: {
+    name: '静養', hp: 30, provisional: true,
+    speed: { walk: 0, angry: 0 },
+    cause: { body: 0.3, memory: 0.5, env: 0.8 },
+    senses: { fov: 140, sight: 6, sightDark: 3.2, hear: { gun: 22, run: 7, walk: 2 }, memory: 4 },
+    assess: [0.6, 1.2],
+    attacks: {
+      arm: { windup: 0.75, active: 0.16, recover: 0.8, dmg: 12, range: 2.2, arc: 120, parryable: true },
+      tube: { windup: 1.0, active: 0.2, recover: 1.1, dmg: 14, range: 3.1, arc: 50, parryable: false, grab: true },
+    },
+    pattern: ['arm', 'arm', 'tube'],
+    cooldown: 1.1,
+    stagger: { parried: 1.0, hit: 0.3 },
+    resolve: { rescue: 'nurse_call_wiring', neutralize: 'ward_lights_off', escape: 'crouch_past', kill: true },
+    weak: { part: 'head', mul: 2.5 },
+    poise: 22,
+  },
+  // 重面（おもおもて）：別の可能性の顔がいくつも重なった人（ENEMY_AI_SPEC §2.2）。
+  // 輪：鏡・窓のガラスの前で立ち止まり、顔を合わせ直そうとする。正面の顔は数秒ごとに入れ替わる（faces の順）。
+  // 取り違え：正面の顔が「知り合い」（kin）の時は、見つけても攻めない。顔ごとに攻撃が違う（噛みつき・叫び・抱きつき）。
+  // 顔が入れ替わる瞬間（swap 秒）は攻撃が止まる＝見切りの好機（青い縁）。
+  // 解決：救う＝本人の写真を見せる（名簿の顔写真）／無力化＝相棒に呼んでもらう（顔の重なりがずれる）→ その間に縛る／逃げる／倒す。
+  omoomote: {
+    name: '重面', hp: 70, provisional: true,
+    speed: { walk: 1.0, angry: 2.8 },
+    cause: { body: 0.7, memory: 0.6, env: 0.3 },
+    senses: { fov: 110, sight: 10, sightDark: 5, hear: { gun: 24, run: 6, walk: 2 }, memory: 7 },
+    assess: [0.8, 1.4],
+    faces: ['kin', 'bite', 'scream', 'hug'],
+    faceEvery: 4.0, swap: 0.6, slip: 3.0, mirrorStay: 4.0,
+    attacks: {
+      bite: { windup: 0.6, active: 0.14, recover: 0.7, dmg: 14, range: 1.8, arc: 90, parryable: true },
+      scream: { windup: 0.9, active: 0.25, recover: 0.9, dmg: 8, range: 3.4, arc: 150, parryable: false },
+      hug: { windup: 1.0, active: 0.18, recover: 1.1, dmg: 18, range: 1.7, arc: 70, parryable: false, grab: true },
+    },
+    pattern: ['bite'],
+    cooldown: 1.0,
+    stagger: { parried: 1.0, hit: 0.3 },
+    resolve: { rescue: 'show_roster_photo', neutralize: 'companion_call_then_bind', escape: true, kill: true },
+    weak: { part: 'head', mul: 2.5 },
+    poise: 34,
+  },
   // 模倣する影（模倣者・ミミック）：人の真似をする影。見舞い客や（相棒）に化けて呼ぶ。近づくと崩れて影になる（0.9 秒の予兆）。
   // 攻めは「だんのうらの直前の動き」を写す（mimicPlan）：斬り続けると連撃・避け続けると突き・撃つと影の弾・弾くとつかみ。
   // 見分け方（公平の約束）：足元に影が無い・瞬きしない・懐中電灯を当てると目が紫に光る・ミニマップの本物の（相棒）の点は別の所。

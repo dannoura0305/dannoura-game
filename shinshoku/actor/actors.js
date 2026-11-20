@@ -17,7 +17,7 @@ import { COMBAT } from '../data/combat.js';
 import { resolveCircle } from '../world/collide.js';
 import { collapsePose, COLLAPSE_KINDS, calibratePhaseRate, hash32, stopGo, APPROACH, rng } from '../data/horror.js';
 // Q-horror 14：予兆の最初の 0.1 秒は止まり（前の形のまま）、そのあと後ろへ反る人型の異形
-const TELE_BODY = ['kiro', 'heiten', 'kanja', 'mimic', 'utsushimi', 'machibito', 'shuusha', 'touchoku', 'mamori', 'outou', 'shuuyou'];
+const TELE_BODY = ['kiro', 'heiten', 'kanja', 'mimic', 'utsushimi', 'machibito', 'shuusha', 'touchoku', 'mamori', 'outou', 'shuuyou', 'omoomote'];
 
 const DT = 1 / 60;
 const angWrap = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };

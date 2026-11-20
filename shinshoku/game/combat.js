@@ -424,23 +424,31 @@ export const combatMethods = {
         case 'notice': this.sfx.play('notice', b.pos); e.justNoticed = 1.0; if (e.kind === 'kiro' && Math.random() < 0.5) { this.bark('kiro_notice', 2.2); this.sfx.play('kiro_voice', b.pos); } break;
         case 'knock': this.sfx.play('knock', b.pos); break;
         case 'resonate': { if (e.kind !== 'outou') break; let n = 0; for (const o of this.enemies) if (o !== e && o.kind === 'outou' && Math.hypot(o.pos.x - b.pos.x, o.pos.z - b.pos.z) < (b.def.resonance || { r: 7 }).r) { const ev2 = []; if (o.brain.state !== 'hostile' && o.brain.resonate(ev2, 0.3, P.pos)) n++; this.enemyEvents(o, ev2); } if (n) { this.metrics.resonance = (this.metrics.resonance || 0) + n; if (!this.flags.reso_bark) { this.flags.reso_bark = true; this.bark('outou_wake', 2.4); } this.sfx.play('outou_voice', b.pos); } break; }
-        case 'say': if (e.kind === 'outou') { if (Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z) < 11) { this.bark(ev.key, 2.2); this.sfx.play('outou_voice', b.pos); } break; } if (ev.key === 'shuuyou_rollcall') { this.sfx.play('rollcall', b.pos); this.bark('shuuyou_rollcall', 1.6); } else if (e.kind === 'kanja') { if (Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z) < 9) { this.bark(ev.key, 2.4); this.sfx.play('kanja_voice', b.pos); } } else if (e.kind === 'mimic' || e.kind === 'utsushimi') { if (Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z) < 15) { this.bark(ev.key, 2.4); this.sfx.play('mimic_voice', b.pos); } } else if (e.kind === 'mamori') { this.bark(ev.key, 2.4); this.sfx.play('kanja_voice', b.pos); } else { this.bark(ev.key, 3); this.sfx.play('heiten_voice', b.pos); } break;
+        case 'say': if (e.kind === 'outou') { if (Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z) < 11) { this.bark(ev.key, 2.2); this.sfx.play('outou_voice', b.pos); } break; } if (ev.key === 'shuuyou_rollcall') { this.sfx.play('rollcall', b.pos); this.bark('shuuyou_rollcall', 1.6); } else if (e.kind === 'kanja' || e.kind === 'seiyou' || e.kind === 'omoomote') { if (Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z) < (e.kind === 'omoomote' ? 7 : 9)) { this.bark(ev.key, 2.4); this.sfx.play('kanja_voice', b.pos); } } else if (e.kind === 'mimic' || e.kind === 'utsushimi') { if (Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z) < 15) { this.bark(ev.key, 2.4); this.sfx.play('mimic_voice', b.pos); } } else if (e.kind === 'mamori') { this.bark(ev.key, 2.4); this.sfx.play('kanja_voice', b.pos); } else { this.bark(ev.key, 3); this.sfx.play('heiten_voice', b.pos); } break;
         case 'step': this.heitenStep(ev.id); break;
         case 'reset': this.heitenStep('reset'); break;
         case 'helped': this.bark('heiten_helped', 2); this.sfx.play('ui_ok'); break;
         case 'wrong': if (e.kind === 'shuuyou') { this.bark('shuuyou_wrong', 3); this.sfx.play('pa_cut', b.pos); this.metrics.wrongCalls = (this.metrics.wrongCalls || 0) + 1; } else { this.bark('heiten_wrong', 2); this.sfx.play('ui_ng'); } break;
-        case 'misread': this.ui.log('……家族と思っているようだ'); break;
+        case 'misread': this.ui.log(ev.as === 'nurse' ? '……看護の人と思っているようだ' : ev.as === 'kin' ? '……知り合いの顔で、こちらを見ている' : '……家族と思っているようだ'); break;
+        // 静養：同じ部屋の仲間を起こす（守る：眠りを妨げる者を皆で）／寝ている者を倒した
+        case 'wakeGroup': { if (e.kind !== 'seiyou') break; let n = 0; for (const o of this.enemies) if (o !== e && o.kind === 'seiyou' && o.brain.room === b.room) { const ev2 = []; if (o.brain.wakeGroup(ev2, P.pos)) n++; this.enemyEvents(o, ev2); } if (n && !this.flags.seiyou_group_bark) { this.flags.seiyou_group_bark = true; this.later(0.4, () => this.bark('seiyou_group', 2.6)); } break; }
+        case 'killedAsleep': this.metrics.seiyouKilledAsleep = (this.metrics.seiyouKilledAsleep || 0) + 1; if (this.companion.root.visible) this.later(1.2, () => this.bark('seiyou_killed_asleep', 3.2)); break;
+        // 重面：正面の顔が入れ替わる（その間は見切りの好機）／相棒の声で顔がずれた
+        case 'faceswap': if (Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z) < 8) { this.sfx.play('copy', b.pos); e.mark = null; if (!this.flags.omo_swap_bark && b.state === 'hostile') { this.flags.omo_swap_bark = true; this.later(0.3, () => this.bark('omoomote_swap', 2.6)); } } break;
+        case 'faceSet': break;
+        case 'slip': this.sfx.play('mimic_voice', b.pos); this.ui.toast('顔がずれた', 'parry', 1.0); break;
         case 'rescued': {
           this.sfx.play('rescue'); this.resolve(e, 'rescue');
           if (e.kind === 'heiten') { this.bark('heiten_rescued', 3.5); this.heitenSign.set('本日は\n閉店しました'); this.heitenStep('rest'); }
           else if (e.kind === 'shuuyou') this.onBossResolved('rescue');
           else if (e.kind === 'utsushimi') this.onBossResolved3('rescue');
           else if (e.kind === 'kanja') { this.metrics.kanjaRescued = (this.metrics.kanjaRescued || 0) + 1; }
+          else if (e.kind === 'seiyou' || e.kind === 'omoomote') { const k = e.kind + 'Rescued'; this.metrics[k] = (this.metrics[k] || 0) + 1; }
           else if (e.kind === 'mamori') { /* 第3章の山場：storyTick3 が演出へ */ }
           else if (!this.flags.first_rescue) { this.flags.first_rescue = true; this.bark('first_rescue'); }
           break;
         }
-        case 'neutralized': if (e.kind === 'kanja' || e.kind === 'outou') { this.resolve(e, 'neutralize'); if (e.kind === 'outou') this.sfx.play('steam', b.pos); break; } this.sfx.play('shutter'); this.resolve(e, 'neutralize'); this.onBossResolved('neutralize'); break;
+        case 'neutralized': if (e.kind === 'kanja' || e.kind === 'outou' || e.kind === 'seiyou' || e.kind === 'omoomote') { this.resolve(e, 'neutralize'); if (e.kind === 'outou') this.sfx.play('steam', b.pos); break; } this.sfx.play('shutter'); this.resolve(e, 'neutralize'); this.onBossResolved('neutralize'); break;
         case 'die': {
           this.sfx.play('die', b.pos); { const at = new THREE.Vector3(b.pos.x, 0, b.pos.z), hh = e.h; if (COLLAPSE_KINDS.includes(e.kind)) this.later(COLLAPSE.mistDelay, () => this.fx.mist(at, 70, hh * 0.5)); else this.fx.mist(at, 70, hh); } this.resolve(e, 'kill'); e.fadeT = 0;   // Q-horror 3：崩れ落ちてから霧
           if (this.lock === e) this.lock = null;

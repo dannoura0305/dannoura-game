@@ -9,6 +9,10 @@ import { COMBAT, ITEMS } from '../data/combat.js';
 import { Kanja } from '../ai/kanja.js';
 import { Mimic, Utsushimi, mimicPlan, ACT_LABEL } from '../ai/mimic.js';
 import { Mamori } from '../ai/mamori.js';
+import { Seiyou, seiyouPoseState } from '../ai/seiyou.js';
+import { Omoomote } from '../ai/omoomote.js';
+import { buildSeiyou, buildOmoomote } from '../actor/models.js';
+import { seiyouPose, omoomotePose } from '../actor/anim.js';
 import { EnemyActor } from '../actor/actors.js';
 import { Poser } from '../actor/rig.js';
 import { buildCivilian, buildCompanion } from '../actor/models.js';
@@ -23,6 +27,16 @@ import { turnTo } from '../actor/actors.js';
 
 const DT = 1 / 60;
 const d2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+/** 重面の姿勢：座り込む（救われた・縛られた）・顔がずれる／入れ替わる時は首が震える。ほかは anim.js の omoomotePose */
+function omoomoteActPose(ctx, b) {
+  if (ctx.state === 'rest') return { pose: { hipsY: -0.5, leftUpperLeg: [-1.5, 0, 0.12], rightUpperLeg: [-1.5, 0, -0.12], leftLowerLeg: [1.6, 0, 0], rightLowerLeg: [1.6, 0, 0], spine: [0.45, 0, 0], chest: [0.2, 0, 0], neck: [0.5, 0, 0], head: [0.2, 0, 0],
+    leftUpperArm: [-0.55, 0, 0.1], rightUpperArm: [-0.55, 0, -0.1], leftLowerArm: [-0.9, 0, 0], rightLowerArm: [-0.9, 0, 0] }, rate: 0.05 };
+  const r = omoomotePose(ctx);
+  const shake = ctx.state === 'slip' ? 0.22 : b && b.swapping > 0 ? 0.14 : 0;
+  if (!shake) return r;
+  const t = ctx.time || 0, h = r.pose.head || [0, 0, 0], n = r.pose.neck || [0, 0, 0];
+  return { pose: Object.assign({}, r.pose, { head: [h[0] + Math.sin(t * 37) * shake * 0.4, h[1] + Math.sin(t * 29) * shake, h[2] + Math.sin(t * 23) * shake * 0.6], neck: [n[0], n[1] + Math.sin(t * 31) * shake * 0.5, n[2]] }), rate: Math.max(r.rate, 0.4) };
+}
 
 export const ch3Methods = {
   // ── 子ども ──
@@ -76,6 +90,8 @@ export const ch3Methods = {
         const e = add(brain, buildKanja(i + 1)); e.poseFn = packPoseFn('kanja', kanjaPose, e.model);   // P20：届いたモデルの動き
         if (brain.state === 'sleep') { const b = brain.bed; brain.pos.x = b.x; brain.pos.z = b.z; }
       });
+      this.spawnSeiyou(add, H.seiyou || []);
+      this.spawnOmoomote(add, H.omoomote || []);
       for (const m of H.mimics) if (!this.enemyRes[m.id]) this.addMimic(add, m, 'civilian');
       if (!this.flags.child_saved) {
         const T = H.twist, r = this.enemyRes[T.mamori.id];
@@ -97,6 +113,42 @@ export const ch3Methods = {
       return true;
     }
     return false;
+  },
+  /** 静養（303 号室）：ベッドごと置く。救った・無力化した者は深く眠ったまま。照明が落ちていれば眠ったまま */
+  spawnSeiyou(add, list) {
+    list.forEach((k, i) => {
+      const r = this.enemyRes[k.id]; if (r === 'kill') return;
+      const brain = new Seiyou({ id: k.id, pos: { x: k.pos[0], z: k.pos[1] }, yaw: k.yaw || 0, room: k.room, seed: 41 + i * 3, rest: r === 'rescue' || r === 'neutralize' });
+      if (r) brain.resolution = r;
+      if (!r && this.flags.ward_dark) { brain.resolution = 'neutralize'; brain.state = 'rest'; }
+      const e = add(brain, buildSeiyou());
+      e.poseFn = ctx => seiyouPose(Object.assign({}, ctx, { state: seiyouPoseState(ctx) }));
+    });
+  },
+  /** 重面：鏡・窓の前を回る。救った（写真）・縛った者は座り込んだまま */
+  spawnOmoomote(add, list) {
+    list.forEach((k, i) => {
+      const r = this.enemyRes[k.id]; if (r === 'kill') return;
+      const stops = k.stops.map(s => ({ x: s.p[0], z: s.p[1], look: s.look ? { x: s.look[0], z: s.look[1] } : null }));
+      const brain = new Omoomote({ id: k.id, pos: { x: stops[0].x, z: stops[0].z }, stops, face: k.face || 0, seed: 53 + i * 7, rest: r === 'rescue' || r === 'neutralize' });
+      if (r) brain.resolution = r;
+      const e = add(brain, buildOmoomote(k.body));
+      e.poseFn = ctx => omoomoteActPose(ctx, brain);
+    });
+  },
+  /** 重面の写真を見せる・相棒に呼んでもらう・縛る（近くにいる時の選択肢） */
+  extraSpots3() {
+    const out = [], P = this.player.pos, C = this.companion;
+    const compNear = o => C && C.root.visible && (C.brain.mode === 'follow' || C.brain.mode === 'hide') && d2(C.brain.pos, o.pos) < 10;   // 戦いの間は相棒が隠れている（hide）：隠れたままでも呼べる
+    for (const e of this.enemies) {
+      if (e.kind !== 'omoomote') continue;
+      const b = e.brain; if (!b.alive || b.state === 'rest') continue;
+      const d = d2(e.pos, P);
+      if (b.state === 'slip' && d < 2.4) { out.push({ id: 'bind_' + e.id, kind: 'omobind', ref: e, x: e.pos.x, z: e.pos.z, r: 2.4, label: '縛る（顔がずれている間に）' }); continue; }
+      if (this.flags.roster_photo && d < 2.6) out.push({ id: 'photo_' + e.id, kind: 'omophoto', ref: e, x: e.pos.x, z: e.pos.z, r: 2.6, label: '顔写真を見せる（入院患者の名簿）' });
+      else if (compNear(e) && d < 4.0 && b.state !== 'slip') out.push({ id: 'call_' + e.id, kind: 'omocall', ref: e, x: e.pos.x, z: e.pos.z, r: 4.0, label: '（相棒）に呼んでもらう' });
+    }
+    return out;
   },
   addMimic(add, m, disguise) {
     const brain = new Mimic({ id: m.id, pos: { x: m.pos[0], z: m.pos[1] }, yaw: m.yaw || 0, disguise: disguise || null, lure: m.lure || null, dormant: m.dormant, seed: m.id.length * 7 });
@@ -175,11 +227,29 @@ export const ch3Methods = {
       case 'wardswitch': {
         this.flags.ward_dark = !this.flags.ward_dark; this.sfx.play('light_on');
         this.applyWardLights();
-        if (this.flags.ward_dark) { let n = 0; for (const e of this.enemies) if (e.kind === 'kanja') { const ev = []; if (e.brain.lightsOff(ev)) n++; this.enemyEvents(e, ev); } this.bark('ward_dark', 2.6); if (n) this.ui.log(`照明を落とした：眠った患者 ${n}`); }
+        if (this.flags.ward_dark) { let n = 0; for (const e of this.enemies) if (e.kind === 'kanja' || e.kind === 'seiyou') { const ev = []; if (e.brain.lightsOff(ev)) n++; this.enemyEvents(e, ev); } this.bark('ward_dark', 2.6); if (n) this.ui.log(`照明を落とした：眠った患者 ${n}`); }
         else this.bark('ward_lit', 2);
         return true;
       }
-      case 'refuge': this.sayText(this.area.dyn.refugeShutter && this.area.dyn.refugeShutter.target === this.area.dyn.refugeShutter.down ? T.refuge_closed : T.refuge_idle); return true;
+      case 'roster': {                                              // 重面を救う手掛かり：入院患者の名簿（顔写真）
+        if (this.flags.roster_photo) { this.sayText(T.hosp_roster_done); return true; }
+        this.flags.roster_photo = true; this.addDoc('hosp_roster_photos'); this.sfx.play('pickup'); this.sayText(T.hosp_roster);
+        this.ui.log('手掛かり：入院患者の名簿（顔写真）'); return true;
+      }
+      case 'nursecall': {                                           // 静養を救う：ナースコールの配線を直して巡回の時刻を戻す
+        const S = this.enemies.filter(e => e.kind === 'seiyou' && e.brain.alive);
+        if (this.flags.nursecall_fixed) { this.sayText(T.hosp_nursecall_done); return true; }
+        if (S.some(e => e.brain.state === 'hostile' || e.brain.state === 'stagger')) { this.sayText(T.hosp_nursecall_busy); return true; }
+        this.flags.nursecall_fixed = true; this.sfx.play('chime');
+        const k = this.area.dyn.nurseCallLamp; if (k != null) this.halos.setColor(k, 0x60ff90);
+        let n = 0; for (const e of S) { const ev = []; if (e.brain.rescueSleep(ev)) n++; this.enemyEvents(e, ev); }
+        this.sayText(T.hosp_nursecall); if (n) this.ui.log(`巡回の時刻が戻った：深く眠った患者 ${n}`);
+        return true;
+      }
+      case 'omophoto': { const e = s.ref; const ev = []; if (e.brain.showPhoto(ev)) { this.sayBark('dan', 'これ……あなたの顔よ。ほら', 2.4); this.later(1.4, () => this.bark('omoomote_photo', 3)); this.enemyEvents(e, ev); } return true; }
+      case 'omocall': { const e = s.ref; const ev = []; if (e.brain.called(ev)) { this.bark('omoomote_call', 2.4); this.enemyEvents(e, ev); } return true; }
+      case 'omobind': { const e = s.ref; const ev = []; if (e.brain.bind(ev)) { this.sfx.play('pickup', e.pos); this.ui.log('重面を縛った'); this.enemyEvents(e, ev); } return true; }
+      case 'refuge':this.sayText(this.area.dyn.refugeShutter && this.area.dyn.refugeShutter.target === this.area.dyn.refugeShutter.down ? T.refuge_closed : T.refuge_idle); return true;
       case 'callout': { const e = s.ref; const ev = []; if (e.brain.callOut(ev)) { this.sayBark('dan', '巡回の時間ですよ。……おやすみなさい', 2.4); this.enemyEvents(e, ev); } return true; }
       case 'memo': { const b = this.boss && this.boss.brain; if (!b) return true; const ev = []; this.sfx.play('memo'); this.sayBark('mother', '「ユウ、ママよ。お迎え、少し遅くなるね」', 3); const r = b.playMemo(ev); this.metrics.memo = r; this.enemyEvents(this.boss, ev); return true; }
     }

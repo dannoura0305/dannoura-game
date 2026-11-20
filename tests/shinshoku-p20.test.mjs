@@ -112,7 +112,7 @@ await t('届いた動き：決まった状態でだけ重ねる（攻めの構�
 await t('読む時：起動では読まない・その区画（第3章・終章）で先に頼む・巨大猫又は前のまま', () => {
   const mn = read('shinshoku/main.js');
   assert.deepEqual(EP.ENEMY_PACK_EARLY, ['kiro', 'heiten', 'shuuyou']);
-  for (const [area, ks] of [['hospital', ['kanja', 'mamori', 'utsushimi']], ['tunnel', ['utsushimi']], ['abyss', ['kuramono', 'kenkyusha', 'spouse_like']], ['kiroku', ['kenkyusha', 'spouse_like']]])
+  for (const [area, ks] of [['hospital', ['kanja', 'mamori', 'utsushimi', 'seiyou', 'omoomote', 'omoomote_skirt']], ['tunnel', ['utsushimi']], ['abyss', ['kuramono', 'kenkyusha', 'spouse_like']], ['kiroku', ['kenkyusha', 'spouse_like']]])
     assert.ok(new RegExp(`${area}: \\[${ks.map(k => `'${k}'`).join(', ')}\\]`).test(mn), area);
   assert.equal(EP.enemyPackPath('nurikae', false), 'codex/nurikae.pack.json'); assert.equal(EP.enemyPackPath('touchoku', true), 'codex/touchoku_low.pack.json');
   assert.equal(EP.enemyPackPath('nurikae', false, true), 'nurikae.pack.json', '?epack=p18 は P18 の包み');

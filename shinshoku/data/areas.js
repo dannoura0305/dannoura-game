@@ -69,6 +69,16 @@ export const AREA_DATA = {
       { id: 'kanja_3', path: [[1.2, -5.0], [1.2, -12.0], [1.0, -19.0]], bed: [5.5, -5] },
       { id: 'kanja_4', path: [[-6.0, -4.6], [-3.2, -4.6]], bed: [-6.0, -4.6] },
     ],
+    // 静養（ENEMY_AI_SPEC §2.3）：303 号室（北原）の空いた側に 2 床。ベッドごと動かない。足を戸口（東）へ向けて眠る
+    seiyou: [
+      { id: 'seiyou_1', pos: [-5.2, -17.6], yaw: Math.PI / 2, room: '303' },
+      { id: 'seiyou_2', pos: [-5.2, -14.4], yaw: Math.PI / 2, room: '303' },
+    ],
+    // 重面（ENEMY_AI_SPEC §2.2）：鏡・窓のガラスの前を回る。look のある点＝ガラスの前（立ち止まって顔を合わせ直す）、無い点＝通り道（壁・車いすをよける）
+    omoomote: [
+      { id: 'omoomote_1', body: null, face: 1, stops: [{ p: [1.0, -1.4], look: [2.0, -1.4] }, { p: [0.0, -9.0] }, { p: [0.0, -12.8] }, { p: [1.0, -13.6], look: [2.0, -13.6] }, { p: [0.0, -12.8] }, { p: [0.0, -9.0] }] },   // 廊下の洗面台の鏡（東の壁の 2 つ）
+      { id: 'omoomote_2', body: 'skirt', face: 0, stops: [{ p: [-1.45, 5.0], look: [-2.2, 5.0] }, { p: [-1.0, -4.0] }, { p: [-4.0, -4.0] }, { p: [-11.3, -4.0], look: [-12.2, -4.0] }, { p: [-4.0, -4.0] }, { p: [-1.0, -4.0] }] },   // ナースステーションの窓・301 の窓
+    ],
     mimics: [{ id: 'mimic_h1', pos: [-6.2, 13.9], yaw: 0.3, disguise: 'civilian', lure: 'mimic_lure_visitor' }],
     twist: { mamori: { id: 'mamori', pos: [6.6, -16.8], child: [9.0, -17.2] }, mimics: [{ id: 'mimic_t1', pos: [8.3, -14.9] }, { id: 'mimic_t2', pos: [8.3, -20.45] }, { id: 'mimic_t3', pos: [3.0, -20.15] }] },
     pickups: [
