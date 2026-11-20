@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-11-20.1';   // 新作『境界ノアリス』の試作（白薔薇の宮殿）
+const VERSION = '2026-11-20.2';   // 新作『境界ノアリス』の試作（白薔薇の宮殿）＋ 境界侵食：重面（omoomote）・静養（seiyou）の体と姿勢
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）
@@ -89,9 +89,9 @@ function kindOf(url) {
   if (/^assets\/(.+\/)?manifest\.json$/.test(p)) return 'shell';     // 生成画像の目録は差し替えがすぐ効くようにネット優先
   // おまけ『トビネズミ』：ページと ES モジュールはネット優先（オフラインなら保存分）、素材は保存分
   if (/^tobinezumi\.(html|webmanifest)$/.test(p)) return 'shell';
-  if (p === 'shinshoku.webmanifest') return 'shell';
+  if (p === 'shinshoku.webmanifest') return 'shell';               // 境界侵食のホーム画面用マニフェスト
   // 新作『境界ノアリス』（試作中）：ページ・エンジン・台本・見た目はネット優先（オフラインなら保存分）
-  if (p === 'noaris.html' || /^noaris\/.+\.(js|css)$/.test(p)) return 'shell';               // 境界侵食のホーム画面用マニフェスト
+  if (p === 'noaris.html' || /^noaris\/.+\.(js|css)$/.test(p)) return 'shell';
   if (/^tobinezumi\/(client|shared)\/.+\.(js|css)$/.test(p)) return 'shell';
   if (/^tobinezumi\/assets\/manifest\.json$/.test(p)) return 'shell';
   if (/^tobinezumi\/assets\//.test(p)) return 'media';
