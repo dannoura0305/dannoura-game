@@ -197,6 +197,84 @@ test('報酬：以前の式と完全に同じ（炎上・精神・フォロワ�
   }
 });
 
+// ── 二つの色（怒り／冷笑）・吸収・反論・論破チェイン・残り秒ボーナス ──
+test('二つの色：違う色には 2 倍・同じ色と色の無いものは 1 倍', () => {
+  assert.equal(L.dmgMul(0, 1), 2); assert.equal(L.dmgMul(1, 0), 2);
+  assert.equal(L.dmgMul(0, 0), 1); assert.equal(L.dmgMul(1, 1), 1);
+  assert.equal(L.dmgMul(-1, 0), 1); assert.equal(L.dmgMul(0, undefined), 1);
+});
+
+test('論破チェイン：同じ色 3 体で 1 チェイン・点は 100×2^(n−1)・9 以上は 25,600 で止まる', () => {
+  const st = L.chainNew();
+  const run = (tone, k) => { const r = []; for (let i = 0; i < k; i++) r.push(L.chainStep(st, tone)); return r; };
+  let r = run(0, 3);
+  assert.deepEqual(r.map(x => x.done), [false, false, true]);
+  assert.equal(r[2].bonus, 100); assert.equal(st.chain, 1);
+  r = run(1, 3); assert.equal(r[2].bonus, 200); assert.equal(st.chain, 2);   // 組が済んだあとなら色を変えても切れない
+  for (let c = 3; c <= 12; c++) { r = run(c % 2, 3); assert.equal(r[2].bonus, Math.min(25600, 100 * 2 ** (c - 1))); }
+  assert.equal(st.chain, 12); assert.equal(st.max, 12);
+  assert.deepEqual([1, 2, 8, 9, 10, 99].map(L.chainBonus), [100, 200, 12800, 25600, 25600, 25600]);
+});
+
+test('論破チェイン：組の途中で違う色を倒すと 0 に戻り、その色で新しい組が始まる', () => {
+  const st = L.chainNew();
+  for (let i = 0; i < 6; i++) L.chainStep(st, 0);
+  assert.equal(st.chain, 2);
+  L.chainStep(st, 0);                            // 組の 1 体目（怒り）
+  const r = L.chainStep(st, 1);                  // 途中で冷笑 → 切れる
+  assert.equal(r.broke, true); assert.equal(st.chain, 0); assert.equal(st.n, 1); assert.equal(st.tone, 1);
+  assert.equal(st.max, 2);                       // 最大は残る
+  L.chainStep(st, 1); const r2 = L.chainStep(st, 1);
+  assert.equal(r2.done, true); assert.equal(st.chain, 1);
+  assert.equal(L.chainStep(st, -1).done, false); // 色の無いものは数えない
+  assert.equal(st.n, 3);
+});
+
+test('吸収と反論：ゲージは 0〜120・10 ごとに 1 本・最大 12 本', () => {
+  assert.equal(L.absorbGauge(0, 1), 1); assert.equal(L.absorbGauge(119, 2), 120); assert.equal(L.absorbGauge(120, 1), 120);
+  assert.equal(L.absorbGauge(5, -9), 0);
+  assert.deepEqual([0, 9, 10, 19, 20, 55, 119, 120, 999].map(L.releaseCount), [0, 0, 1, 1, 2, 5, 11, 12, 12]);
+  assert.equal(L.GAUGE_MAX, 120); assert.equal(L.GAUGE_PER, 10); assert.equal(L.RELEASE_MAX, 12);
+});
+
+test('残り秒ボーナス・切り替えの時間（7 コマで色が変わり 14 コマで終わる）', () => {
+  assert.equal(L.timeBonus(39.9), 39000); assert.equal(L.timeBonus(-3), 0); assert.equal(L.timeBonus(10, 500), 5000);
+  assert.ok(Math.abs(L.SWITCH_FLIP - 7 / 60) < 1e-12); assert.ok(Math.abs(L.SWITCH_END - 14 / 60) < 1e-12);
+});
+
+test('台本の色：出る敵すべてに 0 か 1・シードで決まる・同じ色が 3 体ずつのまとまりで変わる', () => {
+  for (const seed of [1, 7, 12345, 99999]) {
+    const tl = L.buildTimeline(seed, {});
+    const foes = tl.filter(e => e.kind === 'spawn' || e.kind === 'form' || e.kind === 'elite');
+    assert.ok(foes.every(e => e.pol === 0 || e.pol === 1));
+    assert.ok(tl.filter(e => !(e.kind === 'spawn' || e.kind === 'form' || e.kind === 'elite')).every(e => !('pol' in e)));
+    assert.deepEqual(plain(tl), plain(L.buildTimeline(seed, {})));
+    const seq = L.toneSeq(seed, 300);
+    let run = 1, runs = [];
+    for (let i = 1; i < seq.length; i++) { if (seq[i] === seq[i - 1]) run++; else { runs.push(run); run = 1; } }
+    assert.ok(runs.every(r => r % 3 === 0), 'まとまりは 3 の倍数');
+    assert.ok(seq.includes(0) && seq.includes(1));
+  }
+});
+
+test('評価：論破チェイン 4 以上でも S（コンボの代わり）', () => {
+  assert.equal(L.grade({ reason: 'clear', bossBeaten: true, shield: 3, friendlyFire: 1, maxCombo: 5, maxChain: 4 }), 'S');
+  assert.equal(L.grade({ reason: 'clear', bossBeaten: true, shield: 3, friendlyFire: 1, maxCombo: 5, maxChain: 3 }), 'A');
+  assert.equal(L.grade({ reason: 'clear', bossBeaten: true, shield: 2, friendlyFire: 0, maxCombo: 5, maxChain: 9 }), 'A');
+});
+
+test('ゲーム本体：二つの色の操作がある（切替 Z/C・反論 V・ボタン）・遊び方と説明に載っている', () => {
+  const src = readFileSync(join(ROOT, 'minigames/shooter.js'), 'utf8');
+  assert.match(src, /k==='z'\|\|k==='Z'\|\|k==='c'\|\|k==='C'\)\)\{e\.preventDefault\(\);switchVoice\(\)/);
+  assert.match(src, /k==='v'\|\|k==='V'\)\)\{e\.preventDefault\(\);release\(\)/);
+  assert.match(src, /shooter-sw/); assert.match(src, /shooter-rel/);
+  assert.match(defs[0].help, /切替/); assert.match(defs[0].help, /反論/);
+  assert.match(defs[0].desc, /怒り/); assert.match(defs[0].desc, /冷笑/);
+  // 同じ色の弾は当たらず吸う（当たり判定より先に色を見る）
+  const i = src.indexOf('if(b.tone===vpol){'), j = src.indexOf("hurt(b.x,b.y,b.ch?");
+  assert.ok(i > 0 && j > i);
+});
+
 for (const [name, fn] of queue) {
   try { fn(); pass++; console.log('  ✓ ' + name); }
   catch (e) { fail++; console.log('  ✗ ' + name + '\n    ' + (e && e.stack || e)); }
