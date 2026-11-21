@@ -10,6 +10,8 @@ Kenney（kenney.nl）は、この作業環境からは 403 で開けなかった
 
 ## 足した物（`assets/bgm_cc0/`・ミニゲームの BGM）
 
+- 2026-11-14 追加：RPG の戦闘曲（mg_rpg_battle.mp3）。2026-11-15 追加：RPG のボス戦の曲（mg_rpg_boss.mp3）・最後の戦いの曲（mg_rpg_final.mp3）。合計を 8MB 以下に保つため、長い 2 曲（mg_cooking・mg_defense）を元の素材から 40kbps で変換し直した（大きさ・長さは同じ）。
+
 | ファイル | 使う場面 | 曲名 | 作者 | 素材のページ（ライセンスの欄で CC0 を確認） | ダウンロードした物 |
 |---|---|---|---|---|---|
 | mg_race.mp3 | 原付で夜勤へ（3D レース） | Midnight Cruiser | Zane Little Music | https://opengameart.org/content/midnight-cruiser | https://opengameart.org/sites/default/files/midnight_cruiser_0.mp3 |
@@ -19,25 +21,31 @@ Kenney（kenney.nl）は、この作業環境からは 403 で開けなかった
 | mg_quiz.mp3 | 危険物取扱者 一問一答（クイズ） | Taken Lightly | Pro Sensory | https://opengameart.org/content/taken-lightly | https://opengameart.org/sites/default/files/TakenLightly_0.mp3 |
 | mg_cooking.mp3 | 深夜の夜食づくり（料理） | Apple Cider | Zane Little Music | https://opengameart.org/content/apple-cider | https://opengameart.org/sites/default/files/apple_cider.ogg |
 | mg_stealth.mp3 | 起こさないで家事（ステルス） | Covert Operations | artisticdude | https://opengameart.org/content/covert-operations | https://opengameart.org/sites/default/files/covert_operations.mp3 |
+| mg_rpg_battle.mp3 | 壇ノ浦夢譚（RPG）のふつうの戦闘 | Battle Theme A | cynicmusic | https://opengameart.org/content/battle-theme-a | https://opengameart.org/sites/default/files/battleThemeA.mp3 |
+| mg_rpg_boss.mp3 | 壇ノ浦夢譚（RPG）のボス戦 | Epic Boss Battle | SubspaceAudio（Juhani Junkala） | https://opengameart.org/content/boss-battle-music | https://opengameart.org/sites/default/files/Juhani%20Junkala%20-%20Epic%20Boss%20Battle%20%5BSeamlessly%20Looping%5D.wav |
+| mg_rpg_final.mp3 | 壇ノ浦夢譚（RPG）の最後の戦い（登場の場面は今まで通り mental） | The Final Battle | skrjablin | https://opengameart.org/content/the-final-battle | https://opengameart.org/sites/default/files/the_final_battle.ogg |
 
 - The Rush のページには「id3 タグをできれば残して」とあるので、元のタグ（題名・作者・アルバム・URL）を残した（変換で古くなった iTunSMPB/iTunNORM だけ外した）。他の曲にも題名・作者・素材のページをタグで書いた。
 
 ## 変換
 
 - 元のファイルはリポジトリに置かない（作業用のフォルダに置き、展開した物のスクリプト等は実行していない）。
-- モノラル・44.1kHz・48kbps の mp3。全体を一定のゲインで上下して平均の大きさを約 -17 LUFS に、頭打ちだけリミッター（-3dBFS）。曲の途中を切ったりはしていない（長さはそのまま）。
-- 残りの差（-17.4〜-18.7 LUFS）と、既存の 8 曲の差（-13.6〜-16.9 LUFS）は、ゲームの中の補正（`game.js` の `BGM_LUFS`・`bgmTrim()`）で -17 LUFS 相当に揃える。
+- モノラル・44.1kHz・48kbps の mp3（mg_cooking・mg_defense は 40kbps）。全体を一定のゲインで上下して平均の大きさを約 -17 LUFS に、頭打ちだけリミッター（-3dBFS）。曲の途中を切ったりはしていない（長さはそのまま）。
+- 残りの差（-17.4〜-19.6 LUFS。元がとても大きく作られた曲はリミッターで少し下がる）と、既存の 8 曲の差（-13.6〜-16.9 LUFS）は、ゲームの中の補正（`game.js` の `BGM_LUFS`・`bgmTrim()`）で -17 LUFS 相当に揃える。
 
 | ファイル | 長さ | 大きさ（変換後） | サイズ |
 |---|---|---|---|
 | mg_race.mp3 | 2:24 | -17.4 LUFS | 0.87MB |
 | mg_runner.mp3 | 2:20 | -18.1 LUFS | 0.84MB |
-| mg_defense.mp3 | 3:19 | -17.9 LUFS | 1.20MB |
+| mg_defense.mp3 | 3:19 | -17.9 LUFS | 1.00MB（40kbps） |
 | mg_cards.mp3 | 1:21 | -18.0 LUFS | 0.49MB |
 | mg_quiz.mp3 | 2:25 | -18.3 LUFS | 0.87MB |
-| mg_cooking.mp3 | 3:20 | -18.1 LUFS | 1.20MB |
+| mg_cooking.mp3 | 3:20 | -18.1 LUFS | 1.00MB（40kbps） |
 | mg_stealth.mp3 | 1:40 | -18.7 LUFS | 0.60MB |
-| 合計 | | | 6.06MB（目安 8MB 以下） |
+| mg_rpg_battle.mp3 | 1:36 | -19.1 LUFS | 0.58MB |
+| mg_rpg_boss.mp3 | 2:03 | -19.6 LUFS | 0.74MB |
+| mg_rpg_final.mp3 | 2:26 | -18.6 LUFS | 0.88MB |
+| 合計 | | | 7.85MB（目安 8MB 以下） |
 
 ## 読み込み
 
