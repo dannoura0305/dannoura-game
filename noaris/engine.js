@@ -169,8 +169,9 @@
     T.resolveName = function (n) { if (!run.pending || run.pending.type !== 'name') return false; T.setName(n); run.pending = null; return true; };
     T.pickArea = function (id) { if (!run.pending || run.pending.type !== 'areas') return false; if (!T.goArea(id)) return false; run.pending = null; return true; };
     // セーブ：1 周の状態をそのまま（JSON）。label は UI が付ける
-    T.snapshot = () => JSON.parse(JSON.stringify(run));
-    T.restore = snap => { const r = JSON.parse(JSON.stringify(snap)); if (!r || !NA.SCENES[r.scene]) return false; run = Object.assign(newRun(), r); return true; };
+    T.snapshot = () => Object.assign(JSON.parse(JSON.stringify(run)), { ver: NA.SCRIPT_VER || 1 });
+    // 古い版の台本で作ったセーブは、行の番号がずれているので、その場面の頭から（選択の待ちも捨てる）
+    T.restore = snap => { const r = JSON.parse(JSON.stringify(snap)); if (!r || !NA.SCENES[r.scene]) return false; if ((r.ver || 1) !== (NA.SCRIPT_VER || 1)) { r.ip = 0; r.pending = null; } if (r.ip > NA.SCENES[r.scene].ops.length) r.ip = 0; run = Object.assign(newRun(), r); return true; };
     T.view = () => Object.assign({}, run.view);
     return T;
   };

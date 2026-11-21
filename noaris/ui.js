@@ -15,6 +15,7 @@
     set(k, v) { try { root.localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
   };
   const meta = Object.assign(NA.newMeta(), store.get(KEY.meta, {}));
+  if ((meta.scriptVer || 1) !== (NA.SCRIPT_VER || 1)) { meta.read = {}; meta.scriptVer = NA.SCRIPT_VER || 1; }   // 台本の版が変わったら既読は付け直す（行の番号がずれるため）。見たエンディング・CG・ループ回数は残す
   const S = Object.assign({ speed: 28, auto: 1400, bgm: .5, se: .7, skipUnread: false }, store.get(KEY.set, {}));
   const saveMeta = () => store.set(KEY.meta, meta), saveSet = () => store.set(KEY.set, S);
   const saves = () => Object.assign({ slots: [null, null, null, null, null, null], auto: null }, store.get(KEY.save, {}));
