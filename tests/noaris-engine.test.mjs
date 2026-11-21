@@ -69,7 +69,7 @@ t('道筋：選択肢の全部の組み合わせが どれも結末に着く・�
 });
 t('白薔薇：主の名前（{w:rose_true}）は表の言葉で入る・GOOD には名前を聞く事が要る', () => {
   const g = NA.SCENES.rose_n5_02.ops[0]; assert.match(g.args[0], /rose_name/);
-  const T = NA.make(); T.newGame('rose_n3_04', 'ノア'); T.run.vars.rose_love = 5; const e = []; for (let i = 0; i < 4; i++) e.push(T.advance());
+  const T = NA.make(); T.newGame('rose_n3_04', 'ノア'); T.run.vars.rose_love = 5; const e = []; for (let i = 0; i < 12; i++) { const x = T.advance(); e.push(x); if (x.type !== 'say') break; }
   assert.ok(e.some(x => x.text && x.text.includes(NA.WORDS.rose_true)), JSON.stringify(e.map(x => x.text)));
   assert.equal(T.run.vars.rose_name, 1);
 });
@@ -98,6 +98,14 @@ t('条件・既読・セーブとロード（途中の選択肢でも）', () =>
   const V = NA.make({ meta: T.meta }); assert.ok(V.restore(snap)); const ev = V.advance(); assert.equal(ev.type, 'choice', '選択肢の途中から再開'); assert.equal(V.run.name, 'ノア');
   assert.equal(V.view().bg, 'rose_gate'); assert.equal(V.view().chara, 'rose');
   assert.ok(!V.restore({ scene: 'nai' }), '壊れたセーブは読まない');
+});
+
+t('台本の版が変わった古いセーブ：その場面の頭から（選択の待ちは捨てる）・今の版のセーブはそのまま', () => {
+  const T = NA.make(); T.newGame('rose_n2_01', 'ノア'); for (let i = 0; i < 5; i++) T.advance();
+  const now = T.snapshot(); assert.equal(now.ver, NA.SCRIPT_VER);
+  const U = NA.make(); assert.ok(U.restore(now)); assert.equal(U.run.ip, T.run.ip);
+  const old = Object.assign({}, now, { ver: NA.SCRIPT_VER - 1, ip: 999, pending: { type: 'choice', ip: 3 } });
+  const V = NA.make(); assert.ok(V.restore(old)); assert.equal(V.run.ip, 0); assert.equal(V.run.pending, null); assert.equal(V.advance().type, 'say');
 });
 
 console.log(`noaris-engine: ${n} ok`);
