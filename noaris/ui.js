@@ -75,6 +75,7 @@
     const fast = ui.skip;
     if (name === 'shake') { stage.classList.remove('na-shake'); void stage.offsetWidth; stage.classList.add('na-shake'); return; }
     if (name === 'crack') { if (fast) return; AU.se('crack'); chara.classList.add('crack'); await sleep(700); chara.classList.remove('crack'); return; }
+    if (name === 'cateye') { if (fast) return; const d = h('div', { class: 'na-fx cateye' }, h('i'), h('i')); fxl.appendChild(d); await sleep(160); d.remove(); return; }   // 一瞬だけの猫の目（正体の伏線）
     const d = h('div', { class: 'na-fx ' + name }); fxl.appendChild(d);
     const dur = { fadein: 1200, blackout: 900, flash: 500, loop: 1600 }[name] || 600;
     setTimeout(() => d.remove(), dur + 50);

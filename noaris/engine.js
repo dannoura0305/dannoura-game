@@ -98,7 +98,8 @@
     const meta = opts.meta || newMeta(); for (const [k, v] of Object.entries(newMeta())) if (meta[k] === undefined) meta[k] = v;   // 渡された記録をそのまま使う（ループ回数も画面側の記録に残る）
     let run = newRun();
     const T = {};
-    const fill = s => String(s).replace(/\{name\}/g, run.name || NA.DEFAULT_NAME || '主人公');
+    // {name}＝主人公の名前・{w:キー}＝表の言葉（NA.WORDS。未確定の名前などを 1 か所で差し替える）
+    const fill = s => String(s).replace(/\{name\}/g, run.name || NA.DEFAULT_NAME || '主人公').replace(/\{w:(\w+)\}/g, (m, k) => (NA.WORDS && NA.WORDS[k] != null ? NA.WORDS[k] : m));
     function goto(scene) { if (!NA.SCENES[scene]) throw new Error('場面が無い：' + scene); run.scene = scene; run.ip = 0; }
     function readKey() { return run.scene + ':' + run.ip; }
     T.meta = meta;

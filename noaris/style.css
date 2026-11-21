@@ -122,3 +122,11 @@ button { font-family: var(--font); }
 .na-choices { z-index: 2; }
 .na-msg, .na-mode { z-index: 3; }
 .na-screen, .na-end { z-index: 5; }
+
+/* 一瞬だけの猫の目（ゲームオーバーの崩れの直後） */
+.na-fx.cateye { background: rgba(0, 0, 0, .7); display: flex; justify-content: center; align-items: center; gap: 9vw; }
+.na-fx.cateye i { width: 7vw; height: 3.4vw; border-radius: 50%; background: radial-gradient(ellipse at 50% 50%, #120a08 0 9%, #e8c040 10% 70%, #8a6010 71%); box-shadow: 0 0 24px rgba(240, 200, 80, .8); }
+/* 白薔薇の宮殿の仮の背景（追加） */
+.na-bg-rose_room { background: radial-gradient(circle at 78% 30%, rgba(255, 220, 160, .5), transparent 16%), repeating-linear-gradient(90deg, rgba(255, 255, 255, .04) 0 1%, transparent 1% 6%), linear-gradient(#3a2a44, #2a1c34 60%, #1c1224); }
+.na-bg-rose_inner { background: radial-gradient(ellipse at 50% 0%, rgba(255, 230, 190, .35), transparent 45%), repeating-linear-gradient(90deg, transparent 0 14%, rgba(255, 255, 255, .07) 14% 15.5%, transparent 15.5% 25%), linear-gradient(#2c2038, #1c1426 70%, #120c1a); }
+.na-bg-rose_tower { background: radial-gradient(circle at 50% 15%, rgba(255, 240, 220, .25), transparent 20%), repeating-linear-gradient(90deg, rgba(240, 230, 245, .10) 0 6%, transparent 6% 9%), linear-gradient(#1a1220, #0c0810); }

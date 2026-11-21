@@ -44,6 +44,7 @@
         const bar = Math.floor(s / 3), beat = s % 3, ch = [[57, 60, 64], [62, 65, 69], [55, 59, 62], [57, 61, 64], [53, 57, 60], [52, 56, 59], [57, 60, 64], [52, 56, 59]][bar];
         if (beat === 0) tone(midi(ch[0] - 12), t, .6, 'triangle', .07, bgmGain); else for (const n of ch) tone(midi(n + 12), t, .3, 'sine', .022, bgmGain);
         const mel = [76, 0, 77, 81, 0, 79, 79, 0, 76, 76, 0, 73, 72, 0, 72, 71, 0, 68, 69, 0, 72, 71, 0, 0]; if (mel[s]) tone(midi(mel[s]), t, .7, 'sine', .05, bgmGain, .02); } },
+    rose_slow: { spb: .3, len: 24, f: (s, t) => SONGS.rose.f(s, t) },   // ループを重ねると少しだけ遅くなる円舞曲
     dark: { spb: .8, len: 8, f: (s, t) => { if (s % 4 === 0) { tone(midi(38), t, 3.4, 'sawtooth', .025, bgmGain, .8); tone(midi(45), t, 3.4, 'sine', .04, bgmGain, .8); } if (s === 6) tone(midi(75), t, 2, 'sine', .02, bgmGain, .4); } },
   };
   function startLoop() {
