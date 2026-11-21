@@ -212,7 +212,7 @@
   }
   function showSaveLoad(mode, fromTitle) {
     stopModes(); const sv = saves();
-    const fmt = en => en ? [h('b', {}, (en.label.title || '—') + (en.label.loop ? `　夜 ${en.label.loop + 1}` : '')), en.label.name + '　' + new Date(en.at).toLocaleString('ja-JP'), h('br'), en.label.text || ''] : ['空き'];
+    const fmt = en => en ? [h('b', {}, (en.label.title || '—') + (en.label.loop ? `　（繰り返し ${en.label.loop} 回目）` : '')), en.label.name + '　' + new Date(en.at).toLocaleString('ja-JP'), h('br'), en.label.text || ''] : ['空き'];
     const grid = h('div', { class: 'na-slots' });
     if (mode === 'load' && sv.auto) grid.appendChild(h('button', { class: 'na-slot', 'data-slot': 'auto', onclick: () => loadEntry(sv.auto) }, h('b', {}, '自動'), ...fmt(sv.auto)));
     sv.slots.forEach((en, i) => grid.appendChild(h('button', { class: 'na-slot' + (en ? '' : ' empty'), 'data-slot': i, onclick: () => {
