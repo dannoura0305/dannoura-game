@@ -19,7 +19,7 @@ for (const [label, vw, vh] of [['横長', 1280, 720], ['縦長', 420, 820]]) {
   await p.evaluate(() => { window.__NA_TEST__.settings.speed = 0; window.__NA_TEST__.settings.auto = 400; });
   const shot = async n => { if (SHOTS) await p.screenshot({ path: `${SHOTS}/na_${vw}x${vh}_${n}.png` }); };
   // 文を送る：pred が真になるまで（選択肢・名前・扉・結末では止まる）
-  const until = async (pred, max = 200) => { for (let i = 0; i < max; i++) { const s = await S(); if (pred(s)) return s; if (s.overlay || s.kind !== 'say') { await p.waitForTimeout(120); continue; } await p.click('.na-msg', { timeout: 800 }).catch(() => {}); await p.waitForTimeout(60); } return null; };
+  const until = async (pred, max = 300) => { for (let i = 0; i < max; i++) { const s = await S(); if (pred(s)) return s; if (s.overlay || s.kind !== 'say') { await p.waitForTimeout(120); continue; } await p.click('.na-msg', { timeout: 800 }).catch(() => {}); await p.waitForTimeout(60); } return null; };
 
   ok(`${label}：タイトル（境界ノアリス・はじめから）`, (await S()).screen === 'title' && await p.isVisible('#na-new'));
   await shot('title');

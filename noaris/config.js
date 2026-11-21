@@ -8,7 +8,7 @@
   const NA = root.NA = root.NA || {};
   NA.TITLE = '境界ノアリス';
   NA.START = 'prologue';
-  NA.SCRIPT_VER = 11;   // 台本の版。台本の行が増減したら上げる（古いセーブは場面の頭から・既読は付け直す）
+  NA.SCRIPT_VER = 12;   // 台本の版。台本の行が増減したら上げる（古いセーブは場面の頭から・既読は付け直す）
   NA.LOOP_SCENE = 'loop';
   NA.DEFAULT_NAME = '主人公';
   // 台本の中の {w:キー} に入る言葉。未確定の名前はここだけ差し替える（docs/noaris/route-rose.md §12）
