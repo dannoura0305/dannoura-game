@@ -41,10 +41,10 @@ for (const [label, vw, vh] of [['横長', 1280, 720], ['縦長', 420, 820]]) {
   await pick(/手を取る/, '手を取る'); ok(`${label}：手を取る → 愛情 +2`, (await S()).vars.rose_love === 2);
   await pick(/どうして/, '掟の理由を聞く');
   await pick(/喜んで/, '明日も踊る');
-  await pick(/数を数える/, '鐘を数える（第一夜）');
+  await pick(/数を数える/, '鐘を数える（月下の円舞）');
   await pick(/打ち明ける/, '同じ夜だと打ち明ける');
   await pick(/見送る/, '黒猫を見送る');
-  const bell2 = await until(s => s.choices.length > 0); ok(`${label}：第二夜の零時の鐘（外へ出る選択がある）`, !!bell2 && bell2.choices.some(t => /外へ出て/.test(t)), JSON.stringify(bell2 && bell2.choices));
+  const bell2 = await until(s => s.choices.length > 0); ok(`${label}：傾いた薔薇の零時の鐘（外へ出る選択がある）`, !!bell2 && bell2.choices.some(t => /外へ出て/.test(t)), JSON.stringify(bell2 && bell2.choices));
   // セーブ（1 番）
   await p.click('.na-quick [data-k=save]'); await p.waitForTimeout(200); await p.click('.na-slot[data-slot="0"]'); await p.waitForTimeout(200);
   const sv = (await S()).saves; ok(`${label}：セーブ 1 番（選択の前）`, !!sv.slots[0] && sv.slots[0].snap.pending && sv.slots[0].snap.pending.type === 'choice');
@@ -61,8 +61,8 @@ for (const [label, vw, vh] of [['横長', 1280, 720], ['縦長', 420, 820]]) {
   const back = await until(s => s.text === '――おかえり。', 12); ok(`${label}：二周目の第一声は「おかえり」`, !!back);
   // ロード → 西の塔 → GAME OVER（塔の花嫁）
   await p.click('.na-quick [data-k=load]'); await p.waitForTimeout(200); await p.click('.na-slot[data-slot="0"]'); await p.waitForTimeout(400);
-  const ld = await S(); ok(`${label}：ロード → 第二夜の鐘から（愛情 5・意思 2）`, ld.choices.length >= 2 && ld.vars.rose_love === 5 && ld.vars.rose_will === 2, JSON.stringify({ c: ld.choices, v: ld.vars }));
-  await pick(/数を数える/, '鐘を数える（第二夜）');
+  const ld = await S(); ok(`${label}：ロード → 傾いた薔薇の鐘から（愛情 5・意思 2）`, ld.choices.length >= 2 && ld.vars.rose_love === 5 && ld.vars.rose_will === 2, JSON.stringify({ c: ld.choices, v: ld.vars }));
+  await pick(/数を数える/, '鐘を数える（傾いた薔薇）');
   await pick(/西の塔へ/, '西の塔へ');
   const go2 = await until(s => s.overlay === 'gameover', 60); ok(`${label}：西の塔 → GAME OVER（塔の花嫁・肖像画）`, !!go2 && go2.endings.includes('rose_go2') && go2.cgs.includes('rose_portraits') && go2.loop === 2, JSON.stringify(go2 && { e: go2.endings, l: go2.loop }));
   await shot('go2');
@@ -70,15 +70,15 @@ for (const [label, vw, vh] of [['横長', 1280, 720], ['縦長', 420, 820]]) {
   await until(s => s.overlay === 'areas'); await p.click('[data-area=rose]'); await p.waitForTimeout(300);
   // ロード → GOOD END
   await p.click('.na-quick [data-k=load]'); await p.waitForTimeout(200); await p.click('.na-slot[data-slot="0"]'); await p.waitForTimeout(400);
-  await pick(/数を数える/, '鐘を数える（第二夜）');
+  await pick(/数を数える/, '鐘を数える（傾いた薔薇）');
   const tw = await until(s => s.choices.length > 0); ok(`${label}：塔を見た後は「もう一度、塔へ」に変わる`, !!tw && tw.choices.some(t => /もう一度、塔へ/.test(t)), JSON.stringify(tw && tw.choices));
   await pick(/尋ねる/, '塔のことを尋ねる');
   await pick(/触れずに/, '手袋に触れない');
-  await pick(/数を数える/, '鐘を数える（第三夜）');
+  await pick(/数を数える/, '鐘を数える（西の塔の噂）');
   ok(`${label}：手袋に触れない → 主が名を教える`, (await S()).vars.rose_name === 1);
   await pick(/失いたくない/, '失いたくない');
   await pick(/明日が見たい/, '明日が見たい');
-  await pick(/数を数える/, '鐘を数える（第四夜）');
+  await pick(/数を数える/, '鐘を数える（止めた懐中時計）');
   await pick(/会いに来ます/, '明日も会いに来ます');
   const gd = await until(s => s.overlay === 'end', 60); ok(`${label}：「明日も、きっと会いに来ます」→ GOOD END（白薔薇の誓い）`, !!gd && gd.endings.includes('rose_good') && gd.cgs.includes('rose_vow'), JSON.stringify(gd && { e: gd.endings, v: gd.vars }));
   await shot('good');
