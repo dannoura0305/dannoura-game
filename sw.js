@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-11-20.2';   // 新作『境界ノアリス』の試作（白薔薇の宮殿）＋ 境界侵食：重面（omoomote）・静養（seiyou）の体と姿勢
+const VERSION = '2026-11-21.1';   // 境界ノアリス：白薔薇の宮殿の初稿（五夜・結末 6 つ）
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）

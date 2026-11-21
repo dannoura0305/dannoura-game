@@ -32,40 +32,62 @@ for (const [label, vw, vh] of [['横長', 1280, 720], ['縦長', 420, 820]]) {
   await shot('areas');
   await p.click('.na-door.locked'); await p.waitForTimeout(150); ok(`${label}：準備中の扉は開かない`, (await S()).overlay === 'areas');
   await p.click('[data-area=rose]'); await p.waitForTimeout(400);
-  const s1 = await S(); ok(`${label}：白薔薇の宮殿へ（名前が入る）`, s1.scene === 'rose_01' && s1.player === 'ノア', JSON.stringify({ scene: s1.scene, player: s1.player }));
+  const s1 = await S(); ok(`${label}：白薔薇の宮殿へ（名前が入る）`, s1.scene === 'rose_00' && s1.player === 'ノア', JSON.stringify({ scene: s1.scene, player: s1.player }));
   await shot('rose');
-  const c1 = await until(s => s.choices.length > 0); ok(`${label}：選択肢 1（3 つ）`, !!c1 && c1.choices.length === 3, JSON.stringify(c1 && c1.choices));
+  // 選択肢を文で選ぶ（次の選択肢まで送ってから）
+  const pick = async (re, what) => { const c = await until(s => s.choices.length > 0); const i = c ? c.choices.findIndex(t => re.test(t)) : -1; if (i < 0) { ok(`${label}：選択肢「${what}」`, false, JSON.stringify(c && c.choices)); return null; } await p.click(`.na-choices button >> nth=${i}`); await p.waitForTimeout(250); return c; };
+  const c1 = await until(s => s.choices.length > 0); ok(`${label}：選択肢 1（門で手を差し出される・3 つ）`, !!c1 && c1.choices.length === 3, JSON.stringify(c1 && c1.choices));
   await shot('choice');
-  await p.click('.na-choices button >> nth=0'); await p.waitForTimeout(300);
-  ok(`${label}：手を取る → 好感度 +2`, (await S()).vars.rose === 2);
-  const c2 = await until(s => s.choices.length > 0); ok(`${label}：選択肢 2（鐘）`, !!c2 && c2.choices.some(t => /外/.test(t)), JSON.stringify(c2 && c2.choices));
+  await pick(/手を取る/, '手を取る'); ok(`${label}：手を取る → 愛情 +2`, (await S()).vars.rose_love === 2);
+  await pick(/どうして/, '掟の理由を聞く');
+  await pick(/喜んで/, '明日も踊る');
+  await pick(/数を数える/, '鐘を数える（第一夜）');
+  await pick(/打ち明ける/, '同じ夜だと打ち明ける');
+  await pick(/見送る/, '黒猫を見送る');
+  const bell2 = await until(s => s.choices.length > 0); ok(`${label}：第二夜の零時の鐘（外へ出る選択がある）`, !!bell2 && bell2.choices.some(t => /外へ出て/.test(t)), JSON.stringify(bell2 && bell2.choices));
   // セーブ（1 番）
   await p.click('.na-quick [data-k=save]'); await p.waitForTimeout(200); await p.click('.na-slot[data-slot="0"]'); await p.waitForTimeout(200);
   const sv = (await S()).saves; ok(`${label}：セーブ 1 番（選択の前）`, !!sv.slots[0] && sv.slots[0].snap.pending && sv.slots[0].snap.pending.type === 'choice');
   await p.click('.na-close'); await p.waitForTimeout(150);
-  // 外へ → GAME OVER → ループ
-  const outIdx = c2.choices.findIndex(t => /外/.test(t)); await p.click(`.na-choices button >> nth=${outIdx}`); await p.waitForTimeout(300);
+  // 外へ → GAME OVER（零時の鐘）→ ループ
+  await pick(/外へ出て/, '外へ出る');
   const go = await until(s => s.overlay === 'gameover', 60); ok(`${label}：鐘の音の方へ出る → GAME OVER（零時の鐘）`, !!go && go.endings.includes('rose_go1') && go.loop === 1, JSON.stringify(go && { e: go.endings, l: go.loop }));
   await shot('gameover');
   await p.click('#na-end'); await p.waitForTimeout(1700);
   const lp = await until(s => s.text === '――また、ここから。', 10); ok(`${label}：ループ（幕間「――また、ここから。」）`, !!lp);
   await shot('loop');
   const ar2 = await until(s => s.overlay === 'areas'); ok(`${label}：ループ → 回廊にもどる（名前の入力は無い）`, !!ar2 && ar2.player === 'ノア');
-  // ロード → GOOD END
-  await p.evaluate(() => {}); await p.click('[data-area=rose]'); await p.waitForTimeout(300);
+  await p.click('[data-area=rose]'); await p.waitForTimeout(300);
+  const back = await until(s => s.text === '――おかえり。', 12); ok(`${label}：二周目の第一声は「おかえり」`, !!back);
+  // ロード → 西の塔 → GAME OVER（塔の花嫁）
   await p.click('.na-quick [data-k=load]'); await p.waitForTimeout(200); await p.click('.na-slot[data-slot="0"]'); await p.waitForTimeout(400);
-  const ld = await S(); ok(`${label}：ロード → 選択肢 2 から（好感度 2）`, ld.choices.length >= 3 && ld.vars.rose === 2, JSON.stringify({ c: ld.choices, v: ld.vars }));
-  await p.click('.na-choices button >> nth=0'); await p.waitForTimeout(300);
-  const c3 = await until(s => s.choices.length > 0); ok(`${label}：選択肢 3（夜の庭）`, !!c3 && c3.choices.length === 2);
-  await p.click('.na-choices button >> nth=1'); await p.waitForTimeout(300);
-  const gd = await until(s => s.overlay === 'end', 60); ok(`${label}：「明日も会いに来ます」（好感度 4）→ GOOD END`, !!gd && gd.endings.includes('rose_good') && gd.cgs.includes('rose_vow'), JSON.stringify(gd && gd.endings));
+  const ld = await S(); ok(`${label}：ロード → 第二夜の鐘から（愛情 5・意思 2）`, ld.choices.length >= 2 && ld.vars.rose_love === 5 && ld.vars.rose_will === 2, JSON.stringify({ c: ld.choices, v: ld.vars }));
+  await pick(/数を数える/, '鐘を数える（第二夜）');
+  await pick(/西の塔へ/, '西の塔へ');
+  const go2 = await until(s => s.overlay === 'gameover', 60); ok(`${label}：西の塔 → GAME OVER（塔の花嫁・肖像画）`, !!go2 && go2.endings.includes('rose_go2') && go2.cgs.includes('rose_portraits') && go2.loop === 2, JSON.stringify(go2 && { e: go2.endings, l: go2.loop }));
+  await shot('go2');
+  await p.click('#na-end'); await p.waitForTimeout(1700);
+  await until(s => s.overlay === 'areas'); await p.click('[data-area=rose]'); await p.waitForTimeout(300);
+  // ロード → GOOD END
+  await p.click('.na-quick [data-k=load]'); await p.waitForTimeout(200); await p.click('.na-slot[data-slot="0"]'); await p.waitForTimeout(400);
+  await pick(/数を数える/, '鐘を数える（第二夜）');
+  const tw = await until(s => s.choices.length > 0); ok(`${label}：塔を見た後は「もう一度、塔へ」に変わる`, !!tw && tw.choices.some(t => /もう一度、塔へ/.test(t)), JSON.stringify(tw && tw.choices));
+  await pick(/尋ねる/, '塔のことを尋ねる');
+  await pick(/触れずに/, '手袋に触れない');
+  await pick(/数を数える/, '鐘を数える（第三夜）');
+  ok(`${label}：手袋に触れない → 主が名を教える`, (await S()).vars.rose_name === 1);
+  await pick(/失いたくない/, '失いたくない');
+  await pick(/明日が見たい/, '明日が見たい');
+  await pick(/数を数える/, '鐘を数える（第四夜）');
+  await pick(/会いに来ます/, '明日も会いに来ます');
+  const gd = await until(s => s.overlay === 'end', 60); ok(`${label}：「明日も、きっと会いに来ます」→ GOOD END（白薔薇の誓い）`, !!gd && gd.endings.includes('rose_good') && gd.cgs.includes('rose_vow'), JSON.stringify(gd && { e: gd.endings, v: gd.vars }));
   await shot('good');
   await p.click('#na-end'); await p.waitForTimeout(400);
   ok(`${label}：結末 → タイトル`, (await S()).screen === 'title');
   // エンディング一覧・ギャラリー
   await p.click('text=エンディング'); await p.waitForTimeout(200);
   const ends = await p.$$eval('.na-row', rs => rs.map(r => r.textContent));
-  ok(`${label}：エンディング一覧（見た物は題・見ていない物は ？？？・正式とトゥルーの枠）`, ends.some(t => /白薔薇の誓い/.test(t)) && ends.some(t => /零時の鐘/.test(t)) && ends.some(t => /トゥルーエンド.*？？？/.test(t)), JSON.stringify(ends));
+  ok(`${label}：エンディング一覧（見た物は題・見ていない物は ？？？・正式とトゥルーの枠）`, ends.some(t => /白薔薇の誓い/.test(t)) && ends.some(t => /零時の鐘/.test(t)) && ends.some(t => /塔の花嫁/.test(t)) && ends.some(t => /トゥルーエンド.*？？？/.test(t)), JSON.stringify(ends));
   await shot('endings');
   await p.click('.na-close'); await p.waitForTimeout(150);
   await p.click('text=ギャラリー'); await p.waitForTimeout(200);
