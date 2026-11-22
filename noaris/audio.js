@@ -1,7 +1,7 @@
 /* ══════════════════════════════════════════════════════════
    境界ノアリス ― 音（仮）  noaris/audio.js
    ・素材が無い間は WebAudio で合成する。BGM：title（オルゴール）・corridor（回廊）・rose（3 拍子の円舞曲）・dark（低い持続音）
-   ・効果音：click・choice・bell（零時の鐘）・rewind（時が巻き戻る）・crack（表情が崩れる）・gameover
+   ・効果音：click・choice・bell（零時の鐘）・rewind（時が巻き戻る）・crack（表情が崩れる）・gameover・feel（想いが通じた）・notice（知らせ）
    ・音量は設定（0〜1）。初めて触った時に鳴らせるようになる（ブラウザの決まり）
    ══════════════════════════════════════════════════════════ */
 (function (root) {
@@ -34,6 +34,8 @@
     else if (name === 'bell') { for (const [m, a] of [[1, .22], [2.0, .1], [2.76, .06], [5.4, .03]]) tone(196 * m, t, 3.2, 'sine', a * v, null, .005); }
     else if (name === 'rewind') { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(1600, t); o.frequency.exponentialRampToValueAtTime(90, t + 1.4); g.gain.setValueAtTime(.08 * v, t); g.gain.exponentialRampToValueAtTime(.0001, t + 1.5); o.connect(g); g.connect(master); o.start(t); o.stop(t + 1.6); }
     else if (name === 'crack') { noise(t, .35, .25 * v); tone(70, t, .5, 'sawtooth', .08 * v); }
+    else if (name === 'feel') { tone(1568, t, .7, 'sine', .035 * v); tone(2093, t + .09, .8, 'sine', .025 * v); tone(2637, t + .18, .9, 'sine', .018 * v); }   // 想いが通じた：高い 3 音
+    else if (name === 'notice') tone(1175, t, .35, 'sine', .04 * v);
     else if (name === 'gameover') { tone(65, t, 3, 'sawtooth', .07 * v, null, .3); tone(98, t, 3, 'sine', .06 * v, null, .3); }
   };
   // BGM：16 分の枠で、曲ごとの音を置く（拍は 1 枠 = 曲の速さ）

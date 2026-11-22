@@ -61,6 +61,22 @@
     rose_vow: { title: '夜明けの誓い（仮）' },
     rose_cage: { title: '白い鳥籠（仮）' },
   };
+  // 想いの段（6 つの境目）。会話の画面の「想い」で、白い薔薇の花びら 6 枚のうち何枚が開いたかで見せる
+  // ・最後の境目＝GOOD の条件の愛情（rose_n5_02 の rose_love>=9）。最初の境目 0＝出会えば 1 枚
+  // ・白薔薇で集められる愛情の最大は 10（GOOD に着く道筋。tests で確かめる）。取りこぼしの余裕は 1
+  // ・意思（rose_will）は見せない（主人公の気持ちなので、数で示さない）
+  NA.FEELINGS = {
+    rose: { var: 'rose_love', area: 'rose', steps: [0, 2, 4, 6, 8, 9] },
+  };
+  // 章（タイトルの「思い出」で、見た章をその頭から読み返せる。想い・エンディング・ループ回数は記録しない）
+  NA.CHAPTERS = [
+    { id: 'rose_gate', route: 'rose', title: '白薔薇の門', scene: 'rose_00' },
+    { id: 'rose_waltz', route: 'rose', title: '月下の円舞', scene: 'rose_n1_01' },
+    { id: 'rose_tilt', route: 'rose', title: '傾いた薔薇', scene: 'rose_n2_01' },
+    { id: 'rose_tower', route: 'rose', title: '西の塔の噂', scene: 'rose_n3_01' },
+    { id: 'rose_watch', route: 'rose', title: '止めた懐中時計', scene: 'rose_n4_01' },
+    { id: 'rose_last', route: 'rose', title: '最後の舞踏会', scene: 'rose_n5_01' },
+  ];
   // 解放の条件（未確定。企画者と決めてから差し替える）
   NA.UNLOCK = {
     hidden: meta => false,   // 隠しルート（化け猫）：五人のルートを経た後（条件は未確定）
