@@ -381,6 +381,16 @@ test('絵：一覧のファイルがすべてあり小さい・弾の絵は字�
   assert.doesNotMatch(readFileSync(join(ROOT, 'index.html'), 'utf8'), /assets\/shooter/);
 });
 
+test('自動射撃：止める・再開する（F キー・左下のボタン）。止めている間は撃たない', () => {
+  const src = readFileSync(join(ROOT, 'minigames/shooter.js'), 'utf8');
+  assert.match(src, /if\(fireCd<=0&&fireOn\)\{/);
+  assert.match(src, /k==='f'\|\|k==='F'\)\)\{e\.preventDefault\(\);toggleFire\(\)/);
+  assert.match(src, /fireBtn\.addEventListener\('pointerdown'/);
+  assert.match(src, /fireBtn\.classList\.remove\('hide'\)/);
+  assert.match(src, /fireBtn\.classList\.add\('hide'\)/);
+  assert.match(readFileSync(join(ROOT, 'minigames/registry.js'), 'utf8'), /自動射撃（F／ボタンで停止・再開）/);
+});
+
 for (const [name, fn] of queue) {
   try { fn(); pass++; console.log('  ✓ ' + name); }
   catch (e) { fail++; console.log('  ✗ ' + name + '\n    ' + (e && e.stack || e)); }
