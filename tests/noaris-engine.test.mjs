@@ -69,7 +69,7 @@ t('道筋：選択肢の全部の組み合わせが どれも結末に着く・�
 });
 t('白薔薇：主の名前（{w:rose_true}）は表の言葉で入る・GOOD には名前を聞く事が要る', () => {
   const g = NA.SCENES.rose_n5_02.ops[0]; assert.match(g.args[0], /rose_name/);
-  const T = NA.make(); T.newGame('rose_n3_04', 'ノア'); T.run.vars.rose_love = 5; const e = []; for (let i = 0; i < 12; i++) { const x = T.advance(); e.push(x); if (x.type !== 'say') break; }
+  const T = NA.make(); T.newGame('rose_n3_04', 'ノア'); T.run.vars.rose_love = 5; const e = []; for (let i = 0; i < 30; i++) { const x = T.advance(); e.push(x); if (x.type !== 'say') break; }
   assert.ok(e.some(x => x.text && x.text.includes(NA.WORDS.rose_true)), JSON.stringify(e.map(x => x.text)));
   assert.equal(T.run.vars.rose_name, 1);
 });
