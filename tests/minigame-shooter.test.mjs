@@ -393,6 +393,16 @@ test('撃つ：撃つボタン（右下）か J／F を押している間だけ�
   assert.match(readFileSync(join(ROOT, 'minigames/registry.js'), 'utf8'), /撃つボタン／J を押している間だけ声が出る/);
 });
 
+test('横に広い画面：遊ぶ場所は縦長のまま真ん中・ボタンは左右の余白へ。縦持ちは今までどおり', () => {
+  const src = readFileSync(join(ROOT, 'minigames/shooter.js'), 'utf8');
+  assert.match(src, /const wide=pw>=320\+WIDE_GUT\*2&&pw>ph\*1\.25;/);
+  assert.match(src, /const fw=Math\.min\(480,pw-WIDE_GUT\*2\)/);
+  assert.match(src, /\.mg-body\.mg-shooter\.wide\{max-width:none;\}/);
+  for (const k of ['sw', 'bomb', 'rel', 'fire']) assert.ok(src.includes(`.mg-shooter.wide .shooter-${k}`), k);
+  assert.match(src, /const w=Math\.max\(240,fw\|\|body\.clientWidth\)/);
+  assert.match(src, /tip\('fire',/);
+});
+
 for (const [name, fn] of queue) {
   try { fn(); pass++; console.log('  ✓ ' + name); }
   catch (e) { fail++; console.log('  ✗ ' + name + '\n    ' + (e && e.stack || e)); }
