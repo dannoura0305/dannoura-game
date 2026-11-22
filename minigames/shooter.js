@@ -223,9 +223,9 @@ var ShooterLogic=(function(){
   // ボスの形：怒り＝丸、冷笑＝ひし形（頂点が上下左右）。k＝0（丸）〜1（ひし形）の間をなめらかにつなぐ。
   // ひし形は丸と面積が同じになるよう、中心から頂点までを半径の 1.25 倍にする（2×1.25²≒π）
   // 絵の一覧（assets/shooter/<名前>.webp。ユーザーの設定画から切り出した）。顔の絵がある敵の種類
-  const FACE_TYPES=['basic','zig','armor','split','shooter','bot','elite'];
+  const FACE_TYPES=['basic','zig','armor','split','shooter','bot','elite','guard'];
   const SPRITES=[...FACE_TYPES.flatMap(t=>['face_'+t+'_0','face_'+t+'_1']),...[0,1].flatMap(t=>[0,1,2,3,4,5].map(i=>'eb'+t+'_'+i)),
-    'dot_0','dot_1','like','mid','boss_0','boss_1','mic_0','mic_1','shot_0','shot_1','shot_gold','shot_pierce'];
+    'face_good','dot_0','dot_1','like','mid','boss_0','boss_1','mic_0','mic_1','shot_0','shot_1','shot_gold','shot_pierce'];
   const DIAMOND=1.25;
   function shapeScale(a,k){const d=DIAMOND/(Math.abs(Math.cos(a))+Math.abs(Math.sin(a)));return 1+(d-1)*Math.max(0,Math.min(1,k));}
   function inShape(dx,dy,rad,k){return k>=.5?Math.abs(dx)+Math.abs(dy)<rad*DIAMOND:dx*dx+dy*dy<rad*rad;}
@@ -1596,9 +1596,11 @@ registerMinigame({
       if(window.ARTPACK&&ARTPACK.has(gid)){ARTPACK.draw(cx,gid,x-r*1.3,y-r*1.3,r*2.6,r*2.6,{frame:e.hitT>0?1:0});return;}
       const fs=L.FACE_TYPES.includes(e.type)?spr('face_'+e.type+'_'+(e.tone?1:0)):null;
       if(fs){
-        const sz=r*(e.type==='elite'?3.5:2.7),pain=e.hitT>0;
-        sprAt(fs,x+(pain?Math.sin(clock*70):0),y-(e.type==='elite'?r*.35:0),sz);
-        if(pain){cx.globalCompositeOperation='lighter';cx.globalAlpha=.45;sprAt(fs,x,y-(e.type==='elite'?r*.35:0),sz);cx.globalCompositeOperation='source-over';cx.globalAlpha=1;}
+        // 取り巻きの絵は右に拡声器が付くので、顔の丸が (x,y) に来るようにずらす
+        const sz=r*(e.type==='elite'?3.5:e.type==='guard'?2.9:2.7),pain=e.hitT>0;
+        const ox=e.type==='guard'?sz*.11:0,oy=e.type==='elite'?-r*.35:e.type==='guard'?-r*.05:0;
+        sprAt(fs,x+ox+(pain?Math.sin(clock*70):0),y+oy,sz);
+        if(pain){cx.globalCompositeOperation='lighter';cx.globalAlpha=.45;sprAt(fs,x+ox,y+oy,sz);cx.globalCompositeOperation='source-over';cx.globalAlpha=1;}
         return;
       }
       if(e.type==='armor'){ // 鋲の付いた灰色の金属の板
@@ -1814,11 +1816,13 @@ registerMinigame({
       cx.lineWidth=2.2;cx.strokeStyle=g.hp<3?(g.hp<2?'#ff4a88':'#ff8ab0'):'#14c8a8';rr(x-w/2,y-h/2,w,h,h/2);cx.stroke();
       const hb=1+Math.max(0,Math.sin(g.age*6))*.15;
       cx.fillStyle='#ff5a92';
-      const hx=x-w/2+12,hy=y;
+      const hx=x-w/2+12,hy=y,gf=spr('face_good');
       cx.save();cx.translate(hx,hy);cx.scale(hb,hb);
-      cx.beginPath();cx.moveTo(0,4);cx.bezierCurveTo(-7,-1,-3,-7,0,-3);cx.bezierCurveTo(3,-7,7,-1,0,4);cx.fill();cx.restore();
+      if(gf)sprAt(gf,0,-1,Math.min(20,h*.95));   // 応援の顔（にっこり＋ハート）
+      else{cx.beginPath();cx.moveTo(0,4);cx.bezierCurveTo(-7,-1,-3,-7,0,-3);cx.bezierCurveTo(3,-7,7,-1,0,4);cx.fill();}
+      cx.restore();
       cx.font=`13px ${FONT}`;cx.textAlign='left';
-      cx.fillStyle='#0a3a34';cx.fillText(g.text,x-w/2+21,y+1);
+      cx.fillStyle='#0a3a34';cx.fillText(g.text,x-w/2+(gf?23:21),y+1);
       const bx=x+w/2-1,by=y-h/2+1;
       cx.fillStyle='#05040e';cx.beginPath();cx.arc(bx,by,9.5,0,6.283);cx.fill();
       cx.fillStyle=p.col;cx.beginPath();cx.arc(bx,by,8,0,6.283);cx.fill();

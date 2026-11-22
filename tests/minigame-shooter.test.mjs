@@ -366,7 +366,8 @@ test('見た目：敵の吹き出しは明るい地（色の縁・濃い文字�
 
 test('絵：一覧のファイルがすべてあり小さい・弾の絵は字の並びと同じ・読めないときはコードの絵で描く・起動時には読まない', () => {
   const sp = plain(L.SPRITES);
-  assert.equal(sp.length, 38);
+  assert.equal(sp.length, 41);
+  assert.ok(sp.includes('face_guard_0') && sp.includes('face_guard_1') && sp.includes('face_good'));
   let total = 0;
   for (const n of sp) { const f = join(ROOT, 'assets/shooter', n + '.webp'); assert.ok(existsSync(f), n); total += statSync(f).size; }
   assert.ok(total < 600 * 1024, `合計 ${total}`);
