@@ -88,6 +88,17 @@ addMinigameStyle('shooter',`
 .mg-shooter .shooter-shop button.buy{min-width:74px;min-height:40px;border-radius:8px;border:1px solid #ff9ec0;background:rgba(80,16,50,.9);color:#fff;font-family:var(--dot);font-size:.66rem;cursor:pointer;touch-action:none;}
 .mg-shooter .shooter-shop button.buy:disabled{opacity:.4;cursor:default;}
 .mg-shooter .shooter-shop button.close{min-height:40px;border-radius:8px;border:1px solid rgba(222,204,248,.5);background:rgba(30,20,56,.9);color:#deccf8;font-family:var(--dot);font-size:.72rem;cursor:pointer;touch-action:none;}
+.mg-body.mg-shooter.wide{max-width:none;}
+.mg-shooter.wide .shooter-skip{right:calc(var(--gx) + 8px);}
+.mg-shooter.wide .shooter-pause{right:8px;}
+.mg-shooter.wide .shooter-shopbtn{left:calc(var(--gx) + 8px);}
+.mg-shooter.wide .shooter-dlg{left:calc(var(--gx) + 8px);right:calc(var(--gx) + 8px);width:auto;}
+.mg-shooter.wide .shooter-sw,.mg-shooter.wide .shooter-bomb,.mg-shooter.wide .shooter-rel,.mg-shooter.wide .shooter-fire{width:calc(var(--gx) - 16px);max-width:170px;box-sizing:border-box;}
+.mg-shooter.wide .shooter-fire{min-height:min(110px,34vh);border-radius:22px;}
+.mg-shooter.wide .shooter-fire b{font-size:1rem;}
+.mg-shooter.wide .shooter-rel{bottom:calc(min(110px,34vh) + 16px);}
+.mg-shooter.wide .shooter-sw{min-height:min(110px,34vh);}
+.mg-shooter.wide .shooter-bomb{bottom:calc(min(110px,34vh) + 16px);}
 @media (orientation:landscape) and (max-height:500px){
   .mg-shooter .shooter-bomb{min-width:80px;min-height:44px;font-size:.56rem;}
   .mg-shooter .shooter-sw{min-width:70px;min-height:38px;padding:3px 6px;}
@@ -659,8 +670,19 @@ registerMinigame({
       vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(2,1,8,.72)');
       g.fillStyle=vg;g.fillRect(0,0,W,H);
     }
+    // 横に広い画面（スマホの横持ち・PC）：遊ぶ場所は縦長のまま真ん中に置き、ボタンは左右の余白へ出す（遊ぶ場所にかぶらない）
+    const WIDE_GUT=130;   // 片側の余白の最小（ボタンが入る幅）
+    function layoutWide(){
+      const pw=(body.parentElement&&body.parentElement.clientWidth)||window.innerWidth||0,ph=body.clientHeight||0;
+      const wide=pw>=320+WIDE_GUT*2&&pw>ph*1.25;
+      body.classList.toggle('wide',wide);
+      if(!wide){cv.style.left='0px';body.style.removeProperty('--gx');return 0;}
+      const fw=Math.min(480,pw-WIDE_GUT*2),gx=Math.floor((body.clientWidth-fw)/2);
+      body.style.setProperty('--gx',gx+'px');cv.style.left=gx+'px';return fw;
+    }
     function resize(){
-      const w=Math.max(240,body.clientWidth),h=Math.max(320,body.clientHeight);
+      const fw=layoutWide();
+      const w=Math.max(240,fw||body.clientWidth),h=Math.max(320,body.clientHeight);
       const nd=Math.min(2,window.devicePixelRatio||1);   // 3倍密度の端末でも2倍で描く（重さ対策）
       if(w===W&&h===H&&nd===dpr)return;
       const first=!W;
@@ -1025,7 +1047,9 @@ registerMinigame({
         waveIdx=ev.idx;
         if(ev.idx>0||!remix)showBanner(WAVES[ev.idx].name,WAVES[ev.idx].sub,'#deccf8');
         sfx('wave');
-        if(ev.idx===0){tip('move','ドラッグ（矢印キー）で移動。右下の「撃つ」（J）を押している間だけ声が出る');
+        // 案内は一度きり（記録に残る）。撃ち方を変えたので、前に遊んだ人にも出るよう別の名前（fire）にする
+        if(ev.idx===0){tip('move','ドラッグ（矢印キー）で移動');tip('fire','「撃つ」（J）を押している間だけ声が出る。応援は撃たずに受け止めよう');
+          if(!body.classList.contains('wide')&&window.matchMedia&&matchMedia('(pointer:coarse)').matches)tip('rotate','スマホは横向きにすると、ボタンが遊ぶ場所の外に出て見やすい');
           tip('tone','赤い丸＝怒り、青いひし形＝冷笑。切替（Z／左下）で声の色を合わせると、同じ色の言葉は吸い込める');}
         if(ev.idx===2)tip('bot','スパムBOTは紫の小粒をばらまく。すき間を抜けよう');
       }else if(ev.kind==='spawn'){
