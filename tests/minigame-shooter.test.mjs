@@ -1,7 +1,7 @@
 // シューティング「炎上コメント撃退」の純粋なロジック（minigames/shooter.js の ShooterLogic）を node:vm で確かめる。
 // 台本（シードで決まる）・弾の形・当たり判定・スコア／コンボ・難しさ・評価・報酬（以前の式のまま）。
 import vm from 'node:vm';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import assert from 'node:assert/strict';
@@ -362,6 +362,22 @@ test('見た目：敵の吹き出しは明るい地（色の縁・濃い文字�
   assert.match(blk, /fill:'#fff0f2'.*st:'#e8364a'.*tx:'#3a0a1c'.*light:true/);
   assert.match(blk, /fill:'#eef5ff'.*st:'#2a86f0'.*tx:'#0c2244'.*light:true/);
   assert.match(src, /if\(flash\)\{cx\.fillStyle=s\.flash\|\|'#fff';cx\.fill\(\);\}/);
+});
+
+test('絵：一覧のファイルがすべてあり小さい・弾の絵は字の並びと同じ・読めないときはコードの絵で描く・起動時には読まない', () => {
+  const sp = plain(L.SPRITES);
+  assert.equal(sp.length, 38);
+  let total = 0;
+  for (const n of sp) { const f = join(ROOT, 'assets/shooter', n + '.webp'); assert.ok(existsSync(f), n); total += statSync(f).size; }
+  assert.ok(total < 600 * 1024, `合計 ${total}`);
+  for (const t of plain(L.FACE_TYPES)) assert.ok(sp.includes('face_' + t + '_0') && sp.includes('face_' + t + '_1'), t);
+  const src = readFileSync(join(ROOT, 'minigames/shooter.js'), 'utf8');
+  assert.match(src, /const EB_CH=\['黙','消','叩','晒','嘘','炎'\]/);
+  assert.match(src, /const EB_CH_COLD=\['草','笑','乙','痛','寒','謎'\]/);
+  assert.match(src, /naturalWidth>0/);
+  for (const k of ["spr('mic_'", "spr('like')", "spr('mid')", "spr('boss_0')", "spr('shot_pierce')"]) assert.ok(src.includes(k), k);
+  assert.match(src, /\}else\{\n\s+\/\/ 持ち手/, '自機のコードの絵が残っている');
+  assert.doesNotMatch(readFileSync(join(ROOT, 'index.html'), 'utf8'), /assets\/shooter/);
 });
 
 for (const [name, fn] of queue) {
