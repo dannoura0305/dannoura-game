@@ -6,7 +6,7 @@
 addMinigameStyle('shooter',`
 .mg-shooter{background:#05040e;}
 .mg-shooter .shooter-cv{position:absolute;left:0;top:0;display:block;touch-action:none;user-select:none;-webkit-user-select:none;}
-.mg-shooter .shooter-bomb{position:absolute;right:8px;bottom:8px;z-index:3;touch-action:none;
+.mg-shooter .shooter-bomb{position:absolute;left:8px;bottom:70px;z-index:3;touch-action:none;
   min-width:96px;min-height:54px;padding:6px 10px 5px;border-radius:10px;border:2px solid rgba(0,232,200,.75);
   background:linear-gradient(180deg,rgba(0,74,70,.92),rgba(6,22,36,.94) 60%,rgba(4,10,24,.96));color:#c8fff5;
   font-family:var(--dot);font-size:.62rem;line-height:1.25;text-align:center;cursor:pointer;
@@ -63,12 +63,12 @@ addMinigameStyle('shooter',`
 .mg-shooter .shooter-rel.ready{border-color:#fff6c0;color:#fff6c0;box-shadow:0 0 12px rgba(255,246,192,.45);}
 .mg-shooter .shooter-rel:active,.mg-shooter .shooter-sw:active{transform:scale(.94);}
 .mg-shooter .shooter-sw.hide,.mg-shooter .shooter-rel.hide,.mg-shooter .shooter-fire.hide{opacity:0;pointer-events:none;}
-.mg-shooter .shooter-fire{position:absolute;z-index:3;left:8px;bottom:70px;min-width:96px;min-height:44px;padding:4px 8px;font-size:.6rem;color:#fff;touch-action:none;cursor:pointer;-webkit-tap-highlight-color:transparent;
-  border:2px solid #44ee88;border-radius:10px;background:rgba(8,40,26,.9);font-family:inherit;transition:opacity .2s,transform .08s;}
-.mg-shooter .shooter-fire b{display:block;font-size:.76rem;font-weight:normal;letter-spacing:.04em;}
+.mg-shooter .shooter-fire{position:absolute;z-index:3;right:8px;bottom:8px;min-width:104px;min-height:56px;padding:4px 10px;font-size:.6rem;color:#ffe0e6;touch-action:none;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;border:2px solid rgba(255,220,230,.55);border-radius:28px;
+  background:radial-gradient(circle at 50% 35%,rgba(90,40,70,.95),rgba(24,10,30,.95));font-family:inherit;transition:opacity .2s,transform .06s,box-shadow .06s;}
+.mg-shooter .shooter-fire b{display:block;font-size:.86rem;font-weight:normal;letter-spacing:.08em;}
 .mg-shooter .shooter-fire small{display:block;font-size:.52rem;color:rgba(255,255,255,.6);}
-.mg-shooter .shooter-fire.off{border-color:#ffcc55;background:rgba(60,40,6,.92);box-shadow:0 0 10px rgba(255,204,85,.45);}
-.mg-shooter .shooter-fire:active{transform:scale(.94);}
+.mg-shooter .shooter-fire.on{transform:scale(.94);border-color:#fff;color:#fff;background:radial-gradient(circle at 50% 35%,rgba(255,110,150,.95),rgba(120,30,70,.95));box-shadow:0 0 16px rgba(255,120,160,.7);}
 .mg-shooter .shooter-shopbtn{position:absolute;left:8px;top:64px;z-index:6;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,158,192,.6);
   background:rgba(40,10,30,.85);color:#ffd6e6;font-family:var(--dot);font-size:.66rem;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;}
 .mg-shooter .shooter-shopbtn.hide{display:none;}
@@ -92,9 +92,10 @@ addMinigameStyle('shooter',`
   .mg-shooter .shooter-bomb{min-width:80px;min-height:44px;font-size:.56rem;}
   .mg-shooter .shooter-sw{min-width:70px;min-height:38px;padding:3px 6px;}
   .mg-shooter .shooter-sw small{display:none;}
-  .mg-shooter .shooter-rel{bottom:50px;min-width:72px;min-height:30px;padding:2px 6px 4px;}
-  .mg-shooter .shooter-fire{bottom:50px;min-width:70px;min-height:30px;padding:2px 6px;}
+  .mg-shooter .shooter-rel{bottom:58px;min-width:72px;min-height:30px;padding:2px 6px 4px;}
+  .mg-shooter .shooter-fire{min-width:84px;min-height:44px;padding:2px 6px;}
   .mg-shooter .shooter-fire small{display:none;}
+  .mg-shooter .shooter-bomb{bottom:50px;}
   .mg-shooter .shooter-rel span{display:none;}
   .mg-shooter .shooter-dlg{left:auto;width:min(560px,96%);right:2%;}
   .mg-shooter .shooter-face{width:56px;height:56px;}
@@ -308,7 +309,7 @@ registerMinigame({
   id:'shooter', icon:'🔥', name:'炎上コメント撃退', genre:'シューティング', bgm:'stream',
   desc:'降ってくる悪意のコメントを撃ち落とす。言葉は「怒り」と「冷笑」の二色。声の色を合わせれば同じ色の言葉を吸い込んで力にでき、違う色には2倍効く。応援コメントは撃たずに受け止めよう。中ボス「まとめ管理人」のあと、最後に「炎上の渦」が来る。',
   effect:'炎上↓ 精神↑ フォロワー↑ ／ 疲労+6 約40分',
-  help:'ドラッグ／矢印で移動・自動射撃（F／ボタンで停止・再開）・Z／切替で声の色・V／反論で追う声・Shiftで精密・Bでモデ召喚・Pで一時停止',
+  help:'ドラッグ／矢印で移動・撃つボタン／J を押している間だけ声が出る・Z／切替で声の色・V／反論で追う声・Shiftで精密・Bでモデ召喚・Pで一時停止',
   start(body,mg){
     const L=ShooterLogic;
     // ── 記録（遅延初期化。以前のセーブの形のまま、足りない項目だけ足す） ──
@@ -439,7 +440,7 @@ registerMinigame({
       switch:4.4,absorb:2.75,chain:3.8,release:2.2,ready:2.5,like:2.7,streak:3.5};
     // 効果音（シューターらしく：撃つ音は短い破裂＋低い芯で手応え、倒すと弾ける、被弾は歪んだ衝撃）
     const SFX={
-      // 自動ショット（0.12 秒ごと）：ノイズの破裂＋音程が落ちる矩形波＋低い芯。1 発おきに少し弱く（タタッという刻み）。レーザー中は細い光線の音
+      // ショット（撃つを押している間、0.12 秒ごと）：ノイズの破裂＋音程が落ちる矩形波＋低い芯。1 発おきに少し弱く（タタッという刻み）。レーザー中は細い光線の音
       shot(){const k=(shotN++)%2?.6:1;
         if(laserT>0){osc({t:'sawtooth',f:2400,f2:1300,d:.06,g:.02*k,ft:'bandpass',ff:2200,q:3,j:.03});nz({ft:'highpass',f:5000,d:.03,g:.03*k});return;}
         nz({ft:'bandpass',f:3200,q:.9,d:.03,g:.11*k});osc({t:'square',f:900,f2:330,d:.055,g:.028*k,ft:'lowpass',ff:3200,j:.04});osc({f:190,f2:85,d:.05,g:.09*k});
@@ -535,7 +536,7 @@ registerMinigame({
     const shopEl=document.createElement('div');shopEl.className='shooter-shop off';body.appendChild(shopEl);
     const swBtn=document.createElement('button');swBtn.className='shooter-sw hide';swBtn.setAttribute('aria-label','声の色を切り替える');body.appendChild(swBtn);
     const relBtn=document.createElement('button');relBtn.className='shooter-rel hide';relBtn.setAttribute('aria-label','反論を放つ');body.appendChild(relBtn);
-    const fireBtn=document.createElement('button');fireBtn.className='shooter-fire hide';fireBtn.setAttribute('aria-label','自動射撃を止める／再開する');body.appendChild(fireBtn);
+    const fireBtn=document.createElement('button');fireBtn.className='shooter-fire hide';fireBtn.setAttribute('aria-label','押している間、声を出す（撃つ）');body.appendChild(fireBtn);
     const pauseBtn=document.createElement('button');pauseBtn.className='shooter-pause hide';pauseBtn.textContent='❚❚';pauseBtn.setAttribute('aria-label','一時停止');
     body.appendChild(pauseBtn);
     const dlg=document.createElement('div');dlg.className='shooter-dlg off';
@@ -748,14 +749,12 @@ registerMinigame({
       SD.likes-=price;SD.upg[k]=lv+1;sfx('power');buzz(20);renderShop();
       try{if(typeof saveGame==='function')saveGame(true);}catch(_){}
     });
-    // 自動射撃の停止・再開（応援を撃たないように止められる。夜をまたいでも、ゲームを開いている間は覚えておく）
-    let fireOn=true,fireShown=null;
-    function updateFireBtn(){
-      if(fireShown===fireOn)return;fireShown=fireOn;
-      fireBtn.classList.toggle('off',!fireOn);fireBtn.setAttribute('aria-pressed',fireOn?'false':'true');
-      fireBtn.innerHTML=fireOn?'<b>▶ 射撃中</b><small>止める（F）</small>':'<b>■ 射撃停止</b><small>再開する（F）</small>';
-    }
-    function toggleFire(){fireOn=!fireOn;updateFireBtn();sfx(fireOn?'ready':'switch');pop(player.x,player.y-46,fireOn?'射撃 再開':'射撃 停止',fireOn?'#88ffb0':'#ffcc55');}
+    // 撃つ：撃つボタン（右下）か J／F キーを押している間だけ声が出る。自動では撃たない（応援を撃たずに済む）
+    const firePtrs=new Set();let fireKey=false;
+    const firing=()=>fireKey||firePtrs.size>0;
+    function updateFireBtn(){fireBtn.classList.toggle('on',firing());}
+    function fireRelease(){firePtrs.clear();fireKey=false;updateFireBtn();}
+    fireBtn.innerHTML='<b>撃つ</b><small>押している間（J）</small>';
     // 切り替えボタン：いまの声の色と、押すと何色になるか
     let swShown=-1,relShown=-1;
     function updateSwBtn(){
@@ -883,7 +882,7 @@ registerMinigame({
     // 一時停止（ボタン・P／Esc・タブを離れたとき）。再開はタップかキー
     function setPause(on){
       if(scene!=='play'||finalReason||paused===on)return;
-      paused=on;drag=null;keys.l=keys.r=keys.u=keys.d=false;focus=false;
+      paused=on;drag=null;keys.l=keys.r=keys.u=keys.d=false;focus=false;fireRelease();
       pauseBtn.textContent=on?'▶':'❚❚';sfx('pause');
     }
     const onVis=()=>{if(document.hidden)setPause(true);};
@@ -910,13 +909,18 @@ registerMinigame({
     bombBtn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(paused){setPause(false);return;}bombBuf=.35;});
     swBtn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(paused){setPause(false);return;}switchVoice();});
     relBtn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(paused){setPause(false);return;}release();});
-    fireBtn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(paused){setPause(false);return;}toggleFire();});
+    fireBtn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(paused){setPause(false);return;}
+      try{fireBtn.setPointerCapture(e.pointerId);}catch(_){}firePtrs.add(e.pointerId);touchedOnce=true;updateFireBtn();});
+    const fireUp=e=>{if(firePtrs.delete(e.pointerId))updateFireBtn();};
+    for(const ev of ['pointerup','pointercancel','lostpointercapture'])fireBtn.addEventListener(ev,fireUp);
+    fireBtn.addEventListener('contextmenu',e=>e.preventDefault());
     pauseBtn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();setPause(!paused);});
     mg.onKey(e=>{
       const k=e.key, dn=e.type==='keydown';
       const map={ArrowLeft:'l',a:'l',A:'l',ArrowRight:'r',d:'r',D:'r',ArrowUp:'u',w:'u',W:'u',ArrowDown:'d',s:'d',S:'d'};
       if(map[k]){e.preventDefault();if(paused)return;keys[map[k]]=dn;if(dn)touchedOnce=true;return;}
       if(k==='Shift'){focus=dn&&!paused;return;}
+      if(k==='j'||k==='J'||k==='f'||k==='F'){e.preventDefault();fireKey=dn&&!paused&&scene==='play';updateFireBtn();return;}
       if(!dn||e.repeat)return;
       if(shopOpen){if(k==='Escape'||k==='Enter'||k===' '){e.preventDefault();closeShop();}return;}
       if((k==='u'||k==='U')&&(scene==='title'||scene==='howto'||scene==='grade')){e.preventDefault();openShop();return;}
@@ -928,7 +932,6 @@ registerMinigame({
       if(k==='Escape'&&scene==='story'){skipDialog();return;}
       if(scene==='play'&&(k==='z'||k==='Z'||k==='c'||k==='C')){e.preventDefault();switchVoice();return;}
       if(scene==='play'&&(k==='v'||k==='V')){e.preventDefault();release();return;}
-      if(scene==='play'&&(k==='f'||k==='F')){e.preventDefault();toggleFire();return;}
       if(scene==='play'&&(k==='b'||k==='B'||k==='x'||k==='X'||k===' ')){e.preventDefault();bombBuf=.35;}
     });
 
@@ -937,7 +940,7 @@ registerMinigame({
     function goHowto(){transition(()=>{scene='howto';sceneT=0;tapBuf=false;});}
     function beginPlay(){
       if(scene!=='howto'||trans)return;sfx('decide');
-      transition(()=>{applyUpg();shield=MAX_SHIELD;scene='play';sceneT=0;t=0;st=0;tli=0;bombBtn.classList.remove('hide');pauseBtn.classList.remove('hide');swBtn.classList.remove('hide');relBtn.classList.remove('hide');fireBtn.classList.remove('hide');updateFireBtn();updateBombBtn();updateSwBtn();updateRelBtn();
+      transition(()=>{applyUpg();shield=MAX_SHIELD;scene='play';sceneT=0;t=0;st=0;tli=0;bombBtn.classList.remove('hide');pauseBtn.classList.remove('hide');swBtn.classList.remove('hide');relBtn.classList.remove('hide');fireBtn.classList.remove('hide');fireRelease();updateBombBtn();updateSwBtn();updateRelBtn();
         if(remix)showBanner('REMIX','第二夜：前より荒れている','#ff9a3c',1.6);},.5);
     }
     function computeGrade(){
@@ -948,7 +951,7 @@ registerMinigame({
       finalReason=reason;
       if(reason==='clear'){remainBonus=Math.max(0,shield)*2000;score+=remainBonus;}
       grade=computeGrade();
-      bombBtn.classList.add('hide');pauseBtn.classList.add('hide');swBtn.classList.add('hide');relBtn.classList.add('hide');fireBtn.classList.add('hide');paused=false;
+      bombBtn.classList.add('hide');pauseBtn.classList.add('hide');swBtn.classList.add('hide');relBtn.classList.add('hide');fireBtn.classList.add('hide');fireRelease();paused=false;
       if(reason==='clear')SD.clears++;
       if(grazes>(SD.best.graze||0))SD.best.graze=grazes;
       if(bossBeaten)SD.bossKills++;
@@ -1022,7 +1025,7 @@ registerMinigame({
         waveIdx=ev.idx;
         if(ev.idx>0||!remix)showBanner(WAVES[ev.idx].name,WAVES[ev.idx].sub,'#deccf8');
         sfx('wave');
-        if(ev.idx===0){tip('move',touchedOnce?'声（ショット）は自動。悪意の吹き出しを撃ち落とせ':'ドラッグ（矢印キー）で移動。声は自動で出る');
+        if(ev.idx===0){tip('move','ドラッグ（矢印キー）で移動。右下の「撃つ」（J）を押している間だけ声が出る');
           tip('tone','赤い丸＝怒り、青いひし形＝冷笑。切替（Z／左下）で声の色を合わせると、同じ色の言葉は吸い込める');}
         if(ev.idx===2)tip('bot','スパムBOTは紫の小粒をばらまく。すき間を抜けよう');
       }else if(ev.kind==='spawn'){
@@ -1092,7 +1095,7 @@ registerMinigame({
       if(absCd<=0){absCd=.05;glowCol=b.tone?'bl':'rd';glowPulse=Math.max(glowPulse,.18);}
       sfx('absorb');
       const after=L.releaseCount(gauge);
-      if(after>before){updateRelBtn();if(after===1)tip('release','力がたまった！ 反論（V／左下のボタン）で、追いかける声を放てる');
+      if(after>before){updateRelBtn();if(after===1)tip('release','力がたまった！ 反論（V／右下のボタン）で、追いかける声を放てる');
         if(after===L.RELEASE_MAX){pop(hx,hy-40,'反論 MAX','#fff6c0');sfx('ready');}}
       tip('absorb','同じ色の言葉は当たらない。吸い込むと力（反論のゲージ）になる');
     }
@@ -1295,7 +1298,7 @@ registerMinigame({
 
       if(live){
         fireCd-=dt;
-        if(fireCd<=0&&fireOn){
+        if(fireCd<=0&&firing()){
           player.recoil=.05;muzzle=.06;
           const sx=player.x,sy=player.y-24;
           if(laserT>0){fireCd=.085;addPB(sx,sy,0,-900,'laser');}
@@ -1440,7 +1443,7 @@ registerMinigame({
         }
       }
       compact(eb,ebFree);
-      if(live&&eb.length>40&&bombs>0)tip('bomb','弾が多い！モデレーター召喚（B／右下のボタン）で一掃');
+      if(live&&eb.length>40&&bombs>0)tip('bomb','弾が多い！モデレーター召喚（B／左下のボタン）で一掃');
 
       // レーザー
       for(const lz of lasers){
@@ -2292,7 +2295,7 @@ registerMinigame({
       const line=(text,col,size)=>{cx.textAlign='left';cx.font=`${size||12}px ${FONT}`;cx.fillStyle=col||'#deccf8';cx.fillText(text,lx+18,yy);};
       const sub=(text)=>{yy+=15*sc;line(text,'#8a7aa8',10);};
       const next=g=>{yy+=(g||24)*sc;};
-      cx.fillStyle='#00e8c8';cx.font=`12px ${FONT}`;cx.textAlign='left';cx.fillText('◆',lx,yy);line('どこでもドラッグ／矢印で動く・声は自動');
+      cx.fillStyle='#00e8c8';cx.font=`12px ${FONT}`;cx.textAlign='left';cx.fillText('◆',lx,yy);line('ドラッグ／矢印で動く・「撃つ」（J）を押す間だけ声');
       next();
       // 二つの色
       toneMark(lx+4,yy-1,0,4.5);toneMark(lx+13,yy-1,1,4.5);
@@ -2308,7 +2311,7 @@ registerMinigame({
       next();
       gl(glow.cy,lx+8,yy-1,14,.5*a);cx.globalAlpha=a;
       cx.fillStyle='#0a3034';rr(lx,yy-7,18,12,6);cx.fill();cx.strokeStyle='#a0fff0';cx.lineWidth=1;cx.stroke();
-      line('光る応援は撃たずに受け止める（射撃は F・左下で止められる）');
+      line('光る応援は撃たずに受け止める（撃つのを離す）');
       sub('拡散・バリア・スロー・貫通・回復・モデ'+(DF.ffPass?'（声はすり抜ける）':''));
       next();
       cx.fillStyle='#44ee88';cx.font=`12px ${FONT}`;cx.textAlign='left';cx.fillText('◆',lx,yy);line('ピンチはモデレーター（B・'+DF.bombs+'回＋拾う）');
@@ -2485,7 +2488,8 @@ registerMinigame({
       cx.font=`12px ${FONT}`;cx.fillStyle='#deccf8';cx.fillText('タップ／P／Enter で再開',W/2,H*.4+30);
       cx.fillStyle='#8a7aa8';cx.font=`10px ${FONT}`;
       cx.fillText('移動：ドラッグ・矢印／WASD　精密：Shift',W/2,H*.4+58);
-      cx.fillText('モデレーター召喚：B・X・右下のボタン',W/2,H*.4+74);
+      cx.fillText('撃つ：右下のボタン・J（押している間）',W/2,H*.4+74);
+      cx.fillText('モデレーター召喚：B・X・左下のボタン',W/2,H*.4+90);
     }
     function hud(){
       const html=`SCORE <span style="color:var(--tx-b)">${score}</span>　撃退 ${kills}　🛡${Math.max(0,shield)}/${MAX_SHIELD}`;
