@@ -381,14 +381,16 @@ test('絵：一覧のファイルがすべてあり小さい・弾の絵は字�
   assert.doesNotMatch(readFileSync(join(ROOT, 'index.html'), 'utf8'), /assets\/shooter/);
 });
 
-test('自動射撃：止める・再開する（F キー・左下のボタン）。止めている間は撃たない', () => {
+test('撃つ：撃つボタン（右下）か J／F を押している間だけ撃つ。自動では撃たない・一時停止や画面を離れると離したことになる', () => {
   const src = readFileSync(join(ROOT, 'minigames/shooter.js'), 'utf8');
-  assert.match(src, /if\(fireCd<=0&&fireOn\)\{/);
-  assert.match(src, /k==='f'\|\|k==='F'\)\)\{e\.preventDefault\(\);toggleFire\(\)/);
-  assert.match(src, /fireBtn\.addEventListener\('pointerdown'/);
-  assert.match(src, /fireBtn\.classList\.remove\('hide'\)/);
-  assert.match(src, /fireBtn\.classList\.add\('hide'\)/);
-  assert.match(readFileSync(join(ROOT, 'minigames/registry.js'), 'utf8'), /自動射撃（F／ボタンで停止・再開）/);
+  assert.match(src, /if\(fireCd<=0&&firing\(\)\)\{/);
+  assert.match(src, /const firing=\(\)=>fireKey\|\|firePtrs\.size>0;/);
+  assert.match(src, /fireKey=dn&&!paused&&scene==='play'/);
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) assert.ok(src.includes(`'${ev}'`), ev);
+  assert.match(src, /paused=on;drag=null;[^\n]*fireRelease\(\);/);
+  assert.match(src, /fireBtn\.classList\.add\('hide'\);fireRelease\(\);/);
+  assert.doesNotMatch(src.split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n'), /声は自動|自動射撃/);
+  assert.match(readFileSync(join(ROOT, 'minigames/registry.js'), 'utf8'), /撃つボタン／J を押している間だけ声が出る/);
 });
 
 for (const [name, fn] of queue) {
