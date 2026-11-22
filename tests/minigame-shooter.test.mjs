@@ -275,6 +275,74 @@ test('ゲーム本体：二つの色の操作がある（切替 Z/C・反論 V�
   assert.ok(i > 0 && j > i);
 });
 
+// ── 任務とメダル・連続撃退・いいねと声の強化・ボスの取り巻き ──
+test('連続撃退：10・30・60・100・150… に届いた所で点（1 体ずつ数えても、まとめて越えても同じ）', () => {
+  assert.deepEqual(plain(L.streakBonus(9, 10)), { pts: 100, tier: 0 });
+  assert.deepEqual(plain(L.streakBonus(10, 11)), { pts: 0, tier: -1 });
+  assert.equal(L.streakBonus(29, 30).pts, 500);
+  assert.equal(L.streakBonus(149, 150).pts, 5000);
+  let sum = 0; for (let n = 1; n <= 1000; n++) sum += L.streakBonus(n - 1, n).pts;
+  assert.equal(sum, L.STREAK_PTS.reduce((a, b) => a + b, 0));
+  assert.equal(L.streakBonus(0, 1000).pts, sum);
+  assert.equal(L.STREAK.length, 10);
+});
+
+test('任務：クリアしたときだけ・70%／100% 撃退・応援を全部（誤射なし）・無傷', () => {
+  const base = { reason: 'clear', spawned: 100, kills: 70, goodsSpawned: 10, caught: 10, friendlyFire: 0, hits: 0 };
+  assert.deepEqual(plain(L.missionCheck(base)), [true, false, true, true]);
+  assert.deepEqual(plain(L.missionCheck({ ...base, kills: 69 })), [false, false, true, true]);
+  assert.deepEqual(plain(L.missionCheck({ ...base, kills: 100 })), [true, true, true, true]);
+  assert.deepEqual(plain(L.missionCheck({ ...base, caught: 9 })), [true, false, false, true]);
+  assert.deepEqual(plain(L.missionCheck({ ...base, friendlyFire: 1 })), [true, false, false, true]);
+  assert.deepEqual(plain(L.missionCheck({ ...base, hits: 1 })), [true, false, true, false]);
+  assert.deepEqual(plain(L.missionCheck({ ...base, reason: 'down', kills: 100 })), [false, false, false, false]);
+  assert.deepEqual(plain(L.missionCheck({ ...base, spawned: 0 })), [false, false, true, true]);
+  assert.equal(L.killPct(3, 2), 66); assert.equal(L.killPct(0, 5), 0); assert.equal(L.killPct(4, 9), 100);
+  assert.equal(L.medalCount({ easy: [true, false, true, true], normal: [true, true, true, true], hard: [false, false, false, false] }), 7);
+  assert.equal(L.medalCount(null), 0);
+  assert.equal(L.MISSIONS.length, 4);
+});
+
+test('いいね：種類ごとの数 × 難しさ（やさしい 1・ふつう 1.5・むずかしい 2）を切り捨て', () => {
+  assert.equal(L.likeDrop('basic', 'easy'), 1); assert.equal(L.likeDrop('basic', 'normal'), 1); assert.equal(L.likeDrop('basic', 'hard'), 2);
+  assert.equal(L.likeDrop('shooter', 'normal'), 4); assert.equal(L.likeDrop('boss', 'hard'), 60);
+  assert.equal(L.likeDrop('small', 'hard'), 0); assert.equal(L.likeDrop('???', 'easy'), 0);
+});
+
+test('声の強化：段 0〜5 を直線でつなぐ・値段は表・段 4・5 はメダル 4・8 で開く', () => {
+  for (const k in L.UPG) {
+    const u = L.UPG[k];
+    assert.equal(L.upgValue(k, 0), u.int ? Math.floor(u.v0) : u.v0);
+    assert.equal(L.upgValue(k, 5), u.int ? Math.floor(u.v5) : u.v5);
+    assert.equal(L.upgValue(k, 99), L.upgValue(k, 5)); assert.equal(L.upgValue(k, -3), L.upgValue(k, 0));
+    for (let lv = 0; lv < 5; lv++) { assert.equal(L.upgPrice(k, lv), u.price[lv]); assert.ok(lv === 0 || u.price[lv] > u.price[lv - 1]); }
+    assert.equal(L.upgPrice(k, 5), Infinity);
+  }
+  assert.ok(Math.abs(L.upgValue('rate', 2) - (.12 + (.085 - .12) * .4)) < 1e-12);   // 間隔が短くなる
+  assert.deepEqual([0, 1, 2, 3, 4, 5].map(l => L.upgValue('heart', l)), [0, 1, 2, 3, 4, 5]);   // 1 段ごとに +1
+  assert.deepEqual([0, 3, 4, 7, 8, 12].map(L.upgMaxLv), [3, 3, 4, 4, 5, 5]);
+});
+
+test('ボスの取り巻き：段階ごとに 2・3・4 体、体力 6・8・10。残っている間は芯に 1/4', () => {
+  assert.deepEqual(plain(L.guardsFor(1)), { n: 2, hp: 6 });
+  assert.deepEqual(plain(L.guardsFor(2)), { n: 3, hp: 8 });
+  assert.deepEqual(plain(L.guardsFor(3)), { n: 4, hp: 10 });
+  assert.equal(L.GUARD_SHIELD, .25);
+  assert.equal(L.SCORE.guard, 300);
+});
+
+test('ゲーム本体：強化の画面（左上・U）・任務の表示・逃がすと連続が切れる・記録を無い項目だけ足す', () => {
+  const src = readFileSync(join(ROOT, 'minigames/shooter.js'), 'utf8');
+  assert.match(src, /shooter-shopbtn/); assert.match(src, /function openShop\(\)/);
+  assert.match(src, /SD\.likes=Math\.max\(0,SD\.likes\|0\)/);
+  assert.match(src, /SD\.medals\[k\]=\[false,false,false,false\]/);
+  assert.equal((src.match(/escaped\(e\)/g) || []).length >= 4, true);   // 下へ落ちた・上へ去った（3 種）
+  assert.match(src, /bs\.gAlive>0\?L\.GUARD_SHIELD:1/);
+  // 報酬の式は変えていない（rewardFx に新しい項目が入っていない）
+  const rf = src.slice(src.indexOf('function rewardFx'), src.indexOf('return {fx,sp'));
+  assert.doesNotMatch(rf, /likes|medal|streak|upg/);
+});
+
 for (const [name, fn] of queue) {
   try { fn(); pass++; console.log('  ✓ ' + name); }
   catch (e) { fail++; console.log('  ✗ ' + name + '\n    ' + (e && e.stack || e)); }
