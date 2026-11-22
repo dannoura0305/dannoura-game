@@ -3,6 +3,8 @@
 // ・選択肢の全部の道筋を辿ると、どれも GOOD / BAD / GAME OVER のどれかに着く（行き止まり・無限の回り道が無い）。白薔薇の三つの結末に届く
 // ・ゲームオーバーでループ回数が増え、1 周の状態（好感度）は消え、名前は残り、ループの場面から始まる。ループ回数で台詞が変わる
 // ・条件・既読・セーブとロード
+// ・想いの段（6 つの境目・最後＝GOOD の条件）と、想いが上がった時の演出・初めての CG の知らせ
+// ・思い出（見た章を読み返す）：記録を変えない・次の章の頭で終わる
 import vm from 'node:vm';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -106,6 +108,46 @@ t('台本の版が変わった古いセーブ：その場面の頭から（選�
   const U = NA.make(); assert.ok(U.restore(now)); assert.equal(U.run.ip, T.run.ip);
   const old = Object.assign({}, now, { ver: NA.SCRIPT_VER - 1, ip: 999, pending: { type: 'choice', ip: 3 } });
   const V = NA.make(); assert.ok(V.restore(old)); assert.equal(V.run.ip, 0); assert.equal(V.run.pending, null); assert.equal(V.advance().type, 'say');
+});
+
+t('想いの段：6 つの境目・最後の境目＝GOOD の条件・上がった時だけ演出（下がった時・意思では出ない）・初めての CG の知らせ', () => {
+  const f = NA.FEELINGS.rose; assert.equal(f.steps.length, 6); assert.ok(f.steps.every((x, i) => i === 0 || x > f.steps[i - 1]), '境目は小さい順');
+  const cond = NA.SCENES.rose_n5_02.ops[0].args[0]; const k = Number(cond.match(/rose_love>=(\d+)/)[1]);
+  assert.equal(f.steps[5], k, '最後の境目は GOOD の愛情の条件と同じ');
+  const T = NA.make(); T.newGame('rose_00', 'ノア'); T.run.vars.area_rose = 1;
+  assert.equal(T.feelStep('rose'), 1, '出会えば 1 枚');
+  let e; do { e = T.advance(); } while (e.type !== 'choice');
+  const ev = T.advance(); assert.equal(ev.type, 'choice');
+  assert.ok(T.choose(0)); const after = T.advance();   // 「差し出された手を取る」愛情 +2
+  assert.equal(JSON.stringify(after.fx.filter(x => x[0] === 'feel')), JSON.stringify([['feel', 'rose', 2]]));
+  assert.equal(T.feelStep('rose'), 2);
+  const U = NA.make(); U.newGame('rose_n3_02', 'ノア'); U.run.vars.rose_love = 3; U.run.vars.rose_will = 3;
+  do { e = U.advance(); } while (e.type !== 'choice');
+  assert.ok(U.choose(0));   // 手袋に触れる：愛情 -1
+  assert.equal(U.advance().fx.filter(x => x[0] === 'feel').length, 0, '下がった時は見せない');
+  // 初めての CG だけ知らせる
+  const M = NA.make(); M.newGame('rose_00', 'ノア'); const fx = []; for (let i = 0; i < 40; i++) { const x = M.advance(); fx.push(...x.fx); if (x.type !== 'say') break; }
+  assert.ok(fx.some(x => x[0] === 'notice' && x[2] === 'rose_meet'), '初めての CG');
+  const N = NA.make({ meta: M.meta }); N.newGame('rose_00', 'ノア'); const fx2 = []; for (let i = 0; i < 40; i++) { const x = N.advance(); fx2.push(...x.fx); if (x.type !== 'say') break; }
+  assert.ok(!fx2.some(x => x[0] === 'notice'), '二度目は知らせない'); assert.ok(fx2.some(x => x[0] === 'cg' && x[1] === 'rose_meet'), 'CG は出る');
+});
+
+t('思い出：見た章だけ・頭から読み返す・次の章の頭で終わる・想い／エンディング／ループ回数／CG を記録しない・セーブの中身に残らない', () => {
+  assert.ok(NA.CHAPTERS.length >= 6); for (const c of NA.CHAPTERS) assert.ok(NA.SCENES[c.scene], c.id);
+  const T = NA.make(); assert.ok(!T.memory('rose_waltz'), 'まだ見ていない章は開かない');
+  T.newGame(); for (let i = 0; i < 400; i++) { const e = T.advance(); if (e.type === 'name') T.resolveName('ノア'); if (e.type === 'areas') T.pickArea('rose'); if (e.type === 'choice') { if (T.run.scene.startsWith('rose_n1_0')) break; T.choose(0); } }
+  assert.ok(T.meta.chapters.rose_gate && T.meta.chapters.rose_waltz, '通った章は「見た」');
+  assert.ok(!T.meta.chapters.rose_tilt);
+  const before = JSON.stringify({ e: T.meta.endings, l: T.meta.loop, c: T.meta.cgs });
+  const M = NA.make({ meta: T.meta }); assert.ok(M.memory('rose_waltz')); assert.equal(M.run.scene, 'rose_n1_01'); assert.ok(M.inMemory()); assert.equal(M.run.name, 'ノア', '名前は記録から');
+  let e, feel = 0, k = 0; for (; k < 400; k++) { e = M.advance(); feel += e.fx.filter(x => x[0] === 'feel').length; if (e.type === 'choice') { const out = e.options.find(o => /外へ出て/.test(o.text)); M.choose(out ? out.i : 0); continue; } if (e.type !== 'say') break; }
+  assert.equal(e.type, 'memory_end', '次の章の頭で終わる'); assert.equal(feel, 0, '想いの演出は出ない');
+  assert.ok(!T.meta.chapters.rose_tilt, '思い出の中で次の章に入っても「見た」にならない');
+  assert.equal(JSON.stringify({ e: T.meta.endings, l: T.meta.loop, c: T.meta.cgs }), before, '記録は変わらない');
+  // ゲームオーバーの道でも記録しない（最後の舞踏会で門を開ける）
+  T.meta.chapters.rose_last = 1; const G = NA.make({ meta: T.meta }); assert.ok(G.memory('rose_last'));
+  for (k = 0; k < 400; k++) { e = G.advance(); if (e.type === 'choice') { G.choose(e.options.findIndex(o => /門の扉を開ける/.test(o.text))); continue; } if (e.type !== 'say') break; }
+  assert.equal(e.type, 'memory_end'); assert.equal(T.meta.loop, 0, 'ループ回数は増えない'); assert.ok(!T.meta.endings.rose_go1, 'ゲームオーバーは記録しない');
 });
 
 console.log(`noaris-engine: ${n} ok`);

@@ -41,8 +41,8 @@
 
   // ── 状態 ──
   let T = null;
-  const ui = { screen: 'title', overlay: null, kind: null, cur: null, typing: false, timer: null, autoT: null, auto: false, skip: false, ctrl: false, busy: false, log: [] };
-  const setMode = () => { modeEl.textContent = ui.skip ? '▶▶ SKIP' : ui.auto ? '▶ AUTO' : ''; for (const b of quick.children) b.classList.toggle('on', (b.dataset.k === 'auto' && ui.auto) || (b.dataset.k === 'skip' && ui.skip)); };
+  const ui = { toasts: 0, screen: 'title', overlay: null, kind: null, cur: null, typing: false, timer: null, autoT: null, auto: false, skip: false, ctrl: false, busy: false, log: [] };
+  const setMode = () => { modeEl.textContent = (T && T.inMemory() ? '思い出　' : '') + (ui.skip ? '▶▶ SKIP' : ui.auto ? '▶ AUTO' : ''); for (const b of quick.children) b.classList.toggle('on', (b.dataset.k === 'auto' && ui.auto) || (b.dataset.k === 'skip' && ui.skip)); };
   const stopModes = () => { ui.auto = false; ui.skip = false; clearTimeout(ui.autoT); setMode(); };
 
   // ── 仮の人物（SVG のシルエット）：art ごとの形・tint の色。表情は名札で示す（絵が届いたら差し替え） ──
@@ -89,7 +89,22 @@
       if (k === 'bg') setBg(a); else if (k === 'chara') showChara(a, b); else if (k === 'face') showChara(T.run.view.chara, a);
       else if (k === 'cg') showCg(a); else if (k === 'bgm') AU.bgm(a); else if (k === 'se') AU.se(a);
       else if (k === 'fx') await fxOne(a); else if (k === 'wait') await sleep(ui.skip ? 30 : a);
+      else if (k === 'feel') feelFx(a, b);
+      else if (k === 'notice') toast(a === 'cg' ? `ギャラリーに「${(NA.CGS[b] || {}).title || b}」が加わりました` : String(b));
     }
+  }
+
+  // 想いが上がった：画面の右上に白い花びらが舞う（スキップ中は控えめ）。数は見せない
+  function feelFx(who) {
+    const f = NA.FEELINGS[who]; if (!f) return;
+    AU.se('feel');
+    const d = h('div', { class: 'na-feelfx' + (ui.skip ? ' fast' : ''), 'data-who': who }, ...[0, 1, 2, 3, 4].map(i => h('i', { style: `--d:${i * 90}ms;--x:${(i - 2) * 14}px` })));
+    fxl.appendChild(d); setTimeout(() => d.remove(), 1700);
+  }
+  // 知らせ（数秒で消える小さな札。押しても進まない）
+  function toast(text) {
+    ui.toasts++; const d = h('div', { class: 'na-toast' }, text); app.appendChild(d);
+    AU.se('notice'); setTimeout(() => d.classList.add('out'), 2600); setTimeout(() => d.remove(), 3200);
   }
 
   // ── 進める ──
@@ -108,6 +123,7 @@
       if (e.type === 'end') return showEnd(e);
       if (e.type === 'gameover') return showGameOver(e);
       if (e.type === 'title') return showTitle();
+      if (e.type === 'memory_end') return showMemoryEnd();
     } finally { ui.busy = false; }
   }
   function showSay(e) {
@@ -155,6 +171,7 @@
         h('button', { class: 'na-btn', id: 'na-cont', disabled: !hasSave, onclick: () => { AU.unlock(); showSaveLoad('load', true); } }, 'つづきから'),
         h('button', { class: 'na-btn', onclick: () => { AU.unlock(); showEndings(true); } }, 'エンディング'),
         h('button', { class: 'na-btn', onclick: () => { AU.unlock(); showGallery(true); } }, 'ギャラリー'),
+        h('button', { class: 'na-btn', id: 'na-mem', disabled: !Object.keys(meta.chapters || {}).length, onclick: () => { AU.unlock(); showMemories(); } }, '思い出'),
         h('button', { class: 'na-btn', onclick: () => { AU.unlock(); showSettings(true); } }, '設定')),
       meta.loop ? h('div', { class: 'na-note' }, `これまでに繰り返した夜：${meta.loop}`) : null));
   }
@@ -165,7 +182,9 @@
     const b = (k, label, fn) => quick.appendChild(h('button', { 'data-k': k, onclick: ev => { ev.stopPropagation(); if (ui.overlay || ui.busy) return; fn(); } }, label));
     b('log', 'ログ', showLog); b('auto', 'オート', () => { ui.auto = !ui.auto; ui.skip = false; setMode(); if (ui.auto && !ui.typing && ui.kind === 'say') doneTyping(); });
     b('skip', 'スキップ', () => { ui.skip = !ui.skip; ui.auto = false; setMode(); if (ui.skip && ui.kind === 'say') { if (ui.typing) { clearInterval(ui.timer); } doneTyping(); } });
-    b('save', 'セーブ', () => showSaveLoad('save')); b('load', 'ロード', () => showSaveLoad('load')); b('set', '設定', () => showSettings());
+    b('feel', '想い', showFeel);
+    if (!T.inMemory()) { b('save', 'セーブ', () => showSaveLoad('save')); b('load', 'ロード', () => showSaveLoad('load')); }   // 思い出の中ではセーブしない
+    b('set', '設定', () => showSettings());
     b('title', 'タイトル', () => { if (root.confirm('タイトルに戻りますか？（セーブしていない進み具合は消えます）')) showTitle(); });
     setMode();
   }
@@ -190,7 +209,7 @@
   function showEnd(e) {
     stopModes(); msg.style.display = 'none'; AU.se('choice'); store.set(KEY.save, Object.assign(saves(), { auto: null }));
     const d = NA.ENDINGS[e.id] || {};
-    overlay('end', h('div', { class: 'na-end', id: 'na-end', onclick: () => showTitle() }, h('div', { class: 'big' }, KIND[e.kind] || 'END'), h('div', { class: 't' }, d.title || ''), h('small', {}, 'タップでタイトルへ')));
+    overlay('end', h('div', { class: 'na-end', id: 'na-end', onclick: () => showTitle() }, h('div', { class: 'big' }, KIND[e.kind] || 'END'), h('div', { class: 't' }, d.title || ''), e.isNew ? h('div', { class: 'na-new' }, 'NEW ── エンディング一覧に加わりました') : null, h('small', {}, 'タップでタイトルへ')));
   }
   function showGameOver(e) {
     stopModes(); msg.style.display = 'none'; showChara(null); AU.bgm(null); AU.se('gameover');
@@ -203,7 +222,7 @@
     return { title: title || '', name: T.run.name || NA.DEFAULT_NAME, loop: meta.loop, text: ui.cur && ui.kind === 'say' ? ui.cur.text.slice(0, 40) : (T.run.pending ? '（選択の前）' : '') };
   }
   function entry() { return { snap: T.snapshot(), cur: ui.kind === 'say' ? ui.cur : null, at: Date.now(), label: label() }; }
-  function autoSave() { if (!T) return; const sv = saves(); sv.auto = entry(); store.set(KEY.save, sv); }
+  function autoSave() { if (!T || T.inMemory()) return; const sv = saves(); sv.auto = entry(); store.set(KEY.save, sv); }
   function loadEntry(en) {
     const U = NA.make({ meta }); if (!U.restore(en.snap)) return false;
     T = U; enterGame(); applyView(T.view()); choicesEl.style.display = 'none';
@@ -249,6 +268,33 @@
     overlay('gallery', screen('dim', h('button', { class: 'na-btn na-close', onclick: () => fromTitle ? showTitle() : closeOverlay() }, '閉じる'), h('div', { class: 'na-h' }, 'ギャラリー'), list, h('div', { class: 'na-note' }, 'CG はまだ仮の枠です。')));
   }
 
+  // 想い：出会った人物ごとに、白い薔薇の花びら 6 枚のうち何枚が開いたか（数そのものは見せない）
+  function showFeel() {
+    stopModes();
+    const rows = Object.entries(NA.FEELINGS).map(([who, f]) => {
+      const met = T && (T.run.vars['area_' + f.area] || T.inMemory()), n = met ? T.feelStep(who) : 0, c = NA.CHARS[who] || {};
+      return h('div', { class: 'na-row na-feelrow' + (met ? '' : ' unseen'), 'data-who': who, 'data-step': n },
+        h('span', { class: 'k' }, met ? c.name : '？？？'),
+        h('span', { class: 'na-petals' }, ...[0, 1, 2, 3, 4, 5].map(i => h('i', { class: i < n ? 'on' : '' }))));
+    });
+    const others = NA.AREAS.filter(a => !NA.FEELINGS[a.who]).map(a => h('div', { class: 'na-row unseen' }, h('span', { class: 'k' }, '？？？'), h('span', { class: 'na-petals' }, ...[0, 1, 2, 3, 4, 5].map(() => h('i')))));
+    overlay('feel', screen('dim', h('button', { class: 'na-btn na-close', onclick: closeOverlay }, '閉じる'), h('div', { class: 'na-h' }, '想い'),
+      h('div', { class: 'na-list' }, ...rows, ...others),
+      h('div', { class: 'na-note' }, T && T.inMemory() ? '思い出の中では、想いは変わりません。' : '白い花びらが開くほど、想いが通じています（周を繰り返すと、また閉じます）。')));
+  }
+  // 思い出：見た章を、その頭から読み返す
+  function showMemories() {
+    const list = h('div', { class: 'na-list' }, ...NA.CHAPTERS.map(c => { const seen = !!meta.chapters[c.id], ar = NA.AREAS.find(a => a.id === c.route) || {};
+      return h('div', { class: 'na-row' + (seen ? '' : ' unseen'), 'data-ch': c.id }, h('span', { class: 'k' }, ar.name || ''), seen ? h('button', { class: 'na-btn', onclick: () => startMemory(c.id) }, c.title) : '？？？'); }));
+    overlay('memories', screen('dim', h('button', { class: 'na-btn na-close', onclick: showTitle }, '閉じる'), h('div', { class: 'na-h' }, '思い出'), list,
+      h('div', { class: 'na-note' }, '一度読んだ章を、その頭から読み返します。選び直してもかまいません。思い出の中では、想い・エンディング・繰り返した夜は記録されず、セーブもできません。次の章に入ると終わります。')));
+  }
+  function startMemory(id) { const U = NA.make({ meta }); if (!U.memory(id)) return; T = U; enterGame(); msg.style.display = 'none'; step(); }
+  function showMemoryEnd() {
+    stopModes(); msg.style.display = 'none'; choicesEl.style.display = 'none';
+    overlay('memory_end', h('div', { class: 'na-end', id: 'na-end', onclick: () => { showTitle(); showMemories(); } }, h('div', { class: 't' }, '思い出は、ここまで'), h('small', {}, 'タップで思い出の一覧へ')));
+  }
+
   // ── 入力 ──
   stage.addEventListener('click', () => { AU.unlock(); next(); });
   msg.addEventListener('click', () => { AU.unlock(); next(); });
@@ -266,7 +312,7 @@
 
   // ── 試験用の入口（window.__NA_TEST__ があるときだけ） ──
   if (root.__NA_TEST__) Object.defineProperties(root.__NA_TEST__, Object.getOwnPropertyDescriptors({   // getter を写す（Object.assign だと値が固まる）
-    get s() { return { screen: ui.screen, overlay: ui.overlay, kind: ui.kind, typing: ui.typing, auto: ui.auto, skip: ui.skip, text: ui.cur && ui.cur.text, name: ui.cur && ui.cur.name, scene: T && T.run.scene, vars: T && Object.assign({}, T.run.vars), player: T && T.run.name, view: T && T.view(), loop: meta.loop, endings: Object.keys(meta.endings), cgs: Object.keys(meta.cgs), choices: [...choicesEl.querySelectorAll('button')].filter(() => choicesEl.style.display !== 'none').map(b => b.textContent), log: ui.log.length, bgm: AU.cur, saves: saves() }; },
+    get s() { return { toasts: ui.toasts, memory: !!(T && T.inMemory()), chapters: Object.keys(meta.chapters || {}), feel: T ? T.feelStep('rose') : 0, screen: ui.screen, overlay: ui.overlay, kind: ui.kind, typing: ui.typing, auto: ui.auto, skip: ui.skip, text: ui.cur && ui.cur.text, name: ui.cur && ui.cur.name, scene: T && T.run.scene, vars: T && Object.assign({}, T.run.vars), player: T && T.run.name, view: T && T.view(), loop: meta.loop, endings: Object.keys(meta.endings), cgs: Object.keys(meta.cgs), choices: [...choicesEl.querySelectorAll('button')].filter(() => choicesEl.style.display !== 'none').map(b => b.textContent), log: ui.log.length, bgm: AU.cur, saves: saves() }; },
     settings: S,
   }));
 

@@ -130,3 +130,25 @@ button { font-family: var(--font); }
 .na-bg-rose_room { background: radial-gradient(circle at 78% 30%, rgba(255, 220, 160, .5), transparent 16%), repeating-linear-gradient(90deg, rgba(255, 255, 255, .04) 0 1%, transparent 1% 6%), linear-gradient(#3a2a44, #2a1c34 60%, #1c1224); }
 .na-bg-rose_inner { background: radial-gradient(ellipse at 50% 0%, rgba(255, 230, 190, .35), transparent 45%), repeating-linear-gradient(90deg, transparent 0 14%, rgba(255, 255, 255, .07) 14% 15.5%, transparent 15.5% 25%), linear-gradient(#2c2038, #1c1426 70%, #120c1a); }
 .na-bg-rose_tower { background: radial-gradient(circle at 50% 15%, rgba(255, 240, 220, .25), transparent 20%), repeating-linear-gradient(90deg, rgba(240, 230, 245, .10) 0 6%, transparent 6% 9%), linear-gradient(#1a1220, #0c0810); }
+
+/* 想いが通じた：右上に白い花びら（noaris/ui.js feelFx） */
+.na-feelfx { position: absolute; right: 7%; top: 9%; width: 1px; height: 1px; pointer-events: none; }
+.na-feelfx i { position: absolute; width: 14px; height: 20px; border-radius: 70% 0 70% 0; background: radial-gradient(ellipse at 30% 30%, #fff, #f1e6f5 60%, rgba(241, 230, 245, .2)); box-shadow: 0 0 10px rgba(255, 255, 255, .7); opacity: 0; animation: na-petal 1.5s var(--d) ease-out forwards; }
+.na-feelfx.fast i { animation-duration: .5s; }
+@keyframes na-petal { 0% { opacity: 0; transform: translate(0, 0) rotate(0); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--x), 70px) rotate(220deg); } }
+/* 知らせ */
+.na-toast { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 6; max-width: 90%; padding: 8px 16px; border: 1px solid rgba(230, 201, 138, .6); border-radius: 6px; background: rgba(18, 12, 30, .88); color: #f3e9f7; font-size: 14px; pointer-events: none; animation: na-in .3s; transition: opacity .5s; }
+.na-toast.out { opacity: 0; }
+.na-new { margin: 6px 0 10px; color: var(--gold); font-size: 14px; letter-spacing: .1em; }
+/* 想いの画面：花びら 6 枚 */
+.na-petals { display: inline-flex; gap: 6px; }
+.na-petals i { width: 14px; height: 20px; border-radius: 70% 0 70% 0; border: 1px solid rgba(241, 230, 245, .45); background: transparent; }
+.na-petals i.on { background: radial-gradient(ellipse at 30% 30%, #fff, #f1e6f5 70%); border-color: #fff; box-shadow: 0 0 6px rgba(255, 255, 255, .6); }
+.na-feelrow .k { min-width: 7em; }
+/* 縦長の画面：クイックの 8 つを 1 段に（名札と重ならないように） */
+@media (max-width: 560px) {
+  .na-quick { left: 6px; right: 6px; gap: 3px; flex-wrap: nowrap; justify-content: flex-end; }
+  .na-quick button { padding: 4px 5px; font-size: 11px; letter-spacing: 0; }
+}
+/* 知らせは左上（右上の「閉じる」と重ならない） */
+.na-toast { left: 12px; transform: none; max-width: calc(100% - 150px); }

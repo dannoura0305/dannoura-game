@@ -39,6 +39,13 @@ for (const [label, vw, vh] of [['横長', 1280, 720], ['縦長', 420, 820]]) {
   const c1 = await until(s => s.choices.length > 0); ok(`${label}：選択肢 1（門で手を差し出される・3 つ）`, !!c1 && c1.choices.length === 3, JSON.stringify(c1 && c1.choices));
   await shot('choice');
   await pick(/手を取る/, '手を取る'); ok(`${label}：手を取る → 愛情 +2`, (await S()).vars.rose_love === 2);
+  ok(`${label}：想いが上がると白い花びらが舞う（演出）`, !!(await p.$('.na-feelfx')));
+  ok(`${label}：初めての CG の知らせ（ギャラリーに加わりました）`, (await S()).toasts >= 1);
+  await p.click('.na-quick [data-k=feel]'); await p.waitForTimeout(200);
+  const fe = await p.$eval('.na-feelrow[data-who=rose]', r => ({ step: r.dataset.step, on: r.querySelectorAll('.na-petals i.on').length, all: r.querySelectorAll('.na-petals i').length })).catch(() => null);
+  ok(`${label}：「想い」の画面（白薔薇の主：花びら 6 枚のうち 2 枚）`, (await S()).overlay === 'feel' && !!fe && fe.all === 6 && fe.on === 2, JSON.stringify(fe));
+  await shot('feel');
+  await p.click('.na-close'); await p.waitForTimeout(150);
   await pick(/どうして/, '掟の理由を聞く');
   await pick(/喜んで/, '明日も踊る');
   await pick(/数を数える/, '鐘を数える（月下の円舞）');
@@ -84,6 +91,20 @@ for (const [label, vw, vh] of [['横長', 1280, 720], ['縦長', 420, 820]]) {
   await shot('good');
   await p.click('#na-end'); await p.waitForTimeout(400);
   ok(`${label}：結末 → タイトル`, (await S()).screen === 'title');
+  // 思い出：見た章を読み返す（記録は変わらない）
+  const rec0 = await S();
+  ok(`${label}：タイトルの「思い出」が開ける`, await p.isEnabled('#na-mem'));
+  await p.click('#na-mem'); await p.waitForTimeout(200);
+  const chs = await p.$$eval('.na-row[data-ch]', rs => rs.map(r => r.dataset.ch + ':' + (r.classList.contains('unseen') ? 0 : 1)));
+  ok(`${label}：思い出の一覧（通った章が並ぶ）`, chs.length === 6 && chs.every(c => c.endsWith(':1')), JSON.stringify(chs));
+  await shot('memories');
+  await p.click('[data-ch=rose_waltz] button'); await p.waitForTimeout(300);
+  const m1 = await S(); ok(`${label}：「月下の円舞」から読み返す（思い出の印・セーブが無い）`, m1.memory && m1.scene === 'rose_n1_01' && !(await p.$('.na-quick [data-k=save]')), JSON.stringify({ m: m1.memory, sc: m1.scene }));
+  let me = null; for (let k = 0; k < 12; k++) { me = await until(s => s.overlay === 'memory_end' || s.choices.length > 0, 300); if (!me || me.overlay === 'memory_end') break; await p.click('.na-choices button >> nth=0'); await p.waitForTimeout(250); }
+  const m2 = await S(); ok(`${label}：次の章の頭で「思い出は、ここまで」・記録は変わらない`, !!me && me.overlay === 'memory_end' && m2.loop === rec0.loop && m2.endings.join() === rec0.endings.join(), JSON.stringify({ o: me && me.overlay, l: m2.loop, e: m2.endings }));
+  await p.click('#na-end'); await p.waitForTimeout(250);
+  ok(`${label}：思い出の一覧へ戻る`, (await S()).overlay === 'memories');
+  await p.click('.na-close'); await p.waitForTimeout(200);
   // エンディング一覧・ギャラリー
   await p.click('text=エンディング'); await p.waitForTimeout(200);
   const ends = await p.$$eval('.na-row', rs => rs.map(r => r.textContent));

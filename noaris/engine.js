@@ -13,7 +13,10 @@
        {type:'end', kind, id, fx}                  エンディング（GOOD/BAD/NORMAL）。meta.endings に記録
        {type:'gameover', id, fx}                   ゲームオーバー。meta.loop を 1 増やし、ループの場面から次の周を始める
        {type:'title', fx}                          タイトルへ
-     fx：その間に起きた演出の並び（[名前, 引数…]。bg・chara・face・cg・bgm・se・fx・wait）。UI が順に反映する
+       {type:'memory_end', fx}                     思い出（章の見返し）の終わり。次の章の頭・結末・ゲームオーバー・扉の選択に着いたら
+     fx：その間に起きた演出の並び（[名前, 引数…]。bg・chara・face・cg・bgm・se・fx・wait・feel・notice）。UI が順に反映する
+       ・feel：想い（NA.FEELINGS の値）が上がった［'feel', 人物, 量］（思い出の中では出ない）
+       ・notice：初めて開いた物の知らせ［'notice', 'cg', id］
    ══════════════════════════════════════════════════════════ */
 (function (root) {
   'use strict';
@@ -25,6 +28,8 @@
   NA.CGS = NA.CGS || {};           // CG id → { title }
   NA.AREAS = NA.AREAS || [];       // エリア（選択画面に並ぶ順）
   NA.LOOP_SCENE = NA.LOOP_SCENE || 'loop';
+  NA.FEELINGS = NA.FEELINGS || {};   // 人物 id → { var, steps:[6 つの境目] }（想いの段。noaris/config.js）
+  NA.CHAPTERS = NA.CHAPTERS || [];   // 章 { id, route, title, scene }（思い出で選べる。頭の場面に着いたら「見た」）
   const CMDS = ['bg', 'chara', 'face', 'cg', 'bgm', 'se', 'fx', 'wait', 'set', 'add', 'jump', 'if', 'end', 'gameover', 'title', 'select', 'name', 'unlock', 'choice'];
 
   // ── 台本を読む ──
@@ -89,7 +94,7 @@
   }
   NA.test = test;
 
-  const newMeta = () => ({ v: 1, loop: 0, read: {}, endings: {}, cgs: {}, unlocked: {} });
+  const newMeta = () => ({ v: 1, loop: 0, read: {}, endings: {}, cgs: {}, unlocked: {}, chapters: {}, name: '' });
   const newRun = name => ({ v: 1, scene: null, ip: 0, vars: {}, name: name || '', view: { bg: null, chara: null, face: null, cg: null, bgm: null }, pending: null });
   NA.newMeta = newMeta;
 
@@ -97,24 +102,40 @@
   NA.make = function (opts = {}) {
     const meta = opts.meta || newMeta(); for (const [k, v] of Object.entries(newMeta())) if (meta[k] === undefined) meta[k] = v;   // 渡された記録をそのまま使う（ループ回数も画面側の記録に残る）
     let run = newRun();
+    let feelQ = [];   // 選んだ後の想いの演出（次の advance の fx の頭に入れる。セーブには入れない）
     const T = {};
+    const chapterAt = scene => NA.CHAPTERS.find(c => c.scene === scene);
     // {name}＝主人公の名前・{w:キー}＝表の言葉（NA.WORDS。未確定の名前などを 1 か所で差し替える）
     const fill = s => String(s).replace(/\{name\}/g, run.name || NA.DEFAULT_NAME || '主人公').replace(/\{w:(\w+)\}/g, (m, k) => (NA.WORDS && NA.WORDS[k] != null ? NA.WORDS[k] : m));
-    function goto(scene) { if (!NA.SCENES[scene]) throw new Error('場面が無い：' + scene); run.scene = scene; run.ip = 0; }
+    function goto(scene) {
+      if (!NA.SCENES[scene]) throw new Error('場面が無い：' + scene);
+      const ch = chapterAt(scene);
+      if (run.memory) { if (ch && scene !== run.memory) run.memoryEnd = true; }   // 思い出：次の章の頭に着いたら終わり
+      else if (ch) meta.chapters[ch.id] = 1;
+      run.scene = scene; run.ip = 0;
+    }
     function readKey() { return run.scene + ':' + run.ip; }
     T.meta = meta;
     Object.defineProperty(T, 'run', { get: () => run });
-    T.newGame = function (scene, name) { run = newRun(name); goto(scene || NA.START || 'prologue'); return T; };
-    T.setName = n => { run.name = String(n || '').trim().slice(0, 10); run.vars.named = 1; };
+    T.newGame = function (scene, name) { run = newRun(name); feelQ = []; goto(scene || NA.START || 'prologue'); return T; };
+    // 思い出：見た章を、その頭から読み返す。想いもエンディングもループ回数も記録しない（見返しの間は増えない）。次の章の頭で終わる
+    T.memory = function (chapterId) {
+      const ch = NA.CHAPTERS.find(c => c.id === chapterId); if (!ch || !meta.chapters[ch.id]) return false;
+      run = newRun(meta.name || ''); run.vars.named = 1; run.memory = ch.scene; feelQ = []; goto(ch.scene); return true;
+    };
+    T.inMemory = () => !!run.memory;
+    T.setName = n => { run.name = String(n || '').trim().slice(0, 10); run.vars.named = 1; meta.name = run.name; };
     T.goArea = id => { const a = NA.AREAS.find(x => x.id === id); if (!a || !T.areaOpen(a)) return false; run.vars['area_' + id] = 1; goto(a.scene); return true; };
     T.areaOpen = a => (typeof a.open === 'function' ? !!a.open(meta, run) : !!a.open);
     T.test = c => test(c, run, meta);
     T.isRead = (scene, ip) => !!meta.read[(scene || run.scene) + ':' + (ip == null ? run.ip : ip)];
     // 次の待ちまで進める
     T.advance = function () {
-      const fx = [];
+      const fx = feelQ; feelQ = [];
       if (run.pending) { const p = run.pending; return Object.assign({ fx: p.fx || [] }, p); }   // 選択肢・名前・エリアの待ちは同じ物を返す
+      const memEnd = () => { run.memoryEnd = false; return { type: 'memory_end', fx }; };
       for (let guard = 0; guard < 5000; guard++) {
+        if (run.memoryEnd) return memEnd();
         const sc = NA.SCENES[run.scene]; if (!sc) throw new Error('場面が無い：' + run.scene);
         if (run.ip >= sc.ops.length) throw new Error(`場面 ${run.scene} の終わりに #jump・#end・#gameover・#title・#select が無い`);
         const op = sc.ops[run.ip];
@@ -134,7 +155,7 @@
           case 'bg': run.view.bg = a[0]; run.view.cg = null; fx.push(['bg', a[0]]); break;
           case 'chara': if (a[0] === 'off') { run.view.chara = null; run.view.face = null; } else { run.view.chara = a[0]; run.view.face = a[1] || 'normal'; } fx.push(['chara', run.view.chara, run.view.face]); break;
           case 'face': run.view.face = a[0]; fx.push(['face', a[0]]); break;
-          case 'cg': if (a[0] === 'off') run.view.cg = null; else { run.view.cg = a[0]; meta.cgs[a[0]] = 1; } fx.push(['cg', run.view.cg]); break;
+          case 'cg': if (a[0] === 'off') run.view.cg = null; else { run.view.cg = a[0]; if (!meta.cgs[a[0]] && !run.memory) { meta.cgs[a[0]] = 1; fx.push(['cg', a[0]], ['notice', 'cg', a[0]]); break; } } fx.push(['cg', run.view.cg]); break;
           case 'bgm': run.view.bgm = a[0] === 'off' ? null : a[0]; fx.push(['bgm', run.view.bgm]); break;
           case 'se': fx.push(['se', a[0]]); break;
           case 'fx': fx.push(['fx', a[0], a[1]]); break;
@@ -145,10 +166,11 @@
           case 'jump': goto(a[0]); break;
           case 'if': if (test(a[0], run, meta)) goto(a[1]); break;
           case 'name': if (!run.vars.named) { run.pending = { type: 'name' }; return { type: 'name', fx }; } break;
-          case 'select': run.pending = { type: 'areas' }; return { type: 'areas', fx };
-          case 'title': return { type: 'title', fx };
-          case 'end': { const id = a[1] || a[0]; meta.endings[id] = 1; return { type: 'end', kind: a[0], id, fx }; }
+          case 'select': if (run.memory) return memEnd(); run.pending = { type: 'areas' }; return { type: 'areas', fx };
+          case 'title': if (run.memory) return memEnd(); return { type: 'title', fx };
+          case 'end': { if (run.memory) return memEnd(); const id = a[1] || a[0], isNew = !meta.endings[id]; meta.endings[id] = 1; return { type: 'end', kind: a[0], id, isNew, fx }; }
           case 'gameover': {
+            if (run.memory) return memEnd();
             const id = a[0]; meta.endings[id] = 1; meta.loop = (meta.loop | 0) + 1;
             const keep = run.name, named = run.vars.named; run = newRun(keep); if (named) run.vars.named = 1; goto(NA.LOOP_SCENE);   // 次の周：1 周の中の状態は消える（名前は残る）
             return { type: 'gameover', id, loop: meta.loop, fx };
@@ -161,7 +183,11 @@
       const p = run.pending; if (!p || p.type !== 'choice') return false;
       const sc = NA.SCENES[run.scene], op = sc.ops[p.ip], o = op.opts[i]; if (!o || !test(o.cond, run, meta)) return false;
       run.pending = null; meta.read[run.scene + ':' + p.ip + ':' + i] = 1;
-      for (const [k, n] of o.add) run.vars[k] = (Number(run.vars[k]) || 0) + n;
+      for (const [k, n] of o.add) {
+        run.vars[k] = (Number(run.vars[k]) || 0) + n;
+        const who = Object.keys(NA.FEELINGS).find(c => NA.FEELINGS[c].var === k);
+        if (who && n > 0 && !run.memory) feelQ.push(['feel', who, n]);   // 想いが上がった時だけ演出（下がった時は見せない）
+      }
       for (const k of o.set) run.vars[k] = 1;
       goto(o.to); return true;
     };
@@ -173,6 +199,8 @@
     // 古い版の台本で作ったセーブは、行の番号がずれているので、その場面の頭から（選択の待ちも捨てる）
     T.restore = snap => { const r = JSON.parse(JSON.stringify(snap)); if (!r || !NA.SCENES[r.scene]) return false; if ((r.ver || 1) !== (NA.SCRIPT_VER || 1)) { r.ip = 0; r.pending = null; } if (r.ip > NA.SCENES[r.scene].ops.length) r.ip = 0; run = Object.assign(newRun(), r); return true; };
     T.view = () => Object.assign({}, run.view);
+    // 想いの段：0〜6（NA.FEELINGS の 6 つの境目のうち、いくつ越えたか）
+    T.feelStep = who => { const f = NA.FEELINGS[who]; if (!f) return 0; const v = Number(run.vars[f.var]) || 0; return f.steps.filter(x => v >= x).length; };
     return T;
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = NA;
