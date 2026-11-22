@@ -62,7 +62,13 @@ addMinigameStyle('shooter',`
 .mg-shooter .shooter-rel i u.on{background:#fff6c0;box-shadow:0 0 4px rgba(255,246,192,.8);}
 .mg-shooter .shooter-rel.ready{border-color:#fff6c0;color:#fff6c0;box-shadow:0 0 12px rgba(255,246,192,.45);}
 .mg-shooter .shooter-rel:active,.mg-shooter .shooter-sw:active{transform:scale(.94);}
-.mg-shooter .shooter-sw.hide,.mg-shooter .shooter-rel.hide{opacity:0;pointer-events:none;}
+.mg-shooter .shooter-sw.hide,.mg-shooter .shooter-rel.hide,.mg-shooter .shooter-fire.hide{opacity:0;pointer-events:none;}
+.mg-shooter .shooter-fire{position:absolute;z-index:3;left:8px;bottom:70px;min-width:96px;min-height:44px;padding:4px 8px;font-size:.6rem;color:#fff;touch-action:none;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  border:2px solid #44ee88;border-radius:10px;background:rgba(8,40,26,.9);font-family:inherit;transition:opacity .2s,transform .08s;}
+.mg-shooter .shooter-fire b{display:block;font-size:.76rem;font-weight:normal;letter-spacing:.04em;}
+.mg-shooter .shooter-fire small{display:block;font-size:.52rem;color:rgba(255,255,255,.6);}
+.mg-shooter .shooter-fire.off{border-color:#ffcc55;background:rgba(60,40,6,.92);box-shadow:0 0 10px rgba(255,204,85,.45);}
+.mg-shooter .shooter-fire:active{transform:scale(.94);}
 .mg-shooter .shooter-shopbtn{position:absolute;left:8px;top:64px;z-index:6;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,158,192,.6);
   background:rgba(40,10,30,.85);color:#ffd6e6;font-family:var(--dot);font-size:.66rem;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;}
 .mg-shooter .shooter-shopbtn.hide{display:none;}
@@ -87,6 +93,8 @@ addMinigameStyle('shooter',`
   .mg-shooter .shooter-sw{min-width:70px;min-height:38px;padding:3px 6px;}
   .mg-shooter .shooter-sw small{display:none;}
   .mg-shooter .shooter-rel{bottom:50px;min-width:72px;min-height:30px;padding:2px 6px 4px;}
+  .mg-shooter .shooter-fire{bottom:50px;min-width:70px;min-height:30px;padding:2px 6px;}
+  .mg-shooter .shooter-fire small{display:none;}
   .mg-shooter .shooter-rel span{display:none;}
   .mg-shooter .shooter-dlg{left:auto;width:min(560px,96%);right:2%;}
   .mg-shooter .shooter-face{width:56px;height:56px;}
@@ -300,7 +308,7 @@ registerMinigame({
   id:'shooter', icon:'🔥', name:'炎上コメント撃退', genre:'シューティング', bgm:'stream',
   desc:'降ってくる悪意のコメントを撃ち落とす。言葉は「怒り」と「冷笑」の二色。声の色を合わせれば同じ色の言葉を吸い込んで力にでき、違う色には2倍効く。応援コメントは撃たずに受け止めよう。中ボス「まとめ管理人」のあと、最後に「炎上の渦」が来る。',
   effect:'炎上↓ 精神↑ フォロワー↑ ／ 疲労+6 約40分',
-  help:'ドラッグ／矢印で移動・自動射撃・Z／切替で声の色・V／反論で追う声・Shiftで精密・Bでモデ召喚・Pで一時停止',
+  help:'ドラッグ／矢印で移動・自動射撃（F／ボタンで停止・再開）・Z／切替で声の色・V／反論で追う声・Shiftで精密・Bでモデ召喚・Pで一時停止',
   start(body,mg){
     const L=ShooterLogic;
     // ── 記録（遅延初期化。以前のセーブの形のまま、足りない項目だけ足す） ──
@@ -527,6 +535,7 @@ registerMinigame({
     const shopEl=document.createElement('div');shopEl.className='shooter-shop off';body.appendChild(shopEl);
     const swBtn=document.createElement('button');swBtn.className='shooter-sw hide';swBtn.setAttribute('aria-label','声の色を切り替える');body.appendChild(swBtn);
     const relBtn=document.createElement('button');relBtn.className='shooter-rel hide';relBtn.setAttribute('aria-label','反論を放つ');body.appendChild(relBtn);
+    const fireBtn=document.createElement('button');fireBtn.className='shooter-fire hide';fireBtn.setAttribute('aria-label','自動射撃を止める／再開する');body.appendChild(fireBtn);
     const pauseBtn=document.createElement('button');pauseBtn.className='shooter-pause hide';pauseBtn.textContent='❚❚';pauseBtn.setAttribute('aria-label','一時停止');
     body.appendChild(pauseBtn);
     const dlg=document.createElement('div');dlg.className='shooter-dlg off';
@@ -739,6 +748,14 @@ registerMinigame({
       SD.likes-=price;SD.upg[k]=lv+1;sfx('power');buzz(20);renderShop();
       try{if(typeof saveGame==='function')saveGame(true);}catch(_){}
     });
+    // 自動射撃の停止・再開（応援を撃たないように止められる。夜をまたいでも、ゲームを開いている間は覚えておく）
+    let fireOn=true,fireShown=null;
+    function updateFireBtn(){
+      if(fireShown===fireOn)return;fireShown=fireOn;
+      fireBtn.classList.toggle('off',!fireOn);fireBtn.setAttribute('aria-pressed',fireOn?'false':'true');
+      fireBtn.innerHTML=fireOn?'<b>▶ 射撃中</b><small>止める（F）</small>':'<b>■ 射撃停止</b><small>再開する（F）</small>';
+    }
+    function toggleFire(){fireOn=!fireOn;updateFireBtn();sfx(fireOn?'ready':'switch');pop(player.x,player.y-46,fireOn?'射撃 再開':'射撃 停止',fireOn?'#88ffb0':'#ffcc55');}
     // 切り替えボタン：いまの声の色と、押すと何色になるか
     let swShown=-1,relShown=-1;
     function updateSwBtn(){
@@ -893,6 +910,7 @@ registerMinigame({
     bombBtn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(paused){setPause(false);return;}bombBuf=.35;});
     swBtn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(paused){setPause(false);return;}switchVoice();});
     relBtn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(paused){setPause(false);return;}release();});
+    fireBtn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(paused){setPause(false);return;}toggleFire();});
     pauseBtn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();setPause(!paused);});
     mg.onKey(e=>{
       const k=e.key, dn=e.type==='keydown';
@@ -910,6 +928,7 @@ registerMinigame({
       if(k==='Escape'&&scene==='story'){skipDialog();return;}
       if(scene==='play'&&(k==='z'||k==='Z'||k==='c'||k==='C')){e.preventDefault();switchVoice();return;}
       if(scene==='play'&&(k==='v'||k==='V')){e.preventDefault();release();return;}
+      if(scene==='play'&&(k==='f'||k==='F')){e.preventDefault();toggleFire();return;}
       if(scene==='play'&&(k==='b'||k==='B'||k==='x'||k==='X'||k===' ')){e.preventDefault();bombBuf=.35;}
     });
 
@@ -918,7 +937,7 @@ registerMinigame({
     function goHowto(){transition(()=>{scene='howto';sceneT=0;tapBuf=false;});}
     function beginPlay(){
       if(scene!=='howto'||trans)return;sfx('decide');
-      transition(()=>{applyUpg();shield=MAX_SHIELD;scene='play';sceneT=0;t=0;st=0;tli=0;bombBtn.classList.remove('hide');pauseBtn.classList.remove('hide');swBtn.classList.remove('hide');relBtn.classList.remove('hide');updateBombBtn();updateSwBtn();updateRelBtn();
+      transition(()=>{applyUpg();shield=MAX_SHIELD;scene='play';sceneT=0;t=0;st=0;tli=0;bombBtn.classList.remove('hide');pauseBtn.classList.remove('hide');swBtn.classList.remove('hide');relBtn.classList.remove('hide');fireBtn.classList.remove('hide');updateFireBtn();updateBombBtn();updateSwBtn();updateRelBtn();
         if(remix)showBanner('REMIX','第二夜：前より荒れている','#ff9a3c',1.6);},.5);
     }
     function computeGrade(){
@@ -929,7 +948,7 @@ registerMinigame({
       finalReason=reason;
       if(reason==='clear'){remainBonus=Math.max(0,shield)*2000;score+=remainBonus;}
       grade=computeGrade();
-      bombBtn.classList.add('hide');pauseBtn.classList.add('hide');swBtn.classList.add('hide');relBtn.classList.add('hide');paused=false;
+      bombBtn.classList.add('hide');pauseBtn.classList.add('hide');swBtn.classList.add('hide');relBtn.classList.add('hide');fireBtn.classList.add('hide');paused=false;
       if(reason==='clear')SD.clears++;
       if(grazes>(SD.best.graze||0))SD.best.graze=grazes;
       if(bossBeaten)SD.bossKills++;
@@ -1276,7 +1295,7 @@ registerMinigame({
 
       if(live){
         fireCd-=dt;
-        if(fireCd<=0){
+        if(fireCd<=0&&fireOn){
           player.recoil=.05;muzzle=.06;
           const sx=player.x,sy=player.y-24;
           if(laserT>0){fireCd=.085;addPB(sx,sy,0,-900,'laser');}
@@ -2289,7 +2308,7 @@ registerMinigame({
       next();
       gl(glow.cy,lx+8,yy-1,14,.5*a);cx.globalAlpha=a;
       cx.fillStyle='#0a3034';rr(lx,yy-7,18,12,6);cx.fill();cx.strokeStyle='#a0fff0';cx.lineWidth=1;cx.stroke();
-      line('光る応援は撃たずに受け止める');
+      line('光る応援は撃たずに受け止める（射撃は F・左下で止められる）');
       sub('拡散・バリア・スロー・貫通・回復・モデ'+(DF.ffPass?'（声はすり抜ける）':''));
       next();
       cx.fillStyle='#44ee88';cx.font=`12px ${FONT}`;cx.textAlign='left';cx.fillText('◆',lx,yy);line('ピンチはモデレーター（B・'+DF.bombs+'回＋拾う）');
