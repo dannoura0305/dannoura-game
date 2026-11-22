@@ -123,5 +123,17 @@ test('ミニゲーム：window.AU を条件に使わない（AU は const なの
   }
 });
 
+test('RPG の bgm()・#bgm で使う曲はどれも BGM_DATA にある（ふつうの戦闘・ボス戦・最後の戦いは CC0 の曲・登場の場面は元の曲）', () => {
+  const { s } = sandbox();
+  const rpg = rd('minigames/rpg.js');
+  const used = new Set([...rpg.matchAll(/\bbgm\('([a-z_]+)'\)|'#bgm ([a-z_]+)'|bgm:'([a-z_]+)'/g)].map(m => m[1] || m[2] || m[3]));
+  for (const k of rpg.matchAll(/bgm\(boss\?\(opt\.final\?'([a-z_]+)':'([a-z_]+)'\):'([a-z_]+)'\)/g)) [k[1], k[2], k[3]].forEach(x => used.add(x));
+  assert.ok(used.has('mg_rpg_battle'), 'ふつうの戦闘の曲');
+  assert.ok(used.has('mg_rpg_boss'), 'ボス戦の曲');
+  assert.ok(used.has('mg_rpg_final'), '最後の戦いの曲');
+  assert.ok(/'#bgm mental'/.test(rpg), '最後のボスの登場の場面は mental のまま');
+  for (const u of used) assert.ok(u in s.BGM_DATA, `${u} が BGM_DATA に無い`);
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
