@@ -343,6 +343,27 @@ test('ゲーム本体：強化の画面（左上・U）・任務の表示・逃�
   assert.doesNotMatch(rf, /likes|medal|streak|upg/);
 });
 
+test('ボスの形：怒り＝丸・冷笑＝ひし形（頂点が上下左右・丸と同じ面積）・あいだはなめらか', () => {
+  assert.ok(Math.abs(2 * L.DIAMOND ** 2 - Math.PI) < .02);           // ひし形の面積 2d² ≒ 丸 πr²
+  for (const a of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) assert.ok(Math.abs(L.shapeScale(a, 1) - L.DIAMOND) < 1e-9);   // 頂点
+  assert.ok(Math.abs(L.shapeScale(Math.PI / 4, 1) - L.DIAMOND / Math.SQRT2) < 1e-9);  // 辺の真ん中
+  for (const a of [0, .3, 1, 2.5]) { assert.equal(L.shapeScale(a, 0), 1); const h = L.shapeScale(a, .5); assert.ok(h >= Math.min(1, L.shapeScale(a, 1)) - 1e-9 && h <= Math.max(1, L.shapeScale(a, 1)) + 1e-9); }
+  // 当たり：丸は半径、ひし形は |x|+|y|
+  assert.equal(L.inShape(0, 9.9, 10, 0), true); assert.equal(L.inShape(7.2, 7.2, 10, 0), false);
+  assert.equal(L.inShape(0, 12.4, 10, 1), true); assert.equal(L.inShape(7.2, 7.2, 10, 1), false); assert.equal(L.inShape(6, 6, 10, 1), true);
+  // 面積がほぼ同じ（格子で数える）
+  let c = 0, d = 0; for (let x = -15; x <= 15; x += .25) for (let y = -15; y <= 15; y += .25) { if (L.inShape(x, y, 10, 0)) c++; if (L.inShape(x, y, 10, 1)) d++; }
+  assert.ok(Math.abs(c - d) / c < .03, `${c} ${d}`);   // 格子の点がひし形の辺にちょうど乗る分だけずれる
+});
+
+test('見た目：敵の吹き出しは明るい地（色の縁・濃い文字・当たると色で光る）', () => {
+  const src = readFileSync(join(ROOT, 'minigames/shooter.js'), 'utf8');
+  const i = src.indexOf('const TONE_STY=['), blk = src.slice(i, src.indexOf('];', i));
+  assert.match(blk, /fill:'#fff0f2'.*st:'#e8364a'.*tx:'#3a0a1c'.*light:true/);
+  assert.match(blk, /fill:'#eef5ff'.*st:'#2a86f0'.*tx:'#0c2244'.*light:true/);
+  assert.match(src, /if\(flash\)\{cx\.fillStyle=s\.flash\|\|'#fff';cx\.fill\(\);\}/);
+});
+
 for (const [name, fn] of queue) {
   try { fn(); pass++; console.log('  ✓ ' + name); }
   catch (e) { fail++; console.log('  ✗ ' + name + '\n    ' + (e && e.stack || e)); }
