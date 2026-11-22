@@ -34,13 +34,14 @@ t('台本：全場面の話者・背景・人物・CG・行き先・エンディ
     if (op.name === 'end' || op.name === 'gameover') assert.ok(NA.ENDINGS[op.name === 'end' ? (a[1] || a[0]) : a[0]], at + ' エンディング');
   }
   for (const a of NA.AREAS) if (a.open) assert.ok(NA.SCENES[a.scene], a.id);
-  assert.equal(NA.AREAS.length, 5); assert.equal(NA.AREAS.filter(a => a.open).length, 1, '今は白薔薇の宮殿だけ');
+  assert.equal(NA.AREAS.length, 5); assert.equal(NA.AREAS.filter(a => a.open).length, 5, '五つの扉がどれも開く（化け猫は扉に出さない）');
+  assert.ok(!NA.AREAS.some(a => a.id === 'cat'), '隠しキャラの化け猫は扉に無い');
   assert.ok(NA.ENDINGS.official && NA.ENDINGS.true, '正式エンド・トゥルーエンドの枠');
   assert.throws(() => NA.parse('x', ['#nanika']), /知らない命令/);
 });
 
-// 選択肢の全部の道筋（深さ優先）。名前は「テスト」、エリアは白薔薇
-function walk(loop, endings = {}) {
+// 選択肢の全部の道筋（深さ優先）。名前は「テスト」、エリアは area（既定は白薔薇）
+function walk(loop, endings = {}, area = 'rose') {
   const ends = new Map(); let paths = 0; const seen = new Set();
   const go = (snap, depth) => {
     assert.ok(depth < 30, '選択が深すぎる（回り道）');
@@ -50,7 +51,7 @@ function walk(loop, endings = {}) {
       const e = T.advance();
       if (e.type === 'say') continue;
       if (e.type === 'name') { T.resolveName('テスト'); continue; }
-      if (e.type === 'areas') { assert.ok(T.pickArea('rose')); continue; }
+      if (e.type === 'areas') { assert.ok(T.pickArea(area)); continue; }
       if (e.type === 'choice') { const s = T.snapshot(); for (const o of e.options) { const U = NA.make({ meta: { loop, endings: Object.assign({}, endings) } }); U.restore(s); assert.ok(U.choose(o.i)); go(U.snapshot(), depth + 1); } return; }
       if (e.type === 'end' || e.type === 'gameover') { ends.set(e.id, (ends.get(e.id) || 0) + 1); paths++; return; }
       throw new Error('予想外：' + e.type);
@@ -148,6 +149,19 @@ t('思い出：見た章だけ・頭から読み返す・次の章の頭で終�
   T.meta.chapters.rose_last = 1; const G = NA.make({ meta: T.meta }); assert.ok(G.memory('rose_last'));
   for (k = 0; k < 400; k++) { e = G.advance(); if (e.type === 'choice') { G.choose(e.options.findIndex(o => /門の扉を開ける/.test(o.text))); continue; } if (e.type !== 'say') break; }
   assert.equal(e.type, 'memory_end'); assert.equal(T.meta.loop, 0, 'ループ回数は増えない'); assert.ok(!T.meta.endings.rose_go1, 'ゲームオーバーは記録しない');
+});
+
+t('四つの扉（森・戦場・図書館・遊園地）：どの選び方も結末に着く・GOOD / NORMAL / BAD / GAME OVER に届く・GOOD は選び方しだい・想いの最大は 6 で GOOD は 5', () => {
+  for (const area of ['forest', 'war', 'library', 'park']) {
+    const a = NA.AREAS.find(x => x.id === area); assert.ok(a.open && NA.SCENES[a.scene], area);
+    const { ends } = walk(0, {}, area);
+    for (const k of ['good', 'normal', 'bad', 'go1']) assert.ok(ends.get(`${area}_${k}`), `${area}_${k} ${JSON.stringify([...ends])}`);
+    for (const id of ends.keys()) assert.ok(id.startsWith(area + '_'), `${area} の道から ${id} に着いた`);
+    assert.ok(ends.get(`${area}_good`) < ends.get(`${area}_bad`) + ends.get(`${area}_normal`), area + ' GOOD は簡単すぎない');
+    const f = NA.FEELINGS[area]; assert.ok(f && f.area === area && f.steps.length === 6, area + ' 想いの段');
+    const k = Number(NA.SCENES[area + '_04'].ops[0].args[0].match(/>=(\d+)/)[1]); assert.equal(f.steps[5], k, area + ' 最後の境目＝GOOD の条件');
+    const ch = NA.CHAPTERS.find(c => c.route === area); assert.ok(ch && ch.scene === a.scene, area + ' 思い出の章');
+  }
 });
 
 console.log(`noaris-engine: ${n} ok`);

@@ -165,7 +165,7 @@
     setBg('title'); showChara(null); showCg(null); AU.bgm('title');
     const sv = saves(), hasSave = !!(sv.auto || sv.slots.some(Boolean));
     overlay('title', screen('',
-      h('div', { class: 'na-logo' }, NA.TITLE), h('div', { class: 'na-sub' }, 'BOUNDARY  NOARIS'), h('div', { class: 'na-tag' }, '試作版 ── 白薔薇の宮殿のみ'),
+      h('div', { class: 'na-logo' }, NA.TITLE), h('div', { class: 'na-sub' }, 'BOUNDARY  NOARIS'), h('div', { class: 'na-tag' }, '試作版'),
       h('div', { class: 'na-menu' },
         h('button', { class: 'na-btn', id: 'na-new', onclick: () => { AU.unlock(); newGame(); } }, 'はじめから'),
         h('button', { class: 'na-btn', id: 'na-cont', disabled: !hasSave, onclick: () => { AU.unlock(); showSaveLoad('load', true); } }, 'つづきから'),
@@ -203,7 +203,7 @@
       const open = T.areaOpen(a);
       doors.appendChild(h('button', { class: 'na-door' + (open ? '' : ' locked'), 'data-area': a.id, style: `--c:${a.color}`, onclick: () => { if (!open) return; AU.se('choice'); if (T.pickArea(a.id)) { closeOverlay(); step(); } } }, h('b', {}, a.name), h('small', {}, a.motif)));
     }
-    overlay('areas', screen('', h('div', { class: 'na-h' }, 'どの扉を開ける？'), doors, h('div', { class: 'na-note' }, '五つの扉の先に、それぞれ別の物語があります。試作では「白薔薇の宮殿」だけ開けられます。')));
+    overlay('areas', screen('', h('div', { class: 'na-h' }, 'どの扉を開ける？'), doors, h('div', { class: 'na-note' }, '五つの扉の先に、それぞれ別の物語があります。どの順に開けてもかまいません（白薔薇の宮殿のほかの四つは、試作の短い物語です）。')));
   }
   const KIND = { good: 'GOOD END', bad: 'BAD END', normal: 'NORMAL END', gameover: 'GAME OVER', official: '正式エンド', true: 'トゥルーエンド' };
   function showEnd(e) {
