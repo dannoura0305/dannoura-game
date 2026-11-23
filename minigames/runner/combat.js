@@ -19,6 +19,11 @@
     // 空中斬り（基本）：上がる・落ちる途中。横の動きはそのまま。着地で終わる
     air: { base: true, on: 'air', startup: 3, active: 5, recover: 10, step: 0,
       hit: { x: -6, y: 2, w: 58, h: 50, dmg: 1, hitstop: 4, kb: 3 }, cancel: {} },
+    // 溜め斬り（基本）：攻撃（X）を押し続けて離す。溜め 1 段＝大きく払う・2 段＝大きく払って、前へ飛ぶ斬撃（傘の衝撃波）も出す
+    charge: { base: true, name: '溜め斬り', howto: '攻撃（X）を押し続けて 離す', on: 'ground', input: 'charge', startup: 3, active: 6, recover: 14, step: 6,
+      hit: { x: -6, y: 0, w: 78, h: 64, dmg: 3, hitstop: 8, kb: 8 }, cancel: { jump: [12, 23], dash: [12, 23] } },
+    charge_air: { base: true, name: '溜め斬り（空中）', on: 'air', input: 'charge', startup: 2, active: 6, recover: 8, step: 0,
+      hit: { x: -10, y: -4, w: 76, h: 64, dmg: 3, hitstop: 7, kb: 6 }, cancel: {} },
     // 習得技（仮）：切り上げ。↑を押しながら攻撃。上と前を広く払う（宙の敵に）
     // 教えていた仮のボス（大きな雨坊主・仮）は雷殻の怪異に差し替えたので、今は覚える先が無い（覚えた記録がある人はそのまま使える）。どのボスで覚えるかは未決定
     // 正式な技の名前・中身・どのボスで覚えるかは未決定。表に足すだけで増やせる
@@ -36,6 +41,9 @@
     kazeha: { base: false, learnedFrom: 'kazegiri', with: 'kazebashiri', name: '風刃（仮）', howto: '風走りの間に 攻撃（X）', desc: '風の刃で前を広く払う', on: 'airdash', input: 'airdash', startup: 1, active: 14, recover: 4, step: 0,
       hit: { x: -4, y: 4, w: 70, h: 52, dmg: 2, hitstop: 5, kb: 4 }, cancel: {} },
   };
+  // 溜め：押している こま数で段が上がる（1 段 f1・2 段 f2）。離した時に段があれば溜め斬り。2 段は飛ぶ斬撃（wave）も出す
+  const CHARGE = { f1: 36, f2: 90, wave: { speed: 8.5, life: 48, w: 22, h: 34, y: 12, dmg: 3, hitstop: 6, kb: 5 } };
+  const chargeLv = f => (f >= CHARGE.f2 ? 2 : f >= CHARGE.f1 ? 1 : 0);
   const BUFFER_F = 8;                                               // 硬直中に押した攻撃を覚えておくこま数
   const GROUND = ['stand', 'walk_start', 'walk', 'land', 'dash', 'dash_end'];
   const AIR = ['jump', 'fall'];
@@ -57,6 +65,12 @@
     // 1 こま：入力（atk・j・d …）を見て、攻撃の進み・連なり・取り消しを決め、act に渡す入力を返す
     function pre(b, inp) {
       if (inp.atkP) b.atkBuf = BUFFER_F; else if (b.atkBuf > 0) b.atkBuf--;
+      // 溜め：押している間 数える。離した時に段があれば、溜め斬り（地上・空中。今の技が当たっている間は待たない＝捨てる）
+      let rel = 0; if (inp.atk) b.chg = (b.chg || 0) + 1; else { rel = chargeLv(b.chg || 0); b.chg = 0; }
+      if (rel) {
+        const id = AIR.includes(b.state) ? 'charge_air' : GROUND.includes(b.state) ? 'charge' : null;
+        if (id && !(b.atk && phaseOf(MOVES[b.atk.id], b.atk.f) === 'active')) { b.atkBuf = 0; start(b, id); b.atk.f = 1; b.atk.lv = rel; return hold(b, inp, MOVES[id]); }
+      }
       if (b.state === 'slide' && usable('mizukiri')) {                // 水切り：滑りはそのまま（act.js が動かす）
         if (b.atk && b.atk.id === 'mizukiri') { if (++b.atk.f > total(MOVES.mizukiri)) b.atk = null; return inp; }
         if (b.atkBuf > 0) { b.atkBuf = 0; b.atk = { id: 'mizukiri', f: 1, hits: new Set(), chain: 0 }; }
@@ -71,6 +85,7 @@
         const m = MOVES[a.id];
         if (m.on === 'slide') { b.atk = null; return inp; }            // 滑りが終わると水切りも終わる
         a.f++;
+        if (a.lv === 2 && a.f === m.startup + 1) { const W = CHARGE.wave, f = b.face || 1; shots.push({ x: b.x + f * 24, y: b.y + W.y, vx: f * W.speed, life: W.life, hits: new Set() }); }   // 2 段：飛ぶ斬撃
         // 次の技へ（窓の中で、覚えていた攻撃）
         if (m.on === 'ground' && a.id !== 'rising' && inp.up && b.atkBuf > 0 && usable('rising') && inWin(m.cancel.slash2 || m.cancel.slash3 || m.cancel.jump, a.f)) { b.atkBuf = 0; b.atk = { id: 'rising', f: 1, hits: new Set(), chain: a.chain + 1 }; return hold(b, inp, MOVES.rising); }
         for (const [to, w] of Object.entries(m.cancel)) {
@@ -92,8 +107,14 @@
       if (m.step && b.atk && b.atk.f <= m.startup) b.stepX = m.step * (b.face || 1) / m.startup; else b.stepX = 0;
       return { l: false, r: false, j: false, d: false, dn: false };
     }
+    // 飛ぶ斬撃（溜め 2 段）：まっすぐ進み、壁で消える。敵は貫く（同じ相手に 1 回）
+    const shots = [];
+    function stepShots() { const n = act.map, T = n.tile; for (const s of shots) { s.x += s.vx; s.life--; if (n.solid(Math.floor((s.x + Math.sign(s.vx) * CHARGE.wave.w) / T), Math.floor((s.y + CHARGE.wave.h / 2) / T))) s.life = 0; } for (let i = shots.length - 1; i >= 0; i--) if (shots[i].life <= 0) shots.splice(i, 1); }
+    function shotBox(s) { const W = CHARGE.wave; return { x0: s.x - W.w, x1: s.x + W.w, y0: s.y, y1: s.y + W.h, dmg: W.dmg, hitstop: W.hitstop, kb: W.kb * Math.sign(s.vx), id: 'wave' }; }
+    function shotHit(s, target) { if (s.hits.has(target)) return false; s.hits.add(target); return true; }
     // act.step の後：地上の踏み込み（壁は越えない）
     function post(b) {
+      stepShots();
       if (b.atk && MOVES[b.atk.id].on === 'air' && !AIR.includes(b.state)) b.atk = null;   // 空中斬りは着地したこまで終わる
       if (b.atk && b.stepX) { const n = act.map; const T = n.tile, nx = b.x + b.stepX, edge = nx + (b.stepX > 0 ? 7 : -7); if (!n.solid(Math.floor(edge / T), Math.floor((b.y + 10) / T))) b.x = nx; }
       b.stepX = 0;
@@ -106,10 +127,10 @@
     }
     // 1 回の振りで同じ相手に 1 回だけ
     function tryHit(b, target) { const a = b.atk; if (!a || a.hits.has(target)) return false; a.hits.add(target); return true; }
-    return { pre, post, hitbox, tryHit, usable, learn: id => learned.add(id), learned, phase: b => (b.atk ? phaseOf(MOVES[b.atk.id], b.atk.f) : null) };
+    return { pre, post, hitbox, tryHit, usable, learn: id => learned.add(id), learned, phase: b => (b.atk ? phaseOf(MOVES[b.atk.id], b.atk.f) : null), shots, shotBox, shotHit, chargeLv: b => chargeLv(b.chg || 0) };
   }
   const overlap = (a, b) => a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0;
-  const API = { MOVES, BUFFER_F, make, total, phaseOf, overlap };
+  const API = { MOVES, BUFFER_F, CHARGE, chargeLv, make, total, phaseOf, overlap };
   root.RunnerCombat = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

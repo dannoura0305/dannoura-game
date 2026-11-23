@@ -98,4 +98,22 @@ t('宙の敵：ふわふわ漂い、下に自機が来ると急降下して、�
   assert.ok(dived && back);
 });
 
+
+t('溜め斬り：押し続けると段が上がる（1 段・2 段）・離すと大きく払う・2 段は前へ飛ぶ斬撃も出て壁で消える・短く押すと ふつうの斬り', () => {
+  const C0 = RC.CHARGE; assert.ok(C0.f1 > 10 && C0.f2 > C0.f1);
+  // 短く押す：ふつうの斬り、溜めは出ない
+  { const r = rig([]); r.step({ atk: true }); r.step({}); assert.equal(r.b.atk.id, 'slash1'); for (let i = 0; i < 40; i++) r.step({}); assert.equal(r.b.atk, null); }
+  // 1 段
+  { const r = rig([]); for (let i = 0; i < C0.f1 + 2; i++) r.step({ atk: true }); assert.equal(r.C.chargeLv(r.b), 1); r.step({}); assert.equal(r.b.atk.id, 'charge'); assert.equal(r.b.atk.lv, 1);
+    let hb = null; for (let i = 0; i < 10 && !hb; i++) { r.step({}); hb = r.C.hitbox(r.b); } assert.ok(hb && hb.dmg >= 3 && hb.x1 - hb.x0 >= 70, '大きく払う'); assert.equal(r.C.shots.length, 0, '1 段は飛ばない'); }
+  // 2 段：飛ぶ斬撃
+  { const r = rig([]); for (let i = 0; i < C0.f2 + 2; i++) r.step({ atk: true }); assert.equal(r.C.chargeLv(r.b), 2); r.step({}); for (let i = 0; i < 6; i++) r.step({});
+    assert.equal(r.C.shots.length, 1, '飛ぶ斬撃'); const s = r.C.shots[0], x0 = s.x; r.step({}); assert.ok(s.x > x0, '前へ進む');
+    const sb = r.C.shotBox(s); assert.ok(sb.dmg >= 3 && sb.id === 'wave');
+    const e = { id: 'x' }; assert.equal(r.C.shotHit(s, e), true); assert.equal(r.C.shotHit(s, e), false, '同じ相手に 1 回');
+    for (let i = 0; i < 80; i++) r.step({}); assert.equal(r.C.shots.length, 0, '消える'); }
+  // 空中で離す：空中の溜め斬り
+  { const r = rig([]); for (let i = 0; i < C0.f1 + 2; i++) r.step({ atk: true }); r.step({ atk: true, j: true }); r.step({ atk: true, j: true }); r.step({ j: true }); assert.equal(r.b.atk && r.b.atk.id, 'charge_air'); }
+});
+
 console.log(`runner-hard-combat: ${n} ok`);

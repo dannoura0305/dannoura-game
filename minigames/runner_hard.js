@@ -149,7 +149,7 @@ registerMinigame({
   id: 'runner_hard', icon: '☔', name: '買い出しダッシュ（高難易度版・試作）', genre: 'アクション', bgm: 'mg_runner',
   desc: '試作：横スクロールのアクション。走る・跳ぶ・ダッシュ・壁蹴り・傘で斬って、雨の町をコンビニまで。ボスを倒すと技を覚える。',
   effect: '育児ストレス↓ 精神↑ ／ 疲労+8 約40分',
-  help: '←→:移動 Z:ジャンプ X:攻撃 C:ダッシュ ↓:スライド（技はボスを倒して覚える）',
+  help: '←→:移動 Z:ジャンプ X:攻撃（長押しで溜め） C:ダッシュ ↓:スライド（技はボスを倒して覚える）',
   start(body, mg) {
     const TAU = Math.PI * 2, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), rnd = (a, b) => a + Math.random() * (b - a);
     // ── 記録（gs.runnerHard。通常版の gs.runnerData には触らない） ──
@@ -214,6 +214,7 @@ registerMinigame({
     function actx() { if (typeof AU === 'undefined' || typeof AUDIO_SET === 'undefined' || !(AUDIO_SET.se > 0)) return null; try { AU.init(); } catch (e) {} const c = AU.ctx; if (c && c.state === 'suspended') c.resume().catch(() => {}); return c; }
     function blip(type, f0, f1, dur, g) { const c = actx(); if (!c) return; const t0 = c.currentTime, o = c.createOscillator(), v = c.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t0); if (f1) o.frequency.exponentialRampToValueAtTime(f1, t0 + dur); v.gain.setValueAtTime(.0001, t0); v.gain.linearRampToValueAtTime(g * AUDIO_SET.se, t0 + .008); v.gain.exponentialRampToValueAtTime(.0001, t0 + dur); o.connect(v); v.connect(AU.out || c.destination); o.start(t0); o.stop(t0 + dur + .02); }
     const SE = { swing: big => { blip('sawtooth', big ? 900 : 1300, big ? 300 : 500, big ? .16 : .1, .05); }, hit: dead => { blip('square', dead ? 180 : 260, dead ? 60 : 140, dead ? .22 : .09, .12); }, jump: () => blip('triangle', 420, 760, .12, .12), dash: () => blip('sawtooth', 160, 90, .14, .05), kick: () => blip('square', 300, 620, .1, .07), land: () => blip('sine', 140, 70, .08, .12), hurt: () => blip('square', 220, 90, .25, .1), slide: () => blip('sawtooth', 120, 80, .2, .04), check: () => { blip('sine', 660, 0, .12, .09); setTimeout(() => blip('sine', 990, 0, .2, .08), 90); }, clear: () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => blip('triangle', f, 0, .25, .1), i * 110)), zap: () => { blip('sawtooth', 1800, 200, .3, .05); blip('square', 90, 60, .3, .06); }, block: () => { blip('square', 1500, 1200, .06, .07); blip('triangle', 2400, 0, .12, .04); }, warn: () => { for (let i = 0; i < 6; i++) setTimeout(() => blip('square', i % 2 ? 620 : 880, 0, .22, .07), i * 380); },
+      charge: lv => { blip('sine', lv > 1 ? 880 : 520, lv > 1 ? 1760 : 1040, .18, .07); if (lv > 1) setTimeout(() => blip('triangle', 1320, 2640, .16, .05), 70); }, chargeRel: lv => { blip('sawtooth', lv > 1 ? 700 : 900, 120, .3, .09); blip('square', 160, 60, .3, .06); },
       weak: () => { blip('square', 1200, 300, .18, .1); blip('sawtooth', 220, 55, .4, .09); setTimeout(() => blip('triangle', 1600, 2400, .12, .07), 60); } };
 
     // ── 入力：キーボード・ゲームパッド・画面のボタン ──
@@ -314,6 +315,9 @@ registerMinigame({
         if (!cboss.dead && ov(hb, CZ.box(cboss)) && C.tryHit(B, cboss) && CZ.hurt(cboss, hb.dmg)) { hitStop = Math.max(hitStop, hb.hitstop + 1); shake = Math.max(shake, .15); SE.hit(cboss.dead); for (let i = 0; i < 10; i++) emit(cboss.x, cboss.y, rnd(-180, 180), rnd(-120, 180), .4, i % 2 ? '#c8ff8a' : '#00e8c8', 2.4, 300); if (cboss.dead) { shake = .6; SE.clear(); } }
         for (const m of CZ.minis) if (!m.dead && ov(hb, CZ.miniBox(m)) && C.tryHit(B, m) && CZ.hurtMini(m)) { SE.hit(true); for (let i = 0; i < 6; i++) emit(m.x, m.y + 8, rnd(-120, 120), rnd(20, 160), .3, '#9ad860', 2, 400); }
       }
+      for (const sh of C.shots) { const sb = C.shotBox(sh);
+        if (!cboss.dead && ov(sb, CZ.box(cboss)) && C.shotHit(sh, cboss) && CZ.hurt(cboss, sb.dmg)) { hitStop = Math.max(hitStop, 4); SE.hit(cboss.dead); if (cboss.dead) { shake = .6; SE.clear(); } }
+        for (const m of CZ.minis) if (!m.dead && ov(sb, CZ.miniBox(m)) && C.shotHit(sh, m) && CZ.hurtMini(m)) SE.hit(true); }
       if (cboss.dead) { if (cboss.deadF > 60) coldEnd('win'); return; }
       if (++infF >= 120) { infF = 0; infect = Math.max(0, infect - 1); }   // 少しずつ治る
       if (B.invul <= 0 && B.state !== 'hurt') {
@@ -386,6 +390,8 @@ registerMinigame({
         const ex = e.x, ey = e.y + 18; for (let i = 0; i < (e.dead ? 16 : 8); i++) emit(ex, ey, rnd(-160, 160), rnd(-60, 200), .35, i % 2 ? '#e8f0ff' : '#00e8c8', 2.2, 400);
         if (e.dead) kills++;
       }
+      // 飛ぶ斬撃（溜め 2 段）が敵に当たる
+      for (const sh of C.shots) { const sb = C.shotBox(sh); for (const e of foes) { if (e.dead || !RunnerCombat.overlap(sb, E.box(e)) || !C.shotHit(sh, e)) continue; E.hurt(e, sb.dmg, sb.kb); hitStop = Math.max(hitStop, 3); SE.hit(e.dead); for (let i = 0; i < 10; i++) emit(e.x, e.y + 18, rnd(-160, 160), rnd(-60, 200), .35, i % 2 ? '#fff6a0' : '#00e8c8', 2.2, 400); if (e.dead) kills++; } }
       // 面の仕掛け：帯電する床・壊れる足場・帯電した看板（触れると やられ）
       if (GM) { GM.step(B, act.box(B)); if (B.invul <= 0 && B.state !== 'hurt' && GM.shock(act.box(B))) { B.atk = null; act.hurt(B, B.face || 1); for (let i = 0; i < 10; i++) emit(B.x, B.y + 20, rnd(-120, 120), rnd(20, 200), .3, i % 2 ? '#d080ff' : '#fff6a0', 2, 300); } }
       // ボスの部屋：入ると柵が閉まり、ボスが起きる
@@ -395,6 +401,7 @@ registerMinigame({
         for (const ev of boss.ev || []) { if (ev === 'stomp') { GM && GM.breakArena(); shake = Math.max(shake, .4); SE.land(); } if (ev === 'rushwall') { shake = Math.max(shake, .35); SE.hit(true); } if (ev === 'special') { banner = { t: 0, txt: bossDef().special || '' }; SE.warn(); shake = Math.max(shake, .3); } if (ev === 'discharge' || ev === 'counter') SE.zap(); if (ev === 'dash' || ev === 'slash') SE.swing(ev === 'dash'); if (ev === 'shot' || ev === 'grab') SE.slide(); if (ev === 'wave') { SE.warn(); banner = { t: 0, txt: '大波' }; } }
         if (GM) GM.charge(!!boss.charged && !boss.dead);
         if (hb && !boss.dead && RunnerCombat.overlap(hb, BZ.box(boss)) && C.tryHit(B, boss)) { const r = BZ.hurt(boss, hb.dmg, B.x, hb.id); if (r === 'weak') weakHit(boss); else if (r === 'block') { hitStop = Math.max(hitStop, 3); SE.block(); for (let i = 0; i < 8; i++) emit(boss.x + boss.face * 40, B.y + 30, -boss.face * rnd(40, 200), rnd(-60, 160), .25, i % 2 ? '#d080ff' : '#ffffff', 2, 200); } else if (r) { hitStop = Math.max(hitStop, hb.hitstop + 1); shake = Math.max(shake, .15); SE.hit(boss.dead); for (let i = 0; i < 10; i++) emit(boss.x, boss.y + 40, rnd(-180, 180), rnd(-40, 220), .4, i % 2 ? '#e8f0ff' : '#00e8c8', 2.4, 400); if (boss.dead) { shake = .6; SE.clear(); } } }
+        if (!boss.dead) for (const sh of C.shots) { const sb = C.shotBox(sh); if (boss.dead || !RunnerCombat.overlap(sb, BZ.box(boss)) || !C.shotHit(sh, boss)) continue; const r = BZ.hurt(boss, sb.dmg, sh.x - Math.sign(sh.vx) * 40, 'wave'); if (r === 'block') { sh.life = 0; SE.block(); } else if (r) { hitStop = Math.max(hitStop, 4); SE.hit(boss.dead); for (let i = 0; i < 10; i++) emit(boss.x, boss.y + 40, rnd(-180, 180), rnd(-40, 220), .4, i % 2 ? '#fff6a0' : '#00e8c8', 2.4, 400); if (boss.dead) { shake = .6; SE.clear(); } } }
         if (boss.dead && boss.deadF === RunnerBosses.RAIKAKU.deadF) { phase = 'learn'; phaseT = 0; learnedNow = bossDef().teaches; }
         if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); let hit = !boss.dead && boss.state !== 'wait' && RunnerCombat.overlap(pb, BZ.box(boss)) ? boss.x : null; for (const sh of BZ.shots) { const sb = BZ.shotBox(sh); if (sb && RunnerCombat.overlap(pb, sb)) { hit = sh.x; if (['spark', 'wave', 'blade', 'drop'].includes(sh.kind)) sh.life = 0; } } if (hit !== null) { B.atk = null; act.hurt(B, hit < B.x ? -1 : 1); } }
       }
@@ -423,7 +430,7 @@ registerMinigame({
       setGates(false); arenaOn = false; boss = null; phase = 'play'; phaseT = 0; banner = { t: 0, txt: 'コンビニへ（柵が開いた）' };
     }
     // ── 更新 ──
-    let lastState = 'stand';
+    let lastState = 'stand', chgLv = 0;
     function update(dt) {
       t += dt; phaseT += dt; if (flash > 0) flash = Math.max(0, flash - dt * 2.4); if (shake > 0) shake = Math.max(0, shake - dt);
       if (banner) { banner.t += dt; if (banner.t > 2.6) banner = null; }
@@ -445,6 +452,8 @@ registerMinigame({
         if (B.state === 'hurt' && !wasInvul && !CZ) damage(1, 'spike');   // 風邪菌の戦いは感染ゲージ（coldFrame）
         lastState = B.state;
       }
+      { const lv = C ? C.chargeLv(B) : 0; if (lv > chgLv) SE.charge(lv); if (lv && Math.random() < .6) { const a = rnd(0, TAU), r = rnd(22, 40); emit(B.x + Math.cos(a) * r, B.y + 34 + Math.sin(a) * r, -Math.cos(a) * 70, -Math.sin(a) * 70, .3, lv > 1 ? '#ffe070' : '#7afff0', 2, 0); } chgLv = lv; }
+      if (B.atk && B.atk.lv && B.atk.f === 1) SE.chargeRel(B.atk.lv);
       if (B.state === 'wall_slide' && B.vy < 0 && Math.random() < .5) emit(B.x + B.wallDir * 7, B.y + 30, -B.wallDir * rnd(10, 40), rnd(-20, 20), .25, 'rgba(200,220,255,.7)', 1.5, 200);
       if (CZ) return;
       // 穴に落ちた
@@ -750,10 +759,21 @@ registerMinigame({
       if (tele && !e.dead && e.state !== 'guard') { cx.fillStyle = `rgba(230,170,255,${.15 + .15 * Math.sin(t * 30)})`; cx.beginPath(); cx.ellipse(x, y - 60, 60, 70, 0, 0, TAU); cx.fill(); }
     }
     // 振りの軌跡（当たる間だけ）
+    // 飛ぶ斬撃（溜め 2 段）：前へ進む金色の三日月
+    function drawWaves() {
+      if (!C) return;
+      for (const sh of C.shots) { const x = sx(sh.x), y = sy(sh.y + RunnerCombat.CHARGE.wave.h / 2), d = Math.sign(sh.vx) || 1;
+        cx.save(); cx.translate(x, y); cx.scale(d, 1); cx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 3; i++) { cx.globalAlpha = .9 - i * .28; cx.fillStyle = i ? '#ffb040' : '#fff6c0'; cx.beginPath(); cx.moveTo(-10 - i * 10, -22); cx.quadraticCurveTo(22 - i * 10, 0, -10 - i * 10, 22); cx.quadraticCurveTo(6 - i * 10, 0, -10 - i * 10, -22); cx.fill(); }
+        cx.restore(); cx.globalAlpha = 1; cx.globalCompositeOperation = 'source-over'; }
+    }
     function drawSlash() {
+      drawWaves();
+      { const lv = C && B && phase === 'play' ? C.chargeLv(B) : 0; if (lv) { const x = sx(B.x), y = sy(B.y + 30), p = .5 + .5 * Math.sin(t * (lv > 1 ? 30 : 18)); cx.globalCompositeOperation = 'lighter'; cx.strokeStyle = lv > 1 ? `rgba(255,224,112,${.35 + p * .45})` : `rgba(122,255,240,${.3 + p * .4})`; cx.lineWidth = 5; cx.beginPath(); cx.ellipse(x, y, 26 + p * 4, 38 + p * 4, 0, 0, TAU); cx.stroke(); cx.lineWidth = 2; cx.beginPath(); cx.ellipse(x, y, 34 - p * 6, 46 - p * 6, 0, 0, TAU); cx.stroke(); cx.fillStyle = lv > 1 ? 'rgba(255,224,112,.12)' : 'rgba(122,255,240,.1)'; cx.fill(); cx.globalCompositeOperation = 'source-over'; } }   // 溜めの光（1 段 水色・2 段 金色）
       const hb = C && C.hitbox(B); if (!hb) return;
       if (SPR) cx.globalAlpha = .45;
       const x0 = sx(hb.x0), x1 = sx(hb.x1), y0 = sy(hb.y1), y1 = sy(hb.y0), cxm = (x0 + x1) / 2, cym = (y0 + y1) / 2, f = B.face;
+      if (hb.id === 'charge' || hb.id === 'charge_air') { cx.globalAlpha = 1; cx.strokeStyle = B.atk && B.atk.lv > 1 ? 'rgba(255,224,112,.95)' : 'rgba(122,255,240,.95)'; cx.lineWidth = 7; cx.lineCap = 'round'; cx.beginPath(); cx.ellipse(cxm - f * 12, cym, (x1 - x0) / 2, (y1 - y0) / 2, 0, f > 0 ? -2.1 : Math.PI - .6, f > 0 ? .6 : Math.PI + 2.1); cx.stroke(); cx.strokeStyle = 'rgba(255,255,255,.8)'; cx.lineWidth = 2.5; cx.stroke(); cx.lineCap = 'butt'; return; }
       if (hb.id === 'kazeha') {   // 風刃：前へ流れる 3 本の風の弧
         cx.globalAlpha = 1; cx.lineCap = 'round';
         for (let i = 0; i < 3; i++) { const k = (t * 9 + i / 3) % 1; cx.strokeStyle = `rgba(255,150,235,${.85 - k * .6})`; cx.lineWidth = 4 - i; cx.beginPath(); cx.ellipse(cxm - f * (18 - k * 30), cym + (i - 1) * 10, (x1 - x0) * (.32 + k * .2), (y1 - y0) * .32, 0, f > 0 ? -1.2 : Math.PI - 1.2, f > 0 ? 1.2 : Math.PI + 1.2); cx.stroke(); }
@@ -766,7 +786,7 @@ registerMinigame({
       cx.stroke(); cx.lineCap = 'butt'; cx.globalAlpha = 1;
     }
     // 状態 → ドット絵のコマ（行_列）。行：0 立つ・1 走る・2 ジャンプ・3 ダッシュとスライド・4 拳と構え・5 傘で斬る・6 傘を開く・7 やられ
-    const ATK_SPR = { rising: ['4_1', '4_2', '4_3'], slash1: ['5_1', '5_2', '5_0'], slash2: ['5_4', '5_5', '5_7'], slash3: ['4_3', '5_6', '4_7'], air: ['2_3', '5_6', '2_4'], raitotsu: ['3_2', '5_6', '3_7'], mizukiri: ['3_4', '3_5', '3_5'], kazeha: ['3_2', '5_6', '5_6'] };
+    const ATK_SPR = { rising: ['4_1', '4_2', '4_3'], slash1: ['5_1', '5_2', '5_0'], slash2: ['5_4', '5_5', '5_7'], slash3: ['4_3', '5_6', '4_7'], air: ['2_3', '5_6', '2_4'], raitotsu: ['3_2', '5_6', '3_7'], mizukiri: ['3_4', '3_5', '3_5'], kazeha: ['3_2', '5_6', '5_6'], charge: ['4_3', '5_6', '4_7'], charge_air: ['2_3', '5_6', '2_4'] };
     function spriteKey() {
       const st = B.state, f = B.f, cyc = (keys, fps) => keys[Math.floor(t * fps) % keys.length];
       if (phase === 'over') return '7_4';
@@ -981,7 +1001,7 @@ registerMinigame({
       if (flash > 0) { cx.fillStyle = `rgba(255,120,140,${flash * .25})`; cx.fillRect(0, 0, VW, VH); }
       drawHUD(); drawBossBar();
       if (banner) { const a = Math.min(1, banner.t * 3, (2.6 - banner.t) * 3); cx.globalAlpha = a; cx.fillStyle = 'rgba(5,4,14,.7)'; cx.fillRect(0, 70, VW, 34); cx.fillStyle = '#00e8c8'; cx.font = 'bold 15px sans-serif'; cx.textAlign = 'center'; cx.fillText(banner.txt, VW / 2, 93); cx.globalAlpha = 1; }
-      if (phase === 'intro') card(['高難易度版（試作）', '雨の町を、コンビニまで。', '←→ 移動　Z ジャンプ　X 攻撃（3 段・空中）　C ダッシュ　↓ スライド', '壁に向かって押しながら跳ぶと、壁を蹴る　（ボスを倒すと 技を覚える）'], (showTouch ? 'タップ' : 'Z・Enter') + 'で はじめる');
+      if (phase === 'intro') card(['高難易度版（試作）', '雨の町を、コンビニまで。', '←→ 移動　Z ジャンプ　X 攻撃（3 段・空中・長押しで溜め）　C ダッシュ　↓ スライド', '壁に向かって押しながら跳ぶと、壁を蹴る　（ボスを倒すと 技を覚える）'], (showTouch ? 'タップ' : 'Z・Enter') + 'で はじめる');
       if (phase === 'select') drawSelect();
       if (phase === 'learn') { const mv = RunnerCombat.MOVES[learnedNow] || {}; card(['新しい技を覚えた', mv.name || '', mv.howto || '', mv.desc || ''], (showTouch ? 'タップ' : 'Z・Enter') + 'で 続ける'); }
       if (phase === 'clear') card(['コンビニに着いた', `${runTime.toFixed(1)} 秒　／　ぶつかった ${hurts} 回`, '冷却シートと、プリン。'], (showTouch ? 'タップ' : 'Z・Enter') + 'で 戻る');
