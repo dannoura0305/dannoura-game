@@ -14,6 +14,7 @@ vm.createContext(ctx);
 vm.runInContext(readFileSync(join(ROOT, 'minigames/runner/act.js'), 'utf8'), ctx, { filename: 'act.js' });
 vm.runInContext(readFileSync(join(ROOT, 'minigames/runner/gimmicks.js'), 'utf8'), ctx, { filename: 'gimmicks.js' });
 vm.runInContext(readFileSync(join(ROOT, 'minigames/runner/bosses.js'), 'utf8'), ctx, { filename: 'bosses.js' });
+vm.runInContext(readFileSync(join(ROOT, 'minigames/runner/enemies.js'), 'utf8'), ctx, { filename: 'enemies.js' });
 vm.runInContext(readFileSync(join(ROOT, 'minigames/runner_hard.js'), 'utf8'), ctx, { filename: 'runner_hard.js' });
 const RA = ctx.RunnerAct, ST = ctx.RunnerHardStage;
 let n = 0; const t = (name, fn) => { fn(); n++; console.log('  ✓ ' + name); };
@@ -213,5 +214,20 @@ function haisuiBot(G,b,f,mem){
     assert.ok(K.art.length === 3 && K.W * 40 === K.art.length * 2000, '絵 3 枚＝面の幅');
   });
 }
+
+
+t('隠しアイテム：お守りは各面に 1 つ（3 つ）・予備のドリンクは 1 つ・どれも床から跳んで届く高さ（135px 以内）にあり壁の中ではない・ひびの壁の奥のお守りは壁を壊すと届く', () => {
+  const all = []; for (const id of ['okujo', 'haisui', 'koka']) { const K = ctx.RunnerHardStages[id]; assert.ok(K.items, id); for (const it of K.items()) all.push(Object.assign({ st: id }, it)); }
+  assert.equal(all.filter(i => i.kind === 'charm').length, 3); assert.equal(all.filter(i => i.kind === 'drink').length, 1);
+  assert.equal(new Set(all.map(i => i.id)).size, all.length, '名前が重ならない');
+  for (const it of all) {
+    const K = ctx.RunnerHardStages[it.st], m = RA.makeMap(K.rows().map(r => r.replace(/[SCG]/g, '.'))); if (K.ledges) for (const L of K.ledges()) m.ledges.push(L);
+    const E = ctx.RunnerEnemies.make(m), fy = E.floorAt(it.x, it.y + 0.5);
+    assert.ok(fy > -Infinity && it.y - fy <= 135 && it.y - fy >= 0, it.id + ' 床から ' + (it.y - fy));
+    assert.ok(!m.solid(Math.floor(it.x / T), Math.floor((it.y + 20) / T)), it.id + ' 壁の中ではない');
+  }
+  const H = ctx.RunnerHardStages.haisui, ks = H.cracks(); assert.equal(ks.length, 1); const k = ks[0], it = H.items()[0];
+  assert.ok(it.x > (k.c + 1) * T, 'ひびの壁の奥'); assert.ok(k.cy1 >= 13, '天井まで（跳び越せない）');
+});
 
 console.log(`runner-hard-stage: ${n} ok`);

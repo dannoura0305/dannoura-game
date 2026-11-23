@@ -72,6 +72,8 @@ var RunnerHardStageKoka = RunnerHardStageKoka || {
   // 送電区の敵：火花虫（時々火花をまとう）・碍子の盾（正面は防ぐ。後ろ・溜め斬り・雷突きで崩す）
   enemies() { return [['flyer', 12, 9, -1], ['crawler', 30, 5, -1], ['shield', 38, 5, -1], ['flyer', 44, 7, -1], ['crawler', 47, 5, -1], ['crawler', 57, 5, -1], ['flyer', 63, 9, -1], ['shield', 70, 9, -1], ['crawler', 84, 5, -1], ['shield', 96, 5, -1], ['walker', 102, 4, -1], ['walker', 104, 4, -1]]; },
   arena() { return { c0: 106, c1: 120, bossC: 117, boss: 'raikaku', floorCy: 4 }; },
+  // 隠しアイテム：お守り＝高い渡り廊下の右の上（跳んで届く）
+  items() { return [{ id: 'koka_charm', kind: 'charm', x: 3180, y: 446 }]; },
   gimmicks() {
     return {
       strips: [{ c0: 28, c1: 32, cy: 3, period: 180, on: 80, off: 0 }, { c0: 38, c1: 42, cy: 3, period: 180, on: 80, off: 90 }, { c0: 84, c1: 89, cy: 3, period: 200, on: 90, off: 40 }],
@@ -105,6 +107,8 @@ var RunnerHardStageOkujo = RunnerHardStageOkujo || {
   // 屋上の敵：瓦投げ（屋根から放物線で瓦）・風凧（空から斜め下へ風の刃）
   enemies() { return [['flyer', 14, 8, -1], ['kite', 22, 10, -1], ['thrower', 44, 5, -1], ['flyer', 48, 9, -1], ['thrower', 66, 9, -1], ['kite', 74, 12, -1], ['thrower', 80, 6, -1], ['kite', 92, 11, -1], ['walker', 101, 4, -1]]; },
   arena() { return { c0: 103, c1: 117, bossC: 114, boss: 'kazegiri', floorCy: 4 }; },
+  // 隠しアイテム（世界の px・足もと）：お守り＝高い塔のてっぺん（張り出しを伝って登る）・予備のドリンク＝最初の塔の屋上
+  items() { return [{ id: 'okujo_charm', kind: 'charm', x: 2990, y: 435 }, { id: 'drink', kind: 'drink', x: 1010, y: 275 }]; },
   gimmicks() {
     return { winds: [{ c0: 8, c1: 15, dir: -1, period: 220, on: 100, off: 0, force: 5 }, { c0: 69, c1: 79, dir: -1, period: 240, on: 110, off: 60, force: 3.2 }, { c0: 84, c1: 98, dir: 1, period: 200, on: 110, off: 30, force: 2.0 }] };
   },
@@ -138,6 +142,9 @@ var RunnerHardStageHaisui = RunnerHardStageHaisui || {
   // 排水路の敵：泥がえる（跳ねて寄ってくる）・排水の目（開いた時だけ効く。水の玉を噴き上げる）
   enemies() { return [['walker', 5, 4, -1], ['flyer', 22, 7, -1], ['spout', 27, 5, -1], ['hopper', 50, 6, -1], ['spout', 61, 6, -1], ['walker', 69, 6, -1], ['spout', 75, 6, -1], ['flyer', 80, 9, -1], ['hopper', 86, 7, -1], ['hopper', 104, 6, -1]]; },
   arena() { return { c0: 111, c1: 125, bossC: 122, boss: 'dakuryu', floorCy: 4 }; },
+  // 隠しアイテム：お守り＝コンビニの戸の先、ひびの入った壁（溜め斬りで壊す）の奥
+  items() { return [{ id: 'haisui_charm', kind: 'charm', x: 144 * 40 + 20, y: 160 }]; },
+  cracks() { return [{ c: 139, cy0: 4, cy1: 13 }]; },
   gimmicks() {
     return {
       floods: [{ c0: 9, c1: 39, base: 85, max: 70, period: 340, on: 170, off: 0 }, { c0: 58, c1: 85, base: 85, max: 100, period: 320, on: 160, off: 120 }],
@@ -207,7 +214,10 @@ registerMinigame({
       normal: { hp: 5, boss: 1, phys: { wallStickF: 10, coyoteF: 4, bufferF: 4, invulF: 72 } },
       hard: { hp: 4, boss: 1.25, phys: {} },
     }[DIFF] || null;
-    const HP_MAX = DF ? DF.hp : 5; hp = HP_MAX;
+    // 傘の耐久の上限：難しさの値 ＋ 面で見つけたお守りの数（隠しアイテム）
+    const charms = () => Object.keys(REC.items || {}).filter(k => /_charm$/.test(k) && REC.items[k]).length;
+    let HP_MAX = (DF ? DF.hp : 5) + charms(); hp = HP_MAX;
+    let drinkUsed = false;                                             // 予備のドリンク：1 回の遊びで 1 度だけ
     const P = []; for (let i = 0; i < 160; i++) P.push({ a: false, x: 0, y: 0, vx: 0, vy: 0, l: 0, m: 1, c: '#fff', s: 2, g: 0 });
     function emit(x, y, vx, vy, l, c, s, g) { for (const p of P) if (!p.a) { Object.assign(p, { a: true, x, y, vx, vy, l, m: l, c, s, g }); return; } }
     const RN = 180, rx = new Float32Array(RN), ry = new Float32Array(RN), rl = new Float32Array(RN), rv = new Float32Array(RN);
@@ -218,6 +228,7 @@ registerMinigame({
     function blip(type, f0, f1, dur, g) { const c = actx(); if (!c) return; const t0 = c.currentTime, o = c.createOscillator(), v = c.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t0); if (f1) o.frequency.exponentialRampToValueAtTime(f1, t0 + dur); v.gain.setValueAtTime(.0001, t0); v.gain.linearRampToValueAtTime(g * AUDIO_SET.se, t0 + .008); v.gain.exponentialRampToValueAtTime(.0001, t0 + dur); o.connect(v); v.connect(AU.out || c.destination); o.start(t0); o.stop(t0 + dur + .02); }
     const SE = { swing: big => { blip('sawtooth', big ? 900 : 1300, big ? 300 : 500, big ? .16 : .1, .05); }, hit: dead => { blip('square', dead ? 180 : 260, dead ? 60 : 140, dead ? .22 : .09, .12); }, jump: () => blip('triangle', 420, 760, .12, .12), dash: () => blip('sawtooth', 160, 90, .14, .05), kick: () => blip('square', 300, 620, .1, .07), land: () => blip('sine', 140, 70, .08, .12), hurt: () => blip('square', 220, 90, .25, .1), slide: () => blip('sawtooth', 120, 80, .2, .04), check: () => { blip('sine', 660, 0, .12, .09); setTimeout(() => blip('sine', 990, 0, .2, .08), 90); }, clear: () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => blip('triangle', f, 0, .25, .1), i * 110)), zap: () => { blip('sawtooth', 1800, 200, .3, .05); blip('square', 90, 60, .3, .06); }, block: () => { blip('square', 1500, 1200, .06, .07); blip('triangle', 2400, 0, .12, .04); }, warn: () => { for (let i = 0; i < 6; i++) setTimeout(() => blip('square', i % 2 ? 620 : 880, 0, .22, .07), i * 380); },
       charge: lv => { blip('sine', lv > 1 ? 880 : 520, lv > 1 ? 1760 : 1040, .18, .07); if (lv > 1) setTimeout(() => blip('triangle', 1320, 2640, .16, .05), 70); }, chargeRel: lv => { blip('sawtooth', lv > 1 ? 700 : 900, 120, .3, .09); blip('square', 160, 60, .3, .06); },
+      item: () => [784, 988, 1175, 1568].forEach((f, i) => setTimeout(() => blip('square', f, 0, .14, .07), i * 70)), heal: () => { blip('sine', 660, 990, .12, .08); },
       weak: () => { blip('square', 1200, 300, .18, .1); blip('sawtooth', 220, 55, .4, .09); setTimeout(() => blip('triangle', 1600, 2400, .12, .07), 60); } };
 
     // ── 入力：キーボード・ゲームパッド・画面のボタン ──
@@ -275,6 +286,7 @@ registerMinigame({
     function spawnBoss() { const e = BZ.spawn(AR.boss, AR.bossC * map.tile + map.tile / 2, AR.floor, AR); e.hp = e.hpMax = Math.round(e.hpMax * (DF ? DF.boss : 1)); return e; }
     function damage(n, why) {
       hp -= n; hurts++; flash = .8; shake = .3; SE.hurt(); if (mg.buzz) try { mg.buzz(40); } catch (_) {}
+      if (hp <= 0 && REC.items && REC.items.drink && !drinkUsed) { drinkUsed = true; hp = HP_MAX; banner = { t: 0, txt: '予備のドリンク！　傘が直った' }; SE.item(); for (let i = 0; i < 24; i++) emit(B.x, B.y + 30, rnd(-160, 160), rnd(40, 260), .6, i % 2 ? '#ffe070' : '#7afff0', 2.5, 300); return; }
       if (hp <= 0) { hp = 0; phase = 'over'; phaseT = 0; outcome = 'down'; commit(); }
     }
 
@@ -348,11 +360,15 @@ registerMinigame({
       act = RunnerAct.make({ map, phys: DF ? DF.phys : {}, airDash: () => !!C && C.usable('kazebashiri') }); C = RunnerCombat.make(act, { learned: REC.moves || [] }); E = RunnerEnemies.make(map);
       foes = STAGE.enemies().map(([type, c, cy, face]) => E.spawn(type, c * T + T / 2, cy * T, face));
       GM = RunnerGimmicks.make(map, STAGE.gimmicks ? STAGE.gimmicks() : {});
+      // 隠しアイテム（お守り・予備のドリンク）：取った物は記録に残り、次からは出ない。ひびの入った壁（溜め斬りでだけ壊れる）
+      items = (STAGE.items ? STAGE.items() : []).filter(it => !(REC.items && REC.items[it.id])).map(it => Object.assign({ got: false }, it));
+      cracks = (STAGE.cracks ? STAGE.cracks() : []).map(k => Object.assign({ broken: false }, k)); for (const k of cracks) for (let cy = k.cy0; cy <= k.cy1; cy++) map.extra.add(k.c + ',' + cy);
+      drops = [];
       BZ = RunnerBosses.make(map); const a = STAGE.arena(); AR = Object.assign({}, a, { x0: a.c0 * T, x1: (a.c1 + 1) * T, floor: (a.floorCy || 2) * T, fcy: a.floorCy || 2 });   // 部屋の床の高さ（マス）は面ごと（ふつうは 2＝80）
       if (a.boss && !(REC.beaten || []).includes(a.boss)) boss = spawnBoss();
       check = { x: spawn.x, y: spawn.y }; B = act.body(spawn.x, spawn.y, 1); camX = 0; camY = 0;
     }
-    const checks = [];
+    const checks = []; let items = [], cracks = [], drops = [];
     // だんのうらのドット絵（assets/runner/dannoura.webp・.json。利用者の絵）。読めるまで・読めない時は、今までのコードで描く人物
     let SPR = null, SEL = null; const ART = {};   // ART：面の背景の絵（名前 → 画像）   // SEL：ボス選択画面の絵（assets/runner/select.json）
     function loadSprite() {
@@ -392,10 +408,15 @@ registerMinigame({
         if (E.hurt(e, hb.dmg, hb.kb, hb.id, B.x) === 'block') { hitStop = Math.max(hitStop, 3); SE.block(); for (let i = 0; i < 6; i++) emit(e.x + (B.x - e.x) * .4, e.y + 24, Math.sign(B.x - e.x) * rnd(40, 180), rnd(-40, 160), .22, i % 2 ? '#ffffff' : '#c8d0ff', 2, 300); continue; }
         hitStop = Math.max(hitStop, hb.hitstop); shake = Math.max(shake, hb.hitstop > 5 ? .25 : .12); SE.hit(e.dead);
         const ex = e.x, ey = e.y + 18; for (let i = 0; i < (e.dead ? 16 : 8); i++) emit(ex, ey, rnd(-160, 160), rnd(-60, 200), .35, i % 2 ? '#e8f0ff' : '#00e8c8', 2.2, 400);
-        if (e.dead) kills++;
+        if (e.dead) { kills++; dropHeal(e); }
       }
+      // ひびの入った壁：溜め斬り・飛ぶ斬撃でだけ壊れる
+      for (const k of cracks) { if (k.broken) continue; const T = map.tile, kb = { x0: k.c * T, x1: (k.c + 1) * T, y0: k.cy0 * T, y1: (k.cy1 + 1) * T };
+        const by = (hb && (hb.id === 'charge' || hb.id === 'charge_air') && RunnerCombat.overlap(hb, kb)) || C.shots.some(sh => RunnerCombat.overlap(C.shotBox(sh), kb) && (sh.life = 0, true));
+        if (by) { k.broken = true; for (let cy = k.cy0; cy <= k.cy1; cy++) map.extra.delete(k.c + ',' + cy); shake = Math.max(shake, .4); SE.hit(true); for (let i = 0; i < 30; i++) emit((k.c + .5) * T, rnd(kb.y0, kb.y1), rnd(-200, 200), rnd(0, 240), .6, i % 2 ? '#8a8aa8' : '#c8c0e0', 3, 500); banner = { t: 0, txt: '壁が崩れた' }; }
+        else if (hb && RunnerCombat.overlap(hb, kb) && C.tryHit(B, k)) { SE.block(); hitStop = Math.max(hitStop, 3); } }
       // 飛ぶ斬撃（溜め 2 段）が敵に当たる
-      for (const sh of C.shots) { const sb = C.shotBox(sh); for (const e of foes) { if (e.dead || !RunnerCombat.overlap(sb, E.box(e)) || !C.shotHit(sh, e)) continue; if (E.hurt(e, sb.dmg, sb.kb, 'wave', sh.x - Math.sign(sh.vx) * 60) === 'block') { SE.block(); continue; } hitStop = Math.max(hitStop, 3); SE.hit(e.dead); for (let i = 0; i < 10; i++) emit(e.x, e.y + 18, rnd(-160, 160), rnd(-60, 200), .35, i % 2 ? '#fff6a0' : '#00e8c8', 2.2, 400); if (e.dead) kills++; } }
+      for (const sh of C.shots) { const sb = C.shotBox(sh); for (const e of foes) { if (e.dead || !RunnerCombat.overlap(sb, E.box(e)) || !C.shotHit(sh, e)) continue; if (E.hurt(e, sb.dmg, sb.kb, 'wave', sh.x - Math.sign(sh.vx) * 60) === 'block') { SE.block(); continue; } hitStop = Math.max(hitStop, 3); SE.hit(e.dead); for (let i = 0; i < 10; i++) emit(e.x, e.y + 18, rnd(-160, 160), rnd(-60, 200), .35, i % 2 ? '#fff6a0' : '#00e8c8', 2.2, 400); if (e.dead) { kills++; dropHeal(e); } } }
       // 面の仕掛け：帯電する床・壊れる足場・帯電した看板（触れると やられ）
       if (GM) { GM.step(B, act.box(B)); if (B.invul <= 0 && B.state !== 'hurt' && GM.shock(act.box(B))) { B.atk = null; act.hurt(B, B.face || 1); for (let i = 0; i < 10; i++) emit(B.x, B.y + 20, rnd(-120, 120), rnd(20, 200), .3, i % 2 ? '#d080ff' : '#fff6a0', 2, 300); } }
       // ボスの部屋：入ると柵が閉まり、ボスが起きる
@@ -415,6 +436,15 @@ registerMinigame({
       if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); for (const sh of E.shots) { if (!RunnerCombat.overlap(pb, E.shotBox(sh))) continue; sh.life = 0; B.atk = null; act.hurt(B, sh.x < B.x ? -1 : 1); break; } }   // 敵の方を向いたまま、後ろへ飛ぶ
     }
     const bossDef = () => RunnerBosses.BOSSES.find(b => b.id === AR.boss);
+    // 倒した敵は 4 体に 1 体ほど「のど飴」を落とす（傘の耐久 +1。9 秒で消える）
+    function dropHeal(e) { if (Math.random() < .25 && hp < HP_MAX + 1) drops.push({ x: e.x, y: e.y + 20, vy: 180, t: 0, got: false }); }
+    // 隠しアイテム：お守り＝傘の耐久の上限 +1（今の耐久も +1）・予備のドリンク＝傘が折れそうな時に 1 度だけ直る（1 回の遊びごと）
+    function pickItem(it) {
+      it.got = true; REC.items = REC.items || {}; REC.items[it.id] = true; SE.item(); shake = Math.max(shake, .2);
+      for (let i = 0; i < 30; i++) emit(it.x, it.y + 20, rnd(-200, 200), rnd(20, 280), .7, i % 2 ? '#ffe070' : '#ff9ad0', 2.6, 300);
+      if (it.kind === 'charm') { HP_MAX = (DF ? DF.hp : 5) + charms(); hp = Math.min(HP_MAX, hp + 1); banner = { t: 0, txt: 'お守りを見つけた！　傘の耐久の上限 +1' }; }
+      else banner = { t: 0, txt: '予備のドリンクを見つけた！　傘が折れそうな時に 1 度だけ直る' };
+    }
     // 見つけた弱点（一度弱点で当てたボスだけ、選択画面に出す）
     const weakText = d => { const m = d && d.weak && (REC.weak || []).includes(d.id) && RunnerCombat.MOVES[d.weak]; return m ? '弱点：' + m.name : ''; };
     // 弱点で当たった：大きな止め・揺れ・光・「弱点！」。見つけた弱点は記録（選択画面に出す）
@@ -464,6 +494,10 @@ registerMinigame({
       if (CZ) return;
       // 穴に落ちた
       if (B.y < (STAGE.fallY != null ? STAGE.fallY : -120)) { falls++; damage(1, 'pit'); if (phase === 'play') respawn(); }
+      // 隠しアイテム・のど飴を拾う
+      for (const it of items) if (!it.got && Math.abs(B.x - it.x) < 26 && B.y < it.y + 50 && B.y + 48 > it.y) pickItem(it);
+      for (const d of drops) { if (d.got) continue; d.t += dt; if (d.vy !== 0 || d.y > E.floorAt(d.x, d.y)) { d.vy -= 900 * dt; d.y += d.vy * dt; const fy = E.floorAt(d.x, d.y + 1); if (d.y <= fy) { d.y = fy; d.vy = 0; } } if (d.t > 9 || d.y < -150) d.got = true; else if (Math.abs(B.x - d.x) < 24 && Math.abs(B.y + 20 - d.y) < 40) { d.got = true; hp = Math.min(HP_MAX, hp + 1); SE.heal(); banner = { t: 1.6, txt: 'のど飴（傘 +1）' }; } }
+      drops = drops.filter(d => !d.got);
       // 途中の印
       for (const c of checks) if (!c.got && Math.abs(B.x - c.x) < 24 && Math.abs(B.y - c.y) < 60) { c.got = true; check = { x: c.x, y: c.y }; SE.check(); banner = { t: 0, txt: '途中の印（ここから やり直せる）' }; }
       // コンビニの戸
@@ -759,7 +793,22 @@ registerMinigame({
         else { cx.fillStyle = 'rgba(150,200,255,.95)'; cx.beginPath(); cx.arc(x, y, 7, 0, TAU); cx.fill(); cx.fillStyle = 'rgba(255,255,255,.6)'; cx.beginPath(); cx.arc(x - 2, y - 2, 2.5, 0, TAU); cx.fill(); }
       }
     }
+    // 隠しアイテム・のど飴・ひびの入った壁
+    function drawItems() {
+      for (const it of items) { if (it.got) continue; const x = sx(it.x), y = sy(it.y + 20 + Math.sin(t * 3) * 4);
+        cx.globalCompositeOperation = 'lighter'; const g = cx.createRadialGradient(x, y, 0, x, y, 30); g.addColorStop(0, it.kind === 'charm' ? 'rgba(255,120,190,.55)' : 'rgba(255,224,112,.55)'); g.addColorStop(1, 'rgba(0,0,0,0)'); cx.fillStyle = g; cx.fillRect(x - 30, y - 30, 60, 60); cx.globalCompositeOperation = 'source-over';
+        if (it.kind === 'charm') { cx.fillStyle = '#e8406a'; cx.beginPath(); cx.moveTo(x - 9, y - 10); cx.lineTo(x + 9, y - 10); cx.lineTo(x + 9, y + 10); cx.quadraticCurveTo(x, y + 15, x - 9, y + 10); cx.closePath(); cx.fill(); cx.strokeStyle = '#ffd060'; cx.lineWidth = 1.5; cx.stroke(); cx.fillStyle = '#ffd060'; cx.fillRect(x - 5, y - 5, 10, 2); cx.fillRect(x - 1, y - 7, 2, 12); cx.strokeStyle = '#fff'; cx.beginPath(); cx.moveTo(x, y - 10); cx.quadraticCurveTo(x - 6, y - 18, x, y - 20); cx.quadraticCurveTo(x + 6, y - 18, x, y - 10); cx.stroke(); }   // お守り
+        else { cx.fillStyle = '#ffe070'; cx.fillRect(x - 6, y - 10, 12, 22); cx.fillStyle = '#fff6c0'; cx.fillRect(x - 3, y - 15, 6, 5); cx.fillStyle = '#c86a10'; cx.fillRect(x - 6, y, 12, 5); cx.fillStyle = 'rgba(255,255,255,.6)'; cx.fillRect(x - 4, y - 8, 2, 14); }   // 予備のドリンク
+      }
+      for (const d of drops) { const x = sx(d.x), y = sy(d.y + 8), bl = d.t > 7 && Math.sin(t * 30) > 0; if (bl) continue; cx.fillStyle = '#ffb040'; cx.beginPath(); cx.arc(x, y, 6, 0, TAU); cx.fill(); cx.fillStyle = '#fff3c0'; cx.beginPath(); cx.arc(x - 2, y - 2, 2, 0, TAU); cx.fill(); cx.strokeStyle = '#fff'; cx.lineWidth = 1; cx.beginPath(); cx.moveTo(x - 10, y); cx.lineTo(x - 6, y - 3); cx.lineTo(x - 6, y + 3); cx.closePath(); cx.moveTo(x + 10, y); cx.lineTo(x + 6, y - 3); cx.lineTo(x + 6, y + 3); cx.closePath(); cx.stroke(); }   // のど飴（包み紙）
+      const T = map ? map.tile : 40;
+      for (const k of cracks) { if (k.broken) continue; const x = sx(k.c * T), y0 = sy((k.cy1 + 1) * T), y1 = sy(k.cy0 * T);
+        cx.fillStyle = '#4a4560'; cx.fillRect(x, y0, T, y1 - y0); cx.strokeStyle = '#2a2638'; cx.lineWidth = 2; for (let y = y0; y < y1; y += T / 2) { cx.strokeRect(x + ((y / (T / 2)) % 2 ? 0 : -T / 2), y, T, T / 2); }
+        cx.strokeStyle = '#d8d0f0'; cx.lineWidth = 1.5; for (let i = 0; i < (y1 - y0) / T; i++) { const yy = y1 - (i + .5) * T; cx.beginPath(); cx.moveTo(x + 8, yy - 14); cx.lineTo(x + 18, yy - 2); cx.lineTo(x + 12, yy + 6); cx.lineTo(x + 26, yy + 16); cx.moveTo(x + 18, yy - 2); cx.lineTo(x + 32, yy - 8); cx.stroke(); }   // ひび
+      }
+    }
     function drawFoes() {
+      drawItems();
       drawFoeShots();
       for (const e of foes) {
         const x = sx(e.x), y = sy(e.y), a = e.dead ? Math.max(0, 1 - e.deadF / RunnerEnemies.DEATH_F) : 1, fl = e.hitT > 6;
@@ -1040,8 +1089,10 @@ registerMinigame({
         cx.fillStyle = 'rgba(0,0,0,.5)'; cx.fillRect(10, 10, 220, 30); cx.fillStyle = '#deccf8'; cx.font = 'bold 12px sans-serif'; cx.fillText('感染', 16, 30);
         cx.fillStyle = 'rgba(255,255,255,.15)'; cx.fillRect(52, 18, 168, 14); cx.fillStyle = infect > 70 ? '#ff4a5a' : infect > 40 ? '#e8b830' : '#8ad050'; cx.fillRect(52, 18, 168 * infect / 100, 14); cx.font = 'bold 14px sans-serif';
       } else {
-      cx.fillStyle = 'rgba(0,0,0,.5)'; cx.fillRect(10, 10, 184, 30); cx.fillStyle = '#deccf8'; cx.fillText('☂', 18, 31);
+      const hasDrink = REC.items && REC.items.drink && !drinkUsed;
+      cx.fillStyle = 'rgba(0,0,0,.5)'; cx.fillRect(10, 10, Math.max(184, 46 + HP_MAX * 18 + (hasDrink ? 24 : 0)), 30); cx.fillStyle = '#deccf8'; cx.fillText('☂', 18, 31);
       for (let i = 0; i < HP_MAX; i++) { cx.fillStyle = i < hp ? '#00e8c8' : 'rgba(255,255,255,.15)'; cx.fillRect(38 + i * 18, 18, 14, 14); }
+      if (hasDrink) { const x = 42 + HP_MAX * 18; cx.fillStyle = '#ffe070'; cx.fillRect(x + 2, 15, 9, 19); cx.fillStyle = '#fff6c0'; cx.fillRect(x + 4, 12, 5, 4); cx.fillStyle = '#c86a10'; cx.fillRect(x + 2, 24, 9, 4); }   // 予備のドリンクの印
       }
       cx.textAlign = 'right'; cx.fillStyle = '#deccf8'; cx.fillText(runTime.toFixed(1) + '秒', VW - 14, 30);
       if (showTouch && phase === 'play') { for (const b of btns()) { const on = touchKeys()[b.k]; cx.fillStyle = on ? 'rgba(0,232,200,.35)' : 'rgba(255,255,255,.1)'; cx.strokeStyle = 'rgba(255,255,255,.35)'; cx.lineWidth = 2; cx.beginPath(); cx.arc(b.x, b.y, b.r, 0, TAU); cx.fill(); cx.stroke(); cx.fillStyle = '#fff'; cx.textAlign = 'center'; cx.font = (b.lab.length > 1 ? 11 : 16) + 'px sans-serif'; cx.fillText(b.lab, b.x, b.y + 5); } }
@@ -1084,9 +1135,9 @@ registerMinigame({
 
     // 試験の時だけの入口（window.__MG_TEST__ がある時だけ）
     if (typeof window !== 'undefined' && window.__MG_TEST__) window.__MG_TEST__.runnerHard = {
-      get s() { return { selArt: !!SEL, selRects, VW, stage: STAGE.id, bossSprite: !!(boss ? BSPR[boss.id] : BSPR.raikaku), sprites: Object.keys(BSPR), sel: typeof RunnerBosses !== 'undefined' ? selList().map(d => d.id) : [], selIdx, gmW: GM ? { winds: GM.winds.map(q => GM.live(q)), floods: GM.floods.map(q => Math.round(GM.level(q))) } : null, gm: GM ? { strips: GM.strips.map(q => GM.live(q)), crumbles: GM.crumbles.map(c => c.st), charged: GM.charged } : null, boss: boss ? { hp: boss.hp, state: boss.state, dead: boss.dead, x: boss.x, face: boss.face, frame: BZ.frame(boss), w: BZ.spec(boss).w, grounded: boss.grounded, y: boss.y } : null, art: artVisible(), arenaOn, arena: AR, moves: C ? [...C.learned] : [], beaten: REC.beaten || [], sprite: !!SPR, spriteKey: SPR && B ? spriteKey() : null, phase, hp, falls, hurts, runTime, outcome, kills, foes: foes.map(e => ({ type: e.type, x: e.x, y: e.y, hp: e.hp, dead: e.dead, face: e.face })), invul: B && B.invul, atk: B && B.atk && B.atk.id, x: B && B.x, y: B && B.y, state: B && B.state, goal, spawn, checks: checks.map(c => !!c.got) }; },
+      get s() { return { selArt: !!SEL, selRects, VW, stage: STAGE.id, bossSprite: !!(boss ? BSPR[boss.id] : BSPR.raikaku), sprites: Object.keys(BSPR), sel: typeof RunnerBosses !== 'undefined' ? selList().map(d => d.id) : [], selIdx, gmW: GM ? { winds: GM.winds.map(q => GM.live(q)), floods: GM.floods.map(q => Math.round(GM.level(q))) } : null, gm: GM ? { strips: GM.strips.map(q => GM.live(q)), crumbles: GM.crumbles.map(c => c.st), charged: GM.charged } : null, boss: boss ? { hp: boss.hp, state: boss.state, dead: boss.dead, x: boss.x, face: boss.face, frame: BZ.frame(boss), w: BZ.spec(boss).w, grounded: boss.grounded, y: boss.y } : null, art: artVisible(), arenaOn, arena: AR, moves: C ? [...C.learned] : [], beaten: REC.beaten || [], sprite: !!SPR, spriteKey: SPR && B ? spriteKey() : null, phase, hp, falls, hurts, runTime, outcome, kills, foes: foes.map(e => ({ type: e.type, x: e.x, y: e.y, hp: e.hp, dead: e.dead, face: e.face })), invul: B && B.invul, atk: B && B.atk && B.atk.id, x: B && B.x, y: B && B.y, state: B && B.state, goal, spawn, checks: checks.map(c => !!c.got), items: items.map(it => ({ id: it.id, kind: it.kind, x: it.x, y: it.y, got: it.got })), cracks: cracks.map(k => ({ c: k.c, broken: k.broken })), hpMax: HP_MAX, recItems: REC.items || {}, drinkUsed, drops: drops.length }; },
       get cold() { return { on: !!CZ, home: !!(CZ && CZ.home), hp: cboss ? cboss.hp : null, state: cboss ? cboss.state : null, dead: cboss ? cboss.dead : null, x: cboss ? cboss.x : null, y: cboss ? cboss.y : null, infect, res: coldRes, rec: REC.cold || null, story: story ? { i: story.i, n: story.lines.length, txt: (story.lines[story.i] || {}).txt } : null, sel: selList().map(d => d.id) }; },
-      heal() { hp = HP_MAX; }, coldHp(n) { if (cboss) cboss.hp = n; }, infect(n) { infect = n; }, beatAll() { REC.beaten = RunnerBosses.visible().map(b => b.id); },
+      heal() { hp = HP_MAX; }, hurt(n) { damage(n, 'test'); }, coldHp(n) { if (cboss) cboss.hp = n; }, infect(n) { infect = n; }, beatAll() { REC.beaten = RunnerBosses.visible().map(b => b.id); },
       bossHp(n) { if (boss) boss.hp = n; }, bossGo(st) { if (boss) { boss.state = st; boss.f = 0; boss.blocks = 0; } },
       warp(x, y) { if (B) { B.x = x; B.y = y; B.vx = B.vy = 0; act.go(B, 'fall'); } }, start() { advance(); },
     };
