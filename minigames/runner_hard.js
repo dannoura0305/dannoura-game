@@ -69,7 +69,8 @@ var RunnerHardStageKoka = RunnerHardStageKoka || {
     ];
     return A.map(([i, x0, x1, y]) => ({ x0: i * 2000 + x0, x1: i * 2000 + x1, y: 698 - y }));
   },
-  enemies() { return [['flyer', 12, 9, -1], ['flyer', 30, 7, -1], ['flyer', 44, 7, -1], ['flyer', 63, 9, -1], ['flyer', 80, 8, -1], ['walker', 102, 4, -1], ['walker', 104, 4, -1]]; },
+  // 送電区の敵：火花虫（時々火花をまとう）・碍子の盾（正面は防ぐ。後ろ・溜め斬り・雷突きで崩す）
+  enemies() { return [['flyer', 12, 9, -1], ['crawler', 30, 5, -1], ['shield', 38, 5, -1], ['flyer', 44, 7, -1], ['crawler', 47, 5, -1], ['crawler', 57, 5, -1], ['flyer', 63, 9, -1], ['shield', 70, 9, -1], ['crawler', 84, 5, -1], ['shield', 96, 5, -1], ['walker', 102, 4, -1], ['walker', 104, 4, -1]]; },
   arena() { return { c0: 106, c1: 120, bossC: 117, boss: 'raikaku', floorCy: 4 }; },
   gimmicks() {
     return {
@@ -101,7 +102,8 @@ var RunnerHardStageOkujo = RunnerHardStageOkujo || {
     ];
     return A.map(([i, x0, x1, y]) => ({ x0: i * 2000 + x0, x1: i * 2000 + x1, y: 595 - y }));
   },
-  enemies() { return [['flyer', 14, 8, -1], ['flyer', 33, 10, -1], ['flyer', 48, 9, -1], ['flyer', 66, 11, -1], ['flyer', 84, 9, -1], ['walker', 101, 4, -1]]; },
+  // 屋上の敵：瓦投げ（屋根から放物線で瓦）・風凧（空から斜め下へ風の刃）
+  enemies() { return [['flyer', 14, 8, -1], ['kite', 22, 10, -1], ['thrower', 44, 5, -1], ['flyer', 48, 9, -1], ['thrower', 66, 9, -1], ['kite', 74, 12, -1], ['thrower', 80, 6, -1], ['kite', 92, 11, -1], ['walker', 101, 4, -1]]; },
   arena() { return { c0: 103, c1: 117, bossC: 114, boss: 'kazegiri', floorCy: 4 }; },
   gimmicks() {
     return { winds: [{ c0: 8, c1: 15, dir: -1, period: 220, on: 100, off: 0, force: 5 }, { c0: 69, c1: 79, dir: -1, period: 240, on: 110, off: 60, force: 3.2 }, { c0: 84, c1: 98, dir: 1, period: 200, on: 110, off: 30, force: 2.0 }] };
@@ -133,7 +135,8 @@ var RunnerHardStageHaisui = RunnerHardStageHaisui || {
       { x0: 4000, x1: 4320, y: 180 },                                                                       // 3 枚目：左の一段高い床
     ];
   },
-  enemies() { return [['walker', 5, 4, -1], ['flyer', 22, 7, -1], ['flyer', 33, 8, -1], ['walker', 47, 5, -1], ['flyer', 60, 8, -1], ['walker', 69, 6, -1], ['flyer', 80, 9, -1], ['flyer', 100, 8, -1]]; },
+  // 排水路の敵：泥がえる（跳ねて寄ってくる）・排水の目（開いた時だけ効く。水の玉を噴き上げる）
+  enemies() { return [['walker', 5, 4, -1], ['flyer', 22, 7, -1], ['spout', 27, 5, -1], ['hopper', 50, 6, -1], ['spout', 61, 6, -1], ['walker', 69, 6, -1], ['spout', 75, 6, -1], ['flyer', 80, 9, -1], ['hopper', 86, 7, -1], ['hopper', 104, 6, -1]]; },
   arena() { return { c0: 111, c1: 125, bossC: 122, boss: 'dakuryu', floorCy: 4 }; },
   gimmicks() {
     return {
@@ -381,17 +384,18 @@ registerMinigame({
       if (B.atk && B.atk.id + ':' + B.atk.chain !== wasAtk) { SE.swing(B.atk.id === 'slash3'); }
       if (CZ) { coldFrame(); return; }
       for (const e of foes) E.step(e, B);
-      foes = foes.filter(e => !e.gone);
+      foes = foes.filter(e => !e.gone); E.stepShots();
       // 攻撃が敵に当たる
       const hb = C.hitbox(B);
       if (hb) for (const e of foes) {
         if (e.dead || !RunnerCombat.overlap(hb, E.box(e)) || !C.tryHit(B, e)) continue;
-        E.hurt(e, hb.dmg, hb.kb); hitStop = Math.max(hitStop, hb.hitstop); shake = Math.max(shake, hb.hitstop > 5 ? .25 : .12); SE.hit(e.dead);
+        if (E.hurt(e, hb.dmg, hb.kb, hb.id, B.x) === 'block') { hitStop = Math.max(hitStop, 3); SE.block(); for (let i = 0; i < 6; i++) emit(e.x + (B.x - e.x) * .4, e.y + 24, Math.sign(B.x - e.x) * rnd(40, 180), rnd(-40, 160), .22, i % 2 ? '#ffffff' : '#c8d0ff', 2, 300); continue; }
+        hitStop = Math.max(hitStop, hb.hitstop); shake = Math.max(shake, hb.hitstop > 5 ? .25 : .12); SE.hit(e.dead);
         const ex = e.x, ey = e.y + 18; for (let i = 0; i < (e.dead ? 16 : 8); i++) emit(ex, ey, rnd(-160, 160), rnd(-60, 200), .35, i % 2 ? '#e8f0ff' : '#00e8c8', 2.2, 400);
         if (e.dead) kills++;
       }
       // 飛ぶ斬撃（溜め 2 段）が敵に当たる
-      for (const sh of C.shots) { const sb = C.shotBox(sh); for (const e of foes) { if (e.dead || !RunnerCombat.overlap(sb, E.box(e)) || !C.shotHit(sh, e)) continue; E.hurt(e, sb.dmg, sb.kb); hitStop = Math.max(hitStop, 3); SE.hit(e.dead); for (let i = 0; i < 10; i++) emit(e.x, e.y + 18, rnd(-160, 160), rnd(-60, 200), .35, i % 2 ? '#fff6a0' : '#00e8c8', 2.2, 400); if (e.dead) kills++; } }
+      for (const sh of C.shots) { const sb = C.shotBox(sh); for (const e of foes) { if (e.dead || !RunnerCombat.overlap(sb, E.box(e)) || !C.shotHit(sh, e)) continue; if (E.hurt(e, sb.dmg, sb.kb, 'wave', sh.x - Math.sign(sh.vx) * 60) === 'block') { SE.block(); continue; } hitStop = Math.max(hitStop, 3); SE.hit(e.dead); for (let i = 0; i < 10; i++) emit(e.x, e.y + 18, rnd(-160, 160), rnd(-60, 200), .35, i % 2 ? '#fff6a0' : '#00e8c8', 2.2, 400); if (e.dead) kills++; } }
       // 面の仕掛け：帯電する床・壊れる足場・帯電した看板（触れると やられ）
       if (GM) { GM.step(B, act.box(B)); if (B.invul <= 0 && B.state !== 'hurt' && GM.shock(act.box(B))) { B.atk = null; act.hurt(B, B.face || 1); for (let i = 0; i < 10; i++) emit(B.x, B.y + 20, rnd(-120, 120), rnd(20, 200), .3, i % 2 ? '#d080ff' : '#fff6a0', 2, 300); } }
       // ボスの部屋：入ると柵が閉まり、ボスが起きる
@@ -406,7 +410,9 @@ registerMinigame({
         if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); let hit = !boss.dead && boss.state !== 'wait' && RunnerCombat.overlap(pb, BZ.box(boss)) ? boss.x : null; for (const sh of BZ.shots) { const sb = BZ.shotBox(sh); if (sb && RunnerCombat.overlap(pb, sb)) { hit = sh.x; if (['spark', 'wave', 'blade', 'drop'].includes(sh.kind)) sh.life = 0; } } if (hit !== null) { B.atk = null; act.hurt(B, hit < B.x ? -1 : 1); } }
       }
       // 敵に触れる → やられ（後ろへ飛ぶ・無敵）
-      if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); for (const e of foes) { if (e.dead || !RunnerCombat.overlap(pb, E.box(e))) continue; B.atk = null; act.hurt(B, e.x < B.x ? -1 : 1); break; } }   // 敵の方を向いたまま、後ろへ飛ぶ
+      if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); for (const e of foes) { if (e.dead || !(RunnerCombat.overlap(pb, E.box(e)) || (E.auraBox(e) && RunnerCombat.overlap(pb, E.auraBox(e))))) continue; B.atk = null; act.hurt(B, e.x < B.x ? -1 : 1); break; } }
+      // 敵の弾（瓦・風の刃・水の玉）
+      if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); for (const sh of E.shots) { if (!RunnerCombat.overlap(pb, E.shotBox(sh))) continue; sh.life = 0; B.atk = null; act.hurt(B, sh.x < B.x ? -1 : 1); break; } }   // 敵の方を向いたまま、後ろへ飛ぶ
     }
     const bossDef = () => RunnerBosses.BOSSES.find(b => b.id === AR.boss);
     // 見つけた弱点（一度弱点で当てたボスだけ、選択画面に出す）
@@ -693,7 +699,68 @@ registerMinigame({
       }
     }
     // 敵（仮の見た目）：雨坊主＝雨合羽の小さな坊主・からかさ＝一つ目の古い傘
+    // 面ごとの敵の絵（コードで描く・仮）。原点は足もと、上が −
+    const shadow = w => { cx.fillStyle = 'rgba(0,0,0,.35)'; cx.beginPath(); cx.ellipse(0, 1, w, 3, 0, 0, TAU); cx.fill(); };
+    const eyes = (e, y, c = '#0a0a18') => { cx.fillStyle = c; cx.fillRect(e.face * 3 - 5, y, 3, 4); cx.fillRect(e.face * 3 + 2, y, 3, 4); };
+    const FOE_DRAW = {
+      thrower(e, fl) {   // 瓦投げ：瓦の笠をかぶった小鬼。投げる前に腕を振りかぶる
+        shadow(14); const tele = e.state === 'tele', k = tele ? Math.min(1, e.f / 24) : 0;
+        cx.fillStyle = fl ? '#fff' : '#6a4a8a'; cx.beginPath(); cx.moveTo(-12, 0); cx.quadraticCurveTo(-13, -26, 0, -30); cx.quadraticCurveTo(13, -26, 12, 0); cx.closePath(); cx.fill();
+        cx.fillStyle = fl ? '#fff' : '#3a3550'; cx.beginPath(); cx.moveTo(-18, -27); cx.lineTo(0, -42); cx.lineTo(18, -27); cx.closePath(); cx.fill();   // 瓦の笠
+        cx.strokeStyle = '#8a86a8'; cx.lineWidth = 1; for (let i = -12; i <= 12; i += 6) { cx.beginPath(); cx.moveTo(i, -28 + Math.abs(i) * .1); cx.lineTo(i * .4, -38); cx.stroke(); }
+        eyes(e, -22, '#ffd060');
+        cx.save(); cx.translate(-e.face * 6, -20); cx.rotate(-e.face * (0.4 + k * 1.8)); cx.fillStyle = '#6a4a8a'; cx.fillRect(-2.5, -16, 5, 16); if (tele) { cx.fillStyle = '#5a5a70'; cx.fillRect(-7, -22, 14, 7); } cx.restore();
+      },
+      kite(e, fl) {   // 風凧：顔の描いた凧。尾が風になびく。撃つ前に光る
+        cx.rotate(Math.sin(e.f * .06) * .2); const tele = e.state === 'tele';
+        cx.strokeStyle = 'rgba(255,200,240,.7)'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(0, 0); for (let i = 1; i <= 5; i++) cx.lineTo(Math.sin(e.f * .15 + i) * 6 - e.face * i * 3, i * 7); cx.stroke();
+        cx.fillStyle = fl || (tele && e.f % 6 < 3) ? '#fff' : '#d05a9a'; cx.beginPath(); cx.moveTo(0, -30); cx.lineTo(17, -12); cx.lineTo(0, 2); cx.lineTo(-17, -12); cx.closePath(); cx.fill();
+        cx.strokeStyle = '#3a1030'; cx.lineWidth = 1.5; cx.stroke(); cx.beginPath(); cx.moveTo(0, -30); cx.lineTo(0, 2); cx.moveTo(-17, -12); cx.lineTo(17, -12); cx.stroke();
+        cx.fillStyle = '#fff6e0'; cx.beginPath(); cx.arc(-6, -16, 3.5, 0, TAU); cx.arc(6, -16, 3.5, 0, TAU); cx.fill(); cx.fillStyle = '#1a0a10'; cx.fillRect(-6 + e.face, -17, 2, 3); cx.fillRect(6 + e.face, -17, 2, 3);
+      },
+      hopper(e, fl) {   // 泥がえる：跳ぶ前に縮む
+        const sq = e.state === 'walk' ? Math.min(1, e.f / 54) * 4 : -3; shadow(13);
+        cx.fillStyle = fl ? '#fff' : '#5a6a3a'; cx.beginPath(); cx.ellipse(0, -10 + sq * .5, 14 + sq * .4, 11 - sq * .5, 0, 0, TAU); cx.fill();
+        cx.fillStyle = fl ? '#fff' : '#7a8a4a'; cx.beginPath(); cx.arc(-6, -20 + sq, 5, 0, TAU); cx.arc(6, -20 + sq, 5, 0, TAU); cx.fill();
+        cx.fillStyle = '#fff6c0'; cx.beginPath(); cx.arc(-6 + e.face, -21 + sq, 2.6, 0, TAU); cx.arc(6 + e.face, -21 + sq, 2.6, 0, TAU); cx.fill();
+        cx.fillStyle = 'rgba(90,70,40,.8)'; for (let i = 0; i < 4; i++) cx.fillRect(-10 + i * 6, -6 + (i % 2) * 3, 3, 3);   // 泥のはね
+      },
+      spout(e, fl) {   // 排水の目：壁の丸い排水口。開くと目がのぞく（開いている間だけ効く）
+        const open = e.state === 'open' || e.state === 'tele', k = e.state === 'tele' ? Math.min(1, e.f / 30) : e.state === 'open' ? 1 : 0;
+        cx.fillStyle = '#2a3040'; cx.beginPath(); cx.arc(0, -16, 18, 0, TAU); cx.fill(); cx.strokeStyle = fl ? '#fff' : '#8a96b0'; cx.lineWidth = 3; cx.stroke();
+        cx.fillStyle = '#0a0e18'; cx.beginPath(); cx.arc(0, -16, 12, 0, TAU); cx.fill();
+        if (open) { cx.fillStyle = '#ffe070'; cx.beginPath(); cx.ellipse(0, -16, 8, 6 * k, 0, 0, TAU); cx.fill(); cx.fillStyle = '#1a0a10'; cx.beginPath(); cx.arc(e.face * 2, -16, 2.5 * k, 0, TAU); cx.fill(); }
+        cx.strokeStyle = '#5a6680'; cx.lineWidth = 2.5; for (let i = 0; i < 3; i++) { const yy = -24 + i * 8, w = Math.sqrt(Math.max(0, 144 - (yy + 16) ** 2)); if (!open || i !== 1) { cx.beginPath(); cx.moveTo(-w, yy); cx.lineTo(w, yy); cx.stroke(); } }   // 格子
+        if (e.state === 'tele') { cx.fillStyle = 'rgba(150,200,255,.7)'; for (let i = 0; i < 3; i++) cx.fillRect(rnd(-10, 10), -30 - rnd(0, 10), 2, 4); }
+      },
+      crawler(e, fl) {   // 火花虫：ずんぐりした虫。まとう前にちらつき、まとう間は火花の輪
+        shadow(13); const sp = e.state === 'spark', tele = e.state === 'tele';
+        if (sp) { cx.strokeStyle = `rgba(255,240,120,${.5 + .5 * Math.sin(e.f)})`; cx.lineWidth = 2; for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + e.f * .2; cx.beginPath(); cx.moveTo(Math.cos(a) * 16, -10 + Math.sin(a) * 14); cx.lineTo(Math.cos(a + .2) * 40, -10 + Math.sin(a + .2) * 36); cx.stroke(); } }
+        cx.fillStyle = fl ? '#fff' : tele && e.f % 6 < 3 ? '#fff6a0' : '#3a3a5a'; cx.beginPath(); cx.ellipse(0, -9, 15, 9, 0, Math.PI, 0); cx.fill(); cx.fillRect(-15, -9, 30, 4);
+        cx.fillStyle = '#ffd84a'; for (let i = -1; i <= 1; i++) cx.fillRect(i * 7 - 2, -15, 4, 3);
+        cx.fillStyle = '#ff5a5a'; cx.fillRect(e.face * 11 - 2, -10, 4, 3);
+        cx.strokeStyle = '#1a1a2a'; cx.lineWidth = 2; for (let i = -1; i <= 1; i++) { cx.beginPath(); cx.moveTo(i * 8, -5); cx.lineTo(i * 8 + Math.sin(e.f * .4 + i) * 3, 0); cx.stroke(); }
+      },
+      shield(e, fl) {   // 碍子の盾：碍子（白い陶器の傘）を重ねた盾を前に構える
+        shadow(16);
+        cx.fillStyle = fl ? '#fff' : '#4a4a68'; cx.fillRect(-10, -40, 20, 40); cx.fillStyle = '#2a2a40'; cx.fillRect(-10, -4, 9, 4); cx.fillRect(1, -4, 9, 4);
+        eyes(e, -34, '#7af0ff');
+        const fx = e.face * 14; cx.fillStyle = '#e8ecf4'; for (let i = 0; i < 4; i++) { cx.beginPath(); cx.ellipse(fx, -40 + i * 11, 7, 6, 0, 0, TAU); cx.fill(); }
+        cx.strokeStyle = '#9aa0b8'; cx.lineWidth = 1.5; for (let i = 0; i < 4; i++) { cx.beginPath(); cx.ellipse(fx, -40 + i * 11, 7, 6, 0, 0, TAU); cx.stroke(); }
+        if (e.f < 8 && !e.dead) { cx.strokeStyle = 'rgba(255,255,255,.9)'; cx.lineWidth = 2; cx.beginPath(); cx.arc(fx + e.face * 4, -24, 14 + e.f, -1.2, 1.2); cx.stroke(); }   // 防いだ光
+      },
+    };
+    // 敵の弾
+    function drawFoeShots() {
+      if (!E) return;
+      for (const s of E.shots) { const x = sx(s.x), y = sy(s.y);
+        if (s.kind === 'tile') { cx.save(); cx.translate(x, y); cx.rotate(s.life * .3); cx.fillStyle = '#5a5a70'; cx.fillRect(-9, -5, 18, 10); cx.strokeStyle = '#9a9ab8'; cx.lineWidth = 1.5; cx.strokeRect(-9, -5, 18, 10); cx.restore(); }
+        else if (s.kind === 'gust') { cx.save(); cx.translate(x, y); cx.rotate(Math.atan2(-s.vy, s.vx)); cx.fillStyle = 'rgba(255,190,240,.9)'; cx.beginPath(); cx.moveTo(-14, -9); cx.quadraticCurveTo(14, 0, -14, 9); cx.quadraticCurveTo(0, 0, -14, -9); cx.fill(); cx.restore(); }
+        else { cx.fillStyle = 'rgba(150,200,255,.95)'; cx.beginPath(); cx.arc(x, y, 7, 0, TAU); cx.fill(); cx.fillStyle = 'rgba(255,255,255,.6)'; cx.beginPath(); cx.arc(x - 2, y - 2, 2.5, 0, TAU); cx.fill(); }
+      }
+    }
     function drawFoes() {
+      drawFoeShots();
       for (const e of foes) {
         const x = sx(e.x), y = sy(e.y), a = e.dead ? Math.max(0, 1 - e.deadF / RunnerEnemies.DEATH_F) : 1, fl = e.hitT > 6;
         cx.globalAlpha = a; cx.save(); cx.translate(x, y); if (e.dead) cx.scale(1 + e.deadF * .03, 1 - e.deadF * .03);
@@ -703,6 +770,7 @@ registerMinigame({
           cx.fillStyle = fl ? '#ffffff' : '#3a6a8a'; cx.beginPath(); cx.moveTo(-14, 0); cx.quadraticCurveTo(-12, -30 - bob, 0, -36 - bob); cx.quadraticCurveTo(12, -30 - bob, 14, 0); cx.closePath(); cx.fill();
           cx.fillStyle = fl ? '#ffffff' : '#5a9ac0'; cx.beginPath(); cx.arc(0, -26 - bob, 11, Math.PI, 0); cx.fill();
           cx.fillStyle = '#0a0a18'; cx.fillRect(e.face * 3 - 5, -24 - bob, 3, 4); cx.fillRect(e.face * 3 + 2, -24 - bob, 3, 4);
+        } else if (FOE_DRAW[e.type]) { FOE_DRAW[e.type](e, fl);
         } else {
           const tilt = e.state === 'dive' ? .5 * Math.sign(e.vx || 1) : Math.sin(e.f * .07) * .15;
           cx.rotate(tilt);
