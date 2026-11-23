@@ -70,7 +70,8 @@ var RunnerHardStageKoka = RunnerHardStageKoka || {
     return A.map(([i, x0, x1, y]) => ({ x0: i * 2000 + x0, x1: i * 2000 + x1, y: 698 - y }));
   },
   // 送電区の敵：火花虫（時々火花をまとう）・碍子の盾（正面は防ぐ。後ろ・溜め斬り・雷突きで崩す）
-  enemies() { return [['flyer', 12, 9, -1], ['crawler', 30, 5, -1], ['shield', 38, 5, -1], ['flyer', 44, 7, -1], ['crawler', 55, 5, -1], ['crawler', 59, 5, -1], ['flyer', 63, 9, -1], ['shield', 70, 9, -1], ['crawler', 84, 5, -1], ['shield', 96, 5, -1], ['walker', 102, 4, -1], ['walker', 104, 4, -1]]; },
+  // 電線ねずみ（高い所を走り、真上で落ちる）・ぱちぱち玉（寄ってきて弾ける）。雨坊主・からかさは使わない
+  enemies() { return [['nezumi', 12, 8, -1], ['crawler', 30, 5, -1], ['shield', 38, 5, -1], ['pachi', 44, 7, -1], ['crawler', 55, 5, -1], ['crawler', 59, 5, -1], ['nezumi', 64, 9, -1], ['shield', 70, 9, -1], ['pachi', 78, 7, -1], ['crawler', 84, 5, -1], ['shield', 96, 5, -1], ['pachi', 102, 6, -1], ['nezumi', 104, 8, -1]]; },
   arena() { return { c0: 106, c1: 120, bossC: 117, boss: 'raikaku', floorCy: 4 }; },
   // 隠しアイテム：お守り＝高い渡り廊下の右の上（跳んで届く）
   items() { return [{ id: 'koka_charm', kind: 'charm', x: 3180, y: 446 }]; },
@@ -105,7 +106,8 @@ var RunnerHardStageOkujo = RunnerHardStageOkujo || {
     return A.map(([i, x0, x1, y]) => ({ x0: i * 2000 + x0, x1: i * 2000 + x1, y: 595 - y }));
   },
   // 屋上の敵：瓦投げ（屋根から放物線で瓦）・風凧（空から斜め下へ風の刃）
-  enemies() { return [['flyer', 14, 8, -1], ['kite', 22, 10, -1], ['thrower', 44, 5, -1], ['flyer', 48, 9, -1], ['thrower', 66, 9, -1], ['kite', 74, 12, -1], ['thrower', 80, 6, -1], ['kite', 92, 11, -1], ['walker', 101, 4, -1]]; },
+  // つむじ坊（吸い寄せる竜巻）・鳥居烏（2 羽で組・真下を通ると急降下）。雨坊主・からかさは使わない
+  enemies() { return [['karasu', 14, 9, -1], ['karasu', 16, 9, -1], ['kite', 22, 10, -1], ['tsumuji', 37, 5, -1], ['thrower', 44, 5, -1], ['karasu', 48, 8, -1], ['karasu', 50, 8, -1], ['thrower', 66, 9, -1], ['kite', 74, 12, -1], ['thrower', 80, 6, -1], ['tsumuji', 86, 6, -1], ['kite', 92, 11, -1], ['tsumuji', 101, 4, -1]]; },
   arena() { return { c0: 103, c1: 117, bossC: 114, boss: 'kazegiri', floorCy: 4 }; },
   // 隠しアイテム（世界の px・足もと）：お守り＝高い塔のてっぺん（張り出しを伝って登る）・予備のドリンク＝最初の塔の屋上
   items() { return [{ id: 'okujo_charm', kind: 'charm', x: 2990, y: 435 }, { id: 'drink', kind: 'drink', x: 1010, y: 275 }]; },
@@ -140,7 +142,8 @@ var RunnerHardStageHaisui = RunnerHardStageHaisui || {
     ];
   },
   // 排水路の敵：泥がえる（跳ねて寄ってくる）・排水の目（開いた時だけ効く。水の玉を噴き上げる）
-  enemies() { return [['walker', 5, 4, -1], ['flyer', 22, 7, -1], ['spout', 27, 5, -1], ['hopper', 50, 6, -1], ['spout', 61, 6, -1], ['walker', 69, 6, -1], ['spout', 75, 6, -1], ['flyer', 80, 9, -1], ['hopper', 86, 7, -1], ['hopper', 104, 6, -1]]; },
+  // ごみ袋坊（斬ると分かれる）・しぶき鯉（水面から跳ぶ。増水で高く）。雨坊主・からかさは使わない
+  enemies() { return [['gomi', 6, 4, -1], ['koi', 22, 2.125, -1], ['spout', 27, 5, -1], ['koi', 34, 2.125, -1], ['hopper', 50, 6, -1], ['spout', 61, 6, -1], ['gomi', 69, 6, -1], ['spout', 75, 6, -1], ['koi', 80, 2.125, -1], ['hopper', 86, 7, -1], ['gomi', 104, 6, -1]]; },
   arena() { return { c0: 111, c1: 125, bossC: 122, boss: 'dakuryu', floorCy: 4 }; },
   // 隠しアイテム：お守り＝コンビニの戸の先、ひびの入った壁（溜め斬りで壊す）の奥
   items() { return [{ id: 'haisui_charm', kind: 'charm', x: 144 * 40 + 20, y: 160 }]; },
@@ -372,7 +375,7 @@ registerMinigame({
       const drop = p => { const y0 = p.y; let y = p.y; while (y > 0 && !map.solid(Math.floor(p.x / T), Math.floor((y - 1) / T))) y -= T; p.y = Math.max(0, Math.ceil(y / T) * T);
         for (const L of map.ledges) if (L.y <= y0 + 0.01 && L.y > p.y && p.x > L.x0 && p.x < L.x1) p.y = L.y; };   // 好きな高さの足場の上にも置ける
       [spawn, goal, ...checks].forEach(drop);
-      act = RunnerAct.make({ map, phys: physOf(DF), airDash: () => !!C && C.usable('kazebashiri') }); C = RunnerCombat.make(act, { learned: REC.moves || [] }); E = RunnerEnemies.make(map); bossIntro = 0;
+      act = RunnerAct.make({ map, phys: physOf(DF), airDash: () => !!C && C.usable('kazebashiri') }); C = RunnerCombat.make(act, { learned: REC.moves || [] }); E = RunnerEnemies.make(map, { waterAt: x => { if (!GM) return null; for (const fl of GM.floods) if (x >= fl.c0 * map.tile && x <= (fl.c1 + 1) * map.tile) return GM.surface(fl); return null; } }); bossIntro = 0;
       foes = STAGE.enemies().map(([type, c, cy, face]) => E.spawn(type, c * T + T / 2, cy * T, face));
       GM = RunnerGimmicks.make(map, STAGE.gimmicks ? STAGE.gimmicks() : {});
       // 隠しアイテム（お守り・予備のドリンク）：取った物は記録に残り、次からは出ない。ひびの入った壁（溜め斬りでだけ壊れる）
@@ -387,6 +390,7 @@ registerMinigame({
     // だんのうらのドット絵（assets/runner/dannoura.webp・.json。利用者の絵）。読めるまで・読めない時は、今までのコードで描く人物
     let SPR = null, SEL = null; const ART = {};   // ART：面の背景の絵（名前 → 画像）   // SEL：ボス選択画面の絵（assets/runner/select.json）
     function loadSprite() {
+      fetch('assets/runner/foes.json').then(r => r.json()).then(meta => { const img = new Image(); img.onload = () => { FSPR = { img, F: meta.frames, k: meta.scale || .5 }; }; img.src = 'assets/runner/' + meta.image; }).catch(() => {});   // 面ごとの敵の絵（利用者の絵）
       fetch('assets/runner/select.json').then(r => r.json()).then(meta => { const bg = new Image(), img = new Image(); let n = 0; const ok = () => { if (++n === 2) SEL = { bg, img, F: meta.frames, W: meta.W, H: meta.H }; }; bg.onload = ok; img.onload = ok; bg.src = 'assets/runner/' + meta.bg; img.src = 'assets/runner/' + meta.image; }).catch(() => {});   // ボス選択画面の絵（利用者の絵）
       for (const nm of ['haisui_water', 'haisui_1', 'haisui_2', 'haisui_3', 'okujo_1', 'okujo_2', 'okujo_3', 'koka_1', 'koka_2', 'koka_3', 'home']) { const img = new Image(); img.onload = () => { ART[nm] = img; }; img.src = 'assets/runner/' + nm + '.webp'; }   // 濁流・風斬・雷殻の面と、風邪菌の家の背景（利用者の絵）
       for (const id of ['kazegiri', 'dakuryu', 'raikaku', 'kazekin'])   // ボスと隠しボスのドット絵（利用者の絵）
@@ -412,12 +416,14 @@ registerMinigame({
       if (bossIntro > 0) { raw = {}; if (bossIntro < BOSS_INTRO_F * .45 && bossIntro > BOSS_INTRO_F * .05 && bossIntro % 4 === 0) SE.tick(); if (--bossIntro === 0 && boss) { BZ.wake(boss); banner = { t: 0, txt: 'ボス　' + bossDef().name }; } }   // ボスの登場：WARNING・名前・体力の帯が満ちる間は動けない
       const inp = Object.assign({}, raw); inp.atkP = inp.atk && !prevIn.atk; inp.jP = inp.j && !prevIn.j; inp.dP = inp.d && !prevIn.d; prevIn = raw;
       if (hitStop > 0) { hitStop--; if (inp.atkP) B.atkBuf = RunnerCombat.BUFFER_F; return; }   // 当たった瞬間の止め（押した攻撃は覚えておく）
-      const wasAtk = B.atk && B.atk.id + ':' + B.atk.chain;
+      const wasAtk = B.atk && B.atk.id + ':' + B.atk.chain, wasSt = B.state, wasInv = B.invul;
       act.step(B, C.pre(B, inp)); C.post(B);
       if (B.atk && B.atk.id + ':' + B.atk.chain !== wasAtk) { SE.swing(B.atk.id === 'slash3'); }
       if (CZ) { coldFrame(); return; }
       for (const e of foes) E.step(e, B);
-      foes = foes.filter(e => !e.gone); E.stepShots();
+      foes = foes.filter(e => !e.gone); E.stepShots(); if (E.born.length) foes.push(...E.born.splice(0));   // ごみ袋坊が分かれた小さな袋
+      // つむじ坊：ふくらんでいる間は自機を吸い寄せる（壁は越えない）
+      for (const e of foes) if (e.pull && B.state !== 'hurt') { const T = map.tile, nx = B.x + e.pull, edge = nx + Math.sign(e.pull) * 8; if (!map.solid(Math.floor(edge / T), Math.floor((B.y + 10) / T))) B.x = nx; }
       // 攻撃が敵に当たる
       const hb = C.hitbox(B);
       if (hb) for (const e of foes) {
@@ -451,6 +457,21 @@ registerMinigame({
       if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); for (const e of foes) { if (e.dead || !(RunnerCombat.overlap(pb, E.box(e)) || (E.auraBox(e) && RunnerCombat.overlap(pb, E.auraBox(e))))) continue; B.atk = null; act.hurt(B, e.x < B.x ? -1 : 1); break; } }
       // 敵の弾（瓦・風の刃・水の玉）
       if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); for (const sh of E.shots) { if (!RunnerCombat.overlap(pb, E.shotBox(sh))) continue; sh.life = 0; B.atk = null; act.hurt(B, sh.x < B.x ? -1 : 1); break; } }   // 敵の方を向いたまま、後ろへ飛ぶ
+      if (B.state === 'hurt' && wasSt !== 'hurt' && wasInv <= 0) damage(1, 'hit');   // やられた こま：傘の耐久 −1（風邪菌の戦いは感染ゲージなので、ここへは来ない）
+      if (phase === 'play') rules();
+    }
+    // 遊びの決まり（穴・拾う物・途中の印・戸）：1 こまごとに見る（デモを同じに再生するため。画面の 1 回の更新に何こま進んでも同じ）
+    function rules() {
+      // 穴に落ちた
+      if (B.y < (STAGE.fallY != null ? STAGE.fallY : -120)) { falls++; damage(1, 'pit'); if (phase === 'play') respawn(); }
+      // 隠しアイテム・のど飴を拾う
+      for (const it of items) if (!it.got && Math.abs(B.x - it.x) < 26 && B.y < it.y + 50 && B.y + 48 > it.y) pickItem(it);
+      for (const d of drops) { if (d.got) continue; d.t += 1 / 60; if (d.vy !== 0 || d.y > E.floorAt(d.x, d.y)) { d.vy -= 900 / 60; d.y += d.vy / 60; const fy = E.floorAt(d.x, d.y + 1); if (d.y <= fy) { d.y = fy; d.vy = 0; } } if (d.t > 9 || d.y < -150) d.got = true; else if (Math.abs(B.x - d.x) < 24 && Math.abs(B.y + 20 - d.y) < 40) { d.got = true; hp = Math.min(HP_MAX, hp + 1); SE.heal(); banner = { t: 1.6, txt: 'のど飴（傘 +1）' }; } }
+      drops = drops.filter(d => !d.got);
+      // 途中の印
+      for (const c of checks) if (!c.got && Math.abs(B.x - c.x) < 24 && Math.abs(B.y - c.y) < 60) { c.got = true; check = { x: c.x, y: c.y }; SE.check(); banner = { t: 0, txt: '途中の印（ここから やり直せる）' }; }
+      // コンビニの戸
+      if (Math.abs(B.x - goal.x) < 26 && Math.abs(B.y - goal.y) < 30) { phase = 'clear'; phaseT = 0; outcome = 'clear'; SE.clear(); commit(); for (let i = 0; i < 20; i++) emit(B.x, B.y + 30, rnd(-140, 140), rnd(40, 200), .8, i % 2 ? '#00e8c8' : '#e8b830', 2.5, 300); }
     }
     const bossDef = () => RunnerBosses.BOSSES.find(b => b.id === AR.boss);
     const BOSS_INTRO_F = 150; let bossIntro = 0;   // ボスの登場の間（こま）：前半 WARNING・後半 名前と体力の帯
@@ -523,23 +544,11 @@ registerMinigame({
         if (B.state === 'wall_kick') SE.kick();
         if (B.state === 'land') { SE.land(); for (let i = 0; i < 6; i++) emit(B.x + rnd(-8, 8), B.y, rnd(-70, 70), rnd(20, 70), .3, 'rgba(170,200,255,.7)', 1.8, 300); }
         if (B.state === 'slide') SE.slide();
-        if (B.state === 'hurt' && !wasInvul && !CZ) damage(1, 'spike');   // 風邪菌の戦いは感染ゲージ（coldFrame）
         lastState = B.state;
       }
       { const lv = C ? C.chargeLv(B) : 0; if (lv > chgLv) SE.charge(lv); if (lv && Math.random() < .6) { const a = rnd(0, TAU), r = rnd(22, 40); emit(B.x + Math.cos(a) * r, B.y + 34 + Math.sin(a) * r, -Math.cos(a) * 70, -Math.sin(a) * 70, .3, lv > 1 ? '#ffe070' : '#7afff0', 2, 0); } chgLv = lv; }
       if (B.atk && B.atk.lv && B.atk.f === 1) SE.chargeRel(B.atk.lv);
       if (B.state === 'wall_slide' && B.vy < 0 && Math.random() < .5) emit(B.x + B.wallDir * 7, B.y + 30, -B.wallDir * rnd(10, 40), rnd(-20, 20), .25, 'rgba(200,220,255,.7)', 1.5, 200);
-      if (CZ) return;
-      // 穴に落ちた
-      if (B.y < (STAGE.fallY != null ? STAGE.fallY : -120)) { falls++; damage(1, 'pit'); if (phase === 'play') respawn(); }
-      // 隠しアイテム・のど飴を拾う
-      for (const it of items) if (!it.got && Math.abs(B.x - it.x) < 26 && B.y < it.y + 50 && B.y + 48 > it.y) pickItem(it);
-      for (const d of drops) { if (d.got) continue; d.t += dt; if (d.vy !== 0 || d.y > E.floorAt(d.x, d.y)) { d.vy -= 900 * dt; d.y += d.vy * dt; const fy = E.floorAt(d.x, d.y + 1); if (d.y <= fy) { d.y = fy; d.vy = 0; } } if (d.t > 9 || d.y < -150) d.got = true; else if (Math.abs(B.x - d.x) < 24 && Math.abs(B.y + 20 - d.y) < 40) { d.got = true; hp = Math.min(HP_MAX, hp + 1); SE.heal(); banner = { t: 1.6, txt: 'のど飴（傘 +1）' }; } }
-      drops = drops.filter(d => !d.got);
-      // 途中の印
-      for (const c of checks) if (!c.got && Math.abs(B.x - c.x) < 24 && Math.abs(B.y - c.y) < 60) { c.got = true; check = { x: c.x, y: c.y }; SE.check(); banner = { t: 0, txt: '途中の印（ここから やり直せる）' }; }
-      // コンビニの戸
-      if (Math.abs(B.x - goal.x) < 26 && Math.abs(B.y - goal.y) < 30) { phase = 'clear'; phaseT = 0; outcome = 'clear'; SE.clear(); commit(); for (let i = 0; i < 20; i++) emit(B.x, B.y + 30, rnd(-140, 140), rnd(40, 200), .8, i % 2 ? '#00e8c8' : '#e8b830', 2.5, 300); }
     }
 
     // ── 描画 ──
@@ -824,6 +833,59 @@ registerMinigame({
         cx.fillStyle = '#ff5a5a'; cx.fillRect(e.face * 11 - 2, -10, 4, 3);
         cx.strokeStyle = '#1a1a2a'; cx.lineWidth = 2; for (let i = -1; i <= 1; i++) { cx.beginPath(); cx.moveTo(i * 8, -5); cx.lineTo(i * 8 + Math.sin(e.f * .4 + i) * 3, 0); cx.stroke(); }
       },
+      tsumuji(e, fl) {   // つむじ坊：目のある小さな竜巻。ふくらむ前に回りが速くなり、ふくらむと大きく
+        const big = e.state === 'pull' ? 1.5 : e.state === 'tele' ? 1 + e.f / 44 : 1, sp = e.f * (e.state === 'walk' ? .3 : .6);
+        cx.fillStyle = 'rgba(0,0,0,.3)'; cx.beginPath(); cx.ellipse(0, 1, 12 * big, 3, 0, 0, TAU); cx.fill();
+        for (let i = 0; i < 6; i++) { const yy = -4 - i * 5.5 * big, w = (5 + i * 2.6) * big, a = sp + i * .9; cx.strokeStyle = fl ? '#fff' : i % 2 ? 'rgba(220,200,255,.85)' : 'rgba(170,150,240,.8)'; cx.lineWidth = 2.5; cx.beginPath(); cx.ellipse(Math.sin(a) * 2, yy, w, 2.6 * big, 0, a % TAU, a % TAU + 4.6); cx.stroke(); }
+        cx.fillStyle = '#fff6c0'; cx.fillRect(-5 + e.face * 2, -20 * big, 3, 3); cx.fillRect(2 + e.face * 2, -20 * big, 3, 3);
+        if (e.state === 'pull') { cx.strokeStyle = 'rgba(220,210,255,.4)'; cx.lineWidth = 1.5; for (let i = 0; i < 5; i++) { const r = 60 + ((e.f * 3 + i * 25) % 110); cx.beginPath(); cx.arc(0, -18, 110 - r + 20, 0, TAU); cx.stroke(); } }   // 吸い込む輪
+      },
+      karasu(e, fl) {   // 鳥居烏：黒い烏。とまっている間は羽をたたみ、降りる時は羽を広げる
+        const open = e.state === 'dive' || e.state === 'back', fla = Math.sin(e.f * .6) * 6;
+        cx.fillStyle = fl ? '#fff' : '#1a1428'; cx.beginPath(); cx.ellipse(0, -9, 10, 7, 0, 0, TAU); cx.fill();
+        cx.beginPath(); cx.arc(e.face * 8, -14, 5, 0, TAU); cx.fill();
+        cx.fillStyle = '#e8b830'; cx.beginPath(); cx.moveTo(e.face * 12, -15); cx.lineTo(e.face * 18, -13); cx.lineTo(e.face * 12, -12); cx.fill();
+        cx.fillStyle = '#ff4a5a'; cx.fillRect(e.face * 9 - 1, -16, 2, 2);
+        cx.fillStyle = fl ? '#fff' : '#2a2040'; if (open) { cx.beginPath(); cx.moveTo(-4, -11); cx.lineTo(-22, -16 - fla); cx.lineTo(-14, -5); cx.closePath(); cx.moveTo(4, -11); cx.lineTo(22, -16 - fla); cx.lineTo(14, -5); cx.closePath(); cx.fill(); }
+        else { cx.beginPath(); cx.ellipse(-e.face * 3, -8, 9, 4, -e.face * .3, 0, TAU); cx.fill(); cx.strokeStyle = '#3a3050'; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(-3, -2); cx.lineTo(-3, 1); cx.moveTo(3, -2); cx.lineTo(3, 1); cx.stroke(); }
+        if (e.state === 'wait') { cx.fillStyle = '#ff4a5a'; cx.font = 'bold 12px sans-serif'; cx.textAlign = 'center'; cx.fillText('!', 0, -26); }
+      },
+      gomi(e, fl, small) {   // ごみ袋坊：口を結んだ紫のごみ袋のかたまり。転がる
+        const k = small ? .6 : 1; shadow(13 * k); cx.save(); cx.translate(0, -12 * k); cx.rotate(small ? Math.sin(e.f * .3) * .3 : (e.roll || 0));
+        cx.fillStyle = fl ? '#fff' : '#5a4a7a'; cx.beginPath(); cx.ellipse(0, 0, 14 * k, 12 * k, 0, 0, TAU); cx.fill();
+        cx.fillStyle = fl ? '#fff' : '#7a6a9a'; cx.beginPath(); cx.ellipse(-4 * k, -4 * k, 6 * k, 4 * k, -.4, 0, TAU); cx.fill();
+        cx.strokeStyle = '#2a2040'; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(-8 * k, 4 * k); cx.quadraticCurveTo(0, 9 * k, 8 * k, 3 * k); cx.stroke();
+        cx.fillStyle = '#5a4a7a'; cx.beginPath(); cx.moveTo(0, -11 * k); cx.lineTo(-5 * k, -17 * k); cx.lineTo(0, -14 * k); cx.lineTo(5 * k, -17 * k); cx.closePath(); cx.fill();   // 結び目
+        cx.restore(); cx.fillStyle = '#ffd060'; cx.fillRect(e.face * 4 * k - 4, -14 * k, 3, 3); cx.fillRect(e.face * 4 * k + 2, -14 * k, 3, 3);
+      },
+      gomi_s(e, fl) { FOE_DRAW.gomi(e, fl, true); },
+      koi(e, fl) {   // しぶき鯉：水の中は泡だけ。跳ぶ間は弧に沿って体を傾ける
+        if (e.state === 'under') return;
+        if (e.state === 'tele') { cx.fillStyle = 'rgba(220,235,255,.85)'; for (let i = 0; i < 6; i++) { const r = 2 + ((e.f + i * 5) % 6); cx.beginPath(); cx.arc(-14 + i * 6, 22 - ((e.f * 2 + i * 7) % 14), r * .5, 0, TAU); cx.fill(); } return; }
+        cx.rotate(Math.atan2(-e.vy, Math.abs(e.vx) + 2) * (e.face || 1));
+        cx.fillStyle = fl ? '#fff' : '#6a7aa8'; cx.beginPath(); cx.ellipse(0, -11, 17, 8, 0, 0, TAU); cx.fill();
+        cx.fillStyle = fl ? '#fff' : '#a8b8e0'; cx.beginPath(); cx.ellipse(2 * e.face, -8, 11, 4, 0, 0, TAU); cx.fill();
+        cx.fillStyle = fl ? '#fff' : '#4a5a88'; cx.beginPath(); cx.moveTo(-e.face * 15, -11); cx.lineTo(-e.face * 26, -19); cx.lineTo(-e.face * 24, -11); cx.lineTo(-e.face * 26, -3); cx.closePath(); cx.fill();   // 尾びれ
+        cx.fillStyle = '#ffffff'; cx.beginPath(); cx.arc(e.face * 10, -13, 2.6, 0, TAU); cx.fill(); cx.fillStyle = '#10142a'; cx.beginPath(); cx.arc(e.face * 10.5, -13, 1.3, 0, TAU); cx.fill();
+        cx.strokeStyle = 'rgba(220,235,255,.7)'; cx.lineWidth = 1.2; cx.beginPath(); cx.moveTo(e.face * 15, -9); cx.lineTo(e.face * 20, -6); cx.stroke();   // ひげ
+      },
+      nezumi(e, fl) {   // 電線ねずみ：灰色のねずみ。尾が電線で、先が光る
+        const run = Math.sin(e.f * .8) * 2;
+        if (e.state === 'run') { cx.strokeStyle = 'rgba(40,40,60,.9)'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(-60, -2); cx.lineTo(60, -2); cx.stroke(); }   // 走っている電線
+        cx.fillStyle = fl ? '#fff' : '#8a8a9a'; cx.beginPath(); cx.ellipse(0, -8, 11, 7, 0, 0, TAU); cx.fill(); cx.beginPath(); cx.ellipse(e.face * 9, -10, 6, 5, 0, 0, TAU); cx.fill();
+        cx.fillStyle = '#e8a0b0'; cx.beginPath(); cx.arc(e.face * 5, -16, 3, 0, TAU); cx.fill();
+        cx.fillStyle = '#10142a'; cx.fillRect(e.face * 11 - 1, -12, 2, 2);
+        cx.strokeStyle = '#3a3a50'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(-e.face * 10, -6); cx.quadraticCurveTo(-e.face * 20, -16 + run, -e.face * 28, -8); cx.stroke();
+        cx.fillStyle = Math.sin(e.f * .5) > 0 ? '#fff6a0' : '#ffd84a'; cx.beginPath(); cx.arc(-e.face * 28, -8, 3, 0, TAU); cx.fill();   // 尾の先の火花
+        if (e.state === 'fall') { cx.strokeStyle = '#fff6a0'; cx.lineWidth = 1.5; for (let i = 0; i < 4; i++) { cx.beginPath(); cx.moveTo(rnd(-12, 12), rnd(-20, 0)); cx.lineTo(rnd(-16, 16), rnd(-24, 4)); cx.stroke(); } }
+      },
+      pachi(e, fl) {   // ぱちぱち玉：小さな電気の玉。弾ける前は ちらつく
+        const fz = e.state === 'fuse', k = fz ? 1 + e.f / 30 : 1, y = -12;
+        cx.globalCompositeOperation = 'lighter'; const g = cx.createRadialGradient(0, y, 0, 0, y, 22 * k); g.addColorStop(0, 'rgba(255,246,160,.9)'); g.addColorStop(.4, 'rgba(255,216,74,.4)'); g.addColorStop(1, 'rgba(255,216,74,0)'); cx.fillStyle = g; cx.fillRect(-24 * k, y - 24 * k, 48 * k, 48 * k); cx.globalCompositeOperation = 'source-over';
+        cx.fillStyle = fl || (fz && e.f % 4 < 2) ? '#ffffff' : '#ffe070'; cx.beginPath(); cx.arc(0, y, 8 * k, 0, TAU); cx.fill();
+        cx.strokeStyle = '#fff6c0'; cx.lineWidth = 1.5; for (let i = 0; i < 5; i++) { const a = i * 1.26 + e.f * .3; cx.beginPath(); cx.moveTo(Math.cos(a) * 8 * k, y + Math.sin(a) * 8 * k); cx.lineTo(Math.cos(a + .3) * 15 * k, y + Math.sin(a + .3) * 15 * k); cx.stroke(); }
+        cx.fillStyle = '#5a3a10'; cx.fillRect(-4, y - 2, 2, 3); cx.fillRect(2, y - 2, 2, 3);
+      },
       shield(e, fl) {   // 碍子の盾：碍子（白い陶器の傘）を重ねた盾を前に構える
         shadow(16);
         cx.fillStyle = fl ? '#fff' : '#4a4a68'; cx.fillRect(-10, -40, 20, 40); cx.fillStyle = '#2a2a40'; cx.fillRect(-10, -4, 9, 4); cx.fillRect(1, -4, 9, 4);
@@ -833,12 +895,85 @@ registerMinigame({
         if (e.f < 8 && !e.dead) { cx.strokeStyle = 'rgba(255,255,255,.9)'; cx.lineWidth = 2; cx.beginPath(); cx.arc(fx + e.face * 4, -24, 14 + e.f, -1.2, 1.2); cx.stroke(); }   // 防いだ光
       },
     };
+    // ── 面ごとの敵：利用者の絵（assets/runner/foes.webp・.json。緑の地から切り出した 1 枚絵。どれも左向き）に、コードで動きをつける ──
+    //   1 枚の絵を、状態ごとに 伸び縮み・傾き・揺れ・光らせて動かす（跳ぶ前に縮む・振りかぶる・羽ばたく・回る など）。絵が読めない時は今までのコードの絵
+    let FSPR = null;
+    // 名前の絵を、足もと（下のまん中）を原点に描く。o：sx・sy 伸び縮み・rot 傾き（足もと中心）・cy 傾きの中心を真ん中に・dx/dy ずらし・face 向き・white 光
+    function fspr(name, e, o = {}) {
+      const f = FSPR.F[name]; if (!f) return; const k = FSPR.k, w = f[2] * k, h = f[3] * k, face = o.face ?? (e.face || -1);
+      cx.save(); cx.translate(o.dx || 0, o.dy || 0);
+      if (o.rot) { if (o.cy) { cx.translate(0, -h / 2); cx.rotate(o.rot); cx.translate(0, h / 2); } else cx.rotate(o.rot); }
+      cx.scale((face > 0 ? -1 : 1) * (o.sx || 1), o.sy || 1);
+      cx.drawImage(FSPR.img, f[0], f[1], f[2], f[3], -w / 2, -h, w, h);
+      if (o.white) { cx.globalCompositeOperation = 'lighter'; const a0 = cx.globalAlpha; cx.globalAlpha = a0 * o.white; cx.drawImage(FSPR.img, f[0], f[1], f[2], f[3], -w / 2, -h, w, h); cx.globalAlpha = a0; cx.globalCompositeOperation = 'source-over'; }
+      cx.restore();
+    }
+    const hitW = fl => (fl ? .8 : 0);   // 当たった時に白く光る
+    const FOE_SPR = {
+      // 屋上
+      thrower(e, fl) {   // 瓦投げ：予兆の間は振りかぶって後ろへ反る → 投げた直後は前へ乗り出す
+        const tele = e.state === 'tele', k = tele ? Math.min(1, e.f / 24) : 0, after = !tele && e.cd > RunnerEnemies.TYPES.thrower.every - 10 ? 1 - (RunnerEnemies.TYPES.thrower.every - e.cd) / 10 : 0;
+        shadow(16); fspr('thrower', e, { rot: (k * .22 - after * .18) * (e.face > 0 ? -1 : 1) * -1, sy: 1 + Math.sin(e.f * .12) * .02 - k * .05, white: hitW(fl) || (tele && e.f > 16 && e.f % 4 < 2 ? .35 : 0) });
+      },
+      kite(e, fl) {   // 風凧：風にあおられて揺れ、撃つ前は光る
+        const tele = e.state === 'tele'; fspr('kite', e, { dy: 14, rot: Math.sin(e.f * .06) * .18, cy: true, sy: 1 + Math.sin(e.f * .11) * .04, white: hitW(fl) || (tele && e.f % 6 < 3 ? .5 : 0) });
+      },
+      tsumuji(e, fl) {   // つむじ坊：回りながら揺れる。予兆でふくらみ、吸う間は大きく速く回る
+        const st = e.state, k = st === 'pull' ? 1.3 : st === 'tele' ? 1 + .3 * e.f / 22 : 1, sp = st === 'walk' ? .45 : 1.1;
+        if (st === 'pull') { cx.strokeStyle = 'rgba(220,210,255,.4)'; cx.lineWidth = 1.5; for (let i = 0; i < 5; i++) { const r = 20 + ((e.f * 3 + i * 25) % 110); cx.beginPath(); cx.arc(0, -30, 130 - r, 0, TAU); cx.stroke(); } }
+        fspr('tsumuji', e, { sx: k * (1 + Math.sin(e.f * sp) * .08), sy: k, dx: Math.sin(e.f * sp * .7) * 3, face: Math.sin(e.f * sp * .5) > 0 ? 1 : -1, white: hitW(fl) });
+      },
+      karasu(e, fl) {   // 鳥居烏：とまっている間は首を動かし、降りる・戻る間は羽ばたく
+        if (e.state === 'dive' || e.state === 'back') { const fla = Math.sin(e.f * .9); fspr('karasu_fly', e, { dy: 18, sy: 1 + fla * .14, sx: 1 - fla * .05, rot: e.state === 'dive' ? .25 * (e.face > 0 ? 1 : -1) : 0, cy: true, white: hitW(fl) }); return; }
+        fspr('karasu', e, { dy: 6, rot: Math.sin(e.f * .07) * .04, cy: true, white: hitW(fl) });
+        if (e.state === 'wait') { cx.fillStyle = '#ff4a5a'; cx.font = 'bold 13px sans-serif'; cx.textAlign = 'center'; cx.fillText('!', 0, -40); }
+      },
+      // 排水路
+      hopper(e, fl) {   // 泥がえる：跳ぶ前に縮み、跳ぶ間は伸びる
+        const D = RunnerEnemies.TYPES.hopper, air = e.state === 'hop', k = !air ? Math.max(0, (e.f - (D.wait - 18)) / 18) : 0;
+        shadow(18); fspr('hopper', e, { sy: air ? 1.12 : 1 - Math.min(1, k) * .16 + Math.sin(e.f * .15) * .02, sx: air ? .9 : 1 + Math.min(1, k) * .08, rot: air ? (e.vy > 0 ? -.15 : .12) * (e.face > 0 ? -1 : 1) : 0, cy: air, white: hitW(fl) });
+      },
+      spout(e, fl) {   // 排水の目：閉じている間は目に蓋（暗い格子）。開く前は震えて、蓋が上がる
+        const st = e.state, k = st === 'tele' ? Math.min(1, e.f / 30) : st === 'open' ? 1 : 0, f0 = FSPR.F.spout, h = f0[3] * FSPR.k;
+        fspr('spout', e, { dx: st === 'tele' ? Math.sin(e.f * 1.3) * 1.5 : 0, white: hitW(fl) });
+        if (k < 1) { const cxp = (e.face > 0 ? 1 : -1) * -h * .04, cyp = -h * .5, r = h * .3; cx.save(); cx.beginPath(); cx.arc(cxp, cyp, r, 0, TAU); cx.clip(); cx.fillStyle = 'rgba(30,34,52,.94)'; cx.fillRect(cxp - r, cyp - r, r * 2, r * 2 * (1 - k)); cx.strokeStyle = '#5a6680'; cx.lineWidth = 2; for (let i = -2; i <= 2; i++) { cx.beginPath(); cx.moveTo(cxp + i * r * .4, cyp - r); cx.lineTo(cxp + i * r * .4, cyp - r + r * 2 * (1 - k)); cx.stroke(); } cx.restore(); }   // 蓋（下から上がる）
+        if (st === 'tele') { cx.fillStyle = 'rgba(150,200,255,.75)'; for (let i = 0; i < 3; i++) cx.fillRect(rnd(-12, 12), -h - rnd(0, 10), 2, 4); }
+      },
+      gomi(e, fl) { shadow(16); fspr('gomi', e, { rot: Math.sin(e.f * .2) * .12, sy: 1 - Math.abs(Math.sin(e.f * .2)) * .06, sx: 1 + Math.abs(Math.sin(e.f * .2)) * .04, white: hitW(fl) }); },   // ごみ袋坊：揺れながら転がる
+      gomi_s(e, fl) { const air = e.state === 'hop'; shadow(9); fspr('gomi_s', e, { sy: air ? 1.15 : 1 + Math.sin(e.f * .3) * .05, sx: air ? .9 : 1, rot: air ? Math.sin(e.f * .4) * .3 : 0, cy: true, white: hitW(fl) }); },
+      koi(e, fl) {   // しぶき鯉：水の中は泡だけ。跳ぶ間は弧に沿って体の向きを変え、尾を振る
+        if (e.state === 'under') return;
+        if (e.state === 'tele') { cx.fillStyle = 'rgba(220,235,255,.85)'; for (let i = 0; i < 6; i++) { const r = 2 + ((e.f + i * 5) % 6); cx.beginPath(); cx.arc(-14 + i * 6, 22 - ((e.f * 2 + i * 7) % 14), r * .5, 0, TAU); cx.fill(); } return; }
+        const J = RunnerEnemies.TYPES.koi.jump, v = Math.max(-1, Math.min(1, e.vy / J)), rot = (1 - v) * Math.PI / 2 * (e.face > 0 ? 1 : -1);
+        fspr('koi', e, { dy: 24, rot, cy: true, sx: 1 + Math.sin(e.f * .5) * .04, white: hitW(fl) });
+      },
+      // 送電区
+      crawler(e, fl) {   // 火花虫：歩くと小刻みに揺れる。火花をまとう前は黄色く光り、まとう間は震えて火花の輪
+        const sp = e.state === 'spark', tele = e.state === 'tele';
+        if (sp) { cx.strokeStyle = `rgba(255,240,120,${.5 + .5 * Math.sin(e.f)})`; cx.lineWidth = 2; for (let i = 0; i < 8; i++) { const a2 = i / 8 * TAU + e.f * .2; cx.beginPath(); cx.moveTo(Math.cos(a2) * 18, -14 + Math.sin(a2) * 14); cx.lineTo(Math.cos(a2 + .2) * 42, -14 + Math.sin(a2 + .2) * 36); cx.stroke(); } }
+        shadow(18); fspr('crawler', e, { dy: e.state === 'walk' ? -Math.abs(Math.sin(e.f * .6)) * 1.5 : 0, dx: sp ? Math.sin(e.f * 2) * 1.5 : 0, white: hitW(fl) || (tele && e.f % 6 < 3 ? .6 : 0) || (sp ? .25 + .2 * Math.sin(e.f) : 0) });
+      },
+      shield(e, fl) {   // 碍子の盾：一歩ずつ踏みしめて寄る。防いだ時は盾が光って少し下がる
+        const blk = e.f < 8 && !e.dead && e.f >= 0 && e.blocked; shadow(20);
+        fspr('shield', e, { dy: -Math.abs(Math.sin(e.f * .12)) * 2, rot: Math.sin(e.f * .12) * .03, dx: blk ? (e.face > 0 ? -3 : 3) : 0, white: hitW(fl) || (blk ? .45 * (1 - e.f / 8) : 0) });
+      },
+      nezumi(e, fl) {   // 電線ねずみ：跳ねるように走る。高い所では電線の上、落ちる間はくるっと回る
+        if (e.state === 'run') { cx.strokeStyle = 'rgba(40,40,60,.9)'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(-70, 0); cx.lineTo(70, 0); cx.stroke(); }
+        const fall = e.state === 'fall'; fspr('nezumi', e, { dy: -Math.abs(Math.sin(e.f * .7)) * 3, rot: fall ? e.f * .25 : Math.sin(e.f * .7) * .06, cy: fall, white: hitW(fl) });
+        if (fall) { cx.strokeStyle = '#fff6a0'; cx.lineWidth = 1.5; for (let i = 0; i < 3; i++) { cx.beginPath(); cx.moveTo(rnd(-14, 14), rnd(-24, 0)); cx.lineTo(rnd(-18, 18), rnd(-28, 4)); cx.stroke(); } }
+      },
+      pachi(e, fl) {   // ぱちぱち玉：脈打ってゆっくり回る。弾ける前は白く ちらついて ふくらむ
+        const fz = e.state === 'fuse', k = (fz ? 1 + e.f / 40 : 1) * (1 + Math.sin(e.f * .3) * .06);
+        fspr('pachi', e, { dy: 22, sx: k, sy: k, rot: e.f * .03, cy: true, white: hitW(fl) || (fz && e.f % 4 < 2 ? .9 : .15 + .15 * Math.sin(e.f * .5)) });
+      },
+    };
     // 敵の弾
     function drawFoeShots() {
       if (!E) return;
       for (const s of E.shots) { const x = sx(s.x), y = sy(s.y);
         if (s.kind === 'tile') { cx.save(); cx.translate(x, y); cx.rotate(s.life * .3); cx.fillStyle = '#5a5a70'; cx.fillRect(-9, -5, 18, 10); cx.strokeStyle = '#9a9ab8'; cx.lineWidth = 1.5; cx.strokeRect(-9, -5, 18, 10); cx.restore(); }
         else if (s.kind === 'gust') { cx.save(); cx.translate(x, y); cx.rotate(Math.atan2(-s.vy, s.vx)); cx.fillStyle = 'rgba(255,190,240,.9)'; cx.beginPath(); cx.moveTo(-14, -9); cx.quadraticCurveTo(14, 0, -14, 9); cx.quadraticCurveTo(0, 0, -14, -9); cx.fill(); cx.restore(); }
+        else if (s.kind === 'spark') { cx.strokeStyle = '#fff6a0'; cx.lineWidth = 2.5; cx.beginPath(); cx.moveTo(x - 9, y); cx.lineTo(x - 3, y - 5); cx.lineTo(x + 2, y + 4); cx.lineTo(x + 9, y - 2); cx.stroke(); cx.fillStyle = 'rgba(255,224,112,.5)'; cx.beginPath(); cx.arc(x, y, 7, 0, TAU); cx.fill(); }
         else { cx.fillStyle = 'rgba(150,200,255,.95)'; cx.beginPath(); cx.arc(x, y, 7, 0, TAU); cx.fill(); cx.fillStyle = 'rgba(255,255,255,.6)'; cx.beginPath(); cx.arc(x - 2, y - 2, 2.5, 0, TAU); cx.fill(); }
       }
     }
@@ -862,7 +997,8 @@ registerMinigame({
       for (const e of foes) {
         const x = sx(e.x), y = sy(e.y), a = e.dead ? Math.max(0, 1 - e.deadF / RunnerEnemies.DEATH_F) : 1, fl = e.hitT > 6;
         cx.globalAlpha = a; cx.save(); cx.translate(x, y); if (e.dead) cx.scale(1 + e.deadF * .03, 1 - e.deadF * .03);
-        if (e.type === 'walker') {
+        if (FSPR && FOE_SPR[e.type]) { FOE_SPR[e.type](e, fl, a);
+        } else if (e.type === 'walker') {
           const bob = Math.abs(Math.sin(e.f * .2)) * 2;
           cx.fillStyle = 'rgba(0,0,0,.35)'; cx.beginPath(); cx.ellipse(0, 1, 14, 3, 0, 0, TAU); cx.fill();
           cx.fillStyle = fl ? '#ffffff' : '#3a6a8a'; cx.beginPath(); cx.moveTo(-14, 0); cx.quadraticCurveTo(-12, -30 - bob, 0, -36 - bob); cx.quadraticCurveTo(12, -30 - bob, 14, 0); cx.closePath(); cx.fill();
