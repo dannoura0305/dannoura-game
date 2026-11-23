@@ -98,4 +98,45 @@ t('宙の敵：ふわふわ漂い、下に自機が来ると急降下して、�
   assert.ok(dived && back);
 });
 
+
+t('溜め斬り：押し続けると段が上がる（1 段・2 段）・離すと大きく払う・2 段は前へ飛ぶ斬撃も出て壁で消える・短く押すと ふつうの斬り', () => {
+  const C0 = RC.CHARGE; assert.ok(C0.f1 > 10 && C0.f2 > C0.f1);
+  // 短く押す：ふつうの斬り、溜めは出ない
+  { const r = rig([]); r.step({ atk: true }); r.step({}); assert.equal(r.b.atk.id, 'slash1'); for (let i = 0; i < 40; i++) r.step({}); assert.equal(r.b.atk, null); }
+  // 1 段
+  { const r = rig([]); for (let i = 0; i < C0.f1 + 2; i++) r.step({ atk: true }); assert.equal(r.C.chargeLv(r.b), 1); r.step({}); assert.equal(r.b.atk.id, 'charge'); assert.equal(r.b.atk.lv, 1);
+    let hb = null; for (let i = 0; i < 10 && !hb; i++) { r.step({}); hb = r.C.hitbox(r.b); } assert.ok(hb && hb.dmg >= 3 && hb.x1 - hb.x0 >= 70, '大きく払う'); assert.equal(r.C.shots.length, 0, '1 段は飛ばない'); }
+  // 2 段：飛ぶ斬撃
+  { const r = rig([]); for (let i = 0; i < C0.f2 + 2; i++) r.step({ atk: true }); assert.equal(r.C.chargeLv(r.b), 2); r.step({}); for (let i = 0; i < 6; i++) r.step({});
+    assert.equal(r.C.shots.length, 1, '飛ぶ斬撃'); const s = r.C.shots[0], x0 = s.x; r.step({}); assert.ok(s.x > x0, '前へ進む');
+    const sb = r.C.shotBox(s); assert.ok(sb.dmg >= 3 && sb.id === 'wave');
+    const e = { id: 'x' }; assert.equal(r.C.shotHit(s, e), true); assert.equal(r.C.shotHit(s, e), false, '同じ相手に 1 回');
+    for (let i = 0; i < 80; i++) r.step({}); assert.equal(r.C.shots.length, 0, '消える'); }
+  // 空中で離す：空中の溜め斬り
+  { const r = rig([]); for (let i = 0; i < C0.f1 + 2; i++) r.step({ atk: true }); r.step({ atk: true, j: true }); r.step({ atk: true, j: true }); r.step({ j: true }); assert.equal(r.b.atk && r.b.atk.id, 'charge_air'); }
+});
+
+
+t('面ごとの敵（屋上・排水路・送電区）：床（好きな高さの足場にも）に立つ・瓦は放物線で自機の所へ・風凧は斜め下へ・泥がえるは寄って跳ぶ・排水の目は開いた時だけ効く・火花虫は火花をまとう・碍子の盾は正面を防ぐ', () => {
+  for (const [st, ts] of Object.entries(RE.STAGE_FOES)) for (const k of ts) assert.ok(RE.TYPES[k], st + ':' + k);
+  const mk = () => { const map = RA.makeMap(['.'.repeat(60), '.'.repeat(60), '.'.repeat(60), '.'.repeat(60), '.'.repeat(60), '.'.repeat(60), '#'.repeat(60)]); map.ledges.push({ x0: 20 * T, x1: 30 * T, y: 3 * T }); return { map, E: RE.make(map) }; };
+  // 足場の上に下ろす
+  { const { E } = mk(); const e = E.spawn('thrower', 25 * T, 5 * T); assert.equal(e.y, 3 * T, '足場の上'); const g = E.spawn('hopper', 10 * T, 5 * T); assert.equal(g.y, T, 'マスの床'); }
+  // 瓦投げ：放物線で自機の近くへ落ちる
+  { const { E } = mk(); const e = E.spawn('thrower', 25 * T, 5 * T), p = { x: 18 * T, y: T, vx: 0 }; let sh = null; for (let i = 0; i < 200 && !sh; i++) { E.step(e, p); if (E.shots.length) sh = E.shots[0]; } assert.ok(sh && sh.kind === 'tile' && sh.vy > 0 && sh.vx < 0, '前へ上向きに投げる');
+    let minD = 1e9; for (let i = 0; i < 120 && E.shots.length; i++) { E.stepShots(); if (E.shots.length) minD = Math.min(minD, Math.hypot(sh.x - p.x, sh.y - (p.y + 10))); } assert.ok(minD < 40, '自機の所へ落ちる ' + minD); }
+  // 風凧：斜め下へ
+  { const { E } = mk(); const e = E.spawn('kite', 20 * T, 6 * T), p = { x: 14 * T, y: T }; let sh = null; for (let i = 0; i < 260 && !sh; i++) { E.step(e, p); if (E.shots.length) sh = E.shots[0]; } assert.ok(sh && sh.kind === 'gust' && sh.vy < 0 && sh.vx < 0, '自機の方へ斜め下'); }
+  // 泥がえる：寄って跳ぶ
+  { const { E } = mk(); const e = E.spawn('hopper', 10 * T, T), p = { x: 4 * T, y: T }; let top = e.y, landed = false; const x0 = e.x; for (let i = 0; i < 160 && !landed; i++) { E.step(e, p); top = Math.max(top, e.y); landed = top > T + 40 && e.y === T; } assert.ok(top > T + 40, '跳ぶ'); assert.ok(e.x < x0 - 30, '寄る'); assert.ok(landed, '着地'); }
+  // 排水の目：閉じている間は防ぐ → 開くと効く・水の玉 3 つ
+  { const { E } = mk(); const e = E.spawn('spout', 10 * T, T), p = { x: 6 * T, y: T }; assert.equal(E.hurt(e, 1, 0, 'slash1', 6 * T), 'block', '閉じている');
+    for (let i = 0; i < 400 && e.state !== 'open'; i++) E.step(e, p); assert.equal(e.state, 'open'); assert.equal(E.shots.filter(s => s.kind === 'water').length, RE.TYPES.spout.n); assert.equal(E.hurt(e, 1, 0, 'slash1', 6 * T), true, '開くと効く'); }
+  // 火花虫：まとう間は周りが危ない
+  { const { E } = mk(); const e = E.spawn('crawler', 10 * T, T), p = { x: 8 * T, y: T }; assert.equal(E.auraBox(e), null); let a = null; for (let i = 0; i < 400 && !a; i++) { E.step(e, p); a = E.auraBox(e); } assert.ok(a && a.x1 - a.x0 >= 80, '火花の輪'); }
+  // 碍子の盾：正面は防ぐ・後ろ・溜め斬り・飛ぶ斬撃・雷突きは通る
+  { const { E } = mk(); const e = E.spawn('shield', 10 * T, T, -1); e.face = -1; assert.equal(E.hurt(e, 1, 0, 'slash1', 8 * T), 'block', '正面'); assert.equal(E.hurt(e, 1, 0, 'slash1', 12 * T), true, '後ろ');
+    for (const m of ['charge', 'wave', 'raitotsu']) { const g = E.spawn('shield', 10 * T, T, -1); g.face = -1; assert.equal(E.hurt(g, 1, 0, m, 8 * T), true, m); } }
+});
+
 console.log(`runner-hard-combat: ${n} ok`);

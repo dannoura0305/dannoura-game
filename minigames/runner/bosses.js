@@ -10,15 +10,27 @@
 (function (root) {
   'use strict';
   const BOSSES = [
-    { id: 'kazegiri', name: '風斬の怪異', kana: 'かぜぎりのかいい', stage: 'okujo', teaches: 'kazebashiri', special: '風断連嵐', hidden: false, order: 'A',
+    { id: 'kazegiri', name: '風斬の怪異', kana: 'かぜぎりのかいい', stage: 'okujo', teaches: 'kazebashiri', weak: 'raitotsu', special: '風断連嵐', hidden: false, order: 'A',
       reason: '風を纏い、街の空を裂く、孤高の斬鬼。高速移動と近接斬撃の技能戦' },
-    { id: 'dakuryu', name: '濁流の怪異', kana: 'だくりゅうのかいい', stage: 'haisui', teaches: 'mizukiri', special: '豪雨濁流・都市氾濫', hidden: false, order: 'B',
+    { id: 'dakuryu', name: '濁流の怪異', kana: 'だくりゅうのかいい', stage: 'haisui', teaches: 'mizukiri', weak: 'kazeha', special: '豪雨濁流・都市氾濫', hidden: false, order: 'B',
       reason: '雨と増水に潜む、都市を呑み込む水の怪異。雨が強まるほど肥大する' },
-    { id: 'raikaku', name: '雷殻の怪異', kana: 'らいかくのかいい', stage: 'koka', teaches: 'raitotsu', special: '雷雲招来', hidden: false, order: 'C',
+    { id: 'raikaku', name: '雷殻の怪異', kana: 'らいかくのかいい', stage: 'koka', teaches: 'raitotsu', weak: 'mizukiri', special: '雷雲招来', hidden: false, order: 'C',
       reason: '都市の雷を纏う、インフラ守護の異形。重装甲と雷で戦うパワー型' },
     // 隠しボス：通常ボスを全員倒した後にコンビニへ着くと、看病の場面から始まる。一度戦うと選択画面からも戦える
     { id: 'cold', name: '風邪菌', kana: 'かぜきん', stage: 'home', teaches: null, hidden: true, unlock: 'after_all', reason: '人の風邪を司るウイルスの化身。子どもは元気になってきたのに、今度は看病していた自分が…' },
   ];
+  // 弱点：あるボスで覚えた技が、別のボスに大きく効く（仕組みは「覚えた技で次のボスを崩す」順番の遊び。名前・中身はこのゲームの物）
+  //   風斬の怪異 → 雷突き（速さを雷で止める）・濁流の怪異 → 風刃（風が濁流を散らす）・雷殻の怪異 → 水切り（水で殻がショートする）
+  //   弱点の技は：体力を WEAK.mul 倍削る・ガードを通す・今の動き（必殺技も）を止めて WEAK.stun こま よろける
+  const WEAK = { mul: 2, stun: 46 };
+  // 技の選び方（ユーザーの解析メモ X4：体力の残りで技の組を替え、組の中は重みつきの乱数。近いと特定の技を 97/256 で混ぜる。弱点以外を 7 回当てられると反撃）
+  //   組：[技の予兆, 重み]。hi＝体力が半分以上・lo＝半分未満。near＝近い時に混ぜる技（距離 NEAR px 未満）
+  const PICK = {
+    kazegiri: { hi: [['dash_tele', 6], ['slash_tele', 4], ['air_tele', 3], ['thrust_tele', 3]], lo: [['dash_tele', 4], ['slash_tele', 3], ['air_tele', 4], ['thrust_tele', 5]], near: 'slash_tele' },
+    dakuryu: { hi: [['shot_tele', 6], ['rush_tele', 4], ['wave_tele', 3]], lo: [['shot_tele', 4], ['rush_tele', 5], ['wave_tele', 4]], near: 'grab_tele' },
+    raikaku: { hi: [['stomp_tele', 6], ['discharge_tele', 4], ['rush_tele', 3], ['guard', 3]], lo: [['stomp_tele', 3], ['discharge_tele', 5], ['rush_tele', 4], ['guard', 4]], near: 'guard' },
+  };
+  const NEAR = 110, NEAR_P = 97 / 256, COUNTER = { hits: 7, move: { kazegiri: 'dash_tele', dakuryu: 'rush_tele', raikaku: 'counter_tele' } };
   const G = { gravity: 0.25 * 2.5, fallCap: 5.75 * 2.5, deadF: 80 };
   // 風斬の怪異：待機（構え）・高速ダッシュ（残像・フェイント）・斬撃（地上の 3 連）・斬撃（空中から斜めに）・突き・風断連嵐（体力半分から）・被弾（立て直して反撃）・撃破
   const KAZEGIRI = {
@@ -53,13 +65,22 @@
   };
   const SPEC = { kazegiri: KAZEGIRI, dakuryu: DAKURYU, raikaku: RAIKAKU };
 
-  function make(map) {
+  function make(map, opts = {}) {
     const T = map.tile, solid = (x, y) => map.solid(Math.floor(x / T), Math.floor(y / T));
+    // 乱数：外から渡す（ゲームは種から作る。デモを同じに再生するため）。無ければ決まった種
+    let sd = 12345; const rng = opts.rng || (() => { sd = (sd + 0x6D2B79F5) | 0; let z = Math.imul(sd ^ (sd >>> 15), 1 | sd); z = (z + Math.imul(z ^ (z >>> 7), 61 | z)) ^ z; return ((z ^ (z >>> 14)) >>> 0) / 4294967296; });
+    // 重みつきで技を選ぶ（近い時の技を先に混ぜる）
+    function pick(e, dx, p) {
+      const P = PICK[e.id]; if (!P) return null;
+      if (P.near && Math.abs(dx) < (e.id === 'dakuryu' ? DAKURYU.grab.range : NEAR) && rng() < NEAR_P && (e.id !== 'dakuryu' || (p && p.y < e.y + 60))) return P.near;
+      const set = fast(e) ? P.lo : P.hi, sum = set.reduce((a, w) => a + w[1], 0); let r = rng() * sum;
+      for (const [m, w] of set) { if ((r -= w) < 0) return m; } return set[set.length - 1][0];
+    }
     const shots = [];
     const S = e => SPEC[e.id] || RAIKAKU;
     function spawn(id, x, y, arena) {
       const s = SPEC[id] || RAIKAKU;
-      return { id, kind: 'boss', x, y, vx: 0, vy: 0, face: -1, hp: s.hp, hpMax: s.hp, state: 'wait', f: 0, hitT: 0, dead: false, deadF: 0, arena, seq: 0, blocks: 0, stormCd: 0, charged: false, ev: [], k: 0, hitsRecent: 0, grounded: true };
+      return { id, kind: 'boss', x, y, vx: 0, vy: 0, face: -1, hp: s.hp, hpMax: s.hp, state: 'wait', f: 0, hitT: 0, dead: false, deadF: 0, arena, seq: 0, blocks: 0, stormCd: 0, charged: false, ev: [], k: 0, hitsRecent: 0, hitsTotal: 0, grounded: true };
     }
     const tall = e => (e.id === 'raikaku' && e.state === 'rush' ? RAIKAKU.rushH : e.id === 'dakuryu' && (e.state === 'rush' || e.state === 'flood') ? DAKURYU.h * 0.7 : S(e).h);
     const box = e => ({ x0: e.x - S(e).w, x1: e.x + S(e).w, y0: e.y, y1: e.y + tall(e) });
@@ -86,7 +107,7 @@
         case 'walk': e.face = toward; e.vx = Math.abs(dx) > 90 ? e.face * Z.walk * k : 0;
           if (e.f > Z.rest / k) { e.vx = 0;
             if (fast(e) && e.stormCd <= 0) { e.stormCd = Z.storm.cd; go(e, 'storm_tele'); break; }
-            e.stormCd--; const o = ['dash_tele', 'slash_tele', 'air_tele', 'thrust_tele'], n = Math.abs(dx) < 110 ? 'slash_tele' : o[e.seq++ % o.length]; go(e, n); }
+            e.stormCd--; go(e, pick(e, dx, p)); e.seq++; }
           break;
         case 'dash_tele': e.vx = 0; e.face = toward; if (e.f >= Z.dash.tele / k) { e.feint = (++e.k % Z.dash.feint) === 0; e.vx = e.face * Z.dash.speed * k; e.ev.push('dash'); go(e, 'dash'); } break;
         case 'dash':
@@ -121,8 +142,7 @@
         case 'walk': e.face = toward; e.vx = e.face * Z.walk * k;
           if (e.f > Z.rest / k) { e.vx = 0;
             if (fast(e) && e.stormCd <= 0) { e.stormCd = Z.flood.cd; go(e, 'flood_tele'); break; }
-            e.stormCd--; if (Math.abs(dx) < Z.grab.range && p && p.y < e.y + 60) { go(e, 'grab_tele'); break; }
-            const o = ['shot_tele', 'rush_tele', 'shot_tele', 'wave_tele']; go(e, o[e.seq++ % o.length]); }
+            e.stormCd--; go(e, pick(e, dx, p)); e.seq++; }
           break;
         case 'rush_tele': e.vx = 0; e.face = toward; if (e.f >= Z.rush.tele / k) { e.vx = e.face * Z.rush.speed * k; go(e, 'rush'); } break;
         case 'rush': if (e.f % Z.rush.puddle === 0) shots.push({ kind: 'splash', x: e.x - e.face * Z.w, y: floorY(e), w: 16, h: 22, life: 26 }); break;
@@ -144,13 +164,12 @@
       }
     }
     // ── 雷殻の怪異 ──
-    const ORDER_R = ['stomp_tele', 'discharge_tele', 'rush_tele', 'guard'];
     function stepRaikaku(e, p, k, dx, toward) {
       const R = RAIKAKU;
       switch (e.state) {
         case 'walk': e.face = toward; e.vx = e.face * R.walk * k; if (e.f > R.rest / k) { e.vx = 0;
           if (fast(e) && e.stormCd <= 0) { e.stormCd = R.storm.cd; go(e, 'storm_tele'); break; }
-          e.stormCd--; go(e, ORDER_R[e.seq++ % ORDER_R.length]); if (e.state === 'guard') e.blocks = 0; } break;
+          e.stormCd--; go(e, pick(e, dx, p)); e.seq++; if (e.state === 'guard') e.blocks = 0; } break;
         case 'stomp_tele': e.vx = 0; e.face = toward; if (e.f >= R.stomp.tele / k) {
           for (const d of [-1, 1]) shots.push({ kind: 'wave', x: e.x + d * R.w, y: e.y, vx: d * R.stomp.wave * k, vy: 0, w: 14, h: 26, life: R.stomp.waveLife });
           e.ev.push('stomp'); go(e, 'stomp'); } break;
@@ -177,7 +196,7 @@
     }
     const STEP = { kazegiri: stepKazegiri, dakuryu: stepDakuryu, raikaku: stepRaikaku };
     function step(e, p) {
-      e.f++; e.ev = []; e.landed = false;
+      e.f++; e.ev = []; e.landed = false; if (e.weakT > 0) e.weakT--;
       if (e.dead) { e.deadF++; e.vx = 0; phys(e); return; }
       if (e.hitT > 0) e.hitT--;
       const k = K(e), dx = p ? p.x - e.x : 0, toward = dx < 0 ? -1 : 1;
@@ -207,15 +226,25 @@
       if (s.kind === 'wave' || s.kind === 'surge' || s.kind === 'splash' || s.kind === 'melee') return { x0: s.x - s.w, x1: s.x + s.w, y0: s.y, y1: s.y + s.h };
       return { x0: s.x - s.w, x1: s.x + s.w, y0: s.y - s.h, y1: s.y + s.h };
     }
-    // 攻撃を受ける。fromX：攻撃した自機の x（ガードの向き）。戻り値：true 当たった・'block' 防いだ・false 当たらない
-    function hurt(e, dmg, fromX) {
+    // 攻撃を受ける。fromX：攻撃した自機の x（ガードの向き）。move：技の名前（弱点を見る）
+    // 戻り値：'weak' 弱点で当たった・true 当たった・'block' 防いだ・false 当たらない
+    function hurt(e, dmg, fromX, move) {
       if (e.dead || e.state === 'wait') return false;
+      const def = BOSSES.find(b => b.id === e.id);
+      if (move && def && def.weak === move) {                          // 弱点：ガードも必殺技も止めて、よろける
+        e.hp -= dmg * WEAK.mul; e.hitT = WEAK.stun; e.charged = false; e.vx = 0; e.hitsRecent = 0; e.blocks = 0;
+        for (let i = shots.length - 1; i >= 0; i--) if (shots[i].owner === e || shots[i].kind === 'flood' || shots[i].kind === 'surge' || shots[i].kind === 'bolt') shots.splice(i, 1);
+        go(e, 'recover'); e.f = -WEAK.stun; e.weakT = WEAK.stun;
+        if (e.hp <= 0) { e.hp = 0; e.dead = true; e.deadF = 0; shots.length = 0; }
+        return 'weak';
+      }
       if (e.id === 'raikaku') {
         const front = fromX == null || (fromX - e.x) * e.face >= 0;
         if ((e.state === 'guard' || e.state === 'counter_tele') && front) { if (e.state === 'guard') e.blocks++; return 'block'; }
         if (e.state === 'guard') go(e, 'recover');                     // 後ろから当てるとガードが崩れる
       }
       e.hp -= dmg; e.hitT = S(e).flinch;
+      if (++e.hitsTotal >= COUNTER.hits && e.hp > 0 && !/storm|flood/.test(e.state)) { e.hitsTotal = 0; e.vx = 0; go(e, COUNTER.move[e.id] || 'recover'); e.ev.push('counter'); return true; }   // 弱点以外を 7 回当てられると反撃
       if (e.id === 'kazegiri' && e.state === 'recover' && ++e.hitsRecent >= KAZEGIRI.counterHits && e.hp > 0) { e.hitsRecent = 0; go(e, 'dash_tele'); e.f = Math.floor(KAZEGIRI.dash.tele * .5); }   // 立て直して反撃
       if (e.hp <= 0) { e.hp = 0; e.dead = true; e.deadF = 0; e.charged = false; shots.length = 0; }
       return true;
@@ -287,7 +316,7 @@
   const visible = () => BOSSES.filter(b => !b.hidden);
   // 隠しボスに会える（倒したボスの id の並び beaten が、隠しでないボスを全員ふくむ）
   const coldUnlocked = beaten => visible().every(b => (beaten || []).includes(b.id));
-  const API = { BOSSES, KAZEGIRI, DAKURYU, RAIKAKU, SPEC, G, make, visible, coldUnlocked };
+  const API = { BOSSES, KAZEGIRI, DAKURYU, RAIKAKU, SPEC, G, WEAK, PICK, NEAR, COUNTER, make, visible, coldUnlocked };
   root.RunnerBosses = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -11,16 +11,41 @@
     walker: { name: '雨坊主（仮）', hp: 2, w: 13, h: 34, speed: 1.1, gravity: 0.25 * 2.5, fallCap: 5.75 * 2.5, touch: 1 },
     // からかさ（仮）：宙をふわふわ漂い、近づくと斜めに急降下して、もとの高さへ戻る
     flyer: { name: 'からかさ（仮）', hp: 1, w: 12, h: 26, speed: 0.9, dive: 4.2, range: 170, touch: 1, fly: true },
+    // ── 面ごとの敵（利用者の希望「ロックマンX4 風」：面ごとに違う動きの敵。名前・見た目はこのゲームの物で、どれも仮） ──
+    // 屋上（風斬の面）：瓦投げ＝屋根の上から放物線で瓦を投げる（落ちる所へ狙う）・風凧＝空を横に漂い、斜め下へ風の刃を飛ばす
+    thrower: { name: '瓦投げ（仮）', hp: 3, w: 13, h: 38, every: 110, tele: 24, range: 380, flight: 52, touch: 1 },
+    kite: { name: '風凧（仮）', hp: 2, w: 16, h: 24, speed: 1.1, span: 120, every: 120, tele: 20, range: 300, shot: 4.2, touch: 1, fly: true },
+    // 排水路（濁流の面）：泥がえる＝間をおいて自機の方へ跳ねる・排水の目＝ふだんは閉じて攻撃が効かず、開くと水の玉を 3 つ噴き上げる（開いている間だけ効く）
+    hopper: { name: '泥がえる（仮）', hp: 2, w: 13, h: 22, wait: 54, hop: 8.6, hopX: 2.6, gravity: 0.25 * 2.5, fallCap: 5.75 * 2.5, touch: 1 },
+    spout: { name: '排水の目（仮）', hp: 3, w: 16, h: 30, every: 130, tele: 30, open: 60, n: 3, shot: 6.5, range: 420, touch: 1, still: true },
+    // 送電区（雷殻の面）：火花虫＝歩き、時々止まって火花をまとう（まとう間は周りに触れると やられ）・碍子の盾＝正面の攻撃を盾で防ぐ。後ろから・溜め斬り・飛ぶ斬撃・雷突きで崩れる
+    crawler: { name: '火花虫（仮）', hp: 2, w: 13, h: 18, speed: 0.9, every: 150, tele: 26, spark: 56, aura: 42, gravity: 0.25 * 2.5, fallCap: 5.75 * 2.5, touch: 1 },
+    shield: { name: '碍子の盾（仮）', hp: 3, w: 14, h: 44, speed: 0.55, gravity: 0.25 * 2.5, fallCap: 5.75 * 2.5, touch: 1, breakBy: ['charge', 'charge_air', 'wave', 'raitotsu'] },
   };
+  // 面ごとの敵の一覧（試験と説明のため）
+  const STAGE_FOES = { okujo: ['thrower', 'kite'], haisui: ['hopper', 'spout'], koka: ['crawler', 'shield'] };
+  const SHOT = { tile: { w: 9, h: 9, g: 0.32 }, gust: { w: 12, h: 9, g: 0 }, water: { w: 8, h: 8, g: 0.3 } };
   const DEATH_F = 24;                                               // 倒れて消えるまで
 
   function make(map) {
     const T = map.tile;
     const solid = (x, y) => map.solid(Math.floor(x / T), Math.floor(y / T));
+    const ledges = map.ledges || [];
+    // 足もとに床があるか（マスの床・好きな高さの足場）
+    const stand = (x, y) => solid(x, y - 0.5) || ledges.some(L => x > L.x0 && x < L.x1 && Math.abs(y - L.y) < 1);
+    // y から下で いちばん高い床の高さ（無ければ -Infinity）
+    function floorAt(x, y) {
+      let top = -Infinity; for (let cy = Math.floor((y - 0.5) / T); cy >= 0; cy--) if (solid(x, cy * T + 1)) { top = (cy + 1) * T; break; }
+      for (const L of ledges) if (x > L.x0 && x < L.x1 && L.y <= y + 0.5 && L.y > top) top = L.y; return top;
+    }
+    const shots = [];
     function spawn(type, x, y, face = -1) {
       const D = TYPES[type];
-      return { type, x, y, home: { x, y }, vx: 0, vy: 0, face, hp: D.hp, state: D.fly ? 'hover' : 'walk', f: 0, hitT: 0, kb: 0, dead: false, gone: false, deadF: 0 };
+      if (!D.fly) { const fy = floorAt(x, y + 0.5); if (fy > -Infinity) y = fy; }   // 地上の敵は足もとの床へ下ろす
+      return { type, x, y, home: { x, y }, vx: 0, vy: 0, face, hp: D.hp, state: D.fly ? 'hover' : D.still ? 'shut' : 'walk', f: 0, cd: 40 + ((x * 7) | 0) % 50, hitT: 0, kb: 0, dead: false, gone: false, deadF: 0 };
     }
+    const toward = (e, p) => (p && p.x < e.x ? -1 : 1);
+    const near = (e, p, r) => !!p && Math.abs(p.x - e.x) < r && Math.abs(p.y - e.y) < 260;
     function box(e) { const D = TYPES[e.type]; return { x0: e.x - D.w, x1: e.x + D.w, y0: e.y, y1: e.y + D.h }; }
     // 1 こま（p：自機の位置）
     function step(e, p) {
@@ -30,19 +55,67 @@
         e.hitT--; const nx = e.x + e.kb; if (!solid(nx + Math.sign(e.kb) * D.w, e.y + 4)) e.x = nx; e.kb *= 0.8;
         if (!D.fly) fall(e, D); return;
       }
+      if (SPECIAL[e.type]) return SPECIAL[e.type](e, D, p);
       if (D.fly) return flyStep(e, D, p);
       // 歩く：前が壁か崖なら向きを変える
-      const ahead = e.x + e.face * (D.w + 2);
-      if (solid(ahead, e.y + 4) || !solid(ahead, e.y - 2)) e.face = -e.face;
-      e.x += e.face * D.speed;
+      walkOn(e, D, D.speed);
       fall(e, D);
     }
-    function fall(e, D) {
-      if (solid(e.x, e.y - 0.5)) { e.vy = 0; return; }
-      if (e.vy < -D.fallCap) e.vy = -D.fallCap; e.vy -= D.gravity;
-      let ny = e.y + e.vy; const cy = Math.floor(ny / T);
-      if (solid(e.x, ny)) ny = (cy + 1) * T; e.y = ny; if (e.y < -200) e.gone = true;
+    function walkOn(e, D, v) {
+      const ahead = e.x + e.face * (D.w + 2);
+      if (solid(ahead, e.y + 4) || !stand(ahead, e.y)) e.face = -e.face; else e.x += e.face * v;
     }
+    function fall(e, D) {
+      if (e.vy <= 0 && stand(e.x, e.y)) { e.vy = 0; return; }
+      if (e.vy < -D.fallCap) e.vy = -D.fallCap; e.vy -= D.gravity;
+      const ny = e.y + e.vy;
+      if (e.vy < 0) { const fy = floorAt(e.x, e.y); if (ny <= fy) { e.y = fy; e.vy = 0; e.landed = true; return; } }
+      if (e.vy > 0 && solid(e.x, ny + (D.h || 20))) { e.vy = 0; return; }
+      e.y = ny; if (e.y < -200) e.gone = true;
+    }
+    // 弾（瓦・風の刃・水の玉）：重さで落ちる物もある。壁・床で消える
+    function shoot(kind, x, y, vx, vy) { shots.push(Object.assign({ kind, x, y, vx, vy, life: 200 }, SHOT[kind])); }
+    function stepShots() {
+      for (const s of shots) { s.life--; s.vy -= s.g; s.x += s.vx; s.y += s.vy; if (solid(s.x, s.y) || s.y < -100 || (s.vy < 0 && ledges.some(L => s.x > L.x0 && s.x < L.x1 && s.y <= L.y && s.y - s.vy > L.y))) s.life = 0; }
+      for (let i = shots.length - 1; i >= 0; i--) if (shots[i].life <= 0) shots.splice(i, 1);
+    }
+    const shotBox = s => ({ x0: s.x - s.w, x1: s.x + s.w, y0: s.y - s.h, y1: s.y + s.h });
+    // 放物線で (tx, ty) に落ちる初速（t こまで着く）
+    const lob = (x, y, tx, ty, t, g) => ({ vx: (tx - x) / t, vy: (ty - y) / t + g * t / 2 });
+    const SPECIAL = {
+      thrower(e, D, p) {
+        fall(e, D); e.face = toward(e, p);
+        if (e.state === 'tele') { if (e.f >= D.tele) { const tx = p.x + (p.vx || 0) * D.flight * .5, v = lob(e.x, e.y + 34, tx, p.y + 10, D.flight, SHOT.tile.g); shoot('tile', e.x + e.face * 8, e.y + 34, v.vx, v.vy); e.state = 'walk'; e.f = 0; e.cd = D.every; } return; }
+        if (--e.cd <= 0 && near(e, p, D.range)) { e.state = 'tele'; e.f = 0; }
+      },
+      kite(e, D, p) {
+        e.x = e.home.x + Math.sin(e.f * 0.012 * D.speed) * D.span; e.y = e.home.y + Math.sin(e.f * 0.05) * 14; e.face = toward(e, p);
+        if (e.state === 'tele') { if (e.f >= D.tele) { const dx = p.x - e.x, dy = (p.y + 24) - e.y, L = Math.hypot(dx, dy) || 1; shoot('gust', e.x, e.y, dx / L * D.shot, dy / L * D.shot); e.state = 'hover'; e.cd = D.every; } return; }
+        if (--e.cd <= 0 && near(e, p, D.range) && p.y < e.y) { e.state = 'tele'; e.f = 0; }
+      },
+      hopper(e, D, p) {
+        const onG = e.vy <= 0 && stand(e.x, e.y);
+        if (onG) { e.vx = 0; if (e.state === 'hop') { e.state = 'walk'; e.f = 0; } if (e.state === 'walk' && e.f >= D.wait && p && Math.abs(p.x - e.x) < 360) { e.face = toward(e, p); e.vy = D.hop; e.vx = e.face * D.hopX; e.state = 'hop'; e.f = 0; e.y += 0.6; } }
+        if (e.vx) { const nx = e.x + e.vx; if (!solid(nx + Math.sign(e.vx) * D.w, e.y + 6)) e.x = nx; else e.vx = 0; }
+        fall(e, D);
+      },
+      spout(e, D, p) {
+        e.face = toward(e, p);
+        if (e.state === 'shut') { if (--e.cd <= 0 && near(e, p, D.range)) { e.state = 'tele'; e.f = 0; } return; }
+        if (e.state === 'tele') { if (e.f >= D.tele) { for (let i = 0; i < D.n; i++) { const a = (i - (D.n - 1) / 2) * 0.5 + e.face * 0.35; shoot('water', e.x, e.y + D.h, Math.sin(a) * D.shot * .55, D.shot + Math.cos(a)); } e.state = 'open'; e.f = 0; } return; }
+        if (e.state === 'open' && e.f >= D.open) { e.state = 'shut'; e.f = 0; e.cd = D.every; }
+      },
+      crawler(e, D, p) {
+        fall(e, D);
+        if (e.state === 'tele' || e.state === 'spark') { if (e.state === 'tele' && e.f >= D.tele) { e.state = 'spark'; e.f = 0; } else if (e.state === 'spark' && e.f >= D.spark) { e.state = 'walk'; e.f = 0; e.cd = D.every; } return; }
+        walkOn(e, D, D.speed);
+        if (--e.cd <= 0 && near(e, p, 300)) { e.state = 'tele'; e.f = 0; }
+      },
+      shield(e, D, p) {
+        fall(e, D); if (e.f % 40 === 1) e.face = toward(e, p);
+        if (p && Math.abs(p.x - e.x) > 30) walkOn(e, D, D.speed);
+      },
+    };
     function flyStep(e, D, p) {
       if (e.state === 'hover') {
         e.x = e.home.x + Math.sin(e.f * 0.035) * 40; e.y = e.home.y + Math.sin(e.f * 0.07) * 10;
@@ -56,16 +129,25 @@
         if (L < 3) { e.state = 'hover'; e.f = 0; } else { e.x += dx / L * D.speed * 1.6; e.y += dy / L * D.speed * 1.6; }
       }
     }
-    // 攻撃が当たった
-    function hurt(e, dmg, kb) {
+    // 攻撃が当たった（move：技の名前・fromX：攻撃した側の x）。戻り値：true 当たった・'block' 防いだ（盾・閉じた排水の目）
+    function hurt(e, dmg, kb, move, fromX) {
       if (e.dead) return false;
-      e.hp -= dmg; e.hitT = 10; e.kb = kb || 0; e.state = TYPES[e.type].fly ? 'back' : 'walk';
+      const D = TYPES[e.type];
+      if (e.type === 'spout' && e.state !== 'open' && e.state !== 'tele') return 'block';
+      if (e.type === 'shield' && !(D.breakBy || []).includes(move) && (fromX == null || (fromX - e.x) * e.face >= 0)) { e.f = 1; return 'block'; }
+      e.hp -= dmg; e.hitT = 10; e.kb = D.still ? 0 : kb || 0; if (e.type === 'walker' || e.type === 'flyer') e.state = D.fly ? 'back' : 'walk';
       if (e.hp <= 0) { e.dead = true; e.deadF = 0; }
       return true;
     }
-    return { spawn, step, box, hurt };
+    // 自機に害のある箱：弾・火花虫の火花（まとう間）
+    function hazards() {
+      const out = shots.map(shotBox);
+      return out;
+    }
+    function auraBox(e) { const D = TYPES[e.type]; return e.type === 'crawler' && e.state === 'spark' && !e.dead ? { x0: e.x - D.aura, x1: e.x + D.aura, y0: e.y - 6, y1: e.y + D.aura } : null; }
+    return { spawn, step, box, hurt, shots, stepShots, shotBox, hazards, auraBox, floorAt, stand };
   }
-  const API = { TYPES, DEATH_F, make };
+  const API = { TYPES, STAGE_FOES, SHOT, DEATH_F, make };
   root.RunnerEnemies = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -78,7 +78,7 @@ t('雷雲招来：体力が半分を切ると出る・落雷は予兆の間は�
 t('倒れる：0 で倒れる・弾が消える・帯電が止む・撃破のコマ。ドット絵のコマが全部ある（64）', () => {
   const { Z, e } = boss(), p = { x: 5 * T, y: 2 * T }; Z.wake(e);
   for (let i = 0; i < 400; i++) { Z.step(e, p); Z.stepShots(); }
-  e.state = 'walk'; while (!e.dead) Z.hurt(e, 1, e.x + e.face * 40);
+  e.state = 'walk'; while (!e.dead) { e.state = 'walk'; Z.hurt(e, 1, e.x + e.face * 40); }   // 7 回で反撃（構え）に移るので、毎回 歩きに戻して当てる
   assert.equal(e.hp, 0); assert.equal(Z.shots.length, 0); assert.ok(!e.charged);
   for (let i = 0; i < RK.deadF; i++) Z.step(e, p); assert.ok(/^7_[3-7]$/.test(Z.frame(e)), Z.frame(e));
   assert.equal(Object.keys(SPR.frames).length, 64);
@@ -140,7 +140,7 @@ t('濁流の怪異：地を這う・スプラッシュラッシュ（水たま�
   const r = run('dakuryu', 4000, { px: 8 * T });
   for (const s of ['walk', 'rush_tele', 'rush', 'shot_tele', 'shot', 'wave_tele', 'wave', 'recover']) assert.ok(r.seen.has(s), s + '：' + [...r.seen].join(','));
   for (const k of ['splash', 'drop', 'flood']) assert.ok(r.kinds.has(k), k);
-  const g = run('dakuryu', 600, { px: 17 * T }); assert.ok(g.seen.has('grab_tele') && g.seen.has('grab') && g.kinds.has('melee'), '捕縛');
+  const g = run('dakuryu', 2400, { px: 17 * T }); assert.ok(g.seen.has('grab_tele') && g.seen.has('grab') && g.kinds.has('melee'), '捕縛（近いと 97/256 で混ぜる）');
   const map = room(), Z = RB.make(map), e = Z.spawn('dakuryu', 20 * T, 2 * T, AR); Z.wake(e); e.state = 'wave_tele'; e.f = 0; let maxL = 0, boxed = false, gone = false;
   for (let i = 0; i < 400; i++) { Z.step(e, { x: 5 * T, y: 80 }); Z.stepShots(); const fl = Z.shots.find(s => s.kind === 'flood'); if (fl) { maxL = Math.max(maxL, fl.level); const b = Z.shotBox(fl); if (b) { boxed = true; assert.ok(b.y1 <= 80 + RB.DAKURYU.wave.level + 0.01 && b.y1 < 200, '高い足場（200）までは届かない'); } } else if (maxL > 0) gone = true; }
   assert.ok(maxL >= RB.DAKURYU.wave.level - 0.01 && boxed && gone, '上がって下がる');
@@ -158,6 +158,53 @@ t('水切り（仮）：覚えるまでスライディング中の攻撃は出�
   for (let i = 0; i < 6; i++) { A.step(r.b, r.C.pre(r.b, {})); r.C.post(r.b); hb = hb || r.C.hitbox(r.b); }
   assert.equal(r.b.state, 'slide'); assert.ok(r.b.x > x0 + 15, '滑り続ける'); assert.ok(hb && hb.y1 - r.b.y <= 30 && hb.dmg >= 2, '低く払う');
   for (let i = 0; i < 60; i++) { A.step(r.b, r.C.pre(r.b, {})); r.C.post(r.b); } assert.equal(r.b.atk, null, '滑りが終わると終わる');
+});
+
+
+t('弱点：ボスで覚えた技が別のボスに大きく効く（雷突き→風斬・風刃→濁流・水切り→雷殻）。体力を 2 倍削り、ガードと必殺技を止めて よろける', () => {
+  const vis = RB.visible(), by = id => vis.find(b => b.id === id);
+  assert.equal(by('kazegiri').weak, 'raitotsu'); assert.equal(by('dakuryu').weak, 'kazeha'); assert.equal(by('raikaku').weak, 'mizukiri');
+  // 弱点は別のボスで覚える技（輪になっている）・技の表にある
+  const teacher = m => vis.find(b => b.teaches === m || (RC.MOVES[m] && RC.MOVES[m].with === b.teaches));
+  for (const b of vis) { assert.ok(RC.MOVES[b.weak], b.weak); const tb = teacher(b.weak); assert.ok(tb && tb.id !== b.id, b.id + ' の弱点は別のボスで覚える'); }
+  for (const id of ['kazegiri', 'dakuryu', 'raikaku']) {
+    const map = room(), Z = RB.make(map), e = Z.spawn(id, 20 * T, 2 * T, AR); Z.wake(e); for (let i = 0; i < 5; i++) Z.step(e, { x: 10 * T, y: 2 * T });
+    const hp0 = e.hp; assert.equal(Z.hurt(e, 1, 10 * T, 'slash1'), true); assert.equal(hp0 - e.hp, 1, id + ' ふつうの技は 1');
+    const hp1 = e.hp; assert.equal(Z.hurt(e, 2, 10 * T, by(id).weak), 'weak'); assert.equal(hp1 - e.hp, 2 * RB.WEAK.mul, id + ' 弱点は 2 倍');
+    assert.equal(e.state, 'recover'); assert.ok(e.weakT > 0, 'よろける');
+    let st = 0; while (e.state === 'recover' && st < 400) { Z.step(e, { x: 10 * T, y: 2 * T }); st++; } assert.ok(st >= RB.WEAK.stun, id + ' しばらく動けない ' + st);
+  }
+  // 雷殻のガードを正面から通す・必殺技（雷雲招来）を止める
+  const { Z, e } = boss(); Z.wake(e); e.state = 'guard'; e.f = 0; e.face = -1;
+  assert.equal(Z.hurt(e, 1, 10 * T, 'slash1'), 'block', 'ふつうは防ぐ'); assert.equal(Z.hurt(e, 2, 10 * T, 'mizukiri'), 'weak', '弱点は通す');
+  e.state = 'storm'; e.charged = true; Z.shots.push({ kind: 'bolt', x: 0, y: 0, f: 0, tele: 10, w: 10, life: 50 }); Z.hurt(e, 2, 10 * T, 'mizukiri');
+  assert.equal(e.charged, false, '帯電が消える'); assert.equal(Z.shots.filter(s => s.kind === 'bolt').length, 0, '落雷が消える');
+});
+
+t('風刃（風走りの間に攻撃）：風走りを覚えると使える・前を広く払う・風走りが終わっても振り終わるまで', () => {
+  const map = RA.makeMap(['.'.repeat(80), '.'.repeat(80), '.'.repeat(80), '.'.repeat(80), '.'.repeat(80), '#'.repeat(80)]);
+  const run = learned => { const A = RA.make({ map, airDash: () => learned.includes('kazebashiri') }), C = RC.make(A, { learned }), b = A.body(5 * T, T, 1);
+    const st = i => { A.step(b, C.pre(b, i)); C.post(b); }; st({ j: true }); for (let i = 0; i < 10; i++) st({ j: true, r: true }); st({ r: true, d: true, dP: true }); st({ r: true, d: true, atkP: true }); return { A, C, b, st }; };
+  assert.notEqual((run([]).b.atk || {}).id, 'kazeha', '覚えるまで出ない');
+  const r = run(['kazebashiri']); assert.equal(r.b.state, 'air_dash'); assert.equal(r.b.atk.id, 'kazeha', '風走りといっしょに覚える');
+  r.st({ r: true, d: true }); const hb = r.C.hitbox(r.b); assert.ok(hb && hb.id === 'kazeha' && hb.x1 - hb.x0 >= 60 && hb.dmg >= 2, '前を広く');
+  for (let i = 0; i < 40 && r.b.atk; i++) r.st({ r: true }); assert.equal(r.b.atk, null, '振り終わる');
+});
+
+
+t('技の選び方（X4 の決まり）：体力の残りで技の組を替え、組の中は重みつき。弱点以外を 7 回当てられると反撃。同じ乱数なら同じ動き', () => {
+  for (const id of ['kazegiri', 'dakuryu', 'raikaku']) { const P = RB.PICK[id]; assert.ok(P && P.hi.length && P.lo.length && P.near, id); assert.notDeepEqual(P.hi.map(w => w[1]), P.lo.map(w => w[1]), id + ' 組が替わる'); }
+  // 体力が半分を切ると lo の組から選ぶ（lo にしか重みの大きくない技が増える）
+  const count = (id, hpk) => { const map = room(), Z = RB.make(map), e = Z.spawn(id, 20 * T, 2 * T, AR); Z.wake(e); e.hp = Math.floor(e.hpMax * hpk); e.stormCd = 999; const n = {};
+    for (let i = 0; i < 12000; i++) { const st0 = e.state; Z.step(e, { x: 6 * T, y: 2 * T }); Z.stepShots(); if (e.state !== st0 && st0 === 'walk') n[e.state] = (n[e.state] || 0) + 1; if (e.hp <= 0) break; } return n; };
+  const hi = count('kazegiri', 1), lo = count('kazegiri', .4); const r = n => (n.thrust_tele || 0) / ((n.dash_tele || 0) + 1);
+  assert.ok(r(lo) > r(hi), '体力が減ると突きが増える ' + JSON.stringify({ hi, lo }));
+  // 反撃：弱点以外を 7 回
+  for (const id of ['kazegiri', 'dakuryu', 'raikaku']) { const map = room(), Z = RB.make(map), e = Z.spawn(id, 20 * T, 2 * T, AR); Z.wake(e); let n = 0;
+    for (; n < 10; n++) { e.state = 'walk'; e.f = 5; Z.hurt(e, 1, e.x - 60, 'slash1'); if (e.state === RB.COUNTER.move[id]) break; } assert.equal(n + 1, RB.COUNTER.hits, id + ' 7 回目で反撃'); }
+  // 同じ乱数の種なら同じ動き
+  const trace = seed => { let s0 = seed; const rng = () => { s0 = (s0 * 16807) % 2147483647; return s0 / 2147483647; }; const Z = RB.make(room(), { rng }), e = Z.spawn('raikaku', 20 * T, 2 * T, AR); Z.wake(e); const o = []; for (let i = 0; i < 2000; i++) { Z.step(e, { x: 8 * T, y: 2 * T }); Z.stepShots(); o.push(e.state); } return o.join(); };
+  assert.equal(trace(7), trace(7)); assert.notEqual(trace(7), trace(99));
 });
 
 console.log(`runner-hard-boss: ${n} ok`);

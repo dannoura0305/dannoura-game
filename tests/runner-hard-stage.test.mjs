@@ -14,6 +14,7 @@ vm.createContext(ctx);
 vm.runInContext(readFileSync(join(ROOT, 'minigames/runner/act.js'), 'utf8'), ctx, { filename: 'act.js' });
 vm.runInContext(readFileSync(join(ROOT, 'minigames/runner/gimmicks.js'), 'utf8'), ctx, { filename: 'gimmicks.js' });
 vm.runInContext(readFileSync(join(ROOT, 'minigames/runner/bosses.js'), 'utf8'), ctx, { filename: 'bosses.js' });
+vm.runInContext(readFileSync(join(ROOT, 'minigames/runner/enemies.js'), 'utf8'), ctx, { filename: 'enemies.js' });
 vm.runInContext(readFileSync(join(ROOT, 'minigames/runner_hard.js'), 'utf8'), ctx, { filename: 'runner_hard.js' });
 const RA = ctx.RunnerAct, ST = ctx.RunnerHardStage;
 let n = 0; const t = (name, fn) => { fn(); n++; console.log('  ✓ ' + name); };
@@ -91,18 +92,44 @@ t('ボスの部屋：平らな床（列 c0〜c1）・その先にコンビニの
 
 // ── 背景の絵で作った 3 つの面：雷殻「高架下・都市送電区」・風斬「雨のビルの屋上」・濁流「排水路・増水した市街地」（帯電する床・突風・増水） ──
 {
-function runStage(id, bot, limit=60*120, log=false) {
+function runStage(id, bot, limit=60*120, log=false, phys={}) {
   const ST=ctx.RunnerHardStages[id], ROWS=ST.rows(), Hh=ROWS.length;
   let S=null; ROWS.forEach((r,ri)=>{ const c=r.indexOf('S'); if(c>=0) S={x:c*T+T/2,y:(Hh-1-ri)*T}; });
   const map=RA.makeMap(ROWS.map(r=>r.replace(/[SCG]/g,'.'))); if (ST.ledges) for (const L of ST.ledges()) map.ledges.push(L); const G=ctx.RunnerGimmicks.make(map, ST.gimmicks());
   { const y0=S.y; while (S.y>0 && !map.solid(Math.floor(S.x/T), Math.floor((S.y-1)/T))) S.y-=T; for (const L of map.ledges) if (L.y<=y0+0.01 && L.y>S.y && S.x>L.x0 && S.x<L.x1) S.y=L.y; }
-  const A=RA.make({map}); const b=A.body(S.x,S.y,1), mem={}, AR=ST.arena(), FL=(AR.floorCy||2)*T, FY=ST.fallY!=null?ST.fallY:-120; let hurt=0,f=0;
+  const A=RA.make({map, phys}); const b=A.body(S.x,S.y,1), mem={}, AR=ST.arena(), FL=(AR.floorCy||2)*T, FY=ST.fallY!=null?ST.fallY:-120; let hurt=0,f=0;
   for(;f<limit;f++){ const inp=bot(G,b,f,mem); A.step(b,inp); G.step(b,A.box(b)); const sh=G.shock(A.box(b)); if((sh||b.state==='hurt')&&!mem.h){hurt++; if(log) console.log('hurt',id,(b.x/T).toFixed(1),b.y.toFixed(0),b.state,f, sh?'shock':'');} mem.h=sh||b.state==='hurt';
     if (b.y < 10 && b.y>=0 && b.state!=='hurt' && log && !mem.low) { console.log('low', (b.x/T).toFixed(1)); mem.low=1; }
     if (b.y < (ST.fallY!=null?ST.fallY:30)) { if (log) console.log('fell', (b.x/T).toFixed(1)); return {ok:false,f,hurt,b,x:(b.x/T).toFixed(1),y:'fell'}; }
     if (b.x>(AR.c0+2)*T && Math.abs(b.y-FL)<0.5) return {ok:true,f,hurt,b};
   }
   return {ok:false,f,hurt,b,x:(b.x/T).toFixed(1),y:b.y.toFixed(0)};
+}
+// 道を探す：床に立った所から「歩く（左右・こま数）→ 跳ぶ（右・左・まっすぐ・小さく）／ダッシュジャンプ／壁を蹴って登る／そのまま歩いて落ちる」を試し、着いた所をたどる
+// 仕掛け（帯電・突風・増水）は止める（届く形かだけを見る）。とげ・穴に落ちたら その手は使わない
+function reach(id, phys) {
+  const ST = ctx.RunnerHardStages[id], ROWS = ST.rows(), Hh = ROWS.length;
+  let S = null; ROWS.forEach((r, ri) => { const c = r.indexOf('S'); if (c >= 0) S = { x: c * T + T / 2, y: (Hh - 1 - ri) * T }; });
+  const map = RA.makeMap(ROWS.map(r => r.replace(/[SCG]/g, '.'))); if (ST.ledges) for (const L of ST.ledges()) map.ledges.push(L);
+  { const y0 = S.y; while (S.y > 0 && !map.solid(Math.floor(S.x / T), Math.floor((S.y - 1) / T))) S.y -= T; for (const L of map.ledges) if (L.y <= y0 + 0.01 && L.y > S.y && S.x > L.x0 && S.x < L.x1) S.y = L.y; }
+  const A = RA.make({ map, phys, airDash: false }), AR = ST.arena(), FL = (AR.floorCy || 2) * T, FY = ST.fallY != null ? ST.fallY : 30;
+  const done = b => b.x > (AR.c0 + 2) * T && Math.abs(b.y - FL) < 0.5;
+  const gr = b => ['stand', 'walk', 'walk_start', 'land', 'dash_end'].includes(b.state);
+  const plans = [];
+  for (const dir of [1, -1]) for (const n of [0, 3, 6, 10, 16, 24, 34, 46]) for (const kind of ['jr', 'jn', 'jl', 'hop', 'dash', 'climb', 'off']) plans.push({ dir, n, kind });
+  const sim = (x, y, pl) => {
+    const b = A.body(x, y, pl.dir); A.step(b, {});
+    for (let i = 0; i < pl.n; i++) { A.step(b, { r: pl.dir > 0, l: pl.dir < 0 }); if (!gr(b) && b.state !== 'walk_start') break; }
+    if (pl.kind === 'off') { for (let i = 0; i < 40; i++) A.step(b, { r: pl.dir > 0, l: pl.dir < 0 }); }
+    else if (pl.kind === 'dash') { const k = { r: pl.dir > 0, l: pl.dir < 0, d: true }; A.step(b, k); for (let i = 0; i < 4; i++) A.step(b, k); A.step(b, Object.assign({ j: true }, k)); for (let i = 0; i < 200 && !gr(b); i++) A.step(b, Object.assign({ j: b.state === 'jump' }, k)); }
+    else { const L = pl.kind === 'jl' ? -pl.dir : pl.kind === 'jn' ? 0 : pl.dir, hold = pl.kind === 'hop' ? 6 : 99; let f = 0; A.step(b, { j: true });
+      for (let i = 0; i < 300 && !(gr(b) && i > 2); i++, f++) { const ws = b.state === 'wall_slide'; const k = { r: L > 0 || (pl.kind === 'climb' && pl.dir > 0), l: L < 0 || (pl.kind === 'climb' && pl.dir < 0), j: (b.state === 'jump' && f < hold) || (pl.kind === 'climb' && (ws ? i % 2 === 0 : b.state === 'wall_kick' || b.state === 'jump')) }; if (pl.kind === 'climb') { k.r = pl.dir > 0; k.l = pl.dir < 0; } A.step(b, k); if (b.state === 'hurt') return null; } }
+    if (b.state === 'hurt' || b.y < FY || !gr(b)) return null; return { x: b.x, y: b.y };
+  };
+  const key = p => Math.round(p.x / 12) + ',' + Math.round(p.y);
+  const seen = new Set([key(S)]), q = [S]; let best = S.x;
+  while (q.length) { const p0 = q.shift(); for (const pl of plans) { const r = sim(p0.x, p0.y, pl); if (!r) continue; const kk = key(r); if (seen.has(kk)) continue; seen.add(kk); best = Math.max(best, r.x); if (done(r)) return { ok: true, best }; q.push(r); if (seen.size > 2500) return { ok: false, best: 'too many' }; } }
+  return { ok: false, best: (best / T).toFixed(1) };
 }
 const ground=b=>['stand','walk','walk_start','land'].includes(b.state);
 function kokaBot(G,b,f,mem){
@@ -170,6 +197,10 @@ function haisuiBot(G,b,f,mem){
     t(`${K.name}：通れる（自動操作で、始まりからボスの部屋まで。仕掛けにも とげにも当たらずに）`, () => {
       const r = runStage(id, bot, 60 * 120); assert.ok(r.ok, `届かなかった：${r.x} ${r.y}`); assert.equal(r.hurt, 0); assert.ok(r.f / 60 < sec, `${(r.f / 60).toFixed(1)} 秒`);
     });
+    t(`${K.name}：X4 の動き（ゲームで使う値）でも、始まりからボスの部屋まで届く道がある（道を探す。仕掛けは止めて）`, () => {
+      const r = reach(id, RA.X4); assert.ok(r.ok, `届かなかった：いちばん先 ${r.best}`);
+      const r1 = reach(id, {}); assert.ok(r1.ok, '前の値でも');
+    });
   }
   const kmap = () => { const K = ctx.RunnerHardStages.koka, map = RA.makeMap(K.rows().map(r => r.replace(/[SCG]/g, '.'))); for (const L of K.ledges()) map.ledges.push(L); return { K, map }; };
   t('高架下：帯電する床は、流れている間に歩いて渡ると やられ（流れる前にちらつく）', () => {
@@ -213,5 +244,20 @@ function haisuiBot(G,b,f,mem){
     assert.ok(K.art.length === 3 && K.W * 40 === K.art.length * 2000, '絵 3 枚＝面の幅');
   });
 }
+
+
+t('隠しアイテム：お守りは各面に 1 つ（3 つ）・予備のドリンクは 1 つ・どれも床から跳んで届く高さ（135px 以内）にあり壁の中ではない・ひびの壁の奥のお守りは壁を壊すと届く', () => {
+  const all = []; for (const id of ['okujo', 'haisui', 'koka']) { const K = ctx.RunnerHardStages[id]; assert.ok(K.items, id); for (const it of K.items()) all.push(Object.assign({ st: id }, it)); }
+  assert.equal(all.filter(i => i.kind === 'charm').length, 3); assert.equal(all.filter(i => i.kind === 'drink').length, 1);
+  assert.equal(new Set(all.map(i => i.id)).size, all.length, '名前が重ならない');
+  for (const it of all) {
+    const K = ctx.RunnerHardStages[it.st], m = RA.makeMap(K.rows().map(r => r.replace(/[SCG]/g, '.'))); if (K.ledges) for (const L of K.ledges()) m.ledges.push(L);
+    const E = ctx.RunnerEnemies.make(m), fy = E.floorAt(it.x, it.y + 0.5);
+    assert.ok(fy > -Infinity && it.y - fy <= 135 && it.y - fy >= 0, it.id + ' 床から ' + (it.y - fy));
+    assert.ok(!m.solid(Math.floor(it.x / T), Math.floor((it.y + 20) / T)), it.id + ' 壁の中ではない');
+  }
+  const H = ctx.RunnerHardStages.haisui, ks = H.cracks(); assert.equal(ks.length, 1); const k = ks[0], it = H.items()[0];
+  assert.ok(it.x > (k.c + 1) * T, 'ひびの壁の奥'); assert.ok(k.cy1 >= 13, '天井まで（跳び越せない）');
+});
 
 console.log(`runner-hard-stage: ${n} ok`);

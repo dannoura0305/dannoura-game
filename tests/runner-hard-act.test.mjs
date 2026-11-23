@@ -163,4 +163,17 @@ t('空中ダッシュ（習得技・風走り）：覚えるまで出ない・�
   for (let i = 0; i < 120 && b.state !== 'land'; i++) A.step(b, {}); assert.ok(!b.airDashed, '着地で戻る');
 });
 
+
+t('X4 の値（高難易度版で使う）：跳ぶ・ダッシュが速い・壁蹴り 5.625・やられ 2 段（小さい＝その場で滑る・無敵 75／大きい＝浮いて飛ぶ・無敵 100）', () => {
+  const X = RA.X4; assert.equal(X.walk, 2.0); assert.equal(X.jump, 5.8125); assert.equal(X.dash, 4.125); assert.equal(X.dashF, 30); assert.equal(X.kickJump, 5.625); assert.equal(X.invulF, 75); assert.equal(X.invulBigF, 100);
+  const map = RA.makeMap(['.'.repeat(80), '.'.repeat(80), '.'.repeat(80), '.'.repeat(80), '.'.repeat(80), '.'.repeat(80), '#'.repeat(80)]), T = RA.TILE;
+  const A = RA.make({ map, phys: X }), B1 = RA.make({ map });
+  const top = a => { const b = a.body(5 * T, T, 1); let m = b.y; for (let i = 0; i < 90; i++) { a.step(b, { j: true }); m = Math.max(m, b.y); } return m - T; };
+  assert.ok(top(A) > top(B1) + 15, 'X4 の方が高く跳ぶ');
+  // 小さいやられ：その場で後ろへ滑って止まる（上へは飛ばない）・無敵 75
+  { const b = A.body(20 * T, T, 1); A.step(b, {}); A.hurt(b, 1, false); assert.equal(b.invul, 75); const x0 = b.x; let maxY = b.y, f = 0; while (b.state === 'hurt' && f < 60) { A.step(b, {}); maxY = Math.max(maxY, b.y); f++; } assert.ok(maxY - T < 1, '浮かない'); assert.ok(x0 - b.x > 25 && x0 - b.x < 80, '後ろへ滑る ' + (x0 - b.x)); assert.ok(f >= 12, '滑り終わるまで ' + f); }
+  // 大きいやられ：浮いて飛ばされる・無敵 100
+  { const b = A.body(20 * T, T, 1); A.step(b, {}); A.hurt(b, 1, true); assert.equal(b.invul, 100); let maxY = b.y, f = 0; while (b.state === 'hurt' && f < 120) { A.step(b, {}); maxY = Math.max(maxY, b.y); f++; } assert.ok(maxY - T > 20, '浮く'); assert.equal(b.state, 'stand'); }
+});
+
 console.log(`runner-hard-act: ${n} ok`);
