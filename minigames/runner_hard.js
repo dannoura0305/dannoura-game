@@ -213,7 +213,8 @@ registerMinigame({
     // ── 効果音（通常版と同じく合成。AUDIO_SET.se に従う） ──
     function actx() { if (typeof AU === 'undefined' || typeof AUDIO_SET === 'undefined' || !(AUDIO_SET.se > 0)) return null; try { AU.init(); } catch (e) {} const c = AU.ctx; if (c && c.state === 'suspended') c.resume().catch(() => {}); return c; }
     function blip(type, f0, f1, dur, g) { const c = actx(); if (!c) return; const t0 = c.currentTime, o = c.createOscillator(), v = c.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t0); if (f1) o.frequency.exponentialRampToValueAtTime(f1, t0 + dur); v.gain.setValueAtTime(.0001, t0); v.gain.linearRampToValueAtTime(g * AUDIO_SET.se, t0 + .008); v.gain.exponentialRampToValueAtTime(.0001, t0 + dur); o.connect(v); v.connect(AU.out || c.destination); o.start(t0); o.stop(t0 + dur + .02); }
-    const SE = { swing: big => { blip('sawtooth', big ? 900 : 1300, big ? 300 : 500, big ? .16 : .1, .05); }, hit: dead => { blip('square', dead ? 180 : 260, dead ? 60 : 140, dead ? .22 : .09, .12); }, jump: () => blip('triangle', 420, 760, .12, .12), dash: () => blip('sawtooth', 160, 90, .14, .05), kick: () => blip('square', 300, 620, .1, .07), land: () => blip('sine', 140, 70, .08, .12), hurt: () => blip('square', 220, 90, .25, .1), slide: () => blip('sawtooth', 120, 80, .2, .04), check: () => { blip('sine', 660, 0, .12, .09); setTimeout(() => blip('sine', 990, 0, .2, .08), 90); }, clear: () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => blip('triangle', f, 0, .25, .1), i * 110)), zap: () => { blip('sawtooth', 1800, 200, .3, .05); blip('square', 90, 60, .3, .06); }, block: () => { blip('square', 1500, 1200, .06, .07); blip('triangle', 2400, 0, .12, .04); }, warn: () => { for (let i = 0; i < 6; i++) setTimeout(() => blip('square', i % 2 ? 620 : 880, 0, .22, .07), i * 380); } };
+    const SE = { swing: big => { blip('sawtooth', big ? 900 : 1300, big ? 300 : 500, big ? .16 : .1, .05); }, hit: dead => { blip('square', dead ? 180 : 260, dead ? 60 : 140, dead ? .22 : .09, .12); }, jump: () => blip('triangle', 420, 760, .12, .12), dash: () => blip('sawtooth', 160, 90, .14, .05), kick: () => blip('square', 300, 620, .1, .07), land: () => blip('sine', 140, 70, .08, .12), hurt: () => blip('square', 220, 90, .25, .1), slide: () => blip('sawtooth', 120, 80, .2, .04), check: () => { blip('sine', 660, 0, .12, .09); setTimeout(() => blip('sine', 990, 0, .2, .08), 90); }, clear: () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => blip('triangle', f, 0, .25, .1), i * 110)), zap: () => { blip('sawtooth', 1800, 200, .3, .05); blip('square', 90, 60, .3, .06); }, block: () => { blip('square', 1500, 1200, .06, .07); blip('triangle', 2400, 0, .12, .04); }, warn: () => { for (let i = 0; i < 6; i++) setTimeout(() => blip('square', i % 2 ? 620 : 880, 0, .22, .07), i * 380); },
+      weak: () => { blip('square', 1200, 300, .18, .1); blip('sawtooth', 220, 55, .4, .09); setTimeout(() => blip('triangle', 1600, 2400, .12, .07), 60); } };
 
     // ── 入力：キーボード・ゲームパッド・画面のボタン ──
     const K = { l: false, r: false, j: false, d: false, dn: false, atk: false, up: false };
@@ -393,7 +394,7 @@ registerMinigame({
         BZ.step(boss, B); BZ.stepShots();
         for (const ev of boss.ev || []) { if (ev === 'stomp') { GM && GM.breakArena(); shake = Math.max(shake, .4); SE.land(); } if (ev === 'rushwall') { shake = Math.max(shake, .35); SE.hit(true); } if (ev === 'special') { banner = { t: 0, txt: bossDef().special || '' }; SE.warn(); shake = Math.max(shake, .3); } if (ev === 'discharge' || ev === 'counter') SE.zap(); if (ev === 'dash' || ev === 'slash') SE.swing(ev === 'dash'); if (ev === 'shot' || ev === 'grab') SE.slide(); if (ev === 'wave') { SE.warn(); banner = { t: 0, txt: '大波' }; } }
         if (GM) GM.charge(!!boss.charged && !boss.dead);
-        if (hb && !boss.dead && RunnerCombat.overlap(hb, BZ.box(boss)) && C.tryHit(B, boss)) { const r = BZ.hurt(boss, hb.dmg, B.x); if (r === 'block') { hitStop = Math.max(hitStop, 3); SE.block(); for (let i = 0; i < 8; i++) emit(boss.x + boss.face * 40, B.y + 30, -boss.face * rnd(40, 200), rnd(-60, 160), .25, i % 2 ? '#d080ff' : '#ffffff', 2, 200); } else if (r) { hitStop = Math.max(hitStop, hb.hitstop + 1); shake = Math.max(shake, .15); SE.hit(boss.dead); for (let i = 0; i < 10; i++) emit(boss.x, boss.y + 40, rnd(-180, 180), rnd(-40, 220), .4, i % 2 ? '#e8f0ff' : '#00e8c8', 2.4, 400); if (boss.dead) { shake = .6; SE.clear(); } } }
+        if (hb && !boss.dead && RunnerCombat.overlap(hb, BZ.box(boss)) && C.tryHit(B, boss)) { const r = BZ.hurt(boss, hb.dmg, B.x, hb.id); if (r === 'weak') weakHit(boss); else if (r === 'block') { hitStop = Math.max(hitStop, 3); SE.block(); for (let i = 0; i < 8; i++) emit(boss.x + boss.face * 40, B.y + 30, -boss.face * rnd(40, 200), rnd(-60, 160), .25, i % 2 ? '#d080ff' : '#ffffff', 2, 200); } else if (r) { hitStop = Math.max(hitStop, hb.hitstop + 1); shake = Math.max(shake, .15); SE.hit(boss.dead); for (let i = 0; i < 10; i++) emit(boss.x, boss.y + 40, rnd(-180, 180), rnd(-40, 220), .4, i % 2 ? '#e8f0ff' : '#00e8c8', 2.4, 400); if (boss.dead) { shake = .6; SE.clear(); } } }
         if (boss.dead && boss.deadF === RunnerBosses.RAIKAKU.deadF) { phase = 'learn'; phaseT = 0; learnedNow = bossDef().teaches; }
         if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); let hit = !boss.dead && boss.state !== 'wait' && RunnerCombat.overlap(pb, BZ.box(boss)) ? boss.x : null; for (const sh of BZ.shots) { const sb = BZ.shotBox(sh); if (sb && RunnerCombat.overlap(pb, sb)) { hit = sh.x; if (['spark', 'wave', 'blade', 'drop'].includes(sh.kind)) sh.life = 0; } } if (hit !== null) { B.atk = null; act.hurt(B, hit < B.x ? -1 : 1); } }
       }
@@ -401,6 +402,16 @@ registerMinigame({
       if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); for (const e of foes) { if (e.dead || !RunnerCombat.overlap(pb, E.box(e))) continue; B.atk = null; act.hurt(B, e.x < B.x ? -1 : 1); break; } }   // 敵の方を向いたまま、後ろへ飛ぶ
     }
     const bossDef = () => RunnerBosses.BOSSES.find(b => b.id === AR.boss);
+    // 見つけた弱点（一度弱点で当てたボスだけ、選択画面に出す）
+    const weakText = d => { const m = d && d.weak && (REC.weak || []).includes(d.id) && RunnerCombat.MOVES[d.weak]; return m ? '弱点：' + m.name : ''; };
+    // 弱点で当たった：大きな止め・揺れ・光・「弱点！」。見つけた弱点は記録（選択画面に出す）
+    function weakHit(e) {
+      hitStop = Math.max(hitStop, 12); shake = Math.max(shake, .5); flash = Math.max(flash, .25); SE.weak(); if (mg.buzz) try { mg.buzz(60); } catch (_) {}
+      for (let i = 0; i < 26; i++) emit(e.x, e.y + 50, rnd(-260, 260), rnd(-80, 300), .55, i % 3 ? '#fff6a0' : '#ff5a7a', 3, 300);
+      banner = { t: 0, txt: '弱点！　' + ((RunnerCombat.MOVES[bossDef().weak] || {}).name || '') };
+      REC.weak = REC.weak || []; if (!REC.weak.includes(e.id)) REC.weak.push(e.id);
+      if (e.dead) { shake = .7; SE.clear(); }
+    }
     // 柵（部屋の入口と出口）：map.extra に壁を足す・消す
     function setGates(on) { for (const c of [AR.c0 - 1, AR.c1 + 1]) for (let cy = AR.fcy; cy < AR.fcy + 10; cy++) { const k = c + ',' + cy; if (on) map.extra.add(k); else map.extra.delete(k); } }
     // 技を覚える：記録（gs.runnerHard.beaten・moves）に入れ、柵を開ける
@@ -728,7 +739,8 @@ registerMinigame({
         const r = SP.F[BZ.frame(e)] || SP.F['0_0'], k = BZ.spec(e).scale || 1;
         const blit = (ox, al) => { cx.globalAlpha = al; cx.save(); cx.translate(x + ox, y); cx.scale(-(e.face || -1) * k, k); cx.drawImage(SP.img, r[0], r[1], r[2], r[3], -r[4], -r[5], r[2], r[3]); cx.restore(); };
         if (e.state === 'dash' || e.state === 'rush' || e.state === 'thrust') { blit(-e.vx * 6, a * .18); blit(-e.vx * 3, a * .32); }   // 残像
-        blit(0, a);
+        if (e.weakT > 0 && !e.dead) blit(Math.sin(t * 80) * 4, a); else blit(0, a);   // 弱点でよろける間は震える
+        if (e.weakT > 0 && !e.dead && Math.sin(t * 30) > 0) { cx.globalCompositeOperation = 'lighter'; blit(0, .35); cx.globalCompositeOperation = 'source-over'; }
         if (fl) { cx.globalCompositeOperation = 'lighter'; blit(0, .45); cx.globalCompositeOperation = 'source-over'; }
         cx.globalAlpha = 1;
       } else {
@@ -742,6 +754,11 @@ registerMinigame({
       const hb = C && C.hitbox(B); if (!hb) return;
       if (SPR) cx.globalAlpha = .45;
       const x0 = sx(hb.x0), x1 = sx(hb.x1), y0 = sy(hb.y1), y1 = sy(hb.y0), cxm = (x0 + x1) / 2, cym = (y0 + y1) / 2, f = B.face;
+      if (hb.id === 'kazeha') {   // 風刃：前へ流れる 3 本の風の弧
+        cx.globalAlpha = 1; cx.lineCap = 'round';
+        for (let i = 0; i < 3; i++) { const k = (t * 9 + i / 3) % 1; cx.strokeStyle = `rgba(255,150,235,${.85 - k * .6})`; cx.lineWidth = 4 - i; cx.beginPath(); cx.ellipse(cxm - f * (18 - k * 30), cym + (i - 1) * 10, (x1 - x0) * (.32 + k * .2), (y1 - y0) * .32, 0, f > 0 ? -1.2 : Math.PI - 1.2, f > 0 ? 1.2 : Math.PI + 1.2); cx.stroke(); }
+        cx.lineCap = 'butt'; return;
+      }
       cx.strokeStyle = hb.id === 'slash3' ? 'rgba(232,184,48,.9)' : 'rgba(0,232,200,.85)'; cx.lineWidth = hb.id === 'slash3' ? 5 : 3.5; cx.lineCap = 'round';
       cx.beginPath();
       if (hb.id === 'slash2') cx.ellipse(cxm - f * 10, cym, (x1 - x0) / 2, (y1 - y0) / 2, 0, f > 0 ? -1.4 : Math.PI - 1.7, f > 0 ? 1.7 : Math.PI + 1.4);
@@ -749,7 +766,7 @@ registerMinigame({
       cx.stroke(); cx.lineCap = 'butt'; cx.globalAlpha = 1;
     }
     // 状態 → ドット絵のコマ（行_列）。行：0 立つ・1 走る・2 ジャンプ・3 ダッシュとスライド・4 拳と構え・5 傘で斬る・6 傘を開く・7 やられ
-    const ATK_SPR = { rising: ['4_1', '4_2', '4_3'], slash1: ['5_1', '5_2', '5_0'], slash2: ['5_4', '5_5', '5_7'], slash3: ['4_3', '5_6', '4_7'], air: ['2_3', '5_6', '2_4'], raitotsu: ['3_2', '5_6', '3_7'], mizukiri: ['3_4', '3_5', '3_5'] };
+    const ATK_SPR = { rising: ['4_1', '4_2', '4_3'], slash1: ['5_1', '5_2', '5_0'], slash2: ['5_4', '5_5', '5_7'], slash3: ['4_3', '5_6', '4_7'], air: ['2_3', '5_6', '2_4'], raitotsu: ['3_2', '5_6', '3_7'], mizukiri: ['3_4', '3_5', '3_5'], kazeha: ['3_2', '5_6', '5_6'] };
     function spriteKey() {
       const st = B.state, f = B.f, cyc = (keys, fps) => keys[Math.floor(t * fps) % keys.length];
       if (phase === 'over') return '7_4';
@@ -901,7 +918,8 @@ registerMinigame({
       cx.fillStyle = '#ffe070'; z = 36; do { cx.font = 'bold ' + z + 'px sans-serif'; } while (cx.measureText(st).width > 330 && --z > 14); cx.fillText(st, 758, 840 + z * .36);
       if (showTouch) { cx.fillStyle = 'rgba(7,5,26,.85)'; cx.fillRect(1140, 806, 500, 70); cx.fillStyle = '#ffffff'; cx.font = 'bold 25px sans-serif'; cx.textAlign = 'center'; cx.fillText('カードをタップで選ぶ／もう一度で 行く', 1385, 850); }
       const mv = d.teaches && RunnerCombat.MOVES[d.teaches], beat = (REC.beaten || []).includes(d.id);
-      cx.fillStyle = 'rgba(7,5,26,.7)'; cx.fillRect(IW / 2 - 330, 757, 660, 34); cx.fillStyle = 'rgba(232,220,255,.95)'; cx.font = 'bold 24px sans-serif'; cx.textAlign = 'center'; cx.fillText(d.id === 'cold' ? (coldRec().wins ? `追い払った ${coldRec().wins} 回` : 'まだ追い払えていない') : beat ? '倒した ── 覚えた技：' + (mv ? mv.name : '') : '倒すと 技を覚える（技は まだ仮です）', IW / 2, 782);
+      { const wk = weakText(d), line = (d.id === 'cold' ? (coldRec().wins ? `追い払った ${coldRec().wins} 回` : 'まだ追い払えていない') : beat ? '倒した ── 覚えた技：' + (mv ? mv.name : '') : '倒すと 技を覚える（技は まだ仮です）') + (wk ? '　／　' + wk : '');
+        cx.fillStyle = 'rgba(7,5,26,.7)'; cx.fillRect(IW / 2 - 400, 757, 800, 34); cx.fillStyle = 'rgba(232,220,255,.95)'; let z2 = 24; do { cx.font = 'bold ' + z2 + 'px sans-serif'; } while (cx.measureText(line).width > 780 && --z2 > 12); cx.textAlign = 'center'; cx.fillText(line, IW / 2, 782); }
       cx.restore();
     }
     function drawSelectPlain() {
@@ -923,6 +941,7 @@ registerMinigame({
         cx.fillStyle = '#deccf8'; fit(d.name, cw - 8, 13, true); cx.fillText(d.name, x + cw / 2, y + 150);
         const mv = d.teaches && RunnerCombat.MOVES[d.teaches], w2 = beat ? '倒した（' + (mv ? mv.name : '') + '）' : '覚える技：？？？'; fit(w2, cw - 8, 11); cx.fillStyle = beat ? '#e8b830' : 'rgba(222,204,248,.7)'; cx.fillText(w2, x + cw / 2, y + 172);
         cx.fillStyle = 'rgba(222,204,248,.5)'; fit(stageOf(d).name, cw - 8, 11); cx.fillText(stageOf(d).name, x + cw / 2, y + 192);
+        { const wk = weakText(d); if (wk) { cx.fillStyle = '#ff9ab0'; fit(wk, cw - 8, 11); cx.fillText(wk, x + cw / 2, y + 210); } }
       });
       cx.fillStyle = 'rgba(222,204,248,.55)'; cx.font = '11px sans-serif'; cx.fillText('ボスを選ぶと、そのボスの面へ（覚える技は、まだ仮です）', VW / 2, 384);
       if (Math.sin(t * 6) > -.3) { cx.fillStyle = '#e8b830'; cx.font = '13px sans-serif'; cx.fillText((showTouch ? 'タップ' : 'Z・Enter') + 'で 行く', VW / 2, 420); }

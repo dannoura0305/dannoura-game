@@ -10,15 +10,19 @@
 (function (root) {
   'use strict';
   const BOSSES = [
-    { id: 'kazegiri', name: '風斬の怪異', kana: 'かぜぎりのかいい', stage: 'okujo', teaches: 'kazebashiri', special: '風断連嵐', hidden: false, order: 'A',
+    { id: 'kazegiri', name: '風斬の怪異', kana: 'かぜぎりのかいい', stage: 'okujo', teaches: 'kazebashiri', weak: 'raitotsu', special: '風断連嵐', hidden: false, order: 'A',
       reason: '風を纏い、街の空を裂く、孤高の斬鬼。高速移動と近接斬撃の技能戦' },
-    { id: 'dakuryu', name: '濁流の怪異', kana: 'だくりゅうのかいい', stage: 'haisui', teaches: 'mizukiri', special: '豪雨濁流・都市氾濫', hidden: false, order: 'B',
+    { id: 'dakuryu', name: '濁流の怪異', kana: 'だくりゅうのかいい', stage: 'haisui', teaches: 'mizukiri', weak: 'kazeha', special: '豪雨濁流・都市氾濫', hidden: false, order: 'B',
       reason: '雨と増水に潜む、都市を呑み込む水の怪異。雨が強まるほど肥大する' },
-    { id: 'raikaku', name: '雷殻の怪異', kana: 'らいかくのかいい', stage: 'koka', teaches: 'raitotsu', special: '雷雲招来', hidden: false, order: 'C',
+    { id: 'raikaku', name: '雷殻の怪異', kana: 'らいかくのかいい', stage: 'koka', teaches: 'raitotsu', weak: 'mizukiri', special: '雷雲招来', hidden: false, order: 'C',
       reason: '都市の雷を纏う、インフラ守護の異形。重装甲と雷で戦うパワー型' },
     // 隠しボス：通常ボスを全員倒した後にコンビニへ着くと、看病の場面から始まる。一度戦うと選択画面からも戦える
     { id: 'cold', name: '風邪菌', kana: 'かぜきん', stage: 'home', teaches: null, hidden: true, unlock: 'after_all', reason: '人の風邪を司るウイルスの化身。子どもは元気になってきたのに、今度は看病していた自分が…' },
   ];
+  // 弱点：あるボスで覚えた技が、別のボスに大きく効く（仕組みは「覚えた技で次のボスを崩す」順番の遊び。名前・中身はこのゲームの物）
+  //   風斬の怪異 → 雷突き（速さを雷で止める）・濁流の怪異 → 風刃（風が濁流を散らす）・雷殻の怪異 → 水切り（水で殻がショートする）
+  //   弱点の技は：体力を WEAK.mul 倍削る・ガードを通す・今の動き（必殺技も）を止めて WEAK.stun こま よろける
+  const WEAK = { mul: 2, stun: 46 };
   const G = { gravity: 0.25 * 2.5, fallCap: 5.75 * 2.5, deadF: 80 };
   // 風斬の怪異：待機（構え）・高速ダッシュ（残像・フェイント）・斬撃（地上の 3 連）・斬撃（空中から斜めに）・突き・風断連嵐（体力半分から）・被弾（立て直して反撃）・撃破
   const KAZEGIRI = {
@@ -177,7 +181,7 @@
     }
     const STEP = { kazegiri: stepKazegiri, dakuryu: stepDakuryu, raikaku: stepRaikaku };
     function step(e, p) {
-      e.f++; e.ev = []; e.landed = false;
+      e.f++; e.ev = []; e.landed = false; if (e.weakT > 0) e.weakT--;
       if (e.dead) { e.deadF++; e.vx = 0; phys(e); return; }
       if (e.hitT > 0) e.hitT--;
       const k = K(e), dx = p ? p.x - e.x : 0, toward = dx < 0 ? -1 : 1;
@@ -207,9 +211,18 @@
       if (s.kind === 'wave' || s.kind === 'surge' || s.kind === 'splash' || s.kind === 'melee') return { x0: s.x - s.w, x1: s.x + s.w, y0: s.y, y1: s.y + s.h };
       return { x0: s.x - s.w, x1: s.x + s.w, y0: s.y - s.h, y1: s.y + s.h };
     }
-    // 攻撃を受ける。fromX：攻撃した自機の x（ガードの向き）。戻り値：true 当たった・'block' 防いだ・false 当たらない
-    function hurt(e, dmg, fromX) {
+    // 攻撃を受ける。fromX：攻撃した自機の x（ガードの向き）。move：技の名前（弱点を見る）
+    // 戻り値：'weak' 弱点で当たった・true 当たった・'block' 防いだ・false 当たらない
+    function hurt(e, dmg, fromX, move) {
       if (e.dead || e.state === 'wait') return false;
+      const def = BOSSES.find(b => b.id === e.id);
+      if (move && def && def.weak === move) {                          // 弱点：ガードも必殺技も止めて、よろける
+        e.hp -= dmg * WEAK.mul; e.hitT = WEAK.stun; e.charged = false; e.vx = 0; e.hitsRecent = 0; e.blocks = 0;
+        for (let i = shots.length - 1; i >= 0; i--) if (shots[i].owner === e || shots[i].kind === 'flood' || shots[i].kind === 'surge' || shots[i].kind === 'bolt') shots.splice(i, 1);
+        go(e, 'recover'); e.f = -WEAK.stun; e.weakT = WEAK.stun;
+        if (e.hp <= 0) { e.hp = 0; e.dead = true; e.deadF = 0; shots.length = 0; }
+        return 'weak';
+      }
       if (e.id === 'raikaku') {
         const front = fromX == null || (fromX - e.x) * e.face >= 0;
         if ((e.state === 'guard' || e.state === 'counter_tele') && front) { if (e.state === 'guard') e.blocks++; return 'block'; }
@@ -287,7 +300,7 @@
   const visible = () => BOSSES.filter(b => !b.hidden);
   // 隠しボスに会える（倒したボスの id の並び beaten が、隠しでないボスを全員ふくむ）
   const coldUnlocked = beaten => visible().every(b => (beaten || []).includes(b.id));
-  const API = { BOSSES, KAZEGIRI, DAKURYU, RAIKAKU, SPEC, G, make, visible, coldUnlocked };
+  const API = { BOSSES, KAZEGIRI, DAKURYU, RAIKAKU, SPEC, G, WEAK, make, visible, coldUnlocked };
   root.RunnerBosses = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

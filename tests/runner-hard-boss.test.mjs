@@ -160,4 +160,35 @@ t('水切り（仮）：覚えるまでスライディング中の攻撃は出�
   for (let i = 0; i < 60; i++) { A.step(r.b, r.C.pre(r.b, {})); r.C.post(r.b); } assert.equal(r.b.atk, null, '滑りが終わると終わる');
 });
 
+
+t('弱点：ボスで覚えた技が別のボスに大きく効く（雷突き→風斬・風刃→濁流・水切り→雷殻）。体力を 2 倍削り、ガードと必殺技を止めて よろける', () => {
+  const vis = RB.visible(), by = id => vis.find(b => b.id === id);
+  assert.equal(by('kazegiri').weak, 'raitotsu'); assert.equal(by('dakuryu').weak, 'kazeha'); assert.equal(by('raikaku').weak, 'mizukiri');
+  // 弱点は別のボスで覚える技（輪になっている）・技の表にある
+  const teacher = m => vis.find(b => b.teaches === m || (RC.MOVES[m] && RC.MOVES[m].with === b.teaches));
+  for (const b of vis) { assert.ok(RC.MOVES[b.weak], b.weak); const tb = teacher(b.weak); assert.ok(tb && tb.id !== b.id, b.id + ' の弱点は別のボスで覚える'); }
+  for (const id of ['kazegiri', 'dakuryu', 'raikaku']) {
+    const map = room(), Z = RB.make(map), e = Z.spawn(id, 20 * T, 2 * T, AR); Z.wake(e); for (let i = 0; i < 5; i++) Z.step(e, { x: 10 * T, y: 2 * T });
+    const hp0 = e.hp; assert.equal(Z.hurt(e, 1, 10 * T, 'slash1'), true); assert.equal(hp0 - e.hp, 1, id + ' ふつうの技は 1');
+    const hp1 = e.hp; assert.equal(Z.hurt(e, 2, 10 * T, by(id).weak), 'weak'); assert.equal(hp1 - e.hp, 2 * RB.WEAK.mul, id + ' 弱点は 2 倍');
+    assert.equal(e.state, 'recover'); assert.ok(e.weakT > 0, 'よろける');
+    let st = 0; while (e.state === 'recover' && st < 400) { Z.step(e, { x: 10 * T, y: 2 * T }); st++; } assert.ok(st >= RB.WEAK.stun, id + ' しばらく動けない ' + st);
+  }
+  // 雷殻のガードを正面から通す・必殺技（雷雲招来）を止める
+  const { Z, e } = boss(); Z.wake(e); e.state = 'guard'; e.f = 0; e.face = -1;
+  assert.equal(Z.hurt(e, 1, 10 * T, 'slash1'), 'block', 'ふつうは防ぐ'); assert.equal(Z.hurt(e, 2, 10 * T, 'mizukiri'), 'weak', '弱点は通す');
+  e.state = 'storm'; e.charged = true; Z.shots.push({ kind: 'bolt', x: 0, y: 0, f: 0, tele: 10, w: 10, life: 50 }); Z.hurt(e, 2, 10 * T, 'mizukiri');
+  assert.equal(e.charged, false, '帯電が消える'); assert.equal(Z.shots.filter(s => s.kind === 'bolt').length, 0, '落雷が消える');
+});
+
+t('風刃（風走りの間に攻撃）：風走りを覚えると使える・前を広く払う・風走りが終わっても振り終わるまで', () => {
+  const map = RA.makeMap(['.'.repeat(80), '.'.repeat(80), '.'.repeat(80), '.'.repeat(80), '.'.repeat(80), '#'.repeat(80)]);
+  const run = learned => { const A = RA.make({ map, airDash: () => learned.includes('kazebashiri') }), C = RC.make(A, { learned }), b = A.body(5 * T, T, 1);
+    const st = i => { A.step(b, C.pre(b, i)); C.post(b); }; st({ j: true }); for (let i = 0; i < 10; i++) st({ j: true, r: true }); st({ r: true, d: true, dP: true }); st({ r: true, d: true, atkP: true }); return { A, C, b, st }; };
+  assert.notEqual((run([]).b.atk || {}).id, 'kazeha', '覚えるまで出ない');
+  const r = run(['kazebashiri']); assert.equal(r.b.state, 'air_dash'); assert.equal(r.b.atk.id, 'kazeha', '風走りといっしょに覚える');
+  r.st({ r: true, d: true }); const hb = r.C.hitbox(r.b); assert.ok(hb && hb.id === 'kazeha' && hb.x1 - hb.x0 >= 60 && hb.dmg >= 2, '前を広く');
+  for (let i = 0; i < 40 && r.b.atk; i++) r.st({ r: true }); assert.equal(r.b.atk, null, '振り終わる');
+});
+
 console.log(`runner-hard-boss: ${n} ok`);

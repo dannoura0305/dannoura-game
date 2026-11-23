@@ -31,7 +31,10 @@
     mizukiri: { base: false, learnedFrom: 'dakuryu', name: '水切り（仮）', howto: 'スライディング中に 攻撃（X）', desc: '水しぶきをまとって、足もとを払いながら滑る', on: 'slide', input: 'slide', startup: 2, active: 14, recover: 4, step: 0,
       hit: { x: -6, y: 0, w: 58, h: 26, dmg: 2, hitstop: 5, kb: 4 }, cancel: {} },
     // 習得技（仮）：風走り。空中でダッシュ → 一度だけ、落ちずに横へ走る（攻撃ではない。act.js の air_dash）。風斬の怪異を倒すと覚える
-    kazebashiri: { base: false, learnedFrom: 'kazegiri', name: '風走り（仮）', howto: '空中で ダッシュ（C）', desc: '空中で一度だけ、風に乗って横へ走る', ability: 'airDash' },
+    kazebashiri: { base: false, learnedFrom: 'kazegiri', name: '風走り（仮）', howto: '空中で ダッシュ（C）。走る間に 攻撃（X）で 風刃', desc: '空中で一度だけ、風に乗って横へ走る。走りながら風の刃で斬れる', ability: 'airDash' },
+    // 風刃（仮）：風走りの間に攻撃 → 前を広く払う風の刃（風走りといっしょに覚える。濁流の怪異の弱点）
+    kazeha: { base: false, learnedFrom: 'kazegiri', with: 'kazebashiri', name: '風刃（仮）', howto: '風走りの間に 攻撃（X）', desc: '風の刃で前を広く払う', on: 'airdash', input: 'airdash', startup: 1, active: 14, recover: 4, step: 0,
+      hit: { x: -4, y: 4, w: 70, h: 52, dmg: 2, hitstop: 5, kb: 4 }, cancel: {} },
   };
   const BUFFER_F = 8;                                               // 硬直中に押した攻撃を覚えておくこま数
   const GROUND = ['stand', 'walk_start', 'walk', 'land', 'dash', 'dash_end'];
@@ -43,7 +46,7 @@
 
   function make(act, opts = {}) {
     const learned = new Set(opts.learned || []);
-    const usable = id => { const m = MOVES[id]; return !!m && (m.base || learned.has(id)); };
+    const usable = id => { const m = MOVES[id]; return !!m && (m.base || learned.has(id) || (!!m.with && learned.has(m.with))); };
     // 攻撃を始める（入れる技を選ぶ）
     function pick(b, inp) {
       if (AIR.includes(b.state)) return usable('air') ? 'air' : null;
@@ -59,6 +62,9 @@
         if (b.atkBuf > 0) { b.atkBuf = 0; b.atk = { id: 'mizukiri', f: 1, hits: new Set(), chain: 0 }; }
         return inp;
       }
+      // 風刃：風走りの間に攻撃。風走りが終わって落ち始めても、振り終わるまで当たる
+      if (b.atk && b.atk.id === 'kazeha') { if (b.state === 'hurt' || b.state === 'wall_slide' || ++b.atk.f > total(MOVES.kazeha)) b.atk = null; return inp; }
+      if (b.state === 'air_dash' && usable('kazeha') && b.atkBuf > 0) { b.atkBuf = 0; b.atk = { id: 'kazeha', f: 1, hits: new Set(), chain: 0 }; return inp; }
       if (b.state === 'hurt' || b.state === 'wall_slide' || b.state === 'wall_kick' || b.state === 'slide' || b.state === 'air_dash') { b.atk = null; return inp; }
       const a = b.atk;
       if (a) {
