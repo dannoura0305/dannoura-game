@@ -28,9 +28,8 @@ for (const [label, vw, vh] of [['横長', 1280, 720], ['縦長', 420, 820]]) {
   await p.fill('#na-name-in', 'ノア'); await p.click('#na-name-ok'); await p.waitForTimeout(300);
   const ar = await until(s => s.overlay === 'areas'); ok(`${label}：回廊 → 扉の選択`, !!ar);
   const doors = await p.$$eval('.na-door', ds => ds.map(d => ({ id: d.dataset.area, locked: d.classList.contains('locked') })));
-  ok(`${label}：扉は 5 つ・開くのは白薔薇の宮殿だけ（4 つは準備中）`, doors.length === 5 && doors.filter(d => !d.locked).map(d => d.id).join() === 'rose', JSON.stringify(doors));
+  ok(`${label}：扉は 5 つ・どれも開く（化け猫の扉は無い）`, doors.length === 5 && doors.every(d => !d.locked) && !doors.some(d => d.id === 'cat'), JSON.stringify(doors));
   await shot('areas');
-  await p.click('.na-door.locked'); await p.waitForTimeout(150); ok(`${label}：準備中の扉は開かない`, (await S()).overlay === 'areas');
   await p.click('[data-area=rose]'); await p.waitForTimeout(400);
   const s1 = await S(); ok(`${label}：白薔薇の宮殿へ（名前が入る）`, s1.scene === 'rose_00' && s1.player === 'ノア', JSON.stringify({ scene: s1.scene, player: s1.player }));
   await shot('rose');
@@ -96,7 +95,7 @@ for (const [label, vw, vh] of [['横長', 1280, 720], ['縦長', 420, 820]]) {
   ok(`${label}：タイトルの「思い出」が開ける`, await p.isEnabled('#na-mem'));
   await p.click('#na-mem'); await p.waitForTimeout(200);
   const chs = await p.$$eval('.na-row[data-ch]', rs => rs.map(r => r.dataset.ch + ':' + (r.classList.contains('unseen') ? 0 : 1)));
-  ok(`${label}：思い出の一覧（通った章が並ぶ）`, chs.length === 6 && chs.every(c => c.endsWith(':1')), JSON.stringify(chs));
+  ok(`${label}：思い出の一覧（白薔薇の通った章が並ぶ・まだの扉は ？？？）`, chs.length === 10 && chs.filter(c => c.startsWith('rose_')).every(c => c.endsWith(':1')) && chs.filter(c => !c.startsWith('rose_')).every(c => c.endsWith(':0')), JSON.stringify(chs));
   await shot('memories');
   await p.click('[data-ch=rose_waltz] button'); await p.waitForTimeout(300);
   const m1 = await S(); ok(`${label}：「月下の円舞」から読み返す（思い出の印・セーブが無い）`, m1.memory && m1.scene === 'rose_n1_01' && !(await p.$('.na-quick [data-k=save]')), JSON.stringify({ m: m1.memory, sc: m1.scene }));
@@ -105,10 +104,24 @@ for (const [label, vw, vh] of [['横長', 1280, 720], ['縦長', 420, 820]]) {
   await p.click('#na-end'); await p.waitForTimeout(250);
   ok(`${label}：思い出の一覧へ戻る`, (await S()).overlay === 'memories');
   await p.click('.na-close'); await p.waitForTimeout(200);
+  // 忘れられた森：はじめから → 森の扉 → GOOD（試作の短い物語）
+  await p.click('#na-new'); await p.waitForTimeout(300);
+  await p.click('.na-quick [data-k=skip]'); await until(s => s.overlay === 'name', 40);
+  await p.fill('#na-name-in', 'ノア'); await p.click('#na-name-ok'); await p.waitForTimeout(300);
+  await until(s => s.overlay === 'areas', 40); await p.click('[data-area=forest]'); await p.waitForTimeout(300);
+  ok(`${label}：忘れられた森の扉が開く`, (await S()).scene === 'forest_00');
+  await pick(/思い出したいから/, '思い出したいから、教えて');
+  await pick(/思い出したいことがある/, '思い出したいことがある');
+  await pick(/約束、まだ守れる/, 'その約束、まだ守れる？');
+  const fv = await S(); ok(`${label}：森の想いは 6（花びら 6 枚）`, fv.vars.forest_love === 6, JSON.stringify(fv.vars));
+  await pick(/約束を守りに/, '森を出よう');
+  const fg = await until(s => s.overlay === 'end', 60); ok(`${label}：忘れられた森 → GOOD END（約束の木）`, !!fg && fg.endings.includes('forest_good') && fg.cgs.includes('forest_promise'), JSON.stringify(fg && fg.endings));
+  await shot('forest_good');
+  await p.click('#na-end'); await p.waitForTimeout(400);
   // エンディング一覧・ギャラリー
   await p.click('text=エンディング'); await p.waitForTimeout(200);
   const ends = await p.$$eval('.na-row', rs => rs.map(r => r.textContent));
-  ok(`${label}：エンディング一覧（見た物は題・見ていない物は ？？？・正式とトゥルーの枠）`, ends.some(t => /白薔薇の誓い/.test(t)) && ends.some(t => /零時の鐘/.test(t)) && ends.some(t => /塔の花嫁/.test(t)) && ends.some(t => /トゥルーエンド.*？？？/.test(t)), JSON.stringify(ends));
+  ok(`${label}：エンディング一覧（見た物は題・見ていない物は ？？？・正式とトゥルーの枠）`, ends.some(t => /白薔薇の誓い/.test(t)) && ends.some(t => /約束の木/.test(t)) && ends.some(t => /零時の鐘/.test(t)) && ends.some(t => /塔の花嫁/.test(t)) && ends.some(t => /トゥルーエンド.*？？？/.test(t)), JSON.stringify(ends));
   await shot('endings');
   await p.click('.na-close'); await p.waitForTimeout(150);
   await p.click('text=ギャラリー'); await p.waitForTimeout(200);
