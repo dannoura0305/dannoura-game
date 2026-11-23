@@ -388,7 +388,7 @@ registerMinigame({
     let SPR = null, SEL = null; const ART = {};   // ART：面の背景の絵（名前 → 画像）   // SEL：ボス選択画面の絵（assets/runner/select.json）
     function loadSprite() {
       fetch('assets/runner/select.json').then(r => r.json()).then(meta => { const bg = new Image(), img = new Image(); let n = 0; const ok = () => { if (++n === 2) SEL = { bg, img, F: meta.frames, W: meta.W, H: meta.H }; }; bg.onload = ok; img.onload = ok; bg.src = 'assets/runner/' + meta.bg; img.src = 'assets/runner/' + meta.image; }).catch(() => {});   // ボス選択画面の絵（利用者の絵）
-      for (const nm of ['haisui_1', 'haisui_2', 'haisui_3', 'okujo_1', 'okujo_2', 'okujo_3', 'koka_1', 'koka_2', 'koka_3', 'home']) { const img = new Image(); img.onload = () => { ART[nm] = img; }; img.src = 'assets/runner/' + nm + '.webp'; }   // 濁流・風斬・雷殻の面と、風邪菌の家の背景（利用者の絵）
+      for (const nm of ['haisui_water', 'haisui_1', 'haisui_2', 'haisui_3', 'okujo_1', 'okujo_2', 'okujo_3', 'koka_1', 'koka_2', 'koka_3', 'home']) { const img = new Image(); img.onload = () => { ART[nm] = img; }; img.src = 'assets/runner/' + nm + '.webp'; }   // 濁流・風斬・雷殻の面と、風邪菌の家の背景（利用者の絵）
       for (const id of ['kazegiri', 'dakuryu', 'raikaku', 'kazekin'])   // ボスと隠しボスのドット絵（利用者の絵）
       fetch('assets/runner/' + id + '.json').then(r => r.json()).then(meta => { const img = new Image(); img.onload = () => { BSPR[id] = { img, F: meta.frames }; }; img.src = 'assets/runner/' + meta.image; }).catch(() => {});
       fetch('assets/runner/dannoura.json').then(r => r.json()).then(meta => {
@@ -727,6 +727,17 @@ registerMinigame({
     // 水（増水・大波）：波打つ水面・白い波頭・しぶき。下は絵の川に溶け込むよう、元の水面より下まで塗る。x0・x1 は画面の座標、yBase・lv は世界の高さ
     function drawWater(x0, x1, yBase, lv, below = 60) {   // below：元の水面より下を塗る深さ（部屋の床の上なら浅く）
       if (lv <= 1 || x1 <= x0) return;
+      // 背景の絵（haisui_3 の水門の広間の水）から切り出した波の帯（assets/runner/haisui_water.webp：絵の半分の大きさ。2 倍で描く）を横に並べる。読めない時は下のコードの水
+      const WT = ART.haisui_water;
+      if (WT) {
+        const ty = sy(yBase + lv) + Math.sin(t * 1.6) * 2, by = Math.min(VH, sy(yBase - below)), tw = WT.width * 2, th = WT.height * 2, top = ty - 22;
+        cx.save(); cx.beginPath(); cx.rect(x0, top - 6, x1 - x0, by - top + 6); cx.clip();
+        cx.imageSmoothingEnabled = false;
+        const off = ((x0 + camX + t * 22) % tw + tw) % tw;
+        for (let x = x0 - off; x < x1; x += tw) cx.drawImage(WT, x, top, tw, th);
+        if (by > top + th - 2) { cx.fillStyle = '#0b196b'; cx.fillRect(x0, top + th - 2, x1 - x0, by - top - th + 2); }   // 帯より深い所は絵の深い水の色
+        cx.restore(); return;
+      }
       const ty = sy(yBase + lv), by = Math.min(VH, sy(yBase - below)), amp = Math.min(1, lv / 30);
       const wave = x => (Math.sin(x * .034 + t * 3.1) * 4 + Math.sin(x * .012 - t * 1.6) * 3 + Math.sin(x * .09 + t * 6) * 1.2) * amp;
       const g = cx.createLinearGradient(0, ty - 6, 0, by); g.addColorStop(0, 'rgba(110,130,235,.82)'); g.addColorStop(.18, 'rgba(58,66,180,.86)'); g.addColorStop(.7, 'rgba(32,26,110,.9)'); g.addColorStop(1, 'rgba(22,16,80,.55)');
