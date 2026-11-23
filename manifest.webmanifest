@@ -8,7 +8,7 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#05040e",
   "theme_color": "#0a0820",
   "categories": ["games"],

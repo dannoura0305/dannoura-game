@@ -1267,6 +1267,13 @@ function openSong(){
   snw=setInterval(()=>{if(gs.throatFatigue>85&&Math.random()<.42)return;spawnNote(Math.floor(Math.random()*4));},spr);
   document.getElementById('song-mini').classList.add('active');
 }
+// キー操作（D F J K ＝ 左から 1〜4 番目のレーン）。コントローラーは input/profiles.js の song がこのキーに渡す
+document.addEventListener('keydown',e=>{
+  const sm=document.getElementById('song-mini');if(!sm||!sm.classList.contains('active'))return;
+  const lane={d:0,f:1,j:2,k:3}[String(e.key).toLowerCase()];
+  if(lane==null||e.repeat)return;
+  e.preventDefault();hitNote(lane);
+});
 function spawnNote(lane){const track=document.getElementById('song-track'),le=document.getElementById('lane-'+lane);if(!le)return;const n=document.createElement('div');n.className='falling-note n-g';const lr=le.getBoundingClientRect(),tr=track.getBoundingClientRect();const w=45,h=17;n.style.cssText=`width:${w}px;height:${h}px;left:${lr.left-tr.left+(lr.width-w)/2}px;top:-22px;`;n.dataset.lane=lane;track.appendChild(n);const obj={el:n,lane,aiv:null};an.push(obj);let posY=-22;const spd=2.7+gs.skills.singSkill*.2;const aiv=setInterval(()=>{posY+=spd;n.style.top=posY+'px';if(posY>track.offsetHeight+20){clearInterval(aiv);n.remove();an=an.filter(x=>x.el!==n);}},16);obj.aiv=aiv;}
 function hitNote(lane){const le=document.getElementById('lane-'+lane);le.classList.add('hit');setTimeout(()=>le.classList.remove('hit'),125);const track=document.getElementById('song-track'),hz=track.offsetHeight-56;let hit=false;for(let i=an.length-1;i>=0;i--){const n=an[i];if(parseInt(n.lane)!==lane)continue;const diff=Math.abs(parseInt(n.el.style.top)-hz+5);if(diff<42){clearInterval(n.aiv);n.el.remove();an.splice(i,1);if(diff<20){ssp++;ssc+=100;document.getElementById('sg-p').textContent=ssp;showJ('PERFECT');AU.se('decide');}else{ssg++;ssc+=50;document.getElementById('sg-g').textContent=ssg;showJ('GOOD');AU.se('btn');}document.getElementById('sg-score').textContent=ssc;hit=true;break;}}if(!hit){ssm++;document.getElementById('sg-m').textContent=ssm;showJ('MISS');}}
 function showJ(type){const el=document.getElementById('song-jdg');el.textContent=type;el.style.color=type==='PERFECT'?'var(--cy)':type==='GOOD'?'var(--gd)':'var(--rd)';el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');}

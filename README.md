@@ -54,6 +54,14 @@ GitHub の画面で PNG をアップロードして Claude に伝えれば、目
 
 設計：`docs/home-story-design.md`／素材台帳：`docs/asset-inventory.md`・`assets/original/manifest.json`／画風：`docs/asset-style-guide.md`／検証：`docs/verification.md`／テスト：`node tests/run.mjs`
 
+## 🎮 コントローラー対応（PC・Android・iPhone・iPad）
+Xbox・PlayStation・Nintendo 配置のゲームパッド（基準機：GameSir Nova Lite 2）で、タイトルからエンディングまで遊べます。タッチ・キーボードとは、最後に触った物で自動で切り替わります。
+- **共通**：左スティック／十字キー＝選ぶ、A＝決定・会話送り、B＝戻る、Y＝ステータス、LB/RB＝メニュー切替、RT＝会話の早送り、右スティック＝スクロール、R3＝仮想カーソル、Menu＝一時停止メニュー（セーブ・ロード・設定・診断）、View＝操作方法。
+- **ミニゲーム**は開始時に専用の操作に替わります（View で一覧。ドラッグが要るゲームは右スティック＋RT の仮想カーソル）。文字入力はゲーム内キーボード。
+- **設定**：決定ボタンの位置（下＝A／× か 右＝○）・振動・カーソルの速さ・スティックの遊び。**診断画面**：`gamepad.html`（ボタン・軸・割り当ての学習・遅延・振動）。
+- 横画面では本編のメイン画面が 2 列になります。遊んでいる最中にコントローラーが外れると一時停止します。
+- 仕組み・制約・実機検証の表：`docs/controller-support.md`／テスト：`node tests/input-manager.test.mjs`、`node tests/e2e/pad-playthrough.cjs`（Playwright）
+
 ## ゲームの流れ
 - DAY1〜DAY30を、配信・工場の仕事・資格の勉強・育児・休息をやりくりして生き延びます。
 - 毎晩22時から行動を選びます。配信を終えるか朝6時になると、夜が明けて次の日へ進みます。

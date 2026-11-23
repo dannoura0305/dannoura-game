@@ -1,0 +1,37 @@
+/* ══════════════════════════════════════════════════════════
+   スマホ・タブレット・コントローラー向けの追加の見た目（index.html の最後に読む）
+   ・セーフエリア（切り欠き・ホームバー）：viewport-fit=cover にしたので、主な画面を env(safe-area-inset-*) だけ内側へ
+   ・横画面（高さが低い端末）：本編のメイン画面を左右 2 列に（左＝目標・場面・会話、右＝選択肢）
+   ・コントローラーで操作中（body.input-pad）：マウスのホバー用の表示を控えめに
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --sa-t:env(safe-area-inset-top,0px);--sa-r:env(safe-area-inset-right,0px);
+  --sa-b:env(safe-area-inset-bottom,0px);--sa-l:env(safe-area-inset-left,0px);
+}
+/* ── セーフエリア ── */
+#game-screen{padding:var(--sa-t) var(--sa-r) 0 var(--sa-l);}
+.bottom-nav{padding-left:var(--sa-l);padding-right:var(--sa-r);padding-bottom:var(--sa-b);}
+#story-screen,#mg-picker,#settings-sc,#endlist-sc,#tutorial-sc{padding-left:var(--sa-l);padding-right:var(--sa-r);}
+#mg-screen{padding:var(--sa-t) var(--sa-r) var(--sa-b) var(--sa-l);box-sizing:border-box;}
+#streaming-ol,#song-mini{padding-left:var(--sa-l);padding-right:var(--sa-r);box-sizing:border-box;}
+
+/* ── 横画面（スマホを横に持った時。高さ 560px 以下） ── */
+@media (orientation:landscape) and (max-height:560px){
+  #game-screen > *{max-width:min(960px,100%);}
+  #game-screen::before{width:min(968px,100vw);}
+  .game-body{max-width:min(960px,100%);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr);column-gap:10px;padding-bottom:58px;box-sizing:border-box;}
+  .game-body > #daily-guide{grid-column:1;grid-row:1;}
+  .game-body > .scene-area{grid-column:1;grid-row:2;height:64px;}
+  .game-body > .dialogue-area{grid-column:1;grid-row:3;align-self:start;margin-top:10px;max-height:100%;overflow-y:auto;}
+  .game-body > #choices-area{grid-column:2;grid-row:1/4;align-self:stretch;margin-top:6px;}
+  .game-body > #choices-area:empty{display:block;}
+  .bottom-nav{max-width:min(960px,100%);margin:0 auto;}
+  .nav-btn{min-height:46px;padding:5px 2px 4px;flex-direction:row;justify-content:center;gap:6px;}
+  .top-bar{min-height:0;}
+}
+
+/* ── コントローラー操作中 ── */
+body.input-pad{cursor:none;}
+body.input-pad #pad-ol,body.input-pad #vkbd{cursor:default;}
+/* 一時停止中のミニゲームは少し暗く */
+body.mg-paused #mg-body{filter:brightness(.55) saturate(.7);}

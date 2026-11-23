@@ -29,8 +29,8 @@ await t('shinshoku.webmanifest：全画面・横向き・境界侵食の入口�
   assert.match(m.short_name, /境界侵食/);
   for (const ic of m.icons) { assert.ok(!ic.src.startsWith('/'), ic.src); assert.ok(existsSync(join(ROOT, ic.src)), ic.src); }
   assert.ok(m.icons.some(i => i.purpose === 'maskable'));
-  // 本編のマニフェストはそのまま（縦向き・standalone）
-  assert.equal(main.display, 'standalone'); assert.equal(main.orientation, 'portrait'); assert.equal(main.start_url, './');
+  // 本編のマニフェスト（standalone。コントローラー対応で横画面でも遊べるよう向きは自由：docs/controller-support.md）
+  assert.equal(main.display, 'standalone'); assert.equal(main.orientation, 'any'); assert.equal(main.start_url, './');
 });
 
 await t('shinshoku.html：専用のマニフェスト・ホーム画面のアイコン・フル画面のボタンと iPhone の案内の置き場所', () => {

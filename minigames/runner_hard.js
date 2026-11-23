@@ -226,9 +226,12 @@ registerMinigame({
     });
     function padInput() {
       const o = { l: false, r: false, j: false, d: false, dn: false, atk: false, up: false };
-      let pads = []; try { pads = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean) : []; } catch (e) {}
-      for (const g of pads) {
-        const b = i => !!(g.buttons[i] && g.buttons[i].pressed), ax = g.axes[0] || 0, ay = g.axes[1] || 0;
+      // コントローラーは入力管理（input/input-manager.js の INPUT）経由で読む。論理ボタン（A＝下 B＝右 X＝左 Y＝上…）を標準配置の番号に戻して使う
+      const S = (typeof INPUT !== 'undefined' && INPUT.state && INPUT.state.connected) ? INPUT.state : null;
+      const NUM = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'SELECT', 'START', 'L3', 'R3', 'UP', 'DOWN', 'LEFT', 'RIGHT'];
+      const sw = typeof INPUT !== 'undefined' && INPUT.opts && INPUT.opts.confirm === 'east';   // 決定ボタンを右にしている時は A と B を入れ替える
+      for (const g of S ? [S] : []) {
+        const b = i => { let n = NUM[i]; if (sw && (n === 'A' || n === 'B')) n = n === 'A' ? 'B' : 'A'; return !!g.buttons[n]; }, ax = g.axes.LX || 0, ay = g.axes.LY || 0;
         o.l = o.l || b(14) || ax < -.4; o.r = o.r || b(15) || ax > .4; o.dn = o.dn || b(13) || ay > .6; o.up = o.up || b(12) || ay < -.6;
         o.j = o.j || b(0); o.atk = o.atk || b(2) || b(3); o.d = o.d || b(1) || b(5) || b(7);   // A ジャンプ・X（Y）攻撃・B（RB・RT）ダッシュ
         if (b(0) && !padPrevA) advance(); padPrevA = b(0);

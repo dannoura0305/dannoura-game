@@ -27,6 +27,13 @@
   </div>
   <noscript><p class="tb-noscript">このゲームを遊ぶには JavaScript を有効にしてください。<a href="index.html">本編に戻る</a></p></noscript>
 </div>
+<!-- コントローラー（簡易対応：input/profiles.js の page ＋このページの割り当て。docs/controller-support.md） -->
+<script>window.PAD_PAGE_PROFILE = { name: 'トビネズミ（簡易対応）', move: 'arrows', keys: { A: 'e', B: 'Escape', X: 'z', Y: ' ', LB: 'Shift' }, help: [['LS/DPAD', '移動'], ['A', '調べる・決定（E）'], ['B', '戻る（Esc）'], ['X', 'Z キー'], ['Y', 'スペース'], ['LB', 'Shift'], ['R3', '仮想カーソル']] };</script>
+<script src="input/input-manager.js"></script>
+<script src="input/profiles.js"></script>
+<script src="input/vkeyboard.js"></script>
+<script src="input/diag.js"></script>
+<script src="input/pad-ui.js"></script>
 <script type="module" src="tobinezumi/client/main.js"></script>
 <script src="pwa.js"></script>
 </body>

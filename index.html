@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>だんのうら ― 深夜、繋がりの海へ</title>
 <meta name="theme-color" content="#0a0820">
 <meta name="description" content="借金・夜勤・配信・子育て。30日間を生き延びる、深夜のサバイバル育成ゲーム。">
@@ -18,6 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;700&family=Share+Tech+Mono&family=DotGothic16&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="style-home.css">
+<link rel="stylesheet" href="style-pad.css">
 </head>
 <body data-phase="1">
 <canvas id="rain-canvas"></canvas>
@@ -317,6 +318,12 @@
 <script src="main/home/life_events.js"></script>
 <script src="main/home/lifemode.js"></script>
 <script src="main/integrations.js"></script>
+<!-- コントローラー（入力管理 → 操作の型 → 画面の操作）。docs/controller-support.md -->
+<script src="input/input-manager.js"></script>
+<script src="input/profiles.js"></script>
+<script src="input/vkeyboard.js"></script>
+<script src="input/diag.js"></script>
+<script src="input/pad-ui.js"></script>
 <!-- ホーム画面に追加・オフライン（sw.js の登録と更新のお知らせ） -->
 <script src="pwa.js"></script>
 </body>

@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-11-23.2';   // 境界ノアリス：各章の会話を書き足し（四つの扉を中心に）
+const VERSION = '2026-11-23.3';   // コントローラー対応（入力管理・操作の型・診断・ゲーム内キーボード・横画面）
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）
@@ -21,6 +21,7 @@ const SHELL_FILES = [
   'index.html',
   'style.css',
   'style-home.css',
+  'style-pad.css',
   'manifest.webmanifest',
   'pwa.js',
   'main/icons.js',
@@ -51,6 +52,11 @@ const SHELL_FILES = [
   'main/home/life_events.js',
   'main/home/lifemode.js',
   'main/integrations.js',
+  'input/input-manager.js',
+  'input/profiles.js',
+  'input/vkeyboard.js',
+  'input/diag.js',
+  'input/pad-ui.js',
   'assets/pwa/icon-192.png',
   'assets/pwa/icon-512.png',
   'assets/pwa/icon-maskable-512.png',

@@ -427,7 +427,7 @@ const MG={
   },
   _start(def){
     closeMinigamePicker();
-    this.def=def;this._ended=false;this._onEnd=[];this._loopErr=false;this.sfxProbe=null;
+    this.def=def;this._ended=false;this._paused=false;this._onEnd=[];this._loopErr=false;this.sfxProbe=null;
     if(window.ICONS&&ICONS.has(def.id))this.el('mg-title').innerHTML=mgIconHTML(def,20)+`<span class="ic-t">${def.name}</span>`;
     else this.el('mg-title').textContent=def.icon+' '+def.name;
     this.el('mg-help').textContent=def.help;
@@ -458,7 +458,18 @@ const MG={
   exposeSfx(names,play){try{if(Array.isArray(names)&&typeof play==='function')this.sfxProbe={names:names.slice(),play:k=>{try{play(k);}catch(e){}}};}catch(e){}},
   setScore(html){this.el('mg-score').innerHTML=html;},
   setTimer(t){this.el('mg-timer').textContent=t;},
-  every(fn,ms){const id=setInterval(fn,ms);this._iv.push(id);return id;},
+  every(fn,ms){const id=setInterval(()=>{if(!this._paused)fn();},ms);this._iv.push(id);return id;},
+  // 一時停止（コントローラーが外れた時・START の一時停止メニュー。input/pad-ui.js から）
+  //  毎フレームの処理と every を止め、戻った時に止まっていた時間ぶん進めない。効果音（Web Audio）も止める
+  _paused:false,
+  setPaused(on){
+    on=!!on&&!this._ended;
+    if(on===this._paused)return;
+    this._paused=on;
+    if(this._clock)this._clock.reset();
+    try{if(typeof AU!=='undefined'&&AU.ctx){on?AU.ctx.suspend():AU.ctx.resume();}}catch(e){}
+    try{document.body.classList.toggle('mg-paused',on);}catch(e){}
+  },
   // dt（秒）付きの毎フレーム処理。dt は rAF の時刻の差＝実際に過ぎた時間（mgFrameClock）なので、
   // 60Hz・120Hz・144Hz のどの画面でも同じ速さで進む。タブが裏に回って戻った直後は 0 から数え直す
   loop(fn){
@@ -466,6 +477,7 @@ const MG={
     this._clock=clock;
     const step=now=>{
       if(this._ended)return;
+      if(this._paused){clock.reset();this._raf=requestAnimationFrame(step);return;}
       const dt=clock.tick(now);
       // 1フレームの例外でゲーム全体が止まらないようにする（同じエラーは何度も出さない）
       try{fn(dt);}catch(e){if(!this._loopErr){this._loopErr=true;console.error(e);}}
@@ -492,6 +504,7 @@ const MG={
   finish(r){
     if(this._ended)return;
     this._ended=true;
+    if(this._paused){this._paused=false;try{document.body.classList.remove('mg-paused');if(typeof AU!=='undefined'&&AU.ctx)AU.ctx.resume();}catch(e){}}
     this._iv.forEach(clearInterval);this._iv=[];
     if(this._raf)cancelAnimationFrame(this._raf);
     this._raf=null;this._keys=null;this._clock=null;
@@ -530,7 +543,7 @@ const MG={
     checkGameOver();
   },
 };
-['keydown','keyup'].forEach(t=>document.addEventListener(t,e=>{if(MG._keys&&!MG._ended)MG._keys(e);}));
+['keydown','keyup'].forEach(t=>document.addEventListener(t,e=>{if(MG._keys&&!MG._ended&&(!MG._paused||e.type==='keyup'))MG._keys(e);}));
 // ミニゲーム中に本編のイベント（ランダムイベント等）が起きたら、結果を閉じるまで待たせる
 const _mgPendingEv=[];
 if(typeof showEvPopup==='function'){
@@ -562,6 +575,6 @@ if(typeof closeResult==='function'){
 document.addEventListener('visibilitychange',()=>{
   // 戻った時に裏にいた時間ぶん進めない（MG.loop の時計を数え直す）
   if(MG._clock)MG._clock.reset();
-  if(MG._ended||typeof AU==='undefined'||!AU.ctx)return;
+  if(MG._ended||MG._paused||typeof AU==='undefined'||!AU.ctx)return;
   try{document.hidden?AU.ctx.suspend():AU.ctx.resume();}catch(e){}
 });

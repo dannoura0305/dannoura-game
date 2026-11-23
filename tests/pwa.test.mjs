@@ -23,14 +23,14 @@ function loadSW() {
   return { sw: ctx.__sw, listeners };
 }
 
-test('manifest：名前・相対の start_url/scope・縦向き・紺と金の色・アイコン', () => {
+test('manifest：名前・相対の start_url/scope・向き自由（横画面・コントローラーでも遊べる）・紺と金の色・アイコン', () => {
   const m = JSON.parse(read('manifest.webmanifest'));
   assert.equal(m.short_name, 'だんのうら');
   assert.match(m.name, /だんのうら/);
   assert.equal(m.start_url, './');
   assert.equal(m.scope, './');
   assert.equal(m.display, 'standalone');
-  assert.equal(m.orientation, 'portrait');
+  assert.equal(m.orientation, 'any');
   assert.match(m.background_color, /^#[0-9a-f]{6}$/i);
   assert.match(m.theme_color, /^#[0-9a-f]{6}$/i);
   const html = read('index.html');

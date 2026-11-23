@@ -1429,13 +1429,16 @@ registerMinigame({
         S.elapsed+=dt;S.timeLeft-=dt;
         if(S.timeLeft<=0){S.timeLeft=0;endWith('timeup');return;}
         inp.buf=Math.max(0,inp.buf-dt);
+        // コントローラー（input/input-manager.js の INPUT 経由）：右スティック＝視点、左スティック＝移動（アナログ）
+        const pad=(typeof INPUT!=='undefined'&&INPUT.state&&INPUT.state.connected)?INPUT.state.axes:null;
+        if(pad){inp.dyaw-=pad.RX*dt*2.6;inp.dpitch-=pad.RY*dt*1.8;}
         // 視点
         P.yaw+=inp.dyaw;P.pitch=clamp(P.pitch+inp.dpitch,-1.25,1.2);
         S.looked+=Math.abs(inp.dyaw)+Math.abs(inp.dpitch);
         P.swayX=P.swayX*.85+inp.dyaw*2.2;P.swayY=P.swayY*.85+inp.dpitch*2.2;
         inp.dyaw=inp.dpitch=0;
         // 移動（なめらかな加減速、壁に沿って滑る当たり判定）
-        let mx=inp.r-inp.l+inp.jx,mz=inp.f-inp.b-inp.jy;
+        let mx=inp.r-inp.l+inp.jx+(pad?pad.LX:0),mz=inp.f-inp.b-inp.jy-(pad?pad.LY:0);
         const ml=Math.hypot(mx,mz);if(ml>1){mx/=ml;mz/=ml;}
         const held=inp.actKey||inp.actBtn;
         const spd=SPEED*(held&&curGauge?.25:held?.7:1)*(P.hitT>0?.55:1);

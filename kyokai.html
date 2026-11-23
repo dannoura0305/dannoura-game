@@ -58,5 +58,12 @@
   setTimeout(boot, 15000);   // 回線が止まっても起動だけはする
 })();
 </script>
+<!-- コントローラー（簡易対応：input/profiles.js の page ＋このページの割り当て。docs/controller-support.md） -->
+<script>window.PAD_PAGE_PROFILE = { name: '境界事象（簡易対応）', move: 'arrows', keys: { A: 'Enter', B: 'Escape', X: 'x', Y: 'm', RB: 'b', LB: 'Shift', RT: 'Shift' }, help: [['LS/DPAD', '移動・選ぶ'], ['A', '調べる・決定'], ['B', '戻る'], ['X', 'メニュー'], ['Y', '移動先（地図）'], ['RB', '世界の切替'], ['LB/RT', '走る（押している間）'], ['R3', '仮想カーソル']] };</script>
+<script src="input/input-manager.js"></script>
+<script src="input/profiles.js"></script>
+<script src="input/vkeyboard.js"></script>
+<script src="input/diag.js"></script>
+<script src="input/pad-ui.js"></script>
 </body>
 </html>

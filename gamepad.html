@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ゲームパッド診断 ― だんのうら</title>
+<meta name="theme-color" content="#0a0820">
+<style>
+  html,body{margin:0;background:#07061a;color:#e8e4ff;font:14px/1.6 sans-serif;}
+  main{max-width:820px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top,0px)) calc(14px + env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) calc(14px + env(safe-area-inset-left,0px));}
+  h1{font-size:17px;color:#ffd75a;margin:4px 0 6px;letter-spacing:.06em;}
+  a{color:#00e8c8;}
+  .env{font-size:12px;color:#a99cc8;}
+</style>
+</head>
+<body>
+<main>
+  <h1>🎮 ゲームパッド診断</h1>
+  <p class="env" id="env"></p>
+  <div id="host"></div>
+  <p><a href="index.html">← ゲームに戻る</a></p>
+</main>
+<script src="input/input-manager.js"></script>
+<script src="input/diag.js"></script>
+<script>
+  (function () {
+    var ua = navigator.userAgent, os = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'iOS／iPadOS' : /Android/.test(ua) ? 'Android' : /Windows/.test(ua) ? 'Windows' : /Mac/.test(ua) ? 'macOS' : 'その他';
+    document.getElementById('env').textContent = '端末：' + os + '　Gamepad API：' + (navigator.getGamepads ? 'あり' : 'なし（このブラウザではコントローラーを使えません）') + '　安全な接続（https）：' + (window.isSecureContext ? 'はい' : 'いいえ（Gamepad API が使えない場合があります）');
+    PADDIAG.mount(document.getElementById('host'));
+  })();
+</script>
+</body>
+</html>
