@@ -21,13 +21,24 @@
     // 送電区（雷殻の面）：火花虫＝歩き、時々止まって火花をまとう（まとう間は周りに触れると やられ）・碍子の盾＝正面の攻撃を盾で防ぐ。後ろから・溜め斬り・飛ぶ斬撃・雷突きで崩れる
     crawler: { name: '火花虫（仮）', hp: 2, w: 13, h: 18, speed: 0.9, every: 150, tele: 26, spark: 56, aura: 42, gravity: 0.25 * 2.5, fallCap: 5.75 * 2.5, touch: 1 },
     shield: { name: '碍子の盾（仮）', hp: 3, w: 14, h: 44, speed: 0.55, gravity: 0.25 * 2.5, fallCap: 5.75 * 2.5, touch: 1, breakBy: ['charge', 'charge_air', 'wave', 'raitotsu'] },
+    // ── 雨坊主・からかさの代わりに足した面ごとの敵（docs/minigames/runner-hard-enemies.md の案） ──
+    // 屋上：つむじ坊＝回りながら行き来し、近づくと ふくらんで自機を吸い寄せる・鳥居烏＝高い所にとまり、真下を通ると時間をずらして急降下して戻る
+    tsumuji: { name: 'つむじ坊', hp: 2, w: 13, h: 30, speed: 1.3, every: 130, tele: 22, pull: 44, range: 170, force: 1.6, gravity: 0.25 * 2.5, fallCap: 5.75 * 2.5, touch: 1 },
+    karasu: { name: '鳥居烏', hp: 1, w: 12, h: 18, under: 46, dive: 6.5, back: 2.6, touch: 1, fly: true },
+    // 排水路：ごみ袋坊＝転がって行き来し、斬ると小さな袋 2 つに分かれる・しぶき鯉＝水面から弧を描いて跳ぶ（水位が上がると出る高さも上がる）
+    gomi: { name: 'ごみ袋坊', hp: 2, w: 14, h: 26, speed: 1.0, gravity: 0.25 * 2.5, fallCap: 5.75 * 2.5, touch: 1 },
+    gomi_s: { name: 'ごみ袋坊（小）', hp: 1, w: 9, h: 16, wait: 34, hop: 6.4, hopX: 2.2, gravity: 0.25 * 2.5, fallCap: 5.75 * 2.5, touch: 1 },
+    koi: { name: 'しぶき鯉', hp: 1, w: 13, h: 22, every: 120, tele: 34, jump: 11.5, g: 0.3, range: 260, touch: 1, fly: true },
+    // 送電区：電線ねずみ＝高い所（足場の裏・電線）を走り、真上に来ると落ちてくる・ぱちぱち玉＝漂って寄り、割れる（近づきすぎても）と左右へ火花
+    nezumi: { name: '電線ねずみ', hp: 1, w: 11, h: 14, speed: 2.6, span: 110, drop: 26, gravity: 0.25 * 2.5, fallCap: 5.75 * 2.5, touch: 1 },
+    pachi: { name: 'ぱちぱち玉', hp: 1, w: 11, h: 22, speed: 0.6, range: 320, near: 44, fuse: 22, spark: 4.2, touch: 1, fly: true },
   };
   // 面ごとの敵の一覧（試験と説明のため）
-  const STAGE_FOES = { okujo: ['thrower', 'kite'], haisui: ['hopper', 'spout'], koka: ['crawler', 'shield'] };
-  const SHOT = { tile: { w: 9, h: 9, g: 0.32 }, gust: { w: 12, h: 9, g: 0 }, water: { w: 8, h: 8, g: 0.3 } };
+  const STAGE_FOES = { okujo: ['thrower', 'kite', 'tsumuji', 'karasu'], haisui: ['hopper', 'spout', 'gomi', 'koi'], koka: ['crawler', 'shield', 'nezumi', 'pachi'] };
+  const SHOT = { tile: { w: 9, h: 9, g: 0.32 }, gust: { w: 12, h: 9, g: 0 }, water: { w: 8, h: 8, g: 0.3 }, spark: { w: 9, h: 7, g: 0 } };
   const DEATH_F = 24;                                               // 倒れて消えるまで
 
-  function make(map) {
+  function make(map, opts = {}) {
     const T = map.tile;
     const solid = (x, y) => map.solid(Math.floor(x / T), Math.floor(y / T));
     const ledges = map.ledges || [];
@@ -38,15 +49,18 @@
       let top = -Infinity; for (let cy = Math.floor((y - 0.5) / T); cy >= 0; cy--) if (solid(x, cy * T + 1)) { top = (cy + 1) * T; break; }
       for (const L of ledges) if (x > L.x0 && x < L.x1 && L.y <= y + 0.5 && L.y > top) top = L.y; return top;
     }
-    const shots = [];
+    const shots = [], born = [];   // born：倒れて分かれた敵（runner_hard.js が敵の並びへ足す）
+    const waterAt = x => (typeof opts.waterAt === 'function' ? opts.waterAt(x) : null);   // しぶき鯉：その場所の水面の高さ（増水で変わる）
     function spawn(type, x, y, face = -1) {
       const D = TYPES[type];
-      if (!D.fly) { const fy = floorAt(x, y + 0.5); if (fy > -Infinity) y = fy; }   // 地上の敵は足もとの床へ下ろす
-      return { type, x, y, home: { x, y }, vx: 0, vy: 0, face, hp: D.hp, state: D.fly ? 'hover' : D.still ? 'shut' : 'walk', f: 0, cd: 40 + ((x * 7) | 0) % 50, hitT: 0, kb: 0, dead: false, gone: false, deadF: 0 };
+      if (!D.fly && type !== 'nezumi') { const fy = floorAt(x, y + 0.5); if (fy > -Infinity) y = fy; }   // 地上の敵は足もとの床へ下ろす（電線ねずみは高い所を走る）
+      const st = type === 'koi' ? 'under' : type === 'nezumi' ? 'run' : D.fly ? 'hover' : D.still ? 'shut' : 'walk';
+      return { type, x, y, home: { x, y }, vx: 0, vy: 0, face, hp: D.hp, state: st, f: 0, cd: 40 + ((x * 7) | 0) % 50, hitT: 0, kb: 0, dead: false, gone: false, deadF: 0, delay: ((x / 40) | 0) % 2 ? 18 : 0 };
     }
     const toward = (e, p) => (p && p.x < e.x ? -1 : 1);
     const near = (e, p, r) => !!p && Math.abs(p.x - e.x) < r && Math.abs(p.y - e.y) < 260;
-    function box(e) { const D = TYPES[e.type]; return { x0: e.x - D.w, x1: e.x + D.w, y0: e.y, y1: e.y + D.h }; }
+    const hidden = e => e.type === 'koi' && (e.state === 'under' || e.state === 'tele');   // 水の中の鯉は当たらない
+    function box(e) { const D = TYPES[e.type]; if (hidden(e)) return { x0: 0, x1: -1, y0: 0, y1: -1 }; return { x0: e.x - D.w, x1: e.x + D.w, y0: e.y, y1: e.y + D.h }; }
     // 1 こま（p：自機の位置）
     function step(e, p) {
       const D = TYPES[e.type]; e.f++;
@@ -111,6 +125,40 @@
         walkOn(e, D, D.speed);
         if (--e.cd <= 0 && near(e, p, 300)) { e.state = 'tele'; e.f = 0; }
       },
+      tsumuji(e, D, p) {   // ふくらんでいる間（pull）は e.pull に吸い寄せる強さを出す（runner_hard.js が自機を動かす）
+        fall(e, D); e.pull = 0;
+        if (e.state === 'tele') { if (e.f >= D.tele) { e.state = 'pull'; e.f = 0; } return; }
+        if (e.state === 'pull') { if (p && Math.abs(p.x - e.x) < D.range && Math.abs(p.y - e.y) < 90) e.pull = D.force * (p.x < e.x ? 1 : -1); if (e.f >= D.pull) { e.state = 'walk'; e.f = 0; e.cd = D.every; } return; }
+        walkOn(e, D, D.speed);
+        if (--e.cd <= 0 && near(e, p, 150)) { e.state = 'tele'; e.f = 0; }
+      },
+      karasu(e, D, p) {   // とまる → 真下を通ると（2 羽目は少し遅れて）まっすぐ急降下 → 元の所へ戻る
+        if (e.state === 'hover') { e.y = e.home.y + Math.sin(e.f * .05) * 2; e.x = e.home.x; e.face = toward(e, p);
+          if (p && Math.abs(p.x - e.x) < D.under && p.y < e.y - 40) { e.state = 'wait'; e.f = 0; } return; }
+        if (e.state === 'wait') { if (e.f >= 6 + e.delay) { e.state = 'dive'; e.f = 0; const dx = p.x - e.x, dy = (p.y + 24) - e.y, L = Math.hypot(dx, dy) || 1; e.vx = dx / L * D.dive; e.vy = dy / L * D.dive; } return; }
+        if (e.state === 'dive') { e.x += e.vx; e.y += e.vy; if (e.f > 40 || stand(e.x, e.y) || solid(e.x, e.y)) { e.state = 'back'; e.f = 0; } return; }
+        const dx = e.home.x - e.x, dy = e.home.y - e.y, L = Math.hypot(dx, dy); if (L < 3) { e.state = 'hover'; e.f = 0; e.x = e.home.x; e.y = e.home.y; } else { e.x += dx / L * D.back; e.y += dy / L * D.back; }
+      },
+      gomi(e, D, p) { fall(e, D); walkOn(e, D, D.speed); e.roll = (e.roll || 0) + e.face * D.speed * .08; },
+      gomi_s(e, D, p) { return SPECIAL.hopper(e, D, p); },
+      koi(e, D, p) {   // 水の中 → 泡立つ（予兆）→ 跳ぶ（弧）→ 水へ戻る
+        const surf = Math.max(e.home.y, waterAt(e.home.x) ?? -Infinity);
+        if (e.state === 'under') { e.x = e.home.x; e.y = surf - 30; if (--e.cd <= 0 && near(e, p, D.range)) { e.state = 'tele'; e.f = 0; } return; }
+        if (e.state === 'tele') { e.y = surf - 30; if (e.f >= D.tele) { e.state = 'jump'; e.f = 0; e.y = surf - 10; e.vy = D.jump; e.vx = Math.max(-1.6, Math.min(1.6, (p.x - e.x) / 60)); e.face = e.vx < 0 ? -1 : 1; } return; }
+        e.vy -= D.g; e.x += e.vx; e.y += e.vy; if (e.vy < 0 && e.y < surf - 12) { e.state = 'under'; e.cd = D.every; e.home.x = e.x; }
+      },
+      nezumi(e, D, p) {   // 高い所を走る → 真上なら落ちる → 床に着くと走って寄る
+        if (e.state === 'run') { e.x += e.face * D.speed; if (Math.abs(e.x - e.home.x) > D.span) { e.face = e.x > e.home.x ? -1 : 1; } e.y = e.home.y;
+          if (p && Math.abs(p.x - e.x) < D.drop && p.y < e.y - 30) { e.state = 'fall'; e.f = 0; e.vy = 0; } return; }
+        if (e.state === 'fall') { fall(e, D); if (e.vy === 0 && stand(e.x, e.y)) { e.state = 'walk'; e.f = 0; e.face = toward(e, p); } return; }
+        fall(e, D); walkOn(e, D, D.speed * .8);
+      },
+      pachi(e, D, p) {   // 漂って寄る。近づきすぎると ちらついて弾ける（左右へ火花）
+        if (e.state === 'fuse') { if (e.f >= D.fuse) burst(e); return; }
+        const dx = p ? p.x - e.x : 0, dy = p ? p.y + 24 - e.y : 0, L = Math.hypot(dx, dy) || 1;
+        if (p && L < D.range) { e.x += dx / L * D.speed; e.y += dy / L * D.speed * .6; } e.y += Math.sin(e.f * .08) * .5;
+        if (p && L < D.near) { e.state = 'fuse'; e.f = 0; }
+      },
       shield(e, D, p) {
         fall(e, D); if (e.f % 40 === 1) e.face = toward(e, p);
         if (p && Math.abs(p.x - e.x) > 30) walkOn(e, D, D.speed);
@@ -129,14 +177,20 @@
         if (L < 3) { e.state = 'hover'; e.f = 0; } else { e.x += dx / L * D.speed * 1.6; e.y += dy / L * D.speed * 1.6; }
       }
     }
+    // ぱちぱち玉が弾ける：左右へ火花
+    function burst(e) { if (e.dead) return; const D = TYPES.pachi; for (const d of [-1, 1]) shoot('spark', e.x + d * 8, e.y + 12, d * D.spark, 0); e.dead = true; e.deadF = 0; e.burst = true; }
     // 攻撃が当たった（move：技の名前・fromX：攻撃した側の x）。戻り値：true 当たった・'block' 防いだ（盾・閉じた排水の目）
     function hurt(e, dmg, kb, move, fromX) {
       if (e.dead) return false;
       const D = TYPES[e.type];
       if (e.type === 'spout' && e.state !== 'open' && e.state !== 'tele') return 'block';
-      if (e.type === 'shield' && !(D.breakBy || []).includes(move) && (fromX == null || (fromX - e.x) * e.face >= 0)) { e.f = 1; return 'block'; }
-      e.hp -= dmg; e.hitT = 10; e.kb = D.still ? 0 : kb || 0; if (e.type === 'walker' || e.type === 'flyer') e.state = D.fly ? 'back' : 'walk';
-      if (e.hp <= 0) { e.dead = true; e.deadF = 0; }
+      if (e.type === 'shield' && !(D.breakBy || []).includes(move) && (fromX == null || (fromX - e.x) * e.face >= 0)) { e.f = 1; e.blocked = true; return 'block'; }
+      e.hp -= dmg; e.hitT = 10; e.kb = D.still ? 0 : kb || 0; if (e.type === 'walker' || e.type === 'flyer' || e.type === 'karasu') e.state = D.fly ? 'back' : 'walk'; e.pull = 0;
+      if (e.hp <= 0) {
+        if (e.type === 'pachi') { burst(e); return true; }   // 割れると火花
+        e.dead = true; e.deadF = 0;
+        if (e.type === 'gomi') for (const d of [-1, 1]) { const c = spawn('gomi_s', e.x + d * 10, e.y + 2, d); c.vx = d * 2.2; c.vy = 5; c.state = 'hop'; born.push(c); }   // 小さな袋 2 つに分かれる
+      }
       return true;
     }
     // 自機に害のある箱：弾・火花虫の火花（まとう間）
@@ -145,7 +199,7 @@
       return out;
     }
     function auraBox(e) { const D = TYPES[e.type]; return e.type === 'crawler' && e.state === 'spark' && !e.dead ? { x0: e.x - D.aura, x1: e.x + D.aura, y0: e.y - 6, y1: e.y + D.aura } : null; }
-    return { spawn, step, box, hurt, shots, stepShots, shotBox, hazards, auraBox, floorAt, stand };
+    return { spawn, step, box, hurt, shots, born, stepShots, shotBox, hazards, auraBox, floorAt, stand, hidden };
   }
   const API = { TYPES, STAGE_FOES, SHOT, DEATH_F, make };
   root.RunnerEnemies = API;

@@ -114,9 +114,9 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
   const x1 = (await S()).x; await p.evaluate(() => { window.__padR = true; }); await p.waitForTimeout(600); await p.evaluate(() => { window.__padR = false; });
   ok(`${label}：ゲームパッド（左スティック右）で動く`, (await S()).x > x1 + 60);
   if (SHOTS) { await p.waitForTimeout(200); await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_play.png` }); }
-  // 攻撃：歩く敵の左に立って X（3 段）→ 倒す
+  // 攻撃：歩く敵（送電区の火花虫）の左に立って X（3 段）→ 倒す
   {
-    const st = await S(); const w = st.foes.find(e => e.type === 'walker' && !e.dead);
+    const st = await S(); const w = st.foes.find(e => e.type === 'crawler' && !e.dead);
     await p.evaluate(w => window.__MG_TEST__.runnerHard.warp(w.x + w.face * 36, w.y + 10), w); await p.keyboard.down(w.face > 0 ? 'ArrowLeft' : 'ArrowRight'); await p.waitForTimeout(40); await p.keyboard.up(w.face > 0 ? 'ArrowLeft' : 'ArrowRight');   // 敵の進む先に、敵の方を向いて立つ
     const k0 = st.kills; let atk = null;
     for (let i = 0; i < 12 && (await S()).kills === k0; i++) { await p.keyboard.down('x'); await p.waitForTimeout(60); const v = await S(); if (v.atk) atk = v.atk; await p.keyboard.up('x'); await p.waitForTimeout(110); }
@@ -124,8 +124,8 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
     ok(`${label}：X で傘を振る（${atk || '—'}）→ 歩く敵を倒す`, k1 > k0 && !!atk, `倒した ${k1}` + (k1 > k0 ? '' : ' ' + JSON.stringify(await S()).slice(0, 300)));
     if (SHOTS) await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_attack.png` });
     // 敵に触れると やられ（傘の耐久が減る）
-    const st2 = await S(), w2 = st2.foes.find(e => e.type === 'walker' && !e.dead);
-    if (w2) { await until(async () => (await S()).invul <= 0, 3000, 30); const v0 = await S(), hp0 = v0.hp, w3 = v0.foes.find(e => e.type === 'walker' && !e.dead) || w2; await p.evaluate(e => window.__MG_TEST__.runnerHard.warp(e.x, e.y + 4), w3); const hurt = await until(async () => { const v = await S(); return v.hp < hp0 ? v : null; }, 2000, 30); ok(`${label}：敵に触れると やられ（傘の耐久が減る）`, !!hurt, hurt ? '' : (v => JSON.stringify({ w2, hp0, hp: v.hp, invul: v.invul, x: v.x, y: v.y, st: v.state, foes: v.foes.filter(e => e.type === 'walker') }))(await S())); }
+    const st2 = await S(), w2 = st2.foes.find(e => e.type === 'crawler' && !e.dead);
+    if (w2) { await until(async () => (await S()).invul <= 0, 3000, 30); const v0 = await S(), hp0 = v0.hp, w3 = v0.foes.find(e => e.type === 'crawler' && !e.dead) || w2; await p.evaluate(e => window.__MG_TEST__.runnerHard.warp(e.x, e.y + 4), w3); const hurt = await until(async () => { const v = await S(); return v.hp < hp0 ? v : null; }, 2000, 30); ok(`${label}：敵に触れると やられ（傘の耐久が減る）`, !!hurt, hurt ? '' : (v => JSON.stringify({ w2, hp0, hp: v.hp, invul: v.invul, x: v.x, y: v.y, st: v.state, foes: v.foes.filter(e => e.type === 'walker') }))(await S())); }
   }
   // 面の仕掛け：帯電する床（流れている間に乗ると やられ）・壊れる足場（乗ると落ちる）
   {

@@ -139,4 +139,26 @@ t('面ごとの敵（屋上・排水路・送電区）：床（好きな高さ�
     for (const m of ['charge', 'wave', 'raitotsu']) { const g = E.spawn('shield', 10 * T, T, -1); g.face = -1; assert.equal(E.hurt(g, 1, 0, m, 8 * T), true, m); } }
 });
 
+
+t('雨坊主・からかさの代わりの敵：つむじ坊は吸い寄せる・鳥居烏は真下で急降下して戻る・ごみ袋坊は斬ると 2 つに分かれる・しぶき鯉は水面から跳ぶ（水位で高さが変わる・水の中は当たらない）・電線ねずみは真上で落ちる・ぱちぱち玉は近いと弾けて火花', () => {
+  const mk = water => { const map = RA.makeMap(['.'.repeat(60), '.'.repeat(60), '.'.repeat(60), '.'.repeat(60), '.'.repeat(60), '.'.repeat(60), '.'.repeat(60), '.'.repeat(60), '#'.repeat(60)]); return { map, E: RE.make(map, { waterAt: () => water && water.v }) }; };
+  // つむじ坊
+  { const { E } = mk(); const e = E.spawn('tsumuji', 20 * T, T), p = { x: 18 * T, y: T }; let pull = 0; for (let i = 0; i < 300 && !pull; i++) { E.step(e, p); pull = e.pull || 0; } assert.ok(pull > 0, '自機をつむじ坊の方へ（右へ）吸い寄せる'); }
+  // 鳥居烏：真下で降りる・戻る・2 羽目は遅れる
+  { const { E } = mk(); const a = E.spawn('karasu', 20 * T, 6 * T), b = E.spawn('karasu', 21 * T, 6 * T), p = { x: 20.5 * T, y: T }; let da = -1, db = -1, minY = 1e9;
+    for (let i = 0; i < 120; i++) { E.step(a, p); E.step(b, p); if (da < 0 && a.state === 'dive') da = i; if (db < 0 && b.state === 'dive') db = i; minY = Math.min(minY, a.y); }
+    assert.ok(da >= 0 && db >= 0 && Math.abs(da - db) >= 10, '時間をずらして降りる ' + da + ' ' + db); assert.ok(minY < 3 * T, '下まで降りる');
+    for (let i = 0; i < 200; i++) E.step(a, { x: 40 * T, y: T }); assert.equal(a.state, 'hover'); assert.ok(Math.abs(a.y - 6 * T) < 3 && a.x === 20 * T, '元の所へ戻る'); }
+  // ごみ袋坊
+  { const { E } = mk(); const e = E.spawn('gomi', 20 * T, T); E.hurt(e, 2, 0, 'slash1', 18 * T); assert.ok(e.dead); assert.equal(E.born.length, 2, '2 つに分かれる'); assert.ok(E.born.every(c => c.type === 'gomi_s' && c.hp === 1)); }
+  // しぶき鯉：水位が上がると高く跳ぶ・水の中は当たらない
+  { const W = { v: null }, { E } = mk(W); const run = lv => { W.v = lv; const e = E.spawn('koi', 20 * T, 85, -1), p = { x: 18 * T, y: 3 * T }; let top = -1e9, hid = false; for (let i = 0; i < 400; i++) { E.step(e, p); if (e.state === 'under') hid = hid || E.box(e).x1 < E.box(e).x0; top = Math.max(top, e.y); } return { top, hid }; };
+    const lo = run(null), hi = run(185); assert.ok(lo.hid, '水の中は当たらない'); assert.ok(lo.top > 85 + 100, '跳ぶ ' + lo.top); assert.ok(hi.top > lo.top + 80, '水位が上がると高く'); }
+  // 電線ねずみ：真上で落ちて床を走る
+  { const { E } = mk(); const e = E.spawn('nezumi', 20 * T, 6 * T), p = { x: 20 * T, y: T }; assert.equal(e.y, 6 * T, '高い所'); for (let i = 0; i < 200; i++) E.step(e, p); assert.equal(e.y, T, '落ちて床へ'); assert.equal(e.state, 'walk'); }
+  // ぱちぱち玉：近いと弾けて左右へ火花・斬っても弾ける
+  { const { E } = mk(); const e = E.spawn('pachi', 20 * T, 2 * T), p = { x: 19 * T, y: 1.5 * T }; for (let i = 0; i < 200 && !e.dead; i++) E.step(e, p); assert.ok(e.dead && e.burst, '弾ける'); assert.equal(E.shots.filter(s => s.kind === 'spark').length, 2); assert.ok(E.shots.some(s => s.vx < 0) && E.shots.some(s => s.vx > 0), '左右へ'); }
+  { const { E } = mk(); const e = E.spawn('pachi', 20 * T, 2 * T); E.hurt(e, 1, 0, 'slash1', 19 * T); assert.equal(E.shots.length, 2, '斬っても火花'); }
+});
+
 console.log(`runner-hard-combat: ${n} ok`);
