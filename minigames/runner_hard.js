@@ -210,10 +210,12 @@ registerMinigame({
     // 難しさ（ミニゲームの選択画面の「やさしい・ふつう・むずかしい」）。むずかしい＝受け取った数値のまま（元の作品の形）
     const DIFF = typeof mgDifficulty === 'function' ? mgDifficulty() : 'normal';
     const DFT = {
-      easy: { hp: 7, boss: .75, phys: { wallStickF: 14, coyoteF: 6, bufferF: 6, invulF: 90 } },
-      normal: { hp: 5, boss: 1, phys: { wallStickF: 10, coyoteF: 4, bufferF: 4, invulF: 72 } },
+      easy: { hp: 7, boss: .75, phys: { wallStickF: 14, coyoteF: 6, bufferF: 6, invulF: 95, invulBigF: 120 } },
+      normal: { hp: 5, boss: 1, phys: { wallStickF: 10, coyoteF: 4, bufferF: 4, invulF: 80, invulBigF: 105 } },
       hard: { hp: 4, boss: 1.25, phys: {} },
     }; let DF = DFT[DIFF] || null;
+    // 自機の動きは X4 の値（act.js の X4。ユーザーの解析メモ）に、難しさの調整を重ねる（むずかしい＝メモの値のまま）
+    const physOf = df => Object.assign({}, typeof RunnerAct !== 'undefined' ? RunnerAct.X4 : {}, df ? df.phys : {});
     // 傘の耐久の上限：難しさの値 ＋ 面で見つけたお守りの数（隠しアイテム）
     const charms = () => Object.keys(REC.items || {}).filter(k => /_charm$/.test(k) && REC.items[k]).length;
     let HP_MAX = (DF ? DF.hp : 5) + charms(); hp = HP_MAX;
@@ -316,7 +318,7 @@ registerMinigame({
       for (let r = 0; r < H; r++) { const cy = H - 1 - r; let row = cy <= 1 ? '#'.repeat(W) : '#' + '.'.repeat(W - 2) + '#'; if (HOME && cy > 1) row = '####' + '.'.repeat(W - 8) + '####'; rows.push(row); }   // 家の外（庭・道）は壁
       map = RunnerAct.makeMap(rows); const T = map.tile;
       if (HOME) for (const [x0, x1, y] of [[330, 1590, 342], [1760, 1850, 150], [1690, 1770, 220], [1615, 1700, 290]]) map.ledges.push({ x0, x1, y });   // 2 階の床・階段の段（世界の y ＝ 620 − 絵の y）
-      act = RunnerAct.make({ map, phys: DF ? DF.phys : {}, airDash: () => !!C && C.usable('kazebashiri') }); C = RunnerCombat.make(act, { learned: REC.moves || [] });
+      act = RunnerAct.make({ map, phys: physOf(DF), airDash: () => !!C && C.usable('kazebashiri') }); C = RunnerCombat.make(act, { learned: REC.moves || [] });
       foes = []; boss = null; arenaOn = false; B = act.body((HOME ? 6 : 3) * T + T / 2, 2 * T, 1); B.invul = 60; lastState = B.state;
       CZ = RunnerCold.make({ x0: (HOME ? 4 : 1) * T, x1: (W - (HOME ? 4 : 1)) * T, floor: 2 * T }); CZ.W = W; CZ.home = HOME; cboss = CZ.spawn(HOME ? 19 * T : (W - 4) * T);
       cboss.hp = cboss.hpMax = Math.round(cboss.hpMax * (DF ? DF.boss : 1));
@@ -354,7 +356,7 @@ registerMinigame({
         if (hit === null) for (const sh of CZ.shots) if (!(sh.wait > 0) && ov(pb, CZ.shotBox(sh))) { hit = sh.x; n = I.shot; sh.life = 0; break; }
         if (hit === null) for (const m of CZ.minis) if (!m.dead && ov(pb, CZ.miniBox(m))) { hit = m.x; n = I.mini; break; }
         if (hit === null) for (const m of CZ.mists) if (ov(pb, CZ.mistBox(m))) { hit = m.x; n = I.mist; break; }
-        if (hit !== null) { B.atk = null; act.hurt(B, hit < B.x ? -1 : 1); addInfect(n); }
+        if (hit !== null) { B.atk = null; act.hurt(B, hit < B.x ? -1 : 1, n === I.touch); addInfect(n); }
       }
     }
 
@@ -370,14 +372,14 @@ registerMinigame({
       const drop = p => { const y0 = p.y; let y = p.y; while (y > 0 && !map.solid(Math.floor(p.x / T), Math.floor((y - 1) / T))) y -= T; p.y = Math.max(0, Math.ceil(y / T) * T);
         for (const L of map.ledges) if (L.y <= y0 + 0.01 && L.y > p.y && p.x > L.x0 && p.x < L.x1) p.y = L.y; };   // 好きな高さの足場の上にも置ける
       [spawn, goal, ...checks].forEach(drop);
-      act = RunnerAct.make({ map, phys: DF ? DF.phys : {}, airDash: () => !!C && C.usable('kazebashiri') }); C = RunnerCombat.make(act, { learned: REC.moves || [] }); E = RunnerEnemies.make(map); bossIntro = 0;
+      act = RunnerAct.make({ map, phys: physOf(DF), airDash: () => !!C && C.usable('kazebashiri') }); C = RunnerCombat.make(act, { learned: REC.moves || [] }); E = RunnerEnemies.make(map); bossIntro = 0;
       foes = STAGE.enemies().map(([type, c, cy, face]) => E.spawn(type, c * T + T / 2, cy * T, face));
       GM = RunnerGimmicks.make(map, STAGE.gimmicks ? STAGE.gimmicks() : {});
       // 隠しアイテム（お守り・予備のドリンク）：取った物は記録に残り、次からは出ない。ひびの入った壁（溜め斬りでだけ壊れる）
       items = (STAGE.items ? STAGE.items() : []).filter(it => !(REC.items && REC.items[it.id])).map(it => Object.assign({ got: false }, it));
       cracks = (STAGE.cracks ? STAGE.cracks() : []).map(k => Object.assign({ broken: false }, k)); for (const k of cracks) for (let cy = k.cy0; cy <= k.cy1; cy++) map.extra.add(k.c + ',' + cy);
       drops = [];
-      BZ = RunnerBosses.make(map); const a = STAGE.arena(); AR = Object.assign({}, a, { x0: a.c0 * T, x1: (a.c1 + 1) * T, floor: (a.floorCy || 2) * T, fcy: a.floorCy || 2 });   // 部屋の床の高さ（マス）は面ごと（ふつうは 2＝80）
+      BZ = RunnerBosses.make(map, { rng: grng }); const a = STAGE.arena(); AR = Object.assign({}, a, { x0: a.c0 * T, x1: (a.c1 + 1) * T, floor: (a.floorCy || 2) * T, fcy: a.floorCy || 2 });   // 部屋の床の高さ（マス）は面ごと（ふつうは 2＝80）   // ボスの技の乱数も種から（デモを同じに再生する）
       if (a.boss && !(REC.beaten || []).includes(a.boss)) boss = spawnBoss();
       check = { x: spawn.x, y: spawn.y }; B = act.body(spawn.x, spawn.y, 1); camX = 0; camY = 0;
     }
@@ -443,7 +445,7 @@ registerMinigame({
         if (hb && !boss.dead && RunnerCombat.overlap(hb, BZ.box(boss)) && C.tryHit(B, boss)) { const r = BZ.hurt(boss, hb.dmg, B.x, hb.id); if (r === 'weak') weakHit(boss); else if (r === 'block') { hitStop = Math.max(hitStop, 3); SE.block(); for (let i = 0; i < 8; i++) emit(boss.x + boss.face * 40, B.y + 30, -boss.face * rnd(40, 200), rnd(-60, 160), .25, i % 2 ? '#d080ff' : '#ffffff', 2, 200); } else if (r) { hitStop = Math.max(hitStop, hb.hitstop + 1); shake = Math.max(shake, .15); SE.hit(boss.dead); for (let i = 0; i < 10; i++) emit(boss.x, boss.y + 40, rnd(-180, 180), rnd(-40, 220), .4, i % 2 ? '#e8f0ff' : '#00e8c8', 2.4, 400); if (boss.dead) { shake = .6; SE.clear(); } } }
         if (!boss.dead) for (const sh of C.shots) { const sb = C.shotBox(sh); if (boss.dead || !RunnerCombat.overlap(sb, BZ.box(boss)) || !C.shotHit(sh, boss)) continue; const r = BZ.hurt(boss, sb.dmg, sh.x - Math.sign(sh.vx) * 40, 'wave'); if (r === 'block') { sh.life = 0; SE.block(); } else if (r) { hitStop = Math.max(hitStop, 4); SE.hit(boss.dead); for (let i = 0; i < 10; i++) emit(boss.x, boss.y + 40, rnd(-180, 180), rnd(-40, 220), .4, i % 2 ? '#fff6a0' : '#00e8c8', 2.4, 400); if (boss.dead) { shake = .6; SE.clear(); } } }
         if (boss.dead && boss.deadF === RunnerBosses.RAIKAKU.deadF) { phase = 'learn'; phaseT = 0; learnedNow = bossDef().teaches; }
-        if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); let hit = !boss.dead && boss.state !== 'wait' && RunnerCombat.overlap(pb, BZ.box(boss)) ? boss.x : null; for (const sh of BZ.shots) { const sb = BZ.shotBox(sh); if (sb && RunnerCombat.overlap(pb, sb)) { hit = sh.x; if (['spark', 'wave', 'blade', 'drop'].includes(sh.kind)) sh.life = 0; } } if (hit !== null) { B.atk = null; act.hurt(B, hit < B.x ? -1 : 1); } }
+        if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); let hit = !boss.dead && boss.state !== 'wait' && RunnerCombat.overlap(pb, BZ.box(boss)) ? boss.x : null; for (const sh of BZ.shots) { const sb = BZ.shotBox(sh); if (sb && RunnerCombat.overlap(pb, sb)) { hit = sh.x; if (['spark', 'wave', 'blade', 'drop'].includes(sh.kind)) sh.life = 0; } } if (hit !== null) { B.atk = null; act.hurt(B, hit < B.x ? -1 : 1, true); } }
       }
       // 敵に触れる → やられ（後ろへ飛ぶ・無敵）
       if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); for (const e of foes) { if (e.dead || !(RunnerCombat.overlap(pb, E.box(e)) || (E.auraBox(e) && RunnerCombat.overlap(pb, E.auraBox(e))))) continue; B.atk = null; act.hurt(B, e.x < B.x ? -1 : 1); break; } }

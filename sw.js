@@ -10,7 +10,7 @@
 // ・GET 以外と、よそのサイト（Google Fonts など）への通信には手を出さない。
 // ・音声の Range 要求（<audio> の部分読み込み）は保存分から 206 を作って返す。
 // ══════════════════════════════════════════════════════════
-const VERSION = '2026-11-23.3';   // 買い出しダッシュ 高難易度版：弱点・溜め斬り・面ごとの敵・隠しアイテム・READY と WARNING・リプレイ
+const VERSION = '2026-11-23.4';   // 買い出しダッシュ 高難易度版：自機の動きを X4 の値に・やられ 2 段・ボスの技の選び方と反撃
 const SHELL = 'dannoura-shell-' + VERSION;   // 版ごと（古い版は activate で消す）
 const CODE = 'dannoura-code-' + VERSION;     // ミニゲーム本体など（版ごと）
 const MEDIA = 'dannoura-media-v1';           // 画像・BGM・ボイス（版をまたいで使い回す）

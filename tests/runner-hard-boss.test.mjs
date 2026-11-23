@@ -78,7 +78,7 @@ t('雷雲招来：体力が半分を切ると出る・落雷は予兆の間は�
 t('倒れる：0 で倒れる・弾が消える・帯電が止む・撃破のコマ。ドット絵のコマが全部ある（64）', () => {
   const { Z, e } = boss(), p = { x: 5 * T, y: 2 * T }; Z.wake(e);
   for (let i = 0; i < 400; i++) { Z.step(e, p); Z.stepShots(); }
-  e.state = 'walk'; while (!e.dead) Z.hurt(e, 1, e.x + e.face * 40);
+  e.state = 'walk'; while (!e.dead) { e.state = 'walk'; Z.hurt(e, 1, e.x + e.face * 40); }   // 7 回で反撃（構え）に移るので、毎回 歩きに戻して当てる
   assert.equal(e.hp, 0); assert.equal(Z.shots.length, 0); assert.ok(!e.charged);
   for (let i = 0; i < RK.deadF; i++) Z.step(e, p); assert.ok(/^7_[3-7]$/.test(Z.frame(e)), Z.frame(e));
   assert.equal(Object.keys(SPR.frames).length, 64);
@@ -140,7 +140,7 @@ t('濁流の怪異：地を這う・スプラッシュラッシュ（水たま�
   const r = run('dakuryu', 4000, { px: 8 * T });
   for (const s of ['walk', 'rush_tele', 'rush', 'shot_tele', 'shot', 'wave_tele', 'wave', 'recover']) assert.ok(r.seen.has(s), s + '：' + [...r.seen].join(','));
   for (const k of ['splash', 'drop', 'flood']) assert.ok(r.kinds.has(k), k);
-  const g = run('dakuryu', 600, { px: 17 * T }); assert.ok(g.seen.has('grab_tele') && g.seen.has('grab') && g.kinds.has('melee'), '捕縛');
+  const g = run('dakuryu', 2400, { px: 17 * T }); assert.ok(g.seen.has('grab_tele') && g.seen.has('grab') && g.kinds.has('melee'), '捕縛（近いと 97/256 で混ぜる）');
   const map = room(), Z = RB.make(map), e = Z.spawn('dakuryu', 20 * T, 2 * T, AR); Z.wake(e); e.state = 'wave_tele'; e.f = 0; let maxL = 0, boxed = false, gone = false;
   for (let i = 0; i < 400; i++) { Z.step(e, { x: 5 * T, y: 80 }); Z.stepShots(); const fl = Z.shots.find(s => s.kind === 'flood'); if (fl) { maxL = Math.max(maxL, fl.level); const b = Z.shotBox(fl); if (b) { boxed = true; assert.ok(b.y1 <= 80 + RB.DAKURYU.wave.level + 0.01 && b.y1 < 200, '高い足場（200）までは届かない'); } } else if (maxL > 0) gone = true; }
   assert.ok(maxL >= RB.DAKURYU.wave.level - 0.01 && boxed && gone, '上がって下がる');
@@ -189,6 +189,22 @@ t('風刃（風走りの間に攻撃）：風走りを覚えると使える・�
   const r = run(['kazebashiri']); assert.equal(r.b.state, 'air_dash'); assert.equal(r.b.atk.id, 'kazeha', '風走りといっしょに覚える');
   r.st({ r: true, d: true }); const hb = r.C.hitbox(r.b); assert.ok(hb && hb.id === 'kazeha' && hb.x1 - hb.x0 >= 60 && hb.dmg >= 2, '前を広く');
   for (let i = 0; i < 40 && r.b.atk; i++) r.st({ r: true }); assert.equal(r.b.atk, null, '振り終わる');
+});
+
+
+t('技の選び方（X4 の決まり）：体力の残りで技の組を替え、組の中は重みつき。弱点以外を 7 回当てられると反撃。同じ乱数なら同じ動き', () => {
+  for (const id of ['kazegiri', 'dakuryu', 'raikaku']) { const P = RB.PICK[id]; assert.ok(P && P.hi.length && P.lo.length && P.near, id); assert.notDeepEqual(P.hi.map(w => w[1]), P.lo.map(w => w[1]), id + ' 組が替わる'); }
+  // 体力が半分を切ると lo の組から選ぶ（lo にしか重みの大きくない技が増える）
+  const count = (id, hpk) => { const map = room(), Z = RB.make(map), e = Z.spawn(id, 20 * T, 2 * T, AR); Z.wake(e); e.hp = Math.floor(e.hpMax * hpk); e.stormCd = 999; const n = {};
+    for (let i = 0; i < 12000; i++) { const st0 = e.state; Z.step(e, { x: 6 * T, y: 2 * T }); Z.stepShots(); if (e.state !== st0 && st0 === 'walk') n[e.state] = (n[e.state] || 0) + 1; if (e.hp <= 0) break; } return n; };
+  const hi = count('kazegiri', 1), lo = count('kazegiri', .4); const r = n => (n.thrust_tele || 0) / ((n.dash_tele || 0) + 1);
+  assert.ok(r(lo) > r(hi), '体力が減ると突きが増える ' + JSON.stringify({ hi, lo }));
+  // 反撃：弱点以外を 7 回
+  for (const id of ['kazegiri', 'dakuryu', 'raikaku']) { const map = room(), Z = RB.make(map), e = Z.spawn(id, 20 * T, 2 * T, AR); Z.wake(e); let n = 0;
+    for (; n < 10; n++) { e.state = 'walk'; e.f = 5; Z.hurt(e, 1, e.x - 60, 'slash1'); if (e.state === RB.COUNTER.move[id]) break; } assert.equal(n + 1, RB.COUNTER.hits, id + ' 7 回目で反撃'); }
+  // 同じ乱数の種なら同じ動き
+  const trace = seed => { let s0 = seed; const rng = () => { s0 = (s0 * 16807) % 2147483647; return s0 / 2147483647; }; const Z = RB.make(room(), { rng }), e = Z.spawn('raikaku', 20 * T, 2 * T, AR); Z.wake(e); const o = []; for (let i = 0; i < 2000; i++) { Z.step(e, { x: 8 * T, y: 2 * T }); Z.stepShots(); o.push(e.state); } return o.join(); };
+  assert.equal(trace(7), trace(7)); assert.notEqual(trace(7), trace(99));
 });
 
 console.log(`runner-hard-boss: ${n} ok`);

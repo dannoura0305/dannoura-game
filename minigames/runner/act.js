@@ -20,6 +20,18 @@
     hurtX: 0.539062, hurtY: 2.0, invulF: 60, landF: 4,
     slideF: 33, slide: 1.46875,                                    // スライディング（今の runner.js の 0.55 秒）：速さは歩きと同じ（仮）
     coyoteF: 0, bufferF: 0,                                        // 床から落ちた直後の猶予・先に押したジャンプを覚える（元の作品にあるかは未確認。やさしさの調整で使う）
+    kickJump: 0,                                                   // 壁蹴りの縦の速さ（0＝跳ぶと同じ）
+    hurtDecay: 0, hurtBigX: 0, hurtBigY: 0, invulBigF: 0,          // やられの 2 段（0＝1 段だけ。下の X4 の表で使う）
+  };
+  // ユーザーの解析メモ（X4・2026-11-21）の自機の値（px/こま）。仕組みと数値だけ。全体に速い。高難易度版はこちらを使う（make({ phys: X4 })）
+  //   歩く 2.0・重さ 0.2578・落ちる上限 6.5（止めてから重さを引くので 6.5 − 0.2578）・跳ぶ 5.8125（離すと 0）・ダッシュ 4.125 を 30 こま・空中ダッシュ 18 こま
+  //   壁に張りつく 8 こま・壁ずり 1.4375・壁蹴り 縦 5.625 で 10 こま押し出す（ダッシュを押していれば横 4.125）
+  //   やられ 2 段：小さい＝後ろへ 2.5 から 0.1875 ずつ減る・無敵 75 こま／大きい＝後ろへ 0.75・上へ 2.75（重さで落ちる）・無敵 100 こま
+  const X4 = {
+    walk: 2.0, dash: 4.125, dashF: 30, airDashLearnF: 18, slide: 2.0,
+    jump: 5.8125, gravity: 0.2578125, fallCap: 6.5 - 0.2578125,
+    wallStickF: 8, wallSlide: 1.4375, kickJump: 5.625, kickPushF: 10,
+    hurtX: 2.5, hurtDecay: 0.1875, hurtY: 0, hurtBigX: 0.75, hurtBigY: 2.75, invulF: 75, invulBigF: 100,
   };
   const BODY = { hw: 7, h: 48, slideH: 21 };                       // 当たりの大きさ（今の runner.js と同じ）
   const TILE = 40;
@@ -122,12 +134,19 @@
       grav: b => b.f >= P.kickWindF,                               // 溜めの間は止まる（重さもかからない）。入ったこまを溜めの 1 こま目と数える
       tick(b, inp) {
         if (b.f < P.kickWindF) { b.vx = 0; b.vy = 0; return; }
-        if (b.f === P.kickWindF) { b.vy = V(P.jump); b.kickT = P.kickPushF; }
+        if (b.f === P.kickWindF) { b.vy = V(P.kickJump || P.jump); b.kickT = P.kickPushF; }
         b.vx = V(b.dashJump ? P.dash : P.walk) * b.kickDir;           // 押し出しの間は入力に関係なく壁と逆へ
         if (--b.kickT <= 0) { b.f = 0; if (inp.j) b.state = 'jump'; else { b.vy = 0; b.state = 'fall'; } }   // 押していれば上がり続け、離していれば落ちる
       } };
-    S.hurt = { air: true, enter: b => { b.vx = -V(P.hurtX) * b.face; b.vy = V(P.hurtY); b.invul = P.invulF; b.dashJump = false; },
-      tick(b) { b.vx = -V(P.hurtX) * b.face; } };
+    S.hurt = { air: true, enter: b => {
+        b.dashJump = false; b.hurtMin = 0;
+        if (P.hurtDecay > 0 && b.hurtBig) { b.vx = -V(P.hurtBigX) * b.face; b.vy = V(P.hurtBigY); b.invul = P.invulBigF || P.invulF; }   // 大きい：浮いて飛ばされる
+        else if (P.hurtDecay > 0) { b.vx = -V(P.hurtX) * b.face; b.vy = 0; b.invul = P.invulF; b.hurtMin = Math.ceil(P.hurtX / P.hurtDecay); }   // 小さい：その場で後ろへ滑る（だんだん遅く）
+        else { b.vx = -V(P.hurtX) * b.face; b.vy = V(P.hurtY); b.invul = P.invulF; } },
+      tick(b) {
+        if (P.hurtDecay > 0 && !b.hurtBig) { const v = Math.max(0, Math.abs(b.vx) - V(P.hurtDecay)); b.vx = -Math.sign(b.face) * v; if (b.f >= b.hurtMin && onGround(b)) go(b, 'stand', {}); return; }
+        if (P.hurtDecay > 0) return;
+        b.vx = -V(P.hurtX) * b.face; } };
 
     // ── 1 こま ──
     function step(b, inp = {}) {
@@ -147,7 +166,7 @@
       b.hitWall = moveX(b, b.vx);
       const hitY = air ? moveY(b, b.vy) : 0;
       if (hitY > 0) b.vy = 0;                                      // 天井
-      if (air && hitY < 0) { b.vy = 0; b.dashJump = false; b.airDashed = false; b.usedCoyote = false; go(b, b.state === 'hurt' ? 'stand' : 'land', inp); }
+      if (air && hitY < 0) { b.vy = 0; b.dashJump = false; b.airDashed = false; b.usedCoyote = false; if (!(b.state === 'hurt' && b.f < (b.hurtMin || 0))) go(b, b.state === 'hurt' ? 'stand' : 'land', inp); }   // 小さいやられは滑り終わるまで
       else if (!air) {
         if (!onGround(b)) { b.coyote = P.coyoteF; b.usedCoyote = false; b.vy = 0; b.dashJump = b.state === 'dash'; go(b, 'fall', inp); }
         else b.y = Math.round(b.y * 1000) / 1000;
@@ -157,7 +176,7 @@
       if (b.invul <= 0) { for (const cx of cells(b.x - BODY.hw, b.x + BODY.hw)) for (const cy of cells(b.y, b.y + h(b))) if (map.spike(cx, cy)) { hurt(b); return b; } }
       return b;
     }
-    function hurt(b, fromDir) { if (b.invul > 0) return false; if (fromDir) b.face = fromDir; go(b, 'hurt', {}); return true; }
+    function hurt(b, fromDir, big) { if (b.invul > 0) return false; if (fromDir) b.face = fromDir; b.hurtBig = !!big; go(b, 'hurt', {}); return true; }
     function body(x = 0, y = 0, face = 1) { return { x, y, vx: 0, vy: 0, face, state: 'stand', f: 0, sinceWalk: 999, invul: 0, buf: 0, coyote: 0, usedCoyote: false, dashJump: false, dashLeft: 0, kickT: 0, kickDir: 0, wallDir: 0, prev: null, hitWall: false }; }
     const box = b => ({ x0: b.x - BODY.hw, x1: b.x + BODY.hw, y0: b.y, y1: b.y + h(b) });
     return { P, step, body, hurt, box, go: (b, st) => go(b, st, {}), onGround, map, scale: k, STATES: Object.keys(S) };
@@ -169,7 +188,7 @@
     return (b, dt, inp) => { acc = Math.min(acc + dt, maxSteps / 60); let n = 0; while (acc >= 1 / 60 - 1e-9) { act.step(b, inp); acc -= 1 / 60; n++; } return n; };
   }
 
-  const API = { SCALE, BASE, BODY, TILE, make, makeMap, stepper };
+  const API = { SCALE, BASE, X4, BODY, TILE, make, makeMap, stepper };
   root.RunnerAct = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
