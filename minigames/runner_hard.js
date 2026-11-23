@@ -521,12 +521,13 @@ registerMinigame({
       setGates(false); arenaOn = false; boss = null; phase = 'play'; phaseT = 0; banner = { t: 0, txt: 'コンビニへ（柵が開いた）' };
     }
     // ── 更新 ──
-    let lastState = 'stand', chgLv = 0;
+    let lastState = 'stand', chgLv = 0, rainW = 0;
     function update(dt) {
       t += dt; phaseT += dt; if (flash > 0) flash = Math.max(0, flash - dt * 2.4); if (shake > 0) shake = Math.max(0, shake - dt);
       if (banner) { banner.t += dt; if (banner.t > 2.6) banner = null; }
       for (const p of P) { if (!p.a) continue; p.l -= dt; if (p.l <= 0) { p.a = false; continue; } p.vy -= p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
-      for (let i = 0; i < RN; i++) { rx[i] -= 90 * dt; ry[i] += rv[i] * dt; if (ry[i] > VH + 10) { ry[i] = -10 - Math.random() * 60; rx[i] = Math.random() * (VW + 160); } if (rx[i] < -30) rx[i] += VW + 150; }
+      for (let i = 0; i < RN; i++) { rx[i] -= (90 - rainW * 1.4) * dt; ry[i] += rv[i] * dt; if (ry[i] > VH + 10) { ry[i] = -10 - Math.random() * 60; rx[i] = Math.random() * (VW + 160); } if (rx[i] < -30) rx[i] += VW + 150; if (rx[i] > VW + 160) rx[i] -= VW + 150; }
+      stepPetals(dt); stepWaterFx(); rainW = STAGE && STAGE.id === 'okujo' && act && !CZ ? windAt(camX + VW / 2, camY + VH / 2) : 0;   // 花びら・水のしぶき・雨の流れ（突風で斜めに）
       if (phase === 'warning' && phaseT > 2.4) startCold();
       if (phase === 'ready' && phaseT > 1.5) { phase = 'play'; phaseT = 0; if (!demo) recStart(); }   // READY：光の柱で降り立ってから動ける
       if (phase === 'intro' && !demo && phaseT > DEMO_IDLE && demoData()) startDemo();
@@ -622,7 +623,7 @@ registerMinigame({
         cx.drawImage(ART.home, Math.floor(sx(0)), Math.floor(sy(620)), 2001, 668); cx.imageSmoothingEnabled = sm; return;
       }
       if (CZ) { drawHome(); return; }
-      if (STAGE.art && STAGE.art.every(n => ART[n])) { drawArt(); return; }
+      if (STAGE.art && STAGE.art.every(n => ART[n])) { drawArt(); drawAmbient(); return; }
       if (STAGE.id === 'koka') { drawKoka(); return; }
       if (STAGE.id === 'okujo') { drawOkujo(); return; }
       if (STAGE.id === 'haisui') { drawHaisui(); return; }
@@ -710,6 +711,94 @@ registerMinigame({
     }
     // 背景の絵を面に並べる（1 枚＝2000×667 の世界の px。保存は半分なので 2 倍で描く・ぼかさない）。絵の上は夜空の色
     const artVisible = () => STAGE.art && STAGE.art.every(n => ART[n]);
+    // ── 背景の絵の上で動く物（絵は 1 枚の止まった絵なので、動くべき所をコードで重ねる）。座標は世界の px（絵の x ＋ 絵の番号×2000・y＝artTop − 絵の y） ──
+    const AMB = {
+      okujo: { trees: [[220, 470, 150], [5690, 365, 110]], ribbons: true },   // 桜（中心 x・y・広さ）・空を流れる風の帯
+      haisui: { trees: [[90, 555, 90]], falls: [[425, 505, 275, 140], [595, 680, 275, 140], [745, 830, 275, 140], [2503, 2533, 505, 60], [3013, 3043, 505, 60], [4600, 4620, 305, 235], [5657, 5680, 305, 225]] },   // 滝：x0・x1・上・下
+      koka: { trees: [[55, 548, 100]], sky: [[880, 1180], [1640, 1820], [2550, 2820], [3640, 3860]], glow: [[1230, 368], [1290, 368], [1760, 368], [1830, 368], [2470, 458], [2540, 458], [2610, 448], [3290, 638], [3420, 638], [3240, 528], [3420, 528], [4830, 458], [5170, 498], [5540, 458]], deco: [[460, 560, 108], [740, 870, 113], [2680, 2760, 58], [2920, 3000, 58]], coils: [[4830, 470, 5170, 560], [5170, 560, 5540, 470]] },
+    };
+    // 桜の花びら：木から散り、風（いつもの そよ風＋突風）に乗って流れる。ひらひら回る
+    const PET = []; for (let i = 0; i < 90; i++) PET.push({ a: false, x: 0, y: 0, vx: 0, vy: 0, ph: 0, r: 0, l: 0 });
+    function windAt(x, y) {   // その場所の風（px/秒）：いつもの そよ風 ＋ 吹いている突風
+      let w = STAGE.id === 'okujo' ? 34 : 18; if (GM) for (const g of GM.winds) { const T = map.tile; if (x > g.c0 * T - 200 && x < (g.c1 + 1) * T + 200) { if (GM.live(g)) w += g.dir * g.force * 95; else if (GM.warn(g)) w += g.dir * 30; } } return w;
+    }
+    function stepPetals(dt) {
+      const A = AMB[STAGE && STAGE.id]; if (!A || CZ || !act) { for (const p of PET) p.a = false; return; }
+      for (const tr of A.trees || []) { if (Math.abs(sx(tr[0])) > VW * 1.6) continue; if (Math.random() < dt * (STAGE.id === 'okujo' ? 7 : 4)) { const p = PET.find(q => !q.a); if (p) { const a = rnd(0, TAU), r = rnd(0, tr[2]); Object.assign(p, { a: true, x: tr[0] + Math.cos(a) * r, y: tr[1] + Math.sin(a) * r * .55, vx: 0, vy: -rnd(18, 34), ph: rnd(0, TAU), r: rnd(0, TAU), l: rnd(7, 12), s: rnd(2.2, 3.6) }); } } }
+      if (STAGE.id === 'okujo' && Math.random() < dt * 3) { const p = PET.find(q => !q.a); if (p) { const w = windAt(camX + VW / 2, 0); Object.assign(p, { a: true, x: camX + (w > 0 ? -20 : VW + 20) + (Math.random() < .5 ? rnd(0, VW) : 0), y: camY + VH + 20, vx: 0, vy: -rnd(15, 28), ph: rnd(0, TAU), r: rnd(0, TAU), l: rnd(8, 12), s: rnd(2, 3.2) }); } }   // 空から舞う
+      for (const p of PET) { if (!p.a) continue; p.l -= dt; const w = windAt(p.x, p.y); p.vx += (w - p.vx) * Math.min(1, dt * 1.6); p.ph += dt * 4; p.r += dt * (3 + Math.abs(p.vx) * .03);
+        p.x += (p.vx + Math.sin(p.ph) * 16) * dt; p.y += (p.vy + Math.cos(p.ph * .7) * 10) * dt; if (p.l <= 0 || p.y < camY - 60 || sx(p.x) < -300 || sx(p.x) > VW + 300) p.a = false; }
+    }
+    function drawPetals() {
+      for (const p of PET) { if (!p.a) continue; const x = sx(p.x), y = sy(p.y); if (x < -10 || x > VW + 10 || y < -10 || y > VH + 10) continue;
+        cx.save(); cx.translate(x, y); cx.rotate(p.r); cx.scale(1, Math.abs(Math.sin(p.ph)) * .8 + .2); cx.globalAlpha = Math.min(1, p.l); cx.fillStyle = (p.ph | 0) % 3 ? '#ffb8dc' : '#ff8ac8';
+        cx.beginPath(); cx.ellipse(0, 0, p.s, p.s * .62, 0, 0, TAU); cx.fill(); cx.restore(); }
+      cx.globalAlpha = 1;
+    }
+    // 風の帯：半透明の白い帯が うねりながら流れる（屋上の空・突風の中）
+    function ribbon(x, y, len, amp, ph, a, wdt) {
+      const g = cx.createLinearGradient(x - len / 2, 0, x + len / 2, 0); g.addColorStop(0, 'rgba(235,225,255,0)'); g.addColorStop(.5, `rgba(235,225,255,${a})`); g.addColorStop(1, 'rgba(235,225,255,0)');
+      cx.strokeStyle = g; cx.lineWidth = wdt; cx.lineCap = 'round'; cx.beginPath();
+      for (let i = 0; i <= 16; i++) { const k = i / 16, xx = x - len / 2 + len * k, yy = y + Math.sin(ph + k * 5) * amp; i ? cx.lineTo(xx, yy) : cx.moveTo(xx, yy); } cx.stroke(); cx.lineCap = 'butt';
+    }
+    function drawAmbient() {
+      const A = AMB[STAGE.id]; if (!A) return;
+      if (A.ribbons) for (let i = 0; i < 4; i++) { const sp = 30 + i * 9, x = ((i * 523 + t * sp - camX * .25) % (VW + 600) + VW + 600) % (VW + 600) - 300, y = 60 + i * 52 - camY * .1; ribbon(x, y, 260 + i * 40, 7, t * .8 + i, .16, 3); }   // 空のゆるい風
+      // 滝：落ちる水の筋・白いしぶき（下で跳ねる）
+      for (const [x0, x1, y0, y1] of A.falls || []) { const X0 = sx(x0), X1 = sx(x1); if (X1 < -20 || X0 > VW + 20) continue; const Y0 = sy(y0), Y1 = sy(y1), w = X1 - X0;
+        cx.save(); cx.beginPath(); cx.rect(X0, Y0, w, Y1 - Y0 + 4); cx.clip(); cx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < Math.max(3, w / 4); i++) { const xx = X0 + ((i * 37) % Math.max(1, w)) + Math.sin(t * 3 + i) * 1.5, len = 18 + (i * 13) % 30, yy = Y0 + ((t * (260 + (i * 31) % 90) + i * 57) % (Y1 - Y0 + len)) - len; cx.strokeStyle = i % 3 ? 'rgba(170,210,255,.5)' : 'rgba(240,250,255,.75)'; cx.lineWidth = i % 4 ? 1.5 : 2.5; cx.beginPath(); cx.moveTo(xx, yy); cx.lineTo(xx, yy + len); cx.stroke(); }
+        cx.restore();
+        if (Math.random() < .5) emit(rnd(x0, x1), y1 + 4, rnd(-50, 50), rnd(40, 140), .35, Math.random() < .5 ? 'rgba(235,245,255,.85)' : 'rgba(150,200,255,.75)', 2, 380); }   // 落ちた所のしぶき
+      // 空の稲光：時々、決まった空の所が光って、稲妻が走る
+      if (A.sky) { const n = Math.floor(t / 2.7), ph = t % 2.7; if (ph < .28) { const [a, b] = A.sky[n % A.sky.length], x = sx(a + ((n * 97) % Math.max(1, b - a))); if (x > -200 && x < VW + 200) {
+        const top = sy(STAGE.artTop || 698), al = ph < .06 ? .9 : ph < .12 ? .3 : ph < .18 ? .75 : .25; cx.globalCompositeOperation = 'lighter'; cx.fillStyle = `rgba(190,150,255,${al * .22})`; cx.fillRect(x - 220, top, 440, 210);
+        cx.strokeStyle = `rgba(235,220,255,${al})`; cx.lineWidth = 2.5; cx.beginPath(); let px = x, py = top; cx.moveTo(px, py); let sd = n * 7; for (let k = 0; k < 9; k++) { sd = (sd * 31 + 17) % 97; px += (sd % 30) - 15; py += 22; cx.lineTo(px, py); } cx.stroke(); cx.lineWidth = 1; cx.stroke(); cx.globalCompositeOperation = 'source-over'; } } }
+      // 碍子・コイルの光（脈打つ）
+      if (A.glow) { cx.globalCompositeOperation = 'lighter'; A.glow.forEach(([gx, gy], i) => { const x = sx(gx), y = sy(gy); if (x < -60 || x > VW + 60) return; const k = .5 + .5 * Math.sin(t * 2.2 + i * 1.7), r = 26 + k * 10; const g = cx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(255,170,255,${.32 * k + .1})`); g.addColorStop(1, 'rgba(255,120,240,0)'); cx.fillStyle = g; cx.fillRect(x - r, y - r, r * 2, r * 2); }); cx.globalCompositeOperation = 'source-over'; }
+      // コイルの間を走る放電（時々）
+      if (A.coils) A.coils.forEach(([ax, ay, bx, by], i) => { if ((t * 1.1 + i * .9) % 3.2 > .35) return; const X0 = sx(ax), X1 = sx(bx); if (Math.max(X0, X1) < -40 || Math.min(X0, X1) > VW + 40) return; zap(X0, sy(ay), X1, sy(by), 'rgba(255,200,255,.9)', 6); });
+      // 絵の床の光る所（飾り）：ぱちぱち
+      if (A.deco) for (const [x0, x1, y] of A.deco) { const X0 = sx(x0), X1 = sx(x1); if (X1 < 0 || X0 > VW) continue; if (Math.random() < .35) zap(X0 + rnd(0, X1 - X0), sy(y) - 2, X0 + rnd(0, X1 - X0), sy(y) - rnd(4, 14), 'rgba(255,170,255,.8)', 3); }
+    }
+    // ── 濁流の面の水：絵の水（ふだんの水面）と増水を、1 枚の続いた水面で描く ──
+    //   水面の高さは x ごとに決まる（haisuiSurface）。増水した所は なめらかに盛り上がり、端は ゆるやかに下がる（四角く切れない）
+    //   絵から切り出した波の帯（haisui_water）を、細い縦の短冊に分けて それぞれ上下にうねらせ、奥と手前の 2 枚を逆向きに流す。帯より深い所は深い水の色
+    const HAISUI_BASE = [105, 18, 18];                                 // 絵ごとの ふだんの水面（世界の y。絵の波の位置に合わせる）
+    const haisuiWaterOn = () => STAGE && STAGE.id === 'haisui' && !!ART.haisui_water && !CZ && artVisible();
+    const smooth = k => k <= 0 ? 0 : k >= 1 ? 1 : k * k * (3 - 2 * k);
+    function haisuiSurface(wx) {
+      const T = map.tile, i = Math.max(0, Math.min(2, Math.floor(wx / 2000))), f = wx - i * 2000;   // 絵の境目の前後 220px で ふだんの水面を なめらかにつなぐ
+      let s0 = HAISUI_BASE[i]; if (f > 1780 && i < 2) s0 += (HAISUI_BASE[i + 1] - s0) * smooth((f - 1780) / 440); else if (f < 220 && i > 0) s0 = HAISUI_BASE[i - 1] + (s0 - HAISUI_BASE[i - 1]) * smooth((f + 220) / 440);
+      if (GM) for (const fl of GM.floods) { const lv = GM.level(fl); if (lv <= 1) continue; const a = fl.c0 * T, b = (fl.c1 + 1) * T; if (wx < a - 20 || wx > b + 20) continue;
+        const edge = smooth(Math.min((wx - (a - 20)) / 56, ((b + 20) - wx) / 56)), grow = smooth(lv / 26); s0 = Math.max(s0, s0 + (fl.base + lv - s0) * edge * grow); }
+      return s0;
+    }
+    function drawWaterBody(surf, bottom, rough) {
+      const WT = ART.haisui_water; if (!WT) return; const tw = WT.width, th = WT.height, st = 8, half = st / 2;
+      const wave = wx => (Math.sin(wx * .017 + t * 2.1) * 4 + Math.sin(wx * .0063 - t * 1.25) * 3.5 + Math.sin(wx * .045 + t * 3.7) * 1.2) * (rough || 1);
+      const cols = []; for (let x = Math.floor(-camX % st) - st; x < VW + st; x += st) { const wx = x + camX, s0 = surf(wx); if (s0 == null) continue; cols.push([x, wx, sy(s0) - wave(wx)]); }
+      if (!cols.length) return;
+      const sm = cx.imageSmoothingEnabled; cx.imageSmoothingEnabled = false;
+      const tex = (x, wx, ty, k, sp, a) => { let u = ((wx * .5 * k + t * sp) % tw + tw) % tw; if (u + half > tw) u = tw - half; cx.globalAlpha = a; cx.drawImage(WT, u, 0, half, th, x, ty, st + .5, th * 2); };
+      for (const [x, wx, ty] of cols) tex(x, wx, ty - 34 + Math.sin(wx * .011 + t * 1.6) * 3, .9, 9, .55);    // 奥の波（暗く・ゆっくり・逆向き）
+      cx.globalAlpha = 1; cx.fillStyle = '#0b196b'; cx.beginPath(); for (const [x, wx, ty] of cols) { const y0 = ty - 22 + th * 2 - 3; if (y0 < bottom) cx.rect(x, y0, st + .5, bottom - y0); } cx.fill();   // 深い所
+      for (const [x, wx, ty] of cols) tex(x, wx, ty - 22, 1, -13, 1);                                          // 手前の波
+      cx.globalAlpha = 1; cx.imageSmoothingEnabled = sm;
+      cx.globalCompositeOperation = 'lighter'; cx.fillStyle = 'rgba(235,245,255,.8)';   // 波頭のきらめき
+      for (let i = 0; i < cols.length; i += 3) { const [x, wx, ty] = cols[i]; if (Math.sin(wx * .31 + t * 5) > .82) cx.fillRect(x + 2, ty - 18 + Math.sin(t * 7 + i) * 2, 2, 2); }
+      cx.globalCompositeOperation = 'source-over';
+    }
+    // 水のしぶき：増水が上がる間は水面から しぶきと泡が上がり、端（柱・岸壁）で砕ける
+    const prevLv = new Map();
+    function stepWaterFx() {
+      if (!haisuiWaterOn() || !GM) return; const T = map.tile;
+      for (const fl of GM.floods) { const lv = GM.level(fl), pv = prevLv.get(fl) || 0; prevLv.set(fl, lv); const rising = lv > pv + .05, a = fl.c0 * T, b = (fl.c1 + 1) * T;
+        if (lv > 4 && Math.random() < (rising ? .9 : .25)) { const wx = rnd(a, b), y = haisuiSurface(wx); emit(wx, y + 4, rnd(-60, 60), rnd(rising ? 120 : 50, rising ? 300 : 140), .5, Math.random() < .6 ? 'rgba(235,245,255,.9)' : 'rgba(150,200,255,.8)', rnd(2, 3.5), 520); }
+        if (rising && lv > 4) for (const ex of [a, b]) if (Math.random() < .5) emit(ex + rnd(-10, 10), haisuiSurface(ex) + 2, (ex === a ? -1 : 1) * rnd(20, 90), rnd(150, 320), .45, 'rgba(240,248,255,.9)', 3, 560); }
+    }
+    // 稲妻の線（ギザギザ）
+    function zap(x0, y0, x1, y1, col, n) { cx.globalCompositeOperation = 'lighter'; cx.strokeStyle = col; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(x0, y0); for (let i = 1; i < n; i++) { const k = i / n; cx.lineTo(x0 + (x1 - x0) * k + rnd(-6, 6), y0 + (y1 - y0) * k + rnd(-8, 8)); } cx.lineTo(x1, y1); cx.stroke(); cx.lineWidth = 4; cx.strokeStyle = 'rgba(200,120,255,.25)'; cx.stroke(); cx.globalCompositeOperation = 'source-over'; }
     function drawArt() {
       const top = STAGE.artTop || 605; cx.fillStyle = '#0c0a26'; cx.fillRect(0, 0, VW, Math.max(0, sy(top)) + 2);
       const sm = cx.imageSmoothingEnabled; cx.imageSmoothingEnabled = false;
@@ -760,18 +849,29 @@ registerMinigame({
     // 面の仕掛け：帯電する床（流れる前にちらつく）・壊れる足場（揺れる）・ボスの部屋の看板（雷雲招来の間は帯電）
     function drawGimmicks() {
       if (!GM) return; const T = map.tile;
-      for (const w of GM.winds) {   // 突風：吹く前は細い雨の筋・吹いている間は強い横殴りの筋
-        const on = GM.live(w), wn = GM.warn(w); if (!on && !wn) continue; const x0 = sx(w.c0 * T), x1 = sx((w.c1 + 1) * T);
-        cx.strokeStyle = on ? 'rgba(220,210,255,.55)' : 'rgba(220,210,255,.2)'; cx.lineWidth = on ? 2 : 1; cx.beginPath();
-        for (let i = 0; i < (on ? 40 : 14); i++) { const xx = x0 + ((i * 97 + w.dir * t * 900) % (x1 - x0) + (x1 - x0)) % (x1 - x0), yy = (i * 53) % VH; cx.moveTo(xx, yy); cx.lineTo(xx + w.dir * (on ? 40 : 18), yy + 4); } cx.stroke();
+      for (const w of GM.winds) {   // 突風：吹く前は弱い風の帯が流れ始め、吹いている間は うねる風の帯が速く流れる（花びら・雨も流される）
+        const on = GM.live(w), wn = GM.warn(w); if (!on && !wn) continue; const x0 = sx(w.c0 * T) - 120, x1 = sx((w.c1 + 1) * T) + 120, W2 = x1 - x0; if (x1 < 0 || x0 > VW) continue;
+        cx.save(); cx.beginPath(); cx.rect(Math.max(0, x0), 0, Math.min(VW, x1) - Math.max(0, x0), VH); cx.clip();
+        const n = on ? 9 : 3, sp = on ? 560 + w.force * 60 : 160;
+        for (let i = 0; i < n; i++) { const len = (on ? 160 : 110) + (i * 47) % 120, xx = x0 + ((i * 211 + w.dir * t * sp) % (W2 + len) + W2 + len) % (W2 + len) - len / 2, yy = 40 + (i * 89) % Math.max(80, VH - 80); ribbon(xx, yy, len, on ? 6 + (i % 3) * 3 : 4, t * (on ? 6 : 3) + i, on ? .45 : .18, on ? 2.5 + (i % 2) : 1.5); }
+        if (on) { cx.strokeStyle = 'rgba(220,210,255,.25)'; cx.lineWidth = 1; cx.beginPath(); for (let i = 0; i < 18; i++) { const xx = x0 + ((i * 97 + w.dir * t * 1100) % W2 + W2) % W2, yy = (i * 53) % VH; cx.moveTo(xx, yy); cx.lineTo(xx + w.dir * 26, yy + 2); } cx.stroke(); }   // 細かな ちり
+        cx.restore();
       }
       for (const fl of GM.floods) {   // 増水：上がる前に水面がちらつく
         const lv = GM.level(fl), x0 = sx(fl.c0 * T), x1 = sx((fl.c1 + 1) * T), base = sy(fl.base);
         if (GM.warn(fl)) { cx.fillStyle = `rgba(230,236,255,${.35 + .35 * Math.sin(t * 24)})`; for (let xx = x0; xx < x1; xx += 22) cx.fillRect(xx + (Math.floor(t * 20) % 3) * 4, base - 3 - Math.abs(Math.sin(xx + t * 9)) * 6, 4, 3); }   // 上がる前：水面が泡立つ
-        drawWater(x0, x1, fl.base, lv);
+        if (!haisuiWaterOn()) drawWater(x0, x1, fl.base, lv);
       }
+      if (haisuiWaterOn()) drawWaterBody(haisuiSurface, VH, 1);   // 濁流の面：絵の水も増水も 1 枚の水面で（増水した所は なめらかに盛り上がる）
       for (const s2 of GM.strips) {
         const x0 = sx(s2.c0 * T), x1 = sx((s2.c1 + 1) * T), y = sy((s2.cy + 1) * T), on = GM.live(s2), wn = GM.warn(s2);
+        if (x1 > -20 && x0 < VW + 20) {   // 流れている間は床の上を稲妻が走り続け、粒が飛ぶ。流れる前は小さな火花。止まっている間も弱く脈打つ
+          cx.globalCompositeOperation = 'lighter';
+          const g = cx.createLinearGradient(0, y - (on ? 46 : 16), 0, y); g.addColorStop(0, 'rgba(200,110,255,0)'); g.addColorStop(1, on ? 'rgba(220,140,255,.45)' : `rgba(180,90,240,${.08 + .06 * Math.sin(t * 3)})`); cx.fillStyle = g; cx.fillRect(x0, y - (on ? 46 : 16), x1 - x0, on ? 46 : 16);
+          cx.globalCompositeOperation = 'source-over';
+          if (on) { for (let i = 0; i < 3; i++) { const a = x0 + rnd(0, (x1 - x0) * .5); zap(a, y - 3, a + rnd(30, (x1 - x0) * .6), y - rnd(2, 22), i ? 'rgba(220,150,255,.85)' : 'rgba(255,250,200,.95)', 7); } if (Math.random() < .7) emit(rnd(s2.c0 * T, (s2.c1 + 1) * T), (s2.cy + 1) * T + 2, rnd(-60, 60), rnd(60, 200), .3, Math.random() < .5 ? '#fff6a0' : '#e0a0ff', 2, 500); }
+          else if (wn && Math.random() < .5) zap(x0 + rnd(0, x1 - x0), y - 2, x0 + rnd(0, x1 - x0), y - rnd(3, 10), 'rgba(220,150,255,.7)', 3);
+        }
         cx.fillStyle = '#1a1424'; cx.fillRect(x0, y - 4, x1 - x0, 6); for (let x = x0; x < x1; x += 20) { cx.fillStyle = on ? '#d080ff' : wn && Math.sin(t * 40) > 0 ? '#c060e0' : '#5a3a70'; cx.fillRect(x + 2, y - 3, 14, 3); }
         if (on) { cx.strokeStyle = 'rgba(220,150,255,.9)'; cx.lineWidth = 1.6; cx.beginPath(); for (let x = x0; x < x1; x += 16) { const h = 8 + Math.random() * 18; cx.moveTo(x, y - 2); cx.lineTo(x + 5, y - h); cx.lineTo(x + 9, y - h * .5); cx.lineTo(x + 14, y - h - 4); } cx.stroke(); cx.fillStyle = 'rgba(200,120,255,.18)'; cx.fillRect(x0, y - 26, x1 - x0, 24); }
       }
@@ -1037,7 +1137,7 @@ registerMinigame({
           cx.strokeStyle = 'rgba(240,244,255,.95)'; cx.lineWidth = 4; cx.beginPath(); cx.moveTo(x - d * 70, y - Hh * .45); cx.quadraticCurveTo(x - d * 30, y - Hh * .85, x - d * 12, y - Hh * .95); cx.quadraticCurveTo(fx + d * 18, y - Hh * 1.12, fx + d * 6, y - Hh * .55); cx.stroke();
           cx.fillStyle = 'rgba(235,240,255,.9)'; for (let i = 0; i < 10; i++) cx.fillRect(fx + d * (4 + ((i * 13 + sh.life * 3) % 26)), y - Hh * (.3 + ((i * 17) % 70) / 100) - (sh.life * (i + 1)) % 9, 3, 3);   // しぶき
         }
-        else if (sh.kind === 'flood') drawWater(sx(sh.x0), sx(sh.x1), sh.y, sh.level, 4);   // 大波：部屋の水位（床の上だけ）
+        else if (sh.kind === 'flood') { if (ART.haisui_water) { if (sh.level > 1) drawWaterBody(wx => (wx < sh.x0 || wx > sh.x1 ? null : sh.y + sh.level * smooth(Math.min((wx - sh.x0) / 40, (sh.x1 - wx) / 40))), sy(sh.y - 4), .8); } else drawWater(sx(sh.x0), sx(sh.x1), sh.y, sh.level, 4); }   // 大波：部屋の水位（床の上だけ。端は ゆるやかに）
         else if (sh.kind === 'bolt') {
           if (sh.f <= sh.tele) { cx.fillStyle = `rgba(255,90,120,${.25 + .25 * Math.sin(sh.f * .8)})`; cx.fillRect(x - sh.w, 0, sh.w * 2, y); cx.fillStyle = '#ff5a78'; cx.fillRect(x - sh.w, y - 4, sh.w * 2, 4); }   // 予兆：落ちる所が赤く光る
           else { cx.fillStyle = 'rgba(240,210,255,.95)'; cx.beginPath(); let px = x; cx.moveTo(px, 0); for (let yy = 0; yy < y; yy += 30) { px = x + rnd(-sh.w * .7, sh.w * .7); cx.lineTo(px, yy); } cx.lineTo(x, y); cx.lineTo(x + 6, y); cx.lineTo(px + 6, 0); cx.closePath(); cx.fill(); cx.fillStyle = 'rgba(200,140,255,.3)'; cx.fillRect(x - sh.w * 2, 0, sh.w * 4, y); }
@@ -1317,8 +1417,8 @@ registerMinigame({
       cx.save(); cx.translate(shx, 0);
       drawBack(); drawTiles();
       for (const p of P) if (p.a) { cx.globalAlpha = Math.max(0, p.l / p.m); cx.fillStyle = p.c; cx.fillRect(sx(p.x) - p.s / 2, sy(p.y) - p.s / 2, p.s, p.s); }
-      cx.globalAlpha = 1; drawFoes(); drawBoss(); drawCold(); drawPlayer(); drawSlash();
-      if (!CZ) { cx.strokeStyle = 'rgba(170,190,255,.3)'; cx.lineWidth = 1; cx.beginPath(); for (let i = 0; i < RN; i += 2) { cx.moveTo(rx[i], ry[i]); cx.lineTo(rx[i] - 6, ry[i] - rl[i]); } cx.stroke(); }
+      cx.globalAlpha = 1; drawFoes(); drawBoss(); drawCold(); drawPlayer(); drawSlash(); drawPetals();
+      if (!CZ) { cx.strokeStyle = 'rgba(170,190,255,.3)'; cx.lineWidth = 1; cx.beginPath(); for (let i = 0; i < RN; i += 2) { cx.moveTo(rx[i], ry[i]); cx.lineTo(rx[i] - 6 - rainW * .06, ry[i] - rl[i]); } cx.stroke(); }
       cx.restore();
       if (flash > 0) { cx.fillStyle = `rgba(255,120,140,${flash * .25})`; cx.fillRect(0, 0, VW, VH); }
       drawHUD(); drawBossBar(); drawIntro();
