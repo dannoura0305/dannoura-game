@@ -49,7 +49,7 @@ const b = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-requ
     if (d === 'hard') {
       // 着いて終わる → 本編へ結果（育児ストレス↓・疲労↑）・1 日 1 回
       const before = await p.evaluate(() => ({ cs: gs.childStress, fa: gs.fatigue }));
-      await p.waitForTimeout(600); await p.keyboard.press('z'); await p.waitForTimeout(600); await p.keyboard.press('z'); await p.waitForTimeout(300);
+      await p.waitForTimeout(600); await p.keyboard.press('z'); await p.waitForTimeout(600); await p.keyboard.press('z'); await p.waitForTimeout(1900);   // READY の後
       const g = v.goal; await p.evaluate(() => { const r = window.__MG_TEST__.runnerHard; r.bossHp(0); }); 
       await p.evaluate(g => window.__MG_TEST__.runnerHard.warp(g.x - 60, g.y + 10), g); await p.keyboard.down('ArrowRight'); await p.waitForTimeout(800); await p.keyboard.up('ArrowRight');
       const st = await p.evaluate(() => window.__MG_TEST__.runnerHard.s.phase);
@@ -101,7 +101,7 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
     await p.mouse.click(cr.l + (r.x0 + r.x1) / 2 * k, cr.t + (r.y0 + r.y1) / 2 * k); await p.waitForTimeout(200); const v2 = await S();
     ok(`${label}：カードを押すと そのボスを選ぶ（まだ始まらない）`, v2.selIdx === 1 && v2.phase === 'select', JSON.stringify({ i: v2.selIdx, phase: v2.phase }));
     await p.keyboard.press('ArrowRight'); await p.waitForTimeout(100); }
-  await p.keyboard.press('z'); await p.waitForTimeout(300);
+  await p.keyboard.press('z'); await p.waitForTimeout(300); await until(async () => (await S()).phase === 'play', 4000, 50);   // READY の後に遊べる
   s = await S(); ok(`${label}：選んで遊び始める（ボスの面＝高架下・都市送電区）・自機とボスはドット絵`, s.phase === 'play' && s.sprite && s.bossSprite && s.stage === 'koka', JSON.stringify({ phase: s.phase, sprite: s.sprite, boss: s.bossSprite, stage: s.stage }));
   await p.evaluate(() => window.__MG_TEST__.runnerHard.warp(1720, 170)); await p.waitForTimeout(300); s = await S();   // 長い床（帯電する床の先）で動きを試す
   const x0 = s.x; await p.keyboard.down('ArrowRight'); await p.waitForTimeout(700); await p.keyboard.up('ArrowRight');
@@ -145,7 +145,8 @@ for (const [label, vw, vh] of [['横長', 960, 540], ['縦長', 420, 800]]) {
     const ar = (await S()).arena; await p.waitForTimeout(1100);
     await p.evaluate(ar => window.__MG_TEST__.runnerHard.warp(ar.x0 + 80, ar.floor + 10), ar);
     const on = await until(async () => (await S()).arenaOn, 3000, 50);
-    ok(`${label}：ボスの部屋に入ると柵が閉まり、ボスが起きる`, !!on && (await S()).boss.state !== 'wait');
+    const woke = await until(async () => (await S()).boss.state !== 'wait', 4000, 50);   // 登場（WARNING・名前）の後に起きる
+    ok(`${label}：ボスの部屋に入ると柵が閉まり、ボスが起きる`, !!on && !!woke);
     if (SHOTS) { await p.waitForTimeout(1500); await p.screenshot({ path: `${SHOTS}/rh_${vw}x${vh}_boss.png` }); }
     await p.evaluate(() => window.__MG_TEST__.runnerHard.bossHp(1));
     let learned = null;
@@ -231,7 +232,7 @@ for (const [idx, id, stage, move, label] of [[0, 'kazegiri', 'okujo', 'kazebashi
   const until = async (fn, ms = 15000, step = 80) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const v = await fn(); if (v) return v; await p.waitForTimeout(step); } return null; };
   await until(async () => { const s = await S(); return s && s.phase === 'intro'; }); await p.waitForTimeout(600); await p.keyboard.press('z'); await p.waitForTimeout(500);
   for (let i = 0; i < idx; i++) await p.keyboard.press('ArrowRight');
-  await p.keyboard.press('z'); await p.waitForTimeout(400);
+  await p.keyboard.press('z'); await p.waitForTimeout(400); await until(async () => (await S()).phase === 'play', 4000, 50);
   let s = await S(); ok(`${label}：選ぶと そのボスの面（${stage}）`, s.phase === 'play' && s.stage === stage, JSON.stringify({ phase: s.phase, stage: s.stage }));
   { const art = await until(async () => (await S()).art, 6000, 100); ok(`${label}：面の背景は利用者の絵（3 枚）`, !!art); if (SHOTS) { await p.waitForTimeout(500); await p.screenshot({ path: `${SHOTS}/rh_${stage}_start.png` }); } }
   if (stage === 'okujo') {   // 突風：吹いている間は自機が押される
@@ -302,6 +303,45 @@ for (const [idx, id, stage, move, label] of [[0, 'kazegiri', 'okujo', 'kazebashi
   const rec = await p.evaluate(() => JSON.parse(JSON.stringify(gs.runnerHard)));
   ok('隠しボス：負けて終わる・記録（負け 1・試しの走りの回数は増えない）', ended && rec.cold.losses === 1 && rec.cold.last === 'lose' && rec.proto.plays === 0, JSON.stringify([rec.cold, rec.proto]));
   ok('隠しボス（選択画面から）：ページのエラーが出ない', errs.length === 0, JSON.stringify(errs.slice(0, 3)));
+  await p.close();
+}
+
+// X4 風の足し（2026-11-23）：READY・ボスの登場（WARNING → 名前・体力の帯が満ちる間は動かない）・溜め斬り・入力の記録と再生（デモ）が同じに動く・デモは記録を変えない
+{
+  const p = await b.newPage({ viewport: { width: 960, height: 540 } }); const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.addInitScript(() => { window.__MG_TEST__ = {}; });
+  await p.goto(BASE + '/index.html?runnerhard=1'); await p.waitForTimeout(2500);
+  await p.evaluate(() => { gs.runnerHard = { moves: [], beaten: [] }; gs.mgDay = {}; localStorage.setItem(MG_DIFF_KEY, 'normal'); MG.open('runner_hard'); });
+  const R = () => p.evaluate(() => window.__MG_TEST__.runnerHard && window.__MG_TEST__.runnerHard.s);
+  const D = () => p.evaluate(() => window.__MG_TEST__.runnerHard.demo());
+  const wait = async (fn, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const v = await R().catch(() => null); if (v && fn(v)) return v; await p.waitForTimeout(50); } return null; };
+  await wait(v => v.phase === 'intro', 15000); await p.waitForTimeout(600); await p.keyboard.press('z'); await p.waitForTimeout(500);
+  for (let i = 0; i < 2; i++) { await p.keyboard.press('ArrowRight'); await p.waitForTimeout(120); }
+  await p.keyboard.press('z');
+  const rd = await wait(v => v.phase === 'ready', 1500); ok('READY：面の始めは READY（光の柱で降り立つ）の後に動ける', !!rd && !!(await wait(v => v.phase === 'play', 3000)));
+  // 記録：右へ歩いて跳ぶ・溜めて離す
+  await p.keyboard.down('ArrowRight'); await p.keyboard.down('x'); await p.waitForTimeout(1700); await p.keyboard.up('x'); await p.keyboard.press('z'); await p.waitForTimeout(900); await p.keyboard.up('ArrowRight');
+  const sv = await p.evaluate(() => window.__MG_TEST__.runnerHard.saveRec());
+  ok('記録：入力を［ボタンのビット, 続くこま数］に詰める', sv.frames > 100 && (await D()).rec.data.length < sv.frames / 4, JSON.stringify({ frames: sv.frames, n: (await D()).rec.data.length }));
+  // ボスの登場
+  const A = (await R()).arena; await p.evaluate(a => window.__MG_TEST__.runnerHard.warp(a.x0 - 60, a.floor + 4), A); await p.waitForTimeout(300);
+  await p.keyboard.down('ArrowRight'); const bi = await (async () => { const t0 = Date.now(); while (Date.now() - t0 < 3000) { const d = await D(); if (d.bossIntro > 0) return d.bossIntro; await p.waitForTimeout(40); } return 0; })(); await p.keyboard.up('ArrowRight');
+  const sb = await R(); ok('ボスの登場：部屋に入ると WARNING → 名前・体力の帯。その間ボスは起きない', bi > 0 && sb.boss && sb.boss.state === 'wait', JSON.stringify({ bi, st: sb.boss && sb.boss.state }));
+  ok('ボスの登場：終わるとボスが動き出す', !!(await wait(v => v.boss && v.boss.state !== 'wait', 4000)));
+  // デモ：説明の画面で待つと記録が流れ、記録の終わりと同じ所で終わる・遊んだ回数や記録は変えない
+  await p.evaluate(() => MG.end('quit')); await p.waitForTimeout(800);
+  const before = await p.evaluate(() => JSON.stringify(gs.runnerHard));
+  await p.evaluate(() => { gs.mgDay = {}; MG.open('runner_hard'); }); await wait(v => v.phase === 'intro', 15000);
+  let on = false; { const t0 = Date.now(); while (Date.now() - t0 < 16000) { if ((await D()).playing) { on = true; break; } await p.waitForTimeout(200); } }
+  ok('デモ：説明の画面で 12 秒ほど何も押さないと、前回の記録が流れる', on);
+  let end = null; { const t0 = Date.now(); while (Date.now() - t0 < 30000) { const d = await D(); if (!d.playing) { end = d.end; break; } await p.waitForTimeout(200); } }
+  ok('デモ：記録の終わりと同じ所・同じ傘の耐久で終わる（同じに再生される）', !!end && Math.abs(end.x - sv.x) < 0.01 && Math.abs(end.y - sv.y) < 0.01 && end.hp === sv.hp, JSON.stringify({ end, sv }));
+  ok('デモ：終わると説明の画面・記録（遊んだ回数・倒したボス・取った物）は変わらない', (await R()).phase === 'intro' && (await p.evaluate(() => JSON.stringify(gs.runnerHard))) === before);
+  // 何か押すと戻る
+  { const t0 = Date.now(); while (Date.now() - t0 < 16000) { if ((await D()).playing) break; await p.waitForTimeout(200); } }
+  await p.keyboard.press('Enter'); await p.waitForTimeout(300); ok('デモ：キーを押すと止まって説明の画面へ', !(await D()).playing && (await R()).phase === 'intro');
+  await p.evaluate(() => { MG.end('quit'); localStorage.removeItem(MG_DIFF_KEY); });
+  ok('X4 風の足し：ページのエラーが出ない', errs.length === 0, JSON.stringify(errs.slice(0, 3)));
   await p.close();
 }
 await b.close();

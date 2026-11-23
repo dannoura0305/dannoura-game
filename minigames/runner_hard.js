@@ -70,7 +70,7 @@ var RunnerHardStageKoka = RunnerHardStageKoka || {
     return A.map(([i, x0, x1, y]) => ({ x0: i * 2000 + x0, x1: i * 2000 + x1, y: 698 - y }));
   },
   // 送電区の敵：火花虫（時々火花をまとう）・碍子の盾（正面は防ぐ。後ろ・溜め斬り・雷突きで崩す）
-  enemies() { return [['flyer', 12, 9, -1], ['crawler', 30, 5, -1], ['shield', 38, 5, -1], ['flyer', 44, 7, -1], ['crawler', 47, 5, -1], ['crawler', 57, 5, -1], ['flyer', 63, 9, -1], ['shield', 70, 9, -1], ['crawler', 84, 5, -1], ['shield', 96, 5, -1], ['walker', 102, 4, -1], ['walker', 104, 4, -1]]; },
+  enemies() { return [['flyer', 12, 9, -1], ['crawler', 30, 5, -1], ['shield', 38, 5, -1], ['flyer', 44, 7, -1], ['crawler', 55, 5, -1], ['crawler', 59, 5, -1], ['flyer', 63, 9, -1], ['shield', 70, 9, -1], ['crawler', 84, 5, -1], ['shield', 96, 5, -1], ['walker', 102, 4, -1], ['walker', 104, 4, -1]]; },
   arena() { return { c0: 106, c1: 120, bossC: 117, boss: 'raikaku', floorCy: 4 }; },
   // 隠しアイテム：お守り＝高い渡り廊下の右の上（跳んで届く）
   items() { return [{ id: 'koka_charm', kind: 'charm', x: 3180, y: 446 }]; },
@@ -164,7 +164,7 @@ registerMinigame({
     const TAU = Math.PI * 2, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), rnd = (a, b) => a + Math.random() * (b - a);
     // ── 記録（gs.runnerHard。通常版の gs.runnerData には触らない） ──
     if (!gs.runnerHard || typeof gs.runnerHard !== 'object') gs.runnerHard = { v: 1, beaten: [], moves: [], proto: { plays: 0, clears: 0, bestTime: 0 } };
-    const REC = gs.runnerHard; if (!REC.proto) REC.proto = { plays: 0, clears: 0, bestTime: 0 };
+    let REC = gs.runnerHard; if (!REC.proto) REC.proto = { plays: 0, clears: 0, bestTime: 0 };
 
     const cv = document.createElement('canvas'); cv.className = 'rh-cv'; cv.tabIndex = 0; body.appendChild(cv);
     const cx = cv.getContext('2d');
@@ -209,15 +209,24 @@ registerMinigame({
     let phase = 'load', phaseT = 0, t = 0, hp = 5, falls = 0, hurts = 0, runTime = 0, outcome = null, committed = false, camX = 0, camY = 0, shake = 0, flash = 0, banner = null;
     // 難しさ（ミニゲームの選択画面の「やさしい・ふつう・むずかしい」）。むずかしい＝受け取った数値のまま（元の作品の形）
     const DIFF = typeof mgDifficulty === 'function' ? mgDifficulty() : 'normal';
-    const DF = {
+    const DFT = {
       easy: { hp: 7, boss: .75, phys: { wallStickF: 14, coyoteF: 6, bufferF: 6, invulF: 90 } },
       normal: { hp: 5, boss: 1, phys: { wallStickF: 10, coyoteF: 4, bufferF: 4, invulF: 72 } },
       hard: { hp: 4, boss: 1.25, phys: {} },
-    }[DIFF] || null;
+    }; let DF = DFT[DIFF] || null;
     // 傘の耐久の上限：難しさの値 ＋ 面で見つけたお守りの数（隠しアイテム）
     const charms = () => Object.keys(REC.items || {}).filter(k => /_charm$/.test(k) && REC.items[k]).length;
     let HP_MAX = (DF ? DF.hp : 5) + charms(); hp = HP_MAX;
-    let drinkUsed = false;                                             // 予備のドリンク：1 回の遊びで 1 度だけ
+    let drinkUsed = false;
+    // 遊びに効く乱数（のど飴を落とすか）は種から作る（デモを同じに再生するため）。見た目の乱数（粒・揺れ）は Math.random のまま
+    let seed = 1; const grng = () => { seed = (seed + 0x6D2B79F5) | 0; let z = Math.imul(seed ^ (seed >>> 15), 1 | seed); z = (z + Math.imul(z ^ (z >>> 7), 61 | z)) ^ z; return ((z ^ (z >>> 14)) >>> 0) / 4294967296; };
+    // ── 入力の記録と再生（デモ）：ユーザーの解析メモの「始めの状態＋乱数の種＋入力と続くこま数」の形 ──
+    //   記録：面を遊ぶ間、1 こまごとの入力（7 つのボタンのビット）を [ビット, 続くこま数（最大 255）] に詰める。クリアしたら最後の記録として残す（gs.runnerHard.demo）
+    //   再生：説明の画面でしばらく（12 秒）何も押さないと、記録を本物の入力と同じ入口から流す（リプレイ）。何か押すと終わる。記録が無ければ流さない
+    //   ゲームの処理（act・技・敵・ボス・仕掛け）は決まった計算だけなので、始めの状態がそろえば同じに動く
+    const DEMO_BITS = ['l', 'r', 'j', 'd', 'dn', 'atk', 'up'], DEMO_MAX = 4000, DEMO_IDLE = 12;
+    const packIn = o => DEMO_BITS.reduce((v, k, i) => v | (o[k] ? 1 << i : 0), 0), unpackIn = v => { const o = {}; DEMO_BITS.forEach((k, i) => { o[k] = !!(v & (1 << i)); }); return o; };
+    let rec = null, demo = null, demoBuilt = null, REAL = null, demoEnd = null;                                             // 予備のドリンク：1 回の遊びで 1 度だけ
     const P = []; for (let i = 0; i < 160; i++) P.push({ a: false, x: 0, y: 0, vx: 0, vy: 0, l: 0, m: 1, c: '#fff', s: 2, g: 0 });
     function emit(x, y, vx, vy, l, c, s, g) { for (const p of P) if (!p.a) { Object.assign(p, { a: true, x, y, vx, vy, l, m: l, c, s, g }); return; } }
     const RN = 180, rx = new Float32Array(RN), ry = new Float32Array(RN), rl = new Float32Array(RN), rv = new Float32Array(RN);
@@ -229,6 +238,7 @@ registerMinigame({
     const SE = { swing: big => { blip('sawtooth', big ? 900 : 1300, big ? 300 : 500, big ? .16 : .1, .05); }, hit: dead => { blip('square', dead ? 180 : 260, dead ? 60 : 140, dead ? .22 : .09, .12); }, jump: () => blip('triangle', 420, 760, .12, .12), dash: () => blip('sawtooth', 160, 90, .14, .05), kick: () => blip('square', 300, 620, .1, .07), land: () => blip('sine', 140, 70, .08, .12), hurt: () => blip('square', 220, 90, .25, .1), slide: () => blip('sawtooth', 120, 80, .2, .04), check: () => { blip('sine', 660, 0, .12, .09); setTimeout(() => blip('sine', 990, 0, .2, .08), 90); }, clear: () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => blip('triangle', f, 0, .25, .1), i * 110)), zap: () => { blip('sawtooth', 1800, 200, .3, .05); blip('square', 90, 60, .3, .06); }, block: () => { blip('square', 1500, 1200, .06, .07); blip('triangle', 2400, 0, .12, .04); }, warn: () => { for (let i = 0; i < 6; i++) setTimeout(() => blip('square', i % 2 ? 620 : 880, 0, .22, .07), i * 380); },
       charge: lv => { blip('sine', lv > 1 ? 880 : 520, lv > 1 ? 1760 : 1040, .18, .07); if (lv > 1) setTimeout(() => blip('triangle', 1320, 2640, .16, .05), 70); }, chargeRel: lv => { blip('sawtooth', lv > 1 ? 700 : 900, 120, .3, .09); blip('square', 160, 60, .3, .06); },
       item: () => [784, 988, 1175, 1568].forEach((f, i) => setTimeout(() => blip('square', f, 0, .14, .07), i * 70)), heal: () => { blip('sine', 660, 990, .12, .08); },
+      tick: () => blip('square', 1400, 0, .03, .04),
       weak: () => { blip('square', 1200, 300, .18, .1); blip('sawtooth', 220, 55, .4, .09); setTimeout(() => blip('triangle', 1600, 2400, .12, .07), 60); } };
 
     // ── 入力：キーボード・ゲームパッド・画面のボタン ──
@@ -267,8 +277,9 @@ registerMinigame({
 
     // ── 流れ ──
     function advance() {
+      if (demo) { endDemo(); return true; }
       if (phase === 'intro' && phaseT > .4) { phase = 'select'; phaseT = 0; return true; }
-      if (phase === 'select' && phaseT > .3) { const d = selList()[selIdx]; if (d && d.id === 'cold') { coldOnly = true; committed = true; coldStory(true); return true; } if (stageOf(d) !== STAGE) build(stageOf(d)); phase = 'play'; phaseT = 0; banner = { t: 0, txt: 'STAGE　' + STAGE.name }; return true; }
+      if (phase === 'select' && phaseT > .3) { const d = selList()[selIdx]; if (d && d.id === 'cold') { coldOnly = true; committed = true; coldStory(true); return true; } build(stageOf(d)); phase = 'ready'; phaseT = 0; banner = { t: 0, txt: 'STAGE　' + STAGE.name }; return true; }
       if (phase === 'story' && phaseT > .3) { story.i++; phaseT = 0; if (story.i >= story.lines.length) story.then(); return true; }
       if (phase === 'coldend' && phaseT > 1.2) { finish(); return true; }
       if (phase === 'learn' && phaseT > .8) { finishLearn(); return true; }
@@ -278,11 +289,13 @@ registerMinigame({
     }
     function finish() { if (!mg._ended) mg.end(outcome || 'quit'); }
     function commit() {
+      if (demo) return;
       if (committed) return; committed = true;
+      if (outcome === 'clear' && rec && !CZ && rec.data.length && rec.data.length < DEMO_MAX) { recFlush(); REC.demo = { v: 1, stage: rec.stage, diff: rec.diff, moves: rec.moves, beaten: rec.beaten, items: rec.items, hpMax: rec.hpMax, seed: rec.seed, data: rec.data, time: Math.round(runTime * 10) / 10 }; }   // クリアした走りを記録（次からデモで流れる）
       const R = REC.proto; R.plays = (R.plays | 0) + 1;
       if (outcome === 'clear') { R.clears = (R.clears | 0) + 1; if (!R.bestTime || runTime < R.bestTime) R.bestTime = Math.round(runTime * 10) / 10; }
     }
-    function respawn() { B = act.body(check.x, check.y, 1); B.invul = 60; if (arenaOn && boss && !boss.dead) { arenaOn = false; setGates(false); boss = spawnBoss(); BZ.shots.length = 0; } }
+    function respawn() { B = act.body(check.x, check.y, 1); B.invul = 60; bossIntro = 0; if (arenaOn && boss && !boss.dead) { arenaOn = false; setGates(false); boss = spawnBoss(); BZ.shots.length = 0; } }
     function spawnBoss() { const e = BZ.spawn(AR.boss, AR.bossC * map.tile + map.tile / 2, AR.floor, AR); e.hp = e.hpMax = Math.round(e.hpMax * (DF ? DF.boss : 1)); return e; }
     function damage(n, why) {
       hp -= n; hurts++; flash = .8; shake = .3; SE.hurt(); if (mg.buzz) try { mg.buzz(40); } catch (_) {}
@@ -357,7 +370,7 @@ registerMinigame({
       const drop = p => { const y0 = p.y; let y = p.y; while (y > 0 && !map.solid(Math.floor(p.x / T), Math.floor((y - 1) / T))) y -= T; p.y = Math.max(0, Math.ceil(y / T) * T);
         for (const L of map.ledges) if (L.y <= y0 + 0.01 && L.y > p.y && p.x > L.x0 && p.x < L.x1) p.y = L.y; };   // 好きな高さの足場の上にも置ける
       [spawn, goal, ...checks].forEach(drop);
-      act = RunnerAct.make({ map, phys: DF ? DF.phys : {}, airDash: () => !!C && C.usable('kazebashiri') }); C = RunnerCombat.make(act, { learned: REC.moves || [] }); E = RunnerEnemies.make(map);
+      act = RunnerAct.make({ map, phys: DF ? DF.phys : {}, airDash: () => !!C && C.usable('kazebashiri') }); C = RunnerCombat.make(act, { learned: REC.moves || [] }); E = RunnerEnemies.make(map); bossIntro = 0;
       foes = STAGE.enemies().map(([type, c, cy, face]) => E.spawn(type, c * T + T / 2, cy * T, face));
       GM = RunnerGimmicks.make(map, STAGE.gimmicks ? STAGE.gimmicks() : {});
       // 隠しアイテム（お守り・予備のドリンク）：取った物は記録に残り、次からは出ない。ひびの入った壁（溜め斬りでだけ壊れる）
@@ -393,6 +406,8 @@ registerMinigame({
 
     // ── 1 こま（1/60 秒）：技 → 自機の動き → 踏み込み → 敵 → 当たり ──
     function frame(raw) {
+      if (demo) { raw = demoNext(); if (!raw) { demoEnd = { x: B.x, y: B.y, hp, kills }; endDemo(); return; } if (window.__MG_TEST__) (demo.trace = demo.trace || []).push(B.x.toFixed(2) + ',' + B.y.toFixed(2) + ',' + B.state + ',' + packIn(raw)); } else if (rec && phase === 'play' && !CZ) { recPush(packIn(raw)); if (window.__MG_TEST__) (rec.trace = rec.trace || []).push(B.x.toFixed(2) + ',' + B.y.toFixed(2) + ',' + B.state + ',' + packIn(raw)); }
+      if (bossIntro > 0) { raw = {}; if (bossIntro < BOSS_INTRO_F * .45 && bossIntro > BOSS_INTRO_F * .05 && bossIntro % 4 === 0) SE.tick(); if (--bossIntro === 0 && boss) { BZ.wake(boss); banner = { t: 0, txt: 'ボス　' + bossDef().name }; } }   // ボスの登場：WARNING・名前・体力の帯が満ちる間は動けない
       const inp = Object.assign({}, raw); inp.atkP = inp.atk && !prevIn.atk; inp.jP = inp.j && !prevIn.j; inp.dP = inp.d && !prevIn.d; prevIn = raw;
       if (hitStop > 0) { hitStop--; if (inp.atkP) B.atkBuf = RunnerCombat.BUFFER_F; return; }   // 当たった瞬間の止め（押した攻撃は覚えておく）
       const wasAtk = B.atk && B.atk.id + ':' + B.atk.chain;
@@ -420,7 +435,7 @@ registerMinigame({
       // 面の仕掛け：帯電する床・壊れる足場・帯電した看板（触れると やられ）
       if (GM) { GM.step(B, act.box(B)); if (B.invul <= 0 && B.state !== 'hurt' && GM.shock(act.box(B))) { B.atk = null; act.hurt(B, B.face || 1); for (let i = 0; i < 10; i++) emit(B.x, B.y + 20, rnd(-120, 120), rnd(20, 200), .3, i % 2 ? '#d080ff' : '#fff6a0', 2, 300); } }
       // ボスの部屋：入ると柵が閉まり、ボスが起きる
-      if (boss && !boss.dead && !arenaOn && B.x > AR.x0 + 40 && B.y < AR.floor + 60) { arenaOn = true; setGates(true); BZ.wake(boss); banner = { t: 0, txt: 'ボス　' + bossDef().name }; SE.check(); }
+      if (boss && !boss.dead && !arenaOn && B.x > AR.x0 + 40 && B.x < AR.x1 - 20 && B.y < AR.floor + 60) { arenaOn = true; setGates(true); bossIntro = BOSS_INTRO_F; B.atk = null; B.vx = 0; SE.warn(); }
       if (boss) {
         BZ.step(boss, B); BZ.stepShots();
         for (const ev of boss.ev || []) { if (ev === 'stomp') { GM && GM.breakArena(); shake = Math.max(shake, .4); SE.land(); } if (ev === 'rushwall') { shake = Math.max(shake, .35); SE.hit(true); } if (ev === 'special') { banner = { t: 0, txt: bossDef().special || '' }; SE.warn(); shake = Math.max(shake, .3); } if (ev === 'discharge' || ev === 'counter') SE.zap(); if (ev === 'dash' || ev === 'slash') SE.swing(ev === 'dash'); if (ev === 'shot' || ev === 'grab') SE.slide(); if (ev === 'wave') { SE.warn(); banner = { t: 0, txt: '大波' }; } }
@@ -436,8 +451,25 @@ registerMinigame({
       if (B.invul <= 0 && B.state !== 'hurt') { const pb = act.box(B); for (const sh of E.shots) { if (!RunnerCombat.overlap(pb, E.shotBox(sh))) continue; sh.life = 0; B.atk = null; act.hurt(B, sh.x < B.x ? -1 : 1); break; } }   // 敵の方を向いたまま、後ろへ飛ぶ
     }
     const bossDef = () => RunnerBosses.BOSSES.find(b => b.id === AR.boss);
+    const BOSS_INTRO_F = 150; let bossIntro = 0;   // ボスの登場の間（こま）：前半 WARNING・後半 名前と体力の帯
+    // ── 記録と再生 ──
+    function recStart() { seed = 1 + ((Math.random() * 1e9) | 0); rec = { stage: STAGE.id, diff: DIFF, moves: [...(C ? C.learned : [])], beaten: [...(REC.beaten || [])], items: Object.assign({}, REC.items || {}), hpMax: HP_MAX, seed, data: [], cur: -1, n: 0 }; }
+    function recPush(v) { if (!rec || rec.data.length >= DEMO_MAX) return; if (v === rec.cur && rec.n < 255) { rec.n++; return; } recFlush(); rec.cur = v; rec.n = 1; }
+    function recFlush() { if (rec && rec.n > 0) { rec.data.push([rec.cur, rec.n]); rec.n = 0; } }
+    const demoData = () => (REC.demo && REC.demo.v === 1 && REC.demo.data && REC.demo.data.length ? REC.demo : demoBuilt);
+    function startDemo() {
+      const d = demoData(); const st = RunnerHardStages[d.stage]; if (!st) return;
+      REAL = { REC, DF, HP_MAX, hp }; REC = JSON.parse(JSON.stringify(REC)); REC.moves = d.moves.slice(); REC.beaten = d.beaten.slice(); REC.items = Object.assign({}, d.items); DF = DFT[d.diff] || DF;
+      build(st); HP_MAX = d.hpMax; hp = HP_MAX; drinkUsed = false; seed = d.seed; runTime = 0; hurts = 0; falls = 0; outcome = null; acc = 0; prevIn = {};
+      demo = { d, i: 0, n: 0, own: d === REC.demo || d === REAL.REC.demo }; phase = 'ready'; phaseT = 0; banner = null;
+    }
+    function demoNext() { const d = demo.d; while (demo.i < d.data.length && demo.n >= d.data[demo.i][1]) { demo.i++; demo.n = 0; } if (demo.i >= d.data.length) return null; demo.n++; return unpackIn(d.data[demo.i][0]); }
+    function endDemo() {
+      if (!demo) return; demo = null; REC = REAL.REC; DF = REAL.DF; HP_MAX = REAL.HP_MAX; hp = HP_MAX; drinkUsed = false; runTime = 0; hurts = 0; falls = 0; outcome = null; committed = false; prevIn = {};
+      build(stageOf(selList()[0])); phase = 'intro'; phaseT = 0; banner = null;
+    }
     // 倒した敵は 4 体に 1 体ほど「のど飴」を落とす（傘の耐久 +1。9 秒で消える）
-    function dropHeal(e) { if (Math.random() < .25 && hp < HP_MAX + 1) drops.push({ x: e.x, y: e.y + 20, vy: 180, t: 0, got: false }); }
+    function dropHeal(e) { if (grng() < .25 && hp < HP_MAX + 1) drops.push({ x: e.x, y: e.y + 20, vy: 180, t: 0, got: false }); }
     // 隠しアイテム：お守り＝傘の耐久の上限 +1（今の耐久も +1）・予備のドリンク＝傘が折れそうな時に 1 度だけ直る（1 回の遊びごと）
     function pickItem(it) {
       it.got = true; REC.items = REC.items || {}; REC.items[it.id] = true; SE.item(); shake = Math.max(shake, .2);
@@ -473,6 +505,10 @@ registerMinigame({
       for (const p of P) { if (!p.a) continue; p.l -= dt; if (p.l <= 0) { p.a = false; continue; } p.vy -= p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
       for (let i = 0; i < RN; i++) { rx[i] -= 90 * dt; ry[i] += rv[i] * dt; if (ry[i] > VH + 10) { ry[i] = -10 - Math.random() * 60; rx[i] = Math.random() * (VW + 160); } if (rx[i] < -30) rx[i] += VW + 150; }
       if (phase === 'warning' && phaseT > 2.4) startCold();
+      if (phase === 'ready' && phaseT > 1.5) { phase = 'play'; phaseT = 0; if (!demo) recStart(); }   // READY：光の柱で降り立ってから動ける
+      if (phase === 'intro' && !demo && phaseT > DEMO_IDLE && demoData()) startDemo();
+      if (demo && (phase === 'clear' || phase === 'over') && phaseT > 1.6) endDemo();
+      if (demo && phase === 'learn' && phaseT > 1.4) finishLearn();
       if (phase !== 'play' || !act) { if (phase === 'clear' && B) { B.vx = 0; } return; }
       runTime += dt;
       const inp = readInput(), wasInvul = B.invul;
@@ -930,6 +966,12 @@ registerMinigame({
       cx.restore(); cx.globalAlpha = 1;
     }
     function drawPlayer() {
+      if (phase === 'ready') {   // READY：空から光の柱が降りて、だんのうらが現れる
+        const k = Math.min(1, phaseT / .7), x = sx(B.x), yb = sy(B.y), y = -20 + (yb + 20) * k;
+        cx.globalCompositeOperation = 'lighter'; cx.fillStyle = 'rgba(0,232,200,.55)'; cx.fillRect(x - 5, y - 70, 10, 70); cx.fillStyle = 'rgba(220,255,250,.9)'; cx.fillRect(x - 2, y - 70, 4, 70); cx.globalCompositeOperation = 'source-over';
+        if (phaseT < .7) return;
+        cx.globalAlpha = Math.min(1, (phaseT - .7) / .4); if (Math.random() < .7) for (let i = 0; i < 2; i++) emit(B.x + rnd(-14, 14), B.y + rnd(0, 60), 0, rnd(40, 120), .3, '#7afff0', 2, 0);
+      }
       if (SPR) {
         let alpha = 1; if (B.invul > 0 && B.state !== 'hurt') alpha = (Math.floor(B.invul / 4) % 2) ? .35 : 1;
         const x = sx(B.x), y = sy(B.y);
@@ -1013,11 +1055,23 @@ registerMinigame({
       if (Math.sin(t * 9) > -.5) { cx.textAlign = 'center'; cx.fillStyle = '#ff4a5a'; cx.font = 'bold 48px sans-serif'; cx.fillText('WARNING', VW / 2, y + 4); }
       cx.fillStyle = '#ffd0d8'; cx.font = 'bold 18px sans-serif'; cx.textAlign = 'center'; cx.fillText('風邪菌襲来！', VW / 2, y + 40);
     }
+    // READY・ボスの登場（WARNING → 名前と体力の帯）・デモの印
+    function drawIntro() {
+      if (phase === 'ready' && Math.floor(phaseT * 6) % 2 === 0) { cx.textAlign = 'center'; cx.font = 'bold 34px sans-serif'; cx.fillStyle = 'rgba(5,4,14,.6)'; cx.fillText('READY', VW / 2 + 2, VH * .42 + 2); cx.fillStyle = '#7afff0'; cx.fillText('READY', VW / 2, VH * .42); }
+      if (bossIntro > 0 && phase === 'play') {
+        const f = BOSS_INTRO_F - bossIntro;
+        if (f < BOSS_INTRO_F * .55) { const a = .75 + .25 * Math.sin(f * .35), y = VH * .38; cx.fillStyle = `rgba(200,20,50,${.35 * a})`; cx.fillRect(0, y - 34, VW, 68); cx.fillStyle = `rgba(255,60,90,${a})`; cx.fillRect(0, y - 34, VW, 4); cx.fillRect(0, y + 30, VW, 4);
+          cx.textAlign = 'center'; cx.font = 'bold 36px sans-serif'; cx.fillStyle = `rgba(255,220,230,${a})`; cx.fillText('WARNING', VW / 2, y + 13); }
+        else { const k = Math.min(1, (f - BOSS_INTRO_F * .55) / 20), d = bossDef(); cx.globalAlpha = k; cx.fillStyle = 'rgba(5,4,14,.75)'; cx.fillRect(0, VH * .34, VW, 64); cx.textAlign = 'center'; cx.fillStyle = '#ffffff'; cx.font = 'bold 26px sans-serif'; cx.fillText(d ? d.name : '', VW / 2, VH * .34 + 30); cx.fillStyle = '#ffd070'; cx.font = 'bold 13px sans-serif'; cx.fillText(d ? d.kana || '' : '', VW / 2, VH * .34 + 52); cx.globalAlpha = 1; }
+      }
+      if (demo) { cx.textAlign = 'center'; cx.font = 'bold 16px sans-serif'; if (Math.floor(t * 2) % 2 === 0) { cx.fillStyle = '#ffe070'; cx.fillText(demo.own ? 'リプレイ（前回のクリア）' : 'デモ', VW / 2, VH - 40); } cx.fillStyle = 'rgba(232,220,255,.8)'; cx.font = '12px sans-serif'; cx.fillText((showTouch ? 'タップ' : '何かキーを押す') + 'と もどる', VW / 2, VH - 20); }
+    }
     function drawBossBar() {
       if (CZ && cboss && phase === 'play') { const w = Math.min(320, VW - 40), x = (VW - w) / 2, y = 48; cx.fillStyle = 'rgba(0,0,0,.55)'; cx.fillRect(x - 4, y - 16, w + 8, 30); cx.fillStyle = '#deccf8'; cx.font = '11px sans-serif'; cx.textAlign = 'left'; cx.fillText(RunnerBosses.BOSSES.find(b => b.id === 'cold').name, x, y - 4); cx.fillStyle = 'rgba(255,255,255,.15)'; cx.fillRect(x, y, w, 7); cx.fillStyle = '#8ad050'; cx.fillRect(x, y, w * cboss.hp / cboss.hpMax, 7); return; }
       if (!boss || !arenaOn) return; const w = Math.min(320, VW - 40), x = (VW - w) / 2, y = 48;
+      const fill = bossIntro > 0 ? Math.max(0, Math.min(1, (BOSS_INTRO_F * .45 - bossIntro) / (BOSS_INTRO_F * .4))) : boss.hp / boss.hpMax;   // 登場の後半で体力の帯が満ちる
       cx.fillStyle = 'rgba(0,0,0,.55)'; cx.fillRect(x - 4, y - 16, w + 8, 30); cx.fillStyle = '#deccf8'; cx.font = '11px sans-serif'; cx.textAlign = 'left'; cx.fillText(bossDef().name, x, y - 4);
-      cx.fillStyle = 'rgba(255,255,255,.15)'; cx.fillRect(x, y, w, 7); cx.fillStyle = '#ff6a8a'; cx.fillRect(x, y, w * boss.hp / boss.hpMax, 7);
+      cx.fillStyle = 'rgba(255,255,255,.15)'; cx.fillRect(x, y, w, 7); cx.fillStyle = '#ff6a8a'; cx.fillRect(x, y, w * fill, 7); if (bossIntro > 0) for (let i = 0; i < 40; i++) { cx.fillStyle = 'rgba(5,4,14,.6)'; cx.fillRect(x + (i + 1) * w / 40 - 1, y, 1, 7); }
     }
     // ボス選択画面（利用者の絵「BOSS SELECT」）：背景・カードの中身・CLEAR／SECRET の札は絵。枠・選んでいる光・▼・下の帯の名前と面はコードで描く
     const ELEM = { kazegiri: ['風', '#ff7ae0'], dakuryu: ['水', '#7ac8ff'], raikaku: ['雷', '#ffd84a'], cold: ['菌', '#e070ff'] };
@@ -1118,7 +1172,7 @@ registerMinigame({
       if (!CZ) { cx.strokeStyle = 'rgba(170,190,255,.3)'; cx.lineWidth = 1; cx.beginPath(); for (let i = 0; i < RN; i += 2) { cx.moveTo(rx[i], ry[i]); cx.lineTo(rx[i] - 6, ry[i] - rl[i]); } cx.stroke(); }
       cx.restore();
       if (flash > 0) { cx.fillStyle = `rgba(255,120,140,${flash * .25})`; cx.fillRect(0, 0, VW, VH); }
-      drawHUD(); drawBossBar();
+      drawHUD(); drawBossBar(); drawIntro();
       if (banner) { const a = Math.min(1, banner.t * 3, (2.6 - banner.t) * 3); cx.globalAlpha = a; cx.fillStyle = 'rgba(5,4,14,.7)'; cx.fillRect(0, 70, VW, 34); cx.fillStyle = '#00e8c8'; cx.font = 'bold 15px sans-serif'; cx.textAlign = 'center'; cx.fillText(banner.txt, VW / 2, 93); cx.globalAlpha = 1; }
       if (phase === 'intro') card(['高難易度版（試作）', '雨の町を、コンビニまで。', '←→ 移動　Z ジャンプ　X 攻撃（3 段・空中・長押しで溜め）　C ダッシュ　↓ スライド', '壁に向かって押しながら跳ぶと、壁を蹴る　（ボスを倒すと 技を覚える）'], (showTouch ? 'タップ' : 'Z・Enter') + 'で はじめる');
       if (phase === 'select') drawSelect();
@@ -1137,7 +1191,7 @@ registerMinigame({
     if (typeof window !== 'undefined' && window.__MG_TEST__) window.__MG_TEST__.runnerHard = {
       get s() { return { selArt: !!SEL, selRects, VW, stage: STAGE.id, bossSprite: !!(boss ? BSPR[boss.id] : BSPR.raikaku), sprites: Object.keys(BSPR), sel: typeof RunnerBosses !== 'undefined' ? selList().map(d => d.id) : [], selIdx, gmW: GM ? { winds: GM.winds.map(q => GM.live(q)), floods: GM.floods.map(q => Math.round(GM.level(q))) } : null, gm: GM ? { strips: GM.strips.map(q => GM.live(q)), crumbles: GM.crumbles.map(c => c.st), charged: GM.charged } : null, boss: boss ? { hp: boss.hp, state: boss.state, dead: boss.dead, x: boss.x, face: boss.face, frame: BZ.frame(boss), w: BZ.spec(boss).w, grounded: boss.grounded, y: boss.y } : null, art: artVisible(), arenaOn, arena: AR, moves: C ? [...C.learned] : [], beaten: REC.beaten || [], sprite: !!SPR, spriteKey: SPR && B ? spriteKey() : null, phase, hp, falls, hurts, runTime, outcome, kills, foes: foes.map(e => ({ type: e.type, x: e.x, y: e.y, hp: e.hp, dead: e.dead, face: e.face })), invul: B && B.invul, atk: B && B.atk && B.atk.id, x: B && B.x, y: B && B.y, state: B && B.state, goal, spawn, checks: checks.map(c => !!c.got), items: items.map(it => ({ id: it.id, kind: it.kind, x: it.x, y: it.y, got: it.got })), cracks: cracks.map(k => ({ c: k.c, broken: k.broken })), hpMax: HP_MAX, recItems: REC.items || {}, drinkUsed, drops: drops.length }; },
       get cold() { return { on: !!CZ, home: !!(CZ && CZ.home), hp: cboss ? cboss.hp : null, state: cboss ? cboss.state : null, dead: cboss ? cboss.dead : null, x: cboss ? cboss.x : null, y: cboss ? cboss.y : null, infect, res: coldRes, rec: REC.cold || null, story: story ? { i: story.i, n: story.lines.length, txt: (story.lines[story.i] || {}).txt } : null, sel: selList().map(d => d.id) }; },
-      heal() { hp = HP_MAX; }, hurt(n) { damage(n, 'test'); }, coldHp(n) { if (cboss) cboss.hp = n; }, infect(n) { infect = n; }, beatAll() { REC.beaten = RunnerBosses.visible().map(b => b.id); },
+      heal() { hp = HP_MAX; }, hurt(n) { damage(n, 'test'); }, trace() { return { rec: rec && rec.trace, demo: demo && demo.trace }; }, demo() { return { rec: REC.demo || null, playing: !!demo, built: !!demoBuilt, i: demo ? demo.i : 0, bossIntro, end: demoEnd, recLen: rec ? rec.data.length : 0 }; }, saveRec() { recFlush(); REC.demo = { v: 1, stage: rec.stage, diff: rec.diff, moves: rec.moves, beaten: rec.beaten, items: rec.items, hpMax: rec.hpMax, seed: rec.seed, data: rec.data.slice(), time: Math.round(runTime * 10) / 10 }; rec.n = 0; rec.cur = -1; return { x: B.x, y: B.y, hp, kills, frames: REC.demo.data.reduce((a, e) => a + e[1], 0) }; }, startDemo() { if (demoData()) startDemo(); }, coldHp(n) { if (cboss) cboss.hp = n; }, infect(n) { infect = n; }, beatAll() { REC.beaten = RunnerBosses.visible().map(b => b.id); },
       bossHp(n) { if (boss) boss.hp = n; }, bossGo(st) { if (boss) { boss.state = st; boss.f = 0; boss.blocks = 0; } },
       warp(x, y) { if (B) { B.x = x; B.y = y; B.vx = B.vy = 0; act.go(B, 'fall'); } }, start() { advance(); },
     };

@@ -41,8 +41,8 @@
     kazeha: { base: false, learnedFrom: 'kazegiri', with: 'kazebashiri', name: '風刃（仮）', howto: '風走りの間に 攻撃（X）', desc: '風の刃で前を広く払う', on: 'airdash', input: 'airdash', startup: 1, active: 14, recover: 4, step: 0,
       hit: { x: -4, y: 4, w: 70, h: 52, dmg: 2, hitstop: 5, kb: 4 }, cancel: {} },
   };
-  // 溜め：押している こま数で段が上がる（1 段 f1・2 段 f2）。離した時に段があれば溜め斬り。2 段は飛ぶ斬撃（wave）も出す
-  const CHARGE = { f1: 36, f2: 90, wave: { speed: 8.5, life: 48, w: 22, h: 34, y: 12, dmg: 3, hitstop: 6, kb: 5 } };
+  // 溜め：押している こま数で段が上がる（1 段 f1・2 段 f2。ユーザーの解析メモの 25・90 こま）。離した時に段があれば溜め斬り。2 段は飛ぶ斬撃（wave）も出す
+  const CHARGE = { f1: 25, f2: 90, wave: { speed: 8.5, life: 48, w: 22, h: 34, y: 12, dmg: 3, hitstop: 6, kb: 5 } };
   const chargeLv = f => (f >= CHARGE.f2 ? 2 : f >= CHARGE.f1 ? 1 : 0);
   const BUFFER_F = 8;                                               // 硬直中に押した攻撃を覚えておくこま数
   const GROUND = ['stand', 'walk_start', 'walk', 'land', 'dash', 'dash_end'];
