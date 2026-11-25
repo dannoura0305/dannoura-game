@@ -1,5 +1,8 @@
 # 万象堂（ばんしょうどう）— 共通の占術エンジンと店の画面
 
+> 公開するのは、だんのうらの町（https://dannoura-town.pages.dev/）の『怪談館』の「占いの間」だけ。
+> このリポジトリでは部品のソースと試験を持つだけで、github.io に万象堂のページは出さない（制作者の決定 2026-11-25）。
+
 「万象を読み、万の道を照らす。」
 
 どの作品からでも呼び出せる、占いの部品です。
@@ -19,7 +22,6 @@
 | `bansho-ui.js` | 重ね画面 `BanshoUI.open(店の設定, { onClose })` |
 | `bansho.css` | 画面の見た目。色と書体は、店の設定で変えられる |
 | `shops/kaidan.js` | だんのうらの町『怪談館』の占いコーナー（怪談館出張所・占いの間） |
-| `../banshodo.html` | 動作を確かめるためのページ（どの作品にも入っていない） |
 | `../tests/banshodo-core.test.mjs` | エンジンの試験。`node tests/banshodo-core.test.mjs` で動く |
 | `../tools/banshodo_patch_kaidankan.mjs` | 怪談館の html に万象堂を足す道具 |
 
