@@ -138,7 +138,7 @@
     const av = available(id, person);
     if (!av.ok) return { method: id, name: def.name, family: def.family, ok: false, missing: av.missing };
     const school = Object.assign({}, DEFAULT_SCHOOL, opts.school || {});
-    const out = def.compute({ person: person || {}, school: school, seed: opts.seed, picks: opts.picks, now: opts.now || new Date(), spread: opts.spread });
+    const out = def.compute({ person: person || {}, school: school, seed: opts.seed, picks: opts.picks, now: opts.now || new Date(), spread: opts.spread, palm: opts.palm });
     const res = Object.assign({ method: id, name: def.name, family: def.family, group: def.group, ok: true, engineVer: ENGINE_VER, school: school,
       inputUsed: def.needs.slice(), missing: [], seed: opts.seed, picks: opts.picks, spread: opts.spread, notes: [], themes: [], items: [] }, out);
     // 語彙に無いテーマ・出典の無いテーマは捨てる（統合で在りもしない一致を作らないため）

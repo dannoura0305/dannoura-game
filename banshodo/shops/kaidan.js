@@ -6,7 +6,7 @@
   global.BANSHO_SHOPS.kaidan = {
     id: 'kaidan-corner', game: 'dannoura-town', brand: '万象堂', name: '怪談館出張所・占いの間',
     theme: { bg: '#0c0b0e', panel: '#141117', ink: '#e8e2d8', muted: '#9a9188', accent: '#b08a48', line: 'rgba(230,220,200,.13)', font: '"Yu Mincho","Hiragino Mincho ProN",serif' },
-    menu: ['today', 'birth', 'tarot', 'east', 'west', 'synth', 'book', 'history', 'profile'],
+    menu: ['today', 'palm', 'birth', 'tarot', 'east', 'west', 'synth', 'book', 'history', 'profile'],
     npc: {
       name: '占い師（仮）', icon: '🕯', leaveLabel: '展示室へ戻る',
       lines: {
@@ -18,7 +18,8 @@
         tarot: '問いをひとつ、心に浮かべて。',
         synth: 'いくつもの占いを重ねて、同じ所を指す糸を探します。\nただし、糸が重なることと、それが本当であることは別の話です。',
         book: 'あなたの運命の書です。\n書いてあるのは「占い上のテーマ」だけ。行き先を決めるのは、あなたです。',
-        today: '今日の星を読みます。'
+        today: '今日の星を読みます。',
+        palm: '手のひらを、灯りの下へ。\n線は、あなたの目で確かめながら辿りましょう。見えない線を、無理に読むことはしません。'
       }
     }
   };

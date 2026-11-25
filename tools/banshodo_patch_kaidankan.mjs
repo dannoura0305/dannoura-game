@@ -10,7 +10,15 @@ const [src, outArg] = process.argv.slice(2);
 if (!src) { console.error('使い方: node tools/banshodo_patch_kaidankan.mjs <怪談館の html> [出力先]'); process.exit(2); }
 let html = readFileSync(src, 'utf8');
 const MARK = '<!-- 万象堂 -->';
-if (html.includes(MARK)) { console.log('すでに万象堂が入っています: ' + src); process.exit(0); }
+if (html.includes(MARK)) {
+  // 前の版の差し込み（手相の無い物）なら、手相の 2 行だけを足す
+  if (!html.includes('bansho-palm-ui.js') && html.includes('<script src="banshodo/bansho-ui.js"></script>')) {
+    html = html.replace('<script src="banshodo/bansho-ui.js"></script>', '<script src="banshodo/bansho-palm.js"></script>\n<script src="banshodo/bansho-ui.js"></script>\n<script src="banshodo/bansho-palm-ui.js"></script>');
+    const out0 = outArg || (/\.bansho\.html?$/.test(src) ? src : src.replace(/\.html?$/, '') + '.bansho.html');
+    writeFileSync(out0, html); console.log('手相の部品を足しました: ' + out0); process.exit(0);
+  }
+  console.log('すでに万象堂が入っています: ' + src); process.exit(0);
+}
 
 const css = `${MARK}\n<link rel="stylesheet" href="banshodo/bansho.css">\n`;
 const navBtn = `\n      <button type="button" id="banshoNav">占いの間</button>`;
@@ -18,7 +26,9 @@ const scripts = `${MARK}
 <script src="banshodo/vendor/astronomy.browser.min.js"></script>
 <script src="banshodo/bansho-texts.js"></script>
 <script src="banshodo/bansho-core.js"></script>
+<script src="banshodo/bansho-palm.js"></script>
 <script src="banshodo/bansho-ui.js"></script>
+<script src="banshodo/bansho-palm-ui.js"></script>
 <script src="banshodo/shops/kaidan.js"></script>
 <script>
   // 占いの間：万象堂の重ね画面を開くだけ。閉じると、そのまま館内へ戻る
