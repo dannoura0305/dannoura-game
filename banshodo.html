@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0c0b0e">
+  <title>万象堂 試験場</title>
+  <link rel="stylesheet" href="banshodo/bansho.css">
+  <style>
+    :root { --bg: #0c0b0e; --ink: #e8e2d8; --muted: #9a9188; --gold: #b08a48; --line: rgba(230,220,200,.13); }
+    body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font-family: "Yu Mincho", "Hiragino Mincho ProN", serif; display: grid; place-items: center; padding: 16px; box-sizing: border-box; }
+    main { max-width: 520px; text-align: center; }
+    h1 { letter-spacing: .3em; font-weight: 400; margin: 0 0 4px; }
+    p { color: var(--muted); font-family: "Yu Gothic", sans-serif; font-size: .85rem; line-height: 1.8; }
+    button { font: inherit; font-family: "Yu Gothic", sans-serif; color: var(--bg); background: var(--gold); border: 0; border-radius: 6px; padding: 12px 20px; margin: 6px; cursor: pointer; min-height: 44px; }
+    button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    #log { text-align: left; white-space: pre-wrap; font-size: .75rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>万象堂</h1>
+    <p>ばんしょうどう — 万象を読み、万の道を照らす。<br>各作品の店舗に入れる前の、動作確認のためのページです。</p>
+    <button type="button" id="openKaidan">怪談館の占いコーナーとして開く</button>
+    <button type="button" class="ghost" id="openPlain">標準の店として開く</button>
+    <p id="log" aria-live="polite"></p>
+  </main>
+  <script src="banshodo/vendor/astronomy.browser.min.js"></script>
+  <script src="banshodo/bansho-texts.js"></script>
+  <script src="banshodo/bansho-core.js"></script>
+  <script src="banshodo/bansho-ui.js"></script>
+  <script src="banshodo/shops/kaidan.js"></script>
+  <script>
+    function done(res) {
+      document.getElementById('log').textContent = '店を出ました。この回の鑑定 ' + res.readings.length + ' 件。今日のテーマ：' + (res.todayThemes.map(function (t) { return BanshoTexts.THEMES[t].label; }).join('・') || 'なし');
+    }
+    document.getElementById('openKaidan').onclick = function () { BanshoUI.open(BANSHO_SHOPS.kaidan, { onClose: done }); };
+    document.getElementById('openPlain').onclick = function () { BanshoUI.open({ id: 'test', name: '試験場', npc: { name: '店員', lines: { greet: 'いらっしゃいませ。万象堂へようこそ。' } } }, { onClose: done }); };
+  </script>
+</body>
+</html>

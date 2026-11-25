@@ -1,0 +1,79 @@
+/* 万象堂：占いの重ね画面。色と書体は店の設定（shop.theme）が --bs-* に入れる */
+.bs-overlay {
+  --bs-bg: #14121a; --bs-panel: #1d1a24; --bs-ink: #ece6da; --bs-muted: #a39b8f; --bs-accent: #c9a35a; --bs-line: rgba(236, 230, 218, .14);
+  --bs-font: "Yu Mincho", "Hiragino Mincho ProN", "Noto Serif JP", serif; --bs-ui: "Yu Gothic", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  position: fixed; inset: 0; z-index: 9000; display: flex; align-items: stretch; justify-content: center;
+  background: rgba(0, 0, 0, .72); color: var(--bs-ink); font-family: var(--bs-font); line-height: 1.75;
+  animation: bs-fade .25s ease-out;
+}
+@keyframes bs-fade { from { opacity: 0; } to { opacity: 1; } }
+.bs-shell { position: relative; width: min(760px, 100%); max-height: 100%; display: flex; flex-direction: column; background: var(--bs-bg); border-left: 1px solid var(--bs-line); border-right: 1px solid var(--bs-line); box-shadow: 0 0 80px rgba(0, 0, 0, .6); }
+.bs-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--bs-line); background: var(--bs-panel); }
+.bs-logo { flex: none; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--bs-accent); color: var(--bs-accent); font-size: 1.15rem; letter-spacing: 0; }
+.bs-brand { flex: 1; min-width: 0; }
+.bs-brand b { display: block; font-size: 1.05rem; letter-spacing: .12em; }
+.bs-brand small { display: block; color: var(--bs-muted); font-family: var(--bs-ui); font-size: .72rem; }
+.bs-x { flex: none; }
+.bs-body { flex: 1; overflow-y: auto; padding: 16px; -webkit-overflow-scrolling: touch; }
+.bs-npc { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
+.bs-face { flex: none; width: 64px; height: 64px; border-radius: 8px; object-fit: cover; border: 1px solid var(--bs-line); background: var(--bs-panel); display: grid; place-items: center; font-size: 1.8rem; }
+.bs-say { flex: 1; min-width: 0; background: var(--bs-panel); border: 1px solid var(--bs-line); border-radius: 8px; padding: 10px 12px; white-space: pre-line; }
+.bs-say b { display: block; color: var(--bs-accent); font-family: var(--bs-ui); font-size: .78rem; margin-bottom: 2px; }
+.bs-menu { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.bs-btn { appearance: none; font: inherit; font-family: var(--bs-ui); font-size: .9rem; color: var(--bs-ink); background: var(--bs-panel); border: 1px solid var(--bs-line); border-radius: 6px; padding: 10px 12px; cursor: pointer; text-align: left; min-height: 44px; }
+.bs-btn:hover, .bs-btn:focus-visible { border-color: var(--bs-accent); outline: none; }
+.bs-btn.primary { background: var(--bs-accent); color: var(--bs-bg); border-color: var(--bs-accent); font-weight: 700; text-align: center; }
+.bs-btn.ghost { background: transparent; }
+.bs-btn.small { min-height: 34px; padding: 6px 10px; font-size: .8rem; }
+.bs-btn[disabled] { opacity: .45; cursor: default; }
+.bs-btn small { display: block; color: var(--bs-muted); font-size: .72rem; }
+.bs-btn.primary small { color: inherit; opacity: .8; }
+.bs-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.bs-h { font-size: 1.15rem; letter-spacing: .08em; margin: 4px 0 10px; }
+.bs-card { background: var(--bs-panel); border: 1px solid var(--bs-line); border-radius: 8px; padding: 12px 14px; margin: 10px 0; }
+.bs-card h3 { margin: 0 0 6px; font-size: 1rem; color: var(--bs-accent); letter-spacing: .06em; }
+.bs-item { margin: 8px 0; }
+.bs-item b { display: block; }
+.bs-item p { margin: 2px 0 0; }
+.bs-sub, .bs-note, .bs-src { font-family: var(--bs-ui); font-size: .76rem; color: var(--bs-muted); }
+.bs-note { margin-top: 6px; }
+.bs-src { display: inline-block; border: 1px solid var(--bs-line); border-radius: 999px; padding: 0 8px; margin: 2px 4px 0 0; }
+.bs-disclaimer { font-family: var(--bs-ui); font-size: .74rem; color: var(--bs-muted); border-top: 1px solid var(--bs-line); margin-top: 18px; padding-top: 10px; }
+.bs-form label { display: block; margin: 12px 0 4px; font-family: var(--bs-ui); font-size: .82rem; }
+.bs-form label small { color: var(--bs-muted); }
+.bs-form input[type=text], .bs-form input[type=date], .bs-form input[type=time], .bs-form select {
+  width: 100%; box-sizing: border-box; font: inherit; font-family: var(--bs-ui); font-size: 16px; color: var(--bs-ink); background: var(--bs-panel);
+  border: 1px solid var(--bs-line); border-radius: 6px; padding: 8px 10px; min-height: 42px; color-scheme: dark;
+}
+.bs-check { display: flex !important; gap: 8px; align-items: flex-start; }
+.bs-check input { margin-top: 4px; width: 18px; height: 18px; flex: none; }
+.bs-purpose { font-family: var(--bs-ui); font-size: .78rem; color: var(--bs-muted); background: var(--bs-panel); border: 1px dashed var(--bs-line); border-radius: 6px; padding: 8px 10px; margin-top: 12px; }
+.bs-stars { color: var(--bs-accent); letter-spacing: .1em; }
+/* カード（タロット・ルーン） */
+.bs-table { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 14px 0; perspective: 800px; }
+.bs-cardback { width: 54px; height: 86px; border-radius: 6px; border: 1px solid var(--bs-accent); cursor: pointer; position: relative; transform-style: preserve-3d; transition: transform .45s ease, translate .3s ease;
+  background: repeating-linear-gradient(45deg, var(--bs-panel) 0 6px, var(--bs-bg) 6px 12px); }
+.bs-cardback::after { content: "万"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--bs-accent); font-size: 1.1rem; opacity: .7; }
+.bs-cardback:hover, .bs-cardback:focus-visible { translate: 0 -6px; outline: none; }
+.bs-cardback.picked { translate: 0 -14px; box-shadow: 0 0 0 2px var(--bs-accent); }
+.bs-cardback[disabled] { opacity: .3; cursor: default; }
+.bs-shuffling .bs-cardback { animation: bs-shuffle .5s ease-in-out infinite alternate; }
+@keyframes bs-shuffle { from { transform: translateX(-6px) rotate(-4deg); } to { transform: translateX(6px) rotate(4deg); } }
+.bs-face-card { width: 120px; min-height: 190px; border-radius: 8px; border: 1px solid var(--bs-accent); background: var(--bs-panel); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; box-sizing: border-box; text-align: center; animation: bs-flip .6s ease-out; }
+.bs-face-card .glyph { font-size: 2.6rem; color: var(--bs-accent); line-height: 1.2; }
+.bs-face-card .glyph.long { font-size: 1.6rem; line-height: 2; }
+.bs-face-card.rev .glyph { transform: rotate(180deg); }
+.bs-face-card small { font-family: var(--bs-ui); color: var(--bs-muted); font-size: .7rem; }
+@keyframes bs-flip { from { transform: rotateY(90deg); opacity: .2; } to { transform: rotateY(0); opacity: 1; } }
+/* 易の爻 */
+.bs-hex { display: flex; flex-direction: column-reverse; gap: 7px; width: 120px; margin: 14px auto; }
+.bs-yao { height: 12px; display: flex; gap: 14px; animation: bs-fade .4s ease-out; }
+.bs-yao i { flex: 1; background: var(--bs-accent); border-radius: 2px; }
+.bs-yao.yang i + i { display: none; }
+.bs-yao.moving i { box-shadow: 0 0 8px var(--bs-accent); }
+.bs-yao.empty i { background: var(--bs-line); }
+.bs-list { list-style: none; margin: 0; padding: 0; }
+.bs-list li { border-bottom: 1px solid var(--bs-line); padding: 10px 0; display: flex; gap: 8px; align-items: center; }
+.bs-list li .grow { flex: 1; min-width: 0; }
+@media (max-width: 520px) { .bs-body { padding: 12px; } .bs-menu { grid-template-columns: 1fr 1fr; } .bs-face-card { width: 96px; min-height: 160px; } }
+@media (prefers-reduced-motion: reduce) { .bs-overlay, .bs-face-card, .bs-yao, .bs-shuffling .bs-cardback { animation: none !important; } }
