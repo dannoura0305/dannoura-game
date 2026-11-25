@@ -23,9 +23,6 @@
     history: { n: '鑑定履歴を見る', d: 'これまでの鑑定' },
     profile: { n: 'あなたのこと', d: '生年月日などの入力・削除' }
   };
-  // 表示の順（指示書の鑑定メニューの順）。手相などは、部品（bansho-palm-ui.js）を読み込んだときだけ MENU に入る
-  const ORDER = ['today', 'palm', 'birth', 'tarot', 'east', 'west', 'love', 'work', 'age', 'synth', 'book', 'history', 'profile'];
-  const EXT = { go: {}, act: {}, synth: [], wipe: [], view: {}, del: [] };
   const SET = {
     birth: ['numerology', 'zodiac', 'eto', 'kyusei', 'blood'],
     east: ['shichu', 'kyusei', 'eto'],
@@ -91,15 +88,14 @@
 
   // ───────── メニュー ─────────
   function showMenu(say) {
-    const keys = (ui.shop.menu || ORDER).filter(function (k) { return MENU[k]; });
+    const keys = (ui.shop.menu || Object.keys(MENU)).filter(function (k) { return MENU[k]; });
     let h = npcBlock(say || line('menu'));
     h += '<div class="bs-menu">' + keys.map(function (k) { return '<button class="bs-btn" type="button" data-act="go" data-go="' + k + '">' + esc(MENU[k].n) + '<small>' + esc(MENU[k].d) + '</small></button>'; }).join('') + '</div>';
     render('menu', h);
   }
   function go(k) {
     const needsBirth = { today: 1, birth: 1, east: 1, west: 1, synth: 1 };
-    if (needsBirth[k] && (!self() || !B.available('numerology', self()).ok)) return showProfile(k, '生年月日を教えていただければ、占えます。');
-    if (EXT.go[k]) return EXT.go[k]();
+    if (needsBirth[k] && !self()) return showProfile(k, '生年月日を教えていただければ、占えます。');
     ({ today: showToday, birth: function () { showSet('birth', '生年月日占い'); }, tarot: showTarot, east: showEast, west: showWest, synth: showSynth, book: showBook, history: showHistory, profile: function () { showProfile(null); } })[k]();
   }
 
@@ -129,10 +125,10 @@
       if (!B.available('numerology', person).ok) { f.date.focus(); return; }
       const prof = profile();
       prof.people = prof.people.filter(function (x) { return !x.self; }).concat([person]);
-      prof.consent = Object.assign({}, prof.consent, { store: f.store.checked, photo: f.store.checked && !!(prof.consent && prof.consent.photo) });
+      prof.consent = Object.assign({}, prof.consent, { store: f.store.checked });
       store.saveProfile(prof);
       // 保存をやめたときは、運命の書も端末から外す（その場の記録はメモリに残る）
-      if (!f.store.checked) { try { storage && storage.removeItem(store.keys.book); } catch (er) { /* 無視 */ } EXT.wipe.forEach(function (fn) { try { fn({ keepMemory: true }); } catch (er) { /* 無視 */ } }); }
+      if (!f.store.checked) { try { storage && storage.removeItem(store.keys.book); } catch (er) { /* 無視 */ } }
       const then = f.getAttribute('data-then');
       if (then) go(then); else showMenu('承りました。');
     });
@@ -141,7 +137,7 @@
   // ───────── 結果の表示 ─────────
   function resultCard(r) {
     if (!r.ok) return '';
-    let h = '<div class="bs-card"><h3>' + esc(r.title ? r.name + '・' + r.title : r.name) + '</h3>';
+    let h = '<div class="bs-card"><h3>' + esc(r.name) + '</h3>';
     r.items.forEach(function (it) {
       h += '<div class="bs-item"><b>' + esc(it.h) + (it.stars ? ' <span class="bs-stars" aria-label="' + it.stars + ' / 5">' + '★★★★★'.slice(0, it.stars) + '☆☆☆☆☆'.slice(0, 5 - it.stars) + '</span>' : '') + '</b><p>' + esc(it.t) + '</p>' + (it.sub ? '<span class="bs-sub">' + esc(it.sub) + '</span>' : '') + '</div>';
     });
@@ -261,8 +257,7 @@
     return h + '</div>';
   }
   function showSynth() {
-    let rs = runSet(SET.synth);
-    EXT.synth.forEach(function (fn) { rs = rs.concat(fn() || []); });
+    const rs = runSet(SET.synth);
     const s = B.integrate(rs);
     record('synth', rs, { synthesis: s });
     render('synth', back() + npcBlock(line('synth') || line('result')) + '<h2 class="bs-h">総合鑑定</h2>' + synthHtml(s) +
@@ -295,7 +290,6 @@
   }
   function showReading(id) {
     const r = allReadings().filter(function (x) { return x.id === id; })[0]; if (!r) return showHistory();
-    if (EXT.view[r.kind]) return EXT.view[r.kind](r);
     render('reading', '<div class="bs-row"><button class="bs-btn small ghost" type="button" data-act="go" data-go="history">← 履歴へ</button></div><h2 class="bs-h">' + esc(KIND[r.kind] || r.kind) + '</h2><p class="bs-sub">' + esc(fmt(r.at)) + '　' + esc((r.shop && r.shop.name) || '') + '</p>' +
       (r.synthesis ? synthHtml(r.synthesis) : '') + r.results.map(resultCard).join(''));
   }
@@ -313,27 +307,12 @@
     if (act === 'rune') return drawRune(el.getAttribute('data-n'));
     if (act === 'omikuji') return drawOmikuji();
     if (act === 'view') return showReading(el.getAttribute('data-id'));
-    if (act === 'del') { const rd = allReadings().filter(function (x) { return x.id === el.getAttribute('data-id'); })[0]; if (rd) EXT.del.forEach(function (fn) { try { fn(rd); } catch (er) { /* 無視 */ } }); store.removeReading(el.getAttribute('data-id'), persistOn()); return showHistory(); }
-    if (EXT.act[act]) return EXT.act[act](el, e);
+    if (act === 'del') { store.removeReading(el.getAttribute('data-id'), persistOn()); return showHistory(); }
     if (act === 'wipe') {
       if (!global.confirm('この端末にある万象堂の記録（あなたの情報・鑑定の履歴）をすべて消します。よろしいですか？')) return;
-      store.clearAll(); EXT.wipe.forEach(function (fn) { try { fn(); } catch (er) { /* 無視 */ } }); ui.readings = []; return showMenu('すべて消しました。');
+      store.clearAll(); ui.readings = []; return showMenu('すべて消しました。');
     }
   }
 
-  // 部品（手相など）が画面を足すための口。部品は自分の画面と保存だけを持ち、ここの中身は書き換えない
-  const ext = {
-    esc: esc, randSeed: randSeed, store: store, self: self, profile: profile, persistOn: persistOn,
-    ui: function () { return ui; }, render: render, npcBlock: npcBlock, back: back, line: line, resultCard: resultCard,
-    record: record, savedNote: savedNote, showMenu: showMenu, go: go, fmt: function (iso) { return fmt(iso); },
-    addMenu: function (id, def, handler) { MENU[id] = def; EXT.go[id] = handler; },
-    onAct: function (name, fn) { EXT.act[name] = fn; },
-    onSynth: function (fn) { EXT.synth.push(fn); },
-    onWipe: function (fn) { EXT.wipe.push(fn); },
-    onDelete: function (fn) { EXT.del.push(fn); },
-    readings: function () { return allReadings(); },
-    onView: function (kind, fn) { EXT.view[kind] = fn; },
-    kindName: function (k, n) { KIND[k] = n; }
-  };
-  global.BanshoUI = { open: open, close: close, store: store, menu: MENU, ext: ext };
+  global.BanshoUI = { open: open, close: close, store: store, menu: MENU };
 })(typeof window !== 'undefined' ? window : this);
